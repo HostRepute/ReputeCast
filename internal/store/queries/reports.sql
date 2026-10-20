@@ -121,7 +121,7 @@ ORDER BY w.created_at DESC;
 SELECT c.id, c.name
 FROM campaigns c
 WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL AND c.id <> @except_id
-  AND c.status IN ('sent', 'sending', 'paused', 'cancelled', 'failed') AND c.started_at IS NOT NULL
+  AND c.status IN ('sent', 'sending', 'paused', 'cancelled', 'failed') AND c.started_at IS NOT NULL AND c.channel = 'email'
 ORDER BY c.started_at DESC
 LIMIT 1;
 

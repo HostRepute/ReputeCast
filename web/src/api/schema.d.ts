@@ -2762,6 +2762,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/automations/{id}/sms-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A flow's SMS steps over 30 days: sent, delivered, clicks, opt-outs, skipped and cost */
+        get: operations["get-automation-sms-stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/automations/{id}/stats": {
         parameters: {
             query?: never;
@@ -4027,6 +4044,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Which channels the workspace can send on: the Sending providers switch */
+        get: operations["list-channels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/composer": {
         parameters: {
             query?: never;
@@ -4476,6 +4510,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/contacts/{contactId}/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A contact's phone and consent per list on each channel, with the evidence */
+        get: operations["get-contact-channels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/contacts/{contactId}/field-sources": {
         parameters: {
             query?: never;
@@ -4486,6 +4537,43 @@ export interface paths {
         /** The fields of a contact that a poll or a survey set, and when */
         get: operations["contact-field-sources"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contactId}/phone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set or remove a contact's phone number (logged) */
+        put: operations["set-contact-phone"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contactId}/sms-consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change a contact's SMS consent on a list (logged)
+         * @description Giving consent needs its evidence: the exact consent text, where it was given and when. A text opt-out can't be overridden.
+         */
+        put: operations["set-contact-sms-consent"];
         post?: never;
         delete?: never;
         options?: never;
@@ -9222,6 +9310,820 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/sms-campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create an SMS campaign (logged) */
+        post: operations["create-sms-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The SMS composer: text, counter, audience, routes and cost */
+        get: operations["get-sms-campaign"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Autosave an SMS campaign (logged)
+         * @description Answers 409 version_conflict when someone saved a newer version.
+         */
+        patch: operations["update-sms-campaign"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel the texts not sent yet (logged) */
+        post: operations["cancel-sms-send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause an SMS send (logged) */
+        post: operations["pause-sms-send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The phone preview, as a contact and a country see it */
+        post: operations["preview-sms-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/preview-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recipients to preview as */
+        get: operations["list-sms-preview-contacts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/replies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A campaign's replies: STOP, HELP and others */
+        get: operations["list-sms-replies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The SMS report: delivery, failures by reason with the provider's codes, clicks, replies, cost, progress */
+        get: operations["get-sms-report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a paused SMS send (logged; needs sms:send too) */
+        post: operations["resume-sms-send"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Review & send: the SMS checks, routes, cost, schedule and approvals */
+        get: operations["review-sms-campaign"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send or schedule an SMS campaign as reviewed (logged)
+         * @description Needs sms:send too. Sends above 1,000 recipients or $100 need the recipient count typed. Answers 409 review_changed when the review no longer describes the campaign.
+         */
+        post: operations["send-sms-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/send-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** When the campaign goes out, pending senders, auto-pause thresholds (logged) */
+        put: operations["save-sms-send-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Text the campaign to test numbers (logged)
+         * @description Each test number gets the text from the sender its country would get. Tests count toward the budget.
+         */
+        post: operations["send-sms-campaign-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/unschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take a scheduled SMS campaign back to a draft (logged) */
+        post: operations["unschedule-sms-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Saved versions of the text */
+        get: operations["list-sms-campaign-versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The SMS adapters, with the capabilities their manifests declare */
+        get: operations["sms-catalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Raw provider events beside their normalized ones, and opt-out sync
+         * @description Raw events are kept 90 days.
+         */
+        get: operations["list-sms-events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/message-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Texts the route tester can count */
+        get: operations["list-sms-message-options"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/messages/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One text with its timeline (a test's delivery receipt) */
+        get: operations["get-sms-message"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * SMS providers: health, spend, senders and routes
+         * @description Credentials are never returned.
+         */
+        get: operations["sms-overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Connect an SMS provider (logged)
+         * @description Checks the credentials, registers the receipt and inbound webhooks where the API allows it, and lists the numbers in the account. Credentials are sealed and never returned.
+         */
+        post: operations["connect-sms-provider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/providers/{providerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Disconnect a provider no route uses (logged) */
+        delete: operations["remove-sms-provider"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/providers/{providerId}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check a provider now (Retry now during an outage) */
+        post: operations["check-sms-provider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/providers/{providerId}/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace a provider's credentials (logged)
+         * @description Checked before they're stored, sealed, never returned. Held texts go once they work.
+         */
+        put: operations["replace-sms-credentials"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/providers/{providerId}/numbers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The numbers in the provider's account, with their registration */
+        get: operations["list-sms-account-numbers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/providers/{providerId}/senders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import numbers from the provider's account (logged) */
+        post: operations["import-sms-senders"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/providers/{providerId}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Text a test to a member's phone through this provider (logged)
+         * @description The timeline waits for the delivery receipt: poll the message.
+         */
+        post: operations["test-sms-provider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/providers/{providerId}/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register the receipt and inbound webhooks again (logged) */
+        post: operations["register-sms-webhooks"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/route-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Which sender would text a number, at what price, and when */
+        post: operations["test-sms-route"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/routes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the routes by country (logged)
+         * @description A country takes one route; a fallback must be registered for the route's countries.
+         */
+        put: operations["save-sms-routes"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Routes, quiet hours, keywords and replies, the budget and guards */
+        get: operations["get-sms-rules"];
+        /**
+         * Save the SMS rules (logged)
+         * @description Quiet hours can be narrowed, never widened past 08:00–21:00. STOP and HELP stay. Applies to texts not yet sent.
+         */
+        put: operations["save-sms-rules"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/senders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add an alphanumeric sender ID with its countries (logged) */
+        post: operations["add-sms-sender-id"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/senders/{senderId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a sender no route uses (logged) */
+        delete: operations["remove-sms-sender"];
+        options?: never;
+        head?: never;
+        /** Change a sender's countries (logged) */
+        patch: operations["update-sms-sender"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/senders/{senderId}/registration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A sender's registrations, and what the provider's form asks for */
+        get: operations["get-sms-registration"];
+        /**
+         * Set a registration status by hand, with its date (logged)
+         * @description For providers that don't report it through their API.
+         */
+        put: operations["set-sms-registration"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/senders/{senderId}/registration/check-pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check the pages carriers look at: the terms page and the sign-up page */
+        post: operations["check-sms-registration-pages"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/senders/{senderId}/registration/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read the registration statuses from the provider now */
+        post: operations["read-sms-registration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/setups/{id}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finish the connect wizard (logged) */
+        post: operations["finish-sms-setup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/short-domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the short-link domain (logged)
+         * @description Verified by a CNAME to the instance's host.
+         */
+        put: operations["set-sms-short-domain"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/short-domain/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check the short-link domain's DNS now */
+        post: operations["check-sms-short-domain"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/step-estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** An SMS step's counter and estimated cost */
+        post: operations["estimate-sms-step"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/suppressions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The SMS suppression list, numbers partly masked */
+        get: operations["list-sms-suppressions"];
+        put?: never;
+        /** Put numbers on the SMS suppression list (logged) */
+        post: operations["add-sms-suppressions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/suppressions/{id}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Take a number off the SMS suppression list, with a reason (logged)
+         * @description A number that opted out by text can't be removed: only the person can come back, by texting START.
+         */
+        post: operations["remove-sms-suppression"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The text message terms page: its live version and the generated text */
+        get: operations["get-sms-terms"];
+        /**
+         * Publish a new version of the text message terms (logged)
+         * @description Consent given from now on records this version.
+         */
+        put: operations["publish-sms-terms"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/test-numbers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Test numbers with their last test */
+        get: operations["list-sms-test-numbers"];
+        put?: never;
+        /** Add a member's phone for test texts (logged) */
+        post: operations["add-sms-test-number"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms/test-numbers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a test number (logged) */
+        delete: operations["remove-sms-test-number"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/suppression-sync": {
         parameters: {
             query?: never;
@@ -12306,6 +13208,12 @@ export interface components {
             serious: number;
             summary?: string;
         };
+        Account: {
+            hint: string;
+            id: string;
+            live: boolean;
+            name: string;
+        };
         AccountAvatarInput: {
             /** @description PNG or JPEG, up to 2 MB, base64 */
             data: string;
@@ -12732,6 +13640,11 @@ export interface components {
             body: string;
             id: string;
         };
+        ApprovalCostRule: {
+            /** Format: double */
+            amount: number;
+            enabled: boolean;
+        };
         ApprovalCounts: {
             /** Format: int64 */
             all: number;
@@ -12770,6 +13683,8 @@ export interface components {
             can: components["schemas"]["ApprovalCan"];
             changes: components["schemas"]["ApprovalChange"][];
             changesSince: components["schemas"]["ApprovalChange"][];
+            /** @enum {string} */
+            channel: "email" | "sms" | "push" | "whatsapp";
             comment?: string;
             comments: components["schemas"]["ApprovalCommentView"][];
             /** Format: date-time */
@@ -12797,6 +13712,7 @@ export interface components {
             route?: components["schemas"]["ApprovalRouteView"];
             rules: components["schemas"]["ApprovalRuleMatch"][];
             schedule?: components["schemas"]["ApprovalScheduleView"];
+            sms?: components["schemas"]["ApprovalSMSSnapshot"];
             snapshot: components["schemas"]["ApprovalSnapshotSummary"];
             /** @enum {string} */
             status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
@@ -12828,6 +13744,8 @@ export interface components {
             author: components["schemas"]["ApprovalPerson"];
             automationId?: string;
             campaignId?: string;
+            /** @enum {string} */
+            channel: "email" | "sms" | "push" | "whatsapp";
             /** Format: date-time */
             decidedAt?: string;
             decidedBy?: string;
@@ -12877,6 +13795,7 @@ export interface components {
             audienceMin: components["schemas"]["ApprovalAudienceRule"];
             authorLacksSend: boolean;
             automationPublish: boolean;
+            channelCost?: components["schemas"]["ApprovalCostRule"];
             emergencyBypass: boolean;
             /** Format: int64 */
             newProviderDays: number;
@@ -12986,10 +13905,39 @@ export interface components {
             author?: string;
             badge: string;
             /** @enum {string} */
-            key: "audience_min" | "warming_provider" | "new_provider" | "ready_with_warnings" | "author_lacks_send" | "approval_lists" | "automation_publish" | "transactional_publish" | "post_publish";
+            key: "audience_min" | "warming_provider" | "new_provider" | "ready_with_warnings" | "author_lacks_send" | "approval_lists" | "automation_publish" | "transactional_publish" | "post_publish" | "channel_cost_min";
             label: string;
             role?: string;
             short: string;
+        };
+        ApprovalSMSCountry: {
+            /** Format: double */
+            cost: number;
+            country: string;
+            /** Format: double */
+            price: number;
+            provider: string;
+            /** Format: int64 */
+            recipients: number;
+            sender: string;
+            skipped: boolean;
+        };
+        ApprovalSMSSnapshot: {
+            body: string;
+            /** Format: int64 */
+            chars: number;
+            /** Format: double */
+            cost: number;
+            countries: components["schemas"]["ApprovalSMSCountry"][];
+            encoding: string;
+            optOut: string;
+            prefix: string;
+            /** Format: int64 */
+            recipients: number;
+            schedule: string;
+            /** Format: int64 */
+            segments: number;
+            text: string;
         };
         ApprovalScheduleView: {
             /** Format: date-time */
@@ -13362,7 +14310,7 @@ export interface components {
             field?: string;
             humanOnly?: boolean;
             /** @enum {string} */
-            kind: "opened" | "clicked" | "field" | "tag" | "list" | "event";
+            kind: "opened" | "clicked" | "field" | "tag" | "list" | "event" | "sms_consent" | "sms_clicked" | "sms_replied";
             listId?: string;
             /** @description equals, not_equals, contains, is_set, is_not_set, is_one_of (comma-separated values) */
             op?: string;
@@ -13657,7 +14605,7 @@ export interface components {
             id: string;
             position: components["schemas"]["AutomationNodePosition"];
             /** @enum {string} */
-            type: "trigger" | "delay" | "email" | "branch" | "filter" | "split" | "webhook" | "list" | "goal" | "exit";
+            type: "trigger" | "delay" | "email" | "branch" | "filter" | "split" | "webhook" | "list" | "goal" | "exit" | "sms";
         };
         AutomationNodeData: {
             action?: components["schemas"]["AutomationListAction"];
@@ -13666,6 +14614,7 @@ export interface components {
             delay?: components["schemas"]["AutomationDuration"];
             email?: components["schemas"]["AutomationEmailStep"];
             label?: string;
+            sms?: components["schemas"]["AutomationSMSStep"];
             trigger?: components["schemas"]["AutomationTrigger"];
             variants?: components["schemas"]["AutomationSplitVariant"][];
             webhook?: components["schemas"]["AutomationWebhook"];
@@ -13734,6 +14683,9 @@ export interface components {
             canPublish: boolean;
             /** Format: int64 */
             changes: number;
+            channelSteps: {
+                [key: string]: number;
+            };
             checks: components["schemas"]["AutomationPublishCheck"][];
             /** @example about 9 days */
             finishEstimate: string;
@@ -13747,6 +14699,7 @@ export interface components {
             livePublishedBy?: string;
             moveImpact: string;
             name: string;
+            requires: string[];
             /** Format: int64 */
             toVersion: number;
         };
@@ -13783,6 +14736,15 @@ export interface components {
             status: string;
             /** Format: int64 */
             weight?: number;
+        };
+        AutomationSMSStep: {
+            body?: string;
+            consentListId?: string;
+            noOptOut?: boolean;
+            /** @enum {string} */
+            outside?: "wait" | "skip" | "";
+            /** Format: int64 */
+            skipRecentHours?: number;
         };
         AutomationSecretBody: {
             secret: string;
@@ -13983,6 +14945,13 @@ export interface components {
         AutomationWebhookCalls: {
             calls: components["schemas"]["AutomationWebhookCall"][];
         };
+        Badge: {
+            /** @enum {string} */
+            capability: "toll_free" | "10dlc" | "sender_ids" | "receipts" | "inbound" | "opt_out_sync" | "registration" | "pricing";
+            note?: string;
+            /** @enum {string} */
+            support: "yes" | "partial" | "no";
+        };
         BlockChange: {
             /** Format: date-time */
             at: string;
@@ -14056,8 +15025,12 @@ export interface components {
         CampaignListItem: {
             audience: string;
             blocked: boolean;
+            /** @enum {string} */
+            channel: "email" | "sms" | "push" | "whatsapp";
             /** Format: double */
             clicks?: number;
+            /** Format: double */
+            cost?: number;
             /** Format: date-time */
             createdAt: string;
             /** Format: double */
@@ -14066,8 +15039,11 @@ export interface components {
             /** Format: double */
             humanOpens?: number;
             id: string;
+            local?: boolean;
             name: string;
             notes: string[];
+            /** Format: int64 */
+            optOuts?: number;
             origin?: string;
             paidOnly: boolean;
             readiness?: components["schemas"]["ReadinessSummary"];
@@ -14171,6 +15147,12 @@ export interface components {
         "Change-passwordRequest": {
             current?: string;
             password: string;
+        };
+        ChannelStatus: {
+            available: boolean;
+            /** @enum {string} */
+            channel: "email" | "sms" | "push" | "whatsapp";
+            setUp: boolean;
         };
         CheckLine: {
             detail: string;
@@ -15654,6 +16636,42 @@ export interface components {
             links: number;
             /** Format: int64 */
             linksOk: number;
+        };
+        Count: {
+            /** Format: int64 */
+            capacity: number;
+            /** Format: int64 */
+            characters: number;
+            /** @enum {string} */
+            encoding: "gsm7" | "ucs2";
+            fill: number[];
+            /** Format: int64 */
+            left: number;
+            outside: components["schemas"]["Outside"][];
+            /** Format: int64 */
+            segments: number;
+            /** Format: int64 */
+            units: number;
+        };
+        CountryLine: {
+            adapter: string;
+            /** Format: double */
+            cost: number;
+            country: string;
+            /** Format: double */
+            pendingPrice: number;
+            /** Format: double */
+            price: number;
+            provider: string;
+            /** Format: int64 */
+            recipients: number;
+            /** Format: int64 */
+            segments: number;
+            sender: string;
+            senderKind: string;
+            skipReason?: string;
+            /** Format: int64 */
+            skipped: number;
         };
         "Create-workspaceRequest": {
             name: string;
@@ -17905,6 +18923,15 @@ export interface components {
             noLanguage: number;
             /** Format: int64 */
             notOffered: number;
+        };
+        Field: {
+            default?: string;
+            help?: string;
+            key: string;
+            label: string;
+            options?: string[];
+            required: boolean;
+            secret: boolean;
         };
         FieldSource: {
             /** Format: date-time */
@@ -20912,6 +21939,17 @@ export interface components {
             confirmUrl?: string;
             sent: boolean;
         };
+        Outside: {
+            char: string;
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            first: number;
+            /** @enum {string} */
+            kind: "curly_apostrophe" | "curly_quote" | "en_dash" | "em_dash" | "minus" | "ellipsis" | "non_breaking_space" | "thin_space" | "zero_width_space" | "prime" | "backtick" | "emoji" | "other";
+            removable: boolean;
+            replacement: string;
+        };
         OverviewAudience: {
             /** Format: int64 */
             days: number;
@@ -21118,6 +22156,9 @@ export interface components {
             sso?: components["schemas"]["SSOStart"];
             /** @enum {string} */
             status: "sent" | "email_unavailable" | "sso";
+        };
+        "Pause-sms-sendRequest": {
+            reason?: string;
         };
         PermissionInfo: {
             description: string;
@@ -25407,6 +26448,1571 @@ export interface components {
             systemMail: boolean;
             systemProvider: string;
             turnstile: components["schemas"]["PublicTurnstile"];
+        };
+        SmsAudienceRef: {
+            id: string;
+            /** @enum {string} */
+            kind: "list" | "segment";
+            name: string;
+        };
+        SmsBudgetView: {
+            /** Format: double */
+            after: number;
+            /** Format: int64 */
+            alertPct: number;
+            /** Format: double */
+            budget: number;
+            /** Format: date-time */
+            month: string;
+            /** Format: date-time */
+            setAt?: string;
+            setBy?: string;
+            /** Format: double */
+            spent: number;
+        };
+        SmsCampaign: {
+            access: components["schemas"]["SmsCampaignAccess"];
+            audience: components["schemas"]["SmsAudienceRef"][];
+            /** Format: date-time */
+            autosavedAt?: string;
+            /** Format: int64 */
+            blocks: number;
+            body: string;
+            budget: components["schemas"]["SmsBudgetView"];
+            /** Format: double */
+            cost: number;
+            costs: components["schemas"]["CountryLine"][];
+            counter: components["schemas"]["SmsCounter"];
+            createdBy: string;
+            funnel: components["schemas"]["SmsFunnel"];
+            id: string;
+            links: components["schemas"]["SmsLinkView"][];
+            localDate?: string;
+            localTime?: string;
+            name: string;
+            optOut: string;
+            prefix: string;
+            priceProviders: string[];
+            /** Format: date-time */
+            pricedOn?: string;
+            /** Format: int64 */
+            retentionDays: number;
+            routes: components["schemas"]["SmsRouteLine"][];
+            /** @enum {string} */
+            scheduleMode: "now" | "at" | "local";
+            /** Format: int64 */
+            segments: number;
+            /** Format: date-time */
+            sendAt?: string;
+            shortDomain: string;
+            /** @enum {string} */
+            shortDomainStatus: "none" | "pending" | "verified" | "failed";
+            /** @enum {string} */
+            status: "draft" | "approval" | "approved" | "scheduled" | "sending" | "paused" | "sent" | "cancelled" | "failed";
+            tests: components["schemas"]["SmsTestNumber"][];
+            text: string;
+            /** Format: int64 */
+            texts: number;
+            timezone: string;
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy: string;
+            /** Format: int64 */
+            version: number;
+            /** Format: int64 */
+            versions: number;
+            /** Format: int64 */
+            warnings: number;
+            window: string;
+        };
+        SmsCampaignAccess: {
+            canEdit: boolean;
+            canManageRules: boolean;
+            canSend: boolean;
+            canViewContacts: boolean;
+            helpers: string[];
+            missing: string[];
+        };
+        SmsCampaignCreate: {
+            body?: string;
+            lists?: string[];
+            name: string;
+        };
+        SmsCampaignUpdate: {
+            body?: string;
+            lists?: string[];
+            name?: string;
+            segments?: string[];
+            /** Format: int64 */
+            version: number;
+        };
+        SmsCampaignVersion: {
+            body: string;
+            /** Format: date-time */
+            savedAt: string;
+            savedBy: string;
+            /** Format: int64 */
+            version: number;
+        };
+        SmsCampaignVersionList: {
+            items: components["schemas"]["SmsCampaignVersion"][];
+        };
+        SmsCatalogItem: {
+            adapter: string;
+            badges: components["schemas"]["Badge"][];
+            /** Format: int64 */
+            connected: number;
+            fields: components["schemas"]["Field"][];
+            name: string;
+            summary: string;
+            version: string;
+            /** @enum {string} */
+            webhooks: "registered" | "manual";
+        };
+        SmsCatalogList: {
+            items: components["schemas"]["SmsCatalogItem"][];
+        };
+        SmsChannels: {
+            channels: components["schemas"]["ChannelStatus"][];
+            switchShown: boolean;
+        };
+        SmsCheck: {
+            /** Format: double */
+            after: number;
+            /** Format: int64 */
+            alertPct: number;
+            /** Format: double */
+            budget: number;
+            /** Format: int64 */
+            byArea: number;
+            /** Format: int64 */
+            byCountry: number;
+            /** Format: int64 */
+            characters: number;
+            /** @enum {string} */
+            choice?: "skip" | "wait" | "";
+            /** Format: date-time */
+            clearedAt?: string;
+            clearedBy?: string;
+            /** Format: double */
+            cost: number;
+            /** Format: int64 */
+            count: number;
+            countries: string[];
+            domain?: string;
+            encoding?: string;
+            /** @enum {string} */
+            key: "audience" | "senders" | "registration" | "routes" | "consent" | "suppressions" | "quiet_hours" | "time_zones" | "opt_out" | "sender_named" | "links" | "length" | "budget";
+            /** Format: int64 */
+            links: number;
+            lists: string[];
+            local?: string;
+            provider?: string;
+            reasons: {
+                [key: string]: number;
+            };
+            registration?: string;
+            /** Format: double */
+            remaining: number;
+            /** Format: int64 */
+            segments: number;
+            sender?: string;
+            senders: components["schemas"]["SmsCheckSender"][];
+            shorteners: string[];
+            /** Format: date-time */
+            since?: string;
+            /** Format: double */
+            spent: number;
+            /** @enum {string} */
+            status: "pass" | "warn" | "block";
+            text?: string;
+            /** Format: int64 */
+            total: number;
+            /** Format: date-time */
+            verifiedOn?: string;
+            window?: string;
+        };
+        SmsCheckSender: {
+            countries: string[];
+            registration: string;
+            sender: string;
+            /** Format: date-time */
+            since?: string;
+        };
+        SmsClickLink: {
+            domain: string;
+            /** Format: int64 */
+            machine: number;
+            /** Format: int64 */
+            people: number;
+            url: string;
+        };
+        SmsConnectInput: {
+            adapter: string;
+            fields: {
+                [key: string]: string;
+            };
+            name?: string;
+            setupId?: string;
+        };
+        SmsConnectResult: {
+            account: components["schemas"]["Account"];
+            providerId: string;
+            senders: components["schemas"]["SmsFoundSender"][];
+            setupId: string;
+            webhooks: components["schemas"]["SmsWebhookSetup"];
+        };
+        SmsConsentEvent: {
+            /** @enum {string} */
+            action: "subscribed" | "pending" | "confirmed" | "opted_out" | "opted_in" | "unsubscribed" | "imported" | "confirmation_sent" | "confirmation_failed";
+            actor?: string;
+            /** Format: date-time */
+            at: string;
+            consentText?: string;
+            consentVersion?: string;
+            id: string;
+            ip?: string;
+            keyword?: string;
+            list?: string;
+            note?: string;
+            number: string;
+            page?: string;
+            source: string;
+        };
+        SmsConsentEvidence: {
+            /**
+             * Format: date-time
+             * @description When consent was given.
+             */
+            at: string;
+            /** @description The exact text the person agreed to. */
+            consentText: string;
+            consentVersion?: string;
+            ip?: string;
+            page?: string;
+            /** @description Where consent was given: a form, an event, a call. */
+            source: string;
+        };
+        SmsConsentInput: {
+            evidence?: components["schemas"]["SmsConsentEvidence"];
+            /** Format: uuid */
+            listId: string;
+            note?: string;
+            /** @enum {string} */
+            status: "subscribed" | "not_subscribed";
+        };
+        SmsContactChannels: {
+            canEdit: boolean;
+            country: string;
+            display: string;
+            events: components["schemas"]["SmsConsentEvent"][];
+            /** @enum {string} */
+            lineSource: "number_plan" | "provider" | "receipt" | "";
+            /** @enum {string} */
+            lineType: "mobile" | "landline" | "toll_free" | "voip" | "unknown" | "";
+            lists: components["schemas"]["SmsContactList"][];
+            phone: string;
+            /** Format: int64 */
+            shared: number;
+            smsSetUp: boolean;
+            suppressed?: components["schemas"]["SmsSuppression"];
+            timeZone: string;
+            /** @enum {string} */
+            zoneSource: "contact" | "area_code" | "country" | "unknown";
+        };
+        SmsContactList: {
+            confirmation?: string;
+            /** Format: date-time */
+            confirmationAt?: string;
+            /** @enum {string} */
+            email: "subscribed" | "pending" | "unsubscribed" | "not_subscribed";
+            /** Format: date-time */
+            emailAt?: string;
+            emailSource?: string;
+            listId: string;
+            name: string;
+            /** @enum {string} */
+            sms: "subscribed" | "pending" | "opted_out" | "not_subscribed";
+            /** Format: date-time */
+            smsAt?: string;
+            smsIp?: string;
+            smsKeyword?: string;
+            smsPage?: string;
+            smsSource?: string;
+            smsVersion?: string;
+        };
+        SmsCounter: {
+            /** Format: int64 */
+            base: number;
+            /** Format: int64 */
+            capacity: number;
+            /** Format: int64 */
+            characters: number;
+            /** @enum {string} */
+            encoding: "gsm7" | "ucs2";
+            fields: components["schemas"]["SmsField"][];
+            fill: number[];
+            /** Format: int64 */
+            left: number;
+            longest?: components["schemas"]["SmsLongest"];
+            outside: components["schemas"]["Outside"][];
+            /** Format: int64 */
+            segments: number;
+            spread: components["schemas"]["SmsSpread"][];
+            /** Format: int64 */
+            units: number;
+        };
+        SmsCountryReport: {
+            /** Format: double */
+            clickPct: number;
+            /** Format: int64 */
+            clicks: number;
+            /** Format: double */
+            cost: number;
+            country: string;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            deliveredPct: number;
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            optOuts: number;
+            sender: string;
+            /** Format: int64 */
+            sent: number;
+            skipReason?: string;
+            /** Format: int64 */
+            skipped: number;
+        };
+        SmsCredentialsInput: {
+            fields: {
+                [key: string]: string;
+            };
+        };
+        SmsEvent: {
+            adapter: string;
+            /** Format: date-time */
+            at: string;
+            code?: string;
+            error?: string;
+            /** Format: int64 */
+            filtered: number;
+            id: string;
+            keyword?: string;
+            /** @enum {string} */
+            kind: "receipt" | "inbound" | "test" | "other";
+            lists: string[];
+            messageRef?: string;
+            normalized: string;
+            number: string;
+            provider: string;
+            providerAnswered: boolean;
+            raw: string;
+            reason?: string;
+            replied: boolean;
+            signatureOk: boolean;
+            source: string;
+            suppressed: boolean;
+            temporary: boolean;
+        };
+        SmsEventList: {
+            items: components["schemas"]["SmsEvent"][];
+            /** Format: date-time */
+            month: string;
+            optOutSync: components["schemas"]["SmsOptOutSyncRow"][];
+            /** Format: int64 */
+            page: number;
+            /** Format: int64 */
+            pageSize: number;
+            providers: components["schemas"]["SmsSuppressionProvider"][];
+            /** Format: int64 */
+            suppressed: number;
+            /** Format: int64 */
+            thisMonth: number;
+            /** Format: int64 */
+            total: number;
+        };
+        SmsFailureCode: {
+            code: string;
+            /** Format: int64 */
+            count: number;
+            provider: string;
+        };
+        SmsFailureReason: {
+            codes: components["schemas"]["SmsFailureCode"][];
+            /** Format: int64 */
+            count: number;
+            /** Format: double */
+            limit: number;
+            /** Format: double */
+            rate: number;
+            reason: string;
+        };
+        SmsField: {
+            fallback: string;
+            hasFallback: boolean;
+            key: string;
+        };
+        SmsFoundSender: {
+            countries: string[];
+            imported: boolean;
+            /** @enum {string} */
+            kind: "toll_free" | "10dlc" | "local" | "mobile" | "sender_id";
+            label: string;
+            providerRef: string;
+            registration: components["schemas"]["SmsRegistrationView"];
+            /** Format: double */
+            throughput: number;
+            value: string;
+        };
+        SmsFoundSenderList: {
+            items: components["schemas"]["SmsFoundSender"][];
+        };
+        SmsFunnel: {
+            /** Format: int64 */
+            assumed: number;
+            /** Format: int64 */
+            base: number;
+            /** Format: int64 */
+            canReceive: number;
+            /** Format: int64 */
+            noConsent: number;
+            reasons: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            shared: number;
+            /** Format: int64 */
+            skipped: number;
+            skippedIn: string[];
+            /** Format: int64 */
+            suppressed: number;
+            /** Format: int64 */
+            toSend: number;
+        };
+        SmsHeld: {
+            lists: string[];
+            /** Format: int64 */
+            noConsent: number;
+            notSent: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            quietHours: number;
+            skipReason?: string;
+            skipSender?: string;
+            /** Format: int64 */
+            skipped: number;
+            skippedCountries: string[];
+            /** Format: int64 */
+            suppressed: number;
+        };
+        SmsImportInput: {
+            senders: components["schemas"]["SmsImportSender"][];
+            setupId?: string;
+        };
+        SmsImportSender: {
+            countries?: string[];
+            value: string;
+        };
+        SmsLarge: {
+            /** Format: double */
+            cost: number;
+            /** Format: int64 */
+            recipients: number;
+            required: boolean;
+        };
+        SmsLinkView: {
+            host: string;
+            /** Format: int64 */
+            length: number;
+            shortener: boolean;
+            url: string;
+            utmCampaign: string;
+        };
+        SmsLongest: {
+            /** Format: int64 */
+            characters: number;
+            /** Format: double */
+            cost: number;
+            name: string;
+            /** Format: int64 */
+            recipients: number;
+            /** Format: int64 */
+            segments: number;
+            value: string;
+        };
+        SmsMemberOption: {
+            color: string;
+            name: string;
+            role: string;
+            userId: string;
+        };
+        SmsMessageEvent: {
+            /** Format: date-time */
+            at: string;
+            code?: string;
+            kind: string;
+        };
+        SmsMessageOption: {
+            key: string;
+            name: string;
+            /** Format: int64 */
+            segments: number;
+        };
+        SmsMessageOptionList: {
+            items: components["schemas"]["SmsMessageOption"][];
+        };
+        SmsMessageView: {
+            body: string;
+            /** Format: int64 */
+            characters: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            deliveredAt?: string;
+            encoding: string;
+            events: components["schemas"]["SmsMessageEvent"][];
+            id: string;
+            kind: string;
+            provider: string;
+            providerMessageId?: string;
+            reason?: string;
+            recipient: string;
+            /** Format: double */
+            seconds?: number;
+            /** Format: int64 */
+            segments: number;
+            sender: string;
+            /** Format: date-time */
+            sentAt?: string;
+            /** @enum {string} */
+            status: "queued" | "held" | "skipped" | "sending" | "sent" | "delivered" | "undelivered" | "failed" | "cancelled";
+        };
+        SmsOptOutSyncRow: {
+            adapter: string;
+            detail?: string;
+            /** Format: date-time */
+            lastSyncAt?: string;
+            /** @enum {string} */
+            mode: "two_way" | "read_only" | "off";
+            provider: string;
+            /** Format: int64 */
+            pulled: number;
+            /** Format: int64 */
+            pushed: number;
+            /** @enum {string} */
+            status: "in_sync" | "failing";
+        };
+        SmsOutageView: {
+            answer?: string;
+            countries: string[];
+            /** Format: int64 */
+            failures: number;
+            hasFallback: boolean;
+            /** Format: int64 */
+            held: number;
+            /** Format: date-time */
+            lastAccepted?: string;
+            /** Format: date-time */
+            nextTry?: string;
+            provider: string;
+            providerId: string;
+            /** Format: date-time */
+            since?: string;
+            status: string;
+            told: string[];
+        };
+        SmsOverview: {
+            canManage: boolean;
+            /** Format: date-time */
+            checkedAt?: string;
+            helpers: string[];
+            notConnected: components["schemas"]["SmsCatalogItem"][];
+            /** @enum {string} */
+            other: "dont_send" | "route";
+            otherSender?: string;
+            providers: components["schemas"]["SmsProviderCard"][];
+            routes: components["schemas"]["SmsRouteSummary"][];
+            senders: components["schemas"]["SmsSenderRow"][];
+            tiles: components["schemas"]["SmsOverviewTiles"];
+            timezone: string;
+        };
+        SmsOverviewTiles: {
+            /** Format: int64 */
+            alertPct: number;
+            /** Format: double */
+            budget: number;
+            /** Format: int64 */
+            budgetHeld: number;
+            byKind: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            deliveredPct: number;
+            /** Format: int64 */
+            failed: number;
+            /** Format: date-time */
+            month: string;
+            /** Format: int64 */
+            sent: number;
+            /** Format: double */
+            spend: number;
+            spendBy: components["schemas"]["SmsProviderSpend"][];
+            /** Format: int64 */
+            suppressed: number;
+            suppressedBy: {
+                [key: string]: number;
+            };
+        };
+        SmsPageCheck: {
+            /** Format: date-time */
+            at?: string;
+            /** Format: int64 */
+            status: number;
+            url: string;
+        };
+        SmsPauseView: {
+            /** Format: date-time */
+            at?: string;
+            /** Format: int64 */
+            base: number;
+            by?: string;
+            code?: string;
+            /** Format: int64 */
+            codeCount: number;
+            /** Format: int64 */
+            events: number;
+            /** Format: int64 */
+            held: number;
+            /** @enum {string} */
+            kind: "auto" | "person" | "outage" | "budget";
+            /** Format: double */
+            limit: number;
+            /** @enum {string} */
+            metric?: "failed" | "filtered" | "opt_outs" | "";
+            provider?: string;
+            /** Format: double */
+            value: number;
+        };
+        SmsPhoneInput: {
+            country?: string;
+            phone: string;
+        };
+        SmsPreview: {
+            /** Format: date-time */
+            arrives?: string;
+            canReply: boolean;
+            /** Format: int64 */
+            characters: number;
+            confirmation?: components["schemas"]["SmsPreviewBubble"];
+            contact: string;
+            contactId?: string;
+            country: string;
+            encoding: string;
+            parts: components["schemas"]["SmsPreviewPart"][];
+            /** Format: double */
+            price: number;
+            provider: string;
+            /** Format: int64 */
+            segments: number;
+            sender: string;
+            senderKind: string;
+            skipped?: string;
+            zone: string;
+        };
+        SmsPreviewBubble: {
+            /** Format: date-time */
+            at: string;
+            text: string;
+        };
+        SmsPreviewContact: {
+            country: string;
+            id: string;
+            name: string;
+        };
+        SmsPreviewContactList: {
+            items: components["schemas"]["SmsPreviewContact"][];
+        };
+        SmsPreviewInput: {
+            /** Format: uuid */
+            contactId?: string;
+            country?: string;
+        };
+        SmsPreviewPart: {
+            /** @enum {string} */
+            kind: "fixed" | "text" | "link";
+            text: string;
+        };
+        SmsProviderCard: {
+            accountHint: string;
+            accountLabel: string;
+            adapter: string;
+            answer?: string;
+            badges: components["schemas"]["Badge"][];
+            /** Format: date-time */
+            connectedAt: string;
+            connectedBy: string;
+            console: string;
+            countries: string[];
+            demo: boolean;
+            detail?: string;
+            /** Format: double */
+            failedPct: number;
+            /** Format: double */
+            filteredPct: number;
+            held: string[];
+            /** Format: int64 */
+            heldTexts: number;
+            id: string;
+            /** Format: date-time */
+            lastCheckedAt?: string;
+            /** Format: date-time */
+            lastReceiptAt?: string;
+            live: boolean;
+            name: string;
+            /** @enum {string} */
+            optOutSync: "two_way" | "read_only" | "off";
+            /** Format: double */
+            pauseFailed: number;
+            /** Format: double */
+            pauseFiltered: number;
+            priceCountries: string[];
+            /** Format: double */
+            priceMax: number;
+            /** Format: double */
+            priceMin: number;
+            /** Format: int64 */
+            receiptsSince: number;
+            secretLabels: string[];
+            /** Format: int64 */
+            senderCount: number;
+            /** Format: int64 */
+            senderIdCountries: number;
+            senderIds: string[];
+            senderKinds: string[];
+            /** Format: int64 */
+            sentSince: number;
+            /** Format: date-time */
+            since?: string;
+            /** Format: double */
+            spend: number;
+            /** @enum {string} */
+            status: "healthy" | "degraded" | "down" | "credentials_rejected";
+            told: string[];
+            webhookUrl: string;
+            /** @enum {string} */
+            webhooks: "registered" | "manual";
+        };
+        SmsProviderCount: {
+            /** Format: int64 */
+            count: number;
+            name: string;
+        };
+        SmsProviderSpend: {
+            name: string;
+            /** Format: double */
+            spend: number;
+        };
+        SmsProviderTestInput: {
+            phone?: string;
+            setupId?: string;
+            testNumberId?: string;
+        };
+        SmsRegistrationHelper: {
+            helpReply: string;
+            optIn: string;
+            optOutReply: string;
+            samples: string[];
+            termsUrl: string;
+        };
+        SmsRegistrationInput: {
+            country?: string;
+            /** @enum {string} */
+            kind: "toll_free" | "brand" | "campaign" | "sender_id";
+            name?: string;
+            /**
+             * Format: date-time
+             * @description The day the provider gave this status.
+             */
+            on: string;
+            reason?: string;
+            /** @enum {string} */
+            status: "not_registered" | "pending" | "verified" | "approved" | "rejected" | "allowed" | "not_supported";
+        };
+        SmsRegistrationPanel: {
+            canManage: boolean;
+            checks: components["schemas"]["SmsPageCheck"][];
+            console: string;
+            details: {
+                [key: string]: string;
+            };
+            /** Format: int64 */
+            held: number;
+            helper: components["schemas"]["SmsRegistrationHelper"];
+            items: components["schemas"]["SmsRegistrationView"][];
+            /** Format: date-time */
+            readAt?: string;
+            readFrom: boolean;
+            sender: components["schemas"]["SmsSenderRow"];
+        };
+        SmsRegistrationView: {
+            country: string;
+            /** @enum {string} */
+            kind: "toll_free" | "brand" | "campaign" | "sender_id" | "";
+            name?: string;
+            /** Format: date-time */
+            readAt?: string;
+            reason?: string;
+            setBy?: string;
+            /** Format: date-time */
+            since?: string;
+            /** @enum {string} */
+            source: "api" | "manual" | "rule" | "";
+            /** @enum {string} */
+            status: "not_registered" | "pending" | "verified" | "approved" | "rejected" | "allowed" | "not_supported";
+        };
+        SmsReply: {
+            anyCase: boolean;
+            /** Format: date-time */
+            at: string;
+            body: string;
+            contact: string;
+            contactId?: string;
+            id: string;
+            keyword?: string;
+            /** @enum {string} */
+            kind: "opt_out" | "opt_in" | "help" | "yes" | "reply";
+            lists: string[];
+            number: string;
+            replied: boolean;
+            /** Format: int64 */
+            replyChars: number;
+            /** Format: int64 */
+            replySegments: number;
+            zone: string;
+        };
+        SmsReplyList: {
+            counts: {
+                [key: string]: number;
+            };
+            items: components["schemas"]["SmsReply"][];
+        };
+        SmsReplyView: {
+            count: components["schemas"]["Count"];
+            text: string;
+        };
+        SmsReport: {
+            campaignId: string;
+            canPause: boolean;
+            canResume: boolean;
+            /** Format: date-time */
+            completedAt?: string;
+            countries: components["schemas"]["SmsCountryReport"][];
+            failures: components["schemas"]["SmsFailureReason"][];
+            held: components["schemas"]["SmsHeld"];
+            helpers: string[];
+            links: components["schemas"]["SmsClickLink"][];
+            localTime?: string;
+            name: string;
+            outage?: components["schemas"]["SmsOutageView"];
+            pause?: components["schemas"]["SmsPauseView"];
+            /** @enum {string} */
+            phase: "scheduled" | "sending" | "paused" | "completed" | "cancelled" | "";
+            points: components["schemas"]["SmsTimePoint"][];
+            /** Format: double */
+            receiptsWithin: number;
+            /** Format: int64 */
+            recipients: number;
+            replies: components["schemas"]["SmsReply"][];
+            replyCounts: {
+                [key: string]: number;
+            };
+            sample?: components["schemas"]["SmsTimelineSample"];
+            /** @enum {string} */
+            scheduleMode: "now" | "at" | "local";
+            /** Format: date-time */
+            scheduledAt?: string;
+            senders: components["schemas"]["SmsSenderReport"][];
+            shortDomain: string;
+            /** Format: date-time */
+            startedAt?: string;
+            status: string;
+            steps: components["schemas"]["SmsZoneStep"][];
+            tiles: components["schemas"]["SmsReportTiles"];
+            timezone: string;
+            window: string;
+        };
+        SmsReportTiles: {
+            byProvider: components["schemas"]["SmsProviderCount"][];
+            /** Format: double */
+            clickPct: number;
+            /** Format: int64 */
+            clicks: number;
+            /** Format: double */
+            cost: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            deliveredPct: number;
+            /** Format: int64 */
+            failed: number;
+            failedBy: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            held: number;
+            /** Format: int64 */
+            machine: number;
+            /** Format: double */
+            optOutPct: number;
+            /** Format: int64 */
+            optOuts: number;
+            optOutsByKeyword: boolean;
+            /** Format: double */
+            perText: number;
+            /** Format: double */
+            planned: number;
+            /** Format: int64 */
+            queued: number;
+            /** Format: int64 */
+            sent: number;
+            /** Format: int64 */
+            skipped: number;
+            /** Format: int64 */
+            waiting: number;
+            withinBudget: boolean;
+        };
+        SmsReview: {
+            access: components["schemas"]["SmsCampaignAccess"];
+            approval: components["schemas"]["ReviewApproval"];
+            /** Format: int64 */
+            blocks: number;
+            budget: components["schemas"]["SmsBudgetView"];
+            campaign: components["schemas"]["SmsReviewCampaign"];
+            /** Format: date-time */
+            checkedAt: string;
+            checks: components["schemas"]["SmsCheck"][];
+            /** Format: double */
+            cost: number;
+            costs: components["schemas"]["CountryLine"][];
+            defaults: components["schemas"]["SmsThresholds"];
+            fingerprint: string;
+            funnel: components["schemas"]["SmsFunnel"];
+            large: components["schemas"]["SmsLarge"];
+            lists: string[];
+            /** Format: int64 */
+            passed: number;
+            /** @enum {string} */
+            pendingPolicy: "skip" | "wait";
+            policy: components["schemas"]["SmsReviewPolicy"];
+            preview: components["schemas"]["SmsPreview"];
+            /** Format: date-time */
+            pricedOn?: string;
+            routes: components["schemas"]["SmsReviewRoute"][];
+            schedule: components["schemas"]["SmsSchedule"];
+            /** Format: int64 */
+            segments: number;
+            /** Format: int64 */
+            segmentsEach: number;
+            send?: components["schemas"]["SmsSendView"];
+            tests: components["schemas"]["SmsTestNumber"][];
+            /** Format: int64 */
+            texts: number;
+            thresholds: components["schemas"]["SmsThresholds"];
+            timezone: string;
+            /** @enum {string} */
+            verdict: "ready" | "warnings" | "blocked";
+            /** Format: int64 */
+            warnings: number;
+        };
+        SmsReviewCampaign: {
+            /** Format: date-time */
+            autosavedAt?: string;
+            id: string;
+            name: string;
+            /** @enum {string} */
+            status: "draft" | "approval" | "approved" | "scheduled" | "sending" | "paused" | "sent" | "cancelled" | "failed";
+            text: string;
+            updatedBy: string;
+            /** Format: int64 */
+            version: number;
+        };
+        SmsReviewPolicy: {
+            /** Format: int64 */
+            audienceMin: number;
+            audienceRule: boolean;
+            authorLacksSend: boolean;
+            /** Format: double */
+            costAmount: number;
+            costRule: boolean;
+        };
+        SmsReviewRoute: {
+            adapter: string;
+            /** Format: double */
+            cost: number;
+            provider: string;
+            /** Format: double */
+            rate: number;
+            /** Format: int64 */
+            recipients: number;
+            /** Format: double */
+            seconds: number;
+            sender: string;
+            /** Format: double */
+            share: number;
+        };
+        SmsRouteGap: {
+            countries: string[];
+            /** Format: int64 */
+            held: number;
+            /** Format: int64 */
+            people: number;
+            sender: string;
+            /** Format: date-time */
+            since?: string;
+            status: string;
+        };
+        SmsRouteInput: {
+            countries: string[];
+            fallbackId?: string;
+            /** Format: uuid */
+            senderId: string;
+        };
+        SmsRouteLine: {
+            adapter: string;
+            countries: string[];
+            provider: string;
+            /** Format: int64 */
+            recipients: number;
+            sender: string;
+            skipped?: string;
+        };
+        SmsRouteSummary: {
+            countries: string[];
+            fallback: string;
+            fallbackProvider: string;
+            id: string;
+            provider: string;
+            registration: string;
+            sender: string;
+            skipped: boolean;
+        };
+        SmsRouteTest: {
+            adapter: string;
+            callingCode: string;
+            canReply: boolean;
+            canSend: boolean;
+            /** Format: double */
+            cost: number;
+            country: string;
+            helpNumber?: string;
+            inside: boolean;
+            local: string;
+            number: string;
+            opens: string;
+            /** Format: double */
+            price: number;
+            provider: string;
+            registration: components["schemas"]["SmsRegistrationView"];
+            /** @enum {string} */
+            route: "route" | "other" | "none";
+            routeCountries: string[];
+            /** Format: int64 */
+            segments: number;
+            sender: string;
+            senderKind: string;
+            suppressed?: string;
+            window: string;
+            zone: string;
+            zoneSource: string;
+        };
+        SmsRouteTestInput: {
+            message?: string;
+            phone: string;
+        };
+        SmsRouteView: {
+            adapter: string;
+            countries: string[];
+            fallback?: string;
+            fallbackId?: string;
+            fallbackProvider?: string;
+            id: string;
+            /** Format: int64 */
+            onLists: number;
+            provider: string;
+            registration: components["schemas"]["SmsRegistrationView"];
+            sender: string;
+            senderId: string;
+            senderKind: string;
+            skipped: boolean;
+        };
+        SmsRoutesInput: {
+            /** @enum {string} */
+            other: "dont_send" | "route";
+            /** Format: int64 */
+            otherRoute?: number;
+            routes: components["schemas"]["SmsRouteInput"][];
+        };
+        SmsRules: {
+            /** Format: int64 */
+            alertPct: number;
+            /** Format: int64 */
+            assumed: number;
+            brandPrefix: string;
+            /** Format: double */
+            budget: number;
+            /** Format: date-time */
+            budgetSetAt?: string;
+            budgetSetBy?: string;
+            canManage: boolean;
+            confirmation: components["schemas"]["SmsReplyView"];
+            confirmationOn: boolean;
+            gaps: components["schemas"]["SmsRouteGap"][];
+            helpKeywords: string[];
+            helpReply: components["schemas"]["SmsReplyView"];
+            helpers: string[];
+            /** @enum {string} */
+            keywordsBy: "reputecast" | "provider";
+            members: components["schemas"]["SmsMemberOption"][];
+            /** Format: date-time */
+            month: string;
+            optInKeywords: string[];
+            optInReply: components["schemas"]["SmsReplyView"];
+            optOutInSteps: boolean;
+            optOutKeywords: string[];
+            optOutReply: components["schemas"]["SmsReplyView"];
+            optOutText: string;
+            /** @enum {string} */
+            other: "dont_send" | "route";
+            /** Format: int64 */
+            otherPeople: number;
+            otherRouteId?: string;
+            providerAnswers: string[];
+            pushWindow: boolean;
+            quietFrom: string;
+            quietTo: string;
+            requireYes: boolean;
+            /** Format: int64 */
+            retentionDays: number;
+            routes: components["schemas"]["SmsRouteView"][];
+            senders: components["schemas"]["SmsSenderOption"][];
+            shortDomain: components["schemas"]["SmsShortDomain"];
+            /** Format: double */
+            spent: number;
+            testNumbers: components["schemas"]["SmsTestNumber"][];
+            /** Format: double */
+            testsCost: number;
+            /** Format: int64 */
+            testsSent: number;
+            thresholds: components["schemas"]["SmsThresholds"];
+            timezone: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            updatedBy?: string;
+            whatsAppWindow: boolean;
+            zones: components["schemas"]["SmsZoneNow"][];
+        };
+        SmsRulesInput: {
+            /** Format: int64 */
+            alertPct: number;
+            brandPrefix: string;
+            /** Format: double */
+            budget: number;
+            confirmation: string;
+            confirmationOn: boolean;
+            helpKeywords: string[];
+            helpReply: string;
+            /** @enum {string} */
+            keywordsBy: "reputecast" | "provider";
+            optInKeywords: string[];
+            optInReply: string;
+            optOutInSteps: boolean;
+            optOutKeywords: string[];
+            optOutReply: string;
+            optOutText: string;
+            pushWindow: boolean;
+            quietFrom: string;
+            quietTo: string;
+            requireYes: boolean;
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            retentionDays: 0 | 7 | 30 | 60 | 90;
+            thresholds: components["schemas"]["SmsThresholds"];
+            whatsAppWindow: boolean;
+        };
+        SmsSchedule: {
+            /** Format: date-time */
+            end?: string;
+            groups: components["schemas"]["SmsZoneGroup"][];
+            localDate?: string;
+            localTime?: string;
+            /** @enum {string} */
+            mode: "now" | "at" | "local";
+            now: components["schemas"]["SmsZoneGroup"][];
+            /** Format: date-time */
+            sendAt?: string;
+            window: string;
+            /** Format: int64 */
+            windowFrom: number;
+            /** Format: int64 */
+            windowTo: number;
+        };
+        SmsSendInput: {
+            acknowledged?: string[];
+            confirm?: string;
+            fingerprint: string;
+        };
+        SmsSendResult: {
+            /** Format: int64 */
+            recipients: number;
+            /** Format: date-time */
+            scheduledAt: string;
+            /** @enum {string} */
+            status: "scheduled" | "sending";
+        };
+        SmsSendSettings: {
+            localDate?: string;
+            localTime?: string;
+            /** @enum {string} */
+            mode?: "now" | "at" | "local";
+            /** @enum {string} */
+            pendingPolicy?: "skip" | "wait";
+            /** Format: date-time */
+            sendAt?: string;
+            thresholds?: components["schemas"]["SmsThresholds"];
+        };
+        SmsSendView: {
+            /** Format: date-time */
+            pausedAt?: string;
+            /** @enum {string} */
+            pausedKind: "auto" | "person" | "outage" | "budget" | "";
+            /** @enum {string} */
+            phase: "scheduled" | "sending" | "paused" | "completed" | "cancelled";
+            /** Format: date-time */
+            scheduledAt: string;
+            startedBy: string;
+        };
+        SmsSenderIDInput: {
+            countries: string[];
+            /** Format: uuid */
+            providerId: string;
+            value: string;
+        };
+        SmsSenderOption: {
+            adapter: string;
+            countries: string[];
+            id: string;
+            kind: string;
+            label: string;
+            provider: string;
+            sendable: string[];
+        };
+        SmsSenderReport: {
+            adapter: string;
+            /** Format: double */
+            cost: number;
+            countries: string[];
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            deliveredPct: number;
+            /** Format: int64 */
+            failed: number;
+            provider: string;
+            sender: string;
+            senderKind: string;
+            /** Format: int64 */
+            sent: number;
+            /** Format: double */
+            throughput: number;
+            /** Format: double */
+            zoneSeconds: number;
+        };
+        SmsSenderRow: {
+            adapter: string;
+            brand?: components["schemas"]["SmsRegistrationView"];
+            campaign?: components["schemas"]["SmsRegistrationView"];
+            canSend: boolean;
+            countries: string[];
+            held: boolean;
+            id: string;
+            /** @enum {string} */
+            kind: "toll_free" | "10dlc" | "local" | "mobile" | "sender_id";
+            label: string;
+            manual: boolean;
+            provider: string;
+            providerId: string;
+            registration: components["schemas"]["SmsRegistrationView"];
+            routes: string[][];
+            /** Format: double */
+            throughput: number;
+            value: string;
+        };
+        SmsSenderRows: {
+            items: components["schemas"]["SmsSenderRow"][];
+        };
+        SmsSenderUpdate: {
+            countries: string[];
+        };
+        SmsShortDomain: {
+            /** Format: date-time */
+            checkedAt?: string;
+            detail?: string;
+            domain: string;
+            /** @enum {string} */
+            status: "none" | "pending" | "verified" | "failed";
+            target: string;
+            /** Format: date-time */
+            verifiedAt?: string;
+        };
+        SmsShortDomainInput: {
+            domain: string;
+        };
+        SmsSpread: {
+            /** Format: int64 */
+            recipients: number;
+            /** Format: int64 */
+            segments: number;
+        };
+        SmsStepEstimate: {
+            budget: components["schemas"]["SmsBudgetView"];
+            /** Format: double */
+            cost: number;
+            costs: components["schemas"]["CountryLine"][];
+            counter: components["schemas"]["SmsCounter"];
+            links: components["schemas"]["SmsLinkView"][];
+            optOut: string;
+            prefix: string;
+            shortDomain: string;
+            shorteners: string[];
+            /** Format: int64 */
+            texts: number;
+            window: string;
+        };
+        SmsStepEstimateInput: {
+            body: string;
+            consentListId?: string;
+            noOptOut?: boolean;
+        };
+        SmsStepStats: {
+            /** Format: int64 */
+            clicks: number;
+            /** Format: double */
+            cost: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: date-time */
+            firstAt?: string;
+            /** Format: date-time */
+            lastAt?: string;
+            nodeId: string;
+            /** Format: int64 */
+            optOuts: number;
+            /** Format: int64 */
+            sent: number;
+            /** Format: int64 */
+            skipped: number;
+            skippedBy: {
+                [key: string]: number;
+            };
+            skippedIn: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            waiting: number;
+        };
+        SmsStepStatsList: {
+            /** Format: int64 */
+            days: number;
+            steps: components["schemas"]["SmsStepStats"][];
+        };
+        SmsSuppression: {
+            /** Format: date-time */
+            at: string;
+            automation?: string;
+            campaign?: string;
+            code: string;
+            context?: string;
+            id: string;
+            number: string;
+            /** @enum {string} */
+            reason: "opted_out" | "landline" | "not_in_service" | "invalid" | "filtered" | "provider_list" | "manual";
+            removable: boolean;
+            source: string;
+        };
+        SmsSuppressionAdd: {
+            note?: string;
+            numbers: string[];
+        };
+        SmsSuppressionList: {
+            canEdit: boolean;
+            counts: {
+                [key: string]: number;
+            };
+            items: components["schemas"]["SmsSuppression"][];
+            /** Format: int64 */
+            matching: number;
+            /** Format: int64 */
+            page: number;
+            /** Format: int64 */
+            pageSize: number;
+            providers: components["schemas"]["SmsSuppressionProvider"][];
+            reason?: string;
+            /** Format: int64 */
+            total: number;
+        };
+        SmsSuppressionProvider: {
+            id: string;
+            name: string;
+        };
+        SmsSuppressionRemove: {
+            reason: string;
+        };
+        SmsSuppressionsAdded: {
+            /** Format: int64 */
+            added: number;
+        };
+        SmsTerms: {
+            canEdit: boolean;
+            content: components["schemas"]["SmsTermsContent"];
+            generated: components["schemas"]["SmsTermsContent"];
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy?: string;
+            url: string;
+            /** Format: int64 */
+            version: number;
+        };
+        SmsTermsContent: {
+            address?: string;
+            carriers: string;
+            cost: string;
+            frequency: string;
+            help: string;
+            helpEmail?: string;
+            helpNumber?: string;
+            intro: string;
+            optOut: string;
+            privacy: string;
+            privacyUrl?: string;
+            program: string;
+            senders: string;
+        };
+        SmsTestInput: {
+            numbers?: string[];
+        };
+        SmsTestNumber: {
+            color: string;
+            country: string;
+            display: string;
+            id: string;
+            lastTest?: components["schemas"]["SmsTestResult"];
+            name: string;
+            phone: string;
+            role: string;
+            userId?: string;
+        };
+        SmsTestNumberInput: {
+            phone: string;
+            userId?: string;
+        };
+        SmsTestNumberList: {
+            items: components["schemas"]["SmsTestNumber"][];
+        };
+        SmsTestResult: {
+            /** Format: date-time */
+            at: string;
+            /** Format: date-time */
+            delivered?: string;
+            messageId: string;
+            provider: string;
+            /** Format: double */
+            seconds?: number;
+            sender: string;
+            senderId: boolean;
+            /** @enum {string} */
+            status: "queued" | "held" | "skipped" | "sending" | "sent" | "delivered" | "undelivered" | "failed" | "cancelled";
+        };
+        SmsThresholds: {
+            /** Format: double */
+            failed: number;
+            /** Format: double */
+            filtered: number;
+            /** Format: double */
+            optOuts: number;
+        };
+        SmsTimePoint: {
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            delivered: number;
+        };
+        SmsTimelineSample: {
+            contactId: string;
+            events: components["schemas"]["SmsTimelineSampleEv"][];
+            name: string;
+        };
+        SmsTimelineSampleEv: {
+            /** Format: date-time */
+            at: string;
+            body?: string;
+            kind: string;
+            link?: string;
+            provider?: string;
+            /** Format: double */
+            seconds?: number;
+            sender?: string;
+            target?: string;
+        };
+        SmsWebhookSetup: {
+            error?: string;
+            /** @enum {string} */
+            mode: "registered" | "manual";
+            secret?: string;
+            url: string;
+        };
+        SmsZoneGroup: {
+            countries: string[];
+            /** Format: date-time */
+            from: string;
+            held: boolean;
+            localFrom: string;
+            localTo: string;
+            /** Format: int64 */
+            recipients: number;
+            /** Format: date-time */
+            to: string;
+            /** Format: date-time */
+            until: string;
+        };
+        SmsZoneNow: {
+            inside: boolean;
+            local: string;
+            opens: string;
+            zone: string;
+        };
+        SmsZoneStep: {
+            abbr: string;
+            /** Format: date-time */
+            at: string;
+            countries: string[];
+            /** Format: int64 */
+            delivered: number;
+            local: string;
+            region?: string;
+            /** Format: int64 */
+            sent: number;
+            /** @enum {string} */
+            status: "sent" | "sending" | "waiting" | "paused" | "held";
+            /** Format: int64 */
+            total: number;
+            zone: string;
         };
         SourceInput: {
             language: string;
@@ -35670,6 +38276,39 @@ export interface operations {
             };
         };
     };
+    "get-automation-sms-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsStepStatsList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "automation-stats": {
         parameters: {
             query?: {
@@ -35890,6 +38529,8 @@ export interface operations {
                 status?: "all" | "drafts" | "scheduled" | "sending" | "sent";
                 /** @description Search by name */
                 q?: string;
+                /** @description Only this channel's campaigns */
+                channel?: "email" | "sms" | "push" | "whatsapp";
                 /** @description Only campaigns sent to paid members only */
                 paidOnly?: boolean;
                 page?: number;
@@ -38501,6 +41142,38 @@ export interface operations {
             };
         };
     };
+    "list-channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsChannels"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "composer-context": {
         parameters: {
             query?: never;
@@ -39620,6 +42293,40 @@ export interface operations {
             };
         };
     };
+    "get-contact-channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Contact id */
+                contactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsContactChannels"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "contact-field-sources": {
         parameters: {
             query?: never;
@@ -39641,6 +42348,82 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FieldSources"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-contact-phone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Contact id */
+                contactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsPhoneInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsContactChannels"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-contact-sms-consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Contact id */
+                contactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsConsentInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsContactChannels"];
                 };
             };
             /** @description Error */
@@ -50609,6 +53392,1830 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceSidebar"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-sms-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsCampaignCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-sms-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-sms-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsCampaignUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-sms-send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Pause-sms-sendRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pause-sms-send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Pause-sms-sendRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-sms-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-sms-preview-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsPreviewContactList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-sms-replies": {
+        parameters: {
+            query?: {
+                kind?: "all" | "opt_out" | "help" | "other";
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsReplyList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-sms-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsReport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-sms-send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Pause-sms-sendRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "review-sms-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsReview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-sms-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsSendInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsSendResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-sms-send-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsSendSettings"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsReview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-sms-campaign-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsTestInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsTestNumberList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "unschedule-sms-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-sms-campaign-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsCampaignVersionList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "sms-catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsCatalogList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-sms-events": {
+        parameters: {
+            query?: {
+                kind?: "all" | "receipts" | "keywords" | "replies" | "failures";
+                /** @description An SMS provider id */
+                provider?: string;
+                page?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsEventList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-sms-message-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsMessageOptionList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-sms-message": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsMessageView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "sms-overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-sms-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsConnectInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsConnectResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-sms-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description SMS provider id */
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-sms-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description SMS provider id */
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "replace-sms-credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description SMS provider id */
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsCredentialsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-sms-account-numbers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description SMS provider id */
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsFoundSenderList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "import-sms-senders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description SMS provider id */
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsImportInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsSenderRows"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-sms-provider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description SMS provider id */
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsProviderTestInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsMessageView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "register-sms-webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description SMS provider id */
+                providerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsWebhookSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-sms-route": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsRouteTestInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsRouteTest"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-sms-routes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsRoutesInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsRules"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-sms-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsRules"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-sms-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsRulesInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsRules"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-sms-sender-id": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsSenderIDInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsSenderRows"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-sms-sender": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Sender id */
+                senderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-sms-sender": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Sender id */
+                senderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsSenderUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsSenderRows"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-sms-registration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Sender id */
+                senderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsRegistrationPanel"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-sms-registration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Sender id */
+                senderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsRegistrationInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsRegistrationPanel"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-sms-registration-pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Sender id */
+                senderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsRegistrationPanel"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "read-sms-registration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Sender id */
+                senderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsRegistrationPanel"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "finish-sms-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-sms-short-domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsShortDomainInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsRules"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-sms-short-domain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsRules"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "estimate-sms-step": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsStepEstimateInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsStepEstimate"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-sms-suppressions": {
+        parameters: {
+            query?: {
+                reason?: "opted_out" | "landline" | "not_in_service" | "invalid" | "filtered" | "provider_list" | "manual";
+                /** @description An SMS provider id */
+                provider?: string;
+                /** @description Digits of the number */
+                q?: string;
+                page?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsSuppressionList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-sms-suppressions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsSuppressionAdd"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsSuppressionsAdded"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-sms-suppression": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsSuppressionRemove"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-sms-terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsTerms"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "publish-sms-terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsTermsContent"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsTerms"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-sms-test-numbers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsTestNumberList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-sms-test-number": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmsTestNumberInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsRules"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-sms-test-number": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsRules"];
                 };
             };
             /** @description Error */

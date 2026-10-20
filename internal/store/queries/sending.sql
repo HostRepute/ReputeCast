@@ -58,6 +58,8 @@ UPDATE campaigns SET audience_count = @n WHERE id = @id;
 -- Review & send, which rechecks it every 15 minutes.
 SELECT c.id FROM campaigns c
 WHERE c.status = 'scheduled' AND c.scheduled_at <= @now AND c.deleted_at IS NULL
+  -- SMS campaigns start from their own dispatcher (internal/texting).
+  AND c.channel = 'email'
   AND NOT EXISTS (SELECT 1 FROM campaign_incidents i WHERE i.campaign_id = c.id AND i.kind = 'recheck_blocked' AND i.resolved_at IS NULL)
   -- A recurring digest starts its own issues (internal/digests).
   AND NOT EXISTS (SELECT 1 FROM digest_issues di WHERE di.campaign_id = c.id AND di.mode = 'auto')
@@ -528,7 +530,7 @@ SELECT id, name FROM users WHERE id = ANY(@ids::uuid[]);
 SELECT * FROM providers WHERE workspace_id = @workspace_id AND disconnected_at IS NULL ORDER BY connected_at, name;
 
 -- name: SendingListNames :many
-SELECT id, name FROM lists WHERE workspace_id = @workspace_id AND deleted_at IS NULL ORDER BY created_at;
+SELECT id, name, public FROM lists WHERE workspace_id = @workspace_id AND deleted_at IS NULL ORDER BY created_at;
 
 -- name: SendingSegmentNames :many
 SELECT id, name FROM segments WHERE workspace_id = @workspace_id ORDER BY name;

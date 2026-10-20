@@ -498,6 +498,7 @@ type Campaign struct {
 	ContentSettings json.RawMessage `json:"contentSettings"`
 	DigestID        *uuid.UUID      `json:"digestId"`
 	DigestRole      string          `json:"digestRole"`
+	Channel         string          `json:"channel"`
 }
 
 type CampaignAudienceStage struct {
@@ -615,6 +616,108 @@ type CampaignVersion struct {
 	SizeBytes  int32           `json:"sizeBytes"`
 }
 
+type ChannelConsent struct {
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ListID      uuid.UUID  `json:"listId"`
+	ContactID   uuid.UUID  `json:"contactId"`
+	Channel     string     `json:"channel"`
+	Status      string     `json:"status"`
+	Source      string     `json:"source"`
+	Keyword     string     `json:"keyword"`
+	StoppedAt   *time.Time `json:"stoppedAt"`
+	ChangedAt   time.Time  `json:"changedAt"`
+}
+
+type ChannelConsentEvent struct {
+	ID             uuid.UUID   `json:"id"`
+	WorkspaceID    uuid.UUID   `json:"workspaceId"`
+	ContactID      uuid.UUID   `json:"contactId"`
+	ListID         *uuid.UUID  `json:"listId"`
+	Channel        string      `json:"channel"`
+	Action         string      `json:"action"`
+	Phone          string      `json:"phone"`
+	Source         string      `json:"source"`
+	Page           string      `json:"page"`
+	ConsentText    string      `json:"consentText"`
+	ConsentVersion string      `json:"consentVersion"`
+	Keyword        string      `json:"keyword"`
+	Ip             *netip.Addr `json:"ip"`
+	UserAgent      string      `json:"userAgent"`
+	ActorID        *uuid.UUID  `json:"actorId"`
+	ImportID       *uuid.UUID  `json:"importId"`
+	Note           string      `json:"note"`
+	OccurredAt     time.Time   `json:"occurredAt"`
+}
+
+type ChannelMessage struct {
+	ID                uuid.UUID  `json:"id"`
+	WorkspaceID       uuid.UUID  `json:"workspaceId"`
+	Channel           string     `json:"channel"`
+	Kind              string     `json:"kind"`
+	CampaignID        *uuid.UUID `json:"campaignId"`
+	AutomationID      *uuid.UUID `json:"automationId"`
+	AutomationStep    string     `json:"automationStep"`
+	RunID             *uuid.UUID `json:"runId"`
+	ContactID         *uuid.UUID `json:"contactId"`
+	ListID            *uuid.UUID `json:"listId"`
+	Recipient         string     `json:"recipient"`
+	Country           string     `json:"country"`
+	TimeZone          string     `json:"timeZone"`
+	ZoneSource        string     `json:"zoneSource"`
+	ProviderID        *uuid.UUID `json:"providerId"`
+	SenderID          *uuid.UUID `json:"senderId"`
+	Sender            string     `json:"sender"`
+	Body              *string    `json:"body"`
+	Units             int32      `json:"units"`
+	Encoding          string     `json:"encoding"`
+	Price             *float64   `json:"price"`
+	Cost              float64    `json:"cost"`
+	Status            string     `json:"status"`
+	Reason            string     `json:"reason"`
+	ProviderCode      string     `json:"providerCode"`
+	ProviderMessageID string     `json:"providerMessageId"`
+	SendAfter         *time.Time `json:"sendAfter"`
+	ExpiresAt         *time.Time `json:"expiresAt"`
+	Attempts          int32      `json:"attempts"`
+	CreatedAt         time.Time  `json:"createdAt"`
+	SentAt            *time.Time `json:"sentAt"`
+	DeliveredAt       *time.Time `json:"deliveredAt"`
+	FailedAt          *time.Time `json:"failedAt"`
+	UpdatedAt         time.Time  `json:"updatedAt"`
+}
+
+type ChannelMessageEvent struct {
+	ID           uuid.UUID       `json:"id"`
+	WorkspaceID  uuid.UUID       `json:"workspaceId"`
+	MessageID    uuid.UUID       `json:"messageId"`
+	Kind         string          `json:"kind"`
+	ProviderCode string          `json:"providerCode"`
+	Detail       json.RawMessage `json:"detail"`
+	RawEventID   *uuid.UUID      `json:"rawEventId"`
+	Machine      bool            `json:"machine"`
+	OccurredAt   time.Time       `json:"occurredAt"`
+}
+
+type ChannelSuppression struct {
+	ID               uuid.UUID  `json:"id"`
+	WorkspaceID      uuid.UUID  `json:"workspaceId"`
+	Channel          string     `json:"channel"`
+	Phone            string     `json:"phone"`
+	Reason           string     `json:"reason"`
+	Keyword          string     `json:"keyword"`
+	OriginalCode     string     `json:"originalCode"`
+	Source           string     `json:"source"`
+	SourceProviderID *uuid.UUID `json:"sourceProviderId"`
+	CampaignID       *uuid.UUID `json:"campaignId"`
+	AutomationID     *uuid.UUID `json:"automationId"`
+	Context          string     `json:"context"`
+	CreatedBy        *uuid.UUID `json:"createdBy"`
+	CreatedAt        time.Time  `json:"createdAt"`
+	RemovedAt        *time.Time `json:"removedAt"`
+	RemovedBy        *uuid.UUID `json:"removedBy"`
+	RemovedReason    string     `json:"removedReason"`
+}
+
 type ConsentEvent struct {
 	ID             uuid.UUID   `json:"id"`
 	ContactID      uuid.UUID   `json:"contactId"`
@@ -678,6 +781,11 @@ type Contact struct {
 	LanguageBrowser     bool            `json:"languageBrowser"`
 	LanguageSetAt       *time.Time      `json:"languageSetAt"`
 	LanguageSetBy       *uuid.UUID      `json:"languageSetBy"`
+	Phone               string          `json:"phone"`
+	PhoneCountry        string          `json:"phoneCountry"`
+	PhoneLineType       string          `json:"phoneLineType"`
+	PhoneLineSource     string          `json:"phoneLineSource"`
+	PhoneSetAt          *time.Time      `json:"phoneSetAt"`
 }
 
 type ContactAddressCheck struct {
@@ -2344,6 +2452,269 @@ type SignInThrottle struct {
 	Failures    int32      `json:"failures"`
 	LockedUntil *time.Time `json:"lockedUntil"`
 	UpdatedAt   time.Time  `json:"updatedAt"`
+}
+
+type SmsBudgetAlert struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Month       time.Time `json:"month"`
+	Level       int32     `json:"level"`
+	At          time.Time `json:"at"`
+}
+
+type SmsCampaign struct {
+	CampaignID    uuid.UUID       `json:"campaignId"`
+	WorkspaceID   uuid.UUID       `json:"workspaceId"`
+	Body          string          `json:"body"`
+	ScheduleMode  string          `json:"scheduleMode"`
+	SendAt        *time.Time      `json:"sendAt"`
+	LocalDate     *time.Time      `json:"localDate"`
+	LocalMinute   *int32          `json:"localMinute"`
+	PendingPolicy string          `json:"pendingPolicy"`
+	Thresholds    json.RawMessage `json:"thresholds"`
+}
+
+type SmsCampaignVersion struct {
+	CampaignID uuid.UUID  `json:"campaignId"`
+	Version    int32      `json:"version"`
+	Body       string     `json:"body"`
+	SavedBy    *uuid.UUID `json:"savedBy"`
+	SavedAt    time.Time  `json:"savedAt"`
+}
+
+type SmsInbound struct {
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	ProviderID     *uuid.UUID      `json:"providerId"`
+	Phone          string          `json:"phone"`
+	Sender         string          `json:"sender"`
+	Body           string          `json:"body"`
+	Kind           string          `json:"kind"`
+	Keyword        string          `json:"keyword"`
+	MessageID      *uuid.UUID      `json:"messageId"`
+	CampaignID     *uuid.UUID      `json:"campaignId"`
+	AutomationID   *uuid.UUID      `json:"automationId"`
+	ContactIds     []uuid.UUID     `json:"contactIds"`
+	Effect         json.RawMessage `json:"effect"`
+	ReplyMessageID *uuid.UUID      `json:"replyMessageId"`
+	RawEventID     *uuid.UUID      `json:"rawEventId"`
+	ReceivedAt     time.Time       `json:"receivedAt"`
+}
+
+type SmsLink struct {
+	Code         string     `json:"code"`
+	WorkspaceID  uuid.UUID  `json:"workspaceId"`
+	MessageID    *uuid.UUID `json:"messageId"`
+	CampaignID   *uuid.UUID `json:"campaignId"`
+	AutomationID *uuid.UUID `json:"automationId"`
+	ContactID    *uuid.UUID `json:"contactId"`
+	Original     string     `json:"original"`
+	Target       string     `json:"target"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	ExpiresAt    time.Time  `json:"expiresAt"`
+}
+
+type SmsLinkClick struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Code        string     `json:"code"`
+	CampaignID  *uuid.UUID `json:"campaignId"`
+	MessageID   *uuid.UUID `json:"messageId"`
+	ContactID   *uuid.UUID `json:"contactId"`
+	Machine     bool       `json:"machine"`
+	UserAgent   string     `json:"userAgent"`
+	OccurredAt  time.Time  `json:"occurredAt"`
+}
+
+type SmsOptOutSync struct {
+	ProviderID  uuid.UUID  `json:"providerId"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Mode        string     `json:"mode"`
+	Pulled      int32      `json:"pulled"`
+	Pushed      int32      `json:"pushed"`
+	Status      string     `json:"status"`
+	Detail      string     `json:"detail"`
+	LastSyncAt  *time.Time `json:"lastSyncAt"`
+}
+
+type SmsPrice struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	ProviderID  uuid.UUID `json:"providerId"`
+	Country     string    `json:"country"`
+	Price       float64   `json:"price"`
+	Source      string    `json:"source"`
+	AsOf        time.Time `json:"asOf"`
+}
+
+type SmsProvider struct {
+	ID                  uuid.UUID       `json:"id"`
+	WorkspaceID         uuid.UUID       `json:"workspaceId"`
+	Adapter             string          `json:"adapter"`
+	Name                string          `json:"name"`
+	AccountLabel        string          `json:"accountLabel"`
+	AccountHint         string          `json:"accountHint"`
+	Config              json.RawMessage `json:"config"`
+	CredentialsEnc      []byte          `json:"credentialsEnc"`
+	WebhookToken        string          `json:"webhookToken"`
+	WebhookSecretEnc    []byte          `json:"webhookSecretEnc"`
+	Webhooks            string          `json:"webhooks"`
+	Status              string          `json:"status"`
+	StatusDetail        string          `json:"statusDetail"`
+	StatusSince         *time.Time      `json:"statusSince"`
+	Health              json.RawMessage `json:"health"`
+	LastReceiptAt       *time.Time      `json:"lastReceiptAt"`
+	LastInboundAt       *time.Time      `json:"lastInboundAt"`
+	LastCheckedAt       *time.Time      `json:"lastCheckedAt"`
+	RegistrationsReadAt *time.Time      `json:"registrationsReadAt"`
+	Demo                bool            `json:"demo"`
+	ConnectedBy         *uuid.UUID      `json:"connectedBy"`
+	ConnectedAt         time.Time       `json:"connectedAt"`
+	RemovedAt           *time.Time      `json:"removedAt"`
+}
+
+type SmsRawEvent struct {
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	ProviderID     *uuid.UUID      `json:"providerId"`
+	Kind           string          `json:"kind"`
+	ReceivedAt     time.Time       `json:"receivedAt"`
+	ContentType    string          `json:"contentType"`
+	Headers        json.RawMessage `json:"headers"`
+	Body           []byte          `json:"body"`
+	SignatureOk    bool            `json:"signatureOk"`
+	Summary        string          `json:"summary"`
+	NormalizedAt   *time.Time      `json:"normalizedAt"`
+	NormalizeError string          `json:"normalizeError"`
+	Events         int32           `json:"events"`
+}
+
+type SmsRegistration struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	SenderID    uuid.UUID       `json:"senderId"`
+	Kind        string          `json:"kind"`
+	Country     string          `json:"country"`
+	Name        string          `json:"name"`
+	Status      string          `json:"status"`
+	Reason      string          `json:"reason"`
+	StatusOn    *time.Time      `json:"statusOn"`
+	Source      string          `json:"source"`
+	Details     json.RawMessage `json:"details"`
+	SetBy       *uuid.UUID      `json:"setBy"`
+	ReadAt      *time.Time      `json:"readAt"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
+}
+
+type SmsRoute struct {
+	ID               uuid.UUID  `json:"id"`
+	WorkspaceID      uuid.UUID  `json:"workspaceId"`
+	Position         int32      `json:"position"`
+	Countries        []string   `json:"countries"`
+	SenderID         uuid.UUID  `json:"senderId"`
+	FallbackSenderID *uuid.UUID `json:"fallbackSenderId"`
+	CreatedAt        time.Time  `json:"createdAt"`
+	UpdatedAt        time.Time  `json:"updatedAt"`
+}
+
+type SmsSend struct {
+	CampaignID  uuid.UUID       `json:"campaignId"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Phase       string          `json:"phase"`
+	Recipients  int32           `json:"recipients"`
+	Skipped     int32           `json:"skipped"`
+	LeftOut     json.RawMessage `json:"leftOut"`
+	StartedBy   *uuid.UUID      `json:"startedBy"`
+	ApprovedBy  *uuid.UUID      `json:"approvedBy"`
+	ScheduledAt time.Time       `json:"scheduledAt"`
+	FirstSendAt *time.Time      `json:"firstSendAt"`
+	LastSendAt  *time.Time      `json:"lastSendAt"`
+	PausedKind  string          `json:"pausedKind"`
+	PausedAt    *time.Time      `json:"pausedAt"`
+	Pause       json.RawMessage `json:"pause"`
+	Thresholds  json.RawMessage `json:"thresholds"`
+	CompletedAt *time.Time      `json:"completedAt"`
+}
+
+type SmsSender struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	ProviderID  uuid.UUID  `json:"providerId"`
+	Kind        string     `json:"kind"`
+	Value       string     `json:"value"`
+	Countries   []string   `json:"countries"`
+	Throughput  float64    `json:"throughput"`
+	ProviderRef string     `json:"providerRef"`
+	AddedBy     *uuid.UUID `json:"addedBy"`
+	AddedAt     time.Time  `json:"addedAt"`
+	RemovedAt   *time.Time `json:"removedAt"`
+}
+
+type SmsSetting struct {
+	WorkspaceID           uuid.UUID  `json:"workspaceId"`
+	BrandPrefix           string     `json:"brandPrefix"`
+	OptOutText            string     `json:"optOutText"`
+	OptOutInSteps         bool       `json:"optOutInSteps"`
+	ConfirmationOn        bool       `json:"confirmationOn"`
+	ConfirmationText      string     `json:"confirmationText"`
+	RequireYes            bool       `json:"requireYes"`
+	QuietFrom             int32      `json:"quietFrom"`
+	QuietTo               int32      `json:"quietTo"`
+	PushSameWindow        bool       `json:"pushSameWindow"`
+	WhatsappSameWindow    bool       `json:"whatsappSameWindow"`
+	OptOutKeywords        []string   `json:"optOutKeywords"`
+	OptInKeywords         []string   `json:"optInKeywords"`
+	HelpKeywords          []string   `json:"helpKeywords"`
+	HelpReply             string     `json:"helpReply"`
+	OptOutReply           string     `json:"optOutReply"`
+	OptInReply            string     `json:"optInReply"`
+	KeywordsBy            string     `json:"keywordsBy"`
+	Budget                float64    `json:"budget"`
+	BudgetAlertPct        int32      `json:"budgetAlertPct"`
+	BudgetSetBy           *uuid.UUID `json:"budgetSetBy"`
+	BudgetSetAt           *time.Time `json:"budgetSetAt"`
+	PauseFailedPct        float64    `json:"pauseFailedPct"`
+	PauseFilteredPct      float64    `json:"pauseFilteredPct"`
+	PauseOptOutPct        float64    `json:"pauseOptOutPct"`
+	OtherCountries        string     `json:"otherCountries"`
+	OtherRouteID          *uuid.UUID `json:"otherRouteId"`
+	RetentionDays         int32      `json:"retentionDays"`
+	ShortDomain           string     `json:"shortDomain"`
+	ShortDomainStatus     string     `json:"shortDomainStatus"`
+	ShortDomainTarget     string     `json:"shortDomainTarget"`
+	ShortDomainCheckedAt  *time.Time `json:"shortDomainCheckedAt"`
+	ShortDomainVerifiedAt *time.Time `json:"shortDomainVerifiedAt"`
+	ShortDomainDetail     string     `json:"shortDomainDetail"`
+	UpdatedBy             *uuid.UUID `json:"updatedBy"`
+	UpdatedAt             time.Time  `json:"updatedAt"`
+}
+
+type SmsSetup struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Adapter     string          `json:"adapter"`
+	ProviderID  *uuid.UUID      `json:"providerId"`
+	Step        string          `json:"step"`
+	Status      string          `json:"status"`
+	State       json.RawMessage `json:"state"`
+	CreatedBy   *uuid.UUID      `json:"createdBy"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
+}
+
+type SmsTermsVersion struct {
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Version     int32           `json:"version"`
+	Content     json.RawMessage `json:"content"`
+	PublishedBy *uuid.UUID      `json:"publishedBy"`
+	PublishedAt time.Time       `json:"publishedAt"`
+}
+
+type SmsTestNumber struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	UserID      *uuid.UUID `json:"userId"`
+	Phone       string     `json:"phone"`
+	AddedBy     *uuid.UUID `json:"addedBy"`
+	AddedAt     time.Time  `json:"addedAt"`
 }
 
 type SmtpRelay struct {

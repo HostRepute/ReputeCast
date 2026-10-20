@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"math"
+	"slices"
 	"strings"
 	"time"
 
@@ -45,6 +46,16 @@ type Service struct {
 	// Extras fill in test emails' poll links and cut them to a contact's
 	// version of conditional content (conditional.go); nil leaves them.
 	Extras Extras
+	// Channels fill in the rows of campaigns on other channels (SMS, and
+	// later push and WhatsApp): their routes, results and readiness. Nil
+	// leaves those rows as stored.
+	Channels ChannelRows
+}
+
+// ChannelRows fills in the list's rows of one channel's campaigns
+// (internal/texting for SMS).
+type ChannelRows interface {
+	FillChannelRows(ctx context.Context, ws *store.Workspace, items []CampaignListItem)
 }
 
 // ChangeHook is told which campaign changed. The save already committed, so
@@ -80,9 +91,16 @@ type RouteShare struct {
 
 // CampaignListItem is one row of the campaigns list.
 type CampaignListItem struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Status string `json:"status" enum:"draft,approval,approved,scheduled,sending,paused,sent,cancelled,failed"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	// Channel is email, sms, push or whatsapp (design expansion phase 8).
+	Channel string `json:"channel" enum:"email,sms,push,whatsapp"`
+	// Channel rows: opt-outs and cost of a text campaign; Local is true
+	// when it goes at a time in each recipient's time zone.
+	OptOuts *int64   `json:"optOuts,omitempty"`
+	Cost    *float64 `json:"cost,omitempty"`
+	Local   bool     `json:"local,omitempty"`
+	Status  string   `json:"status" enum:"draft,approval,approved,scheduled,sending,paused,sent,cancelled,failed"`
 	// Blocked is true for drafts whose latest Send Readiness run is Blocked.
 	Blocked bool `json:"blocked"`
 	// Audience is a readable label ("Weekly Digest", "All subscribers"); empty when not set.
@@ -159,8 +177,10 @@ type CampaignList struct {
 
 // ListParams filters the list.
 type ListParams struct {
-	Status   string
-	Query    string
+	Status string
+	Query  string
+	// Channel filters by channel; empty is every channel.
+	Channel  string
 	PaidOnly bool
 	Page     int
 	PageSize int
@@ -179,12 +199,12 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p ListParams) (
 	}
 	q := strings.TrimSpace(p.Query)
 	rows, err := s.Q.ListCampaigns(ctx, store.ListCampaignsParams{
-		WorkspaceID: ws.ID, StatusGroup: p.Status, Query: q, PaidOnly: p.PaidOnly, Lim: int32(p.PageSize), Off: int32((p.Page - 1) * p.PageSize),
+		WorkspaceID: ws.ID, StatusGroup: p.Status, Query: q, Channel: p.Channel, PaidOnly: p.PaidOnly, Lim: int32(p.PageSize), Off: int32((p.Page - 1) * p.PageSize),
 	})
 	if err != nil {
 		return CampaignList{}, err
 	}
-	total, err := s.Q.CountCampaigns(ctx, store.CountCampaignsParams{WorkspaceID: ws.ID, StatusGroup: p.Status, Query: q, PaidOnly: p.PaidOnly})
+	total, err := s.Q.CountCampaigns(ctx, store.CountCampaignsParams{WorkspaceID: ws.ID, StatusGroup: p.Status, Query: q, Channel: p.Channel, PaidOnly: p.PaidOnly})
 	if err != nil {
 		return CampaignList{}, err
 	}
@@ -219,7 +239,8 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p ListParams) (
 	out := CampaignList{Items: make([]CampaignListItem, 0, len(rows)), Total: total, Page: p.Page, PageSize: p.PageSize, Counts: counts}
 	for _, r := range rows {
 		it := CampaignListItem{
-			ID: r.ID.String(), Name: r.Name, Status: r.Status, Audience: labels(r.Audience), Recipients: r.AudienceCount, PaidOnly: paidaccess.Parse(r.Audience).Who == paidaccess.Paid,
+			ID: r.ID.String(), Name: r.Name, Channel: r.Channel, Status: r.Status, Audience: labels(r.Audience), Recipients: r.AudienceCount,
+			PaidOnly:  paidaccess.Parse(r.Audience).Who == paidaccess.Paid,
 			CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt, UpdatedBy: r.UpdatedByName, ScheduledAt: r.ScheduledAt, StartedAt: r.StartedAt,
 			Origin: r.Origin, Notes: []string{}, Routes: routes[r.ID],
 		}
@@ -266,6 +287,9 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p ListParams) (
 		}
 		out.Items = append(out.Items, it)
 	}
+	if s.Channels != nil {
+		s.Channels.FillChannelRows(ctx, ws, out.Items)
+	}
 	return out, nil
 }
 
@@ -297,15 +321,20 @@ func (s *Service) counts(ctx context.Context, wsID uuid.UUID) (CampaignStatusCou
 }
 
 // audienceLabeler turns an audience definition into "Weekly Digest" or
-// "All subscribers" (every list of the workspace).
+// "All subscribers" (every public list of the workspace: a private list,
+// such as an event's registrants, isn't one readers sign up for).
 func (s *Service) audienceLabeler(ctx context.Context, wsID uuid.UUID) (func(json.RawMessage) string, error) {
 	lists, err := s.Q.ListWorkspaceLists(ctx, wsID)
 	if err != nil {
 		return nil, err
 	}
 	names := make(map[uuid.UUID]string, len(lists))
+	var public []uuid.UUID
 	for _, l := range lists {
 		names[l.ID] = l.Name
+		if l.Public {
+			public = append(public, l.ID)
+		}
 	}
 	l := i18n.LangFrom(ctx)
 	return func(raw json.RawMessage) string {
@@ -316,7 +345,7 @@ func (s *Service) audienceLabeler(ctx context.Context, wsID uuid.UUID) (func(jso
 		if json.Unmarshal(raw, &a) != nil || (len(a.Lists) == 0 && len(a.Segments) == 0) {
 			return ""
 		}
-		if len(a.Segments) == 0 && len(a.Lists) == len(names) && len(names) > 1 {
+		if len(a.Segments) == 0 && len(public) > 1 && coversAll(a.Lists, public) {
 			return mAudienceAll.Text(l, nil)
 		}
 		parts := make([]string, 0, len(a.Lists))
@@ -334,6 +363,16 @@ func (s *Service) audienceLabeler(ctx context.Context, wsID uuid.UUID) (func(jso
 		}
 		return label
 	}, nil
+}
+
+// coversAll reports whether lists include every one of all.
+func coversAll(lists, all []uuid.UUID) bool {
+	for _, id := range all {
+		if !slices.Contains(lists, id) {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *Service) routes(ctx context.Context, wsID uuid.UUID, ids []uuid.UUID) (map[uuid.UUID][]RouteShare, error) {

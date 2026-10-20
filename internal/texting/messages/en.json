@@ -1,0 +1,21 @@
+{
+  "terms.title": "Text message terms",
+  "terms.version": "Version {version} · in effect since {date}",
+  "terms.program": "Program",
+  "terms.frequency": "How often",
+  "terms.cost": "Cost",
+  "terms.help": "Help",
+  "terms.optOut": "Opting out",
+  "terms.senders": "Who texts you",
+  "terms.privacy": "Privacy",
+  "terms.carriers": "Carriers",
+  "terms.closingHeading": "Changed your mind?",
+  "terms.closingNumber": "Reply STOP to any of our texts, or text STOP to {number}. You can also turn texts off on your account page.",
+  "terms.closing": "Reply STOP to any of our texts. You can also turn texts off on your account page.",
+  "terms.manage": "Manage texts and emails",
+  "terms.back": "Back to registration",
+  "terms.footerAddress": "{address}. When these terms change, the version number goes up; your consent record keeps the version you agreed to.",
+  "terms.footer": "When these terms change, the version number goes up; your consent record keeps the version you agreed to.",
+  "terms.privacyLink": "privacy policy",
+  "terms.privacyRead": "Read the privacy policy."
+}

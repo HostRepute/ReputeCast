@@ -418,7 +418,7 @@ const reportLatestSent = `-- name: ReportLatestSent :one
 SELECT c.id, c.name
 FROM campaigns c
 WHERE c.workspace_id = $1 AND c.deleted_at IS NULL AND c.id <> $2
-  AND c.status IN ('sent', 'sending', 'paused', 'cancelled', 'failed') AND c.started_at IS NOT NULL
+  AND c.status IN ('sent', 'sending', 'paused', 'cancelled', 'failed') AND c.started_at IS NOT NULL AND c.channel = 'email'
 ORDER BY c.started_at DESC
 LIMIT 1
 `

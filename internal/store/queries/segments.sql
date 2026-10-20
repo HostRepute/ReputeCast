@@ -48,7 +48,7 @@ WHERE sm.segment_id = @segment_id;
 -- Campaigns a segment can refer to ("Opened campaign …").
 SELECT id, name, coalesce(started_at, created_at)::timestamptz AS at
 FROM campaigns
-WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND status IN ('sent', 'sending', 'paused')
+WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND status IN ('sent', 'sending', 'paused') AND channel = 'email'
 ORDER BY coalesce(started_at, created_at) DESC
 LIMIT 50;
 

@@ -62,9 +62,13 @@ func (a *App) formsService() *forms.Service {
 // public pages (wire_transactional.go sets it).
 var publicNotifications = func(*App) publicpages.Notifications { return nil }
 
+// publicTextTerms writes the text message terms page (wire_texting.go sets it).
+var publicTextTerms = func(*App) publicpages.TextTerms { return nil }
+
 func (a *App) publicPages() *publicpages.Handler {
 	fs := a.formsService()
 	pl := a.polls()
+	tt := publicTextTerms(a)
 	// The publication website (X18), built before the lock: it reads the
 	// forms service too.
 	site := websiteService(a)
@@ -86,6 +90,8 @@ func (a *App) publicPages() *publicpages.Handler {
 		Earn: earnService(a),
 		// The publication website's pages (X18).
 		Website: site,
+		// The text message terms page (SMS).
+		TextTerms: tt,
 	}
 	formsPages[a] = h
 	return h
