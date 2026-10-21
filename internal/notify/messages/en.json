@@ -43,5 +43,7 @@
   "short.sms_registration": "sender registrations",
   "short.sms_provider_down": "SMS provider problems",
   "short.sms_send_paused": "SMS auto-pauses",
-  "short.store_problem": "store problems"
+  "short.store_problem": "store problems",
+  "short.push_worker_missing": "missing push service workers",
+  "short.whatsapp_attention": "WhatsApp templates and quality"
 }

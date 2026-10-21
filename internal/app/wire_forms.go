@@ -90,10 +90,14 @@ var publicTextTerms = func(*App) publicpages.TextTerms { return nil }
 // (wire_texting.go sets it).
 var publicTextPrefs = func(*App) publicpages.TextPrefs { return nil }
 
+// publicPush adds web push to the pages (wire_webpush.go sets it).
+var publicPush = func(*App) publicpages.PushPages { return nil }
+
 func (a *App) publicPages() *publicpages.Handler {
 	fs := a.formsService()
 	pl := a.polls()
 	tt := publicTextTerms(a)
+	pp := publicPush(a)
 	// The publication website (X18), built before the lock: it reads the
 	// forms service too.
 	site := websiteService(a)
@@ -130,6 +134,8 @@ func (a *App) publicPages() *publicpages.Handler {
 		TextTerms: tt,
 		// The preference center's Texts switches (SMS).
 		TextPrefs: publicTextPrefs(a),
+		// The push prompt and the preference center's "Turn off" (X22).
+		Push: pp,
 	}
 	formsPages[a] = h
 	return h

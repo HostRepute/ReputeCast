@@ -1,0 +1,534 @@
+/*
+ * Web push and WhatsApp screens (design expansion phase 8, X22): the
+ * boards PushSetup, PushStates, PushPrompt, PushComposer and
+ * WhatsAppChannel. Values are the boards' own.
+ */
+
+@layer components {
+  /* Stat tiles (`.stats .stat`). */
+  .px-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .px-stat {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .px-stat .v {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+    margin-top: 2px;
+  }
+  .px-stat .s {
+    font-size: 12px;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  @media (max-width: 767px) {
+    .px-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  /* Two cards side by side. */
+  .px-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(460px, 100%), 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+
+  /* A card's head with an action at the end (`.c8h`). */
+  .px-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line-2);
+    gap: 8px 14px;
+    flex-wrap: wrap;
+  }
+  .px-head > div:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1 1 300px;
+  }
+  .px-head > div + div {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    flex: none;
+  }
+  .px-pad {
+    padding: 16px 18px;
+  }
+  .px-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 12px 18px;
+    border-top: 1px solid var(--line-2);
+  }
+
+  /* Rows of a settings card (`.mrow`). */
+  .px-mrow {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-top: 1px solid var(--line-2);
+    flex-wrap: wrap;
+  }
+  .px-mrow:first-child {
+    border-top: 0;
+  }
+  .px-mrow .tx {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1 1 260px;
+  }
+  .px-mrow .tx > b {
+    font-weight: 600;
+  }
+  .px-mrow .tx .k {
+    color: var(--ink-2);
+  }
+
+  .px-lnk {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--accent);
+  }
+  .px-lnk:hover {
+    text-decoration: underline;
+  }
+  button.px-lnk {
+    border: 0;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .px-mask {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-family-mono);
+    font-size: 12.5px;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+
+  /* The site icon in the sites table. */
+  .px-site {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    min-width: 0;
+  }
+  .px-site .ic {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: var(--ground-3);
+    border: 1px solid var(--line);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    color: var(--ink-2);
+  }
+  .px-site .host {
+    font-family: var(--font-family-mono);
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .px-two {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  /* Add a site: the steps with their code boxes. */
+  .px-add {
+    border-top: 1px solid var(--line-2);
+    padding: 18px 18px 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    background: #fbfbfc;
+  }
+  .px-add-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+  .px-step {
+    display: flex;
+    gap: 12px 24px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding: 14px 0;
+    border-top: 1px solid var(--line-2);
+  }
+  .px-step > .lead {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    flex: 1 1 280px;
+    max-width: 360px;
+    min-width: 0;
+  }
+  .px-step > .body {
+    flex: 999 1 420px;
+    min-width: 0;
+  }
+  .px-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex: none;
+  }
+  .px-file {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #f9fafb;
+    flex-wrap: wrap;
+  }
+
+  /* Dark code boxes (`.cbx`). */
+  .px-cbx {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #1f2937;
+    background: #0b1220;
+    min-width: 0;
+  }
+  .px-cbh {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 8px;
+    border-bottom: 1px solid #1f2937;
+    background: #111827;
+    flex-wrap: wrap;
+  }
+  .px-cbh .lang {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 6px;
+    background: #273244;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+  }
+  .px-cbh .cp {
+    margin-left: auto;
+    height: 28px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #e5e7eb;
+    border: 1px solid #374151;
+    border-radius: 6px;
+    background: none;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .px-cbx pre {
+    margin: 0;
+    padding: 12px 14px;
+    font-family: var(--font-family-mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #e5e7eb;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .px-cbx .c1 {
+    color: #93c5fd;
+  }
+  .px-cbx .c2 {
+    color: #86efac;
+  }
+  .px-cbx .c5 {
+    color: #f9a8d4;
+  }
+  .px-cbx .cm {
+    color: #9ca3af;
+  }
+
+  /* Bars by browser. */
+  .px-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .px-bars .row-h {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .px-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--line-2);
+    overflow: hidden;
+  }
+  .px-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: var(--accent);
+  }
+  .px-split {
+    display: flex;
+    height: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+    gap: 2px;
+  }
+  .px-split i {
+    display: block;
+    height: 100%;
+  }
+  .px-legend {
+    display: flex;
+    gap: 6px 14px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .px-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .px-legend i {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    display: inline-block;
+    flex: none;
+  }
+  .px-sub {
+    font-weight: 600;
+    color: var(--ink-nav);
+  }
+
+  /* A prompt in Setup's Prompts card and its numbers. */
+  .px-prompt {
+    padding: 16px 18px;
+    border-top: 1px solid var(--line-2);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .px-prompt .px-ph {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .px-prompt .px-ph .nm {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-weight: 600;
+  }
+  .px-funnel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(92px, 100%), 1fr));
+    gap: 0;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .px-funnel > div {
+    padding: 12px 14px;
+    border-left: 1px solid var(--line-2);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .px-funnel > div:first-child {
+    border-left: 0;
+  }
+  .px-funnel .v {
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Push not set up (`.card.empty`). */
+  .card.px-empty {
+    padding: 44px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+    border-style: dashed;
+  }
+  .px-empty .tt {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .px-empty .ds {
+    margin: 0;
+    color: var(--ink-2);
+    max-width: 560px;
+  }
+  .px-empty ol {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+  }
+  .px-empty ol .chip {
+    height: 30px;
+  }
+  .px-empty ol .num {
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  /* A site whose service worker needs attention. */
+  .card.px-site-alert {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .card.px-site-alert.px-bad {
+    border-color: var(--bad-line);
+  }
+  .card.px-site-alert.px-warn {
+    border-color: #fcd34d;
+  }
+  .px-site-alert .row1 {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .px-note-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    flex: 1 1 320px;
+  }
+  .px-note-body > b {
+    font-weight: 700;
+  }
+  .px-note-acts {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* The keys card's public key with its copy button. */
+  .px-key {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .px-key .mono {
+    font-size: 12px;
+    overflow-wrap: anywhere;
+    color: var(--ink-nav);
+    min-width: 0;
+  }
+
+  /* The events log. */
+  .px-events td {
+    vertical-align: top;
+  }
+  .px-raw {
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+    color: var(--ink-2);
+    overflow-wrap: anywhere;
+  }
+
+  /* Review & send's checks (`.chk8`). */
+  .px-chk {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 11px 18px;
+    border-top: 1px solid var(--line-2);
+  }
+  .sec + .px-chk {
+    border-top: 0;
+  }
+  .px-chk > .badge {
+    margin-top: 1px;
+    min-width: 44px;
+    justify-content: center;
+  }
+  .px-chk .tx {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .px-chk.w {
+    background: #fffbeb;
+  }
+  .px-chk.b {
+    background: #fff5f5;
+  }
+}

@@ -419,7 +419,7 @@ func (e *executor) step(ctx context.Context, n AutomationNode) (next, path strin
 		return e.g.Next(n.ID), "", false, nil
 	case NodeEmail:
 		return e.email(ctx, n)
-	case NodeSMS:
+	case NodeSMS, NodePush, NodeWhatsApp:
 		return e.channelSend(ctx, n)
 	case NodeBranch:
 		return e.branch(ctx, n)

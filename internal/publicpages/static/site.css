@@ -450,3 +450,15 @@ mark.st-hl { background: var(--pub-tint); color: var(--pub-hover); border-radius
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+/* Web push on the account page (design expansion, X22): this browser's
+   switch, how to allow notifications again, and the member's other
+   browsers. */
+.st-pn { display: flex; flex-direction: column; gap: 12px; }
+.st-pn .st-line { padding: 0; border-top: 0; }
+.st-pn [data-rc-push-state].is-blocked { color: #b42318; font-weight: 600; }
+.st-pn-help { display: block; margin: 0; padding: 12px 14px; border-radius: 10px; border: 1px solid #e3e6eb; background: #f9fafb; font-size: 13.5px; line-height: 1.55; color: #374151; }
+.st-pn-help[hidden] { display: none; }
+.st-pn-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.st-pn-list:empty { display: none; }
+.st-linkbtn { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; min-height: 24px; }
+.st-linkbtn:disabled { opacity: 0.6; cursor: default; }

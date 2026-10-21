@@ -79,6 +79,10 @@ const (
 	KindSMSSendPaused   = "sms_send_paused"   // an SMS campaign auto-paused
 	// Shopify and WooCommerce (design expansion, phase 7).
 	KindStoreProblem = "store_problem" // a store disconnected, or its webhooks missing
+	// Web push and WhatsApp (design expansion, phase 8).
+	KindPushWorkerMissing  = "push_worker_missing" // a push site's service worker is missing or unreachable
+	KindWhatsAppAttention  = "whatsapp_attention"  // a WhatsApp template was rejected, or the number's quality dropped
+	KindWhatsAppTokenFails = "whatsapp_token"      // Meta rejected the WhatsApp access token: sends are held
 )
 
 // Notification is what appears in the notification center.

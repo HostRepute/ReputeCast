@@ -30,6 +30,7 @@ import { ApprovalStatusBadge, approverNames, decidedText, deciderFirst, DiffLine
 import '@/features/review/review.css'
 import { PostApprovalCard } from '@/features/website/elsewhere'
 import { SmsApprovalCard } from '@/features/sms/ApprovalCard'
+import { PushApprovalCard, WhatsAppApprovalCard } from '@/features/push/ApprovalCards'
 import { ClientSignoffFacts, ClientSignoffIntro, ClientSignoffLine, ClientSignoffNote } from '@/features/agency/ClientApproval'
 
 type Detail = Schemas['ApprovalDetail']
@@ -207,12 +208,17 @@ function DetailBody({ detail: d }: { detail: Detail }) {
           {/* Texts (SMS, X21): the text, its length and the cost by country. */}
           {d.channel === 'sms' && d.sms ? (
             <SmsApprovalCard sms={d.sms} />
+          ) : d.channel === 'push' && d.push ? (
+            // Push and WhatsApp (X22): the notification, or the template as it reads.
+            <PushApprovalCard push={d.push} />
+          ) : d.channel === 'whatsapp' && d.whatsapp ? (
+            <WhatsAppApprovalCard wa={d.whatsapp} />
           ) : d.campaign ? (
             <CampaignCard detail={d} busy={busy === 'test'} onTest={() => void sendTest()} />
           ) : null}
           {d.readiness ? <ReadinessCard detail={d} busy={busy} onFix={(c, f) => void applyFix(c, f)} /> : null}
           {d.audience || d.route ? <AudienceRouteCard detail={d} /> : null}
-          {d.campaign && d.channel !== 'sms' ? <PlacementApprovalCard campaignId={d.campaign.id} /> : null}
+          {d.campaign && d.channel !== 'sms' && d.channel !== 'push' && d.channel !== 'whatsapp' ? <PlacementApprovalCard campaignId={d.campaign.id} /> : null}
           <ScheduleNoteCard detail={d} />
           <DiscussionCard detail={d} comment={comment} setComment={setComment} busy={busy === 'comment'} onPost={() => void post()} others={others} />
         </div>

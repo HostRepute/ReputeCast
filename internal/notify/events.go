@@ -70,6 +70,9 @@ var Events = []EventType{
 	{Key: KindSMSProviderDown, Label: "SMS provider down or receipts silent", Audience: "Everyone with providers:view", Short: "SMS provider problems", DefaultEmail: true, Urgent: true, Kinds: []string{KindSMSProviderDown}},
 	{Key: KindSMSSendPaused, Label: "SMS campaign auto-paused", Audience: "Everyone with campaigns:pause", Short: "SMS auto-pauses", DefaultEmail: true, Urgent: true, Kinds: []string{KindSMSSendPaused}},
 	{Key: KindStoreProblem, Label: "Store disconnected or its webhooks missing", Audience: "Everyone with integrations:manage", Short: "store problems", DefaultEmail: true, Kinds: []string{KindStoreProblem}},
+	// Web push and WhatsApp (design expansion, phase 8).
+	{Key: KindPushWorkerMissing, Label: "Push service worker missing", Audience: "Everyone with providers:view", Short: "missing push service workers", DefaultEmail: false, Kinds: []string{KindPushWorkerMissing}},
+	{Key: KindWhatsAppAttention, Label: "WhatsApp template rejected or quality dropped", Audience: "Everyone with providers:view", Short: "WhatsApp templates and quality", DefaultEmail: true, Kinds: []string{KindWhatsAppAttention, KindWhatsAppTokenFails}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -114,7 +117,7 @@ const (
 var categoryKinds = map[string][]string{
 	CategoryApprovals:     {KindApprovalRequested, KindApprovalDecided, KindApprovalInvalidated},
 	CategorySending:       {KindSendPaused, KindSendBlocked, KindSendFinished, KindDigestIssueHeld, KindDigestPaused, KindDigestFeedFailing, KindDigestDraftReady, KindSMSSendPaused},
-	CategoryProviders:     {KindProviderDown, KindProviderDegraded, KindWebhooksSilent, KindSMSProviderDown, KindSMSRegistration, KindSMSBudget},
+	CategoryProviders:     {KindProviderDown, KindProviderDegraded, KindWebhooksSilent, KindSMSProviderDown, KindSMSRegistration, KindSMSBudget, KindPushWorkerMissing, KindWhatsAppAttention, KindWhatsAppTokenFails},
 	CategoryTeam:          {KindInviteAccepted, KindInviteRequested},
 	CategoryHostRepute:    {KindHostReputeAlert},
 	CategoryIntegrations:  {KindIntegrationAttention, KindPostDraftCreated, KindStoreProblem},

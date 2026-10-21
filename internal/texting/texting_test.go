@@ -244,9 +244,11 @@ func TestSMSDemo(t *testing.T) {
 		checks["ACME isn’t approved yet in Ireland: 20 contacts there are skipped until it is"] != "warn" || pub.ChannelSteps["sms"] != 1 || len(pub.Requires) != 0 {
 		t.Fatalf("publish checks: %+v", pub)
 	}
+	// Daniel lacks every channel's send permission: the flow's SMS step, and
+	// its push and WhatsApp steps (X22), each need theirs.
 	var danielPub struct{ Requires []string }
 	daniel.Do(http.MethodGet, ws+"/automations/"+flow+"/publish-preview", nil).MustStatus(t, 200).JSON(t, &danielPub)
-	if len(danielPub.Requires) != 1 || danielPub.Requires[0] != "sms:send" {
+	if strings.Join(danielPub.Requires, ",") != "sms:send,push:send,whatsapp:send" {
 		t.Fatalf("Daniel's publish needs: %v", danielPub.Requires)
 	}
 
