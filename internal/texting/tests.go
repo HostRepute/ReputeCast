@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -435,7 +436,7 @@ func countryProbe(country string) string {
 }
 
 // PreviewContacts lists people to preview as: the first recipients, one
-// per country first.
+// per country first, the country with the most recipients leading.
 func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, id uuid.UUID) ([]SmsPreviewContact, error) {
 	c, err := s.campaign(ctx, ws, id)
 	if err != nil {
@@ -450,11 +451,20 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, id u
 	add := func(r Recipient) {
 		out = append(out, SmsPreviewContact{ID: r.ContactID.String(), Name: strings.TrimSpace(r.FirstName + " " + r.LastName), Country: r.Country})
 	}
+	per := map[string]int{}
+	for _, r := range f.Recipients {
+		per[r.Country]++
+	}
+	firsts := []Recipient{}
 	for _, r := range f.Recipients {
 		if !seen[r.Country] {
 			seen[r.Country] = true
-			add(r)
+			firsts = append(firsts, r)
 		}
+	}
+	sort.SliceStable(firsts, func(i, j int) bool { return per[firsts[i].Country] > per[firsts[j].Country] })
+	for _, r := range firsts {
+		add(r)
 	}
 	for _, r := range f.Recipients {
 		if len(out) >= 20 {

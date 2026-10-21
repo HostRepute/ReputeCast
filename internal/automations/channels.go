@@ -2,6 +2,8 @@ package automations
 
 import (
 	"context"
+	"log/slog"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -251,4 +253,100 @@ func (e *executor) channelCondition(ctx context.Context, cond *AutomationConditi
 	}
 	return c.Condition(ctx, e.tx, ChannelCheck{WorkspaceID: e.run.WorkspaceID, AutomationID: e.run.AutomationID, RunID: e.run.ID, ContactID: e.run.ContactID,
 		EnteredAt: e.run.EnteredAt, Condition: *cond})
+}
+
+// ChannelCoster is a channel step that can say what its messages cost:
+// the automations list shows each flow's cost over its window.
+type ChannelCoster interface {
+	CostSince(ctx context.Context, workspaceID uuid.UUID, automationIDs []uuid.UUID, since time.Time) (map[uuid.UUID]float64, error)
+}
+
+// graphChannels lists the channels a graph sends on, email first.
+func graphChannels(g AutomationGraph) []string {
+	out := []string{}
+	for _, c := range []struct{ node, channel string }{{NodeEmail, "email"}, {NodeSMS, "sms"}} {
+		for _, n := range g.Nodes {
+			if n.Type == c.node {
+				out = append(out, c.channel)
+				break
+			}
+		}
+	}
+	return out
+}
+
+// channelCosts fills in what each listed flow's texts cost since a time,
+// when the SMS step reports costs.
+func (s *Service) channelCosts(ctx context.Context, workspaceID uuid.UUID, items []AutomationListItem, since time.Time) error {
+	ids := []uuid.UUID{}
+	for _, it := range items {
+		if slices.Contains(it.Channels, "sms") {
+			if id, err := uuid.Parse(it.ID); err == nil {
+				ids = append(ids, id)
+			}
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	c, ok := channelStep(NodeSMS)
+	if !ok {
+		return nil
+	}
+	coster, ok := c.(ChannelCoster)
+	if !ok {
+		return nil
+	}
+	costs, err := coster.CostSince(ctx, workspaceID, ids, since)
+	if err != nil {
+		return err
+	}
+	for i := range items {
+		id, _ := uuid.Parse(items[i].ID)
+		if v, ok := costs[id]; ok {
+			items[i].ChannelCost = &v
+		}
+	}
+	return nil
+}
+
+// ChannelPublishChecker is a channel step that adds badges to the publish
+// dialog (brief §6): for SMS, quiet hours and the senders' registration in
+// the countries its steps text. Its badges warn; they don't block.
+type ChannelPublishChecker interface {
+	PublishChecks(ctx context.Context, workspaceID uuid.UUID, nodes []AutomationNode) ([]AutomationPublishCheck, error)
+}
+
+// channelPublishChecks asks each channel with steps in the flow for its
+// publish badges, in the order its steps first appear.
+func channelPublishChecks(ctx context.Context, workspaceID uuid.UUID, g AutomationGraph) []AutomationPublishCheck {
+	byType := map[string][]AutomationNode{}
+	var types []string
+	for _, n := range g.Nodes {
+		if !isChannelNode(n.Type) {
+			continue
+		}
+		if _, ok := byType[n.Type]; !ok {
+			types = append(types, n.Type)
+		}
+		byType[n.Type] = append(byType[n.Type], n)
+	}
+	var out []AutomationPublishCheck
+	for _, t := range types {
+		c, ok := channelStep(t)
+		if !ok {
+			continue
+		}
+		pc, ok := c.(ChannelPublishChecker)
+		if !ok {
+			continue
+		}
+		checks, err := pc.PublishChecks(ctx, workspaceID, byType[t])
+		if err != nil {
+			slog.WarnContext(ctx, "automations: channel publish checks", "type", t, "err", err)
+			continue
+		}
+		out = append(out, checks...)
+	}
+	return out
 }

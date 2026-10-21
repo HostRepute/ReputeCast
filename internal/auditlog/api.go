@@ -19,7 +19,7 @@ type AuditFilterInput struct {
 	ActorType string    `query:"actorType" enum:"user,api_key,mcp_agent,system"`
 	Actor     string    `query:"actor" doc:"Actor id"`
 	Action    string    `query:"action" maxLength:"80" doc:"Action group (routing) or action (routing.updated)"`
-	Category  string    `query:"category" enum:"sending,routing,audience,team,settings,integrations,transactional,scoring,digests,polls,ai,earn,verification,placement,website,grow,products,commerce,agency" doc:"A group of actions, as in the action filter"`
+	Category  string    `query:"category" enum:"sending,routing,audience,team,settings,integrations,transactional,scoring,digests,polls,ai,earn,verification,placement,website,grow,products,commerce,sms,agency" doc:"A group of actions, as in the action filter"`
 	Result    string    `query:"result" enum:"allowed,denied,error"`
 	Range     string    `query:"range" enum:"24h,7d,30d,90d,all" default:"7d"`
 	Since     time.Time `query:"since" doc:"Overrides range"`

@@ -532,15 +532,25 @@ func (s *Service) Report(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		f.Codes = append(f.Codes, SmsFailureCode{Provider: prov, Code: code, Count: n})
 	}
 	rows.Close()
+	// Each reason shows the rate of the threshold it counts toward, as the
+	// dispatcher computes it: filtered texts have their own; every other
+	// failure counts toward the failed threshold together.
+	var failed int64
+	for _, r := range reasons {
+		if r != "filtered" {
+			failed += byReason[r].Count
+		}
+	}
 	for _, r := range reasons {
 		f := byReason[r]
 		switch r {
 		case "filtered":
 			f.Limit = th.Filtered
+			f.Rate = pct(f.Count, receipts)
 		default:
 			f.Limit = th.Failed
+			f.Rate = pct(failed, receipts)
 		}
-		f.Rate = pct(f.Count, receipts)
 		out.Failures = append(out.Failures, *f)
 	}
 	sort.SliceStable(out.Failures, func(i, j int) bool { return out.Failures[i].Count > out.Failures[j].Count })

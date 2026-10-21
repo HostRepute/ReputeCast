@@ -20,6 +20,7 @@ import { T, useT } from '@/i18n'
 import './approvals.css'
 import { im } from '@/features/digests/issueMessages'
 import { me as wm } from '@/features/website/elsewhere.messages'
+import { ChannelCostRule } from '@/features/sms/PolicyRule'
 
 type Policy = Schemas['ApprovalPolicy']
 type View = Schemas['ApprovalPolicyView']
@@ -191,6 +192,8 @@ function PolicyForm({ view }: { view: View }) {
                   </>
                 }
               />
+              {/* Texts (SMS, X21): what an SMS or WhatsApp campaign costs. */}
+              <ChannelCostRule value={p.channelCost} disabled={read} onChange={(v) => set({ channelCost: v })} />
               <div className="border-t border-line-2 pt-2.5">
                 <Rule
                   on={p.automationPublish}

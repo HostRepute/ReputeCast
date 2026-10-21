@@ -724,7 +724,7 @@ type InstanceAuditFilterInput struct {
 	Until     time.Time `query:"until"`
 	// Category narrows to a group of actions, as in the workspace view
 	// (agency: the agency's actions across the instance).
-	Category string `query:"category" enum:"sending,routing,audience,team,settings,integrations,transactional,scoring,digests,polls,ai,earn,verification,placement,website,grow,products,commerce,agency"`
+	Category string `query:"category" enum:"sending,routing,audience,team,settings,integrations,transactional,scoring,digests,polls,ai,earn,verification,placement,website,grow,products,commerce,sms,agency"`
 }
 
 func (in *InstanceAuditFilterInput) filter() InstanceFilter {

@@ -60,6 +60,18 @@ const search = z.object({
     .regex(/^\d{1,9}(\.\d{1,2})?$/)
     .optional()
     .catch(undefined),
+  /** The phone and SMS consent (X21). */
+  phone: z.enum(['yes', 'no']).optional().catch(undefined),
+  phoneCountry: z
+    .string()
+    .regex(/^[A-Z]{2}$/)
+    .optional()
+    .catch(undefined),
+  smsConsent: z
+    .string()
+    .regex(/^(any|none|[0-9a-f-]{36})$/)
+    .optional()
+    .catch(undefined),
   page: z.coerce.number().int().min(1).optional().catch(undefined),
   size: z.coerce.number().int().min(1).max(100).optional().catch(undefined),
 })

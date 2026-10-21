@@ -11,6 +11,7 @@ import { dayMonthDate } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import { useRefreshDigest } from './shared'
+import { TextOption, useCreateText, useTextOption } from '@/features/sms/NewCampaign'
 
 /**
  * "New campaign": Regular continues to the composer's template gallery as
@@ -25,7 +26,10 @@ export function NewCampaignDialog({ open, onOpenChange }: { open: boolean; onOpe
   const refresh = useRefreshDigest()
   const sites = $api.useQuery('get', '/api/v1/workspaces/{workspace}/digests/sites', { params: { path: { workspace: slug } } }, { enabled: open })
   const list = sites.data?.items ?? []
-  const [kind, setKind] = useState<'regular' | 'recurring'>('regular')
+  const [kind, setKind] = useState<'regular' | 'recurring' | 'sms'>('regular')
+  // Phase 8: a text message, once texting is set up.
+  const texts = useTextOption()
+  const createText = useCreateText()
   const [chosen, setSource] = useState<string>('')
   // A connected site is picked by default; without one, a feed address.
   const source = chosen || list[0]?.id || 'url'
@@ -36,6 +40,18 @@ export function NewCampaignDialog({ open, onOpenChange }: { open: boolean; onOpe
     if (kind === 'regular') {
       onOpenChange(false)
       void navigate({ to: '/w/$workspace/campaigns/new', params: { workspace: slug } })
+      return
+    }
+    if (kind === 'sms') {
+      setBusy(true)
+      try {
+        await createText()
+        onOpenChange(false)
+      } catch (e) {
+        toast({ kind: 'error', title: t(m.createFailed), detail: errorMessage(e) })
+      } finally {
+        setBusy(false)
+      }
       return
     }
     setError(undefined)
@@ -114,6 +130,7 @@ export function NewCampaignDialog({ open, onOpenChange }: { open: boolean; onOpe
             </div>
           ) : null}
         </OptionCard>
+        {texts ? <TextOption checked={kind === 'sms'} onChange={() => setKind('sms')} /> : null}
       </fieldset>
     </Dialog>
   )

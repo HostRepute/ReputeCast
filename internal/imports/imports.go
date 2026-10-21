@@ -57,6 +57,8 @@ type Service struct {
 	// Templates imports a source's email templates (Notifuse); nil skips
 	// the step.
 	Templates TemplateImporter
+	// Texts records numbers and SMS consent (phase 8); nil imports neither.
+	Texts Texts
 	// JobSources add other domains' jobs to the background-jobs tray.
 	JobSources []JobSource
 	// Checks gives a verification service's answers for an import's new
@@ -270,6 +272,10 @@ type ImportStats struct {
 	ConfirmsSent int64             `json:"confirmsSent" doc:"Re-permission emails sent through the System stream"`
 	// Templates the import brought along (Notifuse).
 	Templates *ImportTemplateStats `json:"templates,omitempty"`
+	// Texts counts the rows' numbers and SMS consent (phase 8): number,
+	// consent, no_evidence (SMS consent without its date, source and text:
+	// Not subscribed) and invalid_phone.
+	Texts map[string]int64 `json:"texts,omitempty"`
 }
 
 // ImportListAfter is a target list and its size after the import.

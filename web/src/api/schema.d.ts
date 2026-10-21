@@ -12216,6 +12216,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy an SMS campaign into a new draft (logged) */
+        post: operations["duplicate-sms-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/pause": {
         parameters: {
             query?: never;
@@ -12293,6 +12310,23 @@ export interface paths {
         };
         /** The SMS report: delivery, failures by reason with the provider's codes, clicks, replies, cost, progress */
         get: operations["get-sms-report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/report.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download the SMS report by country as CSV: counts only (logged) */
+        get: operations["export-sms-report"];
         put?: never;
         post?: never;
         delete?: never;
@@ -18987,6 +19021,9 @@ export interface components {
             tag?: string;
         };
         AutomationListItem: {
+            /** Format: double */
+            channelCost?: number;
+            channels: string[];
             /**
              * Format: double
              * @description % of entrants who finished the flow (goal or end)
@@ -19591,6 +19628,7 @@ export interface components {
             humanOpens?: number;
             id: string;
             local?: boolean;
+            localTime?: string;
             name: string;
             notes: string[];
             /** Format: int64 */
@@ -21510,6 +21548,9 @@ export interface components {
             paid?: "with_access" | "trialing" | "past_due" | "complimentary" | "gift" | "ended" | "free";
             /** @description With paid=with_access: a tier's id, for that tier and above */
             paidTier?: string;
+            /** @enum {string} */
+            phone?: "yes" | "no";
+            phoneCountry?: string;
             /** @description Email, name or tag */
             q?: string;
             referringDomain?: string;
@@ -21518,6 +21559,7 @@ export interface components {
             /** @description Segment id */
             segment?: string;
             signedIn?: boolean;
+            smsConsent?: string;
             /** @enum {string} */
             sort?: "activity" | "score";
             source?: string;
@@ -21603,6 +21645,7 @@ export interface components {
             mailboxProvider: string;
             name: string;
             paid?: components["schemas"]["ContactPaid"];
+            phone?: string;
             /** Format: int64 */
             score?: number;
             /** @enum {string} */
@@ -25208,6 +25251,7 @@ export interface components {
             providers: string[];
             pullSuppressions: boolean;
             recordHistory: boolean;
+            sms?: components["schemas"]["ImportSmsConsent"];
             statuses: components["schemas"]["ImportConsentStatus"][];
             /** Format: int64 */
             suppressCount: number;
@@ -25513,6 +25557,11 @@ export interface components {
         ImportSaveFieldsInput: {
             fields: components["schemas"]["ImportFieldChoice"][];
         };
+        ImportSmsConsent: {
+            consentMapped: boolean;
+            evidenceMapped: boolean;
+            missing: string[];
+        };
         ImportSourceList: {
             /**
              * Format: int64
@@ -25570,6 +25619,9 @@ export interface components {
                 [key: string]: number;
             };
             templates?: components["schemas"]["ImportTemplateStats"];
+            texts?: {
+                [key: string]: number;
+            };
         };
         ImportSummary: {
             /**
@@ -34799,6 +34851,10 @@ export interface components {
              * @description Percent of the page scrolled before a popup opens; 0 is off
              */
             popupScroll: number;
+            smsConsent?: boolean;
+            smsConsentText?: string;
+            /** Format: int64 */
+            smsConsentVersion?: number;
         };
         SignupFormCopy: {
             /** Format: date-time */
@@ -35330,7 +35386,9 @@ export interface components {
             email: "subscribed" | "pending" | "unsubscribed" | "not_subscribed";
             /** Format: date-time */
             emailAt?: string;
+            emailConfirmed?: boolean;
             emailSource?: string;
+            emailSourceLabel?: string;
             listId: string;
             name: string;
             /** @enum {string} */
@@ -35804,6 +35862,7 @@ export interface components {
             spend: number;
             /** @enum {string} */
             status: "healthy" | "degraded" | "down" | "credentials_rejected";
+            testMode: boolean;
             told: string[];
             webhookUrl: string;
             /** @enum {string} */
@@ -36457,6 +36516,8 @@ export interface components {
             counts: {
                 [key: string]: number;
             };
+            /** Format: int64 */
+            filteredRecent: number;
             items: components["schemas"]["SmsSuppression"][];
             /** Format: int64 */
             matching: number;
@@ -41190,7 +41251,7 @@ export interface operations {
                 /** @description Overrides range */
                 since?: string;
                 until?: string;
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "agency";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "agency";
                 cursor?: string;
                 limit?: number;
             };
@@ -41264,7 +41325,7 @@ export interface operations {
                 /** @description Overrides range */
                 since?: string;
                 until?: string;
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "agency";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "agency";
                 format?: "csv" | "json";
             };
             header?: never;
@@ -47457,7 +47518,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "agency";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "agency";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -47539,7 +47600,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "agency";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "agency";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -52585,6 +52646,12 @@ export interface operations {
                 spentFrom?: string;
                 /** @description Total spent in the stores, at most */
                 spentTo?: string;
+                /** @description yes: contacts with a phone number; no: without one */
+                phone?: "yes" | "no" | "";
+                /** @description The phone number's country (GB) */
+                phoneCountry?: string;
+                /** @description any: SMS consent on some list; none: on none; or a list id */
+                smsConsent?: string;
                 page?: number;
                 pageSize?: number;
             };
@@ -69216,6 +69283,40 @@ export interface operations {
             };
         };
     };
+    "duplicate-sms-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SmsCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "pause-sms-send": {
         parameters: {
             query?: never;
@@ -69383,6 +69484,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SmsReport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-sms-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
                 };
             };
             /** @description Error */

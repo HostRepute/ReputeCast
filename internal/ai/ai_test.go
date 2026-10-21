@@ -96,7 +96,8 @@ func (f *fakeModel) serve(w http.ResponseWriter, r *http.Request) {
 	case strings.Contains(text, "link's text doesn't say"):
 		answer = `{"text":"Read the v2 migration guide"}`
 	case strings.Contains(text, "Draft the conditions"):
-		if strings.Contains(text, "phone") {
+		// The description, not the schema: the schema names phone fields too (X21).
+		if strings.Contains(text, "opened on a phone") {
 			answer = `{"nothing":"There's no condition for “opened on a phone”."}`
 		} else {
 			answer = `{"groups":[{"match":"all","conditions":[{"field":"clicked","op":"in_last","amount":30,"unit":"days"},{"field":"last_open","op":"not_in_last","amount":14,"unit":"days"},{"field":"tier","op":"is","value":"Active"},{"field":"shoe_size","op":"is","value":"9"}]}],"note":"There's no condition for a specific link, so I used “Clicked any email”."}`

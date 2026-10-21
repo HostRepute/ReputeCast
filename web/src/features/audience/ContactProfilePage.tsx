@@ -30,6 +30,8 @@ import { AddressCheckRow } from '@/features/verification/AddressCheck'
 // Digital products (X19): the Purchases card, bought and refunded events, the checkout's consent.
 import { PurchasesCard, checkoutConsent, purchaseActivity, purchaseIcon, purchaseIcons } from '@/features/products/contact'
 import { GrowActivityRow, growEvents, ProfileReferralsCard, useContactGrow, withGrow } from '@/features/grow/contact/ContactGrow'
+import { ChannelConsentCard } from '@/features/sms/ContactConsent'
+import { smsEventIcon, useSmsActivity } from '@/features/sms/activity'
 import './audience.css'
 import { ContactWebsiteCard } from '@/features/website/elsewhere'
 
@@ -151,6 +153,7 @@ export function ContactProfilePage({ contactId }: { contactId: string }) {
               <ContactWebsiteCard contactId={p.id} name={[p.firstName, p.lastName].filter(Boolean).join(' ') || p.email} />
               {/* A connected store's orders and consent (X20). */}
               <StoreOrdersCard contactId={p.id} />
+              <ChannelConsentCard contactId={p.id} name={p.name || p.email} />
             </div>
             <ActivityCard contactId={contactId} total={p.activityTotal} />
           </div>
@@ -680,6 +683,9 @@ function eventIcon(it: Item): [keyof typeof icons, keyof typeof tone] {
   // Purchases and refunds (digital products, X19).
   const purchase = purchaseIcon(it)
   if (purchase) return purchase
+  // Texts (design expansion, X21).
+  const text = smsEventIcon(it)
+  if (text) return text
   // Poll answers and survey responses (design expansion, X11).
   if (it.type === 'poll_answer' || it.type === 'survey_response' || it.type === 'survey_started') return ['check', 'green']
   // Store orders and abandoned checkouts (X20).
@@ -753,6 +759,7 @@ function ActivityRow({ it }: { it: Item }) {
   const answerActivity = useAnswerActivity()
   // Store orders and abandoned checkouts (X20).
   const storeActivity = useStoreActivity()
+  const smsActivity = useSmsActivity()
   const [icon, t] = eventIcon(it)
   const c = tone[t]
   const tr = useT()
@@ -765,12 +772,16 @@ function ActivityRow({ it }: { it: Item }) {
   const answer = answerActivity(it) ?? storeActivity(it)
   // Purchases and refunds (digital products, X19).
   const purchase = purchaseActivity(it)
+  const text = smsActivity(it)
   if (answer) {
     title = <b>{answer.title}</b>
     meta = [...meta, ...answer.meta]
   } else if (purchase) {
     title = purchase.title
     meta = [...meta, ...purchase.meta]
+  } else if (text) {
+    title = text.title
+    meta = [...meta, ...text.meta]
   } else if (it.category === 'consent') {
     switch (it.type) {
       case 'confirmed':

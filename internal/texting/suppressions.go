@@ -54,6 +54,9 @@ type SmsSuppressionList struct {
 	PageSize  int                      `json:"pageSize"`
 	CanEdit   bool                     `json:"canEdit"`
 	Reason    string                   `json:"reason,omitempty"`
+	// FilteredRecent is how many texts carriers filtered in 30 days: a
+	// failure, not a suppression, named in the list's summary.
+	FilteredRecent int64 `json:"filteredRecent"`
 }
 
 // SmsSuppressionFilter filters the list.
@@ -114,6 +117,10 @@ func (s *Service) Suppressions(ctx context.Context, ws *store.Workspace, p *auth
 	}
 	for _, pr := range provs {
 		out.Providers = append(out.Providers, SmsSuppressionProvider{ID: pr.ID.String(), Name: pr.Name})
+	}
+	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM channel_messages WHERE workspace_id = $1 AND channel = 'sms' AND reason = 'filtered'
+		AND coalesce(failed_at, updated_at) >= $2`, ws.ID, s.now().AddDate(0, 0, -30)).Scan(&out.FilteredRecent); err != nil {
+		return out, err
 	}
 	if !out.CanEdit {
 		out.Reason = authz.DeniedMessage(authz.SubscribersEdit, nil)

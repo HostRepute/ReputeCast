@@ -54,6 +54,7 @@ import { Route as WWorkspaceAppFormsArchiveRouteImport } from './routes/w/$works
 import { Route as WWorkspaceAppFormsBrandingRouteImport } from './routes/w/$workspace/_app/forms/branding'
 import { Route as WWorkspaceAppFormsPagesRouteImport } from './routes/w/$workspace/_app/forms/pages'
 import { Route as WWorkspaceAppFormsPreferencesRouteImport } from './routes/w/$workspace/_app/forms/preferences'
+import { Route as WWorkspaceAppFormsSmsTermsRouteImport } from './routes/w/$workspace/_app/forms/sms-terms'
 import { Route as WWorkspaceAppFormsSubscribeRouteImport } from './routes/w/$workspace/_app/forms/subscribe'
 import { Route as WWorkspaceAppFormsUnsubscribeRouteImport } from './routes/w/$workspace/_app/forms/unsubscribe'
 import { Route as WWorkspaceAppGrowIndexRouteImport } from './routes/w/$workspace/_app/grow/index'
@@ -75,6 +76,7 @@ import { Route as WWorkspaceAppTransactionalImportRouteImport } from './routes/w
 import { Route as WWorkspaceAppTransactionalSettingsRouteImport } from './routes/w/$workspace/_app/transactional/settings'
 import { Route as WWorkspaceAppTransactionalSetupRouteImport } from './routes/w/$workspace/_app/transactional/setup'
 import { Route as WWorkspaceCampaignsCampaignIdEditRouteImport } from './routes/w/$workspace/campaigns/$campaignId/edit'
+import { Route as WWorkspaceCampaignsCampaignIdSmsRouteImport } from './routes/w/$workspace/campaigns/$campaignId/sms'
 import { Route as WWorkspaceEarnConnectIndexRouteImport } from './routes/w/$workspace/earn/connect/index'
 import { Route as WWorkspaceFormsPagesPageIdRouteImport } from './routes/w/$workspace/forms/pages.$pageId'
 import { Route as WWorkspaceGrowReferralsSetupRouteImport } from './routes/w/$workspace/grow/referrals/setup'
@@ -98,6 +100,8 @@ import { Route as WWorkspaceAppAudienceVerificationJobIdRouteImport } from './ro
 import { Route as WWorkspaceAppCampaignsCampaignIdLiveRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/live'
 import { Route as WWorkspaceAppCampaignsCampaignIdReportRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/report'
 import { Route as WWorkspaceAppCampaignsCampaignIdReviewRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/review'
+import { Route as WWorkspaceAppCampaignsCampaignIdSmsReportRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/sms-report'
+import { Route as WWorkspaceAppCampaignsCampaignIdSmsReviewRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/sms-review'
 import { Route as WWorkspaceAppDeliverabilityPlacementIndexRouteImport } from './routes/w/$workspace/_app/deliverability/placement/index'
 import { Route as WWorkspaceAppDeliverabilityPlacementTestIdRouteImport } from './routes/w/$workspace/_app/deliverability/placement/$testId'
 import { Route as WWorkspaceAppDeliverabilityPlacementSeedsRouteImport } from './routes/w/$workspace/_app/deliverability/placement/seeds'
@@ -119,6 +123,9 @@ import { Route as WWorkspaceAppGrowReferralsMilestonesRouteImport } from './rout
 import { Route as WWorkspaceAppGrowReferralsReferrersRouteImport } from './routes/w/$workspace/_app/grow/referrals/referrers'
 import { Route as WWorkspaceAppGrowReferralsReviewRouteImport } from './routes/w/$workspace/_app/grow/referrals/review'
 import { Route as WWorkspaceAppGrowReferralsSettingsRouteImport } from './routes/w/$workspace/_app/grow/referrals/settings'
+import { Route as WWorkspaceAppProvidersSmsIndexRouteImport } from './routes/w/$workspace/_app/providers/sms/index'
+import { Route as WWorkspaceAppProvidersSmsEventsRouteImport } from './routes/w/$workspace/_app/providers/sms/events'
+import { Route as WWorkspaceAppProvidersSmsRulesRouteImport } from './routes/w/$workspace/_app/providers/sms/rules'
 import { Route as WWorkspaceAppSettingsIntegrationsIndexRouteImport } from './routes/w/$workspace/_app/settings/integrations/index'
 import { Route as WWorkspaceAppSettingsIntegrationsKindRouteImport } from './routes/w/$workspace/_app/settings/integrations/$kind'
 import { Route as WWorkspaceAppSettingsIntegrationsAiRouteImport } from './routes/w/$workspace/_app/settings/integrations/ai'
@@ -136,6 +143,8 @@ import { Route as WWorkspaceAppTransactionalMessagesMessageIdRouteImport } from 
 import { Route as WWorkspaceFormsPagesPageIdPreviewRouteImport } from './routes/w/$workspace/forms/pages.$pageId.preview'
 import { Route as WWorkspaceFormsWebsitePostsPostRouteImport } from './routes/w/$workspace/forms/website.posts.$post'
 import { Route as WWorkspaceGrowReferralsEmailsMilestoneIdRouteImport } from './routes/w/$workspace/grow/referrals/emails.$milestoneId'
+import { Route as WWorkspaceProvidersConnectSmsIndexRouteImport } from './routes/w/$workspace/providers/connect/sms/index'
+import { Route as WWorkspaceProvidersConnectSmsAdapterRouteImport } from './routes/w/$workspace/providers/connect/sms/$adapter'
 import { Route as WWorkspaceAppCampaignsDigestsDigestIdIndexRouteImport } from './routes/w/$workspace/_app/campaigns/digests/$digestId/index'
 import { Route as WWorkspaceAppCampaignsDigestsDigestIdSettingsRouteImport } from './routes/w/$workspace/_app/campaigns/digests/$digestId/settings'
 import { Route as WWorkspaceAppEarnPlansOffersOfferIdRouteImport } from './routes/w/$workspace/_app/earn/plans/offers/$offerId'
@@ -388,6 +397,12 @@ const WWorkspaceAppFormsPreferencesRoute =
     path: '/forms/preferences',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppFormsSmsTermsRoute =
+  WWorkspaceAppFormsSmsTermsRouteImport.update({
+    id: '/forms/sms-terms',
+    path: '/forms/sms-terms',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppFormsSubscribeRoute =
   WWorkspaceAppFormsSubscribeRouteImport.update({
     id: '/forms/subscribe',
@@ -511,6 +526,12 @@ const WWorkspaceCampaignsCampaignIdEditRoute =
   WWorkspaceCampaignsCampaignIdEditRouteImport.update({
     id: '/campaigns/$campaignId/edit',
     path: '/campaigns/$campaignId/edit',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
+const WWorkspaceCampaignsCampaignIdSmsRoute =
+  WWorkspaceCampaignsCampaignIdSmsRouteImport.update({
+    id: '/campaigns/$campaignId/sms',
+    path: '/campaigns/$campaignId/sms',
     getParentRoute: () => WWorkspaceRouteRoute,
   } as any)
 const WWorkspaceEarnConnectIndexRoute =
@@ -651,6 +672,18 @@ const WWorkspaceAppCampaignsCampaignIdReviewRoute =
     path: '/campaigns/$campaignId/review',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppCampaignsCampaignIdSmsReportRoute =
+  WWorkspaceAppCampaignsCampaignIdSmsReportRouteImport.update({
+    id: '/campaigns/$campaignId/sms-report',
+    path: '/campaigns/$campaignId/sms-report',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppCampaignsCampaignIdSmsReviewRoute =
+  WWorkspaceAppCampaignsCampaignIdSmsReviewRouteImport.update({
+    id: '/campaigns/$campaignId/sms-review',
+    path: '/campaigns/$campaignId/sms-review',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppDeliverabilityPlacementIndexRoute =
   WWorkspaceAppDeliverabilityPlacementIndexRouteImport.update({
     id: '/deliverability/placement/',
@@ -777,6 +810,24 @@ const WWorkspaceAppGrowReferralsSettingsRoute =
     path: '/grow/referrals/settings',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppProvidersSmsIndexRoute =
+  WWorkspaceAppProvidersSmsIndexRouteImport.update({
+    id: '/providers/sms/',
+    path: '/providers/sms/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppProvidersSmsEventsRoute =
+  WWorkspaceAppProvidersSmsEventsRouteImport.update({
+    id: '/providers/sms/events',
+    path: '/providers/sms/events',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppProvidersSmsRulesRoute =
+  WWorkspaceAppProvidersSmsRulesRouteImport.update({
+    id: '/providers/sms/rules',
+    path: '/providers/sms/rules',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppSettingsIntegrationsIndexRoute =
   WWorkspaceAppSettingsIntegrationsIndexRouteImport.update({
     id: '/settings/integrations/',
@@ -879,6 +930,18 @@ const WWorkspaceGrowReferralsEmailsMilestoneIdRoute =
     path: '/grow/referrals/emails/$milestoneId',
     getParentRoute: () => WWorkspaceRouteRoute,
   } as any)
+const WWorkspaceProvidersConnectSmsIndexRoute =
+  WWorkspaceProvidersConnectSmsIndexRouteImport.update({
+    id: '/providers/connect/sms/',
+    path: '/providers/connect/sms/',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
+const WWorkspaceProvidersConnectSmsAdapterRoute =
+  WWorkspaceProvidersConnectSmsAdapterRouteImport.update({
+    id: '/providers/connect/sms/$adapter',
+    path: '/providers/connect/sms/$adapter',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
 const WWorkspaceAppCampaignsDigestsDigestIdIndexRoute =
   WWorkspaceAppCampaignsDigestsDigestIdIndexRouteImport.update({
     id: '/campaigns/digests/$digestId/',
@@ -960,6 +1023,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/forms/branding': typeof WWorkspaceAppFormsBrandingRoute
   '/w/$workspace/forms/pages': typeof WWorkspaceAppFormsPagesRoute
   '/w/$workspace/forms/preferences': typeof WWorkspaceAppFormsPreferencesRoute
+  '/w/$workspace/forms/sms-terms': typeof WWorkspaceAppFormsSmsTermsRoute
   '/w/$workspace/forms/subscribe': typeof WWorkspaceAppFormsSubscribeRoute
   '/w/$workspace/forms/unsubscribe': typeof WWorkspaceAppFormsUnsubscribeRoute
   '/w/$workspace/grow/recommendations': typeof WWorkspaceAppGrowRecommendationsRoute
@@ -977,6 +1041,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/transactional/settings': typeof WWorkspaceAppTransactionalSettingsRoute
   '/w/$workspace/transactional/setup': typeof WWorkspaceAppTransactionalSetupRoute
   '/w/$workspace/campaigns/$campaignId/edit': typeof WWorkspaceCampaignsCampaignIdEditRoute
+  '/w/$workspace/campaigns/$campaignId/sms': typeof WWorkspaceCampaignsCampaignIdSmsRoute
   '/w/$workspace/forms/pages/$pageId': typeof WWorkspaceFormsPagesPageIdRouteWithChildren
   '/w/$workspace/grow/referrals/setup': typeof WWorkspaceGrowReferralsSetupRoute
   '/w/$workspace/import/$importId/consent': typeof WWorkspaceImportImportIdConsentRoute
@@ -1009,6 +1074,8 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/campaigns/$campaignId/live': typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   '/w/$workspace/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  '/w/$workspace/campaigns/$campaignId/sms-report': typeof WWorkspaceAppCampaignsCampaignIdSmsReportRoute
+  '/w/$workspace/campaigns/$campaignId/sms-review': typeof WWorkspaceAppCampaignsCampaignIdSmsReviewRoute
   '/w/$workspace/deliverability/placement/$testId': typeof WWorkspaceAppDeliverabilityPlacementTestIdRoute
   '/w/$workspace/deliverability/placement/seeds': typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   '/w/$workspace/earn/plans/upgrade-page': typeof WWorkspaceAppEarnPlansUpgradePageRoute
@@ -1021,6 +1088,8 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/grow/referrals/referrers': typeof WWorkspaceAppGrowReferralsReferrersRoute
   '/w/$workspace/grow/referrals/review': typeof WWorkspaceAppGrowReferralsReviewRoute
   '/w/$workspace/grow/referrals/settings': typeof WWorkspaceAppGrowReferralsSettingsRoute
+  '/w/$workspace/providers/sms/events': typeof WWorkspaceAppProvidersSmsEventsRoute
+  '/w/$workspace/providers/sms/rules': typeof WWorkspaceAppProvidersSmsRulesRoute
   '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/settings/integrations/ai': typeof WWorkspaceAppSettingsIntegrationsAiRoute
   '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
@@ -1033,6 +1102,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/forms/pages/$pageId/preview': typeof WWorkspaceFormsPagesPageIdPreviewRoute
   '/w/$workspace/forms/website/posts/$post': typeof WWorkspaceFormsWebsitePostsPostRoute
   '/w/$workspace/grow/referrals/emails/$milestoneId': typeof WWorkspaceGrowReferralsEmailsMilestoneIdRoute
+  '/w/$workspace/providers/connect/sms/$adapter': typeof WWorkspaceProvidersConnectSmsAdapterRoute
   '/w/$workspace/admin/sso/': typeof WWorkspaceAppAdminSsoIndexRoute
   '/w/$workspace/audience/segments/': typeof WWorkspaceAppAudienceSegmentsIndexRoute
   '/w/$workspace/deliverability/placement/': typeof WWorkspaceAppDeliverabilityPlacementIndexRoute
@@ -1044,11 +1114,13 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/earn/sponsors/': typeof WWorkspaceAppEarnSponsorsIndexRoute
   '/w/$workspace/forms/website/': typeof WWorkspaceAppFormsWebsiteIndexRoute
   '/w/$workspace/grow/referrals/': typeof WWorkspaceAppGrowReferralsIndexRoute
+  '/w/$workspace/providers/sms/': typeof WWorkspaceAppProvidersSmsIndexRoute
   '/w/$workspace/settings/integrations/': typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   '/w/$workspace/settings/roles/': typeof WWorkspaceAppSettingsRolesIndexRoute
   '/w/$workspace/settings/senders/': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/settings/team/': typeof WWorkspaceAppSettingsTeamIndexRoute
   '/w/$workspace/transactional/messages/': typeof WWorkspaceAppTransactionalMessagesIndexRoute
+  '/w/$workspace/providers/connect/sms/': typeof WWorkspaceProvidersConnectSmsIndexRoute
   '/w/$workspace/campaigns/digests/$digestId/settings': typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
   '/w/$workspace/earn/plans/offers/$offerId': typeof WWorkspaceAppEarnPlansOffersOfferIdRoute
   '/w/$workspace/earn/plans/offers/new': typeof WWorkspaceAppEarnPlansOffersNewRoute
@@ -1093,6 +1165,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/forms/branding': typeof WWorkspaceAppFormsBrandingRoute
   '/w/$workspace/forms/pages': typeof WWorkspaceAppFormsPagesRoute
   '/w/$workspace/forms/preferences': typeof WWorkspaceAppFormsPreferencesRoute
+  '/w/$workspace/forms/sms-terms': typeof WWorkspaceAppFormsSmsTermsRoute
   '/w/$workspace/forms/subscribe': typeof WWorkspaceAppFormsSubscribeRoute
   '/w/$workspace/forms/unsubscribe': typeof WWorkspaceAppFormsUnsubscribeRoute
   '/w/$workspace/grow/recommendations': typeof WWorkspaceAppGrowRecommendationsRoute
@@ -1110,6 +1183,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/transactional/settings': typeof WWorkspaceAppTransactionalSettingsRoute
   '/w/$workspace/transactional/setup': typeof WWorkspaceAppTransactionalSetupRoute
   '/w/$workspace/campaigns/$campaignId/edit': typeof WWorkspaceCampaignsCampaignIdEditRoute
+  '/w/$workspace/campaigns/$campaignId/sms': typeof WWorkspaceCampaignsCampaignIdSmsRoute
   '/w/$workspace/forms/pages/$pageId': typeof WWorkspaceFormsPagesPageIdRouteWithChildren
   '/w/$workspace/grow/referrals/setup': typeof WWorkspaceGrowReferralsSetupRoute
   '/w/$workspace/import/$importId/consent': typeof WWorkspaceImportImportIdConsentRoute
@@ -1142,6 +1216,8 @@ export interface FileRoutesByTo {
   '/w/$workspace/campaigns/$campaignId/live': typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   '/w/$workspace/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  '/w/$workspace/campaigns/$campaignId/sms-report': typeof WWorkspaceAppCampaignsCampaignIdSmsReportRoute
+  '/w/$workspace/campaigns/$campaignId/sms-review': typeof WWorkspaceAppCampaignsCampaignIdSmsReviewRoute
   '/w/$workspace/deliverability/placement/$testId': typeof WWorkspaceAppDeliverabilityPlacementTestIdRoute
   '/w/$workspace/deliverability/placement/seeds': typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   '/w/$workspace/earn/plans/upgrade-page': typeof WWorkspaceAppEarnPlansUpgradePageRoute
@@ -1154,6 +1230,8 @@ export interface FileRoutesByTo {
   '/w/$workspace/grow/referrals/referrers': typeof WWorkspaceAppGrowReferralsReferrersRoute
   '/w/$workspace/grow/referrals/review': typeof WWorkspaceAppGrowReferralsReviewRoute
   '/w/$workspace/grow/referrals/settings': typeof WWorkspaceAppGrowReferralsSettingsRoute
+  '/w/$workspace/providers/sms/events': typeof WWorkspaceAppProvidersSmsEventsRoute
+  '/w/$workspace/providers/sms/rules': typeof WWorkspaceAppProvidersSmsRulesRoute
   '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/settings/integrations/ai': typeof WWorkspaceAppSettingsIntegrationsAiRoute
   '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
@@ -1166,6 +1244,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/forms/pages/$pageId/preview': typeof WWorkspaceFormsPagesPageIdPreviewRoute
   '/w/$workspace/forms/website/posts/$post': typeof WWorkspaceFormsWebsitePostsPostRoute
   '/w/$workspace/grow/referrals/emails/$milestoneId': typeof WWorkspaceGrowReferralsEmailsMilestoneIdRoute
+  '/w/$workspace/providers/connect/sms/$adapter': typeof WWorkspaceProvidersConnectSmsAdapterRoute
   '/w/$workspace/admin/sso': typeof WWorkspaceAppAdminSsoIndexRoute
   '/w/$workspace/audience/segments': typeof WWorkspaceAppAudienceSegmentsIndexRoute
   '/w/$workspace/deliverability/placement': typeof WWorkspaceAppDeliverabilityPlacementIndexRoute
@@ -1177,11 +1256,13 @@ export interface FileRoutesByTo {
   '/w/$workspace/earn/sponsors': typeof WWorkspaceAppEarnSponsorsIndexRoute
   '/w/$workspace/forms/website': typeof WWorkspaceAppFormsWebsiteIndexRoute
   '/w/$workspace/grow/referrals': typeof WWorkspaceAppGrowReferralsIndexRoute
+  '/w/$workspace/providers/sms': typeof WWorkspaceAppProvidersSmsIndexRoute
   '/w/$workspace/settings/integrations': typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   '/w/$workspace/settings/roles': typeof WWorkspaceAppSettingsRolesIndexRoute
   '/w/$workspace/settings/senders': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/settings/team': typeof WWorkspaceAppSettingsTeamIndexRoute
   '/w/$workspace/transactional/messages': typeof WWorkspaceAppTransactionalMessagesIndexRoute
+  '/w/$workspace/providers/connect/sms': typeof WWorkspaceProvidersConnectSmsIndexRoute
   '/w/$workspace/campaigns/digests/$digestId/settings': typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
   '/w/$workspace/earn/plans/offers/$offerId': typeof WWorkspaceAppEarnPlansOffersOfferIdRoute
   '/w/$workspace/earn/plans/offers/new': typeof WWorkspaceAppEarnPlansOffersNewRoute
@@ -1230,6 +1311,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/forms/branding': typeof WWorkspaceAppFormsBrandingRoute
   '/w/$workspace/_app/forms/pages': typeof WWorkspaceAppFormsPagesRoute
   '/w/$workspace/_app/forms/preferences': typeof WWorkspaceAppFormsPreferencesRoute
+  '/w/$workspace/_app/forms/sms-terms': typeof WWorkspaceAppFormsSmsTermsRoute
   '/w/$workspace/_app/forms/subscribe': typeof WWorkspaceAppFormsSubscribeRoute
   '/w/$workspace/_app/forms/unsubscribe': typeof WWorkspaceAppFormsUnsubscribeRoute
   '/w/$workspace/_app/grow/recommendations': typeof WWorkspaceAppGrowRecommendationsRoute
@@ -1247,6 +1329,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/transactional/settings': typeof WWorkspaceAppTransactionalSettingsRoute
   '/w/$workspace/_app/transactional/setup': typeof WWorkspaceAppTransactionalSetupRoute
   '/w/$workspace/campaigns/$campaignId/edit': typeof WWorkspaceCampaignsCampaignIdEditRoute
+  '/w/$workspace/campaigns/$campaignId/sms': typeof WWorkspaceCampaignsCampaignIdSmsRoute
   '/w/$workspace/forms/pages/$pageId': typeof WWorkspaceFormsPagesPageIdRouteWithChildren
   '/w/$workspace/grow/referrals/setup': typeof WWorkspaceGrowReferralsSetupRoute
   '/w/$workspace/import/$importId/consent': typeof WWorkspaceImportImportIdConsentRoute
@@ -1279,6 +1362,8 @@ export interface FileRoutesById {
   '/w/$workspace/_app/campaigns/$campaignId/live': typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   '/w/$workspace/_app/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/_app/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  '/w/$workspace/_app/campaigns/$campaignId/sms-report': typeof WWorkspaceAppCampaignsCampaignIdSmsReportRoute
+  '/w/$workspace/_app/campaigns/$campaignId/sms-review': typeof WWorkspaceAppCampaignsCampaignIdSmsReviewRoute
   '/w/$workspace/_app/deliverability/placement/$testId': typeof WWorkspaceAppDeliverabilityPlacementTestIdRoute
   '/w/$workspace/_app/deliverability/placement/seeds': typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   '/w/$workspace/_app/earn/plans/upgrade-page': typeof WWorkspaceAppEarnPlansUpgradePageRoute
@@ -1291,6 +1376,8 @@ export interface FileRoutesById {
   '/w/$workspace/_app/grow/referrals/referrers': typeof WWorkspaceAppGrowReferralsReferrersRoute
   '/w/$workspace/_app/grow/referrals/review': typeof WWorkspaceAppGrowReferralsReviewRoute
   '/w/$workspace/_app/grow/referrals/settings': typeof WWorkspaceAppGrowReferralsSettingsRoute
+  '/w/$workspace/_app/providers/sms/events': typeof WWorkspaceAppProvidersSmsEventsRoute
+  '/w/$workspace/_app/providers/sms/rules': typeof WWorkspaceAppProvidersSmsRulesRoute
   '/w/$workspace/_app/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/_app/settings/integrations/ai': typeof WWorkspaceAppSettingsIntegrationsAiRoute
   '/w/$workspace/_app/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
@@ -1303,6 +1390,7 @@ export interface FileRoutesById {
   '/w/$workspace/forms/pages/$pageId/preview': typeof WWorkspaceFormsPagesPageIdPreviewRoute
   '/w/$workspace/forms/website/posts/$post': typeof WWorkspaceFormsWebsitePostsPostRoute
   '/w/$workspace/grow/referrals/emails/$milestoneId': typeof WWorkspaceGrowReferralsEmailsMilestoneIdRoute
+  '/w/$workspace/providers/connect/sms/$adapter': typeof WWorkspaceProvidersConnectSmsAdapterRoute
   '/w/$workspace/_app/admin/sso/': typeof WWorkspaceAppAdminSsoIndexRoute
   '/w/$workspace/_app/audience/segments/': typeof WWorkspaceAppAudienceSegmentsIndexRoute
   '/w/$workspace/_app/deliverability/placement/': typeof WWorkspaceAppDeliverabilityPlacementIndexRoute
@@ -1314,11 +1402,13 @@ export interface FileRoutesById {
   '/w/$workspace/_app/earn/sponsors/': typeof WWorkspaceAppEarnSponsorsIndexRoute
   '/w/$workspace/_app/forms/website/': typeof WWorkspaceAppFormsWebsiteIndexRoute
   '/w/$workspace/_app/grow/referrals/': typeof WWorkspaceAppGrowReferralsIndexRoute
+  '/w/$workspace/_app/providers/sms/': typeof WWorkspaceAppProvidersSmsIndexRoute
   '/w/$workspace/_app/settings/integrations/': typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   '/w/$workspace/_app/settings/roles/': typeof WWorkspaceAppSettingsRolesIndexRoute
   '/w/$workspace/_app/settings/senders/': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/_app/settings/team/': typeof WWorkspaceAppSettingsTeamIndexRoute
   '/w/$workspace/_app/transactional/messages/': typeof WWorkspaceAppTransactionalMessagesIndexRoute
+  '/w/$workspace/providers/connect/sms/': typeof WWorkspaceProvidersConnectSmsIndexRoute
   '/w/$workspace/_app/campaigns/digests/$digestId/settings': typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
   '/w/$workspace/_app/earn/plans/offers/$offerId': typeof WWorkspaceAppEarnPlansOffersOfferIdRoute
   '/w/$workspace/_app/earn/plans/offers/new': typeof WWorkspaceAppEarnPlansOffersNewRoute
@@ -1367,6 +1457,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/forms/branding'
     | '/w/$workspace/forms/pages'
     | '/w/$workspace/forms/preferences'
+    | '/w/$workspace/forms/sms-terms'
     | '/w/$workspace/forms/subscribe'
     | '/w/$workspace/forms/unsubscribe'
     | '/w/$workspace/grow/recommendations'
@@ -1384,6 +1475,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/transactional/settings'
     | '/w/$workspace/transactional/setup'
     | '/w/$workspace/campaigns/$campaignId/edit'
+    | '/w/$workspace/campaigns/$campaignId/sms'
     | '/w/$workspace/forms/pages/$pageId'
     | '/w/$workspace/grow/referrals/setup'
     | '/w/$workspace/import/$importId/consent'
@@ -1416,6 +1508,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/campaigns/$campaignId/live'
     | '/w/$workspace/campaigns/$campaignId/report'
     | '/w/$workspace/campaigns/$campaignId/review'
+    | '/w/$workspace/campaigns/$campaignId/sms-report'
+    | '/w/$workspace/campaigns/$campaignId/sms-review'
     | '/w/$workspace/deliverability/placement/$testId'
     | '/w/$workspace/deliverability/placement/seeds'
     | '/w/$workspace/earn/plans/upgrade-page'
@@ -1428,6 +1522,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/grow/referrals/referrers'
     | '/w/$workspace/grow/referrals/review'
     | '/w/$workspace/grow/referrals/settings'
+    | '/w/$workspace/providers/sms/events'
+    | '/w/$workspace/providers/sms/rules'
     | '/w/$workspace/settings/integrations/$kind'
     | '/w/$workspace/settings/integrations/ai'
     | '/w/$workspace/settings/integrations/hostrepute'
@@ -1440,6 +1536,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/forms/pages/$pageId/preview'
     | '/w/$workspace/forms/website/posts/$post'
     | '/w/$workspace/grow/referrals/emails/$milestoneId'
+    | '/w/$workspace/providers/connect/sms/$adapter'
     | '/w/$workspace/admin/sso/'
     | '/w/$workspace/audience/segments/'
     | '/w/$workspace/deliverability/placement/'
@@ -1451,11 +1548,13 @@ export interface FileRouteTypes {
     | '/w/$workspace/earn/sponsors/'
     | '/w/$workspace/forms/website/'
     | '/w/$workspace/grow/referrals/'
+    | '/w/$workspace/providers/sms/'
     | '/w/$workspace/settings/integrations/'
     | '/w/$workspace/settings/roles/'
     | '/w/$workspace/settings/senders/'
     | '/w/$workspace/settings/team/'
     | '/w/$workspace/transactional/messages/'
+    | '/w/$workspace/providers/connect/sms/'
     | '/w/$workspace/campaigns/digests/$digestId/settings'
     | '/w/$workspace/earn/plans/offers/$offerId'
     | '/w/$workspace/earn/plans/offers/new'
@@ -1500,6 +1599,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/forms/branding'
     | '/w/$workspace/forms/pages'
     | '/w/$workspace/forms/preferences'
+    | '/w/$workspace/forms/sms-terms'
     | '/w/$workspace/forms/subscribe'
     | '/w/$workspace/forms/unsubscribe'
     | '/w/$workspace/grow/recommendations'
@@ -1517,6 +1617,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/transactional/settings'
     | '/w/$workspace/transactional/setup'
     | '/w/$workspace/campaigns/$campaignId/edit'
+    | '/w/$workspace/campaigns/$campaignId/sms'
     | '/w/$workspace/forms/pages/$pageId'
     | '/w/$workspace/grow/referrals/setup'
     | '/w/$workspace/import/$importId/consent'
@@ -1549,6 +1650,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/campaigns/$campaignId/live'
     | '/w/$workspace/campaigns/$campaignId/report'
     | '/w/$workspace/campaigns/$campaignId/review'
+    | '/w/$workspace/campaigns/$campaignId/sms-report'
+    | '/w/$workspace/campaigns/$campaignId/sms-review'
     | '/w/$workspace/deliverability/placement/$testId'
     | '/w/$workspace/deliverability/placement/seeds'
     | '/w/$workspace/earn/plans/upgrade-page'
@@ -1561,6 +1664,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/grow/referrals/referrers'
     | '/w/$workspace/grow/referrals/review'
     | '/w/$workspace/grow/referrals/settings'
+    | '/w/$workspace/providers/sms/events'
+    | '/w/$workspace/providers/sms/rules'
     | '/w/$workspace/settings/integrations/$kind'
     | '/w/$workspace/settings/integrations/ai'
     | '/w/$workspace/settings/integrations/hostrepute'
@@ -1573,6 +1678,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/forms/pages/$pageId/preview'
     | '/w/$workspace/forms/website/posts/$post'
     | '/w/$workspace/grow/referrals/emails/$milestoneId'
+    | '/w/$workspace/providers/connect/sms/$adapter'
     | '/w/$workspace/admin/sso'
     | '/w/$workspace/audience/segments'
     | '/w/$workspace/deliverability/placement'
@@ -1584,11 +1690,13 @@ export interface FileRouteTypes {
     | '/w/$workspace/earn/sponsors'
     | '/w/$workspace/forms/website'
     | '/w/$workspace/grow/referrals'
+    | '/w/$workspace/providers/sms'
     | '/w/$workspace/settings/integrations'
     | '/w/$workspace/settings/roles'
     | '/w/$workspace/settings/senders'
     | '/w/$workspace/settings/team'
     | '/w/$workspace/transactional/messages'
+    | '/w/$workspace/providers/connect/sms'
     | '/w/$workspace/campaigns/digests/$digestId/settings'
     | '/w/$workspace/earn/plans/offers/$offerId'
     | '/w/$workspace/earn/plans/offers/new'
@@ -1636,6 +1744,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/forms/branding'
     | '/w/$workspace/_app/forms/pages'
     | '/w/$workspace/_app/forms/preferences'
+    | '/w/$workspace/_app/forms/sms-terms'
     | '/w/$workspace/_app/forms/subscribe'
     | '/w/$workspace/_app/forms/unsubscribe'
     | '/w/$workspace/_app/grow/recommendations'
@@ -1653,6 +1762,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/transactional/settings'
     | '/w/$workspace/_app/transactional/setup'
     | '/w/$workspace/campaigns/$campaignId/edit'
+    | '/w/$workspace/campaigns/$campaignId/sms'
     | '/w/$workspace/forms/pages/$pageId'
     | '/w/$workspace/grow/referrals/setup'
     | '/w/$workspace/import/$importId/consent'
@@ -1685,6 +1795,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/campaigns/$campaignId/live'
     | '/w/$workspace/_app/campaigns/$campaignId/report'
     | '/w/$workspace/_app/campaigns/$campaignId/review'
+    | '/w/$workspace/_app/campaigns/$campaignId/sms-report'
+    | '/w/$workspace/_app/campaigns/$campaignId/sms-review'
     | '/w/$workspace/_app/deliverability/placement/$testId'
     | '/w/$workspace/_app/deliverability/placement/seeds'
     | '/w/$workspace/_app/earn/plans/upgrade-page'
@@ -1697,6 +1809,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/grow/referrals/referrers'
     | '/w/$workspace/_app/grow/referrals/review'
     | '/w/$workspace/_app/grow/referrals/settings'
+    | '/w/$workspace/_app/providers/sms/events'
+    | '/w/$workspace/_app/providers/sms/rules'
     | '/w/$workspace/_app/settings/integrations/$kind'
     | '/w/$workspace/_app/settings/integrations/ai'
     | '/w/$workspace/_app/settings/integrations/hostrepute'
@@ -1709,6 +1823,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/forms/pages/$pageId/preview'
     | '/w/$workspace/forms/website/posts/$post'
     | '/w/$workspace/grow/referrals/emails/$milestoneId'
+    | '/w/$workspace/providers/connect/sms/$adapter'
     | '/w/$workspace/_app/admin/sso/'
     | '/w/$workspace/_app/audience/segments/'
     | '/w/$workspace/_app/deliverability/placement/'
@@ -1720,11 +1835,13 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/earn/sponsors/'
     | '/w/$workspace/_app/forms/website/'
     | '/w/$workspace/_app/grow/referrals/'
+    | '/w/$workspace/_app/providers/sms/'
     | '/w/$workspace/_app/settings/integrations/'
     | '/w/$workspace/_app/settings/roles/'
     | '/w/$workspace/_app/settings/senders/'
     | '/w/$workspace/_app/settings/team/'
     | '/w/$workspace/_app/transactional/messages/'
+    | '/w/$workspace/providers/connect/sms/'
     | '/w/$workspace/_app/campaigns/digests/$digestId/settings'
     | '/w/$workspace/_app/earn/plans/offers/$offerId'
     | '/w/$workspace/_app/earn/plans/offers/new'
@@ -2062,6 +2179,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppFormsPreferencesRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/forms/sms-terms': {
+      id: '/w/$workspace/_app/forms/sms-terms'
+      path: '/forms/sms-terms'
+      fullPath: '/w/$workspace/forms/sms-terms'
+      preLoaderRoute: typeof WWorkspaceAppFormsSmsTermsRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/forms/subscribe': {
       id: '/w/$workspace/_app/forms/subscribe'
       path: '/forms/subscribe'
@@ -2207,6 +2331,13 @@ declare module '@tanstack/react-router' {
       path: '/campaigns/$campaignId/edit'
       fullPath: '/w/$workspace/campaigns/$campaignId/edit'
       preLoaderRoute: typeof WWorkspaceCampaignsCampaignIdEditRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
+    '/w/$workspace/campaigns/$campaignId/sms': {
+      id: '/w/$workspace/campaigns/$campaignId/sms'
+      path: '/campaigns/$campaignId/sms'
+      fullPath: '/w/$workspace/campaigns/$campaignId/sms'
+      preLoaderRoute: typeof WWorkspaceCampaignsCampaignIdSmsRouteImport
       parentRoute: typeof WWorkspaceRouteRoute
     }
     '/w/$workspace/earn/connect/': {
@@ -2370,6 +2501,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppCampaignsCampaignIdReviewRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/campaigns/$campaignId/sms-report': {
+      id: '/w/$workspace/_app/campaigns/$campaignId/sms-report'
+      path: '/campaigns/$campaignId/sms-report'
+      fullPath: '/w/$workspace/campaigns/$campaignId/sms-report'
+      preLoaderRoute: typeof WWorkspaceAppCampaignsCampaignIdSmsReportRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/campaigns/$campaignId/sms-review': {
+      id: '/w/$workspace/_app/campaigns/$campaignId/sms-review'
+      path: '/campaigns/$campaignId/sms-review'
+      fullPath: '/w/$workspace/campaigns/$campaignId/sms-review'
+      preLoaderRoute: typeof WWorkspaceAppCampaignsCampaignIdSmsReviewRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/deliverability/placement/': {
       id: '/w/$workspace/_app/deliverability/placement/'
       path: '/deliverability/placement'
@@ -2517,6 +2662,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppGrowReferralsSettingsRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/providers/sms/': {
+      id: '/w/$workspace/_app/providers/sms/'
+      path: '/providers/sms'
+      fullPath: '/w/$workspace/providers/sms/'
+      preLoaderRoute: typeof WWorkspaceAppProvidersSmsIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/providers/sms/events': {
+      id: '/w/$workspace/_app/providers/sms/events'
+      path: '/providers/sms/events'
+      fullPath: '/w/$workspace/providers/sms/events'
+      preLoaderRoute: typeof WWorkspaceAppProvidersSmsEventsRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/providers/sms/rules': {
+      id: '/w/$workspace/_app/providers/sms/rules'
+      path: '/providers/sms/rules'
+      fullPath: '/w/$workspace/providers/sms/rules'
+      preLoaderRoute: typeof WWorkspaceAppProvidersSmsRulesRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/settings/integrations/': {
       id: '/w/$workspace/_app/settings/integrations/'
       path: '/settings/integrations'
@@ -2636,6 +2802,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceGrowReferralsEmailsMilestoneIdRouteImport
       parentRoute: typeof WWorkspaceRouteRoute
     }
+    '/w/$workspace/providers/connect/sms/': {
+      id: '/w/$workspace/providers/connect/sms/'
+      path: '/providers/connect/sms'
+      fullPath: '/w/$workspace/providers/connect/sms/'
+      preLoaderRoute: typeof WWorkspaceProvidersConnectSmsIndexRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
+    '/w/$workspace/providers/connect/sms/$adapter': {
+      id: '/w/$workspace/providers/connect/sms/$adapter'
+      path: '/providers/connect/sms/$adapter'
+      fullPath: '/w/$workspace/providers/connect/sms/$adapter'
+      preLoaderRoute: typeof WWorkspaceProvidersConnectSmsAdapterRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
     '/w/$workspace/_app/campaigns/digests/$digestId/': {
       id: '/w/$workspace/_app/campaigns/digests/$digestId/'
       path: '/campaigns/digests/$digestId'
@@ -2719,6 +2899,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppFormsBrandingRoute: typeof WWorkspaceAppFormsBrandingRoute
   WWorkspaceAppFormsPagesRoute: typeof WWorkspaceAppFormsPagesRoute
   WWorkspaceAppFormsPreferencesRoute: typeof WWorkspaceAppFormsPreferencesRoute
+  WWorkspaceAppFormsSmsTermsRoute: typeof WWorkspaceAppFormsSmsTermsRoute
   WWorkspaceAppFormsSubscribeRoute: typeof WWorkspaceAppFormsSubscribeRoute
   WWorkspaceAppFormsUnsubscribeRoute: typeof WWorkspaceAppFormsUnsubscribeRoute
   WWorkspaceAppGrowRecommendationsRoute: typeof WWorkspaceAppGrowRecommendationsRoute
@@ -2753,6 +2934,8 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppCampaignsCampaignIdLiveRoute: typeof WWorkspaceAppCampaignsCampaignIdLiveRoute
   WWorkspaceAppCampaignsCampaignIdReportRoute: typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   WWorkspaceAppCampaignsCampaignIdReviewRoute: typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  WWorkspaceAppCampaignsCampaignIdSmsReportRoute: typeof WWorkspaceAppCampaignsCampaignIdSmsReportRoute
+  WWorkspaceAppCampaignsCampaignIdSmsReviewRoute: typeof WWorkspaceAppCampaignsCampaignIdSmsReviewRoute
   WWorkspaceAppDeliverabilityPlacementTestIdRoute: typeof WWorkspaceAppDeliverabilityPlacementTestIdRoute
   WWorkspaceAppDeliverabilityPlacementSeedsRoute: typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   WWorkspaceAppEarnPlansUpgradePageRoute: typeof WWorkspaceAppEarnPlansUpgradePageRoute
@@ -2765,6 +2948,8 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppGrowReferralsReferrersRoute: typeof WWorkspaceAppGrowReferralsReferrersRoute
   WWorkspaceAppGrowReferralsReviewRoute: typeof WWorkspaceAppGrowReferralsReviewRoute
   WWorkspaceAppGrowReferralsSettingsRoute: typeof WWorkspaceAppGrowReferralsSettingsRoute
+  WWorkspaceAppProvidersSmsEventsRoute: typeof WWorkspaceAppProvidersSmsEventsRoute
+  WWorkspaceAppProvidersSmsRulesRoute: typeof WWorkspaceAppProvidersSmsRulesRoute
   WWorkspaceAppSettingsIntegrationsKindRoute: typeof WWorkspaceAppSettingsIntegrationsKindRoute
   WWorkspaceAppSettingsIntegrationsAiRoute: typeof WWorkspaceAppSettingsIntegrationsAiRoute
   WWorkspaceAppSettingsIntegrationsHostreputeRoute: typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
@@ -2785,6 +2970,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppEarnSponsorsIndexRoute: typeof WWorkspaceAppEarnSponsorsIndexRoute
   WWorkspaceAppFormsWebsiteIndexRoute: typeof WWorkspaceAppFormsWebsiteIndexRoute
   WWorkspaceAppGrowReferralsIndexRoute: typeof WWorkspaceAppGrowReferralsIndexRoute
+  WWorkspaceAppProvidersSmsIndexRoute: typeof WWorkspaceAppProvidersSmsIndexRoute
   WWorkspaceAppSettingsIntegrationsIndexRoute: typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   WWorkspaceAppSettingsRolesIndexRoute: typeof WWorkspaceAppSettingsRolesIndexRoute
   WWorkspaceAppSettingsSendersIndexRoute: typeof WWorkspaceAppSettingsSendersIndexRoute
@@ -2820,6 +3006,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppFormsBrandingRoute: WWorkspaceAppFormsBrandingRoute,
   WWorkspaceAppFormsPagesRoute: WWorkspaceAppFormsPagesRoute,
   WWorkspaceAppFormsPreferencesRoute: WWorkspaceAppFormsPreferencesRoute,
+  WWorkspaceAppFormsSmsTermsRoute: WWorkspaceAppFormsSmsTermsRoute,
   WWorkspaceAppFormsSubscribeRoute: WWorkspaceAppFormsSubscribeRoute,
   WWorkspaceAppFormsUnsubscribeRoute: WWorkspaceAppFormsUnsubscribeRoute,
   WWorkspaceAppGrowRecommendationsRoute: WWorkspaceAppGrowRecommendationsRoute,
@@ -2861,6 +3048,10 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
     WWorkspaceAppCampaignsCampaignIdReportRoute,
   WWorkspaceAppCampaignsCampaignIdReviewRoute:
     WWorkspaceAppCampaignsCampaignIdReviewRoute,
+  WWorkspaceAppCampaignsCampaignIdSmsReportRoute:
+    WWorkspaceAppCampaignsCampaignIdSmsReportRoute,
+  WWorkspaceAppCampaignsCampaignIdSmsReviewRoute:
+    WWorkspaceAppCampaignsCampaignIdSmsReviewRoute,
   WWorkspaceAppDeliverabilityPlacementTestIdRoute:
     WWorkspaceAppDeliverabilityPlacementTestIdRoute,
   WWorkspaceAppDeliverabilityPlacementSeedsRoute:
@@ -2881,6 +3072,8 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppGrowReferralsReviewRoute: WWorkspaceAppGrowReferralsReviewRoute,
   WWorkspaceAppGrowReferralsSettingsRoute:
     WWorkspaceAppGrowReferralsSettingsRoute,
+  WWorkspaceAppProvidersSmsEventsRoute: WWorkspaceAppProvidersSmsEventsRoute,
+  WWorkspaceAppProvidersSmsRulesRoute: WWorkspaceAppProvidersSmsRulesRoute,
   WWorkspaceAppSettingsIntegrationsKindRoute:
     WWorkspaceAppSettingsIntegrationsKindRoute,
   WWorkspaceAppSettingsIntegrationsAiRoute:
@@ -2911,6 +3104,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppEarnSponsorsIndexRoute: WWorkspaceAppEarnSponsorsIndexRoute,
   WWorkspaceAppFormsWebsiteIndexRoute: WWorkspaceAppFormsWebsiteIndexRoute,
   WWorkspaceAppGrowReferralsIndexRoute: WWorkspaceAppGrowReferralsIndexRoute,
+  WWorkspaceAppProvidersSmsIndexRoute: WWorkspaceAppProvidersSmsIndexRoute,
   WWorkspaceAppSettingsIntegrationsIndexRoute:
     WWorkspaceAppSettingsIntegrationsIndexRoute,
   WWorkspaceAppSettingsRolesIndexRoute: WWorkspaceAppSettingsRolesIndexRoute,
@@ -2980,6 +3174,7 @@ interface WWorkspaceRouteRouteChildren {
   WWorkspaceTransactionalGuideRoute: typeof WWorkspaceTransactionalGuideRoute
   WWorkspaceImportIndexRoute: typeof WWorkspaceImportIndexRoute
   WWorkspaceCampaignsCampaignIdEditRoute: typeof WWorkspaceCampaignsCampaignIdEditRoute
+  WWorkspaceCampaignsCampaignIdSmsRoute: typeof WWorkspaceCampaignsCampaignIdSmsRoute
   WWorkspaceFormsPagesPageIdRoute: typeof WWorkspaceFormsPagesPageIdRouteWithChildren
   WWorkspaceGrowReferralsSetupRoute: typeof WWorkspaceGrowReferralsSetupRoute
   WWorkspaceImportImportIdConsentRoute: typeof WWorkspaceImportImportIdConsentRoute
@@ -2996,6 +3191,8 @@ interface WWorkspaceRouteRouteChildren {
   WWorkspaceProvidersConnectIndexRoute: typeof WWorkspaceProvidersConnectIndexRoute
   WWorkspaceFormsWebsitePostsPostRoute: typeof WWorkspaceFormsWebsitePostsPostRoute
   WWorkspaceGrowReferralsEmailsMilestoneIdRoute: typeof WWorkspaceGrowReferralsEmailsMilestoneIdRoute
+  WWorkspaceProvidersConnectSmsAdapterRoute: typeof WWorkspaceProvidersConnectSmsAdapterRoute
+  WWorkspaceProvidersConnectSmsIndexRoute: typeof WWorkspaceProvidersConnectSmsIndexRoute
 }
 
 const WWorkspaceRouteRouteChildren: WWorkspaceRouteRouteChildren = {
@@ -3008,6 +3205,7 @@ const WWorkspaceRouteRouteChildren: WWorkspaceRouteRouteChildren = {
   WWorkspaceImportIndexRoute: WWorkspaceImportIndexRoute,
   WWorkspaceCampaignsCampaignIdEditRoute:
     WWorkspaceCampaignsCampaignIdEditRoute,
+  WWorkspaceCampaignsCampaignIdSmsRoute: WWorkspaceCampaignsCampaignIdSmsRoute,
   WWorkspaceFormsPagesPageIdRoute: WWorkspaceFormsPagesPageIdRouteWithChildren,
   WWorkspaceGrowReferralsSetupRoute: WWorkspaceGrowReferralsSetupRoute,
   WWorkspaceImportImportIdConsentRoute: WWorkspaceImportImportIdConsentRoute,
@@ -3028,6 +3226,10 @@ const WWorkspaceRouteRouteChildren: WWorkspaceRouteRouteChildren = {
   WWorkspaceFormsWebsitePostsPostRoute: WWorkspaceFormsWebsitePostsPostRoute,
   WWorkspaceGrowReferralsEmailsMilestoneIdRoute:
     WWorkspaceGrowReferralsEmailsMilestoneIdRoute,
+  WWorkspaceProvidersConnectSmsAdapterRoute:
+    WWorkspaceProvidersConnectSmsAdapterRoute,
+  WWorkspaceProvidersConnectSmsIndexRoute:
+    WWorkspaceProvidersConnectSmsIndexRoute,
 }
 
 const WWorkspaceRouteRouteWithChildren = WWorkspaceRouteRoute._addFileChildren(

@@ -57,7 +57,9 @@ func TestScoringPageAndPermissions(t *testing.T) {
 		c.SignInDemo(email)
 		var p page
 		c.Do("GET", "/workspaces/acme-newsletter/scoring", nil).MustStatus(t, 200).JSON(t, &p)
-		if !p.Configured || p.Contacts != 48213 || p.Bands.Hot != 4816 || p.Bands.Warm != 14207 || p.Bands.Cold != 29190 || len(p.Config.Rules) != 8 {
+		// The boards' 48,213 and Cold 29,190, with the 338 registrants new to
+		// Acme Summit 2026 (X21, brief §8.12), who start at 0.
+		if !p.Configured || p.Contacts != 48213+338 || p.Bands.Hot != 4816 || p.Bands.Warm != 14207 || p.Bands.Cold != 29190+338 || len(p.Config.Rules) != 8 {
 			t.Fatalf("%s: %+v", email, p)
 		}
 		// Used by · 3: the automation, the segment and #143's Book a demo
@@ -97,7 +99,8 @@ func TestScoringRuleChange(t *testing.T) {
 
 	var imp scoring.ScoringImpact
 	c.Do("POST", "/workspaces/acme-newsletter/scoring/preview", map[string]any{"config": edited}).MustStatus(t, 200).JSON(t, &imp)
-	if imp.Changed != 1312 || imp.BandsAfter != (scoring.ScoringBandCounts{Cold: 28986, Warm: 13303, Hot: 5924}) || len(imp.Flows) != 1 || imp.Flows[0].Crossed != 1108 {
+	// Cold counts the Summit's 338 new registrants (X21, brief §8.12): no events, still 0.
+	if imp.Changed != 1312 || imp.BandsAfter != (scoring.ScoringBandCounts{Cold: 28986 + 338, Warm: 13303, Hot: 5924}) || len(imp.Flows) != 1 || imp.Flows[0].Crossed != 1108 {
 		t.Fatalf("preview: %+v", imp)
 	}
 	// A cap that can't hold one event's points is refused.
@@ -113,7 +116,8 @@ func TestScoringRuleChange(t *testing.T) {
 	before := countOf(t, env, `SELECT count(*) FROM automation_runs r JOIN automations a ON a.id = r.automation_id WHERE a.name = 'Sales-ready handoff'`)
 	var saved page
 	c.Do("PUT", "/workspaces/acme-newsletter/scoring", map[string]any{"config": edited, "baseVersion": p.Version}).MustStatus(t, 200).JSON(t, &saved)
-	if saved.Version != 2 || saved.AppliedVersion != 1 || saved.Recalculation == nil || saved.Recalculation.Status != "running" || saved.Recalculation.Total != 48213 {
+	// Every contact, with the Summit's 338 new registrants (X21, brief §8.12).
+	if saved.Version != 2 || saved.AppliedVersion != 1 || saved.Recalculation == nil || saved.Recalculation.Status != "running" || saved.Recalculation.Total != 48213+338 {
 		t.Fatalf("saved: %+v %+v", saved, saved.Recalculation)
 	}
 	// Until it finishes, contacts keep their previous scores.
@@ -125,7 +129,8 @@ func TestScoringRuleChange(t *testing.T) {
 	}
 	var done page
 	c.Do("GET", "/workspaces/acme-newsletter/scoring", nil).MustStatus(t, 200).JSON(t, &done)
-	if done.AppliedVersion != 2 || done.Bands.Hot != 5924 || done.Bands.Warm != 13303 || done.Bands.Cold != 28986 {
+	// The Summit's 338 new registrants (X21, brief §8.12) stay Cold: no events, still 0.
+	if done.AppliedVersion != 2 || done.Bands.Hot != 5924 || done.Bands.Warm != 13303 || done.Bands.Cold != 28986+338 {
 		t.Fatalf("after: %+v", done.Bands)
 	}
 	if rc := done.Recalculation; rc == nil || rc.Status != "finished" || rc.Summary == nil || rc.Summary.Changed != 1312 || len(rc.Summary.Flows) != 1 || rc.Summary.Flows[0].Started != 0 {

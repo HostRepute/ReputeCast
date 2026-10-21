@@ -11,6 +11,7 @@ import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { problemMessage } from '@/features/connect/parts'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
+import { SmsSettingsSummary } from '@/features/sms/SettingsSummary'
 import { cn } from '@/lib/cn'
 import { count, dayMonthYear, money, monthName } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
@@ -181,6 +182,8 @@ function SettingsBody({ data }: { data: Settings }) {
           </div>
         </div>
       </section>
+      {/* Phase 8: the SMS providers and the SMS budget. */}
+      <SmsSettingsSummary />
 
       {error ? <Note tone="bad">{error}</Note> : null}
 

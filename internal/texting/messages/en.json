@@ -17,5 +17,18 @@
   "terms.footerAddress": "{address}. When these terms change, the version number goes up; your consent record keeps the version you agreed to.",
   "terms.footer": "When these terms change, the version number goes up; your consent record keeps the version you agreed to.",
   "terms.privacyLink": "privacy policy",
-  "terms.privacyRead": "Read the privacy policy."
+  "terms.privacyRead": "Read the privacy policy.",
+  "signup.phone": "Mobile number",
+  "signup.country": "Country",
+  "signup.placeholder": "312 555 0123",
+  "signup.consent": {"message": "Text me updates from {brand}. Message frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to cancel. See the text message terms and privacy policy.", "note": "The SMS consent box's default text on signup forms. Keep the words of signup.termsWords and the privacy policy: they link to those pages."},
+  "signup.termsWords": {"message": "text message terms", "note": "The words of signup.consent that link to the text message terms page."},
+  "signup.invalidPhone": "That doesn't look like a phone number. Pick the country, or start with + and the country code.",
+  "signup.phoneNeeded": "Add your mobile number to get texts, or untick the SMS box.",
+  "signup.texted": "We've also texted {phone} to confirm.",
+  "prefs.texts": {"message": "Texts", "note": "The switch beside each list in the preference center: texts for that list."},
+  "prefs.textsNote": "Texts go to {phone}. Msg & data rates may apply. Reply STOP to any text to stop them all.",
+  "prefs.textsStopped": "{phone} replied STOP, so texts are off. Text START to the number that texted you to get them again.",
+  "prefs.textsSave": {"message": "Save texts", "note": "The button of the Texts section on the website's account page."},
+  "prefs.textsConsent": {"message": "Texts about {list} from {brand}. Msg & data rates may apply. Reply HELP for help, STOP to cancel.", "note": "Kept as the exact consent text when someone turns texts on for a list in the preference center or on the account page (the consent record says which)."}
 }

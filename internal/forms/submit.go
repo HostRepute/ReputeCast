@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
+	"github.com/hostrepute/reputecast/internal/phone"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -33,6 +34,13 @@ type Submission struct {
 	// Lists are the checked lists (ids) when visitors pick lists.
 	Lists   []string `json:"lists"`
 	Consent bool     `json:"consent"`
+	// Phone is the number as typed, PhoneCountry the picker's country (for
+	// numbers without +), SmsConsent the SMS consent box (phase 8).
+	Phone        string `json:"phone,omitempty"`
+	PhoneCountry string `json:"phoneCountry,omitempty"`
+	SmsConsent   bool   `json:"smsConsent,omitempty"`
+	// number is Phone read by the checks.
+	number phone.Number
 	// Language is the language the form was shown in (the embed script's
 	// _lang, the hosted page's); empty is the form's own language, which a
 	// copied plain HTML form shows. BrowserLanguage is the browser's first
@@ -84,6 +92,9 @@ type Outcome struct {
 	// Language is the language the form was shown in: the result page
 	// follows it.
 	Language string `json:"-"`
+	// Texted is "We've also texted +1 312 ••• 0123 to confirm." when the
+	// signup gave SMS consent and the opt-in confirmation went out.
+	Texted string `json:"texted,omitempty"`
 }
 
 // Messages a visitor sees are built-in labels (internal/pagelabels), in
@@ -209,6 +220,9 @@ func (s *Service) submit(ctx context.Context, ws *store.Workspace, set *Settings
 		}
 	}
 	lists, errs := s.check(c, &sub)
+	// Phase 8: the phone field and the SMS consent box.
+	offer, texts := s.textOffer(ctx, ws, c)
+	checkPhone(c, offer, texts, &sub, errs)
 	if len(errs) > 0 {
 		return Outcome{Status: OutcomeInvalid, Errors: errs, Message: firstMessage(errs)}
 	}
@@ -347,6 +361,7 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 	var submissionID uuid.UUID
 	// A signup through a referral link always confirms by email.
 	doubleOptIn := c.DoubleOptIn || s.forceDouble(ctx, ws, sub)
+	confirmTexts := false
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		var err error
 		res, err = s.Audience.Signup(ctx, tx, ws, audience.SignupInput{
@@ -354,6 +369,10 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 			Lists: lists, DoubleOptIn: doubleOptIn, Evidence: ev, BrowserLanguage: sub.BrowserLanguage, FormName: formName,
 		})
 		if err != nil || res.Blocked {
+			return err
+		}
+		// Phase 8: the number and SMS consent, with its evidence.
+		if confirmTexts, err = s.saveTexts(ctx, tx, ws, c, sub, res.ContactID, lists, now); err != nil {
 			return err
 		}
 		q := store.New(tx)
@@ -428,6 +447,10 @@ func (s *Service) accept(ctx context.Context, ws *store.Workspace, set *Settings
 		s.Addresses.SignedUp(ctx, ws, res.ContactID, addr)
 	}
 	out := Outcome{Status: OutcomeSubscribed, Email: sub.Email, FirstName: res.FirstName, Lists: lists}
+	if confirmTexts {
+		s.Texts.Confirm(ctx, ws, res.ContactID, lists)
+		out.Texted = s.Texts.Texted(lang, sub.number.E164)
+	}
 	if doubleOptIn || res.NeedsConfirmation() || res.Blocked {
 		out.Status = OutcomeConfirm
 	}
@@ -559,6 +582,8 @@ func (s *Service) solveChallenge(ctx context.Context, ws *store.Workspace, set *
 	sub.UserAgent, sub.Origin = h.UserAgent, h.Origin
 	sub.Page, sub.Referrer = h.Page, h.Referrer
 	lists, errs := s.check(c, &sub)
+	offer, texts := s.textOffer(ctx, ws, c)
+	checkPhone(c, offer, texts, &sub, errs)
 	if len(errs) > 0 {
 		return Outcome{Status: OutcomeInvalid, Errors: errs, Message: firstMessage(errs)}, c.ShownLanguage()
 	}

@@ -125,12 +125,13 @@ func TestLanguagesAPI(t *testing.T) {
 		!slices.Equal(list.codes(), []string{"en", "es", "de", "vi"}) {
 		t.Fatalf("languages: %+v", list)
 	}
-	// The sample's contacts (SettingsLanguages): 48,213 in all.
+	// The sample's contacts (SettingsLanguages): 48,213 in all, and the 338
+	// English-speaking Acme Summit registrants of the SMS demo (X21, brief §8.12).
 	contacts := map[string]int64{}
 	for _, l := range list.Languages {
 		contacts[l.Code] = l.Contacts
 	}
-	if list.TotalContacts != 48213 || list.NoLanguage != 5508 || list.NotOffered != 12 || contacts["en"] != 41020 || contacts["es"] != 4180 ||
+	if list.TotalContacts != 48213+338 || list.NoLanguage != 5508 || list.NotOffered != 12 || contacts["en"] != 41020+338 || contacts["es"] != 4180 ||
 		contacts["de"] != 2240 || contacts["vi"] != 773 || list.Languages[3].PageCopy.Status != "not_set_up" {
 		t.Fatalf("contacts per language: %+v %+v", list, contacts)
 	}
