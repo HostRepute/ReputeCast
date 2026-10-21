@@ -26,7 +26,7 @@ export default translate(m, {
   statusCancelled: 'Đã hủy',
   statusFailed: 'Thất bại',
   readOnly: 'Chỉ xem',
-  audienceBtn: '{name} · <b>{count}</b> người nhận được tin nhắn',
+  audienceBtn: '{name} · <b>{count}</b> người nhận',
   audienceNone: 'Chọn người nhận',
   sendTest: 'Gửi thử',
   review: 'Kiểm tra và gửi',
