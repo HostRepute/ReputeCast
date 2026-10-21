@@ -56,7 +56,7 @@ export default translate(ms, {
   removeTestKey: 'Gỡ khóa thử nghiệm',
   removeTestTitle: 'Gỡ khóa thử nghiệm?',
   removeTestText:
-    'Khóa thử nghiệm và mã bí mật webhook của khóa sẽ bị xóa khỏi ReputeCast. Hội viên trả phí thử nghiệm được giữ cho đến khi bạn xóa. Khóa chính thức không bị ảnh hưởng.',
+    'Khóa thử nghiệm và khóa bí mật webhook đi kèm sẽ bị xóa khỏi ReputeCast. Hội viên trả phí thử nghiệm được giữ cho đến khi bạn xóa. Khóa chính thức không bị ảnh hưởng.',
   removedTest: 'Đã gỡ khóa thử nghiệm',
   otherProviders: 'Nhà cung cấp thanh toán khác',
   notAvailable: 'Chưa có sẵn',
@@ -115,7 +115,7 @@ export default translate(ms, {
   gapLine: 'Mỗi giờ · chạy gần nhất lúc {time}, không sót gì',
   gapLineApplied: 'Mỗi giờ · lúc {time} đã áp dụng {count, plural, other {# sự kiện bị sót}}',
   gapNever: 'Mỗi giờ · chưa chạy lần nào',
-  secret: 'Mã bí mật ký',
+  secret: 'Khóa bí mật để ký',
   secretSealed: 'Đã niêm phong · chỉ ghi',
   deletedInStripe: 'Đã xóa trong Stripe',
   byType: '24 giờ qua theo loại sự kiện',

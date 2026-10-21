@@ -390,7 +390,7 @@ team member. A reader's Stripe subscription is a **thuê bao**, never an
 | revenue · income | doanh thu · thu nhập |
 | roll (a Stripe key) | xoay vòng |
 | seller ("you're the seller") | bên bán |
-| signing secret (a webhook's) | mã bí mật ký |
+| signing secret (a webhook's) · endpoint | khóa bí mật để ký (as Automations has it) · endpoint |
 | Since · Member since (a paid member's) | Tham gia · Hội viên từ |
 | slot · placement | vị trí |
 | sponsor · sponsorship · Sponsored (the block's label) | nhà tài trợ · tài trợ · Được tài trợ |
