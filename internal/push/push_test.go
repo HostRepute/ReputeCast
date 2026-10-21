@@ -408,6 +408,28 @@ func TestPushSubscriptionLifecycle(t *testing.T) {
 		map[string]any{"token": other}); s5.Linked {
 		t.Fatal("another workspace's token linked a subscription")
 	}
+	// The contacts table's "Push subscribed" filter: Sam only.
+	var contacts struct {
+		Total int64 `json:"total"`
+	}
+	c.Do(http.MethodGet, p+"/contacts?pushSubscribed=true", nil).MustStatus(t, 200).JSON(t, &contacts)
+	if contacts.Total != 1 {
+		t.Fatalf("contacts with push: %d", contacts.Total)
+	}
+	// The segment builder's "Push subscribed": linked subscriptions only.
+	for _, tc := range []struct {
+		field, value string
+		want         int64
+	}{{"push_site", "any", 1}, {"push_browser", "firefox", 1}, {"push_browser", "chrome", 0}} {
+		var cnt struct {
+			Count int64 `json:"count"`
+		}
+		c.Do(http.MethodPost, p+"/segments/preview", map[string]any{"mode": "builder", "definition": map[string]any{"groups": []any{map[string]any{"match": "all",
+			"conditions": []any{map[string]any{"field": tc.field, "op": "is", "value": tc.value}}}}}}).MustStatus(t, 200).JSON(t, &cnt)
+		if cnt.Count != tc.want {
+			t.Fatalf("segment %s is %s: %d, want %d", tc.field, tc.value, cnt.Count, tc.want)
+		}
+	}
 	var card push.PushContactCard
 	c.Do(http.MethodGet, p+"/contacts/"+sam.String()+"/push", nil).MustStatus(t, 200).JSON(t, &card)
 	if !card.PushOn || len(card.Subscriptions) != 1 || card.Subscriptions[0].Browser != push.BrowserFirefox || card.Subscriptions[0].LinkedBy != "link" {

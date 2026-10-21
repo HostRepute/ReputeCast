@@ -371,6 +371,25 @@ func TestWhatsAppConsentCampaignWindowAndKeywords(t *testing.T) {
 		c.Do(http.MethodPut, p+"/contacts/"+ids[k].String()+"/whatsapp/consent", map[string]any{"listId": list, "status": "subscribed", "evidence": evidence()}).
 			MustStatus(t, 200)
 	}
+	// The contacts table's "WhatsApp consent" filter.
+	var contacts struct {
+		Total int64 `json:"total"`
+	}
+	c.Do(http.MethodGet, p+"/contacts?whatsAppConsent=true", nil).MustStatus(t, 200).JSON(t, &contacts)
+	if contacts.Total != 3 {
+		t.Fatalf("contacts with WhatsApp consent: %d", contacts.Total)
+	}
+	// The segment builder's "WhatsApp consent", on the list or any.
+	for _, v := range []string{"any", list.String()} {
+		var cnt struct {
+			Count int64 `json:"count"`
+		}
+		c.Do(http.MethodPost, p+"/segments/preview", map[string]any{"mode": "builder", "definition": map[string]any{"groups": []any{map[string]any{"match": "all",
+			"conditions": []any{map[string]any{"field": "whatsapp_consent", "op": "is", "value": v}}}}}}).MustStatus(t, 200).JSON(t, &cnt)
+		if cnt.Count != 3 {
+			t.Fatalf("WhatsApp consent on %s: %d", v, cnt.Count)
+		}
+	}
 	var card whatsapp.WhatsAppContactCard
 	c.Do(http.MethodGet, p+"/contacts/"+ids["sam"].String()+"/whatsapp", nil).MustStatus(t, 200).JSON(t, &card)
 	if !card.Connected || len(card.Lists) != 1 || card.Lists[0].Status != "subscribed" || card.Lists[0].Version != "1" || card.Window.Open || card.CanReply {
