@@ -124,7 +124,7 @@ export default translate(m, {
   changePaywall: 'Không có gì nằm sau tường phí cho đến khi bạn đặt chế độ hiển thị cho một bài viết.',
   changesShort: '{count, plural, =0 {Chiến dịch trở thành bài viết khi được gửi} other {# chiến dịch trong kho lưu trữ trở thành bài viết công khai}}; liên kết cũ được chuyển hướng',
   layoutFeatured: 'Nổi bật và mới nhất',
-  layoutList: 'Mới nhất dạng danh sách',
+  layoutList: 'Danh sách mới nhất',
   layoutGrid: 'Lưới',
   layoutLabel: 'Bố cục trang chủ',
   layoutLater: 'Bạn có thể đổi sau trong Trang chủ và điều hướng.',
