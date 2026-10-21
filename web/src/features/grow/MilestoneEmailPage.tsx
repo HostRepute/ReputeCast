@@ -382,7 +382,7 @@ function Editor({ d }: { d: Detail }) {
               </Link>
             </span>
             <span className="k">
-              {t(me.tokens)}: <span className="mono">reward.name · reward.description · reward.download_url · reward.code · reward.claim_url · reward.expires_at</span>
+              {t(me.tokens)}: <span className="mono">{'reward.name · reward.description · reward.download_url · reward.code · reward.claim_url · reward.expires_at'}</span>
             </span>
           </section>
           {view === 'visual' && ge ? <BlocksCard ge={ge} selected={selected} canEdit={canEdit} /> : null}
