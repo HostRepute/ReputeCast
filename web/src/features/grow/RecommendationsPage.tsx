@@ -296,7 +296,7 @@ function RecRows({ it, i, onKey, onDragStart, onDrop }: { it: Item; i: number; n
           </span>
         </td>
         <td>
-          <span className="flex flex-col gap-0.5">
+          <span className="gw-where flex flex-col gap-0.5">
             {it.showConfirm ? <span>{t(mc.showsConfirm)}</span> : null}
             {it.showBlock ? <span>{t(mc.showsBlock)}</span> : null}
             {!it.showConfirm && !it.showBlock ? <span className="k">{t(mc.showsNowhere)}</span> : null}
