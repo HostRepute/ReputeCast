@@ -2,10 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { $api, http, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
-import { clock, count } from '@/lib/format'
+import { clock, count, decimal, pct } from '@/lib/format'
+import { T, t as tt, useT, type MessageDescriptor } from '@/i18n'
 import { useComposer, type ABTest } from './context'
 import { inboxTime } from './format'
 import { SendTestButton } from './SendTest'
+import { mb } from './blocks.messages'
+import { mk } from './code.messages'
+import { m } from './messages'
+import { mp } from './preview.messages'
 import { usePreviewAsLabel, versionLanguage } from '@/features/languages/composerParts'
 import { PreviewVersionLine, ShowWhyToggle, ThisVersionCard, VersionsCard, usePreviewVersion } from '@/features/conditional/Preview'
 import { useConditional } from '@/features/conditional/state'
@@ -13,11 +18,11 @@ import { useConditional } from '@/features/conditional/state'
 type Preview = Schemas['ComposerPreview']
 type Client = 'gmail' | 'outlook' | 'apple' | 'yahoo'
 
-const CLIENTS: { id: Client; label: string; short: string; dark: string }[] = [
-  { id: 'gmail', label: 'Gmail · web', short: 'Gmail', dark: 'Gmail inverts light backgrounds; buttons keep their color' },
-  { id: 'outlook', label: 'Outlook · Windows', short: 'Outlook', dark: 'Outlook for Windows inverts light backgrounds and dark text' },
-  { id: 'apple', label: 'Apple Mail · iOS', short: 'Apple Mail', dark: 'Apple Mail inverts light backgrounds unless the email opts out' },
-  { id: 'yahoo', label: 'Yahoo', short: 'Yahoo', dark: 'Yahoo inverts light backgrounds; buttons keep their color' },
+const CLIENTS: { id: Client; label: string; short: string; dark: MessageDescriptor }[] = [
+  { id: 'gmail', label: 'Gmail · web', short: 'Gmail', dark: mp.darkGmail },
+  { id: 'outlook', label: 'Outlook · Windows', short: 'Outlook', dark: mp.darkOutlook },
+  { id: 'apple', label: 'Apple Mail · iOS', short: 'Apple Mail', dark: mp.darkApple },
+  { id: 'yahoo', label: 'Yahoo', short: 'Yahoo', dark: mp.darkYahoo },
 ]
 
 type RGB = [number, number, number]
@@ -98,6 +103,7 @@ function darkenDocument(doc: Document) {
 }
 
 function MailFrame({ html, width, dark, onDoc }: { html: string; width: number; dark?: boolean; onDoc?: (doc: Document) => void }) {
+  const t = useT()
   const box = useRef<HTMLDivElement>(null)
   const frame = useRef<HTMLIFrameElement>(null)
   const [scale, setScale] = useState(1)
@@ -128,7 +134,7 @@ function MailFrame({ html, width, dark, onDoc }: { html: string; width: number; 
     <div ref={box} className="mailcard" style={{ height: height * scale, overflow: 'hidden' }}>
       <iframe
         ref={frame}
-        title={dark ? 'Email preview, dark mode' : 'Email preview'}
+        title={dark ? t(mp.frameDark) : t(mp.frame)}
         sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
         srcDoc={srcDoc}
         onLoad={onLoad}
@@ -152,8 +158,8 @@ function useDarkChecks(doc: Document | null, assets: Schemas['MediaAsset'][] | u
     if (img) {
       const src = img.getAttribute('src') ?? ''
       const asset = assets?.find((a) => src.endsWith(a.url))
-      if (asset) out.push(asset.hasAlpha ? { tone: 'ok', text: `${asset.contentType === 'image/png' ? 'Logo is a transparent PNG' : 'Logo has transparency'}, readable on dark` } : { tone: 'warn', text: 'Logo has a solid background, so it shows as a light box in dark mode' })
-      else out.push({ tone: 'info', text: 'Logo is hosted elsewhere; check it on a dark background' })
+      if (asset) out.push(asset.hasAlpha ? { tone: 'ok', text: asset.contentType === 'image/png' ? tt(mp.logoPng) : tt(mp.logoAlpha) } : { tone: 'warn', text: tt(mp.logoSolid) })
+      else out.push({ tone: 'info', text: tt(mp.logoElsewhere) })
     }
     // Buttons: the link inside a cell with a background colour.
     let worst: { ratio: number; bg: string } | null = null
@@ -167,7 +173,11 @@ function useDarkChecks(doc: Document | null, assets: Schemas['MediaAsset'][] | u
     })
     if (worst) {
       const w = worst as { ratio: number; bg: string }
-      out.push(w.ratio >= 4.5 ? { tone: 'ok', text: `Button text contrast ${w.ratio.toFixed(1)}:1 on ${w.bg} in both modes` } : { tone: 'warn', text: `Button text contrast is ${w.ratio.toFixed(1)}:1 on ${w.bg}; aim for 4.5:1` })
+      out.push(
+        w.ratio >= 4.5
+          ? { tone: 'ok', text: tt(mp.buttonContrastOk, { ratio: decimal(w.ratio, 1), color: w.bg }) }
+          : { tone: 'warn', text: tt(mp.buttonContrastLow, { ratio: decimal(w.ratio, 1), color: w.bg, target: decimal(4.5, 1) }) },
+      )
     }
     // Small visible text on a light background that clients darken while keeping the text colour (Outlook for Windows).
     let low: { ratio: number; color: string; footer: boolean } | null = null
@@ -195,8 +205,8 @@ function useDarkChecks(doc: Document | null, assets: Schemas['MediaAsset'][] | u
       const l = low as { ratio: number; color: string; footer: boolean }
       out.push(
         l.ratio >= 4.5
-          ? { tone: 'ok', text: `Small text keeps ${l.ratio.toFixed(1)}:1 contrast on inverted backgrounds` }
-          : { tone: 'warn', text: `Outlook for Windows ignores dark-mode meta; ${l.footer ? 'footer grey' : 'small text in'} ${l.color} drops to ${l.ratio.toFixed(1)}:1 on inverted background` },
+          ? { tone: 'ok', text: tt(mp.smallTextOk, { ratio: decimal(l.ratio, 1) }) }
+          : { tone: 'warn', text: tt(l.footer ? mp.smallTextFooter : mp.smallTextLow, { color: l.color, ratio: decimal(l.ratio, 1) }) },
       )
     }
     return out
@@ -207,6 +217,7 @@ const PERCENTS = [10, 20, 30, 40, 50]
 
 function ABPanel() {
   const c = useComposer()
+  const tr = useT()
   const t = c.abTest
   const audience = c.campaign.audienceCount ?? 0
   const start = (kind: ABTest['kind']) => {
@@ -224,21 +235,21 @@ function ABPanel() {
     const key = t.variants.some((v) => v.key === 'B') ? 'C' : 'B'
     c.setABTest({ ...t, variants: [...t.variants, t.kind === 'content' ? { key, mjml: c.currentMjml() } : t.kind === 'send_time' ? { key, sendTime: '17:00' } : { key, subject: '' }] })
   }
-  const share = t ? Math.round(100 / t.variants.length) : 50
+  const share = pct(t ? Math.round(100 / t.variants.length) : 50, 0)
   const sample = Math.round((audience * (t?.testPercent ?? 20)) / 100)
   const kinds: { kind: ABTest['kind']; title: string; text: string }[] = [
-    { kind: 'subject', title: 'Subject line', text: 'Test two or three subject lines on a sample, then send the winner to everyone else.' },
-    { kind: 'content', title: 'Content', text: 'Duplicate the body as variant B and edit it on the canvas. Route and audience stay shared.' },
-    { kind: 'send_time', title: 'Send time', text: 'Compare 09:00 against 14:00 recipient-local, or use best time per recipient.' },
+    { kind: 'subject', title: tr(mp.kindSubject), text: tr(mp.kindSubjectText) },
+    { kind: 'content', title: tr(mp.kindContent), text: tr(mp.kindContentText) },
+    { kind: 'send_time', title: tr(mp.kindSendTime), text: tr(mp.kindSendTimeText) },
   ]
   const winnerAt = c.campaign.scheduledAt && t ? clock(new Date(new Date(c.campaign.scheduledAt).getTime() + t.durationHours * 3600_000)) : null
   return (
     <div className="flex flex-col gap-2.5" style={{ padding: '14px 16px' }}>
       <div className="flex items-center justify-between">
-        <h2 className="m-0 text-[14px] font-semibold">A/B variants</h2>
+        <h2 className="m-0 text-[14px] font-semibold">{tr(mp.abTitle)}</h2>
         {c.canEdit ? (
           <button type="button" className="btn sm" onClick={addVariant} disabled={!!t && t.variants.length >= 3}>
-            Add variant
+            {tr(mp.addVariant)}
           </button>
         ) : null}
       </div>
@@ -247,29 +258,29 @@ function ABPanel() {
           <div key={k.kind} className="card flex flex-col gap-2" style={{ padding: '10px 12px' }}>
             <div className="flex items-center justify-between">
               <span className="font-semibold">{k.title}</span>
-              <Badge tone="info">Active</Badge>
+              <Badge tone="info">{tr(mp.active)}</Badge>
             </div>
             {t.variants.map((v) =>
               t.kind === 'subject' ? (
                 <label key={v.key} className="lbl">
-                  {v.key} · {share}% of sample
+                  {tr(mp.ofSample, { key: v.key, share })}
                   <input
                     className="in"
                     value={v.key === 'A' ? c.subject : (v.subject ?? '')}
                     readOnly={!c.canEdit}
                     onChange={(e) => (v.key === 'A' ? c.setSubject(e.target.value) : setVariant(v.key, { subject: e.target.value }))}
-                    placeholder="Another subject line"
+                    placeholder={tr(mp.anotherSubject)}
                   />
                 </label>
               ) : t.kind === 'send_time' ? (
                 <label key={v.key} className="lbl">
-                  {v.key} · {share}% of sample · recipient-local time
+                  {tr(mp.ofSampleLocal, { key: v.key, share })}
                   <input className="in" type="time" value={v.sendTime ?? ''} readOnly={!c.canEdit} onChange={(e) => setVariant(v.key, { sendTime: e.target.value })} />
                 </label>
               ) : (
                 <div key={v.key} className="flex items-center justify-between gap-2">
                   <span className="lbl" style={{ flexDirection: 'row' }}>
-                    {v.key} · {share}% of sample
+                    {tr(mp.ofSample, { key: v.key, share })}
                   </span>
                   <button
                     type="button"
@@ -279,7 +290,7 @@ function ABPanel() {
                       c.setView('visual')
                     }}
                   >
-                    Edit on the canvas
+                    {tr(mp.editOnCanvas)}
                   </button>
                 </div>
               ),
@@ -287,38 +298,40 @@ function ABPanel() {
             {t.kind === 'send_time' ? (
               <label className="chk items-center">
                 <input type="checkbox" checked={!!t.bestTime} disabled={!c.canEdit} onChange={(e) => update({ bestTime: e.target.checked })} />
-                Use the best time per recipient instead
+                {tr(mp.bestTime)}
               </label>
             ) : null}
             <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(2,minmax(0,1fr))' }}>
               <label className="lbl">
-                Sample size
+                {tr(mp.sampleSize)}
                 <select className="in" value={t.testPercent} disabled={!c.canEdit} onChange={(e) => update({ testPercent: Number(e.target.value) })}>
                   {PERCENTS.map((p) => (
                     <option key={p} value={p}>
-                      {p}%{audience ? ` · ${count(Math.round((audience * p) / 100))} recipients` : ''}
+                      {audience ? tr(mp.sampleOption, { share: pct(p, 0), count: count(Math.round((audience * p) / 100)) }) : pct(p, 0)}
                     </option>
                   ))}
                 </select>
               </label>
               <label className="lbl">
-                Winner by
+                {tr(mp.winnerBy)}
                 <select className="in" value={t.metric} disabled={!c.canEdit} onChange={(e) => update({ metric: e.target.value as ABTest['metric'] })}>
-                  <option value="human_opens">Human opens after {t.durationHours} h</option>
-                  <option value="clicks">Clicks after {t.durationHours} h</option>
-                  <option value="manual">Manual pick</option>
+                  <option value="human_opens">{tr(mp.winnerOpens, { hours: t.durationHours })}</option>
+                  <option value="clicks">{tr(mp.winnerClicks, { hours: t.durationHours })}</option>
+                  <option value="manual">{tr(mp.winnerManual)}</option>
                 </select>
               </label>
             </div>
             <span className="k">
               {t.metric === 'manual'
-                ? `You pick the winner; it then goes to the remaining ${count(Math.max(0, audience - sample))}.`
-                : `Winner sends to the remaining ${count(Math.max(0, audience - sample))}${winnerAt ? ` at ${winnerAt}` : ` ${t.durationHours} h after the test starts`}.`}{' '}
-              {t.metric === 'human_opens' ? 'Human opens exclude Apple Mail prefetches, so the winner is real.' : null}
+                ? tr(mp.manualNote, { count: count(Math.max(0, audience - sample)) })
+                : winnerAt
+                  ? tr(mp.winnerAt, { count: count(Math.max(0, audience - sample)), time: winnerAt })
+                  : tr(mp.winnerAfter, { count: count(Math.max(0, audience - sample)), hours: t.durationHours })}{' '}
+              {t.metric === 'human_opens' ? tr(mp.humanOpensNote) : null}
             </span>
             {c.canEdit ? (
               <button type="button" className="k self-start" style={{ border: 0, background: 'none', padding: 0, minHeight: 24, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }} onClick={() => c.setABTest(null)}>
-                Stop testing
+                {tr(mp.stopTesting)}
               </button>
             ) : null}
           </div>
@@ -328,7 +341,7 @@ function ABPanel() {
               <span className="font-semibold">{k.title}</span>
               {c.canEdit ? (
                 <button type="button" className="btn sm" onClick={() => start(k.kind)}>
-                  Set up
+                  {tr(mp.setUp)}
                 </button>
               ) : null}
             </div>
@@ -349,6 +362,7 @@ type Sample = { sample: 'contact' | 'no_first_name' | 'random'; contactId?: stri
  */
 export function PreviewView({ onReview }: { onReview: () => void }) {
   const c = useComposer()
+  const tr = useT()
   const cond = useConditional()
   const [client, setClient] = useState<Client>('gmail')
   const [device, setDevice] = useState<'desktop' | 'mobile'>(c.device === 'mobile' ? 'mobile' : 'desktop')
@@ -409,7 +423,10 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
     <div className="flex flex-col gap-0.5" style={{ padding: '0 0 10px', borderBottom: `1px solid ${darkMode ? '#1F2937' : 'var(--line-2)'}`, marginBottom: 10 }}>
       <span className="text-[15px] font-semibold">{preview?.subject ?? c.subject}</span>
       <span style={{ fontSize: 12, color: darkMode ? '#9CA3AF' : 'var(--ink-3)', fontWeight: 500 }}>
-        <b style={{ color: darkMode ? '#E5E7EB' : 'var(--ink)' }}>{preview?.fromName || 'Sender'}</b> &lt;{preview?.fromEmail || 'not set'}&gt; · to me · {time}
+        <T
+          msg={mp.senderLine}
+          values={{ name: preview?.fromName || tr(mp.sender), email: `<${preview?.fromEmail || tr(mp.notSet)}>`, time, b: (chunks) => <b style={{ color: darkMode ? '#E5E7EB' : 'var(--ink)' }}>{chunks}</b> }}
+        />
       </span>
     </div>
   )
@@ -420,7 +437,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
         ? createPortal(
             <>
               <label className="k flex min-w-0 max-w-full items-center gap-1.5">
-                Preview as
+                {tr(mp.previewAs)}
                 <select
                   className="in min-w-0 max-w-full"
                   style={{ maxWidth: 'min(520px, calc(100vw - 110px))' }}
@@ -442,48 +459,48 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
                       {preview.contact.name} · {preview.contact.email} · {preview.contact.label}
                     </option>
                   ) : null}
-                  <option value="no_first_name">Contact without first_name · fallback “{firstName?.token.match(/default:\s*"([^"]*)"/)?.[1] ?? 'there'}”</option>
-                  <option value="random">Random Active contact</option>
+                  <option value="no_first_name">{tr(mp.noFirstName, { fallback: firstName?.token.match(/default:\s*"([^"]*)"/)?.[1] ?? tr(mb.there) })}</option>
+                  <option value="random">{tr(mp.randomContact)}</option>
                 </select>
               </label>
               <ShowWhyToggle v={version} />
               <SendTestButton toMe />
               <button type="button" className="btn pri" onClick={onReview}>
-                {c.campaign.access.canSend ? 'Review & send' : 'Request approval'}
+                {c.campaign.access.canSend ? tr(m.reviewSend) : tr(m.requestApproval)}
               </button>
             </>,
             slot,
           )
         : null}
-      <section className="cmp-main" style={{ flex: '999 1 620px' }} aria-label="Client previews">
+      <section className="cmp-main" style={{ flex: '999 1 620px' }} aria-label={tr(mp.clientPreviews)}>
         <div className="cmp-tools">
-          <div className="seg" role="group" aria-label="Email client">
+          <div className="seg" role="group" aria-label={tr(mp.emailClient)}>
             {CLIENTS.map((x) => (
               <button key={x.id} type="button" aria-pressed={client === x.id} onClick={() => setClient(x.id)}>
                 {x.label}
               </button>
             ))}
           </div>
-          <div className="seg" role="group" aria-label="Device">
+          <div className="seg" role="group" aria-label={tr(mp.device)}>
             {(['desktop', 'mobile'] as const).map((d) => (
               <button key={d} type="button" aria-pressed={device === d} onClick={() => setDevice(d)}>
-                {d === 'desktop' ? 'Desktop' : 'Mobile'}
+                {d === 'desktop' ? tr(mp.desktop) : tr(mp.mobile)}
               </button>
             ))}
           </div>
-          <span className="k">Approximated in your browser from the compiled HTML; send a test for the real client. Outlook uses Word's engine, so MJML's tables matter there.</span>
+          <span className="k">{tr(mp.approximated)}</span>
         </div>
         <PreviewVersionLine v={version} />
         <div className="grid flex-1 items-start overflow-auto" style={{ padding: 24, gridTemplateColumns: 'repeat(auto-fit,minmax(min(380px,100%),1fr))', gap: 20 }}>
           {error ? (
             <div role="alert" className="card" style={{ padding: 16, borderColor: '#FCA5A5' }}>
-              <span className="font-semibold">The preview couldn't render.</span> <span className="k">{error}</span>
+              <span className="font-semibold">{tr(mp.renderFailed)}</span> <span className="k">{error}</span>
             </div>
           ) : null}
           <div className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-line" style={{ padding: '8px 12px' }}>
-              <span className="text-[12px] font-semibold">{meta.short} · light</span>
-              <span className="k">{preview ? `rendered ${clock(preview.renderedAt)}` : 'rendering…'}</span>
+              <span className="text-[12px] font-semibold">{tr(mp.light, { client: meta.short })}</span>
+              <span className="k">{preview ? tr(mp.rendered, { time: clock(preview.renderedAt) }) : tr(mp.rendering)}</span>
             </div>
             <div style={{ padding: 12, background: '#fff' }}>
               {senderLine(false)}
@@ -492,8 +509,8 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
           </div>
           <div className="card overflow-hidden" style={{ borderColor: '#374151' }}>
             <div className="flex items-center justify-between gap-3" style={{ padding: '8px 12px', borderBottom: '1px solid #374151', background: '#111827', color: '#E5E7EB' }}>
-              <span className="text-[12px] font-semibold">{meta.short} · dark mode</span>
-              <span style={{ fontSize: 12, color: '#9CA3AF' }}>{meta.dark}</span>
+              <span className="text-[12px] font-semibold">{tr(mp.dark, { client: meta.short })}</span>
+              <span style={{ fontSize: 12, color: '#9CA3AF' }}>{tr(meta.dark)}</span>
             </div>
             <div style={{ padding: 12, background: '#111827', color: '#E5E7EB' }}>
               {senderLine(true)}
@@ -501,49 +518,45 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
             </div>
           </div>
           <div className="card flex flex-col gap-2" style={{ padding: 12 }}>
-            <span className="text-[12px] font-semibold">Dark-mode checks</span>
+            <span className="text-[12px] font-semibold">{tr(mp.darkChecks)}</span>
             {checks.length ? (
               checks.map((x, i) => (
                 <div key={i} className="flex items-center gap-2" style={{ fontSize: 12.5 }}>
-                  <Badge tone={x.tone}>{x.tone === 'ok' ? 'Pass' : x.tone === 'warn' ? 'Warn' : 'Info'}</Badge>
+                  <Badge tone={x.tone}>{x.tone === 'ok' ? tr(mp.pass) : x.tone === 'warn' ? tr(mp.warn) : tr(mp.info)}</Badge>
                   {x.text}
                 </div>
               ))
             ) : (
-              <span className="k">Checks run once the preview renders.</span>
+              <span className="k">{tr(mp.checksPending)}</span>
             )}
           </div>
           <div className="card flex flex-col gap-2" style={{ padding: 12 }}>
-            <span className="text-[12px] font-semibold">Plain-text version</span>
+            <span className="text-[12px] font-semibold">{tr(mp.plainText)}</span>
             <pre className="mono m-0" style={{ fontSize: 11.5, lineHeight: 1.5, whiteSpace: 'pre-wrap', color: 'var(--ink-nav)', overflowWrap: 'anywhere' }}>
               {preview?.text ?? ''}
             </pre>
           </div>
         </div>
       </section>
-      <aside className="cpanel preview-side" aria-label="Inbox, personalization and A/B test">
+      <aside className="cpanel preview-side" aria-label={tr(mp.sideLabel)}>
         <ThisVersionCard v={version} html={preview?.html} />
         <VersionsCard v={version} />
         <div className="flex flex-col gap-2 border-b border-line-2" style={{ padding: '14px 16px' }}>
-          <h2 className="m-0 text-[14px] font-semibold">Inbox preview</h2>
+          <h2 className="m-0 text-[14px] font-semibold">{tr(mp.inboxPreview)}</h2>
           <div className="flex flex-col gap-1 rounded-lg border border-line" style={{ padding: 10, background: 'var(--ground-3)', fontSize: 12 }}>
             <div className="flex justify-between">
-              <b>{preview?.fromName || c.campaign.sender?.name || 'Sender'}</b>
+              <b>{preview?.fromName || c.campaign.sender?.name || tr(mp.sender)}</b>
               <span className="k">{time}</span>
             </div>
             <span className="font-semibold">{preview?.subject ?? c.subject}</span>
             <span className="k">{preview?.preheader ?? c.preheader}</span>
           </div>
-          <span className="k">
-            Subject {(preview?.subject ?? c.subject).length} characters · preheader {(preview?.preheader ?? c.preheader).length} · Gmail shows about 70 + 90 on desktop, iPhone about 35 + 80.
-          </span>
+          <span className="k">{tr(mp.lengths, { subject: count((preview?.subject ?? c.subject).length), preheader: count((preview?.preheader ?? c.preheader).length) })}</span>
         </div>
         <div className="flex flex-col gap-2.5 border-b border-line-2" style={{ padding: '14px 16px' }}>
           <div className="flex items-center justify-between">
-            <h2 className="m-0 text-[14px] font-semibold">Personalization</h2>
-            <Badge tone={missing ? 'warn' : 'ok'}>
-              {missing} missing {missing === 1 ? 'field' : 'fields'}
-            </Badge>
+            <h2 className="m-0 text-[14px] font-semibold">{tr(mp.personalization)}</h2>
+            <Badge tone={missing ? 'warn' : 'ok'}>{tr(mp.missingFields, { count: missing })}</Badge>
           </div>
           <div className="flex flex-col gap-1.5" style={{ fontSize: 12.5 }}>
             {(preview?.tokens ?? []).map((t) => (
@@ -552,20 +565,18 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
                   {t.token}
                 </span>
                 <span className="flex-none">
-                  → <b>{t.perRecipient ? 'per-recipient link' : t.value || '(empty)'}</b>
+                  → <b>{t.perRecipient ? tr(mp.perRecipient) : t.value || tr(mp.emptyValue)}</b>
                 </span>
               </div>
             ))}
-            {preview && !preview.tokens.length ? <span className="k">No personalization in this email.</span> : null}
+            {preview && !preview.tokens.length ? <span className="k">{tr(mp.noTokens)}</span> : null}
           </div>
           {preview?.missingFirstName && firstName ? (
-            <span className="k">
-              {count(preview.missingFirstName)} {preview.missingFirstName === 1 ? 'recipient has' : 'recipients have'} no first_name and will see “{firstName.token.match(/default:\s*"([^"]*)"/)?.[1] ?? ''}”.
-            </span>
+            <span className="k">{tr(mp.missingFirstName, { count: preview.missingFirstName, fallback: firstName.token.match(/default:\s*"([^"]*)"/)?.[1] ?? '' })}</span>
           ) : null}
           {preview?.problems.length ? (
             <span className="k" style={{ color: 'var(--bad-fg)' }}>
-              Line {preview.problems[0]!.line}: {preview.problems[0]!.message}
+              {tr(mk.lineError, { line: preview.problems[0]!.line, message: preview.problems[0]!.message })}
             </span>
           ) : null}
         </div>

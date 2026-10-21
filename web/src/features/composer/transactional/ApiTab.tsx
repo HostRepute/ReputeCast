@@ -62,19 +62,19 @@ export function ApiTab() {
       </div>
       <span className="font-semibold">{t(m.answers)}</span>
       <ScrollText className="txe-answer">
-        <span className="txe-ok">202 Accepted</span>
+        <span className="txe-ok">{'202 Accepted'}</span>
         {'\n'}
         {acceptedAnswer()}
       </ScrollText>
       {version && required.length ? (
         <ScrollText className="txe-answer">
-          <span className="txe-err">422 Unprocessable Content</span>
+          <span className="txe-err">{'422 Unprocessable Content'}</span>
           {'\n'}
           {missingAnswer(tx.template.key, version, required)}
         </ScrollText>
       ) : !version ? (
         <ScrollText className="txe-answer">
-          <span className="txe-err">422 Unprocessable Content</span>
+          <span className="txe-err">{'422 Unprocessable Content'}</span>
           {'\n'}
           {unpublishedAnswer(tx.template.key)}
         </ScrollText>

@@ -1,12 +1,15 @@
+import { getI18n, t } from '@/i18n'
 import { clock } from '@/lib/format'
+import { m } from './messages'
 
 /** "64 KB" — sizes are shown in whole KB, as Gmail counts them. */
 export function kb(bytes: number | undefined | null): string {
   return `${Math.round((bytes ?? 0) / 1024)} KB`
 }
 
-/** "9:00 AM" as inbox lists show it. */
+/** "9:00 AM" as inbox lists show it; another region format shows its own clock. */
 export function inboxTime(d: Date | string): string {
+  if (getI18n().regionFormat !== 'standard') return clock(d)
   const [h = '0', m = '00'] = clock(d).split(':')
   const hour = Number(h)
   const ampm = hour >= 12 ? 'PM' : 'AM'
@@ -14,29 +17,9 @@ export function inboxTime(d: Date | string): string {
   return `${h12}:${m} ${ampm}`
 }
 
-/** Status word of the header badge ("Draft", "Scheduled"…). */
+/** Status word of the header badge ("Draft", "Scheduled"…); another word is shown as it is. */
 export function statusWord(status: string): string {
-  switch (status) {
-    case 'draft':
-      return 'Draft'
-    case 'approval':
-      return 'Waiting for approval'
-    case 'approved':
-      return 'Approved'
-    case 'scheduled':
-      return 'Scheduled'
-    case 'sending':
-      return 'Sending'
-    case 'paused':
-      return 'Paused'
-    case 'sent':
-      return 'Sent'
-    case 'cancelled':
-      return 'Cancelled'
-    case 'failed':
-      return 'Failed'
-  }
-  return status
+  return t(m.status, { status })
 }
 
 /** Lines of a document, for "212 lines". */

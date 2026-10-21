@@ -1,0 +1,66 @@
+import { defineMessages } from '@/i18n'
+
+/**
+ * The Blocks panel's tiles and the sample content a block puts on the
+ * canvas, which the author then rewrites. Sample text goes into the email,
+ * so it is written for its readers. {token} is a Liquid tag, kept as it is.
+ */
+export const mb = defineMessages('composer.blocks', {
+  // Tiles.
+  oneColumn: '1 column',
+  twoColumns: '2 columns',
+  threeColumns: '3 columns',
+  wrapper: 'Wrapper',
+  hero: 'Hero',
+  group: 'Group',
+  text: 'Text',
+  image: 'Image',
+  button: 'Button',
+  divider: 'Divider',
+  spacer: 'Spacer',
+  social: 'Social',
+  navbar: 'Navbar',
+  rawHtml: 'Raw HTML',
+  table: 'Table',
+  headerLogo: 'Header + logo',
+  articleCard: 'Article card',
+  productCard: 'Product card',
+  footer: 'Footer + unsubscribe',
+  poll: 'Poll',
+  sponsor: 'Sponsor',
+  upgrade: 'Upgrade',
+  newBadge: 'New',
+
+  // Sample content.
+  sampleText: 'Write something people will want to read. Personalize it with {token}.',
+  /** The greeting a missing first name falls back to: "Hi there". */
+  there: 'there',
+  address: 'Your company · Street and number · City, postcode',
+  unsubscribe: 'Unsubscribe',
+  preferences: 'Email preferences',
+  viewInBrowser: 'View in browser',
+  heroHeadline: 'A headline over an image',
+  findOutMore: 'Find out more',
+  readMore: 'Read more',
+  blog: 'Blog',
+  docs: 'Docs',
+  rawSample: 'Your HTML here.',
+  tablePlan: 'Plan',
+  tablePrice: 'Price',
+  tableStarter: 'Starter',
+  tableStarterPrice: '$9/mo',
+  tableTeam: 'Team',
+  tableTeamPrice: '$29/mo',
+  logoAlt: 'Your logo',
+  articleAlt: "Describe the article's image",
+  articleTitle: 'Article title',
+  articleLine: 'One or two sentences that make people want to read the rest.',
+  productAlt: 'Describe the product',
+  productName: 'Product name',
+  productLine: '$29 · one line about what it does',
+  viewProduct: 'View product',
+  sponsorFill: "Fills itself from this issue's booking.",
+  upgradeHeadline: 'Get more with a paid membership',
+  upgradeLine: 'Paid members get every issue in full, the archive and the extras.',
+  upgradeButton: 'Upgrade',
+})
