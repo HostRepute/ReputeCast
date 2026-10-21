@@ -5,6 +5,8 @@ import { SourceStep } from '@/features/imports/SourceStep'
 import { ReadingSource } from '@/features/imports/states'
 // The jobs tray lists imports from the server once this module loads.
 import '@/features/imports/jobsSource'
+import { useT } from '@/i18n'
+import { mr } from '@/routes/-routes.messages'
 
 export const Route = createFileRoute('/w/$workspace/import/')({
   component: ImportIndex,
@@ -12,6 +14,7 @@ export const Route = createFileRoute('/w/$workspace/import/')({
 
 /** Resumes the draft in progress, or starts at the source step. */
 function ImportIndex() {
+  const t = useT()
   const { workspace } = Route.useParams()
   const list = $api.useQuery('get', '/api/v1/workspaces/{workspace}/imports', { params: { path: { workspace } } })
   if (list.data?.active) {
@@ -19,8 +22,8 @@ function ImportIndex() {
   }
   if (list.isPending) {
     return (
-      <ImportFrame title="Import contacts">
-        <ReadingSource title="Looking for an import in progress" />
+      <ImportFrame title={t(mr.importTitle)}>
+        <ReadingSource title={t(mr.importLooking)} />
       </ImportFrame>
     )
   }
