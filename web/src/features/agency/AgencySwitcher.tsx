@@ -125,10 +125,10 @@ function ClientItem({ row, current }: { row: AgencyClientRow; current?: string }
         params={{ workspace: row.workspace.slug }}
         aria-current={row.workspace.slug === current ? 'true' : undefined}
         style={row.workspace.slug === current ? { background: '#E3F1EE' } : undefined}
-        className="h-auto! py-1.5!"
+        className="h-auto! py-1!"
       >
         <ClientTile ws={row.workspace} size={26} />
-        <span className="col min-w-0 flex-1" style={{ gap: 0 }}>
+        <span className="col min-w-0 flex-1 leading-[1.3]" style={{ gap: 0 }}>
           <b className="text-[13px]">{row.workspace.name}</b>
           <span className="k">{line}</span>
         </span>
