@@ -37,6 +37,9 @@ func emitDecided(ctx context.Context, q store.DBTX, ws *store.Workspace, r store
 	if r.WebsitePostID != nil {
 		data["website_post_id"] = r.WebsitePostID.String()
 	}
+	if r.WebsitePageID != nil {
+		data["website_page_id"] = r.WebsitePageID.String()
+	}
 	if comment != "" {
 		data["comment"] = comment
 	}

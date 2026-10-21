@@ -56,6 +56,9 @@ type ContactConsentEvent struct {
 	IP             string `json:"ip,omitempty"`
 	Actor          string `json:"actor,omitempty"`
 	ConsentVersion string `json:"consentVersion,omitempty"`
+	// ConsentText is the exact text the contact agreed to, when it was
+	// recorded ("Also send me the Weekly Digest" at a product checkout).
+	ConsentText string `json:"consentText,omitempty"`
 	// Language is the language the consent text was shown in ("es").
 	Language string    `json:"language,omitempty"`
 	At       time.Time `json:"at"`
@@ -246,7 +249,7 @@ func (s *Service) listConsent(ctx context.Context, ws *store.Workspace, c store.
 			continue
 		}
 		v := ContactConsentEvent{Action: e.Action, Source: e.Source, SourceLabel: consentSourceLabel(e.Source), Detail: e.Detail, Note: e.Note,
-			Actor: e.ActorName, ConsentVersion: e.ConsentVersion, Language: e.Language, At: e.OccurredAt}
+			Actor: e.ActorName, ConsentVersion: e.ConsentVersion, ConsentText: e.ConsentText, Language: e.Language, At: e.OccurredAt}
 		if e.Ip != nil {
 			v.IP = e.Ip.String()
 		}
@@ -280,7 +283,7 @@ func consentSourceLabel(src string) string {
 	case "api":
 		return "the API"
 	}
-	if strings.HasPrefix(src, "import:") || strings.HasPrefix(src, "form:") {
+	if strings.HasPrefix(src, "import:") || strings.HasPrefix(src, "form:") || strings.HasPrefix(src, "product_checkout:") {
 		return segments.SourceLabel(src)
 	}
 	return src

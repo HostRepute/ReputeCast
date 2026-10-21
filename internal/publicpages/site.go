@@ -127,6 +127,11 @@ type siteView struct {
 	// Toast is a one-line notice at the bottom ("You're signed in as …").
 	Toast string
 	Body  any
+	// Styles are a page's own stylesheets after site.css (landing pages and
+	// the shop, sell.go); Focus keeps the header to the logo (a focused
+	// landing page: "Hide the site header and navigation").
+	Styles []string
+	Focus  bool
 
 	words  website.Words
 	labels pagelabels.Set

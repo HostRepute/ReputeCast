@@ -33,6 +33,8 @@ type gotView struct {
 type confirmBody struct {
 	Heading, Email, Sender, LatestHref, PrefsHref, Proof string
 	Lists                                                []gotView
+	// Download is the form's download after confirmation (sell_confirm.go).
+	Download *confirmDownload
 	// Grow is "While you're here": recommendations (grow_recommends.go).
 	Grow *growConfirm
 }
@@ -78,6 +80,7 @@ func (h *Handler) confirm(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, s, err)
 		return
 	}
+	body.Download = h.confirmDownloadFor(r.Context(), s, pc, pl.Code)
 	body.Grow = h.growConfirmSection(r.Context(), s, pc.ID, chi.URLParam(r, "token"), "", "", true)
 	v := h.view(s, pageTitle(pl, s, "confirm.title"), body)
 	h.setLang(v, r, s, pl, nil)

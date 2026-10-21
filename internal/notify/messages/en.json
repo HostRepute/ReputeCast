@@ -33,6 +33,8 @@
   "short.placement_finished": "placement tests",
   "short.seed_signin_failed": "seed sign-in failures",
   "short.website_domain": "website domain problems",
+  "short.product_delivery_failed": "failed product deliveries",
+  "short.order_disputed": "order disputes",
   "short.referrals_held": "held referrals",
   "short.reward_codes_low": "reward codes running low",
   "short.reward_webhook_failing": "failing reward webhooks",

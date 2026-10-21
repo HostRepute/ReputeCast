@@ -130,6 +130,9 @@ const (
 func (s *Service) loadRefs(ctx context.Context, q *store.Queries, wsID uuid.UUID) (*Refs, error) {
 	r := &Refs{Lists: map[string]string{}, Forms: map[string]string{}, Emails: map[string]int{}, EmailNames: map[string]string{}, Fields: map[string]string{}, Providers: map[string]string{},
 		Polls: map[string]string{}, Milestones: map[string]string{}}
+	if err := loadProductRefs(ctx, q, wsID, r); err != nil {
+		return nil, err
+	}
 	if err := loadPollRefs(ctx, q, wsID, r); err != nil {
 		return nil, err
 	}

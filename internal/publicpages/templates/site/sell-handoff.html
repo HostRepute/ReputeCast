@@ -1,0 +1,21 @@
+{{/* "Taking you to Stripe…" (sell_shop.go): shown for a moment while
+     the Checkout session is created. pages.js posts the form at once;
+     without scripts, "Continue to Stripe" does the same. */}}
+{{define "site-main"}}{{with .Body}}<main id="main" class="pg-main">
+<div class="pg-center lav"><div class="pcard7 w480 ctr">
+{{- if .Error}}
+<h1>{{$.S "handoff.title"}}</h1>
+<p class="ptxt" role="alert">{{.Error}}</p>
+{{- if .Continue}}<form method="post" action="{{.Action}}">{{range $k, $v := .Fields}}<input type="hidden" name="{{$k}}" value="{{$v}}">{{end}}<button type="submit" class="st-btn2">{{.ContinueText}}</button></form>{{end}}
+<a href="{{.Back}}" class="st-lnk">{{$.S "handoff.cancel"}}</a>
+{{- else}}
+<span class="spin7" aria-hidden="true"></span>
+<h1>{{$.S "handoff.title"}}</h1>
+<p class="ptxt">{{.Text}}</p>
+<div class="files"><div class="filer"><span class="fi" aria-hidden="true">{{template "sell-file-icon"}}</span><span class="ft"><b>{{.Name}}</b><span>{{.Price}}</span></span></div></div>
+<form method="post" action="{{.Action}}" data-autosubmit>{{range $k, $v := .Fields}}<input type="hidden" name="{{$k}}" value="{{$v}}">{{end}}<button type="submit" class="st-btn2">{{.ContinueText}}</button></form>
+<a href="{{.Back}}" class="st-lnk">{{$.S "handoff.cancel"}}</a>
+{{- end}}
+</div></div>
+</main>{{end}}{{end}}
+{{define "sell-file-icon"}}<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.8h5.2L12.5 5v9.2H4z"></path><path d="M9 1.8V5.2h3.4"></path></svg>{{end}}

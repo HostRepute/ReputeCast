@@ -438,6 +438,12 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 	var attrs map[string]any
 	_ = json.Unmarshal(row.Attributes, &attrs)
 	vars := liquid.Vars(row.Email, row.FirstName, row.LastName, attrs, links)
+	// The trigger's data ({{ order.product_name }}, automations/products.go).
+	for k, v := range automations.MessageVars(ctx, e.Q, row.ID) {
+		if _, taken := vars[k]; !taken {
+			vars[k] = v
+		}
+	}
 	if e.Recipients != nil && contact != uuid.Nil {
 		vars = liquid.Fill(ctx, e.Recipients(), row.WorkspaceID, liquid.Recipient{ContactID: contact, MessageID: row.ID, EmailID: ref.Email}, ot.tpl.Source(), vars)
 	}

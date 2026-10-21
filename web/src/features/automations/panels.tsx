@@ -32,6 +32,8 @@ import { StepLanguages } from '@/features/languages/automation'
 import { ScoreTriggerFields, scoreTriggerDefaults } from '@/features/scoring/ScoreTrigger'
 import { isOneOfLabel, scoreTriggerName } from '@/features/scoring/triggerText'
 import { PollTriggerProps } from '@/features/polls/trigger'
+import { BoughtConditionProps, BoughtTriggerProps } from '@/features/products/automation'
+import { boughtConditionName, boughtTriggerName } from '@/features/products/automationText'
 import { MilestoneTriggerFields } from '@/features/grow/MilestoneTrigger'
 import { milestoneTriggerName } from '@/features/grow/triggerText'
 
@@ -60,6 +62,13 @@ const triggerItems: { kind: TriggerConfig['kind']; label: string }[] = [
   },
   // Design expansion, X11.
   { kind: 'poll_answered', label: 'Answered a poll or survey' },
+  // Digital products (X19).
+  {
+    kind: 'bought_product',
+    get label() {
+      return boughtTriggerName()
+    },
+  },
   // Referral milestones (Grow).
   {
     kind: 'milestone_reached',
@@ -258,6 +267,8 @@ function ConditionEditor({ graph, node, value, onChange, refs, options, disabled
     { value: 'list', label: 'Is in a list' },
     { value: 'event', label: 'Sent an API event' },
     { value: 'field', label: 'A contact field' },
+    // Digital products (X19).
+    { value: 'bought_product', label: boughtConditionName() },
   ]
   const set = (patch: Partial<FlowCondition>) => onChange({ ...(c ?? { kind: 'opened' }), ...patch } as FlowCondition)
   return (
@@ -316,6 +327,8 @@ function ConditionEditor({ graph, node, value, onChange, refs, options, disabled
         </select>
       ) : null}
       {c?.kind === 'event' ? <input className="in mono" aria-label="Event" list="fe-events" placeholder="teammate.invited" disabled={disabled} value={c.event ?? ''} onChange={(e) => set({ event: e.target.value })} /> : null}
+      {/* Bought a product (digital products, X19). */}
+      {c?.kind === 'bought_product' ? <BoughtConditionProps c={c} disabled={disabled} set={set} products={options?.products} /> : null}
       {c?.kind === 'field' ? (
         <>
           <input className="in" aria-label="Field" placeholder="Field, e.g. plan" disabled={disabled} value={c.field ?? ''} onChange={(e) => set({ field: e.target.value })} />
@@ -634,6 +647,8 @@ function TriggerProps({ node, options, editable, onChange, stats, hasStats }: St
         {t.kind === 'tag_added' ? <input className="in" aria-label="Tag" list="fe-tags" placeholder="Tag, e.g. sunset-entered" disabled={disabled} value={t.tag ?? ''} onChange={(e) => set({ tag: e.target.value })} /> : null}
         {/* Answered a poll or survey (design expansion, X11). */}
         {t.kind === 'poll_answered' ? <PollTriggerProps t={t} disabled={disabled} set={set} /> : null}
+        {/* Bought a product (digital products, X19). */}
+        {t.kind === 'bought_product' ? <BoughtTriggerProps t={t} disabled={disabled} set={set} products={options?.products} /> : null}
         {t.kind === 'api_event' ? (
           <>
             <input className="in mono" aria-label="Event name" list="fe-events" placeholder="workspace.created" disabled={disabled} value={t.event ?? ''} onChange={(e) => set({ event: e.target.value })} />

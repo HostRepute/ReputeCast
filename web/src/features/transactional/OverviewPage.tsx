@@ -367,6 +367,7 @@ function TemplatesCard({ q, period }: { q: { data?: Schemas['TransactionalTempla
                                   {it.name}
                                 </Link>
                                 <span className="mono k">{it.attachments ? t(mo.pdfAttached, { key: it.key }) : it.key}</span>
+                                {it.usedByProducts ? <span className="k">{t(mo.usedByProducts, { count: it.usedByProducts })}</span> : null}
                               </div>
                             </td>
                             <td>
@@ -411,6 +412,7 @@ function TemplatesCard({ q, period }: { q: { data?: Schemas['TransactionalTempla
                       <VersionBadges live={it.liveVersion} draftChanges={it.draftChanges} draftVersion={it.draftVersion} archived={it.archived} />
                     </span>
                     <span className="mono k">{it.key}</span>
+                    {it.usedByProducts ? <span className="k">{t(mo.usedByProducts, { count: it.usedByProducts })}</span> : null}
                     <span className="flex flex-wrap items-center gap-2">
                       <CategoryCell category={it.category} />
                       <span className="k">

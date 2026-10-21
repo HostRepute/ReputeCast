@@ -26,6 +26,8 @@ import { ProfileScoreCard } from '@/features/scoring/ProfileScoreCard'
 import { FieldSourceNote, useAnswerActivity, useFieldSources } from '@/features/polls/contact'
 import { ContactPaidCard, ContactTierChip, PaidActivity, useHasPaidActivity } from '@/features/earn/ContactPaidCard'
 import { AddressCheckRow } from '@/features/verification/AddressCheck'
+// Digital products (X19): the Purchases card, bought and refunded events, the checkout's consent.
+import { PurchasesCard, checkoutConsent, purchaseActivity, purchaseIcon, purchaseIcons } from '@/features/products/contact'
 import { GrowActivityRow, growEvents, ProfileReferralsCard, useContactGrow, withGrow } from '@/features/grow/contact/ContactGrow'
 import './audience.css'
 import { ContactWebsiteCard } from '@/features/website/elsewhere'
@@ -141,6 +143,8 @@ export function ContactProfilePage({ contactId }: { contactId: string }) {
             <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-5">
               <ContactPaidCard contactId={p.id} />
               <FieldsCard p={p} />
+              {/* What the contact bought (digital products, X19). */}
+              <PurchasesCard contactId={p.id} />
               <ConsentCard p={p} />
               {/* The website's Website card (features/website), while it's on. */}
               <ContactWebsiteCard contactId={p.id} name={[p.firstName, p.lastName].filter(Boolean).join(' ') || p.email} />
@@ -427,6 +431,12 @@ function consentText(l: Schemas['ContactListConsent'], consentLanguage?: (versio
   const parts: string[] = []
   for (const e of l.events) {
     const src = e.sourceLabel
+    // A buyer who ticked a product's list offer at checkout (X19): "Product checkout: ticked “…”".
+    const checkout = checkoutConsent(e, fullDateTime(e.at))
+    if (checkout) {
+      parts.push(checkout)
+      continue
+    }
     switch (e.action) {
       case 'imported':
         parts.push(`Subscribed via ${src} ${fullDate(e.at)}`)
@@ -650,6 +660,8 @@ const icons = {
     </>
   ),
   minus: <path d="M4 8h8" />,
+  // Purchases and refunds (digital products, X19).
+  ...purchaseIcons,
 }
 
 const tone = {
@@ -662,6 +674,9 @@ const tone = {
 }
 
 function eventIcon(it: Item): [keyof typeof icons, keyof typeof tone] {
+  // Purchases and refunds (digital products, X19).
+  const purchase = purchaseIcon(it)
+  if (purchase) return purchase
   // Poll answers and survey responses (design expansion, X11).
   if (it.type === 'poll_answer' || it.type === 'survey_response' || it.type === 'survey_started') return ['check', 'green']
   if (it.category === 'consent') {
@@ -740,9 +755,14 @@ function ActivityRow({ it }: { it: Item }) {
   let title: ReactNode
   let meta: string[] = [dateTime(it.at)]
   const answer = answerActivity(it)
+  // Purchases and refunds (digital products, X19).
+  const purchase = purchaseActivity(it)
   if (answer) {
     title = <b>{answer.title}</b>
     meta = [...meta, ...answer.meta]
+  } else if (purchase) {
+    title = purchase.title
+    meta = [...meta, ...purchase.meta]
   } else if (it.category === 'consent') {
     switch (it.type) {
       case 'confirmed':

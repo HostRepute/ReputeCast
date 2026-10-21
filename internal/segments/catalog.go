@@ -133,6 +133,9 @@ func SourceLabel(src string) string {
 		return "API"
 	case "manual":
 		return "Added by the team"
+	case "product_checkout":
+		// A buyer who ticked the list offer at checkout (X19).
+		return "Product checkout"
 	case "referral":
 		// Grow: the Contacts list names the referrer ("Referral · Sam Rivera").
 		return "Referral"

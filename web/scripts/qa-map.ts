@@ -431,4 +431,39 @@ export const entries: Entry[] = [
   { board: 'PublicRecommendations', manual: true },
   { board: 'PublicRecommendationsPhone', manual: true },
   { board: 'PublicGrowStates', manual: true },
+  // X19 · Forms & public pages › Pages. PagesStates' frames: the template picker is
+  // forms/pages?new=sales, read-only is the list as aisha@acme.io, the empty list is a workspace
+  // without pages, loading and error need a slow or failing API; Daniel Park's draft is the page
+  // builder's (PageBuilder boards).
+  { board: 'PagesList', path: `${ws}/forms/pages`, widths: [1440] },
+  { board: 'PagesListTablet', path: `${ws}/forms/pages`, widths: [834] },
+  { board: 'PagesListPhone', path: `${ws}/forms/pages`, widths: [390] },
+  { board: 'PagesStates', manual: true },
+  // X19 · digital products. Earn › Products with order 1311 in the panel (a sheet above 1100 px, a card
+  // at the end of the page below), and the editor with The Deliverability Field Guide. ProductsStates
+  // (orders 1309, 1288 and 1302 and the new-link dialog, test mode, Stripe not connected, empty,
+  // read-only as aisha@acme.io, loading and error) and ProductEditorStates (the Warm-up planner as
+  // daniel@acme.io, uploads, a file whose content doesn't match its name, publish blocked, a minimum
+  // below $1, the price change) need other orders, users, clicks or data changes.
+  { board: 'Products', path: `${ws}/earn/products?order={order:1311}`, widths: [1440] },
+  { board: 'ProductsTablet', path: `${ws}/earn/products?order={order:1311}`, widths: [834] },
+  { board: 'ProductsPhone', path: `${ws}/earn/products?order={order:1311}`, widths: [390] },
+  { board: 'ProductsStates', manual: true },
+  { board: 'ProductEditor', path: `${ws}/earn/products/{product:The Deliverability Field Guide}`, widths: [1440] },
+  { board: 'ProductEditorStates', manual: true },
+  // X19 · the page builder with The Deliverability Field Guide's hero product selected. The frames
+  // of PageBuilderStates (the Launch Kit's countdown before it ends, the DMARC webinar's event with
+  // ?select=event, a paused signup form, Stripe not connected, the saved and conflict cards, the Page
+  // tab and the publish dialog) and PagesStates' "Daniel Park's draft" (daniel@acme.io signs in with
+  // SSO only) need other dates, clicks, users or data changes.
+  { board: 'PageBuilder', path: `${ws}/forms/pages/{page:The Deliverability Field Guide}?select=buy`, widths: [1440] },
+  { board: 'PageBuilderTablet', path: `${ws}/forms/pages/{page:The Deliverability Field Guide}?select=buy`, widths: [834] },
+  { board: 'PageBuilderStates', manual: true },
+  // X19 · the public sales page (The Deliverability Field Guide), signed out. PublicPagesStates'
+  // frames (the lead magnet before and after confirming, the webinar and its registration, the
+  // launch before and after its countdown, the shop, the Buy step, the thanks pages and the
+  // download page's states) need other dates, forms, payments or links.
+  { board: 'PublicSalesPage', path: '/p/acme-newsletter/field-guide', user: 'anon', widths: [1440] },
+  { board: 'PublicSalesPagePhone', path: '/p/acme-newsletter/field-guide', user: 'anon', widths: [390] },
+  { board: 'PublicPagesStates', manual: true },
 ]

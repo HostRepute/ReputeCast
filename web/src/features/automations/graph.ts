@@ -1,6 +1,7 @@
 import type { Schemas } from '@/api/client'
 import { scoreTriggerDefaults } from '@/features/scoring/ScoreTrigger'
 import { isOneOfPhrase, scoreTriggerDetail, scoreTriggerName, scoreTriggerRef } from '@/features/scoring/triggerText'
+import { boughtGoalTitle, boughtPhrase, boughtRef, boughtTriggerName } from '@/features/products/automationText'
 import { milestoneTriggerDetail, milestoneTriggerName, milestoneTriggerRef } from '@/features/grow/triggerText'
 
 /*
@@ -28,6 +29,8 @@ export interface Refs {
   fields: Map<string, { label: string; type: string }>
   /** Polls and surveys the trigger "Answered a poll or survey" names ("poll:<id>" → name). */
   polls?: Map<string, string>
+  /** Products the trigger and goal "Bought a product" name (id → name). */
+  products?: Map<string, string>
   /** Grow's referral milestones: "3 referrals · The Acme Field Guide". */
   milestones?: Map<string, string>
 }
@@ -42,6 +45,8 @@ export function refsFrom(o: Schemas['AutomationOptions'] | undefined): Refs {
     emails: new Map(o.emails.map((e) => [e.id, { name: e.name, latestVersion: e.latestVersion, subject: e.subject }])),
     providers: new Map(o.providers.map((p) => [p.id, { name: p.name, short: p.short, status: p.status }])),
     fields: new Map(o.fields.map((f) => [f.key, { label: f.label, type: f.type }])),
+    // Digital products (X19): published first, then others that sold.
+    products: new Map((o.products ?? []).map((p) => [p.id, p.name])),
     milestones: new Map(o.milestones.map((x) => [x.id, x.name])),
   }
 }
@@ -71,6 +76,10 @@ export const triggerKindLabels: Record<TriggerConfig['kind'], string> = {
     return scoreTriggerName()
   },
   poll_answered: 'Answered a poll or survey',
+  // Digital products (X19).
+  get bought_product() {
+    return boughtTriggerName()
+  },
   // Grow (referral milestones).
   get milestone_reached() {
     return milestoneTriggerName()
@@ -213,6 +222,8 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
       return scoreTriggerRef(t)
     case 'poll_answered':
       return refs.polls?.get(t.poll ?? '') ?? 'a poll or survey'
+    case 'bought_product':
+      return boughtRef(t.productId, refs.products?.get(t.productId ?? ''))
     case 'milestone_reached':
       return milestoneTriggerRef(t, refs.milestones)
   }
@@ -247,6 +258,9 @@ export function conditionPhrase(g: FlowGraph, c: FlowCondition | undefined, refs
           return isOneOfPhrase(c.field ?? '', c.value ?? '')
       }
       return `${c.field} is ${c.value ?? ''}`
+    // Digital products (X19).
+    case 'bought_product':
+      return boughtPhrase(c.productId, refs.products?.get(c.productId ?? ''))
   }
   return ''
 }
@@ -266,6 +280,9 @@ export function goalTitle(c: FlowCondition | undefined, refs: Refs): string {
       return `Sent ${c.event ?? ''}`
     case 'field':
       return capFirst(conditionPhrase({ nodes: [], edges: [] }, c, refs))
+    // Digital products (X19).
+    case 'bought_product':
+      return boughtGoalTitle(c.productId, refs.products?.get(c.productId ?? ''))
   }
   return 'Goal'
 }

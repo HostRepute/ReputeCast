@@ -1,0 +1,8 @@
+{{/* A Members or Paid page for a reader who can't read it. */}}
+{{define "site-main"}}{{with .Body}}<main id="main" class="pg-main">
+<div class="pg-center lav"><div class="pcard7 w480">
+<h1>{{.Heading}}</h1>
+<p class="ptxt">{{.Text}}</p>
+{{- if .Actions}}<div class="pg-acts">{{range .Actions}}<a href="{{.Href}}" class="{{if .Primary}}st-btn{{else}}st-btn2{{end}}">{{.Label}}</a>{{end}}</div>{{end}}
+</div></div>
+</main>{{end}}{{end}}

@@ -39,6 +39,8 @@ type ContactFilter struct {
 	WebsiteFilter
 	// Paid status (Earn, paid.go).
 	PaidFilter
+	// Buyers of digital products (products.go).
+	ProductsFilter
 }
 
 // Empty reports whether the filter matches everyone.
@@ -132,6 +134,7 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 	if err := s.paidFilter(ctx, wsID, out, f.PaidFilter); err != nil {
 		return err
 	}
+	productsFilter(out, f.ProductsFilter)
 	if f.Segment != "" {
 		id, err := uuid.Parse(f.Segment)
 		if err != nil {

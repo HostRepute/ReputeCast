@@ -74,7 +74,7 @@ func TestTemplateLifecycle(t *testing.T) {
 		}
 	}
 	c.Do("GET", base+"/starters", nil).MustStatus(t, 200).JSON(t, &starters)
-	if len(starters.Items) != 8 || starters.Items[0].Key != "password-reset" || len(starters.Items[0].Variables) != 3 {
+	if len(starters.Items) != 9 || starters.Items[0].Key != "password-reset" || len(starters.Items[0].Variables) != 3 {
 		t.Fatalf("starters: %+v", starters.Items)
 	}
 

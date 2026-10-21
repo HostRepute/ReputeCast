@@ -56,6 +56,9 @@ var Events = []EventType{
 	{Key: KindSeedSignInFailed, Label: "Seed mailbox sign-in failed", Audience: "Everyone with placement:manage", Short: "seed sign-in failures", DefaultEmail: true, Kinds: []string{KindSeedSignInFailed}},
 	// The publication website (design expansion, phase 7).
 	{Key: KindWebsiteDomain, Label: "Website domain or certificate problem", Audience: "Everyone with website:manage", Short: "website domain problems", DefaultEmail: true, Kinds: []string{KindWebsiteDomain}},
+	// Digital products (design expansion, phase 7).
+	{Key: KindProductDeliveryFailed, Label: "Product delivery failed", Audience: "Everyone with orders:manage", Short: "failed product deliveries", DefaultEmail: true, Kinds: []string{KindProductDeliveryFailed}},
+	{Key: KindOrderDisputed, Label: "Dispute opened on an order", Audience: "Everyone with orders:manage", Short: "order disputes", DefaultEmail: true, Kinds: []string{KindOrderDisputed}},
 	// Grow (design expansion, phase 5).
 	{Key: KindReferralsHeld, Label: "Referrals held for review", Audience: "Everyone with grow:review · then at most once a day while the queue isn't empty", Short: "held referrals", DefaultEmail: true, Kinds: []string{KindReferralsHeld}},
 	{Key: KindRewardCodesLow, Label: "Reward codes running low or out", Audience: "Everyone with grow:edit", Short: "reward codes running low", DefaultEmail: true, Kinds: []string{KindRewardCodesLow}},
@@ -117,7 +120,7 @@ var categoryKinds = map[string][]string{
 	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
 	CategoryAI:            {KindAIUsage, KindAIKeyRejected},
 	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments, KindSponsorCreative, KindSponsorPayment},
-	CategoryWebsite:       {KindWebsiteDomain},
+	CategoryWebsite:       {KindWebsiteDomain, KindProductDeliveryFailed, KindOrderDisputed},
 	CategoryGrow:          {KindReferralsHeld, KindRewardCodesLow, KindRewardWebhookFailing, KindPartnerLinkProblem},
 }
 
