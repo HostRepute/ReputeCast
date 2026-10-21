@@ -2,22 +2,18 @@ package demo
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"time"
-
-	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/sms/twilio/twiliotest"
 )
 
-// The sample's texts (X21's SMS, agencies brief §4): Fabrikam Outdoors and
-// Alpine Ski House text through Twilio (the in-process demo account) from
-// a toll-free number for the US and Canada, which is where Usage's SMS
-// segments come from; Fabrikam's weekend sale goes out by email and by
-// text at the same time, so the Overview shows "141,220 emails · 12,480
-// texts". No text ever leaves: the account is the recorded demo one.
+// The sample's texting (X21's SMS, agencies brief §4): Fabrikam Outdoors
+// and Alpine Ski House text through Twilio (the in-process demo account)
+// from a toll-free number for the US and Canada, which is where Usage's
+// SMS segments come from. The sample has no phone numbers or SMS consent,
+// so it has no text campaign: Fabrikam's weekend sale is its email. No
+// text ever leaves: the account is the recorded demo one.
 
 // nwSMSClients are the clients that text, with their toll-free number.
 var nwSMSClients = []struct {
@@ -33,7 +29,7 @@ func (n *nwSeed) sms(ctx context.Context) error {
 			return err
 		}
 	}
-	return n.smsWeekendSale(ctx)
+	return nil
 }
 
 // smsClient connects Twilio with its toll-free number, verified, routed
@@ -116,44 +112,4 @@ func (n *nwSeed) smsClient(ctx context.Context, key, brand, number, ref string) 
 // nwSiteOf is a client's web address, for its SMS help reply.
 func nwSiteOf(key string) string {
 	return map[string]string{"fabrikam": "fabrikamoutdoors.example/help", "alpine": "alpineskihouse.example/help"}[key]
-}
-
-// smsWeekendSale is the text of Fabrikam's weekend sale: the same name and
-// time as its email, to the customers who agreed to texts.
-func (n *nwSeed) smsWeekendSale(ctx context.Context) error {
-	ws := n.ws["fabrikam"]
-	mei := n.people["mei"]
-	const name = "Weekend gear sale, by email and text"
-	var at time.Time
-	var audience json.RawMessage
-	if err := n.Tx.QueryRow(ctx, `SELECT scheduled_at, audience FROM campaigns WHERE id = $1`, n.Campaigns["fabrikam/"+name]).Scan(&at, &audience); err != nil {
-		return err
-	}
-	body := "Weekend gear sale: 25% off packs and tents through Sunday. fabrikamoutdoors.example/sale"
-	full := "Fabrikam: " + body + " Reply STOP to opt out"
-	sum := sha256.Sum256([]byte(full))
-	id := uuid.Must(uuid.NewV7())
-	created := at.Add(-4 * 24 * time.Hour)
-	if created.After(n.Now) {
-		created = n.Now.Add(-48 * time.Hour)
-	}
-	if _, err := n.Tx.Exec(ctx, `INSERT INTO campaigns (id, workspace_id, name, status, subject, preheader, audience, editor_mode, mjml, html, plain_text, version, channel,
-			content_hash, created_by, updated_by, created_at, updated_at, autosaved_at, scheduled_at, audience_count)
-		VALUES ($1,$2,$3,'scheduled','','',$4,'html','','','',1,'sms',$5,$6,$6,$7,$8,$8,$9,12480)`,
-		id, ws.ID, name, audience, hex.EncodeToString(sum[:])[:32], mei.ID, created, created.Add(time.Hour), at); err != nil {
-		return err
-	}
-	n.Campaigns["fabrikam/"+name+" (text)"] = id
-	if _, err := n.Tx.Exec(ctx, `INSERT INTO sms_campaigns (campaign_id, workspace_id, body, schedule_mode, send_at, pending_policy) VALUES ($1,$2,$3,'at',$4,'skip')`,
-		id, ws.ID, body, at); err != nil {
-		return err
-	}
-	if _, err := n.Tx.Exec(ctx, `INSERT INTO sms_campaign_versions (campaign_id, version, body, saved_by, saved_at) VALUES ($1,1,$2,$3,$4)`,
-		id, body, mei.ID, created.Add(time.Hour)); err != nil {
-		return err
-	}
-	thresholds, _ := json.Marshal(map[string]float64{"failed": 5, "filtered": 2, "optOuts": 3})
-	_, err := n.Tx.Exec(ctx, `INSERT INTO sms_sends (campaign_id, workspace_id, phase, recipients, started_by, scheduled_at, thresholds) VALUES ($1,$2,'scheduled',12480,$3,$4,$5)`,
-		id, ws.ID, mei.ID, at, thresholds)
-	return err
 }
