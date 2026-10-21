@@ -21,6 +21,7 @@ func init() {
 			Checker: &contentcheck.Checker{
 				Blocklist: contentcheck.StoreBlocklist{Q: a.Q},
 				Prober:    linkProber(a),
+				Extra:     contentExtras(a),
 			},
 			// Saves re-check the campaign's open approval.
 			AfterChange: CampaignChangeHook(a),
@@ -43,6 +44,10 @@ func init() {
 // campaignChannelRows fills in the list's rows of other channels'
 // campaigns; set from wire_texting.go.
 var campaignChannelRows = func(*App) campaigns.ChannelRows { return nil }
+
+// contentExtras are content checks other domains add (a store block naming
+// a removed product); the commerce domain sets it from its wire file.
+var contentExtras = func(*App) []contentcheck.Extra { return nil }
 
 // campaignExtras plugs polls and conditional content into previews and
 // test sends; set from wire_visibility.go.

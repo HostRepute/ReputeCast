@@ -672,7 +672,7 @@ func (s *Service) Checks(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 		html = contentcheck.Minify(html)
 	}
 	r, err := checker.Check(ctx, contentcheck.Input{Subject: in.Subject, Preheader: in.Preheader, MJML: in.MJML, HTML: html, OwnDomains: domains,
-		Address: templates.WorkspaceAddress(ws), Fields: fields, ProbeLinks: in.ProbeLinks, Language: in.Language})
+		Address: templates.WorkspaceAddress(ws), Fields: fields, ProbeLinks: in.ProbeLinks, Language: in.Language, WorkspaceID: ws.ID})
 	if err != nil {
 		return ComposerChecks{}, err
 	}

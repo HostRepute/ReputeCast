@@ -64,6 +64,9 @@ const (
 	KindSeedSignInFailed       = "seed_signin_failed"       // a seed mailbox's sign-in failed or expired
 	// The publication website (design expansion, phase 7).
 	KindWebsiteDomain = "website_domain" // the website's custom domain stopped checking out, or its certificate is failing
+	// Digital products (design expansion, phase 7).
+	KindProductDeliveryFailed = "product_delivery_failed" // an order's delivery email couldn't be sent
+	KindOrderDisputed         = "order_disputed"          // a buyer disputed an order's payment in Stripe
 	// Grow (design expansion, phase 5).
 	KindReferralsHeld        = "referrals_held"         // referrals wait in the review queue (grow:review)
 	KindRewardCodesLow       = "reward_codes_low"       // a code reward is running low or out of codes (grow:edit)
@@ -74,6 +77,8 @@ const (
 	KindSMSRegistration = "sms_registration"  // a sender's registration was approved or rejected
 	KindSMSProviderDown = "sms_provider_down" // an SMS provider is down, its credentials rejected, or its receipts silent
 	KindSMSSendPaused   = "sms_send_paused"   // an SMS campaign auto-paused
+	// Shopify and WooCommerce (design expansion, phase 7).
+	KindStoreProblem = "store_problem" // a store disconnected, or its webhooks missing
 )
 
 // Notification is what appears in the notification center.

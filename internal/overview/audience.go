@@ -50,6 +50,11 @@ func (a AudienceCards) Audience(ctx context.Context, ws *store.Workspace, days i
 		net[g.ListID.String()] = g.Joined - g.Departed
 	}
 	for _, l := range sum.Lists {
+		// The newsletter's lists: like "All subscribers", not the customers
+		// a connected store adds (X20).
+		if l.Origin == "store" {
+			continue
+		}
 		out.Lists = append(out.Lists, OverviewListGrowth{ID: l.ID, Name: l.Name, Contacts: l.Subscribed, Net: net[l.ID]})
 		out.Subscribers += l.Subscribed
 		out.Net += net[l.ID]

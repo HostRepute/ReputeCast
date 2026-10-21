@@ -14,7 +14,7 @@ WHERE workspace_id = @workspace_id AND erased_at IS NULL;
 SELECT count(*)::bigint FROM suppressions WHERE workspace_id = @workspace_id;
 
 -- name: ListListsWithCounts :many
-SELECT l.id, l.name, l.description, l.double_opt_in, l.created_at,
+SELECT l.id, l.name, l.description, l.double_opt_in, l.created_at, l.origin,
        coalesce(m.subscribed, 0)::bigint AS subscribed,
        coalesce(m.pending, 0)::bigint AS pending
 FROM lists l
@@ -177,7 +177,7 @@ ORDER BY l.created_at, l.id;
 
 -- name: ContactConsentEvents :many
 SELECT ce.id, ce.list_id, ce.action, ce.source, ce.ip, ce.user_agent, ce.detail, ce.note, ce.consent_version, ce.language, ce.occurred_at,
-       coalesce(u.name, '')::text AS actor_name
+       coalesce(u.name, '')::text AS actor_name, coalesce(ce.consent_text, '')::text AS consent_text
 FROM consent_events ce
 LEFT JOIN users u ON u.id = ce.actor_id
 WHERE ce.contact_id = @contact_id

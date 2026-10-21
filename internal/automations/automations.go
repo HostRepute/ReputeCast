@@ -58,6 +58,14 @@ type Service struct {
 	// Languages are the emails' language versions (internal/languages);
 	// nil leaves them out.
 	Languages EmailLanguages
+
+	// StoreRevenue is the store orders credited to flows since a time
+	// (internal/commerce; the list's revenue column). Nil without stores.
+	StoreRevenue func(ctx context.Context, wsID uuid.UUID, ids []uuid.UUID, since time.Time) map[uuid.UUID]AutomationRevenue
+	// StoreEmail is a store-triggered starter's email in the store's
+	// voice, with its checkout items or product grid (internal/commerce).
+	// Nil without stores: the starter's plain email.
+	StoreEmail func(ctx context.Context, wsID, storeID uuid.UUID, key string) (EmailContent, bool)
 }
 
 func (s *Service) now() time.Time {
@@ -130,9 +138,13 @@ const (
 func (s *Service) loadRefs(ctx context.Context, q *store.Queries, wsID uuid.UUID) (*Refs, error) {
 	r := &Refs{Lists: map[string]string{}, Forms: map[string]string{}, Emails: map[string]int{}, EmailNames: map[string]string{}, Fields: map[string]string{}, Providers: map[string]string{},
 		Polls: map[string]string{}, Milestones: map[string]string{}}
+	if err := loadProductRefs(ctx, q, wsID, r); err != nil {
+		return nil, err
+	}
 	if err := loadPollRefs(ctx, q, wsID, r); err != nil {
 		return nil, err
 	}
+	loadStoreRefs(ctx, q, wsID, r)
 	lists, err := q.AutomationLists(ctx, wsID)
 	if err != nil {
 		return nil, err

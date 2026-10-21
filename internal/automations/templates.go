@@ -8,7 +8,7 @@ import (
 // AutomationStarterTemplate is one of the starter flows offered on the automations
 // list and in the empty state. Each opens as a draft; every step is editable.
 type AutomationStarterTemplate struct {
-	Key  string `json:"key" enum:"welcome-series,re-engagement,onboarding"`
+	Key  string `json:"key" enum:"welcome-series,re-engagement,onboarding,abandoned-cart"`
 	Name string `json:"name"`
 	// Summary is the card text in the list's "Starter templates" section.
 	Summary string `json:"summary"`
@@ -30,7 +30,10 @@ type templateDef struct {
 	AutomationStarterTemplate
 	description string
 	emails      []templateEmail
-	build       func(listID string) AutomationGraph
+	// build makes the graph on a list, or on a store when store is set
+	// (templates_store.go): its id is what build gets.
+	build func(ref string) AutomationGraph
+	store bool
 }
 
 func fork(id, typ string, d AutomationNodeData) AutomationNode {
@@ -158,6 +161,19 @@ func Templates() []AutomationStarterTemplate {
 	out := make([]AutomationStarterTemplate, len(templates))
 	for i, t := range templates {
 		out[i] = t.AutomationStarterTemplate
+	}
+	return out
+}
+
+// templatesFor lists the starter templates a workspace can use: the ones
+// that start on a store's events need a connected store.
+func templatesFor(hasStore bool) []AutomationStarterTemplate {
+	out := make([]AutomationStarterTemplate, 0, len(templates))
+	for _, t := range templates {
+		if t.store && !hasStore {
+			continue
+		}
+		out = append(out, t.AutomationStarterTemplate)
 	}
 	return out
 }

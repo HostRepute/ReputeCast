@@ -343,7 +343,8 @@ func (s *Service) audienceLabeler(ctx context.Context, wsID uuid.UUID) (func(jso
 	var public []uuid.UUID
 	for _, l := range lists {
 		names[l.ID] = l.Name
-		if l.Public {
+		// "All subscribers" is every public list but the ones a store fills (X20).
+		if l.Public && l.Origin != "store" {
 			public = append(public, l.ID)
 		}
 	}

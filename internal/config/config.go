@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -53,6 +54,29 @@ type Config struct {
 	Mail       MailConfig       `koanf:"mail"`
 	Connect    ConnectConfig    `koanf:"connect"`
 	I18n       I18nConfig       `koanf:"i18n"`
+	Files      FilesConfig      `koanf:"files"`
+}
+
+// FilesConfig is where uploaded files live: digital products' files and
+// lead magnets (design expansion phase 7). They can be large, so they stay
+// out of the database. When the process is split with --role, every web
+// and worker process needs the same folder.
+type FilesConfig struct {
+	// Dir defaults to a "files" folder next to the secret key file (the
+	// data volume, /var/lib/reputecast, in the container image).
+	Dir string `koanf:"dir"`
+}
+
+// FilesDir is the folder uploaded files are kept in.
+func (c *Config) FilesDir() string {
+	if c.Files.Dir != "" {
+		return c.Files.Dir
+	}
+	base := "data"
+	if c.Secrets.KeyFile != "" {
+		base = filepath.Dir(c.Secrets.KeyFile)
+	}
+	return filepath.Join(base, "files")
 }
 
 // I18nConfig configures the app languages.

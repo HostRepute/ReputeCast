@@ -25,6 +25,7 @@ import { im } from '@/features/digests/issueMessages'
 import { useIssueInfo, type IssueInfo } from '@/features/digests/shared'
 import { useT } from '@/i18n'
 import { PlacementApprovalCard } from '@/features/placement/EntryPoints'
+import { PageApprovalCard, PageBadge, PageDecisionDetail, PageDecisionNote } from '@/features/pages/approval'
 import { ApprovalStatusBadge, approverNames, decidedText, deciderFirst, DiffLines, requestTone, unchangedText, type Change } from './parts'
 import '@/features/review/review.css'
 import { PostApprovalCard } from '@/features/website/elsewhere'
@@ -200,6 +201,7 @@ function DetailBody({ detail: d }: { detail: Detail }) {
           {/* A website post (features/website): its snapshot and its page on the web. */}
           {d.subjectType === 'website_post' && d.website ? <PostApprovalCard approvalId={d.id} name={d.name} snapshot={d.website} /> : null}
           {d.transactional ? <TransactionalApprovalCard snapshot={d.transactional} /> : null}
+          {d.page ? <PageApprovalCard detail={d} /> : null}
           {issue ? <IssueApprovalCard issue={issue} /> : null}
           {d.campaign ? <CampaignCard detail={d} busy={busy === 'test'} onTest={() => void sendTest()} /> : null}
           {d.readiness ? <ReadinessCard detail={d} busy={busy} onFix={(c, f) => void applyFix(c, f)} /> : null}
@@ -224,7 +226,9 @@ function DetailBody({ detail: d }: { detail: Detail }) {
         badge={ask === 'reject' ? 'Reject' : 'Request changes'}
         title={ask === 'reject' ? `Reject “${d.name}”?` : `Ask ${d.author.name} for changes?`}
         description={
-          d.transactional ? (
+          d.page ? (
+            <PageDecisionDetail kind={ask ?? 'request_changes'} author={d.author.name} />
+          ) : d.transactional ? (
             <TransactionalDecisionDetail kind={ask ?? 'request_changes'} author={d.author.name} />
           ) : ask === 'reject' ? (
             `${d.author.name} is told and the campaign goes back to a draft. Reject when it shouldn't go out at all; for fixes, request changes instead.`
@@ -252,6 +256,7 @@ function HeaderCard({ detail: d, me, issue }: { detail: Detail; me?: string; iss
         <div className="row gap-2!">
           <span className="text-[18px] font-bold">{d.name}</span>
           {issue ? <RecurringDigestBadge issue={issue} /> : null}
+          {d.page ? <PageBadge page={d.page} /> : null}
           <ApprovalStatusBadge status={d.status} long />
         </div>
         {d.clientSignoff ? (
@@ -866,7 +871,9 @@ function DecisionCard({
             <Button variant="danger" className="justify-center" loading={busy === 'reject'} disabledReason={reason} onClick={onReject}>
               Reject
             </Button>
-            {d.transactional ? (
+            {d.page ? (
+              <PageDecisionNote author={d.author.name} page={d.page} />
+            ) : d.transactional ? (
               <TransactionalDecisionNote author={d.author.name} />
             ) : d.clientSignoff ? (
               <ClientSignoffNote detail={d} />

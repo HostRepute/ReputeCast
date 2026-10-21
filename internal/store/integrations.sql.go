@@ -2791,7 +2791,7 @@ func (q *Queries) WordPressForms(ctx context.Context, workspaceID uuid.UUID) ([]
 }
 
 const wordPressSite = `-- name: WordPressSite :one
-SELECT integration_id, workspace_id, address, site_url, name, plugin_version, wp_version, php_version, feed_url, language_plugin, categories, forms, first_report_at, last_report_at, last_check_at, last_check, rule_enabled, rule, rule_updated_by, rule_updated_at FROM wordpress_sites WHERE integration_id = $1
+SELECT integration_id, workspace_id, address, site_url, name, plugin_version, wp_version, php_version, feed_url, language_plugin, categories, forms, first_report_at, last_report_at, last_check_at, last_check, rule_enabled, rule, rule_updated_by, rule_updated_at, woocommerce_version, woocommerce_consent, woocommerce_checkouts FROM wordpress_sites WHERE integration_id = $1
 `
 
 func (q *Queries) WordPressSite(ctx context.Context, integrationID uuid.UUID) (WordpressSite, error) {
@@ -2818,6 +2818,9 @@ func (q *Queries) WordPressSite(ctx context.Context, integrationID uuid.UUID) (W
 		&i.Rule,
 		&i.RuleUpdatedBy,
 		&i.RuleUpdatedAt,
+		&i.WoocommerceVersion,
+		&i.WoocommerceConsent,
+		&i.WoocommerceCheckouts,
 	)
 	return i, err
 }
@@ -2972,7 +2975,7 @@ func (q *Queries) WordPressSiteSetRule(ctx context.Context, arg WordPressSiteSet
 }
 
 const wordPressSites = `-- name: WordPressSites :many
-SELECT s.integration_id, s.workspace_id, s.address, s.site_url, s.name, s.plugin_version, s.wp_version, s.php_version, s.feed_url, s.language_plugin, s.categories, s.forms, s.first_report_at, s.last_report_at, s.last_check_at, s.last_check, s.rule_enabled, s.rule, s.rule_updated_by, s.rule_updated_at, i.label, i.connected_at, i.connected_by, i.first_call_at, i.last_call_at, coalesce(u.name, '')::text AS connected_by_name
+SELECT s.integration_id, s.workspace_id, s.address, s.site_url, s.name, s.plugin_version, s.wp_version, s.php_version, s.feed_url, s.language_plugin, s.categories, s.forms, s.first_report_at, s.last_report_at, s.last_check_at, s.last_check, s.rule_enabled, s.rule, s.rule_updated_by, s.rule_updated_at, s.woocommerce_version, s.woocommerce_consent, s.woocommerce_checkouts, i.label, i.connected_at, i.connected_by, i.first_call_at, i.last_call_at, coalesce(u.name, '')::text AS connected_by_name
 FROM wordpress_sites s
 JOIN integrations i ON i.id = s.integration_id AND i.disconnected_at IS NULL
 LEFT JOIN users u ON u.id = i.connected_by
@@ -2981,32 +2984,35 @@ ORDER BY i.connected_at, i.id
 `
 
 type WordPressSitesRow struct {
-	IntegrationID   uuid.UUID       `json:"integrationId"`
-	WorkspaceID     uuid.UUID       `json:"workspaceId"`
-	Address         string          `json:"address"`
-	SiteUrl         string          `json:"siteUrl"`
-	Name            string          `json:"name"`
-	PluginVersion   string          `json:"pluginVersion"`
-	WpVersion       string          `json:"wpVersion"`
-	PhpVersion      string          `json:"phpVersion"`
-	FeedUrl         string          `json:"feedUrl"`
-	LanguagePlugin  string          `json:"languagePlugin"`
-	Categories      json.RawMessage `json:"categories"`
-	Forms           json.RawMessage `json:"forms"`
-	FirstReportAt   *time.Time      `json:"firstReportAt"`
-	LastReportAt    *time.Time      `json:"lastReportAt"`
-	LastCheckAt     *time.Time      `json:"lastCheckAt"`
-	LastCheck       json.RawMessage `json:"lastCheck"`
-	RuleEnabled     bool            `json:"ruleEnabled"`
-	Rule            json.RawMessage `json:"rule"`
-	RuleUpdatedBy   *uuid.UUID      `json:"ruleUpdatedBy"`
-	RuleUpdatedAt   *time.Time      `json:"ruleUpdatedAt"`
-	Label           string          `json:"label"`
-	ConnectedAt     time.Time       `json:"connectedAt"`
-	ConnectedBy     *uuid.UUID      `json:"connectedBy"`
-	FirstCallAt     *time.Time      `json:"firstCallAt"`
-	LastCallAt      *time.Time      `json:"lastCallAt"`
-	ConnectedByName string          `json:"connectedByName"`
+	IntegrationID        uuid.UUID       `json:"integrationId"`
+	WorkspaceID          uuid.UUID       `json:"workspaceId"`
+	Address              string          `json:"address"`
+	SiteUrl              string          `json:"siteUrl"`
+	Name                 string          `json:"name"`
+	PluginVersion        string          `json:"pluginVersion"`
+	WpVersion            string          `json:"wpVersion"`
+	PhpVersion           string          `json:"phpVersion"`
+	FeedUrl              string          `json:"feedUrl"`
+	LanguagePlugin       string          `json:"languagePlugin"`
+	Categories           json.RawMessage `json:"categories"`
+	Forms                json.RawMessage `json:"forms"`
+	FirstReportAt        *time.Time      `json:"firstReportAt"`
+	LastReportAt         *time.Time      `json:"lastReportAt"`
+	LastCheckAt          *time.Time      `json:"lastCheckAt"`
+	LastCheck            json.RawMessage `json:"lastCheck"`
+	RuleEnabled          bool            `json:"ruleEnabled"`
+	Rule                 json.RawMessage `json:"rule"`
+	RuleUpdatedBy        *uuid.UUID      `json:"ruleUpdatedBy"`
+	RuleUpdatedAt        *time.Time      `json:"ruleUpdatedAt"`
+	WoocommerceVersion   string          `json:"woocommerceVersion"`
+	WoocommerceConsent   bool            `json:"woocommerceConsent"`
+	WoocommerceCheckouts bool            `json:"woocommerceCheckouts"`
+	Label                string          `json:"label"`
+	ConnectedAt          time.Time       `json:"connectedAt"`
+	ConnectedBy          *uuid.UUID      `json:"connectedBy"`
+	FirstCallAt          *time.Time      `json:"firstCallAt"`
+	LastCallAt           *time.Time      `json:"lastCallAt"`
+	ConnectedByName      string          `json:"connectedByName"`
 }
 
 func (q *Queries) WordPressSites(ctx context.Context, workspaceID uuid.UUID) ([]WordPressSitesRow, error) {
@@ -3039,6 +3045,9 @@ func (q *Queries) WordPressSites(ctx context.Context, workspaceID uuid.UUID) ([]
 			&i.Rule,
 			&i.RuleUpdatedBy,
 			&i.RuleUpdatedAt,
+			&i.WoocommerceVersion,
+			&i.WoocommerceConsent,
+			&i.WoocommerceCheckouts,
 			&i.Label,
 			&i.ConnectedAt,
 			&i.ConnectedBy,

@@ -12,6 +12,7 @@ import { HowAnswersCounted, PollsError, PollSections, PollTiles, useMapPolls, ty
 import { m as pm } from '@/features/polls/report.messages'
 import { useT } from '@/i18n'
 import { ClickMap } from './ClickMap'
+import { CampaignStoreRevenue } from '@/features/commerce/revenue'
 import { EngagementChart } from './EngagementChart'
 import {
   abBadge,
@@ -429,6 +430,8 @@ export function ReportBody({ r, actions, polls, earn }: { r: CampaignReport; act
       )}
       {polls?.error ? <PollsError error={polls.error} onRetry={polls.retry} /> : null}
       {earn}
+      {/* Store orders credited to the email (X20), after Earn's Revenue and Sponsor sections. */}
+      <CampaignStoreRevenue campaignId={r.campaign.id} campaign={r.campaign.name} />
       <div className="flex flex-wrap items-start gap-5">
         <MailboxTable rows={r.mailboxes} />
         {r.providers.columns.length ? <ProviderTable t={r.providers} /> : null}

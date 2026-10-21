@@ -824,7 +824,8 @@ func (e *Engine) audienceLabel(ctx context.Context, ws uuid.UUID, raw json.RawMe
 	var public []uuid.UUID
 	for _, l := range lists {
 		names[l.ID] = l.Name
-		if l.Public {
+		// A store's list (X20) isn't one readers sign up for either.
+		if l.Public && l.Origin != "store" {
 			public = append(public, l.ID)
 		}
 	}

@@ -369,7 +369,7 @@ func (q *Queries) ReadinessListCount(ctx context.Context, workspaceID uuid.UUID)
 }
 
 const readinessListNames = `-- name: ReadinessListNames :many
-SELECT id, name, requires_approval, public FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
+SELECT id, name, requires_approval, public, origin FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
 `
 
 type ReadinessListNamesRow struct {
@@ -377,6 +377,7 @@ type ReadinessListNamesRow struct {
 	Name             string    `json:"name"`
 	RequiresApproval bool      `json:"requiresApproval"`
 	Public           bool      `json:"public"`
+	Origin           string    `json:"origin"`
 }
 
 func (q *Queries) ReadinessListNames(ctx context.Context, workspaceID uuid.UUID) ([]ReadinessListNamesRow, error) {
@@ -393,6 +394,7 @@ func (q *Queries) ReadinessListNames(ctx context.Context, workspaceID uuid.UUID)
 			&i.Name,
 			&i.RequiresApproval,
 			&i.Public,
+			&i.Origin,
 		); err != nil {
 			return nil, err
 		}

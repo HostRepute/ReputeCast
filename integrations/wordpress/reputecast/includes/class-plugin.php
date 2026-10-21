@@ -21,6 +21,7 @@ final class Plugin {
 		add_action( 'rest_api_init', array( Status::class, 'register_routes' ) );
 		add_action( Reporter::CRON_HOOK, array( Reporter::class, 'run' ) );
 		Posts::register();
+		WooCommerce::register();
 		if ( is_admin() ) {
 			Settings_Page::register();
 		}
@@ -37,5 +38,6 @@ final class Plugin {
 	public static function deactivate(): void {
 		Reporter::unschedule();
 		wp_unschedule_hook( Posts::HOOK );
+		WooCommerce::unschedule();
 	}
 }

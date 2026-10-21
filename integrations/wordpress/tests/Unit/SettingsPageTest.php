@@ -233,7 +233,7 @@ final class SettingsPageTest extends TestCase {
 			array(
 				'workspace_name' => 'Acme <b>Newsletter</b>',
 				'last_report_at' => time() - 360,
-				'latest_plugin'  => '1.4.0',
+				'latest_plugin'  => '1.5.0',
 				'forms'          => array(
 					array(
 						'id'          => 'frm_8c2e1a',
@@ -263,7 +263,7 @@ final class SettingsPageTest extends TestCase {
 		$this->assertStringContainsString( '<strong>Acme &lt;b&gt;Newsletter&lt;/b&gt;</strong>', $html );
 		$this->assertStringContainsString( '<code>rc_live_5d1e…7b20</code>', $html );
 		$this->assertStringNotContainsString( self::KEY, $html, 'the key is never shown again' );
-		$this->assertStringContainsString( 'Update available: 1.4.0.', $html );
+		$this->assertStringContainsString( 'Update available: 1.5.0.', $html );
 		$this->assertStringContainsString( 'blog.acme.io isn’t one of the form’s allowed domains', $html );
 		$this->assertStringContainsString( '[reputecast_form id=&quot;frm_8c2e1a&quot;]', $html );
 		$this->assertStringContainsString( 'href="https://news.acme.io/w/acme-newsletter/campaigns/01a14383-b881-776e-a079-41690f27069d/edit"', $html );

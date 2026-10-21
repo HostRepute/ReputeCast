@@ -1,0 +1,24 @@
+{{/* The download page (/d/{token}): the files and the link's state, or
+     why it doesn't work and "Send a new link". */}}
+{{define "site-main"}}{{with .Body}}<main id="main" class="pg-main">
+<div class="pg-center lav"><div class="pcard7{{if ne .State "ok"}} w480{{end}}">
+{{- with .Notice}}<p class="lav-note" role="status">{{.}}</p>{{end}}
+{{- if eq .State "ok"}}
+<span class="eyebrow">{{$.S "dl.eyebrow"}}</span>
+<h1>{{.Product}}</h1>
+<span class="dlc ok">{{template "sell-down-icon"}}{{.Badge}}</span>
+<div class="files">{{range .Files}}<div class="filer"><span class="fi" aria-hidden="true">{{template "sell-file-icon"}}</span><span class="ft"><b>{{.Name}}</b><span>{{.Meta}}</span></span><a href="{{.Href}}" class="st-btn sm" download>{{template "sell-down-icon"}}{{$.S "dl.download"}}</a></div>{{end}}</div>
+<p class="ptxt k">{{.Small}}</p>
+{{- else}}
+<h1>{{.Heading}}</h1>
+<p class="ptxt">{{.Text}}</p>
+{{- if or (eq .State "expired") (eq .State "used_up") (eq .State "replaced")}}
+<form method="post" action="{{.NewLinkAction}}"><button type="submit" class="st-btn lg full">{{.NewLinkTx}}</button></form>
+<p class="ptxt k">{{.Note}}</p>
+{{- end}}
+{{with .Small}}<p class="ptxt k">{{.}}</p>{{end}}
+{{- end}}
+</div></div>
+</main>{{end}}{{end}}
+{{define "sell-file-icon"}}<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.8h5.2L12.5 5v9.2H4z"></path><path d="M9 1.8V5.2h3.4"></path></svg>{{end}}
+{{define "sell-down-icon"}}<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10"></path></svg>{{end}}
