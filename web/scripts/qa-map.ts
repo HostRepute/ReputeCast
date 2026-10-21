@@ -496,4 +496,15 @@ export const entries: Entry[] = [
   { board: 'AutomationChannels', path: `${ws}/automations/{automation:Acme Summit reminders}`, widths: [1440], viewportOnly: true, height: 1000 },
   { board: 'PublicSmsTerms', path: '/p/acme-newsletter/sms-terms', user: 'anon', widths: [720] },
   { board: 'PublicSmsTermsPhone', path: '/p/acme-newsletter/sms-terms', user: 'anon', widths: [390] },
+  // X22 · Web push and WhatsApp. Push runs on news.acme.io (built in) and acme.io (the snippet);
+  // "New post: Feature flags at scale" went out on 14 Oct, so its composer opens read-only next to
+  // the board's draft. WhatsApp is connected, with Sofia's draft "Summit: see you tomorrow". The
+  // prompt's other styles, the step panels (AutomationChannels) and the …States boards need clicks
+  // or data changes.
+  { board: 'PushSetup', path: `${ws}/providers/push`, widths: [1440] },
+  { board: 'PushPrompt', path: `${ws}/forms?prompt={form:Get new posts as notifications}`, widths: [1440] },
+  { board: 'PushComposer', path: `${ws}/campaigns/{campaign:New post: Feature flags at scale}/push`, widths: [1440] },
+  { board: 'PushComposerPhone', path: `${ws}/campaigns/{campaign:New post: Feature flags at scale}/push`, widths: [390] },
+  { board: 'PushStates', manual: true },
+  { board: 'WhatsAppChannel', path: `${ws}/providers/whatsapp`, widths: [1440] },
 ]
