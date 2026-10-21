@@ -651,7 +651,7 @@ function NavigationCard({ draft, set, ro, data, host }: { draft: HomeNavInput; s
             {kind === 'url' ? (
               <>
                 <Input className="w-[140px]" aria-label={t(mh.linkLabel)} placeholder={t(mh.linkLabel)} value={label} maxLength={40} onChange={(e) => setLabel(e.target.value)} />
-                <Input className="mono w-[220px]" aria-label={t(mh.linkUrl)} placeholder="https://" value={url} onChange={(e) => setUrl(e.target.value)} />
+                <Input className="mono w-[220px]" aria-label={t(mh.linkUrl)} placeholder={'https://'} value={url} onChange={(e) => setUrl(e.target.value)} />
               </>
             ) : null}
             <Button size="sm" icon="plus" disabled={!candidate()} onClick={add}>

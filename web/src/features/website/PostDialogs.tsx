@@ -67,7 +67,7 @@ export function PostStateDialog({ post: p, overview, onClose, onDialog }: { post
         </span>,
       ],
       [t(mp.rule), a.rule === 'post_publish' ? t(mp.rulePostPublish) : <T msg={mp.ruleAuthorLacksSend} values={{ perm: code('website:publish') }} />],
-      [t(mp.canApprove), <T key="ca" msg={mp.canApproveWho} values={{ approvers: orList(a.approvers), perm: <span className="k">campaigns:approve</span> }} />],
+      [t(mp.canApprove), <T key="ca" msg={mp.canApproveWho} values={{ approvers: orList(a.approvers), perm: <span className="k">{'campaigns:approve'}</span> }} />],
       [t(mp.covers), t(mp.coversText, { path: postPath(p), visibility: visName(t, p.visibility) })],
     ]
     if (canPublish && !canApprove) {
@@ -207,7 +207,7 @@ export function UnpublishDialog({ post: p, onClose }: { post: PostRow; onClose: 
         <Textarea value={reason} maxLength={300} rows={2} onChange={(e) => setReason(e.target.value)} />
       </Field>
       <Field label={t(mp.redirectLabel)} hint={t(mp.redirectHint)}>
-        <Input className="mono" value={to} maxLength={300} placeholder="/posts/…" onChange={(e) => setTo(e.target.value)} />
+        <Input className="mono" value={to} maxLength={300} placeholder={'/posts/…'} onChange={(e) => setTo(e.target.value)} />
       </Field>
     </ConfirmDialog>
   )
@@ -278,7 +278,7 @@ export function RedirectDialog({ post: p, onClose }: { post: PostRow; onClose: (
       }
     >
       <Field label={t(mp.redirectLabel)} hint={t(mp.redirectHint)} error={error}>
-        <Input className="mono" value={to} maxLength={300} placeholder="/posts/…" onChange={(e) => setTo(e.target.value)} />
+        <Input className="mono" value={to} maxLength={300} placeholder={'/posts/…'} onChange={(e) => setTo(e.target.value)} />
       </Field>
     </Dialog>
   )

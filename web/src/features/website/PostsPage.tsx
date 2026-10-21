@@ -12,7 +12,7 @@ import { NoResults } from '@/components/ui/NoResults'
 import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { useT } from '@/i18n'
-import { count, dayMonthDate } from '@/lib/format'
+import { count, dayMonthDate, orList } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 import { copyText } from '@/features/forms/common'
 import { bare, useInvalidateWebsite, WS, type Overview, type PostRow } from './api'
@@ -448,15 +448,10 @@ export function statusLine(t: ReturnType<typeof useT>, p: PostRow, short = false
         ? t(mp.unpublishedLine, { date: p.unpublishedAt ? dayMonthDate(p.unpublishedAt) : '', name: p.unpublishedBy ?? '', reason: p.unpublishReason, views: p.viewsAllTime })
         : t(mp.unpublishedNoReason, { date: p.unpublishedAt ? dayMonthDate(p.unpublishedAt) : '', name: p.unpublishedBy ?? '', views: p.viewsAllTime })
     default:
-      if (p.approval?.status === 'pending') return short ? t(mp.waitingShort) : t(mp.waitingFor, { approvers: orNames(p.approval.approvers) })
+      if (p.approval?.status === 'pending') return short ? t(mp.waitingShort) : t(mp.waitingFor, { approvers: orList(p.approval.approvers) })
       if (p.approval?.status === 'changes_requested') return t(mp.changesRequested)
       return t(mp.draftLine)
   }
-}
-
-function orNames(names: string[]): string {
-  if (names.length <= 1) return names[0] ?? ''
-  return `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`
 }
 
 /** A post with more to say (waiting for approval, unpublished, scheduled) opens its card. */
@@ -476,7 +471,7 @@ function StatusCell({ post: p, onState }: { post: PostRow; onState: (id: string)
   if (!hasState(p)) return body
   return (
     <button type="button" className="ws-stbtn" onClick={() => onState(p.id)}>
-      <span className="vh">{`${t(mp.details)}: ${p.title} · `}</span>
+      <span className="vh">{t(mp.detailsFor, { title: p.title })}</span>
       {body}
     </button>
   )

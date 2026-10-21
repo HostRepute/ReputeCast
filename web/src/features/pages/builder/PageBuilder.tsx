@@ -554,7 +554,7 @@ export function PageBuilder({ initial, canvas, search, onSearch }: { initial: Pa
   }
 
   const unsaved = canEdit && isUnsaved(status)
-  useUnsavedWork(canEdit ? { whileEnding: tt(m.saving) } : undefined)
+  useUnsavedWork(canEdit ? { whileEnding: tt(m.whileEnding) } : undefined)
   const savedVersion = status.version
 
   return (

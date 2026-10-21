@@ -17,7 +17,12 @@ export const mc = defineMessages('website.composer', {
   offline: "Offline · we'll keep trying",
   conflict: 'Someone else saved a newer version',
   saveError: "Couldn't save: {error}",
+  offlineReason: "you're offline",
   reload: 'Reload',
+  editorFailed: "The editor couldn't start",
+  whileEnding: 'the post autosaves',
+  afterEnded: 'The post you were editing is saved and will reopen where you left off.',
+  starterText: 'Start writing.',
   publishedBadge: 'Published · {date}',
   publishedChanges: 'Published · unpublished changes',
   scheduledBadge: 'Scheduled · {date}',
@@ -96,6 +101,7 @@ export const mc = defineMessages('website.composer', {
   blocksNote: "Post mode: the canvas is the web version, in the site's 680 px column. Email-only blocks, like the footer and unsubscribe link, aren't offered.",
   campaignNote: 'Blocks set to Email only in their Visibility section are left out of the web version.',
   blockFreePreview: 'Free preview ends here',
+  blockCode: 'Code',
   markerLabel: 'Free preview ends here · {count, plural, one {# block} other {# blocks}}',
 
   // Footer

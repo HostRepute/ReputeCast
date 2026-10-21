@@ -10,7 +10,7 @@ import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { Segmented } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
-import { T, useT } from '@/i18n'
+import { T, useT, type MessageDescriptor } from '@/i18n'
 import { count, dayMonthDate, monthName } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 import { useInvalidateWebsite, WS, type Access, type AccessInput, type Overview } from './api'
@@ -248,7 +248,9 @@ function SigninCard({ data, draft, set, ro, sessionBad }: CardProps & { data: Ac
       <dl className="ws-kv pad" style={{ borderTop: '1px solid var(--line-2)' }}>
         <dt>{t(ma.sender)}</dt>
         <dd>
-          {data.senderName} &lt;{data.senderEmail}&gt; · <span className="k">{t(ma.senderDefault)}</span>
+          {`${data.senderName} <${data.senderEmail}>`}
+          {' · '}
+          <span className="k">{t(ma.senderDefault)}</span>
         </dd>
         <dt>{t(ma.stream)}</dt>
         <dd>
@@ -394,24 +396,31 @@ function MeterCard({
 }: CardProps & { visitorsBad: boolean; membersBad: boolean; neverFree: NeverFree[]; onNeverFree: (l: NeverFree[]) => void }) {
   const t = useT()
   const [picking, setPicking] = useState(false)
-  const rule = (on: boolean, n: number, bad: boolean, before: string, after: string, hint: string, setOn: (v: boolean) => void, setN: (v: number) => void, id: string) => (
+  // The number sits inside its sentence: one message, with the input as {n}.
+  const rule = (on: boolean, n: number, bad: boolean, sentence: MessageDescriptor, switchLabel: string, hint: string, setOn: (v: boolean) => void, setN: (v: number) => void, id: string) => (
     <div className="ws-setr">
       <div className="tx">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold">
-          {before}
-          <input
-            className={`in ws-numin${bad ? ' err' : ''}`}
-            type="number"
-            min={1}
-            max={20}
-            aria-label={t(ma.meterNumber)}
-            aria-invalid={bad || undefined}
-            aria-describedby={bad ? `${id}-err` : undefined}
-            value={String(n)}
-            disabled={ro || !on}
-            onChange={(e) => setN(Math.round(Number(e.target.value) || 0))}
+          <T
+            msg={sentence}
+            values={{
+              count: n,
+              n: (
+                <input
+                  className={`in ws-numin${bad ? ' err' : ''}`}
+                  type="number"
+                  min={1}
+                  max={20}
+                  aria-label={t(ma.meterNumber)}
+                  aria-invalid={bad || undefined}
+                  aria-describedby={bad ? `${id}-err` : undefined}
+                  value={String(n)}
+                  disabled={ro || !on}
+                  onChange={(e) => setN(Math.round(Number(e.target.value) || 0))}
+                />
+              ),
+            }}
           />
-          {after}
         </span>
         {bad ? (
           <span className="err" id={`${id}-err`} role="alert">
@@ -421,7 +430,7 @@ function MeterCard({
         <span className="k">{hint}</span>
       </div>
       <div className="ct">
-        <input type="checkbox" role="switch" className="tg" aria-label={`${before} ${t(ma.meterRule)}`} checked={on} disabled={ro} onChange={(e) => setOn(e.target.checked)} />
+        <input type="checkbox" role="switch" className="tg" aria-label={switchLabel} checked={on} disabled={ro} onChange={(e) => setOn(e.target.checked)} />
       </div>
     </div>
   )
@@ -439,8 +448,8 @@ function MeterCard({
         draft.meterVisitorsOn,
         draft.meterVisitors,
         visitorsBad,
-        t(ma.meterVisitorsBefore),
-        t(ma.meterVisitorsAfter, { count: draft.meterVisitors }),
+        ma.meterVisitors,
+        t(ma.meterVisitorsSwitch),
         t(ma.meterVisitorsText),
         (v) => set({ meterVisitorsOn: v, meterVisitors: v && draft.meterVisitors < 1 ? 2 : draft.meterVisitors }),
         (n) => set({ meterVisitors: n }),
@@ -450,8 +459,8 @@ function MeterCard({
         draft.meterMembersOn,
         draft.meterMembers,
         membersBad,
-        t(ma.meterMembersBefore),
-        t(ma.meterMembersAfter, { count: draft.meterMembers }),
+        ma.meterMembers,
+        t(ma.meterMembersSwitch),
         t(ma.meterMembersText),
         (v) => set({ meterMembersOn: v, meterMembers: v && draft.meterMembers < 1 ? 1 : draft.meterMembers }),
         (n) => set({ meterMembers: n }),

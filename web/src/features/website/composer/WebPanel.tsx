@@ -492,7 +492,7 @@ export function WebPanel({ ws, mode, host, canEdit, campaign, marker, onShowHidd
                 </label>
                 <label className="wtab-f">
                   <span>{t(mc.seoCanonical)}</span>
-                  <input className="in mono" value={d.seo.canonicalUrl} placeholder="https://" maxLength={500} disabled={ro} onChange={(e) => ws.set({ seo: { ...d.seo, canonicalUrl: e.target.value } })} />
+                  <input className="in mono" value={d.seo.canonicalUrl} placeholder={'https://'} maxLength={500} disabled={ro} onChange={(e) => ws.set({ seo: { ...d.seo, canonicalUrl: e.target.value } })} />
                   <span className="k">{t(mc.seoCanonicalHint)}</span>
                 </label>
                 <label className="flex items-center gap-2">

@@ -11,7 +11,7 @@ export const mh = defineMessages('website.home', {
   featuredFull: 'Up to {max} featured posts',
   dragHint: 'Drag to change the order',
   dragLabel: 'Drag to reorder',
-  dragKeys: 'Drag to reorder, or use the arrow keys',
+  dragKeysFor: 'Drag to reorder, or use the arrow keys: {name}',
   moved: '{name} moved to position {n}',
   removeItem: 'Remove {name}',
   featuredLine: '{tag} · {visibility} · {date}',
@@ -186,4 +186,5 @@ export const mh = defineMessages('website.home', {
   imageUse: 'Use {name}',
   imageUploaded: '{name} uploaded',
   imageUploadFailed: "Couldn't upload the image",
+  imageUploadStatus: 'Upload failed ({status})',
 })

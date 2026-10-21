@@ -293,7 +293,7 @@ function TurnOnForm({ overview, onStarted }: { overview: Overview; onStarted: ()
               {t(m.turnOn)}
             </Button>
             <span className="k">
-              <T msg={m.needsManage} values={{ perm: <code className="mono">website:manage</code> }} />
+              <T msg={m.needsManage} values={{ perm: <code className="mono">{'website:manage'}</code> }} />
             </span>
           </div>
         </section>
@@ -482,7 +482,7 @@ function AddressStep({ overview }: { overview: Overview }) {
           </thead>
           <tbody>
             <tr>
-              <td>CNAME</td>
+              <td>{'CNAME'}</td>
               <td>{a.domain.split('.')[0]}</td>
               <td>{a.target}</td>
               <td style={{ fontFamily: 'inherit' }}>

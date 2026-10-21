@@ -85,7 +85,7 @@ export const mp = defineMessages('website.posts', {
   publishNow: 'Publish now',
   preview: 'Preview',
   openInbox: 'Open in the approval inbox',
-  details: 'Details',
+  detailsFor: 'Details: {title} · ',
   showing: 'Showing {shown} of {total} posts, newest first · numbers for the last 30 days, {from} to {until}',
   previous: 'Previous',
   next: 'Next',
