@@ -406,7 +406,7 @@ func (n *nwSeed) signoff(ctx context.Context, key string) error {
 // Ravi, the designer, is an Editor everywhere.
 func (n *nwSeed) staff(ctx context.Context) error {
 	nadia := n.people["nadia"]
-	for _, p := range nwPeople {
+	for i, p := range nwPeople {
 		if p.level == "" {
 			continue
 		}
@@ -414,7 +414,7 @@ func (n *nwSeed) staff(ctx context.Context) error {
 		if err := n.Q.AgencyStaffInsert(ctx, store.AgencyStaffInsertParams{ID: ID(), UserID: &u.ID, Email: p.email, Level: p.level, Title: p.title, AddedBy: &nadia.ID}); err != nil {
 			return err
 		}
-		if _, err := n.Tx.Exec(ctx, `UPDATE agency_staff SET added_at = $2 WHERE user_id = $1`, u.ID, n.onBoards(date(2026, 8, 1)).Add(time.Duration(len(p.key))*time.Minute)); err != nil {
+		if _, err := n.Tx.Exec(ctx, `UPDATE agency_staff SET added_at = $2 WHERE user_id = $1`, u.ID, n.onBoards(date(2026, 8, 1)).Add(time.Duration(i)*time.Minute)); err != nil {
 			return err
 		}
 	}

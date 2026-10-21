@@ -225,7 +225,7 @@ func (s *Service) StaffView(ctx context.Context) (AgencyStaffView, error) {
 		row := AgencyStaffMember{ID: p.key(), Name: p.Name, Email: p.Email, AvatarColor: p.Color, Level: p.Level, Title: p.Title, InstanceAdmin: p.InstanceAdmin,
 			Invited: p.UserID == nil, Clients: []string{}, Roles: []AgencyRoleRef{}, LastActiveAt: p.LastActiveAt, Permissions: p.Permissions}
 		if level, ok := authz.Agency(p.Level); ok && (p.Permissions == nil || p.InstanceAdmin) {
-			row.Permissions = level.Permissions.Strings()
+			row.Permissions = authz.AgencyStrings(level.Permissions)
 		}
 		if p.UserID != nil {
 			row.UserID = p.UserID.String()
@@ -700,7 +700,7 @@ func (s *Service) UpdateStaff(ctx context.Context, staffID string, in AgencyStaf
 			}
 		}
 		if len(chosen) < len(level.Permissions) {
-			perms = authz.AgencySet(chosen...).Strings()
+			perms = authz.AgencyStrings(authz.AgencySet(chosen...))
 		}
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {

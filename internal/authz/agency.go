@@ -51,6 +51,19 @@ func AgencySet(keys ...Permission) Set {
 	return s
 }
 
+// AgencyStrings lists the agency permissions of s as strings, in the order
+// of AgencyDefs (Set.Strings follows the workspace catalogue, where they
+// never appear).
+func AgencyStrings(s Set) []string {
+	out := []string{}
+	for _, d := range AgencyDefs {
+		if s.Has(d.Key) {
+			out = append(out, string(d.Key))
+		}
+	}
+	return out
+}
+
 // Agency staff levels.
 const (
 	AgencyManagerLevel  = "agency_manager"

@@ -13487,11 +13487,15 @@ export interface components {
             key: string;
         };
         AgencyLibraryItem: {
+            accent?: string;
+            background?: string;
             /** Format: int64 */
             behind: number;
             body?: string;
             /** Format: int64 */
             clients: number;
+            /** Format: int64 */
+            columns?: number;
             /** Format: int64 */
             copies: number;
             fields: components["schemas"]["AgencyLibraryField"][];

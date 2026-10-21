@@ -27,6 +27,7 @@ export function Page({
   contentClassName,
   breadcrumb,
   toolsAfterTabs,
+  bell,
 }: {
   title: string
   /** Overrides the browser tab title (defaults to the title). */
@@ -50,6 +51,8 @@ export function Page({
    * tabs (Settings › Senders, where a badge takes the end of the title row).
    */
   toolsAfterTabs?: boolean
+  /** Replaces the workspace's bell (the Agency area's gathers every client's). */
+  bell?: ReactNode
 }) {
   const ws = useOptionalWorkspace()
   const t = useT()
@@ -67,7 +70,7 @@ export function Page({
     <div className="acts">
       {actions}
       <div className="tools">
-        <NotificationBell />
+        {bell ?? <NotificationBell />}
         <UserMenu />
       </div>
     </div>

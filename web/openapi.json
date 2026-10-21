@@ -5776,6 +5776,12 @@
       "AgencyLibraryItem": {
         "additionalProperties": false,
         "properties": {
+          "accent": {
+            "type": "string"
+          },
+          "background": {
+            "type": "string"
+          },
           "behind": {
             "format": "int64",
             "type": "integer"
@@ -5784,6 +5790,10 @@
             "type": "string"
           },
           "clients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "columns": {
             "format": "int64",
             "type": "integer"
           },

@@ -117,7 +117,7 @@ func (s *Service) Me(ctx context.Context) (AgencyMe, error) {
 	if err != nil || me == nil {
 		return out, err
 	}
-	out.Staff = &AgencyMeStaff{Level: me.Level, Title: me.Title, Permissions: me.Permissions.Strings()}
+	out.Staff = &AgencyMeStaff{Level: me.Level, Title: me.Title, Permissions: authz.AgencyStrings(me.Permissions)}
 	set, err := s.workspacesOf(ctx, s.Q, me)
 	if err != nil {
 		return out, err

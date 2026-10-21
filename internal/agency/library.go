@@ -81,6 +81,12 @@ type AgencyLibraryItem struct {
 	Body  string          `json:"body,omitempty"`
 	// Steps counts an automation template's steps.
 	Steps int `json:"steps,omitempty"`
+	// Background and Accent colour the wireframe: the first section's
+	// background and the first button's colour.
+	Background string `json:"background,omitempty"`
+	Accent     string `json:"accent,omitempty"`
+	// Columns is the most columns a section has (a row of products).
+	Columns int `json:"columns,omitempty"`
 }
 
 // AgencyLibraryField is a Liquid field an item needs.
@@ -146,6 +152,7 @@ func (s *Service) Library(ctx context.Context) (AgencyLibraryView, error) {
 		if v, err := s.Q.AgencyLibraryVersion(ctx, store.AgencyLibraryVersionParams{ItemID: r.ID, Version: r.Version}); err == nil {
 			c := parseLibraryContent(v.Content)
 			item.Thumb, item.Body = c.Thumb, c.Body
+			item.Background, item.Accent, item.Columns = thumbColors(c.MJML)
 			if c.Automation != nil {
 				if g, err := automations.ParseGraph(c.Automation.Graph); err == nil {
 					item.Steps = len(g.Nodes)
@@ -411,6 +418,30 @@ var (
 	spaceRe = regexp.MustCompile(`\s+`)
 	bgRe    = regexp.MustCompile(`<mj-(?:section|hero|wrapper|body)\b[^>]*background-color="([^"]+)"`)
 )
+
+var (
+	buttonBgRe = regexp.MustCompile(`<mj-button\b[^>]*background-color="([^"]+)"`)
+	sectionRe  = regexp.MustCompile(`(?s)<mj-section\b.*?</mj-section>`)
+)
+
+// thumbColors are what a wireframe takes from the content: the first
+// background that isn't white, the first button's colour, and the most
+// columns a section has.
+func thumbColors(src string) (bg, accent string, columns int) {
+	for _, m := range bgRe.FindAllStringSubmatch(src, -1) {
+		if c := strings.ToUpper(m[1]); c != "#FFFFFF" && c != "#FFF" && c != "#F3F4F6" {
+			bg = m[1]
+			break
+		}
+	}
+	if m := buttonBgRe.FindStringSubmatch(src); m != nil {
+		accent = m[1]
+	}
+	for _, sec := range sectionRe.FindAllString(src, -1) {
+		columns = max(columns, strings.Count(sec, "<mj-column"))
+	}
+	return bg, accent, columns
+}
 
 // summaryLines are the lines the diff between versions compares: buttons,
 // images and the first words of each text, and background colours, for
