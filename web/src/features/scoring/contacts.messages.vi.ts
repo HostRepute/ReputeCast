@@ -1,0 +1,37 @@
+import { translate } from '@/i18n'
+import { m } from './contacts.messages'
+
+/** Vietnamese for the score and growth filters and the Score column in Audience › Contacts (docs/i18n/glossary-vi.md). */
+export default translate(m, {
+  band: 'Mức điểm',
+  anyBand: 'Mọi mức',
+  noScore: 'Chưa có điểm',
+  score: 'Điểm',
+  sortByScore: 'Sắp xếp theo điểm, cao nhất trước',
+  sortByActivity: 'Sắp xếp theo hoạt động gần nhất',
+  noScoreCell: '—',
+  scoreBetween: 'Điểm trong khoảng',
+  lowest: 'Điểm thấp nhất',
+  highest: 'Điểm cao nhất',
+  and: 'đến',
+  growthSource: 'Nguồn tăng trưởng',
+  anySource: 'Mọi nguồn',
+  sourceContacts: '{name} · {count, number}',
+  utmSource: 'Nguồn UTM',
+  utmMedium: 'Phương tiện UTM',
+  utmCampaign: 'Chiến dịch UTM',
+  referringDomain: 'Tên miền dẫn đến',
+  moreHint: 'Bộ lọc theo nguồn, UTM và tên miền dẫn đến dựa trên cách mỗi liên hệ tham gia lần đầu (Người đăng ký › Nguồn tăng trưởng).',
+  chipSource: 'Nguồn là {name}',
+  chipUtmSource: 'utm_source là {value}',
+  chipUtmMedium: 'utm_medium là {value}',
+  chipUtmCampaign: 'utm_campaign là {value}',
+  chipReferrer: 'Tên miền dẫn đến là {value}',
+  chipScore: 'Điểm từ {from} đến {to}',
+  chipScoreFrom: 'Điểm tối thiểu {from}',
+  chipScoreTo: 'Điểm tối đa {to}',
+  removeFilterNamed: 'Gỡ bộ lọc: {name}',
+  sortedByScore: 'sắp xếp theo điểm, cao nhất trước',
+  sortedByActivity: 'sắp xếp theo hoạt động gần nhất',
+  totalSorted: '{count, plural, other {# liên hệ}} · {sort}',
+})

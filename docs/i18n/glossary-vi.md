@@ -323,6 +323,53 @@ is a name and stays in English.
 | In-app · All events | Trong ứng dụng · Tất cả sự kiện |
 | MCP agent | tác tử MCP |
 
+## Grow, Growth and scoring
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| awaiting confirmation | chờ xác nhận | a referral whose subscriber hasn't confirmed |
+| band (score) · Cold · Warm · Hot | mức (mức điểm) · Lạnh · Ấm · Nóng | the names are fixed, like the English |
+| burst · shared IP · numbered addresses | tăng đột biến · IP dùng chung · địa chỉ đánh số | the signals that hold a referral |
+| cap (a rule's) | giới hạn | "6 a week": "6 mỗi tuần" |
+| claim · claim link | nhận · liên kết nhận thưởng | a coupon reward |
+| cohort retention | giữ chân theo nhóm | Audience › Growth |
+| counted · not counted | đã tính · không tính | "Count" and "Don't count" in Review: "Tính", "Không tính" |
+| coupon (Stripe) | phiếu giảm giá | |
+| decay | giảm dần | |
+| double opt-in | xác nhận hai bước | two-factor is "xác thực hai lớp" |
+| engagement tier · Active · Cooling · At risk · Sunset | nhóm tương tác · Tích cực · Nguội dần · Có nguy cơ · Ngừng gửi dần | List health's tiers, as Scoring names them; the sunset policy is "chính sách ngừng gửi dần" |
+| field condition | điều kiện trường | |
+| fulfill · fulfilled · To fulfill | trao · đã trao · Cần trao | a manual reward; "sent" stays "đã gửi" |
+| Growth (Audience › Growth) | Nguồn tăng trưởng | so it doesn't read as Grow ("Tăng trưởng") |
+| held for review | tạm giữ để duyệt | short: "tạm giữ" |
+| hold period · in hold | thời gian chờ · đang chờ | "the 7-day hold": "thời gian chờ 7 ngày" |
+| hosted (form, page) | trên ReputeCast · do ReputeCast lưu trữ | |
+| invite page | trang mời | |
+| join · departure | lượt tham gia · lượt rời đi | Growth's joined and left: "Tham gia", "Rời đi" |
+| leaderboard | bảng xếp hạng | |
+| List health | Sức khỏe danh sách | as Growth and Scoring refer to it |
+| milestone · milestone email | mốc thưởng · email mốc thưởng | "mốc" alone when the number follows: "Mốc 3" |
+| net (growth) | tăng ròng · tăng trưởng ròng | |
+| newsletter | bản tin | |
+| partner · partner code · partner link · partner profile · partnership | đối tác · mã đối tác · liên kết đối tác · hồ sơ đối tác · quan hệ đối tác | |
+| recommendation · recommend · Recommending you | đề xuất · đề xuất · Đề xuất bạn | |
+| referral · referrer · referral link · referral program | lượt giới thiệu · người giới thiệu · liên kết giới thiệu · chương trình giới thiệu | |
+| referral hub | trang phần thưởng | the referrer's own page; "trang giới thiệu" reads as an About page |
+| Referral · Recommendations · Reward block | khối Giới thiệu · khối Đề xuất · khối Phần thưởng | the composer's Grow blocks |
+| referring page · referring domain | trang dẫn đến · tên miền dẫn đến | never "giới thiệu", which is a referral |
+| review queue · Review (tab) | hàng chờ duyệt · Duyệt | |
+| reward | phần thưởng | |
+| rule · points | quy tắc · điểm | |
+| score · scoring | điểm (điểm số) · chấm điểm | |
+| self-referral | tự giới thiệu | |
+| soft bounce · hard bounce | trả thư tạm thời · trả thư vĩnh viễn | |
+| source (growth) | nguồn | |
+| spread (of scores) | phân bố | |
+| subscribe request | yêu cầu đăng ký | what one instance sends a partner |
+| threshold | ngưỡng | |
+| token (Liquid) | biến | as transactional templates' variables |
+| trigger (automation) | trình kích hoạt | |
+
 ## Words used everywhere
 
 | English | Tiếng Việt |
