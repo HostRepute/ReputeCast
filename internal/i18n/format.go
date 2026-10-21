@@ -118,7 +118,14 @@ func (f *formatter) arg(v argNode) string {
 			return f.number(n, v.style)
 		}
 	case "date", "time":
-		if t, ok := val.(time.Time); ok {
+		t, ok := val.(time.Time)
+		if s, isString := val.(string); isString {
+			// A kept Text's times come back from JSON as RFC 3339.
+			if p, err := time.Parse(time.RFC3339Nano, s); err == nil {
+				t, ok = p, true
+			}
+		}
+		if ok {
 			if v.kind == "time" {
 				return f.escape(f.lang.Region.Time(t, ""))
 			}
