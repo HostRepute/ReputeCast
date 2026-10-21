@@ -22,7 +22,7 @@ import (
 
 var (
 	_ payments.OneTimePrices = (*Client)(nil)
-	_ payments.PaymentParser   = Verifier{}
+	_ payments.PaymentParser = Verifier{}
 )
 
 // CreateOneTimePrice implements payments.OneTimePrices.
