@@ -190,6 +190,9 @@ type storeCustomer struct {
 	contact            uuid.UUID
 	external           string
 	email, first, last string
+	// gmail: the contact reads mail at Gmail ("Gmail only, clickers" is a
+	// seeded segment the sample's clicks mustn't grow).
+	gmail bool
 }
 
 // day is a moment of the sample's calendar (today is Wed 15 Oct, 10:00 in
@@ -374,10 +377,11 @@ func (g *storeSeedState) list() error {
 		  AND NOT EXISTS (SELECT 1 FROM channel_consents x WHERE x.contact_id = c.id)
 		  AND NOT EXISTS (SELECT 1 FROM channel_messages x WHERE x.contact_id = c.id)
 		  AND EXISTS (SELECT 1 FROM list_memberships lm WHERE lm.contact_id = c.id AND lm.status = 'subscribed')`
-	// Grace: a sample contact no other part of the demo tells a story about.
+	// Grace: a sample contact no other part of the demo tells a story about,
+	// at a mailbox provider no seeded segment names, so her click moves none.
 	var grace storeCustomer
 	var oldEmail string
-	err := s.Tx.QueryRow(ctx, `SELECT c.id, c.email FROM contacts c WHERE `+eligible+` AND c.first_name = 'Grace' AND c.email LIKE '%@gmail.com'
+	err := s.Tx.QueryRow(ctx, `SELECT c.id, c.email FROM contacts c WHERE `+eligible+` AND c.first_name = 'Grace' AND c.mailbox_provider = 'other'
 		  AND NOT EXISTS (SELECT 1 FROM automation_runs x WHERE x.contact_id = c.id)
 		  AND NOT EXISTS (SELECT 1 FROM paid_subscriptions x WHERE x.contact_id = c.id)
 		  AND NOT EXISTS (SELECT 1 FROM earn_checkouts x WHERE x.contact_id = c.id)
@@ -397,7 +401,7 @@ func (g *storeSeedState) list() error {
 	if _, err := s.Tx.Exec(ctx, `UPDATE messages SET email = $2 WHERE contact_id = $1 AND email = $3`, grace.contact, grace.email, oldEmail); err != nil {
 		return err
 	}
-	rows, err := s.Tx.Query(ctx, `SELECT c.id, c.email, c.first_name, c.last_name FROM contacts c WHERE `+eligible+` AND c.id <> $4
+	rows, err := s.Tx.Query(ctx, `SELECT c.id, c.email, c.first_name, c.last_name, c.mailbox_provider = 'gmail' FROM contacts c WHERE `+eligible+` AND c.id <> $4
 		ORDER BY md5(c.email) LIMIT $3`, ws.ID, named, storeAccepted-1, grace.contact)
 	if err != nil {
 		return err
@@ -405,7 +409,7 @@ func (g *storeSeedState) list() error {
 	g.accepted = []storeCustomer{grace}
 	for rows.Next() {
 		var c storeCustomer
-		if err := rows.Scan(&c.contact, &c.email, &c.first, &c.last); err != nil {
+		if err := rows.Scan(&c.contact, &c.email, &c.first, &c.last, &c.gmail); err != nil {
 			rows.Close()
 			return err
 		}
@@ -843,7 +847,13 @@ func (g *storeSeedState) creditCampaign(o *storeOrderRow, campaign uuid.UUID, cl
 }
 
 func (g *storeSeedState) creditFlow(o *storeOrderRow, flow uuid.UUID, node string, clicked time.Time) {
-	c := g.accepted[g.rng.IntN(len(g.accepted))]
+	// The same draw, moved past Gmail readers: the email's click mustn't
+	// make a new member of "Gmail only, clickers".
+	i := g.rng.IntN(len(g.accepted))
+	for g.accepted[i].gmail {
+		i = (i + 1) % len(g.accepted)
+	}
+	c := g.accepted[i]
 	id, msg := c.contact, ID()
 	o.contact, o.accepted, o.customerExternal = &id, true, c.external
 	o.automation, o.node, o.message, o.clicked, o.matched = &flow, node, &msg, &clicked, "click_token"
