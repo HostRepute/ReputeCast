@@ -76,7 +76,9 @@ export function ChannelConsentCard({ contactId, name }: { contactId: string; nam
             </Button>
           ) : null}
         </div>
-        {d.suppressed ? <Note tone="bad">{t(m.suppressed, { reason: d.suppressed.reason.replace(/_/g, ' '), date: dayMonthDate(d.suppressed.at) })}</Note> : null}
+        {d.suppressed ? (
+          <Note tone="bad">{t(m.suppressed, { reason: d.suppressed.reason, reasonText: d.suppressed.reason.replace(/_/g, ' '), date: dayMonthDate(d.suppressed.at) })}</Note>
+        ) : null}
         <div className="overflow-x-auto">
           <table className="sms-cons">
             <thead>

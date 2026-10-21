@@ -25,10 +25,14 @@ export const m = defineMessages('smsContact', {
   lineTollFree: 'toll-free',
   lineVoip: 'VoIP',
   lineUnknown: 'line type unknown',
-  suppressed: 'This number is on the SMS suppression list ({reason}, {date}).',
+  // reason: the suppression's code; reasonText: an unknown code as words.
+  suppressed:
+    'This number is on the SMS suppression list ({reason, select, opted_out {opted out} landline {landline} not_in_service {not in service} invalid {invalid} filtered {filtered} provider_list {provider list} manual {manual} other {{reasonText}}}, {date}).',
   byKeyword: 'by texting {keyword}',
   consentVersion: 'consent text v{version}',
-  confirmation: 'confirmation {status} {time}',
+  // status: the opt-in confirmation text's status in the message log.
+  confirmation:
+    'confirmation {status, select, queued {queued} held {held} skipped {skipped} sending {sending} sent {sent} delivered {delivered} undelivered {undelivered} failed {failed} cancelled {cancelled} other {{status}}} {time}',
   withdraw: 'Withdraw SMS consent',
   record: 'Record SMS consent',
   consentSaved: 'SMS consent on {list} saved',
