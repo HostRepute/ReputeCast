@@ -135,7 +135,7 @@ export default translate(m, {
   tagCount: '· {n, plural, other {{count} thẻ}}',
   tagCountExamples: '· {n, plural, other {{count} thẻ}}, ví dụ {examples}',
   importEngagement: 'Nhập lịch sử tương tác ở những nơi {source} cung cấp',
-  engagementNote: '{rating, select, yes {· ngày mở và nhấp gần nhất, member rating → dùng để xếp mức tương tác} other {· ngày mở và nhấp gần nhất → dùng để xếp mức tương tác}}',
+  engagementNote: '{rating, select, yes {· ngày mở và nhấp gần nhất, member rating → dùng để xếp nhóm tương tác} other {· ngày mở và nhấp gần nhất → dùng để xếp nhóm tương tác}}',
   pullSuppressions: 'Đồng thời lấy các địa chỉ bị chặn gửi sẵn có từ các nhà cung cấp gửi thư đã kết nối',
   alreadyShared: '· {providers} đã có trong danh sách dùng chung',
 

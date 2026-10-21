@@ -74,7 +74,7 @@ export default translate(m, {
   tuningGuide: 'Hướng dẫn tinh chỉnh Postgres',
   liveCount: 'Đếm trực tiếp · cập nhật khi bạn sửa',
   matchLine: 'liên hệ khớp · {share} trên {total} · đếm trong {ms} ms',
-  tierMix: 'Tỷ lệ mức tương tác của phân khúc: {tiers}',
+  tierMix: 'Tỷ lệ nhóm tương tác của phân khúc: {tiers}',
   tierPercent: '{tier} {n} phần trăm',
   counting: 'Đang đếm',
   previewContacts: 'Xem trước liên hệ',

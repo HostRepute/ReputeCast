@@ -21,7 +21,7 @@ export default translate(m, {
   exportFailed: 'Không xuất được danh sách chặn gửi',
 
   // ── Reasons ──────────────────────────────────────────────────────────
-  reasonHardBounce: 'Trả lại vĩnh viễn',
+  reasonHardBounce: 'Trả thư vĩnh viễn',
   reasonComplaint: 'Khiếu nại',
   reasonUnsubscribe: 'Đã hủy đăng ký',
   reasonManual: 'Thủ công',
@@ -32,7 +32,7 @@ export default translate(m, {
   countTotal: 'Bị chặn gửi, mọi nhà cung cấp',
   countTotalNote: 'một danh sách, áp dụng trên {providers}',
   countTotalNoteNone: 'một danh sách, áp dụng trên mọi nhà cung cấp bạn kết nối',
-  countHard: 'Trả lại vĩnh viễn',
+  countHard: 'Trả thư vĩnh viễn',
   countComplaints: 'Khiếu nại',
   countUnsubscribed: 'Đã hủy đăng ký',
   countManual: 'Thủ công',

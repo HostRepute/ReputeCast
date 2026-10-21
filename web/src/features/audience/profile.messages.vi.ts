@@ -21,7 +21,7 @@ export default translate(m, {
   suppressedLabel: 'Bị chặn gửi',
   onTheList: '{email} đang trong danh sách chặn gửi dùng chung ({reason}, {date}).',
   suppressionReason:
-    '{reason, select, hard_bounce {trả lại vĩnh viễn} complaint {khiếu nại} unsubscribe {hủy đăng ký} manual {thủ công} imported {nhập vào} role {địa chỉ chức danh} spam_trap {bẫy thư rác} invalid {không hợp lệ} other {{label}}}',
+    '{reason, select, hard_bounce {trả thư vĩnh viễn} complaint {khiếu nại} unsubscribe {hủy đăng ký} manual {thủ công} imported {nhập vào} role {địa chỉ chức danh} spam_trap {bẫy thư rác} invalid {không hợp lệ} other {{label}}}',
   scopeMarketing: 'Gửi hàng loạt và Tự động hóa bị chặn; thư Hệ thống vẫn được gửi.',
   scopeAll: 'Mọi luồng đều bị chặn trên mọi nhà cung cấp.',
   exportedAll: 'Đã xuất toàn bộ dữ liệu về {email}',
@@ -120,7 +120,7 @@ export default translate(m, {
   actClickedAny: '<b>Đã nhấp</b> một liên kết trong {subject}',
   actUnsubscribedSubject: '<b>Hủy đăng ký</b> từ {subject}',
   actDelivery:
-    '<b>{type, select, delivered {Gửi thành công} deferred {Bị hoãn} soft_bounce {Trả lại tạm thời} hard_bounce {Trả lại vĩnh viễn} complaint {Khiếu nại} rejected {Bị từ chối} open {Đã mở} click {Đã nhấp} unsubscribe {Hủy đăng ký} other {{label}}}</b> {subject}',
+    '<b>{type, select, delivered {Gửi thành công} deferred {Bị hoãn} soft_bounce {Trả thư tạm thời} hard_bounce {Trả thư vĩnh viễn} complaint {Khiếu nại} rejected {Bị từ chối} open {Đã mở} click {Đã nhấp} unsubscribe {Hủy đăng ký} other {{label}}}</b> {subject}',
   actVariant: 'phương án {variant}',
   actVia: 'qua {provider}',
   actSentFrom: 'gửi từ {origin}',

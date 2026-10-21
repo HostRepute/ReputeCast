@@ -3,7 +3,7 @@ import { m } from './messages'
 
 /**
  * Vietnamese for the audience screens' shared words (docs/i18n/glossary-vi.md).
- * Engagement tiers: Tích cực · Đang nguội · Có nguy cơ · Ngừng gửi.
+ * Engagement tiers: Tích cực · Nguội dần · Có nguy cơ · Ngừng gửi dần, as Scoring names them.
  */
 export default translate(m, {
   // ── Section tabs ─────────────────────────────────────────────────────
@@ -19,9 +19,9 @@ export default translate(m, {
 
   // ── Engagement tiers ─────────────────────────────────────────────────
   tierActive: 'Tích cực',
-  tierCooling: 'Đang nguội',
+  tierCooling: 'Nguội dần',
   tierAtRisk: 'Có nguy cơ',
-  tierSunset: 'Ngừng gửi',
+  tierSunset: 'Ngừng gửi dần',
   windowActive: 'có mở thư trong 30 ngày',
   windowCooling: '31 đến 90 ngày',
   windowAtRisk: '91 đến 180 ngày',

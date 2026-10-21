@@ -12,7 +12,7 @@ export default translate(m, {
   viewEventLog: 'Xem nhật ký sự kiện',
   restCurrent: 'Phần còn lại của trang Tổng quan vẫn là dữ liệu mới nhất.',
   loadFailed:
-    '{card, select, health {Không tải được sức khỏe người gửi} next {Không tải được chiến dịch đã lên lịch tiếp theo} providers {Không tải được nhà cung cấp gửi thư} growth {Không tải được tăng trưởng người đăng ký} tiers {Không tải được mức tương tác} recent {Không tải được chiến dịch gần đây} other {Không tải được thẻ này}}',
+    '{card, select, health {Không tải được sức khỏe người gửi} next {Không tải được chiến dịch đã lên lịch tiếp theo} providers {Không tải được nhà cung cấp gửi thư} growth {Không tải được tăng trưởng người đăng ký} tiers {Không tải được nhóm tương tác} recent {Không tải được chiến dịch gần đây} other {Không tải được thẻ này}}',
   checking: 'Đang kiểm tra danh sách chặn và API của nhà cung cấp… thường mất dưới 5 giây.',
   manageProviders: 'Quản lý nhà cung cấp và định tuyến',
 
@@ -21,7 +21,7 @@ export default translate(m, {
   nextCampaign: 'Chiến dịch đã lên lịch tiếp theo',
   sendingProviders: 'Nhà cung cấp gửi thư',
   subscriberGrowth: 'Tăng trưởng người đăng ký',
-  engagementTiers: 'Mức tương tác',
+  engagementTiers: 'Nhóm tương tác',
   recentCampaigns: 'Chiến dịch gần đây',
 
   // ── Sender health ────────────────────────────────────────────────────
@@ -97,11 +97,11 @@ export default translate(m, {
   sparkFalling: 'Người đăng ký trong {days} ngày qua, giảm từ {from} xuống {to}',
   net: '{net} ròng',
   netPercent: '{net} ròng · {percent}',
-  tiersLabel: 'Mức tương tác: {tiers}',
+  tiersLabel: 'Nhóm tương tác: {tiers}',
   tierShare: '{tier} {percent}',
-  listHealthLink: 'Sức khỏe danh sách và chính sách ngừng gửi',
+  listHealthLink: 'Sức khỏe danh sách và chính sách ngừng gửi dần',
   noContacts: 'Chưa có liên hệ nào',
-  sunsetPolicy: 'Chính sách ngừng gửi',
+  sunsetPolicy: 'Chính sách ngừng gửi dần',
 
   // ── Recent campaigns ─────────────────────────────────────────────────
   allCampaigns: 'Tất cả chiến dịch',
@@ -127,7 +127,7 @@ export default translate(m, {
   campaignStatus:
     '{status, select, draft {bản nháp} approval {chờ phê duyệt} approved {đã phê duyệt} scheduled {đã lên lịch} sending {đang gửi} paused {tạm dừng} sent {đã gửi} cancelled {đã hủy} failed {thất bại} other {{status}}}',
   eventType:
-    '{type, select, delivered {gửi thành công} deferred {bị hoãn} hard_bounce {trả lại vĩnh viễn} soft_bounce {trả lại tạm thời} complaint {khiếu nại} rejected {bị từ chối} other {{label}}}',
+    '{type, select, delivered {gửi thành công} deferred {bị hoãn} hard_bounce {trả thư vĩnh viễn} soft_bounce {trả thư tạm thời} complaint {khiếu nại} rejected {bị từ chối} other {{label}}}',
   searching: 'Đang tìm…',
   searchNothing: 'Không có kết quả nào khớp với “{term}”. Tìm theo tên chiến dịch và địa chỉ người nhận trong sự kiện của nhà cung cấp.',
 
