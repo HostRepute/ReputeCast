@@ -51,6 +51,7 @@ type overview struct {
 	Sends []struct {
 		Workspace ref
 		Name      string
+		SendAt    time.Time
 	}
 	NextAfter *struct{ Name string }
 	CanCreate bool
@@ -125,11 +126,17 @@ func TestOverviewOfTheSample(t *testing.T) {
 		o.Incidents[1].Kind != "provider_down" || o.Incidents[1].State != "recovered" || len(o.Incidents[1].Failovers) != 1 || o.Incidents[1].Failovers[0].To != "Postmark" {
 		t.Fatalf("incidents: %+v", o.Incidents)
 	}
+	// The next 7 days, soonest first. The sample's sends are relative to
+	// now: late in the day, today's 17:00 send has moved to tomorrow.
 	names := []string{}
-	for _, s := range o.Sends {
+	for i, s := range o.Sends {
 		names = append(names, s.Name)
+		if i > 0 && s.SendAt.Before(o.Sends[i-1].SendAt) {
+			t.Fatalf("sends out of order: %v", names)
+		}
 	}
-	if !slices.Equal(names, []string{"Season pass early bird", "Weekend gear sale, by email and text", "Wine club: November box", "Studio notes #18"}) ||
+	slices.Sort(names)
+	if !slices.Equal(names, []string{"Season pass early bird", "Studio notes #18", "Weekend gear sale, by email and text", "Wine club: November box"}) ||
 		o.NextAfter == nil || o.NextAfter.Name != "Holiday blend pre-order" {
 		t.Fatalf("sends: %v then %+v", names, o.NextAfter)
 	}

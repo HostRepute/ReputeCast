@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { $api } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { useT } from '@/i18n'
-import { useOptionalWorkspace } from '@/lib/session'
+import { useOptionalWorkspace, useWorkspace } from '@/lib/session'
 import { useAgencyMe } from './api'
 import { m } from './messages'
 import { ClientTile } from './parts'
@@ -23,6 +23,37 @@ export function useWorkspaceAgency() {
 export function useIsClientPerson(): boolean {
   const { data } = useWorkspaceAgency()
   return Boolean(data?.managed && data.kind === 'client' && !data.viewerIsStaff)
+}
+
+/** What each section of the sidebar needs, for client people. */
+const sectionNeeds: Partial<Record<string, string[]>> = {
+  campaigns: ['campaigns:view'],
+  automations: ['automations:view'],
+  transactional: ['transactional:view'],
+  audience: ['subscribers:view'],
+  grow: ['grow:view'],
+  earn: ['earn:view'],
+  forms: ['website:view'],
+  deliverability: ['deliverability:view'],
+  providers: ['providers:view'],
+  // A Client approver finds the sign-off rule in Settings › Approvals.
+  settings: ['team:view', 'audit:view', 'integrations:view', 'campaigns:approve'],
+}
+
+/**
+ * Client people see the sections their role opens (AgencyClientApproval:
+ * a Client viewer's sidebar is Overview, Campaigns, Automations and
+ * Deliverability); everyone else sees every section.
+ */
+export function useClientSections(): (section: string) => boolean {
+  const client = useIsClientPerson()
+  const { me } = useWorkspace()
+  if (!client) return () => true
+  const held = new Set(me.permissions)
+  return (section) => {
+    const needs = sectionNeeds[section]
+    return !needs || needs.some((p) => held.has(p))
+  }
 }
 
 /** The sidebar card client people see: "Managed by Northwind Studio · Your contact: Mei Lin". */

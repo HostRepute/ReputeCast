@@ -97,7 +97,7 @@ function StaffCard({ view, onEdit, canManage }: { view: View; onEdit: (m: Member
           <span className="k">{t(sm.staffCaption)}</span>
         </div>
       </div>
-      <div className="overflow-x-auto">
+      <div className="relative overflow-x-auto">
         <table className="tbl" aria-label={t(sm.staffTitle, { n: view.staff.length })}>
           <thead>
             <tr>
@@ -181,7 +181,7 @@ function AssignmentsCard({ view }: { view: View }) {
           </Note>
         </div>
       ) : null}
-      <div className="overflow-x-auto">
+      <div className="relative overflow-x-auto">
         <table className="tbl" aria-label={t(sm.matrixTitle)}>
           <thead>
             <tr>
@@ -406,7 +406,7 @@ function AddStaffDialog({ view, onClose }: { view: View; onClose: () => void }) 
         </>
       }
     >
-      <div className="seg" role="group" aria-label={t(sm.addFrom)}>
+      <div className="seg w-fit max-w-full" role="group" aria-label={t(sm.addFrom)}>
         <button type="button" className={mode === 'users' ? 'on' : undefined} aria-pressed={mode === 'users'} onClick={() => setMode('users')}>
           {t(sm.fromUsers)}
         </button>

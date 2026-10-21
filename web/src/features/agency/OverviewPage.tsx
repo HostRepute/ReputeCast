@@ -358,7 +358,7 @@ function ClientsCard({ overview }: { overview: AgencyOverview }) {
           {rows.length === 0 && !own ? <p className="k m-0 px-[18px] py-4">{t(m.noClients)}</p> : null}
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="tbl cl8" aria-label={t(m.colClient)}>
             <thead>
               <tr>
@@ -573,7 +573,7 @@ function PhoneClient({ row, agency }: { row: AgencyClientRow; agency?: boolean }
     <Link
       to="/w/$workspace"
       params={{ workspace: row.workspace.slug }}
-      className="flex flex-col gap-1.5 border-t border-line-2 px-4 py-3 text-ink! no-underline first:border-t-0"
+      className="flex flex-col items-stretch gap-1.5 border-t border-line-2 px-4 py-3 text-ink! no-underline first:border-t-0"
       style={row.attention ? { boxShadow: 'inset 3px 0 0 #B45309' } : undefined}
     >
       <span className="flex items-start gap-2.5">

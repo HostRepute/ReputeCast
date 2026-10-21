@@ -1,6 +1,6 @@
 import { Link, Outlet, useMatchRoute, useRouterState } from '@tanstack/react-router'
 import { useState, type ReactNode } from 'react'
-import { ManagedByCard, useIsClientPerson } from '@/features/agency/WorkspaceParts'
+import { ManagedByCard, useClientSections, useIsClientPerson } from '@/features/agency/WorkspaceParts'
 import { formatList, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { useMediaQuery } from '@/lib/hooks'
@@ -49,7 +49,9 @@ function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const current = sectionOf(pathname)
   const hidden = ws.hiddenSections ?? []
-  const { more } = phoneNav(hidden)
+  // Client people see the sections their role opens (agency accounts).
+  const shows = useClientSections()
+  const more = phoneNav(hidden).more.filter((i) => shows(i.key))
   // The sheet belongs to the screen it was opened on: navigating, or leaving
   // phone width, closes it.
   const [openOn, setOpenOn] = useState<string>()
@@ -65,9 +67,11 @@ function Sidebar() {
       </Link>
       <WorkspaceSwitcher />
       <nav className="nav" aria-label={t(m.mainNavLabel)}>
-        {visibleNav(hidden).map((item) => (
-          <NavLink key={item.key} item={item} current={current} rail={rail} />
-        ))}
+        {visibleNav(hidden)
+          .filter((i) => shows(i.key))
+          .map((item) => (
+            <NavLink key={item.key} item={item} current={current} rail={rail} />
+          ))}
         <MoreSheet open={sheetOpen} onOpenChange={(o) => setOpenOn(o ? pathname : undefined)} items={more} current={current}>
           <button
             type="button"

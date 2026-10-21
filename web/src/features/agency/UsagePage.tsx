@@ -160,7 +160,7 @@ function UsageTable({ view, open, onOpen }: { view: View; open?: string; onOpen:
           <span className="k">{view.canSeeCosts ? caption : t(um.volumesOnly)}</span>
         </div>
       </div>
-      <div className="overflow-x-auto">
+      <div className="relative overflow-x-auto">
         <table className="tbl" aria-label={t(um.title, { month })}>
           <thead>
             <tr>
