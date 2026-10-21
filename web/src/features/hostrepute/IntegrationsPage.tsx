@@ -10,12 +10,15 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
+import { m as md } from '@/features/deliverability/messages'
 import { m as hub } from '@/features/integrations/messages'
-import { useT } from '@/i18n'
+import { t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { ago, clock, count, monthDay, trimPct, usDate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { ConnectCard } from './ConnectCard'
-import { numberWord, plainNote, roleLabel, ShieldMark, useIntegrations, useRefreshConnection, useStartOAuth, type Connection } from './shared'
+import { m } from './messages'
+import { plainNote, roleLabel, ShieldMark, useIntegrations, useRefreshConnection, useStartOAuth, type Connection } from './shared'
 
 /** The answer to "Add to monitoring" when the HostRepute plan is full. */
 interface Limit {
@@ -41,7 +44,7 @@ export function IntegrationsPage() {
   return (
     <Page
       title={name}
-      documentTitle={`${name} · ${t(hub.title)}`}
+      documentTitle={t(m.documentTitle)}
       breadcrumb={[
         { label: t(hub.settings), to: '/w/$workspace/settings', params: { workspace: slug } },
         { label: t(hub.title), to: '/w/$workspace/settings/integrations', params: { workspace: slug } },
@@ -49,13 +52,13 @@ export function IntegrationsPage() {
       ]}
     >
       {q.isError ? (
-        <ErrorPanel title="Couldn't load integrations" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
-          {errorMessage(q.error)} Nothing was changed.
+        <ErrorPanel title={t(m.integrationsLoadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
+          {errorMessage(q.error)} {t(m.nothingChanged)}
         </ErrorPanel>
       ) : !q.data ? (
         <section className="card flex flex-col gap-3 px-4.5 py-4" aria-busy="true">
           <span className="vh" role="status">
-            Loading integrations
+            {t(m.integrationsLoading)}
           </span>
           <Skeleton w={140} h={16} />
           <Skeleton w={320} />
@@ -87,21 +90,19 @@ function assetStatus(a: Connection['assets'][number], sources: number) {
   if (a.listings.length) {
     return (
       <span className="row flex-nowrap gap-1.5">
-        <Badge tone="warn">Listed</Badge>
-        <span>
-          {a.listings.length === 1 ? '1 listing' : `${a.listings.length} listings`} ({a.listings.join(', ')}) · delisting link in Deliverability
-        </span>
+        <Badge tone="warn">{tt(m.listed)}</Badge>
+        <span>{tt(m.listings, { count: a.listings.length, sources: a.listings.join(', ') })}</span>
       </span>
     )
   }
-  if (a.status === 'pending') return <span className="k">First check running</span>
+  if (a.status === 'pending') return <span className="k">{tt(m.firstCheck)}</span>
   const parts: string[] = []
   if (a.role === 'organization_domain') {
-    parts.push('Clean')
-    if (a.dmarcPolicy) parts.push(`DMARC p=${a.dmarcPolicy}${a.dmarcAligned != null ? `, ${trimPct(a.dmarcAligned)} aligned` : ''}`)
+    parts.push(tt(m.clean))
+    if (a.dmarcPolicy) parts.push(a.dmarcAligned != null ? tt(m.dmarcPolicyAligned, { policy: a.dmarcPolicy, aligned: trimPct(a.dmarcAligned) }) : tt(m.dmarcPolicy, { policy: a.dmarcPolicy }))
   } else {
-    parts.push(`Clean on ${count(sources)} blocklists`)
-    if (a.postmasterReputation) parts.push(`Postmaster ${a.postmasterReputation} reputation`)
+    parts.push(tt(m.cleanOn, { count: count(sources) }))
+    if (a.postmasterReputation) parts.push(tt(m.postmasterReputation, { level: a.postmasterReputation.toLowerCase(), raw: a.postmasterReputation }))
   }
   return parts.join(' · ')
 }
@@ -122,13 +123,13 @@ function HostReputeCard({ conn, onLimit }: { conn: Connection; onLimit: (l: Limi
     try {
       await http.POST('/api/v1/workspaces/{workspace}/integrations/hostrepute/assets', { params: { path: { workspace: slug } }, body: { asset } })
       await refresh()
-      toast({ title: `${asset} added to monitoring`, detail: 'HostRepute checks it within the hour' })
+      toast({ title: t(m.added, { asset }), detail: t(m.addedDetail) })
     } catch (e) {
       if (e instanceof ApiError && e.code === 'monitor_limit_reached') {
-        const m = (e.problem.meta ?? {}) as Record<string, unknown>
-        onLimit({ asset, limit: Number(m.limit), used: Number(m.used), team: String(m.team ?? conn.teamName), swap: m.swap as string | undefined, swapRole: m.swapRole as string | undefined })
+        const meta = (e.problem.meta ?? {}) as Record<string, unknown>
+        onLimit({ asset, limit: Number(meta.limit), used: Number(meta.used), team: String(meta.team ?? conn.teamName), swap: meta.swap as string | undefined, swapRole: meta.swapRole as string | undefined })
       } else {
-        toast({ kind: 'error', title: `Couldn't add ${asset}`, detail: errorMessage(e) })
+        toast({ kind: 'error', title: t(m.addFailed, { asset }), detail: errorMessage(e) })
       }
     } finally {
       setAdding(undefined)
@@ -138,29 +139,32 @@ function HostReputeCard({ conn, onLimit }: { conn: Connection; onLimit: (l: Limi
     setSyncing(true)
     try {
       await http.POST('/api/v1/workspaces/{workspace}/integrations/hostrepute/sync', { params: { path: { workspace: slug } } })
-      toast({ kind: 'progress', title: 'Syncing with HostRepute', duration: 4000 })
+      toast({ kind: 'progress', title: t(m.syncing), duration: 4000 })
       window.setTimeout(() => void refresh(), 2500)
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't sync", detail: errorMessage(e) })
+      toast({ kind: 'error', title: t(m.syncFailed), detail: errorMessage(e) })
     } finally {
       setSyncing(false)
     }
   }
-  const tokenWord = conn.syncError ? 'HostRepute unreachable' : 'token valid'
   const meta = [
-    conn.method === 'api_key' ? 'API key' : 'OAuth',
-    conn.connectedAt ? `connected ${usDate(conn.connectedAt)}${conn.connectedBy ? ` by ${conn.connectedBy}` : ''}` : null,
-    tokenWord,
-    conn.lastSyncAt ? `last sync ${ago(conn.lastSyncAt)}` : 'first sync running',
+    conn.method === 'api_key' ? t(m.methodApiKey) : 'OAuth',
+    conn.connectedAt
+      ? conn.connectedBy
+        ? t(m.metaConnectedBy, { date: usDate(conn.connectedAt), name: conn.connectedBy })
+        : t(m.metaConnected, { date: usDate(conn.connectedAt) })
+      : null,
+    conn.syncError ? t(m.metaUnreachable) : t(m.metaTokenValid),
+    conn.lastSyncAt ? t(m.metaLastSync, { ago: ago(conn.lastSyncAt) }) : t(m.metaFirstSync),
   ]
   return (
     <section className="card" aria-labelledby="h-hostrepute">
       <div className="sec">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h2 className="h2" id="h-hostrepute">
-            HostRepute
+            {t(hub.hostrepute)}
           </h2>
-          <span className="k">Reputation monitoring that feeds Send Readiness and Deliverability</span>
+          <span className="k">{t(m.sectionLine)}</span>
         </div>
       </div>
       <div className="pad col gap-3.5">
@@ -168,31 +172,30 @@ function HostReputeCard({ conn, onLimit }: { conn: Connection; onLimit: (l: Limi
           <div className="row gap-3">
             <ShieldMark />
             <div className="col gap-px">
-              <span className="font-semibold">Connected to HostRepute team “{conn.teamName}”</span>
+              <span className="font-semibold">{t(m.connectedTo, { team: conn.teamName ?? '' })}</span>
               <span className="k">{meta.filter(Boolean).join(' · ')}</span>
             </div>
           </div>
           {conn.syncError ? (
             <Badge tone="warn" dot>
-              Unreachable
+              {t(m.unreachable)}
             </Badge>
           ) : (
             <Badge tone="ok" dot>
-              Connected
+              {t(m.statusConnected)}
             </Badge>
           )}
         </div>
         {conn.syncError ? (
           <Note tone="warn">
-            {conn.syncError}
-            {conn.syncErrorAt ? ` at ${clock(conn.syncErrorAt)}` : ''}. ReputeCast retries every hour and runs its built-in blocklist check meanwhile.
+            {t(m.syncError, { error: conn.syncError, hasTime: conn.syncErrorAt ? 'yes' : 'no', time: conn.syncErrorAt ? clock(conn.syncErrorAt) : '' })}
           </Note>
         ) : null}
         <KeyValues
           className="text-[12.5px]"
           items={[
             [
-              'Granted scopes',
+              t(m.grantedScopes),
               <>
                 {scopes.map((s, i) => (
                   <span key={s.key}>
@@ -202,19 +205,19 @@ function HostReputeCard({ conn, onLimit }: { conn: Connection; onLimit: (l: Limi
                 ))}
               </>,
             ],
-            ['Sent to HostRepute', 'Sending domains and dedicated IPs to monitor. Never contacts, never email content.'],
+            [t(m.sentToHostRepute), t(m.sentToHostReputeValue)],
             [t(hub.hrAdds), t(hub.hrAddsValue)],
-            ['Alerts', conn.alertsToNotifications ? 'Delivered into ReputeCast notifications (in-app and email per member preference)' : 'Not delivered into ReputeCast notifications'],
+            [t(m.alerts), conn.alertsToNotifications ? t(m.alertsOn) : t(m.alertsOff)],
           ]}
         />
-        <Table density="compact" className="[&_td]:!whitespace-normal [&_td_.badge]:!whitespace-nowrap" caption="Assets monitored by HostRepute">
+        <Table density="compact" className="hr-assets [&_td]:!whitespace-normal [&_td_.badge]:!whitespace-nowrap" caption={t(m.assetsCaption)}>
           <thead>
             <tr>
-              <Th>Asset</Th>
-              <Th>Type</Th>
-              <Th>Monitoring</Th>
-              <Th>Last sync</Th>
-              <Th>Status</Th>
+              <Th>{t(m.colAsset)}</Th>
+              <Th>{t(m.colType)}</Th>
+              <Th>{t(m.colMonitoring)}</Th>
+              <Th>{t(m.colLastSync)}</Th>
+              <Th>{t(m.colStatus)}</Th>
             </tr>
           </thead>
           <tbody>
@@ -224,14 +227,14 @@ function HostReputeCard({ conn, onLimit }: { conn: Connection; onLimit: (l: Limi
                   <span className="mono">{a.asset}</span>
                 </Td>
                 <Td>{roleLabel(a)}</Td>
-                <Td>{a.monitored ? <Badge tone="ok">Monitored</Badge> : <Badge tone="warn">Not monitored</Badge>}</Td>
+                <Td>{a.monitored ? <Badge tone="ok">{t(m.monitored)}</Badge> : <Badge tone="warn">{t(m.notMonitored)}</Badge>}</Td>
                 <Td>{a.monitored && a.lastSyncAt ? ago(a.lastSyncAt) : <span className="k">–</span>}</Td>
                 <Td>
                   {a.monitored ? (
                     assetStatus(a, conn.sources)
                   ) : (
                     <Button size="sm" variant="primary" onClick={() => add(a.asset)} loading={adding === a.asset} disabledReason={reason}>
-                      Add to monitoring
+                      {t(m.addToMonitoring)}
                     </Button>
                   )}
                 </Td>
@@ -241,13 +244,13 @@ function HostReputeCard({ conn, onLimit }: { conn: Connection; onLimit: (l: Limi
         </Table>
         <div className="row gap-2">
           <Button size="sm" onClick={syncNow} loading={syncing} disabledReason={reason}>
-            Sync now
+            {t(m.syncNow)}
           </Button>
           <ButtonLink size="sm" to="/w/$workspace/deliverability" params={{ workspace: slug }}>
-            Open Deliverability
+            {t(m.openDeliverability)}
           </ButtonLink>
           <Button size="sm" variant="danger" onClick={() => setDisconnect(true)} disabledReason={reason}>
-            Disconnect
+            {t(m.disconnect)}
           </Button>
         </div>
       </div>
@@ -258,6 +261,7 @@ function HostReputeCard({ conn, onLimit }: { conn: Connection; onLimit: (l: Limi
 
 /** Token revoked or expired → Reconnect (HostReputeStates). */
 function RevokedCard({ conn, onReconnect, onUseKey, reconnecting }: { conn: Connection; onReconnect: () => void; onUseKey: () => void; reconnecting: boolean }) {
+  const t = useT()
   const reason = usePermissionReason('integrations:hostrepute')
   const at = conn.tokenRejectedAt
   return (
@@ -265,33 +269,30 @@ function RevokedCard({ conn, onReconnect, onUseKey, reconnecting }: { conn: Conn
       <div className="sec">
         <div className="col gap-0.5">
           <h2 className="h2" id="h-hr-rev">
-            Token revoked or expired
+            {t(m.revokedTitle)}
           </h2>
-          <span className="k">
-            HostRepute team “{conn.teamName}” · {conn.method === 'api_key' ? 'API key' : 'OAuth'}
-          </span>
+          <span className="k">{t(m.revokedLine, { team: conn.teamName ?? '', method: conn.method === 'api_key' ? t(m.methodApiKey) : 'OAuth' })}</span>
         </div>
-        <Badge tone="warn">Stale since {at ? monthDay(at) : 'the last sync'}</Badge>
+        <Badge tone="warn">{at ? t(m.staleSince, { date: monthDay(at) }) : t(m.staleSinceLastSync)}</Badge>
       </div>
       <div className="pad col gap-3">
-        <Note tone="warn" label="Reconnect" role="alert">
-          HostRepute rejected the token{at ? ` on ${monthDay(at)}, ${clock(at)}` : ''} (revoked from the HostRepute side or expired). Blocklist, Postmaster, SNDS and DMARC data is
-          stale since then; Send Readiness marks the reputation check as “unknown”, not as a Block.
+        <Note tone="warn" label={t(m.reconnectLabel)} role="alert">
+          {at ? t(md.reconnectBodyAt, { date: monthDay(at), time: clock(at) }) : t(md.reconnectBody)}
         </Note>
         <KeyValues
           className="text-[12.5px]"
           items={[
-            ['Still working', 'Everything in ReputeCast · provider-side health, bounce and complaint rates, authentication checks'],
-            ['Paused', 'Blocklist checks, Postmaster and SNDS panels, DMARC summary, HostRepute alerts'],
+            [t(m.stillWorking), t(m.stillWorkingValue)],
+            [t(m.paused), t(m.pausedValue)],
           ]}
         />
         <div className="row gap-2">
           <Button size="sm" variant="primary" onClick={onReconnect} loading={reconnecting} disabledReason={reason}>
             <ShieldMark />
-            Reconnect with HostRepute
+            {t(m.reconnectWith)}
           </Button>
           <Button size="sm" onClick={onUseKey} disabledReason={reason}>
-            Use an API key instead
+            {t(m.useApiKey)}
           </Button>
         </div>
       </div>
@@ -301,6 +302,7 @@ function RevokedCard({ conn, onReconnect, onUseKey, reconnecting }: { conn: Conn
 
 /** HostRepute's own monitoring limit, shown honestly (HostReputeStates). */
 function LimitCard({ limit, onClose }: { limit: Limit; onClose: () => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const refresh = useRefreshConnection()
   const [busy, setBusy] = useState(false)
@@ -311,54 +313,44 @@ function LimitCard({ limit, onClose }: { limit: Limit; onClose: () => void }) {
       await http.POST('/api/v1/workspaces/{workspace}/integrations/hostrepute/assets/swap', { params: { path: { workspace: slug } }, body: { remove: limit.swap, add: limit.asset } })
       await refresh()
       onClose()
-      toast({ title: `${limit.asset} monitored instead of ${limit.swap}`, detail: 'HostRepute checks it within the hour' })
+      toast({ title: t(m.swapped, { asset: limit.asset, swap: limit.swap }), detail: t(m.addedDetail) })
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't swap the assets", detail: errorMessage(e) })
+      toast({ kind: 'error', title: t(m.swapFailed), detail: errorMessage(e) })
     } finally {
       setBusy(false)
     }
   }
-  const role = limit.swapRole === 'organization_domain' ? 'organization domain' : limit.swapRole?.replaceAll('_', ' ')
+  const role = t(m.swapRole, { role: limit.swapRole ?? '', raw: limit.swapRole?.replaceAll('_', ' ') ?? '' })
   return (
     <section className="card" aria-labelledby="h-hr-limit">
       <div className="sec">
         <div className="col gap-0.5">
           <h2 className="h2" id="h-hr-limit">
-            HostRepute monitoring limit reached
+            {t(m.limitTitle)}
           </h2>
-          <span className="k">Adding {limit.asset} to monitoring</span>
+          <span className="k">{t(m.limitAdding, { asset: limit.asset })}</span>
         </div>
-        <Badge tone="warn">
-          {limit.used} of {limit.limit} used
-        </Badge>
+        <Badge tone="warn">{t(m.limitUsed, { used: count(limit.used), limit: count(limit.limit) })}</Badge>
       </div>
       <div className="pad col gap-3">
         <Note tone="neutral" className={plainNote} role="status">
-          Your HostRepute team “{limit.team}” monitors {limit.used} of {limit.limit} assets allowed by its plan, so {limit.asset} can't be added right now. This is a HostRepute
-          limit, not a ReputeCast one: ReputeCast stays fully usable and the {numberWord(limit.used)} monitored assets keep syncing.
+          {t(m.limitNote, { team: limit.team, used: count(limit.used), limit: count(limit.limit), asset: limit.asset, usedCount: limit.used })}
         </Note>
         <KeyValues
           className="text-[12.5px]"
-          items={[
-            [
-              'Options',
-              limit.swap
-                ? `Raise the limit in HostRepute, or swap an asset: ${limit.swap} (${role}) could make room for ${limit.asset}, which actually sends mail.`
-                : 'Raise the limit in HostRepute, or stop monitoring an asset there to make room.',
-            ],
-          ]}
+          items={[[t(m.options), limit.swap ? t(m.optionsSwap, { swap: limit.swap, role, asset: limit.asset }) : t(m.optionsNoSwap)]]}
         />
         <div className="row gap-2">
           <ButtonAnchor size="sm" href="https://app.hostrepute.com">
-            Manage the plan in HostRepute
+            {t(m.managePlan)}
           </ButtonAnchor>
           {limit.swap ? (
             <Button size="sm" onClick={swap} loading={busy}>
-              Swap {limit.swap} for {limit.asset}
+              {t(m.swapButton, { swap: limit.swap, asset: limit.asset })}
             </Button>
           ) : null}
           <Button size="sm" onClick={onClose}>
-            Not now
+            {t(m.notNow)}
           </Button>
         </div>
       </div>
@@ -368,6 +360,7 @@ function LimitCard({ limit, onClose }: { limit: Limit; onClose: () => void }) {
 
 /** Disconnect, listing what stops working first (HostReputeStates). */
 function DisconnectDialog({ open, onOpenChange, team }: { open: boolean; onOpenChange: (o: boolean) => void; team: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const refresh = useRefreshConnection()
   const [busy, setBusy] = useState(false)
@@ -377,9 +370,9 @@ function DisconnectDialog({ open, onOpenChange, team }: { open: boolean; onOpenC
       await http.DELETE('/api/v1/workspaces/{workspace}/integrations/hostrepute', { params: { path: { workspace: slug } } })
       await refresh()
       onOpenChange(false)
-      toast({ kind: 'deleted', title: 'HostRepute disconnected', detail: `team “${team}” keeps monitoring on hostrepute.com` })
+      toast({ kind: 'deleted', title: t(m.disconnected), detail: t(m.disconnectedDetail, { team }) })
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't disconnect HostRepute", detail: errorMessage(e) })
+      toast({ kind: 'error', title: t(m.disconnectFailed), detail: errorMessage(e) })
     } finally {
       setBusy(false)
     }
@@ -388,31 +381,31 @@ function DisconnectDialog({ open, onOpenChange, team }: { open: boolean; onOpenC
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      eyebrow={<span className="k">Dialog · disconnect</span>}
-      title="Disconnect HostRepute?"
-      description={<span className="text-[13.5px]">ReputeCast forgets the token. Your HostRepute team and its monitoring keep running on hostrepute.com; nothing is deleted there.</span>}
+      eyebrow={<span className="k">{t(m.disconnectEyebrow)}</span>}
+      title={t(m.disconnectTitle)}
+      description={<span className="text-[13.5px]">{t(m.disconnectBody)}</span>}
       className="card border-bad-line"
       hideClose
       dismissible={!busy}
       footer={
         <>
-          <Button onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={() => onOpenChange(false)}>{t(common.cancel)}</Button>
           <Button variant="danger-primary" onClick={disconnect} loading={busy}>
-            Disconnect
+            {t(m.disconnect)}
           </Button>
         </>
       }
     >
-      <span className="text-[12px] font-semibold text-ink-2">Stops working in ReputeCast</span>
+      <span className="text-[12px] font-semibold text-ink-2">{t(m.stopsWorking)}</span>
       <ul className="m-0 flex list-disc flex-col gap-[3px] pl-[18px] text-[13.5px] text-ink-nav">
-        <li>Blocklist check in Send Readiness (shown as “not checked”)</li>
-        <li>Postmaster, SNDS and DMARC panels in Deliverability</li>
-        <li>HostRepute alerts in notifications</li>
-        <li>“Add to monitoring” for new domains and IPs</li>
+        <li>{t(m.stopsReadiness)}</li>
+        <li>{t(m.stopsPanels)}</li>
+        <li>{t(m.stopsAlerts)}</li>
+        <li>{t(m.stopsAddToMonitoring)}</li>
       </ul>
-      <span className="text-[12px] font-semibold text-ink-2">Keeps working</span>
+      <span className="text-[12px] font-semibold text-ink-2">{t(m.keepsWorking)}</span>
       <ul className="m-0 list-disc pl-[18px] text-[13.5px] text-ink-nav">
-        <li>Every other feature, including provider health, routing, guarded sending and reports</li>
+        <li>{t(m.keepsEverything)}</li>
       </ul>
     </Dialog>
   )
