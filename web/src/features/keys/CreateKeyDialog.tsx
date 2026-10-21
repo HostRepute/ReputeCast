@@ -1,35 +1,42 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { $api, ApiError, errorMessage, type Schemas } from '@/api/client'
 import { Badge, SensitiveFlag } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { Note } from '@/components/ui/Note'
+import { T, useT, type MessageDescriptor, type Values } from '@/i18n'
+import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
+import { count } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
+import { m } from './messages'
 
 type List = Schemas['APIKeyList']
 export type KeyKind = 'api_key' | 'mcp_agent'
 
 /** "Start from" (SettingsKeysStates): a preset fills the permissions; Send-only opens the transactional key's own dialog. */
-const PRESETS: { key: string; label: string; permissions?: string[] }[] = [
-  { key: 'custom', label: 'Custom', permissions: [] },
-  { key: 'send_only', label: 'Send-only · transactional' },
-  { key: 'signup', label: 'Signup form', permissions: ['subscribers:create'] },
-  { key: 'analytics', label: 'Read-only analytics', permissions: ['reports:view', 'subscribers:view'] },
+const PRESETS: { key: string; label: MessageDescriptor; permissions?: string[] }[] = [
+  { key: 'custom', label: m.presetCustom, permissions: [] },
+  { key: 'send_only', label: m.presetSendOnly },
+  { key: 'signup', label: m.presetSignup, permissions: ['subscribers:create'] },
+  { key: 'analytics', label: m.presetAnalytics, permissions: ['reports:view', 'subscribers:view'] },
   // Earn › Settings › Attribution: a key for the conversion API only.
-  { key: 'conversions', label: 'Conversions key', permissions: ['conversions:create'] },
+  { key: 'conversions', label: m.presetConversions, permissions: ['conversions:create'] },
 ]
 
 /** A conversions key holds conversions:create and nothing else. */
 const conversionsOnly = (picked: string[]) => picked.length === 1 && picked[0] === 'conversions:create'
 
-const EXPIRY = [
-  { value: '', label: 'Never' },
-  { value: '30', label: 'In 30 days' },
-  { value: '90', label: 'In 90 days' },
-  { value: '365', label: 'In 1 year' },
+const EXPIRY: { value: string; label: MessageDescriptor; values?: Values }[] = [
+  { value: '', label: m.expiryNever },
+  { value: '30', label: m.expiryDays, values: { days: 30 } },
+  { value: '90', label: m.expiryDays, values: { days: 90 } },
+  { value: '365', label: m.expiryYears, values: { years: 1 } },
 ]
+
+/** The "· optional" note after a field's label. */
+const opt = (c: ReactNode) => <span className="k font-medium">{c}</span>
 
 /**
  * Create an API key or an MCP agent token (SettingsKeysStates, escalation
@@ -53,6 +60,7 @@ export function CreateKeyDialog({
   /** The preset to start from (Earn's "Create a conversions key" opens on Conversions key). */
   initialPreset?: string
 }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const agent = kind === 'mcp_agent'
@@ -78,11 +86,11 @@ export function CreateKeyDialog({
   const submit = () => {
     setError(undefined)
     if (!name.trim()) {
-      setError({ field: 'name', message: `Give the ${agent ? 'agent' : 'key'} a name, for example where it's used.` })
+      setError({ field: 'name', message: t(m.nameRequired, { kind: agent ? 'agent' : 'key' }) })
       return
     }
     if (picked.length === 0) {
-      setError({ field: 'permissions', message: 'Pick at least one permission.' })
+      setError({ field: 'permissions', message: t(m.permissionsRequired) })
       return
     }
     const expiresAt = expiry ? new Date(Date.now() + Number(expiry) * 86_400_000).toISOString() : undefined
@@ -106,42 +114,36 @@ export function CreateKeyDialog({
     <Dialog
       open
       onOpenChange={(o) => !o && onClose()}
-      eyebrow={<span className="k">{agent ? 'Keys & MCP · add agent' : 'Keys & MCP · create API key'}</span>}
-      title={agent ? 'Add an MCP agent' : 'Create an API key'}
-      description={
-        <span className="text-[13.5px]">
-          {agent
-            ? 'The agent gets its own token and permission set. Anything that sends mail is proposed to a person instead.'
-            : 'Keys use the same permission keys as roles, never more than you hold. The secret is shown once.'}
-        </span>
-      }
+      eyebrow={<span className="k">{agent ? t(m.createEyebrowAgent) : t(m.createEyebrowKey)}</span>}
+      title={agent ? t(m.createTitleAgent) : t(m.createTitleKey)}
+      description={<span className="text-[13.5px]">{agent ? t(m.createDescAgent) : t(m.createDescKey)}</span>}
       size="lg"
       hideClose
       dismissible={false}
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t(common.cancel)}</Button>
           <Button variant="primary" loading={create.isPending} onClick={submit}>
-            {agent ? 'Add agent' : 'Create key'}
+            {agent ? t(m.submitAgent) : t(m.submitKey)}
           </Button>
         </>
       }
     >
       {list.locked.length > 0 ? (
         <span>
-          <Badge tone="warn">{list.locked.length} locked</Badge>
+          <Badge tone="warn">{t(m.lockedCount, { count: count(list.locked.length) })}</Badge>
         </span>
       ) : null}
       <div className="grid grid-cols-2 gap-3.5 max-md:grid-cols-1">
         <label className="lbl">
-          Name
+          {t(m.nameLabel)}
           <input
             className="in"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={80}
-            placeholder={agent ? 'Claude — analytics' : 'Website signup form'}
+            placeholder={agent ? t(m.namePlaceholderAgent) : t(m.namePlaceholderKey)}
             aria-invalid={error?.field === 'name' || undefined}
             aria-describedby={error?.field === 'name' ? 'key-name-err' : undefined}
           />
@@ -153,7 +155,7 @@ export function CreateKeyDialog({
         </label>
         <label className="lbl">
           <span>
-            {agent ? 'Client or purpose' : 'Description'} <span className="k font-medium">· optional</span>
+            <T msg={agent ? m.purposeLabel : m.descriptionLabel} values={{ opt }} />
           </span>
           <input
             className="in"
@@ -161,14 +163,14 @@ export function CreateKeyDialog({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             maxLength={200}
-            placeholder={agent ? 'Claude Desktop' : 'nightly job'}
+            placeholder={agent ? 'Claude Desktop' : t(m.descriptionPlaceholder)}
           />
         </label>
       </div>
       {agent ? null : (
         <div className="col gap-1.5">
           <span className="text-[12px] font-semibold text-ink-2" id="key-preset">
-            Start from
+            {t(m.startFrom)}
           </span>
           <div className="row gap-1.5" role="group" aria-labelledby="key-preset">
             {PRESETS.filter((p) => p.key !== 'send_only' || onSendOnly).map((p) => {
@@ -194,23 +196,28 @@ export function CreateKeyDialog({
                     }
                   }}
                 >
-                  {p.label}
+                  {t(p.label)}
                 </button>
               )
             })}
           </div>
-          <span className="k">A preset fills the permissions; you can still change them, never beyond your own.</span>
+          <span className="k">{t(m.presetHint)}</span>
         </div>
       )}
       {conversionKey ? (
         <div className="rounded-lg border border-line bg-[#f7f8fa] px-3 py-2.5 text-[13.5px]">
-          <span className="mono rounded bg-[#eceef2] px-1.5 py-0.5 text-[12.5px]">conversions:create</span> is the only permission. It records conversions with a value and reads
-          nothing.
+          <T
+            msg={m.conversionsOnly}
+            values={{
+              permission: 'conversions:create',
+              mono: (c) => <span className="mono rounded bg-[#eceef2] px-1.5 py-0.5 text-[12.5px]">{c}</span>,
+            }}
+          />
         </div>
       ) : (
         <div className="col gap-1.5" role="group" aria-labelledby="key-perms">
           <span className="text-[12px] font-semibold text-ink-2" id="key-perms">
-            Permissions
+            {t(m.permissionsLabel)}
           </span>
           <div className="col max-h-[340px] gap-1.5 overflow-y-auto pr-1">
             {groups.map(({ g, rows }) => (
@@ -238,7 +245,7 @@ export function CreateKeyDialog({
                           {p.sensitive ? (
                             <>
                               {' '}
-                              <span title="Sensitive permission">
+                              <span title={t(m.sensitiveTitle)}>
                                 <SensitiveFlag />
                               </span>
                             </>
@@ -252,7 +259,7 @@ export function CreateKeyDialog({
                         </span>
                       ) : by ? (
                         <span className="k" id={`${id}-d`}>
-                          included by {by}
+                          {t(m.includedBy, { key: by })}
                         </span>
                       ) : null}
                     </div>
@@ -272,10 +279,10 @@ export function CreateKeyDialog({
         {conversionKey ? null : (
           <label className="lbl">
             <span>
-              List scope <span className="k font-medium">· optional</span>
+              <T msg={m.listScopeLabel} values={{ opt }} />
             </span>
             <select className="in max-w-[260px]" value={listId} onChange={(e) => setListId(e.target.value)}>
-              <option value="">All lists</option>
+              <option value="">{t(m.allListsOption)}</option>
               {list.lists.map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.name}
@@ -285,18 +292,18 @@ export function CreateKeyDialog({
           </label>
         )}
         <label className="lbl">
-          Expires
+          {t(m.expiresLabel)}
           <select className="in max-w-[260px]" value={expiry} onChange={(e) => setExpiry(e.target.value)}>
             {EXPIRY.map((x) => (
               <option key={x.value} value={x.value}>
-                {x.label}
+                {t(x.label, x.values)}
               </option>
             ))}
           </select>
         </label>
       </div>
       {error && !error.field ? (
-        <Note tone="bad" label="Not created">
+        <Note tone="bad" label={t(m.notCreated)}>
           {error.message}
         </Note>
       ) : null}

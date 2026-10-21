@@ -13,11 +13,14 @@ import { EmptyRow, Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { ScrollPre } from '@/components/ui/ScrollPre'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
-import { logTime } from '@/lib/format'
+import { t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { count, logTime } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { CreateKeyDialog } from './CreateKeyDialog'
 import { KeySecretDialog } from './KeySecretDialog'
+import { m } from './mcp.messages'
 import { DashedEmpty, TableSkeleton } from './parts'
 import { McpIntegrationsNote } from '@/features/integrations/ManagedWebhook'
 import { McpAssistantNote } from '@/features/ai/parts'
@@ -33,40 +36,41 @@ function Tool({ children }: { children: string }) {
 
 /** A5 §5.10 MCP server (SettingsMCP): endpoint, the agents' capabilities, recent calls, tools and limits. */
 export function McpPage() {
+  const t = useT()
   const { slug, me } = useWorkspace()
   const can = me.permissions.includes('mcp:manage')
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/mcp', { params: { path: { workspace: slug } } }, { enabled: can })
   const agents = $api.useQuery('get', '/api/v1/workspaces/{workspace}/mcp-agents', { params: { path: { workspace: slug } } }, { enabled: can })
   const [adding, setAdding] = useState(false)
   const [secret, setSecret] = useState<Schemas['APIKeyCreated']>()
-  const tabs = settingsTabs(slug).map((t) => (t.to === '/w/$workspace/settings/keys' ? { ...t, current: true } : t))
+  const tabs = settingsTabs(slug).map((tab) => (tab.to === '/w/$workspace/settings/keys' ? { ...tab, current: true } : tab))
   return (
     <Page
-      title="Settings"
+      title={t(m.title)}
       tabs={tabs}
       actions={
         q.data ? (
           <>
             {q.data.enabled ? (
               <Badge tone="ok" dot>
-                MCP server on
+                {t(m.serverOn)}
               </Badge>
             ) : (
               <Badge tone="neutral" dot>
-                MCP server off
+                {t(m.serverOff)}
               </Badge>
             )}
-            <Button variant="primary" disabledReason={agents.data ? undefined : 'Loading…'} onClick={() => setAdding(true)}>
-              Add agent
+            <Button variant="primary" disabledReason={agents.data ? undefined : t(common.loading)} onClick={() => setAdding(true)}>
+              {t(m.addAgent)}
             </Button>
           </>
         ) : null
       }
     >
       {!can ? (
-        <ForbiddenState permission="mcp:manage" title="Your role can't manage MCP agents" />
+        <ForbiddenState permission="mcp:manage" title={t(m.forbidden)} />
       ) : q.isError ? (
-        <ErrorPanel title="Couldn't load the MCP server settings" actions={<Button onClick={() => void q.refetch()}>Retry</Button>}>
+        <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => void q.refetch()}>{t(common.retry)}</Button>}>
           {errorMessage(q.error)}
         </ErrorPanel>
       ) : !q.data ? (
@@ -76,14 +80,14 @@ export function McpPage() {
           <ConnectCard o={q.data} />
           {q.data.agents.length === 0 ? (
             <DashedEmpty
-              title="No MCP agents"
+              title={t(m.noAgentsTitle)}
               action={
-                <Button onClick={() => setAdding(true)} disabledReason={agents.data ? undefined : 'Loading…'}>
-                  Add agent
+                <Button onClick={() => setAdding(true)} disabledReason={agents.data ? undefined : t(common.loading)}>
+                  {t(m.addAgent)}
                 </Button>
               }
             >
-              Give an AI assistant read access first; grant drafting or sending later, with approvals.
+              {t(m.noAgentsBody)}
             </DashedEmpty>
           ) : (
             <AgentsMatrix o={q.data} />
@@ -111,6 +115,7 @@ export function McpPage() {
 }
 
 function ConnectCard({ o }: { o: Overview }) {
+  const t = useT()
   // Laid out as on the board: the headers object stays on one line.
   const snippet = [
     '{',
@@ -126,32 +131,29 @@ function ConnectCard({ o }: { o: Overview }) {
     <section className="card flex flex-wrap items-start gap-5 px-5 py-4.5" aria-labelledby="mcp-h">
       <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-2.5">
         <h2 className="h2" id="mcp-h">
-          Let AI agents work in this workspace, with limits
+          {t(m.connectTitle)}
         </h2>
-        <span className="text-[13px] text-ink-2">
-          ReputeCast exposes a Model Context Protocol server. Each agent gets its own token and permission set; anything that sends mail needs a human approval unless you
-          say otherwise. Every call lands in the audit log.
-        </span>
+        <span className="text-[13px] text-ink-2">{t(m.connectBody)}</span>
         <label className="lbl">
-          Endpoint
+          {t(m.endpoint)}
           <input className="in mono bg-white" value={o.endpoint} readOnly onFocus={(e) => e.currentTarget.select()} />
         </label>
         <label className="lbl">
-          Transport
+          {t(m.transport)}
           <select className="in" defaultValue="http" aria-describedby="mcp-transport-hint">
-            <option value="http">Streamable HTTP · OAuth 2.1 or per-agent token</option>
+            <option value="http">{t(m.transportHttp)}</option>
             <option value="stdio" disabled>
-              stdio · local bridge (run an MCP proxy next to the client)
+              {t(m.transportStdio)}
             </option>
           </select>
           <span className="vh" id="mcp-transport-hint">
-            The server speaks Streamable HTTP; stdio clients connect through a local bridge.
+            {t(m.transportHint)}
           </span>
         </label>
       </div>
       <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-2">
-        <span className="k">Connect from Claude Desktop, Claude Code or any MCP client</span>
-        <ScrollPre className="pre" label="Client configuration">
+        <span className="k">{t(m.connectFrom)}</span>
+        <ScrollPre className="pre" label={t(m.clientConfig)}>
           {snippet}
         </ScrollPre>
       </div>
@@ -160,6 +162,7 @@ function ConnectCard({ o }: { o: Overview }) {
 }
 
 function AgentsMatrix({ o }: { o: Overview }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const caps = o.capabilities
   return (
@@ -167,25 +170,25 @@ function AgentsMatrix({ o }: { o: Overview }) {
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-4.5 py-3.5">
         <div className="flex flex-col">
           <h2 className="h2" id="mcp-agents-h">
-            Agents · {o.agents.length}
+            {t(m.agentsTitle, { count: count(o.agents.length) })}
           </h2>
-          <span className="k">Permissions per agent. &quot;Approve&quot; means a team member confirms in ReputeCast before the action runs.</span>
+          <span className="k">{t(m.agentsCaption)}</span>
         </div>
       </div>
       {/* The board's 240 px for the fourth column is a preferred width here, not a
           minimum: the column gives way when a long tool name needs the room. */}
-      <Table phoneWrap fit density="dense" caption="Agents and what they can do" className="[&_td:first-child]:min-w-[200px] [&_td:nth-child(4)]:w-[240px] [&_td]:whitespace-normal">
+      <Table phoneWrap fit density="dense" caption={t(m.agentsTable)} className="[&_td:first-child]:min-w-[200px] [&_td:nth-child(4)]:w-[240px] [&_td]:whitespace-normal">
         <thead>
           <tr>
-            <Th>Agent</Th>
+            <Th>{t(m.colAgent)}</Th>
             {caps.map((c) => (
               <Th key={c} align="center">
                 {c}
               </Th>
             ))}
-            <Th>Last call</Th>
+            <Th>{t(m.colLastCall)}</Th>
             <Th>
-              <span className="vh">Actions</span>
+              <span className="vh">{t(m.colActions)}</span>
             </Th>
           </tr>
         </thead>
@@ -194,9 +197,7 @@ function AgentsMatrix({ o }: { o: Overview }) {
             <tr key={a.id}>
               <Td>
                 <div className="font-semibold">{a.name}</div>
-                <div className="k">
-                  token {a.masked} · created by {a.createdBy} · {a.permissions.join(', ')}
-                </div>
+                <div className="k">{t(m.agentLine, { masked: a.masked, name: a.createdBy, permissions: a.permissions.join(', ') })}</div>
               </Td>
               {caps.map((c) => {
                 const cell = a.cells.find((x) => x.capability === c)
@@ -210,8 +211,8 @@ function AgentsMatrix({ o }: { o: Overview }) {
                 <LastCall agentId={a.id} />
               </Td>
               <Td>
-                <ButtonLink size="sm" to="/w/$workspace/settings/keys" params={{ workspace: slug }} aria-label={`Edit ${a.name} in Keys & MCP`}>
-                  Edit
+                <ButtonLink size="sm" to="/w/$workspace/settings/keys" params={{ workspace: slug }} aria-label={t(m.editAgent, { name: a.name })}>
+                  {t(common.edit)}
                 </ButtonLink>
               </Td>
             </tr>
@@ -225,12 +226,13 @@ function AgentsMatrix({ o }: { o: Overview }) {
 
 /** "09:36 · get_campaign_report" from the agents list. */
 function LastCall({ agentId }: { agentId: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const now = useNow()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/mcp-agents', { params: { path: { workspace: slug } } })
   const k = q.data?.items.find((x) => x.id === agentId)
   if (!k) return <Skeleton w={110} />
-  if (!k.lastUsedAt) return <span className="k">Never</span>
+  if (!k.lastUsedAt) return <span className="k">{t(m.never)}</span>
   return (
     <>
       {logTime(k.lastUsedAt, now)}
@@ -251,6 +253,7 @@ function LastCall({ agentId }: { agentId: string }) {
 }
 
 function ActionsCard() {
+  const t = useT()
   const { slug } = useWorkspace()
   const now = useNow()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/mcp-agents/actions', { params: { path: { workspace: slug }, query: { limit: 5 } } })
@@ -258,34 +261,34 @@ function ActionsCard() {
     <section className="card min-w-0 flex-[1_1_100%]" aria-labelledby="mcp-acts-h">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-4.5 py-3.5">
         <h2 className="h2" id="mcp-acts-h">
-          Recent agent actions
+          {t(m.actionsTitle)}
         </h2>
         <Link to="/w/$workspace/settings/audit" params={{ workspace: slug }} search={{ actorType: 'mcp_agent' }} className="k">
-          Full audit log
+          {t(m.fullAuditLog)}
         </Link>
       </div>
       {q.isError ? (
         <div className="pad">
-          <ErrorPanel title="Couldn't load the agent actions" actions={<Button onClick={() => void q.refetch()}>Retry</Button>}>
+          <ErrorPanel title={t(m.actionsLoadFailed)} actions={<Button onClick={() => void q.refetch()}>{t(common.retry)}</Button>}>
             {errorMessage(q.error)}
           </ErrorPanel>
         </div>
       ) : !q.data ? (
-        <TableSkeleton rows={3} label="Loading the agent actions" />
+        <TableSkeleton rows={3} label={t(m.actionsLoading)} />
       ) : (
-        <Table phoneWrap fit density="dense" caption="Recent agent actions" className="[&_td:first-child]:min-w-[200px] [&_td:nth-child(2)]:whitespace-nowrap [&_td:nth-child(4)]:min-w-[240px]">
+        <Table phoneWrap fit density="dense" caption={t(m.actionsTable)} className="[&_td:first-child]:min-w-[200px] [&_td:nth-child(2)]:whitespace-nowrap [&_td:nth-child(4)]:min-w-[240px]">
           <thead>
             <tr>
-              <Th>Time</Th>
-              <Th>Agent</Th>
-              <Th>Tool</Th>
-              <Th>Result</Th>
-              <Th>Approval</Th>
+              <Th>{t(m.colTime)}</Th>
+              <Th>{t(m.colAgent)}</Th>
+              <Th>{t(m.colTool)}</Th>
+              <Th>{t(m.colResult)}</Th>
+              <Th>{t(m.colApproval)}</Th>
             </tr>
           </thead>
           <tbody>
             {q.data.items.length === 0 ? (
-              <EmptyRow colSpan={5}>No agent calls yet.</EmptyRow>
+              <EmptyRow colSpan={5}>{t(m.noCalls)}</EmptyRow>
             ) : (
               q.data.items.map((a) => (
                 <tr key={a.id} className={a.result === 'allowed' ? undefined : 'bg-bad-tint'}>
@@ -297,13 +300,13 @@ function ActionsCard() {
                   <Td>{a.summary || a.target}</Td>
                   <Td>
                     {a.result === 'allowed' ? (
-                      <Badge tone="neutral">{a.note ? `Not needed · ${a.note}` : 'Not needed'}</Badge>
+                      <Badge tone="neutral">{a.note ? t(m.notNeededNote, { note: a.note }) : t(m.notNeeded)}</Badge>
                     ) : (
                       <span className="inline-flex items-center gap-2">
-                        <Badge tone="bad">{a.result === 'denied' ? 'Denied' : 'Error'}</Badge>
+                        <Badge tone="bad">{a.result === 'denied' ? t(m.denied) : t(m.error)}</Badge>
                         {a.note?.includes('proposal') ? (
                           <ButtonLink size="sm" to="/w/$workspace/approvals" params={{ workspace: slug }}>
-                            Review
+                            {t(m.review)}
                           </ButtonLink>
                         ) : null}
                       </span>
@@ -320,42 +323,42 @@ function ActionsCard() {
 }
 
 function ToolsCard({ o }: { o: Overview }) {
+  const t = useT()
   const [editing, setEditing] = useState(false)
+  const limits = [
+    t(m.limitRate, { count: o.rateLimitPerMinute, rate: count(o.rateLimitPerMinute) }),
+    t(m.limitApprovals, { hours: o.approvalExpiryHours, n: count(o.approvalExpiryHours) }),
+    t(m.limitSecrets),
+  ]
   return (
     <section className="card flex min-w-0 flex-[1_1_360px] flex-col gap-2.5 px-4.5 py-4" aria-labelledby="mcp-tools-h">
       <h2 className="h2" id="mcp-tools-h">
-        Tools exposed · {o.tools.length}
+        {t(m.toolsTitle, { count: count(o.tools.length) })}
       </h2>
-      <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" aria-label="Tools">
-        {o.tools.map((t) => (
-          <li key={t.name} title={`${t.description} Needs ${t.permission}.`}>
-            <Tool>{t.name}</Tool>
+      <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" aria-label={t(m.toolsList)}>
+        {o.tools.map((tool) => (
+          <li key={tool.name} title={t(m.toolTitle, { description: tool.description, permission: tool.permission })}>
+            <Tool>{tool.name}</Tool>
           </li>
         ))}
       </ul>
       <McpIntegrationsNote />
-      <span className="k">
-        Resources: {o.resources.join(', ')}. Prompts: {o.prompts.map((p) => `"${p}"`).join(', ')}.
-      </span>
-      <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-[13px]" aria-label="Limits">
-        {[
-          `Rate limit each agent to ${o.rateLimitPerMinute} calls per minute`,
-          `Approvals expire after ${o.approvalExpiryHours} ${o.approvalExpiryHours === 1 ? 'hour' : 'hours'}`,
-          "Agents never see API keys, SSO settings or other agents' tokens",
-        ].map((t) => (
-          <li key={t} className="flex items-start gap-2.5">
+      <span className="k">{t(m.resourcesPrompts, { resources: o.resources.join(', '), prompts: o.prompts.map((p) => `"${p}"`).join(', ') })}</span>
+      <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-[13px]" aria-label={t(m.limitsList)}>
+        {limits.map((line) => (
+          <li key={line} className="flex items-start gap-2.5">
             {/* Placed like the board's checked checkbox (16px, 3px 3px 3px 4px margins). */}
             <span className="m-[3px_3px_3px_4px] inline-flex size-4 flex-none items-center justify-center rounded-[3px] bg-accent text-[11px] font-bold text-white" aria-hidden="true">
               ✓
             </span>
-            <span>{t}</span>
+            <span>{line}</span>
           </li>
         ))}
       </ul>
       {o.canManage ? (
         <span>
           <Button size="sm" onClick={() => setEditing(true)}>
-            Change limits
+            {t(m.changeLimits)}
           </Button>
         </span>
       ) : null}
@@ -365,6 +368,7 @@ function ToolsCard({ o }: { o: Overview }) {
 }
 
 function LimitsDialog({ o, onClose }: { o: Overview; onClose: () => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const [enabled, setEnabled] = useState(o.enabled)
@@ -376,13 +380,13 @@ function LimitsDialog({ o, onClose }: { o: Overview; onClose: () => void }) {
     <Dialog
       open
       onOpenChange={(o2) => !o2 && onClose()}
-      eyebrow={<span className="k">Dialog · MCP server limits</span>}
-      title="MCP server limits"
-      description={<span className="text-[13.5px]">Apply to every agent in this workspace. Changes are logged.</span>}
+      eyebrow={<span className="k">{t(m.limitsEyebrow)}</span>}
+      title={t(m.limitsTitle)}
+      description={<span className="text-[13.5px]">{t(m.limitsDesc)}</span>}
       hideClose
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t(common.cancel)}</Button>
           <Button
             variant="primary"
             loading={save.isPending}
@@ -393,7 +397,7 @@ function LimitsDialog({ o, onClose }: { o: Overview; onClose: () => void }) {
                   onSuccess: (r) => {
                     qc.setQueryData(['get', '/api/v1/workspaces/{workspace}/mcp', { params: { path: { workspace: slug } } }], r)
                     void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/mcp'] })
-                    toast({ title: 'MCP server limits saved' })
+                    toast({ title: tt(m.limitsSaved) })
                     onClose()
                   },
                   onError: (e) => setError(errorMessage(e)),
@@ -401,27 +405,27 @@ function LimitsDialog({ o, onClose }: { o: Overview; onClose: () => void }) {
               )
             }
           >
-            Save limits
+            {t(m.saveLimits)}
           </Button>
         </>
       }
     >
       <label className="row gap-2.5 text-[13.5px]">
         <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-        MCP server on · agents can connect
+        {t(m.serverOnToggle)}
       </label>
       <div className="grid grid-cols-2 gap-3.5 max-md:grid-cols-1">
         <label className="lbl">
-          Calls per minute, per agent
+          {t(m.ratePerAgent)}
           <input className="in" type="number" min={1} max={6000} value={rate} onChange={(e) => setRate(e.target.value)} />
         </label>
         <label className="lbl">
-          Approvals expire after (hours)
+          {t(m.approvalHours)}
           <input className="in" type="number" min={1} max={168} value={hours} onChange={(e) => setHours(e.target.value)} />
         </label>
       </div>
       {error ? (
-        <Note tone="bad" label="Not saved">
+        <Note tone="bad" label={t(m.notSaved)}>
           {error}
         </Note>
       ) : null}
@@ -430,10 +434,11 @@ function LimitsDialog({ o, onClose }: { o: Overview; onClose: () => void }) {
 }
 
 function McpSkeleton() {
+  const t = useT()
   return (
     <div className="flex flex-col gap-5" aria-busy="true">
       <span className="vh" role="status">
-        Loading the MCP server settings
+        {t(m.loading)}
       </span>
       <section className="card flex flex-wrap gap-5 px-5 py-4.5">
         <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-3">
@@ -445,7 +450,7 @@ function McpSkeleton() {
         <Skeleton className="min-w-0 flex-[1_1_380px]" h={170} r={8} />
       </section>
       <section className="card">
-        <TableSkeleton rows={2} label="Loading the agents" />
+        <TableSkeleton rows={2} label={t(m.loadingAgents)} />
       </section>
     </div>
   )
