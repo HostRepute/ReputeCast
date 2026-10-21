@@ -20,7 +20,6 @@ import { m } from './messages'
 import { ProviderHealthCard } from './ProviderHealth'
 import { PostmasterCard, SndsCard } from './SignalCards'
 import { eta, firstRun, type Overview } from './words'
-import './deliverability.css'
 
 const overviewPath = '/api/v1/workspaces/{workspace}/deliverability' as const
 

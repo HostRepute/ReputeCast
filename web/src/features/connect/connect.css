@@ -210,6 +210,9 @@
     padding: 12px;
   }
   .cn-steps {
+    /* Holds the steps' visually hidden "Done:" (.vh, absolutely
+       positioned), so the page itself never scrolls sideways. */
+    position: relative;
     max-width: none;
     flex: 1 1 100%;
     flex-direction: row;
@@ -272,21 +275,4 @@
     width: 0;
     min-width: 100%;
   }
-}
-
-/* text expansion → styles/expansion.css */
-/* Rule 4, buttons don't wrap: on phones the "How to fix" cards of an
-   unreachable webhook endpoint take the whole width in other languages,
-   so their buttons ("Tạm dùng hỏi định kỳ") keep to one line. English
-   keeps the board's two 140 px columns. */
-@media (max-width: 767px) {
-  :root:not([lang='en']) .cn-fix {
-    --cn-fix-min: 100%;
-  }
-}
-/* A stream card's facts: the key keeps its words on one line ("Chuyển dự
-   phòng") and a long value ("Automatic, falls back to Postmark") wraps
-   beside it, as senders.css does for the provider cards. */
-:root:not([lang='en']) .cn-kv > .k {
-  flex: none;
 }

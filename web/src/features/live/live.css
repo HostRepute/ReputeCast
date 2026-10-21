@@ -76,19 +76,6 @@
   }
 }
 
-/* text expansion → styles/expansion.css
-   The top bar's events line is long in other languages: it wraps beside
-   Pause and Cancel send instead of pushing the bell and the user menu to a
-   row of their own (English keeps the board's single line). Phones wrap
-   the top bar anyway. */
-@media (min-width: 768px) {
-  :root:not([lang='en']) .top .acts > .lv-caption {
-    flex: 1 1 260px;
-    min-width: 0;
-    text-align: right;
-  }
-}
-
 @media (max-width: 767px) {
   .content.lv-m {
     padding: 16px;
