@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -263,14 +264,14 @@ func periodOf(q GrowthQuery, now time.Time, loc *time.Location) (window, error) 
 		from, err1 := time.ParseInLocation("2006-01-02", q.From, loc)
 		to, err2 := time.ParseInLocation("2006-01-02", q.To, loc)
 		if err1 != nil || err2 != nil {
-			return w, api.Invalid("query.from", "Pick the first and last day of the period.")
+			return w, periodError{"query.from", mPeriodPickDays}
 		}
 		if to.Before(from) {
-			return w, api.Invalid("query.to", "The period ends before it starts. Swap the two days.")
+			return w, periodError{"query.to", mPeriodEndsBefore}
 		}
 		w.days = int(to.Sub(from).Hours()/24+0.5) + 1
 		if w.days > 731 {
-			return w, api.Invalid("query.from", "Pick a period of two years at most.")
+			return w, periodError{"query.from", mPeriodTooLong}
 		}
 		w.fromDay = from
 		w.from = from
@@ -299,6 +300,10 @@ func (s *Service) Page(ctx context.Context, ws *store.Workspace, in GrowthQuery)
 	loc := location(ws.Timezone)
 	w, err := periodOf(in, s.now(), loc)
 	if err != nil {
+		var pe periodError
+		if errors.As(err, &pe) {
+			return GrowthPage{}, api.Invalid(pe.location, pe.msg.Text(i18n.LangFrom(ctx), nil))
+		}
 		return GrowthPage{}, err
 	}
 	q := s.Q

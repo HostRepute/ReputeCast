@@ -296,7 +296,7 @@ function RecRows({ it, i, onKey, onDragStart, onDrop }: { it: Item; i: number; n
           </span>
         </td>
         <td>
-          <span className="flex flex-col gap-0.5">
+          <span className="gw-where flex flex-col gap-0.5">
             {it.showConfirm ? <span>{t(mc.showsConfirm)}</span> : null}
             {it.showBlock ? <span>{t(mc.showsBlock)}</span> : null}
             {!it.showConfirm && !it.showBlock ? <span className="k">{t(mc.showsNowhere)}</span> : null}
@@ -1209,7 +1209,7 @@ function AddDialog({ v, onClose, start = 'choose' }: { v?: View; onClose: () => 
         {error ? <Note tone="bad">{error}</Note> : null}
         <Field label={t(mc.linkUrl)} hint={prefill === 'done' ? t(mc.prefilled) : prefill === 'none' ? t(mc.prefillNone) : t(mc.linkUrlHint)}>
           <span className="flex gap-2">
-            <Input type="url" className="mono flex-1" aria-label={t(mc.linkUrlLabel)} placeholder="https://" value={url} onChange={(e) => setUrl(e.target.value)} onBlur={() => prefill === 'idle' && void doPrefill()} />
+            <Input type="url" className="mono flex-1" aria-label={t(mc.linkUrlLabel)} placeholder={'https://'} value={url} onChange={(e) => setUrl(e.target.value)} onBlur={() => prefill === 'idle' && void doPrefill()} />
             <Button size="sm" loading={prefill === 'busy'} busyLabel={t(mc.prefilling)} disabled={!/^https:\/\//.test(url.trim())} onClick={() => void doPrefill()}>
               {t(mc.prefill)}
             </Button>
@@ -1252,7 +1252,7 @@ function AddDialog({ v, onClose, start = 'choose' }: { v?: View; onClose: () => 
         }
       >
         <Field label={t(mc.partnerCode)} error={problem ? problem.message : undefined}>
-          <Input className="mono" placeholder="https://reputecast.example/p/XXXX-XXXX-XXXX" value={code} onChange={(e) => setCode(e.target.value)} />
+          <Input className="mono" placeholder={'https://reputecast.example/p/XXXX-XXXX-XXXX'} value={code} onChange={(e) => setCode(e.target.value)} />
         </Field>
         {step === 'checking' ? (
           <span className="k flex items-center gap-2">
