@@ -101,3 +101,16 @@
 :root:not([lang='en']) .gw-where > span {
   white-space: nowrap;
 }
+
+/* Earn: a tier's price lines (the tier editor's In Stripe card) keep the
+   price whole: the paid members line moves under it rather than the price
+   running into it ("8 US$/tháng"). */
+:root:not([lang='en']) .ea-vline > :first-child {
+  flex: 1 1 auto;
+}
+
+/* Earn: the member panel's email line breaks inside the address when the
+   head's longer buttons leave it less room, rather than running under them. */
+:root:not([lang='en']) .ea-sheet-head .k {
+  overflow-wrap: anywhere;
+}
