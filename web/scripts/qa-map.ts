@@ -475,4 +475,23 @@ export const entries: Entry[] = [
   { board: 'IntegrationsShopifyPhone', path: `${ws}/settings/integrations/stores/{store:Acme Merch}`, widths: [390] },
   { board: 'CommerceStates', manual: true },
   { board: 'CommerceEmails', manual: true },
+  // X23 · agency accounts. These need the Northwind Studio sample, an instance of its own: seed an
+  // empty database with `reputecast seed --sample northwind` and sweep them with --only against that
+  // app. Tomás Herrera is an agency manager; Jane Morales is Contoso Coffee's Client approver (she
+  // signs in with a password and an authenticator for the sweep). The sample's times follow today,
+  // so late in the day the sends strip's order can differ from the board's. The client approval's
+  // id is made at seed time, and AgencyStates' frames (dialogs, a new client's result, Mei Lin's
+  // view, the empty and failed overview, Owen Price's invitation, the phone sheet, search, Instance
+  // admin and the escalation guard) need clicks, other users or data changes.
+  { board: 'AgencyOverview', path: '/w/northwind-studio/agency', user: 'tomas@northwind.studio', widths: [1440] },
+  { board: 'AgencyOverviewTablet', path: '/w/northwind-studio/agency', user: 'tomas@northwind.studio', widths: [834] },
+  { board: 'AgencyOverviewPhone', path: '/w/northwind-studio/agency', user: 'tomas@northwind.studio', widths: [390] },
+  // The library and usage boards draw their states below the screen: compare the screen.
+  { board: 'AgencyLibrary', path: '/w/northwind-studio/agency/library', user: 'tomas@northwind.studio', widths: [1440], viewportOnly: true, height: 1700 },
+  { board: 'AgencyUsage', path: '/w/northwind-studio/agency/usage', user: 'tomas@northwind.studio', widths: [1440], viewportOnly: true, height: 1000 },
+  { board: 'AgencyClientApproval', manual: true },
+  { board: 'AgencyClientApprovalPhone', manual: true },
+  { board: 'AgencyStates', manual: true },
+  // The workspace switcher opens from a click (ShellSwitcher's agency staff view).
+  { board: 'ShellSwitcher', manual: true },
 ]
