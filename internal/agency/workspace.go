@@ -155,7 +155,7 @@ type AgencyGalleryCopy struct {
 
 // Gallery returns the library items usable in a workspace, for its staff.
 func (s *Service) Gallery(ctx context.Context, ws *store.Workspace, kind string) (AgencyGalleryView, error) {
-	me, st, err := s.require(ctx, authz.AgencyView)
+	_, st, err := s.require(ctx, authz.AgencyView)
 	if err != nil {
 		return AgencyGalleryView{}, err
 	}
@@ -194,7 +194,6 @@ func (s *Service) Gallery(ctx context.Context, ws *store.Workspace, kind string)
 		out.Copies = append(out.Copies, AgencyGalleryCopy{ID: c.ID.String(), ItemID: c.ItemID.String(), Kind: c.Kind, TargetID: c.TargetID.String(), Name: c.Name,
 			Version: int(c.Version), Latest: int(c.Latest)})
 	}
-	_ = me
 	return out, nil
 }
 
