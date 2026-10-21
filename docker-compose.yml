@@ -8,6 +8,9 @@ services:
     # Integration tests clone a database per test, and `go test ./...` runs
     # packages in parallel: allow more connections than the default 100.
     command: ["postgres", "-c", "max_connections=300"]
+    # Parallel queries take dynamic shared memory from /dev/shm; Docker's
+    # 64 MB default runs out under many concurrent test databases.
+    shm_size: 1g
     environment:
       POSTGRES_USER: reputecast
       POSTGRES_PASSWORD: reputecast
