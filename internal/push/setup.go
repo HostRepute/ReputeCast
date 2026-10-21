@@ -32,8 +32,12 @@ type PushCount struct {
 	Count int64  `json:"count"`
 }
 
-// PushListHighlight is the newest list with linked subscribers: "612
-// belong to Acme Summit 2026 registrants".
+// highlightMin is how many linked subscriptions a list needs to be the
+// subscribers card's highlight.
+const highlightMin = 50
+
+// PushListHighlight is the list whose members most often have a linked
+// subscription: "612 belong to Acme Summit 2026 registrants".
 type PushListHighlight struct {
 	ListID string `json:"listId"`
 	Name   string `json:"name"`
@@ -163,14 +167,20 @@ func (s *Service) Setup(ctx context.Context, ws *store.Workspace, p *authz.Princ
 			out.Subscribers.ByBrowser = append(out.Subscribers.ByBrowser, PushCount{Key: k, Count: counts[k]})
 		}
 	}
-	// The newest list whose contacts have linked subscriptions.
+	// The list whose members turned notifications on most often (at least
+	// highlightMin linked subscriptions; the newest on a tie): an event's
+	// registrants, typically.
 	var h PushListHighlight
 	var lid uuid.UUID
 	if err := s.Pool.QueryRow(ctx, `SELECT l.id, l.name, count(DISTINCT s.id) FROM lists l
 		JOIN list_memberships lm ON lm.list_id = l.id AND lm.status = 'subscribed'
 		JOIN push_subscriptions s ON s.contact_id = lm.contact_id AND s.removed_at IS NULL
 		WHERE l.workspace_id = $1 AND l.deleted_at IS NULL
-		GROUP BY l.id, l.name, l.created_at ORDER BY l.created_at DESC LIMIT 1`, ws.ID).Scan(&lid, &h.Name, &h.Count); err == nil {
+		GROUP BY l.id, l.name, l.created_at
+		HAVING count(DISTINCT s.id) >= $2
+		ORDER BY count(DISTINCT lm.contact_id)::float8 / greatest(1, (SELECT count(*) FROM list_memberships x
+			WHERE x.list_id = l.id AND x.status = 'subscribed')) DESC, l.created_at DESC
+		LIMIT 1`, ws.ID, highlightMin).Scan(&lid, &h.Name, &h.Count); err == nil {
 		h.ListID = lid.String()
 		out.Subscribers.Highlight = &h
 	}
