@@ -13,7 +13,7 @@ import { formatList, useT } from '@/i18n'
 import { useWorkspace } from '@/lib/session'
 import { useAgencyMe, useRefreshAgency } from './api'
 import { AgencyPage } from './AgencyShell'
-import { kindLabel } from './kinds'
+import { kindLabel, partName } from './kinds'
 import { m as lm } from './library.messages'
 import { HtmlPreview, LibraryThumb } from './LibraryThumb'
 import { m } from './messages'
@@ -266,7 +266,7 @@ function ApplyDialog({ tpl, onClose }: { tpl: Template; onClose: () => void }) {
             />
           </div>
           {p.skipped.length ? (
-            <Note tone="warn">{t(lm.planSkipped, { parts: formatList(p.skipped.map((s) => `${s.part} (${s.permission})`)) })}</Note>
+            <Note tone="warn">{t(lm.planSkipped, { parts: formatList(p.skipped.map((s) => t(lm.skippedPart, { part: partName(t, s.part), permission: s.permission }))) })}</Note>
           ) : null}
           <div className="note n">
             <Icon name="info" size={16} className="text-ink-2" />

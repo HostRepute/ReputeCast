@@ -25,7 +25,7 @@ export function SetupCard({ row, setup }: { row: AgencyClientRow; setup: Setup }
         <b className="text-[14px]">{row.workspace.name}</b>
         <Badge tone="neutral">{t(m.settingUp)}</Badge>
         <span className="k ml-auto">
-          {t(m.setupCardMeta, { manager: row.accountManager?.name ?? '', when: today ? `${t(m.today).toLowerCase()}, ${hhmm(row.createdAt)}` : hhmm(row.createdAt) })}
+          {t(m.setupCardMeta, { manager: row.accountManager?.name ?? '', when: today ? t(m.setupCardToday, { time: hhmm(row.createdAt) }) : hhmm(row.createdAt) })}
         </span>
       </div>
       <div className="flex items-center gap-2.5 px-[18px] pb-2.5">

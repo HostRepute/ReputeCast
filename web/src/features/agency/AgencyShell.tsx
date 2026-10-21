@@ -68,7 +68,7 @@ function AgencySidebar() {
   )
   return (
     <aside className="side" aria-label={t(m.sidebarLabel, { agency: agency?.name ?? '' })}>
-      <Link to="/w/$workspace/agency" params={{ workspace: slug }} className="home" aria-label="ReputeCast home">
+      <Link to="/w/$workspace/agency" params={{ workspace: slug }} className="home" aria-label={t(m.homeLabel)}>
         <LogoMark size={26} />
         <span className="brand-t">ReputeCast</span>
       </Link>

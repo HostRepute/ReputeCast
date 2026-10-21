@@ -10,11 +10,12 @@ import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { RoleBadge } from '@/features/access/parts'
 import { formatList, useT } from '@/i18n'
+import { count as num } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { useAgencyCan, useRefreshAgency } from './api'
 import { AgencyPage } from './AgencyShell'
 import { m } from './messages'
-import { calendarDate, ClientTile, dayMonth, PersonChip } from './parts'
+import { calendarDate, ClientTile, dayMonth, monthOf, monthYear as monthLabel, PersonChip } from './parts'
 import { rateText, usd } from './rate'
 import { m as um } from './usage.messages'
 
@@ -22,14 +23,6 @@ type View = Schemas['AgencyUsageView']
 type Row = Schemas['AgencyUsageRow']
 type Rate = Schemas['AgencyRate']
 type Search = { month?: string; open?: string }
-
-const num = (v: number) => v.toLocaleString('en-US')
-
-function monthLabel(month: string, style: 'long' | 'short' = 'long') {
-  const [y, mo] = month.split('-').map(Number)
-  const d = new Date(Date.UTC(y!, mo! - 1, 1))
-  return new Intl.DateTimeFormat('en-GB', { month: style, year: 'numeric', timeZone: 'UTC' }).format(d)
-}
 
 /** Agency › Usage (AgencyUsage): each client's month, the provider cost and what to rebill. */
 export function UsagePage() {
@@ -507,7 +500,7 @@ function RateDialog({ row, view, onClose }: { row: Row; view: View; onClose: () 
           <div className="rounded-lg border border-line bg-ground px-3 py-2.5 text-[13px]">
             {parts.length ? (
               <>
-                {t(um.atThisRate, { month: monthLabel(view.month, 'long').split(' ')[0]!, sum: parts.map(usd).join(' + ') })} <b>{usd(total)}</b>
+                {t(um.atThisRate, { month: monthOf(view.month), sum: parts.map(usd).join(' + ') })} <b>{usd(total)}</b>
               </>
             ) : (
               t(um.notBilledAtAll)

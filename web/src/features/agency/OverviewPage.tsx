@@ -7,7 +7,7 @@ import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { formatList, useT } from '@/i18n'
-import { ago } from '@/lib/format'
+import { ago, count, decimal } from '@/lib/format'
 import { useMediaQuery } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { AgencyPage } from './AgencyShell'
@@ -174,12 +174,12 @@ const streamNames: Record<string, typeof m.streamAutomations> = {
 }
 
 function pct(v: number) {
-  return Number.isInteger(v) ? String(v) : v.toFixed(1)
+  return Number.isInteger(v) ? String(v) : decimal(v, 1)
 }
 
 /** What an incident was, in a sentence: the card's title and detail. */
 export function incidentText(t: ReturnType<typeof useT>, i: AgencyIncident) {
-  const when = `${dayMonth(i.occurredAt)}, ${hhmm(i.occurredAt)}`
+  const when = t(m.when, { day: dayMonth(i.occurredAt), time: hhmm(i.occurredAt) })
   const streams = formatList([...new Set(i.failovers.map((f) => t(streamNames[f.stream] ?? m.streamAutomations)))])
   const to = i.failovers[0]?.to ?? ''
   switch (i.kind) {
@@ -476,7 +476,7 @@ function ClientRow({ row }: { row: AgencyClientRow }) {
   return (
     <tr>
       {first}
-      <td className="r num ag-hmd">{p.contacts ? p.contacts.toLocaleString('en-US') : t(m.dash)}</td>
+      <td className="r num ag-hmd">{p.contacts ? count(p.contacts) : t(m.dash)}</td>
       <td>{p.setup ? <SetupHealth row={row} pulse={p} /> : <HealthCell health={p.health} />}</td>
       <td className="nx8">
         <NextSend row={row} pulse={p} />
@@ -531,7 +531,7 @@ function NextSend({ row, pulse }: { row: AgencyClientRow; pulse: AgencyPulse }) 
       <span className="flex min-w-0 flex-col gap-0.5">
         <span className="font-semibold">{s.name}</span>
         <span className="k">
-          {t(m.nextSendLine, { when: sendWhen(s.sendAt, s.timezone), count: s.texts ? audienceText(t, s) : s.recipients.toLocaleString('en-US') })}
+          {t(m.nextSendLine, { when: sendWhen(s.sendAt, s.timezone), count: s.texts ? audienceText(t, s) : count(s.recipients) })}
         </span>
       </span>
     )
@@ -615,7 +615,7 @@ function PhoneClient({ row, agency }: { row: AgencyClientRow; agency?: boolean }
           </span>
           {incident ? (
             <span>
-              <Badge tone={incidentText(t, incident).tone}>{`${incidentText(t, incident).badge} · ${incidentShortest(incident)}`}</Badge>
+              <Badge tone={incidentText(t, incident).tone}>{`${incidentText(t, incident).badge} · ${incidentShortest(t, incident)}`}</Badge>
             </span>
           ) : p.approvals.length ? (
             <span>
@@ -632,6 +632,6 @@ function PhoneClient({ row, agency }: { row: AgencyClientRow; agency?: boolean }
   )
 }
 
-function incidentShortest(i: AgencyIncident) {
-  return i.kind === 'provider_down' ? `${i.provider ?? ''} down ${span(i.occurredAt, i.resolvedAt)}` : dayMonth(i.occurredAt)
+function incidentShortest(t: ReturnType<typeof useT>, i: AgencyIncident) {
+  return i.kind === 'provider_down' ? t(m.outageShortPlain, { provider: i.provider ?? '', span: span(i.occurredAt, i.resolvedAt) }) : dayMonth(i.occurredAt)
 }
