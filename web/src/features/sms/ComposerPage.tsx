@@ -17,8 +17,9 @@ import { formatList, T, useT, type MessageDescriptor } from '@/i18n'
 import { useDocumentTitle } from '@/lib/hooks'
 import { clock, count, dayMonthDate, dayMonthYear, monthName, money } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
-import { BudgetMeter, CountryName, countryName, price, regionLabel, regionSentence, throwIfForbidden } from './common'
+import { BudgetMeter, CountryName, countryName, holdWord, price, regionLabel, regionSentence, throwIfForbidden } from './common'
 import { m } from './composer.messages'
+import { m as sm } from './messages'
 import { fixEncoding, inGSM7, type OutsideKind } from './segments'
 import { findLinks, measure, renderWith } from './measure'
 import { EditorTools } from './EditorTools'
@@ -159,7 +160,7 @@ function Composer({ data }: { data: Campaign }) {
   return (
     <div className="smc">
       <a href="#main" className="skip">
-        Skip to content
+        {t(m.skip)}
       </a>
       <header className="smc-top">
         <ButtonLink iconOnly to="/w/$workspace/campaigns" params={{ workspace: slug }} aria-label={t(m.back)}>
@@ -315,7 +316,7 @@ function RouteBar({ data }: { data: Campaign }) {
       {data.routes.map((r) =>
         r.skipped ? (
           <span key={r.countries.join()} className="sms-pill" style={{ background: '#FFFBEB', borderColor: '#FCD34D', color: '#92400E' }}>
-            {t(m.routeSkipped, { region: regionLabel(r.countries), reason: r.skipped, count: count(r.recipients) })}
+            {t(m.routeSkipped, { region: regionLabel(r.countries), reason: holdWord(t, r.skipped), count: count(r.recipients) })}
           </span>
         ) : (
           <span key={r.countries.join()} className="sms-pill">
@@ -735,7 +736,7 @@ function Preview({ data, body }: { data: Campaign; body: string }) {
         ) : p ? (
           <>
             <Phone p={p} body={body} data={data} />
-            {p.skipped ? <Note tone="warn">{t(m.previewSkipped, { country: countryName(p.country), reason: p.skipped })}</Note> : null}
+            {p.skipped ? <Note tone="warn">{t(m.previewSkipped, { country: countryName(p.country), reason: holdWord(t, p.skipped) })}</Note> : null}
             <PreviewCaption data={data} p={p} />
           </>
         ) : (
@@ -825,7 +826,7 @@ function PreviewCaption({ data, p }: { data: Campaign; p: Schemas['SmsPreview'] 
         <CountryName code={p.country} />
         <span className="k">{t(m.ukNote, { region: regionSentence(ids[0]?.countries ?? [p.country]), sender: p.sender, provider: p.provider })}</span>
         <span className="k">
-          {t(m.priceIn, { country: countryName(p.country) })}: {t(m.perSegment, { price: price(p.price) })}
+          {t(m.priceIn, { country: countryName(p.country), price: price(p.price) })}
         </span>
       </div>
     )
@@ -870,7 +871,7 @@ function CostSection({ data }: { data: Campaign }) {
               <div className="cl">
                 <CountryName code={c.country} />
                 <span className="k" style={{ color: '#92400E' }}>
-                  <T msg={m.skippedLine} values={{ count: count(c.skipped), sender: c.sender, reason: c.skipReason ?? '', b: (x) => <b className="n">{x}</b> }} />
+                  <T msg={m.skippedLine} values={{ count: count(c.skipped), sender: c.sender, reason: holdWord(t, c.skipReason ?? ''), b: (x) => <b className="n">{x}</b> }} />
                 </span>
               </div>
               <div className="cr">
@@ -905,8 +906,8 @@ function CostSection({ data }: { data: Campaign }) {
       {data.pricedOn ? (
         <span className="k">
           {data.costs.some((c) => c.country === 'US' || c.country === 'CA')
-            ? t(m.pricedOnUs, { providers: possessive(data.priceProviders), date: dayMonthYear(data.pricedOn) })
-            : t(m.pricedOn, { providers: possessive(data.priceProviders), date: dayMonthYear(data.pricedOn) })}
+            ? t(m.pricedOnUs, { providers: possessive(data.priceProviders, t), date: dayMonthYear(data.pricedOn) })
+            : t(m.pricedOn, { providers: possessive(data.priceProviders, t), date: dayMonthYear(data.pricedOn) })}
         </span>
       ) : null}
     </Section>
@@ -914,8 +915,8 @@ function CostSection({ data }: { data: Campaign }) {
 }
 
 /** "Twilio's and Vonage's". */
-function possessive(names: string[]): string {
-  return formatList(names.map((n) => `${n}’s`))
+function possessive(names: string[], t: ReturnType<typeof useT>): string {
+  return formatList(names.map((provider) => t(sm.pricingOf, { provider })))
 }
 
 function BudgetSection({ data }: { data: Campaign }) {

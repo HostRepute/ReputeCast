@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { Avatar } from '@/components/ui/Avatar'
-import { t } from '@/i18n'
+import { getI18n, t } from '@/i18n'
+import { formatDate, formatDecimal, formatTime, monthLabel as regionMonth, type DateParts } from '@/i18n/regions'
 import { cn } from '@/lib/cn'
 import { getDisplayTimeZone } from '@/lib/format'
 import type { AgencyHealth, AgencyWorkspaceRef } from './api'
@@ -109,7 +110,15 @@ export function PersonChip({ name, color, size = 22 }: { name: string; color?: s
 }
 
 // Times. The Agency area shows the agency's time zone (its workspace's);
-// a client's send in another zone says so ("3 Nov, 08:00 Pacific").
+// a client's send in another zone says so ("3 Nov, 08:00 Pacific"). With
+// ReputeCast standard they're written as the boards write them; another
+// region format (Account & security › Language & region) writes them its
+// own way, as lib/format does.
+
+/** ReputeCast standard: the boards' formats, untouched. */
+function standard() {
+  return getI18n().regionFormat === 'standard'
+}
 
 const fmts = new Map<string, Intl.DateTimeFormat>()
 function fmt(zone: string | undefined, opts: Intl.DateTimeFormatOptions) {
@@ -135,18 +144,36 @@ function partsOf(d: Date, tz: string | undefined, opts: Intl.DateTimeFormatOptio
   return out
 }
 
+const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+/** A moment's fields in the zone, for the region formats. */
+function zoned(d: Date, tz: string | undefined): DateParts {
+  const p = partsOf(d, tz, { year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'short', hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23' })
+  return {
+    year: Number(p.year),
+    month: Number(p.month),
+    day: Number(p.day),
+    weekday: Math.max(0, weekdays.indexOf(p.weekday ?? '')),
+    hour: Number(p.hour) % 24,
+    minute: Number(p.minute),
+    second: Number(p.second),
+  }
+}
+
 function offsetOf(d: Date, tz: string | undefined) {
   const p = partsOf(d, tz, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
   return Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour) % 24, Number(p.minute)) - Math.floor(d.getTime() / 60000) * 60000
 }
 
-/** The zone's name when it isn't the agency's: "Pacific". */
+/** The zone's name when it isn't the agency's: "Pacific"; in the app language otherwise ("Giờ Thái Bình Dương"). */
 export function zoneSuffix(d: Date, tz: string | undefined): string {
   const here = getDisplayTimeZone()
   if (!tz || tz === here || offsetOf(d, tz) === offsetOf(d, here)) return ''
+  const { locale } = getI18n()
+  const english = locale.startsWith('en')
   try {
-    const name = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'longGeneric' }).formatToParts(d).find((p) => p.type === 'timeZoneName')?.value ?? ''
-    return name.replace(/ Time$/, '')
+    const name = new Intl.DateTimeFormat(english ? 'en-US' : locale, { timeZone: tz, timeZoneName: 'longGeneric' }).formatToParts(d).find((p) => p.type === 'timeZoneName')?.value ?? ''
+    return english ? name.replace(/ Time$/, '') : name
   } catch {
     return tz
   }
@@ -164,25 +191,62 @@ export function isToday(d: Date | string, now = new Date()) {
 
 /** "17:00" in the zone. */
 export function hhmm(d: Date | string, tz?: string) {
+  const { regionFormat, hourCycle } = getI18n()
+  if (regionFormat !== 'standard' || hourCycle !== 'h23') return formatTime(regionFormat, zoned(new Date(d), tz), hourCycle)
   const p = partsOf(new Date(d), tz, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
   return `${p.hour}:${p.minute}`
 }
 
 /** "16 Oct" in the zone. */
 export function dayMonth(d: Date | string, tz?: string) {
+  if (!standard()) return formatDate(getI18n().regionFormat, 'dayMonth', zoned(new Date(d), tz))
   const p = partsOf(new Date(d), tz, { day: 'numeric', month: 'short' })
   return `${p.day} ${p.month}`
 }
 
 /** "4 Mar 2024": a calendar date, stored at midnight UTC. */
 export function calendarDate(d: Date | string) {
+  if (!standard()) return formatDate(getI18n().regionFormat, 'date', zoned(new Date(d), 'UTC'))
   return `${dayMonth(d, 'UTC')} ${new Date(d).getUTCFullYear()}`
+}
+
+/** "16 Oct 2026": a day with its year, in the agency's zone. */
+export function dayMonthYear(d: Date | string) {
+  if (!standard()) return formatDate(getI18n().regionFormat, 'date', zoned(new Date(d), undefined))
+  return `${dayMonth(d)} ${new Date(d).getFullYear()}`
 }
 
 /** "Thu 16 Oct" in the zone. */
 export function weekdayDayMonth(d: Date | string, tz?: string) {
+  if (!standard()) return formatDate(getI18n().regionFormat, 'shortDate', zoned(new Date(d), tz))
   const p = partsOf(new Date(d), tz, { weekday: 'short', day: 'numeric', month: 'short' })
   return `${p.weekday} ${p.day} ${p.month}`
+}
+
+/**
+ * A month label starts the line it's in (a select's choice, a title):
+ * Vietnamese writes it in lower case ("tháng 10"), so it takes its capital
+ * there, as the sentence case of the glossary asks.
+ */
+function labelCase(s: string) {
+  return s.charAt(0).toLocaleUpperCase(getI18n().locale) + s.slice(1)
+}
+
+/** "October": a month ("2026-10") on its own. */
+export function monthOf(month: string) {
+  const [y, mo] = month.split('-').map(Number)
+  if (!standard()) return labelCase(regionMonth(getI18n().regionFormat, mo!, 'long'))
+  return new Intl.DateTimeFormat('en-GB', { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(y!, mo! - 1, 1)))
+}
+
+/** "October 2026": a month ("2026-10") with its year. */
+export function monthYear(month: string, style: 'long' | 'short' = 'long') {
+  const [y, mo] = month.split('-').map(Number)
+  const d = new Date(Date.UTC(y!, mo! - 1, 1))
+  const { regionFormat } = getI18n()
+  // ReputeCast standard writes "October 2026"; other region formats as CLDR does ("Tháng 10 năm 2026").
+  if (regionFormat === 'standard') return new Intl.DateTimeFormat('en-GB', { month: style, year: 'numeric', timeZone: 'UTC' }).format(d)
+  return labelCase(new Intl.DateTimeFormat(regionFormat, { month: style, year: 'numeric', timeZone: 'UTC' }).format(d))
 }
 
 /**
@@ -230,5 +294,6 @@ export function span(from: string, to?: string) {
 
 /** "1,451.74" money without the currency sign, as the board writes amounts. */
 export function amount(v: number) {
+  if (!standard()) return formatDecimal(getI18n().regionFormat, v, 2)
   return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }

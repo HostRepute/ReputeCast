@@ -10,6 +10,7 @@ import { AuthHeading, PasskeyGlyph, SocialButtons } from '@/features/auth/AuthPa
 import { m as im } from '@/features/auth/invite.messages'
 import { passkeyErrorMessage, registerPasskey } from '@/features/auth/passkey'
 import { useT } from '@/i18n'
+import { roleName } from '@/lib/roles'
 import { meQueryKey } from '@/lib/session'
 import { m } from './messages'
 import { dayMonth } from './parts'
@@ -44,11 +45,11 @@ export function ClientInviteAccept({ v, token, onJoined }: { v: View; token: str
   const pwErr = useId()
   const pwHint = useId()
   const min = v.passwordPolicy.minLength
-  const title = t(m.inviteTitle, { inviter: v.inviterName, workspace: v.workspaceName, role: v.roleName })
+  const title = t(m.inviteTitle, { inviter: v.inviterName, workspace: v.workspaceName, role: roleName({ name: v.roleName }) })
 
   const joined = (data: Schemas['InvitationAccepted']) => {
     if (data.hasSecondFactor) {
-      toast({ kind: 'success', title: t(im.joinedToast, { workspace: data.workspaceName }), detail: t(im.joinedDetail, { role: data.roleName }) })
+      toast({ kind: 'success', title: t(im.joinedToast, { workspace: data.workspaceName }), detail: t(im.joinedDetail, { role: roleName({ name: data.roleName }) }) })
       void navigate({ to: '/w/$workspace', params: { workspace: data.workspace } })
     } else onJoined(data)
   }
