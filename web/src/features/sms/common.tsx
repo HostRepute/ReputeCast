@@ -253,6 +253,15 @@ const capShort: Record<string, MessageDescriptor> = {
   registration: m.capShortRegistration,
 }
 
+/** With a note, "Registration status via API" reads "Registration status · set by hand". */
+const capNoted: Record<string, MessageDescriptor> = {
+  registration: m.capNotedRegistration,
+  pricing: m.capNotedPricing,
+}
+const capNotedShort: Record<string, MessageDescriptor> = {
+  registration: m.capNotedShortRegistration,
+}
+
 /**
  * A capability from an adapter's manifest (`.cap`): yes, partial or no.
  * `short` is the catalog's wording ("Receipts", "Keywords").
@@ -260,20 +269,22 @@ const capShort: Record<string, MessageDescriptor> = {
 export function Capability({ badge, short }: { badge: Schemas['Badge']; short?: boolean }) {
   const t = useT()
   const names = short && capShort[badge.capability] ? capShort : capNames
-  const label = names[badge.capability] ? t(names[badge.capability]!) : badge.capability
-  const text = badge.note ? t(m.capWithNote, { label: capLabelForNote(label), note: badge.note }) : label
+  const noted = badge.note ? (short && capShort[badge.capability] ? capNotedShort : capNoted)[badge.capability] : undefined
+  const label = noted ? t(noted) : names[badge.capability] ? t(names[badge.capability]!) : badge.capability
+  const text = badge.note ? t(m.capWithNote, { label, note: badge.note }) : label
   const cls = { yes: 'y', partial: 'p', no: 'n' }[badge.support]
   return (
     <span className={`sms-cap ${cls}`}>
-      {badge.support === 'no' ? <span className="vh">{t(m.capNotSupported)}</span> : null}
-      {text}
+      {badge.support === 'no' ? (
+        <>
+          <span className="vh">{t(m.capNotSupported, { capability: text })}</span>
+          <span aria-hidden="true">{text}</span>
+        </>
+      ) : (
+        text
+      )}
     </span>
   )
-}
-
-/** With a note, "Registration status via API" reads "Registration status · set by hand". */
-function capLabelForNote(label: string): string {
-  return label.replace(/ via API$/, '')
 }
 
 /** The capabilities, in the manifest's order. */

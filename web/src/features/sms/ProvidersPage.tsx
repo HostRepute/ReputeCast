@@ -244,9 +244,9 @@ function sendersLine(card: Card, t: ReturnType<typeof useT>): string {
   // Toll-free first, as people say it.
   numbers.sort((a, b) => (a === 'toll_free' ? -1 : b === 'toll_free' ? 1 : 0))
   if (numbers.length) {
-    const words = numbers.map((k) => t(kindWord[k]))
-    const first = words[0]!.charAt(0).toUpperCase() + words[0]!.slice(1)
-    parts.push(t(m.sendersNumbers, { kinds: formatList([first, ...words.slice(1)]), count: card.senderCount - card.senderIds.length }))
+    // Sentence case for the line, wherever the language puts the kinds.
+    const line = t(m.sendersNumbers, { kinds: formatList(numbers.map((k) => t(kindWord[k]))), count: card.senderCount - card.senderIds.length })
+    parts.push(line.charAt(0).toUpperCase() + line.slice(1))
   }
   const ids = [...new Set(card.senderIds)]
   if (ids.length) parts.push(t(m.sendersIds, { ids: formatList(ids), count: card.senderIdCountries }))

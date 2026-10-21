@@ -2,6 +2,7 @@ import { defineMessages } from '@/i18n'
 
 /** The SMS composer (SmsComposer, SmsComposerStates). */
 export const m = defineMessages('smsComposer', {
+  skip: 'Skip to content',
   back: 'Back to campaigns',
   campaigns: 'Campaigns',
   kind: 'SMS campaign',

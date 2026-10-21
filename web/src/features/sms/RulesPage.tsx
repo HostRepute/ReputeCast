@@ -1241,7 +1241,7 @@ function ShortDomain({ data, ro }: { data: Rules; ro: boolean }) {
             </thead>
             <tbody>
               <tr>
-                <td className="mono">CNAME</td>
+                <td className="mono">{'CNAME'}</td>
                 <td className="mono">{sub}</td>
                 <td className="mono">{d.target}</td>
               </tr>

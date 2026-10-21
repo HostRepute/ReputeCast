@@ -19,6 +19,7 @@ import { clock, count, dayMonthDate, dayMonthYear, monthName, money } from '@/li
 import { useWorkspace } from '@/lib/session'
 import { BudgetMeter, CountryName, countryName, price, regionLabel, regionSentence, throwIfForbidden } from './common'
 import { m } from './composer.messages'
+import { m as sm } from './messages'
 import { fixEncoding, inGSM7, type OutsideKind } from './segments'
 import { findLinks, measure, renderWith } from './measure'
 import { EditorTools } from './EditorTools'
@@ -159,7 +160,7 @@ function Composer({ data }: { data: Campaign }) {
   return (
     <div className="smc">
       <a href="#main" className="skip">
-        Skip to content
+        {t(m.skip)}
       </a>
       <header className="smc-top">
         <ButtonLink iconOnly to="/w/$workspace/campaigns" params={{ workspace: slug }} aria-label={t(m.back)}>
@@ -905,8 +906,8 @@ function CostSection({ data }: { data: Campaign }) {
       {data.pricedOn ? (
         <span className="k">
           {data.costs.some((c) => c.country === 'US' || c.country === 'CA')
-            ? t(m.pricedOnUs, { providers: possessive(data.priceProviders), date: dayMonthYear(data.pricedOn) })
-            : t(m.pricedOn, { providers: possessive(data.priceProviders), date: dayMonthYear(data.pricedOn) })}
+            ? t(m.pricedOnUs, { providers: possessive(data.priceProviders, t), date: dayMonthYear(data.pricedOn) })
+            : t(m.pricedOn, { providers: possessive(data.priceProviders, t), date: dayMonthYear(data.pricedOn) })}
         </span>
       ) : null}
     </Section>
@@ -914,8 +915,8 @@ function CostSection({ data }: { data: Campaign }) {
 }
 
 /** "Twilio's and Vonage's". */
-function possessive(names: string[]): string {
-  return formatList(names.map((n) => `${n}’s`))
+function possessive(names: string[], t: ReturnType<typeof useT>): string {
+  return formatList(names.map((provider) => t(sm.pricingOf, { provider })))
 }
 
 function BudgetSection({ data }: { data: Campaign }) {

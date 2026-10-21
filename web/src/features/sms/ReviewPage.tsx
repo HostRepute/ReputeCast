@@ -18,6 +18,7 @@ import { formatList, T, useT, type MessageDescriptor } from '@/i18n'
 import { ago, clock, count, dayMonthDate, dayMonthYear, inZone, monthName, money } from '@/lib/format'
 import { useMe, useWorkspace } from '@/lib/session'
 import { BudgetMeter, CountryChips, price, providerColor, regionSentence, throwIfForbidden, useRefreshSms } from './common'
+import { m as sm } from './messages'
 import { m } from './review.messages'
 import './sms.css'
 
@@ -810,7 +811,7 @@ function CostCard({ data }: { data: Review }) {
   const t = useT()
   const month = monthName(data.budget.month, 'long')
   const b = data.budget
-  const providers = formatList([...new Set(data.routes.map((r) => `${r.provider}’s`))])
+  const providers = formatList([...new Set(data.routes.map((r) => r.provider))].map((provider) => t(sm.pricingOf, { provider })))
   return (
     <Card title={t(m.costTitle)} lead={data.pricedOn ? t(m.costLead, { providers, date: dayMonthYear(data.pricedOn) }) : undefined}>
       {data.costs.map((c) => (

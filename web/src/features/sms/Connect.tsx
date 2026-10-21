@@ -61,8 +61,14 @@ function Stepper({ current, lines }: { current: number; lines?: Record<number, s
             </span>
             <div>
               <div className="font-semibold">
-                {done ? <span className="vh">{t(m.done)}</span> : null}
-                {t(d.title)}
+                {done ? (
+                  <>
+                    <span className="vh">{t(m.done, { step: t(d.title) })}</span>
+                    <span aria-hidden="true">{t(d.title)}</span>
+                  </>
+                ) : (
+                  t(d.title)
+                )}
               </div>
               {sub ? <div className="k">{sub}</div> : null}
             </div>
