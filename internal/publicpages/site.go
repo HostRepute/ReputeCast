@@ -324,6 +324,7 @@ func (h *Handler) siteViewIn(ctx context.Context, s *site, pl pageLang) (*siteVi
 	}
 	if !s.preview {
 		v.Scripts = []string{s.links.Static("site.js?v=" + h.siteJSVersion())}
+		v.Scripts = append(v.Scripts, h.pushScripts(ctx, s, pushHost(s))...)
 	}
 	if !frame.Index {
 		v.Robots = "noindex, follow"

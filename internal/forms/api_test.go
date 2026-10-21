@@ -163,8 +163,9 @@ func TestFormsBuilderAPI(t *testing.T) {
 
 	o := overview(t, c)
 	// The pages and products sample (X19) adds the forms its pages use:
-	// DNS checklist, Launch Kit waitlist and DMARC live.
-	if len(o.Forms) != 6 || o.Forms[0].Name != "Newsletter signup" || o.Forms[1].Name != "Footer mini form" || o.Forms[2].Name != "Beta apply" {
+	// DNS checklist, Launch Kit waitlist and DMARC live; web push (X22) its
+	// two push prompts, listed with the forms.
+	if len(o.Forms) != 8 || o.Forms[0].Name != "Newsletter signup" || o.Forms[1].Name != "Footer mini form" || o.Forms[2].Name != "Beta apply" {
 		t.Fatalf("forms: %+v", o.Forms)
 	}
 	if o.Branding.PublisherName != "Acme" || o.Branding.Accent != "#4338CA" || o.Branding.Logo == nil || o.Branding.Logo.Name != "acme-mark.svg" {
@@ -221,7 +222,12 @@ func TestFormsBuilderAPI(t *testing.T) {
 	in["redirectUrl"], in["afterSubmit"] = "javascript:alert(1)", "redirect"
 	c.Do("PUT", api+"/forms/"+signup, in).MustStatus(t, 422)
 
-	// Create, rename, pause, delete.
+	// Create, rename, pause, delete. The demo's history already has entries
+	// of its own (the push prompts were created there, X22): count new ones.
+	base := map[string]int{}
+	for _, a := range []string{"form.create", "form.rename", "form.pause", "form.delete"} {
+		base[a] = audits(t, env, a)
+	}
 	var created formJSON
 	c.Do("POST", api+"/forms", map[string]any{"name": "Pricing page", "kind": "popup"}).MustStatus(t, 201).JSON(t, &created)
 	if created.Status != "draft" || created.Slug != "pricing-page" || !strings.HasPrefix(created.PublicID, "frm_") || created.ConsentVersion != 1 || !created.DoubleOptIn {
@@ -242,8 +248,8 @@ func TestFormsBuilderAPI(t *testing.T) {
 	}
 	c.Do("DELETE", api+"/forms/"+created.ID, nil).MustStatus(t, 204)
 	c.Do("GET", api+"/forms/"+created.ID, nil).MustStatus(t, 404)
-	for _, a := range []string{"form.create", "form.rename", "form.pause", "form.delete"} {
-		if audits(t, env, a) != 1 {
+	for a, n := range base {
+		if audits(t, env, a) != n+1 {
 			t.Errorf("audit entry %s missing", a)
 		}
 	}

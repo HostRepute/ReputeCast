@@ -32,9 +32,10 @@ func TestListCampaigns(t *testing.T) {
 		Total  int64 `json:"total"`
 		Counts struct{ All, Drafts, Scheduled, Sending, Sent int64 }
 	}
-	// Eleven rows: the board's nine, and the two text campaigns (SMS, X21, brief §4)
-	// that sort before October Product Update.
-	c.Do("GET", "/workspaces/acme-newsletter/campaigns?pageSize=11", nil).MustStatus(t, 200).JSON(t, &list)
+	// Thirteen rows: the board's nine, the two text campaigns (SMS, X21, brief §4),
+	// and the WhatsApp draft and the push notification (X22) that sort before
+	// October Product Update.
+	c.Do("GET", "/workspaces/acme-newsletter/campaigns?pageSize=13", nil).MustStatus(t, 200).JSON(t, &list)
 	// 48 campaigns of the Campaigns board plus the approval sample data:
 	// November Product Update (waiting for approval), two of Daniel's drafts
 	// and the Beta Program launch invite (sent). The integrations hub adds
@@ -43,10 +44,12 @@ func TestListCampaigns(t *testing.T) {
 	// digest's sent issues #1 and #2 are campaigns too, and so is the survey's
 	// email, Beta Program: October check-in, sent. SMS (X21, brief §4) adds a text
 	// campaign sent, "Summit: 8 days to go", and a draft, "Summit: doors open".
-	if list.Total != 59 || list.Counts.All != 59 || list.Counts.Drafts != 8 || list.Counts.Scheduled != 1 || list.Counts.Sent != 50 {
+	// Web push (X22) adds a sent notification, "New post: Feature flags at
+	// scale", and WhatsApp a draft, "Summit: see you tomorrow".
+	if list.Total != 61 || list.Counts.All != 61 || list.Counts.Drafts != 9 || list.Counts.Scheduled != 1 || list.Counts.Sent != 51 {
 		t.Fatalf("counts: total %d %+v", list.Total, list.Counts)
 	}
-	if len(list.Items) != 11 {
+	if len(list.Items) != 13 {
 		t.Fatalf("page size: %d", len(list.Items))
 	}
 	first := list.Items[0]
@@ -86,7 +89,7 @@ func TestListCampaigns(t *testing.T) {
 	}
 
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns?status=drafts", nil).MustStatus(t, 200).JSON(t, &list)
-	if list.Total != 8 {
+	if list.Total != 9 {
 		t.Fatalf("drafts: %d", list.Total)
 	}
 	// The channel chips: SMS has the two text campaigns.

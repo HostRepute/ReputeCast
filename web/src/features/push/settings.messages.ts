@@ -1,0 +1,30 @@
+import { defineMessages } from '@/i18n'
+
+/** Settings › Providers: push and WhatsApp in the summary (brief §6, X22). */
+export const m = defineMessages('channelSettingsSummary', {
+  pushTitle: 'Web push',
+  pushBuiltIn: 'Built in · no provider to sign up for',
+  keys: 'Keys',
+  keysCreated: 'Created {date} · {name}',
+  sites: 'Sites',
+  noSites: 'No site yet',
+  subscribers: 'Subscribers',
+  subscribersLine: '{total} · {linked} linked to contacts',
+  cap: 'Frequency cap',
+  capLine: '{n, plural, one {# notification} other {# notifications}} a day per subscriber',
+  pushFoot: 'Keys, sites, prompts, quiet hours and the frequency cap live on Sending providers › Push.',
+  pushOpen: 'Open push setup',
+  waTitle: 'WhatsApp',
+  waProvider: 'Meta’s WhatsApp Cloud API',
+  business: 'Business',
+  businessLine: '{name} · {number}',
+  quality: 'Quality rating',
+  limit: 'Messaging limit',
+  limitLine: '{n, plural, one {# person} other {# people}} a day',
+  templates: 'Templates',
+  templatesLine: '{approved} approved · {pending} pending · {rejected} rejected',
+  consent: 'WhatsApp consent',
+  consentLine: '{n, plural, one {# person} other {# people}}',
+  waFoot: 'The account, templates, the rate card and events live on Sending providers › WhatsApp.',
+  waOpen: 'Open WhatsApp',
+})

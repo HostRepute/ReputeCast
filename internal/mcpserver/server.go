@@ -149,6 +149,7 @@ func (s *Service) newServer(log *slog.Logger) *mcp.Server {
 	s.addX17Tools(server)
 	s.addGrowTools(server)
 	s.addSmsTools(server)
+	s.addChannelTools(server)
 	s.addResources(server)
 	s.addPrompts(server)
 	return server

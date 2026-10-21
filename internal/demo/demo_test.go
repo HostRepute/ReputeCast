@@ -50,8 +50,10 @@ func TestSeed(t *testing.T) {
 	// accessibility sample's Weekly Digest #143, the recurring digest's
 	// template and sent issues #1 and #2, and the survey's email, Beta
 	// Program: October check-in (polls and surveys). SMS adds the sent
-	// "Summit: 8 days to go" and the draft "Summit: doors open".
-	if campaigns != 60 {
-		t.Fatalf("want 60 demo campaigns, got %d", campaigns)
+	// "Summit: 8 days to go" and the draft "Summit: doors open". Web push
+	// adds the sent "New post: Feature flags at scale" and WhatsApp the draft
+	// "Summit: see you tomorrow".
+	if campaigns != 62 {
+		t.Fatalf("want 62 demo campaigns, got %d", campaigns)
 	}
 }

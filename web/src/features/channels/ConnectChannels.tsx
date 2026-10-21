@@ -7,8 +7,8 @@ import { m } from './messages'
 
 /**
  * The connect wizard's channel choice (SmsStates › step 1): Email · SMS ·
- * and each channel this build has. Email and SMS open their catalogs; a
- * channel without one here yet stays off.
+ * and each channel this build has. Email and SMS open their catalogs; push
+ * and WhatsApp open their own sections, which set them up.
  */
 export function ConnectChannels({ current }: { current: Channel }) {
   const t = useT()
@@ -20,11 +20,14 @@ export function ConnectChannels({ current }: { current: Channel }) {
   const go = (c: Channel) => {
     if (c === 'email') void navigate({ to: '/w/$workspace/providers/connect', params: { workspace: slug } })
     if (c === 'sms') void navigate({ to: '/w/$workspace/providers/connect/sms', params: { workspace: slug } })
+    // Push and WhatsApp set up in their own sections (X22).
+    if (c === 'push') void navigate({ to: '/w/$workspace/providers/push', params: { workspace: slug } })
+    if (c === 'whatsapp') void navigate({ to: '/w/$workspace/providers/whatsapp', params: { workspace: slug } })
   }
   return (
     <div className="seg" role="group" aria-label={t(m.switchLabel)}>
       {channels.map((c) => (
-        <button key={c.channel} type="button" aria-pressed={c.channel === current} disabled={c.channel !== 'email' && c.channel !== 'sms'} onClick={() => go(c.channel)}>
+        <button key={c.channel} type="button" aria-pressed={c.channel === current} onClick={() => go(c.channel)}>
           {channelIcon[c.channel]}
           {t(channelName[c.channel])}
         </button>

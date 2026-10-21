@@ -23,6 +23,64 @@ import (
 // NodeSMS is the "Send SMS" step.
 const NodeSMS = "sms"
 
+// NodePush and NodeWhatsApp are the "Send push" and "Send WhatsApp" steps
+// (design expansion phase 8, X22): internal/push and internal/whatsapp
+// send them through the same registry.
+const (
+	NodePush     = "push"
+	NodeWhatsApp = "whatsapp"
+)
+
+// AutomationPushStep is a "Send push" step: a notification to the
+// contact's linked browser subscriptions. It's skipped when the contact
+// has none.
+type AutomationPushStep struct {
+	Title   string `json:"title,omitempty" maxLength:"200"`
+	Message string `json:"message,omitempty" maxLength:"500"`
+	// Link is what the notification opens; Button an optional button to it.
+	Link   string `json:"link,omitempty" maxLength:"2000"`
+	Button string `json:"button,omitempty" maxLength:"40"`
+	// ExpiryMinutes is how long the push services keep it for an offline
+	// browser (default 4 hours).
+	ExpiryMinutes int `json:"expiryMinutes,omitempty" minimum:"0" maximum:"40320"`
+	// Outside quiet hours: "wait" for the window (default) or "skip".
+	Outside string `json:"outside,omitempty" enum:"wait,skip,"`
+}
+
+// AutomationWhatsAppStep is a "Send WhatsApp" step: an approved template
+// (any time), or free text inside the 24-hour customer service window.
+type AutomationWhatsAppStep struct {
+	// Mode is "template" (default) or "text".
+	Mode string `json:"mode,omitempty" enum:"template,text,"`
+	// Template and Language name an approved template; Variables fill its
+	// {{n}} from contact fields with fallbacks.
+	Template  string                  `json:"template,omitempty" maxLength:"512"`
+	Language  string                  `json:"language,omitempty" maxLength:"16"`
+	Variables []AutomationWhatsAppVar `json:"variables,omitempty" maxItems:"20"`
+	// Text is free text, sent only inside the window.
+	Text string `json:"text,omitempty" maxLength:"1000"`
+	// OutsideWindow, for free text: "skip" (default), or "template" to
+	// send FallbackTemplate instead.
+	OutsideWindow    string `json:"outsideWindow,omitempty" enum:"skip,template,"`
+	FallbackTemplate string `json:"fallbackTemplate,omitempty" maxLength:"512"`
+	// ConsentListID is the list whose WhatsApp consent the step needs:
+	// contacts without it are skipped. The rule can't be removed.
+	ConsentListID string `json:"consentListId,omitempty" maxLength:"40"`
+	// Outside quiet hours: "wait" for the window (default) or "skip".
+	Outside string `json:"outside,omitempty" enum:"wait,skip,"`
+}
+
+// AutomationWhatsAppVar maps a template variable to a contact field or a
+// fixed text.
+type AutomationWhatsAppVar struct {
+	Key string `json:"key" maxLength:"8"`
+	// Source is "field" or "text".
+	Source   string `json:"source" enum:"field,text"`
+	Field    string `json:"field,omitempty" maxLength:"64"`
+	Text     string `json:"text,omitempty" maxLength:"500"`
+	Fallback string `json:"fallback,omitempty" maxLength:"500"`
+}
+
 // Channel conditions of branches, filters and goals.
 const (
 	// CondSMSConsent: the contact has SMS consent on the condition's list
@@ -131,7 +189,7 @@ func channelStep(nodeType string) (ChannelStep, bool) {
 }
 
 // isChannelNode reports whether a step is sent by a channel's package.
-func isChannelNode(t string) bool { return t == NodeSMS }
+func isChannelNode(t string) bool { return t == NodeSMS || t == NodePush || t == NodeWhatsApp }
 
 // isChannelCondition reports whether a condition is answered by a channel.
 func isChannelCondition(kind string) bool {
@@ -195,6 +253,30 @@ func checkChannelNode(n AutomationNode, listExists func(string) bool) []ChannelI
 			bad("missing_text", "Write the text.")
 		case st.ConsentListID == "":
 			bad("missing_ref", "Pick the list whose SMS consent the step needs.")
+		case !listExists(st.ConsentListID):
+			bad("missing_ref", "The step's consent list was deleted. Pick another list.")
+		}
+	}
+	if n.Type == NodePush {
+		st := n.Data.Push
+		switch {
+		case st == nil || strings.TrimSpace(st.Title) == "":
+			bad("missing_text", "Write the notification's title.")
+		case strings.TrimSpace(st.Link) == "":
+			bad("missing_link", "Add the address the notification opens.")
+		}
+	}
+	if n.Type == NodeWhatsApp {
+		st := n.Data.WhatsApp
+		switch {
+		case st == nil:
+			bad("missing_template", "Pick an approved template.")
+		case st.Mode == "text" && strings.TrimSpace(st.Text) == "":
+			bad("missing_text", "Write the text.")
+		case st.Mode != "text" && strings.TrimSpace(st.Template) == "":
+			bad("missing_template", "Pick an approved template.")
+		case st.ConsentListID == "":
+			bad("missing_ref", "Pick the list whose WhatsApp consent the step needs.")
 		case !listExists(st.ConsentListID):
 			bad("missing_ref", "The step's consent list was deleted. Pick another list.")
 		}

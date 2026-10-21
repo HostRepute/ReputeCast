@@ -87,7 +87,7 @@ func (h *Handler) resolveForm(ctx context.Context, s *site, slug string, preview
 	if slug == "" {
 		if id := s.set.HostedFormID(); id != nil {
 			f, err := h.Q.FormGet(ctx, store.FormGetParams{WorkspaceID: s.ws.ID, ID: *id})
-			if err == nil && (f.Status != forms.StatusDraft || preview) {
+			if err == nil && f.Kind != forms.KindPush && (f.Status != forms.StatusDraft || preview) {
 				return forms.ConfigOf(f), true, nil
 			}
 			if err != nil && !errors.Is(err, pgx.ErrNoRows) {
@@ -101,7 +101,8 @@ func (h *Handler) resolveForm(ctx context.Context, s *site, slug string, preview
 		return forms.BuiltinForm(s.ws, s.set.Branding.PublisherName, lists), true, nil
 	}
 	f, err := h.Q.FormBySlug(ctx, store.FormBySlugParams{WorkspaceID: s.ws.ID, Slug: slug})
-	if errors.Is(err, pgx.ErrNoRows) || (err == nil && f.Status == forms.StatusDraft && !preview) {
+	// Push prompts (X22) are forms that never render as a signup page.
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && (f.Kind == forms.KindPush || f.Status == forms.StatusDraft && !preview)) {
 		return forms.Config{}, false, errNoForm
 	}
 	if err != nil {
@@ -645,6 +646,9 @@ func (h *Handler) challengePost(w http.ResponseWriter, r *http.Request) {
 			return forms.Config{}, err
 		}
 		f, err := h.Q.FormGet(ctx, store.FormGetParams{WorkspaceID: s.ws.ID, ID: fid})
+		if err == nil && f.Kind == forms.KindPush {
+			err = pgx.ErrNoRows
+		}
 		if err != nil {
 			return forms.Config{}, err
 		}
@@ -665,6 +669,10 @@ func (h *Handler) challengePost(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) embedForm(ctx context.Context, s *site, publicID string) (forms.Config, error) {
 	f, err := h.Q.FormByPublicID(ctx, store.FormByPublicIDParams{WorkspaceID: s.ws.ID, PublicID: publicID})
+	if err == nil && f.Kind == forms.KindPush {
+		// A push prompt loads with /push/v1/prompt.js, never as a form.
+		err = pgx.ErrNoRows
+	}
 	if err != nil {
 		return forms.Config{}, err
 	}

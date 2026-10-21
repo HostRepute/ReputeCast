@@ -41,6 +41,9 @@ const search = z.object({
   paidTier: z.string().uuid().optional().catch(undefined),
   /** Members of the website: contacts who signed in to it (X18). */
   signedIn: z.boolean().optional().catch(undefined),
+  /** A linked push subscription, and WhatsApp consent on a list (X22). */
+  pushSubscribed: z.boolean().optional().catch(undefined),
+  whatsAppConsent: z.boolean().optional().catch(undefined),
   /** Buyers of digital products (X19): any, or a product's id. */
   bought: boughtParam,
   /** Store customers and what they spent in the stores (X20). */

@@ -1,0 +1,249 @@
+/* ReputeCast push prompt: drawn inside its own shadow root, in the
+   publisher's colour (--rc-accent). */
+:host,
+.rc,
+.bell {
+  --accent: var(--rc-accent, #4338ca);
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: #0b1220;
+}
+.rc {
+  position: fixed;
+  z-index: 2147483000;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+  box-sizing: border-box;
+  pointer-events: none;
+  animation: rc-rise 0.24s ease-out;
+}
+.card {
+  pointer-events: auto;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 640px;
+  background: #fff;
+  border: 1px solid #e3e6eb;
+  border-radius: 12px;
+  box-shadow: 0 -6px 24px rgba(11, 18, 32, 0.14);
+  padding: 12px 14px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.ic {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  flex: none;
+  object-fit: cover;
+}
+.mark {
+  background: #0b1220;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+}
+.tx {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.tx b {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.tx span {
+  font-size: 12.5px;
+  color: #4b5563;
+  line-height: 1.45;
+}
+.bt {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+button.no,
+button.yes {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button.no {
+  background: #fff;
+  border: 1px solid #c9ced6;
+  color: #0b1220;
+}
+button.no:hover {
+  background: #f3f4f6;
+}
+button.yes {
+  padding: 0 16px;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: #fff;
+}
+button.yes:hover {
+  filter: brightness(0.92);
+}
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* A centred card over a dimmed page. */
+.rc.dialog {
+  inset: 0;
+  bottom: auto;
+  height: 100%;
+  align-items: center;
+  background: rgba(11, 18, 32, 0.32);
+  pointer-events: auto;
+}
+.rc.dialog .card {
+  max-width: 400px;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 18px;
+  box-shadow: 0 18px 48px rgba(11, 18, 32, 0.22);
+}
+.rc.dialog .tx {
+  flex: none;
+}
+.rc.dialog .bt {
+  align-self: stretch;
+  justify-content: flex-end;
+}
+/* The bell: a round button in a corner, and its card above it. */
+.bell {
+  position: fixed;
+  z-index: 2147483000;
+  right: 20px;
+  bottom: 20px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(11, 18, 32, 0.24);
+  cursor: pointer;
+}
+.bell.left {
+  right: auto;
+  left: 20px;
+}
+.rc.bell-card,
+.rc.bell {
+  justify-content: flex-end;
+  bottom: 84px;
+}
+/* iPhone and iPad: the Home Screen steps. */
+.rc.ios .card {
+  max-width: 360px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 14px;
+}
+.rc.ios .head {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.rc.ios .head b {
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+.steps {
+  list-style: none;
+  margin: 6px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.steps li {
+  padding: 10px 0 10px 40px;
+  border-top: 1px solid #eef0f3;
+  font-size: 13px;
+  line-height: 1.45;
+  position: relative;
+}
+.steps li:first-child {
+  border-top: 0;
+}
+.steps li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: #eef2ff center / 16px 16px no-repeat;
+}
+button.wide {
+  width: 100%;
+  height: 40px;
+}
+@media (max-width: 520px) {
+  .card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .card .ic {
+    position: absolute;
+  }
+  .card .tx {
+    padding-left: 40px;
+    flex: none;
+  }
+  .bt {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  button.no,
+  button.yes {
+    height: 40px;
+  }
+  .rc {
+    bottom: 12px;
+  }
+  .card {
+    position: relative;
+  }
+}
+@keyframes rc-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rc {
+    animation: none;
+  }
+}

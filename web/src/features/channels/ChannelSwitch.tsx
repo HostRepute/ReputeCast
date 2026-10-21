@@ -48,8 +48,8 @@ export const channelName = {
 /**
  * The channel switch of Sending providers (brief §3.1): Email · SMS · Push ·
  * WhatsApp, once a second channel is set up. Until then the header offers
- * "Add a channel". Each channel's own section takes its link; a channel
- * this build doesn't have yet opens the connect catalog.
+ * "Add a channel". Each channel's own section takes its link; push and
+ * WhatsApp set themselves up there.
  */
 export function ChannelSwitch({ current }: { current: Channel }) {
   const t = useT()
@@ -90,6 +90,19 @@ export function ChannelSwitch({ current }: { current: Channel }) {
           case 'sms':
             return (
               <Link key={c.channel} to={c.setUp ? '/w/$workspace/providers/sms' : '/w/$workspace/providers/connect/sms'} params={params} className={cls} aria-current={aria}>
+                {label}
+              </Link>
+            )
+          // Push and WhatsApp (X22): their own sections, which set them up.
+          case 'push':
+            return (
+              <Link key={c.channel} to="/w/$workspace/providers/push" params={params} className={cls} aria-current={aria}>
+                {label}
+              </Link>
+            )
+          case 'whatsapp':
+            return (
+              <Link key={c.channel} to="/w/$workspace/providers/whatsapp" params={params} className={cls} aria-current={aria}>
                 {label}
               </Link>
             )
