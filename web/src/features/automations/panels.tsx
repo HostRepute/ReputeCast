@@ -39,6 +39,10 @@ import { milestoneTriggerName } from '@/features/grow/triggerText'
 import { useChannelSetUp } from '@/features/channels/hooks'
 import { m as smsStep } from '@/features/sms/automation.messages'
 import { SmsStepProps, SmsStepStats } from '@/features/sms/AutomationStep'
+import { m as pushStep } from '@/features/push/automation.messages'
+import { PushStepProps, PushStepStats } from '@/features/push/AutomationStep'
+import { m as waStep } from '@/features/whatsapp/automation.messages'
+import { WhatsAppStepProps, WhatsAppStepStats, WhatsAppStepSub } from '@/features/whatsapp/AutomationStep'
 import { useT } from '@/i18n'
 import { isStoreTrigger, PlacedOrderFields, StoreTriggerFields, storeTriggerDefaults, useStoreTriggerOptions } from '@/features/commerce/automation'
 
@@ -109,7 +113,15 @@ export interface PaletteItem {
 export function Palette({ disabledReason, onAdd }: { disabledReason?: string; onAdd: (item: PaletteItem) => void }) {
   const tr = useT()
   const sms = useChannelSetUp('sms')
-  const messages = sms ? [...messageItems, { type: 'sms' as const, label: tr(smsStep.palette) }] : messageItems
+  // Push and WhatsApp (X22) join once they're set up, as SMS does.
+  const push = useChannelSetUp('push')
+  const whatsapp = useChannelSetUp('whatsapp')
+  const messages = [
+    ...messageItems,
+    ...(sms ? [{ type: 'sms' as const, label: tr(smsStep.palette) }] : []),
+    ...(push ? [{ type: 'push' as const, label: tr(pushStep.palette) }] : []),
+    ...(whatsapp ? [{ type: 'whatsapp' as const, label: tr(waStep.palette) }] : []),
+  ]
   const item = (key: string, label: string, color: string, value: PaletteItem) => (
     <button
       key={key}
@@ -218,6 +230,8 @@ const subs: Record<StepType, string> = {
   goal: 'Ends the flow when reached',
   exit: 'Ends the flow',
   sms: 'Texts through your SMS routes',
+  push: 'Web push · built in',
+  whatsapp: "Meta's WhatsApp Cloud API",
 }
 
 export function Prop({ title, children, id }: { title: string; children: ReactNode; id?: string }) {
@@ -464,7 +478,7 @@ export function StepPanel(p: StepPanelProps) {
     <>
       <div className="fe-ph">
         <span className="font-semibold">{title}</span>
-        <span className="k">{subs[node.type]}</span>
+        <span className="k">{node.type === 'whatsapp' ? <WhatsAppStepSub step={d.whatsapp} fallback={subs.whatsapp} /> : subs[node.type]}</span>
       </div>
       {p.issues.length > 0 ? (
         <div className="fe-prop">
@@ -589,6 +603,8 @@ export function StepPanel(p: StepPanelProps) {
       {node.type === 'webhook' ? <WebhookProps {...p} /> : null}
       {node.type === 'list' ? <ListProps {...p} /> : null}
       {node.type === 'sms' ? <SmsStepProps data={d} lists={options?.lists ?? []} editable={editable} onChange={p.onChange} /> : null}
+      {node.type === 'push' ? <PushStepProps data={d} automationId={p.automationId} editable={editable} onChange={p.onChange} /> : null}
+      {node.type === 'whatsapp' ? <WhatsAppStepProps data={d} lists={options?.lists ?? []} editable={editable} onChange={p.onChange} /> : null}
       {(node.type === 'goal' || node.type === 'exit') && p.onChangeType ? (
         <Prop title="Ends the flow as" id="p-end">
           <select aria-labelledby="p-end" className="in" disabled={disabled} value={node.type} onChange={(e) => p.onChangeType?.(e.target.value as StepType)}>
@@ -954,6 +970,8 @@ export function StepStatsPanel({ node, stats: st, automationId, hasStats }: { no
         </div>
       )}
       {node.type === 'sms' ? <SmsStepStats nodeId={node.id} automationId={automationId} hasStats={hasStats} /> : null}
+      {node.type === 'push' ? <PushStepStats nodeId={node.id} automationId={automationId} hasStats={hasStats} skipped={st?.skipped ?? 0} /> : null}
+      {node.type === 'whatsapp' ? <WhatsAppStepStats nodeId={node.id} automationId={automationId} hasStats={hasStats} skipped={st?.skipped ?? 0} /> : null}
       {node.type === 'webhook' ? (
         <div className="fe-prop">
           <span className="tt">Delivery log</span>

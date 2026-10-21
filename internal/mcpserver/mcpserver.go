@@ -69,6 +69,10 @@ type Service struct {
 	// (nil: unavailable).
 	Grow            GrowReader
 	Recommendations RecommendationsReader
+	// Push and WhatsApp draft campaigns and read their reports (X22; nil:
+	// unavailable). Agents never send them.
+	Push     PushDrafts
+	WhatsApp WhatsAppDrafts
 
 	limiters sync.Map // agent id → *limiter
 }

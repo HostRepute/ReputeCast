@@ -36,6 +36,9 @@ func (a *App) mcpserver() *mcpserver.Service {
 		// recommendations; agents only read and propose.
 		Grow:            a.referrals(),
 		Recommendations: a.recommendations(),
+		// Push and WhatsApp drafts and reports (X22): agents never send.
+		Push:     a.Push(),
+		WhatsApp: a.WhatsApp(),
 	}
 }
 

@@ -39,6 +39,8 @@ type ContactFilter struct {
 	WebsiteFilter
 	// Paid status (Earn, paid.go).
 	PaidFilter
+	// Push subscribed and WhatsApp consent (X22, pushwhatsapp.go).
+	PushWhatsAppFilter
 	// Buyers of digital products (products.go).
 	ProductsFilter
 	// Store customers and what they spent (storefilter.go).
@@ -135,6 +137,7 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 		return err
 	}
 	websiteFilter(out, f.WebsiteFilter)
+	pushWhatsAppFilter(out, f.PushWhatsAppFilter)
 	if err := s.paidFilter(ctx, wsID, out, f.PaidFilter); err != nil {
 		return err
 	}

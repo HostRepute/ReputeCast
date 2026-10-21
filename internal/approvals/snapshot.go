@@ -73,6 +73,55 @@ type Snapshot struct {
 	SMS *ApprovalSMSSnapshot `json:"sms,omitempty"`
 	// Page: what a page publish request covers (DraftHash is the page's hash).
 	Page *ApprovalPageSnapshot `json:"page,omitempty"`
+	// Push and WhatsApp are what push and WhatsApp campaigns' approvals
+	// show: the notification, or the template with its variables (X22).
+	Push     *ApprovalPushSnapshot     `json:"push,omitempty"`
+	WhatsApp *ApprovalWhatsAppSnapshot `json:"whatsapp,omitempty"`
+}
+
+// ApprovalPushSnapshot is a push campaign at request time.
+type ApprovalPushSnapshot struct {
+	Title      string               `json:"title"`
+	Message    string               `json:"message"`
+	Link       string               `json:"link"`
+	Image      string               `json:"image,omitempty"`
+	Icon       string               `json:"icon,omitempty"`
+	Host       string               `json:"host,omitempty"`
+	Buttons    []ApprovalPushButton `json:"buttons"`
+	TTLMinutes int                  `json:"ttlMinutes"`
+	Tag        string               `json:"tag,omitempty"`
+	Sites      []string             `json:"sites"`
+	Recipients int64                `json:"recipients"`
+	Schedule   string               `json:"schedule"`
+}
+
+// ApprovalPushButton is a notification's button.
+type ApprovalPushButton struct {
+	Label string `json:"label"`
+	URL   string `json:"url"`
+}
+
+// ApprovalWhatsAppSnapshot is a WhatsApp campaign at request time.
+type ApprovalWhatsAppSnapshot struct {
+	Template   string                  `json:"template"`
+	Language   string                  `json:"language"`
+	Category   string                  `json:"category"`
+	Body       string                  `json:"body"`
+	Preview    string                  `json:"preview"`
+	Buttons    []string                `json:"buttons"`
+	Variables  []ApprovalWhatsAppValue `json:"variables"`
+	Business   string                  `json:"business"`
+	Number     string                  `json:"number"`
+	Recipients int64                   `json:"recipients"`
+	Cost       float64                 `json:"cost"`
+	Schedule   string                  `json:"schedule"`
+}
+
+// ApprovalWhatsAppValue is a template variable and what fills it.
+type ApprovalWhatsAppValue struct {
+	Key      string `json:"key"`
+	Source   string `json:"source"`
+	Fallback string `json:"fallback,omitempty"`
 }
 
 // ApprovalSMSSnapshot is an SMS campaign at request time.

@@ -117,6 +117,10 @@ type Handler struct {
 	Recommendations func() *recommendations.Service
 	// TextPrefs adds the preference center's Texts switches (nil: none).
 	TextPrefs TextPrefs
+	// Push adds web push to the pages (design expansion, X22): the prompt
+	// on the publication website's pages and "Turn off notifications in
+	// this browser" on the preference center (nil: neither).
+	Push PushPages
 
 	tmpl     map[string]*template.Template
 	version  string

@@ -10,6 +10,8 @@ export type StepStats = Schemas['AutomationStepStats']
  * entrance timing. Provided once by the editor.
  */
 export interface FlowView {
+  /** The automation, for the channel steps' estimates on the canvas (X22). */
+  automationId?: string
   graph: FlowGraph
   refs: Refs
   stats: Map<string, StepStats>
