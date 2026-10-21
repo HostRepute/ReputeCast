@@ -371,6 +371,11 @@ export function monthName(d: string | number | Date, style: 'short' | 'long' = '
   return fmt(`month-${style}`, 'en-US', { month: style }).format(toDate(d))
 }
 
+/** A month with its year: "Oct 2026", "thg 10 2026"; long: "October 2026", "tháng 10 năm 2026". */
+export function monthYear(d: string | number | Date, style: 'short' | 'long' = 'short'): string {
+  return formatDate(region(), style === 'long' ? 'monthYearLong' : 'monthYear', zoned(toDate(d)))
+}
+
 /** "Sunday" */
 export function weekdayName(d: string | number | Date): string {
   if (!standard()) return weekdayLabel(region(), zoned(toDate(d)).weekday)

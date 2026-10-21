@@ -33,6 +33,10 @@ interface RegionData {
   readonly longDate: string
   readonly dayMonth: string
   readonly monthDay: string
+  /** Month and year: Oct 2026 (CLDR yMMM). */
+  readonly monthYear: string
+  /** October 2026 (CLDR yMMMM). */
+  readonly monthYearLong: string
   readonly time24: string
   readonly time12: string
   readonly hourCycle: HourCycle
@@ -49,13 +53,13 @@ const REGIONS: Record<RegionFormat, RegionData> = {
   standard: {
     name: 'ReputeCast standard', decimal: '.', group: ',', minGroup: 1, percent: '#%', currency: '$#',
     months: enMonths, monthsLong: enMonthsLong, days: enDays, daysLong: enDaysLong, am: 'AM', pm: 'PM',
-    date: 'MMM d, y', shortDate: 'EEE d MMM', weekdayDate: 'EEE d MMM y', longDate: 'EEEE d MMM y', dayMonth: 'd MMM', monthDay: 'MMM d',
+    date: 'MMM d, y', shortDate: 'EEE d MMM', weekdayDate: 'EEE d MMM y', longDate: 'EEEE d MMM y', dayMonth: 'd MMM', monthDay: 'MMM d', monthYear: 'MMM y', monthYearLong: 'MMMM y',
     time24: 'HH:mm', time12: 'h:mm a', hourCycle: 'h23', weekStart: 'monday',
   },
   'en-US': {
     name: 'English (United States)', decimal: '.', group: ',', minGroup: 1, percent: '#%', currency: '$#',
     months: enMonths, monthsLong: enMonthsLong, days: enDays, daysLong: enDaysLong, am: 'AM', pm: 'PM',
-    date: 'MMM d, y', shortDate: 'EEE, MMM d', weekdayDate: 'EEE, MMM d, y', longDate: 'EEEE, MMM d, y', dayMonth: 'MMM d', monthDay: 'MMM d',
+    date: 'MMM d, y', shortDate: 'EEE, MMM d', weekdayDate: 'EEE, MMM d, y', longDate: 'EEEE, MMM d, y', dayMonth: 'MMM d', monthDay: 'MMM d', monthYear: 'MMM y', monthYearLong: 'MMMM y',
     time24: 'HH:mm', time12: 'h:mm a', hourCycle: 'h12', weekStart: 'sunday',
   },
   'vi-VN': {
@@ -66,7 +70,7 @@ const REGIONS: Record<RegionFormat, RegionData> = {
     days: ['CN', 'Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7'],
     daysLong: ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'],
     am: 'SA', pm: 'CH',
-    date: 'd MMM, y', shortDate: 'EEE, d MMM', weekdayDate: 'EEE, d MMM, y', longDate: 'EEEE, d MMMM, y', dayMonth: 'd MMM', monthDay: 'd MMM',
+    date: 'd MMM, y', shortDate: 'EEE, d MMM', weekdayDate: 'EEE, d MMM, y', longDate: 'EEEE, d MMMM, y', dayMonth: 'd MMM', monthDay: 'd MMM', monthYear: 'MMM y', monthYearLong: "MMMM 'năm' y",
     time24: 'HH:mm', time12: 'h:mm a', hourCycle: 'h23', weekStart: 'monday',
   },
   'de-DE': {
@@ -76,14 +80,14 @@ const REGIONS: Record<RegionFormat, RegionData> = {
     days: ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'],
     daysLong: ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'],
     am: 'AM', pm: 'PM',
-    date: 'd. MMM y', shortDate: 'EEE, d. MMM', weekdayDate: 'EEE, d. MMM y', longDate: 'EEEE, d. MMM y', dayMonth: 'd. MMM', monthDay: 'd. MMM',
+    date: 'd. MMM y', shortDate: 'EEE, d. MMM', weekdayDate: 'EEE, d. MMM y', longDate: 'EEEE, d. MMM y', dayMonth: 'd. MMM', monthDay: 'd. MMM', monthYear: 'MMM y', monthYearLong: 'MMMM y',
     time24: 'HH:mm', time12: 'h:mm a', hourCycle: 'h23', weekStart: 'monday',
   },
   'en-GB': {
     name: 'English (United Kingdom)', decimal: '.', group: ',', minGroup: 1, percent: '#%', currency: 'US$#',
     months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'], monthsLong: enMonthsLong,
     days: enDays, daysLong: enDaysLong, am: 'am', pm: 'pm',
-    date: 'd MMM y', shortDate: 'EEE d MMM', weekdayDate: 'EEE, d MMM y', longDate: 'EEEE, d MMM y', dayMonth: 'd MMM', monthDay: 'd MMM',
+    date: 'd MMM y', shortDate: 'EEE d MMM', weekdayDate: 'EEE, d MMM y', longDate: 'EEEE, d MMM y', dayMonth: 'd MMM', monthDay: 'd MMM', monthYear: 'MMM y', monthYearLong: 'MMMM y',
     time24: 'HH:mm', time12: 'h:mm a', hourCycle: 'h23', weekStart: 'monday',
   },
   'es-ES': {
@@ -93,7 +97,7 @@ const REGIONS: Record<RegionFormat, RegionData> = {
     days: ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'],
     daysLong: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'],
     am: 'a. m.', pm: 'p. m.',
-    date: 'd MMM y', shortDate: 'EEE, d MMM', weekdayDate: 'EEE, d MMM y', longDate: "EEEE, d 'de' MMM 'de' y", dayMonth: 'd MMM', monthDay: 'd MMM',
+    date: 'd MMM y', shortDate: 'EEE, d MMM', weekdayDate: 'EEE, d MMM y', longDate: "EEEE, d 'de' MMM 'de' y", dayMonth: 'd MMM', monthDay: 'd MMM', monthYear: 'MMM y', monthYearLong: "MMMM 'de' y",
     time24: 'H:mm', time12: 'h:mm a', hourCycle: 'h23', weekStart: 'monday',
   },
   'fr-FR': {
@@ -103,7 +107,7 @@ const REGIONS: Record<RegionFormat, RegionData> = {
     days: ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'],
     daysLong: ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'],
     am: 'AM', pm: 'PM',
-    date: 'd MMM y', shortDate: 'EEE d MMM', weekdayDate: 'EEE d MMM y', longDate: 'EEEE d MMM y', dayMonth: 'd MMM', monthDay: 'd MMM',
+    date: 'd MMM y', shortDate: 'EEE d MMM', weekdayDate: 'EEE d MMM y', longDate: 'EEEE d MMM y', dayMonth: 'd MMM', monthDay: 'd MMM', monthYear: 'MMM y', monthYearLong: 'MMMM y',
     time24: 'HH:mm', time12: 'h:mm a', hourCycle: 'h23', weekStart: 'monday',
   },
   'pt-BR': {
@@ -113,7 +117,7 @@ const REGIONS: Record<RegionFormat, RegionData> = {
     days: ['dom.', 'seg.', 'ter.', 'qua.', 'qui.', 'sex.', 'sáb.'],
     daysLong: ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'],
     am: 'AM', pm: 'PM',
-    date: "d 'de' MMM 'de' y", shortDate: "EEE, d 'de' MMM", weekdayDate: "EEE, d 'de' MMM 'de' y", longDate: "EEEE, d 'de' MMM 'de' y", dayMonth: "d 'de' MMM", monthDay: "d 'de' MMM",
+    date: "d 'de' MMM 'de' y", shortDate: "EEE, d 'de' MMM", weekdayDate: "EEE, d 'de' MMM 'de' y", longDate: "EEEE, d 'de' MMM 'de' y", dayMonth: "d 'de' MMM", monthDay: "d 'de' MMM", monthYear: "MMM 'de' y", monthYearLong: "MMMM 'de' y",
     time24: 'HH:mm', time12: 'h:mm a', hourCycle: 'h23', weekStart: 'sunday',
   },
 }
@@ -217,7 +221,7 @@ export function formatPattern(r: RegionFormat, pattern: string, p: DateParts): s
   return out
 }
 
-type DatePattern = 'date' | 'shortDate' | 'weekdayDate' | 'longDate' | 'dayMonth' | 'monthDay'
+type DatePattern = 'date' | 'shortDate' | 'weekdayDate' | 'longDate' | 'dayMonth' | 'monthDay' | 'monthYear' | 'monthYearLong'
 
 export function formatDate(r: RegionFormat, kind: DatePattern, p: DateParts): string {
   return formatPattern(r, data(r)[kind], p)
