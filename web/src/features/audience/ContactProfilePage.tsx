@@ -32,6 +32,8 @@ import { PurchasesCard, checkoutConsent, purchaseActivity, purchaseIcon, purchas
 import { GrowActivityRow, growEvents, ProfileReferralsCard, useContactGrow, withGrow } from '@/features/grow/contact/ContactGrow'
 import './audience.css'
 import { ContactWebsiteCard } from '@/features/website/elsewhere'
+import { channelActivityIcon, useChannelActivity } from '@/features/push/activity'
+import { ContactChannelCards } from '@/features/push/ContactCards'
 
 type Profile = Schemas['ContactProfile']
 type Item = Schemas['ContactActivityItem']
@@ -147,6 +149,8 @@ export function ContactProfilePage({ contactId }: { contactId: string }) {
               {/* What the contact bought (digital products, X19). */}
               <PurchasesCard contactId={p.id} />
               <ConsentCard p={p} />
+              {/* Push subscriptions and WhatsApp with its customer service window (X22). */}
+              <ContactChannelCards contactId={p.id} name={[p.firstName, p.lastName].filter(Boolean).join(' ') || p.email} />
               {/* The website's Website card (features/website), while it's on. */}
               <ContactWebsiteCard contactId={p.id} name={[p.firstName, p.lastName].filter(Boolean).join(' ') || p.email} />
               {/* A connected store's orders and consent (X20). */}
@@ -677,6 +681,9 @@ const tone = {
 }
 
 function eventIcon(it: Item): [keyof typeof icons, keyof typeof tone] {
+  // Notifications and WhatsApp messages (X22).
+  const channel = channelActivityIcon(it)
+  if (channel) return channel
   // Purchases and refunds (digital products, X19).
   const purchase = purchaseIcon(it)
   if (purchase) return purchase
@@ -762,7 +769,9 @@ function ActivityRow({ it }: { it: Item }) {
   const dl = deliveryLanguage(it, tr, locale, brandOf(me.workspace.name))
   let title: ReactNode
   let meta: string[] = [dateTime(it.at)]
-  const answer = answerActivity(it) ?? storeActivity(it)
+  // Notifications and WhatsApp messages (X22).
+  const channelActivity = useChannelActivity()
+  const answer = answerActivity(it) ?? storeActivity(it) ?? channelActivity(it)
   // Purchases and refunds (digital products, X19).
   const purchase = purchaseActivity(it)
   if (answer) {

@@ -25,6 +25,7 @@ import { PaidStatusCell, PaidStatusSelect, PaidTierChip } from '@/features/earn/
 import { BoughtFilter } from '@/features/products/filter'
 import { StoreChips, StoreContactFields, storeMoreKeys, type StoreDraft } from '@/features/commerce/contacts'
 import './audience.css'
+import { ChannelChips } from '@/features/push/ContactFilters'
 import { MembersChips } from '@/features/website/elsewhere'
 
 export interface ContactsSearch {
@@ -61,6 +62,9 @@ export interface ContactsSearch {
   storeCustomer?: string
   spentFrom?: string
   spentTo?: string
+  /** A linked push subscription, and WhatsApp consent on a list (X22). */
+  pushSubscribed?: boolean
+  whatsAppConsent?: boolean
   page?: number
   size?: number
 }
@@ -102,6 +106,9 @@ const filterKeys = [
   'storeCustomer',
   'spentFrom',
   'spentTo',
+  // Push subscribed and WhatsApp consent (X22).
+  'pushSubscribed',
+  'whatsAppConsent',
 ] as const
 
 /** The filter part of the search params, without empty values. */
@@ -200,6 +207,13 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
             onSignedIn={(on) => setFilter({ signedIn: on || undefined })}
             paid={search.paid === 'with_access' && !search.paidTier}
             onPaid={(on) => setFilter({ paid: on ? 'with_access' : undefined, paidTier: undefined })}
+          />
+          {/* Push subscribed and WhatsApp consent (X22). */}
+          <ChannelChips
+            push={Boolean(search.pushSubscribed)}
+            onPush={(on) => setFilter({ pushSubscribed: on || undefined })}
+            whatsapp={Boolean(search.whatsAppConsent)}
+            onWhatsApp={(on) => setFilter({ whatsAppConsent: on || undefined })}
           />
           <Filters search={search} total={list.data?.total} lists={summary.data?.lists ?? []} paidTiers={summary.data?.paidTiers ?? []} onChange={setFilter} />
           {result ? <BulkResultPanel result={result} onDismiss={() => setResult(null)} /> : null}

@@ -763,7 +763,7 @@ export function SubscribersCard({ data }: { data: PushSetup }) {
         </div>
         {s.highlight ? (
           <div className="flex flex-wrap items-center gap-2">
-            <Link className="px-lnk" to="/w/$workspace/audience" params={{ workspace: slug }} search={{ list: s.highlight.listId }}>
+            <Link className="px-lnk" to="/w/$workspace/audience" params={{ workspace: slug }} search={{ list: s.highlight.listId, pushSubscribed: true }}>
               {t(m.highlight, { count: count(s.highlight.count), list: s.highlight.name })}
             </Link>
           </div>
