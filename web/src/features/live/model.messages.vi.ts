@@ -215,8 +215,8 @@ export default translate(mm, {
   scheduled: 'Đã lên lịch',
 
   evDelivered: 'gửi thành công',
-  evHardBounce: 'trả lại vĩnh viễn',
-  evSoftBounce: 'trả lại tạm thời',
+  evHardBounce: 'trả thư vĩnh viễn',
+  evSoftBounce: 'trả thư tạm thời',
   evDeferred: 'hoãn nhận',
   evComplaint: 'khiếu nại',
   evRejected: 'bị từ chối',

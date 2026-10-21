@@ -4,7 +4,7 @@ import { mw } from './warmup.messages'
 /**
  * Vietnamese for Sending providers › Warm-up (docs/i18n/glossary-vi.md:
  * warm-up is "khởi động", a daily cap "giới hạn"). The tiers follow
- * Audience › Health: Đang hoạt động, Đang nguội, Có nguy cơ, Sắp ngừng gửi.
+ * Audience › Health: Tích cực, Nguội dần, Có nguy cơ, Ngừng gửi dần.
  */
 export default translate(mw, {
   loadFailed: 'Không tải được kế hoạch khởi động',
@@ -68,13 +68,13 @@ export default translate(mw, {
   colStatus: 'Trạng thái',
   capHeld: '{cap} · giữ mức',
 
-  tierActive: 'Đang hoạt động',
-  tierCooling: 'Đang nguội',
+  tierActive: 'Tích cực',
+  tierCooling: 'Nguội dần',
   tierAtRisk: 'Có nguy cơ',
-  tierSunset: 'Sắp ngừng gửi',
+  tierSunset: 'Ngừng gửi dần',
   tiersAll: 'Tất cả',
   tierOne: 'Nhóm {tier}',
-  tiersExceptSunset: 'Mọi nhóm trừ Sắp ngừng gửi',
+  tiersExceptSunset: 'Mọi nhóm trừ Ngừng gửi dần',
   dayUses: '{name} dùng {count}',
   dayEligible: 'tỷ trọng {share}, đủ điều kiện làm dự phòng',
   dayShareRises: 'tỷ trọng tăng lên {share}',
@@ -90,7 +90,7 @@ export default translate(mw, {
   length14: '14 ngày · nhanh',
   length30: '30 ngày · thận trọng',
   ordering: 'Thứ tự gửi',
-  orderEngaged: 'Liên hệ tương tác nhiều nhất trước (Đang hoạt động, rồi Đang nguội, rồi Có nguy cơ)',
+  orderEngaged: 'Liên hệ tương tác nhiều nhất trước (Tích cực, rồi Nguội dần, rồi Có nguy cơ)',
   orderRandom: 'Mẫu ngẫu nhiên',
   slowIfBounces: 'Giảm tốc nếu trả thư vượt',
   orComplaints: 'hoặc khiếu nại vượt',

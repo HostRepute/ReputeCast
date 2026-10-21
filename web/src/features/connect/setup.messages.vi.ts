@@ -34,7 +34,7 @@ export default translate(ms, {
   open: 'Mở',
   connect: 'Kết nối',
   formTitle: 'Tạo biểu mẫu đăng ký',
-  formLine: 'Xác nhận kép (double opt-in) được bật theo mặc định; thư xác nhận gửi qua luồng Hệ thống.',
+  formLine: 'Xác nhận hai bước được bật theo mặc định; thư xác nhận gửi qua luồng Hệ thống.',
   buildForm: 'Tạo biểu mẫu',
   goToOverview: 'Đến Tổng quan',
 })

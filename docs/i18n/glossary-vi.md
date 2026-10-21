@@ -209,7 +209,7 @@ order of the English.
 | backfill (statuses from an API) | lấy bù | "Lấy bù trạng thái từ API của Mailgun" |
 | blocklist · listed · clean | danh sách chặn · bị liệt kê · sạch | |
 | bounce mailbox | hộp thư nhận thư trả lại | SMTP providers |
-| bounce · hard bounce · soft bounce | thư trả lại · trả lại vĩnh viễn · trả lại tạm thời | the rate is "tỷ lệ trả thư" |
+| bounce · hard bounce · soft bounce | thư trả lại · trả thư vĩnh viễn · trả thư tạm thời | the rate is "tỷ lệ trả thư"; as in the Grow section |
 | Broadcasts · Automations · System · Transactional (streams) | Gửi hàng loạt · Tự động hóa · Hệ thống · Giao dịch | names, so capitalised in a sentence: "luồng Hệ thống" |
 | bulk marketing | tiếp thị hàng loạt | a provider's terms |
 | cap (daily, today's) | giới hạn | "Giới hạn hôm nay" |
@@ -220,12 +220,10 @@ order of the English.
 | defer · deferral | hoãn nhận | "Yahoo hoãn nhận" |
 | degraded · down | suy giảm · ngừng hoạt động | provider statuses |
 | delisting | gỡ khỏi danh sách | "Yêu cầu gỡ khỏi danh sách" |
-| double opt-in | xác nhận kép (double opt-in) | |
-| engagement tiers: Active · Cooling · At risk · Sunset | Đang hoạt động · Đang nguội · Có nguy cơ · Sắp ngừng gửi | Audience › Health's tiers, named in the warm-up's ordering; Audience's own translation wins |
 | event log · raw event · normalized event | nhật ký sự kiện · sự kiện gốc · sự kiện chuẩn hóa | |
 | failover · fallback · primary | chuyển dự phòng · dự phòng · chính | "nhà cung cấp dự phòng", "nhà cung cấp chính" |
 | feedback loop | vòng phản hồi | |
-| flow (an automation's) | quy trình tự động | "luồng" is a stream |
+| flow (an automation's, in sending text) | quy trình tự động | there "luồng" is a stream: "email do các quy trình tự động gửi"; the Automations section names the flow editor's flows |
 | guard (Warm-up page) | ngưỡng bảo vệ | "Tỷ lệ trả thư · ngưỡng bảo vệ 2%" |
 | held (recipients) | tạm giữ | |
 | incident · outage | sự cố · sự cố ngừng hoạt động | |
