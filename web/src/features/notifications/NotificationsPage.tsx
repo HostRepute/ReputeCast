@@ -11,24 +11,23 @@ import { Note } from '@/components/ui/Note'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { FilterTabs } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
-import { notificationTime } from '@/lib/format'
+import { T, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { count, notificationTime } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { NotificationLink, notificationDotColor, useNotificationActions } from '@/components/shell/NotificationsPopover'
+import { m } from './messages'
 
 export type NotificationFilter = 'all' | 'unread' | 'approvals' | 'sending' | 'providers' | 'team' | 'hostrepute'
 
-const tabs: { value: NotificationFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'unread', label: 'Unread' },
-  { value: 'approvals', label: 'Approvals' },
-  { value: 'sending', label: 'Sending' },
-  { value: 'providers', label: 'Providers' },
-  { value: 'team', label: 'Team' },
-  { value: 'hostrepute', label: 'HostRepute' },
-]
+const tabs: NotificationFilter[] = ['all', 'unread', 'approvals', 'sending', 'providers', 'team', 'hostrepute']
+
+/** The categories the server names; a category it adds later shows the server's own label. */
+const categories = new Set(['approvals', 'sending', 'providers', 'team', 'hostrepute', 'other', 'integrations', 'transactional', 'ai', 'earn', 'website', 'grow'])
 
 /** A5 §5.16: the notification center with category tabs and the preferences. */
 export function NotificationsPage({ filter }: { filter: NotificationFilter }) {
+  const t = useT()
   const { slug, me } = useWorkspace()
   const navigate = useNavigate()
   const list = $api.useQuery('get', '/api/v1/workspaces/{workspace}/notifications', { params: { path: { workspace: slug }, query: { filter, limit: 100 } } })
@@ -36,19 +35,19 @@ export function NotificationsPage({ filter }: { filter: NotificationFilter }) {
   const unread = list.data?.unread ?? me.unread
   return (
     <Page
-      title="Notifications"
+      title={t(m.title)}
       filters={
         <FilterTabs
           className="ml-3"
-          label="Filter"
+          label={t(m.filterLabel)}
           value={filter}
           onChange={(v) => navigate({ to: '.', search: v === 'all' ? {} : { filter: v }, replace: true })}
-          items={tabs.map((t) => ({ value: t.value, label: t.value === 'unread' && unread ? `Unread · ${unread}` : t.label }))}
+          items={tabs.map((v) => ({ value: v, label: v === 'unread' && unread ? t(m.unreadCount, { count: count(unread) }) : t(m.filter, { filter: v }) }))}
         />
       }
       actions={
         <ButtonLink to="/w/$workspace/account" params={{ workspace: slug }}>
-          Account &amp; security
+          {t(m.account)}
         </ButtonLink>
       }
     >
@@ -56,18 +55,18 @@ export function NotificationsPage({ filter }: { filter: NotificationFilter }) {
         <section className="card" aria-labelledby="h-notifications">
           <CardSection
             id="h-notifications"
-            title="Notifications"
-            caption="Each one links to the screen where you can act"
+            title={t(m.listTitle)}
+            caption={t(m.listCaption)}
             actions={
-              <Button size="sm" loading={marking} disabledReason={unread ? undefined : 'Everything is read'} onClick={markAll}>
-                Mark all as read
+              <Button size="sm" loading={marking} disabledReason={unread ? undefined : t(m.allRead)} onClick={markAll}>
+                {t(m.markAll)}
               </Button>
             }
           />
           {list.isError ? (
             <div className="pad">
-              <ErrorPanel title="Couldn't load notifications" actions={<Button onClick={() => list.refetch()}>Retry</Button>}>
-                {errorMessage(list.error)} Nothing was marked as read.
+              <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => list.refetch()}>{t(common.retry)}</Button>}>
+                {errorMessage(list.error)} {t(m.nothingMarked)}
               </ErrorPanel>
             </div>
           ) : list.isPending ? (
@@ -75,12 +74,14 @@ export function NotificationsPage({ filter }: { filter: NotificationFilter }) {
           ) : list.data.items.length === 0 ? (
             <div className="pad">
               <div className="note n flex-col items-center justify-center gap-1.5 p-[22px] text-center">
-                <span className="font-semibold">{filter === 'all' ? "You're all caught up" : filter === 'unread' ? 'Nothing unread' : `No ${tabs.find((t) => t.value === filter)?.label} notifications`}</span>
-                <span className="k">Approvals, auto-pauses, provider incidents, team changes and HostRepute alerts show up here.</span>
+                <span className="font-semibold">
+                  {filter === 'all' ? t(m.caughtUp) : filter === 'unread' ? t(m.nothingUnread) : t(m.noneInCategory, { filter })}
+                </span>
+                <span className="k">{t(m.emptyBody)}</span>
               </div>
             </div>
           ) : (
-            <ul className="m-0 list-none p-0" aria-label="Notifications">
+            <ul className="m-0 list-none p-0" aria-label={t(m.listTitle)}>
               {list.data.items.map((n) => (
                 <li key={n.id}>
                   <NotificationLink n={n} srUnread={false} className="flex items-start gap-3 border-b border-line-2 px-[18px] py-3 text-ink no-underline hover:text-ink" unreadClassName="bg-ground-2">
@@ -88,8 +89,9 @@ export function NotificationsPage({ filter }: { filter: NotificationFilter }) {
                     <span className="col min-w-0 flex-1" style={{ gap: 2 }}>
                       <span className="row justify-between" style={{ gap: 8 }}>
                         <span className="row" style={{ gap: 8 }}>
+                          {/* The title and body come from the server, in the member's language. */}
                           <b className="text-[13.5px]">{n.title}</b>
-                          <Badge tone="neutral">{n.categoryLabel}</Badge>
+                          <Badge tone="neutral">{categories.has(n.category) ? t(m.category, { category: n.category }) : n.categoryLabel}</Badge>
                         </span>
                         <span className="k whitespace-nowrap">
                           <time dateTime={n.createdAt}>{notificationTime(n.createdAt)}</time>
@@ -97,14 +99,14 @@ export function NotificationsPage({ filter }: { filter: NotificationFilter }) {
                       </span>
                       <span className="text-[13px] text-ink-nav">{n.body}</span>
                     </span>
-                    {n.read ? null : <Badge tone="info">New</Badge>}
+                    {n.read ? null : <Badge tone="info">{t(m.new)}</Badge>}
                   </NotificationLink>
                 </li>
               ))}
             </ul>
           )}
           <div className="pad px-[18px] py-3">
-            <span className="k">Older notifications are kept for {list.data?.retentionDays ?? 90} days.</span>
+            <span className="k">{t(m.retention, { days: list.data?.retentionDays ?? 90 })}</span>
           </div>
         </section>
         <div className="col" style={{ gap: 20 }}>
@@ -116,10 +118,11 @@ export function NotificationsPage({ filter }: { filter: NotificationFilter }) {
 }
 
 function ListSkeleton() {
+  const t = useT()
   return (
     <div aria-busy="true">
       <span className="vh" role="status">
-        Loading notifications…
+        {t(m.loading)}
       </span>
       {[0, 1, 2, 3].map((i) => (
         <div key={i} className="flex items-start gap-3 border-b border-line-2 px-[18px] py-3">
@@ -139,6 +142,7 @@ const quietEnds = ['06:00', '07:00', '08:00']
 
 /** My preferences: in-app and email per event type, quiet hours, email digest. */
 function PreferencesCard() {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const prefs = $api.useQuery('get', '/api/v1/me/notification-preferences', { params: { query: { workspace: slug } } })
@@ -156,9 +160,9 @@ function PreferencesCard() {
   if (prefs.isError) {
     return (
       <section className="card" id="preferences" aria-labelledby="h-prefs">
-        <CardSection id="h-prefs" title="My preferences" />
+        <CardSection id="h-prefs" title={t(m.prefsTitle)} />
         <div className="pad">
-          <ErrorPanel title="Couldn't load your preferences" actions={<Button onClick={() => prefs.refetch()}>Retry</Button>}>
+          <ErrorPanel title={t(m.prefsLoadFailed)} actions={<Button onClick={() => prefs.refetch()}>{t(common.retry)}</Button>}>
             {errorMessage(prefs.error)}
           </ErrorPanel>
         </div>
@@ -196,42 +200,55 @@ function PreferencesCard() {
       })
       setDraft(undefined)
       await Promise.all([qc.invalidateQueries({ queryKey: ['get', '/api/v1/me/notification-preferences'] }), qc.invalidateQueries({ queryKey: ['get', '/api/v1/me/account'] })])
-      toast({ kind: 'success', title: 'Preferences saved' })
+      toast({ kind: 'success', title: t(m.saved) })
     } catch (err) {
       setError(errorMessage(err))
     } finally {
       setBusy(false)
     }
   }
-  const caption = p.email.provider
-    ? `Per event type · emails go out on the System stream via ${p.email.provider}`
-    : 'Per event type · email starts once a sending provider handles the System stream'
+  const caption = p.email.provider ? t(m.prefsCaptionVia, { provider: p.email.provider }) : t(m.prefsCaption)
   return (
     <section className="card scroll-mt-4" id="preferences" aria-labelledby="h-prefs">
-      <CardSection id="h-prefs" title="My preferences" caption={caption} />
+      <CardSection id="h-prefs" title={t(m.prefsTitle)} caption={caption} />
       <form onSubmit={save}>
-        <Table density="compact" className="[&_td]:whitespace-normal" caption="Notification preferences">
+        <Table density="compact" className="[&_td]:whitespace-normal" caption={t(m.prefsTable)}>
           <thead>
             <tr>
-              <Th>Event</Th>
-              <Th align="center">In-app</Th>
-              <Th align="center">Email</Th>
+              <Th>{t(m.colEvent)}</Th>
+              <Th align="center">{t(m.colInApp)}</Th>
+              <Th align="center">{t(m.colEmail)}</Th>
             </tr>
           </thead>
           <tbody>
             {p.events.map((e) => (
               <tr key={e.type}>
                 <Td>
+                  {/* The event types' names and audiences come from the server. */}
                   <div className="col" style={{ gap: 1 }}>
                     <span className="font-semibold">{e.label}</span>
                     {e.audience ? <span className="k">{e.audience}</span> : null}
                   </div>
                 </Td>
                 <Td align="center">
-                  <input type="checkbox" className="tg" role="switch" checked={e.inApp} onChange={(ev) => set(e.type, 'inApp', ev.target.checked)} aria-label={`In-app for ${e.label}`} />
+                  <input
+                    type="checkbox"
+                    className="tg"
+                    role="switch"
+                    checked={e.inApp}
+                    onChange={(ev) => set(e.type, 'inApp', ev.target.checked)}
+                    aria-label={t(m.inAppFor, { event: e.label })}
+                  />
                 </Td>
                 <Td align="center">
-                  <input type="checkbox" className="tg" role="switch" checked={e.email} onChange={(ev) => set(e.type, 'email', ev.target.checked)} aria-label={`Email for ${e.label}`} />
+                  <input
+                    type="checkbox"
+                    className="tg"
+                    role="switch"
+                    checked={e.email}
+                    onChange={(ev) => set(e.type, 'email', ev.target.checked)}
+                    aria-label={t(m.emailFor, { event: e.label })}
+                  />
                 </Td>
               </tr>
             ))}
@@ -243,64 +260,74 @@ function PreferencesCard() {
               content width and the digest select takes the rest. */}
           <div className="grid grid-cols-[minmax(max-content,1fr)_minmax(0,1fr)] gap-3.5 max-md:grid-cols-1">
             <div className="lbl">
-              <span id={ids.quiet}>Quiet hours · email only</span>
+              <span id={ids.quiet}>{t(m.quietHours)}</span>
               <div className="row flex-nowrap" style={{ gap: 8 }}>
-                <select
-                  id={ids.start}
-                  className="in pr-2.5 max-md:min-w-0 max-md:flex-[1_1_120px]"
-                  aria-label="Quiet hours start"
-                  value={p.quietHours?.start ?? 'off'}
-                  onChange={(ev) =>
-                    setDraft({ ...p, quietHours: ev.target.value === 'off' ? undefined : { start: ev.target.value, end: p.quietHours?.end ?? '07:00' } })
-                  }
-                >
-                  {[...new Set([...(p.quietHours ? [p.quietHours.start] : []), ...quietStarts])].sort().map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                  <option value="off">Off</option>
-                </select>
-                <span className="k">to</span>
-                <select
-                  id={ids.end}
-                  className="in pr-2.5 max-md:min-w-0 max-md:flex-[1_1_120px]"
-                  aria-label="Quiet hours end"
-                  disabled={quietOff}
-                  value={p.quietHours?.end ?? '07:00'}
-                  onChange={(ev) => p.quietHours && setDraft({ ...p, quietHours: { start: p.quietHours.start, end: ev.target.value } })}
-                >
-                  {[...new Set([...(p.quietHours ? [p.quietHours.end] : []), ...quietEnds])].sort().map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
+                {/* "22:00 to 07:00": the words around the two selects come from one message. */}
+                <T
+                  msg={m.quietRange}
+                  values={{
+                    start: (
+                      <select
+                        id={ids.start}
+                        className="in pr-2.5 max-md:min-w-0 max-md:flex-[1_1_120px]"
+                        aria-label={t(m.quietStart)}
+                        value={p.quietHours?.start ?? 'off'}
+                        onChange={(ev) =>
+                          setDraft({ ...p, quietHours: ev.target.value === 'off' ? undefined : { start: ev.target.value, end: p.quietHours?.end ?? '07:00' } })
+                        }
+                      >
+                        {[...new Set([...(p.quietHours ? [p.quietHours.start] : []), ...quietStarts])].sort().map((h) => (
+                          <option key={h} value={h}>
+                            {h}
+                          </option>
+                        ))}
+                        <option value="off">{t(common.off)}</option>
+                      </select>
+                    ),
+                    k: (c) => <span className="k">{c}</span>,
+                    end: (
+                      <select
+                        id={ids.end}
+                        className="in pr-2.5 max-md:min-w-0 max-md:flex-[1_1_120px]"
+                        aria-label={t(m.quietEnd)}
+                        disabled={quietOff}
+                        value={p.quietHours?.end ?? '07:00'}
+                        onChange={(ev) => p.quietHours && setDraft({ ...p, quietHours: { start: p.quietHours.start, end: ev.target.value } })}
+                      >
+                        {[...new Set([...(p.quietHours ? [p.quietHours.end] : []), ...quietEnds])].sort().map((h) => (
+                          <option key={h} value={h}>
+                            {h}
+                          </option>
+                        ))}
+                      </select>
+                    ),
+                  }}
+                />
               </div>
-              <span className="k font-medium [contain:inline-size]">Auto-pauses and provider outages always send immediately.</span>
+              <span className="k font-medium [contain:inline-size]">{t(m.quietUrgent)}</span>
             </div>
             <div className="lbl">
-              <label htmlFor={ids.digest}>Email digest</label>
+              <label htmlFor={ids.digest}>{t(m.digest)}</label>
               <select id={ids.digest} className="in pr-2.5" value={p.digest} onChange={(ev) => setDraft({ ...p, digest: ev.target.value as typeof p.digest })}>
-                <option value="immediate">Immediately</option>
-                <option value="hourly">Hourly digest</option>
-                <option value="daily">Daily digest at 09:00</option>
+                <option value="immediate">{t(m.digestImmediate)}</option>
+                <option value="hourly">{t(m.digestHourly)}</option>
+                <option value="daily">{t(m.digestDaily, { time: '09:00' })}</option>
               </select>
             </div>
           </div>
           {p.email.available ? null : (
-            <Note tone="info" label="Email off">
-              No sending provider handles the System stream yet, so notifications stay in-app. Your email choices apply once one does.
+            <Note tone="info" label={t(m.emailOff)}>
+              {t(m.emailOffBody)}
             </Note>
           )}
           {error ? (
-            <Note tone="bad" label="Not saved">
+            <Note tone="bad" label={t(m.notSaved)}>
               {error}
             </Note>
           ) : null}
           <div className="row justify-end">
             <Button type="submit" variant="primary" size="sm" loading={busy}>
-              Save preferences
+              {t(m.save)}
             </Button>
           </div>
         </div>
