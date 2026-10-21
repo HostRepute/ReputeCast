@@ -5,6 +5,9 @@ import { errorMessage } from '@/api/client'
 import { currentStep, ImportFrame, stepPath, useImportDetail } from '@/features/imports/ImportFrame'
 import { ReadingSource } from '@/features/imports/states'
 import '@/features/imports/jobsSource'
+import { m } from '@/features/imports/messages'
+import { useT } from '@/i18n'
+import { common } from '@/i18n/common'
 
 export const Route = createFileRoute('/w/$workspace/import/$importId/')({
   component: ImportResume,
@@ -12,17 +15,18 @@ export const Route = createFileRoute('/w/$workspace/import/$importId/')({
 
 /** Opens an import on the step it is at (links from the jobs tray, history). */
 function ImportResume() {
+  const t = useT()
   const { workspace, importId } = Route.useParams()
   const q = useImportDetail(importId)
   if (q.data) return <Navigate to={stepPath[currentStep(q.data)]} params={{ workspace, importId }} replace />
   return (
-    <ImportFrame title="Import contacts">
+    <ImportFrame title={t(m.title)}>
       {q.isError ? (
-        <ErrorPanel title="Couldn't open this import" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
+        <ErrorPanel title={t(m.openFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
           {errorMessage(q.error)}
         </ErrorPanel>
       ) : (
-        <ReadingSource title="Opening the import" />
+        <ReadingSource title={t(m.opening)} />
       )}
     </ImportFrame>
   )
