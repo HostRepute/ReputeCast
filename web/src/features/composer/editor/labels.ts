@@ -1,7 +1,8 @@
-import type { Component } from 'grapesjs'
+import type { Component, ComponentAdd, Editor } from 'grapesjs'
 import { t as tt } from '@/i18n'
 import { feedItemsLabel, isFeedItems } from '@/features/digests/composer/feedComponent'
 import { dc } from '@/features/digests/composer/messages'
+import { growBlockLabel, growSectionLabel, isGrowBlock } from '@/features/grow/composer/blocks'
 
 /** MJML tag of a component ("mj-section"), or "" for non-MJML nodes. */
 export function tagOf(c: Component | undefined | null): string {
@@ -31,6 +32,68 @@ export function markerOf(c: Component): string {
     return ''
   }
   return ''
+}
+
+const markerRe = /^\s*rc:[\w-]+\s*$/
+const leadingMarker = /^\s*<!--\s*rc:([\w-]+)\s*-->/
+
+/** The <!-- rc:… --> marker that leads a block's content ("product-card"), or "". */
+export function contentMarker(content: unknown): string {
+  const m = typeof content === 'string' ? leadingMarker.exec(content) : null
+  return m ? m[1]! : ''
+}
+
+const markerComment = (marker: string) => ({ type: 'comment', content: ` rc:${marker} ` })
+
+/**
+ * A block's content as a click puts it on the canvas. GrapesJS's parser
+ * drops a comment that leads a string, so a block clicked or dropped in lost
+ * its <!-- rc:… --> marker and markerOf found nothing (X19's Product card
+ * fill, the store's Fill from the store): the marker goes in as a comment
+ * component of its own, before the rest. (A drag keeps the string: the
+ * canvas's sorter can't measure a comment; blockAdded puts the marker back.)
+ */
+export function blockContent(content: string): ComponentAdd {
+  const m = leadingMarker.exec(content)
+  return m ? [markerComment(m[1]!), content.slice(m[0].length)] : content
+}
+
+/**
+ * Keeps markers with the sections they name: components added between a
+ * marker and its section (a drop just above a marked section) move before
+ * that marker.
+ */
+export function keepMarkers(added: Component[]): void {
+  const first = added[0]
+  const parent = first?.parent()
+  if (!first || !parent) return
+  const siblings = parent.components()
+  const i = siblings.indexOf(first)
+  const before = i > 0 ? siblings.at(i - 1) : undefined
+  if (!before || before.get('type') !== 'comment' || !markerRe.test(String(before.get('content') ?? ''))) return
+  added.forEach((c, n) => c.move(parent, { at: i - 1 + n }))
+}
+
+/**
+ * After a block is clicked or dropped in: its marker goes back in front of
+ * it when the parser dropped it (content is the block's own), stays with its
+ * section (and an older one with theirs), and its first MJML component is
+ * selected, never the marker.
+ */
+export function blockAdded(editor: Editor, added: Component | Component[] | undefined | null, content?: unknown): Component | undefined {
+  let list = (Array.isArray(added) ? added : added ? [added] : []).filter(Boolean)
+  if (!list.length) return undefined
+  const marker = contentMarker(content)
+  const lead = list[0]!
+  const parent = lead.parent()
+  if (marker && lead.get('type') !== 'comment' && parent) {
+    const made = parent.append(markerComment(marker), { at: parent.components().indexOf(lead) })
+    list = [...(Array.isArray(made) ? made : [made]), ...list]
+  }
+  keepMarkers(list)
+  const first = list.find((x) => tagOf(x) !== '') ?? list[0]
+  if (first) editor.select(first)
+  return first
 }
 
 /**
@@ -71,6 +134,7 @@ export function sectionLabel(c: Component): string {
   const named = String((c.getAttributes() as Record<string, unknown>)['rc-name'] ?? '').trim()
   if (named) return named
   if (isFeedItems(c)) return tt(dc.blockTitle)
+  if (isGrowBlock(c)) return growSectionLabel(c)
   const marker = markerOf(c)
   if (marker && !layoutMarkers.has(marker)) return markerLabels[marker] ?? marker.replace(/-/g, ' ')
   const tag = tagOf(c)
@@ -128,6 +192,7 @@ export function sectionLabel(c: Component): string {
 /** "mj-section · 2 columns", "mj-column · 50%", "mj-image". */
 export function componentLabel(c: Component): string {
   if (isFeedItems(c)) return feedItemsLabel(c)
+  if (isGrowBlock(c)) return growBlockLabel(c)
   const tag = tagOf(c)
   if (!tag) return String(c.get('type') ?? c.get('tagName') ?? 'element')
   const parent = c.parent()

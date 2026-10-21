@@ -61,7 +61,8 @@ var Permissions = []payments.Permission{
 	{Resource: "tax_settings", Access: "read"},
 }
 
-// Events are the 12 events the webhook subscribes to (brief §4).
+// Events are the events the webhook subscribes to: the 12 of brief §4 and,
+// for digital products, a dispute closing.
 var Events = []string{
 	"checkout.session.completed",
 	"customer.subscription.created",
@@ -75,6 +76,10 @@ var Events = []string{
 	"charge.dispute.created",
 	"customer.updated",
 	"customer.deleted",
+	// Digital products (design expansion phase 7): a dispute's outcome, and
+	// a delayed payment method's success.
+	"charge.dispute.closed",
+	"checkout.session.async_payment_succeeded",
 }
 
 // Prefixes of restricted keys per mode, and of the secret keys refused.

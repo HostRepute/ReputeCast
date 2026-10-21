@@ -530,7 +530,7 @@ SELECT id, name FROM users WHERE id = ANY(@ids::uuid[]);
 SELECT * FROM providers WHERE workspace_id = @workspace_id AND disconnected_at IS NULL ORDER BY connected_at, name;
 
 -- name: SendingListNames :many
-SELECT id, name, public FROM lists WHERE workspace_id = @workspace_id AND deleted_at IS NULL ORDER BY created_at;
+SELECT id, name, public, origin FROM lists WHERE workspace_id = @workspace_id AND deleted_at IS NULL ORDER BY created_at;
 
 -- name: SendingSegmentNames :many
 SELECT id, name FROM segments WHERE workspace_id = @workspace_id ORDER BY name;
@@ -607,9 +607,13 @@ INSERT INTO automation_email_links (email_id, version, language, position, url, 
 ON CONFLICT DO NOTHING;
 
 -- name: SendingAutomationSender :one
--- The workspace's default sender (automation emails come from it).
-SELECT coalesce(s.email, '')::text AS email, coalesce(s.name, '')::text AS name, coalesce(s.reply_to, '')::text AS reply_to, w.slug, w.timezone
-FROM workspaces w LEFT JOIN senders s ON s.id = w.default_sender_id
+-- The sender of an automation email: its own (milestone emails come from
+-- their program's sender), else the workspace's default sender.
+SELECT coalesce(s.email, '')::text AS email, coalesce(s.name, '')::text AS name,
+       coalesce(nullif(e.reply_to, ''), s.reply_to, '')::text AS reply_to, w.slug, w.timezone
+FROM workspaces w
+LEFT JOIN automation_emails e ON e.id = @email_id::uuid AND e.workspace_id = w.id
+LEFT JOIN senders s ON s.id = coalesce(e.sender_id, w.default_sender_id)
 WHERE w.id = @workspace_id;
 
 -- name: SendingContactForAutomation :one

@@ -56,6 +56,9 @@ type ContactConsentEvent struct {
 	IP             string `json:"ip,omitempty"`
 	Actor          string `json:"actor,omitempty"`
 	ConsentVersion string `json:"consentVersion,omitempty"`
+	// ConsentText is the exact text the contact agreed to, when it was
+	// recorded ("Also send me the Weekly Digest" at a product checkout).
+	ConsentText string `json:"consentText,omitempty"`
 	// Language is the language the consent text was shown in ("es").
 	Language string    `json:"language,omitempty"`
 	At       time.Time `json:"at"`
@@ -141,6 +144,9 @@ func (s *Service) Profile(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	}
 	if out.Tags == nil {
 		out.Tags = []string{}
+	}
+	if n, ok := s.nameSources(ctx, ws.ID, []uuid.UUID{c.ID}, []string{c.Source})[c.ID]; ok {
+		out.SourceLabel = n
 	}
 	if sup, err := s.Q.GetSuppressionByEmail(ctx, store.GetSuppressionByEmailParams{WorkspaceID: ws.ID, Email: c.Email}); err == nil {
 		out.Suppression = &ContactProfileSuppression{ID: sup.ID.String(), Reason: sup.Reason, Scope: sup.Scope, At: sup.CreatedAt}
@@ -242,8 +248,8 @@ func (s *Service) listConsent(ctx context.Context, ws *store.Workspace, c store.
 		if e.ListID == nil {
 			continue
 		}
-		v := ContactConsentEvent{Action: e.Action, Source: e.Source, SourceLabel: consentSourceLabel(e.Source), Detail: e.Detail, Note: e.Note,
-			Actor: e.ActorName, ConsentVersion: e.ConsentVersion, Language: e.Language, At: e.OccurredAt}
+		v := ContactConsentEvent{Action: e.Action, Source: e.Source, SourceLabel: consentSourceLabel(e.Source, e.Action), Detail: e.Detail, Note: e.Note,
+			Actor: e.ActorName, ConsentVersion: e.ConsentVersion, ConsentText: e.ConsentText, Language: e.Language, At: e.OccurredAt}
 		if e.Ip != nil {
 			v.IP = e.Ip.String()
 		}
@@ -263,8 +269,16 @@ func (s *Service) listConsent(ctx context.Context, ws *store.Workspace, c store.
 	return nil
 }
 
-// consentSourceLabel names where a consent event came from.
-func consentSourceLabel(src string) string {
+// consentSourceLabel names where a consent event came from. A store's
+// records (X20) read "Shopify: accepted marketing at checkout"; its
+// unsubscribes, "Shopify".
+func consentSourceLabel(src, action string) string {
+	if strings.HasPrefix(src, "store:") {
+		if action == "subscribed" || action == "resubscribed" {
+			return segments.SourceLabel(src) + ": accepted marketing at checkout"
+		}
+		return segments.SourceLabel(src)
+	}
 	switch src {
 	case "preference_center":
 		return "the preference center"
@@ -277,7 +291,7 @@ func consentSourceLabel(src string) string {
 	case "api":
 		return "the API"
 	}
-	if strings.HasPrefix(src, "import:") || strings.HasPrefix(src, "form:") {
+	if strings.HasPrefix(src, "import:") || strings.HasPrefix(src, "form:") || strings.HasPrefix(src, "product_checkout:") {
 		return segments.SourceLabel(src)
 	}
 	return src

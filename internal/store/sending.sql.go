@@ -470,10 +470,18 @@ func (q *Queries) SendingAutomationLinkCount(ctx context.Context, arg SendingAut
 }
 
 const sendingAutomationSender = `-- name: SendingAutomationSender :one
-SELECT coalesce(s.email, '')::text AS email, coalesce(s.name, '')::text AS name, coalesce(s.reply_to, '')::text AS reply_to, w.slug, w.timezone
-FROM workspaces w LEFT JOIN senders s ON s.id = w.default_sender_id
-WHERE w.id = $1
+SELECT coalesce(s.email, '')::text AS email, coalesce(s.name, '')::text AS name,
+       coalesce(nullif(e.reply_to, ''), s.reply_to, '')::text AS reply_to, w.slug, w.timezone
+FROM workspaces w
+LEFT JOIN automation_emails e ON e.id = $1::uuid AND e.workspace_id = w.id
+LEFT JOIN senders s ON s.id = coalesce(e.sender_id, w.default_sender_id)
+WHERE w.id = $2
 `
+
+type SendingAutomationSenderParams struct {
+	EmailID     uuid.UUID `json:"emailId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+}
 
 type SendingAutomationSenderRow struct {
 	Email    string `json:"email"`
@@ -483,9 +491,10 @@ type SendingAutomationSenderRow struct {
 	Timezone string `json:"timezone"`
 }
 
-// The workspace's default sender (automation emails come from it).
-func (q *Queries) SendingAutomationSender(ctx context.Context, workspaceID uuid.UUID) (SendingAutomationSenderRow, error) {
-	row := q.db.QueryRow(ctx, sendingAutomationSender, workspaceID)
+// The sender of an automation email: its own (milestone emails come from
+// their program's sender), else the workspace's default sender.
+func (q *Queries) SendingAutomationSender(ctx context.Context, arg SendingAutomationSenderParams) (SendingAutomationSenderRow, error) {
+	row := q.db.QueryRow(ctx, sendingAutomationSender, arg.EmailID, arg.WorkspaceID)
 	var i SendingAutomationSenderRow
 	err := row.Scan(
 		&i.Email,
@@ -1738,13 +1747,14 @@ func (q *Queries) SendingInsertSend(ctx context.Context, arg SendingInsertSendPa
 }
 
 const sendingListNames = `-- name: SendingListNames :many
-SELECT id, name, public FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
+SELECT id, name, public, origin FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
 `
 
 type SendingListNamesRow struct {
 	ID     uuid.UUID `json:"id"`
 	Name   string    `json:"name"`
 	Public bool      `json:"public"`
+	Origin string    `json:"origin"`
 }
 
 func (q *Queries) SendingListNames(ctx context.Context, workspaceID uuid.UUID) ([]SendingListNamesRow, error) {
@@ -1756,7 +1766,12 @@ func (q *Queries) SendingListNames(ctx context.Context, workspaceID uuid.UUID) (
 	items := []SendingListNamesRow{}
 	for rows.Next() {
 		var i SendingListNamesRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.Public); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Public,
+			&i.Origin,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

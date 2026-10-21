@@ -1,10 +1,12 @@
 import { Link, type LinkProps } from '@tanstack/react-router'
+import type { ReactNode } from 'react'
 import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
 import { Note } from '@/components/ui/Note'
 import { T, useT } from '@/i18n'
 import { useWorkspace } from '@/lib/session'
 import { FormsTabs } from '@/features/forms/common'
+import { useShopBuiltinPages } from '@/features/pages/shop'
 import { m } from './messages'
 import './website.css'
 
@@ -16,6 +18,8 @@ export interface BuiltinPage {
   /** Shown in mono (an address) or as words ("personal link in every email"). */
   group: string
   state: string
+  /** A switch after the state, for a page that can be turned off (Shop: "On" and its switch). */
+  control?: ReactNode
   to: LinkProps['to']
   search?: LinkProps['search']
 }
@@ -23,6 +27,10 @@ export interface BuiltinPage {
 /** The built-in pages of 1.0 and the website (design expansion phase 7). */
 export function useBuiltinPages(): BuiltinPage[] {
   const t = useT()
+  // Pages other areas add, each from its own hook, in the board's order
+  // after Archive: Shop (X19), then Grow's Referral hub, Invite page,
+  // Leaderboard and Recommendations, then Earn's Upgrade and Give a gift.
+  const shop = useShopBuiltinPages()
   return [
     { key: 'subscribe', name: t(m.builtinSubscribe), addr: '/subscribe', group: t(m.groupSigningUp), state: t(m.alwaysOn), to: '/w/$workspace/forms/subscribe' },
     { key: 'confirm', name: t(m.builtinConfirm), addr: t(m.addrAfterConfirm), group: t(m.groupSigningUp), state: t(m.alwaysOn), to: '/w/$workspace/forms/subscribe' },
@@ -31,6 +39,7 @@ export function useBuiltinPages(): BuiltinPage[] {
     { key: 'signin', name: t(m.builtinSignin), addr: '/signin', group: t(m.groupWebsite), state: t(m.onWithWebsite), to: '/w/$workspace/forms/website' },
     { key: 'account', name: t(m.builtinAccount), addr: '/account', group: t(m.groupWebsite), state: t(m.onWithWebsite), to: '/w/$workspace/forms/website' },
     { key: 'archive', name: t(m.builtinArchive), addr: '/archive', group: t(m.groupWebsite), state: t(m.on), to: '/w/$workspace/forms/archive' },
+    ...shop,
   ]
 }
 
@@ -64,7 +73,10 @@ export function BuiltinPagesCard({ pages }: { pages: BuiltinPage[] }) {
                     {p.group}
                   </Badge>
                 </span>
-                <span className="st">{p.state}</span>
+                <span className="st">
+                  {p.state}
+                  {p.control}
+                </span>
                 <Link className="btn sm" to={p.to} params={{ workspace: slug } as never} search={p.search as never} aria-label={t(m.editPage, { page: p.name })}>
                   {t(m.edit)}
                 </Link>

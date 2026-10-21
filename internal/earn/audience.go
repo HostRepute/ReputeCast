@@ -3,6 +3,7 @@ package earn
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
@@ -84,6 +85,32 @@ type EarnComposerTier struct {
 	TrialDays int32  `json:"trialDays"`
 	// Includes names the lower tiers whose paid content it includes.
 	Includes []string `json:"includes"`
+	// Offers are the live signup offers on the tier an Upgrade block can
+	// carry (X17).
+	Offers []EarnComposerOffer `json:"offers"`
+}
+
+// EarnComposerOffer is a signup offer an Upgrade block can carry
+// (ComposerEarnBlocks): the settings' choice and what the card says.
+type EarnComposerOffer struct {
+	Code   string `json:"code"`
+	Name   string `json:"name"`
+	Period string `json:"period" enum:"month,year"`
+	// Option is the settings' choice: "FALL26 · $64 for the first year".
+	Option string `json:"option"`
+	// Line is the card's price line: "$64 for your first year with FALL26,
+	// then $80 a year".
+	Line string `json:"line"`
+	// Button is "Get Insider for $64".
+	Button string `json:"button"`
+	// EndsAt is when the offer ends, when it does.
+	EndsAt *time.Time `json:"endsAt,omitempty"`
+}
+
+// ComposerOfferHook gives the composer the offers an Upgrade block can
+// carry (internal/offers); the composer has none without it.
+type ComposerOfferHook interface {
+	ComposerOffers(ctx context.Context, ws *store.Workspace, tier uuid.UUID) []EarnComposerOffer
 }
 
 // EarnComposer is what the composer's paid content needs: the tiers, the
@@ -198,7 +225,10 @@ func (s *Service) Composer(ctx context.Context, ws *store.Workspace) (EarnCompos
 		trial[t.ID] = t.TrialDays
 	}
 	for _, t := range tiers {
-		ct := EarnComposerTier{ID: t.ID.String(), Name: t.Name, Short: t.Short, Top: t.Top, TrialDays: trial[t.ID], Includes: []string{}}
+		ct := EarnComposerTier{ID: t.ID.String(), Name: t.Name, Short: t.Short, Top: t.Top, TrialDays: trial[t.ID], Includes: []string{}, Offers: []EarnComposerOffer{}}
+		if h, ok := s.Offers.(ComposerOfferHook); ok && out.Connected {
+			ct.Offers = h.ComposerOffers(ctx, ws, t.ID)
+		}
 		var parts []string
 		for _, period := range []string{"month", "year"} {
 			for _, p := range prices {

@@ -217,6 +217,10 @@ func (s *Service) applyEvent(ctx context.Context, tx pgx.Tx, ws *store.Workspace
 	if conn.Status == "disconnected" {
 		return ignored("disconnected"), nil
 	}
+	// One-time payments of other domains (digital products) go to them.
+	if out, ok, err := s.consume(ctx, tx, ws, conn, pe); ok || err != nil {
+		return out, err
+	}
 	switch ev.Kind {
 	case payments.EventSubscriptionCreated, payments.EventSubscriptionUpdated, payments.EventSubscriptionDeleted:
 		return s.applySubscription(ctx, tx, ws, conn, pe, ev)
@@ -689,6 +693,17 @@ func (s *Service) applyCheckout(ctx context.Context, tx pgx.Tx, ws *store.Worksp
 		}
 	}
 	if cs.SubscriptionID == "" {
+		// A one-time payment: a gift (X17).
+		if s.OneTime != nil {
+			if handled, detail, err := s.OneTime.CheckoutCompleted(ctx, tx, ws, conn.Mode, *cs, ev.Created); err != nil {
+				return outcome{}, err
+			} else if handled {
+				o := applied("gift_paid", detail)
+				amount := cs.AmountTotal
+				o.amount, o.currency = &amount, cs.Currency
+				return o, nil
+			}
+		}
 		return ignored("not_a_subscription"), nil
 	}
 	src := &checkoutSource{kind: "page", email: cs.CustomerEmail, detail: map[string]any{"session": cs.ID}}
@@ -937,6 +952,28 @@ func (s *Service) applyUpcoming(ctx context.Context, tx pgx.Tx, ws *store.Worksp
 func (s *Service) applyRefund(ctx context.Context, tx pgx.Tx, ws *store.Workspace, conn store.PaymentConnection, pe store.PaymentEvent, ev payments.Event) (outcome, error) {
 	q := store.New(tx)
 	ch := ev.Charge
+	if ch == nil {
+		return ignored("unknown_customer"), nil
+	}
+	// A one-time payment's refund: a gift (X17).
+	if s.OneTime != nil && ch.InvoiceID == "" && ch.PaymentIntentID != "" {
+		if handled, detail, err := s.OneTime.Refunded(ctx, tx, ws, conn.Mode, *ch, ev.Created); err != nil {
+			return outcome{}, err
+		} else if handled {
+			o := applied("gift_refunded", detail)
+			neg := -ch.RefundAmount
+			if neg == 0 {
+				neg = -ch.AmountRefunded
+			}
+			o.amount, o.currency = &neg, ch.Currency
+			return o, nil
+		}
+	}
+	if ch.CustomerID == "" {
+		// A one-time payment without a customer (a guest checkout) belongs
+		// to no subscription.
+		return ignored("unknown_customer"), nil
+	}
 	rows, err := q.EarnSubscriptionsOfCustomer(ctx, store.EarnSubscriptionsOfCustomerParams{WorkspaceID: ws.ID, Mode: conn.Mode, StripeCustomerID: ch.CustomerID})
 	if err != nil {
 		return outcome{}, err

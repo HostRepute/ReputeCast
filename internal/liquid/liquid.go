@@ -7,6 +7,10 @@
 // and read as default: "there". Rendering is bounded: no include or render
 // (templates can't load other templates or files), ranges of at most 1,000
 // items and at most 4 MB of output.
+//
+// One filter of ReputeCast's own: with_query sets a query parameter on a
+// link, {{ upgrade_url | with_query: "offer", "FALL26" }}, whether or not
+// the link already has a query (the Upgrade block's offer, Earn).
 package liquid
 
 import (
@@ -14,10 +18,12 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"net/url"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	osteele "github.com/osteele/liquid"
 )
@@ -32,7 +38,7 @@ const MaxRange = 1000
 type PersonalizationToken struct {
 	Key   string `json:"key" example:"first_name"`
 	Label string `json:"label" example:"First name"`
-	Kind  string `json:"kind" enum:"contact,custom,system"`
+	Kind  string `json:"kind" enum:"contact,custom,system,referral,paid"`
 	// Fallback is the suggested default for contacts without a value.
 	Fallback string `json:"fallback,omitempty"`
 }
@@ -68,7 +74,23 @@ func Catalog(custom []CustomField) []PersonalizationToken {
 		}
 		out = append(out, f)
 	}
-	return append(out, SystemFields...)
+	out = append(out, SystemFields...)
+	tokensMu.RLock()
+	defer tokensMu.RUnlock()
+	return append(out, extraTokens...)
+}
+
+var (
+	tokensMu    sync.RWMutex
+	extraTokens []PersonalizationToken
+)
+
+// RegisterTokens adds tokens other packages provide to every email's token
+// catalog (Grow's referral.* tokens).
+func RegisterTokens(t ...PersonalizationToken) {
+	tokensMu.Lock()
+	defer tokensMu.Unlock()
+	extraTokens = append(extraTokens, t...)
 }
 
 var (
@@ -78,8 +100,12 @@ var (
 )
 
 // Prepare decodes HTML entities inside Liquid delimiters and rewrites the
-// short fallback form, so Liquid embedded in compiled HTML parses.
-func Prepare(src string) string {
+// short fallback form, so Liquid embedded in compiled HTML parses. Blocks
+// that render per reader are expanded first (ExpandBlocks).
+func Prepare(src string) string { return prepareSpans(ExpandBlocks(src)) }
+
+// prepareSpans is Prepare without expanding blocks.
+func prepareSpans(src string) string {
 	if !strings.Contains(src, "{{") && !strings.Contains(src, "{%") {
 		return src
 	}
@@ -174,7 +200,21 @@ func NewEngine() *osteele.Engine {
 	e.UnregisterTag("include")
 	e.UnregisterTag("render")
 	e.RegisterTemplateStore(noTemplates{})
+	e.RegisterFilter("with_query", WithQuery)
 	return e
+}
+
+// WithQuery is the with_query filter: the link with the query parameter
+// name set to value. Anything that isn't a web link comes back as it is.
+func WithQuery(link, name, value string) string {
+	u, err := url.Parse(strings.TrimSpace(link))
+	if err != nil || name == "" || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return link
+	}
+	q := u.Query()
+	q.Set(name, value)
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 // noTemplates is a template store without templates.
@@ -289,10 +329,12 @@ type Use struct {
 }
 
 // Uses lists the variables printed with {{ … }}, in order of first use.
+// Blocks (ExpandBlocks) aren't expanded: their Liquid is ReputeCast's own,
+// and what a person typed in their settings stays in the marker.
 func Uses(src string) []Use {
 	out := []Use{}
 	idx := map[string]int{}
-	for _, span := range spanRe.FindAllString(Prepare(src), -1) {
+	for _, span := range spanRe.FindAllString(prepareSpans(src), -1) {
 		if !strings.HasPrefix(span, "{{") {
 			continue
 		}

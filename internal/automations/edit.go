@@ -30,6 +30,9 @@ type CreateParams struct {
 	// ListID is the list a list-triggered template starts on (the
 	// welcome-series prompt); empty takes the workspace's first list.
 	ListID string
+	// StoreID is the store a store-triggered template starts on
+	// (abandoned-cart); empty takes the workspace's first connected store.
+	StoreID string
 }
 
 // Create makes a draft flow. Templates also create their emails.
@@ -42,7 +45,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, by *uuid.UUID
 	if p.Template != "" {
 		t, ok := templateByKey(p.Template)
 		if !ok {
-			return uuid.Nil, api.Invalid("body.template", "There's no starter template with that name. Pick welcome-series, re-engagement or onboarding.")
+			return uuid.Nil, api.Invalid("body.template", "There's no starter template with that name. Pick welcome-series, re-engagement, onboarding or abandoned-cart.")
 		}
 		tpl = t
 		if name == "" {
@@ -56,7 +59,14 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, by *uuid.UUID
 	}
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if tpl.Key != "" {
+		storeID := ""
+		if tpl.store {
+			var err error
+			if storeID, err = templateStore(ctx, q, ws.ID, p.StoreID); err != nil {
+				return err
+			}
+			graph = tpl.build(storeID)
+		} else if tpl.Key != "" {
 			lists, err := q.AutomationLists(ctx, ws.ID)
 			if err != nil {
 				return err
@@ -93,6 +103,11 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, by *uuid.UUID
 				eid := uuid.Must(uuid.NewV7())
 				emailIDs["tpl:"+e.key] = eid
 				c := starterEmail(e)
+				if tpl.store && s.StoreEmail != nil {
+					if sc, ok := s.StoreEmail(ctx, ws.ID, uuid.MustParse(storeID), e.key); ok {
+						c = sc
+					}
+				}
 				if err := q.CreateAutomationEmail(ctx, store.CreateAutomationEmailParams{ID: eid, WorkspaceID: ws.ID, AutomationID: &id, Name: e.name, CreatedBy: by}); err != nil {
 					return err
 				}

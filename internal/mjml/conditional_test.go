@@ -41,6 +41,18 @@ func TestPrepareCompile(t *testing.T) {
 	if PrepareCompile(plain) != plain {
 		t.Fatal("a document without rc attributes changed")
 	}
+	// A block shown in the editor only (a Sponsor block without a booking)
+	// is left out of the email.
+	omit := `<mjml><mj-body><mj-section><mj-column><mj-text>Story</mj-text></mj-column></mj-section>` +
+		`<!-- rc:sponsor --><mj-section rc-sponsor="1" rc-omit="1" padding="12px 24px"><mj-column><mj-text>No sponsor is booked for #144.</mj-text></mj-column></mj-section>` +
+		`<mj-section rc-omit="0"><mj-column><mj-text>Kept</mj-text></mj-column></mj-section></mj-body></mjml>`
+	out = PrepareCompile(omit)
+	if strings.Contains(out, "No sponsor is booked") || strings.Contains(out, "rc-") || !strings.Contains(out, "Story") || !strings.Contains(out, "Kept") {
+		t.Fatalf("omitted block:\n%s", out)
+	}
+	if res := Compile(out); len(res.Errors) > 0 || strings.Contains(res.HTML, "No sponsor") {
+		t.Fatalf("compile without the omitted block: %+v", res.Errors)
+	}
 }
 
 // gomjml keeps the markers, outside Outlook's conditional comments, around

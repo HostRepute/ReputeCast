@@ -15,7 +15,7 @@ var views = []struct{ name, body string }{
 	{"contacts", `SELECT c.id, c.workspace_id, c.email, c.first_name, c.last_name, c.company, c.country, c.timezone,
            c.language, c.mailbox_provider, c.tier, c.consent, c.source, c.status, c.tags, c.attributes AS fields,
            c.role_address, c.created_at, c.last_open_at, c.last_human_open_at, c.last_click_at,
-           s.created_at AS suppressed_at,` + scoringColumns + websiteColumns + `
+           s.created_at AS suppressed_at,` + scoringColumns + websiteColumns + growColumns + `
     FROM public.contacts c
     LEFT JOIN public.suppressions s ON s.workspace_id = c.workspace_id AND s.email = c.email` + scoringJoins + websiteJoins + `
     WHERE c.workspace_id = {ws} AND c.erased_at IS NULL`},
@@ -39,10 +39,12 @@ var views = []struct{ name, body string }{
     LEFT JOIN public.earn_tiers t ON t.id = s.tier_id
     WHERE s.workspace_id = {ws} AND s.mode = 'live' AND s.status <> 'incomplete'`},
 	{"paid_tiers", `SELECT t.id, t.name, t.access_rank AS rank FROM public.earn_tiers t WHERE t.workspace_id = {ws} AND t.deleted_at IS NULL`},
+	// Purchases of digital products (products.go).
+	{"purchases", purchasesView},
 }
 
 // ViewNames are the relations a SQL segment may read.
-var ViewNames = []string{"contacts", "list_members", "events", "lists", "paid_members", "paid_tiers"}
+var ViewNames = []string{"contacts", "list_members", "events", "lists", "paid_members", "paid_tiers", "purchases"}
 
 // withViews is the CTE prelude for builder queries; $1 is the workspace.
 func withViews() string {

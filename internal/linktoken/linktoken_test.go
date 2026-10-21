@@ -1,6 +1,8 @@
 package linktoken
 
 import (
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -31,5 +33,30 @@ func TestRoundTripAndTamper(t *testing.T) {
 	}
 	if len(tok) > 100 {
 		t.Fatalf("token too long: %d", len(tok))
+	}
+}
+
+// A well-formed token signed with another key fails as a signature
+// mismatch (an earlier instance key); a malformed one doesn't.
+func TestSignatureMismatch(t *testing.T) {
+	a, err := NewSigner([]byte(strings.Repeat("a", 32)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := NewSigner([]byte(strings.Repeat("b", 32)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := Claims{Kind: Click, WorkspaceID: uuid.New(), MessageID: uuid.New(), ContactID: uuid.New(), Link: 3}
+	if _, err := a.Verify(b.Sign(c), Click); !errors.Is(err, ErrSignature) || !errors.Is(err, ErrInvalid) {
+		t.Errorf("another key: %v", err)
+	}
+	for _, tok := range []string{"", "not-a-token", a.Sign(c) + "x"} {
+		if _, err := a.Verify(tok, Click); !errors.Is(err, ErrInvalid) || errors.Is(err, ErrSignature) {
+			t.Errorf("malformed %q: %v", tok, err)
+		}
+	}
+	if _, err := a.Verify(a.Sign(c), Open); errors.Is(err, ErrSignature) {
+		t.Error("another kind is malformed, not a signature mismatch")
 	}
 }

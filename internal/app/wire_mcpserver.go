@@ -24,10 +24,19 @@ func (a *App) mcpserver() *mcpserver.Service {
 		PaidMembers:   earnService(a),
 		Placement:     a.placement(),
 		Website:       websiteService(a),
-		// Push and WhatsApp drafts and reports (X22): agents never send.
-		Push:      a.Push(),
-		WhatsApp:  a.WhatsApp(),
+		Pages:         pagesService(a),
+		Products:      productsService(a),
+		// Earn's revenue and sponsor bookings (X17).
+		Revenue:   revenueService(a),
+		Sponsors:  sponsorService(a),
 		PublicURL: func(context.Context) string { return a.URLs.Base() },
+		// Grow: results, referrers, the review queue (masked) and
+		// recommendations; agents only read and propose.
+		Grow:            a.referrals(),
+		Recommendations: a.recommendations(),
+		// Push and WhatsApp drafts and reports (X22): agents never send.
+		Push:     a.Push(),
+		WhatsApp: a.WhatsApp(),
 	}
 }
 

@@ -53,6 +53,11 @@ type Service struct {
 	// Channels describe campaigns on channels other than email, by channel
 	// ("sms"): their facts and snapshots (channels.go).
 	Channels map[string]ChannelCampaigns
+	// Pages publishes a page once its approval is granted, and PagePreview
+	// draws the page as it would go live, for the review (nil without
+	// pages).
+	Pages       func() PagesPublisher
+	PagePreview func(ctx context.Context, ws *store.Workspace, pageID uuid.UUID) (string, error)
 }
 
 func (s *Service) now() time.Time {

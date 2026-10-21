@@ -42,6 +42,8 @@ type contactsQuery struct {
 	WebsiteQuery
 	PaidQuery
 	PushWhatsAppQuery
+	ProductsQuery
+	StoreQuery
 	Page     int `query:"page" minimum:"1" default:"1"`
 	PageSize int `query:"pageSize" minimum:"1" maximum:"100" default:"10"`
 }
@@ -49,7 +51,7 @@ type contactsQuery struct {
 func (q contactsQuery) filter() ContactFilter {
 	return ContactFilter{Q: q.Q, List: q.List, Tier: q.Tier, Mailbox: q.Mailbox, Consent: q.Consent, Source: q.Source, Tag: q.Tag, Segment: q.Segment, JoinedAfter: q.JoinedAfter,
 		Language: q.Language, ScoreGrowthFilter: q.ScoreGrowthQuery.filter(), Check: q.Check, WebsiteFilter: q.WebsiteQuery.filter(), PaidFilter: q.PaidQuery.filter(),
-		PushWhatsAppFilter: q.PushWhatsAppQuery.filter()}
+		PushWhatsAppFilter: q.PushWhatsAppQuery.filter(), ProductsFilter: q.ProductsQuery.filter(), StoreFilter: q.StoreQuery.filter()}
 }
 
 type ContactPathInput struct {

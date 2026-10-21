@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/paidaccess"
 )
 
@@ -23,6 +24,15 @@ import (
 
 // RootPaid is the Liquid variable the paid values live under.
 const RootPaid = "paid"
+
+func init() {
+	toks := Tokens()
+	reg := make([]liquid.PersonalizationToken, len(toks))
+	for i, t := range toks {
+		reg[i] = liquid.PersonalizationToken{Key: t.Key, Label: t.Label, Kind: "paid"}
+	}
+	liquid.RegisterTokens(reg...)
+}
 
 // Token is a paid token of the composer's token menu.
 type Token struct {

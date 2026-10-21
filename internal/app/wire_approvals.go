@@ -31,7 +31,7 @@ func readinessService(a *App) *readiness.Service {
 		Templates: &templates.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
 		Mail:      func() mailer.Sender { return a.Mail },
 		URLs:      a.URLs,
-		Checker:   &contentcheck.Checker{Blocklist: contentcheck.StoreBlocklist{Q: a.Q}, Prober: prober},
+		Checker:   &contentcheck.Checker{Blocklist: contentcheck.StoreBlocklist{Q: a.Q}, Prober: prober, Extra: contentExtras(a)},
 		// Send Readiness checks and fixes every language version.
 		Translations: campaignTranslations(a),
 	}
@@ -47,11 +47,27 @@ func readinessService(a *App) *readiness.Service {
 	if v := readinessVerification(a); v != nil {
 		rs.Verification = v
 	}
+	// Grow's Referral and Recommendations blocks (wire_grow.go).
+	rs.Grow = growReadiness{a: a}
 	if w := readinessWebsite(a); w != nil {
 		rs.Website = w
 	}
+	if sp := readinessSponsor(a); sp != nil {
+		rs.Sponsor = sp
+	}
+	if uo := readinessUpgradeOffers(a); uo != nil {
+		rs.UpgradeOffers = uo
+	}
 	return rs
 }
+
+// readinessUpgradeOffers finds Upgrade blocks whose offer ended; set from
+// wire_offers.go. Nil leaves the check out.
+var readinessUpgradeOffers = func(*App) readiness.UpgradeOfferChecker { return nil }
+
+// readinessSponsor gives the Sponsor block's checks and fixes; set from
+// wire_sponsors.go. Nil leaves them out.
+var readinessSponsor = func(*App) readiness.SponsorChecker { return nil }
 
 // readinessWebsite gives the web checks of campaigns that publish to the
 // website; set from wire_website.go. Nil leaves them out.
@@ -95,6 +111,7 @@ func newApprovals(a *App) *approvals.Service {
 		},
 	}
 	approvalsWebsite(a, s)
+	approvalsPages(a, s)
 	// Fixes and send settings re-check open approvals; so do composer saves.
 	rs.AfterChange = s.CampaignChanged
 	rs.Campaigns.AfterChange = s.CampaignChanged

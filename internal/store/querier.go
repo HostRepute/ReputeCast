@@ -199,10 +199,16 @@ type Querier interface {
 	AutomationAddContactTag(ctx context.Context, arg AutomationAddContactTagParams) error
 	AutomationAddListMembership(ctx context.Context, arg AutomationAddListMembershipParams) error
 	AutomationContact(ctx context.Context, id uuid.UUID) (AutomationContactRow, error)
+	// Whether a contact bought the product (any product when empty) since a
+	// time, not refunded in full.
+	AutomationContactBought(ctx context.Context, arg AutomationContactBoughtParams) (bool, error)
 	AutomationContactByEmail(ctx context.Context, arg AutomationContactByEmailParams) (AutomationContactByEmailRow, error)
 	AutomationContactEmailedSince(ctx context.Context, arg AutomationContactEmailedSinceParams) (bool, error)
 	AutomationContactInList(ctx context.Context, arg AutomationContactInListParams) (bool, error)
 	AutomationContactInWorkspace(ctx context.Context, arg AutomationContactInWorkspaceParams) (AutomationContactInWorkspaceRow, error)
+	// ── Automations: the "Placed an order" goal ─────────────────────────────
+	// The contact placed an order since a time (in one store, or any).
+	AutomationContactOrdered(ctx context.Context, arg AutomationContactOrderedParams) (bool, error)
 	AutomationContactSentEvent(ctx context.Context, arg AutomationContactSentEventParams) (bool, error)
 	AutomationContactSuppressed(ctx context.Context, arg AutomationContactSuppressedParams) (bool, error)
 	// Contacts whose date field (plus the offset) is today in the workspace's
@@ -214,19 +220,34 @@ type Querier interface {
 	AutomationEventNames(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
 	AutomationFields(ctx context.Context, workspaceID uuid.UUID) ([]AutomationFieldsRow, error)
 	AutomationForms(ctx context.Context, workspaceID uuid.UUID) ([]AutomationFormsRow, error)
+	// Runs of a version whose contact bought the product (any product when
+	// empty) since entering, not refunded in full.
+	AutomationGoalRunsBought(ctx context.Context, arg AutomationGoalRunsBoughtParams) ([]uuid.UUID, error)
 	// Runs whose contact opened or clicked an email of this flow since entering.
 	AutomationGoalRunsEngaged(ctx context.Context, arg AutomationGoalRunsEngagedParams) ([]AutomationGoalRunsEngagedRow, error)
 	AutomationGoalRunsEvent(ctx context.Context, arg AutomationGoalRunsEventParams) ([]AutomationGoalRunsEventRow, error)
 	AutomationGoalRunsInList(ctx context.Context, arg AutomationGoalRunsInListParams) ([]AutomationGoalRunsInListRow, error)
+	// Runs whose contact placed an order since entering the flow.
+	AutomationGoalRunsOrdered(ctx context.Context, arg AutomationGoalRunsOrderedParams) ([]AutomationGoalRunsOrderedRow, error)
 	AutomationGoalRunsTagged(ctx context.Context, arg AutomationGoalRunsTaggedParams) ([]AutomationGoalRunsTaggedRow, error)
 	AutomationLists(ctx context.Context, workspaceID uuid.UUID) ([]AutomationListsRow, error)
 	// Runs waiting on a webhook call whose job never ran (lost or not enqueued).
 	AutomationLostWebhookRuns(ctx context.Context, before time.Time) ([]AutomationLostWebhookRunsRow, error)
 	AutomationMessageEngaged(ctx context.Context, arg AutomationMessageEngagedParams) (bool, error)
 	AutomationMessageForStats(ctx context.Context, id uuid.UUID) (AutomationMessageForStatsRow, error)
+	AutomationMessageVars(ctx context.Context, messageID uuid.UUID) (json.RawMessage, error)
+	// Trigger data in automation emails (design expansion phase 7).
+	AutomationMessageVarsInsert(ctx context.Context, arg AutomationMessageVarsInsertParams) error
+	// Whether a contact already went through a flow for this milestone ("once
+	// per contact per milestone").
+	AutomationMilestoneRunExists(ctx context.Context, arg AutomationMilestoneRunExistsParams) (bool, error)
+	// The milestones a "Reached a milestone" trigger can start on.
+	AutomationMilestones(ctx context.Context, workspaceID uuid.UUID) ([]AutomationMilestonesRow, error)
 	// What the trigger "Answered a poll or survey" can point at, by the ref
 	// its events carry ("poll:<id>", "survey:<id>").
 	AutomationPollRefs(ctx context.Context, workspaceID uuid.UUID) ([]AutomationPollRefsRow, error)
+	// The products a trigger or goal can name.
+	AutomationProductRefs(ctx context.Context, workspaceID uuid.UUID) ([]AutomationProductRefsRow, error)
 	// Automation emails per sending provider since a day, and the last day each sent.
 	AutomationProviderSendsSince(ctx context.Context, arg AutomationProviderSendsSinceParams) ([]AutomationProviderSendsSinceRow, error)
 	AutomationProviders(ctx context.Context, workspaceID uuid.UUID) ([]AutomationProvidersRow, error)
@@ -237,6 +258,9 @@ type Querier interface {
 	AutomationRunExists(ctx context.Context, arg AutomationRunExistsParams) (bool, error)
 	// The message a run's email step queued (for branch checks).
 	AutomationRunMessage(ctx context.Context, arg AutomationRunMessageParams) (AutomationRunMessageRow, error)
+	// A refund makes the contact leave the "Bought a product" flows of that
+	// product (or of any product) they're in.
+	AutomationRunsExitBought(ctx context.Context, arg AutomationRunsExitBoughtParams) ([]AutomationRunsExitBoughtRow, error)
 	// Whether a contact entered a "Score crosses…" automation recently, or is in it.
 	AutomationScoreRunSince(ctx context.Context, arg AutomationScoreRunSinceParams) (bool, error)
 	// The latest alert per webhook step, open or resolved (for the publish diff).
@@ -248,6 +272,8 @@ type Querier interface {
 	AutomationStepSecretNodes(ctx context.Context, automationID uuid.UUID) ([]string, error)
 	// Per-step totals since a day, across versions (steps keep their ids).
 	AutomationStepStatsSince(ctx context.Context, arg AutomationStepStatsSinceParams) ([]AutomationStepStatsSinceRow, error)
+	// The workspace's stores, for the store triggers' and goal's references.
+	AutomationStoreRefs(ctx context.Context, workspaceID uuid.UUID) ([]AutomationStoreRefsRow, error)
 	AutomationTopTags(ctx context.Context, workspaceID uuid.UUID) ([]AutomationTopTagsRow, error)
 	AutomationUnsubscribeAll(ctx context.Context, contactID uuid.UUID) error
 	// Totals per automation since a day, for the KPI row.
@@ -260,6 +286,13 @@ type Querier interface {
 	BumpNotificationEmailAttempts(ctx context.Context, arg BumpNotificationEmailAttemptsParams) error
 	CampaignCostSince(ctx context.Context, arg CampaignCostSinceParams) ([]CampaignCostSinceRow, error)
 	CampaignTotalsSince(ctx context.Context, arg CampaignTotalsSinceParams) (CampaignTotalsSinceRow, error)
+	// The reason given on the cancel page, for the paid member's timeline.
+	CancelSetReason(ctx context.Context, arg CancelSetReasonParams) error
+	CancelVisitDecide(ctx context.Context, arg CancelVisitDecideParams) error
+	CancelVisitGet(ctx context.Context, arg CancelVisitGetParams) (EarnCancelVisit, error)
+	CancelVisitInsert(ctx context.Context, arg CancelVisitInsertParams) error
+	// A reader's undecided visit of the last half hour: a reload counts once.
+	CancelVisitRecent(ctx context.Context, arg CancelVisitRecentParams) (EarnCancelVisit, error)
 	ChanConsentEventInsert(ctx context.Context, arg ChanConsentEventInsertParams) error
 	ChanConsentEvents(ctx context.Context, contactID uuid.UUID) ([]ChanConsentEventsRow, error)
 	ChanConsentUpsert(ctx context.Context, arg ChanConsentUpsertParams) error
@@ -305,6 +338,221 @@ type Querier interface {
 	ClearSegmentMembers(ctx context.Context, segmentID uuid.UUID) error
 	ClearSignInThrottle(ctx context.Context, email string) error
 	ClearUserLockout(ctx context.Context, id uuid.UUID) error
+	// The skip rule: the contact got an email from an abandoned-cart flow
+	// (one started by abandoned checkouts) since a time.
+	CommerceAbandonedCartEmailedSince(ctx context.Context, arg CommerceAbandonedCartEmailedSinceParams) (bool, error)
+	// Live automations started by abandoned checkouts.
+	CommerceAbandonedFlows(ctx context.Context) ([]CommerceAbandonedFlowsRow, error)
+	CommerceActivity(ctx context.Context, arg CommerceActivityParams) ([]StoreActivity, error)
+	// ── Activity ────────────────────────────────────────────────────────────
+	CommerceActivityInsert(ctx context.Context, arg CommerceActivityInsertParams) error
+	CommerceActivityPurge(ctx context.Context, before time.Time) (int64, error)
+	// One automation's credited orders since a time (the goal node's numbers).
+	CommerceAutomationGoalRevenue(ctx context.Context, arg CommerceAutomationGoalRevenueParams) (CommerceAutomationGoalRevenueRow, error)
+	CommerceAutomationGraph(ctx context.Context, id uuid.UUID) (CommerceAutomationGraphRow, error)
+	CommerceAutomationName(ctx context.Context, id uuid.UUID) (CommerceAutomationNameRow, error)
+	// Credited store orders per automation since a time (the automations list).
+	CommerceAutomationRevenue(ctx context.Context, arg CommerceAutomationRevenueParams) ([]CommerceAutomationRevenueRow, error)
+	CommerceCampaignName(ctx context.Context, id uuid.UUID) (string, error)
+	// A campaign's credited store orders, per store (the report's rows).
+	CommerceCampaignRevenue(ctx context.Context, arg CommerceCampaignRevenueParams) ([]CommerceCampaignRevenueRow, error)
+	// Campaigns whose content has one of a store's blocks.
+	CommerceCampaignsUsing(ctx context.Context, arg CommerceCampaignsUsingParams) ([]CommerceCampaignsUsingRow, error)
+	CommerceCheckoutByID(ctx context.Context, id uuid.UUID) (StoreCheckout, error)
+	// An order completed its checkout: by its token, or (WooCommerce, Shopify
+	// without the token) the contact's open checkouts from before it.
+	CommerceCheckoutComplete(ctx context.Context, arg CommerceCheckoutCompleteParams) ([]uuid.UUID, error)
+	// An automation's abandoned-checkout numbers since it went live.
+	CommerceCheckoutEntries(ctx context.Context, automationID uuid.UUID) ([]CommerceCheckoutEntriesRow, error)
+	CommerceCheckoutEntry(ctx context.Context, arg CommerceCheckoutEntryParams) error
+	// ── Checkouts ───────────────────────────────────────────────────────────
+	CommerceCheckoutUpsert(ctx context.Context, arg CommerceCheckoutUpsertParams) (StoreCheckout, error)
+	// Checkouts of a store with no order after the delay, created since a
+	// time, that an automation hasn't looked at yet.
+	CommerceCheckoutsAbandoned(ctx context.Context, arg CommerceCheckoutsAbandonedParams) ([]StoreCheckout, error)
+	// ── Attribution ─────────────────────────────────────────────────────────
+	// The email a click token names: its contact and campaign or automation step.
+	CommerceClickMessage(ctx context.Context, id uuid.UUID) (CommerceClickMessageRow, error)
+	// When a message's link was clicked last before a time (a click token's
+	// click, when the token carries no time).
+	CommerceClickTime(ctx context.Context, arg CommerceClickTimeParams) (time.Time, error)
+	// ── Collections and products ────────────────────────────────────────────
+	CommerceCollectionUpsert(ctx context.Context, arg CommerceCollectionUpsertParams) error
+	// Collections with their live product counts (products not removed).
+	CommerceCollections(ctx context.Context, storeID uuid.UUID) ([]CommerceCollectionsRow, error)
+	CommerceConsentInsert(ctx context.Context, arg CommerceConsentInsertParams) error
+	// ── Contacts the sync needs ─────────────────────────────────────────────
+	CommerceContactByEmail(ctx context.Context, arg CommerceContactByEmailParams) (CommerceContactByEmailRow, error)
+	CommerceContactByID(ctx context.Context, id uuid.UUID) (CommerceContactByIDRow, error)
+	// Whether the contact ordered in the store before this order.
+	CommerceContactHasOrder(ctx context.Context, arg CommerceContactHasOrderParams) (bool, error)
+	CommerceContactInsert(ctx context.Context, arg CommerceContactInsertParams) (uuid.UUID, error)
+	// A contact's orders and spending per store.
+	CommerceContactOrderTotals(ctx context.Context, arg CommerceContactOrderTotalsParams) ([]CommerceContactOrderTotalsRow, error)
+	// A contact's store orders, newest first, with the email they were
+	// credited to.
+	CommerceContactOrders(ctx context.Context, arg CommerceContactOrdersParams) ([]CommerceContactOrdersRow, error)
+	CommerceContactStoreCustomers(ctx context.Context, arg CommerceContactStoreCustomersParams) ([]CommerceContactStoreCustomersRow, error)
+	// ── The contact profile ──────────────────────────────────────────────────
+	// A contact's store orders and abandoned checkouts, newest first, before
+	// a cursor (the profile's timeline).
+	CommerceContactTimeline(ctx context.Context, arg CommerceContactTimelineParams) ([]CommerceContactTimelineRow, error)
+	CommerceContactTimelineCount(ctx context.Context, arg CommerceContactTimelineCountParams) (int64, error)
+	// ── Customers ───────────────────────────────────────────────────────────
+	CommerceCustomer(ctx context.Context, arg CommerceCustomerParams) (StoreCustomer, error)
+	CommerceCustomerByContact(ctx context.Context, contactID *uuid.UUID) ([]StoreCustomer, error)
+	// The store page's consent numbers.
+	CommerceCustomerStats(ctx context.Context, storeID uuid.UUID) (CommerceCustomerStatsRow, error)
+	CommerceCustomerToldStore(ctx context.Context, arg CommerceCustomerToldStoreParams) error
+	CommerceCustomerUpsert(ctx context.Context, arg CommerceCustomerUpsertParams) (StoreCustomer, error)
+	CommerceDeleteStoreCheckouts(ctx context.Context, storeID uuid.UUID) error
+	CommerceDeleteStoreCollections(ctx context.Context, storeID uuid.UUID) error
+	CommerceDeleteStoreCustomers(ctx context.Context, storeID uuid.UUID) error
+	// ── Purges and data deletion ────────────────────────────────────────────
+	// "Delete store data": products, orders, checkouts and customers go; the
+	// contacts the store added stay, with their consent.
+	CommerceDeleteStoreData(ctx context.Context, storeID uuid.UUID) error
+	CommerceDeleteStoreOrders(ctx context.Context, storeID uuid.UUID) error
+	CommerceEmitEvent(ctx context.Context, arg CommerceEmitEventParams) error
+	CommerceEvent(ctx context.Context, id uuid.UUID) (StoreEvent, error)
+	CommerceEventDone(ctx context.Context, arg CommerceEventDoneParams) error
+	// ── Raw events ──────────────────────────────────────────────────────────
+	CommerceEventInsert(ctx context.Context, arg CommerceEventInsertParams) (uuid.UUID, error)
+	// Events not applied two minutes after they arrived (the recovery sweep).
+	CommerceEventsPending(ctx context.Context, before time.Time) ([]uuid.UUID, error)
+	CommerceEventsPurge(ctx context.Context, before time.Time) (int64, error)
+	CommerceEventsRejected(ctx context.Context, arg CommerceEventsRejectedParams) (int64, error)
+	// When an automation's live version was published.
+	CommerceFlowLiveSince(ctx context.Context, arg CommerceFlowLiveSinceParams) (*time.Time, error)
+	// Joins the store's list. A contact who left the list stays out, unless
+	// the store's consent is newer than their leaving (a new opt-in).
+	CommerceJoinList(ctx context.Context, arg CommerceJoinListParams) (int64, error)
+	// The contact's last human click on a campaign or automation email within
+	// the window before the order.
+	CommerceLastClick(ctx context.Context, arg CommerceLastClickParams) (CommerceLastClickRow, error)
+	// The latest sent campaign (a tagged link's example).
+	CommerceLatestCampaign(ctx context.Context, workspaceID uuid.UUID) (string, error)
+	CommerceLeaveList(ctx context.Context, arg CommerceLeaveListParams) (int64, error)
+	CommerceListByName(ctx context.Context, arg CommerceListByNameParams) (uuid.UUID, error)
+	CommerceListCreate(ctx context.Context, arg CommerceListCreateParams) error
+	CommerceListName(ctx context.Context, id uuid.UUID) (string, error)
+	// The lists the customers can join, with their subscribed count.
+	CommerceLists(ctx context.Context, workspaceID uuid.UUID) ([]CommerceListsRow, error)
+	// Active members with their role's permissions (who can help, who to tell).
+	CommerceMembers(ctx context.Context, workspaceID uuid.UUID) ([]CommerceMembersRow, error)
+	CommerceMembership(ctx context.Context, arg CommerceMembershipParams) (CommerceMembershipRow, error)
+	// ── Orders ──────────────────────────────────────────────────────────────
+	CommerceOrder(ctx context.Context, arg CommerceOrderParams) (StoreOrder, error)
+	CommerceOrderAttribute(ctx context.Context, arg CommerceOrderAttributeParams) error
+	CommerceOrderByID(ctx context.Context, id uuid.UUID) (StoreOrder, error)
+	CommerceOrderCount(ctx context.Context, storeID uuid.UUID) (int64, error)
+	CommerceOrderDelete(ctx context.Context, arg CommerceOrderDeleteParams) error
+	CommerceOrderForUpdate(ctx context.Context, arg CommerceOrderForUpdateParams) (StoreOrder, error)
+	CommerceOrderInsert(ctx context.Context, arg CommerceOrderInsertParams) (StoreOrder, error)
+	CommerceOrderRefunds(ctx context.Context, arg CommerceOrderRefundsParams) error
+	CommerceOrderUpdate(ctx context.Context, arg CommerceOrderUpdateParams) error
+	// Imported orders not matched yet (the first import's last phase).
+	CommerceOrdersToMatch(ctx context.Context, arg CommerceOrdersToMatchParams) ([]CommerceOrdersToMatchRow, error)
+	CommercePauseFlow(ctx context.Context, arg CommercePauseFlowParams) (int64, error)
+	// The connected WordPress site at a host, with what its plugin reported.
+	CommercePluginSite(ctx context.Context, arg CommercePluginSiteParams) (CommercePluginSiteRow, error)
+	CommerceProductCollections(ctx context.Context, arg CommerceProductCollectionsParams) ([]CommerceProductCollectionsRow, error)
+	CommerceProductCount(ctx context.Context, storeID uuid.UUID) (int64, error)
+	CommerceProductRemoved(ctx context.Context, arg CommerceProductRemovedParams) (int64, error)
+	// An older version of a product than the one stored is ignored (events
+	// that arrive out of order).
+	CommerceProductUpsert(ctx context.Context, arg CommerceProductUpsertParams) (uuid.UUID, error)
+	// The catalog for the picker: products not removed, newest first,
+	// optionally one collection's, optionally matching a search.
+	CommerceProducts(ctx context.Context, arg CommerceProductsParams) ([]StoreProduct, error)
+	// Products by id, removed ones included (blocks flag those).
+	CommerceProductsByExternal(ctx context.Context, arg CommerceProductsByExternalParams) ([]StoreProduct, error)
+	// The newest products of a collection (the product grid's "Newest from a
+	// collection").
+	CommerceProductsNewest(ctx context.Context, arg CommerceProductsNewestParams) ([]StoreProduct, error)
+	// After a full product read: products the store no longer has.
+	CommerceProductsRemoveMissing(ctx context.Context, arg CommerceProductsRemoveMissingParams) ([]CommerceProductsRemoveMissingRow, error)
+	// Resumes an automation the store paused (not one a person paused).
+	CommerceResumeFlow(ctx context.Context, arg CommerceResumeFlowParams) (int64, error)
+	// A store's credited orders in a period by campaign or automation.
+	CommerceRevenueByEmail(ctx context.Context, arg CommerceRevenueByEmailParams) ([]CommerceRevenueByEmailRow, error)
+	CommerceStore(ctx context.Context, arg CommerceStoreParams) (Store, error)
+	CommerceStoreByAddress(ctx context.Context, arg CommerceStoreByAddressParams) (Store, error)
+	// A workspace's store on a shop's own domain, whatever address connected it
+	// (a Shopify store's custom domain and its myshopify.com domain are one).
+	CommerceStoreByDomain(ctx context.Context, arg CommerceStoreByDomainParams) (Store, error)
+	CommerceStoreByID(ctx context.Context, id uuid.UUID) (Store, error)
+	CommerceStoreByState(ctx context.Context, oauthState *string) (Store, error)
+	CommerceStoreByToken(ctx context.Context, webhookToken *string) (Store, error)
+	CommerceStoreDelete(ctx context.Context, id uuid.UUID) error
+	CommerceStoreDisconnected(ctx context.Context, arg CommerceStoreDisconnectedParams) error
+	// Live and paused automations started by a store's triggers.
+	CommerceStoreFlows(ctx context.Context, arg CommerceStoreFlowsParams) ([]CommerceStoreFlowsRow, error)
+	// The WooCommerce store at a WordPress site's address.
+	CommerceStoreForSite(ctx context.Context, arg CommerceStoreForSiteParams) (CommerceStoreForSiteRow, error)
+	CommerceStoreForUpdate(ctx context.Context, arg CommerceStoreForUpdateParams) (Store, error)
+	CommerceStoreHealthChecked(ctx context.Context, arg CommerceStoreHealthCheckedParams) error
+	CommerceStoreImportDone(ctx context.Context, arg CommerceStoreImportDoneParams) error
+	CommerceStoreInsert(ctx context.Context, arg CommerceStoreInsertParams) (Store, error)
+	CommerceStoreInstalled(ctx context.Context, arg CommerceStoreInstalledParams) error
+	// How the orders were matched, every order.
+	CommerceStoreMatchedAll(ctx context.Context, storeID uuid.UUID) (CommerceStoreMatchedAllRow, error)
+	CommerceStoreNotified(ctx context.Context, arg CommerceStoreNotifiedParams) error
+	CommerceStoreProgress(ctx context.Context, arg CommerceStoreProgressParams) error
+	CommerceStoreRateLimited(ctx context.Context, arg CommerceStoreRateLimitedParams) error
+	CommerceStoreReconciled(ctx context.Context, arg CommerceStoreReconciledParams) error
+	// Reconnecting a store whose import was done before: no new first import;
+	// orders placed in the meantime are fetched by the reconciliation.
+	CommerceStoreReconnected(ctx context.Context, arg CommerceStoreReconnectedParams) (Store, error)
+	// Connecting a store again (after a disconnect): its data is kept.
+	CommerceStoreRestart(ctx context.Context, arg CommerceStoreRestartParams) (Store, error)
+	// The store refused the credentials: Disconnected, with Reconnect.
+	CommerceStoreRevoked(ctx context.Context, arg CommerceStoreRevokedParams) (Store, error)
+	CommerceStoreSetCredentials(ctx context.Context, arg CommerceStoreSetCredentialsParams) error
+	CommerceStoreSetKeys(ctx context.Context, arg CommerceStoreSetKeysParams) error
+	CommerceStoreSetPlugin(ctx context.Context, arg CommerceStoreSetPluginParams) error
+	CommerceStoreSetSettings(ctx context.Context, arg CommerceStoreSetSettingsParams) (Store, error)
+	CommerceStoreSetState(ctx context.Context, arg CommerceStoreSetStateParams) error
+	CommerceStoreSetStep(ctx context.Context, arg CommerceStoreSetStepParams) error
+	CommerceStoreSetWebhookSecret(ctx context.Context, arg CommerceStoreSetWebhookSecretParams) error
+	// Step 5 / finishing: what syncs, then the first import starts.
+	CommerceStoreStartSync(ctx context.Context, arg CommerceStoreStartSyncParams) (Store, error)
+	// ── Numbers ─────────────────────────────────────────────────────────────
+	// A store's orders and revenue in a period, and the part credited to email.
+	CommerceStoreTotals(ctx context.Context, arg CommerceStoreTotalsParams) (CommerceStoreTotalsRow, error)
+	CommerceStoreTouchEvent(ctx context.Context, arg CommerceStoreTouchEventParams) error
+	CommerceStoreWritebackThrough(ctx context.Context, arg CommerceStoreWritebackThroughParams) error
+	// Shopify and WooCommerce stores (internal/commerce): connections, what
+	// they sync, webhooks and raw events, the activity log, attribution and
+	// the abandoned checkouts the automations watch.
+	// ── Stores ──────────────────────────────────────────────────────────────
+	CommerceStores(ctx context.Context, workspaceID uuid.UUID) ([]Store, error)
+	// Stores to watch: connected (or importing), not the demo's.
+	CommerceStoresActive(ctx context.Context) ([]Store, error)
+	// Stores installing or installed on a Shopify domain (the app URL).
+	CommerceStoresByDomain(ctx context.Context, domain string) ([]Store, error)
+	// Connected stores of a workspace (links to tag, triggers, blocks).
+	CommerceStoresConnected(ctx context.Context, workspaceID uuid.UUID) ([]Store, error)
+	// Why an address is on the suppression list ('' when it isn't).
+	CommerceSuppressed(ctx context.Context, arg CommerceSuppressedParams) (string, error)
+	// Contacts who left the store's list, or every list, since a time: the
+	// unsubscribes to tell the store about (write-back). Leaving that the
+	// store itself caused (source store:…) is left out.
+	CommerceUnsubscribesSince(ctx context.Context, arg CommerceUnsubscribesSinceParams) ([]CommerceUnsubscribesSinceRow, error)
+	CommerceUserName(ctx context.Context, id uuid.UUID) (string, error)
+	CommerceWebhookEvent(ctx context.Context, arg CommerceWebhookEventParams) error
+	CommerceWebhookMissing(ctx context.Context, arg CommerceWebhookMissingParams) error
+	CommerceWebhookPolled(ctx context.Context, arg CommerceWebhookPolledParams) error
+	CommerceWebhookUpsert(ctx context.Context, arg CommerceWebhookUpsertParams) error
+	// ── Webhooks ────────────────────────────────────────────────────────────
+	CommerceWebhooks(ctx context.Context, storeID uuid.UUID) ([]StoreWebhook, error)
+	CommerceWebhooksClear(ctx context.Context, storeID uuid.UUID) error
+	// ── WordPress sites running WooCommerce (the plugin) ────────────────────
+	// What the plugin reports of WooCommerce on its site.
+	CommerceWordPressWoo(ctx context.Context, arg CommerceWordPressWooParams) error
+	// Every connected store's orders and credited revenue in a period (the
+	// Earn overview's card).
+	CommerceWorkspaceRevenue(ctx context.Context, arg CommerceWorkspaceRevenueParams) (CommerceWorkspaceRevenueRow, error)
 	// Every installed community adapter, any kind: the runtime registers the
 	// kinds it runs, and registry keys must not collide across kinds.
 	CommunityAdapterList(ctx context.Context) ([]CommunityAdapterListRow, error)
@@ -625,6 +873,16 @@ type Querier interface {
 	DomUpdateNote(ctx context.Context, arg DomUpdateNoteParams) error
 	DomUpdateRecords(ctx context.Context, arg DomUpdateRecordsParams) error
 	DomUpdateTracking(ctx context.Context, arg DomUpdateTrackingParams) error
+	DownloadFileGet(ctx context.Context, arg DownloadFileGetParams) (DownloadFile, error)
+	// Whether any file, removed or not, still keeps these bytes on disk.
+	DownloadFileInUse(ctx context.Context, arg DownloadFileInUseParams) (bool, error)
+	DownloadFileInsert(ctx context.Context, arg DownloadFileInsertParams) error
+	DownloadFileRemove(ctx context.Context, arg DownloadFileRemoveParams) error
+	DownloadFilesNextPosition(ctx context.Context, arg DownloadFilesNextPositionParams) (int32, error)
+	// Files
+	DownloadFilesOf(ctx context.Context, arg DownloadFilesOfParams) ([]DownloadFilesOfRow, error)
+	DownloadFilesOfOwners(ctx context.Context, arg DownloadFilesOfOwnersParams) ([]DownloadFile, error)
+	DownloadFilesSize(ctx context.Context, arg DownloadFilesSizeParams) (int64, error)
 	EarnCampaignName(ctx context.Context, id uuid.UUID) (string, error)
 	EarnCheckout(ctx context.Context, id uuid.UUID) (EarnCheckout, error)
 	EarnCheckoutBySession(ctx context.Context, stripeSessionID string) (EarnCheckout, error)
@@ -795,6 +1053,9 @@ type Querier interface {
 	FormCopyUpsert(ctx context.Context, arg FormCopyUpsertParams) error
 	FormDelete(ctx context.Context, arg FormDeleteParams) (int64, error)
 	FormDismissOrigin(ctx context.Context, arg FormDismissOriginParams) (int64, error)
+	FormDownloadGet(ctx context.Context, arg FormDownloadGetParams) (FormDownloadGetRow, error)
+	// Lead magnets
+	FormDownloadSet(ctx context.Context, arg FormDownloadSetParams) error
 	FormGet(ctx context.Context, arg FormGetParams) (Form, error)
 	FormInsert(ctx context.Context, arg FormInsertParams) (Form, error)
 	FormLastSubmissionForContact(ctx context.Context, contactID uuid.UUID) (FormLastSubmissionForContactRow, error)
@@ -900,6 +1161,72 @@ type Querier interface {
 	GetUserSession(ctx context.Context, arg GetUserSessionParams) (Session, error)
 	GetWorkspace(ctx context.Context, id uuid.UUID) (Workspace, error)
 	GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error)
+	// Paid members with gift access now.
+	GiftAccessNow(ctx context.Context, arg GiftAccessNowParams) (int64, error)
+	GiftByCode(ctx context.Context, arg GiftByCodeParams) (GiftByCodeRow, error)
+	GiftByIntentForUpdate(ctx context.Context, arg GiftByIntentForUpdateParams) (EarnGift, error)
+	GiftBySession(ctx context.Context, arg GiftBySessionParams) (GiftBySessionRow, error)
+	GiftBySessionForUpdate(ctx context.Context, arg GiftBySessionForUpdateParams) (EarnGift, error)
+	GiftCodeTaken(ctx context.Context, code string) (bool, error)
+	// The Gifts table's filters: how many gifts each shows.
+	GiftCounts(ctx context.Context, arg GiftCountsParams) (GiftCountsRow, error)
+	GiftDelivered(ctx context.Context, arg GiftDeliveredParams) error
+	// "Your gift" went again (a reminder, or resent by the team).
+	GiftEmailed(ctx context.Context, arg GiftEmailedParams) error
+	GiftEndingSent(ctx context.Context, arg GiftEndingSentParams) error
+	GiftEventInsert(ctx context.Context, arg GiftEventInsertParams) error
+	GiftExpired(ctx context.Context, arg GiftExpiredParams) error
+	// The first gift-ending reminder due: the redeemed gift whose access ends
+	// first, and who gave it.
+	GiftFirstEnding(ctx context.Context, arg GiftFirstEndingParams) (GiftFirstEndingRow, error)
+	GiftForUpdate(ctx context.Context, id uuid.UUID) (EarnGift, error)
+	GiftGet(ctx context.Context, arg GiftGetParams) (GiftGetRow, error)
+	GiftInsert(ctx context.Context, arg GiftInsertParams) error
+	// A page of the Gifts table, the latest bought first.
+	GiftList(ctx context.Context, arg GiftListParams) ([]GiftListRow, error)
+	// Gifts that need a look: delivered a week ago and not redeemed, or
+	// refunded in the last 30 days.
+	GiftNeedsLook(ctx context.Context, arg GiftNeedsLookParams) ([]GiftNeedsLookRow, error)
+	GiftNextScheduled(ctx context.Context, arg GiftNextScheduledParams) (EarnGift, error)
+	// The Gifts tab's numbers: of the gifts paid since a time, those delivered
+	// and redeemed; the gifts waiting for their date, and the next one.
+	GiftNumbers(ctx context.Context, arg GiftNumbersParams) (GiftNumbersRow, error)
+	GiftOptionDelete(ctx context.Context, arg GiftOptionDeleteParams) error
+	GiftOptionGet(ctx context.Context, arg GiftOptionGetParams) (EarnGiftOption, error)
+	GiftOptionInsert(ctx context.Context, arg GiftOptionInsertParams) error
+	// Each option's gifts paid since a time, refunded ones left out.
+	GiftOptionSales(ctx context.Context, arg GiftOptionSalesParams) ([]GiftOptionSalesRow, error)
+	// Another option of the same tier and period.
+	GiftOptionTaken(ctx context.Context, arg GiftOptionTakenParams) (bool, error)
+	GiftOptionUpdate(ctx context.Context, arg GiftOptionUpdateParams) error
+	// Gifts (X17): gift options, the gift page's settings, gifts bought on the
+	// gift page, their delivery, redemption and reminders.
+	GiftOptions(ctx context.Context, workspaceID uuid.UUID) ([]GiftOptionsRow, error)
+	GiftPageByName(ctx context.Context, workspaceID uuid.UUID) (string, error)
+	GiftPageSet(ctx context.Context, arg GiftPageSetParams) error
+	// The payment went through: the gift waits for its delivery date.
+	GiftPaid(ctx context.Context, arg GiftPaidParams) error
+	GiftReceiptSent(ctx context.Context, arg GiftReceiptSentParams) error
+	GiftRedeemed(ctx context.Context, arg GiftRedeemedParams) error
+	GiftRefunded(ctx context.Context, arg GiftRefundedParams) error
+	GiftSetDelivery(ctx context.Context, arg GiftSetDeliveryParams) error
+	GiftSetSession(ctx context.Context, arg GiftSetSessionParams) error
+	// Gifts paid since a time by their period ("7 for a year, 4 for 3 months").
+	GiftSoldByMonths(ctx context.Context, arg GiftSoldByMonthsParams) ([]GiftSoldByMonthsRow, error)
+	// Checkouts never paid within a day.
+	GiftsAbandon(ctx context.Context, arg GiftsAbandonParams) (int64, error)
+	// Paid gifts whose delivery time has come.
+	GiftsDue(ctx context.Context, now time.Time) ([]EarnGift, error)
+	// Redeemed gifts whose access ends within a week, not told yet.
+	GiftsEnding(ctx context.Context, arg GiftsEndingParams) ([]GiftsEndingRow, error)
+	// Gift messages are kept until the gift ends, plus 30 days; a checkout
+	// that was never paid loses its message once abandoned.
+	GiftsPurgeMessages(ctx context.Context, arg GiftsPurgeMessagesParams) (int64, error)
+	GiftsToExpire(ctx context.Context, now time.Time) ([]EarnGift, error)
+	// Paid gifts whose receipt hasn't gone yet.
+	GiftsToReceipt(ctx context.Context, since time.Time) ([]EarnGift, error)
+	// Delivered a week ago, not redeemed, not reminded yet, the link still good.
+	GiftsToRemind(ctx context.Context, arg GiftsToRemindParams) ([]EarnGift, error)
 	// A contact's attribution, for the profile's join line.
 	GrowthContactTouch(ctx context.Context, contactID uuid.UUID) (ContactGrowth, error)
 	GrowthFormsOf(ctx context.Context, workspaceID uuid.UUID) ([]GrowthFormsOfRow, error)
@@ -1282,10 +1609,18 @@ type Querier interface {
 	LatestDeliverabilityCheckRun(ctx context.Context, workspaceID uuid.UUID) (DeliverabilityCheckRun, error)
 	LatestFinishedDeliverabilityCheckRun(ctx context.Context, arg LatestFinishedDeliverabilityCheckRunParams) (DeliverabilityCheckRun, error)
 	LatestFinishedImport(ctx context.Context, workspaceID uuid.UUID) (Import, error)
+	// The link a contact got for a form's download (one per signup).
+	LeadMagnetLinkFor(ctx context.Context, arg LeadMagnetLinkForParams) (LeadMagnetLink, error)
+	LeadMagnetLinkGet(ctx context.Context, id uuid.UUID) (LeadMagnetLink, error)
+	LeadMagnetLinkInsert(ctx context.Context, arg LeadMagnetLinkInsertParams) error
+	LeadMagnetLinkUse(ctx context.Context, id uuid.UUID) error
+	LeadMagnetStats(ctx context.Context, formID uuid.UUID) (LeadMagnetStatsRow, error)
 	ListAPIKeys(ctx context.Context, arg ListAPIKeysParams) ([]ListAPIKeysRow, error)
 	ListAuditEvents(ctx context.Context, arg ListAuditEventsParams) ([]AuditEvent, error)
 	// Open alerts, held sending first: nothing goes out until it is fixed.
 	ListAutomationAlerts(ctx context.Context, workspaceID uuid.UUID) ([]ListAutomationAlertsRow, error)
+	// Milestone emails (Grow) are automation emails too, edited from their
+	// milestone: not offered to flows.
 	ListAutomationEmails(ctx context.Context, workspaceID uuid.UUID) ([]ListAutomationEmailsRow, error)
 	ListAutomationHeldAlerts(ctx context.Context) ([]ListAutomationHeldAlertsRow, error)
 	ListAutomationPublishedGraphs(ctx context.Context, automationID uuid.UUID) ([]ListAutomationPublishedGraphsRow, error)
@@ -1413,6 +1748,38 @@ type Querier interface {
 	McpSendingDomains(ctx context.Context, workspaceID uuid.UUID) ([]McpSendingDomainsRow, error)
 	McpSetRoutingSplits(ctx context.Context, arg McpSetRoutingSplitsParams) error
 	McpUpdateDraft(ctx context.Context, arg McpUpdateDraftParams) (McpUpdateDraftRow, error)
+	// A live signup offer by its code or link (case-insensitive).
+	OfferByCode(ctx context.Context, arg OfferByCodeParams) (EarnOffer, error)
+	OfferCodeInsert(ctx context.Context, arg OfferCodeInsertParams) error
+	OfferCodeTaken(ctx context.Context, arg OfferCodeTakenParams) (bool, error)
+	OfferCodes(ctx context.Context, offerID uuid.UUID) ([]OfferCodesRow, error)
+	OfferEnd(ctx context.Context, arg OfferEndParams) error
+	OfferGet(ctx context.Context, arg OfferGetParams) (OfferGetRow, error)
+	OfferInsert(ctx context.Context, arg OfferInsertParams) error
+	// Offers (X17): signup offers by code or link, the retention offer of the
+	// cancel page and referral rewards, with their coupons in the provider.
+	OfferList(ctx context.Context, workspaceID uuid.UUID) ([]OfferListRow, error)
+	// Paid members who took a signup offer: by its coupons, or the code it
+	// carries; new ones started at or after the offer; and the MRR they bring
+	// after the discount.
+	OfferRedemptions(ctx context.Context, arg OfferRedemptionsParams) (OfferRedemptionsRow, error)
+	// Raising the limit or moving the date of an offer that ended by them
+	// brings it back.
+	OfferReopen(ctx context.Context, arg OfferReopenParams) error
+	// The workspace's live retention offer (one at most).
+	OfferRetentionOf(ctx context.Context, workspaceID uuid.UUID) (EarnOffer, error)
+	// The retention offer on the cancel page: shown, and kept with it.
+	OfferRetentionResults(ctx context.Context, arg OfferRetentionResultsParams) (OfferRetentionResultsRow, error)
+	// Whether a paid member took a retention offer since a moment (one in 12
+	// months).
+	OfferRetentionUsedSince(ctx context.Context, arg OfferRetentionUsedSinceParams) (bool, error)
+	OfferSetStripe(ctx context.Context, arg OfferSetStripeParams) error
+	// The tiers and their current prices, for an offer's lines.
+	OfferTierPrices(ctx context.Context, workspaceID uuid.UUID) ([]OfferTierPricesRow, error)
+	OfferUpdate(ctx context.Context, arg OfferUpdateParams) error
+	OfferUseInsert(ctx context.Context, arg OfferUseInsertParams) error
+	// Live offers, for the job that ends them at their date or limit.
+	OffersLive(ctx context.Context) ([]EarnOffer, error)
 	// Records a failure: opens the alert or adds to the open one.
 	OpenAutomationAlert(ctx context.Context, arg OpenAutomationAlertParams) error
 	OverviewCampaignRoutes(ctx context.Context, campaignID uuid.UUID) ([]OverviewCampaignRoutesRow, error)
@@ -1421,9 +1788,32 @@ type Querier interface {
 	// Joins and departures across the workspace's lists in each 24-hour step
 	// since a time, counted the way List health counts a list's net growth
 	// (ListGrowthSince): joins of members still subscribed, and departures.
+	// The lists a connected store fills aren't the newsletter's (X20).
 	OverviewListChanges(ctx context.Context, arg OverviewListChangesParams) ([]OverviewListChangesRow, error)
 	// Overview (spec 7.1).
 	OverviewNextScheduled(ctx context.Context, arg OverviewNextScheduledParams) (OverviewNextScheduledRow, error)
+	// A new request replaces a pending one.
+	PageApprovalCancelPending(ctx context.Context, arg PageApprovalCancelPendingParams) error
+	// Approvals for publishing landing and sales pages (internal/pages, design
+	// expansion phase 7, M29): the workspace rule "Publishing a post or page
+	// needs approval" and "The author lacks the send permission" cover pages.
+	// One request covers a page as it is (its hash: the content, the address,
+	// the settings and the publish time).
+	// The approved request that covers a page as it is, if any.
+	PageApprovalForHash(ctx context.Context, arg PageApprovalForHashParams) (uuid.UUID, error)
+	// A page that changed after its request: pending and approved requests for
+	// the page as it was are invalidated (a change needs a new approval).
+	PageApprovalInvalidate(ctx context.Context, arg PageApprovalInvalidateParams) ([]PageApprovalInvalidateRow, error)
+	// The approved request a publish relied on remembers it went out.
+	PageApprovalMarkPublished(ctx context.Context, arg PageApprovalMarkPublishedParams) error
+	PageApprovalPending(ctx context.Context, pageID *uuid.UUID) (PageApprovalPendingRow, error)
+	// The published (or unpublished) page answering at an address.
+	PageByLiveSlug(ctx context.Context, arg PageByLiveSlugParams) (Page, error)
+	// Conversions per page and kind between two times.
+	PageConversionCounts(ctx context.Context, arg PageConversionCountsParams) ([]PageConversionCountsRow, error)
+	// A refunded sale leaves the page's numbers.
+	PageConversionDeleteOrder(ctx context.Context, orderID *uuid.UUID) error
+	PageConversionInsert(ctx context.Context, arg PageConversionInsertParams) error
 	// The page copy a workspace wrote, per language, with who wrote it.
 	PageCopyList(ctx context.Context, workspaceID uuid.UUID) ([]PageCopyListRow, error)
 	// Serializes changes to a workspace's page copy (the statuses are computed
@@ -1432,6 +1822,55 @@ type Querier interface {
 	PageCopySetLabels(ctx context.Context, arg PageCopySetLabelsParams) error
 	PageCopySetPages(ctx context.Context, arg PageCopySetPagesParams) error
 	PageCopyUserName(ctx context.Context, id uuid.UUID) (string, error)
+	// A page deleted after being published still answers 410 at its address.
+	PageEverLiveBySlug(ctx context.Context, arg PageEverLiveBySlugParams) (Page, error)
+	PageGet(ctx context.Context, arg PageGetParams) (Page, error)
+	PageInsert(ctx context.Context, arg PageInsertParams) error
+	PageLock(ctx context.Context, arg PageLockParams) (Page, error)
+	// The names of who saved and who published a page.
+	PageNames(ctx context.Context, arg PageNamesParams) (PageNamesRow, error)
+	// The version published before the live one (Undo).
+	PagePreviousPublished(ctx context.Context, arg PagePreviousPublishedParams) (PageVersion, error)
+	// Puts a version live at the page's address.
+	PagePublish(ctx context.Context, arg PagePublishParams) error
+	PageRedirectDelete(ctx context.Context, arg PageRedirectDeleteParams) error
+	PageRedirectGet(ctx context.Context, arg PageRedirectGetParams) (uuid.UUID, error)
+	// Earlier addresses
+	PageRedirectInsert(ctx context.Context, arg PageRedirectInsertParams) error
+	// Undo of a publish: the version that was live before, or none.
+	PageRestoreLive(ctx context.Context, arg PageRestoreLiveParams) error
+	// Saves the draft's content; the version goes up by one.
+	PageSaveContent(ctx context.Context, arg PageSaveContentParams) error
+	PageSaveSettings(ctx context.Context, arg PageSaveSettingsParams) error
+	PageSchedule(ctx context.Context, arg PageScheduleParams) error
+	// Whether another page holds the address (as its draft's or its live one),
+	// or an earlier address of another page redirects from it.
+	PageSlugTaken(ctx context.Context, arg PageSlugTakenParams) (bool, error)
+	PageSoftDelete(ctx context.Context, arg PageSoftDeleteParams) error
+	// Header links (internal/website's navigation names custom pages by slug)
+	// The published pages among slugs, with the label their header link uses.
+	PageTitlesBySlug(ctx context.Context, arg PageTitlesBySlugParams) ([]PageTitlesBySlugRow, error)
+	PageUnpublish(ctx context.Context, arg PageUnpublishParams) error
+	PageVersionCount(ctx context.Context, pageID uuid.UUID) (int64, error)
+	PageVersionGet(ctx context.Context, arg PageVersionGetParams) (PageVersionGetRow, error)
+	// Versions
+	PageVersionInsert(ctx context.Context, arg PageVersionInsertParams) error
+	PageVersionPublished(ctx context.Context, arg PageVersionPublishedParams) error
+	PageVersions(ctx context.Context, pageID uuid.UUID) ([]PageVersionsRow, error)
+	// Numbers
+	// Views per page between two days (website_view_days, kind 'page'). The
+	// shop counts as the nil page.
+	PageViewCounts(ctx context.Context, arg PageViewCountsParams) ([]PageViewCountsRow, error)
+	// Scheduled pages whose time has come and that wait for no approval.
+	PagesDue(ctx context.Context, now *time.Time) ([]PagesDueRow, error)
+	// Landing and sales pages (internal/pages, design expansion phase 7, M29):
+	// the pages, their saved and published versions, earlier addresses, what
+	// each page brought in, and the shop's switch.
+	// Every page with who edited it last.
+	PagesList(ctx context.Context, workspaceID uuid.UUID) ([]PagesListRow, error)
+	// Every published page (the sitemap, the navigation picker).
+	PagesPublished(ctx context.Context, workspaceID uuid.UUID) ([]PagesPublishedRow, error)
+	PagesPublishedCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	// Each contact with paid access, the highest tier's subscription, with what
 	// decides whether a campaign to a list reaches them: subscribed to it,
 	// unsubscribed from it, suppressed.
@@ -1457,6 +1896,45 @@ type Querier interface {
 	// The workspace's tiers in access order, for the pickers ("Insider and
 	// above"), with the names of their lists.
 	PaidAccessTiers(ctx context.Context, workspaceID uuid.UUID) ([]PaidAccessTiersRow, error)
+	PartnerCodeByHash(ctx context.Context, codeHash []byte) (PartnerCode, error)
+	PartnerCodeInsert(ctx context.Context, arg PartnerCodeInsertParams) error
+	PartnerCodeLock(ctx context.Context, id uuid.UUID) (PartnerCode, error)
+	PartnerCodeRevoke(ctx context.Context, arg PartnerCodeRevokeParams) error
+	PartnerCodeUse(ctx context.Context, arg PartnerCodeUseParams) error
+	// Codes not used, revoked or expired yet ("Waiting for …").
+	PartnerCodesOpen(ctx context.Context, arg PartnerCodesOpenParams) ([]PartnerCodesOpenRow, error)
+	PartnerLinkByCodeHash(ctx context.Context, arg PartnerLinkByCodeHashParams) (PartnerLinkByCodeHashRow, error)
+	PartnerLinkByID(ctx context.Context, id uuid.UUID) (PartnerLink, error)
+	PartnerLinkEnd(ctx context.Context, arg PartnerLinkEndParams) error
+	PartnerLinkFailing(ctx context.Context, arg PartnerLinkFailingParams) error
+	PartnerLinkGet(ctx context.Context, arg PartnerLinkGetParams) (PartnerLink, error)
+	PartnerLinkInsert(ctx context.Context, arg PartnerLinkInsertParams) error
+	PartnerLinkInvalid(ctx context.Context, arg PartnerLinkInvalidParams) error
+	PartnerLinkLimit(ctx context.Context, arg PartnerLinkLimitParams) error
+	PartnerLinkLock(ctx context.Context, id uuid.UUID) (PartnerLink, error)
+	// The partners that recommend a workspace, for its growth sources
+	// ("Partner · Ops Weekly").
+	PartnerLinkNames(ctx context.Context, workspaceID uuid.UUID) ([]PartnerLinkNamesRow, error)
+	PartnerLinkNotified(ctx context.Context, arg PartnerLinkNotifiedParams) error
+	PartnerLinkRotate(ctx context.Context, arg PartnerLinkRotateParams) error
+	PartnerLinkSetLimit(ctx context.Context, arg PartnerLinkSetLimitParams) error
+	PartnerLinkSetProfile(ctx context.Context, arg PartnerLinkSetProfileParams) error
+	PartnerLinkSetStatus(ctx context.Context, arg PartnerLinkSetStatusParams) error
+	PartnerLinks(ctx context.Context, arg PartnerLinksParams) ([]PartnerLinksRow, error)
+	PartnerNoticeResult(ctx context.Context, arg PartnerNoticeResultParams) error
+	PartnerNoticesDue(ctx context.Context, arg PartnerNoticesDueParams) ([]PartnerRequestsIn, error)
+	PartnerRequestInConfirmed(ctx context.Context, arg PartnerRequestInConfirmedParams) error
+	PartnerRequestInInsert(ctx context.Context, arg PartnerRequestInInsertParams) (uuid.UUID, error)
+	PartnerRequestOutConfirmed(ctx context.Context, arg PartnerRequestOutConfirmedParams) (*uuid.UUID, error)
+	PartnerRequestOutGet(ctx context.Context, id uuid.UUID) (PartnerRequestsOut, error)
+	PartnerRequestOutInsert(ctx context.Context, arg PartnerRequestOutInsertParams) error
+	PartnerRequestOutResult(ctx context.Context, arg PartnerRequestOutResultParams) error
+	// Accepted requests of a contact waiting for their confirmation.
+	PartnerRequestsInPending(ctx context.Context, contactID *uuid.UUID) ([]PartnerRequestsInPendingRow, error)
+	PartnerRequestsInToday(ctx context.Context, arg PartnerRequestsInTodayParams) (int64, error)
+	PartnerRequestsOutDue(ctx context.Context, arg PartnerRequestsOutDueParams) ([]PartnerRequestsOut, error)
+	// The partner request logs keep 90 days.
+	PartnerRequestsPrune(ctx context.Context, before time.Time) error
 	PauseAutomation(ctx context.Context, arg PauseAutomationParams) error
 	PayConnection(ctx context.Context, arg PayConnectionParams) (PayConnectionRow, error)
 	// The connection a webhook request is for.
@@ -1638,6 +2116,108 @@ type Querier interface {
 	// The approved request a publish relied on remembers it went out.
 	PostApprovalMarkPublished(ctx context.Context, arg PostApprovalMarkPublishedParams) error
 	PostApprovalPending(ctx context.Context, postID *uuid.UUID) (PostApprovalPendingRow, error)
+	// A product, deleted or not (an order's product).
+	ProductAny(ctx context.Context, id uuid.UUID) (Product, error)
+	ProductArchive(ctx context.Context, arg ProductArchiveParams) error
+	ProductBuyerByEmail(ctx context.Context, arg ProductBuyerByEmailParams) (ProductBuyerByEmailRow, error)
+	// When a buyer who joined at checkout confirmed the list offer's list.
+	ProductBuyerConfirmed(ctx context.Context, arg ProductBuyerConfirmedParams) (time.Time, error)
+	ProductBuyerContact(ctx context.Context, arg ProductBuyerContactParams) (ProductBuyerContactRow, error)
+	ProductBuyerMembership(ctx context.Context, arg ProductBuyerMembershipParams) (ProductBuyerMembershipRow, error)
+	ProductByLiveSlug(ctx context.Context, arg ProductByLiveSlugParams) (Product, error)
+	ProductCheckoutBySession(ctx context.Context, sessionID string) (ProductCheckout, error)
+	ProductCheckoutCompleted(ctx context.Context, arg ProductCheckoutCompletedParams) error
+	ProductCheckoutFailed(ctx context.Context, id uuid.UUID) error
+	ProductCheckoutGet(ctx context.Context, id uuid.UUID) (ProductCheckout, error)
+	// Checkouts
+	ProductCheckoutInsert(ctx context.Context, arg ProductCheckoutInsertParams) error
+	ProductCheckoutSetSession(ctx context.Context, arg ProductCheckoutSetSessionParams) error
+	ProductCheckoutsExpire(ctx context.Context, before time.Time) error
+	// The delivery emails of orders' links (Transactional › Messages).
+	ProductDeliveryMessages(ctx context.Context, arg ProductDeliveryMessagesParams) ([]ProductDeliveryMessagesRow, error)
+	// The transactional templates a product can deliver with, product-delivery first.
+	ProductDeliveryTemplates(ctx context.Context, workspaceID uuid.UUID) ([]ProductDeliveryTemplatesRow, error)
+	ProductGet(ctx context.Context, arg ProductGetParams) (Product, error)
+	ProductInsert(ctx context.Context, arg ProductInsertParams) error
+	// The email a buyer clicked last within the attribution window.
+	ProductLastClick(ctx context.Context, arg ProductLastClickParams) (ProductLastClickRow, error)
+	ProductListOptions(ctx context.Context, workspaceID uuid.UUID) ([]ProductListOptionsRow, error)
+	ProductLock(ctx context.Context, arg ProductLockParams) (Product, error)
+	// Buyers and contacts, per product, and the list offers ticked.
+	ProductOrderBuyers(ctx context.Context, arg ProductOrderBuyersParams) ([]ProductOrderBuyersRow, error)
+	ProductOrderByCharge(ctx context.Context, arg ProductOrderByChargeParams) (ProductOrder, error)
+	ProductOrderByID(ctx context.Context, id uuid.UUID) (ProductOrder, error)
+	ProductOrderByIntent(ctx context.Context, arg ProductOrderByIntentParams) (ProductOrder, error)
+	ProductOrderBySession(ctx context.Context, sessionID string) (ProductOrder, error)
+	ProductOrderDispute(ctx context.Context, arg ProductOrderDisputeParams) error
+	ProductOrderDownloadInsert(ctx context.Context, arg ProductOrderDownloadInsertParams) error
+	ProductOrderDownloads(ctx context.Context, orderID uuid.UUID) (ProductOrderDownloadsRow, error)
+	// Activity
+	ProductOrderEventInsert(ctx context.Context, arg ProductOrderEventInsertParams) error
+	ProductOrderEvents(ctx context.Context, orderID uuid.UUID) ([]ProductOrderEventsRow, error)
+	ProductOrderGet(ctx context.Context, arg ProductOrderGetParams) (ProductOrder, error)
+	ProductOrderInsert(ctx context.Context, arg ProductOrderInsertParams) error
+	// Each order's current link.
+	ProductOrderLatestLinks(ctx context.Context, orderIds []uuid.UUID) ([]ProductOrderLatestLinksRow, error)
+	ProductOrderLinkDelivery(ctx context.Context, arg ProductOrderLinkDeliveryParams) error
+	ProductOrderLinkGet(ctx context.Context, id uuid.UUID) (ProductOrderLink, error)
+	// Links
+	ProductOrderLinkInsert(ctx context.Context, arg ProductOrderLinkInsertParams) error
+	ProductOrderLinkLock(ctx context.Context, id uuid.UUID) (ProductOrderLink, error)
+	ProductOrderLinkUse(ctx context.Context, id uuid.UUID) error
+	ProductOrderLinks(ctx context.Context, orderID uuid.UUID) ([]ProductOrderLinksRow, error)
+	ProductOrderLinksSupersede(ctx context.Context, arg ProductOrderLinksSupersedeParams) error
+	ProductOrderLock(ctx context.Context, arg ProductOrderLockParams) (ProductOrder, error)
+	ProductOrderNames(ctx context.Context, revokedBy *uuid.UUID) (string, error)
+	// Orders
+	ProductOrderNextNumber(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	ProductOrderRefund(ctx context.Context, arg ProductOrderRefundParams) error
+	ProductOrderRestore(ctx context.Context, id uuid.UUID) error
+	ProductOrderRevoke(ctx context.Context, arg ProductOrderRevokeParams) error
+	ProductOrderSetCharge(ctx context.Context, arg ProductOrderSetChargeParams) error
+	ProductOrderSetContact(ctx context.Context, arg ProductOrderSetContactParams) error
+	// Where sales came from, per product and source.
+	ProductOrderSources(ctx context.Context, arg ProductOrderSourcesParams) ([]ProductOrderSourcesRow, error)
+	// Numbers
+	// Per product, in one mode, between two times: orders, gross, refunds.
+	ProductOrderStats(ctx context.Context, arg ProductOrderStatsParams) ([]ProductOrderStatsRow, error)
+	// Sales credited to a campaign (the report's Revenue rows).
+	ProductOrdersByCampaign(ctx context.Context, arg ProductOrdersByCampaignParams) (ProductOrdersByCampaignRow, error)
+	// The same sales, product by product.
+	ProductOrdersByCampaignProducts(ctx context.Context, arg ProductOrdersByCampaignProductsParams) ([]ProductOrdersByCampaignProductsRow, error)
+	ProductOrdersCount(ctx context.Context, arg ProductOrdersCountParams) (int64, error)
+	ProductOrdersExport(ctx context.Context, arg ProductOrdersExportParams) ([]ProductOrdersExportRow, error)
+	// Orders newest first, with the latest link's state. q matches the order
+	// number or the buyer's email.
+	ProductOrdersList(ctx context.Context, arg ProductOrdersListParams) ([]ProductOrdersListRow, error)
+	ProductOrdersOfContact(ctx context.Context, arg ProductOrdersOfContactParams) ([]ProductOrdersOfContactRow, error)
+	// Makes the draft live.
+	ProductPublish(ctx context.Context, arg ProductPublishParams) error
+	ProductRedirectDelete(ctx context.Context, arg ProductRedirectDeleteParams) error
+	ProductRedirectGet(ctx context.Context, arg ProductRedirectGetParams) (uuid.UUID, error)
+	ProductRedirectInsert(ctx context.Context, arg ProductRedirectInsertParams) error
+	// Saves the draft.
+	ProductSave(ctx context.Context, arg ProductSaveParams) error
+	ProductSetStripe(ctx context.Context, arg ProductSetStripeParams) error
+	ProductSlugTaken(ctx context.Context, arg ProductSlugTakenParams) (bool, error)
+	ProductSoftDelete(ctx context.Context, arg ProductSoftDeleteParams) error
+	ProductTemplateByKey(ctx context.Context, arg ProductTemplateByKeyParams) (ProductTemplateByKeyRow, error)
+	ProductTemplateExists(ctx context.Context, arg ProductTemplateExistsParams) (ProductTemplateExistsRow, error)
+	// How many published products send each delivery template (Transactional's
+	// "Used by 2 products").
+	ProductTemplateUses(ctx context.Context, workspaceID uuid.UUID) ([]ProductTemplateUsesRow, error)
+	ProductUnarchive(ctx context.Context, arg ProductUnarchiveParams) error
+	ProductsByIDs(ctx context.Context, arg ProductsByIDsParams) ([]Product, error)
+	// Digital products (internal/products, design expansion phase 7, M29):
+	// products and their files, checkouts, orders with their download links,
+	// downloads and activity, and lead magnets' links.
+	ProductsList(ctx context.Context, workspaceID uuid.UUID) ([]ProductsListRow, error)
+	ProductsPublished(ctx context.Context, workspaceID uuid.UUID) ([]Product, error)
+	// Published products shown in the shop, oldest first.
+	ProductsShop(ctx context.Context, workspaceID uuid.UUID) ([]Product, error)
+	ProductsUsingPage(ctx context.Context, arg ProductsUsingPageParams) ([]ProductsUsingPageRow, error)
+	// Products whose delivery uses a transactional template ("Used by 2 products").
+	ProductsUsingTemplate(ctx context.Context, arg ProductsUsingTemplateParams) ([]ProductsUsingTemplateRow, error)
 	ProvActiveFailovers(ctx context.Context, workspaceID uuid.UUID) ([]StreamFailover, error)
 	ProvAwaitingCampaigns(ctx context.Context, arg ProvAwaitingCampaignsParams) ([]ProvAwaitingCampaignsRow, error)
 	ProvAwaitingCount(ctx context.Context, arg ProvAwaitingCountParams) (ProvAwaitingCountRow, error)
@@ -1861,6 +2441,22 @@ type Querier interface {
 	// The latest test emails of a campaign, from the audit log.
 	ReadinessTestSends(ctx context.Context, arg ReadinessTestSendsParams) ([]ReadinessTestSendsRow, error)
 	ReadinessUpdateProgress(ctx context.Context, arg ReadinessUpdateProgressParams) error
+	RecByID(ctx context.Context, id uuid.UUID) (Recommendation, error)
+	RecDailyBump(ctx context.Context, arg RecDailyBumpParams) error
+	RecGet(ctx context.Context, arg RecGetParams) (Recommendation, error)
+	RecInsert(ctx context.Context, arg RecInsertParams) error
+	RecList(ctx context.Context, workspaceID uuid.UUID) ([]Recommendation, error)
+	RecOfLink(ctx context.Context, linkID *uuid.UUID) (Recommendation, error)
+	RecRemove(ctx context.Context, arg RecRemoveParams) error
+	RecSetPosition(ctx context.Context, arg RecSetPositionParams) error
+	RecSetStatus(ctx context.Context, arg RecSetStatusParams) error
+	// Recommendations and partner links (internal/recommendations): the
+	// newsletters a workspace recommends, its partner profile, partner codes,
+	// partner links in both directions and the partner request logs.
+	RecSettingsGet(ctx context.Context, workspaceID uuid.UUID) (RecommendationSetting, error)
+	RecSettingsUpsert(ctx context.Context, arg RecSettingsUpsertParams) (RecommendationSetting, error)
+	RecTotals(ctx context.Context, arg RecTotalsParams) ([]RecTotalsRow, error)
+	RecUpdate(ctx context.Context, arg RecUpdateParams) error
 	// Campaigns a segment can refer to ("Opened campaign …").
 	RecentSentCampaigns(ctx context.Context, workspaceID uuid.UUID) ([]RecentSentCampaignsRow, error)
 	RecordHostReputeSyncError(ctx context.Context, arg RecordHostReputeSyncErrorParams) error
@@ -1868,6 +2464,150 @@ type Querier interface {
 	RecordSignInSuccess(ctx context.Context, id uuid.UUID) error
 	RecordSignInThrottleFailure(ctx context.Context, arg RecordSignInThrottleFailureParams) (SignInThrottle, error)
 	RecoveryCodeStats(ctx context.Context, userID uuid.UUID) (RecoveryCodeStatsRow, error)
+	ReferralAddSignals(ctx context.Context, arg ReferralAddSignalsParams) error
+	// A contact's referrals waiting for their confirmation, with the program's
+	// rules.
+	ReferralAwaitingOfContact(ctx context.Context, contactID *uuid.UUID) ([]ReferralAwaitingOfContactRow, error)
+	// Codes ---------------------------------------------------------------------
+	ReferralCodeInsert(ctx context.Context, arg ReferralCodeInsertParams) (uuid.UUID, error)
+	ReferralCodeOf(ctx context.Context, id uuid.UUID) ([]byte, error)
+	// The oldest free code of a milestone, taken by a reward.
+	ReferralCodeTake(ctx context.Context, arg ReferralCodeTakeParams) (ReferralCodeTakeRow, error)
+	ReferralCodesLeft(ctx context.Context, milestoneID uuid.UUID) (int64, error)
+	ReferralCodesRemoveFree(ctx context.Context, arg ReferralCodesRemoveFreeParams) (int64, error)
+	ReferralCodesUploaded(ctx context.Context, milestoneID uuid.UUID) (int64, error)
+	ReferralContactOnList(ctx context.Context, arg ReferralContactOnListParams) (bool, error)
+	// A referrer's counted referrals in a program.
+	ReferralCountedOf(ctx context.Context, arg ReferralCountedOfParams) (int64, error)
+	// A milestone email is an automation email outside any flow.
+	ReferralEmailCreate(ctx context.Context, arg ReferralEmailCreateParams) error
+	ReferralEmailLatest(ctx context.Context, emailID uuid.UUID) (AutomationEmailVersion, error)
+	ReferralEmailRename(ctx context.Context, arg ReferralEmailRenameParams) error
+	ReferralEmailVersion(ctx context.Context, arg ReferralEmailVersionParams) (AutomationEmailVersion, error)
+	// Saving the milestone email adds a version; sends use the latest one.
+	ReferralEmailVersionInsert(ctx context.Context, arg ReferralEmailVersionInsertParams) (int32, error)
+	ReferralEmailVersions(ctx context.Context, emailID uuid.UUID) ([]ReferralEmailVersionsRow, error)
+	ReferralEventInsert(ctx context.Context, arg ReferralEventInsertParams) error
+	ReferralEventsOfContact(ctx context.Context, arg ReferralEventsOfContactParams) ([]ReferralEventsOfContactRow, error)
+	ReferralFileChunkInsert(ctx context.Context, arg ReferralFileChunkInsertParams) error
+	ReferralFileChunks(ctx context.Context, arg ReferralFileChunksParams) ([]ReferralFileChunksRow, error)
+	ReferralFileCounted(ctx context.Context, id uuid.UUID) error
+	ReferralFileGet(ctx context.Context, id uuid.UUID) (ReferralFileGetRow, error)
+	// Files ---------------------------------------------------------------------
+	ReferralFileInsert(ctx context.Context, arg ReferralFileInsertParams) error
+	ReferralFileRemove(ctx context.Context, arg ReferralFileRemoveParams) error
+	ReferralFiles(ctx context.Context, programID uuid.UUID) ([]ReferralFilesRow, error)
+	ReferralGet(ctx context.Context, arg ReferralGetParams) (Referral, error)
+	// Referrals of a link still in hold that a suspicion rule now covers:
+	// confirmed since a time, or matching ids.
+	ReferralHoldToReview(ctx context.Context, arg ReferralHoldToReviewParams) ([]uuid.UUID, error)
+	// Referrals -----------------------------------------------------------------
+	ReferralInsert(ctx context.Context, arg ReferralInsertParams) error
+	// Leaderboard ---------------------------------------------------------------
+	ReferralLeaderboardClear(ctx context.Context, programID uuid.UUID) error
+	ReferralLeaderboardComputedAt(ctx context.Context, programID uuid.UUID) (time.Time, error)
+	ReferralLeaderboardInsert(ctx context.Context, arg ReferralLeaderboardInsertParams) error
+	ReferralLinkBump(ctx context.Context, arg ReferralLinkBumpParams) error
+	ReferralLinkByCode(ctx context.Context, arg ReferralLinkByCodeParams) (ReferralLinkByCodeRow, error)
+	ReferralLinkCount(ctx context.Context, programID uuid.UUID) (int64, error)
+	ReferralLinkGet(ctx context.Context, arg ReferralLinkGetParams) (ReferralLinkGetRow, error)
+	// Links ---------------------------------------------------------------------
+	ReferralLinkInsert(ctx context.Context, arg ReferralLinkInsertParams) (uuid.UUID, error)
+	ReferralLinkOfContact(ctx context.Context, arg ReferralLinkOfContactParams) (ReferralLinkOfContactRow, error)
+	ReferralLinkSeenIP(ctx context.Context, arg ReferralLinkSeenIPParams) error
+	ReferralLinkSetChoices(ctx context.Context, arg ReferralLinkSetChoicesParams) error
+	ReferralLinkSetStatus(ctx context.Context, arg ReferralLinkSetStatusParams) error
+	// Confirmed subscribers of the program's list without a link yet.
+	ReferralLinksMissing(ctx context.Context, arg ReferralLinksMissingParams) ([]uuid.UUID, error)
+	ReferralLinksOfContact(ctx context.Context, contactID uuid.UUID) ([]ReferralLinksOfContactRow, error)
+	ReferralListSubscribers(ctx context.Context, listID uuid.UUID) (int64, error)
+	// Lists a program can use, with their subscribers and whether a program
+	// already has them.
+	ReferralListsOffered(ctx context.Context, workspaceID uuid.UUID) ([]ReferralListsOfferedRow, error)
+	ReferralMilestoneByID(ctx context.Context, id uuid.UUID) (ReferralMilestone, error)
+	ReferralMilestoneCodesAlerted(ctx context.Context, arg ReferralMilestoneCodesAlertedParams) error
+	ReferralMilestoneDelete(ctx context.Context, arg ReferralMilestoneDeleteParams) error
+	ReferralMilestoneEmailOn(ctx context.Context, arg ReferralMilestoneEmailOnParams) error
+	ReferralMilestoneGet(ctx context.Context, arg ReferralMilestoneGetParams) (ReferralMilestone, error)
+	// Milestones --------------------------------------------------------------
+	ReferralMilestoneInsert(ctx context.Context, arg ReferralMilestoneInsertParams) error
+	// How many referrers reached a milestone since a time (the pace of a code
+	// reward).
+	ReferralMilestoneReachedSince(ctx context.Context, arg ReferralMilestoneReachedSinceParams) (int64, error)
+	// Autosave of the milestone email's draft, refused when someone saved since
+	// base_revision.
+	ReferralMilestoneSaveEmail(ctx context.Context, arg ReferralMilestoneSaveEmailParams) (int32, error)
+	ReferralMilestoneSetEmail(ctx context.Context, arg ReferralMilestoneSetEmailParams) error
+	ReferralMilestoneSetSecret(ctx context.Context, arg ReferralMilestoneSetSecretParams) error
+	// Per milestone: reached (rewards given), sent, used, waiting and failed.
+	ReferralMilestoneStats(ctx context.Context, programID uuid.UUID) ([]ReferralMilestoneStatsRow, error)
+	ReferralMilestoneUpdate(ctx context.Context, arg ReferralMilestoneUpdateParams) error
+	ReferralMilestoneWebhookAlerted(ctx context.Context, arg ReferralMilestoneWebhookAlertedParams) error
+	ReferralMilestoneWebhookResult(ctx context.Context, arg ReferralMilestoneWebhookResultParams) error
+	ReferralMilestones(ctx context.Context, programID uuid.UUID) ([]ReferralMilestone, error)
+	// A link's other referrals with their addresses (the numbered-address rule).
+	ReferralNumberedPeers(ctx context.Context, arg ReferralNumberedPeersParams) ([]ReferralNumberedPeersRow, error)
+	ReferralOfContact(ctx context.Context, arg ReferralOfContactParams) (Referral, error)
+	// A program of any workspace (jobs, public pages).
+	ReferralProgramByID(ctx context.Context, id uuid.UUID) (ReferralProgram, error)
+	ReferralProgramDelete(ctx context.Context, arg ReferralProgramDeleteParams) error
+	ReferralProgramForList(ctx context.Context, listID uuid.UUID) (ReferralProgram, error)
+	ReferralProgramGet(ctx context.Context, arg ReferralProgramGetParams) (ReferralProgramGetRow, error)
+	// Referral programs (internal/referrals): programs, milestones and rewards,
+	// links, referrals and their log, visits, codes, files and the leaderboard.
+	ReferralProgramInsert(ctx context.Context, arg ReferralProgramInsertParams) error
+	ReferralProgramLock(ctx context.Context, id uuid.UUID) (ReferralProgram, error)
+	ReferralProgramReviewNotified(ctx context.Context, arg ReferralProgramReviewNotifiedParams) error
+	ReferralProgramSetLeaderboard(ctx context.Context, arg ReferralProgramSetLeaderboardParams) error
+	ReferralProgramSetList(ctx context.Context, arg ReferralProgramSetListParams) error
+	ReferralProgramSetStatus(ctx context.Context, arg ReferralProgramSetStatusParams) error
+	ReferralProgramSetStep(ctx context.Context, arg ReferralProgramSetStepParams) error
+	ReferralProgramUpdate(ctx context.Context, arg ReferralProgramUpdateParams) error
+	// Programs the minute job looks after: every program not deleted (counting
+	// and rewards go on while a program is off).
+	ReferralProgramsActive(ctx context.Context) ([]ReferralProgram, error)
+	ReferralProgramsOf(ctx context.Context, workspaceID uuid.UUID) ([]ReferralProgramsOfRow, error)
+	// A link's referrals confirmed since a time, still in hold or review (the
+	// burst rule).
+	ReferralRecentConfirmed(ctx context.Context, arg ReferralRecentConfirmedParams) ([]ReferralRecentConfirmedRow, error)
+	// A link's referrals that signed up from an address since a time.
+	ReferralRecentFromIP(ctx context.Context, arg ReferralRecentFromIPParams) ([]ReferralRecentFromIPRow, error)
+	// Whether ip is an address the referrer used in the last 30 days: to open
+	// their hub or a page of their link, or to subscribe or confirm.
+	ReferralReferrerIPMatch(ctx context.Context, arg ReferralReferrerIPMatchParams) (bool, error)
+	ReferralReferrerIPsPrune(ctx context.Context, before time.Time) error
+	ReferralRewardAddress(ctx context.Context, arg ReferralRewardAddressParams) error
+	ReferralRewardByID(ctx context.Context, id uuid.UUID) (ReferralReward, error)
+	ReferralRewardEmailSent(ctx context.Context, arg ReferralRewardEmailSentParams) error
+	ReferralRewardFulfill(ctx context.Context, arg ReferralRewardFulfillParams) error
+	ReferralRewardGet(ctx context.Context, arg ReferralRewardGetParams) (ReferralReward, error)
+	// Rewards -------------------------------------------------------------------
+	ReferralRewardInsert(ctx context.Context, arg ReferralRewardInsertParams) (uuid.UUID, error)
+	ReferralRewardLock(ctx context.Context, id uuid.UUID) (ReferralReward, error)
+	ReferralRewardResent(ctx context.Context, arg ReferralRewardResentParams) error
+	ReferralRewardSet(ctx context.Context, arg ReferralRewardSetParams) error
+	ReferralRewardUsed(ctx context.Context, arg ReferralRewardUsedParams) error
+	ReferralRewardsAddressPurge(ctx context.Context, now time.Time) error
+	// Rewards to deliver: webhook calls due, codes that may have arrived,
+	// coupons waiting for a payment provider.
+	ReferralRewardsDue(ctx context.Context, arg ReferralRewardsDueParams) ([]ReferralReward, error)
+	ReferralRewardsExpire(ctx context.Context, now time.Time) error
+	ReferralRewardsOfContact(ctx context.Context, arg ReferralRewardsOfContactParams) ([]ReferralRewardsOfContactRow, error)
+	ReferralRewardsToFulfill(ctx context.Context, programID uuid.UUID) ([]ReferralRewardsToFulfillRow, error)
+	ReferralSetConfirmed(ctx context.Context, arg ReferralSetConfirmedParams) error
+	ReferralSetCounted(ctx context.Context, arg ReferralSetCountedParams) error
+	ReferralSetNotCounted(ctx context.Context, arg ReferralSetNotCountedParams) error
+	ReferralVisitBump(ctx context.Context, arg ReferralVisitBumpParams) error
+	// Visits --------------------------------------------------------------------
+	// Records the day's visit key; a row comes back only for the first visit.
+	ReferralVisitKey(ctx context.Context, arg ReferralVisitKeyParams) ([]byte, error)
+	ReferralVisitKeysPrune(ctx context.Context, before time.Time) error
+	// Referrals whose hold has ended, with what decides whether they count.
+	ReferralsHoldDue(ctx context.Context, arg ReferralsHoldDueParams) ([]ReferralsHoldDueRow, error)
+	// Referrals still waiting for their confirmation after 7 days.
+	ReferralsNeverConfirmed(ctx context.Context, arg ReferralsNeverConfirmedParams) ([]ReferralsNeverConfirmedRow, error)
+	// After 90 days an address is reduced to its network.
+	ReferralsReduceIPs(ctx context.Context, arg ReferralsReduceIPsParams) error
 	RefreshInvitation(ctx context.Context, arg RefreshInvitationParams) (Invitation, error)
 	RelayACMEDelete(ctx context.Context, key string) error
 	RelayACMEGet(ctx context.Context, key string) ([]byte, error)
@@ -1941,6 +2681,109 @@ type Querier interface {
 	RestoreList(ctx context.Context, id uuid.UUID) (List, error)
 	ResumeAutomation(ctx context.Context, arg ResumeAutomationParams) error
 	RetireAutomationVersion(ctx context.Context, arg RetireAutomationVersionParams) error
+	RevenueActiveSubscriptions(ctx context.Context, arg RevenueActiveSubscriptionsParams) (int64, error)
+	// The latest paid-member event of each kind the overview lists. A paid
+	// start is "subscribed" or a completed checkout without a trial (trials
+	// have their own event), whichever came last. With it: what the line says
+	// about the subscription (its discount, when access ends, who canceled it
+	// at once) and the retention offer the member saw on the cancel page.
+	RevenueActivity(ctx context.Context, arg RevenueActivityParams) ([]RevenueActivityRow, error)
+	RevenueAttributionSettings(ctx context.Context, workspaceID uuid.UUID) (RevenueAttributionSettingsRow, error)
+	// Paying subscriptions by tier, period and discount, today.
+	RevenueByTier(ctx context.Context, workspaceID uuid.UUID) ([]RevenueByTierRow, error)
+	RevenueCampaignCheckouts(ctx context.Context, arg RevenueCampaignCheckoutsParams) (int64, error)
+	RevenueCampaignClickBump(ctx context.Context, arg RevenueCampaignClickBumpParams) error
+	RevenueCampaignClicks(ctx context.Context, campaignID uuid.UUID) (int64, error)
+	RevenueCampaignConversions(ctx context.Context, arg RevenueCampaignConversionsParams) ([]RevenueCampaignConversionsRow, error)
+	RevenueCampaignInfo(ctx context.Context, arg RevenueCampaignInfoParams) (RevenueCampaignInfoRow, error)
+	RevenueCampaignLinkUrls(ctx context.Context, campaignID uuid.UUID) ([]string, error)
+	// Paid members credited to a campaign: what they pay first and whether
+	// they're still trialing.
+	RevenueCampaignUpgrades(ctx context.Context, arg RevenueCampaignUpgradesParams) ([]RevenueCampaignUpgradesRow, error)
+	RevenueCancelReasons(ctx context.Context, arg RevenueCancelReasonsParams) ([]RevenueCancelReasonsRow, error)
+	// Visits to the cancel page in a window and what readers decided.
+	RevenueCancelSummary(ctx context.Context, arg RevenueCancelSummaryParams) (RevenueCancelSummaryRow, error)
+	// The workspace's payment connections (any mode), newest first.
+	RevenueConnections(ctx context.Context, workspaceID uuid.UUID) ([]RevenueConnectionsRow, error)
+	RevenueContactByEmail(ctx context.Context, arg RevenueContactByEmailParams) (uuid.UUID, error)
+	RevenueConversionByKey(ctx context.Context, arg RevenueConversionByKeyParams) (Conversion, error)
+	// The conversions log's totals: credited or not, in the workspace currency.
+	RevenueConversionCounts(ctx context.Context, arg RevenueConversionCountsParams) (RevenueConversionCountsRow, error)
+	RevenueConversionInsert(ctx context.Context, arg RevenueConversionInsertParams) error
+	// The keys that can record conversions, with who made them and their last use.
+	RevenueConversionKeys(ctx context.Context, workspaceID uuid.UUID) ([]RevenueConversionKeysRow, error)
+	// What the conversions of a window are: their names, values and keys.
+	RevenueConversionKinds(ctx context.Context, arg RevenueConversionKindsParams) ([]RevenueConversionKindsRow, error)
+	// The conversions log, newest first, with what each was credited to.
+	RevenueConversions(ctx context.Context, arg RevenueConversionsParams) ([]RevenueConversionsRow, error)
+	RevenueConversionsFirst(ctx context.Context, workspaceID uuid.UUID) (RevenueConversionsFirstRow, error)
+	// Conversions of a window by currency, the email credited and how each matched.
+	RevenueConversionsSummary(ctx context.Context, arg RevenueConversionsSummaryParams) ([]RevenueConversionsSummaryRow, error)
+	// The ledger's change after each of several moments (the MRR line).
+	RevenueDeltaSince(ctx context.Context, arg RevenueDeltaSinceParams) ([]RevenueDeltaSinceRow, error)
+	// Free subscribers by how they first joined: those at the start of a
+	// window, those who joined during it, and those who became paid members in
+	// it. A contact who paid within an hour of joining paid straight away and
+	// is counted apart.
+	RevenueFreeToPaid(ctx context.Context, arg RevenueFreeToPaidParams) ([]RevenueFreeToPaidRow, error)
+	// Gifts paid in a window (refunded ones left out).
+	RevenueGiftIncome(ctx context.Context, arg RevenueGiftIncomeParams) (RevenueGiftIncomeRow, error)
+	RevenueGiftPageOn(ctx context.Context, workspaceID uuid.UUID) (bool, error)
+	// The offer and tier most readers kept their membership with.
+	RevenueKeptWith(ctx context.Context, arg RevenueKeptWithParams) ([]RevenueKeptWithRow, error)
+	// A contact's last human click on a campaign or automation email within a
+	// window before a moment.
+	RevenueLastEmailClick(ctx context.Context, arg RevenueLastEmailClickParams) (RevenueLastEmailClickRow, error)
+	// How many changes the MRR ledger has, and when it starts.
+	RevenueLedgerSince(ctx context.Context, workspaceID uuid.UUID) (RevenueLedgerSinceRow, error)
+	// The connected live payment account, if there is one.
+	RevenueLiveConnection(ctx context.Context, workspaceID uuid.UUID) (RevenueLiveConnectionRow, error)
+	// Revenue and attribution (internal/revenue): the MRR ledger, the Earn
+	// overview's numbers, the click token's settings and the conversions log.
+	// The MRR definition: Active and Past due subscriptions, live only, after
+	// discounts, a yearly price as a twelfth (twelve times MRR, in minor units).
+	RevenueMRRNow(ctx context.Context, workspaceID uuid.UUID) (RevenueMRRNowRow, error)
+	RevenueMessageOf(ctx context.Context, id uuid.UUID) (RevenueMessageOfRow, error)
+	// The first finished import of paid members: the move from another platform.
+	RevenueMoved(ctx context.Context, workspaceID uuid.UUID) (RevenueMovedRow, error)
+	// The ledger's changes after a moment: each kind's subscriptions and the
+	// change of their yearly value.
+	RevenueMovement(ctx context.Context, arg RevenueMovementParams) ([]RevenueMovementRow, error)
+	// Contacts who became paid members in a window.
+	RevenueNewContacts(ctx context.Context, arg RevenueNewContactsParams) (int64, error)
+	// The next sponsored issue of the workspace.
+	RevenueNextSponsor(ctx context.Context, arg RevenueNextSponsorParams) ([]RevenueNextSponsorRow, error)
+	// Signup offers that started in a window (marks on the MRR line).
+	RevenueOfferStarts(ctx context.Context, arg RevenueOfferStartsParams) ([]RevenueOfferStartsRow, error)
+	// Live signup offers with a limit or an end date, and how often they were used.
+	RevenueOffersToWatch(ctx context.Context, workspaceID uuid.UUID) ([]RevenueOffersToWatchRow, error)
+	RevenuePastDue(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	// The live retention offer, for the Cancellations card's link.
+	RevenueRetentionOffer(ctx context.Context, workspaceID uuid.UUID) ([]RevenueRetentionOfferRow, error)
+	RevenueSetAttribution(ctx context.Context, arg RevenueSetAttributionParams) error
+	// Sponsored issues of a window, at their price.
+	RevenueSponsorIncome(ctx context.Context, arg RevenueSponsorIncomeParams) (RevenueSponsorIncomeRow, error)
+	// The sponsor links of a campaign's booking: the click token never goes on them.
+	RevenueSponsorLinks(ctx context.Context, campaignID *uuid.UUID) ([]string, error)
+	// Bookings that need a person soon: a creative still waiting, or a
+	// sponsor's payment not recorded for an issue that went out.
+	RevenueSponsorNeeds(ctx context.Context, arg RevenueSponsorNeedsParams) ([]RevenueSponsorNeedsRow, error)
+	RevenueTierPrices(ctx context.Context, workspaceID uuid.UUID) ([]RevenueTierPricesRow, error)
+	// The workspace's tiers by access rank (a higher tier includes the lower).
+	RevenueTiers(ctx context.Context, workspaceID uuid.UUID) ([]RevenueTiersRow, error)
+	// Trials started in a window and what became of them; trialing now and
+	// ending within a week.
+	RevenueTrials(ctx context.Context, arg RevenueTrialsParams) (RevenueTrialsRow, error)
+	// The email most of the trials ending soon came from.
+	RevenueTrialsEndingTop(ctx context.Context, arg RevenueTrialsEndingTopParams) ([]RevenueTrialsEndingTopRow, error)
+	// Member emails whose template isn't published.
+	RevenueUnpublishedMemberEmails(ctx context.Context, workspaceID uuid.UUID) ([]RevenueUnpublishedMemberEmailsRow, error)
+	// New paid members of a window by the email they're credited to, with
+	// their new MRR (twelve times, in minor units).
+	RevenueUpgradesByEmail(ctx context.Context, arg RevenueUpgradesByEmailParams) ([]RevenueUpgradesByEmailRow, error)
+	// Whether a campaign report shows a Revenue section: the workspace takes
+	// payments or records conversions.
+	RevenueUsesEarn(ctx context.Context, workspaceID uuid.UUID) (bool, error)
 	RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) (int64, error)
 	RevokeAPIKeysCreatedBy(ctx context.Context, arg RevokeAPIKeysCreatedByParams) (int64, error)
 	RevokeAllUserSessions(ctx context.Context, userID uuid.UUID) (int64, error)
@@ -2096,6 +2939,9 @@ type Querier interface {
 	// Workspaces that set up scoring, with what the jobs need.
 	ScoringWorkspaces(ctx context.Context) ([]ScoringWorkspacesRow, error)
 	SegmentMemberIDs(ctx context.Context, segmentID uuid.UUID) ([]uuid.UUID, error)
+	// The products the segment builder offers: published first, then the rest
+	// that ever sold.
+	SegmentProductOptions(ctx context.Context, workspaceID uuid.UUID) ([]SegmentProductOptionsRow, error)
 	// Campaigns that are not sent yet and use the sender (deleting it clears them).
 	SenderCampaignCount(ctx context.Context, senderID *uuid.UUID) (int64, error)
 	SenderCreate(ctx context.Context, arg SenderCreateParams) (Sender, error)
@@ -2139,8 +2985,9 @@ type Querier interface {
 	SendingAutomationEmail(ctx context.Context, arg SendingAutomationEmailParams) (SendingAutomationEmailRow, error)
 	SendingAutomationEmailLatest(ctx context.Context, id uuid.UUID) (int32, error)
 	SendingAutomationLinkCount(ctx context.Context, arg SendingAutomationLinkCountParams) (int64, error)
-	// The workspace's default sender (automation emails come from it).
-	SendingAutomationSender(ctx context.Context, workspaceID uuid.UUID) (SendingAutomationSenderRow, error)
+	// The sender of an automation email: its own (milestone emails come from
+	// their program's sender), else the workspace's default sender.
+	SendingAutomationSender(ctx context.Context, arg SendingAutomationSenderParams) (SendingAutomationSenderRow, error)
 	SendingBumpCounters(ctx context.Context, arg SendingBumpCountersParams) error
 	SendingCampaign(ctx context.Context, id uuid.UUID) (Campaign, error)
 	// A campaign with its sender and workspace, for building messages.
@@ -2329,6 +3176,10 @@ type Querier interface {
 	// Unfinished setups of a workspace, newest first (resume "Connect SES").
 	SetupOpen(ctx context.Context, arg SetupOpenParams) ([]ProviderSetup, error)
 	SetupSave(ctx context.Context, arg SetupSaveParams) (ProviderSetup, error)
+	// The shop
+	ShopSettingsEnsure(ctx context.Context, workspaceID uuid.UUID) error
+	ShopSettingsGet(ctx context.Context, workspaceID uuid.UUID) (ShopSetting, error)
+	ShopSettingsSave(ctx context.Context, arg ShopSettingsSaveParams) error
 	// Sidebar sections (Settings › General): the sections a workspace hides.
 	SidebarHiddenSectionsForUpdate(ctx context.Context, id uuid.UUID) ([]string, error)
 	SidebarSetHiddenSections(ctx context.Context, arg SidebarSetHiddenSectionsParams) error
@@ -2457,6 +3308,66 @@ type Querier interface {
 	// paused, for a restore.
 	SoftDeleteList(ctx context.Context, arg SoftDeleteListParams) (int64, error)
 	SoftDeleteWorkspace(ctx context.Context, id uuid.UUID) error
+	SponsorBookingCancel(ctx context.Context, arg SponsorBookingCancelParams) error
+	SponsorBookingEventInsert(ctx context.Context, arg SponsorBookingEventInsertParams) error
+	SponsorBookingEvents(ctx context.Context, bookingID uuid.UUID) ([]SponsorBookingEvent, error)
+	SponsorBookingGet(ctx context.Context, arg SponsorBookingGetParams) (SponsorBookingGetRow, error)
+	SponsorBookingInsert(ctx context.Context, arg SponsorBookingInsertParams) error
+	SponsorBookingNotified(ctx context.Context, arg SponsorBookingNotifiedParams) error
+	SponsorBookingOfCampaign(ctx context.Context, campaignID *uuid.UUID) (SponsorBookingOfCampaignRow, error)
+	SponsorBookingOfIssue(ctx context.Context, arg SponsorBookingOfIssueParams) (SponsorBooking, error)
+	SponsorBookingProposals(ctx context.Context, arg SponsorBookingProposalsParams) ([]SponsorBooking, error)
+	SponsorBookingSent(ctx context.Context, arg SponsorBookingSentParams) error
+	SponsorBookingSetCampaign(ctx context.Context, arg SponsorBookingSetCampaignParams) error
+	SponsorBookingSetCreative(ctx context.Context, arg SponsorBookingSetCreativeParams) error
+	SponsorBookingSetNotes(ctx context.Context, arg SponsorBookingSetNotesParams) error
+	SponsorBookingSetPayment(ctx context.Context, arg SponsorBookingSetPaymentParams) error
+	// The booking's sponsor, price, status, hold and dates.
+	SponsorBookingSetTerms(ctx context.Context, arg SponsorBookingSetTermsParams) error
+	// Booked issues and unpaid sent issues, for the creative and payment
+	// reminders.
+	SponsorBookingsDue(ctx context.Context) ([]SponsorBookingsDueRow, error)
+	// A slot's bookings of a range of issues, with their sponsor and campaign.
+	SponsorBookingsOfSlot(ctx context.Context, arg SponsorBookingsOfSlotParams) ([]SponsorBookingsOfSlotRow, error)
+	SponsorBookingsOfWorkspace(ctx context.Context, workspaceID uuid.UUID) ([]SponsorBookingsOfWorkspaceRow, error)
+	// Booked issues whose campaign has been sent.
+	SponsorBookingsToSend(ctx context.Context) ([]SponsorBookingsToSendRow, error)
+	SponsorCampaignBrief(ctx context.Context, arg SponsorCampaignBriefParams) (SponsorCampaignBriefRow, error)
+	// The sponsor of each campaign with a booking: the Campaigns list's chip.
+	SponsorCampaignChips(ctx context.Context, workspaceID uuid.UUID) ([]SponsorCampaignChipsRow, error)
+	// A list's campaigns scheduled or sent in a time range, to link issues by
+	// list and date.
+	SponsorCampaignsOfList(ctx context.Context, arg SponsorCampaignsOfListParams) ([]SponsorCampaignsOfListRow, error)
+	SponsorDelete(ctx context.Context, arg SponsorDeleteParams) error
+	SponsorGet(ctx context.Context, arg SponsorGetParams) (Sponsor, error)
+	SponsorHoldsLapsed(ctx context.Context, today time.Time) ([]SponsorBooking, error)
+	SponsorInsert(ctx context.Context, arg SponsorInsertParams) error
+	// The issue of the last booking linked to a campaign, whatever became of it:
+	// a canceled booking leaves the campaign its issue number.
+	SponsorLastIssueOfCampaign(ctx context.Context, campaignID *uuid.UUID) (SponsorLastIssueOfCampaignRow, error)
+	// Sponsorships (internal/sponsors): the sponsor library, slots, bookings
+	// with their creative and payment, booking events, report stats and the
+	// read-only report links.
+	SponsorList(ctx context.Context, workspaceID uuid.UUID) ([]Sponsor, error)
+	SponsorNameTaken(ctx context.Context, arg SponsorNameTakenParams) (bool, error)
+	SponsorReportStats(ctx context.Context, bookingID uuid.UUID) (SponsorReportStat, error)
+	SponsorReportStatsOf(ctx context.Context, ids []uuid.UUID) ([]SponsorReportStat, error)
+	SponsorReportStatsUpsert(ctx context.Context, arg SponsorReportStatsUpsertParams) error
+	// Sent bookings whose report isn't final yet.
+	SponsorReportsToRefresh(ctx context.Context) ([]SponsorReportsToRefreshRow, error)
+	SponsorShareByToken(ctx context.Context, tokenHash []byte) (SponsorReportShare, error)
+	SponsorShareGet(ctx context.Context, arg SponsorShareGetParams) (SponsorReportShare, error)
+	SponsorShareInsert(ctx context.Context, arg SponsorShareInsertParams) error
+	SponsorShareRevoke(ctx context.Context, arg SponsorShareRevokeParams) error
+	SponsorShareTouch(ctx context.Context, arg SponsorShareTouchParams) error
+	// A booking's or a sponsor's active links, newest first.
+	SponsorSharesOf(ctx context.Context, arg SponsorSharesOfParams) ([]SponsorSharesOfRow, error)
+	SponsorSlotDelete(ctx context.Context, arg SponsorSlotDeleteParams) error
+	SponsorSlotGet(ctx context.Context, arg SponsorSlotGetParams) (SponsorSlotGetRow, error)
+	SponsorSlotInsert(ctx context.Context, arg SponsorSlotInsertParams) error
+	SponsorSlotUpdate(ctx context.Context, arg SponsorSlotUpdateParams) error
+	SponsorSlots(ctx context.Context, workspaceID uuid.UUID) ([]SponsorSlotsRow, error)
+	SponsorUpdate(ctx context.Context, arg SponsorUpdateParams) error
 	StartImport(ctx context.Context, arg StartImportParams) error
 	// Addresses each provider's bounce and complaint events added to the shared
 	// list (the "pulled in" count of providers without a suppression API).

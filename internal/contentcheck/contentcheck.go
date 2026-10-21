@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 	"golang.org/x/net/publicsuffix"
@@ -41,9 +42,10 @@ const ClipBytes = 102 * 1024
 const NearClipBytes = 85 * 1024
 
 // ContentCheckFix is a one-click fix offered with an issue. The composer applies it to
-// the canvas (Path points at the component) or to the campaign settings.
+// the canvas (Path points at the component) or to the campaign settings; an
+// open fix opens the page in Value (a Sponsor block's booking).
 type ContentCheckFix struct {
-	Kind  string `json:"kind" enum:"replace_link,edit_link,insert_footer,set_alt,minify,remove_section,use_subject"`
+	Kind  string `json:"kind" enum:"replace_link,edit_link,insert_footer,set_alt,minify,remove_section,use_subject,open"`
 	Label string `json:"label"`
 	Value string `json:"value,omitempty"`
 	Path  []int  `json:"path,omitempty"`
@@ -140,7 +142,14 @@ type Input struct {
 	// Language is the language version's code ("de"); the subject's
 	// English phrase heuristics only apply to English (or no language).
 	Language string
+	// WorkspaceID is whose content it is (Extra checks read its data).
+	WorkspaceID uuid.UUID
 }
+
+// Extra is a check another domain adds (X20: a store block naming a
+// product the store removed). It returns its issues; Section and Path say
+// where they are.
+type Extra func(ctx context.Context, in Input) []ContentCheckIssue
 
 // Blocklist answers which URI blocklists list a domain.
 type Blocklist interface {
@@ -169,6 +178,8 @@ type Checker struct {
 	Blocklist Blocklist
 	Prober    Prober
 	Now       func() time.Time
+	// Extra checks run after the built-in ones.
+	Extra []Extra
 }
 
 type image struct {
@@ -340,6 +351,12 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 		add(ContentCheckIssue{ID: "content.plain_text", Severity: Warn, Group: "Content", Title: "The plain-text version is empty", Detail: "The email has no text, so the text/plain part is blank. Add a sentence that says what the images show.", Section: -1})
 	}
 
+	for _, x := range c.Extra {
+		for _, is := range x(ctx, in) {
+			add(is)
+		}
+	}
+
 	for _, sec := range s.sections {
 		sum := ContentCheckSection{Index: sec.Index, Label: sec.Label, Issues: sectionIssues[sec.Index]}
 		for _, im := range s.images {
@@ -385,6 +402,46 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 		r.Verdict = "ready"
 	}
 	return r, nil
+}
+
+// AddIssues adds findings of other domains (the Sponsor block's) to a
+// report: they count in its verdict and in their sections.
+func (r *ContentCheckReport) AddIssues(issues ...ContentCheckIssue) {
+	if len(issues) == 0 {
+		return
+	}
+	for _, is := range issues {
+		if is.Fixes == nil {
+			is.Fixes = []ContentCheckFix{}
+		}
+		if is.Path == nil {
+			is.Path = []int{}
+		}
+		r.Issues = append(r.Issues, is)
+		for i := range r.Sections {
+			if r.Sections[i].Index == is.Section && is.Section >= 0 && (is.Severity == Block || is.Severity == Warn) {
+				r.Sections[i].Issues++
+			}
+		}
+	}
+	sort.SliceStable(r.Issues, func(i, j int) bool { return rank(r.Issues[i]) < rank(r.Issues[j]) })
+	r.Blocks, r.Warnings = 0, 0
+	for _, is := range r.Issues {
+		switch is.Severity {
+		case Block:
+			r.Blocks++
+		case Warn:
+			r.Warnings++
+		}
+	}
+	switch {
+	case r.Blocks > 0:
+		r.Verdict = "blocked"
+	case r.Warnings > 0:
+		r.Verdict = "warnings"
+	default:
+		r.Verdict = "ready"
+	}
 }
 
 // rank orders issues: blocks, then warnings, then the rest; subject issues

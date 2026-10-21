@@ -679,6 +679,7 @@ export const m = defineMessages('integrations', {
   expand: 'Expand',
   updateNote: 'Update available: {version}. Update it in WordPress › Plugins.',
   updateNote130: "Update available: {version}. Update it in WordPress › Plugins. It adds post translations as language versions and the form block's language setting.",
+  updateNote140: "Update available: {version}. Update it in WordPress › Plugins. With WooCommerce, it adds the checkout's marketing consent, the click token on orders and abandoned checkouts.",
   silentTitle: 'Not heard from since {since}',
   silentBody: "Last heard from {since}. If the site is behind a firewall or basic auth, ReputeCast can't reach it, but the plugin can still report in.",
   silentBodyChecked: "{check} Last heard from {since}. If the site is behind a firewall or basic auth, ReputeCast can't reach it, but the plugin can still report in.",

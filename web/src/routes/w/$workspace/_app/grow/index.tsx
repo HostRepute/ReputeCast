@@ -1,17 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { m } from '@/components/shell/messages'
-import { NotBuilt } from '@/components/shell/NotBuilt'
-import { Page } from '@/components/shell/Page'
-import { useT } from '@/i18n'
+import { GrowOverviewPage } from '@/features/grow/OverviewPage'
 
-// The sidebar's Grow section (phase 5, referrals and recommendations).
+// Grow › Overview (design expansion phase 5): the last 30 days' numbers,
+// Needs you, new subscribers by source and the program and recommendations
+// cards.
 export const Route = createFileRoute('/w/$workspace/_app/grow/')({
-  component: function GrowRoute() {
-    const t = useT()
-    return (
-      <Page title={t(m.navGrow)}>
-        <NotBuilt screen={t(m.navGrow)} />
-      </Page>
-    )
-  },
+  component: GrowOverviewPage,
 })

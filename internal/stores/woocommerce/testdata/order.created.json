@@ -1,0 +1,71 @@
+{
+  "id": 1842,
+  "parent_id": 0,
+  "status": "processing",
+  "currency": "USD",
+  "version": "9.4.1",
+  "prices_include_tax": false,
+  "date_created": "2026-10-15T08:40:12",
+  "date_modified": "2026-10-15T08:40:14",
+  "discount_total": "5.00",
+  "discount_tax": "0.00",
+  "shipping_total": "0.00",
+  "shipping_tax": "0.00",
+  "cart_tax": "0.00",
+  "total": "71.00",
+  "total_tax": "0.00",
+  "customer_id": 311,
+  "order_key": "wc_order_X9m2kQ7aZp",
+  "billing": {
+    "first_name": "Grace", "last_name": "Liu", "company": "", "address_1": "41 Orchard Street", "address_2": "", "city": "New York",
+    "state": "NY", "postcode": "10002", "country": "US", "email": "grace.liu@example.com", "phone": "+16465550142"
+  },
+  "shipping": {
+    "first_name": "Grace", "last_name": "Liu", "company": "", "address_1": "41 Orchard Street", "address_2": "", "city": "New York",
+    "state": "NY", "postcode": "10002", "country": "US", "phone": "+16465550142"
+  },
+  "payment_method": "stripe",
+  "payment_method_title": "Credit card (Stripe)",
+  "transaction_id": "ch_3Q7xYz2eZvKYlo2C1abc",
+  "customer_ip_address": "203.0.113.24",
+  "customer_user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_6) AppleWebKit/605.1.15",
+  "created_via": "checkout",
+  "customer_note": "Please gift wrap the mug",
+  "date_completed": null,
+  "date_paid": "2026-10-15T08:40:13",
+  "cart_hash": "0b1d6f3c9a",
+  "number": "1842",
+  "meta_data": [
+    { "id": 12011, "key": "_reputecast_marketing", "value": "yes" },
+    { "id": 12012, "key": "_reputecast_consent_text", "value": "Email me about new products and offers from the store. Unsubscribe any time." },
+    { "id": 12013, "key": "_reputecast_consent_at", "value": "2026-10-15T12:39:58Z" },
+    { "id": 12014, "key": "_reputecast_click", "value": "rcTOKEN123" },
+    { "id": 12015, "key": "_reputecast_checkout", "value": "wc-checkout-9f1e" },
+    { "id": 12016, "key": "_wc_order_attribution_session_entry", "value": "https://store.example.com/shop/?utm_source=acme-newsletter&utm_medium=email&utm_campaign=october-product-update" },
+    { "id": 12017, "key": "_wc_order_attribution_utm_source", "value": "acme-newsletter" },
+    { "id": 12018, "key": "_wc_order_attribution_utm_medium", "value": "email" },
+    { "id": 12019, "key": "_wc_order_attribution_utm_campaign", "value": "october-product-update" },
+    { "id": 12020, "key": "_stripe_card_last4", "value": "4242" }
+  ],
+  "line_items": [
+    {
+      "id": 77, "name": "Acme Logo Hoodie - M", "product_id": 4120, "variation_id": 4127, "quantity": 1, "tax_class": "",
+      "subtotal": "58.00", "subtotal_tax": "0.00", "total": "53.00", "total_tax": "0.00", "taxes": [], "meta_data": [],
+      "sku": "HOOD-LOGO-M", "price": 53, "image": { "id": 9001, "src": "https://store.example.com/wp-content/uploads/hoodie.png" }, "parent_name": "Acme Logo Hoodie"
+    },
+    {
+      "id": 78, "name": "Ship It mug", "product_id": 4131, "variation_id": 0, "quantity": 1, "tax_class": "",
+      "subtotal": "18.00", "subtotal_tax": "0.00", "total": "18.00", "total_tax": "0.00", "taxes": [], "meta_data": [],
+      "sku": "MUG-SHIPIT", "price": 18, "image": { "id": 9002, "src": "https://store.example.com/wp-content/uploads/mug.png" }, "parent_name": null
+    }
+  ],
+  "tax_lines": [],
+  "shipping_lines": [ { "id": 79, "method_title": "Free shipping", "method_id": "free_shipping", "total": "0.00" } ],
+  "fee_lines": [],
+  "coupon_lines": [ { "id": 80, "code": "fall5", "discount": "5.00", "discount_tax": "0.00" } ],
+  "refunds": [],
+  "date_created_gmt": "2026-10-15T12:40:12",
+  "date_modified_gmt": "2026-10-15T12:40:14",
+  "date_completed_gmt": null,
+  "date_paid_gmt": "2026-10-15T12:40:13"
+}

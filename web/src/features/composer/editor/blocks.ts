@@ -5,9 +5,11 @@
  * <!-- rc:… --> marker so they stay recognisable (layer names, checks).
  */
 import { newPoll, pollSection } from '@/features/polls/config'
+import { growBlockDefs } from '@/features/grow/composer/blocks'
 import { upgradeSection } from '@/features/earn/composer/upgrade'
+import { sponsorSection } from '@/features/earn/sponsors/composer/sponsor'
 
-export type BlockGroup = 'layout' | 'content' | 'reputecast' | 'earn'
+export type BlockGroup = 'layout' | 'content' | 'reputecast' | 'grow' | 'earn'
 
 export interface BlockDef {
   id: string
@@ -181,6 +183,19 @@ export function blockDefs(address: string): BlockDef[] {
     { id: 'rc-footer', label: 'Footer + unsubscribe', group: 'reputecast', icon: 'rcFooter', kind: 'section', content: footerBlock(address), keywords: 'address unsubscribe compliance' },
     // The Poll block (design expansion, X11): each answer a plain link.
     { id: 'rc-poll', label: 'Poll', badge: 'New', group: 'reputecast', icon: 'rcPoll', kind: 'section', content: pollSection(newPoll()), keywords: 'poll question vote nps rating survey feedback' },
+    // Grow's blocks (design expansion, X15): Referral and Recommendations.
+    ...growBlockDefs(),
+    // Earn (design expansion, X17): the Sponsor block fills itself from the
+    // issue's booking (its settings fetch the creative).
+    {
+      id: 'rc-sponsor',
+      label: 'Sponsor',
+      group: 'earn',
+      icon: 'rcSponsor',
+      kind: 'section',
+      content: sponsorSection("Fills itself from this issue's booking."),
+      keywords: 'sponsor sponsored ad advertising booking creative earn',
+    },
     // Earn (design expansion, X16): the Upgrade block, the paywall card; its
     // settings fill in the tier's price and trial.
     {
@@ -189,7 +204,7 @@ export function blockDefs(address: string): BlockDef[] {
       group: 'earn',
       icon: 'rcUpgrade',
       kind: 'section',
-      content: upgradeSection({ tier: '', headline: 'Get more with a paid membership', line: 'Paid members get every issue in full, the archive and the extras.', button: 'Upgrade', price: '' }),
+      content: upgradeSection({ tier: '', headline: 'Get more with a paid membership', line: 'Paid members get every issue in full, the archive and the extras.', button: 'Upgrade', price: '', offer: '' }),
       keywords: 'paywall paid membership subscribe price trial earn',
     },
   ]

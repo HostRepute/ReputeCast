@@ -2864,6 +2864,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/automations/{id}/store-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An abandoned-checkout trigger's numbers since the automation went live, and its recovered orders */
+        get: operations["get-automation-store-stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/automations/{id}/versions": {
         parameters: {
             query?: never;
@@ -4095,6 +4112,103 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaign}/product-sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Product sales credited to a campaign (its report's Revenue rows) */
+        get: operations["get-campaign-product-sales"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{id}/revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A campaign report's Revenue section: upgrades and conversions credited to it
+         * @description Without earn:view the answer is locked and names who can show it.
+         */
+        get: operations["get-campaign-revenue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{id}/sponsor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A campaign report's Sponsor section: the issue's booking and its report
+         * @description Answers without a booking when the issue had no sponsor.
+         */
+        get: operations["get-campaign-sponsor"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{id}/sponsor-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The Sponsor block of a campaign: its booking, creative and content
+         * @description The price shows only to people who hold earn:view.
+         */
+        get: operations["get-campaign-sponsor-block"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{id}/store-revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Store orders credited to a campaign, one row per store
+         * @description Each order is credited to one email.
+         */
+        get: operations["get-campaign-store-revenue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/channels": {
         parameters: {
             query?: never;
@@ -4104,6 +4218,77 @@ export interface paths {
         };
         /** Which channels the workspace can send on: the Sending providers switch */
         get: operations["list-channels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/commerce/blocks/render": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Draw a product card or grid with its products now
+         * @description Removed products are drawn and flagged; sends read prices and availability again.
+         */
+        post: operations["render-store-block"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/commerce/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The product picker's stores, with their collections */
+        get: operations["get-store-catalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/commerce/revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Store revenue from email in the last 30 days (Earn › Overview) */
+        get: operations["get-store-revenue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/commerce/trigger-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store triggers' stores, products and collections */
+        get: operations["get-store-trigger-options"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4666,6 +4851,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/contacts/{contactId}/stores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The contact's store orders and their consent in each store */
+        get: operations["get-contact-stores"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/contacts/{contactId}/website": {
         parameters: {
             query?: never;
@@ -4843,6 +5045,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/contacts/{contact}/purchases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A contact's purchases: products, each download's state and what they spent */
+        get: operations["get-contact-purchases"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contact}/referrals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A contact's referral link and counts, who referred them, and Grow's timeline events
+         * @description API keys with grow:view can read a contact's referral link and counts, so an app can show them to its users.
+         */
+        get: operations["get-contact-referrals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/contacts/{contact}/resend-optin": {
         parameters: {
             query?: never;
@@ -4888,6 +5127,27 @@ export interface paths {
         put?: never;
         /** Put a contact's address on the suppression list */
         post: operations["suppress-contact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/conversions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The conversions log, newest first */
+        get: operations["list-conversions"];
+        put?: never;
+        /**
+         * Record a conversion: an upgrade or an order in your product, with its value
+         * @description Credits the conversion to the last campaign or automation email the reader clicked within the attribution window: by click token (rc_click), else by email address. Answers 202 with how it was matched. Errors: missing_identity, invalid_value, invalid_currency, occurred_at_out_of_range (422), idempotency_key_reused (409), rate_limited (429, with Retry-After). Conversions are logged in Earn › Settings › Attribution, not in the audit log.
+         */
+        post: operations["create-conversion"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5470,6 +5730,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/earn/attribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Earn › Settings › Attribution: the window, the click token and the conversion API */
+        get: operations["get-attribution"];
+        /** Change the attribution window and the click token */
+        put: operations["update-attribution"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/attribution/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a test conversion for your own address
+         * @description Shown in the conversions log, left out of every number.
+         */
+        post: operations["send-test-conversion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/earn/audience": {
         parameters: {
             query?: never;
@@ -5482,6 +5780,23 @@ export interface paths {
          * @description Counts only. Drafting a paid-only campaign needs campaigns:edit, like any draft.
          */
         get: operations["get-earn-audience"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The Earn card of the workspace Overview */
+        get: operations["get-earn-card"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5752,6 +6067,146 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/earn/gifts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Earn › Gifts: the numbers, the gift options and page, the gift emails and the gifts that need a look */
+        get: operations["get-gifts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/gifts/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A page of the gifts bought on the gift page, the latest first */
+        get: operations["list-gifts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/gifts/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a gift option: a tier for a period at a one-time price */
+        post: operations["create-gift-option"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/gifts/options/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a gift option; gifts already bought keep what they were sold as */
+        put: operations["update-gift-option"];
+        post?: never;
+        /** Take a gift option off the gift page; gifts already bought keep working */
+        delete: operations["delete-gift-option"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/gifts/page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Turn the gift page on or off, and set how long gift links work
+         * @description Gifts already bought keep working while the page is off: their emails go out and their links can be redeemed.
+         */
+        put: operations["set-gift-page"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/gifts/{id}/delivery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move a scheduled gift's delivery to another day and time */
+        post: operations["change-gift-delivery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/gifts/{id}/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a gift's redeem link (recorded in the audit log: anyone with it can redeem the gift) */
+        post: operations["copy-gift-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/gifts/{id}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send the gift email again to a gift's recipient */
+        post: operations["resend-gift"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/earn/imports": {
         parameters: {
             query?: never;
@@ -5987,6 +6442,99 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/earn/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Plans & offers: the offers and what they did */
+        get: operations["list-offers"];
+        put?: never;
+        /**
+         * Create an offer, and its coupon and codes in the payment provider
+         * @description Without a connected provider the offer is saved as a draft and created there once one is connected and it's saved again.
+         */
+        post: operations["create-offer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/offers/new": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A new offer's editor: the tiers and periods it can apply to */
+        get: operations["new-offer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/offers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An offer: its rules, results, codes and its coupon in the provider */
+        get: operations["get-offer"];
+        /**
+         * Change an offer
+         * @description Changing the discount creates a new coupon; codes already used keep theirs. Raising the limit or moving the date of an offer that ended by them brings it back.
+         */
+        put: operations["update-offer"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/offers/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End an offer now: its code stops working; paid members who used it keep their discount */
+        post: operations["end-offer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/offers/{id}/recreate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create the offer's coupon again after it was deleted in the provider */
+        post: operations["recreate-offer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/earn/payments": {
         parameters: {
             query?: never;
@@ -6036,6 +6584,26 @@ export interface paths {
         };
         /** Plans & offers: the tiers with their prices, members and MRR, and the upgrade page */
         get: operations["get-earn-plans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/earn/revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Earn › Overview: MRR and its movement, paid members, trials, conversions, cancellations and attribution
+         * @description MRR is the monthly value of every Active and Past due subscription, after discounts, before tax, live mode only; a yearly price counts as a twelfth.
+         */
+        get: operations["get-revenue-overview"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6432,6 +7000,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/forms/{form}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The file a form offers after confirmation, and its numbers */
+        get: operations["get-form-download"];
+        /** How many days the confirmation page's download links work */
+        put: operations["set-form-download"];
+        post?: never;
+        /** Stop offering a download after confirmation; links already sent stop working */
+        delete: operations["remove-form-download"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/download/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Announce the file to offer: it replaces the current one once it finished */
+        post: operations["start-form-download-upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/download/uploads/{upload}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Send the next chunk of the file */
+        put: operations["upload-form-download-chunk"];
+        post?: never;
+        /** Cancel an upload; nothing is kept */
+        delete: operations["cancel-form-download-upload"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/download/uploads/{upload}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finish the upload: the file's type is checked from its content, then the form offers it */
+        post: operations["finish-form-download-upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/forms/{form}/language": {
         parameters: {
             query?: never;
@@ -6445,6 +7084,23 @@ export interface paths {
          * @description page: the lang of the page it's on; browser: the visitor's browser; fixed: always one language. A language whose copy isn't Live shows the fallback.
          */
         put: operations["set-signup-form-language"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/forms/{form}/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The pages whose signup form block uses a form */
+        get: operations["list-form-pages"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -6523,6 +7179,1036 @@ export interface paths {
          * @description The copy-link fallback while nothing can send System mail. Every link handed out is written to the audit log.
          */
         post: operations["signup-form-confirm-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/blocks/preview-contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Readers to preview the Grow blocks as: referrers, and readers the block hides for */
+        get: operations["list-grow-preview-contacts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/blocks/recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Render the Recommendations block for the composer's canvas */
+        post: operations["render-recommendations-block"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/blocks/render": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Render a Grow block for the composer's canvas, as a reader or a sample */
+        post: operations["render-grow-block"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A milestone with its reward */
+        get: operations["get-referral-milestone"];
+        /** Change a milestone and its reward (rewards given from now on) */
+        put: operations["update-referral-milestone"];
+        post?: never;
+        /** Delete a milestone: rewards already sent stay with their referrers */
+        delete: operations["delete-referral-milestone"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload codes for a code reward (one per line); only their count is logged */
+        post: operations["upload-referral-codes"];
+        /** Remove the codes nobody has received yet */
+        delete: operations["remove-referral-codes"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A milestone email for the composer's milestone mode */
+        get: operations["get-referral-milestone-email"];
+        /** Autosave a milestone email's draft (409 when saved elsewhere since) */
+        put: operations["autosave-referral-milestone-email"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/email/on": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Send this milestone's email, or none (an automation sends one) */
+        put: operations["set-referral-milestone-email-on"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/email/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Render a milestone email as a reader gets it */
+        post: operations["preview-referral-milestone-email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/email/save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save a milestone email: the saved version is the one that goes out */
+        post: operations["save-referral-milestone-email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/email/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test of a milestone email through the System route */
+        post: operations["test-referral-milestone-email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/milestones/{milestone}/webhook-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test referral.milestone_reached to a webhook reward's endpoint */
+        post: operations["test-referral-webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Grow's overview: the last 30 days' numbers, what needs a person, and new subscribers per week by source */
+        get: operations["get-grow-overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a partner code for one newsletter (shown once, valid 7 days, works once) */
+        post: operations["create-partner-code"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-codes/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke a partner code nobody has used */
+        delete: operations["revoke-partner-code"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry a partner's waiting requests now */
+        post: operations["check-partner-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End a partnership for good; reconnecting needs a new partner code */
+        post: operations["end-partner-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/limit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the daily limit of a partner that recommends you */
+        put: operations["set-partner-limit"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause a partner link: requests stop until it resumes */
+        post: operations["pause-partner-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A partner link's request log (90 days; never the addresses) */
+        get: operations["get-partner-requests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a partner link this side paused */
+        post: operations["resume-partner-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partner-links/{link}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Agree a new signing secret with the partner; both work for 24 hours */
+        post: operations["rotate-partner-secret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partners/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Connect a partner with its code: the instances agree a signing secret over HTTPS */
+        post: operations["connect-partner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/partners/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask a partner's instance what a pasted partner code connects to */
+        post: operations["preview-partner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/previews/{page}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview a Grow public page: the invite page, a referrer's hub, the leaderboard or the recommendations page
+         * @description Rendered for the referrer with the most signups. Inert: links and buttons don't work and nothing is recorded.
+         */
+        get: operations["preview-grow-page"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What you recommend, who recommends you, where recommendations show and your partner profile */
+        get: operations["get-recommendations"];
+        put?: never;
+        /** Recommend a newsletter by its subscribe page (readers subscribe there) */
+        post: operations["add-link-recommendation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put the recommendations in the order readers see them */
+        put: operations["reorder-recommendations"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/prefill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read a subscribe page's name, description and logo (through the SSRF guard) */
+        post: operations["prefill-recommendation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change the partner profile: what partners see and show
+         * @description Partners that recommend you get the new profile over the signed channel.
+         */
+        put: operations["update-partner-profile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Show recommendations on the opt-in confirmation page, or not */
+        put: operations["update-recommendation-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/{recommendation}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a recommendation (a partner's: only where it shows) */
+        put: operations["update-recommendation"];
+        post?: never;
+        /** Remove a recommendation (a partner's also ends its link, which needs grow:connect) */
+        delete: operations["remove-recommendation"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/{recommendation}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause a link recommendation: hidden until resumed, numbers kept */
+        post: operations["pause-recommendation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/recommendations/{recommendation}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a paused link recommendation */
+        post: operations["resume-recommendation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The referral programs and the lists a new one can use */
+        get: operations["list-referral-programs"];
+        put?: never;
+        /** Start a referral program on a list (off, at the guide's second step) */
+        post: operations["create-referral-program"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A referral program with its settings */
+        get: operations["get-referral-program"];
+        put?: never;
+        post?: never;
+        /** Delete a program that is off: its links stop for good */
+        delete: operations["delete-referral-program"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The checks before a program turns on */
+        get: operations["get-referral-checks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a file for download rewards (PDF, ZIP or an image, up to 100 MB) */
+        post: operations["upload-referral-file"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/files/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a file from the program's files */
+        delete: operations["remove-referral-file"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/fulfill.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The To fulfill queue with shipping addresses as CSV (logged) */
+        get: operations["export-referral-fulfillment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/leaderboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Turn the public leaderboard on or off */
+        put: operations["set-referral-leaderboard"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/milestones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The milestones with their rewards, health and emails, the files and the To fulfill queue */
+        get: operations["list-referral-milestones"];
+        put?: never;
+        /**
+         * Add a milestone with its reward and a milestone email
+         * @description A Stripe coupon reward also needs earn:edit and Stripe connected.
+         */
+        post: operations["create-referral-milestone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/off": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Turn a program off: links lead to the normal subscribe page and Referral blocks hide
+         * @description Earned rewards stay available on readers' hubs; counted referrals and sent rewards are kept.
+         */
+        post: operations["turn-off-referral-program"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/on": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turn a program on: every confirmed subscriber of its list gets a link */
+        post: operations["turn-on-referral-program"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/referrers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Referrers by counted referrals, with search and filters */
+        get: operations["list-referrers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/referrers.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The referrers list as CSV (logged) */
+        get: operations["export-referrers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/referrers/{link}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A referrer: their link, progress, referrals and rewards */
+        get: operations["get-referrer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/referrers/{link}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause a referrer's link: it leads to the normal subscribe page */
+        post: operations["pause-referral-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/referrers/{link}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a referrer's paused link */
+        post: operations["resume-referral-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A program's results: the funnel, confirmed referrals over time, channels, top referrers, rewards and quality */
+        get: operations["get-referral-results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Held referrals grouped by referrer, with their evidence */
+        get: operations["get-referral-review"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/review/decide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Count held referrals, don't count them, or don't count them and pause the link
+         * @description People only: MCP agents can propose a decision (propose_referral_decision), never make one. Undo works for 10 seconds.
+         */
+        post: operations["decide-referrals"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/review/decisions/{decision}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo a decision within 10 seconds */
+        post: operations["undo-referral-decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/review/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What a decision on held referrals would do */
+        post: operations["preview-referral-decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change the counting rules, pages, leaderboard and milestone emails' sender
+         * @description Changes apply going forward: counted referrals and sent rewards never change.
+         */
+        put: operations["update-referral-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/settings/impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What a change of the counting rules does to referrals not decided yet */
+        post: operations["referral-settings-impact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/referrals/{program}/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Keep the set-up guide's step (and the list, until the program has been on) */
+        put: operations["save-referral-setup"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/rewards/{reward}/claim-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A coupon reward's claim link to copy (logged) */
+        post: operations["copy-referral-claim-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/rewards/{reward}/fulfill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a manual reward fulfilled, with a note the referrer sees */
+        post: operations["fulfill-referral-reward"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/rewards/{reward}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a reward's milestone email again */
+        post: operations["resend-referral-reward"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/grow/rewards/{reward}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Try a failed webhook reward again */
+        post: operations["retry-referral-reward"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8200,6 +9886,307 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your pages with their numbers, the shop's switch and the theme */
+        get: operations["list-pages"];
+        put?: never;
+        /** Start a page from a template, as a draft */
+        post: operations["create-page"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/shop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Turn the shop (/products) on or off */
+        put: operations["set-shop"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A page: its draft, what's live, the publish checks and its numbers */
+        get: operations["get-page"];
+        put?: never;
+        post?: never;
+        /** Delete a page (a published one answers 410 at its address) */
+        delete: operations["delete-page"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask for approval to publish a page as it is */
+        post: operations["request-page-approval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/canvas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The site's stylesheets, header and footer for the page builder's canvas */
+        get: operations["get-page-canvas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the draft's blocks (autosave or Save): a new version; the live page changes only when published
+         * @description A newer version saved meanwhile by someone else answers 409 version_conflict with who saved it; send force to keep yours on top.
+         */
+        put: operations["save-page-content"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What publishing would change since the live version */
+        get: operations["get-page-diff"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview a page in the site's frame: the draft, the blocks being edited, or what's live */
+        post: operations["preview-page"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish a page now, or schedule it
+         * @description Blocked until every blocking check passes. When publishing needs approval the answer is 409 approval_required with the rule and the approvers.
+         */
+        post: operations["publish-page"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/reminder-automation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A webinar page's reminder automation: the offer, or the flow made */
+        get: operations["get-page-reminders"];
+        put?: never;
+        /** Make the reminder automation of a webinar page: a draft flow with a date-field trigger, the day before and an hour before */
+        post: operations["create-page-reminders"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/render": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draw live blocks (products, forms, countdowns, events) as readers see them, inert */
+        post: operations["render-page-blocks"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the Page tab: title, address, visibility, header and navigation, SEO
+         * @description Visibility and navigation need website:manage.
+         */
+        put: operations["save-page-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/undo-publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take back a publish within seconds (the toast's Undo) */
+        post: operations["undo-page-publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/unpublish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take a page off the site, or unschedule it */
+        post: operations["unpublish-page"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Version history: every saved and published version */
+        get: operations["list-page-versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/versions/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One version's blocks and settings */
+        get: operations["get-page-version"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/pages/{page}/versions/{version}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make an earlier version the draft again, as a new version */
+        post: operations["restore-page-version"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/placement/content": {
         parameters: {
             query?: never;
@@ -8554,6 +10541,319 @@ export interface paths {
         get: operations["export-poll-results"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Products with their numbers, where sales came from and the payment connection */
+        get: operations["list-products"];
+        put?: never;
+        /** Start a draft product */
+        post: operations["create-product"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Orders, newest first, with their download links */
+        get: operations["list-product-orders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/orders/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The orders a filter shows, as CSV (they hold buyers' addresses; logged) */
+        get: operations["export-product-orders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/orders/{order}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An order: its buyer and consent, payment, delivery, downloads and activity */
+        get: operations["get-product-order"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/orders/{order}/new-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a new download link, to the address on the order only */
+        post: operations["send-order-link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/orders/{order}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Let an order's downloads work again */
+        post: operations["restore-order-access"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/orders/{order}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke an order's downloads */
+        post: operations["revoke-order-access"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Product sales over 30 days (the Earn overview's card) */
+        get: operations["get-products-summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A product: its draft and what's live, files, publish checks and numbers */
+        get: operations["get-product"];
+        /** Save a product's draft (a published product changes with Publish changes) */
+        put: operations["save-product"];
+        post?: never;
+        /** Delete a product that was never published */
+        delete: operations["delete-product"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop selling a product; its buyers keep their downloads */
+        post: operations["archive-product"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}/cover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a cover image (PNG, JPEG or GIF, up to 5 MB) */
+        post: operations["upload-product-cover"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}/files/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a file from a product */
+        delete: operations["remove-product-file"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview a product's default page (used when it has no sales page) */
+        get: operations["preview-product-page"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish the draft: its price in Stripe, the shop and its pages
+         * @description Blocked until every publish check passes. A new price on a published product needs confirmPrice: existing buyers keep their access.
+         */
+        post: operations["publish-product"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sell an archived product again */
+        post: operations["unarchive-product"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Announce a file: up to 500 MB, 2 GB per product */
+        post: operations["start-product-upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}/uploads/{upload}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Send the next chunk of a file */
+        put: operations["upload-product-chunk"];
+        post?: never;
+        /** Cancel an upload; nothing is kept */
+        delete: operations["cancel-product-upload"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/products/{product}/uploads/{upload}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finish an upload: the file's type is checked from its content */
+        post: operations["finish-product-upload"];
         delete?: never;
         options?: never;
         head?: never;
@@ -10728,6 +13028,711 @@ export interface paths {
         post?: never;
         /** Remove a test number (logged) */
         delete: operations["remove-sms-test-number"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A booking: its terms, creative, payment, activity and report */
+        get: operations["get-sponsor-booking"];
+        /** Change a booking's sponsor, price, status, hold date or notes */
+        put: operations["update-sponsor-booking"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Link the issue to its campaign by hand, or by list and date again */
+        put: operations["link-sponsor-booking-campaign"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a booking, release a hold or dismiss a proposal
+         * @description The issue opens again and its Sponsor block is hidden.
+         */
+        post: operations["cancel-sponsor-booking"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Book an agent's proposal
+         * @description MCP agents can propose a booking; a person with sponsors:manage confirms it.
+         */
+        post: operations["confirm-sponsor-proposal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/creative": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the creative: logo or image, headline, text, button and link
+         * @description ReputeCast adds the UTM parameters to the link; the click token is never added to sponsor links.
+         */
+        put: operations["set-sponsor-creative"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/creative/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload the creative's logo or image (PNG, JPEG or GIF, up to 5 MB) */
+        post: operations["upload-sponsor-image"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/creative/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark the creative ready: the Sponsor block shows it */
+        post: operations["mark-sponsor-creative-ready"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Record a booking's payment by hand, or change it
+         * @description ReputeCast sends no invoices and moves no money: this records what the sponsor paid.
+         */
+        put: operations["record-sponsor-payment"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A sent booking's report: who got the block, human opens and clicks
+         * @description Machine opens and bot clicks are left out. Results are final 72 hours after the send.
+         */
+        get: operations["get-sponsor-report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-bookings/{id}/shares": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A booking's active read-only links */
+        get: operations["list-sponsor-shares"];
+        put?: never;
+        /**
+         * Share a booking's report as a read-only link, optionally expiring
+         * @description The page shows only the sponsor's numbers and the creative as sent, never contact data.
+         */
+        post: operations["create-sponsor-booking-share"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-report-shares/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke a sponsor report's read-only link */
+        delete: operations["revoke-sponsor-share"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a slot: a placement in each issue of a list */
+        post: operations["create-sponsor-slot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-slots/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change a slot
+         * @description Issues already booked keep their dates and prices.
+         */
+        put: operations["update-sponsor-slot"];
+        post?: never;
+        /** Remove a slot without bookings to come */
+        delete: operations["delete-sponsor-slot"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-slots/{id}/issues/{number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An issue of a slot: its dates, price, campaign and any proposal */
+        get: operations["get-sponsor-issue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsor-slots/{id}/issues/{number}/book": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Book an open issue for a sponsor, or hold it until a date */
+        post: operations["book-sponsor-issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a sponsor to the library */
+        post: operations["create-sponsor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsors/campaign-chips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The sponsor of each campaign with a booking, for the Campaigns list */
+        get: operations["list-sponsor-campaign-chips"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsors/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload a sponsor's logo (PNG, JPEG or GIF, up to 5 MB)
+         * @description The logo is kept in the media library; save its URL as the sponsor's logoUrl.
+         */
+        post: operations["upload-sponsor-logo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsors/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Earn › Sponsors: income, a slot's issues with their bookings, the library and what needs a person */
+        get: operations["get-sponsor-overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsors/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a sponsor */
+        put: operations["update-sponsor"];
+        post?: never;
+        /** Remove a sponsor without bookings to come */
+        delete: operations["delete-sponsor"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/sponsors/{id}/shares": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Share every booking of a sponsor in one read-only report
+         * @description The page shows only the sponsor's numbers and the creatives as sent, never contact data.
+         */
+        post: operations["create-sponsor-share"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The connected stores, with their sync row */
+        get: operations["list-stores"];
+        put?: never;
+        /**
+         * Start connecting a Shopify or WooCommerce store: its address
+         * @description The address is checked against the platform. A store disconnected before reconnects with its data.
+         */
+        post: operations["connect-store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A store's page: numbers, sync, consent, attribution, webhooks and activity
+         * @description Credentials are write-only: only hints are returned.
+         */
+        get: operations["get-store"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The store's activity log: events and errors, kept 30 days
+         * @description Not the audit log: orders and store webhooks are kept here.
+         */
+        get: operations["list-store-activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/app-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Shopify: the app's client ID and secret (step 3)
+         * @description The secret is write-only: sealed, and never returned here or anywhere in the API.
+         */
+        put: operations["save-store-app-keys"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/checkout-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The Checkout items block, with sample items from the store
+         * @description Each message fills it with the items of the checkout or order that started its run.
+         */
+        get: operations["get-store-checkout-block"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where connecting a store stands: its step and what it shows */
+        get: operations["get-store-connect"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/disconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disconnect a store: its webhooks are removed; its data is kept unless deleted
+         * @description Deleting the store data needs the store's name typed in confirm. Contacts the store added stay, with their consent. Automations with its triggers pause and say why.
+         */
+        post: operations["disconnect-store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** WooCommerce: finish, with the plugin or without it */
+        post: operations["finish-store-connect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/install": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Shopify: the approval page's address (step 4)
+         * @description Shopify asks the merchant to approve the app on its own page, then sends the browser back to the redirect URL.
+         */
+        post: operations["install-store-app"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/plugin-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** WooCommerce: look for the ReputeCast plugin on the store's site */
+        post: operations["check-store-plugin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A store's products, newest first, with their prices and availability now */
+        get: operations["list-store-products"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/reconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reconnect a disconnected store: orders placed since are fetched */
+        post: operations["reconnect-store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/rest-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * WooCommerce: the REST API key, then its webhooks
+         * @description The key is write-only: sealed, and never returned. Webhooks are registered with a secret of their own.
+         */
+        put: operations["save-store-rest-key"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** What syncs, the list, consent write-back, link tagging and the attribution window */
+        patch: operations["update-store-settings"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Choose what syncs and start: the list, the first import, the webhooks
+         * @description Only customers who accepted marketing join the list.
+         */
+        post: operations["start-store-sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sync now: fetch what changed in the store */
+        post: operations["sync-store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register the store's missing webhooks again, or all of them */
+        post: operations["register-store-webhooks"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -13139,6 +16144,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/woocommerce/checkouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report checkouts left without an order, with their consent and recovery link
+         * @description The ReputeCast WordPress plugin calls this with its site's key. Only checkouts of the WooCommerce store connected at the site's address count.
+         */
+        post: operations["report-woocommerce-checkouts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/wordpress/drafts": {
         parameters: {
             query?: never;
@@ -14689,6 +17714,7 @@ export interface components {
             needed: number;
             nextId?: string;
             note: string;
+            page?: components["schemas"]["ApprovalPageSnapshot"];
             readiness?: components["schemas"]["ApprovalReadinessView"];
             /** Format: date-time */
             requestedAt: string;
@@ -14701,7 +17727,7 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
             /** @enum {string} */
-            subjectType: "campaign" | "automation" | "transactional_template" | "website_post";
+            subjectType: "campaign" | "automation" | "transactional_template" | "website_post" | "website_page";
             transactional?: components["schemas"]["ApprovalTransactionalSnapshot"];
             /** Format: int64 */
             version: number;
@@ -14736,6 +17762,7 @@ export interface components {
             id: string;
             name: string;
             note?: string;
+            page?: components["schemas"]["ApprovalPageSnapshot"];
             /** Format: date-time */
             requestedAt: string;
             route: string;
@@ -14749,10 +17776,26 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
             /** @enum {string} */
-            subjectType: "campaign" | "automation" | "transactional_template" | "website_post";
+            subjectType: "campaign" | "automation" | "transactional_template" | "website_post" | "website_page";
             transactionalTemplateId?: string;
             website?: components["schemas"]["ApprovalWebsiteSnapshot"];
+            websitePageId?: string;
             websitePostId?: string;
+        };
+        ApprovalPageSnapshot: {
+            name: string;
+            pageId: string;
+            path: string;
+            /** Format: date-time */
+            publishAt?: string;
+            published: boolean;
+            slug: string;
+            template: string;
+            /** @enum {string} */
+            visibility: "public" | "members" | "paid";
+            visibilityLabel: string;
+            /** @enum {string} */
+            when: "now" | "at";
         };
         ApprovalPendingItem: {
             /** Format: int64 */
@@ -14874,7 +17917,7 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "approved" | "changes_requested" | "rejected" | "invalidated" | "bypassed" | "sent" | "cancelled";
             /** @enum {string} */
-            subjectType: "campaign" | "automation" | "transactional_template" | "website_post";
+            subjectType: "campaign" | "automation" | "transactional_template" | "website_post" | "website_page";
             /** Format: int64 */
             version: number;
         };
@@ -15061,6 +18104,29 @@ export interface components {
             lists: string[];
             subscribeBox: boolean;
         };
+        AttributionInput: {
+            clickToken: boolean;
+            /**
+             * Format: int64
+             * @description The attribution window, 1 to 30 days.
+             */
+            days: number;
+            /** @description Your own domains (app.acme.io): the click token goes on links to them only. */
+            domains: string[];
+        };
+        AttributionSettings: {
+            canCreateKey: boolean;
+            canManage: boolean;
+            clickToken: boolean;
+            currency: string;
+            /** Format: int64 */
+            days: number;
+            domains: string[];
+            endpoint: string;
+            helpers: string[];
+            keys: components["schemas"]["ConversionKey"][];
+            summary: components["schemas"]["ConversionSummary"];
+        };
         AudienceListInput: {
             description?: string;
             /** @description New signups confirm by email first (default true) */
@@ -15074,6 +18140,7 @@ export interface components {
             doubleOptIn: boolean;
             id: string;
             name: string;
+            origin?: string;
             /** Format: int64 */
             pending: number;
             /** Format: int64 */
@@ -15294,11 +18361,13 @@ export interface components {
             field?: string;
             humanOnly?: boolean;
             /** @enum {string} */
-            kind: "opened" | "clicked" | "field" | "tag" | "list" | "event" | "sms_consent" | "sms_clicked" | "sms_replied";
+            kind: "opened" | "clicked" | "field" | "tag" | "list" | "event" | "bought_product" | "sms_consent" | "sms_clicked" | "sms_replied" | "placed_order";
             listId?: string;
             /** @description equals, not_equals, contains, is_set, is_not_set, is_one_of (comma-separated values) */
             op?: string;
+            productId?: string;
             step?: string;
+            store?: string;
             tag?: string;
             urlContains?: string;
             value?: string;
@@ -15312,10 +18381,15 @@ export interface components {
             list?: string;
             name?: string;
             /**
+             * Format: uuid
+             * @description For a template that starts on a store's events (abandoned-cart): the connected store; otherwise the workspace's first
+             */
+            store?: string;
+            /**
              * @description Starter template; omit for a blank canvas
              * @enum {string}
              */
-            template?: "welcome-series" | "re-engagement" | "onboarding";
+            template?: "welcome-series" | "re-engagement" | "onboarding" | "abandoned-cart";
         };
         AutomationCreated: {
             id: string;
@@ -15573,6 +18647,7 @@ export interface components {
             pausedBy?: string;
             /** Format: date-time */
             publishedAt?: string;
+            revenue?: components["schemas"]["AutomationRevenue"];
             /** @enum {string} */
             status: "draft" | "live" | "paused";
             /** Format: int64 */
@@ -15583,6 +18658,24 @@ export interface components {
         AutomationMetaBody: {
             description: string;
             name: string;
+        };
+        AutomationMilestoneOption: {
+            /**
+             * Format: int64
+             * @example 3
+             */
+            count: number;
+            id: string;
+            /**
+             * @description The list of the milestone's referral program
+             * @example Weekly Digest
+             */
+            listName: string;
+            /** @example 3 referrals · The Acme Field Guide */
+            name: string;
+            programId: string;
+            /** @example The Acme Field Guide */
+            reward: string;
         };
         AutomationNode: {
             data: components["schemas"]["AutomationNodeData"];
@@ -15621,6 +18714,8 @@ export interface components {
             fields: components["schemas"]["AutomationFieldOption"][];
             forms: components["schemas"]["AutomationFormOption"][];
             lists: components["schemas"]["AutomationOptionItem"][];
+            milestones: components["schemas"]["AutomationMilestoneOption"][];
+            products: components["schemas"]["AutomationOptionItem"][];
             providers: components["schemas"]["AutomationRouteProvider"][];
             scoreBands?: components["schemas"]["ScoringBands"];
             tags: string[];
@@ -15707,6 +18802,16 @@ export interface components {
             outside?: "wait" | "skip" | "";
             title?: string;
         };
+        AutomationRevenue: {
+            currency: string;
+            /** Format: int64 */
+            orders: number;
+            /**
+             * Format: int64
+             * @description In minor units of the currency
+             */
+            revenue: number;
+        };
         AutomationRoute: {
             fallback?: components["schemas"]["AutomationRouteProvider"];
             /** @description A provider on the route can send right now */
@@ -15758,7 +18863,7 @@ export interface components {
         };
         AutomationStarterTemplate: {
             /** @enum {string} */
-            key: "welcome-series" | "re-engagement" | "onboarding";
+            key: "welcome-series" | "re-engagement" | "onboarding" | "abandoned-cart";
             name: string;
             outline: string;
             preview: string[];
@@ -15861,27 +18966,40 @@ export interface components {
             templates: components["schemas"]["AutomationStarterTemplate"][];
         };
         AutomationTrigger: {
+            /** Format: int64 */
+            afterHours?: number;
             /** @enum {string} */
             answerOp?: "any" | "is" | "is_not";
             answers?: number[];
             at?: string;
+            collections?: string[];
             confirmedOnly?: boolean;
             /** @enum {string} */
             direction?: "rises" | "falls";
             event?: string;
             field?: string;
+            firstOnly?: boolean;
             formId?: string;
             includeImports?: boolean;
             /** @enum {string} */
-            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered";
+            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "bought_product" | "milestone_reached" | "order_placed" | "first_order" | "abandoned_checkout";
             listId?: string;
+            milestoneId?: string;
+            /** Format: int64 */
+            minTotal?: number;
             /** Format: int64 */
             offsetDays?: number;
             onChange?: boolean;
             /** Format: int64 */
             onceInDays?: number;
             poll?: string;
+            productId?: string;
+            products?: string[];
+            programId?: string;
             reentry?: string;
+            /** Format: int64 */
+            skipDays?: number;
+            store?: string;
             tag?: string;
             /** Format: int64 */
             threshold?: number;
@@ -15977,10 +19095,39 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        BlockHiddenRec: {
+            id: string;
+            initials: string;
+            name: string;
+            pausedBy: string;
+            state: string;
+        };
         BlockInput: {
             /** Format: int64 */
             index?: number;
             key?: string;
+        };
+        BlockOption: {
+            hidden: boolean;
+            id: string;
+            initials: string;
+            /** @enum {string} */
+            kind: "link" | "partner";
+            name: string;
+            showBlock: boolean;
+            state: string;
+        };
+        BlockRender: {
+            hidden: components["schemas"]["BlockHiddenRec"][];
+            html: string;
+            options: components["schemas"]["BlockOption"][];
+            pageUrl: string;
+            settings: components["schemas"]["RecommendationsBlock"];
+            /** Format: int64 */
+            shows: number;
+        };
+        BlockRenderInput: {
+            settings?: unknown;
         };
         BlockSegment: {
             alt?: string;
@@ -15994,6 +19141,31 @@ export interface components {
             strong: boolean;
             text: string;
             url?: string;
+        };
+        BookInput: {
+            /** Format: date */
+            holdUntil?: string;
+            notes?: string;
+            /**
+             * Format: int64
+             * @description The slot's default price when absent.
+             */
+            priceCents?: number;
+            /** Format: uuid */
+            sponsorId: string;
+            /** @enum {string} */
+            status: "booked" | "hold";
+        };
+        BookingInput: {
+            /** Format: date */
+            holdUntil?: string;
+            notes?: string;
+            /** Format: int64 */
+            priceCents?: number;
+            /** Format: uuid */
+            sponsorId?: string;
+            /** @enum {string} */
+            status?: "booked" | "hold" | "";
         };
         Brand: {
             accent: string;
@@ -16014,6 +19186,29 @@ export interface components {
             title?: string;
             version?: string;
         };
+        CampaignChip: {
+            campaignId: string;
+            sponsor: string;
+        };
+        CampaignChips: {
+            items: components["schemas"]["CampaignChip"][];
+        };
+        CampaignConversions: {
+            /** Format: int64 */
+            byEmail: number;
+            /** Format: int64 */
+            byToken: number;
+            /** Format: int64 */
+            count: number;
+            currency: string;
+            domains: string[];
+            name?: string;
+            sender?: string;
+            /** Format: int64 */
+            typicalCents?: number;
+            /** Format: int64 */
+            valueCents: number;
+        };
         CampaignDigestRef: {
             approvalId?: string;
             id: string;
@@ -16026,6 +19221,10 @@ export interface components {
             preparedAt?: string;
             /** Format: date-time */
             sendAt?: string;
+        };
+        CampaignInput: {
+            /** Format: uuid */
+            campaignId?: string;
         };
         CampaignList: {
             counts: components["schemas"]["CampaignStatusCounts"];
@@ -16079,6 +19278,30 @@ export interface components {
             updatedAt: string;
             updatedBy: string;
         };
+        CampaignPayment: {
+            /** Format: int64 */
+            amountCents: number;
+            /** Format: int64 */
+            count: number;
+        };
+        CampaignProductSale: {
+            name: string;
+            /** Format: int64 */
+            orders: number;
+            productId: string;
+            /** Format: int64 */
+            revenueCents: number;
+        };
+        CampaignProductSales: {
+            currency: string;
+            /** Format: int64 */
+            orders: number;
+            products: components["schemas"]["CampaignProductSale"][];
+            /** Format: int64 */
+            revenueCents: number;
+            /** Format: int64 */
+            window: number;
+        };
         CampaignReport: {
             abTest?: components["schemas"]["ReportABTest"];
             backlog?: components["schemas"]["ReportIngestBacklog"];
@@ -16092,6 +19315,45 @@ export interface components {
             notSent?: components["schemas"]["ReportNotSent"];
             providers: components["schemas"]["ReportProviderTable"];
             unsubscribes: components["schemas"]["ReportUnsubscribes"];
+        };
+        CampaignRevenue: {
+            active: boolean;
+            /** Format: int64 */
+            checkouts: number;
+            collected: components["schemas"]["CampaignPayment"][];
+            /** Format: int64 */
+            collectedCents: number;
+            conversions: components["schemas"]["CampaignConversions"];
+            currency: string;
+            /** Format: int64 */
+            delivered: number;
+            hasUpgradeLinks: boolean;
+            helpers: string[];
+            locked: boolean;
+            name: string;
+            /** Format: int64 */
+            newMrrCents: number;
+            /** Format: int64 */
+            paidAtOnce: number;
+            paidLines: components["schemas"]["CampaignUpgradeLine"][];
+            pending: boolean;
+            /** Format: int64 */
+            potentialMrrCents: number;
+            /** Format: date-time */
+            sentAt?: string;
+            trialLines: components["schemas"]["CampaignUpgradeLine"][];
+            /** Format: int64 */
+            trials: number;
+            /** Format: date-time */
+            trialsEnd?: string;
+            /** Format: int64 */
+            upgradeClicks: number;
+            /** Format: double */
+            upgradedRate?: number;
+            /** Format: int64 */
+            upgrades: number;
+            /** Format: int64 */
+            window: number;
         };
         CampaignReview: {
             access: components["schemas"]["ReviewAccess"];
@@ -16109,6 +19371,9 @@ export interface components {
             testSends: components["schemas"]["ReviewTestSend"][];
             thresholds: components["schemas"]["ReadinessThresholds"];
             timezone: string;
+        };
+        CampaignSponsor: {
+            booking?: components["schemas"]["SponsorBookingDetail"];
         };
         CampaignStatusCounts: {
             /** Format: int64 */
@@ -16150,6 +19415,25 @@ export interface components {
             /** Format: int64 */
             sent: number;
         };
+        CampaignUpgradeLine: {
+            /** Format: int64 */
+            count: number;
+            offer?: string;
+            period: string;
+            tier: string;
+        };
+        CancelInput: {
+            reason?: string;
+        };
+        CardIssue: {
+            bookingId: string;
+            /** Format: date-time */
+            creativeDue?: string;
+            /** Format: int64 */
+            issue: number;
+            ready: boolean;
+            sponsor: string;
+        };
         CatalogLanguage: {
             added: boolean;
             builtinLabels: boolean;
@@ -16187,6 +19471,624 @@ export interface components {
             skipped: string[];
             updated: string[];
             zone: string;
+        };
+        CommerceActivityItem: {
+            accepted: boolean;
+            /** Format: int64 */
+            amount: number;
+            /** Format: date-time */
+            at: string;
+            by?: string;
+            contact: boolean;
+            contactId?: string;
+            credited?: string;
+            /** @enum {string} */
+            creditedKind?: "campaign" | "automation" | "";
+            /** Format: int64 */
+            creditedStep?: number;
+            currency?: string;
+            customer?: string;
+            flow?: string;
+            flows: string[];
+            /** Format: int64 */
+            hours?: number;
+            id: string;
+            /** @enum {string} */
+            kind: "order" | "refund" | "checkout_abandoned" | "checkout_not_emailed" | "reconciliation" | "webhook_missing" | "webhook_registered" | "customer_unsubscribed" | "unsubscribe_passed" | "import_started" | "import_finished" | "connected" | "reconnected" | "disconnected" | "revoked" | "rate_limited" | "sync_error";
+            lists: string[];
+            /** @enum {string} */
+            matched?: "click_token" | "email" | "none" | "";
+            message?: string;
+            /** Format: int64 */
+            missed: number;
+            order?: string;
+            polled: boolean;
+            /** Format: int64 */
+            products: number;
+            reason?: string;
+            recovered: boolean;
+            source?: string;
+            /** @enum {string} */
+            tone: "neutral" | "ok" | "info" | "warn" | "bad";
+            topic?: string;
+            /** Format: date-time */
+            until?: string;
+            /** Format: int64 */
+            window?: number;
+        };
+        CommerceActivityList: {
+            items: components["schemas"]["CommerceActivityItem"][];
+            next?: string;
+        };
+        CommerceAttribution: {
+            /** Format: int64 */
+            byEmail: number;
+            /** Format: int64 */
+            byToken: number;
+            /** Format: int64 */
+            credited: number;
+            /** Format: int64 */
+            creditedRevenue: number;
+            /** Format: int64 */
+            days: number;
+            /** Format: int64 */
+            orders: number;
+            others?: components["schemas"]["CommerceRevenueRow"];
+            param: string;
+            /** Format: int64 */
+            revenue: number;
+            rows: components["schemas"]["CommerceRevenueRow"][];
+            /** Format: date-time */
+            setAt?: string;
+            setBy?: string;
+            tagExample: string;
+            tagHost: string;
+            tagLinks: boolean;
+        };
+        CommerceAutomationOptions: {
+            stores: components["schemas"]["CommerceTriggerStore"][];
+        };
+        CommerceBeginInput: {
+            address: string;
+            /** @enum {string} */
+            platform: "shopify" | "woocommerce";
+        };
+        CommerceBlock: {
+            button?: string;
+            collection?: string;
+            compareAt?: boolean;
+            /** Format: int64 */
+            count?: number;
+            heading?: string;
+            /** @enum {string} */
+            mode: "card" | "chosen" | "collection";
+            products: string[];
+            /** @enum {string} */
+            soldOut?: "hide" | "label" | "";
+            /** Format: uuid */
+            store: string;
+        };
+        CommerceBlockRender: {
+            disconnected: boolean;
+            html: string;
+            platform: string;
+            products: components["schemas"]["CommerceProduct"][];
+            removed: components["schemas"]["CommerceRemovedProduct"][];
+            soldOut: string[];
+            storeName: string;
+        };
+        CommerceBlockRenderInput: {
+            block: components["schemas"]["CommerceBlock"];
+        };
+        CommerceCampaignRevenue: {
+            rows: components["schemas"]["CommerceCampaignStoreRow"][];
+        };
+        CommerceCampaignStoreRow: {
+            /** Format: int64 */
+            byEmail: number;
+            /** Format: int64 */
+            byToken: number;
+            currency: string;
+            /** Format: int64 */
+            days: number;
+            name: string;
+            /** Format: int64 */
+            orders: number;
+            platform: string;
+            /** Format: int64 */
+            revenue: number;
+            storeId: string;
+        };
+        CommerceCatalog: {
+            stores: components["schemas"]["CommerceCatalogStore"][];
+        };
+        CommerceCatalogStore: {
+            collections: components["schemas"]["CommerceCollection"][];
+            currency: string;
+            id: string;
+            name: string;
+            platform: string;
+            /** Format: int64 */
+            products: number;
+            status: string;
+        };
+        CommerceCheckoutBlock: {
+            html: string;
+        };
+        CommerceCollection: {
+            id: string;
+            /** Format: int64 */
+            products: number;
+            title: string;
+        };
+        CommerceConnectState: {
+            appUrl: string;
+            clientIdHint?: string;
+            demo: boolean;
+            /** @enum {string} */
+            error: "" | "secret_refused" | "state_expired" | "not_installed";
+            granted: string[];
+            /** Format: date-time */
+            installedAt?: string;
+            keyHint?: string;
+            lists: components["schemas"]["CommerceListOption"][];
+            /** Format: int64 */
+            months: number;
+            newListName: string;
+            optionalScope: string;
+            plugin?: components["schemas"]["CommercePluginState"];
+            reachable: boolean;
+            /** Format: date-time */
+            reachableCheckedAt?: string;
+            redirectUrl: string;
+            scopes: string[];
+            /** @enum {string} */
+            step: "address" | "app" | "keys" | "install" | "sync" | "key" | "webhooks" | "plugin" | "done";
+            store: components["schemas"]["CommerceStoreSummary"];
+            syncs: components["schemas"]["CommerceSyncChoice"];
+            /** Format: int64 */
+            webhooks: number;
+            writeGranted: boolean;
+        };
+        CommerceConsent: {
+            listCreated: boolean;
+            listId?: string;
+            /** Format: int64 */
+            listMembers: number;
+            listName?: string;
+            writeBack: boolean;
+            writeBackSupported: boolean;
+            writeGranted: boolean;
+        };
+        CommerceContactOrder: {
+            accepted: boolean;
+            credited?: string;
+            /** @enum {string} */
+            creditedKind?: "campaign" | "automation" | "";
+            currency: string;
+            id: string;
+            items: string[];
+            name: string;
+            /** Format: date-time */
+            placedAt: string;
+            platform: string;
+            /** Format: int64 */
+            refunded: number;
+            store: string;
+            storeId: string;
+            /** Format: int64 */
+            total: number;
+        };
+        CommerceContactStore: {
+            /** Format: date-time */
+            consentAt?: string;
+            currency: string;
+            listName?: string;
+            /** @enum {string} */
+            marketing: "subscribed" | "not_subscribed" | "unsubscribed" | "pending" | "none";
+            name: string;
+            onList: boolean;
+            /** Format: int64 */
+            orders: number;
+            platform: string;
+            /** Format: int64 */
+            spent: number;
+            storeId: string;
+        };
+        CommerceContactStores: {
+            orders: components["schemas"]["CommerceContactOrder"][];
+            stores: components["schemas"]["CommerceContactStore"][];
+        };
+        CommerceDisconnectInput: {
+            confirm?: string;
+            deleteData: boolean;
+        };
+        CommerceFlow: {
+            id: string;
+            kind: string;
+            name: string;
+            pauseReason?: string;
+            status: string;
+        };
+        CommerceImport: {
+            /** Format: int64 */
+            accepted: number;
+            /** Format: int64 */
+            collections: number;
+            customers: components["schemas"]["CommerceProgress"];
+            customersSkipped: boolean;
+            /** Format: date-time */
+            finishedAt?: string;
+            /** Format: int64 */
+            known: number;
+            matching: components["schemas"]["CommerceProgress"];
+            /** Format: int64 */
+            minutesLeft: number;
+            /** Format: int64 */
+            months: number;
+            /** Format: int64 */
+            notAdded: number;
+            orders: components["schemas"]["CommerceProgress"];
+            /** @enum {string} */
+            phase: "products" | "customers" | "orders" | "matching" | "done";
+            products: components["schemas"]["CommerceProgress"];
+            /** Format: date-time */
+            startedAt: string;
+            startedBy: string;
+        };
+        CommerceInstall: {
+            url: string;
+        };
+        CommerceKeysInput: {
+            clientId: string;
+            clientSecret: string;
+        };
+        CommerceListOption: {
+            id: string;
+            /** Format: int64 */
+            members: number;
+            name: string;
+            store: boolean;
+        };
+        CommerceNumbers: {
+            /** Format: int64 */
+            credited: number;
+            /** Format: int64 */
+            creditedRevenue: number;
+            currency: string;
+            /** Format: int64 */
+            days: number;
+            /** Format: int64 */
+            listMembers: number;
+            /** Format: int64 */
+            orders: number;
+            /** Format: int64 */
+            revenue: number;
+            /** Format: double */
+            share: number;
+        };
+        CommercePluginState: {
+            /** Format: date-time */
+            checkedAt?: string;
+            checkouts: boolean;
+            consent: boolean;
+            found: boolean;
+            host: string;
+            siteId?: string;
+            skipped: boolean;
+            version?: string;
+        };
+        CommerceProduct: {
+            available: boolean;
+            /** Format: int64 */
+            compareAt: number;
+            currency: string;
+            id: string;
+            imageAlt: string;
+            imageUrl: string;
+            /** Format: int64 */
+            inventory?: number;
+            /** Format: int64 */
+            price: number;
+            removed: boolean;
+            /** Format: date-time */
+            removedAt?: string;
+            title: string;
+            url: string;
+        };
+        CommerceProductList: {
+            items: components["schemas"]["CommerceProduct"][];
+            /** Format: int64 */
+            next?: number;
+            /** Format: int64 */
+            total: number;
+        };
+        CommerceProductRef: {
+            id: string;
+            title: string;
+        };
+        CommerceProgress: {
+            /** Format: int64 */
+            done: number;
+            /** Format: int64 */
+            total: number;
+        };
+        CommerceQueued: {
+            queued: boolean;
+        };
+        CommerceRecoveredOrders: {
+            /** Format: int64 */
+            orders: number;
+            /** Format: int64 */
+            revenue: number;
+            /** Format: date-time */
+            since?: string;
+        };
+        CommerceRemovedProduct: {
+            id: string;
+            platform: string;
+            /** Format: date-time */
+            removedAt?: string;
+            title: string;
+        };
+        CommerceRevenueRow: {
+            /** Format: int64 */
+            count: number;
+            id?: string;
+            /** @enum {string} */
+            kind: "campaign" | "automation" | "others";
+            name: string;
+            /** Format: int64 */
+            orders: number;
+            /** Format: int64 */
+            revenue: number;
+        };
+        CommerceRevenueSummary: {
+            /** Format: int64 */
+            credited: number;
+            /** Format: int64 */
+            creditedRevenue: number;
+            currency: string;
+            /** Format: int64 */
+            days: number;
+            /** Format: int64 */
+            orders: number;
+            /** Format: int64 */
+            revenue: number;
+            /** Format: double */
+            share: number;
+            /** Format: int64 */
+            stores: number;
+        };
+        CommerceSettingsInput: {
+            /** Format: int64 */
+            attributionDays?: number;
+            checkouts?: boolean;
+            customers?: boolean;
+            listId?: string;
+            orders?: boolean;
+            products?: boolean;
+            tagLinks?: boolean;
+            writeBack?: boolean;
+        };
+        CommerceStoreList: {
+            canManage: boolean;
+            helpers: string[];
+            stores: components["schemas"]["CommerceStoreSummary"][];
+        };
+        CommerceStorePage: {
+            activity: components["schemas"]["CommerceActivityItem"][];
+            apiVersion: string;
+            appName: string;
+            attribution: components["schemas"]["CommerceAttribution"];
+            canManage: boolean;
+            capabilities: string[];
+            /** Format: date-time */
+            connectedAt?: string;
+            connectedBy: string;
+            consent: components["schemas"]["CommerceConsent"];
+            flows: components["schemas"]["CommerceFlow"][];
+            helpers: string[];
+            lists: components["schemas"]["CommerceListOption"][];
+            numbers: components["schemas"]["CommerceNumbers"];
+            plugin?: components["schemas"]["CommercePluginState"];
+            publicDomain: string;
+            recovered: components["schemas"]["CommerceRecoveredOrders"];
+            store: components["schemas"]["CommerceStoreSummary"];
+            sync: components["schemas"]["CommerceSyncFacts"];
+            usedBy: components["schemas"]["CommerceUse"][];
+            webhooks: components["schemas"]["CommerceWebhook"][];
+        };
+        CommerceStoreSummary: {
+            address: string;
+            currency: string;
+            demo: boolean;
+            domain: string;
+            id: string;
+            listId?: string;
+            listName?: string;
+            name: string;
+            /** @enum {string} */
+            platform: "shopify" | "woocommerce";
+            /** Format: int64 */
+            products: number;
+            /** @enum {string} */
+            status: "connecting" | "importing" | "connected" | "disconnected";
+            step: string;
+            sync: components["schemas"]["CommerceSyncState"];
+        };
+        CommerceSyncChoice: {
+            checkouts: boolean;
+            customers: boolean;
+            listId?: string;
+            orders: boolean;
+            products: boolean;
+            writeBack: boolean;
+        };
+        CommerceSyncFacts: {
+            /** Format: int64 */
+            accepted: number;
+            collections: string[];
+            customersFromOrders: boolean;
+            /** Format: date-time */
+            importFinished?: string;
+            /** Format: int64 */
+            importMinutes: number;
+            /** Format: int64 */
+            known: number;
+            /** Format: int64 */
+            missed: number;
+            /** Format: int64 */
+            months: number;
+            /** Format: int64 */
+            new: number;
+            /** Format: int64 */
+            notAdded: number;
+            /** Format: int64 */
+            ordersImported: number;
+            /** Format: int64 */
+            products: number;
+            /** Format: date-time */
+            reconciledAt?: string;
+            /** Format: int64 */
+            webhooks: number;
+            /** Format: int64 */
+            webhooksTotal: number;
+        };
+        CommerceSyncInput: {
+            checkouts: boolean;
+            customers: boolean;
+            listId?: string;
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            months: 3 | 6 | 12;
+            newList?: boolean;
+            orders: boolean;
+            products: boolean;
+            withoutPlugin?: boolean;
+            writeBack: boolean;
+        };
+        CommerceSyncState: {
+            /** Format: date-time */
+            disconnectedAt?: string;
+            disconnectedBy?: string;
+            import?: components["schemas"]["CommerceImport"];
+            /** Format: date-time */
+            lastEventAt?: string;
+            missing: string[];
+            /** Format: date-time */
+            missingSince?: string;
+            /** Format: date-time */
+            rateLimitedUntil?: string;
+            /** Format: date-time */
+            revokedAt?: string;
+            /** @enum {string} */
+            revokedReason: "" | "uninstalled" | "revoked";
+            /** @enum {string} */
+            state: "connecting" | "importing" | "connected" | "webhook_missing" | "rate_limited" | "no_plugin" | "disconnected";
+        };
+        CommerceTriggerStats: {
+            /** Format: int64 */
+            abandoned: number;
+            currency: string;
+            /** Format: int64 */
+            entered: number;
+            /** Format: int64 */
+            noConsent: number;
+            /** Format: int64 */
+            orders: number;
+            /** Format: int64 */
+            revenue: number;
+            /** Format: date-time */
+            since?: string;
+            /** Format: int64 */
+            skipped: number;
+            /** Format: int64 */
+            withEmail: number;
+        };
+        CommerceTriggerStore: {
+            address: string;
+            checkouts: boolean;
+            collections: components["schemas"]["CommerceCollection"][];
+            currency: string;
+            id: string;
+            name: string;
+            platform: string;
+            products: components["schemas"]["CommerceProductRef"][];
+            status: string;
+        };
+        CommerceUse: {
+            id?: string;
+            /** @enum {string} */
+            kind: "automation" | "campaign" | "reports";
+            name?: string;
+            status?: string;
+        };
+        CommerceWebhook: {
+            error?: string;
+            /** Format: date-time */
+            lastEventAt?: string;
+            /** Format: date-time */
+            missingSince?: string;
+            /** @enum {string} */
+            status: "pending" | "registered" | "missing" | "failed";
+            topic: string;
+        };
+        CommerceWooCheckout: {
+            accepted: boolean;
+            clickToken?: string;
+            /**
+             * Format: date-time
+             * @description When it became an order
+             */
+            completedAt?: string;
+            /** Format: date-time */
+            consentAt?: string;
+            consentText?: string;
+            /** Format: date-time */
+            createdAt: string;
+            currency: string;
+            email?: string;
+            firstName?: string;
+            items: components["schemas"]["CommerceWooCheckoutItem"][];
+            lastName?: string;
+            recoveryUrl: string;
+            subtotal: string;
+            /** @description The plugin's checkout token */
+            token: string;
+            total: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        CommerceWooCheckoutItem: {
+            imageUrl?: string;
+            /** @description The unit price, a decimal string */
+            price: string;
+            productId: string;
+            /** Format: int64 */
+            quantity: number;
+            title: string;
+            variant?: string;
+            variantId?: string;
+        };
+        CommerceWooCheckoutsInput: {
+            checkouts: components["schemas"]["CommerceWooCheckout"][];
+            /** @example https://store.example.com */
+            siteUrl: string;
+        };
+        CommerceWooCheckoutsResult: {
+            /** Format: int64 */
+            accepted: number;
+            /** Format: int64 */
+            ignored: number;
+            /** @description The store's name */
+            store: string;
+        };
+        CommerceWooKeyInput: {
+            key: string;
+            secret: string;
         };
         CompareBlock: {
             /** Format: int64 */
@@ -17134,6 +21036,7 @@ export interface components {
             routeNote?: string;
             source?: string;
             sourceLabel?: string;
+            store?: components["schemas"]["ContactActivityStore"];
             subject: string;
             /** @description delivered, soft_bounce, open, click… or a consent action */
             type: string;
@@ -17152,6 +21055,19 @@ export interface components {
         ContactActivityProvider: {
             adapter: string;
             name: string;
+        };
+        ContactActivityStore: {
+            accepted: boolean;
+            credited?: string;
+            currency: string;
+            flow?: string;
+            items: string[];
+            name: string;
+            order?: string;
+            /** @enum {string} */
+            platform: "shopify" | "woocommerce";
+            /** Format: int64 */
+            total: number;
         };
         ContactAddressCheck: {
             /** Format: int64 */
@@ -17216,6 +21132,7 @@ export interface components {
             actor?: string;
             /** Format: date-time */
             at: string;
+            consentText?: string;
             consentVersion?: string;
             detail: string;
             ip?: string;
@@ -17242,6 +21159,8 @@ export interface components {
         ContactFilter: {
             /** @enum {string} */
             band?: "cold" | "warm" | "hot" | "none";
+            /** @description Buyers of a product (its id), or of any product (any) */
+            bought?: string;
             /** @enum {string} */
             check?: "valid" | "invalid" | "risky" | "unknown" | "never";
             /** @enum {string} */
@@ -17269,6 +21188,9 @@ export interface components {
             /** @enum {string} */
             sort?: "activity" | "score";
             source?: string;
+            spentFrom?: string;
+            spentTo?: string;
+            storeCustomer?: string;
             tag?: string;
             /** @enum {string} */
             tier?: "active" | "cooling" | "at_risk" | "sunset";
@@ -17442,6 +21364,44 @@ export interface components {
             /** @enum {string} */
             scope: "all" | "marketing";
         };
+        ContactPurchase: {
+            /** Format: int64 */
+            amountCents: number;
+            buyerEmail: string;
+            coverAlt: string;
+            coverUrl: string;
+            currency: string;
+            disputeReason: string;
+            /** @enum {string} */
+            disputeStatus: "" | "open" | "won" | "lost";
+            /** Format: date-time */
+            disputedAt?: string;
+            download: components["schemas"]["ProductDownloadState"];
+            id: string;
+            /** Format: int64 */
+            number: number;
+            /** Format: date-time */
+            paidAt: string;
+            payWhatYouWant: boolean;
+            /** @description The product's short name (Field Guide) */
+            product: string;
+            productId: string;
+            productName: string;
+            /** Format: date-time */
+            refundedAt?: string;
+            /** Format: int64 */
+            refundedCents: number;
+            /** @enum {string} */
+            status: "paid" | "refunded" | "partially_refunded" | "disputed";
+            test: boolean;
+        };
+        ContactPurchases: {
+            canManage: boolean;
+            currency: string;
+            items: components["schemas"]["ContactPurchase"][];
+            /** Format: int64 */
+            spentCents: number;
+        };
         ContactSavedView: {
             /** Format: int64 */
             count: number;
@@ -17606,7 +21566,7 @@ export interface components {
         };
         ContentCheckFix: {
             /** @enum {string} */
-            kind: "replace_link" | "edit_link" | "insert_footer" | "set_alt" | "minify" | "remove_section" | "use_subject";
+            kind: "replace_link" | "edit_link" | "insert_footer" | "set_alt" | "minify" | "remove_section" | "use_subject" | "open";
             label: string;
             path?: number[];
             value?: string;
@@ -17656,6 +21616,94 @@ export interface components {
             links: number;
             /** Format: int64 */
             linksOk: number;
+        };
+        ConversionCredit: {
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "automation";
+            name: string;
+        };
+        ConversionInput: {
+            /** @description The rc_click token from the link the reader followed, if present */
+            click_token?: string;
+            /** @description ISO 4217: USD, EUR, GBP… */
+            currency: string;
+            /** @description The reader's address; send it, the click token, or both */
+            email?: string;
+            /** @description Your own fields, kept with the conversion */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /** @description What happened: "Upgraded to Team plan" */
+            name: string;
+            /**
+             * Format: date-time
+             * @description When it happened (now when absent): up to 30 days back
+             */
+            occurred_at?: string;
+            /** @description A decimal string: "29.00", not 29 */
+            value: unknown;
+        };
+        ConversionItem: {
+            credited?: components["schemas"]["ConversionCredit"];
+            currency: string;
+            id: string;
+            keyName: string;
+            /** @enum {string} */
+            matched: "click_token" | "email" | "none";
+            name: string;
+            /** Format: date-time */
+            occurredAt: string;
+            /** Format: date-time */
+            receivedAt: string;
+            test: boolean;
+            value: string;
+            /** Format: int64 */
+            valueCents: number;
+        };
+        ConversionKey: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            id: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+            lastUsedIp?: string;
+            name: string;
+            only: boolean;
+            prefix: string;
+        };
+        ConversionList: {
+            items: components["schemas"]["ConversionItem"][];
+            /** Format: date-time */
+            next?: string;
+            /** Format: int64 */
+            window: number;
+        };
+        ConversionResult: {
+            credited?: components["schemas"]["ConversionCredit"];
+            id: string;
+            /** @enum {string} */
+            matched: "click_token" | "email" | "none";
+            test?: boolean;
+        };
+        ConversionSummary: {
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            credited: number;
+            /** Format: int64 */
+            creditedCents: number;
+            name?: string;
+            sender?: string;
+            /** Format: date-time */
+            since?: string;
+            /** Format: int64 */
+            typicalCents?: number;
+            /** Format: int64 */
+            valueCents: number;
         };
         Count: {
             /** Format: int64 */
@@ -18869,6 +22917,32 @@ export interface components {
             /** @enum {string} */
             when: "period_end" | "now";
         };
+        EarnCard: {
+            account?: string;
+            /** Format: int64 */
+            active: number;
+            canSetUp: boolean;
+            /** Format: double */
+            churnRate?: number;
+            currency: string;
+            /** Format: int64 */
+            members: number;
+            /** Format: int64 */
+            membersDelta: number;
+            mode?: string;
+            /** Format: int64 */
+            mrrCents: number;
+            /** Format: int64 */
+            mrrDeltaCents: number;
+            nextSponsor?: components["schemas"]["CardIssue"];
+            providerName?: string;
+            /** Format: int64 */
+            silentHours?: number;
+            /** @enum {string} */
+            state: "live" | "invite" | "none";
+            /** Format: int64 */
+            trialing: number;
+        };
         EarnChecklist: {
             canEdit: boolean;
             canManage: boolean;
@@ -18929,10 +23003,22 @@ export interface components {
             tiers: components["schemas"]["EarnComposerTier"][];
             upgradeUrl: string;
         };
+        EarnComposerOffer: {
+            button: string;
+            code: string;
+            /** Format: date-time */
+            endsAt?: string;
+            line: string;
+            name: string;
+            option: string;
+            /** @enum {string} */
+            period: "month" | "year";
+        };
         EarnComposerTier: {
             id: string;
             includes: string[];
             name: string;
+            offers: components["schemas"]["EarnComposerOffer"][];
             priceLine: string;
             short: string;
             top: boolean;
@@ -19963,6 +24049,394 @@ export interface components {
         };
         FieldSources: {
             items: components["schemas"]["FieldSource"][];
+        };
+        FinishInput: {
+            /** @description Connect without the ReputeCast plugin: products and orders only */
+            withoutPlugin: boolean;
+        };
+        FormDownload: {
+            /** Format: int32 */
+            days: number;
+            /** Format: int64 */
+            downloaded: number;
+            file?: components["schemas"]["ProductFile"];
+            /** Format: int64 */
+            links: number;
+        };
+        FormDownloadInput: {
+            /**
+             * Format: int32
+             * @description How many days a link works
+             */
+            days: number;
+        };
+        FormPage: {
+            id: string;
+            live: boolean;
+            name: string;
+            path: string;
+            /** @enum {string} */
+            status: "draft" | "scheduled" | "published" | "unpublished";
+            url: string;
+        };
+        FormPages: {
+            items: components["schemas"]["FormPage"][];
+        };
+        GiftCounts: {
+            /** Format: int64 */
+            all: number;
+            /** Format: int64 */
+            expired: number;
+            /** Format: int64 */
+            notRedeemed: number;
+            /** Format: int64 */
+            redeemed: number;
+            /** Format: int64 */
+            refunded: number;
+            /** Format: int64 */
+            scheduled: number;
+        };
+        GiftDeliveryInput: {
+            /**
+             * Format: date
+             * @description The day, in the time zone
+             */
+            date: string;
+            notifyBuyer?: boolean;
+            /** @description The time of day, 24-hour */
+            time: string;
+            /** @description An IANA time zone; the buyer's is the default */
+            timezone?: string;
+        };
+        GiftEmail: {
+            /** Format: int64 */
+            draftVersion: number;
+            /** @enum {string} */
+            email: "gift_purchased" | "gift_received" | "gift_ending";
+            /** Format: int64 */
+            liveVersion: number;
+            name: string;
+            /** @enum {string} */
+            status: "live" | "draft" | "missing";
+            template: string;
+            templateId?: string;
+        };
+        GiftEndingWarning: {
+            buyer: string;
+            /** Format: date-time */
+            due: string;
+            inPerson: boolean;
+            recipient: string;
+            templateId?: string;
+        };
+        GiftLink: {
+            host: string;
+            url: string;
+        };
+        GiftList: {
+            counts: components["schemas"]["GiftCounts"];
+            items: components["schemas"]["GiftRow"][];
+            /** Format: int64 */
+            page: number;
+            /** Format: int64 */
+            pageSize: number;
+            status: string;
+            /** Format: int64 */
+            total: number;
+        };
+        GiftMonthsCount: {
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            months: number;
+        };
+        GiftNumbers: {
+            byMonths: components["schemas"]["GiftMonthsCount"][];
+            /** Format: int64 */
+            delivered: number;
+            /** Format: date-time */
+            nextAt?: string;
+            nextTimezone?: string;
+            /** Format: int64 */
+            redeemed: number;
+            /** Format: int64 */
+            scheduled: number;
+            /** Format: int64 */
+            sold: number;
+            /** Format: int64 */
+            soldCents: number;
+            /** Format: int64 */
+            waiting: number;
+            /** Format: int64 */
+            withAccess: number;
+        };
+        GiftOption: {
+            /** Format: int64 */
+            amountCents: number;
+            currency: string;
+            id: string;
+            /** Format: int64 */
+            months: number;
+            short: string;
+            /** Format: int64 */
+            sold: number;
+            /** Format: int64 */
+            soldCents: number;
+            tier: string;
+            tierId: string;
+        };
+        GiftOptionInput: {
+            /**
+             * Format: int64
+             * @description The one-time price, in the workspace currency
+             */
+            amountCents: number;
+            /**
+             * Format: int64
+             * @description How long the gift lasts
+             */
+            months: number;
+            /** Format: uuid */
+            tierId: string;
+        };
+        GiftPage: {
+            /** Format: date-time */
+            changedAt?: string;
+            changedBy?: string;
+            host: string;
+            /** Format: int64 */
+            linkMonths: number;
+            on: boolean;
+            url: string;
+        };
+        GiftPageInput: {
+            /**
+             * Format: int64
+             * @description How long a gift link works after delivery
+             * @enum {integer}
+             */
+            linkMonths: 3 | 6 | 12;
+            on: boolean;
+        };
+        GiftRow: {
+            /** Format: date-time */
+            accessEnds?: string;
+            /** Format: int64 */
+            amountCents: number;
+            /** Format: date-time */
+            boughtAt: string;
+            buyer: string;
+            buyerEmail: string;
+            currency: string;
+            /** Format: date-time */
+            deliverAt?: string;
+            /** Format: date-time */
+            deliveredAt?: string;
+            emailStatus: string;
+            id: string;
+            inPerson: boolean;
+            /** Format: date-time */
+            linkExpiresAt?: string;
+            /** Format: int64 */
+            months: number;
+            paymentUrl?: string;
+            recipientEmail: string;
+            recipientName: string;
+            /** Format: date-time */
+            redeemedAt?: string;
+            redeemedBy?: string;
+            /** Format: date-time */
+            refundedAt?: string;
+            /** Format: date-time */
+            remindAt?: string;
+            /** Format: date-time */
+            remindedAt?: string;
+            short: string;
+            /** @enum {string} */
+            status: "scheduled" | "not_redeemed" | "redeemed" | "expired" | "refunded";
+            tier: string;
+            timezone: string;
+        };
+        GiftTier: {
+            id: string;
+            /** Format: int64 */
+            monthlyCents: number;
+            name: string;
+            short: string;
+            /** Format: int64 */
+            yearlyCents: number;
+        };
+        GiftsView: {
+            canEdit: boolean;
+            canManage: boolean;
+            categoryKind: string;
+            categoryName: string;
+            connected: boolean;
+            currency: string;
+            emails: components["schemas"]["GiftEmail"][];
+            ending?: components["schemas"]["GiftEndingWarning"];
+            fromEmail: string;
+            fromName: string;
+            helpers: string[];
+            listNames: string[];
+            /** @enum {string} */
+            mode: "live" | "test" | "";
+            needsLook: components["schemas"]["GiftRow"][];
+            numbers: components["schemas"]["GiftNumbers"];
+            options: components["schemas"]["GiftOption"][];
+            page: components["schemas"]["GiftPage"];
+            provider: string;
+            routePrimary: string;
+            tiers: components["schemas"]["GiftTier"][];
+        };
+        GrowBlockRender: {
+            /** Format: int64 */
+            count: number;
+            for: string;
+            /** @enum {string} */
+            hidden: "none" | "not_on_list" | "program_off" | "no_program";
+            html: string;
+            listName: string;
+            /** Format: date-time */
+            offAt?: string;
+            offBy: string;
+            programId: string;
+            reward: components["schemas"]["RewardBlock"];
+            settings: components["schemas"]["ReferralBlock"];
+        };
+        GrowBlockRenderInput: {
+            /** Format: uuid */
+            contactId?: string;
+            /** @enum {string} */
+            kind: "referral" | "reward";
+            /** Format: uuid */
+            milestoneId?: string;
+            settings?: unknown;
+        };
+        GrowHelperSets: {
+            connect: string[];
+            earn: string[];
+            edit: string[];
+            export: string[];
+            review: string[];
+        };
+        GrowNamedCount: {
+            /** Format: int64 */
+            count: number;
+            name: string;
+        };
+        GrowNeed: {
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            codesLeft: number;
+            /** Format: int64 */
+            count: number;
+            expires: string[];
+            /** @enum {string} */
+            kind: "held" | "partner_invalid" | "partner_unreachable" | "unclaimed" | "codes_out" | "codes_low" | "webhook_failing" | "to_fulfill" | "stripe_missing" | "file_missing";
+            /** Format: int64 */
+            milestone: number;
+            milestoneId: string;
+            partner: string;
+            people: components["schemas"]["GrowNamedCount"][];
+            /** @enum {string} */
+            reason: "signature_rejected" | "ended" | "unknown_link" | "";
+            reward: string;
+            /** Format: date-time */
+            since?: string;
+        };
+        GrowOverview: {
+            /**
+             * Format: date-time
+             * @description The period's first day (workspace time zone)
+             */
+            from: string;
+            helpers: components["schemas"]["GrowHelperSets"];
+            listId: string;
+            listName: string;
+            needsYou: components["schemas"]["GrowNeed"][];
+            programId: string;
+            /** Format: date-time */
+            programStart?: string;
+            /** @enum {string} */
+            programStatus: "on" | "off" | "";
+            /** Format: int64 */
+            recommendedBy: number;
+            /** Format: int64 */
+            recommends: number;
+            tiles: components["schemas"]["GrowOverviewTiles"];
+            /**
+             * Format: date-time
+             * @description Today
+             */
+            to: string;
+            /** Format: date-time */
+            updatedAt: string;
+            weeks: components["schemas"]["GrowWeek"][];
+        };
+        GrowOverviewTiles: {
+            /** Format: int64 */
+            confirmed: number;
+            /**
+             * Format: double
+             * @description Percent
+             */
+            conversion: number;
+            /** Format: int64 */
+            fromGrow: number;
+            /** Format: int64 */
+            newSubscribers: number;
+            /** Format: int64 */
+            partnerSignups: number;
+            partners: string[];
+            rewards: components["schemas"]["GrowRewardCount"][];
+            /** Format: int64 */
+            rewardsSent: number;
+            /** Format: int64 */
+            visits: number;
+        };
+        GrowPreviewContact: {
+            /** Format: int64 */
+            counted: number;
+            email: string;
+            id: string;
+            lists: string[];
+            name: string;
+            onList: boolean;
+        };
+        GrowPreviewContacts: {
+            items: components["schemas"]["GrowPreviewContact"][];
+            listName: string;
+            programId: string;
+            /** @enum {string} */
+            status: "on" | "off" | "";
+        };
+        GrowRewardCount: {
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            milestone: number;
+            name: string;
+        };
+        GrowWeek: {
+            /** Format: int64 */
+            days: number;
+            /** Format: date-time */
+            end: string;
+            /**
+             * Format: int64
+             * @description Forms and other sources (imports left out)
+             */
+            other: number;
+            /** @description The week is still going */
+            partial: boolean;
+            /** Format: int64 */
+            partners: number;
+            /** Format: int64 */
+            referrals: number;
+            /** Format: date-time */
+            start: string;
         };
         GrowthChart: {
             days: components["schemas"]["GrowthChartDay"][];
@@ -21488,7 +25962,7 @@ export interface components {
             connectionId?: string;
             facts: components["schemas"]["IntegrationFacts"];
             /** @enum {string} */
-            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "anthropic" | "openai" | "google" | "azure" | "compatible" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable" | "stripe" | "paddle" | "lemonsqueezy";
+            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "anthropic" | "openai" | "google" | "azure" | "compatible" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable" | "stripe" | "paddle" | "lemonsqueezy" | "shopify" | "woocommerce";
             reasons: components["schemas"]["IntegrationReason"][];
             /** @enum {string} */
             status: "not_connected" | "waiting" | "connected" | "attention" | "none";
@@ -21520,6 +25994,7 @@ export interface components {
             silentSites: number;
             /** Format: int64 */
             sites: number;
+            store?: components["schemas"]["IntegrationStoreFacts"];
             team?: string;
             /** Format: int64 */
             triggers: number;
@@ -21896,6 +26371,7 @@ export interface components {
             /** @enum {string} */
             status: "waiting" | "connected" | "attention";
             updateAvailable: boolean;
+            woocommerce?: components["schemas"]["IntegrationSiteWoo"];
             wordpressVersion?: string;
         };
         IntegrationSiteDraft: {
@@ -21936,6 +26412,15 @@ export interface components {
             set: boolean;
             template?: components["schemas"]["IntegrationOption"];
         };
+        IntegrationSiteWoo: {
+            checkouts: boolean;
+            consent: boolean;
+            storeId?: string;
+            storeName?: string;
+            /** @enum {string} */
+            storeStatus?: "connecting" | "importing" | "connected" | "disconnected" | "";
+            version: string;
+        };
         IntegrationStatus: {
             firstCall?: components["schemas"]["IntegrationFirstCall"];
             /** Format: date-time */
@@ -21944,6 +26429,17 @@ export interface components {
             reported?: string;
             /** @enum {string} */
             status: "waiting" | "connected" | "attention";
+        };
+        IntegrationStoreFacts: {
+            /** Format: date-time */
+            lastEventAt?: string;
+            name: string;
+            /** Format: int64 */
+            orders: number;
+            /** @enum {string} */
+            state: "connecting" | "importing" | "connected" | "webhook_missing" | "rate_limited" | "no_plugin" | "revoked";
+            /** Format: int64 */
+            stores: number;
         };
         IntegrationTakeOverPreview: {
             held: string[];
@@ -22841,6 +27337,9 @@ export interface components {
             confirmationSent: boolean;
             id: string;
         };
+        NewLinkInput: {
+            requestedBy?: string;
+        };
         NewPlanInput: {
             /**
              * Format: int64
@@ -22891,7 +27390,7 @@ export interface components {
             /** @description Full sentence for the notification center */
             body: string;
             /** @enum {string} */
-            category: "approvals" | "sending" | "providers" | "team" | "hostrepute" | "other" | "integrations" | "transactional" | "earn" | "website";
+            category: "approvals" | "sending" | "providers" | "team" | "hostrepute" | "other" | "integrations" | "transactional" | "earn" | "website" | "grow";
             /** @example Approvals */
             categoryLabel: string;
             /** Format: date-time */
@@ -22950,6 +27449,201 @@ export interface components {
         NotificationsMarked: {
             /** Format: int64 */
             marked: number;
+        };
+        Offer: {
+            /** Format: int64 */
+            amountOffCents?: number;
+            applies: components["schemas"]["OfferApplies"][];
+            byCode: boolean;
+            byLink: boolean;
+            code: string;
+            /** Format: int64 */
+            codeDays: number;
+            currency: string;
+            /** @enum {string} */
+            discountType: "percent" | "amount";
+            /** @enum {string} */
+            duration: "once" | "months" | "forever";
+            /** Format: date-time */
+            endedAt?: string;
+            endedBy?: string;
+            /** @enum {string} */
+            endedReason?: "date" | "limit" | "early";
+            /** Format: date-time */
+            endsAt?: string;
+            id: string;
+            /** @enum {string} */
+            kind: "signup" | "retention" | "referral";
+            /** Format: int64 */
+            limit?: number;
+            link?: string;
+            linkHost?: string;
+            /** Format: int64 */
+            minPaidMonths: number;
+            /** Format: int64 */
+            months?: number;
+            name: string;
+            newOnly: boolean;
+            /** Format: int64 */
+            percentOff?: number;
+            results: components["schemas"]["OfferResults"];
+            /** Format: date-time */
+            startedAt: string;
+            startedBy?: string;
+            /** @enum {string} */
+            state: "live" | "limit" | "ended" | "missing" | "draft";
+            /** @enum {string} */
+            status: "live" | "ended";
+            stripe: components["schemas"]["OfferStripe"];
+            /** @enum {string} */
+            sync: "draft" | "synced" | "failed";
+            syncError?: string;
+        };
+        OfferApplies: {
+            currency: string;
+            /** @enum {string} */
+            period: "month" | "year";
+            /** Format: int64 */
+            priceCents: number;
+            short: string;
+            tier: string;
+            tierId: string;
+        };
+        OfferAppliesInput: {
+            /** @enum {string} */
+            period: "month" | "year";
+            /** Format: uuid */
+            tierId: string;
+        };
+        OfferCode: {
+            code: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: date-time */
+            issuedAt: string;
+            issuedTo: string;
+            /** Format: date-time */
+            redeemedAt?: string;
+            /** @enum {string} */
+            status: "not_redeemed" | "redeemed" | "expired";
+        };
+        OfferDetail: {
+            account: string;
+            /** Format: int64 */
+            amountOffCents?: number;
+            applies: components["schemas"]["OfferApplies"][];
+            byCode: boolean;
+            byLink: boolean;
+            canEdit: boolean;
+            choices: components["schemas"]["OfferApplies"][];
+            code: string;
+            /** Format: int64 */
+            codeDays: number;
+            codes: components["schemas"]["OfferCode"][];
+            connected: boolean;
+            currency: string;
+            /** @enum {string} */
+            discountType: "percent" | "amount";
+            /** @enum {string} */
+            duration: "once" | "months" | "forever";
+            /** Format: date-time */
+            endedAt?: string;
+            endedBy?: string;
+            /** @enum {string} */
+            endedReason?: "date" | "limit" | "early";
+            /** Format: date-time */
+            endsAt?: string;
+            helpers: string[];
+            id: string;
+            /** @enum {string} */
+            kind: "signup" | "retention" | "referral";
+            /** Format: int64 */
+            limit?: number;
+            link?: string;
+            linkHost?: string;
+            /** Format: int64 */
+            minPaidMonths: number;
+            /** Format: int64 */
+            months?: number;
+            name: string;
+            newOnly: boolean;
+            /** Format: int64 */
+            percentOff?: number;
+            provider: string;
+            results: components["schemas"]["OfferResults"];
+            /** Format: date-time */
+            startedAt: string;
+            startedBy?: string;
+            /** @enum {string} */
+            state: "live" | "limit" | "ended" | "missing" | "draft";
+            /** @enum {string} */
+            status: "live" | "ended";
+            stripe: components["schemas"]["OfferStripe"];
+            /** @enum {string} */
+            sync: "draft" | "synced" | "failed";
+            syncError?: string;
+            upgradeHost: string;
+        };
+        OfferInput: {
+            /** Format: int64 */
+            amountOffCents?: number;
+            applies: components["schemas"]["OfferAppliesInput"][];
+            byCode?: boolean;
+            byLink?: boolean;
+            code?: string;
+            /** Format: int64 */
+            codeDays?: number;
+            /** @enum {string} */
+            discountType: "percent" | "amount";
+            /** @enum {string} */
+            duration: "once" | "months" | "forever";
+            /** @description YYYY-MM-DD */
+            endsOn?: string;
+            /** @enum {string} */
+            kind: "signup" | "retention" | "referral";
+            /** Format: int64 */
+            limit?: number;
+            /** Format: int64 */
+            minPaidMonths?: number;
+            /** Format: int64 */
+            months?: number;
+            name: string;
+            newOnly?: boolean;
+            /** Format: int64 */
+            percentOff?: number;
+        };
+        OfferList: {
+            account: string;
+            canEdit: boolean;
+            connected: boolean;
+            helpers: string[];
+            items: components["schemas"]["Offer"][];
+            provider: string;
+        };
+        OfferResults: {
+            /** Format: double */
+            acceptRate?: number;
+            /** Format: int64 */
+            accepted: number;
+            /** Format: int64 */
+            codesIssued: number;
+            /** Format: int64 */
+            codesRedeemed: number;
+            /** Format: int64 */
+            mrrCents: number;
+            /** Format: int64 */
+            newMembers: number;
+            /** Format: int64 */
+            redemptions: number;
+            /** Format: int64 */
+            shown: number;
+        };
+        OfferStripe: {
+            coupon?: string;
+            couponUrl?: string;
+            missing: boolean;
+            mode?: string;
+            promotionCode?: string;
         };
         Operator: {
             key: string;
@@ -23137,6 +27831,329 @@ export interface components {
             /** @enum {string} */
             tier: "active" | "cooling" | "at_risk" | "sunset";
         };
+        PageApproval: {
+            id: string;
+            /** Format: date-time */
+            requestedAt: string;
+            requestedBy: string;
+        };
+        PageApprovalInput: {
+            note?: string;
+        };
+        PageCanvas: {
+            dir: string;
+            focusHeader: string;
+            footer: string;
+            header: string;
+            lang: string;
+            styles: string[];
+        };
+        PageCheck: {
+            account?: string;
+            /** Format: date-time */
+            at?: string;
+            by?: string;
+            /** Format: int64 */
+            count?: number;
+            detail?: string;
+            /** Format: int64 */
+            httpStatus?: number;
+            /** @enum {string} */
+            key: "address" | "heading" | "moments" | "product" | "stripe" | "form" | "images" | "links" | "visibility" | "store_blocks";
+            mode?: string;
+            name?: string;
+            path?: string;
+            problem?: string;
+            pwyw?: boolean;
+            ref?: string;
+            /** @enum {string} */
+            status: "pass" | "warn" | "block";
+        };
+        PageContentInput: {
+            /** Format: int32 */
+            baseVersion: number;
+            force?: boolean;
+            html: string;
+            manual?: boolean;
+            project?: unknown;
+        };
+        PageCounts: {
+            /** Format: int64 */
+            blocks: number;
+            /** Format: int64 */
+            images: number;
+            /** Format: int64 */
+            imagesWithAlt: number;
+            /** Format: int64 */
+            links: number;
+        };
+        PageCreate: {
+            name: string;
+            slug?: string;
+            /** @enum {string} */
+            template: "about" | "lead_magnet" | "launch" | "webinar" | "sales" | "blank";
+        };
+        PageDetail: {
+            changes: boolean;
+            checks: components["schemas"]["PageCheck"][];
+            counts: components["schemas"]["PageCounts"];
+            /** Format: date-time */
+            createdAt: string;
+            draft: components["schemas"]["PageDraft"];
+            host: string;
+            id: string;
+            live?: components["schemas"]["PageLive"];
+            name: string;
+            navFull: boolean;
+            numbers: components["schemas"]["PageNumbers"];
+            path: string;
+            publish: components["schemas"]["PagePublishState"];
+            /** Format: date-time */
+            publishAt?: string;
+            publishTz?: string;
+            redirectTo?: string;
+            settings: components["schemas"]["PageSettings"];
+            slug: string;
+            /** @enum {string} */
+            status: "draft" | "scheduled" | "published" | "unpublished";
+            /** @enum {string} */
+            template: "about" | "lead_magnet" | "launch" | "webinar" | "sales" | "blank";
+            unpublishReason?: string;
+            /** Format: date-time */
+            unpublishedAt?: string;
+            url: string;
+            /** Format: int64 */
+            versions: number;
+            websiteOn: boolean;
+        };
+        PageDiff: {
+            blocks: components["schemas"]["PageDiffBlock"][];
+            first: boolean;
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy?: string;
+            settings: components["schemas"]["PageDiffSetting"][];
+            /** Format: int32 */
+            since: number;
+            /** Format: int32 */
+            version: number;
+        };
+        PageDiffBlock: {
+            id: string;
+            /** @enum {string} */
+            kind: "changed" | "added" | "removed" | "moved";
+            lines: components["schemas"]["PageDiffLine"][];
+            name: string;
+        };
+        PageDiffLine: {
+            /** @enum {string} */
+            op: "-" | "+" | " ";
+            text: string;
+        };
+        PageDiffSetting: {
+            after: string;
+            before: string;
+            key: string;
+        };
+        PageDraft: {
+            autosaved: boolean;
+            html: string;
+            project: unknown;
+            /** Format: date-time */
+            savedAt: string;
+            savedBy?: components["schemas"]["PagePerson"];
+            /** Format: int32 */
+            version: number;
+        };
+        PageListItem: {
+            changes: boolean;
+            /** Format: date-time */
+            countdownEnded?: string;
+            /** Format: date-time */
+            editedAt: string;
+            editedBy?: components["schemas"]["PagePerson"];
+            /** Format: date-time */
+            firstPublishedAt?: string;
+            id: string;
+            name: string;
+            path: string;
+            /** Format: date-time */
+            publishAt?: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            result: components["schemas"]["PageResult"];
+            slug: string;
+            /** @enum {string} */
+            status: "draft" | "scheduled" | "published" | "unpublished";
+            /** @enum {string} */
+            template: "about" | "lead_magnet" | "launch" | "webinar" | "sales" | "blank";
+            /** Format: date-time */
+            unpublishedAt?: string;
+            url: string;
+            /** Format: int64 */
+            views: number;
+            /** @enum {string} */
+            visibility: "public" | "members" | "paid";
+        };
+        PageLive: {
+            path: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy?: components["schemas"]["PagePerson"];
+            slug: string;
+            url: string;
+            /** Format: int32 */
+            version: number;
+        };
+        PageNumbers: {
+            result: components["schemas"]["PageResult"];
+            /** Format: int64 */
+            views: number;
+        };
+        PagePerson: {
+            avatarColor: string;
+            id: string;
+            initials: string;
+            name: string;
+        };
+        PagePreviewInput: {
+            hideHeader?: boolean;
+            html?: string;
+            live?: boolean;
+            name?: string;
+        };
+        PagePublishInput: {
+            /** Format: date-time */
+            at?: string;
+            tz?: string;
+            /** @enum {string} */
+            when: "now" | "at";
+        };
+        PagePublishState: {
+            approvers: string[];
+            canEdit: boolean;
+            /** @description Navigation, visibility and the paywall (website:manage) */
+            canManage: boolean;
+            canPublish: boolean;
+            needsApproval: boolean;
+            pending?: components["schemas"]["PageApproval"];
+            publishers: string[];
+            reason?: string;
+            rule?: string;
+        };
+        PageReminderFlow: {
+            id: string;
+            name: string;
+            status: string;
+        };
+        PageReminders: {
+            automation?: components["schemas"]["PageReminderFlow"];
+            available: boolean;
+            field: string;
+            reminders: string;
+            title: string;
+        };
+        PageRenderInput: {
+            blocks?: string[];
+            html?: string;
+        };
+        PageRendered: {
+            blocks: string[];
+            html?: string;
+        };
+        PageResult: {
+            /** Format: int64 */
+            amountCents: number;
+            /** Format: double */
+            conversion: number;
+            /** Format: int64 */
+            count: number;
+            currency: string;
+            /** @enum {string} */
+            kind: "signups" | "registrations" | "sales" | "none";
+        };
+        PageSaved: {
+            changes: boolean;
+            checks: components["schemas"]["PageCheck"][];
+            counts: components["schemas"]["PageCounts"];
+            /** Format: date-time */
+            savedAt: string;
+            savedBy?: components["schemas"]["PagePerson"];
+            /** Format: int32 */
+            version: number;
+        };
+        PageSettings: {
+            /** @description Focused landing pages: the site header shows the logo only */
+            hideHeader: boolean;
+            navLabel: string;
+            seoDescription: string;
+            seoTitle: string;
+            showInNav: boolean;
+            socialImage: string;
+            /** @description Paid pages: the tiers that may read it (empty: every paid tier) */
+            tiers: string[];
+            /** @enum {string} */
+            visibility: "public" | "members" | "paid";
+        };
+        PageSettingsInput: {
+            hideHeader: boolean;
+            name: string;
+            navLabel: string;
+            seoDescription: string;
+            seoTitle: string;
+            showInNav: boolean;
+            slug: string;
+            socialImage: string;
+            tiers?: string[];
+            /** @enum {string} */
+            visibility: "public" | "members" | "paid";
+        };
+        PageTemplateCount: {
+            /** Format: int64 */
+            count: number;
+            template: string;
+        };
+        PageUnpublishInput: {
+            reason?: string;
+            redirectTo?: string;
+        };
+        PageVersionDetail: {
+            current: boolean;
+            html: string;
+            /** @description created, autosave, saved, settings, kept, restored, published */
+            label: string;
+            live: boolean;
+            name: string;
+            project: unknown;
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy?: string;
+            /** Format: date-time */
+            savedAt: string;
+            savedBy?: components["schemas"]["PagePerson"];
+            settings: components["schemas"]["PageSettings"];
+            slug: string;
+            /** Format: int32 */
+            version: number;
+        };
+        PageVersionItem: {
+            current: boolean;
+            /** @description created, autosave, saved, settings, kept, restored, published */
+            label: string;
+            live: boolean;
+            name: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy?: string;
+            /** Format: date-time */
+            savedAt: string;
+            savedBy?: components["schemas"]["PagePerson"];
+            /** Format: int32 */
+            version: number;
+        };
+        PageVersionList: {
+            items: components["schemas"]["PageVersionItem"][];
+        };
         Pages: {
             archive: components["schemas"]["ArchivePage"];
             confirm: components["schemas"]["ConfirmPage"];
@@ -23144,6 +28161,139 @@ export interface components {
             previewEmail: string;
             subscribe: components["schemas"]["SubscribePage"];
             unsubscribe: components["schemas"]["UnsubscribePage"];
+        };
+        PagesOverview: {
+            canEdit: boolean;
+            canPublish: boolean;
+            editors: string[];
+            /** Format: date-time */
+            from: string;
+            host: string;
+            pages: components["schemas"]["PageListItem"][];
+            period: string;
+            publishers: string[];
+            shop: components["schemas"]["PagesShop"];
+            stats: components["schemas"]["PagesStats"];
+            templates: components["schemas"]["PageTemplateCount"][];
+            theme: components["schemas"]["PagesTheme"];
+            /** Format: date-time */
+            until: string;
+            websiteOn: boolean;
+        };
+        PagesShop: {
+            canToggle: boolean;
+            on: boolean;
+            path: string;
+            /** Format: int64 */
+            products: number;
+            url: string;
+        };
+        PagesStats: {
+            currency: string;
+            registrationPages: string[];
+            /** Format: int64 */
+            registrations: number;
+            /** Format: int64 */
+            sales: number;
+            /** Format: int64 */
+            salesCents: number;
+            /** Format: int64 */
+            salesPages: number;
+            shopSales: boolean;
+            shopViewed: boolean;
+            signupPages: string[];
+            /** Format: int64 */
+            signups: number;
+            /** Format: int64 */
+            viewedPages: number;
+            /** Format: int64 */
+            views: number;
+        };
+        PagesTheme: {
+            accent: string;
+            font: string;
+            ground: string;
+            logo: boolean;
+            publisher: string;
+        };
+        PartnerCodeCreated: {
+            code: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int64 */
+            dailyLimit: number;
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            label: string;
+            listName: string;
+            url: string;
+        };
+        PartnerCodeInput: {
+            /** Format: int64 */
+            dailyLimit: number;
+            label: string;
+            /** Format: uuid */
+            listId: string;
+        };
+        PartnerCodeItem: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            /** Format: int64 */
+            dailyLimit: number;
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            label: string;
+            listName: string;
+        };
+        PartnerCodeText: {
+            code: string;
+        };
+        PartnerConnectInput: {
+            code: string;
+            showBlock: boolean;
+            showConfirm: boolean;
+        };
+        PartnerLimitInput: {
+            /** Format: int64 */
+            dailyLimit: number;
+        };
+        PartnerPreview: {
+            code: string;
+            /** Format: int64 */
+            dailyLimit: number;
+            description: string;
+            doubleOptIn: boolean;
+            initials: string;
+            instance: string;
+            list: string;
+            logoUrl: string;
+            name: string;
+        };
+        PartnerRequestItem: {
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            attempts: number;
+            /** Format: date-time */
+            confirmedAt?: string;
+            id: string;
+            lastError: string;
+            /** @enum {string} */
+            origin: "confirm" | "page" | "partner";
+            /** @enum {string} */
+            status: "queued" | "accepted" | "limit" | "failed" | "rejected" | "paused";
+        };
+        PartnerRequestLog: {
+            /** @enum {string} */
+            direction: "out" | "in";
+            items: components["schemas"]["PartnerRequestItem"][];
+            linkId: string;
+            partner: string;
+            /** Format: int64 */
+            total: number;
         };
         "Passkey-registerRequest": {
             challenge: string;
@@ -23180,6 +28330,15 @@ export interface components {
         "Pause-sms-sendRequest": {
             reason?: string;
         };
+        PaymentInput: {
+            /** Format: int64 */
+            amountCents?: number;
+            /** @description Shown on the booking, never to the sponsor. */
+            note?: string;
+            paid: boolean;
+            /** Format: date */
+            paidOn?: string;
+        };
         PermissionInfo: {
             description: string;
             /** @example Campaigns */
@@ -23199,7 +28358,7 @@ export interface components {
             /** @example first_name */
             key: string;
             /** @enum {string} */
-            kind: "contact" | "custom" | "system";
+            kind: "contact" | "custom" | "system" | "referral" | "paid";
             /** @example First name */
             label: string;
         };
@@ -24127,6 +29286,582 @@ export interface components {
              * @example https://example.com/errors/example
              */
             type: string;
+        };
+        ProductAutomationNumbers: {
+            /** Format: int64 */
+            contacts: number;
+            /**
+             * Format: int64
+             * @description Contacts still in the flow or through it
+             */
+            entered: number;
+            id: string;
+            name: string;
+            /**
+             * Format: int64
+             * @description Contacts who left because their payment was refunded
+             */
+            refunded: number;
+        };
+        ProductCheck: {
+            account?: string;
+            /** Format: date-time */
+            at?: string;
+            /** Format: int64 */
+            bytes?: number;
+            /** @description No sales page chosen: the default product page */
+            default?: boolean;
+            /** @description The template has a draft but no published version */
+            draft?: boolean;
+            file?: string;
+            /** @enum {string} */
+            key: "stripe" | "file" | "price" | "template" | "route" | "cover_alt" | "sales_page";
+            mode?: string;
+            ok: boolean;
+            path?: string;
+            /** @example Postmark, then Amazon SES */
+            route?: string;
+            template?: string;
+            templateId?: string;
+            /** Format: int32 */
+            version?: number;
+        };
+        ProductCount: {
+            /** Format: int64 */
+            count: number;
+            name: string;
+            productId: string;
+        };
+        ProductCover: {
+            /** Format: int64 */
+            height: number;
+            url: string;
+            /** Format: int64 */
+            width: number;
+        };
+        ProductCreate: {
+            name?: string;
+        };
+        ProductDelivery: {
+            /** Format: int32 */
+            downloads: number;
+            /** Format: int32 */
+            linkDays: number;
+            /** @description Revoke access when a payment is refunded or disputed */
+            revokeOnRefund: boolean;
+            /** @description The transactional template of the delivery email */
+            templateId: string;
+        };
+        ProductDetail: {
+            /** Format: date-time */
+            archivedAt?: string;
+            /** @description The draft's fields that differ from what's live */
+            changes: string[];
+            checks: components["schemas"]["ProductCheck"][];
+            /** Format: int64 */
+            chunkBytes: number;
+            createdBy: string;
+            draft: components["schemas"]["ProductFields"];
+            files: components["schemas"]["ProductFile"][];
+            /** Format: int64 */
+            filesBytes: number;
+            helpers: components["schemas"]["ProductsHelpers"];
+            id: string;
+            lists: components["schemas"]["ProductListOption"][];
+            live?: components["schemas"]["ProductFields"];
+            /** Format: int64 */
+            maxBytes: number;
+            /** Format: int64 */
+            maxFile: number;
+            numbers?: components["schemas"]["ProductNumbers"];
+            /** Format: int64 */
+            orders: number;
+            pageUrl: string;
+            pages: components["schemas"]["ProductPageOption"][];
+            payments: components["schemas"]["ProductsPayments"];
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy: string;
+            route: string;
+            salesPage: components["schemas"]["ProductSalesPage"];
+            shopUrl: string;
+            siteHost: string;
+            /** @enum {string} */
+            status: "draft" | "published" | "archived";
+            templates: components["schemas"]["ProductTemplateOption"][];
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy: string;
+        };
+        ProductDownloadState: {
+            /** Format: int32 */
+            allowed: number;
+            /** Format: date-time */
+            deliveredAt?: string;
+            error?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            newLink: boolean;
+            /** Format: date-time */
+            newLinkAt?: string;
+            newLinkBy: string;
+            provider: string;
+            /** @enum {string} */
+            revokeReason: "" | "manual" | "refund" | "dispute";
+            /** Format: date-time */
+            revokedAt?: string;
+            revokedBy: string;
+            /** Format: date-time */
+            sentAt?: string;
+            /** @enum {string} */
+            state: "pending" | "sent" | "delivered" | "failed" | "expired" | "used_up" | "revoked" | "revoked_auto";
+            /** Format: int32 */
+            used: number;
+        };
+        ProductFields: {
+            coverAlt: string;
+            coverUrl: string;
+            delivery: components["schemas"]["ProductDelivery"];
+            longDescription: string;
+            name: string;
+            offer: components["schemas"]["ProductOffer"];
+            price: components["schemas"]["ProductPrice"];
+            /** @description Empty for the default product page */
+            salesPageId: string;
+            shortDescription: string;
+            showInShop: boolean;
+            slug: string;
+        };
+        ProductFile: {
+            contentType: string;
+            id: string;
+            /** @description What the content is: pdf, zip, xlsx…, empty when it couldn't be told */
+            kind: string;
+            /** @description PDF, ZIP, XLSX */
+            kindLabel: string;
+            name: string;
+            /** Format: int64 */
+            pages: number;
+            /** Format: int64 */
+            sizeBytes: number;
+            /** Format: date-time */
+            uploadedAt: string;
+            uploadedBy: string;
+        };
+        ProductFilesSummary: {
+            /** Format: int64 */
+            bytes: number;
+            /** Format: int64 */
+            count: number;
+            /** @description The first file's kind in capitals (PDF, ZIP, XLSX) */
+            kind: string;
+            /**
+             * Format: int64
+             * @description The first file's pages, for a PDF
+             */
+            pages: number;
+        };
+        ProductListItem: {
+            coverAlt: string;
+            coverUrl: string;
+            currency: string;
+            files: components["schemas"]["ProductFilesSummary"];
+            /** Format: int64 */
+            grossCents: number;
+            id: string;
+            name: string;
+            /** Format: int64 */
+            orders: number;
+            price: components["schemas"]["ProductPrice"];
+            /** Format: int64 */
+            refundedCents: number;
+            /** Format: int64 */
+            refunds: number;
+            salesPage: components["schemas"]["ProductSalesPage"];
+            shortName: string;
+            /** @enum {string} */
+            status: "draft" | "published" | "archived";
+            /** Format: date-time */
+            statusAt?: string;
+            statusBy: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ProductListOption: {
+            doubleOptIn: boolean;
+            id: string;
+            name: string;
+        };
+        ProductNumbers: {
+            automation?: components["schemas"]["ProductAutomationNumbers"];
+            /** Format: int64 */
+            contacts: number;
+            /** Format: int64 */
+            fromDefault: number;
+            /** Format: int64 */
+            fromPage: number;
+            /** Format: int64 */
+            fromShop: number;
+            /** Format: int64 */
+            grossCents: number;
+            /** Format: int64 */
+            joined: number;
+            /** Format: int64 */
+            none: number;
+            offerList: string;
+            /** Format: int64 */
+            orders: number;
+            /** Format: int64 */
+            refundedCents: number;
+            /** Format: int64 */
+            refunds: number;
+            /** Format: date-time */
+            since: string;
+            test: boolean;
+        };
+        ProductOffer: {
+            /** @description The list a buyer who ticks it joins, with its double opt-in */
+            listId: string;
+            on: boolean;
+            /** @description The exact text, kept as consent */
+            text: string;
+        };
+        ProductOrderBuyer: {
+            /** Format: date-time */
+            confirmedAt?: string;
+            contactId?: string;
+            /** Format: date-time */
+            contactSince?: string;
+            doubleOptIn: boolean;
+            email: string;
+            /** @enum {string} */
+            kind: "contact" | "joined" | "none";
+            list: string;
+            /** @enum {string} */
+            listStatus: "" | "pending" | "subscribed" | "unsubscribed";
+            name: string;
+        };
+        ProductOrderConsent: {
+            /** Format: date-time */
+            at?: string;
+            ip: string;
+            list: string;
+            offered: boolean;
+            page: string;
+            text: string;
+            ticked: boolean;
+        };
+        ProductOrderDelivery: {
+            /** Format: date-time */
+            deliveredAt?: string;
+            messageId?: string;
+            newLink: boolean;
+            provider: string;
+            /** Format: double */
+            seconds: number;
+            /** Format: date-time */
+            sentAt?: string;
+            status: string;
+            template: string;
+            /** Format: int32 */
+            version: number;
+        };
+        ProductOrderDetail: {
+            activity: components["schemas"]["ProductOrderEvent"][];
+            /** Format: int64 */
+            amountCents: number;
+            buyer: components["schemas"]["ProductOrderBuyer"];
+            buyerEmail: string;
+            canRestore: boolean;
+            canRevoke: boolean;
+            canSendLink: boolean;
+            consent: components["schemas"]["ProductOrderConsent"];
+            currency: string;
+            delivery?: components["schemas"]["ProductOrderDelivery"];
+            disputeReason: string;
+            /** @enum {string} */
+            disputeStatus: "" | "open" | "won" | "lost";
+            /** Format: date-time */
+            disputedAt?: string;
+            download: components["schemas"]["ProductDownloadState"];
+            downloads: components["schemas"]["ProductOrderDownloads"];
+            files: components["schemas"]["ProductFilesSummary"];
+            helpers: string[];
+            id: string;
+            /** Format: int64 */
+            number: number;
+            /** Format: date-time */
+            paidAt: string;
+            payWhatYouWant: boolean;
+            payment: components["schemas"]["ProductOrderPayment"];
+            price: components["schemas"]["ProductPrice"];
+            /** @description The product's short name (Field Guide) */
+            product: string;
+            productAlt: string;
+            productCover: string;
+            productId: string;
+            productName: string;
+            /** Format: date-time */
+            refundedAt?: string;
+            /** Format: int64 */
+            refundedCents: number;
+            route: string;
+            /** @enum {string} */
+            status: "paid" | "refunded" | "partially_refunded" | "disputed";
+            test: boolean;
+        };
+        ProductOrderDownloads: {
+            /**
+             * Format: int64
+             * @description Distinct IP addresses (kept only as hashes)
+             */
+            addresses: number;
+            /** Format: int64 */
+            count: number;
+            /** Format: date-time */
+            first?: string;
+            /** Format: date-time */
+            last?: string;
+        };
+        ProductOrderEvent: {
+            /** Format: int32 */
+            allowed?: number;
+            /** Format: int64 */
+            amount?: number;
+            /** Format: date-time */
+            at: string;
+            /** @description Done by the system, as the product's setting says */
+            auto?: boolean;
+            by: string;
+            /** @description Done in Stripe's dashboard */
+            byStripe?: boolean;
+            /** Format: int64 */
+            bytes?: number;
+            /** Format: int64 */
+            count?: number;
+            currency?: string;
+            email?: string;
+            file?: string;
+            /** @enum {string} */
+            kind: "checkout_started" | "paid" | "delivery_sent" | "delivery_delivered" | "delivery_failed" | "downloaded" | "refunded" | "dispute_opened" | "dispute_closed" | "access_revoked" | "access_restored" | "new_link" | "buyer_asked";
+            note?: string;
+            outcome?: string;
+            page?: string;
+            provider?: string;
+            reason?: string;
+            /** Format: date-time */
+            respondBy?: string;
+            /** Format: double */
+            seconds?: number;
+            stripe?: string;
+            template?: string;
+            ticked?: boolean;
+            /** Format: int32 */
+            used?: number;
+            /** Format: int32 */
+            version?: number;
+        };
+        ProductOrderItem: {
+            /** Format: int64 */
+            amountCents: number;
+            buyerEmail: string;
+            currency: string;
+            disputeReason: string;
+            /** @enum {string} */
+            disputeStatus: "" | "open" | "won" | "lost";
+            /** Format: date-time */
+            disputedAt?: string;
+            download: components["schemas"]["ProductDownloadState"];
+            id: string;
+            /** Format: int64 */
+            number: number;
+            /** Format: date-time */
+            paidAt: string;
+            payWhatYouWant: boolean;
+            /** @description The product's short name (Field Guide) */
+            product: string;
+            productId: string;
+            productName: string;
+            /** Format: date-time */
+            refundedAt?: string;
+            /** Format: int64 */
+            refundedCents: number;
+            /** @enum {string} */
+            status: "paid" | "refunded" | "partially_refunded" | "disputed";
+            test: boolean;
+        };
+        ProductOrderList: {
+            items: components["schemas"]["ProductOrderItem"][];
+            /** Format: int64 */
+            page: number;
+            /** Format: int64 */
+            pageSize: number;
+            products: components["schemas"]["ProductCount"][];
+            /** Format: int64 */
+            total: number;
+        };
+        ProductOrderPayment: {
+            account: string;
+            /** Format: int64 */
+            amountCents: number;
+            currency: string;
+            /** Format: date-time */
+            disputeDueBy?: string;
+            /** Format: int64 */
+            disputeFeeCents: number;
+            disputeReason: string;
+            /** @enum {string} */
+            disputeStatus: "" | "open" | "won" | "lost";
+            disputeUrl: string;
+            /** @enum {string} */
+            mode: "live" | "test";
+            provider: string;
+            /** Format: date-time */
+            refundedAt?: string;
+            /** Format: int64 */
+            refundedCents: number;
+            /** Format: int64 */
+            taxCents: number;
+            url: string;
+        };
+        ProductPageOption: {
+            id: string;
+            name: string;
+            path: string;
+            /** @enum {string} */
+            status: "draft" | "scheduled" | "published" | "unpublished";
+        };
+        ProductPrice: {
+            /** Format: int64 */
+            amountCents: number;
+            /** @enum {string} */
+            kind: "one_time" | "pwyw";
+            /** Format: int64 */
+            minimumCents: number;
+            /** Format: int64 */
+            suggestedCents: number;
+        };
+        ProductPublishInput: {
+            confirmPrice?: boolean;
+        };
+        ProductSalesPage: {
+            name: string;
+            /** @description Empty for the default product page */
+            pageId?: string;
+            /** @example /field-guide */
+            path: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            /** @enum {string} */
+            status: "draft" | "scheduled" | "published" | "unpublished" | "default";
+        };
+        ProductSourceRow: {
+            /** Format: int64 */
+            grossCents: number;
+            /** Format: int64 */
+            orders: number;
+            product: string;
+            productId: string;
+            /** @enum {string} */
+            source: "page" | "shop" | "product_page";
+        };
+        ProductTemplateOption: {
+            category: string;
+            id: string;
+            key: string;
+            /** @description essential or optional */
+            kind: string;
+            name: string;
+            /**
+             * Format: int32
+             * @description The live version; 0 when none is published
+             */
+            version: number;
+        };
+        ProductsBuyers: {
+            /**
+             * Format: int64
+             * @description Buyers who were contacts already
+             */
+            contacts: number;
+            /**
+             * Format: int64
+             * @description Buyers who ticked the list offer and became contacts
+             */
+            joined: number;
+            /**
+             * Format: int64
+             * @description Buyers who aren't contacts
+             */
+            none: number;
+            offerText: string;
+            product: string;
+            /** Format: int64 */
+            ticked: number;
+            tickedBy: components["schemas"]["ProductCount"][];
+        };
+        ProductsHelpers: {
+            edit: string[];
+            export: string[];
+            orders: string[];
+            publish: string[];
+        };
+        ProductsOverview: {
+            buyers: components["schemas"]["ProductsBuyers"];
+            /** Format: date-time */
+            from: string;
+            helpers: components["schemas"]["ProductsHelpers"];
+            payments: components["schemas"]["ProductsPayments"];
+            /** @enum {string} */
+            period: "30d" | "90d" | "12m";
+            products: components["schemas"]["ProductListItem"][];
+            sources: components["schemas"]["ProductSourceRow"][];
+            stats: components["schemas"]["ProductsStats"];
+            /** Format: date-time */
+            until: string;
+        };
+        ProductsPayments: {
+            account: string;
+            connected: boolean;
+            currency: string;
+            hasLive: boolean;
+            /** @enum {string} */
+            mode: "live" | "test" | "";
+            pricesIncludeTax: boolean;
+            provider: string;
+            taxAtCheckout: boolean;
+        };
+        ProductsStats: {
+            byProduct: components["schemas"]["ProductCount"][];
+            /** Format: int64 */
+            grossCents: number;
+            /** Format: int64 */
+            netCents: number;
+            /** Format: int64 */
+            openDisputes: number;
+            /** Format: int64 */
+            orders: number;
+            /** Format: int64 */
+            refundedCents: number;
+            /** Format: int64 */
+            refundedOrders: number;
+        };
+        ProductsSummary: {
+            currency: string;
+            /** Format: date-time */
+            from: string;
+            /** Format: int64 */
+            grossCents: number;
+            /** Format: int64 */
+            orders: number;
+            /** Format: int64 */
+            products: number;
+            /** Format: int64 */
+            refundedCents: number;
+            /** Format: int64 */
+            refundedOrders: number;
+            /** Format: date-time */
+            until: string;
         };
         ProviderAuthFailure: {
             down: components["schemas"]["ProviderDownState"];
@@ -25668,7 +31403,7 @@ export interface components {
         };
         ReadinessFix: {
             /** @enum {string} */
-            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses";
+            action?: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses" | "sponsor_remove_block" | "sponsor_refresh_block";
             href?: string;
             /** @enum {string} */
             kind: "apply" | "link";
@@ -25687,7 +31422,7 @@ export interface components {
         };
         ReadinessFixRequest: {
             /** @enum {string} */
-            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses";
+            action: "exclude_sunset" | "route_only" | "insert_footer" | "replace_link" | "use_subject" | "minify" | "mark_language_up_to_date" | "mark_language_translated" | "hold_language" | "release_language" | "accessibility_decorative" | "accessibility_color" | "accessibility_one_click" | "visibility_show_everyone" | "visibility_hide_block" | "visibility_remove_condition" | "poll_close_days" | "exclude_risky" | "verify_addresses" | "sponsor_remove_block" | "sponsor_refresh_block";
             params?: {
                 [key: string]: string;
             };
@@ -25857,6 +31592,160 @@ export interface components {
             /** Format: int64 */
             recipients: number;
         };
+        RecBlockUse: {
+            automation: string;
+            automationId: string;
+            emailId: string;
+            name: string;
+        };
+        RecImage: {
+            id: string;
+            name: string;
+            url: string;
+        };
+        RecLinkInput: {
+            description: string;
+            /** Format: uuid */
+            logoId?: string;
+            name: string;
+            showBlock: boolean;
+            showConfirm: boolean;
+            url: string;
+        };
+        RecListOption: {
+            id: string;
+            name: string;
+            /** Format: int64 */
+            subscribers: number;
+        };
+        RecOrderInput: {
+            ids: string[];
+        };
+        RecPrefill: {
+            description: string;
+            found: boolean;
+            logo?: components["schemas"]["RecImage"];
+            name: string;
+            url: string;
+        };
+        RecPrefillInput: {
+            url: string;
+        };
+        RecProfile: {
+            description: string;
+            initials: string;
+            instance: string;
+            listId: string;
+            listName: string;
+            /** Format: int64 */
+            listSubscribers: number;
+            logo?: components["schemas"]["RecImage"];
+            name: string;
+        };
+        RecProfileInput: {
+            description: string;
+            /** Format: uuid */
+            listId: string;
+            /** Format: uuid */
+            logoId?: string;
+            name: string;
+        };
+        RecSettingsInput: {
+            confirmPage: boolean;
+        };
+        RecommendationItem: {
+            /** Format: int64 */
+            clicks: number;
+            /** Format: int64 */
+            confirmed: number;
+            /** Format: date-time */
+            connectedAt?: string;
+            connectedBy: string;
+            /** Format: int64 */
+            dailyLimit: number;
+            description: string;
+            hidden: boolean;
+            host: string;
+            id: string;
+            initials: string;
+            /** @enum {string} */
+            invalidReason: "signature_rejected" | "ended" | "unknown_link" | "";
+            /** @enum {string} */
+            kind: "link" | "partner";
+            /** Format: date-time */
+            limitUntil?: string;
+            linkId: string;
+            logo?: components["schemas"]["RecImage"];
+            name: string;
+            pausedBy: string;
+            /** Format: int64 */
+            position: number;
+            /** Format: int64 */
+            requests: number;
+            showBlock: boolean;
+            showConfirm: boolean;
+            /** Format: int64 */
+            shown: number;
+            /** Format: int64 */
+            shownConfirm: number;
+            /** Format: int64 */
+            shownEmail: number;
+            /** Format: date-time */
+            since?: string;
+            /** @enum {string} */
+            state: "showing" | "paused" | "connected" | "partner_paused" | "invalid" | "limit" | "unreachable" | "ended";
+            /** Format: int64 */
+            today: number;
+            url: string;
+            /** Format: int64 */
+            waiting: number;
+        };
+        RecommendationsBlock: {
+            heading: string;
+            ids: string[];
+            intro: string;
+            /** @enum {string} */
+            layout: "stacked" | "columns" | "compact";
+            /** @enum {string} */
+            which: "all" | "pick";
+        };
+        RecommendationsView: {
+            /** Format: int64 */
+            blockShows: number;
+            blocks: components["schemas"]["RecBlockUse"][];
+            codes: components["schemas"]["PartnerCodeItem"][];
+            confirmPage: boolean;
+            confirmShows: string[];
+            helpers: components["schemas"]["GrowHelperSets"];
+            items: components["schemas"]["RecommendationItem"][];
+            lists: components["schemas"]["RecListOption"][];
+            pageUrl: string;
+            profile: components["schemas"]["RecProfile"];
+            recommendingYou: components["schemas"]["RecommendingYouItem"][];
+        };
+        RecommendingYouItem: {
+            /** Format: int64 */
+            confirmed: number;
+            connectedBy: string;
+            /** Format: int64 */
+            dailyLimit: number;
+            instance: string;
+            label: string;
+            linkId: string;
+            listName: string;
+            name: string;
+            /** Format: date-time */
+            pausedAt?: string;
+            pausedBy: string;
+            /** Format: int64 */
+            requests: number;
+            /** Format: date-time */
+            since: string;
+            /** @enum {string} */
+            state: "connected" | "paused" | "partner_paused" | "invalid";
+            /** Format: int64 */
+            today: number;
+        };
         RecoveryCodes: {
             codes: string[];
         };
@@ -25866,6 +31755,979 @@ export interface components {
             name: string;
             ref: string;
             suggested: boolean;
+        };
+        ReferralBlock: {
+            button: string;
+            /** @enum {string} */
+            layout: "line" | "progress" | "rewards";
+            /** Format: uuid */
+            program?: string;
+            progress: boolean;
+            share: string[];
+            texts: components["schemas"]["ReferralBlockTexts"];
+        };
+        ReferralBlockTexts: {
+            many: string;
+            none: string;
+            one: string;
+        };
+        ReferralBucket: {
+            /** Format: int64 */
+            confirmed: number;
+            /** Format: int64 */
+            days: number;
+            /** Format: date-time */
+            end: string;
+            partial: boolean;
+            /** Format: date-time */
+            start: string;
+        };
+        ReferralCampaignRef: {
+            id: string;
+            name: string;
+            /** Format: date-time */
+            scheduledAt?: string;
+        };
+        ReferralChannel: {
+            /** @enum {string} */
+            channel: "copy" | "x" | "linkedin" | "whatsapp" | "email" | "other";
+            /** Format: int64 */
+            signups: number;
+            /** Format: int64 */
+            visits: number;
+        };
+        ReferralCheck: {
+            account: string;
+            /** Format: int64 */
+            count: number;
+            counts: number[];
+            /** Format: int64 */
+            emails: number;
+            files: components["schemas"]["ReferralCheckFile"][];
+            /** @enum {string} */
+            key: "milestones" | "emails" | "files" | "stripe" | "sender";
+            missing: string[];
+            offer: string;
+            rewards: string[];
+            sender: string;
+            /** @enum {string} */
+            status: "pass" | "fail";
+        };
+        ReferralCheckFile: {
+            name: string;
+            /** Format: int64 */
+            size: number;
+        };
+        ReferralChecks: {
+            checks: components["schemas"]["ReferralCheck"][];
+            /** Format: int64 */
+            links: number;
+            nextIssue?: components["schemas"]["ReferralCampaignRef"];
+            pass: boolean;
+        };
+        ReferralClaimLink: {
+            /** Format: date-time */
+            expiresAt?: string;
+            url: string;
+        };
+        ReferralCodesInput: {
+            /** @description The codes, one per line; for CSV the first column */
+            text: string;
+        };
+        ReferralCodesResult: {
+            /** Format: int64 */
+            added: number;
+            /** Format: int64 */
+            duplicates: number;
+            /** Format: int64 */
+            left: number;
+            /** Format: int64 */
+            released: number;
+        };
+        ReferralContact: {
+            events: components["schemas"]["ReferralTimelineEvent"][];
+            referredBy?: components["schemas"]["ReferralContactReferredBy"];
+            referrer?: components["schemas"]["ReferralContactReferrer"];
+        };
+        ReferralContactReferredBy: {
+            /** Format: date-time */
+            countedAt?: string;
+            /** Format: date-time */
+            countsOn?: string;
+            linkId: string;
+            programId: string;
+            reason: string;
+            referrer: string;
+            referrerId: string;
+            /** @enum {string} */
+            status: "awaiting" | "hold" | "review" | "counted" | "not_counted";
+        };
+        ReferralContactReferrer: {
+            /** Format: int64 */
+            awaiting: number;
+            code: string;
+            /** Format: int64 */
+            counted: number;
+            /** Format: int64 */
+            held: number;
+            /** Format: int64 */
+            inHold: number;
+            link: string;
+            linkId: string;
+            /** @enum {string} */
+            linkStatus: "active" | "paused";
+            listName: string;
+            milestones: number[];
+            programId: string;
+            rewards: components["schemas"]["ReferralContactReward"][];
+            /** Format: int64 */
+            signups: number;
+            /** Format: int64 */
+            visits: number;
+        };
+        ReferralContactReward: {
+            /** Format: int64 */
+            milestone: number;
+            name: string;
+            /** Format: date-time */
+            sentAt?: string;
+            status: string;
+            /** Format: date-time */
+            usedAt?: string;
+        };
+        ReferralCounting: {
+            burst: components["schemas"]["ReferralRule"];
+            disposable: boolean;
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            holdDays: 0 | 3 | 7 | 14 | 30;
+            left: boolean;
+            numbered: boolean;
+            sameIp: boolean;
+            sharedIp: components["schemas"]["ReferralRule"];
+        };
+        ReferralCouponOffer: {
+            appliesTo: string;
+            discount: string;
+            id: string;
+            /** Format: int64 */
+            issued: number;
+            name: string;
+            /** Format: int64 */
+            redeemed: number;
+        };
+        ReferralCreateInput: {
+            /** Format: uuid */
+            listId: string;
+        };
+        ReferralDecision: {
+            id: string;
+            preview: components["schemas"]["ReferralDecisionPreview"];
+            /** Format: date-time */
+            undoUntil: string;
+        };
+        ReferralDecisionInput: {
+            /** @enum {string} */
+            decision: "count" | "dont" | "dont_pause";
+            ids: string[];
+            note?: string;
+        };
+        ReferralDecisionPreview: {
+            /** Format: int64 */
+            after: number;
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            counted: number;
+            decision: string;
+            /** Format: date-time */
+            holdEnds?: string;
+            now: boolean;
+            referrer: string;
+            rewards: string[];
+        };
+        ReferralEmailOnInput: {
+            on: boolean;
+        };
+        ReferralEmailPreviewInput: {
+            /** Format: uuid */
+            contactId?: string;
+            html?: string;
+            preheader?: string;
+            subject?: string;
+        };
+        ReferralEmailRender: {
+            for: string;
+            html: string;
+            preheader: string;
+            subject: string;
+        };
+        ReferralEmailSave: {
+            /** Format: int64 */
+            baseRevision: number;
+            html: string;
+            mjml: string;
+            preheader: string;
+            subject: string;
+        };
+        ReferralEmailSaved: {
+            /** Format: int64 */
+            revision: number;
+            /** Format: date-time */
+            savedAt: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        ReferralEmailSettings: {
+            /** Format: int64 */
+            milestones: number;
+            /** Format: int64 */
+            on: number;
+            replyTo: string;
+            senderId: string;
+        };
+        ReferralEmailTest: {
+            /** Format: uuid */
+            contactId?: string;
+            html?: string;
+            preheader?: string;
+            subject?: string;
+            to: string[];
+        };
+        ReferralEmailTestResult: {
+            provider: string;
+            sent: string[];
+        };
+        ReferralEmailVersion: {
+            /** Format: date-time */
+            savedAt: string;
+            savedBy: string;
+            subject: string;
+            /** Format: int64 */
+            version: number;
+        };
+        ReferralEngagement: {
+            /** Format: int64 */
+            clicks: number;
+            joinedAfter: string;
+            opened: string[];
+            short: string[];
+        };
+        ReferralFile: {
+            contentType: string;
+            /** Format: int64 */
+            downloads: number;
+            id: string;
+            name: string;
+            /** Format: int64 */
+            size: number;
+            /** Format: date-time */
+            uploadedAt: string;
+            uploadedBy: string;
+        };
+        ReferralFilterOption: {
+            /** Format: int64 */
+            count: number;
+            linkId: string;
+            name: string;
+        };
+        ReferralFulfillInput: {
+            note?: string;
+        };
+        ReferralFulfillItem: {
+            address?: components["schemas"]["ReferralShippingAddress"];
+            contactId: string;
+            email: string;
+            /** Format: int64 */
+            milestone: number;
+            /** Format: date-time */
+            reachedAt: string;
+            referrer: string;
+            rewardId: string;
+            rewardName: string;
+        };
+        ReferralFunnel: {
+            /** Format: int64 */
+            confirmed: number;
+            /** Format: int64 */
+            counted: number;
+            /** Format: int64 */
+            held: number;
+            /** Format: date-time */
+            holdEndsBy?: string;
+            /** Format: int64 */
+            inHold: number;
+            /** Format: int64 */
+            notCounted: number;
+            reasons: components["schemas"]["ReferralReasonCount"][];
+            /** Format: int64 */
+            referrers: number;
+            /** Format: int64 */
+            rewardsSent: number;
+            /** Format: int64 */
+            signups: number;
+            /**
+             * Format: int64
+             * @description Never confirmed, or still waiting to confirm
+             */
+            unconfirmed: number;
+            /** Format: int64 */
+            visits: number;
+            /** Format: int64 */
+            weeks: number;
+        };
+        ReferralHeldItem: {
+            /** Format: date-time */
+            confirmedAt?: string;
+            email: string;
+            engagement: components["schemas"]["ReferralEngagement"];
+            /** Format: date-time */
+            holdEnds?: string;
+            id: string;
+            ip: string;
+            network: components["schemas"]["ReferralNetwork"];
+            signals: string[];
+            /** Format: date-time */
+            signedUpAt: string;
+        };
+        ReferralImage: {
+            /** Format: int64 */
+            height: number;
+            id: string;
+            name: string;
+            /** Format: int64 */
+            size: number;
+            url: string;
+            /** Format: int64 */
+            width: number;
+        };
+        ReferralItem: {
+            /** Format: date-time */
+            confirmedAt?: string;
+            /** Format: date-time */
+            countedAt?: string;
+            /** Format: date-time */
+            countsOn?: string;
+            email: string;
+            id: string;
+            leftKind: string;
+            /** Format: int64 */
+            number: number;
+            reason: string;
+            /** Format: date-time */
+            remindedAt?: string;
+            /** Format: date-time */
+            signedUpAt: string;
+            /** @enum {string} */
+            status: "awaiting" | "hold" | "review" | "counted" | "not_counted";
+        };
+        ReferralLeaderboardInput: {
+            on: boolean;
+        };
+        ReferralLeaderboardSettings: {
+            /** Format: date-time */
+            at?: string;
+            by: string;
+            on: boolean;
+            periods: ("month" | "all")[];
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            rows: 5 | 10 | 25;
+            url: string;
+        };
+        ReferralLinkPauseInput: {
+            note?: string;
+        };
+        ReferralListOption: {
+            description: string;
+            id: string;
+            name: string;
+            /** Format: int64 */
+            subscribers: number;
+            taken: boolean;
+        };
+        ReferralMilestoneCnt: {
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            referrers: number;
+        };
+        ReferralMilestoneEmail: {
+            emailId: string;
+            on: boolean;
+            /** Format: date-time */
+            savedAt?: string;
+            subject: string;
+            /** Format: int64 */
+            versions: number;
+        };
+        ReferralMilestoneEmailDetail: {
+            /** Format: int64 */
+            count: number;
+            description: string;
+            fileName: string;
+            /** Format: int64 */
+            fileSize: number;
+            fileType: string;
+            html: string;
+            listName: string;
+            milestoneId: string;
+            mjml: string;
+            on: boolean;
+            preheader: string;
+            programId: string;
+            /** Format: int64 */
+            revision: number;
+            rewardName: string;
+            rewardType: string;
+            /** Format: date-time */
+            savedAt?: string;
+            sender: string;
+            senderDefault: boolean;
+            subject: string;
+            uploadedBy: string;
+            versions: components["schemas"]["ReferralEmailVersion"][];
+        };
+        ReferralMilestoneHealth: {
+            /** Format: int64 */
+            codesLeft: number;
+            /** Format: int64 */
+            failures: number;
+            /** @enum {string} */
+            kind: "healthy" | "codes_low" | "codes_out" | "webhook_failing" | "stripe_missing" | "file_missing";
+            /** Format: int64 */
+            lastStatus: number;
+            /** Format: double */
+            runOutDays?: number;
+            /** @enum {string} */
+            status: "ok" | "warn" | "bad";
+            /** Format: int64 */
+            waiting: number;
+        };
+        ReferralMilestoneInput: {
+            askAddress?: boolean;
+            /** Format: int64 */
+            codesAlertBelow?: number;
+            /** Format: int64 */
+            count: number;
+            couponOfferId?: string;
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            couponValidDays?: 0 | 30 | 60 | 90;
+            downloadUrl?: string;
+            emailOn: boolean;
+            /** Format: uuid */
+            fileId?: string;
+            /** Format: uuid */
+            imageId?: string;
+            rewardDescription: string;
+            rewardName: string;
+            /** @enum {string} */
+            type: "download" | "codes" | "manual" | "coupon" | "webhook";
+            webhookSecret?: string;
+            webhookUrl?: string;
+        };
+        ReferralMilestoneList: {
+            files: components["schemas"]["ReferralFile"][];
+            helpers: components["schemas"]["GrowHelperSets"];
+            items: components["schemas"]["ReferralMilestoneView"][];
+            listName: string;
+            programId: string;
+            sender: string;
+            showAddresses: boolean;
+            stripe: components["schemas"]["ReferralStripe"];
+            toFulfill: components["schemas"]["ReferralFulfillItem"][];
+        };
+        ReferralMilestoneStats: {
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            reached: number;
+            /** Format: int64 */
+            sent: number;
+            /** Format: int64 */
+            toFulfill: number;
+            /** Format: int64 */
+            used: number;
+            /** Format: int64 */
+            waiting: number;
+            /** Format: int64 */
+            waitingCodes: number;
+        };
+        ReferralMilestoneView: {
+            askAddress: boolean;
+            /** Format: int64 */
+            codesAlertBelow: number;
+            /** Format: int64 */
+            codesLeft: number;
+            /** Format: int64 */
+            codesUploaded: number;
+            /** Format: int64 */
+            count: number;
+            couponOfferId: string;
+            couponOfferName: string;
+            /** Format: int64 */
+            couponValidDays: number;
+            downloadUrl: string;
+            email: components["schemas"]["ReferralMilestoneEmail"];
+            file?: components["schemas"]["ReferralFile"];
+            health: components["schemas"]["ReferralMilestoneHealth"];
+            id: string;
+            image?: components["schemas"]["ReferralImage"];
+            rewardDescription: string;
+            rewardName: string;
+            stats: components["schemas"]["ReferralMilestoneStats"];
+            /** @enum {string} */
+            type: "download" | "codes" | "manual" | "coupon" | "webhook";
+            /** Format: date-time */
+            webhookCalledAt?: string;
+            webhookSecretSet: boolean;
+            /** Format: int64 */
+            webhookStatus?: number;
+            webhookUrl: string;
+        };
+        ReferralNetwork: {
+            asn: string;
+            cidr: string;
+            /** @enum {string} */
+            kind: "hosting" | "office" | "residential" | "mobile" | "";
+            name: string;
+        };
+        ReferralPageSettings: {
+            hubIntro: string;
+            inviteHeadline: string;
+            inviteText: string;
+            shareButtons: ("copy" | "email" | "x" | "linkedin" | "whatsapp")[];
+            shareMessage: string;
+        };
+        ReferralPerson: {
+            contactId: string;
+            /** Format: int64 */
+            counted: number;
+            email: string;
+            firstName: string;
+            linkId: string;
+            /** @enum {string} */
+            linkStatus: "active" | "paused";
+            name: string;
+            /**
+             * Format: date-time
+             * @description On the program's list since
+             */
+            since?: string;
+        };
+        ReferralProgramDetail: {
+            announcedIn: string;
+            /** Format: int64 */
+            awaiting: number;
+            counting: components["schemas"]["ReferralCounting"];
+            emails: components["schemas"]["ReferralEmailSettings"];
+            /** Format: int64 */
+            held: number;
+            /** Format: date-time */
+            heldOldest?: string;
+            helpers: components["schemas"]["GrowHelperSets"];
+            id: string;
+            /** Format: int64 */
+            inHold: number;
+            leaderboard: components["schemas"]["ReferralLeaderboardSettings"];
+            linkExample: string;
+            linkHost: string;
+            /** Format: int64 */
+            links: number;
+            listId: string;
+            listName: string;
+            pages: components["schemas"]["ReferralPageSettings"];
+            senders: components["schemas"]["ReferralSenderOption"][];
+            /** Format: date-time */
+            setupSavedAt?: string;
+            setupSavedBy: string;
+            /** Format: int64 */
+            setupStep: number;
+            /** Format: date-time */
+            startedAt?: string;
+            startedBy: string;
+            /** @enum {string} */
+            status: "off" | "on";
+            /** Format: date-time */
+            statusAt?: string;
+            statusBy: string;
+            /** Format: int64 */
+            subscribers: number;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ReferralProgramList: {
+            helpers: components["schemas"]["GrowHelperSets"];
+            items: components["schemas"]["ReferralProgramSummary"][];
+            lists: components["schemas"]["ReferralListOption"][];
+        };
+        ReferralProgramSummary: {
+            id: string;
+            listId: string;
+            listName: string;
+            /**
+             * Format: int64
+             * @description The set-up guide's step (1 to 5) until the program is first turned on; 0 afterwards
+             */
+            setupStep: number;
+            /** Format: date-time */
+            startedAt?: string;
+            /** @enum {string} */
+            status: "off" | "on";
+            /** Format: int64 */
+            subscribers: number;
+        };
+        ReferralQuality: {
+            bounced: components["schemas"]["ReferralQualityLine"];
+            campaign: string;
+            enough: boolean;
+            opens: components["schemas"]["ReferralQualityLine"];
+            /** Format: int64 */
+            referred: number;
+            unsubscribed: components["schemas"]["ReferralQualityLine"];
+        };
+        ReferralQualityLine: {
+            /** Format: double */
+            others: number;
+            /** Format: int64 */
+            othersN: number;
+            /** Format: int64 */
+            othersOf: number;
+            /** Format: double */
+            referred: number;
+            /** Format: int64 */
+            referredN: number;
+            /** Format: int64 */
+            referredOf: number;
+        };
+        ReferralReasonCount: {
+            /** Format: int64 */
+            count: number;
+            leftKind: string;
+            /** @enum {string} */
+            reason: "self" | "same_ip" | "disposable" | "left" | "already" | "never_confirmed" | "reviewer";
+        };
+        ReferralReferrerList: {
+            /** Format: int64 */
+            heldReferrers: number;
+            helpers: components["schemas"]["GrowHelperSets"];
+            items: components["schemas"]["ReferralReferrerRow"][];
+            milestoneCounts: components["schemas"]["ReferralMilestoneCnt"][];
+            /** Format: int64 */
+            page: number;
+            /** Format: int64 */
+            pausedLinks: number;
+            showAddresses: boolean;
+            /** Format: int64 */
+            total: number;
+            /** Format: int64 */
+            withCounted: number;
+        };
+        ReferralReferrerPanel: {
+            code: string;
+            helpers: components["schemas"]["GrowHelperSets"];
+            link: string;
+            /** Format: date-time */
+            linkCreated: string;
+            pauseNote: string;
+            /** Format: date-time */
+            pausedAt?: string;
+            pausedBy: string;
+            /** Format: int64 */
+            pausedNotCounted: number;
+            pausedSignals: string[];
+            referrals: components["schemas"]["ReferralItem"][];
+            referrer: components["schemas"]["ReferralPerson"];
+            rewards: components["schemas"]["ReferralRewardItem"][];
+            showAddresses: boolean;
+            showLeaderboard: boolean;
+            showName: boolean;
+            /** Format: int64 */
+            signups: number;
+            track: components["schemas"]["ReferralTrack"];
+            /** Format: int64 */
+            visits: number;
+        };
+        ReferralReferrerRow: {
+            contactId: string;
+            /** Format: int64 */
+            counted: number;
+            email: string;
+            /** Format: int64 */
+            held: number;
+            /** Format: int64 */
+            inHold: number;
+            /** Format: date-time */
+            lastReferral?: string;
+            linkId: string;
+            /** @enum {string} */
+            linkStatus: "active" | "paused";
+            milestones: number[];
+            name: string;
+            /** Format: int64 */
+            notCounted: number;
+            /** Format: int64 */
+            rewardsSent: number;
+            unclaimed: string;
+        };
+        ReferralRemoved: {
+            /** Format: int64 */
+            removed: number;
+        };
+        ReferralResults: {
+            channels: components["schemas"]["ReferralChannel"][];
+            /** @description 20 confirmed referrals or more */
+            enough: boolean;
+            /** Format: date-time */
+            from: string;
+            funnel: components["schemas"]["ReferralFunnel"];
+            /** @enum {string} */
+            grouping: "day" | "week";
+            overTime: components["schemas"]["ReferralBucket"][];
+            /** @enum {string} */
+            period: "7d" | "30d" | "all";
+            program: components["schemas"]["ReferralProgramDetail"];
+            quality: components["schemas"]["ReferralQuality"];
+            rewards: components["schemas"]["ReferralRewardRow"][];
+            /** Format: date-time */
+            to: string;
+            top: components["schemas"]["ReferralTopReferrer"][];
+            /** Format: int64 */
+            withTen: number;
+            /** Format: int64 */
+            withThree: number;
+        };
+        ReferralReviewGroup: {
+            confirmedDays: string[];
+            /** Format: int64 */
+            days: number;
+            differentNames: boolean;
+            engaged: boolean;
+            holdEnds: string[];
+            items: components["schemas"]["ReferralHeldItem"][];
+            /** Format: int64 */
+            opened: number;
+            openedIn: string;
+            referrer: components["schemas"]["ReferralPerson"];
+            sameDomain: string;
+            signals: components["schemas"]["ReferralSignal"][];
+            /** @enum {string} */
+            suggestion: "dont_pause" | "count" | "";
+        };
+        ReferralReviewQueue: {
+            groups: components["schemas"]["ReferralReviewGroup"][];
+            /** Format: int64 */
+            held: number;
+            helpers: components["schemas"]["GrowHelperSets"];
+            /** Format: int64 */
+            holdDays: number;
+            /** Format: date-time */
+            oldest?: string;
+            referrers: components["schemas"]["ReferralFilterOption"][];
+            showAddresses: boolean;
+            signals: components["schemas"]["ReferralSignalCount"][];
+        };
+        ReferralRewardItem: {
+            code?: string;
+            error: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            fileName: string;
+            /** Format: int64 */
+            fileSize: number;
+            fileType: string;
+            hasClaim: boolean;
+            id: string;
+            /** Format: int64 */
+            milestone: number;
+            name: string;
+            note: string;
+            /** Format: date-time */
+            reachedAt: string;
+            /** Format: date-time */
+            sentAt?: string;
+            /** @enum {string} */
+            status: "pending" | "sent" | "waiting_codes" | "to_fulfill" | "fulfilled" | "failed" | "expired";
+            /** @enum {string} */
+            type: "download" | "codes" | "manual" | "coupon" | "webhook";
+            /** Format: date-time */
+            usedAt?: string;
+        };
+        ReferralRewardRow: {
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            failed: number;
+            milestoneId: string;
+            name: string;
+            /** Format: int64 */
+            reached: number;
+            /** Format: int64 */
+            sent: number;
+            type: string;
+            /** Format: int64 */
+            used: number;
+            /** Format: int64 */
+            waiting: number;
+        };
+        ReferralRule: {
+            on: boolean;
+            /** Format: int64 */
+            threshold: number;
+        };
+        ReferralSenderOption: {
+            default: boolean;
+            email: string;
+            id: string;
+            name: string;
+            verified: boolean;
+        };
+        ReferralSettingsImpact: {
+            /** Format: int64 */
+            awaiting: number;
+            /** Format: int64 */
+            holdFrom: number;
+            /** Format: int64 */
+            holdTo: number;
+            /** Format: int64 */
+            inHold: number;
+            rulesChanged: string[];
+        };
+        ReferralSettingsInput: {
+            /** Format: date-time */
+            baseUpdatedAt?: string;
+            counting: components["schemas"]["ReferralCounting"];
+            leaderboardPeriods: ("month" | "all")[];
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            leaderboardRows: 5 | 10 | 25;
+            pages: components["schemas"]["ReferralPageSettings"];
+            replyTo: string;
+            /** Format: uuid */
+            senderId?: string;
+        };
+        ReferralSetupInput: {
+            /** Format: uuid */
+            listId?: string;
+            /** Format: int64 */
+            step: number;
+        };
+        ReferralShippingAddress: {
+            city: string;
+            country: string;
+            name: string;
+            street: string;
+        };
+        ReferralSignal: {
+            all: boolean;
+            /** Format: int64 */
+            count: number;
+            first: string;
+            /** Format: date-time */
+            from?: string;
+            ip: string;
+            /** @enum {string} */
+            kind: "burst" | "shared_ip" | "numbered";
+            last: string;
+            /** Format: int64 */
+            minutes: number;
+            network: components["schemas"]["ReferralNetwork"];
+            /** Format: int64 */
+            threshold: number;
+            /** Format: date-time */
+            to?: string;
+        };
+        ReferralSignalCount: {
+            kind: string;
+            /** Format: int64 */
+            referrers: number;
+        };
+        ReferralStripe: {
+            account: string;
+            connected: boolean;
+            offers: components["schemas"]["ReferralCouponOffer"][];
+        };
+        ReferralTimelineEvent: {
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            counted: number;
+            /** @enum {string} */
+            kind: "joined" | "counted" | "milestone" | "reward_sent" | "partner_request";
+            /** Format: int64 */
+            milestone: number;
+            partner: string;
+            referrer: string;
+            referrerId: string;
+            reward: string;
+        };
+        ReferralTopReferrer: {
+            /** Format: int64 */
+            counted: number;
+            email: string;
+            /** Format: int64 */
+            held: number;
+            /** Format: int64 */
+            inHold: number;
+            /** Format: date-time */
+            lastReferral?: string;
+            linkId: string;
+            milestones: number[];
+            name: string;
+            unclaimed: string;
+        };
+        ReferralTrack: {
+            /** Format: int64 */
+            awaiting: number;
+            /** Format: int64 */
+            counted: number;
+            /** Format: int64 */
+            held: number;
+            /** Format: int64 */
+            inHold: number;
+            /** Format: int64 */
+            nextBySeq: number;
+            /** Format: int64 */
+            nextCount: number;
+            /**
+             * Format: date-time
+             * @description When the next referral in hold counts
+             */
+            nextHold?: string;
+            nextName: string;
+            points: components["schemas"]["ReferralTrackPoint"][];
+            /** Format: int64 */
+            toNext: number;
+        };
+        ReferralTrackPoint: {
+            /** Format: int64 */
+            count: number;
+            /** Format: date-time */
+            reachedAt?: string;
+            reward: string;
+        };
+        ReferralTurnedOn: {
+            /** Format: int64 */
+            linksCreated: number;
+            nextIssue?: components["schemas"]["ReferralCampaignRef"];
+            program: components["schemas"]["ReferralProgramDetail"];
+        };
+        ReferralWebhookTestResult: {
+            code: string;
+            error: string;
+            ok: boolean;
+            /** Format: int64 */
+            status: number;
+            url: string;
         };
         RemovalItem: {
             /** Format: int64 */
@@ -26346,6 +33208,337 @@ export interface components {
             rate?: number;
             source?: string;
         };
+        RevenueActivity: {
+            accessPaused: boolean;
+            /** Format: int64 */
+            amountCents?: number;
+            /** Format: date-time */
+            at: string;
+            canceledBy?: string;
+            contactId: string;
+            currency: string;
+            data: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            endsAt?: string;
+            firstName: string;
+            /** @enum {string} */
+            kind: "payment_failed" | "refunded" | "cancel_scheduled" | "offer_applied" | "gift_redeemed" | "subscribed";
+            name: string;
+            /** Format: int64 */
+            offerCents?: number;
+            /** Format: date-time */
+            offerEndsAt?: string;
+            period: string;
+            /** Format: int64 */
+            priceCents: number;
+            sawOffer?: string;
+            source: string;
+            sourceKind: string;
+            tier: string;
+        };
+        RevenueCancellations: {
+            /** Format: int64 */
+            continued: number;
+            /** Format: int64 */
+            kept: number;
+            keptOffer?: string;
+            keptTier?: string;
+            offerId?: string;
+            reasons: components["schemas"]["RevenueReason"][];
+            /** Format: int64 */
+            undecided: number;
+            /** Format: int64 */
+            visits: number;
+        };
+        RevenueChart: {
+            /** Format: int64 */
+            deltaCents: number;
+            /** Format: double */
+            deltaPct?: number;
+            /** Format: int64 */
+            endCents: number;
+            /** Format: date-time */
+            historyUntil?: string;
+            marks: components["schemas"]["RevenueMark"][];
+            points: components["schemas"]["RevenuePoint"][];
+            /** Format: date-time */
+            since: string;
+            /** Format: int64 */
+            startCents: number;
+        };
+        RevenueConversionLine: {
+            /** Format: date-time */
+            at: string;
+            campaignId?: string;
+            credited: string;
+            currency: string;
+            /** @enum {string} */
+            matched: "click_token" | "email" | "none";
+            /** Format: int64 */
+            valueCents: number;
+        };
+        RevenueConversionRow: {
+            /** Format: int64 */
+            byEmail: number;
+            /** Format: int64 */
+            byToken: number;
+            /** Format: int64 */
+            count: number;
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "automation";
+            name: string;
+            /** Format: int64 */
+            valueCents: number;
+        };
+        RevenueConversions: {
+            byEmail: components["schemas"]["RevenueConversionRow"][];
+            /** Format: int64 */
+            count: number;
+            currency: string;
+            latest: components["schemas"]["RevenueConversionLine"][];
+            name?: string;
+            /** Format: int64 */
+            otherCurrency: number;
+            sender?: string;
+            /** Format: date-time */
+            since?: string;
+            /** Format: int64 */
+            total: number;
+            /** Format: int64 */
+            typicalCents?: number;
+            uncredited: components["schemas"]["RevenueMove"];
+            /** Format: int64 */
+            valueCents: number;
+        };
+        RevenueCredit: {
+            /** Format: int64 */
+            count: number;
+            id: string;
+            /** @enum {string} */
+            kind: "campaign" | "automation";
+            name: string;
+        };
+        RevenueFreeToPaid: {
+            /** Format: int64 */
+            all: number;
+            /** Format: int64 */
+            direct: number;
+            rows: components["schemas"]["RevenueSourceRow"][];
+            total: components["schemas"]["RevenueSourceRow"];
+        };
+        RevenueMark: {
+            /** Format: date-time */
+            at: string;
+            /** @enum {string} */
+            kind: "moved" | "offer";
+            /** Format: int64 */
+            n: number;
+            name: string;
+        };
+        RevenueMove: {
+            /** Format: int64 */
+            cents: number;
+            /** Format: int64 */
+            count: number;
+        };
+        RevenueMovement: {
+            churned: components["schemas"]["RevenueMove"];
+            contraction: components["schemas"]["RevenueMove"];
+            expansion: components["schemas"]["RevenueMove"];
+            /** Format: int64 */
+            fromCents: number;
+            /** Format: int64 */
+            fromMembers: number;
+            new: components["schemas"]["RevenueMove"];
+            reactivated: components["schemas"]["RevenueMove"];
+            /** Format: int64 */
+            toCents: number;
+            /** Format: int64 */
+            toMembers: number;
+        };
+        RevenueNeed: {
+            /** Format: int64 */
+            count?: number;
+            /** Format: date-time */
+            due?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            /** Format: int64 */
+            issue?: number;
+            /** @enum {string} */
+            kind: "past_due" | "offer" | "creative" | "sponsor_payment" | "member_email";
+            /** Format: int64 */
+            limit?: number;
+            list?: string;
+            name?: string;
+            overdue?: boolean;
+            sponsor?: string;
+            targetId?: string;
+            template?: string;
+            /** Format: int64 */
+            used?: number;
+        };
+        RevenueOverview: {
+            account: string;
+            activity: components["schemas"]["RevenueActivity"][];
+            canEdit: boolean;
+            canManage: boolean;
+            canPayments: boolean;
+            canSponsors: boolean;
+            cancellations: components["schemas"]["RevenueCancellations"];
+            chart: components["schemas"]["RevenueChart"];
+            /** Format: date-time */
+            connectedAt?: string;
+            conversions: components["schemas"]["RevenueConversions"];
+            currency: string;
+            /** Format: date-time */
+            dataSince?: string;
+            failed: string[];
+            freeToPaid: components["schemas"]["RevenueFreeToPaid"];
+            /** Format: date-time */
+            from: string;
+            hadHistory: boolean;
+            helpers: string[];
+            movement: components["schemas"]["RevenueMovement"];
+            needs: components["schemas"]["RevenueNeed"][];
+            /** @enum {string} */
+            period: "30d" | "90d" | "12m";
+            readOnly: boolean;
+            reference?: string;
+            /** Format: date-time */
+            shownFrom?: string;
+            tiers: components["schemas"]["RevenueTierRow"][];
+            tiles: components["schemas"]["RevenueTiles"];
+            /** Format: date-time */
+            to: string;
+            tooEarly: boolean;
+            trials: components["schemas"]["RevenueTrials"];
+            upgrades: components["schemas"]["RevenueUpgrades"];
+        };
+        RevenuePoint: {
+            /** Format: date-time */
+            at: string;
+            history: boolean;
+            /** Format: int64 */
+            mrrCents: number;
+        };
+        RevenueReason: {
+            /** Format: int64 */
+            count: number;
+            reason: string;
+        };
+        RevenueSourceRow: {
+            /** Format: int64 */
+            atStart: number;
+            /** Format: int64 */
+            base: number;
+            formKind?: string;
+            /** Format: int64 */
+            joined: number;
+            key: string;
+            kind: string;
+            name: string;
+            /** Format: int64 */
+            others?: number;
+            /** Format: int64 */
+            paid: number;
+            /** Format: double */
+            rate?: number;
+            tooFew: boolean;
+        };
+        RevenueTierOffer: {
+            duration: string;
+            /** Format: int64 */
+            members: number;
+            /** Format: int64 */
+            months?: number;
+            name: string;
+            /** Format: int64 */
+            paidCents: number;
+        };
+        RevenueTierRow: {
+            includes: string[];
+            /** Format: int64 */
+            members: number;
+            /** Format: int64 */
+            mrrCents: number;
+            offers: components["schemas"]["RevenueTierOffer"][];
+            period: string;
+            /** Format: int64 */
+            priceCents: number;
+            tier: string;
+            tierId: string;
+        };
+        RevenueTiles: {
+            /** Format: int64 */
+            arrCents: number;
+            /** Format: int64 */
+            churnBase: number;
+            /** Format: double */
+            churnRate?: number;
+            /** Format: int64 */
+            churned: number;
+            /** Format: int64 */
+            freeBase: number;
+            /** Format: int64 */
+            freeToPaid: number;
+            /** Format: double */
+            freeToPaidRate?: number;
+            /** Format: int64 */
+            giftsCents: number;
+            /** Format: int64 */
+            members: number;
+            /** Format: int64 */
+            membersDelta: number;
+            /** Format: int64 */
+            mrrCents: number;
+            /** Format: int64 */
+            mrrDeltaCents: number;
+            /** Format: double */
+            mrrDeltaPct?: number;
+            /** Format: int64 */
+            new: number;
+            /** Format: int64 */
+            sponsorsCents: number;
+            /** Format: int64 */
+            trialing: number;
+        };
+        RevenueTrials: {
+            /** Format: int64 */
+            becamePaid: number;
+            /** Format: int64 */
+            canceled: number;
+            /** Format: int64 */
+            ended: number;
+            endingFrom?: components["schemas"]["RevenueCredit"];
+            /** Format: int64 */
+            endingSoon: number;
+            /** Format: int64 */
+            started: number;
+            /** Format: int64 */
+            trialing: number;
+        };
+        RevenueUpgradeRow: {
+            id?: string;
+            /** @enum {string} */
+            kind: "campaign" | "automation" | "none";
+            /** Format: int64 */
+            members: number;
+            /** Format: int64 */
+            mrrCents: number;
+            name: string;
+            /** Format: date-time */
+            sentAt?: string;
+        };
+        RevenueUpgrades: {
+            rows: components["schemas"]["RevenueUpgradeRow"][];
+            total: components["schemas"]["RevenueMove"];
+            /** Format: int64 */
+            window: number;
+        };
         ReviewAB: {
             /** Format: int64 */
             durationHours: number;
@@ -26443,6 +33636,13 @@ export interface components {
             languages?: string[];
             provider: string;
             to: string;
+        };
+        RewardBlock: {
+            button: string;
+            description: boolean;
+            expiry: boolean;
+            hub: boolean;
+            image: boolean;
         };
         RoleCreated: {
             id: string;
@@ -27890,6 +35090,9 @@ export interface components {
             status: "connected" | "revoked" | "expired" | "limit_reached" | "error";
             teamName: string;
         };
+        ShopInput: {
+            on: boolean;
+        };
         SignInResult: {
             challenge?: string;
             email: string;
@@ -28207,6 +35410,38 @@ export interface components {
             systemMail: boolean;
             systemProvider: string;
             turnstile: components["schemas"]["PublicTurnstile"];
+        };
+        SlotInput: {
+            /**
+             * Format: int64
+             * @description The creative is due this many days before the issue (4 when absent).
+             */
+            creativeDays?: number;
+            /** @description ISO 4217; the workspace's currency when absent. */
+            currency?: string;
+            /**
+             * Format: int64
+             * @description 7 when absent (weekly).
+             */
+            everyDays?: number;
+            /** Format: int64 */
+            firstNumber: number;
+            /**
+             * Format: date
+             * @description The date of issue FirstNumber, in the workspace's time zone.
+             */
+            firstOn: string;
+            /** Format: uuid */
+            listId: string;
+            name: string;
+            /** @description Where it sits in the issue ("After the first story"). */
+            placement?: string;
+            /**
+             * Format: int64
+             * @description The default price of a booking, in minor units.
+             */
+            priceCents: number;
+            selling?: boolean;
         };
         SmsAudienceRef: {
             id: string;
@@ -29775,6 +37010,403 @@ export interface components {
         };
         SourceInput: {
             language: string;
+        };
+        SponsorBlock: {
+            bookingId?: string;
+            /** @enum {string} */
+            bookingStatus?: "hold" | "booked" | "sent" | "";
+            canSeePrice: boolean;
+            creative: components["schemas"]["SponsorCreative"];
+            /** Format: date-time */
+            creativeDue?: string;
+            currency?: string;
+            hash: string;
+            helpers: string[];
+            initials?: string;
+            /** Format: int64 */
+            issue?: number;
+            /** Format: date-time */
+            issueOn?: string;
+            label: string;
+            /** @enum {string} */
+            labelMode: "plain" | "name";
+            /** @enum {string} */
+            layout: "logo-left" | "image-top" | "text";
+            link: string;
+            listName?: string;
+            mjml: string;
+            /** Format: int64 */
+            priceCents?: number;
+            slotId?: string;
+            slotName?: string;
+            sponsor?: string;
+            /** @enum {string} */
+            state: "ready" | "waiting" | "none";
+        };
+        SponsorBookingBrief: {
+            /** Format: double */
+            clickRate?: number;
+            /** Format: date-time */
+            creativeDue?: string;
+            /** @enum {string} */
+            creativeStatus: "waiting" | "ready";
+            final: boolean;
+            /** Format: date-time */
+            holdUntil?: string;
+            id: string;
+            payment: components["schemas"]["SponsorPayment"];
+            /** Format: int64 */
+            priceCents: number;
+            proposal?: components["schemas"]["SponsorPropose"];
+            /** Format: date-time */
+            resultsFinalAt?: string;
+            /** Format: date-time */
+            sentAt?: string;
+            /** Format: date-time */
+            sharedAt?: string;
+            sponsor?: components["schemas"]["SponsorRef"];
+            /** @enum {string} */
+            status: "hold" | "booked" | "sent";
+        };
+        SponsorBookingDetail: {
+            activity: components["schemas"]["SponsorBookingEvent"][];
+            campaign?: components["schemas"]["SponsorCampaignRef"];
+            canManage: boolean;
+            canShare: boolean;
+            /** Format: date-time */
+            canceledAt?: string;
+            creative: components["schemas"]["SponsorCreative"];
+            /** Format: date-time */
+            creativeDue?: string;
+            /** @enum {string} */
+            creativeStatus: "waiting" | "ready";
+            currency: string;
+            helpers: string[];
+            /** Format: date-time */
+            holdUntil?: string;
+            id: string;
+            /** Format: int64 */
+            issue: number;
+            /** Format: date-time */
+            issueOn: string;
+            label: string;
+            library: components["schemas"]["SponsorRef"][];
+            listName: string;
+            notes: string;
+            payment: components["schemas"]["SponsorPayment"];
+            placement: string;
+            /** Format: int64 */
+            priceCents: number;
+            proposal?: components["schemas"]["SponsorPropose"];
+            /** Format: date-time */
+            readyAt?: string;
+            report?: components["schemas"]["SponsorReport"];
+            shares: components["schemas"]["SponsorShareLink"][];
+            slotId: string;
+            slotName: string;
+            /** Format: int64 */
+            slotPriceCents: number;
+            sponsor?: components["schemas"]["SponsorItem"];
+            /** @enum {string} */
+            status: "proposed" | "hold" | "booked" | "sent" | "canceled";
+        };
+        SponsorBookingEvent: {
+            actor?: string;
+            /** Format: date-time */
+            at: string;
+            data: {
+                [key: string]: unknown;
+            };
+            kind: string;
+        };
+        SponsorCampaignRef: {
+            /** Format: date-time */
+            at?: string;
+            author?: string;
+            byHand: boolean;
+            id: string;
+            name: string;
+            status: string;
+        };
+        SponsorCreative: {
+            button?: string;
+            headline?: string;
+            image?: string;
+            link?: string;
+            logo?: string;
+            /** @description Up to 280 characters. */
+            text?: string;
+            utm: components["schemas"]["SponsorUTMs"];
+        };
+        SponsorImage: {
+            url: string;
+        };
+        SponsorInput: {
+            contactEmail?: string;
+            contactName?: string;
+            logoUrl?: string;
+            name: string;
+            notes?: string;
+            /**
+             * Format: int64
+             * @description Payments are due this many days after the issue (14 when absent).
+             */
+            termsDays?: number;
+            website?: string;
+        };
+        SponsorIssueDetail: {
+            bookingId?: string;
+            campaign?: components["schemas"]["SponsorCampaignRef"];
+            canManage: boolean;
+            /** Format: date-time */
+            creativeDue: string;
+            currency: string;
+            helpers: string[];
+            /** Format: int64 */
+            issue: number;
+            /** Format: date-time */
+            issueOn: string;
+            library: components["schemas"]["SponsorRef"][];
+            listName: string;
+            /** Format: date-time */
+            paymentDue: string;
+            placement: string;
+            /** Format: int64 */
+            priceCents: number;
+            proposals: components["schemas"]["SponsorPropose"][];
+            slotId: string;
+            slotName: string;
+            /** Format: int64 */
+            termsDays: number;
+        };
+        SponsorIssueRow: {
+            booking?: components["schemas"]["SponsorBookingBrief"];
+            campaign?: components["schemas"]["SponsorCampaignRef"];
+            /** Format: date-time */
+            issueOn: string;
+            /** Format: int64 */
+            number: number;
+            past: boolean;
+            proposal?: components["schemas"]["SponsorPropose"];
+            slotId: string;
+            slotName: string;
+        };
+        SponsorItem: {
+            /** Format: int64 */
+            bookedCents: number;
+            /** Format: double */
+            clickRate?: number;
+            /** Format: int64 */
+            clickRateIssue?: number;
+            contactEmail: string;
+            contactName: string;
+            currency: string;
+            hold: number[];
+            /** Format: int64 */
+            holdCents: number;
+            id: string;
+            initials: string;
+            issues: number[];
+            logoUrl: string;
+            name: string;
+            notes: string;
+            /** Format: int64 */
+            paidCents: number;
+            /** Format: int64 */
+            termsDays: number;
+            website: string;
+        };
+        SponsorNotice: {
+            /** Format: int64 */
+            amountCents: number;
+            bookingId: string;
+            contactEmail: string;
+            contactName: string;
+            /** Format: int64 */
+            daysToIssue: number;
+            /** Format: date-time */
+            due?: string;
+            /** Format: int64 */
+            issue: number;
+            /** Format: date-time */
+            issueOn: string;
+            /** @enum {string} */
+            kind: "creative_late" | "payment_overdue" | "hold_lapsing" | "no_campaign";
+            listName: string;
+            slotId: string;
+            sponsor: string;
+        };
+        SponsorOverview: {
+            canManage: boolean;
+            currency: string;
+            helpers: string[];
+            library: components["schemas"]["SponsorItem"][];
+            notices: components["schemas"]["SponsorNotice"][];
+            past: components["schemas"]["SponsorIssueRow"][];
+            /** @enum {string} */
+            range: "around" | "upcoming" | "recent" | "all";
+            slotId: string;
+            slots: components["schemas"]["SponsorSlotItem"][];
+            tiles: components["schemas"]["SponsorTiles"];
+            upcoming: components["schemas"]["SponsorIssueRow"][];
+        };
+        SponsorPayment: {
+            /** Format: date-time */
+            due?: string;
+            note: string;
+            /** Format: int64 */
+            paidCents?: number;
+            /** Format: date-time */
+            paidOn?: string;
+            /** Format: date-time */
+            recordedAt?: string;
+            recordedBy?: string;
+            /** @enum {string} */
+            status: "unpaid" | "paid" | "overdue";
+        };
+        SponsorPropose: {
+            agent: string;
+            /** Format: date-time */
+            at: string;
+            id: string;
+            note: string;
+            /** Format: int64 */
+            priceCents: number;
+            sponsor?: components["schemas"]["SponsorRef"];
+        };
+        SponsorRef: {
+            id: string;
+            initials: string;
+            logoUrl?: string;
+            name: string;
+        };
+        SponsorReport: {
+            bookingId: string;
+            /** Format: double */
+            clickRate: number;
+            /** Format: double */
+            clickToOpen: number;
+            /** Format: int64 */
+            clicks: number;
+            creative: components["schemas"]["SponsorCreative"];
+            /** Format: int64 */
+            delivered: number;
+            final: boolean;
+            /** Format: date-time */
+            finalAt?: string;
+            /** Format: double */
+            humanOpenRate: number;
+            /** Format: int64 */
+            humanOpens: number;
+            initials: string;
+            /** Format: int64 */
+            issue: number;
+            /** Format: date-time */
+            issueOn: string;
+            label: string;
+            linkCampaign: string;
+            linkHost: string;
+            links: components["schemas"]["SponsorReportLink"][];
+            listName: string;
+            placement: string;
+            /** Format: date-time */
+            sentAt?: string;
+            slotName: string;
+            sponsor: string;
+            sponsorName: string;
+            /** Format: int64 */
+            uniqueClickers: number;
+            visibility?: string;
+        };
+        SponsorReportLink: {
+            /** Format: int64 */
+            clicks: number;
+            /** @enum {string} */
+            kind: "button" | "logo" | "link";
+            label: string;
+            /** Format: double */
+            share: number;
+        };
+        SponsorShareLink: {
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            every: boolean;
+            /** Format: date-time */
+            expiresAt?: string;
+            id: string;
+            /** Format: date-time */
+            lastViewedAt?: string;
+            url?: string;
+            /** Format: int64 */
+            views: number;
+        };
+        SponsorShareList: {
+            items: components["schemas"]["SponsorShareLink"][];
+        };
+        SponsorSlotItem: {
+            /** Format: int64 */
+            bookings: number;
+            /** Format: int64 */
+            creativeDays: number;
+            currency: string;
+            /** Format: int64 */
+            everyDays: number;
+            /** Format: int64 */
+            firstNumber: number;
+            /** Format: date-time */
+            firstOn: string;
+            id: string;
+            listId: string;
+            listName: string;
+            name: string;
+            placement: string;
+            /** Format: int64 */
+            priceCents: number;
+            selling: boolean;
+            weekday?: string;
+        };
+        SponsorTiles: {
+            avgClickIssues: number[];
+            /** Format: double */
+            avgClickRate?: number;
+            /** Format: int64 */
+            bookedAheadCents: number;
+            bookedAheadIssues: number[];
+            /** Format: int64 */
+            holdAheadCents: number;
+            /** Format: int64 */
+            income30dCents: number;
+            /** Format: int64 */
+            incomeIssues: number;
+            /** Format: int64 */
+            nextBooked: number;
+            /** Format: int64 */
+            nextCount: number;
+            /** Format: int64 */
+            nextFrom: number;
+            /** Format: int64 */
+            nextHold: number;
+            /** Format: int64 */
+            nextOpen: number;
+            /** Format: int64 */
+            nextTo: number;
+            /** Format: int64 */
+            paid30dCents: number;
+            /** Format: int64 */
+            unpaid30dCents: number;
+        };
+        SponsorUTMs: {
+            campaign?: string;
+            medium?: string;
+            source?: string;
+        };
+        SponsorsShareInput: {
+            /**
+             * Format: int64
+             * @description 0 keeps the link until it's revoked.
+             */
+            expiresInDays?: number;
         };
         SubscribePage: {
             description: string;
@@ -31712,6 +39344,8 @@ export interface components {
             stats: components["schemas"]["TransactionalStats"];
             /** Format: date-time */
             updatedAt: string;
+            /** Format: int64 */
+            usedByProducts?: number;
         };
         TransactionalTemplateUpdate: {
             categoryId?: string;
@@ -31904,6 +39538,22 @@ export interface components {
             order: string[];
             /** @description The welcome page after checkout; {{ first_name }} and {{ next_issue }} are filled in. */
             welcome: string;
+        };
+        UploadStart: {
+            name: string;
+            /** Format: uuid */
+            replaces?: string;
+            /** Format: int64 */
+            size: number;
+        };
+        UploadState: {
+            /** Format: int64 */
+            chunkBytes: number;
+            id: string;
+            /** Format: int64 */
+            received: number;
+            /** Format: int64 */
+            size: number;
         };
         VariableUse: {
             /** Format: int64 */
@@ -34217,6 +41867,7 @@ export interface components {
             pluginVersion: string;
             /** @example https://blog.acme.io */
             siteUrl: string;
+            woocommerce?: components["schemas"]["WordPressWooCommerce"];
             /** @example 6.9.2 */
             wordpressVersion?: string;
         };
@@ -34243,6 +41894,14 @@ export interface components {
             notifyUserId?: string;
             senderId?: string;
             templateId?: string;
+        };
+        WordPressWooCommerce: {
+            /** @description Abandoned checkouts are reported */
+            checkouts: boolean;
+            /** @description The consent checkbox is at the checkout */
+            consent: boolean;
+            /** @example 10.2.1 */
+            version: string;
         };
         WorkflowUse: {
             event?: string;
@@ -39522,7 +47181,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "push" | "whatsapp";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "push" | "whatsapp";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -39604,7 +47263,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "push" | "whatsapp";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "push" | "whatsapp";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -40832,6 +48491,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-automation-store-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The automation's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceTriggerStats"];
+                };
             };
             /** @description Error */
             default: {
@@ -43600,6 +51293,180 @@ export interface operations {
             };
         };
     };
+    "get-campaign-product-sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaign: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignProductSales"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-campaign-revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The campaign's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignRevenue"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-campaign-sponsor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignSponsor"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-campaign-sponsor-block": {
+        parameters: {
+            query?: {
+                /** @description The block's layout */
+                layout?: "logo-left" | "image-top" | "text" | "";
+                /** @description Plain "Sponsored", or "Sponsored by" the sponsor */
+                label?: "plain" | "name" | "";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The campaign's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorBlock"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-campaign-store-revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The campaign's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceCampaignRevenue"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-channels": {
         parameters: {
             query?: never;
@@ -43619,6 +51486,138 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SmsChannels"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "render-store-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommerceBlockRenderInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceBlockRender"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-store-catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceCatalog"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-store-revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceRevenueSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-store-trigger-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceAutomationOptions"];
                 };
             };
             /** @description Error */
@@ -44405,6 +52404,14 @@ export interface operations {
                 pushSubscribed?: boolean;
                 /** @description Only contacts with WhatsApp consent on a list */
                 whatsAppConsent?: boolean;
+                /** @description Only contacts who bought a product: any, or the product's id */
+                bought?: string;
+                /** @description A store's id, or any */
+                storeCustomer?: string;
+                /** @description Total spent in the stores, at least */
+                spentFrom?: string;
+                /** @description Total spent in the stores, at most */
+                spentTo?: string;
                 page?: number;
                 pageSize?: number;
             };
@@ -44965,6 +52972,40 @@ export interface operations {
             };
         };
     };
+    "get-contact-stores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The contact's id */
+                contactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceContactStores"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-contact-website": {
         parameters: {
             query?: never;
@@ -45350,6 +53391,72 @@ export interface operations {
             };
         };
     };
+    "get-contact-purchases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactPurchases"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-contact-referrals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contact: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralContact"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "resend-contact-optin": {
         parameters: {
             query?: never;
@@ -45439,6 +53546,81 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-conversions": {
+        parameters: {
+            query?: {
+                /** @description Conversions received before this moment (the previous page's next) */
+                before?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversionList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-conversion": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Sending the same key again answers with the first conversion instead of recording a second */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConversionInput"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversionResult"];
+                };
             };
             /** @description Error */
             default: {
@@ -46732,6 +54914,106 @@ export interface operations {
             };
         };
     };
+    "get-attribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttributionSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-attribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttributionInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttributionSettings"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-test-conversion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-earn-audience": {
         parameters: {
             query?: {
@@ -46756,6 +55038,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EarnAudience"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-earn-card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EarnCard"];
                 };
             };
             /** @description Error */
@@ -47250,6 +55564,325 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EarnMember"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-gifts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftsView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-gifts": {
+        parameters: {
+            query?: {
+                /** @description The filter (all by default) */
+                status?: "all" | "scheduled" | "not_redeemed" | "redeemed" | "expired" | "refunded";
+                /** @description Buyer, recipient or email */
+                q?: string;
+                /** @description The page (20 gifts each) */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-gift-option": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GiftOptionInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftOption"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-gift-option": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The gift option's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GiftOptionInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftOption"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-gift-option": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The gift option's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-gift-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GiftPageInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftPage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "change-gift-delivery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The gift's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GiftDeliveryInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftRow"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "copy-gift-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The gift's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftLink"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resend-gift": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The gift's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftRow"];
                 };
             };
             /** @description Error */
@@ -47835,6 +56468,246 @@ export interface operations {
             };
         };
     };
+    "list-offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "new-offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The offer's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The offer's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "end-offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The offer's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "recreate-offer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The offer's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-earn-payments": {
         parameters: {
             query?: never;
@@ -47929,6 +56802,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EarnPlans"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-revenue-overview": {
+        parameters: {
+            query?: {
+                /** @description The last 30 days, 90 days or 12 months */
+                period?: "30d" | "90d" | "12m";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevenueOverview"];
                 };
             };
             /** @description Error */
@@ -49012,6 +57920,260 @@ export interface operations {
             };
         };
     };
+    "get-form-download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormDownload"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-form-download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormDownloadInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormDownload"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-form-download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormDownload"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-form-download-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UploadStart"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-form-download-chunk": {
+        parameters: {
+            query?: {
+                /** @description Where this chunk starts: the bytes received so far */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+                upload: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-form-download-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+                upload: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "finish-form-download-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+                upload: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormDownload"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "set-signup-form-language": {
         parameters: {
             query?: never;
@@ -49037,6 +58199,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SignupFormCopy"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-form-pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Form id */
+                form: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormPages"];
                 };
             };
             /** @description Error */
@@ -49184,6 +58380,2351 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SignupFormConfirmLink"];
                 };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-grow-preview-contacts": {
+        parameters: {
+            query?: {
+                program?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowPreviewContacts"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "render-recommendations-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlockRenderInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlockRender"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "render-grow-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrowBlockRenderInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowBlockRender"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-referral-milestone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralMilestoneView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-referral-milestone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralMilestoneInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralMilestoneView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-referral-milestone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-referral-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralCodesInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralCodesResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-referral-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralRemoved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-referral-milestone-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralMilestoneEmailDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "autosave-referral-milestone-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralEmailSave"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralEmailSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-referral-milestone-email-on": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralEmailOnInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-referral-milestone-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralEmailPreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralEmailRender"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-referral-milestone-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralEmailSave"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralEmailSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-referral-milestone-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralEmailTest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralEmailTestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "test-referral-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                milestone: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralWebhookTestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-grow-overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-partner-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerCodeInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerCodeCreated"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "revoke-partner-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-partner-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "end-partner-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-partner-limit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerLimitInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pause-partner-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-partner-requests": {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerRequestLog"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-partner-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rotate-partner-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-partner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerConnectInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-partner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerCodeText"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-grow-page": {
+        parameters: {
+            query?: {
+                /** @description The program (the first one by default) */
+                program?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                page: "invite" | "hub" | "leaderboard" | "recommends";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationsView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-link-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecLinkInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reorder-recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecOrderInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "prefill-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecPrefillInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecPrefill"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-partner-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecProfileInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecProfile"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-recommendation-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                recommendation: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecLinkInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                recommendation: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pause-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                recommendation: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-recommendation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                recommendation: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-referral-programs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralProgramList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-referral-program": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralCreateInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralProgramDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-referral-program": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralProgramDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-referral-program": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-referral-checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralChecks"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-referral-file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralFile"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-referral-file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-referral-fulfillment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-referral-leaderboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralLeaderboardInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralProgramDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-referral-milestones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralMilestoneList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-referral-milestone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralMilestoneInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralMilestoneView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "turn-off-referral-program": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralProgramDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "turn-on-referral-program": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralTurnedOn"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-referrers": {
+        parameters: {
+            query?: {
+                q?: string;
+                /** @description 0 any, -1 none yet, n reached n */
+                milestone?: number;
+                held?: boolean;
+                paused?: boolean;
+                page?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralReferrerList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-referrers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-referrer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralReferrerPanel"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "pause-referral-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralLinkPauseInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resume-referral-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+                link: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-referral-results": {
+        parameters: {
+            query?: {
+                period?: "7d" | "30d" | "all";
+                grouping?: "day" | "week";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralResults"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-referral-review": {
+        parameters: {
+            query?: {
+                signal?: "burst" | "shared_ip" | "numbered" | "";
+                referrer?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralReviewQueue"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "decide-referrals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralDecisionInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralDecision"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "undo-referral-decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+                decision: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-referral-decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralDecisionInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralDecisionPreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-referral-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralProgramDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "referral-settings-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralCounting"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralSettingsImpact"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-referral-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                program: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralSetupInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralProgramDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "copy-referral-claim-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                reward: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReferralClaimLink"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "fulfill-referral-reward": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                reward: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferralFulfillInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resend-referral-reward": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                reward: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "retry-referral-reward": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                reward: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error */
             default: {
@@ -52786,7 +64327,7 @@ export interface operations {
         parameters: {
             query?: {
                 /** @description Notification center tab */
-                filter?: "all" | "unread" | "approvals" | "sending" | "providers" | "team" | "hostrepute" | "transactional" | "earn" | "website";
+                filter?: "all" | "unread" | "approvals" | "sending" | "providers" | "team" | "hostrepute" | "transactional" | "earn" | "website" | "grow";
                 /** @description Opaque cursor from a previous page */
                 cursor?: string;
                 limit?: number;
@@ -53032,6 +64573,718 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OverviewSenderHealth"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-pages": {
+        parameters: {
+            query?: {
+                period?: "7d" | "30d" | "90d";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagesOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PageCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-shop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShopInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagesShop"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "request-page-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PageApprovalInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-page-canvas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageCanvas"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-page-content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PageContentInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-page-diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDiff"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PagePreviewInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "publish-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PagePublishInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-page-reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageReminders"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-page-reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageReminders"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "render-page-blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PageRenderInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageRendered"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-page-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PageSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "undo-page-publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "unpublish-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PageUnpublishInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-page-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageVersionList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-page-version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageVersionDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "restore-page-version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The page's id */
+                page: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageDetail"];
                 };
             };
             /** @description Error */
@@ -53794,6 +66047,785 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-products": {
+        parameters: {
+            query?: {
+                period?: "30d" | "90d" | "12m";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductsOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-product": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-product-orders": {
+        parameters: {
+            query?: {
+                /** @description An order number or part of the buyer's email */
+                q?: string;
+                /** @description A product's id */
+                product?: string;
+                status?: "" | "paid" | "refunded" | "partially_refunded" | "disputed" | "test";
+                period?: "7d" | "30d" | "90d" | "all";
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductOrderList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-product-orders": {
+        parameters: {
+            query?: {
+                /** @description An order number or part of the buyer's email */
+                q?: string;
+                /** @description A product's id */
+                product?: string;
+                status?: "" | "paid" | "refunded" | "partially_refunded" | "disputed" | "test";
+                period?: "7d" | "30d" | "90d" | "all";
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-product-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                order: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductOrderDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-order-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                order: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewLinkInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductOrderDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "restore-order-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                order: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductOrderDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "revoke-order-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                order: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductOrderDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-products-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductsSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-product": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                product: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-product": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                product: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductFields"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-product": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                product: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "archive-product": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                product: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-product-cover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                product: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description PNG, JPEG or GIF, up to 5 MB
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductCover"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-product-file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                product: string;
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "preview-product-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                product: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPagePreview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "publish-product": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                product: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductPublishInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "unarchive-product": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                product: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-product-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                product: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UploadStart"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-product-chunk": {
+        parameters: {
+            query?: {
+                /** @description Where this chunk starts: the bytes received so far */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                product: string;
+                upload: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-product-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                product: string;
+                upload: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "finish-product-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                product: string;
+                upload: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductFile"];
                 };
             };
             /** @description Error */
@@ -58901,6 +71933,1563 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SmsRules"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-sponsor-booking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorBookingDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-sponsor-booking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorBookingDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "link-sponsor-booking-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampaignInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorBookingDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-sponsor-booking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelInput"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "confirm-sponsor-proposal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorBookingDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-sponsor-creative": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SponsorCreative"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorBookingDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-sponsor-image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The booking's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description PNG, JPEG or GIF, up to 5 MB
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorImage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "mark-sponsor-creative-ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorBookingDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "record-sponsor-payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorBookingDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-sponsor-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorReport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-sponsor-shares": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorShareList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-sponsor-booking-share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SponsorsShareInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorShareLink"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "revoke-sponsor-share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-sponsor-slot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SlotInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorSlotItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-sponsor-slot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SlotInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorSlotItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-sponsor-slot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-sponsor-issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The slot's id */
+                id: string;
+                /** @description The issue's number */
+                number: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorIssueDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "book-sponsor-issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The slot's id */
+                id: string;
+                /** @description The issue's number */
+                number: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorBookingDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-sponsor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SponsorInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-sponsor-campaign-chips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampaignChips"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "upload-sponsor-logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description PNG, JPEG or GIF, up to 5 MB
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorImage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-sponsor-overview": {
+        parameters: {
+            query?: {
+                /** @description A slot's id; the first slot when absent. */
+                slot?: string;
+                range?: "around" | "upcoming" | "recent" | "all";
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-sponsor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SponsorInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorItem"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-sponsor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-sponsor-share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SponsorsShareInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorShareLink"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-stores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceStoreList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommerceBeginInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceConnectState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceStorePage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-store-activity": {
+        parameters: {
+            query?: {
+                cursor?: string;
+                /** @description Only these kinds of entries */
+                kinds?: string[];
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceActivityList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-store-app-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommerceKeysInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceConnectState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-store-checkout-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceCheckoutBlock"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-store-connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceConnectState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "disconnect-store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommerceDisconnectInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceStoreSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "finish-store-connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinishInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceConnectState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "install-store-app": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceInstall"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-store-plugin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceConnectState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-store-products": {
+        parameters: {
+            query?: {
+                collection?: string;
+                search?: string;
+                cursor?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceProductList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reconnect-store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceConnectState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-store-rest-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommerceWooKeyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceConnectState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-store-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommerceSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceStorePage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-store-sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommerceSyncInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceConnectState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "sync-store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceQueued"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "register-store-webhooks": {
+        parameters: {
+            query?: {
+                /** @description Every webhook, not only the missing ones */
+                all?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceStorePage"];
                 };
             };
             /** @description Error */
@@ -64724,6 +79313,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WhatsAppTestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "report-woocommerce-checkouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommerceWooCheckoutsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceWooCheckoutsResult"];
                 };
             };
             /** @description Error */

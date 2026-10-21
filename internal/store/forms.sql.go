@@ -16,7 +16,7 @@ import (
 const formAllowOrigin = `-- name: FormAllowOrigin :one
 UPDATE forms SET allowed_origins = array_append(allowed_origins, $1::text), updated_by = $2, updated_at = $3
 WHERE workspace_id = $4 AND id = $5 AND NOT ($1::text = ANY (allowed_origins))
-RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at
+RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days
 `
 
 type FormAllowOriginParams struct {
@@ -70,6 +70,8 @@ func (q *Queries) FormAllowOrigin(ctx context.Context, arg FormAllowOriginParams
 		&i.FixedLanguage,
 		&i.ConsentChangedBy,
 		&i.ConsentChangedAt,
+		&i.DownloadFileID,
+		&i.DownloadDays,
 	)
 	return i, err
 }
@@ -170,7 +172,7 @@ func (q *Queries) FormBumpTotals(ctx context.Context, arg FormBumpTotalsParams) 
 }
 
 const formByPublicID = `-- name: FormByPublicID :one
-SELECT id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at FROM forms WHERE workspace_id = $1 AND public_id = $2
+SELECT id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days FROM forms WHERE workspace_id = $1 AND public_id = $2
 `
 
 type FormByPublicIDParams struct {
@@ -215,12 +217,14 @@ func (q *Queries) FormByPublicID(ctx context.Context, arg FormByPublicIDParams) 
 		&i.FixedLanguage,
 		&i.ConsentChangedBy,
 		&i.ConsentChangedAt,
+		&i.DownloadFileID,
+		&i.DownloadDays,
 	)
 	return i, err
 }
 
 const formBySlug = `-- name: FormBySlug :one
-SELECT id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at FROM forms WHERE workspace_id = $1 AND slug = $2
+SELECT id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days FROM forms WHERE workspace_id = $1 AND slug = $2
 `
 
 type FormBySlugParams struct {
@@ -265,6 +269,8 @@ func (q *Queries) FormBySlug(ctx context.Context, arg FormBySlugParams) (Form, e
 		&i.FixedLanguage,
 		&i.ConsentChangedBy,
 		&i.ConsentChangedAt,
+		&i.DownloadFileID,
+		&i.DownloadDays,
 	)
 	return i, err
 }
@@ -390,7 +396,7 @@ func (q *Queries) FormDismissOrigin(ctx context.Context, arg FormDismissOriginPa
 }
 
 const formGet = `-- name: FormGet :one
-SELECT id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at FROM forms WHERE workspace_id = $1 AND id = $2
+SELECT id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days FROM forms WHERE workspace_id = $1 AND id = $2
 `
 
 type FormGetParams struct {
@@ -435,6 +441,8 @@ func (q *Queries) FormGet(ctx context.Context, arg FormGetParams) (Form, error) 
 		&i.FixedLanguage,
 		&i.ConsentChangedBy,
 		&i.ConsentChangedAt,
+		&i.DownloadFileID,
+		&i.DownloadDays,
 	)
 	return i, err
 }
@@ -446,7 +454,7 @@ INSERT INTO forms (id, workspace_id, name, kind, slug, public_id, list_ids, defa
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18,
         $19, $20, $21, $21, $22, $22)
-RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at
+RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days
 `
 
 type FormInsertParams struct {
@@ -534,6 +542,8 @@ func (q *Queries) FormInsert(ctx context.Context, arg FormInsertParams) (Form, e
 		&i.FixedLanguage,
 		&i.ConsentChangedBy,
 		&i.ConsentChangedAt,
+		&i.DownloadFileID,
+		&i.DownloadDays,
 	)
 	return i, err
 }
@@ -602,7 +612,7 @@ func (q *Queries) FormRecordRejection(ctx context.Context, arg FormRecordRejecti
 const formRename = `-- name: FormRename :one
 UPDATE forms SET name = $1, slug = $2, updated_by = $3, updated_at = $4
 WHERE workspace_id = $5 AND id = $6
-RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at
+RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days
 `
 
 type FormRenameParams struct {
@@ -658,6 +668,8 @@ func (q *Queries) FormRename(ctx context.Context, arg FormRenameParams) (Form, e
 		&i.FixedLanguage,
 		&i.ConsentChangedBy,
 		&i.ConsentChangedAt,
+		&i.DownloadFileID,
+		&i.DownloadDays,
 	)
 	return i, err
 }
@@ -665,7 +677,7 @@ func (q *Queries) FormRename(ctx context.Context, arg FormRenameParams) (Form, e
 const formSetStatus = `-- name: FormSetStatus :one
 UPDATE forms SET status = $1, updated_by = $2, updated_at = $3
 WHERE workspace_id = $4 AND id = $5
-RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at
+RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days
 `
 
 type FormSetStatusParams struct {
@@ -719,6 +731,8 @@ func (q *Queries) FormSetStatus(ctx context.Context, arg FormSetStatusParams) (F
 		&i.FixedLanguage,
 		&i.ConsentChangedBy,
 		&i.ConsentChangedAt,
+		&i.DownloadFileID,
+		&i.DownloadDays,
 	)
 	return i, err
 }
@@ -1060,7 +1074,7 @@ SET name = $1, kind = $2, list_ids = $3, default_list_ids = $4, list_choice = $5
     published_at = CASE WHEN $17::text = 'live' THEN $14::timestamptz ELSE published_at END,
     updated_by = $13, updated_at = $14
 WHERE workspace_id = $18 AND id = $19
-RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at
+RETURNING id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days
 `
 
 type FormUpdateParams struct {
@@ -1142,6 +1156,8 @@ func (q *Queries) FormUpdate(ctx context.Context, arg FormUpdateParams) (Form, e
 		&i.FixedLanguage,
 		&i.ConsentChangedBy,
 		&i.ConsentChangedAt,
+		&i.DownloadFileID,
+		&i.DownloadDays,
 	)
 	return i, err
 }
@@ -1231,7 +1247,7 @@ func (q *Queries) FormsDefaultSender(ctx context.Context, workspaceID uuid.UUID)
 
 const formsList = `-- name: FormsList :many
 
-SELECT id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at FROM forms WHERE workspace_id = $1 ORDER BY created_at, id
+SELECT id, workspace_id, name, kind, slug, list_ids, double_opt_in, fields, content, spam_protection, status, views, submissions, confirmed, blocked, created_by, created_at, updated_at, public_id, default_list_ids, list_choice, consent_text, consent_version, allowed_origins, after_submit, redirect_url, published_at, updated_by, copy_language, language_mode, fixed_language, consent_changed_by, consent_changed_at, download_file_id, download_days FROM forms WHERE workspace_id = $1 ORDER BY created_at, id
 `
 
 // Signup forms and public page settings (spec 5.12, 7.12).
@@ -1278,6 +1294,8 @@ func (q *Queries) FormsList(ctx context.Context, workspaceID uuid.UUID) ([]Form,
 			&i.FixedLanguage,
 			&i.ConsentChangedBy,
 			&i.ConsentChangedAt,
+			&i.DownloadFileID,
+			&i.DownloadDays,
 		); err != nil {
 			return nil, err
 		}

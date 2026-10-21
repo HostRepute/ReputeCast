@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/publicurl"
@@ -46,10 +47,16 @@ type Service struct {
 	// Extras fill in test emails' poll links and cut them to a contact's
 	// version of conditional content (conditional.go); nil leaves them.
 	Extras Extras
+	// More adds other domains' findings to the composer's checks (the
+	// Sponsor block's creative, internal/sponsors); nil leaves them out.
+	More MoreChecks
 	// Channels fill in the rows of campaigns on other channels (SMS, and
 	// later push and WhatsApp): their routes, results and readiness. Nil
 	// leaves those rows as stored.
 	Channels ChannelRows
+	// Recipients add the per-reader variables of blocks (Grow's Referral
+	// and Recommendations blocks) to previews and test sends; nil adds none.
+	Recipients func() []liquid.RecipientData
 }
 
 // ChannelRows fills in the list's rows of one channel's campaigns
@@ -57,6 +64,10 @@ type Service struct {
 type ChannelRows interface {
 	FillChannelRows(ctx context.Context, ws *store.Workspace, items []CampaignListItem)
 }
+
+// MoreChecks are other domains' findings about an email's content, for the
+// composer's checks.
+type MoreChecks func(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID, mjml string) []contentcheck.ContentCheckIssue
 
 // ChangeHook is told which campaign changed. The save already committed, so
 // a hook handles its own errors.
@@ -332,7 +343,8 @@ func (s *Service) audienceLabeler(ctx context.Context, wsID uuid.UUID) (func(jso
 	var public []uuid.UUID
 	for _, l := range lists {
 		names[l.ID] = l.Name
-		if l.Public {
+		// "All subscribers" is every public list but the ones a store fills (X20).
+		if l.Public && l.Origin != "store" {
 			public = append(public, l.ID)
 		}
 	}

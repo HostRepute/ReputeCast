@@ -36,10 +36,11 @@ func TestTransactionalDemo(t *testing.T) {
 	}
 	c.Do("GET", base+"/templates?period=7d", nil).MustStatus(t, 200).JSON(t, &list)
 	// Earn's eight member emails (phase 6) are in the list too, in their
-	// Memberships category; the boards' numbers are Acme Cloud's six.
+	// Memberships category, and the products' product-delivery (X19) in
+	// Purchases; the boards' numbers are Acme Cloud's six.
 	items := list.Items[:0]
 	for _, it := range list.Items {
-		if !strings.HasPrefix(it.Key, "member-") && !strings.HasPrefix(it.Key, "gift-") {
+		if !strings.HasPrefix(it.Key, "member-") && !strings.HasPrefix(it.Key, "gift-") && it.Key != "product-delivery" {
 			items = append(items, it)
 		}
 	}
@@ -101,7 +102,20 @@ func TestTransactionalDemo(t *testing.T) {
 	}
 	c.Do("GET", base+"/overview?period=7d", nil).MustStatus(t, 200).JSON(t, &ov)
 	st := ov.Stats
-	if st.Sent != 13721 || st.Delivered != 13688 || st.Bounced != 27 || st.Deferred != 6 || st.Complained != 1 || st.Rejected != 12 ||
+	// The products' delivery emails (X19) were sent at the pages' design
+	// times: which of them fall in a window depends on the time of day the
+	// demo was seeded, so they're counted here. They were all delivered.
+	extra := func(since string, test bool) int64 {
+		t.Helper()
+		var n int64
+		if err := env.App.Pool.QueryRow(context.Background(), `SELECT count(*) FROM transactional_messages
+			WHERE template_key = 'product-delivery' AND test = $2 AND accepted_at >= now() - $1::interval AND accepted_at < now()`, since, test).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		return n
+	}
+	week := extra("7 days", false)
+	if st.Sent != 13721+week || st.Delivered != 13688+week || st.Bounced != 27 || st.Deferred != 6 || st.Complained != 1 || st.Rejected != 12 ||
 		st.Suppressed != 10 || st.OptedOut != 2 || st.Keys != 2 || !st.SMTP || fmt1(float64(st.MedianMs)/1000) != "1.3" ||
 		len(st.ComplainedOn) != 1 || st.ComplainedOn[0] != "usage-summary" {
 		t.Fatalf("overview: %+v", st)
@@ -120,13 +134,18 @@ func TestTransactionalDemo(t *testing.T) {
 		Counts struct{ All, Delivered, Deferred, Bounced, Complained, Rejected, Failed, Test int64 }
 		Items  []struct{ Email, Status string }
 	}
-	c.Do("GET", base+"/messages?range=24h&limit=10", nil).MustStatus(t, 200).JSON(t, &log)
-	if n := log.Counts; n.All != 1986 || n.Delivered != 1951 || n.Deferred != 2 || n.Bounced != 4 || n.Complained != 0 || n.Rejected != 3 || n.Failed != 0 || n.Test != 26 {
+	c.Do("GET", base+"/messages?range=24h&limit=12", nil).MustStatus(t, 200).JSON(t, &log)
+	day, dayTest := extra("24 hours", false), extra("24 hours", true)
+	if n := log.Counts; n.All != 1986+day+dayTest || n.Delivered != 1951+day || n.Deferred != 2 || n.Bounced != 4 || n.Complained != 0 || n.Rejected != 3 ||
+		n.Failed != 0 || n.Test != 26+dayTest {
 		t.Fatalf("counts: %+v", log.Counts)
 	}
+	// The latest rows, without Linh's test purchases' delivery emails (X19).
 	rows := []string{}
 	for _, it := range log.Items {
-		rows = append(rows, it.Email+" "+it.Status)
+		if it.Email != "linh@acme.io" && len(rows) < 10 {
+			rows = append(rows, it.Email+" "+it.Status)
+		}
 	}
 	wantRows := "sam.rivera@outlook.com delivered, jordan@example.org rejected, billing@northwind.example delivered, priya.shah@example.net delivered, " +
 		"ops@contoso.example bounced, kim.tran@example.com rejected, qa+signup@acme.io test, lena@example.com test, " +
@@ -186,8 +205,9 @@ func TestTransactionalDemo(t *testing.T) {
 	for _, it := range cats.Items {
 		got = append(got, it.Name+":"+it.Kind+":"+itoa(it.OptedOut))
 	}
-	// Memberships holds Earn's member emails (phase 6).
-	if strings.Join(got, " ") != "Account:essential:0 Billing:essential:0 Reminders:optional:2 Product updates:optional:31 Memberships:essential:0" {
+	// Memberships holds Earn's member emails (phase 6), Purchases the
+	// products' delivery email (X19).
+	if strings.Join(got, " ") != "Account:essential:0 Billing:essential:0 Reminders:optional:2 Product updates:optional:31 Memberships:essential:0 Purchases:essential:0" {
 		t.Fatalf("categories: %v", got)
 	}
 

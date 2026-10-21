@@ -71,6 +71,8 @@ type Snapshot struct {
 	// SMS is what an SMS campaign's approval shows: the text as sent, its
 	// segments, the senders and the cost per country.
 	SMS *ApprovalSMSSnapshot `json:"sms,omitempty"`
+	// Page: what a page publish request covers (DraftHash is the page's hash).
+	Page *ApprovalPageSnapshot `json:"page,omitempty"`
 	// Push and WhatsApp are what push and WhatsApp campaigns' approvals
 	// show: the notification, or the template with its variables (X22).
 	Push     *ApprovalPushSnapshot     `json:"push,omitempty"`

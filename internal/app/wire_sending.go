@@ -12,6 +12,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/languages"
+	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/tracking"
@@ -50,6 +51,14 @@ func (r *readinessRecheck) Recheck(ctx context.Context, campaignID uuid.UUID) (s
 // set from wire_visibility.go. Nil sends every block.
 var sendingConditional = func(*App) engine.Conditional { return nil }
 
+// sendingStore, trackingDecorators and trackingMessageVars are the stores'
+// part of sending and tracking; set from wire_commerce.go.
+var (
+	sendingStore        = func(*App) engine.StoreContent { return nil }
+	trackingDecorators  = func(*App) []tracking.LinkDecorator { return nil }
+	trackingMessageVars = func(*App) func(context.Context, map[string]string) map[string]string { return nil }
+)
+
 // sendingSegments resolves segment audiences: the audience domain's
 // segments service (dynamic segments are evaluated when the send starts,
 // static ones use their snapshot).
@@ -69,7 +78,15 @@ func sendingTracker(a *App) *tracking.Service {
 	t := &tracking.Service{Pool: a.Pool, Q: a.Q, Links: a.Links, Log: a.Log,
 		Automations:   &automations.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log},
 		Transactional: transactionalService(a),
-		Placement:     a.placement()}
+		Placement:     a.placement(),
+		Recipients:    func() []liquid.RecipientData { return recipientData(a) },
+		// Links to a store get UTM parameters and the click token; an
+		// automation email's checkout link is its own (wire_commerce.go).
+		Decorators:  trackingDecorators(a),
+		MessageVars: trackingMessageVars(a)}
+	for _, hook := range trackingHooks {
+		hook(a, t)
+	}
 	v, _ := trackers.LoadOrStore(a, t)
 	return v.(*tracking.Service)
 }
@@ -94,6 +111,10 @@ func sendingEngine(a *App) *engine.Engine {
 		// Each reader gets their version of conditional content, and their
 		// own poll and survey links.
 		Conditional: sendingConditional(a),
+		// Grow's blocks read each reader's referral link and progress.
+		Recipients: func() []liquid.RecipientData { return recipientData(a) },
+		// Store blocks read prices and availability when the email goes out.
+		Store: sendingStore(a),
 	}
 	v, _ := sendingEngines.LoadOrStore(a, e)
 	return v.(*engine.Engine)

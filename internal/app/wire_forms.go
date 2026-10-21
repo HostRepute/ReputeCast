@@ -11,6 +11,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/demo"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/forms"
+	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/publicpages"
@@ -53,9 +54,23 @@ func (a *App) formsService() *forms.Service {
 		Tokens: a.Links, URLs: a.URLs, DNS: resolver,
 		Turnstile: &forms.Turnstile{Client: guard.Client(10 * time.Second)},
 		Addresses: formAddressChecks{a: a},
+		Hooks:     func() []forms.SignupHook { return signupHooks(a) },
 	}
 	formsServices[a] = s
 	return s
+}
+
+// signupHookRegistrars are the domains told about signups and
+// confirmations (Grow's referral and partner attribution), each from its
+// own wire file.
+var signupHookRegistrars []func(*App) forms.SignupHook
+
+func signupHooks(a *App) []forms.SignupHook {
+	out := make([]forms.SignupHook, 0, len(signupHookRegistrars))
+	for _, f := range signupHookRegistrars {
+		out = append(out, f(a))
+	}
+	return out
 }
 
 // publicNotifications is transactional mail's Optional categories on the
@@ -92,6 +107,17 @@ func (a *App) publicPages() *publicpages.Handler {
 		Browser: browserContent{a},
 		// The upgrade page, its welcome page and the billing links (X16).
 		Earn: earnService(a),
+		// The hosted cancel page and its retention offer (X17).
+		Offers: offerService(a),
+		// The gift and redeem pages (X17).
+		Gifts: giftService(a),
+		// Shared sponsor reports (X17).
+		Sponsors:   sponsorService(a),
+		Recipients: func() []liquid.RecipientData { return recipientData(a) },
+		// Grow's pages: the hub, invite pages, the leaderboard, downloads
+		// and the recommendations page.
+		Referrals:       a.referrals,
+		Recommendations: a.recommendations,
 		// The publication website's pages (X18).
 		Website: site,
 		// The text message terms page (SMS).

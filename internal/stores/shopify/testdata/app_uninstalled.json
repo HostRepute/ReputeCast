@@ -1,0 +1,11 @@
+{
+  "id": 71244726554,
+  "name": "Acme Merch",
+  "email": "shop@acme.io",
+  "domain": "shop.acme.io",
+  "myshopify_domain": "acme-merch.myshopify.com",
+  "currency": "USD",
+  "plan_name": "basic",
+  "created_at": "2025-02-11T10:05:12-05:00",
+  "updated_at": "2026-10-14T18:05:00-04:00"
+}

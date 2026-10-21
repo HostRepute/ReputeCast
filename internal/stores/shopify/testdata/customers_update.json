@@ -1,0 +1,25 @@
+{
+  "id": 7002,
+  "email": "theo.martin@example.com",
+  "created_at": "2026-10-15T09:56:40-04:00",
+  "updated_at": "2026-10-15T09:58:03-04:00",
+  "first_name": "Theo",
+  "last_name": "Martin",
+  "orders_count": 1,
+  "state": "disabled",
+  "total_spent": "64.00",
+  "last_order_id": 5821403999001,
+  "note": "VIP — call before shipping",
+  "verified_email": true,
+  "tax_exempt": false,
+  "phone": "+33612345678",
+  "tags": "",
+  "currency": "USD",
+  "email_marketing_consent": { "state": "not_subscribed", "opt_in_level": "single_opt_in", "consent_updated_at": null },
+  "sms_marketing_consent": { "state": "not_subscribed", "opt_in_level": "single_opt_in", "consent_updated_at": null, "consent_collected_from": "OTHER" },
+  "admin_graphql_api_id": "gid://shopify/Customer/7002",
+  "default_address": {
+    "id": 9177, "customer_id": 7002, "first_name": "Theo", "last_name": "Martin", "address1": "12 Rue de Rivoli", "city": "Paris",
+    "zip": "75004", "phone": "+33612345678", "country": "France", "country_code": "FR", "country_name": "France", "default": true
+  }
+}

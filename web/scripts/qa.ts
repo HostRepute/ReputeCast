@@ -125,8 +125,25 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
   // verification job by its label ({verification:Sunset}).
   placement: (ctx, name) => lookup(ctx, 'placement/tests', 'tests', (t) => t.name === name, `no placement test named ${name}`),
   verification: (ctx, label) => lookup(ctx, 'verification/services', 'uses', (u) => u.label === label && u.kind !== 'realtime', `no verification job ${label}`),
+  // An offer by its name ({offer:FALL26}) and a sponsor booking by its issue ({booking:141}).
+  offer: (ctx, name) => lookup(ctx, 'earn/offers', 'items', (o) => o.name === name, `no offer named ${name}`),
+  async booking(ctx, issue) {
+    const r = await ctx.request.get(`${app}/api/v1/workspaces/${workspace}/sponsors/overview`, { params: { range: 'all' } })
+    type Row = { number: number; booking?: { id: string } }
+    const body = (await r.json()) as { past?: Row[]; upcoming?: Row[] }
+    const hit = [...(body.past ?? []), ...(body.upcoming ?? [])].find((i) => String(i.number) === issue && i.booking)
+    if (!hit?.booking) throw new Error(`no booking of issue ${issue}`)
+    return hit.booking.id
+  },
   // A website post by its title ({post:Inside our Postgres migration: the runbook}).
   post: (ctx, title) => lookup(ctx, `website/posts?pageSize=100&q=${encodeURIComponent(title)}`, 'posts', (p) => p.title === title, `no post titled ${title}`),
+  // A product by its name ({product:The Deliverability Field Guide}) and an order by its number ({order:1311}).
+  product: (ctx, name) => lookup(ctx, 'products', 'products', (p) => p.name === name, `no product named ${name}`),
+  order: (ctx, n) => lookup(ctx, `products/orders?period=all&q=${encodeURIComponent(n)}`, 'items', (o) => String(o.number) === n, `no order ${n}`),
+  // A page by its name ({page:The Deliverability Field Guide}).
+  page: (ctx, name) => lookup(ctx, 'pages', 'pages', (p) => p.name === name, `no page named ${name}`),
+  // A connected store by its name ({store:Acme Merch}).
+  store: (ctx, name) => lookup(ctx, 'stores', 'stores', (s) => s.name === name, `no store named ${name}`),
 }
 
 /** The id of the first item of a workspace list that matches. */

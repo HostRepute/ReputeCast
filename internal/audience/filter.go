@@ -41,6 +41,10 @@ type ContactFilter struct {
 	PaidFilter
 	// Push subscribed and WhatsApp consent (X22, pushwhatsapp.go).
 	PushWhatsAppFilter
+	// Buyers of digital products (products.go).
+	ProductsFilter
+	// Store customers and what they spent (storefilter.go).
+	StoreFilter
 }
 
 // Empty reports whether the filter matches everyone.
@@ -97,7 +101,14 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 	if f.Consent != "" {
 		out.add("c.consent = ?", f.Consent)
 	}
-	if f.Source != "" {
+	switch f.Source {
+	case "":
+	case "partner":
+		// Any partner (Grow): "partner:<link>".
+		out.add("c.source LIKE ?", "partner:%")
+	case "referral":
+		out.add("(c.source = 'referral' OR c.source LIKE ?)", "referral:%")
+	default:
 		out.add("c.source = ?", f.Source)
 	}
 	if t := strings.TrimSpace(f.Tag); t != "" {
@@ -126,6 +137,10 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 	websiteFilter(out, f.WebsiteFilter)
 	pushWhatsAppFilter(out, f.PushWhatsAppFilter)
 	if err := s.paidFilter(ctx, wsID, out, f.PaidFilter); err != nil {
+		return err
+	}
+	productsFilter(out, f.ProductsFilter)
+	if err := s.storeFilter(out, f.StoreFilter); err != nil {
 		return err
 	}
 	if f.Segment != "" {

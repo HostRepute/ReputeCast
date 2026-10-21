@@ -25,6 +25,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/ingest"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/linktoken"
+	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/providers/simulator"
@@ -71,6 +72,13 @@ type Engine struct {
 	// Engineering blog roundup, turned on by Sofia Rossi"). Nil, or a nil
 	// result, is plain "System".
 	SystemActor func(ctx context.Context, campaignID uuid.UUID) *audit.Actor
+	// Recipients add the variables blocks read per reader (Grow's
+	// referral.*, reward.* and recommendations.*); nil adds none.
+	Recipients func() []liquid.RecipientData
+	// Store refreshes store blocks with the products' prices and
+	// availability at send time, and fills automation emails' Checkout
+	// items (internal/commerce); nil sends them as written.
+	Store StoreContent
 
 	mu       sync.Mutex
 	calls    map[routeKey]*callLog

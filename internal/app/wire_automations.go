@@ -1,7 +1,11 @@
 package app
 
 import (
+	"context"
+	"time"
+
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/automations"
 )
@@ -24,6 +28,18 @@ var automationAccessibility = func(*App) automations.AccessibilityGate { return 
 // languages domain replaces it from its wire file.
 var automationLanguages = func(*App) automations.EmailLanguages { return nil }
 
+// automationStoreRevenue is the store orders credited to flows (the list's
+// revenue column); the commerce domain sets it from its wire file.
+var automationStoreRevenue = func(*App) func(context.Context, uuid.UUID, []uuid.UUID, time.Time) map[uuid.UUID]automations.AutomationRevenue {
+	return nil
+}
+
+// automationStoreEmail writes a store starter's emails in the store's
+// voice (the Abandoned cart starter); the commerce domain sets it.
+var automationStoreEmail = func(*App) func(context.Context, uuid.UUID, uuid.UUID, string) (automations.EmailContent, bool) {
+	return nil
+}
+
 func newAutomations(a *App) *automations.Service {
 	return &automations.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Log: a.Log,
@@ -37,6 +53,8 @@ func newAutomations(a *App) *automations.Service {
 		Gate:          automationGate(a),
 		Accessibility: automationAccessibility(a),
 		Languages:     automationLanguages(a),
+		StoreRevenue:  automationStoreRevenue(a),
+		StoreEmail:    automationStoreEmail(a),
 	}
 }
 

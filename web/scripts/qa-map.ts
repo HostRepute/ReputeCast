@@ -357,6 +357,26 @@ export const entries: Entry[] = [
   { board: 'PublicUpgrade', path: '/p/acme-newsletter/upgrade', user: 'anon', widths: [1440, 720] },
   { board: 'PublicUpgradePhone', path: '/p/acme-newsletter/upgrade', user: 'anon', widths: [390] },
   { board: 'PublicPreferencesPaid', manual: true },
+  // X17 · offers, gifts, sponsorships and revenue (M27). The demo's live Stripe connection talks to
+  // the in-process fake. Personal links (the cancel page, a gift's redeem page) and sponsor report
+  // links are made in a dev database (tmp scripts call the API), so their boards are manual.
+  { board: 'EarnOverview', path: `${ws}/earn`, widths: [1440] },
+  { board: 'EarnOverviewTablet', path: `${ws}/earn`, widths: [834] },
+  { board: 'EarnOverviewPhone', path: `${ws}/earn`, widths: [390] },
+  { board: 'EarnStates', manual: true },
+  { board: 'EarnOfferEditor', path: `${ws}/earn/plans/offers/{offer:FALL26}`, widths: [1440] },
+  { board: 'EarnGifts', path: `${ws}/earn/gifts`, widths: [1440] },
+  { board: 'EarnSponsors', path: `${ws}/earn/sponsors`, widths: [1440] },
+  { board: 'EarnSponsorsTablet', path: `${ws}/earn/sponsors`, widths: [834] },
+  { board: 'EarnSponsorsPhone', path: `${ws}/earn/sponsors`, widths: [390] },
+  { board: 'EarnBooking', path: `${ws}/earn/sponsors?booking={booking:141}`, widths: [1440] },
+  { board: 'EarnInReport', manual: true },
+  { board: 'PublicGift', path: '/p/acme-newsletter/gift', user: 'anon', widths: [720] },
+  { board: 'PublicGiftPhone', path: '/p/acme-newsletter/gift', user: 'anon', widths: [390] },
+  { board: 'PublicCancel', manual: true },
+  { board: 'PublicCancelPhone', manual: true },
+  { board: 'PublicSponsorReport', manual: true },
+  { board: 'PublicSponsorReportPhone', manual: true },
   { board: 'PublicEarnStates', manual: true },
   // X18 · the publication website. The demo's website is on at news.acme.io. WebsiteStates holds
   // the off and turning-on pages, address problems, read-only views and the elsewhere-in-the-app
@@ -380,4 +400,79 @@ export const entries: Entry[] = [
   { board: 'PublicAccount', manual: true },
   { board: 'PublicAccountPhone', manual: true },
   { board: 'PublicSiteStates', manual: true },
+  // X15 · Grow. The Weekly Digest program, its referrers, review queue and the recommendations come
+  // from the demo. The set-up guide shows for a program that was never on; the composer's Grow
+  // blocks need a block added to a draft (Weekly Digest #143, Blocks › Grow); the hub, the
+  // recommendations page and the leaderboard's own row need a reader's signed link; the states need
+  // data changes (program off, codes low or out, a failing webhook, partner states).
+  { board: 'GrowOverview', path: `${ws}/grow`, widths: [1440] },
+  { board: 'GrowOverviewTablet', path: `${ws}/grow`, widths: [834] },
+  { board: 'GrowOverviewPhone', path: `${ws}/grow`, widths: [390] },
+  { board: 'GrowStates', manual: true },
+  { board: 'Referrals', path: `${ws}/grow/referrals`, widths: [1440] },
+  { board: 'ReferralsTablet', path: `${ws}/grow/referrals`, widths: [834] },
+  { board: 'ReferralsPhone', path: `${ws}/grow/referrals`, widths: [390] },
+  { board: 'ReferralSetup', manual: true },
+  { board: 'ReferralMilestones', path: `${ws}/grow/referrals/milestones`, widths: [1440] },
+  { board: 'ReferralReferrers', path: `${ws}/grow/referrals/referrers`, widths: [1440] },
+  { board: 'ReferralReview', path: `${ws}/grow/referrals/review`, widths: [1440] },
+  { board: 'ReferralReviewPhone', path: `${ws}/grow/referrals/review`, widths: [390] },
+  { board: 'ReferralSettings', path: `${ws}/grow/referrals/settings`, widths: [1440] },
+  { board: 'ReferralStates', manual: true },
+  { board: 'ComposerGrowBlocks', manual: true },
+  { board: 'Recommendations', path: `${ws}/grow/recommendations`, widths: [1440] },
+  { board: 'RecommendationsTablet', path: `${ws}/grow/recommendations`, widths: [834] },
+  { board: 'RecommendationsPhone', path: `${ws}/grow/recommendations`, widths: [390] },
+  { board: 'RecommendationStates', manual: true },
+  { board: 'PublicReferralHub', manual: true },
+  { board: 'PublicReferralHubPhone', manual: true },
+  { board: 'PublicReferralInvite', path: '/p/acme-newsletter/join/K7Q2MX', user: 'anon', widths: [720] },
+  { board: 'PublicReferralInvitePhone', path: '/p/acme-newsletter/join/K7Q2MX', user: 'anon', widths: [390] },
+  { board: 'PublicRecommendations', manual: true },
+  { board: 'PublicRecommendationsPhone', manual: true },
+  { board: 'PublicGrowStates', manual: true },
+  // X19 · Forms & public pages › Pages. PagesStates' frames: the template picker is
+  // forms/pages?new=sales, read-only is the list as aisha@acme.io, the empty list is a workspace
+  // without pages, loading and error need a slow or failing API; Daniel Park's draft is the page
+  // builder's (PageBuilder boards).
+  { board: 'PagesList', path: `${ws}/forms/pages`, widths: [1440] },
+  { board: 'PagesListTablet', path: `${ws}/forms/pages`, widths: [834] },
+  { board: 'PagesListPhone', path: `${ws}/forms/pages`, widths: [390] },
+  { board: 'PagesStates', manual: true },
+  // X19 · digital products. Earn › Products with order 1311 in the panel (a sheet above 1100 px, a card
+  // at the end of the page below), and the editor with The Deliverability Field Guide. ProductsStates
+  // (orders 1309, 1288 and 1302 and the new-link dialog, test mode, Stripe not connected, empty,
+  // read-only as aisha@acme.io, loading and error) and ProductEditorStates (the Warm-up planner as
+  // daniel@acme.io, uploads, a file whose content doesn't match its name, publish blocked, a minimum
+  // below $1, the price change) need other orders, users, clicks or data changes.
+  { board: 'Products', path: `${ws}/earn/products?order={order:1311}`, widths: [1440] },
+  { board: 'ProductsTablet', path: `${ws}/earn/products?order={order:1311}`, widths: [834] },
+  { board: 'ProductsPhone', path: `${ws}/earn/products?order={order:1311}`, widths: [390] },
+  { board: 'ProductsStates', manual: true },
+  { board: 'ProductEditor', path: `${ws}/earn/products/{product:The Deliverability Field Guide}`, widths: [1440] },
+  { board: 'ProductEditorStates', manual: true },
+  // X19 · the page builder with The Deliverability Field Guide's hero product selected. The frames
+  // of PageBuilderStates (the Launch Kit's countdown before it ends, the DMARC webinar's event with
+  // ?select=event, a paused signup form, Stripe not connected, the saved and conflict cards, the Page
+  // tab and the publish dialog) and PagesStates' "Daniel Park's draft" (daniel@acme.io signs in with
+  // SSO only) need other dates, clicks, users or data changes.
+  { board: 'PageBuilder', path: `${ws}/forms/pages/{page:The Deliverability Field Guide}?select=buy`, widths: [1440] },
+  { board: 'PageBuilderTablet', path: `${ws}/forms/pages/{page:The Deliverability Field Guide}?select=buy`, widths: [834] },
+  { board: 'PageBuilderStates', manual: true },
+  // X19 · the public sales page (The Deliverability Field Guide), signed out. PublicPagesStates'
+  // frames (the lead magnet before and after confirming, the webinar and its registration, the
+  // launch before and after its countdown, the shop, the Buy step, the thanks pages and the
+  // download page's states) need other dates, forms, payments or links.
+  { board: 'PublicSalesPage', path: '/p/acme-newsletter/field-guide', user: 'anon', widths: [1440] },
+  { board: 'PublicSalesPagePhone', path: '/p/acme-newsletter/field-guide', user: 'anon', widths: [390] },
+  { board: 'PublicPagesStates', manual: true },
+  // X20 · Shopify and WooCommerce. Acme Merch is the demo's Shopify store; the connect dialogs, the
+  // first import, a missing webhook, a revoked store, WooCommerce without the plugin and the
+  // disconnect dialog need clicks or data changes (CommerceStates), as do the product picker, a
+  // removed product, the abandoned-cart trigger panel and Sam Rivera's cards (CommerceEmails).
+  { board: 'IntegrationsShopify', path: `${ws}/settings/integrations/stores/{store:Acme Merch}`, widths: [1440] },
+  { board: 'IntegrationsShopifyTablet', path: `${ws}/settings/integrations/stores/{store:Acme Merch}`, widths: [834] },
+  { board: 'IntegrationsShopifyPhone', path: `${ws}/settings/integrations/stores/{store:Acme Merch}`, widths: [390] },
+  { board: 'CommerceStates', manual: true },
+  { board: 'CommerceEmails', manual: true },
 ]

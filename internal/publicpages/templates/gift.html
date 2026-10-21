@@ -1,0 +1,80 @@
+{{define "content"}}{{with .Body}}{{$w := .Words}}<main class="card g18 gf" id="main">
+  {{template "brand" $}}
+  {{if eq .State "off"}}<div class="col6">
+    <h1 class="h26">{{.Heading}}</h1>
+    <p class="lead">{{.TextHTML}}</p>
+  </div>
+  {{else}}{{if .Test}}<div class="notice" role="note"><strong>{{index $w "testTitle"}}</strong> {{index $w "testText"}}</div>
+  {{end}}{{if .Canceled}}<div class="notice" role="status"><strong>{{index $w "canceledTitle"}}</strong> {{index $w "canceledText"}}</div>
+  {{end}}<div class="col6">
+    <h1 class="h26">{{.Heading}}</h1>
+    <p class="lead">{{.Intro}}</p>
+  </div>
+  {{with .Alert}}<p class="alert" role="alert">{{.}}</p>
+  {{end}}<form class="gf-form" method="post" action="{{.Action}}" novalidate>
+    <fieldset class="gf-fs">
+      <legend>{{index $w "choose"}}</legend>
+      <div class="gf-opts">
+        {{range .Options}}<label class="gf-opt"><input type="radio" name="option" value="{{.ID}}"{{if eq .ID $.Body.In.Option}} checked{{end}}>
+          <span class="gf-opt-b"><span class="gf-opt-t"><span>{{.Title}}{{with .Tier}} · {{.}}{{end}}</span><span class="num">{{.Price}}</span></span><span class="gf-opt-s">{{.Sub}}</span></span>
+          <svg class="gf-opt-c" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6.5" width="11" height="7.5" rx="1"></rect><path d="M1.8 4.2h12.4v2.3H1.8zM8 4.2V14M8 4.2c-1.2-2.3-4-2.6-4-.9 0 .9 1.6.9 4 .9zM8 4.2c1.2-2.3 4-2.6 4-.9 0 .9-1.6.9-4 .9z"></path></svg>
+        </label>
+        {{end}}
+      </div>
+      {{with index .Errors "option"}}<span class="err" role="alert">{{.}}</span>{{end}}
+    </fieldset>
+    <fieldset class="gf-fs gf-who">
+      <legend>{{index $w "who"}}</legend>
+      <div class="pills gf-pills">
+        <label><input type="radio" name="to" value="email"{{if ne .In.To "person"}} checked{{end}}>{{index $w "toEmail"}}</label>
+        <label><input type="radio" name="to" value="person"{{if eq .In.To "person"}} checked{{end}}>{{index $w "toPerson"}}</label>
+      </div>
+      <div class="gf-grid gf-recipient">
+        <label class="field">{{index $w "theirName"}}<input class="in" type="text" name="recipient_name" value="{{.In.RecipientName}}" placeholder="{{index $w "namePlaceholder"}}" maxlength="120" autocomplete="off"></label>
+        <label class="field">{{index $w "theirEmail"}}<input class="in" type="email" name="recipient_email" value="{{.In.RecipientEmail}}" placeholder="{{index $w "emailPlaceholder"}}" maxlength="254" autocomplete="off"{{with index .Errors "recipientEmail"}} aria-invalid="true" aria-describedby="gf-re-err"{{end}}>
+          {{with index .Errors "recipientEmail"}}<span class="err" id="gf-re-err">{{.}}</span>{{end}}</label>
+      </div>
+      <p class="pnote">{{index $w "personNote"}}</p>
+    </fieldset>
+    <fieldset class="gf-fs gf-when">
+      <legend>{{index $w "when"}}</legend>
+      <div class="pills gf-pills">
+        <label><input type="radio" name="when" value="now"{{if ne .In.When "date"}} checked{{end}}>{{index $w "now"}}</label>
+        <label><input type="radio" name="when" value="date"{{if eq .In.When "date"}} checked{{end}}>{{index $w "onDate"}}</label>
+      </div>
+      <div class="gf-grid gf-date">
+        <label class="field">{{index $w "date"}}<input class="in" type="date" name="date" value="{{.In.Date}}" min="{{.MinDate}}"{{with index .Errors "date"}} aria-invalid="true" aria-describedby="gf-date-err"{{end}}></label>
+        <label class="field">{{index $w "time"}}<input class="in" type="time" name="time" value="{{if .In.Time}}{{.In.Time}}{{else}}08:00{{end}}"></label>
+      </div>
+      {{with index .Errors "date"}}<span class="err" id="gf-date-err">{{.}}</span>{{end}}
+      <input type="hidden" name="tz" value="{{.Zone}}" data-gift-tz>
+      <p class="pnote" data-gift-zone="{{.Zone}}">{{.ZoneNote}}</p>
+    </fieldset>
+    <label class="field gf-msg">
+      <span>{{index $w "message"}} <span class="opt">{{index $w "optional"}}</span></span>
+      <textarea class="in gf-ta" name="message" maxlength="300" rows="3" placeholder="{{index $w "messagePlaceholder"}}" aria-describedby="gf-left" data-gift-message{{with index .Errors "message"}} aria-invalid="true"{{end}}>{{.In.Message}}</textarea>
+      <span class="gf-left" id="gf-left" data-one="{{index $w "leftOne"}}" data-other="{{index $w "leftOther"}}">{{.MessageLeft}}</span>
+      {{with index .Errors "message"}}<span class="err">{{.}}</span>{{end}}
+    </label>
+    <fieldset class="gf-fs">
+      <legend>{{index $w "from"}}</legend>
+      <div class="gf-grid">
+        <label class="field">{{index $w "yourName"}}<input class="in" type="text" name="buyer_name" value="{{.In.BuyerName}}" placeholder="{{index $w "yourName"}}" maxlength="120" autocomplete="name"{{with index .Errors "buyerName"}} aria-invalid="true" aria-describedby="gf-bn-err"{{end}}>
+          {{with index .Errors "buyerName"}}<span class="err" id="gf-bn-err">{{.}}</span>{{end}}</label>
+        <label class="field">{{index $w "yourEmail"}}<input class="in" type="email" name="buyer_email" value="{{.In.BuyerEmail}}" placeholder="{{index $w "yourEmailPlaceholder"}}" maxlength="254" autocomplete="email"{{with index .Errors "buyerEmail"}} aria-invalid="true" aria-describedby="gf-be-err"{{end}}>
+          {{with index .Errors "buyerEmail"}}<span class="err" id="gf-be-err">{{.}}</span>{{end}}</label>
+      </div>
+      <p class="pnote">{{index $w "fromNote"}}</p>
+    </fieldset>
+    <div class="hp" aria-hidden="true"><label>{{$.T "form.honeypot"}} <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+    <button class="btn-pri gf-go" type="submit"{{if $.Preview}} disabled{{end}}>{{index $w "continue"}}</button>
+    <p class="pnote gf-foot">{{.Footer}}</p>
+  </form>
+  {{end}}
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  {{- with .Body.TermsURL}}<a href="{{.}}">{{index $.Body.Words "terms"}}</a>{{end}}
+  {{- if and .Body.TermsURL .Privacy}}{{template "sep"}}{{end}}
+  {{- with .Privacy}}<a href="{{.}}">{{$.T "page.privacy"}}</a>{{end}}
+  {{- if and (or .Body.TermsURL .Privacy) .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

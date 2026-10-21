@@ -24,7 +24,7 @@ import (
 // ApprovalListItem is one row of the approval inbox.
 type ApprovalListItem struct {
 	ID          string `json:"id"`
-	SubjectType string `json:"subjectType" enum:"campaign,automation,transactional_template,website_post"`
+	SubjectType string `json:"subjectType" enum:"campaign,automation,transactional_template,website_post,website_page"`
 	CampaignID  string `json:"campaignId,omitempty"`
 	// AutomationID is set for automation publish requests.
 	AutomationID string `json:"automationId,omitempty"`
@@ -37,7 +37,11 @@ type ApprovalListItem struct {
 	// Channel is a campaign's channel (the row's icon): email, sms, push or
 	// whatsapp.
 	Channel string `json:"channel" enum:"email,sms,push,whatsapp"`
-	Name    string `json:"name"`
+	// WebsitePageID is set for page publish requests; Page says what they
+	// cover (the inbox's "Page · /field-guide").
+	WebsitePageID string                `json:"websitePageId,omitempty"`
+	Page          *ApprovalPageSnapshot `json:"page,omitempty"`
+	Name          string                `json:"name"`
 	// Rules is "rules: audience ≥ 10,000 · warming-up provider".
 	Rules    string         `json:"rules"`
 	Author   ApprovalPerson `json:"author"`
@@ -184,6 +188,13 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 			var w ApprovalWebsiteSnapshot
 			if json.Unmarshal(r.Website, &w) == nil && w.PostID != "" {
 				it.Website = &w
+			}
+		}
+		if r.WebsitePageID != nil {
+			it.WebsitePageID = r.WebsitePageID.String()
+			var pg ApprovalPageSnapshot
+			if json.Unmarshal(r.Page, &pg) == nil && pg.PageID != "" {
+				it.Page = &pg
 			}
 		}
 		if t, err := time.Parse(time.RFC3339, sched.At); err == nil && sched.Mode != "now" {
@@ -356,6 +367,8 @@ type ApprovalDetail struct {
 	// covers (the text, segments, senders and cost per country).
 	Channel string               `json:"channel" enum:"email,sms,push,whatsapp"`
 	SMS     *ApprovalSMSSnapshot `json:"sms,omitempty"`
+	// Page is what a page publish request covers.
+	Page *ApprovalPageSnapshot `json:"page,omitempty"`
 	// ChangesSince lists what changed since the previous request this one
 	// follows (empty for a first request).
 	ChangesSince []ApprovalChange `json:"changesSince"`
@@ -392,14 +405,15 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		RequestedAt: r.RequestedAt, Note: r.Note, Status: r.Status, MatchedRules: r.MatchedRules, ApprovalsRequired: r.ApprovalsRequired, Snapshot: r.Snapshot,
 		InvalidatedAt: r.InvalidatedAt, InvalidatedReason: r.InvalidatedReason, Changes: r.Changes, BypassReason: r.BypassReason, DecidedAt: r.DecidedAt,
 		CampaignVersion: r.CampaignVersion, ReadinessRunID: r.ReadinessRunID, DecidedBy: r.DecidedBy, InvalidatedBy: r.InvalidatedBy, RemindedAt: r.RemindedAt,
-		PreviousID: r.PreviousID, InvalidatedFrom: r.InvalidatedFrom, TransactionalTemplateID: r.TransactionalTemplateID, WebsitePostID: r.WebsitePostID}
+		PreviousID: r.PreviousID, InvalidatedFrom: r.InvalidatedFrom, TransactionalTemplateID: r.TransactionalTemplateID, WebsitePostID: r.WebsitePostID,
+		WebsitePageID: r.WebsitePageID}
 	view, err := s.requestView(ctx, ws, base, ms)
 	if err != nil {
 		return ApprovalDetail{}, err
 	}
 	snap := ParseSnapshot(r.Snapshot)
 	out := ApprovalDetail{ApprovalRequestView: view, Name: r.SubjectName, Author: view.RequestedBy, Approvers: []ApprovalPerson{}, ChangesSince: []ApprovalChange{},
-		Comments: []ApprovalCommentView{}, Automation: snap.Automation, Transactional: snap.Transactional, Website: snap.Website, Channel: r.CampaignChannel, SMS: snap.SMS}
+		Comments: []ApprovalCommentView{}, Automation: snap.Automation, Transactional: snap.Transactional, Website: snap.Website, Channel: r.CampaignChannel, SMS: snap.SMS, Page: snap.Page}
 	out.Author.Role = firstNonEmptyStr(snap.AuthorRole, out.Author.Role)
 	for _, a := range approversOf(ms) {
 		out.Approvers = append(out.Approvers, s.person(a))
@@ -574,6 +588,15 @@ func (s *Service) PreviewIn(ctx context.Context, ws *store.Workspace, p *authz.P
 			return ApprovalPreview{}, err
 		}
 		return ApprovalPreview{Subject: snap.Subject, Preheader: snap.Preheader, HTML: html, Languages: []ApprovalPreviewLanguage{}}, nil
+	}
+	if canSee(p, r.RequestedBy) && r.WebsitePageID != nil && s.PagePreview != nil {
+		// A page as it would go live, in the site's theme.
+		snap := ParseSnapshot(r.Snapshot)
+		html, err := s.PagePreview(ctx, ws, *r.WebsitePageID)
+		if err != nil {
+			return ApprovalPreview{}, err
+		}
+		return ApprovalPreview{Subject: snap.Subject, HTML: html, Languages: []ApprovalPreviewLanguage{}}, nil
 	}
 	if !canSee(p, r.RequestedBy) || r.CampaignID == nil {
 		return ApprovalPreview{}, api.NotFound("Approval request")

@@ -5,6 +5,11 @@
     <h1 class="h26">{{.Heading}}</h1>
   </div>
   <p class="lead">{{$.H "confirm.lead" "email" .Email}}</p>
+  {{with .Download}}<div class="dlcard">
+    <div class="dlfile"><svg class="dlico" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5h5.5L12.5 4.5V14.5h-8.5z"></path><path d="M9.5 1.5v3h3"></path></svg><span class="dlt"><b>{{.Name}}</b><span>{{.Meta}}</span></span></div>
+    <a class="btn-sm dlbtn" href="{{.Href}}" download><svg class="dlarrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M2.5 13.5h11"></path></svg>{{.Button}}</a>
+    <p class="dlnote">{{.Note}}</p>
+  </div>{{end}}
   <div class="col8">
     {{range .Lists}}<div class="got{{if not .On}} off{{end}}"><span class="dot"></span><span><span class="nm">{{.Name}}</span><br><span class="ds">{{if .On}}{{.Text}}{{else if .Offer}}{{$.H "confirm.notSubscribed" "offer" .Offer "href" .AddHref}}{{else}}{{$.H "confirm.notSubscribedPlain" "href" .AddHref}}{{end}}</span></span></div>
     {{end}}
@@ -14,6 +19,7 @@
     {{with .LatestHref}}<a class="btn-sm" href="{{.}}">{{$.T "confirm.latest"}}</a>{{end}}
     {{with .PrefsHref}}<a class="btn-ghost" href="{{.}}">{{$.T "page.preferences"}}</a>{{end}}
   </div>
+  {{template "grow-confirm" $}}
 </main>{{end}}{{end}}
 {{define "foot"}}<footer class="foot">
   {{- with .Body.Proof}}<span>{{.}}</span>{{end}}

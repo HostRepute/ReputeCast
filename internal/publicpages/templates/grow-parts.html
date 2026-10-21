@@ -1,0 +1,14 @@
+{{define "grow-rec"}}<li class="grec" id="r-{{.ID}}">
+  <span class="gtile" aria-hidden="true">{{if .LogoURL}}<img src="{{.LogoURL}}" alt="" width="40" height="40">{{else}}{{.Initials}}{{end}}</span>
+  <div class="gbody">
+    <span class="nm">{{.Name}}</span>{{with .Description}}<span class="ds">{{.}}</span>{{end}}
+    {{if .Outcome}}<p class="notice ok" role="status">{{.Outcome}}</p>{{else if eq .Kind "partner"}}<button class="btn-sm start" type="submit" name="rec" value="{{.ID}}" aria-describedby="rc-{{.ID}}">{{.Button}}</button><span class="t13" id="rc-{{.ID}}">{{.Consent}}</span>{{else}}<a class="btn-ghost start" href="{{.VisitURL}}">{{.Button}}</a><span class="t13">{{.VisitNote}}</span>{{end}}
+  </div>
+</li>{{end}}
+{{define "grow-confirm"}}{{with .Body.Grow}}<section class="gsection" aria-labelledby="gconfirm-h">
+  <h2 class="gh2" id="gconfirm-h">{{.Heading}}</h2>{{with .Lead}}<p class="t13">{{.}}</p>{{end}}
+  <form method="post" action="{{.Action}}"><ul class="glist">{{range .Items}}{{template "grow-rec" .}}{{end}}</ul></form>
+</section>{{end}}{{end}}
+{{define "grow-invite"}}{{$v := .}}{{with .Body.Invite}}<div class="ginvite">
+  <span class="nm">{{$v.G "prefs.inviteTitle"}}</span><span class="ds">{{.Text}}</span><a href="{{.Href}}">{{$v.G "prefs.inviteLink"}}</a>
+</div>{{end}}{{end}}

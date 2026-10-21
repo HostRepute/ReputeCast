@@ -11,6 +11,8 @@ import { Table, Td, Th } from '@/components/ui/Table'
 import { FilterTabs } from '@/components/ui/Tabs'
 import { count, dayMonthDate, pct } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
+import { ct, RevenueCell } from '@/features/commerce/automation'
+import { useT } from '@/i18n'
 import { AutomationStatusBadge } from './StatusBadge'
 import { EmptyAutomations, StarterTemplates, TemplateGrid } from './TemplateCards'
 import './automations.css'
@@ -175,6 +177,7 @@ function subtitle(a: Item): string {
 
 function AutomationTable({ items }: { items: Item[] }) {
   const { slug } = useWorkspace()
+  const t = useT()
   const dash = (
     <Td align="right" className="k">
       –
@@ -194,6 +197,7 @@ function AutomationTable({ items }: { items: Item[] }) {
             <Th align="right">Completed</Th>
             <Th align="right">Human opens</Th>
             <Th align="right">Goal</Th>
+            <Th align="right">{t(ct.revenueColumn)}</Th>
             <Th>
               <span className="vh">Actions</span>
             </Th>
@@ -255,6 +259,13 @@ function AutomationTable({ items }: { items: Item[] }) {
                       {a.goal.label}
                     </Td>
                   )
+                ) : (
+                  dash
+                )}
+                {a.revenue && a.revenue.orders > 0 ? (
+                  <Td align="right" num>
+                    <RevenueCell revenue={a.revenue} />
+                  </Td>
                 ) : (
                   dash
                 )}

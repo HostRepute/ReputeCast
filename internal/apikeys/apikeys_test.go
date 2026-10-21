@@ -48,21 +48,22 @@ func TestKeysAndAgents(t *testing.T) {
 	c.Do("GET", ws+"/api-keys", nil).MustStatus(t, 200).JSON(t, &keys)
 	// The SettingsKeys board: Acme Cloud's transactional keys first, as
 	// they were created, then the others by last use, the expired one last.
+	// Earn's conversions key (X17, EarnSettingsStates) is among the others.
 	names := []string{}
 	for _, k := range keys.Items {
 		names = append(names, k.Name)
 	}
-	if strings.Join(names, ", ") != "Acme Cloud · production, Acme Cloud · staging, Billing service (SMTP), Website signup form, Data warehouse sync, Old CI key" {
+	if strings.Join(names, ", ") != "Acme Cloud · production, Acme Cloud · staging, Billing service (SMTP), Website signup form, Acme Cloud · conversions, Data warehouse sync, Old CI key" {
 		t.Fatalf("keys: %v", names)
 	}
 	if keys.Items[0].Masked != "rc_live_4c1e…d07b" || strings.Join(keys.Items[0].Permissions, ",") != "transactional:send" {
 		t.Fatalf("production key: %+v", keys.Items[0])
 	}
-	if keys.Items[3].Scope.Label != "Weekly Digest only" ||
-		strings.Join(keys.Items[4].Permissions, ",") != "reports:view,subscribers:view" || keys.Items[4].LastUsedClient != "nightly job" {
+	if keys.Items[3].Scope.Label != "Weekly Digest only" || strings.Join(keys.Items[4].Permissions, ",") != "conversions:create" ||
+		strings.Join(keys.Items[5].Permissions, ",") != "reports:view,subscribers:view" || keys.Items[5].LastUsedClient != "nightly job" {
 		t.Fatalf("keys: %+v", keys.Items)
 	}
-	old := keys.Items[5]
+	old := keys.Items[6]
 	if old.Status != "expired" || old.Rejections == nil || old.Rejections.Calls != 212 || old.Rejections.Client != "GitHub Actions runner" {
 		t.Fatalf("expired key: %+v", old)
 	}

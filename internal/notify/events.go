@@ -47,6 +47,8 @@ var Events = []EventType{
 	{Key: KindPaymentsAttention, Label: "Payments: key rejected, webhook missing or silent", Audience: "Everyone with payments:manage", Short: "payment problems", DefaultEmail: true, Kinds: []string{KindPaymentsAttention}},
 	{Key: KindUnmappedPrice, Label: "Payments: a Stripe price isn't mapped to a tier", Audience: "Everyone with payments:manage", Short: "unmapped prices", DefaultEmail: false, Kinds: []string{KindUnmappedPrice}},
 	{Key: KindPaidImportDone, Label: "Paid members import finished", Audience: "Whoever ran the import", Short: "paid-members imports", DefaultEmail: false, Kinds: []string{KindPaidImportDone}},
+	{Key: KindSponsorCreative, Label: "Sponsor creative due tomorrow or late", Audience: "Everyone with sponsors:manage", Short: "sponsor creatives", DefaultEmail: true, Kinds: []string{KindSponsorCreative}},
+	{Key: KindSponsorPayment, Label: "Sponsor payment overdue", Audience: "Everyone with sponsors:manage", Short: "overdue sponsor payments", DefaultEmail: false, Kinds: []string{KindSponsorPayment}},
 	{Key: KindFailedPayments, Label: "Failed payments · daily summary", Audience: "Everyone with earn:view · off by default", Short: "failed payments", OffByDefault: true, Kinds: []string{KindFailedPayments}},
 	{Key: KindVerificationEnded, Label: "Verification finished or stopped", Audience: "The person who started it", Short: "verification jobs", DefaultEmail: true, Kinds: []string{KindVerificationEnded}},
 	{Key: KindVerificationCreditsLow, Label: "Verification credits low", Audience: "Everyone with integrations:manage", Short: "low verification credits", DefaultEmail: true, Kinds: []string{KindVerificationCreditsLow}},
@@ -54,11 +56,20 @@ var Events = []EventType{
 	{Key: KindSeedSignInFailed, Label: "Seed mailbox sign-in failed", Audience: "Everyone with placement:manage", Short: "seed sign-in failures", DefaultEmail: true, Kinds: []string{KindSeedSignInFailed}},
 	// The publication website (design expansion, phase 7).
 	{Key: KindWebsiteDomain, Label: "Website domain or certificate problem", Audience: "Everyone with website:manage", Short: "website domain problems", DefaultEmail: true, Kinds: []string{KindWebsiteDomain}},
+	// Digital products (design expansion, phase 7).
+	{Key: KindProductDeliveryFailed, Label: "Product delivery failed", Audience: "Everyone with orders:manage", Short: "failed product deliveries", DefaultEmail: true, Kinds: []string{KindProductDeliveryFailed}},
+	{Key: KindOrderDisputed, Label: "Dispute opened on an order", Audience: "Everyone with orders:manage", Short: "order disputes", DefaultEmail: true, Kinds: []string{KindOrderDisputed}},
+	// Grow (design expansion, phase 5).
+	{Key: KindReferralsHeld, Label: "Referrals held for review", Audience: "Everyone with grow:review · then at most once a day while the queue isn't empty", Short: "held referrals", DefaultEmail: true, Kinds: []string{KindReferralsHeld}},
+	{Key: KindRewardCodesLow, Label: "Reward codes running low or out", Audience: "Everyone with grow:edit", Short: "reward codes running low", DefaultEmail: true, Kinds: []string{KindRewardCodesLow}},
+	{Key: KindRewardWebhookFailing, Label: "Reward webhook failing", Audience: "Everyone with grow:edit", Short: "failing reward webhooks", DefaultEmail: true, Kinds: []string{KindRewardWebhookFailing}},
+	{Key: KindPartnerLinkProblem, Label: "Partner link invalid or unreachable", Audience: "Everyone with grow:connect", Short: "partner link problems", DefaultEmail: true, Kinds: []string{KindPartnerLinkProblem}},
 	// SMS (design expansion, phase 8).
 	{Key: KindSMSBudget, Label: "SMS budget at 80% or used up", Audience: "Everyone with providers:manage", Short: "SMS budget alerts", DefaultEmail: true, Kinds: []string{KindSMSBudget}},
 	{Key: KindSMSRegistration, Label: "Sender registration approved or rejected", Audience: "Everyone with providers:view", Short: "sender registrations", DefaultEmail: true, Kinds: []string{KindSMSRegistration}},
 	{Key: KindSMSProviderDown, Label: "SMS provider down or receipts silent", Audience: "Everyone with providers:view", Short: "SMS provider problems", DefaultEmail: true, Urgent: true, Kinds: []string{KindSMSProviderDown}},
 	{Key: KindSMSSendPaused, Label: "SMS campaign auto-paused", Audience: "Everyone with campaigns:pause", Short: "SMS auto-pauses", DefaultEmail: true, Urgent: true, Kinds: []string{KindSMSSendPaused}},
+	{Key: KindStoreProblem, Label: "Store disconnected or its webhooks missing", Audience: "Everyone with integrations:manage", Short: "store problems", DefaultEmail: true, Kinds: []string{KindStoreProblem}},
 	// Web push and WhatsApp (design expansion, phase 8).
 	{Key: KindPushWorkerMissing, Label: "Push service worker missing", Audience: "Everyone with providers:view", Short: "missing push service workers", DefaultEmail: false, Kinds: []string{KindPushWorkerMissing}},
 	{Key: KindWhatsAppAttention, Label: "WhatsApp template rejected or quality dropped", Audience: "Everyone with providers:view", Short: "WhatsApp templates and quality", DefaultEmail: true, Kinds: []string{KindWhatsAppAttention, KindWhatsAppTokenFails}},
@@ -99,6 +110,8 @@ const (
 	CategoryEarn = "earn"
 	// CategoryWebsite holds the publication website's notifications.
 	CategoryWebsite = "website"
+	// CategoryGrow holds referrals' and partner links' notifications.
+	CategoryGrow = "grow"
 )
 
 var categoryKinds = map[string][]string{
@@ -107,11 +120,12 @@ var categoryKinds = map[string][]string{
 	CategoryProviders:     {KindProviderDown, KindProviderDegraded, KindWebhooksSilent, KindSMSProviderDown, KindSMSRegistration, KindSMSBudget, KindPushWorkerMissing, KindWhatsAppAttention, KindWhatsAppTokenFails},
 	CategoryTeam:          {KindInviteAccepted, KindInviteRequested},
 	CategoryHostRepute:    {KindHostReputeAlert},
-	CategoryIntegrations:  {KindIntegrationAttention, KindPostDraftCreated},
+	CategoryIntegrations:  {KindIntegrationAttention, KindPostDraftCreated, KindStoreProblem},
 	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
 	CategoryAI:            {KindAIUsage, KindAIKeyRejected},
-	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments},
-	CategoryWebsite:       {KindWebsiteDomain},
+	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments, KindSponsorCreative, KindSponsorPayment},
+	CategoryWebsite:       {KindWebsiteDomain, KindProductDeliveryFailed, KindOrderDisputed},
+	CategoryGrow:          {KindReferralsHeld, KindRewardCodesLow, KindRewardWebhookFailing, KindPartnerLinkProblem},
 }
 
 var categoryLabels = map[string]string{
@@ -126,6 +140,7 @@ var categoryLabels = map[string]string{
 	CategoryAI:            "AI",
 	CategoryEarn:          "Earn",
 	CategoryWebsite:       "Website",
+	CategoryGrow:          "Grow",
 }
 
 // CategoryOf returns the center tab a kind is listed under.

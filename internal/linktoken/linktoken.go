@@ -10,7 +10,9 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
+	"time"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/hkdf"
@@ -36,12 +38,23 @@ const (
 	Survey     Kind = 111
 	PollTest   Kind = 112
 	SurveyTest Kind = 113
+	// Grow (design expansion, X15: 150–159): a referrer's hub, the
+	// recommendations page and a reward's download. Their Link holds the
+	// day they were issued (IssueDay), so they expire.
+	ReferralHub     Kind = 150
+	Recommendations Kind = 151
+	RewardDownload  Kind = 152
 )
 
 const version = 1
 
 // ErrInvalid is returned for malformed or forged tokens.
 var ErrInvalid = errors.New("linktoken: invalid token")
+
+// ErrSignature is returned for a well-formed token of the wanted kind whose
+// signature doesn't match: signed with an earlier instance key, or forged.
+// It is also ErrInvalid.
+var ErrSignature = fmt.Errorf("%w: the signature doesn't match", ErrInvalid)
 
 // Claims identify the message (or contact, for links outside a message).
 type Claims struct {
@@ -87,21 +100,51 @@ func (s *Signer) Verify(token string, want Kind) (Claims, error) {
 		return Claims{}, ErrInvalid
 	}
 	body, sig := raw[:len(raw)-16], raw[len(raw)-16:]
-	if !hmac.Equal(sig, s.mac(body)) {
+	// The shape first: only a token that could have been signed can have a
+	// signature that no longer matches.
+	link, n := binary.Uvarint(body[50:])
+	if n <= 0 || 50+n != len(body) || link > 1<<31 {
 		return Claims{}, ErrInvalid
+	}
+	if !hmac.Equal(sig, s.mac(body)) {
+		return Claims{}, ErrSignature
 	}
 	var c Claims
 	c.Kind = Kind(body[1])
 	copy(c.WorkspaceID[:], body[2:18])
 	copy(c.MessageID[:], body[18:34])
 	copy(c.ContactID[:], body[34:50])
-	link, n := binary.Uvarint(body[50:])
-	if n <= 0 || 50+n != len(body) || link > 1<<31 {
-		return Claims{}, ErrInvalid
-	}
 	c.Link = uint32(link)
 	return c, nil
 }
+
+// Digest is a keyed hash of parts that must not be reversible, such as the
+// daily key that counts a referral link's visits once per network and
+// browser without cookies. It is stable for the instance.
+func (s *Signer) Digest(parts ...[]byte) []byte {
+	m := hmac.New(sha256.New, append([]byte("digest:"), s.key...))
+	for _, p := range parts {
+		m.Write(binary.AppendUvarint(nil, uint64(len(p))))
+		m.Write(p)
+	}
+	return m.Sum(nil)
+}
+
+// issueEpoch is day 0 of IssueDay.
+var issueEpoch = time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+
+// IssueDay is the day a link was issued, for tokens that expire (their
+// Link field).
+func IssueDay(t time.Time) uint32 {
+	d := t.UTC().Sub(issueEpoch) / (24 * time.Hour)
+	if d < 0 {
+		return 0
+	}
+	return uint32(d)
+}
+
+// IssuedOn is the day an expiring token was issued.
+func IssuedOn(day uint32) time.Time { return issueEpoch.Add(time.Duration(day) * 24 * time.Hour) }
 
 func (s *Signer) mac(b []byte) []byte {
 	m := hmac.New(sha256.New, s.key)

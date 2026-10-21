@@ -21,6 +21,7 @@ import { DigestBadgeLink, RecurringTable, useDigestCount } from '@/features/dige
 import { mc } from '@/features/earn/composer/composer.messages'
 import { PaidOnlyBadge } from '@/features/earn/composer/EarnBlocks'
 import { IssueStatusBadge } from '@/features/digests/shared'
+import { SponsorChip, useSponsorChips } from '@/features/earn/sponsors/chips'
 import { m as dm } from '@/features/digests/messages'
 import { useCampaignWebStates, WebCell } from '@/features/website/elsewhere'
 import { me } from '@/features/website/elsewhere.messages'
@@ -248,6 +249,7 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
   const from = (page - 1) * data.pageSize
   const shown = from + data.items.length
   const params = (id: string) => ({ workspace: slug, campaignId: id })
+  const sponsors = useSponsorChips()
   // The website's Web column (features/website), while it's on.
   const web = useCampaignWebStates(data.items.map((c) => c.id))
   return (
@@ -302,9 +304,10 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
                       </Link>
                     )}
                   </Truncate>
-                  {c.digest ? (
-                    <div className="my-1">
-                      <DigestBadgeLink digest={c.digest} />
+                  {c.digest || sponsors.has(c.id) ? (
+                    <div className="my-1 flex flex-wrap gap-1.5">
+                      {c.digest ? <DigestBadgeLink digest={c.digest} /> : null}
+                      {sponsors.has(c.id) ? <SponsorChip sponsor={sponsors.get(c.id) ?? ''} /> : null}
                     </div>
                   ) : null}
                   {c.paidOnly ? <PaidOnlyBadge className="my-1" /> : null}

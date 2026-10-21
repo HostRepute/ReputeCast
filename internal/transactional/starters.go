@@ -29,6 +29,11 @@ type TransactionalStarter struct {
 	button  string
 	href    string
 	after   string
+	// bodyAfter are paragraphs after the button, in the body's style; why
+	// is the Essential footer's reason ("You get this email because you
+	// bought from …"), the account's by default.
+	bodyAfter []string
+	why       string
 }
 
 // TransactionalStarterList is the starter gallery.
@@ -225,6 +230,9 @@ func (st TransactionalStarter) mjmlFor(product, address string) string {
 	if st.button != "" {
 		fmt.Fprintf(&b, "        <mj-button href=\"%s\" background-color=\"#0F766E\" color=\"#ffffff\" font-family=\"'IBM Plex Sans', system-ui, sans-serif\" font-size=\"14px\" font-weight=\"600\" border-radius=\"6px\" inner-padding=\"11px 18px\" align=\"left\" padding=\"8px 0 18px\">%s</mj-button>\n", st.href, esc(st.button))
 	}
+	for _, p := range st.bodyAfter {
+		b.WriteString("        <mj-text>" + esc(p) + "</mj-text>\n")
+	}
 	if st.after != "" {
 		b.WriteString("        <mj-text font-size=\"14px\" color=\"#4B5563\">" + esc(st.after) + "</mj-text>\n")
 	}
@@ -237,6 +245,9 @@ func (st TransactionalStarter) mjmlFor(product, address string) string {
 	if st.Kind == KindOptional {
 		b.WriteString("        <mj-text font-family=\"'IBM Plex Sans', system-ui, sans-serif\" font-size=\"12px\" color=\"#5B6472\" padding=\"0\">" + addr +
 			"<br />You get this email because you have a " + esc(product) + " account. <a href=\"{{ unsubscribe_url }}\" style=\"color:#5B6472\">Turn these emails off</a> · <a href=\"{{ preferences_url }}\" style=\"color:#5B6472\">Manage notifications</a></mj-text>\n")
+	} else if st.why != "" {
+		b.WriteString("        <mj-text font-family=\"'IBM Plex Sans', system-ui, sans-serif\" font-size=\"12px\" color=\"#5B6472\" padding=\"0\">" + addr +
+			"<br />" + esc(st.why) + "</mj-text>\n")
 	} else {
 		b.WriteString("        <mj-text font-family=\"'IBM Plex Sans', system-ui, sans-serif\" font-size=\"12px\" color=\"#5B6472\" padding=\"0\">" + addr +
 			"<br />You get this email because of your " + esc(product) + " account. Account emails can't be turned off.</mj-text>\n")

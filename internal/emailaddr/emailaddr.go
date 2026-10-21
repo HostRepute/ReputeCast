@@ -110,6 +110,29 @@ func Domain(email string) string {
 	return ""
 }
 
+// MailboxKey folds the addresses that reach the same mailbox: it
+// normalizes the address, drops a plus tag and the dots of a Gmail
+// address, and reads googlemail.com as gmail.com. Sam.Rivera+news@gmail.com
+// and samrivera@googlemail.com give the same key.
+func MailboxKey(email string) string {
+	e := Normalize(email)
+	at := strings.LastIndexByte(e, '@')
+	if at < 0 {
+		return e
+	}
+	local, domain := e[:at], e[at+1:]
+	if i := strings.IndexByte(local, '+'); i > 0 {
+		local = local[:i]
+	}
+	if domain == "googlemail.com" {
+		domain = "gmail.com"
+	}
+	if domain == "gmail.com" {
+		local = strings.ReplaceAll(local, ".", "")
+	}
+	return local + "@" + domain
+}
+
 // roleLocals are shared inboxes: high complaint rates, never personal consent.
 var roleLocals = map[string]bool{
 	"abuse": true, "accounts": true, "admin": true, "administrator": true, "billing": true, "careers": true,

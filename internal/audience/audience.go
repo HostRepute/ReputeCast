@@ -34,6 +34,21 @@ type Service struct {
 	// Answers adds poll answers and survey responses to the timeline (nil:
 	// none).
 	Answers ActivitySource
+	// SourceNames names sources a label can't (Grow: "Referral · Sam
+	// Rivera", "Partner · Ops Weekly"); nil: none.
+	SourceNames SourceNamer
+}
+
+// SourceNamer names contacts' sources: by contact, for the contacts whose
+// source it knows. sources[i] is contacts[i]'s.
+type SourceNamer func(ctx context.Context, ws uuid.UUID, contacts []uuid.UUID, sources []string) map[uuid.UUID]string
+
+// nameSources puts SourceNames' names on the labels.
+func (s *Service) nameSources(ctx context.Context, ws uuid.UUID, contacts []uuid.UUID, sources []string) map[uuid.UUID]string {
+	if s.SourceNames == nil || len(contacts) == 0 {
+		return nil
+	}
+	return s.SourceNames(ctx, ws, contacts, sources)
 }
 
 func (s *Service) now() time.Time {
@@ -61,6 +76,9 @@ type AudienceListSummary struct {
 	Subscribed int64     `json:"subscribed"`
 	Pending    int64     `json:"pending"`
 	CreatedAt  time.Time `json:"createdAt"`
+	// Origin is what fills the list: "store" for a connected store's
+	// customers who accepted marketing (X20), empty otherwise.
+	Origin string `json:"origin,omitempty"`
 }
 
 // AudienceSummary feeds the Audience tab counts and the filter selects.
@@ -97,7 +115,8 @@ func (s *Service) Summary(ctx context.Context, ws *store.Workspace) (AudienceSum
 		return out, err
 	}
 	for _, l := range lists {
-		out.Lists = append(out.Lists, AudienceListSummary{ID: l.ID.String(), Name: l.Name, Description: l.Description, DoubleOptIn: l.DoubleOptIn, Subscribed: l.Subscribed, Pending: l.Pending, CreatedAt: l.CreatedAt})
+		out.Lists = append(out.Lists, AudienceListSummary{ID: l.ID.String(), Name: l.Name, Description: l.Description, DoubleOptIn: l.DoubleOptIn, Subscribed: l.Subscribed, Pending: l.Pending,
+			CreatedAt: l.CreatedAt, Origin: l.Origin})
 	}
 	if out.PaidTiers, err = s.paidTiers(ctx, s.Q, ws.ID); err != nil {
 		return out, err

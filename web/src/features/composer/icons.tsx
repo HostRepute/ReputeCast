@@ -93,12 +93,29 @@ const blocks: Record<string, ReactNode> = {
       <rect x="7" y="15.5" width="7" height="2" rx="1" />
     </>
   ),
+  // The Sponsor block (Earn): a card with the sponsor's logo beside its lines.
+  rcSponsor: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <rect x="6" y="8" width="4" height="4" rx="1" />
+      <path d="M12.5 9h5M12.5 12h3.5M6 16h12" />
+    </>
+  ),
   // The Upgrade block (Earn): a card with its price line and button.
   rcUpgrade: (
     <>
       <rect x="3" y="4" width="18" height="16" rx="2" />
       <path d="M8 9h8M9.5 12h5" />
       <rect x="8" y="15" width="8" height="2.5" rx="1.25" />
+    </>
+  ),
+  // The Product grid (X20): three products side by side.
+  rcGrid: (
+    <>
+      <rect x="2.5" y="5" width="5.5" height="7" rx="1" />
+      <rect x="9.25" y="5" width="5.5" height="7" rx="1" />
+      <rect x="16" y="5" width="5.5" height="7" rx="1" />
+      <path d="M3 16h4.5M9.75 16h4.5M16.5 16h4.5" />
     </>
   ),
   saved: <path d="M12 3v18M3 12h18" />,
@@ -108,6 +125,28 @@ const blocks: Record<string, ReactNode> = {
     <>
       <rect x="3" y="4" width="18" height="16" rx="2" />
       <path d="M7 9h10M7 13h6" />
+    </>
+  ),
+  // Grow's blocks (design expansion, X15): Referral, Recommendations, Reward.
+  growReferral: (
+    <>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3 19.5a6 6 0 0 1 12 0" />
+      <path d="M18.5 7v6M15.5 10h6" />
+    </>
+  ),
+  growRecs: (
+    <>
+      <rect x="3" y="4" width="18" height="7" rx="1.6" />
+      <rect x="3" y="13" width="18" height="7" rx="1.6" />
+      <path d="M6.5 7.5h6M6.5 16.5h6" />
+    </>
+  ),
+  growReward: (
+    <>
+      <rect x="3.5" y="9.5" width="17" height="11" rx="1.6" />
+      <path d="M3 9.5h18M12 9.5v11" />
+      <path d="M12 9.5c-1.2-3.6-5-4.4-5-2.3S10 9.5 12 9.5zm0 0c1.2-3.6 5-4.4 5-2.3S14 9.5 12 9.5z" />
     </>
   ),
 }

@@ -69,14 +69,19 @@ func (m AutomationMailer) QueueAutomationEmail(ctx context.Context, tx pgx.Tx, o
 	if err != nil {
 		return out, err
 	}
-	cr := contentRef{Email: o.EmailID, Version: version, Subject: o.Subject}
+	cr := contentRef{Email: o.EmailID, Version: version, Subject: o.Subject, Ctx: o.Context}
 	if ml.Language != "" && ml.Language != ml.source {
 		cr.Language = ml.Language
 	}
 	ref, _ := json.Marshal(cr)
 	node := o.NodeID
+	// Milestone emails (Grow) are automation emails outside any flow.
+	var automation *uuid.UUID
+	if o.AutomationID != uuid.Nil {
+		automation = &o.AutomationID
+	}
 	if err := q.SendingInsertAutomationMessage(ctx, store.SendingInsertAutomationMessageParams{
-		ID: out.MessageID, WorkspaceID: o.WorkspaceID, AutomationID: &o.AutomationID, AutomationNode: &node, ContactID: &o.ContactID,
+		ID: out.MessageID, WorkspaceID: o.WorkspaceID, AutomationID: automation, AutomationNode: &node, ContactID: &o.ContactID,
 		Email: o.To, ProviderID: provider, MailboxProvider: mbp, Status: status, QueuedAt: m.E.now(), ContentRef: ref,
 		Language: ml.Language, ContactLanguage: ml.Contact, LanguageReason: ml.Reason,
 	}); err != nil {
@@ -383,6 +388,11 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 					c = *lc
 				}
 			}
+			if e.Store != nil {
+				// Store blocks read prices and availability now; products
+				// keep their place, so the email's links keep theirs.
+				c.HTML = e.Store.Resolve(ctx, em.WorkspaceID, c.HTML, true)
+			}
 			tpl, err := Prepare(c, Tracking{Opens: true, Clicks: true})
 			if err != nil {
 				ot.missing = err.Error()
@@ -395,7 +405,7 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 					}
 				}
 			}
-			ot.sender, _ = e.Q.SendingAutomationSender(ctx, em.WorkspaceID)
+			ot.sender, _ = e.Q.SendingAutomationSender(ctx, store.SendingAutomationSenderParams{WorkspaceID: em.WorkspaceID, EmailID: ref.Email})
 			if ot.sender.Email == "" && ot.missing == "" {
 				ot.missing = "the workspace has no default sender; set one in Settings › General"
 			}
@@ -430,11 +440,32 @@ func (e *Engine) composeAutomation(ctx context.Context, r *runRoute, row store.S
 			links[LinkVar(l.Position)] = e.URLs.Click(sign(linktoken.Click, uint32(l.Position)))
 		}
 	}
+	if e.Store != nil && len(ref.Ctx) > 0 {
+		for k, v := range e.Store.Vars(ctx, ref.Ctx) {
+			if _, taken := links[k]; !taken {
+				links[k] = v
+			}
+		}
+	}
 	var attrs map[string]any
 	_ = json.Unmarshal(row.Attributes, &attrs)
-	out, err := ot.tpl.Render(liquid.Vars(row.Email, row.FirstName, row.LastName, attrs, links), tracked)
+	vars := liquid.Vars(row.Email, row.FirstName, row.LastName, attrs, links)
+	// The trigger's data ({{ order.product_name }}, automations/products.go).
+	for k, v := range automations.MessageVars(ctx, e.Q, row.ID) {
+		if _, taken := vars[k]; !taken {
+			vars[k] = v
+		}
+	}
+	if e.Recipients != nil && contact != uuid.Nil {
+		vars = liquid.Fill(ctx, e.Recipients(), row.WorkspaceID, liquid.Recipient{ContactID: contact, MessageID: row.ID, EmailID: ref.Email}, ot.tpl.Source(), vars)
+	}
+	out, err := ot.tpl.Render(vars, tracked)
 	if err != nil {
 		return providers.Message{}, err
+	}
+	if e.Store != nil && len(ref.Ctx) > 0 {
+		// The trigger's checkout or order fills the Checkout items block.
+		out.HTML = e.Store.Splice(ctx, ref.Ctx, out.HTML)
 	}
 	auto := ""
 	if row.AutomationID != nil {

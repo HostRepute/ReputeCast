@@ -27,6 +27,14 @@ func TestRedactPath(t *testing.T) {
 		"/view/tok":                    "/view/{token}",
 		"/preferences":                 "/preferences",
 		"/archive/the-case-for-boring": "/archive/the-case-for-boring",
+		// Grow: the hub, downloads, the recommendations page, partner codes.
+		"/p/acme-newsletter/referrals/tok":  "/p/acme-newsletter/referrals/{token}",
+		"/p/acme-newsletter/rewards/tok":    "/p/acme-newsletter/rewards/{token}",
+		"/p/acme-newsletter/recommends/tok": "/p/acme-newsletter/recommends/{token}",
+		"/referrals/tok":                    "/referrals/{token}",
+		"/p/H3RT-6QWN-8ZKB":                 "/p/{token}",
+		"/p/acme-newsletter/join/K7Q2MX":    "/p/acme-newsletter/join/K7Q2MX",
+		"/p/acme-newsletter":                "/p/acme-newsletter",
 	} {
 		if got := RedactPath(in); got != want {
 			t.Errorf("RedactPath(%q) = %q, want %q", in, got, want)

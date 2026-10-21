@@ -96,6 +96,9 @@ func EnglishLabel(src GrowthSource) string {
 	case "other":
 		return "Other"
 	}
+	if src.Name != "" && src.Kind != KindUnknown {
+		return src.Name // a registered kind's (Grow's "Referral", "Partner · Ops Weekly")
+	}
 	return "Unknown"
 }
 

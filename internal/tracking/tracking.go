@@ -59,13 +59,53 @@ type Service struct {
 	// Placement resolves the links of placement test copies, whose opens
 	// and clicks are never counted (internal/placement).
 	Placement PlacementLinks
-	Now       func() time.Time
+	// Decorators may add parameters to a click's destination: links to a
+	// connected store get UTM parameters and the click token
+	// (internal/commerce).
+	Decorators []LinkDecorator
+	// MessageVars are an automation email's own link variables, from what
+	// its trigger passed ("checkout_url": the store's recovery link).
+	MessageVars func(ctx context.Context, msgCtx map[string]string) map[string]string
+	Now         func() time.Time
+	// Clicked, when set, hears of each person's click (bot clicks never
+	// reach it) in the transaction that records it: Earn counts clicks on
+	// upgrade links per campaign.
+	Clicked func(ctx context.Context, q *store.Queries, c HumanClick) error
+	// Decorate, when set, may add to a click's destination before the
+	// redirect (Earn's click token on the publisher's own domains); "" keeps
+	// the destination as it is. It runs after Decorators, and adds nothing
+	// to a link that already carries rc_click.
+	Decorate func(ctx context.Context, c ClickTarget) string
+	// Recipients add the per-reader variables of blocks (Grow's
+	// referral.* links) to personalized links; nil adds none.
+	Recipients func() []liquid.RecipientData
 
 	once  sync.Once
 	in    chan *pending
 	mu    sync.Mutex
 	links map[uuid.UUID]linkSet
 	burst map[uuid.UUID][]clickMark
+}
+
+// HumanClick is a person's click, as Clicked hears of it.
+type HumanClick struct {
+	WorkspaceID uuid.UUID
+	MessageID   uuid.UUID
+	CampaignID  *uuid.UUID
+	ContactID   *uuid.UUID
+	Stream      string
+	// URL is the link as the email has it (it may hold Liquid).
+	URL string
+	At  time.Time
+}
+
+// ClickTarget is a click about to be redirected, as Decorate sees it.
+type ClickTarget struct {
+	WorkspaceID uuid.UUID
+	MessageID   uuid.UUID
+	ContactID   uuid.UUID
+	URL         string
+	At          time.Time
 }
 
 type linkSet struct {
@@ -105,6 +145,24 @@ func (s *Service) log() *slog.Logger {
 type TransactionalTracking interface {
 	TrackedLink(ctx context.Context, q *store.Queries, messageID uuid.UUID, position int) (string, bool)
 	Engagement(ctx context.Context, tx pgx.Tx, messageID uuid.UUID, click bool, at time.Time) error
+}
+
+// LinkDecorator may rewrite a click's destination before the redirect.
+// It runs on every click, so it must answer fast (cache what it reads).
+type LinkDecorator interface {
+	Decorate(ctx context.Context, c ClickedLink) string
+}
+
+// ClickedLink is a click about to be redirected: the message's email and
+// the destination.
+type ClickedLink struct {
+	WorkspaceID  uuid.UUID
+	MessageID    uuid.UUID
+	ContactID    *uuid.UUID
+	CampaignID   *uuid.UUID
+	AutomationID *uuid.UUID
+	Target       string
+	At           time.Time
 }
 
 // PlacementLinks resolves a placement test copy's tracked links.
@@ -162,12 +220,24 @@ func (s *Service) click(w http.ResponseWriter, r *http.Request) {
 		gone(w)
 		return
 	}
-	target, err := s.target(r.Context(), c)
+	target, m, err := s.targetOf(r.Context(), c)
 	if err != nil || target == "" {
 		gone(w)
 		return
 	}
-	ev := sending.Engagement{MessageID: c.MessageID, Click: true, Link: int(c.Link), UserAgent: r.UserAgent(), IP: clientIP(r), Method: r.Method, At: s.now()}
+	at := s.now()
+	if m != nil && m.Kind != placementKind {
+		for _, d := range s.Decorators {
+			target = d.Decorate(r.Context(), ClickedLink{WorkspaceID: m.WorkspaceID, MessageID: m.ID, ContactID: m.ContactID,
+				CampaignID: m.CampaignID, AutomationID: m.AutomationID, Target: target, At: at})
+		}
+	}
+	ev := sending.Engagement{MessageID: c.MessageID, Click: true, Link: int(c.Link), UserAgent: r.UserAgent(), IP: clientIP(r), Method: r.Method, At: at}
+	if s.Decorate != nil {
+		if d := s.Decorate(r.Context(), ClickTarget{WorkspaceID: c.WorkspaceID, MessageID: c.MessageID, ContactID: c.ContactID, URL: target, At: ev.At}); d != "" {
+			target = d
+		}
+	}
 	ctx, cancel := context.WithTimeout(r.Context(), 150*time.Millisecond)
 	if err := s.enqueue(ctx, ev); err != nil && !errors.Is(err, context.DeadlineExceeded) {
 		s.log().WarnContext(r.Context(), "record click", "err", err)
@@ -185,14 +255,20 @@ func gone(w http.ResponseWriter) {
 	_, _ = w.Write([]byte("This link is no longer valid. If you copied it, check that the whole address came along.\n"))
 }
 
-// target resolves a click token to the original link: only the links of
-// that message's email, personalized for its contact when they contain
-// Liquid, and only http(s) URLs.
-func (s *Service) target(ctx context.Context, c linktoken.Claims) (string, error) {
+// targetOf resolves a click token to the original link and the message.
+func (s *Service) targetOf(ctx context.Context, c linktoken.Claims) (string, *store.TrackingMessageRow, error) {
 	m, err := s.Q.TrackingMessage(ctx, c.MessageID)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
+	t, err := s.resolve(ctx, c, m)
+	return t, &m, err
+}
+
+// resolve finds the original link of a click: only the links of that
+// message's email, personalized for its contact when they contain Liquid,
+// and only http(s) URLs.
+func (s *Service) resolve(ctx context.Context, c linktoken.Claims, m store.TrackingMessageRow) (string, error) {
 	if m.WorkspaceID != c.WorkspaceID {
 		return "", errors.New("token workspace mismatch")
 	}
@@ -267,10 +343,19 @@ func (s *Service) target(ctx context.Context, c linktoken.Claims) (string, error
 		return "", errors.New("unknown link")
 	}
 	if strings.Contains(raw, "{{") && m.ContactID != nil {
+		var links map[string]string
+		if ref := refOf(m.ContentRef); m.CampaignID == nil && len(ref.Ctx) > 0 && s.MessageVars != nil {
+			links = s.MessageVars(ctx, ref.Ctx)
+		}
 		if ct, err := s.Q.TrackingContactVars(ctx, *m.ContactID); err == nil {
 			var attrs map[string]any
 			_ = json.Unmarshal(ct.Attributes, &attrs)
-			if out, err := liquid.Render(raw, liquid.Vars(ct.Email, ct.FirstName, ct.LastName, attrs, nil)); err == nil {
+			vars := liquid.Vars(ct.Email, ct.FirstName, ct.LastName, attrs, links)
+			if s.Recipients != nil {
+				r := liquid.Recipient{ContactID: *m.ContactID, MessageID: m.ID, EmailID: refOf(m.ContentRef).Email}
+				vars = liquid.Fill(ctx, s.Recipients(), m.WorkspaceID, r, raw, vars)
+			}
+			if out, err := liquid.Render(raw, vars); err == nil {
 				raw = strings.TrimSpace(out)
 			}
 		}
@@ -482,6 +567,12 @@ func (s *Service) apply(ctx context.Context, tx pgx.Tx, q *store.Queries, ev sen
 				return err
 			}
 		}
+		if s.Clicked != nil {
+			if err := s.Clicked(ctx, q, HumanClick{WorkspaceID: m.WorkspaceID, MessageID: m.ID, CampaignID: m.CampaignID, ContactID: m.ContactID, Stream: m.Stream,
+				URL: link, At: ev.At}); err != nil {
+				return err
+			}
+		}
 	} else {
 		r, err := q.TrackingMarkOpen(ctx, store.TrackingMarkOpenParams{ID: m.ID, At: ev.At, Human: !v.Machine})
 		if err != nil {
@@ -599,6 +690,9 @@ type contentRef struct {
 	Version int       `json:"version"`
 	// Language is the language version sent ("" is the source).
 	Language string `json:"language,omitempty"`
+	// Ctx is what the flow's trigger passed to the email (a store's
+	// checkout or order): its link variables come from MessageVars.
+	Ctx map[string]string `json:"ctx,omitempty"`
 }
 
 // linkKey identifies the link set of an automation email version and language.

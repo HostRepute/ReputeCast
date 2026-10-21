@@ -48,7 +48,13 @@ type Template struct {
 	Links []TrackedLink
 	// Opens and Clicks say what the tracked variant tracks.
 	Opens, Clicks bool
+	// source is the subject, HTML and text with blocks expanded: what the
+	// per-reader variables are looked up for (Source).
+	source string
 }
+
+// Source is the template's subject, HTML and text, blocks expanded.
+func (t *Template) Source() string { return t.source }
 
 // Tracking options of a campaign (campaigns.tracking).
 type Tracking struct {
@@ -92,12 +98,15 @@ func PrepareCut(c Content, t Tracking, cut func(string) string) (*Template, erro
 	if cut == nil {
 		cut = stripMarkers
 	}
+	// Blocks that render per reader (Grow's) become Liquid first, so their
+	// links are indexed and tracked like the email's own.
+	c.HTML = liquid.ExpandBlocks(c.HTML)
 	for _, src := range []string{c.Subject, c.HTML, c.Text} {
 		if probs := liquid.Validate(src); len(probs) > 0 {
 			return nil, fmt.Errorf("%w: %s", ErrRender, probs[0].Message)
 		}
 	}
-	out := &Template{Opens: t.Opens, Clicks: t.Clicks}
+	out := &Template{Opens: t.Opens, Clicks: t.Clicks, source: c.Subject + "\n" + c.HTML + "\n" + c.Text}
 	var err error
 	if out.subject, err = parse(c.Subject); err != nil {
 		return nil, err
@@ -200,6 +209,12 @@ func trackable(href string) bool {
 	// Earn's personal links: the upgrade page knows the reader and credits
 	// the email itself, and the billing link is the reader's own.
 	if strings.Contains(href, "upgrade_url") || strings.Contains(href, "manage_subscription_url") {
+		return false
+	}
+	// The Recommendations block's buttons open the hosted recommendations
+	// page, which counts them (internal/recommendations); they sit in a
+	// loop, so one tracked link couldn't tell the newsletters apart.
+	if strings.Contains(href, "rc_rec_") {
 		return false
 	}
 	// Only absolute web links (possibly personalized) are redirected.

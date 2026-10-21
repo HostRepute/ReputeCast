@@ -23,9 +23,13 @@ import { useI18n, useT } from '@/i18n'
 import { NotificationsRow, TransactionalActivityRow, transactionalCount, useContactTransactional, withTransactional } from '@/features/transactional/ContactActivity'
 import { JoinLine } from '@/features/growth/JoinLine'
 import { ProfileScoreCard } from '@/features/scoring/ProfileScoreCard'
+import { StoreOrdersCard, useStoreActivity } from '@/features/commerce/profile'
 import { FieldSourceNote, useAnswerActivity, useFieldSources } from '@/features/polls/contact'
 import { ContactPaidCard, ContactTierChip, PaidActivity, useHasPaidActivity } from '@/features/earn/ContactPaidCard'
 import { AddressCheckRow } from '@/features/verification/AddressCheck'
+// Digital products (X19): the Purchases card, bought and refunded events, the checkout's consent.
+import { PurchasesCard, checkoutConsent, purchaseActivity, purchaseIcon, purchaseIcons } from '@/features/products/contact'
+import { GrowActivityRow, growEvents, ProfileReferralsCard, useContactGrow, withGrow } from '@/features/grow/contact/ContactGrow'
 import './audience.css'
 import { ContactWebsiteCard } from '@/features/website/elsewhere'
 
@@ -134,13 +138,19 @@ export function ContactProfilePage({ contactId }: { contactId: string }) {
           ) : null}
           <Summary p={p} />
           <ProfileScoreCard contactId={p.id} firstName={p.firstName} tier={p.tier as Tier} fields={p.fields} />
+          {/* Grow: the Referrals card, or who referred them (design expansion, X15). */}
+          <ProfileReferralsCard contactId={p.id} />
           <div className="flex flex-wrap items-start gap-5">
             <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-5">
               <ContactPaidCard contactId={p.id} />
               <FieldsCard p={p} />
+              {/* What the contact bought (digital products, X19). */}
+              <PurchasesCard contactId={p.id} />
               <ConsentCard p={p} />
               {/* The website's Website card (features/website), while it's on. */}
               <ContactWebsiteCard contactId={p.id} name={[p.firstName, p.lastName].filter(Boolean).join(' ') || p.email} />
+              {/* A connected store's orders and consent (X20). */}
+              <StoreOrdersCard contactId={p.id} />
             </div>
             <ActivityCard contactId={contactId} total={p.activityTotal} />
           </div>
@@ -424,6 +434,12 @@ function consentText(l: Schemas['ContactListConsent'], consentLanguage?: (versio
   const parts: string[] = []
   for (const e of l.events) {
     const src = e.sourceLabel
+    // A buyer who ticked a product's list offer at checkout (X19): "Product checkout: ticked “…”".
+    const checkout = checkoutConsent(e, fullDateTime(e.at))
+    if (checkout) {
+      parts.push(checkout)
+      continue
+    }
     switch (e.action) {
       case 'imported':
         parts.push(`Subscribed via ${src} ${fullDate(e.at)}`)
@@ -536,9 +552,12 @@ function ActivityCard({ contactId, total }: { contactId: string; total: number }
   // Transactional mail joins the deliveries; the Optional categories, consent.
   const tx = useContactTransactional(contactId)
   const base = paid ? 'all' : filter
-  const entries = paid ? [] : withTransactional(items, tx.data, base, !q.hasNextPage)
+  // Grow's events join them the same way (design expansion, X15).
+  const grow = useContactGrow(contactId)
+  const growList = paid ? [] : growEvents(grow.data, base)
+  const entries = paid ? [] : withGrow(withTransactional(items, tx.data, base, !q.hasNextPage), growList, !q.hasNextPage, items.length ? Date.parse(items[items.length - 1]!.at) : -Infinity)
   const txCount = transactionalCount(tx.data, base)
-  const shown = (q.data?.pages[0]?.total ?? (filter === 'all' ? total : 0)) + txCount
+  const shown = (q.data?.pages[0]?.total ?? (filter === 'all' ? total : 0)) + txCount + growList.length
   const listed = entries.filter((e) => e.kind !== 'notifications').length
   return (
     <section className="card flex min-w-0 flex-[1.4_1_480px] flex-col" aria-labelledby="activity-h">
@@ -593,6 +612,8 @@ function ActivityCard({ contactId, total }: { contactId: string; total: number }
               <ActivityRow key={e.it.id} it={e.it} />
             ) : e.kind === 'tx' ? (
               <TransactionalActivityRow key={`tx-${e.m.id}`} m={e.m} when={dateTime} product={tx.product} canViewContent={Boolean(tx.data?.canViewContent)} />
+            ) : e.kind === 'grow' ? (
+              <GrowActivityRow key={`grow-${e.e.kind}-${e.at}`} e={e.e} />
             ) : tx.data ? (
               <NotificationsRow key="tx-notifications" tx={tx.data} product={tx.product} essential={tx.essential} />
             ) : null,
@@ -642,6 +663,8 @@ const icons = {
     </>
   ),
   minus: <path d="M4 8h8" />,
+  // Purchases and refunds (digital products, X19).
+  ...purchaseIcons,
 }
 
 const tone = {
@@ -654,8 +677,14 @@ const tone = {
 }
 
 function eventIcon(it: Item): [keyof typeof icons, keyof typeof tone] {
+  // Purchases and refunds (digital products, X19).
+  const purchase = purchaseIcon(it)
+  if (purchase) return purchase
   // Poll answers and survey responses (design expansion, X11).
   if (it.type === 'poll_answer' || it.type === 'survey_response' || it.type === 'survey_started') return ['check', 'green']
+  // Store orders and abandoned checkouts (X20).
+  if (it.type === 'store_order') return ['check', 'green']
+  if (it.type === 'checkout_abandoned') return it.store?.flow ? ['flow', 'purple'] : ['minus', 'grey']
   if (it.category === 'consent') {
     switch (it.type) {
       case 'confirmed':
@@ -722,6 +751,8 @@ const verb: Record<string, string> = {
 
 function ActivityRow({ it }: { it: Item }) {
   const answerActivity = useAnswerActivity()
+  // Store orders and abandoned checkouts (X20).
+  const storeActivity = useStoreActivity()
   const [icon, t] = eventIcon(it)
   const c = tone[t]
   const tr = useT()
@@ -731,10 +762,15 @@ function ActivityRow({ it }: { it: Item }) {
   const dl = deliveryLanguage(it, tr, locale, brandOf(me.workspace.name))
   let title: ReactNode
   let meta: string[] = [dateTime(it.at)]
-  const answer = answerActivity(it)
+  const answer = answerActivity(it) ?? storeActivity(it)
+  // Purchases and refunds (digital products, X19).
+  const purchase = purchaseActivity(it)
   if (answer) {
     title = <b>{answer.title}</b>
     meta = [...meta, ...answer.meta]
+  } else if (purchase) {
+    title = purchase.title
+    meta = [...meta, ...purchase.meta]
   } else if (it.category === 'consent') {
     switch (it.type) {
       case 'confirmed':

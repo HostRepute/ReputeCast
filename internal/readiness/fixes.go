@@ -26,7 +26,7 @@ import (
 
 // ReadinessFixRequest is one fix to apply.
 type ReadinessFixRequest struct {
-	Action string            `json:"action" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language,accessibility_decorative,accessibility_color,accessibility_one_click,visibility_show_everyone,visibility_hide_block,visibility_remove_condition,poll_close_days,exclude_risky,verify_addresses"`
+	Action string            `json:"action" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language,accessibility_decorative,accessibility_color,accessibility_one_click,visibility_show_everyone,visibility_hide_block,visibility_remove_condition,poll_close_days,exclude_risky,verify_addresses,sponsor_remove_block,sponsor_refresh_block"`
 	Params map[string]string `json:"params,omitempty"`
 }
 
@@ -215,6 +215,24 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 			}
 			src, content = next, true
 			labels = append(labels, label)
+			out.Applied = append(out.Applied, applied)
+		case FixSponsorRemove, FixSponsorRefresh:
+			if s.Sponsor == nil {
+				return out, api.Conflict("Sponsor block fixes aren't available in this process.")
+			}
+			if strings.TrimSpace(src) == "" {
+				return out, api.Invalid(field, "This campaign is written in HTML. Change it in the editor.")
+			}
+			next, applied, err := s.Sponsor.FixSponsor(ctx, ws, id, src, fx.Action)
+			if err != nil {
+				return out, api.Invalid(field, sentence(capitalize(err.Error())))
+			}
+			src, content = next, true
+			if fx.Action == FixSponsorRemove {
+				labels = append(labels, "Sponsor block removed")
+			} else {
+				labels = append(labels, "Sponsor block updated")
+			}
 			out.Applied = append(out.Applied, applied)
 		default:
 			return out, api.Invalid(field+".action", "Unknown fix.")

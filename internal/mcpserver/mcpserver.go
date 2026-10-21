@@ -55,6 +55,18 @@ type Service struct {
 	Polls PollReader
 	// Website lists, reads and drafts posts (nil: unavailable).
 	Website WebsitePosts
+	// Pages and Products list and read landing pages and digital products
+	// (nil: unavailable).
+	Pages    PagesReader
+	Products ProductsReader
+	// Revenue reads Earn › Overview and Sponsors takes proposed bookings
+	// (X17; nil: unavailable).
+	Revenue  RevenueReader
+	Sponsors SponsorProposer
+	// Grow and Recommendations read Grow's referrals and recommendations
+	// (nil: unavailable).
+	Grow            GrowReader
+	Recommendations RecommendationsReader
 	// Push and WhatsApp draft campaigns and read their reports (X22; nil:
 	// unavailable). Agents never send them.
 	Push     PushDrafts
@@ -110,6 +122,12 @@ var Tools = []MCPToolInfo{
 	{"get_poll_results", "Results of a campaign's polls or of a survey: answers by answer, NPS, by tier and language. Aggregate only.", string(authz.ReportsView), false},
 	{"list_placement_tests", "Placement tests people ran: the email, the providers and where the copies landed.", string(authz.DeliverabilityView), false},
 	{"get_placement_test", "One placement test: each copy's folder, time to arrive and SPF, DKIM and DMARC, with the guidance.", string(authz.DeliverabilityView), false},
+	// Grow (design expansion phase 5).
+	{"get_referral_results", "A referral program's results: visits, signups, confirmations, counted referrals, channels, top referrers and rewards.", string(authz.GrowView), false},
+	{"list_referrers", "Referrers with their counted, in-hold and held referrals and the milestones they reached (no addresses).", string(authz.GrowView), false},
+	{"list_held_referrals", "Referrals held for review, grouped by referrer, with the signals and addresses masked to their network.", string(authz.GrowView), false},
+	{"propose_referral_decision", "Propose counting or not counting a referrer's held referrals. A person with grow:review decides in ReputeCast.", string(authz.GrowView), true},
+	{"list_recommendations", "The newsletters you recommend and the partners that recommend you, with their numbers. Agents can't change them or touch partner links.", string(authz.GrowView), false},
 }
 
 // Settings are the per-workspace MCP options.

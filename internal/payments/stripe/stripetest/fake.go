@@ -290,14 +290,28 @@ func (f *Fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"return_url": form.Get("return_url"), "livemode": live})
 	case r.Method == http.MethodPost && path == "/v1/checkout/sessions":
 		id := newID("cs_" + string(spec.Mode))
+		mode := form.Get("mode")
+		if mode == "" {
+			mode = "subscription"
+		}
 		o := obj{"id": id, "object": "checkout.session", "url": "https://checkout.stripe.com/c/pay/" + id, "status": "open", "payment_status": "unpaid",
-			"mode": "subscription", "customer": nilIfEmpty(form.Get("customer")), "customer_email": nilIfEmpty(form.Get("customer_email")), "subscription": nil,
+			"mode": mode, "customer": nilIfEmpty(form.Get("customer")), "customer_email": nilIfEmpty(form.Get("customer_email")), "subscription": nil,
 			"client_reference_id": nilIfEmpty(form.Get("client_reference_id")), "metadata": prefixed(form, "metadata"), "livemode": live,
 			"success_url": form.Get("success_url"), "cancel_url": form.Get("cancel_url"),
 			"_price": form.Get("line_items[0][price]"), "_trial_days": form.Get("subscription_data[trial_period_days]"),
 			"_promotion_code": form.Get("discounts[0][promotion_code]"), "_tax": form.Get("automatic_tax[enabled]")}
+		if mode == "payment" {
+			// A one-time payment (a gift): its amount and item.
+			amount, _ := strconv.ParseInt(form.Get("line_items[0][price_data][unit_amount]"), 10, 64)
+			o["amount_total"], o["currency"], o["payment_intent"] = amount, form.Get("line_items[0][price_data][currency]"), nil
+			o["_name"] = form.Get("line_items[0][price_data][product_data][name]")
+		}
 		d.objects[id] = o
 		writeJSON(w, 200, public(o))
+	case r.Method == http.MethodPost && path == "/v1/coupons":
+		f.createCoupon(w, d, form, live)
+	case r.Method == http.MethodPost && path == "/v1/promotion_codes":
+		f.createPromotionCode(w, d, form, live)
 	case r.Method == http.MethodPost && path == "/v1/products":
 		id := newID("prod")
 		o := obj{"id": id, "object": "product", "name": form.Get("name"), "description": form.Get("description"), "active": form.Get("active") != "false",
@@ -315,6 +329,7 @@ func (f *Fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			o["type"] = "one_time"
 		}
+		customAmount(o, form)
 		d.objects[id] = o
 		writeJSON(w, 200, o)
 	case len(seg) >= 3 && seg[0] == "v1":
@@ -362,7 +377,14 @@ func (f *Fake) object(w http.ResponseWriter, r *http.Request, d *data, seg []str
 		}
 	case http.MethodPost:
 		switch kind {
+		case "promotion_codes":
+			if v := form.Get("active"); v != "" {
+				o["active"] = v == "true"
+			}
 		case "subscriptions":
+			if code := form.Get("coupon"); code != "" {
+				f.applyCoupon(d, o, code, live)
+			}
 			if v := form.Get("cancel_at_period_end"); v != "" {
 				prev := obj{"cancel_at_period_end": o["cancel_at_period_end"]}
 				o["cancel_at_period_end"] = v == "true"
@@ -417,8 +439,23 @@ func (f *Fake) synthesize(d *data, kind, id string, live bool) obj {
 		o := obj{"id": id, "object": "price", "active": true, "unit_amount": 0, "currency": f.Account.Currency, "livemode": live}
 		d.objects[id] = o
 		return o
+	case "products":
+		// The demo's digital products (X19).
+		o := obj{"id": id, "object": "product", "active": true, "name": "", "description": nil, "livemode": live, "metadata": obj{}}
+		d.objects[id] = o
+		return o
 	case "charges":
 		o := obj{"id": id, "object": "charge", "amount": 0, "amount_refunded": 0, "currency": f.Account.Currency, "failure_message": nil, "livemode": live}
+		d.objects[id] = o
+		return o
+	case "coupons":
+		// The demo's offers' coupons (X17).
+		o := obj{"id": id, "object": "coupon", "valid": true, "duration": "once", "times_redeemed": int64(0), "metadata": obj{}, "livemode": live}
+		d.objects[id] = o
+		return o
+	case "promotion_codes":
+		o := obj{"id": id, "object": "promotion_code", "active": true, "code": strings.ToUpper(strings.TrimPrefix(id, "promo_")), "coupon": obj{"id": "co_demo", "object": "coupon"},
+			"times_redeemed": int64(0), "metadata": obj{}, "livemode": live}
 		d.objects[id] = o
 		return o
 	case "webhook_endpoints":

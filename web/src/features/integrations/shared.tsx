@@ -8,6 +8,7 @@ import { clock, dayMonthDate, dayMonthYear } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { aiCatalogCapabilities, aiEntryLine, aiEntryName, aiMaintainer } from '@/features/ai/entries'
 import { paymentCapabilities, paymentEntryLine, paymentEntryName, paymentLetters, paymentMaintainer } from '@/features/earn/entries'
+import { cm } from '@/features/commerce/messages'
 import { m } from './messages'
 import './integrations.css'
 
@@ -30,7 +31,7 @@ export type Status = Entry['status']
 export const base = '/api/v1/workspaces/{workspace}/integrations' as const
 export const API_REFERENCE = 'https://github.com/hostrepute/reputecast/blob/main/docs/api/README.md'
 export const PLUGIN_URL = 'https://wordpress.org/plugins/reputecast/'
-export const KNOWN_PLUGIN = '1.3.0'
+export const KNOWN_PLUGIN = '1.4.0'
 
 export function isPlatform(k: string): k is PlatformKind {
   return k === 'zapier' || k === 'make' || k === 'n8n'
@@ -82,6 +83,8 @@ export const entryName: Record<EntryKey, MessageDescriptor> = {
   bouncer: m.bouncer,
   emailable: m.emailable,
   ...paymentEntryName,
+  shopify: cm.shopify,
+  woocommerce: cm.woocommerce,
 }
 
 export const maintainer: Record<EntryKey, MessageDescriptor> = {
@@ -100,6 +103,8 @@ export const maintainer: Record<EntryKey, MessageDescriptor> = {
   bouncer: m.byOwnAccount,
   emailable: m.byOwnAccount,
   ...paymentMaintainer,
+  shopify: cm.byShopify,
+  woocommerce: cm.byWoo,
 }
 
 export const entryLine: Record<EntryKey, MessageDescriptor> = {
@@ -118,6 +123,8 @@ export const entryLine: Record<EntryKey, MessageDescriptor> = {
   bouncer: m.bouncerLine,
   emailable: m.emailableLine,
   ...paymentEntryLine,
+  shopify: cm.shopifyLine,
+  woocommerce: cm.wooLine,
 }
 
 export const capabilities: Record<EntryKey, MessageDescriptor[]> = {
@@ -136,7 +143,12 @@ export const capabilities: Record<EntryKey, MessageDescriptor[]> = {
   bouncer: [m.capBulkLists, m.capRealtime, m.capCreditBalance],
   emailable: [m.capBulkLists, m.capRealtime, m.capCreditBalance],
   ...paymentCapabilities,
+  shopify: [cm.capOrders, cm.capProducts, cm.capCustomers, cm.capCheckouts, cm.capWriteBack, cm.capAttribution],
+  woocommerce: [cm.capOrders, cm.capProducts, cm.capCustomers, cm.capCheckouts, cm.capAttribution],
 }
+
+/** The store platforms (the Commerce group, X20). */
+export const isStore = (k: string): k is 'shopify' | 'woocommerce' => k === 'shopify' || k === 'woocommerce'
 
 /** The address verification services' keys (X14). */
 export const verificationKeys = ['zerobounce', 'neverbounce', 'kickbox', 'bouncer', 'emailable'] as const
@@ -164,6 +176,8 @@ export function Tile({ k, size }: { k: EntryKey; size?: 'sm' | 'lg' }) {
     bouncer: 'B',
     emailable: 'E',
     ...paymentLetters,
+    shopify: 'Sh',
+    woocommerce: 'Woo',
   }
   let inner: ReactNode = letters[k]
   if (k === 'hostrepute') inner = <ShieldTick size={px} />
