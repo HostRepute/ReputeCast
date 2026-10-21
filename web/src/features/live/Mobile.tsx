@@ -1,18 +1,24 @@
 import type { ReactNode } from 'react'
+import { m as shell } from '@/components/shell/messages'
 import { Badge, Dot } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Row } from '@/components/ui/Layout'
+import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { clockSeconds, count } from '@/lib/format'
+import { clockSeconds, count, pct } from '@/lib/format'
 import { useDocumentTitle } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import type { LivePermissions } from './actions'
 import { CountUp } from './LiveParts'
+import { m } from './messages'
 import { ConnectingCard } from './States'
 import {
+  autoPausedText,
   barSegments,
+  eventWord,
   mailboxColor,
+  mailboxName,
   mailboxStatus,
   mobileCaption,
   mobileEta,
@@ -23,11 +29,11 @@ import {
   providerColor,
   providerLine,
   providerStatus,
-  scopeName,
   thresholdRows,
   type Incident,
   type Snapshot,
 } from './model'
+import { mm } from './model.messages'
 
 /** LiveMonitorMobile: the live view on a phone, with its own header. */
 export function MobileLive({
@@ -57,14 +63,15 @@ export function MobileLive({
   onCancel: () => void
   busy?: boolean
 }) {
+  const t = useT()
   const { slug, me } = useWorkspace()
-  useDocumentTitle(`${s.name} · Live · ${me.workspace.name} · ReputeCast`)
-  const t = mobileTiles(s)
+  useDocumentTitle(t(shell.docTitleWorkspace, { title: t(m.documentTitle, { name: s.name }), workspace: me.workspace.name }))
+  const tiles = mobileTiles(s)
   const paused = s.state === 'paused' && !incident
   return (
     <>
       <header className="lv-mhead">
-        <ButtonLink to="/w/$workspace/campaigns" params={{ workspace: slug }} className="lv-back" aria-label="Back to campaigns">
+        <ButtonLink to="/w/$workspace/campaigns" params={{ workspace: slug }} className="lv-back" aria-label={t(m.backToCampaigns)}>
           <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
             <path d="m10 3-5 5 5 5" />
           </svg>
@@ -81,14 +88,12 @@ export function MobileLive({
           <ConnectingCard s={s} />
         ) : (
           <>
-            <Card className={cn('flex flex-col gap-2.5 p-4', !streaming && 'lv-stale')} aria-label="Progress">
+            <Card className={cn('flex flex-col gap-2.5 p-4', !streaming && 'lv-stale')} aria-label={t(m.progress)}>
               <Row gap={10} align="baseline">
                 <span className="n text-[32px] tracking-[-0.02em]">
-                  <CountUp value={wholePercent(s)} />%
+                  <CountUp value={wholePercent(s)} format={(n) => pct(n, 0)} />
                 </span>
-                <span>
-                  {count(s.sent)} of {count(s.recipients)}
-                </span>
+                <span>{t(m.sentOfTotal, { sent: count(s.sent), total: count(s.recipients) })}</span>
               </Row>
               <div className="bar flex gap-0.5" style={{ height: 10, borderRadius: 5 }}>
                 {barSegments(s, incident).map((seg) => (
@@ -109,11 +114,11 @@ export function MobileLive({
               </div>
             </Card>
             <div className="grid grid-cols-2 gap-2.5">
-              {t.map((x, i) => (
-                <div key={x.key} className={cn('card tile', i === t.length - 1 && 'col-span-2')}>
+              {tiles.map((x, i) => (
+                <div key={x.key} className={cn('card tile', i === tiles.length - 1 && 'col-span-2')}>
                   <span className="k">{x.label}</span>
                   <span className="n text-[22px]">
-                    <CountUp value={Number(x.value.replaceAll(',', '')) || 0} />
+                    <CountUp value={x.num ?? 0} />
                   </span>
                   <span className="k">{x.sub}</span>
                 </div>
@@ -123,8 +128,8 @@ export function MobileLive({
         )}
         <Card className="flex flex-col">
           <div className="flex items-center justify-between px-3.5 py-3">
-            <h2 className="h2">Thresholds</h2>
-            <span className="k">auto-pause</span>
+            <h2 className="h2">{t(m.thresholdsShort)}</h2>
+            <span className="k">{t(m.autoPause)}</span>
           </div>
           <div className="flex flex-col gap-2.5 px-3.5 pb-3">
             {thresholdRows(s).map((r) => (
@@ -142,17 +147,17 @@ export function MobileLive({
         </Card>
         <Card className="flex flex-col">
           <div className="px-3.5 py-3">
-            <h2 className="h2">Per mailbox provider</h2>
+            <h2 className="h2">{t(m.perMailbox)}</h2>
           </div>
           <ul className="m-0 list-none p-0">
-            {s.mailboxes.map((m) => {
-              const st = mailboxStatus(m, s, false)
+            {s.mailboxes.map((mb) => {
+              const st = mailboxStatus(mb, s, false)
               return (
-                <li key={m.key} className="lv-row">
-                  <Dot color={mailboxColor[m.key]} />
-                  <span className="flex-1">{m.name}</span>
-                  <span className="n">{count(m.sent)}</span>
-                  <span className="k w-[52px] text-right">{pct1(m.deliveredRate)}</span>
+                <li key={mb.key} className="lv-row">
+                  <Dot color={mailboxColor[mb.key]} />
+                  <span className="flex-1">{mailboxName(mb.key)}</span>
+                  <span className="n">{count(mb.sent)}</span>
+                  <span className="k w-[52px] text-right">{pct1(mb.deliveredRate)}</span>
                   <Badge tone={st.tone}>{st.text}</Badge>
                 </li>
               )
@@ -161,7 +166,7 @@ export function MobileLive({
         </Card>
         <Card className="flex flex-col">
           <div className="px-3.5 py-3">
-            <h2 className="h2">Per sending provider</h2>
+            <h2 className="h2">{t(m.perProvider)}</h2>
           </div>
           <ul className="m-0 list-none p-0">
             {s.providers.map((p) => {
@@ -182,26 +187,26 @@ export function MobileLive({
         </Card>
         <Card className="flex flex-col">
           <div className="flex items-center justify-between px-3.5 py-3">
-            <h2 className="h2">Live events</h2>
+            <h2 className="h2">{t(m.liveEvents)}</h2>
             {streaming ? (
               <span className="badge ok">
                 <span className="dot pulse-live" aria-hidden="true" />
-                streaming
+                {t(m.streaming)}
               </span>
             ) : (
               <Badge tone="neutral" dot>
-                reconnecting
+                {t(m.reconnecting)}
               </Badge>
             )}
           </div>
           {s.events.length === 0 ? (
-            <div className="lv-row k">Delivery events appear here as providers report them.</div>
+            <div className="lv-row k">{t(m.eventsEmpty)}</div>
           ) : (
-            <ol className="m-0 list-none p-0" aria-label="Newest events first">
+            <ol className="m-0 list-none p-0" aria-label={t(m.eventsList)}>
               {s.events.slice(0, 4).map((ev) => (
                 <li key={ev.id} className="lv-row">
                   <span className="mono k">{clockSeconds(ev.at)}</span>
-                  <Badge tone={ev.tone}>{ev.short}</Badge>
+                  <Badge tone={ev.tone}>{eventWord(ev.short)}</Badge>
                   <span className="mono text-[12px]">{ev.address}</span>
                 </li>
               ))}
@@ -212,15 +217,15 @@ export function MobileLive({
           <div className="mt-1 grid grid-cols-2 gap-2.5">
             {paused ? (
               <Button variant="primary" onClick={onResume} disabledReason={can.resume} loading={busy}>
-                Resume
+                {t(m.resume)}
               </Button>
             ) : (
               <Button onClick={onPause} disabledReason={can.pause} loading={busy}>
-                Pause
+                {t(m.pause)}
               </Button>
             )}
             <Button variant="danger" onClick={onCancel} disabledReason={can.cancel}>
-              Cancel
+              {t(m.cancelShort)}
             </Button>
           </div>
         ) : null}
@@ -238,33 +243,39 @@ function wholePercent(s: Snapshot): number {
 
 /** The header's state word on a phone: "Sending", "Paused", "Auto-paused · Outlook", "Postal held". */
 function StateBadge({ s, incident }: { s: Snapshot; incident?: Incident }) {
+  const t = useT()
   if (incident?.kind === 'threshold') {
-    const who = scopeName(incident)
     return (
       <Badge tone="bad" pulse>
-        {who ? `Auto-paused · ${who}` : 'Auto-paused'}
+        {autoPausedText(incident)}
       </Badge>
     )
   }
-  if (incident?.kind === 'provider_outage') return <Badge tone="warn" dot>{`${incident.providerShort} held`}</Badge>
+  if (incident?.kind === 'provider_outage') {
+    return (
+      <Badge tone="warn" dot>
+        {t(mm.badgeProviderHeld, { provider: incident.providerShort })}
+      </Badge>
+    )
+  }
   switch (s.state) {
     case 'preparing':
       return (
         <Badge tone="info" dot>
-          Starting
+          {t(mm.badgeStarting)}
         </Badge>
       )
     case 'paused':
       return (
         <Badge tone="warn" dot>
-          Paused
+          {t(mm.badgePaused)}
         </Badge>
       )
   }
   return (
     <span className="badge ok">
       <span className="dot pulse-live" aria-hidden="true" />
-      Sending
+      {t(mm.badgeSending)}
     </span>
   )
 }

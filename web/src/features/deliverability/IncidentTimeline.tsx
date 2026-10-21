@@ -2,9 +2,11 @@ import { Link } from '@tanstack/react-router'
 import { Fragment } from 'react'
 import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
+import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { shortDate } from '@/lib/format'
+import { count, shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
+import { m } from './messages'
 import { severityTone } from './words'
 
 function IncidentLink({ l }: { l: Schemas['DeliverabilityIncidentLink'] }) {
@@ -51,18 +53,19 @@ function IncidentLink({ l }: { l: Schemas['DeliverabilityIncidentLink'] }) {
 }
 
 /** Incident timeline, linked to campaigns and providers. */
-export function IncidentTimeline({ t, connected, className }: { t: Schemas['DeliverabilityIncidentTimeline']; connected: boolean; className?: string }) {
+export function IncidentTimeline({ t: timeline, connected, className }: { t: Schemas['DeliverabilityIncidentTimeline']; connected: boolean; className?: string }) {
+  const t = useT()
   return (
     <section className={cn('card min-w-0', className)} aria-labelledby="h-incidents">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-4.5 py-3.5">
         <h2 className="h2" id="h-incidents">
-          Incident timeline
+          {t(m.incidentsTitle)}
         </h2>
-        <span className="k">{connected || t.fromHostRepute ? 'linked to campaigns and providers' : 'from provider events and auto-pause history'}</span>
+        <span className="k">{connected || timeline.fromHostRepute ? t(m.incidentsLinked) : t(m.incidentsFromEvents)}</span>
       </div>
-      {t.items.length ? (
+      {timeline.items.length ? (
         <ol className="m-0 list-none p-0">
-          {t.items.map((it, i) => (
+          {timeline.items.map((it, i) => (
             <li key={it.id} className={cn('flex items-start gap-3 px-4.5 py-3 text-[13px]', i > 0 && 'border-t border-line-2')}>
               <Badge tone={severityTone(it.severity)} className="mt-px">
                 <time dateTime={it.occurredAt}>{shortDate(it.occurredAt)}</time>
@@ -84,13 +87,11 @@ export function IncidentTimeline({ t, connected, className }: { t: Schemas['Deli
           ))}
         </ol>
       ) : (
-        <p className="px-4.5 py-4 text-[13px] text-ink-2">No incidents in the last 45 days. Listings, auto-pauses, outages and warm-up slowdowns appear here.</p>
+        <p className="px-4.5 py-4 text-[13px] text-ink-2">{t(m.noIncidents)}</p>
       )}
-      {t.total > t.items.length ? (
+      {timeline.total > timeline.items.length ? (
         <div className="border-t border-line-2 px-4.5 py-2.5">
-          <span className="k">
-            Showing the latest {t.items.length} of {t.total} in the last 45 days
-          </span>
+          <span className="k">{t(m.incidentsShowing, { shown: count(timeline.items.length), total: count(timeline.total) })}</span>
         </div>
       ) : null}
     </section>

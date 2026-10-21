@@ -1,6 +1,7 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import { ApiError, errorMessage, http } from '@/api/client'
+import { m as shell } from '@/components/shell/messages'
 import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
@@ -8,9 +9,13 @@ import { KeyValues } from '@/components/ui/Data'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
+import { T, t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
+import { andList } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { ConnectCard } from './ConnectCard'
+import { m } from './messages'
 import { plainNote, useIntegrations, useRefreshConnection, useStartOAuth, type Connection } from './shared'
 import './hostrepute.css'
 
@@ -23,28 +28,29 @@ export interface ConnectSearch {
 /** Why a handoff came back without a connection. */
 function reasonText(reason: string | undefined, conn: Connection): string {
   // A workspace that was already connected keeps its connection.
-  const kept = conn.status === 'connected' ? `Your connection to team “${conn.teamName}” is unchanged` : 'Nothing was connected'
+  const v = { kept: conn.status === 'connected' ? 'connected' : 'nothing', team: conn.teamName ?? '', perm: 'integrations:hostrepute' }
   switch (reason) {
     case 'declined':
-      return `You declined the request on HostRepute. ${kept}.`
+      return tt(m.reasonDeclined, v)
     case 'wrong_user':
-      return 'This handoff was started by someone else. Start it again from your own account.'
+      return tt(m.reasonWrongUser)
     case 'forbidden':
-      return `Connecting HostRepute needs the integrations:hostrepute permission. ${kept}.`
+      return tt(m.reasonForbidden, v)
     case 'exchange_failed':
-      return `HostRepute didn't accept the approval (it expired or was already used). ${kept}; try again.`
+      return tt(m.reasonExchange, v)
     case 'unreachable':
-      return `Couldn't reach HostRepute to finish connecting. ${kept}; try again in a minute.`
+      return tt(m.reasonUnreachable, v)
     case 'hostrepute_error':
-      return `HostRepute answered with an error. ${kept}; try again.`
+      return tt(m.reasonHostReputeError, v)
     case 'save_failed':
-      return `ReputeCast couldn't save the connection. ${kept}; try again.`
+      return tt(m.reasonSaveFailed, v)
   }
-  return `HostRepute sent you back without connecting. ${kept}; try again.`
+  return tt(m.reasonOther, v)
 }
 
 /** A5 5.15 Connect HostRepute: before connecting, the OAuth handoff and the return, or an API key. */
 export function ConnectPage({ search }: { search: ConnectSearch }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = useIntegrations()
   const [redirect, setRedirect] = useState<string | null>(null)
@@ -67,30 +73,30 @@ export function ConnectPage({ search }: { search: ConnectSearch }) {
   }
   return (
     <Page
-      title="Connect HostRepute"
+      title={t(m.pageTitle)}
       contentClassName="hr-crumbs"
       badges={
-        <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-[13px]">
+        <nav aria-label={t(shell.breadcrumbLabel)} className="flex flex-wrap items-center gap-2 text-[13px]">
           <Link to="/w/$workspace/deliverability" params={{ workspace: slug }} className="text-ink-3 no-underline hover:text-ink-3">
-            Deliverability
+            {t(shell.navDeliverability)}
           </Link>
           <span className="k" aria-hidden="true">
             /
           </span>
           <span className="font-semibold" aria-current="page">
-            Connect HostRepute
+            {t(m.pageTitle)}
           </span>
         </nav>
       }
     >
       {q.isError ? (
-        <ErrorPanel title="Couldn't load the HostRepute connection" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
-          {errorMessage(q.error)} Nothing was changed.
+        <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
+          {errorMessage(q.error)} {t(m.nothingChanged)}
         </ErrorPanel>
       ) : !conn ? (
         <div className="grid items-start gap-5 [grid-template-columns:minmax(0,3fr)_minmax(320px,2fr)] max-md:grid-cols-1" aria-busy="true">
           <span className="vh" role="status">
-            Loading
+            {t(m.loading)}
           </span>
           <div className="card flex flex-col gap-3 p-4.5">
             <Skeleton w={220} h={16} />
@@ -121,6 +127,7 @@ export function ConnectPage({ search }: { search: ConnectSearch }) {
 
 /** The handoff: the browser is on its way to app.hostrepute.com. */
 function RedirectCard({ url }: { url: string }) {
+  const t = useT()
   let host = 'app.hostrepute.com'
   try {
     const u = new URL(url, window.location.href)
@@ -132,18 +139,16 @@ function RedirectCard({ url }: { url: string }) {
     <section className="card" aria-labelledby="h-hr-redirect">
       <div className="sec">
         <h2 className="h2" id="h-hr-redirect">
-          Redirecting to HostRepute…
+          {t(m.redirectTitle)}
         </h2>
-        <Badge tone="info">OAuth</Badge>
+        <Badge tone="info">{'OAuth'}</Badge>
       </div>
       <div className="pad col items-center gap-3 px-4.5 py-7 text-center" role="status">
         <span className="dot h-3.5 w-3.5 text-accent" aria-hidden="true" />
-        <span className="font-semibold">Approve the request on {host}</span>
-        <span className="k max-w-[360px]">
-          You're leaving ReputeCast to sign in to HostRepute and confirm the scopes above. You'll come straight back here. Nothing is connected until you approve.
-        </span>
+        <span className="font-semibold">{t(m.approveOn, { host })}</span>
+        <span className="k max-w-[360px]">{t(m.leaving)}</span>
         <span className="k">
-          Didn't get redirected? <a href={url}>Open HostRepute</a>
+          <T msg={m.notRedirected} values={{ link: (c) => <a href={url}>{c}</a> }} />
         </span>
       </div>
     </section>
@@ -152,6 +157,7 @@ function RedirectCard({ url }: { url: string }) {
 
 /** "Use an API key instead": for installs that can't use the browser handoff. */
 function KeyCard({ inputRef, onCancel }: { inputRef: React.RefObject<HTMLInputElement | null>; onCancel: () => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const refresh = useRefreshConnection()
@@ -163,7 +169,7 @@ function KeyCard({ inputRef, onCancel }: { inputRef: React.RefObject<HTMLInputEl
     e.preventDefault()
     if (reason) return
     if (!key.trim()) {
-      setError('Paste the API key from HostRepute → Settings → API.')
+      setError(t(m.keyEmpty))
       return
     }
     setBusy(true)
@@ -176,7 +182,7 @@ function KeyCard({ inputRef, onCancel }: { inputRef: React.RefObject<HTMLInputEl
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : errorMessage(err)
       setError(msg)
-      if (!(err instanceof ApiError && err.status === 422)) toast({ kind: 'error', title: "Couldn't connect HostRepute", detail: msg })
+      if (!(err instanceof ApiError && err.status === 422)) toast({ kind: 'error', title: t(m.connectFailed), detail: msg })
     } finally {
       setBusy(false)
     }
@@ -185,20 +191,20 @@ function KeyCard({ inputRef, onCancel }: { inputRef: React.RefObject<HTMLInputEl
     <section className="card" aria-labelledby="h-hr-key">
       <div className="sec">
         <h2 className="h2" id="h-hr-key">
-          Use an API key instead
+          {t(m.keyTitle)}
         </h2>
-        <span className="k">For installs that can't use the browser handoff</span>
+        <span className="k">{t(m.keyLine)}</span>
       </div>
       <form className="pad col gap-3" onSubmit={connect} noValidate>
         <label className="lbl">
-          HostRepute API key
+          {t(m.keyLabel)}
           <input
             ref={inputRef}
             className="in mono"
             type="password"
             value={key}
             onChange={(e) => setKey(e.target.value)}
-            placeholder="hr_live_…"
+            placeholder={'hr_live_…'}
             autoComplete="off"
             spellCheck={false}
             aria-invalid={error ? true : undefined}
@@ -211,8 +217,7 @@ function KeyCard({ inputRef, onCancel }: { inputRef: React.RefObject<HTMLInputEl
           ) : null}
         </label>
         <Note tone="neutral" className={cn(plainNote, 'text-[12.5px]')} role="note">
-          Create a key in HostRepute → Settings → API with the monitor:read, alerts:read and assets:write scopes. The key is write-only here: it can be replaced but never read
-          back.
+          {t(m.keyNote, { scopes: andList(['monitor:read', 'alerts:read', 'assets:write']) })}
         </Note>
         <div className="row justify-end gap-2">
           <Button
@@ -222,10 +227,10 @@ function KeyCard({ inputRef, onCancel }: { inputRef: React.RefObject<HTMLInputEl
               onCancel()
             }}
           >
-            Cancel
+            {t(common.cancel)}
           </Button>
           <Button type="submit" variant="primary" loading={busy} disabledReason={reason}>
-            Connect
+            {t(m.keyConnect)}
           </Button>
         </div>
       </form>
@@ -235,6 +240,7 @@ function KeyCard({ inputRef, onCancel }: { inputRef: React.RefObject<HTMLInputEl
 
 /** Back from HostRepute: connected, what is monitored and what could be. */
 function BackCard({ conn }: { conn: Connection }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const refresh = useRefreshConnection()
   const reason = usePermissionReason('integrations:hostrepute')
@@ -260,10 +266,10 @@ function BackCard({ conn }: { conn: Connection }) {
     try {
       await http.POST('/api/v1/workspaces/{workspace}/integrations/hostrepute/assets', { params: { path: { workspace: slug } }, body: { asset } })
       await refresh()
-      toast({ title: `${asset} added to monitoring`, detail: 'HostRepute checks it within the hour' })
+      toast({ title: t(m.added, { asset }), detail: t(m.addedDetail) })
     } catch (e) {
       if (e instanceof ApiError && e.code === 'monitor_limit_reached') setLimit(e.message)
-      else toast({ kind: 'error', title: `Couldn't add ${asset}`, detail: errorMessage(e) })
+      else toast({ kind: 'error', title: t(m.addFailed, { asset }), detail: errorMessage(e) })
     } finally {
       setAdding(undefined)
     }
@@ -273,26 +279,26 @@ function BackCard({ conn }: { conn: Connection }) {
     <section className="card" aria-labelledby="h-hr-back">
       <div className="sec">
         <h2 className="h2" id="h-hr-back">
-          Back from HostRepute
+          {t(m.backTitle)}
         </h2>
-        <Badge tone="ok">Success</Badge>
+        <Badge tone="ok">{t(m.backSuccess)}</Badge>
       </div>
       <div className="pad col gap-2.5">
-        <Note tone="ok" label="Connected">
-          Team “{conn.teamName}” · scopes {scopes.join(', ')} · {conn.syncing ? 'first sync running (about 1 minute)' : 'first sync done'}
+        <Note tone="ok" label={t(m.backConnected)}>
+          {t(m.backLine, { team: conn.teamName ?? '', scopes: scopes.join(', '), syncing: conn.syncing ? 'yes' : 'no' })}
         </Note>
         <KeyValues
           className="text-[12.5px]"
           items={[
-            ['Monitored now', monitored.length ? monitored.map((a) => a.asset).join(', ') : 'nothing yet: HostRepute adds them on the first sync'],
+            [t(m.monitoredNow), monitored.length ? monitored.map((a) => a.asset).join(', ') : t(m.monitoredNone)],
             ...(suggested.length
               ? ([
                   [
-                    'Suggested',
+                    t(m.suggested),
                     <>
-                      {suggested[0]!.asset} is not monitored yet ·{' '}
+                      {t(m.suggestedLine, { asset: suggested[0]!.asset })}{' '}
                       <Button size="sm" onClick={() => add(suggested[0]!.asset)} loading={adding === suggested[0]!.asset} disabledReason={reason}>
-                        Add to monitoring
+                        {t(m.addToMonitoring)}
                       </Button>
                     </>,
                   ],
@@ -300,9 +306,13 @@ function BackCard({ conn }: { conn: Connection }) {
               : []),
           ]}
         />
-        {limit ? <Note tone="neutral" className={plainNote}>{limit} ReputeCast stays fully usable.</Note> : null}
+        {limit ? (
+          <Note tone="neutral" className={plainNote}>
+            {limit} {t(m.stillUsable)}
+          </Note>
+        ) : null}
         <ButtonLink size="sm" variant="primary" className="self-start" to="/w/$workspace/settings/integrations/hostrepute" params={{ workspace: slug }}>
-          Finish
+          {t(m.finish)}
         </ButtonLink>
       </div>
     </section>
@@ -310,26 +320,27 @@ function BackCard({ conn }: { conn: Connection }) {
 }
 
 function ErrorCard({ conn, reason, onRetry, retrying }: { conn: Connection; reason?: string; onRetry: () => void; retrying: boolean }) {
+  const t = useT()
   const can = !usePermissionReason('integrations:hostrepute')
   return (
     <section className="card" aria-labelledby="h-hr-back">
       <div className="sec">
         <h2 className="h2" id="h-hr-back">
-          Back from HostRepute
+          {t(m.backTitle)}
         </h2>
         {conn.status === 'connected' ? (
-          <Badge tone="ok">Still connected</Badge>
+          <Badge tone="ok">{t(m.stillConnected)}</Badge>
         ) : conn.status === 'revoked' || conn.status === 'expired' ? (
-          <Badge tone="warn">Needs reconnecting</Badge>
+          <Badge tone="warn">{t(m.statusNeedsReconnect)}</Badge>
         ) : (
-          <Badge tone="bad">Not connected</Badge>
+          <Badge tone="bad">{t(m.statusNotConnected)}</Badge>
         )}
       </div>
       <div className="pad col gap-2.5">
         <Note tone="bad">{reasonText(reason, conn)}</Note>
         {can ? (
           <Button size="sm" variant="primary" className="self-start" onClick={onRetry} loading={retrying}>
-            Try again
+            {t(common.tryAgain)}
           </Button>
         ) : null}
       </div>

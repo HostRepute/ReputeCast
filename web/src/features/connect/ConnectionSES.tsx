@@ -6,13 +6,17 @@ import { Row } from '@/components/ui/Layout'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { ScrollPre } from '@/components/ui/ScrollPre'
-import { clock, clockSeconds, count } from '@/lib/format'
+import { T, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { clock, clockSeconds, count, decimal } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
+import { mn, mses } from './connection.messages'
+import { m } from './messages'
 import { failed, SectionCard, StatusRow, useSetupActions, type StepProps } from './parts'
 import { Ticks } from './text'
 import { continueClass, StepHeading, WizardFooter } from './Wizard'
 
-/** SES regions offered before the account has been read. */
+/** SES regions offered before the account has been read, with AWS's own names for them. */
 const SES_REGIONS: [string, string][] = [
   ['us-east-1', 'N. Virginia'],
   ['us-east-2', 'Ohio'],
@@ -35,8 +39,17 @@ const SES_REGIONS: [string, string][] = [
 
 const fourCols = { gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))' }
 
+const mono = (chunks: ReactNode[]) => <span className="mono">{chunks}</span>
+
+/** A sending rate with up to two decimals and no trailing zeros, in the region format: 1, 14, 0.5. */
+function rateText(v: number): string {
+  const n = Number(v.toFixed(2))
+  return decimal(n, (String(n).split('.')[1] ?? '').length)
+}
+
 /** 7.2 step 2 for Amazon SES (SetupSES): AWS access, region, provisioning, sandbox. */
 export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
+  const t = useT()
   const { slug } = useWorkspace()
   const a = useSetupActions(slug, setup.id)
   const c = setup.connection
@@ -51,12 +64,12 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
     e?.preventDefault()
     a.connect.mutate(
       { ses: access === 'role' ? { access, roleArn: roleArn.trim(), region } : { access, accessKeyId: keyId.trim(), secretAccessKey: secret, region } },
-      { onError: failed("Couldn't check the AWS access", () => connect()) },
+      { onError: failed(t(mses.accessFailed), () => connect()) },
     )
   }
   const pickRegion = (r: string) => {
     setRegion(r)
-    if (connected) a.region.mutate({ region: r }, { onError: failed("Couldn't move to that region") })
+    if (connected) a.region.mutate({ region: r }, { onError: failed(t(mses.regionFailed)) })
   }
   const err = c.error
   const done = c.provisioning.filter((r) => r.status === 'done').length
@@ -64,30 +77,30 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
     <>
       <StepHeading title={setup.info.heading}>{setup.info.lead}</StepHeading>
 
-      <SectionCard title="1. How to grant access">
+      <SectionCard title={t(mses.grantTitle)}>
         <form className="grid gap-3 max-md:grid-cols-1!" style={fourCols} onSubmit={connect} id="ses-access">
           <AccessOption
             checked={access === 'role'}
             onPick={() => setAccess('role')}
             disabled={Boolean(reason) || connecting}
-            title="CloudFormation stack (recommended)"
-            description="Opens the AWS console with a stack that creates an IAM role with the exact policy below. No long-lived keys. About 2 minutes."
+            title={t(mses.stackTitle)}
+            description={t(mses.stackLine)}
           >
               <a href={c.template?.launchUrl} className="btn sm mt-2 underline decoration-1 underline-offset-2" target="_blank" rel="noopener noreferrer">
-                Launch stack in AWS
+                {t(mses.launchStack)}
               </a>
               {!connected && access === 'role' ? (
                 <span className="mt-2 flex flex-col gap-1">
                   <input
                     className="in mono w-full"
                     placeholder={`arn:aws:iam::123456789012:role/${c.template?.roleName || 'ReputeCastSES'}`}
-                    aria-label="Role ARN, from the stack's RoleArn output"
+                    aria-label={t(mses.roleArnLabel)}
                     aria-invalid={err?.field === 'role_arn' || undefined}
                     value={roleArn}
                     onChange={(e) => setRoleArn(e.target.value)}
                     disabled={Boolean(reason)}
                   />
-                  <span className="k">Paste the stack&apos;s RoleArn output. External id {c.externalId ? <span className="mono">{c.externalId}</span> : null} is filled in for you.</span>
+                  <span className="k">{c.externalId ? <T msg={mses.roleArnHint} values={{ id: c.externalId, mono }} /> : t(mses.roleArnHintNoId)}</span>
                 </span>
               ) : null}
           </AccessOption>
@@ -95,15 +108,15 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
             checked={access === 'keys'}
             onPick={() => setAccess('keys')}
             disabled={Boolean(reason) || connecting}
-            title="IAM access keys"
-            description="Paste an access key id and secret for a user with the policy below. Keys are encrypted at rest and never shown again."
+            title={t(mses.keysTitle)}
+            description={t(mses.keysLine)}
           >
               <span className="mt-2 grid grid-cols-2 gap-2">
                 {/* Disabled until picked, but white as on the board. */}
                 <input
                   className="in mono min-w-0 bg-white"
-                  placeholder="AKIA…"
-                  aria-label="Access key id"
+                  placeholder={'AKIA…'}
+                  aria-label={t(mses.keyIdLabel)}
                   aria-invalid={err?.field === 'access_key_id' || undefined}
                   disabled={access !== 'keys' || Boolean(reason)}
                   value={keyId}
@@ -113,8 +126,8 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
                 <input
                   className="in mono min-w-0 bg-white"
                   type="password"
-                  placeholder="Secret access key"
-                  aria-label="Secret access key"
+                  placeholder={t(mses.secretPlaceholder)}
+                  aria-label={t(mses.secretLabel)}
                   disabled={access !== 'keys' || Boolean(reason)}
                   value={secret}
                   onChange={(e) => setSecret(e.target.value)}
@@ -124,26 +137,29 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
           </AccessOption>
         </form>
         <details className="text-[13px]">
-          <summary className="cursor-pointer font-semibold">Show the IAM policy (least privilege)</summary>
-          <ScrollPre className="cn-pre mt-2" label="IAM policy">
+          <summary className="cursor-pointer font-semibold">{t(mses.policyToggle)}</summary>
+          <ScrollPre className="cn-pre mt-2" label={t(mses.policyLabel)}>
             {c.template?.policy}
           </ScrollPre>
         </details>
         {connected ? (
           <div className="flex flex-wrap items-center gap-3 rounded-lg border border-ok-line bg-ok-tint px-3 py-2.5" role="status">
             <Badge tone="ok" dot>
-              Connected
+              {t(mses.connected)}
             </Badge>
             <span className="text-[13px]">
-              {c.access === 'role' ? (
-                <>
-                  Role <span className="mono">{c.roleArn}</span> assumed
-                </>
-              ) : (
-                'IAM access keys checked'
-              )}
-              {c.at ? ` at ${clock(c.at)}` : ''}
-              {c.accountId ? ` · account ${c.accountId}` : ''}
+              <T
+                msg={mses.connectedLine}
+                values={{
+                  access: c.access === 'role' ? 'role' : 'keys',
+                  arn: c.roleArn,
+                  hasTime: c.at ? 'yes' : 'no',
+                  time: c.at ? clock(c.at) : '',
+                  hasAccount: c.accountId ? 'yes' : 'no',
+                  account: c.accountId ?? '',
+                  mono,
+                }}
+              />
             </span>
           </div>
         ) : (
@@ -161,18 +177,18 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
             ) : null}
             <Row gap={10}>
               <Button type="submit" form="ses-access" variant="primary" loading={connecting} disabledReason={reason}>
-                {err ? 'Try again' : 'Check access'}
+                {err ? t(common.tryAgain) : t(mses.checkAccess)}
               </Button>
-              <span className="k">ReputeCast checks the access with read-only calls first (GetAccount), then stores it encrypted.</span>
+              <span className="k">{t(mses.checkAccessLine)}</span>
             </Row>
           </>
         )}
       </SectionCard>
 
-      <SectionCard title="2. Region">
+      <SectionCard title={t(mses.regionTitle)}>
         <div className="flex flex-wrap items-end gap-3">
           <label className="lbl flex-[1_1_280px]">
-            SES region
+            {t(mses.regionLabel)}
             <select className="in" value={connected ? c.region : region} onChange={(e) => pickRegion(e.target.value)} disabled={Boolean(reason) || a.region.isPending}>
               {c.regions.length
                 ? c.regions.map((r) => (
@@ -185,22 +201,20 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
                   ))}
             </select>
           </label>
-          <span className="k flex-[1_1_280px]">
-            {c.regions.length
-              ? 'ReputeCast read your account in each region. Pick the one where you already have production access, or the one closest to your recipients.'
-              : 'Pick the region where you already have production access, or the one closest to your recipients. ReputeCast reads your account in each region once connected.'}
-          </span>
+          <span className="k flex-[1_1_280px]">{c.regions.length ? t(mses.regionReadHint) : t(mses.regionPickHint)}</span>
         </div>
       </SectionCard>
 
       {c.provisioning.length ? (
         <section className="card flex flex-col" aria-labelledby="prov-h">
           <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5">
-            <h3 className="h2" id="prov-h">{`3. Provisioning · ${done} of ${c.provisionTotal || c.provisioning.length} done`}</h3>
-            <span className="k">SNS topics and configuration sets are created for you, with retry</span>
+            <h3 className="h2" id="prov-h">
+              {t(mses.provisioningTitle, { done: count(done), total: count(c.provisionTotal || c.provisioning.length) })}
+            </h3>
+            <span className="k">{t(mses.provisioningLine)}</span>
           </div>
           {c.provisioning.map((r) => (
-            <ProvisionRow key={r.key} row={r} setup={setup} onRetry={() => a.provision.mutate(undefined, { onError: failed("Couldn't retry provisioning") })} retrying={a.provision.isPending} reason={reason} />
+            <ProvisionRow key={r.key} row={r} setup={setup} onRetry={() => a.provision.mutate(undefined, { onError: failed(t(mses.retryFailed)) })} retrying={a.provision.isPending} reason={reason} />
           ))}
         </section>
       ) : null}
@@ -210,15 +224,15 @@ export function ConnectionSES({ setup, go, saveLater, reason }: StepProps) {
       <WizardFooter
         back={
           <ButtonLink to="/w/$workspace/providers/connect" params={{ workspace: slug }}>
-            Back
+            {t(common.back)}
           </ButtonLink>
         }
       >
         <Button onClick={saveLater} disabledReason={reason}>
-          Save and finish later
+          {t(mn.saveLater)}
         </Button>
-        <Button variant="primary" className={continueClass} onClick={() => go('domain')} disabledReason={c.canContinue ? undefined : 'Connect your AWS account first.'}>
-          Continue to domain verification
+        <Button variant="primary" className={continueClass} onClick={() => go('domain')} disabledReason={c.canContinue ? undefined : t(mses.awsFirst)}>
+          {t(mn.continueDomain)}
         </Button>
       </WizardFooter>
     </>
@@ -256,9 +270,10 @@ function AccessOption({
 }
 
 function ProvisionRow({ row: r, setup, onRetry, retrying, reason }: { row: Schemas['ConnectProvisionRow']; setup: Schemas['ConnectSetup']; onRetry: () => void; retrying: boolean; reason?: string }) {
+  const t = useT()
   if (r.status === 'done') {
     return (
-      <StatusRow badge={<Badge tone="ok">Done</Badge>} aside={r.at ? <span className="k">{clockSeconds(r.at)}</span> : null}>
+      <StatusRow badge={<Badge tone="ok">{t(m.stateDone)}</Badge>} aside={r.at ? <span className="k">{clockSeconds(r.at)}</span> : null}>
         <Ticks text={r.text} />
       </StatusRow>
     )
@@ -269,14 +284,14 @@ function ProvisionRow({ row: r, setup, onRetry, retrying, reason }: { row: Schem
     return (
       <StatusRow
         className="bg-bad-tint"
-        badge={<Badge tone="bad">Failed</Badge>}
+        badge={<Badge tone="bad">{t(m.stateFailed)}</Badge>}
         aside={
           <>
             <Button size="sm" variant="primary" onClick={onRetry} loading={retrying} disabledReason={reason}>
-              Retry
+              {t(common.retry)}
             </Button>
             <ButtonAnchor size="sm" href={iam}>
-              Fix policy
+              {t(mses.fixPolicy)}
             </ButtonAnchor>
           </>
         }
@@ -298,12 +313,13 @@ function ProvisionRow({ row: r, setup, onRetry, retrying, reason }: { row: Schem
       <span className="cn-row-text min-w-0">
         <Ticks text={r.text} />
       </span>
-      <span className="cn-row-aside k ml-auto">{r.status === 'running' ? 'running' : 'waiting'}</span>
+      <span className="cn-row-aside k ml-auto">{r.status === 'running' ? t(mses.running) : t(mses.waiting)}</span>
     </div>
   )
 }
 
 function SandboxCard({ setup, sandbox: sb, reason }: { setup: Schemas['ConnectSetup']; sandbox: Schemas['ConnectSandbox']; reason?: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const a = useSetupActions(slug, setup.id)
   const c = setup.connection
@@ -313,65 +329,69 @@ function SandboxCard({ setup, sandbox: sb, reason }: { setup: Schemas['ConnectSe
   const [useCase, setUseCase] = useState(sb.useCase)
   const [volume, setVolume] = useState(sb.dailyVolume ? count(sb.dailyVolume) : '')
   const [language, setLanguage] = useState(sb.language)
-  const limits = quota ? `${count(quota.max24h)} emails per day, ${quota.maxRate} per second, and only to verified addresses` : 'a small daily quota, and only to verified addresses'
   const request = () =>
     a.production.mutate(
       { region: sb.region, website: website.trim(), mailType, useCase: useCase.trim(), dailyVolume: Number(volume.replace(/[^\d]/g, '')) || 0, language },
       {
-        onSuccess: () => toast({ title: `Production access requested for ${sb.region}`, detail: 'AWS usually answers within 24 hours.' }),
-        onError: failed("Couldn't file the production-access request", request),
+        onSuccess: () => toast({ title: t(mses.requestedToast, { region: sb.region }), detail: t(mses.requestedDetail) }),
+        onError: failed(t(mses.requestFailed), request),
       },
     )
   return (
-    <section className="card flex flex-col border-[#FCD34D]" aria-label={`Sandbox detected in ${sb.region}`}>
+    <section className="card flex flex-col border-[#FCD34D]" aria-label={t(mses.sandboxBadge, { region: sb.region })}>
       <div className="flex flex-wrap items-start gap-3.5 rounded-t-[10px] bg-[#FFFBEB] px-5 py-4">
         <Badge tone="warn" dot className="h-6">
-          {`Sandbox detected in ${sb.region}`}
+          {t(mses.sandboxBadge, { region: sb.region })}
         </Badge>
         <span className="flex-[1_1_320px] text-[13px] text-[#78350F]">
-          {sb.selected ? `${sb.region} is in the SES sandbox: ${limits}.` : `If you switch to ${sb.region}, that region is in the SES sandbox: ${limits}.`} ReputeCast can file the
-          production-access request for you.
+          {t(mses.sandboxLine, {
+            selected: sb.selected ? 'yes' : 'no',
+            region: sb.region,
+            quota: quota ? 'yes' : 'no',
+            max24h: quota ? count(quota.max24h) : '',
+            rate: quota ? rateText(quota.maxRate) : '',
+          })}
         </span>
       </div>
       <div className="grid gap-3 px-5 py-4 max-md:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]!" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))' }}>
         <label className="lbl">
-          Website
+          {t(mses.website)}
           <input className="in" value={website} onChange={(e) => setWebsite(e.target.value)} disabled={Boolean(reason)} inputMode="url" />
         </label>
         <label className="lbl">
-          Mail type
+          {t(mses.mailType)}
           <select className="in" value={mailType} onChange={(e) => setMailType(e.target.value as typeof mailType)} disabled={Boolean(reason)}>
-            <option value="marketing">Marketing (newsletter)</option>
-            <option value="transactional">Transactional</option>
+            <option value="marketing">{t(mses.mailMarketing)}</option>
+            <option value="transactional">{t(mses.mailTransactional)}</option>
           </select>
         </label>
         <label className="lbl col-span-full">
-          Use case description (prefilled from your workspace)
+          {t(mses.useCase)}
           <textarea className="in h-[84px] min-h-0 resize-y" value={useCase} onChange={(e) => setUseCase(e.target.value)} disabled={Boolean(reason)} />
         </label>
         <label className="lbl">
-          Expected daily volume
+          {t(mses.dailyVolume)}
           <input className="in" value={volume} onChange={(e) => setVolume(e.target.value)} disabled={Boolean(reason)} inputMode="numeric" />
         </label>
         <label className="lbl">
-          Contact language
+          {t(mses.contactLanguage)}
           <select className="in" value={language} onChange={(e) => setLanguage(e.target.value as typeof language)} disabled={Boolean(reason)}>
-            <option value="en">English</option>
-            <option value="ja">Japanese</option>
+            <option value="en">{t(mses.langEnglish)}</option>
+            <option value="ja">{t(mses.langJapanese)}</option>
           </select>
         </label>
       </div>
       <div className="flex flex-wrap gap-2.5 px-5 pb-4">
         {sb.requestedAt ? (
-          <Badge tone="info" dot>{`Requested ${clock(sb.requestedAt)}`}</Badge>
+          <Badge tone="info" dot>
+            {t(mses.requested, { time: clock(sb.requestedAt) })}
+          </Badge>
         ) : (
-          <Button onClick={request} loading={a.production.isPending} busyLabel="Requesting…" disabledReason={reason}>
-            {`Request production access for ${sb.region}`}
+          <Button onClick={request} loading={a.production.isPending} busyLabel={t(mses.requesting)} disabledReason={reason}>
+            {t(mses.requestAccess, { region: sb.region })}
           </Button>
         )}
-        <span className="k self-center">
-          AWS usually answers within 24 hours.{sb.selected ? ' Meanwhile you can send to verified addresses.' : ` You can keep going with ${c.region} meanwhile.`}
-        </span>
+        <span className="k self-center">{sb.selected ? t(mses.awsAnswersSelected) : t(mses.awsAnswersOther, { region: c.region })}</span>
       </div>
     </section>
   )

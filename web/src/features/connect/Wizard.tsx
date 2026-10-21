@@ -5,10 +5,13 @@ import { SystemBanners } from '@/components/shell/SystemBanners'
 import { Badge } from '@/components/ui/Badge'
 import { ButtonLink } from '@/components/ui/Button'
 import { Row } from '@/components/ui/Layout'
+import { m as shell } from '@/components/shell/messages'
+import { T, t as tt, useT, type MessageDescriptor } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { useDocumentTitle, useOverflowX } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import type { Setup } from './api'
+import { m } from './messages'
 import './connect.css'
 
 /**
@@ -27,15 +30,16 @@ export function WizardLayout({
   exit?: boolean
   children: ReactNode
 }) {
+  const t = useT()
   const { slug, me } = useWorkspace()
-  useDocumentTitle(`${title} · ${me.workspace.name} · ReputeCast`)
+  useDocumentTitle(t(shell.docTitleWorkspace, { title, workspace: me.workspace.name }))
   return (
     <div className="rc-app flex min-h-screen flex-col">
       <a href="#main" className="skip">
-        Skip to content
+        {t(shell.skipToContent)}
       </a>
       <header className="cn-head">
-        <Link to="/w/$workspace" params={{ workspace: slug }} className="cn-home" aria-label="ReputeCast home">
+        <Link to="/w/$workspace" params={{ workspace: slug }} className="cn-home" aria-label={t(shell.homeLabel)}>
           <LogoMark size={26} />
           <span className="text-[15px] font-bold">ReputeCast</span>
         </Link>
@@ -46,7 +50,7 @@ export function WizardLayout({
         {badge}
         {exit ? (
           <ButtonLink to="/w/$workspace" params={{ workspace: slug }} className="ml-auto">
-            Exit setup
+            {t(m.exitSetup)}
           </ButtonLink>
         ) : null}
       </header>
@@ -58,7 +62,8 @@ export function WizardLayout({
 
 /** "Step 2 of 6" */
 export function StepBadge({ n }: { n: number }) {
-  return <Badge tone="neutral">{`Step ${n} of 6`}</Badge>
+  const t = useT()
+  return <Badge tone="neutral">{t(m.stepBadge, { n })}</Badge>
 }
 
 /** The steps column and the content column. */
@@ -73,15 +78,15 @@ export function WizardBody({ current, setup, children }: { current: number; setu
   )
 }
 
-type StepDef = { title: string; catalog: string }
+type StepDef = { key: string; title: MessageDescriptor; catalog: MessageDescriptor }
 
 const STEP_DEFS: StepDef[] = [
-  { title: 'Provider', catalog: 'Pick from the catalog' },
-  { title: 'Connection', catalog: 'Keys, region, webhooks' },
-  { title: 'Domain verification', catalog: 'DKIM, return-path, SPF, DMARC' },
-  { title: 'Test send', catalog: 'Watch the event arrive' },
-  { title: 'Streams', catalog: 'Broadcasts, Automations, System' },
-  { title: 'Contacts', catalog: 'Import or start empty' },
+  { key: 'provider', title: m.stepProvider, catalog: m.stepProviderLine },
+  { key: 'connection', title: m.stepConnection, catalog: m.stepConnectionLine },
+  { key: 'domain', title: m.stepDomain, catalog: m.stepDomainLine },
+  { key: 'test', title: m.stepTest, catalog: m.stepTestLine },
+  { key: 'streams', title: m.stepStreams, catalog: m.stepStreamsLine },
+  { key: 'contacts', title: m.stepContacts, catalog: m.stepContactsLine },
 ]
 
 /**
@@ -94,7 +99,7 @@ const STEP_DEFS: StepDef[] = [
 export function stepLine(n: number, current: number, setup?: Pick<Setup, 'summaries' | 'info' | 'domain'>): string {
   const s = setup?.summaries
   const info = setup?.info
-  if (current === 1) return STEP_DEFS[n - 1]!.catalog
+  if (current === 1) return tt(STEP_DEFS[n - 1]!.catalog)
   if (n === current) {
     switch (n) {
       case 2:
@@ -102,11 +107,11 @@ export function stepLine(n: number, current: number, setup?: Pick<Setup, 'summar
       case 3:
         return setup?.domain.name || s?.domainShort || ''
       case 4:
-        return 'Watch the event arrive'
+        return tt(m.stepTestLine)
       case 5:
-        return `What ${info?.short ?? 'it'} will carry`
+        return info?.short ? tt(m.stepStreamsCurrent, { provider: info.short }) : tt(m.stepStreamsCurrentNoName)
       case 6:
-        return 'Import or start empty'
+        return tt(m.stepContactsLine)
     }
     return ''
   }
@@ -130,27 +135,27 @@ export function stepLine(n: number, current: number, setup?: Pick<Setup, 'summar
 
 /** The six steps, each with its line (stepLine). */
 export function Stepper({ current, setup }: { current: number; setup?: Setup }) {
+  const t = useT()
   const ref = useRef<HTMLElement>(null)
   // On phones the steps are one sideways-scrolling strip: while it scrolls it
   // takes keyboard focus, so it can be read without a mouse (WCAG 2.1.1).
   const scrolls = useOverflowX(ref)
   return (
     // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-    <nav ref={ref} className="card cn-steps" aria-label="Setup steps" tabIndex={scrolls ? 0 : undefined}>
+    <nav ref={ref} className="card cn-steps" aria-label={t(m.stepsLabel)} tabIndex={scrolls ? 0 : undefined}>
       {STEP_DEFS.map((d, i) => {
         const n = i + 1
         const done = n < current
         const cur = n === current
         const sub = stepLine(n, current, setup)
         return (
-          <div key={d.title} className={cn('step cn-step', cur && 'cur', done && 'done')} aria-current={cur ? 'step' : undefined}>
+          <div key={d.key} className={cn('step cn-step', cur && 'cur', done && 'done')} aria-current={cur ? 'step' : undefined}>
             <span className="num" aria-hidden="true">
               {done ? '✓' : n}
             </span>
             <div>
               <div className="font-semibold">
-                {done ? <span className="vh">Done: </span> : null}
-                {d.title}
+                {done ? <T msg={m.stepDone} values={{ step: t(d.title), vh: (c) => <span className="vh">{c}</span> }} /> : t(d.title)}
               </div>
               {sub ? <div className="k">{sub}</div> : null}
             </div>
@@ -158,9 +163,7 @@ export function Stepper({ current, setup }: { current: number; setup?: Setup }) 
         )
       })}
       {current === 1 ? (
-        <div className="cn-foot k mt-2.5 border-t border-line-2 pt-3">
-          Most people finish in about 10 minutes. You can add more providers later and send through several at once.
-        </div>
+        <div className="cn-foot k mt-2.5 border-t border-line-2 pt-3">{t(m.stepsFoot)}</div>
       ) : null}
     </nav>
   )

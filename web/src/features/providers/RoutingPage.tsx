@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useId, useState, type ReactNode } from 'react'
-import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
+import { $api, ApiError, errorMessage, http } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
@@ -11,11 +11,15 @@ import { Checkbox, Field, Input, Select } from '@/components/ui/Field'
 import { Grid } from '@/components/ui/Layout'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { ago, clock, count } from '@/lib/format'
+import { T, useT, type MessageDescriptor } from '@/i18n'
+import { common } from '@/i18n/common'
+import { ago, clock, count, trimPct } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { onProviderColor, perSec, providerColor, ProvidersTabs, streamName, throwIfForbidden, type FailoverPolicy, type Stream } from './common'
 import { BulkWarningView } from './BulkWarning'
+import { m } from './messages'
 import { RouteTester } from './RouteTester'
+import { mr } from './routing.messages'
 import {
   bulkIssues,
   changedStreams,
@@ -39,15 +43,16 @@ const providersKey = ['get', '/api/v1/workspaces/{workspace}/providers'] as cons
 
 /** 7.3 Routing & failover: per-stream primary, split, conditions, fallback and failover policy. */
 export function RoutingPage() {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/routing', { params: { path: { workspace: slug } } })
   throwIfForbidden(q.error)
   if (q.isError || q.isPending) {
     return (
-      <Page title="Sending providers & routing" filters={<ProvidersTabs />}>
+      <Page title={t(m.title)} filters={<ProvidersTabs />}>
         {q.isError ? (
-          <ErrorPanel title="Couldn't load the routing" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
-            {errorMessage(q.error)} Mail keeps going out on the saved routing.
+          <ErrorPanel title={t(mr.loadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
+            {errorMessage(q.error)} {t(mr.loadFailedBody)}
           </ErrorPanel>
         ) : (
           <RoutingSkeleton />
@@ -59,6 +64,7 @@ export function RoutingPage() {
 }
 
 function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const reason = usePermissionReason('providers:manage')
@@ -76,11 +82,11 @@ function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
     setSaving(true)
     try {
       await http.PUT('/api/v1/workspaces/{workspace}/routing', { params: { path: { workspace: slug } }, body: toInput(next, acknowledge) })
-      toast({ kind: 'success', title: 'Routing saved', detail: 'New sends use it right away; sends in progress keep their route.' })
+      toast({ kind: 'success', title: t(mr.saved), detail: t(mr.savedDetail) })
       await Promise.all([qc.invalidateQueries({ queryKey: routingKey }), qc.invalidateQueries({ queryKey: providersKey })])
     } catch (e) {
       const detail = e instanceof ApiError && e.code === 'bulk_terms' ? e.message : errorMessage(e)
-      toast({ kind: 'error', title: "Routing wasn't saved", detail })
+      toast({ kind: 'error', title: t(mr.saveFailed), detail })
     } finally {
       setSaving(false)
     }
@@ -90,23 +96,19 @@ function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
     <>
       {dirty ? (
         <Badge tone="warn" dot>
-          Unsaved change{changes > 1 ? 's' : ''}
-          {issues.length ? ` · ${issues.length} warning${issues.length > 1 ? 's' : ''}` : ''}
+          {issues.length ? t(mr.unsavedWarnings, { changes, warnings: issues.length }) : t(mr.unsaved, { changes })}
         </Badge>
       ) : cfg.savedAt ? (
-        <span className="k">
-          Saved {ago(cfg.savedAt)}
-          {cfg.savedBy ? ` by ${cfg.savedBy}` : ''}
-        </span>
+        <span className="k">{cfg.savedBy ? t(mr.savedAgoBy, { ago: ago(cfg.savedAt), name: cfg.savedBy }) : t(mr.savedAgo, { ago: ago(cfg.savedAt) })}</span>
       ) : null}
-      {dirty ? <Button onClick={() => setDraft(saved)}>Discard</Button> : null}
+      {dirty ? <Button onClick={() => setDraft(saved)}>{t(mr.discard)}</Button> : null}
       <Button
         variant="primary"
         disabledReason={reason}
         loading={saving}
         onClick={() => {
           if (!dirty) {
-            toast({ kind: 'info', title: 'Routing is up to date', detail: 'Change a route, a split or the failover policy first.' })
+            toast({ kind: 'info', title: t(mr.upToDate), detail: t(mr.upToDateDetail) })
             return
           }
           if (warningView) {
@@ -116,14 +118,14 @@ function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
           void save(draft)
         }}
       >
-        Save routing
+        {t(mr.saveRouting)}
       </Button>
     </>
   )
 
   if (warningView) {
     return (
-      <Page title="Sending providers & routing" filters={<ProvidersTabs />} actions={actions} contentClassName="max-w-[1120px]">
+      <Page title={t(m.title)} filters={<ProvidersTabs />} actions={actions} contentClassName="max-w-[1120px]">
         <BulkWarningView
           cfg={cfg}
           draft={draft}
@@ -139,7 +141,7 @@ function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
   }
 
   return (
-    <Page title="Sending providers & routing" filters={<ProvidersTabs />} actions={actions}>
+    <Page title={t(m.title)} filters={<ProvidersTabs />} actions={actions}>
       <div className="flex flex-wrap items-start gap-5">
         <div className="flex min-w-0 flex-[2_1_600px] flex-col gap-4">
           <StreamCard stream="broadcast" cfg={cfg} sd={draft.broadcast} onChange={(fn) => update('broadcast', fn)} onAddCondition={() => setConditionFor('broadcast')} readOnlyReason={reason} />
@@ -154,7 +156,7 @@ function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
             readOnlyReason={reason}
           />
         </div>
-        <aside className="flex max-w-[460px] min-w-0 flex-[1_1_360px] flex-col gap-4" aria-label="Route tester and shared settings">
+        <aside className="flex max-w-[460px] min-w-0 flex-[1_1_360px] flex-col gap-4" aria-label={t(mr.asideLabel)}>
           <RouteTester cfg={cfg} draft={dirty ? draft : undefined} />
           <SharedCard cfg={cfg} />
         </aside>
@@ -174,15 +176,11 @@ function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
   )
 }
 
-const streamTag: Record<Stream, string> = {
-  broadcast: 'campaigns',
-  automation: 'emails sent by flows',
-  system: 'opt-in confirmations, preference links, invites',
-  transactional: 'password resets, receipts and alerts from your product',
-}
-
-function volumeText(v?: Schemas['RoutingVolume']) {
-  return v ? `about ${count(v.count)} per ${v.per}` : 'no mail yet'
+const streamTag: Record<Stream, MessageDescriptor> = {
+  broadcast: mr.tagBroadcast,
+  automation: mr.tagAutomation,
+  system: mr.tagSystem,
+  transactional: mr.tagTransactional,
 }
 
 /** One stream's route: primary and fallback, split, conditions and failover. */
@@ -201,6 +199,7 @@ function StreamCard({
   onAddCondition: () => void
   readOnlyReason?: string
 }) {
+  const t = useT()
   const view = cfg.streams.find((s) => s.stream === stream)
   const { slug, me } = useWorkspace()
   // Transactional mail is "from Acme Cloud": the product name in its settings.
@@ -210,14 +209,15 @@ function StreamCard({
     { params: { path: { workspace: slug } } },
     { enabled: stream === 'transactional' && me.permissions.includes('transactional:view') },
   )
-  const tag = stream === 'transactional' && settings.data?.productName ? `password resets, receipts and alerts from ${settings.data.productName}` : streamTag[stream]
+  const tag = stream === 'transactional' && settings.data?.productName ? t(mr.tagTransactionalNamed, { product: settings.data.productName }) : t(streamTag[stream])
+  const volume = view?.volume ? t(mr.volume, { per: view.volume.per, count: count(view.volume.count) }) : t(mr.noMailYet)
   const byId = new Map(cfg.providers.map((p) => [p.id, p]))
   const primary = sd.splits[0] ? byId.get(sd.splits[0].providerId) : undefined
   const ro = Boolean(readOnlyReason)
   const titleId = `pv-stream-${stream}`
   const addBroadcastCondition = (
     <Button size="sm" className="self-start" disabledReason={readOnlyReason} onClick={onAddCondition}>
-      Add condition · list, sender domain or mailbox provider
+      {t(mr.addConditionBroadcast)}
     </Button>
   )
   return (
@@ -230,15 +230,15 @@ function StreamCard({
           <Badge>{tag}</Badge>
         </div>
         <span className="k">
-          {volumeText(view?.volume)}
+          {volume}
           {stream === 'transactional' && view?.senderDomains?.length ? ` · ${view.senderDomains.join(', ')}` : ''}
         </span>
       </div>
       <div className="flex flex-col gap-3.5 px-5 py-[18px]">
         <Grid min={240} gap={14}>
-          <Field label="Primary">
+          <Field label={t(mr.primary)}>
             <Select value={primary?.id ?? ''} disabled={ro} onChange={(e) => onChange((s) => setPrimary(s, e.target.value))}>
-              {!primary ? <option value="">Choose a provider</option> : null}
+              {!primary ? <option value="">{t(mr.chooseProvider)}</option> : null}
               {cfg.providers.map((p) => (
                 <option key={p.id} value={p.id}>
                   {providerOption(p)}
@@ -246,9 +246,9 @@ function StreamCard({
               ))}
             </Select>
           </Field>
-          <Field label="Fallback">
+          <Field label={t(mr.fallback)}>
             <Select value={sd.fallback} disabled={ro} onChange={(e) => onChange((s) => ({ ...s, fallback: e.target.value }))}>
-              <option value="">{stream === 'broadcast' ? 'None · pause and ask' : 'None'}</option>
+              <option value="">{stream === 'broadcast' ? t(mr.noneAsk) : t(mr.none)}</option>
               {cfg.providers
                 .filter((p) => p.id !== primary?.id)
                 .map((p) => (
@@ -276,17 +276,13 @@ function StreamCard({
           <>
             <div className="flex flex-wrap items-center gap-2.5">
               <Badge tone={sd.failover === 'pause_and_ask' ? 'warn' : 'ok'} dot>
-                Failover: {sd.failover === 'pause_and_ask' ? 'pause and ask' : sd.failover === 'warm_only' ? 'warmed-up only' : 'automatic'}
+                {t(mr.failoverBadge, { policy: sd.failover })}
               </Badge>
-              <span className="k">
-                {stream === 'system'
-                  ? 'System mail must always go out; it never waits for a decision'
-                  : 'switches after 3 consecutive failed sends or 2 failed health checks; returns to the primary after 10 healthy minutes'}
-              </span>
+              <span className="k">{stream === 'system' ? t(mr.systemNote) : t(mr.automationNote)}</span>
             </div>
             {stream === 'automation' ? (
               <Button size="sm" className="self-start" disabledReason={readOnlyReason} onClick={onAddCondition}>
-                Add condition
+                {t(mr.addCondition)}
               </Button>
             ) : null}
           </>
@@ -314,6 +310,7 @@ function TransactionalParts({
   onAddCondition: () => void
   readOnlyReason?: string
 }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const ro = Boolean(readOnlyReason)
   const cards = $api.useQuery('get', '/api/v1/workspaces/{workspace}/providers', { params: { path: { workspace: slug } } })
@@ -331,12 +328,14 @@ function TransactionalParts({
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-line px-3.5 py-3">
         <span className="flex min-w-0 flex-[1_1_300px] flex-col">
           <span className="font-semibold" id={`${id}-p`}>
-            First in line on shared providers
+            {t(mr.firstInLine)}
           </span>
           <span className="k">
             {shared
-              ? `When ${shared.short} also sends a campaign, transactional messages go first${rate ? ` within its ${perSec(rate)} per second` : ''}`
-              : 'When a provider also sends a campaign, transactional messages go first within its rate'}
+              ? rate
+                ? t(mr.firstInLineSharedRate, { provider: shared.short, rate: perSec(rate) })
+                : t(mr.firstInLineShared, { provider: shared.short })
+              : t(mr.firstInLineAny)}
           </span>
         </span>
         <input
@@ -351,19 +350,17 @@ function TransactionalParts({
       </div>
       <div className="flex flex-wrap items-center gap-2.5">
         <Badge tone={sd.failover === 'pause_and_ask' ? 'warn' : 'ok'} dot>
-          Failover: {sd.failover === 'pause_and_ask' ? 'pause and ask' : sd.failover === 'warm_only' ? 'warmed-up only' : 'automatic'}
+          {t(mr.failoverBadge, { policy: sd.failover })}
         </Badge>
       </div>
-      <span className="k">
-        Conditions by category or mailbox provider: {sd.conditions.length ? sd.conditions.length : 'none'} · bulk-marketing terms don&apos;t apply to this stream
-      </span>
+      <span className="k">{t(mr.txConditions, { count: sd.conditions.length })}</span>
       <div className="flex flex-wrap items-center justify-end gap-2.5">
         <span className="flex flex-wrap gap-2">
           <Button size="sm" disabledReason={readOnlyReason} onClick={onAddCondition}>
-            Add condition
+            {t(mr.addCondition)}
           </Button>
           <ButtonLink size="sm" to="/w/$workspace/transactional" params={{ workspace: slug }}>
-            Templates and log
+            {t(mr.templatesAndLog)}
           </ButtonLink>
         </span>
       </div>
@@ -383,16 +380,17 @@ function SplitEditor({
   onChange: (fn: (sd: StreamDraft) => StreamDraft) => void
   readOnly: boolean
 }) {
+  const t = useT()
   const warming = sd.splits.map((s) => byId.get(s.providerId)).find((p) => p?.warmingUp)
   const total = sd.splits.reduce((n, s) => n + s.weight, 0) || 1
-  const label = sd.splits.map((s) => `${byId.get(s.providerId)?.short ?? 'Unknown'} ${s.weight}%`).join(', ')
+  const label = sd.splits.map((s) => `${byId.get(s.providerId)?.short ?? t(mr.unknown)} ${trimPct(s.weight)}`).join(', ')
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between max-md:flex-wrap">
-        <span className="text-[13px] font-semibold">Weighted split</span>
-        <span className="k">used for migration and warm-up{warming ? ` · adjusts daily with the ${warming.short} plan` : ''}</span>
+        <span className="text-[13px] font-semibold">{t(mr.weightedSplit)}</span>
+        <span className="k">{warming ? t(mr.splitUseWarming, { provider: warming.short }) : t(mr.splitUse)}</span>
       </div>
-      <div className="flex h-7 gap-0.5 overflow-hidden rounded-[8px]" role="img" aria-label={`Weighted split: ${label}`}>
+      <div className="flex h-7 gap-0.5 overflow-hidden rounded-[8px]" role="img" aria-label={t(mr.splitLabel, { split: label })}>
         {sd.splits.map((s, i) => {
           const p = byId.get(s.providerId)
           if (!p || s.weight <= 0) return null
@@ -402,7 +400,7 @@ function SplitEditor({
               className="flex items-center overflow-hidden text-[12.5px] font-semibold whitespace-nowrap"
               style={{ width: `${(s.weight / total) * 100}%`, background: providerColor[p.color], color: onProviderColor[p.color], padding: i === 0 ? '0 10px' : '0 8px' }}
             >
-              {i === 0 ? `${p.name} · ${s.weight}%` : `${p.short} ${s.weight}%`}
+              {i === 0 ? `${p.name} · ${trimPct(s.weight)}` : `${p.short} ${trimPct(s.weight)}`}
             </div>
           )
         })}
@@ -414,9 +412,7 @@ function SplitEditor({
           <div key={s.providerId} className="flex flex-wrap items-center gap-2.5">
             <ShareInput provider={p} value={s.weight} readOnly={readOnly} onChange={(v) => onChange((x) => setShare(x, p.id, v))} />
             {p.shareSteps.length ? (
-              <span className="k">
-                The warm-up planner raises this automatically: {p.shareSteps.map((st) => `${st.share}% on day ${st.day}`).join(', ')}.
-              </span>
+              <span className="k">{t(mr.plannerRaises, { steps: p.shareSteps.map((st) => t(mr.plannerStep, { share: trimPct(st.share), day: st.day })).join(', ') })}</span>
             ) : null}
           </div>
         )
@@ -426,17 +422,18 @@ function SplitEditor({
 }
 
 function ShareInput({ provider, value, onChange, readOnly }: { provider: RoutingProvider; value: number; onChange: (v: number) => void; readOnly: boolean }) {
+  const t = useT()
   // While typing, the field shows what was typed; otherwise the draft's share.
   const [typing, setTyping] = useState<string | null>(null)
   return (
     <label className="lbl flex-row items-center gap-2">
-      {provider.short} share
+      {t(mr.shareLabel, { provider: provider.short })}
       <input
         className="in w-[70px]"
         inputMode="numeric"
         value={typing ?? String(value)}
         disabled={readOnly}
-        aria-label={`${provider.short} percentage`}
+        aria-label={t(mr.sharePercent, { provider: provider.short })}
         onFocus={() => setTyping(String(value))}
         onChange={(e) => {
           setTyping(e.target.value)
@@ -464,30 +461,31 @@ function Conditions({
   readOnly: boolean
   children?: ReactNode
 }) {
+  const t = useT()
   const byId = new Map(cfg.providers.map((p) => [p.id, p]))
   const lists = new Map(cfg.lists.map((l) => [l.id, l.name]))
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-[13px] font-semibold">Conditions · evaluated before the {sd.splits.length > 1 ? 'split' : 'primary'}</span>
+      <span className="text-[13px] font-semibold">{sd.splits.length > 1 ? t(mr.conditionsBeforeSplit) : t(mr.conditionsBeforePrimary)}</span>
       {sd.conditions.map((c, i) => {
         const values = c.field === 'list' ? c.values.map((v) => lists.get(v) ?? v) : c.field === 'mailbox_provider' ? c.values.map((v) => mailboxName[v] ?? v) : c.values
         const p = byId.get(c.providerId)
         return (
           <div key={i} className="pv-cond">
-            <span className="k">IF</span>
+            <span className="k">{t(mr.condIf)}</span>
             <span className="pv-chip">{fieldText[c.field]}</span>
-            <span className="pv-chip">{values.length > 1 ? 'is one of' : 'is'}</span>
+            <span className="pv-chip">{values.length > 1 ? t(mr.condIsOneOf) : t(mr.condIs)}</span>
             <span className="pv-chip">{values.join(', ')}</span>
-            <span className="k">THEN</span>
-            <span className="pv-chip then">{p ? `${p.name} only` : 'Unknown provider'}</span>
+            <span className="k">{t(mr.condThen)}</span>
+            <span className="pv-chip then">{p ? t(mr.condOnly, { provider: p.name }) : t(mr.condUnknownProvider)}</span>
             {c.note ? <span className="k ml-auto">{c.note}</span> : <span className="ml-auto" />}
             <Button
               size="sm"
-              aria-label={`Remove condition: ${fieldText[c.field]} ${values.join(', ')}`}
+              aria-label={t(mr.removeCondition, { field: fieldText[c.field], values: values.join(', ') })}
               disabled={readOnly}
               onClick={() => onChange((s) => ({ ...s, conditions: s.conditions.filter((_, j) => j !== i) }))}
             >
-              Remove
+              {t(mr.remove)}
             </Button>
           </div>
         )
@@ -499,31 +497,26 @@ function Conditions({
 
 /** Broadcasts failover policy: pause and ask, warmed-up only, or automatic. */
 function FailoverPolicy({ sd, cfg, onChange, readOnly }: { sd: StreamDraft; cfg: RoutingConfig; onChange: (fn: (sd: StreamDraft) => StreamDraft) => void; readOnly: boolean }) {
+  const t = useT()
   const name = useId()
   const warming = cfg.providers.find((p) => p.warmingUp)
   const opts: { value: FailoverPolicy; title: ReactNode; detail?: ReactNode }[] = [
     {
       value: 'pause_and_ask',
-      title: (
-        <>
-          <span className="font-semibold">Pause and ask</span> <span className="k">(default for Broadcasts)</span>
-        </>
-      ),
-      detail: 'If the primary fails mid-send, hold the remaining recipients and notify you. Moving a bulk send to a cold provider can hurt reputation.',
+      title: <T msg={mr.pauseAndAsk} values={{ b: (c) => <span className="font-semibold">{c}</span>, k: (c) => <span className="k">{c}</span> }} />,
+      detail: t(mr.pauseDetail),
     },
     {
       value: 'warm_only',
-      title: <span className="font-semibold">Fail over automatically, only to a warmed-up provider</span>,
-      detail: warming
-        ? `${warming.short} qualifies on day ${warming.warmupDays ?? 21} of its warm-up. Until then this behaves like pause and ask.`
-        : 'Providers still warming up are skipped; with none left, this behaves like pause and ask.',
+      title: <span className="font-semibold">{t(mr.warmOnly)}</span>,
+      detail: warming ? t(mr.warmOnlyDetail, { provider: warming.short, day: warming.warmupDays ?? 21 }) : t(mr.warmOnlyNone),
     },
-    { value: 'automatic', title: <span className="font-semibold">Fail over automatically to any fallback</span> },
+    { value: 'automatic', title: <span className="font-semibold">{t(mr.automatic)}</span> },
   ]
   return (
     <div className="flex flex-col gap-2 rounded-[8px] border border-line bg-ground-3 px-3.5 py-3" role="radiogroup" aria-labelledby={`${name}-t`}>
       <span className="text-[13px] font-semibold" id={`${name}-t`}>
-        Failover policy
+        {t(mr.failoverPolicy)}
       </span>
       {opts.map((o) => (
         <label key={o.value} className="pv-tg">
@@ -545,6 +538,7 @@ function FailoverPolicy({ sd, cfg, onChange, readOnly }: { sd: StreamDraft; cfg:
 
 /** Shared across providers: suppression list, throttles, auto-pause. */
 function SharedCard({ cfg }: { cfg: RoutingConfig }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const row = (k: string, v: string) => (
     <div className="flex justify-between gap-3 text-[13px] max-md:flex-wrap">
@@ -554,12 +548,15 @@ function SharedCard({ cfg }: { cfg: RoutingConfig }) {
   )
   return (
     <section className="card flex flex-col gap-2.5 px-5 py-[18px]">
-      <h2 className="h2">Shared across providers</h2>
-      {row('Suppression list', `${count(cfg.shared.suppressions)}${cfg.shared.syncedAt ? ` · synced ${clock(cfg.shared.syncedAt)}` : ''}`)}
-      {row('Per-mailbox-provider throttles', 'apply on every route')}
-      {row('Auto-pause thresholds', 'per campaign')}
+      <h2 className="h2">{t(mr.sharedTitle)}</h2>
+      {row(
+        t(mr.sharedSuppression),
+        cfg.shared.syncedAt ? t(mr.sharedSuppressionSynced, { count: count(cfg.shared.suppressions), time: clock(cfg.shared.syncedAt) }) : count(cfg.shared.suppressions),
+      )}
+      {row(t(mr.sharedThrottles), t(mr.sharedThrottlesValue))}
+      {row(t(mr.sharedThresholds), t(mr.sharedThresholdsValue))}
       <Link to="/w/$workspace/providers/events" params={{ workspace: slug }} className="text-[13px] font-medium">
-        Open events &amp; sync
+        {t(mr.openEvents)}
       </Link>
     </section>
   )
@@ -567,6 +564,7 @@ function SharedCard({ cfg }: { cfg: RoutingConfig }) {
 
 /** Adds a condition: when a field matches, send only through one provider. */
 function ConditionDialog({ stream, cfg, onClose, onAdd }: { stream: Stream; cfg: RoutingConfig; onClose: () => void; onAdd: (c: Condition) => void }) {
+  const t = useT()
   const [field, setField] = useState<Condition['field']>(stream === 'transactional' ? 'category' : 'mailbox_provider')
   const [values, setValues] = useState<string[]>([])
   const [providerId, setProviderId] = useState(cfg.providers.find((p) => !p.warmingUp)?.id ?? cfg.providers[0]?.id ?? '')
@@ -585,29 +583,29 @@ function ConditionDialog({ stream, cfg, onClose, onAdd }: { stream: Stream; cfg:
     <Dialog
       open
       onOpenChange={(o) => !o && onClose()}
-      title={`Add a ${streamName[stream]} condition`}
-      description="Conditions are checked in order before the split; the first match decides the provider."
+      title={t(mr.conditionTitle, { stream: streamName[stream] })}
+      description={t(mr.conditionBody)}
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t(common.cancel)}</Button>
           <Button
             variant="primary"
             onClick={() => {
               if (!values.length) {
-                setError('Pick at least one value.')
+                setError(t(mr.pickValue))
                 return
               }
               const labels = values.map((v) => choices.find((c) => c.value === v)?.label ?? v)
               onAdd({ field, values, providerId, note: note.trim() || undefined, valueLabels: labels })
             }}
           >
-            Add condition
+            {t(mr.addCondition)}
           </Button>
         </>
       }
     >
       <div className="flex flex-col gap-3.5">
-        <Field label="If">
+        <Field label={t(mr.labelIf)}>
           <Select
             value={field}
             onChange={(e) => {
@@ -616,22 +614,22 @@ function ConditionDialog({ stream, cfg, onClose, onAdd }: { stream: Stream; cfg:
               setError('')
             }}
           >
-            {stream === 'transactional' ? <option value="category">Category</option> : null}
-            <option value="mailbox_provider">Recipient mailbox provider</option>
+            {stream === 'transactional' ? <option value="category">{t(mr.fieldCategory)}</option> : null}
+            <option value="mailbox_provider">{t(mr.fieldMailbox)}</option>
             {stream === 'transactional' ? null : (
               <>
-                <option value="list">List</option>
-                <option value="sender_domain">Sender domain</option>
+                <option value="list">{t(mr.fieldList)}</option>
+                <option value="sender_domain">{t(mr.fieldDomain)}</option>
               </>
             )}
           </Select>
         </Field>
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-          <legend className="lbl mb-1 p-0">is one of</legend>
+          <legend className="lbl mb-1 p-0">{t(mr.legendIsOneOf)}</legend>
           {choices.length ? (
             choices.map((c) => <Checkbox key={c.value} label={c.label} checked={values.includes(c.value)} onChange={() => toggle(c.value)} />)
           ) : (
-            <span className="k">Nothing to pick yet.</span>
+            <span className="k">{t(mr.nothingToPick)}</span>
           )}
           {error ? (
             <span className="err" role="alert">
@@ -639,7 +637,7 @@ function ConditionDialog({ stream, cfg, onClose, onAdd }: { stream: Stream; cfg:
             </span>
           ) : null}
         </fieldset>
-        <Field label="Then send only through">
+        <Field label={t(mr.thenSend)}>
           <Select value={providerId} onChange={(e) => setProviderId(e.target.value)}>
             {cfg.providers.map((p) => (
               <option key={p.id} value={p.id}>
@@ -648,11 +646,11 @@ function ConditionDialog({ stream, cfg, onClose, onAdd }: { stream: Stream; cfg:
             ))}
           </Select>
         </Field>
-        <Field label="Why" optional hint="Shown beside the condition, like “Outlook is strict with new IPs”.">
+        <Field label={t(mr.why)} optional hint={t(mr.whyHint)}>
           <Input value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} />
         </Field>
         {stream === 'broadcast' && cfg.providers.find((p) => p.id === providerId && !p.bulkAllowed) ? (
-          <Note tone="warn">This provider&apos;s terms don&apos;t allow bulk marketing on Broadcasts.</Note>
+          <Note tone="warn">{t(mr.notBulk)}</Note>
         ) : null}
       </div>
     </Dialog>
@@ -661,6 +659,7 @@ function ConditionDialog({ stream, cfg, onClose, onAdd }: { stream: Stream; cfg:
 
 /** Loading: the stream cards and the tester, as skeletons. */
 function RoutingSkeleton() {
+  const t = useT()
   const card = (h: number) => (
     <div className="card flex flex-col gap-3.5 px-5 py-[18px]">
       <Skeleton w={160} h={16} />
@@ -672,7 +671,7 @@ function RoutingSkeleton() {
     </div>
   )
   return (
-    <Loading label="Loading the routing">
+    <Loading label={t(mr.loading)}>
       <div className="flex flex-wrap items-start gap-5">
         <div className="flex min-w-0 flex-[2_1_600px] flex-col gap-4">
           {card(120)}

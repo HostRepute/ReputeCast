@@ -12,7 +12,10 @@ import { toast } from '@/components/ui/Toast'
 import { DomainOptional, DomainRecordsCard, DomainTools, useDomainDetail, type DomainDetail } from '@/features/connect/DomainRecords'
 import { failed } from '@/features/connect/parts'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
+import { useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
+import { m } from './messages'
 import { sendersPath } from './SendersPage'
 import './senders.css'
 
@@ -21,25 +24,26 @@ import './senders.css'
  * that signs for it or one of them (?provider=…), checked live.
  */
 export function DomainPage({ domainId, provider, onProvider }: { domainId: string; provider?: string; onProvider: (p?: string) => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = useDomainDetail(slug, domainId, provider)
   const d = q.data
   const reason = usePermissionReason('domains:manage', d?.helpers)
   const crumbs = [
-    { label: 'Settings', to: '/w/$workspace/settings' as const, params: { workspace: slug } },
-    { label: 'Senders', to: '/w/$workspace/settings/senders' as const, params: { workspace: slug } },
-    { label: d?.domain ?? 'Domain' },
+    { label: t(m.settings), to: '/w/$workspace/settings' as const, params: { workspace: slug } },
+    { label: t(m.senders), to: '/w/$workspace/settings/senders' as const, params: { workspace: slug } },
+    { label: d?.domain ?? t(m.domainFallback) },
   ]
   return (
-    <Page title={d ? d.domain : 'Domain'} documentTitle={d ? `${d.domain} · Senders · Settings` : 'Senders · Settings'} tabs={settingsTabs(slug)} breadcrumb={crumbs}>
+    <Page title={d ? d.domain : t(m.domainFallback)} documentTitle={d ? t(m.domainDocumentTitle, { domain: d.domain }) : t(m.documentTitle)} tabs={settingsTabs(slug)} breadcrumb={crumbs}>
       {q.isError ? (
-        <ErrorPanel title="Couldn't load the domain" actions={<Button onClick={() => void q.refetch()}>Retry</Button>}>
+        <ErrorPanel title={t(m.loadDomainFailed)} actions={<Button onClick={() => void q.refetch()}>{t(common.retry)}</Button>}>
           {errorMessage(q.error)}
         </ErrorPanel>
       ) : !d ? (
         <section className="card flex flex-col gap-3 p-5" aria-busy="true">
           <span className="vh" role="status">
-            Loading the records…
+            {t(m.loadingRecords)}
           </span>
           <Skeleton w="40%" h={16} />
           <Skeleton w="100%" h={220} />
@@ -47,17 +51,13 @@ export function DomainPage({ domainId, provider, onProvider }: { domainId: strin
       ) : (
         <>
           <div className="flex flex-col gap-1.5">
-            <h2 className="m-0 text-[20px] font-bold tracking-[-0.01em]">{`DNS records for ${d.domain}`}</h2>
-            <span className="text-ink-2">
-              {d.providers.length
-                ? `Each provider signs with its own DKIM key, so each one needs its records. ${d.senders === 1 ? 'One sender uses' : `${d.senders} senders use`} this domain.`
-                : 'No sending provider is set up for this domain yet. Connect one, or set it up for this domain from Sending providers.'}
-            </span>
+            <h2 className="m-0 text-[20px] font-bold tracking-[-0.01em]">{t(m.recordsTitle, { domain: d.domain })}</h2>
+            <span className="text-ink-2">{d.providers.length ? t(m.recordsLead, { senders: d.senders }) : t(m.recordsLeadNone)}</span>
           </div>
           {d.providers.length > 1 ? (
-            <nav className="tabs" aria-label="Providers">
+            <nav className="tabs" aria-label={t(m.providersLabel)}>
               <button type="button" aria-pressed={!provider} onClick={() => onProvider(undefined)}>
-                All providers
+                {t(m.allProviders)}
               </button>
               {d.providers.map((p) => (
                 <button key={p.id} type="button" aria-pressed={provider === p.id} onClick={() => onProvider(p.id)}>
@@ -83,6 +83,7 @@ export function DomainPage({ domainId, provider, onProvider }: { domainId: strin
  * publish by hand).
  */
 function ProviderNotes({ detail: d, reason }: { detail: DomainDetail; reason?: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const [busy, setBusy] = useState<string>()
@@ -94,9 +95,9 @@ function ProviderNotes({ detail: d, reason }: { detail: DomainDetail; reason?: s
       })
       await Promise.all([qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/domains/{domainId}'] }), qc.invalidateQueries({ queryKey: ['get', sendersPath] })])
       const note = data?.notes.find((n) => n.providerId === providerId && !n.provider)
-      toast({ title: `Fetched ${provider}'s records for ${d.domain}`, detail: note?.text ?? 'Publish them at your DNS host; ReputeCast checks them every 30 seconds.' })
+      toast({ title: t(m.fetched, { provider, domain: d.domain }), detail: note?.text ?? t(m.fetchedDetail) })
     } catch (e) {
-      failed(`Couldn't fetch ${provider}'s records`, () => void fetchRecords(providerId, provider))(e)
+      failed(t(m.fetchFailed, { provider }), () => void fetchRecords(providerId, provider))(e)
     } finally {
       setBusy(undefined)
     }
@@ -109,8 +110,8 @@ function ProviderNotes({ detail: d, reason }: { detail: DomainDetail; reason?: s
         <Note key={n.providerId} tone="info">
           <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <span>{n.text}</span>
-            <Button size="sm" onClick={() => void fetchRecords(n.providerId, n.provider)} loading={busy === n.providerId} busyLabel="Fetching…" disabledReason={reason}>
-              {`Fetch ${n.provider}'s records`}
+            <Button size="sm" onClick={() => void fetchRecords(n.providerId, n.provider)} loading={busy === n.providerId} busyLabel={t(m.fetching)} disabledReason={reason}>
+              {t(m.fetchRecords, { provider: n.provider })}
             </Button>
           </span>
         </Note>
@@ -120,6 +121,7 @@ function ProviderNotes({ detail: d, reason }: { detail: DomainDetail; reason?: s
 }
 
 function DomainSettings({ detail: d, reason }: { detail: DomainDetail; reason?: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const navigate = useNavigate()
@@ -132,45 +134,45 @@ function DomainSettings({ detail: d, reason }: { detail: DomainDetail; reason?: 
       {
         onSuccess: () => {
           void qc.invalidateQueries({ queryKey: ['get', sendersPath] })
-          toast({ title: 'Saved' })
+          toast({ title: t(m.saved) })
         },
-        onError: failed("Couldn't save the note", saveNote),
+        onError: failed(t(m.saveNoteFailed), saveNote),
       },
     )
   return (
     <section className="card flex flex-col gap-3 px-5 py-4.5" aria-labelledby="domain-settings-h">
       <h2 className="h2" id="domain-settings-h">
-        Domain
+        {t(m.domainSection)}
       </h2>
       <Row gap={12} align="flex-end">
         <label className="lbl flex-[1_1_320px]">
-          What it&apos;s for
-          <input className="in" value={note} onChange={(e) => setNote(e.target.value)} disabled={Boolean(reason)} placeholder="primary sending domain" />
+          {t(m.whatFor)}
+          <input className="in" value={note} onChange={(e) => setNote(e.target.value)} disabled={Boolean(reason)} placeholder={t(m.notePlaceholder)} />
         </label>
-        <Button onClick={saveNote} loading={update.isPending} disabledReason={reason ?? (note.trim() === d.note ? 'Nothing changed.' : undefined)}>
-          Save
+        <Button onClick={saveNote} loading={update.isPending} disabledReason={reason ?? (note.trim() === d.note ? t(m.nothingChanged) : undefined)}>
+          {t(common.save)}
         </Button>
         <Button
           variant="danger"
           className="ml-auto"
           onClick={() => setDeleting(true)}
-          disabledReason={reason ?? (d.senders > 0 ? `${d.senders === 1 ? 'A sender uses' : `${d.senders} senders use`} this domain. Delete them first.` : undefined)}
+          disabledReason={reason ?? (d.senders > 0 ? t(m.sendersUseDomain, { senders: d.senders }) : undefined)}
         >
-          Delete domain
+          {t(m.deleteDomain)}
         </Button>
       </Row>
       <ConfirmDialog
         open={deleting}
         onOpenChange={setDeleting}
-        badge="Delete domain"
-        title={`Delete ${d.domain}?`}
-        description="ReputeCast stops checking its records. The records stay at your DNS host and at each provider until you remove them there."
-        confirmLabel="Delete domain"
-        busyLabel="Deleting…"
+        badge={t(m.deleteDomain)}
+        title={t(m.deleteDomainTitle, { domain: d.domain })}
+        description={t(m.deleteDomainBody)}
+        confirmLabel={t(m.deleteDomain)}
+        busyLabel={t(m.deleting)}
         onConfirm={async () => {
           await http.DELETE('/api/v1/workspaces/{workspace}/domains/{domainId}', { params: { path: { workspace: slug, domainId: d.id } } })
           await qc.invalidateQueries({ queryKey: ['get', sendersPath] })
-          toast({ kind: 'deleted', title: `${d.domain} deleted` })
+          toast({ kind: 'deleted', title: t(m.domainDeleted, { domain: d.domain }) })
           void navigate({ to: '/w/$workspace/settings/senders', params: { workspace: slug } })
         }}
       />
