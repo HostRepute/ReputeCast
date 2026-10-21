@@ -7,6 +7,8 @@ import { T, useT } from '@/i18n'
 import { useWorkspace } from '@/lib/session'
 import { FormsTabs } from '@/features/forms/common'
 import { useShopBuiltinPages } from '@/features/pages/shop'
+import { useChannelSetUp } from '@/features/channels/hooks'
+import { m as cm } from '@/features/channels/messages'
 import { m } from './messages'
 import './website.css'
 
@@ -31,6 +33,8 @@ export function useBuiltinPages(): BuiltinPage[] {
   // after Archive: Shop (X19), then Grow's Referral hub, Invite page,
   // Leaderboard and Recommendations, then Earn's Upgrade and Give a gift.
   const shop = useShopBuiltinPages()
+  // The text message terms, once texting is set up (SMS, X21).
+  const sms = useChannelSetUp('sms')
   return [
     { key: 'subscribe', name: t(m.builtinSubscribe), addr: '/subscribe', group: t(m.groupSigningUp), state: t(m.alwaysOn), to: '/w/$workspace/forms/subscribe' },
     { key: 'confirm', name: t(m.builtinConfirm), addr: t(m.addrAfterConfirm), group: t(m.groupSigningUp), state: t(m.alwaysOn), to: '/w/$workspace/forms/subscribe' },
@@ -40,6 +44,9 @@ export function useBuiltinPages(): BuiltinPage[] {
     { key: 'account', name: t(m.builtinAccount), addr: '/account', group: t(m.groupWebsite), state: t(m.onWithWebsite), to: '/w/$workspace/forms/website' },
     { key: 'archive', name: t(m.builtinArchive), addr: '/archive', group: t(m.groupWebsite), state: t(m.on), to: '/w/$workspace/forms/archive' },
     ...shop,
+    ...(sms
+      ? [{ key: 'sms-terms', name: t(cm.smsTermsTab), addr: '/sms-terms', group: t(m.groupSigningUp), state: t(m.alwaysOn), to: '/w/$workspace/forms/sms-terms' as const }]
+      : []),
   ]
 }
 

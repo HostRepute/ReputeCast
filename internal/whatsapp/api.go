@@ -309,6 +309,15 @@ func Register(h huma.API, s *Service) {
 		})
 
 	// The automation step.
+	api.Post(h, api.Op{ID: "estimate-whatsapp-step", Path: "/workspaces/{workspace}/whatsapp/step-estimate",
+		Summary: "A WhatsApp step's templates, reach, estimated cost and preview", Tags: []string{"Automations"}, Access: api.Workspace(authz.AutomationsView)},
+		func(ctx context.Context, in *struct {
+			api.WorkspaceInput
+			Body WhatsAppStepEstimateInput
+		}) (*api.Body[WhatsAppStepEstimate], error) {
+			out, err := s.StepEstimate(ctx, api.WorkspaceFrom(ctx), in.Body)
+			return api.OK(out), err
+		})
 	api.Get(h, api.Op{ID: "get-automation-whatsapp-stats", Path: "/workspaces/{workspace}/automations/{id}/whatsapp-stats",
 		Summary: "A flow's WhatsApp steps over 30 days", Tags: wtags, Access: api.Workspace(authz.AutomationsView)},
 		func(ctx context.Context, in *struct {

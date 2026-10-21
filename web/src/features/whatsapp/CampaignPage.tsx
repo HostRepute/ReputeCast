@@ -11,7 +11,7 @@ import { toast } from '@/components/ui/Toast'
 import { useT, type MessageDescriptor } from '@/i18n'
 import { clock, dayMonthDate, dayMonthYear, money } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
-import { categoryBadge, statusBadge, throwIfForbidden, WhatsAppIcon, type Template } from './common'
+import { categoryBadge, fallbackSentence, FilledBody, statusBadge, throwIfForbidden, WhatsAppIcon, type Template } from './common'
 import { CheckRow } from './Checks'
 import { m } from './campaign.messages'
 import '@/features/push/push.css'
@@ -494,41 +494,6 @@ function Preview({ data, tpl }: { data: Campaign; tpl?: Template }) {
         </span>
       ) : null}
     </div>
-  )
-}
-
-/** "Hi there" for a fallback in "Hi {{1}}, …": the words around the variable, filled. */
-function fallbackSentence(body: string, key: string, fallback: string): string {
-  const i = body.indexOf(`{{${key}}}`)
-  if (i < 0) return fallback
-  const before = body.slice(0, i).split(/[.!?]\s|\n/).pop() ?? ''
-  const words = before.trim().split(/\s+/).slice(-2).join(' ')
-  return `${words} ${fallback}`.trim()
-}
-
-/** The preview's text with the filled variables in bold, found by matching the template around them. */
-function FilledBody({ body, text }: { body: string; text: string }) {
-  const parts = body.split(/(\{\{\d+\}\})/g)
-  const out: { s: string; v: boolean }[] = []
-  let rest = text
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i]!
-    if (/^\{\{\d+\}\}$/.test(part)) {
-      const next = parts[i + 1] ?? ''
-      const end = next ? rest.indexOf(next) : rest.length
-      if (end < 0) return <>{text}</>
-      out.push({ s: rest.slice(0, end), v: true })
-      rest = rest.slice(end)
-    } else {
-      if (!rest.startsWith(part)) return <>{text}</>
-      out.push({ s: part, v: false })
-      rest = rest.slice(part.length)
-    }
-  }
-  return (
-    <>
-      {out.map((x, i) => (x.v ? <b key={i}>{x.s}</b> : <span key={i}>{x.s}</span>))}
-    </>
   )
 }
 

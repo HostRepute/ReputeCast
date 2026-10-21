@@ -263,4 +263,29 @@
       animation: none;
     }
   }
+
+  /* The Send WhatsApp step's panel (AutomationChannels): the message kinds and the variables. */
+  .wa-mode {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 8px;
+    align-items: start;
+    font-size: 12.5px;
+    line-height: 1.4;
+  }
+  .wa-mode input {
+    margin-top: 2px;
+    grid-row: span 2;
+  }
+  .wa-svar {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 0;
+    border-top: 1px solid var(--line-2);
+  }
+  .wa-svar:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+  }
 }

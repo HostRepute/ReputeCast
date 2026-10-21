@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { fieldLabel, PublisherMark, type FormInput, type Overview } from './common'
+import { SmsConsentPreview, SmsPhonePreview } from '@/features/sms/FormFields'
 
 /**
  * The words of a consent text that link to the privacy policy, ignoring
@@ -116,6 +117,8 @@ export function FormPreview({
       </div>
       {c.description ? <p className="pf-desc">{c.description}</p> : null}
       {form.fields.map((f) => {
+        // Phase 8: the phone field with its country picker.
+        if (f.key === 'phone') return <SmsPhonePreview key={f.key} label={f.label || undefined} optional={f.required ? undefined : (L?.optional ?? 'optional')} />
         const label = f.label || L?.fields[f.key] || fieldLabel(f, overview.customFields)
         const custom = overview.customFields.find((x) => x.key === f.key)
         const optional = !f.required && f.key !== 'email'
@@ -162,6 +165,9 @@ export function FormPreview({
             <ConsentText text={form.consentText} privacy={L?.privacyUrl || b.privacyUrl} color={b.accentText} phrase={L?.privacy} />
           </span>
         </label>
+      ) : null}
+      {c.smsConsent && form.fields.some((f) => f.key === 'phone') ? (
+        <SmsConsentPreview text={c.smsConsentText ?? ''} privacy={L?.privacyUrl || b.privacyUrl} privacyWords={L?.privacy} color={b.accentText} />
       ) : null}
       <button type="button" className="pf-submit" style={{ background: b.accent, color: b.onAccent }} onClick={() => setDone(true)}>
         {c.button || 'Subscribe'}

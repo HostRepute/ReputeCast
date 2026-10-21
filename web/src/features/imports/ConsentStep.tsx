@@ -12,6 +12,7 @@ import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { stepPath, useImportDetail, WizardHeading, type Detail } from './ImportFrame'
 import { NotRead, StepFrame } from './FieldsStep'
 import { ReadingSource } from './states'
+import { SmsImportConsent } from '@/features/sms/ImportConsent'
 
 type Mapping = Schemas['ImportConsentMapping']
 type ConsentMap = Schemas['ImportConsentMap']
@@ -173,6 +174,8 @@ function ConsentForm({ d, m }: { d: Detail; m: Mapping }) {
           </span>
         </label>
       </section>
+      {/* Phase 8: SMS consent comes in only with its evidence columns. */}
+      {m.sms ? <SmsImportConsent sms={m.sms} /> : null}
       {err ? <Note tone="bad">{err}</Note> : null}
       <div className="flex flex-wrap justify-between gap-2.5">
         <ButtonLink to={stepPath.fields} params={{ workspace: slug, importId: d.id }}>

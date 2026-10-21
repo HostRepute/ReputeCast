@@ -367,6 +367,10 @@ type ApprovalDetail struct {
 	// covers (the text, segments, senders and cost per country).
 	Channel string               `json:"channel" enum:"email,sms,push,whatsapp"`
 	SMS     *ApprovalSMSSnapshot `json:"sms,omitempty"`
+	// Push and WhatsApp are what push and WhatsApp campaigns' requests
+	// cover: the notification, or the template with its variables (X22).
+	Push     *ApprovalPushSnapshot     `json:"push,omitempty"`
+	WhatsApp *ApprovalWhatsAppSnapshot `json:"whatsapp,omitempty"`
 	// Page is what a page publish request covers.
 	Page *ApprovalPageSnapshot `json:"page,omitempty"`
 	// ChangesSince lists what changed since the previous request this one
@@ -413,7 +417,8 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	snap := ParseSnapshot(r.Snapshot)
 	out := ApprovalDetail{ApprovalRequestView: view, Name: r.SubjectName, Author: view.RequestedBy, Approvers: []ApprovalPerson{}, ChangesSince: []ApprovalChange{},
-		Comments: []ApprovalCommentView{}, Automation: snap.Automation, Transactional: snap.Transactional, Website: snap.Website, Channel: r.CampaignChannel, SMS: snap.SMS, Page: snap.Page}
+		Comments: []ApprovalCommentView{}, Automation: snap.Automation, Transactional: snap.Transactional, Website: snap.Website, Channel: r.CampaignChannel, SMS: snap.SMS, Page: snap.Page,
+		Push: snap.Push, WhatsApp: snap.WhatsApp}
 	out.Author.Role = firstNonEmptyStr(snap.AuthorRole, out.Author.Role)
 	for _, a := range approversOf(ms) {
 		out.Approvers = append(out.Approvers, s.person(a))

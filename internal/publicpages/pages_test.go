@@ -851,8 +851,8 @@ func TestUnsubscribe(t *testing.T) {
 	path := "/p/acme-newsletter/unsubscribe/" + tok
 	oneClick := url.Values{"List-Unsubscribe": {"One-Click"}}
 
-	// Sam registered for Acme Summit 2026 too (SMS, X21: the SmsStates
-	// contact profile), so the page names three lists and leaving writes
+	// Sam registered for Acme Summit 2026 too (SMS, X21: brief §4 and the
+	// SmsStates contact profile), so the page names three lists and leaving writes
 	// three consent events.
 	t.Run("page", func(t *testing.T) {
 		r := get(t, env, path)

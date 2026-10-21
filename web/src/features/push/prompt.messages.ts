@@ -45,6 +45,8 @@ export const m = defineMessages('pushPrompt', {
   typePush: 'Push prompt',
   typeHint: 'Asks readers for permission to send notifications.',
   typeLocked: 'A push prompt stays a push prompt. To make a signup form, use New form.',
+  listGranted: '{count, plural, one {# reader granted permission} other {# readers granted permission}}',
+  noSite: 'No push site yet',
 
   // Style
   style: 'Style',

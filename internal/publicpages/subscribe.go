@@ -28,11 +28,16 @@ type fieldView struct {
 	Required, Optional                                           bool
 	Options                                                      []string
 	Error                                                        string
+	// The phone field's country picker (phase 8).
+	Countries             []forms.TextCountry
+	Country, CountryLabel string
 }
 
 type listView struct {
 	ID, Name, Text string
 	Checked        bool
+	// Texts is the list's Texts switch in the preference center (phase 8).
+	Texts bool
 }
 
 // consentParts is the consent sentence with its words for the privacy
@@ -69,6 +74,8 @@ type subscribeBody struct {
 	// Page and Ref are where the visitor is and came from, posted back
 	// with the form for growth sources.
 	Page, Ref string
+	// Sms is the SMS consent box (phase 8), nil when the form has none.
+	Sms *smsConsentView
 }
 
 var errNoForm = errors.New("publicpages: no such form")
@@ -285,6 +292,8 @@ func (h *Handler) subscribeBody(ctx context.Context, s *site, fl formLang, page 
 		b.ConsentChecked = values.Consent
 	}
 	b.ConsentError = out.Errors["consent"]
+	// Phase 8: the phone field's country picker and the SMS consent box.
+	h.smsSignup(ctx, s, fl, &b, values, out, privacy)
 	if out.Status == forms.OutcomeError || (out.Status == forms.OutcomeInvalid && len(out.Errors) == 0) {
 		b.Alert = out.Message
 	}
@@ -431,6 +440,8 @@ func submissionFrom(r *http.Request) forms.Submission {
 		Origin: forms.OriginHost(r.Header.Get("Origin"), r.Header.Get("Referer")), IP: clientIP(r), UserAgent: r.UserAgent(),
 		Fields: map[string]string{}, Page: clipURL(f.Get("_page")), Referrer: clipURL(f.Get("_ref")),
 		Language: clipLang(f.Get("_lang")), BrowserLanguage: audience.BrowserLanguage(r.Header.Get("Accept-Language")),
+		// Phase 8: the number, its country picker and the SMS consent box.
+		Phone: clipTo(f.Get("phone"), 40), PhoneCountry: clipTo(strings.ToUpper(f.Get("phone_country")), 2), SmsConsent: f.Get("sms_consent") != "",
 	}
 	if sub.Plain && sub.Page == "" {
 		// A copied plain form: the page it sits on is the referrer of the post.
@@ -531,11 +542,11 @@ func (h *Handler) subscribeResult(w http.ResponseWriter, r *http.Request, s *sit
 		if out.Status == forms.OutcomeConfirm {
 			h.messageIn(w, r, s, pl, http.StatusOK, pageTitle(pl, s, "form.confirm.heading"), messageBody{Icon: "mail", Heading: l.Text("form.confirm.heading", nil),
 				Lead:    labelHTML(l, "form.confirm.text", i18n.Args{"email": email, "publisher": publisher}, ""),
-				Actions: archive, Footer: l.Text("form.confirm.footer", nil)}, true)
+				Actions: archive, Footer: l.Text("form.confirm.footer", nil), Texted: out.Texted}, true)
 			return
 		}
 		h.messageIn(w, r, s, pl, http.StatusOK, pageTitle(pl, s, "form.subscribed.heading"), messageBody{Icon: "tick", Heading: l.Text("form.subscribed.heading", nil),
-			Lead: labelHTML(l, "form.subscribed.text", i18n.Args{"email": email, "publisher": publisher}, ""), Actions: archive}, true)
+			Lead: labelHTML(l, "form.subscribed.text", i18n.Args{"email": email, "publisher": publisher}, ""), Actions: archive, Texted: out.Texted}, true)
 	case forms.OutcomeInvalid, forms.OutcomeError:
 		status := http.StatusUnprocessableEntity
 		if out.Status == forms.OutcomeError {

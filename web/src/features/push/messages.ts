@@ -12,13 +12,6 @@ export const m = defineMessages('push', {
   tabSetup: 'Setup',
   tabEvents: 'Events',
 
-  // The channel switch
-  channelLabel: 'Channel',
-  channelEmail: 'Email',
-  channelSms: 'SMS',
-  channelPush: 'Push',
-  channelWhatsApp: 'WhatsApp',
-
   // Header
   when: '{date}, {time}',
   sizeKb: '{n} KB',

@@ -49,6 +49,8 @@ type Service struct {
 	Digests DigestReader
 	// Placement reads placement tests (nil: unavailable).
 	Placement PlacementReader
+	// Sms reads texting and drafts text campaigns (nil: unavailable).
+	Sms       SmsAgent
 	PublicURL func(context.Context) string
 	Now       func() time.Time
 	// Polls reads poll and survey results (nil: unavailable).

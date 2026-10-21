@@ -160,6 +160,29 @@ func TestSMSDemo(t *testing.T) {
 	if reasons["unreachable"] != 9 || reasons["filtered"] != 3 || reasons["not_in_service"] != 2 {
 		t.Fatalf("failures: %v", reasons)
 	}
+	// Export CSV: the report by country, counts only, and the download is logged.
+	csv := linh.Do(http.MethodGet, ws+"/sms-campaigns/"+campaign+"/report.csv", nil).MustStatus(t, 200)
+	if ct, cd := csv.Header.Get("Content-Type"), csv.Header.Get("Content-Disposition"); !strings.HasPrefix(ct, "text/csv") ||
+		!strings.Contains(cd, "summit-8-days-to-go-sms-report.csv") || !strings.HasPrefix(string(csv.Body), "country,sender,sent,delivered,") ||
+		!strings.Contains(string(csv.Body), "\nUS,") || !strings.Contains(string(csv.Body), ",611,601,") || !strings.Contains(string(csv.Body), "\nIE,ACME,0,0,") {
+		t.Fatalf("csv: %s %s\n%s", ct, cd, csv.Body)
+	}
+	if n := one[int](t, env, `SELECT count(*) FROM audit_events WHERE action = 'campaign.report_exported' AND target_id = $1`, campaign); n != 1 {
+		t.Fatalf("export audited %d times", n)
+	}
+	// Duplicate: a draft with the same text and audience, audited.
+	var dup texting.SmsCampaign
+	linh.Do(http.MethodPost, ws+"/sms-campaigns/"+campaign+"/duplicate", nil).MustStatus(t, 201).JSON(t, &dup)
+	if dup.Name != "Copy of Summit: 8 days to go" || dup.Status != "draft" || dup.Body != one[string](t, env, `SELECT body FROM sms_campaigns WHERE campaign_id = $1`, campaign) ||
+		len(dup.Audience) != 1 || dup.Audience[0].Name != "Acme Summit 2026" {
+		t.Fatalf("duplicate: %+v", dup)
+	}
+	if from := one[string](t, env, `SELECT after->>'fromCampaignId' FROM audit_events WHERE action = 'campaign.create' AND target_id = $1`, dup.ID); from != campaign {
+		t.Fatalf("duplicate's audit: %q", from)
+	}
+	aishaCSV := env.Client()
+	aishaCSV.SignInDemo("aisha@acme.io")
+	aishaCSV.Do(http.MethodPost, ws+"/sms-campaigns/"+campaign+"/duplicate", nil).MustStatus(t, 403)
 
 	// Daniel's draft: a curly apostrophe makes it UCS-2.
 	draft := one[string](t, env, `SELECT id::text FROM campaigns WHERE name = 'Summit: doors open'`)
@@ -203,13 +226,64 @@ func TestSMSDemo(t *testing.T) {
 		t.Fatalf("route test: %+v", rt)
 	}
 
+	// Publishing the reminders flow: its SMS step's quiet hours, and
+	// Ireland, where ACME isn't approved yet (brief §6). They warn; they
+	// don't block.
+	flow := one[string](t, env, `SELECT id::text FROM automations WHERE name = 'Acme Summit reminders'`)
+	var pub struct {
+		Checks       []struct{ Status, Label string }
+		Requires     []string
+		ChannelSteps map[string]int
+	}
+	linh.Do(http.MethodGet, ws+"/automations/"+flow+"/publish-preview", nil).MustStatus(t, 200).JSON(t, &pub)
+	checks := map[string]string{}
+	for _, c := range pub.Checks {
+		checks[c.Label] = c.Status
+	}
+	if checks["Quiet hours: texts go out 09:00–20:00 in each contact’s time zone; outside it they wait"] != "ok" ||
+		checks["ACME isn’t approved yet in Ireland: 20 contacts there are skipped until it is"] != "warn" || pub.ChannelSteps["sms"] != 1 || len(pub.Requires) != 0 {
+		t.Fatalf("publish checks: %+v", pub)
+	}
+	// Daniel lacks every channel's send permission: the flow's SMS step, and
+	// its push and WhatsApp steps (X22), each need theirs.
+	var danielPub struct{ Requires []string }
+	daniel.Do(http.MethodGet, ws+"/automations/"+flow+"/publish-preview", nil).MustStatus(t, 200).JSON(t, &danielPub)
+	if strings.Join(danielPub.Requires, ",") != "sms:send,push:send,whatsapp:send" {
+		t.Fatalf("Daniel's publish needs: %v", danielPub.Requires)
+	}
+
 	// The suppression list: a text opt-out can't be removed by hand.
 	var sl texting.SmsSuppressionList
 	linh.Do(http.MethodGet, ws+"/sms/suppressions?reason=opted_out", nil).MustStatus(t, 200).JSON(t, &sl)
-	if sl.Total != 25 || sl.Matching != 16 || !strings.Contains(sl.Items[0].Number, "•••") {
+	if sl.Total != 25 || sl.Matching != 16 || !strings.Contains(sl.Items[0].Number, "•••") || sl.FilteredRecent != 3 {
 		t.Fatalf("suppressions: %d of %d, %+v", sl.Matching, sl.Total, sl.Items[0])
 	}
 	linh.Do(http.MethodPost, ws+"/sms/suppressions/"+sl.Items[0].ID+"/remove", map[string]any{"reason": "Asked us by email"}).MustStatus(t, 409)
+
+	// The segment builder's SMS conditions count who has SMS consent and who
+	// got a text, as the SMS tables do (email-suppressed contacts aside).
+	summit := one[string](t, env, `SELECT id::text FROM lists WHERE name = 'Acme Summit 2026'`)
+	segCount := func(cond map[string]any) int64 {
+		t.Helper()
+		var res struct{ Count int64 }
+		linh.Do(http.MethodPost, ws+"/segments/preview", map[string]any{"mode": "builder", "definition": map[string]any{"groups": []any{
+			map[string]any{"match": "all", "conditions": []any{cond}}}}}).MustStatus(t, 200).JSON(t, &res)
+		return res.Count
+	}
+	notSuppressed := `NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email) AND c.erased_at IS NULL`
+	consented := one[int64](t, env, `SELECT count(*) FROM channel_consents cc JOIN contacts c ON c.id = cc.contact_id
+		WHERE cc.list_id = $1 AND cc.channel = 'sms' AND cc.status = 'subscribed' AND `+notSuppressed, summit)
+	if n := segCount(map[string]any{"field": "sms_consent", "op": "includes", "value": summit}); n != consented || n == 0 {
+		t.Fatalf("SMS consent on the Summit: %d, want %d", n, consented)
+	}
+	texted := one[int64](t, env, `SELECT count(DISTINCT m.contact_id) FROM channel_messages m JOIN contacts c ON c.id = m.contact_id
+		WHERE m.channel = 'sms' AND m.sent_at >= now() - interval '30 days' AND `+notSuppressed)
+	if n := segCount(map[string]any{"field": "texted", "op": "in_last", "amount": 30, "unit": "days"}); n != texted || n == 0 {
+		t.Fatalf("got a text in 30 days: %d, want %d", n, texted)
+	}
+	if n := segCount(map[string]any{"field": "phone_country", "op": "is", "value": "gb"}); n == 0 {
+		t.Fatal("nobody with a UK number")
+	}
 
 	// A Viewer sees costs and reports, never credentials, and can't change rules.
 	aisha := env.Client()

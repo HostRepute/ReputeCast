@@ -32,8 +32,8 @@ func TestListCampaigns(t *testing.T) {
 		Total  int64 `json:"total"`
 		Counts struct{ All, Drafts, Scheduled, Sending, Sent int64 }
 	}
-	// Thirteen rows: the board's nine, the two text campaigns (SMS, X21), and
-	// the WhatsApp draft and the push notification (X22) that sort before
+	// Thirteen rows: the board's nine, the two text campaigns (SMS, X21, brief §4),
+	// and the WhatsApp draft and the push notification (X22) that sort before
 	// October Product Update.
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns?pageSize=13", nil).MustStatus(t, 200).JSON(t, &list)
 	// 48 campaigns of the Campaigns board plus the approval sample data:
@@ -42,7 +42,7 @@ func TestListCampaigns(t *testing.T) {
 	// the draft blog.acme.io made from a post (Scheduled rollouts are here),
 	// and the accessibility sample its draft, Weekly Digest #143. The recurring
 	// digest's sent issues #1 and #2 are campaigns too, and so is the survey's
-	// email, Beta Program: October check-in, sent. SMS (X21) adds a text
+	// email, Beta Program: October check-in, sent. SMS (X21, brief §4) adds a text
 	// campaign sent, "Summit: 8 days to go", and a draft, "Summit: doors open".
 	// Web push (X22) adds a sent notification, "New post: Feature flags at
 	// scale", and WhatsApp a draft, "Summit: see you tomorrow".

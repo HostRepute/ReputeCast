@@ -5,6 +5,7 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { DisabledReason } from '@/components/ui/DisabledReason'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { NoResults } from '@/components/ui/NoResults'
+import { ConnectChannels } from '@/features/channels/ConnectChannels'
 import { ReadOnlyNote } from '@/features/senders/ReadOnlyNote'
 import { cn } from '@/lib/cn'
 import { deniedReason, useWorkspace } from '@/lib/session'
@@ -52,6 +53,8 @@ export function CatalogPage() {
           Every adapter reports what it can do. Badges come from each adapter&apos;s manifest; terms are reviewed quarterly.
         </StepHeading>
         <div className="flex flex-wrap items-center gap-2.5">
+          {/* Email · SMS · …: the other channels' catalogs (X21). */}
+          <ConnectChannels current="email" />
           <label className="k flex items-center gap-2" htmlFor={searchId}>
             Search
             <input

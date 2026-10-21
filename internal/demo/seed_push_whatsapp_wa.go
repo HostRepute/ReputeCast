@@ -126,7 +126,7 @@ func whatsAppPeople(ctx context.Context, s *Seeder, st *pwState) error {
 		}
 		ip := netip.AddrFrom4([4]byte{198, 51, 100, byte(10 + i%240)})
 		consents = append(consents, []any{ws.ID, st.summit, p.id, "whatsapp", "subscribed", "form:summit", "", at})
-		events = append(events, []any{ID(), ws.ID, p.id, &st.summit, "whatsapp", "subscribed", p.phone, "form:summit", "news.acme.io/summit · registration page",
+		events = append(events, []any{ID(), ws.ID, p.id, &st.summit, "whatsapp", "subscribed", p.phone, "form:summit", "news.acme.io/summit",
 			WhatsAppConsentText, "1", &ip, at})
 	}
 	if err := smsCopy(ctx, s, "channel_consents", []string{"workspace_id", "list_id", "contact_id", "channel", "status", "source", "keyword", "changed_at"},

@@ -40,6 +40,8 @@ type ContactListItem struct {
 	ScoreBand string `json:"scoreBand,omitempty" enum:"cold,warm,hot"`
 	// Paid is the contact's paid status (Earn), for callers with earn:view.
 	Paid *ContactPaid `json:"paid,omitempty"`
+	// Phone is the number as people read it (+1 312 555 0123), when there is one.
+	Phone string `json:"phone,omitempty"`
 }
 
 // ContactList is one page of contacts.
@@ -136,6 +138,9 @@ func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f Conta
 	}
 	for i, id := range ids {
 		out.Items[i].Paid = paid[id]
+	}
+	if err := s.fillPhones(ctx, out.Items, ids); err != nil {
+		return out, err
 	}
 	return out, nil
 }

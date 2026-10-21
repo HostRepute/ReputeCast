@@ -72,6 +72,8 @@ type termsBody struct {
 	Sections                                           []termsSectionView
 	Actions                                            []action
 	Footer                                             string
+	// PrefsHref is the footer's Email preferences link.
+	PrefsHref string
 }
 
 // linkify escapes text and links each link's first occurrence in it.
@@ -132,7 +134,8 @@ func (h *Handler) smsTerms(w http.ResponseWriter, r *http.Request) {
 		h.notFound(w, r, s)
 		return
 	}
-	body := termsBody{Title: p.Title, Version: p.Version, Intro: p.Intro, ClosingHeading: p.ClosingHeading, ClosingText: p.ClosingText, Footer: p.Footer}
+	body := termsBody{Title: p.Title, Version: p.Version, Intro: p.Intro, ClosingHeading: p.ClosingHeading, ClosingText: p.ClosingText, Footer: p.Footer,
+		PrefsHref: s.canon.PreferencesRequest()}
 	for _, sec := range p.Sections {
 		body.Sections = append(body.Sections, termsSectionView{Heading: sec.Heading, HTML: linkify(sec.Text, sec.Links)})
 	}

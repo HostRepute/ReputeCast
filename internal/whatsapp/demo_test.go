@@ -96,6 +96,31 @@ func TestWhatsAppDemo(t *testing.T) {
 			t.Fatalf("Sam's consent: %+v", l)
 		}
 	}
+	// The Summit flow's WhatsApp step as its panel shows it: summit_livestream
+	// to the 214 with consent, $0.86, as Sam reads it; Sam's window is open.
+	summit := ""
+	for _, l := range ov.ConsentLists {
+		if l.Name == "Acme Summit 2026" {
+			summit = l.ListID
+		}
+	}
+	var est whatsapp.WhatsAppStepEstimate
+	linh.Do(http.MethodPost, demoWS+"/whatsapp/step-estimate", map[string]any{"consentListId": summit, "mode": "template", "template": "summit_livestream",
+		"language": "en_US", "variables": []map[string]string{{"key": "1", "source": "text", "text": "go.acme.io/k3P9xq"}}}).MustStatus(t, 200).JSON(t, &est)
+	if !est.Connected || est.Business == nil || est.Business.Number != "+1 312 555 0110" || len(est.Templates) != 4 || est.Consent != 214 || est.Cost.Amount != 0.86 ||
+		est.Cost.Category != "utility" || est.Open < 1 || est.WindowExample == nil || est.WindowExample.Name != "Sam Rivera" {
+		t.Fatalf("step estimate: %+v", est)
+	}
+	if est.Preview == nil || est.Preview.Contact != "Sam Rivera" || est.Preview.Text != "Acme Summit 2026 starts in 15 minutes. Watch the livestream: go.acme.io/k3P9xq" {
+		t.Fatalf("step preview: %+v", est.Preview)
+	}
+	// Free text has no preview to fill; without a list the reach is empty.
+	est = whatsapp.WhatsAppStepEstimate{}
+	linh.Do(http.MethodPost, demoWS+"/whatsapp/step-estimate", map[string]any{"mode": "text"}).MustStatus(t, 200).JSON(t, &est)
+	if !est.Connected || est.Consent != 0 || est.Preview != nil || len(est.Templates) != 4 {
+		t.Fatalf("step estimate without a list: %+v", est)
+	}
+
 	// A viewer sees it all, without the verify token.
 	aisha := env.Client()
 	aisha.SignInDemo("aisha@acme.io")

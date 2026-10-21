@@ -47,7 +47,7 @@ func TestScoringGrowthSample(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// SMS (X21) adds 338 Acme Summit registrants who weren't contacts yet:
+	// SMS (X21, brief §8.12) adds 338 Acme Summit registrants who weren't contacts yet:
 	// active, with no score (0 to 9, Cold).
 	spread := []int64{18406 + 338, 10784, 6912, 4401, 2894, 1966, 1207, 806, 497, 340}
 	for i, b := range page.Spread {

@@ -50,7 +50,7 @@ export function FormsTabs() {
   const { slug } = useWorkspace()
   const path = useRouterState({ select: (s) => s.location.pathname })
   const onSurvey = path.includes('/forms/surveys/')
-  const builtin = /\/forms\/(subscribe|preferences|unsubscribe|archive)(\/|$)/.test(path)
+  const builtin = /\/forms\/(subscribe|preferences|unsubscribe|archive|sms-terms)(\/|$)/.test(path)
   const params = { workspace: slug }
   return (
     <NavTabs

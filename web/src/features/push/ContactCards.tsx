@@ -95,23 +95,11 @@ function WhatsAppCard({ contactId }: { contactId: string }) {
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/contacts/{contactId}/whatsapp', { params: { path: { workspace: slug, contactId } } }, { retry: false })
   const reply = $api.useMutation('post', '/api/v1/workspaces/{workspace}/contacts/{contactId}/whatsapp/reply')
   const [text, setText] = useState('')
-  const [consent, setConsent] = useState(false)
   const { locale } = useI18n()
+  const src = useSource()
   const d = q.data
   if (!d) return null
   const subscribed = d.lists.filter((l) => l.status !== 'not_subscribed')
-  const src = (s: string) =>
-    s.startsWith('form:')
-      ? t(m.srcForm, { name: s.slice(5).replace(/[-_]/g, ' ') })
-      : s === 'team'
-        ? t(m.srcTeam)
-        : s === 'keyword'
-          ? t(m.srcKeyword)
-          : s.startsWith('import')
-            ? t(m.srcImport)
-            : s === 'api'
-              ? t(m.srcApi)
-              : s
   const country = regionName(locale, d.country)
   if (!d.connected && !subscribed.length && !d.thread.length) return null
   const first = d.name.split(' ')[0] || d.name
@@ -121,16 +109,9 @@ function WhatsAppCard({ contactId }: { contactId: string }) {
   const newDay = d.thread.map((it, i) => i === 0 || dayMonthDate(it.at) !== dayMonthDate(d.thread[i - 1]!.at))
   return (
     <section className="card flex flex-col gap-3.5 px-4.5 py-4" aria-labelledby="wa-card-h">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="h2" id="wa-card-h">
-          {t(m.waTitle)}
-        </h2>
-        {d.canEdit ? (
-          <Button size="sm" onClick={() => setConsent(true)}>
-            {t(m.changeConsent)}
-          </Button>
-        ) : null}
-      </div>
+      <h2 className="h2" id="wa-card-h">
+        {t(m.waTitle)}
+      </h2>
       {!d.connected ? (
         <span className="k">{t(m.notConnected)}</span>
       ) : (
@@ -258,8 +239,82 @@ function WhatsAppCard({ contactId }: { contactId: string }) {
         </div>
       ) : null}
       <span className="k">{t(m.timelineNote)}</span>
-      {consent ? <ConsentDialog card={d} contactId={contactId} onClose={() => setConsent(false)} onSaved={() => void q.refetch()} /> : null}
     </section>
+  )
+}
+
+/** Where consent came from, in words: "from the summit form", "added by the team". */
+function useSource(): (s: string) => string {
+  const t = useT()
+  return (s) =>
+    s.startsWith('form:')
+      ? t(m.srcForm, { name: s.slice(5).replace(/[-_]/g, ' ') })
+      : s === 'team'
+        ? t(m.srcTeam)
+        : s === 'keyword'
+          ? t(m.srcKeyword)
+          : s.startsWith('import')
+            ? t(m.srcImport)
+            : s === 'api'
+              ? t(m.srcApi)
+              : s
+}
+
+const waWord = { subscribed: m.subscribed, pending: m.pending, opted_out: m.optedOut, not_subscribed: m.notSubscribed } as const
+const waTone = { subscribed: 'ok', pending: 'warn', opted_out: 'bad', not_subscribed: 'neutral' } as const
+
+/** The consent per list table shows a WhatsApp column once WhatsApp is connected, or while a list still has WhatsApp consent. */
+export function hasWhatsAppColumn(d: Schemas['SmsContactChannels']): boolean {
+  return d.whatsAppSetUp || d.lists.some((l) => l.whatsApp !== 'not_subscribed')
+}
+
+/**
+ * A list's WhatsApp consent in the profile's consent per list (SmsStates ›
+ * Contact profile): "Subscribed · 2 Oct 14:06 · same page · WhatsApp
+ * consent text v1", or an opt-out with its keyword.
+ */
+export function WhatsAppConsentCell({ contactId, l, d }: { contactId: string; l: Schemas['SmsContactList']; d: Schemas['SmsContactChannels'] }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  const src = useSource()
+  const refresh = useRefreshContact()
+  const [recording, setRecording] = useState(false)
+  const withdraw = $api.useMutation('put', '/api/v1/workspaces/{workspace}/contacts/{contactId}/whatsapp/consent', {
+    onSuccess: () => {
+      refresh()
+      toast({ kind: 'success', title: t(m.consentSavedOn, { list: l.name }) })
+    },
+    onError: (e) => toast({ kind: 'error', title: errorMessage(e) }),
+  })
+  const evidence = [
+    l.whatsAppAt ? `${dayMonthDate(l.whatsAppAt)} ${clock(l.whatsAppAt)}` : '',
+    l.whatsAppKeyword ? t(m.bySending, { keyword: l.whatsAppKeyword }) : '',
+    l.whatsAppPage ? (l.whatsAppPage === l.smsPage ? t(m.samePage) : l.whatsAppPage) : '',
+    l.whatsAppVersion ? t(m.waConsentVersion, { version: l.whatsAppVersion }) : '',
+  ].filter(Boolean)
+  if (l.whatsApp !== 'not_subscribed' && !l.whatsAppPage && !l.whatsAppKeyword && l.whatsAppSource) evidence.push(src(l.whatsAppSource))
+  // A keyword opt-out can only be undone by the contact; there's nothing to record without a number.
+  const editable = d.canEdit && Boolean(d.phone) && l.whatsApp !== 'opted_out'
+  return (
+    <>
+      <Badge tone={waTone[l.whatsApp]}>{t(waWord[l.whatsApp])}</Badge>
+      {evidence.length ? <span className="k">{evidence.join(' · ')}</span> : null}
+      {editable ? (
+        <button
+          type="button"
+          className="sms-lbtn mt-1 text-[12.5px]"
+          disabled={withdraw.isPending}
+          onClick={() =>
+            l.whatsApp === 'not_subscribed'
+              ? setRecording(true)
+              : withdraw.mutate({ params: { path: { workspace: slug, contactId } }, body: { listId: l.listId, status: 'not_subscribed' } })
+          }
+        >
+          {l.whatsApp === 'not_subscribed' ? t(m.recordConsent) : t(m.withdrawConsent)}
+        </button>
+      ) : null}
+      {recording ? <RecordDialog contactId={contactId} list={l} onClose={() => setRecording(false)} /> : null}
+    </>
   )
 }
 
@@ -272,22 +327,25 @@ function regionName(locale: string, code: string): string {
   }
 }
 
-function ConsentDialog({ card, contactId, onClose, onSaved }: { card: Schemas['WhatsAppContactCard']; contactId: string; onClose: () => void; onSaved: () => void }) {
+/** Records WhatsApp consent on one list with its evidence: where it was given, the exact text and when. */
+function RecordDialog({ contactId, list, onClose }: { contactId: string; list: Schemas['SmsContactList']; onClose: () => void }) {
   const t = useT()
   const { slug } = useWorkspace()
-  const [listId, setListId] = useState(card.lists[0]?.listId ?? '')
-  const current = card.lists.find((l) => l.listId === listId)
-  const [status, setStatus] = useState<'subscribed' | 'not_subscribed'>(current?.status === 'subscribed' ? 'not_subscribed' : 'subscribed')
+  const refresh = useRefreshContact()
   const [source, setSource] = useState('')
   const [wording, setWording] = useState('')
-  const [at, setAt] = useState(() => new Date().toISOString().slice(0, 16))
+  const [at, setAt] = useState(() => {
+    const d = new Date()
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
+    return d.toISOString().slice(0, 16)
+  })
   const [note, setNote] = useState('')
   const save = $api.useMutation('put', '/api/v1/workspaces/{workspace}/contacts/{contactId}/whatsapp/consent')
   return (
     <Dialog
       open
       onOpenChange={(o) => !o && onClose()}
-      title={t(m.consentTitle)}
+      title={t(m.recordTitle, { list: list.name })}
       description={t(m.consentText)}
       footer={
         <>
@@ -295,22 +353,22 @@ function ConsentDialog({ card, contactId, onClose, onSaved }: { card: Schemas['W
           <Button
             variant="primary"
             loading={save.isPending}
-            disabled={!listId || (status === 'subscribed' && (!source.trim() || !wording.trim()))}
+            disabled={!source.trim() || !wording.trim() || !at}
             onClick={() =>
               save.mutate(
                 {
                   params: { path: { workspace: slug, contactId } },
                   body: {
-                    listId,
-                    status,
+                    listId: list.listId,
+                    status: 'subscribed',
                     note: note.trim() || undefined,
-                    evidence: status === 'subscribed' ? { source: source.trim(), consentText: wording.trim(), at: new Date(at).toISOString() } : undefined,
+                    evidence: { source: source.trim(), consentText: wording.trim(), at: new Date(at).toISOString() },
                   },
                 },
                 {
                   onSuccess: () => {
-                    toast({ kind: 'success', title: t(m.consentSaved) })
-                    onSaved()
+                    toast({ kind: 'success', title: t(m.consentSavedOn, { list: list.name }) })
+                    refresh()
                     onClose()
                   },
                 },
@@ -323,41 +381,18 @@ function ConsentDialog({ card, contactId, onClose, onSaved }: { card: Schemas['W
       }
     >
       <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="lbl">
-            <label htmlFor="wa-c-list">{t(m.consentList)}</label>
-            <select id="wa-c-list" className="in w-full" value={listId} onChange={(e) => setListId(e.target.value)}>
-              {card.lists.map((l) => (
-                <option key={l.listId} value={l.listId}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="lbl">
-            <label htmlFor="wa-c-status">{t(m.consentStatus)}</label>
-            <select id="wa-c-status" className="in w-full" value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
-              <option value="subscribed">{t(m.subscribed)}</option>
-              <option value="not_subscribed">{t(m.notSubscribed)}</option>
-            </select>
-          </div>
+        <div className="lbl">
+          <label htmlFor="wa-c-source">{t(m.consentSource)}</label>
+          <input id="wa-c-source" className="in w-full" value={source} placeholder={t(m.consentSourcePh)} maxLength={200} onChange={(e) => setSource(e.target.value)} />
         </div>
-        {status === 'subscribed' ? (
-          <>
-            <div className="lbl">
-              <label htmlFor="wa-c-source">{t(m.consentSource)}</label>
-              <input id="wa-c-source" className="in w-full" value={source} placeholder={t(m.consentSourcePh)} maxLength={200} onChange={(e) => setSource(e.target.value)} />
-            </div>
-            <div className="lbl">
-              <label htmlFor="wa-c-wording">{t(m.consentWording)}</label>
-              <textarea id="wa-c-wording" className="in w-full" rows={2} value={wording} maxLength={1000} onChange={(e) => setWording(e.target.value)} />
-            </div>
-            <div className="lbl">
-              <label htmlFor="wa-c-at">{t(m.consentAt)}</label>
-              <input id="wa-c-at" className="in w-full" type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} />
-            </div>
-          </>
-        ) : null}
+        <div className="lbl">
+          <label htmlFor="wa-c-wording">{t(m.consentWording)}</label>
+          <textarea id="wa-c-wording" className="in w-full" rows={2} value={wording} maxLength={1000} onChange={(e) => setWording(e.target.value)} />
+        </div>
+        <div className="lbl">
+          <label htmlFor="wa-c-at">{t(m.consentAt)}</label>
+          <input id="wa-c-at" className="in w-full" type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} />
+        </div>
         <div className="lbl">
           <label htmlFor="wa-c-note">{t(m.consentNote)}</label>
           <input id="wa-c-note" className="in w-full" value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} />
@@ -370,4 +405,10 @@ function ConsentDialog({ card, contactId, onClose, onSaved }: { card: Schemas['W
       </div>
     </Dialog>
   )
+}
+
+/** Refetches what the profile shows of a contact: its cards and timeline. */
+function useRefreshContact(): () => void {
+  const qc = useQueryClient()
+  return () => void qc.invalidateQueries({ predicate: (x) => typeof x.queryKey[1] === 'string' && x.queryKey[1].includes('/contacts/') })
 }

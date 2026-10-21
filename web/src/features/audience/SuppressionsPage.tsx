@@ -1,6 +1,6 @@
 import { keepPreviousData } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
@@ -18,6 +18,7 @@ import { fileName, saveBlob } from './download'
 import { providerColor } from './labels'
 import { AddSuppressionsDialog, ImportSuppressionsDialog, RemoveSuppressionDialog } from './SuppressionDialogs'
 import './audience.css'
+import { SmsSuppressions, SuppressionChannels, type SmsSuppressionSearch } from '@/features/sms/Suppressions'
 
 export interface SuppressionsSearch {
   q?: string
@@ -28,6 +29,11 @@ export interface SuppressionsSearch {
   appliesTo?: 'all' | 'marketing'
   import?: string
   page?: number
+  /** Phase 8: the SMS suppression list instead of email's. */
+  channel?: 'sms'
+  smsReason?: SmsSuppressionSearch['smsReason']
+  smsProvider?: string
+  smsPage?: number
 }
 
 export type SuppressionReason = 'hard_bounce' | 'complaint' | 'unsubscribe' | 'manual' | 'invalid' | 'spam_trap'
@@ -99,7 +105,20 @@ export function SuppressionsPage({ search }: { search: SuppressionsSearch }) {
         <>
           <Counts d={d} />
           <SyncStrip d={d} />
-          <Filters search={search} d={d} onChange={setFilter} />
+          {search.channel === 'sms' ? (
+            <SmsSuppressions
+              search={search}
+              onSearch={(s) => go({ ...s, channel: 'sms' })}
+              switcher={<SuppressionChannels current="sms" emailTotal={d.counts.total} onChange={(c) => go({ channel: c === 'sms' ? 'sms' : undefined })} />}
+            />
+          ) : (
+          <>
+          <Filters
+            search={search}
+            d={d}
+            onChange={setFilter}
+            top={<SuppressionChannels current="email" emailTotal={d.counts.total} onChange={(c) => go({ channel: c === 'sms' ? 'sms' : undefined })} />}
+          />
           {search.import ? <GroupNote d={d} onBack={() => setFilter({ import: undefined })} /> : null}
           <Note tone="info">
             <span>
@@ -117,6 +136,8 @@ export function SuppressionsPage({ search }: { search: SuppressionsSearch }) {
             onPage={(p) => go({ ...search, page: p > 1 ? p : undefined })}
             onClear={() => go({})}
           />
+          </>
+          )}
         </>
       )}
       {dialog === 'add' ? <AddSuppressionsDialog onClose={() => setDialog(null)} /> : null}
@@ -219,7 +240,7 @@ function SyncStrip({ d }: { d: List }) {
   )
 }
 
-function Filters({ search, d, onChange }: { search: SuppressionsSearch; d: List; onChange: (patch: Partial<SuppressionsSearch>) => void }) {
+function Filters({ search, d, onChange, top }: { search: SuppressionsSearch; d: List; onChange: (patch: Partial<SuppressionsSearch>) => void; top?: ReactNode }) {
   // The box follows the URL and writes back after a short pause in typing.
   const [q, setQ] = useState(search.q ?? '')
   const [urlQ, setUrlQ] = useState(search.q ?? '')
@@ -236,6 +257,7 @@ function Filters({ search, d, onChange }: { search: SuppressionsSearch; d: List;
   const sel = `in ${phone}`
   return (
     <div className="card flex flex-wrap items-center gap-2 px-3 py-2.5">
+      {top}
       <label className="vh" htmlFor="supp-q">
         Search suppressed addresses
       </label>

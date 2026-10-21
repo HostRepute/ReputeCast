@@ -15,8 +15,9 @@
   <form class="col18" method="post" action="{{.Action}}">
     {{if .Lists}}<fieldset class="group">
       <legend class="t13b">{{$.T "prefs.lists"}}</legend>
-      {{range .Lists}}<label class="row"><input type="checkbox" name="list" value="{{.ID}}"{{if .Checked}} checked{{end}}><span><span class="nm">{{.Name}}</span>{{with .Text}}<br><span class="ds">{{.}}</span>{{end}}</span></label>
+      {{range $l := .Lists}}{{if $.Body.Texts}}<div class="rowtx">{{end}}<label class="row"><input type="checkbox" name="list" value="{{.ID}}"{{if .Checked}} checked{{end}}><span><span class="nm">{{.Name}}</span>{{with .Text}}<br><span class="ds">{{.}}</span>{{end}}</span></label>{{with $.Body.Texts}}<label class="tx"><input type="checkbox" role="switch" name="sms_list" value="{{$l.ID}}"{{if $l.Texts}} checked{{end}}{{if .Locked}} disabled{{end}}><span>{{.Label}}<span class="vh"> · {{$l.Name}}</span></span></label></div>{{end}}
       {{end}}<input type="hidden" name="shown" value="{{.Shown}}">
+      {{with .Texts}}<input type="hidden" name="sms_shown" value="{{.Shown}}"><span class="t13">{{.Note}}</span>{{end}}
     </fieldset>
     {{end}}{{template "grow-invite" $}}{{with .Notifications}}<fieldset class="group">
       <legend class="t13b">{{.Title}}</legend>

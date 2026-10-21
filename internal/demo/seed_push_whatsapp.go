@@ -182,13 +182,13 @@ func pwAutomation(ctx context.Context, s *Seeder, st *pwState) error {
 	push := autoNode("p1", automations.NodePush, 120, 700, autoFlowData{Label: "15 minutes before", Push: &automations.AutomationPushStep{
 		Title: "Acme Summit starts in 15 minutes", Message: "Doors are open at Lakeside Hall, and the livestream starts at 09:00 Central.",
 		Link: "https://news.acme.io/summit/live", Button: "Watch the livestream", ExpiryMinutes: 30, Outside: "skip"}})
-	wa := autoNode("w1", automations.NodeWhatsApp, 120, 830, autoFlowData{Label: "Livestream link", WhatsApp: &automations.AutomationWhatsAppStep{
+	wa := autoNode("w1", automations.NodeWhatsApp, 120, 860, autoFlowData{Label: "Livestream link", WhatsApp: &automations.AutomationWhatsAppStep{
 		Mode: "template", Template: "summit_livestream", Language: "en_US", ConsentListID: summit, Outside: "wait",
 		Variables: []automations.AutomationWhatsAppVar{{Key: "1", Source: "text", Text: "go.acme.io/k3P9xq"}}}})
 	nodes := []autoFlowNode{}
 	for _, n := range g.Nodes {
 		if n.ID == "x1" {
-			n.Position.Y = 960
+			n.Position.Y = 1000
 		}
 		nodes = append(nodes, n)
 		if n.ID == "d1" {

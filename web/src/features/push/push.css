@@ -491,47 +491,6 @@
     min-width: 0;
   }
 
-  /* The channel switch of Sending providers (X21's `.ch-switch`, until the
-     shared one lands). */
-  .px-chsw {
-    display: inline-flex;
-    align-items: stretch;
-    border: 1px solid var(--line-strong);
-    border-radius: 8px;
-    overflow: hidden;
-    background: #fff;
-    flex: none;
-    max-width: 100%;
-  }
-  .px-chsw a {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 32px;
-    padding: 0 11px;
-    color: #4b5563;
-    font-size: 13px;
-    font-weight: 600;
-    white-space: nowrap;
-    text-decoration: none !important;
-  }
-  .px-chsw a + a {
-    border-left: 1px solid #e3e6eb;
-  }
-  .px-chsw a:hover {
-    background: #f3f4f6;
-    color: #0b1220;
-  }
-  .px-chsw a.on {
-    background: #e3f1ee;
-    color: #0f766e;
-  }
-  @media (max-width: 767px) {
-    .px-chsw {
-      overflow-x: auto;
-    }
-  }
-
   /* The events log. */
   .px-events td {
     vertical-align: top;

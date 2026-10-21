@@ -328,6 +328,7 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
   const [entranceTimes] = useState(() => (reduced ? undefined : entrance(detail.graph)))
   const view = useMemo<FlowView>(
     () => ({
+      automationId: id,
       graph,
       refs,
       stats: statsMap,
@@ -343,7 +344,7 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
       fallbackId: detail.route.fallback?.id,
       entrance: entranceTimes,
     }),
-    [graph, refs, statsMap, stats.data, published, showStats, liveIds, publishedIds, detail.status, meta.draftVersion, issueIds, detail.route.fallback?.id, entranceTimes],
+    [id, graph, refs, statsMap, stats.data, published, showStats, liveIds, publishedIds, detail.status, meta.draftVersion, issueIds, detail.route.fallback?.id, entranceTimes],
   )
 
   // Numbers on the canvas count up once, when the stats arrive (like the board).

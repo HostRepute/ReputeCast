@@ -251,19 +251,23 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if name == "" {
 		return SmsCampaign{}, api.Invalid("body.name", "Give the campaign a name.")
 	}
-	aud := Audience{Lists: in.Lists}
 	for _, id := range in.Lists {
 		if _, err := uuid.Parse(id); err != nil {
 			return SmsCampaign{}, api.Invalid("body.lists", "Pick lists of this workspace.")
 		}
 	}
+	return s.create(ctx, ws, p, name, Audience{Lists: in.Lists}, strings.TrimSpace(in.Body), nil)
+}
+
+// create inserts a draft with its first version; from is the campaign it
+// duplicates.
+func (s *Service) create(ctx context.Context, ws *store.Workspace, p *authz.Principal, name string, aud Audience, body string, from *uuid.UUID) (SmsCampaign, error) {
 	r, err := s.rules(ctx, s.Q, ws)
 	if err != nil {
 		return SmsCampaign{}, err
 	}
 	id := uuid.Must(uuid.NewV7())
 	now := s.now()
-	body := strings.TrimSpace(in.Body)
 	local := now.In(location(ws.Timezone)).AddDate(0, 0, 1)
 	day := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, time.UTC)
 	minute := int32(10 * 60)
@@ -282,8 +286,15 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if err := q.SmsCampaignVersionInsert(ctx, store.SmsCampaignVersionInsertParams{CampaignID: id, Version: 1, Body: body, SavedBy: uuidPtr(p.UserID), SavedAt: now}); err != nil {
 			return err
 		}
+		after := map[string]any{"name": name, "channel": "sms", "lists": aud.Lists}
+		if len(aud.Segments) > 0 {
+			after["segments"] = aud.Segments
+		}
+		if from != nil {
+			after["fromCampaignId"] = from.String()
+		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.create", TargetType: "campaign", TargetID: id.String(), TargetName: name,
-			After: map[string]any{"name": name, "channel": "sms", "lists": in.Lists}})
+			After: after})
 	})
 	if err != nil {
 		return SmsCampaign{}, err

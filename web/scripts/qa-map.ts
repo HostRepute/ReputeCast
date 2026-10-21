@@ -475,4 +475,25 @@ export const entries: Entry[] = [
   { board: 'IntegrationsShopifyPhone', path: `${ws}/settings/integrations/stores/{store:Acme Merch}`, widths: [390] },
   { board: 'CommerceStates', manual: true },
   { board: 'CommerceEmails', manual: true },
+  // X21 · SMS. Acme Newsletter texts through Twilio and Vonage. "Summit: 8 days to go" went out
+  // yesterday, so the composer and Review & send are compared on Daniel's draft "Summit: doors open"
+  // (its curly apostrophe is SmsComposerStates' UCS-2 frame). The connect wizard, the registration
+  // and keyword dialogs and the …States boards need clicks or data changes.
+  { board: 'SmsProviders', path: `${ws}/providers/sms`, widths: [1440] },
+  { board: 'SmsProvidersTablet', path: `${ws}/providers/sms`, widths: [834] },
+  { board: 'SmsProvidersPhone', path: `${ws}/providers/sms`, widths: [390] },
+  { board: 'SmsRouting', path: `${ws}/providers/sms/rules`, widths: [1440] },
+  { board: 'SmsStates', manual: true },
+  { board: 'SmsComposer', path: `${ws}/campaigns/{campaign:Summit: doors open}/sms`, widths: [1440] },
+  { board: 'SmsComposerTablet', path: `${ws}/campaigns/{campaign:Summit: doors open}/sms`, widths: [834] },
+  { board: 'SmsComposerPhone', path: `${ws}/campaigns/{campaign:Summit: doors open}/sms`, widths: [390] },
+  { board: 'SmsComposerStates', manual: true },
+  { board: 'SmsReview', path: `${ws}/campaigns/{campaign:Summit: doors open}/sms-review`, widths: [1440] },
+  { board: 'SmsReviewStates', manual: true },
+  { board: 'SmsReport', path: `${ws}/campaigns/{campaign:Summit: 8 days to go}/sms-report`, widths: [1440] },
+  { board: 'SmsReportPhone', path: `${ws}/campaigns/{campaign:Summit: 8 days to go}/sms-report`, widths: [390] },
+  { board: 'SmsReportStates', manual: true },
+  { board: 'AutomationChannels', path: `${ws}/automations/{automation:Acme Summit reminders}`, widths: [1440], viewportOnly: true, height: 1000 },
+  { board: 'PublicSmsTerms', path: '/p/acme-newsletter/sms-terms', user: 'anon', widths: [720] },
+  { board: 'PublicSmsTermsPhone', path: '/p/acme-newsletter/sms-terms', user: 'anon', widths: [390] },
 ]

@@ -69,10 +69,10 @@ func TestListAndSummaryMatchTheBoard(t *testing.T) {
 	_, c := signedIn(t, "linh@acme.io")
 	var l list
 	c.Do("GET", wsPath, nil).MustStatus(t, 200).JSON(t, &l)
-	// Contact scoring (X13) adds the live "Sales-ready handoff", SMS (X21)
-	// the live "Acme Summit reminders", the pages and products sample (X19)
-	// the live "Field Guide follow-up" and "DMARC live reminders", and the
-	// Acme Merch store (X20) the live "Abandoned cart".
+	// Contact scoring (X13) adds the live "Sales-ready handoff", SMS (X21,
+	// brief §4) the live "Acme Summit reminders", the pages and products
+	// sample (X19) the live "Field Guide follow-up" and "DMARC live
+	// reminders", and the Acme Merch store (X20) the live "Abandoned cart".
 	if l.Counts.All != 10 || l.Counts.Live != 8 || l.Counts.Paused != 1 || l.Counts.Drafts != 1 {
 		t.Fatalf("counts %+v", l.Counts)
 	}
@@ -529,8 +529,8 @@ func TestTemplatesAndOptions(t *testing.T) {
 		Providers []struct{ Short string }
 	}
 	c.Do("GET", wsPath+"/options", nil).MustStatus(t, 200).JSON(t, &opts)
-	// The three lists of the board, SMS's (X21) Acme Summit 2026, the
-	// webinar's and the Launch Kit waitlist (X19), and the store's (X20)
+	// The three lists of the board, SMS's (X21, brief §4) Acme Summit 2026,
+	// the webinar's and the Launch Kit waitlist (X19), and the store's (X20)
 	// Acme Merch.
 	if len(opts.Lists) != 7 || len(opts.Emails) < 5 || len(opts.Providers) != 3 {
 		t.Fatalf("options %+v", opts)

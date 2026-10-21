@@ -9,7 +9,7 @@ import { Table, Td, Th } from '@/components/ui/Table'
 import { useT, type MessageDescriptor } from '@/i18n'
 import { clockSeconds, dayMonthDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
-import { ChannelSwitch } from './ChannelSwitch'
+import { ChannelSwitch } from '@/features/channels/ChannelSwitch'
 import { browserName, PushTabs, throwIfForbidden } from './common'
 import { m } from './messages'
 

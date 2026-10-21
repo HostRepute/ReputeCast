@@ -148,6 +148,11 @@ var Categories = []AuditCategory{
 	{Key: "products", Label: "Products", Groups: []string{"product", "order"}},
 	// Shopify and WooCommerce (design expansion, phase 7).
 	{Key: "commerce", Label: "Commerce", Groups: []string{"store"}},
+	// SMS (design expansion, phase 8): providers, senders, registrations,
+	// routes and rules, the short-link domain, suppressions, the terms page
+	// and test numbers. Text campaigns are campaigns (Sending).
+	{Key: "sms", Label: "SMS", Groups: []string{"sms_provider", "sms_sender", "sms_registration", "sms_routes", "sms_rules", "sms_short_domain",
+		"sms_suppression", "sms_terms", "sms_test_number", "sms"}},
 	// Web push and WhatsApp (design expansion, phase 8, X22).
 	{Key: "push", Label: "Push", Groups: []string{"push_keys", "push_site", "push_prompt", "push_settings", "push_subscription"}},
 	{Key: "whatsapp", Label: "WhatsApp", Groups: []string{"whatsapp", "whatsapp_templates", "whatsapp_rates", "whatsapp_settings"}},

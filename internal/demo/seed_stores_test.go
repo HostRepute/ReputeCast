@@ -27,6 +27,7 @@ func TestStoresSample(t *testing.T) {
 	}
 	pool := testdb.New(t)
 	cfg := config.Defaults()
+	cfg.Files.Dir = t.TempDir() // the sample product files (X19)
 	box, err := secrets.New(make([]byte, 32))
 	if err != nil {
 		t.Fatal(err)

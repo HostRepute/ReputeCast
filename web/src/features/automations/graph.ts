@@ -3,6 +3,8 @@ import { scoreTriggerDefaults } from '@/features/scoring/ScoreTrigger'
 import { isOneOfPhrase, scoreTriggerDetail, scoreTriggerName, scoreTriggerRef } from '@/features/scoring/triggerText'
 import { boughtGoalTitle, boughtPhrase, boughtRef, boughtTriggerName } from '@/features/products/automationText'
 import { milestoneTriggerDetail, milestoneTriggerName, milestoneTriggerRef } from '@/features/grow/triggerText'
+import { m as smsStep } from '@/features/sms/automation.messages'
+import { t as tt } from '@/i18n'
 
 /*
  * Flow graph helpers shared by the canvas, the step panel and the tests:
@@ -244,6 +246,8 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
 
 export function conditionPhrase(g: FlowGraph, c: FlowCondition | undefined, refs: Refs): string {
   if (!c) return ''
+  // Phase 8: texts.
+  if (c.kind === 'sms_consent' || c.kind === 'sms_clicked' || c.kind === 'sms_replied') return smsPhrase(g, c, refs)
   const within = c.within && c.within.amount > 0 ? ` within ${durationText(c.within)}` : ''
   const target = c.step ? inlineRef(g, c.step, refs) : 'any email'
   switch (c.kind) {
@@ -282,6 +286,7 @@ export function conditionPhrase(g: FlowGraph, c: FlowCondition | undefined, refs
 
 export function goalTitle(c: FlowCondition | undefined, refs: Refs): string {
   if (!c) return 'Reached the end of the flow'
+  if (c.kind === 'sms_consent' || c.kind === 'sms_clicked' || c.kind === 'sms_replied') return capFirst(smsPhrase({ nodes: [], edges: [] }, c, refs))
   switch (c.kind) {
     case 'clicked':
       return c.urlContains ? `Clicked a ${c.urlContains} link` : 'Clicked any link'
@@ -303,6 +308,22 @@ export function goalTitle(c: FlowCondition | undefined, refs: Refs): string {
       return 'Placed an order'
   }
   return 'Goal'
+}
+
+/** A condition on texts: "has SMS consent for Acme Summit 2026", "clicked a link in Day-before reminder". */
+function smsPhrase(g: FlowGraph, c: FlowCondition, refs: Refs): string {
+  const text = c.step && g.nodes.some((n) => n.id === c.step) ? inlineRef(g, c.step, refs) : tt(smsStep.phraseAnyText)
+  let p: string
+  switch (c.kind) {
+    case 'sms_consent':
+      return c.listId ? tt(smsStep.phraseConsent, { list: refs.lists.get(c.listId) ?? tt(smsStep.aList) }) : tt(smsStep.phraseConsentAny)
+    case 'sms_clicked':
+      p = tt(smsStep.phraseClicked, { text })
+      break
+    default:
+      p = tt(smsStep.phraseReplied, { text })
+  }
+  return c.within && c.within.amount > 0 ? tt(smsStep.phraseWithin, { phrase: p, duration: durationText(c.within) }) : p
 }
 
 /** The bold line on a canvas node. */
@@ -340,10 +361,11 @@ export function nodeTitle(g: FlowGraph, n: FlowNode, refs: Refs): string {
     }
     case 'sms':
       return d.label || (d.sms?.body ? 'Send SMS' : 'Write the text')
+    // The canvas shows what goes out: the notification's title, the template (AutomationChannels).
     case 'push':
-      return d.label || d.push?.title || 'Write the notification'
+      return d.push?.title || d.label || 'Write the notification'
     case 'whatsapp':
-      return d.label || d.whatsapp?.template || (d.whatsapp?.text ? 'Send WhatsApp' : 'Pick a template')
+      return d.whatsapp?.mode === 'text' ? d.label || (d.whatsapp.text ? 'Free text' : 'Write the message') : d.whatsapp?.template || d.label || 'Pick a template'
     case 'webhook':
       return d.webhook?.name || (d.webhook?.url ? hostOf(d.webhook.url) : 'Set a URL')
     case 'list': {
@@ -380,7 +402,7 @@ export function nodeDetail(n: FlowNode): string {
       if (d.trigger?.kind === 'api_event') return 'sent through the API'
       if (d.trigger?.kind === 'date_field') {
         const off = d.trigger.offsetDays ?? 0
-        const when = off === 0 ? 'on the date' : off < 0 ? `${-off} days before` : `${off} days after`
+        const when = off === 0 ? 'on the date' : off < 0 ? `${-off} ${off === -1 ? 'day' : 'days'} before` : `${off} ${off === 1 ? 'day' : 'days'} after`
         return `${when}${d.trigger.yearly ? ', every year' : ''} at ${d.trigger.at || '09:00'}`
       }
       if (d.trigger?.kind === 'score_crosses') return scoreTriggerDetail(d.trigger)

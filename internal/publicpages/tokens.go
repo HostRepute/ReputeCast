@@ -37,6 +37,9 @@ type confirmBody struct {
 	Download *confirmDownload
 	// Grow is "While you're here": recommendations (grow_recommends.go).
 	Grow *growConfirm
+	// Texted is "We've also texted +1 312 ••• 0123 to confirm." when the
+	// signup gave SMS consent (phase 8).
+	Texted string
 }
 
 func (h *Handler) evidence(r *http.Request, source string) audience.PublicEvidence {
@@ -103,6 +106,9 @@ func (h *Handler) confirmLang(w http.ResponseWriter, r *http.Request, s *site, p
 func (h *Handler) confirmBody(ctx context.Context, s *site, pc audience.PublicContact, pl pageLang) (confirmBody, error) {
 	l := pl.Labels
 	b := confirmBody{Heading: l.Text("confirm.heading", nil), Email: pc.Email, Lists: []gotView{}}
+	if h.Forms != nil && h.Forms.Texts != nil {
+		b.Texted = h.Forms.Texts.TextedContact(ctx, s.ws, pc.ID, pl.Code)
+	}
 	if pc.FirstName != "" {
 		b.Heading = l.Text("confirm.headingName", i18n.Args{"name": pc.FirstName})
 	}
@@ -238,6 +244,9 @@ type preferencesBody struct {
 	Account *prefsAccount
 	// Invite is Grow's "Invite friends" card (grow_recommends.go).
 	Invite *growInvite
+	// Texts are the Texts switches beside the lists (SMS, phase 8), nil
+	// when the contact has no number or the workspace doesn't text.
+	Texts *textsView
 	// Push is "Turn off notifications in this browser" (X22).
 	Push *PushTurnOff
 }
@@ -350,6 +359,7 @@ func (h *Handler) preferencesBody(ctx context.Context, s *site, pc audience.Publ
 		shown = append(shown, pl2.ID.String())
 	}
 	b.Shown = strings.Join(shown, ",")
+	h.prefTexts(ctx, s, pc.ID, pl.Code, &b)
 	if b.Notifications, err = h.notificationsSection(ctx, s, pc.Email, l); err != nil {
 		return b, err
 	}
@@ -454,10 +464,18 @@ func (h *Handler) preferencesPost(w http.ResponseWriter, r *http.Request) {
 		name := f.Get("first_name")
 		in.FirstName = &name
 	}
+	var confirmTexts []uuid.UUID
 	err := db.Tx(r.Context(), h.Pool, func(tx pgx.Tx) error {
 		_, err := h.Audience.SavePreferences(r.Context(), tx, s.ws, c.ContactID, in, h.evidence(r, audience.SourcePreferences))
-		if err != nil || h.Notifications == nil || len(catShown) == 0 {
+		if err != nil {
 			return err
+		}
+		// Phase 8: the Texts switches.
+		if confirmTexts, err = h.saveTexts(r.Context(), tx, r, s, c.ContactID, "preference_center"); err != nil {
+			return err
+		}
+		if h.Notifications == nil || len(catShown) == 0 {
+			return nil
 		}
 		pc, err := h.Audience.LoadPublicContact(r.Context(), store.New(tx), s.ws, c.ContactID)
 		if err != nil {
@@ -496,6 +514,9 @@ func (h *Handler) preferencesPost(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		h.serverError(w, r, s, err)
 		return
+	}
+	if len(confirmTexts) > 0 {
+		h.TextPrefs.Confirm(r.Context(), s.ws, c.ContactID, confirmTexts)
 	}
 	http.Redirect(w, r, s.links.Preferences(token)+"?saved=1", http.StatusSeeOther) //nolint:gosec // our own origin; the token was verified and is path-escaped
 }

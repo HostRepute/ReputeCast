@@ -64,6 +64,9 @@ type Service struct {
 	// Hooks are told about signups and confirmations (Grow's referrals),
 	// read at call time.
 	Hooks func() []SignupHook
+	// Texts adds the phone field and SMS consent (phase 8, internal/texting);
+	// nil offers neither.
+	Texts Texts
 
 	limitsOnce sync.Once
 	limits     *limiter
@@ -144,6 +147,12 @@ type contentDoc struct {
 	PopupDelay      int `json:"popupDelay"`
 	PopupScroll     int `json:"popupScroll"`
 	PopupRepeatDays int `json:"popupRepeatDays"`
+	// SmsConsent shows the SMS consent checkbox (with the phone field),
+	// unchecked; SmsConsentText is its text (empty: the default one) and
+	// SmsConsentVersion goes up whenever the text changes (phase 8).
+	SmsConsent        bool   `json:"smsConsent,omitempty"`
+	SmsConsentText    string `json:"smsConsentText,omitempty"`
+	SmsConsentVersion int    `json:"smsConsentVersion,omitempty"`
 }
 
 // spamDoc is the stored spam protection (forms.spam_protection).
@@ -193,6 +202,8 @@ type Config struct {
 	PrivacyURL string
 	ListNames  map[uuid.UUID]string
 	publisher  string
+	// texts is the SMS offer in Language, for the embed script (phase 8).
+	texts *TextOffer
 }
 
 // HasField reports whether the form shows a field.
@@ -340,6 +351,13 @@ type SignupFormContent struct {
 	PopupRepeatDays  int    `json:"popupRepeatDays" minimum:"0" maximum:"365" doc:"Days a closed popup stays closed"`
 	// AfterSubmitText is what the form says after a signup; empty uses the built-in message.
 	AfterSubmitText string `json:"afterSubmitText,omitempty" maxLength:"300"`
+	// SmsConsent shows the SMS consent checkbox, unchecked by default; it
+	// needs the phone field. SmsConsentText is its text (the default one
+	// when empty) and SmsConsentVersion its version, which goes up whenever
+	// the text changes (set by the server).
+	SmsConsent        bool   `json:"smsConsent,omitempty"`
+	SmsConsentText    string `json:"smsConsentText,omitempty" maxLength:"600"`
+	SmsConsentVersion int    `json:"smsConsentVersion,omitempty" minimum:"0"`
 }
 
 // SignupFormSpam is a form's spam protection.
@@ -581,8 +599,13 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, f store.Form)
 		AfterSubmit: c.AfterSubmit, RedirectURL: c.RedirectURL, AllowedOrigins: c.AllowedOrigins,
 		Content: SignupFormContent{Heading: c.Content.Heading, Description: c.Content.Description, Button: c.Content.Button, Footnote: c.Content.Footnote,
 			ListsLabel: c.Content.ListsLabel, EmailPlaceholder: c.Content.EmailPlaceholder, NamePlaceholder: c.Content.NamePlaceholder,
-			PopupDelay: c.Content.PopupDelay, PopupScroll: c.Content.PopupScroll, PopupRepeatDays: c.Content.PopupRepeatDays, AfterSubmitText: c.Content.AfterSubmitText},
+			PopupDelay: c.Content.PopupDelay, PopupScroll: c.Content.PopupScroll, PopupRepeatDays: c.Content.PopupRepeatDays, AfterSubmitText: c.Content.AfterSubmitText,
+			SmsConsent: c.Content.SmsConsent, SmsConsentText: c.Content.SmsConsentText, SmsConsentVersion: c.Content.SmsConsentVersion},
 		BlockedOrigins: []SignupFormBlockedOrigin{}, PublishedAt: f.PublishedAt, UpdatedAt: f.UpdatedAt,
+	}
+	// Phase 8: the SMS consent text starts from the default one.
+	if offer, ok := s.textOffer(ctx, ws, c); ok && out.Content.SmsConsentText == "" {
+		out.Content.SmsConsentText = offer.ConsentText
 	}
 	for _, fd := range c.Fields {
 		out.Fields = append(out.Fields, SignupFormField{Key: fd.Key, Label: fd.Label, Required: fd.Required || fd.Key == FieldEmail})
@@ -910,6 +933,9 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 		Heading: strings.TrimSpace(c.Heading), Description: strings.TrimSpace(c.Description), Button: strings.TrimSpace(c.Button), Footnote: strings.TrimSpace(c.Footnote),
 		ListsLabel: strings.TrimSpace(c.ListsLabel), EmailPlaceholder: strings.TrimSpace(c.EmailPlaceholder), NamePlaceholder: strings.TrimSpace(c.NamePlaceholder),
 		PopupDelay: c.PopupDelay, PopupScroll: c.PopupScroll, PopupRepeatDays: c.PopupRepeatDays, AfterSubmitText: strings.TrimSpace(c.AfterSubmitText),
+	}
+	if err := smsConsentOf(&content, c, fields, before.Content); err != nil {
+		return store.FormUpdateParams{}, err
 	}
 	fieldsJSON, _ := json.Marshal(fields)
 	contentJSON, _ := json.Marshal(content)

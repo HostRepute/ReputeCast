@@ -247,6 +247,10 @@
     width: 100%;
     box-sizing: border-box;
   }
+  /* In the Send push step's narrow panel the stage gives the notification more room. */
+  .fe-prop .px-pvstage {
+    padding: 10px;
+  }
   .px-pv {
     font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     color: var(--ink);

@@ -12,6 +12,7 @@ import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { CreateFormDialog } from '@/features/forms/FormBuilderPage'
 import { FormsTabs, hostPath, throwIfForbidden, useFormsOverview } from '@/features/forms/common'
 import { FormsLoading } from '@/features/forms/FormsStates'
+import { PushPromptRow } from '@/features/push/PromptRow'
 import { useSurveys } from './api'
 import { m } from './messages'
 import './surveys.css'
@@ -141,7 +142,12 @@ export function FormsList() {
             <tbody>
               {sorted.map((r) =>
                 r.form ? (
-                  <FormRow key={r.key} f={r.form} slug={slug} />
+                  // A push prompt (X22) has its own designer and numbers.
+                  r.form.kind === 'push' ? (
+                    <PushPromptRow key={r.key} f={r.form} slug={slug} status={r.form.status === 'live' ? t(m.formLive) : r.form.status === 'paused' ? t(m.formPaused) : t(m.formDraft)} />
+                  ) : (
+                    <FormRow key={r.key} f={r.form} slug={slug} />
+                  )
                 ) : r.survey ? (
                   <SurveyRow key={r.key} s={r.survey} slug={slug} />
                 ) : null,

@@ -124,7 +124,7 @@ func TestContactLanguage(t *testing.T) {
 				t.Errorf("%s: %d, want %d", q, got, want)
 			}
 		}
-		// SMS's (X21) 338 new Acme Summit 2026 registrants read English.
+		// The Summit's 338 new registrants read English (X21, brief §8.12).
 		if got := total("language=en"); got != 48213+338-4180-2240-773-5508-12 {
 			t.Errorf("English: %d", got)
 		}

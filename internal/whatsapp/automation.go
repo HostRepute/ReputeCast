@@ -241,6 +241,129 @@ func (s *Service) Estimate(ctx context.Context, ws *store.Workspace, listID, tem
 	return out, nil
 }
 
+// WhatsAppStepEstimateInput is the Send WhatsApp step the panel shows.
+type WhatsAppStepEstimateInput struct {
+	ConsentListID string                              `json:"consentListId,omitempty" maxLength:"40"`
+	Mode          string                              `json:"mode,omitempty" enum:"template,text,"`
+	Template      string                              `json:"template,omitempty" maxLength:"512"`
+	Language      string                              `json:"language,omitempty" maxLength:"16"`
+	Variables     []automations.AutomationWhatsAppVar `json:"variables,omitempty" maxItems:"20"`
+	// FallbackTemplate is the template free text falls back to outside the window.
+	FallbackTemplate string `json:"fallbackTemplate,omitempty" maxLength:"512"`
+}
+
+// WhatsAppWindowExample is someone the step's free text reaches now, and
+// until when.
+type WhatsAppWindowExample struct {
+	Name  string    `json:"name"`
+	Until time.Time `json:"until"`
+}
+
+// WhatsAppStepEstimate is what the Send WhatsApp step's panel and its node
+// on the canvas show (AutomationChannels): the account, the templates to
+// pick, the fields variables take, who the step reaches on its list, what
+// a template to them costs, a preview as one of them, and someone inside
+// the customer service window.
+type WhatsAppStepEstimate struct {
+	Connected bool               `json:"connected"`
+	Business  *WhatsAppBusiness  `json:"business,omitempty"`
+	Templates []WhatsAppTemplate `json:"templates"`
+	Fields    []WhatsAppField    `json:"fields"`
+	// Consent counts the list's people with WhatsApp consent, a phone and
+	// no suppression; Open those who wrote in the last 24 hours.
+	Consent int64        `json:"consent"`
+	Open    int64        `json:"open"`
+	Cost    WhatsAppCost `json:"cost"`
+	Quiet   bool         `json:"quiet"`
+	Window  string       `json:"window"`
+	// Preview is the step's template as the list's most recent writer reads it.
+	Preview       *WhatsAppPreview       `json:"preview,omitempty"`
+	WindowExample *WhatsAppWindowExample `json:"windowExample,omitempty"`
+}
+
+// StepEstimate answers the Send WhatsApp step's panel. A list or template
+// that isn't picked yet leaves its parts empty.
+func (s *Service) StepEstimate(ctx context.Context, ws *store.Workspace, in WhatsAppStepEstimateInput) (WhatsAppStepEstimate, error) {
+	out := WhatsAppStepEstimate{Templates: []WhatsAppTemplate{}, Fields: s.fields(ctx, ws), Cost: WhatsAppCost{ByCountry: []WhatsAppCostCountry{}}}
+	rl := s.rules(ctx, s.Q, ws)
+	out.Quiet, out.Window = rl.Quiet, rl.Window.String()
+	rc := s.rateCard(ctx, s.Q, ws)
+	out.Cost.RatesAsOf = rc.asOf
+	a, err := s.account(ctx, s.Q, ws)
+	if errors.Is(err, errNoAccount) {
+		return out, nil
+	}
+	if err != nil {
+		return out, err
+	}
+	out.Connected = true
+	out.Business = &WhatsAppBusiness{DisplayName: a.DisplayName, Number: phone.Display(a.PhoneNumber)}
+	ts, err := s.Q.WhatsAppTemplates(ctx, a.ID)
+	if err != nil {
+		return out, err
+	}
+	for _, t := range ts {
+		out.Templates = append(out.Templates, templateView(t))
+	}
+	listID, ok := listOf(in.ConsentListID)
+	if !ok {
+		return out, nil
+	}
+	aud, err := s.audience(ctx, ws, []uuid.UUID{listID}, nil)
+	if err != nil {
+		return out, err
+	}
+	out.Consent = int64(len(aud.list))
+	name := in.Template
+	if in.Mode == "text" {
+		name = in.FallbackTemplate
+	}
+	var tpl *store.WhatsappTemplate
+	if name != "" {
+		if t, found, err := approvedByName(ctx, s.Q, a.ID, name, in.Language); err != nil {
+			return out, err
+		} else if found {
+			tpl = &t
+		}
+	}
+	category := "utility"
+	if tpl != nil {
+		category = tpl.Category
+	}
+	out.Cost = rc.estimate(category, aud.countries)
+	if len(aud.list) == 0 {
+		return out, nil
+	}
+	phones := make([]string, 0, len(aud.list))
+	for _, r := range aud.list {
+		phones = append(phones, r.Phone)
+	}
+	now := s.now()
+	_ = s.Pool.QueryRow(ctx, `SELECT count(DISTINCT phone) FROM whatsapp_inbound WHERE workspace_id = $1 AND phone = ANY($2)
+		AND received_at > $3::timestamptz - interval '24 hours'`, ws.ID, phones, now).Scan(&out.Open)
+	// The most recent writer: the preview reads as them, and they show what
+	// the window means.
+	var ph string
+	var at time.Time
+	if err := s.Pool.QueryRow(ctx, `SELECT phone, received_at FROM whatsapp_inbound WHERE workspace_id = $1 AND phone = ANY($2)
+		ORDER BY received_at DESC LIMIT 1`, ws.ID, phones).Scan(&ph, &at); err == nil {
+		for _, r := range aud.list {
+			if r.Phone == ph {
+				who := fullName(r.FirstName, r.LastName)
+				if who == "" {
+					who = r.Email
+				}
+				out.WindowExample = &WhatsAppWindowExample{Name: who, Until: at.Add(24 * time.Hour)}
+				break
+			}
+		}
+	}
+	if tpl != nil && in.Mode != "text" {
+		out.Preview = s.preview(ctx, ws, *tpl, varsOf(in.Variables), aud, uuid.Nil)
+	}
+	return out, nil
+}
+
 // WhatsAppStepStats is one WhatsApp step's last 30 days.
 type WhatsAppStepStats struct {
 	NodeID    string           `json:"nodeId"`

@@ -55,6 +55,8 @@ func (a *App) formsService() *forms.Service {
 		Turnstile: &forms.Turnstile{Client: guard.Client(10 * time.Second)},
 		Addresses: formAddressChecks{a: a},
 		Hooks:     func() []forms.SignupHook { return signupHooks(a) },
+		// The phone field and SMS consent (phase 8).
+		Texts: formTexts(a),
 	}
 	formsServices[a] = s
 	return s
@@ -73,12 +75,20 @@ func signupHooks(a *App) []forms.SignupHook {
 	return out
 }
 
+// formTexts adds the phone field and SMS consent to signup forms
+// (wire_texting.go sets it).
+var formTexts = func(*App) forms.Texts { return nil }
+
 // publicNotifications is transactional mail's Optional categories on the
 // public pages (wire_transactional.go sets it).
 var publicNotifications = func(*App) publicpages.Notifications { return nil }
 
 // publicTextTerms writes the text message terms page (wire_texting.go sets it).
 var publicTextTerms = func(*App) publicpages.TextTerms { return nil }
+
+// publicTextPrefs adds the preference center's Texts switches
+// (wire_texting.go sets it).
+var publicTextPrefs = func(*App) publicpages.TextPrefs { return nil }
 
 // publicPush adds web push to the pages (wire_webpush.go sets it).
 var publicPush = func(*App) publicpages.PushPages { return nil }
@@ -122,6 +132,8 @@ func (a *App) publicPages() *publicpages.Handler {
 		Website: site,
 		// The text message terms page (SMS).
 		TextTerms: tt,
+		// The preference center's Texts switches (SMS).
+		TextPrefs: publicTextPrefs(a),
 		// The push prompt and the preference center's "Turn off" (X22).
 		Push: pp,
 	}
