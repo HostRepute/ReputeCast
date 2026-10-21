@@ -980,7 +980,7 @@ func freeSlug(ctx context.Context, q *store.Queries, wsID, id uuid.UUID, base st
 		}
 		slug = base + suffix
 	}
-	return "", api.Conflict("Every address like this one is taken. Pick another.")
+	return "", api.Conflict(word(lang(ctx), "product.slugExhausted", nil))
 }
 
 // Save saves a product's draft. A published product's live version
