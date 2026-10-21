@@ -38,7 +38,7 @@ export function AgencyShell() {
   return (
     <div className="app rc-app">
       <a href="#main" className="skip">
-        {t(m.areaLabel)}
+        {t(m.skip)}
       </a>
       <AgencySidebar />
       <div className="mainc">

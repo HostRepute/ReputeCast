@@ -7,6 +7,7 @@ import { defineMessages } from '@/i18n'
  */
 export const m = defineMessages('agency', {
   // Shell
+  skip: 'Skip to content',
   homeLabel: 'ReputeCast home',
   areaLabel: 'Agency',
   sidebarLabel: '{agency} · Agency',

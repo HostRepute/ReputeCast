@@ -468,7 +468,7 @@ function RateDialog({ row, view, onClose }: { row: Row; view: View; onClose: () 
       title={t(um.editRateTitle, { client: row.workspace.name })}
       footer={
         <>
-          <span className="k mr-auto">{t(um.appliesFromAudit, { date: `${dayMonth(from, 'UTC')} ${from.getUTCFullYear()}` })}</span>
+          <span className="k mr-auto">{t(um.appliesFromAudit, { date: calendarDate(from) })}</span>
           <Button onClick={onClose}>{t(m.cancel)}</Button>
           <Button variant="primary" loading={busy} onClick={save}>
             {t(um.saveRate)}
@@ -533,7 +533,7 @@ function ClientDetails({ id }: { id: string }) {
           <dt>{t(um.dManager)}</dt>
           <dd>{d.accountManager ? <PersonChip name={d.accountManager.name} color={d.accountManager.avatarColor} /> : t(m.dash)}</dd>
           <dt>{t(um.dRate)}</dt>
-          <dd>{d.rate ? (d.rateSince ? t(um.rateSince, { rate: rateText(t, d.rate), date: `${dayMonth(d.rateSince, 'UTC')} ${new Date(d.rateSince).getUTCFullYear()}` }) : rateText(t, d.rate)) : t(um.notBilled)}</dd>
+          <dd>{d.rate ? (d.rateSince ? t(um.rateSince, { rate: rateText(t, d.rate), date: calendarDate(d.rateSince) }) : rateText(t, d.rate)) : t(um.notBilled)}</dd>
           <dt>{t(um.dSince)}</dt>
           <dd>
             {d.template
