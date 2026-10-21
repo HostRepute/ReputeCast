@@ -384,13 +384,14 @@ function MissingBanner({ page: p, platform }: { page: Page_; platform: string })
   const register = useRegister(p)
   const topic = p.store.sync.missing[0] ?? ''
   const since = p.store.sync.missingSince
-  const [resource, what] = resourceOf(t, topic)
+  // The message words each resource whole: checkouts, customers, products, refunds or orders.
+  const resource = topic.split('/')[0] ?? ''
   return (
     <div className="ih-banner" role="status">
       <div className="ih-bi">
         <AttentionIcon size={16} />
         <span className="ih-bt">
-          <T msg={cm.missingBanner} values={{ topic, platform, date: since ? dayMonthDate(since) : '', time: since ? clock(since) : '', resource, what, b: bold }} />
+          <T msg={cm.missingBanner} values={{ topic, platform, date: since ? dayMonthDate(since) : '', time: since ? clock(since) : '', resource, b: bold }} />
         </span>
       </div>
       {p.canManage ? (
@@ -400,21 +401,6 @@ function MissingBanner({ page: p, platform }: { page: Page_; platform: string })
       ) : null}
     </div>
   )
-}
-
-function resourceOf(t: T_, topic: string): [string, string] {
-  const r = topic.split('/')[0]
-  switch (r) {
-    case 'checkouts':
-      return [t(cm.resourceCheckouts), t(cm.missingWhatCheckouts)]
-    case 'customers':
-      return [t(cm.resourceCustomers), t(cm.missingWhatCustomers)]
-    case 'products':
-      return [t(cm.resourceProducts), t(cm.missingWhatProducts)]
-    case 'refunds':
-      return [t(cm.resourceRefunds), t(cm.missingWhatRefunds)]
-  }
-  return [t(cm.resourceOrders), t(cm.missingWhatOrders)]
 }
 
 function useRegister(p: Page_) {

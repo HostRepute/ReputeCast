@@ -11,18 +11,21 @@ import { toast } from '@/components/ui/Toast'
 import { useComposer } from '@/features/composer/context'
 import { markerOf, tagOf } from '@/features/composer/editor/labels'
 import { AttentionIcon } from '@/features/integrations/shared'
-import { T, defineMessages, useT } from '@/i18n'
+import { T, useT } from '@/i18n'
 import { clock, count, dayMonthDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { commerceBase, money, storesBase } from './api'
+import { ce } from './elsewhere.messages'
 import './commerce.css'
+
+export { ce }
 
 type Block = Schemas['CommerceBlock']
 type Render = Schemas['CommerceBlockRender']
 type Product = Schemas['CommerceProduct']
 type CatalogStore = Schemas['CommerceCatalogStore']
 
-/**
+/*
  * Store blocks in the composer (design expansion phase 7, CommerceEmails):
  * the product picker, the Product grid and its settings in the Style tab,
  * the Product card filled from the store's catalog, a product removed from
@@ -32,58 +35,6 @@ type CatalogStore = Schemas['CommerceCatalogStore']
  * drawing in a raw block between `<!--rc:store-items {…}-->` markers;
  * sends draw it again with the store's current prices.
  */
-export const ce = defineMessages('commerce.composer', {
-  blockGrid: 'Product grid',
-  blockCard: 'Product card',
-  pickerEyebrow: 'Composer · product grid',
-  pickerEyebrowCard: 'Composer · product card',
-  pickerTitle: 'Insert products',
-  pickerTitleCard: 'Insert a product',
-  source: 'Source',
-  sourceStore: '{name} · {count}',
-  search: 'Search {name}',
-  collection: 'Collection',
-  all: 'All',
-  inStock: 'In stock',
-  soldOut: 'Sold out',
-  left: '{count} left',
-  removed: 'Removed',
-  pickerNote: 'Prices and availability are read when each email is sent. A sold-out product is hidden or labelled, as the block says.',
-  selected: '{count} selected',
-  insert: '{count, plural, one {Insert # product} other {Insert # products}}',
-  insertOne: 'Insert the product',
-  cancel: 'Cancel',
-  noProducts: 'No product matches.',
-  more: 'Show more',
-  gridFrom: 'From {store}',
-  products: 'Products',
-  chosen: 'Chosen products',
-  newest: 'Newest from a collection',
-  collectionOption: '{title} · {count}',
-  howMany: 'How many',
-  soldOutLabel: 'Sold-out products',
-  hide: 'Hide them',
-  label: 'Label “Sold out”',
-  compareAt: 'Show the compare-at price',
-  compareAtSub: 'When a product is on sale',
-  button: 'Button text',
-  links: "Links get <mono>utm_source={source}</mono>, the campaign's slug and the click token, so orders can be credited to this email.",
-  choose: 'Choose products',
-  change: 'Change products',
-  chosenCount: '{count, plural, one {# product chosen} other {# products chosen}}',
-  removedTitle: 'Deleted in {platform} on {date}, {time}',
-  removedBody: '{product} is no longer in {store}. Remove it or pick another product.',
-  pickAnother: 'Pick another product',
-  removeIt: 'Remove it',
-  disconnected: "{store} is disconnected: the block keeps its last prices until it's reconnected.",
-  fillFromStore: 'Fill from {store}',
-  fillHint: "The card takes the product's name, image, price and link from the catalog, and each send reads them again.",
-  drawError: "The block couldn't be drawn: {error}",
-  emptyGrid: 'Choose products for this grid in the Style tab.',
-  checkoutInsert: 'Insert Checkout items',
-  checkoutHint: "Checkout items only appear in emails of flows started by a store trigger: the checkout's products, its total and “Return to checkout”.",
-  checkoutInserted: 'Checkout items inserted. Save to keep them.',
-})
 
 const ATTR = 'rc-store'
 const platformName = (p: string) => (p === 'woocommerce' ? 'WooCommerce' : 'Shopify')
@@ -141,7 +92,7 @@ export function useStoreBlockDefs(enabled: boolean) {
       {
         id: 'rc-product-grid',
         label: t(ce.blockGrid),
-        badge: 'New',
+        badge: t(ce.blockNew),
         group: 'reputecast' as const,
         icon: 'rcGrid',
         kind: 'section' as const,
