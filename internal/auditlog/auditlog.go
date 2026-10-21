@@ -136,11 +136,14 @@ var Categories = []AuditCategory{
 	// The AI assistant's connection, key, cap, prices and features (phase 3).
 	{Key: "ai", Label: "AI", Groups: []string{"ai"}},
 	// Earn (design expansion, phase 6).
-	{Key: "earn", Label: "Earn", Groups: []string{"payments", "earn", "paid_member"}},
+	{Key: "earn", Label: "Earn", Groups: []string{"payments", "earn", "paid_member", "sponsors"}},
 	{Key: "verification", Label: "Verification", Groups: []string{"verification"}},
 	{Key: "placement", Label: "Placement tests", Groups: []string{"placement"}},
 	// The publication website (design expansion, phase 7).
 	{Key: "website", Label: "Website", Groups: []string{"website", "post", "tag"}},
+	// Grow (design expansion, phase 5): referral programs, recommendations
+	// and partner links.
+	{Key: "grow", Label: "Grow", Groups: []string{"referral", "recommendation", "partner"}},
 	// Agency accounts (design expansion, phase 8).
 	{Key: "agency", Label: "Agency", Groups: []string{"agency"}},
 }

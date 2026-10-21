@@ -33,6 +33,7 @@ import { dateTime, useIssueInfo } from '@/features/digests/shared'
 import { ReadinessVerifyDialog } from '@/features/verification/HealthEntry'
 import { PlacementReviewCard } from '@/features/placement/EntryPoints'
 import './review.css'
+import { ReviewWebLine } from '@/features/website/elsewhere'
 
 const reviewPath = '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review' as const
 
@@ -601,6 +602,8 @@ function ReviewBody({
       <div className="flex flex-wrap items-start gap-5">
         <div className="flex min-w-0 flex-[1_1_560px] flex-col gap-5">
           {approvalCard}
+          {/* The website's Web line (features/website): the post this send also publishes. */}
+          <ReviewWebLine campaignId={campaignId} />
           <Checklist run={run} busy={busy} reasonFor={reasonFor} onApply={apply} onRerun={a.canEdit && c.editable ? () => void runChecks() : undefined} />
           {oneClick ? (
             <OneClickDialog

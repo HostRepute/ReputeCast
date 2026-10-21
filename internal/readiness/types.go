@@ -64,7 +64,7 @@ const (
 // where it's fixed (Kind "link", Href is an app path).
 type ReadinessFix struct {
 	Kind   string            `json:"kind" enum:"apply,link"`
-	Action string            `json:"action,omitempty" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language,accessibility_decorative,accessibility_color,accessibility_one_click,visibility_show_everyone,visibility_hide_block,visibility_remove_condition,poll_close_days,exclude_risky,verify_addresses"`
+	Action string            `json:"action,omitempty" enum:"exclude_sunset,route_only,insert_footer,replace_link,use_subject,minify,mark_language_up_to_date,mark_language_translated,hold_language,release_language,accessibility_decorative,accessibility_color,accessibility_one_click,visibility_show_everyone,visibility_hide_block,visibility_remove_condition,poll_close_days,exclude_risky,verify_addresses,sponsor_remove_block,sponsor_refresh_block"`
 	Label  string            `json:"label"`
 	Tone   string            `json:"tone,omitempty" enum:"primary,danger"`
 	Href   string            `json:"href,omitempty"`

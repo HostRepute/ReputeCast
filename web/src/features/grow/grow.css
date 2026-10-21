@@ -1,0 +1,860 @@
+/* Grow (design expansion phase 5): Overview, Referrals and Recommendations
+   (GrowOverview, GrowStates, Referrals, ReferralSetup, ReferralMilestones,
+   ReferralReferrers, ReferralReview, ReferralSettings, ReferralStates,
+   Recommendations, RecommendationStates). */
+
+@layer components {
+  .gw {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+  }
+  .gw-hd3 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .gw-tt2 {
+    font-weight: 600;
+  }
+  .gw-num {
+    font-variant-numeric: tabular-nums;
+  }
+  .gw-pad {
+    padding: 16px 18px;
+  }
+  .gw-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 12px 18px;
+    border-top: 1px solid var(--line-2);
+  }
+  .gw-lnk {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  /* Tiles. */
+  .gw-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .gw-stat {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .gw-stat .v {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+    margin-top: 2px;
+  }
+  .gw-stat .s {
+    font-size: 12px;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+
+  /* Layouts: 1.4 : 1 and halves, cards of a row as tall as the tallest. */
+  .gw-g32 {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+  .gw-g2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+  .gw-st {
+    align-items: stretch;
+  }
+  .gw-st > .card {
+    display: flex;
+    flex-direction: column;
+  }
+  .gw-st > .card > .gw-foot {
+    margin-top: auto;
+  }
+
+  /* Needs you. */
+  .gw-ny {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 13px 18px;
+    border-top: 1px solid var(--line-2);
+  }
+  .gw-ny:first-child {
+    border-top: 0;
+  }
+  .gw-ny .tx {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1 1 320px;
+    min-width: 0;
+  }
+  .gw-ny .tx > span:first-child {
+    font-size: 13.5px;
+  }
+  .gw-ny .act {
+    flex: none;
+    display: flex;
+    gap: 8px;
+  }
+  .gw-ti {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+
+  /* Rows with a tile or an avatar. */
+  .gw-lrow {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 0;
+    border-top: 1px solid var(--line-2);
+    min-width: 0;
+  }
+  .gw-lrow:first-child {
+    border-top: 0;
+  }
+  .gw-lrow .tx {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  .gw-mtile {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: var(--ground);
+    border: 1px solid var(--line);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12.5px;
+    color: var(--ink-nav);
+    flex: none;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .gw-mtile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .gw-mtile.me {
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
+  }
+
+  /* The program's sub-sections. */
+  .gw-subnav {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .gw-subnav a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    min-height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: #fff;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink-nav);
+    white-space: nowrap;
+  }
+  .gw-subnav a:hover {
+    background: var(--ground);
+    color: var(--ink);
+  }
+  .gw-subnav a.on {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .gw-subnav a .badge {
+    height: 18px;
+    padding: 0 6px;
+    font-size: 11px;
+  }
+
+  /* Chart legend and the bars' card. */
+  .gw-cleg {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .gw-cleg span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .gw-cleg i {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  .gw-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--chart-track);
+    overflow: hidden;
+  }
+  .gw-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 4px;
+  }
+
+  /* The milestone track: a rail with a dot per milestone and its labels. */
+  .gw-mt {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+  .gw-mt.here {
+    padding-top: 32px;
+  }
+  .gw-mt-rail {
+    position: relative;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--line-2);
+    margin: 0 8px;
+  }
+  .gw-mt-rail .f {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    border-radius: 3px;
+    background: var(--accent);
+  }
+  .gw-mt-rail .s {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: var(--accent-line);
+    border-radius: 0 3px 3px 0;
+  }
+  .gw-mt-rail .d {
+    position: absolute;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--line-hover);
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 2px #fff;
+    color: #fff;
+  }
+  .gw-mt-rail .d.done,
+  .gw-mt-rail .d.agg {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .gw-mt-rail .d.next {
+    border-color: var(--accent);
+  }
+  .gw-mt-here {
+    position: absolute;
+    bottom: 20px;
+    transform: translateX(-50%);
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 6px;
+    background: var(--ink);
+    color: #fff;
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .gw-mt-here::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    margin-left: -5px;
+    border: 5px solid transparent;
+    border-top-color: var(--ink);
+  }
+  .gw-mt-here.r {
+    transform: translateX(-100%);
+  }
+  .gw-mt-here.r::after {
+    left: auto;
+    right: 3px;
+    margin-left: 0;
+  }
+  .gw-mt-here.l {
+    transform: none;
+  }
+  .gw-mt-here.l::after {
+    left: 3px;
+    margin-left: 0;
+  }
+  .gw-mt-lab {
+    display: grid;
+    gap: 10px;
+    margin: 0 8px;
+  }
+  .gw-mt-lab > div {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    gap: 1px;
+    min-width: 0;
+    font-size: 12.5px;
+    line-height: 1.35;
+  }
+  .gw-mt-lab b {
+    font-weight: 600;
+  }
+  .gw-mt-key {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .gw-mt-key span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .gw-mt-key i {
+    width: 14px;
+    height: 6px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+
+  /* The funnel: visits → signups → confirmed → counted. */
+  .gw-fun {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .gw-fun > div {
+    position: relative;
+    padding: 16px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+  .gw-fun > div + div {
+    border-left: 1px solid var(--line-2);
+  }
+  .gw-fun .fa {
+    position: absolute;
+    left: -13px;
+    top: 40px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid var(--line);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-3);
+    z-index: 2;
+  }
+  .gw-fun .fv {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .gw-fun .fb {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--line);
+    font-size: 12.5px;
+    color: var(--ink-nav);
+  }
+  .gw-fun .fb > div {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+  }
+  .gw-fun .fb b {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    min-width: 20px;
+    text-align: right;
+  }
+  .gw-fun .fb ul {
+    margin: 2px 0 0 28px;
+    padding: 0;
+    color: var(--ink-2);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+  }
+
+  /* Boxes and check rows. */
+  .gw-sbox {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #fff;
+    min-width: 0;
+  }
+  .gw-chk {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+  }
+  .gw-chk:first-child {
+    border-top: 0;
+  }
+  .gw-chk > span:nth-child(2) {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  /* Radio cards. */
+  .gw-radio {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    cursor: pointer;
+    background: #fff;
+  }
+  .gw-radio:has(input:checked),
+  .gw-radio.on {
+    border-color: var(--accent);
+    background: var(--accent-tint);
+  }
+  .gw-radio input {
+    margin-top: 3px;
+    flex: none;
+  }
+  .gw-radio.off {
+    background: var(--ground-3);
+    cursor: not-allowed;
+  }
+
+  /* Rows of a settings card: what it is on the left, the control on the right. */
+  .gw-set {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 14px 18px;
+    flex-wrap: wrap;
+  }
+  .gw-set + .gw-set,
+  .gw-set + .gw-sethd,
+  .gw-sethd + .gw-set {
+    border-top: 1px solid var(--line-2);
+  }
+  .gw-set > .tx {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1 1 300px;
+    min-width: 0;
+  }
+  .gw-set > .tx > .k {
+    color: var(--ink-2);
+  }
+  .gw-set > .ct {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .gw-sethd {
+    padding: 14px 18px 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .gw-inl {
+    width: 52px;
+    height: 30px;
+    padding: 0 8px;
+    text-align: right;
+    display: inline-block;
+    vertical-align: baseline;
+  }
+
+  /* Signals in the review queue, with their explanation. */
+  .gw-sig {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 9px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: var(--ground-3);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-nav);
+    white-space: nowrap;
+    flex: none;
+  }
+  .gw-siglist {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .gw-siglist > div {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+  .gw-siglist > div > span:last-child {
+    flex: 1 1 300px;
+    min-width: 0;
+    color: var(--ink-nav);
+    font-size: 13px;
+  }
+
+  /* The decision bar at the bottom of the review queue. */
+  .gw-dbar {
+    position: sticky;
+    bottom: 16px;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 18px;
+    background: #fff;
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(11, 18, 32, 0.16);
+  }
+
+  /* Tables. */
+  .gw-tbl td.r,
+  .gw-tbl th.r {
+    text-align: right;
+  }
+  .gw-tbl td {
+    white-space: normal;
+    vertical-align: middle;
+  }
+  .gw-tbl td.nw {
+    white-space: nowrap;
+  }
+  .gw-tbl tr.sel td {
+    background: var(--accent-tint);
+  }
+  .gw-ms {
+    display: inline-flex;
+    gap: 4px;
+    flex-wrap: nowrap;
+  }
+  .gw-ms .badge {
+    height: 20px;
+    font-size: 11px;
+    padding: 0 7px;
+  }
+  .gw-held {
+    color: var(--warn-fg);
+    font-weight: 600;
+  }
+
+  /* Phone rows replacing a table. */
+  .gw-prow {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 11px 16px;
+    border-top: 1px solid var(--line-2);
+    color: var(--ink);
+  }
+  .gw-prow .tx {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  /* The referrer panel: a sheet on the right. */
+  .gw-sheet-ovl {
+    position: fixed;
+    inset: 0;
+    background: rgba(11, 18, 32, 0.32);
+    z-index: 60;
+  }
+  .gw-sheet {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(600px, 100vw);
+    background: #fff;
+    border-left: 1px solid var(--line);
+    box-shadow: -18px 0 40px rgba(11, 18, 32, 0.18);
+    z-index: 61;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .gw-sheet:focus {
+    outline: none;
+  }
+  .gw-sheet-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .gw-sheet-body {
+    padding: 18px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    overflow: auto;
+    flex: 1;
+  }
+  .gw-sheet h3 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  @media (max-width: 1100px) {
+    .gw-sheet {
+      width: min(520px, 100vw);
+    }
+  }
+
+  /* Referral rows in the panel. */
+  .gw-ref {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    padding: 9px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+  }
+  .gw-ref:first-child {
+    border-top: 0;
+  }
+  .gw-ref > .n {
+    width: 18px;
+    text-align: right;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+    flex: none;
+  }
+  .gw-ref > .tx {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* The link field with Copy. */
+  .gw-link {
+    display: flex;
+    gap: 8px;
+  }
+  .gw-link .in {
+    flex: 1;
+    min-width: 0;
+    background: var(--ground-3);
+  }
+
+  /* Previews of the public pages in the guide. */
+  .gw-pv {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    color: var(--ink);
+    background: var(--publisher-ground);
+    border-color: #ddd6fe;
+  }
+  .gw-pv > .mock {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+  }
+  .gw-pv .mock i {
+    display: block;
+    border-radius: 4px;
+  }
+
+  /* The guide's next-issue call-out. */
+  .gw-callout {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--accent-line);
+    border-radius: 10px;
+    background: var(--accent-tint);
+  }
+
+  /* Recommendations. */
+  .gw-handle {
+    width: 24px;
+    height: 32px;
+    border: 0;
+    background: none;
+    color: var(--ink-4);
+    cursor: grab;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    padding: 0;
+  }
+  .gw-handle:hover {
+    background: var(--ground);
+    color: var(--ink-2);
+  }
+  .gw-handle:disabled {
+    cursor: default;
+    opacity: 0.4;
+  }
+  .gw-code {
+    font-family: var(--font-family-mono);
+    font-size: 14px;
+    letter-spacing: 0.02em;
+    word-break: break-all;
+  }
+
+  @media (max-width: 1100px) {
+    .gw-g32,
+    .gw-g2 {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .gw-fun {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .gw-fun > div:nth-child(3) {
+      border-left: 0;
+    }
+    .gw-fun > div:nth-child(n + 3) {
+      border-top: 1px solid var(--line-2);
+    }
+    .gw-fun > div:nth-child(3) .fa {
+      display: none;
+    }
+  }
+  @media (max-width: 767px) {
+    .gw-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .gw-fun {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .gw-fun > div {
+      border-left: 0 !important;
+    }
+    .gw-fun > div + div {
+      border-top: 1px solid var(--line-2);
+    }
+    .gw-fun .fa {
+      display: none;
+    }
+    .gw-ny {
+      flex-wrap: wrap;
+      padding: 12px 14px;
+      align-items: flex-start;
+    }
+    .gw-ny .tx {
+      flex: 1 1 200px;
+    }
+    .gw-ny .act {
+      width: 100%;
+      padding-left: 38px;
+      box-sizing: border-box;
+    }
+    .gw-sheet {
+      width: 100vw;
+      border-left: 0;
+    }
+  }
+}

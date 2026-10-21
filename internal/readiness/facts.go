@@ -38,9 +38,15 @@ type Facts struct {
 	Verification VerificationFacts
 	// Web is the campaign's post on the website (design expansion, X18).
 	Web WebFacts
+	// Sponsor is the email's Sponsor block, UpgradeOffers the offers its
+	// Upgrade blocks still carry after they ended (Earn, design expansion X17).
+	Sponsor       SponsorFacts
+	UpgradeOffers []EndedUpgradeOffer
 	// MailboxRates are the per-mailbox-provider throttles (messages per
 	// second, 0 = full rate).
 	MailboxRates map[string]float64
+	// Grow are the Referral and Recommendations blocks' rows (grow.go).
+	Grow []GrowRow
 }
 
 // CampaignFacts describes the campaign being checked.

@@ -29,7 +29,10 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 	policy := ParsePolicy(ws.ApprovalPolicy)
 	// Client sign-off can cover publishing automations too (agencies).
 	signoff := policy.ClientSignoff.Enabled && policy.ClientSignoff.Automations
-	if !policy.AutomationPublish && !signoff {
+	// A flow with a channel step needs its send permission (sms:send):
+	// without it, publishing goes for approval even when the workspace
+	// doesn't ask for automation approvals.
+	if !policy.AutomationPublish && !signoff && len(req.Missing) == 0 {
 		return automations.GateDecision{}, nil
 	}
 	ms, err := g.S.members(ctx, q, ws.ID)
@@ -39,7 +42,11 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 	approvers := []member{}
 	names := []string{}
 	for _, a := range approversOf(ms) {
-		if a.ID != req.By {
+		holds := true
+		for _, perm := range req.Missing {
+			holds = holds && a.Perms.Has(perm)
+		}
+		if a.ID != req.By && holds {
 			approvers = append(approvers, a)
 			names = append(names, a.Name)
 		}
@@ -47,12 +54,7 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 	if len(approvers) == 0 {
 		return automations.GateDecision{}, fmt.Errorf("publishing needs approval and nobody else holds campaigns:approve")
 	}
-	rules := []ApprovalRuleMatch{}
-	if policy.AutomationPublish {
-		rules = append(rules, ApprovalRuleMatch{Key: RuleAutomationPublish, Label: "Publishing an automation requires approval", Short: "automation publish", Badge: "Automation publish"})
-	}
 	if signoff {
-		rules = append(rules, clientSignoffMatch())
 		if clients, err := clientApprovers(ctx, q, approvers); err != nil {
 			return automations.GateDecision{}, err
 		} else if len(clients) == 0 {
@@ -74,8 +76,25 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 			changes = append(changes, it.Kind+": "+it.Title)
 		}
 	}
-	snap := Snapshot{Version: req.Version, Rules: rules,
-		Automation: &ApprovalAutomationSnapshot{Version: req.Version, Migration: req.Migration, Changes: changes}}
+	rules := []ApprovalRuleMatch{}
+	if policy.AutomationPublish {
+		rules = append(rules, ApprovalRuleMatch{Key: RuleAutomationPublish, Label: "Publishing an automation requires approval", Short: "automation publish", Badge: "Automation publish"})
+	}
+	if len(req.Missing) > 0 {
+		perm := req.Missing[0]
+		m := memberByID(ms, &req.By)
+		match := ApprovalRuleMatch{Key: RuleAuthorLacksSend, Label: "The flow has a step that needs " + string(perm) + ", which the author doesn't hold",
+			Short: "author lacks send", Badge: "author lacks send"}
+		if m != nil {
+			match.Author, match.Role = m.Name, m.RoleName
+		}
+		rules = append(rules, match)
+	}
+	if signoff {
+		rules = append(rules, clientSignoffMatch())
+	}
+	keys := ruleKeys(rules)
+	snap := Snapshot{Version: req.Version, Rules: rules, Automation: &ApprovalAutomationSnapshot{Version: req.Version, Migration: req.Migration, Changes: changes}}
 	if m := memberByID(ms, &req.By); m != nil {
 		snap.AuthorRole = m.RoleName
 	}
@@ -83,14 +102,14 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 	id := uuid.Must(uuid.NewV7())
 	by := req.By
 	if err := q.ApprovalInsertRequest(ctx, store.ApprovalInsertRequestParams{ID: id, WorkspaceID: ws.ID, SubjectType: "automation", AutomationID: &auto, RequestedBy: &by,
-		RequestedAt: g.S.now(), Status: "pending", MatchedRules: ruleKeys(rules), ApprovalsRequired: int32(requiredFor(policy, rules)), Snapshot: sb}); err != nil {
+		RequestedAt: g.S.now(), Status: "pending", MatchedRules: keys, ApprovalsRequired: int32(max(requiredFor(policy, rules), 1)), Snapshot: sb}); err != nil {
 		return automations.GateDecision{}, err
 	}
 	author := ""
 	if m := memberByID(ms, &req.By); m != nil {
 		author = m.Name
 	}
-	if err := emitRequested(ctx, tx, &ws, id, "automation", auto, req.Name, author, ruleKeys(rules), 0); err != nil {
+	if err := emitRequested(ctx, tx, &ws, id, "automation", auto, req.Name, author, keys, 0); err != nil {
 		return automations.GateDecision{}, err
 	}
 	n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalRequested, Severity: "warn", Title: "Approval requested",

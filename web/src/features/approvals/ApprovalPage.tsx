@@ -27,6 +27,7 @@ import { useT } from '@/i18n'
 import { PlacementApprovalCard } from '@/features/placement/EntryPoints'
 import { ApprovalStatusBadge, approverNames, decidedText, deciderFirst, DiffLines, requestTone, unchangedText, type Change } from './parts'
 import '@/features/review/review.css'
+import { PostApprovalCard } from '@/features/website/elsewhere'
 import { ClientSignoffFacts, ClientSignoffIntro, ClientSignoffLine, ClientSignoffNote } from '@/features/agency/ClientApproval'
 
 type Detail = Schemas['ApprovalDetail']
@@ -196,6 +197,8 @@ function DetailBody({ detail: d }: { detail: Detail }) {
             </HeldCard>
           ) : null}
           {d.subjectType === 'automation' ? <AutomationCard detail={d} /> : null}
+          {/* A website post (features/website): its snapshot and its page on the web. */}
+          {d.subjectType === 'website_post' && d.website ? <PostApprovalCard approvalId={d.id} name={d.name} snapshot={d.website} /> : null}
           {d.transactional ? <TransactionalApprovalCard snapshot={d.transactional} /> : null}
           {issue ? <IssueApprovalCard issue={issue} /> : null}
           {d.campaign ? <CampaignCard detail={d} busy={busy === 'test'} onTest={() => void sendTest()} /> : null}

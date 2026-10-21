@@ -14,6 +14,7 @@ import { waitShort } from '@/features/review/logic'
 import { RecurringDigestBadge } from '@/features/digests/IssueParts'
 import { useIssueInfos } from '@/features/digests/shared'
 import { ApprovalStatusBadge, decidedText } from './parts'
+import { PostBadge, postLine, postRoute, postWhen } from '@/features/website/elsewhere'
 
 export type InboxStatus = 'pending' | 'approved' | 'changes_requested' | 'rejected' | 'invalidated' | 'all'
 
@@ -179,16 +180,17 @@ function RequestsCard({
                     <span className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold">{it.name}</span>
                       {it.campaignId && issueOf.has(it.campaignId) ? <RecurringDigestBadge issue={issueOf.get(it.campaignId)!} /> : null}
+                      {it.subjectType === 'website_post' ? <PostBadge /> : null}
                     </span>
-                    <span className="k">{it.rules}</span>
+                    <span className="k">{it.subjectType === 'website_post' && it.website ? postLine(it.website, it.rules) : it.rules}</span>
                   </div>
                 </Td>
                 <Td>
                   <PersonCell name={it.author.name} sub={it.author.email} color={it.author.color} />
                 </Td>
-                <Td>{it.audienceNow != null && it.audienceNow !== it.audience ? `${count(it.audience)} → ${count(it.audienceNow)}` : count(it.audience)}</Td>
-                <Td>{it.route}</Td>
-                <Td>{scheduledText(it)}</Td>
+                <Td>{it.subjectType === 'website_post' ? '–' : it.audienceNow != null && it.audienceNow !== it.audience ? `${count(it.audience)} → ${count(it.audienceNow)}` : count(it.audience)}</Td>
+                <Td>{it.subjectType === 'website_post' ? postRoute() : it.route}</Td>
+                <Td>{it.subjectType === 'website_post' && it.website ? postWhen(it.website) : scheduledText(it)}</Td>
                 <Td>{requestedText(it.requestedAt, now)}</Td>
                 <Td>
                   {it.status === 'pending' ? (

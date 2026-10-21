@@ -16,9 +16,10 @@ import { AccessTable, PersonCell } from '@/features/access/parts'
 import { ClientSignoffRule } from '@/features/agency/ClientSignoffRule'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { m as txApproval } from '@/features/transactional-templates/approval.messages'
-import { useT } from '@/i18n'
+import { T, useT } from '@/i18n'
 import './approvals.css'
 import { im } from '@/features/digests/issueMessages'
+import { me as wm } from '@/features/website/elsewhere.messages'
 
 type Policy = Schemas['ApprovalPolicy']
 type View = Schemas['ApprovalPolicyView']
@@ -207,6 +208,15 @@ function PolicyForm({ view }: { view: View }) {
                   title={t(txApproval.ruleTitle)}
                   detail={t(txApproval.ruleDetail)}
                 />
+              </div>
+              {/* The website's posts and pages (features/website). */}
+              <div className="border-t border-line-2 pt-2.5">
+                <Rule on={p.postPublish} disabled={read} onChange={(v) => set({ postPublish: v })} title={t(wm.policyPost)} detail={t(wm.policyPostText)} />
+                <div className="note n mt-2">
+                  <div>
+                    <T msg={wm.policyPostNote} values={{ perm: <code className="mono">website:publish</code> }} />
+                  </div>
+                </div>
               </div>
               <span className="k">{t(im.rulesEach)}</span>
             </div>

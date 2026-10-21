@@ -57,6 +57,7 @@ import { Route as WWorkspaceAppFormsPreferencesRouteImport } from './routes/w/$w
 import { Route as WWorkspaceAppFormsSubscribeRouteImport } from './routes/w/$workspace/_app/forms/subscribe'
 import { Route as WWorkspaceAppFormsUnsubscribeRouteImport } from './routes/w/$workspace/_app/forms/unsubscribe'
 import { Route as WWorkspaceAppGrowIndexRouteImport } from './routes/w/$workspace/_app/grow/index'
+import { Route as WWorkspaceAppGrowRecommendationsRouteImport } from './routes/w/$workspace/_app/grow/recommendations'
 import { Route as WWorkspaceAppProvidersIndexRouteImport } from './routes/w/$workspace/_app/providers/index'
 import { Route as WWorkspaceAppProvidersAdaptersRouteImport } from './routes/w/$workspace/_app/providers/adapters'
 import { Route as WWorkspaceAppProvidersEventsRouteImport } from './routes/w/$workspace/_app/providers/events'
@@ -75,6 +76,7 @@ import { Route as WWorkspaceAppTransactionalSettingsRouteImport } from './routes
 import { Route as WWorkspaceAppTransactionalSetupRouteImport } from './routes/w/$workspace/_app/transactional/setup'
 import { Route as WWorkspaceCampaignsCampaignIdEditRouteImport } from './routes/w/$workspace/campaigns/$campaignId/edit'
 import { Route as WWorkspaceEarnConnectIndexRouteImport } from './routes/w/$workspace/earn/connect/index'
+import { Route as WWorkspaceGrowReferralsSetupRouteImport } from './routes/w/$workspace/grow/referrals/setup'
 import { Route as WWorkspaceImportImportIdIndexRouteImport } from './routes/w/$workspace/import/$importId/index'
 import { Route as WWorkspaceImportImportIdConsentRouteImport } from './routes/w/$workspace/import/$importId/consent'
 import { Route as WWorkspaceImportImportIdFieldsRouteImport } from './routes/w/$workspace/import/$importId/fields'
@@ -107,6 +109,14 @@ import { Route as WWorkspaceAppEarnSettingsIndexRouteImport } from './routes/w/$
 import { Route as WWorkspaceAppEarnSponsorsIndexRouteImport } from './routes/w/$workspace/_app/earn/sponsors/index'
 import { Route as WWorkspaceAppFormsSurveysSurveyIdRouteImport } from './routes/w/$workspace/_app/forms/surveys.$surveyId'
 import { Route as WWorkspaceAppFormsWebsiteIndexRouteImport } from './routes/w/$workspace/_app/forms/website.index'
+import { Route as WWorkspaceAppFormsWebsiteAccessRouteImport } from './routes/w/$workspace/_app/forms/website.access'
+import { Route as WWorkspaceAppFormsWebsiteHomeRouteImport } from './routes/w/$workspace/_app/forms/website.home'
+import { Route as WWorkspaceAppFormsWebsiteTurnOnRouteImport } from './routes/w/$workspace/_app/forms/website.turn-on'
+import { Route as WWorkspaceAppGrowReferralsIndexRouteImport } from './routes/w/$workspace/_app/grow/referrals/index'
+import { Route as WWorkspaceAppGrowReferralsMilestonesRouteImport } from './routes/w/$workspace/_app/grow/referrals/milestones'
+import { Route as WWorkspaceAppGrowReferralsReferrersRouteImport } from './routes/w/$workspace/_app/grow/referrals/referrers'
+import { Route as WWorkspaceAppGrowReferralsReviewRouteImport } from './routes/w/$workspace/_app/grow/referrals/review'
+import { Route as WWorkspaceAppGrowReferralsSettingsRouteImport } from './routes/w/$workspace/_app/grow/referrals/settings'
 import { Route as WWorkspaceAppSettingsIntegrationsIndexRouteImport } from './routes/w/$workspace/_app/settings/integrations/index'
 import { Route as WWorkspaceAppSettingsIntegrationsKindRouteImport } from './routes/w/$workspace/_app/settings/integrations/$kind'
 import { Route as WWorkspaceAppSettingsIntegrationsAiRouteImport } from './routes/w/$workspace/_app/settings/integrations/ai'
@@ -121,8 +131,12 @@ import { Route as WWorkspaceAppSettingsTeamIndexRouteImport } from './routes/w/$
 import { Route as WWorkspaceAppSettingsTeamMemberIdRouteImport } from './routes/w/$workspace/_app/settings/team/$memberId'
 import { Route as WWorkspaceAppTransactionalMessagesIndexRouteImport } from './routes/w/$workspace/_app/transactional/messages/index'
 import { Route as WWorkspaceAppTransactionalMessagesMessageIdRouteImport } from './routes/w/$workspace/_app/transactional/messages/$messageId'
+import { Route as WWorkspaceFormsWebsitePostsPostRouteImport } from './routes/w/$workspace/forms/website.posts.$post'
+import { Route as WWorkspaceGrowReferralsEmailsMilestoneIdRouteImport } from './routes/w/$workspace/grow/referrals/emails.$milestoneId'
 import { Route as WWorkspaceAppCampaignsDigestsDigestIdIndexRouteImport } from './routes/w/$workspace/_app/campaigns/digests/$digestId/index'
 import { Route as WWorkspaceAppCampaignsDigestsDigestIdSettingsRouteImport } from './routes/w/$workspace/_app/campaigns/digests/$digestId/settings'
+import { Route as WWorkspaceAppEarnPlansOffersOfferIdRouteImport } from './routes/w/$workspace/_app/earn/plans/offers/$offerId'
+import { Route as WWorkspaceAppEarnPlansOffersNewRouteImport } from './routes/w/$workspace/_app/earn/plans/offers/new'
 import { Route as WWorkspaceAppEarnPlansTiersTierIdRouteImport } from './routes/w/$workspace/_app/earn/plans/tiers/$tierId'
 import { Route as WWorkspaceAppEarnPlansTiersNewRouteImport } from './routes/w/$workspace/_app/earn/plans/tiers/new'
 
@@ -387,6 +401,12 @@ const WWorkspaceAppGrowIndexRoute = WWorkspaceAppGrowIndexRouteImport.update({
   path: '/grow/',
   getParentRoute: () => WWorkspaceAppRouteRoute,
 } as any)
+const WWorkspaceAppGrowRecommendationsRoute =
+  WWorkspaceAppGrowRecommendationsRouteImport.update({
+    id: '/grow/recommendations',
+    path: '/grow/recommendations',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppProvidersIndexRoute =
   WWorkspaceAppProvidersIndexRouteImport.update({
     id: '/providers/',
@@ -493,6 +513,12 @@ const WWorkspaceEarnConnectIndexRoute =
   WWorkspaceEarnConnectIndexRouteImport.update({
     id: '/earn/connect/',
     path: '/earn/connect/',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
+const WWorkspaceGrowReferralsSetupRoute =
+  WWorkspaceGrowReferralsSetupRouteImport.update({
+    id: '/grow/referrals/setup',
+    path: '/grow/referrals/setup',
     getParentRoute: () => WWorkspaceRouteRoute,
   } as any)
 const WWorkspaceImportImportIdIndexRoute =
@@ -687,6 +713,54 @@ const WWorkspaceAppFormsWebsiteIndexRoute =
     path: '/forms/website/',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppFormsWebsiteAccessRoute =
+  WWorkspaceAppFormsWebsiteAccessRouteImport.update({
+    id: '/forms/website/access',
+    path: '/forms/website/access',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppFormsWebsiteHomeRoute =
+  WWorkspaceAppFormsWebsiteHomeRouteImport.update({
+    id: '/forms/website/home',
+    path: '/forms/website/home',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppFormsWebsiteTurnOnRoute =
+  WWorkspaceAppFormsWebsiteTurnOnRouteImport.update({
+    id: '/forms/website/turn-on',
+    path: '/forms/website/turn-on',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppGrowReferralsIndexRoute =
+  WWorkspaceAppGrowReferralsIndexRouteImport.update({
+    id: '/grow/referrals/',
+    path: '/grow/referrals/',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppGrowReferralsMilestonesRoute =
+  WWorkspaceAppGrowReferralsMilestonesRouteImport.update({
+    id: '/grow/referrals/milestones',
+    path: '/grow/referrals/milestones',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppGrowReferralsReferrersRoute =
+  WWorkspaceAppGrowReferralsReferrersRouteImport.update({
+    id: '/grow/referrals/referrers',
+    path: '/grow/referrals/referrers',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppGrowReferralsReviewRoute =
+  WWorkspaceAppGrowReferralsReviewRouteImport.update({
+    id: '/grow/referrals/review',
+    path: '/grow/referrals/review',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppGrowReferralsSettingsRoute =
+  WWorkspaceAppGrowReferralsSettingsRouteImport.update({
+    id: '/grow/referrals/settings',
+    path: '/grow/referrals/settings',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppSettingsIntegrationsIndexRoute =
   WWorkspaceAppSettingsIntegrationsIndexRouteImport.update({
     id: '/settings/integrations/',
@@ -771,6 +845,18 @@ const WWorkspaceAppTransactionalMessagesMessageIdRoute =
     path: '/transactional/messages/$messageId',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceFormsWebsitePostsPostRoute =
+  WWorkspaceFormsWebsitePostsPostRouteImport.update({
+    id: '/forms/website/posts/$post',
+    path: '/forms/website/posts/$post',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
+const WWorkspaceGrowReferralsEmailsMilestoneIdRoute =
+  WWorkspaceGrowReferralsEmailsMilestoneIdRouteImport.update({
+    id: '/grow/referrals/emails/$milestoneId',
+    path: '/grow/referrals/emails/$milestoneId',
+    getParentRoute: () => WWorkspaceRouteRoute,
+  } as any)
 const WWorkspaceAppCampaignsDigestsDigestIdIndexRoute =
   WWorkspaceAppCampaignsDigestsDigestIdIndexRouteImport.update({
     id: '/campaigns/digests/$digestId/',
@@ -781,6 +867,18 @@ const WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute =
   WWorkspaceAppCampaignsDigestsDigestIdSettingsRouteImport.update({
     id: '/campaigns/digests/$digestId/settings',
     path: '/campaigns/digests/$digestId/settings',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppEarnPlansOffersOfferIdRoute =
+  WWorkspaceAppEarnPlansOffersOfferIdRouteImport.update({
+    id: '/earn/plans/offers/$offerId',
+    path: '/earn/plans/offers/$offerId',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppEarnPlansOffersNewRoute =
+  WWorkspaceAppEarnPlansOffersNewRouteImport.update({
+    id: '/earn/plans/offers/new',
+    path: '/earn/plans/offers/new',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppEarnPlansTiersTierIdRoute =
@@ -836,6 +934,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/forms/preferences': typeof WWorkspaceAppFormsPreferencesRoute
   '/w/$workspace/forms/subscribe': typeof WWorkspaceAppFormsSubscribeRoute
   '/w/$workspace/forms/unsubscribe': typeof WWorkspaceAppFormsUnsubscribeRoute
+  '/w/$workspace/grow/recommendations': typeof WWorkspaceAppGrowRecommendationsRoute
   '/w/$workspace/providers/adapters': typeof WWorkspaceAppProvidersAdaptersRoute
   '/w/$workspace/providers/events': typeof WWorkspaceAppProvidersEventsRoute
   '/w/$workspace/providers/routing': typeof WWorkspaceAppProvidersRoutingRoute
@@ -850,6 +949,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/transactional/settings': typeof WWorkspaceAppTransactionalSettingsRoute
   '/w/$workspace/transactional/setup': typeof WWorkspaceAppTransactionalSetupRoute
   '/w/$workspace/campaigns/$campaignId/edit': typeof WWorkspaceCampaignsCampaignIdEditRoute
+  '/w/$workspace/grow/referrals/setup': typeof WWorkspaceGrowReferralsSetupRoute
   '/w/$workspace/import/$importId/consent': typeof WWorkspaceImportImportIdConsentRoute
   '/w/$workspace/import/$importId/fields': typeof WWorkspaceImportImportIdFieldsRoute
   '/w/$workspace/import/$importId/preview': typeof WWorkspaceImportImportIdPreviewRoute
@@ -884,6 +984,13 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/deliverability/placement/seeds': typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   '/w/$workspace/earn/plans/upgrade-page': typeof WWorkspaceAppEarnPlansUpgradePageRoute
   '/w/$workspace/forms/surveys/$surveyId': typeof WWorkspaceAppFormsSurveysSurveyIdRoute
+  '/w/$workspace/forms/website/access': typeof WWorkspaceAppFormsWebsiteAccessRoute
+  '/w/$workspace/forms/website/home': typeof WWorkspaceAppFormsWebsiteHomeRoute
+  '/w/$workspace/forms/website/turn-on': typeof WWorkspaceAppFormsWebsiteTurnOnRoute
+  '/w/$workspace/grow/referrals/milestones': typeof WWorkspaceAppGrowReferralsMilestonesRoute
+  '/w/$workspace/grow/referrals/referrers': typeof WWorkspaceAppGrowReferralsReferrersRoute
+  '/w/$workspace/grow/referrals/review': typeof WWorkspaceAppGrowReferralsReviewRoute
+  '/w/$workspace/grow/referrals/settings': typeof WWorkspaceAppGrowReferralsSettingsRoute
   '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/settings/integrations/ai': typeof WWorkspaceAppSettingsIntegrationsAiRoute
   '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
@@ -893,6 +1000,8 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/settings/senders/$domainId': typeof WWorkspaceAppSettingsSendersDomainIdRoute
   '/w/$workspace/settings/team/$memberId': typeof WWorkspaceAppSettingsTeamMemberIdRoute
   '/w/$workspace/transactional/messages/$messageId': typeof WWorkspaceAppTransactionalMessagesMessageIdRoute
+  '/w/$workspace/forms/website/posts/$post': typeof WWorkspaceFormsWebsitePostsPostRoute
+  '/w/$workspace/grow/referrals/emails/$milestoneId': typeof WWorkspaceGrowReferralsEmailsMilestoneIdRoute
   '/w/$workspace/admin/sso/': typeof WWorkspaceAppAdminSsoIndexRoute
   '/w/$workspace/audience/segments/': typeof WWorkspaceAppAudienceSegmentsIndexRoute
   '/w/$workspace/deliverability/placement/': typeof WWorkspaceAppDeliverabilityPlacementIndexRoute
@@ -903,12 +1012,15 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/earn/settings/': typeof WWorkspaceAppEarnSettingsIndexRoute
   '/w/$workspace/earn/sponsors/': typeof WWorkspaceAppEarnSponsorsIndexRoute
   '/w/$workspace/forms/website/': typeof WWorkspaceAppFormsWebsiteIndexRoute
+  '/w/$workspace/grow/referrals/': typeof WWorkspaceAppGrowReferralsIndexRoute
   '/w/$workspace/settings/integrations/': typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   '/w/$workspace/settings/roles/': typeof WWorkspaceAppSettingsRolesIndexRoute
   '/w/$workspace/settings/senders/': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/settings/team/': typeof WWorkspaceAppSettingsTeamIndexRoute
   '/w/$workspace/transactional/messages/': typeof WWorkspaceAppTransactionalMessagesIndexRoute
   '/w/$workspace/campaigns/digests/$digestId/settings': typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
+  '/w/$workspace/earn/plans/offers/$offerId': typeof WWorkspaceAppEarnPlansOffersOfferIdRoute
+  '/w/$workspace/earn/plans/offers/new': typeof WWorkspaceAppEarnPlansOffersNewRoute
   '/w/$workspace/earn/plans/tiers/$tierId': typeof WWorkspaceAppEarnPlansTiersTierIdRoute
   '/w/$workspace/earn/plans/tiers/new': typeof WWorkspaceAppEarnPlansTiersNewRoute
   '/w/$workspace/campaigns/digests/$digestId/': typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
@@ -951,6 +1063,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/forms/preferences': typeof WWorkspaceAppFormsPreferencesRoute
   '/w/$workspace/forms/subscribe': typeof WWorkspaceAppFormsSubscribeRoute
   '/w/$workspace/forms/unsubscribe': typeof WWorkspaceAppFormsUnsubscribeRoute
+  '/w/$workspace/grow/recommendations': typeof WWorkspaceAppGrowRecommendationsRoute
   '/w/$workspace/providers/adapters': typeof WWorkspaceAppProvidersAdaptersRoute
   '/w/$workspace/providers/events': typeof WWorkspaceAppProvidersEventsRoute
   '/w/$workspace/providers/routing': typeof WWorkspaceAppProvidersRoutingRoute
@@ -965,6 +1078,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/transactional/settings': typeof WWorkspaceAppTransactionalSettingsRoute
   '/w/$workspace/transactional/setup': typeof WWorkspaceAppTransactionalSetupRoute
   '/w/$workspace/campaigns/$campaignId/edit': typeof WWorkspaceCampaignsCampaignIdEditRoute
+  '/w/$workspace/grow/referrals/setup': typeof WWorkspaceGrowReferralsSetupRoute
   '/w/$workspace/import/$importId/consent': typeof WWorkspaceImportImportIdConsentRoute
   '/w/$workspace/import/$importId/fields': typeof WWorkspaceImportImportIdFieldsRoute
   '/w/$workspace/import/$importId/preview': typeof WWorkspaceImportImportIdPreviewRoute
@@ -999,6 +1113,13 @@ export interface FileRoutesByTo {
   '/w/$workspace/deliverability/placement/seeds': typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   '/w/$workspace/earn/plans/upgrade-page': typeof WWorkspaceAppEarnPlansUpgradePageRoute
   '/w/$workspace/forms/surveys/$surveyId': typeof WWorkspaceAppFormsSurveysSurveyIdRoute
+  '/w/$workspace/forms/website/access': typeof WWorkspaceAppFormsWebsiteAccessRoute
+  '/w/$workspace/forms/website/home': typeof WWorkspaceAppFormsWebsiteHomeRoute
+  '/w/$workspace/forms/website/turn-on': typeof WWorkspaceAppFormsWebsiteTurnOnRoute
+  '/w/$workspace/grow/referrals/milestones': typeof WWorkspaceAppGrowReferralsMilestonesRoute
+  '/w/$workspace/grow/referrals/referrers': typeof WWorkspaceAppGrowReferralsReferrersRoute
+  '/w/$workspace/grow/referrals/review': typeof WWorkspaceAppGrowReferralsReviewRoute
+  '/w/$workspace/grow/referrals/settings': typeof WWorkspaceAppGrowReferralsSettingsRoute
   '/w/$workspace/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/settings/integrations/ai': typeof WWorkspaceAppSettingsIntegrationsAiRoute
   '/w/$workspace/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
@@ -1008,6 +1129,8 @@ export interface FileRoutesByTo {
   '/w/$workspace/settings/senders/$domainId': typeof WWorkspaceAppSettingsSendersDomainIdRoute
   '/w/$workspace/settings/team/$memberId': typeof WWorkspaceAppSettingsTeamMemberIdRoute
   '/w/$workspace/transactional/messages/$messageId': typeof WWorkspaceAppTransactionalMessagesMessageIdRoute
+  '/w/$workspace/forms/website/posts/$post': typeof WWorkspaceFormsWebsitePostsPostRoute
+  '/w/$workspace/grow/referrals/emails/$milestoneId': typeof WWorkspaceGrowReferralsEmailsMilestoneIdRoute
   '/w/$workspace/admin/sso': typeof WWorkspaceAppAdminSsoIndexRoute
   '/w/$workspace/audience/segments': typeof WWorkspaceAppAudienceSegmentsIndexRoute
   '/w/$workspace/deliverability/placement': typeof WWorkspaceAppDeliverabilityPlacementIndexRoute
@@ -1018,12 +1141,15 @@ export interface FileRoutesByTo {
   '/w/$workspace/earn/settings': typeof WWorkspaceAppEarnSettingsIndexRoute
   '/w/$workspace/earn/sponsors': typeof WWorkspaceAppEarnSponsorsIndexRoute
   '/w/$workspace/forms/website': typeof WWorkspaceAppFormsWebsiteIndexRoute
+  '/w/$workspace/grow/referrals': typeof WWorkspaceAppGrowReferralsIndexRoute
   '/w/$workspace/settings/integrations': typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   '/w/$workspace/settings/roles': typeof WWorkspaceAppSettingsRolesIndexRoute
   '/w/$workspace/settings/senders': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/settings/team': typeof WWorkspaceAppSettingsTeamIndexRoute
   '/w/$workspace/transactional/messages': typeof WWorkspaceAppTransactionalMessagesIndexRoute
   '/w/$workspace/campaigns/digests/$digestId/settings': typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
+  '/w/$workspace/earn/plans/offers/$offerId': typeof WWorkspaceAppEarnPlansOffersOfferIdRoute
+  '/w/$workspace/earn/plans/offers/new': typeof WWorkspaceAppEarnPlansOffersNewRoute
   '/w/$workspace/earn/plans/tiers/$tierId': typeof WWorkspaceAppEarnPlansTiersTierIdRoute
   '/w/$workspace/earn/plans/tiers/new': typeof WWorkspaceAppEarnPlansTiersNewRoute
   '/w/$workspace/campaigns/digests/$digestId': typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
@@ -1070,6 +1196,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/forms/preferences': typeof WWorkspaceAppFormsPreferencesRoute
   '/w/$workspace/_app/forms/subscribe': typeof WWorkspaceAppFormsSubscribeRoute
   '/w/$workspace/_app/forms/unsubscribe': typeof WWorkspaceAppFormsUnsubscribeRoute
+  '/w/$workspace/_app/grow/recommendations': typeof WWorkspaceAppGrowRecommendationsRoute
   '/w/$workspace/_app/providers/adapters': typeof WWorkspaceAppProvidersAdaptersRoute
   '/w/$workspace/_app/providers/events': typeof WWorkspaceAppProvidersEventsRoute
   '/w/$workspace/_app/providers/routing': typeof WWorkspaceAppProvidersRoutingRoute
@@ -1084,6 +1211,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/transactional/settings': typeof WWorkspaceAppTransactionalSettingsRoute
   '/w/$workspace/_app/transactional/setup': typeof WWorkspaceAppTransactionalSetupRoute
   '/w/$workspace/campaigns/$campaignId/edit': typeof WWorkspaceCampaignsCampaignIdEditRoute
+  '/w/$workspace/grow/referrals/setup': typeof WWorkspaceGrowReferralsSetupRoute
   '/w/$workspace/import/$importId/consent': typeof WWorkspaceImportImportIdConsentRoute
   '/w/$workspace/import/$importId/fields': typeof WWorkspaceImportImportIdFieldsRoute
   '/w/$workspace/import/$importId/preview': typeof WWorkspaceImportImportIdPreviewRoute
@@ -1118,6 +1246,13 @@ export interface FileRoutesById {
   '/w/$workspace/_app/deliverability/placement/seeds': typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   '/w/$workspace/_app/earn/plans/upgrade-page': typeof WWorkspaceAppEarnPlansUpgradePageRoute
   '/w/$workspace/_app/forms/surveys/$surveyId': typeof WWorkspaceAppFormsSurveysSurveyIdRoute
+  '/w/$workspace/_app/forms/website/access': typeof WWorkspaceAppFormsWebsiteAccessRoute
+  '/w/$workspace/_app/forms/website/home': typeof WWorkspaceAppFormsWebsiteHomeRoute
+  '/w/$workspace/_app/forms/website/turn-on': typeof WWorkspaceAppFormsWebsiteTurnOnRoute
+  '/w/$workspace/_app/grow/referrals/milestones': typeof WWorkspaceAppGrowReferralsMilestonesRoute
+  '/w/$workspace/_app/grow/referrals/referrers': typeof WWorkspaceAppGrowReferralsReferrersRoute
+  '/w/$workspace/_app/grow/referrals/review': typeof WWorkspaceAppGrowReferralsReviewRoute
+  '/w/$workspace/_app/grow/referrals/settings': typeof WWorkspaceAppGrowReferralsSettingsRoute
   '/w/$workspace/_app/settings/integrations/$kind': typeof WWorkspaceAppSettingsIntegrationsKindRoute
   '/w/$workspace/_app/settings/integrations/ai': typeof WWorkspaceAppSettingsIntegrationsAiRoute
   '/w/$workspace/_app/settings/integrations/hostrepute': typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
@@ -1127,6 +1262,8 @@ export interface FileRoutesById {
   '/w/$workspace/_app/settings/senders/$domainId': typeof WWorkspaceAppSettingsSendersDomainIdRoute
   '/w/$workspace/_app/settings/team/$memberId': typeof WWorkspaceAppSettingsTeamMemberIdRoute
   '/w/$workspace/_app/transactional/messages/$messageId': typeof WWorkspaceAppTransactionalMessagesMessageIdRoute
+  '/w/$workspace/forms/website/posts/$post': typeof WWorkspaceFormsWebsitePostsPostRoute
+  '/w/$workspace/grow/referrals/emails/$milestoneId': typeof WWorkspaceGrowReferralsEmailsMilestoneIdRoute
   '/w/$workspace/_app/admin/sso/': typeof WWorkspaceAppAdminSsoIndexRoute
   '/w/$workspace/_app/audience/segments/': typeof WWorkspaceAppAudienceSegmentsIndexRoute
   '/w/$workspace/_app/deliverability/placement/': typeof WWorkspaceAppDeliverabilityPlacementIndexRoute
@@ -1137,12 +1274,15 @@ export interface FileRoutesById {
   '/w/$workspace/_app/earn/settings/': typeof WWorkspaceAppEarnSettingsIndexRoute
   '/w/$workspace/_app/earn/sponsors/': typeof WWorkspaceAppEarnSponsorsIndexRoute
   '/w/$workspace/_app/forms/website/': typeof WWorkspaceAppFormsWebsiteIndexRoute
+  '/w/$workspace/_app/grow/referrals/': typeof WWorkspaceAppGrowReferralsIndexRoute
   '/w/$workspace/_app/settings/integrations/': typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   '/w/$workspace/_app/settings/roles/': typeof WWorkspaceAppSettingsRolesIndexRoute
   '/w/$workspace/_app/settings/senders/': typeof WWorkspaceAppSettingsSendersIndexRoute
   '/w/$workspace/_app/settings/team/': typeof WWorkspaceAppSettingsTeamIndexRoute
   '/w/$workspace/_app/transactional/messages/': typeof WWorkspaceAppTransactionalMessagesIndexRoute
   '/w/$workspace/_app/campaigns/digests/$digestId/settings': typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
+  '/w/$workspace/_app/earn/plans/offers/$offerId': typeof WWorkspaceAppEarnPlansOffersOfferIdRoute
+  '/w/$workspace/_app/earn/plans/offers/new': typeof WWorkspaceAppEarnPlansOffersNewRoute
   '/w/$workspace/_app/earn/plans/tiers/$tierId': typeof WWorkspaceAppEarnPlansTiersTierIdRoute
   '/w/$workspace/_app/earn/plans/tiers/new': typeof WWorkspaceAppEarnPlansTiersNewRoute
   '/w/$workspace/_app/campaigns/digests/$digestId/': typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
@@ -1189,6 +1329,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/forms/preferences'
     | '/w/$workspace/forms/subscribe'
     | '/w/$workspace/forms/unsubscribe'
+    | '/w/$workspace/grow/recommendations'
     | '/w/$workspace/providers/adapters'
     | '/w/$workspace/providers/events'
     | '/w/$workspace/providers/routing'
@@ -1203,6 +1344,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/transactional/settings'
     | '/w/$workspace/transactional/setup'
     | '/w/$workspace/campaigns/$campaignId/edit'
+    | '/w/$workspace/grow/referrals/setup'
     | '/w/$workspace/import/$importId/consent'
     | '/w/$workspace/import/$importId/fields'
     | '/w/$workspace/import/$importId/preview'
@@ -1237,6 +1379,13 @@ export interface FileRouteTypes {
     | '/w/$workspace/deliverability/placement/seeds'
     | '/w/$workspace/earn/plans/upgrade-page'
     | '/w/$workspace/forms/surveys/$surveyId'
+    | '/w/$workspace/forms/website/access'
+    | '/w/$workspace/forms/website/home'
+    | '/w/$workspace/forms/website/turn-on'
+    | '/w/$workspace/grow/referrals/milestones'
+    | '/w/$workspace/grow/referrals/referrers'
+    | '/w/$workspace/grow/referrals/review'
+    | '/w/$workspace/grow/referrals/settings'
     | '/w/$workspace/settings/integrations/$kind'
     | '/w/$workspace/settings/integrations/ai'
     | '/w/$workspace/settings/integrations/hostrepute'
@@ -1246,6 +1395,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/senders/$domainId'
     | '/w/$workspace/settings/team/$memberId'
     | '/w/$workspace/transactional/messages/$messageId'
+    | '/w/$workspace/forms/website/posts/$post'
+    | '/w/$workspace/grow/referrals/emails/$milestoneId'
     | '/w/$workspace/admin/sso/'
     | '/w/$workspace/audience/segments/'
     | '/w/$workspace/deliverability/placement/'
@@ -1256,12 +1407,15 @@ export interface FileRouteTypes {
     | '/w/$workspace/earn/settings/'
     | '/w/$workspace/earn/sponsors/'
     | '/w/$workspace/forms/website/'
+    | '/w/$workspace/grow/referrals/'
     | '/w/$workspace/settings/integrations/'
     | '/w/$workspace/settings/roles/'
     | '/w/$workspace/settings/senders/'
     | '/w/$workspace/settings/team/'
     | '/w/$workspace/transactional/messages/'
     | '/w/$workspace/campaigns/digests/$digestId/settings'
+    | '/w/$workspace/earn/plans/offers/$offerId'
+    | '/w/$workspace/earn/plans/offers/new'
     | '/w/$workspace/earn/plans/tiers/$tierId'
     | '/w/$workspace/earn/plans/tiers/new'
     | '/w/$workspace/campaigns/digests/$digestId/'
@@ -1304,6 +1458,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/forms/preferences'
     | '/w/$workspace/forms/subscribe'
     | '/w/$workspace/forms/unsubscribe'
+    | '/w/$workspace/grow/recommendations'
     | '/w/$workspace/providers/adapters'
     | '/w/$workspace/providers/events'
     | '/w/$workspace/providers/routing'
@@ -1318,6 +1473,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/transactional/settings'
     | '/w/$workspace/transactional/setup'
     | '/w/$workspace/campaigns/$campaignId/edit'
+    | '/w/$workspace/grow/referrals/setup'
     | '/w/$workspace/import/$importId/consent'
     | '/w/$workspace/import/$importId/fields'
     | '/w/$workspace/import/$importId/preview'
@@ -1352,6 +1508,13 @@ export interface FileRouteTypes {
     | '/w/$workspace/deliverability/placement/seeds'
     | '/w/$workspace/earn/plans/upgrade-page'
     | '/w/$workspace/forms/surveys/$surveyId'
+    | '/w/$workspace/forms/website/access'
+    | '/w/$workspace/forms/website/home'
+    | '/w/$workspace/forms/website/turn-on'
+    | '/w/$workspace/grow/referrals/milestones'
+    | '/w/$workspace/grow/referrals/referrers'
+    | '/w/$workspace/grow/referrals/review'
+    | '/w/$workspace/grow/referrals/settings'
     | '/w/$workspace/settings/integrations/$kind'
     | '/w/$workspace/settings/integrations/ai'
     | '/w/$workspace/settings/integrations/hostrepute'
@@ -1361,6 +1524,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/settings/senders/$domainId'
     | '/w/$workspace/settings/team/$memberId'
     | '/w/$workspace/transactional/messages/$messageId'
+    | '/w/$workspace/forms/website/posts/$post'
+    | '/w/$workspace/grow/referrals/emails/$milestoneId'
     | '/w/$workspace/admin/sso'
     | '/w/$workspace/audience/segments'
     | '/w/$workspace/deliverability/placement'
@@ -1371,12 +1536,15 @@ export interface FileRouteTypes {
     | '/w/$workspace/earn/settings'
     | '/w/$workspace/earn/sponsors'
     | '/w/$workspace/forms/website'
+    | '/w/$workspace/grow/referrals'
     | '/w/$workspace/settings/integrations'
     | '/w/$workspace/settings/roles'
     | '/w/$workspace/settings/senders'
     | '/w/$workspace/settings/team'
     | '/w/$workspace/transactional/messages'
     | '/w/$workspace/campaigns/digests/$digestId/settings'
+    | '/w/$workspace/earn/plans/offers/$offerId'
+    | '/w/$workspace/earn/plans/offers/new'
     | '/w/$workspace/earn/plans/tiers/$tierId'
     | '/w/$workspace/earn/plans/tiers/new'
     | '/w/$workspace/campaigns/digests/$digestId'
@@ -1422,6 +1590,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/forms/preferences'
     | '/w/$workspace/_app/forms/subscribe'
     | '/w/$workspace/_app/forms/unsubscribe'
+    | '/w/$workspace/_app/grow/recommendations'
     | '/w/$workspace/_app/providers/adapters'
     | '/w/$workspace/_app/providers/events'
     | '/w/$workspace/_app/providers/routing'
@@ -1436,6 +1605,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/transactional/settings'
     | '/w/$workspace/_app/transactional/setup'
     | '/w/$workspace/campaigns/$campaignId/edit'
+    | '/w/$workspace/grow/referrals/setup'
     | '/w/$workspace/import/$importId/consent'
     | '/w/$workspace/import/$importId/fields'
     | '/w/$workspace/import/$importId/preview'
@@ -1470,6 +1640,13 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/deliverability/placement/seeds'
     | '/w/$workspace/_app/earn/plans/upgrade-page'
     | '/w/$workspace/_app/forms/surveys/$surveyId'
+    | '/w/$workspace/_app/forms/website/access'
+    | '/w/$workspace/_app/forms/website/home'
+    | '/w/$workspace/_app/forms/website/turn-on'
+    | '/w/$workspace/_app/grow/referrals/milestones'
+    | '/w/$workspace/_app/grow/referrals/referrers'
+    | '/w/$workspace/_app/grow/referrals/review'
+    | '/w/$workspace/_app/grow/referrals/settings'
     | '/w/$workspace/_app/settings/integrations/$kind'
     | '/w/$workspace/_app/settings/integrations/ai'
     | '/w/$workspace/_app/settings/integrations/hostrepute'
@@ -1479,6 +1656,8 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/settings/senders/$domainId'
     | '/w/$workspace/_app/settings/team/$memberId'
     | '/w/$workspace/_app/transactional/messages/$messageId'
+    | '/w/$workspace/forms/website/posts/$post'
+    | '/w/$workspace/grow/referrals/emails/$milestoneId'
     | '/w/$workspace/_app/admin/sso/'
     | '/w/$workspace/_app/audience/segments/'
     | '/w/$workspace/_app/deliverability/placement/'
@@ -1489,12 +1668,15 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/earn/settings/'
     | '/w/$workspace/_app/earn/sponsors/'
     | '/w/$workspace/_app/forms/website/'
+    | '/w/$workspace/_app/grow/referrals/'
     | '/w/$workspace/_app/settings/integrations/'
     | '/w/$workspace/_app/settings/roles/'
     | '/w/$workspace/_app/settings/senders/'
     | '/w/$workspace/_app/settings/team/'
     | '/w/$workspace/_app/transactional/messages/'
     | '/w/$workspace/_app/campaigns/digests/$digestId/settings'
+    | '/w/$workspace/_app/earn/plans/offers/$offerId'
+    | '/w/$workspace/_app/earn/plans/offers/new'
     | '/w/$workspace/_app/earn/plans/tiers/$tierId'
     | '/w/$workspace/_app/earn/plans/tiers/new'
     | '/w/$workspace/_app/campaigns/digests/$digestId/'
@@ -1849,6 +2031,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppGrowIndexRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/grow/recommendations': {
+      id: '/w/$workspace/_app/grow/recommendations'
+      path: '/grow/recommendations'
+      fullPath: '/w/$workspace/grow/recommendations'
+      preLoaderRoute: typeof WWorkspaceAppGrowRecommendationsRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/providers/': {
       id: '/w/$workspace/_app/providers/'
       path: '/providers'
@@ -1973,6 +2162,13 @@ declare module '@tanstack/react-router' {
       path: '/earn/connect'
       fullPath: '/w/$workspace/earn/connect/'
       preLoaderRoute: typeof WWorkspaceEarnConnectIndexRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
+    '/w/$workspace/grow/referrals/setup': {
+      id: '/w/$workspace/grow/referrals/setup'
+      path: '/grow/referrals/setup'
+      fullPath: '/w/$workspace/grow/referrals/setup'
+      preLoaderRoute: typeof WWorkspaceGrowReferralsSetupRouteImport
       parentRoute: typeof WWorkspaceRouteRoute
     }
     '/w/$workspace/import/$importId/': {
@@ -2199,6 +2395,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppFormsWebsiteIndexRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/forms/website/access': {
+      id: '/w/$workspace/_app/forms/website/access'
+      path: '/forms/website/access'
+      fullPath: '/w/$workspace/forms/website/access'
+      preLoaderRoute: typeof WWorkspaceAppFormsWebsiteAccessRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/forms/website/home': {
+      id: '/w/$workspace/_app/forms/website/home'
+      path: '/forms/website/home'
+      fullPath: '/w/$workspace/forms/website/home'
+      preLoaderRoute: typeof WWorkspaceAppFormsWebsiteHomeRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/forms/website/turn-on': {
+      id: '/w/$workspace/_app/forms/website/turn-on'
+      path: '/forms/website/turn-on'
+      fullPath: '/w/$workspace/forms/website/turn-on'
+      preLoaderRoute: typeof WWorkspaceAppFormsWebsiteTurnOnRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/grow/referrals/': {
+      id: '/w/$workspace/_app/grow/referrals/'
+      path: '/grow/referrals'
+      fullPath: '/w/$workspace/grow/referrals/'
+      preLoaderRoute: typeof WWorkspaceAppGrowReferralsIndexRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/grow/referrals/milestones': {
+      id: '/w/$workspace/_app/grow/referrals/milestones'
+      path: '/grow/referrals/milestones'
+      fullPath: '/w/$workspace/grow/referrals/milestones'
+      preLoaderRoute: typeof WWorkspaceAppGrowReferralsMilestonesRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/grow/referrals/referrers': {
+      id: '/w/$workspace/_app/grow/referrals/referrers'
+      path: '/grow/referrals/referrers'
+      fullPath: '/w/$workspace/grow/referrals/referrers'
+      preLoaderRoute: typeof WWorkspaceAppGrowReferralsReferrersRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/grow/referrals/review': {
+      id: '/w/$workspace/_app/grow/referrals/review'
+      path: '/grow/referrals/review'
+      fullPath: '/w/$workspace/grow/referrals/review'
+      preLoaderRoute: typeof WWorkspaceAppGrowReferralsReviewRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/grow/referrals/settings': {
+      id: '/w/$workspace/_app/grow/referrals/settings'
+      path: '/grow/referrals/settings'
+      fullPath: '/w/$workspace/grow/referrals/settings'
+      preLoaderRoute: typeof WWorkspaceAppGrowReferralsSettingsRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/settings/integrations/': {
       id: '/w/$workspace/_app/settings/integrations/'
       path: '/settings/integrations'
@@ -2297,6 +2549,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppTransactionalMessagesMessageIdRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/forms/website/posts/$post': {
+      id: '/w/$workspace/forms/website/posts/$post'
+      path: '/forms/website/posts/$post'
+      fullPath: '/w/$workspace/forms/website/posts/$post'
+      preLoaderRoute: typeof WWorkspaceFormsWebsitePostsPostRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
+    '/w/$workspace/grow/referrals/emails/$milestoneId': {
+      id: '/w/$workspace/grow/referrals/emails/$milestoneId'
+      path: '/grow/referrals/emails/$milestoneId'
+      fullPath: '/w/$workspace/grow/referrals/emails/$milestoneId'
+      preLoaderRoute: typeof WWorkspaceGrowReferralsEmailsMilestoneIdRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
     '/w/$workspace/_app/campaigns/digests/$digestId/': {
       id: '/w/$workspace/_app/campaigns/digests/$digestId/'
       path: '/campaigns/digests/$digestId'
@@ -2309,6 +2575,20 @@ declare module '@tanstack/react-router' {
       path: '/campaigns/digests/$digestId/settings'
       fullPath: '/w/$workspace/campaigns/digests/$digestId/settings'
       preLoaderRoute: typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/earn/plans/offers/$offerId': {
+      id: '/w/$workspace/_app/earn/plans/offers/$offerId'
+      path: '/earn/plans/offers/$offerId'
+      fullPath: '/w/$workspace/earn/plans/offers/$offerId'
+      preLoaderRoute: typeof WWorkspaceAppEarnPlansOffersOfferIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/earn/plans/offers/new': {
+      id: '/w/$workspace/_app/earn/plans/offers/new'
+      path: '/earn/plans/offers/new'
+      fullPath: '/w/$workspace/earn/plans/offers/new'
+      preLoaderRoute: typeof WWorkspaceAppEarnPlansOffersNewRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/earn/plans/tiers/$tierId': {
@@ -2361,6 +2641,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppFormsPreferencesRoute: typeof WWorkspaceAppFormsPreferencesRoute
   WWorkspaceAppFormsSubscribeRoute: typeof WWorkspaceAppFormsSubscribeRoute
   WWorkspaceAppFormsUnsubscribeRoute: typeof WWorkspaceAppFormsUnsubscribeRoute
+  WWorkspaceAppGrowRecommendationsRoute: typeof WWorkspaceAppGrowRecommendationsRoute
   WWorkspaceAppProvidersAdaptersRoute: typeof WWorkspaceAppProvidersAdaptersRoute
   WWorkspaceAppProvidersEventsRoute: typeof WWorkspaceAppProvidersEventsRoute
   WWorkspaceAppProvidersRoutingRoute: typeof WWorkspaceAppProvidersRoutingRoute
@@ -2396,6 +2677,13 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppDeliverabilityPlacementSeedsRoute: typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   WWorkspaceAppEarnPlansUpgradePageRoute: typeof WWorkspaceAppEarnPlansUpgradePageRoute
   WWorkspaceAppFormsSurveysSurveyIdRoute: typeof WWorkspaceAppFormsSurveysSurveyIdRoute
+  WWorkspaceAppFormsWebsiteAccessRoute: typeof WWorkspaceAppFormsWebsiteAccessRoute
+  WWorkspaceAppFormsWebsiteHomeRoute: typeof WWorkspaceAppFormsWebsiteHomeRoute
+  WWorkspaceAppFormsWebsiteTurnOnRoute: typeof WWorkspaceAppFormsWebsiteTurnOnRoute
+  WWorkspaceAppGrowReferralsMilestonesRoute: typeof WWorkspaceAppGrowReferralsMilestonesRoute
+  WWorkspaceAppGrowReferralsReferrersRoute: typeof WWorkspaceAppGrowReferralsReferrersRoute
+  WWorkspaceAppGrowReferralsReviewRoute: typeof WWorkspaceAppGrowReferralsReviewRoute
+  WWorkspaceAppGrowReferralsSettingsRoute: typeof WWorkspaceAppGrowReferralsSettingsRoute
   WWorkspaceAppSettingsIntegrationsKindRoute: typeof WWorkspaceAppSettingsIntegrationsKindRoute
   WWorkspaceAppSettingsIntegrationsAiRoute: typeof WWorkspaceAppSettingsIntegrationsAiRoute
   WWorkspaceAppSettingsIntegrationsHostreputeRoute: typeof WWorkspaceAppSettingsIntegrationsHostreputeRoute
@@ -2415,12 +2703,15 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppEarnSettingsIndexRoute: typeof WWorkspaceAppEarnSettingsIndexRoute
   WWorkspaceAppEarnSponsorsIndexRoute: typeof WWorkspaceAppEarnSponsorsIndexRoute
   WWorkspaceAppFormsWebsiteIndexRoute: typeof WWorkspaceAppFormsWebsiteIndexRoute
+  WWorkspaceAppGrowReferralsIndexRoute: typeof WWorkspaceAppGrowReferralsIndexRoute
   WWorkspaceAppSettingsIntegrationsIndexRoute: typeof WWorkspaceAppSettingsIntegrationsIndexRoute
   WWorkspaceAppSettingsRolesIndexRoute: typeof WWorkspaceAppSettingsRolesIndexRoute
   WWorkspaceAppSettingsSendersIndexRoute: typeof WWorkspaceAppSettingsSendersIndexRoute
   WWorkspaceAppSettingsTeamIndexRoute: typeof WWorkspaceAppSettingsTeamIndexRoute
   WWorkspaceAppTransactionalMessagesIndexRoute: typeof WWorkspaceAppTransactionalMessagesIndexRoute
   WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute: typeof WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute
+  WWorkspaceAppEarnPlansOffersOfferIdRoute: typeof WWorkspaceAppEarnPlansOffersOfferIdRoute
+  WWorkspaceAppEarnPlansOffersNewRoute: typeof WWorkspaceAppEarnPlansOffersNewRoute
   WWorkspaceAppEarnPlansTiersTierIdRoute: typeof WWorkspaceAppEarnPlansTiersTierIdRoute
   WWorkspaceAppEarnPlansTiersNewRoute: typeof WWorkspaceAppEarnPlansTiersNewRoute
   WWorkspaceAppCampaignsDigestsDigestIdIndexRoute: typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
@@ -2449,6 +2740,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppFormsPreferencesRoute: WWorkspaceAppFormsPreferencesRoute,
   WWorkspaceAppFormsSubscribeRoute: WWorkspaceAppFormsSubscribeRoute,
   WWorkspaceAppFormsUnsubscribeRoute: WWorkspaceAppFormsUnsubscribeRoute,
+  WWorkspaceAppGrowRecommendationsRoute: WWorkspaceAppGrowRecommendationsRoute,
   WWorkspaceAppProvidersAdaptersRoute: WWorkspaceAppProvidersAdaptersRoute,
   WWorkspaceAppProvidersEventsRoute: WWorkspaceAppProvidersEventsRoute,
   WWorkspaceAppProvidersRoutingRoute: WWorkspaceAppProvidersRoutingRoute,
@@ -2495,6 +2787,16 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
     WWorkspaceAppEarnPlansUpgradePageRoute,
   WWorkspaceAppFormsSurveysSurveyIdRoute:
     WWorkspaceAppFormsSurveysSurveyIdRoute,
+  WWorkspaceAppFormsWebsiteAccessRoute: WWorkspaceAppFormsWebsiteAccessRoute,
+  WWorkspaceAppFormsWebsiteHomeRoute: WWorkspaceAppFormsWebsiteHomeRoute,
+  WWorkspaceAppFormsWebsiteTurnOnRoute: WWorkspaceAppFormsWebsiteTurnOnRoute,
+  WWorkspaceAppGrowReferralsMilestonesRoute:
+    WWorkspaceAppGrowReferralsMilestonesRoute,
+  WWorkspaceAppGrowReferralsReferrersRoute:
+    WWorkspaceAppGrowReferralsReferrersRoute,
+  WWorkspaceAppGrowReferralsReviewRoute: WWorkspaceAppGrowReferralsReviewRoute,
+  WWorkspaceAppGrowReferralsSettingsRoute:
+    WWorkspaceAppGrowReferralsSettingsRoute,
   WWorkspaceAppSettingsIntegrationsKindRoute:
     WWorkspaceAppSettingsIntegrationsKindRoute,
   WWorkspaceAppSettingsIntegrationsAiRoute:
@@ -2524,6 +2826,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppEarnSettingsIndexRoute: WWorkspaceAppEarnSettingsIndexRoute,
   WWorkspaceAppEarnSponsorsIndexRoute: WWorkspaceAppEarnSponsorsIndexRoute,
   WWorkspaceAppFormsWebsiteIndexRoute: WWorkspaceAppFormsWebsiteIndexRoute,
+  WWorkspaceAppGrowReferralsIndexRoute: WWorkspaceAppGrowReferralsIndexRoute,
   WWorkspaceAppSettingsIntegrationsIndexRoute:
     WWorkspaceAppSettingsIntegrationsIndexRoute,
   WWorkspaceAppSettingsRolesIndexRoute: WWorkspaceAppSettingsRolesIndexRoute,
@@ -2534,6 +2837,9 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
     WWorkspaceAppTransactionalMessagesIndexRoute,
   WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute:
     WWorkspaceAppCampaignsDigestsDigestIdSettingsRoute,
+  WWorkspaceAppEarnPlansOffersOfferIdRoute:
+    WWorkspaceAppEarnPlansOffersOfferIdRoute,
+  WWorkspaceAppEarnPlansOffersNewRoute: WWorkspaceAppEarnPlansOffersNewRoute,
   WWorkspaceAppEarnPlansTiersTierIdRoute:
     WWorkspaceAppEarnPlansTiersTierIdRoute,
   WWorkspaceAppEarnPlansTiersNewRoute: WWorkspaceAppEarnPlansTiersNewRoute,
@@ -2573,6 +2879,7 @@ interface WWorkspaceRouteRouteChildren {
   WWorkspaceTransactionalGuideRoute: typeof WWorkspaceTransactionalGuideRoute
   WWorkspaceImportIndexRoute: typeof WWorkspaceImportIndexRoute
   WWorkspaceCampaignsCampaignIdEditRoute: typeof WWorkspaceCampaignsCampaignIdEditRoute
+  WWorkspaceGrowReferralsSetupRoute: typeof WWorkspaceGrowReferralsSetupRoute
   WWorkspaceImportImportIdConsentRoute: typeof WWorkspaceImportImportIdConsentRoute
   WWorkspaceImportImportIdFieldsRoute: typeof WWorkspaceImportImportIdFieldsRoute
   WWorkspaceImportImportIdPreviewRoute: typeof WWorkspaceImportImportIdPreviewRoute
@@ -2585,6 +2892,8 @@ interface WWorkspaceRouteRouteChildren {
   WWorkspaceEarnConnectIndexRoute: typeof WWorkspaceEarnConnectIndexRoute
   WWorkspaceImportImportIdIndexRoute: typeof WWorkspaceImportImportIdIndexRoute
   WWorkspaceProvidersConnectIndexRoute: typeof WWorkspaceProvidersConnectIndexRoute
+  WWorkspaceFormsWebsitePostsPostRoute: typeof WWorkspaceFormsWebsitePostsPostRoute
+  WWorkspaceGrowReferralsEmailsMilestoneIdRoute: typeof WWorkspaceGrowReferralsEmailsMilestoneIdRoute
 }
 
 const WWorkspaceRouteRouteChildren: WWorkspaceRouteRouteChildren = {
@@ -2597,6 +2906,7 @@ const WWorkspaceRouteRouteChildren: WWorkspaceRouteRouteChildren = {
   WWorkspaceImportIndexRoute: WWorkspaceImportIndexRoute,
   WWorkspaceCampaignsCampaignIdEditRoute:
     WWorkspaceCampaignsCampaignIdEditRoute,
+  WWorkspaceGrowReferralsSetupRoute: WWorkspaceGrowReferralsSetupRoute,
   WWorkspaceImportImportIdConsentRoute: WWorkspaceImportImportIdConsentRoute,
   WWorkspaceImportImportIdFieldsRoute: WWorkspaceImportImportIdFieldsRoute,
   WWorkspaceImportImportIdPreviewRoute: WWorkspaceImportImportIdPreviewRoute,
@@ -2612,6 +2922,9 @@ const WWorkspaceRouteRouteChildren: WWorkspaceRouteRouteChildren = {
   WWorkspaceEarnConnectIndexRoute: WWorkspaceEarnConnectIndexRoute,
   WWorkspaceImportImportIdIndexRoute: WWorkspaceImportImportIdIndexRoute,
   WWorkspaceProvidersConnectIndexRoute: WWorkspaceProvidersConnectIndexRoute,
+  WWorkspaceFormsWebsitePostsPostRoute: WWorkspaceFormsWebsitePostsPostRoute,
+  WWorkspaceGrowReferralsEmailsMilestoneIdRoute:
+    WWorkspaceGrowReferralsEmailsMilestoneIdRoute,
 }
 
 const WWorkspaceRouteRouteWithChildren = WWorkspaceRouteRoute._addFileChildren(

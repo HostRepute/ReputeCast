@@ -14,6 +14,8 @@ import (
 //	rc-visible  the block's Visibility rule (internal/visibility)
 //	rc-name     the block's name in the layer tree ("Beta corner")
 //	rc-poll     a Poll block's settings (internal/polls)
+//	rc-omit     a block the editor shows and the email leaves out (a Sponsor
+//	            block without a booking, internal/sponsors)
 //
 // They are content: versioned, copied with a block, kept by language
 // versions. Before an email is compiled they come out (both compilers would
@@ -25,11 +27,17 @@ import (
 // so the compiled HTML of the whole email can be cut down to one version
 // per recipient without compiling it again (internal/visibility.Apply).
 
-// AttrVisible, AttrName and AttrPoll are ReputeCast's own attributes.
+// AttrVisible, AttrName, AttrPoll and AttrOmit are ReputeCast's own attributes;
+// AttrShowOn is a block's "Show on" (the publication website, design
+// expansion phase 7): "email", "web", or absent for both.
 const (
 	AttrVisible = "rc-visible"
 	AttrName    = "rc-name"
 	AttrPoll    = "rc-poll"
+	AttrOmit    = "rc-omit"
+	AttrShowOn  = "rc-show-on"
+	// ShowOnWeb is a Web only block: it isn't part of the email.
+	ShowOnWeb = "web"
 )
 
 // Marker comments around a conditional block in compiled HTML.
@@ -74,10 +82,12 @@ func validID(id string) bool { return idRe.MatchString(id) }
 var rcAttr = regexp.MustCompile(`\s+rc-[a-z-]+\s*=\s*("[^"]*"|'[^']*'|[^\s>"']+)`)
 
 // PrepareCompile turns a document into what the compilers get: rc-*
-// attributes removed and conditional blocks wrapped in their markers. A
-// document that doesn't parse is returned unchanged (the compiler reports
-// its error). A block whose id appears twice is marked once, the first
-// time: the composer gives a copied block an id of its own.
+// attributes removed, Web only blocks (the post's, not the email's) and
+// blocks marked rc-omit (shown in the editor only) left out, and
+// conditional blocks wrapped in their markers. A document that doesn't
+// parse is returned unchanged (the compiler reports its error). A block
+// whose id appears twice is marked once, the first time: the composer
+// gives a copied block an id of its own.
 func PrepareCompile(src string) string {
 	if !strings.Contains(src, "rc-") {
 		return src
@@ -95,7 +105,15 @@ func PrepareCompile(src string) string {
 	seen := map[string]bool{}
 	var walk func(n, parent *Node)
 	walk = func(n, parent *Node) {
+		if strings.HasPrefix(n.Tag, "mj-") && n.End > n.Start && parent != nil && omitted(n) {
+			edits = append(edits, edit{start: n.Start, end: n.End, text: "", order: 1})
+			return
+		}
 		if strings.HasPrefix(n.Tag, "mj-") && n.End > n.Start {
+			if v, ok := n.Get(AttrShowOn); ok && parent != nil && strings.TrimSpace(v) == ShowOnWeb {
+				edits = append(edits, edit{start: n.Start, end: n.End, order: 1})
+				return
+			}
 			open := strings.IndexByte(src[n.Start:n.End], '>')
 			if open > 0 {
 				tag := src[n.Start : n.Start+open+1]
@@ -141,6 +159,12 @@ func PrepareCompile(src string) string {
 	}
 	b.WriteString(src[last:])
 	return b.String()
+}
+
+// omitted reports whether an element is shown in the editor only.
+func omitted(n *Node) bool {
+	v, ok := n.Get(AttrOmit)
+	return ok && v != "" && v != "0" && v != "false"
 }
 
 // StripMarkers removes the conditional markers from compiled HTML: the

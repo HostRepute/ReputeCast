@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -236,7 +238,8 @@ func scheduleTZ(raw json.RawMessage) string {
 }
 
 // audienceLabel turns an audience definition into "Weekly Digest" or
-// "All subscribers" (every list of the workspace), as the campaigns list does.
+// "All subscribers" (every public list of the workspace), as the campaigns
+// list does.
 func (s *Service) audienceLabel(ctx context.Context, wsID uuid.UUID, raw json.RawMessage) (string, error) {
 	var a struct {
 		Lists    []uuid.UUID `json:"lists"`
@@ -251,7 +254,13 @@ func (s *Service) audienceLabel(ctx context.Context, wsID uuid.UUID, raw json.Ra
 	if err != nil {
 		return "", err
 	}
-	if len(a.Segments) == 0 && len(a.Lists) == len(lists) && len(lists) > 1 {
+	var public []uuid.UUID
+	for _, l := range lists {
+		if l.Public {
+			public = append(public, l.ID)
+		}
+	}
+	if len(a.Segments) == 0 && len(public) > 1 && !slices.ContainsFunc(public, func(id uuid.UUID) bool { return !slices.Contains(a.Lists, id) }) {
 		return "All subscribers", nil
 	}
 	names := make(map[uuid.UUID]string, len(lists))
@@ -500,6 +509,7 @@ func engagement(rows []store.ReportHourlyRow, delivered int64, hours int) Report
 
 // clickMap sizes each link against all link clicks and groups the small ones.
 func clickMap(html string, rows []store.ReportLinksRow) ReportClickMap {
+	rows = groupPersonal(rows)
 	out := ReportClickMap{HTML: html, Available: strings.TrimSpace(html) != "", Links: []ReportLink{}, Threshold: LinkThreshold}
 	for _, r := range rows {
 		out.Total += r.Clicks
@@ -532,6 +542,32 @@ func clickMap(html string, rows []store.ReportLinksRow) ReportClickMap {
 			other.Labels = append(other.Labels, grouped[i].label)
 		}
 		out.Other = &other
+	}
+	return out
+}
+
+// referralLinks are the Referral block's personal links: each reader's own
+// link, share links and rewards page (Grow, brief §6).
+var referralLinks = regexp.MustCompile(`\{\{-?\s*referral\.`)
+
+// groupPersonal makes the Referral block's links one entry of the click
+// map, "Referral links (personal)", at the first one's place.
+func groupPersonal(rows []store.ReportLinksRow) []store.ReportLinksRow {
+	out := make([]store.ReportLinksRow, 0, len(rows))
+	at := -1
+	for _, r := range rows {
+		if !referralLinks.MatchString(r.Url) {
+			out = append(out, r)
+			continue
+		}
+		if at < 0 {
+			at = len(out)
+			r.Label = "Referral links (personal)"
+			out = append(out, r)
+			continue
+		}
+		out[at].Clicks += r.Clicks
+		out[at].UniqueClicks += r.UniqueClicks
 	}
 	return out
 }

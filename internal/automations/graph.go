@@ -35,6 +35,9 @@ const (
 	// TriggerScoreCrosses starts when a contact's score rises to a
 	// threshold or falls below it (contact scoring, see scoretrigger.go).
 	TriggerScoreCrosses = "score_crosses"
+	// TriggerMilestoneReached starts when a referrer reaches a referral
+	// milestone (Grow), once per contact per milestone.
+	TriggerMilestoneReached = "milestone_reached"
 )
 
 // Branch paths.
@@ -54,7 +57,7 @@ type AutomationGraph struct {
 // AutomationNode is one step of a flow.
 type AutomationNode struct {
 	ID       string                 `json:"id" minLength:"1" maxLength:"40" pattern:"^[A-Za-z0-9_-]+$"`
-	Type     string                 `json:"type" enum:"trigger,delay,email,branch,filter,split,webhook,list,goal,exit"`
+	Type     string                 `json:"type" enum:"trigger,delay,email,branch,filter,split,webhook,list,goal,exit,sms"`
 	Position AutomationNodePosition `json:"position"`
 	Data     AutomationNodeData     `json:"data"`
 }
@@ -90,11 +93,13 @@ type AutomationNodeData struct {
 	Variants  []AutomationSplitVariant `json:"variants,omitempty" maxItems:"5"`
 	Webhook   *AutomationWebhook       `json:"webhook,omitempty"`
 	Action    *AutomationListAction    `json:"action,omitempty"`
+	// SMS is a "Send SMS" step (channels.go).
+	SMS *AutomationSMSStep `json:"sms,omitempty"`
 }
 
 // AutomationTrigger says which contacts enter the flow.
 type AutomationTrigger struct {
-	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,poll_answered"`
+	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,poll_answered,milestone_reached"`
 	// Joined list: the list, whether to wait for double opt-in, and whether
 	// contacts added by an import count.
 	ListID         string `json:"listId,omitempty" maxLength:"40"`
@@ -124,6 +129,11 @@ type AutomationTrigger struct {
 	AnswerOp string `json:"answerOp,omitempty" enum:"any,is,is_not"`
 	Answers  []int  `json:"answers,omitempty" maxItems:"11"`
 	OnChange bool   `json:"onChange,omitempty"`
+	// Reached a milestone (Grow): the referral program and its milestone,
+	// or any of its milestones when the milestone is empty (any program's
+	// when both are).
+	ProgramID   string `json:"programId,omitempty" maxLength:"40"`
+	MilestoneID string `json:"milestoneId,omitempty" maxLength:"40"`
 }
 
 // AutomationDuration is a delay or a time window.
@@ -155,7 +165,7 @@ type AutomationSendWindow struct {
 
 // AutomationCondition is what a branch asks, a filter keeps or a goal waits for.
 type AutomationCondition struct {
-	Kind string `json:"kind" enum:"opened,clicked,field,tag,list,event"`
+	Kind string `json:"kind" enum:"opened,clicked,field,tag,list,event,sms_consent,sms_clicked,sms_replied"`
 	// Opened / clicked: the email step (empty = any email in this flow), the
 	// window and whether machine opens (Apple Mail Privacy Protection) count.
 	Step        string              `json:"step,omitempty" maxLength:"40"`
@@ -466,6 +476,9 @@ type Refs struct {
 	Fields     map[string]string // key → type
 	Providers  map[string]string // id → name
 	Polls      map[string]string // "poll:<id>" or "survey:<id>" → name
+	// Milestones are Grow's referral milestones: "3 referrals · The Acme
+	// Field Guide".
+	Milestones map[string]string
 }
 
 var (
@@ -648,6 +661,11 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 		if t.Kind == TriggerScoreCrosses {
 			out = append(out, checkScoreTrigger(t)...)
 		}
+		if t.Kind == TriggerMilestoneReached && t.MilestoneID != "" && refs != nil && refs.Milestones != nil {
+			if _, ok := refs.Milestones[t.MilestoneID]; !ok {
+				bad("missing_ref", "The trigger's milestone was deleted. Pick another milestone.")
+			}
+		}
 		if t.Reentry != "" && t.Reentry != "once" && t.Reentry != "always" {
 			bad("invalid_reentry", "Re-entry is once or always.")
 		}
@@ -720,6 +738,14 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 			if !reEvent.MatchString(c.Event) {
 				bad("invalid_event", "Name the API event, like teammate.invited.")
 			}
+		case CondSMSConsent:
+			if c.ListID != "" && !listExists(c.ListID) {
+				bad("missing_ref", "The condition's list was deleted. Pick another list.")
+			}
+		case CondSMSClicked, CondSMSReplied:
+			if n.Type == NodeBranch && (c.Within == nil || c.Within.Amount <= 0) {
+				bad("invalid_window", "Set how long to wait for the click or reply.")
+			}
 		}
 	case NodeSplit:
 		if len(d.Variants) < 2 {
@@ -749,6 +775,10 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 		}
 		if w.Method != "" && w.Method != http.MethodPost && w.Method != http.MethodPut {
 			bad("invalid_method", "Webhooks use POST or PUT.")
+		}
+	case NodeSMS:
+		for _, p := range checkChannelNode(n, listExists) {
+			bad(p.Code, "%s", p.Message)
 		}
 	case NodeList:
 		a := d.Action

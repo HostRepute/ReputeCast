@@ -146,6 +146,9 @@ func (s *Service) SavePolicy(ctx context.Context, ws *store.Workspace, p *authz.
 	if in.AudienceMin.N <= 0 {
 		in.AudienceMin.N = 10000
 	}
+	if in.ChannelCost.Amount <= 0 {
+		in.ChannelCost.Amount = ParsePolicy(ws.ApprovalPolicy).ChannelCost.Amount
+	}
 	if err := s.checkSignoff(ctx, ws, in); err != nil {
 		return ApprovalPolicyView{}, err
 	}

@@ -138,6 +138,27 @@ describe('confirmation', () => {
     expect(primaryFix(alt)).toBeUndefined()
   })
 
+  it('never removes a sponsor’s block in bulk, and updates it', () => {
+    const missing = check({
+      key: 'content.sponsor.creative',
+      status: 'block',
+      fixes: [
+        { kind: 'link', label: 'Open booking', href: '/w/acme/earn/sponsors?booking=b' },
+        { kind: 'apply', action: 'sponsor_remove_block', label: 'Remove the block', tone: 'danger' },
+      ] as Check['fixes'],
+    })
+    expect(primaryFix(missing)).toBeUndefined()
+    const stale = check({
+      key: 'content.sponsor.stale',
+      status: 'block',
+      fixes: [
+        { kind: 'apply', action: 'sponsor_refresh_block', label: 'Update the block', tone: 'primary' },
+        { kind: 'apply', action: 'sponsor_remove_block', label: 'Remove the block', tone: 'danger' },
+      ] as Check['fixes'],
+    })
+    expect(primaryFix(stale)?.action).toBe('sponsor_refresh_block')
+  })
+
   it('sets web addresses apart', () => {
     expect(linkParts('1 link redirects through bit.ly/3xK9tQ. Shorteners hide it.')).toEqual([
       { text: '1 link redirects through ', link: false },

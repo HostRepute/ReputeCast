@@ -22,7 +22,12 @@ import (
 // (unsubscribe, preferences, view in browser). Relative media URLs become
 // absolute on base so the document works on a custom domain too.
 func renderEmail(subject, body, email, first, last string, attrs map[string]any, links map[string]string, base string) (string, string) {
-	vars := liquid.Vars(email, first, last, attrs, links)
+	return renderEmailVars(subject, body, liquid.Vars(email, first, last, attrs, links), base)
+}
+
+// renderEmailVars is renderEmail with the reader's variables already made
+// (view online adds the per-reader variables of blocks).
+func renderEmailVars(subject, body string, vars map[string]any, base string) (string, string) {
 	s, err := liquid.Render(subject, vars)
 	if err != nil {
 		s = subject

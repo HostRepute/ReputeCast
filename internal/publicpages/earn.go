@@ -11,6 +11,7 @@ package publicpages
 //	/p/{workspace}/upgrade/welcome        after checkout (?session=)
 //	/p/{workspace}/billing/{token}        a paid member's billing portal
 //	/p/{workspace}/cancel/{token}         the portal's cancel step (the cancel page comes with offers)
+//	/p/{workspace}/gift…                  the gift pages (gift.go, X17)
 
 import (
 	"context"
@@ -37,12 +38,15 @@ func (h *Handler) earnRoutes(r chi.Router) {
 	r.Get("/upgrade/{tier}", h.upgradePage)
 	r.Get("/billing/{token}", h.billingPortal)
 	r.Head("/billing/{token}", h.headOnly)
-	r.Get("/cancel/{token}", h.cancelPortal)
+	r.Get("/cancel/{token}", h.cancelPage)
+	r.Post("/cancel/{token}", h.cancelPost)
 	r.Head("/cancel/{token}", h.headOnly)
+	// The gift pages (X17, gift.go).
+	h.giftRoutes(r)
 }
 
 // earnRootPaths are the Earn pages on a verified custom domain.
-var earnRootPaths = []string{"/upgrade", "/upgrade/*", "/billing/*", "/cancel/*"}
+var earnRootPaths = []string{"/upgrade", "/upgrade/*", "/billing/*", "/cancel/*", "/gift", "/gift/*"}
 
 // upgradeBody is the upgrade page.
 type upgradeBody struct {
@@ -87,7 +91,7 @@ func (h *Handler) upgradePage(w http.ResponseWriter, r *http.Request) {
 	}
 	q := r.URL.Query()
 	req := earn.UpgradeRequest{Token: q.Get("r"), Tier: chi.URLParam(r, "tier"), Period: q.Get("period"), Canceled: q.Get("canceled") == "1",
-		TestToken: q.Get("test"), Lang: earn.PageLang}
+		TestToken: q.Get("test"), Lang: earn.PageLang, Offer: q.Get("offer")}
 	v, err := h.Earn.Upgrade(r.Context(), s.ws, req)
 	if err != nil {
 		h.serverError(w, r, s, err)
@@ -144,13 +148,14 @@ func (h *Handler) upgradeCheckout(w http.ResponseWriter, r *http.Request) {
 		h.notFound(w, r, s)
 		return
 	}
-	req := earn.CheckoutRequest{Tier: r.PostForm.Get("tier"), Period: r.PostForm.Get("period"), Token: r.PostForm.Get("r"), TestToken: r.PostForm.Get("test")}
+	req := earn.CheckoutRequest{Tier: r.PostForm.Get("tier"), Period: r.PostForm.Get("period"), Token: r.PostForm.Get("r"), TestToken: r.PostForm.Get("test"),
+		Offer: r.PostForm.Get("offer")}
 	to, err := h.Earn.StartCheckout(r.Context(), s.ws, req)
 	if err != nil {
 		if !errors.Is(err, earn.ErrUnavailable) {
 			h.log().ErrorContext(r.Context(), "upgrade checkout", "err", err)
 		}
-		up := earn.UpgradeRequest{Token: req.Token, Period: req.Period, TestToken: req.TestToken, Lang: earn.PageLang}
+		up := earn.UpgradeRequest{Token: req.Token, Period: req.Period, TestToken: req.TestToken, Lang: earn.PageLang, Offer: req.Offer}
 		v, verr := h.Earn.Upgrade(r.Context(), s.ws, up)
 		if verr != nil {
 			h.serverError(w, r, s, verr)

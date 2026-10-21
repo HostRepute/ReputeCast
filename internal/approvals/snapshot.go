@@ -62,6 +62,41 @@ type Snapshot struct {
 	Transactional *ApprovalTransactionalSnapshot `json:"transactional,omitempty"`
 	// Website: what a post publish request covers (DraftHash is the post's hash).
 	Website *ApprovalWebsiteSnapshot `json:"website,omitempty"`
+
+	// Channel campaigns (SMS; push and WhatsApp later) cover their text and
+	// a schedule written for people, compared as they are.
+	Channel       string `json:"channel,omitempty"`
+	Text          string `json:"text,omitempty"`
+	ScheduleLabel string `json:"schedule_label,omitempty"`
+	// SMS is what an SMS campaign's approval shows: the text as sent, its
+	// segments, the senders and the cost per country.
+	SMS *ApprovalSMSSnapshot `json:"sms,omitempty"`
+}
+
+// ApprovalSMSSnapshot is an SMS campaign at request time.
+type ApprovalSMSSnapshot struct {
+	Text       string               `json:"text"`
+	Prefix     string               `json:"prefix"`
+	OptOut     string               `json:"optOut"`
+	Body       string               `json:"body"`
+	Chars      int                  `json:"chars"`
+	Segments   int                  `json:"segments"`
+	Encoding   string               `json:"encoding"`
+	Recipients int64                `json:"recipients"`
+	Cost       float64              `json:"cost"`
+	Schedule   string               `json:"schedule"`
+	Countries  []ApprovalSMSCountry `json:"countries"`
+}
+
+// ApprovalSMSCountry is one country of an SMS campaign's route.
+type ApprovalSMSCountry struct {
+	Country    string  `json:"country"`
+	Sender     string  `json:"sender"`
+	Provider   string  `json:"provider"`
+	Recipients int64   `json:"recipients"`
+	Price      float64 `json:"price"`
+	Cost       float64 `json:"cost"`
+	Skipped    bool    `json:"skipped"`
 }
 
 // SnapshotShare is one provider of the route at request time.
@@ -163,6 +198,9 @@ type Current struct {
 	Timezone      string
 	UpdatedBy     string
 	Languages     []languages.VersionSnapshot
+	// Text and ScheduleLabel are a channel campaign's (see Snapshot).
+	Text          string
+	ScheduleLabel string
 }
 
 var hrefRe = regexp.MustCompile(`(?i)href\s*=\s*["']([^"']+)["']`)
@@ -233,7 +271,11 @@ func Diff(s Snapshot, c Current, loc *time.Location) []ApprovalChange {
 	if s.Preheader != c.Preheader {
 		out = append(out, ApprovalChange{Field: "preheader", Label: "Preheader", Before: s.Preheader, After: c.Preheader})
 	}
-	if s.ContentHash != "" && s.ContentHash != c.ContentHash {
+	if s.Text != "" || c.Text != "" {
+		if s.Text != c.Text {
+			out = append(out, ApprovalChange{Field: "content", Label: "Text", Before: s.Text, After: c.Text})
+		}
+	} else if s.ContentHash != "" && s.ContentHash != c.ContentHash {
 		links := Links(c.MJML, c.HTML)
 		linkChanges := 0
 		for i := 0; i < max(len(s.Links), len(links)); i++ {
@@ -277,7 +319,11 @@ func Diff(s Snapshot, c Current, loc *time.Location) []ApprovalChange {
 	if s.RouteKey != "" && c.RouteKey != "" && s.RouteKey != c.RouteKey {
 		out = append(out, ApprovalChange{Field: "route", Label: "Route", Before: s.SplitLabel, After: c.SplitLabel})
 	}
-	if !sameSchedule(s.Schedule, c.Schedule) {
+	if s.ScheduleLabel != "" || c.ScheduleLabel != "" {
+		if s.ScheduleLabel != c.ScheduleLabel {
+			out = append(out, ApprovalChange{Field: "schedule", Label: "Schedule", Before: s.ScheduleLabel, After: c.ScheduleLabel})
+		}
+	} else if !sameSchedule(s.Schedule, c.Schedule) {
 		out = append(out, ApprovalChange{Field: "schedule", Label: "Schedule", Before: ScheduleText(s.Schedule, loc), After: ScheduleText(c.Schedule, loc)})
 	}
 	return out

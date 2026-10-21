@@ -131,3 +131,23 @@ func TestCatalog(t *testing.T) {
 		t.Fatalf("catalog: %v", keys)
 	}
 }
+
+// with_query sets a parameter on a link with or without a query (the
+// Upgrade block's offer on a reader's upgrade link and on the archive's).
+func TestWithQuery(t *testing.T) {
+	for _, c := range []struct{ link, want string }{
+		{"https://news.acme.io/upgrade?r=AbC-12_x", "https://news.acme.io/upgrade?offer=FALL26&r=AbC-12_x"},
+		{"https://news.acme.io/upgrade", "https://news.acme.io/upgrade?offer=FALL26"},
+		{"https://news.acme.io/upgrade?offer=OLD", "https://news.acme.io/upgrade?offer=FALL26"},
+		{"not a link", "not a link"},
+		{"", ""},
+	} {
+		out, err := Render(`{{ link | with_query: 'offer', 'FALL26' }}`, map[string]any{"link": c.link})
+		if err != nil || out != c.want {
+			t.Errorf("%q: %q, %v", c.link, out, err)
+		}
+	}
+	if p := Validate(`<a href="{{ upgrade_url | with_query: 'offer', 'FALL26' | with_query: 'period', 'year' }}">Get Insider</a>`); len(p) != 0 {
+		t.Errorf("validate: %+v", p)
+	}
+}

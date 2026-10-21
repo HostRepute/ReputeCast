@@ -54,6 +54,9 @@ const (
 	KindUnmappedPrice     = "payments_unmapped_price" // a Stripe price isn't mapped to a tier
 	KindPaidImportDone    = "paid_import_finished"    // a paid-members import finished
 	KindFailedPayments    = "failed_payments_daily"   // the daily summary of failed payments (off by default)
+	// Sponsorships (design expansion, phase 6).
+	KindSponsorCreative = "sponsor_creative"        // a sponsor's creative is due tomorrow, or late
+	KindSponsorPayment  = "sponsor_payment_overdue" // a sponsor's payment is past its due date
 	// Address verification and placement tests (design expansion, phase 4).
 	KindVerificationEnded      = "verification_ended"       // a verification job finished or stopped
 	KindVerificationCreditsLow = "verification_credits_low" // a service's balance runs low
@@ -61,6 +64,16 @@ const (
 	KindSeedSignInFailed       = "seed_signin_failed"       // a seed mailbox's sign-in failed or expired
 	// The publication website (design expansion, phase 7).
 	KindWebsiteDomain = "website_domain" // the website's custom domain stopped checking out, or its certificate is failing
+	// Grow (design expansion, phase 5).
+	KindReferralsHeld        = "referrals_held"         // referrals wait in the review queue (grow:review)
+	KindRewardCodesLow       = "reward_codes_low"       // a code reward is running low or out of codes (grow:edit)
+	KindRewardWebhookFailing = "reward_webhook_failing" // a webhook reward's endpoint keeps failing (grow:edit)
+	KindPartnerLinkProblem   = "partner_link_problem"   // a partner link is invalid or unreachable (grow:connect)
+	// SMS (design expansion, phase 8).
+	KindSMSBudget       = "sms_budget"        // the month's SMS budget reached its alert level or ran out
+	KindSMSRegistration = "sms_registration"  // a sender's registration was approved or rejected
+	KindSMSProviderDown = "sms_provider_down" // an SMS provider is down, its credentials rejected, or its receipts silent
+	KindSMSSendPaused   = "sms_send_paused"   // an SMS campaign auto-paused
 )
 
 // Notification is what appears in the notification center.

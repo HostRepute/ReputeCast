@@ -93,6 +93,13 @@ var Events = []WebhookEventInfo{
 	{"message.opened", "Transactional messages", "The message was opened (templates with open tracking)."},
 	{"message.clicked", "Transactional messages", "A tracked link was clicked (templates with click tracking)."},
 	{"form.submitted", "Forms", "A signup was confirmed (at once for single opt-in), with the form and the answers."},
+	// Grow (design expansion phase 5): referral programs.
+	{"referral.counted", "Referrals", "A referral counted: its subscriber confirmed and stayed through the hold."},
+	{"referral.held", "Referrals", "A referral was held for review by a suspicion rule."},
+	{"referral.not_counted", "Referrals", "A referral didn't count, with the reason."},
+	{"referral.milestone_reached", "Referrals", "A referrer reached a milestone."},
+	{"referral.reward_sent", "Referrals", "A reward went to a referrer (a download, a code, a claim link)."},
+	{"referral.reward_failed", "Referrals", "A webhook reward failed after 6 hours of retries."},
 }
 
 // ValidEvent reports whether name is a known event or wildcard ("email.*", "*").

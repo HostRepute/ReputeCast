@@ -43,12 +43,18 @@ import (
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/forms"
+	"github.com/hostrepute/reputecast/internal/gifts"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
+	"github.com/hostrepute/reputecast/internal/liquid"
+	"github.com/hostrepute/reputecast/internal/offers"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/polls"
 	"github.com/hostrepute/reputecast/internal/publicurl"
+	"github.com/hostrepute/reputecast/internal/recommendations"
+	"github.com/hostrepute/reputecast/internal/referrals"
 	"github.com/hostrepute/reputecast/internal/server"
+	"github.com/hostrepute/reputecast/internal/sponsors"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/website"
 )
@@ -86,6 +92,23 @@ type Handler struct {
 	// Earn serves the upgrade page, its welcome page and the billing
 	// links, and the paid parts of the preference center (nil: none).
 	Earn *earn.Service
+	// Offers serves the hosted cancel page with its retention offer (X17;
+	// nil: the cancel link opens the portal's cancel step).
+	Offers *offers.Service
+	// Gifts serves the gift page, the page after paying and the redeem
+	// page (X17; nil: none).
+	Gifts *gifts.Service
+	// Sponsors serves shared sponsor reports at /r/{token} (X17; nil: none).
+	Sponsors *sponsors.Service
+	// TextTerms writes the text message terms page (nil: it answers 404).
+	TextTerms TextTerms
+	// Recipients add the per-reader variables of blocks (Grow's Referral
+	// block) to view online; nil adds none.
+	Recipients func() []liquid.RecipientData
+	// Referrals and Recommendations serve Grow's pages (grow.go); nil
+	// leaves them out.
+	Referrals       func() *referrals.Service
+	Recommendations func() *recommendations.Service
 
 	tmpl     map[string]*template.Template
 	version  string
@@ -107,7 +130,8 @@ func (h *Handler) log() *slog.Logger {
 }
 
 // pages are the templates, each rendered inside layout.html.
-var pages = []string{"subscribe", "confirm", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "category", "poll", "survey", "upgrade", "welcome"}
+var pages = []string{"subscribe", "confirm", "preferences", "request", "unsubscribe", "done", "message", "archive", "challenge", "category", "poll", "survey", "upgrade", "welcome", "smsterms",
+	"cancel", "gift", "giftdone", "redeem", "sponsorreport", "grow-hub", "grow-join", "grow-board", "grow-recommends", "grow-request"}
 
 // Init parses the templates; Routes calls it.
 func (h *Handler) Init() error {
@@ -117,7 +141,7 @@ func (h *Handler) Init() error {
 	funcs := template.FuncMap{"add": func(a, b int) int { return a + b }, "runes": utf8.RuneCountInString}
 	h.tmpl = map[string]*template.Template{}
 	for _, p := range pages {
-		t, err := template.New("layout.html").Funcs(funcs).ParseFS(templateFS, "templates/layout.html", "templates/"+p+".html")
+		t, err := template.New("layout.html").Funcs(funcs).ParseFS(templateFS, "templates/layout.html", "templates/"+p+".html", "templates/grow-parts.html")
 		if err != nil {
 			return fmt.Errorf("publicpages: template %s: %w", p, err)
 		}
@@ -142,6 +166,8 @@ func (h *Handler) Routes(r chi.Router) {
 	r.Get("/p/_/tls-check", h.tlsCheck)
 	r.Get("/p/_/{file}", h.static)
 	r.Route("/p/{ws}", func(r chi.Router) { h.pageRoutes(r) })
+	// A shared sponsor report (X17); other /r/ links are the web app's.
+	h.sharedReportRoutes(r)
 	// On a verified custom domain the same pages answer at the root.
 	root := chi.NewRouter()
 	h.pageRoutes(root)
@@ -158,8 +184,8 @@ func (h *Handler) Routes(r chi.Router) {
 		}
 		root.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), hostKey{}, slug)))
 	})
-	for _, p := range []string{"/", "/robots.txt", "/subscribe", "/subscribe/*", "/confirm/*", "/preferences", "/preferences/*",
-		"/unsubscribe/*", "/view/*", "/archive", "/archive/*", "/archive.rss", "/sitemap.xml", "/poll/*", "/s/*"} {
+	for _, p := range append([]string{"/", "/robots.txt", "/subscribe", "/subscribe/*", "/confirm/*", "/preferences", "/preferences/*",
+		"/unsubscribe/*", "/view/*", "/archive", "/archive/*", "/archive.rss", "/sitemap.xml", "/poll/*", "/s/*", "/sms-terms"}, growPaths...) {
 		r.Handle(p, custom)
 	}
 	// The upgrade page (earn.go).
@@ -198,6 +224,7 @@ func (h *Handler) pageRoutes(r chi.Router) {
 	r.Get("/archive/{issue}", h.issue)
 	r.Get("/archive/{issue}/{lang}", h.issue)
 	r.Get("/sitemap.xml", h.sitemap)
+	r.Get("/sms-terms", h.smsTerms)
 	r.Get("/forms/{script}", h.formScript)
 	r.Get("/forms/{id}/session", h.formSession)
 	r.Options("/forms/{id}/session", h.formPreflight)
@@ -214,6 +241,7 @@ func (h *Handler) pageRoutes(r chi.Router) {
 	r.Head("/s/{slug}", h.headOnly)
 	r.Post("/s/{slug}", h.surveyPost)
 	h.earnRoutes(r)
+	h.growRoutes(r)
 }
 
 // Browser gives emails shown in the browser (view online, the archive)
@@ -607,8 +635,14 @@ func (h *Handler) static(w http.ResponseWriter, r *http.Request) {
 	case "site.js":
 		data, _ = fs.ReadFile(staticFS, "static/site.js")
 		ctype = "text/javascript; charset=utf-8"
+	case "grow.js":
+		data, _ = fs.ReadFile(staticFS, "static/grow.js")
+		ctype = "text/javascript; charset=utf-8"
 	case "poll.js":
 		data, _ = fs.ReadFile(staticFS, "static/poll.js")
+		ctype = "text/javascript; charset=utf-8"
+	case "gift.js":
+		data, _ = fs.ReadFile(staticFS, "static/gift.js")
 		ctype = "text/javascript; charset=utf-8"
 	default:
 		http.NotFound(w, r)

@@ -190,7 +190,7 @@ func (h *Handler) homeBody(ctx context.Context, s *site, v *siteView, period str
 			}
 			sv.Title = v.T("site.latest")
 			sv.AllHref = s.links.Archive()
-			sv.AllText = v.T("site.allPosts", "count", home.Total)
+			sv.AllText = v.T("site.latestAll", "count", home.Total)
 			if home.Layout == website.LayoutGrid {
 				sv.Kind = "grid"
 			}

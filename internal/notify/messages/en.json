@@ -26,9 +26,19 @@
   "short.payments_unmapped_price": "unmapped prices",
   "short.paid_import_finished": "paid-members imports",
   "short.failed_payments_daily": "failed payments",
+  "short.sponsor_creative": "sponsor creatives",
+  "short.sponsor_payment_overdue": "overdue sponsor payments",
   "short.verification_ended": "verification jobs",
   "short.verification_credits_low": "low verification credits",
   "short.placement_finished": "placement tests",
   "short.seed_signin_failed": "seed sign-in failures",
-  "short.website_domain": "website domain problems"
+  "short.website_domain": "website domain problems",
+  "short.referrals_held": "held referrals",
+  "short.reward_codes_low": "reward codes running low",
+  "short.reward_webhook_failing": "failing reward webhooks",
+  "short.partner_link_problem": "partner link problems",
+  "short.sms_budget": "SMS budget alerts",
+  "short.sms_registration": "sender registrations",
+  "short.sms_provider_down": "SMS provider problems",
+  "short.sms_send_paused": "SMS auto-pauses"
 }

@@ -38,6 +38,8 @@ const search = z.object({
   /** Paid status (Earn, X16). */
   paid: z.enum(['with_access', 'trialing', 'past_due', 'complimentary', 'gift', 'ended', 'free']).optional().catch(undefined),
   paidTier: z.string().uuid().optional().catch(undefined),
+  /** Members of the website: contacts who signed in to it (X18). */
+  signedIn: z.boolean().optional().catch(undefined),
   page: z.coerce.number().int().min(1).optional().catch(undefined),
   size: z.coerce.number().int().min(1).max(100).optional().catch(undefined),
 })

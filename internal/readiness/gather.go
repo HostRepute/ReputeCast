@@ -161,6 +161,12 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	if s.Website != nil {
 		f.Web = s.Website.WebFacts(ctx, ws, c.ID)
 	}
+	if s.Sponsor != nil && strings.TrimSpace(c.Mjml) != "" {
+		f.Sponsor = s.Sponsor.SponsorFacts(ctx, ws, c.ID, c.Mjml)
+	}
+	if s.UpgradeOffers != nil && strings.TrimSpace(c.Mjml) != "" {
+		f.UpgradeOffers = s.UpgradeOffers.EndedUpgradeOffers(ctx, ws, c.ID, c.Mjml)
+	}
 	done(stageContent, f)
 
 	// Languages: who gets which version, and the content checks of every
@@ -182,6 +188,20 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 		}
 	}
 	done(stageLang, f)
+
+	// Grow's blocks: who the Referral block shows to, what the
+	// Recommendations block shows.
+	if s.Grow != nil {
+		byList := map[uuid.UUID]int64{}
+		for _, r := range g.recipients {
+			for _, l := range r.Lists {
+				if id, err := uuid.Parse(l); err == nil {
+					byList[id]++
+				}
+			}
+		}
+		f.Grow = s.Grow.ReadinessRows(ctx, ws, c.ID, c.Html, byList, int64(len(g.recipients)))
+	}
 
 	// Accessibility: every language version, on the content as saved.
 	if s.Accessibility != nil {
