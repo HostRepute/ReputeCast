@@ -535,6 +535,21 @@ func TestPushSubscriptionLifecycle(t *testing.T) {
 	}
 	c.Do(http.MethodPost, p+"/push-campaigns/"+fourth.ID+"/send", map[string]any{"version": rv.Version}).MustStatus(t, 409)
 
+	// Sam's timeline: the subscription and the notification.
+	var tl struct {
+		Items []struct {
+			Type   string `json:"type"`
+			Answer string `json:"answer"`
+		} `json:"items"`
+	}
+	c.Do(http.MethodGet, p+"/contacts/"+sam.String()+"/activity?limit=20", nil).MustStatus(t, 200).JSON(t, &tl)
+	types := map[string]bool{}
+	for _, it := range tl.Items {
+		types[it.Type] = true
+	}
+	if !types["push_subscribed"] || !types["push_sent"] {
+		t.Fatalf("timeline: %+v", tl.Items)
+	}
 	// The reader turns notifications off in the browser.
 	f.browser(siteURL, firefoxUA).Do(http.MethodPost, "/p/"+slug+"/push/unsubscribe", map[string]any{"endpoint": firefox}).MustStatus(t, 200)
 	c.Do(http.MethodGet, p+"/contacts/"+sam.String()+"/push", nil).MustStatus(t, 200).JSON(t, &card)

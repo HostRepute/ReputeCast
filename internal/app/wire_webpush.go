@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/approvals"
+	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/channels"
@@ -141,6 +142,44 @@ func (rs channelRows) FillChannelRows(ctx context.Context, ws *store.Workspace, 
 	}
 }
 
+// activityMerge puts two timelines together, newest first: push and
+// WhatsApp after the ones before them.
+type activityMerge struct{ first, second audience.ActivitySource }
+
+func (m activityMerge) ContactActivity(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, before *time.Time, beforeID string,
+	limit int) ([]audience.ContactActivityItem, int64, error) {
+	a, na, err := m.first.ContactActivity(ctx, ws, contactID, before, beforeID, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+	b, nb, err := m.second.ContactActivity(ctx, ws, contactID, before, beforeID, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+	out := make([]audience.ContactActivityItem, 0, min(len(a)+len(b), limit))
+	i, j := 0, 0
+	for (i < len(a) || j < len(b)) && len(out) < limit {
+		if j >= len(b) || (i < len(a) && (a[i].At.After(b[j].At) || (a[i].At.Equal(b[j].At) && a[i].ID > b[j].ID))) {
+			out = append(out, a[i])
+			i++
+		} else {
+			out = append(out, b[j])
+			j++
+		}
+	}
+	return out, na + nb, nil
+}
+
+// chainActivity adds a source to the contact timeline.
+func chainActivity(prev func(*App) audience.ActivitySource, next func(*App) audience.ActivitySource) func(*App) audience.ActivitySource {
+	return func(a *App) audience.ActivitySource {
+		if p := prev(a); p != nil {
+			return activityMerge{first: p, second: next(a)}
+		}
+		return next(a)
+	}
+}
+
 // pushPages gives the public pages the push prompt and the preference
 // center's "Turn off".
 type pushPages struct{ a *App }
@@ -171,6 +210,8 @@ func init() {
 		out["push"] = a.Push()
 		return out
 	}
+	// Notifications and subscriptions on the contact timeline.
+	audienceAnswers = chainActivity(audienceAnswers, func(a *App) audience.ActivitySource { return a.Push() })
 	prevPages := publicPush
 	publicPush = func(a *App) publicpages.PushPages {
 		if p := prevPages(a); p != nil {

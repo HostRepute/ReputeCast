@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/approvals"
+	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/channels"
@@ -103,6 +104,8 @@ func init() {
 		out["whatsapp"] = a.WhatsApp()
 		return out
 	}
+	// Messages, replies and consent on the contact timeline.
+	audienceAnswers = chainActivity(audienceAnswers, func(a *App) audience.ActivitySource { return a.WhatsApp() })
 	startHooks = append(startHooks, func(a *App) error {
 		s := a.WhatsApp()
 		automations.RegisterChannelStep(automations.NodeWhatsApp, whatsapp.Step{S: s})

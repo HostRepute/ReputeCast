@@ -491,6 +491,24 @@ func TestWhatsAppConsentCampaignWindowAndKeywords(t *testing.T) {
 	if last.Text != "Yes: the Lakeside Hall garage on Harbor Drive." || last.To != "+13125550123" {
 		t.Fatalf("reply: %+v", last)
 	}
+	// Sam's timeline: consent, the template (read), what he wrote.
+	var tl struct {
+		Items []struct {
+			Type string `json:"type"`
+			Note string `json:"note"`
+		} `json:"items"`
+	}
+	c.Do(http.MethodGet, p+"/contacts/"+ids["sam"].String()+"/activity?limit=20", nil).MustStatus(t, 200).JSON(t, &tl)
+	types := map[string]string{}
+	for _, it := range tl.Items {
+		types[it.Type] = it.Note
+	}
+	if _, ok := types["whatsapp_consent_subscribed"]; !ok || types["whatsapp_delivered"] != "read" {
+		t.Fatalf("timeline: %+v", tl.Items)
+	}
+	if _, ok := types["whatsapp_reply"]; !ok {
+		t.Fatalf("timeline without the reply: %+v", tl.Items)
+	}
 	// Ana never wrote: her window is closed.
 	c.Do(http.MethodPost, p+"/contacts/"+ids["ana"].String()+"/whatsapp/reply", map[string]any{"text": "Hello"}).MustStatus(t, 409)
 
