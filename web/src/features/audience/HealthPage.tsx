@@ -325,6 +325,9 @@ function PolicyCard({ h }: { h: Health }) {
 
 const healthTone: Record<string, Tone> = { ok: 'ok', warn: 'warn', bad: 'bad' }
 
+/** The API's list health labels (internal/audience/health.go), as message keys. */
+const healthKey: Record<string, string> = { Excellent: 'excellent', Good: 'good', 'Needs attention': 'attention', 'Re-permission needed': 'repermission' }
+
 function PerList({ h }: { h: Health }) {
   const tr = useT()
   const { slug } = useWorkspace()
@@ -429,7 +432,7 @@ function PerList({ h }: { h: Health }) {
                   <td className={`r n ${r.complaintHigh ? 'text-warn-fg' : ''}`}>{r.complaintRate !== undefined && r.complaintRate !== null ? pct(r.complaintRate, 2) : '–'}</td>
                   <td className="r n">{r.bounceRate !== undefined && r.bounceRate !== null ? pct(r.bounceRate) : '–'}</td>
                   <td>
-                    <Badge tone={healthTone[r.healthTone] ?? 'neutral'}>{r.health}</Badge>
+                    <Badge tone={healthTone[r.healthTone] ?? 'neutral'}>{tr(m.health, { health: healthKey[r.health] ?? 'other', raw: r.health })}</Badge>
                   </td>
                 </tr>
               )

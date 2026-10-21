@@ -43,6 +43,9 @@ export const m = defineMessages('audience.profile', {
 
   // ── Fields ───────────────────────────────────────────────────────────
   fields: 'Fields',
+  /** A built-in field's name, by the API's key (ContactProfileField.key); `label` is the API's own. */
+  builtinField:
+    '{key, select, first_name {First name} last_name {Last name} company {Company} country_timezone {Country · timezone} other {{label}}}',
   custom: 'custom',
   customType: 'custom · {type, select, number {number} date {date} boolean {boolean} other {{type}}}',
   tagFailed: "Couldn't add the tag",

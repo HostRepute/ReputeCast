@@ -42,6 +42,7 @@ export function SenderHealthCard({ h }: { h: Schemas['OverviewSenderHealth'] }) 
   const t = useT()
   const { slug } = useWorkspace()
   const colors = scoreColors[h.tone] ?? scoreColors.neutral!
+  const verdict = t(m.verdict, { label: h.label })
   return (
     <section className="card flex flex-col gap-4 px-[22px] py-5" aria-labelledby="ov-health-h">
       <div className="flex items-center justify-between gap-3 max-md:flex-wrap">
@@ -53,7 +54,7 @@ export function SenderHealthCard({ h }: { h: Schemas['OverviewSenderHealth'] }) 
         </Link>
       </div>
       <div className="flex flex-wrap items-center gap-5">
-        <ScoreRing score={h.score} label={t(m.scoreLabel, { score: h.score, verdict: h.label.toLowerCase() })} verdict={h.label.toUpperCase()} verdictColor={colors.word} color={colors.ring} />
+        <ScoreRing score={h.score} label={t(m.scoreLabel, { score: h.score, verdict: verdict.toLowerCase() })} verdict={verdict.toUpperCase()} verdictColor={colors.word} color={colors.ring} />
         <ul className="m-0 flex flex-[1_1_220px] list-none flex-col gap-2 p-0 text-[13px]">
           {h.reasons.map((r, i) => (
             <li key={`${r.key}-${i}`} className="flex items-start gap-2">

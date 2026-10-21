@@ -41,6 +41,7 @@ export default translate(m, {
 
   // ── Fields ───────────────────────────────────────────────────────────
   fields: 'Trường',
+  builtinField: '{key, select, first_name {Tên} last_name {Họ} company {Công ty} country_timezone {Quốc gia · múi giờ} other {{label}}}',
   custom: 'tùy chỉnh',
   customType: 'tùy chỉnh · {type, select, number {số} date {ngày} boolean {đúng/sai} other {{type}}}',
   tagFailed: 'Không thêm được thẻ',

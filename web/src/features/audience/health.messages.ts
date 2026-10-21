@@ -70,6 +70,9 @@ export const m = defineMessages('audience.health', {
   colComplaint: 'Complaint rate',
   colBounce: 'Bounce rate',
   colHealth: 'Health',
+  /** A list's health, one of the API's four labels (ListHealthRow.health); `raw` is the label itself. */
+  health:
+    '{health, select, excellent {Excellent} good {Good} attention {Needs attention} repermission {Re-permission needed} other {{raw}}}',
   savedView: '(saved view)',
   actionsFor: 'Actions for {name}',
   deleteList: 'Delete list',

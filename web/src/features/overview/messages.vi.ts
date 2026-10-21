@@ -27,6 +27,7 @@ export default translate(m, {
   // ── Sender health ────────────────────────────────────────────────────
   deliverabilityDetails: 'Chi tiết khả năng vào hộp thư',
   scoreLabel: 'Điểm sức khỏe người gửi {score} trên 100, {verdict}',
+  verdict: '{label, select, Good {Tốt} Fair {Khá} Poor {Kém} other {{label}}}',
   reasonGood: 'Tốt:',
   reasonProblem: 'Vấn đề:',
   reasonWarning: 'Cảnh báo:',

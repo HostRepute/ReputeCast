@@ -279,7 +279,7 @@ function FieldsCard({ p }: { p: Profile }) {
         ) : (
           <div key={f.key} className="pkv">
             <span className="k">
-              {f.label}
+              {f.type === 'builtin' ? tr(m.builtinField, { key: f.key, label: f.label }) : f.label}
               {f.custom ? (
                 <>
                   {' '}

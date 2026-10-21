@@ -71,6 +71,7 @@ export default translate(m, {
   colComplaint: 'Tỷ lệ khiếu nại',
   colBounce: 'Tỷ lệ trả thư',
   colHealth: 'Sức khỏe',
+  health: '{health, select, excellent {Rất tốt} good {Tốt} attention {Cần chú ý} repermission {Cần xin phép lại} other {{raw}}}',
   savedView: '(chế độ xem đã lưu)',
   actionsFor: 'Thao tác cho {name}',
   deleteList: 'Xóa danh sách',

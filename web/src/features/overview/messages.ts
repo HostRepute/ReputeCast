@@ -30,6 +30,8 @@ export const m = defineMessages('overview', {
   // ── Sender health ────────────────────────────────────────────────────
   deliverabilityDetails: 'Deliverability details',
   scoreLabel: 'Sender health score {score} out of 100, {verdict}',
+  /** The score's verdict, one of the API's labels (OverviewSenderHealth.label). */
+  verdict: '{label, select, Good {Good} Fair {Fair} Poor {Poor} other {{label}}}',
   reasonGood: 'Good:',
   reasonProblem: 'Problem:',
   reasonWarning: 'Warning:',
