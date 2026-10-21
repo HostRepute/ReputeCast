@@ -8,6 +8,7 @@ import { mz } from '@/features/languages/messages'
 import { FeedTokensMenu, SubjectPreviews, useDigestMode } from '@/features/digests/composer/DigestMode'
 import { dc } from '@/features/digests/composer/messages'
 import { IdeasButton } from '@/features/ai/composer/ideas'
+import { m } from './messages'
 
 /** Subject of the variant being edited (A is the campaign itself). */
 export function useVariantSubject(): [string, (v: string) => void] {
@@ -33,7 +34,7 @@ export function SubjectBar() {
   // A digest's template reads as its next issue: the subject with that issue's posts, sent at its time.
   const shown = digest?.render ? { subject: digest.render.subject, preheader: digest.render.preheader } : { subject, preheader: c.preheader }
   const time = inboxTime(digest?.render?.sendAt ?? digest?.digest?.next?.sendAt ?? digest?.digest?.nextSend ?? c.campaign.scheduledAt ?? now)
-  const sender = c.campaign.sender?.name ?? c.context.senders[0]?.name ?? 'Your name'
+  const sender = c.campaign.sender?.name ?? c.context.senders[0]?.name ?? t(m.senderFallback)
   const heuristics = useMemo(() => c.checks?.subjectHeuristics ?? [], [c.checks])
   const spam = heuristics.length > 0 && subject.trim() !== ''
   const empty = !subject.trim() && !c.preheader.trim()
@@ -44,10 +45,10 @@ export function SubjectBar() {
     : digest && !spam
       ? t(dc.subjectLabel)
       : spam
-    ? `Subject · ${heuristics.length} spam ${heuristics.length === 1 ? 'heuristic' : 'heuristics'}: ${heuristics.join(', ')}`
+    ? t(m.subjectSpam, { count: heuristics.length, list: heuristics.join(', ') })
     : c.abTest && c.abTest.kind === 'subject'
-      ? `Subject · Variant ${c.variant}`
-      : 'Subject'
+      ? t(m.subjectVariant, { variant: c.variant })
+      : t(m.subject)
   return (
     <div className="cmp-subj">
       <label style={{ flex: digest ? '3 1 380px' : '2 1 320px' }}>
@@ -59,7 +60,7 @@ export function SubjectBar() {
           <input
             className={digest ? 'in mono min-w-0 flex-1' : 'in min-w-0 flex-1'}
             value={subject}
-            placeholder="What is this email about?"
+            placeholder={t(m.subjectPlaceholder)}
             onChange={(e) => setSubject(e.target.value.replace(/[\r\n]+/g, ' '))}
             readOnly={!c.canEdit}
             maxLength={998}
@@ -70,12 +71,12 @@ export function SubjectBar() {
         </span>
       </label>
       <label style={{ flex: digest ? '2 1 260px' : '2 1 320px' }}>
-        <span className="k">{language ? t(mz.preheaderIn, { language }) : 'Preheader'}</span>
+        <span className="k">{language ? t(mz.preheaderIn, { language }) : t(m.preheader)}</span>
         <input
           className={digest ? 'in mono' : 'in'}
           style={digest ? { fontSize: 12 } : undefined}
           value={c.preheader}
-          placeholder="Shown after the subject in most inboxes"
+          placeholder={t(m.preheaderPlaceholder)}
           onChange={(e) => c.setPreheader(e.target.value.replace(/[\r\n]+/g, ' '))}
           readOnly={!c.canEdit}
           maxLength={500}
@@ -92,12 +93,12 @@ export function SubjectBar() {
                 : digest.preview === 'last'
                   ? t(dc.inboxLast, { number: digest.render.number, client: mobile ? 'iPhone Mail' : 'Gmail' })
                   : t(dc.inboxItems, { count: digest.render.count, client: mobile ? 'iPhone Mail' : 'Gmail' })
-              : `Inbox preview · ${mobile ? 'iPhone Mail' : 'Gmail'}`}
+              : t(m.inboxPreview, { client: mobile ? 'iPhone Mail' : 'Gmail' })}
         </span>
         {empty ? (
           <div className="cmp-inbox empty" aria-labelledby="inbox-label">
             <span style={{ fontWeight: 700, width: 120 }}>{sender}</span>
-            <span>Subject and preheader appear here as you type</span>
+            <span>{t(m.inboxEmpty)}</span>
             <span className="k" style={{ marginLeft: 'auto' }}>
               {time}
             </span>

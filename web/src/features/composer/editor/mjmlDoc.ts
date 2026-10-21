@@ -1,3 +1,6 @@
+import { t } from '@/i18n'
+import { mk } from '../code.messages'
+
 /**
  * Helpers for MJML documents as text. The canvas (GrapesJS) only holds
  * <mjml><mj-body>…</mj-body></mjml>; the <mj-head> is kept here, next to it,
@@ -271,17 +274,17 @@ export function checkMjmlTags(src: string): { line: number; message: string } | 
       stack.push({ tag: tag!, at: m.index })
       if (ENDING_TAGS.has(tag!)) {
         const end = src.indexOf(`</${tag}>`, re.lastIndex)
-        if (end < 0) return { line: lineAt(m.index), message: `unclosed <${tag}>` }
+        if (end < 0) return { line: lineAt(m.index), message: t(mk.unclosed, { tag: `<${tag}>` }) }
         re.lastIndex = end
       }
       continue
     }
     const top = stack.pop()
-    if (!top) return { line: lineAt(m.index), message: `</${tag}> has no opening tag` }
-    if (top.tag !== tag) return { line: lineAt(top.at), message: `unclosed <${top.tag}>` }
+    if (!top) return { line: lineAt(m.index), message: t(mk.noOpening, { tag: `</${tag}>` }) }
+    if (top.tag !== tag) return { line: lineAt(top.at), message: t(mk.unclosed, { tag: `<${top.tag}>` }) }
   }
   const open = stack.pop()
-  return open ? { line: lineAt(open.at), message: `unclosed <${open.tag}>` } : null
+  return open ? { line: lineAt(open.at), message: t(mk.unclosed, { tag: `<${open.tag}>` }) } : null
 }
 
 const VISIBILITY_MARK = '/* rc:visibility */'

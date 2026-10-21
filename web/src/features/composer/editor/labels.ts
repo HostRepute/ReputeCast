@@ -1,5 +1,6 @@
 import type { Component, ComponentAdd, Editor } from 'grapesjs'
-import { t as tt } from '@/i18n'
+import { t as tt, type MessageDescriptor } from '@/i18n'
+import { mc } from '../canvas.messages'
 import { feedItemsLabel, isFeedItems } from '@/features/digests/composer/feedComponent'
 import { dc } from '@/features/digests/composer/messages'
 import { growBlockLabel, growSectionLabel, isGrowBlock } from '@/features/grow/composer/blocks'
@@ -189,14 +190,64 @@ export function sectionLabel(c: Component): string {
   return tag.replace(/^mj-/, '')
 }
 
+/**
+ * The words sectionLabel and the server's outline (internal/mjml) name
+ * sections with, as people read them. sectionLabel stays in these English
+ * words: other code compares them ("footer").
+ */
+const sectionWords: Record<string, MessageDescriptor> = {
+  header: mc.secHeader,
+  footer: mc.secFooter,
+  hero: mc.secHero,
+  'raw HTML': mc.secRawHtml,
+  wrapper: mc.secWrapper,
+  divider: mc.secDivider,
+  image: mc.secImage,
+  button: mc.secButton,
+  text: mc.secText,
+  'article cards': mc.secArticleCards,
+  'product cards': mc.secProductCards,
+  poll: mc.secPoll,
+  sponsor: mc.secSponsor,
+  upgrade: mc.secUpgrade,
+  'feed items': mc.secFeedItems,
+  'store items': mc.secStoreItems,
+  'transactional footer': mc.secTransactionalFooter,
+  'receipt lines': mc.secReceiptLines,
+  'preview end': mc.secPreviewEnd,
+  section: mc.secSection,
+  column: mc.secColumn,
+  group: mc.secGroup,
+  spacer: mc.secSpacer,
+  social: mc.secSocial,
+  navbar: mc.secNavbar,
+  table: mc.secTable,
+}
+
+/**
+ * A section label ("hero", "2 columns") in the app language. A block's own
+ * name, and names other features give, stay as they are.
+ */
+export function sectionWord(label: string): string {
+  const cols = /^(\d+) columns$/.exec(label)
+  if (cols) return tt(mc.secColumns, { count: Number(cols[1]) })
+  const d = Object.hasOwn(sectionWords, label) ? sectionWords[label] : undefined
+  return d ? tt(d) : label
+}
+
+/** A top-level body section's name as the layer tree shows it: sectionLabel in the app language. */
+export function sectionName(c: Component): string {
+  return sectionWord(sectionLabel(c))
+}
+
 /** "mj-section · 2 columns", "mj-column · 50%", "mj-image". */
 export function componentLabel(c: Component): string {
   if (isFeedItems(c)) return feedItemsLabel(c)
   if (isGrowBlock(c)) return growBlockLabel(c)
   const tag = tagOf(c)
-  if (!tag) return String(c.get('type') ?? c.get('tagName') ?? 'element')
+  if (!tag) return String(c.get('type') ?? c.get('tagName') ?? tt(mc.element))
   const parent = c.parent()
-  if (tagOf(parent) === 'mj-body') return `${tag} · ${sectionLabel(c)}`
+  if (tagOf(parent) === 'mj-body') return `${tag} · ${sectionName(c)}`
   if (tag === 'mj-column') {
     const w = String((c.getAttributes() as Record<string, unknown>).width ?? '')
     if (w) return `${tag} · ${w}`

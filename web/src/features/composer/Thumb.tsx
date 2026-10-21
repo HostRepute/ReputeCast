@@ -1,4 +1,6 @@
 import type { Schemas } from '@/api/client'
+import { useT } from '@/i18n'
+import { m } from './messages'
 
 type Item = Schemas['MJMLThumbItem']
 
@@ -17,10 +19,11 @@ function Bar({ it }: { it: Item }) {
 
 /** A template's wireframe (the gallery's grey bars). */
 export function Thumb({ items, blank, small }: { items: Item[]; blank?: boolean; small?: boolean }) {
+  const t = useT()
   if (blank) {
     return (
       <div className="thumb" style={{ borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)', fontSize: 12, ...(small ? { height: 64 } : {}) }} aria-hidden="true">
-        Empty mj-body
+        {t(m.emptyBody)}
       </div>
     )
   }

@@ -26,7 +26,7 @@ import { Banner } from '@/components/ui/Note'
 import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
 import { cn } from '@/lib/cn'
-import { count, dayMonthDate } from '@/lib/format'
+import { count, dayMonthDate, pct } from '@/lib/format'
 import { useDocumentTitle, useMediaQuery, useReducedMotion } from '@/lib/hooks'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
 import { useUnsavedWork } from '@/lib/sessionClock'
@@ -61,14 +61,17 @@ import {
   pathLabel,
   refsFrom,
   serialize,
-  triggerKindLabels,
-  typeNames,
+  triggerKindLabel,
+  typeName,
   type FlowGraph,
   type NodeData,
   type StepType,
 } from './graph'
 import { DRAG_TYPE, draggedStepType, FlowStatsList, graphOrder, Palette, Prop, StepPanel, StepStatsPanel, type PaletteItem } from './panels'
 import { storeOfTrigger, useStoreTriggerOptions } from '@/features/commerce/automation'
+import { t as tt, T, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { mf } from './flow.messages'
 import { AutomationStatusBadge } from './StatusBadge'
 import { FlowViewProvider, startCountUp, type FlowView, type StepStats } from './view'
 import './automations.css'
@@ -86,7 +89,6 @@ const GRID = 20
 const snapPoint = (p: XY): XY => ({ x: Math.round(p.x / GRID) * GRID, y: Math.round(p.y / GRID) * GRID })
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent)
 const ANIMATE_KEY = 'reputecast.automations.animate'
-const EDIT_REASON = 'Editing automations needs the automations:edit permission.'
 
 function readAnimatePref(): boolean {
   try {
@@ -148,8 +150,8 @@ export function NewAutomationPage({ template, list }: { template?: Schemas['Auto
       { onSuccess: (r) => void navigate({ to: '/w/$workspace/automations/$automationId', params: { workspace: slug, automationId: r.id }, search: {}, replace: true }) },
     )
   }, [reason, slug, template, list, mutate, navigate])
-  if (reason) return <EditorError error={new ApiError(403, { status: 403, title: 'Not allowed', detail: reason } as Schemas['Problem'])} />
-  if (create.isError) return <EditorError error={create.error} title="Couldn't create the automation" />
+  if (reason) return <EditorError error={new ApiError(403, { status: 403, title: tt(mf.notAllowed), detail: reason } as Schemas['Problem'])} />
+  if (create.isError) return <EditorError error={create.error} title={tt(mf.createFailed)} />
   return <EditorSkeleton />
 }
 
@@ -167,6 +169,7 @@ function firstSelection(g: FlowGraph, step?: string): string | undefined {
 }
 
 function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search: EditorSearch; onSearch: (s: EditorSearch) => void; onReload: () => Promise<void> }) {
+  const t = useT()
   const { slug, me } = useWorkspace()
   const qc = useQueryClient()
   const rf = useReactFlow<StepNodeType, StepEdgeType>()
@@ -176,7 +179,8 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
   const publishReason = usePermissionReason('automations:publish')
   const id = detail.id
   const published = detail.liveVersion !== undefined
-  useDocumentTitle(`${detail.name} · Automations · ${me.workspace.name} · ReputeCast`)
+  const editReason = t(mf.editReason)
+  useDocumentTitle(t(mf.documentTitle, { name: detail.name, workspace: me.workspace.name }))
 
   const stats = $api.useQuery(
     'get',
@@ -250,9 +254,9 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
   const flush = useCallback(async () => {
     const l = latest.current
     if (l.inflight) await l.inflight
-    if (l.stopped) throw new Error('The draft is not saved.')
+    if (l.stopped) throw new Error(tt(mf.notSavedError))
     if (l.json === l.savedJson) return
-    if (!(await save(l.json))) throw new Error("Couldn't save the draft.")
+    if (!(await save(l.json))) throw new Error(tt(mf.saveFailedError))
   }, [save])
 
   // Leaving the editor saves what is left; closing the tab with unsaved edits asks first.
@@ -276,18 +280,14 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
     canEdit
       ? () => {
           flush().then(
-            () => toast({ title: `Draft v${meta.draftVersion} saved`, detail: 'Publish it when it looks right.' }),
-            (e: unknown) => toast({ kind: 'error', title: "Couldn't save the draft", detail: errorMessage(e) }),
+            () => toast({ title: t(mf.savedToast, { version: meta.draftVersion }), detail: t(mf.publishWhenReady) }),
+            (e: unknown) => toast({ kind: 'error', title: t(mf.saveFailed), detail: errorMessage(e) }),
           )
         }
       : undefined,
   )
   // If the session ends while editing, the notices say the work is safe.
-  useUnsavedWork(
-    canEdit
-      ? { whileEnding: 'the draft saves itself', afterEnded: `"${detail.name}" is saved as draft v${meta.draftVersion} and will reopen where you left off.` }
-      : undefined,
-  )
+  useUnsavedWork(canEdit ? { whileEnding: t(mf.whileEnding), afterEnded: t(mf.afterEnded, { name: detail.name, version: meta.draftVersion }) } : undefined)
 
   // The selection and the right panel are kept in the URL (?step=n3&panel=stats).
   const [selectedId, setSelectedId] = useState<string | undefined>(() => firstSelection(detail.graph, search.step))
@@ -358,17 +358,21 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
   const [dropEdge, setDropEdge] = useState<string>()
   const titles = useMemo(() => new Map(graph.nodes.map((n) => [n.id, nodeTitle(graph, n, refs)])), [graph, refs])
   const rfNodes = useMemo(
-    () => flow.nodes.map((n) => ({ ...n, selected: n.id === selectedId, ariaLabel: `${typeNames[n.type]}: ${titles.get(n.id) ?? ''}` })),
-    [flow.nodes, selectedId, titles],
+    () => flow.nodes.map((n) => ({ ...n, selected: n.id === selectedId, ariaLabel: t(mf.nodeLabel, { type: typeName(n.type), title: titles.get(n.id) ?? '' }) })),
+    [flow.nodes, selectedId, titles, t],
   )
   const rfEdges = useMemo(
     () =>
-      flow.edges.map((e) => ({
-        ...e,
-        className: e.id === dropEdge ? 'fe-drop' : undefined,
-        ariaLabel: `${titles.get(e.source) ?? e.source} to ${titles.get(e.target) ?? e.target}${e.data?.path ? `, ${pathLabel(e.data.path)} path` : ''}`,
-      })),
-    [flow.edges, dropEdge, titles],
+      flow.edges.map((e) => {
+        const from = titles.get(e.source) ?? e.source
+        const to = titles.get(e.target) ?? e.target
+        return {
+          ...e,
+          className: e.id === dropEdge ? 'fe-drop' : undefined,
+          ariaLabel: e.data?.path ? t(mf.edgePathLabel, { from, to, path: pathLabel(e.data.path) }) : t(mf.edgeLabel, { from, to }),
+        }
+      }),
+    [flow.edges, dropEdge, titles, t],
   )
 
   const onNodesChange = useCallback(
@@ -412,7 +416,7 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
           const trigger = { ...newStepData('trigger', kind).trigger!, reentry: existing.data.trigger?.reentry ?? 'once' }
           setFlow((f) => ({ ...f, nodes: f.nodes.map((n) => (n.id === existing.id ? { ...n, data: { ...n.data, trigger } } : n)) }))
           select(existing.id)
-          toast({ title: `Trigger changed to ${triggerKindLabels[kind]}`, detail: 'A flow has one trigger; its other settings start fresh.' })
+          toast({ title: t(mf.triggerChanged, { trigger: triggerKindLabel(kind) }), detail: t(mf.triggerChangedDetail) })
           return
         }
       }
@@ -421,7 +425,7 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
       setFlow((f) => addStep(f, step, { ...where, tolerance, snap: snap ? snapPoint : undefined }))
       select(step.id)
     },
-    [editable, graph, rf, snap, select],
+    [editable, graph, rf, snap, select, t],
   )
 
   const onDragOver = useCallback(
@@ -524,13 +528,13 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
       await flush()
       setPublishOpen(true)
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't save the draft before publishing", detail: errorMessage(e) })
+      toast({ kind: 'error', title: t(mf.saveBeforePublishFailed), detail: errorMessage(e) })
     } finally {
       setOpening(false)
     }
   }
-  const nothingToPublish = published && meta.changes === 0 && !dirty ? `Nothing to publish: the draft is the same as v${detail.liveVersion}.` : undefined
-  const publishBlocked = publishReason ?? (conflict ? 'Load the latest draft first.' : nothingToPublish)
+  const nothingToPublish = published && meta.changes === 0 && !dirty ? t(mf.nothingToPublish, { version: detail.liveVersion ?? '' }) : undefined
+  const publishBlocked = publishReason ?? (conflict ? t(mf.loadLatestFirst) : nothingToPublish)
 
   const order = useMemo(() => graphOrder(graph), [graph])
   const zoomKey = isMac ? '⌘' : 'Ctrl'
@@ -538,35 +542,35 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
   return (
     <div className="fe rc-app">
       <a href="#main" className="skip">
-        Skip to content
+        {t(mf.skip)}
       </a>
       <header className="fe-head">
-        <ButtonLink to="/w/$workspace/automations" params={{ workspace: slug }} iconOnly icon="chevronLeft" aria-label="Back to automations" />
+        <ButtonLink to="/w/$workspace/automations" params={{ workspace: slug }} iconOnly icon="chevronLeft" aria-label={t(mf.back)} />
         <div className="flex min-w-0 flex-col">
-          <span className="k text-[11px]">Automation</span>
+          <span className="k text-[11px]">{t(mf.eyebrow)}</span>
           <h1 className="m-0 text-[15px] font-bold leading-[1.45] tracking-normal">{detail.name}</h1>
         </div>
         <StatusBadge detail={detail} />
-        {published && meta.changes > 0 ? <Badge tone="warn">Unpublished changes · {meta.changes}</Badge> : null}
+        {published && meta.changes > 0 ? <Badge tone="warn">{t(mf.unpublishedChanges, { count: count(meta.changes) })}</Badge> : null}
         <Badge tone={detail.route.healthy ? 'purple' : 'bad'} className="ml-1.5">
           <Dot color={detail.route.healthy ? 'var(--chart-ses)' : 'currentColor'} />
-          Automations route · {detail.route.label}
+          {t(mf.route, { route: detail.route.label })}
         </Badge>
         {failed ? (
           <span className="flex items-center gap-2" role="alert">
-            <Badge tone="bad">Draft not saved</Badge>
+            <Badge tone="bad">{t(mf.draftNotSaved)}</Badge>
             <Button size="sm" onClick={() => void save(json)}>
-              Retry
+              {t(common.retry)}
             </Button>
           </span>
         ) : null}
         <span className="vh" role="status">
-          {saving ? 'Saving the draft' : dirty ? '' : 'Draft saved'}
+          {saving ? t(mf.savingDraft) : dirty ? '' : t(mf.draftSaved)}
         </span>
         <div className="ml-auto flex flex-wrap gap-2">
           {detail.status === 'live' ? (
             <Button disabledReason={publishReason} onClick={() => setPauseOpen(true)}>
-              Pause
+              {t(mf.pause)}
             </Button>
           ) : null}
           {detail.status === 'paused' ? (
@@ -578,55 +582,53 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
                   { params: { path: { workspace: slug, id } } },
                   {
                     onSuccess: () => {
-                      toast({ title: `"${detail.name}" resumed`, detail: 'New contacts enter again and waiting steps continue.' })
+                      toast({ title: t(mf.resumed, { name: detail.name }), detail: t(mf.resumedDetail) })
                       refreshDetail()
                     },
-                    onError: (e) => toast({ kind: 'error', title: "Couldn't resume", detail: errorMessage(e) }),
+                    onError: (e) => toast({ kind: 'error', title: t(mf.resumeFailed), detail: errorMessage(e) }),
                   },
                 )
               }
             >
-              Resume
+              {t(mf.resume)}
             </Button>
           ) : null}
-          <Button onClick={() => setHistoryOpen(true)}>Version history</Button>
+          <Button onClick={() => setHistoryOpen(true)}>{t(mf.versionHistory)}</Button>
           <Button variant="primary" loading={opening} disabledReason={publishBlocked} onClick={() => void openPublish()}>
-            Publish v{meta.draftVersion}
+            {t(mf.publishVersion, { version: meta.draftVersion })}
           </Button>
         </div>
       </header>
 
       {conflict ? (
         <div className="px-4 pt-3">
-          <Banner tone="warn" title="This draft changed somewhere else" actions={<Button onClick={() => void onReload()}>Load the latest draft</Button>}>
-            Someone saved a newer version of this draft, maybe you in another tab. Your last change here wasn't saved; load the latest draft to keep editing.
+          <Banner tone="warn" title={t(mf.conflictTitle)} actions={<Button onClick={() => void onReload()}>{t(mf.loadLatest)}</Button>}>
+            {t(mf.conflictBody)}
           </Banner>
         </div>
       ) : null}
 
       <div className="fe-body">
-        <aside className="fe-panel fe-left" aria-label="Steps">
+        <aside className="fe-panel fe-left" aria-label={t(mf.stepsPanel)}>
           <PanelTabs
             value={leftTab}
             onChange={setLeftTab}
-            label="Steps and stats"
+            label={t(mf.stepsTabs)}
             className="flex flex-1 flex-col"
             items={[
-              { value: 'steps', label: 'Steps' },
-              { value: 'stats', label: 'Stats' },
+              { value: 'steps', label: t(mf.tabSteps) },
+              { value: 'stats', label: t(mf.tabStats) },
             ]}
           >
             <TabPanel value="steps" className="flex flex-1 flex-col">
-              <Palette disabledReason={!canEdit ? EDIT_REASON : !editable ? 'Load the latest draft first.' : undefined} onAdd={(item) => add(item, { after: selectedId })} />
-              <div className="k mt-auto border-t border-line-2 px-3 py-2.5">
-                {canEdit ? `Drag a step onto the canvas or onto an edge. Snap to grid is ${snap ? 'on' : 'off'}.` : 'You can look around; editing needs the automations:edit permission.'}
-              </div>
+              <Palette disabledReason={!canEdit ? editReason : !editable ? t(mf.loadLatestFirst) : undefined} onAdd={(item) => add(item, { after: selectedId })} />
+              <div className="k mt-auto border-t border-line-2 px-3 py-2.5">{canEdit ? t(mf.dragHint, { snap: snap ? 'on' : 'off' }) : t(mf.lookAround)}</div>
             </TabPanel>
             <TabPanel value="stats" className="flex flex-1 flex-col">
               {published ? (
                 <FlowStatsList graph={graph} order={order} refs={refs} stats={statsMap} selected={selectedId} onSelect={select} />
               ) : (
-                <div className="k px-3 py-2.5">Stats start when the automation is published.</div>
+                <div className="k px-3 py-2.5">{t(mf.statsStart)}</div>
               )}
             </TabPanel>
           </PanelTabs>
@@ -635,17 +637,17 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
         <main id="main" className="fe-main">
           <div className="fe-tools">
             <span className="k">
-              {published ? `Live stats · last 30 days${stats.data ? ` · ${count(stats.data.entered)} entered` : ''}` : 'No stats until the first publish'}
+              {published ? (stats.data ? t(mf.liveStatsEntered, { count: count(stats.data.entered) }) : t(mf.liveStats)) : t(mf.noStatsYet)}
             </span>
             <label className="ml-2">
               <input type="checkbox" checked={showStats} onChange={(e) => setShowStats(e.target.checked)} />
-              Show stats on nodes
+              {t(mf.showStats)}
             </label>
             <label>
               <input type="checkbox" checked={snap} onChange={(e) => setSnap(e.target.checked)} />
-              Snap to grid
+              {t(mf.snapToGrid)}
             </label>
-            <label title={reduced ? 'Your system asks for reduced motion, so the flow stays still.' : undefined}>
+            <label title={reduced ? t(mf.reducedMotion) : undefined}>
               <input
                 type="checkbox"
                 checked={animate}
@@ -654,14 +656,14 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
                   writeAnimatePref(e.target.checked)
                 }}
               />
-              Animate flow
+              {t(mf.animate)}
             </label>
             <span className="k ml-auto">
-              Zoom <ZoomLevel /> · scroll to pan · {zoomKey} + wheel to zoom
+              <T msg={mf.zoomHint} values={{ zoom: <ZoomLevel />, modifier: zoomKey }} />
             </span>
           </div>
 
-          <div ref={canvasRef} className="fe-canvas" style={{ minHeight }} role="group" aria-label="Flow canvas">
+          <div ref={canvasRef} className="fe-canvas" style={{ minHeight }} role="group" aria-label={t(mf.canvasLabel)}>
             <FlowViewProvider value={view}>
               <ReactFlow<StepNodeType, StepEdgeType>
                 nodes={rfNodes}
@@ -709,23 +711,23 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
             {flow.nodes.length === 0 ? (
               <div className="fe-empty">
                 <div className="card flex max-w-[320px] flex-col gap-1 px-5 py-4 text-center">
-                  <span className="font-semibold">Start with a trigger</span>
-                  <span className="k">{canEdit ? 'Drag one from the left, or press it to place it here.' : 'This flow has no steps yet.'}</span>
+                  <span className="font-semibold">{t(mf.emptyTitle)}</span>
+                  <span className="k">{canEdit ? t(mf.emptyEdit) : t(mf.emptyView)}</span>
                 </div>
               </div>
             ) : null}
           </div>
         </main>
 
-        <aside className="fe-panel fe-right" aria-label="Step settings">
+        <aside className="fe-panel fe-right" aria-label={t(mf.settingsPanel)}>
           <PanelTabs
             value={rightTab}
             onChange={showTab}
-            label="Step settings and stats"
+            label={t(mf.settingsTabs)}
             className="flex flex-1 flex-col"
             items={[
-              { value: 'step', label: 'Step' },
-              { value: 'stats', label: 'Stats' },
+              { value: 'step', label: t(mf.tabStep) },
+              { value: 'stats', label: t(mf.tabStats) },
             ]}
           >
             <TabPanel value="step" className="flex flex-1 flex-col">
@@ -739,7 +741,7 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
                   stats={statsMap.get(selected.id)}
                   hasStats={view.hasStats && publishedIds.has(selected.id)}
                   editable={editable}
-                  editReason={!canEdit ? EDIT_REASON : 'Load the latest draft first.'}
+                  editReason={!canEdit ? editReason : t(mf.loadLatestFirst)}
                   automationId={id}
                   automationName={detail.name}
                   routeLabel={detail.route.label}
@@ -767,11 +769,7 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
         </aside>
       </div>
 
-      <UnsavedChangesGuard
-        dirty={Boolean(failed) && dirty}
-        description="Your last changes to this flow couldn't be saved. Leave without them, or try saving again."
-        onSave={flush}
-      />
+      <UnsavedChangesGuard dirty={Boolean(failed) && dirty} description={t(mf.unsavedGuard)} onSave={flush} />
       <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} automationId={id} onSaveDraft={flush} />
       <VersionHistoryDialog
         open={historyOpen}
@@ -794,10 +792,10 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
             {
               onSuccess: () => {
                 setPauseOpen(false)
-                toast({ title: `"${detail.name}" paused`, detail: 'Contacts stay where they are until you resume.' })
+                toast({ title: t(mf.pausedToast, { name: detail.name }), detail: t(mf.pausedDetail) })
                 refreshDetail()
               },
-              onError: (e) => toast({ kind: 'error', title: "Couldn't pause", detail: errorMessage(e) }),
+              onError: (e) => toast({ kind: 'error', title: t(mf.pauseFailed), detail: errorMessage(e) }),
             },
           )
         }
@@ -824,35 +822,47 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
 
 /** "Live · v3 since 2 Oct", "Paused · v1", "Draft · not published yet". */
 function StatusBadge({ detail }: { detail: Detail }) {
+  const t = useT()
   if (detail.status === 'live' && detail.liveVersion !== undefined) {
     return (
       <AutomationStatusBadge status="live">
-        Live · v{detail.liveVersion}
-        {detail.publishedAt ? ` since ${dayMonthDate(detail.publishedAt)}` : ''}
+        {detail.publishedAt
+          ? t(mf.liveSince, { version: detail.liveVersion, date: dayMonthDate(detail.publishedAt) })
+          : t(mf.live, { version: detail.liveVersion })}
       </AutomationStatusBadge>
     )
   }
   if (detail.status === 'paused') {
-    const why = [detail.pausedBy ? `by ${detail.pausedBy}` : '', detail.pauseReason ?? ''].filter(Boolean).join(': ')
+    const by = detail.pausedBy
+    const reason = detail.pauseReason ?? ''
+    const why = by ? (reason ? t(mf.pausedByReason, { name: by, reason }) : t(mf.pausedBy, { name: by })) : reason
+    const version = detail.liveVersion
+    const since = detail.pausedAt ? dayMonthDate(detail.pausedAt) : undefined
     return (
       <span title={why || undefined}>
         <AutomationStatusBadge status="paused">
-          Paused{detail.liveVersion !== undefined ? ` · v${detail.liveVersion}` : ''}
-          {detail.pausedAt ? ` since ${dayMonthDate(detail.pausedAt)}` : ''}
+          {version !== undefined
+            ? since
+              ? t(mf.pausedSince, { version, date: since })
+              : t(mf.pausedVersion, { version })
+            : since
+              ? t(mf.pausedSinceNoVersion, { date: since })
+              : t(mf.paused)}
         </AutomationStatusBadge>
       </span>
     )
   }
-  return <AutomationStatusBadge status="draft">Draft · not published yet</AutomationStatusBadge>
+  return <AutomationStatusBadge status="draft">{t(mf.draftNotPublished)}</AutomationStatusBadge>
 }
 
 function ZoomLevel() {
   const zoom = useStore((s) => s.transform[2])
-  return <>{Math.round(zoom * 100)}%</>
+  return <>{pct(Math.round(zoom * 100), 0)}</>
 }
 
 /** Right panel with no step selected: the automation's name and description. */
 function FlowPanel({ detail, editable, issues }: { detail: Detail; editable: boolean; issues: Issue[] }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const [name, setName] = useState(detail.name)
@@ -872,7 +882,7 @@ function FlowPanel({ detail, editable, issues }: { detail: Detail; editable: boo
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/automations/{id}'] })
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/automations'] })
         },
-        onError: (e) => toast({ kind: 'error', title: "Couldn't save the name", detail: errorMessage(e) }),
+        onError: (e) => toast({ kind: 'error', title: t(mf.nameFailed), detail: errorMessage(e) }),
       },
     )
   }
@@ -880,10 +890,10 @@ function FlowPanel({ detail, editable, issues }: { detail: Detail; editable: boo
   return (
     <>
       <div className="fe-ph">
-        <span className="font-semibold">Automation</span>
-        <span className="k">Select a step on the canvas to see its settings.</span>
+        <span className="font-semibold">{t(mf.flowTitle)}</span>
+        <span className="k">{t(mf.selectStep)}</span>
       </div>
-      <Prop title="Name" id="p-flowname">
+      <Prop title={t(mf.name)} id="p-flowname">
         <input
           aria-labelledby="p-flowname"
           className="in"
@@ -897,10 +907,10 @@ function FlowPanel({ detail, editable, issues }: { detail: Detail; editable: boo
           }}
         />
       </Prop>
-      <Prop title="Description" id="p-flowdesc">
+      <Prop title={t(mf.description)} id="p-flowdesc">
         <textarea aria-labelledby="p-flowdesc" className="in h-auto min-h-[72px] py-2" maxLength={500} disabled={!editable} value={description} onChange={(e) => setDescription(e.target.value)} onBlur={commit} />
       </Prop>
-      <Prop title="Before you publish" id="p-flowissues">
+      <Prop title={t(mf.beforePublish)} id="p-flowissues">
         {flowIssues.length ? (
           <ul className="m-0 flex list-none flex-col gap-1 p-0 text-[12.5px]">
             {flowIssues.map((i, n) => (
@@ -910,28 +920,31 @@ function FlowPanel({ detail, editable, issues }: { detail: Detail; editable: boo
             ))}
           </ul>
         ) : (
-          <span className="k">Every step is connected and set up.</span>
+          <span className="k">{t(mf.allConnected)}</span>
         )}
       </Prop>
     </>
   )
 }
 
+const bold = (chunks: ReactNode[]) => <b className="n">{chunks}</b>
+
 /** Right panel › Stats with no step selected: the flow's 30-day numbers. */
 function FlowStatsPanel({ stats, inFlow, published }: { stats?: Schemas['AutomationStats']; inFlow: number; published: boolean }) {
+  const t = useT()
   return (
     <>
       <div className="fe-ph">
-        <span className="font-semibold">Flow · last 30 days</span>
-        <span className="k">{published ? 'Select a step for its own numbers.' : 'Stats start when the automation is published.'}</span>
+        <span className="font-semibold">{t(mf.flowStatsTitle)}</span>
+        <span className="k">{published ? t(mf.selectStepStats) : t(mf.statsStart)}</span>
       </div>
       <div className="fe-prop">
         <div className="fe-stats">
           <span>
-            Entered <b className="n">{stats ? count(stats.entered) : '—'}</b>
+            <T msg={mf.entered} values={{ count: stats ? count(stats.entered) : '—', b: bold }} />
           </span>
           <span>
-            In the flow now <b className="n">{count(stats?.inFlow ?? inFlow)}</b>
+            <T msg={mf.inFlowNow} values={{ count: count(stats?.inFlow ?? inFlow), b: bold }} />
           </span>
         </div>
       </div>
@@ -940,10 +953,11 @@ function FlowStatsPanel({ stats, inFlow, published }: { stats?: Schemas['Automat
 }
 
 function EditorSkeleton() {
+  const t = useT()
   return (
     <div className="fe rc-app" aria-busy="true">
       <span className="vh" role="status">
-        Loading the automation
+        {t(mf.loading)}
       </span>
       <header className="fe-head">
         <Skeleton w={32} h={32} r={7} />
@@ -987,22 +1001,23 @@ function EditorSkeleton() {
 }
 
 function EditorError({ error, onRetry, title }: { error: unknown; onRetry?: () => void; title?: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const status = error instanceof ApiError ? error.status : 0
-  let heading: ReactNode = title ?? "Couldn't load the automation"
-  let text = `${errorMessage(error)} Your flows keep running; nothing was changed.`
+  let heading: ReactNode = title ?? t(mf.loadFailed)
+  let text = `${errorMessage(error)} ${t(mf.loadFailedBody)}`
   if (status === 404) {
-    heading = "This automation doesn't exist"
-    text = 'It may have been deleted, or the link is wrong. Nothing was changed.'
+    heading = t(mf.notFoundTitle)
+    text = t(mf.notFoundBody)
   } else if (status === 403) {
-    heading = title ?? "You can't open this automation"
+    heading = title ?? t(mf.forbiddenTitle)
     text = errorMessage(error)
   }
   return (
     <div className="fe rc-app">
       <header className="fe-head">
-        <ButtonLink to="/w/$workspace/automations" params={{ workspace: slug }} iconOnly icon="chevronLeft" aria-label="Back to automations" />
-        <h1 className="m-0 text-[15px] font-bold">Automation</h1>
+        <ButtonLink to="/w/$workspace/automations" params={{ workspace: slug }} iconOnly icon="chevronLeft" aria-label={t(mf.back)} />
+        <h1 className="m-0 text-[15px] font-bold">{t(mf.flowTitle)}</h1>
       </header>
       <main id="main" className="p-4 sm:p-7">
         <ErrorPanel
@@ -1011,11 +1026,11 @@ function EditorError({ error, onRetry, title }: { error: unknown; onRetry?: () =
             <>
               {onRetry && status !== 404 && status !== 403 ? (
                 <Button variant="primary" onClick={onRetry}>
-                  Retry
+                  {t(common.retry)}
                 </Button>
               ) : null}
               <ButtonLink to="/w/$workspace/automations" params={{ workspace: slug }}>
-                Back to automations
+                {t(mf.back)}
               </ButtonLink>
             </>
           }

@@ -12,7 +12,9 @@ import { FilterTabs } from '@/components/ui/Tabs'
 import { count, dayMonthDate, pct } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { ct, RevenueCell } from '@/features/commerce/automation'
-import { useT } from '@/i18n'
+import { t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { m } from './messages'
 import { AutomationStatusBadge } from './StatusBadge'
 import { EmptyAutomations, StarterTemplates, TemplateGrid } from './TemplateCards'
 import './automations.css'
@@ -24,6 +26,7 @@ type Item = Schemas['AutomationListItem']
 
 /** 7.10 Automations list: performance, filters, starter templates and states. */
 export function AutomationsPage({ status }: { status: AutomationFilter }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const list = $api.useQuery('get', '/api/v1/workspaces/{workspace}/automations', { params: { path: { workspace: slug }, query: { status } } })
   const templates = $api.useQuery('get', '/api/v1/workspaces/{workspace}/automations/templates', { params: { path: { workspace: slug } } }, { staleTime: Infinity })
@@ -35,7 +38,7 @@ export function AutomationsPage({ status }: { status: AutomationFilter }) {
   if (list.error instanceof ApiError && (list.error.status === 403 || list.error.status === 404)) throw list.error
   return (
     <Page
-      title="Automations"
+      title={t(m.title)}
       filters={empty ? undefined : <Filters status={status} counts={data?.counts} />}
       actions={
         empty ? undefined : (
@@ -43,19 +46,19 @@ export function AutomationsPage({ status }: { status: AutomationFilter }) {
             {data ? (
               <Badge tone="purple">
                 <span className="dot" style={{ color: 'var(--chart-ses)' }} aria-hidden="true" />
-                Automations route · {data.route.label}
+                {t(m.route, { route: data.route.label })}
               </Badge>
             ) : null}
             <Button variant="primary" disabledReason={newReason} onClick={() => setCreating(true)}>
-              New automation
+              {t(m.newAutomation)}
             </Button>
           </>
         )
       }
     >
       {list.isError ? (
-        <ErrorPanel title="Couldn't load automations" actions={<Button onClick={() => list.refetch()}>Retry</Button>}>
-          {errorMessage(list.error)} Flows keep running; only this page failed to load.
+        <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => list.refetch()}>{t(common.retry)}</Button>}>
+          {errorMessage(list.error)} {t(m.stillRunning)}
         </ErrorPanel>
       ) : list.isPending ? (
         <ListSkeleton />
@@ -67,9 +70,9 @@ export function AutomationsPage({ status }: { status: AutomationFilter }) {
       <Dialog
         open={creating}
         onOpenChange={setCreating}
-        title="Start with a template or a blank canvas"
+        title={t(m.createTitle)}
         size="lg"
-        description={data ? `Flows send on the Automations route (${data.route.label}) and fail over automatically, so a provider outage never stalls a welcome email.` : undefined}
+        description={data ? t(m.routeLead, { route: data.route.label }) : undefined}
       >
         <TemplateGrid templates={templates.data?.templates ?? []} />
       </Dialog>
@@ -78,6 +81,7 @@ export function AutomationsPage({ status }: { status: AutomationFilter }) {
 }
 
 function Loaded({ data, status, templates }: { data: Schemas['AutomationList']; status: AutomationFilter; templates?: Schemas['AutomationStarterTemplate'][] }) {
+  const t = useT()
   const { slug } = useWorkspace()
   return (
     <>
@@ -85,14 +89,14 @@ function Loaded({ data, status, templates }: { data: Schemas['AutomationList']; 
       <Summary />
       {data.items.length === 0 ? (
         <EmptyState
-          title={`No ${status === 'drafts' ? 'drafts' : status} automations`}
+          title={t(m.noneWithStatus, { status })}
           action={
             <Link className="btn" to="/w/$workspace/automations" params={{ workspace: slug }}>
-              Show all automations
+              {t(m.showAll)}
             </Link>
           }
         >
-          {count(data.counts.all)} automations in this workspace. Pick another filter to see them.
+          {t(m.noneWithStatusBody, { count: data.counts.all })}
         </EmptyState>
       ) : (
         <AutomationTable items={data.items} />
@@ -103,26 +107,28 @@ function Loaded({ data, status, templates }: { data: Schemas['AutomationList']; 
 }
 
 function Filters({ status, counts }: { status: AutomationFilter; counts?: Schemas['AutomationStatusCounts'] }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
-  const n = (v?: number) => (v !== undefined ? ` · ${count(v)}` : '')
+  const label = (filter: AutomationFilter, v?: number) => (v !== undefined ? t(m.filterCount, { filter, count: count(v) }) : t(m.filter, { filter }))
   return (
     <FilterTabs
-      label="Filter"
+      label={t(m.filterLabel)}
       className="ml-3 max-md:ml-0"
       value={status}
       onChange={(next) => void navigate({ to: '/w/$workspace/automations', params: { workspace: slug }, search: { status: next === 'all' ? undefined : next } })}
       items={[
-        { value: 'all', label: `All${n(counts?.all)}` },
-        { value: 'live', label: `Live${n(counts?.live)}` },
-        { value: 'paused', label: `Paused${n(counts?.paused)}` },
-        { value: 'drafts', label: `Drafts${n(counts?.drafts)}` },
+        { value: 'all', label: label('all', counts?.all) },
+        { value: 'live', label: label('live', counts?.live) },
+        { value: 'paused', label: label('paused', counts?.paused) },
+        { value: 'drafts', label: label('drafts', counts?.drafts) },
       ]}
     />
   )
 }
 
 function Summary() {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/automations/summary', { params: { path: { workspace: slug }, query: { days: 7 } } })
   if (q.isPending || q.isError) {
@@ -140,13 +146,15 @@ function Summary() {
   }
   const s = q.data
   const sentBy = s.sentBy
-    .map((p) => `${p.short} ${count(p.sent)}${p.fallback && p.lastDay ? ` (failover on ${dayMonthDate(`${p.lastDay}T12:00:00Z`)})` : ''}`)
+    .map((p) =>
+      p.fallback && p.lastDay ? t(m.sentByFailover, { provider: p.short, count: count(p.sent), date: dayMonthDate(`${p.lastDay}T12:00:00Z`) }) : `${p.short} ${count(p.sent)}`,
+    )
     .join(' · ')
   const cards = [
-    { label: 'Contacts in flows now', value: count(s.inFlow), sub: `across ${s.liveCount} live ${s.liveCount === 1 ? 'automation' : 'automations'}` },
-    { label: `Emails sent · ${s.days} d`, value: count(s.sent), sub: sentBy || 'no emails yet' },
-    { label: 'Human opens', value: pct(s.humanOpens), sub: `clicks ${pct(s.clicks)}` },
-    { label: `Goals reached · ${s.days} d`, value: count(s.goals), sub: s.goalsBy.map((g) => `${g.name} ${count(g.count)}`).join(' · ') || 'none yet' },
+    { label: t(m.inFlowsNow), value: count(s.inFlow), sub: t(m.acrossLive, { count: s.liveCount }) },
+    { label: t(m.emailsSent, { days: s.days }), value: count(s.sent), sub: sentBy || t(m.noEmailsYet) },
+    { label: t(m.humanOpens), value: pct(s.humanOpens), sub: t(m.clicksRate, { rate: pct(s.clicks) }) },
+    { label: t(m.goalsReached, { days: s.days }), value: count(s.goals), sub: s.goalsBy.map((g) => `${g.name} ${count(g.count)}`).join(' · ') || t(m.noneYet) },
   ]
   return (
     <Grid min={200} gap={16}>
@@ -163,17 +171,24 @@ function Summary() {
 
 /** Whole percents, or one decimal under 20% where the decimal matters. */
 function goalPct(v: number): string {
-  return v >= 20 ? `${Math.round(v)}%` : `${v.toFixed(1)}%`
+  return v >= 20 ? pct(Math.round(v), 0) : pct(v, 1)
 }
 
 function subtitle(a: Item): string {
   if (a.status === 'paused' && a.pausedAt) {
-    return `v${a.liveVersion} · paused ${dayMonthDate(a.pausedAt)}${a.pausedBy ? ` by ${a.pausedBy}` : ''}${a.pauseReason ? `: ${a.pauseReason}` : ''}`
+    return tt(m.pausedLine, {
+      version: a.liveVersion ?? '',
+      date: dayMonthDate(a.pausedAt),
+      hasBy: a.pausedBy ? 'yes' : 'no',
+      name: a.pausedBy ?? '',
+      hasReason: a.pauseReason ? 'yes' : 'no',
+      reason: a.pauseReason ?? '',
+    })
   }
   if (a.status === 'draft' || a.liveVersion === undefined) {
-    return ['draft', a.description].filter(Boolean).join(' · ')
+    return [tt(m.draftWord), a.description].filter(Boolean).join(' · ')
   }
-  return [`v${a.liveVersion}`, a.publishedAt ? `published ${dayMonthDate(a.publishedAt)}` : '', a.description].filter(Boolean).join(' · ')
+  return [`v${a.liveVersion}`, a.publishedAt ? tt(m.publishedOn, { date: dayMonthDate(a.publishedAt) }) : '', a.description].filter(Boolean).join(' · ')
 }
 
 function AutomationTable({ items }: { items: Item[] }) {
@@ -185,22 +200,22 @@ function AutomationTable({ items }: { items: Item[] }) {
     </Td>
   )
   return (
-    <section className="card" aria-label="Automations">
+    <section className="card" aria-label={t(m.tableLabel)}>
       <Table phoneWrap fit className="[&_td:first-child]:min-w-[150px] [&_td:nth-child(3)]:min-w-[150px] [&_td:nth-child(9)]:min-w-[150px]">
         <thead>
           <tr>
-            <Th>Automation</Th>
-            <Th>Status</Th>
-            <Th>Trigger</Th>
-            <Th align="right">Steps</Th>
-            <Th align="right">Entered · 30 d</Th>
-            <Th align="right">In flow</Th>
-            <Th align="right">Completed</Th>
-            <Th align="right">Human opens</Th>
-            <Th align="right">Goal</Th>
+            <Th>{t(m.colAutomation)}</Th>
+            <Th>{t(m.colStatus)}</Th>
+            <Th>{t(m.colTrigger)}</Th>
+            <Th align="right">{t(m.colSteps)}</Th>
+            <Th align="right">{t(m.colEntered)}</Th>
+            <Th align="right">{t(m.colInFlow)}</Th>
+            <Th align="right">{t(m.colCompleted)}</Th>
+            <Th align="right">{t(m.colHumanOpens)}</Th>
+            <Th align="right">{t(m.colGoal)}</Th>
             <Th align="right">{t(ct.revenueColumn)}</Th>
             <Th>
-              <span className="vh">Actions</span>
+              <span className="vh">{t(m.colActions)}</span>
             </Th>
           </tr>
         </thead>
@@ -240,7 +255,7 @@ function AutomationTable({ items }: { items: Item[] }) {
                 )}
                 {a.completed !== undefined ? (
                   <Td align="right" num>
-                    {Math.round(a.completed)}%
+                    {pct(Math.round(a.completed), 0)}
                   </Td>
                 ) : (
                   dash
@@ -274,7 +289,7 @@ function AutomationTable({ items }: { items: Item[] }) {
                 )}
                 <Td>
                   <ButtonLink size="sm" to="/w/$workspace/automations/$automationId" params={params}>
-                    {a.status === 'draft' ? 'Edit' : 'Open'}
+                    {a.status === 'draft' ? t(m.edit) : t(m.open)}
                   </ButtonLink>
                 </Td>
               </tr>
@@ -288,6 +303,7 @@ function AutomationTable({ items }: { items: Item[] }) {
 
 /** Flow problems: sending held for want of a healthy provider, or a failing step. */
 function Alerts({ alerts }: { alerts: Schemas['AutomationAlert'][] }) {
+  const t = useT()
   const { slug } = useWorkspace()
   return (
     <Grid min={380} gap={16}>
@@ -296,10 +312,10 @@ function Alerts({ alerts }: { alerts: Schemas['AutomationAlert'][] }) {
           <div className="flex items-center gap-2.5">
             {a.kind === 'sending_held' ? (
               <Badge tone="bad" dot>
-                Paused automatically
+                {t(m.pausedAutomatically)}
               </Badge>
             ) : (
-              <Badge tone="warn">Step failing</Badge>
+              <Badge tone="warn">{t(m.stepFailing)}</Badge>
             )}
             <span className="font-semibold">{a.title}</span>
           </div>
@@ -343,6 +359,7 @@ function Alerts({ alerts }: { alerts: Schemas['AutomationAlert'][] }) {
 
 /** Loading: rows shaped like the table (AutomationsStates › Loading). */
 function ListSkeleton() {
+  const t = useT()
   const rows = [
     [180, 160],
     [220, 190],
@@ -351,7 +368,7 @@ function ListSkeleton() {
   return (
     <section className="card flex flex-col" aria-busy="true">
       <span className="vh" role="status">
-        Loading automations and their 30-day stats
+        {t(m.loadingList)}
       </span>
       {rows.map(([name, trigger], i) => (
         <div key={i} className="ver" style={i === 0 ? { borderTop: 0 } : undefined}>

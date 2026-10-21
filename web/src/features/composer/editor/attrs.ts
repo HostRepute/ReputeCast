@@ -2,6 +2,8 @@ import type { Component } from 'grapesjs'
 import { topLevelElements } from './mjmlDoc'
 import { expandBox } from './mjmlHooks'
 import { mjChildren, tagOf } from './labels'
+import { t } from '@/i18n'
+import { mi } from '../inspector.messages'
 
 /**
  * Reading and writing MJML attributes for the inspector. A value shown in the
@@ -186,7 +188,7 @@ export const FONTS: { label: string; value: string }[] = [
 
 /** First family of a font stack, unquoted: "'IBM Plex Sans', Arial" → "IBM Plex Sans". */
 export function fontLabel(stack: string): string {
-  return (stack.split(',')[0] ?? '').trim().replace(/^['"]|['"]$/g, '') || 'Default'
+  return (stack.split(',')[0] ?? '').trim().replace(/^['"]|['"]$/g, '') || t(mi.default)
 }
 
 /** Normalises a colour for the colour input: #abc → #aabbcc; other formats → "". */
