@@ -23,7 +23,7 @@ export default translate(mm, {
   sourceUpgrade: 'Trang nâng cấp',
   sourceImported: 'Nhập từ {platform}',
   sourceGift: 'Quà tặng',
-  sourceGrant: 'Do thành viên nhóm cấp',
+  sourceGrant: 'Thành viên nhóm cấp',
   offerAll: 'Mọi ưu đãi',
   sinceAll: 'Tham gia: mọi lúc',
   since30: 'Tham gia: 30 ngày qua',

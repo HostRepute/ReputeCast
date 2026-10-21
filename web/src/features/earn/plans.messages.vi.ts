@@ -112,7 +112,7 @@ export default translate(mp, {
   previewLabel: 'Bản xem trước trang nâng cấp',
   previewAs: 'Xem trước với tư cách',
   asVisitor: 'Khách truy cập ẩn danh',
-  asFree: 'Người đọc miễn phí đến từ một email',
+  asFree: 'Người đọc miễn phí từ email',
   asPaid: 'Hội viên trả phí',
   device: 'Thiết bị',
   desktop: 'Máy tính',
