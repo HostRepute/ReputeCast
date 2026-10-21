@@ -75,6 +75,12 @@ export const m = defineMessages('sms', {
   failRejected: 'Refused by the provider',
   failProvider_down: 'Not sent: provider down',
   failOther: 'Other failure',
+  // Why a route can't send to a country, in "Ireland skipped (pending)".
+  holdPending: 'pending',
+  holdRejected: 'rejected',
+  holdNot_registered: 'not registered',
+  holdNot_supported: 'not supported',
+  holdNo_route: 'no route',
   perSecond: '{n} /s',
   // A provider whose prices a cost comes from, in a list: "From Twilio’s and Vonage’s pricing on 6 Oct".
   pricingOf: '{provider}’s',

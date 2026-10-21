@@ -124,8 +124,7 @@ export const m = defineMessages('smsComposer', {
   previewNote: 'Recipients in {replyRegion} see <mono>{number}</mono> and can reply. In {idRegion} they see {id} and can’t reply.',
   previewNoteOne: 'Recipients see <mono>{sender}</mono>{reply, select, yes { and can reply} other {, a sender ID nobody can reply to}}.',
   previewSkipped: 'Nobody in {country} gets this text yet: {reason}.',
-  priceIn: 'Price in {country}',
-  perSegment: '{price} per segment',
+  priceIn: 'Price in {country}: {price} per segment',
   ukNote: 'In {region} the text comes from the sender ID {sender}, through {provider}. Phones show that nobody can reply to it.',
   // Cost.
   costTitle: 'Cost by country',

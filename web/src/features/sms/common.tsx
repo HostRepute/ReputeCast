@@ -177,6 +177,20 @@ const kindNames: Record<SenderKind, MessageDescriptor> = {
   sender_id: m.kindSenderId,
 }
 
+const holdWords: Record<string, MessageDescriptor> = {
+  pending: m.holdPending,
+  rejected: m.holdRejected,
+  not_registered: m.holdNot_registered,
+  not_supported: m.holdNot_supported,
+  no_route: m.holdNo_route,
+}
+
+/** Why a route can't send to a country (a route decision's hold): "pending", "not registered". */
+export function holdWord(t: (d: MessageDescriptor) => string, code: string): string {
+  const d = holdWords[code]
+  return d ? t(d) : code.replace(/_/g, ' ')
+}
+
 export function useKindName(): (k: string) => string {
   const t = useT()
   return (k) => {

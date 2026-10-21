@@ -216,7 +216,7 @@ export const m = defineMessages('smsReview', {
   confirmWhen: 'When',
   typeCount: 'Type the recipient count to confirm',
   largeRule: 'Sends to more than {recipients} people, or costing more than {cost}, ask you to type the recipient count.',
-  typeHint: 'Sends to more than 1,000 people, or costing more than $100, need this. Texts can’t be recalled once they leave.',
+  typeHint: 'Sends to more than {recipients} people, or costing more than {cost}, need this. Texts can’t be recalled once they leave.',
   typeWrong: 'Type {count} to confirm.',
   back: 'Back',
   confirmSchedule: 'Schedule texts',

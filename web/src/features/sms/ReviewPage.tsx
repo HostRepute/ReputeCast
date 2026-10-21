@@ -1034,7 +1034,7 @@ function ConfirmDialog({ data, onClose }: { data: Review; onClose: () => void })
           <dd>{when}</dd>
         </dl>
         {data.large.required ? (
-          <Field label={t(m.typeCount)} hint={t(m.typeHint)}>
+          <Field label={t(m.typeCount)} hint={t(m.typeHint, { recipients: count(data.large.recipients), cost: money(data.large.cost, 0) })}>
             <Input value={typed} inputMode="numeric" onChange={(e) => setTyped(e.target.value)} />
           </Field>
         ) : null}

@@ -11,7 +11,7 @@ import { ConnectChannels } from '@/features/channels/ConnectChannels'
 import { WizardLayout } from '@/features/connect/Wizard'
 import { formatList, T, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { clockSeconds } from '@/lib/format'
+import { clockSeconds, decimal } from '@/lib/format'
 import { useOverflowX } from '@/lib/hooks'
 import { deniedReason, useWorkspace } from '@/lib/session'
 import { Capabilities, CopyRow, countryName, CountryName, registrationBadge, useKindName, useRefreshSms } from './common'
@@ -482,7 +482,7 @@ function TestText({ item, providerId, search, onSearch }: StepProps & { provider
             <Ev
               tone="#DCFCE7"
               title={t(m.delivered, { who: who?.name ?? v.recipient })}
-              text={t(m.deliveredText, { adapter: item.adapter, seconds: (v.seconds ?? 0).toFixed(1) })}
+              text={t(m.deliveredText, { adapter: item.adapter, seconds: decimal(v.seconds ?? 0, 1) })}
               at={v.deliveredAt ?? v.createdAt}
             />
           ) : v.status === 'failed' || v.status === 'undelivered' ? (
