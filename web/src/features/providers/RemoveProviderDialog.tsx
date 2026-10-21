@@ -126,7 +126,7 @@ function RemoveBody({
   const select = (key: string, options: { id: string; name: string }[], none?: string) => (
     <select
       aria-label={key.startsWith('primary') ? t(mo.replacementProvider) : t(mo.replacementFailover)}
-      className="in w-[170px] flex-none max-md:w-full"
+      className="pv-replace in w-[170px] flex-none max-md:w-full"
       value={picked[key] ?? ''}
       onChange={(e) => setPicked((p) => ({ ...p, [key]: e.target.value }))}
     >

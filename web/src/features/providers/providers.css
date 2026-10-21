@@ -195,3 +195,12 @@
     white-space: pre;
   }
 }
+
+/* Remove provider: on phones a row's replacement select takes a line of its
+   own under the badge and the sentence, instead of squeezing the sentence
+   to a letter a line beside it. */
+@media (max-width: 767px) {
+  .drow:has(> .pv-replace) {
+    flex-wrap: wrap;
+  }
+}
