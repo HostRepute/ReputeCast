@@ -82,6 +82,8 @@ export default translate(me, {
   noEnd: 'Không có ngày kết thúc',
   // Sources.
   sourceImport: 'Nhập từ {platform}',
+  // {platform} of an import from a CSV export (sourceImport, the import's title…).
+  platformCsv: 'một tệp CSV',
   sourceGrant: '{name} cấp',
   sourceGrantReason: '{name} cấp · {reason}',
   sourcePage: 'Trang nâng cấp',

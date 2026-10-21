@@ -21,6 +21,7 @@ import { useCan, useWorkspace } from '@/lib/session'
 import '../connect/connect.css'
 import { mc } from './connect.messages'
 import { EARN } from './EarnPage'
+import { countryName } from './format'
 import { resourceName } from './PaymentsTab'
 import './earn.css'
 
@@ -29,7 +30,6 @@ export type ConnectSearch = { id?: string; step?: 'provider' | 'key' | 'check' |
 type T = ReturnType<typeof useT>
 
 const order = ['provider', 'key', 'check', 'webhook', 'settings', 'done'] as const
-const countries: Record<string, string> = { US: 'United States', GB: 'United Kingdom', CA: 'Canada', AU: 'Australia', DE: 'Germany', FR: 'France', NL: 'Netherlands', IE: 'Ireland' }
 
 /** Connect a payment provider (EarnConnect): six steps on their own screen, resumed from the URL. */
 export function ConnectWizard({ search, onSearch }: { search: ConnectSearch; onSearch: (next: ConnectSearch, replace?: boolean) => void }) {
@@ -429,7 +429,7 @@ function CheckStep({ c, onBack, onNext }: { c: Conn; onBack: () => void; onNext:
       <div className="flex flex-wrap items-start justify-between gap-3">
         <dl className="ea-kv">
           <dt>{t(mc.account)}</dt>
-          <dd>{t(mc.accountLine, { name: c.account.name, country: countries[c.account.country] ?? c.account.country, currency: c.account.currency.toUpperCase() })}</dd>
+          <dd>{t(mc.accountLine, { name: c.account.name, country: countryName(c.account.country), currency: c.account.currency.toUpperCase() })}</dd>
           <dt>{t(mc.mode)}</dt>
           <dd className="flex items-center gap-2">
             <Badge tone={c.mode === 'live' ? 'ok' : 'purple'}>{c.mode === 'live' ? t(mc.modeLive) : t(mc.modeTest)}</Badge>
@@ -714,7 +714,7 @@ function DoneStep({ c, pay }: { c: Conn; pay: Schemas['EarnPayments'] }) {
     <StepCard n={6} done title={t(mc.doneTitle, { provider: c.providerName, account: c.account.name, mode: c.mode })} lead={c.mode === 'live' ? t(mc.doneLive, { account: c.account.name }) : t(mc.doneTest)}>
       <dl className="ea-kv">
         <dt>{t(mc.account)}</dt>
-        <dd>{t(mc.accountLine, { name: c.account.name, country: countries[c.account.country] ?? c.account.country, currency: c.account.currency.toUpperCase() })}</dd>
+        <dd>{t(mc.accountLine, { name: c.account.name, country: countryName(c.account.country), currency: c.account.currency.toUpperCase() })}</dd>
         <dt>{t(mc.key)}</dt>
         <dd className="ea-mono">{t(mc.doneKey, { hint: c.keyHint, granted: c.granted, total: c.permissions.length })}</dd>
         <dt>{t(mc.sWebhook)}</dt>
