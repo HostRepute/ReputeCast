@@ -119,6 +119,31 @@ export function AgencyMemberManaged({ source }: { source?: string }) {
   return <span className="k whitespace-nowrap">{t(m.managedByAgency)}</span>
 }
 
+/**
+ * A member's page when the membership comes from the agency (Team › member):
+ * where the access comes from, and where it changes.
+ */
+export function AgencyMemberNote({ userId, source }: { userId?: string; source?: string }) {
+  const t = useT()
+  const { data } = useWorkspaceAgency()
+  const { data: agency } = useAgencyMe()
+  if (!data?.managed || source !== 'agency') return null
+  const name = data.agency ?? ''
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
+      <AgencyMemberSource userId={userId} source={source} />
+      <span className="k">
+        {t(m.memberAssigned, { agency: name })}{' '}
+        {data.viewerIsStaff && agency?.home ? (
+          <Link to="/w/$workspace/agency/staff" params={{ workspace: agency.home }}>
+            {t(m.memberOpenStaff)}
+          </Link>
+        ) : null}
+      </span>
+    </div>
+  )
+}
+
 /** The invite dialog in a client workspace: the email carries the agency's logo. */
 export function AgencyInviteNote() {
   const t = useT()

@@ -259,6 +259,8 @@ export const m = defineMessages('agency', {
   viaContact: '{level} · your contact',
   viaTitle: '{level} · {title}',
   managedByAgency: 'Managed by the agency',
+  memberAssigned: '{agency} assigns this access; it changes in the Agency area.',
+  memberOpenStaff: 'Open Agency › Staff',
   inviteLogo: "The email and the invitation page carry {agency}'s logo.",
 
   // The invitation page a client's person opens
