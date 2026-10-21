@@ -13,7 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/payments"
 )
 
-// One-time payments (payments.OneTimePayments, digital products): prices
+// One-time payments (payments.OneTimePrices, digital products): prices
 // paid once, fixed or with a custom amount the buyer chooses (Stripe's
 // custom_unit_amount), Checkout in payment mode with the metadata on the
 // session and on its PaymentIntent, and the events that report them. The
@@ -21,11 +21,11 @@ import (
 // Prices to write, Charges and Events to read.
 
 var (
-	_ payments.OneTimePayments = (*Client)(nil)
+	_ payments.OneTimePrices = (*Client)(nil)
 	_ payments.PaymentParser   = Verifier{}
 )
 
-// CreateOneTimePrice implements payments.OneTimePayments.
+// CreateOneTimePrice implements payments.OneTimePrices.
 func (c *Client) CreateOneTimePrice(ctx context.Context, p payments.OneTimePrice) (payments.Price, error) {
 	f := url.Values{}
 	f.Set("product", p.ProductID)
@@ -54,8 +54,8 @@ func (c *Client) CreateOneTimePrice(ctx context.Context, p payments.OneTimePrice
 	return parsePrice(raw)
 }
 
-// CreatePaymentCheckout implements payments.OneTimePayments.
-func (c *Client) CreatePaymentCheckout(ctx context.Context, r payments.PaymentCheckoutRequest) (payments.CheckoutSession, error) {
+// CreatePriceCheckout implements payments.OneTimePrices.
+func (c *Client) CreatePriceCheckout(ctx context.Context, r payments.PriceCheckoutRequest) (payments.CheckoutSession, error) {
 	f := url.Values{}
 	f.Set("mode", "payment")
 	f.Set("line_items[0][price]", r.PriceID)
@@ -87,7 +87,7 @@ func (c *Client) CreatePaymentCheckout(ctx context.Context, r payments.PaymentCh
 	return parseCheckout(raw)
 }
 
-// GetPayment implements payments.OneTimePayments.
+// GetPayment implements payments.OneTimePrices.
 func (c *Client) GetPayment(ctx context.Context, sessionID string) (payments.Payment, error) {
 	var raw json.RawMessage
 	q := url.Values{}

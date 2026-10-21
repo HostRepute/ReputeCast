@@ -12,14 +12,6 @@ import (
 // in payment mode, prices with a custom amount, and the events Stripe sends
 // when a buyer pays, a payment is refunded or a dispute opens and closes.
 
-// sessionMode is a new session's mode (subscription unless the request says).
-func sessionMode(form url.Values) string {
-	if m := form.Get("mode"); m != "" {
-		return m
-	}
-	return "subscription"
-}
-
 // customAmount keeps a price's custom amount (pay what you want).
 func customAmount(o obj, form url.Values) {
 	if form.Get("custom_unit_amount[enabled]") != "true" {
@@ -50,9 +42,9 @@ type Paid struct {
 	Events        []Event
 }
 
-// CompletePayment pays a payment-mode checkout session: it creates the
+// PayCheckout pays a payment-mode checkout session: it creates the
 // PaymentIntent and its charge and sends checkout.session.completed.
-func (f *Fake) CompletePayment(mode payments.Mode, sessionID string, o PaymentOptions) (Paid, error) {
+func (f *Fake) PayCheckout(mode payments.Mode, sessionID string, o PaymentOptions) (Paid, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	d := f.modes[mode]

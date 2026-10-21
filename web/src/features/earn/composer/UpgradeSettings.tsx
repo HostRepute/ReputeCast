@@ -2,6 +2,7 @@ import type { Component } from 'grapesjs'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { ButtonLink } from '@/components/ui/Button'
 import { T, useT } from '@/i18n'
+import { dayMonthDate } from '@/lib/format'
 import { useCan } from '@/lib/session'
 import { useComposer } from '@/features/composer/context'
 import { tagOf } from '@/features/composer/editor/labels'
@@ -66,8 +67,9 @@ function Draft({ value, onCommit, label, disabled }: { value: string; onCommit: 
 
 /**
  * The Upgrade block's settings (ComposerEarnBlocks): headline, line, the
- * tier whose price and trial it reads, and the button. The price line
- * follows the tier: it is written again when the tier's prices changed.
+ * tier whose price and trial it reads, the button and an offer (X17). The
+ * price line follows the tier, or the offer: it is written again when their
+ * prices changed, and goes back to the tier's once the offer ended.
  */
 export function UpgradeSettings({ c: comp }: { c: Component }) {
   const t = useT()
@@ -78,21 +80,30 @@ export function UpgradeSettings({ c: comp }: { c: Component }) {
   const tiers = data.data?.tiers ?? []
   const disabled = !c.canEdit
   const tier = cfg ? (tiers.find((x) => x.id === cfg.tier) ?? null) : null
-  // A new block takes the first tier; a tier whose prices changed rewrites its line.
+  const offers = tier?.offers ?? []
+  const offer = cfg?.offer ? (offers.find((o) => o.code === cfg.offer) ?? null) : null
+  const defaultButton = (x: { trialDays: number; short: string }) => (x.trialDays > 0 ? t(mc.defaultButton) : t(mc.defaultButtonNoTrial, { tier: x.short }))
+  // A new block takes the first tier; an offer that ended goes back to the
+  // tier's price and button; a tier or offer whose prices changed rewrites
+  // the line.
   const first = tiers[0]
-  const fill = cfg && !disabled && data.data ? (!cfg.tier && first ? first : tier && tier.priceLine !== cfg.price ? tier : null) : null
+  let next: UpgradeConfig | null = null
+  if (cfg && !disabled && data.data) {
+    if (!cfg.tier && first) {
+      next = { ...cfg, tier: first.id, price: first.priceLine, headline: t(mc.defaultHeadline, { tier: first.short }), button: defaultButton(first), offer: '' }
+    } else if (tier && cfg.offer && !offer) {
+      next = { ...cfg, offer: '', price: tier.priceLine, button: defaultButton(tier) }
+    } else if (tier && offer && offer.line !== cfg.price) {
+      next = { ...cfg, price: offer.line }
+    } else if (tier && !cfg.offer && tier.priceLine !== cfg.price) {
+      next = { ...cfg, price: tier.priceLine }
+    }
+  }
+  const nextKey = next ? encodeUpgrade(next) : ''
   useEffect(() => {
-    if (!cfg || !fill) return
-    const fresh = !cfg.tier
-    applyUpgrade(comp, {
-      ...cfg,
-      tier: fill.id,
-      price: fill.priceLine,
-      headline: fresh ? t(mc.defaultHeadline, { tier: fill.short }) : cfg.headline,
-      button: fresh ? (fill.trialDays > 0 ? t(mc.defaultButton) : t(mc.defaultButtonNoTrial, { tier: fill.short })) : cfg.button,
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per tier and price
-  }, [fill?.id, fill?.priceLine])
+    if (next) applyUpgrade(comp, next)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per change of what the card should say
+  }, [nextKey])
   if (!cfg || c.kind === 'transactional') return null
   const set = (patch: Partial<UpgradeConfig>) => applyUpgrade(comp, { ...cfg, ...patch })
   return (
@@ -121,7 +132,7 @@ export function UpgradeSettings({ c: comp }: { c: Component }) {
       </Prop>
       <Prop
         title={t(mc.tierPrice)}
-        hint={tiers.length === 0 ? t(mc.noTiers) : tier && !tier.priceLine ? t(mc.tierPriceNone) : cfg.price ? t(mc.tierPriceHint, { price: cfg.price }) : null}
+        hint={tiers.length === 0 ? t(mc.noTiers) : tier && !tier.priceLine ? t(mc.tierPriceNone) : tier?.priceLine || cfg.price ? t(mc.tierPriceHint, { price: tier?.priceLine || cfg.price }) : null}
       >
         <select
           className="in"
@@ -146,6 +157,29 @@ export function UpgradeSettings({ c: comp }: { c: Component }) {
         hint={<T msg={mc.buttonHint} values={{ token: <span className="tok mono">{'{{ upgrade_url }}'}</span> }} />}
       >
         <Draft label={t(mc.button)} value={cfg.button} disabled={disabled} onCommit={(v) => set({ button: v })} />
+      </Prop>
+      <Prop
+        title={t(mc.offer)}
+        hint={offer?.endsAt ? t(mc.offerEnds, { offer: offer.name, date: dayMonthDate(offer.endsAt) }) : tier && data.data && !offers.length ? t(mc.offerNoneLive) : null}
+      >
+        <select
+          className="in"
+          aria-label={t(mc.offer)}
+          value={offer ? offer.code : ''}
+          disabled={disabled || !tier || !offers.length}
+          onChange={(e) => {
+            if (!tier) return
+            const o = offers.find((x) => x.code === e.target.value)
+            set(o ? { offer: o.code, price: o.line, button: o.button } : { offer: '', price: tier.priceLine, button: defaultButton(tier) })
+          }}
+        >
+          <option value="">{t(mc.offerNone)}</option>
+          {offers.map((o) => (
+            <option key={o.code} value={o.code}>
+              {o.option}
+            </option>
+          ))}
+        </select>
       </Prop>
     </>
   )

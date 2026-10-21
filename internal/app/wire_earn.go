@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"slices"
 	"sync"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -18,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/demo"
 	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/jobs"
+	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/transactional"
@@ -58,6 +60,8 @@ func earnService(a *App) *earn.Service {
 	if a.Cfg != nil {
 		s.AllowPrivate = a.Cfg.Providers.AllowPrivateNetworks
 	}
+	// Offers and gifts hook into the upgrade page, checkout and payments (X17).
+	wireEarnX17(a, s)
 	v, _ := earnServices.LoadOrStore(a, s)
 	return v.(*earn.Service)
 }
@@ -202,16 +206,24 @@ func (m earnMailer) Send(ctx context.Context, ws *store.Workspace, msg earn.Memb
 	}
 	status, body, err := transactionalService(m.a).Send(ctx, ws, in, idem, "api")
 	if err != nil {
+		// The transactional API answers with its own problem, which wraps
+		// the API's (X17: its refusals kept their reason only this way).
+		code := ""
 		var p *api.Problem
-		if errors.As(err, &p) {
-			switch p.Code {
-			case transactional.CodeTemplateNotPublished, transactional.CodeTemplateNotFound:
-				return earn.Sent{}, earn.ErrNotPublished
-			case transactional.CodeNoHealthyRoute:
-				return earn.Sent{}, earn.ErrNoRoute
-			case transactional.CodeRecipientSuppressed:
-				return earn.Sent{}, earn.ErrSuppressed
-			}
+		var tp *transactional.Problem
+		switch {
+		case errors.As(err, &tp):
+			code = tp.Code
+		case errors.As(err, &p):
+			code = p.Code
+		}
+		switch code {
+		case transactional.CodeTemplateNotPublished, transactional.CodeTemplateNotFound:
+			return earn.Sent{}, earn.ErrNotPublished
+		case transactional.CodeNoHealthyRoute:
+			return earn.Sent{}, earn.ErrNoRoute
+		case transactional.CodeRecipientSuppressed:
+			return earn.Sent{}, earn.ErrSuppressed
 		}
 		return earn.Sent{}, err
 	}
@@ -300,4 +312,22 @@ func init() {
 	jobRegistrars = append(jobRegistrars, func(a *App) {
 		earn.RegisterJobs(a.JobReg, earnService(a))
 	})
+	recipientDataRegistrars = append(recipientDataRegistrars, func(a *App) liquid.RecipientData { return paidRecipients{a} })
+}
+
+// paidRecipients gives each reader their paid.* values (earn.PaidVars) in
+// sends, previews, test emails and view online.
+type paidRecipients struct{ a *App }
+
+func (paidRecipients) Roots() []string { return []string{earn.RootPaid} }
+
+func (p paidRecipients) Vars(ctx context.Context, wsID uuid.UUID, recipients []liquid.Recipient, roots []string) (map[uuid.UUID]map[string]any, error) {
+	if len(recipients) == 0 || !slices.Contains(roots, earn.RootPaid) {
+		return map[uuid.UUID]map[string]any{}, nil
+	}
+	ids := make([]uuid.UUID, len(recipients))
+	for i, r := range recipients {
+		ids[i] = r.ContactID
+	}
+	return earnService(p.a).PaidVars(ctx, wsID, ids)
 }

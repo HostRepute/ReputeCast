@@ -83,7 +83,7 @@ func (s *Service) StartCheckout(ctx context.Context, ws *store.Workspace, in Che
 	if err != nil {
 		return CheckoutHandoff{}, err
 	}
-	one, ok := client.(payments.OneTimePayments)
+	one, ok := client.(payments.OneTimePrices)
 	if !ok {
 		return CheckoutHandoff{}, ErrNotForSale
 	}
@@ -123,7 +123,7 @@ func (s *Service) StartCheckout(ctx context.Context, ws *store.Workspace, in Che
 	if cancel == "" {
 		cancel = s.siteLinks(ctx, ws).product(live.Slug)
 	}
-	cs, err := one.CreatePaymentCheckout(ctx, payments.PaymentCheckoutRequest{PriceID: m.Price, CustomerEmail: in.Email, Tax: sel.TaxAtCheckout,
+	cs, err := one.CreatePriceCheckout(ctx, payments.PriceCheckoutRequest{PriceID: m.Price, CustomerEmail: in.Email, Tax: sel.TaxAtCheckout,
 		SuccessURL: in.ThanksURL, CancelURL: withQuery(cancel, "checkout", "cancelled"), ClientRef: cid.String(),
 		Metadata: map[string]string{"reputecast_checkout": cid.String(), "reputecast_product": p.ID.String()}})
 	if err != nil {
@@ -186,7 +186,7 @@ func (s *Service) Thanks(ctx context.Context, ws *store.Workspace, productID uui
 		if cerr != nil {
 			return ThanksView{}, false, cerr
 		}
-		one, ok := client.(payments.OneTimePayments)
+		one, ok := client.(payments.OneTimePrices)
 		if !ok {
 			return ThanksView{}, false, nil
 		}

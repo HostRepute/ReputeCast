@@ -4,7 +4,9 @@
  * {{ upgrade_url }}, the reader's own link to the upgrade page, which
  * credits the email. It shows to free subscribers only unless its
  * Visibility changes. Its settings live in the section's rc-upgrade
- * attribute; the compile step drops every rc-* attribute.
+ * attribute; the compile step drops every rc-* attribute. With an offer
+ * (X17) the card reads the offer's line and button, and its link carries
+ * the offer: {{ upgrade_url | with_query: 'offer', 'FALL26' }}.
  */
 
 export const ATTR_UPGRADE = 'rc-upgrade'
@@ -18,6 +20,8 @@ export interface UpgradeConfig {
   button: string
   /** The price line as last written ("$8/month or $80/year · 14 days free"). */
   price: string
+  /** The signup offer's code the card carries ("FALL26"); "" for none. */
+  offer: string
 }
 
 const plex = `'IBM Plex Sans', Helvetica, Arial, sans-serif`
@@ -33,14 +37,20 @@ export function parseUpgrade(raw: unknown): UpgradeConfig | null {
   if (typeof raw !== 'string' || !raw.trim()) return null
   try {
     const c = JSON.parse(raw) as Partial<UpgradeConfig>
-    return { tier: c.tier ?? '', headline: c.headline ?? '', line: c.line ?? '', button: c.button ?? '', price: c.price ?? '' }
+    return { tier: c.tier ?? '', headline: c.headline ?? '', line: c.line ?? '', button: c.button ?? '', price: c.price ?? '', offer: c.offer ?? '' }
   } catch {
     return null
   }
 }
 
 export function encodeUpgrade(c: UpgradeConfig): string {
-  return JSON.stringify({ tier: c.tier, headline: c.headline, line: c.line, button: c.button, price: c.price })
+  return JSON.stringify({ tier: c.tier, headline: c.headline, line: c.line, button: c.button, price: c.price, ...(c.offer ? { offer: c.offer } : {}) })
+}
+
+/** The card's link: the reader's upgrade page, with the offer when the card carries one. */
+export function upgradeHref(c: UpgradeConfig): string {
+  const code = c.offer.replace(/[^A-Za-z0-9_-]/g, '')
+  return code ? `{{ upgrade_url | with_query: 'offer', '${code}' }}` : '{{ upgrade_url }}'
 }
 
 /**
@@ -63,7 +73,7 @@ export function upgradeColumn(c: UpgradeConfig): string {
   if (c.line.trim()) card += `<div style="font-size:14px;line-height:1.55;color:#374151;padding-bottom:8px;">${esc(c.line)}</div>`
   if (c.price.trim()) card += `<div style="font-size:13px;font-weight:600;line-height:1.4;color:#0B1220;padding-bottom:14px;">${esc(c.price)}</div>`
   card +=
-    `<a href="{{ upgrade_url }}" style="display:inline-block;background-color:${teal};color:#ffffff;font-family:${esc(plex)};font-size:14px;font-weight:600;` +
+    `<a href="${upgradeHref(c)}" style="display:inline-block;background-color:${teal};color:#ffffff;font-family:${esc(plex)};font-size:14px;font-weight:600;` +
     `line-height:1;padding:11px 18px;border-radius:6px;text-decoration:none;">${esc(c.button)}</a></div>`
   return `<mj-column><mj-text align="center" font-family="${esc(plex)}" padding="0px">${card}</mj-text></mj-column>`
 }

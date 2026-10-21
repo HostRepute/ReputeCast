@@ -149,7 +149,7 @@ func (e *sfEnv) bought(product uuid.UUID, email string) (store.ProductOrder, str
 		e.t.Fatal(err)
 	}
 	session := path.Base(h.URL)
-	paid, err := e.stripe.CompletePayment(payments.Live, session, stripetest.PaymentOptions{Email: email, Name: "Sky Buyer"})
+	paid, err := e.stripe.PayCheckout(payments.Live, session, stripetest.PaymentOptions{Email: email, Name: "Sky Buyer"})
 	if err != nil {
 		e.t.Fatal(err)
 	}
@@ -312,7 +312,7 @@ func TestBuyAndDownloadOnTheSite(t *testing.T) {
 	lacks(t, e.news(http.MethodGet, "/products/deliverability-field-guide/thanks", nil, nil), "Download now")
 
 	// Paid.
-	if _, err := e.stripe.CompletePayment(payments.Live, session, stripetest.PaymentOptions{Email: "sky.reader@fastmail.com", Name: "Sky Reader"}); err != nil {
+	if _, err := e.stripe.PayCheckout(payments.Live, session, stripetest.PaymentOptions{Email: "sky.reader@fastmail.com", Name: "Sky Reader"}); err != nil {
 		t.Fatal(err)
 	}
 	r = e.news(http.MethodGet, thanks, nil, nil)

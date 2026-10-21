@@ -11,14 +11,14 @@ import (
 
 // One-time payments: a fixed and a pay-what-you-want price, a payment-mode
 // checkout, and the events of paying, refunding and disputing it.
-func TestOneTimePayments(t *testing.T) {
+func TestOneTimePrices(t *testing.T) {
 	ctx := context.Background()
 	env, f := newEnv(t)
 	c, err := env.Open(liveKey)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pay, ok := c.(payments.OneTimePayments)
+	pay, ok := c.(payments.OneTimePrices)
 	if !ok {
 		t.Fatal("the Stripe client sells one-time prices")
 	}
@@ -38,7 +38,7 @@ func TestOneTimePayments(t *testing.T) {
 		t.Fatalf("custom amount kept: %+v", o)
 	}
 
-	cs, err := pay.CreatePaymentCheckout(ctx, payments.PaymentCheckoutRequest{PriceID: pwyw.ID, CustomerEmail: "marco.bianchi@example.it", Tax: true,
+	cs, err := pay.CreatePriceCheckout(ctx, payments.PriceCheckoutRequest{PriceID: pwyw.ID, CustomerEmail: "marco.bianchi@example.it", Tax: true,
 		SuccessURL: "https://news.acme.io/products/launch-kit/thanks?session={CHECKOUT_SESSION_ID}", CancelURL: "https://news.acme.io/launch-kit?checkout=cancelled",
 		ClientRef: "chk_1", Metadata: map[string]string{"reputecast_checkout": "chk_1"}})
 	if err != nil || cs.URL == "" {
@@ -48,7 +48,7 @@ func TestOneTimePayments(t *testing.T) {
 	if req.Form.Get("mode") != "payment" || req.Form.Get("payment_intent_data[metadata][reputecast_checkout]") != "chk_1" || req.Form.Get("subscription_data[metadata][reputecast_checkout]") != "" {
 		t.Fatalf("payment mode form: %v", req.Form)
 	}
-	paid, err := f.CompletePayment(payments.Live, cs.ID, stripePaymentOptions(2000))
+	paid, err := f.PayCheckout(payments.Live, cs.ID, stripePaymentOptions(2000))
 	if err != nil {
 		t.Fatal(err)
 	}

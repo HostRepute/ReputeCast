@@ -102,7 +102,13 @@ func (a *App) publicPages() *publicpages.Handler {
 		Polls:   pl,
 		Browser: browserContent{a},
 		// The upgrade page, its welcome page and the billing links (X16).
-		Earn:       earnService(a),
+		Earn: earnService(a),
+		// The hosted cancel page and its retention offer (X17).
+		Offers: offerService(a),
+		// The gift and redeem pages (X17).
+		Gifts: giftService(a),
+		// Shared sponsor reports (X17).
+		Sponsors:   sponsorService(a),
 		Recipients: func() []liquid.RecipientData { return recipientData(a) },
 		// Grow's pages: the hub, invite pages, the leaderboard, downloads
 		// and the recommendations page.

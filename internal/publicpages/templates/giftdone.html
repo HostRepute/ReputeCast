@@ -1,0 +1,16 @@
+{{define "content"}}{{with .Body}}<main class="card g18 gf" id="main">
+  {{template "brand" $}}
+  <div class="gf-head">
+    <span class="gf-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="11" height="7.5" rx="1"></rect><path d="M1.8 4.2h12.4v2.3H1.8zM8 4.2V14M8 4.2c-1.2-2.3-4-2.6-4-.9 0 .9 1.6.9 4 .9zM8 4.2c1.2-2.3 4-2.6 4-.9 0 .9-1.6.9-4 .9z"></path></svg></span>
+    <h1 class="h24">{{.Heading}}</h1>
+    <p class="lead">{{.Text}}</p>
+  </div>
+  <div class="gf-sum"><span><strong>{{.Gift}}</strong> · {{.Paid}}</span>{{with .To}}<span class="gf-to">{{.}}</span>{{end}}</div>
+  {{with .Note}}<p class="pnote">{{.}}</p>{{end}}
+</main>{{end}}{{end}}
+{{define "foot"}}<footer class="foot">
+  {{- with .Body.TermsURL}}<a href="{{.}}">{{$.Body.TermsLabel}}</a>{{end}}
+  {{- if and .Body.TermsURL .Privacy}}{{template "sep"}}{{end}}
+  {{- with .Privacy}}<a href="{{.}}">{{$.T "page.privacy"}}</a>{{end}}
+  {{- if and (or .Body.TermsURL .Privacy) .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

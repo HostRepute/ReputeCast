@@ -193,6 +193,10 @@ type Service struct {
 	// Render renders a public Earn page with the workspace's branding
 	// (internal/publicpages): the upgrade page editor's preview.
 	Render func(ctx context.Context, ws *store.Workspace, page string, view any) (string, error)
+	// Offers applies offer links on the upgrade page and at checkout, and
+	// OneTime takes one-time payments' events (gifts); X17, x17.go.
+	Offers  OfferHook
+	OneTime OneTimeHook
 }
 
 // Brand is how the public pages look: who readers pay and the colours.

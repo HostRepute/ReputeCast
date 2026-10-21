@@ -72,6 +72,9 @@ func sendingTracker(a *App) *tracking.Service {
 		Transactional: transactionalService(a),
 		Placement:     a.placement(),
 		Recipients:    func() []liquid.RecipientData { return recipientData(a) }}
+	for _, hook := range trackingHooks {
+		hook(a, t)
+	}
 	v, _ := trackers.LoadOrStore(a, t)
 	return v.(*tracking.Service)
 }

@@ -1210,7 +1210,7 @@ func (s *Service) syncStripe(ctx context.Context, ws *store.Workspace, p store.P
 
 // ensurePrice makes sure the provider has the product with a price for d.
 func ensurePrice(ctx context.Context, client payments.Client, m stripeMode, productID uuid.UUID, d Live, currency string, inclusive bool) (stripeMode, error) {
-	one, ok := client.(payments.OneTimePayments)
+	one, ok := client.(payments.OneTimePrices)
 	if !ok {
 		return m, errors.New("products: the payment provider doesn't sell one-time prices")
 	}

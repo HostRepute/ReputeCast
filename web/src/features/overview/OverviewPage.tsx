@@ -18,6 +18,7 @@ import { SenderHealthCard } from './SenderHealthCard'
 import { HealthSkeleton, NextSkeleton, ProvidersSkeleton, CardSkeleton } from './Skeletons'
 import { overviewSubtitle, refreshSentences } from './words'
 import { TransactionalOverviewCard } from '@/features/transactional/OverviewCard'
+import { EarnOverviewCard } from '@/features/earn/revenue/EarnCard'
 
 /** A card whose data failed to load: what failed and a retry, the rest of the page stays. */
 function CardError({ title, error, onRetry }: { title: string; error: unknown; onRetry: () => void }) {
@@ -175,6 +176,7 @@ export function OverviewPage() {
             ) : null}
           </section>
           <TransactionalOverviewCard />
+          <EarnOverviewCard />
           <Grid min={380} gap={20}>
             <Section q={audience} perm="subscribers:view" title="Subscriber growth" skeleton={<CardSkeleton lines={5} />}>
               {(a) => <GrowthCard a={a} />}

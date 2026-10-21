@@ -8,7 +8,7 @@ import (
 // One-time payments (digital products, design expansion phase 7, M29): a
 // price paid once, fixed or chosen by the buyer above a minimum (pay what
 // you want), and a hosted checkout in payment mode. Adapters that support
-// them implement OneTimePayments on their Client and PaymentParser on
+// them implement OneTimePrices on their Client and PaymentParser on
 // their webhook verifier; callers check with a type assertion, so the
 // subscription contract above doesn't change.
 
@@ -30,8 +30,8 @@ type OneTimePrice struct {
 	Metadata     map[string]string
 }
 
-// PaymentCheckoutRequest opens a checkout for one one-time price.
-type PaymentCheckoutRequest struct {
+// PriceCheckoutRequest opens a checkout for one one-time price.
+type PriceCheckoutRequest struct {
 	PriceID       string
 	CustomerEmail string
 	// Tax adds tax at checkout and collects the address it needs.
@@ -44,10 +44,10 @@ type PaymentCheckoutRequest struct {
 	Metadata map[string]string
 }
 
-// OneTimePayments is implemented by clients that sell one-time prices.
-type OneTimePayments interface {
+// OneTimePrices is implemented by clients that sell one-time prices.
+type OneTimePrices interface {
 	CreateOneTimePrice(ctx context.Context, p OneTimePrice) (Price, error)
-	CreatePaymentCheckout(ctx context.Context, r PaymentCheckoutRequest) (CheckoutSession, error)
+	CreatePriceCheckout(ctx context.Context, r PriceCheckoutRequest) (CheckoutSession, error)
 	// GetPayment reads a payment checkout as its completion would report
 	// it (the thank-you page, before the webhook arrives).
 	GetPayment(ctx context.Context, sessionID string) (Payment, error)

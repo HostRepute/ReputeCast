@@ -228,7 +228,7 @@ type buyer struct {
 // pay completes a checkout session on Stripe's page.
 func (s *shop) pay(session string, b buyer) stripetest.Paid {
 	s.t.Helper()
-	p, err := s.stripe.CompletePayment(payments.Live, session, stripetest.PaymentOptions{Email: b.Email, Name: b.Name, AmountCents: b.Amount, TaxCents: b.Tax})
+	p, err := s.stripe.PayCheckout(payments.Live, session, stripetest.PaymentOptions{Email: b.Email, Name: b.Name, AmountCents: b.Amount, TaxCents: b.Tax})
 	if err != nil {
 		s.t.Fatalf("pay: %v", err)
 	}
