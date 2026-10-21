@@ -564,7 +564,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
                 <span className="mono min-w-0" style={{ fontSize: 12, overflowWrap: 'anywhere' }}>
                   {t.token}
                 </span>
-                <span className="flex-none">
+                <span className="cmp-token-value flex-none">
                   → <b>{t.perRecipient ? tr(mp.perRecipient) : t.value || tr(mp.emptyValue)}</b>
                 </span>
               </div>

@@ -118,7 +118,7 @@ function RequestsCard({
           </h2>
           <span className="k">{data.allRequests ? t(m.requestsCaptionAll) : t(m.requestsCaptionOwn)}</span>
         </div>
-        <div className="row gap-2!">
+        <div className="ap-filters row gap-2!">
           {data.allRequests ? (
             <select className="in w-[150px] max-md:min-w-full" aria-label={t(m.filterByAuthor)} value={search.author ?? ''} onChange={(e) => onFilter({ author: e.target.value || undefined })}>
               <option value="">{t(m.anyAuthor)}</option>
