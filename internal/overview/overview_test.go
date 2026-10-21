@@ -143,7 +143,7 @@ func TestOverviewCards(t *testing.T) {
 	// The approval inbox's history adds the Beta Program launch invite (sent
 	// Oct 6), which the Main board doesn't list, and the recurring digest its
 	// issue #2 (sent Oct 10): recent campaigns include sent issues. Texts are
-	// campaigns too (X21): "Summit: 8 days to go" went out on Oct 18.
+	// campaigns too (X21, brief §4): "Summit: 8 days to go" went out on Oct 18.
 	if len(r.Items) != 4 || r.Items[0].Name != "Summit: 8 days to go" || r.Items[1].Name != "October Product Update" || r.Items[3].Name != "Engineering blog roundup #2" {
 		t.Fatalf("recent: %+v", r.Items)
 	}

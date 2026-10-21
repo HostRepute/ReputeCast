@@ -70,7 +70,7 @@ func TestListAndSummaryMatchTheBoard(t *testing.T) {
 	var l list
 	c.Do("GET", wsPath, nil).MustStatus(t, 200).JSON(t, &l)
 	// Contact scoring (X13) adds the live "Sales-ready handoff", and SMS
-	// (X21) the live "Acme Summit reminders".
+	// (X21, brief §4) the live "Acme Summit reminders".
 	if l.Counts.All != 7 || l.Counts.Live != 5 || l.Counts.Paused != 1 || l.Counts.Drafts != 1 {
 		t.Fatalf("counts %+v", l.Counts)
 	}
@@ -520,7 +520,7 @@ func TestTemplatesAndOptions(t *testing.T) {
 		Providers []struct{ Short string }
 	}
 	c.Do("GET", wsPath+"/options", nil).MustStatus(t, 200).JSON(t, &opts)
-	// The three lists of the board, and SMS's (X21) Acme Summit 2026.
+	// The three lists of the board, and SMS's (X21, brief §4) Acme Summit 2026.
 	if len(opts.Lists) != 4 || len(opts.Emails) < 5 || len(opts.Providers) != 3 {
 		t.Fatalf("options %+v", opts)
 	}
