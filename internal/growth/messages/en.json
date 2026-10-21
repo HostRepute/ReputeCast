@@ -1,0 +1,5 @@
+{
+  "period.pickDays": { "message": "Pick the first and last day of the period.", "note": "a custom period on Audience › Growth without both days" },
+  "period.endsBefore": "The period ends before it starts. Swap the two days.",
+  "period.tooLong": "Pick a period of two years at most."
+}

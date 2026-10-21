@@ -280,7 +280,7 @@ func Register(h huma.API, s *Service) {
 		}) (*api.Body[ReferralFile], error) {
 			f := in.RawBody.Data().File
 			if !f.IsSet {
-				return nil, api.Invalid("body.file", "Choose a file to upload.")
+				return nil, api.Invalid("body.file", s.text(ctx, msgs.M("file.missing"), nil))
 			}
 			out, err := s.UploadFile(ctx, api.WorkspaceFrom(ctx), in.id(), f.Filename, f)
 			return api.OK(out), err
