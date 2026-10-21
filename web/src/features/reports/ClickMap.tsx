@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Schemas } from '@/api/client'
 import { Button } from '@/components/ui/Button'
-import { TableScroll } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
 import { cn } from '@/lib/cn'
-import { count } from '@/lib/format'
+import { t as tt, useT } from '@/i18n'
+import { count, pct } from '@/lib/format'
+import { m as rm } from './messages'
 import { clickNote } from './words'
 
 type Link = Schemas['ReportLink']
@@ -171,7 +173,7 @@ export function placeBubbles(links: Link[], anchors: AnchorBox[], other: Schemas
   }
   if (other && lastGrouped) {
     const w = bubbleWidth(other.share)
-    out.push({ key: 'other', label: 'Other', share: other.share, hot: false, left: clampX(lastGrouped.blockRight * scale - w, w), top: clampY(lastGrouped.bandTop * scale - 8) })
+    out.push({ key: 'other', label: tt(rm.other), share: other.share, hot: false, left: clampX(lastGrouped.blockRight * scale - w, w), top: clampY(lastGrouped.bandTop * scale - 8) })
   }
   return out
 }
@@ -222,6 +224,7 @@ function anchorBox(a: HTMLAnchorElement, all: HTMLAnchorElement[]): AnchorBox {
 }
 
 function MapFrame({ m, polls }: { m: Schemas['ReportClickMap']; polls?: MapPoll[] }) {
+  const t = useT()
   const box = useRef<HTMLDivElement>(null)
   const frame = useRef<HTMLIFrameElement>(null)
   const [layout, setLayout] = useState<{ height: number; scale: number; bubbles: Bubble[]; regions: PollRegion[] }>()
@@ -277,7 +280,7 @@ function MapFrame({ m, polls }: { m: Schemas['ReportClickMap']; polls?: MapPoll[
       <div style={{ height: h, position: 'relative' }}>
         <iframe
           ref={frame}
-          title="The email as sent, with the share of clicks on each link"
+          title={t(rm.frameTitle)}
           sandbox="allow-same-origin"
           srcDoc={m.html}
           onLoad={onLoad}
@@ -291,8 +294,13 @@ function MapFrame({ m, polls }: { m: Schemas['ReportClickMap']; polls?: MapPoll[
           </span>
         ))}
         {layout?.bubbles.map((b) => (
-          <span key={b.key} className={cn('rep-ck', b.hot && 'hot')} style={{ left: b.left, top: b.top }} title={`${b.label}: ${Math.round(b.share)}% of clicks`}>
-            {Math.round(b.share)}%
+          <span
+            key={b.key}
+            className={cn('rep-ck', b.hot && 'hot')}
+            style={{ left: b.left, top: b.top }}
+            title={t(rm.bubbleTitle, { label: b.label, share: pct(Math.round(b.share), 0) })}
+          >
+            {pct(Math.round(b.share), 0)}
           </span>
         ))}
       </div>
@@ -302,18 +310,15 @@ function MapFrame({ m, polls }: { m: Schemas['ReportClickMap']; polls?: MapPoll[
 
 /** Clicks per link as a table (the click map's table view). */
 function LinkTable({ m }: { m: Schemas['ReportClickMap'] }) {
+  const t = useT()
   return (
-    <TableScroll label="Clicks per link">
+    <TableScroll label={t(rm.clicksPerLink)}>
       <table className="tbl rep-tbl phone-wrap">
         <thead>
           <tr>
-            <th scope="col">Link</th>
-            <th scope="col" className="r">
-              Clicks
-            </th>
-            <th scope="col" className="r">
-              Share
-            </th>
+            <Th>{t(rm.colLink)}</Th>
+            <Th align="right">{t(rm.clicks)}</Th>
+            <Th align="right">{t(rm.colShare)}</Th>
           </tr>
         </thead>
         <tbody>
@@ -324,7 +329,7 @@ function LinkTable({ m }: { m: Schemas['ReportClickMap'] }) {
                 <div className="k mono">{l.url}</div>
               </td>
               <td className="r n">{count(l.clicks)}</td>
-              <td className="r n">{Math.round(l.share)}%</td>
+              <td className="r n">{pct(Math.round(l.share), 0)}</td>
             </tr>
           ))}
         </tbody>
@@ -357,6 +362,7 @@ export function ClickMap({
   polls?: MapPoll[]
   pollNote?: ReactNode
 }) {
+  const t = useT()
   const [table, setTable] = useState(false)
   const note = clickNote(m)
   const noLinks = m.links.length === 0
@@ -367,29 +373,25 @@ export function ClickMap({
           <>
             <div className="flex min-w-0 flex-col gap-0.5">
               <h2 className="h2" id="rep-map-h">
-                Click map
+                {t(rm.clickMap)}
               </h2>
-              <span className="k">{noLinks ? null : `share of ${count(m.total)} clicks`}</span>
+              <span className="k">{noLinks ? null : t(rm.shareOfClicks, { count: count(m.total) })}</span>
             </div>
             {picker}
           </>
         ) : (
           <>
             <h2 className="h2" id="rep-map-h">
-              Click map
+              {t(rm.clickMap)}
             </h2>
-            {noLinks ? null : <span className="k">share of {count(m.total)} clicks</span>}
+            {noLinks ? null : <span className="k">{t(rm.shareOfClicks, { count: count(m.total) })}</span>}
           </>
         )}
       </div>
       {noLinks ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 py-8 text-center">
-          <span className="font-semibold">{imported && clicks > 0 ? 'No clicks per link' : 'No tracked links'}</span>
-          <span className="k max-w-[320px]">
-            {imported && clicks > 0
-              ? `Clicks per link weren’t part of this campaign’s import; its ${count(clicks)} clicks are in the tiles above.`
-              : 'Clicks are counted on links in the email. This campaign had none, or link tracking was off.'}
-          </span>
+          <span className="font-semibold">{imported && clicks > 0 ? t(rm.noLinkClicks) : t(rm.noTracked)}</span>
+          <span className="k max-w-[320px]">{imported && clicks > 0 ? t(rm.noLinkClicksBody, { count: count(clicks) }) : t(rm.noTrackedBody)}</span>
         </div>
       ) : table ? (
         <LinkTable m={m} />
@@ -399,12 +401,12 @@ export function ClickMap({
           {/* A table ignores width: 1px, so the wrapper hides it without widening the page. */}
           <div className="vh">
             <table>
-              <caption>Share of clicks per link</caption>
+              <caption>{t(rm.shareCaption)}</caption>
               <thead>
                 <tr>
-                  <th scope="col">Link</th>
-                  <th scope="col">Clicks</th>
-                  <th scope="col">Share</th>
+                  <th scope="col">{t(rm.colLink)}</th>
+                  <th scope="col">{t(rm.clicks)}</th>
+                  <th scope="col">{t(rm.colShare)}</th>
                 </tr>
               </thead>
               <tbody>
@@ -412,7 +414,7 @@ export function ClickMap({
                   <tr key={`${l.position}-${l.url}`}>
                     <td>{l.label}</td>
                     <td>{count(l.clicks)}</td>
-                    <td>{Math.round(l.share)}%</td>
+                    <td>{pct(Math.round(l.share), 0)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -422,10 +424,10 @@ export function ClickMap({
       ) : (
         // The card stretches to the chart beside it; the notice sits in its middle.
         <div className="flex flex-1 flex-col items-center justify-center gap-2 py-4 text-center">
-          <span className="font-semibold">Click map couldn't render</span>
-          <span className="k">The stored content of this campaign is missing, so there's no email to draw the clicks on. Link-level clicks are still counted.</span>
+          <span className="font-semibold">{t(rm.mapFailed)}</span>
+          <span className="k">{t(rm.mapFailedBody)}</span>
           <Button size="sm" className="rep-noprint" onClick={() => setTable(true)}>
-            Show clicks as a table
+            {t(rm.showTable)}
           </Button>
         </div>
       )}

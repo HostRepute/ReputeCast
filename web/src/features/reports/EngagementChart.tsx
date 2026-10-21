@@ -1,5 +1,8 @@
+import type { ReactNode } from 'react'
 import type { Schemas } from '@/api/client'
-import { clock } from '@/lib/format'
+import { T, useT, type MessageDescriptor } from '@/i18n'
+import { clock, pct } from '@/lib/format'
+import { m } from './messages'
 import { engagementNote, pct1 } from './words'
 
 /** Hours where the time axis bends: each stretch gets a quarter of the width. */
@@ -36,36 +39,40 @@ export function seriesPath(points: Schemas['ReportEngagementPoint'][], key: Seri
     .join(' ')
 }
 
-const SERIES: { key: Series; label: string; color: string }[] = [
-  { key: 'humanOpens', label: 'Human opens, cumulative', color: 'var(--chart-human)' },
-  { key: 'machineOpens', label: 'Machine opens', color: 'var(--chart-machine)' },
-  { key: 'clicks', label: 'Clicks', color: 'var(--accent)' },
+const SERIES: { key: Series; label: MessageDescriptor; color: string }[] = [
+  { key: 'humanOpens', label: m.seriesHuman, color: 'var(--chart-human)' },
+  { key: 'machineOpens', label: m.machineOpens, color: 'var(--chart-machine)' },
+  { key: 'clicks', label: m.clicks, color: 'var(--accent)' },
 ]
 
 /** "Engagement over the first 72 hours": cumulative human opens, machine opens and clicks. */
 export function EngagementChart({ e, startedAt, final }: { e: Schemas['ReportEngagement']; startedAt?: string; final: boolean }) {
+  const t = useT()
+  const b = (c: ReactNode[]) => <b>{c}</b>
   const last = e.points[e.points.length - 1]
   const rate = (k: Series) => (last && e.delivered > 0 ? (last[k] / e.delivered) * 100 : 0)
   const top = Math.max(rate('humanOpens'), rate('machineOpens'), rate('clicks'))
   // The top series ends at 93% of the height, as on the board.
   const yMax = top > 0 ? top / 0.93 : 1
   const note = engagementNote(e, final)
+  const reach = { human: pct1(rate('humanOpens')), hours: last?.hour ?? 0, machine: pct1(rate('machineOpens')), clicks: pct1(rate('clicks')) }
   const label = last
-    ? `Cumulative human opens reach ${pct1(rate('humanOpens'))} by ${last.hour} hours, machine opens ${pct1(rate('machineOpens'))}, clicks ${pct1(rate('clicks'))}` +
-      (e.humanWithin6h !== undefined ? `; ${Math.round(e.humanWithin6h)}% of human opens came in the first 6 hours` : '')
-    : 'No engagement yet'
+    ? e.humanWithin6h !== undefined
+      ? t(m.chartLabelWithin, { ...reach, within: pct(Math.round(e.humanWithin6h), 0) })
+      : t(m.chartLabel, reach)
+    : t(m.noEngagement)
   const sample = [1, 6, 24, 48, 72].map((h) => e.points.find((p) => p.hour === h)).filter((p): p is Schemas['ReportEngagementPoint'] => Boolean(p))
   return (
     <section className="card flex min-w-0 flex-[2_1_560px] flex-col gap-3 px-5 py-4.5" aria-labelledby="rep-eng-h">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="h2" id="rep-eng-h">
-          Engagement over the first 72 hours
+          {t(m.engagementTitle)}
         </h2>
         <div className="flex gap-3.5 text-[12px] max-md:flex-wrap">
           {SERIES.map((s) => (
             <span key={s.key} className="flex items-center gap-1.5">
               <span className="h-0.5 w-3.5" style={{ background: s.color }} aria-hidden="true" />
-              {s.label}
+              {t(s.label)}
             </span>
           ))}
         </div>
@@ -92,13 +99,13 @@ export function EngagementChart({ e, startedAt, final }: { e: Schemas['ReportEng
           {/* A table ignores width: 1px, so the wrapper hides it without widening the page. */}
           <div className="vh">
             <table>
-              <caption>Cumulative engagement, share of delivered</caption>
+              <caption>{t(m.chartCaption)}</caption>
               <thead>
                 <tr>
-                  <th scope="col">Hours after send</th>
-                  <th scope="col">Human opens</th>
-                  <th scope="col">Machine opens</th>
-                  <th scope="col">Clicks</th>
+                  <th scope="col">{t(m.colHoursAfter)}</th>
+                  <th scope="col">{t(m.humanOpens)}</th>
+                  <th scope="col">{t(m.machineOpens)}</th>
+                  <th scope="col">{t(m.clicks)}</th>
                 </tr>
               </thead>
               <tbody>
@@ -115,21 +122,21 @@ export function EngagementChart({ e, startedAt, final }: { e: Schemas['ReportEng
           </div>
           <div className="flex items-start justify-between">
             <div className="k flex flex-1 justify-between" aria-hidden="true">
-              <span>{startedAt ? `${clock(startedAt)} send` : 'Send'}</span>
-              <span>+6 h</span>
-              <span>+24 h</span>
-              <span>+48 h</span>
-              <span>+72 h</span>
+              <span>{startedAt ? t(m.axisSendAt, { time: clock(startedAt) }) : t(m.axisSend)}</span>
+              <span>{t(m.axisHours, { n: 6 })}</span>
+              <span>{t(m.axisHours, { n: 24 })}</span>
+              <span>{t(m.axisHours, { n: 48 })}</span>
+              <span>{t(m.axisHours, { n: 72 })}</span>
             </div>
             <div className="ml-4 flex flex-col items-end text-[12px]">
               <span>
-                <b>{pct1(rate('humanOpens'))}</b> human opens
+                <T msg={m.legendHuman} values={{ rate: pct1(rate('humanOpens')), b }} />
               </span>
               <span className="text-ink-3">
-                <b>{pct1(rate('machineOpens'))}</b> machine
+                <T msg={m.legendMachine} values={{ rate: pct1(rate('machineOpens')), b }} />
               </span>
               <span className="text-accent">
-                <b>{pct1(rate('clicks'))}</b> clicks
+                <T msg={m.legendClicks} values={{ rate: pct1(rate('clicks')), b }} />
               </span>
             </div>
           </div>
@@ -137,10 +144,8 @@ export function EngagementChart({ e, startedAt, final }: { e: Schemas['ReportEng
         </>
       ) : (
         <div className="flex h-[220px] flex-col items-center justify-center gap-1.5 rounded-lg bg-ground-3 px-6 text-center">
-          <span className="font-semibold">No hourly engagement for this campaign</span>
-          <span className="k max-w-[440px]">
-            It was imported with its final totals, which are in the tiles above. Campaigns sent from ReputeCast show opens and clicks hour by hour for 72 hours.
-          </span>
+          <span className="font-semibold">{t(m.noHourly)}</span>
+          <span className="k max-w-[440px]">{t(m.noHourlyBody)}</span>
         </div>
       )}
     </section>

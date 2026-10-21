@@ -3,15 +3,16 @@ import type { Schemas } from '@/api/client'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Grid } from '@/components/ui/Layout'
-import { TableScroll } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
 import { cn } from '@/lib/cn'
-import { clock, count, money } from '@/lib/format'
+import { clock, count, money, pct } from '@/lib/format'
 import { providerColor } from '../providers/common'
 import { LanguageClickMap, ResultsPerLanguage, sentByLanguage } from '@/features/languages/report'
 import { HowAnswersCounted, PollsError, PollSections, PollTiles, useMapPolls, type PollResults } from '@/features/polls/report'
 import { m as pm } from '@/features/polls/report.messages'
-import { useT } from '@/i18n'
+import { T, useT } from '@/i18n'
 import { ClickMap } from './ClickMap'
+import { m as rm } from './messages'
 import { CampaignStoreRevenue } from '@/features/commerce/revenue'
 import { EngagementChart } from './EngagementChart'
 import {
@@ -48,13 +49,14 @@ export interface ReportActions {
 
 /** One headline tile (`.card.tile`: 14px 16px, 3px gaps). */
 function Tile({ label, value, sub, muted, behind, asOf }: { label: string; value: string; sub: ReactNode; muted?: boolean; behind?: boolean; asOf?: string }) {
+  const t = useT()
   return (
     <div className={cn('card flex flex-col gap-[3px] px-4 py-3.5', behind && 'border-bad-line')}>
       <span className="k">{label}</span>
       <span className={cn('n text-[22px]', muted && 'text-ink-3')}>{value}</span>
       {asOf ? (
         <Badge tone="warn" className="self-start">
-          as of {asOf}
+          {t(rm.asOf, { time: asOf })}
         </Badge>
       ) : (
         <span className="k">{sub}</span>
@@ -65,21 +67,22 @@ function Tile({ label, value, sub, muted, behind, asOf }: { label: string; value
 
 /** The eight headline tiles. While provider events lag, the counts they feed say "as of". */
 export function HeadlineTiles({ r, polls }: { r: CampaignReport; polls?: PollResults[] }) {
+  const t = useT()
   const h = r.headline
   const final = r.campaign.final
   const lag = r.backlog ? clock(r.backlog.since) : undefined
-  const current = lag ? 'current' : undefined
+  const current = lag ? t(rm.current) : undefined
   return (
     <Grid min={240} gap={12} className={cn(lag && 'opacity-75')}>
-      <Tile label="Sent" value={count(h.sent)} sub={sentByLanguage(r.languages) ?? (sentByLine(h) || '—')} />
-      <Tile label="Delivered" value={count(h.delivered)} sub={pct1(h.deliveredRate)} behind={Boolean(lag)} asOf={lag} />
+      <Tile label={t(rm.sent)} value={count(h.sent)} sub={sentByLanguage(r.languages) ?? (sentByLine(h) || '—')} />
+      <Tile label={t(rm.delivered)} value={count(h.delivered)} sub={pct1(h.deliveredRate)} behind={Boolean(lag)} asOf={lag} />
       {polls?.length ? <PollTiles polls={polls} /> : null}
-      <Tile label="Human opens" value={count(h.humanOpens)} sub={current ?? `${pct1(h.humanOpenRate)} of delivered`} />
-      <Tile label="Machine opens" value={count(h.machineOpens)} muted sub={current ?? `${pct1(h.machineOpenRate)} · Apple Mail prefetch, scanners`} />
-      <Tile label="Clicks" value={count(h.clicks)} sub={current ?? `${pct1(h.clickRate)} · click-to-open ${pct1(h.clickToOpen)}`} />
-      <Tile label="Unsubscribes" value={count(h.unsubscribes)} sub={current ?? pct2(h.unsubscribeRate)} />
-      <Tile label="Complaints" value={count(h.complaints)} sub={pct2(h.complaintRate)} behind={Boolean(lag)} asOf={lag} />
-      <Tile label="Bounces" value={count(h.bounces)} sub={bounceLine(h, final)} behind={Boolean(lag)} asOf={lag} />
+      <Tile label={t(rm.humanOpens)} value={count(h.humanOpens)} sub={current ?? t(rm.ofDelivered, { rate: pct1(h.humanOpenRate) })} />
+      <Tile label={t(rm.machineOpens)} value={count(h.machineOpens)} muted sub={current ?? t(rm.machineSub, { rate: pct1(h.machineOpenRate) })} />
+      <Tile label={t(rm.clicks)} value={count(h.clicks)} sub={current ?? t(rm.clicksSub, { rate: pct1(h.clickRate), cto: pct1(h.clickToOpen) })} />
+      <Tile label={t(rm.unsubscribes)} value={count(h.unsubscribes)} sub={current ?? pct2(h.unsubscribeRate)} />
+      <Tile label={t(rm.complaints)} value={count(h.complaints)} sub={pct2(h.complaintRate)} behind={Boolean(lag)} asOf={lag} />
+      <Tile label={t(rm.bounces)} value={count(h.bounces)} sub={bounceLine(h, final)} behind={Boolean(lag)} asOf={lag} />
     </Grid>
   )
 }
@@ -101,40 +104,27 @@ function TableCard({ title, caption, footer, className, children, id }: { title:
 }
 
 function MailboxTable({ rows }: { rows: Schemas['ReportMailboxRow'][] }) {
+  const t = useT()
   const icloud = rows.some((r) => r.key === 'icloud')
   return (
     <TableCard
       id="rep-mb-h"
-      title="Results per mailbox provider"
-      caption="where recipients read it"
+      title={t(rm.mailboxTitle)}
+      caption={t(rm.mailboxCaption)}
       className="flex-[1_1_560px]"
-      footer={icloud ? "iCloud's machine opens are Apple Mail Privacy Protection prefetches; its human-open figure is the honest one." : null}
+      footer={icloud ? t(rm.mailboxIcloud) : null}
     >
       <table className="tbl rep-tbl phone-wrap">
         <thead>
           <tr>
-            <th scope="col">Mailbox provider</th>
-            <th scope="col" className="r">
-              Delivered
-            </th>
-            <th scope="col" className="r">
-              Human opens
-            </th>
-            <th scope="col" className="r">
-              Machine opens
-            </th>
-            <th scope="col" className="r">
-              Clicks
-            </th>
-            <th scope="col" className="r">
-              Bounces
-            </th>
-            <th scope="col" className="r">
-              Complaints
-            </th>
-            <th scope="col" className="r">
-              Unsubs
-            </th>
+            <Th>{t(rm.colMailbox)}</Th>
+            <Th align="right">{t(rm.delivered)}</Th>
+            <Th align="right">{t(rm.humanOpens)}</Th>
+            <Th align="right">{t(rm.machineOpens)}</Th>
+            <Th align="right">{t(rm.clicks)}</Th>
+            <Th align="right">{t(rm.bounces)}</Th>
+            <Th align="right">{t(rm.complaints)}</Th>
+            <Th align="right">{t(rm.colUnsubs)}</Th>
           </tr>
         </thead>
         <tbody>
@@ -162,8 +152,9 @@ function MailboxTable({ rows }: { rows: Schemas['ReportMailboxRow'][] }) {
   )
 }
 
-function ProviderTable({ t }: { t: Schemas['ReportProviderTable'] }) {
-  const cols = t.columns
+function ProviderTable({ t: table }: { t: Schemas['ReportProviderTable'] }) {
+  const t = useT()
+  const cols = table.columns
   const row = (label: string, value: (c: Schemas['ReportProviderColumn']) => string) => (
     <tr>
       <td>{label}</td>
@@ -175,11 +166,11 @@ function ProviderTable({ t }: { t: Schemas['ReportProviderTable'] }) {
     </tr>
   )
   return (
-    <TableCard id="rep-sp-h" title="Results per sending provider" caption={splitCaption(t)} className="flex-[1_1_440px]" footer={providerNote(t)}>
+    <TableCard id="rep-sp-h" title={t(rm.providerTitle)} caption={splitCaption(table)} className="flex-[1_1_440px]" footer={providerNote(table)}>
       <table className="tbl rep-tbl phone-wrap">
         <thead>
           <tr>
-            <th scope="col">Metric</th>
+            <Th>{t(rm.colMetric)}</Th>
             {cols.map((c) => (
               <th key={c.providerId || c.name} scope="col" className="r">
                 <span className="inline-flex items-center gap-1.5">
@@ -191,14 +182,14 @@ function ProviderTable({ t }: { t: Schemas['ReportProviderTable'] }) {
           </tr>
         </thead>
         <tbody>
-          {row('Sent', (c) => count(c.sent))}
-          {row('Delivered', (c) => pct1(c.deliveredRate))}
-          {row('Human opens', (c) => pct1(c.humanOpenRate))}
-          {row('Clicks', (c) => pct1(c.clickRate))}
-          {row('Bounces', (c) => pct1(c.bounceRate))}
-          {row('Complaints', (c) => pct2(c.complaintRate))}
-          {row('Median time to delivery', (c) => seconds(c.medianDeliveryMs))}
-          {row('Cost', (c) => money(c.cost))}
+          {row(t(rm.sent), (c) => count(c.sent))}
+          {row(t(rm.delivered), (c) => pct1(c.deliveredRate))}
+          {row(t(rm.humanOpens), (c) => pct1(c.humanOpenRate))}
+          {row(t(rm.clicks), (c) => pct1(c.clickRate))}
+          {row(t(rm.bounces), (c) => pct1(c.bounceRate))}
+          {row(t(rm.complaints), (c) => pct2(c.complaintRate))}
+          {row(t(rm.medianDelivery), (c) => seconds(c.medianDeliveryMs))}
+          {row(t(rm.cost), (c) => money(c.cost))}
         </tbody>
       </table>
     </TableCard>
@@ -208,18 +199,19 @@ function ProviderTable({ t }: { t: Schemas['ReportProviderTable'] }) {
 const bounceTone: Record<string, Tone> = { bad: 'bad', warn: 'warn', neutral: 'neutral' }
 
 function SuppressionCell({ row, actions }: { row: BounceRow; actions?: ReportActions }) {
+  const t = useT()
   switch (row.suppression) {
     case 'auto':
-      return <Badge tone="ok">Auto-suppressed</Badge>
+      return <Badge tone="ok">{t(rm.autoSuppressed)}</Badge>
     case 'retry':
-      return <Badge tone="neutral">Retry next send</Badge>
+      return <Badge tone="neutral">{t(rm.retryNext)}</Badge>
     case 'suppressed':
-      return <Badge tone="ok">Suppressed</Badge>
+      return <Badge tone="ok">{t(rm.suppressed)}</Badge>
     case 'add':
       return actions ? (
         <>
           <Button size="sm" className="rep-noprint" disabledReason={actions.suppressReason} onClick={() => actions.onSuppress(row)}>
-            Add {count(row.unsuppressed)} to suppression
+            {t(rm.addToSuppression, { count: count(row.unsuppressed) })}
           </Button>
           <NotSuppressed print />
         </>
@@ -230,7 +222,7 @@ function SuppressionCell({ row, actions }: { row: BounceRow; actions?: ReportAct
       return actions ? (
         <>
           <Button size="sm" className="rep-noprint" onClick={() => actions.onReview(row)}>
-            Review
+            {t(rm.review)}
           </Button>
           <NotSuppressed print />
         </>
@@ -242,26 +234,26 @@ function SuppressionCell({ row, actions }: { row: BounceRow; actions?: ReportAct
 
 /** What a printed report (or a read-only link) says where the screen offers an action. */
 function NotSuppressed({ print }: { print?: boolean }) {
+  const t = useT()
   return (
     <Badge tone="neutral" className={print ? 'rep-printonly' : undefined}>
-      Not suppressed
+      {t(rm.notSuppressed)}
     </Badge>
   )
 }
 
 function BounceTable({ b, headlineBounces, actions }: { b: Schemas['ReportBounceTable']; headlineBounces: number; actions?: ReportActions }) {
+  const t = useT()
   return (
-    <TableCard id="rep-bt-h" title={`Bounces by type · ${count(headlineBounces)}`} caption="each provider's original code mapped to one taxonomy" className="flex-[2_1_560px]">
+    <TableCard id="rep-bt-h" title={t(rm.bouncesTitle, { count: count(headlineBounces) })} caption={t(rm.bouncesCaption)} className="flex-[2_1_560px]">
       {b.rows.length ? (
         <table className="tbl rep-tbl phone-wrap">
           <thead>
             <tr>
-              <th scope="col">ReputeCast type</th>
-              <th scope="col" className="r">
-                Count
-              </th>
-              <th scope="col">Original codes</th>
-              <th scope="col">Suppression</th>
+              <Th>{t(rm.colType)}</Th>
+              <Th align="right">{t(rm.colCount)}</Th>
+              <Th>{t(rm.colCodes)}</Th>
+              <Th>{t(rm.colSuppression)}</Th>
             </tr>
           </thead>
           <tbody>
@@ -284,9 +276,7 @@ function BounceTable({ b, headlineBounces, actions }: { b: Schemas['ReportBounce
         </table>
       ) : (
         <p className="k m-0 px-4.5 py-4">
-          {headlineBounces > 0
-            ? 'Bounce details by type and code weren’t part of this campaign’s import; the count above is the imported total.'
-            : 'Nothing bounced.'}
+          {headlineBounces > 0 ? t(rm.bouncesImported) : t(rm.nothingBounced)}
         </p>
       )}
     </TableCard>
@@ -296,14 +286,15 @@ function BounceTable({ b, headlineBounces, actions }: { b: Schemas['ReportBounce
 const reasonColor: Record<string, string> = { ink: '#0B1220', muted: '#8b94a3', bad: '#B91C1C' }
 
 function Unsubscribes({ u, imported }: { u: Schemas['ReportUnsubscribes']; imported: boolean }) {
+  const t = useT()
   const note = fewerNote(u.choseFewer)
   return (
     <section className="card flex min-w-0 flex-[1_1_320px] flex-col gap-2.5 px-5 py-4.5" aria-labelledby="rep-un-h">
       <div className="flex items-center justify-between max-md:flex-wrap">
         <h2 className="h2" id="rep-un-h">
-          Unsubscribe reasons · {count(u.total)}
+          {t(rm.unsubTitle, { count: count(u.total) })}
         </h2>
-        {imported && !u.reasons.length ? null : <span className="k">asked on the unsubscribe page</span>}
+        {imported && !u.reasons.length ? null : <span className="k">{t(rm.unsubCaption)}</span>}
       </div>
       {u.reasons.length ? (
         <div className="flex flex-col gap-2 text-[13px]">
@@ -313,7 +304,7 @@ function Unsubscribes({ u, imported }: { u: Schemas['ReportUnsubscribes']; impor
                 <span>{r.label}</span>
                 <span className="n">{count(r.count)}</span>
               </div>
-              <div className="bar" role="img" aria-label={`${r.label}: ${Math.round(r.share)}% of unsubscribes`}>
+              <div className="bar" role="img" aria-label={t(rm.unsubShare, { reason: r.label, share: pct(Math.round(r.share), 0) })}>
                 <i style={{ width: `${Math.round(r.share)}%`, background: reasonColor[r.tone] }} />
               </div>
             </div>
@@ -321,11 +312,7 @@ function Unsubscribes({ u, imported }: { u: Schemas['ReportUnsubscribes']; impor
         </div>
       ) : (
         <span className="k">
-          {u.total === 0
-            ? 'Nobody unsubscribed from this campaign.'
-            : imported
-              ? 'Unsubscribe reasons weren’t part of this campaign’s import; the count above is the imported total.'
-              : 'Nobody has said why yet.'}
+          {u.total === 0 ? t(rm.unsubNobody) : imported ? t(rm.unsubImported) : t(rm.unsubNoReason)}
         </span>
       )}
       {note ? <span className="k">{note}</span> : null}
@@ -333,36 +320,39 @@ function Unsubscribes({ u, imported }: { u: Schemas['ReportUnsubscribes']; impor
   )
 }
 
-function ABTestCard({ t }: { t: Schemas['ReportABTest'] }) {
-  const badge = abBadge(t)
-  const lines = abExplanation(t)
+function ABTestCard({ t: test }: { t: Schemas['ReportABTest'] }) {
+  const t = useT()
+  const badge = abBadge(test)
+  const lines = abExplanation(test)
+  const b = (c: ReactNode[]) => <b className="n">{c}</b>
   return (
     <section className="card flex flex-col" aria-labelledby="rep-ab-h">
       <div className="sec">
         <h2 className="h2" id="rep-ab-h">
-          A/B test · {t.label}
+          {t(rm.abTitle, { label: test.label })}
         </h2>
         <Badge tone={badge.tone} dot>
           {badge.text}
         </Badge>
       </div>
       <Grid min={300} gap={0}>
-        {t.variants.map((v) => (
+        {test.variants.map((v) => (
           <div key={v.key} className={cn('flex flex-col gap-2 border-r border-line-2 px-4.5 py-4', v.winner && 'bg-ok-tint')}>
             <div className="flex items-center justify-between gap-2.5 max-md:flex-wrap">
-              <Badge tone={v.winner ? 'ok' : 'neutral'}>{v.winner ? `${v.key} · winner` : v.key}</Badge>
+              <Badge tone={v.winner ? 'ok' : 'neutral'}>{v.winner ? t(rm.abVariantWinner, { variant: v.key }) : v.key}</Badge>
               <span className="k">{variantLine(v)}</span>
             </div>
             <span className="font-semibold">{v.label}</span>
-            <div className="flex gap-4 text-[13px] max-md:flex-wrap">
+            {/* rep-abm: in a longer language the three numbers wrap as wholes (styles/expansion.css). */}
+            <div className="rep-abm flex gap-4 text-[13px] max-md:flex-wrap">
               <span>
-                <b className="n">{pct1(v.humanOpenRate)}</b> human opens
+                <T msg={rm.abHumanOpens} values={{ rate: pct1(v.humanOpenRate), b }} />
               </span>
               <span>
-                <b className="n">{pct1(v.clickRate)}</b> clicks
+                <T msg={rm.abClicks} values={{ rate: pct1(v.clickRate), b }} />
               </span>
               <span>
-                <b className="n">{pct2(v.complaintRate)}</b> complaints
+                <T msg={rm.abComplaints} values={{ rate: pct2(v.complaintRate), b }} />
               </span>
             </div>
             <div className="bar h-2" aria-hidden="true">
@@ -371,7 +361,7 @@ function ABTestCard({ t }: { t: Schemas['ReportABTest'] }) {
           </div>
         ))}
         <div className="flex flex-col gap-1.5 px-4.5 py-4 text-[13px]">
-          <span className="font-semibold">{t.state === 'testing' ? 'How the winner is picked' : 'How the winner was picked'}</span>
+          <span className="font-semibold">{test.state === 'testing' ? t(rm.abHowIs) : t(rm.abHowWas)}</span>
           {lines.map((l) => (
             <span key={l} className="k">
               {l}
