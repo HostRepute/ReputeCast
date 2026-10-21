@@ -4,6 +4,7 @@ import { useRef, type ReactElement } from 'react'
 import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { useWorkspace } from '@/lib/session'
+import { AgencySheetEntry } from '@/features/agency/WorkspaceParts'
 import { Icon } from '../icons/Icon'
 import { useHostReputeLine } from './HostReputeStatus'
 import { m } from './messages'
@@ -81,6 +82,8 @@ export function MoreSheet({
               <Icon name="close" size={16} />
             </RDialog.Close>
           </div>
+          {/* The Agency area, for its staff (agency accounts). */}
+          <AgencySheetEntry onFollow={follow} />
           <WorkspaceSwitcher variant="sheet" />
           <nav className="sheet-nav" aria-label={t(m.moreSheetNavLabel)}>
             {items.map((item) => (

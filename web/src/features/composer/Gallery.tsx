@@ -6,6 +6,7 @@ import { useComposer } from './context'
 import { Thumb } from './Thumb'
 import { GalleryCaption, GalleryResult, galleryTileClass, useGalleryResults } from '@/features/accessibility/composer/Gallery'
 import { isDigestTemplate } from '@/features/digests/composer/DigestMode'
+import { AgencyComposerGallery } from '@/features/agency/ComposerLibrary'
 
 /**
  * The empty canvas (ComposerEmpty): start from a starter template, one of
@@ -115,6 +116,8 @@ export function EmptyGallery() {
                 </button>
               </div>
             </div>
+            {/* The agency's library, for its staff in a client workspace (agency accounts). */}
+            {c.kind !== 'transactional' ? <AgencyComposerGallery canEdit={c.canEdit} onLoad={(mjml, label) => c.loadContent(mjml, { source: 'template', label })} /> : null}
           </>
         )}
       </div>

@@ -154,6 +154,10 @@ type policy struct {
 	ApprovalsRequired int   `json:"approvals_required"`
 	Automation        bool  `json:"automation_publish"`
 	Bypass            *bool `json:"emergency_bypass"`
+	// ClientSignoff is client workspaces' rule (agencies).
+	ClientSignoff *struct {
+		Enabled bool `json:"enabled"`
+	} `json:"client_signoff,omitempty"`
 }
 
 func approvalRules(raw json.RawMessage) ([]string, policy) {
@@ -181,6 +185,9 @@ func approvalRules(raw json.RawMessage) ([]string, policy) {
 	}
 	if p.Rules.Lists.Enabled {
 		rules = append(rules, "audience includes a list that requires approval")
+	}
+	if p.ClientSignoff != nil && p.ClientSignoff.Enabled {
+		rules = append(rules, "every send, for client sign-off")
 	}
 	return rules, p
 }

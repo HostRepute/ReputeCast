@@ -14,6 +14,8 @@ const search = z.object({
   workspace: z.string().max(64).optional().catch(undefined),
   actorType: z.enum(['user', 'api_key', 'mcp_agent', 'system']).optional().catch(undefined),
   result: z.enum(['allowed', 'denied']).optional().catch(undefined),
+  /** The agency's actions across the instance (agency accounts). */
+  category: z.enum(['agency']).optional().catch(undefined),
   range: z.enum(['7d', '90d', 'custom']).optional().catch(undefined),
   /** Custom range, as dates in the admin's timezone. */
   since: day,

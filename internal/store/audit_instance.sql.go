@@ -35,14 +35,16 @@ WHERE (NOT $1::boolean OR e.workspace_id IS NULL)
   AND ($2::uuid IS NULL OR e.workspace_id = $2)
   AND ($3::text IS NULL OR e.actor_type = $3)
   AND ($4::text IS NULL OR e.result = $4)
-  AND ($5::timestamptz IS NULL OR e.occurred_at >= $5)
-  AND ($6::timestamptz IS NULL OR e.occurred_at < $6)
-  AND ($7::text IS NULL OR e.target_name ILIKE '%' || $7::text || '%' OR e.actor_name ILIKE '%' || $7::text || '%'
-       OR e.target_id = $7::text OR e.request_id = $7::text OR e.metadata ->> 'reference' = $7::text)
-  AND ($8::timestamptz IS NULL OR e.occurred_at < $8::timestamptz
-       OR (e.occurred_at = $8::timestamptz AND e.id < $9::uuid))
+  AND ($5::text[] IS NULL OR e.action = ANY($5::text[])
+       OR split_part(e.action, '.', 1) = ANY($5::text[]))
+  AND ($6::timestamptz IS NULL OR e.occurred_at >= $6)
+  AND ($7::timestamptz IS NULL OR e.occurred_at < $7)
+  AND ($8::text IS NULL OR e.target_name ILIKE '%' || $8::text || '%' OR e.actor_name ILIKE '%' || $8::text || '%'
+       OR e.target_id = $8::text OR e.request_id = $8::text OR e.metadata ->> 'reference' = $8::text)
+  AND ($9::timestamptz IS NULL OR e.occurred_at < $9::timestamptz
+       OR (e.occurred_at = $9::timestamptz AND e.id < $10::uuid))
 ORDER BY e.occurred_at DESC, e.id DESC
-LIMIT $10
+LIMIT $11
 `
 
 type InstanceAuditExportParams struct {
@@ -50,6 +52,7 @@ type InstanceAuditExportParams struct {
 	WorkspaceID  *uuid.UUID `json:"workspaceId"`
 	ActorType    *string    `json:"actorType"`
 	Result       *string    `json:"result"`
+	Actions      []string   `json:"actions"`
 	Since        *time.Time `json:"since"`
 	Until        *time.Time `json:"until"`
 	Search       *string    `json:"search"`
@@ -87,6 +90,7 @@ func (q *Queries) InstanceAuditExport(ctx context.Context, arg InstanceAuditExpo
 		arg.WorkspaceID,
 		arg.ActorType,
 		arg.Result,
+		arg.Actions,
 		arg.Since,
 		arg.Until,
 		arg.Search,
@@ -211,14 +215,16 @@ WHERE (NOT $1::boolean OR e.workspace_id IS NULL)
   AND ($2::uuid IS NULL OR e.workspace_id = $2)
   AND ($3::text IS NULL OR e.actor_type = $3)
   AND ($4::text IS NULL OR e.result = $4)
-  AND ($5::timestamptz IS NULL OR e.occurred_at >= $5)
-  AND ($6::timestamptz IS NULL OR e.occurred_at < $6)
-  AND ($7::text IS NULL OR e.target_name ILIKE '%' || $7::text || '%' OR e.actor_name ILIKE '%' || $7::text || '%'
-       OR e.target_id = $7::text OR e.request_id = $7::text OR e.metadata ->> 'reference' = $7::text)
-  AND ($8::timestamptz IS NULL OR e.occurred_at < $8::timestamptz
-       OR (e.occurred_at = $8::timestamptz AND e.id < $9::uuid))
+  AND ($5::text[] IS NULL OR e.action = ANY($5::text[])
+       OR split_part(e.action, '.', 1) = ANY($5::text[]))
+  AND ($6::timestamptz IS NULL OR e.occurred_at >= $6)
+  AND ($7::timestamptz IS NULL OR e.occurred_at < $7)
+  AND ($8::text IS NULL OR e.target_name ILIKE '%' || $8::text || '%' OR e.actor_name ILIKE '%' || $8::text || '%'
+       OR e.target_id = $8::text OR e.request_id = $8::text OR e.metadata ->> 'reference' = $8::text)
+  AND ($9::timestamptz IS NULL OR e.occurred_at < $9::timestamptz
+       OR (e.occurred_at = $9::timestamptz AND e.id < $10::uuid))
 ORDER BY e.occurred_at DESC, e.id DESC
-LIMIT $10
+LIMIT $11
 `
 
 type InstanceAuditListParams struct {
@@ -226,6 +232,7 @@ type InstanceAuditListParams struct {
 	WorkspaceID  *uuid.UUID `json:"workspaceId"`
 	ActorType    *string    `json:"actorType"`
 	Result       *string    `json:"result"`
+	Actions      []string   `json:"actions"`
 	Since        *time.Time `json:"since"`
 	Until        *time.Time `json:"until"`
 	Search       *string    `json:"search"`
@@ -266,6 +273,7 @@ func (q *Queries) InstanceAuditList(ctx context.Context, arg InstanceAuditListPa
 		arg.WorkspaceID,
 		arg.ActorType,
 		arg.Result,
+		arg.Actions,
 		arg.Since,
 		arg.Until,
 		arg.Search,

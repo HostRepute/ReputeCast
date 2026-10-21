@@ -1,5 +1,6 @@
 import { Link, Outlet, useMatchRoute, useRouterState } from '@tanstack/react-router'
 import { useState, type ReactNode } from 'react'
+import { ManagedByCard, useClientSections, useIsClientPerson } from '@/features/agency/WorkspaceParts'
 import { formatList, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { useMediaQuery } from '@/lib/hooks'
@@ -48,12 +49,16 @@ function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const current = sectionOf(pathname)
   const hidden = ws.hiddenSections ?? []
-  const { more } = phoneNav(hidden)
+  // Client people see the sections their role opens (agency accounts).
+  const shows = useClientSections()
+  const more = phoneNav(hidden).more.filter((i) => shows(i.key))
   // The sheet belongs to the screen it was opened on: navigating, or leaving
   // phone width, closes it.
   const [openOn, setOpenOn] = useState<string>()
   const sheetOpen = phone && openOn === pathname
   const user = me?.user
+  // An agency's client people see who manages the workspace (agency accounts).
+  const clientPerson = useIsClientPerson()
   return (
     <aside className={cn('side', sheetOpen && 'sheet-open')} aria-label={t(m.sidebarLabel)}>
       <Link to="/w/$workspace" params={{ workspace: slug }} className="home" aria-label={t(m.homeLabel)}>
@@ -62,9 +67,11 @@ function Sidebar() {
       </Link>
       <WorkspaceSwitcher />
       <nav className="nav" aria-label={t(m.mainNavLabel)}>
-        {visibleNav(hidden).map((item) => (
-          <NavLink key={item.key} item={item} current={current} rail={rail} />
-        ))}
+        {visibleNav(hidden)
+          .filter((i) => shows(i.key))
+          .map((item) => (
+            <NavLink key={item.key} item={item} current={current} rail={rail} />
+          ))}
         <MoreSheet open={sheetOpen} onOpenChange={(o) => setOpenOn(o ? pathname : undefined)} items={more} current={current}>
           <button
             type="button"
@@ -78,11 +85,13 @@ function Sidebar() {
         </MoreSheet>
       </nav>
       <div className="sidefoot">
-        <Link to="/w/$workspace/import" params={{ workspace: slug }} className="btn" style={{ justifyContent: 'flex-start' }} aria-label={t(m.importContacts)}>
-          <Icon name="import" />
-          {t(m.importContacts)}
-        </Link>
-        <HostReputeStatus />
+        {clientPerson ? null : (
+          <Link to="/w/$workspace/import" params={{ workspace: slug }} className="btn" style={{ justifyContent: 'flex-start' }} aria-label={t(m.importContacts)}>
+            <Icon name="import" />
+            {t(m.importContacts)}
+          </Link>
+        )}
+        {clientPerson ? <ManagedByCard /> : <HostReputeStatus />}
         {user ? (
           <div className="flex items-center gap-2 px-2 py-1">
             <Avatar name={user.name || user.email} color={user.avatarColor} size={26} />

@@ -447,12 +447,13 @@ var BuiltinRoles = []BuiltinRole{
 	{Key: RoleViewer, Name: "Viewer", Description: "Read-only. Never sees secrets", Permissions: NewSet(viewAll...)},
 }
 
-// Builtin returns the built-in role with the given key.
+// Builtin returns the built-in role with the given key: one of the four, or
+// a client role (agency.go), which only client workspaces have.
 func Builtin(key string) (BuiltinRole, bool) {
 	for _, r := range BuiltinRoles {
 		if r.Key == key {
 			return r, true
 		}
 	}
-	return BuiltinRole{}, false
+	return clientRole(key)
 }

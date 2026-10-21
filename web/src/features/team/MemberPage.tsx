@@ -21,6 +21,7 @@ import { AccessTable, GroupRow, RoleBadge, SignInText } from '../access/parts'
 import { ChangeRoleDialog } from './ChangeRoleDialog'
 import { DeactivateDialog } from './DeactivateDialog'
 import { LastOwnerDialog } from './LastOwnerDialog'
+import { AgencyMemberNote } from '@/features/agency/WorkspaceParts'
 
 type Detail = Schemas['TeamMemberDetail']
 
@@ -110,6 +111,8 @@ function Member({ d }: { d: Detail }) {
             {m.status === 'active' ? <span>Last active {ago(m.lastActiveAt, now)}</span> : m.deactivatedAt ? <span>Deactivated {usDate(m.deactivatedAt)}</span> : null}
             <span>Joined {usDate(m.joinedAt)}</span>
           </div>
+          {/* Assignments from an agency say where they come from (agency accounts). */}
+          <AgencyMemberNote userId={m.userId} source={m.source} />
         </div>
         <div className="row gap-2">
           <Button size="sm" disabledReason={manageReason} onClick={() => setDialog(m.lastOwner ? 'lastOwner' : 'role')}>

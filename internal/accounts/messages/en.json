@@ -70,5 +70,7 @@
   "account.lastOwner": {"message": "Transfer ownership before leaving: the last Owner can't leave", "note": "why Leave workspace is off (a button's tooltip)"},
   "duration.days": {"message": "{n, plural, one {# day} other {# days}}", "note": "the session policy: Sessions last 14 days and end after 12 hours idle"},
   "duration.hours": "{n, plural, one {# hour} other {# hours}}",
-  "duration.minutes": "{n, plural, one {# minute} other {# minutes}}"
+  "duration.minutes": "{n, plural, one {# minute} other {# minutes}}",
+  "invite.clientViewer": {"message": "You'll see campaigns and reports.", "note": "the client invitation's one line about the Client viewer role"},
+  "invite.clientApprover": {"message": "You'll see campaigns and reports, and approve sends before they go out.", "note": "the client invitation's one line about the Client approver role"}
 }

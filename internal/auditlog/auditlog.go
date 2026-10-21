@@ -153,6 +153,8 @@ var Categories = []AuditCategory{
 	// and test numbers. Text campaigns are campaigns (Sending).
 	{Key: "sms", Label: "SMS", Groups: []string{"sms_provider", "sms_sender", "sms_registration", "sms_routes", "sms_rules", "sms_short_domain",
 		"sms_suppression", "sms_terms", "sms_test_number", "sms"}},
+	// Agency accounts (design expansion, phase 8).
+	{Key: "agency", Label: "Agency", Groups: []string{"agency"}},
 }
 
 // Filter narrows the log.

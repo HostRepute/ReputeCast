@@ -11,6 +11,7 @@ import { T, t as tt, useI18n, useT } from '@/i18n'
 import { setPageLanguage } from '@/i18n/sync'
 import { monthDay, usDate } from '@/lib/format'
 import { meQueryKey } from '@/lib/session'
+import { ClientInviteAccept, isClientInvite } from '../agency/ClientInvite'
 import { AuthHeading, PasskeyGlyph, SocialButtons, SocialMark } from './AuthParts'
 import { m } from './invite.messages'
 import { passkeyErrorMessage, registerPasskey } from './passkey'
@@ -70,6 +71,8 @@ export function InvitePage({ token }: { token: string }) {
       return <Accepted v={v} />
   }
   if (v.signedInAs && v.signedInAs !== v.email) return <WrongAccount v={v} token={token} onSignedOut={refresh} />
+  // A client of the agency that runs this instance: passkey first (agency accounts).
+  if (isClientInvite(v)) return <ClientInviteAccept v={v} token={token} onJoined={setJoined} />
   return <Accept v={v} token={token} onJoined={setJoined} />
 }
 

@@ -377,6 +377,8 @@ type ApprovalDetail struct {
 	Comments []ApprovalCommentView `json:"comments"`
 	Held     *ReviewHeld           `json:"held,omitempty"`
 	Can      ApprovalCan           `json:"can"`
+	// ClientSignoff is set when the request needs the client's sign-off.
+	ClientSignoff *ApprovalClientSignoffState `json:"clientSignoff,omitempty"`
 }
 
 // Detail returns a request for its review screen.
@@ -415,6 +417,9 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	out := ApprovalDetail{ApprovalRequestView: view, Name: r.SubjectName, Author: view.RequestedBy, Approvers: []ApprovalPerson{}, ChangesSince: []ApprovalChange{},
 		Comments: []ApprovalCommentView{}, Automation: snap.Automation, Transactional: snap.Transactional, Website: snap.Website, Channel: r.CampaignChannel, SMS: snap.SMS, Page: snap.Page}
 	out.Author.Role = firstNonEmptyStr(snap.AuthorRole, out.Author.Role)
+	if out.ClientSignoff, err = s.detailSignoff(ctx, r.MatchedRules, r.ID, ms, r.RequestedBy, p.UserID); err != nil {
+		return ApprovalDetail{}, err
+	}
 	for _, a := range approversOf(ms) {
 		out.Approvers = append(out.Approvers, s.person(a))
 	}

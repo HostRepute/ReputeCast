@@ -11,6 +11,7 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { KeyValues } from '@/components/ui/Data'
 import { toast } from '@/components/ui/Toast'
 import { PolicyCard as AccessibilityCard } from '@/features/accessibility/PolicyCard'
+import { AgencyGeneralCard } from '@/features/agency/GeneralCard'
 import { LanguagesCard } from '@/features/languages/LanguagesCard'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { andList, count } from '@/lib/format'
@@ -50,6 +51,8 @@ function General({ s }: { s: Schemas['WorkspaceSettings'] }) {
   const ownerOnly = 'Only the Owner can do this.'
   return (
     <div className={cardGrid}>
+      {/* An agency's client: who manages it, and the client details for its staff (agency accounts). */}
+      <AgencyGeneralCard />
       {/* Saved values come back from the server; remounting resets the form to them. */}
       <WorkspaceCard key={`${s.name}|${s.timezone}|${s.defaultSenderId ?? ''}`} s={s} />
       <SidebarSectionsCard s={s} />
