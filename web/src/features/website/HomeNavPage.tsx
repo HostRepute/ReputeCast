@@ -950,6 +950,8 @@ function slugify(s: string): string {
     .toLowerCase()
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
+    // "đ" has no decomposition: "Đời sống" → "doi-song", as page addresses do.
+    .replace(/đ/g, 'd')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 60)
