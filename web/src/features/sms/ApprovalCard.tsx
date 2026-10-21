@@ -1,5 +1,5 @@
 import type { Schemas } from '@/api/client'
-import { Table } from '@/components/ui/Table'
+import { Table, Th } from '@/components/ui/Table'
 import { useT } from '@/i18n'
 import { count, money } from '@/lib/format'
 import { m } from './approval.messages'
@@ -38,17 +38,17 @@ export function SmsApprovalCard({ sms }: { sms: Snapshot }) {
             <Table caption={t(m.countries)}>
               <thead>
                 <tr>
-                  <th scope="col">{t(m.country)}</th>
-                  <th scope="col">{t(m.sender)}</th>
-                  <th scope="col" className="r">
+                  <Th>{t(m.country)}</Th>
+                  <Th>{t(m.sender)}</Th>
+                  <Th className="r">
                     {t(m.recipients)}
-                  </th>
-                  <th scope="col" className="r">
+                  </Th>
+                  <Th className="r">
                     {t(m.price)}
-                  </th>
-                  <th scope="col" className="r">
+                  </Th>
+                  <Th className="r">
                     {t(m.cost)}
-                  </th>
+                  </Th>
                 </tr>
               </thead>
               <tbody>

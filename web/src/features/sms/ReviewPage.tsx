@@ -12,6 +12,7 @@ import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input, OptionCard, Select, Textarea } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
+import { Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { channelIcon } from '@/features/channels/ChannelSwitch'
 import { formatList, T, useT, type MessageDescriptor } from '@/i18n'
@@ -766,15 +767,15 @@ function RoutesCard({ data }: { data: Review }) {
       <table className="tbl text-[13px]">
         <thead>
           <tr>
-            <th scope="col" className="!px-0">
+            <Th className="!px-0">
               {t(m.provider)}
-            </th>
-            <th scope="col" className="r !px-0">
+            </Th>
+            <Th className="r !px-0">
               {t(m.cost)}
-            </th>
-            <th scope="col" className="r !pl-3 !pr-0">
+            </Th>
+            <Th className="r !pl-3 !pr-0">
               {t(m.duration)}
-            </th>
+            </Th>
           </tr>
         </thead>
         <tbody>

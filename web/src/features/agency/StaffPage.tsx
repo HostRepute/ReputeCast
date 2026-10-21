@@ -9,6 +9,7 @@ import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
+import { Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { RoleBadge } from '@/features/access/parts'
 import { formatList, useT } from '@/i18n'
@@ -101,13 +102,13 @@ function StaffCard({ view, onEdit, canManage }: { view: View; onEdit: (m: Member
         <table className="tbl" aria-label={t(sm.staffTitle, { n: view.staff.length })}>
           <thead>
             <tr>
-              <th scope="col">{t(sm.colPerson)}</th>
-              <th scope="col">{t(sm.colLevel)}</th>
-              <th scope="col">{t(sm.colClients)}</th>
-              <th scope="col">{t(sm.colLastActive)}</th>
-              <th scope="col">
+              <Th>{t(sm.colPerson)}</Th>
+              <Th>{t(sm.colLevel)}</Th>
+              <Th>{t(sm.colClients)}</Th>
+              <Th>{t(sm.colLastActive)}</Th>
+              <Th>
                 <span className="vh">{t(sm.colActions)}</span>
-              </th>
+              </Th>
             </tr>
           </thead>
           <tbody>
@@ -185,14 +186,14 @@ function AssignmentsCard({ view }: { view: View }) {
         <table className="tbl" aria-label={t(sm.matrixTitle)}>
           <thead>
             <tr>
-              <th scope="col">{t(m.colClient)}</th>
+              <Th>{t(m.colClient)}</Th>
               {view.staff.map((s) => (
-                <th key={s.id} scope="col">
+                <Th key={s.id}>
                   <span className="inline-flex items-center gap-1.5">
                     <Avatar name={s.name} color={s.avatarColor} size={20} fontSize={9} />
                     {s.name.split(/\s+/)[0]}
                   </span>
-                </th>
+                </Th>
               ))}
             </tr>
           </thead>

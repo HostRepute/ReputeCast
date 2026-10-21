@@ -6,6 +6,7 @@ import { Icon } from '@/components/icons/Icon'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
+import { Th } from '@/components/ui/Table'
 import { formatList, useT } from '@/i18n'
 import { ago, count, decimal } from '@/lib/format'
 import { useMediaQuery } from '@/lib/hooks'
@@ -362,17 +363,17 @@ function ClientsCard({ overview }: { overview: AgencyOverview }) {
           <table className="tbl cl8" aria-label={t(m.colClient)}>
             <thead>
               <tr>
-                <th scope="col">{t(m.colClient)}</th>
-                <th scope="col" className="r ag-hmd">
+                <Th>{t(m.colClient)}</Th>
+                <Th className="r ag-hmd">
                   {t(m.colContacts)}
-                </th>
-                <th scope="col">{t(m.colHealth)}</th>
-                <th scope="col">{t(m.colNextSend)}</th>
-                <th scope="col">{t(m.colApprovals)}</th>
-                <th scope="col">{t(m.colIncidents)}</th>
-                <th scope="col" className="ag-hmd">
+                </Th>
+                <Th>{t(m.colHealth)}</Th>
+                <Th>{t(m.colNextSend)}</Th>
+                <Th>{t(m.colApprovals)}</Th>
+                <Th>{t(m.colIncidents)}</Th>
+                <Th className="ag-hmd">
                   {t(m.colManager)}
-                </th>
+                </Th>
               </tr>
             </thead>
             <tbody>

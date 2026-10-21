@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
-import { Table } from '@/components/ui/Table'
+import { Table, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { formatList, T, useT } from '@/i18n'
 import { ago, clock, count, dayMonthDate, dayMonthYear, monthName, money, pct } from '@/lib/format'
@@ -596,18 +596,18 @@ function Senders({
             <Table className="sms-stk" caption={t(m.sendersTable)}>
               <thead>
                 <tr>
-                  <th scope="col">{t(m.colSender)}</th>
-                  <th scope="col">{t(m.colKind)}</th>
-                  <th scope="col">{t(m.colProvider)}</th>
-                  <th scope="col">{t(m.colCountries)}</th>
-                  <th scope="col">{t(m.colRegistration)}</th>
-                  <th scope="col" className="r">
+                  <Th>{t(m.colSender)}</Th>
+                  <Th>{t(m.colKind)}</Th>
+                  <Th>{t(m.colProvider)}</Th>
+                  <Th>{t(m.colCountries)}</Th>
+                  <Th>{t(m.colRegistration)}</Th>
+                  <Th className="r">
                     {t(m.colThroughput)}
-                  </th>
-                  <th scope="col">{t(m.colRoute)}</th>
-                  <th scope="col">
+                  </Th>
+                  <Th>{t(m.colRoute)}</Th>
+                  <Th>
                     <span className="vh">{t(m.colActions)}</span>
-                  </th>
+                  </Th>
                 </tr>
               </thead>
               <tbody>

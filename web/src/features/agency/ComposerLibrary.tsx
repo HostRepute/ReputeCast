@@ -8,6 +8,7 @@ import { Field, Input, Select } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
+import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
 import { useAgencyCan, useAgencyMe } from './api'
 import { kindLabel } from './kinds'
@@ -72,7 +73,7 @@ export function AgencyComposerGallery({ canEdit, onLoad }: { canEdit: boolean; o
         <span className="font-semibold" id="ag-gallery-h">
           {t(m.galleryTitle, { agency: d.agency, n: d.items.length })}
         </span>
-        {d.role && who ? <span className="k">{t(m.galleryRole, { person: who.user.name, name: me.workspace.name, role: d.role, agency: d.agency })}</span> : null}
+        {d.role && who ? <span className="k">{t(m.galleryRole, { person: who.user.name, name: me.workspace.name, role: roleName({ name: d.role }), agency: d.agency })}</span> : null}
       </div>
       <div className="grid items-stretch gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(180px,100%),1fr))' }}>
         {(all ? d.items : d.items.slice(0, 8)).map((item) => {

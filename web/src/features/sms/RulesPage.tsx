@@ -10,10 +10,11 @@ import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input, OptionCard, Select, Textarea } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
-import { Table } from '@/components/ui/Table'
+import { Table, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { formatList, T, useT } from '@/i18n'
 import { ago, clock, count, dayMonthDate, dayMonthYear, monthName, money } from '@/lib/format'
+import { roleName } from '@/lib/roles'
 import { useWorkspace } from '@/lib/session'
 import {
   BudgetMeter,
@@ -211,15 +212,15 @@ function Routes({ data, ro }: { data: Rules; ro: boolean }) {
       <Table caption={t(m.routesTable)}>
         <thead>
           <tr>
-            <th scope="col">{t(m.colCountries)}</th>
-            <th scope="col">{t(m.colSender)}</th>
-            <th scope="col">{t(m.colFallback)}</th>
-            <th scope="col" className="r">
+            <Th>{t(m.colCountries)}</Th>
+            <Th>{t(m.colSender)}</Th>
+            <Th>{t(m.colFallback)}</Th>
+            <Th className="r">
               {t(m.colOnLists)}
-            </th>
-            <th scope="col">
+            </Th>
+            <Th>
               <span className="vh">{t(m.colActions)}</span>
-            </th>
+            </Th>
           </tr>
         </thead>
         <tbody>
@@ -1003,7 +1004,7 @@ function TestNumbers({ data, ro }: { data: Rules; ro: boolean }) {
             <Avatar name={n.name} color={n.color} size={28} fontSize={11} />
             <div className="flex min-w-0 flex-col leading-[1.3]">
               <span className="font-semibold">{n.name}</span>
-              <span className="k">{n.role}</span>
+              <span className="k">{roleName({ name: n.role })}</span>
             </div>
           </div>
           <span className="inline-flex items-center gap-2">
@@ -1070,7 +1071,7 @@ function AddTestNumber({ data, onClose }: { data: Rules; onClose: () => void }) 
           <Select value={userId} onChange={(e) => setUserId(e.target.value)}>
             {data.members.map((mb) => (
               <option key={mb.userId} value={mb.userId}>
-                {mb.name} · {mb.role}
+                {mb.name} · {roleName({ name: mb.role })}
               </option>
             ))}
           </Select>
@@ -1234,9 +1235,9 @@ function ShortDomain({ data, ro }: { data: Rules; ro: boolean }) {
           <Table caption={t(m.dnsRecord)}>
             <thead>
               <tr>
-                <th scope="col">{t(m.type)}</th>
-                <th scope="col">{t(m.name)}</th>
-                <th scope="col">{t(m.value)}</th>
+                <Th>{t(m.type)}</Th>
+                <Th>{t(m.name)}</Th>
+                <Th>{t(m.value)}</Th>
               </tr>
             </thead>
             <tbody>

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { Field, Input } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
+import { Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { m as cm } from '@/features/channels/messages'
 import { hasWhatsAppColumn, WhatsAppConsentCell } from '@/features/push/ContactCards'
@@ -83,10 +84,10 @@ export function ChannelConsentCard({ contactId, name }: { contactId: string; nam
           <table className="sms-cons">
             <thead>
               <tr>
-                <th scope="col">{t(m.list)}</th>
-                <th scope="col">{t(cm.email)}</th>
-                <th scope="col">{t(cm.sms)}</th>
-                {wa ? <th scope="col">{t(cm.whatsapp)}</th> : null}
+                <Th>{t(m.list)}</Th>
+                <Th>{t(cm.email)}</Th>
+                <Th>{t(cm.sms)}</Th>
+                {wa ? <Th>{t(cm.whatsapp)}</Th> : null}
               </tr>
             </thead>
             <tbody>

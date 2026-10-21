@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
+import { Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { RoleBadge } from '@/features/access/parts'
 import { formatList, useT } from '@/i18n'
@@ -157,28 +158,28 @@ function UsageTable({ view, open, onOpen }: { view: View; open?: string; onOpen:
         <table className="tbl" aria-label={t(um.title, { month })}>
           <thead>
             <tr>
-              <th scope="col">{t(m.colClient)}</th>
-              <th scope="col" className="r">
+              <Th>{t(m.colClient)}</Th>
+              <Th className="r">
                 {t(um.colEmails)}
-              </th>
-              <th scope="col" className="r">
+              </Th>
+              <Th className="r">
                 {t(um.colSegments)}
-              </th>
-              <th scope="col" className="r">
+              </Th>
+              <Th className="r">
                 {t(um.colPush)}
-              </th>
+              </Th>
               {view.canSeeCosts ? (
                 <>
-                  <th scope="col" className="r">
+                  <Th className="r">
                     {t(um.colCost)}
-                  </th>
-                  <th scope="col">{t(um.colRate)}</th>
-                  <th scope="col" className="r">
+                  </Th>
+                  <Th>{t(um.colRate)}</Th>
+                  <Th className="r">
                     {view.partial ? t(um.colRebillSoFar) : t(um.colRebill)}
-                  </th>
-                  <th scope="col">
+                  </Th>
+                  <Th>
                     <span className="vh">{t(um.colActions)}</span>
-                  </th>
+                  </Th>
                 </>
               ) : null}
             </tr>

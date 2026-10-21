@@ -7,6 +7,7 @@ import { toast } from '@/components/ui/Toast'
 import { ChannelSwitch } from '@/features/channels/ChannelSwitch'
 import { getI18n, useT, type MessageDescriptor } from '@/i18n'
 import { dayMonthDate, dayMonthYear, money } from '@/lib/format'
+import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import './sms.css'
@@ -447,7 +448,7 @@ export function ReadOnlyNote({ children }: { children: ReactNode }) {
   return (
     <div className="note n" role="note">
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
-        <span className="font-bold">{t(m.roleNote, { name, role: me.workspace.roleName })}</span>
+        <span className="font-bold">{t(m.roleNote, { name, role: roleName({ key: me.workspace.roleKey, name: me.workspace.roleName }) })}</span>
         <div>{children}</div>
       </div>
     </div>
