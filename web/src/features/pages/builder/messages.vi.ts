@@ -560,7 +560,7 @@ export default translate(m, {
   versionsLead: 'Mọi lần lưu và xuất bản. Khôi phục sẽ đưa một phiên bản cũ trở lại làm bản nháp, dưới dạng một phiên bản mới.',
   versionsCaption: 'Các phiên bản của trang',
   colVersion: 'Phiên bản',
-  colWhat: 'Nội dung',
+  colWhat: 'Sự kiện',
   colBy: 'Người thực hiện',
   colWhen: 'Thời điểm',
   colActions: 'Thao tác',

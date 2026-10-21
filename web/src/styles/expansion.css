@@ -93,3 +93,10 @@
   flex-direction: column;
   align-items: flex-end;
 }
+
+/* The page builder's block tiles (PageBuilder): a name longer than its tile
+   breaks inside the word instead of spilling out of the button, as the
+   pseudo-locale's "Ţéšţîmöñîåļš" would. */
+:root:not([lang='en']) .pb .blk {
+  overflow-wrap: anywhere;
+}
