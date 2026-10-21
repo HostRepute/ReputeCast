@@ -11,6 +11,7 @@ import { useWorkspace } from '@/lib/session'
 import { zonedWhen } from '@/features/review/logic'
 import { builderLink, TEMPLATE_KEYS, type TemplateKey } from './format'
 import { m } from './approval.messages'
+import { m as mpages } from './messages'
 import { templateInfo } from './templates'
 import './pages.css'
 
@@ -42,7 +43,12 @@ export function PageBadge({ page }: { page: Snapshot }) {
 /** "Page · /field-guide · Public": what a request publishes, under its name. */
 export function PageLine({ page }: { page: Snapshot }) {
   const t = useT()
-  return <span className="k">{t(m.line, { path: page.path, visibility: page.visibilityLabel })}</span>
+  return <span className="k">{t(m.line, { path: page.path, visibility: visibilityWord(t, page.visibility) })}</span>
+}
+
+/** A page's visibility in words, in the app's language (the snapshot's own label is English). */
+function visibilityWord(t: (d: typeof mpages.visPublic) => string, v: string): string {
+  return v === 'paid' ? t(mpages.visPaid) : v === 'members' ? t(mpages.visMembers) : t(mpages.visPublic)
 }
 
 /** The inbox's Scheduled column for a page: "When approved", "Oct 22, 09:00" or "Published". */
@@ -86,7 +92,7 @@ export function PageApprovalCard({ detail: d }: { detail: Detail }) {
           <dt>{t(m.address)}</dt>
           <dd className="mono">{p.path}</dd>
           <dt>{t(m.visibility)}</dt>
-          <dd>{p.visibilityLabel}</dd>
+          <dd>{visibilityWord(t, p.visibility)}</dd>
           <dt>{t(m.goesLive)}</dt>
           <dd>{live}</dd>
           {d.version > 0 ? (
