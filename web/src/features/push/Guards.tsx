@@ -231,7 +231,7 @@ function QuietCard({
           ) : null}
         </tbody>
       </Table>
-      <div className="flex flex-wrap gap-2.5" role="radiogroup" aria-label={t(m.colWhat)}>
+      <div className="pc-opts" role="radiogroup" aria-label={t(m.colWhat)}>
         <label className={outside === 'hold' ? 'pc-optc on' : 'pc-optc'}>
           <input type="radio" name="push-outside" checked={outside === 'hold'} disabled={!editable || busy} onChange={() => onOutside('hold')} />
           <span className="flex flex-col gap-0.5 font-semibold">

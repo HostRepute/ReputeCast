@@ -541,3 +541,33 @@ button.px-lnk {
   color: var(--ink-2);
   overflow-wrap: anywhere;
 }
+
+/* Review & send's checks (`.chk8`). */
+.px-chk {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 11px 18px;
+  border-top: 1px solid var(--line-2);
+}
+.sec + .px-chk {
+  border-top: 0;
+}
+.px-chk > .badge {
+  margin-top: 1px;
+  min-width: 44px;
+  justify-content: center;
+}
+.px-chk .tx {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.px-chk.w {
+  background: #fffbeb;
+}
+.px-chk.b {
+  background: #fff5f5;
+}

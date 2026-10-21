@@ -192,6 +192,13 @@
   background: #fff;
   font-size: 13px;
   cursor: pointer;
+}
+.pc-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.pc-opts > .pc-optc {
   flex: 1 1 240px;
 }
 .pc-optc.on {
