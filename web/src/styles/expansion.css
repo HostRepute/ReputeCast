@@ -117,3 +117,10 @@
 :root:not([lang='en']) .hp-machine {
   grid-column: 1 / -1;
 }
+
+/* Form builder (features/forms): the embed code's copy buttons and the
+   form picker wrap to a second line instead of running out of the column. */
+:root:not([lang='en']) .fb-row {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
