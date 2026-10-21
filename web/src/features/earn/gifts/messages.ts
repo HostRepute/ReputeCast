@@ -154,7 +154,8 @@ export const mg = defineMessages('earn.gifts', {
   readOnlyBoth: 'You can see gifts and their status. Changing gift options or the gift page needs <mono>earn:edit</mono>, and changing a gift needs <mono>earn:manage</mono>. Ask {helpers}.',
   readOnlyEdit: 'You can see gifts and change them. Changing gift options or the gift page needs <mono>earn:edit</mono>. Ask {helpers}.',
   readOnlyManage: 'Changing a gift (its delivery date, resending it, copying its redeem link) needs <mono>earn:manage</mono>. Ask {helpers}.',
-  readOnlyNoHelpers: 'Ask a workspace owner.',
+  // Fills {helpers} in "Ask {helpers}." above when nobody can be named.
+  helpersFallback: 'a workspace owner',
   errorTitle: 'Couldn’t load gifts',
   errorText: 'Scheduled gift emails still go out on time. {error}',
   retry: 'Retry',
