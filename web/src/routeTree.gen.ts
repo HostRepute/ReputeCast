@@ -95,6 +95,9 @@ import { Route as WWorkspaceAppCampaignsCampaignIdPushReportRouteImport } from '
 import { Route as WWorkspaceAppCampaignsCampaignIdPushReviewRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/push-review'
 import { Route as WWorkspaceAppCampaignsCampaignIdReportRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/report'
 import { Route as WWorkspaceAppCampaignsCampaignIdReviewRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/review'
+import { Route as WWorkspaceAppCampaignsCampaignIdWhatsappRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/whatsapp'
+import { Route as WWorkspaceAppCampaignsCampaignIdWhatsappReportRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/whatsapp-report'
+import { Route as WWorkspaceAppCampaignsCampaignIdWhatsappReviewRouteImport } from './routes/w/$workspace/_app/campaigns/$campaignId/whatsapp-review'
 import { Route as WWorkspaceAppDeliverabilityPlacementIndexRouteImport } from './routes/w/$workspace/_app/deliverability/placement/index'
 import { Route as WWorkspaceAppDeliverabilityPlacementTestIdRouteImport } from './routes/w/$workspace/_app/deliverability/placement/$testId'
 import { Route as WWorkspaceAppDeliverabilityPlacementSeedsRouteImport } from './routes/w/$workspace/_app/deliverability/placement/seeds'
@@ -641,6 +644,24 @@ const WWorkspaceAppCampaignsCampaignIdReviewRoute =
     path: '/campaigns/$campaignId/review',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppCampaignsCampaignIdWhatsappRoute =
+  WWorkspaceAppCampaignsCampaignIdWhatsappRouteImport.update({
+    id: '/campaigns/$campaignId/whatsapp',
+    path: '/campaigns/$campaignId/whatsapp',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppCampaignsCampaignIdWhatsappReportRoute =
+  WWorkspaceAppCampaignsCampaignIdWhatsappReportRouteImport.update({
+    id: '/campaigns/$campaignId/whatsapp-report',
+    path: '/campaigns/$campaignId/whatsapp-report',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppCampaignsCampaignIdWhatsappReviewRoute =
+  WWorkspaceAppCampaignsCampaignIdWhatsappReviewRouteImport.update({
+    id: '/campaigns/$campaignId/whatsapp-review',
+    path: '/campaigns/$campaignId/whatsapp-review',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 const WWorkspaceAppDeliverabilityPlacementIndexRoute =
   WWorkspaceAppDeliverabilityPlacementIndexRouteImport.update({
     id: '/deliverability/placement/',
@@ -1026,6 +1047,9 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/campaigns/$campaignId/push-review': typeof WWorkspaceAppCampaignsCampaignIdPushReviewRoute
   '/w/$workspace/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  '/w/$workspace/campaigns/$campaignId/whatsapp': typeof WWorkspaceAppCampaignsCampaignIdWhatsappRoute
+  '/w/$workspace/campaigns/$campaignId/whatsapp-report': typeof WWorkspaceAppCampaignsCampaignIdWhatsappReportRoute
+  '/w/$workspace/campaigns/$campaignId/whatsapp-review': typeof WWorkspaceAppCampaignsCampaignIdWhatsappReviewRoute
   '/w/$workspace/deliverability/placement/$testId': typeof WWorkspaceAppDeliverabilityPlacementTestIdRoute
   '/w/$workspace/deliverability/placement/seeds': typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   '/w/$workspace/earn/plans/upgrade-page': typeof WWorkspaceAppEarnPlansUpgradePageRoute
@@ -1162,6 +1186,9 @@ export interface FileRoutesByTo {
   '/w/$workspace/campaigns/$campaignId/push-review': typeof WWorkspaceAppCampaignsCampaignIdPushReviewRoute
   '/w/$workspace/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  '/w/$workspace/campaigns/$campaignId/whatsapp': typeof WWorkspaceAppCampaignsCampaignIdWhatsappRoute
+  '/w/$workspace/campaigns/$campaignId/whatsapp-report': typeof WWorkspaceAppCampaignsCampaignIdWhatsappReportRoute
+  '/w/$workspace/campaigns/$campaignId/whatsapp-review': typeof WWorkspaceAppCampaignsCampaignIdWhatsappReviewRoute
   '/w/$workspace/deliverability/placement/$testId': typeof WWorkspaceAppDeliverabilityPlacementTestIdRoute
   '/w/$workspace/deliverability/placement/seeds': typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   '/w/$workspace/earn/plans/upgrade-page': typeof WWorkspaceAppEarnPlansUpgradePageRoute
@@ -1301,6 +1328,9 @@ export interface FileRoutesById {
   '/w/$workspace/_app/campaigns/$campaignId/push-review': typeof WWorkspaceAppCampaignsCampaignIdPushReviewRoute
   '/w/$workspace/_app/campaigns/$campaignId/report': typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   '/w/$workspace/_app/campaigns/$campaignId/review': typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  '/w/$workspace/_app/campaigns/$campaignId/whatsapp': typeof WWorkspaceAppCampaignsCampaignIdWhatsappRoute
+  '/w/$workspace/_app/campaigns/$campaignId/whatsapp-report': typeof WWorkspaceAppCampaignsCampaignIdWhatsappReportRoute
+  '/w/$workspace/_app/campaigns/$campaignId/whatsapp-review': typeof WWorkspaceAppCampaignsCampaignIdWhatsappReviewRoute
   '/w/$workspace/_app/deliverability/placement/$testId': typeof WWorkspaceAppDeliverabilityPlacementTestIdRoute
   '/w/$workspace/_app/deliverability/placement/seeds': typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   '/w/$workspace/_app/earn/plans/upgrade-page': typeof WWorkspaceAppEarnPlansUpgradePageRoute
@@ -1440,6 +1470,9 @@ export interface FileRouteTypes {
     | '/w/$workspace/campaigns/$campaignId/push-review'
     | '/w/$workspace/campaigns/$campaignId/report'
     | '/w/$workspace/campaigns/$campaignId/review'
+    | '/w/$workspace/campaigns/$campaignId/whatsapp'
+    | '/w/$workspace/campaigns/$campaignId/whatsapp-report'
+    | '/w/$workspace/campaigns/$campaignId/whatsapp-review'
     | '/w/$workspace/deliverability/placement/$testId'
     | '/w/$workspace/deliverability/placement/seeds'
     | '/w/$workspace/earn/plans/upgrade-page'
@@ -1576,6 +1609,9 @@ export interface FileRouteTypes {
     | '/w/$workspace/campaigns/$campaignId/push-review'
     | '/w/$workspace/campaigns/$campaignId/report'
     | '/w/$workspace/campaigns/$campaignId/review'
+    | '/w/$workspace/campaigns/$campaignId/whatsapp'
+    | '/w/$workspace/campaigns/$campaignId/whatsapp-report'
+    | '/w/$workspace/campaigns/$campaignId/whatsapp-review'
     | '/w/$workspace/deliverability/placement/$testId'
     | '/w/$workspace/deliverability/placement/seeds'
     | '/w/$workspace/earn/plans/upgrade-page'
@@ -1714,6 +1750,9 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/campaigns/$campaignId/push-review'
     | '/w/$workspace/_app/campaigns/$campaignId/report'
     | '/w/$workspace/_app/campaigns/$campaignId/review'
+    | '/w/$workspace/_app/campaigns/$campaignId/whatsapp'
+    | '/w/$workspace/_app/campaigns/$campaignId/whatsapp-report'
+    | '/w/$workspace/_app/campaigns/$campaignId/whatsapp-review'
     | '/w/$workspace/_app/deliverability/placement/$testId'
     | '/w/$workspace/_app/deliverability/placement/seeds'
     | '/w/$workspace/_app/earn/plans/upgrade-page'
@@ -2383,6 +2422,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppCampaignsCampaignIdReviewRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/campaigns/$campaignId/whatsapp': {
+      id: '/w/$workspace/_app/campaigns/$campaignId/whatsapp'
+      path: '/campaigns/$campaignId/whatsapp'
+      fullPath: '/w/$workspace/campaigns/$campaignId/whatsapp'
+      preLoaderRoute: typeof WWorkspaceAppCampaignsCampaignIdWhatsappRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/campaigns/$campaignId/whatsapp-report': {
+      id: '/w/$workspace/_app/campaigns/$campaignId/whatsapp-report'
+      path: '/campaigns/$campaignId/whatsapp-report'
+      fullPath: '/w/$workspace/campaigns/$campaignId/whatsapp-report'
+      preLoaderRoute: typeof WWorkspaceAppCampaignsCampaignIdWhatsappReportRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/campaigns/$campaignId/whatsapp-review': {
+      id: '/w/$workspace/_app/campaigns/$campaignId/whatsapp-review'
+      path: '/campaigns/$campaignId/whatsapp-review'
+      fullPath: '/w/$workspace/campaigns/$campaignId/whatsapp-review'
+      preLoaderRoute: typeof WWorkspaceAppCampaignsCampaignIdWhatsappReviewRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
     '/w/$workspace/_app/deliverability/placement/': {
       id: '/w/$workspace/_app/deliverability/placement/'
       path: '/deliverability/placement'
@@ -2803,6 +2863,9 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppCampaignsCampaignIdPushReviewRoute: typeof WWorkspaceAppCampaignsCampaignIdPushReviewRoute
   WWorkspaceAppCampaignsCampaignIdReportRoute: typeof WWorkspaceAppCampaignsCampaignIdReportRoute
   WWorkspaceAppCampaignsCampaignIdReviewRoute: typeof WWorkspaceAppCampaignsCampaignIdReviewRoute
+  WWorkspaceAppCampaignsCampaignIdWhatsappRoute: typeof WWorkspaceAppCampaignsCampaignIdWhatsappRoute
+  WWorkspaceAppCampaignsCampaignIdWhatsappReportRoute: typeof WWorkspaceAppCampaignsCampaignIdWhatsappReportRoute
+  WWorkspaceAppCampaignsCampaignIdWhatsappReviewRoute: typeof WWorkspaceAppCampaignsCampaignIdWhatsappReviewRoute
   WWorkspaceAppDeliverabilityPlacementTestIdRoute: typeof WWorkspaceAppDeliverabilityPlacementTestIdRoute
   WWorkspaceAppDeliverabilityPlacementSeedsRoute: typeof WWorkspaceAppDeliverabilityPlacementSeedsRoute
   WWorkspaceAppEarnPlansUpgradePageRoute: typeof WWorkspaceAppEarnPlansUpgradePageRoute
@@ -2920,6 +2983,12 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
     WWorkspaceAppCampaignsCampaignIdReportRoute,
   WWorkspaceAppCampaignsCampaignIdReviewRoute:
     WWorkspaceAppCampaignsCampaignIdReviewRoute,
+  WWorkspaceAppCampaignsCampaignIdWhatsappRoute:
+    WWorkspaceAppCampaignsCampaignIdWhatsappRoute,
+  WWorkspaceAppCampaignsCampaignIdWhatsappReportRoute:
+    WWorkspaceAppCampaignsCampaignIdWhatsappReportRoute,
+  WWorkspaceAppCampaignsCampaignIdWhatsappReviewRoute:
+    WWorkspaceAppCampaignsCampaignIdWhatsappReviewRoute,
   WWorkspaceAppDeliverabilityPlacementTestIdRoute:
     WWorkspaceAppDeliverabilityPlacementTestIdRoute,
   WWorkspaceAppDeliverabilityPlacementSeedsRoute:

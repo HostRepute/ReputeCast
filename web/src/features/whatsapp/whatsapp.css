@@ -1,0 +1,266 @@
+/*
+ * WhatsApp (board WhatsAppChannel). The cards, tiles and code boxes are
+ * push's (features/push/push.css); these are WhatsApp's own: the template
+ * variables, the chat preview and the customer service window.
+ */
+
+@layer components {
+  /* A template variable, {{1}} (`.tok`). */
+  .wa-tok {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 6px;
+    border-radius: 5px;
+    background: #ede9fe;
+    color: #5b21b6;
+    font-family: var(--font-family-mono);
+    font-size: 0.86em;
+    font-weight: 500;
+    line-height: 1.55;
+    white-space: nowrap;
+    vertical-align: baseline;
+  }
+
+  /* The chat preview: neutral, no brand colours (`.wa`). */
+  .wa-chat {
+    background: #eef0f3;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    width: 100%;
+    max-width: 380px;
+    box-sizing: border-box;
+  }
+  .wa-chat .hd {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+  }
+  .wa-chat .bd {
+    padding: 14px 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+  }
+  .wa-chat .day {
+    align-self: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-3);
+    background: #fff;
+    border-radius: 6px;
+    padding: 2px 8px;
+    margin: 4px 0;
+  }
+  .wa-chat .bub {
+    background: #fff;
+    border-radius: 10px;
+    border-top-left-radius: 0;
+    padding: 9px 11px 7px;
+    font-size: 13.5px;
+    line-height: 1.45;
+    max-width: 88%;
+    box-shadow: 0 1px 1px rgba(11, 18, 32, 0.08);
+    box-sizing: border-box;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+  .wa-chat .bub .tm {
+    display: block;
+    text-align: right;
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-top: 2px;
+    white-space: normal;
+  }
+  .wa-chat .qr {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 88%;
+    height: 36px;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    box-shadow: 0 1px 1px rgba(11, 18, 32, 0.08);
+    box-sizing: border-box;
+  }
+  .wa-chat .me {
+    align-self: flex-end;
+    background: #dcfce7;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 0;
+  }
+  .wa-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 14px;
+    flex: none;
+  }
+
+  /* The campaign card's three columns. */
+  .wa-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 22px;
+    padding: 18px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .wa-cols {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+  }
+  @media (max-width: 767px) {
+    .wa-cols {
+      grid-template-columns: minmax(0, 1fr);
+      padding: 14px;
+    }
+  }
+  .wa-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+  .wa-col > .t {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-nav);
+  }
+  .wa-var {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) minmax(0, 0.8fr);
+    gap: 4px 8px;
+    align-items: end;
+  }
+  .wa-var .tok-cell {
+    height: 36px;
+    display: flex;
+    align-items: center;
+  }
+  .wa-box {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    min-height: 36px;
+    border: 1px solid var(--line-input);
+    border-radius: 8px;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .wa-cost {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--ground-3);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .wa-cost .v {
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .wa-checks {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    overflow: hidden;
+  }
+  .wa-checks .px-chk:first-child {
+    border-top: 0;
+  }
+
+  /* The customer service window on a contact's profile. */
+  .wa-thread {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .wa-thread .hd {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .wa-thread .bd {
+    background: #eef0f3;
+    padding: 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 360px;
+    overflow-y: auto;
+  }
+  .wa-thread .reply {
+    padding: 12px 14px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .wa-split {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .wa-split > div {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .wa-split > div + div {
+    border-left: 1px solid var(--line-2);
+  }
+  .wa-split .v {
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .wa-wait {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--line-strong);
+    border-top-color: var(--accent);
+    flex: none;
+    animation: wa-spin 1s linear infinite;
+  }
+  @keyframes wa-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wa-wait {
+      animation: none;
+    }
+  }
+}
