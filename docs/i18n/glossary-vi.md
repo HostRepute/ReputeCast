@@ -266,6 +266,7 @@ team member. A reader's Stripe subscription is a **thuê bao**, never an
 | book · booking · Booked (a sponsor in an issue) | đặt chỗ · lượt đặt chỗ · Đã đặt |
 | buyer · recipient (of a gift) | người mua · người nhận |
 | cancel page · gift page · upgrade page · welcome page | trang hủy · trang quà tặng · trang nâng cấp · trang chào mừng |
+| charge (a card) | trừ tiền (từ thẻ); "nothing is charged" is "không tính phí" |
 | checkout · test checkout | thanh toán · thanh toán thử nghiệm ("Stripe Checkout" is a name) |
 | churn · churn rate | rời bỏ · tỷ lệ rời bỏ |
 | click token | token lượt nhấp |
@@ -274,6 +275,7 @@ team member. A reader's Stripe subscription is a **thuê bao**, never an
 | coupon · promotion code · code | phiếu giảm giá · mã khuyến mãi · mã |
 | creative (a sponsor's) | nội dung tài trợ |
 | customer portal | cổng khách hàng |
+| deliver · delivery date (a gift) | giao · ngày giao |
 | discount · 20% off | giảm giá · giảm 20% |
 | dispute (a card payment's) | tranh chấp |
 | Earn's tabs: Overview · Plans & offers · Paid members · Gifts · Sponsors · Products · Settings | Tổng quan · Gói và ưu đãi · Hội viên trả phí · Quà tặng · Nhà tài trợ · Sản phẩm · Cài đặt |
@@ -281,39 +283,57 @@ team member. A reader's Stripe subscription is a **thuê bao**, never an
 | Free (the card) · free subscriber | Miễn phí · người đăng ký miễn phí |
 | free-to-paid | miễn phí sang trả phí |
 | gift · gift option | quà tặng · tùy chọn quà tặng |
+| headline (an upgrade page's, a creative's) | dòng tiêu đề; a subject is "tiêu đề", a heading "đề mục" |
+| highlight (a tier) · Most popular | làm nổi bật · Phổ biến nhất |
 | hold · on hold · release (an issue) | giữ chỗ · đang giữ chỗ · bỏ giữ chỗ |
+| in person (a gift handed over) | trao tận tay |
 | issue (of a newsletter: #143) | số (số #143); an accessibility issue is "lỗi" |
 | legacy price | giá cũ |
 | lifetime value | giá trị trọn đời |
 | live · test (a key, a mode, payments) | chính thức · thử nghiệm; "no real payments" is "không có thanh toán thật" |
 | live (a page, an offer or a template version that's running) | đang chạy |
+| map (a Stripe price to a tier) | gán |
 | member email · membership | email hội viên · gói hội viên |
 | merchant of record | bên bán hàng thay bạn |
 | monthly · yearly · Monthly · Yearly (the choice) · /month | hằng tháng · hằng năm · Theo tháng · Theo năm · /tháng |
 | MRR · ARR · MRR movement | MRR · ARR · biến động MRR |
+| Needs you (Earn's overview) | Cần bạn xử lý |
+| normal price (without an offer) | giá thường |
 | offer · signup · retention · referral reward | ưu đãi · ưu đãi đăng ký · ưu đãi giữ chân · phần thưởng giới thiệu |
 | Overdue · Unpaid · Paid (a sponsor's payment) | Quá hạn · Chưa thanh toán · Đã thanh toán |
 | paid member | hội viên trả phí |
 | paid status · paid-only | trạng thái trả phí · chỉ dành cho hội viên trả phí |
 | Paid subscriptions (what Earn sells) | Gói trả phí |
+| paid-through date | ngày hết kỳ đã trả |
 | payment provider | nhà cung cấp thanh toán |
 | payment terms (a sponsor's) | thời hạn thanh toán |
+| payouts | rút tiền về ngân hàng |
 | plan · Plans & offers | gói · Gói và ưu đãi |
+| Public · Hidden (a tier's visibility) | Công khai · Ẩn |
+| receipt · invoice | biên lai · hóa đơn |
+| record (a sponsor's payment, by hand) | ghi nhận |
 | redeem · redeem link (a gift) | nhận · liên kết nhận quà |
 | redeem · redemption (an offer code) | dùng · lượt dùng |
 | refund | hoàn tiền |
 | renew · renewal | gia hạn |
 | restricted key · secret key | khóa hạn chế · khóa bí mật |
+| results so far · final (a sponsor report's) | kết quả tạm thời · chốt |
 | revenue · income | doanh thu · thu nhập |
+| roll (a Stripe key) | xoay vòng |
 | seller ("you're the seller") | bên bán |
 | signing secret (a webhook's) | mã bí mật ký |
+| Since · Member since (a paid member's) | Tham gia · Hội viên từ |
 | slot · placement | vị trí |
 | sponsor · sponsorship · Sponsored (the block's label) | nhà tài trợ · tài trợ · Được tài trợ |
 | sponsor report | báo cáo tài trợ |
 | subscription (a reader's, billed by Stripe) | thuê bao |
+| Terms of sale · Support address | Điều khoản bán hàng · Địa chỉ hỗ trợ |
 | tier · paid tier | gói · gói trả phí |
+| timeline (a paid member's) | dòng thời gian |
 | trial · free trial | dùng thử · dùng thử miễn phí |
 | upgrade · Upgrade block | nâng cấp · khối Nâng cấp |
+| webhook silent · gap check | webhook không có tin · kiểm tra sự kiện sót |
+| write-only · sealed (a key, a secret) | chỉ ghi · niêm phong |
 
 Some English messages choose a word for English grammar only: an article
 (`{article, select, an {an} other {a}} {tier}`) or a possessive
