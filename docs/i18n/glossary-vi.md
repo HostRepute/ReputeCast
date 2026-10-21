@@ -370,6 +370,43 @@ is a name and stays in English.
 | token (Liquid) | biến | as transactional templates' variables |
 | trigger (automation) | trình kích hoạt | |
 
+## Audience, imports, forms and reports
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| accent color · page background | màu nhấn · nền trang | public page branding |
+| allowed domains | tên miền được phép | the sites a form may be embedded on |
+| archive (public page) · issue | trang lưu trữ · số | as subscribers read them: "Lưu trữ bản tin", "Số tiếp theo" |
+| audience · merge field · cleaned (Mailchimp) | audience · merge field · cleaned | Mailchimp's own words, as its screens show them |
+| branding | thương hiệu | Forms & pages › "Thương hiệu và tên miền" |
+| column · map fields | cột · ghép trường | an import's step: "Ghép trường" |
+| confirmation link | liên kết xác nhận | |
+| consent · consent text · consent evidence | sự đồng ý · nội dung đồng ý · bằng chứng đồng ý | |
+| deferral (provider) | hoãn nhận | "deferrals expired": "thư hoãn nhận đã hết hạn" |
+| embed code · script embed · embedded (form) | mã nhúng · mã nhúng tập lệnh · nhúng | |
+| erase (a contact) | xóa vĩnh viễn | a GDPR erasure; a plain delete stays "xóa" |
+| excerpt | đoạn trích | an archived issue's |
+| export data (GDPR) | xuất dữ liệu | |
+| Forms & public pages | Biểu mẫu và trang công khai | |
+| hosted page (a form type) | trang trên ReputeCast | as "hosted" above |
+| offer a download | tặng một tệp tải xuống | the file a form gives after confirmation |
+| popup (form) | bật lên | |
+| preference center | trung tâm tùy chọn | in the app; subscribers read "trang tùy chọn" |
+| publisher (name) | đơn vị phát hành | heads every public page |
+| re-permission | xin phép lại | "re-permission flow": "quy trình xin phép lại" |
+| read-only link | liên kết chỉ xem | a shared report's |
+| RSS feed | nguồn cấp RSS | |
+| Send Readiness | Độ sẵn sàng gửi | "Readiness" alone is "Độ sẵn sàng" |
+| sender health | sức khỏe người gửi | the Overview's score; reputation is "uy tín" |
+| signup · submission (form) | lượt đăng ký · lượt gửi | "Views · Submissions": "Lượt xem · Lượt gửi" |
+| single opt-in | xác nhận một bước | double opt-in is "xác nhận hai bước" |
+| subscribe page · confirmation page · unsubscribe page | trang đăng ký · trang xác nhận · trang hủy đăng ký | |
+| suppressed | bị chặn gửi | the list is "danh sách chặn gửi" |
+| System stream · System mail | luồng Hệ thống · thư Hệ thống | the stream's name keeps its capital |
+| tag | thẻ | |
+| title (archived issue) | tựa đề | "tiêu đề" is an email's subject, "đề mục" a heading |
+| winner (A/B) | phương án thắng | "B thắng" |
+
 ## Words used everywhere
 
 | English | Tiếng Việt |
