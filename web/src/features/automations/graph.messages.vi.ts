@@ -1,0 +1,103 @@
+import { translate } from '@/i18n'
+import { mg } from './graph.messages'
+
+/**
+ * Vietnamese for the names of a flow's steps (docs/i18n/glossary-vi.md).
+ * Conditions stay lower case: they follow "Chỉ những liên hệ" and become a
+ * branch's question ("Đã mở bước 1 trong vòng 2 ngày?").
+ */
+export default translate(mg, {
+  typeTrigger: 'Trình kích hoạt',
+  typeDelay: 'Trì hoãn',
+  typeEmail: 'Gửi email',
+  typeBranch: 'Rẽ nhánh',
+  typeFilter: 'Lọc',
+  typeSplit: 'Chia A/B',
+  typeWebhook: 'Webhook',
+  typeList: 'Thao tác danh sách',
+  typeGoal: 'Mục tiêu',
+  typeExit: 'Thoát',
+  typeSms: 'Gửi SMS',
+  typePush: 'Gửi thông báo đẩy',
+  typeWhatsapp: 'Gửi WhatsApp',
+
+  kindJoinedList: 'Tham gia danh sách',
+  kindFormSubmitted: 'Gửi biểu mẫu',
+  kindTagAdded: 'Được gắn thẻ',
+  kindApiEvent: 'Sự kiện API',
+  kindDateField: 'Trường ngày',
+  kindPollAnswered: 'Trả lời bình chọn hoặc khảo sát',
+  kindOrderPlaced: 'Đặt hàng',
+  kindFirstOrder: 'Đơn hàng đầu tiên',
+  kindAbandonedCheckout: 'Bỏ dở thanh toán',
+  kindWord:
+    '{kind, select, joined_list {tham gia danh sách} form_submitted {gửi biểu mẫu} tag_added {được gắn thẻ} api_event {sự kiện API} date_field {trường ngày} score_crosses {điểm vượt ngưỡng} poll_answered {trả lời bình chọn} bought_product {mua sản phẩm} milestone_reached {đạt mốc} order_placed {đặt hàng} first_order {đơn hàng đầu tiên} abandoned_checkout {bỏ dở thanh toán} other {{kind}}}',
+
+  duration: '{unit, select, minutes {{n} phút} hours {{n} giờ} weeks {{n} tuần} other {{n} ngày}}',
+
+  aRemovedStep: 'một bước đã bị xóa',
+  aList: 'một danh sách',
+  aForm: 'một biểu mẫu',
+  aPollOrSurvey: 'một bình chọn hoặc khảo sát',
+  aStore: 'một cửa hàng',
+  anyEmail: 'bất kỳ email nào',
+
+  condOpened: 'đã mở {step}',
+  condOpenedWithin: 'đã mở {step} trong vòng {duration}',
+  condClickedUrl: 'đã nhấp một liên kết {url}',
+  condClickedUrlWithin: 'đã nhấp một liên kết {url} trong vòng {duration}',
+  condClickedIn: 'đã nhấp một liên kết ở {step}',
+  condClickedInWithin: 'đã nhấp một liên kết ở {step} trong vòng {duration}',
+  condTagged: 'có thẻ {tag}',
+  condInList: 'thuộc {list}',
+  condSentEvent: 'đã gửi {event}',
+  condPlacedOrder: 'đã đặt hàng',
+  condFieldSet: '{field} đã có giá trị',
+  condFieldEmpty: '{field} đang trống',
+  condFieldNot: '{field} khác {value}',
+  condFieldContains: '{field} chứa {value}',
+  condFieldIs: '{field} là {value}',
+
+  goalEnd: 'Đi hết luồng',
+  goalClickedUrl: 'Đã nhấp một liên kết {url}',
+  goalClickedAny: 'Đã nhấp bất kỳ liên kết nào',
+  goalOpened: 'Đã mở một email',
+  goalTagged: 'Có thẻ {tag}',
+  goalJoined: 'Đã tham gia {list}',
+  goalSent: 'Đã gửi {event}',
+  goalPlacedOrder: 'Đã đặt hàng',
+  goalFallback: 'Mục tiêu',
+
+  pickTrigger: 'Chọn trình kích hoạt',
+  checkoutAfter: '{store} · sau {hours} giờ',
+  waitFor: 'Chờ {duration}',
+  wait: 'Chờ',
+  pickEmail: 'Chọn email',
+  branchTitle: '{condition}?',
+  setCondition: 'Đặt điều kiện',
+  filterTitle: 'Chỉ những liên hệ {condition}',
+  splitOn: '{weights} ở {step}',
+  smsTitle: 'Gửi SMS',
+  writeText: 'Viết tin nhắn',
+  writeNotification: 'Viết thông báo',
+  freeText: 'Văn bản tự do',
+  writeMessage: 'Viết tin nhắn',
+  pickTemplate: 'Chọn mẫu',
+  setUrl: 'Đặt URL',
+  pickAction: 'Chọn thao tác',
+  addToList: 'Thêm vào {list}',
+  removeFromList: 'Xóa khỏi {list}',
+  addTag: 'Gắn thẻ {tag}',
+  removeTag: 'Gỡ thẻ {tag}',
+  unsubscribeAll: 'Hủy đăng ký mọi danh sách',
+  exitDefault: 'Rời luồng · vẫn ở trong danh sách',
+
+  confirmedOnly: 'chỉ người đã xác nhận đăng ký kép',
+  sentThroughApi: 'gửi qua API',
+  dateDetail: '{when, select, before {{days} ngày trước} after {{days} ngày sau} other {đúng ngày}}{yearly, select, yes {, hằng năm} other {}} lúc {time}',
+  humanOnly: 'chỉ tính lượt mở bởi người đọc',
+
+  noTrigger: 'Chưa có trình kích hoạt',
+  pathYes: 'Có',
+  pathNo: 'Không',
+})
