@@ -39,7 +39,7 @@ func TestSegmentsDemo(t *testing.T) {
 	t.Run("seven saved segments with the boards' counts", func(t *testing.T) {
 		want := map[string]int64{
 			"Engaged Outlook users on paid plans": 2118,
-			// The boards' 29,412 and the 338 registrants new to Acme Summit 2026 (X21).
+			// The boards' 29,412 and the 338 registrants new to Acme Summit 2026 (X21, brief §8.12).
 			"Active in last 30 days": 29750,
 			// The boards' 3,615 less the 287 the Sunset tier's check suppressed (X14).
 			"Unengaged 180 days, for sunset":    3328,
@@ -164,7 +164,7 @@ func TestSegmentsDemo(t *testing.T) {
 		if err := env.App.Pool.QueryRow(context.Background(), `SELECT count(*) FROM contacts c JOIN workspaces w ON w.id = c.workspace_id WHERE w.slug = 'acme-newsletter'`).Scan(&n); err != nil {
 			t.Fatal(err)
 		}
-		// 48,213 and the summit's 338 new registrants (X21).
+		// 48,213 and the summit's 338 new registrants (X21, brief §8.12).
 		if n != 48551 {
 			t.Fatalf("contacts changed to %d", n)
 		}

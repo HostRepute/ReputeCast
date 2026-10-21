@@ -58,7 +58,7 @@ func TestScoringPageAndPermissions(t *testing.T) {
 		var p page
 		c.Do("GET", "/workspaces/acme-newsletter/scoring", nil).MustStatus(t, 200).JSON(t, &p)
 		// The boards' 48,213 and Cold 29,190, with the 338 registrants new to
-		// Acme Summit 2026 (X21), who start at 0.
+		// Acme Summit 2026 (X21, brief §8.12), who start at 0.
 		if !p.Configured || p.Contacts != 48213+338 || p.Bands.Hot != 4816 || p.Bands.Warm != 14207 || p.Bands.Cold != 29190+338 || len(p.Config.Rules) != 8 {
 			t.Fatalf("%s: %+v", email, p)
 		}

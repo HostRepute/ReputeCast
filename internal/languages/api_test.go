@@ -126,7 +126,7 @@ func TestLanguagesAPI(t *testing.T) {
 		t.Fatalf("languages: %+v", list)
 	}
 	// The sample's contacts (SettingsLanguages): 48,213 in all, and the 338
-	// English-speaking Acme Summit registrants of the SMS demo (X21).
+	// English-speaking Acme Summit registrants of the SMS demo (X21, brief §8.12).
 	contacts := map[string]int64{}
 	for _, l := range list.Languages {
 		contacts[l.Code] = l.Contacts

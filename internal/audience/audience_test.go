@@ -45,7 +45,8 @@ func TestAudienceDemo(t *testing.T) {
 			Lists    []struct{ Name string }
 		}
 		c.Do(http.MethodGet, ws+"/audience", nil).MustStatus(t, 200).JSON(t, &sum)
-		// 48,213 and the 338 new Acme Summit 2026 registrants (X21).
+		// 48,213 and the 338 new Acme Summit 2026 registrants (X21): phase 8's
+		// demo adds them to the earlier boards' contacts (brief §8.12).
 		if sum.Contacts != 48551 {
 			t.Fatalf("contacts %d, want 48,551", sum.Contacts)
 		}
@@ -57,6 +58,7 @@ func TestAudienceDemo(t *testing.T) {
 			}
 		}
 		c.Do(http.MethodGet, ws+"/contacts?tier=active&pageSize=10", nil).MustStatus(t, 200).JSON(t, &page)
+		// The Summit's new registrants are active (X21, brief §8.12).
 		if page.Total != 29412+338 {
 			t.Fatalf("active %d, want 29,750", page.Total)
 		}
@@ -116,6 +118,7 @@ func TestAudienceDemo(t *testing.T) {
 			}
 		}
 		c.Do(http.MethodGet, ws+"/audience/health", nil).MustStatus(t, 200).JSON(t, &h)
+		// Active counts the Summit's 338 new registrants (X21, brief §8.12).
 		want := map[string]int64{"active": 29412 + 338, "cooling": 9884, "at_risk": 5302, "sunset": 3615}
 		for _, tc := range h.Tiers {
 			if tc.Count != want[tc.Tier] {

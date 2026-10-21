@@ -60,8 +60,8 @@ func TestOverviewCards(t *testing.T) {
 	// November Product Update (waiting for approval) and two of Daniel's
 	// drafts from the approval inbox's history, the draft blog.acme.io made
 	// from a post (integrations hub) and the accessibility sample's Weekly
-	// Digest #143. With texts (X21), Daniel Park's text draft "Summit: doors
-	// open" is one more.
+	// Digest #143. With texts (X21, brief §4), Daniel Park's text draft
+	// "Summit: doors open" is one more.
 	if n.Drafts != 8 {
 		t.Fatalf("drafts: %d", n.Drafts)
 	}
@@ -113,8 +113,8 @@ func TestOverviewCards(t *testing.T) {
 		Policy string
 	}
 	c.Do("GET", base+"/audience", nil).MustStatus(t, 200).JSON(t, &a)
-	// The boards' 48,213, with Acme Summit 2026 (X21): 338 new contacts, and
-	// 1,240 registrations on its private list in the last 30 days.
+	// The boards' 48,213, with Acme Summit 2026 (X21, brief §8.12): 338 new
+	// contacts, and 1,240 registrations on its private list in the last 30 days.
 	if a.Days != 30 || a.Total != 48213+338 || a.Subscribers != 48213+1240 || a.Net != 1284+1240 || a.NetPercent != 5.4 ||
 		a.Policy != "Sunset contacts get one re-engagement email, then stop receiving broadcasts after 30 days." {
 		t.Fatalf("audience: %+v", a)

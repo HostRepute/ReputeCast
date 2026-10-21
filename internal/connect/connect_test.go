@@ -447,6 +447,7 @@ func TestConnectAPIProvider(t *testing.T) {
 		Lists, Suggested []string
 	}
 	c.Do("GET", base+"/contacts", nil).MustStatus(t, 200).JSON(t, &contacts)
+	// Four lists with Acme Summit 2026, the SMS demo's list (X21, brief §8.12).
 	if !contacts.Suppressions.Available || contacts.Suppressions.Total != 3 || contacts.Suppressions.Bounces != 2 || len(contacts.Lists) != 4 {
 		t.Fatalf("contacts: %+v", contacts)
 	}
