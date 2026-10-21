@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { $api, http, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -7,8 +7,11 @@ import { Dialog } from '@/components/ui/Dialog'
 import { Field, Input } from '@/components/ui/Field'
 import { Table, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
+import { T, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
-import { clockSeconds } from '@/lib/format'
+import { clockSeconds, count } from '@/lib/format'
+import { md } from './domain.messages'
 import { copy, failed } from './parts'
 import { Ticks } from './text'
 import './connect.css'
@@ -17,6 +20,8 @@ export type DomainDetail = Schemas['SendingDomainDetail']
 type DomainRecord = Schemas['SendingDomainRecord']
 
 const domainPath = '/api/v1/workspaces/{workspace}/domains/{domainId}' as const
+
+const mono = (chunks: ReactNode[]) => <span className="mono">{chunks}</span>
 
 /**
  * A sending domain's records, checked live: every 30 seconds while some
@@ -57,6 +62,7 @@ export function DomainTools({
   /** The domain input (setup) or nothing (Settings). */
   children?: React.ReactNode
 }) {
+  const t = useT()
   const [cloudflare, setCloudflare] = useState(false)
   const all = detail.counts.total > 0 && detail.counts.verified === detail.counts.total
   const zone = detail.records.map((r) => r.zoneLine).join('\n')
@@ -65,21 +71,21 @@ export function DomainTools({
       {children}
       {detail.dnsHost ? (
         <Badge tone="ok" dot>
-          {`Nameservers: ${detail.dnsHost}`}
+          {t(md.nameservers, { host: detail.dnsHost })}
         </Badge>
       ) : null}
       {detail.cloudflare ? (
         <Button size="sm" onClick={() => setCloudflare(true)} disabledReason={reason}>
-          Add all records via Cloudflare API
+          {t(md.addViaCloudflare)}
         </Button>
       ) : null}
       <Button size="sm" onClick={() => void copy(zone + '\n', 'zone')}>
-        Copy as zone file
+        {t(md.copyZone)}
       </Button>
       {detail.checkedAt ? (
         <span className="k ml-auto flex items-center gap-1.5" role="status">
           {all ? null : <span className="spin sm" aria-hidden="true" />}
-          {all ? `All records verified · last check ${clockSeconds(detail.checkedAt)}` : `Checking every 30 s · last check ${clockSeconds(detail.checkedAt)}`}
+          {all ? t(md.allVerified, { time: clockSeconds(detail.checkedAt) }) : t(md.checking, { time: clockSeconds(detail.checkedAt) })}
         </span>
       ) : null}
       <CloudflareDialog workspace={workspace} detail={detail} open={cloudflare} onOpenChange={setCloudflare} />
@@ -89,29 +95,30 @@ export function DomainTools({
 
 /** The records table with the counts and the DMARC tip. */
 export function DomainRecordsCard({ detail, title }: { detail: DomainDetail; title?: string }) {
+  const t = useT()
   const n = detail.counts
   return (
     <section className="card flex flex-col" aria-labelledby={`records-${detail.id}`}>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-5 py-3.5">
         <h3 className="h2" id={`records-${detail.id}`}>
-          {title ?? `Records · ${n.verified} of ${n.total} verified`}
+          {title ?? t(md.recordsTitle, { verified: count(n.verified), total: count(n.total) })}
         </h3>
         <div className="flex gap-2">
-          {n.verified ? <Badge tone="ok">{`${n.verified} verified`}</Badge> : null}
-          {n.pending ? <Badge tone="warn">{`${n.pending} pending`}</Badge> : null}
-          {n.missing ? <Badge tone="bad">{`${n.missing} missing`}</Badge> : null}
+          {n.verified ? <Badge tone="ok">{t(md.verifiedCount, { count: count(n.verified) })}</Badge> : null}
+          {n.pending ? <Badge tone="warn">{t(md.pendingCount, { count: count(n.pending) })}</Badge> : null}
+          {n.missing ? <Badge tone="bad">{t(md.missingCount, { count: count(n.missing) })}</Badge> : null}
         </div>
       </div>
-      <Table className="cn-tbl" caption={`DNS records for ${detail.domain}`}>
+      <Table className="cn-tbl" caption={t(md.caption, { domain: detail.domain })}>
         <thead>
           <tr>
-            <Th>Purpose</Th>
-            <Th>Type</Th>
-            <Th>Name</Th>
-            <Th>Value</Th>
-            <Th>Status</Th>
+            <Th>{t(md.colPurpose)}</Th>
+            <Th>{t(md.colType)}</Th>
+            <Th>{t(md.colName)}</Th>
+            <Th>{t(md.colValue)}</Th>
+            <Th>{t(md.colStatus)}</Th>
             <Th>
-              <span className="vh">Copy</span>
+              <span className="vh">{t(md.colCopy)}</span>
             </Th>
           </tr>
         </thead>
@@ -130,7 +137,7 @@ export function DomainRecordsCard({ detail, title }: { detail: DomainDetail; tit
                 <span className="cn-val">{r.value}</span>
                 {r.status === 'wrong_value' && r.found && !stale(r) ? (
                   <div className="k mt-1">
-                    Found: <span className="mono">{r.found}</span>
+                    <T msg={md.found} values={{ value: r.found, mono }} />
                   </div>
                 ) : null}
               </td>
@@ -138,8 +145,8 @@ export function DomainRecordsCard({ detail, title }: { detail: DomainDetail; tit
                 <RecordBadge record={r} />
               </td>
               <td>
-                <Button size="sm" onClick={() => void copy(r.value, { record: r.label })} aria-label={`Copy the ${r.label} value`}>
-                  Copy
+                <Button size="sm" onClick={() => void copy(r.value, { record: r.label })} aria-label={t(md.copyValueLabel, { record: r.label })}>
+                  {t(common.copy)}
                 </Button>
               </td>
             </tr>
@@ -149,7 +156,7 @@ export function DomainRecordsCard({ detail, title }: { detail: DomainDetail; tit
       {detail.dmarcTip ? (
         <div className="flex flex-wrap gap-4 border-t border-line-2 px-5 py-3 text-[12.5px] text-ink-2">
           <span>
-            <strong>DMARC tip:</strong> <Ticks text={detail.dmarcTip} />
+            <T msg={md.dmarcTip} values={{ tip: <Ticks text={detail.dmarcTip} />, b: (chunks) => <strong>{chunks}</strong> }} />
           </span>
         </div>
       ) : null}
@@ -167,65 +174,62 @@ function stale(r: DomainRecord) {
 }
 
 function RecordBadge({ record: r }: { record: DomainRecord }) {
+  const t = useT()
   if (stale(r)) {
     return (
       <Badge tone="warn">
         <span className="spin sm" style={{ borderTopColor: '#92400E' }} aria-hidden="true" />
-        {r.statusText || 'Pending'}
+        {r.statusText || t(md.statusPending)}
       </Badge>
     )
   }
   switch (r.status) {
     case 'verified':
-      return <Badge tone="ok">{r.statusText || 'Verified'}</Badge>
+      return <Badge tone="ok">{r.statusText || t(md.statusVerified)}</Badge>
     case 'pending':
       return (
         <Badge tone="warn">
           <span className="spin sm" style={{ borderTopColor: '#92400E' }} aria-hidden="true" />
-          {r.statusText || 'Pending'}
+          {r.statusText || t(md.statusPending)}
         </Badge>
       )
     case 'missing':
     case 'wrong_value':
-      return <Badge tone="bad">{r.statusText || 'Missing'}</Badge>
+      return <Badge tone="bad">{r.statusText || t(md.statusMissing)}</Badge>
   }
-  return <Badge tone="neutral">{r.statusText || "Couldn't check"}</Badge>
+  return <Badge tone="neutral">{r.statusText || t(md.statusUnknown)}</Badge>
 }
 
 /** BIMI and the custom tracking domain. */
 export function DomainOptional({ workspace, detail, reason }: { workspace: string; detail: DomainDetail; reason?: string }) {
+  const t = useT()
   const refresh = useDomainRefresh(workspace, detail.id)
   const add = $api.useMutation('patch', domainPath)
-  const t = detail.tracking
+  const tr = detail.tracking
   const addTracking = () =>
     add.mutate(
-      { params: { path: { workspace, domainId: detail.id } }, body: { trackingDomain: t.suggested } },
-      { onSuccess: () => void refresh(), onError: failed("Couldn't add the tracking domain", addTracking) },
+      { params: { path: { workspace, domainId: detail.id } }, body: { trackingDomain: tr.suggested } },
+      { onSuccess: () => void refresh(), onError: failed(t(md.addTrackingFailed), addTracking) },
     )
   return (
     <section className="card flex flex-col gap-2.5 px-5 py-4" aria-labelledby={`optional-${detail.id}`}>
       <h3 className="h2" id={`optional-${detail.id}`}>
-        Optional
+        {t(md.optionalTitle)}
       </h3>
       <div className="flex flex-wrap items-start gap-3">
         <div className="flex flex-[1_1_300px] flex-col gap-1">
-          <span className="text-[13px] font-semibold">BIMI</span>
-          <span className="k">
-            {detail.bimi === 'pass'
-              ? 'Published: your logo shows in Gmail, Yahoo and Apple Mail where the receiver supports it.'
-              : 'Shows your logo in Gmail, Yahoo and Apple Mail. Needs DMARC at quarantine or reject and an SVG Tiny PS logo; a Verified Mark Certificate is optional for Gmail.'}
-          </span>
+          <span className="text-[13px] font-semibold">{'BIMI'}</span>
+          <span className="k">{detail.bimi === 'pass' ? t(md.bimiPublished) : t(md.bimiInfo)}</span>
         </div>
         <div className="flex flex-[1_1_300px] flex-col gap-1">
-          <span className="text-[13px] font-semibold">Custom tracking domain</span>
+          <span className="text-[13px] font-semibold">{t(md.trackingTitle)}</span>
           <span className="k">
-            <span className="mono">{t.domain || t.suggested}</span> CNAME to <span className="mono">{t.target}</span>
-            {t.domain ? trackingState(t.status) : ', so links and the open pixel use your domain.'}
+            <T msg={md.trackingLine} values={{ state: tr.domain ? tr.status : 'suggested', domain: tr.domain || tr.suggested, target: tr.target, mono }} />
           </span>
         </div>
-        {t.domain ? null : (
+        {tr.domain ? null : (
           <Button size="sm" className="self-start" onClick={addTracking} loading={add.isPending} disabledReason={reason}>
-            Add tracking domain
+            {t(md.addTracking)}
           </Button>
         )}
       </div>
@@ -233,21 +237,8 @@ export function DomainOptional({ workspace, detail, reason }: { workspace: strin
   )
 }
 
-function trackingState(status: Schemas['SendingDomainTracking']['status']): string {
-  switch (status) {
-    case 'verified':
-      return ': verified, links and the open pixel use your domain.'
-    case 'pending':
-      return ': waiting for DNS.'
-    case 'wrong_value':
-      return ': points somewhere else.'
-    case 'missing':
-      return ': add the CNAME at your DNS host.'
-  }
-  return '.'
-}
-
 function CloudflareDialog({ workspace, detail, open, onOpenChange }: { workspace: string; detail: DomainDetail; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const t = useT()
   const qc = useQueryClient()
   const [token, setToken] = useState('')
   const [error, setError] = useState<string>()
@@ -263,8 +254,8 @@ function CloudflareDialog({ workspace, detail, open, onOpenChange }: { workspace
       const r = data!.result
       const changed = r.created.length + r.updated.length
       toast({
-        title: changed ? `Added ${changed} ${changed === 1 ? 'record' : 'records'} in Cloudflare` : 'Cloudflare already had every record',
-        detail: r.failed.length ? `Couldn't add: ${r.failed.join(', ')}. Add them by hand.` : 'ReputeCast checks them again every 30 seconds.',
+        title: changed ? t(md.cfAdded, { count: changed }) : t(md.cfNothing),
+        detail: r.failed.length ? t(md.cfFailedSome, { records: r.failed.join(', ') }) : t(md.cfChecks),
         kind: r.failed.length ? 'info' : 'success',
       })
       await qc.invalidateQueries({ queryKey: ['get', domainPath] })
@@ -284,18 +275,18 @@ function CloudflareDialog({ workspace, detail, open, onOpenChange }: { workspace
         onOpenChange(o)
       }}
       size="sm"
-      title="Add the records via the Cloudflare API"
-      description={`ReputeCast adds the missing records to the ${detail.domain} zone and fixes wrong ones. Existing records it doesn't need stay as they are.`}
+      title={t(md.cfTitle)}
+      description={t(md.cfDescription, { domain: detail.domain })}
       footer={
         <>
-          <Button onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button variant="primary" onClick={() => void submit()} loading={busy} busyLabel="Adding…" disabledReason={token.trim().length < 20 ? 'Paste a Cloudflare API token first.' : undefined}>
-            Add records
+          <Button onClick={() => onOpenChange(false)}>{t(common.cancel)}</Button>
+          <Button variant="primary" onClick={() => void submit()} loading={busy} busyLabel={t(md.adding)} disabledReason={token.trim().length < 20 ? t(md.pasteToken) : undefined}>
+            {t(md.addRecords)}
           </Button>
         </>
       }
     >
-      <Field label="Cloudflare API token" hint="Needs Zone › DNS › Edit on this zone. Used once and never stored." error={error}>
+      <Field label={t(md.tokenLabel)} hint={t(md.tokenHint, { permission: 'Zone › DNS › Edit' })} error={error}>
         <Input type="password" className="mono" value={token} onChange={(e) => setToken(e.target.value)} autoComplete="off" />
       </Field>
     </Dialog>
