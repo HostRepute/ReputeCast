@@ -13,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/phone"
+	"github.com/hostrepute/reputecast/internal/segments"
 	"github.com/hostrepute/reputecast/internal/sms"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -58,13 +59,18 @@ type SmsContactList struct {
 	Email       string     `json:"email" enum:"subscribed,pending,unsubscribed,not_subscribed"`
 	EmailAt     *time.Time `json:"emailAt,omitempty"`
 	EmailSource string     `json:"emailSource,omitempty"`
-	SMS         string     `json:"sms" enum:"subscribed,pending,opted_out,not_subscribed"`
-	SMSAt       *time.Time `json:"smsAt,omitempty"`
-	SMSSource   string     `json:"smsSource,omitempty"`
-	SMSPage     string     `json:"smsPage,omitempty"`
-	SMSVersion  string     `json:"smsVersion,omitempty"`
-	SMSIP       string     `json:"smsIp,omitempty"`
-	SMSKeyword  string     `json:"smsKeyword,omitempty"`
+	// EmailSourceLabel names the source ("Brevo import", "preference center").
+	EmailSourceLabel string `json:"emailSourceLabel,omitempty"`
+	// EmailConfirmed is true once the person confirmed: a double opt-in, or
+	// a list added in the preference center (as the profile's card says).
+	EmailConfirmed bool       `json:"emailConfirmed,omitempty"`
+	SMS            string     `json:"sms" enum:"subscribed,pending,opted_out,not_subscribed"`
+	SMSAt          *time.Time `json:"smsAt,omitempty"`
+	SMSSource      string     `json:"smsSource,omitempty"`
+	SMSPage        string     `json:"smsPage,omitempty"`
+	SMSVersion     string     `json:"smsVersion,omitempty"`
+	SMSIP          string     `json:"smsIp,omitempty"`
+	SMSKeyword     string     `json:"smsKeyword,omitempty"`
 	// Confirmation is the opt-in confirmation text's status, when one went.
 	Confirmation   string     `json:"confirmation,omitempty"`
 	ConfirmationAt *time.Time `json:"confirmationAt,omitempty"`
@@ -150,25 +156,32 @@ func (s *Service) ContactChannels(ctx context.Context, ws *store.Workspace, p *a
 	var n int64
 	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM sms_providers WHERE workspace_id = $1 AND removed_at IS NULL`, ws.ID).Scan(&n)
 	out.SMSSetUp = n > 0
+	// Every list, so consent can be recorded on any of them: lists with
+	// SMS consent first, then the ones the address is on.
 	rows, err := s.Pool.Query(ctx, `
 		SELECT l.id, l.name, coalesce(lm.status, 'not_subscribed'), coalesce(lm.subscribed_at, lm.unsubscribed_at, lm.created_at), coalesce(lm.source, ''),
-			coalesce(cc.status, 'not_subscribed'), cc.changed_at, coalesce(cc.source, ''), coalesce(cc.keyword, '')
+			coalesce(cc.status, 'not_subscribed'), cc.changed_at, coalesce(cc.source, ''), coalesce(cc.keyword, ''),
+			EXISTS (SELECT 1 FROM consent_events ce WHERE ce.contact_id = $2 AND ce.list_id = l.id AND (ce.action = 'confirmed' OR ce.source = 'preference_center'))
 		FROM lists l
 		LEFT JOIN list_memberships lm ON lm.list_id = l.id AND lm.contact_id = $2
 		LEFT JOIN channel_consents cc ON cc.list_id = l.id AND cc.contact_id = $2 AND cc.channel = 'sms'
-		WHERE l.workspace_id = $1 AND l.deleted_at IS NULL AND (lm.contact_id IS NOT NULL OR cc.contact_id IS NOT NULL)
-		ORDER BY l.created_at, l.name`, ws.ID, c.ID)
+		WHERE l.workspace_id = $1 AND l.deleted_at IS NULL
+		ORDER BY coalesce(cc.status = 'subscribed', false) DESC, (lm.contact_id IS NOT NULL) DESC, l.created_at, l.name`, ws.ID, c.ID)
 	if err != nil {
 		return out, err
 	}
 	for rows.Next() {
 		var l SmsContactList
 		var lid uuid.UUID
-		if err := rows.Scan(&lid, &l.Name, &l.Email, &l.EmailAt, &l.EmailSource, &l.SMS, &l.SMSAt, &l.SMSSource, &l.SMSKeyword); err != nil {
+		if err := rows.Scan(&lid, &l.Name, &l.Email, &l.EmailAt, &l.EmailSource, &l.SMS, &l.SMSAt, &l.SMSSource, &l.SMSKeyword, &l.EmailConfirmed); err != nil {
 			rows.Close()
 			return out, err
 		}
 		l.ListID = lid.String()
+		l.EmailConfirmed = l.EmailConfirmed && l.Email == "subscribed"
+		if l.EmailSource != "" {
+			l.EmailSourceLabel = emailSourceLabel(l.EmailSource)
+		}
 		out.Lists = append(out.Lists, l)
 	}
 	rows.Close()
@@ -549,4 +562,25 @@ func (s *Service) queueTextTx(ctx context.Context, q *store.Queries, tx pgx.Tx, 
 		}
 	}
 	return q.ChanMessage(ctx, id)
+}
+
+// emailSourceLabel names where an email subscription came from, as the
+// profile's consent card does ("Brevo import", "preference center").
+func emailSourceLabel(src string) string {
+	switch src {
+	case "preference_center":
+		return "preference center"
+	case "one_click":
+		return "List-Unsubscribe one-click"
+	case "repermission":
+		return "re-permission email"
+	case "team", "manual":
+		return "added by the team"
+	case "api":
+		return "the API"
+	}
+	if strings.HasPrefix(src, "import:") || strings.HasPrefix(src, "form:") {
+		return segments.SourceLabel(src)
+	}
+	return src
 }

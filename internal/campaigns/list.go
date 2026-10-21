@@ -111,7 +111,9 @@ type CampaignListItem struct {
 	OptOuts *int64   `json:"optOuts,omitempty"`
 	Cost    *float64 `json:"cost,omitempty"`
 	Local   bool     `json:"local,omitempty"`
-	Status  string   `json:"status" enum:"draft,approval,approved,scheduled,sending,paused,sent,cancelled,failed"`
+	// LocalTime is that time ("10:00").
+	LocalTime string `json:"localTime,omitempty"`
+	Status    string `json:"status" enum:"draft,approval,approved,scheduled,sending,paused,sent,cancelled,failed"`
 	// Blocked is true for drafts whose latest Send Readiness run is Blocked.
 	Blocked bool `json:"blocked"`
 	// Audience is a readable label ("Weekly Digest", "All subscribers"); empty when not set.

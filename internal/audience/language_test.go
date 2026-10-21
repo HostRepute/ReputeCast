@@ -124,7 +124,7 @@ func TestContactLanguage(t *testing.T) {
 				t.Errorf("%s: %d, want %d", q, got, want)
 			}
 		}
-		if got := total("language=en"); got != 48213-4180-2240-773-5508-12 {
+		if got := total("language=en"); got != 48213+338-4180-2240-773-5508-12 {
 			t.Errorf("English: %d", got)
 		}
 		c.Do(http.MethodGet, ws+"/contacts?language=klingon", nil).MustStatus(t, 422)

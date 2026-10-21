@@ -14,6 +14,7 @@ import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { AutomationStatusBadge } from './StatusBadge'
 import { EmptyAutomations, StarterTemplates, TemplateGrid } from './TemplateCards'
 import './automations.css'
+import { SmsFlowLine } from '@/features/sms/AutomationList'
 
 export type AutomationFilter = 'all' | 'live' | 'paused' | 'drafts'
 
@@ -209,6 +210,8 @@ function AutomationTable({ items }: { items: Item[] }) {
                     {a.name}
                   </Link>
                   <div className="k">{subtitle(a)}</div>
+                  {/* Phase 8: the channels a flow sends on, and what its texts cost. */}
+                  <SmsFlowLine channels={a.channels} cost={a.channelCost} />
                 </Td>
                 <Td>
                   <AutomationStatusBadge status={a.status} />

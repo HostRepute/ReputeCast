@@ -6,6 +6,7 @@ import { count, pct, shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { RouteBadges } from '../campaigns/RouteBadges'
 import { CampaignStatusBadge } from '../campaigns/StatusBadge'
+import { ChannelTag } from '@/features/channels/ChannelFilter'
 
 /** "Recent campaigns": the latest sends, as the campaigns list shows them (Main board). */
 export function RecentCampaigns({ items }: { items: Schemas['CampaignListItem'][] }) {
@@ -41,13 +42,19 @@ export function RecentCampaigns({ items }: { items: Schemas['CampaignListItem'][
                 <tr key={c.id}>
                   <Td>
                     <Link
-                      to={live ? '/w/$workspace/campaigns/$campaignId/live' : '/w/$workspace/campaigns/$campaignId/report'}
+                      to={
+                        // Phase 8: a text campaign's report is the SMS report.
+                        c.channel === 'sms' ? '/w/$workspace/campaigns/$campaignId/sms-report' : live ? '/w/$workspace/campaigns/$campaignId/live' : '/w/$workspace/campaigns/$campaignId/report'
+                      }
                       params={{ workspace: slug, campaignId: c.id }}
                       className="font-semibold text-ink no-underline hover:text-ink"
                     >
                       {c.name}
                     </Link>
-                    <div className="k">{c.audience || (c.origin ? `imported from ${c.origin}` : '—')}</div>
+                    <div className="k">
+                      {c.channel === 'sms' ? <ChannelTag channel="sms" /> : null}
+                      {c.audience || (c.origin ? `imported from ${c.origin}` : '—')}
+                    </div>
                   </Td>
                   <Td>{c.startedAt ? shortDate(c.startedAt) : '—'}</Td>
                   <Td num>{c.recipients != null ? count(c.recipients) : '—'}</Td>

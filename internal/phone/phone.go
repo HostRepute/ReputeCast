@@ -9,6 +9,7 @@ package phone
 
 import (
 	"errors"
+	"slices"
 	"strings"
 	"time"
 
@@ -185,6 +186,21 @@ var mainZones = map[string]string{
 	"PF": "Pacific/Tahiti",
 	"UM": "Pacific/Wake",
 	"GL": "America/Nuuk",
+}
+
+// CallingCode is a country's calling code ("GB" → 44); 0 when unknown.
+func CallingCode(country string) int {
+	return phonenumbers.GetCountryCodeForRegion(strings.ToUpper(country))
+}
+
+// Countries are the countries numbers can be from, as ISO codes.
+func Countries() []string {
+	out := []string{}
+	for c := range phonenumbers.GetSupportedRegions() {
+		out = append(out, c)
+	}
+	slices.Sort(out)
+	return out
 }
 
 // ZoneSource says where a recipient's time zone came from.

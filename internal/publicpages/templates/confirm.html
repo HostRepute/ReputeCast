@@ -9,6 +9,7 @@
     {{range .Lists}}<div class="got{{if not .On}} off{{end}}"><span class="dot"></span><span><span class="nm">{{.Name}}</span><br><span class="ds">{{if .On}}{{.Text}}{{else if .Offer}}{{$.H "confirm.notSubscribed" "offer" .Offer "href" .AddHref}}{{else}}{{$.H "confirm.notSubscribedPlain" "href" .AddHref}}{{end}}</span></span></div>
     {{end}}
   </div>
+  {{with .Texted}}<div class="notice">{{.}}</div>{{end}}
   {{with .Sender}}<div class="notice">{{$.H "confirm.inboxTip" "sender" .}}</div>{{end}}
   <div class="btns">
     {{with .LatestHref}}<a class="btn-sm" href="{{.}}">{{$.T "confirm.latest"}}</a>{{end}}

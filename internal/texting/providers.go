@@ -100,7 +100,10 @@ type SmsProviderCard struct {
 	Since        *time.Time `json:"since,omitempty"`
 	AccountLabel string     `json:"accountLabel"`
 	Live         bool       `json:"live"`
-	AccountHint  string     `json:"accountHint"`
+	// TestMode is true when the adapter has test credentials: the card then
+	// says whether these are live.
+	TestMode    bool   `json:"testMode"`
+	AccountHint string `json:"accountHint"`
 	// SecretLabel names the secret fields kept ("API key", "signature
 	// secret"); they're never shown.
 	SecretLabels []string `json:"secretLabels"`
@@ -310,6 +313,9 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		for _, f := range d.Fields {
 			if f.Secret {
 				c.SecretLabels = append(c.SecretLabels, f.Label)
+			}
+			if f.Key == "mode" {
+				c.TestMode = true
 			}
 		}
 		if out.CheckedAt == nil || (pr.LastCheckedAt != nil && pr.LastCheckedAt.After(*out.CheckedAt)) {

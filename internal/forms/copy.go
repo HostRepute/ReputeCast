@@ -445,6 +445,8 @@ type FormCopy struct {
 	Pages   *PagesCopy
 	strings []formString
 	tr      map[string]*formTranslation
+	// texts are the SMS offers by language, for the embed script (phase 8).
+	texts map[string]TextOffer
 }
 
 // loadFormCopy reads a form's copy in every language.

@@ -38,6 +38,8 @@ func TypeName(t string) string {
 		return "Goal"
 	case NodeExit:
 		return "Exit"
+	case NodeSMS:
+		return "Send SMS"
 	}
 	return "Step"
 }
@@ -249,6 +251,8 @@ func conditionPhrase(g AutomationGraph, c *AutomationCondition, refs *Refs) stri
 		target = inlineRef(g, c.Step, refs)
 	}
 	switch c.Kind {
+	case CondSMSConsent, CondSMSClicked, CondSMSReplied:
+		return smsPhrase(g, c, refs, within)
 	case "opened":
 		return "opened " + target + within
 	case "clicked":
@@ -368,6 +372,14 @@ func NodeTitle(g AutomationGraph, n AutomationNode, refs *Refs) string {
 			return d.Label
 		}
 		return "Leave the flow · stays on the list"
+	case NodeSMS:
+		if d.Label != "" {
+			return d.Label
+		}
+		if d.SMS != nil && strings.TrimSpace(d.SMS.Body) != "" {
+			return "Send SMS"
+		}
+		return "Write the text"
 	}
 	return TypeName(n.Type)
 }
@@ -393,10 +405,35 @@ func goalTitle(c *AutomationCondition, refs *Refs) string {
 		return "Joined a list"
 	case "event":
 		return "Sent " + c.Event
-	case "field":
+	case "field", CondSMSConsent, CondSMSClicked, CondSMSReplied:
 		return capFirst(conditionPhrase(AutomationGraph{}, c, refs))
 	}
 	return "Goal"
+}
+
+// smsPhrase is a condition on texts: "has SMS consent for Acme Summit
+// 2026", "clicked a link in Day-before reminder".
+func smsPhrase(g AutomationGraph, c *AutomationCondition, refs *Refs, within string) string {
+	text := "any text"
+	if c.Step != "" {
+		if g.Node(c.Step) != nil {
+			text = inlineRef(g, c.Step, refs)
+		}
+	}
+	switch c.Kind {
+	case CondSMSConsent:
+		if c.ListID == "" {
+			return "has SMS consent"
+		}
+		name := "a list"
+		if refs != nil && refs.Lists[c.ListID] != "" {
+			name = refs.Lists[c.ListID]
+		}
+		return "has SMS consent for " + name
+	case CondSMSClicked:
+		return "clicked a link in " + text + within
+	}
+	return "replied to " + text + within
 }
 
 // GoalLabel is the short goal name for the automations list.

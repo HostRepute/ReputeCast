@@ -27,6 +27,8 @@ import { FieldSourceNote, useAnswerActivity, useFieldSources } from '@/features/
 import { ContactPaidCard, ContactTierChip, PaidActivity, useHasPaidActivity } from '@/features/earn/ContactPaidCard'
 import { AddressCheckRow } from '@/features/verification/AddressCheck'
 import { GrowActivityRow, growEvents, ProfileReferralsCard, useContactGrow, withGrow } from '@/features/grow/contact/ContactGrow'
+import { ChannelConsentCard } from '@/features/sms/ContactConsent'
+import { smsEventIcon, useSmsActivity } from '@/features/sms/activity'
 import './audience.css'
 import { ContactWebsiteCard } from '@/features/website/elsewhere'
 
@@ -144,6 +146,7 @@ export function ContactProfilePage({ contactId }: { contactId: string }) {
               <ConsentCard p={p} />
               {/* The website's Website card (features/website), while it's on. */}
               <ContactWebsiteCard contactId={p.id} name={[p.firstName, p.lastName].filter(Boolean).join(' ') || p.email} />
+              <ChannelConsentCard contactId={p.id} name={p.name || p.email} />
             </div>
             <ActivityCard contactId={contactId} total={p.activityTotal} />
           </div>
@@ -662,6 +665,9 @@ const tone = {
 }
 
 function eventIcon(it: Item): [keyof typeof icons, keyof typeof tone] {
+  // Texts (design expansion, X21).
+  const text = smsEventIcon(it)
+  if (text) return text
   // Poll answers and survey responses (design expansion, X11).
   if (it.type === 'poll_answer' || it.type === 'survey_response' || it.type === 'survey_started') return ['check', 'green']
   if (it.category === 'consent') {
@@ -730,6 +736,7 @@ const verb: Record<string, string> = {
 
 function ActivityRow({ it }: { it: Item }) {
   const answerActivity = useAnswerActivity()
+  const smsActivity = useSmsActivity()
   const [icon, t] = eventIcon(it)
   const c = tone[t]
   const tr = useT()
@@ -740,9 +747,13 @@ function ActivityRow({ it }: { it: Item }) {
   let title: ReactNode
   let meta: string[] = [dateTime(it.at)]
   const answer = answerActivity(it)
+  const text = smsActivity(it)
   if (answer) {
     title = <b>{answer.title}</b>
     meta = [...meta, ...answer.meta]
+  } else if (text) {
+    title = text.title
+    meta = [...meta, ...text.meta]
   } else if (it.category === 'consent') {
     switch (it.type) {
       case 'confirmed':

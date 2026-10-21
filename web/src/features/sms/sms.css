@@ -1,0 +1,1081 @@
+/*
+ * SMS (design expansion phase 8, X21): the Sms* boards' own classes ("phase
+ * 8a · SMS and channel steps" and the expansion components they use),
+ * copied value for value and prefixed `sms-` so they never collide with the
+ * shared vocabulary in app.css.
+ */
+@layer components {
+  /* Stat tiles of the providers page and the report. */
+  .sms-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .sms-stat {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .sms-stat .v {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+    margin-top: 2px;
+  }
+  .sms-stat .s {
+    font-size: 12px;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .sms-stat.hot {
+    border-color: #fca5a5;
+    background: #fff5f5;
+  }
+  .sms-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 12px 18px;
+    border-top: 1px solid var(--line-2);
+  }
+  .sms-lnk {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  /* A button that reads as a link (an event's detail opens its timeline). */
+  .sms-lbtn {
+    border: 0;
+    background: none;
+    padding: 0;
+    font: inherit;
+    color: var(--accent);
+    text-align: left;
+    cursor: pointer;
+  }
+  .sms-lbtn:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .sms-ttl {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  .sms-lead {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: 14px;
+    max-width: 760px;
+  }
+
+  /* Countries: a code in a pill, alone or with its name. */
+  .sms-ccy {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 9px 0 3px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: #fff;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink);
+    white-space: nowrap;
+    vertical-align: middle;
+    box-sizing: border-box;
+  }
+  .sms-ccy b {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--line-2);
+    color: #374151;
+    font-family: var(--font-family-mono);
+    font-size: 11px;
+    font-weight: 600;
+    box-sizing: border-box;
+  }
+  .sms-ccy.s {
+    padding: 0 2px;
+  }
+  .sms-ccs {
+    display: inline-flex;
+    gap: 4px 6px;
+    flex-wrap: wrap;
+    vertical-align: middle;
+  }
+
+  /* Capability badges from an adapter's manifest. */
+  .sms-cap {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    border: 1px solid var(--line);
+    background: #f9fafb;
+    color: #374151;
+    white-space: nowrap;
+  }
+  .sms-cap.y {
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+    color: #166534;
+  }
+  .sms-cap.n {
+    border-color: var(--line);
+    background: #fff;
+    color: #6b7280;
+    text-decoration: line-through;
+  }
+  .sms-cap.p {
+    border-color: #fde68a;
+    background: #fffbeb;
+    color: #92400e;
+  }
+
+  /* A metric over a thin bar, and the provider card's facts. */
+  .sms-mt {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+  }
+  .sms-mt .l {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: baseline;
+    font-size: 12.5px;
+  }
+  .sms-dl {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 13px;
+  }
+  .sms-dl > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: baseline;
+  }
+  .sms-dl > div > span:last-child {
+    text-align: right;
+    min-width: 0;
+  }
+  .sms-sum {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+    align-items: baseline;
+  }
+  label.sms-rad {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 400;
+    color: var(--ink);
+    font-size: 13px;
+  }
+  label.sms-rad input {
+    margin-top: 3px;
+    flex: none;
+  }
+  label.sms-rad.on {
+    border-color: var(--accent);
+    background: #f0fdfa;
+  }
+
+  /* Review & send: check groups and rows, the verdict. */
+  .sms-chkg {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 16px;
+    background: #f9fafb;
+    border-top: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .sms-chkg:first-child {
+    border-top: 0;
+    border-radius: 10px 10px 0 0;
+  }
+  .sms-chkr {
+    display: flex;
+    gap: 10px 12px;
+    align-items: flex-start;
+    padding: 11px 16px;
+    border-top: 1px solid var(--line-2);
+    flex-wrap: wrap;
+  }
+  .sms-chkr .rt {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1 1 300px;
+    min-width: 0;
+  }
+  .sms-chkr .t {
+    font-weight: 500;
+  }
+  .sms-chkr .ac {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex: none;
+  }
+  .sms-chkr.w {
+    background: #fffbeb;
+  }
+  .sms-chkr.b {
+    background: #fff5f5;
+  }
+  .sms-chkr > .badge {
+    margin-top: 1px;
+  }
+  .sms-verdict {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 18px 22px;
+    border-radius: 12px;
+    flex-wrap: wrap;
+  }
+  .sms-verdict .vt {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .sms-verdict.w {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #78350f;
+  }
+  .sms-verdict.b {
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+    color: #7f1d1d;
+  }
+  .sms-verdict.g {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #14532d;
+  }
+
+  /* The budget meter: used, this send, over, and the alert mark. */
+  .sms-bm {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .sms-bm-t {
+    position: relative;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--line-2);
+    display: flex;
+    margin: 5px 0;
+  }
+  .sms-bm-t i {
+    display: block;
+    height: 100%;
+  }
+  .sms-bm-t i:first-child {
+    border-radius: 4px 0 0 4px;
+  }
+  .sms-bm-t i.u {
+    background: var(--accent);
+  }
+  .sms-bm-t i.s {
+    background: repeating-linear-gradient(135deg, #0f766e 0 3px, #99f6e4 3px 6px);
+  }
+  .sms-bm-t i.o {
+    background: repeating-linear-gradient(135deg, #b91c1c 0 3px, #fca5a5 3px 6px);
+    border-radius: 0 4px 4px 0;
+  }
+  .sms-bm-t .bmk {
+    position: absolute;
+    top: -5px;
+    bottom: -5px;
+    width: 2px;
+    margin-left: -1px;
+    background: var(--ink);
+    border-radius: 1px;
+  }
+  .sms-bm-l {
+    display: flex;
+    gap: 6px 14px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .sms-bm-l > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sms-bsw {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex: none;
+    display: inline-block;
+  }
+
+  /* Quiet hours on a 24-hour track. */
+  .sms-qh {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .sms-qh-t {
+    position: relative;
+    height: 24px;
+    border-radius: 6px;
+    background: var(--line-2);
+    overflow: hidden;
+  }
+  .sms-qh-t .lim {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: #e3f1ee;
+  }
+  .sms-qh-t .win {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+  }
+  .sms-qh-t .win.x {
+    background: #b91c1c;
+  }
+  .sms-qh-t .now {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    margin-left: -1.5px;
+    background: var(--ink);
+  }
+  .sms-qh-x {
+    position: relative;
+    height: 15px;
+    font-size: 11px;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .sms-qh-x span {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+  }
+  .sms-qh-x span:first-child {
+    transform: none;
+  }
+  .sms-qh-x span:last-child {
+    transform: translateX(-100%);
+  }
+
+  /* The segment counter: one bar per segment. */
+  .sms-segc {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .sms-segc-h {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 12.5px;
+  }
+  .sms-segc-b {
+    display: flex;
+    gap: 3px;
+    height: 8px;
+  }
+  .sms-segc-b span {
+    flex: 1;
+    border-radius: 4px;
+    background: var(--line-2);
+    overflow: hidden;
+    display: block;
+  }
+  .sms-segc-b span i {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+  }
+  .sms-segc-b.w span i {
+    background: #b45309;
+  }
+  .sms-segc-x {
+    display: flex;
+    gap: 3px;
+    font-size: 11px;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .sms-segc-x span {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* The text editor: locked parts and links inline. */
+  .sms-ed {
+    border: 1px solid var(--line-input);
+    border-radius: 8px;
+    background: #fff;
+    padding: 12px 14px;
+    font-size: 14px;
+    line-height: 1.85;
+    color: var(--ink);
+    min-height: 118px;
+    box-sizing: border-box;
+    overflow-wrap: anywhere;
+  }
+  .sms-ed .fx {
+    padding: 2px 7px;
+    border-radius: 5px;
+    background: var(--line-2);
+    color: #4b5563;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .sms-ed .lt {
+    padding: 2px 7px;
+    border-radius: 5px;
+    background: #dbeafe;
+    color: #1e40af;
+    font-family: var(--font-family-mono);
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+  .sms-ed .lt.e {
+    background: #fee2e2;
+    color: #991b1b;
+    text-decoration: underline wavy #dc2626;
+    text-underline-offset: 3px;
+  }
+  .sms-ed.sm {
+    font-size: 13px;
+    line-height: 1.75;
+    padding: 10px 12px;
+    min-height: 96px;
+  }
+  .sms-ed textarea {
+    display: block;
+    width: 100%;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    resize: vertical;
+    font: inherit;
+    line-height: inherit;
+    color: inherit;
+    background: transparent;
+    min-height: 3.6em;
+    box-sizing: border-box;
+  }
+  .sms-ed textarea:focus {
+    outline: none;
+  }
+  .sms-ed:focus-within {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .sms-uc {
+    background: #fee2e2;
+    color: #991b1b;
+    border-radius: 3px;
+    padding: 0 3px;
+    font-weight: 700;
+    text-decoration: underline wavy #dc2626;
+    text-underline-offset: 4px;
+  }
+  .sms-okc {
+    background: #dcfce7;
+    color: #166534;
+    border-radius: 3px;
+    padding: 0 3px;
+    font-weight: 700;
+  }
+  .sms-tok {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 6px;
+    border-radius: 5px;
+    background: #ede9fe;
+    color: #5b21b6;
+    font-family: var(--font-family-mono);
+    font-size: 0.86em;
+    font-weight: 500;
+    line-height: 1.55;
+    white-space: nowrap;
+    vertical-align: baseline;
+  }
+
+  /* The phone preview. */
+  .sms-phn {
+    width: 300px;
+    max-width: 100%;
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    border-radius: 18px;
+    box-shadow: 0 1px 3px rgba(11, 18, 32, 0.12);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    flex: none;
+    box-sizing: border-box;
+  }
+  .sms-phn-h {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 16px 14px 12px;
+    border-bottom: 1px solid var(--line-2);
+    background: #fbfbfc;
+    text-align: center;
+  }
+  .sms-phn-a {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--line);
+    color: #4b5563;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 2px;
+  }
+  .sms-phn-n {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .sms-phn-b {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 12px 16px;
+    flex: 1;
+  }
+  .sms-phn-tm {
+    align-self: center;
+    font-size: 11px;
+    color: var(--ink-3);
+    font-weight: 500;
+    margin-top: 2px;
+  }
+  .sms-bub {
+    align-self: flex-start;
+    max-width: 88%;
+    padding: 9px 12px;
+    border-radius: 16px 16px 16px 6px;
+    background: #e9ecf0;
+    color: var(--ink);
+    font-size: 13.5px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    box-sizing: border-box;
+  }
+  .sms-bub.me {
+    align-self: flex-end;
+    border-radius: 16px 16px 6px 16px;
+    background: var(--accent);
+    color: #fff;
+  }
+  .sms-bub .fx {
+    color: #4b5563;
+  }
+  .sms-bub .sl {
+    color: #1d4ed8;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .sms-phn-f {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--line-2);
+  }
+  .sms-phn-in {
+    flex: 1;
+    height: 34px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    color: var(--ink-3);
+    font-size: 12.5px;
+    box-sizing: border-box;
+  }
+  .sms-phn-no {
+    flex: 1;
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-3);
+    padding: 4px 0;
+  }
+
+  /* Consent per list per channel. */
+  .sms-cons {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .sms-cons th {
+    text-align: left;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  .sms-cons td {
+    padding: 10px;
+    border-bottom: 1px solid var(--line-2);
+    vertical-align: top;
+  }
+  .sms-cons tr:last-child td {
+    border-bottom: 0;
+  }
+  .sms-cons td .k {
+    display: block;
+    margin-top: 3px;
+    line-height: 1.35;
+  }
+
+  /* Boxes and rows of the rules and the registration helper. */
+  .sms-cbox {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #f9fafb;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .sms-cpy {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+  }
+  .sms-cpy .tx {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+  }
+  .sms-kwd {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 6px;
+    border: 1px solid var(--line-strong);
+    background: #fff;
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+    gap: 4px;
+  }
+  .sms-kwd button {
+    border: 0;
+    background: none;
+    padding: 0;
+    margin: 0 -2px 0 0;
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-3);
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .sms-kwd button:hover {
+    background: var(--line-2);
+    color: var(--ink);
+  }
+  .sms-srow {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-top: 1px solid var(--line-2);
+    flex-wrap: wrap;
+  }
+  .sms-srow > .tx {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1 1 320px;
+    min-width: 0;
+  }
+  .sms-srow > .ct {
+    flex: 0 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  .sms-hstep {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 13px;
+  }
+  .sms-hstep .hn {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    margin-top: 1px;
+  }
+  .sms-nr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 0;
+    border-top: 1px solid var(--line-2);
+    flex-wrap: wrap;
+  }
+  .sms-nr:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .sms-tz {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 13px;
+    flex-wrap: wrap;
+  }
+  .sms-tz:first-child {
+    border-top: 0;
+  }
+  .sms-tz .tn {
+    flex: 1 1 200px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .sms-tz .tb {
+    flex: 1 1 160px;
+    min-width: 120px;
+  }
+
+  /* Timelines (the test text, the STOP received). */
+  .sms-ev {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-top: 1px solid var(--line-2);
+  }
+  .sms-ev:first-child {
+    border-top: 0;
+  }
+  .sms-ev .ic {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+  .sms-ev .tx {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+  }
+  .sms-ev .tm {
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+    color: var(--ink-3);
+    flex: none;
+    padding-top: 5px;
+  }
+
+  /* Filter chips (events, replies). */
+  .sms-fchips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .sms-fchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 11px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: #fff;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .sms-fchip b {
+    font-weight: 600;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .sms-fchip.on {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+  .sms-fchip.on b {
+    color: #c9ced6;
+  }
+  .sms-filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line-2);
+  }
+
+  /* Tables: a sticky first column, phone rows instead of the table. */
+  .sms-stk th:first-child,
+  .sms-stk td:first-child {
+    position: sticky;
+    left: 0;
+    background: #fff;
+    z-index: 1;
+    box-shadow: 1px 0 0 var(--line-2);
+  }
+  .sms-only-phone {
+    display: none;
+  }
+  .sms-scroll-hint {
+    display: none;
+  }
+  .sms-mask {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-family-mono);
+    font-size: 12.5px;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+  .sms-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #f9fafb;
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .sms-empty {
+    padding: 44px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+    border-style: dashed;
+  }
+  .sms-empty .tt {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .sms-empty .ds {
+    color: var(--ink-2);
+    max-width: 560px;
+  }
+  .sms-diff {
+    font-family: var(--font-family-mono);
+    font-size: 12.5px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .sms-diff div {
+    padding: 6px 12px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .sms-diff .del {
+    background: #fef2f2;
+    color: #991b1b;
+  }
+  .sms-diff .add {
+    background: #f0fdf4;
+    color: #166534;
+  }
+
+  @media (max-width: 1100px) {
+    .sms-scroll-hint {
+      display: flex;
+    }
+  }
+  @media (max-width: 767px) {
+    .sms-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+    .sms-only-phone {
+      display: flex !important;
+      flex-direction: column;
+    }
+    .sms-no-phone {
+      display: none !important;
+    }
+    .sms-phn {
+      width: 100%;
+    }
+    .sms-verdict {
+      padding: 14px 16px;
+      gap: 12px;
+    }
+    .sms-verdict .vt {
+      font-size: 18px;
+    }
+    .sms-ttl {
+      font-size: 19px;
+    }
+  }
+}
+
+/* Suppressions: the channel switch heading email's filters, with what the SMS list holds. */
+.sms-supp-ch {
+  flex-basis: 100%;
+  display: flex;
+  gap: 8px 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--line-2);
+}
+.sms-supp-ch > .k {
+  flex: 1 1 420px;
+  min-width: 0;
+}
+
+/* The automations list's line under a flow that texts: its channels and what its texts cost. */
+.sms-flowline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.sms-flowline .ch-icons {
+  margin-left: 0;
+}
+
+/* The report's link: its address, where it was shortened, people and link previews (SmsReport, `.lrow`). */
+.sms-lbox {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+/* Shown on phones, visually hidden on wider screens but read by screen readers (the delivery chart's rises). */
+@media (min-width: 768px) {
+  .sms-vh-wide {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}

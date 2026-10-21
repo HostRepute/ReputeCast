@@ -144,6 +144,11 @@ var Categories = []AuditCategory{
 	// Grow (design expansion, phase 5): referral programs, recommendations
 	// and partner links.
 	{Key: "grow", Label: "Grow", Groups: []string{"referral", "recommendation", "partner"}},
+	// SMS (design expansion, phase 8): providers, senders, registrations,
+	// routes and rules, the short-link domain, suppressions, the terms page
+	// and test numbers. Text campaigns are campaigns (Sending).
+	{Key: "sms", Label: "SMS", Groups: []string{"sms_provider", "sms_sender", "sms_registration", "sms_routes", "sms_rules", "sms_short_domain",
+		"sms_suppression", "sms_terms", "sms_test_number", "sms"}},
 }
 
 // Filter narrows the log.

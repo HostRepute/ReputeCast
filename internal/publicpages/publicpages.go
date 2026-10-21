@@ -109,6 +109,8 @@ type Handler struct {
 	// leaves them out.
 	Referrals       func() *referrals.Service
 	Recommendations func() *recommendations.Service
+	// TextPrefs adds the preference center's Texts switches (nil: none).
+	TextPrefs TextPrefs
 
 	tmpl     map[string]*template.Template
 	version  string
@@ -534,6 +536,9 @@ type messageBody struct {
 	// Lead is the lead paragraph as HTML, in place of Text, Email and
 	// TextAfter (a built-in label with the address in bold).
 	Lead template.HTML
+	// Texted is "We've also texted +1 312 ••• 0123 to confirm." after a
+	// signup with SMS consent (phase 8).
+	Texted string
 }
 
 type action struct {

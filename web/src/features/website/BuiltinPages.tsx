@@ -5,6 +5,8 @@ import { Note } from '@/components/ui/Note'
 import { T, useT } from '@/i18n'
 import { useWorkspace } from '@/lib/session'
 import { FormsTabs } from '@/features/forms/common'
+import { useChannelSetUp } from '@/features/channels/hooks'
+import { m as cm } from '@/features/channels/messages'
 import { m } from './messages'
 import './website.css'
 
@@ -23,6 +25,8 @@ export interface BuiltinPage {
 /** The built-in pages of 1.0 and the website (design expansion phase 7). */
 export function useBuiltinPages(): BuiltinPage[] {
   const t = useT()
+  // The text message terms, once texting is set up (SMS, X21).
+  const sms = useChannelSetUp('sms')
   return [
     { key: 'subscribe', name: t(m.builtinSubscribe), addr: '/subscribe', group: t(m.groupSigningUp), state: t(m.alwaysOn), to: '/w/$workspace/forms/subscribe' },
     { key: 'confirm', name: t(m.builtinConfirm), addr: t(m.addrAfterConfirm), group: t(m.groupSigningUp), state: t(m.alwaysOn), to: '/w/$workspace/forms/subscribe' },
@@ -31,6 +35,9 @@ export function useBuiltinPages(): BuiltinPage[] {
     { key: 'signin', name: t(m.builtinSignin), addr: '/signin', group: t(m.groupWebsite), state: t(m.onWithWebsite), to: '/w/$workspace/forms/website' },
     { key: 'account', name: t(m.builtinAccount), addr: '/account', group: t(m.groupWebsite), state: t(m.onWithWebsite), to: '/w/$workspace/forms/website' },
     { key: 'archive', name: t(m.builtinArchive), addr: '/archive', group: t(m.groupWebsite), state: t(m.on), to: '/w/$workspace/forms/archive' },
+    ...(sms
+      ? [{ key: 'sms-terms', name: t(cm.smsTermsTab), addr: '/sms-terms', group: t(m.groupSigningUp), state: t(m.alwaysOn), to: '/w/$workspace/forms/sms-terms' as const }]
+      : []),
   ]
 }
 

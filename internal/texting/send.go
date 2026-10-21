@@ -218,7 +218,13 @@ func (s *Service) reviewView(ctx context.Context, ws *store.Workspace, p *authz.
 	for _, a := range byProv {
 		routes = append(routes, a)
 	}
-	sort.Slice(routes, func(i, j int) bool { return routes[i].order < routes[j].order })
+	// The provider with the most texts first (Twilio 659 · Vonage 195).
+	sort.Slice(routes, func(i, j int) bool {
+		if routes[i].r.Recipients != routes[j].r.Recipients {
+			return routes[i].r.Recipients > routes[j].r.Recipients
+		}
+		return routes[i].order < routes[j].order
+	})
 	for _, a := range routes {
 		a.r.Cost = round2(a.r.Cost)
 		if rv.sent > 0 {

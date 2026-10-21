@@ -8513,6 +8513,16 @@
       "AutomationListItem": {
         "additionalProperties": false,
         "properties": {
+          "channelCost": {
+            "format": "double",
+            "type": "number"
+          },
+          "channels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "completed": {
             "description": "% of entrants who finished the flow (goal or end)",
             "format": "double",
@@ -8592,7 +8602,8 @@
           "draftVersion",
           "trigger",
           "steps",
-          "unpublishedChanges"
+          "unpublishedChanges",
+          "channels"
         ],
         "type": "object"
       },
@@ -10394,6 +10405,9 @@
           },
           "local": {
             "type": "boolean"
+          },
+          "localTime": {
+            "type": "string"
           },
           "name": {
             "type": "string"
@@ -15063,6 +15077,17 @@
             "description": "With paid=with_access: a tier's id, for that tier and above",
             "type": "string"
           },
+          "phone": {
+            "enum": [
+              "yes",
+              "no"
+            ],
+            "type": "string"
+          },
+          "phoneCountry": {
+            "maxLength": 2,
+            "type": "string"
+          },
           "q": {
             "description": "Email, name or tag",
             "maxLength": 200,
@@ -15086,6 +15111,10 @@
           },
           "signedIn": {
             "type": "boolean"
+          },
+          "smsConsent": {
+            "maxLength": 40,
+            "type": "string"
           },
           "sort": {
             "enum": [
@@ -15384,6 +15413,9 @@
           },
           "paid": {
             "$ref": "#/components/schemas/ContactPaid"
+          },
+          "phone": {
+            "type": "string"
           },
           "score": {
             "format": "int64",
@@ -27649,6 +27681,9 @@
           "recordHistory": {
             "type": "boolean"
           },
+          "sms": {
+            "$ref": "#/components/schemas/ImportSmsConsent"
+          },
           "statuses": {
             "items": {
               "$ref": "#/components/schemas/ImportConsentStatus"
@@ -28741,6 +28776,29 @@
         ],
         "type": "object"
       },
+      "ImportSmsConsent": {
+        "additionalProperties": false,
+        "properties": {
+          "consentMapped": {
+            "type": "boolean"
+          },
+          "evidenceMapped": {
+            "type": "boolean"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "consentMapped",
+          "evidenceMapped",
+          "missing"
+        ],
+        "type": "object"
+      },
       "ImportSourceList": {
         "additionalProperties": false,
         "properties": {
@@ -28878,6 +28936,13 @@
           },
           "templates": {
             "$ref": "#/components/schemas/ImportTemplateStats"
+          },
+          "texts": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "object"
           }
         },
         "required": [
@@ -57654,6 +57719,18 @@
             "maximum": 100,
             "minimum": 0,
             "type": "integer"
+          },
+          "smsConsent": {
+            "type": "boolean"
+          },
+          "smsConsentText": {
+            "maxLength": 600,
+            "type": "string"
+          },
+          "smsConsentVersion": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
           }
         },
         "required": [
@@ -59551,7 +59628,13 @@
             "format": "date-time",
             "type": "string"
           },
+          "emailConfirmed": {
+            "type": "boolean"
+          },
           "emailSource": {
+            "type": "string"
+          },
+          "emailSourceLabel": {
             "type": "string"
           },
           "listId": {
@@ -61162,6 +61245,9 @@
             ],
             "type": "string"
           },
+          "testMode": {
+            "type": "boolean"
+          },
           "told": {
             "items": {
               "type": "string"
@@ -61186,6 +61272,7 @@
           "status",
           "accountLabel",
           "live",
+          "testMode",
           "accountHint",
           "secretLabels",
           "countries",
@@ -63630,6 +63717,10 @@
             },
             "type": "object"
           },
+          "filteredRecent": {
+            "format": "int64",
+            "type": "integer"
+          },
           "items": {
             "items": {
               "$ref": "#/components/schemas/SmsSuppression"
@@ -63670,7 +63761,8 @@
           "providers",
           "page",
           "pageSize",
-          "canEdit"
+          "canEdit",
+          "filteredRecent"
         ],
         "type": "object"
       },
@@ -88420,7 +88512,8 @@
                 "verification",
                 "placement",
                 "website",
-                "grow"
+                "grow",
+                "sms"
               ],
               "type": "string"
             }
@@ -88687,7 +88780,8 @@
                 "verification",
                 "placement",
                 "website",
-                "grow"
+                "grow",
+                "sms"
               ],
               "type": "string"
             }
@@ -98883,6 +98977,43 @@
             "name": "paidTier",
             "schema": {
               "description": "With paid=with_access: a tier's id, for that tier and above",
+              "type": "string"
+            }
+          },
+          {
+            "description": "yes: contacts with a phone number; no: without one",
+            "explode": false,
+            "in": "query",
+            "name": "phone",
+            "schema": {
+              "description": "yes: contacts with a phone number; no: without one",
+              "enum": [
+                "yes",
+                "no",
+                ""
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "The phone number's country (GB)",
+            "explode": false,
+            "in": "query",
+            "name": "phoneCountry",
+            "schema": {
+              "description": "The phone number's country (GB)",
+              "maxLength": 2,
+              "type": "string"
+            }
+          },
+          {
+            "description": "any: SMS consent on some list; none: on none; or a list id",
+            "explode": false,
+            "in": "query",
+            "name": "smsConsent",
+            "schema": {
+              "description": "any: SMS consent on some list; none: on none; or a list id",
+              "maxLength": 40,
               "type": "string"
             }
           },
@@ -128156,6 +128287,74 @@
         "x-permission": "campaigns:pause"
       }
     },
+    "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/duplicate": {
+      "post": {
+        "operationId": "duplicate-sms-campaign",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Campaign id",
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "description": "Campaign id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmsCampaign"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Copy an SMS campaign into a new draft (logged)",
+        "tags": [
+          "SMS campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
+      }
+    },
     "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/pause": {
       "post": {
         "operationId": "pause-sms-send",
@@ -128540,6 +128739,92 @@
           }
         ],
         "summary": "The SMS report: delivery, failures by reason with the provider's codes, clicks, replies, cost, progress",
+        "tags": [
+          "SMS campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "reports:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/sms-campaigns/{campaignId}/report.csv": {
+      "get": {
+        "operationId": "export-sms-report",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Campaign id",
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "description": "Campaign id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download the SMS report by country as CSV: counts only (logged)",
         "tags": [
           "SMS campaigns"
         ],

@@ -10,6 +10,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/audience"
@@ -20,9 +21,12 @@ import (
 	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/demo"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
+	"github.com/hostrepute/reputecast/internal/forms"
+	"github.com/hostrepute/reputecast/internal/imports"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
+	"github.com/hostrepute/reputecast/internal/phone"
 	"github.com/hostrepute/reputecast/internal/publicpages"
 	"github.com/hostrepute/reputecast/internal/server"
 	"github.com/hostrepute/reputecast/internal/sms"
@@ -217,7 +221,66 @@ func (t textTerms) TextTermsPage(ctx context.Context, ws *store.Workspace) (publ
 	return out, true
 }
 
+// signupTexts is SMS on signup forms (forms.Texts), resolved at call time:
+// the texting service reads the forms service's settings.
+type signupTexts struct{ a *App }
+
+func (t signupTexts) of() texting.SignupTexts { return texting.SignupTexts{S: t.a.texting()} }
+
+func (t signupTexts) Offer(ctx context.Context, ws *store.Workspace, lang string) (forms.TextOffer, bool) {
+	return t.of().Offer(ctx, ws, lang)
+}
+
+func (t signupTexts) Save(ctx context.Context, tx pgx.Tx, ws *store.Workspace, contactID uuid.UUID, n phone.Number, consent bool, lists []uuid.UUID,
+	ev forms.TextEvidence) (bool, error) {
+	return t.of().Save(ctx, tx, ws, contactID, n, consent, lists, ev)
+}
+
+func (t signupTexts) Confirm(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, lists []uuid.UUID) {
+	t.of().Confirm(ctx, ws, contactID, lists)
+}
+
+func (t signupTexts) Texted(lang, e164 string) string { return t.of().Texted(lang, e164) }
+
+func (t signupTexts) TextedContact(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, lang string) string {
+	return t.of().TextedContact(ctx, ws, contactID, lang)
+}
+
+// textPrefs is the preference center's Texts switches
+// (publicpages.TextPrefs).
+type textPrefs struct{ a *App }
+
+func (t textPrefs) Prefs(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, lang string) (publicpages.PrefTexts, bool) {
+	p, ok := t.a.texting().Prefs(ctx, ws, contactID, lang)
+	return publicpages.PrefTexts{Phone: p.Phone, Label: p.Label, Note: p.Note, Save: p.Save, On: p.On, Locked: p.Locked}, ok
+}
+
+func (t textPrefs) SavePrefs(ctx context.Context, tx pgx.Tx, ws *store.Workspace, contactID uuid.UUID, shown, on []uuid.UUID, source, ip, userAgent string) ([]uuid.UUID, error) {
+	return t.a.texting().SavePrefs(ctx, tx, ws, contactID, shown, on, "", texting.PrefEvidence{Source: source, IP: ip, UserAgent: userAgent})
+}
+
+// Confirm texts one opt-in confirmation for the lists switched on.
+func (t textPrefs) Confirm(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, lists []uuid.UUID) {
+	if len(lists) > 0 {
+		t.a.texting().SendConfirmation(ctx, ws, contactID, lists[0])
+	}
+}
+
+// lazyImportTexts is imports' side of texting, resolved at call time.
+type lazyImportTexts struct{ a *App }
+
+func (t lazyImportTexts) Import(ctx context.Context, tx pgx.Tx, ws *store.Workspace, contactID, listID uuid.UUID, row imports.TextRow) (imports.TextOutcome, error) {
+	return texting.ImportTexts{S: t.a.texting()}.Import(ctx, tx, ws, contactID, listID, row)
+}
+
+func (t lazyImportTexts) DefaultCountry(ctx context.Context, ws *store.Workspace) string {
+	return texting.ImportTexts{S: t.a.texting()}.DefaultCountry(ctx, ws)
+}
+
 func init() {
+	importTexts = func(a *App) imports.Texts { return lazyImportTexts{a} }
+	formTexts = func(a *App) forms.Texts { return signupTexts{a} }
+	publicTextPrefs = func(a *App) publicpages.TextPrefs { return textPrefs{a} }
 	publicTextTerms = func(a *App) publicpages.TextTerms { return textTerms{a} }
 	prevAnswers := audienceAnswers
 	audienceAnswers = func(a *App) audience.ActivitySource {

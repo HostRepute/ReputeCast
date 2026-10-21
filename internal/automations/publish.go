@@ -324,6 +324,8 @@ func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *pu
 	if other != "" {
 		out = append(out, AutomationPublishCheck{Status: "bad", Label: other})
 	}
+	// Phase 8: the channels' badges (an SMS step's quiet hours and senders).
+	out = append(out, channelPublishChecks(ctx, ws.ID, st.draft)...)
 	return append(out, s.languageChecks(ctx, ws, st.draft)...)
 }
 

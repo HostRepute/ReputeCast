@@ -114,6 +114,13 @@ label.row input { margin-top: 4px; }
 .ds { font-size: 13px; color: var(--ink-3); }
 .consent { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--ink-2); }
 .consent input { margin-top: 3px; }
+/* The preference center's Texts switch beside each list (SMS, phase 8). */
+.rowtx { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.rowtx .row { flex: 1; min-width: 0; }
+.rowtx .tx { display: inline-flex; gap: 6px; align-items: center; flex: none; font-size: 13px; color: var(--ink-2); }
+/* The phone field: its country picker, then the number (SMS, phase 8). */
+.phone { display: flex; gap: 8px; }
+.phone .cc { width: auto; max-width: 55%; flex: none; height: 46px; }
 .btn-pri { display: flex; align-items: center; justify-content: center; height: 48px; border-radius: 9px; background: var(--pub-accent); color: var(--pub-on); font: inherit; font-weight: 700; font-size: 15px; border: 0; padding: 0; cursor: pointer; text-decoration: none; box-sizing: content-box; }
 .btn-pri:hover { background: var(--pub-hover); color: var(--pub-on); }
 .btn-out { display: flex; align-items: center; justify-content: center; height: 48px; border-radius: 9px; border: 1px solid var(--line-hover); color: var(--text); font: inherit; font-weight: 700; font-size: 15px; background: #fff; padding: 0; cursor: pointer; box-sizing: content-box; }

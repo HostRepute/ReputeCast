@@ -22,4 +22,8 @@
     {{with .Footer}}<p class="muted terms-foot">{{.}}</p>{{end}}
   </article>
 </main>{{end}}{{end}}
-{{define "foot"}}<footer class="foot">{{template "rcplain" .}}</footer>{{end}}
+{{define "foot"}}<footer class="foot m24">
+  {{- with .Privacy}}<a href="{{.}}">{{$.T "page.privacy"}}</a>{{template "sep"}}{{end}}
+  <a href="{{.Body.PrefsHref}}">{{.T "page.preferences"}}</a>
+  {{- if .PoweredBy}}{{template "sep"}}{{end}}
+  {{- template "rcplain" .}}</footer>{{end}}

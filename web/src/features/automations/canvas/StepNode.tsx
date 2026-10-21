@@ -16,6 +16,9 @@ import {
   type StepType,
 } from '../graph'
 import { useCountUp, useFlowView } from '../view'
+import { useT } from '@/i18n'
+import { m as smsStep } from '@/features/sms/automation.messages'
+import { smsNodeLines, useSmsTextParts } from '@/features/sms/automationNode'
 
 export type StepNodeType = Node<NodeData, StepType>
 
@@ -33,6 +36,8 @@ function share(part: number, whole: number): number {
 function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
   const v = useFlowView()
   const t = useCountUp()
+  const tr = useT()
+  const smsParts = useSmsTextParts(type === 'sms')
   const updateNodeInternals = useUpdateNodeInternals()
   const node = nodeById(v.graph, id) ?? { id, type, data, position: { x: 0, y: 0 } }
   const st = v.stats.get(id)
@@ -56,6 +61,7 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
   if (variant && type === 'email') header += ` · ${variant}`
   else if (isNew) header += ` · new in v${v.draftVersion}`
   else if (showProviders) header += data.email?.route ? ' · route override' : ' · Automations route'
+  else if (type === 'sms') header += ` · ${tr(smsStep.byCountry)}`
 
   const title = nodeTitle(v.graph, node, v.refs)
   const detail = nodeDetail(node)
@@ -173,6 +179,18 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
           </div>,
         )
       break
+    case 'sms': {
+      const parts = smsNodeLines(data.sms, tr, smsParts)
+      if (parts.length)
+        lines.push(
+          <div className="st" key="s">
+            {parts.map((x) => (
+              <span key={x}>{x}</span>
+            ))}
+          </div>,
+        )
+      break
+    }
     case 'branch':
       if (detail)
         lines.push(
@@ -250,4 +268,5 @@ export const nodeTypes = {
   list: StepNode,
   goal: StepNode,
   exit: StepNode,
+  sms: StepNode,
 }

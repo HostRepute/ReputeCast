@@ -201,6 +201,11 @@ func (h *Handler) renderAccount(w http.ResponseWriter, r *http.Request, s *site,
 	if paused {
 		b.PausedUntil = v.T("account.pausedUntil", "date", v.labels.FullDate(acc.PausedUntil.In(loc)))
 	}
+	// Phase 8: the Texts switches (SMS), as in the preference center.
+	if sec, ok := h.accountTexts(ctx, s, acc.ContactID, v.labels.Code(), b.Lists); ok {
+		b.Extra = append(b.Extra, sec)
+		b.Sections = append(b.Sections, accountSectionView{ID: sec.ID, Title: sec.Title})
+	}
 	// The sections later phases add.
 	for _, sec := range acc.Sections {
 		b.Extra = append(b.Extra, accountSectionView{ID: sec.ID, Title: sec.Title, HTML: template.HTML(sec.HTML)}) //nolint:gosec // drawn by ReputeCast's own sections
@@ -308,6 +313,13 @@ func (h *Handler) accountPost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		back("newsletters", "#newsletters")
+	case "texts":
+		// Phase 8: the Texts switches (sms_signup.go).
+		if err := h.saveAccountTexts(ctx, r, s, sess.ContactID); err != nil {
+			h.siteFail(w, r, s, err)
+			return
+		}
+		back("", "#texts")
 	case "unsubscribe":
 		if err := h.Website.UnsubscribeAll(ctx, s.ws, sess, h.evidence(r, "website_account")); err != nil {
 			h.siteFail(w, r, s, err)

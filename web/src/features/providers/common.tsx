@@ -1,6 +1,7 @@
 import { ApiError, type Schemas } from '@/api/client'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { NavTabs } from '@/components/ui/Tabs'
+import { ChannelSwitch } from '@/features/channels/ChannelSwitch'
 import { cn } from '@/lib/cn'
 import { ago, duration } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
@@ -43,17 +44,21 @@ export function ProvidersTabs() {
   const { slug } = useWorkspace()
   const params = { workspace: slug }
   return (
-    <NavTabs
-      label="Sections"
-      className="ml-3 max-md:ml-0"
-      tabs={[
-        { label: 'Providers', to: '/w/$workspace/providers', params, exact: true },
-        { label: 'Routing & failover', to: '/w/$workspace/providers/routing', params },
-        { label: 'Warm-up', to: '/w/$workspace/providers/warmup', params },
-        { label: 'Events & sync', to: '/w/$workspace/providers/events', params },
-        { label: 'Adapters', to: '/w/$workspace/providers/adapters', params },
-      ]}
-    />
+    <>
+      {/* Email · SMS · …, or "Add a channel" (design expansion phase 8, X21). */}
+      <ChannelSwitch current="email" />
+      <NavTabs
+        label="Sections"
+        className="ml-3 max-md:ml-0"
+        tabs={[
+          { label: 'Providers', to: '/w/$workspace/providers', params, exact: true },
+          { label: 'Routing & failover', to: '/w/$workspace/providers/routing', params },
+          { label: 'Warm-up', to: '/w/$workspace/providers/warmup', params },
+          { label: 'Events & sync', to: '/w/$workspace/providers/events', params },
+          { label: 'Adapters', to: '/w/$workspace/providers/adapters', params },
+        ]}
+      />
+    </>
   )
 }
 

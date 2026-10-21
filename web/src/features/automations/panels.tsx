@@ -34,6 +34,10 @@ import { isOneOfLabel, scoreTriggerName } from '@/features/scoring/triggerText'
 import { PollTriggerProps } from '@/features/polls/trigger'
 import { MilestoneTriggerFields } from '@/features/grow/MilestoneTrigger'
 import { milestoneTriggerName } from '@/features/grow/triggerText'
+import { useChannelSetUp } from '@/features/channels/hooks'
+import { m as smsStep } from '@/features/sms/automation.messages'
+import { SmsStepProps, SmsStepStats } from '@/features/sms/AutomationStep'
+import { useT } from '@/i18n'
 
 type Options = Schemas['AutomationOptions']
 
@@ -69,9 +73,11 @@ const triggerItems: { kind: TriggerConfig['kind']; label: string }[] = [
   },
 ]
 
+// Messages (phase 8): Send email, then each channel the workspace has set up.
+const messageItems: { type: StepType; label: string }[] = [{ type: 'email', label: 'Send email' }]
+
 const stepItems: { type: StepType; label: string }[] = [
   { type: 'delay', label: 'Delay' },
-  { type: 'email', label: 'Send email' },
   { type: 'branch', label: 'Branch' },
   { type: 'filter', label: 'Filter' },
   { type: 'split', label: 'A/B split' },
@@ -87,6 +93,9 @@ export interface PaletteItem {
 
 /** Steps to drag onto the canvas (or press to add after the selected step). */
 export function Palette({ disabledReason, onAdd }: { disabledReason?: string; onAdd: (item: PaletteItem) => void }) {
+  const tr = useT()
+  const sms = useChannelSetUp('sms')
+  const messages = sms ? [...messageItems, { type: 'sms' as const, label: tr(smsStep.palette) }] : messageItems
   const item = (key: string, label: string, color: string, value: PaletteItem) => (
     <button
       key={key}
@@ -110,8 +119,11 @@ export function Palette({ disabledReason, onAdd }: { disabledReason?: string; on
     <>
       <div className="grp">Triggers</div>
       <div className="flex flex-col gap-1.5 px-3 pb-2">{triggerItems.map((t) => item(t.kind, t.label, typeColors.trigger, { type: 'trigger', trigger: t.kind }))}</div>
+      <div className="grp">{tr(smsStep.messages)}</div>
+      <div className="flex flex-col gap-1.5 px-3 pb-2">{messages.map((s) => item(s.type, s.label, typeColors[s.type], { type: s.type }))}</div>
       <div className="grp">Steps</div>
       <div className="flex flex-col gap-1.5 px-3 pb-2">{stepItems.map((s) => item(s.type, s.label, typeColors[s.type], { type: s.type }))}</div>
+      {sms ? <p className="k m-0 px-3 pb-2">{tr(smsStep.paletteNote)}</p> : null}
     </>
   )
 }
@@ -250,6 +262,9 @@ function ConditionEditor({ graph, node, value, onChange, refs, options, disabled
 }) {
   const c = value
   const emails = graph.nodes.filter((n) => n.type === 'email' && n.id !== node.id)
+  const tr = useT()
+  const texts = graph.nodes.filter((n) => n.type === 'sms' && n.id !== node.id)
+  const sms = useChannelSetUp('sms') || Boolean(c?.kind.startsWith('sms_'))
   const kinds: { value: FlowCondition['kind'] | ''; label: string }[] = [
     ...(allowNone ? [{ value: '' as const, label: 'Reaching this step' }] : []),
     { value: 'opened', label: 'Opened an email' },
@@ -258,6 +273,14 @@ function ConditionEditor({ graph, node, value, onChange, refs, options, disabled
     { value: 'list', label: 'Is in a list' },
     { value: 'event', label: 'Sent an API event' },
     { value: 'field', label: 'A contact field' },
+    // Phase 8: texts.
+    ...(sms
+      ? [
+          { value: 'sms_consent' as const, label: tr(smsStep.condConsent) },
+          { value: 'sms_clicked' as const, label: tr(smsStep.condClicked) },
+          { value: 'sms_replied' as const, label: tr(smsStep.condReplied) },
+        ]
+      : []),
   ]
   const set = (patch: Partial<FlowCondition>) => onChange({ ...(c ?? { kind: 'opened' }), ...patch } as FlowCondition)
   return (
@@ -270,7 +293,7 @@ function ConditionEditor({ graph, node, value, onChange, refs, options, disabled
         onChange={(e) => {
           const k = e.target.value as FlowCondition['kind'] | ''
           if (!k) return onChange(undefined)
-          onChange({ kind: k, ...(withWindow && (k === 'opened' || k === 'clicked') ? { within: c?.within ?? { amount: 2, unit: 'days' } } : {}), humanOnly: k === 'opened' ? true : undefined })
+          onChange({ kind: k, ...(withWindow && (k === 'opened' || k === 'clicked' || k === 'sms_clicked' || k === 'sms_replied') ? { within: c?.within ?? { amount: 2, unit: 'days' } } : {}), humanOnly: k === 'opened' ? true : undefined })
         }}
       >
         {kinds.map((k) => (
@@ -314,6 +337,34 @@ function ConditionEditor({ graph, node, value, onChange, refs, options, disabled
             </option>
           ))}
         </select>
+      ) : null}
+      {c?.kind === 'sms_consent' ? (
+        <select className="in" aria-label={tr(smsStep.consent)} disabled={disabled} value={c.listId ?? ''} onChange={(e) => set({ listId: e.target.value || undefined })}>
+          <option value="">{tr(smsStep.anyList)}</option>
+          {options?.lists.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
+        </select>
+      ) : null}
+      {c && (c.kind === 'sms_clicked' || c.kind === 'sms_replied') ? (
+        <>
+          <select className="in" aria-label={tr(smsStep.whichText)} disabled={disabled} value={c.step ?? ''} onChange={(e) => set({ step: e.target.value || undefined })}>
+            <option value="">{tr(smsStep.anyText)}</option>
+            {texts.map((n) => (
+              <option key={n.id} value={n.id}>
+                {nodeRef(graph, n, refs)}
+              </option>
+            ))}
+          </select>
+          {withWindow ? (
+            <>
+              <span className="k">{tr(smsStep.waitUpTo)}</span>
+              <DurationInput label={tr(smsStep.window)} value={c.within} disabled={disabled} onChange={(d) => set({ within: d })} />
+            </>
+          ) : null}
+        </>
       ) : null}
       {c?.kind === 'event' ? <input className="in mono" aria-label="Event" list="fe-events" placeholder="teammate.invited" disabled={disabled} value={c.event ?? ''} onChange={(e) => set({ event: e.target.value })} /> : null}
       {c?.kind === 'field' ? (
@@ -516,6 +567,7 @@ export function StepPanel(p: StepPanelProps) {
       {node.type === 'split' ? <SplitProps {...p} /> : null}
       {node.type === 'webhook' ? <WebhookProps {...p} /> : null}
       {node.type === 'list' ? <ListProps {...p} /> : null}
+      {node.type === 'sms' ? <SmsStepProps data={d} lists={options?.lists ?? []} editable={editable} onChange={p.onChange} /> : null}
       {(node.type === 'goal' || node.type === 'exit') && p.onChangeType ? (
         <Prop title="Ends the flow as" id="p-end">
           <select aria-labelledby="p-end" className="in" disabled={disabled} value={node.type} onChange={(e) => p.onChangeType?.(e.target.value as StepType)}>
@@ -875,6 +927,7 @@ export function StepStatsPanel({ node, stats: st, automationId, hasStats }: { no
           <span className="k">No contacts reached this step in the last 30 days.</span>
         </div>
       )}
+      {node.type === 'sms' ? <SmsStepStats nodeId={node.id} automationId={automationId} hasStats={hasStats} /> : null}
       {node.type === 'webhook' ? (
         <div className="fe-prop">
           <span className="tt">Delivery log</span>
