@@ -6639,6 +6639,15 @@
           "campaignId": {
             "type": "string"
           },
+          "channel": {
+            "enum": [
+              "email",
+              "sms",
+              "push",
+              "whatsapp"
+            ],
+            "type": "string"
+          },
           "health": {
             "format": "int64",
             "type": "integer"
@@ -6657,6 +6666,10 @@
           "status": {
             "type": "string"
           },
+          "texts": {
+            "format": "int64",
+            "type": "integer"
+          },
           "timezone": {
             "type": "string"
           },
@@ -6671,6 +6684,7 @@
           "status",
           "sendAt",
           "timezone",
+          "channel",
           "recipients"
         ],
         "type": "object"

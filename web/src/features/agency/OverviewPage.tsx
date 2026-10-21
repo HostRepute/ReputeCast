@@ -302,7 +302,7 @@ function SendsCard({ overview }: { overview: AgencyOverview }) {
                 <span className="k font-semibold text-[#374151]!">{s.workspace.name}</span>
               </span>
               <span className="font-semibold">{s.name}</span>
-              <span className="k">{t(m.people, { n: s.recipients })}</span>
+              <span className="k">{audienceText(t, s)}</span>
               <span>{sendBadge(t, s)}</span>
             </Link>
           ))}
@@ -513,6 +513,16 @@ function SetupHealth({ row, pulse }: { row: AgencyClientRow; pulse: AgencyPulse 
   )
 }
 
+/**
+ * Who a send reaches: "19,804 people", or "141,220 emails · 12,480 texts"
+ * when a campaign goes out by email and by text at the same time.
+ */
+function audienceText(t: ReturnType<typeof useT>, s: { recipients: number; texts?: number }) {
+  if (s.texts && s.recipients) return t(m.emailsAndTexts, { emails: s.recipients, texts: s.texts })
+  if (s.texts) return t(m.texts, { n: s.texts })
+  return t(m.people, { n: s.recipients })
+}
+
 function NextSend({ row, pulse }: { row: AgencyClientRow; pulse: AgencyPulse }) {
   const t = useT()
   const s = pulse.nextSend
@@ -520,7 +530,9 @@ function NextSend({ row, pulse }: { row: AgencyClientRow; pulse: AgencyPulse }) 
     return (
       <span className="flex min-w-0 flex-col gap-0.5">
         <span className="font-semibold">{s.name}</span>
-        <span className="k">{t(m.nextSendLine, { when: sendWhen(s.sendAt, s.timezone), count: s.recipients.toLocaleString('en-US') })}</span>
+        <span className="k">
+          {t(m.nextSendLine, { when: sendWhen(s.sendAt, s.timezone), count: s.texts ? audienceText(t, s) : s.recipients.toLocaleString('en-US') })}
+        </span>
       </span>
     )
   }

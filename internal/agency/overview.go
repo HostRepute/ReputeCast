@@ -392,7 +392,13 @@ type AgencySend struct {
 	Status     string             `json:"status"`
 	SendAt     time.Time          `json:"sendAt"`
 	Timezone   string             `json:"timezone"`
-	Recipients int64              `json:"recipients"`
+	// Channel is the campaign's (email, sms, push, whatsapp). A campaign
+	// sent by email and by text at the same time is one send: Recipients
+	// counts its emails (or its push and WhatsApp messages) and Texts its
+	// texts.
+	Channel    string `json:"channel" enum:"email,sms,push,whatsapp"`
+	Recipients int64  `json:"recipients"`
+	Texts      int64  `json:"texts,omitempty"`
 	// Health is the client's sender health, for the warning badge.
 	Health *int `json:"health,omitempty"`
 }
@@ -579,17 +585,40 @@ func (s *Service) sends(ctx context.Context, set workspaceSet, ids []uuid.UUID, 
 		return nil, err
 	}
 	out := []AgencySend{}
+	// The same campaign by email and by text: same name, same time.
+	together := map[string]int{}
 	for _, r := range rows {
 		w, ok := set.find(r.WorkspaceID)
 		if !ok {
 			continue
 		}
+		n := int64(0)
+		if r.AudienceCount != nil {
+			n = *r.AudienceCount
+		}
+		key := r.WorkspaceID.String() + "|" + r.Name + "|" + r.SendAt.UTC().Format(time.RFC3339)
+		if i, ok := together[key]; ok {
+			o := &out[i]
+			if r.Channel == "sms" {
+				o.Texts += n
+			} else {
+				o.Recipients += n
+				if o.Channel == "sms" {
+					// The send opens on its email.
+					o.Channel, o.CampaignID, o.Status = r.Channel, r.ID.String(), r.Status
+				}
+			}
+			continue
+		}
 		sch := readiness.ParseSchedule(r.Schedule)
 		send := AgencySend{Workspace: wsRef(w), CampaignID: r.ID.String(), Name: r.Name, Status: r.Status, SendAt: r.SendAt,
-			Timezone: firstNonEmpty(sch.Timezone, w.Timezone)}
-		if r.AudienceCount != nil {
-			send.Recipients = *r.AudienceCount
+			Timezone: firstNonEmpty(sch.Timezone, w.Timezone), Channel: r.Channel}
+		if r.Channel == "sms" {
+			send.Texts = n
+		} else {
+			send.Recipients = n
 		}
+		together[key] = len(out)
 		out = append(out, send)
 	}
 	return out, nil

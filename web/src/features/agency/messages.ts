@@ -68,6 +68,8 @@ export const m = defineMessages('agency', {
   hrStale: 'not synced',
   people: '{n, plural, one {# person} other {# people}}',
   emails: '{n, plural, one {# email} other {# emails}}',
+  texts: '{n, plural, one {# text} other {# texts}}',
+  emailsAndTexts: '{emails, plural, one {# email} other {# emails}} · {texts, plural, one {# text} other {# texts}}',
   needsAttention: 'Needs attention',
   settingUp: 'Setting up',
   scheduled: 'Scheduled',

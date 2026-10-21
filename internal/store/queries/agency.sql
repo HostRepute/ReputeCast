@@ -383,6 +383,11 @@ WHERE m.workspace_id = @workspace_id AND m.channel = @channel AND m.country <> '
 GROUP BY 1
 ORDER BY 2 DESC;
 
+-- name: AgencyChannelProviders :many
+-- A workspace's connected SMS (and later push and WhatsApp) providers, for
+-- the client details.
+SELECT name FROM sms_providers WHERE workspace_id = @workspace_id AND removed_at IS NULL ORDER BY connected_at;
+
 -- name: AgencyUsageProviders :many
 -- A workspace's email providers, connected or not, with their pricing.
 SELECT id, workspace_id, name, adapter, label, pricing, connected_at, disconnected_at
@@ -414,7 +419,7 @@ WHERE NOT agency_health.demo;
 -- Sends with a time, in the given workspaces: scheduled, approved, or
 -- waiting for approval with the time they asked for. Digest templates
 -- aren't sends.
-SELECT c.workspace_id, c.id, c.name, c.status, c.audience_count, c.schedule,
+SELECT c.workspace_id, c.id, c.name, c.status, c.audience_count, c.schedule, c.channel,
        coalesce(c.scheduled_at, CASE WHEN coalesce(c.schedule->>'at', '') <> '' THEN (c.schedule->>'at')::timestamptz END)::timestamptz AS send_at
 FROM campaigns c
 WHERE c.workspace_id = ANY(@workspace_ids::uuid[]) AND c.deleted_at IS NULL

@@ -104,6 +104,9 @@ type Querier interface {
 	AgencyCaptureLists(ctx context.Context, workspaceID uuid.UUID) ([]AgencyCaptureListsRow, error)
 	AgencyCaptureRoles(ctx context.Context, workspaceID uuid.UUID) ([]AgencyCaptureRolesRow, error)
 	AgencyCaptureTemplates(ctx context.Context, workspaceID uuid.UUID) ([]AgencyCaptureTemplatesRow, error)
+	// A workspace's connected SMS (and later push and WhatsApp) providers, for
+	// the client details.
+	AgencyChannelProviders(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
 	// The same messages per destination country (SMS).
 	AgencyChannelUsageByCountry(ctx context.Context, arg AgencyChannelUsageByCountryParams) ([]AgencyChannelUsageByCountryRow, error)
 	// One channel's messages on one UTC day, per provider, from the channel

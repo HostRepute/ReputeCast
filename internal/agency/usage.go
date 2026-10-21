@@ -682,6 +682,11 @@ func (s *Service) ClientDetails(ctx context.Context, wsID string) (AgencyClientD
 			out.Providers = append(out.Providers, providerLabel(p))
 		}
 	}
+	texting, err := s.Q.AgencyChannelProviders(ctx, id)
+	if err != nil {
+		return out, err
+	}
+	out.Providers = append(out.Providers, texting...)
 	people, err := s.people(ctx)
 	if err != nil {
 		return out, err

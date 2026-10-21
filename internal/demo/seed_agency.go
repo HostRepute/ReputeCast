@@ -198,6 +198,7 @@ func SeedNorthwindWith(ctx context.Context, pool *pgxpool.Pool, cfg *config.Conf
 		{"providers and senders", n.sending},
 		{"contacts", n.contacts},
 		{"campaigns", n.campaigns},
+		{"texts", n.sms},
 		{"approvals", n.approvals},
 		{"incidents", n.incidents},
 		{"library", n.library},

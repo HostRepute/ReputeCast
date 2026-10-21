@@ -17649,6 +17649,8 @@ export interface components {
         };
         AgencySend: {
             campaignId: string;
+            /** @enum {string} */
+            channel: "email" | "sms" | "push" | "whatsapp";
             /** Format: int64 */
             health?: number;
             name: string;
@@ -17657,6 +17659,8 @@ export interface components {
             /** Format: date-time */
             sendAt: string;
             status: string;
+            /** Format: int64 */
+            texts?: number;
             timezone: string;
             workspace: components["schemas"]["AgencyWorkspaceRef"];
         };

@@ -575,6 +575,32 @@ func (q *Queries) AgencyCaptureTemplates(ctx context.Context, workspaceID uuid.U
 	return items, nil
 }
 
+const agencyChannelProviders = `-- name: AgencyChannelProviders :many
+SELECT name FROM sms_providers WHERE workspace_id = $1 AND removed_at IS NULL ORDER BY connected_at
+`
+
+// A workspace's connected SMS (and later push and WhatsApp) providers, for
+// the client details.
+func (q *Queries) AgencyChannelProviders(ctx context.Context, workspaceID uuid.UUID) ([]string, error) {
+	rows, err := q.db.Query(ctx, agencyChannelProviders, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		items = append(items, name)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const agencyChannelUsageByCountry = `-- name: AgencyChannelUsageByCountry :many
 SELECT m.country::text AS country, coalesce(sum(m.units), 0)::bigint AS units
 FROM channel_messages m
@@ -1903,7 +1929,7 @@ func (q *Queries) AgencyPendingApprovals(ctx context.Context, workspaceIds []uui
 
 const agencyPlannedSends = `-- name: AgencyPlannedSends :many
 
-SELECT c.workspace_id, c.id, c.name, c.status, c.audience_count, c.schedule,
+SELECT c.workspace_id, c.id, c.name, c.status, c.audience_count, c.schedule, c.channel,
        coalesce(c.scheduled_at, CASE WHEN coalesce(c.schedule->>'at', '') <> '' THEN (c.schedule->>'at')::timestamptz END)::timestamptz AS send_at
 FROM campaigns c
 WHERE c.workspace_id = ANY($1::uuid[]) AND c.deleted_at IS NULL
@@ -1926,6 +1952,7 @@ type AgencyPlannedSendsRow struct {
 	Status        string          `json:"status"`
 	AudienceCount *int64          `json:"audienceCount"`
 	Schedule      json.RawMessage `json:"schedule"`
+	Channel       string          `json:"channel"`
 	SendAt        time.Time       `json:"sendAt"`
 }
 
@@ -1950,6 +1977,7 @@ func (q *Queries) AgencyPlannedSends(ctx context.Context, arg AgencyPlannedSends
 			&i.Status,
 			&i.AudienceCount,
 			&i.Schedule,
+			&i.Channel,
 			&i.SendAt,
 		); err != nil {
 			return nil, err
