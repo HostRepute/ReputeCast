@@ -12,6 +12,10 @@ const search = z.object({
   appliesTo: z.enum(['all', 'marketing']).optional().catch(undefined),
   import: z.string().uuid().optional().catch(undefined),
   page: z.coerce.number().int().min(1).optional().catch(undefined),
+  channel: z.enum(['sms']).optional().catch(undefined),
+  smsReason: z.enum(['opted_out', 'landline', 'not_in_service', 'invalid', 'filtered', 'provider_list', 'manual']).optional().catch(undefined),
+  smsProvider: z.string().uuid().optional().catch(undefined),
+  smsPage: z.coerce.number().int().min(1).optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/w/$workspace/_app/audience/suppressions')({

@@ -16,6 +16,7 @@ import { useIssueInfos } from '@/features/digests/shared'
 import { PageBadge, PageLine, pageScheduledText } from '@/features/pages/approval'
 import { ApprovalStatusBadge, decidedText } from './parts'
 import { PostBadge, postLine, postRoute, postWhen } from '@/features/website/elsewhere'
+import { ChannelTag } from '@/features/channels/ChannelFilter'
 
 export type InboxStatus = 'pending' | 'approved' | 'changes_requested' | 'rejected' | 'invalidated' | 'all'
 
@@ -180,6 +181,7 @@ function RequestsCard({
                   <div className="col gap-0.5!">
                     <span className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold">{it.name}</span>
+                      {it.channel !== 'email' ? <ChannelTag channel={it.channel} /> : null}
                       {it.campaignId && issueOf.has(it.campaignId) ? <RecurringDigestBadge issue={issueOf.get(it.campaignId)!} /> : null}
                       {it.subjectType === 'website_post' ? <PostBadge /> : null}
                       {it.page ? <PageBadge page={it.page} /> : null}

@@ -196,6 +196,8 @@ type runState struct {
 	hosting   map[string]string
 	// checks are a verification service's answers for the new addresses (X14).
 	checks *ImportChecks
+	// textCountry is the country numbers without a code are read in (X21).
+	textCountry *string
 }
 
 // Run imports every staged row in batches, with a live log.
@@ -698,6 +700,10 @@ func (s *Service) createRow(ctx context.Context, tx pgx.Tx, st *runState, r mapp
 			return uuid.Nil, false, err
 		}
 	}
+	// Phase 8: the number and SMS consent with its evidence.
+	if err := s.importTexts(ctx, tx, st, got, list, r); err != nil {
+		return uuid.Nil, false, err
+	}
 	return got, true, nil
 }
 
@@ -800,6 +806,10 @@ func (s *Service) mergeRow(ctx context.Context, q *store.Queries, tx pgx.Tx, st 
 	list := st.target(r.List)
 	if _, err := tx.Exec(ctx, `INSERT INTO list_memberships (list_id, contact_id, status, source, subscribed_at)
 		VALUES ($1, $2, $3, $4, CASE WHEN $3 = 'subscribed' THEN now() END) ON CONFLICT DO NOTHING`, list, c.ID, status, "import:"+st.imp.Source); err != nil {
+		return err
+	}
+	// Phase 8: the number and SMS consent with its evidence.
+	if err := s.importTexts(ctx, tx, st, c.ID, list, r); err != nil {
 		return err
 	}
 	if st.opts.RecordHistory {

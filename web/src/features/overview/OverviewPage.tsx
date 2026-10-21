@@ -19,6 +19,7 @@ import { HealthSkeleton, NextSkeleton, ProvidersSkeleton, CardSkeleton } from '.
 import { overviewSubtitle, refreshSentences } from './words'
 import { TransactionalOverviewCard } from '@/features/transactional/OverviewCard'
 import { EarnOverviewCard } from '@/features/earn/revenue/EarnCard'
+import { SmsOverviewCard } from '@/features/sms/OverviewCard'
 
 /** A card whose data failed to load: what failed and a retry, the rest of the page stays. */
 function CardError({ title, error, onRetry }: { title: string; error: unknown; onRetry: () => void }) {
@@ -171,6 +172,8 @@ export function OverviewPage() {
                 </Grid>
               )}
             </Section>
+            {/* Phase 8: the SMS providers with the month's spend against the budget. */}
+            {can.providers ? <SmsOverviewCard /> : null}
             {health.isPending && providers.isPending ? (
               <p className="k m-0">Checking blocklists and provider APIs… usually under 5 seconds.</p>
             ) : null}

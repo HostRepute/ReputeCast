@@ -26,6 +26,9 @@ import { BoughtFilter } from '@/features/products/filter'
 import { StoreChips, StoreContactFields, storeMoreKeys, type StoreDraft } from '@/features/commerce/contacts'
 import './audience.css'
 import { MembersChips } from '@/features/website/elsewhere'
+import { SmsContactFilters, usePhoneColumn } from '@/features/sms/ContactFilters'
+import { useT } from '@/i18n'
+import { m as cfm } from '@/features/sms/contactfilters.messages'
 
 export interface ContactsSearch {
   q?: string
@@ -61,6 +64,10 @@ export interface ContactsSearch {
   storeCustomer?: string
   spentFrom?: string
   spentTo?: string
+  /** The phone and SMS consent (X21). */
+  phone?: 'yes' | 'no'
+  phoneCountry?: string
+  smsConsent?: string
   page?: number
   size?: number
 }
@@ -102,6 +109,10 @@ const filterKeys = [
   'storeCustomer',
   'spentFrom',
   'spentTo',
+  // The phone and SMS consent (X21).
+  'phone',
+  'phoneCountry',
+  'smsConsent',
 ] as const
 
 /** The filter part of the search params, without empty values. */
@@ -409,6 +420,7 @@ function Filters({
       <PaidStatusSelect className={sel} tiers={paidTiers} paid={search.paid} tier={search.paidTier} onChange={(f) => onChange(f as Partial<ContactsSearch>)} />
       {/* Bought a product (X19), with products:view. */}
       <BoughtFilter className={sel} value={search.bought} onChange={(bought) => onChange({ bought })} />
+      <SmsContactFilters className={sel} search={search} onChange={onChange} />
       <MoreFilters search={search} n={more} onChange={onChange} />
       <span className="k ml-auto">{total === undefined ? '' : totalLine(total, search.sort === 'score')}</span>
       <ScoreGrowthChips search={search} onChange={onChange} />
@@ -610,6 +622,9 @@ function ContactsTable({
     (s) => ({ rowSelection: s.rowSelection }),
   )
   const header = table.getHeaderGroups()[0]!.headers[0]!
+  // Phase 8: the phone column, once texting is set up.
+  const phones = usePhoneColumn()
+  const tr = useT()
   const from = data.total === 0 ? 0 : (page - 1) * size + 1
   const to = Math.min(data.total, page * size)
   return (
@@ -623,6 +638,7 @@ function ContactsTable({
               </th>
               <th scope="col">Contact</th>
               {paid ? <th scope="col">Paid</th> : null}
+              {phones ? <th scope="col">{tr(cfm.column)}</th> : null}
               <th scope="col">Lists</th>
               <th scope="col">Tier</th>
               <ScoreHeader sorted={byScore} onSort={onSort} />
@@ -659,6 +675,7 @@ function ContactsTable({
                       <PaidStatusCell paid={c.paid} />
                     </td>
                   ) : null}
+                  {phones ? <td className="mono nw">{c.phone || <span className="k">–</span>}</td> : null}
                   <td className="lists">{c.lists.join(', ') || '–'}</td>
                   <td>
                     <span className={`badge ${tierClass[tier]}`}>{tierLabel[tier]}</span>
@@ -688,7 +705,7 @@ function ContactsTable({
             })}
             {data.items.length === 0 ? (
               <tr>
-                <td colSpan={10} className="py-8 text-center text-ink-3">
+                <td colSpan={10 + (paid ? 1 : 0) + (phones ? 1 : 0)} className="py-8 text-center text-ink-3">
                   {filtered ? (
                     <>
                       No contacts match these filters.{' '}

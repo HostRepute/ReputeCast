@@ -741,6 +741,17 @@ func (s *Service) RouteTest(ctx context.Context, ws *store.Workspace, in SmsRout
 		if sn, ok := g.senders[d.Route.SenderID]; ok {
 			out.Provider, out.Adapter, out.Sender, out.SenderKind = sn.ProviderName, sn.ProviderAdapter, senderLabel(sn), sn.Kind
 			out.CanReply = sn.Kind != "sender_id"
+			// The route as Routing & rules shows it: the countries where its
+			// sender stands as it does here (Ireland pending is its own row).
+			same := []string{}
+			for _, c := range d.Route.Countries {
+				if g.reg(sn, c).Status == d.Reg.Status {
+					same = append(same, c)
+				}
+			}
+			if out.Route == "route" && len(same) > 0 {
+				out.RouteCountries = same
+			}
 		}
 		out.Registration = regView(d.Reg)
 		out.Registration.Country = n.Country

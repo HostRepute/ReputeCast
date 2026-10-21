@@ -1,6 +1,6 @@
 import { keepPreviousData } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Button, ButtonLink } from '@/components/ui/Button'
@@ -25,6 +25,10 @@ import { SponsorChip, useSponsorChips } from '@/features/earn/sponsors/chips'
 import { m as dm } from '@/features/digests/messages'
 import { useCampaignWebStates, WebCell } from '@/features/website/elsewhere'
 import { me } from '@/features/website/elsewhere.messages'
+import { ChannelFilter } from '@/features/channels/ChannelFilter'
+import type { Channel } from '@/features/channels/ChannelSwitch'
+import { m as chm } from '@/features/channels/messages'
+import { SmsCampaignHead, SmsCampaignRow } from '@/features/sms/CampaignRow'
 
 export type CampaignFilter = 'all' | 'drafts' | 'scheduled' | 'sending' | 'sent' | 'recurring' | 'paid'
 
@@ -32,6 +36,8 @@ export interface CampaignsSearch {
   status?: CampaignFilter
   q?: string
   page?: number
+  /** Phase 8: only one channel's campaigns. */
+  channel?: Channel
 }
 
 const PAGE_SIZE = 25
@@ -43,6 +49,7 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
   const status = search.status ?? 'all'
   const page = search.page ?? 1
   const newReason = usePermissionReason('campaigns:edit')
+  const navigate = useNavigate()
   const list = $api.useQuery(
     'get',
     '/api/v1/workspaces/{workspace}/campaigns',
@@ -50,7 +57,14 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
       params: {
         path: { workspace: slug },
         // Paid only (Earn): every status, campaigns for paid members only.
-        query: { status: status === 'recurring' || status === 'paid' ? 'all' : status, paidOnly: status === 'paid' || undefined, q: search.q ?? '', page, pageSize: PAGE_SIZE },
+        query: {
+          status: status === 'recurring' || status === 'paid' ? 'all' : status,
+          paidOnly: status === 'paid' || undefined,
+          q: search.q ?? '',
+          channel: search.channel,
+          page,
+          pageSize: PAGE_SIZE,
+        },
       },
     },
     { placeholderData: keepPreviousData },
@@ -58,13 +72,20 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
   const counts = list.data?.counts
   // "New campaign" asks what kind first: Regular or Recurring digest (DigestSetup).
   const [picking, setPicking] = useState(false)
+  // Phase 8: the channel chips head the table once a second channel is set up.
+  const channels = (
+    <ChannelFilter
+      value={search.channel}
+      onChange={(channel) => void navigate({ to: '/w/$workspace/campaigns', params: { workspace: slug }, search: { status: search.status, q: search.q, channel } })}
+    />
+  )
   return (
     <Page
       title={t(m.title)}
-      filters={<CampaignFilters status={status} counts={counts} q={search.q} />}
+      filters={<CampaignFilters status={status} counts={counts} q={search.q} channel={search.channel} />}
       actions={
         <>
-          <SearchBox initial={search.q ?? ''} status={status} />
+          <SearchBox initial={search.q ?? ''} status={status} channel={search.channel} />
           {newReason ? (
             <Button variant="primary" disabledReason={newReason}>
               {t(m.newCampaign)}
@@ -88,9 +109,11 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
       ) : list.isPending ? (
         <TableSkeleton />
       ) : list.data.total === 0 ? (
-        search.q || status !== 'all' ? (
+        search.q || status !== 'all' || search.channel ? (
+          <>
+          {search.channel ? <section className="card">{channels}</section> : null}
           <EmptyState
-            title={search.q ? t(m.noMatch, { query: search.q }) : t(m.noStatus, { status })}
+            title={search.q ? t(m.noMatch, { query: search.q }) : search.channel && status === 'all' ? t(chm.noChannelCampaigns, { channel: search.channel }) : t(m.noStatus, { status })}
             action={
               <Link className="btn" to="/w/$workspace/campaigns" params={{ workspace: slug }}>
                 {t(m.showAll)}
@@ -99,6 +122,7 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
           >
             {t(m.noMatchBody, { count: list.data.counts.all })}
           </EmptyState>
+          </>
         ) : (
           <EmptyState
             title={t(m.emptyTitle)}
@@ -114,13 +138,13 @@ export function CampaignsPage({ search }: { search: CampaignsSearch }) {
           </EmptyState>
         )
       ) : (
-        <CampaignTable data={list.data} page={page} status={status} q={search.q} />
+        <CampaignTable data={list.data} page={page} status={status} q={search.q} channel={search.channel} top={channels} />
       )}
     </Page>
   )
 }
 
-function CampaignFilters({ status, counts, q }: { status: CampaignFilter; counts?: Schemas['CampaignStatusCounts']; q?: string }) {
+function CampaignFilters({ status, counts, q, channel }: { status: CampaignFilter; counts?: Schemas['CampaignStatusCounts']; q?: string; channel?: Channel }) {
   const t = useT()
   const digests = useDigestCount()
   const { slug } = useWorkspace()
@@ -132,7 +156,7 @@ function CampaignFilters({ status, counts, q }: { status: CampaignFilter; counts
       className="ml-3 max-md:ml-0"
       value={status}
       onChange={(next) =>
-        void navigate({ to: '/w/$workspace/campaigns', params: { workspace: slug }, search: { status: next === 'all' ? undefined : next, q: q || undefined } })
+        void navigate({ to: '/w/$workspace/campaigns', params: { workspace: slug }, search: { status: next === 'all' ? undefined : next, q: q || undefined, channel } })
       }
       items={[
         { value: 'all', label: label('all', counts?.all) },
@@ -147,7 +171,7 @@ function CampaignFilters({ status, counts, q }: { status: CampaignFilter; counts
   )
 }
 
-function SearchBox({ initial, status }: { initial: string; status: CampaignFilter }) {
+function SearchBox({ initial, status, channel }: { initial: string; status: CampaignFilter; channel?: Channel }) {
   const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
@@ -158,12 +182,12 @@ function SearchBox({ initial, status }: { initial: string; status: CampaignFilte
       void navigate({
         to: '/w/$workspace/campaigns',
         params: { workspace: slug },
-        search: { status: status === 'all' ? undefined : status, q: value.trim() || undefined },
+        search: { status: status === 'all' ? undefined : status, q: value.trim() || undefined, channel },
         replace: true,
       })
     }, 250)
     return () => window.clearTimeout(h)
-  }, [value, initial, navigate, slug, status])
+  }, [value, initial, navigate, slug, status, channel])
   return (
     <>
       <label className="vh" htmlFor="campaign-search">
@@ -243,7 +267,7 @@ function subtitle(c: Schemas['CampaignListItem']) {
   return parts.join(' · ')
 }
 
-function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList']; page: number; status: CampaignFilter; q?: string }) {
+function CampaignTable({ data, page, status, q, channel, top }: { data: Schemas['CampaignList']; page: number; status: CampaignFilter; q?: string; channel?: Channel; top?: ReactNode }) {
   const t = useT()
   const { slug } = useWorkspace()
   const from = (page - 1) * data.pageSize
@@ -254,6 +278,7 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
   const web = useCampaignWebStates(data.items.map((c) => c.id))
   return (
     <section className="card" aria-label={t(m.title)}>
+      {top}
       {/* The board's key and provider cells wrap; a long audience ("Weekly Digest + Product
           Updates") wraps too, so the actions stay in view at 1440 as on the board. */}
       <Table
@@ -266,23 +291,32 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
         }
       >
         <thead>
-          <tr>
-            <Th>{t(m.campaign)}</Th>
-            <Th>{t(m.status)}</Th>
-            {web ? <Th>{t(me.colWeb)}</Th> : null}
-            <Th>{t(m.audience)}</Th>
-            <Th align="right">{t(m.recipients)}</Th>
-            <Th align="right">{t(m.delivered)}</Th>
-            <Th align="right">{t(m.humanOpens)}</Th>
-            <Th align="right">{t(m.clicks)}</Th>
-            <Th>{t(m.sendingProviders)}</Th>
-            <Th>
-              <span className="vh">{t(m.actions)}</span>
-            </Th>
-          </tr>
+          {/* Phase 8: with SMS chosen, texts' own columns (opt-outs and cost instead of opens). */}
+          {channel === 'sms' ? (
+            <SmsCampaignHead />
+          ) : (
+            <tr>
+              <Th>{t(m.campaign)}</Th>
+              <Th>{t(m.status)}</Th>
+              {web ? <Th>{t(me.colWeb)}</Th> : null}
+              <Th>{t(m.audience)}</Th>
+              <Th align="right">{t(m.recipients)}</Th>
+              <Th align="right">{t(m.delivered)}</Th>
+              <Th align="right">{t(m.humanOpens)}</Th>
+              <Th align="right">{t(m.clicks)}</Th>
+              <Th>{t(m.sendingProviders)}</Th>
+              <Th>
+                <span className="vh">{t(m.actions)}</span>
+              </Th>
+            </tr>
+          )}
         </thead>
         <tbody>
           {data.items.map((c) => {
+            if (c.channel === 'sms')
+              return (
+                <SmsCampaignRow key={c.id} c={c} textColumns={channel === 'sms'} web={web && channel !== 'sms' ? <span className="k">–</span> : undefined} />
+              )
             const sent = ['sent', 'sending', 'paused', 'cancelled', 'failed'].includes(c.status)
             const editable = ['draft', 'approval', 'approved', 'scheduled'].includes(c.status)
             return (
@@ -354,10 +388,10 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
           {t(m.showing, { range: data.items.length === data.total ? count(data.total) : `${count(from + 1)}–${count(shown)}`, total: count(data.total) })}
         </span>
         <div className="flex gap-1.5">
-          <PageLink page={page - 1} disabled={page <= 1} status={status} q={q}>
+          <PageLink page={page - 1} disabled={page <= 1} status={status} q={q} channel={channel}>
             {t(m.previous)}
           </PageLink>
-          <PageLink page={page + 1} disabled={shown >= data.total} status={status} q={q}>
+          <PageLink page={page + 1} disabled={shown >= data.total} status={status} q={q} channel={channel}>
             {t(m.next)}
           </PageLink>
         </div>
@@ -366,7 +400,7 @@ function CampaignTable({ data, page, status, q }: { data: Schemas['CampaignList'
   )
 }
 
-function PageLink({ page, disabled, status, q, children }: { page: number; disabled: boolean; status: CampaignFilter; q?: string; children: string }) {
+function PageLink({ page, disabled, status, q, channel, children }: { page: number; disabled: boolean; status: CampaignFilter; q?: string; channel?: Channel; children: string }) {
   const { slug } = useWorkspace()
   if (disabled) {
     return (
@@ -380,7 +414,7 @@ function PageLink({ page, disabled, status, q, children }: { page: number; disab
       className="btn sm"
       to="/w/$workspace/campaigns"
       params={{ workspace: slug }}
-      search={{ status: status === 'all' ? undefined : status, q: q || undefined, page: page > 1 ? page : undefined }}
+      search={{ status: status === 'all' ? undefined : status, q: q || undefined, channel, page: page > 1 ? page : undefined }}
     >
       {children}
     </Link>

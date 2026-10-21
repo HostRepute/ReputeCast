@@ -81,6 +81,30 @@
     parent.appendChild(document.createTextNode(text.slice(m.index + m[0].length)))
   }
 
+  // linkedText writes text into parent with each link's words linked (the
+  // first match, in any case): the SMS consent text's terms and privacy.
+  function linkedText(parent, text, links) {
+    var spans = []
+    links.forEach(function (l) {
+      if (!l.href || !l.words) return
+      var m = text.match(new RegExp(l.words.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'))
+      if (m) spans.push({ at: m.index, end: m.index + m[0].length, words: m[0], href: l.href })
+    })
+    spans.sort(function (a, b) { return a.at - b.at })
+    var pos = 0
+    spans.forEach(function (sp) {
+      if (sp.at < pos) return
+      parent.appendChild(document.createTextNode(text.slice(pos, sp.at)))
+      var a = el('a', '', sp.words)
+      a.href = sp.href
+      a.target = '_blank'
+      a.rel = 'noopener'
+      parent.appendChild(a)
+      pos = sp.end
+    })
+    parent.appendChild(document.createTextNode(text.slice(pos)))
+  }
+
   function build(t) {
     var form = el('form', 'rcf')
     form.noValidate = true
@@ -136,17 +160,35 @@
         })
       } else {
         input = el('input')
-        input.type = f.key === 'email' ? 'email' : f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'
+        input.type = f.key === 'email' ? 'email' : f.type === 'tel' ? 'tel' : f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'
         if (f.placeholder) input.placeholder = f.placeholder
         if (f.key === 'email') input.autocomplete = 'email'
         if (f.key === 'first_name') input.autocomplete = 'given-name'
         if (f.key === 'last_name') input.autocomplete = 'family-name'
         if (f.key === 'company') input.autocomplete = 'organization'
+        if (f.key === 'phone') input.autocomplete = 'tel'
       }
       input.id = inputId
       input.name = f.name
       if (f.required) input.required = true
-      label.appendChild(input)
+      if (f.key === 'phone' && t.phone && t.phone.countries.length) {
+        // The country picker reads numbers typed without +.
+        var row = el('span', 'rcf-phone')
+        var cc = el('select', 'rcf-cc')
+        cc.name = 'phone_country'
+        cc.setAttribute('aria-label', t.phone.label)
+        t.phone.countries.forEach(function (c) {
+          var o = el('option', '', c.name + ' ' + c.dial)
+          o.value = c.code
+          if (c.code === t.phone.default) o.selected = true
+          cc.appendChild(o)
+        })
+        row.appendChild(cc)
+        row.appendChild(input)
+        label.appendChild(row)
+      } else {
+        label.appendChild(input)
+      }
       wrap.appendChild(label)
       var err = el('span', 'rcf-err')
       err.id = inputId + '-err'
@@ -193,6 +235,22 @@
       cerr.hidden = true
       form.appendChild(cerr)
       errors.consent = { input: ccb, err: cerr }
+    }
+
+    // The SMS consent box: its own text, unchecked; email consent never
+    // signs anyone up for texts.
+    if (t.smsConsent) {
+      var sl = el('label', 'rcf-consent')
+      var scb = el('input')
+      scb.type = 'checkbox'
+      scb.name = 'sms_consent'
+      scb.value = '1'
+      sl.appendChild(scb)
+      var stext = el('span')
+      linkedText(stext, t.smsConsent, [{ words: t.termsText, href: t.terms }, { words: t.privacyText, href: t.privacy }])
+      sl.appendChild(stext)
+      form.appendChild(sl)
+      errors.sms = { input: scb, err: el('span', 'rcf-err') }
     }
 
     if (cfg.honeypot) {
@@ -246,12 +304,13 @@
       }
       if (first) first.focus()
     }
-    function done(status) {
+    function done(status, texted) {
       var msg = t.messages[status] || t.messages.confirm
       var box = el('div', 'rcf-done')
       box.setAttribute('role', 'status')
       box.appendChild(el('strong', 'rcf-heading', msg.title))
       box.appendChild(el('p', 'rcf-desc', msg.text))
+      if (texted) box.appendChild(el('p', 'rcf-desc', texted))
       while (form.firstChild) form.removeChild(form.firstChild)
       form.appendChild(box)
       try {
@@ -269,6 +328,10 @@
       }
       if (errors.consent && !errors.consent.input.checked) {
         showErrors({ consent: t.text.consent })
+        return
+      }
+      if (errors.sms && errors.sms.input.checked && errors.phone && !errors.phone.input.value.trim()) {
+        showErrors({ phone: t.text.phoneNeeded })
         return
       }
       var body = new URLSearchParams(new FormData(form))
@@ -292,7 +355,7 @@
             window.location.href = j.redirect
             return
           }
-          if (j.status === 'confirm' || j.status === 'subscribed') return done(j.status)
+          if (j.status === 'confirm' || j.status === 'subscribed') return done(j.status, j.texted)
           if (j.status === 'challenge' && j.challengeUrl) {
             window.location.href = j.challengeUrl
             return

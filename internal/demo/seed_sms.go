@@ -78,6 +78,15 @@ type smsState struct {
 
 func seedSMSImpl(ctx context.Context, s *Seeder) error {
 	st := &smsState{}
+	// The registrants' numbers and lists are history, not news for the
+	// workspace's webhooks: what the seed queues for them is dropped at the end.
+	var lastEvent int64
+	if err := s.Tx.QueryRow(ctx, `SELECT coalesce(max(id), 0) FROM webhook_contact_events`).Scan(&lastEvent); err != nil {
+		return err
+	}
+	defer func() {
+		_, _ = s.Tx.Exec(ctx, `DELETE FROM webhook_contact_events WHERE id > $1`, lastEvent)
+	}()
 	if err := smsProviders(ctx, s, st); err != nil {
 		return fmt.Errorf("providers: %w", err)
 	}
@@ -234,12 +243,13 @@ func smsProviders(ctx context.Context, s *Seeder, st *smsState) error {
 			return err
 		}
 	}
-	// Opt-out sync: Twilio two-way (Advanced Opt-Out), Vonage read only.
+	// Opt-out sync: neither API lists the account's opt-outs, so both learn
+	// them from replies and refused texts (the adapters' manifests).
 	for _, o := range []struct {
 		provider     uuid.UUID
 		mode         string
 		pulled, push int
-	}{{st.twilio, "two_way", 0, 25}, {st.vonage, "read_only", 0, 0}} {
+	}{{st.twilio, "read_only", 0, 0}, {st.vonage, "read_only", 0, 0}} {
 		if _, err := s.Tx.Exec(ctx, `INSERT INTO sms_opt_out_sync (provider_id, workspace_id, mode, pulled, pushed, status, last_sync_at) VALUES ($1,$2,$3,$4,$5,'in_sync',$6)`,
 			o.provider, ws.ID, o.mode, o.pulled, o.push, now.Add(-4*time.Minute)); err != nil {
 			return err
@@ -254,6 +264,12 @@ func smsRules(ctx context.Context, s *Seeder, st *smsState) error {
 	ws := s.WS()
 	marcus, linh, sofia := s.Users["marcus@acme.io"], s.Users["linh@acme.io"], s.Users["sofia@acme.io"]
 	chicago := smsLoc("America/Chicago")
+	// The approval policy's rule for texts (SmsReview: "the cost is under the
+	// $50 rule for SMS and WhatsApp").
+	if _, err := s.Tx.Exec(ctx, `UPDATE workspaces SET approval_policy = jsonb_set(approval_policy, '{rules,channel_cost_min}', '{"enabled":true,"amount":50}'::jsonb, true)
+		WHERE id = $1 AND approval_policy ? 'rules'`, ws.ID); err != nil {
+		return err
+	}
 	st.help = "Acme: Help at acme.io/sms or support@acme.io. Msg & data rates may apply. Reply STOP to cancel."
 	st.optOut = "Acme: You're unsubscribed from Acme texts and won't get more. Reply START to resubscribe."
 	st.confirmation = "Acme: You're signed up for Acme Summit 2026 texts. Up to 4 msgs. Msg & data rates may apply. Reply HELP for help, STOP to cancel."

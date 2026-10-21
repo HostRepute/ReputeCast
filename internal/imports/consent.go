@@ -97,6 +97,9 @@ type ImportConsentMapping struct {
 	Providers []string `json:"providers"`
 	// InSync is how many addresses are already shared with the providers.
 	InSync int64 `json:"inSync"`
+	// Sms is SMS consent and its evidence columns (phase 8), when a column
+	// maps to the phone.
+	Sms *ImportSmsConsent `json:"sms,omitempty"`
 }
 
 var subscribedOptions = []ImportFieldOption{
@@ -210,6 +213,7 @@ func (s *Service) Consent(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		out.Statuses = append(out.Statuses, row)
 	}
 	out.HistoryExample, err = s.historyExample(ctx, ws, imp, m)
+	out.Sms = smsConsentOf(parseFieldMap(imp.FieldMap))
 	return out, err
 }
 

@@ -29,6 +29,7 @@ import { PageApprovalCard, PageBadge, PageDecisionDetail, PageDecisionNote } fro
 import { ApprovalStatusBadge, approverNames, decidedText, deciderFirst, DiffLines, requestTone, unchangedText, type Change } from './parts'
 import '@/features/review/review.css'
 import { PostApprovalCard } from '@/features/website/elsewhere'
+import { SmsApprovalCard } from '@/features/sms/ApprovalCard'
 
 type Detail = Schemas['ApprovalDetail']
 const detailPath = '/api/v1/workspaces/{workspace}/approvals/{approvalId}' as const
@@ -202,10 +203,15 @@ function DetailBody({ detail: d }: { detail: Detail }) {
           {d.transactional ? <TransactionalApprovalCard snapshot={d.transactional} /> : null}
           {d.page ? <PageApprovalCard detail={d} /> : null}
           {issue ? <IssueApprovalCard issue={issue} /> : null}
-          {d.campaign ? <CampaignCard detail={d} busy={busy === 'test'} onTest={() => void sendTest()} /> : null}
+          {/* Texts (SMS, X21): the text, its length and the cost by country. */}
+          {d.channel === 'sms' && d.sms ? (
+            <SmsApprovalCard sms={d.sms} />
+          ) : d.campaign ? (
+            <CampaignCard detail={d} busy={busy === 'test'} onTest={() => void sendTest()} />
+          ) : null}
           {d.readiness ? <ReadinessCard detail={d} busy={busy} onFix={(c, f) => void applyFix(c, f)} /> : null}
           {d.audience || d.route ? <AudienceRouteCard detail={d} /> : null}
-          {d.campaign ? <PlacementApprovalCard campaignId={d.campaign.id} /> : null}
+          {d.campaign && d.channel !== 'sms' ? <PlacementApprovalCard campaignId={d.campaign.id} /> : null}
           <ScheduleNoteCard detail={d} />
           <DiscussionCard detail={d} comment={comment} setComment={setComment} busy={busy === 'comment'} onPost={() => void post()} others={others} />
         </div>

@@ -49,6 +49,11 @@ type AutomationListItem struct {
 	// Revenue is the store orders credited to the flow's emails over the
 	// list window; absent when the workspace has no store.
 	Revenue *AutomationRevenue `json:"revenue,omitempty"`
+	// Channels are the channels the flow's steps send on (email, sms),
+	// for the row's icons; ChannelCost is what its texts cost over the
+	// list window (design expansion phase 8).
+	Channels    []string `json:"channels"`
+	ChannelCost *float64 `json:"channelCost,omitempty"`
 }
 
 // AutomationStatusCounts feeds the All · Live · Paused · Drafts filters.
@@ -165,7 +170,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, status string) 
 			ID: r.ID.String(), Name: r.Name, Description: r.Description, Status: r.Status,
 			LiveVersion: ptrInt(r.LiveVersion), DraftVersion: int(r.DraftVersion), PublishedAt: r.LivePublishedAt,
 			PausedAt: r.PausedAt, PausedBy: r.PausedByName, PauseReason: r.PauseReason,
-			Steps: len(shown.Nodes),
+			Steps: len(shown.Nodes), Channels: graphChannels(shown),
 		}
 		var trig *AutomationTrigger
 		if t := shown.Trigger(); t != nil {
@@ -195,6 +200,9 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, status string) 
 			it.Revenue = &rev
 		}
 		out.Items = append(out.Items, it)
+	}
+	if err := s.channelCosts(ctx, ws.ID, out.Items, s.since(ListDays)); err != nil {
+		return out, err
 	}
 	out.Route, err = s.route(ctx, s.Q, ws.ID)
 	if err != nil {

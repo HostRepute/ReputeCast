@@ -538,6 +538,12 @@ func smsWrite(ctx context.Context, s *Seeder, st *smsState, people []smsPerson, 
 			lineType, lineSource = "mobile", "number_plan"
 			if strings.HasPrefix(p.phone, "+1") {
 				lineType = "unknown"
+				// The boards' people: Twilio's lookup said mobile.
+				for _, n := range named {
+					if n.id == p.id {
+						lineType, lineSource = "mobile", "provider"
+					}
+				}
 			}
 			if p.state == "landline" {
 				lineType, lineSource = "landline", "provider"
@@ -572,6 +578,29 @@ func smsWrite(ctx context.Context, s *Seeder, st *smsState, people []smsPerson, 
 		"created_at", "updated_at", "consent", "company", "language", "phone", "phone_country", "phone_line_type", "phone_line_source", "phone_set_at"}, newRows); err != nil {
 		return err
 	}
+	// Every demo contact has a score (X13): the new registrants start at 0,
+	// with no events yet.
+	newIDs := make([]uuid.UUID, 0, len(newRows))
+	for _, r := range newRows {
+		newIDs = append(newIDs, r[0].(uuid.UUID))
+	}
+	if _, err := s.Tx.Exec(ctx, `INSERT INTO contact_scores (contact_id, workspace_id, score, events_part, fields_part, version, computed_at)
+		SELECT c.id, c.workspace_id, 0, 0, 0, (SELECT coalesce(max(version), 1) FROM contact_scores WHERE workspace_id = $1), $2
+		FROM contacts c WHERE c.workspace_id = $1 AND c.id = ANY($3::uuid[]) ON CONFLICT (contact_id) DO NOTHING`, ws.ID, s.Now, newIDs); err != nil {
+		return fmt.Errorf("new registrants' scores: %w", err)
+	}
+	// The new registrants are active, so the stored count of the segment of
+	// active contacts takes them in, as a recount would. The audience's
+	// segments are saved by a deferred step, so this one runs after it.
+	added := int64(len(newRows))
+	s.After(func(ctx context.Context, s *Seeder) error {
+		if _, err := s.Tx.Exec(ctx, `UPDATE segments SET cached_count = cached_count + $2,
+				tier_counts = jsonb_set(tier_counts, '{active}', to_jsonb(coalesce((tier_counts->>'active')::bigint, 0) + $2))
+			WHERE workspace_id = $1 AND name = 'Active in last 30 days'`, s.WS().ID, added); err != nil {
+			return fmt.Errorf("active segment's count: %w", err)
+		}
+		return nil
+	})
 	if _, err := s.Tx.Exec(ctx, `UPDATE contacts c SET phone = CASE WHEN v.phone = '' THEN c.phone ELSE v.phone END,
 			phone_country = CASE WHEN v.phone = '' THEN c.phone_country ELSE v.country END,
 			phone_line_type = CASE WHEN v.phone = '' THEN c.phone_line_type ELSE v.lt END,

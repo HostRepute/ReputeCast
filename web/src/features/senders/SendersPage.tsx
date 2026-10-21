@@ -10,6 +10,7 @@ import { EmptyRow, Table, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { failed } from '@/features/connect/parts'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
+import { SmsShortLinkCard } from '@/features/sms/SendersCard'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { DomainDialog } from './DomainDialog'
 import { ReadOnlyNote } from './ReadOnlyNote'
@@ -96,6 +97,8 @@ export function SendersPage() {
             </div>
             {data ? <DomainsTable data={data} /> : <TableSkeleton rows={2} />}
           </section>
+          {/* Phase 8: the short-link domain of texts, with its record and status. */}
+          <SmsShortLinkCard />
 
           {data ? <DefaultsCard data={data} reason={reason} /> : null}
         </>

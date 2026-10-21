@@ -41,9 +41,15 @@ func (a *App) imports() *imports.Service {
 		// The optional "Verify the new addresses" folds a service's answers
 		// into the preview and the import (X14), read when asked.
 		Checks: importChecks{a: a},
+		// Numbers and SMS consent with its evidence (phase 8).
+		Texts: importTexts(a),
 	}
 	if a.Secrets != nil {
 		s.Box = a.Secrets
 	}
 	return s
 }
+
+// importTexts records imported numbers and SMS consent (wire_texting.go
+// sets it).
+var importTexts = func(*App) imports.Texts { return nil }

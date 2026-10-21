@@ -80,6 +80,19 @@ type embedCopy struct {
 	PrivacyText string                  `json:"privacyText"`
 	Messages    map[string]embedMessage `json:"messages"`
 	Text        map[string]string       `json:"text"`
+	// Phase 8: the phone field's country picker, and the SMS consent box
+	// with its text and the terms page.
+	Phone      *embedPhone `json:"phone,omitempty"`
+	SmsConsent string      `json:"smsConsent,omitempty"`
+	Terms      string      `json:"terms,omitempty"`
+	TermsText  string      `json:"termsText,omitempty"`
+}
+
+// embedPhone is the phone field's country picker.
+type embedPhone struct {
+	Label     string        `json:"label"`
+	Countries []TextCountry `json:"countries"`
+	Default   string        `json:"default"`
 }
 
 // embedConfig is what the script renders: the form's settings, and its copy
@@ -204,6 +217,16 @@ func embedCopyOf(c Config, b Branding, lists []audience.PublicList, customs []st
 			ef.Type, ef.Placeholder = "email", c.Content.EmailPlaceholder
 		case FieldFirstName:
 			ef.Placeholder = c.Content.NamePlaceholder
+		case FieldPhone:
+			if c.texts == nil {
+				continue // the workspace doesn't text
+			}
+			ef.Type, ef.Placeholder = "tel", c.texts.Placeholder
+			out.Phone = &embedPhone{Label: c.texts.CountryLabel, Countries: c.texts.Countries, Default: c.texts.Default}
+			out.Text["phoneNeeded"] = c.texts.PhoneNeeded
+			if c.offersTexts() {
+				out.SmsConsent, out.Terms, out.TermsText = c.SMSConsentText(*c.texts), c.texts.TermsURL, c.texts.TermsWords
+			}
 		}
 		for _, cf := range customs {
 			if cf.Key == f.Key {
@@ -248,6 +271,15 @@ func (s *Service) Script(ctx context.Context, ws *store.Workspace, set *Settings
 	if err != nil {
 		return nil, err
 	}
+	// Phase 8: the SMS offer in each language the form is Live in.
+	if s.Texts != nil && c.HasField(FieldPhone) {
+		fc.texts = map[string]TextOffer{}
+		for _, code := range fc.LiveLanguages() {
+			if o, ok := s.Texts.Offer(ctx, ws, code); ok {
+				fc.texts[code] = o
+			}
+		}
+	}
 	return fc.script(links, set.Branding, lists, customs), nil
 }
 
@@ -256,6 +288,9 @@ func (fc *FormCopy) script(links PageLinks, b Branding, lists []audience.PublicL
 	for _, code := range fc.LiveLanguages() {
 		lc := fc.In(code)
 		fc.listNamesIn(&lc, lists)
+		if o, ok := fc.texts[code]; ok {
+			lc.texts = &o
+		}
 		langs[code] = embedCopyOf(lc, b, lists, customs)
 	}
 	return embedScriptOf(fc.Form, links, b, lists, langs, fc.Fallback())

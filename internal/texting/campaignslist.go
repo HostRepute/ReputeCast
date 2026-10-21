@@ -2,6 +2,8 @@ package texting
 
 import (
 	"context"
+	"fmt"
+	"sort"
 
 	"github.com/google/uuid"
 
@@ -90,6 +92,9 @@ func (s *Service) FillChannelRows(ctx context.Context, ws *store.Workspace, item
 			continue
 		}
 		it.Local = c.ScheduleMode == "local"
+		if it.Local && c.LocalMinute != nil {
+			it.LocalTime = fmt.Sprintf("%02d:%02d", *c.LocalMinute/60, *c.LocalMinute%60)
+		}
 		st, scheduled := stats[it.ID]
 		if scheduled && st.recipients > 0 {
 			n := st.recipients
@@ -97,6 +102,7 @@ func (s *Service) FillChannelRows(ctx context.Context, ws *store.Workspace, item
 			for j := range st.routes {
 				st.routes[j].Percent = pct(st.routes[j].Planned, st.recipients)
 			}
+			sort.SliceStable(st.routes, func(i, j int) bool { return st.routes[i].Planned > st.routes[j].Planned })
 			it.Routes = st.routes
 			if st.sent > 0 {
 				it.Delivered = ptr(pct(st.delivered, st.sent))
@@ -145,6 +151,8 @@ func (s *Service) FillChannelRows(ctx context.Context, ws *store.Workspace, item
 			rs.Planned++
 		}
 		it.Routes = []campaigns.RouteShare{}
+		// The provider with the most texts first, as on Review & send.
+		sort.SliceStable(order, func(i, j int) bool { return byProv[order[i]].Planned > byProv[order[j]].Planned })
 		for _, pid := range order {
 			rs := byProv[pid]
 			rs.Percent = pct(rs.Planned, rv.sent)

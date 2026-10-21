@@ -32,7 +32,7 @@ func TestListCampaigns(t *testing.T) {
 		Total  int64 `json:"total"`
 		Counts struct{ All, Drafts, Scheduled, Sending, Sent int64 }
 	}
-	// Eleven rows: the board's nine, and the two text campaigns (SMS, X21)
+	// Eleven rows: the board's nine, and the two text campaigns (SMS, X21, brief §4)
 	// that sort before October Product Update.
 	c.Do("GET", "/workspaces/acme-newsletter/campaigns?pageSize=11", nil).MustStatus(t, 200).JSON(t, &list)
 	// 48 campaigns of the Campaigns board plus the approval sample data:
@@ -41,7 +41,7 @@ func TestListCampaigns(t *testing.T) {
 	// the draft blog.acme.io made from a post (Scheduled rollouts are here),
 	// and the accessibility sample its draft, Weekly Digest #143. The recurring
 	// digest's sent issues #1 and #2 are campaigns too, and so is the survey's
-	// email, Beta Program: October check-in, sent. SMS (X21) adds a text
+	// email, Beta Program: October check-in, sent. SMS (X21, brief §4) adds a text
 	// campaign sent, "Summit: 8 days to go", and a draft, "Summit: doors open".
 	if list.Total != 59 || list.Counts.All != 59 || list.Counts.Drafts != 8 || list.Counts.Scheduled != 1 || list.Counts.Sent != 50 {
 		t.Fatalf("counts: total %d %+v", list.Total, list.Counts)

@@ -638,6 +638,25 @@ func Register(h huma.API, s *Service) {
 			out, err := s.Report(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 			return api.OK(out), err
 		})
+	api.Get(h, api.Op{ID: "export-sms-report", Path: "/workspaces/{workspace}/sms-campaigns/{campaignId}/report.csv",
+		Summary: "Download the SMS report by country as CSV: counts only (logged)", Tags: ctags, Access: api.Workspace(authz.ReportsView)},
+		func(ctx context.Context, in *SmsCampaignPath) (*SmsCSV, error) {
+			id, err := parseID(in.CampaignID, "SMS campaign")
+			if err != nil {
+				return nil, err
+			}
+			return s.ReportCSV(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
+		})
+	api.Post(h, api.Op{ID: "duplicate-sms-campaign", Path: "/workspaces/{workspace}/sms-campaigns/{campaignId}/duplicate", Summary: "Copy an SMS campaign into a new draft (logged)",
+		Tags: ctags, Access: cedit, Status: http.StatusCreated},
+		func(ctx context.Context, in *SmsCampaignPath) (*api.Body[SmsCampaign], error) {
+			id, err := parseID(in.CampaignID, "SMS campaign")
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.Duplicate(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
+			return api.OK(out), err
+		})
 	api.Get(h, api.Op{ID: "list-sms-replies", Path: "/workspaces/{workspace}/sms-campaigns/{campaignId}/replies", Summary: "A campaign's replies: STOP, HELP and others",
 		Tags: ctags, Access: api.Workspace(authz.ReportsView)},
 		func(ctx context.Context, in *struct {

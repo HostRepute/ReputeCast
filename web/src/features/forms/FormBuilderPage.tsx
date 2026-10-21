@@ -38,13 +38,14 @@ import { FormPagesSection, OwnOriginsNote } from './UsedOnPages'
 import { CopyByLanguage, FormLanguagesView, useFormCopy } from '@/features/page-languages/FormLanguagesView'
 import { useWorkspaceLanguages } from '@/features/page-languages/contacts'
 import { FormRefNote } from '@/features/grow/FormRefNote'
+import { SmsConsentSettings, SmsPhoneToggle } from '@/features/sms/FormFields'
 
 type Kind = Schemas['SignupFormSummary']['kind']
 
 const kindLabels: Record<Kind, string> = { embedded: 'Embedded', popup: 'Popup', hosted: 'Hosted page' }
 
 /** Built-in fields in the order a form shows them; custom fields follow. */
-const fieldOrder = ['email', 'first_name', 'last_name', 'company']
+const fieldOrder = ['email', 'first_name', 'last_name', 'company', 'phone']
 
 function sortFields(fields: FormInput['fields']): FormInput['fields'] {
   const rank = (k: string) => {
@@ -269,8 +270,18 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
                 {hasField(key) ? ' · optional' : ''}
               </label>
             ))}
+            {/* Phase 8: the phone field, once texting is set up. */}
+            <SmsPhoneToggle
+              on={hasField('phone')}
+              required={draft.fields.some((f) => f.key === 'phone' && f.required)}
+              readOnly={readOnly}
+              onToggle={(on) => {
+                toggleField('phone', on)
+                if (!on) setContent({ smsConsent: false })
+              }}
+            />
             {draft.fields
-              .filter((f) => f.key !== 'email' && f.key !== 'first_name' && f.key !== 'company')
+              .filter((f) => f.key !== 'email' && f.key !== 'first_name' && f.key !== 'company' && f.key !== 'phone')
               .map((f) => (
                 <label key={f.key} className="fb-check">
                   <input type="checkbox" checked disabled={readOnly} onChange={() => toggleField(f.key, false)} />
@@ -340,6 +351,15 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
                 : ''}
             </span>
           </div>
+          {/* Phase 8: the SMS consent box, with its own text. */}
+          <SmsConsentSettings
+            content={draft.content}
+            saved={form.content}
+            hasPhone={hasField('phone')}
+            readOnly={readOnly}
+            error={errors['content.smsConsent'] ?? errors['content.smsConsentText']}
+            onContent={setContent}
+          />
           <div className="fb-sec">
             <span className="k">Spam protection</span>
             <label className="fb-check">

@@ -43,6 +43,8 @@ type ContactFilter struct {
 	ProductsFilter
 	// Store customers and what they spent (storefilter.go).
 	StoreFilter
+	// The phone and SMS consent (channels.go).
+	ChannelFilter
 }
 
 // Empty reports whether the filter matches everyone.
@@ -138,6 +140,9 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 	}
 	productsFilter(out, f.ProductsFilter)
 	if err := s.storeFilter(out, f.StoreFilter); err != nil {
+		return err
+	}
+	if err := channelFilter(out, f.ChannelFilter); err != nil {
 		return err
 	}
 	if f.Segment != "" {

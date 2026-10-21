@@ -3,6 +3,8 @@ package texting
 import (
 	"context"
 	"errors"
+	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -31,6 +33,163 @@ var _ automations.ChannelStep = SmsStep{}
 // Permission implements automations.ChannelStep: publishing a flow with an
 // SMS step needs sms:send.
 func (SmsStep) Permission() authz.Permission { return authz.SMSSend }
+
+var _ automations.ChannelCoster = SmsStep{}
+
+// CostSince implements automations.ChannelCoster: what each flow's texts
+// cost since a time, for the automations list.
+func (st SmsStep) CostSince(ctx context.Context, workspaceID uuid.UUID, automationIDs []uuid.UUID, since time.Time) (map[uuid.UUID]float64, error) {
+	out := map[uuid.UUID]float64{}
+	rows, err := st.S.Pool.Query(ctx, `SELECT automation_id, coalesce(sum(cost), 0)::float8 FROM channel_messages
+		WHERE workspace_id = $1 AND automation_id = ANY($2) AND channel = 'sms' AND created_at >= $3
+		  AND status IN ('sending','sent','delivered','undelivered','failed')
+		GROUP BY automation_id`, workspaceID, automationIDs, since)
+	if err != nil {
+		return out, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id uuid.UUID
+		var cost float64
+		if err := rows.Scan(&id, &cost); err != nil {
+			return out, err
+		}
+		out[id] = round2(cost)
+	}
+	return out, rows.Err()
+}
+
+var _ automations.ChannelPublishChecker = SmsStep{}
+
+// PublishChecks implements automations.ChannelPublishChecker (brief §6):
+// quiet hours, and the senders' registration in the countries of the
+// contacts with SMS consent on the steps' lists. A country whose sender
+// can't send yet is a warning: the steps skip the texts there, as Send does.
+func (st SmsStep) PublishChecks(ctx context.Context, workspaceID uuid.UUID, nodes []automations.AutomationNode) ([]automations.AutomationPublishCheck, error) {
+	s := st.S
+	ws, err := s.Q.GetWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	g, err := s.graph(ctx, s.Q, &ws)
+	if err != nil {
+		return nil, err
+	}
+	out := []automations.AutomationPublishCheck{}
+	steps, skips := 0, 0
+	lists := []uuid.UUID{}
+	for _, n := range nodes {
+		cfg := n.Data.SMS
+		if cfg == nil {
+			continue
+		}
+		steps++
+		if cfg.Outside == "skip" {
+			skips++
+		}
+		if id, err := uuid.Parse(cfg.ConsentListID); err == nil && !slices.Contains(lists, id) {
+			lists = append(lists, id)
+		}
+	}
+	if steps == 0 {
+		return out, nil
+	}
+	quiet := "Quiet hours: texts go out " + g.rules.Window.String() + " in each contact’s time zone; "
+	switch skips {
+	case 0:
+		quiet += "outside it they wait"
+	case steps:
+		quiet += "outside it they’re skipped"
+	default:
+		quiet += fmt.Sprintf("outside it, %d of %d SMS steps skip the text", skips, steps)
+	}
+	out = append(out, automations.AutomationPublishCheck{Status: "ok", Label: quiet})
+	if len(g.senders) == 0 {
+		return append(out, automations.AutomationPublishCheck{Status: "warn", Label: "No SMS sender yet: the steps skip their texts until one is set up"}), nil
+	}
+	if len(lists) == 0 {
+		return out, nil
+	}
+	rows, err := s.Pool.Query(ctx, `SELECT c.phone_country, count(DISTINCT c.id) FROM channel_consents cc JOIN contacts c ON c.id = cc.contact_id
+		WHERE c.workspace_id = $1 AND cc.channel = 'sms' AND cc.status = 'subscribed' AND cc.list_id = ANY($2) AND c.phone <> '' AND c.phone_country <> ''
+		  AND NOT EXISTS (SELECT 1 FROM channel_suppressions x WHERE x.workspace_id = c.workspace_id AND x.channel = 'sms' AND x.phone = c.phone AND x.removed_at IS NULL)
+		GROUP BY 1 ORDER BY 1`, workspaceID, lists)
+	if err != nil {
+		return nil, err
+	}
+	type gap struct {
+		sender, hold string
+		countries    []string
+		n            int64
+	}
+	var gaps []*gap
+	var sending []string
+	for rows.Next() {
+		var country string
+		var n int64
+		if err := rows.Scan(&country, &n); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		d := g.decide(country)
+		if d.Sender != nil {
+			if l := senderLabel(*d.Sender); !slices.Contains(sending, l) {
+				sending = append(sending, l)
+			}
+			continue
+		}
+		sender := ""
+		if d.Route != nil {
+			if sn, ok := g.senders[d.Route.SenderID]; ok {
+				sender = senderLabel(sn)
+			}
+		}
+		i := slices.IndexFunc(gaps, func(x *gap) bool { return x.sender == sender && x.hold == d.Hold })
+		if i < 0 {
+			gaps = append(gaps, &gap{sender: sender, hold: d.Hold})
+			i = len(gaps) - 1
+		}
+		gaps[i].countries = append(gaps[i].countries, countryName(country))
+		gaps[i].n += n
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	for _, gp := range gaps {
+		where, who := joinAnd(gp.countries), plural(gp.n, "contact there is skipped", "contacts there are skipped")
+		var label string
+		switch gp.hold {
+		case "no_route":
+			label = "No route covers " + where + ": " + who
+		case "pending":
+			label = gp.sender + " isn’t approved yet in " + where + ": " + who + " until it is"
+		case "rejected":
+			label = gp.sender + "’s registration was rejected in " + where + ": " + who
+		case "not_supported":
+			label = gp.sender + " can’t send in " + where + ": " + who
+		default:
+			label = gp.sender + " isn’t registered in " + where + ": " + who
+		}
+		out = append(out, automations.AutomationPublishCheck{Status: "warn", Label: label})
+	}
+	if len(sending) > 0 && len(gaps) == 0 {
+		out = append(out, automations.AutomationPublishCheck{Status: "ok", Label: "Every country’s sender can text · " + strings.Join(sending, ", ")})
+	}
+	return out, nil
+}
+
+// joinAnd lists names in English: "Ireland", "Ireland and Germany",
+// "Ireland, Germany and Spain".
+func joinAnd(xs []string) string {
+	switch len(xs) {
+	case 0:
+		return ""
+	case 1:
+		return xs[0]
+	}
+	return strings.Join(xs[:len(xs)-1], ", ") + " and " + xs[len(xs)-1]
+}
 
 // Validate implements automations.ChannelStep.
 func (SmsStep) Validate(n automations.AutomationNode) []automations.ChannelIssue {

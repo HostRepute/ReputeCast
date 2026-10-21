@@ -9,6 +9,7 @@
     <h1 class="h26">{{.Heading}}</h1>
   </div>{{else}}<h1 class="h26">{{.Heading}}</h1>{{end}}
   {{if .Lead}}<p class="lead">{{.Lead}}</p>{{else if .Email}}<p class="lead">{{.Text}} <strong>{{.Email}}</strong>{{.TextAfter}}</p>{{else}}<p class="lead">{{.Text}}</p>{{end}}
+  {{with .Texted}}<div class="notice">{{.}}</div>{{end}}
   {{if .Actions}}<div class="btns">
     {{range $i, $a := .Actions}}<a class="{{if eq $i 0}}btn-sm{{else}}btn-ghost{{end}}" href="{{$a.Href}}">{{$a.Label}}</a>
     {{end}}
