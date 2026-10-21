@@ -2,9 +2,11 @@ import { ApiError, type Schemas } from '@/api/client'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { NavTabs } from '@/components/ui/Tabs'
 import { ChannelSwitch } from '@/features/channels/ChannelSwitch'
+import { T, t as tt, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { ago, duration } from '@/lib/format'
+import { ago, decimal, duration, pct, trimPct } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
+import { m } from './messages'
 import './providers.css'
 
 export type ProviderCard = Schemas['ProviderCard']
@@ -23,12 +25,33 @@ export const providerColor: Record<ColorKey, string> = {
 /** Text colour on a provider-coloured segment (the routing split bar). */
 export const onProviderColor: Record<ColorKey, string> = { ses: '#fff', postal: '#3F0A1F', postmark: '#fff', other: 'var(--ink)' }
 
-export const streamName: Record<Stream, string> = { broadcast: 'Broadcasts', automation: 'Automations', system: 'System', transactional: 'Transactional' }
+/** A stream's name in the app language (read when shown, so it follows the language). */
+export const streamName: Record<Stream, string> = {
+  get broadcast() {
+    return tt(m.streamBroadcast)
+  },
+  get automation() {
+    return tt(m.streamAutomation)
+  },
+  get system() {
+    return tt(m.streamSystem)
+  },
+  get transactional() {
+    return tt(m.streamTransactional)
+  },
+}
 
+/** A failover policy in a sentence ("failover: pause and ask"). */
 export const failoverText: Record<FailoverPolicy, string> = {
-  automatic: 'automatic',
-  pause_and_ask: 'pause and ask',
-  warm_only: 'automatic, warmed-up only',
+  get automatic() {
+    return tt(m.failoverAutomatic)
+  },
+  get pause_and_ask() {
+    return tt(m.failoverPauseAndAsk)
+  },
+  get warm_only() {
+    return tt(m.failoverWarmOnly)
+  },
 }
 
 /**
@@ -41,6 +64,7 @@ export function throwIfForbidden(error: unknown) {
 
 /** The five sections of Sending providers & routing, inline after the title. */
 export function ProvidersTabs() {
+  const t = useT()
   const { slug } = useWorkspace()
   const params = { workspace: slug }
   return (
@@ -48,56 +72,56 @@ export function ProvidersTabs() {
       {/* Email · SMS · …, or "Add a channel" (design expansion phase 8, X21). */}
       <ChannelSwitch current="email" />
       <NavTabs
-        label="Sections"
+        label={t(m.sectionsLabel)}
         className="ml-3 max-md:ml-0"
         tabs={[
-          { label: 'Providers', to: '/w/$workspace/providers', params, exact: true },
-          { label: 'Routing & failover', to: '/w/$workspace/providers/routing', params },
-          { label: 'Warm-up', to: '/w/$workspace/providers/warmup', params },
-          { label: 'Events & sync', to: '/w/$workspace/providers/events', params },
-          { label: 'Adapters', to: '/w/$workspace/providers/adapters', params },
+          { label: t(m.tabProviders), to: '/w/$workspace/providers', params, exact: true },
+          { label: t(m.tabRouting), to: '/w/$workspace/providers/routing', params },
+          { label: t(m.tabWarmup), to: '/w/$workspace/providers/warmup', params },
+          { label: t(m.tabEvents), to: '/w/$workspace/providers/events', params },
+          { label: t(m.tabAdapters), to: '/w/$workspace/providers/adapters', params },
         ]}
       />
     </>
   )
 }
 
-/** "5%", "0.1%", "2%": a limit without trailing zeros. */
+/** "5%", "0.1%", "2%": a limit without trailing zeros (in the region format). */
 export function limitPct(v: number): string {
-  return `${Number(v.toFixed(2))}%`
+  return trimPct(v)
 }
 
 /** Bounce rates keep one decimal (0.6%), complaint rates two (0.04%). */
 export function bouncePct(v: number | null | undefined): string {
-  return v === null || v === undefined ? '—' : `${v.toFixed(1)}%`
+  return pct(v, 1)
 }
 export function complaintPct(v: number | null | undefined): string {
-  return v === null || v === undefined ? '—' : `${v.toFixed(2)}%`
+  return pct(v, 2)
 }
 
 /** Messages per second: "0", "14", "0.5"; `decimals` for a live rate ("2.0"). */
 export function perSec(v: number, decimals = false): string {
   if (v === 0) return '0'
-  if (decimals) return v.toFixed(1)
-  return Number.isInteger(v) ? String(v) : v.toFixed(1)
+  if (decimals) return decimal(v, 1)
+  return decimal(v, Number.isInteger(v) ? 0 : 1)
 }
 
 /** The status word of a provider card. */
 export function statusBadge(c: Pick<ProviderCard, 'status' | 'warmup' | 'down' | 'webhook'>, now = new Date()): { tone: Tone; text: string } {
   switch (c.status) {
     case 'healthy':
-      return { tone: 'ok', text: 'Healthy' }
+      return { tone: 'ok', text: tt(m.statusHealthy) }
     case 'warming_up':
-      return { tone: 'info', text: c.warmup ? `Warming up · day ${c.warmup.day} of ${c.warmup.days}` : 'Warming up' }
+      return { tone: 'info', text: c.warmup ? tt(m.statusWarmingUpDay, { day: c.warmup.day, days: c.warmup.days }) : tt(m.statusWarmingUp) }
     case 'down':
-      if (c.down?.reason === 'auth') return { tone: 'bad', text: 'Down · auth failed' }
-      return { tone: 'bad', text: c.down ? `Down · ${sinceText(c.down.since, now)}` : 'Down' }
+      if (c.down?.reason === 'auth') return { tone: 'bad', text: tt(m.statusDownAuth) }
+      return { tone: 'bad', text: c.down ? tt(m.statusDownSince, { since: sinceText(c.down.since, now) }) : tt(m.statusDown) }
     case 'degraded':
-      return { tone: 'warn', text: c.webhook.silentSince ? `Degraded · webhooks silent ${sinceText(c.webhook.silentSince, now)}` : 'Degraded' }
+      return { tone: 'warn', text: c.webhook.silentSince ? tt(m.statusDegradedSilent, { since: sinceText(c.webhook.silentSince, now) }) : tt(m.statusDegraded) }
     case 'sandbox':
-      return { tone: 'warn', text: 'Sandbox · verified addresses only' }
+      return { tone: 'warn', text: tt(m.statusSandbox) }
     case 'paused':
-      return { tone: 'neutral', text: 'Paused' }
+      return { tone: 'neutral', text: tt(m.statusPaused) }
   }
 }
 
@@ -120,8 +144,7 @@ export function CapabilityChip({ cap }: { cap: Schemas['ProviderCapabilityBadge'
   const cls = { yes: 'y', partial: 'p', no: 'n', info: '' }[cap.kind]
   return (
     <span className={cn('pv-cap', cls)}>
-      {cap.kind === 'no' ? <span className="vh">Not supported: </span> : null}
-      {cap.label}
+      {cap.kind === 'no' ? <T msg={m.notSupported} values={{ capability: cap.label, vh: (c) => <span className="vh">{c}</span> }} /> : cap.label}
     </span>
   )
 }
@@ -169,23 +192,20 @@ export function rateColor(value: number | undefined, limit: number, stale = fals
 }
 
 /** "20 s ago" under a minute, then as `ago` ("2 min ago"). */
-export function agoSeconds(t: string, now = new Date()): string {
-  const s = Math.max(0, Math.round((now.getTime() - new Date(t).getTime()) / 1000))
-  return s < 60 ? `${s} s ago` : ago(t, now)
+export function agoSeconds(at: string, now = new Date()): string {
+  const s = Math.max(0, Math.round((now.getTime() - new Date(at).getTime()) / 1000))
+  return s < 60 ? tt(m.secondsAgo, { n: s }) : ago(at, now)
 }
 
 /** "Bounce rate · limit 5% (SES review at 5%, pause at 10%)"; `short` drops the provider's levels. */
 export function limitLabel(kind: 'Bounce' | 'Complaint', l: Schemas['ProviderLimitRate'], short = false): string {
-  if (l.label === 'warm-up guard') return `${kind} rate · warm-up guard ${limitPct(l.limit)}`
-  let s = `${kind} rate · limit ${limitPct(l.limit)}`
-  if (short) return s
-  if (l.label && (l.review || l.pause)) {
-    const parts = [l.review ? `review at ${limitPct(l.review)}` : '', l.pause ? `pause at ${limitPct(l.pause)}` : ''].filter(Boolean)
-    s += ` (${l.label} ${parts.join(', ')})`
-  } else if (l.label) {
-    s += ` (${l.label})`
-  }
-  return s
+  const v = { kind: kind === 'Bounce' ? 'bounce' : 'complaint', limit: limitPct(l.limit), provider: l.label ?? '' }
+  if (l.label === 'warm-up guard') return tt(m.limitGuard, v)
+  if (short || !l.label) return tt(m.limit, v)
+  if (l.review && l.pause) return tt(m.limitReviewPause, { ...v, review: limitPct(l.review), pause: limitPct(l.pause) })
+  if (l.review) return tt(m.limitReview, { ...v, review: limitPct(l.review) })
+  if (l.pause) return tt(m.limitPause, { ...v, pause: limitPct(l.pause) })
+  return tt(m.limitNamed, v)
 }
 
 /** A key on the left, its value on the right (provider card facts). */

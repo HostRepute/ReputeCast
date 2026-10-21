@@ -3,8 +3,10 @@ import { ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { toast } from '@/components/ui/Toast'
 import { copyText } from '@/features/access/parts'
+import { t as tt, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { useSetupAction, type Setup, type SetupStep } from './api'
+import { m } from './messages'
 
 /** What every step gets from the wizard. */
 export interface StepProps {
@@ -68,14 +70,15 @@ export function StatusRow({
 
 /** Done / Failed / Skipped / Pending badge of a row. */
 export function StateBadge({ state }: { state: 'done' | 'failed' | 'skipped' | 'pending' | 'yes' | 'partial' | 'no' }) {
+  const t = useT()
   const map: Record<typeof state, [Tone, string]> = {
-    done: ['ok', 'Done'],
-    failed: ['bad', 'Failed'],
-    skipped: ['neutral', 'Skipped'],
-    pending: ['warn', 'Pending'],
-    yes: ['ok', 'Yes'],
-    partial: ['warn', 'Partial'],
-    no: ['bad', 'No'],
+    done: ['ok', t(m.stateDone)],
+    failed: ['bad', t(m.stateFailed)],
+    skipped: ['neutral', t(m.stateSkipped)],
+    pending: ['warn', t(m.statePending)],
+    yes: ['ok', t(m.stateYes)],
+    partial: ['warn', t(m.statePartial)],
+    no: ['bad', t(m.stateNo)],
   }
   const [tone, label] = map[state]
   return <Badge tone={tone}>{label}</Badge>
@@ -95,10 +98,14 @@ export function failed(title: string, retry?: () => void) {
   return (e: unknown) => toast({ kind: 'error', title, detail: problemMessage(e), retry })
 }
 
+/** What `copy` copies: the zone file, the webhook secret or URL, or a record's value. */
+export type CopyWhat = 'zone' | 'secret' | 'url' | { record: string }
+
 /** Copies text with a toast either way. */
-export async function copy(text: string, what: string) {
-  if (await copyText(text)) toast({ title: `Copied ${what}` })
-  else toast({ kind: 'error', title: `Couldn't copy ${what}`, detail: 'Your browser blocked the clipboard. Select the text and copy it instead.' })
+export async function copy(text: string, what: CopyWhat) {
+  const values = typeof what === 'string' ? { what, label: '' } : { what: 'record', label: what.record }
+  if (await copyText(text)) toast({ title: tt(m.copied, values) })
+  else toast({ kind: 'error', title: tt(m.copyFailed, values), detail: tt(m.copyBlocked) })
 }
 
 /** The setup's actions; each one puts the setup it returns in the cache. */

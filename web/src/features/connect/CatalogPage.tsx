@@ -9,6 +9,7 @@ import { ConnectChannels } from '@/features/channels/ConnectChannels'
 import { ReadOnlyNote } from '@/features/senders/ReadOnlyNote'
 import { cn } from '@/lib/cn'
 import { deniedReason, useWorkspace } from '@/lib/session'
+import { m } from './messages'
 import { StepBadge, StepHeading, WizardBody, WizardLayout } from './Wizard'
 
 type Entry = Schemas['ConnectCatalogEntry']
@@ -45,9 +46,7 @@ export function CatalogPage() {
     <WizardLayout title="Connect a sending provider" badge={<StepBadge n={1} />}>
       <WizardBody current={1}>
         {data && !data.canConnect ? (
-          <ReadOnlyNote action="Connecting a provider" perm="providers:manage" helpers={data.helpers}>
-            You can look at the catalog and at setups others started.
-          </ReadOnlyNote>
+          <ReadOnlyNote msg={m.readOnlyCatalog} perm="providers:manage" helpers={data.helpers} />
         ) : null}
         <StepHeading title="Which provider delivers your mail?">
           Every adapter reports what it can do. Badges come from each adapter&apos;s manifest; terms are reviewed quarterly.

@@ -14,6 +14,7 @@ import { ConnectionSMTP } from './ConnectionSMTP'
 import { ContactsStep } from './ContactsStep'
 import { DomainStep } from './DomainStep'
 import { DonePage } from './DonePage'
+import { m } from './messages'
 import { failed, useSetupActions, type StepProps } from './parts'
 import { StreamsStep } from './StreamsStep'
 import { TestStep } from './TestStep'
@@ -62,9 +63,7 @@ function StartSetup({ adapter, onStarted }: { adapter: string; onStarted: (s: Se
         {!can ? (
           <>
             <StepHeading title="Connect a sending provider" />
-            <ReadOnlyNote action="Connecting a provider" perm="providers:manage" helpers={catalog.data?.helpers}>
-              You can look at the catalog and at setups others started.
-            </ReadOnlyNote>
+            <ReadOnlyNote msg={m.readOnlyCatalog} perm="providers:manage" helpers={catalog.data?.helpers} />
             <div>
               <ButtonLink to="/w/$workspace/providers/connect" params={{ workspace: slug }}>
                 Back to the catalog
@@ -164,9 +163,7 @@ function SetupScreens({ setupId, step, onStep }: { setupId: string; step?: Setup
       <WizardBody current={stepNumber[view]} setup={setup}>
         {setup.status === 'abandoned' ? <Note tone="warn">This setup was cancelled. Start again from the catalog to connect the provider.</Note> : null}
         {!can && setup.status !== 'abandoned' ? (
-          <ReadOnlyNote action="Connecting or changing a provider" perm="providers:manage" helpers={setup.helpers}>
-            You can follow this setup.
-          </ReadOnlyNote>
+          <ReadOnlyNote msg={m.readOnlySetup} perm="providers:manage" helpers={setup.helpers} />
         ) : null}
         <StepScreen view={view} props={props} />
       </WizardBody>

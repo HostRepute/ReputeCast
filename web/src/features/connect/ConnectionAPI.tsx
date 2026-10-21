@@ -352,7 +352,7 @@ function ManualSecret({ setup, webhook: w, reason }: { setup: Schemas['ConnectSe
       {shown ? (
         <div className="flex flex-wrap items-center gap-2.5">
           <code className="cn-val">{header ? `${header}: ${shown.secret}` : shown.secret}</code>
-          <Button size="sm" onClick={() => void copy(shown.secret, 'the webhook secret')}>
+          <Button size="sm" onClick={() => void copy(shown.secret, 'secret')}>
             Copy secret
           </Button>
           <span className="k">Copy it now: it isn&apos;t shown again. Keep it private; anyone with it can post events for this provider.</span>
@@ -382,7 +382,7 @@ function RegisterRow({ name, events, reg, url, reachable }: { name: string; even
       <StatusRow
         badge={<Badge tone="warn">Pending</Badge>}
         aside={
-          <Button size="sm" onClick={() => void copy(url, 'the webhook URL')}>
+          <Button size="sm" onClick={() => void copy(url, 'url')}>
             Copy URL
           </Button>
         }

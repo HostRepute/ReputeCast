@@ -73,7 +73,7 @@ export function DomainTools({
           Add all records via Cloudflare API
         </Button>
       ) : null}
-      <Button size="sm" onClick={() => void copy(zone + '\n', 'the zone file')}>
+      <Button size="sm" onClick={() => void copy(zone + '\n', 'zone')}>
         Copy as zone file
       </Button>
       {detail.checkedAt ? (
@@ -138,7 +138,7 @@ export function DomainRecordsCard({ detail, title }: { detail: DomainDetail; tit
                 <RecordBadge record={r} />
               </td>
               <td>
-                <Button size="sm" onClick={() => void copy(r.value, `the ${r.label} value`)} aria-label={`Copy the ${r.label} value`}>
+                <Button size="sm" onClick={() => void copy(r.value, { record: r.label })} aria-label={`Copy the ${r.label} value`}>
                   Copy
                 </Button>
               </td>
