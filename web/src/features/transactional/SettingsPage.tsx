@@ -99,7 +99,7 @@ function SettingsForm({ s, cats }: { s: Settings; cats: Schemas['TransactionalCa
     <>
       {ro ? (
         <Note tone="neutral">
-          <T msg={mg.readOnly} values={{ permission: <span className="mono">transactional:publish</span> }} />
+          <T msg={mg.readOnly} values={{ permission: <span className="mono">{'transactional:publish'}</span> }} />
         </Note>
       ) : null}
       <section className="card">
@@ -197,10 +197,10 @@ function SettingsForm({ s, cats }: { s: Settings; cats: Schemas['TransactionalCa
                 <T
                   msg={mg.noAutoPause}
                   values={{
-                    permission: <span className="mono">transactional:view</span>,
-                    link: (
+                    permission: <span className="mono">{'transactional:view'}</span>,
+                    link: (chunks) => (
                       <Link to="/w/$workspace/account" params={{ workspace: slug }} hash="notifications">
-                        {t(mg.notificationPreferences)}
+                        {chunks}
                       </Link>
                     ),
                   }}
@@ -305,12 +305,11 @@ function SettingsForm({ s, cats }: { s: Settings; cats: Schemas['TransactionalCa
 
 function changeLines(t: ReturnType<typeof useT>, a: Input, b: Input, s: Settings): string[] {
   const out: string[] = []
-  const onOff = (x: boolean) => (x ? t(mg.on) : t(mg.off))
-  const keep = (d: number) => (d === 0 ? t(mg.keepNone).toLowerCase() : t(mg.keepDays, { days: d }))
+  const onOff = (x: boolean) => (x ? 'on' : 'off')
   if (a.alertBounceRate !== b.alertBounceRate) out.push(t(mg.changeBounce, { from: a.alertBounceRate, to: b.alertBounceRate }))
   if (a.alertFailed !== b.alertFailed) out.push(t(mg.changeFailed, { from: a.alertFailed, to: b.alertFailed }))
   if (a.alertMedianSeconds !== b.alertMedianSeconds) out.push(t(mg.changeMedian, { from: a.alertMedianSeconds, to: b.alertMedianSeconds }))
-  if (a.contentRetentionDays !== b.contentRetentionDays) out.push(t(mg.changeRetention, { from: keep(a.contentRetentionDays), to: keep(b.contentRetentionDays) }))
+  if (a.contentRetentionDays !== b.contentRetentionDays) out.push(t(mg.changeRetention, { from: a.contentRetentionDays, to: b.contentRetentionDays }))
   if (a.linkContacts !== b.linkContacts) out.push(t(mg.changeLink, { to: onOff(b.linkContacts) }))
   if ((a.defaultSenderId ?? '') !== (b.defaultSenderId ?? '')) out.push(t(mg.changeSender))
   if ((a.defaultReplyTo ?? '') !== (b.defaultReplyTo ?? '')) out.push(t(mg.changeReplyTo))

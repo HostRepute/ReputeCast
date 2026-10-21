@@ -20,7 +20,7 @@ import { me } from './errors.messages'
 import { mt } from './messages'
 import { useTemplateVariables } from './OverviewPage'
 import { ms } from './setup.messages'
-import { CodeBox, KeyBadges, TxTabs, type CodeLang } from './shared'
+import { CodeBox, KeyBadges, RichList, TxTabs, type CodeLang } from './shared'
 
 type Setup = Schemas['TransactionalSetup']
 type SendingKey = Schemas['TransactionalSendingKey']
@@ -92,7 +92,7 @@ function NoSender() {
         <div className="flex min-w-0 flex-col gap-1">
           <span className="font-bold">{t(ms.noSenderTitle)}</span>
           <span>
-            <T msg={ms.noSenderBody} values={{ code: <span className="mono">sender_not_verified</span> }} />
+            <T msg={ms.noSenderBody} values={{ code: <span className="mono">{'sender_not_verified'}</span> }} />
           </span>
           <div className="mt-2">
             <ButtonLink size="sm" variant="primary" to="/w/$workspace/settings/senders" params={{ workspace: slug }}>
@@ -258,7 +258,7 @@ function KeysCard({ s, onCreate }: { s: Setup; onCreate: () => void }) {
       ))}
       <div className="tx-foot">
         <span className="k" style={{ flex: '1 1 260px' }}>
-          <T msg={ms.keysNote} values={{ permission: <span className="mono">transactional:send</span> }} />
+          <T msg={ms.keysNote} values={{ permission: <span className="mono">{'transactional:send'}</span> }} />
         </span>
         {s.canManageKeys ? (
           <Button size="sm" variant="primary" onClick={onCreate}>
@@ -268,7 +268,7 @@ function KeysCard({ s, onCreate }: { s: Setup; onCreate: () => void }) {
           <span className="k">
             <T
               msg={s.keyHelpers.length ? ms.keysForbidden : ms.keysForbiddenNoNames}
-              values={{ permission: <span className="mono">apikeys:manage</span>, names: s.keyHelpers.join(', ') }}
+              values={{ permission: <span className="mono">{'apikeys:manage'}</span>, names: s.keyHelpers.join(', ') }}
             />
           </span>
         )}
@@ -410,7 +410,7 @@ function RelayCard({ s, onCreate }: { s: Setup; onCreate: () => void }) {
               {r.certNotAfter ? (
                 <>
                   <dt>{t(ms.relayCertificateRow)}</dt>
-                  <dd>Let's Encrypt · {t(ms.relayCertificateValue, { date: dayMonthYear(r.certNotAfter) })}</dd>
+                  <dd>{t(ms.relayCertificateValue, { date: dayMonthYear(r.certNotAfter) })}</dd>
                 </>
               ) : null}
               <dt>{t(ms.relayFrom)}</dt>
@@ -483,11 +483,10 @@ function EventsCard() {
       <div className="pad flex flex-col gap-2.5">
         {hook ? (
           <span className="k" style={{ color: 'var(--ink-nav)' }}>
-            {t(ms.eventsEndpoint)} <span className="mono">{hook.url}</span>{' '}
             {some ? (
-              <T msg={ms.eventsSome} values={{ events: <>{some.map((e, i) => <span key={e}>{i ? (i === some.length - 1 ? t(ms.and) : ', ') : ''}<span className="mono">{e}</span></span>)}</> }} />
+              <T msg={ms.eventsSome} values={{ url: <span className="mono">{hook.url}</span>, events: <RichList items={some} render={(e) => <span className="mono">{e}</span>} /> }} />
             ) : (
-              t(ms.eventsBody)
+              <T msg={ms.eventsBody} values={{ url: <span className="mono">{hook.url}</span> }} />
             )}
           </span>
         ) : (
