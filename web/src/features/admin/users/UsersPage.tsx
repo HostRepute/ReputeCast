@@ -11,10 +11,14 @@ import { Menu, MenuItem, MenuSeparator } from '@/components/ui/Menu'
 import { Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { AccessTable, PersonCell, SignInText, TwoFABadge } from '@/features/access/parts'
+import { t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { ago, clock, usDate } from '@/lib/format'
+import { roleName } from '@/lib/roles'
 import { useWorkspace } from '@/lib/session'
 import { AdminPage } from '../AdminPage'
 import { useInvalidateUsers } from '../queries'
+import { m } from './messages'
 import { DeactivateUserDialog, MakeAdminDialog, PasswordResetDialog, RemoveAdminDialog, ResetTwoFactorDialog } from './UserDialogs'
 import { AgencyStaffTd, AgencyStaffTh, useAgencyColumn } from '@/features/agency/AdminParts'
 
@@ -29,8 +33,9 @@ export interface UsersSearch {
 
 /** Instance admin › Users (InstanceUsers, InstanceUserDialogs). */
 export function UsersPage({ search }: { search: UsersSearch }) {
+  const t = useT()
   return (
-    <AdminPage documentTitle="Users">
+    <AdminPage documentTitle={t(m.documentTitle)}>
       <UsersCard search={search} />
       <div className="grid gap-5 [&>*]:min-w-0 grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] max-md:grid-cols-1">
         <PolicySnapshot />
@@ -41,6 +46,7 @@ export function UsersPage({ search }: { search: UsersSearch }) {
 }
 
 function UsersCard({ search }: { search: UsersSearch }) {
+  const t = useT()
   const q = $api.useQuery(
     'get',
     '/api/v1/admin/users',
@@ -53,16 +59,16 @@ function UsersCard({ search }: { search: UsersSearch }) {
       <div className="sec">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h2 className="h2" id="users-h">
-            Users{total !== undefined ? ` · ${total} ${total === 1 ? 'account' : 'accounts'}` : ''}
+            {total !== undefined ? t(m.titleCount, { count: total }) : t(m.title)}
           </h2>
-          <span className="k">Every account on this instance. Deactivating here signs the user out of every workspace.</span>
+          <span className="k">{t(m.caption)}</span>
         </div>
         <Filters search={search} workspaces={q.data?.workspaces ?? []} />
       </div>
       {q.isError ? (
         <div className="pad">
-          <ErrorPanel title="Couldn't load the users" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
-            {errorMessage(q.error)} Nothing was changed.
+          <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
+            {errorMessage(q.error)} {t(m.nothingChanged)}
           </ErrorPanel>
         </div>
       ) : q.isPending ? (
@@ -70,7 +76,7 @@ function UsersCard({ search }: { search: UsersSearch }) {
       ) : q.data.items.length === 0 ? (
         <div className="pad">
           <div className="note n">
-            <span>No accounts match these filters. Clear the search or pick “Any” in the filters.</span>
+            <span>{t(m.noMatch)}</span>
           </div>
         </div>
       ) : (
@@ -81,6 +87,7 @@ function UsersCard({ search }: { search: UsersSearch }) {
 }
 
 function Filters({ search, workspaces }: { search: UsersSearch; workspaces: Schemas['InstanceWorkspaceRef'][] }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const [text, setText] = useState(search.q ?? '')
@@ -95,11 +102,11 @@ function Filters({ search, workspaces }: { search: UsersSearch; workspaces: Sche
   return (
     <div className="row gap-2 max-md:basis-full">
       <label className="vh" htmlFor="uq">
-        Search users
+        {t(m.searchLabel)}
       </label>
-      <input id="uq" className="in w-[220px] max-md:w-full" type="search" placeholder="Search name or email" value={text} onChange={(e) => setText(e.target.value)} />
-      <select className="in w-[170px] max-md:w-full" aria-label="Filter by workspace" value={search.workspace ?? ''} onChange={(e) => set({ workspace: e.target.value || undefined })}>
-        <option value="">Any workspace</option>
+      <input id="uq" className="in w-[220px] max-md:w-full" type="search" placeholder={t(m.searchPlaceholder)} value={text} onChange={(e) => setText(e.target.value)} />
+      <select className="in w-[170px] max-md:w-full" aria-label={t(m.filterWorkspace)} value={search.workspace ?? ''} onChange={(e) => set({ workspace: e.target.value || undefined })}>
+        <option value="">{t(m.anyWorkspace)}</option>
         {workspaces.map((w) => (
           <option key={w.slug} value={w.slug}>
             {w.name}
@@ -108,24 +115,24 @@ function Filters({ search, workspaces }: { search: UsersSearch; workspaces: Sche
       </select>
       <select
         className="in w-[130px] max-md:w-full"
-        aria-label="Filter by status"
+        aria-label={t(m.filterStatus)}
         value={search.status ?? ''}
         onChange={(e) => set({ status: (e.target.value || undefined) as UsersSearch['status'] })}
       >
-        <option value="">Any status</option>
-        <option value="active">Active</option>
-        <option value="deactivated">Deactivated</option>
+        <option value="">{t(m.anyStatus)}</option>
+        <option value="active">{t(m.active)}</option>
+        <option value="deactivated">{t(m.deactivated)}</option>
       </select>
       <select
         className="in w-[110px] max-md:w-full"
-        aria-label="Filter by two-factor status"
+        aria-label={t(m.filter2FA)}
         value={search.twofa ?? ''}
         onChange={(e) => set({ twofa: (e.target.value || undefined) as UsersSearch['twofa'] })}
       >
-        <option value="">Any 2FA</option>
-        <option value="on">On</option>
-        <option value="off">Off</option>
-        <option value="idp">Via IdP</option>
+        <option value="">{t(m.any2FA)}</option>
+        <option value="on">{t(m.twoFAOn)}</option>
+        <option value="off">{t(m.twoFAOff)}</option>
+        <option value="idp">{t(m.twoFAIdp)}</option>
       </select>
     </div>
   )
@@ -138,24 +145,25 @@ function clean(s: UsersSearch): UsersSearch {
 type DialogKind = 'twofa' | 'reset' | 'admin' | 'unadmin' | 'deactivate'
 
 function UsersTable({ data }: { data: Schemas['InstanceUserList'] }) {
+  const t = useT()
   const [dialog, setDialog] = useState<{ kind: DialogKind; user: User }>()
   const [open, setOpen] = useState<string>()
   const agencyColumn = useAgencyColumn()
   return (
     <>
-      <AccessTable caption="Users">
+      <AccessTable caption={t(m.tableCaption)}>
         <thead>
           <tr>
-            <Th>User</Th>
-            <Th>Workspaces · role</Th>
+            <Th>{t(m.colUser)}</Th>
+            <Th>{t(m.colWorkspaces)}</Th>
             {/* Each person's level on the agency's staff, while agency mode is on (agency accounts). */}
             {agencyColumn ? <AgencyStaffTh /> : null}
-            <Th>Sign-in methods</Th>
-            <Th>2FA</Th>
-            <Th>Last sign-in</Th>
-            <Th>Status</Th>
+            <Th>{t(m.colSignIn)}</Th>
+            <Th>{t(m.col2FA)}</Th>
+            <Th>{t(m.colLastSignIn)}</Th>
+            <Th>{t(m.colStatus)}</Th>
             <Th>
-              <span className="vh">Actions</span>
+              <span className="vh">{t(m.colActions)}</span>
             </Th>
           </tr>
         </thead>
@@ -194,6 +202,7 @@ function UserRow({
   onMenu: (o: boolean) => void
   onDialog: (k: DialogKind) => void
 }) {
+  const t = useT()
   const off = u.status === 'deactivated'
   const [first, ...rest] = u.workspaces
   const person = <PersonCell name={u.name} sub={u.email} color={u.avatarColor} muted={off} />
@@ -203,7 +212,7 @@ function UserRow({
         {u.instanceAdmin ? (
           <div className="col gap-1">
             {person}
-            <Badge tone="purple">Instance admin</Badge>
+            <Badge tone="purple">{t(m.instanceAdmin)}</Badge>
           </div>
         ) : (
           person
@@ -211,17 +220,17 @@ function UserRow({
       </Td>
       <Td>
         {u.workspaces.length === 0 ? (
-          <span className="k">No workspace</span>
+          <span className="k">{t(m.noWorkspace)}</span>
         ) : rest.length === 0 ? (
-          `${first!.name} · ${first!.role}`
+          `${first!.name} · ${roleName({ name: first!.role })}`
         ) : (
           <span className="col gap-0.5">
             <span>
-              {first!.name} · {first!.role}
+              {first!.name} · {roleName({ name: first!.role })}
             </span>
             {rest.map((w) => (
               <span key={w.slug} className="k">
-                {w.name} · {w.role}
+                {w.name} · {roleName({ name: w.role })}
               </span>
             ))}
           </span>
@@ -230,17 +239,17 @@ function UserRow({
       {agencyColumn ? <AgencyStaffTd level={u.agencyLevel} /> : null}
       <Td>{off ? <span className="k">–</span> : <SignInText methods={u.methods} />}</Td>
       <Td>{off ? <span className="k">–</span> : <TwoFABadge twoFA={u.twoFactor} />}</Td>
-      <Td className="whitespace-nowrap!">{off ? (u.deactivatedAt ? usDate(u.deactivatedAt) : '–') : u.lastSignInAt ? ago(u.lastSignInAt) : <span className="k">never</span>}</Td>
+      <Td className="whitespace-nowrap!">{off ? (u.deactivatedAt ? usDate(u.deactivatedAt) : '–') : u.lastSignInAt ? ago(u.lastSignInAt) : <span className="k">{t(m.never)}</span>}</Td>
       <Td>
         {off ? (
-          <Badge tone="neutral">Deactivated</Badge>
+          <Badge tone="neutral">{t(m.deactivated)}</Badge>
         ) : u.lockedUntil ? (
           <span className="col gap-0.5">
-            <Badge tone="warn">Locked</Badge>
-            <span className="k">until {clock(u.lockedUntil)}</span>
+            <Badge tone="warn">{t(m.locked)}</Badge>
+            <span className="k">{t(m.until, { time: clock(u.lockedUntil) })}</span>
           </span>
         ) : (
-          <Badge tone="ok">Active</Badge>
+          <Badge tone="ok">{t(m.active)}</Badge>
         )}
       </Td>
       <Td>
@@ -251,6 +260,7 @@ function UserRow({
 }
 
 function UserMenu({ u, open, onOpenChange, onDialog }: { u: User; open: boolean; onOpenChange: (o: boolean) => void; onDialog: (k: DialogKind) => void }) {
+  const t = useT()
   const invalidate = useInvalidateUsers()
   const signOut = $api.useMutation('post', '/api/v1/admin/users/{userId}/sign-out')
   const reactivate = $api.useMutation('post', '/api/v1/admin/users/{userId}/reactivate')
@@ -262,26 +272,26 @@ function UserMenu({ u, open, onOpenChange, onDialog }: { u: User; open: boolean;
       await invalidate()
       toast({ kind: 'success', title: done, detail })
     } catch (e) {
-      toast({ kind: 'error', title: `Couldn't update ${u.name}`, detail: errorMessage(e) })
+      toast({ kind: 'error', title: tt(m.updateFailed, { name: u.name }), detail: errorMessage(e) })
     }
   }
   const off = u.status === 'deactivated'
   return (
     <Menu
-      label={`Actions for ${u.name}`}
+      label={t(m.actionsFor, { name: u.name })}
       className="w-[300px] max-md:w-auto"
       open={open}
       onOpenChange={onOpenChange}
       trigger={
-        <button type="button" className="ibtn" aria-label={`Actions for ${u.name}`} style={open ? { background: 'var(--line-2)' } : undefined}>
+        <button type="button" className="ibtn" aria-label={t(m.actionsFor, { name: u.name })} style={open ? { background: 'var(--line-2)' } : undefined}>
           ⋯
         </button>
       }
     >
       {off ? (
-        <MenuItem onSelect={() => void run(() => reactivate.mutateAsync(path), `${u.name} can sign in again`, 'their workspace memberships are back')}>
+        <MenuItem onSelect={() => void run(() => reactivate.mutateAsync(path), tt(m.canSignInAgain, { name: u.name }), tt(m.membershipsBack))}>
           <Icon name="undo" />
-          Reactivate account
+          {t(m.reactivateAccount)}
         </MenuItem>
       ) : (
         <>
@@ -293,64 +303,64 @@ function UserMenu({ u, open, onOpenChange, onDialog }: { u: User; open: boolean;
                   const r = await signOut.mutateAsync({ ...path, body: {} })
                   return r
                 },
-                `${u.name} was signed out`,
-                `${u.sessions} ${u.sessions === 1 ? 'session' : 'sessions'} ended`,
+                tt(m.signedOut, { name: u.name }),
+                tt(m.sessionsEnded, { count: u.sessions }),
               )
             }
           >
             <Icon name="signOut" />
-            Force sign-out <span className="k ml-auto">{u.sessions === 0 ? 'no sessions' : `${u.sessions} ${u.sessions === 1 ? 'session' : 'sessions'}`}</span>
+            {t(m.forceSignOut)} <span className="k ml-auto">{t(m.sessions, { count: u.sessions })}</span>
           </MenuItem>
           {u.twoFactor.state === 'on' && u.twoFactor.method === 'TOTP' ? (
             <MenuItem onSelect={() => onDialog('twofa')}>
               <Icon name="lock" />
-              Reset two-factor <span className="k ml-auto">reason required</span>
+              {t(m.resetTwoFactor)} <span className="k ml-auto">{t(m.reasonRequired)}</span>
             </MenuItem>
           ) : (
             <MenuItem disabled>
               <Icon name="lock" />
-              Reset two-factor <span className="k ml-auto">{u.twoFactor.state === 'idp' ? 'via IdP' : 'no authenticator'}</span>
+              {t(m.resetTwoFactor)} <span className="k ml-auto">{u.twoFactor.state === 'idp' ? t(m.viaIdp) : t(m.noAuthenticator)}</span>
             </MenuItem>
           )}
           {u.hasPassword ? (
             <>
               <MenuItem onSelect={() => onDialog('reset')}>
                 <Icon name="mail" />
-                Send password reset
+                {t(m.sendPasswordReset)}
               </MenuItem>
               <MenuItem onSelect={() => onDialog('reset')}>
                 <Icon name="terminal" />
-                Show CLI reset command
+                {t(m.showCliCommand)}
               </MenuItem>
             </>
           ) : (
             <MenuItem disabled>
               <Icon name="mail" />
-              Send password reset <span className="k ml-auto">{u.ssoProvider ? `managed by ${u.ssoProvider}` : 'no password'}</span>
+              {t(m.sendPasswordReset)} <span className="k ml-auto">{u.ssoProvider ? t(m.managedBy, { provider: u.ssoProvider }) : t(m.noPassword)}</span>
             </MenuItem>
           )}
           {u.lockedUntil ? (
-            <MenuItem onSelect={() => void run(() => unlock.mutateAsync(path), `${u.name} can sign in again`, 'the lockout was cleared')}>
+            <MenuItem onSelect={() => void run(() => unlock.mutateAsync(path), tt(m.canSignInAgain, { name: u.name }), tt(m.lockoutCleared))}>
               <Icon name="key" />
-              Unlock sign-in <span className="k ml-auto">until {clock(u.lockedUntil)}</span>
+              {t(m.unlockSignIn)} <span className="k ml-auto">{t(m.until, { time: clock(u.lockedUntil) })}</span>
             </MenuItem>
           ) : null}
           <MenuSeparator />
           {u.instanceAdmin ? (
             <MenuItem onSelect={() => onDialog('unadmin')}>
               <Icon name="star" />
-              Remove instance admin
+              {t(m.removeAdmin)}
             </MenuItem>
           ) : (
             <MenuItem onSelect={() => onDialog('admin')}>
               <Icon name="star" />
-              Make instance admin
+              {t(m.makeAdmin)}
             </MenuItem>
           )}
           <MenuSeparator />
           <MenuItem disabled={u.self} onSelect={() => onDialog('deactivate')} className="text-bad-fg">
             <Icon name="ban" />
-            Deactivate account {u.self ? <span className="k ml-auto">that's you</span> : null}
+            {t(m.deactivateAccount)} {u.self ? <span className="k ml-auto">{t(m.thatsYou)}</span> : null}
           </MenuItem>
         </>
       )}
@@ -359,10 +369,11 @@ function UserMenu({ u, open, onOpenChange, onDialog }: { u: User; open: boolean;
 }
 
 function UsersSkeleton() {
+  const t = useT()
   return (
     <div aria-busy="true">
       <span className="vh" role="status">
-        Loading users
+        {t(m.loading)}
       </span>
       {Array.from({ length: 6 }, (_, i) => (
         <div key={i} className="flex items-center gap-6 border-b border-line-2 px-3 py-4 last:border-b-0">
@@ -386,28 +397,31 @@ function UsersSkeleton() {
 
 /** Sign-in policy snapshot: SSO enforcement, two-factor, lockout. */
 function PolicySnapshot() {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/admin/policy')
   const p = q.data
   const enforced = p?.sso.filter((x) => x.status === 'enabled' && x.enforced.length > 0) ?? []
   const twofa = p
     ? p.twoFactor === 'off'
-      ? 'Off'
-      : `Required for ${p.twoFactor === 'everyone' ? 'everyone' : 'sensitive permissions'} · ${p.graceDays === 0 ? 'no grace period' : `${p.graceDays}-day grace`} · ${p.inGrace.length} ${p.inGrace.length === 1 ? 'member' : 'members'} in grace`
+      ? t(m.twoFAPolicyOff)
+      : t(m.twoFAPolicy, { who: p.twoFactor === 'everyone' ? 'everyone' : 'sensitive', grace: p.graceDays, inGrace: p.inGrace.length })
     : ''
   return (
     <section className="card" aria-labelledby="snap-h">
       <CardSection
-        title={<span id="snap-h">Sign-in policy snapshot</span>}
+        title={<span id="snap-h">{t(m.policyTitle)}</span>}
         actions={
           <ButtonLink size="sm" to="/w/$workspace/admin/authentication" params={{ workspace: slug }}>
-            Authentication
+            {t(m.authentication)}
           </ButtonLink>
         }
       />
       <div className="pad">
         {q.isError ? (
-          <span className="k">Couldn't load the policy. {errorMessage(q.error)}</span>
+          <span className="k">
+            {t(m.policyLoadFailed)} {errorMessage(q.error)}
+          </span>
         ) : !p ? (
           <div className="col gap-2.5" aria-busy="true">
             <Skeleton w="80%" />
@@ -416,18 +430,16 @@ function PolicySnapshot() {
           </div>
         ) : (
           <dl className="kv">
-            <dt>SSO enforced</dt>
+            <dt>{t(m.ssoEnforced)}</dt>
             <dd>
               {enforced.length === 0
-                ? 'No domain · password sign-in stays on for every domain'
-                : enforced.map((x) => `${x.enforced.join(', ')} → ${x.name}`).join('; ') + ' (except break-glass Owners)'}
+                ? t(m.ssoEnforcedNone)
+                : t(m.ssoEnforcedList, { providers: enforced.map((x) => `${x.enforced.join(', ')} → ${x.name}`).join('; ') })}
             </dd>
-            <dt>2FA</dt>
+            <dt>{t(m.twoFA)}</dt>
             <dd>{twofa}</dd>
-            <dt>Lockout</dt>
-            <dd>
-              {p.lockoutAttempts} attempts → {lockWords(p.lockoutMinutes)} · {p.lockedNow} {p.lockedNow === 1 ? 'account' : 'accounts'} locked now
-            </dd>
+            <dt>{t(m.lockout)}</dt>
+            <dd>{t(m.lockoutValue, { attempts: p.lockoutAttempts, duration: lockWords(p.lockoutMinutes), locked: p.lockedNow })}</dd>
           </dl>
         )}
       </div>
@@ -438,28 +450,31 @@ function PolicySnapshot() {
 export function lockWords(minutes: number) {
   if (minutes % 60 === 0) {
     const h = minutes / 60
-    return `${h} ${h === 1 ? 'hour' : 'hours'}`
+    return tt(m.lockHours, { count: h })
   }
-  return `${minutes} minutes`
+  return tt(m.lockMinutes, { count: minutes })
 }
 
 /** The latest sign-in attempts, from the instance audit log. */
 function RecentSignIns() {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/admin/sign-ins', { params: { query: { limit: 4 } } })
   return (
     <section className="card" aria-labelledby="signins-h">
       <CardSection
-        title={<span id="signins-h">Recent sign-in events</span>}
+        title={<span id="signins-h">{t(m.signInsTitle)}</span>}
         actions={
           <ButtonLink size="sm" to="/w/$workspace/admin/audit" params={{ workspace: slug }}>
-            Instance audit log
+            {t(m.instanceAuditLog)}
           </ButtonLink>
         }
       />
       {q.isError ? (
         <div className="pad">
-          <span className="k">Couldn't load the sign-in events. {errorMessage(q.error)}</span>
+          <span className="k">
+            {t(m.signInsLoadFailed)} {errorMessage(q.error)}
+          </span>
         </div>
       ) : q.isPending ? (
         <div className="pad col gap-3" aria-busy="true">
@@ -469,16 +484,16 @@ function RecentSignIns() {
         </div>
       ) : q.data.items.length === 0 ? (
         <div className="pad">
-          <span className="k">No sign-ins yet. Every attempt, allowed or rejected, appears here and in the instance audit log.</span>
+          <span className="k">{t(m.noSignIns)}</span>
         </div>
       ) : (
-        <AccessTable caption="Recent sign-in events">
+        <AccessTable caption={t(m.signInsTitle)}>
           <thead>
             <tr>
-              <Th>When</Th>
-              <Th>Event</Th>
-              <Th>Account</Th>
-              <Th>Result</Th>
+              <Th>{t(m.colWhen)}</Th>
+              <Th>{t(m.colEvent)}</Th>
+              <Th>{t(m.colAccount)}</Th>
+              <Th>{t(m.colResult)}</Th>
             </tr>
           </thead>
           <tbody>
@@ -489,12 +504,12 @@ function RecentSignIns() {
                 <Td>{e.account}</Td>
                 <Td>
                   {e.result === 'allowed' ? (
-                    <Badge tone="ok">Allowed</Badge>
+                    <Badge tone="ok">{t(m.allowed)}</Badge>
                   ) : e.result === 'recovered' ? (
-                    <Badge tone="warn">Then allowed</Badge>
+                    <Badge tone="warn">{t(m.thenAllowed)}</Badge>
                   ) : (
                     <span className="col gap-0.5">
-                      <Badge tone="bad">Rejected</Badge>
+                      <Badge tone="bad">{t(m.rejected)}</Badge>
                       {e.detail ? <span className="k">{e.detail}</span> : null}
                     </span>
                   )}
@@ -514,7 +529,7 @@ function eventWhen(at: string) {
   const now = new Date()
   const days = Math.floor((startOfDay(now) - startOfDay(d)) / 86_400_000)
   if (days <= 0) return clock(at)
-  if (days === 1) return 'yesterday'
+  if (days === 1) return tt(m.yesterday)
   return usDate(at)
 }
 
