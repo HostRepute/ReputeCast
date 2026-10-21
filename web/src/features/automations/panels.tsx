@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Button } from '@/components/ui/Button'
+import { OptionCard } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { clock, count, dayMonthDate, pct, rate } from '@/lib/format'
@@ -46,7 +47,7 @@ import { m as pushStep } from '@/features/push/automation.messages'
 import { PushStepProps, PushStepStats } from '@/features/push/AutomationStep'
 import { m as waStep } from '@/features/whatsapp/automation.messages'
 import { WhatsAppStepProps, WhatsAppStepStats, WhatsAppStepSub } from '@/features/whatsapp/AutomationStep'
-import { T, useT, type MessageDescriptor } from '@/i18n'
+import { T, useI18n, useT, type MessageDescriptor } from '@/i18n'
 import { common } from '@/i18n/common'
 import { isStoreTrigger, PlacedOrderFields, StoreTriggerFields, storeTriggerDefaults, useStoreTriggerOptions } from '@/features/commerce/automation'
 
@@ -207,6 +208,32 @@ export function Prop({ title, children, id }: { title: string; children: ReactNo
         {title}
       </span>
       {children}
+    </div>
+  )
+}
+
+/**
+ * A choice whose labels run long in another language: a select in English,
+ * radio cards elsewhere, since a select can't wrap (Text expansion, rule 1).
+ */
+function LongChoice({ id, value, options, disabled, onChange }: { id: string; value: string; options: { value: string; label: string }[]; disabled?: boolean; onChange: (v: string) => void }) {
+  const cards = useI18n().locale !== 'en'
+  if (!cards) {
+    return (
+      <select aria-labelledby={id} className="in" disabled={disabled} value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    )
+  }
+  return (
+    <div role="radiogroup" aria-labelledby={id} className="flex flex-col gap-1.5">
+      {options.map((o) => (
+        <OptionCard key={o.value} name={id} value={o.value} checked={value === o.value} disabled={disabled} onChange={onChange} title={o.label} />
+      ))}
     </div>
   )
 }
@@ -527,16 +554,18 @@ export function StepPanel(p: StepPanelProps) {
             <input aria-labelledby="p-subject" className="in" disabled={disabled} value={d.email?.subject ?? ''} onChange={(e) => set({ email: { ...d.email, subject: e.target.value } })} />
           </Prop>
           <Prop title={tr(mp.sendingRoute)} id="p-route">
-            <select aria-labelledby="p-route" className="in" disabled={disabled} value={d.email?.route ?? ''} onChange={(e) => set({ email: { ...d.email, route: e.target.value || undefined } })}>
-              <option value="">{tr(mp.routeDefault, { route: p.routeLabel })}</option>
-              {options?.providers
-                .filter((pr) => !p.routePrimary.includes(pr.id) || pr.id === d.email?.route)
-                .map((pr) => (
-                  <option key={pr.id} value={pr.id}>
-                    {tr(mp.routeOverride, { provider: pr.short })}
-                  </option>
-                ))}
-            </select>
+            <LongChoice
+              id="p-route"
+              disabled={disabled}
+              value={d.email?.route ?? ''}
+              onChange={(v) => set({ email: { ...d.email, route: v || undefined } })}
+              options={[
+                { value: '', label: tr(mp.routeDefault, { route: p.routeLabel }) },
+                ...(options?.providers ?? [])
+                  .filter((pr) => !p.routePrimary.includes(pr.id) || pr.id === d.email?.route)
+                  .map((pr) => ({ value: pr.id, label: tr(mp.routeOverride, { provider: pr.short }) })),
+              ]}
+            />
             <span className="k">{tr(mp.failoverNote)}</span>
           </Prop>
           <Prop title={tr(mp.sendWindow)} id="p-window">
@@ -595,10 +624,16 @@ export function StepPanel(p: StepPanelProps) {
       {node.type === 'whatsapp' ? <WhatsAppStepProps data={d} lists={options?.lists ?? []} editable={editable} onChange={p.onChange} /> : null}
       {(node.type === 'goal' || node.type === 'exit') && p.onChangeType ? (
         <Prop title={tr(mp.endsAs)} id="p-end">
-          <select aria-labelledby="p-end" className="in" disabled={disabled} value={node.type} onChange={(e) => p.onChangeType?.(e.target.value as StepType)}>
-            <option value="goal">{tr(mp.endGoal)}</option>
-            <option value="exit">{tr(mp.endExit)}</option>
-          </select>
+          <LongChoice
+            id="p-end"
+            disabled={disabled}
+            value={node.type}
+            onChange={(v) => p.onChangeType?.(v as StepType)}
+            options={[
+              { value: 'goal', label: tr(mp.endGoal) },
+              { value: 'exit', label: tr(mp.endExit) },
+            ]}
+          />
         </Prop>
       ) : null}
       {node.type === 'goal' ? (
@@ -779,10 +814,16 @@ function TriggerProps({ graph, node, options, editable, onChange, stats, hasStat
       </Prop>
       {t.kind === 'score_crosses' || t.kind === 'milestone_reached' ? null : (
         <Prop title={tr(mp.reentry)} id="p-reentry">
-          <select aria-labelledby="p-reentry" className="in" disabled={disabled} value={t.reentry ?? 'once'} onChange={(e) => set({ reentry: e.target.value })}>
-            <option value="once">{tr(mp.oncePerContact)}</option>
-            <option value="always">{tr(mp.everyTime)}</option>
-          </select>
+          <LongChoice
+            id="p-reentry"
+            disabled={disabled}
+            value={t.reentry ?? 'once'}
+            onChange={(v) => set({ reentry: v })}
+            options={[
+              { value: 'once', label: tr(mp.oncePerContact) },
+              { value: 'always', label: tr(mp.everyTime) },
+            ]}
+          />
         </Prop>
       )}
       {hasStats && stats ? (

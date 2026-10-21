@@ -31,7 +31,7 @@ export default translate(mg, {
   kindFirstOrder: 'Đơn hàng đầu tiên',
   kindAbandonedCheckout: 'Bỏ dở thanh toán',
   kindWord:
-    '{kind, select, joined_list {tham gia danh sách} form_submitted {gửi biểu mẫu} tag_added {được gắn thẻ} api_event {sự kiện API} date_field {trường ngày} score_crosses {điểm vượt ngưỡng} poll_answered {trả lời bình chọn} bought_product {mua sản phẩm} milestone_reached {đạt mốc} order_placed {đặt hàng} first_order {đơn hàng đầu tiên} abandoned_checkout {bỏ dở thanh toán} other {{kind}}}',
+    '{kind, select, joined_list {vào danh sách} form_submitted {gửi biểu mẫu} tag_added {được gắn thẻ} api_event {sự kiện API} date_field {trường ngày} score_crosses {điểm vượt ngưỡng} poll_answered {trả lời bình chọn} bought_product {mua sản phẩm} milestone_reached {đạt mốc} order_placed {đặt hàng} first_order {đơn hàng đầu tiên} abandoned_checkout {bỏ dở thanh toán} other {{kind}}}',
 
   duration: '{unit, select, minutes {{n} phút} hours {{n} giờ} weeks {{n} tuần} other {{n} ngày}}',
 

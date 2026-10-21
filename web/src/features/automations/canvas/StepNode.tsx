@@ -65,7 +65,7 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
   if (border && !selected && !hasIssue) style.borderColor = border
 
   // Header: the step type plus what matters most here.
-  let header = typeName(type)
+  let header = type === 'trigger' ? tr(mf.triggerHead) : typeName(type)
   if (type === 'trigger' && data.trigger?.kind) header += ` · ${triggerKindWord(data.trigger.kind)}`
   const variant = v.graph.edges.find((e) => e.target === id && nodeById(v.graph, e.source)?.type === 'split')?.data.path
   const providers = st?.providers ?? []

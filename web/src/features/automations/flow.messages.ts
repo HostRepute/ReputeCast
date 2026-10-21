@@ -101,7 +101,9 @@ export const mf = defineMessages('automations.flow', {
   unlock: 'Unlock canvas',
   minimap: 'Minimap',
 
-  // The step on the canvas.
+  // The step on the canvas. Its stats words are short: a step is 224 px wide.
+  /** A trigger's header before its kind ("Trigger · joined list"), in capitals: one line if it can. */
+  triggerHead: 'Trigger',
   newInVersion: 'new in v{version}',
   routeOverride: 'route override',
   automationsRoute: 'Automations route',
