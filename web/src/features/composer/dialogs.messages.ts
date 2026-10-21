@@ -1,0 +1,105 @@
+import { defineMessages } from '@/i18n'
+
+/**
+ * The composer's dialogs (Dialogs board): version history and compare,
+ * the image library, import, save as template and the keyboard shortcuts.
+ */
+export const md = defineMessages('composer.dialogs', {
+  // Version history.
+  versionsTitle: 'Version history · {name}',
+  restored: 'Version {version} restored',
+  restoredDetail: 'It is saved as a new version; nothing was deleted.',
+  restoreFailed: "Couldn't restore the version",
+  /** A version saved without a description of its changes: how it was saved. */
+  source: '{source, select, autosave {autosave} manual {manual} import {import} template {template} create {create} restore {restore} other {{source}}}',
+  compareWith: 'Compare v{a} with v{b}',
+  tickTwo: 'Tick two versions to compare them.',
+  compareTwo: 'Compare two versions',
+  loadingVersions: 'Loading versions…',
+  historyFailed: "The history couldn't load. {error}",
+  compareVersion: 'Compare version {version}',
+  current: 'Current',
+  liveDraft: 'Live draft',
+  restore: 'Restore',
+  showingLatest: 'Showing the latest {count} of {total} versions.',
+
+  // Compare.
+  compareTitle: 'Compare versions',
+  yourEdits: 'your edits (not saved)',
+  diffSubject: 'Subject: {value}',
+  diffPreheader: 'Preheader: {value}',
+  loadVersionsFailed: "Couldn't load the versions",
+  sections: 'Sections: {list}',
+  added: 'added: ',
+  removed: 'removed: ',
+  noDifferences: 'No differences.',
+
+  // Images.
+  chooseImage: 'Choose an image',
+  chooseBackground: 'Choose a background image',
+  assetsLead: 'PNG, JPEG or GIF up to 5 MB. Images are served from your ReputeCast address, so they load in every inbox.',
+  uploadFailedStatus: 'Upload failed ({status})',
+  uploaded: '{name} uploaded',
+  uploadFailed: "Couldn't upload the image",
+  removedFromLibrary: '{name} removed from the library',
+  removedDetail: 'Emails already sent keep showing it.',
+  removeFailed: "Couldn't remove the image",
+  dropHere: 'Drop an image here',
+  or: 'or',
+  uploading: 'Uploading…',
+  upload: 'Upload from your computer',
+  imageUrl: 'Image URL',
+  pasteUrl: 'Or paste an image URL: https://…',
+  useUrl: 'Use URL',
+  library: 'Library',
+  loadingImages: 'Loading images…',
+  libraryFailed: "The library couldn't load. {error}",
+  noImages: 'No images yet. Uploads appear here for every campaign of the workspace.',
+  useImage: 'Use {name}',
+  imageMeta: '{width}×{height} · {size}',
+  imageMetaTransparent: '{width}×{height} · {size} · transparent',
+  remove: 'Remove',
+
+  // Import.
+  importTitle: 'Import MJML or HTML',
+  importLead: 'The canvas content is replaced; the current version stays in the history.',
+  noBody: 'The MJML has no {tag}.',
+  noteImportedMjml: 'imported MJML',
+  noteImportedHtml: 'imported HTML',
+  importRaw: 'Import as raw HTML',
+  import: 'Import',
+  paste: 'Paste MJML or HTML',
+  uploadFile: 'Or upload a file',
+  htmlNote: "HTML goes into one Raw HTML section: it is sent as it is, but can't be edited block by block. Rebuild it with MJML blocks to edit it on the canvas.",
+
+  // Save as template.
+  saveTitle: 'Save as template',
+  whatToSave: 'What to save',
+  wholeEmail: 'The whole email',
+  selectedSection: 'The selected section',
+  selectSectionFirst: 'Select a section on the canvas first',
+  name: 'Name',
+  description: 'Description',
+  descriptionSection: 'Shown under the name in Saved sections',
+  descriptionTemplate: 'Shown in the template gallery',
+  /** Suggested names: "Hero section", "Spring sale template". */
+  sectionName: '{name} section',
+  templateName: '{name} template',
+  untitled: 'Untitled',
+
+  // Keyboard shortcuts.
+  shortcutsTitle: 'Keyboard shortcuts',
+  shortcutsLead: 'Ctrl instead of ⌘ on Windows and Linux.',
+  keyMove: '↑ ↓ on Move',
+  keyDoubleClick: 'Double-click',
+  scSave: 'Save a version now',
+  scUndo: 'Undo',
+  scRedo: 'Redo',
+  scCopy: 'Copy and paste the selected component',
+  scDelete: 'Delete the selected component',
+  scMove: 'Move the selected component up or down',
+  scDoubleClick: 'Edit text on the canvas',
+  scBold: 'Bold and italic while editing text',
+  scEscape: 'Stop editing text',
+  scHelp: 'Show these shortcuts',
+})

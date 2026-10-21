@@ -35,6 +35,8 @@ import { ComposerAssistScope, useComposerAssistState } from '@/features/ai/compo
 import { AITranslateFooter, AITranslateView } from '@/features/ai/composer/translate'
 import { SponsorSync } from '@/features/earn/sponsors/composer/SponsorSettings'
 import { WebCanvasView, WebModeProvider } from '@/features/website/composer/campaign'
+import { t as tt, useT } from '@/i18n'
+import { m } from './messages'
 import './composer.css'
 
 // CodeMirror loads with the code view only.
@@ -80,6 +82,7 @@ export function Composer({
   missingLanguage?: string
 }) {
   const { slug } = useWorkspace()
+  const t = useT()
   const qc = useQueryClient()
   const navigate = useNavigate()
   const canEditPerm = useCan('campaigns:edit')
@@ -142,7 +145,7 @@ export function Composer({
   const variantBodies = useRef<Record<string, string>>({})
   const shownVariant = useRef('A')
 
-  useDocumentTitle(`${name || 'Untitled campaign'} · Composer · ReputeCast`)
+  useDocumentTitle(t(m.documentTitle, { name: name || t(m.untitled) }))
 
   const markDirty = useCallback(() => {
     revision.current++
@@ -195,7 +198,7 @@ export function Composer({
         if (pendingSource.current) markDirty()
       })
       .catch((e: unknown) => {
-        toast({ kind: 'error', title: "The editor couldn't start", detail: e instanceof Error ? e.message : String(e) })
+        toast({ kind: 'error', title: tt(m.editorFailed), detail: e instanceof Error ? e.message : String(e) })
       })
     return () => {
       cancelled = true
@@ -327,11 +330,11 @@ export function Composer({
           return true
         } catch (e) {
           if (e instanceof ApiError && e.status === 409 && e.code === 'version_conflict') {
-            const m = (e.problem.meta ?? {}) as Record<string, unknown>
+            const meta = (e.problem.meta ?? {}) as Record<string, unknown>
             setStatus({
               kind: 'conflict',
               version: version.current,
-              theirs: { version: Number(m.version ?? 0), by: String(m.savedBy ?? ''), at: String(m.savedAt ?? ''), theirChanges: (m.theirChanges as string[]) ?? [], yourChanges: (m.yourChanges as string[]) ?? [] },
+              theirs: { version: Number(meta.version ?? 0), by: String(meta.savedBy ?? ''), at: String(meta.savedAt ?? ''), theirChanges: (meta.theirChanges as string[]) ?? [], yourChanges: (meta.yourChanges as string[]) ?? [] },
             })
             return false
           }
@@ -341,7 +344,7 @@ export function Composer({
             } catch {
               /* storage unavailable */
             }
-            setStatus((s) => ({ kind: 'offline', since: s.kind === 'offline' ? s.since : new Date().toISOString(), version: version.current, message: "you're offline" }))
+            setStatus((s) => ({ kind: 'offline', since: s.kind === 'offline' ? s.since : new Date().toISOString(), version: version.current, message: tt(m.offlineReason) }))
             return false
           }
           setStatus({ kind: 'error', version: version.current, message: errorMessage(e) })
@@ -411,7 +414,7 @@ export function Composer({
   const setSubject = useCallback(
     (v: string) => {
       setSubjectState(v)
-      tracker.current?.note(variant === 'A' ? 'subject' : `A/B subject ${variant}`)
+      tracker.current?.note(variant === 'A' ? tt(m.noteSubject) : tt(m.noteSubjectVariant, { variant }))
       markDirty()
     },
     [markDirty, variant],
@@ -419,7 +422,7 @@ export function Composer({
   const setPreheader = useCallback(
     (v: string) => {
       setPreheaderState(v)
-      tracker.current?.note('preheader')
+      tracker.current?.note(tt(m.notePreheader))
       markDirty()
     },
     [markDirty],
@@ -428,7 +431,7 @@ export function Composer({
     (t: ABTest | null) => {
       setABTestState(t)
       abRef.current = t
-      tracker.current?.note(t ? `A/B ${t.kind === 'send_time' ? 'send time' : t.kind}` : 'A/B test removed')
+      tracker.current?.note(t ? tt(m.noteAb, { kind: t.kind }) : tt(m.noteAbRemoved))
       markDirty()
     },
     [markDirty],
@@ -447,7 +450,7 @@ export function Composer({
           qc.setQueryData(['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}', { params: { path: { workspace: slug, campaignId: campaign.id } } }], d)
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns'] })
         },
-        onError: (e) => toast({ kind: 'error', title: "Couldn't rename the campaign", detail: errorMessage(e) }),
+        onError: (e) => toast({ kind: 'error', title: tt(m.renameFailed), detail: errorMessage(e) }),
       },
     )
   }, [name, canEdit, campaign.name, campaign.id, slug, updateMeta, qc])
@@ -525,7 +528,7 @@ export function Composer({
     (v: View) => {
       if (v === view) return
       if ((view === 'mjml' || view === 'html') && leaveCheck.current && !leaveCheck.current()) {
-        toast({ kind: 'error', title: 'Fix the MJML first', detail: 'The canvas keeps the last good version until the code compiles.' })
+        toast({ kind: 'error', title: tt(m.fixMjmlFirst), detail: tt(m.fixMjmlFirstDetail) })
         return
       }
       if (v !== 'visual' && revision.current !== savedRevision.current) void save()
@@ -643,8 +646,8 @@ export function Composer({
   useUnsavedWork(
     canEdit
       ? {
-          whileEnding: 'the draft autosaves',
-          afterEnded: savedVersion ? `The campaign you were editing is saved as draft v${savedVersion} and will reopen where you left off.` : undefined,
+          whileEnding: t(m.whileEnding),
+          afterEnded: savedVersion ? t(m.afterEnded, { version: savedVersion }) : undefined,
         }
       : undefined,
   )
@@ -653,7 +656,8 @@ export function Composer({
   // Leaving now keeps draft v16; saving creates v17." (The tracker names what changed.)
   // eslint-disable-next-line react-hooks/refs -- re-read on every edit: each change bumps `rev`
   const changed = tracker.current?.peek() ?? []
-  const leaveText = `You changed ${changed.length ? `the ${andList(changed)}` : 'this email'} since ${lastSave ? `the last autosave at ${clock(lastSave)}` : 'it was last saved'}. Leaving now keeps ${campaign.status === 'draft' ? 'draft' : 'version'} v${savedVersion}; saving creates v${savedVersion + 1}.`
+  const leaveValues = { changes: andList(changed), time: lastSave ? clock(lastSave) : '', draft: campaign.status === 'draft' ? 'yes' : 'no', version: savedVersion, next: savedVersion + 1 }
+  const leaveText = t(changed.length ? (lastSave ? m.leaveChangesAt : m.leaveChanges) : lastSave ? m.leaveEmailAt : m.leaveEmail, leaveValues)
 
   return (
     <ComposerCtx.Provider value={state}>
@@ -664,9 +668,9 @@ export function Composer({
       <ConditionalProvider>
       <div className="cmp rc-app">
         <a href="#main" className="skip">
-          Skip to content
+          {t(m.skip)}
         </a>
-        <h1 className="vh">{view === 'preview' ? `Preview of ${name}` : `Campaign composer: ${name || 'Untitled campaign'}`}</h1>
+        <h1 className="vh">{view === 'preview' ? t(m.previewHeading, { name }) : t(m.heading, { name: name || t(m.untitled) })}</h1>
         <Header onReview={goReview} />
         {/* Sponsor blocks fill themselves from the issue's booking (Earn, X17). */}
         <SponsorSync />
@@ -708,11 +712,11 @@ export function Composer({
         <Dialogs dialog={dialog} onClose={() => setDialog(null)} onSavedTemplate={(t) => setSavedCard({ version: version.current, at: new Date().toISOString(), template: t })} />
         <UnsavedChangesGuard
           dirty={canEdit && (unsaved || codeDirty)}
-          title="Leave the composer?"
+          title={t(m.leaveTitle)}
           description={leaveText}
-          saveLabel={`Save as v${savedVersion + 1} and leave`}
+          saveLabel={t(m.leaveSave, { version: savedVersion + 1 })}
           onSave={async () => {
-            if (!(await save({ manual: true, quiet: true }))) throw new Error("The draft couldn't be saved. Check your connection, or download the MJML as a backup.")
+            if (!(await save({ manual: true, quiet: true }))) throw new Error(t(m.leaveSaveFailed))
           }}
         />
       </div>

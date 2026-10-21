@@ -182,7 +182,9 @@ func seedWebhooks(ctx context.Context, s *Seeder) error {
 			id, ws.ID, h.name, h.desc, h.url, h.events, secret, linh.ID, created, rotated, lastStatus, s.Ago(time.Minute), failing); err != nil {
 			return err
 		}
-		// A day of history, older than the rows shown at the top of the log.
+		// A day of history, older than the rows shown at the top of the log. The
+		// oldest row is just under 23 hours old, so the last-24-hours counts hold
+		// for an hour after seeding.
 		events := h.events
 		if h.name == "Data warehouse" {
 			events = []string{"email.delivered", "email.opened", "email.clicked", "email.bounced"}
@@ -196,7 +198,7 @@ func seedWebhooks(ctx context.Context, s *Seeder) error {
 			       $4::timestamptz - (g * ($5::double precision / $6)) * interval '1 second' + interval '1 second',
 			       $4::timestamptz - (g * ($5::double precision / $6)) * interval '1 second' + interval '1 second'
 			FROM generate_series(1, $6::int) g`,
-			id, events, ws.Slug, s.Ago(57*time.Minute), float64(23*3600), h.ok); err != nil {
+			id, events, ws.Slug, s.Ago(57*time.Minute), float64(22*3600), h.ok); err != nil {
 			return err
 		}
 		failed := h.total - h.ok

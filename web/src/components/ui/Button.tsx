@@ -29,7 +29,8 @@ export function buttonClass({ variant = 'default', size = 'md', iconOnly, block 
     size === 'xs' && 'xs',
     size === 'lg' && 'lg',
     iconOnly && 'ic',
-    block && 'block',
+    // Not Tailwind's `block`, whose display: block would win over .btn's flex.
+    block && 'wide',
     className,
   )
 }

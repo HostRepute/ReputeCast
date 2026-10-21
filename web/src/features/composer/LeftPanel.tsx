@@ -16,8 +16,10 @@ import { AddToAgencyLibrary } from '@/features/agency/ComposerLibrary'
 import { PollBlockHint } from '@/features/polls/Block'
 import { GrowBlocksNote, OpenGrowLink } from '@/features/grow/composer/Panel'
 import { mb as growMessages } from '@/features/grow/composer/messages'
-import { t as tt } from '@/i18n'
+import { t as tt, useT } from '@/i18n'
 import { useStoreBlockDefs } from '@/features/commerce/composer'
+import { mc } from './canvas.messages'
+import { m } from './messages'
 
 type BlocksAPI = { startDrag(b: unknown, ev?: Event): void; endDrag(cancel?: boolean): void; get(id: string): unknown; add(id: string, p: Record<string, unknown>): unknown }
 
@@ -45,7 +47,7 @@ export function insertBlock(c: ReturnType<typeof useComposer>, def: Pick<BlockDe
     col = sec?.findType('mj-column')[0]
   }
   if (!col) {
-    toast({ kind: 'info', title: 'Select a column first', detail: `${def.label} goes inside a column; select one on the canvas, or drag the block there.` })
+    toast({ kind: 'info', title: tt(mc.selectColumn), detail: tt(mc.selectColumnDetail, { block: def.label }) })
     return
   }
   const at = sel && sel.parent() === col ? col.components().indexOf(sel) + 1 : col.components().length
@@ -54,6 +56,7 @@ export function insertBlock(c: ReturnType<typeof useComposer>, def: Pick<BlockDe
 
 function BlockTile({ def, flagged, onSaved }: { def: BlockDef | { id: string; label: string; icon: string; group: 'reputecast'; kind: 'section'; content: '' }; flagged?: boolean; onSaved?: () => void }) {
   const c = useComposer()
+  const t = useT()
   const disabled = !c.editor || !c.canEdit
   const isSaved = def.id === 'rc-saved'
   return (
@@ -78,7 +81,7 @@ function BlockTile({ def, flagged, onSaved }: { def: BlockDef | { id: string; la
         }
         insertBlock(c, def as BlockDef)
       }}
-      title={isSaved ? 'Show saved sections' : `Drag onto the canvas, or click to insert ${def.kind === 'section' ? 'after the selected section' : 'into the selected column'}`}
+      title={isSaved ? t(mc.showSaved) : def.kind === 'section' ? t(mc.dragSection) : t(mc.dragContent)}
     >
       <BlockIcon name={def.icon} />
       {def.label}
@@ -89,6 +92,7 @@ function BlockTile({ def, flagged, onSaved }: { def: BlockDef | { id: string; la
 
 function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSections: () => void; blocks?: BlockDef[]; note?: ReactNode; reputecastFirst?: boolean }) {
   const c = useComposer()
+  const t = useT()
   const [q, setQ] = useState('')
   const sections = $api.useQuery('get', '/api/v1/workspaces/{workspace}/templates', { params: { path: { workspace: c.slug } } }, { staleTime: 60_000 })
   // The Product grid joins the ReputeCast blocks once a store is connected (X20).
@@ -120,36 +124,36 @@ function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSe
   const savedCount = sections.data?.sections.length ?? 0
   const groups: { key: BlockDef['group']; label: string }[] = footerMissing
     ? [
-        { key: 'reputecast', label: 'ReputeCast blocks' },
-        { key: 'content', label: 'Content · MJML' },
-        { key: 'layout', label: 'Layout · MJML' },
+        { key: 'reputecast', label: t(mc.groupReputecast) },
+        { key: 'content', label: t(mc.groupContent) },
+        { key: 'layout', label: t(mc.groupLayout) },
         { key: 'grow', label: tt(growMessages.group) },
-        { key: 'earn', label: 'Earn' },
+        { key: 'earn', label: t(mc.groupEarn) },
       ]
     : reputecastFirst
       ? [
-          { key: 'reputecast', label: 'ReputeCast blocks' },
-          { key: 'layout', label: 'Layout · MJML' },
-          { key: 'content', label: 'Content · MJML' },
+          { key: 'reputecast', label: t(mc.groupReputecast) },
+          { key: 'layout', label: t(mc.groupLayout) },
+          { key: 'content', label: t(mc.groupContent) },
           { key: 'grow', label: tt(growMessages.group) },
-          { key: 'earn', label: 'Earn' },
+          { key: 'earn', label: t(mc.groupEarn) },
         ]
       : [
-          { key: 'layout', label: 'Layout · MJML' },
-          { key: 'content', label: 'Content · MJML' },
-          { key: 'reputecast', label: 'ReputeCast blocks' },
+          { key: 'layout', label: t(mc.groupLayout) },
+          { key: 'content', label: t(mc.groupContent) },
+          { key: 'reputecast', label: t(mc.groupReputecast) },
           { key: 'grow', label: tt(growMessages.group) },
-          { key: 'earn', label: 'Earn' },
+          { key: 'earn', label: t(mc.groupEarn) },
         ]
   return (
     <>
       <div style={{ padding: '8px 12px' }}>
-        <input aria-label="Search blocks" className="in w-full" placeholder="Search blocks" value={q} onChange={(e) => setQ(e.target.value)} type="search" />
+        <input aria-label={t(mc.searchBlocks)} className="in w-full" placeholder={t(mc.searchBlocks)} value={q} onChange={(e) => setQ(e.target.value)} type="search" />
       </div>
       {groups.map((g) => {
         const items = defs.filter((d) => d.group === g.key && match(d))
         const pollHint = g.key === 'reputecast' && items.some((d) => d.id === 'rc-poll')
-        const showSaved = g.key === 'reputecast' && (!needle || 'saved sections'.includes(needle))
+        const showSaved = g.key === 'reputecast' && (!needle || t(mc.savedSections).toLowerCase().includes(needle))
         if (!items.length && !showSaved) return null
         return (
           <Fragment key={g.key}>
@@ -163,7 +167,7 @@ function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSe
                   <BlockTile key={d.id} def={d} flagged={footerMissing && d.id === 'rc-footer'} />
                 ))}
                 {showSaved ? (
-                  <BlockTile def={{ id: 'rc-saved', label: `Saved sections · ${savedCount}`, icon: 'saved', group: 'reputecast', kind: 'section', content: '' }} onSaved={onShowSections} />
+                  <BlockTile def={{ id: 'rc-saved', label: t(mc.savedSectionsCount, { count: savedCount }), icon: 'saved', group: 'reputecast', kind: 'section', content: '' }} onSaved={onShowSections} />
                 ) : null}
               </div>
               {pollHint ? <PollBlockHint /> : null}
@@ -197,13 +201,14 @@ function layerIcon(tag: string, open: boolean, hasKids: boolean): string {
 
 function hiddenTag(c: Component): string {
   const cls = String((c.getAttributes() as Record<string, unknown>)['css-class'] ?? '')
-  if (cls.includes('rc-hide-mobile')) return 'hidden on mobile'
-  if (cls.includes('rc-hide-desktop')) return 'hidden on desktop'
+  if (cls.includes('rc-hide-mobile')) return tt(mc.hiddenMobile)
+  if (cls.includes('rc-hide-desktop')) return tt(mc.hiddenDesktop)
   return ''
 }
 
 function LayersTab() {
   const c = useComposer()
+  const t = useT()
   const [open, setOpen] = useState<Set<string>>(() => new Set())
   const root = c.editor?.getWrapper()?.components().filter((x: Component) => tagOf(x) === 'mjml')[0]
   // The selection and its ancestors are open.
@@ -228,7 +233,7 @@ function LayersTab() {
       n.add(was ? `-${x.cid}` : x.cid)
       return n
     })
-  if (!root) return <p className="k p-3">The layer tree appears once the canvas has content.</p>
+  if (!root) return <p className="k p-3">{t(mc.layersEmpty)}</p>
   const rows: ReactNode[] = []
   const render = (x: Component, depth: number) => {
     const kids = mjChildren(x)
@@ -267,9 +272,9 @@ function LayersTab() {
     if (tag === 'mjml' && o) {
       rows.push(
         <div key="head" role="treeitem" aria-level={depth + 2} aria-selected={false}>
-          <button type="button" className="lay" style={{ paddingLeft: 8 + (depth + 1) * 16 }} onClick={() => c.setView('mjml')} title="The head (title, preview text, shared attributes) is edited in the code view">
+          <button type="button" className="lay" style={{ paddingLeft: 8 + (depth + 1) * 16 }} onClick={() => c.setView('mjml')} title={t(mc.headTitle)}>
             <ToolIcon name="chevronRight" size={14} strokeWidth={1.6} />
-            mj-head
+            {'mj-head'}
           </button>
         </div>,
       )
@@ -279,7 +284,7 @@ function LayersTab() {
   render(root, 0)
   return (
     <>
-      <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 1 }} role="tree" aria-label="Layer tree">
+      <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 1 }} role="tree" aria-label={t(mc.layerTree)}>
         {rows}
       </div>
       <LayersNote />
@@ -289,6 +294,7 @@ function LayersTab() {
 
 function TemplatesTab({ sectionsRef }: { sectionsRef: RefObject<HTMLDivElement | null> }) {
   const c = useComposer()
+  const tr = useT()
   const g = $api.useQuery(
     'get',
     '/api/v1/workspaces/{workspace}/templates',
@@ -297,11 +303,11 @@ function TemplatesTab({ sectionsRef }: { sectionsRef: RefObject<HTMLDivElement |
     { staleTime: 60_000 },
   )
   const [confirm, setConfirm] = useState<{ id: string; name: string } | null>(null)
-  if (g.isPending) return <p className="k p-3">Loading templates…</p>
-  if (g.isError) return <p className="k p-3">Templates couldn't load. {errorMessage(g.error)}</p>
+  if (g.isPending) return <p className="k p-3">{tr(mc.loadingTemplates)}</p>
+  if (g.isError) return <p className="k p-3">{tr(m.templatesFailed, { error: errorMessage(g.error) })}</p>
   const use = async (id: string, name: string) => {
     const { data } = await http.GET('/api/v1/workspaces/{workspace}/templates/{templateId}', { params: { path: { workspace: c.slug, templateId: id } } })
-    if (data) c.loadContent(data.mjml, { source: 'template', label: `applied template “${name}”` })
+    if (data) c.loadContent(data.mjml, { source: 'template', label: tr(mc.noteApplied, { name }) })
     setConfirm(null)
   }
   const insertSection = async (id: string, name: string) => {
@@ -311,7 +317,7 @@ function TemplatesTab({ sectionsRef }: { sectionsRef: RefObject<HTMLDivElement |
   const all = [...g.data.starters, ...g.data.templates]
   return (
     <div className="flex flex-col gap-2 p-3">
-      <span className="k">Replace the content with a template. The current version stays in the history.</span>
+      <span className="k">{tr(mc.templatesLead)}</span>
       <div className="grid grid-cols-2 gap-2">
         {all.map((t) => (
           <button key={t.id} type="button" className="tpl" style={{ padding: 8, gap: 6 }} disabled={!c.canEdit} onClick={() => setConfirm({ id: t.id, name: t.name })}>
@@ -321,19 +327,19 @@ function TemplatesTab({ sectionsRef }: { sectionsRef: RefObject<HTMLDivElement |
         ))}
       </div>
       <div ref={sectionsRef} className="mt-2 flex flex-col gap-1.5">
-        <span className="font-semibold">Saved sections · {g.data.sections.length}</span>
+        <span className="font-semibold">{tr(mc.savedSectionsCount, { count: g.data.sections.length })}</span>
         {g.data.sections.map((s) => (
           <button key={s.id} type="button" className="blk rc" style={{ flexDirection: 'row', justifyContent: 'flex-start', padding: '8px 10px' }} disabled={!c.canEdit || !c.editor} onClick={() => void insertSection(s.id, s.name)}>
             <BlockIcon name="saved" />
             <span className="flex flex-col items-start text-left">
               <span className="font-semibold">{s.name}</span>
-              <span className="k">{s.description || 'Saved section'}</span>
+              <span className="k">{s.description || tr(mc.savedSection)}</span>
             </span>
           </button>
         ))}
         {c.canEdit && c.campaign.access.canEditTemplates ? (
           <button type="button" className="btn sm self-start" onClick={() => c.openDialog('saveTemplate')} disabled={!c.editor}>
-            Save as template or section
+            {tr(mc.saveAs)}
           </button>
         ) : null}
         {/* The agency's staff share a saved section or template with every client (agency accounts). */}
@@ -342,20 +348,20 @@ function TemplatesTab({ sectionsRef }: { sectionsRef: RefObject<HTMLDivElement |
       <Dialog
         open={confirm !== null}
         onOpenChange={(o) => !o && setConfirm(null)}
-        title={`Use “${confirm?.name ?? ''}”?`}
+        title={tr(mc.useTitle, { name: confirm?.name ?? '' })}
         size="sm"
         footer={
           <>
             <button type="button" className="btn" onClick={() => setConfirm(null)}>
-              Keep editing
+              {tr(mc.keepEditing)}
             </button>
             <button type="button" className="btn pri" onClick={() => confirm && void use(confirm.id, confirm.name)}>
-              Replace the content
+              {tr(mc.replaceContent)}
             </button>
           </>
         }
       >
-        <p>The canvas content is replaced by the template. Subject, preheader and audience stay. Version {c.status.kind === 'new' ? 1 : c.status.version} stays in the version history, so you can restore it.</p>
+        <p>{tr(mc.replaceBody, { version: c.status.kind === 'new' ? 1 : c.status.version })}</p>
       </Dialog>
     </div>
   )
@@ -368,6 +374,7 @@ function TemplatesTab({ sectionsRef }: { sectionsRef: RefObject<HTMLDivElement |
  */
 export function LeftPanel({ blocks, note, reputecastFirst }: { blocks?: BlockDef[]; note?: ReactNode; reputecastFirst?: boolean } = {}) {
   const c = useComposer()
+  const t = useT()
   const sectionsRef = useRef<HTMLDivElement | null>(null)
   if (c.isEmpty) {
     const defs = blocks ?? blockDefs(c.context.postalAddress)
@@ -376,16 +383,16 @@ export function LeftPanel({ blocks, note, reputecastFirst }: { blocks?: BlockDef
       <aside className="cpanel left dim" aria-hidden="true" inert>
         <div className="ptab">
           <button type="button" className="on" disabled>
-            Blocks
+            {t(mc.tabBlocks)}
           </button>
           <button type="button" disabled>
-            Layers
+            {t(mc.tabLayers)}
           </button>
           <button type="button" disabled>
-            Templates
+            {t(mc.tabTemplates)}
           </button>
         </div>
-        <div className="grp">Layout · MJML</div>
+        <div className="grp">{t(mc.groupLayout)}</div>
         <div className="blk-grid">
           {defs.slice(0, 3).map((d) => (
             <div key={d.id} className="blk" style={{ cursor: 'default' }}>
@@ -394,7 +401,7 @@ export function LeftPanel({ blocks, note, reputecastFirst }: { blocks?: BlockDef
             </div>
           ))}
         </div>
-        <div className="grp">Content · MJML</div>
+        <div className="grp">{t(mc.groupContent)}</div>
         <div className="blk-grid">
           {defs
             .filter((d) => ['mj-text', 'mj-image', 'mj-button'].includes(d.id))
@@ -409,15 +416,15 @@ export function LeftPanel({ blocks, note, reputecastFirst }: { blocks?: BlockDef
     )
   }
   return (
-    <aside className="cpanel left" aria-label="Blocks, layers and templates">
+    <aside className="cpanel left" aria-label={t(mc.leftPanelLabel)}>
       <PanelTabs
         value={c.leftTab}
         onChange={c.setLeftTab}
-        label="Panels"
+        label={t(mc.panels)}
         items={[
-          { value: 'blocks', label: 'Blocks' },
-          { value: 'layers', label: 'Layers' },
-          { value: 'templates', label: 'Templates' },
+          { value: 'blocks', label: t(mc.tabBlocks) },
+          { value: 'layers', label: t(mc.tabLayers) },
+          { value: 'templates', label: t(mc.tabTemplates) },
         ]}
       >
         <TabPanel value="blocks">

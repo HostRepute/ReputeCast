@@ -37,6 +37,8 @@ describe('region formats', () => {
         weekdayDate: formatDate(r, 'weekdayDate', at),
         longDate: formatDate(r, 'longDate', at),
         dayMonth: formatDate(r, 'dayMonth', at),
+        monthYear: formatDate(r, 'monthYear', at),
+        monthYearLong: formatDate(r, 'monthYearLong', at),
         time: formatTime(r, at),
         time12: formatTime(r, at, 'h12'),
         timePM: formatTime(r, pm),

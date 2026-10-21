@@ -286,7 +286,11 @@ being converted.
   `Accept-Language`. The app sends its language with every request and
   refetches what's on screen when the language changes, so such a query
   needs nothing more. A key made at run time (`short.<event type>`) uses
-  `Lookup` and falls back to the English in the code.
+  `Lookup` and falls back to the English in the code. Text stored for people
+  who read it later (a Send Readiness run, a notification, a plan's log)
+  keeps its English and stores the message beside it as an `i18n.Text`
+  (`msgs.M(key).Keep(args)`); reading it, `t.In(i18n.LangFrom(ctx))` writes
+  it in the reader's language, and rows from before show their English.
 - **Checks:** `pnpm run i18n:check` lists what each language misses, by file,
   counts the text screens still hard-code (JSX text and text attributes;
   `--hardcoded` lists each), and fails on broken ICU or a translation that
