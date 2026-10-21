@@ -27,7 +27,7 @@ function Prop({ title, id, children }: { title: string; id: string; children: Re
 }
 
 /** The value after a pause in typing: the estimate asks the server once per pause. */
-function useSettled<T>(value: T, ms: number): T {
+export function useSettled<T>(value: T, ms: number): T {
   const [settled, setSettled] = useState(value)
   useEffect(() => {
     const id = window.setTimeout(() => setSettled(value), ms)

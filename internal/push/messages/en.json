@@ -1,0 +1,18 @@
+{
+  "account.title": {"message": "Notifications", "note": "The account page's section about push notifications"},
+  "account.browser": {"message": "New posts in this browser", "note": "The switch that turns notifications on in the browser the reader is using"},
+  "account.on": "On in this browser",
+  "account.off": "Off in this browser",
+  "account.blocked": "Blocked in this browser",
+  "account.unsupported": "This browser can't get notifications",
+  "account.allowAgain": {"message": "To allow them again: click the site settings icon left of the address, set <b>Notifications</b> to <b>Allow</b>, then reload this page.", "note": "Shown when the browser blocked notifications for the site"},
+  "account.turnOff": {"message": "Turn off", "note": "A link next to one of the reader's other browsers"},
+  "account.since": {"message": "on since {date}", "note": "date: 9 Oct"},
+  "ios.title": {"message": "To get notifications, add {site} to your Home Screen: tap Share, then Add to Home Screen.", "note": "iPhone and iPad: web push works only for sites added to the Home Screen. site: The Acme newsletter"},
+  "ios.share": {"message": "Tap <b>Share</b> in Safari's toolbar", "note": "First of three steps"},
+  "ios.add": "Tap <b>Add to Home Screen</b>",
+  "ios.open": {"message": "Open {site} from the Home Screen and allow notifications", "note": "site: The Acme newsletter"},
+  "preferences.turnOff": {"message": "Turn off notifications in this browser", "note": "A button on the preference center"},
+  "preferences.done": "Notifications are off in this browser.",
+  "preferences.none": "This browser doesn't get notifications from this site."
+}

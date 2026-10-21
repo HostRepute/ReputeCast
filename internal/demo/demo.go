@@ -150,6 +150,7 @@ func Seed(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secr
 		{"website", seedWebsite},
 		{"grow", seedGrow},
 		{"sms", seedSMS},
+		{"push and whatsapp", seedPushWhatsApp},
 		{"pages and products", seedPagesProducts},
 		{"stores", seedStores},
 		{"agency", seedAgency},

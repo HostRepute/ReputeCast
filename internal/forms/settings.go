@@ -629,6 +629,9 @@ func (s *Service) PublicPages(ctx context.Context, ws *store.Workspace) (PublicP
 		return out, err
 	}
 	for _, f := range forms {
+		if f.Kind == KindPush {
+			continue // a push prompt can't be the subscribe page's form
+		}
 		out.Forms = append(out.Forms, s.summary(f, set, links))
 	}
 	lists, err := s.Audience.PublicLists(ctx, s.Q, ws)

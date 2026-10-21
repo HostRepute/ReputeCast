@@ -2874,6 +2874,183 @@ type PublicPageSetting struct {
 	CopyLanguage       string          `json:"copyLanguage"`
 }
 
+type PushCampaign struct {
+	CampaignID   uuid.UUID       `json:"campaignId"`
+	WorkspaceID  uuid.UUID       `json:"workspaceId"`
+	Title        string          `json:"title"`
+	Message      string          `json:"message"`
+	Link         string          `json:"link"`
+	ImageMediaID *uuid.UUID      `json:"imageMediaId"`
+	Buttons      json.RawMessage `json:"buttons"`
+	TtlMinutes   int32           `json:"ttlMinutes"`
+	Tag          string          `json:"tag"`
+	ReplaceTag   bool            `json:"replaceTag"`
+	SiteIds      []uuid.UUID     `json:"siteIds"`
+	Lists        []uuid.UUID     `json:"lists"`
+	Segments     []uuid.UUID     `json:"segments"`
+	ScheduleMode string          `json:"scheduleMode"`
+	SendAt       *time.Time      `json:"sendAt"`
+	Outside      string          `json:"outside"`
+	Version      int32           `json:"version"`
+}
+
+type PushClick struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	MessageID   uuid.UUID `json:"messageId"`
+	Action      int32     `json:"action"`
+	Target      string    `json:"target"`
+	OccurredAt  time.Time `json:"occurredAt"`
+}
+
+type PushKey struct {
+	ID             uuid.UUID  `json:"id"`
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	PublicKey      string     `json:"publicKey"`
+	PrivateEnc     []byte     `json:"privateEnc"`
+	Contact        string     `json:"contact"`
+	CreatedBy      *uuid.UUID `json:"createdBy"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	RotatedAt      *time.Time `json:"rotatedAt"`
+	RotatedBy      *uuid.UUID `json:"rotatedBy"`
+	LastAcceptedAt *time.Time `json:"lastAcceptedAt"`
+}
+
+type PushMessage struct {
+	MessageID      uuid.UUID  `json:"messageId"`
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	SubscriptionID *uuid.UUID `json:"subscriptionId"`
+	SiteID         *uuid.UUID `json:"siteId"`
+	Browser        string     `json:"browser"`
+	Token          string     `json:"token"`
+	Answer         string     `json:"answer"`
+	ShownAt        *time.Time `json:"shownAt"`
+	ClickedAt      *time.Time `json:"clickedAt"`
+	ClosedAt       *time.Time `json:"closedAt"`
+}
+
+type PushPrompt struct {
+	FormID      uuid.UUID       `json:"formId"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	SiteID      *uuid.UUID      `json:"siteId"`
+	Draft       json.RawMessage `json:"draft"`
+	LiveVersion int32           `json:"liveVersion"`
+	LiveSince   *time.Time      `json:"liveSince"`
+	UpdatedBy   *uuid.UUID      `json:"updatedBy"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
+}
+
+type PushPromptDay struct {
+	FormID      uuid.UUID `json:"formId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Day         time.Time `json:"day"`
+	Shown       int32     `json:"shown"`
+	Allowed     int32     `json:"allowed"`
+	Granted     int32     `json:"granted"`
+	NotNow      int32     `json:"notNow"`
+	Closed      int32     `json:"closed"`
+	BellClicked int32     `json:"bellClicked"`
+	Blocked     int32     `json:"blocked"`
+	IosSteps    int32     `json:"iosSteps"`
+	IosAdded    int32     `json:"iosAdded"`
+}
+
+type PushPromptVersion struct {
+	FormID      uuid.UUID       `json:"formId"`
+	Version     int32           `json:"version"`
+	Config      json.RawMessage `json:"config"`
+	PublishedBy *uuid.UUID      `json:"publishedBy"`
+	PublishedAt time.Time       `json:"publishedAt"`
+}
+
+type PushSend struct {
+	CampaignID  uuid.UUID       `json:"campaignId"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Phase       string          `json:"phase"`
+	Recipients  int32           `json:"recipients"`
+	LeftOut     json.RawMessage `json:"leftOut"`
+	StartedBy   *uuid.UUID      `json:"startedBy"`
+	ApprovedBy  *uuid.UUID      `json:"approvedBy"`
+	ScheduledAt time.Time       `json:"scheduledAt"`
+	FirstSendAt *time.Time      `json:"firstSendAt"`
+	LastSendAt  *time.Time      `json:"lastSendAt"`
+	CompletedAt *time.Time      `json:"completedAt"`
+}
+
+type PushSetting struct {
+	WorkspaceID  uuid.UUID  `json:"workspaceId"`
+	FrequencyCap int32      `json:"frequencyCap"`
+	QuietHours   bool       `json:"quietHours"`
+	UpdatedBy    *uuid.UUID `json:"updatedBy"`
+	UpdatedAt    time.Time  `json:"updatedAt"`
+}
+
+type PushSite struct {
+	ID              uuid.UUID  `json:"id"`
+	WorkspaceID     uuid.UUID  `json:"workspaceId"`
+	Origin          string     `json:"origin"`
+	Host            string     `json:"host"`
+	Kind            string     `json:"kind"`
+	Label           string     `json:"label"`
+	WorkerPath      string     `json:"workerPath"`
+	WorkerMode      string     `json:"workerMode"`
+	CheckStatus     string     `json:"checkStatus"`
+	CheckVersion    *int32     `json:"checkVersion"`
+	CheckScope      string     `json:"checkScope"`
+	CheckHttpStatus *int32     `json:"checkHttpStatus"`
+	CheckDetail     string     `json:"checkDetail"`
+	CheckedAt       *time.Time `json:"checkedAt"`
+	MissingSince    *time.Time `json:"missingSince"`
+	IconMediaID     *uuid.UUID `json:"iconMediaId"`
+	SnippetSeenAt   *time.Time `json:"snippetSeenAt"`
+	Demo            bool       `json:"demo"`
+	AddedBy         *uuid.UUID `json:"addedBy"`
+	AddedAt         time.Time  `json:"addedAt"`
+	RemovedAt       *time.Time `json:"removedAt"`
+	RemovedBy       *uuid.UUID `json:"removedBy"`
+}
+
+type PushSubscription struct {
+	ID            uuid.UUID   `json:"id"`
+	WorkspaceID   uuid.UUID   `json:"workspaceId"`
+	SiteID        uuid.UUID   `json:"siteId"`
+	KeyID         uuid.UUID   `json:"keyId"`
+	Endpoint      string      `json:"endpoint"`
+	P256dh        []byte      `json:"p256dh"`
+	Auth          []byte      `json:"auth"`
+	Browser       string      `json:"browser"`
+	Platform      string      `json:"platform"`
+	TimeZone      string      `json:"timeZone"`
+	ContactID     *uuid.UUID  `json:"contactId"`
+	LinkedAt      *time.Time  `json:"linkedAt"`
+	LinkedBy      string      `json:"linkedBy"`
+	PromptFormID  *uuid.UUID  `json:"promptFormId"`
+	PromptVersion *int32      `json:"promptVersion"`
+	PromptText    string      `json:"promptText"`
+	Page          string      `json:"page"`
+	Ip            *netip.Addr `json:"ip"`
+	UserAgent     string      `json:"userAgent"`
+	CreatedAt     time.Time   `json:"createdAt"`
+	LastSeenAt    *time.Time  `json:"lastSeenAt"`
+	Failures      int32       `json:"failures"`
+	RemovedAt     *time.Time  `json:"removedAt"`
+	RemovedReason string      `json:"removedReason"`
+	Demo          bool        `json:"demo"`
+}
+
+type PushTestSubscription struct {
+	UserID      uuid.UUID `json:"userId"`
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	KeyID       uuid.UUID `json:"keyId"`
+	ID          uuid.UUID `json:"id"`
+	Endpoint    string    `json:"endpoint"`
+	P256dh      []byte    `json:"p256dh"`
+	Auth        []byte    `json:"auth"`
+	Browser     string    `json:"browser"`
+	Platform    string    `json:"platform"`
+	CreatedAt   time.Time `json:"createdAt"`
+}
+
 type ReadinessProgress struct {
 	CampaignID uuid.UUID       `json:"campaignId"`
 	RunID      uuid.UUID       `json:"runId"`
@@ -4984,6 +5161,148 @@ type WelcomePromptDismissal struct {
 	ListID      uuid.UUID  `json:"listId"`
 	DismissedBy *uuid.UUID `json:"dismissedBy"`
 	DismissedAt time.Time  `json:"dismissedAt"`
+}
+
+type WhatsappAccount struct {
+	ID                uuid.UUID  `json:"id"`
+	WorkspaceID       uuid.UUID  `json:"workspaceId"`
+	CredentialsEnc    []byte     `json:"credentialsEnc"`
+	BusinessHint      string     `json:"businessHint"`
+	BusinessName      string     `json:"businessName"`
+	PhoneNumber       string     `json:"phoneNumber"`
+	DisplayName       string     `json:"displayName"`
+	NameStatus        string     `json:"nameStatus"`
+	PhoneStatus       string     `json:"phoneStatus"`
+	Quality           string     `json:"quality"`
+	PreviousQuality   string     `json:"previousQuality"`
+	QualityChangedAt  *time.Time `json:"qualityChangedAt"`
+	MessagingLimit    int32      `json:"messagingLimit"`
+	PreviousLimit     int32      `json:"previousLimit"`
+	LimitChangedAt    *time.Time `json:"limitChangedAt"`
+	VerifyToken       string     `json:"verifyToken"`
+	VerifiedAt        *time.Time `json:"verifiedAt"`
+	LastEventAt       *time.Time `json:"lastEventAt"`
+	Status            string     `json:"status"`
+	StatusDetail      string     `json:"statusDetail"`
+	StatusSince       *time.Time `json:"statusSince"`
+	TemplatesSyncedAt *time.Time `json:"templatesSyncedAt"`
+	CheckedAt         *time.Time `json:"checkedAt"`
+	Demo              bool       `json:"demo"`
+	ConnectedBy       *uuid.UUID `json:"connectedBy"`
+	ConnectedAt       time.Time  `json:"connectedAt"`
+	RemovedAt         *time.Time `json:"removedAt"`
+	RemovedBy         *uuid.UUID `json:"removedBy"`
+}
+
+type WhatsappCampaign struct {
+	CampaignID       uuid.UUID       `json:"campaignId"`
+	WorkspaceID      uuid.UUID       `json:"workspaceId"`
+	TemplateID       *uuid.UUID      `json:"templateId"`
+	TemplateName     string          `json:"templateName"`
+	TemplateLanguage string          `json:"templateLanguage"`
+	Variables        json.RawMessage `json:"variables"`
+	ScheduleMode     string          `json:"scheduleMode"`
+	SendAt           *time.Time      `json:"sendAt"`
+	LocalDate        *time.Time      `json:"localDate"`
+	LocalMinute      *int32          `json:"localMinute"`
+	OverLimit        string          `json:"overLimit"`
+	Version          int32           `json:"version"`
+}
+
+type WhatsappInbound struct {
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	AccountID      *uuid.UUID      `json:"accountId"`
+	Phone          string          `json:"phone"`
+	Name           string          `json:"name"`
+	Body           string          `json:"body"`
+	Kind           string          `json:"kind"`
+	Keyword        string          `json:"keyword"`
+	MessageID      *uuid.UUID      `json:"messageId"`
+	CampaignID     *uuid.UUID      `json:"campaignId"`
+	AutomationID   *uuid.UUID      `json:"automationId"`
+	ContactIds     []uuid.UUID     `json:"contactIds"`
+	Effect         json.RawMessage `json:"effect"`
+	ReplyMessageID *uuid.UUID      `json:"replyMessageId"`
+	MetaID         string          `json:"metaId"`
+	RawEventID     *uuid.UUID      `json:"rawEventId"`
+	ReceivedAt     time.Time       `json:"receivedAt"`
+}
+
+type WhatsappMessage struct {
+	MessageID   uuid.UUID       `json:"messageId"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	AccountID   *uuid.UUID      `json:"accountId"`
+	Kind        string          `json:"kind"`
+	Template    string          `json:"template"`
+	Language    string          `json:"language"`
+	Category    string          `json:"category"`
+	Params      json.RawMessage `json:"params"`
+	ReadAt      *time.Time      `json:"readAt"`
+	Billable    *bool           `json:"billable"`
+}
+
+type WhatsappRate struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Country     string    `json:"country"`
+	Category    string    `json:"category"`
+	Price       float64   `json:"price"`
+}
+
+type WhatsappRawEvent struct {
+	ID             uuid.UUID       `json:"id"`
+	WorkspaceID    uuid.UUID       `json:"workspaceId"`
+	AccountID      *uuid.UUID      `json:"accountId"`
+	ReceivedAt     time.Time       `json:"receivedAt"`
+	Headers        json.RawMessage `json:"headers"`
+	Body           []byte          `json:"body"`
+	SignatureOk    bool            `json:"signatureOk"`
+	Summary        string          `json:"summary"`
+	NormalizedAt   *time.Time      `json:"normalizedAt"`
+	NormalizeError string          `json:"normalizeError"`
+	Events         int32           `json:"events"`
+}
+
+type WhatsappSend struct {
+	CampaignID  uuid.UUID       `json:"campaignId"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Phase       string          `json:"phase"`
+	Recipients  int32           `json:"recipients"`
+	LeftOut     json.RawMessage `json:"leftOut"`
+	StartedBy   *uuid.UUID      `json:"startedBy"`
+	ApprovedBy  *uuid.UUID      `json:"approvedBy"`
+	ScheduledAt time.Time       `json:"scheduledAt"`
+	FirstSendAt *time.Time      `json:"firstSendAt"`
+	LastSendAt  *time.Time      `json:"lastSendAt"`
+	CompletedAt *time.Time      `json:"completedAt"`
+}
+
+type WhatsappSetting struct {
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	RatesAsOf     time.Time  `json:"ratesAsOf"`
+	QuietHours    bool       `json:"quietHours"`
+	RatesEditedBy *uuid.UUID `json:"ratesEditedBy"`
+	RatesEditedAt *time.Time `json:"ratesEditedAt"`
+	UpdatedAt     time.Time  `json:"updatedAt"`
+}
+
+type WhatsappTemplate struct {
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	AccountID   uuid.UUID       `json:"accountId"`
+	MetaID      string          `json:"metaId"`
+	Name        string          `json:"name"`
+	Language    string          `json:"language"`
+	Category    string          `json:"category"`
+	Status      string          `json:"status"`
+	StatusSince *time.Time      `json:"statusSince"`
+	ReasonCode  string          `json:"reasonCode"`
+	Reason      string          `json:"reason"`
+	Body        string          `json:"body"`
+	Variables   json.RawMessage `json:"variables"`
+	Buttons     json.RawMessage `json:"buttons"`
+	SyncedAt    time.Time       `json:"syncedAt"`
+	RemovedAt   *time.Time      `json:"removedAt"`
 }
 
 type WordpressDraft struct {

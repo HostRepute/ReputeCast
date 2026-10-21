@@ -2489,6 +2489,85 @@ type Querier interface {
 	PurgeDeletedLists(ctx context.Context, before *time.Time) (int64, error)
 	// Retention of the instance-level entries (inside the purge transaction).
 	PurgeInstanceAuditEvents(ctx context.Context, before time.Time) (int64, error)
+	PushCampaign(ctx context.Context, arg PushCampaignParams) (PushCampaignRow, error)
+	PushCampaignDetailInsert(ctx context.Context, arg PushCampaignDetailInsertParams) error
+	PushCampaignDetailSave(ctx context.Context, arg PushCampaignDetailSaveParams) error
+	PushCampaignInsert(ctx context.Context, arg PushCampaignInsertParams) error
+	// An autosave: the campaign row's name, audience and version.
+	PushCampaignSave(ctx context.Context, arg PushCampaignSaveParams) error
+	PushCampaignScheduleSave(ctx context.Context, arg PushCampaignScheduleSaveParams) error
+	PushCampaignSetStatus(ctx context.Context, arg PushCampaignSetStatusParams) error
+	// The window texts, notifications and WhatsApp messages share (the SMS
+	// rules), and whether push and WhatsApp keep to it.
+	PushChannelWindow(ctx context.Context, workspaceID uuid.UUID) (PushChannelWindowRow, error)
+	PushClickInsert(ctx context.Context, arg PushClickInsertParams) error
+	PushKeyAccepted(ctx context.Context, arg PushKeyAcceptedParams) error
+	PushKeyByID(ctx context.Context, id uuid.UUID) (PushKey, error)
+	PushKeyInsert(ctx context.Context, arg PushKeyInsertParams) error
+	// Web push (internal/push): VAPID keys, settings, sites, subscriptions,
+	// push prompts, push campaigns and their sends, and the notifications of
+	// the message log.
+	PushKeyLive(ctx context.Context, workspaceID uuid.UUID) (PushKeyLiveRow, error)
+	PushKeyRotate(ctx context.Context, arg PushKeyRotateParams) error
+	PushKeySetContact(ctx context.Context, arg PushKeySetContactParams) error
+	PushMessage(ctx context.Context, id uuid.UUID) (PushMessageRow, error)
+	PushMessageAnswer(ctx context.Context, arg PushMessageAnswerParams) error
+	PushMessageClicked(ctx context.Context, arg PushMessageClickedParams) (int64, error)
+	PushMessageClosed(ctx context.Context, arg PushMessageClosedParams) (int64, error)
+	PushMessageInsert(ctx context.Context, arg PushMessageInsertParams) error
+	PushMessageShown(ctx context.Context, arg PushMessageShownParams) (int64, error)
+	PushPrompt(ctx context.Context, arg PushPromptParams) (PushPromptRow, error)
+	// Adds to a prompt's counts of the day.
+	PushPromptDayAdd(ctx context.Context, arg PushPromptDayAddParams) error
+	PushPromptInsert(ctx context.Context, arg PushPromptInsertParams) error
+	PushPromptPublish(ctx context.Context, arg PushPromptPublishParams) error
+	PushPromptSaveDraft(ctx context.Context, arg PushPromptSaveDraftParams) error
+	// A prompt's counts since a day.
+	PushPromptTotals(ctx context.Context, arg PushPromptTotalsParams) (PushPromptTotalsRow, error)
+	PushPromptVersion(ctx context.Context, arg PushPromptVersionParams) (PushPromptVersionRow, error)
+	PushPromptVersionInsert(ctx context.Context, arg PushPromptVersionInsertParams) error
+	PushPrompts(ctx context.Context, workspaceID uuid.UUID) ([]PushPromptsRow, error)
+	PushSend(ctx context.Context, campaignID uuid.UUID) (PushSend, error)
+	PushSendSetPhase(ctx context.Context, arg PushSendSetPhaseParams) error
+	PushSendUpsert(ctx context.Context, arg PushSendUpsertParams) error
+	// Scheduled push sends whose time has come.
+	PushSendsDue(ctx context.Context, now time.Time) ([]PushSend, error)
+	// Push's quiet hours, kept with the SMS rules once the workspace has them
+	// (sms_settings.push_same_window). Never creates the SMS rules: they start
+	// with their own defaults when SMS is set up.
+	PushSetSameWindow(ctx context.Context, arg PushSetSameWindowParams) (int64, error)
+	PushSettings(ctx context.Context, workspaceID uuid.UUID) (PushSetting, error)
+	PushSettingsUpsert(ctx context.Context, arg PushSettingsUpsertParams) error
+	PushSite(ctx context.Context, arg PushSiteParams) (PushSite, error)
+	PushSiteAny(ctx context.Context, id uuid.UUID) (PushSite, error)
+	PushSiteByOrigin(ctx context.Context, arg PushSiteByOriginParams) (PushSite, error)
+	PushSiteInsert(ctx context.Context, arg PushSiteInsertParams) error
+	PushSiteRemove(ctx context.Context, arg PushSiteRemoveParams) error
+	PushSiteSetCheck(ctx context.Context, arg PushSiteSetCheckParams) error
+	PushSiteSnippetSeen(ctx context.Context, arg PushSiteSnippetSeenParams) error
+	PushSiteUpdate(ctx context.Context, arg PushSiteUpdateParams) error
+	PushSites(ctx context.Context, workspaceID uuid.UUID) ([]PushSitesRow, error)
+	// Every listed site of the instance, for the daily service worker check.
+	PushSitesAll(ctx context.Context) ([]PushSite, error)
+	PushSubscription(ctx context.Context, arg PushSubscriptionParams) (PushSubscription, error)
+	PushSubscriptionByEndpoint(ctx context.Context, arg PushSubscriptionByEndpointParams) (PushSubscription, error)
+	PushSubscriptionFailure(ctx context.Context, id uuid.UUID) (int32, error)
+	PushSubscriptionInsert(ctx context.Context, arg PushSubscriptionInsertParams) error
+	PushSubscriptionLink(ctx context.Context, arg PushSubscriptionLinkParams) error
+	// The same browser subscribed again (new keys, or the same subscription
+	// sent from another page): keep the record, refresh what changed.
+	PushSubscriptionRefresh(ctx context.Context, arg PushSubscriptionRefreshParams) error
+	// A removed subscription loses its endpoint and keys; its site, browser
+	// and contact stay for the counts.
+	PushSubscriptionRemove(ctx context.Context, arg PushSubscriptionRemoveParams) error
+	PushSubscriptionTouch(ctx context.Context, arg PushSubscriptionTouchParams) error
+	PushSubscriptionsByBrowser(ctx context.Context, workspaceID uuid.UUID) ([]PushSubscriptionsByBrowserRow, error)
+	// Live subscriptions per site.
+	PushSubscriptionsBySite(ctx context.Context, workspaceID uuid.UUID) ([]PushSubscriptionsBySiteRow, error)
+	PushSubscriptionsOfContact(ctx context.Context, arg PushSubscriptionsOfContactParams) ([]PushSubscriptionsOfContactRow, error)
+	PushTestSubscription(ctx context.Context, arg PushTestSubscriptionParams) (PushTestSubscription, error)
+	PushTestSubscriptionByID(ctx context.Context, id uuid.UUID) (PushTestSubscription, error)
+	PushTestSubscriptionUpsert(ctx context.Context, arg PushTestSubscriptionUpsertParams) error
 	PutMXCache(ctx context.Context, arg PutMXCacheParams) error
 	ReadinessAcceptUnknown(ctx context.Context, arg ReadinessAcceptUnknownParams) error
 	// A campaign with its sender and sending domain.
@@ -4088,6 +4167,63 @@ type Querier interface {
 	// Welcome-series prompts (add-on transactional §6).
 	// The workspace's lists, newest first.
 	WelcomeLists(ctx context.Context, workspaceID uuid.UUID) ([]WelcomeListsRow, error)
+	// WhatsApp (internal/whatsapp): the account, templates, the rate card,
+	// WhatsApp campaigns and their sends, messages, what people send, and
+	// Meta's raw webhook events.
+	WhatsAppAccount(ctx context.Context, workspaceID uuid.UUID) (WhatsAppAccountRow, error)
+	WhatsAppAccountByID(ctx context.Context, id uuid.UUID) (WhatsappAccount, error)
+	// The account a webhook request is for: /hooks/whatsapp/{workspace}.
+	WhatsAppAccountBySlug(ctx context.Context, slug string) (WhatsappAccount, error)
+	WhatsAppAccountInsert(ctx context.Context, arg WhatsAppAccountInsertParams) error
+	WhatsAppAccountRemove(ctx context.Context, arg WhatsAppAccountRemoveParams) error
+	WhatsAppAccountSetCredentials(ctx context.Context, arg WhatsAppAccountSetCredentialsParams) error
+	// What Meta reported for the number and the business account.
+	WhatsAppAccountSetInfo(ctx context.Context, arg WhatsAppAccountSetInfoParams) error
+	WhatsAppAccountSetStatus(ctx context.Context, arg WhatsAppAccountSetStatusParams) error
+	WhatsAppAccountSynced(ctx context.Context, arg WhatsAppAccountSyncedParams) error
+	WhatsAppAccountTouchEvent(ctx context.Context, arg WhatsAppAccountTouchEventParams) error
+	WhatsAppAccountVerified(ctx context.Context, arg WhatsAppAccountVerifiedParams) error
+	// Every connected account, for the hourly sync.
+	WhatsAppAccountsAll(ctx context.Context) ([]WhatsappAccount, error)
+	WhatsAppCampaign(ctx context.Context, arg WhatsAppCampaignParams) (WhatsAppCampaignRow, error)
+	WhatsAppCampaignDetailInsert(ctx context.Context, arg WhatsAppCampaignDetailInsertParams) error
+	WhatsAppCampaignDetailSave(ctx context.Context, arg WhatsAppCampaignDetailSaveParams) error
+	WhatsAppCampaignInsert(ctx context.Context, arg WhatsAppCampaignInsertParams) error
+	WhatsAppCampaignSave(ctx context.Context, arg WhatsAppCampaignSaveParams) error
+	WhatsAppCampaignSetStatus(ctx context.Context, arg WhatsAppCampaignSetStatusParams) error
+	WhatsAppInboundInsert(ctx context.Context, arg WhatsAppInboundInsertParams) error
+	// The last message a number sent: the customer service window runs 24
+	// hours from it.
+	WhatsAppLastInbound(ctx context.Context, arg WhatsAppLastInboundParams) (WhatsappInbound, error)
+	WhatsAppMessageBillable(ctx context.Context, arg WhatsAppMessageBillableParams) error
+	WhatsAppMessageByMetaID(ctx context.Context, arg WhatsAppMessageByMetaIDParams) (WhatsAppMessageByMetaIDRow, error)
+	WhatsAppMessageInsert(ctx context.Context, arg WhatsAppMessageInsertParams) error
+	WhatsAppMessageRead(ctx context.Context, arg WhatsAppMessageReadParams) (int64, error)
+	WhatsAppRateInsert(ctx context.Context, arg WhatsAppRateInsertParams) error
+	WhatsAppRates(ctx context.Context, workspaceID uuid.UUID) ([]WhatsappRate, error)
+	WhatsAppRatesClear(ctx context.Context, workspaceID uuid.UUID) error
+	WhatsAppRawEvent(ctx context.Context, id uuid.UUID) (WhatsappRawEvent, error)
+	WhatsAppRawEventDone(ctx context.Context, arg WhatsAppRawEventDoneParams) error
+	WhatsAppRawEventInsert(ctx context.Context, arg WhatsAppRawEventInsertParams) error
+	WhatsAppRawEventsPending(ctx context.Context, before time.Time) ([]uuid.UUID, error)
+	WhatsAppSend(ctx context.Context, campaignID uuid.UUID) (WhatsappSend, error)
+	WhatsAppSendSetPhase(ctx context.Context, arg WhatsAppSendSetPhaseParams) error
+	WhatsAppSendUpsert(ctx context.Context, arg WhatsAppSendUpsertParams) error
+	WhatsAppSetSameWindow(ctx context.Context, arg WhatsAppSetSameWindowParams) (int64, error)
+	WhatsAppSettings(ctx context.Context, workspaceID uuid.UUID) (WhatsappSetting, error)
+	WhatsAppSettingsEnsure(ctx context.Context, arg WhatsAppSettingsEnsureParams) error
+	WhatsAppSettingsRatesEdited(ctx context.Context, arg WhatsAppSettingsRatesEditedParams) error
+	WhatsAppSettingsSetQuiet(ctx context.Context, arg WhatsAppSettingsSetQuietParams) error
+	WhatsAppTemplate(ctx context.Context, arg WhatsAppTemplateParams) (WhatsappTemplate, error)
+	WhatsAppTemplateByName(ctx context.Context, arg WhatsAppTemplateByNameParams) (WhatsappTemplate, error)
+	// A status update from Meta's webhook.
+	WhatsAppTemplateSetStatus(ctx context.Context, arg WhatsAppTemplateSetStatusParams) error
+	// A template as Meta lists it. Its status date moves only when the status
+	// changes, and Meta's words for a rejection stay unless the code changed.
+	WhatsAppTemplateUpsert(ctx context.Context, arg WhatsAppTemplateUpsertParams) error
+	WhatsAppTemplates(ctx context.Context, accountID uuid.UUID) ([]WhatsappTemplate, error)
+	// Templates Meta no longer lists were deleted in WhatsApp Manager.
+	WhatsAppTemplatesRemoveMissing(ctx context.Context, arg WhatsAppTemplatesRemoveMissingParams) error
 	WordPressDraftByPost(ctx context.Context, arg WordPressDraftByPostParams) (WordpressDraft, error)
 	WordPressDraftInsert(ctx context.Context, arg WordPressDraftInsertParams) error
 	WordPressDrafts(ctx context.Context, arg WordPressDraftsParams) ([]WordPressDraftsRow, error)

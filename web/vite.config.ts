@@ -63,6 +63,9 @@ export default defineConfig({
       '/auth/': { target: backend, changeOrigin: false },
       // Shopify's App URL and allowed redirection URL (pasted into the store's custom app).
       '/integrations/shopify/': { target: backend, changeOrigin: false },
+      // Web push (X22): the prompt script, the workers and the click link.
+      '/push/': { target: backend, changeOrigin: false },
+      '/t/p/': { target: backend, changeOrigin: false },
     },
   },
   build: {

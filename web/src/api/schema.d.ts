@@ -3296,6 +3296,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/automations/{id}/push-estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who a flow's push steps reach: its contacts with a linked subscription */
+        get: operations["get-push-step-estimate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/push-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A flow's push steps over 30 days: sent, shown, clicks, skipped */
+        get: operations["get-automation-push-stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/automations/{id}/resume": {
         parameters: {
             query?: never;
@@ -3443,6 +3477,23 @@ export interface paths {
         put?: never;
         /** Make an earlier version the draft */
         post: operations["restore-automation-version"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/automations/{id}/whatsapp-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A flow's WhatsApp steps over 30 days */
+        get: operations["get-automation-whatsapp-stats"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5297,6 +5348,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/contacts/{contactId}/push": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A contact's linked browser subscriptions */
+        get: operations["get-contact-push"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contactId}/push/{subscriptionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** End one of a contact's subscriptions (logged) */
+        delete: operations["remove-contact-push"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/contacts/{contactId}/sms-consent": {
         parameters: {
             query?: never;
@@ -5365,6 +5450,60 @@ export interface paths {
          * @description Audited, and on the contact's timeline.
          */
         post: operations["sign-contact-out-everywhere"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contactId}/whatsapp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A contact's WhatsApp: consent per list, the customer service window and the conversation */
+        get: operations["get-contact-whatsapp"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contactId}/whatsapp/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change a contact's WhatsApp consent on a list (logged)
+         * @description Consent needs its evidence; an opt-out by the person can't be overridden.
+         */
+        put: operations["set-contact-whatsapp-consent"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contactId}/whatsapp/reply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reply with free text inside the 24-hour customer service window */
+        post: operations["reply-contact-whatsapp"];
         delete?: never;
         options?: never;
         head?: never;
@@ -11797,6 +11936,476 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/push-campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make a push campaign (logged) */
+        post: operations["create-push-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push-campaigns/{campaignId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The push composer */
+        get: operations["get-push-campaign"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Autosave a push campaign (logged) */
+        patch: operations["update-push-campaign"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push-campaigns/{campaignId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop a push campaign: what wasn't handed over doesn't go (logged) */
+        post: operations["cancel-push-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push-campaigns/{campaignId}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a push campaign as a draft (logged) */
+        post: operations["duplicate-push-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push-campaigns/{campaignId}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The push report: sent, shown, clicks, unsubscribes and expired subscriptions, by browser and site */
+        get: operations["get-push-report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push-campaigns/{campaignId}/report.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The push report as CSV, by browser and site (logged) */
+        get: operations["export-push-report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push-campaigns/{campaignId}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Review & send: the push checks, schedule and approvals */
+        get: operations["review-push-campaign"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push-campaigns/{campaignId}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send or schedule a push campaign as reviewed (logged)
+         * @description Needs campaigns:send and push:send; the workspace's approval rules apply.
+         */
+        post: operations["send-push-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push-campaigns/{campaignId}/send-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Choose when it goes and what quiet hours do */
+        put: operations["save-push-send-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push-campaigns/{campaignId}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send the notification to my browser (logged)
+         * @description The body is this browser's subscription, made with the workspace's public key.
+         */
+        post: operations["send-push-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push-campaigns/{campaignId}/unschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take a scheduled push campaign back to a draft (logged) */
+        post: operations["unschedule-push-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push/contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the contact the push services get (logged) */
+        put: operations["set-push-contact"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate the keys and turn push on (logged)
+         * @description Makes the VAPID key pair (the private key is sealed and never returned) and adds the publication website as a push site when there is one.
+         */
+        post: operations["enable-push"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the push services and the service workers reported */
+        get: operations["list-push-events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push/keys/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate the keys: every subscription ends (logged)
+         * @description Needs the number of subscriptions that end, typed. Readers have to allow notifications again.
+         */
+        post: operations["rotate-push-keys"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push/keys/rotation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What rotating the keys would end */
+        get: operations["push-rotation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push/prompts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make a push prompt, a form type (logged) */
+        post: operations["create-push-prompt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push/prompts/{formId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The push prompt designer */
+        get: operations["get-push-prompt"];
+        /**
+         * Save the prompt's draft
+         * @description Readers see it once it's published.
+         */
+        put: operations["save-push-prompt"];
+        post?: never;
+        /**
+         * Delete a prompt: readers stop seeing it (logged)
+         * @description The subscriptions it made stay, each with its consent record.
+         */
+        delete: operations["delete-push-prompt"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push/prompts/{formId}/discard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Throw the draft away */
+        post: operations["discard-push-prompt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push/prompts/{formId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish the prompt (logged) */
+        post: operations["publish-push-prompt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push/prompts/{formId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Pause or resume a prompt (logged) */
+        put: operations["set-push-prompt-status"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the frequency cap and quiet hours (logged) */
+        put: operations["save-push-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Push setup: keys, sites, subscribers and prompts
+         * @description The private key is never returned.
+         */
+        get: operations["push-setup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push/sites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a site readers can turn notifications on from (logged) */
+        post: operations["add-push-site"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push/sites/{siteId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a site's label, worker and icon (logged) */
+        put: operations["update-push-site"];
+        post?: never;
+        /** Remove a site: its subscriptions end (logged) */
+        delete: operations["remove-push-site"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/push/sites/{siteId}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fetch the site's service worker now
+         * @description Reports whether the file was found, its version and its scope.
+         */
+        post: operations["check-push-site"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/roles": {
         parameters: {
             query?: never;
@@ -15745,6 +16354,398 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/whatsapp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * WhatsApp: the account, templates, consent and events
+         * @description Credentials are write-only: they're never returned.
+         */
+        get: operations["whatsapp-overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp-campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make a WhatsApp campaign (logged) */
+        post: operations["create-whatsapp-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp-campaigns/{campaignId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The WhatsApp composer */
+        get: operations["get-whatsapp-campaign"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Autosave a WhatsApp campaign (logged) */
+        patch: operations["update-whatsapp-campaign"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp-campaigns/{campaignId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop a WhatsApp campaign: what wasn't sent doesn't go (logged) */
+        post: operations["cancel-whatsapp-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp-campaigns/{campaignId}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a WhatsApp campaign as a draft (logged) */
+        post: operations["duplicate-whatsapp-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp-campaigns/{campaignId}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The WhatsApp report: sent, delivered, read, failed, button clicks, replies, opt-outs and cost */
+        get: operations["get-whatsapp-report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp-campaigns/{campaignId}/report.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The WhatsApp report as CSV, by country (logged) */
+        get: operations["export-whatsapp-report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp-campaigns/{campaignId}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Review & send: consent, the template, quality, the messaging limit and the cost */
+        get: operations["review-whatsapp-campaign"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp-campaigns/{campaignId}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send or schedule a WhatsApp campaign as reviewed (logged)
+         * @description Needs campaigns:send and whatsapp:send; the workspace's approval rules apply.
+         */
+        post: operations["send-whatsapp-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp-campaigns/{campaignId}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send the campaign to my WhatsApp (logged) */
+        post: operations["send-whatsapp-campaign-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp-campaigns/{campaignId}/unschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take a scheduled WhatsApp campaign back to a draft (logged) */
+        post: operations["unschedule-whatsapp-campaign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Connect a WhatsApp Business Account (logged)
+         * @description Checks the values with Meta, seals them and shows the webhook to paste in Meta's app settings. Nothing is sent until Meta verifies it.
+         */
+        post: operations["connect-whatsapp"];
+        /** Disconnect WhatsApp: waiting messages are cancelled (logged) */
+        delete: operations["disconnect-whatsapp"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp/account/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read the account from Meta now and sync the templates */
+        post: operations["check-whatsapp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp/account/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the credentials, or reconnect with a new token (logged)
+         * @description Held sends go again once Meta accepts the token.
+         */
+        put: operations["replace-whatsapp-credentials"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp/estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who a list's WhatsApp consent reaches and what one template to them costs */
+        get: operations["get-whatsapp-estimate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Meta's webhooks and what came of them */
+        get: operations["list-whatsapp-events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp/rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The rate card costs are estimated from */
+        get: operations["get-whatsapp-rates"];
+        /** Edit the rate card (logged) */
+        put: operations["save-whatsapp-rates"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Whether WhatsApp keeps to the quiet hours (logged) */
+        put: operations["save-whatsapp-settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp/step-estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A WhatsApp step's templates, reach, estimated cost and preview */
+        post: operations["estimate-whatsapp-step"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp/templates/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sync the templates from Meta now (logged when something changed) */
+        post: operations["sync-whatsapp-templates"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a test message to a member's WhatsApp (logged)
+         * @description An approved template; the answer says when Meta delivered it.
+         */
+        post: operations["send-whatsapp-account-test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/whatsapp/tests/{messageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A test message and what Meta reported */
+        get: operations["get-whatsapp-test"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/woocommerce/checkouts": {
         parameters: {
             query?: never;
@@ -18115,6 +19116,7 @@ export interface components {
             nextId?: string;
             note: string;
             page?: components["schemas"]["ApprovalPageSnapshot"];
+            push?: components["schemas"]["ApprovalPushSnapshot"];
             readiness?: components["schemas"]["ApprovalReadinessView"];
             /** Format: date-time */
             requestedAt: string;
@@ -18132,6 +19134,7 @@ export interface components {
             /** Format: int64 */
             version: number;
             website?: components["schemas"]["ApprovalWebsiteSnapshot"];
+            whatsapp?: components["schemas"]["ApprovalWhatsAppSnapshot"];
         };
         ApprovalFilterOption: {
             id: string;
@@ -18271,6 +19274,26 @@ export interface components {
             name: string;
             /** @enum {string} */
             status: "source" | "translated" | "draft";
+        };
+        ApprovalPushButton: {
+            label: string;
+            url: string;
+        };
+        ApprovalPushSnapshot: {
+            buttons: components["schemas"]["ApprovalPushButton"][];
+            host?: string;
+            icon?: string;
+            image?: string;
+            link: string;
+            message: string;
+            /** Format: int64 */
+            recipients: number;
+            schedule: string;
+            sites: string[];
+            tag?: string;
+            title: string;
+            /** Format: int64 */
+            ttlMinutes: number;
         };
         ApprovalReadinessView: {
             /** Format: int64 */
@@ -18453,6 +19476,27 @@ export interface components {
             visibilityLabel: string;
             /** @enum {string} */
             when: "now" | "at" | "with_send";
+        };
+        ApprovalWhatsAppSnapshot: {
+            body: string;
+            business: string;
+            buttons: string[];
+            category: string;
+            /** Format: double */
+            cost: number;
+            language: string;
+            number: string;
+            preview: string;
+            /** Format: int64 */
+            recipients: number;
+            schedule: string;
+            template: string;
+            variables: components["schemas"]["ApprovalWhatsAppValue"][];
+        };
+        ApprovalWhatsAppValue: {
+            fallback?: string;
+            key: string;
+            source: string;
         };
         ArchiveIssueInput: {
             /** @description Empty uses the preheader */
@@ -19087,7 +20131,7 @@ export interface components {
             id: string;
             position: components["schemas"]["AutomationNodePosition"];
             /** @enum {string} */
-            type: "trigger" | "delay" | "email" | "branch" | "filter" | "split" | "webhook" | "list" | "goal" | "exit" | "sms";
+            type: "trigger" | "delay" | "email" | "branch" | "filter" | "split" | "webhook" | "list" | "goal" | "exit" | "sms" | "push" | "whatsapp";
         };
         AutomationNodeData: {
             action?: components["schemas"]["AutomationListAction"];
@@ -19096,10 +20140,12 @@ export interface components {
             delay?: components["schemas"]["AutomationDuration"];
             email?: components["schemas"]["AutomationEmailStep"];
             label?: string;
+            push?: components["schemas"]["AutomationPushStep"];
             sms?: components["schemas"]["AutomationSMSStep"];
             trigger?: components["schemas"]["AutomationTrigger"];
             variants?: components["schemas"]["AutomationSplitVariant"][];
             webhook?: components["schemas"]["AutomationWebhook"];
+            whatsapp?: components["schemas"]["AutomationWhatsAppStep"];
         };
         AutomationNodePosition: {
             /** Format: double */
@@ -19194,6 +20240,16 @@ export interface components {
             status: "published" | "approval_required";
             /** Format: int64 */
             version: number;
+        };
+        AutomationPushStep: {
+            button?: string;
+            /** Format: int64 */
+            expiryMinutes?: number;
+            link?: string;
+            message?: string;
+            /** @enum {string} */
+            outside?: "wait" | "skip" | "";
+            title?: string;
         };
         AutomationRevenue: {
             currency: string;
@@ -19451,6 +20507,28 @@ export interface components {
         };
         AutomationWebhookCalls: {
             calls: components["schemas"]["AutomationWebhookCall"][];
+        };
+        AutomationWhatsAppStep: {
+            consentListId?: string;
+            fallbackTemplate?: string;
+            language?: string;
+            /** @enum {string} */
+            mode?: "template" | "text" | "";
+            /** @enum {string} */
+            outside?: "wait" | "skip" | "";
+            /** @enum {string} */
+            outsideWindow?: "skip" | "template" | "";
+            template?: string;
+            text?: string;
+            variables?: components["schemas"]["AutomationWhatsAppVar"][];
+        };
+        AutomationWhatsAppVar: {
+            fallback?: string;
+            field?: string;
+            key: string;
+            /** @enum {string} */
+            source: "field" | "text";
+            text?: string;
         };
         Badge: {
             /** @enum {string} */
@@ -21551,6 +22629,7 @@ export interface components {
             /** @enum {string} */
             phone?: "yes" | "no";
             phoneCountry?: string;
+            pushSubscribed?: boolean;
             /** @description Email, name or tag */
             q?: string;
             referringDomain?: string;
@@ -21572,6 +22651,7 @@ export interface components {
             utmCampaign?: string;
             utmMedium?: string;
             utmSource?: string;
+            whatsAppConsent?: boolean;
         };
         ContactJoin: {
             attributed: boolean;
@@ -30995,6 +32075,745 @@ export interface components {
              */
             reregistering: number;
         };
+        PushAccess: {
+            canEdit: boolean;
+            canSend: boolean;
+            helpers: string[];
+            missing: string[];
+        };
+        PushAudience: {
+            /** Format: int64 */
+            anonymous: number;
+            /** Format: int64 */
+            final: number;
+            /** Format: int64 */
+            linked: number;
+            narrowed: boolean;
+            /** Format: int64 */
+            overCap: number;
+            /** Format: int64 */
+            total: number;
+        };
+        PushAudienceRef: {
+            id: string;
+            /** @enum {string} */
+            kind: "list" | "segment";
+            name: string;
+        };
+        PushAudienceSite: {
+            host: string;
+            id: string;
+            selected: boolean;
+            /** Format: int64 */
+            subscribers: number;
+        };
+        PushButton: {
+            label: string;
+            url: string;
+        };
+        PushCampaign: {
+            access: components["schemas"]["PushAccess"];
+            audience: components["schemas"]["PushAudience"];
+            /** Format: date-time */
+            autosavedAt?: string;
+            buttons: components["schemas"]["PushButton"][];
+            createdBy: string;
+            guards: components["schemas"]["PushGuards"];
+            host: string;
+            iconUrl: string;
+            id: string;
+            image?: components["schemas"]["PushImage"];
+            limits: components["schemas"]["PushLengthLimits"];
+            link: string;
+            lists: components["schemas"]["PushAudienceRef"][];
+            message: string;
+            name: string;
+            pushOn: boolean;
+            replaceTag: boolean;
+            schedule: components["schemas"]["PushSchedule"];
+            segments: components["schemas"]["PushAudienceRef"][];
+            sites: components["schemas"]["PushAudienceSite"][];
+            /** @enum {string} */
+            status: "draft" | "approval" | "approved" | "scheduled" | "sending" | "paused" | "sent" | "cancelled" | "failed";
+            tag: string;
+            test?: components["schemas"]["PushTestResult"];
+            title: string;
+            /** Format: int64 */
+            ttlMinutes: number;
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy: string;
+            utm: string;
+            /** Format: int64 */
+            version: number;
+        };
+        PushCampaignCreate: {
+            link?: string;
+            message?: string;
+            name: string;
+            siteIds?: string[];
+            title?: string;
+        };
+        PushCampaignUpdate: {
+            buttons: components["schemas"]["PushButton"][];
+            imageMediaId?: string;
+            link: string;
+            lists: string[];
+            message: string;
+            name: string;
+            replaceTag: boolean;
+            segments: string[];
+            siteIds: string[];
+            tag: string;
+            title: string;
+            /** Format: int64 */
+            ttlMinutes: number;
+            /** Format: int64 */
+            version: number;
+        };
+        PushCheck: {
+            /** Format: int64 */
+            anonymous: number;
+            /** Format: date-time */
+            at: string;
+            atZone: string;
+            author?: string;
+            authorRole?: string;
+            /** Format: int64 */
+            cap: number;
+            /** Format: int64 */
+            count: number;
+            cuts: components["schemas"]["PushCut"][];
+            /** Format: int64 */
+            hadToday: number;
+            /** Format: int64 */
+            held: number;
+            heldZones: components["schemas"]["PushZone"][];
+            helpers: string[];
+            image?: components["schemas"]["PushImage"];
+            /** Format: int64 */
+            inside: number;
+            /** @enum {string} */
+            key: "keys" | "worker" | "audience" | "frequency_cap" | "quiet_hours" | "link" | "lengths" | "image" | "approval";
+            /** Format: date-time */
+            keysAcceptedAt?: string;
+            /** Format: date-time */
+            keysCreatedAt?: string;
+            link?: string;
+            linkDemo?: boolean;
+            linkError?: string;
+            /** Format: int64 */
+            linkMillis?: number;
+            /** Format: int64 */
+            linkStatus?: number;
+            /** Format: int64 */
+            linked: number;
+            /** Format: int64 */
+            messageLength: number;
+            missing: string[];
+            /** Format: int64 */
+            otherSites: number;
+            /** Format: int64 */
+            overCap: number;
+            quietOff: boolean;
+            ratio?: string;
+            rules: string[];
+            sites: components["schemas"]["PushCheckSite"][];
+            /** Format: int64 */
+            skipped: number;
+            /** @enum {string} */
+            status: "pass" | "warn" | "block";
+            /** Format: int64 */
+            titleLength: number;
+            window: string;
+        };
+        PushCheckSite: {
+            host: string;
+            /** Format: int64 */
+            httpStatus?: number;
+            /** @enum {string} */
+            status: "built_in" | "found" | "old_version" | "missing" | "unreachable" | "not_a_worker" | "unchecked";
+            /** Format: int64 */
+            subscribers: number;
+            url: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        PushConsentRecord: {
+            /** Format: date-time */
+            at: string;
+            browser: string;
+            contact?: string;
+            contactId?: string;
+            ip?: string;
+            linkedBy?: string;
+            page: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            publishedBy?: string;
+            site: string;
+            text: string;
+            timeZone: string;
+            /** Format: int64 */
+            version: number;
+        };
+        PushContactCard: {
+            canEdit: boolean;
+            pushOn: boolean;
+            subscriptions: components["schemas"]["PushContactSubscription"][];
+        };
+        PushContactInput: {
+            contact: string;
+        };
+        PushContactSubscription: {
+            /** @enum {string} */
+            browser: "chrome" | "chrome_android" | "edge" | "firefox" | "safari" | "safari_ios" | "other";
+            id: string;
+            /** Format: date-time */
+            lastSeen?: string;
+            /** @enum {string} */
+            linkedBy: "member" | "link" | "account" | "preferences" | "";
+            platform: string;
+            /** Format: date-time */
+            since: string;
+            site: string;
+            timeZone: string;
+        };
+        PushCount: {
+            /** Format: int64 */
+            count: number;
+            key: string;
+        };
+        PushCut: {
+            /** Format: int64 */
+            lines: number;
+            /** @enum {string} */
+            platform: "chrome_windows" | "chrome_mac" | "safari_mac" | "chrome_android" | "safari_ios";
+            title: boolean;
+        };
+        PushEnableInput: {
+            contact?: string;
+        };
+        PushEvent: {
+            /** Format: date-time */
+            at: string;
+            browser: string;
+            /** @enum {string} */
+            kind: "sent" | "gone" | "failed" | "shown" | "clicked" | "closed" | "queued" | "delivered" | "undelivered" | "replied" | "opted_out" | "opted_in" | "help" | "read";
+            message: string;
+            raw: string;
+            site: string;
+            source: string;
+            sourceId?: string;
+            /** @enum {string} */
+            sourceKind: "campaign" | "automation" | "test" | "confirmation" | "reply";
+        };
+        PushEventList: {
+            items: components["schemas"]["PushEvent"][];
+            more: boolean;
+            /** Format: int64 */
+            removed: number;
+        };
+        PushGuards: {
+            /** Format: int64 */
+            cap: number;
+            /** Format: int64 */
+            held: number;
+            /** Format: int64 */
+            inside: number;
+            /** Format: int64 */
+            overCap: number;
+            quiet: boolean;
+            sentToday: components["schemas"]["PushSentToday"][];
+            /** Format: int64 */
+            unknown: number;
+            window: string;
+            zones: components["schemas"]["PushZone"][];
+        };
+        PushImage: {
+            /** Format: int64 */
+            bytes: number;
+            /** Format: int64 */
+            height: number;
+            mediaId: string;
+            name: string;
+            url: string;
+            /** Format: int64 */
+            width: number;
+        };
+        PushKeysView: {
+            contact: string;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            /** Format: date-time */
+            lastAcceptedAt?: string;
+            publicKey: string;
+        };
+        PushLengthLimits: {
+            /** Format: int64 */
+            message: number;
+            /** Format: int64 */
+            title: number;
+            /** Format: int64 */
+            titleWindows: number;
+        };
+        PushListHighlight: {
+            /** Format: int64 */
+            count: number;
+            listId: string;
+            name: string;
+        };
+        PushMonth: {
+            /** Format: int64 */
+            campaigns: number;
+            /** Format: date-time */
+            month: string;
+            /** Format: int64 */
+            sent: number;
+            /** Format: double */
+            shownPct: number;
+        };
+        PushPrompt: {
+            canEdit: boolean;
+            changed: boolean;
+            consent?: components["schemas"]["PushConsentRecord"];
+            draft: components["schemas"]["PushPromptConfig"];
+            formId: string;
+            iconUrl?: string;
+            live?: components["schemas"]["PushPromptConfig"];
+            /** Format: date-time */
+            liveSince?: string;
+            /** Format: int64 */
+            liveVersion: number;
+            name: string;
+            pushOn: boolean;
+            site?: components["schemas"]["PushPromptSiteOption"];
+            sites: components["schemas"]["PushPromptSiteOption"][];
+            stats: components["schemas"]["PushPromptStats"];
+            /** @enum {string} */
+            status: "draft" | "live" | "paused";
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy: string;
+        };
+        PushPromptCard: {
+            config: components["schemas"]["PushPromptConfig"];
+            formId: string;
+            name: string;
+            site: string;
+            stats: components["schemas"]["PushPromptStats"];
+            /** @enum {string} */
+            status: "draft" | "live" | "paused";
+            /** Format: int64 */
+            version: number;
+        };
+        PushPromptConfig: {
+            allow: string;
+            /** Format: int64 */
+            askAgainDays: number;
+            /** @enum {string} */
+            corner?: "bottom_right" | "bottom_left" | "";
+            /** @enum {string} */
+            ios: "steps" | "hidden";
+            message: string;
+            notNow: string;
+            /** @enum {string} */
+            pages: "all_except" | "only";
+            paths: string[];
+            /** @enum {string} */
+            style: "bar" | "dialog" | "bell";
+            title: string;
+            when: components["schemas"]["PushPromptWhen"];
+        };
+        PushPromptCreate: {
+            name: string;
+            siteId?: string;
+        };
+        PushPromptRule: {
+            /** Format: int64 */
+            n: number;
+            on: boolean;
+        };
+        PushPromptSave: {
+            config: components["schemas"]["PushPromptConfig"];
+            siteId?: string;
+        };
+        PushPromptSiteOption: {
+            host: string;
+            id?: string;
+            /** @enum {string} */
+            kind: "publication" | "snippet";
+            origin: string;
+            pushSite: boolean;
+            website: boolean;
+        };
+        PushPromptStats: {
+            /** Format: int64 */
+            allowed: number;
+            /** Format: double */
+            allowedPct: number;
+            /** Format: int64 */
+            bellClicked: number;
+            /** Format: int64 */
+            blocked: number;
+            /** Format: int64 */
+            closed: number;
+            /** Format: double */
+            closedPct: number;
+            /** Format: int64 */
+            granted: number;
+            /** Format: double */
+            grantedPct: number;
+            /** Format: int64 */
+            iosAdded: number;
+            /** Format: double */
+            iosAddedPct: number;
+            /** Format: int64 */
+            iosSteps: number;
+            /** Format: int64 */
+            iosSubscribers: number;
+            /** Format: int64 */
+            notNow: number;
+            /** Format: double */
+            notNowPct: number;
+            /** Format: int64 */
+            shown: number;
+            /** Format: date-time */
+            since: string;
+            sinceSnippet: boolean;
+        };
+        PushPromptStatus: {
+            /** @enum {string} */
+            status: "live" | "paused";
+        };
+        PushPromptWhen: {
+            button: boolean;
+            posts: components["schemas"]["PushPromptRule"];
+            scroll: components["schemas"]["PushPromptRule"];
+            seconds: components["schemas"]["PushPromptRule"];
+        };
+        PushReport: {
+            byBrowser: components["schemas"]["PushReportBrowser"][];
+            bySite: components["schemas"]["PushReportSite"][];
+            canSend: boolean;
+            /** Format: int64 */
+            clicks: number;
+            clicks24: components["schemas"]["PushReportPoint"][];
+            /** Format: double */
+            clicksPct: number;
+            /** Format: int64 */
+            expired: number;
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            held: number;
+            id: string;
+            name: string;
+            /** Format: int64 */
+            planned: number;
+            /** Format: int64 */
+            queued: number;
+            /** Format: int64 */
+            sent: number;
+            /** Format: date-time */
+            sentAt?: string;
+            sentBy: string;
+            /** Format: int64 */
+            shown: number;
+            /** Format: double */
+            shownPct: number;
+            sites: string[];
+            sitesNotIn: string[];
+            skipped: {
+                [key: string]: number;
+            };
+            /** @enum {string} */
+            status: "draft" | "approval" | "approved" | "scheduled" | "sending" | "paused" | "sent" | "cancelled" | "failed";
+            tag: string;
+            /** Format: int64 */
+            ttlMinutes: number;
+            /** Format: int64 */
+            unsubscribed: number;
+            /** Format: double */
+            unsubscribedPct: number;
+        };
+        PushReportBrowser: {
+            /** @enum {string} */
+            browser: "chrome" | "chrome_android" | "edge" | "firefox" | "safari" | "safari_ios" | "other";
+            /** Format: int64 */
+            clicks: number;
+            /** Format: int64 */
+            sent: number;
+            /** Format: int64 */
+            shown: number;
+            /** Format: double */
+            shownPct: number;
+        };
+        PushReportPoint: {
+            /** Format: int64 */
+            clicks: number;
+            /** Format: int64 */
+            minutes: number;
+        };
+        PushReportSite: {
+            host: string;
+            /** Format: int64 */
+            sent: number;
+        };
+        PushReview: {
+            access: components["schemas"]["PushAccess"];
+            approval: components["schemas"]["ReviewApproval"];
+            audience: components["schemas"]["PushAudience"];
+            /** Format: date-time */
+            checkedAt: string;
+            checks: components["schemas"]["PushCheck"][];
+            guards: components["schemas"]["PushGuards"];
+            id: string;
+            name: string;
+            schedule: components["schemas"]["PushSchedule"];
+            send?: components["schemas"]["PushSendState"];
+            sites: components["schemas"]["PushReviewSite"][];
+            status: string;
+            test?: components["schemas"]["PushTestResult"];
+            /** @enum {string} */
+            verdict: "ready" | "warnings" | "blocked";
+            /** Format: int64 */
+            version: number;
+        };
+        PushReviewSite: {
+            host: string;
+            /** Format: int64 */
+            subscribers: number;
+        };
+        PushRotateInput: {
+            /** @description The number of subscriptions that end, as Rotation's confirm says. */
+            confirm: string;
+        };
+        PushRotation: {
+            confirm: string;
+            scheduled: string[];
+            sites: components["schemas"]["PushRotationRow"][];
+            /** Format: int64 */
+            subscriptions: number;
+        };
+        PushRotationRow: {
+            host: string;
+            /** Format: int64 */
+            subscriptions: number;
+        };
+        PushSchedule: {
+            /** @enum {string} */
+            mode: "now" | "at";
+            /** @enum {string} */
+            outside: "hold" | "skip";
+            /** Format: date-time */
+            sendAt?: string;
+            /** Format: int64 */
+            ttlMinutes: number;
+            zone: string;
+        };
+        PushSendInput: {
+            /** Format: int64 */
+            version: number;
+        };
+        PushSendResult: {
+            /** Format: int64 */
+            recipients: number;
+            /** Format: date-time */
+            scheduledAt: string;
+            /** @enum {string} */
+            status: "scheduled" | "sending";
+        };
+        PushSendSettings: {
+            /** @enum {string} */
+            mode: "now" | "at";
+            /** @enum {string} */
+            outside: "hold" | "skip";
+            /** Format: date-time */
+            sendAt?: string;
+        };
+        PushSendState: {
+            /** Format: date-time */
+            completedAt?: string;
+            /** @enum {string} */
+            phase: "scheduled" | "sending" | "completed" | "cancelled";
+            /** Format: int64 */
+            recipients: number;
+            /** Format: date-time */
+            scheduledAt: string;
+            startedBy?: string;
+        };
+        PushSentToday: {
+            /** Format: date-time */
+            at: string;
+            by: string;
+            /** @enum {string} */
+            kind: "campaign" | "automation";
+            name: string;
+            /** Format: int64 */
+            to: number;
+        };
+        PushSettingsInput: {
+            /** Format: int64 */
+            frequencyCap: number;
+            quietHours: boolean;
+        };
+        PushSetup: {
+            canEditPrompts: boolean;
+            canManage: boolean;
+            /** Format: int64 */
+            cap: number;
+            /** Format: date-time */
+            checkedAt?: string;
+            helpers: string[];
+            keys?: components["schemas"]["PushKeysView"];
+            month: components["schemas"]["PushMonth"];
+            on: boolean;
+            prompts: components["schemas"]["PushPromptCard"][];
+            quiet: boolean;
+            sites: components["schemas"]["PushSite"][];
+            snippet: components["schemas"]["PushSnippet"];
+            subscribers: components["schemas"]["PushSubscribers"];
+            website?: string;
+            window: string;
+        };
+        PushSite: {
+            /** Format: date-time */
+            addedAt: string;
+            addedBy: string;
+            demo: boolean;
+            host: string;
+            iconUrl?: string;
+            id: string;
+            /** @enum {string} */
+            kind: "publication" | "snippet";
+            label: string;
+            /** Format: int64 */
+            linked: number;
+            origin: string;
+            prompts: components["schemas"]["PushSitePrompt"][];
+            /** Format: date-time */
+            snippetSeenAt?: string;
+            /** Format: int64 */
+            subscribers: number;
+            worker: components["schemas"]["PushWorker"];
+        };
+        PushSiteInput: {
+            address: string;
+            label?: string;
+        };
+        PushSitePrompt: {
+            formId: string;
+            /** Format: date-time */
+            liveSince?: string;
+            name: string;
+            /** @enum {string} */
+            status: "draft" | "live" | "paused";
+            /** @enum {string} */
+            style: "bar" | "dialog" | "bell";
+        };
+        PushSiteUpdate: {
+            iconMediaId?: string;
+            label: string;
+            /** @enum {string} */
+            workerMode: "file" | "import";
+            workerPath: string;
+        };
+        PushSnippet: {
+            importUrl: string;
+            script: string;
+            /** Format: int64 */
+            workerBytes: number;
+            workerFile: string;
+            workerUrl: string;
+            /** Format: int64 */
+            workerVersion: number;
+        };
+        PushStepEstimate: {
+            /** Format: int64 */
+            contacts: number;
+            /** Format: int64 */
+            linked: number;
+            pushOn: boolean;
+            quiet: boolean;
+            /** Format: int64 */
+            subscriptions: number;
+            window: string;
+        };
+        PushStepStats: {
+            /** Format: int64 */
+            clicks: number;
+            /** Format: date-time */
+            firstAt?: string;
+            /** Format: date-time */
+            lastAt?: string;
+            nodeId: string;
+            /** Format: int64 */
+            sent: number;
+            /** Format: int64 */
+            shown: number;
+            skipped: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            waiting: number;
+        };
+        PushStepStatsList: {
+            steps: components["schemas"]["PushStepStats"][];
+        };
+        PushSubscribers: {
+            /** Format: int64 */
+            anonymous: number;
+            byBrowser: components["schemas"]["PushCount"][];
+            bySite: components["schemas"]["PushCount"][];
+            highlight?: components["schemas"]["PushListHighlight"];
+            /** Format: int64 */
+            linked: number;
+            /** Format: int64 */
+            total: number;
+        };
+        PushTestInput: {
+            auth: string;
+            endpoint: string;
+            p256dh: string;
+        };
+        PushTestResult: {
+            /** Format: date-time */
+            at: string;
+            browser: string;
+            detail?: string;
+            platform: string;
+            /** @enum {string} */
+            status: "queued" | "sent" | "shown" | "clicked" | "failed";
+        };
+        PushWorker: {
+            /** Format: date-time */
+            checkedAt?: string;
+            /** Format: int64 */
+            current: number;
+            detail?: string;
+            /** Format: int64 */
+            httpStatus?: number;
+            /** @enum {string} */
+            mode: "file" | "import";
+            path: string;
+            scope: string;
+            /** @enum {string} */
+            status: "built_in" | "found" | "old_version" | "missing" | "unreachable" | "not_a_worker" | "unchecked";
+            url: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        PushZone: {
+            inside: boolean;
+            localTime: string;
+            /** Format: int64 */
+            subscribers: number;
+            /** Format: date-time */
+            until: string;
+            zone: string;
+        };
         ReadinessAudience: {
             /** Format: int64 */
             duplicates: number;
@@ -34784,7 +36603,7 @@ export interface components {
             hostedUrl: string;
             id: string;
             /** @enum {string} */
-            kind: "embedded" | "popup" | "hosted";
+            kind: "embedded" | "popup" | "hosted" | "push";
             /** @description Visitors pick lists; off joins every offered list */
             listChoice: boolean;
             /** @description Lists offered on the form */
@@ -35026,7 +36845,7 @@ export interface components {
             hostedUrl: string;
             id: string;
             /** @enum {string} */
-            kind: "embedded" | "popup" | "hosted";
+            kind: "embedded" | "popup" | "hosted" | "push";
             name: string;
             /** @example frm_8c2e1a */
             publicId: string;
@@ -35375,6 +37194,7 @@ export interface components {
             smsSetUp: boolean;
             suppressed?: components["schemas"]["SmsSuppression"];
             timeZone: string;
+            whatsAppSetUp: boolean;
             /** @enum {string} */
             zoneSource: "contact" | "area_code" | "country" | "unknown";
         };
@@ -35400,6 +37220,14 @@ export interface components {
             smsPage?: string;
             smsSource?: string;
             smsVersion?: string;
+            /** @enum {string} */
+            whatsApp: "subscribed" | "pending" | "opted_out" | "not_subscribed";
+            /** Format: date-time */
+            whatsAppAt?: string;
+            whatsAppKeyword?: string;
+            whatsAppPage?: string;
+            whatsAppSource?: string;
+            whatsAppVersion?: string;
         };
         SmsCounter: {
             /** Format: int64 */
@@ -40836,6 +42664,635 @@ export interface components {
         };
         WelcomePromptResult: {
             prompt?: components["schemas"]["WelcomePrompt"];
+        };
+        WhatsAppAccess: {
+            canEdit: boolean;
+            canSend: boolean;
+            helpers: string[];
+            missing: string[];
+        };
+        WhatsAppAccount: {
+            businessHint: string;
+            businessName: string;
+            /** Format: date-time */
+            checkedAt?: string;
+            /** Format: date-time */
+            connectedAt: string;
+            connectedBy: string;
+            demo: boolean;
+            displayName: string;
+            held: string[];
+            /** Format: int64 */
+            heldCount: number;
+            id: string;
+            /** Format: date-time */
+            lastEventAt?: string;
+            /** Format: date-time */
+            limitChangedAt?: string;
+            /** Format: int64 */
+            messagingLimit: number;
+            nameStatus: string;
+            number: string;
+            phoneStatus: string;
+            /** Format: int64 */
+            previousLimit?: number;
+            previousQuality?: string;
+            /** @enum {string} */
+            quality: "high" | "medium" | "low" | "unknown";
+            /** Format: date-time */
+            qualityChangedAt?: string;
+            /** @enum {string} */
+            status: "waiting" | "connected" | "token_rejected";
+            statusDetail?: string;
+            /** Format: date-time */
+            statusSince?: string;
+            /** Format: date-time */
+            templatesSyncedAt?: string;
+            /** Format: date-time */
+            verifiedAt?: string;
+            verifyToken?: string;
+            webhookUrl: string;
+        };
+        WhatsAppAudience: {
+            /** Format: int64 */
+            consent: number;
+            countries: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            final: number;
+            lists: components["schemas"]["WhatsAppListConsent"][];
+            /** Format: int64 */
+            suppressed: number;
+            /** Format: int64 */
+            without: number;
+        };
+        WhatsAppBusiness: {
+            displayName: string;
+            number: string;
+        };
+        WhatsAppCampaign: {
+            access: components["schemas"]["WhatsAppAccess"];
+            accountStatus: string;
+            audience: components["schemas"]["WhatsAppAudience"];
+            /** Format: date-time */
+            autosavedAt?: string;
+            business?: components["schemas"]["WhatsAppBusiness"];
+            connected: boolean;
+            cost: components["schemas"]["WhatsAppCost"];
+            createdBy: string;
+            fields: components["schemas"]["WhatsAppField"][];
+            id: string;
+            listOptions: components["schemas"]["WhatsAppListConsent"][];
+            name: string;
+            /** @enum {string} */
+            overLimit: "next_day" | "skip";
+            preview?: components["schemas"]["WhatsAppPreview"];
+            quiet: boolean;
+            schedule: components["schemas"]["WhatsAppSchedule"];
+            segments: string[];
+            /** @enum {string} */
+            status: "draft" | "approval" | "approved" | "scheduled" | "sending" | "paused" | "sent" | "cancelled" | "failed";
+            template?: components["schemas"]["WhatsAppTemplate"];
+            templateId?: string;
+            templates: components["schemas"]["WhatsAppTemplate"][];
+            test?: components["schemas"]["WhatsAppTestResult"];
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy: string;
+            variables: components["schemas"]["WhatsAppVariable"][];
+            /** Format: int64 */
+            version: number;
+            window: string;
+        };
+        WhatsAppCampaignCreate: {
+            lists?: string[];
+            name: string;
+            templateId?: string;
+        };
+        WhatsAppCampaignTestInput: {
+            phone: string;
+        };
+        WhatsAppCampaignUpdate: {
+            lists: string[];
+            localDate?: string;
+            /** Format: int64 */
+            localMinute?: number;
+            /** @enum {string} */
+            mode: "now" | "at" | "local";
+            name: string;
+            /** @enum {string} */
+            overLimit?: "next_day" | "skip" | "";
+            segments?: string[];
+            /** Format: date-time */
+            sendAt?: string;
+            templateId: string;
+            variables: components["schemas"]["WhatsAppVariable"][];
+            /** Format: int64 */
+            version: number;
+        };
+        WhatsAppCheck: {
+            accountStatus?: string;
+            author?: string;
+            category?: string;
+            /** Format: date-time */
+            checkedAt?: string;
+            cost?: components["schemas"]["WhatsAppCost"];
+            /** Format: int64 */
+            count: number;
+            helpers: string[];
+            /** @enum {string} */
+            key: "account" | "consent" | "template" | "quality" | "limit" | "cost" | "approval";
+            lists: string[];
+            missing: string[];
+            previousQuality?: string;
+            quality?: string;
+            /** Format: date-time */
+            qualityAt?: string;
+            split?: components["schemas"]["WhatsAppLimitSplit"];
+            /** @enum {string} */
+            status: "pass" | "warn" | "block";
+            template?: string;
+            templateStatus?: string;
+            /** Format: int64 */
+            without: number;
+        };
+        WhatsAppConnectInput: {
+            /** @description A system user's permanent access token */
+            accessToken: string;
+            /** @description The app secret Meta signs webhooks with */
+            appSecret: string;
+            /** @description The WhatsApp Business Account ID */
+            businessAccountId: string;
+            phoneNumberId: string;
+        };
+        WhatsAppConsentEvidence: {
+            /** Format: date-time */
+            at: string;
+            consentText: string;
+            consentVersion?: string;
+            ip?: string;
+            page?: string;
+            /** @description Where it was given: a form, a call, an event */
+            source: string;
+        };
+        WhatsAppConsentInput: {
+            evidence?: components["schemas"]["WhatsAppConsentEvidence"];
+            /** Format: uuid */
+            listId: string;
+            note?: string;
+            /** @enum {string} */
+            status: "subscribed" | "not_subscribed";
+        };
+        WhatsAppContactCard: {
+            business?: components["schemas"]["WhatsAppBusiness"];
+            canEdit: boolean;
+            canReply: boolean;
+            connected: boolean;
+            country: string;
+            display: string;
+            email: string;
+            lineType: string;
+            lists: components["schemas"]["WhatsAppContactList"][];
+            name: string;
+            phone: string;
+            suppressed?: components["schemas"]["WhatsAppSuppression"];
+            thread: components["schemas"]["WhatsAppThreadItem"][];
+            timeZone: string;
+            window: components["schemas"]["WhatsAppWindow"];
+        };
+        WhatsAppContactList: {
+            /** Format: date-time */
+            at?: string;
+            keyword?: string;
+            listId: string;
+            name: string;
+            page?: string;
+            source: string;
+            /** @enum {string} */
+            status: "subscribed" | "pending" | "opted_out" | "not_subscribed";
+            version?: string;
+        };
+        WhatsAppCost: {
+            /** Format: double */
+            amount: number;
+            byCountry: components["schemas"]["WhatsAppCostCountry"][];
+            category: string;
+            /** Format: int64 */
+            messages: number;
+            /** Format: date-time */
+            ratesAsOf: string;
+        };
+        WhatsAppCostCountry: {
+            /** Format: double */
+            amount: number;
+            country: string;
+            /** Format: int64 */
+            messages: number;
+            /** Format: double */
+            price: number;
+        };
+        WhatsAppCredentialsInput: {
+            accessToken?: string;
+            appSecret?: string;
+            businessAccountId?: string;
+            phoneNumberId?: string;
+        };
+        WhatsAppEstimate: {
+            connected: boolean;
+            /** Format: int64 */
+            consent: number;
+            cost: components["schemas"]["WhatsAppCost"];
+            /** Format: int64 */
+            open: number;
+            quiet: boolean;
+            window: string;
+        };
+        WhatsAppEvent: {
+            /** Format: int64 */
+            code?: number;
+            error?: string;
+            /** Format: int64 */
+            events: number;
+            id: string;
+            /** @enum {string} */
+            kind: "status" | "message" | "template" | "quality" | "account" | "unknown";
+            /** Format: date-time */
+            normalizedAt?: string;
+            number?: string;
+            /** Format: date-time */
+            receivedAt: string;
+            signatureOk: boolean;
+            status?: string;
+            summary: string;
+        };
+        WhatsAppEventList: {
+            items: components["schemas"]["WhatsAppEvent"][];
+            /** Format: date-time */
+            next?: string;
+        };
+        WhatsAppFailure: {
+            code: string;
+            /** Format: int64 */
+            count: number;
+            reason: string;
+        };
+        WhatsAppFallback: {
+            fallback: string;
+            field: string;
+            key: string;
+        };
+        WhatsAppField: {
+            key: string;
+            label: string;
+        };
+        WhatsAppLimitSplit: {
+            /** Format: int64 */
+            later: number;
+            /** Format: date-time */
+            laterAt?: string;
+            /** Format: int64 */
+            left: number;
+            /** Format: int64 */
+            limit: number;
+            /** Format: int64 */
+            now: number;
+            /** Format: int64 */
+            used: number;
+            usedBy?: string;
+            /** Format: date-time */
+            usedByAt?: string;
+            /** Format: int64 */
+            usedByN?: number;
+        };
+        WhatsAppListConsent: {
+            /** Format: int64 */
+            consent: number;
+            listId: string;
+            /** Format: int64 */
+            members: number;
+            name: string;
+        };
+        WhatsAppOverview: {
+            account?: components["schemas"]["WhatsAppAccount"];
+            canManage: boolean;
+            canSend: boolean;
+            /** Format: int64 */
+            consent: number;
+            consentLists: components["schemas"]["WhatsAppListConsent"][];
+            helpers: string[];
+            quiet: boolean;
+            /** Format: date-time */
+            ratesAsOf: string;
+            sameWindowAsSms: boolean;
+            templateCounts: components["schemas"]["WhatsAppTemplateCounts"];
+            templates: components["schemas"]["WhatsAppTemplate"][];
+            testNumbers: string[];
+            webhookUrl: string;
+            window: string;
+        };
+        WhatsAppPreview: {
+            buttons: components["schemas"]["WhatsAppTemplateButton"][];
+            contact: string;
+            contactId?: string;
+            fallbacks: components["schemas"]["WhatsAppFallback"][];
+            firstName?: string;
+            text: string;
+        };
+        WhatsAppRate: {
+            /** @enum {string} */
+            category: "marketing" | "utility" | "authentication";
+            country: string;
+            /** Format: double */
+            price: number;
+        };
+        WhatsAppRates: {
+            /** Format: date-time */
+            asOf: string;
+            canManage: boolean;
+            /** Format: date-time */
+            editedAt?: string;
+            editedBy?: string;
+            rates: components["schemas"]["WhatsAppRate"][];
+        };
+        WhatsAppRatesInput: {
+            /** @description The card's date (YYYY-MM-DD) */
+            asOf: string;
+            rates: components["schemas"]["WhatsAppRate"][];
+        };
+        WhatsAppReplyInput: {
+            text: string;
+        };
+        WhatsAppReport: {
+            /** Format: int64 */
+            buttons: number;
+            byCountry: components["schemas"]["WhatsAppReportCountry"][];
+            category: string;
+            /** Format: double */
+            cost: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: double */
+            deliveredPct: number;
+            /** Format: double */
+            estimate: number;
+            /** Format: int64 */
+            failed: number;
+            failures: components["schemas"]["WhatsAppFailure"][];
+            /** Format: int64 */
+            held: number;
+            id: string;
+            name: string;
+            /** Format: int64 */
+            optOuts: number;
+            /** Format: int64 */
+            planned: number;
+            /** Format: int64 */
+            queued: number;
+            /** Format: date-time */
+            ratesAsOf: string;
+            /** Format: int64 */
+            read: number;
+            /** Format: double */
+            readPct: number;
+            /** Format: int64 */
+            replies: number;
+            /** Format: int64 */
+            sent: number;
+            /** Format: date-time */
+            sentAt?: string;
+            sentBy: string;
+            skipped: {
+                [key: string]: number;
+            };
+            /** @enum {string} */
+            status: "draft" | "approval" | "approved" | "scheduled" | "sending" | "paused" | "sent" | "cancelled" | "failed";
+            template: string;
+        };
+        WhatsAppReportCountry: {
+            /** Format: double */
+            cost: number;
+            country: string;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: int64 */
+            failed: number;
+            /** Format: int64 */
+            read: number;
+            /** Format: int64 */
+            sent: number;
+        };
+        WhatsAppReview: {
+            access: components["schemas"]["WhatsAppAccess"];
+            approval: components["schemas"]["ReviewApproval"];
+            audience: components["schemas"]["WhatsAppAudience"];
+            /** Format: date-time */
+            checkedAt: string;
+            checks: components["schemas"]["WhatsAppCheck"][];
+            cost: components["schemas"]["WhatsAppCost"];
+            id: string;
+            name: string;
+            /** @enum {string} */
+            overLimit: "next_day" | "skip";
+            schedule: components["schemas"]["WhatsAppSchedule"];
+            send?: components["schemas"]["WhatsAppSendState"];
+            status: string;
+            /** @enum {string} */
+            verdict: "ready" | "warnings" | "blocked";
+            /** Format: int64 */
+            version: number;
+        };
+        WhatsAppSchedule: {
+            label: string;
+            localDate?: string;
+            /** Format: int64 */
+            localMinute?: number;
+            /** @enum {string} */
+            mode: "now" | "at" | "local";
+            /** Format: date-time */
+            sendAt?: string;
+        };
+        WhatsAppSendInput: {
+            /** @enum {string} */
+            overLimit?: "next_day" | "skip" | "";
+            /** Format: int64 */
+            version: number;
+        };
+        WhatsAppSendResult: {
+            /** Format: int64 */
+            later: number;
+            /** Format: int64 */
+            now: number;
+            /** Format: int64 */
+            recipients: number;
+            /** Format: date-time */
+            scheduledAt: string;
+            /** @enum {string} */
+            status: "scheduled" | "sending";
+        };
+        WhatsAppSendState: {
+            /** Format: date-time */
+            completedAt?: string;
+            /** @enum {string} */
+            phase: "scheduled" | "sending" | "completed" | "cancelled";
+            /** Format: int64 */
+            recipients: number;
+            /** Format: date-time */
+            scheduledAt: string;
+            startedBy?: string;
+        };
+        WhatsAppSettingsInput: {
+            quietHours: boolean;
+        };
+        WhatsAppStepEstimate: {
+            business?: components["schemas"]["WhatsAppBusiness"];
+            connected: boolean;
+            /** Format: int64 */
+            consent: number;
+            cost: components["schemas"]["WhatsAppCost"];
+            fields: components["schemas"]["WhatsAppField"][];
+            /** Format: int64 */
+            open: number;
+            preview?: components["schemas"]["WhatsAppPreview"];
+            quiet: boolean;
+            templates: components["schemas"]["WhatsAppTemplate"][];
+            window: string;
+            windowExample?: components["schemas"]["WhatsAppWindowExample"];
+        };
+        WhatsAppStepEstimateInput: {
+            consentListId?: string;
+            fallbackTemplate?: string;
+            language?: string;
+            /** @enum {string} */
+            mode?: "template" | "text" | "";
+            template?: string;
+            variables?: components["schemas"]["AutomationWhatsAppVar"][];
+        };
+        WhatsAppStepStats: {
+            /** Format: double */
+            cost: number;
+            /** Format: int64 */
+            delivered: number;
+            /** Format: int64 */
+            failed: number;
+            nodeId: string;
+            /** Format: int64 */
+            read: number;
+            /** Format: int64 */
+            sent: number;
+            skipped: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            waiting: number;
+        };
+        WhatsAppStepStatsList: {
+            steps: components["schemas"]["WhatsAppStepStats"][];
+        };
+        WhatsAppSuppression: {
+            /** Format: date-time */
+            at: string;
+            keyword?: string;
+            reason: string;
+        };
+        WhatsAppSyncResult: {
+            added: string[];
+            changed: string[];
+            removed: string[];
+            /** Format: date-time */
+            syncedAt: string;
+            /** Format: int64 */
+            templates: number;
+        };
+        WhatsAppTemplate: {
+            body: string;
+            buttons: components["schemas"]["WhatsAppTemplateButton"][];
+            /** @enum {string} */
+            category: "marketing" | "utility" | "authentication";
+            id: string;
+            language: string;
+            languageLabel: string;
+            name: string;
+            reason?: string;
+            reasonCode?: string;
+            /** @enum {string} */
+            status: "approved" | "pending" | "rejected" | "paused" | "disabled" | "in_appeal" | "other";
+            /** Format: date-time */
+            statusSince?: string;
+            /** Format: date-time */
+            syncedAt: string;
+            variables: components["schemas"]["WhatsAppTemplateVar"][];
+        };
+        WhatsAppTemplateButton: {
+            text: string;
+            /** @enum {string} */
+            type: "quick_reply" | "url" | "phone_number" | "other";
+            url?: string;
+        };
+        WhatsAppTemplateCounts: {
+            /** Format: int64 */
+            approved: number;
+            /** Format: int64 */
+            other: number;
+            /** Format: int64 */
+            pending: number;
+            /** Format: int64 */
+            rejected: number;
+        };
+        WhatsAppTemplateVar: {
+            example?: string;
+            key: string;
+            label: string;
+        };
+        WhatsAppTestInput: {
+            phone: string;
+            templateId?: string;
+        };
+        WhatsAppTestResult: {
+            /** Format: date-time */
+            at: string;
+            id: string;
+            read: boolean;
+            reason?: string;
+            /** @enum {string} */
+            status: "queued" | "sending" | "sent" | "delivered" | "failed" | "held" | "cancelled" | "skipped" | "undelivered";
+            template: string;
+            to: string;
+        };
+        WhatsAppThreadItem: {
+            /** Format: date-time */
+            at: string;
+            campaign?: string;
+            /** @enum {string} */
+            direction: "in" | "out";
+            id: string;
+            /** @enum {string} */
+            kind: "template" | "text" | "reply" | "keyword" | "button";
+            read: boolean;
+            status?: string;
+            template?: string;
+            text: string;
+        };
+        WhatsAppVariable: {
+            fallback?: string;
+            field?: string;
+            key: string;
+            /** @enum {string} */
+            source: "field" | "text";
+            text?: string;
+        };
+        WhatsAppWindow: {
+            /** Format: date-time */
+            lastAt?: string;
+            lastText?: string;
+            open: boolean;
+            /** Format: date-time */
+            until?: string;
+        };
+        WhatsAppWindowExample: {
+            name: string;
+            /** Format: date-time */
+            until: string;
         };
         WordPressCategory: {
             id: string;
@@ -47518,7 +49975,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "agency";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "push" | "whatsapp" | "agency";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -47600,7 +50057,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "agency";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce" | "sms" | "push" | "whatsapp" | "agency";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -48597,6 +51054,72 @@ export interface operations {
             };
         };
     };
+    "get-push-step-estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushStepEstimate"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-automation-push-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushStepStatsList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "resume-automation": {
         parameters: {
             query?: never;
@@ -48899,6 +51422,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AutomationDraftSaved"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-automation-whatsapp-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppStepStatsList"];
                 };
             };
             /** @description Error */
@@ -52638,6 +55194,10 @@ export interface operations {
                 paid?: "with_access" | "trialing" | "past_due" | "complimentary" | "gift" | "ended" | "free" | "";
                 /** @description With paid=with_access: a tier's id, for that tier and above */
                 paidTier?: string;
+                /** @description Only contacts with a linked push subscription */
+                pushSubscribed?: boolean;
+                /** @description Only contacts with WhatsApp consent on a list */
+                whatsAppConsent?: boolean;
                 /** @description Only contacts who bought a product: any, or the product's id */
                 bought?: string;
                 /** @description A store's id, or any */
@@ -53108,6 +55668,72 @@ export interface operations {
             };
         };
     };
+    "get-contact-push": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Contact id */
+                contactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushContactCard"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-contact-push": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contactId: string;
+                subscriptionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "set-contact-sms-consent": {
         parameters: {
             query?: never;
@@ -53235,6 +55861,114 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WebsiteSignedOut"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-contact-whatsapp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Contact id */
+                contactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppContactCard"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-contact-whatsapp-consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppConsentInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppContactCard"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reply-contact-whatsapp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                contactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppReplyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppThreadItem"];
                 };
             };
             /** @description Error */
@@ -68046,6 +70780,1055 @@ export interface operations {
             };
         };
     };
+    "create-push-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushCampaignCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-push-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-push-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushCampaignUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-push-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "duplicate-push-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-push-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushReport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-push-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "review-push-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushReview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-push-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushSendInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushSendResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-push-send-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushSendSettings"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushReview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-push-test": {
+        parameters: {
+            query?: never;
+            header?: {
+                "User-Agent"?: string;
+            };
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushTestInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushTestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "unschedule-push-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-push-contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushContactInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "enable-push": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushEnableInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-push-events": {
+        parameters: {
+            query?: {
+                /** @description Events before this time */
+                before?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushEventList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "rotate-push-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushRotateInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushRotation"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "push-rotation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushRotation"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-push-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushPromptCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushPrompt"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-push-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Push prompt (form) id */
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushPrompt"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-push-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushPromptSave"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushPrompt"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "delete-push-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Push prompt (form) id */
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "discard-push-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Push prompt (form) id */
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushPrompt"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "publish-push-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Push prompt (form) id */
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushPrompt"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "set-push-prompt-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                formId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushPromptStatus"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushPrompt"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-push-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "push-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushSetup"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "add-push-site": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushSiteInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushSite"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-push-site": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                siteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushSiteUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushSite"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "remove-push-site": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Push site id */
+                siteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-push-site": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Push site id */
+                siteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushSite"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-roles": {
         parameters: {
             query?: never;
@@ -77575,6 +81358,869 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "whatsapp-overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "create-whatsapp-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppCampaignCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-whatsapp-campaign": {
+        parameters: {
+            query?: {
+                /** @description The contact the preview shows */
+                preview?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-whatsapp-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppCampaignUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "cancel-whatsapp-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "duplicate-whatsapp-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppCampaign"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-whatsapp-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppReport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "export-whatsapp-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Content-Disposition"?: string;
+                    "Content-Type"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "review-whatsapp-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppReview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-whatsapp-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppSendInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppSendResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-whatsapp-campaign-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppCampaignTestInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppTestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "unschedule-whatsapp-campaign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-whatsapp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppConnectInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "disconnect-whatsapp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-whatsapp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "replace-whatsapp-credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppCredentialsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-whatsapp-estimate": {
+        parameters: {
+            query: {
+                list: string;
+                template?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppEstimate"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-whatsapp-events": {
+        parameters: {
+            query?: {
+                /** @description Events before this time */
+                before?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppEventList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-whatsapp-rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppRates"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-whatsapp-rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppRatesInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppRates"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-whatsapp-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppOverview"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "estimate-whatsapp-step": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppStepEstimateInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppStepEstimate"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "sync-whatsapp-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppSyncResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "send-whatsapp-account-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhatsAppTestInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppTestResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-whatsapp-test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                messageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhatsAppTestResult"];
+                };
             };
             /** @description Error */
             default: {
