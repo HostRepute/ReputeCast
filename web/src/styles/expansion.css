@@ -94,6 +94,14 @@
   align-items: flex-end;
 }
 
+/* Grow: a milestone's unit under its number ("lượt giới thiệu") and where a
+   recommendation shows ("Trang xác nhận", "Email chào mừng") stay on one
+   line; their narrow columns make room instead of breaking the words. */
+:root:not([lang='en']) .gw-unit,
+:root:not([lang='en']) .gw-where > span {
+  white-space: nowrap;
+}
+
 /* Campaign report (features/reports): an A/B variant's three numbers wrap
    as wholes when "lượt mở bởi người đọc" doesn't fit beside the others. */
 :root:not([lang='en']) .rep-abm {

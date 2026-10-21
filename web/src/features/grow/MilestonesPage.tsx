@@ -217,7 +217,7 @@ function MilestonesTable({ d, onEdit }: { d: MilestoneList; onEdit: (id: string)
                       <td>
                         <span className="flex flex-col">
                           <span className="gw-num text-[18px] leading-[1.1] font-bold">{x.count}</span>
-                          <span className="k">{t(m.referralUnit, { count: x.count })}</span>
+                          <span className="gw-unit k">{t(m.referralUnit, { count: x.count })}</span>
                         </span>
                       </td>
                       <td>
