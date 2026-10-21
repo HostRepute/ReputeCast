@@ -26,6 +26,7 @@ import { SurveyLinkChoices } from '@/features/surveys/LinkChoices'
 import { EmailWebToggle, WebOverlays } from '@/features/website/composer/campaign'
 import { GrowPreviewAs } from '@/features/grow/composer/Panel'
 import { mb as growMessages } from '@/features/grow/composer/messages'
+import { mc as earnComposer } from '@/features/earn/composer/composer.messages'
 
 interface Box {
   top: number
@@ -583,6 +584,12 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
               t.kind === 'referral' && tokens[i - 1]?.kind !== 'referral' ? (
                 <span key="referral-group" className="mh">
                   {tt(growMessages.tokensReferral)}
+                </span>
+              ) : null,
+              // Earn's paid.* tokens and the reader's links (design expansion, X16).
+              t.kind === 'paid' && tokens[i - 1]?.kind !== 'paid' ? (
+                <span key="paid-group" className="mh">
+                  {tt(earnComposer.tokensPaid)}
                 </span>
               ) : null,
               <button

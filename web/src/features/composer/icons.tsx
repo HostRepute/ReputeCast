@@ -93,6 +93,14 @@ const blocks: Record<string, ReactNode> = {
       <rect x="7" y="15.5" width="7" height="2" rx="1" />
     </>
   ),
+  // The Sponsor block (Earn): a card with the sponsor's logo beside its lines.
+  rcSponsor: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <rect x="6" y="8" width="4" height="4" rx="1" />
+      <path d="M12.5 9h5M12.5 12h3.5M6 16h12" />
+    </>
+  ),
   // The Upgrade block (Earn): a card with its price line and button.
   rcUpgrade: (
     <>

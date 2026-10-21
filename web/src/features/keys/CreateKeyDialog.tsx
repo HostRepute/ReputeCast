@@ -17,7 +17,12 @@ const PRESETS: { key: string; label: string; permissions?: string[] }[] = [
   { key: 'send_only', label: 'Send-only · transactional' },
   { key: 'signup', label: 'Signup form', permissions: ['subscribers:create'] },
   { key: 'analytics', label: 'Read-only analytics', permissions: ['reports:view', 'subscribers:view'] },
+  // Earn › Settings › Attribution: a key for the conversion API only.
+  { key: 'conversions', label: 'Conversions key', permissions: ['conversions:create'] },
 ]
+
+/** A conversions key holds conversions:create and nothing else. */
+const conversionsOnly = (picked: string[]) => picked.length === 1 && picked[0] === 'conversions:create'
 
 const EXPIRY = [
   { value: '', label: 'Never' },
@@ -37,6 +42,7 @@ export function CreateKeyDialog({
   onClose,
   onCreated,
   onSendOnly,
+  initialPreset,
 }: {
   kind: KeyKind
   list: List
@@ -44,6 +50,8 @@ export function CreateKeyDialog({
   onCreated: (c: Schemas['APIKeyCreated']) => void
   /** Opens the send-only transactional key's dialog instead (the Send-only preset). */
   onSendOnly?: () => void
+  /** The preset to start from (Earn's "Create a conversions key" opens on Conversions key). */
+  initialPreset?: string
 }) {
   const { slug } = useWorkspace()
   const qc = useQueryClient()
@@ -51,10 +59,14 @@ export function CreateKeyDialog({
   const catalog = useMemo(() => list.permissions.filter((p) => !p.ownerOnly), [list.permissions])
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [picked, setPicked] = useState<string[]>([])
+  const [picked, setPicked] = useState<string[]>(() => {
+    const perms = PRESETS.find((p) => p.key === initialPreset)?.permissions ?? []
+    return perms.filter((k) => catalog.some((c) => c.key === k) && !list.locked.some((l) => l.key === k))
+  })
   const [listId, setListId] = useState('')
-  const [expiry, setExpiry] = useState('')
-  const [preset, setPreset] = useState('custom')
+  const [expiry, setExpiry] = useState(initialPreset === 'conversions' ? '365' : '')
+  const [preset, setPreset] = useState(initialPreset ?? 'custom')
+  const conversionKey = preset === 'conversions' && conversionsOnly(picked)
   const [error, setError] = useState<{ field?: string; message: string }>()
   const createKey = $api.useMutation('post', '/api/v1/workspaces/{workspace}/api-keys')
   const createAgent = $api.useMutation('post', '/api/v1/workspaces/{workspace}/mcp-agents')
@@ -176,6 +188,10 @@ export function CreateKeyDialog({
                     setPreset(p.key)
                     // Only what the creator may grant: locked permissions stay off.
                     setPicked((p.permissions ?? []).filter((k) => catalog.some((c) => c.key === k) && !locked.has(k)))
+                    if (p.key === 'conversions') {
+                      setExpiry('365')
+                      setListId('')
+                    }
                   }}
                 >
                   {p.label}
@@ -186,79 +202,88 @@ export function CreateKeyDialog({
           <span className="k">A preset fills the permissions; you can still change them, never beyond your own.</span>
         </div>
       )}
-      <div className="col gap-1.5" role="group" aria-labelledby="key-perms">
-        <span className="text-[12px] font-semibold text-ink-2" id="key-perms">
-          Permissions
-        </span>
-        <div className="col max-h-[340px] gap-1.5 overflow-y-auto pr-1">
-          {groups.map(({ g, rows }) => (
-            <div key={g} className="col gap-1.5" role="group" aria-label={g}>
-              <span className="pt-1 text-[11px] font-bold uppercase tracking-[.04em] text-ink-3">{g}</span>
-              {rows.map((p) => {
-                const by = includedBy(p.key)
-                const reason = locked.get(p.key)
-                const on = picked.includes(p.key) || Boolean(by)
-                const id = `k-${p.key.replace(':', '-')}`
-                const disabled = Boolean(reason) || Boolean(by)
-                return (
-                  <div key={p.key} className="row flex-nowrap gap-3 rounded-lg border border-line px-2.5 max-sm:flex-wrap max-sm:gap-y-0">
-                    <input
-                      type="checkbox"
-                      id={id}
-                      checked={on}
-                      disabled={disabled}
-                      aria-describedby={reason || by ? `${id}-d` : undefined}
-                      onChange={(e) => setPicked((cur) => (e.target.checked ? [...cur, p.key] : cur.filter((k) => k !== p.key)))}
-                    />
-                    <label htmlFor={id} className={cn('flex min-w-0 flex-1 flex-col py-2 text-[13.5px]', !disabled && 'cursor-pointer')}>
-                      <span>
-                        {p.label}
-                        {p.sensitive ? (
-                          <>
-                            {' '}
-                            <span title="Sensitive permission">
-                              <SensitiveFlag />
-                            </span>
-                          </>
-                        ) : null}
-                      </span>
-                      <span className="k mono">{p.key}</span>
-                    </label>
-                    {reason ? (
-                      <span className="k max-w-[240px] whitespace-normal text-bad-fg!" id={`${id}-d`}>
-                        {reason}
-                      </span>
-                    ) : by ? (
-                      <span className="k" id={`${id}-d`}>
-                        included by {by}
-                      </span>
-                    ) : null}
-                  </div>
-                )
-              })}
-            </div>
-          ))}
+      {conversionKey ? (
+        <div className="rounded-lg border border-line bg-[#f7f8fa] px-3 py-2.5 text-[13.5px]">
+          <span className="mono rounded bg-[#eceef2] px-1.5 py-0.5 text-[12.5px]">conversions:create</span> is the only permission. It records conversions with a value and reads
+          nothing.
         </div>
-        {error?.field === 'permissions' ? (
-          <span className="err" role="alert">
-            {error.message}
+      ) : (
+        <div className="col gap-1.5" role="group" aria-labelledby="key-perms">
+          <span className="text-[12px] font-semibold text-ink-2" id="key-perms">
+            Permissions
           </span>
-        ) : null}
-      </div>
-      <div className="grid grid-cols-2 gap-3.5 max-md:grid-cols-1">
-        <label className="lbl">
-          <span>
-            List scope <span className="k font-medium">· optional</span>
-          </span>
-          <select className="in max-w-[260px]" value={listId} onChange={(e) => setListId(e.target.value)}>
-            <option value="">All lists</option>
-            {list.lists.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.name}
-              </option>
+          <div className="col max-h-[340px] gap-1.5 overflow-y-auto pr-1">
+            {groups.map(({ g, rows }) => (
+              <div key={g} className="col gap-1.5" role="group" aria-label={g}>
+                <span className="pt-1 text-[11px] font-bold uppercase tracking-[.04em] text-ink-3">{g}</span>
+                {rows.map((p) => {
+                  const by = includedBy(p.key)
+                  const reason = locked.get(p.key)
+                  const on = picked.includes(p.key) || Boolean(by)
+                  const id = `k-${p.key.replace(':', '-')}`
+                  const disabled = Boolean(reason) || Boolean(by)
+                  return (
+                    <div key={p.key} className="row flex-nowrap gap-3 rounded-lg border border-line px-2.5 max-sm:flex-wrap max-sm:gap-y-0">
+                      <input
+                        type="checkbox"
+                        id={id}
+                        checked={on}
+                        disabled={disabled}
+                        aria-describedby={reason || by ? `${id}-d` : undefined}
+                        onChange={(e) => setPicked((cur) => (e.target.checked ? [...cur, p.key] : cur.filter((k) => k !== p.key)))}
+                      />
+                      <label htmlFor={id} className={cn('flex min-w-0 flex-1 flex-col py-2 text-[13.5px]', !disabled && 'cursor-pointer')}>
+                        <span>
+                          {p.label}
+                          {p.sensitive ? (
+                            <>
+                              {' '}
+                              <span title="Sensitive permission">
+                                <SensitiveFlag />
+                              </span>
+                            </>
+                          ) : null}
+                        </span>
+                        <span className="k mono">{p.key}</span>
+                      </label>
+                      {reason ? (
+                        <span className="k max-w-[240px] whitespace-normal text-bad-fg!" id={`${id}-d`}>
+                          {reason}
+                        </span>
+                      ) : by ? (
+                        <span className="k" id={`${id}-d`}>
+                          included by {by}
+                        </span>
+                      ) : null}
+                    </div>
+                  )
+                })}
+              </div>
             ))}
-          </select>
-        </label>
+          </div>
+          {error?.field === 'permissions' ? (
+            <span className="err" role="alert">
+              {error.message}
+            </span>
+          ) : null}
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-3.5 max-md:grid-cols-1">
+        {conversionKey ? null : (
+          <label className="lbl">
+            <span>
+              List scope <span className="k font-medium">· optional</span>
+            </span>
+            <select className="in max-w-[260px]" value={listId} onChange={(e) => setListId(e.target.value)}>
+              <option value="">All lists</option>
+              {list.lists.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="lbl">
           Expires
           <select className="in max-w-[260px]" value={expiry} onChange={(e) => setExpiry(e.target.value)}>

@@ -1,0 +1,720 @@
+/*
+ * Earn › Sponsors and the booking panel (EarnSponsors, EarnBooking): the
+ * boards' components, value for value, prefixed `sp-` so they never collide
+ * with the shared vocabulary in app.css.
+ */
+@layer components {
+  /* The tab's numbers. */
+  .sp-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .sp-stat {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .sp-stat .v {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+    margin-top: 2px;
+  }
+  .sp-stat .s {
+    font-size: 12px;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  @media (max-width: 767px) {
+    .sp-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  /* The card's head: the pill tabs with counts, the slot and range selects. */
+  .sp-sec {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line-2);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .sp-ptabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .sp-fchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 11px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-nav);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .sp-fchip b {
+    font-weight: 600;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .sp-fchip[aria-selected='true'] {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+  .sp-fchip[aria-selected='true'] b {
+    color: var(--line-hover);
+  }
+  .sp-selects {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    flex: 1 1 300px;
+  }
+  .sp-selects .in {
+    height: 34px;
+    width: auto;
+    max-width: 100%;
+  }
+  @media (max-width: 767px) {
+    .sp-selects .in {
+      width: 0;
+      min-width: 100%;
+    }
+  }
+  .sp-slotline {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--line-2);
+    display: flex;
+    gap: 8px 14px;
+    align-items: center;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+  .sp-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* The bookings table: group rows, the selected row, the actions column. */
+  .sp-tbl td {
+    padding: 11px 12px;
+    white-space: normal;
+    vertical-align: middle;
+  }
+  .sp-tbl td.nw,
+  .sp-tbl td .badge,
+  .sp-tbl td .btn {
+    white-space: nowrap;
+  }
+  .sp-tbl tr.grp td {
+    background: var(--ground-3);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding: 8px 12px;
+  }
+  .sp-tbl tr.sel td {
+    background: var(--accent-tint);
+  }
+  .sp-tbl td.act {
+    text-align: right;
+    width: 1%;
+  }
+  .sp-issue {
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+  }
+  .sp-issue:hover {
+    color: var(--accent);
+  }
+  .sp-two {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px 8px;
+    flex-wrap: wrap;
+  }
+  .sp-col {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .sp-col.end {
+    align-items: flex-end;
+  }
+  .sp-col.start {
+    align-items: flex-start;
+  }
+
+  /* A sponsor's initials in a rounded square (its logo stand-in). */
+  .sp-ini {
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    background: var(--ground);
+    border: 1px solid var(--line);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--ink-nav);
+    flex: none;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .sp-ini.sm {
+    width: 22px;
+    height: 22px;
+  }
+  .sp-ini.lg {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+  .sp-ini.xl {
+    width: 44px;
+    height: 44px;
+    font-size: 13px;
+  }
+  .sp-ini img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #fff;
+  }
+  .sp-who {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+
+  /* "Open": an outlined neutral badge. */
+  .badge.sp-open {
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--line-hover);
+    color: var(--ink-2);
+  }
+
+  /* Phones: one row per issue. */
+  .sp-lst {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 12px 16px;
+    border: 0;
+    border-top: 1px solid var(--line-2);
+    color: var(--ink);
+    background: none;
+    font: inherit;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+  }
+  .sp-lst:hover {
+    background: var(--ground-3);
+  }
+  .sp-lst-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .sp-lst-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    align-items: center;
+  }
+
+  .sp-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 12px 18px;
+    border-top: 1px solid var(--line-2);
+  }
+  .sp-lnk {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--accent);
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+  }
+  .sp-lnk:hover {
+    color: var(--accent-hover);
+  }
+
+  /* Slots: the schedule and where the slot sits in the issue. */
+  .sp-slot {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding: 16px 18px;
+  }
+  .sp-slot + .sp-slot {
+    border-top: 1px solid var(--line-2);
+  }
+  .sp-slot-main {
+    flex: 1 1 360px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .sp-outline {
+    width: 240px;
+    max-width: 100%;
+    flex: none;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-sizing: border-box;
+  }
+  .sp-outline i {
+    display: block;
+    border-radius: 4px;
+    background: var(--line);
+  }
+  .sp-outline i.d {
+    background: var(--line-hover);
+  }
+  .sp-outline .slot {
+    border: 1.5px dashed var(--accent);
+    border-radius: 6px;
+    background: var(--accent-tint);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .sp-outline .slot span {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .sp-outline .slot i {
+    background: var(--accent-line);
+  }
+  .sp-kv {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 7px 18px;
+    font-size: 13px;
+    margin: 0;
+  }
+  .sp-kv dt {
+    color: var(--ink-3);
+    font-weight: 500;
+    margin: 0;
+  }
+  .sp-kv dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* No slots yet. */
+  .sp-empty {
+    padding: 44px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+    border-style: dashed;
+  }
+  .sp-empty .ico {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--ground);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-2);
+  }
+  .sp-empty .tt {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .sp-empty .ds {
+    color: var(--ink-2);
+    max-width: 560px;
+  }
+
+  /* Loading. */
+  .sp-skrow {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    padding: 8px 0;
+    border-top: 1px solid var(--line-2);
+  }
+
+  /* The booking panel: a 640 px sheet on the right. */
+  .ea-sheet.sp-panel {
+    width: min(640px, 100vw);
+  }
+  .ea-sheet.sp-panel:focus {
+    outline: none;
+  }
+  @media (max-width: 1100px) {
+    .ea-sheet.sp-panel {
+      width: min(520px, 100vw);
+    }
+  }
+  @media (max-width: 767px) {
+    .ea-sheet.sp-panel {
+      width: 100vw;
+    }
+  }
+  /* Dialogs opened from the panel (record a payment, share, cancel) sit above it. */
+  body:has(.sp-panel) .ovl {
+    z-index: 62;
+  }
+  .sp-panel .ea-sheet-head {
+    flex-wrap: wrap;
+    padding: 18px 22px 14px;
+  }
+  .sp-panel .ea-sheet-foot {
+    align-items: center;
+    padding: 12px 22px;
+  }
+  .sp-ptitle {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .sp-dsec {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .sp-dsec-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .sp-h3 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .sp-drop {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px dashed var(--line-hover);
+    border-radius: 8px;
+    background: var(--ground-3);
+  }
+  .sp-drop.on {
+    border-color: var(--accent);
+    background: var(--accent-tint);
+  }
+  .sp-drop img {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    object-fit: contain;
+    background: #fff;
+    border: 1px solid var(--line);
+    flex: none;
+  }
+  .sp-utm {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: 6px;
+    background: var(--line-2);
+    color: var(--ink-nav);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sp-sub {
+    color: var(--ink-nav);
+    font-weight: 600;
+  }
+
+  /* The Sponsor block's preview, on the issue's grey. */
+  .sp-prev {
+    padding: 14px;
+    border-radius: 8px;
+    background: #e9ecf0;
+  }
+  .sp-block {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px 18px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    background: #fff;
+  }
+  .sp-block.wait {
+    border-style: dashed;
+    border-color: var(--line-hover);
+    background: var(--ground-3);
+  }
+  .sp-block.top {
+    flex-direction: column;
+  }
+  .sp-block .tx {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
+  }
+  .sp-block.wait .tx {
+    gap: 4px;
+  }
+  .sp-block .lab {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .sp-block .hl {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--ink);
+  }
+  .sp-block p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink-nav);
+    overflow-wrap: anywhere;
+  }
+  .sp-block.wait p {
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+  .sp-block .cta {
+    align-self: flex-start;
+    margin-top: 4px;
+    display: inline-block;
+    padding: 9px 14px;
+    border-radius: 6px;
+    background: var(--ink);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .sp-block .img {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+
+  /* The report's numbers in the panel. */
+  .sp-mini {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .sp-mini > div {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+  .sp-mini .n {
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .sp-mini .k.x {
+    font-size: 11.5px;
+  }
+  @media (max-width: 767px) {
+    .sp-mini {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  /* Book it, or hold it. */
+  .sp-radio {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .sp-radio.on {
+    border-color: var(--accent);
+    background: var(--accent-tint);
+  }
+  .sp-radio .in {
+    width: 150px;
+    height: 30px;
+  }
+
+  /* The share dialog's list of what the sponsor sees. */
+  .sp-sees {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--ground-3);
+  }
+  .sp-sees div {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 13px;
+  }
+  .sp-sees svg {
+    flex: none;
+    margin-top: 3px;
+  }
+  .sp-copyrow {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+  .sp-copyrow .in {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+  }
+
+  /* The composer's Sponsor block settings (ComposerEarnBlocks): the booking card. */
+  .sp-cblk {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--ground-3);
+  }
+  .sp-cblk-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .sp-cblk-head .badge {
+    height: 20px;
+    font-size: 11px;
+  }
+  .sp-cblk-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .sp-cblk-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    align-self: flex-start;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .sp-cblk-link:hover {
+    text-decoration: underline;
+  }
+  /* The label: "Sponsored" always on; naming the sponsor is a switch. */
+  .sp-clabel {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 12.5px;
+  }
+  .sp-clabel input {
+    margin-top: 1px;
+  }
+  .sp-cname {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+}

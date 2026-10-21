@@ -40,6 +40,8 @@ var (
 	// conditional content of #143, the NPS poll of #141, the survey and its check-in campaign (seed_polls.go)
 	seedPolls = noop
 	seedEarn  = noop // payments and paid subscriptions: Stripe, tiers, paid members, the Substack import (seed_earn.go)
+	// offers, gifts, sponsorships, revenue history and conversions (seed_earn_more.go)
+	seedEarnMore = noop
 	// address verification services and their uses, seed mailboxes and placement tests (seed_verification_placement.go)
 	seedVerificationPlacement = noop
 	seedAI                    = noop // AI assistant: Anthropic connected, this month's usage and activity log, a kept report summary (seed_ai.go)

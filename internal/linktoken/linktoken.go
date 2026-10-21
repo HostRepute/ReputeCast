@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
@@ -49,6 +50,11 @@ const version = 1
 
 // ErrInvalid is returned for malformed or forged tokens.
 var ErrInvalid = errors.New("linktoken: invalid token")
+
+// ErrSignature is returned for a well-formed token of the wanted kind whose
+// signature doesn't match: signed with an earlier instance key, or forged.
+// It is also ErrInvalid.
+var ErrSignature = fmt.Errorf("%w: the signature doesn't match", ErrInvalid)
 
 // Claims identify the message (or contact, for links outside a message).
 type Claims struct {
@@ -94,18 +100,20 @@ func (s *Signer) Verify(token string, want Kind) (Claims, error) {
 		return Claims{}, ErrInvalid
 	}
 	body, sig := raw[:len(raw)-16], raw[len(raw)-16:]
-	if !hmac.Equal(sig, s.mac(body)) {
+	// The shape first: only a token that could have been signed can have a
+	// signature that no longer matches.
+	link, n := binary.Uvarint(body[50:])
+	if n <= 0 || 50+n != len(body) || link > 1<<31 {
 		return Claims{}, ErrInvalid
+	}
+	if !hmac.Equal(sig, s.mac(body)) {
+		return Claims{}, ErrSignature
 	}
 	var c Claims
 	c.Kind = Kind(body[1])
 	copy(c.WorkspaceID[:], body[2:18])
 	copy(c.MessageID[:], body[18:34])
 	copy(c.ContactID[:], body[34:50])
-	link, n := binary.Uvarint(body[50:])
-	if n <= 0 || 50+n != len(body) || link > 1<<31 {
-		return Claims{}, ErrInvalid
-	}
 	c.Link = uint32(link)
 	return c, nil
 }

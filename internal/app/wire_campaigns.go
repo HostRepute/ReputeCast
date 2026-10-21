@@ -29,6 +29,8 @@ func init() {
 			Translations: campaignTranslations(a),
 			// Test emails get their poll links and the contact's version.
 			Extras: campaignExtras(a),
+			// Other domains' checks (the Sponsor block's creative).
+			More: campaignMore(a),
 			// SMS rows of the list (wire_texting.go).
 			Channels: campaignChannelRows(a),
 			// Previews and test sends show Grow's blocks for the reader.
@@ -50,6 +52,10 @@ var contentExtras = func(*App) []contentcheck.Extra { return nil }
 // campaignExtras plugs polls and conditional content into previews and
 // test sends; set from wire_visibility.go.
 var campaignExtras = func(*App) campaigns.Extras { return nil }
+
+// campaignMore adds other domains' findings to the composer's checks; set
+// from wire_sponsors.go. Nil leaves them out.
+var campaignMore = func(*App) campaigns.MoreChecks { return nil }
 
 // linkProber requests the links of an email. In development and tests the
 // demo's links answer offline, as in Send Readiness: their hosts are real

@@ -350,6 +350,9 @@ type Charge struct {
 	RefundAmount int64
 	// FailureMessage is the card issuer's reason for a failed charge.
 	FailureMessage string
+	// PaymentIntentID ties a one-time payment's charge to its checkout (a
+	// gift's refund).
+	PaymentIntentID string
 }
 
 // CheckoutSession is a hosted checkout.
@@ -364,6 +367,12 @@ type CheckoutSession struct {
 	ClientRef      string
 	Metadata       map[string]string
 	Livemode       bool
+	// Mode is subscription or payment; a one-time payment's checkout (a
+	// gift) carries its total and payment.
+	Mode            string
+	AmountTotal     int64
+	Currency        string
+	PaymentIntentID string
 }
 
 // CheckoutRequest opens a subscription checkout.
@@ -390,6 +399,76 @@ type PortalFlow struct {
 	Cancel         bool
 	SubscriptionID string
 	ReturnURL      string
+}
+
+// Coupon is a discount an offer applies (X17): a percentage or an amount,
+// once, for a number of months or forever, optionally on some products
+// only.
+type Coupon struct {
+	ID         string
+	Name       string
+	PercentOff float64
+	AmountOff  int64
+	Currency   string
+	// Duration is once, repeating or forever; Months is a repeating
+	// coupon's length.
+	Duration string
+	Months   int
+	Products []string
+	// Valid is false once the coupon was deleted or can't be redeemed.
+	Valid    bool
+	Metadata map[string]string
+}
+
+// PromotionCode is the code readers type, or an offer link applies, for a
+// coupon.
+type PromotionCode struct {
+	ID       string
+	Code     string
+	CouponID string
+	Active   bool
+	// MaxRedemptions and ExpiresAt end it; FirstTimeOnly keeps it to
+	// customers who never paid.
+	MaxRedemptions int
+	ExpiresAt      *time.Time
+	FirstTimeOnly  bool
+	TimesRedeemed  int
+	Metadata       map[string]string
+}
+
+// PaymentCheckoutRequest opens a checkout for one payment (a gift): an
+// amount for a named item, nothing that renews.
+type PaymentCheckoutRequest struct {
+	AmountCents   int64
+	Currency      string
+	Name          string
+	Description   string
+	CustomerEmail string
+	Tax           bool
+	SuccessURL    string
+	CancelURL     string
+	ClientRef     string
+	Metadata      map[string]string
+}
+
+// Offers is what offers need from a provider that has coupons and
+// promotion codes (X17). A client may implement it; offers stay drafts
+// with a provider that doesn't.
+type Offers interface {
+	CreateCoupon(ctx context.Context, c Coupon) (Coupon, error)
+	GetCoupon(ctx context.Context, id string) (Coupon, error)
+	CreatePromotionCode(ctx context.Context, p PromotionCode) (PromotionCode, error)
+	// SetPromotionCodeActive turns a code off (an offer ended early) or on.
+	SetPromotionCodeActive(ctx context.Context, id string, active bool) error
+	// ApplyCoupon puts a coupon on a subscription at once (the retention
+	// offer a paid member accepts on the cancel page).
+	ApplyCoupon(ctx context.Context, subscriptionID, couponID string) (Subscription, error)
+}
+
+// OneTimePayments is what gifts need: a checkout for a single payment
+// (X17). A client may implement it.
+type OneTimePayments interface {
+	CreatePaymentCheckout(ctx context.Context, r PaymentCheckoutRequest) (CheckoutSession, error)
 }
 
 // EventKind is what an event means, whatever the provider calls it.

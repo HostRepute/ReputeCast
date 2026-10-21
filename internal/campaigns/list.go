@@ -47,6 +47,9 @@ type Service struct {
 	// Extras fill in test emails' poll links and cut them to a contact's
 	// version of conditional content (conditional.go); nil leaves them.
 	Extras Extras
+	// More adds other domains' findings to the composer's checks (the
+	// Sponsor block's creative, internal/sponsors); nil leaves them out.
+	More MoreChecks
 	// Channels fill in the rows of campaigns on other channels (SMS, and
 	// later push and WhatsApp): their routes, results and readiness. Nil
 	// leaves those rows as stored.
@@ -61,6 +64,10 @@ type Service struct {
 type ChannelRows interface {
 	FillChannelRows(ctx context.Context, ws *store.Workspace, items []CampaignListItem)
 }
+
+// MoreChecks are other domains' findings about an email's content, for the
+// composer's checks.
+type MoreChecks func(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID, mjml string) []contentcheck.ContentCheckIssue
 
 // ChangeHook is told which campaign changed. The save already committed, so
 // a hook handles its own errors.

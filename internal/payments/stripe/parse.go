@@ -305,12 +305,13 @@ func parseCharge(raw []byte, previous map[string]any) (payments.Charge, error) {
 		AmountRefunded int64           `json:"amount_refunded"`
 		Currency       string          `json:"currency"`
 		FailureMessage string          `json:"failure_message"`
+		PaymentIntent  json.RawMessage `json:"payment_intent"`
 	}
 	if err := json.Unmarshal(raw, &ch); err != nil {
 		return payments.Charge{}, fmt.Errorf("stripe: unreadable charge: %w", err)
 	}
 	out := payments.Charge{ID: ch.ID, CustomerID: idOf(ch.Customer), InvoiceID: idOf(ch.Invoice), Amount: ch.Amount, AmountRefunded: ch.AmountRefunded,
-		Currency: strings.ToLower(ch.Currency), FailureMessage: ch.FailureMessage}
+		Currency: strings.ToLower(ch.Currency), FailureMessage: ch.FailureMessage, PaymentIntentID: idOf(ch.PaymentIntent)}
 	// The refund this event reports: what amount_refunded grew by.
 	out.RefundAmount = ch.AmountRefunded
 	if prev, ok := previous["amount_refunded"].(float64); ok {
@@ -330,16 +331,21 @@ func parseCheckout(raw []byte) (payments.CheckoutSession, error) {
 		CustomerDetails *struct {
 			Email string `json:"email"`
 		} `json:"customer_details"`
-		Subscription json.RawMessage   `json:"subscription"`
-		ClientRef    string            `json:"client_reference_id"`
-		Metadata     map[string]string `json:"metadata"`
-		Livemode     bool              `json:"livemode"`
+		Subscription  json.RawMessage   `json:"subscription"`
+		ClientRef     string            `json:"client_reference_id"`
+		Metadata      map[string]string `json:"metadata"`
+		Livemode      bool              `json:"livemode"`
+		Mode          string            `json:"mode"`
+		AmountTotal   int64             `json:"amount_total"`
+		Currency      string            `json:"currency"`
+		PaymentIntent json.RawMessage   `json:"payment_intent"`
 	}
 	if err := json.Unmarshal(raw, &cs); err != nil {
 		return payments.CheckoutSession{}, fmt.Errorf("stripe: unreadable checkout session: %w", err)
 	}
 	out := payments.CheckoutSession{ID: cs.ID, URL: cs.URL, Status: cs.Status, PaymentStatus: cs.PaymentStatus, CustomerID: idOf(cs.Customer),
-		CustomerEmail: strings.ToLower(cs.CustomerEmail), SubscriptionID: idOf(cs.Subscription), ClientRef: cs.ClientRef, Metadata: cs.Metadata, Livemode: cs.Livemode}
+		CustomerEmail: strings.ToLower(cs.CustomerEmail), SubscriptionID: idOf(cs.Subscription), ClientRef: cs.ClientRef, Metadata: cs.Metadata, Livemode: cs.Livemode,
+		Mode: cs.Mode, AmountTotal: cs.AmountTotal, Currency: strings.ToLower(cs.Currency), PaymentIntentID: idOf(cs.PaymentIntent)}
 	if cs.CustomerDetails != nil && cs.CustomerDetails.Email != "" {
 		out.CustomerEmail = strings.ToLower(cs.CustomerDetails.Email)
 	}

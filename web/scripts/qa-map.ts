@@ -357,6 +357,26 @@ export const entries: Entry[] = [
   { board: 'PublicUpgrade', path: '/p/acme-newsletter/upgrade', user: 'anon', widths: [1440, 720] },
   { board: 'PublicUpgradePhone', path: '/p/acme-newsletter/upgrade', user: 'anon', widths: [390] },
   { board: 'PublicPreferencesPaid', manual: true },
+  // X17 · offers, gifts, sponsorships and revenue (M27). The demo's live Stripe connection talks to
+  // the in-process fake. Personal links (the cancel page, a gift's redeem page) and sponsor report
+  // links are made in a dev database (tmp scripts call the API), so their boards are manual.
+  { board: 'EarnOverview', path: `${ws}/earn`, widths: [1440] },
+  { board: 'EarnOverviewTablet', path: `${ws}/earn`, widths: [834] },
+  { board: 'EarnOverviewPhone', path: `${ws}/earn`, widths: [390] },
+  { board: 'EarnStates', manual: true },
+  { board: 'EarnOfferEditor', path: `${ws}/earn/plans/offers/{offer:FALL26}`, widths: [1440] },
+  { board: 'EarnGifts', path: `${ws}/earn/gifts`, widths: [1440] },
+  { board: 'EarnSponsors', path: `${ws}/earn/sponsors`, widths: [1440] },
+  { board: 'EarnSponsorsTablet', path: `${ws}/earn/sponsors`, widths: [834] },
+  { board: 'EarnSponsorsPhone', path: `${ws}/earn/sponsors`, widths: [390] },
+  { board: 'EarnBooking', path: `${ws}/earn/sponsors?booking={booking:141}`, widths: [1440] },
+  { board: 'EarnInReport', manual: true },
+  { board: 'PublicGift', path: '/p/acme-newsletter/gift', user: 'anon', widths: [720] },
+  { board: 'PublicGiftPhone', path: '/p/acme-newsletter/gift', user: 'anon', widths: [390] },
+  { board: 'PublicCancel', manual: true },
+  { board: 'PublicCancelPhone', manual: true },
+  { board: 'PublicSponsorReport', manual: true },
+  { board: 'PublicSponsorReportPhone', manual: true },
   { board: 'PublicEarnStates', manual: true },
   // X18 · the publication website. The demo's website is on at news.acme.io. WebsiteStates holds
   // the off and turning-on pages, address problems, read-only views and the elsewhere-in-the-app

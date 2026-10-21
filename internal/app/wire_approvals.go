@@ -52,8 +52,22 @@ func readinessService(a *App) *readiness.Service {
 	if w := readinessWebsite(a); w != nil {
 		rs.Website = w
 	}
+	if sp := readinessSponsor(a); sp != nil {
+		rs.Sponsor = sp
+	}
+	if uo := readinessUpgradeOffers(a); uo != nil {
+		rs.UpgradeOffers = uo
+	}
 	return rs
 }
+
+// readinessUpgradeOffers finds Upgrade blocks whose offer ended; set from
+// wire_offers.go. Nil leaves the check out.
+var readinessUpgradeOffers = func(*App) readiness.UpgradeOfferChecker { return nil }
+
+// readinessSponsor gives the Sponsor block's checks and fixes; set from
+// wire_sponsors.go. Nil leaves them out.
+var readinessSponsor = func(*App) readiness.SponsorChecker { return nil }
 
 // readinessWebsite gives the web checks of campaigns that publish to the
 // website; set from wire_website.go. Nil leaves them out.

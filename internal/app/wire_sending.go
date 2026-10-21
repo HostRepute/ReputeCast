@@ -84,6 +84,9 @@ func sendingTracker(a *App) *tracking.Service {
 		// automation email's checkout link is its own (wire_commerce.go).
 		Decorators:  trackingDecorators(a),
 		MessageVars: trackingMessageVars(a)}
+	for _, hook := range trackingHooks {
+		hook(a, t)
+	}
 	v, _ := trackers.LoadOrStore(a, t)
 	return v.(*tracking.Service)
 }

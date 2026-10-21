@@ -6,6 +6,8 @@ import { http } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
+import { t } from '@/i18n'
+import { mc as earnComposer } from '@/features/earn/composer/composer.messages'
 import { useComposer } from './context'
 import { checkMjmlTags, formatMjml, headMeta, splitMjml } from './editor/mjmlDoc'
 import { kb, lineCount } from './format'
@@ -345,12 +347,12 @@ export function CodeView({ aside }: { aside?: ReactNode } = {}) {
               </div>
             </TabPanel>
             <TabPanel value="tokens" className="flex flex-col" tabIndex={-1}>
-              {(['contact', 'custom', 'system', 'referral'] as const).map((kind) => {
+              {(['contact', 'custom', 'system', 'referral', 'paid'] as const).map((kind) => {
                 const list = tokens.filter((t) => t.kind === kind)
                 if (!list.length) return null
                 return (
                   <div key={kind} className="flex flex-col">
-                    <div className="grp">{kind === 'contact' ? 'Contact fields' : kind === 'custom' ? 'Custom fields' : kind === 'referral' ? 'Referral' : 'Links and system'}</div>
+                    <div className="grp">{kind === 'contact' ? 'Contact fields' : kind === 'custom' ? 'Custom fields' : kind === 'referral' ? 'Referral' : kind === 'paid' ? t(earnComposer.tokensPaid) : 'Links and system'}</div>
                     {list.map((t) => (
                       <button
                         key={t.key}

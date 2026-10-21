@@ -10,13 +10,13 @@ type Row = Schemas['CommerceCampaignStoreRow']
 
 /**
  * Store orders in revenue (design expansion phase 7): the campaign
- * report's Revenue rows ("Acme Merch · 31 orders · $1,612") and Earn ›
- * Overview's "Store revenue from email". Phase 6's Revenue section and
- * revenue overview (X17) take these rows and this card; until then the
- * report shows them in a Revenue section of their own.
+ * report's store rows ("Acme Merch · 31 orders · $1,612"), in a section of
+ * their own after Earn's Revenue and Sponsor sections (X17, which shows
+ * upgrades and conversions), and Earn › Overview's "Store revenue from
+ * email" card, beside the revenue overview's Conversions.
  */
 const cr = defineMessages('commerce.revenue', {
-  title: 'Revenue · {campaign}',
+  title: 'Store orders · {campaign}',
   caption: 'Store orders credited to this email',
   source: 'Source',
   count: 'Count',

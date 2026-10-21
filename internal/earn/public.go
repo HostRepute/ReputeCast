@@ -44,6 +44,8 @@ type UpgradeRequest struct {
 	As      string
 	Page    *UpgradePage
 	Lang    i18n.Lang
+	// Offer is an offer link's code (?offer=FALL26), X17.
+	Offer string
 }
 
 // UpgradeView is the upgrade page.
@@ -74,6 +76,10 @@ type UpgradeView struct {
 	Action      string
 	Token       string
 	Words       map[string]string
+	// Offer is an offer link's line, and OfferCode goes to checkout with
+	// the form (X17).
+	Offer     *OfferBanner
+	OfferCode string
 }
 
 // KnownReader is the reader of a personal link.
@@ -241,6 +247,9 @@ func hasAccess(status string, paused bool) bool {
 // Upgrade builds the upgrade page.
 func (s *Service) Upgrade(ctx context.Context, ws *store.Workspace, r UpgradeRequest) (UpgradeView, error) {
 	l := r.Lang
+	if r.Offer != "" && r.Period == "" && s.Offers != nil {
+		r.Period = s.Offers.PeriodFor(ctx, ws, r.Offer)
+	}
 	conns, err := s.connections(ctx, ws.ID)
 	if err != nil {
 		return UpgradeView{}, err
@@ -369,6 +378,11 @@ func (s *Service) Upgrade(ctx context.Context, ws *store.Workspace, r UpgradeReq
 			key = "page.taxInclusive"
 		}
 		v.TaxNote = s.t(l, key, i18n.Args{"currency": currencyName(cn)})
+	}
+	if r.Offer != "" && s.Offers != nil && len(v.Cards) > 0 {
+		if err := s.Offers.UpgradeOffer(ctx, ws, mode, r.Offer, &v); err != nil {
+			s.log().WarnContext(ctx, "earn: the offer on the upgrade page", "offer", r.Offer, "err", err)
+		}
 	}
 	return v, nil
 }
@@ -547,6 +561,8 @@ type CheckoutRequest struct {
 	StartedBy *authz.Principal
 	// ReturnTo is the page Checkout comes back to (the hidden tier's).
 	ReturnTo string
+	// Offer is the offer link's code the page was opened with (X17).
+	Offer string
 }
 
 // ErrUnavailable means checkout can't open: the provider is down or not
@@ -655,9 +671,22 @@ func (s *Service) StartCheckout(ctx context.Context, ws *store.Workspace, r Chec
 		}
 	}
 	req.TrialDays = trial
+	// An offer link applies its promotion code: the offer's price is paid
+	// at once, without a trial (X17).
+	offer := ""
+	if r.Offer != "" && s.Offers != nil {
+		if code := s.Offers.CheckoutCode(ctx, ws, conn.Mode, r.Offer, t.ID, period); code != "" {
+			req.PromotionCode, req.AllowCodes, req.TrialDays, offer = code, false, 0, r.Offer
+			trial = 0
+		}
+	}
 	chkID := newID()
 	req.ClientRef = chkID.String()
 	req.Metadata = map[string]string{"reputecast_checkout": chkID.String(), "reputecast_tier": t.ID.String()}
+	if offer != "" && attribution["kind"] == "page" {
+		// Reached through the offer's link rather than an email.
+		attribution = map[string]any{"kind": "offer", "label": offer + " link"}
+	}
 	attr, _ := json.Marshal(attribution)
 	now := s.now()
 	var by *uuid.UUID
@@ -666,7 +695,7 @@ func (s *Service) StartCheckout(ctx context.Context, ws *store.Workspace, r Chec
 	}
 	pid := price.ID
 	if err := s.Q.EarnCheckoutInsert(ctx, store.EarnCheckoutInsertParams{ID: chkID, WorkspaceID: ws.ID, Mode: conn.Mode, TierID: &t.ID, PriceID: &pid, Period: period,
-		TrialDays: int32(trial), ContactID: contact, Email: email, StripeSessionID: "", Status: "open", Attribution: attr, StartedBy: by, CreatedAt: now}); err != nil {
+		TrialDays: int32(trial), ContactID: contact, Email: email, StripeSessionID: "", Status: "open", Attribution: attr, Offer: offer, StartedBy: by, CreatedAt: now}); err != nil {
 		return "", err
 	}
 	client, err := s.open(conn.PaymentConnection)
