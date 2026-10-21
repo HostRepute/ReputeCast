@@ -1290,13 +1290,14 @@ func (q *Queries) ListComposerVersions(ctx context.Context, arg ListComposerVers
 }
 
 const listWorkspaceLists = `-- name: ListWorkspaceLists :many
-SELECT id, name, public FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
+SELECT id, name, public, origin FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
 `
 
 type ListWorkspaceListsRow struct {
 	ID     uuid.UUID `json:"id"`
 	Name   string    `json:"name"`
 	Public bool      `json:"public"`
+	Origin string    `json:"origin"`
 }
 
 func (q *Queries) ListWorkspaceLists(ctx context.Context, workspaceID uuid.UUID) ([]ListWorkspaceListsRow, error) {
@@ -1308,7 +1309,12 @@ func (q *Queries) ListWorkspaceLists(ctx context.Context, workspaceID uuid.UUID)
 	items := []ListWorkspaceListsRow{}
 	for rows.Next() {
 		var i ListWorkspaceListsRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.Public); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Public,
+			&i.Origin,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

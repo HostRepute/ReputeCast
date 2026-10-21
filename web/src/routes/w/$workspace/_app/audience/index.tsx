@@ -43,6 +43,23 @@ const search = z.object({
   signedIn: z.boolean().optional().catch(undefined),
   /** Buyers of digital products (X19): any, or a product's id. */
   bought: boughtParam,
+  /** Store customers and what they spent in the stores (X20). */
+  storeCustomer: z
+    .string()
+    .regex(/^(any|[0-9a-f-]{36})$/)
+    .optional()
+    .catch(undefined),
+  // A typed or shared ?spentFrom=50 arrives as a number.
+  spentFrom: z.coerce
+    .string()
+    .regex(/^\d{1,9}(\.\d{1,2})?$/)
+    .optional()
+    .catch(undefined),
+  spentTo: z.coerce
+    .string()
+    .regex(/^\d{1,9}(\.\d{1,2})?$/)
+    .optional()
+    .catch(undefined),
   page: z.coerce.number().int().min(1).optional().catch(undefined),
   size: z.coerce.number().int().min(1).max(100).optional().catch(undefined),
 })

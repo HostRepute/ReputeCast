@@ -37,6 +37,7 @@ import { UpgradeSettings } from '@/features/earn/composer/UpgradeSettings'
 import { SponsorFoot, SponsorSettings } from '@/features/earn/sponsors/composer/SponsorSettings'
 import { ShowOnProp } from '@/features/website/composer/campaign'
 import { FillFromProduct } from '@/features/products/composer'
+import { FillFromStore, StoreBlockStyle, storeSectionOf } from '@/features/commerce/composer'
 import { useT } from '@/i18n'
 
 /** A text input that edits a draft and commits on Enter or blur (one undo step per edit). */
@@ -414,6 +415,9 @@ export function describe(c: Component, tab: 'style' | 'settings'): string {
 export function StyleFields({ c }: { c: Component }) {
   const tag = tagOf(c)
   const head = useHead()
+  // A store's Product grid or card (X20): its settings, wherever in it the selection is.
+  const store = storeSectionOf(c)
+  if (store) return <StoreBlockStyle key={store.cid} section={store} />
   switch (tag) {
     case 'mj-body':
       return (
@@ -427,6 +431,7 @@ export function StyleFields({ c }: { c: Component }) {
       const texts = descendants(c, 'mj-text')
       return (
         <>
+          {tag === 'mj-section' ? <FillFromStore section={c} /> : null}
           <BackgroundProp c={c} image />
           <PaddingProp c={c} />
           <AlignProp c={c} k="text-align" />

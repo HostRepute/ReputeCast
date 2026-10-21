@@ -1,0 +1,99 @@
+{
+  "id": 5821403913242,
+  "admin_graphql_api_id": "gid://shopify/Order/5821403913242",
+  "app_id": 580111,
+  "browser_ip": "203.0.113.24",
+  "buyer_accepts_marketing": true,
+  "cancel_reason": null,
+  "cancelled_at": null,
+  "cart_token": "Z2NwLXVzLWNlbnRyYWwxOjAxSjlYQkVR",
+  "checkout_id": 36728419123482,
+  "checkout_token": "a8d1b6c2e4f04c7e9b3a5d6f7e8c9b0a",
+  "client_details": { "accept_language": "en-US,en;q=0.9", "browser_ip": "203.0.113.24", "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_6) AppleWebKit/605.1.15" },
+  "closed_at": null,
+  "confirmation_number": "QK7X2M9TP",
+  "confirmed": true,
+  "contact_email": "grace.liu@example.com",
+  "created_at": "2026-10-15T08:40:12-04:00",
+  "currency": "USD",
+  "current_subtotal_price": "76.00",
+  "current_total_price": "76.00",
+  "customer_locale": "en-US",
+  "discount_codes": [],
+  "email": "grace.liu@example.com",
+  "estimated_taxes": false,
+  "financial_status": "paid",
+  "fulfillment_status": null,
+  "landing_site": "/collections/new-arrivals?utm_source=acme-newsletter&utm_medium=email&utm_campaign=abandoned-cart&rc=rcTOKEN123",
+  "landing_site_ref": null,
+  "name": "#4417",
+  "note": "Please ship before Friday",
+  "note_attributes": [],
+  "number": 3417,
+  "order_number": 4417,
+  "order_status_url": "https://shop.acme.io/71244726554/orders/0d8b1e2f3a4c/authenticate?key=f3c9",
+  "payment_gateway_names": ["shopify_payments"],
+  "phone": "+16465550142",
+  "presentment_currency": "USD",
+  "processed_at": "2026-10-15T08:40:11-04:00",
+  "referring_site": "",
+  "source_name": "web",
+  "subtotal_price": "76.00",
+  "tags": "",
+  "test": false,
+  "total_discounts": "0.00",
+  "total_line_items_price": "76.00",
+  "total_price": "76.00",
+  "total_tax": "0.00",
+  "updated_at": "2026-10-15T08:40:14-04:00",
+  "billing_address": {
+    "first_name": "Grace", "last_name": "Liu", "address1": "41 Orchard Street", "city": "New York", "province": "New York",
+    "country": "United States", "zip": "10002", "phone": "+16465550142", "country_code": "US", "province_code": "NY"
+  },
+  "customer": {
+    "id": 7001,
+    "email": "grace.liu@example.com",
+    "created_at": "2026-03-02T19:20:05-05:00",
+    "updated_at": "2026-10-15T08:40:12-04:00",
+    "first_name": "Grace",
+    "last_name": "Liu",
+    "state": "enabled",
+    "note": null,
+    "verified_email": true,
+    "phone": "+16465550142",
+    "tags": "",
+    "currency": "USD",
+    "email_marketing_consent": { "state": "subscribed", "opt_in_level": "single_opt_in", "consent_updated_at": "2026-03-02T19:22:41-05:00" },
+    "sms_marketing_consent": null,
+    "admin_graphql_api_id": "gid://shopify/Customer/7001",
+    "default_address": {
+      "id": 9128, "customer_id": 7001, "address1": "41 Orchard Street", "city": "New York", "province": "New York", "country": "United States",
+      "zip": "10002", "phone": "+16465550142", "province_code": "NY", "country_code": "US", "country_name": "United States", "default": true
+    }
+  },
+  "discount_applications": [],
+  "fulfillments": [],
+  "line_items": [
+    {
+      "id": 14612834287642, "admin_graphql_api_id": "gid://shopify/LineItem/14612834287642", "fulfillable_quantity": 1, "gift_card": false,
+      "grams": 640, "name": "Acme Logo Hoodie - M", "price": "58.00", "product_exists": true, "product_id": 8841203,
+      "properties": [], "quantity": 1, "requires_shipping": true, "sku": "HOOD-LOGO-M", "taxable": true, "title": "Acme Logo Hoodie",
+      "total_discount": "0.00", "variant_id": 44183920, "variant_title": "M", "vendor": "Acme Merch"
+    },
+    {
+      "id": 14612834320410, "admin_graphql_api_id": "gid://shopify/LineItem/14612834320410", "fulfillable_quantity": 1, "gift_card": false,
+      "grams": 450, "name": "Ship It mug", "price": "18.00", "product_exists": true, "product_id": 8841207,
+      "properties": [], "quantity": 1, "requires_shipping": true, "sku": "MUG-SHIPIT", "taxable": true, "title": "Ship It mug",
+      "total_discount": "0.00", "variant_id": 44183977, "variant_title": "Default Title", "vendor": "Acme Merch"
+    }
+  ],
+  "payment_terms": null,
+  "refunds": [],
+  "shipping_address": {
+    "first_name": "Grace", "last_name": "Liu", "address1": "41 Orchard Street", "city": "New York", "province": "New York",
+    "country": "United States", "zip": "10002", "phone": "+16465550142", "country_code": "US", "province_code": "NY"
+  },
+  "shipping_lines": [
+    { "id": 4720184, "code": "Standard", "price": "0.00", "source": "shopify", "title": "Standard" }
+  ]
+}

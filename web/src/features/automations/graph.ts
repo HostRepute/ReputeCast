@@ -33,6 +33,8 @@ export interface Refs {
   products?: Map<string, string>
   /** Grow's referral milestones: "3 referrals · The Acme Field Guide". */
   milestones?: Map<string, string>
+  /** Stores the store triggers watch (id → name; X20). */
+  stores?: Map<string, string>
 }
 
 export const emptyRefs: Refs = { lists: new Map(), forms: new Map(), emails: new Map(), providers: new Map(), fields: new Map(), milestones: new Map() }
@@ -84,6 +86,9 @@ export const triggerKindLabels: Record<TriggerConfig['kind'], string> = {
   get milestone_reached() {
     return milestoneTriggerName()
   },
+  order_placed: 'Order placed',
+  first_order: 'First order',
+  abandoned_checkout: 'Abandoned checkout',
 }
 
 /** Colour of a step type: the palette swatch and the node header. */
@@ -226,6 +231,10 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
       return boughtRef(t.productId, refs.products?.get(t.productId ?? ''))
     case 'milestone_reached':
       return milestoneTriggerRef(t, refs.milestones)
+    case 'order_placed':
+    case 'first_order':
+    case 'abandoned_checkout':
+      return refs.stores?.get(t.store ?? '') ?? 'a store'
   }
 }
 
@@ -244,6 +253,8 @@ export function conditionPhrase(g: FlowGraph, c: FlowCondition | undefined, refs
       return `in ${refs.lists.get(c.listId ?? '') ?? 'a list'}`
     case 'event':
       return `sent ${c.event ?? ''}`
+    case 'placed_order':
+      return 'placed an order'
     case 'field':
       switch (c.op) {
         case 'is_set':
@@ -283,6 +294,9 @@ export function goalTitle(c: FlowCondition | undefined, refs: Refs): string {
     // Digital products (X19).
     case 'bought_product':
       return boughtGoalTitle(c.productId, refs.products?.get(c.productId ?? ''))
+    // Shopify and WooCommerce (X20).
+    case 'placed_order':
+      return 'Placed an order'
   }
   return 'Goal'
 }
@@ -293,6 +307,11 @@ export function nodeTitle(g: FlowGraph, n: FlowNode, refs: Refs): string {
   switch (n.type) {
     case 'trigger': {
       if (!d.trigger?.kind) return 'Pick a trigger'
+      // "Acme Merch · after 1 hour" (X20).
+      if (d.trigger.kind === 'abandoned_checkout') {
+        const h = d.trigger.afterHours || 1
+        return `${triggerRef(d.trigger, refs)} · after ${h} hour${h === 1 ? '' : 's'}`
+      }
       return triggerRef(d.trigger, refs) || triggerKindLabels[d.trigger.kind]
     }
     case 'delay':

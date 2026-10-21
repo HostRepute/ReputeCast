@@ -14,7 +14,7 @@ WHERE workspace_id = @workspace_id AND erased_at IS NULL;
 SELECT count(*)::bigint FROM suppressions WHERE workspace_id = @workspace_id;
 
 -- name: ListListsWithCounts :many
-SELECT l.id, l.name, l.description, l.double_opt_in, l.created_at,
+SELECT l.id, l.name, l.description, l.double_opt_in, l.created_at, l.origin,
        coalesce(m.subscribed, 0)::bigint AS subscribed,
        coalesce(m.pending, 0)::bigint AS pending
 FROM lists l

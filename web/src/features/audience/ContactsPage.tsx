@@ -23,6 +23,7 @@ import { consentFilterLabel, consentLabel, consentTone, mailboxColor, mailboxes,
 import { LanguageFilter } from '@/features/page-languages/contacts'
 import { PaidStatusCell, PaidStatusSelect, PaidTierChip } from '@/features/earn/ContactsPaid'
 import { BoughtFilter } from '@/features/products/filter'
+import { StoreChips, StoreContactFields, storeMoreKeys, type StoreDraft } from '@/features/commerce/contacts'
 import './audience.css'
 import { MembersChips } from '@/features/website/elsewhere'
 
@@ -56,6 +57,10 @@ export interface ContactsSearch {
   signedIn?: boolean
   /** Buyers of digital products (X19): any product, or a product's id. */
   bought?: string
+  /** Store customers and what they spent (X20). */
+  storeCustomer?: string
+  spentFrom?: string
+  spentTo?: string
   page?: number
   size?: number
 }
@@ -93,6 +98,10 @@ const filterKeys = [
   'signedIn',
   // Buyers of digital products (X19).
   'bought',
+  // Store customers and what they spent (X20).
+  'storeCustomer',
+  'spentFrom',
+  'spentTo',
 ] as const
 
 /** The filter part of the search params, without empty values. */
@@ -337,7 +346,10 @@ function Filters({
     const h = window.setTimeout(() => onChange({ q: q.trim() || undefined }), 250)
     return () => window.clearTimeout(h)
   }, [q, urlQ, onChange])
-  const more = [search.source, search.tag, search.joinedAfter, search.segment].filter(Boolean).length + scoreGrowthMoreKeys.filter((k) => search[k] !== undefined).length
+  const more =
+    [search.source, search.tag, search.joinedAfter, search.segment].filter(Boolean).length +
+    scoreGrowthMoreKeys.filter((k) => search[k] !== undefined).length +
+    storeMoreKeys.filter((k) => search[k] !== undefined).length
   const totalLine = useTotalLine()
   const phone = 'max-md:w-0 max-md:min-w-full'
   const sel = `in ${phone}`
@@ -400,6 +412,7 @@ function Filters({
       <MoreFilters search={search} n={more} onChange={onChange} />
       <span className="k ml-auto">{total === undefined ? '' : totalLine(total, search.sort === 'score')}</span>
       <ScoreGrowthChips search={search} onChange={onChange} />
+      <StoreChips search={search} onChange={onChange} />
     </div>
   )
 }
@@ -414,6 +427,8 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
   const [segment, setSegment] = useState(search.segment ?? '')
   const scoreGrowth = (): ScoreGrowthDraft => Object.fromEntries(scoreGrowthMoreKeys.map((k) => [k, search[k]]))
   const [extra, setExtra] = useState<ScoreGrowthDraft>(scoreGrowth)
+  const storeDraft = (): StoreDraft => ({ storeCustomer: search.storeCustomer, spentFrom: search.spentFrom, spentTo: search.spentTo })
+  const [stores, setStores] = useState<StoreDraft>(storeDraft)
   const toggle = (o: boolean) => {
     if (o) {
       // Opening shows the filters that apply now.
@@ -422,6 +437,7 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
       setAfter(search.joinedAfter ?? '')
       setSegment(search.segment ?? '')
       setExtra(scoreGrowth())
+      setStores(storeDraft())
     }
     setOpen(o)
   }
@@ -431,7 +447,8 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
       onOpenChange={toggle}
       align="start"
       label="More filters"
-      className="w-[360px] gap-3 p-3.5"
+      // With the store fields (X20) it outgrows a laptop screen: it scrolls within what's left of it.
+      className="max-h-(--radix-popover-content-available-height) w-[360px] gap-3 overflow-y-auto p-3.5"
       trigger={<button className="btn">{n ? `More filters · ${n}` : 'More filters'}</button>}
     >
       <Field label="Source">
@@ -461,11 +478,18 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
         </Select>
       </Field>
       <ScoreGrowthFields draft={extra} onChange={setExtra} open={open} />
+      <StoreContactFields draft={stores} onChange={setStores} open={open} />
       <div className="flex justify-end gap-2">
         <Button
           size="sm"
           onClick={() => {
-            onChange({ source: undefined, tag: undefined, joinedAfter: undefined, segment: undefined, ...Object.fromEntries(scoreGrowthMoreKeys.map((k) => [k, undefined])) })
+            onChange({
+              source: undefined,
+              tag: undefined,
+              joinedAfter: undefined,
+              segment: undefined,
+              ...Object.fromEntries([...scoreGrowthMoreKeys, ...storeMoreKeys].map((k) => [k, undefined])),
+            })
             setOpen(false)
           }}
         >
@@ -475,7 +499,7 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
           size="sm"
           variant="primary"
           onClick={() => {
-            onChange({ source: source || undefined, tag: tag.trim() || undefined, joinedAfter: after || undefined, segment: segment || undefined, ...extra })
+            onChange({ source: source || undefined, tag: tag.trim() || undefined, joinedAfter: after || undefined, segment: segment || undefined, ...extra, ...stores })
             setOpen(false)
           }}
         >

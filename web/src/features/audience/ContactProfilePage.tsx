@@ -23,6 +23,7 @@ import { useI18n, useT } from '@/i18n'
 import { NotificationsRow, TransactionalActivityRow, transactionalCount, useContactTransactional, withTransactional } from '@/features/transactional/ContactActivity'
 import { JoinLine } from '@/features/growth/JoinLine'
 import { ProfileScoreCard } from '@/features/scoring/ProfileScoreCard'
+import { StoreOrdersCard, useStoreActivity } from '@/features/commerce/profile'
 import { FieldSourceNote, useAnswerActivity, useFieldSources } from '@/features/polls/contact'
 import { ContactPaidCard, ContactTierChip, PaidActivity, useHasPaidActivity } from '@/features/earn/ContactPaidCard'
 import { AddressCheckRow } from '@/features/verification/AddressCheck'
@@ -148,6 +149,8 @@ export function ContactProfilePage({ contactId }: { contactId: string }) {
               <ConsentCard p={p} />
               {/* The website's Website card (features/website), while it's on. */}
               <ContactWebsiteCard contactId={p.id} name={[p.firstName, p.lastName].filter(Boolean).join(' ') || p.email} />
+              {/* A connected store's orders and consent (X20). */}
+              <StoreOrdersCard contactId={p.id} />
             </div>
             <ActivityCard contactId={contactId} total={p.activityTotal} />
           </div>
@@ -679,6 +682,9 @@ function eventIcon(it: Item): [keyof typeof icons, keyof typeof tone] {
   if (purchase) return purchase
   // Poll answers and survey responses (design expansion, X11).
   if (it.type === 'poll_answer' || it.type === 'survey_response' || it.type === 'survey_started') return ['check', 'green']
+  // Store orders and abandoned checkouts (X20).
+  if (it.type === 'store_order') return ['check', 'green']
+  if (it.type === 'checkout_abandoned') return it.store?.flow ? ['flow', 'purple'] : ['minus', 'grey']
   if (it.category === 'consent') {
     switch (it.type) {
       case 'confirmed':
@@ -745,6 +751,8 @@ const verb: Record<string, string> = {
 
 function ActivityRow({ it }: { it: Item }) {
   const answerActivity = useAnswerActivity()
+  // Store orders and abandoned checkouts (X20).
+  const storeActivity = useStoreActivity()
   const [icon, t] = eventIcon(it)
   const c = tone[t]
   const tr = useT()
@@ -754,7 +762,7 @@ function ActivityRow({ it }: { it: Item }) {
   const dl = deliveryLanguage(it, tr, locale, brandOf(me.workspace.name))
   let title: ReactNode
   let meta: string[] = [dateTime(it.at)]
-  const answer = answerActivity(it)
+  const answer = answerActivity(it) ?? storeActivity(it)
   // Purchases and refunds (digital products, X19).
   const purchase = purchaseActivity(it)
   if (answer) {

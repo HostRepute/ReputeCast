@@ -142,6 +142,8 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
   order: (ctx, n) => lookup(ctx, `products/orders?period=all&q=${encodeURIComponent(n)}`, 'items', (o) => String(o.number) === n, `no order ${n}`),
   // A page by its name ({page:The Deliverability Field Guide}).
   page: (ctx, name) => lookup(ctx, 'pages', 'pages', (p) => p.name === name, `no page named ${name}`),
+  // A connected store by its name ({store:Acme Merch}).
+  store: (ctx, name) => lookup(ctx, 'stores', 'stores', (s) => s.name === name, `no store named ${name}`),
 }
 
 /** The id of the first item of a workspace list that matches. */

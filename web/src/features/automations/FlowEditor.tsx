@@ -68,6 +68,7 @@ import {
   type StepType,
 } from './graph'
 import { DRAG_TYPE, draggedStepType, FlowStatsList, graphOrder, Palette, Prop, StepPanel, StepStatsPanel, type PaletteItem } from './panels'
+import { storeOfTrigger, useStoreTriggerOptions } from '@/features/commerce/automation'
 import { AutomationStatusBadge } from './StatusBadge'
 import { FlowViewProvider, startCountUp, type FlowView, type StepStats } from './view'
 import './automations.css'
@@ -184,7 +185,9 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
     { enabled: published, refetchInterval: 30_000 },
   )
   const options = $api.useQuery('get', '/api/v1/workspaces/{workspace}/automations/options', { params: { path: { workspace: slug } } }, { staleTime: 60_000 })
-  const refs = useMemo(() => refsFrom(options.data), [options.data])
+  // The store triggers name their store (X20).
+  const storeOptions = useStoreTriggerOptions()
+  const refs = useMemo(() => ({ ...refsFrom(options.data), stores: new Map((storeOptions.data?.stores ?? []).map((s) => [s.id, s.name])) }), [options.data, storeOptions.data])
 
   const [flow, setFlow] = useState<FlowState>(() => fromGraph(detail.graph))
   const graph = useMemo(() => toGraph(flow.nodes, flow.edges), [flow])
@@ -800,6 +803,7 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
       />
       <EmailPreviewDialog email={preview} onClose={() => setPreview(null)} />
       <EmailEditDialog
+        store={storeOfTrigger(graph)}
         email={editingEmail}
         onClose={() => setEditingEmail(null)}
         onSaved={(version) => {

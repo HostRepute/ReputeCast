@@ -27,9 +27,14 @@ func (a *App) integrations() *integrations.Service {
 		AllowPrivate: func() bool { return cfg.Webhooks.AllowPrivateNetworks },
 		Languages:    draftLanguages{languagesService(a)},
 		PostReported: integrationPostReported(a),
-		Sources:      map[string]integrations.GroupSource{"ai": aiCatalog(a), "verification": verificationCatalog(a), "payments": paymentsCatalog(a)},
+		Sources: map[string]integrations.GroupSource{"ai": aiCatalog(a), "verification": verificationCatalog(a), "payments": paymentsCatalog(a),
+			"commerce": integrationCommerce(a)},
 	}
 }
+
+// integrationCommerce is the Commerce group's cards; the commerce domain
+// sets it from its wire file.
+var integrationCommerce = func(*App) integrations.GroupSource { return nil }
 
 // integrationPostReported hears of the posts connected WordPress sites
 // report; the digests domain replaces it from its wire file.

@@ -75,6 +75,10 @@ type Engine struct {
 	// Recipients add the variables blocks read per reader (Grow's
 	// referral.*, reward.* and recommendations.*); nil adds none.
 	Recipients func() []liquid.RecipientData
+	// Store refreshes store blocks with the products' prices and
+	// availability at send time, and fills automation emails' Checkout
+	// items (internal/commerce); nil sends them as written.
+	Store StoreContent
 
 	mu       sync.Mutex
 	calls    map[routeKey]*callLog

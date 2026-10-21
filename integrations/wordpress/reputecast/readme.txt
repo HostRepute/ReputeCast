@@ -1,14 +1,14 @@
 === ReputeCast ===
 Contributors: hostrepute
-Tags: newsletter, signup form, email marketing, subscribe, double opt-in
+Tags: newsletter, signup form, email marketing, woocommerce, abandoned cart
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Signup forms from ReputeCast, the open-source newsletter platform, as a block and a shortcode. Published posts can become campaign drafts there.
+Signup forms from ReputeCast, the open-source newsletter platform, as a block and a shortcode. Posts can become campaign drafts; WooCommerce gets marketing consent and abandoned carts.
 
 == Description ==
 
@@ -19,6 +19,7 @@ ReputeCast is an open-source, self-hosted newsletter platform. This plugin conne
 * **Post drafts.** Each post you publish goes to ReputeCast, where the site's post-draft rule decides whether it becomes a campaign draft (by category, with an audience, a template and a sender). Drafts only: nobody gets anything until someone reviews and sends it in ReputeCast.
 * **Languages.** With WPML or Polylang, a post's translations become the draft's language versions, and the block has a language setting ("Match the page" by default).
 * **Health.** The site reports in when it connects, every 12 hours and with every post: plugin, WordPress and PHP versions, the feed URL, the post categories and where forms are used. ReputeCast's "Check now" calls the site's status endpoint, which answers only calls signed with the site's key.
+* **WooCommerce.** With WooCommerce active and the store connected in ReputeCast (Settings › Integrations › WooCommerce), the checkout gets an unchecked checkbox under the email: "Email me about new products and offers from the store. Unsubscribe any time." Ticking it records the consent on the order (the text and the time); leaving it unticked adds nobody to any list. The click token of the email a shopper came from is kept on their order, so ReputeCast credits the order to that email, and checkouts left without an order are reported to ReputeCast for its Abandoned checkout trigger, with a link that restores the cart. Both the classic and the block checkout are supported.
 
 Everything is free. ReputeCast is licensed under the AGPL; this plugin under the GPL.
 
@@ -49,6 +50,10 @@ No. Signup forms send their signups straight from the visitor's browser to Reput
 
 Signup forms keep working. Posts stop going to ReputeCast, and the site stops reporting in. Disconnect the site in ReputeCast too to revoke its key.
 
+= What does the plugin add to WooCommerce? =
+
+The consent checkbox at the checkout, the click token on each order and the abandoned-checkout report. Orders, products and refunds reach ReputeCast through the store's REST API key, which you create in WooCommerce › Settings › Advanced › REST API and paste in ReputeCast. The filters `reputecast_woocommerce_consent` and `reputecast_woocommerce_checkouts` turn the checkbox and the report off.
+
 = Does it work with WPML and Polylang? =
 
 Yes. A post's translations go with it and become the draft's language versions, and the form block's language setting lists the site's languages.
@@ -62,10 +67,18 @@ The plugin connects to one service: the ReputeCast instance you connect it to, a
 * **When a post is published,** it sends the post's title, excerpt, address, featured image address, categories and language, and those of its translations.
 * **When an editor opens the block,** it fetches the workspace's signup forms: names, statuses and whether this site is an allowed domain.
 * **On the pages that show a form,** the visitor's browser loads the form's script from the ReputeCast instance and sends signups there. The script sets no cookies.
+* **With WooCommerce, every 15 minutes,** it sends the checkouts changed since: the email and name the shopper typed, whether they ticked the consent checkbox (with its text and time), the cart's products, quantities and prices, the totals and currency, the link that restores the cart and the email's click token. Addresses, phone numbers and payment details are never sent.
+* **With WooCommerce, on the store's pages,** a visitor who arrives from an email link keeps its click token in a first-party cookie (reputecast_click, 30 days), written on their order.
 
-Nothing about visitors or users is sent by the plugin. ReputeCast's source code: https://github.com/hostrepute/reputecast
+Nothing about visitors or users is sent by the plugin, except the WooCommerce checkouts above. ReputeCast's source code: https://github.com/hostrepute/reputecast
 
 == Changelog ==
+
+= 1.4.0 =
+* WooCommerce: the marketing consent checkbox at the classic and block checkouts, recorded on the order with its exact text and time.
+* WooCommerce: the email's click token kept on each order, for ReputeCast's attribution.
+* WooCommerce: abandoned checkouts reported every 15 minutes, with a signed link that restores the cart.
+* The site's report says WooCommerce is active: ReputeCast shows "WooCommerce detected" and links the site to its store.
 
 = 1.3.0 =
 * First release from the ReputeCast repository.
@@ -76,6 +89,9 @@ Nothing about visitors or users is sent by the plugin. ReputeCast's source code:
 * WPML and Polylang: post translations as the draft's language versions, and the block's language setting.
 
 == Upgrade Notice ==
+
+= 1.4.0 =
+WooCommerce stores connected in ReputeCast get the checkout's marketing consent, the click token on orders and abandoned checkouts.
 
 = 1.3.0 =
 Post translations (WPML or Polylang) become the draft's language versions, and the form block gets a language setting.

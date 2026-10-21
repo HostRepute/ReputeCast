@@ -1876,6 +1876,7 @@ type List struct {
 	CreatedAt        time.Time       `json:"createdAt"`
 	DeletedAt        *time.Time      `json:"deletedAt"`
 	DeletePaused     json.RawMessage `json:"deletePaused"`
+	Origin           string          `json:"origin"`
 }
 
 type ListMembership struct {
@@ -3745,6 +3746,230 @@ type SsoProvider struct {
 	CreatedBy             *uuid.UUID      `json:"createdBy"`
 }
 
+type Store struct {
+	ID                  uuid.UUID       `json:"id"`
+	WorkspaceID         uuid.UUID       `json:"workspaceId"`
+	Platform            string          `json:"platform"`
+	Status              string          `json:"status"`
+	Step                string          `json:"step"`
+	Name                string          `json:"name"`
+	Address             string          `json:"address"`
+	Domain              string          `json:"domain"`
+	PublicDomain        string          `json:"publicDomain"`
+	Currency            string          `json:"currency"`
+	ApiVersion          string          `json:"apiVersion"`
+	AppName             string          `json:"appName"`
+	ClientID            string          `json:"clientId"`
+	CredentialsSealed   []byte          `json:"credentialsSealed"`
+	KeyHint             string          `json:"keyHint"`
+	Scopes              []string        `json:"scopes"`
+	OauthState          *string         `json:"oauthState"`
+	OauthStateExpiresAt *time.Time      `json:"oauthStateExpiresAt"`
+	ConnectError        string          `json:"connectError"`
+	InstalledAt         *time.Time      `json:"installedAt"`
+	WebhookToken        *string         `json:"webhookToken"`
+	WebhookSecretSealed []byte          `json:"webhookSecretSealed"`
+	SyncProducts        bool            `json:"syncProducts"`
+	SyncCustomers       bool            `json:"syncCustomers"`
+	SyncOrders          bool            `json:"syncOrders"`
+	SyncCheckouts       bool            `json:"syncCheckouts"`
+	ImportMonths        int32           `json:"importMonths"`
+	ListID              *uuid.UUID      `json:"listId"`
+	WriteBack           bool            `json:"writeBack"`
+	TagLinks            bool            `json:"tagLinks"`
+	AttributionDays     int32           `json:"attributionDays"`
+	AttributionSetBy    *uuid.UUID      `json:"attributionSetBy"`
+	AttributionSetAt    *time.Time      `json:"attributionSetAt"`
+	PluginFound         bool            `json:"pluginFound"`
+	PluginCheckedAt     *time.Time      `json:"pluginCheckedAt"`
+	PluginSkipped       bool            `json:"pluginSkipped"`
+	LastEventAt         *time.Time      `json:"lastEventAt"`
+	HealthCheckedAt     *time.Time      `json:"healthCheckedAt"`
+	ImportProgress      json.RawMessage `json:"importProgress"`
+	ImportStartedAt     *time.Time      `json:"importStartedAt"`
+	ImportStartedBy     *uuid.UUID      `json:"importStartedBy"`
+	ImportFinishedAt    *time.Time      `json:"importFinishedAt"`
+	WritebackThrough    *time.Time      `json:"writebackThrough"`
+	ReconciledAt        *time.Time      `json:"reconciledAt"`
+	ReconcileMissed     int32           `json:"reconcileMissed"`
+	ReconcileProducts   int32           `json:"reconcileProducts"`
+	RateLimitedUntil    *time.Time      `json:"rateLimitedUntil"`
+	RevokedAt           *time.Time      `json:"revokedAt"`
+	RevokedReason       string          `json:"revokedReason"`
+	DisconnectedAt      *time.Time      `json:"disconnectedAt"`
+	DisconnectedBy      *uuid.UUID      `json:"disconnectedBy"`
+	NotifiedAt          *time.Time      `json:"notifiedAt"`
+	Demo                bool            `json:"demo"`
+	ConnectedBy         *uuid.UUID      `json:"connectedBy"`
+	ConnectedAt         *time.Time      `json:"connectedAt"`
+	CreatedBy           *uuid.UUID      `json:"createdBy"`
+	CreatedAt           time.Time       `json:"createdAt"`
+	UpdatedAt           time.Time       `json:"updatedAt"`
+}
+
+type StoreActivity struct {
+	ID          uuid.UUID       `json:"id"`
+	StoreID     uuid.UUID       `json:"storeId"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	At          time.Time       `json:"at"`
+	Kind        string          `json:"kind"`
+	Tone        string          `json:"tone"`
+	Data        json.RawMessage `json:"data"`
+	OrderID     *uuid.UUID      `json:"orderId"`
+	CheckoutID  *uuid.UUID      `json:"checkoutId"`
+	ContactID   *uuid.UUID      `json:"contactId"`
+}
+
+type StoreCheckout struct {
+	ID                 uuid.UUID       `json:"id"`
+	StoreID            uuid.UUID       `json:"storeId"`
+	WorkspaceID        uuid.UUID       `json:"workspaceId"`
+	ExternalID         string          `json:"externalId"`
+	ContactID          *uuid.UUID      `json:"contactId"`
+	CustomerExternalID string          `json:"customerExternalId"`
+	HasEmail           bool            `json:"hasEmail"`
+	AcceptedMarketing  bool            `json:"acceptedMarketing"`
+	Items              json.RawMessage `json:"items"`
+	SubtotalCents      int64           `json:"subtotalCents"`
+	TotalCents         int64           `json:"totalCents"`
+	Currency           string          `json:"currency"`
+	RecoveryUrl        string          `json:"recoveryUrl"`
+	CreatedAtStore     time.Time       `json:"createdAtStore"`
+	UpdatedAtStore     time.Time       `json:"updatedAtStore"`
+	CompletedAt        *time.Time      `json:"completedAt"`
+	OrderID            *uuid.UUID      `json:"orderId"`
+	Source             string          `json:"source"`
+	CreatedAt          time.Time       `json:"createdAt"`
+	UpdatedAt          time.Time       `json:"updatedAt"`
+}
+
+type StoreCheckoutEntry struct {
+	AutomationID uuid.UUID `json:"automationId"`
+	CheckoutID   uuid.UUID `json:"checkoutId"`
+	Outcome      string    `json:"outcome"`
+	At           time.Time `json:"at"`
+}
+
+type StoreCollection struct {
+	StoreID    uuid.UUID `json:"storeId"`
+	ExternalID string    `json:"externalId"`
+	Title      string    `json:"title"`
+	Handle     string    `json:"handle"`
+	Products   int32     `json:"products"`
+	Position   int32     `json:"position"`
+}
+
+type StoreCustomer struct {
+	ID             uuid.UUID  `json:"id"`
+	StoreID        uuid.UUID  `json:"storeId"`
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	ExternalID     string     `json:"externalId"`
+	ContactID      *uuid.UUID `json:"contactId"`
+	Email          string     `json:"email"`
+	FirstName      string     `json:"firstName"`
+	LastName       string     `json:"lastName"`
+	Country        string     `json:"country"`
+	Marketing      string     `json:"marketing"`
+	OptInLevel     string     `json:"optInLevel"`
+	ConsentAt      *time.Time `json:"consentAt"`
+	JoinedListAt   *time.Time `json:"joinedListAt"`
+	ToldStoreAt    *time.Time `json:"toldStoreAt"`
+	UpdatedAtStore *time.Time `json:"updatedAtStore"`
+	CreatedAt      time.Time  `json:"createdAt"`
+}
+
+type StoreEvent struct {
+	ID          uuid.UUID       `json:"id"`
+	StoreID     uuid.UUID       `json:"storeId"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Topic       string          `json:"topic"`
+	DeliveryID  string          `json:"deliveryId"`
+	TriggeredAt *time.Time      `json:"triggeredAt"`
+	ReceivedAt  time.Time       `json:"receivedAt"`
+	Headers     json.RawMessage `json:"headers"`
+	Body        []byte          `json:"body"`
+	SignatureOk bool            `json:"signatureOk"`
+	Status      string          `json:"status"`
+	Outcome     string          `json:"outcome"`
+	AppliedAt   *time.Time      `json:"appliedAt"`
+}
+
+type StoreOrder struct {
+	ID                 uuid.UUID       `json:"id"`
+	StoreID            uuid.UUID       `json:"storeId"`
+	WorkspaceID        uuid.UUID       `json:"workspaceId"`
+	ExternalID         string          `json:"externalId"`
+	Name               string          `json:"name"`
+	ContactID          *uuid.UUID      `json:"contactId"`
+	CustomerExternalID string          `json:"customerExternalId"`
+	AcceptedMarketing  bool            `json:"acceptedMarketing"`
+	PlacedAt           time.Time       `json:"placedAt"`
+	Currency           string          `json:"currency"`
+	SubtotalCents      int64           `json:"subtotalCents"`
+	TotalCents         int64           `json:"totalCents"`
+	RefundedCents      int64           `json:"refundedCents"`
+	RefundIds          []string        `json:"refundIds"`
+	DiscountCodes      []string        `json:"discountCodes"`
+	Items              json.RawMessage `json:"items"`
+	LandingPage        string          `json:"landingPage"`
+	UtmSource          string          `json:"utmSource"`
+	UtmMedium          string          `json:"utmMedium"`
+	UtmCampaign        string          `json:"utmCampaign"`
+	UtmContent         string          `json:"utmContent"`
+	UtmTerm            string          `json:"utmTerm"`
+	CheckoutExternalID string          `json:"checkoutExternalId"`
+	Cancelled          bool            `json:"cancelled"`
+	Test               bool            `json:"test"`
+	FirstOrder         bool            `json:"firstOrder"`
+	Matched            string          `json:"matched"`
+	MessageID          *uuid.UUID      `json:"messageId"`
+	CampaignID         *uuid.UUID      `json:"campaignId"`
+	AutomationID       *uuid.UUID      `json:"automationId"`
+	AutomationNode     string          `json:"automationNode"`
+	ClickedAt          *time.Time      `json:"clickedAt"`
+	Source             string          `json:"source"`
+	UpdatedAtStore     *time.Time      `json:"updatedAtStore"`
+	CreatedAt          time.Time       `json:"createdAt"`
+	UpdatedAt          time.Time       `json:"updatedAt"`
+}
+
+type StoreProduct struct {
+	ID             uuid.UUID  `json:"id"`
+	StoreID        uuid.UUID  `json:"storeId"`
+	WorkspaceID    uuid.UUID  `json:"workspaceId"`
+	ExternalID     string     `json:"externalId"`
+	Title          string     `json:"title"`
+	Handle         string     `json:"handle"`
+	Url            string     `json:"url"`
+	ImageUrl       string     `json:"imageUrl"`
+	ImageAlt       string     `json:"imageAlt"`
+	PriceCents     int64      `json:"priceCents"`
+	CompareAtCents int64      `json:"compareAtCents"`
+	Currency       string     `json:"currency"`
+	Available      bool       `json:"available"`
+	Inventory      *int32     `json:"inventory"`
+	Status         string     `json:"status"`
+	Collections    []string   `json:"collections"`
+	CreatedAtStore *time.Time `json:"createdAtStore"`
+	UpdatedAtStore *time.Time `json:"updatedAtStore"`
+	RemovedAt      *time.Time `json:"removedAt"`
+	SyncedAt       time.Time  `json:"syncedAt"`
+}
+
+type StoreWebhook struct {
+	StoreID      uuid.UUID  `json:"storeId"`
+	Topic        string     `json:"topic"`
+	ExternalID   string     `json:"externalId"`
+	Status       string     `json:"status"`
+	RegisteredAt *time.Time `json:"registeredAt"`
+	RegisteredBy *uuid.UUID `json:"registeredBy"`
+	MissingSince *time.Time `json:"missingSince"`
+	LastEventAt  *time.Time `json:"lastEventAt"`
+	LastPolledAt *time.Time `json:"lastPolledAt"`
+	Error        string     `json:"error"`
+	Position     int32      `json:"position"`
+}
+
 type StreamFailover struct {
 	ID                 uuid.UUID       `json:"id"`
 	WorkspaceID        uuid.UUID       `json:"workspaceId"`
@@ -4650,26 +4875,29 @@ type WordpressDraft struct {
 }
 
 type WordpressSite struct {
-	IntegrationID  uuid.UUID       `json:"integrationId"`
-	WorkspaceID    uuid.UUID       `json:"workspaceId"`
-	Address        string          `json:"address"`
-	SiteUrl        string          `json:"siteUrl"`
-	Name           string          `json:"name"`
-	PluginVersion  string          `json:"pluginVersion"`
-	WpVersion      string          `json:"wpVersion"`
-	PhpVersion     string          `json:"phpVersion"`
-	FeedUrl        string          `json:"feedUrl"`
-	LanguagePlugin string          `json:"languagePlugin"`
-	Categories     json.RawMessage `json:"categories"`
-	Forms          json.RawMessage `json:"forms"`
-	FirstReportAt  *time.Time      `json:"firstReportAt"`
-	LastReportAt   *time.Time      `json:"lastReportAt"`
-	LastCheckAt    *time.Time      `json:"lastCheckAt"`
-	LastCheck      json.RawMessage `json:"lastCheck"`
-	RuleEnabled    bool            `json:"ruleEnabled"`
-	Rule           json.RawMessage `json:"rule"`
-	RuleUpdatedBy  *uuid.UUID      `json:"ruleUpdatedBy"`
-	RuleUpdatedAt  *time.Time      `json:"ruleUpdatedAt"`
+	IntegrationID        uuid.UUID       `json:"integrationId"`
+	WorkspaceID          uuid.UUID       `json:"workspaceId"`
+	Address              string          `json:"address"`
+	SiteUrl              string          `json:"siteUrl"`
+	Name                 string          `json:"name"`
+	PluginVersion        string          `json:"pluginVersion"`
+	WpVersion            string          `json:"wpVersion"`
+	PhpVersion           string          `json:"phpVersion"`
+	FeedUrl              string          `json:"feedUrl"`
+	LanguagePlugin       string          `json:"languagePlugin"`
+	Categories           json.RawMessage `json:"categories"`
+	Forms                json.RawMessage `json:"forms"`
+	FirstReportAt        *time.Time      `json:"firstReportAt"`
+	LastReportAt         *time.Time      `json:"lastReportAt"`
+	LastCheckAt          *time.Time      `json:"lastCheckAt"`
+	LastCheck            json.RawMessage `json:"lastCheck"`
+	RuleEnabled          bool            `json:"ruleEnabled"`
+	Rule                 json.RawMessage `json:"rule"`
+	RuleUpdatedBy        *uuid.UUID      `json:"ruleUpdatedBy"`
+	RuleUpdatedAt        *time.Time      `json:"ruleUpdatedAt"`
+	WoocommerceVersion   string          `json:"woocommerceVersion"`
+	WoocommerceConsent   bool            `json:"woocommerceConsent"`
+	WoocommerceCheckouts bool            `json:"woocommerceCheckouts"`
 }
 
 type Workspace struct {

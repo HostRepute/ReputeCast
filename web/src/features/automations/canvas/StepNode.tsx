@@ -16,6 +16,7 @@ import {
   type StepType,
 } from '../graph'
 import { useCountUp, useFlowView } from '../view'
+import { StoreNodeLine } from '@/features/commerce/automation'
 
 export type StepNodeType = Node<NodeData, StepType>
 
@@ -73,6 +74,7 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
               </span>
             ) : null}
             {detail ? <span>{detail}</span> : null}
+            {stat && data.trigger?.kind === 'abandoned_checkout' ? <StoreNodeLine kind="trigger" /> : null}
           </div>,
         )
       break
@@ -125,9 +127,14 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
       if (stat)
         lines.push(
           <div className="st" key="s">
-            <span>
-              <b className="n">{n(st?.goalReached ?? 0)}</b> reached · {p(share(st?.goalReached ?? 0, v.entered))}
-            </span>
+            {data.condition?.kind === 'placed_order' ? (
+              <StoreNodeLine kind="goal" />
+            ) : (
+              <span>
+                <b className="n">{n(st?.goalReached ?? 0)}</b> reached · {p(share(st?.goalReached ?? 0, v.entered))}
+              </span>
+            )}
+            {data.condition?.kind === 'placed_order' ? <span>{p(share(st?.goalReached ?? 0, v.entered))} of {n(v.entered)}</span> : null}
           </div>,
         )
       break
@@ -200,7 +207,10 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
     >
       <span className="hit" aria-hidden="true" />
       {type !== 'trigger' ? <Handle type="target" position={Position.Top} className="fn-hb i" /> : null}
-      {!isTerminal(type) ? <Handle type="source" position={Position.Bottom} className="fn-hb o" /> : null}
+      {/* A goal leads on where the flow carries past it (the Abandoned cart starter, X20). */}
+      {!isTerminal(type) || (type === 'goal' && v.graph.edges.some((e) => e.source === id)) ? (
+        <Handle type="source" position={Position.Bottom} className="fn-hb o" />
+      ) : null}
       <div className="hd" style={{ color }}>
         <span className={cn('dot', type === 'trigger' && v.live && 'live')} aria-hidden="true" />
         {header}

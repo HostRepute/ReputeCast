@@ -146,6 +146,8 @@ var Categories = []AuditCategory{
 	{Key: "grow", Label: "Grow", Groups: []string{"referral", "recommendation", "partner"}},
 	// Digital products and their orders (design expansion, phase 7).
 	{Key: "products", Label: "Products", Groups: []string{"product", "order"}},
+	// Shopify and WooCommerce (design expansion, phase 7).
+	{Key: "commerce", Label: "Commerce", Groups: []string{"store"}},
 }
 
 // Filter narrows the log.
@@ -569,6 +571,10 @@ func link(ws, targetType, targetID, override string) (string, string) {
 		return base + "/transactional/settings", "Open settings"
 	case "ai_assistant":
 		return base + "/settings/integrations/ai", "Open AI assistant"
+	case "store":
+		if targetID != "" {
+			return base + "/settings/integrations/stores/" + targetID, "Open store"
+		}
 	}
 	return "", ""
 }
@@ -596,6 +602,11 @@ var verbs = map[string]string{
 	"connection_created": "Connected", "connection_updated": "Changed", "connection_removed": "Disconnected", "key_replaced": "Replaced the key of",
 	"model_changed": "Changed the model of", "cap_updated": "Changed the monthly cap of", "prices_updated": "Changed the prices of",
 	"feature_enabled": "Turned on a feature of", "feature_disabled": "Turned off a feature of",
+	// Stores (phase 7).
+	"connect_started": "Started connecting", "keys_saved": "Saved the app keys of", "installed": "Installed the app on", "connected": "Connected",
+	"reconnected": "Reconnected", "disconnected": "Disconnected", "data_deleted": "Deleted the store data of", "list_updated": "Changed the list of",
+	"writeback_updated": "Changed the consent write-back of", "attribution_updated": "Changed the attribution window of",
+	"sync_updated": "Changed what syncs from", "sync_started": "Started a sync of", "webhooks_registered": "Registered the webhooks of",
 }
 
 // Describe writes "Changed the Broadcasts routing rule" style sentences from an action.

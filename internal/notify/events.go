@@ -69,6 +69,7 @@ var Events = []EventType{
 	{Key: KindSMSRegistration, Label: "Sender registration approved or rejected", Audience: "Everyone with providers:view", Short: "sender registrations", DefaultEmail: true, Kinds: []string{KindSMSRegistration}},
 	{Key: KindSMSProviderDown, Label: "SMS provider down or receipts silent", Audience: "Everyone with providers:view", Short: "SMS provider problems", DefaultEmail: true, Urgent: true, Kinds: []string{KindSMSProviderDown}},
 	{Key: KindSMSSendPaused, Label: "SMS campaign auto-paused", Audience: "Everyone with campaigns:pause", Short: "SMS auto-pauses", DefaultEmail: true, Urgent: true, Kinds: []string{KindSMSSendPaused}},
+	{Key: KindStoreProblem, Label: "Store disconnected or its webhooks missing", Audience: "Everyone with integrations:manage", Short: "store problems", DefaultEmail: true, Kinds: []string{KindStoreProblem}},
 }
 
 // otherEvent covers kinds without a preference row (send finished, jobs):
@@ -116,7 +117,7 @@ var categoryKinds = map[string][]string{
 	CategoryProviders:     {KindProviderDown, KindProviderDegraded, KindWebhooksSilent, KindSMSProviderDown, KindSMSRegistration, KindSMSBudget},
 	CategoryTeam:          {KindInviteAccepted, KindInviteRequested},
 	CategoryHostRepute:    {KindHostReputeAlert},
-	CategoryIntegrations:  {KindIntegrationAttention, KindPostDraftCreated},
+	CategoryIntegrations:  {KindIntegrationAttention, KindPostDraftCreated, KindStoreProblem},
 	CategoryTransactional: {KindTransactionalAlert, KindSMTPRelayUnreachable},
 	CategoryAI:            {KindAIUsage, KindAIKeyRejected},
 	CategoryEarn:          {KindPaymentsAttention, KindUnmappedPrice, KindPaidImportDone, KindFailedPayments, KindSponsorCreative, KindSponsorPayment},

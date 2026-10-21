@@ -136,6 +136,7 @@ import { Route as WWorkspaceAppEarnPlansOffersOfferIdRouteImport } from './route
 import { Route as WWorkspaceAppEarnPlansOffersNewRouteImport } from './routes/w/$workspace/_app/earn/plans/offers/new'
 import { Route as WWorkspaceAppEarnPlansTiersTierIdRouteImport } from './routes/w/$workspace/_app/earn/plans/tiers/$tierId'
 import { Route as WWorkspaceAppEarnPlansTiersNewRouteImport } from './routes/w/$workspace/_app/earn/plans/tiers/new'
+import { Route as WWorkspaceAppSettingsIntegrationsStoresStoreIdRouteImport } from './routes/w/$workspace/_app/settings/integrations/stores/$storeId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -878,6 +879,12 @@ const WWorkspaceAppEarnPlansTiersNewRoute =
     path: '/earn/plans/tiers/new',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAppSettingsIntegrationsStoresStoreIdRoute =
+  WWorkspaceAppSettingsIntegrationsStoresStoreIdRouteImport.update({
+    id: '/settings/integrations/stores/$storeId',
+    path: '/settings/integrations/stores/$storeId',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -1005,6 +1012,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/earn/plans/offers/new': typeof WWorkspaceAppEarnPlansOffersNewRoute
   '/w/$workspace/earn/plans/tiers/$tierId': typeof WWorkspaceAppEarnPlansTiersTierIdRoute
   '/w/$workspace/earn/plans/tiers/new': typeof WWorkspaceAppEarnPlansTiersNewRoute
+  '/w/$workspace/settings/integrations/stores/$storeId': typeof WWorkspaceAppSettingsIntegrationsStoresStoreIdRoute
   '/w/$workspace/campaigns/digests/$digestId/': typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -1132,6 +1140,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/earn/plans/offers/new': typeof WWorkspaceAppEarnPlansOffersNewRoute
   '/w/$workspace/earn/plans/tiers/$tierId': typeof WWorkspaceAppEarnPlansTiersTierIdRoute
   '/w/$workspace/earn/plans/tiers/new': typeof WWorkspaceAppEarnPlansTiersNewRoute
+  '/w/$workspace/settings/integrations/stores/$storeId': typeof WWorkspaceAppSettingsIntegrationsStoresStoreIdRoute
   '/w/$workspace/campaigns/digests/$digestId': typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
 export interface FileRoutesById {
@@ -1262,6 +1271,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/earn/plans/offers/new': typeof WWorkspaceAppEarnPlansOffersNewRoute
   '/w/$workspace/_app/earn/plans/tiers/$tierId': typeof WWorkspaceAppEarnPlansTiersTierIdRoute
   '/w/$workspace/_app/earn/plans/tiers/new': typeof WWorkspaceAppEarnPlansTiersNewRoute
+  '/w/$workspace/_app/settings/integrations/stores/$storeId': typeof WWorkspaceAppSettingsIntegrationsStoresStoreIdRoute
   '/w/$workspace/_app/campaigns/digests/$digestId/': typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -1392,6 +1402,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/earn/plans/offers/new'
     | '/w/$workspace/earn/plans/tiers/$tierId'
     | '/w/$workspace/earn/plans/tiers/new'
+    | '/w/$workspace/settings/integrations/stores/$storeId'
     | '/w/$workspace/campaigns/digests/$digestId/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1519,6 +1530,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/earn/plans/offers/new'
     | '/w/$workspace/earn/plans/tiers/$tierId'
     | '/w/$workspace/earn/plans/tiers/new'
+    | '/w/$workspace/settings/integrations/stores/$storeId'
     | '/w/$workspace/campaigns/digests/$digestId'
   id:
     | '__root__'
@@ -1648,6 +1660,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/earn/plans/offers/new'
     | '/w/$workspace/_app/earn/plans/tiers/$tierId'
     | '/w/$workspace/_app/earn/plans/tiers/new'
+    | '/w/$workspace/_app/settings/integrations/stores/$storeId'
     | '/w/$workspace/_app/campaigns/digests/$digestId/'
   fileRoutesById: FileRoutesById
 }
@@ -2553,6 +2566,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppEarnPlansTiersNewRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
+    '/w/$workspace/_app/settings/integrations/stores/$storeId': {
+      id: '/w/$workspace/_app/settings/integrations/stores/$storeId'
+      path: '/settings/integrations/stores/$storeId'
+      fullPath: '/w/$workspace/settings/integrations/stores/$storeId'
+      preLoaderRoute: typeof WWorkspaceAppSettingsIntegrationsStoresStoreIdRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
   }
 }
 
@@ -2663,6 +2683,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppEarnPlansOffersNewRoute: typeof WWorkspaceAppEarnPlansOffersNewRoute
   WWorkspaceAppEarnPlansTiersTierIdRoute: typeof WWorkspaceAppEarnPlansTiersTierIdRoute
   WWorkspaceAppEarnPlansTiersNewRoute: typeof WWorkspaceAppEarnPlansTiersNewRoute
+  WWorkspaceAppSettingsIntegrationsStoresStoreIdRoute: typeof WWorkspaceAppSettingsIntegrationsStoresStoreIdRoute
   WWorkspaceAppCampaignsDigestsDigestIdIndexRoute: typeof WWorkspaceAppCampaignsDigestsDigestIdIndexRoute
 }
 
@@ -2794,6 +2815,8 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppEarnPlansTiersTierIdRoute:
     WWorkspaceAppEarnPlansTiersTierIdRoute,
   WWorkspaceAppEarnPlansTiersNewRoute: WWorkspaceAppEarnPlansTiersNewRoute,
+  WWorkspaceAppSettingsIntegrationsStoresStoreIdRoute:
+    WWorkspaceAppSettingsIntegrationsStoresStoreIdRoute,
   WWorkspaceAppCampaignsDigestsDigestIdIndexRoute:
     WWorkspaceAppCampaignsDigestsDigestIdIndexRoute,
 }

@@ -84,9 +84,10 @@ func TestDeleteAndRestoreList(t *testing.T) {
 		if im.Name != "Product Updates" || im.Members != 14110 || im.Elsewhere <= 0 || im.Elsewhere >= im.Members {
 			t.Fatalf("impact %+v", im)
 		}
-		// Weekly Digest, Beta Program, SMS's (X21) Acme Summit 2026, and the
-		// webinar's and the Launch Kit waitlist's lists (X19).
-		if im.OtherListCount != 5 || !slices.Contains(im.OtherLists, "Weekly Digest") {
+		// Weekly Digest, Beta Program, SMS's (X21) Acme Summit 2026, the
+		// webinar's and the Launch Kit waitlist's lists (X19), and the Acme
+		// Merch store's list (X20).
+		if im.OtherListCount != 6 || !slices.Contains(im.OtherLists, "Weekly Digest") {
 			t.Errorf("other lists %v (%d)", im.OtherLists, im.OtherListCount)
 		}
 		one := func(what string, items []struct{ Name string }, want string) {

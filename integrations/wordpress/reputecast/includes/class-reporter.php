@@ -87,7 +87,7 @@ final class Reporter {
 	 * @return array<string, mixed>
 	 */
 	public static function payload(): array {
-		return array(
+		$report = array(
 			'siteUrl'          => Form_Usage::clip( home_url(), 300 ),
 			'name'             => Form_Usage::clip( html_entity_decode( wp_strip_all_tags( (string) get_bloginfo( 'name' ) ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ), 200 ),
 			'pluginVersion'    => REPUTECAST_VERSION,
@@ -98,6 +98,12 @@ final class Reporter {
 			'categories'       => self::categories(),
 			'forms'            => Form_Usage::scan(),
 		);
+		// WooCommerce, when it's active (plugin 1.4): its version and the checkout's consent and checkouts.
+		$woo = WooCommerce::report();
+		if ( null !== $woo ) {
+			$report['woocommerce'] = $woo;
+		}
+		return $report;
 	}
 
 	/**

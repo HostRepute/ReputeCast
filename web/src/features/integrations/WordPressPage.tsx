@@ -13,6 +13,7 @@ import { toast } from '@/components/ui/Toast'
 import { T, formatList, useT } from '@/i18n'
 import { ago, clock, dayMonthDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
+import { WooBadge, WooSection } from '@/features/commerce/wordpress'
 import { ConnectDialog, Footer } from './ConnectDialog'
 import { DisconnectDialog, RotateDialog, TakeOverDialog } from './KeyDialogs'
 import { m } from './messages'
@@ -208,6 +209,8 @@ function SiteCard({ data, site: s, defaultOpen, onDialog }: { data: Data; site: 
               <StatusBadge status={s.status} />
             )}
             {s.updateAvailable ? <Badge tone="info">{t(m.statusUpdate)}</Badge> : null}
+            {/* WooCommerce on the site (X20). */}
+            <WooBadge woo={s.woocommerce} />
           </div>
           <div className="ih-facts">
             {facts.map(([k, v]) => (
@@ -223,7 +226,11 @@ function SiteCard({ data, site: s, defaultOpen, onDialog }: { data: Data; site: 
       </div>
       {open ? (
         <div className="pad flex flex-col gap-[18px]">
-          {s.updateAvailable ? <Note tone="info">{latest === '1.3.0' ? t(m.updateNote130, { version: latest }) : t(m.updateNote, { version: latest })}</Note> : null}
+          {s.updateAvailable ? (
+            <Note tone="info">
+              {latest === '1.3.0' ? t(m.updateNote130, { version: latest }) : latest === '1.4.0' ? t(m.updateNote140, { version: latest }) : t(m.updateNote, { version: latest })}
+            </Note>
+          ) : null}
           {silent?.since ? (
             <Note tone="warn">
               <span className="font-semibold">{t(m.silentTitle, { since: stamp(silent.since) })}</span>
@@ -274,6 +281,7 @@ function SiteCard({ data, site: s, defaultOpen, onDialog }: { data: Data; site: 
                   <span className="k">{t(m.noFeed)}</span>
                 )}
               </div>
+              <WooSection woo={s.woocommerce} canManage={data.canManage} />
               {s.key ? (
                 <div className="ih-sect">
                   <h3>{t(m.key)}</h3>

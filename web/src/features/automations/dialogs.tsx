@@ -12,6 +12,7 @@ import { toast } from '@/components/ui/Toast'
 import { cn } from '@/lib/cn'
 import { count, dayMonthDate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
+import { CheckoutItemsButton } from '@/features/commerce/composer'
 
 type DiffItem = Schemas['AutomationDiffItem']
 
@@ -410,6 +411,15 @@ export function PauseDialog({ open, onOpenChange, name, inFlow, onPause, pending
   )
 }
 
+/** Puts a block before the email's footer (its unsubscribe line), else at the end of the body. */
+function insertBlock(html: string, block: string): string {
+  const unsub = html.search(/<[^<>]*\{\{\s*unsubscribe_url/i)
+  const at = unsub >= 0 ? html.lastIndexOf('<table', unsub) : -1
+  if (at > 0) return html.slice(0, at) + block + html.slice(at)
+  const end = html.search(/<\/body>/i)
+  return end >= 0 ? html.slice(0, end) + block + html.slice(end) : html + block
+}
+
 /** The email as recipients see it (sandboxed, scripts off). */
 export function EmailPreviewDialog({ email, onClose }: { email: { id: string; version: number } | null; onClose: () => void }) {
   const { slug } = useWorkspace()
@@ -440,7 +450,7 @@ export function EmailPreviewDialog({ email, onClose }: { email: { id: string; ve
  * Email content editor: subject, preheader and HTML. Saving makes the next
  * version; this step moves to it, other steps keep theirs until changed.
  */
-export function EmailEditDialog({ email, onClose, onSaved }: { email: { id: string; version: number } | null; onClose: () => void; onSaved: (version: number) => void }) {
+export function EmailEditDialog({ email, onClose, onSaved, store }: { email: { id: string; version: number } | null; onClose: () => void; onSaved: (version: number) => void; store?: string }) {
   const { slug } = useWorkspace()
   const q = $api.useQuery(
     'get',
@@ -498,6 +508,8 @@ export function EmailEditDialog({ email, onClose, onSaved }: { email: { id: stri
           <Field label="Preheader" optional>
             <Input value={form.preheader} onChange={(e) => setForm({ ...form, preheader: e.target.value })} />
           </Field>
+          {/* The Checkout items block, in flows a store trigger starts (X20). */}
+          {store ? <CheckoutItemsButton store={store} onInsert={(block) => setForm({ ...form, html: insertBlock(form.html, block) })} /> : null}
           <Field label="HTML" hint="Liquid tags like {{ first_name | default: &quot;there&quot; }} and {{ unsubscribe_url }} are filled in when it sends.">
             <Textarea className="mono min-h-[260px] text-[12px]" spellCheck={false} value={form.html} onChange={(e) => setForm({ ...form, html: e.target.value })} />
           </Field>

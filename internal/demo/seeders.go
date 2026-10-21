@@ -54,6 +54,8 @@ var (
 	seedSMS = noop
 	// landing and sales pages, digital products and their orders (seed_pages_products.go)
 	seedPagesProducts = noop
+	// Shopify: Acme Merch, its catalog, customers, orders, checkouts and the Abandoned cart flow (seed_stores.go)
+	seedStores = noop
 )
 
 func noop(context.Context, *Seeder) error { return nil }

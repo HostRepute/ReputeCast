@@ -302,6 +302,44 @@ newest plugin release ReputeCast knows (`latestPlugin`). A site already
 connected to another workspace answers 409. The first report connects the site
 (audited as `wordpress.site_connected`).
 
+### WooCommerce (plugin 1.4.0)
+
+On a site running WooCommerce, the report adds what the plugin does there,
+and the WordPress sites page shows "WooCommerce detected", linked to the
+WooCommerce store connected at the same address (Settings › Integrations ›
+WooCommerce):
+
+```
+"woocommerce": { "version": "10.2.1", "consent": true, "checkouts": true }
+```
+
+`consent`: the checkout shows the unchecked checkbox "Email me about new
+products and offers from the store. Unsubscribe any time." and the order keeps
+`_reputecast_marketing` (`yes`/`no`), `_reputecast_consent_text` and
+`_reputecast_consent_at`. The order also keeps the email's click token
+(`_reputecast_click`, from the store links' `rc` parameter) and the
+checkout's token (`_reputecast_checkout`); ReputeCast reads them with the
+order through the store's REST API key.
+
+`checkouts`: every 15 minutes the plugin reports the checkouts changed since
+(the email typed, the consent, the cart, totals and a signed link that
+restores the cart); a checkout that became an order comes with `completedAt`:
+
+```
+POST /api/v1/workspaces/{workspace}/woocommerce/checkouts
+{ "siteUrl": "https://store.example.com",
+  "checkouts": [{ "token": "4f1c8e2b…", "email": "grace.liu@example.com", "accepted": true,
+                  "consentText": "Email me about new products and offers from the store. Unsubscribe any time.",
+                  "consentAt": "2026-10-14T20:10:00Z", "items": [{ "productId": "8841203", "title": "Acme Logo Hoodie",
+                  "variant": "Size M", "quantity": 1, "price": "58.00" }], "subtotal": "76.00", "total": "76.00",
+                  "currency": "USD", "recoveryUrl": "https://store.example.com/?reputecast_cart=…&k=…",
+                  "createdAt": "2026-10-14T20:05:00Z", "updatedAt": "2026-10-14T20:12:00Z" }] }
+```
+
+It answers `{ "store", "accepted", "ignored" }`, and 409 (`store_not_connected`)
+when no WooCommerce store is connected at the site's address. Checkouts of a
+store that doesn't sync them are ignored.
+
 ### Signup forms
 
 ```

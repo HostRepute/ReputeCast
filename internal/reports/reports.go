@@ -256,7 +256,8 @@ func (s *Service) audienceLabel(ctx context.Context, wsID uuid.UUID, raw json.Ra
 	}
 	var public []uuid.UUID
 	for _, l := range lists {
-		if l.Public {
+		// "All subscribers" is every public list but the ones a store fills (X20).
+		if l.Public && l.Origin != "store" {
 			public = append(public, l.ID)
 		}
 	}

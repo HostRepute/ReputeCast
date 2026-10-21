@@ -109,6 +109,15 @@ const blocks: Record<string, ReactNode> = {
       <rect x="8" y="15" width="8" height="2.5" rx="1.25" />
     </>
   ),
+  // The Product grid (X20): three products side by side.
+  rcGrid: (
+    <>
+      <rect x="2.5" y="5" width="5.5" height="7" rx="1" />
+      <rect x="9.25" y="5" width="5.5" height="7" rx="1" />
+      <rect x="16" y="5" width="5.5" height="7" rx="1" />
+      <path d="M3 16h4.5M9.75 16h4.5M16.5 16h4.5" />
+    </>
+  ),
   saved: <path d="M12 3v18M3 12h18" />,
   // A recurring digest's Feed items block.
   rcFeed: <path d="M5 19a1 1 0 1 1 0 .01M5 13a6 6 0 0 1 6 6M5 7a12 12 0 0 1 12 12" />,

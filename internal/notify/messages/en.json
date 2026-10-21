@@ -42,5 +42,6 @@
   "short.sms_budget": "SMS budget alerts",
   "short.sms_registration": "sender registrations",
   "short.sms_provider_down": "SMS provider problems",
-  "short.sms_send_paused": "SMS auto-pauses"
+  "short.sms_send_paused": "SMS auto-pauses",
+  "short.store_problem": "store problems"
 }

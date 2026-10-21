@@ -77,6 +77,8 @@ const (
 	KindSMSRegistration = "sms_registration"  // a sender's registration was approved or rejected
 	KindSMSProviderDown = "sms_provider_down" // an SMS provider is down, its credentials rejected, or its receipts silent
 	KindSMSSendPaused   = "sms_send_paused"   // an SMS campaign auto-paused
+	// Shopify and WooCommerce (design expansion, phase 7).
+	KindStoreProblem = "store_problem" // a store disconnected, or its webhooks missing
 )
 
 // Notification is what appears in the notification center.

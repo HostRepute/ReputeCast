@@ -31,7 +31,7 @@ func readinessService(a *App) *readiness.Service {
 		Templates: &templates.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
 		Mail:      func() mailer.Sender { return a.Mail },
 		URLs:      a.URLs,
-		Checker:   &contentcheck.Checker{Blocklist: contentcheck.StoreBlocklist{Q: a.Q}, Prober: prober},
+		Checker:   &contentcheck.Checker{Blocklist: contentcheck.StoreBlocklist{Q: a.Q}, Prober: prober, Extra: contentExtras(a)},
 		// Send Readiness checks and fixes every language version.
 		Translations: campaignTranslations(a),
 	}

@@ -41,6 +41,8 @@ type ContactFilter struct {
 	PaidFilter
 	// Buyers of digital products (products.go).
 	ProductsFilter
+	// Store customers and what they spent (storefilter.go).
+	StoreFilter
 }
 
 // Empty reports whether the filter matches everyone.
@@ -135,6 +137,9 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 		return err
 	}
 	productsFilter(out, f.ProductsFilter)
+	if err := s.storeFilter(out, f.StoreFilter); err != nil {
+		return err
+	}
 	if f.Segment != "" {
 		id, err := uuid.Parse(f.Segment)
 		if err != nil {

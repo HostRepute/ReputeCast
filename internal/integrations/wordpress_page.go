@@ -75,6 +75,21 @@ type IntegrationSite struct {
 	Reasons         []IntegrationReason    `json:"reasons"`
 	// SignupsRejected: a form used on the site doesn't allow it.
 	SignupsRejected bool `json:"signupsRejected"`
+	// WooCommerce is "WooCommerce detected": the plugin's checkout consent
+	// and abandoned-checkout reporting, and the store connected at the
+	// site's address.
+	WooCommerce *IntegrationSiteWoo `json:"woocommerce,omitempty"`
+}
+
+// IntegrationSiteWoo is WooCommerce on a WordPress site.
+type IntegrationSiteWoo struct {
+	Version   string `json:"version"`
+	Consent   bool   `json:"consent"`
+	Checkouts bool   `json:"checkouts"`
+	// StoreID and StoreName are the store connected at the site's address.
+	StoreID     string `json:"storeId,omitempty"`
+	StoreName   string `json:"storeName,omitempty"`
+	StoreStatus string `json:"storeStatus,omitempty" enum:"connecting,importing,connected,disconnected,"`
 }
 
 // IntegrationSiteForm is a signup form used on a site.
@@ -187,6 +202,12 @@ func (s *Service) siteView(ctx context.Context, ws *store.Workspace, l loaded, p
 		LanguagePlugin: st.LanguagePlugin, Forms: []IntegrationSiteForm{}, Categories: []WordPressCategory{}, Drafts: []IntegrationSiteDraft{},
 		ConnectedBy: l.by, ConnectedAt: l.conn.ConnectedAt, Reasons: l.rs, Items: s.itemStates(ctx, ws, l)}
 	v.UpdateAvailable = st.PluginVersion != "" && newerVersion(page.LatestPlugin, st.PluginVersion)
+	if st.WoocommerceVersion != "" {
+		v.WooCommerce = &IntegrationSiteWoo{Version: st.WoocommerceVersion, Consent: st.WoocommerceConsent, Checkouts: st.WoocommerceCheckouts}
+		if r, err := s.Q.CommerceStoreForSite(ctx, store.CommerceStoreForSiteParams{WorkspaceID: ws.ID, Host: host}); err == nil {
+			v.WooCommerce.StoreID, v.WooCommerce.StoreName, v.WooCommerce.StoreStatus = r.ID.String(), r.Name, r.Status
+		}
+	}
 	if c := lastCheck(st); c != nil {
 		v.LastCheck = c
 	}

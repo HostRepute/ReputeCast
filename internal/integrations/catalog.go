@@ -44,6 +44,7 @@ const (
 	OpWPReport      = "report-wordpress-site"
 	OpWPForms       = "list-wordpress-forms"
 	OpWPDraft       = "create-wordpress-draft"
+	opWooCheckouts  = "report-woocommerce-checkouts" // internal/commerce
 	transactionalOp = OpSendMessage
 )
 
@@ -111,7 +112,7 @@ var alwaysOps = map[string][]string{
 	KindZapier:    {OpMe},
 	KindMake:      {OpMe},
 	KindN8n:       {OpMe},
-	KindWordPress: {OpMe, OpWPReport},
+	KindWordPress: {OpMe, OpWPReport, opWooCheckouts}, // a WooCommerce site's plugin reports its checkouts too
 }
 
 // Items returns the triggers and actions of a kind.

@@ -248,7 +248,7 @@ func (s *Service) listConsent(ctx context.Context, ws *store.Workspace, c store.
 		if e.ListID == nil {
 			continue
 		}
-		v := ContactConsentEvent{Action: e.Action, Source: e.Source, SourceLabel: consentSourceLabel(e.Source), Detail: e.Detail, Note: e.Note,
+		v := ContactConsentEvent{Action: e.Action, Source: e.Source, SourceLabel: consentSourceLabel(e.Source, e.Action), Detail: e.Detail, Note: e.Note,
 			Actor: e.ActorName, ConsentVersion: e.ConsentVersion, ConsentText: e.ConsentText, Language: e.Language, At: e.OccurredAt}
 		if e.Ip != nil {
 			v.IP = e.Ip.String()
@@ -269,8 +269,16 @@ func (s *Service) listConsent(ctx context.Context, ws *store.Workspace, c store.
 	return nil
 }
 
-// consentSourceLabel names where a consent event came from.
-func consentSourceLabel(src string) string {
+// consentSourceLabel names where a consent event came from. A store's
+// records (X20) read "Shopify: accepted marketing at checkout"; its
+// unsubscribes, "Shopify".
+func consentSourceLabel(src, action string) string {
+	if strings.HasPrefix(src, "store:") {
+		if action == "subscribed" || action == "resubscribed" {
+			return segments.SourceLabel(src) + ": accepted marketing at checkout"
+		}
+		return segments.SourceLabel(src)
+	}
 	switch src {
 	case "preference_center":
 		return "the preference center"

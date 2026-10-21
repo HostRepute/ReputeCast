@@ -6,7 +6,7 @@ import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
 import { useComposer } from './context'
 import { blockDefs, type BlockDef } from './editor/blocks'
-import { componentLabel, mjChildren, sectionOf, tagOf } from './editor/labels'
+import { blockAdded, blockContent, componentLabel, mjChildren, sectionOf, tagOf } from './editor/labels'
 import { BlockIcon, ToolIcon } from './icons'
 import { Thumb } from './Thumb'
 import { isDigestTemplate } from '@/features/digests/composer/DigestMode'
@@ -16,6 +16,7 @@ import { PollBlockHint } from '@/features/polls/Block'
 import { GrowBlocksNote, OpenGrowLink } from '@/features/grow/composer/Panel'
 import { mb as growMessages } from '@/features/grow/composer/messages'
 import { t as tt } from '@/i18n'
+import { useStoreBlockDefs } from '@/features/commerce/composer'
 
 type BlocksAPI = { startDrag(b: unknown, ev?: Event): void; endDrag(cancel?: boolean): void; get(id: string): unknown; add(id: string, p: Record<string, unknown>): unknown }
 
@@ -33,9 +34,7 @@ export function insertBlock(c: ReturnType<typeof useComposer>, def: Pick<BlockDe
   if (def.kind === 'section') {
     const sec = sectionOf(sel)
     const at = sec ? body.components().indexOf(sec) + 1 : body.components().length
-    const added = body.append(def.content, { at })
-    const first = (Array.isArray(added) ? added : [added]).find((x) => tagOf(x as Component))
-    if (first) ed.select(first as Component)
+    blockAdded(ed, body.append(blockContent(def.content), { at }) as Component | Component[])
     return
   }
   let col: Component | undefined = sel ?? undefined
@@ -49,9 +48,7 @@ export function insertBlock(c: ReturnType<typeof useComposer>, def: Pick<BlockDe
     return
   }
   const at = sel && sel.parent() === col ? col.components().indexOf(sel) + 1 : col.components().length
-  const added = col.append(def.content, { at })
-  const first = (Array.isArray(added) ? added : [added])[0]
-  if (first) ed.select(first as Component)
+  blockAdded(ed, col.append(blockContent(def.content), { at }) as Component | Component[])
 }
 
 function BlockTile({ def, flagged, onSaved }: { def: BlockDef | { id: string; label: string; icon: string; group: 'reputecast'; kind: 'section'; content: '' }; flagged?: boolean; onSaved?: () => void }) {
@@ -93,14 +90,29 @@ function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSe
   const c = useComposer()
   const [q, setQ] = useState('')
   const sections = $api.useQuery('get', '/api/v1/workspaces/{workspace}/templates', { params: { path: { workspace: c.slug } } }, { staleTime: 60_000 })
-  const defs = useMemo(() => blocks ?? blockDefs(c.context.postalAddress), [blocks, c.context.postalAddress])
+  // The Product grid joins the ReputeCast blocks once a store is connected (X20).
+  const storeDefs = useStoreBlockDefs(!blocks && c.kind !== 'transactional')
+  const defs = useMemo(() => [...(blocks ?? blockDefs(c.context.postalAddress)), ...storeDefs], [blocks, c.context.postalAddress, storeDefs])
   useEffect(() => {
     if (!c.editor) return
     const api = blocksApi(c.editor)
     for (const d of defs) {
-      if (!api.get(d.id)) api.add(d.id, { label: d.label, content: d.content, category: d.group, select: true, activate: false })
+      // A drop selects in blockAdded (after the marker is back), not here.
+      if (!api.get(d.id)) api.add(d.id, { label: d.label, content: d.content, category: d.group, select: false, activate: false })
     }
   }, [c.editor, defs])
+  useEffect(() => {
+    const ed = c.editor
+    if (!ed) return
+    // A dropped block's <!-- rc:… --> marker, which the parser drops, goes back in front of it.
+    const dropped = (added: Component | Component[] | undefined, block?: { get(key: string): unknown }) => {
+      blockAdded(ed, added, block?.get('content'))
+    }
+    ed.on('block:drag:stop', dropped)
+    return () => {
+      ed.off('block:drag:stop', dropped)
+    }
+  }, [c.editor])
   const needle = q.trim().toLowerCase()
   const match = (d: BlockDef) => !needle || d.label.toLowerCase().includes(needle) || (d.keywords ?? '').includes(needle)
   const footerMissing = c.checks?.issues.some((i) => i.id === 'compliance.footer')

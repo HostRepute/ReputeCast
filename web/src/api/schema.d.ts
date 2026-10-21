@@ -2830,6 +2830,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/automations/{id}/store-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An abandoned-checkout trigger's numbers since the automation went live, and its recovered orders */
+        get: operations["get-automation-store-stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/automations/{id}/versions": {
         parameters: {
             query?: never;
@@ -4121,6 +4138,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{id}/store-revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Store orders credited to a campaign, one row per store
+         * @description Each order is credited to one email.
+         */
+        get: operations["get-campaign-store-revenue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/channels": {
         parameters: {
             query?: never;
@@ -4130,6 +4167,77 @@ export interface paths {
         };
         /** Which channels the workspace can send on: the Sending providers switch */
         get: operations["list-channels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/commerce/blocks/render": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Draw a product card or grid with its products now
+         * @description Removed products are drawn and flagged; sends read prices and availability again.
+         */
+        post: operations["render-store-block"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/commerce/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The product picker's stores, with their collections */
+        get: operations["get-store-catalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/commerce/revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Store revenue from email in the last 30 days (Earn › Overview) */
+        get: operations["get-store-revenue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/commerce/trigger-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store triggers' stores, products and collections */
+        get: operations["get-store-trigger-options"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4651,6 +4759,23 @@ export interface paths {
          * @description Giving consent needs its evidence: the exact consent text, where it was given and when. A text opt-out can't be overridden.
          */
         put: operations["set-contact-sms-consent"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/contacts/{contactId}/stores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The contact's store orders and their consent in each store */
+        get: operations["get-contact-stores"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -12687,6 +12812,323 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/stores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The connected stores, with their sync row */
+        get: operations["list-stores"];
+        put?: never;
+        /**
+         * Start connecting a Shopify or WooCommerce store: its address
+         * @description The address is checked against the platform. A store disconnected before reconnects with its data.
+         */
+        post: operations["connect-store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A store's page: numbers, sync, consent, attribution, webhooks and activity
+         * @description Credentials are write-only: only hints are returned.
+         */
+        get: operations["get-store"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The store's activity log: events and errors, kept 30 days
+         * @description Not the audit log: orders and store webhooks are kept here.
+         */
+        get: operations["list-store-activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/app-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Shopify: the app's client ID and secret (step 3)
+         * @description The secret is write-only: sealed, and never returned here or anywhere in the API.
+         */
+        put: operations["save-store-app-keys"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/checkout-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The Checkout items block, with sample items from the store
+         * @description Each message fills it with the items of the checkout or order that started its run.
+         */
+        get: operations["get-store-checkout-block"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where connecting a store stands: its step and what it shows */
+        get: operations["get-store-connect"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/disconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disconnect a store: its webhooks are removed; its data is kept unless deleted
+         * @description Deleting the store data needs the store's name typed in confirm. Contacts the store added stay, with their consent. Automations with its triggers pause and say why.
+         */
+        post: operations["disconnect-store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** WooCommerce: finish, with the plugin or without it */
+        post: operations["finish-store-connect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/install": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Shopify: the approval page's address (step 4)
+         * @description Shopify asks the merchant to approve the app on its own page, then sends the browser back to the redirect URL.
+         */
+        post: operations["install-store-app"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/plugin-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** WooCommerce: look for the ReputeCast plugin on the store's site */
+        post: operations["check-store-plugin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A store's products, newest first, with their prices and availability now */
+        get: operations["list-store-products"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/reconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reconnect a disconnected store: orders placed since are fetched */
+        post: operations["reconnect-store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/rest-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * WooCommerce: the REST API key, then its webhooks
+         * @description The key is write-only: sealed, and never returned. Webhooks are registered with a secret of their own.
+         */
+        put: operations["save-store-rest-key"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** What syncs, the list, consent write-back, link tagging and the attribution window */
+        patch: operations["update-store-settings"];
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Choose what syncs and start: the list, the first import, the webhooks
+         * @description Only customers who accepted marketing join the list.
+         */
+        post: operations["start-store-sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sync now: fetch what changed in the store */
+        post: operations["sync-store"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/stores/{id}/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register the store's missing webhooks again, or all of them */
+        post: operations["register-store-webhooks"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/suppression-sync": {
         parameters: {
             query?: never;
@@ -14718,6 +15160,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/woocommerce/checkouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report checkouts left without an order, with their consent and recovery link
+         * @description The ReputeCast WordPress plugin calls this with its site's key. Only checkouts of the WooCommerce store connected at the site's address count.
+         */
+        post: operations["report-woocommerce-checkouts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/wordpress/drafts": {
         parameters: {
             query?: never;
@@ -16694,6 +17156,7 @@ export interface components {
             doubleOptIn: boolean;
             id: string;
             name: string;
+            origin?: string;
             /** Format: int64 */
             pending: number;
             /** Format: int64 */
@@ -16914,12 +17377,13 @@ export interface components {
             field?: string;
             humanOnly?: boolean;
             /** @enum {string} */
-            kind: "opened" | "clicked" | "field" | "tag" | "list" | "event" | "bought_product" | "sms_consent" | "sms_clicked" | "sms_replied";
+            kind: "opened" | "clicked" | "field" | "tag" | "list" | "event" | "bought_product" | "sms_consent" | "sms_clicked" | "sms_replied" | "placed_order";
             listId?: string;
             /** @description equals, not_equals, contains, is_set, is_not_set, is_one_of (comma-separated values) */
             op?: string;
             productId?: string;
             step?: string;
+            store?: string;
             tag?: string;
             urlContains?: string;
             value?: string;
@@ -16933,10 +17397,15 @@ export interface components {
             list?: string;
             name?: string;
             /**
+             * Format: uuid
+             * @description For a template that starts on a store's events (abandoned-cart): the connected store; otherwise the workspace's first
+             */
+            store?: string;
+            /**
              * @description Starter template; omit for a blank canvas
              * @enum {string}
              */
-            template?: "welcome-series" | "re-engagement" | "onboarding";
+            template?: "welcome-series" | "re-engagement" | "onboarding" | "abandoned-cart";
         };
         AutomationCreated: {
             id: string;
@@ -17194,6 +17663,7 @@ export interface components {
             pausedBy?: string;
             /** Format: date-time */
             publishedAt?: string;
+            revenue?: components["schemas"]["AutomationRevenue"];
             /** @enum {string} */
             status: "draft" | "live" | "paused";
             /** Format: int64 */
@@ -17336,6 +17806,16 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        AutomationRevenue: {
+            currency: string;
+            /** Format: int64 */
+            orders: number;
+            /**
+             * Format: int64
+             * @description In minor units of the currency
+             */
+            revenue: number;
+        };
         AutomationRoute: {
             fallback?: components["schemas"]["AutomationRouteProvider"];
             /** @description A provider on the route can send right now */
@@ -17387,7 +17867,7 @@ export interface components {
         };
         AutomationStarterTemplate: {
             /** @enum {string} */
-            key: "welcome-series" | "re-engagement" | "onboarding";
+            key: "welcome-series" | "re-engagement" | "onboarding" | "abandoned-cart";
             name: string;
             outline: string;
             preview: string[];
@@ -17490,21 +17970,27 @@ export interface components {
             templates: components["schemas"]["AutomationStarterTemplate"][];
         };
         AutomationTrigger: {
+            /** Format: int64 */
+            afterHours?: number;
             /** @enum {string} */
             answerOp?: "any" | "is" | "is_not";
             answers?: number[];
             at?: string;
+            collections?: string[];
             confirmedOnly?: boolean;
             /** @enum {string} */
             direction?: "rises" | "falls";
             event?: string;
             field?: string;
+            firstOnly?: boolean;
             formId?: string;
             includeImports?: boolean;
             /** @enum {string} */
-            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "bought_product" | "milestone_reached";
+            kind: "joined_list" | "form_submitted" | "tag_added" | "api_event" | "date_field" | "score_crosses" | "poll_answered" | "bought_product" | "milestone_reached" | "order_placed" | "first_order" | "abandoned_checkout";
             listId?: string;
             milestoneId?: string;
+            /** Format: int64 */
+            minTotal?: number;
             /** Format: int64 */
             offsetDays?: number;
             onChange?: boolean;
@@ -17512,8 +17998,12 @@ export interface components {
             onceInDays?: number;
             poll?: string;
             productId?: string;
+            products?: string[];
             programId?: string;
             reentry?: string;
+            /** Format: int64 */
+            skipDays?: number;
+            store?: string;
             tag?: string;
             /** Format: int64 */
             threshold?: number;
@@ -17963,6 +18453,624 @@ export interface components {
             skipped: string[];
             updated: string[];
             zone: string;
+        };
+        CommerceActivityItem: {
+            accepted: boolean;
+            /** Format: int64 */
+            amount: number;
+            /** Format: date-time */
+            at: string;
+            by?: string;
+            contact: boolean;
+            contactId?: string;
+            credited?: string;
+            /** @enum {string} */
+            creditedKind?: "campaign" | "automation" | "";
+            /** Format: int64 */
+            creditedStep?: number;
+            currency?: string;
+            customer?: string;
+            flow?: string;
+            flows: string[];
+            /** Format: int64 */
+            hours?: number;
+            id: string;
+            /** @enum {string} */
+            kind: "order" | "refund" | "checkout_abandoned" | "checkout_not_emailed" | "reconciliation" | "webhook_missing" | "webhook_registered" | "customer_unsubscribed" | "unsubscribe_passed" | "import_started" | "import_finished" | "connected" | "reconnected" | "disconnected" | "revoked" | "rate_limited" | "sync_error";
+            lists: string[];
+            /** @enum {string} */
+            matched?: "click_token" | "email" | "none" | "";
+            message?: string;
+            /** Format: int64 */
+            missed: number;
+            order?: string;
+            polled: boolean;
+            /** Format: int64 */
+            products: number;
+            reason?: string;
+            recovered: boolean;
+            source?: string;
+            /** @enum {string} */
+            tone: "neutral" | "ok" | "info" | "warn" | "bad";
+            topic?: string;
+            /** Format: date-time */
+            until?: string;
+            /** Format: int64 */
+            window?: number;
+        };
+        CommerceActivityList: {
+            items: components["schemas"]["CommerceActivityItem"][];
+            next?: string;
+        };
+        CommerceAttribution: {
+            /** Format: int64 */
+            byEmail: number;
+            /** Format: int64 */
+            byToken: number;
+            /** Format: int64 */
+            credited: number;
+            /** Format: int64 */
+            creditedRevenue: number;
+            /** Format: int64 */
+            days: number;
+            /** Format: int64 */
+            orders: number;
+            others?: components["schemas"]["CommerceRevenueRow"];
+            param: string;
+            /** Format: int64 */
+            revenue: number;
+            rows: components["schemas"]["CommerceRevenueRow"][];
+            /** Format: date-time */
+            setAt?: string;
+            setBy?: string;
+            tagExample: string;
+            tagHost: string;
+            tagLinks: boolean;
+        };
+        CommerceAutomationOptions: {
+            stores: components["schemas"]["CommerceTriggerStore"][];
+        };
+        CommerceBeginInput: {
+            address: string;
+            /** @enum {string} */
+            platform: "shopify" | "woocommerce";
+        };
+        CommerceBlock: {
+            button?: string;
+            collection?: string;
+            compareAt?: boolean;
+            /** Format: int64 */
+            count?: number;
+            heading?: string;
+            /** @enum {string} */
+            mode: "card" | "chosen" | "collection";
+            products: string[];
+            /** @enum {string} */
+            soldOut?: "hide" | "label" | "";
+            /** Format: uuid */
+            store: string;
+        };
+        CommerceBlockRender: {
+            disconnected: boolean;
+            html: string;
+            platform: string;
+            products: components["schemas"]["CommerceProduct"][];
+            removed: components["schemas"]["CommerceRemovedProduct"][];
+            soldOut: string[];
+            storeName: string;
+        };
+        CommerceBlockRenderInput: {
+            block: components["schemas"]["CommerceBlock"];
+        };
+        CommerceCampaignRevenue: {
+            rows: components["schemas"]["CommerceCampaignStoreRow"][];
+        };
+        CommerceCampaignStoreRow: {
+            /** Format: int64 */
+            byEmail: number;
+            /** Format: int64 */
+            byToken: number;
+            currency: string;
+            /** Format: int64 */
+            days: number;
+            name: string;
+            /** Format: int64 */
+            orders: number;
+            platform: string;
+            /** Format: int64 */
+            revenue: number;
+            storeId: string;
+        };
+        CommerceCatalog: {
+            stores: components["schemas"]["CommerceCatalogStore"][];
+        };
+        CommerceCatalogStore: {
+            collections: components["schemas"]["CommerceCollection"][];
+            currency: string;
+            id: string;
+            name: string;
+            platform: string;
+            /** Format: int64 */
+            products: number;
+            status: string;
+        };
+        CommerceCheckoutBlock: {
+            html: string;
+        };
+        CommerceCollection: {
+            id: string;
+            /** Format: int64 */
+            products: number;
+            title: string;
+        };
+        CommerceConnectState: {
+            appUrl: string;
+            clientIdHint?: string;
+            demo: boolean;
+            /** @enum {string} */
+            error: "" | "secret_refused" | "state_expired" | "not_installed";
+            granted: string[];
+            /** Format: date-time */
+            installedAt?: string;
+            keyHint?: string;
+            lists: components["schemas"]["CommerceListOption"][];
+            /** Format: int64 */
+            months: number;
+            newListName: string;
+            optionalScope: string;
+            plugin?: components["schemas"]["CommercePluginState"];
+            reachable: boolean;
+            /** Format: date-time */
+            reachableCheckedAt?: string;
+            redirectUrl: string;
+            scopes: string[];
+            /** @enum {string} */
+            step: "address" | "app" | "keys" | "install" | "sync" | "key" | "webhooks" | "plugin" | "done";
+            store: components["schemas"]["CommerceStoreSummary"];
+            syncs: components["schemas"]["CommerceSyncChoice"];
+            /** Format: int64 */
+            webhooks: number;
+            writeGranted: boolean;
+        };
+        CommerceConsent: {
+            listCreated: boolean;
+            listId?: string;
+            /** Format: int64 */
+            listMembers: number;
+            listName?: string;
+            writeBack: boolean;
+            writeBackSupported: boolean;
+            writeGranted: boolean;
+        };
+        CommerceContactOrder: {
+            accepted: boolean;
+            credited?: string;
+            /** @enum {string} */
+            creditedKind?: "campaign" | "automation" | "";
+            currency: string;
+            id: string;
+            items: string[];
+            name: string;
+            /** Format: date-time */
+            placedAt: string;
+            platform: string;
+            /** Format: int64 */
+            refunded: number;
+            store: string;
+            storeId: string;
+            /** Format: int64 */
+            total: number;
+        };
+        CommerceContactStore: {
+            /** Format: date-time */
+            consentAt?: string;
+            currency: string;
+            listName?: string;
+            /** @enum {string} */
+            marketing: "subscribed" | "not_subscribed" | "unsubscribed" | "pending" | "none";
+            name: string;
+            onList: boolean;
+            /** Format: int64 */
+            orders: number;
+            platform: string;
+            /** Format: int64 */
+            spent: number;
+            storeId: string;
+        };
+        CommerceContactStores: {
+            orders: components["schemas"]["CommerceContactOrder"][];
+            stores: components["schemas"]["CommerceContactStore"][];
+        };
+        CommerceDisconnectInput: {
+            confirm?: string;
+            deleteData: boolean;
+        };
+        CommerceFlow: {
+            id: string;
+            kind: string;
+            name: string;
+            pauseReason?: string;
+            status: string;
+        };
+        CommerceImport: {
+            /** Format: int64 */
+            accepted: number;
+            /** Format: int64 */
+            collections: number;
+            customers: components["schemas"]["CommerceProgress"];
+            customersSkipped: boolean;
+            /** Format: date-time */
+            finishedAt?: string;
+            /** Format: int64 */
+            known: number;
+            matching: components["schemas"]["CommerceProgress"];
+            /** Format: int64 */
+            minutesLeft: number;
+            /** Format: int64 */
+            months: number;
+            /** Format: int64 */
+            notAdded: number;
+            orders: components["schemas"]["CommerceProgress"];
+            /** @enum {string} */
+            phase: "products" | "customers" | "orders" | "matching" | "done";
+            products: components["schemas"]["CommerceProgress"];
+            /** Format: date-time */
+            startedAt: string;
+            startedBy: string;
+        };
+        CommerceInstall: {
+            url: string;
+        };
+        CommerceKeysInput: {
+            clientId: string;
+            clientSecret: string;
+        };
+        CommerceListOption: {
+            id: string;
+            /** Format: int64 */
+            members: number;
+            name: string;
+            store: boolean;
+        };
+        CommerceNumbers: {
+            /** Format: int64 */
+            credited: number;
+            /** Format: int64 */
+            creditedRevenue: number;
+            currency: string;
+            /** Format: int64 */
+            days: number;
+            /** Format: int64 */
+            listMembers: number;
+            /** Format: int64 */
+            orders: number;
+            /** Format: int64 */
+            revenue: number;
+            /** Format: double */
+            share: number;
+        };
+        CommercePluginState: {
+            /** Format: date-time */
+            checkedAt?: string;
+            checkouts: boolean;
+            consent: boolean;
+            found: boolean;
+            host: string;
+            siteId?: string;
+            skipped: boolean;
+            version?: string;
+        };
+        CommerceProduct: {
+            available: boolean;
+            /** Format: int64 */
+            compareAt: number;
+            currency: string;
+            id: string;
+            imageAlt: string;
+            imageUrl: string;
+            /** Format: int64 */
+            inventory?: number;
+            /** Format: int64 */
+            price: number;
+            removed: boolean;
+            /** Format: date-time */
+            removedAt?: string;
+            title: string;
+            url: string;
+        };
+        CommerceProductList: {
+            items: components["schemas"]["CommerceProduct"][];
+            /** Format: int64 */
+            next?: number;
+            /** Format: int64 */
+            total: number;
+        };
+        CommerceProductRef: {
+            id: string;
+            title: string;
+        };
+        CommerceProgress: {
+            /** Format: int64 */
+            done: number;
+            /** Format: int64 */
+            total: number;
+        };
+        CommerceQueued: {
+            queued: boolean;
+        };
+        CommerceRecoveredOrders: {
+            /** Format: int64 */
+            orders: number;
+            /** Format: int64 */
+            revenue: number;
+            /** Format: date-time */
+            since?: string;
+        };
+        CommerceRemovedProduct: {
+            id: string;
+            platform: string;
+            /** Format: date-time */
+            removedAt?: string;
+            title: string;
+        };
+        CommerceRevenueRow: {
+            /** Format: int64 */
+            count: number;
+            id?: string;
+            /** @enum {string} */
+            kind: "campaign" | "automation" | "others";
+            name: string;
+            /** Format: int64 */
+            orders: number;
+            /** Format: int64 */
+            revenue: number;
+        };
+        CommerceRevenueSummary: {
+            /** Format: int64 */
+            credited: number;
+            /** Format: int64 */
+            creditedRevenue: number;
+            currency: string;
+            /** Format: int64 */
+            days: number;
+            /** Format: int64 */
+            orders: number;
+            /** Format: int64 */
+            revenue: number;
+            /** Format: double */
+            share: number;
+            /** Format: int64 */
+            stores: number;
+        };
+        CommerceSettingsInput: {
+            /** Format: int64 */
+            attributionDays?: number;
+            checkouts?: boolean;
+            customers?: boolean;
+            listId?: string;
+            orders?: boolean;
+            products?: boolean;
+            tagLinks?: boolean;
+            writeBack?: boolean;
+        };
+        CommerceStoreList: {
+            canManage: boolean;
+            helpers: string[];
+            stores: components["schemas"]["CommerceStoreSummary"][];
+        };
+        CommerceStorePage: {
+            activity: components["schemas"]["CommerceActivityItem"][];
+            apiVersion: string;
+            appName: string;
+            attribution: components["schemas"]["CommerceAttribution"];
+            canManage: boolean;
+            capabilities: string[];
+            /** Format: date-time */
+            connectedAt?: string;
+            connectedBy: string;
+            consent: components["schemas"]["CommerceConsent"];
+            flows: components["schemas"]["CommerceFlow"][];
+            helpers: string[];
+            lists: components["schemas"]["CommerceListOption"][];
+            numbers: components["schemas"]["CommerceNumbers"];
+            plugin?: components["schemas"]["CommercePluginState"];
+            publicDomain: string;
+            recovered: components["schemas"]["CommerceRecoveredOrders"];
+            store: components["schemas"]["CommerceStoreSummary"];
+            sync: components["schemas"]["CommerceSyncFacts"];
+            usedBy: components["schemas"]["CommerceUse"][];
+            webhooks: components["schemas"]["CommerceWebhook"][];
+        };
+        CommerceStoreSummary: {
+            address: string;
+            currency: string;
+            demo: boolean;
+            domain: string;
+            id: string;
+            listId?: string;
+            listName?: string;
+            name: string;
+            /** @enum {string} */
+            platform: "shopify" | "woocommerce";
+            /** Format: int64 */
+            products: number;
+            /** @enum {string} */
+            status: "connecting" | "importing" | "connected" | "disconnected";
+            step: string;
+            sync: components["schemas"]["CommerceSyncState"];
+        };
+        CommerceSyncChoice: {
+            checkouts: boolean;
+            customers: boolean;
+            listId?: string;
+            orders: boolean;
+            products: boolean;
+            writeBack: boolean;
+        };
+        CommerceSyncFacts: {
+            /** Format: int64 */
+            accepted: number;
+            collections: string[];
+            customersFromOrders: boolean;
+            /** Format: date-time */
+            importFinished?: string;
+            /** Format: int64 */
+            importMinutes: number;
+            /** Format: int64 */
+            known: number;
+            /** Format: int64 */
+            missed: number;
+            /** Format: int64 */
+            months: number;
+            /** Format: int64 */
+            new: number;
+            /** Format: int64 */
+            notAdded: number;
+            /** Format: int64 */
+            ordersImported: number;
+            /** Format: int64 */
+            products: number;
+            /** Format: date-time */
+            reconciledAt?: string;
+            /** Format: int64 */
+            webhooks: number;
+            /** Format: int64 */
+            webhooksTotal: number;
+        };
+        CommerceSyncInput: {
+            checkouts: boolean;
+            customers: boolean;
+            listId?: string;
+            /**
+             * Format: int64
+             * @enum {integer}
+             */
+            months: 3 | 6 | 12;
+            newList?: boolean;
+            orders: boolean;
+            products: boolean;
+            withoutPlugin?: boolean;
+            writeBack: boolean;
+        };
+        CommerceSyncState: {
+            /** Format: date-time */
+            disconnectedAt?: string;
+            disconnectedBy?: string;
+            import?: components["schemas"]["CommerceImport"];
+            /** Format: date-time */
+            lastEventAt?: string;
+            missing: string[];
+            /** Format: date-time */
+            missingSince?: string;
+            /** Format: date-time */
+            rateLimitedUntil?: string;
+            /** Format: date-time */
+            revokedAt?: string;
+            /** @enum {string} */
+            revokedReason: "" | "uninstalled" | "revoked";
+            /** @enum {string} */
+            state: "connecting" | "importing" | "connected" | "webhook_missing" | "rate_limited" | "no_plugin" | "disconnected";
+        };
+        CommerceTriggerStats: {
+            /** Format: int64 */
+            abandoned: number;
+            currency: string;
+            /** Format: int64 */
+            entered: number;
+            /** Format: int64 */
+            noConsent: number;
+            /** Format: int64 */
+            orders: number;
+            /** Format: int64 */
+            revenue: number;
+            /** Format: date-time */
+            since?: string;
+            /** Format: int64 */
+            skipped: number;
+            /** Format: int64 */
+            withEmail: number;
+        };
+        CommerceTriggerStore: {
+            address: string;
+            checkouts: boolean;
+            collections: components["schemas"]["CommerceCollection"][];
+            currency: string;
+            id: string;
+            name: string;
+            platform: string;
+            products: components["schemas"]["CommerceProductRef"][];
+            status: string;
+        };
+        CommerceUse: {
+            id?: string;
+            /** @enum {string} */
+            kind: "automation" | "campaign" | "reports";
+            name?: string;
+            status?: string;
+        };
+        CommerceWebhook: {
+            error?: string;
+            /** Format: date-time */
+            lastEventAt?: string;
+            /** Format: date-time */
+            missingSince?: string;
+            /** @enum {string} */
+            status: "pending" | "registered" | "missing" | "failed";
+            topic: string;
+        };
+        CommerceWooCheckout: {
+            accepted: boolean;
+            clickToken?: string;
+            /**
+             * Format: date-time
+             * @description When it became an order
+             */
+            completedAt?: string;
+            /** Format: date-time */
+            consentAt?: string;
+            consentText?: string;
+            /** Format: date-time */
+            createdAt: string;
+            currency: string;
+            email?: string;
+            firstName?: string;
+            items: components["schemas"]["CommerceWooCheckoutItem"][];
+            lastName?: string;
+            recoveryUrl: string;
+            subtotal: string;
+            /** @description The plugin's checkout token */
+            token: string;
+            total: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        CommerceWooCheckoutItem: {
+            imageUrl?: string;
+            /** @description The unit price, a decimal string */
+            price: string;
+            productId: string;
+            /** Format: int64 */
+            quantity: number;
+            title: string;
+            variant?: string;
+            variantId?: string;
+        };
+        CommerceWooCheckoutsInput: {
+            checkouts: components["schemas"]["CommerceWooCheckout"][];
+            /** @example https://store.example.com */
+            siteUrl: string;
+        };
+        CommerceWooCheckoutsResult: {
+            /** Format: int64 */
+            accepted: number;
+            /** Format: int64 */
+            ignored: number;
+            /** @description The store's name */
+            store: string;
+        };
+        CommerceWooKeyInput: {
+            key: string;
+            secret: string;
         };
         CompareBlock: {
             /** Format: int64 */
@@ -18910,6 +20018,7 @@ export interface components {
             routeNote?: string;
             source?: string;
             sourceLabel?: string;
+            store?: components["schemas"]["ContactActivityStore"];
             subject: string;
             /** @description delivered, soft_bounce, open, click… or a consent action */
             type: string;
@@ -18928,6 +20037,19 @@ export interface components {
         ContactActivityProvider: {
             adapter: string;
             name: string;
+        };
+        ContactActivityStore: {
+            accepted: boolean;
+            credited?: string;
+            currency: string;
+            flow?: string;
+            items: string[];
+            name: string;
+            order?: string;
+            /** @enum {string} */
+            platform: "shopify" | "woocommerce";
+            /** Format: int64 */
+            total: number;
         };
         ContactAddressCheck: {
             /** Format: int64 */
@@ -19047,6 +20169,9 @@ export interface components {
             /** @enum {string} */
             sort?: "activity" | "score";
             source?: string;
+            spentFrom?: string;
+            spentTo?: string;
+            storeCustomer?: string;
             tag?: string;
             /** @enum {string} */
             tier?: "active" | "cooling" | "at_risk" | "sunset";
@@ -21905,6 +23030,10 @@ export interface components {
         FieldSources: {
             items: components["schemas"]["FieldSource"][];
         };
+        FinishInput: {
+            /** @description Connect without the ReputeCast plugin: products and orders only */
+            withoutPlugin: boolean;
+        };
         FormDownload: {
             /** Format: int32 */
             days: number;
@@ -23813,7 +24942,7 @@ export interface components {
             connectionId?: string;
             facts: components["schemas"]["IntegrationFacts"];
             /** @enum {string} */
-            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "anthropic" | "openai" | "google" | "azure" | "compatible" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable" | "stripe" | "paddle" | "lemonsqueezy";
+            key: "zapier" | "make" | "n8n" | "wordpress" | "hostrepute" | "api" | "webhooks" | "mcp" | "anthropic" | "openai" | "google" | "azure" | "compatible" | "zerobounce" | "neverbounce" | "kickbox" | "bouncer" | "emailable" | "stripe" | "paddle" | "lemonsqueezy" | "shopify" | "woocommerce";
             reasons: components["schemas"]["IntegrationReason"][];
             /** @enum {string} */
             status: "not_connected" | "waiting" | "connected" | "attention" | "none";
@@ -23845,6 +24974,7 @@ export interface components {
             silentSites: number;
             /** Format: int64 */
             sites: number;
+            store?: components["schemas"]["IntegrationStoreFacts"];
             team?: string;
             /** Format: int64 */
             triggers: number;
@@ -24221,6 +25351,7 @@ export interface components {
             /** @enum {string} */
             status: "waiting" | "connected" | "attention";
             updateAvailable: boolean;
+            woocommerce?: components["schemas"]["IntegrationSiteWoo"];
             wordpressVersion?: string;
         };
         IntegrationSiteDraft: {
@@ -24261,6 +25392,15 @@ export interface components {
             set: boolean;
             template?: components["schemas"]["IntegrationOption"];
         };
+        IntegrationSiteWoo: {
+            checkouts: boolean;
+            consent: boolean;
+            storeId?: string;
+            storeName?: string;
+            /** @enum {string} */
+            storeStatus?: "connecting" | "importing" | "connected" | "disconnected" | "";
+            version: string;
+        };
         IntegrationStatus: {
             firstCall?: components["schemas"]["IntegrationFirstCall"];
             /** Format: date-time */
@@ -24269,6 +25409,17 @@ export interface components {
             reported?: string;
             /** @enum {string} */
             status: "waiting" | "connected" | "attention";
+        };
+        IntegrationStoreFacts: {
+            /** Format: date-time */
+            lastEventAt?: string;
+            name: string;
+            /** Format: int64 */
+            orders: number;
+            /** @enum {string} */
+            state: "connecting" | "importing" | "connected" | "webhook_missing" | "rate_limited" | "no_plugin" | "revoked";
+            /** Format: int64 */
+            stores: number;
         };
         IntegrationTakeOverPreview: {
             held: string[];
@@ -38357,6 +39508,7 @@ export interface components {
             pluginVersion: string;
             /** @example https://blog.acme.io */
             siteUrl: string;
+            woocommerce?: components["schemas"]["WordPressWooCommerce"];
             /** @example 6.9.2 */
             wordpressVersion?: string;
         };
@@ -38383,6 +39535,14 @@ export interface components {
             notifyUserId?: string;
             senderId?: string;
             templateId?: string;
+        };
+        WordPressWooCommerce: {
+            /** @description Abandoned checkouts are reported */
+            checkouts: boolean;
+            /** @description The consent checkbox is at the checkout */
+            consent: boolean;
+            /** @example 10.2.1 */
+            version: string;
         };
         WorkflowUse: {
             event?: string;
@@ -43662,7 +44822,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -43744,7 +44904,7 @@ export interface operations {
                 /** @description Action group (routing) or action (routing.updated) */
                 action?: string;
                 /** @description A group of actions, as in the action filter */
-                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products";
+                category?: "sending" | "routing" | "audience" | "team" | "settings" | "integrations" | "transactional" | "scoring" | "digests" | "polls" | "ai" | "earn" | "verification" | "placement" | "website" | "grow" | "products" | "commerce";
                 result?: "allowed" | "denied" | "error";
                 range?: "24h" | "7d" | "30d" | "90d" | "all";
                 /** @description Overrides range */
@@ -44906,6 +46066,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-automation-store-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The automation's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceTriggerStats"];
+                };
             };
             /** @description Error */
             default: {
@@ -47781,6 +48975,40 @@ export interface operations {
             };
         };
     };
+    "get-campaign-store-revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The campaign's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceCampaignRevenue"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "list-channels": {
         parameters: {
             query?: never;
@@ -47800,6 +49028,138 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SmsChannels"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "render-store-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommerceBlockRenderInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceBlockRender"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-store-catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceCatalog"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-store-revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceRevenueSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-store-trigger-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceAutomationOptions"];
                 };
             };
             /** @description Error */
@@ -48584,6 +49944,12 @@ export interface operations {
                 paidTier?: string;
                 /** @description Only contacts who bought a product: any, or the product's id */
                 bought?: string;
+                /** @description A store's id, or any */
+                storeCustomer?: string;
+                /** @description Total spent in the stores, at least */
+                spentFrom?: string;
+                /** @description Total spent in the stores, at most */
+                spentTo?: string;
                 page?: number;
                 pageSize?: number;
             };
@@ -49065,6 +50431,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SmsContactChannels"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-contact-stores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The contact's id */
+                contactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceContactStores"];
                 };
             };
             /** @description Error */
@@ -67769,6 +69169,655 @@ export interface operations {
             };
         };
     };
+    "list-stores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceStoreList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "connect-store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommerceBeginInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceConnectState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceStorePage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-store-activity": {
+        parameters: {
+            query?: {
+                cursor?: string;
+                /** @description Only these kinds of entries */
+                kinds?: string[];
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceActivityList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-store-app-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommerceKeysInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceConnectState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-store-checkout-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceCheckoutBlock"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-store-connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceConnectState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "disconnect-store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommerceDisconnectInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceStoreSummary"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "finish-store-connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinishInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceConnectState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "install-store-app": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceInstall"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "check-store-plugin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceConnectState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "list-store-products": {
+        parameters: {
+            query?: {
+                collection?: string;
+                search?: string;
+                cursor?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceProductList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "reconnect-store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceConnectState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-store-rest-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommerceWooKeyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceConnectState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "update-store-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommerceSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceStorePage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "start-store-sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommerceSyncInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceConnectState"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "sync-store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceQueued"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "register-store-webhooks": {
+        parameters: {
+            query?: {
+                /** @description Every webhook, not only the missing ones */
+                all?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description The store's id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceStorePage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "get-suppression-sync": {
         parameters: {
             query?: never;
@@ -72753,6 +74802,42 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "report-woocommerce-checkouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommerceWooCheckoutsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceWooCheckoutsResult"];
+                };
             };
             /** @description Error */
             default: {

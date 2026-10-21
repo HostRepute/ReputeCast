@@ -99,7 +99,7 @@ type AutomationNodeData struct {
 
 // AutomationTrigger says which contacts enter the flow.
 type AutomationTrigger struct {
-	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,poll_answered,bought_product,milestone_reached"`
+	Kind string `json:"kind" enum:"joined_list,form_submitted,tag_added,api_event,date_field,score_crosses,poll_answered,bought_product,milestone_reached,order_placed,first_order,abandoned_checkout"`
 	// Joined list: the list, whether to wait for double opt-in, and whether
 	// contacts added by an import count.
 	ListID         string `json:"listId,omitempty" maxLength:"40"`
@@ -136,6 +136,17 @@ type AutomationTrigger struct {
 	// when both are).
 	ProgramID   string `json:"programId,omitempty" maxLength:"40"`
 	MilestoneID string `json:"milestoneId,omitempty" maxLength:"40"`
+	// Store triggers (stores.go): the connected store; Order placed's
+	// filters (products, collections, a minimum total in minor units, the
+	// contact's first order only); Abandoned checkout's delay (1 to 24 hours)
+	// and skip rule (no entry for N days after an abandoned-cart email).
+	Store       string   `json:"store,omitempty" maxLength:"40"`
+	Products    []string `json:"products,omitempty" maxItems:"20"`
+	Collections []string `json:"collections,omitempty" maxItems:"20"`
+	MinTotal    int64    `json:"minTotal,omitempty" minimum:"0"`
+	FirstOnly   bool     `json:"firstOnly,omitempty"`
+	AfterHours  int      `json:"afterHours,omitempty" minimum:"0" maximum:"24"`
+	SkipDays    *int     `json:"skipDays,omitempty" minimum:"0" maximum:"30"`
 }
 
 // AutomationDuration is a delay or a time window.
@@ -167,7 +178,7 @@ type AutomationSendWindow struct {
 
 // AutomationCondition is what a branch asks, a filter keeps or a goal waits for.
 type AutomationCondition struct {
-	Kind string `json:"kind" enum:"opened,clicked,field,tag,list,event,bought_product,sms_consent,sms_clicked,sms_replied"`
+	Kind string `json:"kind" enum:"opened,clicked,field,tag,list,event,bought_product,sms_consent,sms_clicked,sms_replied,placed_order"`
 	// Opened / clicked: the email step (empty = any email in this flow), the
 	// window and whether machine opens (Apple Mail Privacy Protection) count.
 	Step        string              `json:"step,omitempty" maxLength:"40"`
@@ -185,6 +196,9 @@ type AutomationCondition struct {
 	Event string `json:"event,omitempty" maxLength:"100"`
 	// Bought a product (products.go): the product, or any when empty.
 	ProductID string `json:"productId,omitempty" maxLength:"40"`
+	// Placed an order: in this store (any connected store when empty),
+	// since the contact entered the flow.
+	Store string `json:"store,omitempty" maxLength:"40"`
 }
 
 // AutomationSplitVariant is one arm of an A/B split.
@@ -484,6 +498,7 @@ type Refs struct {
 	// Milestones are Grow's referral milestones: "3 referrals · The Acme
 	// Field Guide".
 	Milestones map[string]string
+	Stores     map[string]string // store id → name (connected stores)
 }
 
 var (
@@ -565,6 +580,12 @@ func Validate(g AutomationGraph, refs *Refs) []AutomationGraphIssue {
 		out := g.Out(n.ID)
 		name := capFirst(stepName(g, n, refs))
 		switch {
+		case n.Type == NodeGoal:
+			// A goal ends the flow when it's met; a contact who hasn't met
+			// it carries on to the next step, if there is one.
+			if len(out) > 1 {
+				add(n.ID, "", "many_outputs", "error", fmt.Sprintf("%s leads to %d steps. Keep one connection.", name, len(out)))
+			}
 		case n.Terminal():
 			if len(out) > 0 {
 				add(n.ID, "", "terminal_output", "error", fmt.Sprintf("%s ends the flow, so it can't lead to another step.", name))
@@ -671,6 +692,11 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 		if t.Kind == TriggerMilestoneReached && t.MilestoneID != "" && refs != nil && refs.Milestones != nil {
 			if _, ok := refs.Milestones[t.MilestoneID]; !ok {
 				bad("missing_ref", "The trigger's milestone was deleted. Pick another milestone.")
+			}
+		}
+		if isStoreTrigger(t.Kind) {
+			for _, p := range checkStoreTrigger(t, refs) {
+				bad(p.code, "%s", p.text)
 			}
 		}
 		if t.Reentry != "" && t.Reentry != "once" && t.Reentry != "always" {

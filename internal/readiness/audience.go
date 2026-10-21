@@ -87,8 +87,8 @@ func mailboxKey(email string) string {
 type audienceNames struct {
 	lists    map[string]string
 	segments map[string]string
-	// public are the lists readers can sign up for: an audience with all
-	// of them is "All subscribers".
+	// public are the lists readers can sign up for, but the ones a store
+	// fills (X20): an audience with all of them is "All subscribers".
 	public []string
 }
 
@@ -100,7 +100,7 @@ func (s *Service) names(ctx context.Context, q *store.Queries, wsID uuid.UUID) (
 	}
 	for _, l := range lists {
 		n.lists[l.ID.String()] = l.Name
-		if l.Public {
+		if l.Public && l.Origin != "store" {
 			n.public = append(n.public, l.ID.String())
 		}
 	}

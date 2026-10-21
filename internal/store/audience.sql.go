@@ -411,7 +411,7 @@ func (q *Queries) CreateCustomField(ctx context.Context, arg CreateCustomFieldPa
 const createList = `-- name: CreateList :one
 INSERT INTO lists (id, workspace_id, name, description, double_opt_in)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at, delete_paused
+RETURNING id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at, delete_paused, origin
 `
 
 type CreateListParams struct {
@@ -442,6 +442,7 @@ func (q *Queries) CreateList(ctx context.Context, arg CreateListParams) (List, e
 		&i.CreatedAt,
 		&i.DeletedAt,
 		&i.DeletePaused,
+		&i.Origin,
 	)
 	return i, err
 }
@@ -713,7 +714,7 @@ func (q *Queries) GetCustomField(ctx context.Context, arg GetCustomFieldParams) 
 }
 
 const getList = `-- name: GetList :one
-SELECT id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at, delete_paused FROM lists WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
+SELECT id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at, delete_paused, origin FROM lists WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type GetListParams struct {
@@ -735,6 +736,7 @@ func (q *Queries) GetList(ctx context.Context, arg GetListParams) (List, error) 
 		&i.CreatedAt,
 		&i.DeletedAt,
 		&i.DeletePaused,
+		&i.Origin,
 	)
 	return i, err
 }
@@ -1239,7 +1241,7 @@ func (q *Queries) ListImpactOtherLists(ctx context.Context, id uuid.UUID) ([]Lis
 }
 
 const listListsWithCounts = `-- name: ListListsWithCounts :many
-SELECT l.id, l.name, l.description, l.double_opt_in, l.created_at,
+SELECT l.id, l.name, l.description, l.double_opt_in, l.created_at, l.origin,
        coalesce(m.subscribed, 0)::bigint AS subscribed,
        coalesce(m.pending, 0)::bigint AS pending
 FROM lists l
@@ -1258,6 +1260,7 @@ type ListListsWithCountsRow struct {
 	Description string    `json:"description"`
 	DoubleOptIn bool      `json:"doubleOptIn"`
 	CreatedAt   time.Time `json:"createdAt"`
+	Origin      string    `json:"origin"`
 	Subscribed  int64     `json:"subscribed"`
 	Pending     int64     `json:"pending"`
 }
@@ -1277,6 +1280,7 @@ func (q *Queries) ListListsWithCounts(ctx context.Context, workspaceID uuid.UUID
 			&i.Description,
 			&i.DoubleOptIn,
 			&i.CreatedAt,
+			&i.Origin,
 			&i.Subscribed,
 			&i.Pending,
 		); err != nil {
@@ -1569,7 +1573,7 @@ func (q *Queries) ListUnscheduleCampaign(ctx context.Context, arg ListUnschedule
 }
 
 const lockDeletedList = `-- name: LockDeletedList :one
-SELECT id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at, delete_paused FROM lists WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NOT NULL FOR UPDATE
+SELECT id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at, delete_paused, origin FROM lists WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NOT NULL FOR UPDATE
 `
 
 type LockDeletedListParams struct {
@@ -1591,12 +1595,13 @@ func (q *Queries) LockDeletedList(ctx context.Context, arg LockDeletedListParams
 		&i.CreatedAt,
 		&i.DeletedAt,
 		&i.DeletePaused,
+		&i.Origin,
 	)
 	return i, err
 }
 
 const lockList = `-- name: LockList :one
-SELECT id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at, delete_paused FROM lists WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR UPDATE
+SELECT id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at, delete_paused, origin FROM lists WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR UPDATE
 `
 
 type LockListParams struct {
@@ -1618,6 +1623,7 @@ func (q *Queries) LockList(ctx context.Context, arg LockListParams) (List, error
 		&i.CreatedAt,
 		&i.DeletedAt,
 		&i.DeletePaused,
+		&i.Origin,
 	)
 	return i, err
 }
@@ -1637,7 +1643,7 @@ func (q *Queries) PurgeDeletedLists(ctx context.Context, before *time.Time) (int
 }
 
 const restoreList = `-- name: RestoreList :one
-UPDATE lists SET deleted_at = NULL, delete_paused = '{}' WHERE id = $1 RETURNING id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at, delete_paused
+UPDATE lists SET deleted_at = NULL, delete_paused = '{}' WHERE id = $1 RETURNING id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at, delete_paused, origin
 `
 
 func (q *Queries) RestoreList(ctx context.Context, id uuid.UUID) (List, error) {
@@ -1654,6 +1660,7 @@ func (q *Queries) RestoreList(ctx context.Context, id uuid.UUID) (List, error) {
 		&i.CreatedAt,
 		&i.DeletedAt,
 		&i.DeletePaused,
+		&i.Origin,
 	)
 	return i, err
 }
@@ -2038,7 +2045,7 @@ func (q *Queries) UpdateCustomField(ctx context.Context, arg UpdateCustomFieldPa
 const updateList = `-- name: UpdateList :one
 UPDATE lists SET name = $1, description = $2, double_opt_in = $3
 WHERE workspace_id = $4 AND id = $5 AND deleted_at IS NULL
-RETURNING id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at, delete_paused
+RETURNING id, workspace_id, name, description, double_opt_in, requires_approval, public, created_at, deleted_at, delete_paused, origin
 `
 
 type UpdateListParams struct {
@@ -2069,6 +2076,7 @@ func (q *Queries) UpdateList(ctx context.Context, arg UpdateListParams) (List, e
 		&i.CreatedAt,
 		&i.DeletedAt,
 		&i.DeletePaused,
+		&i.Origin,
 	)
 	return i, err
 }

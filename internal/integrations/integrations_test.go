@@ -146,7 +146,8 @@ func TestCatalogAndReadOnly(t *testing.T) {
 	for _, g := range cat.Groups {
 		keys = append(keys, g.Key)
 	}
-	if strings.Join(keys, ",") != "automation,websites,deliverability,developer,ai,verification,payments" {
+	// Commerce lists Shopify and WooCommerce (X20).
+	if strings.Join(keys, ",") != "automation,websites,deliverability,developer,ai,verification,payments,commerce" {
 		t.Fatalf("groups with nothing in them aren't shown: %v", keys)
 	}
 	// Payments (X16): Stripe, connected in the demo, and the merchants of
