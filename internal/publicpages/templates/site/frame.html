@@ -27,7 +27,8 @@
 {{with .Description}}<meta name="twitter:description" content="{{.}}">
 {{end}}{{end}}{{range .Feeds}}<link rel="alternate" type="application/rss+xml" title="{{.Title}}" href="{{.Href}}">
 {{end}}<link rel="stylesheet" href="{{.CSS}}">
-<link rel="stylesheet" href="{{.Theme}}">
+{{range .Styles}}<link rel="stylesheet" href="{{.}}">
+{{end}}<link rel="stylesheet" href="{{.Theme}}">
 {{with .Icon}}<link rel="icon" href="{{.}}">
 {{end}}{{range .JSONLD}}<script type="application/ld+json">{{.}}</script>
 {{end}}{{range .Scripts}}<script src="{{.}}" defer></script>
@@ -48,7 +49,7 @@
 
 {{define "site-header"}}<header class="st-hd"><div class="st-w st-hdi">
 <a href="{{.Href.Home}}" class="st-brand" aria-label="{{.T "site.homeLabel" "title" .Frame.Title}}">{{template "site-mark" .}}<span class="full">{{.Frame.Title}}</span><span class="short">{{.Frame.Short}}</span></a>
-{{- if .Frame.On}}
+{{- if and .Frame.On (not .Focus)}}
 <nav class="st-nav" aria-label="{{.T "site.nav"}}">{{range .Nav}}<a href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}</nav>
 <div class="st-act">
 {{- if .Member}}<a href="{{.Href.Subscribe}}" class="st-btn">{{.T "site.subscribe"}}</a><a href="{{.Href.Account}}" class="st-me" aria-label="{{.T "site.accountLabel" "name" .Member.Name}}"><span class="st-av s30 {{.Member.Color}}" aria-hidden="true">{{.Member.Initials}}</span><span class="nm">{{.Member.First}}</span></a>

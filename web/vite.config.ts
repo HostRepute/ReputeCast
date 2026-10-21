@@ -61,6 +61,8 @@ export default defineConfig({
       '/media/': { target: backend, changeOrigin: false },
       // SSO and social sign-in callbacks (their URLs are registered at the IdP).
       '/auth/': { target: backend, changeOrigin: false },
+      // Shopify's App URL and allowed redirection URL (pasted into the store's custom app).
+      '/integrations/shopify/': { target: backend, changeOrigin: false },
     },
   },
   build: {

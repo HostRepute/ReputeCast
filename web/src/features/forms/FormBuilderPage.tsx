@@ -33,6 +33,8 @@ import {
 } from './common'
 import { FormPreview } from './FormPreview'
 import { BlockedOriginAlert, FormsEmpty, FormsLoading, TurnstileAlert } from './FormsStates'
+import { FormDownloadSection } from './LeadMagnet'
+import { FormPagesSection, OwnOriginsNote } from './UsedOnPages'
 import { CopyByLanguage, FormLanguagesView, useFormCopy } from '@/features/page-languages/FormLanguagesView'
 import { useWorkspaceLanguages } from '@/features/page-languages/contacts'
 import { FormRefNote } from '@/features/grow/FormRefNote'
@@ -401,6 +403,7 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
               </>
             ) : null}
           </div>
+          <FormDownloadSection form={form} readOnly={readOnly} doubleOptIn={draft.doubleOptIn} />
         </aside>
 
         <section className="fb-center" aria-label="Live preview">
@@ -458,6 +461,7 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
           <div className="fb-sec">
             <span className="fb-title">Allowed domains</span>
             <span className="k">Submissions from other origins are rejected.</span>
+            <OwnOriginsNote origins={overview.ownOrigins} />
             <div className="flex flex-wrap gap-1.5">
               {draft.allowedOrigins.map((o) => (
                 <span key={o} className="badge mut">
@@ -472,6 +476,7 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
               </span>
             ) : null}
           </div>
+          <FormPagesSection form={form} />
           <NumbersSection form={form} systemMail={overview.systemMail} />
           <FormLanguagesSection form={form} />
         </aside>

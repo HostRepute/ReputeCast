@@ -13,6 +13,7 @@ import { useCan, useWorkspace } from '@/lib/session'
 import { AIGroupLink, AIGroupNote, AIModelCard, aiGroupLine } from '@/features/ai/catalog'
 import { isAIProvider } from '@/features/ai/entries'
 import { isPayment, PaymentAction, PaymentFact, paymentUnavailable, UnavailableBadge } from '@/features/earn/entries'
+import { StoreAction, StoreBadge, StoreFact } from '@/features/commerce/catalog'
 import { ConnectDialog } from './ConnectDialog'
 import { m } from './messages'
 import {
@@ -23,6 +24,7 @@ import {
   entryName,
   helpersText,
   isPlatform,
+  isStore,
   isVerification,
   maintainer,
   reasonWhy,
@@ -363,6 +365,9 @@ function EntryCard({ entry: e, canManage, onConnect }: { entry: Entry; canManage
   } else if (isPayment(e.key)) {
     // Payment providers live in Earn › Settings › Payments (X16).
     action = <PaymentAction e={e} canManage={canManage} />
+  } else if (isStore(e.key)) {
+    // Shopify and WooCommerce (X20): Connect opens the store's dialog, Manage its page.
+    action = <StoreAction entry={e} platform={e.key} canManage={canManage} />
   } else if (isVerification(e.key)) {
     // Address verification services live on their own page (X14).
     action =
@@ -387,7 +392,7 @@ function EntryCard({ entry: e, canManage, onConnect }: { entry: Entry; canManage
           <h3>{name}</h3>
           <span className="k">{t(invite ? m.byHostReputeOptional : maintainer[e.key])}</span>
         </div>
-        {builtIn ? null : paymentUnavailable(e) ? <UnavailableBadge /> : <StatusBadge status={e.status} />}
+        {builtIn ? null : paymentUnavailable(e) ? <UnavailableBadge /> : isStore(e.key) ? <StoreBadge entry={e} /> : <StatusBadge status={e.status} />}
       </div>
       <p className="ih-desc">{t(invite ? m.hostreputeInvite : entryLine[e.key])}</p>
       <div className="ih-caps">
@@ -443,6 +448,7 @@ function Fact({ entry: e }: { entry: Entry }) {
       return f.agents ? <>{t(m.factMcpOn, { count: f.agents })}</> : <>{t(m.factMcpOnNone)}</>
   }
   if (isPayment(e.key)) return <PaymentFact e={e} />
+  if (isStore(e.key)) return <StoreFact entry={e} platform={e.key} />
   if (isVerification(e.key)) {
     const price = `$${(f.price ?? 0).toFixed(3)}`
     if (e.status === 'not_connected') return <>{t(m.factPayPerCheck)}</>

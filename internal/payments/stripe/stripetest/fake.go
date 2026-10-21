@@ -329,6 +329,7 @@ func (f *Fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			o["type"] = "one_time"
 		}
+		customAmount(o, form)
 		d.objects[id] = o
 		writeJSON(w, 200, o)
 	case len(seg) >= 3 && seg[0] == "v1":
@@ -436,6 +437,11 @@ func (f *Fake) synthesize(d *data, kind, id string, live bool) obj {
 		return o
 	case "prices":
 		o := obj{"id": id, "object": "price", "active": true, "unit_amount": 0, "currency": f.Account.Currency, "livemode": live}
+		d.objects[id] = o
+		return o
+	case "products":
+		// The demo's digital products (X19).
+		o := obj{"id": id, "object": "product", "active": true, "name": "", "description": nil, "livemode": live, "metadata": obj{}}
 		d.objects[id] = o
 		return o
 	case "charges":

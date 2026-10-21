@@ -1,10 +1,12 @@
 # ReputeCast for WordPress
 
-The "ReputeCast" WordPress plugin (1.3.0): ReputeCast's signup forms as a
+The "ReputeCast" WordPress plugin (1.4.0): ReputeCast's signup forms as a
 block and a shortcode, published posts sent to the site's post-draft rule, the
 site's report-in and the status endpoint ReputeCast's "Check now" calls. With
 WPML or Polylang, a post's translations become the draft's language versions,
-and the block has a language setting.
+and the block has a language setting. With WooCommerce, the checkout gets the
+marketing consent checkbox, orders keep the email's click token, and
+abandoned checkouts are reported to the store ReputeCast connects.
 
 It uses only ReputeCast's public API, with the site's own key (one key per
 site, made in ReputeCast). The API it calls is described in
@@ -19,7 +21,7 @@ site, made in ReputeCast). The API it calls is described in
 integrations/wordpress/
   reputecast/          the plugin, as it ships (the zip holds this folder)
     reputecast.php     plugin header and bootstrap
-    includes/          the classes: options, API client, forms, posts, report-in, status, settings page
+    includes/          the classes: options, API client, forms, posts, report-in, status, settings page, WooCommerce
     blocks/signup-form block.json, the editor script, its styles and render.php
     languages/         reputecast.pot
     readme.txt         the plugin directory's page
@@ -33,7 +35,7 @@ integrations/wordpress/
 From the WordPress plugin directory, once it's published: Plugins › Add New,
 search for "ReputeCast", Install, Activate.
 
-From this repository: `composer build` makes `dist/reputecast-1.3.0.zip`.
+From this repository: `composer build` makes `dist/reputecast-1.4.0.zip`.
 Upload it in Plugins › Add New › Upload Plugin, then Activate.
 
 ## Configure
@@ -64,12 +66,16 @@ What the plugin does, in short:
 | Report-in | On Connect, every 12 hours (WP-Cron, `twicedaily`) and with every post: plugin, WordPress and PHP versions, the feed URL, the categories in the default language, and where forms are used (blocks, shortcodes and widgets in published posts, pages, templates and widget areas). |
 | Check now | `GET /wp-json/reputecast/v1/status` answers 200 with the versions only to calls signed with the site's key (HMAC-SHA256 of `{timestamp}.status` keyed with the key's SHA-256, within 5 minutes, any of the comma-separated signatures), and 401 otherwise. |
 | The key | Kept in its own option, not autoloaded, encrypted (libsodium secretbox) with a key derived from the site's salts in `wp-config.php`: a copy of the database alone doesn't reveal it. It's never shown again; Settings shows `rc_live_5d1e…7b20`. |
-| Privacy | The plugin talks only to the instance it's connected to. It sends nothing about visitors or users. |
+| WooCommerce consent | With WooCommerce active, an unchecked checkbox under the checkout's email (classic checkout: `woocommerce_after_checkout_billing_form`; block checkout: an additional `contact` field), with exactly "Email me about new products and offers from the store. Unsubscribe any time." The order keeps `_reputecast_marketing` (`yes`/`no`) and, when ticked, `_reputecast_consent_text` and `_reputecast_consent_at`. The filter `reputecast_woocommerce_consent` turns it off. |
+| Click token | A visit from an email link (`?rc=…`) keeps the token in a first-party cookie (`reputecast_click`, 30 days, HttpOnly); the order keeps it as `_reputecast_click`, which ReputeCast reads through the store's REST API key to credit the order. |
+| Abandoned checkouts | Checkouts with a cart are kept (the newest 500, a week at most) under a token in the shopper's WooCommerce session; every 15 minutes (WP-Cron) the changed ones go to `POST …/woocommerce/checkouts` with the email typed, the consent, the cart, totals and a signed link (`?reputecast_cart=…&k=…`) that restores the cart. An order marks its checkout completed (`_reputecast_checkout`). The filter `reputecast_woocommerce_checkouts` turns it off. |
+| Privacy | The plugin talks only to the instance it's connected to. Without WooCommerce, it sends nothing about visitors or users; with it, only the checkouts above (never addresses, phone numbers or payment details). |
 
 Disconnect (Settings › ReputeCast) forgets the key and stops the jobs; forms
 keep loading. Disconnect the site in ReputeCast too to revoke the key.
 Deactivating stops the jobs and keeps the connection; deleting the plugin
-removes its options, jobs and post meta (`uninstall.php`).
+removes its options, jobs, post meta and the checkouts not reported yet
+(`uninstall.php`); orders keep their consent and click token.
 
 ## Test
 

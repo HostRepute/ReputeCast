@@ -46,6 +46,9 @@ type AutomationListItem struct {
 	Goal       *AutomationGoal `json:"goal,omitempty"`
 	// UnpublishedChanges is true when a draft differs from the live version.
 	UnpublishedChanges bool `json:"unpublishedChanges"`
+	// Revenue is the store orders credited to the flow's emails over the
+	// list window; absent when the workspace has no store.
+	Revenue *AutomationRevenue `json:"revenue,omitempty"`
 	// Channels are the channels the flow's steps send on (email, sms),
 	// for the row's icons; ChannelCost is what its texts cost over the
 	// list window (design expansion phase 8).
@@ -149,6 +152,10 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, status string) 
 	for _, c := range counts {
 		inflow[c.AutomationID] = c.N
 	}
+	var revenue map[uuid.UUID]AutomationRevenue
+	if s.StoreRevenue != nil {
+		revenue = s.StoreRevenue(ctx, ws.ID, ids, s.now().AddDate(0, 0, -ListDays))
+	}
 	for _, r := range rows {
 		if status != "" && status != "all" && !matchesFilter(r.Status, status) {
 			continue
@@ -188,6 +195,9 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, status string) 
 			if it.Goal != nil {
 				it.Goal.Percent = pct(st.goals(shown), entered)
 			}
+		}
+		if rev, ok := revenue[r.ID]; ok {
+			it.Revenue = &rev
 		}
 		out.Items = append(out.Items, it)
 	}

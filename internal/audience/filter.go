@@ -39,6 +39,10 @@ type ContactFilter struct {
 	WebsiteFilter
 	// Paid status (Earn, paid.go).
 	PaidFilter
+	// Buyers of digital products (products.go).
+	ProductsFilter
+	// Store customers and what they spent (storefilter.go).
+	StoreFilter
 	// The phone and SMS consent (channels.go).
 	ChannelFilter
 }
@@ -132,6 +136,10 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 	}
 	websiteFilter(out, f.WebsiteFilter)
 	if err := s.paidFilter(ctx, wsID, out, f.PaidFilter); err != nil {
+		return err
+	}
+	productsFilter(out, f.ProductsFilter)
+	if err := s.storeFilter(out, f.StoreFilter); err != nil {
 		return err
 	}
 	if err := channelFilter(out, f.ChannelFilter); err != nil {

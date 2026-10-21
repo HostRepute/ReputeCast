@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { ContactsPage } from '@/features/audience/ContactsPage'
+import { boughtParam } from '@/features/products/params'
 // The jobs tray lists imports from the server once this module loads.
 import '@/features/imports/jobsSource'
 
@@ -40,6 +41,25 @@ const search = z.object({
   paidTier: z.string().uuid().optional().catch(undefined),
   /** Members of the website: contacts who signed in to it (X18). */
   signedIn: z.boolean().optional().catch(undefined),
+  /** Buyers of digital products (X19): any, or a product's id. */
+  bought: boughtParam,
+  /** Store customers and what they spent in the stores (X20). */
+  storeCustomer: z
+    .string()
+    .regex(/^(any|[0-9a-f-]{36})$/)
+    .optional()
+    .catch(undefined),
+  // A typed or shared ?spentFrom=50 arrives as a number.
+  spentFrom: z.coerce
+    .string()
+    .regex(/^\d{1,9}(\.\d{1,2})?$/)
+    .optional()
+    .catch(undefined),
+  spentTo: z.coerce
+    .string()
+    .regex(/^\d{1,9}(\.\d{1,2})?$/)
+    .optional()
+    .catch(undefined),
   /** The phone and SMS consent (X21). */
   phone: z.enum(['yes', 'no']).optional().catch(undefined),
   phoneCountry: z

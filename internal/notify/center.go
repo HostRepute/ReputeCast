@@ -201,7 +201,7 @@ type NotificationEventChoice struct {
 
 // NotificationPreferencesInput is PUT /me/notification-preferences.
 type NotificationPreferencesInput struct {
-	Events     []NotificationEventChoice `json:"events" maxItems:"60"`
+	Events     []NotificationEventChoice `json:"events" maxItems:"100"`
 	QuietHours *NotificationQuietHours   `json:"quietHours,omitempty" doc:"Omit or null to turn quiet hours off"`
 	Digest     string                    `json:"digest" enum:"immediate,hourly,daily"`
 }

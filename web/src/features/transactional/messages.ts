@@ -89,6 +89,8 @@ export const mo = defineMessages('transactional.overview', {
   colLastSent: 'Last sent',
   tableLabel: 'Transactional templates',
   pdfAttached: '{key} · PDF attached',
+  // Design expansion phase 7 (X19): the delivery email of published digital products.
+  usedByProducts: 'Used by {count, plural, one {# product} other {# products}}',
   bouncedOf: '{bounced} of {sent}',
   complaintOne: '{count, plural, one {# complaint} other {# complaints}}',
   edit: 'Edit',

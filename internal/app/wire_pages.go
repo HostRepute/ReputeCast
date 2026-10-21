@@ -1,0 +1,93 @@
+package app
+
+import (
+	"context"
+	"sync"
+
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/approvals"
+	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/demo"
+	"github.com/hostrepute/reputecast/internal/pages"
+	"github.com/hostrepute/reputecast/internal/publicpages"
+	"github.com/hostrepute/reputecast/internal/store"
+)
+
+// Landing and sales pages (design expansion phase 7, X19): pages built
+// with blocks on the publisher's theme, their versions, checks and
+// publishing; the shop's switch.
+
+var pagesServices sync.Map // *App → *pages.Service
+
+func pagesService(a *App) *pages.Service {
+	if v, ok := pagesServices.Load(a); ok {
+		return v.(*pages.Service)
+	}
+	prober := linkProber(a)
+	s := &pages.Service{
+		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log,
+		Forms:   a.formsService(),
+		Website: websiteService(a),
+		Selling: func(ctx context.Context, ws *store.Workspace) (pages.Selling, bool, error) {
+			sel, ok, err := earnService(a).Selling(ctx, ws)
+			if err != nil || !ok {
+				return pages.Selling{}, false, err
+			}
+			return pages.Selling{Account: sel.Account, Mode: string(sel.Mode), Live: sel.HasLive}, true, nil
+		},
+		Probe: func(ctx context.Context, u string) (int, error) {
+			if st, ok := demo.PagesLinkStatus(u); ok {
+				return st, nil
+			}
+			r := prober.Probe(ctx, []string{u})[u]
+			return r.Status, nil
+		},
+		Approvals: pageApprovals(a),
+		ReminderFlow: func(ctx context.Context, ws *store.Workspace, by *uuid.UUID, r pages.ReminderRequest) (uuid.UUID, error) {
+			return newAutomations(a).CreateEventReminders(ctx, ws, by, automations.EventReminders{Name: r.Name, Title: r.Title, Field: r.Field, At: r.At,
+				Link: r.Link, When: r.When})
+		},
+	}
+	v, _ := pagesServices.LoadOrStore(a, s)
+	return v.(*pages.Service)
+}
+
+// Pages is the pages domain (tests set its clock).
+func (a *App) Pages() *pages.Service { return pagesService(a) }
+
+// pageApprovals applies the workspace's approval rules to pages.
+func pageApprovals(a *App) pages.Approvals { return approvals.PagesGate{S: newApprovals(a)} }
+
+// approvalsPages lets the approvals publish an approved page and draw it
+// for the review (newApprovals calls it; set in init, so the wiring has no
+// initialization cycle).
+var approvalsPages = func(*App, *approvals.Service) {}
+
+func init() {
+	approvalsPages = func(a *App, s *approvals.Service) {
+		s.Pages = func() approvals.PagesPublisher { return pagesService(a) }
+		s.PagePreview = func(ctx context.Context, ws *store.Workspace, pageID uuid.UUID) (string, error) {
+			out, err := a.publicPages().PagePreview(ctx, ws, pageID, publicpages.PagePreviewInput{})
+			return out.HTML, err
+		}
+	}
+}
+
+func init() {
+	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
+		pages.Register(h, pagesService(a))
+		// The page builder's canvas and previews, drawn by the public site.
+		publicpages.RegisterSellAPI(h, a.publicPages())
+	})
+	jobRegistrars = append(jobRegistrars, func(a *App) {
+		pages.RegisterJobs(a.JobReg, pagesService(a))
+	})
+	// The public site draws the pages, the shop, checkout and downloads.
+	startHooks = append(startHooks, func(a *App) error {
+		h := a.publicPages()
+		h.Pages, h.Products = pagesService(a), productsService(a)
+		return nil
+	})
+}

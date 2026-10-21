@@ -1,0 +1,8 @@
+{{/* A landing or sales page (sell_page.go): its blocks, drawn on the
+     server, the "Checkout cancelled" note and, on phones, the Buy bar. */}}
+{{define "site-main"}}{{with .Body}}<main id="main" class="pg-main{{if .BuyBar}} has-buybar{{end}}">
+{{- with .Notice}}<div class="pg-noteband"><div class="sp-in"><p class="pnote n" role="status"><span>{{.}}</span></p></div></div>{{end}}
+{{.HTML}}
+</main>
+{{- with .BuyBar}}<div class="buybar"><span class="bt"><b>{{.Name}}</b><span>{{.Sub}}</span></span><a class="st-btn" href="{{.Href}}">{{.Button}}</a></div>{{end}}
+{{- end}}{{end}}

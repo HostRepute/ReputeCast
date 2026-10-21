@@ -94,6 +94,15 @@ var (
 	accountSections []AccountSectionFunc
 )
 
+type accountQueriesKey struct{}
+
+// AccountQueries are the queries an account section reads its data with
+// (nil outside Account).
+func AccountQueries(ctx context.Context) *store.Queries {
+	q, _ := ctx.Value(accountQueriesKey{}).(*store.Queries)
+	return q
+}
+
 // RegisterAccountSection adds a section to the account page (Purchases,
 // Gifts, Referrals…), after the built-in ones, in registration order.
 func RegisterAccountSection(f AccountSectionFunc) {
@@ -181,6 +190,8 @@ func (s *Service) Account(ctx context.Context, ws *store.Workspace, sess *Sessio
 	accountMu.RLock()
 	extra := slices.Clone(accountSections)
 	accountMu.RUnlock()
+	// Sections read their data with this site's queries (AccountQueries).
+	ctx = context.WithValue(ctx, accountQueriesKey{}, s.Q)
 	for _, f := range extra {
 		sec, ok, err := f(ctx, ws, pc.ID, l)
 		if err != nil {

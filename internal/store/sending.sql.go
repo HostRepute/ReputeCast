@@ -1747,13 +1747,14 @@ func (q *Queries) SendingInsertSend(ctx context.Context, arg SendingInsertSendPa
 }
 
 const sendingListNames = `-- name: SendingListNames :many
-SELECT id, name, public FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
+SELECT id, name, public, origin FROM lists WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY created_at
 `
 
 type SendingListNamesRow struct {
 	ID     uuid.UUID `json:"id"`
 	Name   string    `json:"name"`
 	Public bool      `json:"public"`
+	Origin string    `json:"origin"`
 }
 
 func (q *Queries) SendingListNames(ctx context.Context, workspaceID uuid.UUID) ([]SendingListNamesRow, error) {
@@ -1765,7 +1766,12 @@ func (q *Queries) SendingListNames(ctx context.Context, workspaceID uuid.UUID) (
 	items := []SendingListNamesRow{}
 	for rows.Next() {
 		var i SendingListNamesRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.Public); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Public,
+			&i.Origin,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

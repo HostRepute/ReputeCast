@@ -107,7 +107,7 @@ GROUP BY p.name, p.adapter
 ORDER BY cost_micros DESC, p.name;
 
 -- name: ListWorkspaceLists :many
-SELECT id, name, public FROM lists WHERE workspace_id = @workspace_id AND deleted_at IS NULL ORDER BY created_at;
+SELECT id, name, public, origin FROM lists WHERE workspace_id = @workspace_id AND deleted_at IS NULL ORDER BY created_at;
 
 -- name: BroadcastDefaultSplit :one
 SELECT splits FROM routing_rules

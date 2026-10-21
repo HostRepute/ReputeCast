@@ -1,0 +1,8 @@
+{{/* The shop (/products): every published product with "Show in the
+     shop", each card opening its sales page or its default page. */}}
+{{define "site-main"}}{{with .Body}}<main id="main" class="pg-main">
+<section class="sp-sec lav pg-shop"><div class="sp-in">
+<div class="sec-head"><h1 class="sp-h1">{{.Title}}</h1><p class="sp-lead">{{.Intro}}</p></div>
+{{.Cards}}
+</div></section>
+</main>{{end}}{{end}}

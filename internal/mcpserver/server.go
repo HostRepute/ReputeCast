@@ -145,6 +145,7 @@ func (s *Service) newServer(log *slog.Logger) *mcp.Server {
 	s.addEarnTools(server)
 	s.addPlacementTools(server)
 	s.addWebsiteTools(server)
+	s.addPagesTools(server)
 	s.addX17Tools(server)
 	s.addGrowTools(server)
 	s.addSmsTools(server)

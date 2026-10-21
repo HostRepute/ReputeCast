@@ -237,4 +237,7 @@ type contentRef struct {
 	Subject string    `json:"subject,omitempty"`
 	// Language is the language version sent ("" is the source).
 	Language string `json:"language,omitempty"`
+	// Ctx is what the flow's trigger passed to its emails (a store's
+	// checkout or order).
+	Ctx map[string]string `json:"ctx,omitempty"`
 }

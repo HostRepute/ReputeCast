@@ -27,12 +27,16 @@ export function useEarnStatus() {
  * One Earn screen: the title with the payment provider chip, the section
  * tabs (Overview · Plans & offers · Paid members · Gifts · Sponsors ·
  * Products · Settings) and, while only a test key is connected, the Test
- * mode banner. Without earn:view the section is a 403.
+ * mode banner. Without earn:view the section is a 403 (Products asks for
+ * products:view instead).
  */
 export function EarnPage({ tab, title, actions, children, banner = true }: { tab: EarnTab; title?: string; actions?: ReactNode; children: ReactNode; banner?: boolean }) {
   const t = useT()
   const { slug } = useWorkspace()
-  const can = useCan('earn:view')
+  const canEarn = useCan('earn:view')
+  const canProducts = useCan('products:view')
+  // Products opens with products:view alone: Content Writers draft products without earn:view.
+  const can = tab === 'products' ? canProducts : canEarn
   const status = useEarnStatus()
   const params = { workspace: slug }
   // The overview opens the upgrade page from the top bar (EarnStates).
@@ -53,13 +57,20 @@ export function EarnPage({ tab, title, actions, children, banner = true }: { tab
   ]
   if (!can) {
     return (
-      <Page title={t(me.title)}>
+      <Page title={t(me.title)} tabs={canProducts ? tabs : undefined} tabsLabel={t(me.tabsLabel)}>
         <EarnForbidden />
       </Page>
     )
   }
   return (
-    <Page title={t(me.title)} documentTitle={title ?? t(me.title)} badges={<ProviderChip status={status.data} />} tabs={tabs} tabsLabel={t(me.tabsLabel)} actions={actions ?? open}>
+    <Page
+      title={t(me.title)}
+      documentTitle={title ?? t(me.title)}
+      badges={canEarn ? <ProviderChip status={status.data} /> : undefined}
+      tabs={tabs}
+      tabsLabel={t(me.tabsLabel)}
+      actions={actions ?? open}
+    >
       {banner && status.data?.testOnly ? <TestModeBanner /> : null}
       {children}
     </Page>

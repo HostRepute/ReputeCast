@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -114,17 +115,29 @@ func TestOverviewCards(t *testing.T) {
 	}
 	c.Do("GET", base+"/audience", nil).MustStatus(t, 200).JSON(t, &a)
 	// The boards' 48,213, with Acme Summit 2026 (X21, brief §8.12): 338 new
-	// contacts, and 1,240 registrations on its private list in the last 30 days.
-	if a.Days != 30 || a.Total != 48213+338 || a.Subscribers != 48213+1240 || a.Net != 1284+1240 || a.NetPercent != 5.4 ||
+	// contacts, and 1,240 registrations on its private list in the last 30
+	// days. The pages and products sample (X19) adds its event lists' sign-ups
+	// in the same 30 days, from sample contacts: the Launch Kit waitlist's
+	// 1,298 and the DMARC live session's 486. The store's list (X20) isn't a
+	// newsletter list here.
+	const events = 1240 + 1298 + 486
+	if a.Days != 30 || a.Total != 48213+338 || a.Subscribers != 48213+events || a.Net != 1284+events || a.NetPercent != 9.2 ||
 		a.Policy != "Sunset contacts get one re-engagement email, then stop receiving broadcasts after 30 days." {
 		t.Fatalf("audience: %+v", a)
 	}
-	if len(a.Series) != 31 || a.Series[0].Subscribers != 46929 || a.Series[30].Subscribers != 48213+1240 {
+	if len(a.Series) != 31 || a.Series[0].Subscribers != 46929 || a.Series[30].Subscribers != 48213+events {
 		t.Fatalf("growth line: %+v", a.Series)
 	}
-	wantLists := []string{"Weekly Digest 31988 812", "Product Updates 14110 391", "Beta Program 2115 81", "Acme Summit 2026 1240 1240"}
+	// The webinar's list is named for its date, which follows the sample's
+	// today (X19).
+	wantLists := []string{"Weekly Digest 31988 812", "Product Updates 14110 391", "Beta Program 2115 81", "Launch Kit waitlist 1298 1298",
+		"Acme Summit 2026 1240 1240", "DMARC live · … 486 486"}
 	for i, l := range a.Lists {
-		if i >= len(wantLists) || fmt.Sprintf("%s %d %d", l.Name, l.Contacts, l.Net) != wantLists[i] {
+		name := l.Name
+		if strings.HasPrefix(name, "DMARC live · ") {
+			name = "DMARC live · …"
+		}
+		if i >= len(wantLists) || fmt.Sprintf("%s %d %d", name, l.Contacts, l.Net) != wantLists[i] {
 			t.Fatalf("lists: %+v", a.Lists)
 		}
 	}

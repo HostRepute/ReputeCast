@@ -28,18 +28,19 @@ ORDER BY cr.planned DESC, p.name;
 -- Joins and departures across the workspace's lists in each 24-hour step
 -- since a time, counted the way List health counts a list's net growth
 -- (ListGrowthSince): joins of members still subscribed, and departures.
+-- The lists a connected store fills aren't the newsletter's (X20).
 SELECT floor(extract(epoch FROM (x.at - @since::timestamptz)) / 86400)::int AS step,
        count(*) FILTER (WHERE x.joined)::bigint AS joined,
        count(*) FILTER (WHERE NOT x.joined)::bigint AS departed
 FROM (
     SELECT lm.subscribed_at AS at, true AS joined
     FROM list_memberships lm
-    JOIN lists l ON l.id = lm.list_id AND l.workspace_id = @workspace_id AND l.deleted_at IS NULL
+    JOIN lists l ON l.id = lm.list_id AND l.workspace_id = @workspace_id AND l.deleted_at IS NULL AND l.origin <> 'store'
     WHERE lm.status = 'subscribed' AND lm.subscribed_at >= @since::timestamptz
     UNION ALL
     SELECT lm.unsubscribed_at, false
     FROM list_memberships lm
-    JOIN lists l ON l.id = lm.list_id AND l.workspace_id = @workspace_id AND l.deleted_at IS NULL
+    JOIN lists l ON l.id = lm.list_id AND l.workspace_id = @workspace_id AND l.deleted_at IS NULL AND l.origin <> 'store'
     WHERE lm.unsubscribed_at >= @since::timestamptz
 ) x
 GROUP BY 1

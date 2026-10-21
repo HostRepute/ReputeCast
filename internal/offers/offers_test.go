@@ -152,8 +152,10 @@ func TestOfferLimitsAndExpiry(t *testing.T) {
 		t.Fatalf("raised: %+v", d.Offer)
 	}
 
-	// Its date passes: it ends again, by date.
-	*s.clock = s.clock.AddDate(0, 0, 11)
+	// Its date passes: it ends again, by date. The offer runs to the end of
+	// its last day in the workspace's time zone, so step two days past it,
+	// whatever the hour.
+	*s.clock = s.clock.AddDate(0, 0, 12)
 	if err := o.Tick(ctx); err != nil {
 		t.Fatal(err)
 	}

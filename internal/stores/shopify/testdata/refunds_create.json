@@ -1,0 +1,17 @@
+{
+  "id": 1072153124890,
+  "order_id": 5821403913242,
+  "created_at": "2026-10-15T11:02:07-04:00",
+  "note": "Wrong size",
+  "user_id": 102910024,
+  "processed_at": "2026-10-15T11:02:07-04:00",
+  "restock": true,
+  "admin_graphql_api_id": "gid://shopify/Refund/1072153124890",
+  "refund_line_items": [
+    { "id": 2410041, "line_item_id": 14612834320410, "quantity": 1, "restock_type": "return", "subtotal": 18.0, "total_tax": 0.0 }
+  ],
+  "transactions": [
+    { "id": 6618230015002, "order_id": 5821403913242, "kind": "refund", "gateway": "shopify_payments", "status": "success", "amount": "18.00", "currency": "USD",
+      "payment_details": { "credit_card_bin": "424242", "credit_card_number": "•••• •••• •••• 4242", "credit_card_company": "Visa" } }
+  ]
+}

@@ -17,6 +17,7 @@ import { day, money, platformName } from '../format'
 import { ends } from '../sponsors/parts'
 import { MovementChart, MrrChart, moveBars, moveColors } from './charts'
 import { mr } from './messages'
+import { StoreRevenueCard } from '@/features/commerce/revenue'
 import './revenue.css'
 
 type Overview = Schemas['RevenueOverview']
@@ -182,6 +183,8 @@ export function RevenueOverview() {
         <div className="er-col">
           {failed('trials') ? <Failed card="trials" title={t(mr.trialsTitle, { period: o.period })} onRetry={retry} reference={o.reference} /> : <Trials o={o} />}
           {failed('conversions') ? <Failed card="conversions" title={t(mr.convTitle)} onRetry={retry} reference={o.reference} /> : <Conversions c={o.conversions} period={o.period} />}
+          {/* A connected store's orders credited to emails (X20); nothing without a store. */}
+          <StoreRevenueCard />
         </div>
         {failed('cancellations') ? <Failed card="cancellations" title={t(mr.cancelTitle, { period: o.period })} onRetry={retry} reference={o.reference} /> : <Cancellations o={o} />}
       </div>

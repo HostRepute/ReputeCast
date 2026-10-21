@@ -31,7 +31,7 @@ func readinessService(a *App) *readiness.Service {
 		Templates: &templates.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
 		Mail:      func() mailer.Sender { return a.Mail },
 		URLs:      a.URLs,
-		Checker:   &contentcheck.Checker{Blocklist: contentcheck.StoreBlocklist{Q: a.Q}, Prober: prober},
+		Checker:   &contentcheck.Checker{Blocklist: contentcheck.StoreBlocklist{Q: a.Q}, Prober: prober, Extra: contentExtras(a)},
 		// Send Readiness checks and fixes every language version.
 		Translations: campaignTranslations(a),
 	}
@@ -111,6 +111,7 @@ func newApprovals(a *App) *approvals.Service {
 		},
 	}
 	approvalsWebsite(a, s)
+	approvalsPages(a, s)
 	// Fixes and send settings re-check open approvals; so do composer saves.
 	rs.AfterChange = s.CampaignChanged
 	rs.Campaigns.AfterChange = s.CampaignChanged

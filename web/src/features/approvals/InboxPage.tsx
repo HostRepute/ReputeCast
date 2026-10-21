@@ -13,6 +13,7 @@ import { AccessTable, PersonCell } from '@/features/access/parts'
 import { waitShort } from '@/features/review/logic'
 import { RecurringDigestBadge } from '@/features/digests/IssueParts'
 import { useIssueInfos } from '@/features/digests/shared'
+import { PageBadge, PageLine, pageScheduledText } from '@/features/pages/approval'
 import { ApprovalStatusBadge, decidedText } from './parts'
 import { PostBadge, postLine, postRoute, postWhen } from '@/features/website/elsewhere'
 import { ChannelTag } from '@/features/channels/ChannelFilter'
@@ -183,15 +184,17 @@ function RequestsCard({
                       {it.channel !== 'email' ? <ChannelTag channel={it.channel} /> : null}
                       {it.campaignId && issueOf.has(it.campaignId) ? <RecurringDigestBadge issue={issueOf.get(it.campaignId)!} /> : null}
                       {it.subjectType === 'website_post' ? <PostBadge /> : null}
+                      {it.page ? <PageBadge page={it.page} /> : null}
                     </span>
                     <span className="k">{it.subjectType === 'website_post' && it.website ? postLine(it.website, it.rules) : it.rules}</span>
+                    {it.page ? <PageLine page={it.page} /> : null}
                   </div>
                 </Td>
                 <Td>
                   <PersonCell name={it.author.name} sub={it.author.email} color={it.author.color} />
                 </Td>
-                <Td>{it.subjectType === 'website_post' ? '–' : it.audienceNow != null && it.audienceNow !== it.audience ? `${count(it.audience)} → ${count(it.audienceNow)}` : count(it.audience)}</Td>
-                <Td>{it.subjectType === 'website_post' ? postRoute() : it.route}</Td>
+                <Td>{it.subjectType === 'website_post' || it.page ? '–' : it.audienceNow != null && it.audienceNow !== it.audience ? `${count(it.audience)} → ${count(it.audienceNow)}` : count(it.audience)}</Td>
+                <Td>{it.subjectType === 'website_post' || it.page ? postRoute() : it.route}</Td>
                 <Td>{it.subjectType === 'website_post' && it.website ? postWhen(it.website) : scheduledText(it)}</Td>
                 <Td>{requestedText(it.requestedAt, now)}</Td>
                 <Td>
@@ -226,6 +229,7 @@ const statusWords: Record<Exclude<InboxStatus, 'all'>, string> = {
 
 /** "Nov 4, 09:00", "Sent Oct 9" or "Unscheduled". */
 function scheduledText(it: Item): string {
+  if (it.page) return pageScheduledText(it.page)
   if (it.sentAt) return `Sent ${monthDay(it.sentAt)}`
   if (it.scheduleMode !== 'now' && it.scheduleAt) return `${monthDay(it.scheduleAt)}, ${clock(it.scheduleAt)}`
   return 'Unscheduled'
