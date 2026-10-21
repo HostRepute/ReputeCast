@@ -826,7 +826,7 @@ function TesterResult({ r, color }: { r: Schemas['SmsRouteTest']; color: string 
                   ? t(m.step2, { provider: r.provider, sender: r.sender })
                   : t(m.step2NoReply, { provider: r.provider, sender: r.sender, country: countryName(r.country) })}
               </Step>
-              <Step n={3}>{r.suppressed ? t(m.step3Suppressed, { number: r.number, reason: r.suppressed }) : t(m.step3Ok, { number: r.number })}</Step>
+              <Step n={3}>{r.suppressed ? t(m.step3Suppressed, { number: r.number, reason: r.suppressed, reasonText: r.suppressed.replace(/_/g, ' ') }) : t(m.step3Ok, { number: r.number })}</Step>
               <Step n={4}>{r.inside ? t(m.step4Inside, { time: r.local, place, window: r.window }) : t(m.step4Outside, { time: r.local, place, window: r.window })}</Step>
             </div>
           </div>
