@@ -12,6 +12,7 @@ import { toast } from '@/components/ui/Toast'
 import { problemMessage } from '@/features/connect/parts'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { SmsSettingsSummary } from '@/features/sms/SettingsSummary'
+import { ChannelSettingsSummary } from '@/features/push/SettingsSummary'
 import { t as tt, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
@@ -204,6 +205,8 @@ function SettingsBody({ data }: { data: Settings }) {
       </section>
       {/* Phase 8: the SMS providers and the SMS budget. */}
       <SmsSettingsSummary />
+      {/* Phase 8: web push and WhatsApp (X22). */}
+      <ChannelSettingsSummary />
 
       {error ? <Note tone="bad">{error}</Note> : null}
 

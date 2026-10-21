@@ -12,6 +12,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/channels"
 	"github.com/hostrepute/reputecast/internal/phone"
 	"github.com/hostrepute/reputecast/internal/segments"
 	"github.com/hostrepute/reputecast/internal/sms"
@@ -74,6 +75,15 @@ type SmsContactList struct {
 	// Confirmation is the opt-in confirmation text's status, when one went.
 	Confirmation   string     `json:"confirmation,omitempty"`
 	ConfirmationAt *time.Time `json:"confirmationAt,omitempty"`
+	// WhatsApp is the WhatsApp consent (X22), kept per list like SMS, with
+	// its latest evidence: the page and the consent text's version, or the
+	// keyword of an opt-out.
+	WhatsApp        string     `json:"whatsApp" enum:"subscribed,pending,opted_out,not_subscribed"`
+	WhatsAppAt      *time.Time `json:"whatsAppAt,omitempty"`
+	WhatsAppSource  string     `json:"whatsAppSource,omitempty"`
+	WhatsAppPage    string     `json:"whatsAppPage,omitempty"`
+	WhatsAppVersion string     `json:"whatsAppVersion,omitempty"`
+	WhatsAppKeyword string     `json:"whatsAppKeyword,omitempty"`
 }
 
 // SmsConsentEvent is one change of SMS consent, with its evidence.
@@ -111,6 +121,9 @@ type SmsContactChannels struct {
 	CanEdit    bool              `json:"canEdit"`
 	// SMSSetUp is false until an SMS provider is connected.
 	SMSSetUp bool `json:"smsSetUp"`
+	// WhatsAppSetUp is true once WhatsApp is connected: the card shows its
+	// column then, or while a list still has WhatsApp consent.
+	WhatsAppSetUp bool `json:"whatsAppSetUp"`
 }
 
 func (s *Service) contact(ctx context.Context, ws *store.Workspace, id uuid.UUID) (phoneRow, error) {
@@ -156,24 +169,30 @@ func (s *Service) ContactChannels(ctx context.Context, ws *store.Workspace, p *a
 	var n int64
 	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM sms_providers WHERE workspace_id = $1 AND removed_at IS NULL`, ws.ID).Scan(&n)
 	out.SMSSetUp = n > 0
+	if i, ok := channels.Lookup(channels.WhatsApp); ok && i.SetUp != nil {
+		out.WhatsAppSetUp, _ = i.SetUp(ctx, ws.ID)
+	}
 	// Every list, so consent can be recorded on any of them: lists with
 	// SMS consent first, then the ones the address is on.
 	rows, err := s.Pool.Query(ctx, `
 		SELECT l.id, l.name, coalesce(lm.status, 'not_subscribed'), coalesce(lm.subscribed_at, lm.unsubscribed_at, lm.created_at), coalesce(lm.source, ''),
 			coalesce(cc.status, 'not_subscribed'), cc.changed_at, coalesce(cc.source, ''), coalesce(cc.keyword, ''),
-			EXISTS (SELECT 1 FROM consent_events ce WHERE ce.contact_id = $2 AND ce.list_id = l.id AND (ce.action = 'confirmed' OR ce.source = 'preference_center'))
+			EXISTS (SELECT 1 FROM consent_events ce WHERE ce.contact_id = $2 AND ce.list_id = l.id AND (ce.action = 'confirmed' OR ce.source = 'preference_center')),
+			coalesce(cw.status, 'not_subscribed'), cw.changed_at, coalesce(cw.source, ''), coalesce(cw.keyword, '')
 		FROM lists l
 		LEFT JOIN list_memberships lm ON lm.list_id = l.id AND lm.contact_id = $2
 		LEFT JOIN channel_consents cc ON cc.list_id = l.id AND cc.contact_id = $2 AND cc.channel = 'sms'
+		LEFT JOIN channel_consents cw ON cw.list_id = l.id AND cw.contact_id = $2 AND cw.channel = 'whatsapp'
 		WHERE l.workspace_id = $1 AND l.deleted_at IS NULL
-		ORDER BY coalesce(cc.status = 'subscribed', false) DESC, (lm.contact_id IS NOT NULL) DESC, l.created_at, l.name`, ws.ID, c.ID)
+		ORDER BY coalesce(cc.status = 'subscribed', false) DESC, coalesce(cw.status = 'subscribed', false) DESC, (lm.contact_id IS NOT NULL) DESC, l.created_at, l.name`, ws.ID, c.ID)
 	if err != nil {
 		return out, err
 	}
 	for rows.Next() {
 		var l SmsContactList
 		var lid uuid.UUID
-		if err := rows.Scan(&lid, &l.Name, &l.Email, &l.EmailAt, &l.EmailSource, &l.SMS, &l.SMSAt, &l.SMSSource, &l.SMSKeyword, &l.EmailConfirmed); err != nil {
+		if err := rows.Scan(&lid, &l.Name, &l.Email, &l.EmailAt, &l.EmailSource, &l.SMS, &l.SMSAt, &l.SMSSource, &l.SMSKeyword, &l.EmailConfirmed,
+			&l.WhatsApp, &l.WhatsAppAt, &l.WhatsAppSource, &l.WhatsAppKeyword); err != nil {
 			rows.Close()
 			return out, err
 		}
@@ -196,6 +215,19 @@ func (s *Service) ContactChannels(ctx context.Context, ws *store.Workspace, p *a
 		}
 	}
 	for _, e := range events {
+		if e.Channel == "whatsapp" && e.ListID != nil {
+			// The list's latest WhatsApp evidence, for its column.
+			for i := range out.Lists {
+				l := &out.Lists[i]
+				if l.ListID != e.ListID.String() || l.WhatsAppPage != "" || l.WhatsAppVersion != "" {
+					continue
+				}
+				switch e.Action {
+				case "subscribed", "pending", "imported", "confirmed", "opted_in":
+					l.WhatsAppPage, l.WhatsAppVersion = e.Page, e.ConsentVersion
+				}
+			}
+		}
 		if e.Channel != "sms" {
 			continue
 		}

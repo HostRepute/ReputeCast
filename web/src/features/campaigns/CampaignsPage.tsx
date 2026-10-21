@@ -29,6 +29,7 @@ import { ChannelFilter } from '@/features/channels/ChannelFilter'
 import type { Channel } from '@/features/channels/ChannelSwitch'
 import { m as chm } from '@/features/channels/messages'
 import { SmsCampaignHead, SmsCampaignRow } from '@/features/sms/CampaignRow'
+import { ChannelCampaignRow } from '@/features/push/CampaignRow'
 
 export type CampaignFilter = 'all' | 'drafts' | 'scheduled' | 'sending' | 'sent' | 'recurring' | 'paid'
 
@@ -317,6 +318,9 @@ function CampaignTable({ data, page, status, q, channel, top }: { data: Schemas[
               return (
                 <SmsCampaignRow key={c.id} c={c} textColumns={channel === 'sms'} web={web && channel !== 'sms' ? <span className="k">–</span> : undefined} />
               )
+            // Push and WhatsApp (X22): their own composer, review and report.
+            if ((c.channel === 'push' || c.channel === 'whatsapp') && channel !== 'sms')
+              return <ChannelCampaignRow key={c.id} c={c} web={web ? <span className="k">–</span> : undefined} />
             const sent = ['sent', 'sending', 'paused', 'cancelled', 'failed'].includes(c.status)
             const editable = ['draft', 'approval', 'approved', 'scheduled'].includes(c.status)
             return (

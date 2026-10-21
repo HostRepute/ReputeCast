@@ -39,8 +39,12 @@ import { CopyByLanguage, FormLanguagesView, useFormCopy } from '@/features/page-
 import { useWorkspaceLanguages } from '@/features/page-languages/contacts'
 import { FormRefNote } from '@/features/grow/FormRefNote'
 import { SmsConsentSettings, SmsPhoneToggle } from '@/features/sms/FormFields'
+import { useChannelSetUp } from '@/features/channels/hooks'
+import { m as promptMsg } from '@/features/push/prompt.messages'
+import { useT } from '@/i18n'
 
-type Kind = Schemas['SignupFormSummary']['kind']
+// Push prompts are forms too, with their own designer (X22).
+type Kind = Exclude<Schemas['SignupFormSummary']['kind'], 'push'>
 
 const kindLabels: Record<Kind, string> = { embedded: 'Embedded', popup: 'Popup', hosted: 'Hosted page' }
 
@@ -171,6 +175,11 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
   const pickForm = (id: string) => {
     if (id === '__new') {
       setCreating(true)
+      return
+    }
+    // A push prompt opens in its own designer (X22).
+    if (overview.forms.find((f) => f.id === id)?.kind === 'push') {
+      void navigate({ to: '/w/$workspace/forms', params: { workspace: slug }, search: { prompt: id } })
       return
     }
     void navigate({ to: '/w/$workspace/forms', params: { workspace: slug }, search: { form: id } })
@@ -911,12 +920,27 @@ function CreateFormDialogOpen({ onOpenChange }: { onOpenChange: (o: boolean) => 
   const navigate = useNavigate()
   const invalidate = useInvalidateForms()
   const create = $api.useMutation('post', '/api/v1/workspaces/{workspace}/forms')
+  // The Push prompt type (X22) opens the prompt designer once push is set up.
+  const t = useT()
+  const pushOn = useChannelSetUp('push')
+  const createPrompt = $api.useMutation('post', '/api/v1/workspaces/{workspace}/push/prompts')
   const [name, setName] = useState('')
-  const [kind, setKind] = useState<Kind>('embedded')
+  const [kind, setKind] = useState<Kind | 'push'>('embedded')
   const [error, setError] = useState<string>()
   const submit = async () => {
     if (!name.trim()) {
       setError('Name the form, for example "Footer form".')
+      return
+    }
+    if (kind === 'push') {
+      try {
+        const pr = await createPrompt.mutateAsync({ params: { path: { workspace: slug } }, body: { name: name.trim() } })
+        await invalidate()
+        onOpenChange(false)
+        void navigate({ to: '/w/$workspace/forms', params: { workspace: slug }, search: { prompt: pr.formId } })
+      } catch (e) {
+        setError(errorMessage(e))
+      }
       return
     }
     try {
@@ -934,11 +958,11 @@ function CreateFormDialogOpen({ onOpenChange }: { onOpenChange: (o: boolean) => 
       open
       onOpenChange={onOpenChange}
       title="New signup form"
-      description="It starts with email and first name, your first public list, double opt-in and every spam check."
+      description={kind === 'push' ? t(promptMsg.typeHint) : 'It starts with email and first name, your first public list, double opt-in and every spam check.'}
       footer={
         <>
           <Button onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button variant="primary" onClick={() => void submit()} loading={create.isPending}>
+          <Button variant="primary" onClick={() => void submit()} loading={create.isPending || createPrompt.isPending}>
             Create form
           </Button>
         </>
@@ -962,6 +986,11 @@ function CreateFormDialogOpen({ onOpenChange }: { onOpenChange: (o: boolean) => 
                 {kindLabels[k]}
               </button>
             ))}
+            {pushOn ? (
+              <button type="button" aria-pressed={kind === 'push'} onClick={() => setKind('push')}>
+                {t(promptMsg.typePush)}
+              </button>
+            ) : null}
           </div>
         </div>
       </form>

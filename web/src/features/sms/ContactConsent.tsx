@@ -7,6 +7,8 @@ import { Field, Input } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { m as cm } from '@/features/channels/messages'
+import { hasWhatsAppColumn, WhatsAppConsentCell } from '@/features/push/ContactCards'
+import { m as wm } from '@/features/push/contact.messages'
 import { useT, type MessageDescriptor } from '@/i18n'
 import { clock, dayMonthDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
@@ -43,7 +45,9 @@ export function ChannelConsentCard({ contactId, name }: { contactId: string; nam
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/contacts/{contactId}/channels', { params: { path: { workspace: slug, contactId } } })
   const [editingPhone, setEditingPhone] = useState(false)
   const d = q.data
-  if (!d || (!d.smsSetUp && !d.phone)) return null
+  // WhatsApp (X22) adds its column once it's connected or a list has its consent.
+  const wa = Boolean(d && hasWhatsAppColumn(d))
+  if (!d || (!d.smsSetUp && !d.phone && !wa)) return null
   return (
     <section className="card flex flex-col" aria-labelledby="channels-h">
       <div className="sec">
@@ -51,7 +55,7 @@ export function ChannelConsentCard({ contactId, name }: { contactId: string; nam
           <h2 className="h2" id="channels-h">
             {t(m.title, { name })}
           </h2>
-          <span className="k">{t(m.lead)}</span>
+          <span className="k">{t(wa ? wm.tableLead : m.lead)}</span>
         </div>
       </div>
       <div className="pad flex flex-col gap-3">
@@ -80,6 +84,7 @@ export function ChannelConsentCard({ contactId, name }: { contactId: string; nam
                 <th scope="col">{t(m.list)}</th>
                 <th scope="col">{t(cm.email)}</th>
                 <th scope="col">{t(cm.sms)}</th>
+                {wa ? <th scope="col">{t(cm.whatsapp)}</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -93,6 +98,11 @@ export function ChannelConsentCard({ contactId, name }: { contactId: string; nam
                   <td>
                     <SmsCell contactId={contactId} l={l} d={d} />
                   </td>
+                  {wa ? (
+                    <td>
+                      <WhatsAppConsentCell contactId={contactId} l={l} d={d} />
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>

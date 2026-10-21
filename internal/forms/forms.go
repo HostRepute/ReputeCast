@@ -103,6 +103,10 @@ const (
 	KindEmbedded = "embedded"
 	KindPopup    = "popup"
 	KindHosted   = "hosted"
+	// KindPush is a push prompt (design expansion phase 8, X22): a form type
+	// the push package designs and serves. It's listed with the forms but
+	// never rendered, embedded or submitted as a signup form.
+	KindPush = "push"
 
 	StatusDraft  = "draft"
 	StatusLive   = "live"
@@ -404,7 +408,7 @@ type SignupFormURLs struct {
 type SignupFormSummary struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
-	Kind     string `json:"kind" enum:"embedded,popup,hosted"`
+	Kind     string `json:"kind" enum:"embedded,popup,hosted,push"`
 	Status   string `json:"status" enum:"draft,live,paused"`
 	PublicID string `json:"publicId" example:"frm_8c2e1a"`
 	Slug     string `json:"slug"`
@@ -510,7 +514,8 @@ func (s *Service) form(ctx context.Context, q *store.Queries, ws *store.Workspac
 		return store.Form{}, errFormNotFound
 	}
 	f, err := q.FormGet(ctx, store.FormGetParams{WorkspaceID: ws.ID, ID: fid})
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && f.Kind == KindPush) {
+		// A push prompt has its own designer (internal/push).
 		return store.Form{}, errFormNotFound
 	}
 	return f, err

@@ -19,6 +19,8 @@ import { useCountUp, useFlowView } from '../view'
 import { useT } from '@/i18n'
 import { m as smsStep } from '@/features/sms/automation.messages'
 import { smsNodeLines, useSmsTextParts } from '@/features/sms/automationNode'
+import { pushNodeLines, usePushEstimate } from '@/features/push/AutomationStep'
+import { useWhatsAppStepEstimate, whatsAppNodeHead, whatsAppNodeLines } from '@/features/whatsapp/AutomationStep'
 import { StoreNodeLine } from '@/features/commerce/automation'
 
 export type StepNodeType = Node<NodeData, StepType>
@@ -39,6 +41,9 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
   const t = useCountUp()
   const tr = useT()
   const smsParts = useSmsTextParts(type === 'sms')
+  // Who the push and WhatsApp steps reach (X22): one request per flow, and per WhatsApp step.
+  const pushEst = usePushEstimate(v.automationId, type === 'push')
+  const waEst = useWhatsAppStepEstimate(data.whatsapp, type === 'whatsapp')
   const updateNodeInternals = useUpdateNodeInternals()
   const node = nodeById(v.graph, id) ?? { id, type, data, position: { x: 0, y: 0 } }
   const st = v.stats.get(id)
@@ -63,6 +68,7 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
   else if (isNew) header += ` · new in v${v.draftVersion}`
   else if (showProviders) header += data.email?.route ? ' · route override' : ' · Automations route'
   else if (type === 'sms') header += ` · ${tr(smsStep.byCountry)}`
+  else if (type === 'whatsapp') header += ` · ${whatsAppNodeHead(data.whatsapp, tr)}`
 
   const title = nodeTitle(v.graph, node, v.refs)
   const detail = nodeDetail(node)
@@ -198,6 +204,19 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
         )
       break
     }
+    case 'push':
+    case 'whatsapp': {
+      const parts = type === 'push' ? pushNodeLines(data.push, tr, pushEst) : whatsAppNodeLines(data.whatsapp, tr, waEst)
+      if (parts.length)
+        lines.push(
+          <div className="st" key="s">
+            {parts.map((x) => (
+              <span key={x}>{x}</span>
+            ))}
+          </div>,
+        )
+      break
+    }
     case 'branch':
       if (detail)
         lines.push(
@@ -279,4 +298,6 @@ export const nodeTypes = {
   goal: StepNode,
   exit: StepNode,
   sms: StepNode,
+  push: StepNode,
+  whatsapp: StepNode,
 }

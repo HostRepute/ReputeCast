@@ -1,0 +1,599 @@
+/*
+ * The push prompt designer (board PushPrompt): the settings on the left and
+ * the live preview on a publication page on the right. Values are the
+ * board's own.
+ */
+
+@layer components {
+  .pp-cols {
+    display: flex;
+    flex-wrap: wrap;
+    flex: 1;
+    align-items: stretch;
+  }
+  .pp-left {
+    flex: 1 1 340px;
+    max-width: 368px;
+    background: #fff;
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .pp-sec {
+    min-width: 0;
+    min-inline-size: 0;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line-2);
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .pp-sec:last-child {
+    border-bottom: 0;
+  }
+  .pp-sec .seg button {
+    white-space: nowrap;
+  }
+  .pp-sec > .t {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-nav);
+  }
+  .pp-styles {
+    display: flex;
+    gap: 8px;
+  }
+  .pp-style {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+  }
+  .pp-style.on {
+    border-color: var(--accent);
+    background: var(--accent-tint);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  .pp-style .pp-top {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    align-items: center;
+  }
+  .pp-style input {
+    margin: 0;
+  }
+  .pp-style b {
+    font-weight: 600;
+    font-size: 12.5px;
+  }
+  .pp-style .k {
+    font-size: 11.5px;
+    line-height: 1.35;
+  }
+  .pp-rule {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 13px;
+    flex-wrap: nowrap;
+  }
+  .pp-rule .in.num,
+  .pp-num {
+    width: 52px;
+    height: 30px;
+    min-height: 30px;
+    text-align: center;
+    margin: 0 2px;
+    padding: 0 6px;
+  }
+  .pp-icon {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .pp-mark {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    background: var(--ink);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 13px;
+    flex: none;
+    font-family: var(--font-family-sans);
+    overflow: hidden;
+  }
+  .pp-mark img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .pp-paths {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding-left: 24px;
+    align-items: center;
+  }
+  .pp-paths .chip button {
+    border: 0;
+    background: none;
+    padding: 0;
+    margin-left: 2px;
+    color: var(--ink-3);
+    cursor: pointer;
+    display: inline-flex;
+  }
+
+  .pp-area {
+    flex: 999 1 560px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: #e9ecf0;
+  }
+  .pp-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 8px 16px;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+  }
+  .pp-body {
+    padding: 20px 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .pp-row {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  /* A page of the site, in a browser frame. */
+  .pp-site {
+    width: 100%;
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(11, 18, 32, 0.12);
+    font-family: var(--font-family-sans);
+    color: #1f2937;
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+  .pp-site.phone {
+    width: 250px;
+    border-radius: 16px;
+  }
+  .pp-site.iphone {
+    width: 300px;
+    border-radius: 16px;
+  }
+  .pp-chrome {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+    background: #f9fafb;
+  }
+  .pp-chrome .dots {
+    display: flex;
+    gap: 5px;
+  }
+  .pp-chrome .dots span {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--line-strong);
+  }
+  .pp-chrome .url {
+    flex: 1;
+    min-width: 0;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid var(--line);
+    font-family: var(--font-family-mono);
+    font-size: 11.5px;
+    color: var(--ink-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pp-page {
+    position: relative;
+    height: 360px;
+    overflow: hidden;
+  }
+  .pp-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .phone .pp-head,
+  .iphone .pp-head {
+    padding: 12px 14px;
+  }
+  .pp-head .logo {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: var(--ink);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 12px;
+    flex: none;
+    overflow: hidden;
+  }
+  .pp-head .logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .pp-head .name {
+    font-weight: 700;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pp-head .pp-nav {
+    margin-left: auto;
+    display: flex;
+    gap: 16px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+  }
+  .pp-post {
+    padding: 22px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .phone .pp-post,
+  .iphone .pp-post {
+    padding: 18px 14px;
+  }
+  .pp-post .meta {
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+  .pp-post h3 {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 28px;
+    line-height: 1.2;
+    color: var(--ink);
+  }
+  .phone .pp-post h3,
+  .iphone .pp-post h3 {
+    font-size: 24px;
+  }
+  .pp-post p {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--ink-nav);
+  }
+  .pp-post .sk {
+    display: block;
+    height: 10px;
+    border-radius: 5px;
+    background: var(--line-2);
+  }
+
+  /* The prompt in its three styles. */
+  .pp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid #c9ced6;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .pp-btn.pri {
+    border-color: transparent;
+    color: #fff;
+    padding: 0 16px;
+  }
+  .pp-bar-p {
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 16px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 -6px 24px rgba(11, 18, 32, 0.14);
+    padding: 12px 14px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .pp-bar-p .tx,
+  .pp-sheet .tx,
+  .pp-dialog .tx,
+  .pp-pop .tx {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .pp-bar-p .tx {
+    flex: 1 1 240px;
+  }
+  .pp-bar-p b,
+  .pp-sheet b,
+  .pp-dialog b,
+  .pp-pop b {
+    font-size: 13.5px;
+  }
+  .pp-bar-p .tx span,
+  .pp-sheet .tx span,
+  .pp-dialog .tx span,
+  .pp-pop .tx span {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    line-height: 1.45;
+  }
+  .pp-sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #fff;
+    border-top: 1px solid var(--line);
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -6px 24px rgba(11, 18, 32, 0.14);
+    padding: 14px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .pp-sheet .two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .pp-sheet .two .pp-btn {
+    height: 38px;
+  }
+  .pp-dim {
+    position: absolute;
+    inset: 0;
+    background: rgba(11, 18, 32, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .pp-dialog {
+    width: 320px;
+    max-width: 100%;
+    background: #fff;
+    border-radius: 12px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 12px 32px rgba(11, 18, 32, 0.2);
+  }
+  .pp-dialog .acts,
+  .pp-pop .acts {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .pp-pop {
+    position: absolute;
+    right: 18px;
+    bottom: 76px;
+    width: 290px;
+    max-width: calc(100% - 36px);
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(11, 18, 32, 0.16);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .pp-pop.left {
+    right: auto;
+    left: 18px;
+  }
+  .pp-bell {
+    position: absolute;
+    right: 18px;
+    bottom: 18px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    box-shadow: 0 6px 16px rgba(67, 56, 202, 0.35);
+  }
+  .pp-bell.left {
+    right: auto;
+    left: 18px;
+  }
+  .phone .pp-pop {
+    bottom: 70px;
+    right: 10px;
+    max-width: calc(100% - 20px);
+  }
+  .phone .pp-bell {
+    right: 10px;
+    bottom: 12px;
+  }
+  .pp-step {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 0;
+    border-top: 1px solid var(--line-2);
+    font-size: 13.5px;
+  }
+  .pp-step:first-of-type {
+    border-top: 0;
+  }
+  .pp-step .ic {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: var(--ground);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    color: #1d4ed8;
+  }
+
+  /* The browser's own permission prompt. */
+  .pp-bp {
+    width: 300px;
+    max-width: 100%;
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(11, 18, 32, 0.16);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 13px;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    color: var(--ink);
+  }
+  .pp-bp .pill {
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid #c9ced6;
+    font-weight: 600;
+  }
+  .pp-bp .pill.pri {
+    padding: 0 16px;
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #fff;
+  }
+  .pp-bp.safari {
+    background: #f9fafb;
+    border-radius: 12px;
+    padding: 16px;
+    align-items: center;
+    text-align: center;
+  }
+  .pp-bp.safari .two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+    margin-top: 2px;
+  }
+  .pp-bp.safari .two span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 30px;
+    border-radius: 7px;
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    font-weight: 600;
+  }
+  .pp-bp.safari .two span.pri {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #fff;
+  }
+
+  /* The account page's Notifications card, in the blocked state. */
+  .pp-account {
+    background: #f5f3ff;
+    border-radius: 10px;
+    padding: 18px;
+    display: flex;
+    justify-content: center;
+  }
+  .pp-account > div {
+    width: 100%;
+    max-width: 440px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-sizing: border-box;
+  }
+  .pp-account .how {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink-nav);
+    background: #f9fafb;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 10px 12px;
+  }
+
+  @media (max-width: 767px) {
+    .pp-left {
+      max-width: none;
+      flex: 1 1 100%;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .pp-body {
+      padding: 12px;
+    }
+    .pp-styles {
+      flex-wrap: wrap;
+    }
+    .pp-style {
+      flex: 1 1 96px;
+    }
+  }
+}
