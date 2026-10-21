@@ -575,6 +575,112 @@ func (q *Queries) AgencyCaptureTemplates(ctx context.Context, workspaceID uuid.U
 	return items, nil
 }
 
+const agencyChannelUsageByCountry = `-- name: AgencyChannelUsageByCountry :many
+SELECT m.country::text AS country, coalesce(sum(m.units), 0)::bigint AS units
+FROM channel_messages m
+WHERE m.workspace_id = $1 AND m.channel = $2 AND m.country <> ''
+  AND m.status IN ('sent', 'delivered', 'undelivered', 'failed')
+  AND coalesce(m.sent_at, m.created_at) >= $3::timestamptz AND coalesce(m.sent_at, m.created_at) < $4::timestamptz
+GROUP BY 1
+ORDER BY 2 DESC
+`
+
+type AgencyChannelUsageByCountryParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Channel     string    `json:"channel"`
+	FromAt      time.Time `json:"fromAt"`
+	ToAt        time.Time `json:"toAt"`
+}
+
+type AgencyChannelUsageByCountryRow struct {
+	Country string `json:"country"`
+	Units   int64  `json:"units"`
+}
+
+// The same messages per destination country (SMS).
+func (q *Queries) AgencyChannelUsageByCountry(ctx context.Context, arg AgencyChannelUsageByCountryParams) ([]AgencyChannelUsageByCountryRow, error) {
+	rows, err := q.db.Query(ctx, agencyChannelUsageByCountry,
+		arg.WorkspaceID,
+		arg.Channel,
+		arg.FromAt,
+		arg.ToAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AgencyChannelUsageByCountryRow{}
+	for rows.Next() {
+		var i AgencyChannelUsageByCountryRow
+		if err := rows.Scan(&i.Country, &i.Units); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const agencyChannelUsageByProvider = `-- name: AgencyChannelUsageByProvider :many
+SELECT coalesce(m.provider_id::text, '')::text AS key, coalesce(p.name, '')::text AS label,
+       coalesce(sum(m.units), 0)::bigint AS units, coalesce(sum(round(m.cost * 1000000)), 0)::bigint AS cost_micros
+FROM channel_messages m
+LEFT JOIN sms_providers p ON p.id = m.provider_id
+WHERE m.workspace_id = $1 AND m.channel = $2
+  AND m.status IN ('sent', 'delivered', 'undelivered', 'failed')
+  AND coalesce(m.sent_at, m.created_at) >= $3::timestamptz AND coalesce(m.sent_at, m.created_at) < $4::timestamptz
+GROUP BY 1, 2
+ORDER BY 1
+`
+
+type AgencyChannelUsageByProviderParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Channel     string    `json:"channel"`
+	FromAt      time.Time `json:"fromAt"`
+	ToAt        time.Time `json:"toAt"`
+}
+
+type AgencyChannelUsageByProviderRow struct {
+	Key        string `json:"key"`
+	Label      string `json:"label"`
+	Units      int64  `json:"units"`
+	CostMicros int64  `json:"costMicros"`
+}
+
+// One channel's messages on one UTC day, per provider, from the channel
+// message log (X21): what reached the provider counts, with its cost.
+func (q *Queries) AgencyChannelUsageByProvider(ctx context.Context, arg AgencyChannelUsageByProviderParams) ([]AgencyChannelUsageByProviderRow, error) {
+	rows, err := q.db.Query(ctx, agencyChannelUsageByProvider,
+		arg.WorkspaceID,
+		arg.Channel,
+		arg.FromAt,
+		arg.ToAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AgencyChannelUsageByProviderRow{}
+	for rows.Next() {
+		var i AgencyChannelUsageByProviderRow
+		if err := rows.Scan(
+			&i.Key,
+			&i.Label,
+			&i.Units,
+			&i.CostMicros,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const agencyClientPeople = `-- name: AgencyClientPeople :many
 SELECT u.id AS user_id, u.name, u.email, u.avatar_color, r.key AS role_key, r.name AS role_name, r.builtin AS role_builtin, false AS invited
 FROM workspace_members m

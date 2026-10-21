@@ -360,6 +360,29 @@ FROM providers p
 JOIN provider_daily_stats d ON d.provider_id = p.id AND d.day = @day
 WHERE p.workspace_id = @workspace_id;
 
+-- name: AgencyChannelUsageByProvider :many
+-- One channel's messages on one UTC day, per provider, from the channel
+-- message log (X21): what reached the provider counts, with its cost.
+SELECT coalesce(m.provider_id::text, '')::text AS key, coalesce(p.name, '')::text AS label,
+       coalesce(sum(m.units), 0)::bigint AS units, coalesce(sum(round(m.cost * 1000000)), 0)::bigint AS cost_micros
+FROM channel_messages m
+LEFT JOIN sms_providers p ON p.id = m.provider_id
+WHERE m.workspace_id = @workspace_id AND m.channel = @channel
+  AND m.status IN ('sent', 'delivered', 'undelivered', 'failed')
+  AND coalesce(m.sent_at, m.created_at) >= @from_at::timestamptz AND coalesce(m.sent_at, m.created_at) < @to_at::timestamptz
+GROUP BY 1, 2
+ORDER BY 1;
+
+-- name: AgencyChannelUsageByCountry :many
+-- The same messages per destination country (SMS).
+SELECT m.country::text AS country, coalesce(sum(m.units), 0)::bigint AS units
+FROM channel_messages m
+WHERE m.workspace_id = @workspace_id AND m.channel = @channel AND m.country <> ''
+  AND m.status IN ('sent', 'delivered', 'undelivered', 'failed')
+  AND coalesce(m.sent_at, m.created_at) >= @from_at::timestamptz AND coalesce(m.sent_at, m.created_at) < @to_at::timestamptz
+GROUP BY 1
+ORDER BY 2 DESC;
+
 -- name: AgencyUsageProviders :many
 -- A workspace's email providers, connected or not, with their pricing.
 SELECT id, workspace_id, name, adapter, label, pricing, connected_at, disconnected_at

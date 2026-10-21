@@ -104,6 +104,11 @@ type Querier interface {
 	AgencyCaptureLists(ctx context.Context, workspaceID uuid.UUID) ([]AgencyCaptureListsRow, error)
 	AgencyCaptureRoles(ctx context.Context, workspaceID uuid.UUID) ([]AgencyCaptureRolesRow, error)
 	AgencyCaptureTemplates(ctx context.Context, workspaceID uuid.UUID) ([]AgencyCaptureTemplatesRow, error)
+	// The same messages per destination country (SMS).
+	AgencyChannelUsageByCountry(ctx context.Context, arg AgencyChannelUsageByCountryParams) ([]AgencyChannelUsageByCountryRow, error)
+	// One channel's messages on one UTC day, per provider, from the channel
+	// message log (X21): what reached the provider counts, with its cost.
+	AgencyChannelUsageByProvider(ctx context.Context, arg AgencyChannelUsageByProviderParams) ([]AgencyChannelUsageByProviderRow, error)
 	// The people of a client who aren't staff: members and pending invitations.
 	AgencyClientPeople(ctx context.Context, arg AgencyClientPeopleParams) ([]AgencyClientPeopleRow, error)
 	// Library copies in a workspace with the item's latest version.

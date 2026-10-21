@@ -27,9 +27,9 @@ func init() {
 	})
 }
 
-// agencyChannels read SMS, push and WhatsApp usage; the channels' wire
-// files add theirs (X21, X22). None until those channels exist.
-var agencyChannels = func(*App) []agency.ChannelUsage { return nil }
+// agencyChannels read SMS, push and WhatsApp usage from the channel
+// message log (X21); a channel that writes nothing there reads zero.
+var agencyChannels = func(*App) []agency.ChannelUsage { return agency.MessageChannels() }
 
 func agencyService(a *App) *agency.Service {
 	return &agency.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Deps: func() agency.Deps {
