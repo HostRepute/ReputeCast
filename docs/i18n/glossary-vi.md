@@ -246,6 +246,61 @@ stay as they are.
 
 "Heading" is "Đề mục", never "Tiêu đề", which is an email's subject.
 
+## Website and pages
+
+The publication website, its posts, the page builder and the public pages'
+own words. Words a reader sees follow the built-in labels of the public
+pages (`internal/pagelabels`): "bản tin", "số", "Lưu trữ", "Tùy chọn email".
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| About (page, template) | Giới thiệu | |
+| Access (Website › Access) | Quyền truy cập | |
+| archive · Archive (the page, the link) | kho lưu trữ · Lưu trữ | |
+| band (subscribe band) | dải | a full-width strip of the home page |
+| block · layers | khối · lớp | the page builder's |
+| built-in page | trang có sẵn | like "nhãn có sẵn" |
+| byline · By {name} | tác giả · Tác giả: {name} | |
+| canonical URL | URL chính tắc | as Google's tools say it |
+| card (paywall card, a post's card) | khung | "thẻ" is a tag |
+| certificate | chứng chỉ | |
+| countdown | đếm ngược | |
+| cover (image) | ảnh bìa | |
+| excerpt | đoạn trích | |
+| featured · Feature on home | nổi bật · Nổi bật trên trang chủ | |
+| feed · RSS feed | nguồn cấp · nguồn cấp RSS | |
+| free preview | phần xem trước miễn phí | |
+| Hero (block) | Hero | the block's name, as in the composer |
+| home page | trang chủ | |
+| issue (of a newsletter) | số | "48 số", "Đọc số mới nhất" |
+| lead magnet | quà tặng đăng ký | a free file for confirmed subscribers |
+| live (site, form) · live version | đang hoạt động · đang chạy | |
+| member · free member · paid member (of the site) | thành viên · thành viên miễn phí · thành viên trả phí | a reader who signs in |
+| meter | hạn mức đọc miễn phí | "Hạn mức đọc" as a heading |
+| navigation · header · footer | điều hướng · đầu trang · chân trang | |
+| page · Pages | trang · Trang | |
+| Pay what you want | Trả tùy ý | |
+| paywall | tường phí | |
+| post · web-only post | bài viết · bài viết chỉ trên web | |
+| publish · unpublish · unschedule | xuất bản · gỡ xuất bản · hủy lên lịch | Unpublished: Đã gỡ xuất bản |
+| redirect | chuyển hướng | |
+| referrer (where views come from) | nguồn truy cập | a person who refers is "người giới thiệu" |
+| registration (event) | ghi danh | "đăng ký" is a signup |
+| sales page | trang bán hàng | |
+| signups · upgrades · views · visitors | lượt đăng ký · lượt nâng cấp · lượt xem · khách truy cập | |
+| site · website | trang web | |
+| sitemap | sơ đồ trang web | |
+| slug | đường dẫn | the page's or tag's part of the address |
+| social image | ảnh chia sẻ | the image a shared link shows |
+| tag | thẻ | |
+| tagline | khẩu hiệu | |
+| testimonial | lời nhận xét | |
+| theme | giao diện | |
+| tier (paid) | hạng trả phí | a tier's name, such as "Insider", stays as it is |
+| visibility · Public · Members · Paid | chế độ hiển thị · Công khai · Thành viên · Trả phí | |
+| visitor | khách truy cập | someone who isn't signed in |
+| webinar | hội thảo trực tuyến | |
+
 ## Team
 
 | English | Tiếng Việt |
