@@ -90,7 +90,7 @@ export default translate(ma, {
   // ── Build your own ───────────────────────────────────────────────────
   buildTitle: 'Tự xây adapter',
   buildBody:
-    'Adapter là một gói TypeScript nhỏ triển khai interface {iface}: {send}, {normalize}, và tùy chọn {setup}, {sync} và {quota}. Hãy khai báo khả năng và điều khoản trong {manifest}; các huy hiệu trong danh mục được lấy từ đó.',
+    'Adapter là một gói TypeScript nhỏ triển khai interface {iface}: {send}, {normalize}, và tùy chọn {setup}, {sync} và {quota}. Hãy khai báo khả năng và điều khoản trong {manifest}; các nhãn trong danh mục được lấy từ đó.',
   readSdk: 'Đọc hướng dẫn SDK',
   templateRepo: 'Dùng repo mẫu',
   exampleAdapter: 'Adapter ví dụ',

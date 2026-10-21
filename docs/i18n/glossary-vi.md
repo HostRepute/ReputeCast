@@ -206,49 +206,77 @@ order of the English.
 | aggregate report (DMARC) | báo cáo tổng hợp | |
 | alignment (DMARC) | căn chỉnh | "căn chỉnh DMARC" |
 | asset (a domain or IP HostRepute monitors) | tài sản | |
+| backfill (statuses from an API) | lấy bù | "Lấy bù trạng thái từ API của Mailgun" |
 | blocklist · listed · clean | danh sách chặn · bị liệt kê · sạch | |
-| bounce · hard bounce · soft bounce | thư trả lại · trả lại vĩnh viễn · trả lại tạm thời | the rate is "tỷ lệ trả thư" |
 | bounce mailbox | hộp thư nhận thư trả lại | SMTP providers |
+| bounce · hard bounce · soft bounce | thư trả lại · trả lại vĩnh viễn · trả lại tạm thời | the rate is "tỷ lệ trả thư" |
 | Broadcasts · Automations · System · Transactional (streams) | Gửi hàng loạt · Tự động hóa · Hệ thống · Giao dịch | names, so capitalised in a sentence: "luồng Hệ thống" |
 | bulk marketing | tiếp thị hàng loạt | a provider's terms |
 | cap (daily, today's) | giới hạn | "Giới hạn hôm nay" |
 | catalog (of providers) | danh mục | the wizard's first step |
 | condition (routing) | điều kiện | |
+| credentials (a provider's) | thông tin xác thực | |
 | dedicated IP · shared pool | IP riêng · nhóm IP dùng chung | |
 | defer · deferral | hoãn nhận | "Yahoo hoãn nhận" |
 | degraded · down | suy giảm · ngừng hoạt động | provider statuses |
 | delisting | gỡ khỏi danh sách | "Yêu cầu gỡ khỏi danh sách" |
+| double opt-in | xác nhận kép (double opt-in) | |
+| engagement tiers: Active · Cooling · At risk · Sunset | Đang hoạt động · Đang nguội · Có nguy cơ · Sắp ngừng gửi | Audience › Health's tiers, named in the warm-up's ordering; Audience's own translation wins |
 | event log · raw event · normalized event | nhật ký sự kiện · sự kiện gốc · sự kiện chuẩn hóa | |
 | failover · fallback · primary | chuyển dự phòng · dự phòng · chính | "nhà cung cấp dự phòng", "nhà cung cấp chính" |
 | feedback loop | vòng phản hồi | |
+| flow (an automation's) | quy trình tự động | "luồng" is a stream |
+| guard (Warm-up page) | ngưỡng bảo vệ | "Tỷ lệ trả thư · ngưỡng bảo vệ 2%" |
 | held (recipients) | tạm giữ | |
 | incident · outage | sự cố · sự cố ngừng hoạt động | |
+| live sending monitor | theo dõi gửi trực tiếp | "Live monitor" is "Theo dõi trực tiếp" |
+| maintainer · unmaintained (adapter) | người duy trì · ngừng duy trì | |
+| mapping (webhook, JSONPath) | ánh xạ | |
+| message id | mã thư | |
 | monitoring · monitored | giám sát · đang giám sát | HostRepute |
+| nameserver | máy chủ tên miền | |
 | polling (instead of webhooks) | hỏi định kỳ | "hỏi API sự kiện mỗi phút" |
+| Postmaster reputation: high · medium · low · bad | cao · trung bình · thấp · kém | |
 | production access (SES) | quyền gửi chính thức | the SES sandbox stays "sandbox" |
 | provisioning | khởi tạo | SNS topics and configuration sets |
+| pulled in · pushed out · two-way (suppression sync) | đã kéo về · đã đẩy đi · hai chiều | |
 | quota | hạn mức | |
+| read-only link (a live send) | liên kết chỉ xem | |
+| recommended (an option, a badge) | khuyên dùng | "IMAP (khuyên dùng)"; a recommendation's heading is "Đề xuất" |
 | region (AWS) | khu vực | AWS's own word; not the region format |
 | reputation · domain reputation · IP reputation | uy tín · uy tín tên miền · uy tín IP | |
+| reroute | định tuyến lại | |
+| reverse DNS | DNS ngược | |
+| route tester | công cụ thử tuyến | |
 | route · routing · weighted split | tuyến · định tuyến · chia theo tỷ trọng | |
 | secret (webhook signing) | khóa bí mật | "khóa bí mật ký webhook" |
 | seed list | danh sách địa chỉ thử | one address of yours at each mailbox provider |
 | self-test (of an endpoint) | tự kiểm tra | |
 | Send Readiness | Độ sẵn sàng gửi | |
 | share (of a split · of a send) | tỷ trọng · phần | |
+| slowdown (warm-up) | giảm tốc | |
+| SNDS filter result: Green · Yellow · Red | Xanh · Vàng · Đỏ | |
 | spam rate · spam trap | tỷ lệ spam · bẫy spam | |
+| spam trap hit | lượt dính bẫy spam | |
 | stale (data) · cached results | đã cũ · kết quả đã lưu | |
 | stream | luồng | |
 | suppression sync | đồng bộ danh sách chặn gửi | |
 | throttle · throttling | giới hạn tốc độ | |
 | tracking · tracking domain | theo dõi · tên miền theo dõi | |
+| verdict (HostRepute): Good · Fair · Poor · Bad | Tốt · Khá · Kém · Xấu | |
 | warm-up · warmed up · warm-up guard · ramp | khởi động · đã khởi động xong · bảo vệ khởi động · mức tăng | |
 | webhook endpoint · registration | endpoint webhook · đăng ký | |
+| write-only (a key) | chỉ ghi | "it can be replaced but never read back" |
+| zone file | tệp zone | |
 
 "sandbox", "configuration set", "SNS topic", "IAM", "ARN", "CloudFormation",
 "stack", "return-path", "DSN", "ARF", "rua", "JSONPath", "manifest.json",
-"SDK", "tunnel", "reverse proxy", "endpoint", "token", "Postmaster", "SNDS"
-and "JMRP" stay as they are.
+"SDK", "tunnel", "reverse proxy", "endpoint", "token", "idempotency",
+"Postmaster", "SNDS" and "JMRP" stay as they are, and so do the AWS field
+names ("Access key ID", "Secret access key", "RoleArn"), the SES region
+names, a provider's own stream names (Postmark's "Broadcast" stream:
+"luồng Broadcast") and the results in DNS records and reports ("pass",
+"fail", "p=quarantine").
 
 ## Transactional templates
 

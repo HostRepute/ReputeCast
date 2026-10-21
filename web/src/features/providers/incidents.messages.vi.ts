@@ -56,7 +56,7 @@ export default translate(mi, {
   othersKeep: '{count, plural, other {{others} vẫn tiếp tục gửi phần của mình.}}',
   waitAutoResume: 'Chờ {provider}, tự tiếp tục',
   moveTo: 'Chuyển sang {provider}',
-  moveToOverCap: 'Chuyển sang {provider} · vượt giới hạn, không khuyến nghị',
+  moveToOverCap: 'Chuyển sang {provider} · vượt giới hạn khởi động, không khuyên dùng',
   moveToWarming: 'Chuyển sang {provider} · đang khởi động',
   cancelSend: 'Hủy lần gửi',
   moveTitle: '{count, plural, other {Chuyển # người nhận sang {provider}?}}',
@@ -142,7 +142,7 @@ export default translate(mi, {
   authFailingOver: 'Luồng {stream} ({mail}) đang tự động chuyển dự phòng sang {fallback};',
   authFailingOverRerouted: 'Luồng {stream} ({mail}) đang tự động chuyển dự phòng sang {fallback}; đã định tuyến lại {count} thư cho đến nay.',
   streamMail:
-    '{stream, select, system {xác nhận đăng ký hai bước, liên kết trung tâm tùy chọn} automation {email do tự động hóa gửi} broadcast {chiến dịch} other {đặt lại mật khẩu, biên nhận và cảnh báo}}',
+    '{stream, select, system {xác nhận kép (double opt-in), liên kết trung tâm tùy chọn} automation {email do tự động hóa gửi} broadcast {chiến dịch} other {đặt lại mật khẩu, biên nhận và cảnh báo}}',
   authRotated: 'Có thể ai đó đã xoay vòng {credential} trong {provider}.',
   update: 'Cập nhật {credential}',
   viewFailed: 'Xem các lệnh gọi thất bại',

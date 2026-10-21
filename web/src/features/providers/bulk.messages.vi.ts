@@ -48,7 +48,7 @@ export default translate(mb, {
   policyAuto: 'Tự động',
 
   fixTitle: 'Cách khắc phục',
-  createTitle: 'Tạo luồng Broadcast cho {name} (khuyến nghị)',
+  createTitle: 'Tạo luồng Broadcast cho {name} (khuyên dùng)',
   createDescription:
     'ReputeCast tạo "ReputeCast Broadcasts" trong máy chủ {name} của bạn, đăng ký webhook và dùng nó làm {role, select, fallback {dự phòng} other {tuyến}}. Khoảng 1 phút.',
   otherTitle: '{role, select, fallback {Dùng dự phòng khác} other {Dùng nhà cung cấp khác}}',
