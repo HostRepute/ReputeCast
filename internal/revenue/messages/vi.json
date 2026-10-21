@@ -1,0 +1,16 @@
+{
+  "problem.currency": "Hãy gửi mã tiền tệ ISO 4217, chẳng hạn USD, EUR hoặc GBP.",
+  "problem.domain": "“{domain}” không phải là tên miền. Hãy gửi tên miền như app.acme.io, không kèm https:// hay đường dẫn.",
+  "problem.domainsNeeded": "Hãy thêm các tên miền được gắn token lượt nhấp, chẳng hạn app.acme.io.",
+  "problem.idempotencyKey": "Header Idempotency-Key chỉ được dài tối đa 200 ký tự.",
+  "problem.idempotencyReuse": "Idempotency-Key này đã được dùng cho một chuyển đổi khác. Hãy dùng một khóa mới cho mỗi chuyển đổi.",
+  "problem.missingIdentity": "Hãy gửi email của người đọc, token lượt nhấp (rc_click), hoặc cả hai.",
+  "problem.name": "Hãy đặt tên cho chuyển đổi, chẳng hạn “Nâng cấp lên gói Team”.",
+  "problem.occurredAt": "occurred_at phải nằm trong 30 ngày qua và không ở tương lai. Hãy gửi thời điểm sự kiện xảy ra.",
+  "problem.rateLimited": "Khóa này đang gửi chuyển đổi quá nhanh. Hãy thử lại sau {seconds, plural, other {# giây}}.",
+  "problem.value": "Hãy gửi giá trị dưới dạng chuỗi số thập phân, chẳng hạn “29.00”, không phải 29.",
+  "problem.valueDecimals": "Giá trị có nhiều chữ số thập phân hơn số mà loại tiền tệ này cho phép.",
+  "problem.window": "Hãy chọn khung thời gian từ 1 đến 30 ngày.",
+
+  "test.name": "Chuyển đổi thử nghiệm"
+}
