@@ -116,6 +116,7 @@
   "site.subscribed.noneText": "You don't get any of the newsletters by email right now.",
   "site.upgradeTo": { "message": "Upgrade to {tier}", "note": "tier: Insider" },
   "site.readMin": { "message": "{count} min read", "note": "a post's reading time" },
+  "site.month": { "message": "{month, plural, =1 {January} =2 {February} =3 {March} =4 {April} =5 {May} =6 {June} =7 {July} =8 {August} =9 {September} =10 {October} =11 {November} other {December}}", "note": "a month's name in a sentence, the meter's “for October”; month: 1 to 12" },
   "site.by": { "message": "By {name}", "note": "a post's byline" },
   "site.tags": { "message": "Tags", "note": "names a post's tags for screen readers" },
   "site.share": "Share",

@@ -308,12 +308,12 @@ func (h *Handler) postBody(ctx context.Context, s *site, v *siteView, p store.We
 	return b, nil
 }
 
-// monthName names the meter's month ("October").
+// monthName names the meter's month ("October", "tháng 10").
 func monthName(v *siteView, month time.Time) string {
 	if v.labels.Code() == "en" {
 		return month.Format("January")
 	}
-	return v.labels.Lang().Region.Date(month)
+	return v.T("site.month", "month", int(month.Month()))
 }
 
 // nextName names the first day of the next month ("1 November").
