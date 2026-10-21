@@ -28,7 +28,7 @@ export default translate(m, {
   supNone: 'Chưa có số nào',
   // Provider rows.
   providersLabel: 'Nhà cung cấp SMS',
-  accountLive: '{account}, thật',
+  accountLive: '{account}, chính thức',
   accountTest: '{account}, thông tin xác thực thử',
   held: 'Tạm giữ {countries}',
   factAccount: 'Tài khoản',

@@ -35,7 +35,7 @@ export default translate(m, {
   lead2Twilio: 'Hãy dùng khóa API thay vì auth token, để bạn có thể thu hồi riêng quyền truy cập của ReputeCast.',
   lead2: 'Dán thông tin xác thực từ bảng điều khiển của {name}. ReputeCast kiểm tra trước khi lưu bất cứ thứ gì.',
   writeOnly: 'Chỉ ghi: thông tin bí mật được niêm phong khi lưu và không bao giờ hiện lại.',
-  optLive: 'Thật',
+  optLive: 'Chính thức',
   optTest: 'Thông tin xác thực thử',
   webhooksApi: 'Webhook được đăng ký qua API của {name}',
   webhooksApiText:
