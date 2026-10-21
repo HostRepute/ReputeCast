@@ -14,6 +14,7 @@ export const m = defineMessages('channelCampaigns', {
   shownTitle: 'Shown, as the service worker reports it',
   local: "{date} · {time} in each recipient's time zone",
   notSite: 'No site',
+  siteSubscribers: 'Site subscribers',
   duplicated: 'Duplicated as “{name}”',
   duplicateFailed: "Couldn't duplicate",
 })

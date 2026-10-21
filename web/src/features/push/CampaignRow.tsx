@@ -78,7 +78,10 @@ export function ChannelCampaignRow({ c, web }: { c: Item; web?: ReactNode }) {
         <CampaignStatusBadge status={c.status} blocked={c.blocked} />
       </Td>
       {web ? <Td>{web}</Td> : null}
-      <Td className={c.audience ? undefined : 'k'}>{c.audience || t(cm.notSet)}</Td>
+      {/* A push campaign without lists or segments goes to its sites' subscribers. */}
+      <Td className={c.audience || (channel === 'push' && c.routes.length) ? undefined : 'k'}>
+        {c.audience || (channel === 'push' && c.routes.length ? t(m.siteSubscribers) : t(cm.notSet))}
+      </Td>
       <Td align="right" num={c.recipients != null} className={c.recipients == null ? 'k' : undefined}>
         {c.recipients != null ? count(c.recipients) : '–'}
       </Td>
