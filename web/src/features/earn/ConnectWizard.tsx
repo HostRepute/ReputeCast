@@ -391,10 +391,10 @@ function KeyStep({
       </section>
       <Field
         label={t(mc.keyLabel)}
-        hint={<Msg msg={mc.keyHint} values={{ live: <span className="mono">rk_live_</span>, test: <span className="mono">rk_test_</span> }} />}
+        hint={<Msg msg={mc.keyHint} values={{ live: <span className="mono">{'rk_live_'}</span>, test: <span className="mono">{'rk_test_'}</span> }} />}
         error={err ? (err.title ? `${err.title}. ${err.text}` : err.text) : undefined}
       >
-        <Input type="password" autoComplete="off" spellCheck={false} value={key} onChange={(e) => (setKey(e.target.value), setErr(undefined))} placeholder={mode === 'test' ? 'rk_test_…' : 'rk_live_… or rk_test_…'} />
+        <Input type="password" autoComplete="off" spellCheck={false} value={key} onChange={(e) => (setKey(e.target.value), setErr(undefined))} placeholder={mode === 'test' ? 'rk_test_…' : t(mc.keyPlaceholder)} />
       </Field>
     </StepCard>
   )
@@ -543,7 +543,7 @@ function WebhookStep({ c, onBack, onNext }: { c: Conn; onBack: () => void; onNex
               <li>{t(mc.manual3)}</li>
             </ol>
             <Field label={t(mc.signingSecret)} hint={t(mc.sealedNote)}>
-              <Input type="password" autoComplete="off" value={secret} placeholder="whsec_…" onChange={(e) => setSecret(e.target.value)} />
+              <Input type="password" autoComplete="off" value={secret} placeholder={'whsec_…'} onChange={(e) => setSecret(e.target.value)} />
             </Field>
             <div className="flex flex-wrap gap-2">
               <Button

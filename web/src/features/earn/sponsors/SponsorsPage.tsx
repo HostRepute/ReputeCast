@@ -757,7 +757,7 @@ function ReadOnlyNote({ helpers }: { helpers: string[] }) {
   const role = roleName({ key: wme.workspace.roleKey, name: wme.workspace.roleName, builtin: true })
   return (
     <NoticeNote tone="neutral" title={t(msp.readOnlyTitle, { name, role })}>
-      <T msg={helpers.length ? msp.readOnlyText : msp.readOnlyNoHelpers} values={{ permission: <span className="mono">sponsors:manage</span>, helpers: orList(helpers) }} />
+      <T msg={helpers.length ? msp.readOnlyText : msp.readOnlyNoHelpers} values={{ permission: <span className="mono">{'sponsors:manage'}</span>, helpers: orList(helpers) }} />
     </NoticeNote>
   )
 }

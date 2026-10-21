@@ -3,38 +3,14 @@ import { useState, type ReactNode } from 'react'
 import { $api, type Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Button, ButtonLink } from '@/components/ui/Button'
-import { defineMessages, useT } from '@/i18n'
+import { useT } from '@/i18n'
 import { count, pct, shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { EARN } from '../EarnPage'
 import { money } from '../format'
+import { mcard as mc } from './card.messages'
 import { RevenueCountDelta, RevenueDelta } from './RevenueOverview'
 import './revenue.css'
-
-const mc = defineMessages('earn.overviewCard', {
-  title: 'Earn · last 30 days',
-  label: 'Earn, last 30 days',
-  line: '{provider} · {account} · {mode, select, test {Test} other {Live}}',
-  lineNoAccount: '{provider} · {mode, select, test {Test} other {Live}}',
-  mrr: 'MRR',
-  members: 'Paid members',
-  churn: 'Churn',
-  trials: 'Trials',
-  nextSponsor: 'Next sponsor',
-  nextIssue: '#{issue} · {sponsor}',
-  creativeDue: 'Creative due {date}',
-  creativeReady: 'Creative ready',
-  open: 'Open Earn',
-  silentTitle: '{provider} webhook silent',
-  silentText:
-    'No event from {provider} for {hours, plural, one {# hour} other {# hours}}, while {active, plural, one {# subscription is} other {# subscriptions are}} active. Statuses are at most an hour behind.',
-  checkWebhook: 'Check the webhook',
-  inviteLabel: 'Earn',
-  inviteTitle: 'Earn from your newsletter',
-  inviteText: 'Paid subscriptions, gifts and sponsorships. Readers pay you through your own Stripe account; ReputeCast takes no fee.',
-  setUp: 'Set up Earn',
-  notNow: 'Not now',
-})
 
 const dismissKey = (slug: string) => `rc.overview.earn.${slug}`
 
