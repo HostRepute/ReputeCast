@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/forms"
+	"github.com/hostrepute/reputecast/internal/products"
 	"github.com/hostrepute/reputecast/internal/website"
 )
 
@@ -97,6 +98,9 @@ func (h *Handler) takeFlash(w http.ResponseWriter, r *http.Request, s *site, v *
 		v.Toast = v.T("account.newslettersSaved")
 	case "unsubscribed":
 		v.Toast = v.T("account.unsubscribed")
+	case "purchase_link":
+		// A purchase's new download link (sell_account.go).
+		v.Toast = v.S("account.sent", "email", products.MaskEmail(email))
 	}
 	if v.Toast != "" {
 		v.private = true

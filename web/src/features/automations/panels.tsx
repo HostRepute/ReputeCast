@@ -32,6 +32,8 @@ import { StepLanguages } from '@/features/languages/automation'
 import { ScoreTriggerFields, scoreTriggerDefaults } from '@/features/scoring/ScoreTrigger'
 import { isOneOfLabel, scoreTriggerName } from '@/features/scoring/triggerText'
 import { PollTriggerProps } from '@/features/polls/trigger'
+import { BoughtConditionProps, BoughtTriggerProps } from '@/features/products/automation'
+import { boughtConditionName, boughtTriggerName } from '@/features/products/automationText'
 import { MilestoneTriggerFields } from '@/features/grow/MilestoneTrigger'
 import { milestoneTriggerName } from '@/features/grow/triggerText'
 import { isStoreTrigger, PlacedOrderFields, StoreTriggerFields, storeTriggerDefaults, useStoreTriggerOptions } from '@/features/commerce/automation'
@@ -61,6 +63,13 @@ const triggerItems: { kind: TriggerConfig['kind']; label: string }[] = [
   },
   // Design expansion, X11.
   { kind: 'poll_answered', label: 'Answered a poll or survey' },
+  // Digital products (X19).
+  {
+    kind: 'bought_product',
+    get label() {
+      return boughtTriggerName()
+    },
+  },
   // Referral milestones (Grow).
   {
     kind: 'milestone_reached',
@@ -263,6 +272,8 @@ function ConditionEditor({ graph, node, value, onChange, refs, options, disabled
     { value: 'list', label: 'Is in a list' },
     { value: 'event', label: 'Sent an API event' },
     { value: 'field', label: 'A contact field' },
+    // Digital products (X19).
+    { value: 'bought_product', label: boughtConditionName() },
     // Shopify and WooCommerce (design expansion, X20).
     { value: 'placed_order', label: 'Placed an order' },
   ]
@@ -323,6 +334,8 @@ function ConditionEditor({ graph, node, value, onChange, refs, options, disabled
         </select>
       ) : null}
       {c?.kind === 'event' ? <input className="in mono" aria-label="Event" list="fe-events" placeholder="teammate.invited" disabled={disabled} value={c.event ?? ''} onChange={(e) => set({ event: e.target.value })} /> : null}
+      {/* Bought a product (digital products, X19). */}
+      {c?.kind === 'bought_product' ? <BoughtConditionProps c={c} disabled={disabled} set={set} products={options?.products} /> : null}
       {c?.kind === 'placed_order' ? <PlacedOrderFields c={c} set={set} disabled={disabled} /> : null}
       {c?.kind === 'field' ? (
         <>
@@ -643,6 +656,8 @@ function TriggerProps({ graph, node, options, editable, onChange, stats, hasStat
         {t.kind === 'tag_added' ? <input className="in" aria-label="Tag" list="fe-tags" placeholder="Tag, e.g. sunset-entered" disabled={disabled} value={t.tag ?? ''} onChange={(e) => set({ tag: e.target.value })} /> : null}
         {/* Answered a poll or survey (design expansion, X11). */}
         {t.kind === 'poll_answered' ? <PollTriggerProps t={t} disabled={disabled} set={set} /> : null}
+        {/* Bought a product (digital products, X19). */}
+        {t.kind === 'bought_product' ? <BoughtTriggerProps t={t} disabled={disabled} set={set} products={options?.products} /> : null}
         {/* Order placed, First order and Abandoned checkout (design expansion, X20). */}
         {isStoreTrigger(t.kind) ? <StoreTriggerFields t={t} set={set} disabled={disabled} graph={graph} /> : null}
         {t.kind === 'api_event' ? (

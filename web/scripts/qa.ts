@@ -137,6 +137,11 @@ const resolvers: Record<string, (ctx: BrowserContext, value: string) => Promise<
   },
   // A website post by its title ({post:Inside our Postgres migration: the runbook}).
   post: (ctx, title) => lookup(ctx, `website/posts?pageSize=100&q=${encodeURIComponent(title)}`, 'posts', (p) => p.title === title, `no post titled ${title}`),
+  // A product by its name ({product:The Deliverability Field Guide}) and an order by its number ({order:1311}).
+  product: (ctx, name) => lookup(ctx, 'products', 'products', (p) => p.name === name, `no product named ${name}`),
+  order: (ctx, n) => lookup(ctx, `products/orders?period=all&q=${encodeURIComponent(n)}`, 'items', (o) => String(o.number) === n, `no order ${n}`),
+  // A page by its name ({page:The Deliverability Field Guide}).
+  page: (ctx, name) => lookup(ctx, 'pages', 'pages', (p) => p.name === name, `no page named ${name}`),
   // A connected store by its name ({store:Acme Merch}).
   store: (ctx, name) => lookup(ctx, 'stores', 'stores', (s) => s.name === name, `no store named ${name}`),
 }

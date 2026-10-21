@@ -22,6 +22,7 @@ import { fileName, saveBlob } from './download'
 import { consentFilterLabel, consentLabel, consentTone, mailboxColor, mailboxes, mailboxLabel, tierClass, tierColor, tierLabel, tiers, type Consent, type Mailbox, type Tier } from './labels'
 import { LanguageFilter } from '@/features/page-languages/contacts'
 import { PaidStatusCell, PaidStatusSelect, PaidTierChip } from '@/features/earn/ContactsPaid'
+import { BoughtFilter } from '@/features/products/filter'
 import { StoreChips, StoreContactFields, storeMoreKeys, type StoreDraft } from '@/features/commerce/contacts'
 import './audience.css'
 import { MembersChips } from '@/features/website/elsewhere'
@@ -54,6 +55,8 @@ export interface ContactsSearch {
   paidTier?: string
   /** Members of the website: contacts who signed in to it (X18). */
   signedIn?: boolean
+  /** Buyers of digital products (X19): any product, or a product's id. */
+  bought?: string
   /** Store customers and what they spent (X20). */
   storeCustomer?: string
   spentFrom?: string
@@ -93,6 +96,8 @@ const filterKeys = [
   'paidTier',
   // Members of the website (X18).
   'signedIn',
+  // Buyers of digital products (X19).
+  'bought',
   // Store customers and what they spent (X20).
   'storeCustomer',
   'spentFrom',
@@ -402,6 +407,8 @@ function Filters({
       <LanguageFilter className={sel} value={search.language} onChange={(language) => onChange({ language })} />
       <AddressCheckFilter className={sel} value={search.check} onChange={(check) => onChange({ check })} />
       <PaidStatusSelect className={sel} tiers={paidTiers} paid={search.paid} tier={search.paidTier} onChange={(f) => onChange(f as Partial<ContactsSearch>)} />
+      {/* Bought a product (X19), with products:view. */}
+      <BoughtFilter className={sel} value={search.bought} onChange={(bought) => onChange({ bought })} />
       <MoreFilters search={search} n={more} onChange={onChange} />
       <span className="k ml-auto">{total === undefined ? '' : totalLine(total, search.sort === 'score')}</span>
       <ScoreGrowthChips search={search} onChange={onChange} />

@@ -103,6 +103,30 @@ type ActivitySource interface {
 	ContactActivity(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, before *time.Time, beforeID string, limit int) ([]ContactActivityItem, int64, error)
 }
 
+// ActivitySources are several domains' events as one source (poll answers,
+// purchases); nil entries are skipped.
+type ActivitySources []ActivitySource
+
+// ContactActivity implements ActivitySource.
+func (ss ActivitySources) ContactActivity(ctx context.Context, ws *store.Workspace, contactID uuid.UUID, before *time.Time, beforeID string, limit int) ([]ContactActivityItem, int64, error) {
+	var out []ContactActivityItem
+	var total int64
+	for _, s := range ss {
+		if s == nil {
+			continue
+		}
+		items, n, err := s.ContactActivity(ctx, ws, contactID, before, beforeID, limit)
+		if err != nil {
+			return nil, 0, err
+		}
+		out, total = mergeActivity(out, items), total+n
+	}
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out, total, nil
+}
+
 // mergeActivity merges two timelines ordered newest first.
 func mergeActivity(a, b []ContactActivityItem) []ContactActivityItem {
 	out := make([]ContactActivityItem, 0, len(a)+len(b))

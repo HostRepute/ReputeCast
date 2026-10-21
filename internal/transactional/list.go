@@ -69,6 +69,9 @@ type TransactionalTemplateListItem struct {
 	Spark      []int64    `json:"spark"`
 	LastSentAt *time.Time `json:"lastSentAt,omitempty"`
 	UpdatedAt  time.Time  `json:"updatedAt"`
+	// UsedByProducts is how many published digital products send the
+	// template as their delivery email ("Used by 2 products").
+	UsedByProducts int `json:"usedByProducts,omitempty"`
 }
 
 // TransactionalTemplateList is the Templates tab's table.
@@ -127,9 +130,17 @@ func (s *Service) Templates(ctx context.Context, ws *store.Workspace, p *authz.P
 		out.ReadOnlyReason = "You can view templates, test renders, the log and reports. Editing needs transactional:edit and publishing needs transactional:publish. Ask " +
 			joinNames(s.helpers(ctx, ws.ID, authz.TransactionalPublish, 3)) + "."
 	}
+	// Digital products' delivery templates (X19).
+	usedBy := map[uuid.UUID]int{}
+	if uses, err := s.Q.ProductTemplateUses(ctx, ws.ID); err == nil {
+		for _, u := range uses {
+			usedBy[u.TemplateID] = int(u.Products)
+		}
+	}
 	for _, r := range rows {
 		it := TransactionalTemplateListItem{ID: r.ID.String(), Key: r.Key, Name: r.Name, Description: r.Description, Category: categoryRef(r.CategoryID, r.CategoryName, r.CategoryKind),
-			DraftChanges: r.LiveHash == "" || r.LiveHash != r.DraftHash, DraftVersion: int(r.VersionsCount) + 1, Archived: r.ArchivedAt != nil, UpdatedAt: r.UpdatedAt}
+			UsedByProducts: usedBy[r.ID],
+			DraftChanges:   r.LiveHash == "" || r.LiveHash != r.DraftHash, DraftVersion: int(r.VersionsCount) + 1, Archived: r.ArchivedAt != nil, UpdatedAt: r.UpdatedAt}
 		if r.LiveVersion != nil {
 			v := int(*r.LiveVersion)
 			it.LiveVersion = &v

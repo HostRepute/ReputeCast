@@ -32,16 +32,16 @@ func init() {
 	extraValidate["store_orders"] = validateCount
 	extraValidate["store_spent"] = validateAmount
 	extraValidate["store_last_order"] = validatePeriod
-	extraValidate["store_bought"] = validateBought
+	extraValidate["store_bought"] = validateStoreBought
 	extraCompile["store_customer"] = compileStoreCustomer
 	extraCompile["store_marketing"] = compileStoreMarketing
 	extraCompile["store_orders"] = compileStoreOrders
 	extraCompile["store_spent"] = compileStoreSpent
 	extraCompile["store_last_order"] = compileLastOrder
-	extraCompile["store_bought"] = compileBought
+	extraCompile["store_bought"] = compileStoreBought
 	extraOptions["store_customer"] = storeOptions
 	extraOptions["store_marketing"] = storeOptions
-	extraOptions["store_bought"] = boughtOptions
+	extraOptions["store_bought"] = storeBoughtOptions
 }
 
 // ordersOf is the contact's counted orders.
@@ -115,7 +115,7 @@ func boughtRef(v string) (kind string, storeID uuid.UUID, id string, ok bool) {
 	return kind, u, id, true
 }
 
-func validateBought(c SegmentCondition) error {
+func validateStoreBought(c SegmentCondition) error {
 	if _, _, _, ok := boughtRef(c.Value); !ok {
 		return problemf("Pick a product or a collection.")
 	}
@@ -191,7 +191,7 @@ func compileLastOrder(t *sqlText, c SegmentCondition) {
 	}
 }
 
-func compileBought(t *sqlText, c SegmentCondition) {
+func compileStoreBought(t *sqlText, c SegmentCondition) {
 	kind, storeID, id, _ := boughtRef(c.Value)
 	if c.Op == "is_not" {
 		t.raw("NOT ")
@@ -228,8 +228,8 @@ func storeOptions(ctx context.Context, q *store.Queries, ws uuid.UUID) ([]Segmen
 	return out, nil
 }
 
-// boughtOptions are each store's collections, then its products.
-func boughtOptions(ctx context.Context, q *store.Queries, ws uuid.UUID) ([]SegmentOption, error) {
+// storeBoughtOptions are each store's collections, then its products.
+func storeBoughtOptions(ctx context.Context, q *store.Queries, ws uuid.UUID) ([]SegmentOption, error) {
 	out := []SegmentOption{}
 	rows, err := q.CommerceStores(ctx, ws)
 	if err != nil {

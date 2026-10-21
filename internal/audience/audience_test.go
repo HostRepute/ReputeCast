@@ -45,8 +45,10 @@ func TestAudienceDemo(t *testing.T) {
 			Lists    []struct{ Name string }
 		}
 		c.Do(http.MethodGet, ws+"/audience", nil).MustStatus(t, 200).JSON(t, &sum)
-		if sum.Contacts != 48213 {
-			t.Fatalf("contacts %d, want 48,213", sum.Contacts)
+		// The boards' 48,213 and SMS's (X21) 338 new Acme Summit 2026
+		// registrants, all Active.
+		if sum.Contacts != 48213+338 {
+			t.Fatalf("contacts %d, want 48,213 + 338", sum.Contacts)
 		}
 		var page struct {
 			Total int64
@@ -56,8 +58,8 @@ func TestAudienceDemo(t *testing.T) {
 			}
 		}
 		c.Do(http.MethodGet, ws+"/contacts?tier=active&pageSize=10", nil).MustStatus(t, 200).JSON(t, &page)
-		if page.Total != 29412 {
-			t.Fatalf("active %d, want 29,412", page.Total)
+		if page.Total != 29412+338 {
+			t.Fatalf("active %d, want 29,412 + 338", page.Total)
 		}
 		for _, it := range page.Items {
 			if it.Tier != "active" {
@@ -115,7 +117,7 @@ func TestAudienceDemo(t *testing.T) {
 			}
 		}
 		c.Do(http.MethodGet, ws+"/audience/health", nil).MustStatus(t, 200).JSON(t, &h)
-		want := map[string]int64{"active": 29412, "cooling": 9884, "at_risk": 5302, "sunset": 3615}
+		want := map[string]int64{"active": 29412 + 338, "cooling": 9884, "at_risk": 5302, "sunset": 3615} // with SMS's (X21) new registrants
 		for _, tc := range h.Tiers {
 			if tc.Count != want[tc.Tier] {
 				t.Errorf("%s: %d, want %d", tc.Tier, tc.Count, want[tc.Tier])

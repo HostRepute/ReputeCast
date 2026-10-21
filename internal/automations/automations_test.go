@@ -70,14 +70,20 @@ func TestListAndSummaryMatchTheBoard(t *testing.T) {
 	var l list
 	c.Do("GET", wsPath, nil).MustStatus(t, 200).JSON(t, &l)
 	// Contact scoring (X13) adds the live "Sales-ready handoff", SMS (X21)
-	// the live "Acme Summit reminders" and the Acme Merch store (X20) the
-	// live "Abandoned cart".
-	if l.Counts.All != 8 || l.Counts.Live != 6 || l.Counts.Paused != 1 || l.Counts.Drafts != 1 {
+	// the live "Acme Summit reminders", the pages and products sample (X19)
+	// the live "Field Guide follow-up" and "DMARC live reminders", and the
+	// Acme Merch store (X20) the live "Abandoned cart".
+	if l.Counts.All != 10 || l.Counts.Live != 8 || l.Counts.Paused != 1 || l.Counts.Drafts != 1 {
 		t.Fatalf("counts %+v", l.Counts)
 	}
+	added := map[string]bool{"Sales-ready handoff": true, "Acme Summit reminders": true, "Field Guide follow-up": true, "DMARC live reminders": true, "Abandoned cart": true}
 	var got []string
+	var x19InFlow int64
 	for _, it := range l.Items {
-		if it.Name != "Sales-ready handoff" && it.Name != "Acme Summit reminders" && it.Name != "Abandoned cart" {
+		if (it.Name == "Field Guide follow-up" || it.Name == "DMARC live reminders") && it.InFlow != nil {
+			x19InFlow += *it.InFlow
+		}
+		if !added[it.Name] {
 			got = append(got, it.Name)
 		}
 	}
@@ -132,7 +138,7 @@ func TestListAndSummaryMatchTheBoard(t *testing.T) {
 	}
 	c.Do("GET", wsPath+"/summary", nil).MustStatus(t, 200).JSON(t, &sum)
 	// Abandoned cart (X20) adds 6 in flow and 6 goals in the 30 days.
-	if sum.InFlow != 1938 || sum.LiveCount != 6 || sum.Goals != 610 || len(sum.GoalsBy) != 4 || sum.GoalsBy[0].Name != "welcome" || sum.GoalsBy[0].Count != 312 {
+	if sum.InFlow != 1938+x19InFlow || sum.LiveCount != 8 || sum.Goals != 610 || len(sum.GoalsBy) != 4 || sum.GoalsBy[0].Name != "welcome" || sum.GoalsBy[0].Count != 312 {
 		t.Fatalf("summary %+v", sum)
 	}
 	if len(sum.SentBy) == 0 || sum.SentBy[0].Short != "SES" {
@@ -523,9 +529,10 @@ func TestTemplatesAndOptions(t *testing.T) {
 		Providers []struct{ Short string }
 	}
 	c.Do("GET", wsPath+"/options", nil).MustStatus(t, 200).JSON(t, &opts)
-	// The three lists of the board, SMS's (X21) Acme Summit 2026 and the
-	// store's (X20) Acme Merch.
-	if len(opts.Lists) != 5 || len(opts.Emails) < 5 || len(opts.Providers) != 3 {
+	// The three lists of the board, SMS's (X21) Acme Summit 2026, the
+	// webinar's and the Launch Kit waitlist (X19), and the store's (X20)
+	// Acme Merch.
+	if len(opts.Lists) != 7 || len(opts.Emails) < 5 || len(opts.Providers) != 3 {
 		t.Fatalf("options %+v", opts)
 	}
 }

@@ -390,6 +390,9 @@ func (g *storeSeedState) list() error {
 		  AND NOT EXISTS (SELECT 1 FROM survey_responses x WHERE x.contact_id = c.id)
 		  AND NOT EXISTS (SELECT 1 FROM unsubscribe_feedback x WHERE x.contact_id = c.id)
 		  AND NOT EXISTS (SELECT 1 FROM website_members x WHERE x.contact_id = c.id)
+		  AND NOT EXISTS (SELECT 1 FROM product_orders x WHERE x.contact_id = c.id)
+		  AND NOT EXISTS (SELECT 1 FROM product_checkouts x WHERE x.contact_id = c.id)
+		  AND NOT EXISTS (SELECT 1 FROM lead_magnet_links x WHERE x.contact_id = c.id)
 		ORDER BY md5(c.email) LIMIT 1`, ws.ID, named).Scan(&grace.contact, &oldEmail)
 	if err != nil {
 		return fmt.Errorf("stores: a sample Grace: %w", err)

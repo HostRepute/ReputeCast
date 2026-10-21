@@ -59,6 +59,8 @@ func TriggerKindLabel(kind string) string {
 		return "Score crosses…"
 	case TriggerPollAnswered:
 		return "Answered a poll or survey"
+	case TriggerBoughtProduct:
+		return "Bought a product"
 	case TriggerMilestoneReached:
 		return "Reached a milestone"
 	case TriggerOrderPlaced:
@@ -106,6 +108,8 @@ func TriggerRef(t *AutomationTrigger, refs *Refs) string {
 			}
 		}
 		return "a poll"
+	case TriggerBoughtProduct:
+		return productRef(t.ProductID, refs)
 	case TriggerMilestoneReached:
 		if t.MilestoneID == "" {
 			return "any milestone"
@@ -125,6 +129,20 @@ func TriggerRef(t *AutomationTrigger, refs *Refs) string {
 		return "a store"
 	}
 	return ""
+}
+
+// productRef names a "Bought a product" trigger's or goal's product: any
+// product, or one that's gone.
+func productRef(id string, refs *Refs) string {
+	if id == "" {
+		return "any product"
+	}
+	if refs != nil {
+		if n, ok := refs.Products[id]; ok {
+			return n
+		}
+	}
+	return "a deleted product"
 }
 
 // TriggerLabel is the list's trigger column: "Joined list · Weekly Digest".
@@ -279,6 +297,8 @@ func conditionPhrase(g AutomationGraph, c *AutomationCondition, refs *Refs) stri
 		return "in " + name
 	case "event":
 		return "sent " + c.Event
+	case TriggerBoughtProduct:
+		return "bought " + productRef(c.ProductID, refs)
 	case ConditionPlacedOrder:
 		return "placed an order"
 	case "field":
@@ -408,6 +428,11 @@ func goalTitle(c *AutomationCondition, refs *Refs) string {
 		return "Joined a list"
 	case "event":
 		return "Sent " + c.Event
+	case TriggerBoughtProduct:
+		if c.ProductID == "" {
+			return "Bought a product"
+		}
+		return "Bought " + productRef(c.ProductID, refs)
 	case ConditionPlacedOrder:
 		return "Placed an order"
 	case "field":

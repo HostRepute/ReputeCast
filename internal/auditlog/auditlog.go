@@ -140,10 +140,12 @@ var Categories = []AuditCategory{
 	{Key: "verification", Label: "Verification", Groups: []string{"verification"}},
 	{Key: "placement", Label: "Placement tests", Groups: []string{"placement"}},
 	// The publication website (design expansion, phase 7).
-	{Key: "website", Label: "Website", Groups: []string{"website", "post", "tag"}},
+	{Key: "website", Label: "Website", Groups: []string{"website", "post", "tag", "page"}},
 	// Grow (design expansion, phase 5): referral programs, recommendations
 	// and partner links.
 	{Key: "grow", Label: "Grow", Groups: []string{"referral", "recommendation", "partner"}},
+	// Digital products and their orders (design expansion, phase 7).
+	{Key: "products", Label: "Products", Groups: []string{"product", "order"}},
 	// Shopify and WooCommerce (design expansion, phase 7).
 	{Key: "commerce", Label: "Commerce", Groups: []string{"store"}},
 }
