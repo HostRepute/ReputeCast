@@ -43,6 +43,16 @@ const lineVariants: LineVariant[] = [
   { key: 'narrow', w: 330, h: 220, x0: 52, x1: 322, top: 46, bottom: 198, steps: 2, labelY: 215, markY: 12, months: 'ends' },
 ]
 
+/**
+ * The plot's left edge: the variant's, or further right when the axis
+ * labels need more room than English money takes ("10.000 US$" in the
+ * Vietnamese region format), so no label is cut off.
+ */
+function plotLeft(x0: number, labels: string[]): number {
+  const need = Math.max(...labels.map((l) => textWidth(l, 11))) + 8
+  return need <= x0 ? x0 : Math.ceil(need + 2)
+}
+
 /** A round axis top above the biggest value: 2,500, 5,000, 10,000… */
 function niceTop(max: number, steps: number): number {
   const raw = Math.max(max, 1) / steps
@@ -77,7 +87,13 @@ function MrrSvg({ v, chart, currency, desc }: { v: LineVariant; chart: Chart; cu
   const t1 = new Date(pts[pts.length - 1]!.at).getTime()
   const max = Math.max(...pts.map((p) => p.mrrCents))
   const top = niceTop(max, 4)
-  const x = (at: string) => v.x0 + ((new Date(at).getTime() - t0) / Math.max(1, t1 - t0)) * (v.x1 - v.x0)
+  const gridSteps = v.steps
+  const grid = Array.from({ length: gridSteps + 1 }, (_, i) => (top / gridSteps) * i)
+  const x0 = plotLeft(
+    v.x0,
+    grid.map((g) => money(g, currency, 'never')),
+  )
+  const x = (at: string) => x0 + ((new Date(at).getTime() - t0) / Math.max(1, t1 - t0)) * (v.x1 - x0)
   const y = (cents: number) => v.bottom - (cents / top) * (v.bottom - v.top)
   const xy = pts.map((p) => ({ x: x(p.at), y: y(p.mrrCents), p }))
   const histEnd = xy.findIndex((q) => !q.p.history)
@@ -86,8 +102,6 @@ function MrrSvg({ v, chart, currency, desc }: { v: LineVariant; chart: Chart; cu
   const live = xy.slice(Math.max(0, split))
   const poly = (list: typeof xy) => list.map((q) => `${q.x.toFixed(1)},${q.y.toFixed(1)}`).join(' ')
   const area = `M${xy[0]!.x.toFixed(1)},${v.bottom} ${xy.map((q) => `L${q.x.toFixed(1)},${q.y.toFixed(1)}`).join(' ')} L${xy[xy.length - 1]!.x.toFixed(1)},${v.bottom} Z`
-  const gridSteps = v.steps
-  const grid = Array.from({ length: gridSteps + 1 }, (_, i) => (top / gridSteps) * i)
   // Marks close to each other step down so their numbers don't collide.
   const marks = chart.marks.map((m, i, all) => {
     const mx = x(m.at)
@@ -119,8 +133,8 @@ function MrrSvg({ v, chart, currency, desc }: { v: LineVariant; chart: Chart; cu
     <svg viewBox={`0 0 ${v.w} ${v.h}`} width="100%" role="img" aria-label={desc} style={{ display: 'block', maxWidth: '100%' }} onPointerMove={onMove} onPointerLeave={() => setHover(null)}>
       {grid.map((g) => (
         <g key={g}>
-          <line x1={v.x0} x2={v.x1} y1={y(g)} y2={y(g)} stroke={GRID} />
-          <text x={v.x0 - 8} y={y(g) + 4} textAnchor="end" fontSize={11} fill={MUTED} fontFamily={FONT}>
+          <line x1={x0} x2={v.x1} y1={y(g)} y2={y(g)} stroke={GRID} />
+          <text x={x0 - 8} y={y(g) + 4} textAnchor="end" fontSize={11} fill={MUTED} fontFamily={FONT}>
             {money(g, currency, 'never')}
           </text>
         </g>
@@ -243,9 +257,15 @@ function MovementSvg({ v, movement, currency, desc }: { v: BarVariant; movement:
   const { base, step } = movementScale(levels)
   const per = (v.base - v.gridTop) / (v.steps * step)
   const y = (c: number) => v.base - (Math.max(c, base) - base) * per
-  const slot = (v.x1 - v.x0) / bars.length
+  const grid: number[] = []
+  for (let i = 0; i <= v.steps; i += v.every) grid.push(base + i * step)
+  const x0 = plotLeft(
+    v.x0,
+    grid.map((g) => money(g, currency, 'never')),
+  )
+  const slot = (v.x1 - x0) / bars.length
   const bw = slot * v.barShare
-  const bx = (i: number) => v.x0 + slot * i + (slot - bw) / 2
+  const bx = (i: number) => x0 + slot * i + (slot - bw) / 2
   const label = (b: MoveBar) => {
     const names = {
       start: t(mr.mStart),
@@ -258,14 +278,22 @@ function MovementSvg({ v, movement, currency, desc }: { v: BarVariant; movement:
     }
     return names[b.key]
   }
-  const grid: number[] = []
-  for (let i = 0; i <= v.steps; i += v.every) grid.push(base + i * step)
+  const values = bars.map((b) => (b.key === 'start' || b.key === 'end' ? money(b.cents, currency, 'never') : signed(b.cents, currency)))
+  const names = bars.map(label)
+  // Labels wider than a bar's slot (a longer language or region format:
+  // "+692 US$") step down in size rather than run into their neighbours.
+  const fit = (texts: string[], size: number, weight: number) => {
+    const widest = Math.max(...texts.map((s) => textWidth(s, size, weight)))
+    return widest <= slot - 4 ? size : Math.max(9, Math.floor(((size * (slot - 4)) / widest) * 10) / 10)
+  }
+  const valueSize = fit(values, 12, 700)
+  const nameSize = fit(names, 11, 600)
   return (
     <svg viewBox={`0 0 ${v.w} ${v.h}`} width="100%" role="img" aria-label={desc} style={{ display: 'block', maxWidth: '100%' }} onPointerLeave={() => setHover(null)}>
       {grid.map((g) => (
         <g key={g}>
-          <line x1={v.x0} x2={v.x1} y1={y(g)} y2={y(g)} stroke={GRID} />
-          <text x={v.x0 - 8} y={y(g) + 4} textAnchor="end" fontSize={11} fill={MUTED} fontFamily={FONT}>
+          <line x1={x0} x2={v.x1} y1={y(g)} y2={y(g)} stroke={GRID} />
+          <text x={x0 - 8} y={y(g) + 4} textAnchor="end" fontSize={11} fill={MUTED} fontFamily={FONT}>
             {money(g, currency, 'never')}
           </text>
         </g>
@@ -278,7 +306,6 @@ function MovementSvg({ v, movement, currency, desc }: { v: BarVariant; movement:
         const h = Math.max(yBottom - yTop, b.cents === 0 && !ends ? 0 : 1)
         const x = bx(i)
         const color = ends ? moveColors.ends : moveColors[b.key as keyof typeof moveColors]
-        const value = ends ? money(b.cents, currency, 'never') : signed(b.cents, currency)
         const next = i < bars.length - 1 ? s.to : null
         return (
           <g key={b.key} onPointerEnter={() => setHover(i)}>
@@ -288,11 +315,11 @@ function MovementSvg({ v, movement, currency, desc }: { v: BarVariant; movement:
               <path d={`M${(x - 1).toFixed(1)} ${v.base - 9} ${zigzag(bw)}`} fill="none" stroke="#fff" strokeWidth={2.2} aria-hidden="true" />
             ) : null}
             {next !== null ? <line x1={x + bw} x2={x + slot} y1={y(next)} y2={y(next)} stroke="#8B94A3" strokeDasharray="2 2" /> : null}
-            <text x={x + bw / 2} y={yTop - 7} textAnchor="middle" fontSize={12} fontWeight={700} fill={INK} fontFamily={FONT}>
-              {value}
+            <text x={x + bw / 2} y={yTop - 7} textAnchor="middle" fontSize={valueSize} fontWeight={700} fill={INK} fontFamily={FONT}>
+              {values[i]}
             </text>
-            <text x={x + bw / 2} y={v.catY} textAnchor="middle" fontSize={11} fontWeight={600} fill="#374151" fontFamily={FONT}>
-              {label(b)}
+            <text x={x + bw / 2} y={v.catY} textAnchor="middle" fontSize={nameSize} fontWeight={600} fill="#374151" fontFamily={FONT}>
+              {names[i]}
             </text>
             <text x={x + bw / 2} y={v.countY} textAnchor="middle" fontSize={11} fill={MUTED} fontFamily={FONT}>
               {count(b.count)}
