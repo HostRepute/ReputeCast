@@ -74,6 +74,12 @@ export default translate(m, {
   failRejected: 'Bị nhà cung cấp từ chối',
   failProvider_down: 'Chưa gửi: nhà cung cấp gián đoạn',
   failOther: 'Lỗi khác',
+  // Said of the sender: "bị bỏ qua vì ACME đang chờ duyệt", "Ireland bị bỏ qua (đang chờ duyệt)".
+  holdPending: 'đang chờ duyệt',
+  holdRejected: 'bị từ chối',
+  holdNot_registered: 'chưa đăng ký',
+  holdNot_supported: 'không được hỗ trợ',
+  holdNo_route: 'không có tuyến',
   perSecond: '{n}/giây',
   pricingOf: '{provider}',
   none: '–',
