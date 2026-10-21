@@ -33638,13 +33638,17 @@
           "name": {
             "type": "string"
           },
+          "passkey": {
+            "type": "boolean"
+          },
           "roleLine": {
             "type": "string"
           }
         },
         "required": [
           "name",
-          "clientRole"
+          "clientRole",
+          "passkey"
         ],
         "type": "object"
       },

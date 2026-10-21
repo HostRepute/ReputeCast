@@ -164,7 +164,7 @@ func (s *Service) Invitation(ctx context.Context, token string) (InvitationView,
 		}
 	}
 	v.TwoFactor = inviteTwoFactor(l, st, perms)
-	v.Agency = s.invitationAgency(ctx, inv.WorkspaceID, inv.RoleKey)
+	v.Agency = s.invitationAgency(ctx, inv.WorkspaceID, inv.RoleKey, methodAllowed(st, "passkey"))
 	return v, nil
 }
 

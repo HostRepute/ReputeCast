@@ -21353,6 +21353,7 @@ export interface components {
         InvitationAgency: {
             clientRole: boolean;
             name: string;
+            passkey: boolean;
             roleLine?: string;
         };
         InvitationPasswordPolicy: {

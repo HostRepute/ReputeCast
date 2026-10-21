@@ -13,6 +13,7 @@ import { ago, count } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { AccessTable, PersonCell } from '@/features/access/parts'
+import { ClientSignoffRule } from '@/features/agency/ClientSignoffRule'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { m as txApproval } from '@/features/transactional-templates/approval.messages'
 import { useT } from '@/i18n'
@@ -120,6 +121,9 @@ function PolicyForm({ view }: { view: View }) {
             </div>
             <div className="pad col gap-2.5!">
               <span className="k">Approval is required when any enabled rule matches. The author sees which rules matched and can add a note.</span>
+              {view.clientSignoff ? (
+                <ClientSignoffRule info={view.clientSignoff} value={p.clientSignoff ?? { enabled: false, automations: false }} disabled={read} onChange={(v) => set({ clientSignoff: v })} />
+              ) : null}
               <Rule
                 on={p.audienceMin.enabled}
                 disabled={read}

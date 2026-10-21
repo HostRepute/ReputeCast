@@ -15,6 +15,7 @@ import { T, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { andList } from '@/lib/format'
 import { roleName } from '@/lib/roles'
+import { AgencyInviteNote } from '@/features/agency/WorkspaceParts'
 import { useWorkspace } from '@/lib/session'
 import { copyText } from '../access/parts'
 import { m } from './invite.messages'
@@ -243,6 +244,7 @@ function InviteForm({ opts, open, close }: { opts: Schemas['TeamInviteOptions'];
         </label>
       </div>
       <InvitationLanguageField value={language} onChange={setLanguage} languages={opts.languages} defaultLanguage={opts.defaultLanguage} disabled={Boolean(created)} />
+      <AgencyInviteNote />
       <div className="lbl">
         <span>
           {t(m.scope)} <span className="k font-medium">· {t(ui.optional)}</span>
@@ -371,8 +373,12 @@ function InviteFooter({
   )
 }
 
-/** Editor, Viewer, custom roles, then Admin (the order on the board); never Owner. */
+/**
+ * Editor, Viewer, custom roles, then Admin (the order on the board); never
+ * Owner. An agency's client workspace lists its client roles first.
+ */
 function orderRoles(roles: Schemas['TeamInviteRole'][]) {
-  const rank = (r: Schemas['TeamInviteRole']) => (r.key === 'editor' ? 0 : r.key === 'viewer' ? 1 : !r.builtin ? 2 : r.key === 'admin' ? 3 : 4)
+  const rank = (r: Schemas['TeamInviteRole']) =>
+    r.key === 'client_approver' ? -2 : r.key === 'client_viewer' ? -1 : r.key === 'editor' ? 0 : r.key === 'viewer' ? 1 : !r.builtin ? 2 : r.key === 'admin' ? 3 : 4
   return roles.filter((r) => !(r.builtin && r.key === 'owner')).sort((a, b) => rank(a) - rank(b))
 }

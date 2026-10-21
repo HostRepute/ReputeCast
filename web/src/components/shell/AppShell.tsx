@@ -1,5 +1,6 @@
 import { Link, Outlet, useMatchRoute, useRouterState } from '@tanstack/react-router'
 import { useState, type ReactNode } from 'react'
+import { ManagedByCard, useIsClientPerson } from '@/features/agency/WorkspaceParts'
 import { formatList, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { useMediaQuery } from '@/lib/hooks'
@@ -54,6 +55,8 @@ function Sidebar() {
   const [openOn, setOpenOn] = useState<string>()
   const sheetOpen = phone && openOn === pathname
   const user = me?.user
+  // An agency's client people see who manages the workspace (agency accounts).
+  const clientPerson = useIsClientPerson()
   return (
     <aside className={cn('side', sheetOpen && 'sheet-open')} aria-label={t(m.sidebarLabel)}>
       <Link to="/w/$workspace" params={{ workspace: slug }} className="home" aria-label={t(m.homeLabel)}>
@@ -78,11 +81,13 @@ function Sidebar() {
         </MoreSheet>
       </nav>
       <div className="sidefoot">
-        <Link to="/w/$workspace/import" params={{ workspace: slug }} className="btn" style={{ justifyContent: 'flex-start' }} aria-label={t(m.importContacts)}>
-          <Icon name="import" />
-          {t(m.importContacts)}
-        </Link>
-        <HostReputeStatus />
+        {clientPerson ? null : (
+          <Link to="/w/$workspace/import" params={{ workspace: slug }} className="btn" style={{ justifyContent: 'flex-start' }} aria-label={t(m.importContacts)}>
+            <Icon name="import" />
+            {t(m.importContacts)}
+          </Link>
+        )}
+        {clientPerson ? <ManagedByCard /> : <HostReputeStatus />}
         {user ? (
           <div className="flex items-center gap-2 px-2 py-1">
             <Avatar name={user.name || user.email} color={user.avatarColor} size={26} />

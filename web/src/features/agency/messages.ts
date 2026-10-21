@@ -243,4 +243,28 @@ export const m = defineMessages('agency', {
   connect: 'Connect',
   addDomain: 'Add domain',
   invite: 'Invite',
+
+  // Client sign-off (Settings › Approvals in a client workspace)
+  signoffTitle: 'Every send needs one approval from a Client approver',
+  signoffDetail: "Client sign-off: campaigns on every channel wait for the client's own approval. Approvals from {agency}'s staff don't count toward it. {who}",
+  signoffApprovers: 'Client approvers today: {names}.',
+  signoffNoApprover: 'Nobody holds Client approver yet: invite the client first.',
+  signoffAutomations: 'Publishing an automation needs it too',
+
+  // A client's Team page
+  via: 'via {agency}',
+  viaEveryClient: 'Every client · {level}',
+  viaContact: '{level} · your contact',
+  viaTitle: '{level} · {title}',
+  managedByAgency: 'Managed by the agency',
+  inviteLogo: "The email and the invitation page carry {agency}'s logo.",
+
+  // The invitation page a client's person opens
+  inviteTitle: '{inviter} invited you to {workspace} as {role}',
+  inviteMeta: '{email} · expires {date}',
+  inviteCreatePasskey: 'Create a passkey and join',
+  inviteUsePassword: 'Use a password instead',
+  inviteUsePasskey: 'Use a passkey instead',
+  inviteManaged: '{workspace} is managed by {agency}.',
+  invitePasskeyLater: 'You joined {workspace} without a passkey',
 })

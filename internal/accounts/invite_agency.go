@@ -27,10 +27,13 @@ type InvitationAgency struct {
 	// RoleLine is what the role sees, in one line: "You'll see campaigns
 	// and reports."
 	RoleLine string `json:"roleLine,omitempty"`
+	// Passkey: the sign-in policy allows passkeys, so the page offers
+	// "Create a passkey and join" first and a password second.
+	Passkey bool `json:"passkey"`
 }
 
 // invitationAgency is set when the invited workspace is an agency client.
-func (s *Service) invitationAgency(ctx context.Context, wsID uuid.UUID, roleKey string) *InvitationAgency {
+func (s *Service) invitationAgency(ctx context.Context, wsID uuid.UUID, roleKey string, passkey bool) *InvitationAgency {
 	client, err := s.Q.AgencyIsClientWorkspace(ctx, wsID)
 	if err != nil || !client {
 		return nil
@@ -43,7 +46,7 @@ func (s *Service) invitationAgency(ctx context.Context, wsID uuid.UUID, roleKey 
 	if name == "" {
 		name = st.InstanceName
 	}
-	out := &InvitationAgency{Name: name, ClientRole: authz.IsClientRole(roleKey)}
+	out := &InvitationAgency{Name: name, ClientRole: authz.IsClientRole(roleKey), Passkey: passkey}
 	l := langOf(ctx)
 	switch roleKey {
 	case authz.RoleClientViewer:
