@@ -539,7 +539,7 @@ function DownloadSettings({ f, set, d, errors, disabled }: { f: Form; set: (p: P
         </>
       ) : (
         <Field label={t(mm.urlLabel)} hint={t(mm.urlHint)} error={errors.find((x) => x.field === 'me-url')?.message}>
-          <Input id="me-url" type="url" className="mono" value={f.downloadUrl} placeholder="https://" disabled={disabled} onChange={(e) => set({ downloadUrl: e.target.value })} />
+          <Input id="me-url" type="url" className="mono" value={f.downloadUrl} placeholder={'https://'} disabled={disabled} onChange={(e) => set({ downloadUrl: e.target.value })} />
         </Field>
       )}
     </Box>
@@ -765,7 +765,7 @@ function WebhookSettings({ f, set, milestone, errors, disabled }: { f: Form; set
   return (
     <Box title={t(mm.webhookTitle)} aside={t(mm.webhookCaption)}>
       <Field label={t(mm.endpoint)} hint={t(mm.endpointHint)} error={errors.find((x) => x.field === 'me-endpoint')?.message}>
-        <Input id="me-endpoint" type="url" className="mono" value={f.webhookUrl} placeholder="https://" disabled={disabled} onChange={(e) => set({ webhookUrl: e.target.value })} />
+        <Input id="me-endpoint" type="url" className="mono" value={f.webhookUrl} placeholder={'https://'} disabled={disabled} onChange={(e) => set({ webhookUrl: e.target.value })} />
       </Field>
       <div className="flex flex-col gap-1">
         <span className="lbl">{t(mm.secret)}</span>
