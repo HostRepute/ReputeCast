@@ -28,6 +28,10 @@
 // selectordinal and <tags>, with ICU's apostrophe quoting. It needs nothing
 // beyond golang.org/x/text, which the module already depends on.
 //
+// Text the server stores for people who read it later keeps the message's
+// ID and arguments as a Text (Msg.Keep), and Text.In writes it in each
+// reader's language.
+//
 // # Languages and regions
 //
 // A Lang is how one person reads: the app language (Locale) and the region

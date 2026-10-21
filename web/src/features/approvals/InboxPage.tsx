@@ -6,7 +6,9 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Td, Th } from '@/components/ui/Table'
 import { FilterTabs } from '@/components/ui/Tabs'
-import { ago, clock, count, monthDay, orList } from '@/lib/format'
+import { t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { ago, count, monthDay, monthDayTime, orList } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { AccessTable, PersonCell } from '@/features/access/parts'
@@ -14,6 +16,7 @@ import { waitShort } from '@/features/review/logic'
 import { RecurringDigestBadge } from '@/features/digests/IssueParts'
 import { useIssueInfos } from '@/features/digests/shared'
 import { PageBadge, PageLine, pageScheduledText } from '@/features/pages/approval'
+import { m } from './messages'
 import { ApprovalStatusBadge, decidedText } from './parts'
 import { PostBadge, postLine, postRoute, postWhen } from '@/features/website/elsewhere'
 import { ChannelTag } from '@/features/channels/ChannelFilter'
@@ -34,6 +37,7 @@ type Item = Schemas['ApprovalListItem']
  * ApprovalInbox board lists them (pending first: they're the newest).
  */
 export function InboxPage({ search }: { search: InboxSearch }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const status = search.status ?? 'all'
@@ -47,30 +51,30 @@ export function InboxPage({ search }: { search: InboxSearch }) {
   const set = (patch: Partial<InboxSearch>) =>
     void navigate({ to: '/w/$workspace/approvals', params: { workspace: slug }, search: { ...search, ...patch }, replace: true })
   const counts = list.data?.counts
-  const n = (v?: number) => (v !== undefined ? ` · ${count(v)}` : '')
+  const label = (s: InboxStatus, v?: number) => (v !== undefined ? t(m.filterCount, { status: s, count: count(v) }) : t(m.filter, { status: s }))
   return (
     <Page
-      title="Approvals"
+      title={t(m.title)}
       filters={
         <FilterTabs
-          label="Approval status"
+          label={t(m.filterLabel)}
           className="ml-3 max-md:ml-0"
           value={status}
           onChange={(next) => set({ status: next === 'all' ? undefined : next })}
           items={[
-            { value: 'pending', label: `Pending${n(counts?.pending)}` },
-            { value: 'approved', label: `Approved${n(counts?.approved)}` },
-            { value: 'changes_requested', label: `Changes requested${n(counts?.changesRequested)}` },
-            { value: 'rejected', label: `Rejected${n(counts?.rejected)}` },
-            { value: 'invalidated', label: `Invalidated${n(counts?.invalidated)}` },
-            { value: 'all', label: 'All' },
+            { value: 'pending', label: label('pending', counts?.pending) },
+            { value: 'approved', label: label('approved', counts?.approved) },
+            { value: 'changes_requested', label: label('changes_requested', counts?.changesRequested) },
+            { value: 'rejected', label: label('rejected', counts?.rejected) },
+            { value: 'invalidated', label: label('invalidated', counts?.invalidated) },
+            { value: 'all', label: label('all') },
           ]}
         />
       }
     >
       {list.isError ? (
-        <ErrorPanel title="Couldn't load the approval requests" actions={<Button onClick={() => list.refetch()}>Retry</Button>}>
-          {errorMessage(list.error)} Nothing was changed.
+        <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => list.refetch()}>{t(common.retry)}</Button>}>
+          {errorMessage(list.error)} {t(m.nothingChanged)}
         </ErrorPanel>
       ) : list.isPending ? (
         <InboxSkeleton />
@@ -99,6 +103,7 @@ function RequestsCard({
   days: number
   onFilter: (p: Partial<InboxSearch>) => void
 }) {
+  const t = useT()
   const now = useNow()
   const filtered = Boolean(search.author || search.approver) || days !== 30
   // Requests for a recurring digest's issues carry its badge.
@@ -109,16 +114,14 @@ function RequestsCard({
       <div className="sec">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h2 className="h2" id="ap-requests">
-            Approval requests
+            {t(m.requestsTitle)}
           </h2>
-          <span className="k">
-            {data.allRequests ? 'Everything that needed a second person · approvers see all requests, authors see their own' : 'Your requests · approvers see every request'}
-          </span>
+          <span className="k">{data.allRequests ? t(m.requestsCaptionAll) : t(m.requestsCaptionOwn)}</span>
         </div>
-        <div className="row gap-2!">
+        <div className="ap-filters row gap-2!">
           {data.allRequests ? (
-            <select className="in w-[150px] max-md:min-w-full" aria-label="Filter by author" value={search.author ?? ''} onChange={(e) => onFilter({ author: e.target.value || undefined })}>
-              <option value="">Any author</option>
+            <select className="in w-[150px] max-md:min-w-full" aria-label={t(m.filterByAuthor)} value={search.author ?? ''} onChange={(e) => onFilter({ author: e.target.value || undefined })}>
+              <option value="">{t(m.anyAuthor)}</option>
               {data.authors.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}
@@ -126,19 +129,19 @@ function RequestsCard({
               ))}
             </select>
           ) : null}
-          <select className="in w-[150px] max-md:min-w-full" aria-label="Filter by approver" value={search.approver ?? ''} onChange={(e) => onFilter({ approver: e.target.value || undefined })}>
-            <option value="">Any approver</option>
+          <select className="in w-[150px] max-md:min-w-full" aria-label={t(m.filterByApprover)} value={search.approver ?? ''} onChange={(e) => onFilter({ approver: e.target.value || undefined })}>
+            <option value="">{t(m.anyApprover)}</option>
             {data.approvers.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
               </option>
             ))}
           </select>
-          <select className="in w-[140px] max-md:min-w-full" aria-label="Date range" value={days} onChange={(e) => onFilter({ days: Number(e.target.value) === 30 ? undefined : Number(e.target.value) })}>
-            <option value={30}>Last 30 days</option>
-            <option value={7}>Last 7 days</option>
-            <option value={90}>Last 90 days</option>
-            <option value={0}>All time</option>
+          <select className="in w-[140px] max-md:min-w-full" aria-label={t(m.dateRange)} value={days} onChange={(e) => onFilter({ days: Number(e.target.value) === 30 ? undefined : Number(e.target.value) })}>
+            <option value={30}>{t(m.lastDays, { days: count(30) })}</option>
+            <option value={7}>{t(m.lastDays, { days: count(7) })}</option>
+            <option value={90}>{t(m.lastDays, { days: count(90) })}</option>
+            <option value={0}>{t(m.allTime)}</option>
           </select>
         </div>
       </div>
@@ -147,30 +150,30 @@ function RequestsCard({
           <div className="note n flex-col items-center justify-center gap-1.5! p-[22px]! text-center" role="status">
             {status === 'pending' && !filtered ? (
               <>
-                <span className="font-semibold">Nothing waiting for you</span>
-                <span className="k">Requests appear here and in your notifications. Authors can still see their own requests.</span>
+                <span className="font-semibold">{t(m.emptyPendingTitle)}</span>
+                <span className="k">{t(m.emptyPendingBody)}</span>
               </>
             ) : (
               <>
-                <span className="font-semibold">No {status === 'all' ? '' : `${statusWords[status]} `}requests {days ? `in the last ${days} days` : 'yet'}</span>
-                <span className="k">{filtered ? 'Clear the filters or pick a longer date range to see more.' : 'Requests appear here once someone asks for an approval.'}</span>
+                <span className="font-semibold">{days ? t(m.emptyTitleDays, { status, days: count(days) }) : t(m.emptyTitleYet, { status })}</span>
+                <span className="k">{filtered ? t(m.emptyFiltered) : t(m.emptyNone)}</span>
               </>
             )}
           </div>
         </div>
       ) : (
-        <AccessTable caption="Approval requests">
+        <AccessTable caption={t(m.tableCaption)}>
           <thead>
             <tr>
-              <Th>Campaign</Th>
-              <Th>Author</Th>
-              <Th>Audience</Th>
-              <Th>Route</Th>
-              <Th>Scheduled</Th>
-              <Th>Requested</Th>
-              <Th>Status</Th>
+              <Th>{t(m.colCampaign)}</Th>
+              <Th>{t(m.colAuthor)}</Th>
+              <Th>{t(m.colAudience)}</Th>
+              <Th>{t(m.colRoute)}</Th>
+              <Th>{t(m.colScheduled)}</Th>
+              <Th>{t(m.colRequested)}</Th>
+              <Th>{t(m.colStatus)}</Th>
               <Th>
-                <span className="vh">Actions</span>
+                <span className="vh">{t(m.colActions)}</span>
               </Th>
             </tr>
           </thead>
@@ -219,20 +222,12 @@ function RequestsCard({
   )
 }
 
-const statusWords: Record<Exclude<InboxStatus, 'all'>, string> = {
-  pending: 'pending',
-  approved: 'approved',
-  changes_requested: 'changes-requested',
-  rejected: 'rejected',
-  invalidated: 'invalidated',
-}
-
 /** "Nov 4, 09:00", "Sent Oct 9" or "Unscheduled". */
 function scheduledText(it: Item): string {
   if (it.page) return pageScheduledText(it.page)
-  if (it.sentAt) return `Sent ${monthDay(it.sentAt)}`
-  if (it.scheduleMode !== 'now' && it.scheduleAt) return `${monthDay(it.scheduleAt)}, ${clock(it.scheduleAt)}`
-  return 'Unscheduled'
+  if (it.sentAt) return tt(m.scheduledSent, { date: monthDay(it.sentAt) })
+  if (it.scheduleMode !== 'now' && it.scheduleAt) return monthDayTime(it.scheduleAt)
+  return tt(m.unscheduled)
 }
 
 /** "2 h ago" today, "Oct 10" before. */
@@ -244,17 +239,18 @@ function requestedText(d: string, now: Date): string {
 function statusNote(it: Item, now: Date): string {
   if (it.note) return it.note
   if (it.status === 'approved' || it.status === 'rejected') return it.decidedBy ? `${it.decidedBy}${it.decidedAt ? ` · ${decidedText(it.decidedAt, now)}` : ''}` : ''
-  if (it.status === 'cancelled') return 'withdrawn by the author'
-  if (it.status === 'bypassed') return 'sent without approval by an Owner'
+  if (it.status === 'cancelled') return tt(m.noteWithdrawn)
+  if (it.status === 'bypassed') return tt(m.noteBypassed)
   return ''
 }
 
 function RowAction({ it, canDecide }: { it: Item; canDecide: boolean }) {
+  const t = useT()
   const { slug } = useWorkspace()
   if (it.sentAt && it.campaignId) {
     return (
       <ButtonLink size="sm" to="/w/$workspace/campaigns/$campaignId/report" params={{ workspace: slug, campaignId: it.campaignId }}>
-        Report
+        {t(m.report)}
       </ButtonLink>
     )
   }
@@ -262,41 +258,44 @@ function RowAction({ it, canDecide }: { it: Item; canDecide: boolean }) {
   if (it.status === 'pending' && canDecide) {
     return (
       <ButtonLink size="sm" variant="primary" to="/w/$workspace/approvals/$approvalId" params={params}>
-        Review
+        {t(m.review)}
       </ButtonLink>
     )
   }
   return (
     <ButtonLink size="sm" to="/w/$workspace/approvals/$approvalId" params={params}>
-      {it.status === 'invalidated' ? 'View diff' : 'View'}
+      {it.status === 'invalidated' ? t(m.viewDiff) : t(m.view)}
     </ButtonLink>
   )
 }
 
 function PolicyCard({ policy, canManage }: { policy: Schemas['ApprovalPolicySummary']; canManage: boolean }) {
+  const t = useT()
   const { slug } = useWorkspace()
   return (
     <section className="card" aria-labelledby="ap-policy">
       <div className="sec">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h2 className="h2" id="ap-policy">
-            Policy in force
+            {t(m.policyTitle)}
           </h2>
         </div>
         <ButtonLink size="sm" to="/w/$workspace/settings/approvals" params={{ workspace: slug }}>
-          {canManage ? 'Edit policy' : 'View policy'}
+          {canManage ? t(m.editPolicy) : t(m.viewPolicy)}
         </ButtonLink>
       </div>
       <div className="pad">
         <dl className="kv">
-          <dt>Rules</dt>
-          <dd>{policy.rules.length ? policy.rules.join(' · ') : 'No rule is on: sends never need approval'}</dd>
-          <dt>Approvals</dt>
+          <dt>{t(m.policyRules)}</dt>
+          <dd>{policy.rules.length ? policy.rules.join(' · ') : t(m.noRules)}</dd>
+          <dt>{t(m.policyApprovals)}</dt>
           <dd>
-            {policy.approvalsRequired} from {policy.approvers.length ? orList(policy.approvers) : 'nobody yet (no member holds campaigns:approve)'}
+            {policy.approvers.length
+              ? t(m.approvalsFrom, { count: policy.approvalsRequired, approvers: orList(policy.approvers) })
+              : t(m.approvalsFromNobody, { count: policy.approvalsRequired })}
           </dd>
-          <dt>Median wait</dt>
-          <dd>{policy.medianWaitMinutes != null ? `${waitShort(policy.medianWaitMinutes)} over the last 30 days` : 'No decisions in the last 30 days'}</dd>
+          <dt>{t(m.policyMedianWait)}</dt>
+          <dd>{policy.medianWaitMinutes != null ? t(m.medianWait, { wait: waitShort(policy.medianWaitMinutes) }) : t(m.medianWaitNone)}</dd>
         </dl>
       </div>
     </section>
@@ -304,8 +303,9 @@ function PolicyCard({ policy, canManage }: { policy: Schemas['ApprovalPolicySumm
 }
 
 function InboxSkeleton() {
+  const t = useT()
   return (
-    <Loading label="Loading approval requests" className="card">
+    <Loading label={t(m.loading)} className="card">
       <div className="sec">
         <div className="flex flex-col gap-2">
           <Skeleton w={160} h={14} />

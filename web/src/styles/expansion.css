@@ -94,6 +94,34 @@
   align-items: flex-end;
 }
 
+/* Grow: a milestone's unit under its number ("lượt giới thiệu") and where a
+   recommendation shows ("Trang xác nhận", "Email chào mừng") stay on one
+   line; their narrow columns make room instead of breaking the words. */
+:root:not([lang='en']) .gw-unit,
+:root:not([lang='en']) .gw-where > span {
+  white-space: nowrap;
+}
+
+/* Approvals, automations and the composer (V04). */
+
+/* Rule 1 on the approval inbox (ApprovalInbox): its filters grow to their
+   longest choice ("Mọi người phê duyệt"), never narrower than the board's
+   date range; phones keep them full width. */
+@media (min-width: 768px) {
+  :root:not([lang='en']) .ap-filters select.in {
+    width: auto;
+    min-width: 140px;
+  }
+}
+
+/* The composer preview's personalization values ("liên kết riêng cho từng
+   người nhận") share the row with their token instead of squeezing it. */
+:root:not([lang='en']) .cmp-token-value {
+  flex: 0 1 auto;
+  min-width: 0;
+  text-align: right;
+}
+
 /* ── Sending and deliverability ──────────────────────────────────────── */
 
 /* Sending providers: a meter's number never breaks (rule 1). On phones the

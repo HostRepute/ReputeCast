@@ -7,13 +7,16 @@ import { useDocumentTitle } from '@/lib/hooks'
 import { useCan, useWorkspace } from '@/lib/session'
 import { Composer, type ComposerSearch } from './Composer'
 import { useOpenLanguage } from '@/features/languages/composerParts'
+import { useT } from '@/i18n'
+import { m } from './messages'
 import './composer.css'
 
 /** Loading state (ComposerStates): the composer's frame with skeletons while a campaign opens. */
 export function ComposerSkeleton({ title, detail }: { title: string; detail: string }) {
+  const t = useT()
   return (
     <div className="cmp rc-app" aria-busy="true">
-      <h1 className="vh">Opening the composer</h1>
+      <h1 className="vh">{t(m.opening)}</h1>
       <div className="cmp-head" style={{ gap: 12 }}>
         <span className="sk" style={{ width: 32, height: 32 }} />
         <span className="sk" style={{ width: 180, height: 18 }} />
@@ -50,17 +53,18 @@ export function ComposerSkeleton({ title, detail }: { title: string; detail: str
  */
 function ComposerError({ error, path, campaignId, retry }: { error: unknown; path: string; campaignId?: string; retry?: () => void }) {
   const { slug } = useWorkspace()
+  const t = useT()
   const canAudit = useCan('audit:view')
   const back = (
     <ButtonLink to="/w/$workspace/campaigns" params={{ workspace: slug }}>
-      Back to campaigns
+      {t(m.backToCampaigns)}
     </ButtonLink>
   )
   const status = error instanceof ApiError ? error.status : 0
-  useDocumentTitle(`${status === 404 ? 'Not found' : status === 403 ? 'No access' : 'Something broke'} · ReputeCast`)
+  useDocumentTitle(t(m.errorDocumentTitle, { status: status === 404 ? 'notFound' : status === 403 ? 'forbidden' : 'other' }))
   let body
   if (error instanceof ApiError && status === 403 && error.problem.permission) {
-    body = <ForbiddenState permission={error.problem.permission} title={path.endsWith('/new') ? "Your role can't create campaigns" : "Your role can't open this campaign"} readOnly={back} />
+    body = <ForbiddenState permission={error.problem.permission} title={path.endsWith('/new') ? t(m.cantCreate) : t(m.cantOpen)} readOnly={back} />
   } else if (status === 404) {
     // SystemStates' 404: "Go to campaigns" and "Search the audit log". (The board says deleted
     // campaigns stay in the log for 90 days; the retention is the workspace's own, 365 by default.)
@@ -70,22 +74,22 @@ function ComposerError({ error, path, campaignId, retry }: { error: unknown; pat
         reference={problemReference(error)}
         primary={
           <ButtonLink variant="primary" to="/w/$workspace/campaigns" params={{ workspace: slug }}>
-            Go to campaigns
+            {t(m.goToCampaigns)}
           </ButtonLink>
         }
         secondary={
           canAudit ? (
             <ButtonLink to="/w/$workspace/settings/audit" params={{ workspace: slug }} search={{ q: campaignId, range: 'all' }}>
-              Search the audit log
+              {t(m.searchAudit)}
             </ButtonLink>
           ) : undefined
         }
       >
-        The campaign may have been deleted, or the link was copied before it was saved. Deleted campaigns stay in the audit log.
+        {t(m.notFoundBody)}
       </NotFoundState>
     )
   } else {
-    body = <ServerErrorState reference={problemReference(error)} savedNote={retry ? undefined : 'Nothing was created.'} onRetry={retry ?? (() => window.location.reload())} back={back} />
+    body = <ServerErrorState reference={problemReference(error)} savedNote={retry ? undefined : t(m.nothingCreated)} onRetry={retry ?? (() => window.location.reload())} back={back} />
   }
   return (
     <div className="cmp rc-app items-center" style={{ padding: '56px 16px' }}>
@@ -99,6 +103,7 @@ function ComposerError({ error, path, campaignId, retry }: { error: unknown; pat
 /** /w/$workspace/campaigns/$campaignId/edit: loads the campaign and the composer's context. */
 export function ComposerPage({ campaignId, search, onSearch }: { campaignId: string; search: ComposerSearch; onSearch: (s: ComposerSearch) => void }) {
   const { slug } = useWorkspace()
+  const t = useT()
   const lang = useOpenLanguage(campaignId, search.language)
   const campaign = $api.useQuery(
     'get',
@@ -107,11 +112,11 @@ export function ComposerPage({ campaignId, search, onSearch }: { campaignId: str
     { refetchOnWindowFocus: false, retry: (n, e) => !(e as unknown as ApiError)?.status && n < 2, enabled: lang.ready },
   )
   const context = $api.useQuery('get', '/api/v1/workspaces/{workspace}/composer', { params: { path: { workspace: slug } } }, { staleTime: 60_000 })
-  useDocumentTitle(campaign.data ? `${campaign.data.name} · Composer · ReputeCast` : 'Composer · ReputeCast')
+  useDocumentTitle(campaign.data ? t(m.documentTitle, { name: campaign.data.name }) : t(m.documentTitleBare))
   const path = `/campaigns/${campaignId}/edit`
   if (campaign.isError) return <ComposerError error={campaign.error} path={path} campaignId={campaignId} retry={() => void campaign.refetch()} />
   if (context.isError) return <ComposerError error={context.error} path={path} retry={() => void context.refetch()} />
-  if (!campaign.data || !context.data) return <ComposerSkeleton title="Opening the campaign" detail="Content, audience and sender · usually under a second" />
+  if (!campaign.data || !context.data) return <ComposerSkeleton title={t(m.openingCampaign)} detail={t(m.openingCampaignDetail)} />
   return (
     <Composer key={`${campaign.data.id}:${campaign.data.language}:${lang.missing ?? ''}`} campaign={campaign.data} context={context.data} search={search} onSearch={onSearch} missingLanguage={lang.missing} />
   )
@@ -120,11 +125,12 @@ export function ComposerPage({ campaignId, search, onSearch }: { campaignId: str
 /** /w/$workspace/campaigns/new: creates the draft, then opens it (blank, from a template or a copy). */
 export function NewCampaignPage({ template, from }: { template?: string; from?: string }) {
   const { slug } = useWorkspace()
+  const t = useT()
   const navigate = useNavigate()
   const started = useRef(false)
   const [error, setError] = useState<unknown>(null)
   const [attempt, setAttempt] = useState(0)
-  useDocumentTitle('New campaign · ReputeCast')
+  useDocumentTitle(t(m.newDocumentTitle))
   useEffect(() => {
     if (started.current) return
     started.current = true
@@ -147,5 +153,5 @@ export function NewCampaignPage({ template, from }: { template?: string; from?: 
         }}
       />
     )
-  return <ComposerSkeleton title="Creating a draft" detail="New draft · not saved yet" />
+  return <ComposerSkeleton title={t(m.creatingDraft)} detail={t(m.statusNew)} />
 }

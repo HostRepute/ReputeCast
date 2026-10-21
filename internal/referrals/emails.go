@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -328,11 +329,11 @@ func (s *Service) TestMilestoneEmail(ctx context.Context, ws *store.Workspace, i
 	for _, raw := range in.To {
 		a, err := mail.ParseAddress(strings.TrimSpace(raw))
 		if err != nil {
-			return out, api.Invalid("body.to", "“"+raw+"” isn't an email address.")
+			return out, api.Invalid("body.to", s.text(ctx, msgs.M("test.notEmail"), i18n.Args{"value": raw}))
 		}
 		e := strings.ToLower(a.Address)
 		if !strings.EqualFold(e, p.Email) && !p.Can(authz.CampaignsSend) {
-			return out, api.Forbidden(authz.CampaignsSend, GrowHelpers(ctx, s.Q, ws.ID, authz.CampaignsSend)).WithMeta("reason", "Without campaigns:send, test emails can only go to your own address.")
+			return out, api.Forbidden(authz.CampaignsSend, GrowHelpers(ctx, s.Q, ws.ID, authz.CampaignsSend)).WithMeta("reason", s.text(ctx, msgs.M("test.ownAddress"), nil))
 		}
 		to = append(to, e)
 	}
@@ -341,8 +342,7 @@ func (s *Service) TestMilestoneEmail(ctx context.Context, ws *store.Workspace, i
 		return out, err
 	}
 	if s.Mail == nil || s.Mail() == nil || !s.Mail().SystemAvailable(ctx, &ws.ID) {
-		return out, api.Err(http.StatusConflict, api.CodeProviderUnavailable,
-			"Test emails go out through the System route, and no sending provider can deliver them yet. Connect one in Sending providers, or check the email in Preview.")
+		return out, api.Err(http.StatusConflict, api.CodeProviderUnavailable, s.text(ctx, msgs.M("test.noProvider"), nil))
 	}
 	for _, addr := range to {
 		name, err := s.Mail().SendSystem(ctx, mailer.Message{WorkspaceID: &ws.ID, To: addr, Subject: "[Test] " + r.Subject, HTML: r.HTML,

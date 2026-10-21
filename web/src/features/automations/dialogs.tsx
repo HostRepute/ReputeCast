@@ -13,6 +13,9 @@ import { cn } from '@/lib/cn'
 import { count, dayMonthDate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { CheckoutItemsButton } from '@/features/commerce/composer'
+import { useT, type MessageDescriptor } from '@/i18n'
+import { common } from '@/i18n/common'
+import { mf } from './flow.messages'
 
 type DiffItem = Schemas['AutomationDiffItem']
 
@@ -32,15 +35,16 @@ function BoardDialog({ open, onOpenChange, labelledBy, children, className }: { 
 }
 
 const kindTone: Record<DiffItem['kind'], Tone> = { added: 'ok', changed: 'warn', removed: 'bad', unchanged: 'neutral' }
-const kindLabel: Record<DiffItem['kind'], string> = { added: 'Added', changed: 'Changed', removed: 'Removed', unchanged: 'Unchanged' }
+const kindLabel: Record<DiffItem['kind'], MessageDescriptor> = { added: mf.kindAdded, changed: mf.kindChanged, removed: mf.kindRemoved, unchanged: mf.kindUnchanged }
 
 /** Version diff rows: Added, Changed, Removed, then what stayed the same. */
 export function DiffRows({ items }: { items: DiffItem[] }) {
+  const t = useT()
   return (
     <>
       {items.map((it, i) => (
         <div key={i} className={cn('chg', it.kind === 'added' && 'add', it.kind === 'removed' && 'rem')}>
-          <Badge tone={kindTone[it.kind]}>{kindLabel[it.kind]}</Badge>
+          <Badge tone={kindTone[it.kind]}>{t(kindLabel[it.kind])}</Badge>
           <div className="flex flex-1 flex-col gap-0.5">
             <span className={it.kind === 'unchanged' ? undefined : 'font-semibold'}>{it.title}</span>
             {it.detail ? <span className="k">{it.detail}</span> : null}
@@ -75,6 +79,7 @@ export function PublishDialog({
 
 /** Mounted while the dialog is open, so the migration choice starts at "finish". */
 function PublishContent({ onOpenChange, automationId, onSaveDraft }: { onOpenChange: (o: boolean) => void; automationId: string; onSaveDraft: () => Promise<void> }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const reason = usePermissionReason('automations:publish')
@@ -94,14 +99,14 @@ function PublishContent({ onOpenChange, automationId, onSaveDraft }: { onOpenCha
     <>
       {preview.isError ? (
         <div className="p-5">
-          <ErrorPanel title="Couldn't prepare the publish" actions={<Button onClick={() => preview.refetch()}>Retry</Button>}>
-            {errorMessage(preview.error)} Nothing was published.
+          <ErrorPanel title={t(mf.prepareFailed)} actions={<Button onClick={() => preview.refetch()}>{t(common.retry)}</Button>}>
+            {errorMessage(preview.error)} {t(mf.nothingPublished)}
           </ErrorPanel>
         </div>
       ) : !p ? (
         <div className="flex flex-col gap-3 p-6" aria-busy="true">
           <RDialog.Title id="pub-title" className="vh">
-            Publish
+            {t(mf.publish)}
           </RDialog.Title>
           <Skeleton w={160} h={22} r={999} />
           <Skeleton w={420} h={22} />
@@ -115,50 +120,51 @@ function PublishContent({ onOpenChange, automationId, onSaveDraft }: { onOpenCha
               {from !== undefined ? (
                 <>
                   <Badge tone="ok" dot>
-                    Live · v{from}
+                    {t(mf.liveBadge, { version: from })}
                   </Badge>
                   <span className="k">→</span>
                 </>
               ) : null}
-              <Badge tone="info">Draft · v{to}</Badge>
+              <Badge tone="info">{t(mf.draftBadge, { version: to })}</Badge>
             </div>
             <RDialog.Title id="pub-title" className="m-0 text-[20px] font-bold tracking-[-0.02em]">
-              Publish version {to} of "{p.name}"?
+              {t(mf.publishTitle, { version: to, name: p.name })}
             </RDialog.Title>
             <span className="text-ink-2">
               {from !== undefined
-                ? `${p.changes} ${p.changes === 1 ? 'change' : 'changes'} since v${from} was published${p.livePublishedAt ? ` on ${dayMonthDate(p.livePublishedAt)}` : ''}${p.livePublishedBy ? ` by ${p.livePublishedBy}` : ''}. Every step is re-validated before it goes live.`
-                : 'This is the first version. Every step is validated before it goes live.'}
+                ? t(mf.publishLead, {
+                    count: p.changes,
+                    from,
+                    hasDate: p.livePublishedAt ? 'yes' : 'no',
+                    date: p.livePublishedAt ? dayMonthDate(p.livePublishedAt) : '',
+                    hasBy: p.livePublishedBy ? 'yes' : 'no',
+                    name: p.livePublishedBy ?? '',
+                  })
+                : t(mf.publishLeadFirst)}
             </span>
           </div>
           {from !== undefined ? (
             <div className="flex flex-col">
-              <div className="k px-4 pb-1 pt-3">
-                Version diff · v{from} → v{to}
-              </div>
+              <div className="k px-4 pb-1 pt-3">{t(mf.versionDiff, { from, to })}</div>
               <DiffRows items={p.items} />
             </div>
           ) : null}
           {from !== undefined ? (
             <div className="flex flex-col gap-2.5 border-t border-line-2 px-4 py-3.5">
-              <span className="font-semibold">
-                {count(p.inFlow)} {p.inFlow === 1 ? 'contact is' : 'contacts are'} in this flow right now
-              </span>
-              <Grid min={300} gap={10} role="radiogroup" aria-label="Contacts already in the flow">
+              <span className="font-semibold">{t(mf.inFlowRightNow, { count: p.inFlow })}</span>
+              <Grid min={300} gap={10} role="radiogroup" aria-label={t(mf.migrationLabel)}>
                 <label className="opt">
                   <input type="radio" name="mig" checked={migration === 'finish'} onChange={() => setMigration('finish')} />
                   <span className="font-semibold">
-                    Let them finish on v{from} (recommended)
+                    {t(mf.finishOn, { version: from })}
                     <br />
-                    <span className="k">
-                      New entrants start on v{to}. Nobody gets a step twice or skips one. v{from} retires when the last contact leaves, {p.finishEstimate}.
-                    </span>
+                    <span className="k">{t(mf.finishDetail, { from, to, estimate: p.finishEstimate })}</span>
                   </span>
                 </label>
                 <label className="opt">
                   <input type="radio" name="mig" checked={migration === 'move'} onChange={() => setMigration('move')} />
                   <span className="font-semibold">
-                    Move them to v{to} at their current step
+                    {t(mf.moveTo, { version: to })}
                     <br />
                     <span className="k">{p.moveImpact}</span>
                   </span>
@@ -167,7 +173,7 @@ function PublishContent({ onOpenChange, automationId, onSaveDraft }: { onOpenCha
             </div>
           ) : null}
           <div className="flex flex-col gap-1.5 border-t border-line-2 bg-ground-3 px-4 py-3">
-            <span className="k">Pre-publish checks</span>
+            <span className="k">{t(mf.checks)}</span>
             <div className="flex flex-wrap gap-2">
               {p.checks.map((c) => (
                 <Badge key={c.label} tone={c.status === 'ok' ? 'ok' : c.status === 'warn' ? 'warn' : 'bad'}>
@@ -178,7 +184,7 @@ function PublishContent({ onOpenChange, automationId, onSaveDraft }: { onOpenCha
           </div>
           <div className="flex flex-wrap justify-end gap-2.5 border-t border-line-2 px-4 pb-[18px] pt-3.5">
             <RDialog.Close asChild>
-              <Button className="tall">Back to canvas</Button>
+              <Button className="tall">{t(mf.backToCanvas)}</Button>
             </RDialog.Close>
             <Button
               className="tall"
@@ -187,14 +193,14 @@ function PublishContent({ onOpenChange, automationId, onSaveDraft }: { onOpenCha
                 setSaving(true)
                 try {
                   await onSaveDraft()
-                  toast({ title: `Draft v${to} saved`, detail: 'Nothing changed for contacts in the flow.' })
+                  toast({ title: t(mf.savedToast, { version: to }), detail: t(mf.draftSavedDetail) })
                   onOpenChange(false)
                 } finally {
                   setSaving(false)
                 }
               }}
             >
-              Save draft only
+              {t(mf.saveDraftOnly)}
             </Button>
             <Button
               variant="primary"
@@ -208,18 +214,21 @@ function PublishContent({ onOpenChange, automationId, onSaveDraft }: { onOpenCha
                     onSuccess: (r) => {
                       onOpenChange(false)
                       if (r.status === 'approval_required') {
-                        toast({ kind: 'info', title: `v${to} is waiting for approval`, detail: r.message || 'It goes live once approved.' })
+                        toast({ kind: 'info', title: t(mf.waitingApproval, { version: to }), detail: r.message || t(mf.waitingApprovalDetail) })
                         return
                       }
-                      toast({ title: `"${p.name}" v${to} is live`, detail: migration === 'move' ? 'Contacts moved to it at their current step.' : `Contacts in the flow finish on v${from}.` })
+                      toast({
+                        title: t(mf.isLive, { name: p.name, version: to }),
+                        detail: migration === 'move' ? t(mf.movedDetail) : t(mf.finishDetailToast, { version: from ?? '' }),
+                      })
                       void navigate({ to: '/w/$workspace/automations', params: { workspace: slug } })
                     },
-                    onError: (e) => toast({ kind: 'error', title: "Couldn't publish", detail: errorMessage(e) }),
+                    onError: (e) => toast({ kind: 'error', title: t(mf.publishFailed), detail: errorMessage(e) }),
                   },
                 )
               }
             >
-              Publish v{to}
+              {t(mf.publishVersion, { version: to })}
             </Button>
           </div>
         </>
@@ -276,6 +285,7 @@ function VersionHistoryContent({
   onRestoreFailed?: () => void
   onRestored: () => void
 }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const reason = usePermissionReason('automations:edit')
   const versions = $api.useQuery('get', '/api/v1/workspaces/{workspace}/automations/{id}/versions', { params: { path: { workspace: slug, id: automationId } } }, { staleTime: 0 })
@@ -289,13 +299,13 @@ function VersionHistoryContent({
       { params: { path: { workspace: slug, id: automationId, version } } },
       {
         onSuccess: (r) => {
-          toast({ title: `v${version} restored as draft v${r.draftVersion}`, detail: 'Publish it when it looks right.' })
+          toast({ title: t(mf.restored, { version, draft: r.draftVersion }), detail: t(mf.publishWhenReady) })
           onOpenChange(false)
           onRestored()
         },
         onError: (e) => {
           onRestoreFailed?.()
-          toast({ kind: 'error', title: "Couldn't restore the version", detail: errorMessage(e) })
+          toast({ kind: 'error', title: t(mf.restoreFailed), detail: errorMessage(e) })
         },
       },
     )
@@ -306,24 +316,22 @@ function VersionHistoryContent({
     <>
       <div className="flex items-center justify-between gap-2 px-3.5 py-3">
         <RDialog.Title id="vh-title" className="m-0 text-[13px] font-semibold">
-          {compare ? 'Changes since the live version' : `Version history · ${v?.name ?? ''}`}
+          {compare ? t(mf.changesSinceLive) : t(mf.historyTitle, { name: v?.name ?? '' })}
         </RDialog.Title>
         <div className="flex gap-2">
           <Button size="sm" onClick={() => setCompare(!compare)}>
-            {compare ? 'Back to versions' : 'Compare'}
+            {compare ? t(mf.backToVersions) : t(mf.compare)}
           </Button>
           <RDialog.Close asChild>
-            <Button size="sm" iconOnly icon="close" aria-label="Close" className="border-transparent" />
+            <Button size="sm" iconOnly icon="close" aria-label={t(common.close)} className="border-transparent" />
           </RDialog.Close>
         </div>
       </div>
       {compare ? (
         diff.data ? (
           <div className="flex flex-col">
-            <div className="k px-4 pb-1">
-              Version diff · v{diff.data.from} → v{diff.data.to}
-            </div>
-            {diff.data.items.length ? <DiffRows items={diff.data.items} /> : <div className="chg k">No changes.</div>}
+            <div className="k px-4 pb-1">{t(mf.versionDiff, { from: diff.data.from, to: diff.data.to })}</div>
+            {diff.data.items.length ? <DiffRows items={diff.data.items} /> : <div className="chg k">{t(mf.noChanges)}</div>}
           </div>
         ) : (
           <div className="px-4 pb-4">
@@ -343,7 +351,7 @@ function VersionHistoryContent({
       ) : (
         published.map((x) => {
           const when = dayMonthDate(x.publishedAt ?? x.createdAt)
-          const retired = x.retiredAt && dayMonthDate(x.retiredAt) !== when ? ` · retired ${dayMonthDate(x.retiredAt)}` : ''
+          const retired = x.retiredAt && dayMonthDate(x.retiredAt) !== when ? ` · ${t(mf.retired, { date: dayMonthDate(x.retiredAt) })}` : ''
           const who = x.summary.startsWith('created from') ? '' : ` · ${x.publishedBy || x.createdBy}`
           const live = x.status === 'live'
           return (
@@ -352,29 +360,29 @@ function VersionHistoryContent({
               <span className="flex-1">
                 {live ? (
                   <>
-                    <b>Live</b> ·{' '}
+                    <b>{t(mf.liveWord)}</b> ·{' '}
                   </>
                 ) : null}
                 {when}
                 {who}
                 {x.summary ? ` · ${x.summary}` : ''}
-                {x.status === 'retiring' ? ` · retiring, ${count(x.inFlow)} still in flow` : retired}
+                {x.status === 'retiring' ? ` · ${t(mf.retiring, { count: count(x.inFlow) })}` : retired}
               </span>
               {live ? (
-                <Badge tone="ok">Live · {count(x.inFlow)} in flow</Badge>
+                <Badge tone="ok">{t(mf.liveInFlow, { count: count(x.inFlow) })}</Badge>
               ) : confirm === x.version ? (
                 <span className="flex items-center gap-1.5">
-                  <span className="k">Replace the unpublished draft?</span>
+                  <span className="k">{t(mf.replaceDraft)}</span>
                   <Button size="sm" variant="primary" loading={restore.isPending} onClick={() => doRestore(x.version)}>
-                    Replace
+                    {t(mf.replace)}
                   </Button>
                   <Button size="sm" onClick={() => setConfirm(null)}>
-                    Keep
+                    {t(mf.keep)}
                   </Button>
                 </span>
               ) : (
                 <Button size="sm" disabledReason={reason} onClick={() => (hasDraftChanges ? setConfirm(x.version) : doRestore(x.version))}>
-                  Restore as draft
+                  {t(mf.restoreAsDraft)}
                 </Button>
               )}
             </div>
@@ -387,24 +395,25 @@ function VersionHistoryContent({
 
 /** Pausing keeps contacts where they are; nothing is sent until it resumes. */
 export function PauseDialog({ open, onOpenChange, name, inFlow, onPause, pending }: { open: boolean; onOpenChange: (o: boolean) => void; name: string; inFlow: number; onPause: (reason: string) => void; pending: boolean }) {
+  const t = useT()
   const [reason, setReason] = useState('')
   return (
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
       size="sm"
-      title={`Pause "${name}"?`}
-      description={`No new contacts enter. The ${count(inFlow)} ${inFlow === 1 ? 'contact' : 'contacts'} in the flow stay where they are; delays keep counting, and nothing is sent until you resume.`}
+      title={t(mf.pauseTitle, { name })}
+      description={t(mf.pauseBody, { count: inFlow })}
       footer={
         <>
-          <Button onClick={() => onOpenChange(false)}>Keep it running</Button>
+          <Button onClick={() => onOpenChange(false)}>{t(mf.keepRunning)}</Button>
           <Button variant="primary" loading={pending} onClick={() => onPause(reason.trim())}>
-            Pause automation
+            {t(mf.pauseAutomation)}
           </Button>
         </>
       }
     >
-      <Field label="Reason" optional hint="Shown on the automations list, e.g. “beta is full”.">
+      <Field label={t(mf.reason)} optional hint={t(mf.reasonHint)}>
         <Input value={reason} maxLength={200} onChange={(e) => setReason(e.target.value)} />
       </Field>
     </Dialog>
@@ -422,6 +431,7 @@ function insertBlock(html: string, block: string): string {
 
 /** The email as recipients see it (sandboxed, scripts off). */
 export function EmailPreviewDialog({ email, onClose }: { email: { id: string; version: number } | null; onClose: () => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery(
     'get',
@@ -430,14 +440,14 @@ export function EmailPreviewDialog({ email, onClose }: { email: { id: string; ve
     { enabled: Boolean(email) },
   )
   return (
-    <Dialog open={Boolean(email)} onOpenChange={(o) => !o && onClose()} size="lg" title={q.data ? `${q.data.name} · v${q.data.version}` : 'Preview'}>
+    <Dialog open={Boolean(email)} onOpenChange={(o) => !o && onClose()} size="lg" title={q.data ? `${q.data.name} · v${q.data.version}` : t(mf.preview)}>
       {q.data ? (
         <>
           <div className="flex flex-col gap-0.5 rounded-lg border border-line px-3 py-2.5">
             <span className="font-semibold">{q.data.subject}</span>
             <span className="k">{q.data.preheader}</span>
           </div>
-          <iframe title={`Preview of ${q.data.name}`} sandbox="" srcDoc={q.data.html} className="h-[480px] w-full rounded-lg border border-line bg-white" />
+          <iframe title={t(mf.previewOf, { name: q.data.name })} sandbox="" srcDoc={q.data.html} className="h-[480px] w-full rounded-lg border border-line bg-white" />
         </>
       ) : (
         <Skeleton w="100%" h={480} />
@@ -451,6 +461,7 @@ export function EmailPreviewDialog({ email, onClose }: { email: { id: string; ve
  * version; this step moves to it, other steps keep theirs until changed.
  */
 export function EmailEditDialog({ email, onClose, onSaved, store }: { email: { id: string; version: number } | null; onClose: () => void; onSaved: (version: number) => void; store?: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery(
     'get',
@@ -472,11 +483,11 @@ export function EmailEditDialog({ email, onClose, onSaved, store }: { email: { i
       open={Boolean(email)}
       onOpenChange={(o) => !o && close()}
       size="lg"
-      title={q.data ? `Composer · ${q.data.name}` : 'Composer'}
-      description={q.data ? `Editing v${q.data.version}. Saving makes v${q.data.latestVersion + 1}; this step switches to it, other steps keep their version until you pick it.` : undefined}
+      title={q.data ? t(mf.composerOf, { name: q.data.name }) : t(mf.composer)}
+      description={q.data ? t(mf.editingLead, { version: q.data.version, next: q.data.latestVersion + 1 }) : undefined}
       footer={
         <>
-          <Button onClick={close}>Cancel</Button>
+          <Button onClick={close}>{t(common.cancel)}</Button>
           <Button
             variant="primary"
             loading={save.isPending}
@@ -486,31 +497,31 @@ export function EmailEditDialog({ email, onClose, onSaved, store }: { email: { i
                 { params: { path: { workspace: slug, id: email.id } }, body: { subject: form.subject, preheader: form.preheader, html: form.html } },
                 {
                   onSuccess: (r) => {
-                    toast({ title: `Saved as v${r.version}`, detail: 'The step now sends it once you publish.' })
+                    toast({ title: t(mf.savedAs, { version: r.version }), detail: t(mf.savedAsDetail) })
                     setEdits(null)
                     onSaved(r.version)
                   },
-                  onError: (e) => toast({ kind: 'error', title: "Couldn't save the email", detail: errorMessage(e) }),
+                  onError: (e) => toast({ kind: 'error', title: t(mf.emailSaveFailed), detail: errorMessage(e) }),
                 },
               )
             }
           >
-            Save as new version
+            {t(mf.saveAsNew)}
           </Button>
         </>
       }
     >
       {q.data ? (
         <>
-          <Field label="Subject">
+          <Field label={t(mf.subject)}>
             <Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
           </Field>
-          <Field label="Preheader" optional>
+          <Field label={t(mf.preheader)} optional>
             <Input value={form.preheader} onChange={(e) => setForm({ ...form, preheader: e.target.value })} />
           </Field>
           {/* The Checkout items block, in flows a store trigger starts (X20). */}
           {store ? <CheckoutItemsButton store={store} onInsert={(block) => setForm({ ...form, html: insertBlock(form.html, block) })} /> : null}
-          <Field label="HTML" hint="Liquid tags like {{ first_name | default: &quot;there&quot; }} and {{ unsubscribe_url }} are filled in when it sends.">
+          <Field label={t(mf.html)} hint={t(mf.htmlHint, { example: '{{ first_name | default: "there" }}', unsubscribe: '{{ unsubscribe_url }}' })}>
             <Textarea className="mono min-h-[260px] text-[12px]" spellCheck={false} value={form.html} onChange={(e) => setForm({ ...form, html: e.target.value })} />
           </Field>
         </>

@@ -304,6 +304,75 @@ names, a provider's own stream names (Postmark's "Broadcast" stream:
 "payload", "Liquid", "MJML", "Mustachio", "Handlebars", "cURL" and "JSON"
 stay as they are.
 
+## Composer
+
+| English | Tiếng Việt |
+|---|---|
+| A/B test · variant | thử nghiệm A/B · biến thể |
+| block · Blocks panel | khối · Khối |
+| code view | chế độ mã |
+| column · 2 columns | cột · 2 cột |
+| compile · compiled HTML | biên dịch · HTML đã biên dịch |
+| composer | trình soạn thảo ("Rời trình soạn thảo?") |
+| dark mode · light | chế độ tối · sáng |
+| footer · header (of an email) | chân thư · đầu thư |
+| Inspector | Bảng thuộc tính |
+| layer · layer tree | lớp · cây lớp |
+| padding · border radius | khoảng đệm · bo góc |
+| personalization token · Liquid tag | thẻ cá nhân hóa · thẻ Liquid |
+| raw HTML | HTML thô |
+| sample · winner (A/B) | nhóm thử · bản thắng |
+| section (of an email) · saved section | phần · phần đã lưu |
+| Send Readiness | Độ sẵn sàng gửi (the checks before a send, as a name; "runs again" = "được kiểm tra lại") |
+| spam heuristic | dấu hiệu spam |
+
+MJML tags (mj-section, mj-body) stay as they are. A block's sample content
+is written for the email's readers, in the app language: the first-name
+fallback "there" is "bạn".
+
+## Automations
+
+| English | Tiếng Việt |
+|---|---|
+| A/B split · weight | Chia A/B · tỷ trọng |
+| automation (one, or the section) | tự động hóa ("Tự động hóa mới") |
+| Branch · Yes · No | Rẽ nhánh · Có · Không |
+| Delay (step) · Wait 10 minutes | Trì hoãn · Chờ 10 phút |
+| double opt-in | đăng ký kép |
+| edge (a connection on the canvas) | đường nối |
+| exit · goal · goal rate | thoát · mục tiêu · tỷ lệ đạt mục tiêu |
+| fail over · failover | chuyển dự phòng |
+| Filter (step) | Lọc |
+| flow | luồng (a named stream keeps its capital: "Luồng Tự động hóa") |
+| List action | Thao tác danh sách |
+| method (HTTP) | phương thức |
+| override (a route) | ghi đè; "route override" on a step is "tuyến riêng" |
+| re-entry | vào lại |
+| retire · retiring (a version) | ngừng hoạt động · đang ngừng |
+| send window | khung giờ gửi |
+| signing secret · write-only | khóa bí mật để ký · chỉ ghi |
+| stats · Live stats | số liệu · Số liệu trực tiếp |
+| step · trigger · action · condition | bước · trình kích hoạt · hành động · điều kiện |
+| web push | thông báo đẩy (trên web) |
+
+## Approvals
+
+| English | Tiếng Việt |
+|---|---|
+| after exclusions | sau khi loại trừ |
+| approval inbox | hộp thư phê duyệt |
+| approval request · approver · author | yêu cầu phê duyệt · người phê duyệt · tác giả |
+| Approve · Reject · Request changes | Phê duyệt · Từ chối · Yêu cầu thay đổi |
+| Bypassed · emergency bypass | Đã bỏ qua · bỏ qua khẩn cấp |
+| comment · Discussion · evidence | nhận xét · Thảo luận · bằng chứng |
+| Contacts in flight | Liên hệ đang trong luồng |
+| Invalidated · Approval invalidated | Mất hiệu lực · Phê duyệt không còn hiệu lực |
+| median wait | thời gian chờ trung vị (a median, not an average: not "trung bình") |
+| Pending · Rejected | Đang chờ · Bị từ chối |
+| policy · rule · Rules matched | chính sách · quy tắc · Quy tắc khớp |
+| Recheck | Kiểm tra lại |
+| snapshot | bản chụp |
+
 ## Content languages
 
 | English | Tiếng Việt |
@@ -407,6 +476,53 @@ is a name and stays in English.
 | My workspaces · Leave workspace | Không gian làm việc của tôi · Rời không gian làm việc |
 | In-app · All events | Trong ứng dụng · Tất cả sự kiện |
 | MCP agent | tác tử MCP |
+
+## Grow, Growth and scoring
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| awaiting confirmation | chờ xác nhận | a referral whose subscriber hasn't confirmed |
+| band (score) · Cold · Warm · Hot | mức (mức điểm) · Lạnh · Ấm · Nóng | the names are fixed, like the English |
+| burst · shared IP · numbered addresses | tăng đột biến · IP dùng chung · địa chỉ đánh số | the signals that hold a referral |
+| cap (a rule's) | giới hạn | "6 a week": "6 mỗi tuần" |
+| claim · claim link | nhận · liên kết nhận thưởng | a coupon reward |
+| cohort retention | giữ chân theo nhóm | Audience › Growth |
+| counted · not counted | đã tính · không tính | "Count" and "Don't count" in Review: "Tính", "Không tính" |
+| coupon (Stripe) | phiếu giảm giá | |
+| decay | giảm dần | |
+| double opt-in | xác nhận hai bước | two-factor is "xác thực hai lớp" |
+| engagement tier · Active · Cooling · At risk · Sunset | nhóm tương tác · Tích cực · Nguội dần · Có nguy cơ · Ngừng gửi dần | List health's tiers, as Scoring names them; the sunset policy is "chính sách ngừng gửi dần" |
+| field condition | điều kiện trường | |
+| fulfill · fulfilled · To fulfill | trao · đã trao · Cần trao | a manual reward; "sent" stays "đã gửi" |
+| Growth (Audience › Growth) | Nguồn tăng trưởng | so it doesn't read as Grow ("Tăng trưởng") |
+| held for review | tạm giữ để duyệt | short: "tạm giữ" |
+| hold period · in hold | thời gian chờ · đang chờ | "the 7-day hold": "thời gian chờ 7 ngày" |
+| hosted (form, page) | trên ReputeCast · do ReputeCast lưu trữ | |
+| invite page | trang mời | |
+| join · departure | lượt tham gia · lượt rời đi | Growth's joined and left: "Tham gia", "Rời đi" |
+| leaderboard | bảng xếp hạng | |
+| List health | Sức khỏe danh sách | as Growth and Scoring refer to it |
+| milestone · milestone email | mốc thưởng · email mốc thưởng | "mốc" alone when the number follows: "Mốc 3" |
+| net (growth) | tăng ròng · tăng trưởng ròng | |
+| newsletter | bản tin | |
+| partner · partner code · partner link · partner profile · partnership | đối tác · mã đối tác · liên kết đối tác · hồ sơ đối tác · quan hệ đối tác | |
+| recommendation · recommend · Recommending you | đề xuất · đề xuất · Đề xuất bạn | |
+| referral · referrer · referral link · referral program | lượt giới thiệu · người giới thiệu · liên kết giới thiệu · chương trình giới thiệu | |
+| referral hub | trang phần thưởng | the referrer's own page; "trang giới thiệu" reads as an About page |
+| Referral · Recommendations · Reward block | khối Giới thiệu · khối Đề xuất · khối Phần thưởng | the composer's Grow blocks |
+| referring page · referring domain | trang dẫn đến · tên miền dẫn đến | never "giới thiệu", which is a referral |
+| review queue · Review (tab) | hàng chờ duyệt · Duyệt | |
+| reward | phần thưởng | |
+| rule · points | quy tắc · điểm | |
+| score · scoring | điểm (điểm số) · chấm điểm | |
+| self-referral | tự giới thiệu | |
+| soft bounce · hard bounce | trả thư tạm thời · trả thư vĩnh viễn | |
+| source (growth) | nguồn | |
+| spread (of scores) | phân bố | |
+| subscribe request | yêu cầu đăng ký | what one instance sends a partner |
+| threshold | ngưỡng | |
+| token (Liquid) | biến | as transactional templates' variables |
+| trigger (automation) | trình kích hoạt | |
 
 ## Words used everywhere
 

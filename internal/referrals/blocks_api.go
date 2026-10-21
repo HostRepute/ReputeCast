@@ -107,7 +107,7 @@ func (s *Service) RenderBlock(ctx context.Context, ws *store.Workspace, in GrowB
 			block.Program = m.ProgramID.String()
 		}
 	} else if in.Kind == "reward" {
-		return out, api.Invalid("body.milestoneId", "A Reward block belongs to a milestone email.")
+		return out, api.Invalid("body.milestoneId", s.text(ctx, msgs.M("block.rewardMilestone"), nil))
 	}
 	pr, err := s.blockProgram(ctx, ws, block.Program)
 	if err != nil {

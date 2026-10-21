@@ -8,8 +8,11 @@ import { DigestPreviewWith, useDigestMode } from '@/features/digests/composer/Di
 import { DigestCanvasCards } from '@/features/digests/composer/IssueMode'
 import { dc } from '@/features/digests/composer/messages'
 import { AltTextNote, WHOLE_ZOOM, WholeIssue } from '@/features/digests/composer/WholeIssue'
-import { t as tt } from '@/i18n'
+import { t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { RewriteActions } from '@/features/ai/composer/rewrite'
+import { mc } from './canvas.messages'
+import { m } from './messages'
 import { useComposer, type Issue } from './context'
 import { DEVICES, EMAIL_DEVICES, type DeviceId } from './editor/grapes'
 import { componentLabel, mjChildren, tagOf } from './editor/labels'
@@ -83,16 +86,17 @@ function useCanvasTick(editor: Editor | null, host: HTMLElement | null): number 
 
 function UndoRedo() {
   const c = useComposer()
+  const t = useT()
   const um = c.editor?.UndoManager
   const canUndo = !!um?.hasUndo()
   const canRedo = !!um?.hasRedo()
   void c.rev
   return (
     <div className="flex gap-1">
-      <button type="button" className="btn ic" aria-label="Undo" title="Undo (⌘Z)" disabled={!canUndo || !c.canEdit} style={!canUndo ? { opacity: 0.5 } : undefined} onClick={() => um?.undo()}>
+      <button type="button" className="btn ic" aria-label={t(mc.undo)} title={t(mc.undoTitle)} disabled={!canUndo || !c.canEdit} style={!canUndo ? { opacity: 0.5 } : undefined} onClick={() => um?.undo()}>
         <ToolIcon name="undo" strokeWidth={1.7} />
       </button>
-      <button type="button" className="btn ic" aria-label="Redo" title="Redo (⇧⌘Z)" disabled={!canRedo || !c.canEdit} style={!canRedo ? { opacity: 0.5 } : undefined} onClick={() => um?.redo()}>
+      <button type="button" className="btn ic" aria-label={t(mc.redo)} title={t(mc.redoTitle)} disabled={!canRedo || !c.canEdit} style={!canRedo ? { opacity: 0.5 } : undefined} onClick={() => um?.redo()}>
         <ToolIcon name="redo" strokeWidth={1.7} />
       </button>
     </div>
@@ -100,14 +104,15 @@ function UndoRedo() {
 }
 
 function variantLabel(kind: string | undefined, key: string): string {
-  if (key === 'A') return 'Variant A'
-  if (kind === 'subject') return `Variant ${key} · subject only`
-  if (kind === 'send_time') return `Variant ${key} · send time`
-  return `Variant ${key} · content`
+  if (key === 'A') return tt(mc.variantA)
+  if (kind === 'subject') return tt(mc.variantSubject, { key })
+  if (kind === 'send_time') return tt(mc.variantSendTime, { key })
+  return tt(mc.variantContent, { key })
 }
 
 function VariantSeg() {
   const c = useComposer()
+  const tr = useT()
   const t = c.abTest
   const keys = t ? t.variants.map((v) => v.key) : ['A']
   const add = () => {
@@ -126,14 +131,14 @@ function VariantSeg() {
     c.setVariant(next)
   }
   return (
-    <div className="seg" role="group" aria-label="Variant">
+    <div className="seg" role="group" aria-label={tr(mc.variantGroup)}>
       {keys.map((k) => (
         <button key={k} type="button" aria-pressed={c.variant === k} onClick={() => c.setVariant(k)}>
           {variantLabel(t?.kind, k)}
         </button>
       ))}
       {keys.length < 3 && c.canEdit ? (
-        <button type="button" aria-label={t ? 'Add a variant' : 'Start an A/B test'} title={t ? 'Add a variant' : 'Start an A/B test on the subject'} onClick={add}>
+        <button type="button" aria-label={t ? tr(mc.addVariant) : tr(mc.startAb)} title={t ? tr(mc.addVariant) : tr(mc.startAbTitle)} onClick={add}>
           +
         </button>
       ) : null}
@@ -143,11 +148,12 @@ function VariantSeg() {
 
 export function DeviceSeg({ dim }: { dim?: boolean }) {
   const c = useComposer()
+  const t = useT()
   return (
-    <div className="seg" role="group" aria-label="Device">
+    <div className="seg" role="group" aria-label={t(mc.device)}>
       {EMAIL_DEVICES.map((d) => (
         <button key={d} type="button" aria-pressed={c.device === d} disabled={dim} onClick={() => c.setDevice(d)}>
-          {d === 'desktop' ? 'Desktop · 600' : 'Mobile · 375'}
+          {d === 'desktop' ? t(mc.desktop) : t(mc.mobile)}
         </button>
       ))}
     </div>
@@ -156,9 +162,10 @@ export function DeviceSeg({ dim }: { dim?: boolean }) {
 
 export function ViewSeg({ dim }: { dim?: boolean }) {
   const c = useComposer()
+  const t = useT()
   if (c.views) {
     return (
-      <div className="seg" role="group" aria-label="View">
+      <div className="seg" role="group" aria-label={t(mc.view)}>
         {c.views.map((it) => (
           <button key={it.key} type="button" aria-pressed={it.on} disabled={dim} onClick={() => c.selectView?.(it.key)}>
             {it.label}
@@ -168,12 +175,12 @@ export function ViewSeg({ dim }: { dim?: boolean }) {
     )
   }
   const items: { v: 'visual' | 'mjml' | 'html'; label: string }[] = [
-    { v: 'visual', label: 'Visual' },
+    { v: 'visual', label: t(mc.viewVisual) },
     { v: 'mjml', label: 'MJML' },
     { v: 'html', label: 'HTML' },
   ]
   return (
-    <div className="seg" role="group" aria-label="View">
+    <div className="seg" role="group" aria-label={t(mc.view)}>
       {items.map((it) => (
         <button key={it.v} type="button" aria-pressed={c.view === it.v} disabled={dim} onClick={() => c.setView(it.v)}>
           {it.label}
@@ -185,12 +192,12 @@ export function ViewSeg({ dim }: { dim?: boolean }) {
 
 function Toolbar({ zoom }: { zoom: number }) {
   const c = useComposer()
+  const t = useT()
   const digest = useDigestMode()
   const issues = contentIssues(c.checks?.issues)
   const blocks = issues.filter((i) => i.severity === 'block').length
   const warns = issues.length - blocks
   const mobile = c.device === 'mobile'
-  const pct = `Zoom ${Math.round(zoom * 100)}%`
   return (
     <div className="cmp-tools">
       <DeviceSeg />
@@ -208,26 +215,26 @@ function Toolbar({ zoom }: { zoom: number }) {
         <>
           {blocks ? (
             <Badge tone="bad" dot>
-              {blocks} blocking
+              {t(mc.blocking, { count: blocks })}
             </Badge>
           ) : null}
           {warns ? (
             <Badge tone="warn" dot>
-              {warns} {warns === 1 ? 'warning' : 'warnings'}
+              {t(mc.warnings, { count: warns })}
             </Badge>
           ) : null}
           <span className="k" style={{ marginLeft: 'auto' }}>
-            Warnings update as you edit; Send Readiness runs the full set.
+            {t(mc.warningsNote)}
           </span>
         </>
       ) : mobile ? (
         <>
           <UndoRedo />
-          <Badge tone="info">Columns stack below 480 px, as MJML renders them</Badge>
+          <Badge tone="info">{t(mc.columnsStack)}</Badge>
           <span className="k inline-flex items-center gap-1.5" style={{ marginLeft: 'auto' }}>
-            Dark mode:{' '}
+            {t(mc.darkMode)}{' '}
             <button type="button" className="btn" aria-pressed={c.darkCanvas} style={{ minHeight: 26, padding: '0 8px', fontSize: 11.5 }} onClick={() => c.setDarkCanvas(!c.darkCanvas)}>
-              {c.darkCanvas ? 'On' : 'Off'}
+              {c.darkCanvas ? t(common.on) : t(common.off)}
             </button>
           </span>
         </>
@@ -237,7 +244,7 @@ function Toolbar({ zoom }: { zoom: number }) {
           {/* A digest's issues have no A/B test: each issue's subject comes from its posts. */}
           {digest || c.campaign.digestRole ? null : <VariantSeg />}
           <span className="k" style={{ marginLeft: 'auto' }}>
-            {pct} · ⌘Z undo · ⌘S save · ⌘/ shortcuts
+            {t(mc.zoomHint, { zoom: Math.round(zoom * 100) })}
           </span>
         </>
       )}
@@ -247,6 +254,7 @@ function Toolbar({ zoom }: { zoom: number }) {
 
 function SelectionOverlay({ host, tick }: { host: HTMLElement | null; tick: number }) {
   const c = useComposer()
+  const t = useT()
   const ed = c.editor
   const sel = c.selected
   const [rte, setRte] = useState(false)
@@ -293,16 +301,16 @@ function SelectionOverlay({ host, tick }: { host: HTMLElement | null; tick: numb
         <div className="cmp-sel-box" aria-hidden="true" />
         {rte ? null : <span className="lab">{componentLabel(sel)}</span>}
         {c.canEdit && !rte ? (
-          <div className="tb" role="toolbar" aria-label="Component tools">
+          <div className="tb" role="toolbar" aria-label={t(mc.componentTools)}>
             {canParent ? (
-              <button type="button" aria-label="Select parent" title="Select parent" onClick={() => parent && ed.select(parent)}>
+              <button type="button" aria-label={t(mc.selectParent)} title={t(mc.selectParent)} onClick={() => parent && ed.select(parent)}>
                 <ToolIcon name="parent" />
               </button>
             ) : null}
             <button
               type="button"
-              aria-label="Move (drag, or press the up and down arrow keys)"
-              title="Drag to move · arrow keys move up or down"
+              aria-label={t(mc.moveLabel)}
+              title={t(mc.moveTitle)}
               style={{ cursor: 'grab' }}
               onMouseDown={(e) => {
                 e.preventDefault()
@@ -317,10 +325,10 @@ function SelectionOverlay({ host, tick }: { host: HTMLElement | null; tick: numb
             >
               <ToolIcon name="move" />
             </button>
-            <button type="button" aria-label="Duplicate" title="Duplicate" onClick={() => ed.runCommand('tlb-clone')}>
+            <button type="button" aria-label={t(mc.duplicate)} title={t(mc.duplicate)} onClick={() => ed.runCommand('tlb-clone')}>
               <ToolIcon name="duplicate" />
             </button>
-            <button type="button" aria-label="Delete" title="Delete" onClick={() => ed.runCommand('core:component-delete')}>
+            <button type="button" aria-label={t(common.delete)} title={t(common.delete)} onClick={() => ed.runCommand('core:component-delete')}>
               <ToolIcon name="delete" />
             </button>
           </div>
@@ -377,6 +385,7 @@ function WarningOverlays({ host, tick }: { host: HTMLElement | null; tick: numbe
 
 function MissingFooter({ width }: { width: number }) {
   const c = useComposer()
+  const t = useT()
   const issue = c.checks?.issues.find((i) => i.id === 'compliance.footer')
   if (!issue) return null
   const when = c.checks?.footerRemovedAt
@@ -384,16 +393,13 @@ function MissingFooter({ width }: { width: number }) {
     <div className="wfoot" style={{ width, marginTop: 0 }}>
       <button type="button" className="wtag b" style={{ top: -13, left: '50%', transform: 'translateX(-50%)' }} onClick={() => c.setRightTab('deliverability')}>
         <ToolIcon name="warn" size={12} strokeWidth={2} />
-        {issue.tag || 'No unsubscribe link or postal address'}
+        {issue.tag || t(mc.noFooterTag)}
       </button>
-      <span style={{ fontSize: 12.5, color: '#991B1B' }}>
-        {when ? `The footer block was deleted at ${clock(when)}. ` : 'This email has no footer block. '}
-        Gmail, Yahoo and CAN-SPAM require both.
-      </span>
+      <span style={{ fontSize: 12.5, color: '#991B1B' }}>{when ? t(mc.footerDeleted, { time: clock(when) }) : t(mc.footerMissing)}</span>
       <br />
       {c.canEdit ? (
         <button type="button" className="btn sm" style={{ marginTop: 8, borderColor: '#FCA5A5', color: '#991B1B' }} onClick={() => insertFooter(c)}>
-          Insert footer block
+          {t(mc.insertFooter)}
         </button>
       ) : null}
     </div>
@@ -428,6 +434,7 @@ function MouseShield({ children, keepFocus }: { children: ReactNode; keepFocus?:
 
 function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) {
   const c = useComposer()
+  const tr = useT()
   const ed = c.editor
   const [rte, setRte] = useState<{ rte: Rte; el: HTMLElement } | null>(null)
   const [, setSel] = useState(0)
@@ -515,11 +522,11 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
   }
   const tokens = c.context.tokens
   return (
-    <div className="rte" role="toolbar" aria-label="Text formatting" style={{ top: Math.max(0, box.top - 40), left: box.left }} onMouseDown={keep}>
-      <button type="button" aria-label="Bold" aria-pressed={state('bold')} onClick={() => exec('bold')}>
+    <div className="rte" role="toolbar" aria-label={tr(mc.textFormatting)} style={{ top: Math.max(0, box.top - 40), left: box.left }} onMouseDown={keep}>
+      <button type="button" aria-label={tr(mc.bold)} aria-pressed={state('bold')} onClick={() => exec('bold')}>
         <b>B</b>
       </button>
-      <button type="button" aria-label="Italic" aria-pressed={state('italic')} onClick={() => exec('italic')}>
+      <button type="button" aria-label={tr(mc.italic)} aria-pressed={state('italic')} onClick={() => exec('italic')}>
         <i style={{ fontFamily: 'Georgia, serif' }}>I</i>
       </button>
       <Popover
@@ -531,11 +538,11 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
           }
           setLinkOpen(o)
         }}
-        label="Link"
+        label={tr(mc.link)}
         className="w-[300px]"
         trigger={
-          <button type="button" aria-label="Link" aria-pressed={!!currentLink()}>
-            Link
+          <button type="button" aria-label={tr(mc.link)} aria-pressed={!!currentLink()}>
+            {tr(mc.link)}
           </button>
         }
       >
@@ -548,18 +555,18 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
             }}
           >
             <label className="lbl">
-              Link URL
-              <input className="in mono" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://" autoFocus />
+              {tr(mc.linkUrl)}
+              <input className="in mono" value={link} onChange={(e) => setLink(e.target.value)} placeholder={'https://'} autoFocus />
             </label>
-            <span className="k">Leave it empty to remove the link. Tokens like {'{{ unsubscribe_url }}'} work too.</span>
+            <span className="k">{tr(mc.linkHint, { token: '{{ unsubscribe_url }}' })}</span>
             {/* A campaign links to a survey with each contact's token (design expansion, X11). */}
             {c.kind !== 'transactional' ? <SurveyLinkChoices value={link} onPick={setLink} /> : null}
             <div className="flex justify-end gap-2">
               <button type="button" className="btn sm" onClick={() => setLinkOpen(false)}>
-                Cancel
+                {tr(common.cancel)}
               </button>
               <button type="submit" className="btn sm pri">
-                Apply
+                {tr(m.apply)}
               </button>
             </div>
           </form>
@@ -567,16 +574,16 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
       </Popover>
       <span className="rsep" aria-hidden="true" />
       <Popover
-        label="Insert a personalization token"
+        label={tr(mc.insertToken)}
         className="w-[280px]"
         onOpenChange={(o) => o && saveRange()}
         trigger={
-          <button type="button" aria-label="Insert a personalization token">
+          <button type="button" aria-label={tr(mc.insertToken)}>
             {'{{ }}'}
           </button>
         }
       >
-        <span className="mh">Insert a token</span>
+        <span className="mh">{tr(mc.insertTokenHeading)}</span>
         <MouseShield keepFocus>
           <div className="flex max-h-[280px] flex-col overflow-auto">
             {tokens.map((t, i) => [
@@ -659,7 +666,7 @@ function useZoomHeight(editor: Editor | null, zoom: number, tick: number, device
 function useFrameTitle(editor: Editor | null) {
   useEffect(() => {
     if (!editor) return
-    const set = () => editor.Canvas.getFrameEl()?.setAttribute('title', 'Email canvas')
+    const set = () => editor.Canvas.getFrameEl()?.setAttribute('title', tt(mc.frameTitle))
     set()
     editor.on('canvas:frame:load', set)
     return () => {
@@ -711,6 +718,7 @@ export function CanvasArea({
   slots?: CanvasSlots
 }) {
   const c = useComposer()
+  const t = useT()
   // Digest mode's "6 items" covers the canvas with the whole issue (the editor stays loaded underneath).
   const whole = useDigestMode()?.preview === 'six'
   const [host, setHost] = useState<HTMLDivElement | null>(null)
@@ -756,16 +764,14 @@ export function CanvasArea({
           {/* A digest's template and issues have one language: no language banner. */}
           {c.campaign.digestRole ? null : <ComposerLanguageBanner width={frameWidth} />}
           <div ref={setHost} className="relative">
-            <div ref={setContainer} role="region" aria-label={c.device === 'web' ? 'Post canvas, web 680 px' : `Email canvas, ${c.device === 'mobile' ? 'mobile 375 px' : 'desktop 600 px'}`} />
+            <div ref={setContainer} role="region" aria-label={t(mc.canvasRegion, { device: c.device })} />
             {ed ? null : (
               // ComposerStates: "Compiling Weekly Digest #142 from MJML · Version 15 · 212 lines".
               <div className="mx-auto flex items-center justify-center gap-3 bg-surface" style={{ width: frameWidth, minHeight: 320, boxShadow: '0 1px 3px rgba(11,18,32,.12)' }} aria-busy="true" role="status">
                 <span className="spin" style={{ width: 24, height: 24 }} aria-hidden="true" />
                 <div className="flex flex-col">
-                  <span className="font-semibold">Compiling {c.name || 'the campaign'} from MJML</span>
-                  <span className="k">
-                    Version {c.campaign.version} · {count(c.campaign.mjml.split('\n').length)} lines · usually under a second
-                  </span>
+                  <span className="font-semibold">{c.name ? t(mc.compilingName, { name: c.name }) : t(mc.compilingCampaign)}</span>
+                  <span className="k">{t(mc.compilingDetail, { version: c.campaign.version, lines: count(c.campaign.mjml.split('\n').length) })}</span>
                 </div>
               </div>
             )}

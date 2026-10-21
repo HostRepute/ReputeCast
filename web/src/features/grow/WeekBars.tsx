@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from 'react'
 import { calendarDay, dayRange } from './shared'
 import { count } from '@/lib/format'
 import { dayMonthDate } from '@/lib/format'
@@ -25,6 +26,27 @@ export interface BarMarker {
 }
 
 const font = 'IBM Plex Sans,system-ui,sans-serif'
+
+/**
+ * A label centred under a bar that stays inside the drawing: a longer
+ * translation ("3 ngày tính đến nay") under the last bar moves left instead
+ * of being cut off at the edge. Labels that fit don't move.
+ */
+function AxisLabel({ x, y, width, size, text }: { x: number; y: number; width: number; size: number; text: string }) {
+  const ref = useRef<SVGTextElement>(null)
+  const [dx, setDx] = useState(0)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el || typeof el.getComputedTextLength !== 'function') return
+    const half = el.getComputedTextLength() / 2
+    setDx(x + half > width - 1 ? width - 1 - (x + half) : x - half < 1 ? 1 - (x - half) : 0)
+  }, [x, width, text])
+  return (
+    <text ref={ref} x={x + dx} y={y} textAnchor="middle" fontSize={size} fill="var(--ink-3)" fontFamily={font}>
+      {text}
+    </text>
+  )
+}
 
 /** 1, 2 or 5 times a power of ten, at least v. */
 function niceStep(v: number): number {
@@ -147,15 +169,9 @@ function Drawing({
               </text>
             ) : null}
             {i % every === 0 || i === bars.length - 1 ? (
-              <text x={cx} y={base + 18} textAnchor="middle" fontSize="11" fill="var(--ink-3)" fontFamily={font}>
-                {short || day ? dayMonthDate(calendarDay(b.start)) : dayRange(b.start, b.end)}
-              </text>
+              <AxisLabel x={cx} y={base + 18} width={width} size={11} text={short || day ? dayMonthDate(calendarDay(b.start)) : dayRange(b.start, b.end)} />
             ) : null}
-            {b.partial && b.sofar && !day ? (
-              <text x={cx} y={base + 32} textAnchor="middle" fontSize="10.5" fill="var(--ink-3)" fontFamily={font}>
-                {b.sofar}
-              </text>
-            ) : null}
+            {b.partial && b.sofar && !day ? <AxisLabel x={cx} y={base + 32} width={width} size={10.5} text={b.sofar} /> : null}
           </g>
         )
       })}

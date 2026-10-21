@@ -37,16 +37,18 @@ type regionData struct {
 	am, pm         string
 	// Patterns: EEEE/EEE weekday, d day, MMMM/MMM month, y year, HH/H/h
 	// hour, mm minute, ss second, a am/pm, 'quoted' literal text.
-	date        string // Oct 14, 2026
-	shortDate   string // Tue 14 Oct
-	weekdayDate string // Tue 14 Oct 2026
-	longDate    string // Tuesday 14 Oct 2026
-	dayMonth    string // 14 Oct
-	monthDay    string // Oct 14
-	time24      string
-	time12      string
-	hour12      bool
-	sundayFirst bool
+	date          string // Oct 14, 2026
+	shortDate     string // Tue 14 Oct
+	weekdayDate   string // Tue 14 Oct 2026
+	longDate      string // Tuesday 14 Oct 2026
+	dayMonth      string // 14 Oct
+	monthDay      string // Oct 14
+	monthYear     string // Oct 2026 (CLDR yMMM)
+	monthYearLong string // October 2026 (CLDR yMMMM)
+	time24        string
+	time12        string
+	hour12        bool
+	sundayFirst   bool
 }
 
 const nbsp = " "
@@ -62,20 +64,20 @@ var regions = map[Region]*regionData{
 	Standard: {
 		name: "ReputeCast standard", decimal: ".", group: ",", minGroup: 1, percent: "#%", currency: "$#",
 		months: enMonths, monthsLong: enMonthsLong, days: enDays, daysLong: enDaysLong, am: "AM", pm: "PM",
-		date: "MMM d, y", shortDate: "EEE d MMM", weekdayDate: "EEE d MMM y", longDate: "EEEE d MMM y", dayMonth: "d MMM", monthDay: "MMM d",
+		date: "MMM d, y", shortDate: "EEE d MMM", weekdayDate: "EEE d MMM y", longDate: "EEEE d MMM y", dayMonth: "d MMM", monthDay: "MMM d", monthYear: "MMM y", monthYearLong: "MMMM y",
 		time24: "HH:mm", time12: "h:mm a",
 	},
 	"en-US": {
 		name: "English (United States)", decimal: ".", group: ",", minGroup: 1, percent: "#%", currency: "$#",
 		months: enMonths, monthsLong: enMonthsLong, days: enDays, daysLong: enDaysLong, am: "AM", pm: "PM",
-		date: "MMM d, y", shortDate: "EEE, MMM d", weekdayDate: "EEE, MMM d, y", longDate: "EEEE, MMM d, y", dayMonth: "MMM d", monthDay: "MMM d",
+		date: "MMM d, y", shortDate: "EEE, MMM d", weekdayDate: "EEE, MMM d, y", longDate: "EEEE, MMM d, y", dayMonth: "MMM d", monthDay: "MMM d", monthYear: "MMM y", monthYearLong: "MMMM y",
 		time24: "HH:mm", time12: "h:mm a", hour12: true, sundayFirst: true,
 	},
 	"en-GB": {
 		name: "English (United Kingdom)", decimal: ".", group: ",", minGroup: 1, percent: "#%", currency: "US$#",
 		months: [12]string{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"}, monthsLong: enMonthsLong,
 		days: enDays, daysLong: enDaysLong, am: "am", pm: "pm",
-		date: "d MMM y", shortDate: "EEE d MMM", weekdayDate: "EEE, d MMM y", longDate: "EEEE, d MMM y", dayMonth: "d MMM", monthDay: "d MMM",
+		date: "d MMM y", shortDate: "EEE d MMM", weekdayDate: "EEE, d MMM y", longDate: "EEEE, d MMM y", dayMonth: "d MMM", monthDay: "d MMM", monthYear: "MMM y", monthYearLong: "MMMM y",
 		time24: "HH:mm", time12: "h:mm a",
 	},
 	"vi-VN": {
@@ -86,7 +88,7 @@ var regions = map[Region]*regionData{
 		days:     [7]string{"CN", "Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7"},
 		daysLong: [7]string{"Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"},
 		am:       "SA", pm: "CH",
-		date: "d MMM, y", shortDate: "EEE, d MMM", weekdayDate: "EEE, d MMM, y", longDate: "EEEE, d MMMM, y", dayMonth: "d MMM", monthDay: "d MMM",
+		date: "d MMM, y", shortDate: "EEE, d MMM", weekdayDate: "EEE, d MMM, y", longDate: "EEEE, d MMMM, y", dayMonth: "d MMM", monthDay: "d MMM", monthYear: "MMM y", monthYearLong: "MMMM 'năm' y",
 		time24: "HH:mm", time12: "h:mm a",
 	},
 	"de-DE": {
@@ -96,7 +98,7 @@ var regions = map[Region]*regionData{
 		days:       [7]string{"So.", "Mo.", "Di.", "Mi.", "Do.", "Fr.", "Sa."},
 		daysLong:   [7]string{"Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"},
 		am:         "AM", pm: "PM",
-		date: "d. MMM y", shortDate: "EEE, d. MMM", weekdayDate: "EEE, d. MMM y", longDate: "EEEE, d. MMM y", dayMonth: "d. MMM", monthDay: "d. MMM",
+		date: "d. MMM y", shortDate: "EEE, d. MMM", weekdayDate: "EEE, d. MMM y", longDate: "EEEE, d. MMM y", dayMonth: "d. MMM", monthDay: "d. MMM", monthYear: "MMM y", monthYearLong: "MMMM y",
 		time24: "HH:mm", time12: "h:mm a",
 	},
 	"es-ES": {
@@ -106,7 +108,7 @@ var regions = map[Region]*regionData{
 		days:       [7]string{"dom", "lun", "mar", "mié", "jue", "vie", "sáb"},
 		daysLong:   [7]string{"domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"},
 		am:         "a. m.", pm: "p. m.",
-		date: "d MMM y", shortDate: "EEE, d MMM", weekdayDate: "EEE, d MMM y", longDate: "EEEE, d 'de' MMM 'de' y", dayMonth: "d MMM", monthDay: "d MMM",
+		date: "d MMM y", shortDate: "EEE, d MMM", weekdayDate: "EEE, d MMM y", longDate: "EEEE, d 'de' MMM 'de' y", dayMonth: "d MMM", monthDay: "d MMM", monthYear: "MMM y", monthYearLong: "MMMM 'de' y",
 		time24: "H:mm", time12: "h:mm a",
 	},
 	"fr-FR": {
@@ -116,7 +118,7 @@ var regions = map[Region]*regionData{
 		days:       [7]string{"dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."},
 		daysLong:   [7]string{"dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"},
 		am:         "AM", pm: "PM",
-		date: "d MMM y", shortDate: "EEE d MMM", weekdayDate: "EEE d MMM y", longDate: "EEEE d MMM y", dayMonth: "d MMM", monthDay: "d MMM",
+		date: "d MMM y", shortDate: "EEE d MMM", weekdayDate: "EEE d MMM y", longDate: "EEEE d MMM y", dayMonth: "d MMM", monthDay: "d MMM", monthYear: "MMM y", monthYearLong: "MMMM y",
 		time24: "HH:mm", time12: "h:mm a",
 	},
 	"pt-BR": {
@@ -126,7 +128,7 @@ var regions = map[Region]*regionData{
 		days:       [7]string{"dom.", "seg.", "ter.", "qua.", "qui.", "sex.", "sáb."},
 		daysLong:   [7]string{"domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"},
 		am:         "AM", pm: "PM",
-		date: "d 'de' MMM 'de' y", shortDate: "EEE, d 'de' MMM", weekdayDate: "EEE, d 'de' MMM 'de' y", longDate: "EEEE, d 'de' MMM 'de' y", dayMonth: "d 'de' MMM", monthDay: "d 'de' MMM",
+		date: "d 'de' MMM 'de' y", shortDate: "EEE, d 'de' MMM", weekdayDate: "EEE, d 'de' MMM 'de' y", longDate: "EEEE, d 'de' MMM 'de' y", dayMonth: "d 'de' MMM", monthDay: "d 'de' MMM", monthYear: "MMM 'de' y", monthYearLong: "MMMM 'de' y",
 		time24: "HH:mm", time12: "h:mm a", sundayFirst: true,
 	},
 }
@@ -234,6 +236,15 @@ func (r Region) WeekdayDate(t time.Time) string { return r.pattern(r.data().week
 
 // LongDate writes a day with the weekday in full: Tuesday 14 Oct 2026.
 func (r Region) LongDate(t time.Time) string { return r.pattern(r.data().longDate, t) }
+
+// MonthYear writes a month with its year: Oct 2026, thg 10 2026; long:
+// October 2026, tháng 10 năm 2026.
+func (r Region) MonthYear(t time.Time, long bool) string {
+	if long {
+		return r.pattern(r.data().monthYearLong, t)
+	}
+	return r.pattern(r.data().monthYear, t)
+}
 
 // DayMonth writes a day without the weekday or year: 14 Oct · 14 thg 10.
 func (r Region) DayMonth(t time.Time) string { return r.pattern(r.data().dayMonth, t) }

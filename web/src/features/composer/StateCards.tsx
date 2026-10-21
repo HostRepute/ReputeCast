@@ -1,8 +1,18 @@
 import type { ReactNode } from 'react'
 import { Badge } from '@/components/ui/Badge'
-import { clock } from '@/lib/format'
+import { t as tt, useT } from '@/i18n'
+import { andList, clock } from '@/lib/format'
 import { useComposer } from './context'
+import { sectionWord } from './editor/labels'
 import { download, slugify } from './format'
+import { m } from './messages'
+
+/** A part of the email a save changed, as the server names it ("subject", "hero"), in the app language. */
+function partName(part: string): string {
+  if (part === 'subject') return tt(m.conflictSubject)
+  if (part === 'the email body') return tt(m.conflictBody)
+  return sectionWord(part)
+}
 
 function Card({ tone, badge, title, children, actions }: { tone: 'bad' | 'warn' | 'ok'; badge: string; title: string; children: ReactNode; actions: ReactNode }) {
   const border = tone === 'bad' ? '#FCA5A5' : tone === 'warn' ? '#FCD34D' : '#86EFAC'
@@ -28,6 +38,7 @@ function Card({ tone, badge, title, children, actions }: { tone: 'bad' | 'warn' 
  */
 export function StateCards({ saved, onCloseSaved, onReview }: { saved: { version: number; at: string; template?: string } | null; onCloseSaved: () => void; onReview: () => void }) {
   const c = useComposer()
+  const t = useT()
   const s = c.status
   const cards: ReactNode[] = []
   if (s.kind === 'offline') {
@@ -35,52 +46,52 @@ export function StateCards({ saved, onCloseSaved, onReview }: { saved: { version
       <Card
         key="offline"
         tone="bad"
-        badge="Not saved"
-        title={`Couldn't save version ${s.version + 1}: ${s.message}`}
+        badge={t(m.notSaved)}
+        title={t(m.offlineTitle, { version: s.version + 1, reason: s.message })}
         actions={
           <>
             <button type="button" className="btn sm pri" onClick={() => void c.save()}>
-              Retry now
+              {t(m.retryNow)}
             </button>
             <button type="button" className="btn sm" onClick={() => download(`${slugify(c.name)}.mjml`, c.currentMjml(), 'text/plain')}>
-              Download MJML as backup
+              {t(m.downloadBackup)}
             </button>
           </>
         }
       >
-        Your edits since {clock(s.since)} are kept in this browser. ReputeCast retries every 10 seconds and saves as soon as the connection is back. Don't close the tab.
+        {t(m.offlineBody, { time: clock(s.since) })}
       </Card>,
     )
   } else if (s.kind === 'conflict') {
-    const who = s.theirs.by || 'Someone'
-    const first = who.split(' ')[0]
+    const who = s.theirs.by || t(m.someone)
+    const first = who.split(' ')[0] ?? who
     const where = s.theirs.theirChanges.filter((x) => s.theirs.yourChanges.includes(x))
+    const version = s.theirs.version + 1
     cards.push(
       <Card
         key="conflict"
         tone="warn"
-        badge="Conflict"
-        title={`${who} saved version ${s.theirs.version}${s.theirs.at ? ` at ${clock(s.theirs.at)}` : ''} while you were editing`}
+        badge={t(m.conflict)}
+        title={s.theirs.at ? t(m.conflictTitleAt, { who, version: s.theirs.version, time: clock(s.theirs.at) }) : t(m.conflictTitle, { who, version: s.theirs.version })}
         actions={
           <>
             <button type="button" className="btn sm pri" onClick={() => void c.save({ force: true })}>
-              Keep mine as v{s.theirs.version + 1}
+              {t(m.keepMine, { version })}
             </button>
             <button type="button" className="btn sm" onClick={() => void c.reloadFromServer()}>
-              Load {first}'s v{s.theirs.version}
+              {t(m.loadTheirs, { name: first, version: s.theirs.version })}
             </button>
             <button type="button" className="btn sm" onClick={() => c.openDialog('compare')}>
-              Compare
+              {t(m.compare)}
             </button>
           </>
         }
       >
         {where.length
-          ? `Both of you changed the ${where.join(' and ')}. `
+          ? t(m.conflictBoth, { parts: andList(where.map(partName)), version, name: first })
           : s.theirs.theirChanges.length
-            ? `${first} changed the ${s.theirs.theirChanges.join(', ')}. `
-            : ''}
-        Keeping yours makes a new version {s.theirs.version + 1} on top of {first}'s; nothing is lost either way.
+            ? t(m.conflictTheirs, { parts: s.theirs.theirChanges.map(partName).join(', '), version, name: first })
+            : t(m.conflictPlain, { version, name: first })}
       </Card>,
     )
   } else if (s.kind === 'error') {
@@ -88,20 +99,20 @@ export function StateCards({ saved, onCloseSaved, onReview }: { saved: { version
       <Card
         key="error"
         tone="bad"
-        badge="Not saved"
-        title={`Couldn't save version ${s.version + 1}`}
+        badge={t(m.notSaved)}
+        title={t(m.errorTitle, { version: s.version + 1 })}
         actions={
           <>
             <button type="button" className="btn sm pri" onClick={() => void c.save()}>
-              Retry now
+              {t(m.retryNow)}
             </button>
             <button type="button" className="btn sm" onClick={() => download(`${slugify(c.name)}.mjml`, c.currentMjml(), 'text/plain')}>
-              Download MJML as backup
+              {t(m.downloadBackup)}
             </button>
           </>
         }
       >
-        {s.message} Your edits are still on the canvas.
+        {t(m.errorBody, { message: s.message })}
       </Card>,
     )
   }
@@ -110,20 +121,20 @@ export function StateCards({ saved, onCloseSaved, onReview }: { saved: { version
       <Card
         key="saved"
         tone="ok"
-        badge="Saved"
-        title={`Version ${saved.version} saved at ${clock(saved.at)} · autosave every 30 s and on every structural change`}
+        badge={t(m.saved)}
+        title={t(m.savedTitle, { version: saved.version, time: clock(saved.at) })}
         actions={
           <>
             <button type="button" className="btn sm" onClick={onCloseSaved}>
-              Back to editor
+              {t(m.backToEditor)}
             </button>
             <button type="button" className="btn sm pri" onClick={onReview}>
-              {c.campaign.access.canSend ? 'Review & send' : 'Request approval'}
+              {c.campaign.access.canSend ? t(m.reviewSend) : t(m.requestApproval)}
             </button>
           </>
         }
       >
-        {saved.template ? `Saved as a reusable template too: "${saved.template}" is now in Templates.` : 'Every version stays in the history, so you can restore any of them.'}
+        {saved.template ? t(m.savedAsTemplate, { name: saved.template }) : t(m.savedBody)}
       </Card>,
     )
   }

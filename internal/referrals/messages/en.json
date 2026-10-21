@@ -36,6 +36,13 @@
   "file.tooLarge": "Files can be up to 100 MB.",
   "file.type": "Upload a PDF, a ZIP file or an image (PNG, JPEG, GIF or WebP).",
   "file.empty": "The file is empty.",
+  "file.missing": "Choose a file to upload.",
+
+  "block.rewardMilestone": "A Reward block belongs to a milestone email.",
+
+  "test.notEmail": { "message": "“{value}” isn't an email address.", "note": "value: what was typed in To, as typed" },
+  "test.ownAddress": "Without campaigns:send, test emails can only go to your own address.",
+  "test.noProvider": "Test emails go out through the System route, and no sending provider can deliver them yet. Connect one in Sending providers, or check the email in Preview.",
 
   "codes.none": "The upload has no codes. Put one code on each line.",
   "codes.tooMany": "Upload up to 100,000 codes at a time.",
