@@ -103,3 +103,9 @@
 :root:not([lang='en']) .rep-abm > span {
   white-space: nowrap;
 }
+
+/* List health (features/audience): the sunset policy's "Count machine
+   opens?" select takes the whole row, so its first choice shows whole. */
+:root:not([lang='en']) .hp-machine {
+  grid-column: 1 / -1;
+}
