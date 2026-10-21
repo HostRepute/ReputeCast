@@ -4,9 +4,14 @@ package push_test
 // 30 days, the campaign's report and Sam Rivera's subscription.
 
 import (
+	"context"
 	"net/http"
 	"testing"
+	"time"
 
+	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/agency"
 	"github.com/hostrepute/reputecast/internal/apptest"
 	"github.com/hostrepute/reputecast/internal/push"
 )
@@ -110,5 +115,35 @@ func TestPushDemo(t *testing.T) {
 	if c.Title != "Feature flags at scale" || len(c.Buttons) != 2 || c.Image == nil || c.Image.Width != 1200 || c.Image.Height != 600 || c.TTLMinutes != 240 ||
 		c.Tag != "new-post" {
 		t.Fatalf("composer: %+v", c)
+	}
+
+	// Agencies count each client's push and WhatsApp messages from the
+	// channel message log (X23): the notifications and the WhatsApp
+	// messages are rows there, on the day they went.
+	ctx := context.Background()
+	for _, ch := range []struct {
+		name, kind string
+		min        int64
+	}{{"push", "campaign", rep.Sent}, {"whatsapp", "", 1}} {
+		var wsID uuid.UUID
+		var day time.Time
+		if err := env.App.Pool.QueryRow(ctx, `SELECT w.id, max(m.sent_at) FROM workspaces w
+			JOIN channel_messages m ON m.workspace_id = w.id AND m.channel = $1 AND m.sent_at IS NOT NULL AND ($2 = '' OR m.kind = $2)
+			WHERE w.slug = 'acme-newsletter' GROUP BY w.id`, ch.name, ch.kind).Scan(&wsID, &day); err != nil {
+			t.Fatalf("%s: %v", ch.name, err)
+		}
+		rows, err := agency.MessageChannel{Name: ch.name}.Day(ctx, env.App.Pool, wsID, day)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var units int64
+		for _, r := range rows {
+			if r.Dimension == "provider" {
+				units += r.Units
+			}
+		}
+		if units < ch.min {
+			t.Fatalf("agency usage of %s on %s: %d, want at least %d (%+v)", ch.name, day.UTC().Format(time.DateOnly), units, ch.min, rows)
+		}
 	}
 }

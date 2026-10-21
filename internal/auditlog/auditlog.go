@@ -156,6 +156,8 @@ var Categories = []AuditCategory{
 	// Web push and WhatsApp (design expansion, phase 8, X22).
 	{Key: "push", Label: "Push", Groups: []string{"push_keys", "push_site", "push_prompt", "push_settings", "push_subscription"}},
 	{Key: "whatsapp", Label: "WhatsApp", Groups: []string{"whatsapp", "whatsapp_templates", "whatsapp_rates", "whatsapp_settings"}},
+	// Agency accounts (design expansion, phase 8).
+	{Key: "agency", Label: "Agency", Groups: []string{"agency"}},
 }
 
 // Filter narrows the log.

@@ -1056,15 +1056,15 @@ func (g *storeSeedState) checkouts() error {
 		}
 		ref, _ := json.Marshal(map[string]any{"email": ID(), "version": 1, "ctx": map[string]string{"store": g.storeID.String(), "checkout": checkout.String()}})
 		messages = append(messages, []any{msg, ws.ID, "automation", flow, "n2", cid, c.email, "delivered", emailed, emailed, emailed.Add(time.Minute), json.RawMessage(ref)})
-		events = append(events, []any{ID(), ws.ID, msg, cid, "delivered", emailed.Add(time.Minute)})
+		events = append(events, []any{ID(), ws.ID, msg, cid, "delivered", emailed.Add(time.Minute), c.email, emailed.Add(time.Minute)})
 		if status == "completed" {
 			second := emailed.Add(23 * time.Hour)
 			m2 := ID()
 			messages = append(messages, []any{m2, ws.ID, "automation", flow, "n5", cid, c.email, "delivered", second, second, second.Add(time.Minute), json.RawMessage(ref)})
-			events = append(events, []any{ID(), ws.ID, m2, cid, "delivered", second.Add(time.Minute)})
+			events = append(events, []any{ID(), ws.ID, m2, cid, "delivered", second.Add(time.Minute), c.email, second.Add(time.Minute)})
 		}
 		if order != nil && order.clicked != nil {
-			events = append(events, []any{ID(), ws.ID, msg, cid, "click", *order.clicked})
+			events = append(events, []any{ID(), ws.ID, msg, cid, "click", *order.clicked, c.email, *order.clicked})
 		}
 	}
 	// 34 who didn't accept marketing: not emailed.
@@ -1103,7 +1103,10 @@ func (g *storeSeedState) checkouts() error {
 		"status", "queued_at", "sent_at", "delivered_at", "content_ref"}, pgx.CopyFromRows(messages)); err != nil {
 		return err
 	}
-	_, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"delivery_events"}, []string{"id", "workspace_id", "message_id", "contact_id", "type", "occurred_at"}, pgx.CopyFromRows(events))
+	// The provider event log lists deliveries by when they arrived, with
+	// their recipient: the flow's emails arrived when they were delivered.
+	_, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"delivery_events"}, []string{"id", "workspace_id", "message_id", "contact_id", "type", "occurred_at",
+		"recipient", "received_at"}, pgx.CopyFromRows(events))
 	return err
 }
 

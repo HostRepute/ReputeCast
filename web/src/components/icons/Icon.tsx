@@ -396,6 +396,17 @@ const icons = {
     ),
     strokeWidth: 1.7,
   },
+  // Agency area (agency accounts): Library and Usage.
+  layers: {
+    body: (
+      <>
+        <path d="M8 1.8 1.8 5 8 8.2 14.2 5z" />
+        <path d="m1.8 8 6.2 3.2L14.2 8" />
+        <path d="m1.8 11 6.2 3.2 6.2-3.2" />
+      </>
+    ),
+  },
+  barChart: { body: <path d="M2 14h12M4.2 11.5V8.2M8 11.5V3.8M11.8 11.5V6.2" /> },
 } satisfies Record<string, IconDef>
 
 export type IconName = keyof typeof icons

@@ -78,6 +78,8 @@ type policyDoc struct {
 	TransactionalPublish bool     `json:"transactional_publish"`
 	PostPublish          bool     `json:"post_publish"`
 	EmergencyBypass      *bool    `json:"emergency_bypass"`
+	// ClientSignoff is client workspaces' rule (agencies, clientsignoff.go).
+	ClientSignoff *clientSignoffDoc `json:"client_signoff,omitempty"`
 }
 
 // ApprovalAudienceRule is the audience-size rule.
@@ -106,6 +108,10 @@ type ApprovalPolicy struct {
 	// lacks the send permission" covers website:publish too.
 	PostPublish     bool `json:"postPublish"`
 	EmergencyBypass bool `json:"emergencyBypass"`
+	// ClientSignoff: in a client workspace, every send needs one approval
+	// from a Client approver; approvals from agency staff don't count.
+	// Leaving it out of a save turns it off.
+	ClientSignoff ApprovalClientSignoff `json:"clientSignoff,omitempty"`
 	// ChannelCost: an SMS or WhatsApp campaign is estimated to cost at
 	// least Amount (off by default).
 	ChannelCost ApprovalCostRule `json:"channelCost,omitempty"`
@@ -137,6 +143,7 @@ func ParsePolicy(raw json.RawMessage) ApprovalPolicy {
 		TransactionalPublish: d.TransactionalPublish,
 		PostPublish:          d.PostPublish,
 		EmergencyBypass:      d.EmergencyBypass == nil || *d.EmergencyBypass,
+		ClientSignoff:        d.ClientSignoff.policy(),
 		ChannelCost:          ApprovalCostRule{Enabled: d.Rules.ChannelCost.Enabled, Amount: d.Rules.ChannelCost.Amount},
 	}
 	if p.AudienceMin.N <= 0 {
@@ -176,6 +183,7 @@ func (p ApprovalPolicy) toDB(prev json.RawMessage) json.RawMessage {
 	d.Rules.ChannelCost.Enabled, d.Rules.ChannelCost.Amount = p.ChannelCost.Enabled, p.ChannelCost.Amount
 	b := p.EmergencyBypass
 	d.EmergencyBypass = &b
+	d.ClientSignoff = p.ClientSignoff.doc()
 	if len(d.ApproverRoles) == 0 {
 		d.ApproverRoles = []string{"owner", "admin"}
 	}
@@ -207,6 +215,9 @@ func (p ApprovalPolicy) RuleLabels() []string {
 	if p.ChannelCost.Enabled {
 		out = append(out, "SMS or WhatsApp cost ≥ "+costLabel(p.ChannelCost.Amount))
 	}
+	if p.ClientSignoff.Enabled {
+		out = append(out, "client sign-off")
+	}
 	return out
 }
 
@@ -220,7 +231,7 @@ func costLabel(v float64) string {
 
 // ApprovalRuleMatch is a rule that matched a send.
 type ApprovalRuleMatch struct {
-	Key string `json:"key" enum:"audience_min,warming_provider,new_provider,ready_with_warnings,author_lacks_send,approval_lists,automation_publish,transactional_publish,post_publish,channel_cost_min"`
+	Key string `json:"key" enum:"audience_min,warming_provider,new_provider,ready_with_warnings,author_lacks_send,approval_lists,automation_publish,transactional_publish,post_publish,channel_cost_min,client_signoff"`
 	// Label is the sentence ("Audience of 47,912 is at least 10,000"),
 	// Short the inbox phrase ("audience ≥ 10,000") and Badge the chip.
 	Label string `json:"label"`
@@ -326,6 +337,9 @@ func (p ApprovalPolicy) Evaluate(f RuleFacts) []ApprovalRuleMatch {
 	if p.ApprovalLists && len(f.ApprovalLists) > 0 {
 		out = append(out, ApprovalRuleMatch{Key: RuleApprovalLists, Short: "list requires approval", Badge: "List requires approval",
 			Label: fmt.Sprintf("The audience includes %s, which %s approval", readiness.JoinAnd(f.ApprovalLists), readiness.Plural(int64(len(f.ApprovalLists)), "requires", "require"))})
+	}
+	if p.ClientSignoff.Enabled {
+		out = append(out, clientSignoffMatch())
 	}
 	return out
 }

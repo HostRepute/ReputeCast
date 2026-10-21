@@ -16,6 +16,7 @@ import { useWorkspace } from '@/lib/session'
 import { AdminPage } from '../AdminPage'
 import { useInvalidateUsers } from '../queries'
 import { DeactivateUserDialog, MakeAdminDialog, PasswordResetDialog, RemoveAdminDialog, ResetTwoFactorDialog } from './UserDialogs'
+import { AgencyStaffTd, AgencyStaffTh, useAgencyColumn } from '@/features/agency/AdminParts'
 
 type User = Schemas['InstanceUser']
 
@@ -139,6 +140,7 @@ type DialogKind = 'twofa' | 'reset' | 'admin' | 'unadmin' | 'deactivate'
 function UsersTable({ data }: { data: Schemas['InstanceUserList'] }) {
   const [dialog, setDialog] = useState<{ kind: DialogKind; user: User }>()
   const [open, setOpen] = useState<string>()
+  const agencyColumn = useAgencyColumn()
   return (
     <>
       <AccessTable caption="Users">
@@ -146,6 +148,8 @@ function UsersTable({ data }: { data: Schemas['InstanceUserList'] }) {
           <tr>
             <Th>User</Th>
             <Th>Workspaces · role</Th>
+            {/* Each person's level on the agency's staff, while agency mode is on (agency accounts). */}
+            {agencyColumn ? <AgencyStaffTh /> : null}
             <Th>Sign-in methods</Th>
             <Th>2FA</Th>
             <Th>Last sign-in</Th>
@@ -157,7 +161,14 @@ function UsersTable({ data }: { data: Schemas['InstanceUserList'] }) {
         </thead>
         <tbody>
           {data.items.map((u) => (
-            <UserRow key={u.id} u={u} menuOpen={open === u.id} onMenu={(o) => setOpen(o ? u.id : undefined)} onDialog={(kind) => setDialog({ kind, user: u })} />
+            <UserRow
+              key={u.id}
+              u={u}
+              agencyColumn={agencyColumn}
+              menuOpen={open === u.id}
+              onMenu={(o) => setOpen(o ? u.id : undefined)}
+              onDialog={(kind) => setDialog({ kind, user: u })}
+            />
           ))}
         </tbody>
       </AccessTable>
@@ -170,7 +181,19 @@ function UsersTable({ data }: { data: Schemas['InstanceUserList'] }) {
   )
 }
 
-function UserRow({ u, menuOpen, onMenu, onDialog }: { u: User; menuOpen: boolean; onMenu: (o: boolean) => void; onDialog: (k: DialogKind) => void }) {
+function UserRow({
+  u,
+  agencyColumn,
+  menuOpen,
+  onMenu,
+  onDialog,
+}: {
+  u: User
+  agencyColumn: boolean
+  menuOpen: boolean
+  onMenu: (o: boolean) => void
+  onDialog: (k: DialogKind) => void
+}) {
   const off = u.status === 'deactivated'
   const [first, ...rest] = u.workspaces
   const person = <PersonCell name={u.name} sub={u.email} color={u.avatarColor} muted={off} />
@@ -204,6 +227,7 @@ function UserRow({ u, menuOpen, onMenu, onDialog }: { u: User; menuOpen: boolean
           </span>
         )}
       </Td>
+      {agencyColumn ? <AgencyStaffTd level={u.agencyLevel} /> : null}
       <Td>{off ? <span className="k">–</span> : <SignInText methods={u.methods} />}</Td>
       <Td>{off ? <span className="k">–</span> : <TwoFABadge twoFA={u.twoFactor} />}</Td>
       <Td className="whitespace-nowrap!">{off ? (u.deactivatedAt ? usDate(u.deactivatedAt) : '–') : u.lastSignInAt ? ago(u.lastSignInAt) : <span className="k">never</span>}</Td>

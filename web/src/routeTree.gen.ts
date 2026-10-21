@@ -19,9 +19,15 @@ import { Route as ResetPasswordTokenRouteImport } from './routes/reset-password.
 import { Route as WWorkspaceRouteRouteImport } from './routes/w/$workspace/route'
 import { Route as WorkspacesNewRouteImport } from './routes/workspaces/new'
 import { Route as WWorkspaceAppRouteRouteImport } from './routes/w/$workspace/_app/route'
+import { Route as WWorkspaceAgencyRouteRouteImport } from './routes/w/$workspace/agency/route'
 import { Route as WWorkspaceAppIndexRouteImport } from './routes/w/$workspace/_app/index'
 import { Route as WWorkspaceAppAccountRouteImport } from './routes/w/$workspace/_app/account'
 import { Route as WWorkspaceAppNotificationsRouteImport } from './routes/w/$workspace/_app/notifications'
+import { Route as WWorkspaceAgencyIndexRouteImport } from './routes/w/$workspace/agency/index'
+import { Route as WWorkspaceAgencyLibraryRouteImport } from './routes/w/$workspace/agency/library'
+import { Route as WWorkspaceAgencySearchRouteImport } from './routes/w/$workspace/agency/search'
+import { Route as WWorkspaceAgencyStaffRouteImport } from './routes/w/$workspace/agency/staff'
+import { Route as WWorkspaceAgencyUsageRouteImport } from './routes/w/$workspace/agency/usage'
 import { Route as WWorkspaceAutomationsAutomationIdRouteImport } from './routes/w/$workspace/automations/$automationId'
 import { Route as WWorkspaceCampaignsNewRouteImport } from './routes/w/$workspace/campaigns/new'
 import { Route as WWorkspaceImportIndexRouteImport } from './routes/w/$workspace/import/index'
@@ -207,6 +213,11 @@ const WWorkspaceAppRouteRoute = WWorkspaceAppRouteRouteImport.update({
   id: '/_app',
   getParentRoute: () => WWorkspaceRouteRoute,
 } as any)
+const WWorkspaceAgencyRouteRoute = WWorkspaceAgencyRouteRouteImport.update({
+  id: '/agency',
+  path: '/agency',
+  getParentRoute: () => WWorkspaceRouteRoute,
+} as any)
 const WWorkspaceAppIndexRoute = WWorkspaceAppIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -223,6 +234,31 @@ const WWorkspaceAppNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
+const WWorkspaceAgencyIndexRoute = WWorkspaceAgencyIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WWorkspaceAgencyRouteRoute,
+} as any)
+const WWorkspaceAgencyLibraryRoute = WWorkspaceAgencyLibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => WWorkspaceAgencyRouteRoute,
+} as any)
+const WWorkspaceAgencySearchRoute = WWorkspaceAgencySearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => WWorkspaceAgencyRouteRoute,
+} as any)
+const WWorkspaceAgencyStaffRoute = WWorkspaceAgencyStaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
+  getParentRoute: () => WWorkspaceAgencyRouteRoute,
+} as any)
+const WWorkspaceAgencyUsageRoute = WWorkspaceAgencyUsageRouteImport.update({
+  id: '/usage',
+  path: '/usage',
+  getParentRoute: () => WWorkspaceAgencyRouteRoute,
+} as any)
 const WWorkspaceAutomationsAutomationIdRoute =
   WWorkspaceAutomationsAutomationIdRouteImport.update({
     id: '/automations/$automationId',
@@ -1036,12 +1072,18 @@ export interface FileRoutesByFullPath {
   '/r/$token': typeof RTokenRoute
   '/reset-password/$token': typeof ResetPasswordTokenRoute
   '/workspaces/new': typeof WorkspacesNewRoute
+  '/w/$workspace/agency': typeof WWorkspaceAgencyRouteRouteWithChildren
   '/w/$workspace/account': typeof WWorkspaceAppAccountRoute
   '/w/$workspace/notifications': typeof WWorkspaceAppNotificationsRoute
+  '/w/$workspace/agency/library': typeof WWorkspaceAgencyLibraryRoute
+  '/w/$workspace/agency/search': typeof WWorkspaceAgencySearchRoute
+  '/w/$workspace/agency/staff': typeof WWorkspaceAgencyStaffRoute
+  '/w/$workspace/agency/usage': typeof WWorkspaceAgencyUsageRoute
   '/w/$workspace/automations/$automationId': typeof WWorkspaceAutomationsAutomationIdRoute
   '/w/$workspace/campaigns/new': typeof WWorkspaceCampaignsNewRoute
   '/w/$workspace/transactional/guide': typeof WWorkspaceTransactionalGuideRoute
   '/w/$workspace/': typeof WWorkspaceAppIndexRoute
+  '/w/$workspace/agency/': typeof WWorkspaceAgencyIndexRoute
   '/w/$workspace/import/': typeof WWorkspaceImportIndexRoute
   '/w/$workspace/admin/audit': typeof WWorkspaceAppAdminAuditRoute
   '/w/$workspace/admin/authentication': typeof WWorkspaceAppAdminAuthenticationRoute
@@ -1187,9 +1229,14 @@ export interface FileRoutesByTo {
   '/workspaces/new': typeof WorkspacesNewRoute
   '/w/$workspace/account': typeof WWorkspaceAppAccountRoute
   '/w/$workspace/notifications': typeof WWorkspaceAppNotificationsRoute
+  '/w/$workspace/agency/library': typeof WWorkspaceAgencyLibraryRoute
+  '/w/$workspace/agency/search': typeof WWorkspaceAgencySearchRoute
+  '/w/$workspace/agency/staff': typeof WWorkspaceAgencyStaffRoute
+  '/w/$workspace/agency/usage': typeof WWorkspaceAgencyUsageRoute
   '/w/$workspace/automations/$automationId': typeof WWorkspaceAutomationsAutomationIdRoute
   '/w/$workspace/campaigns/new': typeof WWorkspaceCampaignsNewRoute
   '/w/$workspace/transactional/guide': typeof WWorkspaceTransactionalGuideRoute
+  '/w/$workspace/agency': typeof WWorkspaceAgencyIndexRoute
   '/w/$workspace/import': typeof WWorkspaceImportIndexRoute
   '/w/$workspace/admin/audit': typeof WWorkspaceAppAdminAuditRoute
   '/w/$workspace/admin/authentication': typeof WWorkspaceAppAdminAuthenticationRoute
@@ -1335,12 +1382,18 @@ export interface FileRoutesById {
   '/reset-password/$token': typeof ResetPasswordTokenRoute
   '/workspaces/new': typeof WorkspacesNewRoute
   '/w/$workspace/_app': typeof WWorkspaceAppRouteRouteWithChildren
+  '/w/$workspace/agency': typeof WWorkspaceAgencyRouteRouteWithChildren
   '/w/$workspace/_app/account': typeof WWorkspaceAppAccountRoute
   '/w/$workspace/_app/notifications': typeof WWorkspaceAppNotificationsRoute
+  '/w/$workspace/agency/library': typeof WWorkspaceAgencyLibraryRoute
+  '/w/$workspace/agency/search': typeof WWorkspaceAgencySearchRoute
+  '/w/$workspace/agency/staff': typeof WWorkspaceAgencyStaffRoute
+  '/w/$workspace/agency/usage': typeof WWorkspaceAgencyUsageRoute
   '/w/$workspace/automations/$automationId': typeof WWorkspaceAutomationsAutomationIdRoute
   '/w/$workspace/campaigns/new': typeof WWorkspaceCampaignsNewRoute
   '/w/$workspace/transactional/guide': typeof WWorkspaceTransactionalGuideRoute
   '/w/$workspace/_app/': typeof WWorkspaceAppIndexRoute
+  '/w/$workspace/agency/': typeof WWorkspaceAgencyIndexRoute
   '/w/$workspace/import/': typeof WWorkspaceImportIndexRoute
   '/w/$workspace/_app/admin/audit': typeof WWorkspaceAppAdminAuditRoute
   '/w/$workspace/_app/admin/authentication': typeof WWorkspaceAppAdminAuthenticationRoute
@@ -1486,12 +1539,18 @@ export interface FileRouteTypes {
     | '/r/$token'
     | '/reset-password/$token'
     | '/workspaces/new'
+    | '/w/$workspace/agency'
     | '/w/$workspace/account'
     | '/w/$workspace/notifications'
+    | '/w/$workspace/agency/library'
+    | '/w/$workspace/agency/search'
+    | '/w/$workspace/agency/staff'
+    | '/w/$workspace/agency/usage'
     | '/w/$workspace/automations/$automationId'
     | '/w/$workspace/campaigns/new'
     | '/w/$workspace/transactional/guide'
     | '/w/$workspace/'
+    | '/w/$workspace/agency/'
     | '/w/$workspace/import/'
     | '/w/$workspace/admin/audit'
     | '/w/$workspace/admin/authentication'
@@ -1637,9 +1696,14 @@ export interface FileRouteTypes {
     | '/workspaces/new'
     | '/w/$workspace/account'
     | '/w/$workspace/notifications'
+    | '/w/$workspace/agency/library'
+    | '/w/$workspace/agency/search'
+    | '/w/$workspace/agency/staff'
+    | '/w/$workspace/agency/usage'
     | '/w/$workspace/automations/$automationId'
     | '/w/$workspace/campaigns/new'
     | '/w/$workspace/transactional/guide'
+    | '/w/$workspace/agency'
     | '/w/$workspace/import'
     | '/w/$workspace/admin/audit'
     | '/w/$workspace/admin/authentication'
@@ -1784,12 +1848,18 @@ export interface FileRouteTypes {
     | '/reset-password/$token'
     | '/workspaces/new'
     | '/w/$workspace/_app'
+    | '/w/$workspace/agency'
     | '/w/$workspace/_app/account'
     | '/w/$workspace/_app/notifications'
+    | '/w/$workspace/agency/library'
+    | '/w/$workspace/agency/search'
+    | '/w/$workspace/agency/staff'
+    | '/w/$workspace/agency/usage'
     | '/w/$workspace/automations/$automationId'
     | '/w/$workspace/campaigns/new'
     | '/w/$workspace/transactional/guide'
     | '/w/$workspace/_app/'
+    | '/w/$workspace/agency/'
     | '/w/$workspace/import/'
     | '/w/$workspace/_app/admin/audit'
     | '/w/$workspace/_app/admin/authentication'
@@ -2007,6 +2077,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WWorkspaceAppRouteRouteImport
       parentRoute: typeof WWorkspaceRouteRoute
     }
+    '/w/$workspace/agency': {
+      id: '/w/$workspace/agency'
+      path: '/agency'
+      fullPath: '/w/$workspace/agency'
+      preLoaderRoute: typeof WWorkspaceAgencyRouteRouteImport
+      parentRoute: typeof WWorkspaceRouteRoute
+    }
     '/w/$workspace/_app/': {
       id: '/w/$workspace/_app/'
       path: '/'
@@ -2027,6 +2104,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/w/$workspace/notifications'
       preLoaderRoute: typeof WWorkspaceAppNotificationsRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/agency/': {
+      id: '/w/$workspace/agency/'
+      path: '/'
+      fullPath: '/w/$workspace/agency/'
+      preLoaderRoute: typeof WWorkspaceAgencyIndexRouteImport
+      parentRoute: typeof WWorkspaceAgencyRouteRoute
+    }
+    '/w/$workspace/agency/library': {
+      id: '/w/$workspace/agency/library'
+      path: '/library'
+      fullPath: '/w/$workspace/agency/library'
+      preLoaderRoute: typeof WWorkspaceAgencyLibraryRouteImport
+      parentRoute: typeof WWorkspaceAgencyRouteRoute
+    }
+    '/w/$workspace/agency/search': {
+      id: '/w/$workspace/agency/search'
+      path: '/search'
+      fullPath: '/w/$workspace/agency/search'
+      preLoaderRoute: typeof WWorkspaceAgencySearchRouteImport
+      parentRoute: typeof WWorkspaceAgencyRouteRoute
+    }
+    '/w/$workspace/agency/staff': {
+      id: '/w/$workspace/agency/staff'
+      path: '/staff'
+      fullPath: '/w/$workspace/agency/staff'
+      preLoaderRoute: typeof WWorkspaceAgencyStaffRouteImport
+      parentRoute: typeof WWorkspaceAgencyRouteRoute
+    }
+    '/w/$workspace/agency/usage': {
+      id: '/w/$workspace/agency/usage'
+      path: '/usage'
+      fullPath: '/w/$workspace/agency/usage'
+      preLoaderRoute: typeof WWorkspaceAgencyUsageRouteImport
+      parentRoute: typeof WWorkspaceAgencyRouteRoute
     }
     '/w/$workspace/automations/$automationId': {
       id: '/w/$workspace/automations/$automationId'
@@ -3266,6 +3378,27 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
 const WWorkspaceAppRouteRouteWithChildren =
   WWorkspaceAppRouteRoute._addFileChildren(WWorkspaceAppRouteRouteChildren)
 
+interface WWorkspaceAgencyRouteRouteChildren {
+  WWorkspaceAgencyLibraryRoute: typeof WWorkspaceAgencyLibraryRoute
+  WWorkspaceAgencySearchRoute: typeof WWorkspaceAgencySearchRoute
+  WWorkspaceAgencyStaffRoute: typeof WWorkspaceAgencyStaffRoute
+  WWorkspaceAgencyUsageRoute: typeof WWorkspaceAgencyUsageRoute
+  WWorkspaceAgencyIndexRoute: typeof WWorkspaceAgencyIndexRoute
+}
+
+const WWorkspaceAgencyRouteRouteChildren: WWorkspaceAgencyRouteRouteChildren = {
+  WWorkspaceAgencyLibraryRoute: WWorkspaceAgencyLibraryRoute,
+  WWorkspaceAgencySearchRoute: WWorkspaceAgencySearchRoute,
+  WWorkspaceAgencyStaffRoute: WWorkspaceAgencyStaffRoute,
+  WWorkspaceAgencyUsageRoute: WWorkspaceAgencyUsageRoute,
+  WWorkspaceAgencyIndexRoute: WWorkspaceAgencyIndexRoute,
+}
+
+const WWorkspaceAgencyRouteRouteWithChildren =
+  WWorkspaceAgencyRouteRoute._addFileChildren(
+    WWorkspaceAgencyRouteRouteChildren,
+  )
+
 interface WWorkspaceFormsPagesPageIdRouteChildren {
   WWorkspaceFormsPagesPageIdPreviewRoute: typeof WWorkspaceFormsPagesPageIdPreviewRoute
 }
@@ -3283,6 +3416,7 @@ const WWorkspaceFormsPagesPageIdRouteWithChildren =
 
 interface WWorkspaceRouteRouteChildren {
   WWorkspaceAppRouteRoute: typeof WWorkspaceAppRouteRouteWithChildren
+  WWorkspaceAgencyRouteRoute: typeof WWorkspaceAgencyRouteRouteWithChildren
   WWorkspaceAutomationsAutomationIdRoute: typeof WWorkspaceAutomationsAutomationIdRoute
   WWorkspaceCampaignsNewRoute: typeof WWorkspaceCampaignsNewRoute
   WWorkspaceTransactionalGuideRoute: typeof WWorkspaceTransactionalGuideRoute
@@ -3312,6 +3446,7 @@ interface WWorkspaceRouteRouteChildren {
 
 const WWorkspaceRouteRouteChildren: WWorkspaceRouteRouteChildren = {
   WWorkspaceAppRouteRoute: WWorkspaceAppRouteRouteWithChildren,
+  WWorkspaceAgencyRouteRoute: WWorkspaceAgencyRouteRouteWithChildren,
   WWorkspaceAutomationsAutomationIdRoute:
     WWorkspaceAutomationsAutomationIdRoute,
   WWorkspaceCampaignsNewRoute: WWorkspaceCampaignsNewRoute,

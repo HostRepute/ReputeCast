@@ -4703,6 +4703,2869 @@
         ],
         "type": "object"
       },
+      "AgencyAddToLibrary": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "The saved section, campaign template, automation or transactional template",
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "section",
+              "template",
+              "automation",
+              "transactional"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "newVersionOf": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ],
+        "type": "object"
+      },
+      "AgencyApproval": {
+        "additionalProperties": false,
+        "properties": {
+          "campaign": {
+            "type": "string"
+          },
+          "campaignId": {
+            "type": "string"
+          },
+          "clientSignoff": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "requestedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "requestedBy": {
+            "type": "string"
+          },
+          "sendAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "waitingFor": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/AgencyWorkspaceRef"
+          }
+        },
+        "required": [
+          "id",
+          "workspace",
+          "campaign",
+          "campaignId",
+          "waitingFor",
+          "requestedBy",
+          "requestedAt",
+          "recipients",
+          "clientSignoff"
+        ],
+        "type": "object"
+      },
+      "AgencyAssignInput": {
+        "additionalProperties": false,
+        "properties": {
+          "roleId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "staffId": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "staffId",
+          "workspaceId",
+          "roleId"
+        ],
+        "type": "object"
+      },
+      "AgencyAssignableRole": {
+        "additionalProperties": false,
+        "properties": {
+          "builtin": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "grantable": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "grantable",
+          "key",
+          "name",
+          "builtin"
+        ],
+        "type": "object"
+      },
+      "AgencyAssignmentCell": {
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/AgencyRoleRef"
+          },
+          "source": {
+            "type": "string"
+          },
+          "staffId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "staffId"
+        ],
+        "type": "object"
+      },
+      "AgencyAssignmentKeys": {
+        "additionalProperties": false,
+        "properties": {
+          "keys": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyKeyRef"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "keys"
+        ],
+        "type": "object"
+      },
+      "AgencyAssignmentRow": {
+        "additionalProperties": false,
+        "properties": {
+          "canAssign": {
+            "type": "boolean"
+          },
+          "cells": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyAssignmentCell"
+            },
+            "type": "array"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyAssignableRole"
+            },
+            "type": "array"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/AgencyWorkspaceRef"
+          },
+          "yourRole": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace",
+          "cells",
+          "roles",
+          "canAssign"
+        ],
+        "type": "object"
+      },
+      "AgencyAssignmentSpec": {
+        "additionalProperties": false,
+        "properties": {
+          "roleId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspaceId",
+          "roleId"
+        ],
+        "type": "object"
+      },
+      "AgencyBilledMonth": {
+        "additionalProperties": false,
+        "properties": {
+          "month": {
+            "type": "string"
+          },
+          "rate": {
+            "$ref": "#/components/schemas/AgencyRate"
+          },
+          "toRebill": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "month"
+        ],
+        "type": "object"
+      },
+      "AgencyClientCreated": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "invitation": {
+            "$ref": "#/components/schemas/TeamCreatedInvitation"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/AgencyTemplatePlan"
+          },
+          "setup": {
+            "$ref": "#/components/schemas/AgencySetup"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/AgencyWorkspaceRef"
+          }
+        },
+        "required": [
+          "workspace",
+          "createdAt",
+          "createdBy"
+        ],
+        "type": "object"
+      },
+      "AgencyClientDelete": {
+        "additionalProperties": false,
+        "properties": {
+          "confirm": {
+            "description": "The client's name, typed",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirm"
+        ],
+        "type": "object"
+      },
+      "AgencyClientDeleted": {
+        "additionalProperties": false,
+        "properties": {
+          "restoreUntil": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "restoreUntil"
+        ],
+        "type": "object"
+      },
+      "AgencyClientDetails": {
+        "additionalProperties": false,
+        "properties": {
+          "accountManager": {
+            "$ref": "#/components/schemas/AgencyPersonRef"
+          },
+          "billed": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyBilledMonth"
+            },
+            "type": "array"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "canSeeCosts": {
+            "type": "boolean"
+          },
+          "clientSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "people": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyClientPerson"
+            },
+            "type": "array"
+          },
+          "providers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "rate": {
+            "$ref": "#/components/schemas/AgencyRate"
+          },
+          "rateSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "staff": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyPersonRef"
+            },
+            "type": "array"
+          },
+          "template": {
+            "type": "string"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/AgencyWorkspaceRef"
+          }
+        },
+        "required": [
+          "workspace",
+          "clientSince",
+          "providers",
+          "people",
+          "billed",
+          "canSeeCosts",
+          "staff",
+          "canManage"
+        ],
+        "type": "object"
+      },
+      "AgencyClientInput": {
+        "additionalProperties": false,
+        "properties": {
+          "accountManagerId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AgencyClientNew": {
+        "additionalProperties": false,
+        "properties": {
+          "accountManagerIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "firstPerson": {
+            "$ref": "#/components/schemas/AgencyFirstPerson"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "ownerId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "slug": {
+            "description": "Defaults to the name in lowercase with hyphens",
+            "maxLength": 63,
+            "type": "string"
+          },
+          "templateId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "timezone",
+          "ownerId"
+        ],
+        "type": "object"
+      },
+      "AgencyClientPerson": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "invited": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/AgencyRoleRef"
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "role",
+          "invited"
+        ],
+        "type": "object"
+      },
+      "AgencyClientPulse": {
+        "additionalProperties": false,
+        "properties": {
+          "approvals": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyApproval"
+            },
+            "type": "array"
+          },
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "draft": {
+            "type": "string"
+          },
+          "health": {
+            "$ref": "#/components/schemas/AgencyHealth"
+          },
+          "incidents": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyIncident"
+            },
+            "type": "array"
+          },
+          "nextSend": {
+            "$ref": "#/components/schemas/AgencySend"
+          },
+          "setup": {
+            "$ref": "#/components/schemas/AgencySetup"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/AgencyWorkspaceRef"
+          }
+        },
+        "required": [
+          "workspace",
+          "contacts",
+          "approvals",
+          "incidents"
+        ],
+        "type": "object"
+      },
+      "AgencyClientRow": {
+        "additionalProperties": false,
+        "properties": {
+          "accountManager": {
+            "$ref": "#/components/schemas/AgencyPersonRef"
+          },
+          "attention": {
+            "type": "boolean"
+          },
+          "attentionReasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "contacts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "health": {
+            "$ref": "#/components/schemas/AgencyHealth"
+          },
+          "mine": {
+            "type": "boolean"
+          },
+          "nextSendAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/AgencyRoleRef"
+          },
+          "settingUp": {
+            "type": "boolean"
+          },
+          "template": {
+            "type": "string"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/AgencyWorkspaceRef"
+          }
+        },
+        "required": [
+          "workspace",
+          "contacts",
+          "attention",
+          "attentionReasons",
+          "mine",
+          "settingUp",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "AgencyCopyInput": {
+        "additionalProperties": false,
+        "properties": {
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspaceId"
+        ],
+        "type": "object"
+      },
+      "AgencyCopyResult": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/AgencyWorkspaceRef"
+          }
+        },
+        "required": [
+          "workspace",
+          "kind",
+          "targetId",
+          "name"
+        ],
+        "type": "object"
+      },
+      "AgencyCopyTarget": {
+        "additionalProperties": false,
+        "properties": {
+          "canCopy": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/AgencyWorkspaceRef"
+          }
+        },
+        "required": [
+          "workspace",
+          "canCopy"
+        ],
+        "type": "object"
+      },
+      "AgencyCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "all": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "attention": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "mine": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sends": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "all",
+          "attention",
+          "mine",
+          "sends"
+        ],
+        "type": "object"
+      },
+      "AgencyEnteredPrice": {
+        "additionalProperties": false,
+        "properties": {
+          "monthly": {
+            "format": "double",
+            "type": "number"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/AgencyWorkspaceRef"
+          }
+        },
+        "required": [
+          "workspace",
+          "provider",
+          "monthly"
+        ],
+        "type": "object"
+      },
+      "AgencyFailover": {
+        "additionalProperties": false,
+        "properties": {
+          "stream": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "stream",
+          "to"
+        ],
+        "type": "object"
+      },
+      "AgencyFirstPerson": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "maxLength": 254,
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "client_approver",
+              "client_viewer"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "role"
+        ],
+        "type": "object"
+      },
+      "AgencyGalleryCopy": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "latest": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "itemId",
+          "kind",
+          "targetId",
+          "name",
+          "version",
+          "latest"
+        ],
+        "type": "object"
+      },
+      "AgencyGalleryView": {
+        "additionalProperties": false,
+        "properties": {
+          "agency": {
+            "type": "string"
+          },
+          "canUse": {
+            "type": "boolean"
+          },
+          "copies": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyGalleryCopy"
+            },
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyLibraryItem"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "agency",
+          "items",
+          "copies",
+          "canUse"
+        ],
+        "type": "object"
+      },
+      "AgencyHealth": {
+        "additionalProperties": false,
+        "properties": {
+          "checkedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "hostRepute": {
+            "type": "string"
+          },
+          "listings": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "score": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "state": {
+            "enum": [
+              "ready",
+              "pending",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "tone": {
+            "type": "string"
+          },
+          "trend": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "state",
+          "score",
+          "tone",
+          "trend",
+          "checkedAt"
+        ],
+        "type": "object"
+      },
+      "AgencyIncident": {
+        "additionalProperties": false,
+        "properties": {
+          "broadcastHeld": {
+            "type": "boolean"
+          },
+          "campaign": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "failovers": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyFailover"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "auto_pause",
+              "provider_down",
+              "webhooks_silent",
+              "sms_budget_reached",
+              "store_disconnected"
+            ],
+            "type": "string"
+          },
+          "mailboxProvider": {
+            "type": "string"
+          },
+          "metric": {
+            "type": "string"
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "resolvedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "resolvedBy": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "ongoing",
+              "resumed",
+              "cancelled",
+              "recovered"
+            ],
+            "type": "string"
+          },
+          "threshold": {
+            "format": "double",
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "value": {
+            "format": "double",
+            "type": "number"
+          },
+          "withChanges": {
+            "type": "boolean"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/AgencyWorkspaceRef"
+          }
+        },
+        "required": [
+          "id",
+          "workspace",
+          "kind",
+          "state",
+          "occurredAt",
+          "failovers",
+          "broadcastHeld",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "AgencyKeyRef": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "api_key",
+              "mcp_agent"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "prefix"
+        ],
+        "type": "object"
+      },
+      "AgencyLibraryAdded": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version"
+        ],
+        "type": "object"
+      },
+      "AgencyLibraryCopy": {
+        "additionalProperties": false,
+        "properties": {
+          "behind": {
+            "type": "boolean"
+          },
+          "canUpdate": {
+            "type": "boolean"
+          },
+          "copiedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/AgencyWorkspaceRef"
+          }
+        },
+        "required": [
+          "id",
+          "workspace",
+          "version",
+          "behind",
+          "copiedAt",
+          "canUpdate"
+        ],
+        "type": "object"
+      },
+      "AgencyLibraryDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "canEdit": {
+            "type": "boolean"
+          },
+          "clients": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyCopyTarget"
+            },
+            "type": "array"
+          },
+          "copies": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyLibraryCopy"
+            },
+            "type": "array"
+          },
+          "diff": {
+            "$ref": "#/components/schemas/AgencyLibraryDiff"
+          },
+          "item": {
+            "$ref": "#/components/schemas/AgencyLibraryItem"
+          },
+          "preview": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyLibraryVersion"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "item",
+          "versions",
+          "copies",
+          "clients",
+          "canEdit"
+        ],
+        "type": "object"
+      },
+      "AgencyLibraryDiff": {
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/DiffLine"
+            },
+            "type": "array"
+          },
+          "to": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "lines"
+        ],
+        "type": "object"
+      },
+      "AgencyLibraryEdit": {
+        "additionalProperties": false,
+        "properties": {
+          "fromCopy": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "AgencyLibraryField": {
+        "additionalProperties": false,
+        "properties": {
+          "fallback": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "type": "object"
+      },
+      "AgencyLibraryItem": {
+        "additionalProperties": false,
+        "properties": {
+          "accent": {
+            "type": "string"
+          },
+          "background": {
+            "type": "string"
+          },
+          "behind": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "body": {
+            "type": "string"
+          },
+          "clients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "columns": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "copies": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyLibraryField"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "section",
+              "template",
+              "automation",
+              "transactional",
+              "sms"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "steps": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "thumb": {},
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "version",
+          "updatedAt",
+          "clients",
+          "copies",
+          "behind",
+          "fields"
+        ],
+        "type": "object"
+      },
+      "AgencyLibraryVersion": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "at"
+        ],
+        "type": "object"
+      },
+      "AgencyLibraryView": {
+        "additionalProperties": false,
+        "properties": {
+          "canEdit": {
+            "type": "boolean"
+          },
+          "counts": {
+            "additionalProperties": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyLibraryItem"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "counts",
+          "total",
+          "canEdit",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "AgencyMe": {
+        "additionalProperties": false,
+        "properties": {
+          "agencyWorkspace": {
+            "$ref": "#/components/schemas/AgencyClientRow"
+          },
+          "clientCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "clients": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyClientRow"
+            },
+            "type": "array"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "home": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "initials": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "staff": {
+            "$ref": "#/components/schemas/AgencyMeStaff"
+          }
+        },
+        "required": [
+          "enabled",
+          "name",
+          "initials",
+          "host",
+          "clients",
+          "clientCount"
+        ],
+        "type": "object"
+      },
+      "AgencyMeStaff": {
+        "additionalProperties": false,
+        "properties": {
+          "level": {
+            "enum": [
+              "agency_manager",
+              "account_manager"
+            ],
+            "type": "string"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "level",
+          "permissions"
+        ],
+        "type": "object"
+      },
+      "AgencyModeInput": {
+        "additionalProperties": false,
+        "properties": {
+          "agencyWorkspaceId": {
+            "type": "string"
+          },
+          "clientIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 1000,
+            "type": "array"
+          },
+          "defaultTemplateId": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 80,
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "type": "object"
+      },
+      "AgencyModeView": {
+        "additionalProperties": false,
+        "properties": {
+          "agencyWorkspaceId": {
+            "type": "string"
+          },
+          "clients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "defaultTemplateId": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "enabledAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "enabledByName": {
+            "type": "string"
+          },
+          "instanceName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "templates": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyTemplateRef"
+            },
+            "type": "array"
+          },
+          "workspaces": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyModeWorkspace"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "enabled",
+          "name",
+          "instanceName",
+          "workspaces",
+          "templates",
+          "clients"
+        ],
+        "type": "object"
+      },
+      "AgencyModeWorkspace": {
+        "additionalProperties": false,
+        "properties": {
+          "agency": {
+            "type": "boolean"
+          },
+          "client": {
+            "type": "boolean"
+          },
+          "color": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "initials": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "initials",
+          "color",
+          "client",
+          "agency"
+        ],
+        "type": "object"
+      },
+      "AgencyNotification": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "link": {
+            "type": "string"
+          },
+          "read": {
+            "type": "boolean"
+          },
+          "severity": {
+            "enum": [
+              "info",
+              "ok",
+              "warn",
+              "bad"
+            ],
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/AgencyWorkspaceRef"
+          }
+        },
+        "required": [
+          "id",
+          "workspace",
+          "kind",
+          "severity",
+          "title",
+          "summary",
+          "link",
+          "createdAt",
+          "read"
+        ],
+        "type": "object"
+      },
+      "AgencyNotificationList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyNotification"
+            },
+            "type": "array"
+          },
+          "unread": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "unread"
+        ],
+        "type": "object"
+      },
+      "AgencyOverviewView": {
+        "additionalProperties": false,
+        "properties": {
+          "agencyWorkspace": {
+            "$ref": "#/components/schemas/AgencyClientRow"
+          },
+          "approvals": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyApproval"
+            },
+            "type": "array"
+          },
+          "canCreate": {
+            "type": "boolean"
+          },
+          "clients": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyClientRow"
+            },
+            "type": "array"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/AgencyCounts"
+          },
+          "incidents": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyIncident"
+            },
+            "type": "array"
+          },
+          "manager": {
+            "type": "boolean"
+          },
+          "nextAfter": {
+            "$ref": "#/components/schemas/AgencySend"
+          },
+          "sends": {
+            "items": {
+              "$ref": "#/components/schemas/AgencySend"
+            },
+            "type": "array"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "clients",
+          "counts",
+          "approvals",
+          "incidents",
+          "sends",
+          "canCreate",
+          "manager",
+          "timezone"
+        ],
+        "type": "object"
+      },
+      "AgencyPersonRef": {
+        "additionalProperties": false,
+        "properties": {
+          "avatarColor": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "avatarColor"
+        ],
+        "type": "object"
+      },
+      "AgencyPlanPart": {
+        "additionalProperties": false,
+        "properties": {
+          "added": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "renamed": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyPlanRename"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "added",
+          "renamed"
+        ],
+        "type": "object"
+      },
+      "AgencyPlanRename": {
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to"
+        ],
+        "type": "object"
+      },
+      "AgencyPlanSkip": {
+        "additionalProperties": false,
+        "properties": {
+          "part": {
+            "type": "string"
+          },
+          "permission": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "part",
+          "permission"
+        ],
+        "type": "object"
+      },
+      "AgencyProviderCost": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter": {
+            "type": "string"
+          },
+          "basis": {
+            "enum": [
+              "metered",
+              "plan"
+            ],
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "cost": {
+            "format": "double",
+            "type": "number"
+          },
+          "entered": {
+            "type": "boolean"
+          },
+          "per1000": {
+            "format": "double",
+            "type": "number"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "units": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "provider",
+          "adapter",
+          "channel",
+          "units",
+          "cost",
+          "basis",
+          "entered"
+        ],
+        "type": "object"
+      },
+      "AgencyRate": {
+        "additionalProperties": false,
+        "properties": {
+          "costPlusPct": {
+            "format": "double",
+            "maximum": 1000,
+            "minimum": 0,
+            "type": "number"
+          },
+          "flat": {
+            "format": "double",
+            "maximum": 10000000,
+            "minimum": 0,
+            "type": "number"
+          },
+          "monthlyFee": {
+            "format": "double",
+            "maximum": 10000000,
+            "minimum": 0,
+            "type": "number"
+          },
+          "per1000Emails": {
+            "format": "double",
+            "maximum": 100000,
+            "minimum": 0,
+            "type": "number"
+          },
+          "perSegment": {
+            "format": "double",
+            "maximum": 1000,
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "AgencyRateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "rate": {
+            "$ref": "#/components/schemas/AgencyRate"
+          }
+        },
+        "required": [
+          "rate"
+        ],
+        "type": "object"
+      },
+      "AgencyRateSaved": {
+        "additionalProperties": false,
+        "properties": {
+          "effectiveFrom": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "effectiveFrom"
+        ],
+        "type": "object"
+      },
+      "AgencyRebill": {
+        "additionalProperties": false,
+        "properties": {
+          "cost": {
+            "format": "double",
+            "type": "number"
+          },
+          "costPlus": {
+            "format": "double",
+            "type": "number"
+          },
+          "emails": {
+            "format": "double",
+            "type": "number"
+          },
+          "flat": {
+            "format": "double",
+            "type": "number"
+          },
+          "monthly": {
+            "format": "double",
+            "type": "number"
+          },
+          "segments": {
+            "format": "double",
+            "type": "number"
+          },
+          "toRebill": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "cost",
+          "costPlus",
+          "emails",
+          "segments",
+          "monthly",
+          "flat"
+        ],
+        "type": "object"
+      },
+      "AgencyRoleRef": {
+        "additionalProperties": false,
+        "properties": {
+          "builtin": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "builtin"
+        ],
+        "type": "object"
+      },
+      "AgencySearchGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "hits": {
+            "items": {
+              "$ref": "#/components/schemas/AgencySearchHit"
+            },
+            "type": "array"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/AgencyWorkspaceRef"
+          }
+        },
+        "required": [
+          "workspace",
+          "hits"
+        ],
+        "type": "object"
+      },
+      "AgencySearchHit": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "campaign",
+              "automation",
+              "template",
+              "section",
+              "form",
+              "contact",
+              "library"
+            ],
+            "type": "string"
+          },
+          "leftLists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "libraryKind": {
+            "type": "string"
+          },
+          "lists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "subscribedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "unsubscribedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "AgencySearchResults": {
+        "additionalProperties": false,
+        "properties": {
+          "contact": {
+            "type": "boolean"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/AgencySearchGroup"
+            },
+            "type": "array"
+          },
+          "library": {
+            "items": {
+              "$ref": "#/components/schemas/AgencySearchHit"
+            },
+            "type": "array"
+          },
+          "query": {
+            "type": "string"
+          },
+          "searched": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "skipped": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query",
+          "contact",
+          "groups",
+          "library",
+          "total",
+          "searched",
+          "skipped"
+        ],
+        "type": "object"
+      },
+      "AgencySend": {
+        "additionalProperties": false,
+        "properties": {
+          "campaignId": {
+            "type": "string"
+          },
+          "channel": {
+            "enum": [
+              "email",
+              "sms",
+              "push",
+              "whatsapp"
+            ],
+            "type": "string"
+          },
+          "health": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sendAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "texts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/AgencyWorkspaceRef"
+          }
+        },
+        "required": [
+          "workspace",
+          "campaignId",
+          "name",
+          "status",
+          "sendAt",
+          "timezone",
+          "channel",
+          "recipients"
+        ],
+        "type": "object"
+      },
+      "AgencySetup": {
+        "additionalProperties": false,
+        "properties": {
+          "done": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/AgencySetupStep"
+            },
+            "type": "array"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "done",
+          "total",
+          "steps"
+        ],
+        "type": "object"
+      },
+      "AgencySetupStep": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "done": {
+            "type": "boolean"
+          },
+          "key": {
+            "enum": [
+              "provider",
+              "domain",
+              "invite",
+              "shopify"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "done"
+        ],
+        "type": "object"
+      },
+      "AgencyStaffAdded": {
+        "additionalProperties": false,
+        "properties": {
+          "assigned": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "emailed": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "invitations": {
+            "items": {
+              "$ref": "#/components/schemas/TeamCreatedInvitation"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "assigned",
+          "invitations",
+          "emailed"
+        ],
+        "type": "object"
+      },
+      "AgencyStaffCandidate": {
+        "additionalProperties": false,
+        "properties": {
+          "avatarColor": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "avatarColor"
+        ],
+        "type": "object"
+      },
+      "AgencyStaffInput": {
+        "additionalProperties": false,
+        "properties": {
+          "assignments": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyAssignmentSpec"
+            },
+            "maxItems": 500,
+            "type": "array"
+          },
+          "email": {
+            "description": "Invite by email instead",
+            "maxLength": 254,
+            "type": "string"
+          },
+          "level": {
+            "enum": [
+              "agency_manager",
+              "account_manager"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 60,
+            "type": "string"
+          },
+          "userId": {
+            "description": "An account of this instance",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "level"
+        ],
+        "type": "object"
+      },
+      "AgencyStaffMember": {
+        "additionalProperties": false,
+        "properties": {
+          "avatarColor": {
+            "type": "string"
+          },
+          "clients": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "email": {
+            "type": "string"
+          },
+          "everyClient": {
+            "type": "boolean"
+          },
+          "id": {
+            "description": "Staff id: the staff row, or admin:\u003cuser id\u003e for an instance admin",
+            "type": "string"
+          },
+          "instanceAdmin": {
+            "type": "boolean"
+          },
+          "invited": {
+            "type": "boolean"
+          },
+          "lastActiveAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "level": {
+            "enum": [
+              "agency_manager",
+              "account_manager"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyRoleRef"
+            },
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          },
+          "userId": {
+            "description": "Empty while an invited person has no account yet",
+            "type": "string"
+          },
+          "you": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "avatarColor",
+          "level",
+          "instanceAdmin",
+          "invited",
+          "everyClient",
+          "clients",
+          "roles",
+          "you",
+          "permissions"
+        ],
+        "type": "object"
+      },
+      "AgencyStaffRemoveInput": {
+        "additionalProperties": false,
+        "properties": {
+          "removeAssignments": {
+            "type": "boolean"
+          },
+          "revokeKeys": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "AgencyStaffUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "level": {
+            "enum": [
+              "agency_manager",
+              "account_manager"
+            ],
+            "type": "string"
+          },
+          "permissions": {
+            "items": {
+              "enum": [
+                "agency:view",
+                "agency:usage",
+                "agency:library",
+                "agency:manage"
+              ],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 60,
+            "type": "string"
+          }
+        },
+        "required": [
+          "level"
+        ],
+        "type": "object"
+      },
+      "AgencyStaffView": {
+        "additionalProperties": false,
+        "properties": {
+          "assignments": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyAssignmentRow"
+            },
+            "type": "array"
+          },
+          "canManage": {
+            "type": "boolean"
+          },
+          "clients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "hasAgencyWorkspace": {
+            "type": "boolean"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "staff": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyStaffMember"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "staff",
+          "assignments",
+          "clients",
+          "hasAgencyWorkspace",
+          "canManage",
+          "helpers"
+        ],
+        "type": "object"
+      },
+      "AgencyTemplate": {
+        "additionalProperties": false,
+        "properties": {
+          "default": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nextSteps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "setsUp": {
+            "$ref": "#/components/schemas/AgencyTemplateSummary"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "usedBy": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyWorkspaceRef"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "default",
+          "updatedAt",
+          "setsUp",
+          "usedBy",
+          "nextSteps"
+        ],
+        "type": "object"
+      },
+      "AgencyTemplateFromWorkspace": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "AgencyTemplateInput": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "exclude": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "nextSteps": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 4,
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "AgencyTemplatePlan": {
+        "additionalProperties": false,
+        "properties": {
+          "appliedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "appliedBy": {
+            "type": "string"
+          },
+          "automations": {
+            "$ref": "#/components/schemas/AgencyPlanPart"
+          },
+          "branding": {
+            "type": "boolean"
+          },
+          "clientRoles": {
+            "enum": [
+              "added",
+              "already"
+            ],
+            "type": "string"
+          },
+          "clientSignoff": {
+            "enum": [
+              "on",
+              "already",
+              "off",
+              "skipped"
+            ],
+            "type": "string"
+          },
+          "forms": {
+            "$ref": "#/components/schemas/AgencyPlanPart"
+          },
+          "lists": {
+            "$ref": "#/components/schemas/AgencyPlanPart"
+          },
+          "nextSteps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "roles": {
+            "$ref": "#/components/schemas/AgencyPlanPart"
+          },
+          "sections": {
+            "$ref": "#/components/schemas/AgencyPlanPart"
+          },
+          "senders": {
+            "type": "boolean"
+          },
+          "skipped": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyPlanSkip"
+            },
+            "type": "array"
+          },
+          "smsTexts": {
+            "$ref": "#/components/schemas/AgencyPlanPart"
+          },
+          "template": {
+            "$ref": "#/components/schemas/AgencyTemplateRef"
+          },
+          "templates": {
+            "$ref": "#/components/schemas/AgencyPlanPart"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/AgencyWorkspaceRef"
+          }
+        },
+        "required": [
+          "template",
+          "workspace",
+          "lists",
+          "automations",
+          "sections",
+          "templates",
+          "smsTexts",
+          "forms",
+          "roles",
+          "clientSignoff",
+          "clientRoles",
+          "branding",
+          "senders",
+          "nextSteps",
+          "skipped"
+        ],
+        "type": "object"
+      },
+      "AgencyTemplateRef": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "AgencyTemplateSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "automationNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "automations": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "automationsNote": {
+            "type": "string"
+          },
+          "branding": {
+            "type": "boolean"
+          },
+          "clientRoles": {
+            "type": "boolean"
+          },
+          "clientSignoff": {
+            "type": "boolean"
+          },
+          "forms": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "listNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "lists": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "roles": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sections": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "smsTexts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "templates": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "lists",
+          "listNames",
+          "automations",
+          "automationNames",
+          "sections",
+          "templates",
+          "smsTexts",
+          "forms",
+          "clientSignoff",
+          "roles",
+          "clientRoles",
+          "branding"
+        ],
+        "type": "object"
+      },
+      "AgencyUnassignInput": {
+        "additionalProperties": false,
+        "properties": {
+          "revokeKeys": {
+            "type": "boolean"
+          },
+          "staffId": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "staffId",
+          "workspaceId"
+        ],
+        "type": "object"
+      },
+      "AgencyUsageCount": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "units": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "units"
+        ],
+        "type": "object"
+      },
+      "AgencyUsageMonth": {
+        "additionalProperties": false,
+        "properties": {
+          "month": {
+            "type": "string"
+          },
+          "partial": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "month",
+          "partial"
+        ],
+        "type": "object"
+      },
+      "AgencyUsageRow": {
+        "additionalProperties": false,
+        "properties": {
+          "costs": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyProviderCost"
+            },
+            "type": "array"
+          },
+          "countries": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyUsageCount"
+            },
+            "type": "array"
+          },
+          "emails": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "providers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "push": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "rate": {
+            "$ref": "#/components/schemas/AgencyRate"
+          },
+          "rateSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "rebill": {
+            "$ref": "#/components/schemas/AgencyRebill"
+          },
+          "segments": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "streams": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyUsageCount"
+            },
+            "type": "array"
+          },
+          "whatsApp": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/AgencyWorkspaceRef"
+          }
+        },
+        "required": [
+          "workspace",
+          "emails",
+          "segments",
+          "push",
+          "whatsApp",
+          "costs",
+          "rebill",
+          "streams",
+          "countries",
+          "providers"
+        ],
+        "type": "object"
+      },
+      "AgencyUsageTotals": {
+        "additionalProperties": false,
+        "properties": {
+          "billed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "clients": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "cost": {
+            "format": "double",
+            "type": "number"
+          },
+          "emails": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "push": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "segments": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "toRebill": {
+            "format": "double",
+            "type": "number"
+          },
+          "whatsApp": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "workspaces": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workspaces",
+          "clients",
+          "billed",
+          "emails",
+          "segments",
+          "push",
+          "whatsApp",
+          "cost",
+          "toRebill"
+        ],
+        "type": "object"
+      },
+      "AgencyUsageView": {
+        "additionalProperties": false,
+        "properties": {
+          "canSeeCosts": {
+            "type": "boolean"
+          },
+          "entered": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyEnteredPrice"
+            },
+            "type": "array"
+          },
+          "from": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "helpers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "month": {
+            "type": "string"
+          },
+          "months": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyUsageMonth"
+            },
+            "type": "array"
+          },
+          "partial": {
+            "type": "boolean"
+          },
+          "pricingDate": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/AgencyUsageRow"
+            },
+            "type": "array"
+          },
+          "to": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/AgencyUsageTotals"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "month",
+          "partial",
+          "from",
+          "to",
+          "months",
+          "rows",
+          "totals",
+          "entered",
+          "canSeeCosts",
+          "helpers",
+          "pricingDate"
+        ],
+        "type": "object"
+      },
+      "AgencyWorkspaceRef": {
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "initials": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "client",
+              "agency"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "initials",
+          "color",
+          "kind"
+        ],
+        "type": "object"
+      },
       "AlertDomain": {
         "additionalProperties": false,
         "properties": {
@@ -5041,6 +7904,81 @@
         ],
         "type": "object"
       },
+      "ApprovalClientSignoff": {
+        "additionalProperties": false,
+        "properties": {
+          "automations": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "automations"
+        ],
+        "type": "object"
+      },
+      "ApprovalClientSignoffInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "agency": {
+            "type": "string"
+          },
+          "approvers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "staff": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "agency",
+          "approvers",
+          "staff"
+        ],
+        "type": "object"
+      },
+      "ApprovalClientSignoffState": {
+        "additionalProperties": false,
+        "properties": {
+          "approvers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "met": {
+            "type": "boolean"
+          },
+          "signedOffBy": {
+            "type": "string"
+          },
+          "staffApprovals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "viewerIsStaff": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "met",
+          "approvers",
+          "staffApprovals",
+          "viewerIsStaff"
+        ],
+        "type": "object"
+      },
       "ApprovalCommentInput": {
         "additionalProperties": false,
         "properties": {
@@ -5238,6 +8176,9 @@
               "whatsapp"
             ],
             "type": "string"
+          },
+          "clientSignoff": {
+            "$ref": "#/components/schemas/ApprovalClientSignoffState"
           },
           "comment": {
             "type": "string"
@@ -5724,6 +8665,9 @@
           "channelCost": {
             "$ref": "#/components/schemas/ApprovalCostRule"
           },
+          "clientSignoff": {
+            "$ref": "#/components/schemas/ApprovalClientSignoff"
+          },
           "emergencyBypass": {
             "type": "boolean"
           },
@@ -5840,6 +8784,9 @@
           },
           "canManage": {
             "type": "boolean"
+          },
+          "clientSignoff": {
+            "$ref": "#/components/schemas/ApprovalClientSignoffInfo"
           },
           "matches": {
             "$ref": "#/components/schemas/ApprovalPolicyMatches"
@@ -6234,7 +9181,8 @@
               "automation_publish",
               "transactional_publish",
               "post_publish",
-              "channel_cost_min"
+              "channel_cost_min",
+              "client_signoff"
             ],
             "type": "string"
           },
@@ -21381,6 +24329,27 @@
         ],
         "type": "object"
       },
+      "DiffLine": {
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "enum": [
+              "del",
+              "add",
+              "ctx"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "op",
+          "text"
+        ],
+        "type": "object"
+      },
       "DigestApprovals": {
         "additionalProperties": false,
         "properties": {
@@ -33379,6 +36348,13 @@
       "InstanceUser": {
         "additionalProperties": false,
         "properties": {
+          "agencyLevel": {
+            "enum": [
+              "agency_manager",
+              "account_manager"
+            ],
+            "type": "string"
+          },
           "allMethods": {
             "items": {
               "$ref": "#/components/schemas/MemberSignInMethod"
@@ -36442,6 +39418,9 @@
             "maxLength": 80,
             "type": "string"
           },
+          "passkey": {
+            "type": "boolean"
+          },
           "password": {
             "maxLength": 1024,
             "type": "string"
@@ -36487,6 +39466,29 @@
           "hasSecondFactor",
           "twoFactor",
           "next"
+        ],
+        "type": "object"
+      },
+      "InvitationAgency": {
+        "additionalProperties": false,
+        "properties": {
+          "clientRole": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "passkey": {
+            "type": "boolean"
+          },
+          "roleLine": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "clientRole",
+          "passkey"
         ],
         "type": "object"
       },
@@ -36560,6 +39562,9 @@
           },
           "accountExists": {
             "type": "boolean"
+          },
+          "agency": {
+            "$ref": "#/components/schemas/InvitationAgency"
           },
           "description": {
             "type": "string"
@@ -90817,6 +93822,101 @@
         ],
         "type": "object"
       },
+      "WorkspaceAgency": {
+        "additionalProperties": false,
+        "properties": {
+          "agency": {
+            "type": "string"
+          },
+          "agencyInitials": {
+            "type": "string"
+          },
+          "billed": {
+            "type": "boolean"
+          },
+          "canSaveTemplate": {
+            "type": "boolean"
+          },
+          "clientSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "contact": {
+            "$ref": "#/components/schemas/AgencyPersonRef"
+          },
+          "host": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "client",
+              "agency"
+            ],
+            "type": "string"
+          },
+          "managed": {
+            "type": "boolean"
+          },
+          "rate": {
+            "$ref": "#/components/schemas/AgencyRate"
+          },
+          "rateSince": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "staff": {
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceAgencyStaff"
+            },
+            "type": "array"
+          },
+          "template": {
+            "type": "string"
+          },
+          "viewerIsStaff": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "managed",
+          "staff",
+          "viewerIsStaff",
+          "billed",
+          "canSaveTemplate"
+        ],
+        "type": "object"
+      },
+      "WorkspaceAgencyStaff": {
+        "additionalProperties": false,
+        "properties": {
+          "contact": {
+            "type": "boolean"
+          },
+          "everyClient": {
+            "type": "boolean"
+          },
+          "level": {
+            "enum": [
+              "agency_manager",
+              "account_manager"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "level",
+          "contact",
+          "everyClient"
+        ],
+        "type": "object"
+      },
       "WorkspaceApprovals": {
         "additionalProperties": false,
         "properties": {
@@ -91434,6 +94534,88 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/admin/agency": {
+      "get": {
+        "operationId": "get-agency-mode",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyModeView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Agency mode: on or off, the agency's name, its workspace, clients and default template",
+        "tags": [
+          "Instance admin · Instance \u0026 updates"
+        ],
+        "x-access": "instance_admin"
+      },
+      "put": {
+        "operationId": "update-agency-mode",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgencyModeInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyModeView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Turn agency mode on or off and choose its workspaces",
+        "tags": [
+          "Instance admin · Instance \u0026 updates"
+        ],
+        "x-access": "instance_admin"
+      }
+    },
     "/api/v1/admin/audit": {
       "get": {
         "operationId": "list-instance-audit-events",
@@ -91520,6 +94702,36 @@
             "name": "until",
             "schema": {
               "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "enum": [
+                "sending",
+                "routing",
+                "audience",
+                "team",
+                "settings",
+                "integrations",
+                "transactional",
+                "scoring",
+                "digests",
+                "polls",
+                "ai",
+                "earn",
+                "verification",
+                "placement",
+                "website",
+                "grow",
+                "products",
+                "commerce",
+                "sms",
+                "agency"
+              ],
               "type": "string"
             }
           },
@@ -91713,6 +94925,36 @@
             "name": "until",
             "schema": {
               "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "enum": [
+                "sending",
+                "routing",
+                "audience",
+                "team",
+                "settings",
+                "integrations",
+                "transactional",
+                "scoring",
+                "digests",
+                "polls",
+                "ai",
+                "earn",
+                "verification",
+                "placement",
+                "website",
+                "grow",
+                "products",
+                "commerce",
+                "sms",
+                "agency"
+              ],
               "type": "string"
             }
           },
@@ -93746,6 +96988,1535 @@
           "Instance admin · Workspaces"
         ],
         "x-access": "instance_admin"
+      }
+    },
+    "/api/v1/agency/assignments": {
+      "put": {
+        "operationId": "assign-agency-staff",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgencyAssignInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Assign a staff member to a workspace with a role (only roles whose permissions you hold there)",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:view"
+      }
+    },
+    "/api/v1/agency/assignments/keys": {
+      "get": {
+        "operationId": "get-agency-assignment-keys",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "staffId",
+            "schema": {
+              "maxLength": 80,
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "workspaceId",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyAssignmentKeys"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The API keys and agents a staff member created in a workspace",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:view"
+      }
+    },
+    "/api/v1/agency/assignments/remove": {
+      "post": {
+        "operationId": "unassign-agency-staff",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgencyUnassignInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove an assignment: the membership goes; the keys they made are kept or revoked",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:view"
+      }
+    },
+    "/api/v1/agency/clients": {
+      "post": {
+        "operationId": "create-agency-client",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgencyClientNew"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyClientCreated"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Create a client workspace, from a template, with its first person invited",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:manage"
+      }
+    },
+    "/api/v1/agency/clients/{workspaceId}": {
+      "get": {
+        "operationId": "get-agency-client",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspaceId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyClientPulse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "One client's row: health, next send, approvals, incidents and setup",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:view"
+      },
+      "patch": {
+        "operationId": "update-agency-client",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspaceId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgencyClientInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change a client's contact at the agency",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:manage"
+      }
+    },
+    "/api/v1/agency/clients/{workspaceId}/delete": {
+      "post": {
+        "operationId": "delete-agency-client",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspaceId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgencyClientDelete"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyClientDeleted"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Delete a client workspace (typed name; restorable for 7 days)",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:manage"
+      }
+    },
+    "/api/v1/agency/clients/{workspaceId}/details": {
+      "get": {
+        "operationId": "get-agency-client-details",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspaceId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyClientDetails"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "What the agency keeps about a client: contact, rate, people, last months",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:view"
+      }
+    },
+    "/api/v1/agency/clients/{workspaceId}/rate": {
+      "put": {
+        "operationId": "set-agency-client-rate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspaceId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgencyRateInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyRateSaved"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Set a client's rebill rate (applies from the 1st of this month)",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:usage"
+      }
+    },
+    "/api/v1/agency/clients/{workspaceId}/setup": {
+      "get": {
+        "operationId": "get-agency-client-setup",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspaceId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyTemplatePlan"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The last workspace template applied to a client, and what it added",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:view"
+      }
+    },
+    "/api/v1/agency/library": {
+      "get": {
+        "operationId": "get-agency-library",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyLibraryView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The shared library, most used first",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:view"
+      }
+    },
+    "/api/v1/agency/library/copies/{copyId}/update": {
+      "post": {
+        "operationId": "update-agency-library-copy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "copyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Bring a client's copy to the library's latest version",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:view"
+      }
+    },
+    "/api/v1/agency/library/{itemId}": {
+      "delete": {
+        "operationId": "remove-agency-library-item",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "itemId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove a library item (copies in clients stay)",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:library"
+      },
+      "get": {
+        "operationId": "get-agency-library-item",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "itemId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyLibraryDetail"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "A library item: versions, fields it needs, copies and their diff",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:view"
+      },
+      "patch": {
+        "operationId": "update-agency-library-item",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "itemId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgencyLibraryEdit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Rename a library item, or publish a client's copy as its next version",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:library"
+      }
+    },
+    "/api/v1/agency/library/{itemId}/copies": {
+      "post": {
+        "operationId": "copy-agency-library-item",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "itemId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgencyCopyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyCopyResult"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Copy a library item into a client (needs its edit permission there)",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:view"
+      }
+    },
+    "/api/v1/agency/me": {
+      "get": {
+        "operationId": "get-agency-me",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyMe"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The agency, as the app shell shows it: its clients for staff, its name for everyone",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user"
+      }
+    },
+    "/api/v1/agency/notifications": {
+      "get": {
+        "operationId": "list-agency-notifications",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 6,
+              "format": "int64",
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyNotificationList"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Your latest notifications across the agency's workspaces, unread first",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:view"
+      }
+    },
+    "/api/v1/agency/overview": {
+      "get": {
+        "operationId": "get-agency-overview",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyOverviewView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The agency overview: clients, approvals waiting, incidents and the next sends",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:view"
+      }
+    },
+    "/api/v1/agency/search": {
+      "get": {
+        "operationId": "search-agency",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencySearchResults"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Search your clients: names, or a contact by exact email (recorded in the audit log)",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:view"
+      }
+    },
+    "/api/v1/agency/staff": {
+      "get": {
+        "operationId": "get-agency-staff",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyStaffView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The agency's staff and the assignment matrix",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:view"
+      },
+      "post": {
+        "operationId": "add-agency-staff",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgencyStaffInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyStaffAdded"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Add someone to the staff, from this instance's accounts or by invitation",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:manage"
+      }
+    },
+    "/api/v1/agency/staff/candidates": {
+      "get": {
+        "operationId": "list-agency-staff-candidates",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AgencyStaffCandidate"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Accounts of this instance that can join the staff",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:manage"
+      }
+    },
+    "/api/v1/agency/staff/{staffId}": {
+      "patch": {
+        "operationId": "update-agency-staff",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "staffId",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgencyStaffUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Change a staff member's level or title",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:manage"
+      }
+    },
+    "/api/v1/agency/staff/{staffId}/remove": {
+      "post": {
+        "operationId": "remove-agency-staff",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "staffId",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgencyStaffRemoveInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Take someone off the staff, and optionally out of the agency's workspaces",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:manage"
+      }
+    },
+    "/api/v1/agency/templates": {
+      "get": {
+        "operationId": "list-agency-templates",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AgencyTemplate"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Workspace templates, what each sets up and the clients using it",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:view"
+      }
+    },
+    "/api/v1/agency/templates/{templateId}": {
+      "delete": {
+        "operationId": "delete-agency-template",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "templateId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Remove a workspace template (clients keep everything it set up)",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:library"
+      },
+      "patch": {
+        "operationId": "update-agency-template",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "templateId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgencyTemplateInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Rename a workspace template or leave parts out of it",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:library"
+      }
+    },
+    "/api/v1/agency/templates/{templateId}/apply": {
+      "post": {
+        "operationId": "apply-agency-template",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "templateId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgencyCopyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyTemplatePlan"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Apply a template to a client: adds what's missing, renames clashes, never overwrites",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:library"
+      }
+    },
+    "/api/v1/agency/templates/{templateId}/plan": {
+      "get": {
+        "operationId": "plan-agency-template",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "templateId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "workspaceId",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyTemplatePlan"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "What applying a template to a client would add and rename",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:library"
+      }
+    },
+    "/api/v1/agency/usage": {
+      "get": {
+        "operationId": "get-agency-usage",
+        "parameters": [
+          {
+            "description": "2026-09; the last full month by default",
+            "explode": false,
+            "in": "query",
+            "name": "month",
+            "schema": {
+              "description": "2026-09; the last full month by default",
+              "pattern": "^\\d{4}-\\d{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyUsageView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Usage per client for a month, with provider costs and what to rebill",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:view"
+      }
+    },
+    "/api/v1/agency/usage/export": {
+      "get": {
+        "operationId": "export-agency-usage",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "month",
+            "schema": {
+              "pattern": "^\\d{4}-\\d{2}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Usage as CSV: one row per client and channel (recorded in the audit log)",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "user",
+        "x-permission": "agency:usage"
       }
     },
     "/api/v1/auth/identify": {
@@ -97267,6 +102038,316 @@
         "x-permission": "providers:manage"
       }
     },
+    "/api/v1/workspaces/{workspace}/agency": {
+      "get": {
+        "operationId": "get-workspace-agency",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceAgency"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The agency managing this workspace: “Managed by”, the contact, staff among the members",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/agency/library": {
+      "get": {
+        "operationId": "get-agency-gallery",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "kind",
+            "schema": {
+              "default": "composer",
+              "enum": [
+                "composer",
+                "automation",
+                "transactional",
+                "sms"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyGalleryView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "The agency library tab of this workspace's gallery and automation starters",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "workspace"
+      },
+      "post": {
+        "operationId": "add-agency-library-item",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgencyAddToLibrary"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyLibraryAdded"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Add an item of this workspace to the agency's library (agency:library and its view permission here)",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/agency/library/{itemId}/use": {
+      "post": {
+        "operationId": "use-agency-library-item",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "itemId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyCopyResult"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Copy a library item into this workspace",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "workspace"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/agency/template": {
+      "post": {
+        "operationId": "save-agency-template",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgencyTemplateFromWorkspace"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgencyTemplateRef"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Save this workspace's setup as a workspace template (agency:library)",
+        "tags": [
+          "Agency"
+        ],
+        "x-access": "workspace"
+      }
+    },
     "/api/v1/workspaces/{workspace}/ai": {
       "get": {
         "description": "The key is write-only: only whether one is set, and when. Settings › Integrations › AI assistant.",
@@ -99994,7 +105075,8 @@
                 "commerce",
                 "sms",
                 "push",
-                "whatsapp"
+                "whatsapp",
+                "agency"
               ],
               "type": "string"
             }
@@ -100266,7 +105348,8 @@
                 "commerce",
                 "sms",
                 "push",
-                "whatsapp"
+                "whatsapp",
+                "agency"
               ],
               "type": "string"
             }

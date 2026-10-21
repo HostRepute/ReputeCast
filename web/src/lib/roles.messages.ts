@@ -6,4 +6,7 @@ export const m = defineMessages('roleNames', {
   admin: 'Admin',
   editor: 'Editor',
   viewer: 'Viewer',
+  // Client roles: built-in in an agency's client workspaces.
+  clientApprover: 'Client approver',
+  clientViewer: 'Client viewer',
 })

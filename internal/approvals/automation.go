@@ -27,10 +27,12 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 		return automations.GateDecision{}, err
 	}
 	policy := ParsePolicy(ws.ApprovalPolicy)
+	// Client sign-off can cover publishing automations too (agencies).
+	signoff := policy.ClientSignoff.Enabled && policy.ClientSignoff.Automations
 	// A flow with a channel step needs its send permission (sms:send):
 	// without it, publishing goes for approval even when the workspace
 	// doesn't ask for automation approvals.
-	if !policy.AutomationPublish && len(req.Missing) == 0 {
+	if !policy.AutomationPublish && !signoff && len(req.Missing) == 0 {
 		return automations.GateDecision{}, nil
 	}
 	ms, err := g.S.members(ctx, q, ws.ID)
@@ -52,6 +54,13 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 	if len(approvers) == 0 {
 		return automations.GateDecision{}, fmt.Errorf("publishing needs approval and nobody else holds campaigns:approve")
 	}
+	if signoff {
+		if clients, err := clientApprovers(ctx, q, approvers); err != nil {
+			return automations.GateDecision{}, err
+		} else if len(clients) == 0 {
+			return automations.GateDecision{}, fmt.Errorf("publishing needs client sign-off and nobody at %s can give it yet: invite the client's approver with the Client approver role", ws.Name)
+		}
+	}
 	who := strings.Join(names, " or ")
 	if len(names) > 2 {
 		who = strings.Join(names[:len(names)-1], ", ") + " or " + names[len(names)-1]
@@ -68,10 +77,8 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 		}
 	}
 	rules := []ApprovalRuleMatch{}
-	keys := []string{}
 	if policy.AutomationPublish {
 		rules = append(rules, ApprovalRuleMatch{Key: RuleAutomationPublish, Label: "Publishing an automation requires approval", Short: "automation publish", Badge: "Automation publish"})
-		keys = append(keys, RuleAutomationPublish)
 	}
 	if len(req.Missing) > 0 {
 		perm := req.Missing[0]
@@ -82,8 +89,11 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 			match.Author, match.Role = m.Name, m.RoleName
 		}
 		rules = append(rules, match)
-		keys = append(keys, RuleAuthorLacksSend)
 	}
+	if signoff {
+		rules = append(rules, clientSignoffMatch())
+	}
+	keys := ruleKeys(rules)
 	snap := Snapshot{Version: req.Version, Rules: rules, Automation: &ApprovalAutomationSnapshot{Version: req.Version, Migration: req.Migration, Changes: changes}}
 	if m := memberByID(ms, &req.By); m != nil {
 		snap.AuthorRole = m.RoleName
@@ -92,7 +102,7 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 	id := uuid.Must(uuid.NewV7())
 	by := req.By
 	if err := q.ApprovalInsertRequest(ctx, store.ApprovalInsertRequestParams{ID: id, WorkspaceID: ws.ID, SubjectType: "automation", AutomationID: &auto, RequestedBy: &by,
-		RequestedAt: g.S.now(), Status: "pending", MatchedRules: keys, ApprovalsRequired: int32(max(policy.ApprovalsRequired, 1)), Snapshot: sb}); err != nil {
+		RequestedAt: g.S.now(), Status: "pending", MatchedRules: keys, ApprovalsRequired: int32(max(requiredFor(policy, rules), 1)), Snapshot: sb}); err != nil {
 		return automations.GateDecision{}, err
 	}
 	author := ""

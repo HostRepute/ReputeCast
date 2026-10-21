@@ -17,6 +17,7 @@ import { instanceAuditTime, monthDayTimeSeconds } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { AdminPage } from '../AdminPage'
+import { AgencyAuditFilter } from '@/features/agency/AdminParts'
 import { RetentionDialog, StreamDialog } from './AuditSettingsDialogs'
 
 type Item = Schemas['InstanceAuditItem']
@@ -28,6 +29,8 @@ export interface InstanceAuditSearch {
   workspace?: string
   actorType?: 'user' | 'api_key' | 'mcp_agent' | 'system'
   result?: 'allowed' | 'denied'
+  /** The agency's actions only (agency accounts). */
+  category?: 'agency'
   /** Last 30 days when unset. */
   range?: '7d' | '90d' | 'custom'
   since?: string
@@ -46,6 +49,7 @@ function apiFilters(s: InstanceAuditSearch, tz: string) {
     workspace: s.workspace,
     actorType: s.actorType,
     result: s.result,
+    category: s.category,
     range: s.range === 'custom' ? ('all' as const) : (s.range ?? ('30d' as const)),
     since: custom && s.since ? zonedDayStart(s.since, tz).toISOString() : undefined,
     until: custom && s.until ? zonedDayStart(s.until, tz, 1).toISOString() : undefined,
@@ -290,6 +294,7 @@ function Filters({ search, list }: { search: InstanceAuditSearch; list?: List })
         <option value="allowed">Allowed</option>
         <option value="denied">Denied</option>
       </select>
+      <AgencyAuditFilter value={search.category} onChange={(category) => set({ category })} />
       <select
         className="in w-[130px] max-md:w-full"
         aria-label="Date range"

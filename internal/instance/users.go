@@ -63,6 +63,9 @@ type InstanceUser struct {
 	// SSOProvider is the SSO they sign in with, for "managed by" texts.
 	SSOProvider string `json:"ssoProvider,omitempty"`
 	Self        bool   `json:"self"`
+	// AgencyLevel is their place on the agency's staff while agency mode
+	// is on (instance admins are agency managers); empty otherwise.
+	AgencyLevel string `json:"agencyLevel,omitempty" enum:"agency_manager,account_manager"`
 }
 
 // InstanceWorkspaceRef names a workspace for the filter.
@@ -97,6 +100,16 @@ func (s *Service) Users(ctx context.Context, f UserFilter) (InstanceUserList, er
 	all, err := s.loadUsers(ctx, me)
 	if err != nil {
 		return InstanceUserList{}, err
+	}
+	// The Agency staff column (agencies, phase 8).
+	if levels, err := s.Q.AgencyStaffLevels(ctx); err == nil {
+		byUser := map[string]string{}
+		for _, l := range levels {
+			byUser[l.UserID.String()] = l.Level
+		}
+		for i := range all {
+			all[i].AgencyLevel = byUser[all[i].ID]
+		}
 	}
 	out := InstanceUserList{Items: []InstanceUser{}, Total: len(all), AdminNames: []string{}, Workspaces: []InstanceWorkspaceRef{}}
 	wss, err := s.Q.ListWorkspaces(ctx)

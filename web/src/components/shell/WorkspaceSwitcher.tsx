@@ -1,5 +1,8 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { DropdownMenu } from 'radix-ui'
+import { useAgencyMe } from '@/features/agency/api'
+import { AgencySwitcherMenu } from '@/features/agency/AgencySwitcher'
+import { m as am } from '@/features/agency/messages'
 import { useT } from '@/i18n'
 import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
@@ -17,31 +20,46 @@ export function wsColor(i: number) {
 /**
  * Lists every workspace with my role, plus "Create workspace" (ShellSwitcher).
  * The sidebar shows it under the logo; on phones the More sheet shows the
- * larger `sheet` trigger ("Owner · switch workspace").
+ * larger `sheet` trigger ("Owner · switch workspace"). For an agency's staff
+ * it lists the Agency area and the clients instead (agency accounts), and
+ * the Agency area's sidebar shows the `agency` trigger.
  */
-export function WorkspaceSwitcher({ variant = 'sidebar' }: { variant?: 'sidebar' | 'sheet' } = {}) {
+export function WorkspaceSwitcher({ variant = 'sidebar' }: { variant?: 'sidebar' | 'sheet' | 'agency' } = {}) {
   const { slug, me: ws } = useWorkspace()
   const { data: me } = useMe()
+  const { data: agency } = useAgencyMe()
   const navigate = useNavigate()
   const t = useT()
   const list = me?.workspaces ?? []
   const idx = Math.max(0, list.findIndex((w) => w.slug === slug))
   const role = roleName({ key: ws.workspace.roleKey, name: ws.workspace.roleName })
+  const staff = agency?.enabled && agency.staff ? agency : undefined
+  // A client's tile keeps the agency's colour for it everywhere.
+  const mine = staff ? [...staff.clients, ...(staff.agencyWorkspace ? [staff.agencyWorkspace] : [])].find((c) => c.workspace.slug === slug) : undefined
+  const tile = mine?.workspace.color ?? wsColor(idx)
   return (
     <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger asChild>
-        {variant === 'sheet' ? (
+        {variant === 'agency' && staff ? (
+          <button className="ws" type="button" aria-label={t(m.switcherLabel, { workspace: staff.name, role: t(am.agencySub) })}>
+            <span className="av" style={{ width: 24, height: 24, fontSize: 10, background: '#0B1220', color: '#fff', borderRadius: 6 }} aria-hidden="true" data-initials={staff.initials} />
+            <span className="wsn">
+              <b>{staff.name}</b> <span>{t(am.agencySub)}</span>
+            </span>
+            <Icon name="chevronDown" size={14} />
+          </button>
+        ) : variant === 'sheet' ? (
           <button className="ws sheet-ws" type="button">
-            <span className="av" style={{ width: 28, height: 28, fontSize: 11, background: wsColor(idx), color: '#fff', borderRadius: 7 }} aria-hidden="true" data-initials={initials(ws.workspace.name)} />
+            <span className="av" style={{ width: 28, height: 28, fontSize: 11, background: tile, color: '#fff', borderRadius: 7 }} aria-hidden="true" data-initials={initials(ws.workspace.name)} />
             {/* The space keeps the name and the line two phrases for speech input (WCAG 2.5.3). */}
             <span className="wsn">
-              <b>{ws.workspace.name}</b> <span>{t(m.moreSheetSwitcherRole, { role })}</span>
+              <b>{ws.workspace.name}</b> <span>{mine && staff ? t(am.sheetRoleVia, { role, agency: staff.name }) : t(m.moreSheetSwitcherRole, { role })}</span>
             </span>
             <Icon name="chevronRight" size={14} className="text-ink-3" />
           </button>
         ) : (
           <button className="ws" type="button" aria-label={t(m.switcherLabel, { workspace: ws.workspace.name, role })}>
-            <span className="av" style={{ width: 24, height: 24, fontSize: 10, background: wsColor(idx), color: '#fff', borderRadius: 6 }} aria-hidden="true" data-initials={initials(ws.workspace.name)} />
+            <span className="av" style={{ width: 24, height: 24, fontSize: 10, background: tile, color: '#fff', borderRadius: 6 }} aria-hidden="true" data-initials={initials(ws.workspace.name)} />
             {/* The space keeps "name role" two words for speech input (WCAG 2.5.3); the flex column doesn't render it. */}
             <span className="wsn">
               <b>{ws.workspace.name}</b> <span>{role}</span>
@@ -52,12 +70,16 @@ export function WorkspaceSwitcher({ variant = 'sidebar' }: { variant?: 'sidebar'
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content
-          className="menu w-[300px]"
+          className={staff ? 'menu w-[350px]' : 'menu w-[300px]'}
           align="start"
           sideOffset={variant === 'sheet' ? 6 : -11}
           collisionPadding={12}
           aria-label={t(m.switcherMenuLabel)}
         >
+          {staff ? (
+            <AgencySwitcherMenu agency={staff} current={variant === 'agency' ? undefined : slug} />
+          ) : (
+            <>
           <DropdownMenu.Label className="mh">{t(m.switcherHeading)}</DropdownMenu.Label>
           {list.map((w, i) => (
             <DropdownMenu.Item key={w.id} asChild onSelect={() => navigate({ to: '/w/$workspace', params: { workspace: w.slug } })}>
@@ -88,6 +110,8 @@ export function WorkspaceSwitcher({ variant = 'sidebar' }: { variant?: 'sidebar'
               </Link>
             </DropdownMenu.Item>
           ) : null}
+            </>
+          )}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>

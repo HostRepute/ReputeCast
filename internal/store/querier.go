@@ -80,6 +80,174 @@ type Querier interface {
 	// The draft or running import the wizard resumes.
 	ActiveImport(ctx context.Context, workspaceID uuid.UUID) (Import, error)
 	AddSegmentMembers(ctx context.Context, arg AddSegmentMembersParams) error
+	// Adds the keys the workspace's branding doesn't have; never overwrites.
+	AgencyAddBrandingKeys(ctx context.Context, arg AgencyAddBrandingKeysParams) error
+	AgencyAddSendingDefaults(ctx context.Context, arg AgencyAddSendingDefaultsParams) error
+	AgencyApprovalDecisionsFor(ctx context.Context, requestIds []uuid.UUID) ([]AgencyApprovalDecisionsForRow, error)
+	// Active members of the given workspaces with their roles: who holds
+	// campaigns:approve is decided in Go (built-in roles come from code).
+	AgencyApprovers(ctx context.Context, workspaceIds []uuid.UUID) ([]AgencyApproversRow, error)
+	// What puts a workspace under Needs attention, cheaply: incidents in the
+	// last 7 days and the oldest approval waiting, plus the next send.
+	AgencyAttentionFacts(ctx context.Context, arg AgencyAttentionFactsParams) ([]AgencyAttentionFactsRow, error)
+	// A campaign's auto-pauses with how each ended.
+	AgencyAutoPauses(ctx context.Context, campaignIds []uuid.UUID) ([]AgencyAutoPausesRow, error)
+	AgencyAutomationEmailsOf(ctx context.Context, automationID *uuid.UUID) ([]AgencyAutomationEmailsOfRow, error)
+	AgencyAutomationNameTaken(ctx context.Context, arg AgencyAutomationNameTakenParams) (bool, error)
+	AgencyBindStaff(ctx context.Context, arg AgencyBindStaffParams) error
+	AgencyCaptureAutomationEmails(ctx context.Context, workspaceID uuid.UUID) ([]AgencyCaptureAutomationEmailsRow, error)
+	// Each flow's latest version (its draft, or the live one when there's no draft).
+	AgencyCaptureAutomations(ctx context.Context, workspaceID uuid.UUID) ([]AgencyCaptureAutomationsRow, error)
+	AgencyCaptureForms(ctx context.Context, workspaceID uuid.UUID) ([]AgencyCaptureFormsRow, error)
+	// ---------------------------------------------------------------------------
+	// Workspace templates: reading a client's setup, and applying one
+	AgencyCaptureLists(ctx context.Context, workspaceID uuid.UUID) ([]AgencyCaptureListsRow, error)
+	AgencyCaptureRoles(ctx context.Context, workspaceID uuid.UUID) ([]AgencyCaptureRolesRow, error)
+	AgencyCaptureTemplates(ctx context.Context, workspaceID uuid.UUID) ([]AgencyCaptureTemplatesRow, error)
+	// A workspace's connected SMS (and later push and WhatsApp) providers, for
+	// the client details.
+	AgencyChannelProviders(ctx context.Context, workspaceID uuid.UUID) ([]string, error)
+	// The same messages per destination country (SMS).
+	AgencyChannelUsageByCountry(ctx context.Context, arg AgencyChannelUsageByCountryParams) ([]AgencyChannelUsageByCountryRow, error)
+	// One channel's messages on one UTC day, per provider, from the channel
+	// message log (X21): what reached the provider counts, with its cost.
+	AgencyChannelUsageByProvider(ctx context.Context, arg AgencyChannelUsageByProviderParams) ([]AgencyChannelUsageByProviderRow, error)
+	// The people of a client who aren't staff: members and pending invitations.
+	AgencyClientPeople(ctx context.Context, arg AgencyClientPeopleParams) ([]AgencyClientPeopleRow, error)
+	// Library copies in a workspace with the item's latest version.
+	AgencyCopiesOfWorkspace(ctx context.Context, workspaceID uuid.UUID) ([]AgencyCopiesOfWorkspaceRow, error)
+	// The streams that failed over while a provider was down.
+	AgencyFailoversBetween(ctx context.Context, arg AgencyFailoversBetweenParams) ([]AgencyFailoversBetweenRow, error)
+	AgencyFormNameTaken(ctx context.Context, arg AgencyFormNameTakenParams) (bool, error)
+	AgencyGetAutomation(ctx context.Context, arg AgencyGetAutomationParams) (AgencyGetAutomationRow, error)
+	AgencyGetTemplate(ctx context.Context, arg AgencyGetTemplateParams) (AgencyGetTemplateRow, error)
+	AgencyGetTransactionalTemplate(ctx context.Context, arg AgencyGetTransactionalTemplateParams) (AgencyGetTransactionalTemplateRow, error)
+	AgencyHealthPut(ctx context.Context, arg AgencyHealthPutParams) error
+	// ---------------------------------------------------------------------------
+	// Sender health snapshots
+	AgencyHealthSince(ctx context.Context, arg AgencyHealthSinceParams) ([]AgencyHealthSinceRow, error)
+	AgencyHoldsClientRole(ctx context.Context, userID uuid.UUID) (bool, error)
+	AgencyInsertTemplate(ctx context.Context, arg AgencyInsertTemplateParams) error
+	// Instance admins are agency managers, with or without a staff row.
+	AgencyInstanceAdmins(ctx context.Context) ([]AgencyInstanceAdminsRow, error)
+	AgencyIsClientWorkspace(ctx context.Context, workspaceID uuid.UUID) (bool, error)
+	AgencyLatestApplication(ctx context.Context, workspaceID uuid.UUID) (AgencyLatestApplicationRow, error)
+	// Each workspace's most recently changed draft.
+	AgencyLatestDrafts(ctx context.Context, workspaceIds []uuid.UUID) ([]AgencyLatestDraftsRow, error)
+	AgencyLibraryBump(ctx context.Context, arg AgencyLibraryBumpParams) (int64, error)
+	AgencyLibraryCopies(ctx context.Context, itemID uuid.UUID) ([]AgencyLibraryCopiesRow, error)
+	// The copies in one workspace, for its gallery's "Northwind library" tab.
+	AgencyLibraryCopiesIn(ctx context.Context, workspaceID uuid.UUID) ([]AgencyLibraryCopiesInRow, error)
+	AgencyLibraryCopy(ctx context.Context, id uuid.UUID) (AgencyLibraryCopyRow, error)
+	// The library item a workspace's template, automation or transactional
+	// template was copied from.
+	AgencyLibraryCopyOf(ctx context.Context, arg AgencyLibraryCopyOfParams) (AgencyLibraryCopyOfRow, error)
+	AgencyLibraryDelete(ctx context.Context, id uuid.UUID) (int64, error)
+	AgencyLibraryInsertCopy(ctx context.Context, arg AgencyLibraryInsertCopyParams) error
+	AgencyLibraryInsertItem(ctx context.Context, arg AgencyLibraryInsertItemParams) error
+	AgencyLibraryInsertVersion(ctx context.Context, arg AgencyLibraryInsertVersionParams) error
+	AgencyLibraryItem(ctx context.Context, id uuid.UUID) (AgencyLibraryItemRow, error)
+	// ---------------------------------------------------------------------------
+	// Shared library
+	AgencyLibraryItems(ctx context.Context) ([]AgencyLibraryItemsRow, error)
+	AgencyLibraryNameTaken(ctx context.Context, arg AgencyLibraryNameTakenParams) (bool, error)
+	AgencyLibraryUpdateCopy(ctx context.Context, arg AgencyLibraryUpdateCopyParams) (int64, error)
+	AgencyLibraryVersion(ctx context.Context, arg AgencyLibraryVersionParams) (AgencyLibraryVersionRow, error)
+	AgencyLibraryVersions(ctx context.Context, itemID uuid.UUID) ([]AgencyLibraryVersionsRow, error)
+	// Staff members' memberships in the agency's workspaces (the assignment
+	// matrix) and every client person, with their roles.
+	AgencyMemberships(ctx context.Context, userIds []uuid.UUID) ([]AgencyMembershipsRow, error)
+	// ---------------------------------------------------------------------------
+	// Staff notifications: incidents and approvals in their clients, in the
+	// Agency area's bell.
+	AgencyNotifications(ctx context.Context, arg AgencyNotificationsParams) ([]AgencyNotificationsRow, error)
+	AgencyPendingApprovals(ctx context.Context, workspaceIds []uuid.UUID) ([]AgencyPendingApprovalsRow, error)
+	// ---------------------------------------------------------------------------
+	// The overview's rows
+	// Sends with a time, in the given workspaces: scheduled, approved, or
+	// waiting for approval with the time they asked for. Digest templates
+	// aren't sends.
+	AgencyPlannedSends(ctx context.Context, arg AgencyPlannedSendsParams) ([]AgencyPlannedSendsRow, error)
+	AgencyRateUpsert(ctx context.Context, arg AgencyRateUpsertParams) error
+	// ---------------------------------------------------------------------------
+	// Rebill rates
+	AgencyRates(ctx context.Context, workspaceIds []uuid.UUID) ([]AgencyRatesRow, error)
+	AgencyRecentIncidents(ctx context.Context, arg AgencyRecentIncidentsParams) ([]AgencyRecentIncidentsRow, error)
+	AgencySaveSettings(ctx context.Context, arg AgencySaveSettingsParams) error
+	// Contacts with exactly this email, in the given workspaces.
+	AgencySearchContacts(ctx context.Context, arg AgencySearchContactsParams) ([]AgencySearchContactsRow, error)
+	AgencySearchLibrary(ctx context.Context, pattern string) ([]AgencySearchLibraryRow, error)
+	// ---------------------------------------------------------------------------
+	// Search across clients
+	// Campaigns, automations, templates and forms whose name contains the
+	// text, in the given workspaces.
+	AgencySearchNames(ctx context.Context, arg AgencySearchNamesParams) ([]AgencySearchNamesRow, error)
+	AgencySenderName(ctx context.Context, id uuid.UUID) (string, error)
+	AgencySetMemberSource(ctx context.Context, arg AgencySetMemberSourceParams) error
+	// Agency accounts (design expansion phase 8, M32; internal/agency).
+	// ---------------------------------------------------------------------------
+	// Agency mode
+	AgencySettings(ctx context.Context) (AgencySettingsRow, error)
+	AgencySettingsForUpdate(ctx context.Context) (AgencySettingsForUpdateRow, error)
+	// What a new client has done of its setup.
+	AgencySetupFacts(ctx context.Context, workspaceID uuid.UUID) (AgencySetupFactsRow, error)
+	AgencyStaffDelete(ctx context.Context, id uuid.UUID) (int64, error)
+	// Which of these people are agency staff while agency mode is on: staff
+	// rows and instance admins. Client sign-off doesn't count their approvals.
+	AgencyStaffIn(ctx context.Context, userIds []uuid.UUID) ([]uuid.UUID, error)
+	AgencyStaffInsert(ctx context.Context, arg AgencyStaffInsertParams) error
+	// Instance admin › Users: each staff member's level (instance admins are
+	// agency managers).
+	AgencyStaffLevels(ctx context.Context) ([]AgencyStaffLevelsRow, error)
+	// ---------------------------------------------------------------------------
+	// Staff
+	// A person's staff row: their own, or one waiting for their email.
+	AgencyStaffOf(ctx context.Context, arg AgencyStaffOfParams) (AgencyStaff, error)
+	// Every staff row with the account behind it, when there is one.
+	AgencyStaffRows(ctx context.Context) ([]AgencyStaffRowsRow, error)
+	AgencyStaffUpdate(ctx context.Context, arg AgencyStaffUpdateParams) (int64, error)
+	AgencyTemplate(ctx context.Context, id uuid.UUID) (AgencyTemplateRow, error)
+	AgencyTemplateApplicationInsert(ctx context.Context, arg AgencyTemplateApplicationInsertParams) error
+	AgencyTemplateDelete(ctx context.Context, id uuid.UUID) (int64, error)
+	AgencyTemplateInsert(ctx context.Context, arg AgencyTemplateInsertParams) error
+	AgencyTemplateNameTaken(ctx context.Context, arg AgencyTemplateNameTakenParams) (bool, error)
+	AgencyTemplateUpdate(ctx context.Context, arg AgencyTemplateUpdateParams) (int64, error)
+	// The workspaces each template set up or was applied to, oldest first.
+	AgencyTemplateUses(ctx context.Context) ([]AgencyTemplateUsesRow, error)
+	// ---------------------------------------------------------------------------
+	// Workspace templates
+	AgencyTemplates(ctx context.Context) ([]AgencyTemplatesRow, error)
+	AgencyUnreadNotifications(ctx context.Context, arg AgencyUnreadNotificationsParams) (int64, error)
+	AgencyUpdateTemplateContent(ctx context.Context, arg AgencyUpdateTemplateContentParams) (int64, error)
+	AgencyUsageClearDay(ctx context.Context, arg AgencyUsageClearDayParams) error
+	AgencyUsageComputedAt(ctx context.Context, arg AgencyUsageComputedAtParams) (int64, error)
+	// Emails a workspace's providers accepted on one day, per stream.
+	AgencyUsageEmailStreams(ctx context.Context, arg AgencyUsageEmailStreamsParams) ([]AgencyUsageEmailStreamsRow, error)
+	AgencyUsageMonthHasDemo(ctx context.Context, arg AgencyUsageMonthHasDemoParams) (bool, error)
+	// Each email provider's sends and metered cost on one day.
+	AgencyUsageProviderDays(ctx context.Context, arg AgencyUsageProviderDaysParams) ([]AgencyUsageProviderDaysRow, error)
+	// A workspace's email providers, connected or not, with their pricing.
+	AgencyUsageProviders(ctx context.Context, workspaceIds []uuid.UUID) ([]AgencyUsageProvidersRow, error)
+	AgencyUsagePut(ctx context.Context, arg AgencyUsagePutParams) error
+	// ---------------------------------------------------------------------------
+	// Usage
+	// Usage per workspace, channel, dimension and key between two days.
+	AgencyUsageRange(ctx context.Context, arg AgencyUsageRangeParams) ([]AgencyUsageRangeRow, error)
+	AgencyUserByEmail(ctx context.Context, email string) (User, error)
+	// Accounts that can join the staff: active, not staff yet, and not a
+	// client's own people (client people never become agency staff).
+	AgencyUserCandidates(ctx context.Context) ([]AgencyUserCandidatesRow, error)
+	AgencyWorkspace(ctx context.Context, workspaceID uuid.UUID) (AgencyWorkspaceRow, error)
+	AgencyWorkspaceInsert(ctx context.Context, arg AgencyWorkspaceInsertParams) error
+	// Every live workspace, and whether it's one of the agency's.
+	AgencyWorkspaceKinds(ctx context.Context) ([]AgencyWorkspaceKindsRow, error)
+	AgencyWorkspaceRemove(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	AgencyWorkspaceRoles(ctx context.Context, workspaceID uuid.UUID) ([]AgencyWorkspaceRolesRow, error)
+	AgencyWorkspaceSetManager(ctx context.Context, arg AgencyWorkspaceSetManagerParams) (int64, error)
+	AgencyWorkspaceSetTemplate(ctx context.Context, arg AgencyWorkspaceSetTemplateParams) error
+	// ---------------------------------------------------------------------------
+	// The agency's workspaces
+	AgencyWorkspaces(ctx context.Context) ([]AgencyWorkspacesRow, error)
 	AppLangForEmail(ctx context.Context, email string) (AppLangForEmailRow, error)
 	// The language a member reads their email in: their choices, and the
 	// instance defaults for what they haven't chosen.

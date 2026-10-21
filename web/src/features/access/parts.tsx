@@ -42,6 +42,8 @@ export function PersonCell({
 /** Role badge colours on the boards: Owner purple, other built-ins grey, custom roles blue. */
 export function roleTone(role: { key: string; builtin: boolean }): Tone {
   if (role.builtin && role.key === 'owner') return 'purple'
+  // An agency's Client approver signs off sends (agency accounts).
+  if (role.builtin && role.key === 'client_approver') return 'info'
   return role.builtin ? 'neutral' : 'info'
 }
 

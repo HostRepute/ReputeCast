@@ -18,6 +18,7 @@ import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { roleName } from '@/lib/roles'
 import { AccessTable, copyText, PersonCell, RoleBadge, scopeLabel, SignInText, TwoFABadge } from '../access/parts'
+import { AgencyMemberManaged, AgencyMemberSource } from '../agency/WorkspaceParts'
 import { DeactivateDialog } from './DeactivateDialog'
 import { InviteDialog } from './InviteDialog'
 import { m as tm } from './messages'
@@ -208,7 +209,8 @@ function MemberRow({
         ) : null}
       </Td>
       <Td>
-        <SignInText methods={m.signIn} />
+        {/* Assignments from an agency are marked, as SSO group mappings are (agency accounts). */}
+        {m.source === 'agency' ? <AgencyMemberSource userId={m.userId} source={m.source} /> : <SignInText methods={m.signIn} />}
       </Td>
       <Td>{active ? <TwoFABadge twoFA={m.twoFA} /> : <span className="k">–</span>}</Td>
       <Td>{active ? ago(m.lastActiveAt, now) : m.deactivatedAt ? t(tm.deactivatedOn, { date: usDate(m.deactivatedAt) }) : t(tm.deactivated)}</Td>
@@ -216,7 +218,9 @@ function MemberRow({
         {active ? <Badge tone="ok">{t(tm.active)}</Badge> : <Badge tone="neutral">{t(tm.deactivatedBadge)}</Badge>}
       </Td>
       <Td>
-        {!manage ? (
+        {m.source === 'agency' && active ? (
+          <AgencyMemberManaged source={m.source} />
+        ) : !manage ? (
           <span className="k">–</span>
         ) : active ? (
           <ButtonLink size="sm" to="/w/$workspace/settings/team/$memberId" params={{ workspace: slug, memberId: m.id }} aria-label={t(tm.manageName, { name: m.name })}>
