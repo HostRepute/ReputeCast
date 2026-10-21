@@ -296,17 +296,5 @@ func pwAudit(ctx context.Context, s *Seeder, st *pwState) error {
 			return err
 		}
 	}
-	// Meta's rejection, as Linh and Marcus were told (read since).
-	at := s.pushDay(13, 16, 20)
-	for _, u := range []string{"linh@acme.io", "marcus@acme.io"} {
-		read := at.Add(2 * time.Hour)
-		if _, err := s.Tx.Exec(ctx, `INSERT INTO notifications (id, user_id, workspace_id, kind, severity, title, summary, body, link, created_at, read_at)
-			VALUES ($1,$2,$3,'whatsapp_attention','warn',$4,$5,$6,$7,$8,$9)`, ID(), s.Users[u].ID, ws.ID, "WhatsApp template digest_highlights rejected",
-			"Meta rejected digest_highlights: “Add sample values for every variable.”",
-			"Fix the template in WhatsApp Manager and submit it again; ReputeCast picks up the new status at the next sync.",
-			"/w/"+ws.Slug+"/providers/whatsapp/templates", at, read); err != nil {
-			return err
-		}
-	}
 	return nil
 }
