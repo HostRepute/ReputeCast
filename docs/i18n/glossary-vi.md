@@ -267,6 +267,7 @@ pages (`internal/pagelabels`): "bản tin", "số", "Lưu trữ", "Tùy chọn e
 | countdown | đếm ngược | |
 | cover (image) | ảnh bìa | |
 | excerpt | đoạn trích | |
+| FAQ (block) | Hỏi đáp | |
 | featured · Feature on home | nổi bật · Nổi bật trên trang chủ | |
 | feed · RSS feed | nguồn cấp · nguồn cấp RSS | |
 | free preview | phần xem trước miễn phí | |
@@ -279,6 +280,7 @@ pages (`internal/pagelabels`): "bản tin", "số", "Lưu trữ", "Tùy chọn e
 | meter | hạn mức đọc miễn phí | "Hạn mức đọc" as a heading |
 | navigation · header · footer | điều hướng · đầu trang · chân trang | |
 | page · Pages | trang · Trang | |
+| page builder | trình dựng trang | |
 | Pay what you want | Trả tùy ý | |
 | paywall | tường phí | |
 | post · web-only post | bài viết · bài viết chỉ trên web | |
