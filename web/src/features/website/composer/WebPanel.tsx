@@ -139,12 +139,6 @@ function Choice({ type = 'radio', name, checked, disabled, onChange, title, sub,
   )
 }
 
-/** "1st", "2nd", "3rd": a block's place, in words. */
-function nth(n: number): string {
-  const words = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth']
-  return words[n - 1] ?? `${n}th`
-}
-
 export interface WebPanelProps {
   ws: WebSettings
   mode: 'post' | 'campaign'
@@ -395,7 +389,7 @@ export function WebPanel({ ws, mode, host, canEdit, campaign, marker, onShowHidd
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex min-w-0 flex-col">
                     <b>{t(mc.markerAt, { n: marker.at })}</b>
-                    <span className="k">{t(mc.markerAtText, { nth: nth(marker.at) })}</span>
+                    <span className="k">{t(mc.markerAtText, { n: marker.at })}</span>
                   </span>
                   {ro ? null : (
                     <span className="flex flex-none gap-1.5">

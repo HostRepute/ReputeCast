@@ -93,7 +93,7 @@ export const mh = defineMessages('website.home', {
   siteFeed: 'Site feed',
   tagFeeds: 'Tag feeds',
   archiveFeed: 'Archive feed',
-  stillWorks: 'still works',
+  archiveFeedWorks: '<mono>{url}</mono> still works',
   identityTitle: 'Site identity',
   identitySub: 'The title and tagline head the home page; the images show when a post is shared.',
   siteTitle: 'Site title',

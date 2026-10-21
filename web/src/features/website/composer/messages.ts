@@ -90,7 +90,7 @@ export const mc = defineMessages('website.composer', {
   asVisitor: 'Visitor',
   asFree: 'Free member',
   asPaid: 'Paid member',
-  previewFrame: '{title} as a {who} sees it',
+  previewFrame: '{title} as {who, select, visitor {a visitor} free {a free member} other {a paid member}} sees it',
   previewLoading: 'Rendering the post…',
   previewFailed: "The preview couldn't render: {error}",
   previewSaveFirst: 'Showing the last saved version.',
@@ -168,7 +168,8 @@ export const mc = defineMessages('website.composer', {
   freePreviewPublic: 'Only for Members and Paid posts',
   addMarker: 'Add a marker',
   markerAt: 'Ends after block {n}',
-  markerAtText: 'the {nth} block',
+  markerAtText:
+    '{n, plural, =1 {the first block} =2 {the second block} =3 {the third block} =4 {the fourth block} =5 {the fifth block} =6 {the sixth block} =7 {the seventh block} =8 {the eighth block} =9 {the ninth block} =10 {the tenth block} other {the #th block}}',
   move: 'Move',
   remove: 'Remove',
   moveHint: 'Select a block on the canvas, then Move puts the marker after it.',

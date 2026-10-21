@@ -11,7 +11,7 @@ import { Menu, MenuItem, MenuSeparator } from '@/components/ui/Menu'
 import { NoResults } from '@/components/ui/NoResults'
 import { TableScroll } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
-import { useT } from '@/i18n'
+import { T, useT } from '@/i18n'
 import { count, dayMonthDate, orList } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 import { copyText } from '@/features/forms/common'
@@ -375,7 +375,7 @@ function SourceCell({ post: p }: { post: PostRow }) {
     return (
       <span className="ws-src">
         <Link to="/w/$workspace/campaigns/$campaignId/report" params={{ workspace: slug, campaignId: c.id }}>
-          {p.status === 'unpublished' ? `${c.name} campaign` : c.name}
+          {p.status === 'unpublished' ? t(mp.campaignNamed, { name: c.name }) : c.name}
         </Link>
         <span className="k">{p.status === 'unpublished' && c.sentAt ? t(mp.sentOn, { date: dayMonthDate(c.sentAt) }) : t(mp.campaign)}</span>
       </span>
@@ -591,10 +591,10 @@ function PostsList({ posts }: { posts: PostRow[] }) {
           <span className="pd">{statusLine(t, p, true)}</span>
           <span className="pm">
             {p.status === 'unpublished' ? null : <VisibilityLabel visibility={p.visibility} />}
-            <span>{p.kind === 'campaign' && p.campaign ? (p.status === 'unpublished' ? `${p.campaign.name} campaign` : p.campaign.name) : t(mp.webOnlyBy, { name: p.byline.name || p.createdBy })}</span>
+            <span>{p.kind === 'campaign' && p.campaign ? (p.status === 'unpublished' ? t(mp.campaignNamed, { name: p.campaign.name }) : p.campaign.name) : t(mp.webOnlyBy, { name: p.byline.name || p.createdBy })}</span>
             {p.status === 'published' ? (
               <span>
-                <span className="num">{count(p.views)}</span> {t(mp.numViews)} · <span className="num">{count(p.signups)}</span> {t(mp.numSignups)} · <span className="num">{count(p.upgrades)}</span> {t(mp.numUpgrades)}
+                <T msg={mp.listNumbers} values={{ views: count(p.views), signups: count(p.signups), upgrades: count(p.upgrades), num: (c) => <span className="num">{c}</span> }} />
               </span>
             ) : null}
           </span>

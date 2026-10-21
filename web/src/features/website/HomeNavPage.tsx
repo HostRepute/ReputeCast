@@ -12,7 +12,7 @@ import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { Segmented } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
-import { useT } from '@/i18n'
+import { T, useT } from '@/i18n'
 import { andList, count, dayMonthDate } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 import { bare, useInvalidateWebsite, WS, type HomeNav, type HomeNavInput, type HomeSection, type NavLink, type Overview, type PostRow, type Tag } from './api'
@@ -787,7 +787,7 @@ function SeoCard({ draft, set, ro, data }: { draft: HomeNavInput; set: Setter; r
         <dd className="mono">{u.tagFeed}</dd>
         <dt>{t(mh.archiveFeed)}</dt>
         <dd>
-          <span className="mono">{u.archiveFeed}</span> {t(mh.stillWorks)}
+          <T msg={mh.archiveFeedWorks} values={{ url: u.archiveFeed, mono: (c) => <span className="mono">{c}</span> }} />
         </dd>
       </dl>
     </section>
