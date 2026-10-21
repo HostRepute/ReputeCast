@@ -343,7 +343,7 @@ export function WebPanel({ ws, mode, host, canEdit, campaign, marker, onShowHidd
               {(['public', 'members', 'paid'] as const).map((v) => (
                 <button key={v} type="button" aria-pressed={d.visibility === v} disabled={ro || (v === 'paid' && !paidOK && d.visibility !== 'paid')} onClick={() => ws.set({ visibility: v })}>
                   <Icon name={visibilityIcon(v)} size={13} />
-                  {v === 'public' ? t(mc.visPublic) : v === 'members' ? t(mc.visMembers) : t(mc.web === mc.web ? mc.visPaidAll : mc.visPaidAll).split(' · ')[0]}
+                  {v === 'public' ? t(mc.visPublic) : v === 'members' ? t(mc.visMembers) : t(mc.visPaid)}
                 </button>
               ))}
             </div>

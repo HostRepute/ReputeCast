@@ -35,6 +35,7 @@ export default translate(mc, {
   waitingBadge: 'Chờ phê duyệt',
   visPublic: 'Công khai',
   visMembers: 'Thành viên',
+  visPaid: 'Trả phí',
   visPaidAll: 'Trả phí · mọi hạng',
   visPaidTiers: 'Trả phí · {tiers}',
   preview: 'Xem trước',
@@ -105,7 +106,7 @@ export default translate(mc, {
   // Left panel (post mode)
   blocksNote: 'Chế độ bài viết: khung thiết kế là phiên bản web, trong cột 680 px của trang web. Không có các khối chỉ dành cho email, như chân trang và liên kết hủy đăng ký.',
   campaignNote: 'Các khối được đặt Chỉ email trong mục Chế độ hiển thị sẽ không có trong phiên bản web.',
-  blockFreePreview: 'Phần xem trước miễn phí kết thúc ở đây',
+  blockFreePreview: 'Hết phần miễn phí',
   blockCode: 'Mã',
   markerLabel: 'Phần xem trước miễn phí kết thúc ở đây · {count, plural, other {# khối}}',
 

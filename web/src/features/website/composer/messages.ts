@@ -30,6 +30,7 @@ export const mc = defineMessages('website.composer', {
   waitingBadge: 'Waiting for approval',
   visPublic: 'Public',
   visMembers: 'Members',
+  visPaid: 'Paid',
   visPaidAll: 'Paid · all tiers',
   visPaidTiers: 'Paid · {tiers}',
   preview: 'Preview',

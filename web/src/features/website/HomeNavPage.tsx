@@ -1010,7 +1010,7 @@ function TagDialog({ tag, host, onClose }: { tag: Tag | null; host: string; onCl
         <Field label={t(mh.tagName)} error={error}>
           <Input value={name} maxLength={60} onChange={(e) => setName(e.target.value)} autoFocus />
         </Field>
-        <Field label={t(mh.tagSlug)} hint={t(mh.tagSlugHint, { slug: effSlug || '…' }).replace('news.acme.io', host)}>
+        <Field label={t(mh.tagSlug)} hint={t(mh.tagSlugHint, { host, slug: effSlug || '…' })}>
           <Input
             className="mono"
             value={effSlug}

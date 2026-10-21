@@ -816,7 +816,7 @@ function PostHead({ post, title, excerpt, cover, alt, phone }: { post: Post; tit
   const { slug } = useWorkspace()
   const access = $api.useQuery('get', `${WS}/access`, { params: { path: { workspace: slug } } }, { staleTime: 60_000, enabled: post.visibility === 'paid' })
   // The paid label, as the site shows it: the post's tier, else the first tier's.
-  const paid = post.tiers[0]?.label || post.tiers[0]?.name || access.data?.tiers[0]?.label || t(mc.visPaidAll).split(' · ')[0]!
+  const paid = post.tiers[0]?.label || post.tiers[0]?.name || access.data?.tiers[0]?.label || t(mc.visPaid)
   // A tag that only repeats the paid label is left to the label, as on the site.
   const tags = post.tags.filter((x) => !(post.visibility === 'paid' && x.name.trim().toLowerCase() === paid.trim().toLowerCase()))
   return (
@@ -985,7 +985,7 @@ function RequestApprovalDialog({ post, draft, host, onClose, onSent }: { post: P
   void host
   const pub = post.publish
   const code = (x: string) => <code className="mono">{x}</code>
-  const vis = draft.visibility === 'paid' ? t(mc.visPaidAll).split(' · ')[0] : draft.visibility === 'members' ? t(mc.visMembers) : t(mc.visPublic)
+  const vis = draft.visibility === 'paid' ? t(mc.visPaid) : draft.visibility === 'members' ? t(mc.visMembers) : t(mc.visPublic)
   const when = draft.publishMode === 'at' && draft.publishAt ? scheduledLine(draft.publishAt, draft.publishTz) : t(mc.whenApproved)
   const send = async () => {
     setBusy(true)

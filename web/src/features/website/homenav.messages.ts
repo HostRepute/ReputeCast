@@ -127,7 +127,7 @@ export const mh = defineMessages('website.home', {
   tagDialogEdit: 'Tag · {name}',
   tagName: 'Name',
   tagSlug: 'Slug',
-  tagSlugHint: 'news.acme.io/tag/{slug} · lowercase letters, digits and hyphens',
+  tagSlugHint: '{host}/tag/{slug} · lowercase letters, digits and hyphens',
   tagDescription: 'Description',
   tagInNav: 'In navigation',
   tagNoPosts: 'No posts',
