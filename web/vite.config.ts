@@ -61,6 +61,9 @@ export default defineConfig({
       '/media/': { target: backend, changeOrigin: false },
       // SSO and social sign-in callbacks (their URLs are registered at the IdP).
       '/auth/': { target: backend, changeOrigin: false },
+      // Web push (X22): the prompt script, the workers and the click link.
+      '/push/': { target: backend, changeOrigin: false },
+      '/t/p/': { target: backend, changeOrigin: false },
     },
   },
   build: {

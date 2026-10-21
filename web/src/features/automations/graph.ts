@@ -55,6 +55,8 @@ export const typeNames: Record<StepType, string> = {
   goal: 'Goal',
   exit: 'Exit',
   sms: 'Send SMS',
+  push: 'Send push',
+  whatsapp: 'Send WhatsApp',
 }
 
 export const triggerKindLabels: Record<TriggerConfig['kind'], string> = {
@@ -82,6 +84,8 @@ export const typeColors: Record<StepType, string> = {
   goal: '#0B1220',
   exit: '#0B1220',
   sms: '#0F766E',
+  push: '#0F766E',
+  whatsapp: '#0F766E',
 }
 
 /** Node border colour on the canvas (the default border otherwise). */
@@ -290,6 +294,10 @@ export function nodeTitle(g: FlowGraph, n: FlowNode, refs: Refs): string {
     }
     case 'sms':
       return d.label || (d.sms?.body ? 'Send SMS' : 'Write the text')
+    case 'push':
+      return d.label || d.push?.title || 'Write the notification'
+    case 'whatsapp':
+      return d.label || d.whatsapp?.template || (d.whatsapp?.text ? 'Send WhatsApp' : 'Pick a template')
     case 'webhook':
       return d.webhook?.name || (d.webhook?.url ? hostOf(d.webhook.url) : 'Set a URL')
     case 'list': {
@@ -625,5 +633,9 @@ export function newStepData(type: StepType, trigger?: TriggerConfig['kind']): No
       return {}
     case 'sms':
       return { sms: { outside: 'wait' } }
+    case 'push':
+      return { push: { outside: 'wait', expiryMinutes: 240 } }
+    case 'whatsapp':
+      return { whatsapp: { mode: 'template', outside: 'wait', outsideWindow: 'skip', variables: [] } }
   }
 }

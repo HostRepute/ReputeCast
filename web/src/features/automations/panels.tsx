@@ -183,6 +183,8 @@ const subs: Record<StepType, string> = {
   goal: 'Ends the flow when reached',
   exit: 'Ends the flow',
   sms: 'Texts through your SMS routes',
+  push: 'Web push · built in',
+  whatsapp: "Meta's WhatsApp Cloud API",
 }
 
 export function Prop({ title, children, id }: { title: string; children: ReactNode; id?: string }) {

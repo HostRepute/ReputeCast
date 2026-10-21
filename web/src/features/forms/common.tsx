@@ -145,7 +145,8 @@ export function fieldLabel(f: Schemas['SignupFormField'], customs: Schemas['Sign
 export function inputOf(f: SignupForm): FormInput {
   return {
     name: f.name,
-    kind: f.kind,
+    // The builder never loads a push prompt (X22): those open in their designer.
+    kind: f.kind === 'push' ? 'embedded' : f.kind,
     fields: f.fields.map((x) => ({ ...x })),
     listIds: [...f.listIds],
     defaultListIds: [...f.defaultListIds],

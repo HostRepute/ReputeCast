@@ -36,7 +36,8 @@ import { BlockedOriginAlert, FormsEmpty, FormsLoading, TurnstileAlert } from './
 import { CopyByLanguage, FormLanguagesView, useFormCopy } from '@/features/page-languages/FormLanguagesView'
 import { useWorkspaceLanguages } from '@/features/page-languages/contacts'
 
-type Kind = Schemas['SignupFormSummary']['kind']
+// Push prompts are forms too, with their own designer (X22).
+type Kind = Exclude<Schemas['SignupFormSummary']['kind'], 'push'>
 
 const kindLabels: Record<Kind, string> = { embedded: 'Embedded', popup: 'Popup', hosted: 'Hosted page' }
 
@@ -167,6 +168,11 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
   const pickForm = (id: string) => {
     if (id === '__new') {
       setCreating(true)
+      return
+    }
+    // A push prompt opens in its own designer (X22).
+    if (overview.forms.find((f) => f.id === id)?.kind === 'push') {
+      void navigate({ to: '/w/$workspace/forms', params: { workspace: slug }, search: { prompt: id } })
       return
     }
     void navigate({ to: '/w/$workspace/forms', params: { workspace: slug }, search: { form: id } })
