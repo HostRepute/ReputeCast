@@ -852,7 +852,9 @@ func TestWordPressSiteAPI(t *testing.T) {
 		}
 	}
 	call(t, env, site.Secret, "GET", ws+"/wordpress/forms", nil, nil).MustStatus(t, 200).JSON(t, &forms)
-	if len(forms.Items) != 3 || forms.Items[0].ID != "frm_8c2e1a" || forms.Items[0].SiteAllowed || forms.Items[0].Shortcode != `[reputecast_form id="frm_8c2e1a"]` {
+	// The demo's three signup forms and the three its pages use: the lead
+	// magnet, the webinar and the Launch Kit waitlist (seed_pages_products.go).
+	if len(forms.Items) != 6 || forms.Items[0].ID != "frm_8c2e1a" || forms.Items[0].SiteAllowed || forms.Items[0].Shortcode != `[reputecast_form id="frm_8c2e1a"]` {
 		t.Errorf("forms: %+v", forms.Items)
 	}
 	// The key can't read contacts or open campaigns.
