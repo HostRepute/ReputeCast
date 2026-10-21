@@ -223,10 +223,19 @@ export function weekdayDayMonth(d: Date | string, tz?: string) {
   return `${p.weekday} ${p.day} ${p.month}`
 }
 
+/**
+ * A month label starts the line it's in (a select's choice, a title):
+ * Vietnamese writes it in lower case ("tháng 10"), so it takes its capital
+ * there, as the sentence case of the glossary asks.
+ */
+function labelCase(s: string) {
+  return s.charAt(0).toLocaleUpperCase(getI18n().locale) + s.slice(1)
+}
+
 /** "October": a month ("2026-10") on its own. */
 export function monthOf(month: string) {
   const [y, mo] = month.split('-').map(Number)
-  if (!standard()) return regionMonth(getI18n().regionFormat, mo!, 'long')
+  if (!standard()) return labelCase(regionMonth(getI18n().regionFormat, mo!, 'long'))
   return new Intl.DateTimeFormat('en-GB', { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(y!, mo! - 1, 1)))
 }
 
@@ -235,9 +244,9 @@ export function monthYear(month: string, style: 'long' | 'short' = 'long') {
   const [y, mo] = month.split('-').map(Number)
   const d = new Date(Date.UTC(y!, mo! - 1, 1))
   const { regionFormat } = getI18n()
-  // ReputeCast standard writes "October 2026"; other region formats as CLDR does ("tháng 10 năm 2026").
-  const locale = regionFormat === 'standard' ? 'en-GB' : regionFormat
-  return new Intl.DateTimeFormat(locale, { month: style, year: 'numeric', timeZone: 'UTC' }).format(d)
+  // ReputeCast standard writes "October 2026"; other region formats as CLDR does ("Tháng 10 năm 2026").
+  if (regionFormat === 'standard') return new Intl.DateTimeFormat('en-GB', { month: style, year: 'numeric', timeZone: 'UTC' }).format(d)
+  return labelCase(new Intl.DateTimeFormat(regionFormat, { month: style, year: 'numeric', timeZone: 'UTC' }).format(d))
 }
 
 /**
