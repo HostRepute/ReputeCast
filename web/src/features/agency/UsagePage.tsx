@@ -14,7 +14,8 @@ import { useWorkspace } from '@/lib/session'
 import { useAgencyCan, useRefreshAgency } from './api'
 import { AgencyPage } from './AgencyShell'
 import { m } from './messages'
-import { ClientTile, dayMonth, PersonChip } from './parts'
+import { calendarDate, ClientTile, dayMonth, PersonChip } from './parts'
+import { rateText, usd } from './rate'
 import { m as um } from './usage.messages'
 
 type View = Schemas['AgencyUsageView']
@@ -22,30 +23,12 @@ type Row = Schemas['AgencyUsageRow']
 type Rate = Schemas['AgencyRate']
 type Search = { month?: string; open?: string }
 
-const usd = (v: number) => `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const num = (v: number) => v.toLocaleString('en-US')
-const money = (v: number) => (Number.isInteger(v) ? `$${v.toLocaleString('en-US')}` : usd(v))
 
 function monthLabel(month: string, style: 'long' | 'short' = 'long') {
   const [y, mo] = month.split('-').map(Number)
   const d = new Date(Date.UTC(y!, mo! - 1, 1))
   return new Intl.DateTimeFormat('en-GB', { month: style, year: 'numeric', timeZone: 'UTC' }).format(d)
-}
-
-/** A rate in words: "Cost + 15%, plus $300 a month", "$120 a month, flat". */
-export function rateText(t: ReturnType<typeof useT>, rate: Rate | undefined | null, short = false) {
-  if (!rate) return ''
-  if (rate.flat != null) return t(um.rateFlat, { amount: money(rate.flat) })
-  const terms: string[] = []
-  if (rate.costPlusPct != null) terms.push(t(um.termCostPlus, { pct: rate.costPlusPct }))
-  if (rate.per1000Emails != null) terms.push(t(um.termPer1000, { amount: usd(rate.per1000Emails) }))
-  if (rate.perSegment != null) terms.push(t(um.termPerSegment, { amount: usd(rate.perSegment) }))
-  const list = terms.join(', ')
-  if (rate.monthlyFee != null) {
-    if (!terms.length) return t(um.rateFeeOnly, { amount: money(rate.monthlyFee) })
-    return short ? t(um.rateWithFeeShort, { terms: list, amount: money(rate.monthlyFee) }) : t(um.rateWithFee, { terms: list, amount: money(rate.monthlyFee) })
-  }
-  return list
 }
 
 /** Agency › Usage (AgencyUsage): each client's month, the provider cost and what to rebill. */
@@ -561,8 +544,8 @@ function ClientDetails({ id }: { id: string }) {
           <dt>{t(um.dSince)}</dt>
           <dd>
             {d.template
-              ? t(um.sinceFrom, { date: `${dayMonth(d.clientSince, 'UTC')} ${new Date(d.clientSince).getUTCFullYear()}`, template: d.template })
-              : `${dayMonth(d.clientSince, 'UTC')} ${new Date(d.clientSince).getUTCFullYear()}`}
+              ? t(um.sinceFrom, { date: calendarDate(d.clientSince), template: d.template })
+              : calendarDate(d.clientSince)}
           </dd>
           <dt>{t(um.dProviders)}</dt>
           <dd>{d.providers.length ? d.providers.join(' · ') : t(um.noProvider)}</dd>

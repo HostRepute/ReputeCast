@@ -20,7 +20,6 @@ import { useMe, useWorkspace } from '@/lib/session'
 import { useAgencyCan, useAgencyMe, useRefreshAgency } from './api'
 import { m } from './messages'
 import { NewClientDialog } from './NewClientDialog'
-import './agency.css'
 
 const nav = [
   { to: '/w/$workspace/agency', label: m.navOverview, icon: 'overview', exact: true },

@@ -27,6 +27,7 @@ import { useT } from '@/i18n'
 import { PlacementApprovalCard } from '@/features/placement/EntryPoints'
 import { ApprovalStatusBadge, approverNames, decidedText, deciderFirst, DiffLines, requestTone, unchangedText, type Change } from './parts'
 import '@/features/review/review.css'
+import { ClientSignoffFacts, ClientSignoffIntro, ClientSignoffLine, ClientSignoffNote } from '@/features/agency/ClientApproval'
 
 type Detail = Schemas['ApprovalDetail']
 const detailPath = '/api/v1/workspaces/{workspace}/approvals/{approvalId}' as const
@@ -250,9 +251,14 @@ function HeaderCard({ detail: d, me, issue }: { detail: Detail; me?: string; iss
           {issue ? <RecurringDigestBadge issue={issue} /> : null}
           <ApprovalStatusBadge status={d.status} long />
         </div>
-        <span className="k">
-          Requested by {d.requestedBy.name} · {agoWords(d.requestedAt, now)} · {d.needed} {d.needed === 1 ? 'approval' : 'approvals'} needed from {orList(d.approvers.filter((p) => p.id !== d.requestedBy.id).map((p) => p.name))} · {role}
-        </span>
+        {d.clientSignoff ? (
+          // An agency's client signs off its own sends (agency accounts).
+          <ClientSignoffLine detail={d} me={me} />
+        ) : (
+          <span className="k">
+            Requested by {d.requestedBy.name} · {agoWords(d.requestedAt, now)} · {d.needed} {d.needed === 1 ? 'approval' : 'approvals'} needed from {orList(d.approvers.filter((p) => p.id !== d.requestedBy.id).map((p) => p.name))} · {role}
+          </span>
+        )}
       </div>
       {d.rules.length ? (
         <div className="row gap-2!">
@@ -843,6 +849,7 @@ function DecisionCard({
         <h2 className="h2" id="ap-decision">
           {open || d.status === 'invalidated' ? 'Your decision' : 'Decision'}
         </h2>
+        {d.clientSignoff ? <ClientSignoffIntro detail={d} /> : null}
       </div>
       <div className="pad col gap-2.5!">
         {open ? (
@@ -858,6 +865,8 @@ function DecisionCard({
             </Button>
             {d.transactional ? (
               <TransactionalDecisionNote author={d.author.name} />
+            ) : d.clientSignoff ? (
+              <ClientSignoffNote detail={d} />
             ) : (
               <div className="note n text-[12.5px]">
                 <span>
@@ -892,21 +901,25 @@ function DecisionCard({
             ) : null}
           </div>
         )}
-        <dl className="kv m-0 text-[12.5px]">
-          <dt>Author</dt>
-          <dd>
-            {d.author.name}
-            {d.author.role ? ` · ${d.author.role}` : ''}
-          </dd>
-          <dt>Approvers</dt>
-          <dd>{approverNames(d.approvers, 'comma') || '—'}</dd>
-          <dt>Needed</dt>
-          <dd>
-            {Math.max(0, d.needed - d.given)} of {d.needed}
-          </dd>
-          <dt>Requested</dt>
-          <dd>{monthDayTime(d.requestedAt)}</dd>
-        </dl>
+        {d.clientSignoff ? (
+          <ClientSignoffFacts detail={d} />
+        ) : (
+          <dl className="kv m-0 text-[12.5px]">
+            <dt>Author</dt>
+            <dd>
+              {d.author.name}
+              {d.author.role ? ` · ${d.author.role}` : ''}
+            </dd>
+            <dt>Approvers</dt>
+            <dd>{approverNames(d.approvers, 'comma') || '—'}</dd>
+            <dt>Needed</dt>
+            <dd>
+              {Math.max(0, d.needed - d.given)} of {d.needed}
+            </dd>
+            <dt>Requested</dt>
+            <dd>{monthDayTime(d.requestedAt)}</dd>
+          </dl>
+        )}
       </div>
     </section>
   )

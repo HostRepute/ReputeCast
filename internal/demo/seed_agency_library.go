@@ -90,7 +90,7 @@ func nwHeroSec(bg, bgURL, title, line, button, href, btnBg, btnColor string) str
 	}
 	return `<mj-section background-color="` + bg + `"` + pattern + ` padding="40px 32px"><mj-column>` +
 		`<mj-text align="center" font-family="Georgia, 'Times New Roman', serif" font-size="30px" line-height="1.2" color="#FFFFFF">` + composerXMLText(title) + `</mj-text>` +
-		`<mj-text align="center" font-size="15px" color="#E5E7EB" padding="0px 0px 14px">` + line + `</mj-text>` +
+		`<mj-text align="center" font-size="15px" color="#FFFFFF" padding="0px 0px 14px">` + line + `</mj-text>` +
 		nwButton(button, href, btnBg, btnColor) + `</mj-column></mj-section>`
 }
 

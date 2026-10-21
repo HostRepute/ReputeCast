@@ -12,6 +12,7 @@ import { Thumb } from './Thumb'
 import { isDigestTemplate } from '@/features/digests/composer/DigestMode'
 import { LayerMark, LayersNote } from '@/features/conditional/Canvas'
 import { EarnBlocksHint } from '@/features/earn/composer/EarnBlocks'
+import { AddToAgencyLibrary } from '@/features/agency/ComposerLibrary'
 import { PollBlockHint } from '@/features/polls/Block'
 
 type BlocksAPI = { startDrag(b: unknown, ev?: Event): void; endDrag(cancel?: boolean): void; get(id: string): unknown; add(id: string, p: Record<string, unknown>): unknown }
@@ -313,6 +314,8 @@ function TemplatesTab({ sectionsRef }: { sectionsRef: RefObject<HTMLDivElement |
             Save as template or section
           </button>
         ) : null}
+        {/* The agency's staff share a saved section or template with every client (agency accounts). */}
+        <AddToAgencyLibrary sections={g.data.sections} templates={g.data.templates} />
       </div>
       <Dialog
         open={confirm !== null}

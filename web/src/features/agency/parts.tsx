@@ -5,6 +5,7 @@ import { cn } from '@/lib/cn'
 import { getDisplayTimeZone } from '@/lib/format'
 import type { AgencyHealth, AgencyWorkspaceRef } from './api'
 import { m } from './messages'
+import './agency.css'
 
 /** A workspace's initials tile in the client's colour (24 px by default). */
 export function ClientTile({ ws, size = 24, className, style }: { ws: Pick<AgencyWorkspaceRef, 'initials' | 'color'>; size?: number; className?: string; style?: CSSProperties }) {
@@ -171,6 +172,11 @@ export function hhmm(d: Date | string, tz?: string) {
 export function dayMonth(d: Date | string, tz?: string) {
   const p = partsOf(new Date(d), tz, { day: 'numeric', month: 'short' })
   return `${p.day} ${p.month}`
+}
+
+/** "4 Mar 2024": a calendar date, stored at midnight UTC. */
+export function calendarDate(d: Date | string) {
+  return `${dayMonth(d, 'UTC')} ${new Date(d).getUTCFullYear()}`
 }
 
 /** "Thu 16 Oct" in the zone. */

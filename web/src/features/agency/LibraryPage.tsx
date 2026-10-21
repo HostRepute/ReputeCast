@@ -13,6 +13,7 @@ import { formatList, useT } from '@/i18n'
 import { useWorkspace } from '@/lib/session'
 import { useAgencyMe, useRefreshAgency } from './api'
 import { AgencyPage } from './AgencyShell'
+import { kindLabel } from './kinds'
 import { m as lm } from './library.messages'
 import { HtmlPreview, LibraryThumb } from './LibraryThumb'
 import { m } from './messages'
@@ -24,21 +25,6 @@ type Kind = 'section' | 'template' | 'automation' | 'sms' | 'transactional'
 type Search = { kind?: Kind; item?: string }
 
 const kindTone: Record<string, Tone> = { section: 'neutral', template: 'info', automation: 'purple', sms: 'ok', transactional: 'warn' }
-
-export function kindLabel(t: ReturnType<typeof useT>, kind: string) {
-  switch (kind) {
-    case 'section':
-      return t(lm.kindSection)
-    case 'template':
-      return t(lm.kindTemplate)
-    case 'automation':
-      return t(lm.kindAutomation)
-    case 'sms':
-      return t(lm.kindSms)
-    default:
-      return t(lm.kindTransactional)
-  }
-}
 
 /** Agency › Library (AgencyLibrary): workspace templates and the shared library. */
 export function LibraryPage() {
