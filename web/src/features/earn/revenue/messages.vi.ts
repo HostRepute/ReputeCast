@@ -215,7 +215,7 @@ export default translate(mr, {
     '{count, plural, =0 {Không có hội viên trả phí nào là liên hệ mới trả phí ngay từ đầu: tổng cộng {all}.} other {Thêm # hội viên trả phí là liên hệ mới trả phí ngay từ đầu: tổng cộng {all}.}}',
   srcForm: '{name}',
   srcFormless: 'Biểu mẫu đăng ký',
-  srcSubscribePage: 'Trang đăng ký có sẵn',
+  srcSubscribePage: 'Trang đăng ký trên ReputeCast',
   srcImport: 'Nhập từ {name}',
   srcApi: 'Khóa API “{name}”',
   srcApiless: 'API',
