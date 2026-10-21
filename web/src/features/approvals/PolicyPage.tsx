@@ -9,14 +9,17 @@ import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { EmptyRow, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
-import { ago, count } from '@/lib/format'
+import { ago, andList, count } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
+import { roleName } from '@/lib/roles'
 import { useWorkspace } from '@/lib/session'
 import { AccessTable, PersonCell } from '@/features/access/parts'
 import { ClientSignoffRule } from '@/features/agency/ClientSignoffRule'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { m as txApproval } from '@/features/transactional-templates/approval.messages'
-import { T, useT } from '@/i18n'
+import { getI18n, T, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { mp } from './policy.messages'
 import './approvals.css'
 import { im } from '@/features/digests/issueMessages'
 import { me as wm } from '@/features/website/elsewhere.messages'
@@ -28,13 +31,14 @@ const path = '/api/v1/workspaces/{workspace}/approval-policy' as const
 
 /** A5 §5.12 Send approvals policy (Settings › Approvals). */
 export function PolicyPage() {
+  const t = useT()
   const { slug, me } = useWorkspace()
   const q = $api.useQuery('get', path, { params: { path: { workspace: slug } } })
   return (
-    <Page title="Settings" subtitle={me.workspace.name} tabs={settingsTabs(slug)} documentTitle="Approvals · Settings">
+    <Page title={t(mp.settings)} subtitle={me.workspace.name} tabs={settingsTabs(slug)} documentTitle={t(mp.documentTitle)}>
       {q.isError ? (
-        <ErrorPanel title="Couldn't load the approval policy" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
-          {errorMessage(q.error)} Nothing was changed.
+        <ErrorPanel title={t(mp.loadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
+          {errorMessage(q.error)} {t(mp.nothingChanged)}
         </ErrorPanel>
       ) : q.isPending ? (
         <PolicySkeleton />
@@ -59,7 +63,7 @@ function PolicyForm({ view }: { view: View }) {
   const commitN = () => {
     const n = Number(nText.replace(/\D/g, ''))
     if (!nText.trim() || !Number.isFinite(n) || n < 1 || n > 100_000_000) {
-      setNError('Enter a number of recipients between 1 and 100,000,000.')
+      setNError(t(mp.numberRange, { min: count(1), max: count(100_000_000) }))
       return null
     }
     setNError(undefined)
@@ -74,12 +78,12 @@ function PolicyForm({ view }: { view: View }) {
     try {
       const body = { ...p, audienceMin: { ...p.audienceMin, n } }
       await http.PUT(path, { params: { path: { workspace: slug } }, body })
-      toast({ kind: 'success', title: 'Approval policy saved', detail: 'It applies to the next request; open requests keep the rules they matched.' })
+      toast({ kind: 'success', title: t(mp.saved), detail: t(mp.savedDetail) })
       await qc.invalidateQueries({ queryKey: ['get', path] })
       await qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/approvals'] })
       return true
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't save the approval policy", detail: errorMessage(e) })
+      toast({ kind: 'error', title: t(mp.saveFailed), detail: errorMessage(e) })
       return false
     } finally {
       setBusy(false)
@@ -91,23 +95,27 @@ function PolicyForm({ view }: { view: View }) {
     setNError(undefined)
   }
   const m = view.matches
-  const roles = m.lacksSendRoles.map((r) => (r.endsWith('s') ? r : `${r}s`))
+  // Role names in the plural ("Editors today: …") in English; other languages name the role as it is.
+  const english = getI18n().locale === 'en'
+  const roles = m.lacksSendRoles.map((r) => roleName({ name: r })).map((r) => (english && !r.endsWith('s') ? `${r}s` : r))
+  const mono = (chunks: ReactNode[]) => <span className="mono">{chunks}</span>
   const bypassText = (
     <>
-      <span className="font-semibold">Owners can send without approval by entering a reason</span>
+      <span className="font-semibold">{t(mp.bypassSwitch)}</span>
       <span className="k">
-        The bypass is logged as <span className="mono">campaign.approval_bypassed</span> and every approver is notified immediately.
+        <T msg={mp.bypassLogged} values={{ mono }} />
       </span>
     </>
   )
-  const twoReason =
-    view.approvers.length < 2 ? `Needs two members with campaigns:approve; today there ${view.approvers.length === 1 ? 'is 1' : `are ${view.approvers.length}`}.` : undefined
+  const twoReason = view.approvers.length < 2 ? t(mp.twoNeeds, { count: view.approvers.length }) : undefined
   return (
     <>
       {read ? (
         <div className="note n" role="status">
-          <Badge tone="neutral">Read-only</Badge>
-          <span>You can view the approval policy. {view.reason || 'Changing it needs the workspace:manage permission.'}</span>
+          <Badge tone="neutral">{t(mp.readOnly)}</Badge>
+          <span>
+            {t(mp.readOnlyLead)} {view.reason || t(mp.readOnlyReason)}
+          </span>
         </div>
       ) : null}
       <div className="ap-policy">
@@ -116,13 +124,13 @@ function PolicyForm({ view }: { view: View }) {
             <div className="sec">
               <div className="flex min-w-0 flex-col gap-0.5">
                 <h2 className="h2" id="ap-when">
-                  When is approval required?
+                  {t(mp.whenTitle)}
                 </h2>
-                <span className="k">Per workspace</span>
+                <span className="k">{t(mp.whenCaption)}</span>
               </div>
             </div>
             <div className="pad col gap-2.5!">
-              <span className="k">Approval is required when any enabled rule matches. The author sees which rules matched and can add a note.</span>
+              <span className="k">{t(mp.whenIntro)}</span>
               {view.clientSignoff ? (
                 <ClientSignoffRule info={view.clientSignoff} value={p.clientSignoff ?? { enabled: false, automations: false }} disabled={read} onChange={(v) => set({ clientSignoff: v })} />
               ) : null}
@@ -130,14 +138,14 @@ function PolicyForm({ view }: { view: View }) {
                 on={p.audienceMin.enabled}
                 disabled={read}
                 onChange={(v) => set({ audienceMin: { ...p.audienceMin, enabled: v } })}
-                title="A Broadcast audience of at least"
-                detail="Counted after exclusions, at request time and again at send time."
+                title={t(mp.audienceTitle)}
+                detail={t(mp.audienceDetail)}
                 extra={
                   <span className="row flex-nowrap! gap-1.5!">
                     <input
                       className="in mono w-[110px] max-md:min-w-0 max-md:flex-[1_1_120px]"
                       inputMode="numeric"
-                      aria-label="Minimum recipients"
+                      aria-label={t(mp.minimumRecipients)}
                       aria-invalid={nError ? true : undefined}
                       aria-describedby={nError ? 'ap-n-err' : undefined}
                       value={nText}
@@ -145,7 +153,7 @@ function PolicyForm({ view }: { view: View }) {
                       onChange={(e) => setNText(e.target.value)}
                       onBlur={() => void commitN()}
                     />
-                    <span className="k">recipients</span>
+                    <span className="k">{t(mp.recipients)}</span>
                   </span>
                 }
               />
@@ -158,38 +166,45 @@ function PolicyForm({ view }: { view: View }) {
                 on={p.warmingProvider}
                 disabled={read}
                 onChange={(v) => set({ warmingProvider: v })}
-                title={`The route includes a Warming-up provider, or one connected in the last ${p.newProviderDays} days`}
-                detail={m.warming ? `Matches today: ${m.warming}` : 'Matches nothing today: no provider in the Broadcasts route is warming up or new.'}
+                title={t(mp.warmingTitle, { days: count(p.newProviderDays) })}
+                detail={m.warming ? t(mp.matchesToday, { what: m.warming }) : t(mp.warmingNone)}
               />
               <Rule
                 on={p.readyWithWarnings}
                 disabled={read}
                 onChange={(v) => set({ readyWithWarnings: v })}
-                title="Send Readiness is “Ready with warnings”"
-                detail="Blocked sends never start; this rule adds a human check for warnings."
+                title={t(mp.warningsTitle)}
+                detail={t(mp.warningsDetail)}
               />
               <Rule
                 on={p.authorLacksSend}
                 disabled={read}
                 onChange={(v) => set({ authorLacksSend: v })}
-                title="The author lacks the send permission"
-                detail={`Members with campaigns:edit but not campaigns:send can still prepare a send and request approval. ${
-                  m.lacksSend.length ? `${roles.length ? listAnd(roles) : 'Members'} today: ${listAnd(m.lacksSend)}.` : 'Nobody is in that position today.'
-                }`}
+                title={t(mp.lacksSendTitle)}
+                detail={t(mp.lacksSendDetail, {
+                  who: m.lacksSend.length ? (roles.length ? 'roles' : 'members') : 'nobody',
+                  roles: andList(roles),
+                  names: andList(m.lacksSend),
+                })}
               />
               <Rule
                 on={p.approvalLists}
                 disabled={read}
                 onChange={(v) => set({ approvalLists: v })}
-                title="The audience includes a list marked “Requires approval”"
+                title={t(mp.listsTitle)}
                 detail={
-                  <>
-                    {m.approvalLists.length ? `Marked today: ${listAnd(m.approvalLists)}. Mark more in ` : 'No list is marked yet. Mark lists in '}
-                    <Link to="/w/$workspace/audience/health" params={{ workspace: slug }}>
-                      Audience → Lists
-                    </Link>
-                    .
-                  </>
+                  <T
+                    msg={mp.listsDetail}
+                    values={{
+                      marked: m.approvalLists.length ? 'yes' : 'no',
+                      lists: andList(m.approvalLists),
+                      link: (chunks) => (
+                        <Link to="/w/$workspace/audience/health" params={{ workspace: slug }}>
+                          {chunks}
+                        </Link>
+                      ),
+                    }}
+                  />
                 }
               />
               {/* Texts (SMS, X21): what an SMS or WhatsApp campaign costs. */}
@@ -199,8 +214,8 @@ function PolicyForm({ view }: { view: View }) {
                   on={p.automationPublish}
                   disabled={read}
                   onChange={(v) => set({ automationPublish: v })}
-                  title="Publishing an automation also requires approval"
-                  detail="Applies to automations:publish. Off: publishing is logged only."
+                  title={t(mp.automationTitle)}
+                  detail={t(mp.automationDetail)}
                 />
               </div>
               <div className="border-t border-line-2 pt-2.5">
@@ -217,7 +232,7 @@ function PolicyForm({ view }: { view: View }) {
                 <Rule on={p.postPublish} disabled={read} onChange={(v) => set({ postPublish: v })} title={t(wm.policyPost)} detail={t(wm.policyPostText)} />
                 <div className="note n mt-2">
                   <div>
-                    <T msg={wm.policyPostNote} values={{ perm: <code className="mono">website:publish</code> }} />
+                    <T msg={wm.policyPostNote} values={{ perm: <code className="mono">{'website:publish'}</code> }} />
                   </div>
                 </div>
               </div>
@@ -232,57 +247,54 @@ function PolicyForm({ view }: { view: View }) {
             <div className="sec">
               <div className="flex min-w-0 flex-col gap-0.5">
                 <h2 className="h2" id="ap-approvers">
-                  Approvers
+                  {t(mp.approversTitle)}
                 </h2>
               </div>
             </div>
             <div className="pad col gap-3!">
               <div className="note n">
                 <span>
-                  Approvers are members with <span className="mono">campaigns:approve</span>.{' '}
-                  {view.approvers.length ? (
-                    <>
-                      Today:{' '}
-                      {view.approvers.map((a, i) => (
+                  <T
+                    msg={mp.approversNote}
+                    values={{
+                      mono,
+                      has: view.approvers.length ? 'yes' : 'no',
+                      list: view.approvers.map((a, i) => (
                         <span key={a.id}>
                           {i > 0 ? ', ' : ''}
-                          <b>{a.name}</b>
-                          {a.role ? ` (${a.role})` : ''}
+                          {a.role ? (
+                            <T msg={mp.approverWithRole} values={{ name: a.name, role: roleName({ name: a.role }), b: (chunks) => <b>{chunks}</b> }} />
+                          ) : (
+                            <T msg={mp.approverName} values={{ name: a.name, b: (chunks) => <b>{chunks}</b> }} />
+                          )}
                         </span>
-                      ))}
-                      .
-                    </>
-                  ) : (
-                    'Nobody holds it today: give it to a role in Settings › Roles.'
-                  )}{' '}
-                  Authors can never approve their own campaign.
+                      )),
+                    }}
+                  />
                 </span>
               </div>
               <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-                <legend className="mb-1 text-[12px] font-semibold text-ink-2">Approvals required</legend>
+                <legend className="mb-1 text-[12px] font-semibold text-ink-2">{t(mp.requiredLegend)}</legend>
                 <Choice
                   checked={p.approvalsRequired === 1}
                   disabled={read}
                   onChange={() => set({ approvalsRequired: 1 })}
-                  title="1 approval"
-                  detail="Any approver other than the author"
+                  title={t(mp.oneApproval)}
+                  detail={t(mp.oneApprovalDetail)}
                 />
                 <Choice
                   checked={p.approvalsRequired === 2}
                   disabled={read || Boolean(twoReason && p.approvalsRequired !== 2)}
                   onChange={() => set({ approvalsRequired: 2 })}
-                  title="2 approvals"
-                  detail={twoReason ?? `Two different approvers; with ${view.approvers.length} approvers today one of them must not be the author`}
+                  title={t(mp.twoApprovals)}
+                  detail={twoReason ?? t(mp.twoApprovalsDetail, { count: view.approvers.length })}
                 />
               </fieldset>
               <dl className="kv">
-                <dt>Snapshot</dt>
-                <dd>
-                  An approval covers content and subject, the audience definition, the sending route and the schedule. Changing any of them, or the audience count moving by more
-                  than 10%, invalidates it; the approver sees exactly what changed.
-                </dd>
-                <dt>Recheck</dt>
-                <dd>Send Readiness runs again when the send starts. A Blocked result stops the send and notifies author and approvers.</dd>
+                <dt>{t(mp.snapshot)}</dt>
+                <dd>{t(mp.snapshotDetail)}</dd>
+                <dt>{t(mp.recheck)}</dt>
+                <dd>{t(mp.recheckDetail)}</dd>
               </dl>
             </div>
           </section>
@@ -290,9 +302,9 @@ function PolicyForm({ view }: { view: View }) {
             <div className="sec">
               <div className="flex min-w-0 flex-col gap-0.5">
                 <h2 className="h2" id="ap-bypass">
-                  Emergency bypass
+                  {t(mp.bypassTitle)}
                 </h2>
-                <span className="k">Owners only</span>
+                <span className="k">{t(mp.bypassCaption)}</span>
               </div>
             </div>
             <div className="pad col gap-2.5!">
@@ -301,10 +313,8 @@ function PolicyForm({ view }: { view: View }) {
                 <span className="col gap-px!">{bypassText}</span>
               </label>
               <dl className="kv">
-                <dt>Used</dt>
-                <dd>
-                  {view.bypassCount} {view.bypassCount === 1 ? 'time' : 'times'} in the last 90 days
-                </dd>
+                <dt>{t(mp.used)}</dt>
+                <dd>{t(mp.usedCount, { count: view.bypassCount })}</dd>
               </dl>
             </div>
           </section>
@@ -312,13 +322,13 @@ function PolicyForm({ view }: { view: View }) {
       </div>
       {read ? null : (
         <div className="row justify-end gap-2.5!">
-          <Button onClick={discard}>Discard</Button>
+          <Button onClick={discard}>{t(mp.discard)}</Button>
           <Button variant="primary" loading={busy} onClick={() => void save()}>
-            Save policy
+            {t(mp.savePolicy)}
           </Button>
         </div>
       )}
-      <UnsavedChangesGuard dirty={!read && dirty && !busy} description="Your changes to the approval policy aren't saved. Requests keep following the saved policy." onSave={save} />
+      <UnsavedChangesGuard dirty={!read && dirty && !busy} description={t(mp.unsaved)} onSave={save} />
     </>
   )
 }
@@ -369,6 +379,7 @@ function Choice({ checked, disabled, onChange, title, detail }: { checked: boole
 }
 
 function PendingCard({ pending }: { pending: Schemas['ApprovalPendingItem'][] }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const now = useNow()
   return (
@@ -376,28 +387,28 @@ function PendingCard({ pending }: { pending: Schemas['ApprovalPendingItem'][] })
       <div className="sec">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h2 className="h2" id="ap-pending">
-            Pending now · {pending.length}
+            {t(mp.pendingTitle, { count: count(pending.length) })}
           </h2>
         </div>
         <ButtonLink size="sm" to="/w/$workspace/approvals" params={{ workspace: slug }}>
-          Approval inbox
+          {t(mp.approvalInbox)}
         </ButtonLink>
       </div>
-      <AccessTable caption="Pending approval requests">
+      <AccessTable caption={t(mp.pendingCaption)}>
         <thead>
           <tr>
-            <Th>Campaign</Th>
-            <Th>Author</Th>
-            <Th>Audience</Th>
-            <Th>Requested</Th>
+            <Th>{t(mp.colCampaign)}</Th>
+            <Th>{t(mp.colAuthor)}</Th>
+            <Th>{t(mp.colAudience)}</Th>
+            <Th>{t(mp.colRequested)}</Th>
             <Th>
-              <span className="vh">Actions</span>
+              <span className="vh">{t(mp.colActions)}</span>
             </Th>
           </tr>
         </thead>
         <tbody>
           {pending.length === 0 ? (
-            <EmptyRow colSpan={5}>Nothing is waiting for approval.</EmptyRow>
+            <EmptyRow colSpan={5}>{t(mp.nothingPending)}</EmptyRow>
           ) : (
             pending.map((it) => (
               <tr key={it.id}>
@@ -411,7 +422,7 @@ function PendingCard({ pending }: { pending: Schemas['ApprovalPendingItem'][] })
                 <Td>{ago(it.requestedAt, now)}</Td>
                 <Td>
                   <ButtonLink size="sm" variant="primary" to="/w/$workspace/approvals/$approvalId" params={{ workspace: slug, approvalId: it.id }}>
-                    Review
+                    {t(mp.review)}
                   </ButtonLink>
                 </Td>
               </tr>
@@ -423,13 +434,10 @@ function PendingCard({ pending }: { pending: Schemas['ApprovalPendingItem'][] })
   )
 }
 
-function listAnd(words: string[]): string {
-  return words.length <= 1 ? (words[0] ?? '') : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`
-}
-
 function PolicySkeleton() {
+  const t = useT()
   return (
-    <Loading label="Loading the approval policy" className="ap-policy">
+    <Loading label={t(mp.loading)} className="ap-policy">
       <div className="card">
         <div className="sec">
           <Skeleton w={220} h={14} />

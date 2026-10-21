@@ -221,20 +221,25 @@ function Settings({ p, programId }: { p: Program; programId?: string }) {
               title={t(ms.burst)}
               text={
                 <>
-                  {t(ms.burstBefore)}{' '}
-                  <Input
-                    id="rs-burst"
-                    className="gw-inl gw-num"
-                    type="number"
-                    min={2}
-                    max={100}
-                    aria-label={t(ms.burstThreshold)}
-                    value={String(d.counting.burst.threshold)}
-                    disabled={disabled || !d.counting.burst.on}
-                    invalid={Boolean(err('rs-burst'))}
-                    onChange={(e) => setCounting({ burst: { ...d.counting.burst, threshold: Number(e.target.value) } })}
-                  />{' '}
-                  {t(ms.burstAfter)}
+                  <T
+                    msg={ms.burstRule}
+                    values={{
+                      input: (
+                        <Input
+                          id="rs-burst"
+                          className="gw-inl gw-num"
+                          type="number"
+                          min={2}
+                          max={100}
+                          aria-label={t(ms.burstThreshold)}
+                          value={String(d.counting.burst.threshold)}
+                          disabled={disabled || !d.counting.burst.on}
+                          invalid={Boolean(err('rs-burst'))}
+                          onChange={(e) => setCounting({ burst: { ...d.counting.burst, threshold: Number(e.target.value) } })}
+                        />
+                      ),
+                    }}
+                  />
                   {err('rs-burst') ? <span className="err mt-1 block">{err('rs-burst')}</span> : null}
                 </>
               }
@@ -245,19 +250,25 @@ function Settings({ p, programId }: { p: Program; programId?: string }) {
               title={t(ms.shared)}
               text={
                 <>
-                  <Input
-                    id="rs-shared"
-                    className="gw-inl gw-num"
-                    type="number"
-                    min={2}
-                    max={1000}
-                    aria-label={t(ms.sharedThreshold)}
-                    value={String(d.counting.sharedIp.threshold)}
-                    disabled={disabled || !d.counting.sharedIp.on}
-                    invalid={Boolean(err('rs-shared'))}
-                    onChange={(e) => setCounting({ sharedIp: { ...d.counting.sharedIp, threshold: Number(e.target.value) } })}
-                  />{' '}
-                  {t(ms.sharedAfter)}
+                  <T
+                    msg={ms.sharedRule}
+                    values={{
+                      input: (
+                        <Input
+                          id="rs-shared"
+                          className="gw-inl gw-num"
+                          type="number"
+                          min={2}
+                          max={1000}
+                          aria-label={t(ms.sharedThreshold)}
+                          value={String(d.counting.sharedIp.threshold)}
+                          disabled={disabled || !d.counting.sharedIp.on}
+                          invalid={Boolean(err('rs-shared'))}
+                          onChange={(e) => setCounting({ sharedIp: { ...d.counting.sharedIp, threshold: Number(e.target.value) } })}
+                        />
+                      ),
+                    }}
+                  />
                   {err('rs-shared') ? <span className="err mt-1 block">{err('rs-shared')}</span> : null}
                 </>
               }

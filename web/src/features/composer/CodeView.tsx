@@ -6,8 +6,10 @@ import { http } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
-import { t } from '@/i18n'
+import { T, t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { mc as earnComposer } from '@/features/earn/composer/composer.messages'
+import { mk } from './code.messages'
 import { useComposer } from './context'
 import { checkMjmlTags, formatMjml, headMeta, splitMjml } from './editor/mjmlDoc'
 import { kb, lineCount } from './format'
@@ -143,6 +145,7 @@ function Pane({ title, aside, dark, children }: { title: string; aside: string; 
  */
 export function CodeView({ aside }: { aside?: ReactNode } = {}) {
   const c = useComposer()
+  const tr = useT()
   const initial = useMemo(() => c.currentMjml(), []) // eslint-disable-line react-hooks/exhaustive-deps
   const [draft, setDraft] = useState(initial)
   const [cursor, setCursor] = useState({ line: 1, col: 1 })
@@ -177,7 +180,7 @@ export function CodeView({ aside }: { aside?: ReactNode } = {}) {
   // Applying is also what leaving the code view does.
   const apply = (): boolean => {
     if (!changed) return true
-    const fatal = checkMjmlTags(draft) ?? (draft.includes('<mj-body') ? null : { line: 1, message: 'the document needs an <mj-body>' })
+    const fatal = checkMjmlTags(draft) ?? (draft.includes('<mj-body') ? null : { line: 1, message: tt(mk.needsBody, { tag: '<mj-body>' }) })
     if (fatal) {
       setFailed({ line: fatal.line, message: fatal.message })
       return false
@@ -185,7 +188,7 @@ export function CodeView({ aside }: { aside?: ReactNode } = {}) {
     const meta = headMeta(splitMjml(draft).head)
     if (meta.title !== undefined && meta.title !== c.subject) c.setSubject(meta.title)
     if (meta.preview !== undefined && meta.preview !== c.preheader) c.setPreheader(meta.preview)
-    c.loadContent(draft, { source: 'code', label: 'edited the MJML' })
+    c.loadContent(draft, { source: 'code', label: tt(mk.noteEdited) })
     setFailed(null)
     return true
   }
@@ -212,16 +215,16 @@ export function CodeView({ aside }: { aside?: ReactNode } = {}) {
 
   return (
     <>
-      <section id="main" className="cmp-main" style={{ flex: '999 1 620px' }} aria-label="Code view">
+      <section id="main" className="cmp-main" style={{ flex: '999 1 620px' }} aria-label={tr(mk.codeView)}>
         <div className="cmp-tools">
           <ViewSeg />
           {c.view === 'mjml' ? (
             <>
               <button type="button" className="btn" onClick={() => c.openDialog('import')} disabled={!c.canEdit}>
-                Import MJML
+                {tr(mk.importMjml)}
               </button>
               <button type="button" className="btn" onClick={() => setDraft(formatMjml(draft))} disabled={!c.canEdit}>
-                Format
+                {tr(mk.format)}
               </button>
             </>
           ) : null}
@@ -230,17 +233,17 @@ export function CodeView({ aside }: { aside?: ReactNode } = {}) {
             className="btn"
             onClick={() =>
               void navigator.clipboard.writeText(html).then(
-                () => toast({ kind: 'success', title: 'Compiled HTML copied' }),
-                () => toast({ kind: 'error', title: "Couldn't copy", detail: 'Your browser blocked the clipboard.' }),
+                () => toast({ kind: 'success', title: tt(mk.copied) }),
+                () => toast({ kind: 'error', title: tt(mk.copyFailed), detail: tt(mk.clipboardBlocked) }),
               )
             }
           >
-            Copy compiled HTML
+            {tr(mk.copyHtml)}
           </button>
-          <span className="k">mjml 4 · grapesjs-mjml 1.0 · changes here update the canvas and the layer tree</span>
+          <span className="k">{tr(mk.engineNote)}</span>
           {c.view === 'mjml' && c.canEdit ? (
             <button type="button" className="btn pri" style={{ marginLeft: 'auto' }} onClick={() => apply() && c.setView('visual')}>
-              Apply to canvas
+              {tr(mk.applyToCanvas)}
             </button>
           ) : null}
         </div>
@@ -248,16 +251,14 @@ export function CodeView({ aside }: { aside?: ReactNode } = {}) {
           <div role="alert" className="card mx-4 mt-4 flex flex-col" style={{ padding: '16px 18px', gap: 10, borderColor: '#FCA5A5' }}>
             <div className="flex flex-wrap items-center gap-2.5">
               <Badge tone="bad" dot>
-                MJML error
+                {tr(mk.mjmlError)}
               </Badge>
-              <span className="font-semibold">
-                Line {failed.line}: {failed.message}
-              </span>
+              <span className="font-semibold">{tr(mk.lineError, { line: failed.line, message: failed.message })}</span>
             </div>
-            <span className="k">The canvas keeps the last good version. Fix the code view or revert the last change.</span>
+            <span className="k">{tr(mk.keepsLastGood)}</span>
             <div className="flex gap-2">
               <button type="button" className="btn sm pri" onClick={() => setJump({ line: failed.line, n: Date.now() })}>
-                Go to line {failed.line}
+                {tr(mk.goToLine, { line: failed.line })}
               </button>
               <button
                 type="button"
@@ -267,83 +268,79 @@ export function CodeView({ aside }: { aside?: ReactNode } = {}) {
                   setFailed(null)
                 }}
               >
-                Undo my changes
+                {tr(mk.undoMine)}
               </button>
             </div>
           </div>
         ) : null}
         <div className="flex flex-1 flex-wrap" style={{ minHeight: 0 }}>
           {c.view === 'mjml' ? (
-            <Pane dark title="MJML · source of truth" aside={`${lineCount(draft)} lines · line ${cursor.line}, col ${cursor.col}`}>
-              <Code dark label="MJML source" value={draft} onChange={c.canEdit ? setDraft : undefined} readOnly={!c.canEdit} onCursor={(line, col) => setCursor({ line, col })} jumpTo={jump} />
+            <Pane dark title={tr(mk.mjmlPane)} aside={tr(mk.mjmlAside, { lines: lineCount(draft), line: cursor.line, col: cursor.col })}>
+              <Code dark label={tr(mk.mjmlSource)} value={draft} onChange={c.canEdit ? setDraft : undefined} readOnly={!c.canEdit} onCursor={(line, col) => setCursor({ line, col })} jumpTo={jump} />
             </Pane>
           ) : null}
-          <Pane title="Compiled HTML · read only" aside={`${kb(new Blob([html]).size)} · tables and inline CSS for Outlook`}>
-            <Code label="Compiled HTML" value={html} readOnly />
+          <Pane title={tr(mk.htmlPane)} aside={tr(mk.htmlAside, { size: kb(new Blob([html]).size) })}>
+            <Code label={tr(mk.compiledHtml)} value={html} readOnly />
           </Pane>
         </div>
       </section>
       {aside ?? (
-        <aside className="cpanel right" aria-label="Compile results and tokens">
+        <aside className="cpanel right" aria-label={tr(mk.panelLabel)}>
           <PanelTabs
             value={tab}
             onChange={setTab}
-            label="Code tools"
+            label={tr(mk.codeTools)}
             items={[
-              { value: 'compile', label: 'Compile' },
-              { value: 'tokens', label: 'Tokens' },
+              { value: 'compile', label: tr(mk.tabCompile) },
+              { value: 'tokens', label: tr(mk.tabTokens) },
             ]}
             className="flex flex-1 flex-col"
           >
             <TabPanel value="compile" className="flex flex-1 flex-col" tabIndex={-1}>
               {result ? (
                 <div className="crow" style={{ background: errors.length ? 'var(--bad-tint)' : '#F0FDF4' }}>
-                  <Badge tone={errors.length ? 'bad' : 'ok'}>{errors.length ? 'Error' : 'OK'}</Badge>
-                  <span>
-                    Compiled in {result.ms} ms · {errors.length} {errors.length === 1 ? 'error' : 'errors'} · {warnings.length} {warnings.length === 1 ? 'warning' : 'warnings'}
-                  </span>
+                  <Badge tone={errors.length ? 'bad' : 'ok'}>{errors.length ? tr(mk.error) : tr(mk.ok)}</Badge>
+                  <span>{tr(mk.compiledIn, { ms: result.ms, errors: errors.length, warnings: warnings.length })}</span>
                 </div>
               ) : (
                 <div className="crow">
                   <span className="spin" aria-hidden="true" />
-                  <span>Compiling…</span>
+                  <span>{tr(mk.compiling)}</span>
                 </div>
               )}
               {errors.map((e, i) => (
                 <div key={`e${i}`} className="crow">
-                  <Badge tone="bad">Error</Badge>
-                  <span>
-                    Line {e.line}: {e.message}
-                  </span>
+                  <Badge tone="bad">{tr(mk.error)}</Badge>
+                  <span>{tr(mk.lineError, { line: e.line, message: e.message })}</span>
                 </div>
               ))}
               {warnings.map((w, i) => (
                 <div key={`w${i}`} className="crow">
-                  <Badge tone="warn">Warn</Badge>
+                  <Badge tone="warn">{tr(mk.warn)}</Badge>
                   <button type="button" className="text-left" style={{ border: 0, background: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer' }} onClick={() => setJump({ line: w.line, n: Date.now() })}>
-                    Line {w.line}: {w.message}
+                    {tr(mk.lineError, { line: w.line, message: w.message })}
                   </button>
                 </div>
               ))}
               <div className="crow">
-                <Badge tone="info">Info</Badge>
+                <Badge tone="info">{tr(mk.info)}</Badge>
                 <span>
-                  Comments like <span className="mono">rc:footer</span> mark ReputeCast blocks so they stay editable as one unit on the canvas.
+                  <T msg={mk.markerNote} values={{ mono: (chunks) => <span className="mono">{chunks}</span> }} />
                 </span>
               </div>
               <div className="crow">
-                <Badge tone="info">Info</Badge>
-                <span>Tracking links and the open pixel are added at send time, per sending provider, so they don't appear here.</span>
+                <Badge tone="info">{tr(mk.info)}</Badge>
+                <span>{tr(mk.trackingNote)}</span>
               </div>
               <div className="flex flex-col gap-2 border-t border-line-2" style={{ padding: 12, marginTop: 'auto' }}>
-                <span className="k">Personalization tokens available</span>
+                <span className="k">{tr(mk.tokensAvailable)}</span>
                 <div className="mono flex flex-col gap-1" style={{ fontSize: 12, color: 'var(--ink-nav)' }}>
                   {contactTokens.map((t) => (
                     <span key={t.key}>{fmtToken(t)}</span>
                   ))}
                   {systemTokens.length ? <span>{systemTokens.map(fmtToken).join(' · ')}</span> : null}
                 </div>
-                <span className="k">Fallbacks after the pipe are used when the field is empty.</span>
+                <span className="k">{tr(mk.fallbacksNote)}</span>
               </div>
             </TabPanel>
             <TabPanel value="tokens" className="flex flex-col" tabIndex={-1}>
@@ -352,7 +349,7 @@ export function CodeView({ aside }: { aside?: ReactNode } = {}) {
                 if (!list.length) return null
                 return (
                   <div key={kind} className="flex flex-col">
-                    <div className="grp">{kind === 'contact' ? 'Contact fields' : kind === 'custom' ? 'Custom fields' : kind === 'referral' ? 'Referral' : kind === 'paid' ? t(earnComposer.tokensPaid) : 'Links and system'}</div>
+                    <div className="grp">{kind === 'contact' ? tr(mk.groupContact) : kind === 'custom' ? tr(mk.groupCustom) : kind === 'referral' ? tr(mk.groupReferral) : kind === 'paid' ? tr(earnComposer.tokensPaid) : tr(mk.groupSystem)}</div>
                     {list.map((t) => (
                       <button
                         key={t.key}
@@ -361,11 +358,11 @@ export function CodeView({ aside }: { aside?: ReactNode } = {}) {
                         style={{ border: 0, borderBottom: '1px solid var(--line-2)', background: 'none', width: '100%', font: 'inherit', cursor: 'pointer' }}
                         onClick={() =>
                           void navigator.clipboard.writeText(fmtToken(t)).then(
-                            () => toast({ kind: 'success', title: `Copied ${fmtToken(t)}` }),
+                            () => toast({ kind: 'success', title: tt(mk.copiedToken, { token: fmtToken(t) }) }),
                             () => undefined,
                           )
                         }
-                        title="Copy"
+                        title={tr(common.copy)}
                       >
                         <span className="flex min-w-0 flex-1 flex-col">
                           <span>{t.label}</span>

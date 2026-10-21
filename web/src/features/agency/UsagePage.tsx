@@ -7,14 +7,16 @@ import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
+import { Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { RoleBadge } from '@/features/access/parts'
 import { formatList, useT } from '@/i18n'
+import { count as num } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { useAgencyCan, useRefreshAgency } from './api'
 import { AgencyPage } from './AgencyShell'
 import { m } from './messages'
-import { calendarDate, ClientTile, dayMonth, PersonChip } from './parts'
+import { calendarDate, ClientTile, dayMonth, monthOf, monthYear as monthLabel, PersonChip } from './parts'
 import { rateText, usd } from './rate'
 import { m as um } from './usage.messages'
 
@@ -22,14 +24,6 @@ type View = Schemas['AgencyUsageView']
 type Row = Schemas['AgencyUsageRow']
 type Rate = Schemas['AgencyRate']
 type Search = { month?: string; open?: string }
-
-const num = (v: number) => v.toLocaleString('en-US')
-
-function monthLabel(month: string, style: 'long' | 'short' = 'long') {
-  const [y, mo] = month.split('-').map(Number)
-  const d = new Date(Date.UTC(y!, mo! - 1, 1))
-  return new Intl.DateTimeFormat('en-GB', { month: style, year: 'numeric', timeZone: 'UTC' }).format(d)
-}
 
 /** Agency › Usage (AgencyUsage): each client's month, the provider cost and what to rebill. */
 export function UsagePage() {
@@ -164,28 +158,28 @@ function UsageTable({ view, open, onOpen }: { view: View; open?: string; onOpen:
         <table className="tbl" aria-label={t(um.title, { month })}>
           <thead>
             <tr>
-              <th scope="col">{t(m.colClient)}</th>
-              <th scope="col" className="r">
+              <Th>{t(m.colClient)}</Th>
+              <Th className="r">
                 {t(um.colEmails)}
-              </th>
-              <th scope="col" className="r">
+              </Th>
+              <Th className="r">
                 {t(um.colSegments)}
-              </th>
-              <th scope="col" className="r">
+              </Th>
+              <Th className="r">
                 {t(um.colPush)}
-              </th>
+              </Th>
               {view.canSeeCosts ? (
                 <>
-                  <th scope="col" className="r">
+                  <Th className="r">
                     {t(um.colCost)}
-                  </th>
-                  <th scope="col">{t(um.colRate)}</th>
-                  <th scope="col" className="r">
+                  </Th>
+                  <Th>{t(um.colRate)}</Th>
+                  <Th className="r">
                     {view.partial ? t(um.colRebillSoFar) : t(um.colRebill)}
-                  </th>
-                  <th scope="col">
+                  </Th>
+                  <Th>
                     <span className="vh">{t(um.colActions)}</span>
-                  </th>
+                  </Th>
                 </>
               ) : null}
             </tr>
@@ -475,7 +469,7 @@ function RateDialog({ row, view, onClose }: { row: Row; view: View; onClose: () 
       title={t(um.editRateTitle, { client: row.workspace.name })}
       footer={
         <>
-          <span className="k mr-auto">{t(um.appliesFromAudit, { date: `${dayMonth(from, 'UTC')} ${from.getUTCFullYear()}` })}</span>
+          <span className="k mr-auto">{t(um.appliesFromAudit, { date: calendarDate(from) })}</span>
           <Button onClick={onClose}>{t(m.cancel)}</Button>
           <Button variant="primary" loading={busy} onClick={save}>
             {t(um.saveRate)}
@@ -507,7 +501,7 @@ function RateDialog({ row, view, onClose }: { row: Row; view: View; onClose: () 
           <div className="rounded-lg border border-line bg-ground px-3 py-2.5 text-[13px]">
             {parts.length ? (
               <>
-                {t(um.atThisRate, { month: monthLabel(view.month, 'long').split(' ')[0]!, sum: parts.map(usd).join(' + ') })} <b>{usd(total)}</b>
+                {t(um.atThisRate, { month: monthOf(view.month), sum: parts.map(usd).join(' + ') })} <b>{usd(total)}</b>
               </>
             ) : (
               t(um.notBilledAtAll)
@@ -540,7 +534,7 @@ function ClientDetails({ id }: { id: string }) {
           <dt>{t(um.dManager)}</dt>
           <dd>{d.accountManager ? <PersonChip name={d.accountManager.name} color={d.accountManager.avatarColor} /> : t(m.dash)}</dd>
           <dt>{t(um.dRate)}</dt>
-          <dd>{d.rate ? (d.rateSince ? t(um.rateSince, { rate: rateText(t, d.rate), date: `${dayMonth(d.rateSince, 'UTC')} ${new Date(d.rateSince).getUTCFullYear()}` }) : rateText(t, d.rate)) : t(um.notBilled)}</dd>
+          <dd>{d.rate ? (d.rateSince ? t(um.rateSince, { rate: rateText(t, d.rate), date: calendarDate(d.rateSince) }) : rateText(t, d.rate)) : t(um.notBilled)}</dd>
           <dt>{t(um.dSince)}</dt>
           <dd>
             {d.template

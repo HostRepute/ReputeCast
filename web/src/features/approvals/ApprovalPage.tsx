@@ -11,7 +11,7 @@ import { Dialog } from '@/components/ui/Dialog'
 import { EmptyState, ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
-import { ago, count, monthDayTime, orList } from '@/lib/format'
+import { ago, andList, count, money, monthDayTime, orList, pct } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useCan, useMe, usePermissionReason, useWorkspace } from '@/lib/session'
 import { AccessTable } from '@/features/access/parts'
@@ -23,10 +23,14 @@ import { TransactionalApprovalCard, TransactionalDecisionDetail, TransactionalDe
 import { IssueApprovalCard, RecurringDigestBadge } from '@/features/digests/IssueParts'
 import { im } from '@/features/digests/issueMessages'
 import { useIssueInfo, type IssueInfo } from '@/features/digests/shared'
-import { useT } from '@/i18n'
+import { T, t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { roleName } from '@/lib/roles'
+import { m as rm } from '@/features/review/messages'
 import { PlacementApprovalCard } from '@/features/placement/EntryPoints'
 import { PageApprovalCard, PageBadge, PageDecisionDetail, PageDecisionNote } from '@/features/pages/approval'
-import { ApprovalStatusBadge, approverNames, decidedText, deciderFirst, DiffLines, requestTone, unchangedText, type Change } from './parts'
+import { ApprovalStatusBadge, approverNames, decidedText, deciderFirst, DiffLines, requestTone, statusWord, unchangedText, type Change } from './parts'
+import { mr } from './review.messages'
 import '@/features/review/review.css'
 import { PostApprovalCard } from '@/features/website/elsewhere'
 import { SmsApprovalCard } from '@/features/sms/ApprovalCard'
@@ -38,17 +42,18 @@ const detailPath = '/api/v1/workspaces/{workspace}/approvals/{approvalId}' as co
 
 /** A5 §5.12 Approval review: what the request covers, the discussion and the decision. */
 export function ApprovalPage({ approvalId }: { approvalId: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', detailPath, { params: { path: { workspace: slug, approvalId } } })
   const d = q.data
   return (
     <Page
-      title={d?.name ?? 'Approval request'}
-      documentTitle={d ? `${d.name} · Approvals` : 'Approvals'}
+      title={d?.name ?? t(mr.titleFallback)}
+      documentTitle={d ? t(mr.documentTitle, { name: d.name }) : t(mr.documentTitleFallback)}
       breadcrumb={[
-        { label: 'Campaigns', to: '/w/$workspace/campaigns', params: { workspace: slug } },
-        { label: 'Approvals', to: '/w/$workspace/approvals', params: { workspace: slug } },
-        { label: d?.name ?? 'Request' },
+        { label: t(mr.crumbCampaigns), to: '/w/$workspace/campaigns', params: { workspace: slug } },
+        { label: t(mr.crumbApprovals), to: '/w/$workspace/approvals', params: { workspace: slug } },
+        { label: d?.name ?? t(mr.crumbRequest) },
       ]}
     >
       {q.isPending ? (
@@ -56,18 +61,18 @@ export function ApprovalPage({ approvalId }: { approvalId: string }) {
       ) : q.isError ? (
         q.error instanceof ApiError && q.error.status === 404 ? (
           <EmptyState
-            title="This approval request doesn't exist"
+            title={t(mr.notFoundTitle)}
             action={
               <ButtonLink to="/w/$workspace/approvals" params={{ workspace: slug }}>
-                Back to approvals
+                {t(mr.backToApprovals)}
               </ButtonLink>
             }
           >
-            It may have been withdrawn, or the link is from another workspace.
+            {t(mr.notFoundBody)}
           </EmptyState>
         ) : (
-          <ErrorPanel title="Couldn't load the approval request" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
-            {errorMessage(q.error)} Nothing was changed.
+          <ErrorPanel title={t(mr.loadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
+            {errorMessage(q.error)} {t(mr.nothingChanged)}
           </ErrorPanel>
         )
       ) : (
@@ -78,6 +83,7 @@ export function ApprovalPage({ approvalId }: { approvalId: string }) {
 }
 
 function DetailBody({ detail: d }: { detail: Detail }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const { data: me } = useMe()
   const qc = useQueryClient()
@@ -100,17 +106,16 @@ function DetailBody({ detail: d }: { detail: Detail }) {
         body: { decision, comment: (text ?? comment).trim() || undefined },
       })
       setComment('')
-      const words = { approve: 'Approved', request_changes: 'Changes requested', reject: 'Rejected' }[decision]
       toast({
         kind: 'success',
-        title: `${words} · ${d.name}`,
-        detail: data && data.status === 'pending' ? `${data.given} of ${data.needed} approvals so far.` : `${d.author.name} was notified.`,
+        title: t(mr.decided, { decision, name: d.name }),
+        detail: data && data.status === 'pending' ? t(mr.decidedProgress, { given: data.given, needed: data.needed }) : t(mr.decidedNotified, { name: d.author.name }),
       })
       if (data && data.id !== d.id) {
         void navigate({ to: '/w/$workspace/approvals/$approvalId', params: { workspace: slug, approvalId: data.id }, replace: true })
       }
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't record the decision", detail: errorMessage(e) })
+      toast({ kind: 'error', title: t(mr.decideFailed), detail: errorMessage(e) })
       throw e
     } finally {
       setBusy(undefined)
@@ -126,7 +131,7 @@ function DetailBody({ detail: d }: { detail: Detail }) {
       await http.POST('/api/v1/workspaces/{workspace}/approvals/{approvalId}/comments', { params: { path: { workspace: slug, approvalId: d.id } }, body: { body } })
       setComment('')
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't post the comment", detail: errorMessage(e) })
+      toast({ kind: 'error', title: t(mr.commentFailed), detail: errorMessage(e) })
     } finally {
       setBusy(undefined)
       await refresh()
@@ -141,9 +146,13 @@ function DetailBody({ detail: d }: { detail: Detail }) {
         params: { path: { workspace: slug, campaignId: d.campaign.id } },
         body: { to: [me.user.email] },
       })
-      toast({ kind: 'success', title: `Test sent to ${data?.sent.join(', ') ?? me.user.email}`, detail: data?.provider ? `via ${data.provider}` : undefined })
+      toast({
+        kind: 'success',
+        title: t(mr.testSent, { to: data ? andList(data.sent) : me.user.email }),
+        detail: data?.provider ? t(mr.testVia, { provider: data.provider }) : undefined,
+      })
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't send the test", detail: errorMessage(e) })
+      toast({ kind: 'error', title: t(mr.testFailed), detail: errorMessage(e) })
     } finally {
       setBusy(undefined)
     }
@@ -157,9 +166,9 @@ function DetailBody({ detail: d }: { detail: Detail }) {
         params: { path: { workspace: slug, campaignId: d.campaign.id } },
         body: { fixes: [{ action: fix.action!, params: fix.params }] },
       })
-      toast({ kind: 'success', title: data?.applied[0] ?? 'Fix applied', detail: 'The campaign changed, so the approval restarts with the diff attached.' })
+      toast({ kind: 'success', title: data?.applied[0] ?? t(mr.fixApplied), detail: t(mr.fixAppliedDetail) })
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't apply the fix", detail: errorMessage(e) })
+      toast({ kind: 'error', title: t(mr.fixFailed), detail: errorMessage(e) })
     } finally {
       setBusy(undefined)
       await refresh()
@@ -170,9 +179,9 @@ function DetailBody({ detail: d }: { detail: Detail }) {
     if (!d.campaign) return
     try {
       await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/unschedule', { params: { path: { workspace: slug, campaignId: d.campaign.id } } })
-      toast({ kind: 'success', title: `${d.name} won't go out`, detail: 'The send was cancelled; the campaign is a draft again.' })
+      toast({ kind: 'success', title: t(mr.unscheduled, { name: d.name }), detail: t(mr.unscheduledDetail) })
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't cancel the send", detail: errorMessage(e) })
+      toast({ kind: 'error', title: t(mr.unscheduleFailed), detail: errorMessage(e) })
     } finally {
       await refresh()
     }
@@ -193,8 +202,15 @@ function DetailBody({ detail: d }: { detail: Detail }) {
             <HeldCard
               held={d.held}
               scheduledAt={d.campaign?.scheduledAt}
-              approved={d.status === 'approved' && d.decidedAt ? `v${d.version} by ${d.decidedBy}, ${monthDayTime(d.decidedAt)} · still valid: nothing in the snapshot changed` : undefined}
-              notified={`${d.author.name} (author), ${approverNames(deciderFirst(d.approvers, d.decidedBy), 'and')} (approvers) · in-app and email at ${whenText(d.held.since)}`}
+              approved={
+                d.status === 'approved' && d.decidedAt
+                  ? t(rm.heldApproved, { version: d.version, name: d.decidedBy ?? '', when: monthDayTime(d.decidedAt), valid: 'yes' })
+                  : undefined
+              }
+              notified={t(rm.heldNotified, {
+                people: [t(rm.heldAuthor, { name: d.author.name }), t(rm.heldApprovers, { names: approverNames(deciderFirst(d.approvers, d.decidedBy), 'and') })].join(', '),
+                time: whenText(d.held.since),
+              })}
             >
               <HeldActions held={d.held} busy={busy} onApply={(b, f) => void applyFix(b, f)} onCancel={canEdit ? () => void unschedule() : undefined} />
             </HeldCard>
@@ -235,21 +251,21 @@ function DetailBody({ detail: d }: { detail: Detail }) {
         open={ask !== null}
         onOpenChange={(v) => !v && setAsk(null)}
         tone={ask === 'reject' ? 'bad' : 'warn'}
-        badge={ask === 'reject' ? 'Reject' : 'Request changes'}
-        title={ask === 'reject' ? `Reject “${d.name}”?` : `Ask ${d.author.name} for changes?`}
+        badge={ask === 'reject' ? t(mr.rejectBadge) : t(mr.changesBadge)}
+        title={ask === 'reject' ? t(mr.rejectTitle, { name: d.name }) : t(mr.changesTitle, { name: d.author.name })}
         description={
           d.page ? (
             <PageDecisionDetail kind={ask ?? 'request_changes'} author={d.author.name} />
           ) : d.transactional ? (
             <TransactionalDecisionDetail kind={ask ?? 'request_changes'} author={d.author.name} />
           ) : ask === 'reject' ? (
-            `${d.author.name} is told and the campaign goes back to a draft. Reject when it shouldn't go out at all; for fixes, request changes instead.`
+            t(mr.rejectDescription, { name: d.author.name })
           ) : (
-            `The request goes back to ${d.author.name} with your comment. The campaign stays a draft until they ask again.`
+            t(mr.changesDescription, { name: d.author.name })
           )
         }
-        reason={{ label: ask === 'reject' ? 'Why reject it?' : 'What should change?', minLength: 3 }}
-        confirmLabel={ask === 'reject' ? 'Reject' : 'Request changes'}
+        reason={{ label: ask === 'reject' ? t(mr.rejectReason) : t(mr.changesReason), minLength: 3 }}
+        confirmLabel={ask === 'reject' ? t(mr.rejectConfirm) : t(mr.changesConfirm)}
         confirmVariant={ask === 'reject' ? 'danger' : 'primary'}
         onConfirm={({ reason }) => decide(ask ?? 'request_changes', reason)}
       />
@@ -258,12 +274,13 @@ function DetailBody({ detail: d }: { detail: Detail }) {
 }
 
 function HeaderCard({ detail: d, me, issue }: { detail: Detail; me?: string; issue?: IssueInfo }) {
+  const t = useT()
   const now = useNow()
   const tone = requestTone(d.status)
   const edge = { ok: 'h-ok', bad: 'h-bad', info: 'h-info', neutral: 'h-mut', purple: 'h-pur', warn: '' }[tone]
-  const role = d.can.decide ? `you are reviewing as ${me ?? 'an approver'}` : d.can.isAuthor ? 'you are the author' : `you are viewing as ${me ?? 'a member'}`
+  const role = d.can.decide ? (me ? 'reviewing' : 'reviewingAnon') : d.can.isAuthor ? 'author' : me ? 'viewing' : 'viewingAnon'
   return (
-    <section className={`card pad ap-head ${edge}`} aria-label="Request">
+    <section className={`card pad ap-head ${edge}`} aria-label={t(mr.headLabel)}>
       <div className="col flex-[1_1_360px] gap-1!">
         <div className="row gap-2!">
           <span className="text-[18px] font-bold">{d.name}</span>
@@ -276,13 +293,20 @@ function HeaderCard({ detail: d, me, issue }: { detail: Detail; me?: string; iss
           <ClientSignoffLine detail={d} me={me} />
         ) : (
           <span className="k">
-            Requested by {d.requestedBy.name} · {agoWords(d.requestedAt, now)} · {d.needed} {d.needed === 1 ? 'approval' : 'approvals'} needed from {orList(d.approvers.filter((p) => p.id !== d.requestedBy.id).map((p) => p.name))} · {role}
+            {t(mr.requestedLine, {
+              name: d.requestedBy.name,
+              ago: agoWords(d.requestedAt, now),
+              needed: d.needed,
+              approvers: orList(d.approvers.filter((p) => p.id !== d.requestedBy.id).map((p) => p.name)),
+              role,
+              me: me ?? '',
+            })}
           </span>
         )}
       </div>
       {d.rules.length ? (
         <div className="row gap-2!">
-          <span className="k">Rules matched</span>
+          <span className="k">{t(mr.rulesMatched)}</span>
           {d.rules.map((r) => (
             <Badge key={r.key} tone="neutral">
               {r.badge}
@@ -296,70 +320,86 @@ function HeaderCard({ detail: d, me, issue }: { detail: Detail; me?: string; iss
 
 /** "Approved, then invalidated" (ApprovalStates): what happened and the diff. */
 function InvalidatedCard({ detail: d, busy, onApprove, onChanges }: { detail: Detail; busy?: string; onApprove: () => void; onChanges: () => void }) {
+  const t = useT()
   const now = useNow()
   const approved = d.decisions.filter((x) => x.decision === 'approve')
   const last = approved[approved.length - 1]
   const next = d.campaign?.currentVersion || d.version
-  const notified = deciderFirst(d.approvers, last?.approver.name)
-    .map((p) => p.name.split(' ')[0])
-    .join(' and ')
-  const scheduled = d.campaign?.scheduledAt ? 'the send stays scheduled but won’t start without a new approval' : 'the send won’t start without a new approval'
+  const notified = andList(deciderFirst(d.approvers, last?.approver.name).map((p) => p.name.split(' ')[0]!))
+  const b = (chunks: ReactNode[]) => <b>{chunks}</b>
   return (
     <section className="card" aria-labelledby="ap-inval">
       <div className="sec">
         <div className="col gap-0.5!">
           <h2 className="h2" id="ap-inval">
-            {last ? 'Approved, then invalidated' : 'Invalidated before a decision'}
+            {last ? t(mr.invalidatedAfterTitle) : t(mr.invalidatedBeforeTitle)}
           </h2>
           <span className="k">
-            {d.name} · {d.invalidatedReason || 'the campaign changed'}
-            {last ? ' after approval' : ''}
+            {t(mr.invalidatedCaption, { name: d.name, reason: d.invalidatedReason || t(mr.campaignChanged), after: last ? 'yes' : 'no' })}
           </span>
         </div>
-        <Badge tone="bad">Invalidated</Badge>
+        <Badge tone="bad">{statusWord('invalidated')}</Badge>
       </div>
       <div className="pad col gap-3!">
         <ol className="ap-steps">
           {last ? (
             <li>
-              <b>
-                Approved by {last.approver.name}, {decidedText(last.at, now)}
-              </b>{' '}
-              · snapshot v{d.version}
-              {last.comment ? ` · comment: “${last.comment}”` : ''}
+              <T
+                msg={mr.stepApproved}
+                values={{
+                  name: last.approver.name,
+                  when: decidedText(last.at, now),
+                  version: d.version,
+                  hasComment: last.comment ? 'yes' : 'no',
+                  comment: last.comment ?? '',
+                  b,
+                }}
+              />
             </li>
           ) : (
             <li>
-              <b>Requested by {d.requestedBy.name}</b> · snapshot v{d.version}
+              <T msg={mr.stepRequested} values={{ name: d.requestedBy.name, version: d.version, b }} />
             </li>
           )}
           {d.changes.some((c) => c.field !== 'audience_count') ? (
             <li>
-              {d.invalidatedBy || d.requestedBy.name} {editWords(d.changes)}
-              {d.invalidatedAt ? `, ${decidedText(d.invalidatedAt, now)}` : ''} · v{next}
+              {t(mr.stepEdited, {
+                name: d.invalidatedBy || d.requestedBy.name,
+                edits: editWords(d.changes),
+                hasWhen: d.invalidatedAt ? 'yes' : 'no',
+                when: d.invalidatedAt ? decidedText(d.invalidatedAt, now) : '',
+                version: next,
+              })}
             </li>
           ) : (
-            <li>The audience moved more than 10% since the request · {d.audience ? count(d.audience.current) : ''} contacts now</li>
+            <li>{t(mr.stepAudienceMoved, { count: d.audience ? count(d.audience.current) : '' })}</li>
           )}
           <li>
-            <b>Approval invalidated{d.invalidatedAt ? `, ${decidedText(d.invalidatedAt, now)}` : ''}</b> · {notified} notified · {scheduled}
+            <T
+              msg={mr.stepInvalidated}
+              values={{
+                hasWhen: d.invalidatedAt ? 'yes' : 'no',
+                when: d.invalidatedAt ? decidedText(d.invalidatedAt, now) : '',
+                names: notified,
+                scheduled: d.campaign?.scheduledAt ? 'yes' : 'no',
+                b,
+              }}
+            />
           </li>
         </ol>
-        <span className="ap-label">
-          What changed · v{d.version} → v{next}
-        </span>
+        <span className="ap-label">{t(mr.whatChangedVersions, { from: d.version, to: next })}</span>
         <DiffLines changes={d.changes} labelled />
         <dl className="kv m-0 text-[12.5px]">
-          <dt>Unchanged</dt>
-          <dd>{unchangedText(d.changes, d.snapshot, d.audience ? { current: d.audience.current, changePct: d.audience.changePct } : undefined) || 'nothing else'}</dd>
+          <dt>{t(mr.unchanged)}</dt>
+          <dd>{unchangedText(d.changes, d.snapshot, d.audience ? { current: d.audience.current, changePct: d.audience.changePct } : undefined) || t(mr.nothingElse)}</dd>
         </dl>
         {d.can.decide ? (
           <div className="row gap-2!">
             <Button variant="primary" loading={busy === 'approve'} onClick={onApprove}>
-              Approve v{next}
+              {t(mr.approveVersion, { version: next })}
             </Button>
             <Button loading={busy === 'request_changes'} onClick={onChanges}>
-              Request changes
+              {t(mr.requestChanges)}
             </Button>
           </div>
         ) : null}
@@ -368,27 +408,27 @@ function InvalidatedCard({ detail: d, busy, onApprove, onChanges }: { detail: De
   )
 }
 
+const editPhrases = {
+  subject: mr.editSubject,
+  preheader: mr.editPreheader,
+  content: mr.editContent,
+  sender: mr.editSender,
+  audience: mr.editAudience,
+  route: mr.editRoute,
+  schedule: mr.editSchedule,
+} as const
+
 /** "edited the subject and replaced the link". */
 function editWords(changes: Change[]): string {
   const words: string[] = []
   const links = changes.filter((c) => c.field === 'link').length
   for (const f of ['subject', 'preheader', 'content', 'sender', 'audience', 'route', 'schedule'] as const) {
     if (!changes.some((c) => c.field === f)) continue
-    words.push(
-      {
-        subject: 'edited the subject',
-        preheader: 'edited the preheader',
-        content: 'edited the content',
-        sender: 'changed the sender',
-        audience: 'changed the audience',
-        route: 'changed the route',
-        schedule: 'moved the schedule',
-      }[f],
-    )
-    if (f === 'subject' && links) words.push(links === 1 ? 'replaced the link' : `replaced ${links} links`)
+    words.push(tt(editPhrases[f]))
+    if (f === 'subject' && links) words.push(tt(mr.editLinkAfterSubject, { count: links }))
   }
-  if (links && !changes.some((c) => c.field === 'subject')) words.unshift(links === 1 ? 'replaced a link' : `replaced ${links} links`)
-  return words.length <= 1 ? (words[0] ?? 'changed the campaign') : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`
+  if (links && !changes.some((c) => c.field === 'subject')) words.unshift(tt(mr.editLink, { count: links }))
+  return words.length ? andList(words) : tt(mr.editCampaign)
 }
 
 function Sec({ id, title, caption, children, actions }: { id: string; title: string; caption?: string; children: ReactNode; actions?: ReactNode }) {
@@ -409,6 +449,7 @@ function Sec({ id, title, caption, children, actions }: { id: string; title: str
 }
 
 function CampaignCard({ detail: d, busy, onTest }: { detail: Detail; busy: boolean; onTest: () => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const now = useNow()
   const [open, setOpen] = useState(false)
@@ -421,26 +462,23 @@ function CampaignCard({ detail: d, busy, onTest }: { detail: Detail; busy: boole
   )
   const c = d.campaign!
   return (
-    <Sec id="ap-campaign" title="Campaign" caption="Snapshot the approval covers">
+    <Sec id="ap-campaign" title={t(mr.campaignTitle)} caption={t(mr.campaignCaption)}>
       <div className="pad col gap-3!">
         <dl className="kv">
-          <dt>Subject</dt>
+          <dt>{t(mr.subject)}</dt>
           <dd className="font-semibold">{d.snapshot.subject || c.subject}</dd>
-          <dt>Preheader</dt>
+          <dt>{t(mr.preheader)}</dt>
           <dd>{c.preheader || '—'}</dd>
-          <dt>From</dt>
+          <dt>{t(mr.from)}</dt>
           <dd>{c.from || '—'}</dd>
-          <dt>Version</dt>
-          <dd>
-            v{d.version}
-            {c.editedBy && c.editedAt && c.version === d.version ? ` · edited by ${c.editedBy} ${ago(c.editedAt, now)}` : ''}
-          </dd>
+          <dt>{t(mr.version)}</dt>
+          <dd>{c.editedBy && c.editedAt && c.version === d.version ? t(mr.versionEdited, { version: d.version, name: c.editedBy, ago: ago(c.editedAt, now) }) : `v${d.version}`}</dd>
         </dl>
         <div className="ap-preview">
           {preview.data ? (
-            <EmailThumb html={preview.data.html} title={`Preview of “${d.name}”, v${preview.data.version}`} />
+            <EmailThumb html={preview.data.html} title={t(mr.previewTitle, { name: d.name, version: preview.data.version })} />
           ) : preview.isError ? (
-            <span className="k block py-6 text-center">The preview isn't available: {errorMessage(preview.error)}</span>
+            <span className="k block py-6 text-center">{t(mr.previewUnavailable, { error: errorMessage(preview.error) })}</span>
           ) : (
             <div className="ap-preview-mail flex flex-col gap-2 p-3.5" aria-hidden="true">
               <Skeleton w="40%" h={10} />
@@ -452,17 +490,17 @@ function CampaignCard({ detail: d, busy, onTest }: { detail: Detail; busy: boole
         </div>
         <div className="row gap-2!">
           <PreviewLanguagePicker preview={preview.data} onChange={setLanguage} />
-          <Button size="sm" onClick={() => setOpen(true)} disabledReason={preview.data ? undefined : 'The preview is loading.'}>
-            Open full preview
+          <Button size="sm" onClick={() => setOpen(true)} disabledReason={preview.data ? undefined : t(mr.previewLoading)}>
+            {t(mr.openFullPreview)}
           </Button>
           <Button size="sm" loading={busy} onClick={onTest}>
-            Send me a test
+            {t(mr.sendMeTest)}
           </Button>
         </div>
       </div>
       {open && preview.data ? (
-        <Dialog open onOpenChange={setOpen} size="lg" title={preview.data.subject || d.name} description={preview.data.preheader || `Version ${preview.data.version}`}>
-          <iframe title={`Full preview of “${d.name}”`} sandbox="allow-same-origin" srcDoc={withAppFonts(preview.data.html)} className="h-[70vh] w-full rounded-lg border border-line bg-white" />
+        <Dialog open onOpenChange={setOpen} size="lg" title={preview.data.subject || d.name} description={preview.data.preheader || t(mr.versionNumber, { version: preview.data.version })}>
+          <iframe title={t(mr.fullPreviewTitle, { name: d.name })} sandbox="allow-same-origin" srcDoc={withAppFonts(preview.data.html)} className="h-[70vh] w-full rounded-lg border border-line bg-white" />
         </Dialog>
       ) : null}
     </Sec>
@@ -542,29 +580,28 @@ function EmailThumb({ html, title }: { html: string; title: string }) {
 }
 
 function ReadinessCard({ detail: d, busy, onFix }: { detail: Detail; busy?: string; onFix: (c: Schemas['ReadinessCheck'], f: Schemas['ReadinessFix']) => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const now = useNow()
   const fixReason = usePermissionReason('campaigns:edit')
   const r = d.readiness!
   const issueGroups = new Set<string>(r.issues.map((x) => x.group))
   const clean = Object.keys(groupWords).filter((g) => !issueGroups.has(g))
-  const cleanText = clean.length ? `${capital(listWords(clean.map((g) => groupWords[g]!)))} checks passed.` : 'Every other check passed.'
+  const cleanText = clean.length ? capital(t(mr.groupsPassed, { groups: andList(clean.map((g) => groupWords[g]!)) })) : t(mr.everyOtherPassed)
   const tone = r.verdict === 'blocked' ? 'bad' : r.verdict === 'warnings' ? 'warn' : 'ok'
   return (
-    <Sec id="ap-readiness" title="Send Readiness" caption="With evidence; fixes change the campaign and restart the approval">
+    <Sec id="ap-readiness" title={t(mr.readinessTitle)} caption={t(mr.readinessCaption)}>
       <div className="pad col gap-2.5!">
         <div className="row gap-2.5!">
           <Badge tone={tone}>{verdictTitle(r.verdict)}</Badge>
-          <span className="k">
-            {countsShort(r)} · checked {ago(r.checkedAt, now)}, rechecked at send time
-          </span>
+          <span className="k">{t(mr.checkedLine, { counts: countsShort(r), ago: ago(r.checkedAt, now) })}</span>
         </div>
-        <AccessTable caption="Send Readiness issues">
+        <AccessTable caption={t(mr.issuesCaption)}>
           <thead>
             <tr>
-              <Th>Check</Th>
-              <Th>Evidence</Th>
-              <Th>Fix</Th>
+              <Th>{t(mr.colCheck)}</Th>
+              <Th>{t(mr.colEvidence)}</Th>
+              <Th>{t(mr.colFix)}</Th>
             </tr>
           </thead>
           <tbody>
@@ -601,7 +638,7 @@ function ReadinessCard({ detail: d, busy, onFix }: { detail: Detail; busy?: stri
                       </AppHref>
                     ) : (
                       <Button size="sm" loading={busy === `${x.key}:${f.action}`} disabledReason={fixReason} onClick={() => onFix(x, f)}>
-                        {f.action === 'exclude_sunset' ? 'Exclude them' : f.label}
+                        {f.action === 'exclude_sunset' ? t(mr.excludeThem) : f.label}
                       </Button>
                     )}
                   </Td>
@@ -612,16 +649,16 @@ function ReadinessCard({ detail: d, busy, onFix }: { detail: Detail; busy?: stri
               <Td>
                 <span className="row gap-2!">
                   <CheckBadge status="pass" />
-                  <span>{r.issues.length ? 'Everything else' : 'Every check'}</span>
+                  <span>{r.issues.length ? t(mr.everythingElse) : t(mr.everyCheck)}</span>
                 </span>
               </Td>
               <Td>
-                <span className="wrap">{r.issues.length ? cleanText : 'Reputation, authentication, content, links, compliance, audience quality and routing checks passed.'}</span>
+                <span className="wrap">{r.issues.length ? cleanText : t(mr.allPassed)}</span>
               </Td>
               <Td>
                 {d.campaign ? (
                   <ButtonLink size="sm" to="/w/$workspace/campaigns/$campaignId/review" params={{ workspace: slug, campaignId: d.campaign.id }}>
-                    All {r.total} checks
+                    {t(mr.allChecks, { count: r.total })}
                   </ButtonLink>
                 ) : null}
               </Td>
@@ -633,43 +670,45 @@ function ReadinessCard({ detail: d, busy, onFix }: { detail: Detail; busy?: stri
   )
 }
 
+/** The sentence with its first letter in capitals, whatever word the language starts it with. */
 function capital(s: string): string {
   return s ? s[0]!.toUpperCase() + s.slice(1) : s
 }
 
-function listWords(words: string[]): string {
-  return words.length <= 1 ? (words[0] ?? '') : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`
-}
-
 function AudienceRouteCard({ detail: d }: { detail: Detail }) {
+  const t = useT()
   const a = d.audience
   const r = d.route
-  const change = a ? (Math.abs(a.changePct) < 0.05 ? 'No change since the request' : `${a.changePct > 0 ? '+' : '−'}${Math.abs(a.changePct).toFixed(1)}% since request`) : ''
+  const change = a
+    ? Math.abs(a.changePct) < 0.05
+      ? t(mr.changeNone)
+      : t(mr.changeSince, { change: `${a.changePct > 0 ? '+' : '−'}${pct(Math.abs(a.changePct), 1)}` })
+    : ''
   return (
-    <Sec id="ap-audience" title="Audience and route">
+    <Sec id="ap-audience" title={t(mr.audienceRouteTitle)}>
       <div className="pad ap-ar">
         {a ? (
           <div className="col gap-1.5!">
-            <span className="ap-label">Audience · {count(a.count)} after exclusions</span>
+            <span className="ap-label">{t(mr.audienceLabel, { count: count(a.count) })}</span>
             <dl className="kv">
-              <dt>Lists</dt>
+              <dt>{t(mr.lists)}</dt>
               <dd>{a.lists.join(', ') || '—'}</dd>
-              <dt>Excluded</dt>
+              <dt>{t(mr.excluded)}</dt>
               <dd>{a.excluded || '—'}</dd>
-              <dt>Change</dt>
-              <dd>{change} (limit for invalidation: 10%)</dd>
+              <dt>{t(mr.change)}</dt>
+              <dd>{t(mr.changeLimit, { change })}</dd>
             </dl>
           </div>
         ) : null}
         {r ? (
           <div className="col min-w-0 gap-1.5!">
-            <span className="ap-label">Route · {r.splitLabel}</span>
-            <AccessTable caption="Route">
+            <span className="ap-label">{t(mr.routeLabel, { split: r.splitLabel })}</span>
+            <AccessTable caption={t(mr.routeCaption)}>
               <thead>
                 <tr>
-                  <Th>Provider</Th>
-                  <Th>Recipients</Th>
-                  <Th>Cost</Th>
+                  <Th>{t(mr.colProvider)}</Th>
+                  <Th>{t(mr.colRecipients)}</Th>
+                  <Th>{t(mr.colCost)}</Th>
                 </tr>
               </thead>
               <tbody>
@@ -685,7 +724,7 @@ function AudienceRouteCard({ detail: d }: { detail: Detail }) {
                         </span>
                       </Td>
                       <Td>{count(s.recipients)}</Td>
-                      <Td>{s.cost === 0 && s.priceLabel === 'self-hosted' ? '$0 (self-hosted)' : `$${s.cost.toFixed(2)}`}</Td>
+                      <Td>{s.cost === 0 && s.priceLabel === 'self-hosted' ? t(mr.costSelfHosted, { cost: money(0, 0) }) : money(s.cost)}</Td>
                     </tr>
                   ))}
               </tbody>
@@ -705,39 +744,45 @@ function providerName(s: Schemas['ApprovalShare']): string {
 }
 
 function ScheduleNoteCard({ detail: d }: { detail: Detail }) {
+  const t = useT()
   const s = d.schedule
-  const est = s ? ` · estimated ${s.minutes >= 60 ? minutes(s.minutes) : `${s.minutes} minutes`} at current rate limits` : ''
   const when = !s
     ? d.snapshot.scheduleText
     : s.mode === 'now'
-      ? 'Send now'
+      ? t(mr.sendNow)
       : s.at
-        ? `${s.mode === 'best_time' ? 'Best time per recipient within 24 h of ' : ''}${zonedWhen(s.at, s.timezone)}`
-        : 'Not scheduled yet'
+        ? s.mode === 'best_time'
+          ? t(mr.bestTime, { when: zonedWhen(s.at, s.timezone) })
+          : zonedWhen(s.at, s.timezone)
+        : t(mr.notScheduled)
+  const scheduled = s ? t(mr.estimated, { when, duration: s.minutes >= 60 ? minutes(s.minutes) : t(mr.estimatedMinutes, { n: s.minutes }) }) : when
   return (
-    <Sec id="ap-schedule" title={d.subjectType === 'campaign' ? 'Schedule and note' : 'Note'}>
+    <Sec id="ap-schedule" title={d.subjectType === 'campaign' ? t(mr.scheduleNoteTitle) : t(mr.noteTitle)}>
       <div className="pad col gap-3!">
         <dl className="kv">
           {d.subjectType === 'campaign' ? (
             <>
-              <dt>Scheduled</dt>
-              <dd>
-                {when}
-                {est}
-              </dd>
-              <dt>Auto-pause</dt>
+              <dt>{t(mr.scheduled)}</dt>
+              <dd>{scheduled}</dd>
+              <dt>{t(mr.autoPause)}</dt>
               <dd>{s?.autoPause ?? '—'}</dd>
             </>
           ) : null}
-          <dt>Changes since last approval</dt>
-          <dd>{d.changesSince.length ? `${listWords(d.changesSince.map((c) => c.label.toLowerCase()))} changed since the previous request` : d.followsId ? 'Nothing changed since the previous request' : 'First request · nothing to compare'}</dd>
+          <dt>{t(mr.changesSinceLast)}</dt>
+          <dd>
+            {d.changesSince.length
+              ? t(mr.changedSince, { changes: andList(d.changesSince.map((c) => c.label.toLowerCase())) })
+              : d.followsId
+                ? t(mr.nothingChangedSince)
+                : t(mr.firstRequest)}
+          </dd>
         </dl>
         {d.changesSince.length ? <DiffLines changes={d.changesSince} labelled /> : null}
         {d.note ? (
           <div className="note n items-start!">
             <Avatar name={d.requestedBy.name} color={d.requestedBy.color} size={32} fontSize={13} />
             <span className="col gap-0.5!">
-              <span className="font-semibold">{d.requestedBy.name} · note for approvers</span>
+              <span className="font-semibold">{t(mr.noteForApprovers, { name: d.requestedBy.name })}</span>
               <span>{d.note}</span>
             </span>
           </div>
@@ -748,14 +793,15 @@ function ScheduleNoteCard({ detail: d }: { detail: Detail }) {
 }
 
 function AutomationCard({ detail: d }: { detail: Detail }) {
+  const t = useT()
   const a = d.automation
   return (
-    <Sec id="ap-automation" title="Automation" caption="The version the approval publishes">
+    <Sec id="ap-automation" title={t(mr.automationTitle)} caption={t(mr.automationCaption)}>
       <div className="pad col gap-3!">
         <dl className="kv">
-          <dt>Version</dt>
+          <dt>{t(mr.version)}</dt>
           <dd>v{a?.version ?? d.version}</dd>
-          <dt>Contacts in flight</dt>
+          <dt>{t(mr.contactsInFlight)}</dt>
           <dd>{a?.migration || '—'}</dd>
         </dl>
         {a?.changes.length ? (
@@ -770,7 +816,7 @@ function AutomationCard({ detail: d }: { detail: Detail }) {
   )
 }
 
-type Entry = { key: string; who: Schemas['ApprovalPerson']; at: string; text: ReactNode; body?: string }
+type Entry = { key: string; who: Schemas['ApprovalPerson']; at: string; decision?: Schemas['ApprovalDecisionView']['decision']; body?: string }
 
 function DiscussionCard({
   detail: d,
@@ -787,26 +833,30 @@ function DiscussionCard({
   onPost: () => void
   others: Schemas['ApprovalPerson'][]
 }) {
+  const t = useT()
   const { data: me } = useMe()
   const now = useNow()
   const id = useId()
-  const verb = { approve: 'approved', request_changes: 'requested changes', reject: 'rejected' } as const
   const entries: Entry[] = [
-    ...d.comments.map((c) => ({ key: c.id, who: c.author, at: c.at, text: null, body: c.body })),
-    ...d.decisions.map((x, i) => ({ key: `d${i}`, who: x.approver, at: x.at, text: ` · ${verb[x.decision]}`, body: x.comment || undefined })),
+    ...d.comments.map((c) => ({ key: c.id, who: c.author, at: c.at, body: c.body })),
+    ...d.decisions.map((x, i) => ({ key: `d${i}`, who: x.approver, at: x.at, decision: x.decision, body: x.comment || undefined })),
   ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
   const user = me?.user
+  const b = (chunks: ReactNode[]) => <b className="text-ink">{chunks}</b>
   return (
-    <Sec id="ap-discussion" title="Discussion" caption="Visible to the author and approvers">
+    <Sec id="ap-discussion" title={t(mr.discussionTitle)} caption={t(mr.discussionCaption)}>
       <div className="pad col gap-3!">
-        {entries.length === 0 && !d.can.comment ? <span className="k">No comments yet.</span> : null}
+        {entries.length === 0 && !d.can.comment ? <span className="k">{t(mr.noComments)}</span> : null}
         {entries.map((e) => (
           <div key={e.key} className="row items-start! gap-2.5!">
             <Avatar name={e.who.name} color={e.who.color} size={32} fontSize={13} />
             <div className="col gap-0.5!">
               <span className="k">
-                <b className="text-ink">{e.who.name}</b>
-                {e.text} · {ago(e.at, now)}
+                {e.decision ? (
+                  <T msg={mr.entryDecision} values={{ name: e.who.name, decision: e.decision, ago: ago(e.at, now), b }} />
+                ) : (
+                  <T msg={mr.entryComment} values={{ name: e.who.name, ago: ago(e.at, now), b }} />
+                )}
               </span>
               {e.body ? <span>{e.body}</span> : null}
             </div>
@@ -817,20 +867,20 @@ function DiscussionCard({
             <Avatar name={user.name || user.email} color={user.avatarColor} size={32} fontSize={13} />
             <div className="col flex-1 gap-1!">
               <label className="vh" htmlFor={id}>
-                Comment
+                {t(mr.commentLabel)}
               </label>
               <textarea
                 id={id}
                 className="in min-h-0"
                 rows={2}
                 maxLength={4000}
-                placeholder={others.length ? `Reply to ${listWords(others.map((p) => p.name.split(' ')[0]!))}…` : 'Add a comment…'}
+                placeholder={others.length ? t(mr.replyTo, { names: andList(others.map((p) => p.name.split(' ')[0]!)) }) : t(mr.addComment)}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
               />
               <div className="row justify-end">
-                <Button size="sm" loading={busy} disabledReason={comment.trim() ? undefined : 'Write a comment first.'} onClick={onPost}>
-                  Post comment
+                <Button size="sm" loading={busy} disabledReason={comment.trim() ? undefined : t(mr.writeFirst)} onClick={onPost}>
+                  {t(mr.postComment)}
                 </Button>
               </div>
             </div>
@@ -861,13 +911,13 @@ function DecisionCard({
   const now = useNow()
   const t = useT()
   const open = d.status === 'pending'
-  const reason = d.can.decide ? undefined : d.can.decideReason || 'Only approvers can decide.'
+  const reason = d.can.decide ? undefined : d.can.decideReason || t(mr.onlyApprovers)
   const last = d.decisions[d.decisions.length - 1]
   return (
     <section className="card ap-sticky" aria-labelledby="ap-decision">
       <div className="sec">
         <h2 className="h2" id="ap-decision">
-          {open || d.status === 'invalidated' ? 'Your decision' : 'Decision'}
+          {open || d.status === 'invalidated' ? t(mr.yourDecision) : t(mr.decision)}
         </h2>
         {d.clientSignoff ? <ClientSignoffIntro detail={d} /> : null}
       </div>
@@ -875,13 +925,13 @@ function DecisionCard({
         {open ? (
           <>
             <Button variant="primary" className="justify-center" loading={busy === 'approve'} disabledReason={reason} onClick={onApprove}>
-              {issueNumber ? t(im.approveIssue, { number: issueNumber }) : 'Approve'}
+              {issueNumber ? t(im.approveIssue, { number: issueNumber }) : t(mr.approve)}
             </Button>
             <Button className="justify-center" loading={busy === 'request_changes'} disabledReason={reason} onClick={onChanges}>
-              Request changes
+              {t(mr.requestChanges)}
             </Button>
             <Button variant="danger" className="justify-center" loading={busy === 'reject'} disabledReason={reason} onClick={onReject}>
-              Reject
+              {t(mr.reject)}
             </Button>
             {d.page ? (
               <PageDecisionNote author={d.author.name} page={d.page} />
@@ -891,18 +941,13 @@ function DecisionCard({
               <ClientSignoffNote detail={d} />
             ) : (
               <div className="note n text-[12.5px]">
-                <span>
-                  Approving covers this exact snapshot. If {d.author.name.split(' ')[0]} edits the content, audience, route or schedule, or the audience moves more than 10%, the
-                  approval is invalidated and you see the diff.
-                </span>
+                <span>{t(mr.approveNote, { name: d.author.name.split(' ')[0]! })}</span>
               </div>
             )}
           </>
         ) : d.status === 'invalidated' ? (
           <div className="note n text-[12.5px]">
-            <span>
-              This request covered v{d.version}. {d.can.decide ? `Deciding on v${d.campaign?.currentVersion || d.version} opens a new request with the diff attached.` : 'A new request carries the diff to the approvers.'}
-            </span>
+            <span>{t(mr.invalidatedNote, { decide: d.can.decide ? 'yes' : 'no', version: d.version, next: d.campaign?.currentVersion || d.version })}</span>
           </div>
         ) : (
           <div className="col gap-1.5!">
@@ -915,10 +960,10 @@ function DecisionCard({
               ) : null}
             </span>
             {last?.comment ? <span className="text-[13px]">“{last.comment}”</span> : null}
-            {d.bypassReason ? <span className="text-[13px]">Sent without approval: “{d.bypassReason}”</span> : null}
+            {d.bypassReason ? <span className="text-[13px]">{t(mr.bypassedReason, { reason: d.bypassReason })}</span> : null}
             {d.campaign && d.can.isAuthor ? (
               <ButtonLink size="sm" className="self-start" to="/w/$workspace/campaigns/$campaignId/review" params={{ workspace: slug, campaignId: d.campaign.id }}>
-                Open Review &amp; send
+                {t(mr.openReview)}
               </ButtonLink>
             ) : null}
           </div>
@@ -927,18 +972,13 @@ function DecisionCard({
           <ClientSignoffFacts detail={d} />
         ) : (
           <dl className="kv m-0 text-[12.5px]">
-            <dt>Author</dt>
-            <dd>
-              {d.author.name}
-              {d.author.role ? ` · ${d.author.role}` : ''}
-            </dd>
-            <dt>Approvers</dt>
+            <dt>{t(mr.author)}</dt>
+            <dd>{d.author.role ? t(mr.authorRole, { name: d.author.name, role: roleName({ name: d.author.role }) }) : d.author.name}</dd>
+            <dt>{t(mr.approvers)}</dt>
             <dd>{approverNames(d.approvers, 'comma') || '—'}</dd>
-            <dt>Needed</dt>
-            <dd>
-              {Math.max(0, d.needed - d.given)} of {d.needed}
-            </dd>
-            <dt>Requested</dt>
+            <dt>{t(mr.needed)}</dt>
+            <dd>{t(mr.neededValue, { left: Math.max(0, d.needed - d.given), needed: d.needed })}</dd>
+            <dt>{t(mr.requested)}</dt>
             <dd>{monthDayTime(d.requestedAt)}</dd>
           </dl>
         )}
@@ -948,8 +988,9 @@ function DecisionCard({
 }
 
 function DetailSkeleton() {
+  const t = useT()
   return (
-    <Loading label="Loading the approval request" className="flex flex-col gap-5">
+    <Loading label={t(mr.loading)} className="flex flex-col gap-5">
       <div className="card pad ap-head">
         <div className="col flex-[1_1_360px] gap-2!">
           <Skeleton w={260} h={18} />

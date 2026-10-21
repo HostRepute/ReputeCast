@@ -38,7 +38,7 @@ export function AgencyShell() {
   return (
     <div className="app rc-app">
       <a href="#main" className="skip">
-        {t(m.areaLabel)}
+        {t(m.skip)}
       </a>
       <AgencySidebar />
       <div className="mainc">
@@ -68,7 +68,7 @@ function AgencySidebar() {
   )
   return (
     <aside className="side" aria-label={t(m.sidebarLabel, { agency: agency?.name ?? '' })}>
-      <Link to="/w/$workspace/agency" params={{ workspace: slug }} className="home" aria-label="ReputeCast home">
+      <Link to="/w/$workspace/agency" params={{ workspace: slug }} className="home" aria-label={t(m.homeLabel)}>
         <LogoMark size={26} />
         <span className="brand-t">ReputeCast</span>
       </Link>

@@ -7,6 +7,8 @@ import { defineMessages } from '@/i18n'
  */
 export const m = defineMessages('agency', {
   // Shell
+  skip: 'Skip to content',
+  homeLabel: 'ReputeCast home',
   areaLabel: 'Agency',
   sidebarLabel: '{agency} · Agency',
   navOverview: 'Overview',
@@ -178,6 +180,7 @@ export const m = defineMessages('agency', {
   emptyNoManage: 'Agency managers create client workspaces. Ask {helpers}.',
   setupCardTitle: '{name}',
   setupCardMeta: '{manager} · created {when}',
+  setupCardToday: 'today, {time}',
   stepProvider: 'Connect a sending provider',
   stepProviderHint: 'needed before any send',
   stepDomain: 'Verify a domain',

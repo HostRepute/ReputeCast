@@ -219,6 +219,75 @@ samples, CLI output, "MCP", "2FA", "TOTP", "IdP", "SSO", "JIT", "A/B",
 "payload", "Liquid", "MJML", "Mustachio", "Handlebars", "cURL" and "JSON"
 stay as they are.
 
+## Composer
+
+| English | Tiếng Việt |
+|---|---|
+| A/B test · variant | thử nghiệm A/B · biến thể |
+| block · Blocks panel | khối · Khối |
+| code view | chế độ mã |
+| column · 2 columns | cột · 2 cột |
+| compile · compiled HTML | biên dịch · HTML đã biên dịch |
+| composer | trình soạn thảo ("Rời trình soạn thảo?") |
+| dark mode · light | chế độ tối · sáng |
+| footer · header (of an email) | chân thư · đầu thư |
+| Inspector | Bảng thuộc tính |
+| layer · layer tree | lớp · cây lớp |
+| padding · border radius | khoảng đệm · bo góc |
+| personalization token · Liquid tag | thẻ cá nhân hóa · thẻ Liquid |
+| raw HTML | HTML thô |
+| sample · winner (A/B) | nhóm thử · bản thắng |
+| section (of an email) · saved section | phần · phần đã lưu |
+| Send Readiness | Độ sẵn sàng gửi (the checks before a send, as a name; "runs again" = "được kiểm tra lại") |
+| spam heuristic | dấu hiệu spam |
+
+MJML tags (mj-section, mj-body) stay as they are. A block's sample content
+is written for the email's readers, in the app language: the first-name
+fallback "there" is "bạn".
+
+## Automations
+
+| English | Tiếng Việt |
+|---|---|
+| A/B split · weight | Chia A/B · tỷ trọng |
+| automation (one, or the section) | tự động hóa ("Tự động hóa mới") |
+| Branch · Yes · No | Rẽ nhánh · Có · Không |
+| Delay (step) · Wait 10 minutes | Trì hoãn · Chờ 10 phút |
+| double opt-in | đăng ký kép |
+| edge (a connection on the canvas) | đường nối |
+| exit · goal · goal rate | thoát · mục tiêu · tỷ lệ đạt mục tiêu |
+| fail over · failover | chuyển dự phòng |
+| Filter (step) | Lọc |
+| flow | luồng (a named stream keeps its capital: "Luồng Tự động hóa") |
+| List action | Thao tác danh sách |
+| method (HTTP) | phương thức |
+| override (a route) | ghi đè; "route override" on a step is "tuyến riêng" |
+| re-entry | vào lại |
+| retire · retiring (a version) | ngừng hoạt động · đang ngừng |
+| send window | khung giờ gửi |
+| signing secret · write-only | khóa bí mật để ký · chỉ ghi |
+| stats · Live stats | số liệu · Số liệu trực tiếp |
+| step · trigger · action · condition | bước · trình kích hoạt · hành động · điều kiện |
+| web push | thông báo đẩy (trên web) |
+
+## Approvals
+
+| English | Tiếng Việt |
+|---|---|
+| after exclusions | sau khi loại trừ |
+| approval inbox | hộp thư phê duyệt |
+| approval request · approver · author | yêu cầu phê duyệt · người phê duyệt · tác giả |
+| Approve · Reject · Request changes | Phê duyệt · Từ chối · Yêu cầu thay đổi |
+| Bypassed · emergency bypass | Đã bỏ qua · bỏ qua khẩn cấp |
+| comment · Discussion · evidence | nhận xét · Thảo luận · bằng chứng |
+| Contacts in flight | Liên hệ đang trong luồng |
+| Invalidated · Approval invalidated | Mất hiệu lực · Phê duyệt không còn hiệu lực |
+| median wait | thời gian chờ trung vị (a median, not an average: not "trung bình") |
+| Pending · Rejected | Đang chờ · Bị từ chối |
+| policy · rule · Rules matched | chính sách · quy tắc · Quy tắc khớp |
+| Recheck | Kiểm tra lại |
+| snapshot | bản chụp |
+
 ## Content languages
 
 | English | Tiếng Việt |
@@ -322,6 +391,123 @@ is a name and stays in English.
 | My workspaces · Leave workspace | Không gian làm việc của tôi · Rời không gian làm việc |
 | In-app · All events | Trong ứng dụng · Tất cả sự kiện |
 | MCP agent | tác tử MCP |
+
+## Channels and SMS
+
+| English | Tiếng Việt |
+|---|---|
+| 10DLC · local · mobile · toll-free (number kinds) | 10DLC · địa phương · di động · miễn cước ("số di động", "số miễn cước") |
+| adapter · manifest · contract test suite | adapter · manifest · bộ kiểm thử hợp đồng (developer words, kept) |
+| auto-pause · Auto-paused | tự động tạm dừng · Tự tạm dừng |
+| brand (in a 10DLC registration) · brand prefix | thương hiệu · tiền tố thương hiệu |
+| budget · spend · price per segment | ngân sách · chi tiêu · giá mỗi đoạn tin |
+| carrier | nhà mạng |
+| channel · Email · SMS · Push · WhatsApp | kênh · Email · SMS · Thông báo đẩy · WhatsApp |
+| consent · SMS consent · consent text · evidence | sự đồng ý · đồng ý nhận SMS · nội dung đồng ý · bằng chứng |
+| credentials · Live · Test credentials | thông tin xác thực · Chính thức · Thông tin xác thực thử |
+| delivery receipt | báo nhận (what a carrier reports back; "Last receipt" is "Báo nhận gần nhất") |
+| fallback (of a route) | dự phòng |
+| filtered by carriers | bị nhà mạng lọc |
+| held · skipped | bị tạm giữ · bị bỏ qua |
+| inbound (text) · reply | tin đến · tin trả lời |
+| keyword | từ khóa (STOP, START, HELP and YES stay in English: people text them) |
+| landline · not in service · invalid number · unreachable | số cố định · ngừng hoạt động · số không hợp lệ · không liên lạc được |
+| link preview | bản xem trước liên kết (a messaging app's machine click, never a person) |
+| local time · "Berlin local" (a reply's time) | giờ địa phương · "giờ Berlin" |
+| opt in · opt-in confirmation | đăng ký nhận · tin xác nhận đăng ký |
+| opt out · opt-outs · opt-out text · opt-out reply | hủy nhận · lượt hủy nhận · câu hủy nhận · tin trả lời hủy nhận |
+| opt-out sync · Two-way · Read only | đồng bộ hủy nhận · Hai chiều · Chỉ đọc |
+| outside quiet hours (a text waits or is skipped) | ngoài khung giờ gửi (the window texts may go out in, not "ngoài giờ yên lặng") |
+| provider status: Healthy · Degraded · Down | Ổn định · Suy giảm · Gián đoạn |
+| quiet hours · sending window | giờ yên lặng · khung giờ gửi |
+| raw event · normalized | sự kiện gốc · đã chuẩn hóa |
+| registration · registered | đăng ký · đã đăng ký |
+| route · Routing & rules · route tester | tuyến · Định tuyến và quy tắc · kiểm tra tuyến |
+| segment (of a text) | đoạn tin (the billed part of 160 GSM-7 or 70 UCS-2 characters; never "phân khúc", an audience segment) |
+| sender ID · alphanumeric sender ID | ID người gửi · ID người gửi dạng chữ và số |
+| short-link domain · public shortener | tên miền liên kết rút gọn · dịch vụ rút gọn công khai |
+| signature · signing secret | chữ ký · khóa bí mật ký |
+| status callback (Twilio) | callback trạng thái |
+| suppression list (SMS) | danh sách chặn gửi SMS |
+| test text · test number | tin nhắn thử · số thử |
+| text (a message) · to text | tin nhắn · nhắn tin |
+| Text message terms | Điều khoản tin nhắn |
+| throughput · 14 texts a second | thông lượng · 14 tin nhắn mỗi giây |
+
+"GSM-7", "UCS-2", "Unicode", "VoIP" and "emoji" stay as they are. A
+phone number, a sender ID and a country code are data: never translated.
+
+## Agency accounts
+
+| English | Tiếng Việt |
+|---|---|
+| Account manager · Agency manager (staff levels) | Phụ trách khách hàng · Quản lý agency |
+| agency · Agency (the area) · agency mode | agency · Agency · chế độ agency (Vietnamese marketing says "agency") |
+| assign · assignment | phân công · việc phân công |
+| client · client workspace | khách hàng · không gian làm việc của khách hàng |
+| client people (a client's own people) | người của khách hàng (never agency staff) |
+| Client approver · Client viewer (roles) | Người duyệt phía khách hàng · Người xem phía khách hàng |
+| client sign-off | phê duyệt của khách hàng |
+| copy (of a library item) · behind | bản sao · đã cũ (the library has a newer version) |
+| flat (rate) · monthly fee | cố định · phí hằng tháng |
+| incident · Needs attention | sự cố · Cần chú ý |
+| level (of staff) | cấp |
+| library · shared library · library item | thư viện · thư viện dùng chung · mục thư viện |
+| provider cost · plan | chi phí nhà cung cấp · gói |
+| rebill · rebill rate · to rebill | tính phí lại · mức tính phí lại · cần tính phí lại |
+| saved section | phần đã lưu |
+| sender health · good · fair · poor | sức khỏe người gửi · tốt · khá · kém |
+| setup steps · Setting up | bước thiết lập · Đang thiết lập |
+| staff | nhân sự |
+| usage | mức sử dụng |
+| workspace template · apply (a template) | mẫu không gian làm việc · áp dụng |
+
+## Grow, Growth and scoring
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| awaiting confirmation | chờ xác nhận | a referral whose subscriber hasn't confirmed |
+| band (score) · Cold · Warm · Hot | mức (mức điểm) · Lạnh · Ấm · Nóng | the names are fixed, like the English |
+| burst · shared IP · numbered addresses | tăng đột biến · IP dùng chung · địa chỉ đánh số | the signals that hold a referral |
+| cap (a rule's) | giới hạn | "6 a week": "6 mỗi tuần" |
+| claim · claim link | nhận · liên kết nhận thưởng | a coupon reward |
+| cohort retention | giữ chân theo nhóm | Audience › Growth |
+| counted · not counted | đã tính · không tính | "Count" and "Don't count" in Review: "Tính", "Không tính" |
+| coupon (Stripe) | phiếu giảm giá | |
+| decay | giảm dần | |
+| double opt-in | xác nhận hai bước | two-factor is "xác thực hai lớp" |
+| engagement tier · Active · Cooling · At risk · Sunset | nhóm tương tác · Tích cực · Nguội dần · Có nguy cơ · Ngừng gửi dần | List health's tiers, as Scoring names them; the sunset policy is "chính sách ngừng gửi dần" |
+| field condition | điều kiện trường | |
+| fulfill · fulfilled · To fulfill | trao · đã trao · Cần trao | a manual reward; "sent" stays "đã gửi" |
+| Growth (Audience › Growth) | Nguồn tăng trưởng | so it doesn't read as Grow ("Tăng trưởng") |
+| held for review | tạm giữ để duyệt | short: "tạm giữ" |
+| hold period · in hold | thời gian chờ · đang chờ | "the 7-day hold": "thời gian chờ 7 ngày" |
+| hosted (form, page) | trên ReputeCast · do ReputeCast lưu trữ | |
+| invite page | trang mời | |
+| join · departure | lượt tham gia · lượt rời đi | Growth's joined and left: "Tham gia", "Rời đi" |
+| leaderboard | bảng xếp hạng | |
+| List health | Sức khỏe danh sách | as Growth and Scoring refer to it |
+| milestone · milestone email | mốc thưởng · email mốc thưởng | "mốc" alone when the number follows: "Mốc 3" |
+| net (growth) | tăng ròng · tăng trưởng ròng | |
+| newsletter | bản tin | |
+| partner · partner code · partner link · partner profile · partnership | đối tác · mã đối tác · liên kết đối tác · hồ sơ đối tác · quan hệ đối tác | |
+| recommendation · recommend · Recommending you | đề xuất · đề xuất · Đề xuất bạn | |
+| referral · referrer · referral link · referral program | lượt giới thiệu · người giới thiệu · liên kết giới thiệu · chương trình giới thiệu | |
+| referral hub | trang phần thưởng | the referrer's own page; "trang giới thiệu" reads as an About page |
+| Referral · Recommendations · Reward block | khối Giới thiệu · khối Đề xuất · khối Phần thưởng | the composer's Grow blocks |
+| referring page · referring domain | trang dẫn đến · tên miền dẫn đến | never "giới thiệu", which is a referral |
+| review queue · Review (tab) | hàng chờ duyệt · Duyệt | |
+| reward | phần thưởng | |
+| rule · points | quy tắc · điểm | |
+| score · scoring | điểm (điểm số) · chấm điểm | |
+| self-referral | tự giới thiệu | |
+| soft bounce · hard bounce | trả thư tạm thời · trả thư vĩnh viễn | |
+| source (growth) | nguồn | |
+| spread (of scores) | phân bố | |
+| subscribe request | yêu cầu đăng ký | what one instance sends a partner |
+| threshold | ngưỡng | |
+| token (Liquid) | biến | as transactional templates' variables |
+| trigger (automation) | trình kích hoạt | |
 
 ## Words used everywhere
 

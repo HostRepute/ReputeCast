@@ -94,6 +94,7 @@ export default translate(m, {
   jobWithEta: '{progress} · {eta}',
   jobImportFinished: 'Đã nhập xong',
   jobExportFinished: 'Đã xuất xong',
+  jobVerificationFinished: 'Đã xác minh xong',
   jobOpen: 'Mở',
   jobFailed: '{title} thất bại',
   jobFailedDetail: 'xem lịch sử tác vụ để biết lỗi',

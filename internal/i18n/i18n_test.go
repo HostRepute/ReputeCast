@@ -249,7 +249,7 @@ func TestRegionVectors(t *testing.T) {
 		}
 		got := map[string]string{
 			"name": r.Name(), "date": r.Date(at), "shortDate": r.ShortDate(at), "weekdayDate": r.WeekdayDate(at),
-			"longDate": r.LongDate(at), "dayMonth": r.DayMonth(at), "time": r.Time(at, ""), "time12": r.Time(at, H12),
+			"longDate": r.LongDate(at), "dayMonth": r.DayMonth(at), "monthYear": r.MonthYear(at, false), "monthYearLong": r.MonthYear(at, true), "time": r.Time(at, ""), "time12": r.Time(at, H12),
 			"timePM": r.Time(pm, ""), "timePM12": r.Time(pm, H12),
 			"int": r.Int(48213), "int4": r.Int(4821), "int7": r.Int(1234567), "percent": r.Percent(99.1, 1),
 			"money": r.Money(2.84, 2), "money2": r.Money(18.21, 2), "hourCycle": string(r.HourCycle()), "weekStart": weekStart,

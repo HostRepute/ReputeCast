@@ -12,12 +12,14 @@ import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input, OptionCard, Select, Textarea } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
+import { Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { channelIcon } from '@/features/channels/ChannelSwitch'
 import { formatList, T, useT, type MessageDescriptor } from '@/i18n'
 import { ago, clock, count, dayMonthDate, dayMonthYear, inZone, monthName, money } from '@/lib/format'
 import { useMe, useWorkspace } from '@/lib/session'
 import { BudgetMeter, CountryChips, price, providerColor, regionSentence, throwIfForbidden, useRefreshSms } from './common'
+import { m as sm } from './messages'
 import { m } from './review.messages'
 import './sms.css'
 
@@ -765,15 +767,15 @@ function RoutesCard({ data }: { data: Review }) {
       <table className="tbl text-[13px]">
         <thead>
           <tr>
-            <th scope="col" className="!px-0">
+            <Th className="!px-0">
               {t(m.provider)}
-            </th>
-            <th scope="col" className="r !px-0">
+            </Th>
+            <Th className="r !px-0">
               {t(m.cost)}
-            </th>
-            <th scope="col" className="r !pl-3 !pr-0">
+            </Th>
+            <Th className="r !pl-3 !pr-0">
               {t(m.duration)}
-            </th>
+            </Th>
           </tr>
         </thead>
         <tbody>
@@ -810,7 +812,7 @@ function CostCard({ data }: { data: Review }) {
   const t = useT()
   const month = monthName(data.budget.month, 'long')
   const b = data.budget
-  const providers = formatList([...new Set(data.routes.map((r) => `${r.provider}’s`))])
+  const providers = formatList([...new Set(data.routes.map((r) => r.provider))].map((provider) => t(sm.pricingOf, { provider })))
   return (
     <Card title={t(m.costTitle)} lead={data.pricedOn ? t(m.costLead, { providers, date: dayMonthYear(data.pricedOn) }) : undefined}>
       {data.costs.map((c) => (
@@ -1033,7 +1035,7 @@ function ConfirmDialog({ data, onClose }: { data: Review; onClose: () => void })
           <dd>{when}</dd>
         </dl>
         {data.large.required ? (
-          <Field label={t(m.typeCount)} hint={t(m.typeHint)}>
+          <Field label={t(m.typeCount)} hint={t(m.typeHint, { recipients: count(data.large.recipients), cost: money(data.large.cost, 0) })}>
             <Input value={typed} inputMode="numeric" onChange={(e) => setTyped(e.target.value)} />
           </Field>
         ) : null}

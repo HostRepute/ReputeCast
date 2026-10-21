@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
-import { Table } from '@/components/ui/Table'
+import { Table, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { formatList, T, useT } from '@/i18n'
 import { ago, clock, count, dayMonthDate, dayMonthYear, monthName, money, pct } from '@/lib/format'
@@ -244,9 +244,9 @@ function sendersLine(card: Card, t: ReturnType<typeof useT>): string {
   // Toll-free first, as people say it.
   numbers.sort((a, b) => (a === 'toll_free' ? -1 : b === 'toll_free' ? 1 : 0))
   if (numbers.length) {
-    const words = numbers.map((k) => t(kindWord[k]))
-    const first = words[0]!.charAt(0).toUpperCase() + words[0]!.slice(1)
-    parts.push(t(m.sendersNumbers, { kinds: formatList([first, ...words.slice(1)]), count: card.senderCount - card.senderIds.length }))
+    // Sentence case for the line, wherever the language puts the kinds.
+    const line = t(m.sendersNumbers, { kinds: formatList(numbers.map((k) => t(kindWord[k]))), count: card.senderCount - card.senderIds.length })
+    parts.push(line.charAt(0).toUpperCase() + line.slice(1))
   }
   const ids = [...new Set(card.senderIds)]
   if (ids.length) parts.push(t(m.sendersIds, { ids: formatList(ids), count: card.senderIdCountries }))
@@ -596,18 +596,18 @@ function Senders({
             <Table className="sms-stk" caption={t(m.sendersTable)}>
               <thead>
                 <tr>
-                  <th scope="col">{t(m.colSender)}</th>
-                  <th scope="col">{t(m.colKind)}</th>
-                  <th scope="col">{t(m.colProvider)}</th>
-                  <th scope="col">{t(m.colCountries)}</th>
-                  <th scope="col">{t(m.colRegistration)}</th>
-                  <th scope="col" className="r">
+                  <Th>{t(m.colSender)}</Th>
+                  <Th>{t(m.colKind)}</Th>
+                  <Th>{t(m.colProvider)}</Th>
+                  <Th>{t(m.colCountries)}</Th>
+                  <Th>{t(m.colRegistration)}</Th>
+                  <Th className="r">
                     {t(m.colThroughput)}
-                  </th>
-                  <th scope="col">{t(m.colRoute)}</th>
-                  <th scope="col">
+                  </Th>
+                  <Th>{t(m.colRoute)}</Th>
+                  <Th>
                     <span className="vh">{t(m.colActions)}</span>
-                  </th>
+                  </Th>
                 </tr>
               </thead>
               <tbody>
