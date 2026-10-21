@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
 import { clock, orList } from '@/lib/format'
+import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
 import { useComposer, type SaveStatus } from './context'
 import { statusWord } from './format'
@@ -234,13 +235,13 @@ export function PermissionBanner() {
       <Avatar name={user.name || user.email} color={user.avatarColor} size={24} />
       <span id="perm-hint" style={{ flex: '1 1 480px', minWidth: 0 }}>
         {assisted ? (
-          assisted({ name: user.name || user.email, role: me.workspace.roleName, helpers })
+          assisted({ name: user.name || user.email, role: roleName({ key: me.workspace.roleKey, name: me.workspace.roleName }), helpers })
         ) : (
           <T
             msg={m.permissionBanner}
             values={{
               name: user.name || user.email,
-              role: me.workspace.roleName,
+              role: roleName({ key: me.workspace.roleKey, name: me.workspace.roleName }),
               hasHelpers: helpers.length ? 'yes' : 'no',
               helpers: orList(helpers),
               routing: campaign.access.canManageRouting ? 'no' : 'yes',
