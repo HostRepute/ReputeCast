@@ -47,9 +47,11 @@ export function ClientSignoffLine({ detail: d, me }: { detail: Detail; me?: stri
 export function ClientSignoffIntro({ detail: d }: { detail: Detail }) {
   const { t, agency, workspace, s } = useSignoff(d)
   if (d.status !== 'pending') return null
-  if (s.viewerIsStaff) return <span className="k">{t(m.signoffStaffIntro, { agency })}</span>
+  // A line of its own under the card's heading.
+  const line = 'k -mt-1.5 basis-full'
+  if (s.viewerIsStaff) return <span className={line}>{t(m.signoffStaffIntro, { agency })}</span>
   if (!d.can.decide) return null
-  return <span className="k">{t(m.signoffApproverIntro, { workspace })}</span>
+  return <span className={line}>{t(m.signoffApproverIntro, { workspace })}</span>
 }
 
 /** The note under the decision buttons. */

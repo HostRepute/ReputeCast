@@ -28,7 +28,7 @@ export const m = defineMessages('agencyStaff', {
     'Each cell is an ordinary membership in that workspace. The client\'s Team page shows "via {agency}". You can assign only roles whose permissions you hold there.',
   assign: 'Assign',
   assignName: 'Assign {name} to {client}',
-  changeRole: "Change {name}'s role in {client}",
+  changeRole: "{role}: change {name}'s role in {client}",
   rolesIn: '{name} in {client}',
   yourRole: 'Your role here',
   notYours: 'Not yours to give',

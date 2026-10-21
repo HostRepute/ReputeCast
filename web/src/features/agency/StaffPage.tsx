@@ -241,7 +241,7 @@ function AssignmentCell({ row, member, onDenied }: { row: Row; member: Member; o
   }
   if (member.invited && !role) return <span className="k">{t(m.dash)}</span>
   const trigger = role ? (
-    <button type="button" className="inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0" aria-label={t(sm.changeRole, { name: member.name, client: row.workspace.name })} disabled={!row.canAssign}>
+    <button type="button" className="inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0" aria-label={t(sm.changeRole, { role: roleName(role), name: member.name, client: row.workspace.name })} disabled={!row.canAssign}>
       <RoleBadge role={role} />
       {row.canAssign ? <Icon name="chevronDown" size={12} className="text-ink-3" /> : null}
     </button>
