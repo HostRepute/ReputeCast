@@ -3,8 +3,10 @@ import { useState } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { ConfirmDialog, DialogOption } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
+import { t as tt, useT } from '@/i18n'
 import { count } from '@/lib/format'
 import { useCan } from '@/lib/session'
+import { m } from './messages'
 import { mailboxName, needs, queuedCount, type Incident, type LiveAction, type Snapshot } from './model'
 
 type Result = Schemas['LiveActionResult']
@@ -33,7 +35,7 @@ export function useLiveActions(slug: string, campaignId: string, apply: (s: Snap
     return r
   }
   const fail = (title: string) => (e: unknown) => {
-    toast({ kind: 'error', title, detail: `${errorMessage(e)} Nothing was changed.` })
+    toast({ kind: 'error', title, detail: `${errorMessage(e)} ${tt(m.nothingChanged)}` })
     throw e
   }
 
@@ -43,44 +45,45 @@ export function useLiveActions(slug: string, campaignId: string, apply: (s: Snap
       pauseM
         .mutateAsync({ params: { path }, body: reason ? { reason } : {} })
         .then(settle)
-        .catch(fail("Couldn't pause the send")),
+        .catch(fail(tt(m.pauseFailed))),
     resume: (body: Schemas['LiveResumeRequest'] = {}) =>
       resumeM
         .mutateAsync({ params: { path }, body })
         .then(settle)
         .then((r) => {
           if (body.withChanges && r.excluded > 0) {
-            const who = body.mailbox ? mailboxName(body.mailbox) : 'the held share'
-            toast({ kind: 'success', title: `${who === 'the held share' ? 'Resumed' : `${who} resumed`} with changes`, detail: `${count(r.excluded)} contacts left out of the rest of this send.` })
+            const title = body.mailbox ? tt(m.resumedWhoWithChanges, { who: mailboxName(body.mailbox) }) : tt(m.resumedWithChanges)
+            toast({ kind: 'success', title, detail: tt(m.excludedDetail, { count: count(r.excluded) }) })
           }
           return r
         })
-        .catch(fail("Couldn't resume the send")),
+        .catch(fail(tt(m.resumeFailed))),
     cancel: (body: Schemas['LiveCancelRequest'] = {}) =>
       cancelM
         .mutateAsync({ params: { path }, body })
         .then(settle)
         .then((r) => {
           if (body.mailbox || body.providerId) {
-            toast({ kind: 'deleted', title: 'Share cancelled', detail: `${count(r.cancelled)} recipients won't be sent; they're marked "not sent" in the report.` })
+            toast({ kind: 'deleted', title: tt(m.shareCancelled), detail: tt(m.shareCancelledDetail, { count: count(r.cancelled) }) })
           }
           return r
         })
-        .catch(fail("Couldn't cancel")),
-    move: (body: Schemas['LiveMoveRequest'], target: string) =>
+        .catch(fail(tt(m.cancelFailed))),
+    move: (body: Schemas['LiveMoveRequest'], target?: string) =>
       moveM
         .mutateAsync({ params: { path }, body })
         .then(settle)
         .then((r) => {
-          toast({ kind: 'success', title: `Moved ${count(r.moved)} recipients to ${target}`, detail: 'They joined its queue; what was already sent keeps its tracking.' })
+          const title = target ? tt(m.moved, { count: count(r.moved), target }) : tt(m.movedToOther, { count: count(r.moved) })
+          toast({ kind: 'success', title, detail: tt(m.movedDetail) })
           return r
         })
-        .catch(fail("Couldn't move the share")),
+        .catch(fail(tt(m.moveFailed))),
     retry: (body: Schemas['LiveRetryRequest']) =>
       retryM
         .mutateAsync({ params: { path }, body })
         .then(settle)
-        .catch(fail("Couldn't retry")),
+        .catch(fail(tt(m.retryFailed))),
   }
 }
 
@@ -94,7 +97,7 @@ export function runAction(actions: LiveActions, a: LiveAction, target?: string):
     case 'cancel':
       return actions.cancel(a.body)
     case 'move':
-      return actions.move(a.body, target ?? 'the other provider')
+      return actions.move(a.body, target)
     case 'retry':
       return actions.retry(a.body)
   }
@@ -105,10 +108,10 @@ export function useLivePermissions(helpers: Schemas['LiveHelpers'] | undefined) 
   const canPause = useCan('campaigns:pause')
   const canSend = useCan('campaigns:send')
   return {
-    pause: canPause ? undefined : needs('Pausing a send', 'campaigns:pause', helpers?.pause),
-    resume: canSend ? undefined : needs('Resuming a send', 'campaigns:send', helpers?.send),
-    cancel: canSend ? undefined : needs('Cancelling a send', 'campaigns:send', helpers?.send),
-    decide: canSend ? undefined : needs('Deciding how a held send continues', 'campaigns:send', helpers?.send),
+    pause: canPause ? undefined : needs('pause', 'campaigns:pause', helpers?.pause),
+    resume: canSend ? undefined : needs('resume', 'campaigns:send', helpers?.send),
+    cancel: canSend ? undefined : needs('cancel', 'campaigns:send', helpers?.send),
+    decide: canSend ? undefined : needs('decide', 'campaigns:send', helpers?.send),
   }
 }
 
@@ -133,6 +136,7 @@ export function CancelSendDialog({
   actions: LiveActions
   canPause: boolean
 }) {
+  const t = useT()
   const [choice, setChoice] = useState<'cancel' | 'pause'>('cancel')
   const remaining = queuedCount(s, incident) + (incident ? s.held : 0)
   const pausable = canPause && s.options.canPause
@@ -144,13 +148,13 @@ export function CancelSendDialog({
         onOpenChange(o)
       }}
       tone="bad"
-      badge="Cancel send"
-      title={`Cancel the rest of ${s.name}?`}
-      description={`${count(s.sent)} of ${count(s.recipients)} are already delivered and cannot be recalled. ${count(remaining)} are queued and will not be sent. The report keeps everything sent so far.`}
-      confirmLabel={choice === 'pause' ? 'Pause instead' : 'Cancel remaining sends'}
+      badge={t(m.cancelSend)}
+      title={t(m.cancelTitle, { name: s.name })}
+      description={t(m.cancelBody, { sent: count(s.sent), total: count(s.recipients), remaining: count(remaining) })}
+      confirmLabel={choice === 'pause' ? t(m.pauseInstead) : t(m.cancelRemaining)}
       confirmVariant={choice === 'pause' ? 'primary' : 'danger'}
-      busyLabel={choice === 'pause' ? 'Pausing…' : 'Cancelling…'}
-      cancelLabel="Keep sending"
+      busyLabel={choice === 'pause' ? t(m.pausing) : t(m.cancelling)}
+      cancelLabel={t(m.keepSending)}
       onConfirm={() => (choice === 'pause' ? actions.pause() : actions.cancel({}))}
     >
       <div className="flex flex-col gap-2.5">
@@ -158,16 +162,16 @@ export function CancelSendDialog({
           name="cancel-send"
           checked={choice === 'cancel'}
           onChange={() => setChoice('cancel')}
-          title={`Cancel the remaining ${count(remaining)}`}
-          description="Marks the campaign as partially sent. You can send the remainder later as a new campaign."
+          title={t(m.cancelRemainingCount, { count: count(remaining) })}
+          description={t(m.cancelRemainingBody)}
         />
         {pausable ? (
           <DialogOption
             name="cancel-send"
             checked={choice === 'pause'}
             onChange={() => setChoice('pause')}
-            title="Pause instead"
-            description="Keeps the queue; resume from the monitor at any time."
+            title={t(m.pauseInstead)}
+            description={t(m.pauseInsteadBody)}
           />
         ) : null}
       </div>
