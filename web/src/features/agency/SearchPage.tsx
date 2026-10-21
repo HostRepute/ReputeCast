@@ -11,7 +11,7 @@ import { useAgencyMe } from './api'
 import { AgencyPage, AgencySearchBox } from './AgencyShell'
 import { kindLabel } from './kinds'
 import { m } from './messages'
-import { ClientTile, dayMonth } from './parts'
+import { ClientTile, dayMonthYear } from './parts'
 import { m as sm } from './search.messages'
 
 type Hit = Schemas['AgencySearchHit']
@@ -145,8 +145,8 @@ function HitRow({ hit, slug }: { hit: Hit; slug: string }) {
   let detail = kind
   if (hit.kind === 'contact') {
     const lists = hit.lists?.length ? formatList(hit.lists) : hit.leftLists?.length ? formatList(hit.leftLists) : ''
-    if (hit.lists?.length && hit.subscribedAt) detail = t(sm.contactSubscribed, { lists, date: longDay(hit.subscribedAt) })
-    else if (hit.unsubscribedAt) detail = t(sm.contactLeft, { lists, date: longDay(hit.unsubscribedAt) })
+    if (hit.lists?.length && hit.subscribedAt) detail = t(sm.contactSubscribed, { lists, date: dayMonthYear(hit.subscribedAt) })
+    else if (hit.unsubscribedAt) detail = t(sm.contactLeft, { lists, date: dayMonthYear(hit.unsubscribedAt) })
     else if (lists) detail = t(sm.contactLists, { lists })
   }
   const st = hit.status ? statusBadge[hit.status] : undefined
@@ -177,8 +177,4 @@ function LibraryHit({ hit }: { hit: Hit }) {
       </span>
     </Link>
   )
-}
-
-function longDay(iso: string) {
-  return `${dayMonth(iso)} ${new Date(iso).getFullYear()}`
 }

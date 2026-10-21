@@ -69,7 +69,7 @@ export function EditorTools({ body, setBody }: { body: string; setBody: (b: stri
           }
         >
           <Field label={t(m.linkPrompt)} error={error}>
-            <Input className="mono" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="acme.io/summit" autoFocus />
+            <Input className="mono" value={url} onChange={(e) => setUrl(e.target.value)} placeholder={'acme.io/summit'} autoFocus />
           </Field>
         </Dialog>
       ) : null}

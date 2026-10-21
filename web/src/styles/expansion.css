@@ -94,6 +94,13 @@
   align-items: flex-end;
 }
 
+/* SMS (features/sms), rule 1: the amount or count that ends a summary row
+   ("846 tin nhắn · 2 đoạn tin mỗi tin … 38,67 US$") stays on one line; the
+   longer words beside it wrap instead of splitting "US$". */
+:root:not([lang='en']) .sms-sum .n {
+  white-space: nowrap;
+}
+
 /* Grow: a milestone's unit under its number ("lượt giới thiệu") and where a
    recommendation shows ("Trang xác nhận", "Email chào mừng") stay on one
    line; their narrow columns make room instead of breaking the words. */

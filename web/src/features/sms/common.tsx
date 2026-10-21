@@ -7,6 +7,7 @@ import { toast } from '@/components/ui/Toast'
 import { ChannelSwitch } from '@/features/channels/ChannelSwitch'
 import { getI18n, useT, type MessageDescriptor } from '@/i18n'
 import { dayMonthDate, dayMonthYear, money } from '@/lib/format'
+import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import './sms.css'
@@ -177,6 +178,20 @@ const kindNames: Record<SenderKind, MessageDescriptor> = {
   sender_id: m.kindSenderId,
 }
 
+const holdWords: Record<string, MessageDescriptor> = {
+  pending: m.holdPending,
+  rejected: m.holdRejected,
+  not_registered: m.holdNot_registered,
+  not_supported: m.holdNot_supported,
+  no_route: m.holdNo_route,
+}
+
+/** Why a route can't send to a country (a route decision's hold): "pending", "not registered". */
+export function holdWord(t: (d: MessageDescriptor) => string, code: string): string {
+  const d = holdWords[code]
+  return d ? t(d) : code.replace(/_/g, ' ')
+}
+
 export function useKindName(): (k: string) => string {
   const t = useT()
   return (k) => {
@@ -253,6 +268,15 @@ const capShort: Record<string, MessageDescriptor> = {
   registration: m.capShortRegistration,
 }
 
+/** With a note, "Registration status via API" reads "Registration status · set by hand". */
+const capNoted: Record<string, MessageDescriptor> = {
+  registration: m.capNotedRegistration,
+  pricing: m.capNotedPricing,
+}
+const capNotedShort: Record<string, MessageDescriptor> = {
+  registration: m.capNotedShortRegistration,
+}
+
 /**
  * A capability from an adapter's manifest (`.cap`): yes, partial or no.
  * `short` is the catalog's wording ("Receipts", "Keywords").
@@ -260,20 +284,22 @@ const capShort: Record<string, MessageDescriptor> = {
 export function Capability({ badge, short }: { badge: Schemas['Badge']; short?: boolean }) {
   const t = useT()
   const names = short && capShort[badge.capability] ? capShort : capNames
-  const label = names[badge.capability] ? t(names[badge.capability]!) : badge.capability
-  const text = badge.note ? t(m.capWithNote, { label: capLabelForNote(label), note: badge.note }) : label
+  const noted = badge.note ? (short && capShort[badge.capability] ? capNotedShort : capNoted)[badge.capability] : undefined
+  const label = noted ? t(noted) : names[badge.capability] ? t(names[badge.capability]!) : badge.capability
+  const text = badge.note ? t(m.capWithNote, { label, note: badge.note }) : label
   const cls = { yes: 'y', partial: 'p', no: 'n' }[badge.support]
   return (
     <span className={`sms-cap ${cls}`}>
-      {badge.support === 'no' ? <span className="vh">{t(m.capNotSupported)}</span> : null}
-      {text}
+      {badge.support === 'no' ? (
+        <>
+          <span className="vh">{t(m.capNotSupported, { capability: text })}</span>
+          <span aria-hidden="true">{text}</span>
+        </>
+      ) : (
+        text
+      )}
     </span>
   )
-}
-
-/** With a note, "Registration status via API" reads "Registration status · set by hand". */
-function capLabelForNote(label: string): string {
-  return label.replace(/ via API$/, '')
 }
 
 /** The capabilities, in the manifest's order. */
@@ -422,7 +448,7 @@ export function ReadOnlyNote({ children }: { children: ReactNode }) {
   return (
     <div className="note n" role="note">
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
-        <span className="font-bold">{t(m.roleNote, { name, role: me.workspace.roleName })}</span>
+        <span className="font-bold">{t(m.roleNote, { name, role: roleName({ key: me.workspace.roleKey, name: me.workspace.roleName }) })}</span>
         <div>{children}</div>
       </div>
     </div>

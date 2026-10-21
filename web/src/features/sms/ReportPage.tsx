@@ -10,7 +10,7 @@ import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
-import { Table } from '@/components/ui/Table'
+import { Table, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { channelIcon } from '@/features/channels/ChannelSwitch'
 import { formatList, T, useT, type MessageDescriptor } from '@/i18n'
@@ -721,26 +721,26 @@ function ByCountry({ r }: { r: Report }) {
         <Table caption={t(m.countryTable)} className="sms-stk">
           <thead>
             <tr>
-              <th scope="col">{t(m.colCountry)}</th>
-              <th scope="col">{t(m.colSender)}</th>
-              <th scope="col" className="r">
+              <Th>{t(m.colCountry)}</Th>
+              <Th>{t(m.colSender)}</Th>
+              <Th className="r">
                 {t(m.colSent)}
-              </th>
-              <th scope="col" className="r">
+              </Th>
+              <Th className="r">
                 {t(m.colDelivered)}
-              </th>
-              <th scope="col" className="r">
+              </Th>
+              <Th className="r">
                 {t(m.colFailed)}
-              </th>
-              <th scope="col" className="r">
+              </Th>
+              <Th className="r">
                 {t(m.colClicks)}
-              </th>
-              <th scope="col" className="r">
+              </Th>
+              <Th className="r">
                 {t(m.colOptOuts)}
-              </th>
-              <th scope="col" className="r">
+              </Th>
+              <Th className="r">
                 {t(m.colCost)}
-              </th>
+              </Th>
             </tr>
           </thead>
           <tbody>

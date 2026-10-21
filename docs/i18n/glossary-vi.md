@@ -489,6 +489,76 @@ is a name and stays in English.
 | In-app · All events | Trong ứng dụng · Tất cả sự kiện |
 | MCP agent | tác tử MCP |
 
+## Channels and SMS
+
+| English | Tiếng Việt |
+|---|---|
+| 10DLC · local · mobile · toll-free (number kinds) | 10DLC · địa phương · di động · miễn cước ("số di động", "số miễn cước") |
+| adapter · manifest · contract test suite | adapter · manifest · bộ kiểm thử hợp đồng (developer words, kept) |
+| auto-pause · Auto-paused | tự động tạm dừng · Tự tạm dừng |
+| brand (in a 10DLC registration) · brand prefix | thương hiệu · tiền tố thương hiệu |
+| budget · spend · price per segment | ngân sách · chi tiêu · giá mỗi đoạn tin |
+| carrier | nhà mạng |
+| channel · Email · SMS · Push · WhatsApp | kênh · Email · SMS · Thông báo đẩy · WhatsApp |
+| consent · SMS consent · consent text · evidence | sự đồng ý · đồng ý nhận SMS · nội dung đồng ý · bằng chứng |
+| credentials · Live · Test credentials | thông tin xác thực · Chính thức · Thông tin xác thực thử |
+| delivery receipt | báo nhận (what a carrier reports back; "Last receipt" is "Báo nhận gần nhất") |
+| fallback (of a route) | dự phòng |
+| filtered by carriers | bị nhà mạng lọc |
+| held · skipped | bị tạm giữ · bị bỏ qua |
+| inbound (text) · reply | tin đến · tin trả lời |
+| keyword | từ khóa (STOP, START, HELP and YES stay in English: people text them) |
+| landline · not in service · invalid number · unreachable | số cố định · ngừng hoạt động · số không hợp lệ · không liên lạc được |
+| link preview | bản xem trước liên kết (a messaging app's machine click, never a person) |
+| local time · "Berlin local" (a reply's time) | giờ địa phương · "giờ Berlin" |
+| opt in · opt-in confirmation | đăng ký nhận · tin xác nhận đăng ký |
+| opt out · opt-outs · opt-out text · opt-out reply | hủy nhận · lượt hủy nhận · câu hủy nhận · tin trả lời hủy nhận |
+| opt-out sync · Two-way · Read only | đồng bộ hủy nhận · Hai chiều · Chỉ đọc |
+| outside quiet hours (a text waits or is skipped) | ngoài khung giờ gửi (the window texts may go out in, not "ngoài giờ yên lặng") |
+| provider status: Healthy · Degraded · Down | Ổn định · Suy giảm · Gián đoạn |
+| quiet hours · sending window | giờ yên lặng · khung giờ gửi |
+| raw event · normalized | sự kiện gốc · đã chuẩn hóa |
+| registration · registered | đăng ký · đã đăng ký |
+| route · Routing & rules · route tester | tuyến · Định tuyến và quy tắc · kiểm tra tuyến |
+| segment (of a text) | đoạn tin (the billed part of 160 GSM-7 or 70 UCS-2 characters; never "phân khúc", an audience segment) |
+| sender ID · alphanumeric sender ID | ID người gửi · ID người gửi dạng chữ và số |
+| short-link domain · public shortener | tên miền liên kết rút gọn · dịch vụ rút gọn công khai |
+| signature · signing secret | chữ ký · khóa bí mật ký |
+| status callback (Twilio) | callback trạng thái |
+| suppression list (SMS) | danh sách chặn gửi SMS |
+| test text · test number | tin nhắn thử · số thử |
+| text (a message) · to text | tin nhắn · nhắn tin |
+| Text message terms | Điều khoản tin nhắn |
+| throughput · 14 texts a second | thông lượng · 14 tin nhắn mỗi giây |
+
+"GSM-7", "UCS-2", "Unicode", "VoIP" and "emoji" stay as they are. A
+phone number, a sender ID and a country code are data: never translated.
+
+## Agency accounts
+
+| English | Tiếng Việt |
+|---|---|
+| Account manager · Agency manager (staff levels) | Phụ trách khách hàng · Quản lý agency |
+| agency · Agency (the area) · agency mode | agency · Agency · chế độ agency (Vietnamese marketing says "agency") |
+| assign · assignment | phân công · việc phân công |
+| client · client workspace | khách hàng · không gian làm việc của khách hàng |
+| client people (a client's own people) | người của khách hàng (never agency staff) |
+| Client approver · Client viewer (roles) | Người duyệt phía khách hàng · Người xem phía khách hàng |
+| client sign-off | phê duyệt của khách hàng |
+| copy (of a library item) · behind | bản sao · đã cũ (the library has a newer version) |
+| flat (rate) · monthly fee | cố định · phí hằng tháng |
+| incident · Needs attention | sự cố · Cần chú ý |
+| level (of staff) | cấp |
+| library · shared library · library item | thư viện · thư viện dùng chung · mục thư viện |
+| provider cost · plan | chi phí nhà cung cấp · gói |
+| rebill · rebill rate · to rebill | tính phí lại · mức tính phí lại · cần tính phí lại |
+| saved section | phần đã lưu |
+| sender health · good · fair · poor | sức khỏe người gửi · tốt · khá · kém |
+| setup steps · Setting up | bước thiết lập · Đang thiết lập |
+| staff | nhân sự |
+| usage | mức sử dụng |
+| workspace template · apply (a template) | mẫu không gian làm việc · áp dụng |
+
 ## Grow, Growth and scoring
 
 | English | Tiếng Việt | Note |
