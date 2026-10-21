@@ -569,6 +569,23 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	return s.Prompt(ctx, ws, p, id)
 }
 
+// DeletePrompt deletes a prompt (logged): readers stop seeing it. The
+// subscriptions it made stay, with their consent records (the exact text
+// and version are kept with each).
+func (s *Service) DeletePrompt(ctx context.Context, ws *store.Workspace, id uuid.UUID) error {
+	r, err := s.promptRow(ctx, ws, id)
+	if err != nil {
+		return err
+	}
+	return s.tx(ctx, func(q *store.Queries, tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, `DELETE FROM forms WHERE id = $1 AND workspace_id = $2 AND kind = 'push'`, id, ws.ID); err != nil {
+			return err
+		}
+		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "push_prompt.deleted", TargetType: "form", TargetID: id.String(), TargetName: r.Name,
+			Before: map[string]any{"status": r.Status, "live_version": r.LiveVersion}})
+	})
+}
+
 // Discard throws the draft away: it becomes what's live again.
 func (s *Service) Discard(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (PushPrompt, error) {
 	r, err := s.promptRow(ctx, ws, id)

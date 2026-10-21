@@ -231,6 +231,15 @@ func Register(h huma.API, s *Service) {
 			out, err := s.Discard(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 			return api.OK(out), err
 		})
+	api.Delete(h, api.Op{ID: "delete-push-prompt", Path: "/workspaces/{workspace}/push/prompts/{formId}", Summary: "Delete a prompt: readers stop seeing it (logged)",
+		Description: "The subscriptions it made stay, each with its consent record.", Tags: ptags, Access: api.Workspace(authz.FormsEdit)},
+		func(ctx context.Context, in *PushPromptPath) (*struct{}, error) {
+			id, err := parseID(in.FormID, "Push prompt")
+			if err != nil {
+				return nil, err
+			}
+			return nil, s.DeletePrompt(ctx, api.WorkspaceFrom(ctx), id)
+		})
 	api.Put(h, api.Op{ID: "set-push-prompt-status", Path: "/workspaces/{workspace}/push/prompts/{formId}/status", Summary: "Pause or resume a prompt (logged)",
 		Tags: ptags, Access: api.Workspace(authz.FormsEdit)},
 		func(ctx context.Context, in *struct {

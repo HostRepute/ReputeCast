@@ -640,6 +640,22 @@ func TestPushRotationPromptsAndPermissions(t *testing.T) {
 	if pr.Status != "draft" || pr.Draft.Style != push.StyleBar {
 		t.Fatalf("new prompt: %+v", pr)
 	}
+	// A form type: listed with the forms, never a signup form.
+	var forms struct {
+		Forms []struct {
+			ID       string `json:"id"`
+			Kind     string `json:"kind"`
+			PublicID string `json:"publicId"`
+			Slug     string `json:"slug"`
+		} `json:"forms"`
+	}
+	c.Do(http.MethodGet, p+"/forms", nil).MustStatus(t, 200).JSON(t, &forms)
+	if len(forms.Forms) != 1 || forms.Forms[0].Kind != "push" || forms.Forms[0].ID != pr.FormID {
+		t.Fatalf("forms list: %+v", forms.Forms)
+	}
+	c.Do(http.MethodGet, p+"/forms/"+pr.FormID, nil).MustStatus(t, 404)
+	c.Do(http.MethodPut, p+"/public-pages/pages", map[string]any{"hostedFormId": pr.FormID}).MustStatus(t, 422)
+	c.DoRaw(http.MethodGet, "/p/"+slug+"/forms/"+forms.Forms[0].PublicID+".js", "", nil).MustStatus(t, 404)
 	cfg := pr.Draft
 	cfg.Style, cfg.Title, cfg.Message = push.StyleBell, "Get release notes as notifications", "One a week at most."
 	c.Do(http.MethodPut, p+"/push/prompts/"+pr.FormID, map[string]any{"config": cfg, "siteId": site.ID}).MustStatus(t, 200).JSON(t, &pr)
