@@ -132,11 +132,14 @@ type PushCampaign struct {
 	IconURL string `json:"iconUrl"`
 	Host    string `json:"host"`
 	// Guards are the frequency cap and quiet hours as they apply now.
-	Guards PushGuards       `json:"guards"`
-	Test   *PushTestResult  `json:"test,omitempty"`
-	Access PushAccess       `json:"access"`
-	PushOn bool             `json:"pushOn"`
-	Limits PushLengthLimits `json:"limits"`
+	Guards PushGuards `json:"guards"`
+	// Schedule is the send settings Review & send keeps; the composer's
+	// quiet-hours choice changes them.
+	Schedule PushSchedule     `json:"schedule"`
+	Test     *PushTestResult  `json:"test,omitempty"`
+	Access   PushAccess       `json:"access"`
+	PushOn   bool             `json:"pushOn"`
+	Limits   PushLengthLimits `json:"limits"`
 }
 
 // PushLengthLimits are the composer's counters.
@@ -345,7 +348,8 @@ func (s *Service) composerView(ctx context.Context, ws *store.Workspace, p *auth
 	out := PushCampaign{ID: c.ID.String(), Name: c.Name, Status: c.Status, Version: int(c.Version), AutosavedAt: c.AutosavedAt, UpdatedAt: c.UpdatedAt,
 		UpdatedBy: c.UpdatedByName, CreatedBy: c.CreatedByName, Title: c.Title, Message: c.Message, Link: c.Link, UTM: utmCampaign(c.Name),
 		Buttons: []PushButton{}, TTLMinutes: int(c.TtlMinutes), Tag: c.Tag, ReplaceTag: c.ReplaceTag, Sites: []PushAudienceSite{}, Lists: []PushAudienceRef{},
-		Segments: []PushAudienceRef{}, Access: s.accessFor(ctx, ws, p), Limits: PushLengthLimits{Title: TitleMax, Message: MessageMax, TitleWindows: 40}}
+		Segments: []PushAudienceRef{}, Access: s.accessFor(ctx, ws, p), Limits: PushLengthLimits{Title: TitleMax, Message: MessageMax, TitleWindows: 40},
+		Schedule: PushSchedule{Mode: c.ScheduleMode, SendAt: c.SendAt, Zone: tzName(ws), Outside: c.Outside, TTLMinutes: int(c.TtlMinutes)}}
 	_ = json.Unmarshal(c.Buttons, &out.Buttons)
 	if out.Buttons == nil {
 		out.Buttons = []PushButton{}

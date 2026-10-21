@@ -24916,6 +24916,7 @@ export interface components {
             name: string;
             pushOn: boolean;
             replaceTag: boolean;
+            schedule: components["schemas"]["PushSchedule"];
             segments: components["schemas"]["PushAudienceRef"][];
             sites: components["schemas"]["PushAudienceSite"][];
             /** @enum {string} */

@@ -41220,6 +41220,9 @@
           "replaceTag": {
             "type": "boolean"
           },
+          "schedule": {
+            "$ref": "#/components/schemas/PushSchedule"
+          },
           "segments": {
             "items": {
               "$ref": "#/components/schemas/PushAudienceRef"
@@ -41297,6 +41300,7 @@
           "iconUrl",
           "host",
           "guards",
+          "schedule",
           "access",
           "pushOn",
           "limits"
