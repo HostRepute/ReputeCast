@@ -409,6 +409,20 @@ func normalizeEstimates(e *ReadinessEstimates) {
 	if e.Route.Shares == nil {
 		e.Route.Shares = []ReadinessRouteShare{}
 	}
+	for i, sh := range e.Route.Shares {
+		if sh.Pricing == "" {
+			// Runs stored before the model was: their price label says it,
+			// in English.
+			switch sh.PriceLabel {
+			case "self-hosted":
+				e.Route.Shares[i].Pricing = "self_hosted"
+			case "plan":
+				e.Route.Shares[i].Pricing = "plan"
+			default:
+				e.Route.Shares[i].Pricing = "metered"
+			}
+		}
+	}
 	if e.Throttling == nil {
 		e.Throttling = []ReadinessThrottle{}
 	}

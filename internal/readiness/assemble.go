@@ -1620,7 +1620,8 @@ func (b *builder) estimates() ReadinessEstimates {
 		rs := ReadinessRouteShare{ProviderID: s.ProviderID, Name: s.Name, Short: s.Short, Adapter: s.Adapter, Label: s.Label, Color: state.Color(s.Adapter),
 			Percent: math.Round(s.Percent*10) / 10, Recipients: s.Recipients, Status: s.Status, Available: s.Available,
 			WarmupDay: s.WarmupDay, WarmupDays: s.WarmupDays, Rate: s.Rate}
-		switch s.Pricing.Model {
+		rs.Pricing = pricingModel(s.Pricing.Model)
+		switch rs.Pricing {
 		case "self_hosted":
 			st.Price = tx("estimate.selfHosted", nil)
 		case "plan":
@@ -1681,6 +1682,15 @@ func (b *builder) estimates() ReadinessEstimates {
 	out.Route = route
 	out.texts = t
 	return out
+}
+
+// pricingModel is how a provider is paid for: metered, plan or self_hosted.
+func pricingModel(m string) string {
+	switch m {
+	case "plan", "self_hosted":
+		return m
+	}
+	return "metered"
 }
 
 // baseLabel names the audience: "Weekly Digest list", "All subscribers".

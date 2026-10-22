@@ -192,9 +192,11 @@ type ReadinessRouteShare struct {
 	// Available is false when the provider can't take mail (down, paused,
 	// webhooks silent); its share is held.
 	Available bool `json:"available"`
-	// Cost in US dollars; PriceLabel is "$0.10 per 1,000" or "self-hosted".
+	// Cost in US dollars; PriceLabel is "$0.10 per 1,000" or "self-hosted";
+	// Pricing is how the provider is paid for.
 	Cost       float64 `json:"cost"`
 	PriceLabel string  `json:"priceLabel"`
+	Pricing    string  `json:"pricing" enum:"metered,plan,self_hosted"`
 	// Rate is messages per second; RateLabel "14 /s" or "2 /s ramp".
 	Rate      float64 `json:"rate"`
 	RateLabel string  `json:"rateLabel"`
