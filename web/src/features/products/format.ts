@@ -317,11 +317,15 @@ export function seeNoun(name: string): string | undefined {
   return ['guide', 'kit', 'planner', 'course', 'book', 'ebook', 'template', 'templates', 'checklist', 'workbook', 'toolkit'].find((w) => l.includes(w))
 }
 
-/** The shop card's description, as the public shop writes it: the short description, then the files. */
-export function shopDescription(short: string, files: string | undefined): string {
+/**
+ * The shop card's description, as the public shop writes it: the short
+ * description, then the files. `written` are the files as the description
+ * may already end with them (in English, when the app is in another language).
+ */
+export function shopDescription(short: string, files: string | undefined, ...written: (string | undefined)[]): string {
   const s = short.trim()
   // A description that already ends with the files ("…there. PDF, 86 pages.") keeps them once.
-  if (!files || s.replace(/\.$/, '').endsWith(files)) return s
+  if (!files || [files, ...written].some((f) => f && s.replace(/\.$/, '').endsWith(f))) return s
   return `${s.replace(/\.$/, '')}. ${files}.`.replace(/^\. /, '')
 }
 

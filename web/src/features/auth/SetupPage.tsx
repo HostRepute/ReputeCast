@@ -11,12 +11,15 @@ import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { InstanceLanguageFields } from '@/features/language/InstanceLanguageFields'
 import { useMemberLanguage } from '@/features/language/useLanguage'
+import { T, t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
 import { useDocumentTitle } from '@/lib/hooks'
 import { meQueryKey } from '@/lib/session'
 import { PasskeyGlyph } from './AuthParts'
 import { passkeyErrorMessage, registerPasskey } from './passkey'
 import { RecoveryCodesPanel } from './RecoveryCodes'
+import { m } from './setup.messages'
 import { browserTimezone, timezoneLabel, timezoneOptions } from './timezones'
 import { TotpSetupForm } from './TotpSetup'
 import './auth.css'
@@ -25,6 +28,11 @@ type State = Schemas['SetupState']
 type StepKey = Schemas['SetupStep']['key']
 
 const setupKey = ['setup'] as const
+
+/** The command that creates the install Owner; never translated. */
+const INSTALL_COMMAND = 'reputecast install'
+
+const mono = (c: ReactNode) => <span className="mono">{c}</span>
 
 function hostOf(u?: string) {
   try {
@@ -41,6 +49,7 @@ function hostOf(u?: string) {
  * password, required two-factor) get the same screen with only those steps.
  */
 export function SetupPage() {
+  const t = useT()
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { data: meta } = useInstanceMeta()
@@ -49,7 +58,7 @@ export function SetupPage() {
   const [codes, setCodes] = useState<string[]>()
   const [created, setCreated] = useState<Schemas['CreatedWorkspace']>()
   const [back, setBack] = useState<StepKey>()
-  useDocumentTitle(`Set up ${meta?.instanceName ?? 'ReputeCast'} · ReputeCast`)
+  useDocumentTitle(t(m.documentTitle, { name: meta?.instanceName ?? 'ReputeCast' }))
 
   const refresh = async () => {
     setBack(undefined)
@@ -67,18 +76,18 @@ export function SetupPage() {
     return (
       <Frame>
         <section className="card" style={{ gridColumn: '1 / -1' }}>
-          <h1 className="text-[22px] font-bold tracking-[-.02em]">{signedOut ? 'Sign in to continue setup' : "Setup couldn't load"}</h1>
-          <Note tone={signedOut ? 'info' : 'bad'} label={signedOut ? 'Signed out' : 'Error'}>
-            {signedOut ? 'Your session ended. Sign in again; the steps you finished are saved.' : `${errorMessage(state.error)} Nothing was changed.`}
+          <h1 className="text-[22px] font-bold tracking-[-.02em]">{signedOut ? t(m.signInToContinue) : t(m.loadFailed)}</h1>
+          <Note tone={signedOut ? 'info' : 'bad'} label={signedOut ? t(m.signedOut) : t(m.error)}>
+            {signedOut ? t(m.sessionEnded) : `${errorMessage(state.error)} ${t(m.nothingChanged)}`}
           </Note>
           <div>
             {signedOut ? (
               <ButtonLink variant="primary" to="/sign-in" search={{ next: '/setup' }}>
-                Sign in
+                {t(m.signIn)}
               </ButtonLink>
             ) : (
               <Button variant="primary" onClick={() => state.refetch()}>
-                Try again
+                {t(common.tryAgain)}
               </Button>
             )}
           </div>
@@ -96,9 +105,7 @@ export function SetupPage() {
   const name = instanceMode ? s.instance.name : meta?.instanceName
   const stepHeader = (title: string, sub: ReactNode, id = 'h-step') => (
     <div className="flex flex-col gap-1">
-      <span className="k">
-        Step {index + 1} of {steps.length}
-      </span>
+      <span className="k">{t(m.stepOf, { n: index + 1, total: steps.length })}</span>
       <h2 id={id} className="text-[22px] font-bold tracking-[-.02em]">
         {title}
       </h2>
@@ -136,7 +143,7 @@ export function SetupPage() {
             if (instanceMode) await refresh()
             else {
               await qc.invalidateQueries({ queryKey: meQueryKey })
-              toast({ kind: 'success', title: 'Two-factor is on', detail: 'Your account is protected.' })
+              toast({ kind: 'success', title: t(m.twoFactorOn), detail: t(m.accountProtected) })
               void navigate({ to: '/' })
             }
           }}
@@ -166,17 +173,17 @@ export function SetupPage() {
 
   const doneItems: string[] = []
   if (instanceMode) {
-    if (!s.password.mustChange) doneItems.push('Temporary password replaced')
-    if (s.secondFactor.passkeys.length) doneItems.push(`Passkey “${s.secondFactor.passkeys[0]}” added`)
-    if (s.secondFactor.totp) doneItems.push('Authenticator app set up')
-    if (steps.find((x) => x.key === 'recovery_codes')?.done) doneItems.push(`${s.recoveryCodes.remaining} recovery codes downloaded`)
-    if (s.instance.confirmed) doneItems.push('Instance basics saved')
-    if (created ?? s.workspace) doneItems.push(`Workspace “${(created ?? s.workspace)!.name}” created`)
+    if (!s.password.mustChange) doneItems.push(t(m.doneTempPassword))
+    if (s.secondFactor.passkeys.length) doneItems.push(t(m.donePasskey, { name: s.secondFactor.passkeys[0]! }))
+    if (s.secondFactor.totp) doneItems.push(t(m.doneAuthenticator))
+    if (steps.find((x) => x.key === 'recovery_codes')?.done) doneItems.push(t(m.doneRecovery, { count: s.recoveryCodes.remaining }))
+    if (s.instance.confirmed) doneItems.push(t(m.doneInstance))
+    if (created ?? s.workspace) doneItems.push(t(m.doneWorkspace, { name: (created ?? s.workspace)!.name }))
   }
 
   return (
     <Frame>
-      <aside className="flex flex-col gap-4" aria-label="Setup progress">
+      <aside className="flex flex-col gap-4" aria-label={t(m.progressLabel)}>
         <section className="card" style={{ gap: 12 }}>
           <div className="brand">
             <LogoMark size={28} />
@@ -185,18 +192,16 @@ export function SetupPage() {
             </span>
           </div>
           <div className="flex flex-col gap-0.5">
-            <h1 className="text-[17px] font-bold tracking-[-.01em]">{instanceMode ? `Set up ${name}` : 'Finish setting up your account'}</h1>
+            <h1 className="text-[17px] font-bold tracking-[-.01em]">{instanceMode ? t(m.setUpName, { name }) : t(m.finishAccount)}</h1>
             <span className="k">
               {instanceMode ? (
-                <>
-                  Signed in as {s.email}, the Owner created by <span className="mono">reputecast install</span>
-                </>
+                <T msg={m.signedInOwner} values={{ email: s.email, command: INSTALL_COMMAND, mono }} />
               ) : (
-                <>Signed in as {s.email}. {s.secondFactor.reason}</>
+                t(m.signedInReason, { email: s.email, reason: s.secondFactor.reason ?? '' })
               )}
             </span>
           </div>
-          <nav className="steps" aria-label="Setup steps">
+          <nav className="steps" aria-label={t(m.stepsLabel)}>
             {steps.map((st, i) => {
               const isDone = st.done || (created !== undefined && st.key !== 'provider')
               const on = st.key === current
@@ -206,7 +211,8 @@ export function SetupPage() {
                     {isDone ? '✓' : i + 1}
                   </span>
                   <span className="t">
-                    {st.label} {isDone ? <span className="vh">(completed)</span> : on ? <span className="vh">(current step)</span> : null}
+                    {t(m.stepLabel, { step: st.key, label: st.label })}{' '}
+                    {isDone ? <span className="vh">{t(m.stepCompleted)}</span> : on ? <span className="vh">{t(m.stepCurrent)}</span> : null}
                   </span>
                 </span>
               )
@@ -215,14 +221,14 @@ export function SetupPage() {
         </section>
         {instanceMode && doneItems.length > 0 ? (
           <section className="card" style={{ gap: 8 }}>
-            <h2 className="text-[13px] font-semibold text-ink-2">Done so far</h2>
+            <h2 className="text-[13px] font-semibold text-ink-2">{t(m.doneSoFar)}</h2>
             {doneItems.map((d) => (
               <div className="chk-row" key={d}>
                 <Badge tone="ok">✓</Badge>
                 {d}
               </div>
             ))}
-            <span className="k">Two-factor is required for the first Owner; it can't be skipped.</span>
+            <span className="k">{t(m.firstOwnerRequired)}</span>
           </section>
         ) : null}
       </aside>
@@ -244,6 +250,7 @@ function Frame({ children }: { children: ReactNode }) {
 }
 
 function SetupSkeleton() {
+  const t = useT()
   return (
     <Frame>
       <aside className="flex flex-col gap-4" aria-busy="true">
@@ -257,7 +264,7 @@ function SetupSkeleton() {
       </aside>
       <section className="card" style={{ gap: 18 }} aria-busy="true">
         <span className="vh" role="status">
-          Loading setup…
+          {t(m.loading)}
         </span>
         <Skeleton w={80} h={12} />
         <Skeleton w="40%" h={24} />
@@ -275,6 +282,7 @@ function Footer({ children }: { children: ReactNode }) {
 }
 
 function PasswordStep({ s, header, onDone }: { s: State; header: Header; onDone: () => Promise<void> }) {
+  const t = useT()
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -284,9 +292,9 @@ function PasswordStep({ s, header, onDone }: { s: State; header: Header; onDone:
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     const errs: typeof errors = {}
-    if (!current) errs.current = 'Enter the temporary password from the terminal.'
-    if ([...next].length < s.password.minLength) errs.password = `Use at least ${s.password.minLength} characters. Passphrases are fine.`
-    if (confirm !== next) errs.confirm = "The two passwords don't match."
+    if (!current) errs.current = t(m.tempPasswordRequired)
+    if ([...next].length < s.password.minLength) errs.password = t(m.passwordTooShort, { min: s.password.minLength })
+    if (confirm !== next) errs.confirm = t(m.passwordsDiffer)
     setErrors(errs)
     if (Object.keys(errs).length) return
     setBusy(true)
@@ -304,15 +312,15 @@ function PasswordStep({ s, header, onDone }: { s: State; header: Header; onDone:
   }
   return (
     <form className="flex flex-col gap-[18px]" onSubmit={submit} noValidate>
-      {header('Replace the temporary password', <>The password printed by <span className="mono">reputecast install</span> works only until you choose your own. Choose one only you know.</>)}
+      {header(t(m.passwordTitle), <T msg={m.passwordSub} values={{ command: INSTALL_COMMAND, mono }} />)}
       {errors.form ? (
-        <Note tone="bad" label="Not saved">
+        <Note tone="bad" label={t(m.notSaved)}>
           {errors.form}
         </Note>
       ) : null}
       <input type="email" name="email" autoComplete="username" value={s.email} readOnly hidden />
       <div className="lbl">
-        <label htmlFor={ids.cur}>Temporary password</label>
+        <label htmlFor={ids.cur}>{t(m.tempPassword)}</label>
         <input id={ids.cur} className={errors.current ? 'in err' : 'in'} type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} autoFocus aria-invalid={errors.current ? true : undefined} />
         {errors.current ? (
           <span className="err" role="alert">
@@ -322,7 +330,7 @@ function PasswordStep({ s, header, onDone }: { s: State; header: Header; onDone:
       </div>
       <div className="two">
         <div className="lbl">
-          <label htmlFor={ids.pw}>New password</label>
+          <label htmlFor={ids.pw}>{t(m.newPassword)}</label>
           <input
             id={ids.pw}
             className={errors.password ? 'in err' : 'in'}
@@ -339,11 +347,11 @@ function PasswordStep({ s, header, onDone }: { s: State; header: Header; onDone:
             </span>
           ) : null}
           <span className="k font-medium" id={ids.hint}>
-            At least {s.password.minLength} characters. {s.password.breachedCheck ? 'Checked against known breaches.' : 'Passphrases are fine.'}
+            {s.password.breachedCheck ? t(m.passwordHintBreached, { min: s.password.minLength }) : t(m.passwordHint, { min: s.password.minLength })}
           </span>
         </div>
         <div className="lbl">
-          <label htmlFor={ids.cf}>Confirm new password</label>
+          <label htmlFor={ids.cf}>{t(m.confirmPassword)}</label>
           <input id={ids.cf} className={errors.confirm ? 'in err' : 'in'} type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} aria-invalid={errors.confirm ? true : undefined} />
           {errors.confirm ? (
             <span className="err" role="alert">
@@ -355,7 +363,7 @@ function PasswordStep({ s, header, onDone }: { s: State; header: Header; onDone:
       <Footer>
         <span />
         <Button type="submit" variant="primary" loading={busy}>
-          Save and continue
+          {t(m.saveContinue)}
         </Button>
       </Footer>
     </form>
@@ -363,21 +371,27 @@ function PasswordStep({ s, header, onDone }: { s: State; header: Header; onDone:
 }
 
 function SecondFactorStep({ s, header, onTotp, onPasskey }: { s: State; header: Header; onTotp: (codes: string[]) => void; onPasskey: () => Promise<void> }) {
+  const t = useT()
   const [mode, setMode] = useState<'choose' | 'totp'>('choose')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
-  const required = s.mode === 'instance' ? "Two-factor is required for the first Owner; it can't be skipped." : s.secondFactor.reason
+  const required = s.mode === 'instance' ? t(m.firstOwnerRequired) : s.secondFactor.reason
   if (mode === 'totp') {
     return (
       <div className="flex flex-col gap-[18px]">
-        {header('Set up an authenticator app', 'Scan the QR code, then enter the code the app shows to confirm.')}
-        <TotpSetupForm onConfirmed={onTotp} onCancel={() => setMode('choose')} cancelLabel="Back" />
+        {header(t(m.totpTitle), t(m.totpSub))}
+        <TotpSetupForm onConfirmed={onTotp} onCancel={() => setMode('choose')} cancelLabel={t(common.back)} />
       </div>
     )
   }
   return (
     <div className="flex flex-col gap-[18px]">
-      {header('Add a passkey or an authenticator app', <>{required} A passkey is the quickest: Touch ID, Face ID, Windows Hello or a security key.</>)}
+      {header(
+        t(m.secondFactorTitle),
+        <>
+          {required} {t(m.passkeyQuickest)}
+        </>,
+      )}
       {error ? (
         <span className="err" role="alert">
           {error}
@@ -392,7 +406,7 @@ function SecondFactorStep({ s, header, onTotp, onPasskey }: { s: State; header: 
             setError(undefined)
             try {
               const pk = await registerPasskey()
-              toast({ kind: 'success', title: 'Passkey added', detail: pk.name })
+              toast({ kind: 'success', title: t(m.passkeyAdded), detail: pk.name })
               await onPasskey()
             } catch (e) {
               setError(passkeyErrorMessage(e, 'add'))
@@ -402,26 +416,27 @@ function SecondFactorStep({ s, header, onTotp, onPasskey }: { s: State; header: 
           }}
         >
           {busy ? null : <PasskeyGlyph />}
-          Add a passkey (recommended)
+          {t(m.addPasskey)}
         </Button>
-        <Button onClick={() => setMode('totp')}>Set up an authenticator app</Button>
+        <Button onClick={() => setMode('totp')}>{t(m.setUpAuthenticator)}</Button>
       </div>
-      <span className="k">You can add more passkeys and change your authenticator later in Account &amp; security.</span>
+      <span className="k">{t(m.changeLater)}</span>
     </div>
   )
 }
 
 function RecoveryStep({ s, header, codes, onCodes, onDone }: { s: State; header: Header; codes?: string[]; onCodes: (c: string[]) => void; onDone: () => Promise<void> }) {
+  const t = useT()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
-  const sub = 'Each code signs you in once if you lose your passkey or authenticator. You see them only now.'
+  const sub = t(m.recoverySub)
   if (!codes) {
     return (
       <div className="flex flex-col gap-[18px]">
-        {header('Save your recovery codes', sub)}
+        {header(t(m.recoveryTitle), sub)}
         {s.recoveryCodes.remaining > 0 ? (
-          <Note tone="info" label="Shown once">
-            Your earlier codes can't be shown again. Generate a new set to save them; the old ones stop working.
+          <Note tone="info" label={t(m.shownOnce)}>
+            {t(m.earlierCodes)}
           </Note>
         ) : null}
         {error ? (
@@ -446,7 +461,7 @@ function RecoveryStep({ s, header, codes, onCodes, onDone }: { s: State; header:
               }
             }}
           >
-            Generate recovery codes
+            {t(m.generateCodes)}
           </Button>
         </div>
       </div>
@@ -454,12 +469,12 @@ function RecoveryStep({ s, header, codes, onCodes, onDone }: { s: State; header:
   }
   return (
     <div className="flex flex-col gap-[18px]">
-      {header('Save your recovery codes', sub)}
+      {header(t(m.recoveryTitle), sub)}
       <RecoveryCodesPanel
         codes={codes}
         email={s.email}
         busy={busy}
-        finishLabel="Save and continue"
+        finishLabel={t(m.saveContinue)}
         onFinish={async () => {
           setBusy(true)
           setError(undefined)
@@ -486,9 +501,8 @@ const checkBadge: Record<string, 'ok' | 'warn' | 'bad' | 'neutral'> = { ok: 'ok'
 
 function secondsAgo(at: string, now: number) {
   const s = Math.max(1, Math.round((now - new Date(at).getTime()) / 1000))
-  if (s < 60) return `${s} s ago`
-  const m = Math.round(s / 60)
-  return `${m} min ago`
+  if (s < 60) return tt(m.secondsAgo, { n: s })
+  return tt(m.minutesAgo, { n: Math.round(s / 60) })
 }
 
 /** The IP and host parts of a check sentence in mono, as on the board. */
@@ -510,6 +524,7 @@ function CheckDetail({ text }: { text: string }) {
 }
 
 function InstanceStep({ s, header, onBack, onDone }: { s: State; header: Header; onBack: () => void; onDone: () => Promise<void> }) {
+  const t = useT()
   const [name, setName] = useState(s.instance.name === 'ReputeCast' ? '' : s.instance.name)
   // Until this step is saved the instance has the install default (UTC);
   // the Owner's own timezone is the likelier choice.
@@ -553,8 +568,8 @@ function InstanceStep({ s, header, onBack, onDone }: { s: State; header: Header;
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     const errs: typeof errors = {}
-    if (!name.trim()) errs.name = 'Give the instance a name, like Acme ReputeCast.'
-    if (!/^https?:\/\/[^\s/]+/.test(url.trim())) errs.url = 'Use the full address people open, like https://reputecast.acme.io.'
+    if (!name.trim()) errs.name = t(m.instanceNameRequired)
+    if (!/^https?:\/\/[^\s/]+/.test(url.trim())) errs.url = t(m.urlInvalid)
     setErrors(errs)
     if (errs.name || errs.url) return
     setBusy(true)
@@ -573,28 +588,34 @@ function InstanceStep({ s, header, onBack, onDone }: { s: State; header: Header;
     }
   }
 
-  const rows: [string, Schemas['CheckLine']][] = check ? [['DNS', check.dns], ['TLS', check.tls], ['Reachable', check.reachable]] : []
+  const rows: [string, Schemas['CheckLine']][] = check
+    ? [
+        ['DNS', check.dns],
+        ['TLS', check.tls],
+        [t(m.checkReachable), check.reachable],
+      ]
+    : []
   return (
     <form className="flex flex-col gap-[18px]" onSubmit={submit} noValidate>
-      {header('Instance basics', 'These settings apply to every workspace on this installation. You can change them later in Instance admin.', 'h-basics')}
+      {header(t(m.instanceTitle), t(m.instanceSub), 'h-basics')}
       {errors.form ? (
-        <Note tone="bad" label="Not saved">
+        <Note tone="bad" label={t(m.notSaved)}>
           {errors.form}
         </Note>
       ) : null}
       <div className="two">
         <div className="lbl">
-          <label htmlFor={ids.name}>Instance name</label>
-          <input id={ids.name} className={errors.name ? 'in err' : 'in'} value={name} placeholder="Acme ReputeCast" onChange={(e) => setName(e.target.value)} aria-invalid={errors.name ? true : undefined} />
+          <label htmlFor={ids.name}>{t(m.instanceName)}</label>
+          <input id={ids.name} className={errors.name ? 'in err' : 'in'} value={name} placeholder={'Acme ReputeCast'} onChange={(e) => setName(e.target.value)} aria-invalid={errors.name ? true : undefined} />
           {errors.name ? (
             <span className="err" role="alert">
               {errors.name}
             </span>
           ) : null}
-          <span className="k font-medium">Shown on the sign-in page and in emails to your team.</span>
+          <span className="k font-medium">{t(m.instanceNameHint)}</span>
         </div>
         <div className="lbl">
-          <label htmlFor={ids.tz}>Default timezone</label>
+          <label htmlFor={ids.tz}>{t(m.defaultTimezone)}</label>
           <select id={ids.tz} className="in" value={tz} onChange={(e) => setTz(e.target.value)}>
             {timezoneOptions(tz).map((z) => (
               <option key={z} value={z}>
@@ -602,17 +623,17 @@ function InstanceStep({ s, header, onBack, onDone }: { s: State; header: Header;
               </option>
             ))}
           </select>
-          <span className="k font-medium">New workspaces start with this timezone.</span>
+          <span className="k font-medium">{t(m.defaultTimezoneHint)}</span>
         </div>
       </div>
       {/* The first sign-in asks for the default language (connect-and-reach brief §6). */}
       <InstanceLanguageFields language={language} region="" onLanguage={setLanguage} onRegion={() => {}} showRegion={false} />
       <div className="lbl">
-        <label htmlFor={ids.url}>Public URL</label>
+        <label htmlFor={ids.url}>{t(m.publicUrl)}</label>
         <div className="flex gap-2">
           <input id={ids.url} className={cn('in mono flex-1', errors.url && 'err')} value={url} onChange={(e) => setUrl(e.target.value)} inputMode="url" aria-invalid={errors.url ? true : undefined} />
           <Button loading={checking} onClick={() => runCheck(url.trim())}>
-            Check again
+            {t(m.checkAgain)}
           </Button>
         </div>
         {errors.url ? (
@@ -620,13 +641,11 @@ function InstanceStep({ s, header, onBack, onDone }: { s: State; header: Header;
             {errors.url}
           </span>
         ) : null}
-        <span className="k font-medium">
-          Used for provider webhooks, SSO redirect URIs, public pages and the links in every email. Changing it later breaks existing webhooks until they are re-registered.
-        </span>
+        <span className="k font-medium">{t(m.publicUrlHint)}</span>
       </div>
       {check ? (
-        <div className="card flex flex-col gap-2 bg-ground-3 px-3.5 py-3" role="status" aria-label="URL check result">
-          <span className="text-[12px] font-semibold text-ink-2">{checking ? 'Checking…' : `Checked ${secondsAgo(check.checkedAt, now)}`}</span>
+        <div className="card flex flex-col gap-2 bg-ground-3 px-3.5 py-3" role="status" aria-label={t(m.urlCheckLabel)}>
+          <span className="text-[12px] font-semibold text-ink-2">{checking ? t(m.checking) : t(m.checked, { ago: secondsAgo(check.checkedAt, now) })}</span>
           {rows.map(([label, line]) => (
             <div className="chk-row" key={label}>
               <Badge tone={checkBadge[line.status] ?? 'neutral'}>{label}</Badge>
@@ -636,7 +655,7 @@ function InstanceStep({ s, header, onBack, onDone }: { s: State; header: Header;
         </div>
       ) : checking ? (
         <div className="card flex flex-col gap-2 bg-ground-3 px-3.5 py-3" aria-busy="true">
-          <span className="text-[12px] font-semibold text-ink-2">Checking {hostOf(url)}…</span>
+          <span className="text-[12px] font-semibold text-ink-2">{t(m.checkingHost, { host: hostOf(url) })}</span>
           <Skeleton w="70%" h={14} />
           <Skeleton w="60%" h={14} />
           <Skeleton w="75%" h={14} />
@@ -646,17 +665,17 @@ function InstanceStep({ s, header, onBack, onDone }: { s: State; header: Header;
         <input type="checkbox" id={ids.upd} className="m-[2px_3px_3px_4px] cursor-pointer" checked={updateCheck} onChange={(e) => setUpdateCheck(e.target.checked)} aria-describedby={`${ids.upd}-hint`} />
         <span className="flex flex-col gap-0.5">
           <label htmlFor={ids.upd} className="cursor-pointer font-semibold">
-            Check GitHub for new releases once a day
+            {t(m.updateCheck)}
           </label>
           <span className="k" id={`${ids.upd}-hint`}>
-            Only the version number is fetched. ReputeCast never sends usage data anywhere. You can turn this off for offline installs.
+            {t(m.updateCheckHint)}
           </span>
         </span>
       </div>
       <Footer>
-        <Button onClick={onBack}>Back</Button>
+        <Button onClick={onBack}>{t(common.back)}</Button>
         <Button type="submit" variant="primary" loading={busy}>
-          Save and create the first workspace
+          {t(m.saveCreateWorkspace)}
         </Button>
       </Footer>
     </form>
@@ -664,6 +683,7 @@ function InstanceStep({ s, header, onBack, onDone }: { s: State; header: Header;
 }
 
 function WorkspaceStep({ s, header, onBack, onDone }: { s: State; header: Header; onBack: () => void; onDone: (ws: Schemas['CreatedWorkspace']) => Promise<void> }) {
+  const t = useT()
   const [name, setName] = useState('')
   const [tz, setTz] = useState(s.instance.timezone || 'UTC')
   const [busy, setBusy] = useState(false)
@@ -673,7 +693,7 @@ function WorkspaceStep({ s, header, onBack, onDone }: { s: State; header: Header
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!name.trim()) {
-      setError('Give the workspace a name, like Acme Newsletter.')
+      setError(t(m.workspaceNameRequired))
       return
     }
     setBusy(true)
@@ -692,25 +712,25 @@ function WorkspaceStep({ s, header, onBack, onDone }: { s: State; header: Header
   }
   return (
     <form className="flex flex-col gap-[18px]" onSubmit={submit} noValidate>
-      {header('Create the first workspace', 'A workspace has its own lists, campaigns, automations, sending providers and team. You can create more later from the workspace switcher.')}
+      {header(t(m.workspaceTitle), t(m.workspaceSub))}
       {formError ? (
-        <Note tone="bad" label="Not created">
+        <Note tone="bad" label={t(m.notCreated)}>
           {formError}
         </Note>
       ) : null}
       <div className="two">
         <div className="lbl">
-          <label htmlFor={ids.name}>Workspace name</label>
-          <input id={ids.name} className={error ? 'in err' : 'in'} value={name} placeholder="Acme Newsletter" onChange={(e) => setName(e.target.value)} autoFocus aria-invalid={error ? true : undefined} />
+          <label htmlFor={ids.name}>{t(m.workspaceName)}</label>
+          <input id={ids.name} className={error ? 'in err' : 'in'} value={name} placeholder={t(m.workspaceNamePlaceholder)} onChange={(e) => setName(e.target.value)} autoFocus aria-invalid={error ? true : undefined} />
           {error ? (
             <span className="err" role="alert">
               {error}
             </span>
           ) : null}
-          <span className="k font-medium">Shown in the workspace switcher and on public pages until you set a brand.</span>
+          <span className="k font-medium">{t(m.workspaceNameHint)}</span>
         </div>
         <div className="lbl">
-          <label htmlFor={ids.tz}>Timezone</label>
+          <label htmlFor={ids.tz}>{t(m.timezone)}</label>
           <select id={ids.tz} className="in" value={tz} onChange={(e) => setTz(e.target.value)}>
             {timezoneOptions(tz).map((z) => (
               <option key={z} value={z}>
@@ -718,13 +738,13 @@ function WorkspaceStep({ s, header, onBack, onDone }: { s: State; header: Header
               </option>
             ))}
           </select>
-          <span className="k font-medium">Schedules and reports use this timezone.</span>
+          <span className="k font-medium">{t(m.timezoneHint)}</span>
         </div>
       </div>
       <Footer>
-        <Button onClick={onBack}>Back</Button>
+        <Button onClick={onBack}>{t(common.back)}</Button>
         <Button type="submit" variant="primary" loading={busy}>
-          Create workspace
+          {t(m.createWorkspace)}
         </Button>
       </Footer>
     </form>
@@ -732,32 +752,29 @@ function WorkspaceStep({ s, header, onBack, onDone }: { s: State; header: Header
 }
 
 function ProviderStep({ header, workspace, instance }: { header: Header; workspace?: Schemas['CreatedWorkspace']; instance: string }) {
+  const t = useT()
   if (!workspace) {
     return (
       <div className="flex flex-col gap-[18px]">
-        {header('Connect a sending provider', 'Create a workspace first.')}
+        {header(t(m.providerTitle), t(m.providerNeedsWorkspace))}
         <Link className="btn" to="/">
-          Continue
+          {t(m.continue)}
         </Link>
       </div>
     )
   }
   return (
     <div className="flex flex-col gap-[18px]">
-      {header(
-        'Connect a sending provider',
-        'ReputeCast sends through your own provider: Amazon SES, Postmark, Mailgun, SendGrid, Resend, a Postal server or any SMTP server. Connecting one takes about 10 minutes.',
-      )}
-      <Note tone="ok" label="Ready">
-        {instance} is set up and {workspace.name} is created; you're its Owner. Invites, password resets and notifications by email start working once a provider handles the System
-        stream.
+      {header(t(m.providerTitle), t(m.providerSub))}
+      <Note tone="ok" label={t(m.ready)}>
+        {t(m.readyBody, { instance, workspace: workspace.name })}
       </Note>
       <Footer>
         <ButtonLink to="/w/$workspace" params={{ workspace: workspace.slug }}>
-          Skip for now
+          {t(m.skipForNow)}
         </ButtonLink>
         <ButtonLink variant="primary" to="/w/$workspace/providers/connect" params={{ workspace: workspace.slug }}>
-          Connect a sending provider
+          {t(m.connectProvider)}
         </ButtonLink>
       </Footer>
     </div>

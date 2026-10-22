@@ -19,7 +19,6 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -191,28 +190,6 @@ func (s *Service) helpers(ctx context.Context, wsID uuid.UUID, perm authz.Permis
 		out = out[:limit]
 	}
 	return out
-}
-
-// joinNames is "Sofia Rossi, Marcus Chen or Linh Nguyen".
-func joinNames(names []string) string {
-	switch len(names) {
-	case 0:
-		return ""
-	case 1:
-		return names[0]
-	case 2:
-		return names[0] + " or " + names[1]
-	}
-	return strings.Join(names[:len(names)-1], ", ") + " or " + names[len(names)-1]
-}
-
-// deniedMessage is "Publishing needs transactional:publish. Ask …".
-func deniedMessage(action string, perm authz.Permission, helpers []string) string {
-	msg := action + " needs " + string(perm) + "."
-	if len(helpers) > 0 {
-		msg += " Ask " + joinNames(helpers) + "."
-	}
-	return msg
 }
 
 func itoa(n int) string {

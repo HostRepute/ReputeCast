@@ -1,0 +1,143 @@
+import { defineMessages } from '@/i18n'
+
+/**
+ * Instance admin › Authentication (InstanceAuth): sign-in methods, password,
+ * two-factor and session policies, the allowlist for automatic accounts,
+ * the SSO providers table and the Google, Microsoft and GitHub sign-in
+ * settings. Provider names and the consoles' menu paths stay in English.
+ */
+export const m = defineMessages('admin.auth', {
+  title: 'Authentication',
+  loadFailed: "Couldn't load the authentication policy",
+  loadFailedBody: 'Nothing was changed; sign-in keeps working with the saved policy.',
+  loading: 'Loading the authentication policy',
+  savedToast: 'Policies saved',
+  savedDetail: 'new limits apply at the next sign-in',
+  saveFailed: "The policies weren't saved",
+  discard: 'Discard',
+  savePolicies: 'Save policies',
+  leaveTitle: 'Leave without saving the policies?',
+  leaveBody: 'You changed the authentication policy. Nothing applies until you save.',
+  saveAndLeave: 'Save and leave',
+
+  // Allowed sign-in methods.
+  methodsTitle: 'Allowed sign-in methods',
+  methodsCaption: 'Methods can be turned on separately. SAML and SCIM are not part of this version.',
+  passwordMethod: 'Email and password',
+  passwordMethodHint: 'Minimum {min} characters · breached-password check {check, select, on {on} other {off}}{passwordOff, select, yes { · break-glass Owners keep theirs} other {}}',
+  passkeysMethod: 'Passkeys',
+  passkeysMethodHint: 'Single-step sign-in and second factor · WebAuthn',
+  googleHint: 'For invited people only · never creates accounts',
+  microsoftHint: 'Personal and work accounts',
+  githubOrgHint: 'Restricted to members of the GitHub organization <mono>{org}</mono>',
+  githubAnyHint: 'Any GitHub account of an invited person',
+  githubOrgOn: 'On · org restricted',
+  socialSettings: '{name} sign-in settings',
+  ssoMethod: 'Single sign-on (OpenID Connect)',
+  ssoNone: 'No provider yet: add one below',
+  // The providers, joined by " · ": "Google Workspace enabled · Okta in progress".
+  ssoItem: '{name} {status, select, enabled {enabled} draft {in progress} disabled {disabled} error {error} other {{status}}}',
+  ssoOn: 'On · {count, plural, one {# provider} other {# providers}}',
+
+  // Password policy.
+  passwordPolicy: 'Password policy',
+  minLength: 'Minimum length',
+  minLengthHint: 'Default 12. Passphrases count.',
+  reuse: 'Re-use',
+  reuseBlock5: 'Block the last 5 passwords',
+  reuseBlock10: 'Block the last 10',
+  reuseAllow: 'Allow re-use',
+  breachedTitle: 'Check new passwords against known breaches',
+  breachedHint: 'Uses k-anonymity: only the first 5 characters of the hash leave the server. Turn off for offline installs.',
+
+  // Two-factor enforcement.
+  tfaTitle: 'Two-factor enforcement',
+  tfaLegend: 'Who must use two-factor',
+  tfaEveryone: 'Everyone',
+  tfaEveryoneHint: 'Every member of every workspace',
+  tfaSensitive: 'Members with a sensitive permission',
+  tfaSensitiveHint: 'Anyone holding a ⚑ permission (send, approve, publish, export, providers, team, keys, agents). SSO users with two-factor at the IdP count as covered.',
+  tfaOff: 'Off',
+  tfaOffHint: 'Recommended only for test instances',
+  grace: 'Grace period',
+  graceNone: 'None',
+  inGraceNone: 'Nobody is in a grace period now',
+  // {list}: graceEntry items, as a list ("A, B and C").
+  inGrace: '{count, plural, one {# member} other {# members}} in grace now: {list}',
+  graceEntry: '{days, plural, =0 {{name}, ends today} one {{name}, ends in # day} other {{name}, ends in # days}}',
+
+  // Sessions and lockout, and the grace period's choices.
+  sessionsTitle: 'Sessions and lockout',
+  lifetime: 'Session lifetime',
+  idle: 'Idle timeout',
+  lockAfter: 'Lock after',
+  failedAttempts: 'failed attempts',
+  lockFor: 'Lock for',
+  durationDays: '{count, plural, one {# day} other {# days}}',
+  durationHours: '{count, plural, one {# hour} other {# hours}}',
+  durationMinutes: '{count, plural, one {# minute} other {# minutes}}',
+  sessionsHint: 'Changing session settings signs nobody out; new limits apply at the next sign-in.',
+
+  // Email domain allowlist for automatic accounts.
+  allowlistTitle: 'Email domain allowlist for automatic accounts',
+  removeDomain: 'Remove {domain}',
+  domainToAdd: 'Domain to allow',
+  domainInvalid: 'Enter a domain like acme.io.',
+  add: 'Add',
+  addDomain: 'Add domain',
+  allowlistHint: 'Applies to just-in-time accounts from SSO. Invited people can use any email.',
+  allowlistAny: 'With no domain listed, any domain an SSO provider allows can get an account.',
+  // {when}: "this morning", "yesterday", "on Oct 9".
+  allowlistRejected: 'Sign-ins from other domains are rejected and logged{last, select, yes { (for example {email} {when})} other {}}.',
+
+  // An SSO provider's status, here and on the SSO providers page.
+  statusEnabled: 'Enabled',
+  statusDraft: 'Setup in progress',
+  statusError: 'Needs attention',
+  statusDisabled: 'Disabled',
+
+  // The SSO providers table.
+  ssoProviders: 'SSO providers',
+  ssoProvidersCaption: 'Configured at instance level · presets for Google Workspace, Microsoft Entra ID, Okta, Keycloak, Authentik and generic OIDC',
+  addSsoProvider: 'Add SSO provider',
+  ssoProvidersEmpty: "No SSO provider yet. Add one to let people sign in with your organization's identity provider, create accounts automatically and map groups to roles.",
+  colProvider: 'Provider',
+  colDomains: 'Domains',
+  colJit: 'JIT',
+  colGroupMapping: 'Group mapping',
+  colEnforced: 'Enforced',
+  colStatus: 'Status',
+  colActions: 'Actions',
+  jitOn: 'On → {workspace} · {role}',
+  mappingsUnavailable: 'Unavailable for {name}',
+  mappingsCount: '{count, plural, =0 {None} one {# mapping} other {# mappings}}',
+  enforcedYes: 'Yes · except break-glass Owners',
+  continueSetup: 'Continue setup',
+
+  // Google, Microsoft or GitHub sign-in settings (SocialSettingsDialog). {where} is the console's menu path, in English.
+  socialEyebrow: 'Dialog · instance admin',
+  socialTitle: '{name} sign-in',
+  socialBody: 'Signs in people who already have an account (invited); it never creates one. Register ReputeCast in {where}.',
+  socialSaved: '{name} sign-in saved',
+  socialSavedDetail: 'turn it on, then save the policies',
+  redirectLabel: 'Redirect URI <k>· add this to the OAuth app</k>',
+  redirectUri: 'Redirect URI',
+  redirectCopied: 'Redirect URI copied',
+  copyFailed: "Couldn't copy",
+  copyFailedDetail: 'select it and copy',
+  clientId: 'Client ID',
+  clientSecretLabel: 'Client secret <k>· write-only</k>',
+  newSecret: 'New secret',
+  pasteSecret: 'Paste the client secret',
+  replaceSecret: 'Replace',
+  secretHint: '{saved, select, yes {Saved {date}. } other {}}Secrets can be replaced but never read back.',
+  orgLabel: 'Organization <k>· optional</k>',
+  orgHint: 'Only active members of this GitHub organization can sign in (ReputeCast asks for read:org to check).',
+  accounts: 'Accounts',
+  tenantCommon: 'Personal and work accounts',
+  tenantOrganizations: 'Work and school accounts only',
+  tenantConsumers: 'Personal Microsoft accounts only',
+  tenantOne: 'One tenant (enter its ID)',
+  tenantId: 'Tenant ID',
+  microsoftNote: "Microsoft doesn't verify the email it sends, so a Microsoft sign-in is only linked through an invitation link or Account & security › Link.",
+})

@@ -9,8 +9,12 @@ import { Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { copyText } from '@/features/access/parts'
+import { m as ma } from '@/features/audit/messages'
+import { t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { ago, count } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
+import { m as mi } from './messages'
 
 type Settings = Schemas['InstanceAuditSettings']
 
@@ -31,10 +35,11 @@ function useSave() {
 }
 
 function Loading({ title, onClose, error }: { title: string; onClose: () => void; error?: unknown }) {
+  const t = useT()
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()} title={title} footer={<Button onClick={onClose}>Close</Button>}>
+    <Dialog open onOpenChange={(o) => !o && onClose()} title={title} footer={<Button onClick={onClose}>{t(common.close)}</Button>}>
       {error ? (
-        <Note tone="bad" label="Not loaded">
+        <Note tone="bad" label={t(ma.notLoaded)}>
           {errorMessage(error)}
         </Note>
       ) : (
@@ -49,12 +54,14 @@ function Loading({ title, onClose, error }: { title: string; onClose: () => void
 
 /** "Change retention": how long instance-level entries are kept. */
 export function RetentionDialog({ onClose }: { onClose: () => void }) {
+  const t = useT()
   const q = useSettings()
-  if (!q.data) return <Loading title="Instance audit retention" onClose={onClose} error={q.error} />
+  if (!q.data) return <Loading title={t(mi.retentionTitle)} onClose={onClose} error={q.error} />
   return <RetentionForm s={q.data} onClose={onClose} />
 }
 
 function RetentionForm({ s, onClose }: { s: Settings; onClose: () => void }) {
+  const t = useT()
   const [days, setDays] = useState(s.retentionDays)
   const [error, setError] = useState<string>()
   const { save, invalidate } = useSave()
@@ -63,22 +70,18 @@ function RetentionForm({ s, onClose }: { s: Settings; onClose: () => void }) {
       open
       onOpenChange={(o) => !o && !save.isPending && onClose()}
       hideClose
-      eyebrow={<span className="k">Dialog · audit log</span>}
-      title="Instance audit retention"
-      description={
-        <span className="text-[13.5px]">
-          How long instance-level entries (sign-ins, SSO, policies and users) are kept. Each workspace keeps its own retention in its audit settings.
-        </span>
-      }
+      eyebrow={<span className="k">{t(ma.dialogEyebrow)}</span>}
+      title={t(mi.retentionTitle)}
+      description={<span className="text-[13.5px]">{t(mi.retentionBody)}</span>}
       footer={
         <>
           <Button onClick={onClose} disabled={save.isPending}>
-            Cancel
+            {t(common.cancel)}
           </Button>
           <Button
             variant="primary"
             loading={save.isPending}
-            disabledReason={days === s.retentionDays ? 'Pick another retention to save' : undefined}
+            disabledReason={days === s.retentionDays ? t(mi.pickAnother) : undefined}
             onClick={() => {
               setError(undefined)
               save.mutate(
@@ -86,7 +89,7 @@ function RetentionForm({ s, onClose }: { s: Settings; onClose: () => void }) {
                 {
                   onSuccess: async () => {
                     await invalidate()
-                    toast({ kind: 'success', title: `Instance entries are kept ${days} days`, detail: 'logged as audit.settings_updated' })
+                    toast({ kind: 'success', title: tt(mi.retentionSaved, { days }), detail: tt(ma.loggedAs, { action: 'audit.settings_updated' }) })
                     onClose()
                   },
                   onError: (e) => setError(errorMessage(e)),
@@ -94,31 +97,31 @@ function RetentionForm({ s, onClose }: { s: Settings; onClose: () => void }) {
               )
             }}
           >
-            Save retention
+            {t(mi.saveRetention)}
           </Button>
         </>
       }
     >
       <label className="lbl">
-        Keep instance-level entries for
+        {t(mi.keepFor)}
         <select className="in max-w-[200px]" value={days} onChange={(e) => setDays(Number(e.target.value))}>
           {[...new Set([...RETENTION, s.retentionDays])]
             .sort((a, b) => a - b)
             .map((d) => (
               <option key={d} value={d}>
-                {d} days{d === 365 ? ' (default)' : ''}
+                {t(mi.retentionOption, { days: d, isDefault: d === 365 ? 'yes' : 'no' })}
               </option>
             ))}
         </select>
-        <span className="k font-medium">{count(s.total)} instance-level entries are kept now. Entries are immutable until they age out.</span>
+        <span className="k font-medium">{t(mi.retentionKept, { count: s.total, total: count(s.total) })}</span>
       </label>
       {days < s.retentionDays ? (
-        <Note tone="warn" label="Shorter">
-          Entries older than {days} days are removed at the next hourly cleanup. Export them first if you need them.
+        <Note tone="warn" label={t(mi.shorter)}>
+          {t(mi.shorterNote, { days })}
         </Note>
       ) : null}
       {error ? (
-        <Note tone="bad" label="Not saved">
+        <Note tone="bad" label={t(ma.notSaved)}>
           {error}
         </Note>
       ) : null}
@@ -128,12 +131,14 @@ function RetentionForm({ s, onClose }: { s: Settings; onClose: () => void }) {
 
 /** "Stream instance events": post instance-level entries to a webhook. */
 export function StreamDialog({ onClose }: { onClose: () => void }) {
+  const t = useT()
   const q = useSettings()
-  if (!q.data) return <Loading title="Stream instance events" onClose={onClose} error={q.error} />
+  if (!q.data) return <Loading title={t(mi.streamTitle)} onClose={onClose} error={q.error} />
   return <StreamForm s={q.data} onClose={onClose} />
 }
 
 function StreamForm({ s, onClose }: { s: Settings; onClose: () => void }) {
+  const t = useT()
   const now = useNow()
   const st = s.stream
   const [enabled, setEnabled] = useState(st.enabled || !st.url)
@@ -145,7 +150,7 @@ function StreamForm({ s, onClose }: { s: Settings; onClose: () => void }) {
   const submit = () => {
     setError(undefined)
     if (enabled && !/^https:\/\/[^/\s]+/.test(url.trim())) {
-      setError({ field: 'url', message: 'Enter the HTTPS URL that receives the entries.' })
+      setError({ field: 'url', message: t(ma.urlRequired) })
       return
     }
     save.mutate(
@@ -157,7 +162,7 @@ function StreamForm({ s, onClose }: { s: Settings; onClose: () => void }) {
             setSecret(r.secret)
             return
           }
-          toast({ kind: 'success', title: enabled ? 'Instance events are streamed' : 'Instance events are no longer streamed', detail: 'logged as audit.settings_updated' })
+          toast({ kind: 'success', title: enabled ? tt(mi.streamOn) : tt(mi.streamOff), detail: tt(ma.loggedAs, { action: 'audit.settings_updated' }) })
           onClose()
         },
         onError: (e) => {
@@ -172,27 +177,27 @@ function StreamForm({ s, onClose }: { s: Settings; onClose: () => void }) {
       <Dialog
         open
         onOpenChange={() => undefined}
-        eyebrow={<span className="k">Dialog · audit stream secret</span>}
-        title="Copy the signing secret now"
-        description={<span className="text-[13.5px]">Batches are signed with HMAC-SHA256 like the webhooks. This is the only time the secret is shown.</span>}
+        eyebrow={<span className="k">{t(ma.secretEyebrow)}</span>}
+        title={t(ma.secretTitle)}
+        description={<span className="text-[13.5px]">{t(ma.secretBody)}</span>}
         hideClose
         dismissible={false}
         footer={
           <Button variant="primary" onClick={onClose}>
-            Done
+            {t(common.done)}
           </Button>
         }
       >
         <div className="row flex-nowrap gap-2">
-          <input className="in mono flex-1 text-[12.5px]" value={secret} readOnly aria-label="Instance audit stream signing secret" onFocus={(e) => e.currentTarget.select()} />
+          <input className="in mono flex-1 text-[12.5px]" value={secret} readOnly aria-label={t(mi.secretInput)} onFocus={(e) => e.currentTarget.select()} />
           <Button
             variant="primary"
             onClick={async () => {
               const ok = await copyText(secret)
-              toast({ kind: ok ? 'success' : 'error', title: ok ? 'Copied' : 'Copy failed' })
+              toast({ kind: ok ? 'success' : 'error', title: ok ? tt(common.copied) : tt(ma.copyFailed) })
             }}
           >
-            Copy
+            {t(common.copy)}
           </Button>
         </div>
       </Dialog>
@@ -202,59 +207,56 @@ function StreamForm({ s, onClose }: { s: Settings; onClose: () => void }) {
       open
       onOpenChange={(o) => !o && !save.isPending && onClose()}
       hideClose
-      eyebrow={<span className="k">Dialog · audit log</span>}
-      title="Stream instance events"
-      description={
-        <span className="text-[13.5px]">
-          Post sign-ins, SSO, policy and user changes to your SIEM or warehouse as they happen, in signed batches. Workspaces stream their own events from their
-          audit settings.
-        </span>
-      }
+      eyebrow={<span className="k">{t(ma.dialogEyebrow)}</span>}
+      title={t(mi.streamTitle)}
+      description={<span className="text-[13.5px]">{t(mi.streamBody)}</span>}
       footer={
         <>
           <Button onClick={onClose} disabled={save.isPending}>
-            Cancel
+            {t(common.cancel)}
           </Button>
           <Button variant="primary" loading={save.isPending} onClick={submit}>
-            Save
+            {t(common.save)}
           </Button>
         </>
       }
     >
       {st.enabled ? (
         st.failingSince ? (
-          <Note tone="bad" label="Failing">
-            Batches to {st.host} have failed since {ago(st.failingSince, now)}
-            {st.lastError ? `: ${st.lastError}` : ''}. Entries wait and go out in order once it answers 2xx.
+          <Note tone="bad" label={t(ma.failing)}>
+            {t(ma.failingBody, { host: st.host ?? '', since: ago(st.failingSince, now), hasError: st.lastError ? 'yes' : 'no', error: st.lastError ?? '' })}
           </Note>
         ) : (
           <KeyValues
             className="text-[12.5px]"
             items={[
               [
-                'Status',
+                t(ma.kvStatus),
                 <Badge key="s" tone="ok" dot>
-                  Streaming to {st.host}
+                  {t(ma.streamingTo, { host: st.host ?? '' })}
                 </Badge>,
               ],
-              ['Delivered', `${count(st.delivered)} entries${st.lastOkAt ? ` · last batch ${ago(st.lastOkAt, now)}` : ''}`],
+              [
+                t(ma.kvDelivered),
+                t(ma.delivered, { count: st.delivered, delivered: count(st.delivered), hasLast: st.lastOkAt ? 'yes' : 'no', last: st.lastOkAt ? ago(st.lastOkAt, now) : '' }),
+              ],
             ]}
           />
         )
       ) : null}
       <label className="row gap-2.5 text-[13.5px]">
         <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-        Stream instance-level entries to a webhook
+        {t(mi.streamToggle)}
       </label>
       <label className="lbl">
-        Destination URL
+        {t(ma.destinationUrl)}
         <input
           className="in mono"
           type="url"
           value={url}
           disabled={!enabled}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://siem.example.com/ingest/audit"
+          placeholder={'https://siem.example.com/ingest/audit'}
           aria-invalid={error?.field === 'url' || undefined}
           aria-describedby={error?.field === 'url' ? 'is-url-err' : undefined}
         />
@@ -267,16 +269,18 @@ function StreamForm({ s, onClose }: { s: Settings; onClose: () => void }) {
       {st.hasSecret && enabled ? (
         <label className="row gap-2.5 text-[13.5px]">
           <input type="checkbox" checked={rotate} onChange={(e) => setRotate(e.target.checked)} />
-          Rotate the signing secret (shown once after saving)
+          {t(ma.rotateSecret)}
         </label>
       ) : null}
       {s.workspaceStreams.length ? (
         <span className="k font-medium">
-          Streaming their own events: {s.workspaceStreams.map((w) => `${w.name} → ${w.host}${w.failing ? ' (failing)' : ''}`).join(', ')}.
+          {t(mi.workspaceStreams, {
+            list: s.workspaceStreams.map((w) => t(mi.workspaceStream, { name: w.name, host: w.host, failing: w.failing ? 'yes' : 'no' })).join(', '),
+          })}
         </span>
       ) : null}
       {error && error.field !== 'url' ? (
-        <Note tone="bad" label="Not saved">
+        <Note tone="bad" label={t(ma.notSaved)}>
           {error.message}
         </Note>
       ) : null}

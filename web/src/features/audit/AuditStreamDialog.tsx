@@ -8,10 +8,13 @@ import { Dialog } from '@/components/ui/Dialog'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
+import { t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { ago, count } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { deniedReason, useWorkspace } from '@/lib/session'
 import { copyText } from '../access/parts'
+import { m } from './messages'
 
 const RETENTION = [90, 180, 365, 730, 1095]
 
@@ -20,13 +23,14 @@ const RETENTION = [90, 180, 365, 730, 1095]
  * webhook (for a SIEM or warehouse) and kept for the chosen number of days.
  */
 export function AuditStreamDialog({ onClose }: { onClose: () => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/audit/settings', { params: { path: { workspace: slug } } })
   if (!q.data)
     return (
-      <Dialog open onOpenChange={(o) => !o && onClose()} title="Audit stream and retention" footer={<Button onClick={onClose}>Close</Button>}>
+      <Dialog open onOpenChange={(o) => !o && onClose()} title={t(m.streamTitle)} footer={<Button onClick={onClose}>{t(common.close)}</Button>}>
         {q.isError ? (
-          <Note tone="bad" label="Not loaded">
+          <Note tone="bad" label={t(m.notLoaded)}>
             {errorMessage(q.error)}
           </Note>
         ) : (
@@ -41,6 +45,7 @@ export function AuditStreamDialog({ onClose }: { onClose: () => void }) {
 }
 
 function StreamForm({ s, onClose }: { s: Schemas['AuditSettings']; onClose: () => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const now = useNow()
@@ -56,7 +61,7 @@ function StreamForm({ s, onClose }: { s: Schemas['AuditSettings']; onClose: () =
   const submit = () => {
     setError(undefined)
     if (enabled && !/^https:\/\/[^/\s]+/.test(url.trim())) {
-      setError({ field: 'url', message: 'Enter the HTTPS URL that receives the entries.' })
+      setError({ field: 'url', message: t(m.urlRequired) })
       return
     }
     save.mutate(
@@ -72,7 +77,7 @@ function StreamForm({ s, onClose }: { s: Schemas['AuditSettings']; onClose: () =
             setSecret(r.secret)
             return
           }
-          toast({ title: 'Audit settings saved', detail: 'logged as audit.settings_updated' })
+          toast({ title: tt(m.settingsSaved), detail: tt(m.loggedAs, { action: 'audit.settings_updated' }) })
           onClose()
         },
         onError: (e) => {
@@ -87,27 +92,27 @@ function StreamForm({ s, onClose }: { s: Schemas['AuditSettings']; onClose: () =
       <Dialog
         open
         onOpenChange={() => undefined}
-        eyebrow={<span className="k">Dialog · audit stream secret</span>}
-        title="Copy the signing secret now"
-        description={<span className="text-[13.5px]">Batches are signed with HMAC-SHA256 like the webhooks. This is the only time the secret is shown.</span>}
+        eyebrow={<span className="k">{t(m.secretEyebrow)}</span>}
+        title={t(m.secretTitle)}
+        description={<span className="text-[13.5px]">{t(m.secretBody)}</span>}
         hideClose
         dismissible={false}
         footer={
           <Button variant="primary" onClick={onClose}>
-            Done
+            {t(common.done)}
           </Button>
         }
       >
         <div className="row flex-nowrap gap-2">
-          <input className="in mono flex-1 text-[12.5px]" value={secret} readOnly aria-label="Audit stream signing secret" onFocus={(e) => e.currentTarget.select()} />
+          <input className="in mono flex-1 text-[12.5px]" value={secret} readOnly aria-label={t(m.secretInput)} onFocus={(e) => e.currentTarget.select()} />
           <Button
             variant="primary"
             onClick={async () => {
               const ok = await copyText(secret)
-              toast({ kind: ok ? 'success' : 'error', title: ok ? 'Copied' : 'Copy failed' })
+              toast({ kind: ok ? 'success' : 'error', title: ok ? tt(common.copied) : tt(m.copyFailed) })
             }}
           >
-            Copy
+            {t(common.copy)}
           </Button>
         </div>
       </Dialog>
@@ -116,16 +121,16 @@ function StreamForm({ s, onClose }: { s: Schemas['AuditSettings']; onClose: () =
     <Dialog
       open
       onOpenChange={(o) => !o && onClose()}
-      eyebrow={<span className="k">Dialog · audit log</span>}
-      title="Audit stream and retention"
-      description={<span className="text-[13.5px]">Stream every entry to your SIEM or warehouse as it happens. Entries are immutable either way.</span>}
+      eyebrow={<span className="k">{t(m.dialogEyebrow)}</span>}
+      title={t(m.streamTitle)}
+      description={<span className="text-[13.5px]">{t(m.streamBody)}</span>}
       hideClose
       footer={
         <>
-          <Button onClick={onClose}>{readOnly ? 'Close' : 'Cancel'}</Button>
+          <Button onClick={onClose}>{readOnly ? t(common.close) : t(common.cancel)}</Button>
           {readOnly ? null : (
             <Button variant="primary" loading={save.isPending} onClick={submit}>
-              Save
+              {t(common.save)}
             </Button>
           )}
         </>
@@ -134,38 +139,40 @@ function StreamForm({ s, onClose }: { s: Schemas['AuditSettings']; onClose: () =
       {readOnly ? <Note tone="neutral">{deniedReason('workspace:manage')}</Note> : null}
       {st.enabled ? (
         st.failingSince ? (
-          <Note tone="bad" label="Failing">
-            Batches to {st.host} have failed since {ago(st.failingSince, now)}
-            {st.lastError ? `: ${st.lastError}` : ''}. Entries wait and go out in order once it answers 2xx.
+          <Note tone="bad" label={t(m.failing)}>
+            {t(m.failingBody, { host: st.host ?? '', since: ago(st.failingSince, now), hasError: st.lastError ? 'yes' : 'no', error: st.lastError ?? '' })}
           </Note>
         ) : (
           <KeyValues
             className="text-[12.5px]"
             items={[
               [
-                'Status',
+                t(m.kvStatus),
                 <Badge key="s" tone="ok" dot>
-                  Streaming to {st.host}
+                  {t(m.streamingTo, { host: st.host ?? '' })}
                 </Badge>,
               ],
-              ['Delivered', `${count(st.delivered)} entries${st.lastOkAt ? ` · last batch ${ago(st.lastOkAt, now)}` : ''}`],
+              [
+                t(m.kvDelivered),
+                t(m.delivered, { count: st.delivered, delivered: count(st.delivered), hasLast: st.lastOkAt ? 'yes' : 'no', last: st.lastOkAt ? ago(st.lastOkAt, now) : '' }),
+              ],
             ]}
           />
         )
       ) : null}
       <label className="row gap-2.5 text-[13.5px]">
         <input type="checkbox" checked={enabled} disabled={readOnly} onChange={(e) => setEnabled(e.target.checked)} />
-        Stream entries to a webhook
+        {t(m.streamToggle)}
       </label>
       <label className="lbl">
-        Destination URL
+        {t(m.destinationUrl)}
         <input
           className="in mono"
           type="url"
           value={url}
           disabled={readOnly || !enabled}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://siem.example.com/ingest/audit"
+          placeholder={'https://siem.example.com/ingest/audit'}
           aria-invalid={error?.field === 'url' || undefined}
           aria-describedby={error?.field === 'url' ? 'as-url-err' : undefined}
         />
@@ -178,24 +185,24 @@ function StreamForm({ s, onClose }: { s: Schemas['AuditSettings']; onClose: () =
       {st.hasSecret && enabled ? (
         <label className="row gap-2.5 text-[13.5px]">
           <input type="checkbox" checked={rotate} disabled={readOnly} onChange={(e) => setRotate(e.target.checked)} />
-          Rotate the signing secret (shown once after saving)
+          {t(m.rotateSecret)}
         </label>
       ) : null}
       <label className="lbl">
-        Keep entries for
+        {t(m.keepFor)}
         <select className="in max-w-[200px]" value={days} disabled={readOnly} onChange={(e) => setDays(Number(e.target.value))}>
           {[...new Set([...RETENTION, s.retentionDays])]
             .sort((a, b) => a - b)
             .map((d) => (
               <option key={d} value={d}>
-                {d} days
+                {t(m.retentionDays, { days: d })}
               </option>
             ))}
         </select>
-        <span className="k font-medium">Older entries are removed every night. {count(s.total)} entries are kept now.</span>
+        <span className="k font-medium">{t(m.retentionHint, { count: s.total, total: count(s.total) })}</span>
       </label>
       {error && error.field !== 'url' ? (
-        <Note tone="bad" label="Not saved">
+        <Note tone="bad" label={t(m.notSaved)}>
           {error.message}
         </Note>
       ) : null}

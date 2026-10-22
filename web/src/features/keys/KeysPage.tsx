@@ -11,13 +11,16 @@ import { Note } from '@/components/ui/Note'
 import { EmptyRow, Td, Th } from '@/components/ui/Table'
 import { ManagedKeysCard } from '@/features/integrations/ManagedKeys'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
-import { createdTime, logTime } from '@/lib/format'
+import { T, t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { count, createdTime, logTime } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { deniedReason, useWorkspace } from '@/lib/session'
 import { AccessTable, PersonCell } from '../access/parts'
 import { CreateKeyDialog, type KeyKind } from './CreateKeyDialog'
 import { KeyActionDialog, type KeyAction } from './KeyActionDialogs'
 import { KeySecretDialog } from './KeySecretDialog'
+import { m } from './messages'
 import { DashedEmpty, ExpiresCell, LastUsedCell, PermBadges, scopeText, TableSkeleton, type Key } from './parts'
 import { SendOnlyKeyDialog } from '@/features/transactional/CreateKeyDialog'
 import { KeyBadges } from '@/features/transactional/shared'
@@ -26,6 +29,7 @@ type Secret = { created: Schemas['APIKeyCreated']; action: 'created' | 'rotated'
 
 /** A5 §5.10 Keys & MCP (SettingsKeys): API keys, MCP agents and their recent actions. */
 export function KeysPage() {
+  const t = useT()
   const { slug, me } = useWorkspace()
   const canKeys = me.permissions.includes('apikeys:manage')
   const canAgents = me.permissions.includes('mcp:manage')
@@ -40,17 +44,17 @@ export function KeysPage() {
   const createList = create === 'mcp_agent' ? agents.data : keys.data
   return (
     <Page
-      title="Settings"
+      title={t(m.title)}
       tabs={settingsTabs(slug)}
       actions={
         canKeys ? (
-          <Button variant="primary" disabledReason={keys.data ? undefined : 'Loading…'} onClick={() => setCreate('api_key')}>
-            Create API key
+          <Button variant="primary" disabledReason={keys.data ? undefined : t(common.loading)} onClick={() => setCreate('api_key')}>
+            {t(m.createKey)}
           </Button>
         ) : null
       }
     >
-      {!canKeys && !canAgents ? <ForbiddenState permission="apikeys:manage" title="Your role can't manage API keys or MCP agents" /> : null}
+      {!canKeys && !canAgents ? <ForbiddenState permission="apikeys:manage" title={t(m.forbidden)} /> : null}
       {!canKeys && !canAgents ? null : canKeys ? (
         <>
           <KeysCard q={keys} onCreate={() => setCreate('api_key')} onAction={(k, action) => setAct({ k, action })} />
@@ -104,61 +108,67 @@ export function KeysPage() {
 type ListQuery = { data?: Schemas['APIKeyList']; isPending: boolean; isError: boolean; error: unknown; refetch: () => unknown }
 
 function KeysCard({ q, onCreate, onAction }: { q: ListQuery; onCreate: () => void; onAction: (k: Key, a: KeyAction) => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const now = useNow()
   if (q.data && q.data.items.length === 0)
     return (
       <DashedEmpty
-        title="No API keys"
+        title={t(m.noKeysTitle)}
         action={
           <Button variant="primary" onClick={onCreate}>
-            Create API key
+            {t(m.createKey)}
           </Button>
         }
       >
-        Create a scoped key to add contacts, log events or{' '}
-        <Link to="/w/$workspace/transactional/setup" params={{ workspace: slug }}>
-          send transactional mail from your product
-        </Link>
-        .
+        <T
+          msg={m.noKeysBody}
+          values={{
+            link: (c) => (
+              <Link to="/w/$workspace/transactional/setup" params={{ workspace: slug }}>
+                {c}
+              </Link>
+            ),
+          }}
+        />
       </DashedEmpty>
     )
   return (
     <section className="card" aria-labelledby="keys-h">
       <CardSection
-        title={<span id="keys-h">API keys{q.data ? ` · ${q.data.items.length}` : ''}</span>}
-        caption="Keys use the same permission keys as roles, never more than their creator holds. Secrets are shown once at creation."
+        title={<span id="keys-h">{q.data ? t(m.keysTitle, { count: count(q.data.items.length) }) : t(m.keysTitleLoading)}</span>}
+        caption={t(m.keysCaption)}
         actions={
           <>
             <ButtonLink size="sm" to="/w/$workspace/settings/webhooks" params={{ workspace: slug }}>
-              API reference
+              {t(m.apiReference)}
             </ButtonLink>
-            <Button size="sm" variant="primary" disabledReason={q.data ? undefined : 'Loading…'} onClick={onCreate}>
-              Create API key
+            <Button size="sm" variant="primary" disabledReason={q.data ? undefined : t(common.loading)} onClick={onCreate}>
+              {t(m.createKey)}
             </Button>
           </>
         }
       />
       {q.isError ? (
         <div className="pad">
-          <ErrorPanel title="Couldn't load the API keys" actions={<Button onClick={() => void q.refetch()}>Retry</Button>}>
+          <ErrorPanel title={t(m.keysLoadFailed)} actions={<Button onClick={() => void q.refetch()}>{t(common.retry)}</Button>}>
             {errorMessage(q.error)}
           </ErrorPanel>
         </div>
       ) : !q.data ? (
-        <TableSkeleton label="Loading the API keys" />
+        <TableSkeleton label={t(m.keysLoading)} />
       ) : (
-        <AccessTable caption="API keys">
+        <AccessTable caption={t(m.keysTable)}>
           <thead>
             <tr>
-              <Th>Key</Th>
-              <Th>Permissions</Th>
-              <Th>Scope</Th>
-              <Th>Created by</Th>
-              <Th>Last used</Th>
-              <Th>Expires</Th>
+              <Th>{t(m.colKey)}</Th>
+              <Th>{t(m.colPermissions)}</Th>
+              <Th>{t(m.colScope)}</Th>
+              <Th>{t(m.colCreatedBy)}</Th>
+              <Th>{t(m.colLastUsed)}</Th>
+              <Th>{t(m.colExpires)}</Th>
               <Th>
-                <span className="vh">Actions</span>
+                <span className="vh">{t(m.colActions)}</span>
               </Th>
             </tr>
           </thead>
@@ -176,8 +186,8 @@ function KeysCard({ q, onCreate, onAction }: { q: ListQuery; onCreate: () => voi
                     ) : k.permissions.length === 1 && k.permissions[0] === 'conversions:create' ? (
                       // Earn's conversion API key (EarnSettingsStates).
                       <span className="mt-[3px] inline-flex flex-wrap gap-1.5">
-                        <Badge tone="info">Conversions</Badge>
-                        {k.masked.startsWith('rc_test_') ? <Badge tone="purple">Test</Badge> : <Badge tone="ok">Live</Badge>}
+                        <Badge tone="info">{t(m.conversionsBadge)}</Badge>
+                        {k.masked.startsWith('rc_test_') ? <Badge tone="purple">{t(m.testBadge)}</Badge> : <Badge tone="ok">{t(m.liveBadge)}</Badge>}
                       </span>
                     ) : null}
                   </div>
@@ -208,24 +218,25 @@ function KeysCard({ q, onCreate, onAction }: { q: ListQuery; onCreate: () => voi
 }
 
 function KeyButtons({ k, onAction }: { k: Key; onAction: (k: Key, a: KeyAction) => void }) {
+  const t = useT()
   return (
     <div className="row gap-1.5">
       {k.status === 'expired' ? (
         <>
-          <Button size="sm" onClick={() => onAction(k, 'replace')} aria-label={`Create replacement for ${k.name}`}>
-            Create replacement
+          <Button size="sm" onClick={() => onAction(k, 'replace')} aria-label={t(m.createReplacementFor, { name: k.name })}>
+            {t(m.createReplacement)}
           </Button>
-          <Button size="sm" onClick={() => onAction(k, 'delete')} aria-label={`Delete ${k.name}`}>
-            Delete
+          <Button size="sm" onClick={() => onAction(k, 'delete')} aria-label={t(m.deleteNamed, { name: k.name })}>
+            {t(common.delete)}
           </Button>
         </>
       ) : (
         <>
-          <Button size="sm" onClick={() => onAction(k, 'rotate')} aria-label={`Rotate ${k.name}`}>
-            Rotate
+          <Button size="sm" onClick={() => onAction(k, 'rotate')} aria-label={t(m.rotateNamed, { name: k.name })}>
+            {t(m.rotate)}
           </Button>
-          <Button size="sm" variant="danger" onClick={() => onAction(k, 'revoke')} aria-label={`Revoke ${k.name}`}>
-            Revoke
+          <Button size="sm" variant="danger" onClick={() => onAction(k, 'revoke')} aria-label={t(m.revokeNamed, { name: k.name })}>
+            {t(m.revoke)}
           </Button>
         </>
       )}
@@ -236,63 +247,63 @@ function KeyButtons({ k, onAction }: { k: Key; onAction: (k: Key, a: KeyAction) 
 /** "The Ops agent can stop a send but never start one: campaigns:pause without campaigns:send" */
 function agentsCaption(items: Key[]) {
   const a = items.find((k) => k.permissions.includes('campaigns:pause') && !k.permissions.includes('campaigns:send'))
-  if (!a) return 'Agents call the MCP server with their own token; sending is always proposed to a person'
-  const who = /agent$/i.test(a.name) ? `The ${a.name}` : `“${a.name}”`
-  return `${who} can stop a send but never start one: campaigns:pause without campaigns:send`
+  if (!a) return tt(m.agentsCaption)
+  return tt(m.agentsCaptionPause, { article: /agent$/i.test(a.name) ? 'the' : 'quoted', name: a.name })
 }
 
 function AgentsCard({ q, onCreate, onAction }: { q: ListQuery; onCreate: () => void; onAction: (k: Key, a: KeyAction) => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const now = useNow()
   if (q.data && q.data.items.length === 0)
     return (
       <DashedEmpty
-        title="No MCP agents"
+        title={t(m.noAgentsTitle)}
         action={
-          <Button onClick={onCreate} disabledReason={q.data ? undefined : 'Loading…'}>
-            Add agent
+          <Button onClick={onCreate} disabledReason={q.data ? undefined : t(common.loading)}>
+            {t(m.addAgent)}
           </Button>
         }
       >
-        Give an AI assistant read access first; grant drafting or sending later, with approvals.
+        {t(m.noAgentsBody)}
       </DashedEmpty>
     )
   return (
     <section className="card" aria-labelledby="agents-h">
       <CardSection
-        title={<span id="agents-h">MCP agents{q.data ? ` · ${q.data.items.length}` : ''}</span>}
-        caption={q.data ? agentsCaption(q.data.items) : 'Agents call the MCP server with their own token'}
+        title={<span id="agents-h">{q.data ? t(m.agentsTitle, { count: count(q.data.items.length) }) : t(m.agentsTitleLoading)}</span>}
+        caption={q.data ? agentsCaption(q.data.items) : t(m.agentsCaptionLoading)}
         actions={
           <>
             <ButtonLink size="sm" to="/w/$workspace/settings/mcp" params={{ workspace: slug }}>
-              Server endpoint &amp; transport
+              {t(m.serverEndpoint)}
             </ButtonLink>
-            <Button size="sm" variant="primary" disabledReason={q.data ? undefined : 'Loading…'} onClick={onCreate}>
-              Add agent
+            <Button size="sm" variant="primary" disabledReason={q.data ? undefined : t(common.loading)} onClick={onCreate}>
+              {t(m.addAgent)}
             </Button>
           </>
         }
       />
       {q.isError ? (
         <div className="pad">
-          <ErrorPanel title="Couldn't load the MCP agents" actions={<Button onClick={() => void q.refetch()}>Retry</Button>}>
+          <ErrorPanel title={t(m.agentsLoadFailed)} actions={<Button onClick={() => void q.refetch()}>{t(common.retry)}</Button>}>
             {errorMessage(q.error)}
           </ErrorPanel>
         </div>
       ) : !q.data ? (
-        <TableSkeleton rows={2} label="Loading the MCP agents" />
+        <TableSkeleton rows={2} label={t(m.agentsLoading)} />
       ) : (
-        <AccessTable caption="MCP agents">
+        <AccessTable caption={t(m.agentsTable)}>
           <thead>
             <tr>
-              <Th>Agent</Th>
-              <Th>Permissions</Th>
-              <Th>Scope</Th>
-              <Th>Created by</Th>
-              <Th>Last call</Th>
-              <Th>Expires</Th>
+              <Th>{t(m.colAgent)}</Th>
+              <Th>{t(m.colPermissions)}</Th>
+              <Th>{t(m.colScope)}</Th>
+              <Th>{t(m.colCreatedBy)}</Th>
+              <Th>{t(m.colLastCall)}</Th>
+              <Th>{t(m.colExpires)}</Th>
               <Th>
-                <span className="vh">Actions</span>
+                <span className="vh">{t(m.colActions)}</span>
               </Th>
             </tr>
           </thead>
@@ -335,42 +346,43 @@ function AgentsCard({ q, onCreate, onAction }: { q: ListQuery; onCreate: () => v
 
 /** The last agent calls (SettingsKeys, "Recent agent actions"). */
 function ActionsCard() {
+  const t = useT()
   const { slug } = useWorkspace()
   const now = useNow()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/mcp-agents/actions', { params: { path: { workspace: slug }, query: { limit: 5 } } })
   return (
     <section className="card" aria-labelledby="acts-h">
       <CardSection
-        title={<span id="acts-h">Recent agent actions</span>}
-        caption="Every call is in the audit log with the agent as actor"
+        title={<span id="acts-h">{t(m.actionsTitle)}</span>}
+        caption={t(m.actionsCaption)}
         actions={
           <ButtonLink size="sm" to="/w/$workspace/settings/audit" params={{ workspace: slug }} search={{ actorType: 'mcp_agent' }}>
-            Full audit log
+            {t(m.fullAuditLog)}
           </ButtonLink>
         }
       />
       {q.isError ? (
         <div className="pad">
-          <ErrorPanel title="Couldn't load the agent actions" actions={<Button onClick={() => void q.refetch()}>Retry</Button>}>
+          <ErrorPanel title={t(m.actionsLoadFailed)} actions={<Button onClick={() => void q.refetch()}>{t(common.retry)}</Button>}>
             {errorMessage(q.error)}
           </ErrorPanel>
         </div>
       ) : !q.data ? (
-        <TableSkeleton rows={3} label="Loading the agent actions" />
+        <TableSkeleton rows={3} label={t(m.actionsLoading)} />
       ) : (
-        <AccessTable caption="Recent agent actions">
+        <AccessTable caption={t(m.actionsTable)}>
           <thead>
             <tr>
-              <Th>When</Th>
-              <Th>Agent</Th>
-              <Th>Tool</Th>
-              <Th>Target</Th>
-              <Th>Result</Th>
+              <Th>{t(m.colWhen)}</Th>
+              <Th>{t(m.colAgent)}</Th>
+              <Th>{t(m.colTool)}</Th>
+              <Th>{t(m.colTarget)}</Th>
+              <Th>{t(m.colResult)}</Th>
             </tr>
           </thead>
           <tbody>
             {q.data.items.length === 0 ? (
-              <EmptyRow colSpan={5}>No agent calls yet.</EmptyRow>
+              <EmptyRow colSpan={5}>{t(m.noCalls)}</EmptyRow>
             ) : (
               q.data.items.map((a) => (
                 <tr key={a.id}>
@@ -382,7 +394,11 @@ function ActionsCard() {
                   <Td>{a.target}</Td>
                   <Td>
                     <span className="row gap-1.5">
-                      {a.result === 'allowed' ? <Badge tone="ok">Allowed</Badge> : <Badge tone="bad">{a.result === 'denied' ? 'Denied' : 'Error'}</Badge>}
+                      {a.result === 'allowed' ? (
+                        <Badge tone="ok">{t(m.resultAllowed)}</Badge>
+                      ) : (
+                        <Badge tone="bad">{a.result === 'denied' ? t(m.resultDenied) : t(m.resultError)}</Badge>
+                      )}
                       {a.note ? <span className="k">{a.note}</span> : null}
                     </span>
                   </Td>
@@ -395,4 +411,3 @@ function ActionsCard() {
     </section>
   )
 }
-

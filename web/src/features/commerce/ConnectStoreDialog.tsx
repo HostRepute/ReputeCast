@@ -624,7 +624,7 @@ function WooKey({ st, onBack, onDone }: { st: ConnectState; onBack: () => void; 
       {err ? null : <span className="text-ink-nav">{t(cc.keyIntro)}</span>}
       <label className="lbl">
         {t(cc.consumerKey)}
-        <input className="in mono" type="text" value={key} onChange={(e) => setKey(e.target.value)} placeholder="ck_…" autoComplete="off" spellCheck={false} />
+        <input className="in mono" type="text" value={key} onChange={(e) => setKey(e.target.value)} placeholder={'ck_…'} autoComplete="off" spellCheck={false} />
       </label>
       <label className="lbl">
         {t(cc.consumerSecret)}
@@ -633,7 +633,7 @@ function WooKey({ st, onBack, onDone }: { st: ConnectState; onBack: () => void; 
           type="password"
           value={secret}
           onChange={(e) => setSecret(e.target.value)}
-          placeholder="cs_…"
+          placeholder={'cs_…'}
           autoComplete="off"
           aria-invalid={err ? true : undefined}
           aria-describedby="cs-key-note"
