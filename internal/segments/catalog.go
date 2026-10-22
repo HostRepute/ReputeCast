@@ -39,8 +39,16 @@ type SegmentCatalog struct {
 	Views []string `json:"views"`
 }
 
-// Catalog returns the fields, operators and values for the builder.
+// Catalog returns the fields, operators and values for the builder, in
+// English: the AI assistant's condition schema reads it.
 func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (SegmentCatalog, error) {
+	return s.CatalogIn(ctx, ws, i18n.Default)
+}
+
+// CatalogIn returns the catalog in a reader's language. Option lists other
+// packages register get a context in that language (i18n.LangFrom).
+func (s *Service) CatalogIn(ctx context.Context, ws *store.Workspace, l i18n.Lang) (SegmentCatalog, error) {
+	ctx = i18n.WithLang(ctx, l)
 	lists, err := s.Q.ListWorkspaceLists(ctx, ws.ID)
 	if err != nil {
 		return SegmentCatalog{}, err
@@ -61,13 +69,13 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (SegmentCata
 	ops := func(keys []string) []SegmentOperator {
 		o := make([]SegmentOperator, 0, len(keys))
 		for _, k := range keys {
-			o = append(o, SegmentOperator{Key: k, Label: opLabels[k]})
+			o = append(o, SegmentOperator{Key: k, Label: opLabel(l, k)})
 		}
 		return o
 	}
 	for _, key := range builtinOrder {
 		spec := builtinFields[key]
-		f := SegmentCatalogField{Key: key, Label: spec.Label, Kind: string(spec.Kind), Ops: ops(spec.Ops), Options: []SegmentOption{}}
+		f := SegmentCatalogField{Key: key, Label: fieldLabel(l, key), Kind: string(spec.Kind), Ops: ops(spec.Ops), Options: []SegmentOption{}}
 		if o, ok := extraOptions[key]; ok {
 			if f.Options, err = o(ctx, s.Q, ws.ID); err != nil {
 				return SegmentCatalog{}, err
@@ -86,7 +94,7 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (SegmentCata
 			}
 		case "source":
 			for _, src := range sources {
-				f.Options = append(f.Options, SegmentOption{Value: src.Source, Label: SourceLabel(src.Source)})
+				f.Options = append(f.Options, SegmentOption{Value: src.Source, Label: SourceLabelIn(l, src.Source)})
 			}
 		case "language":
 			if f.Options, err = languageOptions(ctx, s.Q, ws.ID); err != nil {
@@ -94,7 +102,7 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (SegmentCata
 			}
 		default:
 			for _, v := range enumValues[key] {
-				f.Options = append(f.Options, SegmentOption{Value: v[0], Label: v[1]})
+				f.Options = append(f.Options, SegmentOption{Value: v[0], Label: optionLabel(l, key, v[0], v[1])})
 			}
 		}
 		out.Fields = append(out.Fields, f)
@@ -109,7 +117,7 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (SegmentCata
 		case "boolean":
 			kind = KindBoolean
 		}
-		out.Fields = append(out.Fields, SegmentCatalogField{Key: "custom:" + c.Key, Label: "Custom field · " + c.Key, Kind: string(kind), Ops: ops(customOps(c.Type)), Options: []SegmentOption{}})
+		out.Fields = append(out.Fields, SegmentCatalogField{Key: "custom:" + c.Key, Label: fieldLabel(l, "custom:"+c.Key), Kind: string(kind), Ops: ops(customOps(c.Type)), Options: []SegmentOption{}})
 	}
 	return out, nil
 }
@@ -122,31 +130,34 @@ func SourceLabel(src string) string { return SourceLabelIn(i18n.Default, src) }
 // language: "import:brevo" → "Brevo import", "form:docs" → "Signup form ·
 // docs", "form:popup" → "Popup form", "api" → "API".
 func SourceLabelIn(l i18n.Lang, src string) string {
-	_ = l
 	kind, detail, _ := strings.Cut(src, ":")
 	switch kind {
 	case "import":
-		return importerName(detail) + " import"
+		name := importerName(detail)
+		if name == "" {
+			name = mImporterFile.Text(l, nil)
+		}
+		return mSourceImport.Text(l, i18n.Args{"importer": name})
 	case "form":
 		if detail == "popup" {
-			return "Popup form"
+			return mSourcePopup.Text(l, nil)
 		}
 		if detail == "" {
-			return "Signup form"
+			return mSourceForm.Text(l, nil)
 		}
-		return "Signup form · " + detail
+		return mSourceFormOf.Text(l, i18n.Args{"form": detail})
 	case "api":
-		return "API"
+		return mSourceAPI.Text(l, nil)
 	case "manual":
-		return "Added by the team"
+		return mSourceManual.Text(l, nil)
 	case "product_checkout":
 		// A buyer who ticked the list offer at checkout (X19).
-		return "Product checkout"
+		return mSourceProduct.Text(l, nil)
 	case "referral":
 		// Grow: the Contacts list names the referrer ("Referral · Sam Rivera").
-		return "Referral"
+		return mSourceRef.Text(l, nil)
 	case "partner":
-		return "Partner"
+		return mSourcePartner.Text(l, nil)
 	case "store":
 		// "store:shopify:<store id>": a store's customer who accepted
 		// marketing (X20).
@@ -155,11 +166,13 @@ func SourceLabelIn(l i18n.Lang, src string) string {
 		}
 		return "Shopify"
 	case "":
-		return "Unknown"
+		return mSourceUnknown.Text(l, nil)
 	}
 	return src
 }
 
+// importerName is the tool or file kind an import came from ("Brevo",
+// "CSV"); "" for a file of unknown kind.
 func importerName(k string) string {
 	switch k {
 	case "brevo":
@@ -178,7 +191,7 @@ func importerName(k string) string {
 		return "XLSX"
 	}
 	if k == "" {
-		return "File"
+		return ""
 	}
 	return strings.ToUpper(k[:1]) + k[1:]
 }

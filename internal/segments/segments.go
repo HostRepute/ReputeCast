@@ -184,7 +184,7 @@ type SegmentInput struct {
 func (s *Service) validate(ctx context.Context, ws *store.Workspace, in *SegmentInput, needName bool) (*Compiled, string, error) {
 	in.Name = strings.TrimSpace(in.Name)
 	if needName && in.Name == "" {
-		return nil, "", &ValidationError{"body.name", "Give the segment a name."}
+		return nil, "", invalid("body.name", says(mName))
 	}
 	if in.Refresh == "" {
 		in.Refresh = "dynamic"

@@ -1,5 +1,18 @@
 {
   "period.pickDays": { "message": "Pick the first and last day of the period.", "note": "a custom period on Audience › Growth without both days" },
   "period.endsBefore": "The period ends before it starts. Swap the two days.",
-  "period.tooLong": "Pick a period of two years at most."
+  "period.tooLong": "Pick a period of two years at most.",
+
+  "label.form": { "message": "Signup form", "note": "a growth source: a form that has no name any more" },
+  "label.subscribePage": "Subscribe page",
+  "label.apiKeyNamed": { "message": "API key “{name}”", "note": "name: the API key's name, like Website signup form" },
+  "label.api": "API",
+  "label.integration": "Integration",
+  "label.person": "Added by a person",
+  "label.preferenceCenter": "Preference center",
+  "label.importOn": { "message": "{name} import ({day})", "note": "name: the tool or file kind (Brevo, CSV); day: the import's day, like 18 Sep" },
+  "label.import": { "message": "{name} import", "note": "name: the tool or file kind (Brevo, CSV)" },
+  "label.file": { "message": "File", "note": "an import from a file of an unknown kind, in label.import: File import" },
+  "label.other": "Other",
+  "label.unknown": "Unknown"
 }
