@@ -5,7 +5,7 @@ import { Icon } from '@/components/icons/Icon'
 import { ButtonLink } from '@/components/ui/Button'
 import { CardSection } from '@/components/ui/Card'
 import { Bar } from '@/components/ui/Data'
-import { T, useT } from '@/i18n'
+import { T, useI18n, useT, useTIn } from '@/i18n'
 import { count } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 import type { ProductDetail } from './api'
@@ -57,9 +57,13 @@ export function useSiteFrame(): { title: string; nav: string[]; initial: string;
 /** The product card as the shop shows it (ProductEditor: In the shop). */
 export function ShopCard({ detail, p }: { detail: ProductDetail; p: Preview }) {
   const t = useT()
+  const tEn = useTIn('en')
+  const { locale } = useI18n()
   const cur = detail.payments.currency || 'usd'
-  const files = shopFiles(t, { count: detail.files.length, kind: detail.files[0]?.kindLabel ?? '', pages: detail.files.length === 1 ? (detail.files[0]?.pages ?? 0) : 0, bytes: detail.filesBytes })
-  const noun = seeNoun(p.name)
+  const summary = { count: detail.files.length, kind: detail.files[0]?.kindLabel ?? '', pages: detail.files.length === 1 ? (detail.files[0]?.pages ?? 0) : 0, bytes: detail.filesBytes }
+  const files = shopFiles(t, summary)
+  // The button names an English noun of the name ("See the guide"): in other languages it reads "See it".
+  const noun = locale.startsWith('en') ? seeNoun(p.name) : undefined
   const price = !isPriced(p.price) ? t(pm.priceNone) : p.price.kind === 'pwyw' ? t(pe.shopPwyw, { min: money(p.price.minimumCents, cur) }) : money(p.price.amountCents, cur)
   return (
     <section className="card" aria-labelledby="pr-shop-h">
@@ -72,7 +76,7 @@ export function ShopCard({ detail, p }: { detail: ProductDetail; p: Preview }) {
             </div>
             <div className="s-b">
               <p className="s-nm">{p.name}</p>
-              <p className="s-ds">{shopDescription(p.shortDescription, files)}</p>
+              <p className="s-ds">{shopDescription(p.shortDescription, files, shopFiles(tEn, summary))}</p>
               <div className="s-f">
                 <span className="s-pr">{price}</span>
                 <span className="s-btn1 s-full">{noun ? t(pe.shopSeeThe, { noun }) : t(pe.shopSeeIt)}</span>

@@ -46,6 +46,7 @@ export default translate(m, {
   dropHere: 'Thả tệp .mjml hoặc .html vào đây, hoặc chọn tệp. Tối đa 50 tệp, mỗi tệp 2 MB.',
   filesChosen: '{count, plural, other {# tệp}}',
   removeFile: 'Xóa {name}',
+  fileSize: '{size} KB',
   tooMany: 'Mỗi lần tối đa 50 tệp: bạn đã chọn {count} tệp.',
   tooBig: '{name} lớn hơn 2 MB.',
   notTemplate: '{name} không phải tệp .mjml hoặc .html.',

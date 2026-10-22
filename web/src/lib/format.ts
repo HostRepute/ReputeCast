@@ -215,16 +215,12 @@ export function duration(minutes: number): string {
 
 /** Joins names as "A, B or C". */
 export function orList(names: string[]): string {
-  if (!getI18n().locale.startsWith('en')) return formatList(names, 'disjunction')
-  if (names.length <= 1) return names[0] ?? ''
-  return `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`
+  return formatList(names, 'disjunction')
 }
 
 /** Joins names as "A, B and C". */
 export function andList(names: string[]): string {
-  if (!getI18n().locale.startsWith('en')) return formatList(names)
-  if (names.length <= 1) return names[0] ?? ''
-  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+  return formatList(names)
 }
 
 /** "09:18:51" (clock with seconds, for live streams). */
