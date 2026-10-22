@@ -6,13 +6,16 @@ import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
-import { TableScroll } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
+import { useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { andList, count } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { stepPath, useImportDetail, WizardHeading, type Detail } from './ImportFrame'
 import { NotRead, StepFrame } from './FieldsStep'
 import { ReadingSource } from './states'
 import { SmsImportConsent } from '@/features/sms/ImportConsent'
+import { m as im } from './messages'
 
 type Mapping = Schemas['ImportConsentMapping']
 type ConsentMap = Schemas['ImportConsentMap']
@@ -21,6 +24,7 @@ const tone: Record<string, Tone> = { ok: 'ok', warn: 'warn', bad: 'bad', neutral
 
 /** Step 3: carry consent over (MigrationConsent). */
 export function ConsentStep({ importId }: { importId: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = useImportDetail(importId)
   const d = q.data
@@ -31,23 +35,20 @@ export function ConsentStep({ importId }: { importId: string }) {
     { enabled: Boolean(d?.stagedAt) },
   )
   const fm = $api.useQuery('get', '/api/v1/workspaces/{workspace}/imports/{id}/fields', { params: { path: { workspace: slug, id: importId } } }, { enabled: Boolean(d?.stagedAt) })
-  const mapped = fm.data?.ready ? `${count(fm.data.mapped + fm.data.new)} mapped, ${count(fm.data.skipped)} skipped` : undefined
+  const mapped = fm.data?.ready ? t(im.hintMapped, { mapped: count(fm.data.mapped + fm.data.new), skipped: count(fm.data.skipped) }) : undefined
   return (
-    <StepFrame d={d} step={3} hints={{ 2: mapped, 3: 'Who may be emailed' }} mainClassName="s34 sfull">
-      <WizardHeading
-        title="Carry consent over, exactly"
-        lead={`Each ${d?.sourceName ?? 'source'} status maps to a ReputeCast status. Anyone who left or bounced goes straight to the shared suppression list and can never be re-subscribed by an import.`}
-      />
+    <StepFrame d={d} step={3} hints={{ 2: mapped, 3: t(im.hintWho) }} mainClassName="s34 sfull">
+      <WizardHeading title={t(im.consentTitle)} lead={t(im.consentLead, { named: d ? 'yes' : 'no', source: d?.sourceName ?? '' })} />
       {q.isError || consent.isError ? (
-        <ErrorPanel title="Couldn't load the consent mapping" actions={<Button onClick={() => void (q.isError ? q.refetch() : consent.refetch())}>Retry</Button>}>
+        <ErrorPanel title={t(im.consentFailed)} actions={<Button onClick={() => void (q.isError ? q.refetch() : consent.refetch())}>{t(common.retry)}</Button>}>
           {errorMessage(q.error ?? consent.error)}
         </ErrorPanel>
       ) : !d ? (
-        <ReadingSource title="Loading the import" />
+        <ReadingSource title={t(im.loading)} />
       ) : !d.stagedAt ? (
         <NotRead d={d} />
       ) : !consent.data ? (
-        <ReadingSource title={`Counting contacts per ${d.sourceName} status`} />
+        <ReadingSource title={t(im.counting, { source: d.sourceName })} />
       ) : (
         <ConsentForm key={consent.dataUpdatedAt} d={d} m={consent.data} />
       )}
@@ -56,6 +57,7 @@ export function ConsentStep({ importId }: { importId: string }) {
 }
 
 function ConsentForm({ d, m }: { d: Detail; m: Mapping }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -81,26 +83,20 @@ function ConsentForm({ d, m }: { d: Detail; m: Mapping }) {
       setErr(errorMessage(e))
     }
   }
-  const trustNote = `${m.evidenceSource ? `${m.evidenceSource} are stored as consent evidence on each contact.` : 'The source’s opt-in is kept as consent evidence.'} ${
-    m.doubleOptIn ? 'Recommended when the source audience used double opt-in, as this one did.' : 'Only choose this when every contact opted in.'
-  }`
+  const trustNote = `${m.evidenceSource ? t(im.evidenceStored, { evidence: m.evidenceSource }) : t(im.evidenceKept)} ${m.doubleOptIn ? t(im.trustDouble) : t(im.trustSingle)}`
   const value = (status: string, fallback: string) => (status in map ? (map as unknown as Record<string, string>)[status] : fallback)
   return (
     <>
       <section className="card flex flex-col">
-        <TableScroll label="Consent per source status">
+        <TableScroll label={t(im.consentTable)}>
           {/* The board lets the status badges wrap on phones ("archived with "abuse" complaint"). */}
           <table className="tbl phone-wrap">
             <thead>
               <tr>
-                <th scope="col">{d.sourceName} status</th>
-                <th scope="col" className="r">
-                  Contacts
-                </th>
-                <th scope="col" className="w-[360px]">
-                  Becomes in ReputeCast
-                </th>
-                <th scope="col">Effect</th>
+                <Th>{t(im.colSourceStatus, { source: d.sourceName })}</Th>
+                <Th align="right">{t(im.colContacts)}</Th>
+                <Th className="w-[360px]">{t(im.colBecomes)}</Th>
+                <Th>{t(im.colEffect)}</Th>
               </tr>
             </thead>
             <tbody>
@@ -113,7 +109,7 @@ function ConsentForm({ d, m }: { d: Detail; m: Mapping }) {
                   <td className="r n">{count(s.contacts)}</td>
                   <td>
                     <select
-                      aria-label={`Handling for ${s.label}`}
+                      aria-label={t(im.handlingFor, { label: s.label })}
                       className="in"
                       value={s.locked ? s.handling : value(s.status, s.handling)}
                       aria-readonly={s.locked || undefined}
@@ -133,36 +129,29 @@ function ConsentForm({ d, m }: { d: Detail; m: Mapping }) {
           </table>
         </TableScroll>
         <div className="flex flex-wrap items-center gap-2 border-t border-line-2 px-5 py-3">
-          <Badge tone="ok">
-            {count(m.suppressCount)} {m.suppressCount === 1 ? 'address' : 'addresses'} will be suppressed
-          </Badge>
-          <span className="k">They count toward the shared list and sync to every provider before the first send to this list.</span>
+          <Badge tone="ok">{t(im.willSuppress, { n: m.suppressCount, count: count(m.suppressCount) })}</Badge>
+          <span className="k">{t(im.sharedList)}</span>
         </div>
       </section>
       <section className="card flex flex-col gap-3 px-5 py-4.5">
-        <h3 className="h2">Consent evidence and re-permission</h3>
+        <h3 className="h2">{t(im.evidenceTitle)}</h3>
         <fieldset className="mgrid m-0 grid gap-3 border-0 p-0 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]">
-          <legend className="vh">How consent is carried over</legend>
+          <legend className="vh">{t(im.evidenceLegend)}</legend>
           <Choice
             checked={evidence === 'trust'}
             onPick={() => setEvidence('trust')}
-            title={`Trust ${d.sourceName}'s ${m.doubleOptIn ? 'double opt-in' : 'opt-in'}`}
+            title={t(im.trust, { double: m.doubleOptIn ? 'yes' : 'no', source: d.sourceName })}
             description={trustNote}
           />
-          <Choice
-            checked={evidence === 'repermission'}
-            onPick={() => setEvidence('repermission')}
-            title="Re-permission everyone first"
-            description={`Imports as "pending" and sends one confirmation email via the System stream. Contacts who don't confirm within 14 days are suppressed. Safer for old or single-opt-in lists.`}
-          />
+          <Choice checked={evidence === 'repermission'} onPick={() => setEvidence('repermission')} title={t(im.repermission)} description={t(im.repermissionBody)} />
         </fieldset>
         <label className="flex items-start gap-2.5 text-[13px]">
           <input type="checkbox" className="mt-[3px]" checked={pull} onChange={(e) => setPull(e.target.checked)} />
           <span>
-            Pull existing suppressions from connected sending providers before importing{' '}
+            {t(im.pullBefore)}{' '}
             {m.providers.length > 0 ? (
               <span className="k">
-                · {andList(m.providers)} {m.inSync > 0 ? `are already in sync (${count(m.inSync)} addresses), so this just re-checks` : 'are checked for addresses they already block'}
+                {m.inSync > 0 ? t(im.inSync, { providers: andList(m.providers), count: count(m.inSync) }) : t(im.checked, { providers: andList(m.providers) })}
               </span>
             ) : null}
           </span>
@@ -170,7 +159,7 @@ function ConsentForm({ d, m }: { d: Detail; m: Mapping }) {
         <label className="flex items-start gap-2.5 text-[13px]">
           <input type="checkbox" className="mt-[3px]" checked={history} onChange={(e) => setHistory(e.target.checked)} />
           <span>
-            Record the import in each contact's consent history {m.historyExample ? <span className="k">· "{m.historyExample}"</span> : null}
+            {t(im.recordHistory)} {m.historyExample ? <span className="k">· "{m.historyExample}"</span> : null}
           </span>
         </label>
       </section>
@@ -179,10 +168,10 @@ function ConsentForm({ d, m }: { d: Detail; m: Mapping }) {
       {err ? <Note tone="bad">{err}</Note> : null}
       <div className="flex flex-wrap justify-between gap-2.5">
         <ButtonLink to={stepPath.fields} params={{ workspace: slug, importId: d.id }}>
-          Back
+          {t(im.back)}
         </ButtonLink>
         <Button variant="primary" className="wnext" disabledReason={reason} loading={save.isPending} onClick={() => void submit()}>
-          Continue to preview
+          {t(im.continuePreview)}
         </Button>
       </div>
     </>

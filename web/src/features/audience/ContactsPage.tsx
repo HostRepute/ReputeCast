@@ -10,8 +10,8 @@ import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { Popover } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
-import { TableScroll } from '@/components/ui/Table'
-import { andList, count, dayMonthDate, shortDate } from '@/lib/format'
+import { TableScroll, Th } from '@/components/ui/Table'
+import { andList, count, dayMonthDate, dayMonthYear, shortDate } from '@/lib/format'
 import { trackJob, updateJob } from '@/lib/jobs'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
 import { AddressCheckFilter } from '@/features/verification/AddressCheck'
@@ -28,8 +28,11 @@ import './audience.css'
 import { ChannelChips } from '@/features/push/ContactFilters'
 import { MembersChips } from '@/features/website/elsewhere'
 import { SmsContactFilters, usePhoneColumn } from '@/features/sms/ContactFilters'
-import { useT } from '@/i18n'
+import { t, useT, type MessageDescriptor } from '@/i18n'
+import { common } from '@/i18n/common'
 import { m as cfm } from '@/features/sms/contactfilters.messages'
+import { m as am } from './messages'
+import { m } from './contacts.messages'
 
 export interface ContactsSearch {
   q?: string
@@ -138,16 +141,15 @@ function sameFilter(a: Filter, b: Filter) {
 
 /** "Tue 7 Oct" within the last half year, "14 Aug" before, "3 Jun 2025" for older years. */
 function lastOpen(iso: string | undefined, machine: boolean) {
-  if (!iso) return 'never'
+  if (!iso) return t(m.never)
   const d = new Date(iso)
   const days = (Date.now() - d.getTime()) / 86_400_000
-  const s = days < 14 ? shortDate(d) : days < 330 ? dayMonthDate(d) : `${dayMonthDate(d)} ${d.getFullYear()}`
-  return machine ? `${s} · machine` : s
+  const s = days < 14 ? shortDate(d) : days < 330 ? dayMonthDate(d) : dayMonthYear(d)
+  return machine ? t(m.machineOpen, { date: s }) : s
 }
 
 function joined(iso: string) {
-  const d = new Date(iso)
-  return `${dayMonthDate(d)} ${d.getFullYear()}`
+  return dayMonthYear(new Date(iso))
 }
 
 const features = tableFeatures({ rowSelectionFeature })
@@ -155,6 +157,7 @@ const col = createColumnHelper<typeof features, Item>()
 
 /** 7.9 Contacts: saved views, filters, bulk actions and the table. */
 export function ContactsPage({ search }: { search: ContactsSearch }) {
+  const tr = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const filter = filterOf(search)
@@ -189,19 +192,19 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
   const ids = Object.keys(selection)
   return (
     <Page
-      title="Audience"
+      title={tr(am.title)}
       filters={<AudienceTabs />}
       actions={
         <>
           {importReason ? (
-            <Button disabledReason={importReason}>Import</Button>
+            <Button disabledReason={importReason}>{tr(m.import)}</Button>
           ) : (
             <ButtonLink to="/w/$workspace/import" params={{ workspace: slug }}>
-              Import
+              {tr(m.import)}
             </ButtonLink>
           )}
           <Button variant="primary" disabledReason={addReason} onClick={() => setAdding(true)}>
-            Add contact
+            {tr(m.addContact)}
           </Button>
         </>
       }
@@ -237,8 +240,8 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
             />
           ) : null}
           {list.isError ? (
-            <ErrorPanel title="Couldn't load contacts" actions={<Button onClick={() => list.refetch()}>Retry</Button>}>
-              {errorMessage(list.error)} Nothing was changed.
+            <ErrorPanel title={tr(m.loadFailed)} actions={<Button onClick={() => list.refetch()}>{tr(common.retry)}</Button>}>
+              {errorMessage(list.error)} {tr(m.nothingChanged)}
             </ErrorPanel>
           ) : list.isPending ? (
             <ContactsSkeleton total={summary.data?.contacts} />
@@ -291,26 +294,27 @@ export function ContactsPage({ search }: { search: ContactsSearch }) {
 /** Exports the selection as CSV; the jobs tray shows it while it runs. */
 export async function exportCSV(slug: string, body: Schemas['ContactExportInput'], n: number) {
   const id = `export-${Date.now()}`
-  const what = `${count(n)} ${n === 1 ? 'contact' : 'contacts'}`
-  trackJob(slug, { id, kind: 'export', title: `Exporting ${what}`, status: 'running', startedAt: new Date().toISOString() })
+  const what = { n, count: count(n) }
+  trackJob(slug, { id, kind: 'export', title: t(m.exporting, what), status: 'running', startedAt: new Date().toISOString() })
   try {
     const { data, response } = await http.POST('/api/v1/workspaces/{workspace}/contacts/export', { params: { path: { workspace: slug } }, body, parseAs: 'blob' })
     if (data) saveBlob(data as unknown as Blob, fileName(response, 'contacts.csv'))
-    updateJob(slug, id, { status: 'done', detail: `${what} · the export is in the audit log`, finishedAt: new Date().toISOString() })
-    toast({ kind: 'success', title: `Exported ${what}`, detail: 'The export is in the audit log.' })
+    updateJob(slug, id, { status: 'done', detail: t(m.exportedDetail, what), finishedAt: new Date().toISOString() })
+    toast({ kind: 'success', title: t(m.exported, what), detail: t(m.exportInAudit) })
   } catch (e) {
     updateJob(slug, id, { status: 'failed', detail: errorMessage(e), finishedAt: new Date().toISOString() })
-    toast({ kind: 'error', title: "Couldn't export", detail: errorMessage(e) })
+    toast({ kind: 'error', title: t(m.exportFailed), detail: errorMessage(e) })
   }
 }
 
 function SavedViews({ views, filter, onPick, onSave }: { views?: Schemas['ContactSavedViews']; filter: Filter; onPick: (f: ContactsSearch) => void; onSave: () => void }) {
+  const tr = useT()
   const none = Object.keys(filter).length === 0
   return (
-    <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Saved views">
-      <span className="k mr-1">Saved views</span>
+    <div className="flex flex-wrap items-center gap-2" role="group" aria-label={tr(m.savedViews)}>
+      <span className="k mr-1">{tr(m.savedViews)}</span>
       <button type="button" className="vchip" aria-pressed={none} onClick={() => onPick({})}>
-        All contacts{views ? ` · ${count(views.all)}` : ''}
+        {views ? tr(m.allContactsCount, { count: count(views.all) }) : tr(m.allContacts)}
       </button>
       {views?.items.map((v) => {
         const tier = v.filters.tier as Tier | undefined
@@ -323,26 +327,26 @@ function SavedViews({ views, filter, onPick, onSave }: { views?: Schemas['Contac
         )
       })}
       <button type="button" className="vchip dashed" onClick={onSave}>
-        Save current view
+        {tr(m.saveCurrent)}
       </button>
     </div>
   )
 }
 
-const sourceOptions: [string, string][] = [
-  ['import:brevo', 'Brevo import'],
-  ['import:mailchimp', 'Mailchimp import'],
-  ['import:csv', 'CSV import'],
-  ['form:docs', 'Signup form · docs'],
-  ['form:blog', 'Signup form · blog'],
-  ['form:footer', 'Signup form · footer'],
-  ['form:pricing', 'Signup form · pricing'],
-  ['form:popup', 'Popup form'],
-  ['api', 'API'],
-  ['app', 'Added in ReputeCast'],
+const sourceOptions: [string, MessageDescriptor][] = [
+  ['import:brevo', m.sourceBrevo],
+  ['import:mailchimp', m.sourceMailchimp],
+  ['import:csv', m.sourceCsv],
+  ['form:docs', m.sourceFormDocs],
+  ['form:blog', m.sourceFormBlog],
+  ['form:footer', m.sourceFormFooter],
+  ['form:pricing', m.sourceFormPricing],
+  ['form:popup', m.sourcePopup],
+  ['api', m.sourceApi],
+  ['app', m.sourceApp],
   // Grow (design expansion, X15): any referral, any partner.
-  ['referral', 'Referral'],
-  ['partner', 'Partner'],
+  ['referral', m.sourceReferral],
+  ['partner', m.sourcePartner],
 ]
 
 function Filters({
@@ -358,6 +362,7 @@ function Filters({
   paidTiers: Schemas['AudiencePaidTier'][]
   onChange: (patch: Partial<ContactsSearch>) => void
 }) {
+  const tr = useT()
   // The box follows the URL (a saved view or "Clear filters" changes it)
   // and writes back after a short pause in typing.
   const [q, setQ] = useState(search.q ?? '')
@@ -381,26 +386,26 @@ function Filters({
   return (
     <div className="card flex flex-wrap items-center gap-2 px-3 py-2.5">
       <label className="vh" htmlFor="contacts-q">
-        Search contacts
+        {tr(m.search)}
       </label>
       <input
         id="contacts-q"
         type="search"
         className="in w-[260px] max-md:min-w-full"
-        placeholder="Search email, name or tag"
+        placeholder={tr(m.searchPlaceholder)}
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />
-      <select className={sel} aria-label="List" value={search.list ?? ''} onChange={(e) => onChange({ list: e.target.value || undefined })}>
-        <option value="">Any list</option>
+      <select className={sel} aria-label={tr(m.list)} value={search.list ?? ''} onChange={(e) => onChange({ list: e.target.value || undefined })}>
+        <option value="">{tr(m.anyList)}</option>
         {lists.map((l) => (
           <option key={l.id} value={l.id}>
             {l.name}
           </option>
         ))}
       </select>
-      <select className={sel} aria-label="Tier" value={search.tier ?? ''} onChange={(e) => onChange({ tier: (e.target.value || undefined) as Tier | undefined })}>
-        <option value="">Any tier</option>
+      <select className={sel} aria-label={tr(m.tier)} value={search.tier ?? ''} onChange={(e) => onChange({ tier: (e.target.value || undefined) as Tier | undefined })}>
+        <option value="">{tr(m.anyTier)}</option>
         {tiers.map((t) => (
           <option key={t} value={t}>
             {tierLabel[t]}
@@ -408,8 +413,8 @@ function Filters({
         ))}
       </select>
       <BandSelect className={sel} value={search.band} onChange={(band) => onChange({ band })} />
-      <select className={sel} aria-label="Mailbox provider" value={search.mailbox ?? ''} onChange={(e) => onChange({ mailbox: (e.target.value || undefined) as Mailbox | undefined })}>
-        <option value="">Any mailbox provider</option>
+      <select className={sel} aria-label={tr(m.mailbox)} value={search.mailbox ?? ''} onChange={(e) => onChange({ mailbox: (e.target.value || undefined) as Mailbox | undefined })}>
+        <option value="">{tr(m.anyMailbox)}</option>
         {mailboxes.map((m) => (
           <option key={m} value={m}>
             {mailboxLabel[m]}
@@ -418,11 +423,11 @@ function Filters({
       </select>
       <select
         className={sel}
-        aria-label="Consent"
+        aria-label={tr(m.consent)}
         value={search.consent ?? ''}
         onChange={(e) => onChange({ consent: (e.target.value || undefined) as Consent | undefined })}
       >
-        <option value="">Any consent</option>
+        <option value="">{tr(m.anyConsent)}</option>
         {(['double', 'single', 'pending'] as Consent[]).map((c) => (
           <option key={c} value={c}>
             {consentFilterLabel[c]}
@@ -444,6 +449,7 @@ function Filters({
 }
 
 function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: number; onChange: (patch: Partial<ContactsSearch>) => void }) {
+  const tr = useT()
   const { slug } = useWorkspace()
   const [open, setOpen] = useState(false)
   const segments = $api.useQuery('get', '/api/v1/workspaces/{workspace}/segments', { params: { path: { workspace: slug } } }, { enabled: open })
@@ -472,30 +478,30 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
       open={open}
       onOpenChange={toggle}
       align="start"
-      label="More filters"
+      label={tr(m.moreFilters)}
       // With the store fields (X20) it outgrows a laptop screen: it scrolls within what's left of it.
       className="max-h-(--radix-popover-content-available-height) w-[360px] gap-3 overflow-y-auto p-3.5"
-      trigger={<button className="btn">{n ? `More filters · ${n}` : 'More filters'}</button>}
+      trigger={<button className="btn">{n ? tr(m.moreFiltersCount, { n }) : tr(m.moreFilters)}</button>}
     >
-      <Field label="Source">
+      <Field label={tr(m.source)}>
         <Select value={source} onChange={(e) => setSource(e.target.value)}>
-          <option value="">Any source</option>
+          <option value="">{tr(m.anySource)}</option>
           {sourceOptions.map(([v, l]) => (
             <option key={v} value={v}>
-              {l}
+              {tr(l)}
             </option>
           ))}
         </Select>
       </Field>
-      <Field label="Tag">
-        <Input value={tag} onChange={(e) => setTag(e.target.value)} placeholder="customer" />
+      <Field label={tr(m.tag)}>
+        <Input value={tag} onChange={(e) => setTag(e.target.value)} placeholder={'customer'} />
       </Field>
-      <Field label="Joined after">
+      <Field label={tr(m.joinedAfter)}>
         <Input type="date" value={after} onChange={(e) => setAfter(e.target.value)} />
       </Field>
-      <Field label="Segment">
+      <Field label={tr(m.segment)}>
         <Select value={segment} onChange={(e) => setSegment(e.target.value)}>
-          <option value="">Any segment</option>
+          <option value="">{tr(m.anySegment)}</option>
           {segments.data?.items.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
@@ -519,7 +525,7 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
             setOpen(false)
           }}
         >
-          Clear
+          {tr(m.clear)}
         </Button>
         <Button
           size="sm"
@@ -529,7 +535,7 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
             setOpen(false)
           }}
         >
-          Apply
+          {tr(m.apply)}
         </Button>
       </div>
     </Popover>
@@ -537,36 +543,37 @@ function MoreFilters({ search, n, onChange }: { search: ContactsSearch; n: numbe
 }
 
 function BulkBar({ n, onAction, onExport, onClear }: { n: number; onAction: (k: BulkKind | 'erase') => void; onExport: () => void; onClear: () => void }) {
+  const tr = useT()
   const editReason = usePermissionReason('subscribers:edit')
   const exportReason = usePermissionReason('subscribers:export')
   const deleteReason = usePermissionReason('subscribers:delete')
   const canExport = useCan('subscribers:export')
   return (
-    <div className="card flex flex-wrap items-center gap-2.5 border-accent-line bg-accent-tint px-3 py-2" role="region" aria-label="Bulk actions">
+    <div className="card flex flex-wrap items-center gap-2.5 border-accent-line bg-accent-tint px-3 py-2" role="region" aria-label={tr(m.bulkActions)}>
       <span className="text-[13px] font-semibold" role="status">
-        {count(n)} selected
+        {tr(m.selected, { count: count(n) })}
       </span>
       <Button size="sm" disabledReason={editReason} onClick={() => onAction('add_to_list')}>
-        Add to list
+        {tr(m.addToList)}
       </Button>
       <Button size="sm" disabledReason={editReason} onClick={() => onAction('add_tag')}>
-        Add tag
+        {tr(m.addTag)}
       </Button>
       <Button size="sm" disabledReason={editReason} onClick={() => onAction('resend_optin')}>
-        Resend opt-in
+        {tr(m.resendOptin)}
       </Button>
-      <Button size="sm" disabledReason={exportReason} title="Needs subscribers:export · every export is logged" onClick={onExport}>
-        Export CSV
+      <Button size="sm" disabledReason={exportReason} title={tr(m.exportTitle)} onClick={onExport}>
+        {tr(m.exportCsv)}
       </Button>
-      <span className="k">{canExport ? 'export is logged · needs subscribers:export' : 'needs subscribers:export'}</span>
+      <span className="k">{canExport ? tr(m.exportLogged) : tr(m.exportNeeds)}</span>
       <Button size="sm" className="dline" disabledReason={editReason} onClick={() => onAction('suppress')}>
-        Suppress
+        {tr(m.suppress)}
       </Button>
       <Button size="sm" className="dline" disabledReason={deleteReason} onClick={() => onAction('erase')}>
-        Delete
+        {tr(m.delete)}
       </Button>
       <Button size="sm" className="ml-auto" onClick={onClear}>
-        Clear selection
+        {tr(m.clearSelection)}
       </Button>
     </div>
   )
@@ -609,7 +616,7 @@ function ContactsTable({
           header: ({ table }) => (
             <input
               type="checkbox"
-              aria-label="Select all"
+              aria-label={t(m.selectAll)}
               checked={table.getIsAllPageRowsSelected()}
               ref={(el) => {
                 if (el) el.indeterminate = table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()
@@ -618,7 +625,12 @@ function ContactsTable({
             />
           ),
           cell: ({ row }) => (
-            <input type="checkbox" aria-label={`Select ${row.original.name || row.original.email}`} checked={row.getIsSelected()} onChange={row.getToggleSelectedHandler()} />
+            <input
+              type="checkbox"
+              aria-label={t(m.selectRow, { name: row.original.name || row.original.email })}
+              checked={row.getIsSelected()}
+              onChange={row.getToggleSelectedHandler()}
+            />
           ),
         }),
       ]),
@@ -642,25 +654,25 @@ function ContactsTable({
   const from = data.total === 0 ? 0 : (page - 1) * size + 1
   const to = Math.min(data.total, page * size)
   return (
-    <section className="card" aria-label="Contacts">
-      <TableScroll label="Contacts">
+    <section className="card" aria-label={tr(m.contacts)}>
+      <TableScroll label={tr(m.contacts)}>
         <table className="tbl ctbl phone-wrap">
           <thead>
             <tr>
               <th scope="col">
                 <table.FlexRender header={header} />
               </th>
-              <th scope="col">Contact</th>
-              {paid ? <th scope="col">Paid</th> : null}
-              {phones ? <th scope="col">{tr(cfm.column)}</th> : null}
-              <th scope="col">Lists</th>
-              <th scope="col">Tier</th>
+              <Th>{tr(m.colContact)}</Th>
+              {paid ? <Th>{tr(m.colPaid)}</Th> : null}
+              {phones ? <Th>{tr(cfm.column)}</Th> : null}
+              <Th>{tr(m.colLists)}</Th>
+              <Th>{tr(m.colTier)}</Th>
               <ScoreHeader sorted={byScore} onSort={onSort} />
-              <th scope="col">Consent</th>
-              <th scope="col">Mailbox provider</th>
-              <th scope="col">Last open</th>
-              <th scope="col">Joined</th>
-              <th scope="col">Source</th>
+              <Th>{tr(m.colConsent)}</Th>
+              <Th>{tr(m.colMailbox)}</Th>
+              <Th>{tr(m.colLastOpen)}</Th>
+              <Th>{tr(m.colJoined)}</Th>
+              <Th>{tr(m.colSource)}</Th>
             </tr>
           </thead>
           <tbody>
@@ -699,7 +711,7 @@ function ContactsTable({
                   </td>
                   <td>
                     {c.suppressed ? (
-                      <Badge tone="bad">Suppressed</Badge>
+                      <Badge tone="bad">{tr(m.suppressed)}</Badge>
                     ) : (
                       <Badge tone={consentTone[consent]}>{consentLabel[consent]}</Badge>
                     )}
@@ -722,13 +734,13 @@ function ContactsTable({
                 <td colSpan={10 + (paid ? 1 : 0) + (phones ? 1 : 0)} className="py-8 text-center text-ink-3">
                   {filtered ? (
                     <>
-                      No contacts match these filters.{' '}
+                      {tr(m.noMatch)}{' '}
                       <button type="button" className="font-semibold text-accent underline underline-offset-2" onClick={onClear}>
-                        Clear filters
+                        {tr(m.clearFilters)}
                       </button>
                     </>
                   ) : (
-                    'No contacts on this page.'
+                    tr(m.noneOnPage)
                   )}
                 </td>
               </tr>
@@ -737,22 +749,20 @@ function ContactsTable({
         </table>
       </TableScroll>
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line-2 px-4 py-2.5">
-        <span className="k">
-          {count(from)} to {count(to)} of {count(data.total)}
-        </span>
+        <span className="k">{tr(m.range, { from: count(from), to: count(to), total: count(data.total) })}</span>
         <div className="flex items-center gap-1.5 max-md:flex-wrap">
-          <select className="in h-[30px] max-md:w-0 max-md:min-w-full" aria-label="Rows per page" value={size} onChange={(e) => onSize(Number(e.target.value))}>
+          <select className="in h-[30px] max-md:w-0 max-md:min-w-full" aria-label={tr(m.rowsPerPage)} value={size} onChange={(e) => onSize(Number(e.target.value))}>
             {[10, 50, 100].map((n) => (
               <option key={n} value={n}>
-                {n} per page
+                {tr(m.perPage, { n })}
               </option>
             ))}
           </select>
           <Button size="sm" disabled={page <= 1} onClick={() => onPage(page - 1)}>
-            Previous
+            {tr(m.previous)}
           </Button>
           <Button size="sm" disabled={to >= data.total} onClick={() => onPage(page + 1)}>
-            Next
+            {tr(m.next)}
           </Button>
         </div>
       </div>
@@ -762,6 +772,7 @@ function ContactsTable({
 
 /** Loading: rows shaped like the table (AudienceStates › Loading). */
 export function ContactsSkeleton({ total }: { total?: number }) {
+  const tr = useT()
   const widths = [
     [140, 200],
     [120, 180],
@@ -769,7 +780,7 @@ export function ContactsSkeleton({ total }: { total?: number }) {
     [130, 190],
   ]
   return (
-    <Loading label={total ? `Loading ${count(total)} contacts, page 1` : 'Loading contacts'} className="card flex flex-col">
+    <Loading label={total ? tr(m.loadingCount, { count: count(total) }) : tr(m.loadingContacts)} className="card flex flex-col">
       {widths.map(([a, b], i) => (
         <div key={i} className={`flex items-center gap-3 px-4 py-2.5 ${i ? 'border-t border-line-2' : ''}`}>
           <Skeleton w={16} h={16} />
@@ -787,36 +798,37 @@ export function ContactsSkeleton({ total }: { total?: number }) {
 
 /** Empty: no contacts yet (AudienceStates › Empty). */
 function AudienceEmpty({ lists }: { lists: Schemas['AudienceListSummary'][] }) {
+  const tr = useT()
   const { slug } = useWorkspace()
   const sync = $api.useQuery('get', '/api/v1/workspaces/{workspace}/suppressions', { params: { path: { workspace: slug }, query: { pageSize: 1 } } })
   const pulled = sync.data?.sync.filter((p) => p.pulled > 0) ?? []
   const names = lists.map((l) => l.name)
-  const listText = names.length ? `${andList(names)} ${names.length > 1 ? 'are' : 'is'} ready. ` : ''
+  const listText = names.length ? `${tr(m.emptyListsReady, { n: names.length, lists: andList(names) })} ` : ''
   return (
     <section className="card flex flex-col items-center gap-3 border-dashed px-7 py-10 text-center">
       <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true">
         <circle cx="22" cy="20" r="8" fill="none" stroke="#9AA3B2" strokeWidth="2" />
         <path d="M8 44a14 14 0 0 1 28 0M38 14a7 7 0 0 1 0 12M50 44a12 12 0 0 0-9-11.5" fill="none" stroke="#9AA3B2" strokeWidth="2" strokeLinecap="round" />
       </svg>
-      <h2 className="m-0 text-[18px] font-bold">Your lists are empty</h2>
+      <h2 className="m-0 text-[18px] font-bold">{tr(m.emptyTitle)}</h2>
       <span className="max-w-[520px] text-ink-2">
-        {listText}Bring contacts from another tool with their consent intact, add a signup form, or push them in through the API.
+        {listText}
+        {tr(m.emptyBody)}
       </span>
       <div className="mt-1.5 flex flex-wrap justify-center gap-2.5">
         <ButtonLink variant="primary" className="min-h-10" to="/w/$workspace/import" params={{ workspace: slug }}>
-          Import contacts
+          {tr(m.importContacts)}
         </ButtonLink>
         <ButtonLink to="/w/$workspace/forms" params={{ workspace: slug }}>
-          Create a signup form
+          {tr(m.createForm)}
         </ButtonLink>
         <ButtonLink to="/w/$workspace/settings/keys" params={{ workspace: slug }}>
-          API docs
+          {tr(m.apiDocs)}
         </ButtonLink>
       </div>
       {pulled.length ? (
         <span className="k">
-          Suppressions from connected providers ({pulled.map((p) => `${count(p.pulled)} from ${shortProvider(p.name)}`).join(', ')}) are already in place, so imported
-          addresses that bounced before are skipped.
+          {tr(m.suppressionsInPlace, { pulled: pulled.map((p) => tr(m.pulledFrom, { count: count(p.pulled), provider: shortProvider(p.name) })).join(', ') })}
         </span>
       ) : null}
     </section>

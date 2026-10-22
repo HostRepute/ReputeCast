@@ -5,10 +5,13 @@ import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ErrorPanel } from '@/components/ui/Feedback'
-import { clock, clockSeconds, count } from '@/lib/format'
+import { clock, clockSeconds, count, pct as percent } from '@/lib/format'
+import { t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { ImportFrame, stepPath, useImportDetail, useRefreshImport, type Detail } from './ImportFrame'
 import { PausedCard, ReadingSource } from './states'
+import { m } from './messages'
 
 const logTone: Record<string, Tone> = { start: 'ok', done: 'ok', sync: 'info', retry: 'warn', error: 'bad', info: 'neutral' }
 
@@ -20,11 +23,12 @@ function eta(d: Detail, now: number) {
   if (elapsed <= 0) return undefined
   const left = ((p.total - p.processed) * elapsed) / p.processed
   const mins = Math.ceil(left / 60_000)
-  return mins <= 1 ? 'about 1 minute left' : `about ${mins} minutes left`
+  return tt(m.etaMinutes, { n: Math.max(1, mins) })
 }
 
 /** Step 5: the import running (MigrationProgress). */
 export function ProgressStep({ importId }: { importId: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = useImportDetail(importId)
   const d = q.data
@@ -36,22 +40,22 @@ export function ProgressStep({ importId }: { importId: string }) {
   }
   return (
     <ImportFrame
-      title={d ? `Import contacts · ${d.sourceName}` : 'Import contacts'}
-      badge={<Badge tone="neutral">Step 5 of 5</Badge>}
+      title={d ? t(m.titleFrom, { source: d.sourceName }) : t(m.title)}
+      badge={<Badge tone="neutral">{t(m.stepOf, { step: 5, total: 5 })}</Badge>}
       exit={
         <ButtonLink to="/w/$workspace/audience" params={{ workspace: slug }}>
-          Leave, keep running
+          {t(m.leaveRunning)}
         </ButtonLink>
       }
       step={5}
-      hints={{ 5: 'Running in the background' }}
+      hints={{ 5: t(m.hintRunning) }}
     >
       {q.isError ? (
-        <ErrorPanel title="Couldn't load the import" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
-          {errorMessage(q.error)} The import keeps running.
+        <ErrorPanel title={t(m.loadFailedThe)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
+          {errorMessage(q.error)} {t(m.keepsRunning)}
         </ErrorPanel>
       ) : !d ? (
-        <ReadingSource title="Loading the import" />
+        <ReadingSource title={t(m.loading)} />
       ) : (
         <Running d={d} now={q.dataUpdatedAt} />
       )}
@@ -60,6 +64,7 @@ export function ProgressStep({ importId }: { importId: string }) {
 }
 
 function Running({ d, now }: { d: Detail; now: number }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const refresh = useRefreshImport()
   const cancel = $api.useMutation('post', '/api/v1/workspaces/{workspace}/imports/{id}/cancel')
@@ -70,12 +75,15 @@ function Running({ d, now }: { d: Detail; now: number }) {
   const pct = p.total > 0 ? Math.min(p.processed < p.total ? 99 : 100, Math.round((p.processed / p.total) * 100)) : 0
   const left = eta(d, now)
   const tiles: [string, number, string][] = [
-    ['Imported', p.imported, 'new, subscribed'],
-    ['Merged', p.merged, 'existing contacts updated'],
-    ['Suppressed', p.suppressed, 'never re-subscribed'],
-    ['Pending re-permission', p.pending, 'old, never engaged'],
-    ['Skipped', p.skipped, 'invalid, disposable, traps'],
+    [t(m.tileImported), p.imported, t(m.tileImportedNote)],
+    [t(m.tileMerged), p.merged, t(m.tileMergedUpdated)],
+    [t(m.tileSuppressed), p.suppressed, t(m.tileNeverResubscribed)],
+    [t(m.tilePending), p.pending, t(m.tilePendingNote)],
+    [t(m.tileSkipped), p.skipped, t(m.tileSkippedNote)],
   ]
+  const line = [t(m.processed, { processed: count(p.processed), total: count(p.total) })]
+  if (left) line.push(left)
+  if (d.startedAt) line.push(d.createdBy ? t(m.startedBy, { time: clock(d.startedAt), name: d.createdBy }) : t(m.startedAt, { time: clock(d.startedAt) }))
   return (
     <>
       {d.status === 'paused' ? <PausedCard d={d} now={now} /> : null}
@@ -84,23 +92,18 @@ function Running({ d, now }: { d: Detail; now: number }) {
           <span className="spin h-8 w-8 border-[3px]" aria-hidden="true" />
           <div className="flex flex-[1_1_300px] flex-col gap-0.5">
             <span className="text-[20px] font-bold tracking-[-0.01em]" role="status">
-              Importing from {d.sourceName} · {pct}%
+              {t(m.importingFrom, { source: d.sourceName, percent: percent(pct, 0) })}
             </span>
-            <span className="k">
-              {count(p.processed)} of {count(p.total)} rows processed{left ? ` · ${left}` : ''}
-              {d.startedAt ? ` · started ${clock(d.startedAt)}${d.createdBy ? ` by ${d.createdBy}` : ''}` : ''}
-            </span>
+            <span className="k">{line.join(' · ')}</span>
           </div>
           <Button className="stop" disabledReason={reason} onClick={() => setStopping(true)}>
-            Stop import
+            {t(m.stopImport)}
           </Button>
         </div>
-        <div className="bar h-3 rounded-[6px]" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="Import progress">
+        <div className="bar h-3 rounded-[6px]" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={t(m.progress)}>
           <i className="rounded-[6px]" style={{ width: `${pct}%`, background: 'var(--accent)' }} />
         </div>
-        <span className="k">
-          You can leave this page. The import keeps running and you'll get a notification with the report. Contacts already imported are usable right away.
-        </span>
+        <span className="k">{t(m.canLeave)}</span>
       </section>
       <div className="mgrid grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">
         {tiles.map(([k, n, note]) => (
@@ -115,11 +118,11 @@ function Running({ d, now }: { d: Detail; now: number }) {
       <ConfirmDialog
         open={stopping}
         onOpenChange={setStopping}
-        badge="Stop import"
-        title={`Stop importing from ${d.sourceName}?`}
-        description={`${count(p.processed)} of ${count(p.total)} rows are already in; they stay. The rest isn't imported, and you can start a new import later.`}
-        confirmLabel="Stop import"
-        busyLabel="Stopping…"
+        badge={t(m.stopImport)}
+        title={t(m.stopTitle, { source: d.sourceName })}
+        description={t(m.stopBody, { processed: count(p.processed), total: count(p.total) })}
+        confirmLabel={t(m.stopImport)}
+        busyLabel={t(m.stopping)}
         onConfirm={async () => {
           await cancel.mutateAsync({ params: { path: { workspace: slug, id: d.id } } })
           await refresh()
@@ -130,24 +133,25 @@ function Running({ d, now }: { d: Detail; now: number }) {
 }
 
 export function LiveLog({ d }: { d: Detail }) {
+  const t = useT()
   const p = d.progress
   const entries: Schemas['ImportLogEntry'][] = d.log
   return (
-    <section className="card flex flex-col px-5 py-4" aria-label="Live log">
+    <section className="card flex flex-col px-5 py-4" aria-label={t(m.liveLog)}>
       <div className="mb-1.5 flex items-center justify-between">
-        <h2 className="h2">Live log</h2>
-        {p.batchSize > 0 ? <span className="k">batches of {count(p.batchSize)}</span> : null}
+        <h2 className="h2">{t(m.liveLog)}</h2>
+        {p.batchSize > 0 ? <span className="k">{t(m.batchesOf, { count: count(p.batchSize) })}</span> : null}
       </div>
       <div aria-live="polite">
-        {entries.length === 0 ? <p className="k m-0 py-2">Waiting for the first batch…</p> : null}
+        {entries.length === 0 ? <p className="k m-0 py-2">{t(m.firstBatch)}</p> : null}
         {entries.map((e, i) => (
           <div key={`${e.at}-${i}`} className={`log ${i === 0 ? 'first' : ''}`}>
             <span className="mono k">{clockSeconds(e.at)}</span>
             {e.kind === 'running' ? (
-              <span className="spin mt-0.5" aria-label="running" />
+              <span className="spin mt-0.5" aria-label={t(m.running)} />
             ) : (
               <Badge tone={logTone[e.kind] ?? 'neutral'} className="h-5">
-                {e.kind}
+                {t(m.logKind, { kind: e.kind })}
               </Badge>
             )}
             <span>{e.message}</span>

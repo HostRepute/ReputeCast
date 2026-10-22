@@ -19,8 +19,11 @@ import { tierColor, tierLabel, type Tier } from './labels'
 import { BetweenTo } from '@/features/scoring/ContactsScore'
 import { DraftBanner, DraftFooter, DraftMark, DraftSqlNote, draftCountLabels, useSegmentAssist, type SegmentDraft } from '@/features/ai/segment'
 import { DeleteSegmentButton, SegmentUsageCard } from '@/features/conditional/usage'
-import { useT } from '@/i18n'
+import { t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { mpc } from '@/features/earn/contacts.messages'
+import { m as am } from './messages'
+import { m } from './segments.messages'
 import './audience.css'
 import { SignedInWhen } from '@/features/website/elsewhere'
 
@@ -131,6 +134,7 @@ function invalidAt(err: unknown): [number, number] | null {
 
 /** /audience/segments: the first saved segment, or a new one. */
 export function SegmentsIndex() {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const list = $api.useQuery('get', '/api/v1/workspaces/{workspace}/segments', { params: { path: { workspace: slug } } })
@@ -141,7 +145,7 @@ export function SegmentsIndex() {
   }, [list.data, first, navigate, slug])
   if (list.isError) throw list.error
   return (
-    <Page title="Audience" documentTitle="Segments" filters={<AudienceTabs />}>
+    <Page title={t(am.title)} documentTitle={t(m.documentTitle)} filters={<AudienceTabs />}>
       <BuilderSkeleton />
     </Page>
   )
@@ -149,6 +153,7 @@ export function SegmentsIndex() {
 
 /** 7.10 Segment builder: conditions, generated SQL, live count and saved segments. */
 export function SegmentBuilderPage({ segmentId }: { segmentId: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const isNew = segmentId === 'new'
   const seg = $api.useQuery(
@@ -163,10 +168,10 @@ export function SegmentBuilderPage({ segmentId }: { segmentId: string }) {
   return ready ? (
     <Builder key={segmentId} segmentId={segmentId} detail={isNew ? undefined : seg.data} catalog={catalog.data} />
   ) : (
-    <Page title="Audience" documentTitle="Segments" filters={<AudienceTabs />}>
+    <Page title={t(am.title)} documentTitle={t(m.documentTitle)} filters={<AudienceTabs />}>
       {seg.isError || catalog.isError ? (
         <ErrorPanel
-          title="Couldn't load the segment"
+          title={t(m.loadFailed)}
           actions={
             <Button
               onClick={() => {
@@ -174,11 +179,11 @@ export function SegmentBuilderPage({ segmentId }: { segmentId: string }) {
                 void catalog.refetch()
               }}
             >
-              Retry
+              {t(common.retry)}
             </Button>
           }
         >
-          {errorMessage(seg.error ?? catalog.error)} Nothing was changed.
+          {errorMessage(seg.error ?? catalog.error)} {t(m.nothingChanged)}
         </ErrorPanel>
       ) : (
         <BuilderSkeleton />
@@ -221,7 +226,7 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
           ? await create.mutateAsync({ params: { path: { workspace: slug } }, body })
           : await update.mutateAsync({ params: { path: { workspace: slug, segment: segmentId } }, body })
       await qc.invalidateQueries({ predicate: (q) => String((q.queryKey as unknown[])[1] ?? '').includes('/segments') })
-      toast({ kind: 'success', title: segmentId === 'new' ? `Saved the segment "${out.name}"` : `Saved "${out.name}"` })
+      toast({ kind: 'success', title: segmentId === 'new' ? tt(m.savedNew, { name: out.name }) : tt(m.saved, { name: out.name }) })
       if (segmentId === 'new') {
         setDraft(fromDetail(out))
         void navigate({ to: '/w/$workspace/audience/segments/$segmentId', params: { workspace: slug, segmentId: out.id }, replace: true })
@@ -287,8 +292,8 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
   }
   return (
     <Page
-      title="Audience"
-      documentTitle={draft.name || 'New segment'}
+      title={t(am.title)}
+      documentTitle={draft.name || t(m.newSegment)}
       filters={<AudienceTabs />}
       actions={
         <>
@@ -302,10 +307,10 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
               }
             }}
           >
-            Discard
+            {t(m.discard)}
           </Button>
           <Button variant="primary" disabledReason={editReason} loading={create.isPending || update.isPending} onClick={() => void save().catch(() => undefined)}>
-            Save segment
+            {t(m.save)}
           </Button>
           {/* Deleting warns first when a Visibility rule uses the segment (design expansion, X11). */}
           <DeleteSegmentButton segmentId={segmentId} name={draft.name || detail?.name || ''} />
@@ -313,19 +318,19 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
       }
       contentClassName="flex-row flex-wrap items-start"
     >
-      <UnsavedChangesGuard dirty={dirty} description="You changed this segment since it was saved. Leaving now keeps the saved version." onSave={save} />
-      <section className="flex min-w-0 flex-[2_1_600px] flex-col gap-4 segb" aria-label="Segment">
+      <UnsavedChangesGuard dirty={dirty} description={t(m.unsaved)} onSave={save} />
+      <section className="flex min-w-0 flex-[2_1_600px] flex-col gap-4 segb" aria-label={t(m.segment)}>
         {saveErr ? <Note tone="bad">{saveErr}</Note> : null}
         <div className="card flex flex-wrap items-center gap-3 px-4.5 py-4">
           <label className="flex flex-[1_1_300px] flex-col gap-1">
-            <span className="k">Segment name</span>
-            <input className="in segname" value={draft.name} placeholder="Name this segment" onChange={(e) => set({ name: e.target.value })} maxLength={120} />
+            <span className="k">{t(m.name)}</span>
+            <input className="in segname" value={draft.name} placeholder={t(m.namePlaceholder)} onChange={(e) => set({ name: e.target.value })} maxLength={120} />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="k">Refresh</span>
+            <span className="k">{t(m.refresh)}</span>
             <select className="in" value={draft.refresh} onChange={(e) => set({ refresh: e.target.value as Draft['refresh'] })}>
-              <option value="dynamic">Dynamic · re-evaluated at send time</option>
-              <option value="static">Static snapshot</option>
+              <option value="dynamic">{t(m.dynamic)}</option>
+              <option value="static">{t(m.static)}</option>
             </select>
           </label>
         </div>
@@ -333,8 +338,8 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
         {draft.mode === 'builder' ? (
           <div className="card flex flex-col gap-3 p-4.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="h2">Conditions</h2>
-              <span className="k">Groups combine with AND; inside a group pick ALL or ANY</span>
+              <h2 className="h2">{t(m.conditions)}</h2>
+              <span className="k">{t(m.combine)}</span>
             </div>
             {ai ? (
               <DraftBanner
@@ -350,33 +355,33 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
               <div key={g.key} className="contents">
                 {gi > 0 ? (
                   <div className="flex justify-center">
-                    <span className="sop and">AND</span>
+                    <span className="sop and">{t(m.and)}</span>
                   </div>
                 ) : null}
-                <div className="sgroup" role="group" aria-label={`Group ${gi + 1}`}>
+                <div className="sgroup" role="group" aria-label={t(m.group, { n: gi + 1 })}>
                   <div className="flex flex-wrap items-center gap-2.5">
-                    <span className="sop">Group {gi + 1}</span>
-                    <select aria-label={`Match rule for Group ${gi + 1}`} className="in match" value={g.match} onChange={(e) => setGroup(gi, { match: e.target.value as Group['match'] })}>
+                    <span className="sop">{t(m.group, { n: gi + 1 })}</span>
+                    <select aria-label={t(m.matchRule, { n: gi + 1 })} className="in match" value={g.match} onChange={(e) => setGroup(gi, { match: e.target.value as Group['match'] })}>
                       {g.match === 'all' ? (
                         <>
-                          <option value="all">Match ALL of these</option>
-                          <option value="any">Match ANY of these</option>
+                          <option value="all">{t(m.matchAll)}</option>
+                          <option value="any">{t(m.matchAny)}</option>
                         </>
                       ) : (
                         <>
-                          <option value="any">Match ANY of these</option>
-                          <option value="all">Match ALL of these</option>
+                          <option value="any">{t(m.matchAny)}</option>
+                          <option value="all">{t(m.matchAll)}</option>
                         </>
                       )}
                     </select>
                     <Button
                       size="sm"
                       className="ml-auto"
-                      aria-label="Remove group"
+                      aria-label={t(m.removeGroup)}
                       disabled={draft.groups.length === 1}
                       onClick={() => set({ groups: draft.groups.filter((_, i) => i !== gi) })}
                     >
-                      Remove group
+                      {t(m.removeGroup)}
                     </Button>
                   </div>
                   {(ai?.removed[gi] ?? []).map((c) => (
@@ -400,16 +405,16 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
                     />
                   ))}
                   <Button size="sm" className="self-start" onClick={() => setGroup(gi, { conditions: [...g.conditions, blankCond(catalog.fields[0])] })}>
-                    Add condition
+                    {t(m.addCondition)}
                   </Button>
                 </div>
               </div>
             ))}
             <div className="flex flex-wrap gap-2">
               <Button size="sm" onClick={() => set({ groups: [...draft.groups, { key: k(), match: 'any', conditions: [blankCond(catalog.fields[0])] }] })}>
-                Add group
+                {t(m.addGroup)}
               </Button>
-              <span className="k self-center">Suppressed, bounced and role addresses are always excluded at send time, whatever the segment says.</span>
+              <span className="k self-center">{t(m.alwaysExcluded)}</span>
             </div>
             {/* Paid subscription conditions (Earn, X16). */}
             {draft.groups.some((g) => g.conditions.some((c) => c.field.startsWith('paid_'))) ? <span className="k">{t(mpc.segmentNote)}</span> : null}
@@ -418,52 +423,47 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
         ) : (
           <div className="card flex flex-col gap-3 p-4.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="h2">SQL</h2>
-              <span className="k">Read only, 10 s limit · views: {catalog.views.join(', ')}</span>
+              <h2 className="h2">{t(m.sql)}</h2>
+              <span className="k">{t(m.sqlLimits, { views: catalog.views.join(', ') })}</span>
             </div>
-            <SqlEditor value={draft.sql} onChange={(v) => set({ sql: v })} label="Segment SQL" invalid={preview.isError} />
+            <SqlEditor value={draft.sql} onChange={(v) => set({ sql: v })} label={t(m.sqlLabel)} invalid={preview.isError} />
             {preview.error instanceof ApiError && preview.error.code === 'sql_error' ? <Note tone="bad">{preview.error.message}</Note> : null}
             <div className="flex flex-wrap items-center gap-2">
               <Button size="sm" onClick={() => set({ mode: 'builder', sql: '' })}>
-                Back to the builder
+                {t(m.backToBuilder)}
               </Button>
-              <span className="k">The query must return contact ids (c.id). It runs read-only with a 10-second limit.</span>
+              <span className="k">{t(m.sqlNote)}</span>
             </div>
           </div>
         )}
         {draft.mode === 'builder' ? (
           <div className="card flex flex-col">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-4.5 py-3">
-              <h2 className="h2">Generated SQL</h2>
+              <h2 className="h2">{t(m.generated)}</h2>
               <div className="flex gap-1.5 max-md:flex-wrap">
-                <Badge tone="neutral">read only</Badge>
+                <Badge tone="neutral">{t(m.readOnly)}</Badge>
                 <Button
                   size="sm"
                   onClick={() => {
-                    void navigator.clipboard.writeText(generated).then(() => toast({ kind: 'success', title: 'Copied the SQL' }))
+                    void navigator.clipboard.writeText(generated).then(() => toast({ kind: 'success', title: tt(m.copied) }))
                   }}
                 >
-                  Copy
+                  {t(common.copy)}
                 </Button>
-                <Button
-                  size="sm"
-                  title="Needs segments:sql"
-                  disabledReason={!catalog.sqlEnabled ? 'SQL segments are turned off on this database; an admin can enable them.' : sqlReason}
-                  onClick={() => set({ mode: 'sql', sql: generated })}
-                >
-                  Open in SQL editor
+                <Button size="sm" title={t(m.needsSql)} disabledReason={!catalog.sqlEnabled ? t(m.sqlOff) : sqlReason} onClick={() => set({ mode: 'sql', sql: generated })}>
+                  {t(m.openSql)}
                 </Button>
-                <span className="k self-center">needs segments:sql</span>
+                <span className="k self-center">{t(m.needsSqlNote)}</span>
               </div>
             </div>
             <div className="flex flex-col gap-3 px-4.5 py-3.5">
               {ai ? <DraftSqlNote /> : null}
-              {generated ? <SqlBlock sql={generated} label="Generated SQL" /> : <Skeleton w="100%" h={120} />}
+              {generated ? <SqlBlock sql={generated} label={t(m.generated)} /> : <Skeleton w="100%" h={120} />}
             </div>
           </div>
         ) : null}
       </section>
-      <aside className="flex max-w-[400px] flex-[1_1_320px] flex-col gap-4" aria-label="Count and saved segments">
+      <aside className="flex max-w-[400px] flex-[1_1_320px] flex-col gap-4" aria-label={t(m.countAndSaved)}>
         <LiveCount
           preview={preview}
           name={draft.name}
@@ -498,19 +498,20 @@ function Condition({
   /** A drafted condition (features/ai): added by the draft, or removed by it (struck through, read only). */
   mark?: 'added' | 'removed'
 }) {
+  const t = useT()
   const f = catalog.fields.find((x) => x.key === c.field)
   const noValue = ['never', 'ever', 'is_empty', 'is_not_empty', 'is_true', 'is_false'].includes(c.op)
   if (mark === 'removed') {
     return (
       <fieldset disabled className="scond ai-removed m-0 min-w-0">
-        <FitSelect aria-label="Condition field" className="in" value={c.field} label={f?.label ?? c.field} onChange={() => undefined}>
+        <FitSelect aria-label={t(m.field)} className="in" value={c.field} label={f?.label ?? c.field} onChange={() => undefined}>
           {catalog.fields.map((x) => (
             <option key={x.key} value={x.key}>
               {x.label}
             </option>
           ))}
         </FitSelect>
-        <select aria-label="Condition operator" className="in" value={c.op} onChange={() => undefined}>
+        <select aria-label={t(m.operator)} className="in" value={c.op} onChange={() => undefined}>
           {(f?.ops ?? []).map((o) => (
             <option key={o.key} value={o.key}>
               {o.label}
@@ -518,7 +519,7 @@ function Condition({
           ))}
         </select>
         {noValue ? null : f && (f.kind === 'enum' || f.kind === 'list' || f.kind === 'campaign') ? (
-          <select aria-label="Condition value" className="in" value={c.value} onChange={() => undefined}>
+          <select aria-label={t(m.value)} className="in" value={c.value} onChange={() => undefined}>
             {f.options.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
@@ -526,7 +527,7 @@ function Condition({
             ))}
           </select>
         ) : (
-          <input className="in" aria-label="Value" value={f?.kind === 'period' ? `${c.amount} ${c.unit}` : c.value} readOnly />
+          <input className="in" aria-label={t(m.valueInput)} value={f?.kind === 'period' ? t(m.period, { amount: c.amount, unit: c.unit }) : c.value} readOnly />
         )}
         <DraftMark mark="removed" />
       </fieldset>
@@ -534,14 +535,14 @@ function Condition({
   }
   return (
     <div className={`${invalid ? 'scond invalid' : 'scond'}${mark === 'added' ? ' ai-added' : ''}`} aria-invalid={invalid || undefined}>
-      <FitSelect aria-label="Condition field" className="in" value={c.field} label={f?.label ?? c.field} onChange={(e) => onField(e.target.value)}>
+      <FitSelect aria-label={t(m.field)} className="in" value={c.field} label={f?.label ?? c.field} onChange={(e) => onField(e.target.value)}>
         {catalog.fields.map((x) => (
           <option key={x.key} value={x.key}>
             {x.label}
           </option>
         ))}
       </FitSelect>
-      <select aria-label="Condition operator" className="in" value={c.op} onChange={(e) => onChange({ op: e.target.value })}>
+      <select aria-label={t(m.operator)} className="in" value={c.op} onChange={(e) => onChange({ op: e.target.value })}>
         {(f?.ops ?? []).map((o) => (
           <option key={o.key} value={o.key}>
             {o.label}
@@ -552,15 +553,21 @@ function Condition({
         <SignedInWhen value={c.value} onChange={(value) => onChange({ value })} />
       ) : f?.kind === 'period' ? (
         <>
-          <input className="in w-[70px]" inputMode="numeric" aria-label={c.unit === 'weeks' ? 'Weeks' : 'Days'} value={c.amount} onChange={(e) => onChange({ amount: Number(e.target.value.replace(/\D/g, '')) || 0 })} />
-          <select aria-label="Time unit" className="in" value={c.unit} onChange={(e) => onChange({ unit: e.target.value as Cond['unit'] })}>
-            <option value="days">days</option>
-            <option value="weeks">weeks</option>
+          <input
+            className="in w-[70px]"
+            inputMode="numeric"
+            aria-label={c.unit === 'weeks' ? t(m.weeks) : t(m.days)}
+            value={c.amount}
+            onChange={(e) => onChange({ amount: Number(e.target.value.replace(/\D/g, '')) || 0 })}
+          />
+          <select aria-label={t(m.unit)} className="in" value={c.unit} onChange={(e) => onChange({ unit: e.target.value as Cond['unit'] })}>
+            <option value="days">{t(m.unitDays)}</option>
+            <option value="weeks">{t(m.unitWeeks)}</option>
           </select>
         </>
       ) : f && (f.kind === 'enum' || f.kind === 'list' || f.kind === 'campaign') ? (
-        <select aria-label="Condition value" className="in" value={c.value} onChange={(e) => onChange({ value: e.target.value })}>
-          {f.options.length === 0 ? <option value="">Nothing to pick yet</option> : null}
+        <select aria-label={t(m.value)} className="in" value={c.value} onChange={(e) => onChange({ value: e.target.value })}>
+          {f.options.length === 0 ? <option value="">{t(m.nothingToPick)}</option> : null}
           {f.options.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
@@ -570,7 +577,7 @@ function Condition({
       ) : (
         <input
           className="in"
-          aria-label="Value"
+          aria-label={t(m.valueInput)}
           value={c.value}
           type={f?.kind === 'date' ? 'date' : 'text'}
           inputMode={f?.kind === 'number' ? 'decimal' : undefined}
@@ -579,7 +586,7 @@ function Condition({
       )}
       {c.op === 'between' ? <BetweenTo value={c.to} onChange={(to) => onChange({ to })} /> : null}
       {mark === 'added' ? <DraftMark mark="added" /> : null}
-      <Button size="sm" aria-label="Remove condition" disabled={!canRemove} onClick={onRemove}>
+      <Button size="sm" aria-label={t(m.removeCondition)} disabled={!canRemove} onClick={onRemove}>
         ×
       </Button>
     </div>
@@ -602,6 +609,7 @@ function LiveCount({
   /** While an AI draft is open: "Live count · with the draft" and the count before it. */
   draftLabels?: { title: string; before: string }
 }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const err = preview.error
   if (err instanceof ApiError && err.code === 'count_timeout') {
@@ -609,22 +617,26 @@ function LiveCount({
     return (
       <div role="alert" className="card flex flex-col gap-2 border-bad-line px-4.5 py-4">
         <div className="flex items-center gap-2.5 max-md:flex-wrap">
-          <Badge tone="bad">Timed out</Badge>
-          <span className="font-semibold">The live count for "{name || 'this segment'}" took longer than 10 s</span>
+          <Badge tone="bad">{t(m.timedOut)}</Badge>
+          <span className="font-semibold">{t(m.timedOutTitle, { named: name ? 'yes' : 'no', name })}</span>
         </div>
         <span className="k">
-          Segment counts over 40,000 contacts with event conditions can be slow on the default Postgres settings.
-          {last !== undefined && last !== null && detail?.countedAt
-            ? ` The last known count (${count(last)}, ${clock(detail.countedAt)} ${sameDay(detail.countedAt) ? 'today' : shortDate(detail.countedAt)}) is shown instead.`
-            : ''}{' '}
-          The segment still works at send time.
+          {[
+            t(m.slowCounts, { count: count(40_000) }),
+            last !== undefined && last !== null && detail?.countedAt
+              ? t(m.lastKnown, { today: sameDay(detail.countedAt) ? 'yes' : 'no', count: count(last), time: clock(detail.countedAt), date: shortDate(detail.countedAt) })
+              : '',
+            t(m.stillWorks),
+          ]
+            .filter(Boolean)
+            .join(' ')}
         </span>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="primary" onClick={() => void preview.refetch()}>
-            Retry count
+            {t(m.retryCount)}
           </Button>
           <ButtonAnchor size="sm" href="https://github.com/hostrepute/reputecast/blob/main/docs/deploy/postgres-tuning.md">
-            Postgres tuning guide
+            {t(m.tuningGuide)}
           </ButtonAnchor>
         </div>
       </div>
@@ -644,34 +656,32 @@ function LiveCount({
   const share = d && d.total > 0 ? (d.count / d.total) * 100 : 0
   return (
     <section className="card flex flex-col gap-2.5 border-accent-line px-5 py-4.5" aria-live="polite" aria-busy={preview.isFetching || undefined}>
-      <span className="k">{draftLabels ? draftLabels.title : 'Live count · updates as you edit'}</span>
+      <span className="k">{draftLabels ? draftLabels.title : t(m.liveCount)}</span>
       {d ? (
         <>
           <span className="n text-[36px] leading-none tracking-[-0.02em]">{count(d.count)}</span>
-          <span className="k">
-            contacts match · {pct(share)} of {count(d.total)} · counted in {count(d.ms)} ms
-          </span>
+          <span className="k">{t(m.matchLine, { share: pct(share), total: count(d.total), ms: count(d.ms) })}</span>
           {draftLabels ? <span className="k">{draftLabels.before}</span> : null}
           {d.count > 0 ? (
             <StackBar
               height={10}
-              label={`Tier mix of the segment: ${shown.map(([t, n]) => `${tierLabel[t]} ${Math.round((n / d.count) * 100)} percent`).join(', ')}`}
-              segments={shown.map(([t, n]) => ({ value: n, color: tierColor[t] }))}
+              label={t(m.tierMix, { tiers: shown.map(([x, n]) => t(m.tierPercent, { tier: tierLabel[x], n: Math.round((n / d.count) * 100) })).join(', ') })}
+              segments={shown.map(([x, n]) => ({ value: n, color: tierColor[x] }))}
             />
           ) : null}
           {shown.length ? (
             <div className="flex flex-wrap gap-3 text-[12px]">
-              {shown.map(([t, n]) => (
-                <span key={t} className="flex items-center gap-1.5">
-                  <span className="dot" style={{ color: tierColor[t] }} aria-hidden="true" />
-                  {tierLabel[t]} {count(n)}
+              {shown.map(([x, n]) => (
+                <span key={x} className="flex items-center gap-1.5">
+                  <span className="dot" style={{ color: tierColor[x] }} aria-hidden="true" />
+                  {tierLabel[x]} {count(n)}
                 </span>
               ))}
             </div>
           ) : null}
         </>
       ) : invalid ? null : (
-        <Loading label="Counting" className="flex flex-col gap-2">
+        <Loading label={t(m.counting)} className="flex flex-col gap-2">
           <Skeleton w={120} h={36} />
           <Skeleton w={240} h={12} />
           <Skeleton w="100%" h={10} r={5} />
@@ -681,15 +691,15 @@ function LiveCount({
       <div className="mt-1 flex flex-wrap gap-2">
         {segmentId !== 'new' ? (
           <ButtonLink size="sm" to="/w/$workspace/audience" params={{ workspace: slug }} search={{ segment: segmentId }}>
-            Preview contacts
+            {t(m.previewContacts)}
           </ButtonLink>
         ) : (
-          <Button size="sm" disabledReason="Save the segment to preview its contacts.">
-            Preview contacts
+          <Button size="sm" disabledReason={t(m.saveFirst)}>
+            {t(m.previewContacts)}
           </Button>
         )}
         <ButtonLink size="sm" variant="primary" to="/w/$workspace/campaigns/new" params={{ workspace: slug }}>
-          Use in a campaign
+          {t(m.useInCampaign)}
         </ButtonLink>
       </div>
     </section>
@@ -701,6 +711,7 @@ function sameDay(iso: string) {
 }
 
 function SavedSegments({ current }: { current: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const list = $api.useQuery('get', '/api/v1/workspaces/{workspace}/segments', { params: { path: { workspace: slug } } })
   const items = list.data?.items ?? []
@@ -708,12 +719,12 @@ function SavedSegments({ current }: { current: string }) {
     <section className="card flex flex-col px-4.5 py-4" aria-labelledby="saved-h">
       <div className="mb-1 flex items-center justify-between">
         <h2 className="h2" id="saved-h">
-          Saved segments
+          {t(m.savedSegments)}
         </h2>
         <span className="k">{list.data ? count(items.length) : ''}</span>
       </div>
       {list.isPending ? (
-        <Loading label="Loading segments" className="flex flex-col gap-2 py-2">
+        <Loading label={t(m.loadingSegments)} className="flex flex-col gap-2 py-2">
           {Array.from({ length: 5 }, (_, i) => (
             <Skeleton key={i} w="100%" h={14} />
           ))}
@@ -735,7 +746,7 @@ function SavedSegments({ current }: { current: string }) {
       )}
       {current !== 'new' ? (
         <Link to="/w/$workspace/audience/segments/$segmentId" params={{ workspace: slug, segmentId: 'new' }} className="segrow font-medium no-underline">
-          + New segment
+          {t(m.addNew)}
         </Link>
       ) : null}
     </section>
@@ -743,8 +754,9 @@ function SavedSegments({ current }: { current: string }) {
 }
 
 function BuilderSkeleton() {
+  const t = useT()
   return (
-    <Loading label="Loading the segment" className="flex flex-wrap items-start gap-5">
+    <Loading label={t(m.loading)} className="flex flex-wrap items-start gap-5">
       <div className="flex min-w-0 flex-[2_1_600px] flex-col gap-4">
         <div className="card flex flex-col gap-2 px-4.5 py-4">
           <Skeleton w={120} h={12} />

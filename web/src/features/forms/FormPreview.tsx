@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { fieldLabel, PublisherMark, type FormInput, type Overview } from './common'
 import { SmsConsentPreview, SmsPhonePreview } from '@/features/sms/FormFields'
+import { T, useT } from '@/i18n'
+import { m } from './builder.messages'
 
 /**
  * The words of a consent text that link to the privacy policy, ignoring
@@ -71,6 +73,7 @@ export function FormPreview({
   /** The widest the form gets on a desktop preview. */
   width?: number
 }) {
+  const t = useT()
   const b = overview.branding
   const [agreed, setAgreed] = useState(false)
   const [done, setDone] = useState(false)
@@ -90,7 +93,7 @@ export function FormPreview({
         </div>
         {form.afterSubmit === 'redirect' && form.redirectUrl ? (
           <p className="pf-desc">
-            Visitors go to <span className="mono text-[13px]">{form.redirectUrl}</span> after they submit.
+            <T msg={m.visitorsGoTo} values={{ url: form.redirectUrl, mono: (c) => <span className="mono text-[13px]">{c}</span> }} />
           </p>
         ) : (
           <div className="pf-done">
@@ -104,7 +107,7 @@ export function FormPreview({
           </div>
         )}
         <button type="button" className="btn sm self-start" onClick={() => setDone(false)}>
-          Back to the form
+          {t(m.backToForm)}
         </button>
       </div>
     )
@@ -151,7 +154,7 @@ export function FormPreview({
         <div className="pf-lists">
           <span className="text-[13px] font-semibold">{c.listsLabel}</span>
           {offered.map((l) => (
-            <label key={l.id} className="pf-check" title="Checked when the form loads">
+            <label key={l.id} className="pf-check" title={t(m.checkedOnLoad)}>
               <input type="checkbox" checked={form.defaultListIds.includes(l.id)} disabled={readOnly} onChange={() => onToggleDefault(l.id)} />
               {L?.listNames[l.id] || l.name}
             </label>
