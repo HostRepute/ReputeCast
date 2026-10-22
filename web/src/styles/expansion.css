@@ -162,3 +162,10 @@
   border-left: 0;
   border-top: 1px solid var(--line-strong);
 }
+
+/* A form's or page's built-in labels row (page-languages/copy): its count
+   ("220 trên 220") stays on one line; the longer language name beside it
+   wraps instead. */
+:root:not([lang='en']) .pl-labels-count {
+  white-space: nowrap;
+}

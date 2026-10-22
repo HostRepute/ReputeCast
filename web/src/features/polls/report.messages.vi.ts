@@ -120,6 +120,7 @@ export default translate(m, {
   overTimeAria: 'Câu trả lời cộng dồn theo giờ: {count} sau {hours} giờ',
   bySix: '{percent} sau 6 giờ',
   sentAt: 'Gửi lúc {time}',
+  plusHours: '+{n} giờ',
   now: 'bây giờ',
 
   // Comments.

@@ -478,7 +478,7 @@ function OverTime({ p }: { p: PollResults }) {
         ))}
         {ticks.map((h) => (
           <text key={h} x={x(h)} y={BASE + 18} textAnchor={h === 0 ? 'start' : 'middle'} className="pr-ax">
-            {h === 0 ? (since ? t(m.sentAt, { time: clock(since) }) : '0') : `+${h} h`}
+            {h === 0 ? (since ? t(m.sentAt, { time: clock(since) }) : '0') : t(m.plusHours, { n: h })}
           </text>
         ))}
         {area ? <path d={area} fill="var(--accent-tint)" /> : null}
