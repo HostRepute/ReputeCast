@@ -6,6 +6,7 @@ import { NavTabs } from '@/components/ui/Tabs'
 import { useT } from '@/i18n'
 import { useWorkspace } from '@/lib/session'
 import { m as tabs } from './tabs.messages'
+import { m as builder } from './builder.messages'
 import './forms.css'
 
 export type Overview = Schemas['SignupFormsOverview']
@@ -68,24 +69,25 @@ export function FormsTabs() {
 
 /** The form's state in the top bar: Published · news.acme.io/subscribe. */
 export function FormStatusBadge({ form }: { form: SignupForm }) {
+  const t = useT()
   const where = hostPath(form.hostedUrl)
   switch (form.status) {
     case 'live':
       return (
         <Badge tone="ok" dot>
-          Published · {where}
+          {t(builder.statusPublished, { where })}
         </Badge>
       )
     case 'paused':
       return (
         <Badge tone="warn" dot>
-          Paused · {where}
+          {t(builder.statusPaused, { where })}
         </Badge>
       )
     default:
       return (
         <Badge tone="neutral" dot>
-          Draft · not published yet
+          {t(builder.statusDraft)}
         </Badge>
       )
   }
@@ -127,6 +129,7 @@ export function PublisherMark({ branding, className, logoClassName }: { branding
   )
 }
 
+/** The built-in fields' labels as visitors see them in the form's default language (its own copy, not the app's language). */
 export const builtinFieldLabels: Record<string, string> = {
   email: 'Email',
   first_name: 'First name',

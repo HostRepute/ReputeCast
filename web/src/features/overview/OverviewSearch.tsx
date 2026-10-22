@@ -4,6 +4,9 @@ import { $api } from '@/api/client'
 import { cn } from '@/lib/cn'
 import { shortDate } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
+import { useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { m } from './messages'
 
 function useDebounced<T>(value: T, ms: number): T {
   const [v, setV] = useState(value)
@@ -22,6 +25,7 @@ type Hit = { key: string; group: string; title: string; detail: string; go: () =
  * campaigns list filtered by the text.
  */
 export function OverviewSearch() {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const id = useId()
@@ -42,9 +46,11 @@ export function OverviewSearch() {
     const live = c.status === 'sending' || c.status === 'paused'
     hits.push({
       key: `c-${c.id}`,
-      group: 'Campaigns',
+      group: t(m.groupCampaigns),
       title: c.name,
-      detail: [c.audience, c.startedAt ? shortDate(c.startedAt) : c.scheduledAt ? `scheduled ${shortDate(c.scheduledAt)}` : c.status].filter(Boolean).join(' · '),
+      detail: [c.audience, c.startedAt ? shortDate(c.startedAt) : c.scheduledAt ? t(m.scheduledOn, { date: shortDate(c.scheduledAt) }) : t(m.campaignStatus, { status: c.status })]
+        .filter(Boolean)
+        .join(' · '),
       go: () =>
         void navigate({
           to: live ? '/w/$workspace/campaigns/$campaignId/live' : report ? '/w/$workspace/campaigns/$campaignId/report' : '/w/$workspace/campaigns/$campaignId/edit',
@@ -55,8 +61,8 @@ export function OverviewSearch() {
   for (const e of events.data?.items ?? []) {
     hits.push({
       key: `e-${e.id}`,
-      group: 'Events',
-      title: `${e.recipient} · ${e.type.replace('_', ' ')}`,
+      group: t(m.groupEvents),
+      title: `${e.recipient} · ${t(m.eventType, { type: e.type, label: e.type.replace('_', ' ') })}`,
       detail: [e.provider, e.source, e.code].filter(Boolean).join(' · '),
       go: () => void navigate({ to: '/w/$workspace/providers/events', params: { workspace: slug }, search: { q: term } }),
     })
@@ -80,15 +86,15 @@ export function OverviewSearch() {
   return (
     <div ref={box} className="relative max-md:w-full">
       <label className="vh" htmlFor={`${id}-q`}>
-        Search
+        {t(common.search)}
       </label>
       <input
         id={`${id}-q`}
         type="search"
         data-shortcut="search"
         className="in w-[260px] max-md:w-full"
-        placeholder="Search campaigns, contacts, events"
-        aria-label="Search campaigns, contacts, events"
+        placeholder={t(m.searchPlaceholder)}
+        aria-label={t(m.searchPlaceholder)}
         role="combobox"
         aria-expanded={show}
         aria-controls={`${id}-list`}
@@ -116,7 +122,7 @@ export function OverviewSearch() {
         }}
       />
       {show ? (
-        <div id={`${id}-list`} role="listbox" aria-label="Search results" className="menu right-0 top-[42px] w-[360px] max-md:left-0 max-md:w-auto">
+        <div id={`${id}-list`} role="listbox" aria-label={t(m.searchResults)} className="menu right-0 top-[42px] w-[360px] max-md:left-0 max-md:w-auto">
           {hits.map((h, i) => {
             const head = h.group !== lastGroup ? h.group : ''
             lastGroup = h.group
@@ -150,7 +156,7 @@ export function OverviewSearch() {
           })}
           {!hits.length ? (
             <div className="k px-2.5 py-2" role="status">
-              {loading ? 'Searching…' : `Nothing matches “${term}”. Campaign names, and recipient addresses in provider events, are searched.`}
+              {loading ? t(m.searching) : t(m.searchNothing, { term })}
             </div>
           ) : null}
         </div>

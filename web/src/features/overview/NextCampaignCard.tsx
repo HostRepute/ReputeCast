@@ -6,10 +6,13 @@ import { useNow } from '@/lib/hooks'
 import { count, money, until } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { OverviewIssueCard } from '@/features/digests/IssueParts'
+import { useT } from '@/i18n'
+import { m } from './messages'
 import { clockIn, dateIn, minutes, readinessBadge, routeLine } from './words'
 
 /** "Next scheduled campaign" with its Send Readiness, route and estimates (Main board). */
 export function NextCampaignCard({ n }: { n: Schemas['OverviewNextCampaign'] }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const now = useNow(60_000)
   const editReason = usePermissionReason('campaigns:edit')
@@ -20,26 +23,23 @@ export function NextCampaignCard({ n }: { n: Schemas['OverviewNextCampaign'] }) 
     return (
       <section className="card flex flex-col gap-3.5 px-[22px] py-5" aria-labelledby="ov-next-h">
         <h2 className="h2" id="ov-next-h">
-          Next scheduled campaign
+          {t(m.nextCampaign)}
         </h2>
         <p className="m-0 text-ink-2">
-          Nothing is scheduled.{' '}
-          {n.drafts > 0
-            ? `${count(n.drafts)} ${n.drafts === 1 ? 'draft is' : 'drafts are'} waiting; schedule one and its readiness, route and cost show here.`
-            : 'Schedule a campaign and its readiness, route and cost show here.'}
+          {t(m.nothingScheduled)} {n.drafts > 0 ? t(m.draftsWaiting, { n: n.drafts, count: count(n.drafts) }) : t(m.scheduleOne)}
         </p>
         <div className="flex flex-wrap gap-2.5">
           {n.drafts > 0 ? (
             <ButtonLink variant="primary" to="/w/$workspace/campaigns" params={{ workspace: slug }} search={{ status: 'drafts' }}>
-              Open drafts
+              {t(m.openDrafts)}
             </ButtonLink>
           ) : editReason ? (
             <Button variant="primary" disabledReason={editReason}>
-              New campaign
+              {t(m.newCampaign)}
             </Button>
           ) : (
             <ButtonLink variant="primary" to="/w/$workspace/campaigns/new" params={{ workspace: slug }}>
-              New campaign
+              {t(m.newCampaign)}
             </ButtonLink>
           )}
         </div>
@@ -55,7 +55,7 @@ export function NextCampaignCard({ n }: { n: Schemas['OverviewNextCampaign'] }) 
     <section className="card flex flex-col gap-3.5 px-[22px] py-5" aria-labelledby="ov-next-h">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="h2" id="ov-next-h">
-          Next scheduled campaign
+          {t(m.nextCampaign)}
         </h2>
         <Badge tone={badge.tone} dot>
           {badge.text}
@@ -69,19 +69,19 @@ export function NextCampaignCard({ n }: { n: Schemas['OverviewNextCampaign'] }) 
       </div>
       <div className="grid gap-3 [grid-template-columns:repeat(4,minmax(0,1fr))] max-md:[grid-template-columns:repeat(auto-fit,minmax(140px,1fr))]">
         <div>
-          <div className="k">Recipients</div>
+          <div className="k">{t(m.recipients)}</div>
           <div className="n text-[18px]">{count(c.recipients)}</div>
         </div>
         <div>
-          <div className="k">Route</div>
+          <div className="k">{t(m.route)}</div>
           <div className="n text-[18px]">{routeLine(c.routes)}</div>
         </div>
         <div>
-          <div className="k">Est. cost</div>
+          <div className="k">{t(m.estCost)}</div>
           <div className="n text-[18px]">{money(c.cost)}</div>
         </div>
         <div>
-          <div className="k">Est. duration</div>
+          <div className="k">{t(m.estDuration)}</div>
           <div className="n text-[18px]">{minutes(c.durationMinutes)}</div>
         </div>
       </div>
@@ -96,7 +96,7 @@ export function NextCampaignCard({ n }: { n: Schemas['OverviewNextCampaign'] }) 
           {issues.map((i, k) => (
             <div key={k} className="flex gap-2 max-md:flex-wrap">
               <Badge tone={i.status === 'block' ? 'bad' : 'warn'} className="h-5">
-                {i.status === 'block' ? 'Block' : 'Warn'}
+                {i.status === 'block' ? t(m.issueBlock) : t(m.issueWarn)}
               </Badge>
               <span>{i.title}</span>
             </div>
@@ -105,11 +105,11 @@ export function NextCampaignCard({ n }: { n: Schemas['OverviewNextCampaign'] }) 
       ) : null}
       <div className="flex flex-wrap gap-2.5">
         <ButtonLink variant="primary" to="/w/$workspace/campaigns/$campaignId/review" params={params}>
-          Open Send Readiness
+          {t(m.openReadiness)}
         </ButtonLink>
         {/* The composer opens read-only for members who can't edit campaigns. */}
         <ButtonLink to="/w/$workspace/campaigns/$campaignId/edit" params={params}>
-          {editReason ? 'View campaign' : 'Edit campaign'}
+          {editReason ? t(m.viewCampaign) : t(m.editCampaign)}
         </ButtonLink>
       </div>
     </section>
@@ -118,12 +118,13 @@ export function NextCampaignCard({ n }: { n: Schemas['OverviewNextCampaign'] }) 
 
 /** First run: nothing to send yet (OverviewEmpty). */
 export function PendingNextCard() {
+  const t = useT()
   return (
     <section className="card flex flex-col gap-2.5 border-dashed px-5 py-4.5" aria-labelledby="ov-next-p">
       <h3 className="h2 text-ink-3" id="ov-next-p">
-        Next scheduled campaign
+        {t(m.nextCampaign)}
       </h3>
-      <span className="k">No campaigns yet. The composer unlocks when a provider is assigned to the Broadcasts stream.</span>
+      <span className="k">{t(m.nextPending)}</span>
     </section>
   )
 }

@@ -7,11 +7,11 @@ import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonAnchor } from '@/components/ui/Button'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
-import { Checkbox, Field, Input, Select, Toggle } from '@/components/ui/Field'
+import { Checkbox, Field, Input, OptionCard, Select, Toggle } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { Segmented } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
-import { T, useT } from '@/i18n'
+import { T, useI18n, useT } from '@/i18n'
 import { count, dayMonthDate, dayMonthYear, getDisplayTimeZone, orList, pct } from '@/lib/format'
 import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
@@ -315,6 +315,7 @@ function Fields({
   provider: string
   t: TT
 }) {
+  const { locale } = useI18n()
   const zone = (getDisplayTimeZone() ?? 'UTC').split('/').pop()?.replaceAll('_', ' ') ?? 'UTC'
   const choices = d.choices
   const toggle = (k: string, on: boolean) => set('applies', on ? [...f.applies, k] : f.applies.filter((x) => x !== k))
@@ -388,13 +389,36 @@ function Fields({
             {errors.percentOff || errors.amountOffCents}
           </span>
         ) : null}
-        <Field label={t(mof.durationLabel)} error={errors.months}>
-          <Select value={f.duration} onChange={(e) => set('duration', e.target.value as Form['duration'])}>
-            <option value="once">{t(mof.durOnce)}</option>
-            <option value="months">{t(mof.durMonths)}</option>
-            <option value="forever">{t(mof.durForever)}</option>
-          </Select>
-        </Field>
+        {locale === 'en' ? (
+          <Field label={t(mof.durationLabel)} error={errors.months}>
+            <Select value={f.duration} onChange={(e) => set('duration', e.target.value as Form['duration'])}>
+              <option value="once">{t(mof.durOnce)}</option>
+              <option value="months">{t(mof.durMonths)}</option>
+              <option value="forever">{t(mof.durForever)}</option>
+            </Select>
+          </Field>
+        ) : (
+          // Outside English a choice that can pass about 32 characters is a
+          // set of radio cards, not a select (CONVENTIONS › Text expansion, rule 1).
+          <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
+            <legend className="mb-1.5 p-0 text-[12px] font-semibold text-ink-2">{t(mof.durationLabel)}</legend>
+            {(['once', 'months', 'forever'] as const).map((v) => (
+              <OptionCard
+                key={v}
+                name="of-duration"
+                value={v}
+                checked={f.duration === v}
+                onChange={() => set('duration', v)}
+                title={t(v === 'once' ? mof.durOnce : v === 'months' ? mof.durMonths : mof.durForever)}
+              />
+            ))}
+            {errors.months ? (
+              <span className="err" role="alert">
+                {errors.months}
+              </span>
+            ) : null}
+          </fieldset>
+        )}
         {f.duration === 'months' ? (
           <div className="of-inline">
             <Input className="w-[80px]" inputMode="numeric" aria-label={t(mof.monthsLabel)} value={f.months} onChange={(e) => set('months', e.target.value)} />

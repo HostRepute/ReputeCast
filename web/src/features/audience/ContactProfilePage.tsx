@@ -10,7 +10,7 @@ import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { clock, count, dayMonthDate, notificationTime, shortDate, usDate } from '@/lib/format'
+import { clock, count, dayMonthYear, money, notificationTime, pct, shortDate, usDate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { useInvalidateAudience } from './ContactDialogs'
 import { fileName, saveBlob } from './download'
@@ -19,7 +19,10 @@ import { brandOf } from '@/features/languages/LanguagesCard'
 import { languageLabel } from '@/features/languages/composerParts'
 import { ContactLanguageField, consentVersionText, deliveryLanguage } from '@/features/page-languages/contacts'
 import { mc } from '@/features/page-languages/messages'
-import { useI18n, useT } from '@/i18n'
+import { T, t, useI18n, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { m as am } from './messages'
+import { m } from './profile.messages'
 import { NotificationsRow, TransactionalActivityRow, transactionalCount, useContactTransactional, withTransactional } from '@/features/transactional/ContactActivity'
 import { JoinLine } from '@/features/growth/JoinLine'
 import { ProfileScoreCard } from '@/features/scoring/ProfileScoreCard'
@@ -43,10 +46,7 @@ type Item = Schemas['ContactActivityItem']
 /** The non-empty parts, for "a · b · c" lines. */
 const present = (...xs: (string | null | undefined | false)[]) => xs.filter((x): x is string => Boolean(x))
 
-const fullDate = (iso: string) => {
-  const d = new Date(iso)
-  return `${dayMonthDate(d)} ${d.getFullYear()}`
-}
+const fullDate = (iso: string) => dayMonthYear(new Date(iso))
 /** "Today 10:42", else "Tue 7 Oct 09:41". */
 const dateTime = (iso: string) => (usDate(iso) === usDate(new Date()) ? notificationTime(iso) : `${shortDate(iso)} ${clock(iso)}`)
 const fullDateTime = (iso: string) => `${fullDate(iso)} ${clock(iso)}`
@@ -59,10 +59,11 @@ function initials(p: Profile) {
 
 /** 7.9 Contact profile: summary, fields, consent per list and the activity timeline. */
 export function ContactProfilePage({ contactId }: { contactId: string }) {
+  const tr = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/contacts/{contact}', { params: { path: { workspace: slug, contact: contactId } } })
   const p = q.data
-  const name = p ? p.name || p.email : 'Contact'
+  const name = p ? p.name || p.email : tr(m.contact)
   const [suppressing, setSuppressing] = useState(false)
   const editReason = usePermissionReason('subscribers:edit')
   const exportReason = usePermissionReason('subscribers:export')
@@ -76,15 +77,15 @@ export function ContactProfilePage({ contactId }: { contactId: string }) {
       title={name}
       contentClassName="aud-crumbs"
       badges={
-        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-[13px]">
+        <nav aria-label={tr(m.breadcrumb)} className="flex items-center gap-2 text-[13px]">
           <Link to="/w/$workspace/audience" params={{ workspace: slug }} className="text-ink-3 no-underline hover:text-ink-3">
-            Audience
+            {tr(am.title)}
           </Link>
           <span className="k" aria-hidden="true">
             /
           </span>
           <Link to="/w/$workspace/audience" params={{ workspace: slug }} className="text-ink-3 no-underline hover:text-ink-3">
-            Contacts
+            {tr(m.contacts)}
           </Link>
           <span className="k" aria-hidden="true">
             /
@@ -106,38 +107,42 @@ export function ContactProfilePage({ contactId }: { contactId: string }) {
                   await invalidate()
                   toast(
                     r.sent
-                      ? { kind: 'success', title: `Sent a confirmation email to ${p.email}`, detail: 'Through the System stream; the profile shows it in the consent history.' }
-                      : { kind: 'info', title: 'No System provider could send it', detail: r.confirmUrl ? `Share this link instead: ${r.confirmUrl}` : undefined },
+                      ? { kind: 'success', title: t(m.confirmationSentTo, { email: p.email }), detail: t(m.confirmationSentBody) }
+                      : { kind: 'info', title: t(m.noSystemProvider), detail: r.confirmUrl ? t(m.shareLink, { url: r.confirmUrl }) : undefined },
                   )
                 } catch (e) {
-                  toast({ kind: 'error', title: "Couldn't resend the opt-in", detail: errorMessage(e) })
+                  toast({ kind: 'error', title: t(m.resendFailed), detail: errorMessage(e) })
                 }
               }}
             >
-              Resend opt-in
+              {tr(m.resendOptin)}
             </Button>
             <Button disabledReason={exportReason} onClick={() => void exportData(slug, contactId, p.email)}>
-              Export data (GDPR)
+              {tr(m.exportData)}
             </Button>
-            <Button className="dline" disabledReason={p.suppression ? 'This address is already on the suppression list.' : editReason} onClick={() => setSuppressing(true)}>
-              Suppress
+            <Button className="dline" disabledReason={p.suppression ? tr(m.alreadySuppressed) : editReason} onClick={() => setSuppressing(true)}>
+              {tr(m.suppress)}
             </Button>
           </>
         ) : null
       }
     >
       {q.isError && !p ? (
-        <ErrorPanel title="Couldn't load this contact" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
-          {errorMessage(q.error)} Nothing was changed.
+        <ErrorPanel title={tr(m.loadFailed)} actions={<Button onClick={() => q.refetch()}>{tr(common.retry)}</Button>}>
+          {errorMessage(q.error)} {tr(m.nothingChanged)}
         </ErrorPanel>
       ) : !p ? (
         <ProfileSkeleton />
       ) : (
         <>
           {p.suppression ? (
-            <Note tone="bad" label="Suppressed">
-              {p.email} is on the shared suppression list ({p.suppression.reason.replace('_', ' ')}, {fullDate(p.suppression.at)}).{' '}
-              {p.suppression.scope === 'marketing' ? 'Broadcasts and Automations are blocked; System mail is allowed.' : 'Every stream is blocked on every provider.'}
+            <Note tone="bad" label={tr(m.suppressedLabel)}>
+              {tr(m.onTheList, {
+                email: p.email,
+                reason: tr(m.suppressionReason, { reason: p.suppression.reason, label: p.suppression.reason.replace('_', ' ') }),
+                date: fullDate(p.suppression.at),
+              })}{' '}
+              {p.suppression.scope === 'marketing' ? tr(m.scopeMarketing) : tr(m.scopeAll)}
             </Note>
           ) : null}
           <Summary p={p} />
@@ -175,19 +180,20 @@ async function exportData(slug: string, id: string, email: string) {
       parseAs: 'blob',
     })
     if (data) saveBlob(data as unknown as Blob, fileName(response, `${email}.json`))
-    toast({ kind: 'success', title: `Exported everything about ${email}`, detail: 'The export is in the audit log.' })
+    toast({ kind: 'success', title: t(m.exportedAll, { email }), detail: t(m.exportInAudit) })
   } catch (e) {
-    toast({ kind: 'error', title: "Couldn't export", detail: errorMessage(e) })
+    toast({ kind: 'error', title: t(m.exportFailed), detail: errorMessage(e) })
   }
 }
 
 function Summary({ p }: { p: Profile }) {
+  const tr = useT()
   const tier = p.tier as Tier
   const consent = p.consent as Consent
   const s = p.stats
-  const lastOpen = s.lastOpenAt ? `${shortDate(s.lastOpenAt)}${s.lastOpenMachine ? ' · machine' : ''}` : 'never'
+  const lastOpen = s.lastOpenAt ? (s.lastOpenMachine ? tr(m.machineOpen, { date: shortDate(s.lastOpenAt) }) : shortDate(s.lastOpenAt)) : tr(m.never)
   return (
-    <section className="card flex flex-wrap items-center gap-4.5 px-5.5 py-5" aria-label="Summary">
+    <section className="card flex flex-wrap items-center gap-4.5 px-5.5 py-5" aria-label={tr(m.summary)}>
       <span className="inline-flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#DBEAFE] text-[18px] font-bold text-[#1E40AF]" aria-hidden="true">
         {initials(p)}
       </span>
@@ -207,14 +213,17 @@ function Summary({ p }: { p: Profile }) {
           <span className="badge mut">
             <JoinLine contactId={p.id} day={fullDate(p.joinedAt)} sourceLabel={p.sourceLabel} />
           </span>
-          {p.roleAddress ? <span className="badge warn">Role address · no Broadcasts</span> : null}
+          {p.roleAddress ? <span className="badge warn">{tr(m.roleAddress)}</span> : null}
         </div>
       </div>
       <div className="grid grid-cols-4 gap-4 max-md:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]">
-        <Stat label="Emails · 90 d" value={count(s.emails90d)} />
-        <Stat label="Human opens" value={s.humanOpenRate !== undefined ? `${count(s.humanOpens)} · ${Math.round(s.humanOpenRate)}%` : count(s.humanOpens)} />
-        <Stat label="Clicks" value={count(s.clicks)} />
-        <Stat label="Last open" value={lastOpen} />
+        <Stat label={tr(m.emails90)} value={count(s.emails90d)} />
+        <Stat
+          label={tr(m.humanOpens)}
+          value={s.humanOpenRate !== undefined ? tr(m.humanOpensRate, { count: count(s.humanOpens), rate: pct(Math.round(s.humanOpenRate), 0) }) : count(s.humanOpens)}
+        />
+        <Stat label={tr(m.clicks)} value={count(s.clicks)} />
+        <Stat label={tr(m.lastOpen)} value={lastOpen} />
       </div>
     </section>
   )
@@ -233,13 +242,14 @@ function fieldValue(f: Schemas['ContactProfileField']) {
   if (f.value === '') return <span className="text-ink-4">–</span>
   if (f.display === 'currency' && f.value !== '' && !Number.isNaN(Number(f.value))) {
     const n = Number(f.value)
-    return <span className="n">${n % 1 === 0 ? n.toLocaleString('en-US') : n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+    return <span className="n">{money(n, n % 1 === 0 ? 0 : 2)}</span>
   }
   if (f.type === 'number') return <span className="n">{f.value}</span>
   return <span>{f.value}</span>
 }
 
 function FieldsCard({ p }: { p: Profile }) {
+  const tr = useT()
   // Fields a poll or a survey set say so (design expansion, X11).
   const sources = useFieldSources(p.id)
   const [editing, setEditing] = useState(false)
@@ -256,10 +266,10 @@ function FieldsCard({ p }: { p: Profile }) {
     <section className="card flex flex-col px-4.5 py-4" aria-labelledby="fields-h">
       <div className="mb-1.5 flex items-center justify-between">
         <h2 className="h2" id="fields-h">
-          Fields
+          {tr(m.fields)}
         </h2>
         <Button size="sm" disabledReason={reason} onClick={() => setEditing(true)}>
-          Edit
+          {tr(common.edit)}
         </Button>
       </div>
       <AddressCheckRow contactId={p.id} />
@@ -269,8 +279,13 @@ function FieldsCard({ p }: { p: Profile }) {
         ) : (
           <div key={f.key} className="pkv">
             <span className="k">
-              {f.label}
-              {f.custom ? <> <span className="mono">{f.type === 'text' || f.type === 'select' ? 'custom' : `custom · ${f.type}`}</span></> : null}
+              {f.type === 'builtin' ? tr(m.builtinField, { key: f.key, label: f.label }) : f.label}
+              {f.custom ? (
+                <>
+                  {' '}
+                  <span className="mono">{f.type === 'text' || f.type === 'select' ? tr(m.custom) : tr(m.customType, { type: f.type })}</span>
+                </>
+              ) : null}
             </span>
             <span>
               {fieldValue(f)}
@@ -293,13 +308,13 @@ function FieldsCard({ p }: { p: Profile }) {
                 await save({ tags: [...p.tags, tag] })
                 setAdding(false)
               } catch (e) {
-                toast({ kind: 'error', title: "Couldn't add the tag", detail: errorMessage(e) })
+                toast({ kind: 'error', title: t(m.tagFailed), detail: errorMessage(e) })
               }
             }}
           />
         ) : (
           <Button size="sm" className="border-dashed" disabledReason={reason} onClick={() => setAdding(true)}>
-            Add tag
+            {tr(m.addTag)}
           </Button>
         )}
       </div>
@@ -309,6 +324,7 @@ function FieldsCard({ p }: { p: Profile }) {
 }
 
 function TagInput({ onSave, onCancel }: { onSave: (tag: string) => Promise<void>; onCancel: () => void }) {
+  const tr = useT()
   const [tag, setTag] = useState('')
   return (
     <form
@@ -319,14 +335,14 @@ function TagInput({ onSave, onCancel }: { onSave: (tag: string) => Promise<void>
       }}
     >
       <label className="vh" htmlFor="new-tag">
-        New tag
+        {tr(m.newTag)}
       </label>
-      <input id="new-tag" className="in h-[30px] w-[140px]" value={tag} onChange={(e) => setTag(e.target.value)} placeholder="tag" maxLength={60} autoFocus />
+      <input id="new-tag" className="in h-[30px] w-[140px]" value={tag} onChange={(e) => setTag(e.target.value)} placeholder={tr(m.tagPlaceholder)} maxLength={60} autoFocus />
       <Button size="sm" type="submit" variant="primary">
-        Add
+        {tr(m.add)}
       </Button>
       <Button size="sm" onClick={onCancel}>
-        Cancel
+        {tr(common.cancel)}
       </Button>
     </form>
   )
@@ -356,7 +372,7 @@ function EditFieldsDialog({ p, onClose, onSave }: { p: Profile; onClose: () => v
       }
       await onSave({ firstName: vals.firstName, lastName: vals.lastName, company: vals.company, ...(vals.language !== p.language.code ? { language: vals.language } : {}), fields })
       onClose()
-      toast({ kind: 'success', title: 'Saved the fields' })
+      toast({ kind: 'success', title: t(m.fieldsSaved) })
     } catch (e) {
       setErr(errorMessage(e))
     } finally {
@@ -367,13 +383,13 @@ function EditFieldsDialog({ p, onClose, onSave }: { p: Profile; onClose: () => v
     <Dialog
       open
       onOpenChange={(o) => !o && onClose()}
-      title="Edit fields"
-      description="Changes are logged in the audit log with the old and new values."
+      title={t(m.editFields)}
+      description={t(m.editFieldsBody)}
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t(common.cancel)}</Button>
           <Button variant="primary" loading={busy} onClick={() => void submit()}>
-            Save fields
+            {t(m.saveFields)}
           </Button>
         </>
       }
@@ -387,14 +403,14 @@ function EditFieldsDialog({ p, onClose, onSave }: { p: Profile; onClose: () => v
       >
         {err ? <Note tone="bad">{err}</Note> : null}
         <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
-          <Field label="First name">
+          <Field label={t(m.firstName)}>
             <Input value={vals.firstName} onChange={(e) => set('firstName', e.target.value)} />
           </Field>
-          <Field label="Last name">
+          <Field label={t(m.lastName)}>
             <Input value={vals.lastName} onChange={(e) => set('lastName', e.target.value)} />
           </Field>
         </div>
-        <Field label="Company">
+        <Field label={t(m.company)}>
           <Input value={vals.company} onChange={(e) => set('company', e.target.value)} />
         </Field>
         <Field label={t(mc.fieldLabel)}>
@@ -410,7 +426,7 @@ function EditFieldsDialog({ p, onClose, onSave }: { p: Profile; onClose: () => v
         {p.fields
           .filter((f) => f.custom)
           .map((f) => (
-            <Field key={f.key} label={f.key} hint={f.type === 'date' ? 'A date like 2026-10-30.' : f.display === 'currency' ? 'A number, shown in dollars.' : undefined}>
+            <Field key={f.key} label={f.key} hint={f.type === 'date' ? t(m.dateHint, { example: '2026-10-30' }) : f.display === 'currency' ? t(m.currencyHint) : undefined}>
               <Input
                 value={vals[`custom:${f.key}`] ?? ''}
                 onChange={(e) => set(`custom:${f.key}`, e.target.value)}
@@ -430,13 +446,13 @@ function consentText(l: Schemas['ContactListConsent'], consentLanguage?: (versio
   if (l.events.length === 0) {
     switch (l.status) {
       case 'none':
-        return 'Never subscribed'
+        return t(m.consentNever)
       case 'pending':
-        return 'Waiting for the confirmation click'
+        return t(m.consentWaiting)
       case 'unsubscribed':
-        return 'Unsubscribed'
+        return t(m.consentUnsubscribed)
     }
-    return 'Subscribed'
+    return t(m.consentSubscribed)
   }
   const parts: string[] = []
   for (const e of l.events) {
@@ -449,25 +465,26 @@ function consentText(l: Schemas['ContactListConsent'], consentLanguage?: (versio
     }
     switch (e.action) {
       case 'imported':
-        parts.push(`Subscribed via ${src} ${fullDate(e.at)}`)
+        parts.push(t(m.partSubscribedVia, { source: src, date: fullDate(e.at) }))
         break
       case 'subscribed':
-        parts.push(`${e.source === 'preference_center' ? `Added in ${src}` : `Subscribed via ${src}`} ${fullDateTime(e.at)}${e.detail ? ` · ${e.detail}` : ''}`)
+        parts.push(t(e.source === 'preference_center' ? m.partAddedIn : m.partSubscribedVia, { source: src, date: fullDateTime(e.at) }))
+        if (e.detail) parts.push(e.detail)
         break
       case 'confirmed': {
-        const how = e.source === 'repermission' ? 're-permission confirmed' : parts.length ? 'confirmed' : `Confirmed via ${src}`
-        const version = e.consentVersion ? (e.language && consentLanguage ? consentLanguage(e.consentVersion, e.language) : `consent text ${e.consentVersion}`) : ''
-        parts.push(`${how} ${fullDateTime(e.at)}${e.ip ? ` from ${e.ip}` : ''}${version ? ` · ${version}` : ''}`)
+        const how = e.source === 'repermission' ? 'repermission' : parts.length ? 'again' : 'first'
+        parts.push(t(m.partConfirmed, { how, source: src, date: fullDateTime(e.at), fromIp: e.ip ? 'yes' : 'no', ip: e.ip ?? '' }))
+        if (e.consentVersion) parts.push(e.language && consentLanguage ? consentLanguage(e.consentVersion, e.language) : t(m.partConsentText, { version: e.consentVersion }))
         break
       }
       case 'unsubscribed':
-        parts.push(`unsubscribed ${fullDate(e.at)}${src ? ` in ${src}` : ''}`)
+        parts.push(t(m.partUnsubscribed, { inSource: src ? 'yes' : 'no', date: fullDate(e.at), source: src ?? '' }))
         break
       case 'resubscribed':
-        parts.push(`resubscribed ${fullDate(e.at)}`)
+        parts.push(t(m.partResubscribed, { date: fullDate(e.at) }))
         break
       case 'optin_sent':
-        parts.push(`opt-in email sent ${fullDate(e.at)}`)
+        parts.push(t(m.partOptinSent, { date: fullDate(e.at) }))
         break
     }
   }
@@ -479,14 +496,14 @@ function consentBadge(l: Schemas['ContactListConsent'], p: Profile) {
   switch (l.status) {
     case 'subscribed': {
       const confirmed = p.consent === 'double' || l.events.some((e) => e.action === 'confirmed' || e.source === 'preference_center')
-      return <Badge tone="ok">{confirmed ? 'Confirmed' : 'Subscribed'}</Badge>
+      return <Badge tone="ok">{confirmed ? t(m.badgeConfirmed) : t(m.badgeSubscribed)}</Badge>
     }
     case 'pending':
-      return <Badge tone="warn">Pending</Badge>
+      return <Badge tone="warn">{t(m.badgePending)}</Badge>
     case 'unsubscribed':
-      return <Badge tone="neutral">Unsubscribed</Badge>
+      return <Badge tone="neutral">{t(m.badgeUnsubscribed)}</Badge>
   }
-  return <Badge tone="neutral">Not subscribed</Badge>
+  return <Badge tone="neutral">{t(m.badgeNotSubscribed)}</Badge>
 }
 
 function ConsentCard({ p }: { p: Profile }) {
@@ -497,15 +514,14 @@ function ConsentCard({ p }: { p: Profile }) {
   const consentLanguage = multilingual ? (version: string, language: string) => consentVersionText(version, language, t, locale) : undefined
   const link = $api.useMutation('post', '/api/v1/workspaces/{workspace}/contacts/{contact}/preference-link')
   const allDouble = p.lists.length > 0 && p.lists.every((l) => l.doubleOptIn)
-  const freq = { all: 'every email', weekly: 'weekly', monthly: 'monthly' }[p.preferences.frequency] ?? p.preferences.frequency
-  const first = p.firstName || p.name || 'this contact'
+  const first = p.firstName || p.name
   return (
     <section className="card flex flex-col" aria-labelledby="consent-h">
       <div className="flex items-center justify-between px-4.5 py-3.5">
         <h2 className="h2" id="consent-h">
-          Consent per list
+          {t(m.consentTitle)}
         </h2>
-        <span className="k">{allDouble ? 'double opt-in on by default' : 'single opt-in on some lists'}</span>
+        <span className="k">{allDouble ? t(m.allDouble) : t(m.someSingle)}</span>
       </div>
       <div className="flex flex-col px-4.5 pb-1.5">
         {p.lists.map((l) => (
@@ -520,7 +536,12 @@ function ConsentCard({ p }: { p: Profile }) {
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line-2 px-4.5 py-2.5">
         <span className="k">
-          Frequency: {freq} · paused: {p.preferences.pausedUntil ? `until ${shortDate(p.preferences.pausedUntil)}` : 'no'} · fewer-emails: {p.preferences.fewerEmails ? 'yes' : 'no'}
+          {t(m.preferences, {
+            frequency: p.preferences.frequency,
+            paused: p.preferences.pausedUntil ? 'yes' : 'no',
+            date: p.preferences.pausedUntil ? shortDate(p.preferences.pausedUntil) : '',
+            fewer: p.preferences.fewerEmails ? 'yes' : 'no',
+          })}
         </span>
         <Button
           size="sm"
@@ -530,11 +551,11 @@ function ConsentCard({ p }: { p: Profile }) {
               const r = await link.mutateAsync({ params: { path: { workspace: slug, contact: p.id } } })
               window.open(r.url, '_blank', 'noopener,noreferrer')
             } catch (e) {
-              toast({ kind: 'error', title: "Couldn't open the preference center", detail: errorMessage(e) })
+              toast({ kind: 'error', title: t(m.prefsFailed), detail: errorMessage(e) })
             }
           }}
         >
-          Open preference center as {first}
+          {t(m.openPrefs, { named: first ? 'yes' : 'no', name: first })}
         </Button>
       </div>
     </section>
@@ -544,6 +565,7 @@ function ConsentCard({ p }: { p: Profile }) {
 type Filter = 'all' | 'deliveries' | 'engagement' | 'consent' | 'paid'
 
 function ActivityCard({ contactId, total }: { contactId: string; total: number }) {
+  const tr = useT()
   const { slug } = useWorkspace()
   const [filter, setFilter] = useState<Filter>('all')
   // Paid (Earn, X16): the paid member's timeline, for contacts who had paid access.
@@ -570,16 +592,16 @@ function ActivityCard({ contactId, total }: { contactId: string; total: number }
     <section className="card flex min-w-0 flex-[1.4_1_480px] flex-col" aria-labelledby="activity-h">
       <div className="flex flex-wrap items-center justify-between gap-2 px-4.5 py-3.5">
         <h2 className="h2" id="activity-h">
-          Activity
+          {tr(m.activity)}
         </h2>
-        <div className="flex gap-1.5 max-md:flex-wrap" role="group" aria-label="Show">
+        <div className="flex gap-1.5 max-md:flex-wrap" role="group" aria-label={tr(m.show)}>
           {(
             [
-              ['all', 'All'],
-              ['deliveries', 'Deliveries'],
-              ['engagement', 'Engagement'],
-              ['consent', 'Consent'],
-              ...(hasPaid ? [['paid', 'Paid']] : []),
+              ['all', tr(m.filterAll)],
+              ['deliveries', tr(m.filterDeliveries)],
+              ['engagement', tr(m.filterEngagement)],
+              ['consent', tr(m.filterConsent)],
+              ...(hasPaid ? [['paid', tr(m.filterPaid)]] : []),
             ] as [Filter, string][]
           ).map(([v, l]) => (
             <button key={v} type="button" className="badge mut afilter" aria-pressed={filter === v} data-all={v === 'all' || undefined} onClick={() => setFilter(v)}>
@@ -592,12 +614,12 @@ function ActivityCard({ contactId, total }: { contactId: string; total: number }
         <PaidActivity contactId={contactId} />
       ) : q.isError ? (
         <div className="border-t border-line-2 px-4.5 py-4">
-          <ErrorPanel title="Couldn't load the activity" actions={<Button size="sm" onClick={() => q.refetch()}>Retry</Button>}>
+          <ErrorPanel title={tr(m.activityFailed)} actions={<Button size="sm" onClick={() => q.refetch()}>{tr(common.retry)}</Button>}>
             {errorMessage(q.error)}
           </ErrorPanel>
         </div>
       ) : q.isPending ? (
-        <Loading label="Loading activity" className="flex flex-col">
+        <Loading label={tr(m.loadingActivity)} className="flex flex-col">
           {Array.from({ length: 5 }, (_, i) => (
             <div key={i} className="ev">
               <Skeleton w={26} h={26} r={13} />
@@ -610,7 +632,7 @@ function ActivityCard({ contactId, total }: { contactId: string; total: number }
         </Loading>
       ) : entries.length === 0 ? (
         <div className="border-t border-line-2 px-4.5 py-8 text-center text-ink-3">
-          {filter === 'all' ? 'No activity yet. Deliveries, opens, clicks and consent changes appear here.' : `No ${filter} events.`}
+          {filter === 'all' ? tr(m.noActivity) : tr(m.noEvents, { filter })}
         </div>
       ) : (
         <ol className="m-0 list-none p-0">
@@ -630,11 +652,11 @@ function ActivityCard({ contactId, total }: { contactId: string; total: number }
       {entries.length > 0 && !paid ? (
         <div className="flex items-center justify-between border-t border-line-2 px-4.5 py-2.5">
           <span className="k" role="status">
-            {count(listed)} of {count(shown)} events
+            {tr(m.eventsCount, { listed: count(listed), shown: count(shown) })}
           </span>
           {q.hasNextPage ? (
             <Button size="sm" loading={q.isFetchingNextPage} onClick={() => void q.fetchNextPage()}>
-              Load more
+              {tr(m.loadMore)}
             </Button>
           ) : null}
         </div>
@@ -750,26 +772,15 @@ function ProviderBadge({ p }: { p: Schemas['ContactActivityProvider'] }) {
   )
 }
 
-const verb: Record<string, string> = {
-  delivered: 'Delivered',
-  deferred: 'Deferred',
-  soft_bounce: 'Soft bounce',
-  hard_bounce: 'Hard bounce',
-  complaint: 'Complaint',
-  rejected: 'Rejected',
-  open: 'Opened',
-  click: 'Clicked',
-  unsubscribe: 'Unsubscribed',
-}
-
 function ActivityRow({ it }: { it: Item }) {
   const answerActivity = useAnswerActivity()
   // Store orders and abandoned checkouts (X20).
   const storeActivity = useStoreActivity()
   const smsActivity = useSmsActivity()
-  const [icon, t] = eventIcon(it)
-  const c = tone[t]
+  const [icon, toneKey] = eventIcon(it)
+  const c = tone[toneKey]
   const tr = useT()
+  const b = (chunks: ReactNode[]) => <b>{chunks}</b>
   const { locale } = useI18n()
   const { me } = useWorkspace()
   // The language version a delivery sent (ContactProfile, LanguageStates).
@@ -792,108 +803,88 @@ function ActivityRow({ it }: { it: Item }) {
     title = text.title
     meta = [...meta, ...text.meta]
   } else if (it.category === 'consent') {
+    const by = it.actor ? tr(m.actBy, { name: it.actor }) : ''
     switch (it.type) {
       case 'confirmed':
         title = (
           <>
-            <b>Confirmed subscription</b> {it.list}
+            <T msg={m.actConfirmed} values={{ list: it.list ?? '', b }} />
             {it.detail ? ` · ${it.detail}` : ''}
           </>
         )
-        meta = [...meta, ...present(it.note, it.ip ? `IP ${it.ip}` : '')]
+        meta = [...meta, ...present(it.note, it.ip ? tr(m.actIp, { ip: it.ip }) : '')]
         break
       case 'imported':
         title = (
           <>
-            <b>Imported</b> from {(it.sourceLabel ?? "").replace(/ import$/, "")}
+            <T msg={m.actImported} values={{ source: (it.sourceLabel ?? '').replace(/ import$/, ''), b }} />
             {it.detail ? ` · ${it.detail}` : ''}
           </>
         )
-        meta = [...meta, ...present(it.actor ? `by ${it.actor}` : '', it.note)]
+        meta = [...meta, ...present(by, it.note)]
         break
       case 'subscribed':
       case 'resubscribed':
-        title = (
-          <>
-            <b>{it.type === 'subscribed' ? 'Subscribed' : 'Resubscribed'}</b> to {it.list} · {it.sourceLabel}
-          </>
-        )
+        title = <T msg={it.type === 'subscribed' ? m.actSubscribed : m.actResubscribed} values={{ list: it.list ?? '', source: it.sourceLabel ?? '', b }} />
         meta = [...meta, ...present(it.detail, it.note)]
         break
       case 'unsubscribed':
-        title = (
-          <>
-            <b>Unsubscribed</b> from {it.list || 'every list'}
-          </>
-        )
-        meta = [...meta, ...present(it.sourceLabel ? `in ${it.sourceLabel}` : '', it.detail)]
+        title = it.list ? <T msg={m.actUnsubscribedFrom} values={{ list: it.list, b }} /> : <T msg={m.actUnsubscribedAll} values={{ b }} />
+        meta = [...meta, ...present(it.sourceLabel ? tr(m.actIn, { source: it.sourceLabel }) : '', it.detail)]
         break
       case 'optin_sent':
-        title = (
-          <>
-            <b>Opt-in email sent</b>
-            {it.list ? ` for ${it.list}` : ''}
-          </>
-        )
-        meta = [...meta, ...present(it.note, it.actor ? `by ${it.actor}` : '')]
+        title = it.list ? <T msg={m.actOptinSentFor} values={{ list: it.list, b }} /> : <T msg={m.actOptinSent} values={{ b }} />
+        meta = [...meta, ...present(it.note, by)]
         break
       case 'suppressed':
-        title = <b>Suppressed</b>
-        meta = [...meta, ...present(it.detail, it.note, it.actor ? `by ${it.actor}` : '')]
+        title = <b>{tr(m.actSuppressed)}</b>
+        meta = [...meta, ...present(it.detail, it.note, by)]
         break
       default:
-        title = <b>{it.type.replace('_', ' ')}</b>
+        title = <b>{tr(m.actConsentOther, { type: it.type, label: it.type.replace('_', ' ') })}</b>
         meta = [...meta, ...present(it.detail, it.note)]
     }
   } else if (it.type === 'open') {
-    title = (
-      <>
-        <b>Opened</b> {it.subject} · {it.machine ? 'machine open' : 'human open'}
-      </>
-    )
+    title = <T msg={it.machine ? m.actOpenedMachine : m.actOpenedHuman} values={{ subject: it.subject, b }} />
     const mins = it.afterDeliveryMin
     meta = [
       ...meta,
       it.machine ? 'Apple Mail Privacy Protection' : it.client ?? '',
-      mins !== undefined && mins !== null ? (mins < 60 ? `${mins} min after delivery` : `${Math.round(mins / 60)} h after delivery`) : '',
+      mins !== undefined && mins !== null ? (mins < 60 ? tr(m.minutesAfter, { n: mins }) : tr(m.hoursAfter, { n: Math.round(mins / 60) })) : '',
     ].filter(Boolean)
   } else if (it.type === 'click') {
-    title = (
-      <>
-        <b>Clicked</b> {it.linkLabel ? `"${it.linkLabel}"` : 'a link'} in {it.subject}
-      </>
+    title = it.linkLabel ? (
+      <T msg={m.actClickedLink} values={{ link: it.linkLabel, subject: it.subject, b }} />
+    ) : (
+      <T msg={m.actClickedAny} values={{ subject: it.subject, b }} />
     )
     meta = [...meta, ...present(it.url ?? '')]
   } else if (it.type === 'unsubscribe') {
-    title = (
-      <>
-        <b>Unsubscribed</b> from {it.subject}
-      </>
-    )
+    title = <T msg={m.actUnsubscribedSubject} values={{ subject: it.subject, b }} />
   } else {
     title = (
       <>
-        <b>{verb[it.type] ?? it.type}</b> {it.subject}
-        {it.variant ? ` · variant ${it.variant}` : ''}
+        <T msg={m.actDelivery} values={{ type: it.type, label: it.type, subject: it.subject, b }} />
+        {it.variant ? ` · ${tr(m.actVariant, { variant: it.variant })}` : ''}
         {dl.label ? ` · ${dl.label}${dl.fallback ? ' ·' : ''}` : ''}
         {it.provider ? (
           <>
-            {' via '}
-            <ProviderBadge p={it.provider} />
+            {' '}
+            <T msg={m.actVia} values={{ provider: <ProviderBadge p={it.provider} /> }} />
           </>
         ) : it.imported ? (
-          ` · sent from ${it.imported}`
+          ` · ${tr(m.actSentFrom, { origin: it.imported })}`
         ) : null}
         {it.failover ? (
           <>
             <span className="inline-block w-1.5" />
-            <span className="badge warn h-5">failover</span>
+            <span className="badge warn h-5">{tr(m.failover)}</span>
           </>
         ) : null}
       </>
     )
     const code = [it.code, it.diagnostic].filter(Boolean).join(' ')
-    meta = [...meta, ...present(code, it.routeNote ?? '', it.retriedDeliveredAt ? `retried and delivered ${clock(it.retriedDeliveredAt)}` : '', dl.why)]
+    meta = [...meta, ...present(code, it.routeNote ?? '', it.retriedDeliveredAt ? tr(m.retried, { time: clock(it.retriedDeliveredAt) }) : '', dl.why)]
   }
   return (
     <li className="ev">
@@ -911,6 +902,7 @@ function ActivityRow({ it }: { it: Item }) {
 }
 
 function SuppressDialog({ p, onClose }: { p: Profile; onClose: () => void }) {
+  const tr = useT()
   const { slug } = useWorkspace()
   const invalidate = useInvalidateAudience()
   const suppress = $api.useMutation('post', '/api/v1/workspaces/{workspace}/contacts/{contact}/suppress')
@@ -918,14 +910,14 @@ function SuppressDialog({ p, onClose }: { p: Profile; onClose: () => void }) {
   const [err, setErr] = useState<string | null>(null)
   const submit = async () => {
     if (!reason.trim()) {
-      setErr('Say why, for the audit log.')
+      setErr(t(m.sayWhy))
       return
     }
     try {
       await suppress.mutateAsync({ params: { path: { workspace: slug, contact: p.id } }, body: { reason: reason.trim() } })
       await invalidate()
       onClose()
-      toast({ kind: 'success', title: `Suppressed ${p.email}`, detail: 'Every provider stops sending to this address.' })
+      toast({ kind: 'success', title: t(m.suppressedToast, { email: p.email }), detail: t(m.suppressedBody) })
     } catch (e) {
       setErr(errorMessage(e))
     }
@@ -935,27 +927,28 @@ function SuppressDialog({ p, onClose }: { p: Profile; onClose: () => void }) {
       open
       onOpenChange={(o) => !o && onClose()}
       size="sm"
-      title={`Suppress ${p.email}?`}
-      description="The address goes on the shared suppression list and is pushed to every provider. Removing it later needs a reason, and bounced addresses need a new opt-in."
+      title={tr(m.suppressTitle, { email: p.email })}
+      description={tr(m.suppressBody)}
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{tr(common.cancel)}</Button>
           <Button variant="danger-primary" loading={suppress.isPending} onClick={() => void submit()}>
-            Suppress
+            {tr(m.suppress)}
           </Button>
         </>
       }
     >
-      <Field label="Reason" error={err ?? undefined} hint="Recorded in the audit log with your name.">
-        <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Asked to be removed by phone" maxLength={300} />
+      <Field label={tr(m.reason)} error={err ?? undefined} hint={tr(m.reasonHint)}>
+        <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={tr(m.reasonPlaceholder)} maxLength={300} />
       </Field>
     </Dialog>
   )
 }
 
 function ProfileSkeleton() {
+  const tr = useT()
   return (
-    <Loading label="Loading the contact" className="flex flex-col gap-5">
+    <Loading label={tr(m.loading)} className="flex flex-col gap-5">
       <div className="card flex items-center gap-4.5 px-5.5 py-5">
         <Skeleton w={52} h={52} r={26} />
         <div className="flex flex-1 flex-col gap-2">

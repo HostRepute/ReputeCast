@@ -1,5 +1,9 @@
+import { useT } from '@/i18n'
+import { m } from './messages'
+
 /** Loading: tiles and a chart, shaped like the report (ReportStates). */
 export function ReportSkeleton() {
+  const t = useT()
   const tiles: [number, number, number][] = [
     [60, 90, 110],
     [60, 90, 70],
@@ -11,7 +15,7 @@ export function ReportSkeleton() {
   return (
     <div className="flex flex-col gap-3.5" aria-busy="true">
       <span className="vh" role="status">
-        Loading the report
+        {t(m.loading)}
       </span>
       <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]">
         {tiles.map(([a, b, c], i) => (

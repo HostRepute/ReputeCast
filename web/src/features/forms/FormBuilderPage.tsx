@@ -16,7 +16,6 @@ import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { Icon } from '@/components/icons/Icon'
 import { FormAddressCheck, FormAskedToFix, FormChecksPaused } from '@/features/verification/FormCheck'
 import {
-  builtinFieldLabels,
   copyText,
   embedSnippet,
   FormStatusBadge,
@@ -41,12 +40,17 @@ import { FormRefNote } from '@/features/grow/FormRefNote'
 import { SmsConsentSettings, SmsPhoneToggle } from '@/features/sms/FormFields'
 import { useChannelSetUp } from '@/features/channels/hooks'
 import { m as promptMsg } from '@/features/push/prompt.messages'
-import { useT } from '@/i18n'
+import { t as tt, useT, type MessageDescriptor } from '@/i18n'
+import { common } from '@/i18n/common'
+import { m } from './builder.messages'
 
 // Push prompts are forms too, with their own designer (X22).
 type Kind = Exclude<Schemas['SignupFormSummary']['kind'], 'push'>
 
-const kindLabels: Record<Kind, string> = { embedded: 'Embedded', popup: 'Popup', hosted: 'Hosted page' }
+const kindLabels: Record<Kind, MessageDescriptor> = { embedded: m.kindEmbedded, popup: m.kindPopup, hosted: m.kindHosted }
+
+/** The built-in contact fields, named in the app's language (the preview shows the form's own words). */
+const builtinNames: Record<string, MessageDescriptor> = { first_name: m.fieldFirstName, last_name: m.fieldLastName, company: m.fieldCompany }
 
 /** Built-in fields in the order a form shows them; custom fields follow. */
 const fieldOrder = ['email', 'first_name', 'last_name', 'company', 'phone']
@@ -64,22 +68,23 @@ function sortFields(fields: FormInput['fields']): FormInput['fields'] {
  * with a language, the builder in that language (FormBuilderLanguages).
  */
 export function FormBuilderPage({ formId, language }: { formId?: string; language?: string }) {
+  const t = useT()
   const overview = useFormsOverview()
   throwIfForbidden(overview.error)
   const [creating, setCreating] = useState(false)
   const createReason = usePermissionReason('forms:edit')
   if (overview.isError) {
     return (
-      <Page title="Forms & public pages" filters={<FormsTabs />}>
-        <ErrorPanel title="Couldn't load the signup forms" actions={<Button onClick={() => overview.refetch()}>Retry</Button>}>
-          {errorMessage(overview.error)} Nothing was changed; the forms on your site keep working.
+      <Page title={t(m.pageTitle)} filters={<FormsTabs />}>
+        <ErrorPanel title={t(m.loadFormsFailed)} actions={<Button onClick={() => overview.refetch()}>{t(common.retry)}</Button>}>
+          {errorMessage(overview.error)} {t(m.formsKeepWorking)}
         </ErrorPanel>
       </Page>
     )
   }
   if (overview.isPending) {
     return (
-      <Page title="Forms & public pages" filters={<FormsTabs />}>
+      <Page title={t(m.pageTitle)} filters={<FormsTabs />}>
         <FormsLoading />
       </Page>
     )
@@ -87,7 +92,7 @@ export function FormBuilderPage({ formId, language }: { formId?: string; languag
   const o = overview.data
   if (o.forms.length === 0) {
     return (
-      <Page title="Forms & public pages" filters={<FormsTabs />}>
+      <Page title={t(m.pageTitle)} filters={<FormsTabs />}>
         <FormsEmpty hostedUrl={o.hostedUrl} hostedLabel={hostPath(o.hostedUrl)} onCreate={() => setCreating(true)} createReason={createReason} />
         <CreateFormDialog open={creating} onOpenChange={setCreating} />
       </Page>
@@ -99,22 +104,23 @@ export function FormBuilderPage({ formId, language }: { formId?: string; languag
 
 /** Loads one form; its editor starts over when the saved form changes. */
 function FormLoader({ formId, overview, language }: { formId: string; overview: Overview; language?: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const detail = $api.useQuery('get', '/api/v1/workspaces/{workspace}/forms/{form}', { params: { path: { workspace: slug, form: formId } } })
   throwIfForbidden(detail.error)
   if (detail.isError) {
     return (
-      <Page title="Forms & public pages" filters={<FormsTabs />}>
-        <ErrorPanel title="Couldn't load this form" actions={<Button onClick={() => detail.refetch()}>Retry</Button>}>
-          {errorMessage(detail.error)} Nothing was changed.
+      <Page title={t(m.pageTitle)} filters={<FormsTabs />}>
+        <ErrorPanel title={t(m.loadFormFailed)} actions={<Button onClick={() => detail.refetch()}>{t(common.retry)}</Button>}>
+          {errorMessage(detail.error)} {t(m.nothingChanged)}
         </ErrorPanel>
       </Page>
     )
   }
   if (detail.isPending) {
     return (
-      <Page title="Forms & public pages" filters={<FormsTabs />}>
-        <FormsLoading label="Building the preview" />
+      <Page title={t(m.pageTitle)} filters={<FormsTabs />}>
+        <FormsLoading label={t(m.buildingPreview)} />
       </Page>
     )
   }
@@ -123,6 +129,7 @@ function FormLoader({ formId, overview, language }: { formId: string; overview: 
 }
 
 function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const invalidate = useInvalidateForms()
@@ -150,13 +157,13 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
 
   const publish = async () => {
     if (!dirty && form.status === 'live') {
-      toast({ kind: 'info', title: 'Nothing new to publish', detail: `"${form.name}" is live with these settings.` })
+      toast({ kind: 'info', title: tt(m.nothingNew), detail: tt(m.liveAlready, { name: form.name }) })
       return true
     }
     setErrors({})
     try {
       await save.mutateAsync({ params, body: { ...draft, publish: true } })
-      toast({ kind: 'success', title: `Published · ${hostPath(form.hostedUrl)}`, detail: 'Embedded copies pick the changes up on their next page load.' })
+      toast({ kind: 'success', title: tt(m.published, { where: hostPath(form.hostedUrl) }), detail: tt(m.publishedBody) })
       await invalidate()
       return true
     } catch (e) {
@@ -167,7 +174,7 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
         }
       }
       setErrors(fieldErrors)
-      toast({ kind: 'error', title: "Couldn't publish the form", detail: errorMessage(e), retry: () => void publish() })
+      toast({ kind: 'error', title: tt(m.publishFailed), detail: errorMessage(e), retry: () => void publish() })
       throw e
     }
   }
@@ -191,19 +198,19 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
       await setStatus.mutateAsync({ params, body: { status: next } })
       toast({
         kind: 'success',
-        title: next === 'paused' ? `"${form.name}" is paused` : `"${form.name}" takes signups again`,
-        detail: next === 'paused' ? 'Visitors see "This form isn\'t taking signups right now." Nothing else changes.' : undefined,
+        title: next === 'paused' ? tt(m.paused, { name: form.name }) : tt(m.resumed, { name: form.name }),
+        detail: next === 'paused' ? tt(m.pausedBody) : undefined,
       })
       await invalidate()
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't change the form", detail: errorMessage(e), retry: () => void togglePause() })
+      toast({ kind: 'error', title: tt(m.changeFailed), detail: errorMessage(e), retry: () => void togglePause() })
     }
   }
 
   const where = useMemo(() => {
-    const site = draft.allowedOrigins[0] ?? 'your site'
-    if (draft.kind === 'hosted') return `hosted at ${hostPath(form.hostedUrl)}`
-    return `${draft.kind === 'popup' ? 'popup' : 'embedded'} on ${site}`
+    const site = draft.allowedOrigins[0]
+    if (draft.kind === 'hosted') return tt(m.whereHosted, { url: hostPath(form.hostedUrl) })
+    return tt(draft.kind === 'popup' ? m.wherePopup : m.whereEmbedded, { named: site ? 'yes' : 'no', site: site ?? '' })
   }, [draft.kind, draft.allowedOrigins, form.hostedUrl])
 
   const blocked = form.blockedOrigins
@@ -211,72 +218,71 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
 
   return (
     <Page
-      title="Forms & public pages"
+      title={t(m.pageTitle)}
       filters={<FormsTabs />}
       actions={
         <>
           <FormStatusBadge form={form} />
           <Menu
-            label="Form actions"
+            label={t(m.formActions)}
             trigger={
-              <button type="button" className="btn ic" aria-label={`More actions for "${form.name}"`}>
+              <button type="button" className="btn ic" aria-label={t(m.moreActions, { name: form.name })}>
                 <Icon name="more" size={16} />
               </button>
             }
           >
             <MenuItem onSelect={() => setCreating(true)} disabled={readOnly}>
-              New form
+              {t(m.newForm)}
             </MenuItem>
             <MenuItem onSelect={() => setRenaming(true)} disabled={readOnly}>
-              Rename
+              {t(m.rename)}
             </MenuItem>
             {form.status !== 'draft' ? (
               <MenuItem onSelect={() => void togglePause()} disabled={readOnly}>
-                {form.status === 'paused' ? 'Resume signups' : 'Pause signups'}
+                {form.status === 'paused' ? t(m.resumeSignups) : t(m.pauseSignups)}
               </MenuItem>
             ) : null}
             <MenuSeparator />
             <MenuItem onSelect={() => setDeleting(true)} disabled={readOnly} className="text-bad-strong">
-              Delete form
+              {t(m.deleteForm)}
             </MenuItem>
           </Menu>
           <Button onClick={() => setDraft(initial)} disabledReason={reason}>
-            Discard
+            {t(m.discard)}
           </Button>
-          <Button variant="primary" onClick={() => void publish().catch(() => undefined)} loading={save.isPending} busyLabel="Publishing…" disabledReason={reason}>
-            Save &amp; publish
+          <Button variant="primary" onClick={() => void publish().catch(() => undefined)} loading={save.isPending} busyLabel={t(m.publishing)} disabledReason={reason}>
+            {t(m.savePublish)}
           </Button>
         </>
       }
       contentClassName="fb-main"
     >
       <div className="fb-cols">
-        <aside className="fb-left" aria-label="Form settings">
+        <aside className="fb-left" aria-label={t(m.formSettings)}>
           <div className="fb-sec">
             <div className="fb-row flex items-center justify-between gap-2.5">
-              <span className="font-semibold">Form · "{form.name}"</span>
-              <select aria-label="Signup form" className="fb-in h-[30px]! w-[140px]!" value={form.id} onChange={(e) => pickForm(e.target.value)}>
+              <span className="font-semibold">{t(m.formName, { name: form.name })}</span>
+              <select aria-label={t(m.signupForm)} className="fb-in h-[30px]! w-[140px]!" value={form.id} onChange={(e) => pickForm(e.target.value)}>
                 {overview.forms.map((f) => (
                   <option key={f.id} value={f.id}>
                     {f.name}
                   </option>
                 ))}
-                {readOnly ? null : <option value="__new">New form…</option>}
+                {readOnly ? null : <option value="__new">{t(m.newFormOption)}</option>}
               </select>
             </div>
           </div>
           <TypeSection draft={draft} form={form} readOnly={readOnly} onKind={(k) => set('kind', k)} onContent={setContent} />
           <div className="fb-sec">
-            <span className="k">Fields</span>
+            <span className="k">{t(m.fields)}</span>
             <label className="fb-check">
               <input type="checkbox" checked disabled />
-              Email · required
+              {t(m.emailRequired)}
             </label>
             {(['first_name', 'company'] as const).map((key) => (
               <label key={key} className="fb-check">
                 <input type="checkbox" checked={hasField(key)} disabled={readOnly} onChange={(e) => toggleField(key, e.target.checked)} />
-                {builtinFieldLabels[key]}
-                {hasField(key) ? ' · optional' : ''}
+                {hasField(key) ? t(m.fieldOptional, { field: t(builtinNames[key]!) }) : t(builtinNames[key]!)}
               </label>
             ))}
             {/* Phase 8: the phone field, once texting is set up. */}
@@ -294,18 +300,19 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
               .map((f) => (
                 <label key={f.key} className="fb-check">
                   <input type="checkbox" checked disabled={readOnly} onChange={() => toggleField(f.key, false)} />
-                  {builtinFieldLabels[f.key] ?? overview.customFields.find((c) => c.key === f.key)?.label ?? f.key}
-                  {f.required ? ' · required' : ' · optional'}
+                  {t(f.required ? m.fieldRequired : m.fieldOptional, {
+                    field: builtinNames[f.key] ? t(builtinNames[f.key]!) : (overview.customFields.find((c) => c.key === f.key)?.label ?? f.key),
+                  })}
                 </label>
               ))}
             <label className="fb-check">
               <input type="checkbox" checked={draft.listChoice} disabled={readOnly} onChange={(e) => set('listChoice', e.target.checked)} />
-              Let people pick lists
+              {t(m.pickLists)}
             </label>
             <AddFieldMenu draft={draft} overview={overview} readOnly={readOnly} onAdd={(key) => toggleField(key, true)} />
           </div>
           <div className="fb-sec">
-            <span className="k">Lists</span>
+            <span className="k">{t(m.lists)}</span>
             {overview.lists.map((l) => {
               const offered = draft.listIds.includes(l.id)
               const isDefault = draft.defaultListIds.includes(l.id)
@@ -323,8 +330,7 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
                       }))
                     }
                   />
-                  {l.name}
-                  {offered && isDefault ? ' · checked by default' : ''}
+                  {offered && isDefault ? t(m.listDefault, { list: l.name }) : l.name}
                 </label>
               )
             })}
@@ -335,15 +341,15 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
             ) : null}
           </div>
           <div className="fb-sec">
-            <span className="k">Consent</span>
+            <span className="k">{t(m.consent)}</span>
             <label className="fb-check start">
               <input type="checkbox" checked={draft.doubleOptIn} disabled={readOnly} onChange={(e) => set('doubleOptIn', e.target.checked)} />
               <span>
-                Double opt-in <span className="k">· {doubleOptInNote(draft.doubleOptIn, overview.systemMail ? overview.systemProvider : '')}</span>
+                {t(m.doubleOptIn)} <span className="k">· {doubleOptInNote(draft.doubleOptIn, overview.systemMail ? overview.systemProvider : '')}</span>
               </span>
             </label>
             <label className="lbl">
-              Consent text
+              {t(m.consentText)}
               <textarea
                 className="fb-in"
                 value={draft.consentText}
@@ -354,10 +360,8 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
               />
             </label>
             <span className="k">
-              IP, timestamp and this exact text are stored as consent evidence.
-              {draft.consentText.trim() !== form.consentText && form.consentText
-                ? ` Saving starts version ${form.consentVersion + 1}; earlier signups keep the text they agreed to.`
-                : ''}
+              {t(m.evidence)}
+              {draft.consentText.trim() !== form.consentText && form.consentText ? ` ${t(m.newVersion, { version: form.consentVersion + 1 })}` : ''}
             </span>
           </div>
           {/* Phase 8: the SMS consent box, with its own text. */}
@@ -370,34 +374,34 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
             onContent={setContent}
           />
           <div className="fb-sec">
-            <span className="k">Spam protection</span>
+            <span className="k">{t(m.spam)}</span>
             <label className="fb-check">
               <input type="checkbox" checked={draft.spam.honeypot} disabled={readOnly} onChange={(e) => setSpam({ honeypot: e.target.checked })} />
-              Honeypot field and timing check · invisible
+              {t(m.honeypot)}
             </label>
             <label className="fb-check">
               <input type="checkbox" checked={draft.spam.turnstile} disabled={readOnly} onChange={(e) => setSpam({ turnstile: e.target.checked })} />
-              Cloudflare Turnstile · shows only when a submission looks automated
+              {t(m.turnstile)}
             </label>
             {draft.spam.turnstile && !overview.turnstile.hasSecret ? <TurnstileKeys readOnly={readOnly} /> : null}
             <label className="fb-check">
               <input type="checkbox" checked={draft.spam.blockDisposable} disabled={readOnly} onChange={(e) => setSpam({ blockDisposable: e.target.checked })} />
-              Reject disposable domains and role addresses
+              {t(m.rejectDisposable)}
             </label>
             <FormAddressCheck formKey={form.id} formName={form.name} />
           </div>
           <div className="fb-sec last">
-            <span className="k">After submit</span>
-            <select aria-label="After submit" className="fb-in" value={draft.afterSubmit} disabled={readOnly} onChange={(e) => set('afterSubmit', e.target.value as FormInput['afterSubmit'])}>
-              <option value="message">{draft.doubleOptIn ? 'Show "check your inbox" message' : 'Show "you\'re subscribed" message'}</option>
-              <option value="redirect">Redirect to a URL</option>
+            <span className="k">{t(m.afterSubmit)}</span>
+            <select aria-label={t(m.afterSubmit)} className="fb-in" value={draft.afterSubmit} disabled={readOnly} onChange={(e) => set('afterSubmit', e.target.value as FormInput['afterSubmit'])}>
+              <option value="message">{draft.doubleOptIn ? t(m.showCheckInbox) : t(m.showSubscribed)}</option>
+              <option value="redirect">{t(m.redirect)}</option>
             </select>
             {draft.afterSubmit === 'redirect' ? (
               <>
                 <input
                   className="fb-in"
-                  aria-label="Redirect URL"
-                  placeholder="https://acme.io/thanks"
+                  aria-label={t(m.redirectUrl)}
+                  placeholder={'https://acme.io/thanks'}
                   value={draft.redirectUrl}
                   disabled={readOnly}
                   aria-invalid={errors.redirectUrl ? true : undefined}
@@ -415,15 +419,15 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
           <FormDownloadSection form={form} readOnly={readOnly} doubleOptIn={draft.doubleOptIn} />
         </aside>
 
-        <section className="fb-center" aria-label="Live preview">
+        <section className="fb-center" aria-label={t(m.livePreview)}>
           <div className="fb-bar">
-            <span className="k">Live preview · {where}</span>
-            <div className="fb-seg ml-auto" role="group" aria-label="Preview size">
+            <span className="k">{t(m.livePreviewWhere, { where })}</span>
+            <div className="fb-seg ml-auto" role="group" aria-label={t(m.previewSize)}>
               <button type="button" aria-pressed={device === 'desktop'} onClick={() => setDevice('desktop')}>
-                Desktop
+                {t(m.desktop)}
               </button>
               <button type="button" aria-pressed={device === 'mobile'} onClick={() => setDevice('mobile')}>
-                Mobile
+                {t(m.mobile)}
               </button>
             </div>
           </div>
@@ -446,30 +450,30 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
           </div>
         </section>
 
-        <aside className="fb-right" aria-label="Embed code and numbers">
+        <aside className="fb-right" aria-label={t(m.embedAndNumbers)}>
           <EmbedSection form={form} />
           <div className="fb-sec">
-            <span className="fb-title">Hosted page</span>
-            <input className="fb-in mono" aria-label="Hosted page URL" value={form.hostedUrl} readOnly />
+            <span className="fb-title">{t(m.hostedPage)}</span>
+            <input className="fb-in mono" aria-label={t(m.hostedPageUrl)} value={form.hostedUrl} readOnly />
             <div className="flex gap-1.5">
               <Button
                 size="sm"
                 onClick={async () =>
                   (await copyText(form.hostedUrl))
-                    ? toast({ kind: 'success', title: 'Link copied', detail: hostPath(form.hostedUrl) })
-                    : toast({ kind: 'error', title: "Couldn't copy the link", detail: 'Select it in the field and copy it yourself.' })
+                    ? toast({ kind: 'success', title: tt(m.linkCopied), detail: hostPath(form.hostedUrl) })
+                    : toast({ kind: 'error', title: tt(m.copyFailed), detail: tt(m.copyYourself) })
                 }
               >
-                Copy link
+                {t(m.copyLink)}
               </Button>
               <a className="btn sm" href={form.hostedUrl} target="_blank" rel="noreferrer">
-                Open
+                {t(m.open)}
               </a>
             </div>
           </div>
           <div className="fb-sec">
-            <span className="fb-title">Allowed domains</span>
-            <span className="k">Submissions from other origins are rejected.</span>
+            <span className="fb-title">{t(m.allowedDomains)}</span>
+            <span className="k">{t(m.otherOrigins)}</span>
             <OwnOriginsNote origins={overview.ownOrigins} />
             <div className="flex flex-wrap gap-1.5">
               {draft.allowedOrigins.map((o) => (
@@ -492,9 +496,9 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
       </div>
       <UnsavedChangesGuard
         dirty={dirty && !readOnly}
-        title="Leave without publishing?"
-        description={`You changed "${form.name}" since it was saved. Publish the changes or leave them.`}
-        saveLabel="Publish and leave"
+        title={t(m.leaveTitle)}
+        description={t(m.leaveBody, { name: form.name })}
+        saveLabel={t(m.publishLeave)}
         onSave={publish}
       />
       <CreateFormDialog open={creating} onOpenChange={setCreating} />
@@ -502,11 +506,11 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
       <ConfirmDialog
         open={deleting}
         onOpenChange={setDeleting}
-        badge="Delete form"
-        title={`Delete "${form.name}"?`}
-        description="Copies of this form on your sites stop accepting signups, and its hosted page goes away. Contacts it brought in, their consent records and automations they're in stay."
-        confirmLabel="Delete form"
-        busyLabel="Deleting…"
+        badge={t(m.deleteForm)}
+        title={t(m.deleteTitle, { name: form.name })}
+        description={t(m.deleteBody)}
+        confirmLabel={t(m.deleteForm)}
+        busyLabel={t(m.deleting)}
         secondary={
           form.status === 'live' ? (
             <Button
@@ -515,13 +519,13 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
                 void togglePause()
               }}
             >
-              Pause signups instead
+              {t(m.pauseInstead)}
             </Button>
           ) : undefined
         }
         onConfirm={async () => {
           await remove.mutateAsync({ params })
-          toast({ kind: 'deleted', title: `"${form.name}" deleted`, detail: 'Its contacts and their consent records stay.' })
+          toast({ kind: 'deleted', title: tt(m.deleted, { name: form.name }), detail: tt(m.deletedBody) })
           await invalidate()
           void navigate({ to: '/w/$workspace/forms', params: { workspace: slug }, search: {} })
         }}
@@ -532,9 +536,9 @@ function Editor({ form, overview }: { form: SignupForm; overview: Overview }) {
 
 /** What double opt-in does, with the provider that sends the confirmations. */
 export function doubleOptInNote(on: boolean, provider: string): string {
-  if (!on) return 'off: contacts are subscribed as soon as they submit'
-  if (!provider) return 'confirmations wait until System mail can be sent; contacts stay "pending" until they click'
-  return `confirmation sent on the System stream via ${provider}; contacts stay "pending" until they click`
+  if (!on) return tt(m.doubleOptInOff)
+  if (!provider) return tt(m.doubleOptInWaiting)
+  return tt(m.doubleOptInVia, { provider })
 }
 
 /** "Type": Embedded · Popup · Hosted page, and what that means. */
@@ -551,36 +555,33 @@ function TypeSection({
   onKind: (k: Kind) => void
   onContent: (patch: Partial<FormInput['content']>) => void
 }) {
+  const t = useT()
   const at = hostPath(form.hostedUrl)
-  const help: Record<Kind, string> = {
-    embedded: `Embedded renders inside your site; the hosted page lives at ${at} with your branding.`,
-    popup: `Popup opens over your site and stays closed once someone dismisses it; the hosted page lives at ${at} with your branding.`,
-    hosted: `Hosted page lives at ${at} with your branding; link to it from anywhere, no code needed.`,
-  }
+  const help: Record<Kind, MessageDescriptor> = { embedded: m.helpEmbedded, popup: m.helpPopup, hosted: m.helpHosted }
   const c = draft.content
   return (
     <div className="fb-sec">
-      <span className="k">Type</span>
-      <div className="fb-seg" role="group" aria-label="Type">
+      <span className="k">{t(m.type)}</span>
+      <div className="fb-seg" role="group" aria-label={t(m.type)}>
         {(Object.keys(kindLabels) as Kind[]).map((k) => (
           <button key={k} type="button" aria-pressed={draft.kind === k} aria-disabled={readOnly || undefined} onClick={() => !readOnly && onKind(k)}>
-            {kindLabels[k]}
+            {t(kindLabels[k])}
           </button>
         ))}
       </div>
-      <span className="k">{help[draft.kind]}</span>
+      <span className="k">{t(help[draft.kind], { at })}</span>
       {draft.kind === 'popup' ? (
         <div className="grid grid-cols-3 gap-2">
           <label className="lbl justify-between">
-            Opens after (s)
+            {t(m.opensAfter)}
             <input className="fb-in" type="number" min={0} max={600} value={c.popupDelay} disabled={readOnly} onChange={(e) => onContent({ popupDelay: Number(e.target.value) })} />
           </label>
           <label className="lbl justify-between">
-            Or scrolled (%)
+            {t(m.orScrolled)}
             <input className="fb-in" type="number" min={0} max={100} value={c.popupScroll} disabled={readOnly} onChange={(e) => onContent({ popupScroll: Number(e.target.value) })} />
           </label>
           <label className="lbl justify-between">
-            Closed for (days)
+            {t(m.closedFor)}
             <input className="fb-in" type="number" min={0} max={365} value={c.popupRepeatDays} disabled={readOnly} onChange={(e) => onContent({ popupRepeatDays: Number(e.target.value) })} />
           </label>
         </div>
@@ -591,23 +592,24 @@ function TypeSection({
 
 /** "Add custom field": the contact fields the form doesn't ask for yet. */
 function AddFieldMenu({ draft, overview, readOnly, onAdd }: { draft: FormInput; overview: Overview; readOnly: boolean; onAdd: (key: string) => void }) {
+  const t = useT()
   const has = (k: string) => draft.fields.some((f) => f.key === k)
   const options = [
-    ...(has('last_name') ? [] : [{ key: 'last_name', label: 'Last name' }]),
+    ...(has('last_name') ? [] : [{ key: 'last_name', label: t(m.fieldLastName) }]),
     ...overview.customFields.filter((c) => !has(c.key)).map((c) => ({ key: c.key, label: c.label })),
   ]
   return (
     <Menu
       align="start"
-      label="Contact fields"
+      label={t(m.contactFields)}
       trigger={
         <button type="button" className="btn sm self-start" disabled={readOnly}>
-          Add custom field
+          {t(m.addCustomField)}
         </button>
       }
     >
       {options.length === 0 ? (
-        <MenuItem disabled>Every contact field is on the form</MenuItem>
+        <MenuItem disabled>{t(m.everyField)}</MenuItem>
       ) : (
         options.map((o) => (
           <MenuItem key={o.key} onSelect={() => onAdd(o.key)}>
@@ -621,6 +623,7 @@ function AddFieldMenu({ draft, overview, readOnly, onAdd }: { draft: FormInput; 
 
 /** Turnstile keys, asked for when the check is turned on without keys. */
 function TurnstileKeys({ readOnly }: { readOnly: boolean }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const invalidate = useInvalidateForms()
   const save = $api.useMutation('put', '/api/v1/workspaces/{workspace}/public-pages/turnstile')
@@ -632,21 +635,28 @@ function TurnstileKeys({ readOnly }: { readOnly: boolean }) {
     try {
       const out = await save.mutateAsync({ params: { path: { workspace: slug } }, body: { siteKey: siteKey.trim(), secret: secret.trim() } })
       await invalidate()
-      if (out.turnstile.status === 'error') setError(`${out.turnstile.error}. Check the keys in the Cloudflare dashboard.`)
-      else toast({ kind: 'success', title: 'Turnstile keys saved', detail: 'The secret is stored encrypted and never shown again.' })
+      if (out.turnstile.status === 'error') setError(tt(m.checkKeys, { error: out.turnstile.error ?? '' }))
+      else toast({ kind: 'success', title: tt(m.keysSaved), detail: tt(m.secretStored) })
     } catch (e) {
       setError(errorMessage(e))
     }
   }
   return (
     <div className="flex flex-col gap-1.5 pl-7">
-      <input className="fb-in mono" aria-label="Turnstile site key" placeholder="Site key · 0x4AAAAAAA…" value={siteKey} disabled={readOnly} onChange={(e) => setSiteKey(e.target.value)} />
+      <input
+        className="fb-in mono"
+        aria-label={t(m.siteKey)}
+        placeholder={t(m.siteKeyPlaceholder, { example: '0x4AAAAAAA…' })}
+        value={siteKey}
+        disabled={readOnly}
+        onChange={(e) => setSiteKey(e.target.value)}
+      />
       <input
         className="fb-in mono"
         type="password"
         autoComplete="off"
-        aria-label="Turnstile secret key"
-        placeholder="Secret key"
+        aria-label={t(m.secretKey)}
+        placeholder={t(m.secretPlaceholder)}
         value={secret}
         disabled={readOnly}
         onChange={(e) => setSecret(e.target.value)}
@@ -656,10 +666,10 @@ function TurnstileKeys({ readOnly }: { readOnly: boolean }) {
           {error}
         </span>
       ) : (
-        <span className="k">Shared by every form of this workspace. The secret is stored encrypted and never shown again.</span>
+        <span className="k">{t(m.keysShared)}</span>
       )}
       <Button size="sm" className="self-start" onClick={() => void submit()} loading={save.isPending} disabled={readOnly || !siteKey.trim() || !secret.trim()}>
-        Save keys
+        {t(m.saveKeys)}
       </Button>
     </div>
   )
@@ -684,24 +694,25 @@ function FormLanguagesRows({ form }: { form: SignupForm }) {
 
 /** "Embed code": the script snippet and the plain HTML form. */
 function EmbedSection({ form }: { form: SignupForm }) {
+  const t = useT()
   const snippet = embedSnippet(form.publicId, form.urls.script)
-  const copy = async (text: string, what: string) => {
-    if (await copyText(text)) toast({ kind: 'success', title: `${what} copied`, detail: 'Paste it into your site where the form should appear.' })
-    else toast({ kind: 'error', title: `Couldn't copy the ${what.toLowerCase()}`, detail: 'Your browser blocked the clipboard. Select the code and copy it yourself.' })
+  const copy = async (text: string, what: 'script' | 'html') => {
+    if (await copyText(text)) toast({ kind: 'success', title: tt(what === 'script' ? m.scriptCopied : m.htmlCopied), detail: tt(m.pasteIt) })
+    else toast({ kind: 'error', title: tt(what === 'script' ? m.scriptCopyFailed : m.htmlCopyFailed), detail: tt(m.clipboardBlocked) })
   }
   return (
     <div className="fb-sec">
-      <span className="fb-title">Embed code</span>
-      <span className="k">Loads a {Math.max(form.urls.scriptKb, 1)} KB script; the form renders with your site's fonts and no iframe.</span>
-      <ScrollPre className="fb-pre" label="Embed code">
+      <span className="fb-title">{t(m.embedCode)}</span>
+      <span className="k">{t(m.scriptSize, { kb: count(Math.max(form.urls.scriptKb, 1)) })}</span>
+      <ScrollPre className="fb-pre" label={t(m.embedCode)}>
         {snippet}
       </ScrollPre>
       <div className="fb-row flex gap-1.5">
-        <Button size="sm" onClick={() => void copy(snippet, 'Script embed')}>
-          Copy script embed
+        <Button size="sm" onClick={() => void copy(snippet, 'script')}>
+          {t(m.copyScript)}
         </Button>
-        <Button size="sm" onClick={() => void copy(form.plainHtml, 'Plain HTML form')}>
-          Copy plain HTML form
+        <Button size="sm" onClick={() => void copy(form.plainHtml, 'html')}>
+          {t(m.copyHtml)}
         </Button>
       </div>
       {/* Grow (design expansion, X15): referral codes on the form's page count. */}
@@ -712,47 +723,43 @@ function EmbedSection({ form }: { form: SignupForm }) {
 
 /** "Last 30 days": views, submissions, confirmations and spam blocked. */
 function NumbersSection({ form, systemMail }: { form: SignupForm; systemMail: boolean }) {
+  const t = useT()
   const s = form.stats
   const [links, setLinks] = useState(false)
   return (
     <div className="fb-sec last">
-      <span className="fb-title">Last {s.days} days</span>
+      <span className="fb-title">{t(m.lastDays, { days: s.days })}</span>
       <div className="fb-nums">
         <div>
-          <div className="k">Views</div>
+          <div className="k">{t(m.views)}</div>
           <div className="n text-[18px]">{count(s.views)}</div>
         </div>
         <div>
-          <div className="k">Submissions</div>
+          <div className="k">{t(m.submissions)}</div>
           <div className="n text-[18px]">
             {count(s.submissions)} · {trimPct(Number(s.submissionRate.toFixed(1)))}
           </div>
         </div>
         <div>
-          <div className="k">Confirmed opt-in</div>
+          <div className="k">{t(m.confirmedOptIn)}</div>
           <div className="n text-[18px]">
             {count(s.confirmed)} · {trimPct(Number(s.confirmedRate.toFixed(1)))}
           </div>
         </div>
         <div>
-          <div className="k">Blocked as spam</div>
+          <div className="k">{t(m.blockedSpam)}</div>
           <div className="n text-[18px]">{count(s.blocked)}</div>
         </div>
         <FormAskedToFix formKey={form.id} />
       </div>
       {form.doubleOptIn && s.pending > 0 ? (
-        <span className="k">
-          {count(s.pending)} {s.pending === 1 ? 'confirmation is' : 'confirmations are'} pending;{' '}
-          {systemMail ? 'reminders go out after 24 h.' : 'reminders wait until System mail can be sent.'}
-        </span>
+        <span className="k">{t(systemMail ? m.pendingReminders : m.pendingWait, { n: s.pending, count: count(s.pending) })}</span>
       ) : null}
       {form.doubleOptIn && form.waiting > 0 ? (
         <>
-          <span className="k">
-            {count(form.waiting)} {form.waiting === 1 ? 'signup is' : 'signups are'} still waiting for the confirmation email. Send them their link yourself.
-          </span>
+          <span className="k">{t(m.stillWaiting, { n: form.waiting, count: count(form.waiting) })}</span>
           <Button size="sm" className="self-start" onClick={() => setLinks(true)}>
-            Copy confirmation links
+            {t(m.copyLinks)}
           </Button>
         </>
       ) : null}
@@ -766,6 +773,7 @@ function NumbersSection({ form, systemMail }: { form: SignupForm; systemMail: bo
  * each with its link to send by hand. Every copied link is logged.
  */
 function WaitingDialog({ form, onClose }: { form: SignupForm; onClose: () => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const reason = usePermissionReason('subscribers:edit')
   const params = { path: { workspace: slug, form: form.id } }
@@ -777,12 +785,12 @@ function WaitingDialog({ form, onClose }: { form: SignupForm; onClose: () => voi
       const out = await link.mutateAsync({ params: { path: { workspace: slug, form: form.id, submission: id } } })
       if (await copyText(out.url)) {
         setCopied(id)
-        toast({ kind: 'success', title: 'Confirmation link copied', detail: `Send it to ${out.email}. It subscribes them when they open it.` })
+        toast({ kind: 'success', title: tt(m.confirmCopied), detail: tt(m.sendIt, { email: out.email }) })
       } else {
-        toast({ kind: 'error', title: "Couldn't copy the link", detail: 'Your browser blocked the clipboard. Try again, or use another browser.' })
+        toast({ kind: 'error', title: tt(m.copyFailed), detail: tt(m.clipboardRetry) })
       }
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't get the link", detail: errorMessage(e), retry: () => void copy(id) })
+      toast({ kind: 'error', title: tt(m.linkFailed), detail: errorMessage(e), retry: () => void copy(id) })
     }
   }
   const d = waiting.data
@@ -790,29 +798,25 @@ function WaitingDialog({ form, onClose }: { form: SignupForm; onClose: () => voi
     <Dialog
       open
       onOpenChange={(o) => !o && onClose()}
-      title="Confirmation links"
-      description={
-        d && !d.systemMail
-          ? 'Nothing can send System mail yet, so these people never got their confirmation email. Send each one their link yourself; it subscribes them when they open it. Every link you copy is logged.'
-          : "These confirmation emails couldn't be sent; ReputeCast tries again for 3 days. You can send a link yourself; it subscribes them when they open it. Every link you copy is logged."
-      }
-      footer={<Button onClick={onClose}>Close</Button>}
+      title={t(m.linksTitle)}
+      description={d && !d.systemMail ? t(m.linksNoSystem) : t(m.linksRetrying)}
+      footer={<Button onClick={onClose}>{t(common.close)}</Button>}
     >
       {waiting.isError ? (
-        <ErrorPanel title="Couldn't load the signups" actions={<Button onClick={() => waiting.refetch()}>Retry</Button>}>
+        <ErrorPanel title={t(m.signupsFailed)} actions={<Button onClick={() => waiting.refetch()}>{t(common.retry)}</Button>}>
           {errorMessage(waiting.error)}
         </ErrorPanel>
       ) : !d ? (
         <div className="flex flex-col gap-2" aria-busy="true">
           <span className="vh" role="status">
-            Loading the signups
+            {t(m.loadingSignups)}
           </span>
           <Skeleton h={44} />
           <Skeleton h={44} />
           <Skeleton h={44} />
         </div>
       ) : d.items.length === 0 ? (
-        <p className="text-ink-2">Every confirmation email has gone out. Nothing is waiting.</p>
+        <p className="text-ink-2">{t(m.allSent)}</p>
       ) : (
         <ul className="m-0 flex list-none flex-col p-0">
           {d.items.map((it) => (
@@ -820,19 +824,17 @@ function WaitingDialog({ form, onClose }: { form: SignupForm; onClose: () => voi
               <div className="flex min-w-0 flex-col">
                 <span className="font-semibold [overflow-wrap:anywhere]">{it.email}</span>
                 <span className="k">
-                  {[andList(it.lists), `signed up ${ago(it.createdAt)}`].filter(Boolean).join(' · ')}
+                  {[andList(it.lists), t(m.signedUp, { ago: ago(it.createdAt) })].filter(Boolean).join(' · ')}
                 </span>
               </div>
               <Button size="sm" onClick={() => void copy(it.id)} disabledReason={reason}>
-                {copied === it.id ? 'Copied' : 'Copy link'}
-                <span className="vh"> for {it.email}</span>
+                {copied === it.id ? t(common.copied) : t(m.copyLink)}
+                <span className="vh"> {t(m.copyFor, { email: it.email })}</span>
               </Button>
             </li>
           ))}
           {d.total > d.items.length ? (
-            <li className="k pt-2">
-              Showing the {count(d.items.length)} newest of {count(d.total)}.
-            </li>
+            <li className="k pt-2">{t(m.newestOf, { shown: count(d.items.length), total: count(d.total) })}</li>
           ) : null}
         </ul>
       )}
@@ -842,6 +844,7 @@ function WaitingDialog({ form, onClose }: { form: SignupForm; onClose: () => voi
 
 /** "Add" next to the allowed domains: add a site or take one off. */
 function DomainsEditor({ origins, readOnly, onChange }: { origins: string[]; readOnly: boolean; onChange: (next: string[]) => void }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [value, setValue] = useState('')
   const [error, setError] = useState<string>()
@@ -859,7 +862,7 @@ function DomainsEditor({ origins, readOnly, onChange }: { origins: string[]; rea
       .replace(/^[a-z]+:\/\//, '')
       .replace(/[/?#].*$/, '')
     if (!/^[a-z0-9.-]+\.[a-z]{2,}(:\d+)?$|^localhost(:\d+)?$/.test(host)) {
-      setError("That isn't a domain. Use a site's address, like docs.acme.io.")
+      setError(t(m.notDomain, { example: 'docs.acme.io' }))
       return
     }
     if (!origins.includes(host)) onChange([...origins, host])
@@ -871,11 +874,11 @@ function DomainsEditor({ origins, readOnly, onChange }: { origins: string[]; rea
       open={open}
       onOpenChange={toggle}
       align="start"
-      label="Allowed domains"
+      label={t(m.allowedDomains)}
       className="w-[280px] gap-2 p-3"
       trigger={
         <button type="button" className="btn sm" disabled={readOnly}>
-          Add
+          {t(m.add)}
         </button>
       }
     >
@@ -886,11 +889,11 @@ function DomainsEditor({ origins, readOnly, onChange }: { origins: string[]; rea
           add()
         }}
       >
-        <Field label="Domain" hint="The site the form is embedded on. Subdomains need their own entry." error={error}>
-          <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder="docs.acme.io" className="w-full" autoFocus />
+        <Field label={t(m.domain)} hint={t(m.domainHint)} error={error}>
+          <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder={'docs.acme.io'} className="w-full" autoFocus />
         </Field>
         <Button type="submit" size="sm" variant="primary" className="self-start">
-          Add domain
+          {t(m.addDomain)}
         </Button>
       </form>
       {origins.length ? (
@@ -898,14 +901,14 @@ function DomainsEditor({ origins, readOnly, onChange }: { origins: string[]; rea
           {origins.map((o) => (
             <li key={o} className="flex items-center justify-between gap-2 text-[13px]">
               <span className="mono">{o}</span>
-              <button type="button" className="btn xs" onClick={() => onChange(origins.filter((x) => x !== o))} aria-label={`Remove ${o}`}>
-                Remove
+              <button type="button" className="btn xs" onClick={() => onChange(origins.filter((x) => x !== o))} aria-label={t(m.removeOrigin, { origin: o })}>
+                {t(m.remove)}
               </button>
             </li>
           ))}
         </ul>
       ) : null}
-      <span className="k">Changes apply when you save and publish.</span>
+      <span className="k">{t(m.applyOnPublish)}</span>
     </Popover>
   )
 }
@@ -929,7 +932,7 @@ function CreateFormDialogOpen({ onOpenChange }: { onOpenChange: (o: boolean) => 
   const [error, setError] = useState<string>()
   const submit = async () => {
     if (!name.trim()) {
-      setError('Name the form, for example "Footer form".')
+      setError(t(m.nameIt, { example: t(m.exampleName) }))
       return
     }
     if (kind === 'push') {
@@ -947,7 +950,7 @@ function CreateFormDialogOpen({ onOpenChange }: { onOpenChange: (o: boolean) => 
       const f = await create.mutateAsync({ params: { path: { workspace: slug } }, body: { name: name.trim(), kind } })
       await invalidate()
       onOpenChange(false)
-      toast({ kind: 'success', title: `"${f.name}" created`, detail: 'It stays a draft until you save and publish it.' })
+      toast({ kind: 'success', title: tt(m.created, { name: f.name }), detail: tt(m.createdBody) })
       void navigate({ to: '/w/$workspace/forms', params: { workspace: slug }, search: { form: f.id } })
     } catch (e) {
       setError(errorMessage(e))
@@ -957,13 +960,13 @@ function CreateFormDialogOpen({ onOpenChange }: { onOpenChange: (o: boolean) => 
     <Dialog
       open
       onOpenChange={onOpenChange}
-      title="New signup form"
-      description={kind === 'push' ? t(promptMsg.typeHint) : 'It starts with email and first name, your first public list, double opt-in and every spam check.'}
+      title={t(m.newTitle)}
+      description={kind === 'push' ? t(promptMsg.typeHint) : t(m.newBody)}
       footer={
         <>
-          <Button onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={() => onOpenChange(false)}>{t(common.cancel)}</Button>
           <Button variant="primary" onClick={() => void submit()} loading={create.isPending || createPrompt.isPending}>
-            Create form
+            {t(m.createForm)}
           </Button>
         </>
       }
@@ -975,15 +978,15 @@ function CreateFormDialogOpen({ onOpenChange }: { onOpenChange: (o: boolean) => 
           void submit()
         }}
       >
-        <Field label="Name" error={error}>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Footer form" maxLength={80} className="w-full" autoFocus />
+        <Field label={t(m.name)} error={error}>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t(m.exampleName)} maxLength={80} className="w-full" autoFocus />
         </Field>
         <div className="lbl">
-          <span>Type</span>
-          <div className="fb-seg" role="group" aria-label="Type">
+          <span>{t(m.type)}</span>
+          <div className="fb-seg" role="group" aria-label={t(m.type)}>
             {(Object.keys(kindLabels) as Kind[]).map((k) => (
               <button key={k} type="button" aria-pressed={kind === k} onClick={() => setKind(k)}>
-                {kindLabels[k]}
+                {t(kindLabels[k])}
               </button>
             ))}
             {pushOn ? (
@@ -1003,6 +1006,7 @@ function RenameDialog({ open, onOpenChange, form }: { open: boolean; onOpenChang
 }
 
 function RenameDialogOpen({ onOpenChange, form }: { onOpenChange: (o: boolean) => void; form: SignupForm }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const invalidate = useInvalidateForms()
   const rename = $api.useMutation('post', '/api/v1/workspaces/{workspace}/forms/{form}/rename')
@@ -1013,7 +1017,7 @@ function RenameDialogOpen({ onOpenChange, form }: { onOpenChange: (o: boolean) =
       await rename.mutateAsync({ params: { path: { workspace: slug, form: form.id } }, body: { name: name.trim() } })
       await invalidate()
       onOpenChange(false)
-      toast({ kind: 'success', title: `Renamed to "${name.trim()}"`, detail: 'Embed code keeps working; the hosted page follows the new name.' })
+      toast({ kind: 'success', title: tt(m.renamed, { name: name.trim() }), detail: tt(m.renamedBody) })
     } catch (e) {
       setError(errorMessage(e))
     }
@@ -1022,13 +1026,13 @@ function RenameDialogOpen({ onOpenChange, form }: { onOpenChange: (o: boolean) =
     <Dialog
       open
       onOpenChange={onOpenChange}
-      title="Rename form"
+      title={t(m.renameTitle)}
       size="sm"
       footer={
         <>
-          <Button onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={() => onOpenChange(false)}>{t(common.cancel)}</Button>
           <Button variant="primary" onClick={() => void submit()} loading={rename.isPending}>
-            Rename
+            {t(m.rename)}
           </Button>
         </>
       }
@@ -1039,7 +1043,7 @@ function RenameDialogOpen({ onOpenChange, form }: { onOpenChange: (o: boolean) =
           void submit()
         }}
       >
-        <Field label="Name" error={error} hint={form.kind !== 'embedded' || form.hostedPage ? undefined : 'Its hosted page moves to the new name; the embed code stays the same.'}>
+        <Field label={t(m.name)} error={error} hint={form.kind !== 'embedded' || form.hostedPage ? undefined : t(m.renameHint)}>
           <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} className="w-full" autoFocus />
         </Field>
       </form>

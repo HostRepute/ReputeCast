@@ -1,49 +1,53 @@
 import type { Schemas } from '@/api/client'
 import type { Tone } from '@/components/ui/Badge'
-import { clock, count, longDate, shortDate } from '@/lib/format'
+import { t } from '@/i18n'
+import { andList, clock, count, decimal, longDate, pct, shortDate, trimPct } from '@/lib/format'
+import { m } from './messages'
 
 export type CampaignReport = Schemas['CampaignReport']
 export type ReportInfo = Schemas['ReportCampaignInfo']
 
 /** "41.2%": rates of delivered or sent keep one decimal. */
 export function pct1(v: number | null | undefined): string {
-  return v === null || v === undefined ? '—' : `${v.toFixed(1)}%`
+  return pct(v, 1)
 }
 
 /** "0.04%": small rates (complaints, unsubscribes) keep two decimals. */
 export function pct2(v: number | null | undefined): string {
-  return v === null || v === undefined ? '—' : `${v.toFixed(2)}%`
+  return pct(v, 2)
 }
 
 /** "Thu 9 Oct, 10:00 to 12:41", or with both dates when it ran past midnight. */
 export function sendWindow(start?: string, end?: string): string {
   if (!start) return ''
-  const s = `${shortDate(start)}, ${clock(start)}`
-  if (!end) return s
-  return shortDate(start) === shortDate(end) ? `${s} to ${clock(end)}` : `${s} to ${shortDate(end)}, ${clock(end)}`
+  const day = shortDate(start)
+  if (!end) return t(m.windowStart, { day, time: clock(start) })
+  return day === shortDate(end)
+    ? t(m.windowSameDay, { day, start: clock(start), end: clock(end) })
+    : t(m.windowTwoDays, { day, start: clock(start), endDay: shortDate(end), end: clock(end) })
 }
 
 /** The status badge of the report header. */
 export function statusBadge(c: ReportInfo): { tone: Tone; text: string } {
   switch (c.status) {
     case 'sent':
-      return { tone: 'ok', text: c.startedAt ? `Sent · ${sendWindow(c.startedAt, c.completedAt)}` : 'Sent' }
+      return { tone: 'ok', text: c.startedAt ? t(m.statusSentWindow, { window: sendWindow(c.startedAt, c.completedAt) }) : t(m.statusSent) }
     case 'sending':
-      return { tone: 'info', text: c.startedAt ? `Sending · started ${clock(c.startedAt)}` : 'Sending' }
+      return { tone: 'info', text: c.startedAt ? t(m.statusSendingSince, { time: clock(c.startedAt) }) : t(m.statusSending) }
     case 'paused':
-      return { tone: 'warn', text: 'Paused' }
+      return { tone: 'warn', text: t(m.statusPaused) }
     case 'cancelled':
-      return { tone: 'neutral', text: c.startedAt ? `Cancelled · ${sendWindow(c.startedAt, c.completedAt)}` : 'Cancelled' }
+      return { tone: 'neutral', text: c.startedAt ? t(m.statusCancelledWindow, { window: sendWindow(c.startedAt, c.completedAt) }) : t(m.statusCancelled) }
     case 'failed':
-      return { tone: 'bad', text: 'Failed' }
+      return { tone: 'bad', text: t(m.statusFailed) }
     case 'scheduled':
-      return { tone: 'info', text: c.scheduledAt ? `Scheduled · ${shortDate(c.scheduledAt)}, ${clock(c.scheduledAt)}` : 'Scheduled' }
+      return { tone: 'info', text: c.scheduledAt ? t(m.statusScheduledAt, { day: shortDate(c.scheduledAt), time: clock(c.scheduledAt) }) : t(m.statusScheduled) }
     case 'approval':
-      return { tone: 'warn', text: 'Waiting for approval' }
+      return { tone: 'warn', text: t(m.statusApproval) }
     case 'approved':
-      return { tone: 'info', text: 'Approved' }
+      return { tone: 'info', text: t(m.statusApproved) }
   }
-  return { tone: 'neutral', text: 'Draft' }
+  return { tone: 'neutral', text: t(m.statusDraft) }
 }
 
 /** "All subscribers · A/B subject, winner B · results final after 72 h". */
@@ -52,12 +56,12 @@ export function headerCaption(c: ReportInfo): string {
   if (c.audience) parts.push(c.audience)
   parts.push(...c.notes)
   if (c.origin) {
-    parts.push(`imported from ${c.origin[0]!.toUpperCase()}${c.origin.slice(1)}`)
+    parts.push(t(m.importedFrom, { origin: `${c.origin[0]!.toUpperCase()}${c.origin.slice(1)}` }))
   } else if (c.status === 'sent' || c.status === 'cancelled') {
-    if (c.final) parts.push('results final after 72 h')
-    else if (c.finalAt) parts.push(`results still coming in · final ${shortDate(c.finalAt)}, ${clock(c.finalAt)}`)
+    if (c.final) parts.push(t(m.resultsFinal))
+    else if (c.finalAt) parts.push(t(m.resultsComing, { day: shortDate(c.finalAt), time: clock(c.finalAt) }))
   } else if (c.status === 'sending' || c.status === 'paused') {
-    parts.push('results coming in live')
+    parts.push(t(m.resultsLive))
   }
   return parts.join(' · ')
 }
@@ -71,13 +75,13 @@ export function sentByLine(h: Schemas['ReportHeadline']): string {
 export function bounceLine(h: Schemas['ReportHeadline'], final: boolean): string {
   const rate = pct2(h.bounceRate)
   if (!h.undelivered) return rate
-  return `${rate} · ${count(h.undelivered)} ${final ? (h.undelivered === 1 ? 'expired deferral' : 'expired deferrals') : 'not delivered yet'}`
+  return final ? t(m.bounceExpired, { rate, n: h.undelivered, count: count(h.undelivered) }) : t(m.bounceNotYet, { rate, count: count(h.undelivered) })
 }
 
 /** "1.8 s" */
 export function seconds(ms: number | null | undefined): string {
   if (ms === null || ms === undefined) return '—'
-  return `${(ms / 1000).toFixed(1)} s`
+  return t(m.seconds, { n: decimal(ms / 1000, 1) })
 }
 
 export const mailboxColor: Record<string, string> = {
@@ -89,9 +93,9 @@ export const mailboxColor: Record<string, string> = {
 }
 
 /** "side by side · the send was split 90 / 10" */
-export function splitCaption(t: Schemas['ReportProviderTable']): string {
-  if (!t.split) return t.columns.length === 1 ? 'one sending provider' : 'where it was sent from'
-  return `side by side · the send was split ${t.columns.map((c) => Math.round(c.percent)).join(' / ')}`
+export function splitCaption(x: Schemas['ReportProviderTable']): string {
+  if (!x.split) return x.columns.length === 1 ? t(m.oneProvider) : t(m.whereSent)
+  return t(m.splitCaption, { split: x.columns.map((c) => Math.round(c.percent)).join(' / ') })
 }
 
 /**
@@ -99,31 +103,30 @@ export function splitCaption(t: Schemas['ReportProviderTable']): string {
  * explained ("Postal was on warm-up day 6 and sent to the Active tier only;
  * a 1.8-point open gap on a young IP is normal.").
  */
-export function providerNote(t: Schemas['ReportProviderTable']): string | null {
-  if (!t.split) {
-    const only = t.columns[0]
-    return only ? `All of it went through ${only.name}.` : null
+export function providerNote(x: Schemas['ReportProviderTable']): string | null {
+  if (!x.split) {
+    const only = x.columns[0]
+    return only ? t(m.allThrough, { name: only.name }) : null
   }
-  const warm = t.columns.find((c) => c.warmupDay)
+  const warm = x.columns.find((c) => c.warmupDay)
   if (!warm) return null
-  const lead = t.columns.find((c) => c !== warm && c.sent > 0)
-  const engaged = warm.engagedFirst ? ' and sent to the Active tier only' : ''
+  const lead = x.columns.find((c) => c !== warm && c.sent > 0)
+  const engaged = warm.engagedFirst ? 'yes' : 'no'
   if (!lead || lead.humanOpenRate === undefined || warm.humanOpenRate === undefined) {
-    return `${warm.short} was on warm-up day ${warm.warmupDay}${engaged}.`
+    return t(m.warmupDay, { engaged, provider: warm.short, day: warm.warmupDay ?? 0 })
   }
   const gap = Math.abs(Number(lead.humanOpenRate.toFixed(1)) - Number(warm.humanOpenRate.toFixed(1)))
-  const verdict = gap <= 3 ? 'on a young IP is normal' : 'is more than a young IP explains; check its reputation in Deliverability'
-  return `${warm.short} was on warm-up day ${warm.warmupDay}${engaged}; a ${gap.toFixed(1)}-point open gap ${verdict}.`
+  return t(m.warmupGap, { engaged, normal: gap <= 3 ? 'yes' : 'no', provider: warm.short, day: warm.warmupDay ?? 0, gap: decimal(gap, 1) })
 }
 
 /** "62% of human opens happened within 6 hours; A/B winner B went out at 12:00, which is the second rise." */
 export function engagementNote(e: Schemas['ReportEngagement'], final: boolean): string | null {
   if (!e.available || e.humanWithin6h === undefined) return null
-  if (e.hours < 6) return 'Opens and clicks are coming in; the curve fills in over 72 hours.'
-  let s = `${Math.round(e.humanWithin6h)}% of human opens happened within 6 hours`
-  if (!final) s = `So far, ${s}`
-  if (e.rollout) return `${s}; A/B winner ${e.rollout.variant} went out at ${clock(e.rollout.at)}, which is the second rise.`
-  return `${s}.`
+  if (e.hours < 6) return t(m.coming)
+  const share = pct(Math.round(e.humanWithin6h), 0)
+  const done = final ? 'yes' : 'no'
+  if (e.rollout) return t(m.within6hRollout, { final: done, share, variant: e.rollout.variant, time: clock(e.rollout.at) })
+  return t(m.within6h, { final: done, share })
 }
 
 /** "Email preferences" reads "email preferences" mid-sentence; one-word names keep their capital. */
@@ -132,57 +135,59 @@ function lowerFirst(s: string) {
 }
 
 /** "Links with under 5% of clicks are grouped: “Other” 13% covers 9 links including email preferences and view in browser." */
-export function clickNote(m: Schemas['ReportClickMap']): string | null {
-  if (!m.other) return null
-  const labels = m.other.labels.map(lowerFirst)
-  const incl = labels.length ? ` including ${labels.join(' and ')}` : ''
-  return `Links with under ${m.threshold}% of clicks are grouped: “Other” ${Math.round(m.other.share)}% covers ${m.other.links} ${m.other.links === 1 ? 'link' : 'links'}${incl}.`
+export function clickNote(x: Schemas['ReportClickMap']): string | null {
+  if (!x.other) return null
+  const labels = x.other.labels.map(lowerFirst)
+  const values = { threshold: trimPct(x.threshold), share: pct(Math.round(x.other.share), 0), n: x.other.links }
+  return labels.length ? t(m.clickNoteIncluding, { ...values, labels: andList(labels) }) : t(m.clickNote, values)
 }
 
 /** "28 people chose “fewer emails” instead of leaving and moved to the monthly frequency." */
 export function fewerNote(n: number): string | null {
   if (n <= 0) return null
-  return `${count(n)} ${n === 1 ? 'person' : 'people'} chose “fewer emails” instead of leaving and moved to the monthly frequency.`
+  return t(m.fewer, { n, count: count(n) })
 }
 
-const metricName: Record<string, string> = { human_opens: 'Human opens', clicks: 'Clicks' }
-
 /** The A/B badge: "Winner B · 98% confidence", "Testing · decides at 12:00", "Not significant yet · 81% confidence". */
-export function abBadge(t: Schemas['ReportABTest']): { tone: Tone; text: string } {
-  const conf = t.confidence !== undefined ? `${Math.min(99, Math.round(t.confidence))}% confidence` : ''
-  if (t.state === 'testing') return { tone: 'info', text: t.decidedAt ? `Testing · decides at ${clock(t.decidedAt)}` : 'Testing' }
-  if (t.state === 'decided' && t.significant) return { tone: 'ok', text: [`Winner ${t.winner}`, conf].filter(Boolean).join(' · ') }
-  if (t.state === 'decided') return { tone: 'warn', text: [`${t.winner} chosen · not significant`, conf].filter(Boolean).join(' · ') }
-  return { tone: 'warn', text: ['Not significant yet', conf].filter(Boolean).join(' · ') }
+export function abBadge(x: Schemas['ReportABTest']): { tone: Tone; text: string } {
+  const confidence = x.confidence !== undefined ? pct(Math.min(99, Math.round(x.confidence)), 0) : undefined
+  if (x.state === 'testing') return { tone: 'info', text: x.decidedAt ? t(m.abTestingAt, { time: clock(x.decidedAt) }) : t(m.abTesting) }
+  const variant = x.winner ?? ''
+  if (x.state === 'decided' && x.significant) return { tone: 'ok', text: confidence ? t(m.abWinnerConf, { variant, confidence }) : t(m.abWinner, { variant }) }
+  if (x.state === 'decided') return { tone: 'warn', text: confidence ? t(m.abChosenConf, { variant, confidence }) : t(m.abChosen, { variant }) }
+  return { tone: 'warn', text: confidence ? t(m.abNotYetConf, { confidence }) : t(m.abNotYet) }
 }
 
 /** "How the winner was picked", as sentences. */
-export function abExplanation(t: Schemas['ReportABTest']): string[] {
-  const metric = metricName[t.metric] ?? 'Human opens'
-  const window = t.windowHours === 1 ? '1 hour' : `${t.windowHours} hours`
-  const stats = t.pValue !== undefined && t.lift !== undefined ? `, two-proportion z-test, lift ${t.lift >= 0 ? '+' : ''}${t.lift.toFixed(1)} points, p = ${t.pValue < 0.01 ? t.pValue.toFixed(3) : t.pValue.toFixed(2)}` : ''
-  const machine = t.metric === 'human_opens' ? ' Machine opens were excluded so Apple Mail prefetches couldn’t decide it.' : ''
+export function abExplanation(x: Schemas['ReportABTest']): string[] {
+  const hasStats = x.pValue !== undefined && x.lift !== undefined
+  const values = {
+    metric: x.metric === 'clicks' ? 'clicks' : 'human_opens',
+    hours: x.windowHours,
+    stats: hasStats ? 'yes' : 'no',
+    lift: hasStats ? `${x.lift! >= 0 ? '+' : ''}${decimal(x.lift!, 1)}` : '',
+    p: hasStats ? decimal(x.pValue!, x.pValue! < 0.01 ? 3 : 2) : '',
+  }
+  // Machine opens are left out of a human-opens test, so Apple Mail can't decide it.
+  const machine = (s: string) => (x.metric === 'human_opens' ? `${s} ${t(m.abMachine)}` : s)
   const out: string[] = []
-  if (t.state === 'testing') {
-    out.push(`${metric} ${window} after the sample went out decide it${stats ? `; so far${stats.slice(1)}` : ''}.${machine}`)
-    out.push(t.decidedAt ? `Everyone else gets the winner at ${clock(t.decidedAt)}, unless the difference isn't significant.` : 'Everyone else gets the winner when the test ends.')
+  if (x.state === 'testing') {
+    out.push(machine(t(m.abDecides, values)))
+    out.push(x.decidedAt ? t(m.abEveryoneAt, { time: clock(x.decidedAt) }) : t(m.abEveryoneEnd))
     return out
   }
-  if (!t.significant) {
-    out.push(`${metric} ${window} after the sample went out${stats}: not significant, so the difference could be chance.${machine}`)
-  } else {
-    out.push(`${metric} ${window} after the sample went out${stats}.${machine}`)
-  }
-  if (t.state === 'decided' && t.remaining > 0) {
-    out.push(`The remaining ${count(t.remaining)} recipients got ${t.winner}${t.rolloutAt ? ` at ${clock(t.rolloutAt)}` : ''}.`)
+  out.push(machine(t(x.significant ? m.abResult : m.abNotSignificant, values)))
+  if (x.state === 'decided' && x.remaining > 0) {
+    const remaining = { n: x.remaining, count: count(x.remaining), winner: x.winner ?? '' }
+    out.push(x.rolloutAt ? t(m.abRemainingAt, { ...remaining, time: clock(x.rolloutAt) }) : t(m.abRemaining, remaining))
   }
   return out
 }
 
 /** "4,798 recipients · 10% sample, then 38,384 remaining" */
 export function variantLine(v: Schemas['ReportABVariant']): string {
-  const base = `${count(v.recipients)} recipients · ${Math.round(v.samplePercent)}% sample`
-  return v.remaining > 0 ? `${base}, then ${count(v.remaining)} remaining` : base
+  const values = { count: count(v.recipients), sample: pct(Math.round(v.samplePercent), 0) }
+  return v.remaining > 0 ? t(m.variantLineRemaining, { ...values, remaining: count(v.remaining) }) : t(m.variantLine, values)
 }
 
 /** "It's scheduled for Tuesday 14 Oct at 09:00." */
@@ -190,14 +195,15 @@ export function notSentLead(n: Schemas['ReportNotSent']): string {
   switch (n.status) {
     case 'scheduled':
       if (n.scheduledAt) {
-        const day = longDate(n.scheduledAt).replace(/ \d{4}$/, '')
-        return `It's scheduled for ${day} at ${clock(n.scheduledAt)}.`
+        // The day without its year: "Tuesday 14 Oct", "Thứ Ba, 14 tháng 10".
+        const day = longDate(n.scheduledAt).replace(/(,|\s+de)?\s*\d{4}$/, '')
+        return t(m.leadScheduledFor, { day, time: clock(n.scheduledAt) })
       }
-      return "It's scheduled."
+      return t(m.leadScheduled)
     case 'approval':
-      return "It's waiting for approval."
+      return t(m.leadApproval)
     case 'approved':
-      return "It's approved and waiting to be scheduled."
+      return t(m.leadApproved)
   }
-  return "It's a draft."
+  return t(m.leadDraft)
 }

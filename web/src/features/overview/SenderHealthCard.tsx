@@ -2,6 +2,8 @@ import { Link } from '@tanstack/react-router'
 import type { Schemas } from '@/api/client'
 import { ScoreRing } from '@/components/ui/Data'
 import { useWorkspace } from '@/lib/session'
+import { useT } from '@/i18n'
+import { m } from './messages'
 import { reasonDot, scoreColors } from './words'
 
 /** Where a reason's link goes. */
@@ -37,26 +39,28 @@ function ReasonAction({ a }: { a: Schemas['OverviewHealthAction'] }) {
 
 /** "Sender health": the score ring and the reasons behind it (Main board). */
 export function SenderHealthCard({ h }: { h: Schemas['OverviewSenderHealth'] }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const colors = scoreColors[h.tone] ?? scoreColors.neutral!
+  const verdict = t(m.verdict, { label: h.label })
   return (
     <section className="card flex flex-col gap-4 px-[22px] py-5" aria-labelledby="ov-health-h">
       <div className="flex items-center justify-between gap-3 max-md:flex-wrap">
         <h2 className="h2" id="ov-health-h">
-          Sender health
+          {t(m.senderHealth)}
         </h2>
         <Link to="/w/$workspace/deliverability" params={{ workspace: slug }} className="text-[13px] font-medium">
-          Deliverability details
+          {t(m.deliverabilityDetails)}
         </Link>
       </div>
       <div className="flex flex-wrap items-center gap-5">
-        <ScoreRing score={h.score} label={`Sender health score ${h.score} out of 100, ${h.label.toLowerCase()}`} verdict={h.label.toUpperCase()} verdictColor={colors.word} color={colors.ring} />
+        <ScoreRing score={h.score} label={t(m.scoreLabel, { score: h.score, verdict: verdict.toLowerCase() })} verdict={verdict.toUpperCase()} verdictColor={colors.word} color={colors.ring} />
         <ul className="m-0 flex flex-[1_1_220px] list-none flex-col gap-2 p-0 text-[13px]">
           {h.reasons.map((r, i) => (
             <li key={`${r.key}-${i}`} className="flex items-start gap-2">
               <span className="dot mt-1.5" style={{ color: reasonDot[r.tone] }} aria-hidden="true" />
               <span>
-                <span className="vh">{r.tone === 'ok' ? 'Good: ' : r.tone === 'bad' ? 'Problem: ' : 'Warning: '}</span>
+                <span className="vh">{t(r.tone === 'ok' ? m.reasonGood : r.tone === 'bad' ? m.reasonProblem : m.reasonWarning)} </span>
                 {r.text}
                 {r.action ? (
                   <>
@@ -75,10 +79,11 @@ export function SenderHealthCard({ h }: { h: Schemas['OverviewSenderHealth'] }) 
 
 /** First run: the score appears once a sending domain is verified (OverviewEmpty). */
 export function PendingHealthCard() {
+  const t = useT()
   return (
     <section className="card flex flex-col gap-2.5 border-dashed px-5 py-4.5" aria-labelledby="ov-health-p">
       <h3 className="h2 text-ink-3" id="ov-health-p">
-        Sender health
+        {t(m.senderHealth)}
       </h3>
       <div className="flex items-center gap-3.5 max-md:flex-wrap">
         <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
@@ -87,7 +92,7 @@ export function PendingHealthCard() {
             –
           </text>
         </svg>
-        <span className="k">Appears once a sending domain is verified. Blocklists, authentication and provider limits are checked every hour.</span>
+        <span className="k">{t(m.healthPending)}</span>
       </div>
     </section>
   )
