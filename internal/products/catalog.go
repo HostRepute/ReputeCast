@@ -757,7 +757,7 @@ func (s *Service) route(ctx context.Context, ws *store.Workspace) (string, bool,
 	}
 	if def.Fallback != nil {
 		if fb := name(*def.Fallback); fb != "" {
-			return primary + ", then " + fb, true, nil
+			return word(lang(ctx), "route.withFallback", map[string]any{"primary": primary, "fallback": fb}), true, nil
 		}
 	}
 	return primary, true, nil

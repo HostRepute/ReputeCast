@@ -50,6 +50,7 @@
   "content.wav": "âm thanh WAV",
   "content.text": "văn bản",
   "leadMagnet.days": "Liên kết có hiệu lực từ 1 đến 30 ngày.",
+  "route.withFallback": "{primary}, sau đó {fallback}",
   "order.notFound": "Đơn hàng đó không tồn tại.",
   "order.revoked": "Quyền tải xuống của đơn hàng này đã bị thu hồi. Hãy khôi phục trước.",
   "order.notRevoked": "Quyền truy cập của đơn hàng này chưa bị thu hồi.",
