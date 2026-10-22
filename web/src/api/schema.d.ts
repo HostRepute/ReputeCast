@@ -17745,6 +17745,7 @@ export interface components {
             kind: "alt_text" | "link_no_text" | "contrast" | "link_text" | "heading" | "text_size";
             languages: string[];
             location: string[];
+            name?: string;
             path: number[];
             paths: number[][];
             /** @enum {string} */

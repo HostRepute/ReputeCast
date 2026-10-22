@@ -3253,6 +3253,9 @@
             },
             "type": "array"
           },
+          "name": {
+            "type": "string"
+          },
           "path": {
             "items": {
               "format": "int64",

@@ -28,9 +28,9 @@ export function currentLanguage(report: Report, language?: string): string {
   return language ?? report.languages.find((l) => l.source)?.code ?? report.languages[0]?.code ?? 'en'
 }
 
-/** What an image issue is about: "The hero image" from "The hero image has no alt text". */
+/** What an image issue is about, in the app's language: "The hero image" (the server names it). */
 function imageName(issue: Issue): string {
-  return issue.title.replace(/ has no alt text$/, '').replace(/ has no text$/, '')
+  return issue.name ?? issue.title.replace(/ has no alt text$/, '').replace(/ has no text$/, '')
 }
 
 const sameTime = (d: string) => shortDate(d) === shortDate(new Date())

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -50,6 +51,7 @@ type AccessibilityImpact struct {
 // Block policy would hold the scheduled ones at their send-time recheck and
 // stop the others until they're fixed.
 func (s *Service) Impact(ctx context.Context, ws *store.Workspace, in AccessibilityPolicyInput) (AccessibilityImpact, error) {
+	l := i18n.LangFrom(ctx)
 	out := AccessibilityImpact{OnSerious: in.OnSerious, Campaigns: []AccessibilityImpactCampaign{}, Flows: []AccessibilityImpactFlow{}}
 	if out.OnSerious != PolicyBlock {
 		out.OnSerious = PolicyWarn
@@ -63,7 +65,7 @@ func (s *Service) Impact(ctx context.Context, ws *store.Workspace, in Accessibil
 		if err != nil || r.Serious == 0 {
 			continue // an email that doesn't compile is reported by Send Readiness itself
 		}
-		ic := AccessibilityImpactCampaign{ID: c.ID.String(), Name: c.Name, Status: c.Status, ScheduledAt: c.ScheduledAt, Serious: r.Serious, Summary: SeriousSummary(r.Issues, true)}
+		ic := AccessibilityImpactCampaign{ID: c.ID.String(), Name: c.Name, Status: c.Status, ScheduledAt: c.ScheduledAt, Serious: r.Serious, Summary: SeriousSummaryIn(l, r.Issues, true)}
 		if c.Status == "scheduled" && out.OnSerious == PolicyBlock {
 			ic.Held = true
 			out.Held++
@@ -85,7 +87,7 @@ func (s *Service) Impact(ctx context.Context, ws *store.Workspace, in Accessibil
 				continue
 			}
 			out.Flows = append(out.Flows, AccessibilityImpactFlow{AutomationID: d.AutomationID.String(), Name: d.Automation, Version: d.Version, LiveVersion: d.LiveVersion,
-				Step: d.Step, Serious: r.Serious, Summary: SeriousSummary(r.Issues, false)})
+				Step: d.Step, Serious: r.Serious, Summary: SeriousSummaryIn(l, r.Issues, false)})
 		}
 	}
 	return out, nil
@@ -95,89 +97,99 @@ func (s *Service) Impact(ctx context.Context, ws *store.Workspace, in Accessibil
 // image's alt text and the button contrast" (or, without articles, "button
 // contrast").
 func SeriousSummary(issues []AccessibilityIssue, articles bool) string {
+	return SeriousSummaryIn(i18n.Default, issues, articles)
+}
+
+// SeriousSummaryIn is SeriousSummary in a reader's language.
+func SeriousSummaryIn(l i18n.Lang, issues []AccessibilityIssue, articles bool) string {
+	m := mPhraseSeriousBare
+	if articles {
+		m = mPhraseSerious
+	}
 	var parts []string
 	seen := map[string]bool{}
 	for _, is := range issues {
 		if is.Severity != Serious {
 			continue
 		}
-		p := seriousPhrase(is, articles)
+		p := strings.ToLower(is.Tag)
+		if key := seriousKey(is); key != "" {
+			p = m.Text(l, i18n.Args{"what": key})
+		}
 		if !seen[p] {
 			seen[p] = true
 			parts = append(parts, p)
 		}
 	}
-	return joinAnd(parts)
+	return i18n.AndList(l.Locale, parts)
 }
 
-func seriousPhrase(is AccessibilityIssue, articles bool) string {
-	the := func(s string) string {
-		if articles {
-			return "the " + s
-		}
-		return s
-	}
+// seriousKey names a serious issue for phrase.serious: the hero image's
+// alt text, the button contrast…; "" for other kinds.
+func seriousKey(is AccessibilityIssue) string {
 	switch is.Kind {
 	case KindAltText:
 		switch is.Element.Section {
 		case "hero":
-			return the("hero image's alt text")
+			return "heroAlt"
 		case "header":
-			return the("logo's alt text")
+			return "logoAlt"
 		}
-		if articles {
-			return "an image's alt text"
-		}
-		return "image alt text"
+		return "imageAlt"
 	case KindLinkNoText:
 		switch is.Element.Role {
 		case "linked_image":
 			if is.Element.Section == "header" {
-				return the("linked logo's alt text")
+				return "linkedLogo"
 			}
-			return the("linked image's alt text")
+			return "linkedImage"
 		case "button":
-			return the("button with no text")
+			return "buttonNoText"
 		}
-		return the("link with no text")
+		return "linkNoText"
 	case KindContrast:
 		if is.Element.Role == "button" {
-			return the("button contrast")
+			return "buttonContrast"
 		}
-		return the("text contrast")
+		return "textContrast"
 	}
-	return strings.ToLower(is.Tag)
+	return ""
 }
 
 // ShortName names an issue inside a sentence: "the hero image's alt text",
 // "the button contrast", "“Click here”", "2 “Read more” links", "a bare
 // URL", "a skipped heading level", "11 px footer text".
 func ShortName(is AccessibilityIssue) string {
+	if t := shortText(is); !t.IsZero() {
+		return english(t)
+	}
+	return strings.ToLower(is.Tag)
+}
+
+// shortText is ShortName's message; zero for kinds it doesn't name.
+func shortText(is AccessibilityIssue) i18n.Text {
 	if is.Severity == Serious {
-		return seriousPhrase(is, true)
+		if key := seriousKey(is); key != "" {
+			return mPhraseSerious.Keep(i18n.Args{"what": key})
+		}
+		return i18n.Text{}
 	}
 	switch is.Kind {
 	case KindLinkText:
-		bare := strings.HasPrefix(is.Title, "A bare URL") || strings.Contains(is.Title, "show a bare URL")
-		switch {
-		case bare && is.Element.Count > 1:
-			return fmt.Sprintf("%d bare URLs", is.Element.Count)
-		case bare:
-			return "a bare URL"
-		case is.Element.Count > 1:
-			return fmt.Sprintf("%d %s links", is.Element.Count, quote(is.Element.Label))
+		n := max(is.Element.Count, 1)
+		if strings.HasPrefix(is.Title, "A bare URL") || strings.Contains(is.Title, "show a bare URL") {
+			return mPhraseBareURLs.Keep(i18n.Args{"count": n})
 		}
-		return quote(is.Element.Label)
+		return mPhraseVagueLinks.Keep(i18n.Args{"count": n, "text": is.Element.Label})
 	case KindHeading:
-		return "a skipped heading level"
+		return mPhraseSkipped.Keep(nil)
 	case KindTextSize:
-		what := "text"
 		if is.Element.Section != "" {
-			what = is.Element.Section + " text"
+			return mPhraseTextSizeIn.Keep(i18n.Args{"px": is.Fix.FromPx, "section": is.Element.Section})
 		}
-		return fmt.Sprintf("%s px %s", trimFloat(is.Fix.FromPx), what)
+		return mPhraseTextSize.Keep(i18n.Args{"px": is.Fix.FromPx})
 	}
-	return strings.ToLower(is.Tag)
+	return i18n.Text{}
 }
 
 // IssueCount is "1 serious issue" or "2 serious issues".
