@@ -48,5 +48,7 @@
   "version.fromTemplate": "tạo từ mẫu “{name}”",
   "version.fromWebPost": "tạo từ bài viết trên trang web",
   "version.restored": "khôi phục v{version}",
-  "version.copiedFrom": "sao chép từ “{name}”"
+  "version.copiedFrom": "sao chép từ “{name}”",
+  "version.fromPost": "tạo từ bài viết trên {site}",
+  "note.draftFrom": "bản nháp từ {site}"
 }

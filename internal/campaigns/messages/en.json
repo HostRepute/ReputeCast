@@ -48,5 +48,7 @@
   "version.fromTemplate": { "message": "created from template “{name}”", "note": "a version's label in the composer's history; name: the template's name, never translated" },
   "version.fromWebPost": { "message": "made from the web post", "note": "the first version of a campaign made from a post of the publication website" },
   "version.restored": { "message": "restored v{version}", "note": "version: the version number restored, 12" },
-  "version.copiedFrom": { "message": "copied from “{name}”", "note": "the first version of a duplicate; name: the original campaign's name, never translated" }
+  "version.copiedFrom": { "message": "copied from “{name}”", "note": "the first version of a duplicate; name: the original campaign's name, never translated" },
+  "version.fromPost": { "message": "created from the post on {site}", "note": "the first version of a draft made from a WordPress post; site: blog.acme.io" },
+  "note.draftFrom": { "message": "draft from {site}", "note": "the campaign list's note of a draft made from a WordPress post; site: blog.acme.io" }
 }
