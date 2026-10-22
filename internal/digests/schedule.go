@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Frequencies of a digest's schedule.
@@ -59,40 +61,41 @@ func ParseSchedule(raw json.RawMessage, tz string) DigestSchedule {
 	return s
 }
 
-// Validate checks a schedule and says what to change.
-func (s DigestSchedule) Validate() (field, msg string) {
+// Validate checks a schedule and says what to change: the field, and the
+// message (with its arguments) to write in the reader's language.
+func (s DigestSchedule) Validate() (field string, msg i18n.Msg, args i18n.Args) {
 	switch s.Frequency {
 	case FreqDaily, FreqWeekly, FreqMonthly, FreqItems:
 	default:
-		return "frequency", "Pick daily, weekly, monthly or when new items arrive."
+		return "frequency", mScheduleFrequency, nil
 	}
 	if _, err := time.LoadLocation(s.Timezone); err != nil || s.Timezone == "" {
-		return "timezone", "Pick a time zone from the list."
+		return "timezone", mScheduleTimezone, nil
 	}
 	if s.Frequency == FreqItems {
 		if s.Count < 1 || s.Count > 50 {
-			return "count", "Send when 1 to 50 new items arrive."
+			return "count", mScheduleCount, nil
 		}
 		from, ok1 := clockMinutes(s.WindowFrom)
 		until, ok2 := clockMinutes(s.WindowUntil)
 		if !ok1 || !ok2 {
-			return "windowFrom", "Give the sending window as two times, such as 08:00 and 18:00."
+			return "windowFrom", mScheduleWindow, nil
 		}
 		if until <= from {
-			return "windowUntil", "The window ends after it starts: pick an end time later than " + s.WindowFrom + "."
+			return "windowUntil", mScheduleWindowOrder, i18n.Args{"from": s.WindowFrom}
 		}
-		return "", ""
+		return "", i18n.Msg{}, nil
 	}
 	if _, ok := clockMinutes(s.Time); !ok {
-		return "time", "Give the send time as HH:MM, such as 08:00."
+		return "time", mScheduleTime, nil
 	}
 	if s.Weekday < 0 || s.Weekday > 6 {
-		return "weekday", "Pick a day of the week."
+		return "weekday", mScheduleWeekday, nil
 	}
 	if s.Frequency == FreqMonthly && s.MonthRule != "first" && (s.MonthDay < 1 || s.MonthDay > 31) {
-		return "monthDay", "Pick a day of the month, 1 to 31."
+		return "monthDay", mScheduleMonthDay, nil
 	}
-	return "", ""
+	return "", i18n.Msg{}, nil
 }
 
 func (s DigestSchedule) location() *time.Location {

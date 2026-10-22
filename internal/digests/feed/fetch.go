@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -12,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/netguard"
 )
 
@@ -86,7 +86,10 @@ type FetchError struct {
 	// URL is the address that failed (the redirect target when it was one).
 	URL    string
 	Status int
+	// Detail is the English sentence ("blog.acme.io didn't answer: …"), and
+	// Text the same sentence as a message, for a reader's language.
 	Detail string
+	Text   i18n.Text
 	Hops   []Hop
 }
 
@@ -139,17 +142,17 @@ func (f *Fetcher) client() *http.Client {
 func NormalizeURL(raw string) (string, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
-		return "", errors.New("type a feed or page address, like blog.acme.io/feed/")
+		return "", addressError(mAddressEmpty)
 	}
 	if !strings.Contains(raw, "://") {
 		raw = "https://" + strings.TrimLeft(raw, "/")
 	}
 	u, err := url.Parse(raw)
 	if err != nil || u.Hostname() == "" || !strings.Contains(u.Hostname(), ".") && u.Hostname() != "localhost" {
-		return "", errors.New("that isn't an address: type one like blog.acme.io/feed/")
+		return "", addressError(mAddressInvalid)
 	}
 	if u.Scheme != "https" && u.Scheme != "http" {
-		return "", errors.New("feeds are read over https:// or http://")
+		return "", addressError(mAddressScheme)
 	}
 	u.Fragment = ""
 	if u.Path == "" {
@@ -167,7 +170,7 @@ func (f *Fetcher) Get(ctx context.Context, r Request) (*Response, error) {
 	defer cancel()
 	current, err := NormalizeURL(r.URL)
 	if err != nil {
-		return nil, &FetchError{Kind: ErrAddress, URL: r.URL, Detail: err.Error()}
+		return nil, &FetchError{Kind: ErrAddress, URL: r.URL, Detail: err.Error(), Text: TextOf(err, r.URL)}
 	}
 	client := f.client()
 	out := &Response{}
@@ -177,7 +180,8 @@ func (f *Fetcher) Get(ctx context.Context, r Request) (*Response, error) {
 	for hop := 0; ; hop++ {
 		u, err := f.Policy.ValidateURL(current)
 		if err != nil {
-			fe := &FetchError{Kind: ErrBlocked, URL: current, Detail: blockedDetail(current, err), Hops: out.Hops}
+			detail, text := blockedText(hostOf(current), blockedReason(err))
+			fe := &FetchError{Kind: ErrBlocked, URL: current, Detail: detail, Text: text, Hops: out.Hops}
 			if !netguard.IsBlocked(err) {
 				fe.Kind = ErrAddress
 			}
@@ -217,11 +221,13 @@ func (f *Fetcher) Get(ctx context.Context, r Request) (*Response, error) {
 			_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 64<<10))
 			_ = resp.Body.Close()
 			if loc == "" {
-				return nil, &FetchError{Kind: ErrStatus, URL: current, Status: resp.StatusCode, Detail: fmt.Sprintf("%s answered %d without saying where to go", hostOf(current), resp.StatusCode), Hops: out.Hops}
+				detail, text := english(mStatusNoLocation, i18n.Args{"host": hostOf(current), "status": resp.StatusCode})
+				return nil, &FetchError{Kind: ErrStatus, URL: current, Status: resp.StatusCode, Detail: detail, Text: text, Hops: out.Hops}
 			}
 			next, err := u.Parse(loc)
 			if err != nil {
-				return nil, &FetchError{Kind: ErrAddress, URL: current, Detail: "the redirect target isn't an address", Hops: out.Hops}
+				detail, text := english(mAddressRedirect, nil)
+				return nil, &FetchError{Kind: ErrAddress, URL: current, Detail: detail, Text: text, Hops: out.Hops}
 			}
 			h.Location = next.String()
 			out.Hops = append(out.Hops, h)
@@ -229,7 +235,8 @@ func (f *Fetcher) Get(ctx context.Context, r Request) (*Response, error) {
 				permanent = true
 			}
 			if hop+1 > MaxRedirects {
-				return nil, &FetchError{Kind: ErrRedirects, URL: current, Detail: fmt.Sprintf("%s redirected more than %d times", hostOf(r.URL), MaxRedirects), Hops: out.Hops}
+				detail, text := english(mRedirects, i18n.Args{"host": hostOf(r.URL), "max": MaxRedirects})
+				return nil, &FetchError{Kind: ErrRedirects, URL: current, Detail: detail, Text: text, Hops: out.Hops}
 			}
 			current = next.String()
 			continue
@@ -250,7 +257,8 @@ func (f *Fetcher) Get(ctx context.Context, r Request) (*Response, error) {
 		if resp.StatusCode < 200 || resp.StatusCode > 299 {
 			_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 64<<10))
 			_ = resp.Body.Close()
-			return nil, &FetchError{Kind: ErrStatus, URL: current, Status: resp.StatusCode, Detail: statusDetail(current, resp.StatusCode), Hops: out.Hops}
+			detail, text := statusDetail(current, resp.StatusCode)
+			return nil, &FetchError{Kind: ErrStatus, URL: current, Status: resp.StatusCode, Detail: detail, Text: text, Hops: out.Hops}
 		}
 		if resp.ContentLength > f.maxBytes() {
 			_ = resp.Body.Close()
@@ -271,7 +279,8 @@ func (f *Fetcher) Get(ctx context.Context, r Request) (*Response, error) {
 }
 
 func tooLarge(u string, hops []Hop, limit int64) *FetchError {
-	return &FetchError{Kind: ErrTooLarge, URL: u, Hops: hops, Detail: fmt.Sprintf("%s sent more than %d MB, the limit for a feed", hostOf(u), limit>>20)}
+	detail, text := english(mTooLarge, i18n.Args{"host": hostOf(u), "mb": limit >> 20})
+	return &FetchError{Kind: ErrTooLarge, URL: u, Hops: hops, Detail: detail, Text: text}
 }
 
 func hostOf(raw string) string {
@@ -281,32 +290,25 @@ func hostOf(raw string) string {
 	return raw
 }
 
-func statusDetail(u string, status int) string {
-	host := hostOf(u)
+// statusDetail words an HTTP error: "blog.acme.io answered 404 Not Found:
+// there is no feed at blog.acme.io/feed/". The status text stays HTTP's.
+func statusDetail(u string, status int) (string, i18n.Text) {
+	args := i18n.Args{"host": hostOf(u), "status": status, "statusText": http.StatusText(status)}
 	switch {
 	case status == http.StatusNotFound || status == http.StatusGone:
-		return fmt.Sprintf("%s answered %d %s: there is no feed at %s", host, status, http.StatusText(status), shortURL(u))
+		args["address"] = shortURL(u)
+		return english(mStatusNotFound, args)
 	case status == http.StatusUnauthorized || status == http.StatusForbidden:
-		return fmt.Sprintf("%s answered %d %s: the feed needs a sign-in, which digests don't support", host, status, http.StatusText(status))
+		return english(mStatusSignIn, args)
 	case status == http.StatusTooManyRequests:
-		return fmt.Sprintf("%s answered 429 Too Many Requests: it limits how often it can be read", host)
-	case status >= 500:
-		return fmt.Sprintf("%s answered %d %s", host, status, http.StatusText(status))
+		return english(mStatusTooMany, args)
 	}
-	return fmt.Sprintf("%s answered %d %s", host, status, http.StatusText(status))
+	return english(mStatusOther, args)
 }
 
 // shortURL is an address without its scheme ("blog.acme.io/feed/").
 func shortURL(u string) string {
 	return strings.TrimPrefix(strings.TrimPrefix(u, "https://"), "http://")
-}
-
-func blockedDetail(u string, err error) string {
-	msg := err.Error()
-	if i := strings.Index(msg, netguard.ErrBlocked.Error()+": "); i >= 0 {
-		msg = msg[i+len(netguard.ErrBlocked.Error())+2:]
-	}
-	return fmt.Sprintf("%s can't be read: %s. An instance admin can allow private addresses for self-hosted feeds", hostOf(u), msg)
 }
 
 // transportError words a failed connection: "blog.acme.io didn't answer:
@@ -316,23 +318,27 @@ func transportError(ctx context.Context, u string, err error, hops []Hop, timeou
 	fe := &FetchError{Kind: ErrUnreachable, URL: u, Hops: hops}
 	var dnsErr *net.DNSError
 	var certErr *tls.CertificateVerificationError
+	args := i18n.Args{"host": host}
 	switch {
 	case netguard.IsBlocked(err):
 		fe.Kind = ErrBlocked
-		fe.Detail = blockedDetail(u, err)
+		fe.Detail, fe.Text = blockedText(host, blockedReason(err))
 	case errors.Is(err, context.DeadlineExceeded) || ctx.Err() != nil || strings.Contains(err.Error(), "Client.Timeout") || isTimeout(err):
 		fe.Kind = ErrTimeout
-		fe.Detail = fmt.Sprintf("%s didn't answer: connection timed out after %d s", host, int(timeout/time.Second))
+		args["seconds"] = int(timeout / time.Second)
+		fe.Detail, fe.Text = english(mTimeout, args)
 	case errors.As(err, &dnsErr):
-		fe.Detail = fmt.Sprintf("%s didn't answer: its name doesn't resolve (DNS lookup failed)", host)
+		fe.Detail, fe.Text = english(mDNS, args)
 	case errors.As(err, &certErr):
-		fe.Detail = fmt.Sprintf("%s didn't answer securely: its TLS certificate isn't valid", host)
+		fe.Detail, fe.Text = english(mTLS, args)
 	case strings.Contains(err.Error(), "connection refused"):
-		fe.Detail = fmt.Sprintf("%s didn't answer: connection refused", host)
+		fe.Detail, fe.Text = english(mRefused, args)
 	case strings.Contains(err.Error(), "connection reset"):
-		fe.Detail = fmt.Sprintf("%s didn't answer: the connection was reset", host)
+		fe.Detail, fe.Text = english(mReset, args)
 	default:
-		fe.Detail = fmt.Sprintf("%s didn't answer: %s", host, netguard.Describe(ctx, err))
+		// The transport's own words stay as they are.
+		args["detail"] = netguard.Describe(ctx, err)
+		fe.Detail, fe.Text = english(mUnreachable, args)
 	}
 	return fe
 }

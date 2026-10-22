@@ -1,0 +1,39 @@
+{
+  "address.empty": { "message": "type a feed or page address, like blog.acme.io/feed/", "note": "Why an address can't be read. These are parts of sentences, as a digest shows them: they start lower case unless they start with a name, and have no full stop." },
+  "address.invalid": "that isn't an address: type one like blog.acme.io/feed/",
+  "address.scheme": "feeds are read over https:// or http://",
+  "address.redirect": "the redirect target isn't an address",
+
+  "status.noLocation": { "message": "{host} answered {status} without saying where to go", "note": "host: blog.acme.io; status: a redirect's HTTP status, 301" },
+  "status.notFound": { "message": "{host} answered {status} {statusText}: there is no feed at {address}", "note": "statusText: HTTP's own words, in English (Not Found); address: blog.acme.io/feed/" },
+  "status.signIn": { "message": "{host} answered {status} {statusText}: the feed needs a sign-in, which digests don't support", "note": "statusText: Unauthorized, Forbidden" },
+  "status.tooMany": { "message": "{host} answered 429 Too Many Requests: it limits how often it can be read", "note": "429 Too Many Requests stays as HTTP says it" },
+  "status.other": "{host} answered {status} {statusText}",
+  "redirects": { "message": "{host} redirected more than {max} times", "note": "max: 3" },
+  "tooLarge": { "message": "{host} sent more than {mb} MB, the limit for a feed", "note": "mb: 5" },
+
+  "blocked.private": { "message": "{host} can't be read: {ip} is a private or loopback address. An instance admin can allow private addresses for self-hosted feeds", "note": "ip: 10.0.4.12" },
+  "blocked.special": "{host} can't be read: {ip} is a link-local, metadata or multicast address. An instance admin can allow private addresses for self-hosted feeds",
+  "blocked.localName": { "message": "{host} can't be read: {name} is a local hostname. An instance admin can allow private addresses for self-hosted feeds", "note": "name: localhost, intranet.local" },
+  "blocked.other": { "message": "{host} can't be read: {reason}. An instance admin can allow private addresses for self-hosted feeds", "note": "reason: the address the guard refused" },
+
+  "unreachable.timeout": { "message": "{host} didn't answer: connection timed out after {seconds} s", "note": "seconds: 15" },
+  "unreachable.dns": "{host} didn't answer: its name doesn't resolve (DNS lookup failed)",
+  "unreachable.tls": "{host} didn't answer securely: its TLS certificate isn't valid",
+  "unreachable.refused": "{host} didn't answer: connection refused",
+  "unreachable.reset": "{host} didn't answer: the connection was reset",
+  "unreachable.other": { "message": "{host} didn't answer: {detail}", "note": "detail: the network's own error, in English" },
+
+  "notFeed.html": { "message": "{address} isn't a feed: it answered with an HTML page", "note": "address: blog.acme.io/feed/, without https://" },
+  "notFeed.plain": "{address} isn't a feed",
+  "notFeed.empty": "{address} isn't a feed: the document is empty",
+  "notFeed.neither": "{address} isn't a feed: the document is neither XML nor JSON",
+  "notFeed.xml": { "message": "{address} isn't a feed: the XML doesn't parse: {detail}", "note": "detail: the XML parser's own words, in English" },
+  "notFeed.deep": "{address} isn't a feed: the XML is nested too deeply",
+  "notFeed.noElements": "{address} isn't a feed: the XML has no elements",
+  "notFeed.noChannel": "{address} isn't a feed: the RSS document has no channel",
+  "notFeed.root": { "message": "{address} isn't a feed: an XML document whose root is <{root}>", "note": "root: the document's first element, such as urlset" },
+  "notFeed.json": { "message": "{address} isn't a feed: the JSON doesn't parse: {detail}", "note": "detail: the JSON parser's own words, in English" },
+  "notFeed.notJSONFeed": "{address} isn't a feed: a JSON document that isn't a JSON Feed (it has no jsonfeed.org version)",
+  "noFeedLink": { "message": "{address} is a web page that links to no feed", "note": "address: blog.acme.io/, without https://" }
+}

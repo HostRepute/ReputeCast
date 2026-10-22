@@ -15,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/readiness"
@@ -143,7 +144,7 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	out.EditHelpers = helpers(ms, authz.CampaignsEdit, d.OwnerID)
 	out.PauseHelpers = helpers(ms, authz.CampaignsPause, d.OwnerID)
 	if d.State == "paused" {
-		out.Pause = pauseOf(r)
+		out.Pause = pauseOf(r, i18n.LangFrom(ctx))
 	}
 	// The template: audience, sender, limits.
 	tpl, err := s.template(ctx, d)
@@ -219,7 +220,8 @@ func (s *Service) firstSent(ctx context.Context, id uuid.UUID) (*time.Time, erro
 	return r.SendAt, nil
 }
 
-func pauseOf(r store.DigestGetRow) *DigestPause {
+// pauseOf says why a digest is paused, with role names in the reader's language.
+func pauseOf(r store.DigestGetRow, l i18n.Lang) *DigestPause {
 	p := &DigestPause{At: r.Digest.PausedAt, By: r.PausedByName, Reason: firstNonEmpty(r.Digest.PauseReason, "person"), Note: r.Digest.PauseNote, Notified: []string{}, Skips: []DigestFeedSkip{}}
 	var detail struct {
 		From     string   `json:"from"`
@@ -232,7 +234,7 @@ func pauseOf(r store.DigestGetRow) *DigestPause {
 		} `json:"skips"`
 	}
 	_ = json.Unmarshal(r.Digest.PauseDetail, &detail)
-	p.From, p.To, p.Left = detail.From, detail.To, detail.Left
+	p.From, p.To, p.Left = roleIn(l, detail.From), roleIn(l, detail.To), detail.Left
 	if detail.Notified != nil {
 		p.Notified = detail.Notified
 	}
@@ -391,7 +393,7 @@ func (s *Service) feedStatus(ctx context.Context, ws *store.Workspace, d store.D
 	out := DigestFeedStatus{Status: d.FeedStatus, URL: s.feedAddress(ctx, d), Kind: d.FeedKind, Title: d.FeedTitle, Items: int(d.FeedItems), Bytes: int(d.FeedBytes),
 		LastReadAt: d.LastReadAt, LastReadVia: d.LastReadVia, LastOkAt: d.LastOkAt, MovedTo: d.FeedMovedTo}
 	if d.FeedStatus == "unreachable" || d.FeedStatus == "invalid" {
-		out.Error = decodeFeedError(d.FeedError)
+		out.Error = decodeFeedError(d.FeedError, i18n.LangFrom(ctx))
 	}
 	since := time.Time{}
 	if d.FirstOnAt != nil {
@@ -454,7 +456,7 @@ func (s *Service) nextIssue(ctx context.Context, ws *store.Workspace, d store.Di
 		return nil, err
 	}
 	out := &DigestNextIssue{ID: issue.ID.String(), Number: int(number), Status: issue.Status, SendAt: issue.SendAt, PrepareAt: issue.PrepareAt, Deadline: issue.Deadline,
-		Fit: block.Max, Recipients: aud.Final, Items: []DigestFeedItem{}, Subjects: []DigestSubject{}, FeedTries: feedTries(issue.FeedTries),
+		Fit: block.Max, Recipients: aud.Final, Items: []DigestFeedItem{}, Subjects: []DigestSubject{}, FeedTries: feedTriesIn(issue.FeedTries, i18n.LangFrom(ctx)),
 		HoldReason: issue.HoldReason, HeldAt: issue.HeldAt, PreparedAt: issue.PreparedAt}
 	if issue.CampaignID != nil {
 		out.CampaignID = issue.CampaignID.String()

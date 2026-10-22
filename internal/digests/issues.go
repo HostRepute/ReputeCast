@@ -58,6 +58,7 @@ func displayStatus(status string, approval *DigestIssueApproval) string {
 // Issues lists a digest's issues, newest first, each compared with the
 // sent issue before it.
 func (s *Service) Issues(ctx context.Context, ws *store.Workspace, id uuid.UUID) (DigestIssues, error) {
+	l := i18n.LangFrom(ctx)
 	d, err := s.Q.DigestGet(ctx, store.DigestGetParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
 		return DigestIssues{}, api.MapError(err, "Digest")
@@ -106,8 +107,9 @@ func (s *Service) Issues(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 	// The collecting issue counts its new posts as they stand.
 	open := s.openPosts(ctx, d.Digest)
 	for _, r := range rows {
-		it := DigestIssue{ID: r.ID.String(), SendAt: r.SendAt, Deadline: r.Deadline, SkipReason: r.SkipReason, SkipNote: r.SkipNote, SkippedBy: r.SkippedByName,
-			SkippedAt: r.SkippedAt, HoldReason: r.HoldReason, Posts: counts[r.ID], FeedTries: feedTries(r.FeedTries), PreparedAt: r.PreparedAt, SentAt: r.SentAt}
+		it := DigestIssue{ID: r.ID.String(), SendAt: r.SendAt, Deadline: r.Deadline, SkipReason: r.SkipReason, SkipNote: skipNoteIn(r.SkipNote, r.SkippedBy, l),
+			SkippedBy: r.SkippedByName, SkippedAt: r.SkippedAt, HoldReason: r.HoldReason, Posts: counts[r.ID], FeedTries: feedTriesIn(r.FeedTries, l),
+			PreparedAt: r.PreparedAt, SentAt: r.SentAt}
 		if r.Number != nil {
 			n := int(*r.Number)
 			it.Number = &n
@@ -185,6 +187,49 @@ func feedTries(raw json.RawMessage) []DigestFeedTry {
 	}
 	return out
 }
+
+// storedFeedTry is a failed read at preparation as digest_issues.feed_tries
+// keeps it: its English, and the same words as a message for a reader's
+// language (tries from before have none).
+type storedFeedTry struct {
+	DigestFeedTry
+	Text *i18n.Text `json:"text,omitempty"`
+}
+
+func storedFeedTries(raw json.RawMessage) []storedFeedTry {
+	out := []storedFeedTry{}
+	_ = json.Unmarshal(raw, &out)
+	if out == nil {
+		out = []storedFeedTry{}
+	}
+	return out
+}
+
+// feedTriesIn is an issue's failed reads for a reader.
+func feedTriesIn(raw json.RawMessage, l i18n.Lang) []DigestFeedTry {
+	tries := storedFeedTries(raw)
+	out := make([]DigestFeedTry, 0, len(tries))
+	for _, t := range tries {
+		try := t.DigestFeedTry
+		try.Error = textIn(t.Text, l, try.Error)
+		out = append(out, try)
+	}
+	return out
+}
+
+// skipNoteIn is why an issue was skipped, for a reader: what a person
+// wrote stays as written; what a digest wrote when its owner lost a
+// permission is written in the reader's language.
+func skipNoteIn(note string, by *uuid.UUID, l i18n.Lang) string {
+	if perm, ok := strings.CutPrefix(note, ownerLostPrefix); ok && by == nil {
+		return mIssueOwnerLost.Text(l, i18n.Args{"permission": perm})
+	}
+	return note
+}
+
+// ownerLostPrefix starts the note of an issue skipped because its owner
+// lost a permission: "the owner lost campaigns:send".
+const ownerLostPrefix = "the owner lost "
 
 // openPosts counts the new posts of the next issue (as many as fit).
 func (s *Service) openPosts(ctx context.Context, d store.Digest) int {
@@ -365,11 +410,11 @@ func (s *Service) Release(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	}
 	ch := s.checks()
 	if ch == nil {
-		return DigestIssues{}, api.Err(http.StatusServiceUnavailable, "readiness_unavailable", "Send Readiness isn't available in this process.")
+		return DigestIssues{}, api.Err(http.StatusServiceUnavailable, "readiness_unavailable", mReadinessUnavailable.Text(l, nil))
 	}
 	run, err := ch.Run(ctx, ws, *issue.CampaignID, readiness.RunOptions{Trigger: readiness.TriggerManual, By: &p.UserID})
 	if errors.Is(err, readiness.ErrRunning) {
-		return DigestIssues{}, api.Err(http.StatusConflict, "readiness_running", "Send Readiness is running for this issue. Try again when it finishes.")
+		return DigestIssues{}, api.Err(http.StatusConflict, "readiness_running", mReadinessRunning.Text(l, nil))
 	}
 	if err != nil {
 		return DigestIssues{}, err
@@ -453,7 +498,7 @@ func (s *Service) Rebuild(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if err != nil {
 		return DigestIssues{}, err
 	}
-	if _, _, err := s.materialize(ctx, ws, d, issue, items, int(number), "issue", &p.UserID, "Rebuilt with the current template"); err != nil {
+	if _, _, err := s.materialize(ctx, ws, d, issue, items, int(number), "issue", &p.UserID, mVersionRebuilt.Text(l, nil)); err != nil {
 		if errors.Is(err, errNoTemplate) {
 			return DigestIssues{}, api.Conflict(mIssueNoTemplate.Text(l, nil))
 		}
@@ -524,7 +569,7 @@ func (s *Service) nextCampaign(ctx context.Context, ws *store.Workspace, p *auth
 	if err != nil {
 		return uuid.Nil, err
 	}
-	id, _, err := s.materialize(ctx, ws, d, issue, posts, int(number), "next", actorID(p), "Next issue as it would be built now")
+	id, _, err := s.materialize(ctx, ws, d, issue, posts, int(number), "next", actorID(p), mVersionNext.Text(l, nil))
 	if errors.Is(err, errNoTemplate) {
 		return uuid.Nil, api.Conflict(mIssueNoTemplate.Text(l, nil))
 	}
@@ -570,7 +615,7 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		return campaigns.ComposerTestSendResult{}, err
 	}
 	if s.Tests == nil || s.Tests() == nil {
-		return campaigns.ComposerTestSendResult{}, api.Err(http.StatusServiceUnavailable, "tests_unavailable", "Test sends aren't available in this process.")
+		return campaigns.ComposerTestSendResult{}, api.Err(http.StatusServiceUnavailable, "tests_unavailable", mTestsUnavailable.Text(i18n.LangFrom(ctx), nil))
 	}
 	return s.Tests().SendTest(ctx, ws, p, id, campaigns.ComposerTestSend{To: in.To})
 }

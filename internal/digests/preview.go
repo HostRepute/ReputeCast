@@ -345,7 +345,7 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	loc := location(ParseSchedule(d.Schedule, ws.Timezone).Timezone)
 	b, err := build(d, *tpl, posts, int(number), sendAt, loc)
 	if err != nil {
-		return DigestPreview{}, api.Invalid("body", "The template doesn't render: "+err.Error())
+		return DigestPreview{}, api.Invalid("body", mTemplateRender.Text(i18n.LangFrom(ctx), i18n.Args{"detail": err.Error()}))
 	}
 	links := map[string]string{"unsubscribe_url": "#unsubscribe", "preferences_url": "#preferences", "view_in_browser_url": "#view-in-browser"}
 	vars := liquid.Vars("", "", "", nil, links)
