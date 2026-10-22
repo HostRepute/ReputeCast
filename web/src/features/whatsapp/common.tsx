@@ -49,6 +49,19 @@ export const statusBadge: Record<Template['status'], { tone: Tone; msg: MessageD
   other: { tone: 'neutral', msg: m.stOther },
 }
 
+/** A test message's status, in words: "delivered". */
+export const testStatusWord: Record<Schemas['WhatsAppTestResult']['status'], MessageDescriptor> = {
+  queued: m.stQueued,
+  sending: m.stSending,
+  sent: m.stSent,
+  delivered: m.stDelivered,
+  failed: m.stFailed,
+  held: m.stHeld,
+  cancelled: m.stCancelled,
+  skipped: m.stSkipped,
+  undelivered: m.stUndelivered,
+}
+
 const qualityWord: Record<Account['quality'], { tone: Tone; msg: MessageDescriptor }> = {
   high: { tone: 'ok', msg: m.qualityHigh },
   medium: { tone: 'warn', msg: m.qualityMedium },
