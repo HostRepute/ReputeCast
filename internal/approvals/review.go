@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -125,7 +125,7 @@ type CampaignReview struct {
 	Timezone string `json:"timezone"`
 }
 
-func abSummary(raw json.RawMessage) *ReviewAB {
+func abSummary(l i18n.Lang, raw json.RawMessage) *ReviewAB {
 	var d struct {
 		Kind          string            `json:"kind"`
 		Variants      []json.RawMessage `json:"variants"`
@@ -135,9 +135,8 @@ func abSummary(raw json.RawMessage) *ReviewAB {
 	if len(raw) == 0 || string(raw) == "null" || json.Unmarshal(raw, &d) != nil || d.Kind == "" {
 		return nil
 	}
-	word := map[string]string{"subject": "Subject test", "content": "Content test", "send_time": "Send-time test"}[d.Kind]
 	return &ReviewAB{Kind: d.Kind, Variants: len(d.Variants), TestPercent: d.TestPercent, DurationHours: d.DurationHours,
-		Label: fmt.Sprintf("%s · %d variants · %d%% sample", word, len(d.Variants), d.TestPercent)}
+		Label: mABLabel.Text(l, i18n.Args{"kind": d.Kind, "variants": len(d.Variants), "sample": l.Region.Percent(float64(d.TestPercent), 0)})}
 }
 
 // Review builds the Review & send screen of a campaign. It re-checks the open
@@ -153,7 +152,7 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	out := CampaignReview{TestSends: []ReviewTestSend{}, LargeSend: LargeSend, Timezone: ws.Timezone}
 	out.Campaign = ReviewCampaign{ID: c.ID.String(), Name: c.Name, Status: c.Status, Subject: c.Subject, Preheader: c.Preheader, From: fromLine(c.SenderName, c.SenderEmail),
 		ReplyTo: c.ReplyTo, Version: int(c.Version), AutosavedAt: c.AutosavedAt, UpdatedAt: c.UpdatedAt, UpdatedBy: c.UpdatedByName, ScheduledAt: c.ScheduledAt,
-		StartedAt: c.StartedAt, AB: abSummary(c.AbTest)}
+		StartedAt: c.StartedAt, AB: abSummary(langOf(ctx), c.AbTest)}
 	switch c.Status {
 	case "draft", "approval", "approved", "scheduled":
 		out.Campaign.Editable = true
@@ -226,7 +225,7 @@ func (s *Service) reviewApproval(ctx context.Context, ws *store.Workspace, p *au
 	out := ReviewApproval{Rules: []ApprovalRuleMatch{}, Approvers: []ApprovalPerson{}, Needed: policy.ApprovalsRequired, PolicyRules: policy.RuleLabels(),
 		MedianWaitMinutes: s.medianWait(ctx, ws)}
 	for _, a := range approversOf(ms) {
-		out.Approvers = append(out.Approvers, s.person(a))
+		out.Approvers = append(out.Approvers, s.person(langOf(ctx), a))
 	}
 	me := memberByID(ms, &p.UserID)
 	if me != nil && run != nil {
@@ -270,17 +269,17 @@ func (s *Service) reviewApproval(ctx context.Context, ws *store.Workspace, p *au
 	}
 	switch {
 	case !p.Can(authz.CampaignsEdit):
-		out.RequestReason = "Asking for approval needs the campaigns:edit permission."
+		out.RequestReason = say(ctx, mReasonNeedsEdit, nil)
 	case !out.Required:
-		out.RequestReason = "No approval rule matches this send."
+		out.RequestReason = say(ctx, mReasonNoRule, nil)
 	case run == nil:
-		out.RequestReason = "Run Send Readiness first."
+		out.RequestReason = say(ctx, mReasonRunFirst, nil)
 	case run.Verdict == readiness.VerdictBlocked:
-		out.RequestReason = "Fix the blocking issues before asking for approval."
+		out.RequestReason = say(ctx, mReasonFixBlocks, nil)
 	case req != nil && req.Status == "pending":
-		out.RequestReason = "Approval is already requested."
+		out.RequestReason = say(ctx, mReasonRequested, nil)
 	case req != nil && req.Status == "approved":
-		out.RequestReason = "This version is approved."
+		out.RequestReason = say(ctx, mReasonApproved, nil)
 	default:
 		others := 0
 		for _, a := range approversOf(ms) {
@@ -289,7 +288,7 @@ func (s *Service) reviewApproval(ctx context.Context, ws *store.Workspace, p *au
 			}
 		}
 		if others < policy.ApprovalsRequired {
-			out.RequestReason = "Nobody else holds campaigns:approve. An Owner can give it to another role."
+			out.RequestReason = say(ctx, mReasonNoOtherApprover, nil)
 		} else {
 			out.CanRequest = true
 		}

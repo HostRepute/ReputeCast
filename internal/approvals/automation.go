@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -61,14 +61,11 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 			return automations.GateDecision{}, fmt.Errorf("publishing needs client sign-off and nobody at %s can give it yet: invite the client's approver with the Client approver role", ws.Name)
 		}
 	}
-	who := strings.Join(names, " or ")
-	if len(names) > 2 {
-		who = strings.Join(names[:len(names)-1], ", ") + " or " + names[len(names)-1]
-	}
+	who := i18n.Args{"approvers": i18n.OrList(langOf(ctx).Locale, names)}
 	auto := req.AutomationID
 	var existing uuid.UUID
 	if err := tx.QueryRow(ctx, `SELECT id FROM approval_requests WHERE automation_id = $1 AND status = 'pending' LIMIT 1`, auto).Scan(&existing); err == nil {
-		return automations.GateDecision{Required: true, ApprovalID: existing, Message: "Approval is already requested. Waiting for " + who + "."}, nil
+		return automations.GateDecision{Required: true, ApprovalID: existing, Message: say(ctx, mPublishAutomationAlready, who)}, nil
 	}
 	changes := []string{}
 	for _, it := range req.Changes {
@@ -121,7 +118,7 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 			return automations.GateDecision{}, err
 		}
 	}
-	return automations.GateDecision{Required: true, ApprovalID: id, Message: "Waiting for approval from " + who + "."}, nil
+	return automations.GateDecision{Required: true, ApprovalID: id, Message: say(ctx, mPublishAutomationWaiting, who)}, nil
 }
 
 func pluralWord(n int, one, many string) string {
