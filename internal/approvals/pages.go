@@ -78,15 +78,9 @@ func pageRule(policy ApprovalPolicy, p *authz.Principal) string {
 	return ""
 }
 
-// pageVisibilityLabel says who can read a page.
-func pageVisibilityLabel(v string) string {
-	switch v {
-	case "members":
-		return "Members"
-	case "paid":
-		return "Paid"
-	}
-	return "Public"
+// pageVisibilityLabel says who can read a page: Members, Paid, Public.
+func pageVisibilityLabel(l i18n.Lang, v string) string {
+	return mVisibility.Text(l, i18n.Args{"visibility": v})
 }
 
 // PageDecision implements pages.Approvals.
@@ -163,13 +157,13 @@ func (g PagesGate) RequestPage(ctx context.Context, ws *store.Workspace, p *auth
 	if m := memberByID(ms, &p.UserID); m != nil {
 		role = m.RoleName
 	}
-	match := postRuleMatch(rule, p, role)
+	rm := postRuleMatch(rule, p, role)
 	if rule == RulePostPublish {
-		match.Short, match.Badge = "page publish", "Page publish"
+		rm = match(RulePostPublish, mRulePost, mRulePageShort, mRulePageBadge, nil)
 	}
-	snap := Snapshot{DraftHash: req.Hash, Subject: req.Name, Rules: []ApprovalRuleMatch{match}, AuthorRole: role,
+	snap := Snapshot{DraftHash: req.Hash, Subject: req.Name, Rules: []ApprovalRuleMatch{rm}, AuthorRole: role,
 		Page: &ApprovalPageSnapshot{PageID: req.PageID.String(), Name: req.Name, Template: req.Template, Slug: req.Slug, Path: req.Path,
-			Visibility: req.Visibility, VisibilityLabel: pageVisibilityLabel(req.Visibility), When: req.When, PublishAt: req.PublishAt}}
+			Visibility: req.Visibility, VisibilityLabel: pageVisibilityLabel(i18n.Default, req.Visibility), When: req.When, PublishAt: req.PublishAt}}
 	note = strings.TrimSpace(note)
 	id := uuid.Must(uuid.NewV7())
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -220,7 +214,7 @@ func (g PagesGate) PageChanged(ctx context.Context, ws *store.Workspace, p *auth
 	s := g.S
 	now := s.now()
 	rows, err := s.Q.PageApprovalInvalidate(ctx, store.PageApprovalInvalidateParams{PageID: &pageID, Now: &now, DraftHash: hash,
-		Reason: "The page changed after the request: its content, address, settings or publish time."})
+		Reason: english(mInvalidPage, nil), ReasonText: textJSON(mInvalidPage.Keep(nil))})
 	if err != nil || len(rows) == 0 {
 		return err
 	}

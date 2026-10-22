@@ -82,7 +82,7 @@ func (s *Service) ScheduleApproved(ctx context.Context, ws *store.Workspace, p *
 		return ReviewSendResult{}, api.Forbidden(authz.CampaignsSend, nil)
 	}
 	if r.Status == "pending" || r.Status == "approved" {
-		if changes, err := s.Revalidate(ctx, ws, *r.CampaignID); err != nil {
+		if changes, err := s.revalidate(ctx, ws, *r.CampaignID); err != nil {
 			return ReviewSendResult{}, err
 		} else if len(changes) > 0 {
 			return ReviewSendResult{}, s.noLongerCovers(ctx, changes)
@@ -236,7 +236,7 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 			return ReviewSendResult{}, err
 		}
 		if rules := ParsePolicy(ws.ApprovalPolicy).Evaluate(facts); len(rules) > 0 {
-			if changes, err := s.Revalidate(ctx, ws, c.ID); err != nil {
+			if changes, err := s.revalidate(ctx, ws, c.ID); err != nil {
 				return ReviewSendResult{}, err
 			} else if len(changes) > 0 {
 				return ReviewSendResult{}, s.noLongerCovers(ctx, changes)

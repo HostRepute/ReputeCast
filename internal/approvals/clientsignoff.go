@@ -60,8 +60,7 @@ func EnableClientSignoff(raw json.RawMessage, on bool) (json.RawMessage, error) 
 }
 
 func clientSignoffMatch() ApprovalRuleMatch {
-	return ApprovalRuleMatch{Key: RuleClientSignoff, Short: "client sign-off", Badge: "Client sign-off",
-		Label: "Client sign-off: one approval from a Client approver"}
+	return match(RuleClientSignoff, mRuleSignoff, mRuleSignoffShort, mRuleSignoffBadge, nil)
 }
 
 // requiredFor is how many approvals a request needs: the policy's number,

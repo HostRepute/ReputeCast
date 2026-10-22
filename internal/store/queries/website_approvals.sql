@@ -38,7 +38,7 @@ WHERE website_post_id = @post_id AND status = 'pending';
 -- A post that changed after its request: pending and approved requests for
 -- the post as it was are invalidated (a change needs a new approval).
 UPDATE approval_requests
-SET status = 'invalidated', invalidated_at = @now, invalidated_reason = @reason
+SET status = 'invalidated', invalidated_at = @now, invalidated_reason = @reason, invalidated_reason_text = sqlc.narg(reason_text)
 WHERE website_post_id = @post_id AND status IN ('pending', 'approved') AND coalesce(snapshot ->> 'draft_hash', '') <> @draft_hash::text
   AND NOT (snapshot ? 'published')
 RETURNING id, requested_by;

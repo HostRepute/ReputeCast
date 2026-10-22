@@ -263,7 +263,7 @@ func (s *Service) RequestTemplateApproval(ctx context.Context, ws *store.Workspa
 		return TransactionalApprovalState{}, api.Conflict(say(ctx, mTemplateNoApprovers, nil))
 	}
 	snap := Snapshot{Version: pv.NextVersion, DraftHash: t.DraftHash, Subject: t.Subject, Preheader: t.Preheader,
-		Rules:         []ApprovalRuleMatch{{Key: RuleTransactionalPublish, Label: "Publishing a transactional template needs approval", Short: "template publish", Badge: "Template publish"}},
+		Rules:         []ApprovalRuleMatch{match(RuleTransactionalPublish, mRuleTemplate, mRuleTemplateShort, mRuleTemplateBadge, nil)},
 		Transactional: transactionalSnapshot(t, pv)}
 	if m := memberByID(ms, &p.UserID); m != nil {
 		snap.AuthorRole = m.RoleName

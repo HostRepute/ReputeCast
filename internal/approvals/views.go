@@ -2,7 +2,6 @@ package approvals
 
 import (
 	"context"
-	"encoding/json"
 	"sort"
 	"time"
 
@@ -61,9 +60,15 @@ type ApprovalRequestView struct {
 	DecidedBy   string                 `json:"decidedBy,omitempty"`
 	DecidedAt   *time.Time             `json:"decidedAt,omitempty"`
 	// Comment is the latest decision's comment.
-	Comment           string                  `json:"comment,omitempty"`
-	InvalidatedAt     *time.Time              `json:"invalidatedAt,omitempty"`
+	Comment       string     `json:"comment,omitempty"`
+	InvalidatedAt *time.Time `json:"invalidatedAt,omitempty"`
+	// InvalidatedReason says what changed ("subject changed", "audience
+	// moved +14%"); screens add "after approval" when one was given.
+	// InvalidatedFields is what it says changed, for a screen that writes its
+	// own sentence around it ("edited the subject and a link"); empty when
+	// the reason isn't about edited fields.
 	InvalidatedReason string                  `json:"invalidatedReason,omitempty"`
+	InvalidatedFields string                  `json:"invalidatedFields,omitempty"`
 	InvalidatedBy     string                  `json:"invalidatedBy,omitempty"`
 	Changes           []ApprovalChange        `json:"changes"`
 	Snapshot          ApprovalSnapshotSummary `json:"snapshot"`
@@ -113,9 +118,11 @@ func summaryOf(l i18n.Lang, snap Snapshot, wsTZ string) ApprovalSnapshotSummary 
 // requestView builds the view of a request.
 func (s *Service) requestView(ctx context.Context, ws *store.Workspace, r store.ApprovalRequest, ms []member) (ApprovalRequestView, error) {
 	snap := ParseSnapshot(r.Snapshot)
+	l := langOf(ctx)
 	v := ApprovalRequestView{ID: r.ID.String(), Status: r.Status, SubjectType: r.SubjectType, RequestedAt: r.RequestedAt, Note: r.Note, Version: snap.Version,
-		Needed: int(r.ApprovalsRequired), DecidedAt: r.DecidedAt, InvalidatedAt: r.InvalidatedAt, InvalidatedReason: r.InvalidatedReason, Changes: []ApprovalChange{},
-		Decisions: []ApprovalDecisionView{}, Snapshot: summaryOf(langOf(ctx), snap, ws.Timezone), Rules: snap.Rules, BypassReason: r.BypassReason}
+		Needed: int(r.ApprovalsRequired), DecidedAt: r.DecidedAt, InvalidatedAt: r.InvalidatedAt, InvalidatedReason: reasonFor(l, r.InvalidatedReason, r.InvalidatedReasonText),
+		InvalidatedFields: fieldsFor(l, r.InvalidatedReason, r.InvalidatedReasonText), Changes: []ApprovalChange{},
+		Decisions: []ApprovalDecisionView{}, Snapshot: summaryOf(langOf(ctx), snap, ws.Timezone), Rules: localRules(langOf(ctx), snap.Rules), BypassReason: r.BypassReason}
 	if r.CampaignVersion != nil {
 		v.Version = int(*r.CampaignVersion)
 	}
@@ -135,10 +142,7 @@ func (s *Service) requestView(ctx context.Context, ws *store.Workspace, r store.
 	if m := memberByID(ms, r.InvalidatedBy); m != nil {
 		v.InvalidatedBy = m.Name
 	}
-	_ = json.Unmarshal(r.Changes, &v.Changes)
-	if v.Changes == nil {
-		v.Changes = []ApprovalChange{}
-	}
+	v.Changes = changesFor(l, r.Changes)
 	decisions, err := s.Q.ApprovalDecisions(ctx, []uuid.UUID{r.ID})
 	if err != nil {
 		return v, err

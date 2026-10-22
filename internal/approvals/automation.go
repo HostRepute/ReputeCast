@@ -75,17 +75,16 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 	}
 	rules := []ApprovalRuleMatch{}
 	if policy.AutomationPublish {
-		rules = append(rules, ApprovalRuleMatch{Key: RuleAutomationPublish, Label: "Publishing an automation requires approval", Short: "automation publish", Badge: "Automation publish"})
+		rules = append(rules, match(RuleAutomationPublish, mRuleAutomation, mRuleAutomationShort, mRuleAutomationBadge, nil))
 	}
 	if len(req.Missing) > 0 {
 		perm := req.Missing[0]
 		m := memberByID(ms, &req.By)
-		match := ApprovalRuleMatch{Key: RuleAuthorLacksSend, Label: "The flow has a step that needs " + string(perm) + ", which the author doesn't hold",
-			Short: "author lacks send", Badge: "author lacks send"}
+		rm := match(RuleAuthorLacksSend, mRuleAutomationLacks, mRuleLacksSendShort, mRuleLacksSendShort, i18n.Args{"permission": string(perm)})
 		if m != nil {
-			match.Author, match.Role = m.Name, m.RoleName
+			rm.Author, rm.Role = m.Name, m.RoleName
 		}
-		rules = append(rules, match)
+		rules = append(rules, rm)
 	}
 	if signoff {
 		rules = append(rules, clientSignoffMatch())

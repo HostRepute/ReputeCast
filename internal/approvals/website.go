@@ -86,10 +86,11 @@ func postRule(policy ApprovalPolicy, p *authz.Principal, req website.PostApprova
 // postRuleMatch is the matched rule as the inbox shows it.
 func postRuleMatch(rule string, p *authz.Principal, role string) ApprovalRuleMatch {
 	if rule == RuleAuthorLacksSend {
-		return ApprovalRuleMatch{Key: RuleAuthorLacksSend, Label: "The author lacks the send permission (website:publish)", Short: "author lacks publish",
-			Badge: "Author lacks publish", Author: p.Name, Role: role}
+		m := match(RuleAuthorLacksSend, mRulePostLacks, mRulePostLacksShort, mRulePostLacksBadge, nil)
+		m.Author, m.Role = p.Name, role
+		return m
 	}
-	return ApprovalRuleMatch{Key: RulePostPublish, Label: "Publishing a post or page needs approval", Short: "post publish", Badge: "Post publish"}
+	return match(RulePostPublish, mRulePost, mRulePostShort, mRulePostBadge, nil)
 }
 
 // approverNames are the approvers who may decide on p's post.
@@ -182,8 +183,8 @@ func (g WebsiteGate) RequestPost(ctx context.Context, ws *store.Workspace, p *au
 	if m := memberByID(ms, &p.UserID); m != nil {
 		role = m.RoleName
 	}
-	match := postRuleMatch(rule, p, role)
-	snap := Snapshot{DraftHash: req.Hash, Subject: req.Title, Preheader: req.Excerpt, Rules: []ApprovalRuleMatch{match}, AuthorRole: role,
+	rm := postRuleMatch(rule, p, role)
+	snap := Snapshot{DraftHash: req.Hash, Subject: req.Title, Preheader: req.Excerpt, Rules: []ApprovalRuleMatch{rm}, AuthorRole: role,
 		Website: &ApprovalWebsiteSnapshot{PostID: req.PostID.String(), Title: req.Title, Kind: req.Kind, Slug: req.Slug, Path: req.Path, Visibility: req.Visibility,
 			VisibilityLabel: req.VisibilityLabel, When: req.When, PublishAt: req.PublishAt, Excerpt: req.Excerpt}}
 	note = strings.TrimSpace(note)
@@ -236,7 +237,7 @@ func (g WebsiteGate) PostChanged(ctx context.Context, ws *store.Workspace, p *au
 	s := g.S
 	now := s.now()
 	rows, err := s.Q.PostApprovalInvalidate(ctx, store.PostApprovalInvalidateParams{PostID: &postID, Now: &now, DraftHash: hash,
-		Reason: "The post changed after the request: its content, address, visibility or publish time."})
+		Reason: english(mInvalidPost, nil), ReasonText: textJSON(mInvalidPost.Keep(nil))})
 	if err != nil || len(rows) == 0 {
 		return err
 	}

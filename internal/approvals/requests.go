@@ -711,8 +711,8 @@ func (s *Service) Restore(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if err != nil {
 		return err
 	}
-	if changes := Diff(snap, cur, state.Location(ws.Timezone)); len(changes) > 0 {
-		return api.Err(http.StatusConflict, "restore_incomplete", say(ctx, mRestoreIncomplete, i18n.Args{"reason": InvalidationReason(changes)}))
+	if changes := diff(snap, cur, state.Location(ws.Timezone)); len(changes) > 0 {
+		return api.Err(http.StatusConflict, "restore_incomplete", say(ctx, mRestoreIncomplete, i18n.Args{"reason": render(langOf(ctx), reasonOf(changes))}))
 	}
 	status := r.InvalidatedFrom
 	if status != "pending" && status != "approved" {
