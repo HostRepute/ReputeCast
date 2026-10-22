@@ -8,6 +8,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/deliverability"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -40,7 +41,7 @@ func sample() (deliverability.DeliverabilityOverview, []manage.ProviderCard, map
 
 func TestScoreHealthBoard(t *testing.T) {
 	d, cards, sent := sample()
-	h := scoreHealth(d, cards, sent, time.UTC)
+	h := scoreHealth(i18n.Default, d, cards, sent, time.UTC)
 	if h.Score != 92 || h.Label != "Good" || h.Tone != "ok" || h.Domain != "news.acme.io" {
 		t.Fatalf("score: %+v", h)
 	}
@@ -71,7 +72,7 @@ func TestScoreHealthProblems(t *testing.T) {
 	d.Blocklists.Results = append(d.Blocklists.Results, deliverability.DeliverabilityBlocklistSource{Source: "Spamhaus DBL", Impact: "high", Listed: true, ListedAssets: []string{"news.acme.io"}})
 	d.Assets[0].Auth.DMARC = "none"
 	cards[0].Status = "down"
-	h := scoreHealth(d, cards, sent, time.UTC)
+	h := scoreHealth(i18n.Default, d, cards, sent, time.UTC)
 	if h.Label != "Poor" || h.Tone != "bad" || h.Score >= fairFrom {
 		t.Fatalf("score: %d %s", h.Score, h.Label)
 	}
@@ -88,17 +89,17 @@ func TestScoreHealthProblems(t *testing.T) {
 	// Over a provider's own limit.
 	_, cards, sent = sample()
 	cards[2].Complaint.Value = f(0.12)
-	if r, cost := rateReason(cards, sent); r.Tone != "bad" || cost != 25 || r.Text != "Postal complaints are 0.12%, over its 0.1% limit" {
+	if r, cost := rateReason(i18n.Default, cards, sent); r.Tone != "bad" || cost != 25 || r.Text != "Postal complaints are 0.12%, over its 0.1% limit" {
 		t.Fatalf("over the limit: %+v", r)
 	}
 	// Nothing sent.
-	if r, _ := rateReason(cards, map[string]int64{}); r.Tone != "ok" || !strings.HasPrefix(r.Text, "Nothing was sent") {
+	if r, _ := rateReason(i18n.Default, cards, map[string]int64{}); r.Tone != "ok" || !strings.HasPrefix(r.Text, "Nothing was sent") {
 		t.Fatalf("no volume: %+v", r)
 	}
 }
 
 func TestScoreHealthPending(t *testing.T) {
-	h := scoreHealth(deliverability.DeliverabilityOverview{}, nil, nil, time.UTC)
+	h := scoreHealth(i18n.Default, deliverability.DeliverabilityOverview{}, nil, nil, time.UTC)
 	if h.State != "pending" || h.Score != 0 || len(h.Reasons) != 0 {
 		t.Fatalf("pending: %+v", h)
 	}
@@ -118,10 +119,10 @@ func TestProviderNaming(t *testing.T) {
 		{postal, "Postal (self-hosted)", "mta.acme.io · 203.0.113.25 dedicated · 10% of Broadcasts"},
 		{postmark, "Postmark", "Transactional stream · System"},
 	} {
-		if got := displayName(c.card); got != c.name {
+		if got := displayName(i18n.Default, c.card); got != c.name {
 			t.Errorf("name %q, want %q", got, c.name)
 		}
-		if got := detail(c.card); got != c.detail {
+		if got := detail(i18n.Default, c.card); got != c.detail {
 			t.Errorf("detail %q, want %q", got, c.detail)
 		}
 	}
@@ -157,11 +158,11 @@ func TestRefreshFailure(t *testing.T) {
 
 func TestSunsetPolicy(t *testing.T) {
 	p := audience.ParsePolicy(json.RawMessage(`{"after_days":180}`))
-	if got := policySentence(p); got != "Sunset contacts get one re-engagement email, then stop receiving broadcasts after 30 days." {
+	if got := policySentence(i18n.Default, p); got != "Sunset contacts get one re-engagement email, then stop receiving broadcasts after 30 days." {
 		t.Fatal(got)
 	}
 	for tier, want := range map[string]string{"active": "opened in the last 30 days", "cooling": "last open 31 to 90 days ago", "at_risk": "last open 91 to 180 days ago", "sunset": "no open in 180 days"} {
-		if got := describeTier(p, tier); got != want {
+		if got := describeTier(i18n.Default, p, tier); got != want {
 			t.Errorf("%s: %q, want %q", tier, got, want)
 		}
 	}
@@ -174,11 +175,55 @@ func TestSunsetPolicy(t *testing.T) {
 		}
 	}
 	off := audience.ParsePolicy(json.RawMessage(`{"enabled":false}`))
-	if got := policySentence(off); got != "No sunset policy: Sunset contacts keep receiving broadcasts." {
+	if got := policySentence(i18n.Default, off); got != "No sunset policy: Sunset contacts keep receiving broadcasts." {
 		t.Fatal(got)
 	}
 	erase := audience.ParsePolicy(json.RawMessage(`{"reengage":false,"stop_after_days":14,"delete_after":true,"delete_after_months":6}`))
-	if got := policySentence(erase); got != "Sunset contacts stop receiving broadcasts after 14 days; they're erased after 6 months in Sunset." {
+	if got := policySentence(i18n.Default, erase); got != "Sunset contacts stop receiving broadcasts after 14 days; they're erased after 6 months in Sunset." {
 		t.Fatal(got)
+	}
+}
+
+// The reasons, provider lines, tiers and policy read in the reader's
+// language, with rates and times in their region format.
+func TestOverviewInVietnamese(t *testing.T) {
+	vi := i18n.For(i18n.Vietnamese)
+	d, cards, sent := sample()
+	h := scoreHealth(vi, d, cards, sent, time.UTC)
+	texts := map[string]string{}
+	for _, r := range h.Reasons {
+		texts[r.Key] = r.Text
+		if r.Action != nil && r.Key == "blocklist_ip" && r.Action.Label != "yêu cầu gỡ khỏi danh sách" {
+			t.Errorf("delisting link: %q", r.Action.Label)
+		}
+	}
+	if texts["blocklist_ip"] != "IP 203.0.113.25 của Postal bị liệt kê trên 1/84 nguồn (UCEPROTECT L3)" {
+		t.Errorf("IP listing: %q", texts["blocklist_ip"])
+	}
+	if !strings.HasPrefix(texts["rates"], "Tỷ lệ trả thư ") || !strings.Contains(texts["rates"], "%") {
+		t.Errorf("rates: %q", texts["rates"])
+	}
+	if r, _ := rateReason(vi, cards, map[string]int64{}); r.Text != "Không có gì được gửi trong 7 ngày qua, nên chưa có tỷ lệ trả thư hay khiếu nại để kiểm tra" {
+		t.Errorf("nothing sent: %q", r.Text)
+	}
+	if h.Label != "Good" && h.Label != "Fair" && h.Label != "Poor" {
+		t.Errorf("the verdict stays a value the web words: %q", h.Label)
+	}
+	p := audience.ParsePolicy(json.RawMessage(`{"after_days":180}`))
+	if got := policySentence(vi, p); got != "Liên hệ ở nhóm Ngừng gửi dần nhận một email kéo tương tác lại, rồi ngừng nhận thư Gửi hàng loạt sau 30 ngày." {
+		t.Errorf("policy: %q", got)
+	}
+	if got := describeTier(vi, p, "cooling"); got != "lần mở gần nhất cách đây 31 đến 90 ngày" {
+		t.Errorf("cooling: %q", got)
+	}
+	erase := audience.ParsePolicy(json.RawMessage(`{"reengage":false,"stop_after_days":14,"delete_after":true,"delete_after_months":6}`))
+	if got := policySentence(vi, erase); got != "Liên hệ ở nhóm Ngừng gửi dần ngừng nhận thư Gửi hàng loạt sau 14 ngày; họ bị xóa vĩnh viễn sau 6 tháng ở nhóm Ngừng gửi dần." {
+		t.Errorf("erase: %q", got)
+	}
+	if label, _ := statusPage(vi, "ses"); label != "Trang trạng thái AWS" {
+		t.Errorf("status page: %q", label)
+	}
+	if missing := msgs.Missing(i18n.Vietnamese); len(missing) > 0 {
+		t.Errorf("no Vietnamese for %v", missing)
 	}
 }

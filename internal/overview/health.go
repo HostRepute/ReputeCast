@@ -2,15 +2,14 @@ package overview
 
 import (
 	"context"
-	"fmt"
 	"math"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/deliverability"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -38,7 +37,7 @@ func (s *Service) SenderHealth(ctx context.Context, ws *store.Workspace) (Overvi
 	if err != nil {
 		return OverviewSenderHealth{}, err
 	}
-	return scoreHealth(d, po.Providers, weights, state.Location(ws.Timezone)), nil
+	return scoreHealth(i18n.LangFrom(ctx), d, po.Providers, weights, state.Location(ws.Timezone)), nil
 }
 
 // sentLastWeek is each provider's volume over the last 7 days, to weigh
@@ -73,25 +72,6 @@ func shortSource(s string) string {
 	return strings.Replace(s, "Level ", "L", 1)
 }
 
-func joinAnd(xs []string) string {
-	switch len(xs) {
-	case 0:
-		return ""
-	case 1:
-		return xs[0]
-	}
-	return strings.Join(xs[:len(xs)-1], ", ") + " and " + xs[len(xs)-1]
-}
-
-func pctText(v float64) string {
-	return strconv.FormatFloat(v, 'f', -1, 64) + "%"
-}
-
-// rateText is "0.6%" for bounces (one decimal) and "0.04%" for complaints.
-func rateText(v float64, digits int) string {
-	return strconv.FormatFloat(v, 'f', digits, 64) + "%"
-}
-
 var impactCost = map[string][2]int{"high": {30, 20}, "medium": {12, 8}, "low": {6, 4}}
 
 func impactOf(sources []deliverability.DeliverabilityBlocklistSource, asset string) string {
@@ -110,10 +90,15 @@ func impactOf(sources []deliverability.DeliverabilityBlocklistSource, asset stri
 	return worst
 }
 
+// action is the link at the end of a reason, in the reader's language.
+func action(l i18n.Lang, m i18n.Msg, kind, asset string) *OverviewHealthAction {
+	return &OverviewHealthAction{Label: m.Text(l, nil), Kind: kind, Asset: asset}
+}
+
 // scoreHealth turns the checks into a score and reasons, in the board's
 // order: domain blocklists, authentication, rates, IP listings, warm-up,
-// then provider problems.
-func scoreHealth(d deliverability.DeliverabilityOverview, cards []manage.ProviderCard, sent map[string]int64, loc *time.Location) OverviewSenderHealth {
+// then provider problems. The reasons are in the reader's language.
+func scoreHealth(l i18n.Lang, d deliverability.DeliverabilityOverview, cards []manage.ProviderCard, sent map[string]int64, loc *time.Location) OverviewSenderHealth {
 	out := OverviewSenderHealth{State: "ready", Score: 100, Reasons: []OverviewHealthReason{}, Via: d.Blocklists.Via, Sources: d.Blocklists.Sources, CheckedAt: d.Blocklists.CheckedAt}
 	var domains, ips []deliverability.DeliverabilityAssetHealth
 	for _, a := range d.Assets {
@@ -148,14 +133,10 @@ func scoreHealth(d deliverability.DeliverabilityOverview, cards []manage.Provide
 	}
 	switch {
 	case d.Blocklists.Via == "none":
-		add(OverviewHealthReason{Key: "checks", Tone: "warn", Text: out.Domain + " hasn't been checked against blocklists yet; the first check runs within the hour",
-			Action: &OverviewHealthAction{Label: "open Deliverability", Kind: "deliverability"}}, 0)
+		add(OverviewHealthReason{Key: "checks", Tone: "warn", Text: mNotChecked.Text(l, i18n.Args{"domain": out.Domain}),
+			Action: action(l, mActOpenDeliv, "deliverability", "")}, 0)
 	case len(clean) > 0:
-		verb := "is"
-		if len(clean) > 1 {
-			verb = "are"
-		}
-		add(OverviewHealthReason{Key: "blocklist_domain", Tone: "ok", Text: fmt.Sprintf("%s %s clean on %d of %d blocklists", joinAnd(clean), verb, sources, sources)}, 0)
+		add(OverviewHealthReason{Key: "blocklist_domain", Tone: "ok", Text: mClean.Text(l, i18n.Args{"assets": i18n.AndList(l.Locale, clean), "count": len(clean), "sources": sources})}, 0)
 	}
 	for _, a := range domains {
 		if a.Blocklists.Listed == 0 {
@@ -167,24 +148,26 @@ func scoreHealth(d deliverability.DeliverabilityOverview, cards []manage.Provide
 			tone = "bad"
 		}
 		names := make([]string, 0, len(a.Blocklists.Listings))
-		for _, l := range a.Blocklists.Listings {
-			names = append(names, shortSource(l))
+		for _, n := range a.Blocklists.Listings {
+			names = append(names, shortSource(n))
 		}
-		add(OverviewHealthReason{Key: "blocklist_domain", Tone: tone, Text: fmt.Sprintf("%s is listed on %d of %d sources (%s)", a.Asset, a.Blocklists.Listed, a.Blocklists.Sources, strings.Join(names, ", ")),
-			Action: &OverviewHealthAction{Label: "request delisting", Kind: "delisting", Asset: a.Asset}}, min(45, impactCost[imp][0]*a.Blocklists.Listed))
+		add(OverviewHealthReason{Key: "blocklist_domain", Tone: tone,
+			Text:   mDomainListed.Text(l, i18n.Args{"asset": a.Asset, "listed": a.Blocklists.Listed, "sources": a.Blocklists.Sources, "names": strings.Join(names, ", ")}),
+			Action: action(l, mActDelist, "delisting", a.Asset)}, min(45, impactCost[imp][0]*a.Blocklists.Listed))
 	}
 	for _, a := range domains {
 		if a.Stale != nil {
-			add(OverviewHealthReason{Key: "checks", Tone: "warn", Text: fmt.Sprintf("Blocklist results for %s are from %s: HostRepute can't be refreshed", a.Asset, a.Stale.In(loc).Format("Mon 2 Jan 15:04")),
-				Action: &OverviewHealthAction{Label: "check the connection", Kind: "integrations"}}, 5)
+			at := a.Stale.In(loc)
+			add(OverviewHealthReason{Key: "checks", Tone: "warn", Text: mStale.Text(l, i18n.Args{"asset": a.Asset, "day": l.Region.ShortDate(at), "time": clockIn(l, at)}),
+				Action: action(l, mActConnection, "integrations", "")}, 5)
 			break
 		}
 	}
 
 	// Authentication of the main sending domain, aligned per provider.
 	if auth := domains[0].Auth; auth == nil {
-		add(OverviewHealthReason{Key: "auth", Tone: "warn", Text: "SPF, DKIM and DMARC for " + out.Domain + " haven't been checked yet",
-			Action: &OverviewHealthAction{Label: "open Deliverability", Kind: "deliverability"}}, 0)
+		add(OverviewHealthReason{Key: "auth", Tone: "warn", Text: mAuthNotChecked.Text(l, i18n.Args{"domain": out.Domain}),
+			Action: action(l, mActOpenDeliv, "deliverability", "")}, 0)
 	} else {
 		var unaligned []string
 		for _, src := range d.DMARC.Sources {
@@ -202,23 +185,23 @@ func scoreHealth(d deliverability.DeliverabilityOverview, cards []manage.Provide
 			if auth.DKIM == "fail" {
 				failing = append(failing, "DKIM")
 			}
-			add(OverviewHealthReason{Key: "auth", Tone: "bad", Text: joinAnd(failing) + " fails on " + out.Domain + "; receivers may reject or spam-folder the mail",
-				Action: &OverviewHealthAction{Label: "fix the records", Kind: "deliverability"}}, 15*len(failing))
+			add(OverviewHealthReason{Key: "auth", Tone: "bad", Text: mAuthFails.Text(l, i18n.Args{"failing": i18n.AndList(l.Locale, failing), "domain": out.Domain}),
+				Action: action(l, mActFixRecords, "deliverability", "")}, 15*len(failing))
 		case policy == "missing" || policy == "invalid" || policy == "":
-			add(OverviewHealthReason{Key: "auth", Tone: "warn", Text: out.Domain + " has no valid DMARC record, so receivers can't verify the domain",
-				Action: &OverviewHealthAction{Label: "add DMARC", Kind: "deliverability"}}, 10)
+			add(OverviewHealthReason{Key: "auth", Tone: "warn", Text: mNoDMARC.Text(l, i18n.Args{"domain": out.Domain}),
+				Action: action(l, mActAddDMARC, "deliverability", "")}, 10)
 		case len(unaligned) > 0:
-			add(OverviewHealthReason{Key: "auth", Tone: "warn", Text: fmt.Sprintf("%s mail isn't aligned with %s in DMARC reports", joinAnd(unaligned), out.Domain),
-				Action: &OverviewHealthAction{Label: "see DMARC", Kind: "deliverability"}}, 6)
+			add(OverviewHealthReason{Key: "auth", Tone: "warn", Text: mUnaligned.Text(l, i18n.Args{"providers": i18n.AndList(l.Locale, unaligned), "domain": out.Domain}),
+				Action: action(l, mActSeeDMARC, "deliverability", "")}, 6)
 		case policy == "none":
-			add(OverviewHealthReason{Key: "auth", Tone: "warn", Text: "SPF and DKIM are aligned on every sending provider, but DMARC is p=none, so receivers don't act on failures"}, 4)
+			add(OverviewHealthReason{Key: "auth", Tone: "warn", Text: mPolicyNone.Text(l, nil)}, 4)
 		default:
-			add(OverviewHealthReason{Key: "auth", Tone: "ok", Text: fmt.Sprintf("SPF, DKIM and DMARC (p=%s) aligned on every sending provider", policy)}, 0)
+			add(OverviewHealthReason{Key: "auth", Tone: "ok", Text: mAligned.Text(l, i18n.Args{"policy": policy})}, 0)
 		}
 	}
 
 	// Bounce and complaint rates.
-	if r, cost := rateReason(cards, sent); r != nil {
+	if r, cost := rateReason(l, cards, sent); r != nil {
 		add(*r, cost)
 	}
 
@@ -233,15 +216,17 @@ func scoreHealth(d deliverability.DeliverabilityOverview, cards []manage.Provide
 			tone = "bad"
 		}
 		names := make([]string, 0, len(a.Blocklists.Listings))
-		for _, l := range a.Blocklists.Listings {
-			names = append(names, shortSource(l))
+		for _, n := range a.Blocklists.Listings {
+			names = append(names, shortSource(n))
 		}
-		who := "Dedicated IP"
+		args := i18n.Args{"asset": a.Asset, "listed": a.Blocklists.Listed, "sources": a.Blocklists.Sources, "names": strings.Join(names, ", ")}
+		text := mIPListed.Text(l, args)
 		if a.Provider != "" {
-			who = state.Short(a.Provider, "") + " IP"
+			args["provider"] = state.Short(a.Provider, "")
+			text = mProviderIP.Text(l, args)
 		}
-		add(OverviewHealthReason{Key: "blocklist_ip", Tone: tone, Text: fmt.Sprintf("%s %s is listed on %d of %d sources (%s)", who, a.Asset, a.Blocklists.Listed, a.Blocklists.Sources, strings.Join(names, ", ")),
-			Action: &OverviewHealthAction{Label: "request delisting", Kind: "delisting", Asset: a.Asset}}, min(30, impactCost[imp][1]*a.Blocklists.Listed))
+		add(OverviewHealthReason{Key: "blocklist_ip", Tone: tone, Text: text,
+			Action: action(l, mActDelist, "delisting", a.Asset)}, min(30, impactCost[imp][1]*a.Blocklists.Listed))
 	}
 
 	// Warm-up and provider problems.
@@ -255,10 +240,12 @@ func scoreHealth(d deliverability.DeliverabilityOverview, cards []manage.Provide
 				share = r.Percent
 			}
 		}
-		text := fmt.Sprintf("%s warm-up is on day %d of %d", c.Short, c.Warmup.Day, c.Warmup.Days)
+		args := i18n.Args{"provider": c.Short, "day": c.Warmup.Day, "days": c.Warmup.Days}
+		text := mWarmup.Text(l, args)
 		cost := 2
 		if share > 0 {
-			text += fmt.Sprintf(", so %d%% of broadcasts ride a young IP", share)
+			args["share"] = l.Region.Percent(float64(share), 0)
+			text = mWarmupShare.Text(l, args)
 			cost = 4
 		}
 		add(OverviewHealthReason{Key: "warmup", Tone: "warn", Text: text, Action: nil}, cost)
@@ -266,23 +253,23 @@ func scoreHealth(d deliverability.DeliverabilityOverview, cards []manage.Provide
 	for _, c := range cards {
 		switch c.Status {
 		case state.Down:
-			text := c.Name + " is down"
+			text := mDown.Text(l, i18n.Args{"provider": c.Name})
 			if c.Down != nil {
-				text = fmt.Sprintf("%s has been down since %s", c.Name, c.Down.Since.In(loc).Format("15:04"))
+				text = mDownSince.Text(l, i18n.Args{"provider": c.Name, "time": clockIn(l, c.Down.Since.In(loc))})
 				if c.Down.Reason == "auth" {
-					text = c.Name + " rejects ReputeCast's credentials, so nothing goes through it"
+					text = mDownAuth.Text(l, i18n.Args{"provider": c.Name})
 				}
 			}
-			add(OverviewHealthReason{Key: "provider_status", Tone: "bad", Text: text, Action: &OverviewHealthAction{Label: "see what each stream is doing", Kind: "providers"}}, 20)
+			add(OverviewHealthReason{Key: "provider_status", Tone: "bad", Text: text, Action: action(l, mActStreams, "providers", "")}, 20)
 		case state.Degraded:
-			text := c.Name + " is degraded"
+			text := mDegraded.Text(l, i18n.Args{"provider": c.Name})
 			if c.Webhook.SilentSince != nil {
-				text = fmt.Sprintf("%s webhooks have been silent since %s, so its bounces and complaints aren't counted", c.Name, c.Webhook.SilentSince.In(loc).Format("15:04"))
+				text = mSilent.Text(l, i18n.Args{"provider": c.Name, "time": clockIn(l, c.Webhook.SilentSince.In(loc))})
 			}
-			add(OverviewHealthReason{Key: "provider_status", Tone: "warn", Text: text, Action: &OverviewHealthAction{Label: "diagnose", Kind: "providers"}}, 8)
+			add(OverviewHealthReason{Key: "provider_status", Tone: "warn", Text: text, Action: action(l, mActDiagnose, "providers", "")}, 8)
 		case state.Sandbox:
-			add(OverviewHealthReason{Key: "provider_status", Tone: "warn", Text: c.Name + " is in sandbox mode and only sends to verified addresses",
-				Action: &OverviewHealthAction{Label: "request production access", Kind: "providers"}}, 5)
+			add(OverviewHealthReason{Key: "provider_status", Tone: "warn", Text: mSandbox.Text(l, i18n.Args{"provider": c.Name}),
+				Action: action(l, mActProduction, "providers", "")}, 5)
 		}
 	}
 
@@ -300,7 +287,7 @@ func scoreHealth(d deliverability.DeliverabilityOverview, cards []manage.Provide
 
 // rateReason is the bounce and complaint line: the volume-weighted rates and
 // the provider closest to its own limit.
-func rateReason(cards []manage.ProviderCard, sent map[string]int64) (*OverviewHealthReason, int) {
+func rateReason(l i18n.Lang, cards []manage.ProviderCard, sent map[string]int64) (*OverviewHealthReason, int) {
 	var bw, cw, bsum, csum float64
 	worst, worstUsage, worstKind := "", 0.0, ""
 	var worstValue, worstLimit float64
@@ -329,7 +316,7 @@ func rateReason(cards []manage.ProviderCard, sent map[string]int64) (*OverviewHe
 		}
 	}
 	if bw == 0 && cw == 0 {
-		return &OverviewHealthReason{Key: "rates", Tone: "ok", Text: "Nothing was sent in the last 7 days, so there are no bounce or complaint rates to check"}, 0
+		return &OverviewHealthReason{Key: "rates", Tone: "ok", Text: mNothingSent.Text(l, nil)}, 0
 	}
 	bounce, complaint := 0.0, 0.0
 	if bw > 0 {
@@ -342,18 +329,17 @@ func rateReason(cards []manage.ProviderCard, sent map[string]int64) (*OverviewHe
 	if worstKind == "bounces" {
 		digits = 1
 	}
+	args := i18n.Args{"provider": worst, "kind": worstKind, "value": rateIn(l, worstValue, digits), "limit": pctIn(l, worstLimit),
+		"bounce": rateIn(l, round(bounce, 1), 1), "complaint": rateIn(l, round(complaint, 2), 2)}
 	switch {
 	case worstUsage >= 100:
-		return &OverviewHealthReason{Key: "rates", Tone: "bad", Text: fmt.Sprintf("%s %s are %s, over its %s limit", worst, worstKind, rateText(worstValue, digits), pctText(worstLimit)),
-			Action: &OverviewHealthAction{Label: "see the provider", Kind: "providers"}}, 25
+		return &OverviewHealthReason{Key: "rates", Tone: "bad", Text: mRateOver.Text(l, args), Action: action(l, mActSeeProvider, "providers", "")}, 25
 	case worstUsage > 75:
-		return &OverviewHealthReason{Key: "rates", Tone: "warn", Text: fmt.Sprintf("%s %s are %s, close to its %s limit", worst, worstKind, rateText(worstValue, digits), pctText(worstLimit)),
-			Action: &OverviewHealthAction{Label: "see the provider", Kind: "providers"}}, 10
+		return &OverviewHealthReason{Key: "rates", Tone: "warn", Text: mRateClose.Text(l, args), Action: action(l, mActSeeProvider, "providers", "")}, 10
 	case worstUsage > 50:
-		return &OverviewHealthReason{Key: "rates", Tone: "warn", Text: fmt.Sprintf("Bounces %s and complaints %s across providers; %s %s are past half of its %s limit",
-			rateText(round(bounce, 1), 1), rateText(round(complaint, 2), 2), worst, worstKind, pctText(worstLimit))}, 4
+		return &OverviewHealthReason{Key: "rates", Tone: "warn", Text: mRateHalf.Text(l, args)}, 4
 	}
-	return &OverviewHealthReason{Key: "rates", Tone: "ok", Text: fmt.Sprintf("Bounces %s and complaints %s across providers, well inside every limit", rateText(round(bounce, 1), 1), rateText(round(complaint, 2), 2))}, 0
+	return &OverviewHealthReason{Key: "rates", Tone: "ok", Text: mRatesOK.Text(l, args)}, 0
 }
 
 func round(v float64, digits int) float64 {
