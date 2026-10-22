@@ -14,12 +14,16 @@ import { EmptyRow, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { useRestoreList } from '@/features/audience/DeleteListDialog'
+import { T, t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { auditTime, count, monthDayTimeSeconds, shortDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
+import { roleName } from '@/lib/roles'
 import { useCan, useMe, usePermissionReason, useWorkspace } from '@/lib/session'
 import type { AuditSearch } from '@/routes/w/$workspace/_app/settings/audit'
 import { AccessTable, copyText } from '../access/parts'
 import { AuditStreamDialog } from './AuditStreamDialog'
+import { m } from './messages'
 import { zonedDayStart } from './zoned'
 
 type Item = Schemas['AuditEventItem']
@@ -45,6 +49,7 @@ function apiFilters(s: AuditSearch, tz: string) {
 
 /** A5 §5.11 Audit log (SettingsAudit): who did what, to what, from where, and whether it was allowed. */
 export function AuditPage({ search }: { search: AuditSearch }) {
+  const t = useT()
   const { slug, me } = useWorkspace()
   const can = useCan('audit:view')
   const filters = apiFilters(search, me.timezone)
@@ -63,9 +68,9 @@ export function AuditPage({ search }: { search: AuditSearch }) {
   // Without a pick, the panel shows the latest entry that changed something (as on the board).
   const selected = search.event ?? items.find((i) => i.changes)?.id
   return (
-    <Page title="Settings" tabs={settingsTabs(slug)}>
+    <Page title={t(m.title)} tabs={settingsTabs(slug)}>
       {!can ? (
-        <ForbiddenState permission="audit:view" title="Your role can't view the audit log" />
+        <ForbiddenState permission="audit:view" title={t(m.forbidden)} />
       ) : (
         <>
           <TopBar list={first} filters={filters} />
@@ -74,15 +79,15 @@ export function AuditPage({ search }: { search: AuditSearch }) {
               <div className="sec">
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <h2 className="h2" id="ev-h">
-                    Events
+                    {t(m.eventsTitle)}
                   </h2>
-                  <span className="k">Who did what, to what, from where, and whether it was allowed</span>
+                  <span className="k">{t(m.eventsCaption)}</span>
                 </div>
                 <Filters search={search} list={first} />
               </div>
               {q.isError ? (
                 <div className="pad">
-                  <ErrorPanel title="Couldn't load the audit log" actions={<Button onClick={() => void q.refetch()}>Retry</Button>}>
+                  <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => void q.refetch()}>{t(common.retry)}</Button>}>
                     {errorMessage(q.error)}
                   </ErrorPanel>
                 </div>
@@ -90,15 +95,15 @@ export function AuditPage({ search }: { search: AuditSearch }) {
                 <ListSkeleton />
               ) : (
                 <>
-                  <AccessTable caption="Audit entries" aria-busy={q.isFetching && !q.isFetchingNextPage ? true : undefined}>
+                  <AccessTable className="au-tbl" caption={t(m.tableCaption)} aria-busy={q.isFetching && !q.isFetchingNextPage ? true : undefined}>
                     <thead>
                       <tr>
-                        <Th>Time</Th>
-                        <Th>Actor</Th>
-                        <Th>Event · target · details · source</Th>
-                        <Th>Result</Th>
+                        <Th>{t(m.colTime)}</Th>
+                        <Th>{t(m.colActor)}</Th>
+                        <Th>{t(m.colEvent)}</Th>
+                        <Th>{t(m.colResult)}</Th>
                         <Th>
-                          <span className="vh">Details</span>
+                          <span className="vh">{t(m.colDetails)}</span>
                         </Th>
                       </tr>
                     </thead>
@@ -106,9 +111,9 @@ export function AuditPage({ search }: { search: AuditSearch }) {
                       {items.length === 0 ? (
                         <EmptyRow colSpan={5}>
                           <span className="col items-center gap-2">
-                            No entries match these filters.
+                            {t(m.noMatch)}
                             <ButtonLink size="sm" to="/w/$workspace/settings/audit" params={{ workspace: slug }} search={{}}>
-                              Clear filters
+                              {t(m.clearFilters)}
                             </ButtonLink>
                           </span>
                         </EmptyRow>
@@ -120,7 +125,7 @@ export function AuditPage({ search }: { search: AuditSearch }) {
                   {q.hasNextPage ? (
                     <div className="row justify-center border-t border-line-2 px-4.5 py-3">
                       <Button size="sm" loading={q.isFetchingNextPage} onClick={() => void q.fetchNextPage()}>
-                        Show older entries
+                        {t(m.showOlder)}
                       </Button>
                     </div>
                   ) : null}
@@ -136,6 +141,7 @@ export function AuditPage({ search }: { search: AuditSearch }) {
 }
 
 function TopBar({ list, filters }: { list?: List; filters: ReturnType<typeof apiFilters> }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const me = useMe().data
   const [stream, setStream] = useState(false)
@@ -150,37 +156,33 @@ function TopBar({ list, filters }: { list?: List; filters: ReturnType<typeof api
           <Skeleton w={190} h={22} r={999} />
         ) : st.enabled && st.failingSince ? (
           <Badge tone="bad" dot>
-            Stream to {st.host} failing
+            {t(m.streamFailingBadge, { host: st.host ?? '' })}
           </Badge>
         ) : st.enabled ? (
           <Badge tone="ok" dot>
-            Streaming to {st.host}
+            {t(m.streamingTo, { host: st.host ?? '' })}
           </Badge>
         ) : (
           <Badge tone="neutral" dot>
-            Not streaming
+            {t(m.notStreaming)}
           </Badge>
         )}
         {me?.user.isInstanceAdmin ? (
           <ButtonLink size="sm" to="/w/$workspace/admin/audit" params={{ workspace: slug }}>
-            Instance-level view
+            {t(m.instanceView)}
           </ButtonLink>
         ) : null}
       </div>
       <div className="row gap-2">
-        {list ? (
-          <span className="k">
-            Retained {list.retentionDays} days · immutable · {count(list.total)} entries
-          </span>
-        ) : null}
+        {list ? <span className="k">{t(m.retained, { days: list.retentionDays, count: list.total, total: count(list.total) })}</span> : null}
         <ButtonAnchor size="sm" href={exportURL('csv')} newTab={false} download="">
-          Export CSV
+          {t(m.exportCsv)}
         </ButtonAnchor>
         <ButtonAnchor size="sm" href={exportURL('json')} newTab={false} download="">
-          Export JSON
+          {t(m.exportJson)}
         </ButtonAnchor>
-        <Button size="sm" disabledReason={st ? undefined : 'Loading…'} onClick={() => setStream(true)}>
-          Webhook stream · {st?.enabled ? 'on' : 'off'}
+        <Button size="sm" disabledReason={st ? undefined : t(common.loading)} onClick={() => setStream(true)}>
+          {t(m.webhookStream, { on: st?.enabled ? 'yes' : 'no' })}
         </Button>
       </div>
       {stream ? <AuditStreamDialog onClose={() => setStream(false)} /> : null}
@@ -188,16 +190,10 @@ function TopBar({ list, filters }: { list?: List; filters: ReturnType<typeof api
   )
 }
 
-const RANGES: { value: NonNullable<AuditSearch['range']>; label: string }[] = [
-  { value: '7d', label: 'Last 7 days' },
-  { value: '24h', label: 'Last 24 hours' },
-  { value: '30d', label: 'Last 30 days' },
-  { value: '90d', label: 'Last 90 days' },
-  { value: 'all', label: 'All retained' },
-  { value: 'custom', label: 'Custom' },
-]
+const RANGES: NonNullable<AuditSearch['range']>[] = ['7d', '24h', '30d', '90d', 'all', 'custom']
 
 function Filters({ search, list }: { search: AuditSearch; list?: List }) {
+  const t = useT()
   const { slug, me } = useWorkspace()
   const navigate = useNavigate()
   const [q, setQ] = useState(search.q ?? '')
@@ -212,33 +208,33 @@ function Filters({ search, list }: { search: AuditSearch; list?: List }) {
   }, [q])
   const actor = search.actor ? list?.actors.find((a) => a.id === search.actor) : undefined
   return (
-    <div className="row gap-2">
+    <div className="filters-grow row gap-2">
       <label className="vh" htmlFor="aq">
-        Search
+        {t(common.search)}
       </label>
-      <input id="aq" className="in w-[220px] max-sm:w-full" placeholder="Search target or request ID" value={q} onChange={(e) => setQ(e.target.value)} type="search" />
+      <input id="aq" className="in w-[220px] max-sm:w-full" placeholder={t(m.searchPlaceholder)} value={q} onChange={(e) => setQ(e.target.value)} type="search" />
       <select
-        className="in w-[150px] max-md:w-full"
-        aria-label="Filter by actor type"
+        className="in w-[150px] min-w-[150px] max-md:w-full"
+        aria-label={t(m.filterActorType)}
         value={search.actorType ?? ''}
         onChange={(e) => set({ actorType: (e.target.value || undefined) as AuditSearch['actorType'], actor: undefined })}
       >
-        <option value="">Any actor type</option>
-        <option value="user">Members</option>
-        <option value="api_key">API keys</option>
-        <option value="mcp_agent">MCP agents</option>
-        <option value="system">System</option>
+        <option value="">{t(m.anyActorType)}</option>
+        <option value="user">{t(m.actorType, { type: 'user' })}</option>
+        <option value="api_key">{t(m.actorType, { type: 'api_key' })}</option>
+        <option value="mcp_agent">{t(m.actorType, { type: 'mcp_agent' })}</option>
+        <option value="system">{t(m.actorType, { type: 'system' })}</option>
       </select>
       <select
-        className="in w-[150px] max-md:w-full"
-        aria-label="Filter by action"
+        className="in w-[150px] min-w-[150px] max-md:w-full"
+        aria-label={t(m.filterAction)}
         value={search.category ?? (search.action ? `a:${search.action}` : '')}
         onChange={(e) => {
           const v = e.target.value
           set(v.startsWith('a:') ? { action: v.slice(2), category: undefined } : { category: (v || undefined) as AuditSearch['category'], action: undefined })
         }}
       >
-        <option value="">Any action</option>
+        <option value="">{t(m.anyAction)}</option>
         {(list?.categories ?? []).map((c) => (
           <option key={c.key} value={c.key}>
             {c.label}
@@ -247,36 +243,36 @@ function Filters({ search, list }: { search: AuditSearch; list?: List }) {
         {search.action ? <option value={`a:${search.action}`}>{search.action}</option> : null}
       </select>
       <select
-        className="in w-[120px] max-md:w-full"
-        aria-label="Filter by result"
+        className="in w-[120px] min-w-[120px] max-md:w-full"
+        aria-label={t(m.filterResult)}
         value={search.result ?? ''}
         onChange={(e) => set({ result: (e.target.value || undefined) as AuditSearch['result'] })}
       >
-        <option value="">Any result</option>
-        <option value="allowed">Allowed</option>
-        <option value="denied">Denied</option>
-        <option value="error">Error</option>
+        <option value="">{t(m.anyResult)}</option>
+        <option value="allowed">{t(m.result, { result: 'allowed' })}</option>
+        <option value="denied">{t(m.result, { result: 'denied' })}</option>
+        <option value="error">{t(m.result, { result: 'error' })}</option>
       </select>
       <select
-        className="in w-[130px] max-md:w-full"
-        aria-label="Date range"
+        className="in w-[130px] min-w-[130px] max-md:w-full"
+        aria-label={t(m.dateRange)}
         value={search.range ?? '7d'}
         onChange={(e) => set({ range: e.target.value === '7d' ? undefined : (e.target.value as AuditSearch['range']) })}
       >
         {RANGES.map((r) => (
-          <option key={r.value} value={r.value}>
-            {r.label}
+          <option key={r} value={r}>
+            {t(m.range, { range: r })}
           </option>
         ))}
       </select>
       {search.range === 'custom' ? (
         <>
           <label className="row gap-1.5 text-[12.5px]">
-            From
+            {t(m.rangeFrom)}
             <input className="in w-[150px] max-md:w-full" type="date" value={search.since ?? ''} onChange={(e) => set({ since: e.target.value || undefined })} />
           </label>
           <label className="row gap-1.5 text-[12.5px]">
-            To
+            {t(m.rangeTo)}
             <input className="in w-[150px] max-md:w-full" type="date" value={search.until ?? ''} onChange={(e) => set({ until: e.target.value || undefined })} />
           </label>
         </>
@@ -284,12 +280,12 @@ function Filters({ search, list }: { search: AuditSearch; list?: List }) {
       {actor ? (
         <span className="chip">
           {actor.name}
-          <button type="button" aria-label={`Stop filtering by ${actor.name}`} onClick={() => set({ actor: undefined })}>
+          <button type="button" aria-label={t(m.stopFiltering, { name: actor.name })} onClick={() => set({ actor: undefined })}>
             ×
           </button>
         </span>
       ) : null}
-      <Badge tone="neutral">Workspace · {me.workspace.name}</Badge>
+      <Badge tone="neutral">{t(m.workspaceBadge, { name: me.workspace.name })}</Badge>
     </div>
   )
 }
@@ -323,6 +319,7 @@ function ActorCell({ a }: { a: Item['actor'] }) {
 }
 
 function EventRow({ it, selected, search }: { it: Item; selected: boolean; search: AuditSearch }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const now = useNow()
   const details = it.summary || (it.result !== 'allowed' && it.reason ? it.reason : '')
@@ -341,7 +338,7 @@ function EventRow({ it, selected, search }: { it: Item; selected: boolean; searc
         </div>
       </Td>
       <Td>
-        {it.result === 'allowed' ? <Badge tone="ok">Allowed</Badge> : <Badge tone="bad">{it.result === 'denied' ? 'Denied' : 'Error'}</Badge>}
+        {it.result === 'allowed' ? <Badge tone="ok">{t(m.result, { result: it.result })}</Badge> : <Badge tone="bad">{t(m.result, { result: it.result })}</Badge>}
       </Td>
       <Td>
         <ButtonLink
@@ -350,10 +347,10 @@ function EventRow({ it, selected, search }: { it: Item; selected: boolean; searc
           params={{ workspace: slug }}
           search={{ ...search, event: it.id }}
           aria-current={selected ? 'true' : undefined}
-          aria-label={`Details of ${it.action} at ${auditTime(it.occurredAt, now)}`}
+          aria-label={t(m.detailsOf, { action: it.action, time: auditTime(it.occurredAt, now) })}
           resetScroll={false}
         >
-          Details
+          {t(m.details)}
         </ButtonLink>
       </Td>
     </tr>
@@ -372,6 +369,7 @@ function typeLabel(t: string) {
 }
 
 function Detail({ id, pending }: { id?: string; pending?: boolean }) {
+  const t = useT()
   const { slug, me } = useWorkspace()
   const router = useRouter()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/audit/events/{eventId}', { params: { path: { workspace: slug, eventId: id ?? '' } } }, { enabled: Boolean(id) })
@@ -381,14 +379,14 @@ function Detail({ id, pending }: { id?: string; pending?: boolean }) {
   const [restoring, setRestoring] = useState(false)
   if (!id && !pending)
     return (
-      <section className="card pad col gap-1.5 md:sticky md:top-4" aria-label="Entry details">
-        <span className="font-semibold">Entry details</span>
-        <span className="k">Pick an entry to see who did it, from where, the permission it needed and what changed.</span>
+      <section className="card pad col gap-1.5 md:sticky md:top-4" aria-label={t(m.entryDetails)}>
+        <span className="font-semibold">{t(m.entryDetails)}</span>
+        <span className="k">{t(m.pickEntry)}</span>
       </section>
     )
   if (q.isError)
     return (
-      <ErrorPanel title="Couldn't load this entry" actions={<Button onClick={() => void q.refetch()}>Retry</Button>}>
+      <ErrorPanel title={t(m.entryLoadFailed)} actions={<Button onClick={() => void q.refetch()}>{t(common.retry)}</Button>}>
         {errorMessage(q.error)}
       </ErrorPanel>
     )
@@ -396,7 +394,7 @@ function Detail({ id, pending }: { id?: string; pending?: boolean }) {
     return (
       <section className="card pad col gap-3" aria-busy="true">
         <span className="vh" role="status">
-          Loading the entry
+          {t(m.loadingEntry)}
         </span>
         <Skeleton w={140} h={16} />
         <Skeleton w="80%" />
@@ -407,7 +405,7 @@ function Detail({ id, pending }: { id?: string; pending?: boolean }) {
     )
   const d = q.data
   const e = d.event
-  const result = e.result === 'allowed' ? 'Allowed' : e.result === 'denied' ? 'Denied' : 'Error'
+  const result = t(m.result, { result: e.result })
   return (
     <section className="card md:sticky md:top-4" aria-labelledby="h-ev">
       <div className="sec">
@@ -416,13 +414,16 @@ function Detail({ id, pending }: { id?: string; pending?: boolean }) {
             {e.action}
           </h2>
           <span className="k">
-            {monthDayTimeSeconds(e.occurredAt)} {me.timezone}
-            {e.requestId ? (
-              <>
-                {' '}
-                · request <span className="mono">{e.requestId}</span>
-              </>
-            ) : null}
+            <T
+              msg={m.entryTime}
+              values={{
+                time: monthDayTimeSeconds(e.occurredAt),
+                timezone: me.timezone,
+                hasRequest: e.requestId ? 'yes' : 'no',
+                requestId: e.requestId ?? '',
+                mono: (c) => <span className="mono">{c}</span>,
+              }}
+            />
           </span>
         </div>
         <Badge tone={e.result === 'allowed' ? 'ok' : 'bad'}>{result}</Badge>
@@ -431,17 +432,17 @@ function Detail({ id, pending }: { id?: string; pending?: boolean }) {
         <KeyValues
           className="text-[12.5px]"
           items={[
-            ['Who', [e.actor.name, e.actor.label, e.actor.role].filter(Boolean).join(' · ')],
-            ['What', d.what],
+            [t(m.kvWho), [e.actor.name, e.actor.label, e.actor.role ? roleName({ name: e.actor.role }) : undefined].filter(Boolean).join(' · ')],
+            [t(m.kvWhat), d.what],
             [
-              'Target',
+              t(m.kvTarget),
               <>
                 {typeLabel(e.targetType)} {e.targetId ? <span className="mono">{e.targetId}</span> : e.targetName}
               </>,
             ],
-            ['Workspace', d.workspace],
+            [t(m.kvWorkspace), d.workspace],
             [
-              'From',
+              t(m.kvFrom),
               d.ip ? (
                 <>
                   <span className="mono">{d.ip}</span>
@@ -451,12 +452,12 @@ function Detail({ id, pending }: { id?: string; pending?: boolean }) {
                 sourceText(e.source)
               ),
             ],
-            ['Result', [result, d.permission, e.result !== 'allowed' ? e.reason : undefined].filter(Boolean).join(' · ')],
+            [t(m.kvResult), [result, d.permission, e.result !== 'allowed' ? e.reason : undefined].filter(Boolean).join(' · ')],
           ]}
         />
         {d.diff.length > 0 ? (
           <>
-            <span className="text-[12px] font-semibold text-ink-2">Before → after</span>
+            <span className="text-[12px] font-semibold text-ink-2">{t(m.beforeAfter)}</span>
             <div className="diff">
               {d.diff.map((l, i) => (
                 <div key={i} className={l.kind === 'same' ? undefined : l.kind}>
@@ -468,14 +469,14 @@ function Detail({ id, pending }: { id?: string; pending?: boolean }) {
           </>
         ) : null}
         <Note tone="neutral" className="text-[12.5px]">
-          Entries can&apos;t be edited or deleted from the UI.{d.related.length ? ` Related: ${d.related.join('; ')}.` : ''}
+          {t(m.immutable, { hasRelated: d.related.length ? 'yes' : 'no', related: d.related.join('; ') })}
         </Note>
         <div className="row gap-2">
           {d.restore ? (
             <Button
               size="sm"
               loading={restoring}
-              busyLabel="Restoring…"
+              busyLabel={t(m.restoring)}
               disabledReason={cantRestore}
               onClick={async () => {
                 setRestoring(true)
@@ -483,24 +484,24 @@ function Detail({ id, pending }: { id?: string; pending?: boolean }) {
                 setRestoring(false)
               }}
             >
-              Restore list
+              {t(m.restoreList)}
             </Button>
           ) : null}
           {d.link ? (
             <Button size="sm" onClick={() => router.history.push(d.link!)}>
-              {d.linkLabel || 'Open'}
+              {d.linkLabel || t(m.open)}
             </Button>
           ) : null}
           <Button
             size="sm"
             onClick={async () => {
               const ok = await copyText(JSON.stringify(d.json, null, 2))
-              toast({ kind: ok ? 'success' : 'error', title: ok ? 'Entry copied as JSON' : 'Copy failed' })
+              toast({ kind: ok ? 'success' : 'error', title: ok ? tt(m.jsonCopied) : tt(m.copyFailed) })
             }}
           >
-            Copy JSON
+            {t(m.copyJson)}
           </Button>
-          {d.restore ? <span className="k">restorable until {shortDate(d.restore.until)}</span> : null}
+          {d.restore ? <span className="k">{t(m.restorableUntil, { date: shortDate(d.restore.until) })}</span> : null}
         </div>
       </div>
     </section>
@@ -508,10 +509,11 @@ function Detail({ id, pending }: { id?: string; pending?: boolean }) {
 }
 
 function ListSkeleton() {
+  const t = useT()
   return (
     <div className="flex flex-col" aria-busy="true">
       <span className="vh" role="status">
-        Loading the audit log
+        {t(m.loading)}
       </span>
       {Array.from({ length: 6 }, (_, i) => (
         <div key={i} className="row flex-nowrap gap-4 border-t border-line-2 px-3 py-3.5">

@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { LogoMark } from '@/components/icons/Icon'
 import { Badge } from '@/components/ui/Badge'
@@ -12,19 +12,24 @@ import { timezoneOptions } from '@/features/workspace/timezones'
 import { copyText } from '@/features/access/parts'
 import { InstanceLanguageFields } from '@/features/language/InstanceLanguageFields'
 import { m as lm } from '@/features/language/messages'
-import { useT } from '@/i18n'
+import { T, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { ago, usDate } from '@/lib/format'
 import { AdminPage } from '../AdminPage'
 import { RelayAdminCard } from '@/features/transactional/RelayAdminCard'
 import { WorkspacesCard } from './WorkspacesCard'
 import { AdminAgencyCard } from '@/features/agency/AdminParts'
+import { m } from './messages'
 
 const twoCards = 'grid items-start gap-5 [&>*]:min-w-0 grid-cols-[repeat(auto-fit,minmax(min(560px,100%),1fr))] max-md:grid-cols-1'
 
+const mono = (c: ReactNode) => <span className="mono">{c}</span>
+
 /** Instance admin › Instance & updates (InstanceSettings). */
 export function InstancePage() {
+  const t = useT()
   return (
-    <AdminPage documentTitle="Instance & updates">
+    <AdminPage documentTitle={t(m.documentTitle)}>
       <div className={twoCards}>
         <InstanceCard />
         <VersionCard />
@@ -45,11 +50,11 @@ function InstanceCard() {
   const [moved, setMoved] = useState<Schemas['PublicURLWebhooks']>()
   return (
     <section className="card" aria-labelledby="inst-h">
-      <CardSection title={<span id="inst-h">Instance</span>} caption={t(lm.instanceCaption)} />
+      <CardSection title={<span id="inst-h">{t(m.instanceTitle)}</span>} caption={t(lm.instanceCaption)} />
       {q.isError ? (
         <div className="pad">
-          <ErrorPanel title="Couldn't load the instance settings" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
-            {errorMessage(q.error)} Nothing was changed.
+          <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
+            {errorMessage(q.error)} {t(m.nothingChanged)}
           </ErrorPanel>
         </div>
       ) : q.isPending ? (
@@ -80,6 +85,7 @@ function InstanceForm({
   moved?: Schemas['PublicURLWebhooks']
   onMoved: (m: Schemas['PublicURLWebhooks'] | undefined) => void
 }) {
+  const t = useT()
   const qc = useQueryClient()
   const [name, setName] = useState(s.name)
   const [url, setUrl] = useState(s.publicUrl || s.configPublicUrl || '')
@@ -98,7 +104,7 @@ function InstanceForm({
     <div className="pad col gap-3.5">
       <div className="grid grid-cols-2 gap-3.5 max-md:grid-cols-1">
         <label className="lbl">
-          Instance name
+          {t(m.nameLabel)}
           <input
             className="in"
             type="text"
@@ -110,7 +116,7 @@ function InstanceForm({
           />
         </label>
         <label className="lbl">
-          Default timezone
+          {t(m.timezoneLabel)}
           <select className="in" value={tz} onChange={(e) => setTz(e.target.value)} aria-invalid={error?.field === 'tz' || undefined}>
             {zones.map((z) => (
               <option key={z.value} value={z.value}>
@@ -122,7 +128,7 @@ function InstanceForm({
       </div>
       <InstanceLanguageFields language={language} region={region} onLanguage={setLanguage} onRegion={setRegion} />
       <label className="lbl">
-        Public URL
+        {t(m.publicUrlLabel)}
         <div className="row flex-nowrap gap-2">
           <input
             className="in mono flex-1"
@@ -146,17 +152,16 @@ function InstanceForm({
               }
             }}
           >
-            Check
+            {t(m.check)}
           </Button>
         </div>
         <span className="k font-medium" id="inst-url-hint">
-          Used for provider webhooks, SSO redirect URIs and public pages. Changing it re-registers webhooks at every provider that supports it and warns about the rest.
+          {t(m.publicUrlHint)}
         </span>
       </label>
       {s.configPublicUrl && trimSlash(url) !== trimSlash(s.configPublicUrl) ? (
-        <Note tone="warn" label="Server setting">
-          The server was started with http.public_url = <span className="mono">{s.configPublicUrl}</span>. Links, public pages and webhooks use the address above; set
-          REPUTECAST_HTTP__PUBLIC_URL to it as well, since HTTPS-only cookies and HSTS follow the server setting.
+        <Note tone="warn" label={t(m.serverSetting)}>
+          <T msg={m.serverSettingBody} values={{ setting: 'http.public_url', url: s.configPublicUrl, env: 'REPUTECAST_HTTP__PUBLIC_URL', mono }} />
         </Note>
       ) : null}
       {moved && (moved.reregistering > 0 || moved.manual.length > 0) ? <WebhookMove moved={moved} /> : null}
@@ -187,14 +192,14 @@ function InstanceForm({
               // A save that moved nothing clears the last move's notice.
               onMoved(r.webhooks)
               await refresh()
-              toast({ kind: 'success', title: 'Instance settings saved' })
+              toast({ kind: 'success', title: t(m.saved) })
             } catch (e) {
               const msg = errorMessage(e)
               setError({ field: fieldOf(msg), message: msg })
             }
           }}
         >
-          Save
+          {t(common.save)}
         </Button>
       </div>
     </div>
@@ -205,29 +210,28 @@ const trimSlash = (u: string) => u.trim().replace(/\/+$/, '')
 
 /** What moving the public URL did to provider webhooks. */
 function WebhookMove({ moved }: { moved: Schemas['PublicURLWebhooks'] }) {
+  const t = useT()
   const n = moved.reregistering
   return (
-    <Note tone={moved.manual.length > 0 ? 'warn' : 'ok'} label="Webhooks">
-      {n > 0 ? <>Re-registering the webhook at {n === 1 ? '1 provider' : `${n} providers`} on the new address. </> : null}
+    <Note tone={moved.manual.length > 0 ? 'warn' : 'ok'} label={t(m.webhooksLabel)}>
+      {n > 0 ? <>{t(m.reregistering, { count: n })} </> : null}
       {moved.manual.length > 0 ? (
         <>
-          {moved.manual.length === 1
-            ? 'This provider keeps its webhook in its own settings; paste the new address there:'
-            : 'These providers keep their webhooks in their own settings; paste the new addresses there:'}
+          {t(m.manualProviders, { count: moved.manual.length })}
           <ul className="mt-1.5 flex flex-col gap-1.5">
-            {moved.manual.map((m) => (
-              <li key={m.url} className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="font-semibold">{m.provider}</span>
-                <span className="k">{m.workspace}</span>
-                <span className="mono min-w-0 break-all">{m.url}</span>
+            {moved.manual.map((w) => (
+              <li key={w.url} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="font-semibold">{w.provider}</span>
+                <span className="k">{w.workspace}</span>
+                <span className="mono min-w-0 break-all">{w.url}</span>
                 <Button
                   size="sm"
                   onClick={async () => {
-                    const ok = await copyText(m.url)
-                    toast(ok ? { kind: 'success', title: 'Webhook address copied' } : { kind: 'error', title: "Couldn't copy", detail: 'Select the address and copy it by hand.' })
+                    const ok = await copyText(w.url)
+                    toast(ok ? { kind: 'success', title: t(m.webhookCopied) } : { kind: 'error', title: t(m.copyFailed), detail: t(m.copyFailedDetail) })
                   }}
                 >
-                  Copy
+                  {t(common.copy)}
                 </Button>
               </li>
             ))}
@@ -239,15 +243,16 @@ function WebhookMove({ moved }: { moved: Schemas['PublicURLWebhooks'] }) {
 }
 
 function URLCheckPanel({ check }: { check: Schemas['URLCheck'] }) {
+  const t = useT()
   const lines: [string, Schemas['CheckLine']][] = [
     ['DNS', check.dns],
     ['TLS', check.tls],
-    ['Reachable', check.reachable],
+    [t(m.checkReachable), check.reachable],
   ]
   const tone = (st: string) => (st === 'ok' ? 'ok' : st === 'warn' ? 'warn' : st === 'bad' ? 'bad' : 'neutral')
   return (
-    <div className="card flex flex-col gap-2 bg-ground-3 px-3.5 py-3" role="status" aria-label="URL check result">
-      <span className="k">Public URL checked {ago(check.checkedAt)}</span>
+    <div className="card flex flex-col gap-2 bg-ground-3 px-3.5 py-3" role="status" aria-label={t(m.urlCheckLabel)}>
+      <span className="k">{t(m.urlChecked, { ago: ago(check.checkedAt) })}</span>
       {lines.map(([label, l]) => (
         <div key={label} className="row gap-2">
           <Badge tone={tone(l.status)}>{label}</Badge>
@@ -259,6 +264,7 @@ function URLCheckPanel({ check }: { check: Schemas['URLCheck'] }) {
 }
 
 function LogoRow({ s }: { s: Schemas['InstanceSettings'] }) {
+  const t = useT()
   const qc = useQueryClient()
   const file = useRef<HTMLInputElement>(null)
   const upload = $api.useMutation('put', '/api/v1/admin/instance/logo')
@@ -266,7 +272,7 @@ function LogoRow({ s }: { s: Schemas['InstanceSettings'] }) {
   const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: ['get', '/api/v1/admin/instance'] }), qc.invalidateQueries({ queryKey: ['meta'] })])
   const pick = async (f: File) => {
     if (!/^image\/(svg\+xml|png)$/.test(f.type)) {
-      toast({ kind: 'error', title: 'Upload an SVG or PNG', detail: `${f.name} is ${f.type || 'another type'}` })
+      toast({ kind: 'error', title: t(m.logoWrongType), detail: t(m.logoWrongTypeDetail, { name: f.name, hasType: f.type ? 'yes' : 'no', type: f.type }) })
       return
     }
     const data = await new Promise<string>((resolve, reject) => {
@@ -278,40 +284,40 @@ function LogoRow({ s }: { s: Schemas['InstanceSettings'] }) {
     try {
       await upload.mutateAsync({ body: { data } })
       await refresh()
-      toast({ kind: 'success', title: 'Logo updated', detail: 'shown on the sign-in page and in team emails' })
+      toast({ kind: 'success', title: t(m.logoUpdated), detail: t(m.logoUpdatedDetail) })
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't use that logo", detail: errorMessage(e) })
+      toast({ kind: 'error', title: t(m.logoFailed), detail: errorMessage(e) })
     }
   }
   return (
     <div className="row items-center gap-4">
       {s.logoSvg ? (
-        <img src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(s.logoSvg)}`} width={48} height={48} alt="Instance logo" className="rounded-[10px]" />
+        <img src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(s.logoSvg)}`} width={48} height={48} alt={t(m.logoAlt)} className="rounded-[10px]" />
       ) : (
-        <span className="inline-flex" title="The ReputeCast mark">
+        <span className="inline-flex" title={t(m.markTitle)}>
           <LogoMark size={48} />
         </span>
       )}
       <div className="col gap-1">
         <div className="row gap-2">
           <Button size="sm" loading={upload.isPending} onClick={() => file.current?.click()}>
-            Upload logo
+            {t(m.uploadLogo)}
           </Button>
           <Button
             size="sm"
             loading={remove.isPending}
-            disabledReason={s.logoSvg ? undefined : 'Already using the ReputeCast mark'}
+            disabledReason={s.logoSvg ? undefined : t(m.alreadyMark)}
             onClick={async () => {
               try {
                 await remove.mutateAsync({})
                 await refresh()
-                toast({ kind: 'success', title: 'Using the ReputeCast mark' })
+                toast({ kind: 'success', title: t(m.usingMark) })
               } catch (e) {
-                toast({ kind: 'error', title: "Couldn't remove the logo", detail: errorMessage(e) })
+                toast({ kind: 'error', title: t(m.removeLogoFailed), detail: errorMessage(e) })
               }
             }}
           >
-            Use ReputeCast mark
+            {t(m.useMark)}
           </Button>
           <input
             ref={file}
@@ -327,20 +333,21 @@ function LogoRow({ s }: { s: Schemas['InstanceSettings'] }) {
             }}
           />
         </div>
-        <span className="k">Shown on the sign-in page and in team emails · SVG or PNG, square</span>
+        <span className="k">{t(m.logoHint)}</span>
       </div>
     </div>
   )
 }
 
 function VersionCard() {
+  const t = useT()
   const q = $api.useQuery('get', '/api/v1/admin/updates')
   return (
     <section className="card" aria-labelledby="ver-h">
-      <CardSection title={<span id="ver-h">Version &amp; updates</span>} caption="Current version, latest release and how to upgrade" />
+      <CardSection title={<span id="ver-h">{t(m.versionTitle)}</span>} caption={t(m.versionCaption)} />
       {q.isError ? (
         <div className="pad">
-          <ErrorPanel title="Couldn't load the version" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
+          <ErrorPanel title={t(m.versionLoadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
             {errorMessage(q.error)}
           </ErrorPanel>
         </div>
@@ -358,60 +365,78 @@ function VersionCard() {
 }
 
 function Version({ v }: { v: Schemas['InstanceVersion'] }) {
+  const t = useT()
   const qc = useQueryClient()
   const toggle = $api.useMutation('put', '/api/v1/admin/updates')
   const latest = v.latest
   const installedLine = v.release
-    ? `Released ${v.builtAt ? usDate(v.builtAt) : 'date unknown'}`
-    : `Development build${v.commit ? ` · ${v.commit.slice(0, 7)}` : ''}`
+    ? v.builtAt
+      ? t(m.releasedOn, { date: usDate(v.builtAt) })
+      : t(m.releasedUnknown)
+    : v.commit
+      ? t(m.developmentBuildCommit, { commit: v.commit.slice(0, 7) })
+      : t(m.developmentBuild)
   return (
     <div className="pad col gap-3.5">
       <div className="row items-start gap-[18px]">
         <div className="col flex-[1_1_240px] gap-0.5">
-          <span className="k">Installed</span>
+          <span className="k">{t(m.installed)}</span>
           <span className="mono text-[22px] font-bold">{v.installed}</span>
           <span className="k">
             {installedLine}
-            {v.checkEnabled && v.checkAllowed && v.checkedAt ? ` · checked for updates ${ago(v.checkedAt)}` : ''}
+            {v.checkEnabled && v.checkAllowed && v.checkedAt ? ` · ${t(m.checkedForUpdates, { ago: ago(v.checkedAt) })}` : ''}
           </span>
         </div>
         <div className="col flex-[1_1_240px] gap-0.5">
-          <span className="k">Latest release</span>
+          <span className="k">{t(m.latestRelease)}</span>
           {latest ? (
             <>
               <span className="row gap-2">
                 <span className={`mono text-[22px] font-bold ${v.updateAvailable ? 'text-accent' : ''}`}>{latest.tag}</span>
-                {v.updateAvailable ? <Badge tone="ok">Update available</Badge> : latest.demo ? <Badge tone="neutral">Demo data</Badge> : <Badge tone="ok">Up to date</Badge>}
+                {v.updateAvailable ? (
+                  <Badge tone="ok">{t(m.updateAvailable)}</Badge>
+                ) : latest.demo ? (
+                  <Badge tone="neutral">{t(m.demoData)}</Badge>
+                ) : (
+                  <Badge tone="ok">{t(m.upToDate)}</Badge>
+                )}
               </span>
               <span className="k">
-                Released {usDate(latest.publishedAt)} ·{' '}
                 {latest.demo ? (
                   // The demo's sample release isn't on GitHub: say so instead of linking.
-                  'sample release from the demo data'
+                  t(m.releasedDemo, { date: usDate(latest.publishedAt) })
                 ) : (
-                  <a href={latest.url} target="_blank" rel="noopener noreferrer">
-                    changelog on GitHub
-                  </a>
+                  <T
+                    msg={m.releasedChangelog}
+                    values={{
+                      date: usDate(latest.publishedAt),
+                      link: (c) => (
+                        <a href={latest.url} target="_blank" rel="noopener noreferrer">
+                          {c}
+                        </a>
+                      ),
+                    }}
+                  />
                 )}
               </span>
             </>
           ) : (
             <>
               <span className="mono text-[22px] font-bold text-ink-3">–</span>
-              <span className="k">{v.checkEnabled && v.checkAllowed ? 'Not checked yet' : 'The update check is off'}</span>
+              <span className="k">{v.checkEnabled && v.checkAllowed ? t(m.notChecked) : t(m.checkOff)}</span>
             </>
           )}
         </div>
       </div>
       {v.checkError && v.checkEnabled ? (
-        <Note tone="warn" label="Check failed">
-          {v.checkError} The next check runs tomorrow; nothing else is affected.
+        <Note tone="warn" label={t(m.checkFailed)}>
+          {v.checkError} {t(m.nextCheck)}
         </Note>
       ) : null}
       {latest && latest.notes.length > 0 ? (
         <div className="note i">
           <span className="col gap-1.5">
-            <span className="font-semibold">What&apos;s new in {latest.tag}</span>
+            <span className="font-semibold">{t(m.whatsNew, { tag: latest.tag })}</span>
             <ul className="m-0 flex list-disc flex-col gap-[3px] pl-[18px]">
               {latest.notes.map((n) => (
                 <li key={n}>{n}</li>
@@ -422,11 +447,18 @@ function Version({ v }: { v: Schemas['InstanceVersion'] }) {
         </div>
       ) : null}
       <div className="col gap-1.5">
-        <span className="text-[12px] font-semibold text-ink-2">Upgrade on the server</span>
+        <span className="text-[12px] font-semibold text-ink-2">{t(m.upgradeTitle)}</span>
         <pre className="code">{v.upgradeCommand}</pre>
         <span className="k">
-          Back up Postgres first: <span className="mono">docker compose exec postgres pg_dump -U reputecast -Fc reputecast &gt; reputecast.dump</span>. Rollback: pin the
-          image to {v.release ? v.installed : 'the version you ran before'} and restart.
+          <T
+            msg={m.backupNote}
+            values={{
+              command: 'docker compose exec postgres pg_dump -U reputecast -Fc reputecast > reputecast.dump',
+              release: v.release ? 'yes' : 'no',
+              version: v.installed,
+              mono,
+            }}
+          />
         </span>
       </div>
       {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label wraps its control; the title and description inside are its text */}
@@ -441,19 +473,19 @@ function Version({ v }: { v: Schemas['InstanceVersion'] }) {
             try {
               await toggle.mutateAsync({ body: { enabled: e.target.checked } })
               await qc.invalidateQueries({ queryKey: ['get', '/api/v1/admin/updates'] })
-              toast({ kind: 'success', title: e.target.checked ? 'Update check on' : 'Update check off', detail: e.target.checked ? 'checks github.com once a day' : 'no outbound calls' })
+              toast({
+                kind: 'success',
+                title: e.target.checked ? t(m.updateCheckOn) : t(m.updateCheckOff),
+                detail: e.target.checked ? t(m.updateCheckOnDetail) : t(m.updateCheckOffDetail),
+              })
             } catch (err) {
-              toast({ kind: 'error', title: "Couldn't change the update check", detail: errorMessage(err) })
+              toast({ kind: 'error', title: t(m.updateCheckFailed), detail: errorMessage(err) })
             }
           }}
         />
         <span className="col gap-px">
-          <span className="font-semibold">Check GitHub releases once a day</span>
-          <span className="k">
-            {v.checkAllowed
-              ? 'Fetches only the latest version number from github.com. ReputeCast never sends usage data, telemetry or crash reports anywhere; this is the only outbound call it makes on its own.'
-              : 'Turned off in the server configuration (updates.check = false). ReputeCast never sends usage data, telemetry or crash reports anywhere.'}
-          </span>
+          <span className="font-semibold">{t(m.updateCheckToggle)}</span>
+          <span className="k">{v.checkAllowed ? t(m.updateCheckAllowed) : t(m.updateCheckDisallowed, { setting: 'updates.check = false' })}</span>
         </span>
       </label>
     </div>

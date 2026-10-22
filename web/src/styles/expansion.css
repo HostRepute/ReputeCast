@@ -306,6 +306,40 @@
   grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
 }
 
+/* Instance admin, keys, webhooks and the audit logs (V01). */
+
+/* Rule 1 on Instance admin › Users and both audit logs: from tablets up,
+   the filter selects grow to their longest choice ("Mọi không gian làm
+   việc", "Mọi loại người thực hiện"), never narrower than the board's width
+   (each select's min-width), and the search leaves room for its
+   placeholder. Phones keep them full width, as in English. */
+@media (min-width: 768px) {
+  :root:not([lang='en']) .filters-grow select.in {
+    width: auto;
+  }
+  :root:not([lang='en']) .filters-grow input.in[type='search'] {
+    width: 300px;
+  }
+}
+
+/* Rule 1 on Settings › Audit log beside its entry panel: the time column
+   (180 px at least on the board) gives the longer result badges ("Bị từ
+   chối") and the Details button their room, so the table fits its card. */
+:root:not([lang='en']) .au-tbl td:first-child {
+  min-width: 150px;
+}
+
+/* Rule 4 on Instance admin › Users' row menu: an item keeps its label and
+   its note on one line ("Đặt lại xác thực hai lớp · chưa có ứng dụng xác
+   thực"), the menu growing from the board's 300 px up to 420 px. */
+@media (min-width: 768px) {
+  :root:not([lang='en']) .us-menu {
+    width: auto;
+    min-width: 300px;
+    max-width: 420px;
+  }
+}
+
 /* The page builder's block tiles (PageBuilder): a name longer than its tile
    breaks inside the word instead of spilling out of the button, as the
    pseudo-locale's "Ţéšţîmöñîåļš" would. */

@@ -111,7 +111,7 @@ func TestAccountOverviewInVietnamese(t *testing.T) {
 		t.Errorf("leave reason: %v", w["leaveReason"])
 	}
 	n := a["notifications"].(map[string]any)
-	if n["inApp"] != "Tất cả sự kiện" || n["email"] != "Phê duyệt, tự tạm dừng, nhà cung cấp gặp sự cố, cảnh báo HostRepute, sự cố tích hợp, bản nháp bài viết, cảnh báo gửi email giao dịch, sự cố SMTP relay, held digest issues, paused digests, failing digest feeds, digest drafts, AI usage notices, rejected AI keys, payment problems, sponsor creatives, verification jobs, low verification credits, seed sign-in failures, website domain problems, failed product deliveries, order disputes, held referrals, reward codes running low, failing reward webhooks, partner link problems, SMS budget alerts, sender registrations, SMS provider problems, SMS auto-pauses, store problems" ||
+	if n["inApp"] != "Tất cả sự kiện" || n["email"] != "Phê duyệt, tự tạm dừng, nhà cung cấp gặp sự cố, cảnh báo HostRepute, sự cố tích hợp, bản nháp bài viết, cảnh báo gửi email giao dịch, sự cố SMTP relay, held digest issues, paused digests, failing digest feeds, digest drafts, AI usage notices, rejected AI keys, payment problems, sponsor creatives, verification jobs, low verification credits, seed sign-in failures, website domain problems, failed product deliveries, order disputes, held referrals, reward codes running low, failing reward webhooks, partner link problems, SMS budget alerts, sender registrations, SMS provider problems, SMS auto-pauses, store problems, WhatsApp templates and quality" ||
 		n["quietHours"] != "22:00–07:00 America/New_York, chỉ email" {
 		t.Errorf("notifications: %v", n)
 	}

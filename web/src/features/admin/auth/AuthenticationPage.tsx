@@ -9,9 +9,13 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { AccessTable, ProviderMark } from '@/features/access/parts'
-import { andList, dayPartWords } from '@/lib/format'
+import { T, t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { andList, count, dayPartWords } from '@/lib/format'
+import { roleName } from '@/lib/roles'
 import { useWorkspace } from '@/lib/session'
 import { AdminPage } from '../AdminPage'
+import { m as am } from './messages'
 import { SocialSettingsDialog } from './SocialSettingsDialog'
 
 type Policy = Schemas['InstancePolicy']
@@ -21,12 +25,13 @@ const cards = 'grid items-start gap-5 [&>*]:min-w-0 grid-cols-[repeat(auto-fit,m
 
 /** Instance admin › Authentication (InstanceAuth). */
 export function AuthenticationPage() {
+  const t = useT()
   const q = $api.useQuery('get', '/api/v1/admin/policy')
   return (
-    <AdminPage documentTitle="Authentication">
+    <AdminPage documentTitle={t(am.title)}>
       {q.isError ? (
-        <ErrorPanel title="Couldn't load the authentication policy" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
-          {errorMessage(q.error)} Nothing was changed; sign-in keeps working with the saved policy.
+        <ErrorPanel title={t(am.loadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
+          {errorMessage(q.error)} {t(am.loadFailedBody)}
         </ErrorPanel>
       ) : q.isPending ? (
         <PolicySkeleton />
@@ -56,6 +61,7 @@ function toInput(p: Policy): Input {
 }
 
 function PolicyForm({ p }: { p: Policy }) {
+  const t = useT()
   const qc = useQueryClient()
   const [v, setV] = useState<Input>(() => toInput(p))
   const [error, setError] = useState<{ field?: string; message: string }>()
@@ -68,7 +74,7 @@ function PolicyForm({ p }: { p: Policy }) {
     try {
       await save.mutateAsync({ body: v })
       await Promise.all([qc.invalidateQueries({ queryKey: ['get', '/api/v1/admin/policy'] }), qc.invalidateQueries({ queryKey: ['meta'] })])
-      toast({ kind: 'success', title: 'Policies saved', detail: 'new limits apply at the next sign-in' })
+      toast({ kind: 'success', title: t(am.savedToast), detail: t(am.savedDetail) })
     } catch (e) {
       const problem = (e as { problem?: { errors?: { location?: string }[] } }).problem
       setError({ field: problem?.errors?.[0]?.location, message: errorMessage(e) })
@@ -85,26 +91,20 @@ function PolicyForm({ p }: { p: Policy }) {
       </div>
       <SSOProvidersCard p={p} />
       {error ? (
-        <ErrorPanel title="The policies weren't saved">
+        <ErrorPanel title={t(am.saveFailed)}>
           {error.message}
         </ErrorPanel>
       ) : null}
       <div className="row justify-end gap-2.5">
         <Button onClick={() => setV(toInput(p))}>
-          Discard
+          {t(am.discard)}
         </Button>
         <Button variant="primary" loading={save.isPending} onClick={() => void submit()}>
-          Save policies
+          {t(am.savePolicies)}
         </Button>
       </div>
       {social ? <SocialSettingsDialog provider={social} onClose={() => setSocial(undefined)} /> : null}
-      <UnsavedChangesGuard
-        dirty={dirty}
-        title="Leave without saving the policies?"
-        description="You changed the authentication policy. Nothing applies until you save."
-        saveLabel="Save and leave"
-        onSave={submit}
-      />
+      <UnsavedChangesGuard dirty={dirty} title={t(am.leaveTitle)} description={t(am.leaveBody)} saveLabel={t(am.saveAndLeave)} onSave={submit} />
     </>
   )
 }
@@ -153,15 +153,13 @@ function MethodRow({
 }
 
 function MethodsCard({ p, v, set, onSocial }: { p: Policy; v: Input; set: (x: Partial<Input>) => void; onSocial: (s: Schemas['SSOSocialProvider']) => void }) {
+  const t = useT()
   const social = (k: 'google' | 'microsoft' | 'github') => p.social.find((s) => s.kind === k)!
-  const onBadge = (on: boolean, text = 'On') => <Badge tone={on ? 'ok' : 'neutral'}>{on ? text : 'Off'}</Badge>
+  const onBadge = (on: boolean, text = t(common.on)) => <Badge tone={on ? 'ok' : 'neutral'}>{on ? text : t(common.off)}</Badge>
   const enabledSSO = p.sso.filter((s) => s.status === 'enabled')
   const otherSSO = p.sso.filter((s) => s.status !== 'enabled')
-  const ssoLine =
-    p.sso.length === 0
-      ? 'No provider yet: add one below'
-      : [...enabledSSO.map((s) => `${s.name} enabled`), ...otherSSO.map((s) => `${s.name} ${s.status === 'draft' ? 'in progress' : s.status}`)].join(' · ')
-  const socialRow = (k: 'google' | 'microsoft' | 'github', description: ReactNode, onText = 'On') => {
+  const ssoLine = p.sso.length === 0 ? t(am.ssoNone) : [...enabledSSO, ...otherSSO].map((s) => t(am.ssoItem, { name: s.name, status: s.status })).join(' · ')
+  const socialRow = (k: 'google' | 'microsoft' | 'github', description: ReactNode, onText = t(common.on)) => {
     const s = social(k)
     const on = v.social[k]
     return (
@@ -179,7 +177,7 @@ function MethodsCard({ p, v, set, onSocial }: { p: Policy; v: Input; set: (x: Pa
         mark={<ProviderMark preset={k} />}
         badge={onBadge(on, onText)}
         extra={
-          <Button size="sm" iconOnly icon="edit" aria-label={`${s.name} sign-in settings`} title={`${s.name} sign-in settings`} onClick={() => onSocial(s)} className="border-transparent" />
+          <Button size="sm" iconOnly icon="edit" aria-label={t(am.socialSettings, { name: s.name })} title={t(am.socialSettings, { name: s.name })} onClick={() => onSocial(s)} className="border-transparent" />
         }
       />
     )
@@ -187,41 +185,35 @@ function MethodsCard({ p, v, set, onSocial }: { p: Policy; v: Input; set: (x: Pa
   const gh = social('github')
   return (
     <section className="card" aria-labelledby="methods-h">
-      <CardSection title={<span id="methods-h">Allowed sign-in methods</span>} caption="Methods can be turned on separately. SAML and SCIM are not part of this version." />
+      <CardSection title={<span id="methods-h">{t(am.methodsTitle)}</span>} caption={t(am.methodsCaption)} />
       <div className="pad col gap-2.5">
         <MethodRow
           checked={v.methods.password}
           onChange={(x) => set({ methods: { ...v.methods, password: x } })}
-          title="Email and password"
-          description={`Minimum ${v.passwordMinLength} characters · breached-password check ${v.breachedCheck ? 'on' : 'off'}${v.methods.password ? '' : ' · break-glass Owners keep theirs'}`}
+          title={t(am.passwordMethod)}
+          description={t(am.passwordMethodHint, { min: count(v.passwordMinLength), check: v.breachedCheck ? 'on' : 'off', passwordOff: v.methods.password ? 'no' : 'yes' })}
           badge={onBadge(v.methods.password)}
         />
         <MethodRow
           checked={v.methods.passkeys}
           onChange={(x) => set({ methods: { ...v.methods, passkeys: x } })}
-          title="Passkeys"
-          description="Single-step sign-in and second factor · WebAuthn"
+          title={t(am.passkeysMethod)}
+          description={t(am.passkeysMethodHint)}
           badge={onBadge(v.methods.passkeys)}
         />
-        {socialRow('google', 'For invited people only · never creates accounts')}
-        {socialRow('microsoft', 'Personal and work accounts')}
+        {socialRow('google', t(am.googleHint))}
+        {socialRow('microsoft', t(am.microsoftHint))}
         {socialRow(
           'github',
-          gh.org ? (
-            <>
-              Restricted to members of the GitHub organization <span className="mono">{gh.org}</span>
-            </>
-          ) : (
-            'Any GitHub account of an invited person'
-          ),
-          gh.org ? 'On · org restricted' : 'On',
+          gh.org ? <T msg={am.githubOrgHint} values={{ org: gh.org, mono: (c) => <span className="mono">{c}</span> }} /> : t(am.githubAnyHint),
+          gh.org ? t(am.githubOrgOn) : t(common.on),
         )}
         <MethodRow
           checked={v.methods.sso}
           onChange={(x) => set({ methods: { ...v.methods, sso: x } })}
-          title="Single sign-on (OpenID Connect)"
+          title={t(am.ssoMethod)}
           description={ssoLine}
-          badge={<Badge tone={v.methods.sso ? 'ok' : 'neutral'}>{v.methods.sso ? `On · ${p.sso.length} ${p.sso.length === 1 ? 'provider' : 'providers'}` : 'Off'}</Badge>}
+          badge={<Badge tone={v.methods.sso ? 'ok' : 'neutral'}>{v.methods.sso ? t(am.ssoOn, { count: p.sso.length }) : t(common.off)}</Badge>}
         />
       </div>
     </section>
@@ -229,13 +221,14 @@ function MethodsCard({ p, v, set, onSocial }: { p: Policy; v: Input; set: (x: Pa
 }
 
 function PasswordCard({ v, set }: { v: Input; set: (x: Partial<Input>) => void }) {
+  const t = useT()
   return (
     <section className="card" aria-labelledby="pw-h">
-      <CardSection title={<span id="pw-h">Password policy</span>} />
+      <CardSection title={<span id="pw-h">{t(am.passwordPolicy)}</span>} />
       <div className="pad col gap-3">
         <div className="grid grid-cols-2 gap-3.5 max-md:grid-cols-1">
           <label className="lbl">
-            Minimum length
+            {t(am.minLength)}
             <input
               className="in max-w-[120px]"
               type="number"
@@ -246,15 +239,15 @@ function PasswordCard({ v, set }: { v: Input; set: (x: Partial<Input>) => void }
               aria-describedby="pw-min-hint"
             />
             <span className="k font-medium" id="pw-min-hint">
-              Default 12. Passphrases count.
+              {t(am.minLengthHint)}
             </span>
           </label>
           <label className="lbl">
-            Re-use
+            {t(am.reuse)}
             <select className="in" value={v.passwordReuse} onChange={(e) => set({ passwordReuse: Number(e.target.value) as Input['passwordReuse'] })}>
-              <option value={5}>Block the last 5 passwords</option>
-              <option value={10}>Block the last 10</option>
-              <option value={0}>Allow re-use</option>
+              <option value={5}>{t(am.reuseBlock5)}</option>
+              <option value={10}>{t(am.reuseBlock10)}</option>
+              <option value={0}>{t(am.reuseAllow)}</option>
             </select>
           </label>
         </div>
@@ -262,8 +255,8 @@ function PasswordCard({ v, set }: { v: Input; set: (x: Partial<Input>) => void }
         <label className="row flex-nowrap gap-3">
           <input type="checkbox" className="tg" role="switch" checked={v.breachedCheck} onChange={(e) => set({ breachedCheck: e.target.checked })} />
           <span className="col gap-px">
-            <span className="font-semibold">Check new passwords against known breaches</span>
-            <span className="k">Uses k-anonymity: only the first 5 characters of the hash leave the server. Turn off for offline installs.</span>
+            <span className="font-semibold">{t(am.breachedTitle)}</span>
+            <span className="k">{t(am.breachedHint)}</span>
           </span>
         </label>
       </div>
@@ -274,23 +267,20 @@ function PasswordCard({ v, set }: { v: Input; set: (x: Partial<Input>) => void }
 const graceOptions = [7, 1, 3, 14, 0]
 
 function TwoFactorCard({ p, v, set }: { p: Policy; v: Input; set: (x: Partial<Input>) => void }) {
+  const t = useT()
   const options: { value: Input['twoFactor']; title: string; description: string }[] = [
-    { value: 'everyone', title: 'Everyone', description: 'Every member of every workspace' },
-    {
-      value: 'sensitive',
-      title: 'Members with a sensitive permission',
-      description: 'Anyone holding a ⚑ permission (send, approve, publish, export, providers, team, keys, agents). SSO users with two-factor at the IdP count as covered.',
-    },
-    { value: 'off', title: 'Off', description: 'Recommended only for test instances' },
+    { value: 'everyone', title: t(am.tfaEveryone), description: t(am.tfaEveryoneHint) },
+    { value: 'sensitive', title: t(am.tfaSensitive), description: t(am.tfaSensitiveHint) },
+    { value: 'off', title: t(am.tfaOff), description: t(am.tfaOffHint) },
   ]
   const grace = graceOptions.includes(v.graceDays) ? graceOptions : [...graceOptions, v.graceDays]
   const inGrace = p.inGrace
   return (
     <section className="card" aria-labelledby="tfa-h">
-      <CardSection title={<span id="tfa-h">Two-factor enforcement</span>} />
+      <CardSection title={<span id="tfa-h">{t(am.tfaTitle)}</span>} />
       <div className="pad col gap-2.5">
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-          <legend className="vh">Who must use two-factor</legend>
+          <legend className="vh">{t(am.tfaLegend)}</legend>
           {options.map((o) => (
             // eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label wraps its control; the title and description inside are its text
             <label key={o.value} className="row flex-nowrap gap-2.5 rounded-lg border border-line px-2.5 py-2">
@@ -304,19 +294,19 @@ function TwoFactorCard({ p, v, set }: { p: Policy; v: Input; set: (x: Partial<In
         </fieldset>
         <div className="row gap-3.5">
           <label className="lbl">
-            Grace period
+            {t(am.grace)}
             <select className="in max-w-[160px]" value={v.graceDays} onChange={(e) => set({ graceDays: Number(e.target.value) })}>
               {grace.map((d) => (
                 <option key={d} value={d}>
-                  {d === 0 ? 'None' : `${d} ${d === 1 ? 'day' : 'days'}`}
+                  {d === 0 ? t(am.graceNone) : t(am.durationDays, { count: d })}
                 </option>
               ))}
             </select>
           </label>
           <span className="k">
             {inGrace.length === 0
-              ? 'Nobody is in a grace period now'
-              : `${inGrace.length} ${inGrace.length === 1 ? 'member' : 'members'} in grace now: ${andList(inGrace.map((g) => `${g.name}, ends ${untilDays(g.until)}`))}`}
+              ? t(am.inGraceNone)
+              : t(am.inGrace, { count: inGrace.length, list: andList(inGrace.map((g) => t(am.graceEntry, { name: g.name, days: untilDays(g.until) }))) })}
           </span>
         </div>
       </div>
@@ -324,10 +314,9 @@ function TwoFactorCard({ p, v, set }: { p: Policy; v: Input; set: (x: Partial<In
   )
 }
 
+/** Whole days until a grace period ends: 0 once it ends today. */
 function untilDays(at: string) {
-  const days = Math.ceil((new Date(at).getTime() - Date.now()) / 86_400_000)
-  if (days <= 0) return 'today'
-  return days === 1 ? 'in 1 day' : `in ${days} days`
+  return Math.max(0, Math.ceil((new Date(at).getTime() - Date.now()) / 86_400_000))
 }
 
 const lifetimes = [14 * 24, 24, 7 * 24, 30 * 24]
@@ -335,22 +324,20 @@ const idles = [12 * 60, 60, 4 * 60, 24 * 60]
 const locks = [15, 5, 60]
 
 function durationLabel(hours: number) {
-  if (hours % 24 === 0) {
-    const d = hours / 24
-    return `${d} ${d === 1 ? 'day' : 'days'}`
-  }
-  return `${hours} ${hours === 1 ? 'hour' : 'hours'}`
+  if (hours % 24 === 0) return tt(am.durationDays, { count: hours / 24 })
+  return tt(am.durationHours, { count: hours })
 }
 
 function SessionsCard({ v, set }: { v: Input; set: (x: Partial<Input>) => void }) {
+  const t = useT()
   const withCurrent = (list: number[], cur: number) => (list.includes(cur) ? list : [...list, cur])
   return (
     <section className="card" aria-labelledby="sess-h">
-      <CardSection title={<span id="sess-h">Sessions and lockout</span>} />
+      <CardSection title={<span id="sess-h">{t(am.sessionsTitle)}</span>} />
       <div className="pad col gap-3">
         <div className="grid grid-cols-2 gap-3.5 max-md:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]">
           <label className="lbl">
-            Session lifetime
+            {t(am.lifetime)}
             <select className="in" value={v.sessionLifetimeHours} onChange={(e) => set({ sessionLifetimeHours: Number(e.target.value) })}>
               {withCurrent(lifetimes, v.sessionLifetimeHours).map((h) => (
                 <option key={h} value={h}>
@@ -360,17 +347,17 @@ function SessionsCard({ v, set }: { v: Input; set: (x: Partial<Input>) => void }
             </select>
           </label>
           <label className="lbl">
-            Idle timeout
+            {t(am.idle)}
             <select className="in" value={v.sessionIdleMinutes} onChange={(e) => set({ sessionIdleMinutes: Number(e.target.value) })}>
               {withCurrent(idles, v.sessionIdleMinutes).map((m) => (
                 <option key={m} value={m}>
-                  {m % 60 === 0 ? durationLabel(m / 60) : `${m} minutes`}
+                  {m % 60 === 0 ? durationLabel(m / 60) : t(am.durationMinutes, { count: m })}
                 </option>
               ))}
             </select>
           </label>
           <label className="lbl">
-            Lock after
+            {t(am.lockAfter)}
             <span className="row flex-nowrap gap-2">
               <input
                 className="in max-w-[90px]"
@@ -382,35 +369,36 @@ function SessionsCard({ v, set }: { v: Input; set: (x: Partial<Input>) => void }
                 aria-describedby="lock-unit"
               />
               <span className="k" id="lock-unit">
-                failed attempts
+                {t(am.failedAttempts)}
               </span>
             </span>
           </label>
           <label className="lbl">
-            Lock for
+            {t(am.lockFor)}
             <select className="in" value={v.lockoutMinutes} onChange={(e) => set({ lockoutMinutes: Number(e.target.value) })}>
               {withCurrent(locks, v.lockoutMinutes).map((m) => (
                 <option key={m} value={m}>
-                  {m % 60 === 0 ? durationLabel(m / 60) : `${m} minutes`}
+                  {m % 60 === 0 ? durationLabel(m / 60) : t(am.durationMinutes, { count: m })}
                 </option>
               ))}
             </select>
           </label>
         </div>
-        <span className="k">Changing session settings signs nobody out; new limits apply at the next sign-in.</span>
+        <span className="k">{t(am.sessionsHint)}</span>
       </div>
     </section>
   )
 }
 
 function AllowlistCard({ p, v, set }: { p: Policy; v: Input; set: (x: Partial<Input>) => void }) {
+  const t = useT()
   const [adding, setAdding] = useState(false)
   const [domain, setDomain] = useState('')
   const [error, setError] = useState<string>()
   const add = () => {
     const d = domain.trim().toLowerCase().replace(/^@/, '')
     if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d)) {
-      setError('Enter a domain like acme.io.')
+      setError(t(am.domainInvalid))
       return
     }
     if (!v.jitDomains.includes(d)) set({ jitDomains: [...v.jitDomains, d] })
@@ -421,13 +409,13 @@ function AllowlistCard({ p, v, set }: { p: Policy; v: Input; set: (x: Partial<In
   const last = p.lastRejection
   return (
     <section className="card" aria-labelledby="allow-h">
-      <CardSection title={<span id="allow-h">Email domain allowlist for automatic accounts</span>} />
+      <CardSection title={<span id="allow-h">{t(am.allowlistTitle)}</span>} />
       <div className="pad col gap-2.5">
         <div className="row gap-1.5">
           {v.jitDomains.map((d) => (
             <span key={d} className="chip">
               {d}
-              <button type="button" aria-label={`Remove ${d}`} onClick={() => set({ jitDomains: v.jitDomains.filter((x) => x !== d) })}>
+              <button type="button" aria-label={t(am.removeDomain, { domain: d })} onClick={() => set({ jitDomains: v.jitDomains.filter((x) => x !== d) })}>
                 ×
               </button>
             </span>
@@ -435,13 +423,13 @@ function AllowlistCard({ p, v, set }: { p: Policy; v: Input; set: (x: Partial<In
           {adding ? (
             <span className="row flex-nowrap gap-1.5">
               <label className="vh" htmlFor="allow-add">
-                Domain to allow
+                {t(am.domainToAdd)}
               </label>
               <input
                 id="allow-add"
                 className="in h-[30px] w-[160px]"
                 value={domain}
-                placeholder="acme-labs.io"
+                placeholder={'acme-labs.io'}
                 autoFocus
                 onChange={(e) => setDomain(e.target.value)}
                 onKeyDown={(e) => {
@@ -455,12 +443,12 @@ function AllowlistCard({ p, v, set }: { p: Policy; v: Input; set: (x: Partial<In
                 aria-describedby={error ? 'allow-err' : undefined}
               />
               <Button size="sm" onClick={add}>
-                Add
+                {t(am.add)}
               </Button>
             </span>
           ) : (
             <Button size="sm" onClick={() => setAdding(true)}>
-              Add domain
+              {t(am.addDomain)}
             </Button>
           )}
         </div>
@@ -470,10 +458,10 @@ function AllowlistCard({ p, v, set }: { p: Policy; v: Input; set: (x: Partial<In
           </span>
         ) : null}
         <span className="k">
-          Applies to just-in-time accounts from SSO. Invited people can use any email.{' '}
-          {v.jitDomains.length === 0 ? 'With no domain listed, any domain an SSO provider allows can get an account.' : 'Sign-ins from other domains are rejected and logged'}
-          {v.jitDomains.length > 0 && last ? ` (for example ${last.email} ${dayPartWords(last.at)})` : ''}
-          {v.jitDomains.length > 0 ? '.' : ''}
+          {t(am.allowlistHint)}{' '}
+          {v.jitDomains.length === 0
+            ? t(am.allowlistAny)
+            : t(am.allowlistRejected, { last: last ? 'yes' : 'no', email: last?.email ?? '', when: last ? dayPartWords(last.at) : '' })}
         </span>
       </div>
     </section>
@@ -485,48 +473,49 @@ export function ssoStatusBadge(status: string) {
     case 'enabled':
       return (
         <Badge tone="ok" dot>
-          Enabled
+          {tt(am.statusEnabled)}
         </Badge>
       )
     case 'draft':
-      return <Badge tone="warn">Setup in progress</Badge>
+      return <Badge tone="warn">{tt(am.statusDraft)}</Badge>
     case 'error':
-      return <Badge tone="bad">Needs attention</Badge>
+      return <Badge tone="bad">{tt(am.statusError)}</Badge>
   }
-  return <Badge tone="neutral">Disabled</Badge>
+  return <Badge tone="neutral">{tt(am.statusDisabled)}</Badge>
 }
 
 function SSOProvidersCard({ p }: { p: Policy }) {
+  const t = useT()
   const { slug } = useWorkspace()
   return (
     <section className="card" aria-labelledby="ssolist-h">
       <CardSection
-        title={<span id="ssolist-h">SSO providers</span>}
-        caption="Configured at instance level · presets for Google Workspace, Microsoft Entra ID, Okta, Keycloak, Authentik and generic OIDC"
+        title={<span id="ssolist-h">{t(am.ssoProviders)}</span>}
+        caption={t(am.ssoProvidersCaption)}
         actions={
           <ButtonLink size="sm" variant="primary" to="/w/$workspace/admin/sso/$providerId" params={{ workspace: slug, providerId: 'new' }}>
-            Add SSO provider
+            {t(am.addSsoProvider)}
           </ButtonLink>
         }
       />
       {p.sso.length === 0 ? (
         <div className="pad">
           <div className="note n">
-            <span>No SSO provider yet. Add one to let people sign in with your organization&apos;s identity provider, create accounts automatically and map groups to roles.</span>
+            <span>{t(am.ssoProvidersEmpty)}</span>
           </div>
         </div>
       ) : (
-        <AccessTable caption="SSO providers">
+        <AccessTable caption={t(am.ssoProviders)}>
           <thead>
             <tr>
-              <Th>Provider</Th>
-              <Th>Domains</Th>
-              <Th>JIT</Th>
-              <Th>Group mapping</Th>
-              <Th>Enforced</Th>
-              <Th>Status</Th>
+              <Th>{t(am.colProvider)}</Th>
+              <Th>{t(am.colDomains)}</Th>
+              <Th>{t(am.colJit)}</Th>
+              <Th>{t(am.colGroupMapping)}</Th>
+              <Th>{t(am.colEnforced)}</Th>
+              <Th>{t(am.colStatus)}</Th>
               <Th>
-                <span className="vh">Actions</span>
+                <span className="vh">{t(am.colActions)}</span>
               </Th>
             </tr>
           </thead>
@@ -542,13 +531,17 @@ function SSOProvidersCard({ p }: { p: Policy }) {
                 <Td>
                   <span className="mono">{s.domains.join(', ') || '–'}</span>
                 </Td>
-                <Td>{s.jit.enabled ? `On → ${s.jit.workspaceName} · ${s.jit.roleName}` : 'Off'}</Td>
-                <Td>{!s.groupsClaim ? <span className="k">Unavailable for {s.name}</span> : s.mappings === 0 ? 'None' : `${s.mappings} ${s.mappings === 1 ? 'mapping' : 'mappings'}`}</Td>
-                <Td>{s.enforced.length ? 'Yes · except break-glass Owners' : 'No'}</Td>
+                <Td>
+                  {s.jit.enabled
+                    ? t(am.jitOn, { workspace: s.jit.workspaceName ?? '', role: roleName({ key: s.jit.roleKey, name: s.jit.roleName ?? '' }) })
+                    : t(common.off)}
+                </Td>
+                <Td>{!s.groupsClaim ? <span className="k">{t(am.mappingsUnavailable, { name: s.name })}</span> : t(am.mappingsCount, { count: s.mappings })}</Td>
+                <Td>{s.enforced.length ? t(am.enforcedYes) : t(common.no)}</Td>
                 <Td>{ssoStatusBadge(s.status)}</Td>
                 <Td>
                   <ButtonLink size="sm" to="/w/$workspace/admin/sso/$providerId" params={{ workspace: slug, providerId: s.id }}>
-                    {s.status === 'draft' ? 'Continue setup' : 'Edit'}
+                    {s.status === 'draft' ? t(am.continueSetup) : t(common.edit)}
                   </ButtonLink>
                 </Td>
               </tr>
@@ -561,10 +554,11 @@ function SSOProvidersCard({ p }: { p: Policy }) {
 }
 
 function PolicySkeleton() {
+  const t = useT()
   return (
     <div className={cards} aria-busy="true">
       <span className="vh" role="status">
-        Loading the authentication policy
+        {t(am.loading)}
       </span>
       {Array.from({ length: 4 }, (_, i) => (
         <section key={i} className="card">

@@ -70,5 +70,7 @@
   "account.lastOwner": "Hãy chuyển quyền sở hữu trước khi rời: Chủ sở hữu cuối cùng không thể rời đi",
   "duration.days": "{n, plural, other {# ngày}}",
   "duration.hours": "{n, plural, other {# giờ}}",
-  "duration.minutes": "{n, plural, other {# phút}}"
+  "duration.minutes": "{n, plural, other {# phút}}",
+  "invite.clientViewer": "Bạn sẽ xem được chiến dịch và báo cáo.",
+  "invite.clientApprover": "Bạn sẽ xem được chiến dịch và báo cáo, và phê duyệt các lần gửi trước khi thư được gửi đi."
 }
