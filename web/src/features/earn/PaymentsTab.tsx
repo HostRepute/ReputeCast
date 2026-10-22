@@ -564,7 +564,7 @@ function EventLog({ test }: { test: boolean }) {
           <span className="k">{t(ms.logCaption)}</span>
         </div>
       </div>
-      <div className="grid gap-2.5 px-5 pb-3" style={{ gridTemplateColumns: 'minmax(220px, 1fr) 190px 150px' }}>
+      <div className="ea-logf grid gap-2.5 px-5 pb-3">
         <label className="ea-search">
           <Icon name="search" size={15} />
           <input type="search" aria-label={t(ms.logSearchLabel)} placeholder={t(ms.logSearch)} value={q} onChange={(e) => (setQ(e.target.value), setPage(1))} />
