@@ -35,7 +35,7 @@ func (s *Service) TrayJobs(ctx context.Context, ws *store.Workspace) ([]TrayJob,
 	out := []TrayJob{}
 	for _, r := range rows {
 		j := r.VerificationJob
-		args := i18n.Args{"kind": j.Kind, "label": j.Label, "service": ServiceName(j.Service), "checked": int64(j.Checked), "total": int64(j.Total),
+		args := i18n.Args{"kind": j.Kind, "label": labelIn(l, j.Kind, j.Label, jobTiers(j)), "service": ServiceName(j.Service), "checked": int64(j.Checked), "total": int64(j.Total),
 			"suppressed": int64(j.Suppressed), "risky": int64(j.Risky)}
 		t := TrayJob{ID: j.ID.String(), Href: fmt.Sprintf("/w/%s/audience/verification/%s", ws.Slug, j.ID), StartedAt: j.StartedAt, FinishedAt: j.FinishedAt}
 		switch j.Status {

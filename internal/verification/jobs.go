@@ -104,21 +104,22 @@ type resolved struct {
 
 var tierNames = map[string]string{"active": "Active", "cooling": "Cooling", "at_risk": "At risk", "sunset": "Sunset"}
 
-func parseID(raw, field string) (uuid.UUID, error) {
+func parseID(l i18n.Lang, raw, field string) (uuid.UUID, error) {
 	id, err := uuid.Parse(strings.TrimSpace(raw))
 	if err != nil {
-		return id, api.Invalid("body.target."+field, "That isn't a valid id.")
+		return id, api.Invalid("body.target."+field, mInvalidID.Text(l, nil))
 	}
 	return id, nil
 }
 
 // resolve finds the addresses of a target.
 func (s *Service) resolve(ctx context.Context, ws *store.Workspace, t VerificationTarget) (resolved, error) {
+	l := i18n.LangFrom(ctx)
 	r := resolved{kind: t.Kind, label: strings.TrimSpace(t.Label)}
 	sel := Selection{}
 	switch t.Kind {
 	case "list":
-		id, err := parseID(t.ListID, "listId")
+		id, err := parseID(l, t.ListID, "listId")
 		if err != nil {
 			return r, err
 		}
@@ -128,7 +129,7 @@ func (s *Service) resolve(ctx context.Context, ws *store.Workspace, t Verificati
 		}
 		r.label, r.listID, sel.ListID = l.Name, &id, &id
 	case "segment":
-		id, err := parseID(t.SegmentID, "segmentId")
+		id, err := parseID(l, t.SegmentID, "segmentId")
 		if err != nil {
 			return r, err
 		}
@@ -139,13 +140,13 @@ func (s *Service) resolve(ctx context.Context, ws *store.Workspace, t Verificati
 		r.label, sel.SegmentID = name, &id
 	case "tier":
 		if len(t.Tiers) == 0 {
-			return r, api.Invalid("body.target.tiers", "Pick a tier.")
+			return r, api.Invalid("body.target.tiers", mPickTier.Text(l, nil))
 		}
 		names := []string{}
 		for _, tr := range t.Tiers {
 			n, ok := tierNames[tr]
 			if !ok {
-				return r, api.Invalid("body.target.tiers", "Tiers are active, cooling, at_risk and sunset.")
+				return r, api.Invalid("body.target.tiers", mTiers.Text(l, nil))
 			}
 			names = append(names, n)
 		}
@@ -157,10 +158,10 @@ func (s *Service) resolve(ctx context.Context, ws *store.Workspace, t Verificati
 			sel.Filter = b
 		} else {
 			if len(t.ContactIDs) == 0 {
-				return r, api.Invalid("body.target.contactIds", "Select at least one contact.")
+				return r, api.Invalid("body.target.contactIds", mPickContacts.Text(l, nil))
 			}
 			for _, raw := range t.ContactIDs {
-				id, err := parseID(raw, "contactIds")
+				id, err := parseID(l, raw, "contactIds")
 				if err != nil {
 					return r, err
 				}
@@ -168,13 +169,13 @@ func (s *Service) resolve(ctx context.Context, ws *store.Workspace, t Verificati
 			}
 		}
 	case "contact":
-		id, err := parseID(t.ContactID, "contactId")
+		id, err := parseID(l, t.ContactID, "contactId")
 		if err != nil {
 			return r, err
 		}
 		sel.ContactIDs = []uuid.UUID{id}
 	case "import":
-		id, err := parseID(t.ImportID, "importId")
+		id, err := parseID(l, t.ImportID, "importId")
 		if err != nil {
 			return r, err
 		}
@@ -188,7 +189,7 @@ func (s *Service) resolve(ctx context.Context, ws *store.Workspace, t Verificati
 		r.label, r.emails, r.importID = label, emails, &id
 		return r, nil
 	default:
-		return r, api.Invalid("body.target.kind", "Pick what to check.")
+		return r, api.Invalid("body.target.kind", mPickTarget.Text(l, nil))
 	}
 	if s.Audience == nil {
 		return r, errors.New("verification: no audience")
@@ -219,7 +220,7 @@ func (s *Service) resolve(ctx context.Context, ws *store.Workspace, t Verificati
 	}
 	if t.Kind == "contact" {
 		if len(r.ids) == 0 {
-			return r, api.Err(http.StatusNotFound, api.CodeNotFound, mContactErased.Text(i18n.LangFrom(ctx), nil))
+			return r, api.Err(http.StatusNotFound, api.CodeNotFound, mContactErased.Text(l, nil))
 		}
 		r.label = r.emails[0]
 	}
@@ -299,6 +300,7 @@ func (s *Service) pick(ctx context.Context, ws *store.Workspace, key string) (*s
 
 // Estimate says what a use would check and cost.
 func (s *Service) Estimate(ctx context.Context, ws *store.Workspace, in VerificationEstimateInput) (VerificationEstimate, error) {
+	l := i18n.LangFrom(ctx)
 	p := api.PrincipalFrom(ctx)
 	skipRecent := in.SkipRecent == nil || *in.SkipRecent
 	out := VerificationEstimate{Kind: in.Target.Kind, SkipRecent: skipRecent, Services: []VerificationServiceChoice{},
@@ -310,14 +312,14 @@ func (s *Service) Estimate(ctx context.Context, ws *store.Workspace, in Verifica
 	}
 	for _, r := range rows {
 		out.Services = append(out.Services, VerificationServiceChoice{Key: r.Service, Name: ServiceName(r.Service), Balance: r.Balance,
-			Price: Money(r.PriceMicros).Dollars(), Default: r.DefaultBulk, RegionLabel: RegionLabel(r.Service, r.Region)})
+			Price: Money(r.PriceMicros).Dollars(), Default: r.DefaultBulk, RegionLabel: regionIn(l, r.Service, r.Region)})
 	}
 	out.Connected = len(rows) > 0
 	r, err := s.resolve(ctx, ws, in.Target)
 	if err != nil {
 		return out, err
 	}
-	out.Label = r.label
+	out.Label = labelIn(l, r.kind, r.label, in.Target.Tiers)
 	out.Contacts = int64(len(r.emails))
 	check, skipped, svc, on, err := s.skip(ctx, ws, r, skipRecent)
 	if err != nil {
@@ -329,7 +331,7 @@ func (s *Service) Estimate(ctx context.Context, ws *store.Workspace, in Verifica
 	}
 	if chosen != nil {
 		out.Service, out.ServiceName = chosen.Service, ServiceName(chosen.Service)
-		out.RegionLabel = RegionLabel(chosen.Service, chosen.Region)
+		out.RegionLabel = regionIn(l, chosen.Service, chosen.Region)
 		out.Price = Money(chosen.PriceMicros).Dollars()
 		out.Cost = cost(out.ToCheck, chosen.PriceMicros)
 		out.Balance, out.BalanceAt = chosen.Balance, chosen.BalanceAt
@@ -428,6 +430,8 @@ func (s *Service) jobView(ctx context.Context, j store.VerificationJob, startedB
 	if t.Tiers != nil {
 		v.Tiers = t.Tiers
 	}
+	l := i18n.LangFrom(ctx)
+	v.Label = labelIn(l, j.Kind, j.Label, v.Tiers)
 	if j.ImportID != nil {
 		v.ImportID = j.ImportID.String()
 	}
@@ -448,9 +452,9 @@ func (s *Service) jobView(ctx context.Context, j store.VerificationJob, startedB
 		v.ETASeconds = &eta
 	}
 	if svc, err := s.Q.VerifServiceByKey(ctx, store.VerifServiceByKeyParams{WorkspaceID: j.WorkspaceID, Service: j.Service}); err == nil {
-		v.RegionLabel = RegionLabel(j.Service, svc.Region)
+		v.RegionLabel = regionIn(l, j.Service, svc.Region)
 	} else {
-		v.RegionLabel = RegionLabel(j.Service, "")
+		v.RegionLabel = regionIn(l, j.Service, "")
 	}
 	return v
 }
