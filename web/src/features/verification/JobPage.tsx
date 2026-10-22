@@ -8,12 +8,12 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState, Loading, Skeleton } from '@/components/ui/Feedback'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
-import { clock, shortDate } from '@/lib/format'
+import { andList, clock, count, shortDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useCan, useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import { base, LoadError, money, ResultBadge, ResultBar, ResultLegend, Tag, tagValue, useJob, useOverview, useRefreshVerification, type Job, type Target } from './shared'
-import { targetLabel, VerifyDialog } from './VerifyDialog'
+import { targetLabel, tierName, VerifyDialog } from './VerifyDialog'
 
 /** Audience › List health › a verification job: progress, the results, and what went wrong. */
 export function JobPage({ jobId }: { jobId: string }) {
@@ -73,9 +73,10 @@ function sentenceLabel(j: Job, t: ReturnType<typeof useT>): string {
   return target ? targetLabel(t, target, j.label) : j.label
 }
 
-/** "Sunset tier", "Product Updates": a job's name as a heading. */
+/** "Sunset tier", "At risk and Sunset", "Product Updates": a job's name as a heading, tiers in the app's language. */
 export function headingLabel(j: Job, t: ReturnType<typeof useT>): string {
-  return j.kind === 'tier' && j.tiers.length === 1 ? t(m.tierPhrase, { tier: j.label }) : j.label
+  if (j.kind !== 'tier' || !j.tiers.length) return j.label
+  return j.tiers.length === 1 ? t(m.tierPhrase, { tier: tierName(t, j.tiers[0]!) }) : andList(j.tiers.map((x) => tierName(t, x)))
 }
 
 function title(j: Job, t: ReturnType<typeof useT>): string {
@@ -314,14 +315,14 @@ function Finished({ j, onAgain }: { j: Job; onAgain: (t: Target) => void }) {
           <div className="card vf-rcard">
             <div className="hd">
               <ResultBadge result="valid" />
-              <b>{j.valid.toLocaleString('en-US')}</b>
+              <b>{count(j.valid)}</b>
             </div>
             <span className="text-[13px] text-ink-nav">{t(m.cardValidBody)}</span>
           </div>
           <div className="card vf-rcard">
             <div className="hd">
               <ResultBadge result="invalid" />
-              <b>{j.invalid.toLocaleString('en-US')}</b>
+              <b>{count(j.invalid)}</b>
             </div>
             <span className="text-[13px] text-ink-nav">
               {j.suppressed ? (
@@ -339,14 +340,14 @@ function Finished({ j, onAgain }: { j: Job; onAgain: (t: Target) => void }) {
           <div className="card vf-rcard">
             <div className="hd">
               <ResultBadge result="risky" />
-              <b>{j.risky.toLocaleString('en-US')}</b>
+              <b>{count(j.risky)}</b>
             </div>
             {risky
               .filter(([, , n]) => n > 0)
               .map(([label, tag, n]) => (
                 <div className="vf-rrow" key={tag}>
                   <span>{label}</span>
-                  <span className="n">{n.toLocaleString('en-US')}</span>
+                  <span className="n">{count(n)}</span>
                   <Tag>{tag}</Tag>
                 </div>
               ))}
@@ -360,7 +361,7 @@ function Finished({ j, onAgain }: { j: Job; onAgain: (t: Target) => void }) {
           <div className="card vf-rcard">
             <div className="hd">
               <ResultBadge result="unknown" />
-              <b>{j.unknown.toLocaleString('en-US')}</b>
+              <b>{count(j.unknown)}</b>
             </div>
             <span className="text-[13px] text-ink-nav">
               <T msg={m.cardUnknownBody} values={{ ...tagValue, name: j.serviceName }} />

@@ -95,10 +95,10 @@ export const m = defineMessages('verification', {
 
   lowCreditsTitle: 'Not enough credits for the next job',
   lowCreditsBody: '{balance, number} credits. {label} needs {needed, number}.',
-  lowCreditsBodyPlain: '{balance, number} credits, under 1,000.',
+  lowCreditsBodyPlain: '{balance, number} credits, under {limit, number}.',
   addCredits: 'Add credits in {name}',
   readBalanceAgain: 'Read the balance again',
-  lowCreditsFoot: 'Members with <code>integrations:manage</code> get “Verification credits low” under 1,000 credits, or when a waiting job needs more than the balance.',
+  lowCreditsFoot: 'Members with <code>integrations:manage</code> get “Verification credits low” under {limit, number} credits, or when a waiting job needs more than the balance.',
   lastErrorTitle: 'Last error · {when}',
   lastErrorJob: 'A job is paused and retries every 5 minutes. Imports and signups aren’t blocked.',
   openPausedJob: 'Open the paused job',
