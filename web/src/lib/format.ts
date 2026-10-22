@@ -173,6 +173,13 @@ export function clock(d: string | number | Date): string {
   return time.format(toDate(d))
 }
 
+/** A time of day kept as "HH:MM" (quiet hours, a digest's send time), on the reader's clock: "22:00", "10:00 PM". */
+export function timeOfDay(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number)
+  if (standardClock() || h === undefined || m === undefined || !Number.isInteger(h) || !Number.isInteger(m)) return hhmm
+  return formatTime(region(), { year: 2000, month: 1, day: 1, weekday: 6, hour: h, minute: m, second: 0 }, getI18n().hourCycle)
+}
+
 /** "Jan 1, 2027" */
 export function usDate(d: string | number | Date): string {
   if (!standard()) return formatDate(region(), 'date', zoned(toDate(d)))

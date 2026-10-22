@@ -13,7 +13,7 @@ import { FilterTabs } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { common } from '@/i18n/common'
-import { count, notificationTime } from '@/lib/format'
+import { count, notificationTime, timeOfDay } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { NotificationLink, notificationDotColor, useNotificationActions } from '@/components/shell/NotificationsPopover'
 import { m } from './messages'
@@ -278,7 +278,7 @@ function PreferencesCard() {
                       >
                         {[...new Set([...(p.quietHours ? [p.quietHours.start] : []), ...quietStarts])].sort().map((h) => (
                           <option key={h} value={h}>
-                            {h}
+                            {timeOfDay(h)}
                           </option>
                         ))}
                         <option value="off">{t(common.off)}</option>
@@ -296,7 +296,7 @@ function PreferencesCard() {
                       >
                         {[...new Set([...(p.quietHours ? [p.quietHours.end] : []), ...quietEnds])].sort().map((h) => (
                           <option key={h} value={h}>
-                            {h}
+                            {timeOfDay(h)}
                           </option>
                         ))}
                       </select>
