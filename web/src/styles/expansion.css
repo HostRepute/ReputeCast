@@ -297,3 +297,11 @@
   padding-block: 6px;
   line-height: 1.25;
 }
+
+/* Products: the product editor's numbers ("6.206 US$" where the region
+   format writes the currency after the amount, joined by a no-break space)
+   take two columns instead of three in the narrow side panel, so an amount
+   never runs past its tile. */
+:root:not([lang='en']) .pr-nums {
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+}

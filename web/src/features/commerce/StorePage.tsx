@@ -9,11 +9,12 @@ import { Bar, KeyValues } from '@/components/ui/Data'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Menu, MenuItem } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
+import { Th } from '@/components/ui/Table'
 import { AttentionIcon, Tile } from '@/features/integrations/shared'
 import '@/features/integrations/integrations.css'
 import { T, formatList, useT, type MessageDescriptor } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { ago, clock, count, dayMonthDate, longDate, pct } from '@/lib/format'
+import { ago, clock, count, dayMonthDate, dayMonthYear, pct } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useMe, useWorkspace } from '@/lib/session'
 import { ActivityEntry, ActivityLogDialog, type ActivityContext } from './Activity'
@@ -222,7 +223,7 @@ function Header({ page: p, onDialog }: { page: Page_; onDialog: (d: Dialog) => v
   const platform = woo ? t(cm.woocommerce) : t(cm.shopify)
   const st = syncStatus(t, s.sync, s.platform)
   const host = woo ? s.address : storefront(p)
-  const date = p.connectedAt ? longDate(p.connectedAt).replace(/^\S+\s/, '') : ''
+  const date = p.connectedAt ? dayMonthYear(p.connectedAt) : ''
   const facts = woo
     ? s.sync.state === 'no_plugin'
       ? s.demo
@@ -384,13 +385,14 @@ function MissingBanner({ page: p, platform }: { page: Page_; platform: string })
   const register = useRegister(p)
   const topic = p.store.sync.missing[0] ?? ''
   const since = p.store.sync.missingSince
-  const [resource, what] = resourceOf(t, topic)
+  // The message words each resource whole: checkouts, customers, products, refunds or orders.
+  const resource = topic.split('/')[0] ?? ''
   return (
     <div className="ih-banner" role="status">
       <div className="ih-bi">
         <AttentionIcon size={16} />
         <span className="ih-bt">
-          <T msg={cm.missingBanner} values={{ topic, platform, date: since ? dayMonthDate(since) : '', time: since ? clock(since) : '', resource, what, b: bold }} />
+          <T msg={cm.missingBanner} values={{ topic, platform, date: since ? dayMonthDate(since) : '', time: since ? clock(since) : '', resource, b: bold }} />
         </span>
       </div>
       {p.canManage ? (
@@ -400,21 +402,6 @@ function MissingBanner({ page: p, platform }: { page: Page_; platform: string })
       ) : null}
     </div>
   )
-}
-
-function resourceOf(t: T_, topic: string): [string, string] {
-  const r = topic.split('/')[0]
-  switch (r) {
-    case 'checkouts':
-      return [t(cm.resourceCheckouts), t(cm.missingWhatCheckouts)]
-    case 'customers':
-      return [t(cm.resourceCustomers), t(cm.missingWhatCustomers)]
-    case 'products':
-      return [t(cm.resourceProducts), t(cm.missingWhatProducts)]
-    case 'refunds':
-      return [t(cm.resourceRefunds), t(cm.missingWhatRefunds)]
-  }
-  return [t(cm.resourceOrders), t(cm.missingWhatOrders)]
 }
 
 function useRegister(p: Page_) {
@@ -933,16 +920,12 @@ function AttributionCard({ page: p }: { page: Page_ }) {
                 </colgroup>
                 <thead>
                   <tr>
-                    <th scope="col">{t(cm.attrTo)}</th>
-                    <th scope="col" className="r">
-                      {t(cm.attrOrders)}
-                    </th>
-                    <th scope="col" className="r">
-                      {t(cm.attrRevenue)}
-                    </th>
-                    <th scope="col">
+                    <Th>{t(cm.attrTo)}</Th>
+                    <Th align="right">{t(cm.attrOrders)}</Th>
+                    <Th align="right">{t(cm.attrRevenue)}</Th>
+                    <Th>
                       <span className="vh">{t(cm.attrOrders)}</span>
-                    </th>
+                    </Th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1074,12 +1057,12 @@ function WebhooksCard({ page: p, platform }: { page: Page_; platform: string }) 
             )}
             <thead>
               <tr>
-                <th scope="col">{t(cm.hookTopic)}</th>
-                <th scope="col">{t(cm.hookStatus)}</th>
-                <th scope="col">{t(cm.hookLast)}</th>
-                <th scope="col">
+                <Th>{t(cm.hookTopic)}</Th>
+                <Th>{t(cm.hookStatus)}</Th>
+                <Th>{t(cm.hookLast)}</Th>
+                <Th>
                   <span className="vh">{t(cm.hookAgain)}</span>
-                </th>
+                </Th>
               </tr>
             </thead>
             <tbody>

@@ -724,6 +724,48 @@ phone number, a sender ID and a country code are data: never translated.
 | tag | thẻ | |
 | title (archived issue) | tựa đề | "tiêu đề" is an email's subject, "đề mục" a heading |
 
+## Products, stores and transactional email
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| abandoned checkout · abandoned cart | thanh toán bị bỏ dở · giỏ hàng bị bỏ dở | as Shopify's Vietnamese admin says it |
+| accepted marketing · didn't accept | đã đồng ý nhận tiếp thị · không đồng ý | a store customer's consent |
+| attribution · credited to | ghi nhận doanh thu · ghi nhận cho | "Attribution window": "Khoảng thời gian ghi nhận" |
+| Bought a product (trigger · condition) | Mua sản phẩm · Đã mua sản phẩm | |
+| buyer · customer | người mua · khách hàng | a product's buyer; a store's customer |
+| checkout · at checkout | thanh toán · khi thanh toán | "Stripe Checkout" keeps its name |
+| click token | mã lượt nhấp | |
+| collection (store) | bộ sưu tập | |
+| compare-at price | giá so sánh | |
+| cover (product) | ảnh bìa | |
+| delivery · delivery email · delivery template | giao hàng · email giao hàng · mẫu email giao hàng | a digital product's download link; a delivered email is still "Gửi thành công" |
+| dispute | tranh chấp | never "khiếu nại", which is a spam complaint |
+| download link · downloads | liên kết tải xuống · lượt tải | "4 of 5 downloads left": "còn 4/5 lượt tải" |
+| failover · primary · fallback | chuyển dự phòng · chính · dự phòng | a route's providers |
+| Gross · Net | Tổng thu · Thực thu | product revenue before and after refunds |
+| idempotency key | khóa idempotency | |
+| list offer | lời mời vào danh sách | the checkbox next to a product's Buy button |
+| live · test (payments, keys, modes) | thật · thử nghiệm | the message log's live updates are "Trực tiếp" |
+| median delivery | thời gian gửi trung vị | |
+| message (transactional) · Messages (tab) | thư · Thư | |
+| order | đơn hàng | |
+| Order placed · First order · Placed an order | Đơn hàng được đặt · Đơn hàng đầu tiên · Đã đặt hàng | store triggers and the goal |
+| Pay what you want · One-time | Trả tùy ý · Một lần | a product's price |
+| product · digital product | sản phẩm · sản phẩm số | |
+| Queued · Deferred · Bounced · Complained · Rejected | Đang chờ gửi · Bị hoãn · Bị trả lại · Bị khiếu nại · Bị từ chối | a message's status; Delivered is "Gửi thành công" |
+| Raw (SMTP) | Thư thô (SMTP) | mail an app sends already rendered |
+| reconciliation | đối soát | a store's nightly check |
+| refund · refunded | hoàn tiền · đã hoàn tiền | |
+| revoke access · restore access | thu hồi quyền truy cập · khôi phục quyền truy cập | a product order's download |
+| route · Transactional route | tuyến · tuyến Giao dịch | as "Tuyến Gửi hàng loạt" |
+| sales page · default product page · shop | trang bán hàng · trang sản phẩm mặc định · cửa hàng | |
+| send-only key · SMTP credential | khóa chỉ gửi · thông tin xác thực SMTP | "SMTP relay" keeps its name |
+| single opt-in | đăng ký một bước | double opt-in is "xác nhận hai bước" |
+| store · connect · disconnect · sync | cửa hàng · kết nối · ngắt kết nối · đồng bộ | Shopify and WooCommerce; their menu paths and field names stay in English |
+| suppressed · opted out | bị chặn gửi · đã tắt nhận | why a message wasn't sent |
+| webhook topic | chủ đề | orders/create stays as it is |
+| write-only · sealed | chỉ ghi · được niêm phong | a secret that's never shown again |
+
 ## Words used everywhere
 
 | English | Tiếng Việt |

@@ -1,46 +1,22 @@
 import { Link } from '@tanstack/react-router'
 import { $api, type Schemas } from '@/api/client'
-import { defineMessages, useT } from '@/i18n'
+import { useT } from '@/i18n'
 import { dayMonthDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { money } from './api'
+import { cp } from './elsewhere.messages'
 import './commerce.css'
 
 type Order = Schemas['CommerceContactOrder']
 type Store = Schemas['CommerceContactStore']
 type ActivityItem = Schemas['ContactActivityItem']
 
-/**
+/*
  * A contact's store orders and what each store knows of their consent
  * (CommerceEmails: Sam Rivera's profile). Orders show whatever the
  * consent; "Not added to Acme Merch" says why the store's list doesn't have
  * them.
  */
-const cp = defineMessages('commerce.profile', {
-  title: 'Store orders · {store} · {count}',
-  titleMany: 'Store orders · {count}',
-  order: '{name} · {item}',
-  orderMore: '{name} · {item} and {more, plural, one {# more} other {# more}}',
-  orderLine: '{date} · {amount} · credited to {credited}',
-  orderLineNone: '{date} · {amount}',
-  refunded: '{amount} refunded',
-  notAdded: "Not added to {list}: didn't accept marketing in {platform}",
-  onList: 'On {list}: accepted marketing in {platform} on {date}',
-  onListNoDate: 'On {list}: accepted marketing in {platform}',
-  unsubscribed: 'Unsubscribed from marketing in {platform}',
-  accepted: 'Accepted marketing in {platform}',
-  spent: '{orders, plural, one {# order} other {# orders}} · {amount} spent in {store}',
-  noOrders: "No orders yet; {store}'s customer since the sync.",
-  storePage: '{store} attribution',
-  // The timeline's store events.
-  placed: 'Placed order {order} in {store} · {amount}',
-  placedNoName: 'Placed an order in {store} · {amount}',
-  abandoned: 'Left a checkout in {store} · {amount}',
-  creditedTo: 'credited to {credited}',
-  acceptedAt: 'accepted marketing at checkout',
-  notAccepted: "didn't accept marketing at checkout",
-  enteredFlow: 'entered {flow}',
-})
 
 /**
  * The timeline's store events (types store_order and checkout_abandoned):

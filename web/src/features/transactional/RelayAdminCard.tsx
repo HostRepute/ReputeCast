@@ -7,49 +7,9 @@ import { Button } from '@/components/ui/Button'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { defineMessages, useT } from '@/i18n'
+import { useT } from '@/i18n'
 import { dayMonthYear } from '@/lib/format'
-
-const mr = defineMessages('transactional.relayAdmin', {
-  title: 'SMTP relay',
-  caption: 'For apps that send transactional mail by SMTP instead of the HTTP API',
-  turnedOn: '{caption} · turned on by {name} on {date}',
-  turnedOnNoName: '{caption} · turned on on {date}',
-  on: 'On',
-  off: 'Off',
-  unreachable: 'Unreachable',
-  hostname: 'Hostname',
-  ports: 'Ports',
-  starttls: 'STARTTLS',
-  tls: 'TLS',
-  starttlsPort: 'STARTTLS port',
-  tlsPort: 'TLS port',
-  certificate: 'Certificate',
-  acme: "Let's Encrypt",
-  acmeRenews: "Let's Encrypt · renews {date}",
-  files: 'Certificate and key files',
-  certFile: 'Certificate chain (PEM)',
-  keyFile: 'Private key (PEM)',
-  keyHint: 'Write-only: the key is sealed and never shown again. Leave both empty to keep the files in use.',
-  help: "Workspaces create SMTP credentials in Transactional › Setup; each one is a send-only key. Mail that arrives here goes through the workspace's Transactional route.",
-  offBody: 'Turn the relay on to let apps that only speak SMTP send through a workspace’s Transactional route. ReputeCast listens on the ports below and checks DNS, the ports and the certificate.',
-  checks: 'Checks',
-  checkedAt: 'Checked {date}',
-  notChecked: 'Not checked yet: run the checks once DNS points here.',
-  pass: 'Pass',
-  fail: 'Fail',
-  runChecks: 'Run checks',
-  turnOn: 'Turn on',
-  turnOff: 'Turn off',
-  save: 'Save',
-  saved: 'SMTP relay saved',
-  turnedOnToast: 'SMTP relay on',
-  turnedOffToast: 'SMTP relay off',
-  turnedOffDetail: 'Apps sending by SMTP get a refused connection; the HTTP API keeps working.',
-  renewFailed: "The certificate didn't renew: {error}",
-  error: "Couldn't load the SMTP relay",
-  retry: 'Retry',
-})
+import { mr } from './elsewhere.messages'
 
 type Relay = Schemas['SMTPRelaySettings']
 
