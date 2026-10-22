@@ -316,7 +316,8 @@ export const m = defineMessages('placement', {
   lookWarmupLine: 'Day {day, number} of {days, number}. Most engaged contacts go first while the IP is young.',
   lookWarmupNoHR: 'Day {day, number} of {days, number}. Health shows the built-in checks for {ip}.',
   lookStateHealthy: 'Healthy.',
-  lookStateOther: '{status}.',
+  // A provider state the guidance names (healthy and warming up have their own lines).
+  lookStateOther: '{status, select, degraded {degraded.} down {down.} paused {paused.} sandbox {sandbox.} other {{status}.}}',
   lookEarlier: '{content} reached {inbox, number} of {copies, number} inboxes through {provider} on {date}.',
   openReview: 'Open Review & send',
   editComposer: 'Edit in the composer',

@@ -428,7 +428,7 @@ export function ReconnectDialog({ d, seed, open, onOpenChange }: { d: SeedList; 
               id={ids.password}
               className={error ? 'in border-bad-strong!' : 'in'}
               type="password"
-              placeholder="xxxx-xxxx-xxxx-xxxx"
+              placeholder={'xxxx-xxxx-xxxx-xxxx'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"

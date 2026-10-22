@@ -6,6 +6,7 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { Loading, Skeleton } from '@/components/ui/Feedback'
 import { T, useT } from '@/i18n'
 import { clock, orList, shortDate } from '@/lib/format'
+import { roleName } from '@/lib/roles'
 import { useNow } from '@/lib/hooks'
 import { useMe, useWorkspace } from '@/lib/session'
 import { m } from './messages'
@@ -276,7 +277,7 @@ function ReadOnlyNote({ helpers }: { helpers: string[] }) {
     <div className="note n" role="note">
       <Icon name="info" size={16} className="mt-px flex-none text-ink-3" />
       <div className="flex min-w-0 flex-col gap-1">
-        {me ? <span className="font-bold">{t(m.readOnlyWho, { name: me.user.name, role: ws.workspace.roleName })}</span> : null}
+        {me ? <span className="font-bold">{t(m.readOnlyWho, { name: me.user.name, role: roleName({ key: ws.workspace.roleKey, name: ws.workspace.roleName }) })}</span> : null}
         <span>
           <T msg={helpers.length ? m.viewerNote : m.viewerNoteNobody} values={{ helpers: orList(helpers), code: (c) => <span className="mono">{c}</span> }} />
         </span>
