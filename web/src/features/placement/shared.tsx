@@ -112,6 +112,22 @@ export function dayTime(d: string): string {
   return `${shortDate(d)}, ${clock(d)}`
 }
 
+/**
+ * A mailbox provider's password, named in the app's language: "App
+ * password", "App-specific password". The API names it in English.
+ */
+export function credentialName(label: string): string {
+  switch (label) {
+    case 'App password':
+      return tr(m.credentialAppPassword)
+    case 'App-specific password':
+      return tr(m.credentialAppSpecific)
+    case 'Password':
+      return tr(m.credentialPassword)
+  }
+  return label
+}
+
 /** A copy's time to arrive: "9 s", "2 min 10 s", "34 min 5 s". */
 export function arrive(ms: number | null | undefined): string {
   if (ms == null) return '–'
@@ -349,7 +365,7 @@ export function SeedAttention({ seeds, onReconnect }: { seeds: SeedView[]; onRec
             msg={expired ? m.attentionExpiredBody : m.attentionFailedBody}
             values={{
               company: first.company,
-              password: first.passwordLabel.toLowerCase(),
+              password: credentialName(first.passwordLabel).toLowerCase(),
               email: first.email,
               date: shortDate(at),
               time: clock(at),

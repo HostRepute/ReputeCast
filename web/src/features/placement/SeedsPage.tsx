@@ -13,7 +13,7 @@ import { useMe, useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import { PlacementShell } from './PlacementShell'
 import { AddSeedDialog, inboxNames, ReconnectDialog, RemoveSeedDialog, type AddNote } from './SeedDialogs'
-import { base, dayTime, LoadError, SeedAttention, useRefreshPlacement, useSeeds, type SeedList, type SeedView } from './shared'
+import { base, credentialName, dayTime, LoadError, SeedAttention, useRefreshPlacement, useSeeds, type SeedList, type SeedView } from './shared'
 
 export type SeedsSearch = {
   add?: boolean
@@ -205,7 +205,7 @@ function SeedsCard({ d, onAdd, onReconnect, onRemove }: { d: SeedList; onAdd: ()
         <span className="k">{s.provider === 'outlook' || s.provider === 'microsoft_365' ? t(m.connMicrosoft) : t(m.connGoogle)}</span>
       </span>
     ) : (
-      <span>{t(m.connImap, { password: s.passwordLabel.toLowerCase() })}</span>
+      <span>{t(m.connImap, { password: credentialName(s.passwordLabel).toLowerCase() })}</span>
     )
   const actions = (s: SeedView) =>
     d.canManage ? (
@@ -294,7 +294,7 @@ function SeedsCard({ d, onAdd, onReconnect, onRemove }: { d: SeedList; onAdd: ()
       <div className="pl-md-down">
         {d.seeds.map((s) => {
           const at = s.statusAt ?? s.checkedAt
-          const auth = s.auth === 'oauth' ? t(m.connOAuth) : t(m.connImap, { password: s.passwordLabel.toLowerCase() })
+          const auth = s.auth === 'oauth' ? t(m.connOAuth) : t(m.connImap, { password: credentialName(s.passwordLabel).toLowerCase() })
           const added = { name: s.addedBy, date: shortDate(s.addedAt) }
           const used = s.lastUsedAt ? t(m.phoneUsedLine, { when: dayTime(s.lastUsedAt), ...added }) : t(m.phoneUsedNever, added)
           const problem =

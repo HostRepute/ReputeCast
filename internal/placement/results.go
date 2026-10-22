@@ -14,6 +14,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/placement/seedbox"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -435,11 +436,11 @@ type PlacementCopyView struct {
 	LateUntil *time.Time `json:"lateUntil,omitempty"`
 }
 
-func copyView(c store.PlacementCopy, t store.PlacementTest, seeds map[uuid.UUID]store.PlacementSeed, events []store.DeliveryEvent) PlacementCopyView {
+func copyView(l i18n.Lang, c store.PlacementCopy, t store.PlacementTest, seeds map[uuid.UUID]store.PlacementSeed, events []store.DeliveryEvent) PlacementCopyView {
 	p, _ := seedbox.ProviderOf(c.SeedProvider)
 	v := PlacementCopyView{ID: c.ID.String(), SeedEmail: c.SeedEmail, SeedProvider: c.SeedProvider, SeedProviderName: p.Name, ProviderName: c.ProviderName,
 		Round: int(c.Round), First: t.Through == "compare" && c.Round == 1, Status: c.Status, Folder: c.Folder, FolderName: c.FolderName, Tab: c.Tab,
-		Late: c.Late, SendAt: c.SendAt, HandedAt: c.HandedAt, ReceivedAt: c.ReceivedAt, ArriveMs: arriveMs(c), Reason: c.NotChecked, Error: c.Error}
+		Late: c.Late, SendAt: c.SendAt, HandedAt: c.HandedAt, ReceivedAt: c.ReceivedAt, ArriveMs: arriveMs(c), Reason: c.NotChecked, Error: copyError(l, c.Error)}
 	if c.SeedID != nil {
 		v.SeedID = c.SeedID.String()
 	}
@@ -660,7 +661,7 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, id uuid.UUID) (
 	}
 	seen := map[string]bool{}
 	for _, c := range copies {
-		out.Copies = append(out.Copies, copyView(c, t, seeds, byCopy[c.ID]))
+		out.Copies = append(out.Copies, copyView(i18n.LangFrom(ctx), c, t, seeds, byCopy[c.ID]))
 		if seen[c.SeedEmail] {
 			continue
 		}
@@ -839,7 +840,7 @@ func (s *Service) CopyDetail(ctx context.Context, ws *store.Workspace, testID, c
 	if err != nil {
 		return PlacementCopyDetail{}, err
 	}
-	out := PlacementCopyDetail{Copy: copyView(c, t, seeds, evs), Events: []PlacementEvent{}, ProviderMessageID: c.ProviderMessageID,
+	out := PlacementCopyDetail{Copy: copyView(i18n.LangFrom(ctx), c, t, seeds, evs), Events: []PlacementEvent{}, ProviderMessageID: c.ProviderMessageID,
 		WaitUntil: t.WaitUntil, TestStatus: t.Status, Headers: c.Headers, ReadVia: "imap"}
 	oauth := strings.Contains(string(c.Ref), "graphId")
 	if c.SeedID != nil {
