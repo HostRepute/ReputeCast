@@ -1,0 +1,5 @@
+{
+  "problem.nameFormOrImport": { "message": "Name the form or the import.", "note": "the Welcome series prompt of a form or an import was asked for without saying which one" },
+  "problem.nameList": { "message": "Name the list.", "note": "Not now on the Welcome series prompt, without the list it was for" },
+  "problem.context": { "message": "Use health, form or import.", "note": "health, form and import are values of the query parameter context, never translated" }
+}
