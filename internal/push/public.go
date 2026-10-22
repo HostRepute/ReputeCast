@@ -175,14 +175,14 @@ func (s *Service) serveClick(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	id, tok, ok := ParseClick(chi.URLParam(r, "click"))
 	if !ok {
-		gone(w)
+		gone(w, r)
 		return
 	}
 	action := 0
 	if b := chi.URLParam(r, "button"); b != "" {
 		n, err := strconv.Atoi(b)
 		if err != nil || n < 1 || n > 2 {
-			gone(w)
+			gone(w, r)
 			return
 		}
 		action = n
@@ -198,7 +198,7 @@ func (s *Service) serveClick(w http.ResponseWriter, r *http.Request) {
 		target, err = s.Click(ctx, id, tok, action, r.UserAgent())
 	}
 	if err != nil || target == "" {
-		gone(w)
+		gone(w, r)
 		return
 	}
 	// target is one of the notification's own links (from its content or
@@ -206,10 +206,19 @@ func (s *Service) serveClick(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, target, http.StatusFound) //nolint:gosec // G710: see target
 }
 
-func gone(w http.ResponseWriter) {
+// gone answers a click on a link that isn't (or no longer is) a
+// notification's, in the reader's language.
+func gone(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusNotFound)
-	_, _ = w.Write([]byte("This notification's link is no longer valid.\n"))
+	_, _ = w.Write([]byte(mPublicLinkGone.Text(readerLang(r), nil) + "\n"))
+}
+
+// readerLang is the language a site's reader reads ReputeCast's own words
+// in: their browser's, when ReputeCast has it, else English.
+func readerLang(r *http.Request) i18n.Lang {
+	loc, _ := i18n.Negotiate(r.Header.Get("Accept-Language"))
+	return i18n.For(loc)
 }
 
 // PageRoutes mounts a workspace's push endpoints (under /p/{ws}/push).
@@ -391,8 +400,7 @@ func (s *Service) serveConfig(w http.ResponseWriter, r *http.Request, ws *store.
 	if s.Brand != nil {
 		out.Accent, out.Name = s.Brand(ctx, ws)
 	}
-	loc, _ := i18n.Negotiate(r.Header.Get("Accept-Language"))
-	l := i18n.For(loc)
+	l := readerLang(r)
 	names := i18n.Args{"site": out.Name}
 	out.Text = map[string]string{"iosTitle": msgs.M("ios.title").Text(l, names), "iosShare": msgs.M("ios.share").Text(l, nil),
 		"iosAdd": msgs.M("ios.add").Text(l, nil), "iosOpen": msgs.M("ios.open").Text(l, names)}
