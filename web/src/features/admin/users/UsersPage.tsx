@@ -100,12 +100,12 @@ function Filters({ search, workspaces }: { search: UsersSearch; workspaces: Sche
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text])
   return (
-    <div className="row gap-2 max-md:basis-full">
+    <div className="filters-grow row gap-2 max-md:basis-full">
       <label className="vh" htmlFor="uq">
         {t(m.searchLabel)}
       </label>
       <input id="uq" className="in w-[220px] max-md:w-full" type="search" placeholder={t(m.searchPlaceholder)} value={text} onChange={(e) => setText(e.target.value)} />
-      <select className="in w-[170px] max-md:w-full" aria-label={t(m.filterWorkspace)} value={search.workspace ?? ''} onChange={(e) => set({ workspace: e.target.value || undefined })}>
+      <select className="in w-[170px] min-w-[170px] max-md:w-full" aria-label={t(m.filterWorkspace)} value={search.workspace ?? ''} onChange={(e) => set({ workspace: e.target.value || undefined })}>
         <option value="">{t(m.anyWorkspace)}</option>
         {workspaces.map((w) => (
           <option key={w.slug} value={w.slug}>
@@ -114,7 +114,7 @@ function Filters({ search, workspaces }: { search: UsersSearch; workspaces: Sche
         ))}
       </select>
       <select
-        className="in w-[130px] max-md:w-full"
+        className="in w-[130px] min-w-[130px] max-md:w-full"
         aria-label={t(m.filterStatus)}
         value={search.status ?? ''}
         onChange={(e) => set({ status: (e.target.value || undefined) as UsersSearch['status'] })}
@@ -124,7 +124,7 @@ function Filters({ search, workspaces }: { search: UsersSearch; workspaces: Sche
         <option value="deactivated">{t(m.deactivated)}</option>
       </select>
       <select
-        className="in w-[110px] max-md:w-full"
+        className="in w-[110px] min-w-[110px] max-md:w-full"
         aria-label={t(m.filter2FA)}
         value={search.twofa ?? ''}
         onChange={(e) => set({ twofa: (e.target.value || undefined) as UsersSearch['twofa'] })}
@@ -279,7 +279,7 @@ function UserMenu({ u, open, onOpenChange, onDialog }: { u: User; open: boolean;
   return (
     <Menu
       label={t(m.actionsFor, { name: u.name })}
-      className="w-[300px] max-md:w-auto"
+      className="us-menu w-[300px] max-md:w-auto"
       open={open}
       onOpenChange={onOpenChange}
       trigger={

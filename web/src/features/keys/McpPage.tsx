@@ -8,12 +8,13 @@ import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
+import { OptionCard } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { EmptyRow, Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { ScrollPre } from '@/components/ui/ScrollPre'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
-import { t as tt, useT } from '@/i18n'
+import { t as tt, useI18n, useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { count, logTime } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
@@ -116,6 +117,9 @@ export function McpPage() {
 
 function ConnectCard({ o }: { o: Overview }) {
   const t = useT()
+  // The transports' labels pass 32 characters outside English, where they
+  // are radio cards instead of a select, which can't wrap (Text expansion, rule 1).
+  const cards = useI18n().locale !== 'en'
   // Laid out as on the board: the headers object stays on one line.
   const snippet = [
     '{',
@@ -138,18 +142,31 @@ function ConnectCard({ o }: { o: Overview }) {
           {t(m.endpoint)}
           <input className="in mono bg-white" value={o.endpoint} readOnly onFocus={(e) => e.currentTarget.select()} />
         </label>
-        <label className="lbl">
-          {t(m.transport)}
-          <select className="in" defaultValue="http" aria-describedby="mcp-transport-hint">
-            <option value="http">{t(m.transportHttp)}</option>
-            <option value="stdio" disabled>
-              {t(m.transportStdio)}
-            </option>
-          </select>
-          <span className="vh" id="mcp-transport-hint">
-            {t(m.transportHint)}
-          </span>
-        </label>
+        {cards ? (
+          <div className="lbl">
+            <span id="mcp-transport-l">{t(m.transport)}</span>
+            <div role="radiogroup" aria-labelledby="mcp-transport-l" aria-describedby="mcp-transport-hint" className="flex flex-col gap-1.5">
+              <OptionCard name="mcp-transport" value="http" checked onChange={() => {}} title={t(m.transportHttp)} />
+              <OptionCard name="mcp-transport" value="stdio" checked={false} disabled onChange={() => {}} title={t(m.transportStdio)} />
+            </div>
+            <span className="vh" id="mcp-transport-hint">
+              {t(m.transportHint)}
+            </span>
+          </div>
+        ) : (
+          <label className="lbl">
+            {t(m.transport)}
+            <select className="in" defaultValue="http" aria-describedby="mcp-transport-hint">
+              <option value="http">{t(m.transportHttp)}</option>
+              <option value="stdio" disabled>
+                {t(m.transportStdio)}
+              </option>
+            </select>
+            <span className="vh" id="mcp-transport-hint">
+              {t(m.transportHint)}
+            </span>
+          </label>
+        )}
       </div>
       <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-2">
         <span className="k">{t(m.connectFrom)}</span>

@@ -261,7 +261,7 @@ function Filters({ search, list }: { search: InstanceAuditSearch; list?: List })
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `set` changes every render; the search value is what matters
   }, [q])
   return (
-    <div className="row gap-2 max-md:basis-full">
+    <div className="filters-grow row gap-2 max-md:basis-full">
       <label className="vh" htmlFor="iq">
         {t(common.search)}
       </label>
@@ -273,7 +273,7 @@ function Filters({ search, list }: { search: InstanceAuditSearch; list?: List })
         onChange={(e) => setQ(e.target.value)}
         type="search"
       />
-      <select className="in w-[160px] max-md:w-full" aria-label={t(mi.filterWorkspace)} value={search.workspace ?? ''} onChange={(e) => set({ workspace: e.target.value || undefined })}>
+      <select className="in w-[160px] min-w-[160px] max-md:w-full" aria-label={t(mi.filterWorkspace)} value={search.workspace ?? ''} onChange={(e) => set({ workspace: e.target.value || undefined })}>
         <option value="">{t(mi.allWorkspaces)}</option>
         {(list?.workspaces ?? []).map((w) => (
           <option key={w.slug} value={w.slug}>
@@ -283,7 +283,7 @@ function Filters({ search, list }: { search: InstanceAuditSearch; list?: List })
         <option value="instance">{t(mi.instanceOnly)}</option>
       </select>
       <select
-        className="in w-[150px] max-md:w-full"
+        className="in w-[150px] min-w-[150px] max-md:w-full"
         aria-label={t(ma.filterActorType)}
         value={search.actorType ?? ''}
         onChange={(e) => set({ actorType: (e.target.value || undefined) as InstanceAuditSearch['actorType'] })}
@@ -295,7 +295,7 @@ function Filters({ search, list }: { search: InstanceAuditSearch; list?: List })
         <option value="system">{t(ma.actorType, { type: 'system' })}</option>
       </select>
       <select
-        className="in w-[120px] max-md:w-full"
+        className="in w-[120px] min-w-[120px] max-md:w-full"
         aria-label={t(ma.filterResult)}
         value={search.result ?? ''}
         onChange={(e) => set({ result: (e.target.value || undefined) as InstanceAuditSearch['result'] })}
@@ -306,7 +306,7 @@ function Filters({ search, list }: { search: InstanceAuditSearch; list?: List })
       </select>
       <AgencyAuditFilter value={search.category} onChange={(category) => set({ category })} />
       <select
-        className="in w-[130px] max-md:w-full"
+        className="in w-[130px] min-w-[130px] max-md:w-full"
         aria-label={t(ma.dateRange)}
         value={search.range ?? ''}
         onChange={(e) => set({ range: (e.target.value || undefined) as InstanceAuditSearch['range'] })}

@@ -95,7 +95,7 @@ export function AuditPage({ search }: { search: AuditSearch }) {
                 <ListSkeleton />
               ) : (
                 <>
-                  <AccessTable caption={t(m.tableCaption)} aria-busy={q.isFetching && !q.isFetchingNextPage ? true : undefined}>
+                  <AccessTable className="au-tbl" caption={t(m.tableCaption)} aria-busy={q.isFetching && !q.isFetchingNextPage ? true : undefined}>
                     <thead>
                       <tr>
                         <Th>{t(m.colTime)}</Th>
@@ -208,13 +208,13 @@ function Filters({ search, list }: { search: AuditSearch; list?: List }) {
   }, [q])
   const actor = search.actor ? list?.actors.find((a) => a.id === search.actor) : undefined
   return (
-    <div className="row gap-2">
+    <div className="filters-grow row gap-2">
       <label className="vh" htmlFor="aq">
         {t(common.search)}
       </label>
       <input id="aq" className="in w-[220px] max-sm:w-full" placeholder={t(m.searchPlaceholder)} value={q} onChange={(e) => setQ(e.target.value)} type="search" />
       <select
-        className="in w-[150px] max-md:w-full"
+        className="in w-[150px] min-w-[150px] max-md:w-full"
         aria-label={t(m.filterActorType)}
         value={search.actorType ?? ''}
         onChange={(e) => set({ actorType: (e.target.value || undefined) as AuditSearch['actorType'], actor: undefined })}
@@ -226,7 +226,7 @@ function Filters({ search, list }: { search: AuditSearch; list?: List }) {
         <option value="system">{t(m.actorType, { type: 'system' })}</option>
       </select>
       <select
-        className="in w-[150px] max-md:w-full"
+        className="in w-[150px] min-w-[150px] max-md:w-full"
         aria-label={t(m.filterAction)}
         value={search.category ?? (search.action ? `a:${search.action}` : '')}
         onChange={(e) => {
@@ -243,7 +243,7 @@ function Filters({ search, list }: { search: AuditSearch; list?: List }) {
         {search.action ? <option value={`a:${search.action}`}>{search.action}</option> : null}
       </select>
       <select
-        className="in w-[120px] max-md:w-full"
+        className="in w-[120px] min-w-[120px] max-md:w-full"
         aria-label={t(m.filterResult)}
         value={search.result ?? ''}
         onChange={(e) => set({ result: (e.target.value || undefined) as AuditSearch['result'] })}
@@ -254,7 +254,7 @@ function Filters({ search, list }: { search: AuditSearch; list?: List }) {
         <option value="error">{t(m.result, { result: 'error' })}</option>
       </select>
       <select
-        className="in w-[130px] max-md:w-full"
+        className="in w-[130px] min-w-[130px] max-md:w-full"
         aria-label={t(m.dateRange)}
         value={search.range ?? '7d'}
         onChange={(e) => set({ range: e.target.value === '7d' ? undefined : (e.target.value as AuditSearch['range']) })}
