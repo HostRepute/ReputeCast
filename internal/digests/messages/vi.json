@@ -9,7 +9,7 @@
   "schedule.timezone": "Hãy chọn một múi giờ trong danh sách.",
   "schedule.count": "Hãy gửi khi có từ 1 đến 50 mục mới.",
   "schedule.window": "Hãy nhập khung giờ gửi bằng hai mốc giờ, ví dụ 08:00 và 18:00.",
-  "schedule.windowOrder": "Khung giờ phải kết thúc sau khi bắt đầu: hãy chọn giờ kết thúc muộn hơn {from}.",
+  "schedule.windowOrder": "Khung giờ phải kết thúc sau khi bắt đầu: hãy chọn giờ kết thúc muộn hơn {from, time}.",
   "schedule.time": "Hãy nhập giờ gửi theo dạng HH:MM, ví dụ 08:00.",
   "schedule.weekday": "Hãy chọn một ngày trong tuần.",
   "schedule.monthDay": "Hãy chọn một ngày trong tháng, từ 1 đến 31.",
@@ -50,6 +50,12 @@
   "version.prepared": "Số #{number}, chuẩn bị từ {count, plural, other {# bài viết mới}}",
   "version.rebuilt": "Tạo lại với mẫu hiện tại",
   "version.next": "Số tiếp theo như khi được tạo lúc này",
+
+  "starter.name": "Bản tin định kỳ {host}",
+  "starter.nameBlog": "Bản tin định kỳ của blog",
+  "starter.subject": "{title}{start} và {count} bài khác{end} từ {feed}",
+  "starter.preheader": "Bài mới trên {host} · số {number}",
+  "starter.preheaderBlog": "Bài mới trên blog · số {number}",
 
   "notify.pausedTitle": "Bản tin định kỳ đã tạm dừng",
   "notify.pausedRole": "{digest} đã tạm dừng: vai trò của {owner} đã đổi từ {from} thành {to}, nên các số không thể gửi dưới quyền của họ. Bất kỳ ai có quyền campaigns:send đều có thể bật lại và trở thành người phụ trách.",

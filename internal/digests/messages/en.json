@@ -9,7 +9,7 @@
   "schedule.timezone": "Pick a time zone from the list.",
   "schedule.count": "Send when 1 to 50 new items arrive.",
   "schedule.window": "Give the sending window as two times, such as 08:00 and 18:00.",
-  "schedule.windowOrder": { "message": "The window ends after it starts: pick an end time later than {from}.", "note": "from: the window's start, as typed (08:00)" },
+  "schedule.windowOrder": { "message": "The window ends after it starts: pick an end time later than {from, time}.", "note": "from: the window's start, on the reader's clock (18:00, 6:00 PM)" },
   "schedule.time": "Give the send time as HH:MM, such as 08:00.",
   "schedule.weekday": "Pick a day of the week.",
   "schedule.monthDay": "Pick a day of the month, 1 to 31.",
@@ -50,6 +50,12 @@
   "version.prepared": { "message": "Issue #{number}, prepared from {count, plural, one {# new post} other {# new posts}}", "note": "an issue's version in its history" },
   "version.rebuilt": "Rebuilt with the current template",
   "version.next": "Next issue as it would be built now",
+
+  "starter.name": { "message": "{host} digest", "note": "a new recurring digest's name until it is renamed, written in its email's language; host: the blog's (blog.acme.io)" },
+  "starter.nameBlog": "Blog digest",
+  "starter.subject": { "message": "{title}{start} and {count} more{end} from {feed}", "note": "the starter email's subject, a Liquid template kept as written. title: the first post's title; count: how many more posts; feed: the feed's title; start and end wrap the words shown only with two posts or more. Keep every placeholder" },
+  "starter.preheader": { "message": "New on {host} · issue {number}", "note": "the starter email's preheader, kept as written; host: the blog's (blog.acme.io); number: the issue's number" },
+  "starter.preheaderBlog": "New on the blog · issue {number}",
 
   "notify.pausedTitle": "Digest paused",
   "notify.pausedRole": { "message": "{digest} paused: {owner}'s role changed from {from} to {to}, so issues can't send on their authority. Anyone with campaigns:send can turn it back on and becomes its owner.", "note": "digest: its name; owner: a member's name; from, to: role names" },

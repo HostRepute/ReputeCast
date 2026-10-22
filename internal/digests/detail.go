@@ -524,7 +524,8 @@ func (s *Service) nextIssue(ctx context.Context, ws *store.Workspace, d store.Di
 		return out, err
 	}
 	loc := location(ParseSchedule(d.Schedule, ws.Timezone).Timezone)
-	data := IssueData{FeedTitle: d.FeedTitle, FeedURL: d.FeedUrl, Number: int(number), Items: posts, Loc: loc}
+	el := emailLang(ctx, s.Q, ws.ID, &tpl.ID)
+	data := IssueData{FeedTitle: d.FeedTitle, FeedURL: d.FeedUrl, Number: int(number), Items: posts, Loc: loc, Lang: el}
 	if issue.SendAt != nil {
 		data.Date = *issue.SendAt
 	}
@@ -535,13 +536,13 @@ func (s *Service) nextIssue(ctx context.Context, ws *store.Workspace, d store.Di
 			out.Subject, out.Preheader = c.Subject, c.Preheader
 		}
 	}
-	out.Subjects = subjects(tpl.Subject, d, all, block, int(number), loc)
+	out.Subjects = subjects(tpl.Subject, d, all, block, int(number), loc, el)
 	return out, nil
 }
 
 // subjects renders a subject with 1, 3 and 6 of the newest posts that pass
 // the filters (sent or not), so "…and 0 more" is caught early.
-func subjects(subject string, d store.Digest, all []item, block DigestFeedBlock, number int, loc *time.Location) []DigestSubject {
+func subjects(subject string, d store.Digest, all []item, block DigestFeedBlock, number int, loc *time.Location, el i18n.Lang) []DigestSubject {
 	pool := []BlockItem{}
 	for _, it := range all {
 		if it.Status == "new" || it.Status == "sent" {
@@ -557,7 +558,7 @@ func subjects(subject string, d store.Digest, all []item, block DigestFeedBlock,
 		for len(items) < n && len(items) > 0 {
 			items = append(items, items[len(items)-1])
 		}
-		text, err := RenderIssue(subject, IssueData{FeedTitle: d.FeedTitle, Number: number, Items: items, Loc: loc}, false)
+		text, err := RenderIssue(subject, IssueData{FeedTitle: d.FeedTitle, Number: number, Items: items, Loc: loc, Lang: el}, false)
 		if err != nil {
 			text = subject
 		}

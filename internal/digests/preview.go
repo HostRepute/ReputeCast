@@ -78,7 +78,8 @@ type DigestRender struct {
 	SendAt *time.Time `json:"sendAt,omitempty"`
 	// Tokens are the feed tokens' values for the next issue (the token menu).
 	Tokens []DigestToken `json:"tokens"`
-	// StarterSubject is the Blog digest starter's subject ("Use the starter's subject").
+	// StarterSubject is the Blog digest starter's subject in the email's
+	// language ("Use the starter's subject").
 	StarterSubject string `json:"starterSubject"`
 }
 
@@ -126,7 +127,8 @@ func (s *Service) Render(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 		return DigestRender{}, err
 	}
 	loc := location(ParseSchedule(d.Schedule, ws.Timezone).Timezone)
-	out := DigestRender{Preview: in.Preview, Number: int(number), Items: []DigestFeedItem{}, Sizes: []DigestSize{}, Tokens: []DigestToken{}, StarterSubject: StarterSubject}
+	el := emailLang(ctx, s.Q, ws.ID, d.TemplateID)
+	out := DigestRender{Preview: in.Preview, Number: int(number), Items: []DigestFeedItem{}, Sizes: []DigestSize{}, Tokens: []DigestToken{}, StarterSubject: starterSubjectIn(el)}
 	// The preview's posts.
 	var posts []item
 	pool := []item{}
@@ -196,15 +198,15 @@ func (s *Service) Render(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 		}
 	}
 	out.Count = len(shown)
-	out.MJML = RenderBlock(block, shown, loc)
-	data := IssueData{FeedTitle: d.FeedTitle, FeedURL: d.FeedUrl, Number: out.Number, Items: shown, Loc: loc}
+	out.MJML = RenderBlock(block, shown, loc, el)
+	data := IssueData{FeedTitle: d.FeedTitle, FeedURL: d.FeedUrl, Number: out.Number, Items: shown, Loc: loc, Lang: el}
 	if out.SendAt != nil {
 		data.Date = *out.SendAt
 	}
 	out.Subject, _ = RenderIssue(subject, data, false)
 	out.Preheader, _ = RenderIssue(preheader, data, false)
 	out.Subject, out.Preheader = strings.TrimSpace(out.Subject), strings.TrimSpace(out.Preheader)
-	out.Subjects = subjects(subject, d, all, block, out.Number, loc)
+	out.Subjects = subjects(subject, d, all, block, out.Number, loc, el)
 	// Checks: images, alt text, links.
 	for _, it := range shown {
 		if it.Image != "" {
@@ -267,7 +269,7 @@ func (s *Service) Render(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 			items = append(items, blockItem(it.DigestItemsRow))
 		}
 		nextShown, _ := block.Select(items)
-		nextData = IssueData{FeedTitle: d.FeedTitle, FeedURL: d.FeedUrl, Number: int(number), Items: nextShown, Loc: loc}
+		nextData = IssueData{FeedTitle: d.FeedTitle, FeedURL: d.FeedUrl, Number: int(number), Items: nextShown, Loc: loc, Lang: el}
 		if open, err := s.Q.DigestIssueOpen(ctx, d.ID); err == nil && open.SendAt != nil {
 			nextData.Date = *open.SendAt
 		}
@@ -282,7 +284,7 @@ func (s *Service) Render(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 // issueSize is the compiled size of a template with posts.
 func issueSize(src string, items []BlockItem, data IssueData, loc *time.Location) int {
 	data.Items = items
-	expanded := ExpandBlock(src, items, loc)
+	expanded := ExpandBlock(src, items, loc, data.Lang)
 	rendered, err := RenderIssue(expanded, data, true)
 	if err != nil {
 		rendered = expanded
@@ -343,7 +345,7 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		sendAt = open.SendAt
 	}
 	loc := location(ParseSchedule(d.Schedule, ws.Timezone).Timezone)
-	b, err := build(d, *tpl, posts, int(number), sendAt, loc)
+	b, err := build(d, *tpl, posts, int(number), sendAt, loc, emailLang(ctx, s.Q, ws.ID, &tpl.ID))
 	if err != nil {
 		return DigestPreview{}, api.Invalid("body", mTemplateRender.Text(i18n.LangFrom(ctx), i18n.Args{"detail": err.Error()}))
 	}

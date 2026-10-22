@@ -82,7 +82,8 @@ func (s DigestSchedule) Validate() (field string, msg i18n.Msg, args i18n.Args) 
 			return "windowFrom", mScheduleWindow, nil
 		}
 		if until <= from {
-			return "windowUntil", mScheduleWindowOrder, i18n.Args{"from": s.WindowFrom}
+			// A time of day, written on the reader's clock.
+			return "windowUntil", mScheduleWindowOrder, i18n.Args{"from": time.Date(2000, 1, 1, from/60, from%60, 0, 0, time.UTC)}
 		}
 		return "", i18n.Msg{}, nil
 	}

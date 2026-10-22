@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/digests/feed"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -23,7 +24,10 @@ import (
 // version's name in the language of the member it is saved for. Why a
 // feed failed is kept as a message beside its English (digests.feed_error,
 // an issue's feed_tries) and written in each reader's language. Audit
-// entries keep their English.
+// entries keep their English. What a digest writes into its email (the
+// starter's subject and preheader, an issue's dates) and a new digest's
+// name are content: written once in the email's language (emailLang) and
+// kept as written.
 
 var (
 	mScheduleFrequency   = msgs.M("schedule.frequency")
@@ -48,6 +52,12 @@ var (
 	mVersionPrepared = msgs.M("version.prepared")
 	mVersionRebuilt  = msgs.M("version.rebuilt")
 	mVersionNext     = msgs.M("version.next")
+
+	mStarterName          = msgs.M("starter.name")
+	mStarterNameBlog      = msgs.M("starter.nameBlog")
+	mStarterSubject       = msgs.M("starter.subject")
+	mStarterPreheader     = msgs.M("starter.preheader")
+	mStarterPreheaderBlog = msgs.M("starter.preheaderBlog")
 
 	mPausedTitle        = msgs.M("notify.pausedTitle")
 	mPausedRole         = msgs.M("notify.pausedRole")
@@ -77,6 +87,82 @@ var (
 	mFeedSkipped        = msgs.M("notify.feedSkipped")
 	mFeedFailingSummary = msgs.M("notify.feedSummary")
 )
+
+// emailLang is the language a digest's emails are written in: its
+// template's (the workspace's default content language while the template
+// has no language versions) when ReputeCast is written in it, else English.
+func emailLang(ctx context.Context, q *store.Queries, wsID uuid.UUID, template *uuid.UUID) i18n.Lang {
+	code := ""
+	if template != nil {
+		if row, err := q.ContentSource(ctx, store.ContentSourceParams{OwnerKind: languages.OwnerCampaign, OwnerID: *template, OwnerVersion: 0}); err == nil {
+			code = row.Language
+		}
+	}
+	if code == "" {
+		if st, err := (&languages.Service{Q: q}).Settings(ctx, q, wsID); err == nil {
+			code = st.Default
+		}
+	}
+	if loc, ok := i18n.ParseLocale(code); ok && loc != i18n.Pseudo {
+		return i18n.For(loc)
+	}
+	return i18n.For(i18n.English)
+}
+
+// starterNameIn is a new digest's name: "blog.acme.io digest".
+func starterNameIn(l i18n.Lang, host string) string {
+	if host == "" {
+		return mStarterNameBlog.Text(l, nil)
+	}
+	return mStarterName.Text(l, i18n.Args{"host": host})
+}
+
+// starterSubjectIn is the Blog digest starter's subject, its Liquid kept as
+// written: "{{ issue.items.first.title }}{% if issue.items.size > 1 %} and
+// {{ issue.items.size | minus: 1 }} more{% endif %} from {{ feed.title }}".
+// The count only shows with 2 or more posts, so one post never reads
+// "and 0 more".
+func starterSubjectIn(l i18n.Lang) string {
+	return mStarterSubject.Text(l, i18n.Args{"title": "{{ issue.items.first.title }}", "start": "{% if issue.items.size > 1 %}",
+		"count": "{{ issue.items.size | minus: 1 }}", "end": "{% endif %}", "feed": "{{ feed.title }}"})
+}
+
+// starterPreheaderIn is the starter's preheader: "New on blog.acme.io ·
+// issue {{ issue.number }}".
+func starterPreheaderIn(l i18n.Lang, host string) string {
+	args := i18n.Args{"host": host, "number": "{{ issue.number }}"}
+	if host == "" {
+		return mStarterPreheaderBlog.Text(l, args)
+	}
+	return mStarterPreheader.Text(l, args)
+}
+
+// Dates an issue writes: a post's ("Monday 2 January 2006"), a grid
+// card's ("Mon 2 Jan") and the issue's own ("Monday 2 January").
+const (
+	datePost = iota
+	dateCard
+	dateIssue
+)
+
+// emailDate writes a date in the email's language: English keeps the
+// starter's forms, another language its region's ("Thứ Hai, 13 tháng 10,
+// 2026").
+func emailDate(l i18n.Lang, t time.Time, form int) string {
+	if l.Locale == "" || l.Locale == i18n.English {
+		switch form {
+		case dateCard:
+			return t.Format("Mon 2 Jan")
+		case dateIssue:
+			return t.Format("Monday 2 January")
+		}
+		return t.Format("Monday 2 January 2006")
+	}
+	if form == dateCard {
+		return l.Region.ShortDate(t)
+	}
+	return l.Region.LongDate(t)
+}
 
 // memberLang is how a member reads what a digest writes for them.
 func memberLang(ctx context.Context, q *store.Queries, id uuid.UUID) i18n.Lang {

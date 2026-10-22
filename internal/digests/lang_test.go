@@ -3,6 +3,7 @@ package digests_test
 import (
 	"context"
 	"net/http"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -70,5 +71,48 @@ func TestDigestTextInVietnamese(t *testing.T) {
 	}
 	if title != "Nguồn cấp của bản tin định kỳ đang lỗi" || !strings.HasPrefix(body, "Nguồn cấp của Bilingual roundup bị lỗi lúc chuẩn bị: ") || !strings.Contains(body, " trả về 503 Service Unavailable") {
 		t.Fatalf("notification: %q %q", title, body)
+	}
+}
+
+// TestDigestEmailInItsLanguage checks that what a digest writes into its
+// email follows the language the workspace writes in, whatever the reader
+// reads the app in: a new digest's name, the starter's subject and
+// preheader, and the posts' dates.
+func TestDigestEmailInItsLanguage(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	n := counter{t, env}
+	feed := newFeedServer(t, basePosts(time.Now())...)
+	linh := env.Client()
+	linh.SignInDemo("linh@acme.io")
+	host := strings.TrimPrefix(feed.srv.URL, "http://")
+	type render struct{ Subject, Preheader, MJML, StarterSubject string }
+	// A digest made from the type picker, with the latest posts in its first issue.
+	create := func() (detail, render) {
+		d := decodeDetail(t, linh.Do("POST", ws+"/digests", map[string]any{"source": "url", "feedUrl": feed.srv.URL + "/feed/"}).MustStatus(t, 201))
+		linh.Do("PUT", ws+"/digests/"+d.ID, settings(d.Name, feed.srv.URL+"/feed/", n.listID("Product Updates"), 3)).MustStatus(t, 200)
+		var r render
+		linh.Do("POST", ws+"/digests/"+d.ID+"/render", map[string]any{"preview": "next"}).MustStatus(t, 200).JSON(t, &r)
+		return d, r
+	}
+	englishDate := regexp.MustCompile(`(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day \d{1,2} (January|February|March|April|May|June|July|August|September|October|November|December) \d{4}`)
+	vietnameseDate := regexp.MustCompile(`(Thứ Hai|Thứ Ba|Thứ Tư|Thứ Năm|Thứ Sáu|Thứ Bảy|Chủ Nhật), \d{1,2} tháng \d{1,2}, \d{4}`)
+
+	// The workspace writes in English: the starter as it always was.
+	en, r := create()
+	if en.Name != host+" digest" || r.Subject != "Feature flags at 2,000 teams: what broke first and 1 more from Test blog" || r.Preheader != "New on "+host+" · issue 1" ||
+		!englishDate.MatchString(r.MJML) {
+		t.Fatalf("English: %q %q %q", en.Name, r.Subject, r.Preheader)
+	}
+
+	// It writes in Vietnamese: so does the starter, for every reader.
+	linh.Do("PUT", ws+"/languages/defaults", map[string]any{"default": "vi", "fallback": "en"}).MustStatus(t, 200)
+	vi, r := create()
+	if vi.Name != "Bản tin định kỳ "+host || r.Subject != "Feature flags at 2,000 teams: what broke first và 1 bài khác từ Test blog" || r.Preheader != "Bài mới trên "+host+" · số 1" ||
+		!strings.Contains(r.StarterSubject, "{% if issue.items.size > 1 %} và {{ issue.items.size | minus: 1 }} bài khác{% endif %}") {
+		t.Fatalf("Vietnamese: %q %q %q %q", vi.Name, r.Subject, r.Preheader, r.StarterSubject)
+	}
+	if !vietnameseDate.MatchString(r.MJML) || englishDate.MatchString(r.MJML) {
+		t.Fatalf("Vietnamese dates: %s", r.MJML)
 	}
 }

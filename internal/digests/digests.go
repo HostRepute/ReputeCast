@@ -97,10 +97,6 @@ var (
 	mDeleteOn       = msgs.M("delete.on")
 )
 
-// StarterSubject is the Blog digest starter's subject: the count only shows
-// with 2 or more posts, so one post never reads "and 0 more".
-const StarterSubject = `{{ issue.items.first.title }}{% if issue.items.size > 1 %} and {{ issue.items.size | minus: 1 }} more{% endif %} from {{ feed.title }}`
-
 // Create makes a digest from the type picker: off, in draft mode for a
 // member without campaigns:send, with the Blog digest template, the
 // workspace's default sender and its time zone.
@@ -110,16 +106,18 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if err != nil {
 		return DigestDetail{}, err
 	}
+	// The name, subject and preheader are the email's words, in its language.
+	el := emailLang(ctx, s.Q, ws.ID, nil)
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		name = "Blog digest"
+		host := hostOf(feedURL)
 		if siteID != nil {
+			host = ""
 			if site, err := s.site(ctx, ws, *siteID); err == nil && site != nil {
-				name = site.Host + " digest"
+				host = site.Host
 			}
-		} else if h := hostOf(feedURL); h != "" {
-			name = h + " digest"
 		}
+		name = starterNameIn(el, host)
 	}
 	name = s.freeName(ctx, ws.ID, name)
 	mode := "auto"
@@ -132,8 +130,8 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	by := actorID(p)
 	sched, _ := json.Marshal(DefaultSchedule(ws.Timezone))
 	mjmlSrc, _ := templates.StarterMJML(templates.BlogDigestStarter, templates.WorkspaceAddress(ws))
-	subject := StarterSubject
-	preheader := "New on " + firstNonEmpty(hostOf(feedURL), "the blog") + " · issue {{ issue.number }}"
+	subject := starterSubjectIn(el)
+	preheader := starterPreheaderIn(el, hostOf(feedURL))
 	html := mjml.Compile(mjmlSrc).HTML
 	html = accessibility.FinalizeStored(ctx, s.Q, ws.ID, accessibility.OwnerCampaign, uuid.Nil, 0, html)
 	var sender *uuid.UUID
