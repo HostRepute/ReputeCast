@@ -9,7 +9,6 @@
   "seed.passwordNeeded": "Paste the {password}.",
   "seed.oauthOnly": "{provider} seeds connect with OAuth or an app password.",
   "seed.oauthNotSetUp": { "message": "{app} sign-in isn't set up for this instance yet. An instance admin adds its client ID and secret in Instance admin › Authentication.", "note": "app: Google or Microsoft" },
-  "seed.oauthFailed": "{app} didn't let ReputeCast in: {reason}",
   "seed.oauthWrongAccount": "{app} signed in as {email}, which isn't {expected}. Sign in with the seed's own account.",
   "seed.humansOnly": "Only people connect seed mailboxes.",
   "oauth.stateUnreadable": { "message": "the sign-in state couldn't be read", "note": "why a sign-in to a seed's mailbox failed, after “Google didn't let ReputeCast in:”" },

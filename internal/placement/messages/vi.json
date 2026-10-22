@@ -9,7 +9,6 @@
   "seed.passwordNeeded": "Hãy dán {password}.",
   "seed.oauthOnly": "Hộp thư thử {provider} kết nối bằng OAuth hoặc mật khẩu ứng dụng.",
   "seed.oauthNotSetUp": "Hệ thống này chưa thiết lập đăng nhập {app}. Quản trị viên hệ thống thêm client ID và secret của ứng dụng trong Quản trị hệ thống › Xác thực.",
-  "seed.oauthFailed": "{app} không cho ReputeCast truy cập: {reason}",
   "seed.oauthWrongAccount": "{app} đã đăng nhập bằng {email}, không phải {expected}. Hãy đăng nhập bằng chính tài khoản của hộp thư thử.",
   "seed.humansOnly": "Chỉ con người mới kết nối được hộp thư thử.",
   "oauth.stateUnreadable": "không đọc được trạng thái đăng nhập",

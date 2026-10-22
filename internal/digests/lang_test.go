@@ -44,7 +44,9 @@ func TestDigestTextInVietnamese(t *testing.T) {
 	feed.setFail(true)
 	linh.Do("POST", ws+"/digests/"+d.ID+"/read", map[string]any{}).MustStatus(t, 200)
 	var en, vn struct {
-		Feed struct{ Error *struct{ Kind, Detail string } }
+		Feed struct {
+			Error *struct{ Kind, Detail string }
+		}
 	}
 	linh.Do("GET", ws+"/digests/"+d.ID, nil).MustStatus(t, 200).JSON(t, &en)
 	vi.Do("GET", ws+"/digests/"+d.ID, nil).MustStatus(t, 200).JSON(t, &vn)

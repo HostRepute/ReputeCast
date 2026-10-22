@@ -26,7 +26,6 @@ var (
 	mSeedPasswordNeeded   = msgs.M("seed.passwordNeeded")
 	mSeedOAuthOnly        = msgs.M("seed.oauthOnly")
 	mSeedOAuthNotSetUp    = msgs.M("seed.oauthNotSetUp")
-	mSeedOAuthFailed      = msgs.M("seed.oauthFailed")
 	mSeedOAuthWrong       = msgs.M("seed.oauthWrongAccount")
 	mSeedHumansOnly       = msgs.M("seed.humansOnly")
 	mOAuthState           = msgs.M("oauth.stateUnreadable")

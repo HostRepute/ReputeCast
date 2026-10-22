@@ -294,13 +294,13 @@ func hostOf(raw string) string {
 // there is no feed at blog.acme.io/feed/". The status text stays HTTP's.
 func statusDetail(u string, status int) (string, i18n.Text) {
 	args := i18n.Args{"host": hostOf(u), "status": status, "statusText": http.StatusText(status)}
-	switch {
-	case status == http.StatusNotFound || status == http.StatusGone:
+	switch status {
+	case http.StatusNotFound, http.StatusGone:
 		args["address"] = shortURL(u)
 		return english(mStatusNotFound, args)
-	case status == http.StatusUnauthorized || status == http.StatusForbidden:
+	case http.StatusUnauthorized, http.StatusForbidden:
 		return english(mStatusSignIn, args)
-	case status == http.StatusTooManyRequests:
+	case http.StatusTooManyRequests:
 		return english(mStatusTooMany, args)
 	}
 	return english(mStatusOther, args)
