@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { act } from 'react'
-import { T, defineMessages, setLocale, setRegion, t } from '.'
+import { T, defineMessages, formatList, setLocale, setRegion, t } from '.'
 import { accent, pseudoSource, pseudoWrap, PSEUDO_LOCALE } from './pseudo'
 
 const m = defineMessages('pseudoTest', {
@@ -33,6 +33,11 @@ describe('pseudo-locale', () => {
 
   it('accents plural options but not the number', () => {
     expect(t(m.sent, { n: 48213 })).toBe('⟦48,213 méššáĝéš šéñţ ·······⟧')
+  })
+
+  it("accents a list's own words, not its items", () => {
+    expect(formatList(['Linh', 'Marcus', 'Aisha'])).toBe('Linh, Marcus áñð Aisha')
+    expect(formatList(['Linh', 'Marcus'], 'disjunction')).toBe('Linh öŕ Marcus')
   })
 
   it('keeps names and acronyms', () => {

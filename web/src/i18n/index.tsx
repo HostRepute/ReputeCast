@@ -3,6 +3,7 @@ import type { Catalog, MessageDescriptor } from './define'
 import { formatRich, formatText, type RichValues, type Values } from './format'
 import { defaultRegionFor } from './languages'
 import { regionLocale } from './regions'
+import { accent, PSEUDO_LOCALE } from './pseudo'
 import { getI18n, loadCatalog, subscribeI18n, type AppLocale, type I18nState } from './store'
 
 export { defineMessages, sourceMessages, translate, type Catalog, type MessageDescriptor, type Messages } from './define'
@@ -98,5 +99,7 @@ export function formatList(items: readonly string[], type: 'conjunction' | 'disj
     f = new Intl.ListFormat(getI18n().locale.startsWith('en') ? 'en-GB' : getI18n().locale, { style: 'long', type })
     listFormats.set(key, f)
   }
+  // The pseudo-locale accents the list's own words ("and"), not the items.
+  if (getI18n().locale === PSEUDO_LOCALE) return f.formatToParts(items).map((p) => (p.type === 'literal' ? accent(p.value) : p.value)).join('')
   return f.format(items)
 }
