@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -96,9 +97,46 @@ type Notification struct {
 	// in the email.
 	Summary string
 	Body    string
+	// TitleText, SummaryText and BodyText are the title, summary and body as
+	// catalog messages kept with their arguments (msgs.M(key).Keep(args)),
+	// so every member reads them in their own language (text.go). A part
+	// given only as a message gets its English for the string above.
+	TitleText   i18n.Text
+	SummaryText i18n.Text
+	BodyText    i18n.Text
 	// Link is an app path such as "/w/acme-newsletter/campaigns/<id>/live".
 	Link string
 	Data map[string]any
+}
+
+// english fills the parts given only as messages with their English.
+func (n *Notification) english() {
+	if n.Title == "" {
+		n.Title = n.TitleText.In(i18n.Default)
+	}
+	if n.Summary == "" {
+		n.Summary = n.SummaryText.In(i18n.Default)
+	}
+	if n.Body == "" {
+		n.Body = n.BodyText.In(i18n.Default)
+	}
+}
+
+// data is the notification's data as stored: its own, and its kept text.
+func (n Notification) data() ([]byte, error) {
+	kept := Kept{Title: n.TitleText, Summary: n.SummaryText, Body: n.BodyText}
+	if kept.IsZero() {
+		if n.Data == nil {
+			return []byte(`{}`), nil
+		}
+		return json.Marshal(n.Data)
+	}
+	d := make(map[string]any, len(n.Data)+1)
+	for k, v := range n.Data {
+		d[k] = v
+	}
+	d[dataKey] = kept
+	return json.Marshal(d)
 }
 
 // ToUser stores a notification for one person, honouring their preferences:
@@ -107,16 +145,13 @@ func ToUser(ctx context.Context, q store.DBTX, userID uuid.UUID, n Notification)
 	if n.Severity == "" {
 		n.Severity = "info"
 	}
-	data := []byte(`{}`)
-	if n.Data != nil {
-		b, err := json.Marshal(n.Data)
-		if err != nil {
-			return err
-		}
-		data = b
+	n.english()
+	data, err := n.data()
+	if err != nil {
+		return err
 	}
 	ev := EventFor(n.Kind)
-	_, err := store.New(q).InsertNotification(ctx, store.InsertNotificationParams{
+	_, err = store.New(q).InsertNotification(ctx, store.InsertNotificationParams{
 		ID:           uuid.Must(uuid.NewV7()),
 		WorkspaceID:  n.WorkspaceID,
 		Kind:         n.Kind,
