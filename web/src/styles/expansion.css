@@ -231,3 +231,38 @@
     text-align: right;
   }
 }
+
+/* Earn: a tier's price lines (the tier editor's In Stripe card) keep the
+   price whole: the paid members line moves under it rather than the price
+   running into it ("8 US$/tháng"). */
+:root:not([lang='en']) .ea-vline > :first-child {
+  flex: 1 1 auto;
+}
+
+/* Earn: the member panel's email line breaks inside the address when the
+   head's longer buttons leave it less room, rather than running under them. */
+:root:not([lang='en']) .ea-sheet-head .k {
+  overflow-wrap: anywhere;
+}
+
+/* Rule 1 on Earn's paid members: the filters grow to their longest choice
+   ("Trước khi chuyển (24 thg 9)"), never narrower than the board's widths;
+   phones keep them sharing the row. */
+@media (min-width: 768px) {
+  :root:not([lang='en']) .ea-filters select.in {
+    width: auto;
+    max-width: 100%;
+  }
+  :root:not([lang='en']) .ea-filters .ea-f120 {
+    min-width: 120px;
+  }
+  :root:not([lang='en']) .ea-filters .ea-f130 {
+    min-width: 130px;
+  }
+  :root:not([lang='en']) .ea-filters .ea-f140 {
+    min-width: 140px;
+  }
+  :root:not([lang='en']) .ea-filters .ea-f170 {
+    min-width: 170px;
+  }
+}
