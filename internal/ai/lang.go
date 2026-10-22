@@ -4,13 +4,19 @@ import (
 	"context"
 	"embed"
 
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/applang"
+	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/notify"
 )
 
 // Problems a member reads follow their app language (messages/<locale>.json);
-// notifications are written in English when they are created, as the
-// notification center stores them; audit entries keep their English.
+// notifications are written in each recipient's language when they are
+// created, as placement tests' are; a version's name follows the member who
+// saved it; audit entries and what is sent to a model keep their English.
 
 //go:embed messages/*.json
 var messagesFS embed.FS
@@ -66,6 +72,19 @@ var (
 	mNothingAccepted      = msgs.M("problem.nothingAccepted")
 	mDescriptionNeeded    = msgs.M("problem.descriptionNeeded")
 	mNotSent              = msgs.M("problem.notSent")
+	mPickProvider         = msgs.M("problem.pickProvider")
+	mCampaignID           = msgs.M("problem.campaignId")
+	mSuggestionID         = msgs.M("problem.suggestionId")
+	mVersionTranslated    = msgs.M("version.translated")
+
+	mImageAddress      = msgs.M("image.address")
+	mImageNotInLibrary = msgs.M("image.notInLibrary")
+	mImageWhere        = msgs.M("image.where")
+	mImageNoAnswer     = msgs.M("image.noAnswer")
+	mImageStatus       = msgs.M("image.status")
+	mImageTooLarge     = msgs.M("image.tooLarge")
+	mImageFormat       = msgs.M("image.format")
+	mImageDecode       = msgs.M("image.decode")
 
 	mTestPrompt        = msgs.M("test.prompt")
 	mDroppedConditions = msgs.M("segment.dropped")
@@ -127,4 +146,23 @@ func withHelpers(ctx context.Context, status int, code string, named, alone i18n
 	p := problem(ctx, status, code, named, args)
 	p.Helpers = helpers
 	return p
+}
+
+// notifyMembers tells the workspace's members who hold perm, each in their
+// own language.
+func (s *Service) notifyMembers(ctx context.Context, workspaceID uuid.UUID, perm authz.Permission, notification func(l i18n.Lang) notify.Notification) error {
+	ids, err := notify.MembersWith(ctx, s.Pool, workspaceID, perm)
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		n := notification(applang.ForUserID(ctx, s.Q, id))
+		if n.WorkspaceID == nil {
+			n.WorkspaceID = &workspaceID
+		}
+		if err := notify.ToUser(ctx, s.Pool, id, n); err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -337,7 +338,7 @@ func (s *Service) AcceptTranslation(ctx context.Context, ws *store.Workspace, p 
 	}
 	reqID, err := uuid.Parse(in.RequestID)
 	if err != nil {
-		return AITranslationAccepted{}, api.Invalid("body.requestId", "Name the suggestion.")
+		return AITranslationAccepted{}, invalid(ctx, "body.requestId", mSuggestionID, nil)
 	}
 	r, err := s.Q.AIRequest(ctx, store.AIRequestParams{ID: reqID, WorkspaceID: ws.ID})
 	uid := actorID(p)
@@ -399,7 +400,7 @@ func (s *Service) AcceptTranslation(ctx context.Context, ws *store.Workspace, p 
 		preheader = strings.TrimSpace(*in.Preheader)
 	}
 	saved, err := (languages.Campaigns{S: s.Languages}).Save(ctx, ws, p, c.id, lang, campaigns.ComposerSaveContent{BaseVersion: content.Version, Subject: subject, Preheader: preheader,
-		MJML: mj, Label: fmt.Sprintf("Translated with AI (%s)", model), Source: "manual"}, false)
+		MJML: mj, Label: text(ctx, mVersionTranslated, i18n.Args{"model": model}), Source: "manual"}, false)
 	if err != nil {
 		return AITranslationAccepted{}, err
 	}
