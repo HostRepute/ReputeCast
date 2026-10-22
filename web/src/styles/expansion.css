@@ -121,3 +121,26 @@
   min-width: 0;
   text-align: right;
 }
+
+/* Digests, the AI assistant, placement tests and verification (V10). */
+
+/* Placement tests: a provider's results beside its bar ("Hộp thư đến 9 ·
+   iCloud không kiểm tra được (đăng nhập thất bại)") wrap in their column
+   instead of widening the list past its card. */
+:root:not([lang='en']) .pl-mres .ln {
+  grid-template-columns: 66px 110px minmax(0, 1fr);
+}
+:root:not([lang='en']) .pl-mres .ln.one {
+  grid-template-columns: 110px minmax(0, 1fr);
+}
+:root:not([lang='en']) .pl-mres .ct {
+  white-space: normal;
+}
+
+/* A copy's time to arrive ("2 phút 10 giây") goes under its folder when the
+   matrix has no room for both on one line, instead of widening the matrix
+   past its card and cutting the time off. */
+:root:not([lang='en']) .pl-cl .t1 {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}

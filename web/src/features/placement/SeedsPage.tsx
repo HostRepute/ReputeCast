@@ -281,7 +281,7 @@ function SeedsCard({ d, onAdd, onReconnect, onRemove }: { d: SeedList; onAdd: ()
                   <td>
                     <span className="flex flex-col gap-0.5">
                       <span className="whitespace-nowrap">{s.addedBy}</span>
-                      <span className="k">{shortDate(s.addedAt)}</span>
+                      <span className="k whitespace-nowrap">{shortDate(s.addedAt)}</span>
                     </span>
                   </td>
                   {d.canManage ? <td className="r">{actions(s)}</td> : null}

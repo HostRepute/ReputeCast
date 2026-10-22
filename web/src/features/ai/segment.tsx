@@ -112,10 +112,11 @@ function DescribeCard({
   return (
     <section className="card ai-describe" aria-label={t(ms.describeTitle)}>
       {title}
-      <div className="flex items-start gap-2.5">
+      {/* As on the board: the row wraps, so on phones Draft goes under the description. */}
+      <div className="flex flex-wrap items-start gap-2">
         <textarea
           ref={area}
-          className="in ai-describe-in"
+          className="in ai-describe-in basis-[420px]"
           rows={2}
           aria-label={t(ms.describeLabel)}
           placeholder={t(ms.describePlaceholder)}
