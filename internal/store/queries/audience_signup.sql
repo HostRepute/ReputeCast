@@ -73,8 +73,9 @@ WHERE contact_id = @contact_id AND status <> 'unsubscribed'
 RETURNING list_id;
 
 -- name: SignupInsertConsent :exec
-INSERT INTO consent_events (id, contact_id, list_id, action, source, ip, user_agent, detail, note, consent_version, consent_text, language, occurred_at)
-VALUES (@id, @contact_id, @list_id, @action, @source, @ip, @user_agent, @detail, @note, @consent_version, @consent_text, @language, @occurred_at);
+INSERT INTO consent_events (id, contact_id, list_id, action, source, ip, user_agent, detail, note, consent_version, consent_text, language, occurred_at, texts)
+VALUES (@id, @contact_id, @list_id, @action, @source, @ip, @user_agent, @detail, @note, @consent_version, @consent_text, @language, @occurred_at,
+        coalesce(sqlc.narg(texts)::jsonb, '{}'));
 
 -- name: SignupLastConsent :one
 -- The latest consent event of one kind (the confirmation shown under the
@@ -108,8 +109,8 @@ SELECT * FROM suppressions WHERE workspace_id = @workspace_id AND email = @email
 -- name: SignupAddUnsubscribe :exec
 -- Unsubscribes block Broadcasts and Automations; System mail (password
 -- resets, receipts) still reaches the contact.
-INSERT INTO suppressions (id, workspace_id, email, reason, source, detail, scope, campaign_id, context, created_at)
-VALUES (@id, @workspace_id, @email, 'unsubscribe', @source, @detail, 'marketing', @campaign_id, @context, @at)
+INSERT INTO suppressions (id, workspace_id, email, reason, source, detail, scope, campaign_id, context, created_at, texts)
+VALUES (@id, @workspace_id, @email, 'unsubscribe', @source, @detail, 'marketing', @campaign_id, @context, @at, coalesce(sqlc.narg(texts)::jsonb, '{}'))
 ON CONFLICT (workspace_id, email) DO NOTHING;
 
 -- name: SignupLiftUnsubscribe :execrows

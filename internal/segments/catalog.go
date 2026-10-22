@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -113,10 +114,15 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (SegmentCata
 	return out, nil
 }
 
-// SourceLabel turns a contact source key into words: "import:brevo" →
-// "Brevo import", "form:docs" → "Signup form · docs", "form:popup" →
-// "Popup form", "api" → "API".
-func SourceLabel(src string) string {
+// SourceLabel is SourceLabelIn in English, for exports (CSV columns are
+// data) and callers that write for API clients.
+func SourceLabel(src string) string { return SourceLabelIn(i18n.Default, src) }
+
+// SourceLabelIn turns a contact source key into words in a reader's
+// language: "import:brevo" → "Brevo import", "form:docs" → "Signup form ·
+// docs", "form:popup" → "Popup form", "api" → "API".
+func SourceLabelIn(l i18n.Lang, src string) string {
+	_ = l
 	kind, detail, _ := strings.Cut(src, ":")
 	switch kind {
 	case "import":

@@ -21,6 +21,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -65,9 +66,13 @@ type PublicEvidence struct {
 	// Language is the language the page or form, and so its consent text,
 	// was shown in ("es"); consent evidence keeps it.
 	Language string
-	// Note goes on the consent events.
-	Note string
-	At   time.Time
+	// Note goes on the consent events. NoteText is the message it came from
+	// when the note is ReputeCast's own words, kept so readers in another
+	// language see it in theirs (KeptIn); leave it empty for text people
+	// typed.
+	Note     string
+	NoteText i18n.Text
+	At       time.Time
 }
 
 func (e PublicEvidence) at() time.Time {
@@ -88,6 +93,7 @@ func consentEvent(ctx context.Context, q *store.Queries, contact uuid.UUID, list
 	p := store.SignupInsertConsentParams{
 		ID: uuid.Must(uuid.NewV7()), ContactID: contact, ListID: list, Action: action, Source: ev.Source, Ip: ev.IP,
 		UserAgent: clip(ev.UserAgent, 500), Detail: detail, Note: ev.Note, OccurredAt: ev.at(),
+		Texts: KeptTexts(map[string]i18n.Text{"note": ev.NoteText}),
 	}
 	if withConsent {
 		p.ConsentText, p.ConsentVersion, p.Language = ev.ConsentText, ev.ConsentVersion, ev.Language

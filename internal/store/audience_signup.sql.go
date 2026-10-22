@@ -15,20 +15,21 @@ import (
 )
 
 const signupAddUnsubscribe = `-- name: SignupAddUnsubscribe :exec
-INSERT INTO suppressions (id, workspace_id, email, reason, source, detail, scope, campaign_id, context, created_at)
-VALUES ($1, $2, $3, 'unsubscribe', $4, $5, 'marketing', $6, $7, $8)
+INSERT INTO suppressions (id, workspace_id, email, reason, source, detail, scope, campaign_id, context, created_at, texts)
+VALUES ($1, $2, $3, 'unsubscribe', $4, $5, 'marketing', $6, $7, $8, coalesce($9::jsonb, '{}'))
 ON CONFLICT (workspace_id, email) DO NOTHING
 `
 
 type SignupAddUnsubscribeParams struct {
-	ID          uuid.UUID  `json:"id"`
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	Email       string     `json:"email"`
-	Source      string     `json:"source"`
-	Detail      string     `json:"detail"`
-	CampaignID  *uuid.UUID `json:"campaignId"`
-	Context     string     `json:"context"`
-	At          time.Time  `json:"at"`
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	Email       string          `json:"email"`
+	Source      string          `json:"source"`
+	Detail      string          `json:"detail"`
+	CampaignID  *uuid.UUID      `json:"campaignId"`
+	Context     string          `json:"context"`
+	At          time.Time       `json:"at"`
+	Texts       json.RawMessage `json:"texts"`
 }
 
 // Unsubscribes block Broadcasts and Automations; System mail (password
@@ -43,6 +44,7 @@ func (q *Queries) SignupAddUnsubscribe(ctx context.Context, arg SignupAddUnsubsc
 		arg.CampaignID,
 		arg.Context,
 		arg.At,
+		arg.Texts,
 	)
 	return err
 }
@@ -278,24 +280,26 @@ func (q *Queries) SignupFillContact(ctx context.Context, arg SignupFillContactPa
 }
 
 const signupInsertConsent = `-- name: SignupInsertConsent :exec
-INSERT INTO consent_events (id, contact_id, list_id, action, source, ip, user_agent, detail, note, consent_version, consent_text, language, occurred_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+INSERT INTO consent_events (id, contact_id, list_id, action, source, ip, user_agent, detail, note, consent_version, consent_text, language, occurred_at, texts)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+        coalesce($14::jsonb, '{}'))
 `
 
 type SignupInsertConsentParams struct {
-	ID             uuid.UUID   `json:"id"`
-	ContactID      uuid.UUID   `json:"contactId"`
-	ListID         *uuid.UUID  `json:"listId"`
-	Action         string      `json:"action"`
-	Source         string      `json:"source"`
-	Ip             *netip.Addr `json:"ip"`
-	UserAgent      string      `json:"userAgent"`
-	Detail         string      `json:"detail"`
-	Note           string      `json:"note"`
-	ConsentVersion string      `json:"consentVersion"`
-	ConsentText    string      `json:"consentText"`
-	Language       string      `json:"language"`
-	OccurredAt     time.Time   `json:"occurredAt"`
+	ID             uuid.UUID       `json:"id"`
+	ContactID      uuid.UUID       `json:"contactId"`
+	ListID         *uuid.UUID      `json:"listId"`
+	Action         string          `json:"action"`
+	Source         string          `json:"source"`
+	Ip             *netip.Addr     `json:"ip"`
+	UserAgent      string          `json:"userAgent"`
+	Detail         string          `json:"detail"`
+	Note           string          `json:"note"`
+	ConsentVersion string          `json:"consentVersion"`
+	ConsentText    string          `json:"consentText"`
+	Language       string          `json:"language"`
+	OccurredAt     time.Time       `json:"occurredAt"`
+	Texts          json.RawMessage `json:"texts"`
 }
 
 func (q *Queries) SignupInsertConsent(ctx context.Context, arg SignupInsertConsentParams) error {
@@ -313,6 +317,7 @@ func (q *Queries) SignupInsertConsent(ctx context.Context, arg SignupInsertConse
 		arg.ConsentText,
 		arg.Language,
 		arg.OccurredAt,
+		arg.Texts,
 	)
 	return err
 }
@@ -690,7 +695,7 @@ func (q *Queries) SignupSetMembership(ctx context.Context, arg SignupSetMembersh
 }
 
 const signupSuppression = `-- name: SignupSuppression :one
-SELECT id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id FROM suppressions WHERE workspace_id = $1 AND email = $2
+SELECT id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id, texts FROM suppressions WHERE workspace_id = $1 AND email = $2
 `
 
 type SignupSuppressionParams struct {
@@ -718,6 +723,7 @@ func (q *Queries) SignupSuppression(ctx context.Context, arg SignupSuppressionPa
 		&i.AutomationStep,
 		&i.Context,
 		&i.ImportID,
+		&i.Texts,
 	)
 	return i, err
 }

@@ -155,7 +155,7 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 		}
 		ids, err := s.Segments.ContactIDs(ctx, wsID, id)
 		if err != nil {
-			return segments.Problem(err)
+			return segments.Problem(ctx, err)
 		}
 		out.add("c.id = ANY (?)", ids)
 	}

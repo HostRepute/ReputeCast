@@ -852,28 +852,29 @@ type ChannelSuppression struct {
 }
 
 type ConsentEvent struct {
-	ID             uuid.UUID   `json:"id"`
-	ContactID      uuid.UUID   `json:"contactId"`
-	ListID         *uuid.UUID  `json:"listId"`
-	Action         string      `json:"action"`
-	Source         string      `json:"source"`
-	Ip             *netip.Addr `json:"ip"`
-	UserAgent      string      `json:"userAgent"`
-	Detail         string      `json:"detail"`
-	OccurredAt     time.Time   `json:"occurredAt"`
-	Note           string      `json:"note"`
-	ConsentVersion string      `json:"consentVersion"`
-	ActorID        *uuid.UUID  `json:"actorId"`
-	ImportID       *uuid.UUID  `json:"importId"`
-	ConsentText    string      `json:"consentText"`
-	Language       string      `json:"language"`
-	UtmSource      string      `json:"utmSource"`
-	UtmMedium      string      `json:"utmMedium"`
-	UtmCampaign    string      `json:"utmCampaign"`
-	UtmContent     string      `json:"utmContent"`
-	UtmTerm        string      `json:"utmTerm"`
-	Page           string      `json:"page"`
-	Referrer       string      `json:"referrer"`
+	ID             uuid.UUID       `json:"id"`
+	ContactID      uuid.UUID       `json:"contactId"`
+	ListID         *uuid.UUID      `json:"listId"`
+	Action         string          `json:"action"`
+	Source         string          `json:"source"`
+	Ip             *netip.Addr     `json:"ip"`
+	UserAgent      string          `json:"userAgent"`
+	Detail         string          `json:"detail"`
+	OccurredAt     time.Time       `json:"occurredAt"`
+	Note           string          `json:"note"`
+	ConsentVersion string          `json:"consentVersion"`
+	ActorID        *uuid.UUID      `json:"actorId"`
+	ImportID       *uuid.UUID      `json:"importId"`
+	ConsentText    string          `json:"consentText"`
+	Language       string          `json:"language"`
+	UtmSource      string          `json:"utmSource"`
+	UtmMedium      string          `json:"utmMedium"`
+	UtmCampaign    string          `json:"utmCampaign"`
+	UtmContent     string          `json:"utmContent"`
+	UtmTerm        string          `json:"utmTerm"`
+	Page           string          `json:"page"`
+	Referrer       string          `json:"referrer"`
+	Texts          json.RawMessage `json:"texts"`
 }
 
 type Contact struct {
@@ -4308,22 +4309,23 @@ type SubscriberToken struct {
 }
 
 type Suppression struct {
-	ID               uuid.UUID  `json:"id"`
-	WorkspaceID      uuid.UUID  `json:"workspaceId"`
-	Email            string     `json:"email"`
-	Reason           string     `json:"reason"`
-	Source           string     `json:"source"`
-	SourceProviderID *uuid.UUID `json:"sourceProviderId"`
-	OriginalCode     string     `json:"originalCode"`
-	Detail           string     `json:"detail"`
-	CreatedBy        *uuid.UUID `json:"createdBy"`
-	CreatedAt        time.Time  `json:"createdAt"`
-	Scope            string     `json:"scope"`
-	CampaignID       *uuid.UUID `json:"campaignId"`
-	AutomationID     *uuid.UUID `json:"automationId"`
-	AutomationStep   string     `json:"automationStep"`
-	Context          string     `json:"context"`
-	ImportID         *uuid.UUID `json:"importId"`
+	ID               uuid.UUID       `json:"id"`
+	WorkspaceID      uuid.UUID       `json:"workspaceId"`
+	Email            string          `json:"email"`
+	Reason           string          `json:"reason"`
+	Source           string          `json:"source"`
+	SourceProviderID *uuid.UUID      `json:"sourceProviderId"`
+	OriginalCode     string          `json:"originalCode"`
+	Detail           string          `json:"detail"`
+	CreatedBy        *uuid.UUID      `json:"createdBy"`
+	CreatedAt        time.Time       `json:"createdAt"`
+	Scope            string          `json:"scope"`
+	CampaignID       *uuid.UUID      `json:"campaignId"`
+	AutomationID     *uuid.UUID      `json:"automationId"`
+	AutomationStep   string          `json:"automationStep"`
+	Context          string          `json:"context"`
+	ImportID         *uuid.UUID      `json:"importId"`
+	Texts            json.RawMessage `json:"texts"`
 }
 
 type Survey struct {
