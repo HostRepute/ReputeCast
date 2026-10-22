@@ -10,7 +10,7 @@ import { Menu, MenuItem } from '@/components/ui/Menu'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { formatList, T, useT } from '@/i18n'
-import { clock, count } from '@/lib/format'
+import { clock, count, timeOfDay } from '@/lib/format'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
 import { DeleteDialog, PauseDialog, PreviewDialog, SkipDialog, TestDialog, TurnOnDialog } from './Dialogs'
 import { HistoryCard, IssuesCard, OpensChart } from './IssuesCard'
@@ -377,11 +377,11 @@ function SettingsCard({ d }: { d: Digest }) {
   )
 }
 
-/** The preparation clock from the schedule: send time minus the lead. */
+/** The preparation clock from the schedule: send time minus the lead, on the reader's clock. */
 function prepareClock(d: Digest): string {
   const [h, min] = d.schedule.time.split(':').map(Number)
   const total = (((h ?? 8) * 60 + (min ?? 0) - d.prepareHours * 60) % 1440 + 1440) % 1440
-  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+  return timeOfDay(`${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`)
 }
 
 function OverviewSkeleton() {

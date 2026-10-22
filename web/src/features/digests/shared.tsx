@@ -4,7 +4,7 @@ import { Badge, type Tone } from '@/components/ui/Badge'
 import { Icon } from '@/components/icons/Icon'
 import { getI18n, t as tt, useT } from '@/i18n'
 import { formatDecimal } from '@/i18n/regions'
-import { clock, shortDate } from '@/lib/format'
+import { clock, shortDate, timeOfDay } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { m } from './messages'
 
@@ -81,25 +81,26 @@ export function useRefreshDigest() {
   }
 }
 
-/** The schedule in words: "Every Friday at 08:00 America/New_York", or its short form for tables. */
+/** The schedule in words: "Every Friday at 08:00 America/New_York" (on the reader's clock), or its short form for tables. */
 export function scheduleText(s: DigestSchedule, form: boolean | 'lower' = false): string {
   const tz = s.timezone
+  const time = timeOfDay(s.time)
   const day = tt(m.weekday, { day: String(s.weekday) })
-  if (form === 'lower') return tt(m.scheduleLower, { frequency: s.frequency, weekdays: s.weekdaysOnly ? 'yes' : 'no', rule: s.monthRule === 'first' ? 'first' : 'day', day, monthDay: s.monthDay ?? 1, time: s.time, timezone: tz, count: s.count ?? 3 })
+  if (form === 'lower') return tt(m.scheduleLower, { frequency: s.frequency, weekdays: s.weekdaysOnly ? 'yes' : 'no', rule: s.monthRule === 'first' ? 'first' : 'day', day, monthDay: s.monthDay ?? 1, time, timezone: tz, count: s.count ?? 3 })
   const short = form === true
   switch (s.frequency) {
     case 'daily':
-      if (s.weekdaysOnly) return short ? tt(m.scheduleWeekdaysShort, { time: s.time }) : tt(m.scheduleWeekdays, { time: s.time, timezone: tz })
-      return short ? tt(m.scheduleDailyShort, { time: s.time }) : tt(m.scheduleDaily, { time: s.time, timezone: tz })
+      if (s.weekdaysOnly) return short ? tt(m.scheduleWeekdaysShort, { time }) : tt(m.scheduleWeekdays, { time, timezone: tz })
+      return short ? tt(m.scheduleDailyShort, { time }) : tt(m.scheduleDaily, { time, timezone: tz })
     case 'monthly':
-      if (s.monthRule === 'first') return short ? tt(m.scheduleMonthlyFirstShort, { day, time: s.time }) : tt(m.scheduleMonthlyFirst, { day, time: s.time, timezone: tz })
-      return short ? tt(m.scheduleMonthlyDayShort, { day: s.monthDay ?? 1, time: s.time }) : tt(m.scheduleMonthlyDay, { day: s.monthDay ?? 1, time: s.time, timezone: tz })
+      if (s.monthRule === 'first') return short ? tt(m.scheduleMonthlyFirstShort, { day, time }) : tt(m.scheduleMonthlyFirst, { day, time, timezone: tz })
+      return short ? tt(m.scheduleMonthlyDayShort, { day: s.monthDay ?? 1, time }) : tt(m.scheduleMonthlyDay, { day: s.monthDay ?? 1, time, timezone: tz })
     case 'items':
       return short
         ? tt(m.scheduleItemsShort, { count: s.count ?? 3 })
-        : tt(m.scheduleItems, { count: s.count ?? 3, from: s.windowFrom || '08:00', until: s.windowUntil || '18:00', timezone: tz })
+        : tt(m.scheduleItems, { count: s.count ?? 3, from: timeOfDay(s.windowFrom || '08:00'), until: timeOfDay(s.windowUntil || '18:00'), timezone: tz })
   }
-  return short ? tt(m.scheduleWeeklyShort, { day, time: s.time }) : tt(m.scheduleWeekly, { day, time: s.time, timezone: tz })
+  return short ? tt(m.scheduleWeeklyShort, { day, time }) : tt(m.scheduleWeekly, { day, time, timezone: tz })
 }
 
 const statusTone: Record<IssueStatus, Tone> = {
