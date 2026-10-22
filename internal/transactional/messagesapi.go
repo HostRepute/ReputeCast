@@ -103,7 +103,7 @@ func RegisterMessages(h huma.API, s *Service) {
 	api.Get(h, api.Op{ID: "get-transactional-message", Path: Base + "/messages/{messageId}", Summary: "One message: summary, timeline, request and attempts",
 		Description: "Sensitive values show as ••••••. The rendered content is a separate call that needs transactional:content.", Tags: tagLog, Access: view},
 		func(ctx context.Context, in *MessagePath) (*api.Body[TransactionalMessageDetail], error) {
-			id, err := messageID(in.MessageID)
+			id, err := messageID(ctx, in.MessageID)
 			if err != nil {
 				return nil, err
 			}
@@ -117,7 +117,7 @@ func RegisterMessages(h huma.API, s *Service) {
 			if err := refuseAgentsContent(ctx); err != nil {
 				return nil, err
 			}
-			id, err := messageID(in.MessageID)
+			id, err := messageID(ctx, in.MessageID)
 			if err != nil {
 				return nil, err
 			}
@@ -128,7 +128,7 @@ func RegisterMessages(h huma.API, s *Service) {
 		Description: "People only. Unavailable when a sensitive variable or attachments weren't stored (resend_unavailable). Audited.",
 		Tags:        tagLog, Access: api.WorkspaceHuman(authz.TransactionalSend), Status: http.StatusAccepted},
 		func(ctx context.Context, in *MessagePath) (*resendOutput, error) {
-			id, err := messageID(in.MessageID)
+			id, err := messageID(ctx, in.MessageID)
 			if err != nil {
 				return nil, err
 			}
