@@ -51,6 +51,15 @@
   "check.hidden.kind.block": "Một khối",
   "check.web.line": "Đồng thời xuất bản {url}, {visibility}, cùng lần gửi.",
 
+  "report.direct": "Ứng dụng email và truy cập trực tiếp",
+  "report.other": "Khác",
+
+  "notify.domainTitle": "Sự cố tên miền của trang web",
+  "notify.domainBody": "{domain} không còn được xác minh: người đọc truy cập trang web tại {fallback} cho đến khi tên miền hợp lệ trở lại.",
+  "notify.certTitle": "Chứng chỉ của trang web bị lỗi",
+  "notify.certBody": "Chứng chỉ của {domain} đang bị lỗi. Người đọc có thể thấy cảnh báo của trình duyệt cho đến khi chứng chỉ được gia hạn.",
+  "notify.certBodyDetail": "Chứng chỉ của {domain} đang bị lỗi ({detail}). Người đọc có thể thấy cảnh báo của trình duyệt cho đến khi chứng chỉ được gia hạn.",
+
   "tag.notFound": "Thẻ đó không còn tồn tại.",
   "tag.nameRequired": "Hãy đặt tên cho thẻ.",
   "tag.slugTaken": "{path} đang được một thẻ khác dùng. Hãy chọn địa chỉ khác.",
