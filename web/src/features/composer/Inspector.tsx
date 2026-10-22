@@ -24,7 +24,7 @@ import {
   withPx,
   type HeadDefaults,
 } from './editor/attrs'
-import { mjChildren, sectionLabel, sectionOf, tagOf } from './editor/labels'
+import { mjChildren, sectionLabel, sectionName, sectionOf, sectionWord, tagOf } from './editor/labels'
 import { withVisibilityStyles } from './editor/mjmlDoc'
 import { TextRoleProp } from '@/features/accessibility/composer/TextRole'
 import { ContrastColorField } from '@/features/accessibility/composer/ColorPicker'
@@ -38,7 +38,8 @@ import { SponsorFoot, SponsorSettings } from '@/features/earn/sponsors/composer/
 import { ShowOnProp } from '@/features/website/composer/campaign'
 import { FillFromProduct } from '@/features/products/composer'
 import { FillFromStore, StoreBlockStyle, storeSectionOf } from '@/features/commerce/composer'
-import { useT } from '@/i18n'
+import { t as tt, useT, type MessageDescriptor } from '@/i18n'
+import { mi } from './inspector.messages'
 
 /** A text input that edits a draft and commits on Enter or blur (one undo step per edit). */
 function DraftInput({
@@ -125,6 +126,7 @@ function ColorField({
   gap?: number
   contrast?: ContrastSpec
 }) {
+  const t = useT()
   const timer = useRef<number | undefined>(undefined)
   const hex = hexColor(value)
   if (contrast)
@@ -138,7 +140,7 @@ function ColorField({
       <input
         type="color"
         className="sw"
-        aria-label={`${label} colour picker`}
+        aria-label={t(mi.colourPicker, { label })}
         value={hex || '#ffffff'}
         onChange={(e) => {
           const v = e.target.value.toUpperCase()
@@ -147,17 +149,17 @@ function ColorField({
         }}
         style={{ background: value || 'transparent' }}
       />
-      <DraftInput label={label} mono value={/^#[0-9a-f]{3,8}$/i.test(value) ? value.toUpperCase() : value} placeholder="none" onCommit={(v) => onCommit(v.trim())} style={{ flex: 1 }} />
+      <DraftInput label={label} mono value={/^#[0-9a-f]{3,8}$/i.test(value) ? value.toUpperCase() : value} placeholder={t(mi.none)} onCommit={(v) => onCommit(v.trim())} style={{ flex: 1 }} />
       {children}
     </div>
   )
 }
 
 const SIDE_LABELS = [
-  ['top', 'Top'],
-  ['right', 'Right'],
-  ['bottom', 'Bottom'],
-  ['left', 'Left'],
+  ['top', mi.sideTop],
+  ['right', mi.sideRight],
+  ['bottom', mi.sideBottom],
+  ['left', mi.sideLeft],
 ] as const
 
 /** A small labelled input (Top, Column 1, Width…). */
@@ -176,22 +178,33 @@ function SubField({ label, value, placeholder, mono, onCommit, id: given }: { la
 }
 
 function BoxField({ c, k, head }: { c: Component; k: string; head: HeadDefaults }) {
+  const t = useT()
   const box = effectiveBox(c, k, head)
   return (
     <div className="row4">
       {SIDE_LABELS.map(([side, label], i) => (
-        <SubField key={side} label={label} value={pxNumber(box[i]!)} onCommit={(v) => setBoxSide(c, k, side, withPx(v || '0'), head)} />
+        <SubField key={side} label={t(label)} value={pxNumber(box[i]!)} onCommit={(v) => setBoxSide(c, k, side, withPx(v || '0'), head)} />
       ))}
     </div>
   )
 }
 
+const alignWords: Record<string, MessageDescriptor> = {
+  left: mi.alignLeft,
+  center: mi.alignCenter,
+  right: mi.alignRight,
+  top: mi.alignTop,
+  middle: mi.alignMiddle,
+  bottom: mi.alignBottom,
+}
+
 function AlignField({ value, onChange, label, options = ['left', 'center', 'right'] }: { value: string; onChange: (v: string) => void; label: string; options?: string[] }) {
+  const t = useT()
   return (
     <div className="seg" role="group" aria-label={label}>
       {options.map((o) => (
         <button key={o} type="button" aria-pressed={value === o} onClick={() => onChange(o)}>
-          {o[0]!.toUpperCase() + o.slice(1)}
+          {alignWords[o] ? t(alignWords[o]) : o[0]!.toUpperCase() + o.slice(1)}
         </button>
       ))}
     </div>
@@ -199,10 +212,11 @@ function AlignField({ value, onChange, label, options = ['left', 'center', 'righ
 }
 
 function SelectField({ value, onChange, label, options }: { value: string; onChange: (v: string) => void; label: string; options: { value: string; label: string }[] }) {
+  const t = useT()
   const has = options.some((o) => o.value === value)
   return (
     <select className="in" aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
-      {has ? null : <option value={value}>{value || 'Default'}</option>}
+      {has ? null : <option value={value}>{value || t(mi.default)}</option>}
       {options.map((o) => (
         <option key={o.value} value={o.value}>
           {o.label}
@@ -217,7 +231,9 @@ function useHead() {
   return useMemo(() => headDefaults(head), [head])
 }
 
-function BackgroundProp({ c, k = 'background-color', image, title = 'Background' }: { c: Component; k?: string; image?: boolean; title?: string }) {
+function BackgroundProp({ c, k = 'background-color', image, title: given }: { c: Component; k?: string; image?: boolean; title?: string }) {
+  const t = useT()
+  const title = given ?? t(mi.background)
   const head = useHead()
   const { openDialog, setAssetTarget } = useComposer()
   const id = useId()
@@ -235,7 +251,7 @@ function BackgroundProp({ c, k = 'background-color', image, title = 'Background'
               openDialog('assets')
             }}
           >
-            Image
+            {t(mi.image)}
           </button>
         ) : null}
       </ColorField>
@@ -243,7 +259,7 @@ function BackgroundProp({ c, k = 'background-color', image, title = 'Background'
         <span className="k flex items-center gap-2">
           <span className="mono min-w-0 flex-1 truncate">{ownAttrs(c)['background-url']}</span>
           <button type="button" className="btn sm" onClick={() => setAttr(c, 'background-url', '')}>
-            Remove
+            {t(mi.remove)}
           </button>
         </span>
       ) : null}
@@ -251,47 +267,50 @@ function BackgroundProp({ c, k = 'background-color', image, title = 'Background'
   )
 }
 
-function PaddingProp({ c, k = 'padding', title = 'Padding' }: { c: Component; k?: string; title?: string }) {
+function PaddingProp({ c, k = 'padding', title }: { c: Component; k?: string; title?: string }) {
+  const t = useT()
   const head = useHead()
   const id = useId()
   return (
-    <Prop title={title} id={id}>
+    <Prop title={title ?? t(mi.padding)} id={id}>
       <BoxField c={c} k={k} head={head} />
     </Prop>
   )
 }
 
 function AlignProp({ c, k = 'align' }: { c: Component; k?: string }) {
+  const t = useT()
   const head = useHead()
   const id = useId()
   return (
-    <Prop title="Alignment" id={id}>
-      <AlignField label="Alignment" value={effective(c, k, head)} onChange={(v) => setAttr(c, k, v)} />
+    <Prop title={t(mi.alignment)} id={id}>
+      <AlignField label={t(mi.alignment)} value={effective(c, k, head)} onChange={(v) => setAttr(c, k, v)} />
     </Prop>
   )
 }
 
 function BorderProp({ c }: { c: Component }) {
+  const t = useT()
   const head = useHead()
   const id = useId()
   const b = parseBorder(effective(c, 'border', head))
   return (
-    <Prop title="Border" id={id}>
+    <Prop title={t(mi.border)} id={id}>
       <div className="row2">
         <SelectField
-          label="Border style"
+          label={t(mi.borderStyle)}
           value={b.style}
           options={[
-            { value: 'none', label: 'None' },
-            { value: 'solid', label: 'Solid' },
-            { value: 'dashed', label: 'Dashed' },
-            { value: 'dotted', label: 'Dotted' },
+            { value: 'none', label: t(mi.styleNone) },
+            { value: 'solid', label: t(mi.styleSolid) },
+            { value: 'dashed', label: t(mi.styleDashed) },
+            { value: 'dotted', label: t(mi.styleDotted) },
           ]}
           onChange={(style) => setAttr(c, 'border', formatBorder({ ...b, style, width: b.width === '0px' ? '1px' : b.width }))}
         />
-        <DraftInput label="Border width" value={b.width} onCommit={(w) => setAttr(c, 'border', formatBorder({ ...b, style: b.style === 'none' ? 'solid' : b.style, width: withPx(w) }))} />
+        <DraftInput label={t(mi.borderWidth)} value={b.width} onCommit={(w) => setAttr(c, 'border', formatBorder({ ...b, style: b.style === 'none' ? 'solid' : b.style, width: withPx(w) }))} />
       </div>
-      {b.style !== 'none' ? <ColorField label="Border colour" value={b.color} onCommit={(color) => setAttr(c, 'border', formatBorder({ ...b, color }))} /> : null}
+      {b.style !== 'none' ? <ColorField label={t(mi.borderColour)} value={b.color} onCommit={(color) => setAttr(c, 'border', formatBorder({ ...b, color }))} /> : null}
     </Prop>
   )
 }
@@ -307,14 +326,15 @@ function TextProp({ c, k, title, mono, placeholder, px }: { c: Component; k: str
 }
 
 function ColumnWidthsProp({ section }: { section: Component }) {
+  const t = useT()
   const cols = columnsOf(section)
   const id = useId()
   if (cols.length < 2) return null
   return (
-    <Prop title="Column widths" id={id}>
+    <Prop title={t(mi.columnWidths)} id={id}>
       <div className={cols.length === 2 ? 'row2' : cols.length === 3 ? 'grid grid-cols-3 gap-1.5' : 'row4'}>
         {cols.map((col, i) => (
-          <SubField key={col.cid} label={`Column ${i + 1}`} value={columnWidth(col)} onCommit={(v) => setAttr(col, 'width', /^\d+(\.\d+)?$/.test(v.trim()) ? `${v.trim()}%` : v.trim())} />
+          <SubField key={col.cid} label={t(mi.columnN, { n: i + 1 })} value={columnWidth(col)} onCommit={(v) => setAttr(col, 'width', /^\d+(\.\d+)?$/.test(v.trim()) ? `${v.trim()}%` : v.trim())} />
         ))}
       </div>
     </Prop>
@@ -343,9 +363,10 @@ function fontOptions(current: string) {
 
 /** Typography of `targets` (one component, or every text in a section). */
 function TypographyProp({ targets, title, sample, weight }: { targets: Component[]; title: string; sample: Component; weight?: boolean }) {
+  const t = useT()
   const head = useHead()
   const id = useId()
-  const set = (k: string, v: string) => targets.forEach((t) => setAttr(t, k, v))
+  const set = (k: string, v: string) => targets.forEach((x) => setAttr(x, k, v))
   const family = effective(sample, 'font-family', head)
   const color = effective(sample, 'color', head)
   const contrast = useContrastSpec(sample, 'color')
@@ -353,39 +374,42 @@ function TypographyProp({ targets, title, sample, weight }: { targets: Component
     <Prop title={title} id={id}>
       <div className="row2">
         <SelectField label={title} value={family} options={fontOptions(family)} onChange={(v) => set('font-family', v)} />
-        <DraftInput label="Font size" value={effective(sample, 'font-size', head)} onCommit={(v) => set('font-size', withPx(v))} />
+        <DraftInput label={t(mi.fontSize)} value={effective(sample, 'font-size', head)} onCommit={(v) => set('font-size', withPx(v))} />
       </div>
       <div className="row2">
         {/* In a two-column row the board spaces swatch and hex 6px apart. */}
-        <ColorField label="Text colour" value={color} onCommit={(v) => set('color', v)} gap={6} contrast={contrast} />
+        <ColorField label={t(mi.textColour)} value={color} onCommit={(v) => set('color', v)} gap={6} contrast={contrast} />
         {weight ? (
           <SelectField
-            label="Font weight"
+            label={t(mi.fontWeight)}
             value={effective(sample, 'font-weight', head) || 'normal'}
-            options={[
-              { value: 'normal', label: 'Regular' },
-              { value: '500', label: 'Medium' },
-              { value: '600', label: 'Semibold' },
-              { value: '700', label: 'Bold' },
-            ]}
+            options={weightOptions()}
             onChange={(v) => set('font-weight', v)}
           />
         ) : (
-          <DraftInput label="Line height" value={effective(sample, 'line-height', head)} onCommit={(v) => set('line-height', v.trim())} />
+          <DraftInput label={t(mi.lineHeight)} value={effective(sample, 'line-height', head)} onCommit={(v) => set('line-height', v.trim())} />
         )}
       </div>
     </Prop>
   )
 }
 
-const ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']
+/** The font weights the selects offer. */
+function weightOptions() {
+  return [
+    { value: 'normal', label: tt(mi.weightRegular) },
+    { value: '500', label: tt(mi.weightMedium) },
+    { value: '600', label: tt(mi.weightSemibold) },
+    { value: '700', label: tt(mi.weightBold) },
+  ]
+}
 
 function sectionPhrase(sec: Component | undefined): string {
-  if (!sec) return 'email'
+  if (!sec) return tt(mi.phraseEmail)
   const l = sectionLabel(sec)
   const m = /^(\d+) columns$/.exec(l)
-  if (m) return `${m[1]}-column section`
-  return l.endsWith('section') ? l : `${l} section`
+  if (m) return tt(mi.phraseColumns, { count: Number(m[1]) })
+  return l.endsWith('section') ? l : tt(mi.phraseNamed, { name: sectionWord(l) })
 }
 
 /** The subtitle under the tag name in the inspector. */
@@ -394,25 +418,26 @@ export function describe(c: Component, tab: 'style' | 'settings'): string {
   const sec = sectionOf(c)
   switch (tag) {
     case 'mj-body':
-      return 'the email body · width and background'
+      return tt(mi.descBody)
     case 'mj-section':
     case 'mj-wrapper':
     case 'mj-hero': {
-      const l = sec === c ? sectionLabel(c) : tag.replace('mj-', '')
-      return tab === 'style' ? `${l} · only properties MJML supports` : `${l} · settings MJML supports`
+      const l = sec === c ? sectionName(c) : sectionWord(tag.replace('mj-', ''))
+      return tab === 'style' ? tt(mi.descStyle, { name: l }) : tt(mi.descSettings, { name: l })
     }
     case 'mj-column': {
       const parent = c.parent()
       const i = parent ? columnsOf(parent).indexOf(c) : 0
-      return `${ORDINALS[i] ?? `#${i + 1}`} column of the ${sectionPhrase(sec)}`
+      return tt(mi.descColumn, { n: i + 1, section: sectionPhrase(sec) })
     }
     case 'mj-raw':
-      return 'raw HTML, edited in the code view'
+      return tt(mi.descRaw)
   }
-  return `${tag.replace('mj-', '')} in the ${sectionPhrase(sec)}`
+  return tt(mi.descElement, { element: sectionWord(tag.replace('mj-', '')), section: sectionPhrase(sec) })
 }
 
 export function StyleFields({ c }: { c: Component }) {
+  const t = useT()
   const tag = tagOf(c)
   const head = useHead()
   // A store's Product grid or card (X20): its settings, wherever in it the selection is.
@@ -423,7 +448,7 @@ export function StyleFields({ c }: { c: Component }) {
       return (
         <>
           <BackgroundProp c={c} />
-          <TextProp c={c} k="width" title="Width" px />
+          <TextProp c={c} k="width" title={t(mi.width)} px />
         </>
       )
     case 'mj-section':
@@ -437,8 +462,8 @@ export function StyleFields({ c }: { c: Component }) {
           <AlignProp c={c} k="text-align" />
           {tag === 'mj-section' ? <ColumnWidthsProp section={c} /> : null}
           <BorderProp c={c} />
-          <TextProp c={c} k="border-radius" title="Border radius" px />
-          {texts.length ? <TypographyProp targets={texts} sample={bodyText(texts)} title="Typography · inherited by children" /> : null}
+          <TextProp c={c} k="border-radius" title={t(mi.borderRadius)} px />
+          {texts.length ? <TypographyProp targets={texts} sample={bodyText(texts)} title={t(mi.typographyInherited)} /> : null}
         </>
       )
     }
@@ -446,10 +471,10 @@ export function StyleFields({ c }: { c: Component }) {
       return (
         <>
           <BackgroundProp c={c} image />
-          <TextProp c={c} k="height" title="Height" px />
+          <TextProp c={c} k="height" title={t(mi.height)} px />
           <PaddingProp c={c} />
-          <Prop title="Vertical alignment">
-            <AlignField label="Vertical alignment" options={['top', 'middle', 'bottom']} value={effective(c, 'vertical-align', head)} onChange={(v) => setAttr(c, 'vertical-align', v)} />
+          <Prop title={t(mi.verticalAlignment)}>
+            <AlignField label={t(mi.verticalAlignment)} options={['top', 'middle', 'bottom']} value={effective(c, 'vertical-align', head)} onChange={(v) => setAttr(c, 'vertical-align', v)} />
           </Prop>
         </>
       )
@@ -460,79 +485,69 @@ export function StyleFields({ c }: { c: Component }) {
           <BackgroundProp c={c} />
           {tag === 'mj-column' ? <PaddingProp c={c} /> : null}
           {tag === 'mj-column' ? <BorderProp c={c} /> : null}
-          {tag === 'mj-column' ? <TextProp c={c} k="border-radius" title="Border radius" px /> : null}
+          {tag === 'mj-column' ? <TextProp c={c} k="border-radius" title={t(mi.borderRadius)} px /> : null}
         </>
       )
     case 'mj-text':
     case 'mj-table':
       return (
         <>
-          <TypographyProp targets={[c]} sample={c} title="Typography" />
-          <Prop title="Weight">
-            <SelectField
-              label="Font weight"
-              value={effective(c, 'font-weight', head) || 'normal'}
-              options={[
-                { value: 'normal', label: 'Regular' },
-                { value: '500', label: 'Medium' },
-                { value: '600', label: 'Semibold' },
-                { value: '700', label: 'Bold' },
-              ]}
-              onChange={(v) => setAttr(c, 'font-weight', v)}
-            />
+          <TypographyProp targets={[c]} sample={c} title={t(mi.typography)} />
+          <Prop title={t(mi.weight)}>
+            <SelectField label={t(mi.fontWeight)} value={effective(c, 'font-weight', head) || 'normal'} options={weightOptions()} onChange={(v) => setAttr(c, 'font-weight', v)} />
           </Prop>
           <AlignProp c={c} />
           <PaddingProp c={c} />
-          <BackgroundProp c={c} k="container-background-color" title="Background" />
+          <BackgroundProp c={c} k="container-background-color" title={t(mi.background)} />
         </>
       )
     case 'mj-button':
       return (
         <>
-          <BackgroundProp c={c} title="Button colour" />
-          <TypographyProp targets={[c]} sample={c} title="Typography" weight />
+          <BackgroundProp c={c} title={t(mi.buttonColour)} />
+          <TypographyProp targets={[c]} sample={c} title={t(mi.typography)} weight />
           <AlignProp c={c} />
-          <TextProp c={c} k="inner-padding" title="Inner padding" placeholder="10px 25px" />
-          <PaddingProp c={c} title="Outer padding" />
-          <TextProp c={c} k="border-radius" title="Border radius" px />
-          <TextProp c={c} k="width" title="Width" px placeholder="auto" />
+          <TextProp c={c} k="inner-padding" title={t(mi.innerPadding)} placeholder={'10px 25px'} />
+          <PaddingProp c={c} title={t(mi.outerPadding)} />
+          <TextProp c={c} k="border-radius" title={t(mi.borderRadius)} px />
+          <TextProp c={c} k="width" title={t(mi.width)} px placeholder={'auto'} />
         </>
       )
     case 'mj-image':
       return (
         <>
-          <Prop title="Size">
+          <Prop title={t(mi.size)}>
             <div className="row2">
-              <SubField label="Width" value={effective(c, 'width', head)} placeholder="auto" onCommit={(v) => setAttr(c, 'width', withPx(v))} />
-              <SubField label="Height" value={effective(c, 'height', head)} placeholder="auto" onCommit={(v) => setAttr(c, 'height', withPx(v))} />
+              <SubField label={t(mi.width)} value={effective(c, 'width', head)} placeholder={'auto'} onCommit={(v) => setAttr(c, 'width', withPx(v))} />
+              <SubField label={t(mi.height)} value={effective(c, 'height', head)} placeholder={'auto'} onCommit={(v) => setAttr(c, 'height', withPx(v))} />
             </div>
           </Prop>
           <AlignProp c={c} />
           <PaddingProp c={c} />
-          <TextProp c={c} k="border-radius" title="Border radius" px />
-          <BackgroundProp c={c} k="container-background-color" title="Background" />
+          <TextProp c={c} k="border-radius" title={t(mi.borderRadius)} px />
+          <BackgroundProp c={c} k="container-background-color" title={t(mi.background)} />
         </>
       )
     case 'mj-divider':
       return (
         <>
-          <Prop title="Line">
+          <Prop title={t(mi.line)}>
             <div className="row2">
               <SelectField
-                label="Line style"
+                label={t(mi.lineStyle)}
                 value={effective(c, 'border-style', head)}
                 options={[
-                  { value: 'solid', label: 'Solid' },
-                  { value: 'dashed', label: 'Dashed' },
-                  { value: 'dotted', label: 'Dotted' },
+                  { value: 'solid', label: t(mi.styleSolid) },
+                  { value: 'dashed', label: t(mi.styleDashed) },
+                  { value: 'dotted', label: t(mi.styleDotted) },
                 ]}
                 onChange={(v) => setAttr(c, 'border-style', v)}
               />
-              <DraftInput label="Line width" value={effective(c, 'border-width', head)} onCommit={(v) => setAttr(c, 'border-width', withPx(v))} />
+              <DraftInput label={t(mi.lineWidth)} value={effective(c, 'border-width', head)} onCommit={(v) => setAttr(c, 'border-width', withPx(v))} />
             </div>
-            <ColorField label="Line colour" value={effective(c, 'border-color', head)} onCommit={(v) => setAttr(c, 'border-color', v)} />
+            <ColorField label={t(mi.lineColour)} value={effective(c, 'border-color', head)} onCommit={(v) => setAttr(c, 'border-color', v)} />
           </Prop>
-          <TextProp c={c} k="width" title="Width" />
+          <TextProp c={c} k="width" title={t(mi.width)} />
           <AlignProp c={c} />
           <PaddingProp c={c} />
         </>
@@ -540,37 +555,37 @@ export function StyleFields({ c }: { c: Component }) {
     case 'mj-spacer':
       return (
         <>
-          <TextProp c={c} k="height" title="Height" px />
-          <BackgroundProp c={c} k="container-background-color" title="Background" />
+          <TextProp c={c} k="height" title={t(mi.height)} px />
+          <BackgroundProp c={c} k="container-background-color" title={t(mi.background)} />
         </>
       )
     case 'mj-social':
       return (
         <>
           <AlignProp c={c} />
-          <Prop title="Layout">
+          <Prop title={t(mi.layout)}>
             <div className="row2">
               <SelectField
-                label="Mode"
+                label={t(mi.mode)}
                 value={effective(c, 'mode', head)}
                 options={[
-                  { value: 'horizontal', label: 'Horizontal' },
-                  { value: 'vertical', label: 'Vertical' },
+                  { value: 'horizontal', label: t(mi.horizontal) },
+                  { value: 'vertical', label: t(mi.vertical) },
                 ]}
                 onChange={(v) => setAttr(c, 'mode', v)}
               />
-              <DraftInput label="Icon size" value={effective(c, 'icon-size', head)} onCommit={(v) => setAttr(c, 'icon-size', withPx(v))} />
+              <DraftInput label={t(mi.iconSize)} value={effective(c, 'icon-size', head)} onCommit={(v) => setAttr(c, 'icon-size', withPx(v))} />
             </div>
           </Prop>
-          <TypographyProp targets={[c]} sample={c} title="Typography" />
+          <TypographyProp targets={[c]} sample={c} title={t(mi.typography)} />
           <PaddingProp c={c} />
         </>
       )
     case 'mj-social-element':
       return (
         <>
-          <BackgroundProp c={c} title="Icon background" />
-          <TypographyProp targets={[c]} sample={c} title="Typography" />
+          <BackgroundProp c={c} title={t(mi.iconBackground)} />
+          <TypographyProp targets={[c]} sample={c} title={t(mi.typography)} />
         </>
       )
     case 'mj-navbar':
@@ -578,23 +593,24 @@ export function StyleFields({ c }: { c: Component }) {
     case 'mj-navbar-link':
       return (
         <>
-          <TypographyProp targets={[c]} sample={c} title="Typography" />
+          <TypographyProp targets={[c]} sample={c} title={t(mi.typography)} />
           <PaddingProp c={c} />
         </>
       )
     case 'mj-raw':
       return <RawNote />
   }
-  return <p className="k p-3">No style properties for {tag || 'this element'}.</p>
+  return <p className="k p-3">{tag ? t(mi.noStyle, { tag }) : t(mi.noStyleElement)}</p>
 }
 
 function RawNote() {
   const c = useComposer()
+  const t = useT()
   return (
     <div className="prop">
-      <span className="k">Raw HTML is passed through MJML untouched, so it has no MJML properties. Edit it in the code view.</span>
+      <span className="k">{t(mi.rawNote)}</span>
       <button type="button" className="btn sm self-start" onClick={() => c.setView('mjml')}>
-        Open the MJML view
+        {t(mi.openMjml)}
       </button>
     </div>
   )
@@ -610,23 +626,26 @@ function textLinks(c: Component): Component[] {
   return out
 }
 
-function LinkProp({ c, title = 'Link URL' }: { c: Component; title?: string }) {
+function LinkProp({ c, title: given }: { c: Component; title?: string }) {
+  const t = useT()
+  const title = given ?? t(mi.linkUrl)
   const head = useHead()
   const id = useId()
   return (
     <Prop title={title} id={id}>
-      <DraftInput id="insp-href" label={title} mono value={effective(c, 'href', head)} placeholder="https://" onCommit={(v) => setAttr(c, 'href', v.trim())} />
+      <DraftInput id="insp-href" label={title} mono value={effective(c, 'href', head)} placeholder={'https://'} onCommit={(v) => setAttr(c, 'href', v.trim())} />
     </Prop>
   )
 }
 
 function ButtonTextProp({ c }: { c: Component }) {
+  const tr = useT()
   const id = useId()
   const text = c.getEl()?.textContent?.trim() ?? ''
   return (
-    <Prop title="Button text" id={id}>
+    <Prop title={tr(mi.buttonText)} id={id}>
       <DraftInput
-        label="Button text"
+        label={tr(mi.buttonText)}
         value={text}
         onCommit={(v) => {
           const t = v.trim()
@@ -640,10 +659,11 @@ function ButtonTextProp({ c }: { c: Component }) {
 
 function ImageSourceProp({ c }: { c: Component }) {
   const { openDialog, setAssetTarget } = useComposer()
+  const t = useT()
   const src = ownAttrs(c).src ?? ''
   const id = useId()
   return (
-    <Prop title="Image" id={id}>
+    <Prop title={t(mi.image)} id={id}>
       <div className="flex items-center gap-2">
         {src ? <img src={src} alt="" style={{ width: 44, height: 32, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} /> : null}
         <button
@@ -654,14 +674,14 @@ function ImageSourceProp({ c }: { c: Component }) {
             openDialog('assets')
           }}
         >
-          {src ? 'Replace image' : 'Choose image'}
+          {src ? t(mi.replaceImage) : t(mi.chooseImage)}
         </button>
       </div>
       <DraftInput
-        label="Image URL"
+        label={t(mi.imageUrl)}
         mono
         value={src}
-        placeholder="https://"
+        placeholder={'https://'}
         onCommit={(v) => {
           c.addAttributes({ src: v.trim() })
           c.set('src', v.trim())
@@ -672,6 +692,7 @@ function ImageSourceProp({ c }: { c: Component }) {
 }
 
 function AltProp({ c }: { c: Component }) {
+  const t = useT()
   const id = useId()
   const attrs = ownAttrs(c)
   const alt = attrs.alt ?? ''
@@ -680,9 +701,9 @@ function AltProp({ c }: { c: Component }) {
   const ctx = useComposer()
   const altVersion = useAltVersionLabel()
   return (
-    <Prop title="Alt text" id={id}>
-      <DraftInput id="insp-alt" label="Alt text" value={alt} placeholder="Describe the image" onCommit={(v) => setAttr(c, 'alt', v.trim())} />
-      <span className="k">Shown when images are off (Outlook, many corporate clients). Leave it empty only for decorative images.</span>
+    <Prop title={t(mi.altText)} id={id}>
+      <DraftInput id="insp-alt" label={t(mi.altText)} value={alt} placeholder={t(mi.describeImage)} onCommit={(v) => setAttr(c, 'alt', v.trim())} />
+      <span className="k">{t(mi.altHelp)}</span>
       {ai ? (
         <AltTextAssist
           component={c}
@@ -725,33 +746,34 @@ function VisibilityProp({ c }: { c: Component }) {
     if (next !== ctx.head) ctx.setHead(next)
   }
   return (
-    <Prop title={conditional ? t(cm.onDevices) : 'Visibility'} id={id}>
+    <Prop title={conditional ? t(cm.onDevices) : t(mi.visibility)} id={id}>
       <label className="tg">
         <input type="checkbox" checked={hasClass(c, VISIBILITY.mobile)} onChange={(e) => toggle('mobile', e.target.checked)} />
-        Hide on mobile
+        {t(mi.hideMobile)}
       </label>
       <label className="tg">
         <input type="checkbox" checked={hasClass(c, VISIBILITY.desktop)} onChange={(e) => toggle('desktop', e.target.checked)} />
-        Hide on desktop
+        {t(mi.hideDesktop)}
       </label>
-      <span className="k">{conditional ? t(cm.devicesNote) : 'Adds a CSS class and its media-query rule to the head; the layer tree marks hidden components.'}</span>
+      <span className="k">{conditional ? t(cm.devicesNote) : t(mi.visibilityHelp)}</span>
     </Prop>
   )
 }
 
 function CssClassProp({ c }: { c: Component }) {
+  const t = useT()
   const id = useId()
   const classes = (ownAttrs(c)['css-class'] ?? '')
     .split(/\s+/)
     .filter((x) => x && x !== VISIBILITY.mobile && x !== VISIBILITY.desktop)
     .join(' ')
   return (
-    <Prop title="CSS class" id={id}>
+    <Prop title={t(mi.cssClass)} id={id}>
       <DraftInput
-        label="CSS class"
+        label={t(mi.cssClass)}
         mono
         value={classes}
-        placeholder="none"
+        placeholder={t(mi.none)}
         onCommit={(v) => {
           const keep = [VISIBILITY.mobile, VISIBILITY.desktop].filter((x) => hasClass(c, x))
           setAttr(c, 'css-class', [...v.split(/\s+/).filter(Boolean), ...keep].join(' '))
@@ -762,14 +784,15 @@ function CssClassProp({ c }: { c: Component }) {
 }
 
 function TableRowsProp({ c }: { c: Component }) {
+  const t = useT()
   const id = useId()
   const [draft, setDraft] = useState(String(c.get('content') ?? ''))
   return (
-    <Prop title="Rows (HTML)" id={id}>
+    <Prop title={t(mi.rowsHtml)} id={id}>
       <textarea
         className="in mono"
         rows={6}
-        aria-label="Table rows"
+        aria-label={t(mi.tableRows)}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => {
@@ -784,6 +807,7 @@ function TableRowsProp({ c }: { c: Component }) {
 }
 
 export function SettingsFields({ c }: { c: Component }) {
+  const t = useT()
   const tag = tagOf(c)
   const head = useHead()
   const rows: ReactNode[] = []
@@ -801,7 +825,7 @@ export function SettingsFields({ c }: { c: Component }) {
   )
   switch (tag) {
     case 'mj-image':
-      rows.push(<ImageSourceProp key="src" c={c} />, <AltProp key="alt" c={c} />, <LinkProp key="href" c={c} title="Link URL (optional)" />)
+      rows.push(<ImageSourceProp key="src" c={c} />, <AltProp key="alt" c={c} />, <LinkProp key="href" c={c} title={t(mi.linkUrlOptional)} />)
       break
     case 'mj-button':
       rows.push(<ButtonTextProp key="text" c={c} />, <LinkProp key="href" c={c} />)
@@ -815,12 +839,12 @@ export function SettingsFields({ c }: { c: Component }) {
       const links = textLinks(c)
       if (links.length)
         rows.push(
-          <Prop key="links" title={`Links in this text · ${links.length}`}>
+          <Prop key="links" title={t(mi.linksInText, { count: links.length })}>
             {links.map((a, i) => (
               <SubField
                 key={a.cid}
                 id={i === 0 ? 'insp-href' : undefined}
-                label={(a.getEl()?.textContent ?? '').trim() || `Link ${i + 1}`}
+                label={(a.getEl()?.textContent ?? '').trim() || t(mi.linkN, { n: i + 1 })}
                 mono
                 value={String((a.getAttributes() as Record<string, string>).href ?? '')}
                 onCommit={(v) => a.addAttributes({ href: v.trim() })}
@@ -832,11 +856,11 @@ export function SettingsFields({ c }: { c: Component }) {
     }
     case 'mj-column':
       rows.push(
-        <Prop key="width" title="Width">
+        <Prop key="width" title={t(mi.width)}>
           <div className="row2">
-            <DraftInput label="Desktop width" value={columnWidth(c)} onCommit={(v) => setAttr(c, 'width', /^\d+(\.\d+)?$/.test(v.trim()) ? `${v.trim()}%` : v.trim())} />
+            <DraftInput label={t(mi.desktopWidth)} value={columnWidth(c)} onCommit={(v) => setAttr(c, 'width', /^\d+(\.\d+)?$/.test(v.trim()) ? `${v.trim()}%` : v.trim())} />
             <span className="k" style={{ alignSelf: 'center' }}>
-              stacks to 100% on mobile
+              {t(mi.stacksMobile)}
             </span>
           </div>
         </Prop>,
@@ -845,23 +869,23 @@ export function SettingsFields({ c }: { c: Component }) {
     case 'mj-section':
     case 'mj-wrapper':
       rows.push(
-        <Prop key="full" title="Width">
+        <Prop key="full" title={t(mi.width)}>
           <label className="tg">
             <input type="checkbox" checked={ownAttrs(c)['full-width'] === 'full-width'} onChange={(e) => setAttr(c, 'full-width', e.target.checked ? 'full-width' : '')} />
-            Full width background
+            {t(mi.fullWidth)}
           </label>
         </Prop>,
       )
       break
     case 'mj-hero':
       rows.push(
-        <Prop key="mode" title="Mode">
+        <Prop key="mode" title={t(mi.mode)}>
           <SelectField
-            label="Mode"
+            label={t(mi.mode)}
             value={effective(c, 'mode', head)}
             options={[
-              { value: 'fixed-height', label: 'Fixed height' },
-              { value: 'fluid-height', label: 'Fluid height' },
+              { value: 'fixed-height', label: t(mi.fixedHeight) },
+              { value: 'fluid-height', label: t(mi.fluidHeight) },
             ]}
             onChange={(v) => setAttr(c, 'mode', v)}
           />
@@ -878,19 +902,19 @@ export function SettingsFields({ c }: { c: Component }) {
   rows.push(<NameInLayers key="name" c={c} />, <VersionsWithBlock key="versions" c={c} />)
   if (tag === 'mj-column' || tag === 'mj-group')
     rows.push(
-      <Prop key="valign" title="Vertical alignment">
+      <Prop key="valign" title={t(mi.verticalAlignment)}>
         <SelectField
-          label="Vertical alignment"
+          label={t(mi.verticalAlignment)}
           value={effective(c, 'vertical-align', head)}
           options={[
-            { value: 'top', label: 'Top' },
-            { value: 'middle', label: 'Middle' },
-            { value: 'bottom', label: 'Bottom' },
+            { value: 'top', label: t(mi.alignTop) },
+            { value: 'middle', label: t(mi.alignMiddle) },
+            { value: 'bottom', label: t(mi.alignBottom) },
           ]}
           onChange={(v) => setAttr(c, 'vertical-align', v)}
         />
       </Prop>,
     )
-  if (tag === 'mj-body') rows.push(<p key="none" className="k p-3">The body has no settings beyond its style. Select a section or an element on the canvas.</p>)
+  if (tag === 'mj-body') rows.push(<p key="none" className="k p-3">{t(mi.bodyNoSettings)}</p>)
   return <>{rows}</>
 }

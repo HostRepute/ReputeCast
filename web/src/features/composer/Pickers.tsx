@@ -7,6 +7,8 @@ import { count } from '@/lib/format'
 import { useComposer, type Campaign } from './context'
 import { ToolIcon } from './icons'
 import { WhoOnList, type Who } from '@/features/earn/composer/WhoOnList'
+import { t as tt, useT } from '@/i18n'
+import { m as mm } from './messages'
 
 function useUpdateCampaign() {
   const { slug, campaign } = useComposer()
@@ -21,7 +23,7 @@ function useUpdateCampaign() {
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns'] })
           done?.()
         },
-        onError: (e) => toast({ kind: 'error', title: "Couldn't change the campaign", detail: errorMessage(e) }),
+        onError: (e) => toast({ kind: 'error', title: tt(mm.changeFailed), detail: errorMessage(e) }),
       },
     )
 }
@@ -29,6 +31,7 @@ function useUpdateCampaign() {
 /** Audience picker with the live recipient count. */
 export function AudiencePicker() {
   const { campaign, context, slug, canEdit } = useComposer()
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [lists, setLists] = useState<string[]>(campaign.audience.lists)
   const [segments, setSegments] = useState<string[]>(campaign.audience.segments)
@@ -62,23 +65,23 @@ export function AudiencePicker() {
     return () => window.clearTimeout(h)
   }, [open, nothing, lists, segments, exclude, who, paidTier, slug])
 
-  const label = campaign.audienceLabel ? `${campaign.audienceLabel} · ${count(campaign.audienceCount ?? 0)}` : 'Choose audience'
+  const label = campaign.audienceLabel ? `${campaign.audienceLabel} · ${count(campaign.audienceCount ?? 0)}` : t(mm.chooseAudience)
   const toggle = (arr: string[], id: string) => (arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id])
   const trigger = campaign.audienceLabel ? (
-    <button type="button" className="btn" aria-label={`Audience: ${campaign.audienceLabel}, ${count(campaign.audienceCount ?? 0)} recipients`}>
+    <button type="button" className="btn" aria-label={t(mm.audienceLabel, { audience: campaign.audienceLabel, count: count(campaign.audienceCount ?? 0) })}>
       <ToolIcon name="audience" size={14} strokeWidth={1.6} />
       {label}
     </button>
   ) : (
     <button type="button" className="btn" style={{ borderStyle: 'dashed' }}>
-      Choose audience
+      {t(mm.chooseAudience)}
     </button>
   )
   if (!canEdit) return trigger
   return (
-    <Popover trigger={trigger} open={open} onOpenChange={onOpenChange} align="start" label="Audience" className="w-[340px] max-w-[calc(100vw-24px)]">
+    <Popover trigger={trigger} open={open} onOpenChange={onOpenChange} align="start" label={t(mm.audience)} className="w-[340px] max-w-[calc(100vw-24px)]">
       <div className="flex flex-col gap-1 p-1">
-        <span className="mh">Send to</span>
+        <span className="mh">{t(mm.sendTo)}</span>
         {context.lists.map((l) => (
           <label key={l.id} className="chk items-center rounded-lg px-2.5 py-1.5 hover:bg-ground">
             <input type="checkbox" checked={lists.includes(l.id)} onChange={() => setLists(toggle(lists, l.id))} />
@@ -86,7 +89,7 @@ export function AudiencePicker() {
             <span className="k tabular">{count(l.count ?? 0)}</span>
           </label>
         ))}
-        {context.segments.length ? <span className="mh">Segments</span> : null}
+        {context.segments.length ? <span className="mh">{t(mm.segments)}</span> : null}
         {context.segments.map((s) => (
           <label key={s.id} className="chk items-center rounded-lg px-2.5 py-1.5 hover:bg-ground">
             <input type="checkbox" checked={segments.includes(s.id)} onChange={() => setSegments(toggle(segments, s.id))} />
@@ -94,14 +97,14 @@ export function AudiencePicker() {
             <span className="k tabular">{s.count != null ? count(s.count) : '–'}</span>
           </label>
         ))}
-        {context.lists.length > 1 ? <span className="mh">Leave out</span> : null}
+        {context.lists.length > 1 ? <span className="mh">{t(mm.leaveOut)}</span> : null}
         {context.lists.length > 1
           ? context.lists
               .filter((l) => !lists.includes(l.id))
               .map((l) => (
                 <label key={l.id} className="chk items-center rounded-lg px-2.5 py-1.5 hover:bg-ground">
                   <input type="checkbox" checked={exclude.includes(l.id)} onChange={() => setExclude(toggle(exclude, l.id))} />
-                  <span className="flex-1">People on {l.name}</span>
+                  <span className="flex-1">{t(mm.peopleOn, { list: l.name })}</span>
                 </label>
               ))
           : null}
@@ -116,7 +119,7 @@ export function AudiencePicker() {
         />
         <div className="mt-1 flex items-center gap-2 border-t border-line-2 px-2.5 pt-2.5 pb-1">
           <span className="k flex-1" role="status" aria-live="polite">
-            {nothing ? 'Pick a list or a segment' : live ? `${live.approximate ? 'About ' : ''}${count(live.count)} recipients after suppressions` : 'Counting…'}
+            {nothing ? t(mm.pickAudience) : live ? t(mm.recipientsAfter, { approximate: live.approximate ? 'yes' : 'no', count: count(live.count) }) : t(mm.counting)}
           </span>
           <button
             type="button"
@@ -124,7 +127,7 @@ export function AudiencePicker() {
             onClick={() => update({ audience: { lists, segments, excludeLists: exclude, paid: who, paidTier: who === 'paid' ? paidTier : '' } }, () => setOpen(false))}
             disabled={!lists.length && !segments.length}
           >
-            Apply
+            {t(mm.apply)}
           </button>
         </div>
       </div>
@@ -135,20 +138,21 @@ export function AudiencePicker() {
 /** Sender identity ("From") picker. */
 export function SenderPicker() {
   const { campaign, context, canEdit } = useComposer()
+  const t = useT()
   const [open, setOpen] = useState(false)
   const update = useUpdateCampaign()
   const s = campaign.sender
   const trigger = (
     <button type="button" className="btn" style={s ? undefined : { borderStyle: 'dashed' }}>
-      {s ? `From: ${s.name} <${s.email}>` : 'Choose sender'}
+      {s ? t(mm.fromSender, { sender: `${s.name} <${s.email}>` }) : t(mm.chooseSender)}
     </button>
   )
   if (!canEdit) return trigger
   return (
-    <Popover trigger={trigger} open={open} onOpenChange={setOpen} align="start" label="Sender" className="w-[360px] max-w-[calc(100vw-24px)]">
-      <span className="mh">Send from</span>
+    <Popover trigger={trigger} open={open} onOpenChange={setOpen} align="start" label={t(mm.sender)} className="w-[360px] max-w-[calc(100vw-24px)]">
+      <span className="mh">{t(mm.sendFrom)}</span>
       {context.senders.length === 0 ? (
-        <p className="k px-2.5 py-2">No senders yet. Add one in Settings › Senders and domains.</p>
+        <p className="k px-2.5 py-2">{t(mm.noSenders)}</p>
       ) : (
         context.senders.map((x) => (
           <button
@@ -162,7 +166,7 @@ export function SenderPicker() {
               <span className="font-semibold">{x.name}</span>
               <span className="k">{x.email}</span>
             </span>
-            {s?.id === x.id ? <span className="k">Current</span> : x.verified ? null : <span className="k">domain not verified</span>}
+            {s?.id === x.id ? <span className="k">{t(mm.currentSender)}</span> : x.verified ? null : <span className="k">{t(mm.domainNotVerified)}</span>}
           </button>
         ))
       )}

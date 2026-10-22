@@ -26,10 +26,7 @@ export default translate(m, {
   previous: 'Lần nhập trước: {source}, {date}, {n, plural, other {{count} liên hệ}}. <link>Xem báo cáo</link>',
   loadFailed: 'Không tải được lần nhập này',
   loadFailedThe: 'Không tải được lần nhập',
-  openFailed: 'Không mở được lần nhập này',
   loading: 'Đang tải lần nhập',
-  opening: 'Đang mở lần nhập',
-  lookingForImport: 'Đang tìm lần nhập đang dở',
   backToSource: 'Quay lại bước nguồn',
   nothingImported: 'Chưa có gì được nhập.',
 

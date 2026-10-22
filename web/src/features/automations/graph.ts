@@ -4,7 +4,9 @@ import { isOneOfPhrase, scoreTriggerDetail, scoreTriggerName, scoreTriggerRef } 
 import { boughtGoalTitle, boughtPhrase, boughtRef, boughtTriggerName } from '@/features/products/automationText'
 import { milestoneTriggerDetail, milestoneTriggerName, milestoneTriggerRef } from '@/features/grow/triggerText'
 import { m as smsStep } from '@/features/sms/automation.messages'
-import { t as tt } from '@/i18n'
+import { t as tt, type MessageDescriptor } from '@/i18n'
+import { pct } from '@/lib/format'
+import { mg } from './graph.messages'
 
 /*
  * Flow graph helpers shared by the canvas, the step panel and the tests:
@@ -55,44 +57,80 @@ export function refsFrom(o: Schemas['AutomationOptions'] | undefined): Refs {
   }
 }
 
-/** The palette's names for step types. */
-export const typeNames: Record<StepType, string> = {
-  trigger: 'Trigger',
-  delay: 'Delay',
-  email: 'Send email',
-  branch: 'Branch',
-  filter: 'Filter',
-  split: 'A/B split',
-  webhook: 'Webhook',
-  list: 'List action',
-  goal: 'Goal',
-  exit: 'Exit',
-  sms: 'Send SMS',
-  push: 'Send push',
-  whatsapp: 'Send WhatsApp',
+const typeNames: Record<StepType, MessageDescriptor> = {
+  trigger: mg.typeTrigger,
+  delay: mg.typeDelay,
+  email: mg.typeEmail,
+  branch: mg.typeBranch,
+  filter: mg.typeFilter,
+  split: mg.typeSplit,
+  webhook: mg.typeWebhook,
+  list: mg.typeList,
+  goal: mg.typeGoal,
+  exit: mg.typeExit,
+  sms: mg.typeSms,
+  push: mg.typePush,
+  whatsapp: mg.typeWhatsapp,
 }
 
-export const triggerKindLabels: Record<TriggerConfig['kind'], string> = {
-  joined_list: 'Joined list',
-  form_submitted: 'Form submitted',
-  tag_added: 'Tag added',
-  api_event: 'API event',
-  date_field: 'Date field',
-  get score_crosses() {
-    return scoreTriggerName()
-  },
-  poll_answered: 'Answered a poll or survey',
+/** The palette's name for a step type: "Send email", "A/B split". */
+export function typeName(type: StepType): string {
+  return tt(typeNames[type])
+}
+
+/** The trigger kinds, in the palette's and the "Starts when" select's order. */
+export const TRIGGER_KINDS: readonly TriggerConfig['kind'][] = [
+  'joined_list',
+  'form_submitted',
+  'tag_added',
+  'api_event',
+  'date_field',
+  'score_crosses',
+  'poll_answered',
   // Digital products (X19).
-  get bought_product() {
-    return boughtTriggerName()
-  },
+  'bought_product',
   // Grow (referral milestones).
-  get milestone_reached() {
-    return milestoneTriggerName()
-  },
-  order_placed: 'Order placed',
-  first_order: 'First order',
-  abandoned_checkout: 'Abandoned checkout',
+  'milestone_reached',
+  // Shopify and WooCommerce (X20).
+  'order_placed',
+  'first_order',
+  'abandoned_checkout',
+]
+
+/** A trigger kind's name: "Joined list", "Form submitted". */
+export function triggerKindLabel(kind: TriggerConfig['kind']): string {
+  switch (kind) {
+    case 'joined_list':
+      return tt(mg.kindJoinedList)
+    case 'form_submitted':
+      return tt(mg.kindFormSubmitted)
+    case 'tag_added':
+      return tt(mg.kindTagAdded)
+    case 'api_event':
+      return tt(mg.kindApiEvent)
+    case 'date_field':
+      return tt(mg.kindDateField)
+    case 'score_crosses':
+      return scoreTriggerName()
+    case 'poll_answered':
+      return tt(mg.kindPollAnswered)
+    case 'bought_product':
+      return boughtTriggerName()
+    case 'milestone_reached':
+      return milestoneTriggerName()
+    case 'order_placed':
+      return tt(mg.kindOrderPlaced)
+    case 'first_order':
+      return tt(mg.kindFirstOrder)
+    case 'abandoned_checkout':
+      return tt(mg.kindAbandonedCheckout)
+  }
+  return kind
+}
+
+/** A trigger kind in a step's header: "joined list" (shown in capitals). */
+export function triggerKindWord(kind: string): string {
+  return tt(mg.kindWord, { kind })
 }
 
 /** Colour of a step type: the palette swatch and the node header. */
@@ -135,10 +173,10 @@ export function isCompact(t: StepType): boolean {
 export const isFork = (t: StepType) => t === 'branch' || t === 'split'
 export const isTerminal = (t: StepType) => t === 'goal' || t === 'exit'
 
+/** "10 minutes", "1 day". */
 export function durationText(d?: FlowDuration): string {
   if (!d) return ''
-  const unit = d.unit.replace(/s$/, '')
-  return d.amount === 1 ? `1 ${unit}` : `${d.amount} ${unit}s`
+  return tt(mg.duration, { unit: d.unit, n: d.amount })
 }
 
 export function durationMs(d?: FlowDuration): number {
@@ -168,9 +206,9 @@ export function emailShortRef(name: string): string {
   return p || name.replace(/["“”]/g, '').trim()
 }
 
-/** Lower-cases ordinary words only: "Step 2" → "step 2", "A/B" stays. */
+/** Lower-cases ordinary words only: "Step 2" → "step 2", "Gửi email" → "gửi email", "A/B" stays. */
 export function lowerFirst(s: string): string {
-  if (s.length > 1 && /[A-Z]/.test(s[0]!) && /[a-z]/.test(s[1]!)) return s[0]!.toLowerCase() + s.slice(1)
+  if (/^\p{Lu}\p{Ll}/u.test(s)) return s[0]!.toLowerCase() + s.slice(1)
   return s
 }
 
@@ -200,7 +238,7 @@ export function nodeRef(g: FlowGraph, n: FlowNode, refs: Refs): string {
   if (n.data.label) return n.data.label
   if (n.type === 'email') {
     const name = emailName(n, refs)
-    return emailPrefix(name) || name || 'Send email'
+    return emailPrefix(name) || name || typeName('email')
   }
   return nodeTitle(g, n, refs)
 }
@@ -208,7 +246,7 @@ export function nodeRef(g: FlowGraph, n: FlowNode, refs: Refs): string {
 /** Lower-case reference for running text ("step 1"). */
 export function inlineRef(g: FlowGraph, id: string, refs: Refs): string {
   const n = nodeById(g, id)
-  if (!n) return 'a removed step'
+  if (!n) return tt(mg.aRemovedStep)
   if (n.type === 'email' && !n.data.label) {
     const name = emailName(n, refs)
     if (name) return lowerFirst(emailShortRef(name))
@@ -220,9 +258,9 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
   if (!t) return ''
   switch (t.kind) {
     case 'joined_list':
-      return refs.lists.get(t.listId ?? '') ?? 'a list'
+      return refs.lists.get(t.listId ?? '') ?? tt(mg.aList)
     case 'form_submitted':
-      return refs.forms.get(t.formId ?? '') ?? 'a form'
+      return refs.forms.get(t.formId ?? '') ?? tt(mg.aForm)
     case 'tag_added':
       return t.tag ?? ''
     case 'api_event':
@@ -232,7 +270,7 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
     case 'score_crosses':
       return scoreTriggerRef(t)
     case 'poll_answered':
-      return refs.polls?.get(t.poll ?? '') ?? 'a poll or survey'
+      return refs.polls?.get(t.poll ?? '') ?? tt(mg.aPollOrSurvey)
     case 'bought_product':
       return boughtRef(t.productId, refs.products?.get(t.productId ?? ''))
     case 'milestone_reached':
@@ -240,7 +278,7 @@ export function triggerRef(t: TriggerConfig | undefined, refs: Refs): string {
     case 'order_placed':
     case 'first_order':
     case 'abandoned_checkout':
-      return refs.stores?.get(t.store ?? '') ?? 'a store'
+      return refs.stores?.get(t.store ?? '') ?? tt(mg.aStore)
   }
 }
 
@@ -248,35 +286,39 @@ export function conditionPhrase(g: FlowGraph, c: FlowCondition | undefined, refs
   if (!c) return ''
   // Phase 8: texts.
   if (c.kind === 'sms_consent' || c.kind === 'sms_clicked' || c.kind === 'sms_replied') return smsPhrase(g, c, refs)
-  const within = c.within && c.within.amount > 0 ? ` within ${durationText(c.within)}` : ''
-  const target = c.step ? inlineRef(g, c.step, refs) : 'any email'
+  const duration = c.within && c.within.amount > 0 ? durationText(c.within) : ''
+  const step = c.step ? inlineRef(g, c.step, refs) : tt(mg.anyEmail)
   switch (c.kind) {
     case 'opened':
-      return `opened ${target}${within}`
+      return duration ? tt(mg.condOpenedWithin, { step, duration }) : tt(mg.condOpened, { step })
     case 'clicked':
-      return c.urlContains ? `clicked a ${c.urlContains} link${within}` : `clicked a link in ${target}${within}`
+      if (c.urlContains) return duration ? tt(mg.condClickedUrlWithin, { url: c.urlContains, duration }) : tt(mg.condClickedUrl, { url: c.urlContains })
+      return duration ? tt(mg.condClickedInWithin, { step, duration }) : tt(mg.condClickedIn, { step })
     case 'tag':
-      return `tagged ${c.tag ?? ''}`
+      return tt(mg.condTagged, { tag: c.tag ?? '' })
     case 'list':
-      return `in ${refs.lists.get(c.listId ?? '') ?? 'a list'}`
+      return tt(mg.condInList, { list: refs.lists.get(c.listId ?? '') ?? tt(mg.aList) })
     case 'event':
-      return `sent ${c.event ?? ''}`
+      return tt(mg.condSentEvent, { event: c.event ?? '' })
     case 'placed_order':
-      return 'placed an order'
-    case 'field':
+      return tt(mg.condPlacedOrder)
+    case 'field': {
+      const field = c.field ?? ''
+      const value = c.value ?? ''
       switch (c.op) {
         case 'is_set':
-          return `${c.field} is set`
+          return tt(mg.condFieldSet, { field })
         case 'is_not_set':
-          return `${c.field} is empty`
+          return tt(mg.condFieldEmpty, { field })
         case 'not_equals':
-          return `${c.field} isn't ${c.value ?? ''}`
+          return tt(mg.condFieldNot, { field, value })
         case 'contains':
-          return `${c.field} contains ${c.value ?? ''}`
+          return tt(mg.condFieldContains, { field, value })
         case 'is_one_of':
-          return isOneOfPhrase(c.field ?? '', c.value ?? '')
+          return isOneOfPhrase(field, value)
       }
-      return `${c.field} is ${c.value ?? ''}`
+      return tt(mg.condFieldIs, { field, value })
+    }
     // Digital products (X19).
     case 'bought_product':
       return boughtPhrase(c.productId, refs.products?.get(c.productId ?? ''))
@@ -285,19 +327,19 @@ export function conditionPhrase(g: FlowGraph, c: FlowCondition | undefined, refs
 }
 
 export function goalTitle(c: FlowCondition | undefined, refs: Refs): string {
-  if (!c) return 'Reached the end of the flow'
+  if (!c) return tt(mg.goalEnd)
   if (c.kind === 'sms_consent' || c.kind === 'sms_clicked' || c.kind === 'sms_replied') return capFirst(smsPhrase({ nodes: [], edges: [] }, c, refs))
   switch (c.kind) {
     case 'clicked':
-      return c.urlContains ? `Clicked a ${c.urlContains} link` : 'Clicked any link'
+      return c.urlContains ? tt(mg.goalClickedUrl, { url: c.urlContains }) : tt(mg.goalClickedAny)
     case 'opened':
-      return 'Opened an email'
+      return tt(mg.goalOpened)
     case 'tag':
-      return `Tagged ${c.tag ?? ''}`
+      return tt(mg.goalTagged, { tag: c.tag ?? '' })
     case 'list':
-      return `Joined ${refs.lists.get(c.listId ?? '') ?? 'a list'}`
+      return tt(mg.goalJoined, { list: refs.lists.get(c.listId ?? '') ?? tt(mg.aList) })
     case 'event':
-      return `Sent ${c.event ?? ''}`
+      return tt(mg.goalSent, { event: c.event ?? '' })
     case 'field':
       return capFirst(conditionPhrase({ nodes: [], edges: [] }, c, refs))
     // Digital products (X19).
@@ -305,9 +347,9 @@ export function goalTitle(c: FlowCondition | undefined, refs: Refs): string {
       return boughtGoalTitle(c.productId, refs.products?.get(c.productId ?? ''))
     // Shopify and WooCommerce (X20).
     case 'placed_order':
-      return 'Placed an order'
+      return tt(mg.goalPlacedOrder)
   }
-  return 'Goal'
+  return tt(mg.goalFallback)
 }
 
 /** A condition on texts: "has SMS consent for Acme Summit 2026", "clicked a link in Day-before reminder". */
@@ -331,65 +373,61 @@ export function nodeTitle(g: FlowGraph, n: FlowNode, refs: Refs): string {
   const d = n.data
   switch (n.type) {
     case 'trigger': {
-      if (!d.trigger?.kind) return 'Pick a trigger'
+      if (!d.trigger?.kind) return tt(mg.pickTrigger)
       // "Acme Merch · after 1 hour" (X20).
-      if (d.trigger.kind === 'abandoned_checkout') {
-        const h = d.trigger.afterHours || 1
-        return `${triggerRef(d.trigger, refs)} · after ${h} hour${h === 1 ? '' : 's'}`
-      }
-      return triggerRef(d.trigger, refs) || triggerKindLabels[d.trigger.kind]
+      if (d.trigger.kind === 'abandoned_checkout') return tt(mg.checkoutAfter, { store: triggerRef(d.trigger, refs), hours: d.trigger.afterHours || 1 })
+      return triggerRef(d.trigger, refs) || triggerKindLabel(d.trigger.kind)
     }
     case 'delay':
-      return d.delay ? `Wait ${durationText(d.delay)}` : 'Wait'
+      return d.delay ? tt(mg.waitFor, { duration: durationText(d.delay) }) : tt(mg.wait)
     case 'email':
-      return emailName(n, refs) || 'Pick an email'
+      return emailName(n, refs) || tt(mg.pickEmail)
     case 'branch': {
       if (d.label) return d.label
       const p = conditionPhrase(g, d.condition, refs)
-      return p ? `${capFirst(p)}?` : 'Set a condition'
+      return p ? tt(mg.branchTitle, { condition: capFirst(p) }) : tt(mg.setCondition)
     }
     case 'filter': {
       const p = conditionPhrase(g, d.condition, refs)
-      return p ? `Only contacts ${p}` : 'Set a condition'
+      return p ? tt(mg.filterTitle, { condition: p }) : tt(mg.setCondition)
     }
     case 'split': {
       const vs = d.variants ?? []
-      let t = vs.map((v) => v.weight).join(' / ')
+      const weights = vs.map((v) => v.weight).join(' / ')
       const first = vs[0] ? g.edges.find((e) => e.source === n.id && e.data.path === vs[0]!.key) : undefined
-      if (first) t += ` on ${inlineRef(g, first.target, refs)}`
-      return t
+      return first ? tt(mg.splitOn, { weights, step: inlineRef(g, first.target, refs) }) : weights
     }
     case 'sms':
-      return d.label || (d.sms?.body ? 'Send SMS' : 'Write the text')
+      return d.label || (d.sms?.body ? tt(mg.smsTitle) : tt(mg.writeText))
     // The canvas shows what goes out: the notification's title, the template (AutomationChannels).
     case 'push':
-      return d.push?.title || d.label || 'Write the notification'
+      return d.push?.title || d.label || tt(mg.writeNotification)
     case 'whatsapp':
-      return d.whatsapp?.mode === 'text' ? d.label || (d.whatsapp.text ? 'Free text' : 'Write the message') : d.whatsapp?.template || d.label || 'Pick a template'
+      return d.whatsapp?.mode === 'text' ? d.label || (d.whatsapp.text ? tt(mg.freeText) : tt(mg.writeMessage)) : d.whatsapp?.template || d.label || tt(mg.pickTemplate)
     case 'webhook':
-      return d.webhook?.name || (d.webhook?.url ? hostOf(d.webhook.url) : 'Set a URL')
+      return d.webhook?.name || (d.webhook?.url ? hostOf(d.webhook.url) : tt(mg.setUrl))
     case 'list': {
       const a = d.action
-      if (!a) return 'Pick an action'
-      const list = refs.lists.get(a.listId ?? '') ?? 'a list'
+      if (!a) return tt(mg.pickAction)
+      const list = refs.lists.get(a.listId ?? '') ?? tt(mg.aList)
       switch (a.kind) {
         case 'add_list':
-          return `Add to ${list}`
+          return tt(mg.addToList, { list })
         case 'remove_list':
-          return `Remove from ${list}`
+          return tt(mg.removeFromList, { list })
         case 'add_tag':
-          return `Add tag ${a.tag ?? ''}`
+          return tt(mg.addTag, { tag: a.tag ?? '' })
         case 'remove_tag':
-          return `Remove tag ${a.tag ?? ''}`
+          return tt(mg.removeTag, { tag: a.tag ?? '' })
         case 'unsubscribe_all':
-          return 'Unsubscribe from all lists'
+          return tt(mg.unsubscribeAll)
       }
-      return 'Pick an action'
+      return tt(mg.pickAction)
     }
     case 'goal':
       return goalTitle(d.condition, refs)
     case 'exit':
-      return d.label || 'Leave the flow · stays on the list'
+      return d.label || tt(mg.exitDefault)
   }
 }
 
@@ -398,18 +436,17 @@ export function nodeDetail(n: FlowNode): string {
   const d = n.data
   switch (n.type) {
     case 'trigger':
-      if (d.trigger?.kind === 'joined_list' && d.trigger.confirmedOnly) return 'double opt-in confirmed only'
-      if (d.trigger?.kind === 'api_event') return 'sent through the API'
+      if (d.trigger?.kind === 'joined_list' && d.trigger.confirmedOnly) return tt(mg.confirmedOnly)
+      if (d.trigger?.kind === 'api_event') return tt(mg.sentThroughApi)
       if (d.trigger?.kind === 'date_field') {
         const off = d.trigger.offsetDays ?? 0
-        const when = off === 0 ? 'on the date' : off < 0 ? `${-off} ${off === -1 ? 'day' : 'days'} before` : `${off} ${off === 1 ? 'day' : 'days'} after`
-        return `${when}${d.trigger.yearly ? ', every year' : ''} at ${d.trigger.at || '09:00'}`
+        return tt(mg.dateDetail, { when: off === 0 ? 'on' : off < 0 ? 'before' : 'after', days: Math.abs(off), yearly: d.trigger.yearly ? 'yes' : 'no', time: d.trigger.at || '09:00' })
       }
       if (d.trigger?.kind === 'score_crosses') return scoreTriggerDetail(d.trigger)
       if (d.trigger?.kind === 'milestone_reached') return milestoneTriggerDetail()
       return ''
     case 'branch':
-      if (d.condition?.kind === 'opened' && d.condition.humanOnly) return 'human opens only'
+      if (d.condition?.kind === 'opened' && d.condition.humanOnly) return tt(mg.humanOnly)
       return ''
     case 'webhook':
       return d.webhook?.url ? `${d.webhook.method || 'POST'} ${hostOf(d.webhook.url)}` : ''
@@ -425,9 +462,9 @@ export function hostOf(raw: string): string {
 
 /** The trigger column: "Joined list · Weekly Digest". */
 export function triggerLabel(t: TriggerConfig | undefined, refs: Refs): string {
-  if (!t?.kind) return 'No trigger yet'
+  if (!t?.kind) return tt(mg.noTrigger)
   const ref = triggerRef(t, refs)
-  return ref ? `${triggerKindLabels[t.kind]} · ${ref}` : triggerKindLabels[t.kind]
+  return ref ? `${triggerKindLabel(t.kind)} · ${ref}` : triggerKindLabel(t.kind)
 }
 
 /** Paths a branch or split must connect. */
@@ -437,8 +474,14 @@ export function nodePaths(n: FlowNode): string[] {
   return []
 }
 
+/** "Yes", "No", or the variant's key ("A"). */
 export function pathLabel(p: string): string {
-  return p === 'yes' ? 'Yes' : p === 'no' ? 'No' : p
+  return p === 'yes' ? tt(mg.pathYes) : p === 'no' ? tt(mg.pathNo) : p
+}
+
+/** A whole percent in the region format: "61%". */
+export function wholePct(v: number): string {
+  return pct(Math.round(v), 0)
 }
 
 /** Breadth-first depth from the trigger (longest path), for the entrance. */

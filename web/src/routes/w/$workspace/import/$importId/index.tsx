@@ -5,9 +5,9 @@ import { errorMessage } from '@/api/client'
 import { currentStep, ImportFrame, stepPath, useImportDetail } from '@/features/imports/ImportFrame'
 import { ReadingSource } from '@/features/imports/states'
 import '@/features/imports/jobsSource'
-import { m } from '@/features/imports/messages'
 import { useT } from '@/i18n'
 import { common } from '@/i18n/common'
+import { mr } from '@/routes/-routes.messages'
 
 export const Route = createFileRoute('/w/$workspace/import/$importId/')({
   component: ImportResume,
@@ -20,13 +20,13 @@ function ImportResume() {
   const q = useImportDetail(importId)
   if (q.data) return <Navigate to={stepPath[currentStep(q.data)]} params={{ workspace, importId }} replace />
   return (
-    <ImportFrame title={t(m.title)}>
+    <ImportFrame title={t(mr.importTitle)}>
       {q.isError ? (
-        <ErrorPanel title={t(m.openFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
+        <ErrorPanel title={t(mr.importOpenFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
           {errorMessage(q.error)}
         </ErrorPanel>
       ) : (
-        <ReadingSource title={t(m.opening)} />
+        <ReadingSource title={t(mr.importOpening)} />
       )}
     </ImportFrame>
   )

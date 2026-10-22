@@ -25,10 +25,7 @@ export const m = defineMessages('imports', {
   previous: 'Previous imports: {source}, {date}, {n, plural, one {{count} contact} other {{count} contacts}}. <link>View report</link>',
   loadFailed: "Couldn't load this import",
   loadFailedThe: "Couldn't load the import",
-  openFailed: "Couldn't open this import",
   loading: 'Loading the import',
-  opening: 'Opening the import',
-  lookingForImport: 'Looking for an import in progress',
   backToSource: 'Back to the source',
   nothingImported: 'Nothing was imported.',
 

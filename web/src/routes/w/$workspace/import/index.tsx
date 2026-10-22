@@ -5,8 +5,8 @@ import { SourceStep } from '@/features/imports/SourceStep'
 import { ReadingSource } from '@/features/imports/states'
 // The jobs tray lists imports from the server once this module loads.
 import '@/features/imports/jobsSource'
-import { m } from '@/features/imports/messages'
 import { useT } from '@/i18n'
+import { mr } from '@/routes/-routes.messages'
 
 export const Route = createFileRoute('/w/$workspace/import/')({
   component: ImportIndex,
@@ -22,8 +22,8 @@ function ImportIndex() {
   }
   if (list.isPending) {
     return (
-      <ImportFrame title={t(m.title)}>
-        <ReadingSource title={t(m.lookingForImport)} />
+      <ImportFrame title={t(mr.importTitle)}>
+        <ReadingSource title={t(mr.importLooking)} />
       </ImportFrame>
     )
   }

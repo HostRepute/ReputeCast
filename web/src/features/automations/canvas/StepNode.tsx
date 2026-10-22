@@ -10,13 +10,16 @@ import {
   nodeById,
   nodeDetail,
   nodeTitle,
+  triggerKindWord,
   typeColors,
-  typeNames,
+  typeName,
+  wholePct,
   type NodeData,
   type StepType,
 } from '../graph'
 import { useCountUp, useFlowView } from '../view'
-import { useT } from '@/i18n'
+import { T, useT } from '@/i18n'
+import { mf } from '../flow.messages'
 import { m as smsStep } from '@/features/sms/automation.messages'
 import { smsNodeLines, useSmsTextParts } from '@/features/sms/automationNode'
 import { pushNodeLines, usePushEstimate } from '@/features/push/AutomationStep'
@@ -31,6 +34,9 @@ const providerColors: Record<string, string> = { ses: 'var(--chart-ses)', postal
 function share(part: number, whole: number): number {
   return whole > 0 ? (part / whole) * 100 : 0
 }
+
+const bold = (chunks: ReactNode[]) => <b className="n">{chunks}</b>
+const plain = (chunks: ReactNode[]) => <span>{chunks}</span>
 
 /**
  * One step on the canvas: a header with the step type, the title, its
@@ -50,7 +56,7 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
   const isNew = v.published && !v.liveIds.has(id)
   const neverPublished = !v.publishedIds.has(id)
   const n = (x: number) => count(Math.round(x * t))
-  const p = (x: number) => `${Math.round(x * t)}%`
+  const p = (x: number) => wholePct(x * t)
   const color = typeColors[type]
   const delay = v.entrance?.nodes.get(id)
   const hasIssue = v.issues.has(id)
@@ -59,14 +65,14 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
   if (border && !selected && !hasIssue) style.borderColor = border
 
   // Header: the step type plus what matters most here.
-  let header = typeNames[type]
-  if (type === 'trigger' && data.trigger?.kind) header += ` · ${triggerWord(data.trigger.kind)}`
+  let header = type === 'trigger' ? tr(mf.triggerHead) : typeName(type)
+  if (type === 'trigger' && data.trigger?.kind) header += ` · ${triggerKindWord(data.trigger.kind)}`
   const variant = v.graph.edges.find((e) => e.target === id && nodeById(v.graph, e.source)?.type === 'split')?.data.path
   const providers = st?.providers ?? []
   const showProviders = type === 'email' && v.showStats && providers.length > 1 && !neverPublished
   if (variant && type === 'email') header += ` · ${variant}`
-  else if (isNew) header += ` · new in v${v.draftVersion}`
-  else if (showProviders) header += data.email?.route ? ' · route override' : ' · Automations route'
+  else if (isNew) header += ` · ${tr(mf.newInVersion, { version: v.draftVersion })}`
+  else if (showProviders) header += ` · ${data.email?.route ? tr(mf.routeOverride) : tr(mf.automationsRoute)}`
   else if (type === 'sms') header += ` · ${tr(smsStep.byCountry)}`
   else if (type === 'whatsapp') header += ` · ${whatsAppNodeHead(data.whatsapp, tr)}`
 
@@ -82,7 +88,7 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
           <div className="st" key="s">
             {stat ? (
               <span>
-                <b className="n">{n(st?.entered ?? 0)}</b> entered · 30 d
+                <T msg={mf.statEntered} values={{ count: n(st?.entered ?? 0), b: bold }} />
               </span>
             ) : null}
             {detail ? <span>{detail}</span> : null}
@@ -95,7 +101,7 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
         lines.push(
           <div className="st" key="s">
             <span>
-              <b className="n">{n(st?.entered ?? 0)}</b> waiting or passed
+              <T msg={mf.statWaiting} values={{ count: n(st?.entered ?? 0), b: bold }} />
             </span>
           </div>,
         )
@@ -106,13 +112,13 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
         lines.push(
           <div className="st" key="s">
             <span>
-              <b className="n">{n(st?.sent ?? 0)}</b> sent
+              <T msg={mf.statSent} values={{ count: n(st?.sent ?? 0), b: bold }} />
             </span>
             <span>
-              <b className="n">{p(share(st?.openedHuman ?? 0, delivered))}</b> {showProviders ? 'human opens' : 'opens'}
+              <T msg={showProviders ? mf.statHumanOpens : mf.statOpens} values={{ rate: p(share(st?.openedHuman ?? 0, delivered)), b: bold }} />
             </span>
             <span>
-              <b className="n">{p(share(st?.clicked ?? 0, delivered))}</b> clicks
+              <T msg={mf.statClicks} values={{ rate: p(share(st?.clicked ?? 0, delivered)), b: bold }} />
             </span>
           </div>,
         )
@@ -123,7 +129,7 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
                 pr.fallback ? (
                   <span key={pr.providerId} className="badge mut">
                     <span className="dot" style={{ color: providerColors[adapterOf(v, pr.providerId)] ?? 'var(--ink-3)' }} aria-hidden="true" />
-                    {pr.short} <span>{n(pr.sent)}</span> · failover
+                    <T msg={mf.statFailover} values={{ provider: pr.short, count: n(pr.sent), n: plain }} />
                   </span>
                 ) : (
                   <span key={pr.providerId} className="badge pur">
@@ -143,10 +149,10 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
               <StoreNodeLine kind="goal" />
             ) : (
               <span>
-                <b className="n">{n(st?.goalReached ?? 0)}</b> reached · {p(share(st?.goalReached ?? 0, v.entered))}
+                <T msg={mf.statReached} values={{ count: n(st?.goalReached ?? 0), rate: p(share(st?.goalReached ?? 0, v.entered)), b: bold }} />
               </span>
             )}
-            {data.condition?.kind === 'placed_order' ? <span>{p(share(st?.goalReached ?? 0, v.entered))} of {n(v.entered)}</span> : null}
+            {data.condition?.kind === 'placed_order' ? <span>{tr(mf.statOfEntered, { rate: p(share(st?.goalReached ?? 0, v.entered)), count: n(v.entered) })}</span> : null}
           </div>,
         )
       break
@@ -155,7 +161,7 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
         lines.push(
           <div className="st" key="s">
             <span>
-              <b className="n">{n(st?.exited ?? 0)}</b> exited
+              <T msg={mf.statExited} values={{ count: n(st?.exited ?? 0), b: bold }} />
             </span>
           </div>,
         )
@@ -165,10 +171,10 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
         lines.push(
           <div className="st" key="s">
             <span>
-              <b className="n">{n(st?.completed ?? 0)}</b> passed
+              <T msg={mf.statPassed} values={{ count: n(st?.completed ?? 0), b: bold }} />
             </span>
             <span>
-              <b className="n">{n(st?.dropped ?? 0)}</b> filtered out
+              <T msg={mf.statFilteredOut} values={{ count: n(st?.dropped ?? 0), b: bold }} />
             </span>
           </div>,
         )
@@ -181,12 +187,12 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
             {detail ? <span className="mono">{detail}</span> : null}
             {stat && type === 'list' ? (
               <span>
-                <b className="n">{n(st?.entered ?? 0)}</b> passed
+                <T msg={mf.statPassed} values={{ count: n(st?.entered ?? 0), b: bold }} />
               </span>
             ) : null}
             {stat && type === 'webhook' && (st?.failed ?? 0) > 0 ? (
               <span>
-                <b className="n">{n(st?.failed ?? 0)}</b> failed calls
+                <T msg={mf.statFailedCalls} values={{ count: n(st?.failed ?? 0), b: bold }} />
               </span>
             ) : null}
           </div>,
@@ -229,7 +235,7 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
   if (noStats)
     lines.push(
       <div className="st" key="n">
-        <span>no stats until published</span>
+        <span>{tr(mf.noStatsUntilPublished)}</span>
       </div>,
     )
   return (
@@ -256,10 +262,6 @@ function StepNodeImpl({ id, type, data, selected }: NodeProps<StepNodeType>) {
       {lines}
     </div>
   )
-}
-
-function triggerWord(kind: string): string {
-  return kind.replace('_', ' ')
 }
 
 function hasStatsLine(type: StepType, data: NodeData): boolean {

@@ -1,3 +1,6 @@
+import { t } from '@/i18n'
+import { mc } from './canvas.messages'
+
 export type DiffLine = { kind: 'same' | 'add' | 'del' | 'fold'; text: string }
 
 /**
@@ -41,7 +44,7 @@ export function diffLines(a: string, b: string, context = 3): DiffLine[] {
       const keepHead = first ? 0 : context
       const keepTail = last ? 0 : context
       out.push(...run.slice(0, keepHead))
-      out.push({ kind: 'fold', text: `… ${run.length - keepHead - keepTail} unchanged lines` })
+      out.push({ kind: 'fold', text: t(mc.foldLines, { count: run.length - keepHead - keepTail }) })
       out.push(...run.slice(run.length - keepTail))
     } else out.push(...run)
     run = []

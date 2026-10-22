@@ -1,7 +1,7 @@
 import { BaseEdge, EdgeLabelRenderer, type Edge, type EdgeProps } from '@xyflow/react'
 import { memo, type CSSProperties } from 'react'
 import { cn } from '@/lib/cn'
-import { edgeGeometry, edgeKind, nodeById, pathLabel, type FlowGraph } from '../graph'
+import { edgeGeometry, edgeKind, nodeById, pathLabel, wholePct, type FlowGraph } from '../graph'
 import { useFlowView } from '../view'
 
 export type StepEdgeType = Edge<{ path?: string }, 'step'>
@@ -12,11 +12,11 @@ function labelText(g: FlowGraph, source: string, path: string, paths?: { path: s
   if (!src) return pathLabel(path)
   if (src.type === 'split') {
     const v = src.data.variants?.find((x) => x.key === path)
-    return v ? `${path} · ${v.weight}%` : path
+    return v ? `${path} · ${wholePct(v.weight)}` : path
   }
   const total = paths?.reduce((s, p) => s + p.count, 0) ?? 0
   const mine = paths?.find((p) => p.path === path)?.count ?? 0
-  return total > 0 ? `${pathLabel(path)} · ${Math.round((mine / total) * 100)}%` : pathLabel(path)
+  return total > 0 ? `${pathLabel(path)} · ${wholePct((mine / total) * 100)}` : pathLabel(path)
 }
 
 function StepEdgeImpl({ id, source, sourceX, sourceY, targetX, targetY, data, selected }: EdgeProps<StepEdgeType>) {

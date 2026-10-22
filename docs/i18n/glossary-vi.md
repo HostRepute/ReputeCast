@@ -219,6 +219,75 @@ samples, CLI output, "MCP", "2FA", "TOTP", "IdP", "SSO", "JIT", "A/B",
 "payload", "Liquid", "MJML", "Mustachio", "Handlebars", "cURL" and "JSON"
 stay as they are.
 
+## Composer
+
+| English | Tiếng Việt |
+|---|---|
+| A/B test · variant | thử nghiệm A/B · biến thể |
+| block · Blocks panel | khối · Khối |
+| code view | chế độ mã |
+| column · 2 columns | cột · 2 cột |
+| compile · compiled HTML | biên dịch · HTML đã biên dịch |
+| composer | trình soạn thảo ("Rời trình soạn thảo?") |
+| dark mode · light | chế độ tối · sáng |
+| footer · header (of an email) | chân thư · đầu thư |
+| Inspector | Bảng thuộc tính |
+| layer · layer tree | lớp · cây lớp |
+| padding · border radius | khoảng đệm · bo góc |
+| personalization token · Liquid tag | thẻ cá nhân hóa · thẻ Liquid |
+| raw HTML | HTML thô |
+| sample · winner (A/B) | nhóm thử · bản thắng |
+| section (of an email) · saved section | phần · phần đã lưu |
+| Send Readiness | Độ sẵn sàng gửi (the checks before a send, as a name; "runs again" = "được kiểm tra lại") |
+| spam heuristic | dấu hiệu spam |
+
+MJML tags (mj-section, mj-body) stay as they are. A block's sample content
+is written for the email's readers, in the app language: the first-name
+fallback "there" is "bạn".
+
+## Automations
+
+| English | Tiếng Việt |
+|---|---|
+| A/B split · weight | Chia A/B · tỷ trọng |
+| automation (one, or the section) | tự động hóa ("Tự động hóa mới") |
+| Branch · Yes · No | Rẽ nhánh · Có · Không |
+| Delay (step) · Wait 10 minutes | Trì hoãn · Chờ 10 phút |
+| double opt-in | đăng ký kép |
+| edge (a connection on the canvas) | đường nối |
+| exit · goal · goal rate | thoát · mục tiêu · tỷ lệ đạt mục tiêu |
+| fail over · failover | chuyển dự phòng |
+| Filter (step) | Lọc |
+| flow | luồng (a named stream keeps its capital: "Luồng Tự động hóa") |
+| List action | Thao tác danh sách |
+| method (HTTP) | phương thức |
+| override (a route) | ghi đè; "route override" on a step is "tuyến riêng" |
+| re-entry | vào lại |
+| retire · retiring (a version) | ngừng hoạt động · đang ngừng |
+| send window | khung giờ gửi |
+| signing secret · write-only | khóa bí mật để ký · chỉ ghi |
+| stats · Live stats | số liệu · Số liệu trực tiếp |
+| step · trigger · action · condition | bước · trình kích hoạt · hành động · điều kiện |
+| web push | thông báo đẩy (trên web) |
+
+## Approvals
+
+| English | Tiếng Việt |
+|---|---|
+| after exclusions | sau khi loại trừ |
+| approval inbox | hộp thư phê duyệt |
+| approval request · approver · author | yêu cầu phê duyệt · người phê duyệt · tác giả |
+| Approve · Reject · Request changes | Phê duyệt · Từ chối · Yêu cầu thay đổi |
+| Bypassed · emergency bypass | Đã bỏ qua · bỏ qua khẩn cấp |
+| comment · Discussion · evidence | nhận xét · Thảo luận · bằng chứng |
+| Contacts in flight | Liên hệ đang trong luồng |
+| Invalidated · Approval invalidated | Mất hiệu lực · Phê duyệt không còn hiệu lực |
+| median wait | thời gian chờ trung vị (a median, not an average: not "trung bình") |
+| Pending · Rejected | Đang chờ · Bị từ chối |
+| policy · rule · Rules matched | chính sách · quy tắc · Quy tắc khớp |
+| Recheck | Kiểm tra lại |
+| snapshot | bản chụp |
+
 ## Content languages
 
 | English | Tiếng Việt |
