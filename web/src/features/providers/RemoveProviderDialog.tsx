@@ -5,13 +5,12 @@ import { ConfirmDialog, DialogRow } from '@/components/ui/ConfirmDialog'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { andList, count } from '@/lib/format'
+import { useT } from '@/i18n'
+import { andList, count, pct } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { streamName, type Stream } from './common'
+import { mo } from './overview.messages'
 import { providerUses, streams, toDraft, toInput, withoutProvider, type RoutingConfig } from './routing-model'
-
-/** "System mail" reads better than "System" in the sentence. */
-const streamMail: Record<Stream, string> = { broadcast: 'Broadcasts', automation: 'Automations', system: 'System mail', transactional: 'Transactional mail' }
 
 /**
  * Removing a provider (Dialogs board, "Remove provider"). Confirming saves
@@ -51,6 +50,7 @@ function RemoveBody({
   onOpenChange: (open: boolean) => void
   onRemoved: () => void
 }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const draft = cfg ? toDraft(cfg) : undefined
@@ -72,29 +72,28 @@ function RemoveBody({
     return out
   })
   const primaryOf = (s: Stream) => (draft && draft[s].splits[0]?.providerId === id ? picked[`primary:${s}`] : draft?.[s].splits[0]?.providerId) ?? ''
-  const nameOf = (pid: string) => others.find((p) => p.id === pid)?.name ?? 'the primary'
+  const nameOf = (pid: string) => others.find((p) => p.id === pid)?.name ?? t(mo.thePrimary)
   const stuck = uses.filter((u) => u.kind === 'primary' && !picked[`primary:${u.stream}`])
+  const stuckStreams = andList(stuck.map((u) => streamName[u.stream]))
 
   const roles = uses.map((u) =>
     u.kind === 'primary'
-      ? `the primary route for ${streamMail[u.stream]}`
+      ? t(mo.rolePrimaryRoute, { stream: u.stream })
       : u.kind === 'share'
-        ? `${u.weight}% of ${streamName[u.stream]}`
+        ? t(mo.roleShareOf, { share: pct(u.weight, 0), stream: streamName[u.stream] })
         : u.kind === 'failover'
-          ? `the failover for ${streamName[u.stream]}`
-          : `a ${streamName[u.stream]} condition`,
+          ? t(mo.roleFailoverFor, { stream: streamName[u.stream] })
+          : t(mo.roleCondition, { stream: streamName[u.stream] }),
   )
   const description = !cfg
-    ? `Checking which routes use ${name}…`
+    ? t(mo.removeChecking, { name })
     : uses.length === 0
-      ? `No route uses ${name}, so nothing else changes.`
-      : `${name} is ${andList(roles)}. ${
-          uses.some((u) => u.kind === 'primary' || u.kind === 'failover') ? 'Removing it leaves those routes with no provider until you pick another.' : 'Its share goes back to the primary.'
-        }`
+      ? t(mo.removeNoUses, { name })
+      : t(mo.removeUses, { name, roles: andList(roles), orphans: uses.some((u) => u.kind === 'primary' || u.kind === 'failover') ? 'yes' : 'no' })
 
   const remove = async () => {
-    if (!draft) throw new Error(error ?? `Still checking which routes use ${name}. Try again in a moment.`)
-    if (stuck.length) throw new Error(`Connect another provider that can carry ${andList(stuck.map((u) => streamName[u.stream]))} first.`)
+    if (!draft) throw new Error(error ?? t(mo.stillChecking, { name }))
+    if (stuck.length) throw new Error(t(mo.connectAnother, { streams: stuckStreams }))
     if (uses.length) {
       const next = { ...draft }
       for (const s of streams) next[s] = withoutProvider(draft[s], id, picked[`primary:${s}`] ?? '', picked[`failover:${s}`] ?? '')
@@ -105,19 +104,19 @@ function RemoveBody({
       qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/providers'] }),
       qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/routing'] }),
     ])
-    const routes = uses.length ? 'Its routes now use the providers you picked; its credentials were deleted.' : 'Its credentials were deleted.'
+    const routes = uses.length ? t(mo.removedRoutes) : t(mo.removedCredentials)
     const hook = data?.webhook
     // A webhook left at the provider stays on screen until dismissed: it has to be removed there by hand.
     toast({
       kind: hook === 'failed' || hook === 'manual' ? 'info' : 'deleted',
-      title: `${name} removed`,
+      title: t(mo.removedTitle, { name }),
       detail:
         hook === 'removed'
-          ? `${routes} Its webhook was removed from ${name}.`
+          ? `${routes} ${t(mo.removedWebhook, { name })}`
           : hook === 'manual'
-            ? `${routes} Remove the webhook pointing at ${data?.url} in ${name}.`
+            ? `${routes} ${t(mo.removedWebhookManual, { url: data?.url ?? '', name })}`
             : hook === 'failed'
-              ? `${routes} ${name} didn't remove its webhook (${data?.detail}); remove the one pointing at ${data?.url} there.`
+              ? `${routes} ${t(mo.removedWebhookFailed, { name, detail: data?.detail ?? '', url: data?.url ?? '' })}`
               : routes,
       duration: hook === 'failed' || hook === 'manual' ? 0 : undefined,
     })
@@ -125,7 +124,12 @@ function RemoveBody({
   }
 
   const select = (key: string, options: { id: string; name: string }[], none?: string) => (
-    <select aria-label={key.startsWith('primary') ? 'Replacement provider' : 'Replacement failover'} className="in w-[170px] flex-none max-md:w-full" value={picked[key] ?? ''} onChange={(e) => setPicked((p) => ({ ...p, [key]: e.target.value }))}>
+    <select
+      aria-label={key.startsWith('primary') ? t(mo.replacementProvider) : t(mo.replacementFailover)}
+      className="pv-replace in w-[170px] flex-none max-md:w-full"
+      value={picked[key] ?? ''}
+      onChange={(e) => setPicked((p) => ({ ...p, [key]: e.target.value }))}
+    >
       {options.map((p) => (
         <option key={p.id} value={p.id}>
           {p.name}
@@ -140,11 +144,11 @@ function RemoveBody({
       open={open}
       onOpenChange={onOpenChange}
       tone="bad"
-      badge="Remove provider"
-      title={`Remove ${name} from this workspace?`}
+      badge={t(mo.removeProvider)}
+      title={t(mo.removeTitle, { name })}
       description={description}
-      confirmLabel={uses.length ? 'Reassign routes and remove' : 'Remove provider'}
-      busyLabel="Removing…"
+      confirmLabel={uses.length ? t(mo.reassignAndRemove) : t(mo.removeProvider)}
+      busyLabel={t(mo.removing)}
       onConfirm={remove}
     >
       {error ? (
@@ -165,24 +169,26 @@ function RemoveBody({
                 u.kind === 'primary'
                   ? select(`primary:${u.stream}`, candidates(u.stream))
                   : u.kind === 'failover'
-                    ? select(`failover:${u.stream}`, candidates(u.stream, primaryOf(u.stream)), 'None, pause and ask')
+                    ? select(`failover:${u.stream}`, candidates(u.stream, primaryOf(u.stream)), t(mo.nonePauseAsk))
                     : undefined
               }
             >
               {u.kind === 'primary'
-                ? `Primary: ${name} → ${picked[`primary:${u.stream}`] ? 'choose a replacement' : `no other provider can carry ${streamName[u.stream]}`}`
+                ? picked[`primary:${u.stream}`]
+                  ? t(mo.rowPrimary, { name })
+                  : t(mo.rowPrimaryNone, { name, stream: streamName[u.stream] })
                 : u.kind === 'failover'
-                  ? `Failover: ${name} → choose a replacement`
+                  ? t(mo.rowFailover, { name })
                   : u.kind === 'share'
-                    ? `Split: ${name} ${u.weight}% → goes to ${nameOf(primaryOf(u.stream))}`
-                    : `Condition: ${u.values} → ${name} only, removed`}
+                    ? t(mo.rowSplit, { name, share: pct(u.weight, 0), target: nameOf(primaryOf(u.stream)) })
+                    : t(mo.rowCondition, { values: u.values, name })}
             </DialogRow>
           ))}
-          <DialogRow tone="neutral" label="Keeps" first={uses.length === 0}>
-            The {count(cfg.shared.suppressions)} suppressions in the shared list stay, and so do its past events and reports.
-            {cfg.providers.find((p) => p.id === id)?.removesWebhook ? ' Webhooks are unregistered for you.' : ''}
+          <DialogRow tone="neutral" label={t(mo.keeps)} first={uses.length === 0}>
+            {t(mo.keepsBody, { count: count(cfg.shared.suppressions) })}
+            {cfg.providers.find((p) => p.id === id)?.removesWebhook ? ` ${t(mo.keepsWebhooks)}` : ''}
           </DialogRow>
-          {stuck.length ? <Note tone="warn">Connect another provider that can carry {andList(stuck.map((u) => streamName[u.stream]))} first.</Note> : null}
+          {stuck.length ? <Note tone="warn">{t(mo.connectAnother, { streams: stuckStreams })}</Note> : null}
         </>
       )}
     </ConfirmDialog>

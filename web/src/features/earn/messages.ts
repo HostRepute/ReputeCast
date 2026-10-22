@@ -77,6 +77,8 @@ export const me = defineMessages('earn', {
   noEnd: 'No end date',
   // Sources.
   sourceImport: 'Imported from {platform}',
+  // {platform} of an import from a CSV export (sourceImport, the import's title…).
+  platformCsv: 'a CSV file',
   sourceGrant: 'Granted by {name}',
   sourceGrantReason: 'Granted by {name} · {reason}',
   sourcePage: 'Upgrade page',

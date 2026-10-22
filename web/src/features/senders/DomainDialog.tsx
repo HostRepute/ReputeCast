@@ -7,11 +7,15 @@ import { Dialog } from '@/components/ui/Dialog'
 import { Field, Input } from '@/components/ui/Field'
 import { toast } from '@/components/ui/Toast'
 import { problemMessage } from '@/features/connect/parts'
+import { useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
+import { m } from './messages'
 import { sendersPath } from './SendersPage'
 
 /** Add a sending domain; its records open next. */
 export function DomainDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const navigate = useNavigate()
@@ -31,10 +35,10 @@ export function DomainDialog({ open, onOpenChange }: { open: boolean; onOpenChan
       await qc.invalidateQueries({ queryKey: ['get', sendersPath] })
       const created = data!
       toast({
-        title: `${created.domain.domain} added`,
+        title: t(m.domainAdded, { domain: created.domain.domain }),
         detail: created.notes.length
-          ? created.notes.map((n) => (n.text.startsWith(n.provider) ? n.text : `${n.provider}: ${n.text}`)).join(' ')
-          : 'Add its records at your DNS host; ReputeCast checks them as they appear.',
+          ? created.notes.map((n) => (n.text.startsWith(n.provider) ? n.text : t(m.providerNote, { provider: n.provider, note: n.text }))).join(' ')
+          : t(m.domainAddedDetail),
       })
       onOpenChange(false)
       setDomain('')
@@ -51,30 +55,30 @@ export function DomainDialog({ open, onOpenChange }: { open: boolean; onOpenChan
       open={open}
       onOpenChange={onOpenChange}
       size="sm"
-      title="Add domain"
-      description="The domain in your From addresses, e.g. news.example.com. Each connected provider that can set it up through its API gets it, with the DNS records to add."
+      title={t(m.addDomainTitle)}
+      description={t(m.addDomainDescription)}
       footer={
         <>
-          <Button onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button variant="primary" onClick={() => void add()} loading={busy} disabledReason={reason ?? (domain.trim() ? undefined : 'Enter the domain first.')}>
-            Add domain
+          <Button onClick={() => onOpenChange(false)}>{t(common.cancel)}</Button>
+          <Button variant="primary" onClick={() => void add()} loading={busy} disabledReason={reason ?? (domain.trim() ? undefined : t(m.enterDomainFirst))}>
+            {t(m.addDomainSubmit)}
           </Button>
         </>
       }
     >
-      <Field label="Domain" error={error}>
+      <Field label={t(m.domain)} error={error}>
         <Input
           className="mono"
           value={domain}
           onChange={(e) => setDomain(e.target.value)}
-          placeholder="news.example.com"
+          placeholder={'news.example.com'}
           autoComplete="off"
           spellCheck={false}
           autoCapitalize="none"
           onKeyDown={(e) => (e.key === 'Enter' && domain.trim() ? void add() : undefined)}
         />
       </Field>
-      <Field label="What it's for" optional hint="Shown under the domain, e.g. primary sending domain.">
+      <Field label={t(m.whatFor)} optional hint={t(m.whatForHint)}>
         <Input value={note} onChange={(e) => setNote(e.target.value)} />
       </Field>
     </Dialog>

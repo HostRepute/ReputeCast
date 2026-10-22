@@ -1,14 +1,15 @@
 import type { Schemas } from '@/api/client'
 import type { useT } from '@/i18n'
+import { money as dollars } from '@/lib/format'
 import { m as um } from './usage.messages'
 
 type Rate = Schemas['AgencyRate']
 
-/** "$1,028.63". */
-export const usd = (v: number) => `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+/** "$1,028.63" (lib/format: the member's region format writes it its own way). */
+export const usd = (v: number) => dollars(v)
 
 /** "$300", or "$12.50" with cents. */
-export const money = (v: number) => (Number.isInteger(v) ? `$${v.toLocaleString('en-US')}` : usd(v))
+export const money = (v: number) => (Number.isInteger(v) ? dollars(v, 0) : usd(v))
 
 /** A rate in words: "Cost + 15%, plus $300 a month", "$120 a month, flat". */
 export function rateText(t: ReturnType<typeof useT>, rate: Rate | undefined | null, short = false) {

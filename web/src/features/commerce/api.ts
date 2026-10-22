@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useCallback } from 'react'
 import { $api, type Schemas } from '@/api/client'
 import { money as minorMoney } from '@/features/earn/format'
+import { pct } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 
 export type StorePage = Schemas['CommerceStorePage']
@@ -50,9 +51,9 @@ export function money(minor: number | null | undefined, currency = 'USD', cents:
   return minorMoney(minor, (currency || 'USD').toLowerCase(), cents)
 }
 
-/** "23.7%" */
+/** "23.7%", in the region format. */
 export function share(v: number): string {
-  return `${(Math.round(v * 10) / 10).toFixed(1)}%`
+  return pct(Math.round(v * 10) / 10, 1)
 }
 
 /** The storefront's host: the public domain, else the store's own. */

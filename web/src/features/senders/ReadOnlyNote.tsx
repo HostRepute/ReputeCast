@@ -1,30 +1,23 @@
-import type { ReactNode } from 'react'
 import { Badge } from '@/components/ui/Badge'
+import { T, useT, type MessageDescriptor } from '@/i18n'
 import { orList } from '@/lib/format'
+import { m } from './messages'
 
 /**
  * The read-only line at the top of a settings page for people who can look
  * but not change (TeamViewer's pattern): what they can do, the permission a
- * change needs and who can help.
+ * change needs and who can help. `msg` says the first two in one message,
+ * with the permission as {perm}: "You can view the senders… Changing them
+ * needs the {perm} permission."
  */
-export function ReadOnlyNote({
-  children,
-  action = 'Changing them',
-  perm,
-  helpers,
-}: {
-  children: ReactNode
-  /** What needs the permission ("Changing them"). */
-  action?: string
-  perm: string
-  helpers?: string[]
-}) {
+export function ReadOnlyNote({ msg, perm, helpers }: { msg: MessageDescriptor; perm: string; helpers?: string[] }) {
+  const t = useT()
   return (
     <div className="note n" role="status">
-      <Badge tone="neutral">Read-only</Badge>
+      <Badge tone="neutral">{t(m.readOnly)}</Badge>
       <span>
-        {children} {action} needs the <span className="mono">{perm}</span> permission.
-        {helpers?.length ? ` Ask ${orList(helpers)}.` : ''}
+        <T msg={msg} values={{ perm: <span className="mono">{perm}</span> }} />
+        {helpers?.length ? ` ${t(m.askHelpers, { helpers: orList(helpers) })}` : ''}
       </span>
     </div>
   )

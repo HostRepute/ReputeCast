@@ -6,10 +6,12 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { toast } from '@/components/ui/Toast'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Grid, Row } from '@/components/ui/Layout'
+import { t as tt, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { clock, count, trimPct } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
-import { authLine, cap, shortSource, toneOf, usedBy, type AssetHealth, type Overview } from './words'
+import { m } from './messages'
+import { authLine, cap, filterWord, reputationWord, shortSource, toneOf, usedBy, type AssetHealth, type Overview } from './words'
 
 /** A label and a value on one line (the board's `.kv` on Deliverability). */
 export function KV({ label, children, labelClass, valueClass, className }: { label: ReactNode; children: ReactNode; labelClass?: string; valueClass?: string; className?: string }) {
@@ -40,56 +42,63 @@ function Card({ children, className, label }: { children: ReactNode; className?:
 
 /** "1 of 84 · UCEPROTECT L3" */
 function listingLine(b: Schemas['DeliverabilityAssetBlocklists']): string {
-  return b.listed ? `${b.listed} of ${b.sources} · ${b.listings.map(shortSource).join(', ')}` : `0 of ${b.sources} listed`
+  return b.listed
+    ? tt(m.listingLine, { listed: count(b.listed), total: count(b.sources), names: b.listings.map(shortSource).join(', ') })
+    : tt(m.listingNone, { total: count(b.sources) })
 }
 
 function warmupLine(a: AssetHealth): string {
-  const parts = ['Dedicated IP']
+  const parts = [tt(m.dedicatedIp)]
   if (a.provider) parts.push(a.provider)
-  if (a.warmup) parts.push(`warming up, day ${a.warmup.day} of ${a.warmup.days}`)
-  else if (a.providerStatus === 'warming_up') parts.push('warming up')
+  if (a.warmup) parts.push(tt(m.warmingUpDay, { day: a.warmup.day, days: a.warmup.days }))
+  else if (a.providerStatus === 'warming_up') parts.push(tt(m.warmingUp))
   return parts.join(' · ')
 }
 
 function rdnsLine(a: AssetHealth): string {
-  if (!a.reverseDns) return 'not checked yet'
-  if (!a.reverseDns.ptr) return 'missing'
-  return `${a.reverseDns.ptr} · ${a.reverseDns.matches ? 'matches' : "doesn't resolve back"}`
+  if (!a.reverseDns) return tt(m.notCheckedYet)
+  if (!a.reverseDns.ptr) return tt(m.rdnsMissing)
+  return a.reverseDns.matches ? tt(m.rdnsMatches, { ptr: a.reverseDns.ptr }) : tt(m.rdnsNoMatch, { ptr: a.reverseDns.ptr })
 }
 
-function sndsLine(a: AssetHealth, suffix?: string): string {
-  if (!a.snds) return 'no data yet'
-  return `${cap(a.snds.filterResult)} · ${suffix ?? `${count(a.snds.trapHits)} trap ${a.snds.trapHits === 1 ? 'hit' : 'hits'}`}`
+/** The SNDS line of an IP: its filter result and trap hits, or whether it's current. */
+function sndsLine(a: AssetHealth, state?: 'current' | 'stale'): string {
+  if (!a.snds) return tt(m.noDataYetLower)
+  const filter = filterWord(a.snds.filterResult)
+  if (state === 'current') return tt(m.sndsCurrent, { filter })
+  if (state === 'stale') return tt(m.sndsStale, { filter })
+  return tt(m.sndsTraps, { filter, count: a.snds.trapHits })
 }
 
 /** The badge of a domain or IP card. */
 function assetBadge(a: AssetHealth, connected: boolean): ReactNode {
   const tone = toneOf(a.tone)
   if (connected && a.score != null) {
-    const word = a.blocklists.listed ? `Listed on ${a.blocklists.listed}` : a.verdict || 'Good'
     return (
       <Badge tone={tone} dot>
-        {a.score} · {word}
+        {a.blocklists.listed
+          ? tt(m.badgeScoreListed, { score: a.score, listed: a.blocklists.listed })
+          : tt(m.badgeScore, { score: a.score, verdict: a.verdict ? tt(m.verdict, { verdict: a.verdict }) : tt(m.verdictGood) })}
       </Badge>
     )
   }
   if (a.blocklists.listed) {
     return (
       <Badge tone={tone} dot>
-        Listed on {a.blocklists.listed}
+        {tt(m.badgeListed, { listed: a.blocklists.listed })}
       </Badge>
     )
   }
   if (a.type === 'ip') {
     return (
       <Badge tone={a.blocklists.via === 'none' ? 'neutral' : 'ok'} dot>
-        {a.blocklists.via === 'none' ? 'Not checked yet' : `Clean on ${a.blocklists.sources}`}
+        {a.blocklists.via === 'none' ? tt(m.badgeNotChecked) : tt(m.badgeCleanOn, { sources: a.blocklists.sources })}
       </Badge>
     )
   }
   return (
     <Badge tone={tone} dot>
-      {tone === 'ok' ? 'Good' : 'Needs attention'}
+      {tone === 'ok' ? tt(m.verdictGood) : tt(m.needsAttention)}
     </Badge>
   )
 }
@@ -99,17 +108,18 @@ function assetBadge(a: AssetHealth, connected: boolean): ReactNode {
  * comes after the monitored ones, with Add to monitoring.
  */
 function NotMonitoredCard({ a }: { a: AssetHealth }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const add = $api.useMutation('post', '/api/v1/workspaces/{workspace}/integrations/hostrepute/assets')
   const reason = usePermissionReason('integrations:hostrepute')
   return (
     <Card label={a.asset}>
-      <CardHead name={a.asset} badge={<Badge tone="neutral">Not monitored</Badge>} />
-      <span className="k">{['Sending domain', usedBy(a.usedBy) || undefined, 'not monitored by HostRepute yet'].filter(Boolean).join(' · ')}</span>
-      <KV label="SPF · DKIM · DMARC">{a.auth ? authLine(a.auth) : 'not checked yet'}</KV>
-      <KV label="Blocklists" valueClass="k font-medium [font-variant-numeric:normal]">
-        checked once it&apos;s monitored
+      <CardHead name={a.asset} badge={<Badge tone="neutral">{t(m.notMonitored)}</Badge>} />
+      <span className="k">{[t(m.sendingDomain), usedBy(a.usedBy) || undefined, t(m.notMonitoredYet)].filter(Boolean).join(' · ')}</span>
+      <KV label={'SPF · DKIM · DMARC'}>{a.auth ? authLine(a.auth) : t(m.notCheckedYet)}</KV>
+      <KV label={t(m.blocklists)} valueClass="k font-medium [font-variant-numeric:normal]">
+        {t(m.checkedOnceMonitored)}
       </KV>
       <Row gap={8}>
         <Button
@@ -121,7 +131,7 @@ function NotMonitoredCard({ a }: { a: AssetHealth }) {
               { params: { path: { workspace: slug } }, body: { asset: a.asset } },
               {
                 onSuccess: () => {
-                  toast({ kind: 'success', title: `${a.asset} added to monitoring`, detail: 'HostRepute checks it on its blocklists within the hour.' })
+                  toast({ kind: 'success', title: t(m.monitoringAdded, { asset: a.asset }), detail: t(m.monitoringAddedDetail) })
                   void qc.invalidateQueries()
                 },
                 onError: (e) => toast({ kind: 'error', title: errorMessage(e) }),
@@ -129,7 +139,7 @@ function NotMonitoredCard({ a }: { a: AssetHealth }) {
             )
           }
         >
-          Add to monitoring
+          {t(m.addToMonitoring)}
         </Button>
       </Row>
     </Card>
@@ -137,24 +147,25 @@ function NotMonitoredCard({ a }: { a: AssetHealth }) {
 }
 
 function DomainCard({ a, connected }: { a: AssetHealth; connected: boolean }) {
+  const t = useT()
   const builtin = a.blocklists.via !== 'hostrepute'
   if (connected && a.notMonitored) return <NotMonitoredCard a={a} />
   return (
     <Card label={a.asset} className={a.tone === 'warn' ? 'border-[#FCD34D]' : a.tone === 'bad' ? 'border-[#FCA5A5]' : undefined}>
       <CardHead name={a.asset} badge={assetBadge(a, connected)} />
-      <span className="k">{['Sending domain', builtin ? 'built-in checks' : usedBy(a.usedBy)].filter(Boolean).join(' · ')}</span>
+      <span className="k">{[t(m.sendingDomain), builtin ? t(m.builtinChecks) : usedBy(a.usedBy)].filter(Boolean).join(' · ')}</span>
       {builtin ? (
-        <KV label={`Blocklists · built-in, ${a.blocklists.sources} public DNSBLs`}>{a.blocklists.via === 'none' ? 'not checked yet' : listingLine(a.blocklists)}</KV>
+        <KV label={t(m.blocklistsBuiltin, { sources: a.blocklists.sources })}>{a.blocklists.via === 'none' ? t(m.notCheckedYet) : listingLine(a.blocklists)}</KV>
       ) : (
-        <KV label="Domain blocklists">{listingLine(a.blocklists)}</KV>
+        <KV label={t(m.domainBlocklists)}>{listingLine(a.blocklists)}</KV>
       )}
-      <KV label="SPF · DKIM · DMARC">{a.auth ? authLine(a.auth) : 'not checked yet'}</KV>
-      {connected && a.dmarcAligned != null ? <KV label="DMARC alignment, 7 d">{trimPct(a.dmarcAligned)}</KV> : null}
-      {a.gmailReputation ? <KV label="Gmail domain reputation">{cap(a.gmailReputation)}</KV> : null}
-      {!connected && a.dmarcAligned != null ? <KV label="DMARC alignment, 7 d">{trimPct(a.dmarcAligned)}</KV> : null}
+      <KV label={'SPF · DKIM · DMARC'}>{a.auth ? authLine(a.auth) : t(m.notCheckedYet)}</KV>
+      {connected && a.dmarcAligned != null ? <KV label={t(m.dmarcAlignment7d)}>{trimPct(a.dmarcAligned)}</KV> : null}
+      {a.gmailReputation ? <KV label={t(m.gmailDomainReputation)}>{reputationWord(a.gmailReputation)}</KV> : null}
+      {!connected && a.dmarcAligned != null ? <KV label={t(m.dmarcAlignment7d)}>{trimPct(a.dmarcAligned)}</KV> : null}
       {!connected && a.dmarcAligned == null ? (
-        <KV label="DMARC alignment" labelClass="k" valueClass="k font-medium [font-variant-numeric:normal]">
-          needs reports: add rua to HostRepute or your own mailbox
+        <KV label={t(m.dmarcAlignment)} labelClass="k" valueClass="k font-medium [font-variant-numeric:normal]">
+          {t(m.needsReports)}
         </KV>
       ) : null}
     </Card>
@@ -162,6 +173,7 @@ function DomainCard({ a, connected }: { a: AssetHealth; connected: boolean }) {
 }
 
 function IPCard({ a, connected, onDelist, delistReason, delisting }: { a: AssetHealth; connected: boolean; onDelist: () => void; delistReason?: string; delisting: boolean }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const builtin = a.blocklists.via !== 'hostrepute'
   return (
@@ -169,60 +181,64 @@ function IPCard({ a, connected, onDelist, delistReason, delisting }: { a: AssetH
       <CardHead name={a.asset} mono badge={assetBadge(a, connected)} />
       <span className="k">{warmupLine(a)}</span>
       {builtin ? (
-        <KV label={`Blocklists · built-in, ${a.blocklists.sources} public DNSBLs`} valueClass={a.blocklists.listed ? 'text-warn-fg' : undefined}>
-          {a.blocklists.via === 'none' ? 'not checked yet' : a.blocklists.listed ? listingLine(a.blocklists) : `0 of ${a.blocklists.sources} · daily`}
+        <KV label={t(m.blocklistsBuiltin, { sources: a.blocklists.sources })} valueClass={a.blocklists.listed ? 'text-warn-fg' : undefined}>
+          {a.blocklists.via === 'none' ? t(m.notCheckedYet) : a.blocklists.listed ? listingLine(a.blocklists) : t(m.noneOfDaily, { total: count(a.blocklists.sources) })}
         </KV>
       ) : (
-        <KV label="IP blocklists" valueClass={a.blocklists.listed ? 'text-warn-fg' : undefined}>
+        <KV label={t(m.ipBlocklists)} valueClass={a.blocklists.listed ? 'text-warn-fg' : undefined}>
           {listingLine(a.blocklists)}
         </KV>
       )}
-      <KV label="Reverse DNS" valueClass="mono">
+      <KV label={t(m.reverseDns)} valueClass="mono">
         {rdnsLine(a)}
       </KV>
-      <KV label="Microsoft SNDS">{sndsLine(a)}</KV>
+      <KV label={'Microsoft SNDS'}>{sndsLine(a)}</KV>
       {connected && (a.blocklists.listed > 0 || a.warmup) ? (
         <div className="flex gap-2">
           {a.blocklists.listed > 0 ? (
             <Button size="sm" onClick={onDelist} disabledReason={delistReason} loading={delisting}>
-              Request delisting
+              {t(m.requestDelisting)}
             </Button>
           ) : null}
           {a.warmup ? (
             <ButtonLink size="sm" to="/w/$workspace/providers/warmup" params={{ workspace: slug }}>
-              Warm-up plan
+              {t(m.warmupPlan)}
             </ButtonLink>
           ) : null}
         </div>
       ) : null}
-      {!connected ? <span className="k">HostRepute would also check 76 more sources hourly, including UCEPROTECT.</span> : null}
+      {!connected ? <span className="k">{t(m.moreSources)}</span> : null}
     </Card>
   )
 }
 
 function PoolCard({ p, connected, ipPool }: { p: Schemas['DeliverabilityPoolHealth']; connected: boolean; ipPool?: string }) {
+  const t = useT()
+  const only = p.onlyStream ? t(m.streamOnly, { stream: p.onlyStream, name: cap(p.onlyStream) }) : null
   const caption = connected
-    ? [`Shared pool${p.region ? `, ${p.region}` : ''}`, p.onlyStream ? `${cap(p.onlyStream)} stream only` : null, `checked at domain level${p.managedReputation ? ', Amazon manages IP reputation' : ''}`]
-    : ['Shared pool', p.onlyStream ? `${cap(p.onlyStream)} stream only` : 'checked at domain level']
+    ? [p.region ? t(m.sharedPoolRegion, { region: p.region }) : t(m.sharedPool), only, p.managedReputation ? t(m.checkedDomainLevelAmazon) : t(m.checkedDomainLevel)]
+    : [t(m.sharedPool), only ?? t(m.checkedDomainLevel)]
+  const name = t(m.poolName, { provider: p.provider })
   return (
-    <Card label={`${p.provider} pool`}>
-      <CardHead name={`${p.provider} pool`} badge={<Badge tone="neutral">Shared IPs</Badge>} />
+    <Card label={name}>
+      <CardHead name={name} badge={<Badge tone="neutral">{t(m.sharedIps)}</Badge>} />
       <span className="k">{caption.filter(Boolean).join(' · ')}</span>
-      <KV label={p.managedReputation ? 'Account reputation' : 'Provider status'}>{p.accountStatus}</KV>
-      {p.gmailIpReputation && ipPool === p.short ? <KV label="Gmail IP reputation, pool">{cap(p.gmailIpReputation)}</KV> : null}
-      {connected && p.dedicatedIpOption ? <KV label="Dedicated IP option">{p.dedicatedIpOption}</KV> : null}
-      {connected && p.volumeThisMonth != null ? <KV label="Volume this month">{count(p.volumeThisMonth)}</KV> : null}
+      <KV label={p.managedReputation ? t(m.accountReputation) : t(m.providerStatus)}>{p.accountStatus}</KV>
+      {p.gmailIpReputation && ipPool === p.short ? <KV label={t(m.gmailIpReputationPool)}>{reputationWord(p.gmailIpReputation)}</KV> : null}
+      {connected && p.dedicatedIpOption ? <KV label={t(m.dedicatedIpOption)}>{p.dedicatedIpOption}</KV> : null}
+      {connected && p.volumeThisMonth != null ? <KV label={t(m.volumeThisMonth)}>{count(p.volumeThisMonth)}</KV> : null}
     </Card>
   )
 }
 
 /** Health per sending domain and IP, and the shared pools. */
 export function AssetGrid({ o, onDelist, delistReason, delisting }: { o: Overview; onDelist: (asset: string) => void; delistReason?: string; delisting?: string }) {
+  const t = useT()
   const connected = o.hostRepute.status === 'connected' && !o.hostRepute.unreachable
   return (
     <section className="flex flex-col gap-3" aria-labelledby="h-assets">
       <h2 className="h2" id="h-assets">
-        Health per sending domain and IP
+        {t(m.assetsTitle)}
       </h2>
       <Grid min={300} gap={16}>
         {o.assets.map((a) =>
@@ -246,12 +262,13 @@ export function AssetGrid({ o, onDelist, delistReason, delisting }: { o: Overvie
  * built-in fallback next to them, and the provider data that is current.
  */
 export function StaleGrid({ o }: { o: Overview }) {
+  const t = useT()
   const pool = o.pools[0]
   const domain = o.assets.find((a) => a.type === 'domain')
   return (
     <Grid min={300} gap={16}>
       {o.assets.map((a) => {
-        const kind = a.type === 'domain' ? 'Domain' : 'IP'
+        const kind = a.type === 'domain' ? 'domain' : 'ip'
         const stale = a.stale ? clock(a.stale) : null
         return (
           <Card key={a.asset} label={a.asset} className="border-[#FCA5A5]">
@@ -260,20 +277,22 @@ export function StaleGrid({ o }: { o: Overview }) {
               mono={a.type === 'ip'}
               badge={
                 <Badge tone="bad" dot>
-                  Stale{stale ? ` · ${stale}` : ''}
+                  {stale ? t(m.staleAt, { time: stale }) : t(m.stale)}
                 </Badge>
               }
             />
-            <KV label={`${kind} blocklists · ${a.blocklists.sources} via HostRepute`} className="opacity-70">
+            <KV label={t(m.staleBlocklistsVia, { kind, sources: a.blocklists.sources })} className="opacity-70">
               {listingLine(a.blocklists)}
             </KV>
-            <KV label={`${kind} blocklists · built-in fallback`}>
-              {a.fallback?.checkedAt ? `${a.fallback.listed} of ${a.fallback.sources} · ${clock(a.fallback.checkedAt)}` : 'running now'}
+            <KV label={t(m.staleBlocklistsFallback, { kind })}>
+              {a.fallback?.checkedAt
+                ? t(m.fallbackLine, { listed: count(a.fallback.listed), total: count(a.fallback.sources), time: clock(a.fallback.checkedAt) })
+                : t(m.runningNow)}
             </KV>
             {a.type === 'domain' ? (
-              <KV label="SPF · DKIM · DMARC">{a.auth ? authLine(a.auth) : 'not checked yet'}</KV>
+              <KV label={'SPF · DKIM · DMARC'}>{a.auth ? authLine(a.auth) : t(m.notCheckedYet)}</KV>
             ) : (
-              <KV label="Microsoft SNDS">{sndsLine(a, o.snds && !o.snds.stale ? 'current' : 'stale')}</KV>
+              <KV label={'Microsoft SNDS'}>{sndsLine(a, o.snds && !o.snds.stale ? 'current' : 'stale')}</KV>
             )}
           </Card>
         )
@@ -284,16 +303,18 @@ export function StaleGrid({ o }: { o: Overview }) {
             name={pool.provider}
             badge={
               <Badge tone="ok" dot>
-                Current
+                {t(m.current)}
               </Badge>
             }
           />
-          <KV label="Bounce · complaint">
+          <KV label={t(m.bounceComplaint)}>
             {trimPct(pool.bounceRate)} · {trimPct(pool.complaintRate)}
           </KV>
           {domain?.gmailReputation ? (
-            <KV label="Gmail domain reputation">
-              {cap(domain.gmailReputation)} · {o.postmaster && !o.postmaster.stale ? 'current' : 'stale'}
+            <KV label={t(m.gmailDomainReputation)}>
+              {o.postmaster && !o.postmaster.stale
+                ? t(m.reputationCurrent, { reputation: reputationWord(domain.gmailReputation) })
+                : t(m.reputationStale, { reputation: reputationWord(domain.gmailReputation) })}
             </KV>
           ) : null}
         </Card>

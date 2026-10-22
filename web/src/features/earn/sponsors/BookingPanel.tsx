@@ -155,7 +155,7 @@ function ReadOnly({ helpers }: { helpers: string[] }) {
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
         <span className="font-bold">{t(mb.readOnlyTitle, { name: user?.name || user?.email || '', role })}</span>
         <div>
-          <T msg={helpers.length ? mb.readOnlyText : mb.readOnlyNoHelpers} values={{ permission: <span className="mono">sponsors:manage</span>, helpers: orList(helpers) }} />
+          <T msg={helpers.length ? mb.readOnlyText : mb.readOnlyNoHelpers} values={{ permission: <span className="mono">{'sponsors:manage'}</span>, helpers: orList(helpers) }} />
         </div>
       </div>
     </div>
@@ -575,9 +575,9 @@ function CreativeEditor({ b }: { b: Detail }) {
             </div>
           ) : (
             <div className="flex flex-wrap gap-1.5">
-              {utm.source ? <span className="sp-utm">utm_source={utm.source}</span> : null}
-              {utm.medium ? <span className="sp-utm">utm_medium={utm.medium}</span> : null}
-              {utm.campaign ? <span className="sp-utm">utm_campaign={utm.campaign}</span> : null}
+              {utm.source ? <span className="sp-utm">{'utm_source='}{utm.source}</span> : null}
+              {utm.medium ? <span className="sp-utm">{'utm_medium='}{utm.medium}</span> : null}
+              {utm.campaign ? <span className="sp-utm">{'utm_campaign='}{utm.campaign}</span> : null}
               <Button size="xs" onClick={() => setUtmEdit(true)}>
                 {t(mb.utmEdit)}
               </Button>
@@ -943,7 +943,7 @@ function ProposalBody({ p, slotPrice, currency }: { p: Proposal; slotPrice: numb
       <div className="note n" role="note">
         <NoteIcon tone="neutral" />
         <div className="min-w-0 flex-[1_1_320px]">
-          <T msg={p.note ? mb.proposalNote : mb.proposalNoteNoNote} values={{ agent: p.agent, when, note: p.note, permission: <span className="mono">sponsors:manage</span> }} />
+          <T msg={p.note ? mb.proposalNote : mb.proposalNoteNoNote} values={{ agent: p.agent, when, note: p.note, permission: <span className="mono">{'sponsors:manage'}</span> }} />
         </div>
       </div>
       <dl className="sp-kv">

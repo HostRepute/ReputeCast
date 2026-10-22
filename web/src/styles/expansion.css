@@ -94,6 +94,13 @@
   align-items: flex-end;
 }
 
+/* SMS (features/sms), rule 1: the amount or count that ends a summary row
+   ("846 tin nhắn · 2 đoạn tin mỗi tin … 38,67 US$") stays on one line; the
+   longer words beside it wrap instead of splitting "US$". */
+:root:not([lang='en']) .sms-sum .n {
+  white-space: nowrap;
+}
+
 /* Grow: a milestone's unit under its number ("lượt giới thiệu") and where a
    recommendation shows ("Trang xác nhận", "Email chào mừng") stay on one
    line; their narrow columns make room instead of breaking the words. */
@@ -120,6 +127,217 @@
   flex: 0 1 auto;
   min-width: 0;
   text-align: right;
+}
+
+/* ── Sending and deliverability ──────────────────────────────────────── */
+
+/* Sending providers: a meter's number never breaks (rule 1). On phones the
+   app lets words break anywhere, so a longer label squeezed "0,04%" into
+   "0,0" over "4%"; the value breaks only between words and the label wraps
+   instead. */
+:root:not([lang='en']) .pv-m .l > .n {
+  overflow-wrap: normal;
+}
+
+/* A provider fact whose value runs to two lines ("Webhook · SNS · sự kiện
+   gần nhất…") keeps a gap from its key and wraps on the right, as Settings
+   › Providers' .sd-kv does. */
+:root:not([lang='en']) .pv-fact {
+  column-gap: 12px;
+}
+:root:not([lang='en']) .pv-fact > .k {
+  flex: none;
+}
+:root:not([lang='en']) .pv-fact > :last-child {
+  text-align: right;
+}
+
+/* A held broadcast's decision ("Chuyển sang Postal · vượt giới hạn…") may
+   run longer than its column: the button wraps inside the column instead
+   of spilling out of the card (rule 1 over rule 4). */
+:root:not([lang='en']) .pv-decide .btn {
+  white-space: normal;
+  max-width: 100%;
+  text-align: start;
+  padding-block: 5px;
+}
+
+/* Warm-up log: a date in the region format ("CN, 18 thg 10") is longer than
+   "Sun 18 Oct" and broke over four lines; it stays on one line and the
+   entry wraps beside it. */
+:root:not([lang='en']) .pv-log-date {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* Connect wizard (rule 4): on phones the "How to fix" cards of an
+   unreachable webhook endpoint take the whole width, so their buttons
+   ("Tạm dùng hỏi định kỳ") keep to one line. English keeps the board's two
+   140 px columns. A variable, because the grid's columns are a Tailwind
+   `!` utility. */
+@media (max-width: 767px) {
+  :root:not([lang='en']) .cn-fix {
+    --cn-fix-min: 100%;
+  }
+}
+
+/* A stream card's facts: the key keeps its words on one line ("Chuyển dự
+   phòng") and a long value wraps beside it. */
+:root:not([lang='en']) .cn-kv > .k {
+  flex: none;
+}
+
+/* Deliverability (rule 4): the blocklist table scrolls sideways in its
+   card, so on phones its "Delisting page" button and its dates keep one
+   line ("Trang gỡ khỏi danh sách", "16 thg 10"). */
+:root:not([lang='en']) .dl-blocklists td .btn,
+:root:not([lang='en']) .dl-blocklists td.dl-since {
+  white-space: nowrap;
+}
+
+/* Postmaster and SNDS: on phones each label and its value take the card's
+   width, so a longer label ("Tỷ lệ spam, 30 ngày") doesn't push its number
+   ("0,05%") onto two lines. */
+@media (max-width: 767px) {
+  :root:not([lang='en']) .dl-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Connect HostRepute: the card's longer subtitle wraps beside its status
+   badge instead of pushing the badge under it. */
+:root:not([lang='en']) .hr-head {
+  flex: 1 1 320px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+:root:not([lang='en']) .hr-head > svg {
+  flex: none;
+}
+
+/* HostRepute's assets: Vietnamese words are short, so the Type column
+   shrank to one word a line ("Tên / miền / gửi / thư"); it keeps two. */
+:root:not([lang='en']) .hr-assets td:nth-child(2) {
+  min-width: 6.5em;
+}
+
+/* Live monitor: the top bar's events line wraps beside Pause and Cancel
+   send instead of pushing the bell and the user menu to a row of their own
+   (English keeps the board's single line). Phones wrap the top bar anyway. */
+@media (min-width: 768px) {
+  :root:not([lang='en']) .top .acts > .lv-caption {
+    flex: 1 1 260px;
+    min-width: 0;
+    text-align: right;
+  }
+}
+
+/* Earn: a tier's price lines (the tier editor's In Stripe card) keep the
+   price whole: the paid members line moves under it rather than the price
+   running into it ("8 US$/tháng"). */
+:root:not([lang='en']) .ea-vline > :first-child {
+  flex: 1 1 auto;
+}
+
+/* Earn: the member panel's email line breaks inside the address when the
+   head's longer buttons leave it less room, rather than running under them. */
+:root:not([lang='en']) .ea-sheet-head .k {
+  overflow-wrap: anywhere;
+}
+
+/* Rule 1 on Earn's paid members: the filters grow to their longest choice
+   ("Trước khi chuyển (24 thg 9)"), never narrower than the board's widths;
+   phones keep them sharing the row. */
+@media (min-width: 768px) {
+  :root:not([lang='en']) .ea-filters select.in {
+    width: auto;
+    max-width: 100%;
+  }
+  :root:not([lang='en']) .ea-filters .ea-f120 {
+    min-width: 120px;
+  }
+  :root:not([lang='en']) .ea-filters .ea-f130 {
+    min-width: 130px;
+  }
+  :root:not([lang='en']) .ea-filters .ea-f140 {
+    min-width: 140px;
+  }
+  :root:not([lang='en']) .ea-filters .ea-f170 {
+    min-width: 170px;
+  }
+}
+
+/* Campaign report (features/reports): an A/B variant's three numbers wrap
+   as wholes when "lượt mở bởi người đọc" doesn't fit beside the others. */
+:root:not([lang='en']) .rep-abm {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+:root:not([lang='en']) .rep-abm > span {
+  white-space: nowrap;
+}
+
+/* List health (features/audience): the sunset policy's "Count machine
+   opens?" select takes the whole row, so its first choice shows whole. */
+:root:not([lang='en']) .hp-machine {
+  grid-column: 1 / -1;
+}
+
+/* Form builder (features/forms): the embed code's copy buttons and the
+   form picker wrap to a second line instead of running out of the column. */
+:root:not([lang='en']) .fb-row {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+/* Its segmented choices (form type, page, preview size) grow to two lines
+   instead of cutting the second one off. */
+:root:not([lang='en']) .fb-seg button {
+  height: auto;
+  min-height: 32px;
+  padding-block: 6px;
+  line-height: 1.25;
+}
+
+/* Products: the product editor's numbers ("6.206 US$" where the region
+   format writes the currency after the amount, joined by a no-break space)
+   take two columns instead of three in the narrow side panel, so an amount
+   never runs past its tile. */
+:root:not([lang='en']) .pr-nums {
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+}
+
+/* Instance admin, keys, webhooks and the audit logs (V01). */
+
+/* Rule 1 on Instance admin › Users and both audit logs: from tablets up,
+   the filter selects grow to their longest choice ("Mọi không gian làm
+   việc", "Mọi loại người thực hiện"), never narrower than the board's width
+   (each select's min-width), and the search leaves room for its
+   placeholder. Phones keep them full width, as in English. */
+@media (min-width: 768px) {
+  :root:not([lang='en']) .filters-grow select.in {
+    width: auto;
+  }
+  :root:not([lang='en']) .filters-grow input.in[type='search'] {
+    width: 300px;
+  }
+}
+
+/* Rule 1 on Settings › Audit log beside its entry panel: the time column
+   (180 px at least on the board) gives the longer result badges ("Bị từ
+   chối") and the Details button their room, so the table fits its card. */
+:root:not([lang='en']) .au-tbl td:first-child {
+  min-width: 150px;
+}
+
+/* Rule 4 on Instance admin › Users' row menu: an item keeps its label and
+   its note on one line ("Đặt lại xác thực hai lớp · chưa có ứng dụng xác
+   thực"), the menu growing from the board's 300 px up to 420 px. */
+@media (min-width: 768px) {
+  :root:not([lang='en']) .us-menu {
+    width: auto;
+    min-width: 300px;
+    max-width: 420px;
+  }
 }
 
 /* Digests, the AI assistant, placement tests and verification (V10). */

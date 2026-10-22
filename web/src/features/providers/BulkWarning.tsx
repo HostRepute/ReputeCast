@@ -6,28 +6,51 @@ import { Field, Select } from '@/components/ui/Field'
 import { Grid } from '@/components/ui/Layout'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
+import { getI18n, t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
-import { count } from '@/lib/format'
+import { count, pct } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
+import { mb } from './bulk.messages'
 import { streamName, type FailoverPolicy, type Stream } from './common'
 import { providerOption, setPrimary, type BulkIssue, type Draft, type RoutingConfig, type RoutingProvider } from './routing-model'
 
 type Fix = 'create' | 'other' | 'none' | 'keep'
 
-const bulkBadge: Record<RoutingProvider['bulk'], { tone: 'ok' | 'bad' | 'warn'; text: string }> = {
-  allowed: { tone: 'ok', text: 'Allowed' },
-  your_policy: { tone: 'ok', text: 'Your own policy' },
-  forbidden: { tone: 'bad', text: 'Not allowed' },
-  broadcast_streams_only: { tone: 'warn', text: 'Broadcast streams only' },
+const bulkBadge: Record<RoutingProvider['bulk'], { tone: 'ok' | 'bad' | 'warn'; readonly text: string }> = {
+  allowed: {
+    tone: 'ok',
+    get text() {
+      return tt(mb.termsAllowed)
+    },
+  },
+  your_policy: {
+    tone: 'ok',
+    get text() {
+      return tt(mb.termsYourPolicy)
+    },
+  },
+  forbidden: {
+    tone: 'bad',
+    get text() {
+      return tt(mb.termsNotAllowed)
+    },
+  },
+  broadcast_streams_only: {
+    tone: 'warn',
+    get text() {
+      return tt(mb.termsBroadcastOnly)
+    },
+  },
 }
 
 /** "Postmark · Transactional stream", "Postal (self-hosted)". */
 function termName(p: RoutingProvider, variant: string) {
   if (!variant) return p.name
-  return variant === 'self-hosted' ? `${p.name} (self-hosted)` : `${p.name} · ${variant}`
+  return variant === 'self-hosted' ? tt(mb.selfHosted, { name: p.name }) : `${p.name} · ${variant}`
 }
 
-/** "Transactional" from "Transactional stream". */
+/** "Transactional" from "Transactional stream" (the adapter's own words). */
 const variantWord = (label: string) => label.replace(/ stream$/, '')
 
 /** One way to fix the route (`label.opt`): title and explanation flow inline, as on the board. */
@@ -84,13 +107,17 @@ export function BulkWarningView({
   onSave: (next: Draft, acknowledge: boolean) => Promise<void>
   readOnlyReason?: string
 }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const byId = new Map(cfg.providers.map((p) => [p.id, p]))
   const issue = issues[0]!
   const bad = byId.get(issue.providerId)!
   const b = draft.broadcast
   const primary = b.splits[0] ? byId.get(b.splits[0].providerId) : undefined
-  const others = b.splits.slice(1).map((s) => ({ s, p: byId.get(s.providerId) })).filter((x) => x.p)
+  const others = b.splits
+    .slice(1)
+    .map((s) => ({ s, p: byId.get(s.providerId) }))
+    .filter((x) => x.p)
   const alternatives = cfg.providers.filter((p) => p.bulkAllowed && p.id !== bad.id && p.id !== primary?.id)
   const alt = alternatives.find((p) => !p.warmingUp) ?? alternatives[0]
   const [fix, setFix] = useState<Fix>(bad.broadcastStreamCreatable ? 'create' : alt ? 'other' : 'none')
@@ -98,7 +125,16 @@ export function BulkWarningView({
   const view = cfg.streams.find((s) => s.stream === 'broadcast')
   const fallbackIssue = issue.where === 'fallback'
   const variant = variantWord(bad.label)
+  const role = fallbackIssue ? 'fallback' : 'route'
   const setBroadcast = (patch: Partial<Draft['broadcast']>) => onDraft({ ...draft, broadcast: { ...b, ...patch } })
+  // A choice whose label can pass about 32 characters is a radio card, not a
+  // select, outside English (CONVENTIONS › Text expansion, rule 1).
+  const cards = getI18n().locale !== 'en'
+  const policies: { value: FailoverPolicy; label: string }[] = [
+    { value: 'pause_and_ask', label: t(mb.policyPause) },
+    { value: 'warm_only', label: t(mb.policyWarm) },
+    { value: 'automatic', label: t(mb.policyAuto) },
+  ]
 
   const apply = async () => {
     if (fix === 'other' && alt) {
@@ -120,21 +156,26 @@ export function BulkWarningView({
     setBusy(true)
     try {
       await http.POST('/api/v1/workspaces/{workspace}/providers/{providerId}/broadcast-stream', { params: { path: { workspace: slug, providerId: bad.id } } })
-      toast({ kind: 'success', title: `${bad.name} Broadcast stream created`, detail: 'Webhooks are registered for it too.' })
+      toast({ kind: 'success', title: t(mb.streamCreated, { name: bad.name }), detail: t(mb.streamCreatedDetail) })
       await onSave(draft, false)
     } catch (e) {
-      toast({ kind: 'error', title: "The Broadcast stream wasn't created", detail: errorMessage(e) })
+      toast({ kind: 'error', title: t(mb.streamFailed), detail: errorMessage(e) })
     } finally {
       setBusy(false)
     }
   }
 
   const action: Record<Fix, string> = {
-    create: 'Create Broadcast stream and save',
-    other: alt ? `Use ${alt.short} and save` : 'Save',
-    none: 'Save without a fallback',
-    keep: 'Keep it and save',
+    create: t(mb.actionCreate),
+    other: alt ? t(mb.actionOther, { provider: alt.short }) : t(common.save),
+    none: t(mb.actionNone),
+    keep: t(mb.actionKeep),
   }
+  const body = [
+    t(mb.bodySet, { where: issue.where, name: bad.name, variant, hasVariant: variant ? 'yes' : 'no' }),
+    t(mb.bodyTerms, { name: bad.name, hasVariant: variant ? 'yes' : 'no', variantLower: variant.toLowerCase() }),
+    ...(bad.broadcastStreamCreatable ? [t(mb.bodyCreatable, { name: bad.name })] : []),
+  ].join(' ')
 
   return (
     <>
@@ -144,42 +185,47 @@ export function BulkWarningView({
           <path d="M20 11v11M20 27v1" stroke="#92400E" strokeWidth="3" strokeLinecap="round" />
         </svg>
         <div className="flex flex-[1_1_320px] flex-col gap-1">
-          <span className="text-[18px] font-bold tracking-[-0.01em] text-[#78350F]">
-            Broadcasts would {fallbackIssue ? 'fail over to' : 'go through'} a provider whose terms don&apos;t allow bulk marketing
-          </span>
-          <span className="text-[#78350F]">
-            You set the Broadcasts {issue.where === 'fallback' ? 'fallback' : issue.where === 'split' ? 'split' : 'condition'} to {bad.name}&apos;s &quot;{variant}&quot;
-            {variant ? ' message stream' : ''}. {bad.name}&apos;s terms restrict {variant ? `${variant.toLowerCase()} streams` : 'this account'} to one-to-one mail; newsletters on it
-            risk account suspension.
-            {bad.broadcastStreamCreatable ? ` ${bad.name} does allow bulk mail on a Broadcast message stream, and ReputeCast can create one.` : ''}
-          </span>
+          <span className="text-[18px] font-bold tracking-[-0.01em] text-[#78350F]">{fallbackIssue ? t(mb.titleFallback) : t(mb.titleRoute)}</span>
+          <span className="text-[#78350F]">{body}</span>
         </div>
       </section>
 
       <section className="card flex flex-col" aria-labelledby="pv-bw-route">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-5 py-3.5">
           <h2 className="h2" id="pv-bw-route">
-            Broadcasts route
+            {t(mb.routeTitle)}
           </h2>
           <span className="k">
-            campaigns
-            {view?.volume?.smallest ? ` · ${count(view.volume.smallest)} to ${count(view.volume.largest ?? view.volume.smallest)} recipients per send` : ''}
+            {view?.volume?.smallest
+              ? t(mb.routeSubVolume, { smallest: count(view.volume.smallest), largest: count(view.volume.largest ?? view.volume.smallest) })
+              : t(mb.routeSub)}
           </span>
         </div>
         <Grid min={260} gap={16} className="px-5 py-[18px]">
-          <Field label="Primary" hint={others.length ? `Weighted with ${others.map((o) => `${o.p!.short} · ${o.s.weight}%${o.p!.warmingUp ? ', warming up' : ''}`).join('; ')}` : undefined}>
+          <Field
+            label={t(mb.primary)}
+            hint={
+              others.length
+                ? t(mb.weightedWith, {
+                    list: others
+                      .map((o) => (o.p!.warmingUp ? t(mb.weightItemWarming, { provider: o.p!.short, share: pct(o.s.weight, 0) }) : t(mb.weightItem, { provider: o.p!.short, share: pct(o.s.weight, 0) })))
+                      .join('; '),
+                  })
+                : undefined
+            }
+          >
             <Select value={primary?.id ?? ''} disabled={Boolean(readOnlyReason)} onChange={(e) => onDraft({ ...draft, broadcast: setPrimary(b, e.target.value) })}>
-              {primary ? null : <option value="">Choose a provider</option>}
+              {primary ? null : <option value="">{t(mb.chooseProvider)}</option>}
               {cfg.providers.map((p) => (
                 <option key={p.id} value={p.id}>
                   {providerOption(p)}
-                  {b.splits.length > 1 ? ` · ${b.splits[0]!.weight}%` : ''}
+                  {b.splits.length > 1 ? ` · ${pct(b.splits[0]!.weight, 0)}` : ''}
                 </option>
               ))}
             </Select>
           </Field>
           <div className={cn('lbl', fallbackIssue && 'text-warn-fg')}>
-            <label htmlFor="pv-bw-fallback">Fallback</label>
+            <label htmlFor="pv-bw-fallback">{t(mb.fallback)}</label>
             <Select
               id="pv-bw-fallback"
               value={b.fallback}
@@ -189,7 +235,7 @@ export function BulkWarningView({
               className={cn(fallbackIssue && 'border-[#F59E0B] bg-warn-tint')}
               onChange={(e) => setBroadcast({ fallback: e.target.value })}
             >
-              <option value="">None · pause and ask</option>
+              <option value="">{t(mb.nonePauseAsk)}</option>
               {cfg.providers
                 .filter((p) => p.id !== primary?.id)
                 .map((p) => (
@@ -200,21 +246,46 @@ export function BulkWarningView({
             </Select>
             {fallbackIssue ? (
               <Badge tone="warn" id="pv-bw-fallback-terms" className="mt-0.5 self-start">
-                Terms: bulk marketing not allowed
+                {t(mb.termsBadge)}
               </Badge>
             ) : null}
           </div>
-          <Field label="Failover policy" hint="Applies when the primary fails during a send.">
-            <Select value={b.failover} disabled={Boolean(readOnlyReason)} onChange={(e) => setBroadcast({ failover: e.target.value as FailoverPolicy })}>
-              <option value="pause_and_ask">Pause and ask (default for Broadcasts)</option>
-              <option value="warm_only">Automatic, only to warmed-up providers</option>
-              <option value="automatic">Automatic</option>
-            </Select>
-          </Field>
+          {cards ? (
+            // Outside English the policies run past what a select shows (rule 1): radio cards.
+            <div className="lbl" role="radiogroup" aria-labelledby="pv-bw-policy" aria-describedby="pv-bw-policy-hint">
+              <span id="pv-bw-policy">{t(mb.failoverPolicy)}</span>
+              {policies.map((p) => (
+                <label key={p.value} className="opt pv-opt">
+                  <input
+                    type="radio"
+                    name="pv-bw-failover"
+                    value={p.value}
+                    checked={b.failover === p.value}
+                    disabled={Boolean(readOnlyReason)}
+                    onChange={() => setBroadcast({ failover: p.value })}
+                  />
+                  <span className="text-[13px] font-medium text-ink">{p.label}</span>
+                </label>
+              ))}
+              <span className="k" id="pv-bw-policy-hint">
+                {t(mb.failoverHint)}
+              </span>
+            </div>
+          ) : (
+            <Field label={t(mb.failoverPolicy)} hint={t(mb.failoverHint)}>
+              <Select value={b.failover} disabled={Boolean(readOnlyReason)} onChange={(e) => setBroadcast({ failover: e.target.value as FailoverPolicy })}>
+                {policies.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
         </Grid>
         <div className="flex flex-col gap-2.5 px-5 pb-[18px]" id="pv-fix">
           <span className="text-[13px] font-semibold" id="pv-fix-title">
-            Fix this
+            {t(mb.fixTitle)}
           </span>
           <Grid min={280} gap={12} role="radiogroup" aria-labelledby="pv-fix-title">
             {bad.broadcastStreamCreatable ? (
@@ -222,8 +293,8 @@ export function BulkWarningView({
                 value="create"
                 fix={fix}
                 onPick={setFix}
-                title={`Create a ${bad.name} Broadcast stream (recommended)`}
-                description={`ReputeCast creates "ReputeCast Broadcasts" in your ${bad.name} server, registers webhooks and uses it as the ${fallbackIssue ? 'fallback' : 'route'}. About 1 minute.`}
+                title={t(mb.createTitle, { name: bad.name })}
+                description={t(mb.createDescription, { name: bad.name, role })}
               />
             ) : null}
             <FixOption
@@ -231,13 +302,13 @@ export function BulkWarningView({
               fix={fix}
               onPick={setFix}
               disabled={!alt}
-              title={`Use a different ${fallbackIssue ? 'fallback' : 'provider'}`}
+              title={t(mb.otherTitle, { role })}
               description={
                 !alt
-                  ? "No other connected provider's terms allow bulk mail yet."
+                  ? t(mb.otherNone)
                   : alternatives.length === 1 && alt.warmingUp
-                    ? `${alt.short} is the only other provider, and it's warming up: failover to it would be blocked by the warm-up guard until day ${alt.warmupDays ?? 21}.`
-                    : `Use ${alt.name} instead.`
+                    ? t(mb.otherWarming, { provider: alt.short, day: alt.warmupDays ?? 21 })
+                    : t(mb.otherUse, { name: alt.name })
               }
             />
             {fallbackIssue ? (
@@ -245,8 +316,8 @@ export function BulkWarningView({
                 value="none"
                 fix={fix}
                 onPick={setFix}
-                title="No fallback, pause and ask"
-                description={`If ${primary?.short ?? 'the primary'} fails mid-send, the campaign holds and you decide.`}
+                title={t(mb.noneTitle)}
+                description={t(mb.noneDescription, { primary: primary?.short ?? t(mb.thePrimary) })}
               />
             ) : null}
             <FixOption
@@ -254,15 +325,15 @@ export function BulkWarningView({
               fix={fix}
               onPick={setFix}
               dashed
-              title={<span className="text-bad-fg">{`Keep ${bad.name} ${variant} anyway`}</span>}
-              description="Recorded in the audit log. Send Readiness will show a Block on every broadcast until this is changed."
+              title={<span className="text-bad-fg">{t(mb.keepTitle, { name: bad.name, variant })}</span>}
+              description={t(mb.keepDescription)}
             />
           </Grid>
           <div className="flex flex-wrap justify-end gap-2.5">
             <Button
               onClick={() => onDraft({ ...draft, broadcast: { ...b, fallback: saved.broadcast.fallback, splits: saved.broadcast.splits, conditions: saved.broadcast.conditions } })}
             >
-              Cancel
+              {t(common.cancel)}
             </Button>
             <Button variant="primary" disabledReason={readOnlyReason} loading={busy || saving} onClick={() => void apply()}>
               {action[fix]}
@@ -274,35 +345,35 @@ export function BulkWarningView({
       <section className="card" aria-labelledby="pv-terms">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-5 py-3.5">
           <h2 className="h2" id="pv-terms">
-            What each connected provider&apos;s terms allow
+            {t(mb.termsTitle)}
           </h2>
-          <span className="k">from each adapter&apos;s manifest · reviewed quarterly</span>
+          <span className="k">{t(mb.termsSub)}</span>
         </div>
         <Table className="pv-11 pv-top" phoneWrap>
           <thead>
             <tr>
-              <Th>Provider</Th>
-              <Th>Bulk marketing</Th>
-              <Th>Notes from the adapter</Th>
-              <Th>Streams it can serve</Th>
+              <Th>{t(mb.colProvider)}</Th>
+              <Th>{t(mb.colBulk)}</Th>
+              <Th>{t(mb.colNotes)}</Th>
+              <Th>{t(mb.colStreams)}</Th>
             </tr>
           </thead>
           <tbody>
             {cfg.providers.flatMap((p) =>
-              p.terms.map((t) => {
-                const flagged = p.id === bad.id && t.active && t.bulk === 'forbidden'
-                const badge = bulkBadge[t.bulk]
+              p.terms.map((term) => {
+                const flagged = p.id === bad.id && term.active && term.bulk === 'forbidden'
+                const badge = bulkBadge[term.bulk]
                 return (
-                  <tr key={`${p.id}-${t.variant}`} className={cn(flagged && 'bg-warn-tint')}>
-                    <Td className="font-semibold">{termName(p, t.variant)}</Td>
+                  <tr key={`${p.id}-${term.variant}`} className={cn(flagged && 'bg-warn-tint')}>
+                    <Td className="font-semibold">{termName(p, term.variant)}</Td>
                     <Td>
                       <Badge tone={badge.tone}>{badge.text}</Badge>
                     </Td>
                     <Td>
-                      {t.note}
-                      {!t.available ? ' Not created yet in this workspace.' : ''}
+                      {term.note}
+                      {!term.available ? ` ${t(mb.notCreated)}` : ''}
                     </Td>
-                    <Td>{t.streams.map((s) => streamName[s as Stream]).join(' · ')}</Td>
+                    <Td>{term.streams.map((s) => streamName[s as Stream]).join(' · ')}</Td>
                   </tr>
                 )
               }),

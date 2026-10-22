@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Select } from '@/components/ui/Field'
-import { Table } from '@/components/ui/Table'
+import { Table, Th } from '@/components/ui/Table'
 import { formatList, useT, type MessageDescriptor } from '@/i18n'
 import { clock, clockSeconds, count } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
@@ -152,13 +152,13 @@ export function SmsEventsPage({ search, onSearch }: { search: EventSearch; onSea
           <Table caption={t(m.table)}>
             <thead>
               <tr>
-                <th scope="col">{t(m.colReceived)}</th>
-                <th scope="col">{t(m.colProvider)}</th>
-                <th scope="col">{t(m.colRaw)}</th>
-                <th scope="col">{t(m.colNormalized)}</th>
-                <th scope="col">{t(m.colDetail)}</th>
-                <th scope="col">{t(m.colNumber)}</th>
-                <th scope="col">{t(m.colSource)}</th>
+                <Th>{t(m.colReceived)}</Th>
+                <Th>{t(m.colProvider)}</Th>
+                <Th>{t(m.colRaw)}</Th>
+                <Th>{t(m.colNormalized)}</Th>
+                <Th>{t(m.colDetail)}</Th>
+                <Th>{t(m.colNumber)}</Th>
+                <Th>{t(m.colSource)}</Th>
               </tr>
             </thead>
             <tbody>
@@ -233,18 +233,18 @@ function OptOutSync({ data }: { data: Schemas['SmsEventList'] }) {
       <Table caption={t(m.syncTable)}>
         <thead>
           <tr>
-            <th scope="col">{t(m.colProvider)}</th>
-            <th scope="col">{t(m.colSync)}</th>
-            <th scope="col" className="r">
+            <Th>{t(m.colProvider)}</Th>
+            <Th>{t(m.colSync)}</Th>
+            <Th className="r">
               {t(m.colPulled)}
-            </th>
-            <th scope="col" className="r">
+            </Th>
+            <Th className="r">
               {t(m.colPushed)}
-            </th>
-            <th scope="col">{t(m.colLastSync)}</th>
-            <th scope="col">
+            </Th>
+            <Th>{t(m.colLastSync)}</Th>
+            <Th>
               <span className="vh">{t(m.colStatus)}</span>
-            </th>
+            </Th>
           </tr>
         </thead>
         <tbody>

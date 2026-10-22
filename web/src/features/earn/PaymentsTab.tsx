@@ -14,7 +14,7 @@ import { useT } from '@/i18n'
 import { ago, clock, count, dayMonthDate, dayMonthYear, logTime, monthDayTime } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { EARN } from './EarnPage'
-import { cancelReason, day, money } from './format'
+import { cancelReason, countryName, day, money } from './format'
 import { me } from './messages'
 import { ms } from './settings.messages'
 
@@ -22,7 +22,6 @@ type Payments = Schemas['EarnPayments']
 type Conn = Schemas['EarnConnection']
 type T = ReturnType<typeof useT>
 
-const countries: Record<string, string> = { US: 'United States', GB: 'United Kingdom', CA: 'Canada', AU: 'Australia', DE: 'Germany', FR: 'France', NL: 'Netherlands', IE: 'Ireland' }
 
 /** Settings › Payments (EarnSettings): the connection, the webhook, checkout and tax, the payments event log. */
 export function PaymentsTab({ pay }: { pay: Payments }) {
@@ -222,7 +221,7 @@ function ConnectionCard({ pay, c, showTest, onShowTest }: { pay: Payments; c: Co
             )}
           </dd>
           <dt>{t(ms.account)}</dt>
-          <dd>{t(ms.accountLine, { name: c.account.name, country: countries[c.account.country] ?? c.account.country, currency: c.account.currency.toUpperCase() })}</dd>
+          <dd>{t(ms.accountLine, { name: c.account.name, country: countryName(c.account.country), currency: c.account.currency.toUpperCase() })}</dd>
           <dt>{t(ms.connectedOn)}</dt>
           <dd>{c.connectedAt ? t(ms.connectedLine, { date: dayMonthYear(c.connectedAt), name: c.connectedBy ?? '' }) : '—'}</dd>
           <dt>{t(ms.portal)}</dt>
@@ -565,7 +564,7 @@ function EventLog({ test }: { test: boolean }) {
           <span className="k">{t(ms.logCaption)}</span>
         </div>
       </div>
-      <div className="grid gap-2.5 px-5 pb-3" style={{ gridTemplateColumns: 'minmax(220px, 1fr) 190px 150px' }}>
+      <div className="ea-logf grid gap-2.5 px-5 pb-3">
         <label className="ea-search">
           <Icon name="search" size={15} />
           <input type="search" aria-label={t(ms.logSearchLabel)} placeholder={t(ms.logSearch)} value={q} onChange={(e) => (setQ(e.target.value), setPage(1))} />

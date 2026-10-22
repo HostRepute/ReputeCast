@@ -1,13 +1,16 @@
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
+import { useT, type MessageDescriptor } from '@/i18n'
 import { cn } from '@/lib/cn'
+import { roleName } from '@/lib/roles'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
+import { m } from './messages'
 import { ShieldMark, type Connection } from './shared'
 
-const benefits: [string, string][] = [
-  ['Send Readiness gets reputation checks', 'Blocklist status of your domains and IPs becomes a Pass / Warn / Block check before every send.'],
-  ['Deliverability gets the full picture', 'Postmaster, SNDS and DMARC panels fill in next to the provider data you already see.'],
-  ['Alerts land where you work', 'A new listing or a reputation drop shows up in ReputeCast notifications, with the delisting link.'],
+const benefits: [MessageDescriptor, MessageDescriptor][] = [
+  [m.benefitReadinessTitle, m.benefitReadinessText],
+  [m.benefitDeliverabilityTitle, m.benefitDeliverabilityText],
+  [m.benefitAlertsTitle, m.benefitAlertsText],
 ]
 
 /**
@@ -28,6 +31,7 @@ export function ConnectCard({
   /** Notes sized to their content (Settings), not the board's tall notes. */
   compact?: boolean
 }) {
+  const t = useT()
   const { me, slug } = useWorkspace()
   const can = useCan('integrations:hostrepute')
   const reason = usePermissionReason('integrations:hostrepute')
@@ -38,78 +42,78 @@ export function ConnectCard({
   return (
     <section className="card" aria-labelledby="h-hr-before">
       <div className="sec">
-        <div className="row gap-3">
+        <div className="hr-head row gap-3">
           <ShieldMark />
           <div className="col gap-0.5">
             <h2 className="h2" id="h-hr-before">
-              Connect HostRepute
+              {t(m.connectTitle)}
             </h2>
-            <span className="k">Optional · no paywall in ReputeCast · HostRepute is a separate paid service by the same team</span>
+            <span className="k">{t(m.connectLine)}</span>
           </div>
         </div>
         {status === 'connected' ? (
-          <Badge tone="ok">Connected</Badge>
+          <Badge tone="ok">{t(m.statusConnected)}</Badge>
         ) : reconnect ? (
-          <Badge tone="warn">Needs reconnecting</Badge>
+          <Badge tone="warn">{t(m.statusNeedsReconnect)}</Badge>
         ) : (
-          <Badge tone="neutral">Not connected</Badge>
+          <Badge tone="neutral">{t(m.statusNotConnected)}</Badge>
         )}
       </div>
       <div className="pad col gap-4">
         <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))] max-md:[grid-template-columns:repeat(auto-fit,minmax(140px,1fr))]">
           {benefits.map(([title, text]) => (
-            <div key={title} className="card flex flex-col gap-1 px-3.5 py-3">
-              <span className="font-semibold">{title}</span>
-              <span className="k whitespace-normal">{text}</span>
+            <div key={title.id} className="card flex flex-col gap-1 px-3.5 py-3">
+              <span className="font-semibold">{t(title)}</span>
+              <span className="k whitespace-normal">{t(text)}</span>
             </div>
           ))}
         </div>
         <div className={cn('grid grid-cols-2 gap-3 max-md:grid-cols-1', compact && '[&_.note>:last-child]:basis-auto')}>
           <div className="note g flex-col items-stretch gap-1.5">
-            <span className="font-bold">Shared with HostRepute</span>
+            <span className="font-bold">{t(m.sharedTitle)}</span>
             <ul className="m-0 flex list-disc flex-col gap-[3px] pl-[18px]">
-              {shared?.domains.length ? <li>Sending domains: {shared.domains.join(', ')}</li> : null}
-              {shared?.ips.length ? <li>Dedicated IPs: {shared.ips.join(', ')}</li> : null}
+              {shared?.domains.length ? <li>{t(m.sharedDomains, { domains: shared.domains.join(', ') })}</li> : null}
+              {shared?.ips.length ? <li>{t(m.sharedIps, { ips: shared.ips.join(', ') })}</li> : null}
               {nothingYet ? (
                 <>
-                  <li>Nothing yet: your sending domains and dedicated IPs, once you add them</li>
-                  <li>Never contacts, email content or reports</li>
+                  <li>{t(m.sharedNothingYet)}</li>
+                  <li>{t(m.sharedNever)}</li>
                 </>
               ) : (
-                <li>Nothing else: no contacts, no email content, no reports</li>
+                <li>{t(m.sharedNothingElse)}</li>
               )}
             </ul>
           </div>
           <div className="note i flex-col items-stretch gap-1.5">
-            <span className="font-bold">Received by ReputeCast</span>
+            <span className="font-bold">{t(m.receivedTitle)}</span>
             <ul className="m-0 flex list-disc flex-col gap-[3px] pl-[18px]">
-              <li>Blocklist status across 80+ sources, with delisting links</li>
-              <li>Google Postmaster Tools and Microsoft SNDS data</li>
-              <li>DMARC report summaries</li>
-              <li>Alerts, delivered as ReputeCast notifications</li>
+              <li>{t(m.receivedBlocklists)}</li>
+              <li>{t(m.receivedPostmaster)}</li>
+              <li>{t(m.receivedDmarc)}</li>
+              <li>{t(m.receivedAlerts)}</li>
             </ul>
           </div>
         </div>
         {status === 'connected' ? (
           <div className="row gap-2.5">
             <ButtonLink variant="primary" to="/w/$workspace/settings/integrations/hostrepute" params={{ workspace: slug }}>
-              Open Settings › Integrations
+              {t(m.openSettings)}
             </ButtonLink>
-            <span className="k">Connected to team “{conn?.teamName}”</span>
+            <span className="k">{t(m.connectedTeam, { team: conn?.teamName ?? '' })}</span>
           </div>
         ) : (
           <div className="row gap-2.5">
             <Button variant="primary" onClick={onConnect} disabledReason={reason} loading={connecting}>
               <ShieldMark />
-              {reconnect ? 'Reconnect with HostRepute' : 'Connect with HostRepute'}
+              {reconnect ? t(m.reconnectWith) : t(m.connectWith)}
             </Button>
             <Button onClick={onUseKey} disabledReason={reason}>
-              Use an API key instead
+              {t(m.useApiKey)}
             </Button>
             <span className="k">
               {can
-                ? `Needs the integrations:hostrepute permission · you have it as ${me.workspace.roleName}`
-                : 'Needs the integrations:hostrepute permission · ask an Owner or Admin of this workspace'}
+                ? t(m.permHave, { perm: 'integrations:hostrepute', role: roleName({ key: me.workspace.roleKey, name: me.workspace.roleName }) })
+                : t(m.permAsk, { perm: 'integrations:hostrepute' })}
             </span>
           </div>
         )}

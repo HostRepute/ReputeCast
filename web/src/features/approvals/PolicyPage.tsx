@@ -141,7 +141,7 @@ function PolicyForm({ view }: { view: View }) {
                 title={t(mp.audienceTitle)}
                 detail={t(mp.audienceDetail)}
                 extra={
-                  <span className="row flex-nowrap! gap-1.5!">
+                  <span className="ap-rule-extra row flex-nowrap! gap-1.5!">
                     <input
                       className="in mono w-[110px] max-md:min-w-0 max-md:flex-[1_1_120px]"
                       inputMode="numeric"

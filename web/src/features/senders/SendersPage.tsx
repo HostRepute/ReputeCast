@@ -9,10 +9,14 @@ import { Grid } from '@/components/ui/Layout'
 import { EmptyRow, Table, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { failed } from '@/features/connect/parts'
+import { streamName, type Stream } from '@/features/providers/common'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { SmsShortLinkCard } from '@/features/sms/SendersCard'
+import { T, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { DomainDialog } from './DomainDialog'
+import { m } from './messages'
 import { ReadOnlyNote } from './ReadOnlyNote'
 import { SenderDialog } from './SenderDialog'
 import './senders.css'
@@ -21,8 +25,6 @@ export type Overview = Schemas['SendersOverview']
 export type Sender = Schemas['SenderIdentity']
 
 export const sendersPath = '/api/v1/workspaces/{workspace}/senders' as const
-
-const STREAM_NAMES: Record<string, string> = { broadcast: 'Broadcasts', automation: 'Automations', system: 'System', transactional: 'Transactional' }
 
 const VERIFICATION_TONE: Record<Schemas['SenderVerification']['status'], Tone> = {
   verified: 'ok',
@@ -36,6 +38,7 @@ const CELL_TONE: Record<Schemas['SenderDomainCell']['tone'], Tone> = { ok: 'ok',
 
 /** 7.13 Settings › Senders (SettingsSenders): sender identities, domains and defaults. */
 export function SendersPage() {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', sendersPath, { params: { path: { workspace: slug } } })
   const [editing, setEditing] = useState<Sender | 'new'>()
@@ -44,37 +47,33 @@ export function SendersPage() {
   const reason = usePermissionReason('domains:manage', data?.helpers)
   return (
     <Page
-      title="Settings"
-      documentTitle="Senders · Settings"
+      title={t(m.settings)}
+      documentTitle={t(m.documentTitle)}
       tabs={settingsTabs(slug)}
       badges={
         <Badge tone="ok" className="ml-auto">
-          Open-source edition · every feature included
+          {t(m.ossBadge)}
         </Badge>
       }
       toolsAfterTabs
     >
       {q.isError ? (
-        <ErrorPanel title="Couldn't load the senders" actions={<Button onClick={() => void q.refetch()}>Retry</Button>}>
+        <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => void q.refetch()}>{t(common.retry)}</Button>}>
           {errorMessage(q.error)}
         </ErrorPanel>
       ) : (
         <>
-          {data && !data.canManage ? (
-            <ReadOnlyNote perm="domains:manage" helpers={data.helpers}>
-              You can view the senders, domains and their records.
-            </ReadOnlyNote>
-          ) : null}
+          {data && !data.canManage ? <ReadOnlyNote msg={m.readOnlyText} perm="domains:manage" helpers={data.helpers} /> : null}
           <section className="card" aria-labelledby="senders-h">
             <div className="sec">
               <div className="flex flex-col">
                 <h2 className="h2" id="senders-h">
-                  Sender identities
+                  {t(m.identitiesTitle)}
                 </h2>
-                <span className="k">Verification is per sending provider: each one signs with its own DKIM key.</span>
+                <span className="k">{t(m.identitiesLine)}</span>
               </div>
-              <Button variant="primary" onClick={() => setEditing('new')} disabledReason={data ? reason : 'Loading…'}>
-                Add sender
+              <Button variant="primary" onClick={() => setEditing('new')} disabledReason={data ? reason : t(common.loading)}>
+                {t(m.addSender)}
               </Button>
             </div>
             {data ? <SendersTable data={data} onEdit={setEditing} /> : <TableSkeleton rows={4} />}
@@ -84,15 +83,14 @@ export function SendersPage() {
             <div className="sec">
               <div className="flex flex-col">
                 <h2 className="h2" id="domains-h">
-                  Domains
+                  {t(m.domainsTitle)}
                 </h2>
                 <span className="k">
-                  DNS checked every 30 minutes; a change here shows up in Send Readiness within the hour.{' '}
-                  {data ? <TransactionalHint data={data} /> : null}
+                  {t(m.domainsLine)} {data ? <TransactionalHint data={data} /> : null}
                 </span>
               </div>
-              <Button onClick={() => setAddingDomain(true)} disabledReason={data ? reason : 'Loading…'}>
-                Add domain
+              <Button onClick={() => setAddingDomain(true)} disabledReason={data ? reason : t(common.loading)}>
+                {t(m.addDomain)}
               </Button>
             </div>
             {data ? <DomainsTable data={data} /> : <TableSkeleton rows={2} />}
@@ -120,26 +118,25 @@ export function SendersPage() {
 }
 
 function SendersTable({ data, onEdit }: { data: Overview; onEdit: (s: Sender) => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   return (
-    <Table className="sd-tbl" fit caption="Sender identities">
+    <Table className="sd-tbl" fit caption={t(m.identitiesCaption)}>
       <thead>
         <tr>
-          <Th>From</Th>
-          <Th>Reply-to</Th>
-          <Th>Default for</Th>
+          <Th>{t(m.colFrom)}</Th>
+          <Th>{t(m.colReplyTo)}</Th>
+          <Th>{t(m.colDefaultFor)}</Th>
           {data.providers.map((p) => (
             <Th key={p.id}>{p.name}</Th>
           ))}
           <Th>
-            <span className="vh">Actions</span>
+            <span className="vh">{t(m.colActions)}</span>
           </Th>
         </tr>
       </thead>
       <tbody>
-        {data.senders.length === 0 ? (
-          <EmptyRow colSpan={4 + data.providers.length}>No senders yet. Add the address your mail comes from.</EmptyRow>
-        ) : null}
+        {data.senders.length === 0 ? <EmptyRow colSpan={4 + data.providers.length}>{t(m.noSenders)}</EmptyRow> : null}
         {data.senders.map((s) => {
           const pending = s.verification.find((v) => v.status === 'pending' || v.status === 'failed')
           return (
@@ -155,10 +152,10 @@ function SendersTable({ data, onEdit }: { data: Overview; onEdit: (s: Sender) =>
                     {/* A sender on a Transactional domain sends transactional mail, default or not. */}
                     {[...s.defaultFor.filter((d) => d !== 'transactional'), ...(s.transactional ? ['transactional'] : [])].map((d) => (
                       <Badge key={d} tone="purple">
-                        {STREAM_NAMES[d] ?? d}
+                        {streamName[d as Stream] ?? d}
                       </Badge>
                     ))}
-                    {s.smtpRelay ? <span className="k">SMTP relay</span> : null}
+                    {s.smtpRelay ? <span className="k">{t(m.smtpRelay)}</span> : null}
                   </span>
                 </td>
               ) : (
@@ -173,11 +170,11 @@ function SendersTable({ data, onEdit }: { data: Overview; onEdit: (s: Sender) =>
                   <span className="k">–</span>
                 ) : pending ? (
                   <ButtonLink size="sm" to="/w/$workspace/settings/senders/$domainId" params={{ workspace: slug, domainId: s.domainId }} search={{ provider: pending.providerId }}>
-                    Verify
+                    {t(m.verify)}
                   </ButtonLink>
                 ) : (
-                  <Button size="sm" onClick={() => onEdit(s)} aria-label={`Edit ${s.name} <${s.email}>`}>
-                    Edit
+                  <Button size="sm" onClick={() => onEdit(s)} aria-label={t(m.editSenderLabel, { name: s.name, email: s.email })}>
+                    {t(common.edit)}
                   </Button>
                 )}
               </td>
@@ -190,41 +187,42 @@ function SendersTable({ data, onEdit }: { data: Overview; onEdit: (s: Sender) =>
 }
 
 function DomainsTable({ data }: { data: Overview }) {
+  const t = useT()
   const { slug } = useWorkspace()
   return (
-    <Table className="sd-tbl" fit caption="Sending domains">
+    <Table className="sd-tbl" fit caption={t(m.domainsCaption)}>
       <thead>
         <tr>
-          <Th>Domain</Th>
-          <Th>Used by</Th>
-          <Th>DKIM</Th>
-          <Th>SPF</Th>
-          <Th>DMARC</Th>
-          <Th>Return-path</Th>
-          <Th>Tracking domain</Th>
-          <Th>BIMI</Th>
+          <Th>{t(m.colDomain)}</Th>
+          <Th>{t(m.colUsedBy)}</Th>
+          <Th>{'DKIM'}</Th>
+          <Th>{'SPF'}</Th>
+          <Th>{'DMARC'}</Th>
+          <Th>{t(m.colReturnPath)}</Th>
+          <Th>{t(m.colTracking)}</Th>
+          <Th>{'BIMI'}</Th>
           <Th>
-            <span className="vh">Records</span>
+            <span className="vh">{t(m.colRecords)}</span>
           </Th>
         </tr>
       </thead>
       <tbody>
-        {data.domains.length === 0 ? <EmptyRow colSpan={9}>No sending domains yet. Add the domain in your From addresses.</EmptyRow> : null}
+        {data.domains.length === 0 ? <EmptyRow colSpan={9}>{t(m.noDomains)}</EmptyRow> : null}
         {data.domains.map((d) => (
           <tr key={d.id}>
             <td>
               <span className="mono font-semibold">{d.domain}</span>
               {d.note ? <div className="k">{d.note}</div> : null}
             </td>
-            <td>{d.usedBy.length ? d.usedBy.join(' · ') : <span className="k">No provider yet</span>}</td>
+            <td>{d.usedBy.length ? d.usedBy.join(' · ') : <span className="k">{t(m.noProviderYet)}</span>}</td>
             {[d.dkim, d.spf, d.dmarc, d.returnPath, d.tracking, d.bimi].map((c, i) => (
               <td key={i}>
                 <Badge tone={CELL_TONE[c.tone]}>{c.text}</Badge>
               </td>
             ))}
             <td>
-              <ButtonLink size="sm" to="/w/$workspace/settings/senders/$domainId" params={{ workspace: slug, domainId: d.id }} aria-label={`Records of ${d.domain}`}>
-                Records
+              <ButtonLink size="sm" to="/w/$workspace/settings/senders/$domainId" params={{ workspace: slug, domainId: d.id }} aria-label={t(m.recordsOf, { domain: d.domain })}>
+                {t(m.records)}
               </ButtonLink>
             </td>
           </tr>
@@ -235,6 +233,7 @@ function DomainsTable({ data }: { data: Overview }) {
 }
 
 function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const d = data.defaults
@@ -262,20 +261,20 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
       {
         onSuccess: () => {
           void qc.invalidateQueries({ queryKey: ['get', sendersPath] })
-          toast({ title: 'Defaults saved' })
+          toast({ title: t(m.defaultsSaved) })
         },
-        onError: failed("Couldn't save the defaults", submit),
+        onError: failed(t(m.defaultsFailed), submit),
       },
     )
   }
   return (
     <section className="card flex flex-col gap-3 px-5 py-4.5" aria-labelledby="defaults-h">
       <h2 className="h2" id="defaults-h">
-        Defaults
+        {t(m.defaultsTitle)}
       </h2>
       <Grid min={240} gap={12}>
         <label className="lbl">
-          Default From for new campaigns
+          {t(m.defaultFrom)}
           <select className="in" value={senderId} onChange={(e) => setSenderId(e.target.value)} disabled={Boolean(reason)}>
             {data.senders.map((s) => (
               <option key={s.id} value={s.id}>{`${s.name} · ${s.email}`}</option>
@@ -284,9 +283,9 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
         </label>
         {txSenders.length ? (
           <label className="lbl">
-            Default From for transactional templates
+            {t(m.defaultFromTx)}
             <select className="in" value={txSenderId} onChange={(e) => setTxSenderId(e.target.value)} disabled={Boolean(reason)}>
-              {txSenderId ? null : <option value="">Choose a sender</option>}
+              {txSenderId ? null : <option value="">{t(m.chooseSender)}</option>}
               {txSenders.map((x) => (
                 <option key={x.id} value={x.id}>{`${x.name} · ${x.email}`}</option>
               ))}
@@ -294,31 +293,35 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
           </label>
         ) : null}
         <label className="lbl">
-          Reply handling
+          {t(m.replyHandling)}
           <select className="in" value={reply} onChange={(e) => setReply(e.target.value)} disabled={Boolean(reason)}>
             {(d.replyOptions.length ? d.replyOptions : [d.replyTo].filter(Boolean)).map((a) => (
-              <option key={a} value={a}>{`Forward replies to ${a}`}</option>
+              <option key={a} value={a}>
+                {t(m.forwardReplies, { address: a })}
+              </option>
             ))}
-            <option value="">{"Use each sender's reply-to"}</option>
+            <option value="">{t(m.ownReplyTo)}</option>
           </select>
         </label>
         <label className="lbl">
-          Footer address
+          {t(m.footerAddress)}
           <input className="in" value={footer} onChange={(e) => setFooter(e.target.value)} disabled={Boolean(reason)} />
         </label>
         <label className="lbl">
-          Link tracking domain
+          {t(m.trackingDomain)}
           <select className="in" value={tracking} onChange={(e) => setTracking(e.target.value)} disabled={Boolean(reason)}>
-            {d.trackingOptions.map((t) => (
-              <option key={t.domain} value={t.domain}>{`${t.domain} · ${t.verified ? 'verified' : 'not verified yet'}`}</option>
+            {d.trackingOptions.map((o) => (
+              <option key={o.domain} value={o.domain}>
+                {t(m.trackingOption, { domain: o.domain, verified: o.verified ? 'yes' : 'no' })}
+              </option>
             ))}
-            <option value="">Provider default</option>
+            <option value="">{t(m.providerDefault)}</option>
           </select>
         </label>
       </Grid>
       <div className="flex gap-2">
         <Button variant="primary" onClick={submit} loading={save.isPending} disabledReason={reason}>
-          Save
+          {t(common.save)}
         </Button>
       </div>
     </section>
@@ -327,21 +330,17 @@ function DefaultsCard({ data, reason }: { data: Overview; reason?: string }) {
 
 /** The hint for transactional mail: its own subdomain keeps its reputation apart (SettingsSenders). */
 function TransactionalHint({ data }: { data: Overview }) {
+  const t = useT()
   const tx = data.domains.find((d) => d.transactional)
-  return tx ? (
-    <>
-      Transactional mail has a subdomain of its own, <span className="mono">{tx.domain}</span>, so its reputation stays apart from newsletters.
-    </>
-  ) : (
-    <>Give transactional mail a subdomain of its own, like notify.example.com, so its reputation stays apart from newsletters.</>
-  )
+  return tx ? <T msg={m.txHintHas} values={{ domain: tx.domain, mono: (c) => <span className="mono">{c}</span> }} /> : <>{t(m.txHintGive)}</>
 }
 
 function TableSkeleton({ rows }: { rows: number }) {
+  const t = useT()
   return (
     <div className="flex flex-col gap-3 px-4.5 py-4" aria-busy="true">
       <span className="vh" role="status">
-        Loading…
+        {t(common.loading)}
       </span>
       {Array.from({ length: rows }, (_, i) => (
         <Skeleton key={i} w="100%" h={28} />

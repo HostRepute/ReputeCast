@@ -1,5 +1,5 @@
 import { keepPreviousData, useQueryClient } from '@tanstack/react-query'
-import { useRef, useState, type Ref } from 'react'
+import { useRef, useState, type ReactNode, type Ref } from 'react'
 import { $api, errorMessage, http } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { ForbiddenState } from '@/components/shell/SystemScreens'
@@ -12,18 +12,24 @@ import { toast } from '@/components/ui/Toast'
 import { ScrollPre } from '@/components/ui/ScrollPre'
 import { ManagedWebhookCaption, ManagedWebhookView } from '@/features/integrations/ManagedWebhook'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
+import { T, t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { clock, clockSeconds, count, dayMonthDate, logTime } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useCan, useWorkspace } from '@/lib/session'
 import { DashedEmpty, TableSkeleton } from '../keys/parts'
 import { DeliveryDialog } from './DeliveryDialog'
+import { m } from './messages'
 import { attemptsText, endpointText, eventText, hostOf, responseBadge, statusBadge, successText, type Delivery, type Webhook } from './parts'
 import { WebhookDialog, WebhookSecretDialog } from './WebhookDialog'
 
 const API_DOCS = 'https://github.com/hostrepute/reputecast/blob/main/docs/api/README.md'
 
+const mono = (c: ReactNode) => <span className="mono">{c}</span>
+
 /** A5 §5.10 Webhooks (SettingsAPI): outgoing endpoints, signature check and the delivery log. */
 export function WebhooksPage() {
+  const t = useT()
   const { slug } = useWorkspace()
   const can = useCan('webhooks:manage')
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/webhooks', { params: { path: { workspace: slug } } }, { enabled: can })
@@ -33,26 +39,26 @@ export function WebhooksPage() {
   const logRef = useRef<HTMLElement>(null)
   return (
     <Page
-      title="Settings"
+      title={t(m.title)}
       tabs={settingsTabs(slug)}
       actions={
         // This board's action row doesn't centre its items, so the buttons
         // stretch to the 38px bell beside them.
         <>
           <ButtonAnchor href={API_DOCS} className="self-stretch">
-            API reference
+            {t(m.apiReference)}
           </ButtonAnchor>
           <ButtonLink to="/w/$workspace/settings/keys" params={{ workspace: slug }} className="self-stretch">
-            API keys &amp; MCP
+            {t(m.keysLink)}
           </ButtonLink>
         </>
       }
     >
       {can ? <MovedCard /> : null}
       {!can ? (
-        <ForbiddenState permission="webhooks:manage" title="Your role can't manage webhooks" />
+        <ForbiddenState permission="webhooks:manage" title={t(m.forbidden)} />
       ) : q.isError ? (
-        <ErrorPanel title="Couldn't load the webhooks" actions={<Button onClick={() => void q.refetch()}>Retry</Button>}>
+        <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => void q.refetch()}>{t(common.retry)}</Button>}>
           {errorMessage(q.error)}
         </ErrorPanel>
       ) : (
@@ -61,14 +67,14 @@ export function WebhooksPage() {
             {q.data && q.data.items.length === 0 ? (
               <div className="min-w-0 flex-[1_1_100%]">
                 <DashedEmpty
-                  title="No webhooks"
+                  title={t(m.emptyTitle)}
                   action={
-                    <Button onClick={() => setEditing('new')} disabledReason={q.data ? undefined : 'Loading…'}>
-                      Add endpoint
+                    <Button onClick={() => setEditing('new')} disabledReason={q.data ? undefined : t(common.loading)}>
+                      {t(m.addEndpoint)}
                     </Button>
                   }
                 >
-                  Get normalized delivery, bounce and complaint events pushed to your own endpoint.
+                  {t(m.emptyBody)}
                 </DashedEmpty>
               </div>
             ) : (
@@ -117,6 +123,7 @@ export function WebhooksPage() {
 
 /** "API keys and MCP agents moved": the old API screen's keys now live under Keys & MCP. */
 function MovedCard() {
+  const t = useT()
   const { slug } = useWorkspace()
   const canKeys = useCan('apikeys:manage')
   const canAgents = useCan('mcp:manage')
@@ -124,19 +131,17 @@ function MovedCard() {
   const keys = $api.useQuery('get', '/api/v1/workspaces/{workspace}/api-keys', path, { enabled: canKeys })
   const agents = $api.useQuery('get', '/api/v1/workspaces/{workspace}/mcp-agents', path, { enabled: canAgents })
   const counts = [
-    keys.data ? `${keys.data.items.length} API ${keys.data.items.length === 1 ? 'key' : 'keys'}` : '',
-    agents.data ? `${agents.data.items.length} MCP ${agents.data.items.length === 1 ? 'agent' : 'agents'}` : '',
+    keys.data ? t(m.movedKeys, { count: keys.data.items.length }) : '',
+    agents.data ? t(m.movedAgents, { count: agents.data.items.length }) : '',
   ].filter(Boolean)
   // A card header and a padded row, the sentence and the button at its ends (SettingsAPI).
   return (
     <section className="card" aria-labelledby="moved-h">
-      <CardSection id="moved-h" title="API keys and MCP agents moved" caption="Now under the Keys & MCP tab" />
+      <CardSection id="moved-h" title={t(m.movedTitle)} caption={t(m.movedCaption)} />
       <div className="pad row justify-between">
-        <span className="k">
-          {counts.length ? `${counts.join(' · ')} · ` : ''}permissions use the same keys as roles and never exceed their creator&apos;s. Secrets are shown once.
-        </span>
+        <span className="k">{counts.length ? t(m.movedBodyCounts, { counts: counts.join(' · ') }) : t(m.movedBody)}</span>
         <ButtonLink size="sm" to="/w/$workspace/settings/keys" params={{ workspace: slug }}>
-          Open API keys &amp; MCP
+          {t(m.openKeys)}
         </ButtonLink>
       </div>
     </section>
@@ -144,31 +149,32 @@ function MovedCard() {
 }
 
 function EndpointsCard({ items, onAdd, onEdit }: { items?: Webhook[]; onAdd: () => void; onEdit: (w: Webhook) => void }) {
+  const t = useT()
   return (
     <section className="card min-w-0 flex-[1_1_100%]" aria-labelledby="hooks-h">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-4.5 py-3.5">
         <div className="flex flex-col">
           <h2 className="h2" id="hooks-h">
-            Outgoing webhooks{items ? ` · ${items.length}` : ''}
+            {items ? t(m.endpointsTitle, { count: count(items.length) }) : t(m.endpointsTitleLoading)}
           </h2>
-          <span className="k">ReputeCast calls your endpoints with normalized events, signed with HMAC-SHA256.</span>
+          <span className="k">{t(m.endpointsCaption)}</span>
         </div>
-        <Button size="sm" variant="primary" disabledReason={items ? undefined : 'Loading…'} onClick={onAdd}>
-          Add endpoint
+        <Button size="sm" variant="primary" disabledReason={items ? undefined : t(common.loading)} onClick={onAdd}>
+          {t(m.addEndpoint)}
         </Button>
       </div>
       {!items ? (
-        <TableSkeleton label="Loading the webhooks" />
+        <TableSkeleton label={t(m.endpointsLoading)} />
       ) : (
-        <Table phoneWrap density="dense" caption="Outgoing webhooks" className="[&_td:nth-child(3)]:min-w-[220px] [&_td:nth-child(3)]:whitespace-normal [&_td]:whitespace-nowrap">
+        <Table phoneWrap density="dense" caption={t(m.endpointsTable)} className="[&_td:nth-child(3)]:min-w-[220px] [&_td:nth-child(3)]:whitespace-normal [&_td]:whitespace-nowrap">
           <thead>
             <tr>
-              <Th>Endpoint</Th>
-              <Th>Events</Th>
-              <Th>Success · 24 h</Th>
-              <Th>Status</Th>
+              <Th>{t(m.colEndpoint)}</Th>
+              <Th>{t(m.colEvents)}</Th>
+              <Th>{t(m.colSuccess)}</Th>
+              <Th>{t(m.colStatus)}</Th>
               <Th>
-                <span className="vh">Actions</span>
+                <span className="vh">{t(m.colActions)}</span>
               </Th>
             </tr>
           </thead>
@@ -186,7 +192,7 @@ function EndpointsCard({ items, onAdd, onEdit }: { items?: Webhook[]; onAdd: () 
                       <div className="k">
                         {w.name}
                         {w.description ? ` · ${w.description}` : ''}
-                        {w.secretRotatedAt ? ` · secret rotated ${dayMonthDate(w.secretRotatedAt)}` : ''}
+                        {w.secretRotatedAt ? ` · ${t(m.secretRotated, { date: dayMonthDate(w.secretRotatedAt) })}` : ''}
                       </div>
                     )}
                   </Td>
@@ -209,8 +215,8 @@ function EndpointsCard({ items, onAdd, onEdit }: { items?: Webhook[]; onAdd: () 
                     {w.managedBy ? (
                       <ManagedWebhookView managedBy={w.managedBy} describedBy={`managed-${w.id}`} />
                     ) : (
-                      <Button size="sm" onClick={() => onEdit(w)} aria-label={`Edit ${hostOf(w.url)}`}>
-                        Edit
+                      <Button size="sm" onClick={() => onEdit(w)} aria-label={t(m.editNamed, { host: hostOf(w.url) })}>
+                        {t(common.edit)}
                       </Button>
                     )}
                   </Td>
@@ -225,23 +231,23 @@ function EndpointsCard({ items, onAdd, onEdit }: { items?: Webhook[]; onAdd: () 
 }
 
 function VerifyCard({ header }: { header: string }) {
+  const t = useT()
   return (
     <section className="card flex min-w-0 flex-[1_1_380px] flex-col gap-2.5 px-4.5 py-4" aria-labelledby="verify-h">
       <h2 className="h2" id="verify-h">
-        Verify a signature
+        {t(m.verifyTitle)}
       </h2>
       <span className="k">
-        Every request carries <span className="mono">{header}</span> and a timestamp. Reject anything older than 5 minutes.
+        <T msg={m.verifyBody} values={{ header, mono }} />
       </span>
-      <ScrollPre className="pre" label="Signature check">
+      <ScrollPre className="pre" label={t(m.verifyCode)}>
         {`const sig = createHmac("sha256", secret)
   .update(\`\${timestamp}.\${rawBody}\`)
   .digest("hex");
 if (!timingSafeEqual(sig, header)) throw 401;`}
       </ScrollPre>
       <span className="k">
-        Payloads carry the normalized event plus the provider&apos;s original code:{' '}
-        <span className="mono">{`{ "type": "email.bounced", "subtype": "hard", "provider": "ses", "provider_code": "550 5.1.1", … }`}</span>
+        <T msg={m.payloadNote} values={{ sample: `{ "type": "email.bounced", "subtype": "hard", "provider": "ses", "provider_code": "550 5.1.1", … }`, mono }} />
       </span>
     </section>
   )
@@ -260,6 +266,7 @@ function DeliveryLog({
   setFilter: (v: string) => void
   maxAttempts: number
 }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const now = useNow()
@@ -281,10 +288,10 @@ function DeliveryLog({
     setBusy(d.id)
     try {
       await http.POST('/api/v1/workspaces/{workspace}/webhooks/deliveries/{deliveryId}/retry', { params: { path: { workspace: slug, deliveryId: d.id } } })
-      toast({ title: d.state === 'dead' ? 'Delivery replayed' : 'Retrying now', detail: `${eventText(d)} to ${endpointText(d)}` })
+      toast({ title: d.state === 'dead' ? tt(m.replayedToast) : tt(m.retryingToast), detail: tt(m.retryDetail, { event: eventText(d), endpoint: endpointText(d) }) })
       refresh()
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't retry the delivery", detail: errorMessage(e) })
+      toast({ kind: 'error', title: tt(m.retryFailed), detail: errorMessage(e) })
     } finally {
       setBusy(undefined)
     }
@@ -293,10 +300,10 @@ function DeliveryLog({
     setBusy('all')
     try {
       const r = (await http.POST('/api/v1/workspaces/{workspace}/webhooks/retry-failed', { params: { path: { workspace: slug } }, body: { webhookId: filter || undefined } })).data!
-      toast({ title: r.queued ? `${count(r.queued)} failed ${r.queued === 1 ? 'delivery' : 'deliveries'} queued again` : 'Nothing to retry', detail: r.queued ? 'they go out in order' : undefined })
+      toast({ title: r.queued ? tt(m.requeued, { count: r.queued }) : tt(m.nothingToRetry), detail: r.queued ? tt(m.requeuedDetail) : undefined })
       refresh()
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't retry the failed deliveries", detail: errorMessage(e) })
+      toast({ kind: 'error', title: tt(m.retryAllFailed), detail: errorMessage(e) })
     } finally {
       setBusy(undefined)
     }
@@ -306,18 +313,23 @@ function DeliveryLog({
     .filter(([, n]) => n > 0)
     .map(([id, n]) => {
       const w = webhooks.find((x) => x.id === id)
-      return `${count(n)} ${n === 1 ? 'event is' : 'events are'} queued for the ${w ? hostOf(w.url).split('.')[0] : 'failing'} endpoint`
+      return w ? t(m.queuedFor, { count: n, name: hostOf(w.url).split('.')[0] ?? '' }) : t(m.queuedForFailing, { count: n })
     })
     .join('; ')
   return (
     <section className="card" aria-labelledby="log-h" ref={ref}>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-4.5 py-3.5">
         <h2 className="h2" id="log-h">
-          Delivery log
+          {t(m.logTitle)}
         </h2>
         <div className="flex gap-2">
-          <select className="h-[30px] rounded-[8px] border border-line-strong bg-white px-2 text-[12px]" aria-label="Endpoint" value={filter} onChange={(e) => setFilter(e.target.value)}>
-            <option value="">All endpoints</option>
+          <select
+            className="h-[30px] rounded-[8px] border border-line-strong bg-white px-2 text-[12px]"
+            aria-label={t(m.filterEndpoint)}
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          >
+            <option value="">{t(m.allEndpoints)}</option>
             {webhooks.map((w) => (
               <option key={w.id} value={w.id}>
                 {hostOf(w.url)}
@@ -325,36 +337,36 @@ function DeliveryLog({
             ))}
           </select>
           <Button size="sm" loading={busy === 'all'} onClick={() => void retryAll()}>
-            Retry all failed
+            {t(m.retryAll)}
           </Button>
         </div>
       </div>
       {q.isError ? (
         <div className="pad">
-          <ErrorPanel title="Couldn't load the delivery log" actions={<Button onClick={() => void q.refetch()}>Retry</Button>}>
+          <ErrorPanel title={t(m.logLoadFailed)} actions={<Button onClick={() => void q.refetch()}>{t(common.retry)}</Button>}>
             {errorMessage(q.error)}
           </ErrorPanel>
         </div>
       ) : !q.data ? (
-        <TableSkeleton label="Loading the delivery log" />
+        <TableSkeleton label={t(m.logLoading)} />
       ) : (
-        <Table phoneWrap density="dense" caption="Delivery log" className="[&_td]:whitespace-nowrap">
+        <Table phoneWrap density="dense" caption={t(m.logTable)} className="[&_td]:whitespace-nowrap">
           <thead>
             <tr>
-              <Th>Time</Th>
-              <Th>Event</Th>
-              <Th>Endpoint</Th>
-              <Th>Response</Th>
-              <Th>Attempts</Th>
-              <Th>Next retry</Th>
+              <Th>{t(m.colTime)}</Th>
+              <Th>{t(m.colEvent)}</Th>
+              <Th>{t(m.colLogEndpoint)}</Th>
+              <Th>{t(m.colResponse)}</Th>
+              <Th>{t(m.colAttempts)}</Th>
+              <Th>{t(m.colNextRetry)}</Th>
               <Th>
-                <span className="vh">Actions</span>
+                <span className="vh">{t(m.colActions)}</span>
               </Th>
             </tr>
           </thead>
           <tbody>
             {q.data.items.length === 0 ? (
-              <EmptyRow colSpan={7}>{filter ? 'No deliveries to this endpoint yet.' : 'No deliveries yet. Add an endpoint and events show up here.'}</EmptyRow>
+              <EmptyRow colSpan={7}>{filter ? t(m.noDeliveriesHere) : t(m.noDeliveries)}</EmptyRow>
             ) : (
               q.data.items.map((d) => {
                 const resp = responseBadge(d)
@@ -366,17 +378,21 @@ function DeliveryLog({
                       <Badge tone="neutral">{eventText(d)}</Badge>
                     </Td>
                     <Td className="mono">{endpointText(d)}</Td>
-                    <Td>{resp ? <Badge tone={resp.tone}>{resp.label}</Badge> : <span className="k">{d.state === 'held' ? 'Held' : 'Queued'}</span>}</Td>
+                    <Td>{resp ? <Badge tone={resp.tone}>{resp.label}</Badge> : <span className="k">{d.state === 'held' ? t(m.held) : t(m.queued)}</span>}</Td>
                     <Td>{attemptsText(d)}</Td>
                     <Td className={d.state === 'delivered' ? 'k' : undefined}>
                       {d.state === 'dead' ? (
-                        <Badge tone="bad">Gave up · in dead-letter queue</Badge>
+                        <Badge tone="bad">{t(m.gaveUp)}</Badge>
                       ) : d.state === 'retrying' && d.nextAttemptAt ? (
-                        `${clock(d.nextAttemptAt)}${d.backoffMinutes ? ` · backoff ${d.backoffMinutes} min` : ''}`
+                        d.backoffMinutes ? (
+                          t(m.nextRetryBackoff, { time: clock(d.nextAttemptAt), minutes: count(d.backoffMinutes) })
+                        ) : (
+                          clock(d.nextAttemptAt)
+                        )
                       ) : d.state === 'held' ? (
-                        'Held · endpoint paused'
+                        t(m.heldPaused)
                       ) : d.state === 'pending' || d.state === 'delivering' ? (
-                        'Now'
+                        t(m.now)
                       ) : (
                         '–'
                       )}
@@ -384,15 +400,15 @@ function DeliveryLog({
                     <Td>
                       {d.state === 'retrying' ? (
                         <Button size="sm" loading={busy === d.id} onClick={() => void retry(d)}>
-                          Retry now
+                          {t(m.retryNow)}
                         </Button>
                       ) : d.state === 'dead' ? (
                         <Button size="sm" loading={busy === d.id} onClick={() => void retry(d)}>
-                          Replay
+                          {t(m.replay)}
                         </Button>
                       ) : (
-                        <Button size="sm" onClick={() => setOpen(d.id)} aria-label={`Payload of ${eventText(d)} at ${clockSeconds(d.createdAt)}`}>
-                          Payload
+                        <Button size="sm" onClick={() => setOpen(d.id)} aria-label={t(m.payloadOf, { event: eventText(d), time: clockSeconds(d.createdAt) })}>
+                          {t(m.payload)}
                         </Button>
                       )}
                     </Td>
@@ -404,12 +420,10 @@ function DeliveryLog({
         </Table>
       )}
       <div className="k flex flex-wrap items-center justify-between gap-2 border-t border-line-2 px-4.5 py-2.5">
-        <span>
-          Failed deliveries retry {maxAttempts} times over 6 hours, then wait in the dead-letter queue for 7 days.{queuedText ? ` ${queuedText}.` : ''}
-        </span>
+        <span>{queuedText ? t(m.retryPolicyQueued, { max: maxAttempts, queued: queuedText }) : t(m.retryPolicy, { max: maxAttempts })}</span>
         {q.data && q.data.items.length >= limit && limit < 200 ? (
           <Button size="sm" variant="ghost" onClick={() => setLimit((n) => n + 20)}>
-            Show more
+            {t(common.showMore)}
           </Button>
         ) : null}
       </div>

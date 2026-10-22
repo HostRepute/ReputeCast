@@ -200,17 +200,8 @@ export const cm = defineMessages('commerce', {
   hooksRegistered: 'Webhooks registered again.',
   hookNever: 'never',
 
-  missingBanner: '<b>Webhook {topic} is missing.</b> It was deleted in {platform} on {date} at {time}. ReputeCast polls {resource} every 15 minutes until it\'s registered again, so {what} is missed.',
-  missingWhatCheckouts: 'no abandoned checkout',
-  missingWhatOrders: 'no order',
-  missingWhatCustomers: 'no customer',
-  missingWhatProducts: 'no product change',
-  missingWhatRefunds: 'no refund',
-  resourceCheckouts: 'checkouts',
-  resourceOrders: 'orders',
-  resourceCustomers: 'customers',
-  resourceProducts: 'products',
-  resourceRefunds: 'refunds',
+  missingBanner:
+    "<b>Webhook {topic} is missing.</b> It was deleted in {platform} on {date} at {time}. {resource, select, checkouts {ReputeCast polls checkouts every 15 minutes until it's registered again, so no abandoned checkout is missed.} customers {ReputeCast polls customers every 15 minutes until it's registered again, so no customer is missed.} products {ReputeCast polls products every 15 minutes until it's registered again, so no product change is missed.} refunds {ReputeCast polls refunds every 15 minutes until it's registered again, so no refund is missed.} other {ReputeCast polls orders every 15 minutes until it's registered again, so no order is missed.}}",
   rateBanner: '<b>{platform} is limiting requests.</b> The sync slows down and carries on by itself from {time}; webhooks still arrive.',
 
   disconnectedTitle: '{name} is disconnected',

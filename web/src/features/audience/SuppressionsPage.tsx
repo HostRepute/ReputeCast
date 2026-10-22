@@ -8,7 +8,9 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { TableScroll } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
+import { T, t, useT, type MessageDescriptor } from '@/i18n'
+import { common } from '@/i18n/common'
 import { andList, clock, count, suppressedWhen } from '@/lib/format'
 import { trackJob, updateJob } from '@/lib/jobs'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
@@ -19,6 +21,8 @@ import { providerColor } from './labels'
 import { AddSuppressionsDialog, ImportSuppressionsDialog, RemoveSuppressionDialog } from './SuppressionDialogs'
 import './audience.css'
 import { SmsSuppressions, SuppressionChannels, type SmsSuppressionSearch } from '@/features/sms/Suppressions'
+import { m as am } from './messages'
+import { m } from './suppressions.messages'
 
 export interface SuppressionsSearch {
   q?: string
@@ -40,19 +44,25 @@ export type SuppressionReason = 'hard_bounce' | 'complaint' | 'unsubscribe' | 'm
 type Item = Schemas['SuppressionItem']
 type List = Schemas['SuppressionList']
 
-export const reasonLabel: Record<string, string> = {
-  hard_bounce: 'Hard bounce',
-  complaint: 'Complaint',
-  unsubscribe: 'Unsubscribed',
-  manual: 'Manual',
-  spam_trap: 'Spam trap',
-  invalid: 'Invalid address',
+const reasonMessage: Record<string, MessageDescriptor> = {
+  hard_bounce: m.reasonHardBounce,
+  complaint: m.reasonComplaint,
+  unsubscribe: m.reasonUnsubscribe,
+  manual: m.reasonManual,
+  spam_trap: m.reasonSpamTrap,
+  invalid: m.reasonInvalid,
+}
+/** A suppression reason's name, or the code itself for one the app doesn't know. */
+export function reasonLabel(r: string): string {
+  const d = reasonMessage[r]
+  return d ? t(d) : r
 }
 /** Bounces, complaints, traps and invalid addresses block every stream. */
 const blocking = new Set(['hard_bounce', 'complaint', 'spam_trap', 'invalid'])
 
 /** 7.12 Suppression list: one list for every provider, with sync state. */
 export function SuppressionsPage({ search }: { search: SuppressionsSearch }) {
+  const tr = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const page = search.page ?? 1
@@ -78,26 +88,26 @@ export function SuppressionsPage({ search }: { search: SuppressionsSearch }) {
   const filtered = Boolean(search.q || search.reason || search.source || search.since || search.appliesTo || search.import)
   return (
     <Page
-      title="Audience"
-      documentTitle="Suppression list"
+      title={tr(am.title)}
+      documentTitle={tr(m.documentTitle)}
       filters={<AudienceTabs />}
       actions={
         <>
           <Button disabledReason={editReason} onClick={() => setDialog('import')}>
-            Import from provider or CSV
+            {tr(m.importFrom)}
           </Button>
           <Button disabledReason={exportReason} onClick={() => void exportSuppressions(slug, d?.counts.total)}>
-            Export
+            {tr(m.export)}
           </Button>
           <Button variant="primary" disabledReason={editReason} onClick={() => setDialog('add')}>
-            Add address
+            {tr(m.addAddress)}
           </Button>
         </>
       }
     >
       {list.isError && !d ? (
-        <ErrorPanel title="Couldn't load the suppression list" actions={<Button onClick={() => list.refetch()}>Retry</Button>}>
-          {errorMessage(list.error)} Nothing was changed; sending still checks the list.
+        <ErrorPanel title={tr(m.loadFailed)} actions={<Button onClick={() => list.refetch()}>{tr(common.retry)}</Button>}>
+          {errorMessage(list.error)} {tr(m.nothingChanged)}
         </ErrorPanel>
       ) : !d ? (
         <SuppressionsSkeleton />
@@ -122,8 +132,7 @@ export function SuppressionsPage({ search }: { search: SuppressionsSearch }) {
           {search.import ? <GroupNote d={d} onBack={() => setFilter({ import: undefined })} /> : null}
           <Note tone="info">
             <span>
-              <b>All mail</b> blocks every stream, transactional included: bounces, complaints, spam traps, invalid, manual and imported entries. <b>Marketing only</b> blocks
-              Broadcasts and Automations: unsubscribes and role addresses. Password resets and receipts still reach those addresses.
+              <T msg={m.scopeNote} values={{ b: (c) => <b>{c}</b> }} />
             </span>
           </Note>
           <Table
@@ -150,30 +159,31 @@ export function SuppressionsPage({ search }: { search: SuppressionsSearch }) {
 /** Downloads the whole list as CSV; the jobs tray shows it while it runs. */
 async function exportSuppressions(slug: string, total: number | undefined) {
   const id = `export-suppressions-${Date.now()}`
-  const what = total === undefined ? 'the suppression list' : `${count(total)} suppressed ${total === 1 ? 'address' : 'addresses'}`
-  trackJob(slug, { id, kind: 'export', title: `Exporting ${what}`, status: 'running', startedAt: new Date().toISOString() })
+  const what = total === undefined ? t(m.exportWhole) : t(m.exportCount, { n: total, count: count(total) })
+  trackJob(slug, { id, kind: 'export', title: t(m.exporting, { what }), status: 'running', startedAt: new Date().toISOString() })
   try {
     const { data, response, error } = await http.GET('/api/v1/workspaces/{workspace}/suppressions/export', { params: { path: { workspace: slug } }, parseAs: 'blob' })
     if (error || !data) throw new Error(errorMessage(error))
     saveBlob(data as unknown as Blob, fileName(response, 'suppressions.csv'))
-    updateJob(slug, id, { status: 'done', detail: `${what} · the export is in the audit log`, finishedAt: new Date().toISOString() })
-    toast({ kind: 'success', title: `Exported ${what}`, detail: 'The export is in the audit log.' })
+    updateJob(slug, id, { status: 'done', detail: t(m.exportedDetail, { what }), finishedAt: new Date().toISOString() })
+    toast({ kind: 'success', title: t(m.exported, { what }), detail: t(m.exportInAudit) })
   } catch (e) {
     updateJob(slug, id, { status: 'failed', detail: errorMessage(e), finishedAt: new Date().toISOString() })
-    toast({ kind: 'error', title: "Couldn't export the suppression list", detail: errorMessage(e) })
+    toast({ kind: 'error', title: t(m.exportFailed), detail: errorMessage(e) })
   }
 }
 
 function Counts({ d }: { d: List }) {
+  const tr = useT()
   const names = d.sync.map((s) => shortProvider(s.name))
   const cards: [string, number, string][] = [
-    ['Suppressed, all providers', d.counts.total, names.length > 0 ? `one list, enforced on ${andList(names)}` : 'one list, enforced on every provider you connect'],
-    ['Hard bounces', d.counts.hardBounce, 'all mail blocked, transactional too'],
-    ['Complaints', d.counts.complaint, 'all mail blocked, transactional too'],
-    ['Unsubscribed', d.counts.unsubscribe, 'marketing only: transactional and System mail still arrive'],
-    ['Manual', d.counts.manual, 'added by the team or API'],
+    [tr(m.countTotal), d.counts.total, names.length > 0 ? tr(m.countTotalNote, { providers: andList(names) }) : tr(m.countTotalNoteNone)],
+    [tr(m.countHard), d.counts.hardBounce, tr(m.allMailBlocked)],
+    [tr(m.countComplaints), d.counts.complaint, tr(m.allMailBlocked)],
+    [tr(m.countUnsubscribed), d.counts.unsubscribe, tr(m.marketingOnlyNote)],
+    [tr(m.countManual), d.counts.manual, tr(m.manualNote)],
   ]
-  if (d.counts.other > 0) cards.push(['Spam traps and invalid', d.counts.other, 'all mail blocked, transactional too'])
+  if (d.counts.other > 0) cards.push([tr(m.countOther), d.counts.other, tr(m.allMailBlocked)])
   return (
     <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))] max-md:[grid-template-columns:repeat(auto-fit,minmax(140px,1fr))]">
       {cards.map(([k, n, note]) => (
@@ -187,21 +197,22 @@ function Counts({ d }: { d: List }) {
   )
 }
 
-const syncBadge: Record<string, { tone: 'ok' | 'info' | 'bad' | 'neutral'; label: string }> = {
-  in_sync: { tone: 'ok', label: 'In sync' },
-  syncing: { tone: 'info', label: 'Syncing' },
-  error: { tone: 'bad', label: 'Sync failed' },
-  off: { tone: 'neutral', label: 'Sync off' },
+const syncBadge: Record<string, { tone: 'ok' | 'info' | 'bad' | 'neutral'; label: MessageDescriptor }> = {
+  in_sync: { tone: 'ok', label: m.inSync },
+  syncing: { tone: 'info', label: m.syncing },
+  error: { tone: 'bad', label: m.syncFailed },
+  off: { tone: 'neutral', label: m.syncOff },
 }
 
 function SyncStrip({ d }: { d: List }) {
+  const tr = useT()
   const { slug } = useWorkspace()
   return (
-    <section className="card flex flex-wrap" aria-label="Suppression sync with sending providers">
+    <section className="card flex flex-wrap" aria-label={tr(m.syncLabel)}>
       {d.sync.length === 0 ? (
         <div className="syncc">
-          <span className="font-semibold">No sending provider connected</span>
-          <span className="k">The list applies to every provider you connect; their existing suppressions are pulled in when you do.</span>
+          <span className="font-semibold">{tr(m.noProvider)}</span>
+          <span className="k">{tr(m.noProviderBody)}</span>
         </div>
       ) : (
         d.sync.map((s) => {
@@ -210,15 +221,12 @@ function SyncStrip({ d }: { d: List }) {
             <div key={s.providerId} className="syncc">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-semibold">{s.name}</span>
-                <Badge tone={b.tone}>
-                  {b.label}
-                  {s.at && s.status === 'in_sync' ? ` · ${clock(s.at)}` : ''}
-                </Badge>
+                <Badge tone={b.tone}>{s.at && s.status === 'in_sync' ? tr(m.inSyncAt, { time: clock(s.at) }) : tr(b.label)}</Badge>
               </div>
               <span className="k">
                 {s.local
-                  ? `${count(s.pulled)} ${s.pulledNote} · checked before sending`
-                  : `${count(s.pulled)} ${s.pulledNote} · ${count(s.pushed)} pushed`}
+                  ? tr(m.syncLocal, { pulled: count(s.pulled), note: s.pulledNote })
+                  : tr(m.syncPushed, { pulled: count(s.pulled), note: s.pulledNote, pushed: count(s.pushed) })}
               </span>
               {s.status === 'error' && s.detail ? <span className="k text-bad-fg">{s.detail}</span> : null}
             </div>
@@ -228,11 +236,11 @@ function SyncStrip({ d }: { d: List }) {
       <div className="flex flex-none items-center px-4.5 py-3.5">
         {d.sync.length === 0 ? (
           <ButtonLink size="sm" to="/w/$workspace/providers/connect" params={{ workspace: slug }}>
-            Connect a provider
+            {tr(m.connectProvider)}
           </ButtonLink>
         ) : (
           <ButtonLink size="sm" to="/w/$workspace/providers/events" params={{ workspace: slug }}>
-            Sync settings
+            {tr(m.syncSettings)}
           </ButtonLink>
         )}
       </div>
@@ -241,6 +249,7 @@ function SyncStrip({ d }: { d: List }) {
 }
 
 function Filters({ search, d, onChange, top }: { search: SuppressionsSearch; d: List; onChange: (patch: Partial<SuppressionsSearch>) => void; top?: ReactNode }) {
+  const tr = useT()
   // The box follows the URL and writes back after a short pause in typing.
   const [q, setQ] = useState(search.q ?? '')
   const [urlQ, setUrlQ] = useState(search.q ?? '')
@@ -259,31 +268,31 @@ function Filters({ search, d, onChange, top }: { search: SuppressionsSearch; d: 
     <div className="card flex flex-wrap items-center gap-2 px-3 py-2.5">
       {top}
       <label className="vh" htmlFor="supp-q">
-        Search suppressed addresses
+        {tr(m.search)}
       </label>
       <input
         id="supp-q"
         type="search"
         className="in w-[260px] max-md:min-w-full"
-        placeholder="Search address or domain"
+        placeholder={tr(m.searchPlaceholder)}
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />
       <select
         className={sel}
-        aria-label="Reason"
+        aria-label={tr(m.reason)}
         value={search.reason ?? ''}
         onChange={(e) => onChange({ reason: (e.target.value || undefined) as SuppressionReason | undefined })}
       >
-        <option value="">Any reason</option>
+        <option value="">{tr(m.anyReason)}</option>
         {(['hard_bounce', 'complaint', 'unsubscribe', 'manual', 'invalid', 'spam_trap'] as const).map((r) => (
           <option key={r} value={r}>
-            {reasonLabel[r]}
+            {reasonLabel(r)}
           </option>
         ))}
       </select>
-      <select className={sel} aria-label="Source provider" value={search.source ?? ''} onChange={(e) => onChange({ source: e.target.value || undefined })}>
-        <option value="">Any source provider</option>
+      <select className={sel} aria-label={tr(m.sourceProvider)} value={search.source ?? ''} onChange={(e) => onChange({ source: e.target.value || undefined })}>
+        <option value="">{tr(m.anySource)}</option>
         {d.sources.map((s) => (
           <option key={s.value} value={s.value}>
             {s.label}
@@ -292,34 +301,36 @@ function Filters({ search, d, onChange, top }: { search: SuppressionsSearch; d: 
       </select>
       <select
         className={sel}
-        aria-label="Applies to"
+        aria-label={tr(m.appliesTo)}
         value={search.appliesTo ?? ''}
         onChange={(e) => onChange({ appliesTo: (e.target.value || undefined) as 'all' | 'marketing' | undefined })}
       >
-        <option value="">All mail and marketing only</option>
-        <option value="all">All mail</option>
-        <option value="marketing">Marketing only</option>
+        <option value="">{tr(m.appliesBoth)}</option>
+        <option value="all">{tr(m.allMail)}</option>
+        <option value="marketing">{tr(m.marketingOnly)}</option>
       </select>
-      <select className={sel} aria-label="Date" value={search.since ?? ''} onChange={(e) => onChange({ since: (e.target.value || undefined) as '7d' | '30d' | undefined })}>
-        <option value="">Any time</option>
-        <option value="7d">Last 7 days</option>
-        <option value="30d">Last 30 days</option>
+      <select className={sel} aria-label={tr(m.date)} value={search.since ?? ''} onChange={(e) => onChange({ since: (e.target.value || undefined) as '7d' | '30d' | undefined })}>
+        <option value="">{tr(m.anyTime)}</option>
+        <option value="7d">{tr(m.last7)}</option>
+        <option value="30d">{tr(m.last30)}</option>
       </select>
       <span className="k ml-auto" role="status">
-        {count(d.matching)} {d.matching === 1 ? 'address' : 'addresses'}
+        {tr(m.addresses, { n: d.matching, count: count(d.matching) })}
       </span>
     </div>
   )
 }
 
 function GroupNote({ d, onBack }: { d: List; onBack: () => void }) {
+  const tr = useT()
   const source = d.sources.find((s) => s.value.startsWith('import:'))?.label
+  const shown = { n: d.matching, count: count(d.matching) }
   return (
     <Note tone="info">
       <span>
-        Showing the {count(d.matching)} {d.matching === 1 ? 'address' : 'addresses'} {source ? `from the ${source}` : 'from one import'}.{' '}
+        {source ? tr(m.showingImport, { ...shown, source }) : tr(m.showingOneImport, shown)}{' '}
         <button type="button" className="font-semibold text-accent underline underline-offset-2" onClick={onBack}>
-          Show the whole list
+          {tr(m.showAll)}
         </button>
       </span>
     </Note>
@@ -328,7 +339,7 @@ function GroupNote({ d, onBack }: { d: List; onBack: () => void }) {
 
 function ReasonBadge({ reasons }: { reasons: string[] }) {
   const bad = reasons.some((r) => blocking.has(r))
-  return <Badge tone={bad ? 'bad' : 'neutral'}>{reasons.map((r) => reasonLabel[r] ?? r).join(' · ')}</Badge>
+  return <Badge tone={bad ? 'bad' : 'neutral'}>{reasons.map((r) => reasonLabel(r)).join(' · ')}</Badge>
 }
 
 function SourceBadge({ s }: { s: Item['source'] }) {
@@ -363,20 +374,21 @@ function Table({
   onPage: (p: number) => void
   onClear: () => void
 }) {
+  const tr = useT()
   const last = page * d.pageSize >= d.total
   return (
-    <section className="card" aria-label="Suppressed addresses">
-      <TableScroll label="Suppressed addresses">
+    <section className="card" aria-label={tr(m.tableLabel)}>
+      <TableScroll label={tr(m.tableLabel)}>
         <table className="tbl stbl phone-wrap">
           <thead>
             <tr>
-              <th scope="col">Address</th>
-              <th scope="col">Reason · original code</th>
-              <th scope="col">Source</th>
-              <th scope="col">When · campaign or flow</th>
-              <th scope="col">Applies to</th>
+              <Th>{tr(m.colAddress)}</Th>
+              <Th>{tr(m.colReason)}</Th>
+              <Th>{tr(m.colSource)}</Th>
+              <Th>{tr(m.colWhen)}</Th>
+              <Th>{tr(m.colApplies)}</Th>
               <th scope="col">
-                <span className="vh">Actions</span>
+                <span className="vh">{tr(m.colActions)}</span>
               </th>
             </tr>
           </thead>
@@ -384,7 +396,7 @@ function Table({
             {d.items.map((it) => (
               <tr key={it.id}>
                 <td className="mono" style={{ whiteSpace: 'normal', maxWidth: 230, overflowWrap: 'anywhere' }}>
-                  {it.group ? `${it.address} · ${count(it.rows)} rows` : it.address}
+                  {it.group ? tr(m.groupRows, { address: it.address, n: it.rows, count: count(it.rows) }) : it.address}
                 </td>
                 <td>
                   <div className="flex flex-col items-start gap-1">
@@ -405,15 +417,15 @@ function Table({
                     {it.context ? <span className="k">{it.context}</span> : null}
                   </div>
                 </td>
-                <td>{it.scope === 'marketing' ? <Badge tone="info">Marketing only</Badge> : <Badge tone="neutral">All mail</Badge>}</td>
+                <td>{it.scope === 'marketing' ? <Badge tone="info">{tr(m.marketingOnly)}</Badge> : <Badge tone="neutral">{tr(m.allMail)}</Badge>}</td>
                 <td>
                   {it.group && it.importId ? (
-                    <Button size="sm" onClick={() => onGroup(it.importId!)} aria-label={`View rows: the ${count(it.rows)} rows from ${it.address}`}>
-                      View rows
+                    <Button size="sm" onClick={() => onGroup(it.importId!)} aria-label={tr(m.viewRowsLabel, { n: it.rows, count: count(it.rows), address: it.address })}>
+                      {tr(m.viewRows)}
                     </Button>
                   ) : (
-                    <Button size="sm" disabledReason={editReason} onClick={() => onRemove(it)} aria-label={`Remove ${it.address}`}>
-                      Remove
+                    <Button size="sm" disabledReason={editReason} onClick={() => onRemove(it)} aria-label={tr(m.removeLabel, { address: it.address })}>
+                      {tr(m.remove)}
                     </Button>
                   )}
                 </td>
@@ -424,13 +436,13 @@ function Table({
                 <td colSpan={6} className="py-8 text-center text-ink-3">
                   {filtered ? (
                     <>
-                      No suppressed addresses match these filters.{' '}
+                      {tr(m.noMatch)}{' '}
                       <button type="button" className="font-semibold text-accent underline underline-offset-2" onClick={onClear}>
-                        Clear filters
+                        {tr(m.clearFilters)}
                       </button>
                     </>
                   ) : (
-                    'Nothing is suppressed yet. Hard bounces, complaints and unsubscribes land here on their own, from every provider.'
+                    tr(m.emptyList)
                   )}
                 </td>
               </tr>
@@ -439,15 +451,13 @@ function Table({
         </table>
       </TableScroll>
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line-2 px-4 py-2.5">
-        <span className="k">
-          Removing an address asks for a reason and is logged in the audit log; bounced addresses can't be re-added to a list without a new opt-in.
-        </span>
+        <span className="k">{tr(m.removeNote)}</span>
         <div className="flex gap-1.5">
           <Button size="sm" disabled={page <= 1} onClick={() => onPage(page - 1)}>
-            Previous
+            {tr(m.previous)}
           </Button>
           <Button size="sm" disabled={last} onClick={() => onPage(page + 1)}>
-            Next
+            {tr(m.next)}
           </Button>
         </div>
       </div>
@@ -456,8 +466,9 @@ function Table({
 }
 
 function SuppressionsSkeleton() {
+  const tr = useT()
   return (
-    <Loading label="Loading the suppression list" className="flex flex-col gap-5">
+    <Loading label={tr(m.loading)} className="flex flex-col gap-5">
       <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
         {[0, 1, 2, 3, 4].map((i) => (
           <div key={i} className="card flex flex-col gap-2 px-4.5 py-3.5">

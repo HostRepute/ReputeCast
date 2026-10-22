@@ -3,60 +3,25 @@ import { useState, type ReactNode } from 'react'
 import { $api, type Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Button } from '@/components/ui/Button'
-import { T, defineMessages, useT } from '@/i18n'
+import { T, useT } from '@/i18n'
 import { count, dayMonthDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { commerceBase, money } from './api'
+import { ct } from './elsewhere.messages'
 import './commerce.css'
+
+export { ct }
 
 type Trigger = Schemas['AutomationTrigger']
 type Condition = Schemas['AutomationCondition']
 type Graph = { nodes: { type: string; data: { condition?: Condition } }[] }
 export type TriggerStore = Schemas['CommerceTriggerStore']
 
-/**
+/*
  * Store triggers, the goal "Placed an order" and attributed revenue in
  * automations (design expansion phase 7; CommerceEmails' abandoned-cart
  * starter and its trigger panel).
  */
-export const ct = defineMessages('commerce.automations', {
-  store: 'Store',
-  storeOption: '{name} · {address}',
-  pickStore: 'Pick a store',
-  loading: 'Loading the stores…',
-  noStore: 'No store is connected. Connect Shopify or WooCommerce in Settings › Integrations.',
-  noCheckouts: "{store} doesn't report abandoned checkouts: WooCommerce needs the ReputeCast plugin for them.",
-  after: 'After',
-  hours: 'Hours',
-  afterHint: 'hours without an order · 1 to 24',
-  whoEnters: 'Who enters',
-  locked: 'Accepted marketing in {store}',
-  lockedAny: 'Accepted marketing in the store',
-  lockedNote: "Required, and it can't be removed: customers who didn't accept marketing never enter.",
-  addFilter: 'Add a filter',
-  removeFilters: 'Remove the filters',
-  product: 'Product',
-  anyProduct: 'Any product',
-  collection: 'Collection',
-  anyCollection: 'Any collection',
-  minTotal: 'Total at least',
-  firstOnly: "The contact's first order in the store only",
-  goalTitle: 'Placing the order exits the flow',
-  goalOn: 'The goal “Placed an order”',
-  goalOff: 'Add a Goal step with “Placed an order” so an order ends the emails.',
-  stats: 'Since {date}: {abandoned} checkouts abandoned, {withEmail} with an email, {entered} entered. Skip rule: the contact got an abandoned-cart email in the last {days, plural, one {# day} other {# days}}.',
-  statsNoSkip: 'Since {date}: {abandoned} checkouts abandoned, {withEmail} with an email, {entered} entered.',
-  notEmailed: "{count} not emailed: didn't accept marketing",
-  goalOrders: '{count, plural, one {<n>#</n> order} other {<n>#</n> orders}}',
-  orderedIn: 'Ordered in',
-  anyStore: 'Any connected store',
-  revenueColumn: 'Revenue · 30 d',
-  revenueCell: '{amount} · {orders, plural, one {# order} other {# orders}}',
-  triggerOrderPlaced: 'Order placed',
-  triggerFirstOrder: 'First order',
-  triggerAbandoned: 'Abandoned checkout',
-  goalPlacedOrder: 'Placed an order',
-})
 
 export const storeTriggerKinds = ['order_placed', 'first_order', 'abandoned_checkout'] as const
 

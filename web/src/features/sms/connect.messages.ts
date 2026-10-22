@@ -6,7 +6,7 @@ export const m = defineMessages('smsConnect', {
   stepOf: 'Step {n} of 5',
   exit: 'Exit setup',
   steps: 'Setup steps',
-  done: 'Done: ',
+  done: 'Done: {step}',
   s1: 'Provider',
   s1sub: 'Pick from the catalog',
   s2: 'Connection',

@@ -12,13 +12,13 @@ import { Note } from '@/components/ui/Note'
 import { Segmented } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
-import { clock, dayMonthYear } from '@/lib/format'
+import { clock, clockSeconds, dayMonthYear } from '@/lib/format'
 import { useMediaQuery } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { ml } from './log.messages'
 import { LogPhoneList, RejectionExplain, useLanguageName, useLog, useRangeLabel, type LogSearch } from './MessagesPage'
 import { mt } from './messages'
-import { CategoryCell, secs, StatusBadge, TxTabs } from './shared'
+import { CategoryCell, secs, sizeText, StatusBadge, TxTabs } from './shared'
 
 type Detail = Schemas['TransactionalMessageDetail']
 type Entry = Schemas['TransactionalTimelineEntry']
@@ -28,17 +28,13 @@ const API = '/api/v1/workspaces/{workspace}/transactional' as const
 /** "15 Oct 2026, 10:42:18" */
 function stamp(d: string) {
   const t = new Date(d)
-  return `${dayMonthYear(t)}, ${clock(t)}:${String(t.getSeconds()).padStart(2, '0')}`
+  return `${dayMonthYear(t)}, ${clockSeconds(t)}`
 }
 
 /** "10:42:18.120" */
 export function stampMs(d: string) {
   const t = new Date(d)
   return `${clock(t)}:${String(t.getSeconds()).padStart(2, '0')}.${String(t.getMilliseconds()).padStart(3, '0')}`
-}
-
-function kb(n: number) {
-  return n >= 1024 ? `${Math.round(n / 1024)} KB` : `${n} B`
 }
 
 /** Transactional › Messages › one message (TransactionalMessage, TransactionalMessageStates). */
@@ -419,7 +415,7 @@ function Summary({ d }: { d: Detail }) {
             {d.attachments.map((a) => (
               <span key={a.filename} className="mr-2 inline-flex items-center gap-1">
                 <Icon name="link" size={12} />
-                {a.filename} <span className="k">· {kb(a.size)}</span>
+                {a.filename} <span className="k">· {sizeText(a.size)}</span>
               </span>
             ))}
           </Row>
@@ -455,22 +451,28 @@ function entryText(t: ReturnType<typeof useT>, d: Detail, e: Entry): { title: st
   const provider = e.provider ?? d.provider?.name ?? ''
   switch (e.kind) {
     case 'accepted': {
-      const ip = d.ip ? ` · ${d.ip}` : ''
-      if (d.raw) return { title: t(ml.evAccepted), detail: t(ml.evAcceptedSmtp, { key: d.keyRef?.name ?? '', ip }) }
+      const key = d.keyRef?.name ?? ''
+      if (d.raw) return { title: t(ml.evAccepted), detail: d.ip ? t(ml.evAcceptedSmtpIp, { key, ip: d.ip }) : t(ml.evAcceptedSmtp, { key }) }
       if (!d.keyRef && d.sentBy) return { title: t(ml.evAccepted), detail: t(ml.evAcceptedPerson, { name: d.sentBy }) }
-      return { title: t(ml.evAccepted), detail: t(ml.evAcceptedApi, { key: d.keyRef?.name ?? '', ip, status: e.status ?? 202 }) }
+      const status = e.status ?? 202
+      return { title: t(ml.evAccepted), detail: d.ip ? t(ml.evAcceptedApiIp, { key, ip: d.ip, status }) : t(ml.evAcceptedApi, { key, status }) }
     }
     case 'rendered': {
       const tpl = d.template ? `${d.template.key} v${d.template.version ?? ''}` : t(mt.raw)
-      const sensitive = d.sensitiveSent.length ? t(ml.evRenderedSensitive, { count: d.sensitiveSent.length }) : ''
-      return { title: t(ml.evRendered), detail: t(ml.evRenderedDetail, { template: tpl, size: kb(d.contentBytes), variables: d.variables, sensitive }) }
+      const values = { template: tpl, size: sizeText(d.contentBytes), variables: d.variables }
+      return {
+        title: t(ml.evRendered),
+        detail: d.sensitiveSent.length ? t(ml.evRenderedDetailSensitive, { ...values, count: d.sensitiveSent.length }) : t(ml.evRenderedDetail, values),
+      }
     }
     case 'scheduled':
       return { title: t(ml.evScheduled), detail: d.sendAt ? stamp(d.sendAt) : '' }
     case 'routed': {
-      const which = d.route.failedOver ? t(ml.evFallback) : t(ml.evPrimary)
-      const matched = d.route.matched ? t(ml.evMatched, { matched: d.route.matched }) : t(ml.evNoCondition)
-      return { title: t(ml.evRouted, { provider }), detail: t(ml.evRoutedDetail, { which, matched }) }
+      const which = d.route.failedOver ? 'fallback' : 'primary'
+      return {
+        title: t(ml.evRouted, { provider }),
+        detail: d.route.matched ? t(ml.evRoutedDetail, { which, matched: d.route.matched }) : t(ml.evRoutedDetailNone, { which }),
+      }
     }
     case 'handed':
       return {
@@ -484,7 +486,8 @@ function entryText(t: ReturnType<typeof useT>, d: Detail, e: Entry): { title: st
     case 'failed':
       return { title: t(ml.evFailed), detail: e.detail }
     case 'rejected':
-      return { title: t(ml.evRejected), detail: e.detail }
+      // The server names why: suppressed or opted_out.
+      return { title: t(ml.evRejected), detail: e.detail === 'suppressed' ? t(ml.suppressed) : e.detail === 'opted_out' ? t(ml.optedOut) : e.detail }
     case 'not_delivered':
       return { title: t(ml.evNotDelivered), detail: e.detail }
     case 'delivered': {
@@ -503,7 +506,7 @@ function entryText(t: ReturnType<typeof useT>, d: Detail, e: Entry): { title: st
                 </span>
               </>
             ) : null}
-            {after}
+            {after ? ` · ${after}` : null}
           </>
         ),
       }
@@ -636,7 +639,7 @@ function Request({ d }: { d: Detail }) {
             {'\n'}
             {d.request.idempotencyKey ? (
               <>
-                <span className="c1">Idempotency-Key</span>: {d.request.idempotencyKey}
+                <span className="c1">{'Idempotency-Key'}</span>: {d.request.idempotencyKey}
                 {'\n'}
               </>
             ) : null}
@@ -726,7 +729,7 @@ function ContentPanel({ d }: { d: Detail }) {
       <Note tone="neutral">
         <T
           msg={c.helpers.length ? ml.contentForbidden : ml.contentForbiddenNoNames}
-          values={{ permission: <span className="mono">transactional:content</span>, names: c.helpers.join(', ') }}
+          values={{ permission: <span className="mono">{'transactional:content'}</span>, names: c.helpers.join(', ') }}
         />
       </Note>
     )

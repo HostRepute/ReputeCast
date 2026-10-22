@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { Field, Input } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
+import { Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { m as cm } from '@/features/channels/messages'
 import { hasWhatsAppColumn, WhatsAppConsentCell } from '@/features/push/ContactCards'
@@ -76,15 +77,17 @@ export function ChannelConsentCard({ contactId, name }: { contactId: string; nam
             </Button>
           ) : null}
         </div>
-        {d.suppressed ? <Note tone="bad">{t(m.suppressed, { reason: d.suppressed.reason.replace(/_/g, ' '), date: dayMonthDate(d.suppressed.at) })}</Note> : null}
+        {d.suppressed ? (
+          <Note tone="bad">{t(m.suppressed, { reason: d.suppressed.reason, reasonText: d.suppressed.reason.replace(/_/g, ' '), date: dayMonthDate(d.suppressed.at) })}</Note>
+        ) : null}
         <div className="overflow-x-auto">
           <table className="sms-cons">
             <thead>
               <tr>
-                <th scope="col">{t(m.list)}</th>
-                <th scope="col">{t(cm.email)}</th>
-                <th scope="col">{t(cm.sms)}</th>
-                {wa ? <th scope="col">{t(cm.whatsapp)}</th> : null}
+                <Th>{t(m.list)}</Th>
+                <Th>{t(cm.email)}</Th>
+                <Th>{t(cm.sms)}</Th>
+                {wa ? <Th>{t(cm.whatsapp)}</Th> : null}
               </tr>
             </thead>
             <tbody>
@@ -119,6 +122,7 @@ function SmsCell({ contactId, l, d }: { contactId: string; l: Row; d: Channels }
   const t = useT()
   const { slug } = useWorkspace()
   const refresh = useRefreshSms()
+  const [recording, setRecording] = useState(false)
   const set = $api.useMutation('put', '/api/v1/workspaces/{workspace}/contacts/{contactId}/sms-consent', {
     onSuccess: () => {
       void refresh()
@@ -144,16 +148,94 @@ function SmsCell({ contactId, l, d }: { contactId: string; l: Row; d: Channels }
           className="sms-lbtn mt-1 text-[12.5px]"
           disabled={set.isPending}
           onClick={() =>
-            set.mutate({
-              params: { path: { workspace: slug, contactId } },
-              body: { listId: l.listId, status: l.sms === 'subscribed' ? 'not_subscribed' : 'subscribed' },
-            })
+            // Withdrawing needs nothing more; giving consent needs its evidence.
+            l.sms === 'subscribed'
+              ? set.mutate({ params: { path: { workspace: slug, contactId } }, body: { listId: l.listId, status: 'not_subscribed' } })
+              : setRecording(true)
           }
         >
           {l.sms === 'subscribed' ? t(m.withdraw) : t(m.record)}
         </button>
       ) : null}
+      {recording ? <RecordDialog contactId={contactId} list={l} onClose={() => setRecording(false)} /> : null}
     </>
+  )
+}
+
+/** Records SMS consent on one list with its evidence: where it was given, the exact text and when. */
+function RecordDialog({ contactId, list, onClose }: { contactId: string; list: Row; onClose: () => void }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  const refresh = useRefreshSms()
+  const [source, setSource] = useState('')
+  const [wording, setWording] = useState('')
+  const [at, setAt] = useState(() => {
+    const d = new Date()
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
+    return d.toISOString().slice(0, 16)
+  })
+  const [note, setNote] = useState('')
+  const save = $api.useMutation('put', '/api/v1/workspaces/{workspace}/contacts/{contactId}/sms-consent', {
+    onSuccess: () => {
+      void refresh()
+      toast({ kind: 'success', title: t(m.consentSaved, { list: list.name }) })
+      onClose()
+    },
+  })
+  return (
+    <Dialog
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={t(m.recordTitle, { list: list.name })}
+      description={t(m.recordText)}
+      footer={
+        <>
+          <Button onClick={onClose}>{t(m.cancel)}</Button>
+          <Button
+            variant="primary"
+            loading={save.isPending}
+            disabled={!source.trim() || !wording.trim() || !at}
+            onClick={() =>
+              save.mutate({
+                params: { path: { workspace: slug, contactId } },
+                body: {
+                  listId: list.listId,
+                  status: 'subscribed',
+                  note: note.trim() || undefined,
+                  evidence: { source: source.trim(), consentText: wording.trim(), at: new Date(at).toISOString() },
+                },
+              })
+            }
+          >
+            {t(m.recordSave)}
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        <div className="lbl">
+          <label htmlFor="sms-c-source">{t(m.recordSource)}</label>
+          <input id="sms-c-source" className="in w-full" value={source} placeholder={t(m.recordSourcePlaceholder)} maxLength={200} onChange={(e) => setSource(e.target.value)} />
+        </div>
+        <div className="lbl">
+          <label htmlFor="sms-c-wording">{t(m.recordWording)}</label>
+          <textarea id="sms-c-wording" className="in w-full" rows={2} value={wording} maxLength={1000} onChange={(e) => setWording(e.target.value)} />
+        </div>
+        <div className="lbl">
+          <label htmlFor="sms-c-at">{t(m.recordAt)}</label>
+          <input id="sms-c-at" className="in w-full" type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} />
+        </div>
+        <div className="lbl">
+          <label htmlFor="sms-c-note">{t(m.recordNote)}</label>
+          <input id="sms-c-note" className="in w-full" value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
+        </div>
+        {save.isError ? (
+          <span className="err" role="alert">
+            {errorMessage(save.error)}
+          </span>
+        ) : null}
+      </div>
+    </Dialog>
   )
 }
 

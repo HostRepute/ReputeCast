@@ -1,32 +1,16 @@
 import { Field, Input, Select } from '@/components/ui/Field'
-import { defineMessages, useT } from '@/i18n'
+import { useT } from '@/i18n'
 import '@/features/scoring/scoring.css'
 import { money } from './api'
 import { useCatalog } from './composer'
+import { cf } from './elsewhere.messages'
 import './commerce.css'
 
-/**
+/*
  * Contacts › More filters (design expansion phase 7): "Store customer" and
  * "Total spent", with their chips. Total spent is orders less refunds, in
  * the stores' currency.
  */
-const cf = defineMessages('commerce.contacts', {
-  storeCustomer: 'Store customer',
-  anyone: 'Anyone',
-  anyStore: 'A customer of any store',
-  ofStore: 'A customer of {store}',
-  spent: 'Total spent in the stores',
-  between: 'and',
-  from: 'At least',
-  to: 'At most',
-  spentHint: 'Orders less refunds, in the store’s currency.',
-  chipCustomer: 'Store customer: {store}',
-  chipAny: 'Store customer',
-  chipSpent: 'Spent {from} to {to}',
-  chipSpentFrom: 'Spent at least {from}',
-  chipSpentTo: 'Spent at most {to}',
-  remove: 'Remove the filter “{name}”',
-})
 
 export const storeMoreKeys = ['storeCustomer', 'spentFrom', 'spentTo'] as const
 

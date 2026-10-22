@@ -4,18 +4,22 @@ import { Badge, Dot } from '@/components/ui/Badge'
 import { Card } from '@/components/ui/Card'
 import { Grid, Row } from '@/components/ui/Layout'
 import { Table, Td, Th } from '@/components/ui/Table'
+import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { clockSeconds, count, money } from '@/lib/format'
+import { clockSeconds, count, money, pct } from '@/lib/format'
 import { useReducedMotion } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
+import { m } from './messages'
 import {
   abLine,
   barSegments,
   complaintHeading,
   deliveredMix,
   errorRate,
+  eventWord,
   failoverCaption,
   mailboxColor,
+  mailboxName,
   mailboxRate,
   mailboxStatus,
   mixLabel,
@@ -39,6 +43,7 @@ import {
   type Snapshot,
   type Tile,
 } from './model'
+import { mm } from './model.messages'
 
 /**
  * Counts up to `value` (design system › Motion: counters count up over
@@ -86,22 +91,23 @@ export function CardBar({ title, caption }: { title: string; caption?: ReactNode
 
 /** The progress card: percentage, sent line, timing, the per-provider bar and its legend. */
 export function ProgressCard({ s, incident, stale, asOf }: { s: Snapshot; incident?: Incident; stale?: boolean; asOf?: string }) {
-  const pct = Math.min(99, s.recipients > 0 ? Math.round((s.sent / s.recipients) * 100) : 0)
-  const shownPct = useCountUp(s.sent >= s.recipients && s.recipients > 0 ? 100 : pct)
+  const t = useT()
+  const sentPct = Math.min(99, s.recipients > 0 ? Math.round((s.sent / s.recipients) * 100) : 0)
+  const shownPct = useCountUp(s.sent >= s.recipients && s.recipients > 0 ? 100 : sentPct)
   const segments = barSegments(s, incident)
   const legend = progressLegend(s, incident)
   const ab = incident ? '' : abLine(s.ab)
   return (
-    <Card className={cn('flex flex-col gap-3 px-[22px] py-5', stale && 'lv-stale')} aria-label="Progress">
+    <Card className={cn('flex flex-col gap-3 px-[22px] py-5', stale && 'lv-stale')} aria-label={t(m.progress)}>
       <div className="flex flex-wrap items-baseline gap-3.5">
-        <span className="n text-[34px] tracking-[-0.02em]">{Math.round(shownPct)}%</span>
+        <span className="n text-[34px] tracking-[-0.02em]">{pct(Math.round(shownPct), 0)}</span>
         <span className="vh" aria-live="polite">
-          {progressText(s)} sent
+          {t(m.percentSent, { percent: progressText(s) })}
         </span>
         <span className="text-[15px]">{sentLine(s, incident)}</span>
         {stale ? (
           <Badge tone="neutral" className="ml-auto">
-            as of {asOf}
+            {t(m.asOf, { time: asOf ?? '' })}
           </Badge>
         ) : (
           <span className="k ml-auto">{timingLine(s, incident)}</span>
@@ -140,7 +146,7 @@ export function Tiles({ tiles, className }: { tiles: Tile[]; className?: string 
         <div key={t.key} className={cn('card tile', t.alert && 'border-bad-line')}>
           <span className="k">{t.label}</span>
           <span className={cn('n text-[26px]', t.alert && 'text-bad-fg')}>
-            <TileValue value={t.value} />
+            <TileValue tile={t} />
           </span>
           <span className="k">{t.sub}</span>
         </div>
@@ -149,66 +155,66 @@ export function Tiles({ tiles, className }: { tiles: Tile[]; className?: string 
   )
 }
 
-/** Counts up a formatted count ("19,402"); other values ("$2.84") show as they are. */
-function TileValue({ value }: { value: string }) {
-  const n = /^[\d,]+$/.test(value) ? Number(value.replaceAll(',', '')) : null
-  return n === null ? <>{value}</> : <CountUp value={n} />
+/** Counts up a count ("19,402"); other values ("$2.84") show as they are. */
+export function TileValue({ tile }: { tile: Tile }) {
+  return tile.num === undefined ? <>{tile.value}</> : <CountUp value={tile.num} />
 }
 
 /** Per mailbox provider: health in the live view, activity in the decision view. */
 export function MailboxTable({ s, decision }: { s: Snapshot; decision: boolean }) {
+  const t = useT()
   const rows = orderedMailboxes(s, decision)
   return (
     <Card>
-      <CardBar title="Per mailbox provider" caption={<span className="k">{decision ? 'thresholds apply per mailbox provider' : 'where recipients read the mail'}</span>} />
+      <CardBar title={t(m.perMailbox)} caption={<span className="k">{decision ? t(m.perMailboxDecision) : t(m.perMailboxLive)}</span>} />
       <Table density="compact" className="lv-tbl" phoneWrap>
         <thead>
           <tr>
-            <Th>Mailbox provider</Th>
-            <Th align="right">Sent</Th>
-            {decision ? <Th align="right">Remaining</Th> : null}
-            <Th align="right">Delivered</Th>
-            <Th align="right">Bounce</Th>
-            <Th align="right">{decision ? complaintHeading(s) : 'Complaint'}</Th>
-            {decision ? null : <Th align="right">Opened</Th>}
-            <Th align="right">Rate</Th>
-            <Th>Status</Th>
+            <Th>{t(m.colMailbox)}</Th>
+            <Th align="right">{t(m.colSent)}</Th>
+            {decision ? <Th align="right">{t(m.colRemaining)}</Th> : null}
+            <Th align="right">{t(m.colDelivered)}</Th>
+            <Th align="right">{t(m.colBounce)}</Th>
+            <Th align="right">{decision ? complaintHeading(s) : t(m.colComplaint)}</Th>
+            {decision ? null : <Th align="right">{t(m.colOpened)}</Th>}
+            <Th align="right">{t(m.colRate)}</Th>
+            <Th>{t(m.colStatus)}</Th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((m) => {
-            const st = mailboxStatus(m, s, decision)
+          {rows.map((mb) => {
+            const st = mailboxStatus(mb, s, decision)
             return (
-              <tr key={m.key} className={m.held ? 'bg-bad-tint' : undefined}>
+              <tr key={mb.key} className={mb.held ? 'bg-bad-tint' : undefined}>
                 <Td>
                   <span className="flex items-center gap-2">
-                    <Dot color={mailboxColor[m.key]} />
-                    {m.name}
+                    <Dot color={mailboxColor[mb.key]} />
+                    {mailboxName(mb.key)}
                   </span>
                 </Td>
                 <Td align="right" num>
-                  {count(m.sent)}
+                  {count(mb.sent)}
                 </Td>
                 {decision ? (
                   <Td align="right" num>
-                    {count(m.remaining)}
+                    {count(mb.remaining)}
                   </Td>
                 ) : null}
                 <Td align="right" num>
-                  {pct1(m.deliveredRate)}
+                  {pct1(mb.deliveredRate)}
                 </Td>
                 <Td align="right" num>
-                  {pct1(m.bounceRate)}
+                  {pct1(mb.bounceRate)}
                 </Td>
-                <Td align="right" num className={decision && m.held ? 'text-bad-fg' : undefined}>
-                  {pct2(m.complaintRate ?? 0)}
+                <Td align="right" num className={decision && mb.held ? 'text-bad-fg' : undefined}>
+                  {pct2(mb.complaintRate ?? 0)}
                 </Td>
                 {decision ? null : (
                   <Td align="right" num>
-                    {pct1(m.openRate)}
+                    {pct1(mb.openRate)}
                   </Td>
                 )}
-                <Td align="right">{mailboxRate(m)}</Td>
+                <Td align="right">{mailboxRate(mb)}</Td>
                 <Td>
                   <Badge tone={st.tone}>{st.text}</Badge>
                 </Td>
@@ -223,22 +229,23 @@ export function MailboxTable({ s, decision }: { s: Snapshot; decision: boolean }
 
 /** Per sending provider: share and rates in the live view, what is held in the outage view. */
 export function ProviderTable({ s, outage }: { s: Snapshot; outage?: Incident }) {
+  const t = useT()
   const decision = Boolean(outage)
   return (
     <Card>
-      <CardBar title="Per sending provider" caption={<span className="k">{decision ? failoverCaption(s) : 'who delivers the mail'}</span>} />
+      <CardBar title={t(m.perProvider)} caption={<span className="k">{decision ? failoverCaption(s) : t(mm.whoDelivers)}</span>} />
       <Table density="compact" className="lv-tbl" phoneWrap>
         <thead>
           <tr>
-            <Th>Sending provider</Th>
-            <Th align="right">Sent</Th>
-            {decision ? <Th align="right">Remaining</Th> : <Th align="right">Share</Th>}
-            <Th align="right">Rate</Th>
-            <Th align="right">Delivered</Th>
-            <Th align="right">Bounce</Th>
-            {decision ? null : <Th align="right">Complaint</Th>}
-            <Th align="right">{decision ? 'API errors · 3 min' : 'API errors'}</Th>
-            <Th>Status</Th>
+            <Th>{t(m.colProvider)}</Th>
+            <Th align="right">{t(m.colSent)}</Th>
+            {decision ? <Th align="right">{t(m.colRemaining)}</Th> : <Th align="right">{t(m.colShare)}</Th>}
+            <Th align="right">{t(m.colRate)}</Th>
+            <Th align="right">{t(m.colDelivered)}</Th>
+            <Th align="right">{t(m.colBounce)}</Th>
+            {decision ? null : <Th align="right">{t(m.colComplaint)}</Th>}
+            <Th align="right">{decision ? t(m.colApiErrors3) : t(m.colApiErrors)}</Th>
+            <Th>{t(m.colStatus)}</Th>
           </tr>
         </thead>
         <tbody>
@@ -259,7 +266,7 @@ export function ProviderTable({ s, outage }: { s: Snapshot; outage?: Incident })
                   {decision ? count(p.sent) : sentOfPlanned(p)}
                 </Td>
                 <Td align="right" num>
-                  {decision ? count(p.remaining) : `${Math.round(p.share)}%`}
+                  {decision ? count(p.remaining) : pct(Math.round(p.share), 0)}
                 </Td>
                 <Td align="right" num>
                   {perSec(p.rate)}
@@ -292,28 +299,29 @@ export function ProviderTable({ s, outage }: { s: Snapshot; outage?: Incident })
 
 /** The live event feed: newest first, addresses masked. */
 export function EventsCard({ s, streaming, limit = 7 }: { s: Snapshot; streaming: boolean; limit?: number }) {
+  const t = useT()
   const events = s.events.slice(0, limit)
   return (
     <Card>
       <CardBar
-        title="Live events"
+        title={t(m.liveEvents)}
         caption={
           streaming ? (
             <span className="badge ok">
               <span className="dot pulse-live" aria-hidden="true" />
-              streaming
+              {t(m.streaming)}
             </span>
           ) : (
             <Badge tone="neutral" dot>
-              reconnecting
+              {t(m.reconnecting)}
             </Badge>
           )
         }
       />
       {events.length === 0 ? (
-        <div className="lv-ev first k">Delivery events appear here as providers report them.</div>
+        <div className="lv-ev first k">{t(m.eventsEmpty)}</div>
       ) : (
-        <ol className="m-0 list-none p-0" aria-label="Newest events first">
+        <ol className="m-0 list-none p-0" aria-label={t(m.eventsList)}>
           {events.map((ev, i) => (
             <EventLine key={ev.id} ev={ev} first={i === 0} />
           ))}
@@ -327,7 +335,7 @@ function EventLine({ ev, first }: { ev: LiveEvent; first: boolean }) {
   return (
     <li className={cn('lv-ev', first && 'first')}>
       <span className="mono k">{clockSeconds(ev.at)}</span>
-      <Badge tone={ev.tone}>{ev.label}</Badge>
+      <Badge tone={ev.tone}>{eventWord(ev.label)}</Badge>
       <span className="mono">{ev.address}</span>
       {ev.detail ? <span className="k">{ev.detail}</span> : null}
     </li>
@@ -336,13 +344,14 @@ function EventLine({ ev, first }: { ev: LiveEvent; first: boolean }) {
 
 /** Auto-pause thresholds: each rate against its limit. */
 export function ThresholdsCard({ s, campaignId }: { s: Snapshot; campaignId: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   return (
     <Card className="flex flex-col gap-3.5 px-5 py-[18px]">
       <div className="flex items-center justify-between">
-        <h2 className="h2">Auto-pause thresholds</h2>
+        <h2 className="h2">{t(m.thresholds)}</h2>
         <Link to="/w/$workspace/campaigns/$campaignId/review" params={{ workspace: slug, campaignId }} className="k">
-          Edit
+          {t(m.editThresholds)}
         </Link>
       </div>
       {thresholdRows(s).map((r) => (
@@ -373,39 +382,41 @@ export function Fact({ label, children }: { label: ReactNode; children: ReactNod
 
 /** Send details: sender, audience, route, cost, who scheduled it. */
 export function DetailsCard({ s }: { s: Snapshot }) {
+  const t = useT()
   const d = s.details
   return (
     <Card className="flex flex-col gap-2.5 px-5 py-[18px]">
-      <h2 className="h2">Send details</h2>
-      <Fact label="From">{d.from || '—'}</Fact>
-      <Fact label="Audience">{d.audience ? `${d.audience} · ${count(d.audienceCount)}` : count(d.audienceCount)}</Fact>
-      <Fact label="Route">{d.route || '—'}</Fact>
-      <Fact label="Cost so far">{`${money(d.cost)} of ${money(d.costPlanned)}`}</Fact>
-      {d.scheduledBy ? <Fact label="Scheduled by">{d.scheduledBy}</Fact> : null}
+      <h2 className="h2">{t(m.sendDetails)}</h2>
+      <Fact label={t(m.detailFrom)}>{d.from || '—'}</Fact>
+      <Fact label={t(m.detailAudience)}>{d.audience ? `${d.audience} · ${count(d.audienceCount)}` : count(d.audienceCount)}</Fact>
+      <Fact label={t(m.detailRoute)}>{d.route || '—'}</Fact>
+      <Fact label={t(m.detailCost)}>{t(m.detailCostValue, { cost: money(d.cost), planned: money(d.costPlanned) })}</Fact>
+      {d.scheduledBy ? <Fact label={t(m.detailScheduledBy)}>{d.scheduledBy}</Fact> : null}
     </Card>
   )
 }
 
 /** Delivered by mailbox provider: a stacked bar and its legend. */
 export function DeliveredMixCard({ s }: { s: Snapshot }) {
+  const t = useT()
   const mix = deliveredMix(s)
   return (
     <Card className="flex flex-col gap-2.5 px-5 py-[18px]">
-      <h2 className="h2">Delivered by mailbox provider</h2>
+      <h2 className="h2">{t(m.deliveredBy)}</h2>
       {mix.length === 0 ? (
-        <span className="k">Shares appear once the first deliveries are reported.</span>
+        <span className="k">{t(m.sharesEmpty)}</span>
       ) : (
         <>
           <div className="flex gap-0.5 overflow-hidden" style={{ height: 14, borderRadius: 7 }} role="img" aria-label={mixLabel(mix)}>
-            {mix.map((m) => (
-              <div key={m.key} style={{ width: `${m.percent}%`, background: mailboxColor[m.key] }} />
+            {mix.map((x) => (
+              <div key={x.key} style={{ width: `${x.percent}%`, background: mailboxColor[x.key] }} />
             ))}
           </div>
           <div className="flex flex-wrap gap-x-3.5 gap-y-2 text-[12px]">
-            {mix.map((m) => (
-              <span key={m.key} className="flex items-center gap-1.5">
-                <Dot color={mailboxColor[m.key]} />
-                {m.name} {m.percent}%
+            {mix.map((x) => (
+              <span key={x.key} className="flex items-center gap-1.5">
+                <Dot color={mailboxColor[x.key]} />
+                {`${x.name} ${pct(x.percent, 0)}`}
               </span>
             ))}
           </div>

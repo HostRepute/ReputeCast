@@ -6,6 +6,8 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { ReadOnlyNote } from '@/features/senders/ReadOnlyNote'
+import { useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { deniedReason, useCan, useWorkspace } from '@/lib/session'
 import { stepNumber, useSetup, type Setup, type SetupStep } from './api'
 import { ConnectionAPI } from './ConnectionAPI'
@@ -14,7 +16,9 @@ import { ConnectionSMTP } from './ConnectionSMTP'
 import { ContactsStep } from './ContactsStep'
 import { DomainStep } from './DomainStep'
 import { DonePage } from './DonePage'
+import { m } from './messages'
 import { failed, useSetupActions, type StepProps } from './parts'
+import { ms } from './setup.messages'
 import { StreamsStep } from './StreamsStep'
 import { TestStep } from './TestStep'
 import { StepBadge, StepHeading, WizardBody, WizardLayout } from './Wizard'
@@ -36,6 +40,7 @@ export function SetupWizard({ adapter, search, onSearch }: { adapter: string; se
 }
 
 function StartSetup({ adapter, onStarted }: { adapter: string; onStarted: (s: Setup) => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const can = useCan('providers:manage')
   // Who can connect providers, for people who can't.
@@ -57,38 +62,36 @@ function StartSetup({ adapter, onStarted }: { adapter: string; onStarted: (s: Se
   }, [can])
   const unknown = error instanceof ApiError && error.status === 404
   return (
-    <WizardLayout title="Connect a sending provider" badge={<StepBadge n={2} />}>
+    <WizardLayout title={t(m.title)} badge={<StepBadge n={2} />}>
       <WizardBody current={2}>
         {!can ? (
           <>
-            <StepHeading title="Connect a sending provider" />
-            <ReadOnlyNote action="Connecting a provider" perm="providers:manage" helpers={catalog.data?.helpers}>
-              You can look at the catalog and at setups others started.
-            </ReadOnlyNote>
+            <StepHeading title={t(m.title)} />
+            <ReadOnlyNote msg={m.readOnlyCatalog} perm="providers:manage" helpers={catalog.data?.helpers} />
             <div>
               <ButtonLink to="/w/$workspace/providers/connect" params={{ workspace: slug }}>
-                Back to the catalog
+                {t(ms.backToCatalog)}
               </ButtonLink>
             </div>
           </>
         ) : error ? (
           <ErrorPanel
-            title={unknown ? "This provider isn't in this build" : "Couldn't start the setup"}
+            title={unknown ? t(ms.unknownAdapter) : t(ms.startFailed)}
             actions={
               <>
-                {unknown ? null : <Button onClick={start}>Try again</Button>}
+                {unknown ? null : <Button onClick={start}>{t(common.tryAgain)}</Button>}
                 <ButtonLink to="/w/$workspace/providers/connect" params={{ workspace: slug }}>
-                  Back to the catalog
+                  {t(ms.backToCatalog)}
                 </ButtonLink>
               </>
             }
           >
-            {unknown ? 'Pick another provider from the catalog, or ask an instance admin to install its adapter.' : errorMessage(error)}
+            {unknown ? t(ms.unknownAdapterBody) : errorMessage(error)}
           </ErrorPanel>
         ) : (
           <div className="flex flex-col gap-3" aria-busy="true">
             <span className="vh" role="status">
-              Starting the setup…
+              {t(ms.starting)}
             </span>
             <Skeleton w="50%" h={28} />
             <Skeleton w="80%" h={14} />
@@ -101,6 +104,7 @@ function StartSetup({ adapter, onStarted }: { adapter: string; onStarted: (s: Se
 }
 
 function SetupScreens({ setupId, step, onStep }: { setupId: string; step?: SetupStep; onStep: (s: SetupStep) => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const q = useSetup(slug, setupId)
@@ -109,16 +113,16 @@ function SetupScreens({ setupId, step, onStep }: { setupId: string; step?: Setup
   const setup = q.data
   if (!setup) {
     return (
-      <WizardLayout title="Connect a sending provider" badge={<StepBadge n={2} />}>
+      <WizardLayout title={t(m.title)} badge={<StepBadge n={2} />}>
         <WizardBody current={2}>
           {q.isError ? (
             <ErrorPanel
-              title={q.error instanceof ApiError && q.error.status === 404 ? "This setup doesn't exist" : "Couldn't load the setup"}
+              title={q.error instanceof ApiError && q.error.status === 404 ? t(ms.notFound) : t(ms.loadFailed)}
               actions={
                 <>
-                  <Button onClick={() => void q.refetch()}>Retry</Button>
+                  <Button onClick={() => void q.refetch()}>{t(common.retry)}</Button>
                   <ButtonLink to="/w/$workspace/providers/connect" params={{ workspace: slug }}>
-                    Back to the catalog
+                    {t(ms.backToCatalog)}
                   </ButtonLink>
                 </>
               }
@@ -128,7 +132,7 @@ function SetupScreens({ setupId, step, onStep }: { setupId: string; step?: Setup
           ) : (
             <div className="flex flex-col gap-3" aria-busy="true">
               <span className="vh" role="status">
-                Loading the setup…
+                {t(ms.loading)}
               </span>
               <Skeleton w="50%" h={28} />
               <Skeleton w="80%" h={14} />
@@ -141,7 +145,7 @@ function SetupScreens({ setupId, step, onStep }: { setupId: string; step?: Setup
   }
   const view = viewStep(setup, step)
   if (view === 'done' && setup.done) return <DonePage setup={setup} />
-  const reason = can && setup.status !== 'abandoned' ? undefined : setup.status === 'abandoned' ? 'This setup was cancelled. Start again from the catalog.' : deniedReason('providers:manage', setup.helpers)
+  const reason = can && setup.status !== 'abandoned' ? undefined : setup.status === 'abandoned' ? t(ms.cancelledReason) : deniedReason('providers:manage', setup.helpers)
   const go = (next: SetupStep) => {
     onStep(next)
     // The setup remembers where it was, so it resumes there.
@@ -152,21 +156,19 @@ function SetupScreens({ setupId, step, onStep }: { setupId: string; step?: Setup
       { step: view as Exclude<SetupStep, 'done'> },
       {
         onSuccess: () => {
-          toast({ title: `Saved. Pick ${setup.info.name} in the catalog to carry on.` })
+          toast({ title: t(ms.savedForLater, { provider: setup.info.name }) })
           void navigate({ to: '/w/$workspace/providers', params: { workspace: slug } })
         },
-        onError: failed("Couldn't save the setup"),
+        onError: failed(t(ms.saveFailed)),
       },
     )
   const props: StepProps = { setup, go, saveLater, reason, finished: setup.status === 'finished' }
   return (
     <WizardLayout title={setup.info.title} badge={<StepBadge n={stepNumber[view]} />}>
       <WizardBody current={stepNumber[view]} setup={setup}>
-        {setup.status === 'abandoned' ? <Note tone="warn">This setup was cancelled. Start again from the catalog to connect the provider.</Note> : null}
+        {setup.status === 'abandoned' ? <Note tone="warn">{t(ms.cancelledNote)}</Note> : null}
         {!can && setup.status !== 'abandoned' ? (
-          <ReadOnlyNote action="Connecting or changing a provider" perm="providers:manage" helpers={setup.helpers}>
-            You can follow this setup.
-          </ReadOnlyNote>
+          <ReadOnlyNote msg={m.readOnlySetup} perm="providers:manage" helpers={setup.helpers} />
         ) : null}
         <StepScreen view={view} props={props} />
       </WizardBody>

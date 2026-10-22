@@ -1,5 +1,7 @@
 import type { Schemas } from '@/api/client'
-import { count } from '@/lib/format'
+import { t, type MessageDescriptor } from '@/i18n'
+import { count, trimPct } from '@/lib/format'
+import { mw } from './warmup.messages'
 
 export type WarmupDay = Schemas['WarmupDay']
 export type WarmupPlan = Schemas['WarmupPlanView']
@@ -26,30 +28,50 @@ export function visibleDays(schedule: WarmupDay[]): WarmupDay[] {
 }
 
 const tierOrder = ['active', 'cooling', 'at_risk', 'sunset']
-const tierName: Record<string, string> = { active: 'Active', cooling: 'Cooling', at_risk: 'At risk', sunset: 'Sunset' }
+const tierName: Record<string, MessageDescriptor> = { active: mw.tierActive, cooling: mw.tierCooling, at_risk: mw.tierAtRisk, sunset: mw.tierSunset }
+
+/** A tier's name in the app language; an unknown key as it is. */
+function tierText(key: string): string {
+  const d = tierName[key]
+  return d ? t(d) : key
+}
 
 /** "Active tier", "Active + Cooling", "All tiers except Sunset", "All". */
 export function tiersText(tiers: string[]): string {
   const set = new Set(tiers)
-  if (tierOrder.every((t) => set.has(t))) return 'All'
-  if (tiers.length === 1) return `${tierName[tiers[0]!] ?? tiers[0]} tier`
-  if (tierOrder.slice(0, 3).every((t) => set.has(t)) && !set.has('sunset')) return 'All tiers except Sunset'
-  return tierOrder.filter((t) => set.has(t)).map((t) => tierName[t]).join(' + ')
+  if (tierOrder.every((x) => set.has(x))) return t(mw.tiersAll)
+  if (tiers.length === 1) return t(mw.tierOne, { tier: tierText(tiers[0]!) })
+  if (tierOrder.slice(0, 3).every((x) => set.has(x)) && !set.has('sunset')) return t(mw.tiersExceptSunset)
+  return tierOrder
+    .filter((x) => set.has(x))
+    .map(tierText)
+    .join(' + ')
 }
 
 /** The audience column: tiers, campaigns using the day, share changes. */
 export function audienceText(d: WarmupDay): string {
-  let s = tiersText(d.tiers)
-  for (const u of d.uses) s += ` · ${u.name} uses ${count(u.count)}`
-  if (d.eligible) s += ` · share ${d.share}%, eligible as failover`
-  else if (d.shareChange) s += ` · share rises to ${d.share}%`
-  return s
+  const parts = [tiersText(d.tiers)]
+  for (const u of d.uses) parts.push(t(mw.dayUses, { name: u.name, count: count(u.count) }))
+  if (d.eligible) parts.push(t(mw.dayEligible, { share: trimPct(d.share) }))
+  else if (d.shareChange) parts.push(t(mw.dayShareRises, { share: trimPct(d.share) }))
+  return parts.join(' · ')
 }
 
 export const dayStatus: Record<WarmupDay['status'], { tone: 'ok' | 'warn' | 'info' | 'neutral'; text: (guard: number) => string }> = {
-  done: { tone: 'ok', text: () => 'Done' },
-  slowdown: { tone: 'warn', text: (g) => `Slowdown · bounces over ${Number(g.toFixed(2))}%` },
-  resumed: { tone: 'ok', text: () => 'Done · ramp resumed' },
-  today: { tone: 'info', text: () => 'Today' },
-  planned: { tone: 'neutral', text: () => 'Planned' },
+  done: { tone: 'ok', text: () => t(mw.statusDone) },
+  slowdown: { tone: 'warn', text: (g) => t(mw.statusSlowdown, { limit: trimPct(g) }) },
+  resumed: { tone: 'ok', text: () => t(mw.statusResumed) },
+  today: { tone: 'info', text: () => t(mw.statusToday) },
+  planned: { tone: 'neutral', text: () => t(mw.statusPlanned) },
+}
+
+/**
+ * A percentage typed in a guard field: "2.0 %", "2,0 %" or "2%" (the field
+ * shows the region's decimal mark); undefined when it isn't a number.
+ */
+export function guardIn(s: string): number | undefined {
+  const v = s.replace('%', '').replace(',', '.').trim()
+  if (!/^\d*\.?\d+$/.test(v)) return undefined
+  const n = Number(v)
+  return Number.isFinite(n) ? n : undefined
 }
