@@ -8,13 +8,20 @@ import (
 	"time"
 
 	gomjml "github.com/preslavrachev/gomjml/mjml"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // MJMLProblem is a compile error or warning with its line (0 when unknown).
+// Message is in English; In writes it in a reader's language.
 type MJMLProblem struct {
 	Line    int    `json:"line"`
 	Message string `json:"message"`
 	Tag     string `json:"tag,omitempty"`
+	// text is the problem after "Line N: " when it is one of ours; detail
+	// the compiler's own words after it.
+	text   i18n.Text
+	detail string
 }
 
 // Result is the outcome of a server-side compile.
@@ -51,7 +58,7 @@ func Compile(src string) Result {
 	if _, err := Parse(src); err != nil {
 		var pe *ParseError
 		if errors.As(err, &pe) {
-			return Result{Errors: []MJMLProblem{{Line: pe.Line, Message: pe.Error()}}, Duration: time.Since(start)}
+			return Result{Errors: []MJMLProblem{{Line: pe.Line, Message: pe.Error(), text: pe.text}}, Duration: time.Since(start)}
 		}
 		return Result{Errors: []MJMLProblem{{Message: err.Error()}}, Duration: time.Since(start)}
 	}
@@ -70,6 +77,7 @@ func Compile(src string) Result {
 		if m := xmlLine.FindStringSubmatch(err.Error()); m != nil {
 			p.Line, _ = strconv.Atoi(m[1])
 			p.Message = "Line " + m[1] + ": " + m[2]
+			p.detail = m[2]
 		}
 		var me *gomjml.Error
 		if errors.As(err, &me) && len(me.Details) > 0 {
