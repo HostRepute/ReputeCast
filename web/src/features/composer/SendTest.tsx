@@ -108,10 +108,11 @@ export function SendTestButton({ disabled, toMe }: { disabled?: boolean; toMe?: 
         <input className="in" value={extra} onChange={(e) => setExtra(e.target.value)} placeholder={'name@example.com'} />
       </label>
       <div className="flex items-center gap-2 border-t border-line-2 px-2.5 pt-2.5 pb-1">
-        <span className="k flex-1">{t(m.testRoute)}</span>
+        <span className="k min-w-0 flex-1">{t(m.testRoute)}</span>
+        {/* The popover's menu-item rule would stretch the button and drop its border and weight. */}
         <button
           type="button"
-          className="btn pri sm"
+          className="btn pri sm w-auto shrink-0 border font-semibold"
           disabled={!recipients.length || recipients.length > 10}
           aria-busy={busy || undefined}
           onClick={() => void run(recipients, language).then((ok) => ok && setOpen(false))}
