@@ -16,7 +16,7 @@ Usage:
 
   reputecast-adapter help
 
-Docs: https://github.com/hostrepute/reputecast/blob/main/docs/adapters.md#community-adapters
+Docs: https://docs.reputecast.com/adapters/community/
 `;
 
 const DEFAULT_CONFIGS = ["reputecast.contract.ts", "reputecast.contract.js", "reputecast.contract.mjs"];

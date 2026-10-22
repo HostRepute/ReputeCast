@@ -14,6 +14,7 @@
 </p>
 
 <p align="center">
+  <a href="https://docs.reputecast.com/">Documentation</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="docs/deploy/README.md">Self-hosting</a> ·
   <a href="docs/api/README.md">API</a> ·

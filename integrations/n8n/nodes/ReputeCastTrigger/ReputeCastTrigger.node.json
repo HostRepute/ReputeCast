@@ -6,12 +6,12 @@
 	"resources": {
 		"credentialDocumentation": [
 			{
-				"url": "https://github.com/hostrepute/reputecast/blob/main/integrations/n8n/README.md#credentials"
+				"url": "https://docs.reputecast.com/integrations/n8n/#connect-n8n"
 			}
 		],
 		"primaryDocumentation": [
 			{
-				"url": "https://github.com/hostrepute/reputecast/blob/main/integrations/n8n/README.md#triggers"
+				"url": "https://docs.reputecast.com/integrations/n8n/"
 			}
 		]
 	}

@@ -12,8 +12,8 @@ import { sentByLanguage } from '@/features/languages/report'
 import { m } from './messages'
 import { bounceSub, comparison, notReportedLine, pct1, pct2, sentByLine, trendLabel, type CampaignReport, type TileComparison } from './words'
 
-/** "What SMTP can and can't do": the adapters guide, whose table says what each provider reports. */
-const SMTP_GUIDE = 'https://github.com/hostrepute/reputecast/blob/main/docs/adapters.md'
+/** "What SMTP can and can't do": the comparison of the built-in adapters, whose table says what each provider reports. */
+const SMTP_GUIDE = 'https://docs.reputecast.com/providers/choose/#compare-the-built-in-adapters'
 
 type Column = Schemas['ReportProviderColumn']
 

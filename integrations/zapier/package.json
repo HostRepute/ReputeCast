@@ -4,7 +4,7 @@
   "description": "ReputeCast for Zapier: start Zaps from ReputeCast events, and create contacts, tag them, record events and send transactional email from your other apps.",
   "private": true,
   "license": "AGPL-3.0-only",
-  "homepage": "https://github.com/hostrepute/reputecast/tree/main/integrations/zapier",
+  "homepage": "https://docs.reputecast.com/integrations/zapier/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hostrepute/reputecast.git",
