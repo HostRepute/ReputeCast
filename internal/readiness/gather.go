@@ -296,7 +296,7 @@ func (s *Service) route(ctx context.Context, g *gathered, f Facts) (RouteFacts, 
 		u := usage[p.ID]
 		sh := ShareFacts{ProviderID: p.ID.String(), Name: p.Name, Short: state.Short(p.Name, p.Adapter), Adapter: p.Adapter, Label: p.Label,
 			Recipients: counts[p.ID], Status: p.Status, Available: state.Available(p), Pricing: state.PricingOf(p), Limits: state.LimitsOf(p),
-			Account: h.Account, Sandbox: h.Sandbox || p.Status == state.Sandbox, Quota: h.Quota, BulkAllowed: caps.BulkAllowed(), Terms: termsOf(p, caps),
+			Account: h.Account, Sandbox: h.Sandbox || p.Status == state.Sandbox, Quota: h.Quota, BulkAllowed: caps.BulkAllowed(), Terms: termsOf(p, caps), TermsKind: termsKind(p, caps),
 			Tracking: state.TrackingOf(p), IPs: p.Ips, ConnectedAt: p.ConnectedAt, Bounce: u.Bounce7d, Complaint: u.Complaint7d,
 			ProviderReported: state.ReputationOf(h, f.Now) != nil}
 		if p.IpMode != "dedicated" {
@@ -310,6 +310,7 @@ func (s *Service) route(ctx context.Context, g *gathered, f Facts) (RouteFacts, 
 		if h.Down != nil {
 			since := h.Down.Since
 			sh.DownSince = &since
+			sh.Down = downFacts(p, h)
 			sh.DownDetail = downDetail(p, h, f.Now, loc)
 		}
 		if h.Rate != nil && h.Rate.Max > 0 {
@@ -338,43 +339,57 @@ func sameDay(a, b time.Time, loc *time.Location) bool {
 	return x.Year() == y.Year() && x.YearDay() == y.YearDay()
 }
 
-func termsOf(p store.Provider, caps state.Snapshot) string {
+// termsKind is what a provider's terms say about bulk marketing, as a
+// key of the terms.* messages: "yes, with production access".
+func termsKind(p store.Provider, caps state.Snapshot) string {
 	switch caps.Bulk {
 	case providers.BulkAllowed:
 		if p.Adapter == "ses" {
-			return "yes, with production access"
+			return "productionAccess"
 		}
 		return "yes"
 	case providers.BulkYourPolicy:
-		return "self-hosted, your own policy"
+		return "ownPolicy"
 	case providers.BulkBroadcastStreams:
 		if caps.BroadcastStream {
-			return "on its Broadcast stream"
+			return "broadcastStream"
 		}
-		return "only on a Broadcast stream, and this route uses its transactional stream"
+		return "transactionalStream"
 	}
-	return "transactional mail only"
+	return "transactionalOnly"
 }
 
-func downDetail(p store.Provider, h state.Health, now time.Time, loc *time.Location) string {
-	since := Clock(h.Down.Since, now, loc)
+// termsOf is the terms in English, as runs store them.
+func termsOf(p store.Provider, caps state.Snapshot) string {
+	return tx("terms."+termsKind(p, caps), nil).en()
+}
+
+// downFacts says why a provider can't take mail, and who: the provider
+// for rejected credentials, its server for refused connections.
+func downFacts(p store.Provider, h state.Health) *DownFacts {
+	d := &DownFacts{Since: h.Down.Since, Who: p.Name}
 	if h.Down.Reason == "auth" {
-		return fmt.Sprintf("%s has rejected the credentials since %s", p.Name, since)
+		d.Auth = true
+		return d
 	}
-	who := p.Name
 	var cfg struct {
 		ServerURL string `json:"server_url"`
 		Host      string `json:"host"`
 	}
 	_ = json.Unmarshal(p.Config, &cfg)
 	if host := strings.TrimPrefix(strings.TrimPrefix(firstNonEmpty(cfg.ServerURL, cfg.Host), "https://"), "http://"); host != "" {
-		who = strings.TrimSuffix(host, "/")
+		d.Who = strings.TrimSuffix(host, "/")
 	}
-	s := fmt.Sprintf("%s has refused connections since %s", who, since)
-	if h.LastError != nil && h.LastError.Code != "" {
-		s += " (" + h.LastError.Code + ")"
+	if h.LastError != nil {
+		d.Code = h.LastError.Code
 	}
-	return s
+	return d
+}
+
+// downDetail is the outage in English, as runs store it.
+func downDetail(p store.Provider, h state.Health, now time.Time, loc *time.Location) string {
+	b := &builder{f: Facts{Now: now}, loc: loc}
+	return b.downText(ShareFacts{Down: downFacts(p, h)}).en()
 }
 
 // auth reads the stored authentication check of the sending domain.
@@ -450,7 +465,8 @@ func (s *Service) auth(ctx context.Context, g *gathered, f Facts) (AuthFacts, er
 		if len(spfRecs) > 0 {
 			spf.OK = allVerified(spfRecs)
 			if !spf.OK {
-				spf.Detail = "add " + spfRecs[0].Value + " to the SPF record of " + spfRecs[0].Name
+				spf.DetailKind, spf.Value, spf.Name = AuthSPFAdd, spfRecs[0].Value, spfRecs[0].Name
+				spf.Detail = tx("auth.spfAdd", A{"value": spf.Value, "name": spf.Name}).en()
 			}
 		} else if len(rpRecs) > 0 {
 			for _, mf := range auth.MailFrom {
@@ -476,12 +492,15 @@ func (s *Service) auth(ctx context.Context, g *gathered, f Facts) (AuthFacts, er
 			}
 			switch {
 			case !dk.OK:
-				dk.Detail = "DKIM records not verified"
+				dk.DetailKind = AuthUnverified
+				dk.Detail = tx("auth.dkimUnverified", nil).en()
 			case sh.Adapter == "ses":
-				dk.Detail = fmt.Sprintf("%d Easy DKIM CNAMEs verified", len(dkimRecs))
+				dk.DetailKind, dk.CNAMEs = AuthCNAMEs, len(dkimRecs)
+				dk.Detail = tx("auth.cnames", A{"count": dk.CNAMEs}).en()
 			default:
 				sel, _, _ := strings.Cut(strings.ToLower(dkimRecs[0].Name), "._domainkey.")
-				dk.Detail = "selector " + sel + " verified"
+				dk.DetailKind, dk.Selector = AuthSelector, sel
+				dk.Detail = tx("auth.selector", A{"selector": sel}).en()
 			}
 			out.DKIM = append(out.DKIM, dk)
 		}
@@ -511,7 +530,8 @@ func allVerified(rs []dnscheck.RecordCheck) bool {
 func (s *Service) reputation(ctx context.Context, g *gathered, f Facts) (ReputationFacts, error) {
 	out := ReputationFacts{Status: Unknown, Via: "none", Listings: []ListingFacts{}}
 	if s.Deliverability == nil {
-		out.Reason = "Blocklist checks aren't available in this process."
+		out.ReasonText = tx("reputation.unavailable", nil)
+		out.Reason = out.ReasonText.en()
 		return out, nil
 	}
 	rep, err := s.Deliverability.Reputation(ctx, g.ws)

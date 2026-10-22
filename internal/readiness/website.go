@@ -36,7 +36,8 @@ type WebsiteChecker interface {
 	WebFacts(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID) WebFacts
 }
 
-// web adds the web checks to the Content group.
+// web adds the web checks to the Content group. Their texts are the
+// website's own (English).
 func (b *builder) web() {
 	if !b.f.Web.Ran {
 		return
@@ -52,12 +53,13 @@ func (b *builder) web() {
 		case "block":
 			status = Block
 		}
-		ch := ReadinessCheck{Key: "content.web." + c.Key, Group: GroupContent, Status: status, Label: "Web", Title: c.Title, Detail: c.Detail, Short: c.Title}
+		title := RawText(c.Title)
+		ch := check{Key: "content.web." + c.Key, Group: GroupContent, Status: status, Label: tx("label.web", nil), Title: title, Detail: RawText(c.Detail), Short: title}
 		if c.Href != "" {
-			ch.Fixes = []ReadinessFix{link("Open the Web tab", c.Href)}
+			ch.Fixes = []fix{link(tx("fix.openWebTab", nil), c.Href)}
 		}
 		if status == Warn {
-			ch.Ack = "I understand: " + c.Title + "."
+			ch.Ack = tx("check.ackTitle", A{"title": title})
 		}
 		b.add(ch)
 	}

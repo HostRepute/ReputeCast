@@ -157,7 +157,7 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	reviewed := c
 	sched := readiness.ParseSchedule(c.Schedule)
 	if in.Schedule != nil {
-		next, _, err := in.Schedule.Resolve("body.schedule")
+		next, _, err := in.Schedule.Resolve(ctx, "body.schedule")
 		if err != nil {
 			return ReviewSendResult{}, err
 		}

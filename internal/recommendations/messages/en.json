@@ -26,5 +26,20 @@
   "notify.invalidBody": "Their instance rejected our signature or ended the partnership. The recommendation is hidden until you paste a new partner code.",
   "notify.unreachableTitle": { "message": "{partner} isn't answering", "note": "partner: the newsletter" },
   "notify.unreachableBody": "Subscribe requests are waiting and will be retried for 24 hours. Readers are told their request was passed on.",
-  "prefill.private": "That page is on a private address. Recommend a page anyone can open."
+  "prefill.private": "That page is on a private address. Recommend a page anyone can open.",
+
+  "readiness.label": {"message": "Recommendations block", "note": "the Recommendations block's row in Send Readiness, in compact tables"},
+  "readiness.short": "recommendations block",
+  "readiness.open": "Open recommendations",
+  "readiness.none": "No recommendation can show right now. The Recommendations block will be hidden.",
+  "readiness.noneAck": "I understand the Recommendations block won't show.",
+  "readiness.shows": "Recommendations block: {count, plural, one {# recommendation shows} other {# recommendations show}}",
+  "readiness.hiddenNote": {"message": "{name} is hidden ({reason}).", "note": "name: the recommended newsletter; reason: why it's hidden"},
+  "readiness.hidden.paused": "paused",
+  "readiness.hidden.partner_paused": "paused by the partner",
+  "readiness.hidden.invalid": "partner link invalid",
+  "readiness.hidden.limit": "daily limit reached",
+  "readiness.hidden.ended": "partnership ended",
+  "readiness.hidden.not_in_emails": "confirmation page only",
+  "readiness.hidden.other": "{state}"
 }
