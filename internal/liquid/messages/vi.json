@@ -1,0 +1,11 @@
+{
+  "token.first_name": "Tên",
+  "token.last_name": "Họ",
+  "token.email": "Địa chỉ email",
+  "token.unsubscribe_url": "Liên kết hủy đăng ký",
+  "token.preferences_url": "Liên kết tùy chọn email",
+  "token.view_in_browser_url": "Liên kết xem trên trình duyệt",
+  "fallback.first_name": "bạn",
+  "problem.line": "Dòng {line}: {message}",
+  "problem.loopLimit": "Vòng lặp chỉ được tối đa {max} mục; ({from}..{to}) có {count} mục."
+}
