@@ -746,7 +746,10 @@ function MembersCard({ data, overview }: { data: Access; overview: Overview }) {
       <div className="pad flex flex-col gap-3">
         <div className="ws-stats" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))' }}>
           <div className="card ws-stat">
-            <span className="k">{t(ma.signedInSince, { date: since ? dayMonthDate(since) : '' })}</span>
+            <span className="k">
+              {/* The date stays whole when a longer label wraps ("4 thg 10"). */}
+              <T msg={ma.signedInSince} values={{ date: <span className="whitespace-nowrap">{since ? dayMonthDate(since) : ''}</span> }} />
+            </span>
             <span className="v">{count(data.members.signedIn)}</span>
             <span className="s">{t(ma.signedInSinceText)}</span>
           </div>
