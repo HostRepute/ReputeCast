@@ -465,7 +465,6 @@ is a name and stays in English.
 | re-permission | xin phép lại | "re-permission flow": "quy trình xin phép lại" |
 | read-only link | liên kết chỉ xem | a shared report's |
 | RSS feed | nguồn cấp RSS | |
-| Send Readiness | Độ sẵn sàng gửi | "Readiness" alone is "Độ sẵn sàng" |
 | sender health | sức khỏe người gửi | the Overview's score; reputation is "uy tín" |
 | signup · submission (form) | lượt đăng ký · lượt gửi | "Views · Submissions": "Lượt xem · Lượt gửi" |
 | single opt-in | xác nhận một bước | double opt-in is "xác nhận hai bước" |
@@ -474,7 +473,6 @@ is a name and stays in English.
 | System stream · System mail | luồng Hệ thống · thư Hệ thống | the stream's name keeps its capital |
 | tag | thẻ | |
 | title (archived issue) | tựa đề | "tiêu đề" is an email's subject, "đề mục" a heading |
-| winner (A/B) | phương án thắng | "B thắng" |
 
 ## Words used everywhere
 

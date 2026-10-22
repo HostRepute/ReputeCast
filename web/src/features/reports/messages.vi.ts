@@ -135,12 +135,12 @@ export default translate(m, {
 
   // ── A/B test ─────────────────────────────────────────────────────────
   abTitle: 'Thử nghiệm A/B · {label}',
-  abVariantWinner: '{variant} · thắng',
+  abVariantWinner: '{variant} · bản thắng',
   abHumanOpens: '<b>{rate}</b> lượt mở bởi người đọc',
   abClicks: '<b>{rate}</b> lượt nhấp',
   abComplaints: '<b>{rate}</b> khiếu nại',
-  abHowIs: 'Cách chọn phương án thắng',
-  abHowWas: 'Phương án thắng được chọn thế nào',
+  abHowIs: 'Cách chọn bản thắng',
+  abHowWas: 'Bản thắng được chọn thế nào',
   abTesting: 'Đang thử nghiệm',
   abTestingAt: 'Đang thử nghiệm · quyết định lúc {time}',
   abWinner: '{variant} thắng',
@@ -150,18 +150,18 @@ export default translate(m, {
   abNotYet: 'Chưa có ý nghĩa thống kê',
   abNotYetConf: 'Chưa có ý nghĩa thống kê · độ tin cậy {confidence}',
   abDecides:
-    '{metric, select, clicks {Lượt nhấp} other {Lượt mở bởi người đọc}} trong {hours, plural, other {# giờ}} sau khi gửi nhóm mẫu sẽ quyết định{stats, select, yes {; đến giờ kiểm định z hai tỷ lệ cho mức tăng {lift} điểm, p = {p}} other {}}.',
+    '{metric, select, clicks {Lượt nhấp} other {Lượt mở bởi người đọc}} trong {hours, plural, other {# giờ}} sau khi gửi nhóm thử sẽ quyết định{stats, select, yes {; đến giờ kiểm định z hai tỷ lệ cho mức tăng {lift} điểm, p = {p}} other {}}.',
   abResult:
-    '{metric, select, clicks {Lượt nhấp} other {Lượt mở bởi người đọc}} trong {hours, plural, other {# giờ}} sau khi gửi nhóm mẫu{stats, select, yes {, kiểm định z hai tỷ lệ, mức tăng {lift} điểm, p = {p}} other {}}.',
+    '{metric, select, clicks {Lượt nhấp} other {Lượt mở bởi người đọc}} trong {hours, plural, other {# giờ}} sau khi gửi nhóm thử{stats, select, yes {, kiểm định z hai tỷ lệ, mức tăng {lift} điểm, p = {p}} other {}}.',
   abNotSignificant:
-    '{metric, select, clicks {Lượt nhấp} other {Lượt mở bởi người đọc}} trong {hours, plural, other {# giờ}} sau khi gửi nhóm mẫu{stats, select, yes {, kiểm định z hai tỷ lệ, mức tăng {lift} điểm, p = {p}} other {}}: chưa có ý nghĩa thống kê, nên khác biệt có thể là ngẫu nhiên.',
+    '{metric, select, clicks {Lượt nhấp} other {Lượt mở bởi người đọc}} trong {hours, plural, other {# giờ}} sau khi gửi nhóm thử{stats, select, yes {, kiểm định z hai tỷ lệ, mức tăng {lift} điểm, p = {p}} other {}}: chưa có ý nghĩa thống kê, nên khác biệt có thể là ngẫu nhiên.',
   abMachine: 'Lượt mở tự động bị loại ra để các lần tải trước của Apple Mail không thể quyết định kết quả.',
-  abEveryoneAt: 'Những người còn lại nhận phương án thắng lúc {time}, trừ khi khác biệt chưa có ý nghĩa thống kê.',
-  abEveryoneEnd: 'Những người còn lại nhận phương án thắng khi thử nghiệm kết thúc.',
+  abEveryoneAt: 'Những người còn lại nhận bản thắng lúc {time}, trừ khi khác biệt chưa có ý nghĩa thống kê.',
+  abEveryoneEnd: 'Những người còn lại nhận bản thắng khi thử nghiệm kết thúc.',
   abRemaining: '{n, plural, other {{count} người nhận còn lại đã nhận {winner}.}}',
   abRemainingAt: '{n, plural, other {{count} người nhận còn lại đã nhận {winner} lúc {time}.}}',
-  variantLine: '{count} người nhận · nhóm mẫu {sample}',
-  variantLineRemaining: '{count} người nhận · nhóm mẫu {sample}, sau đó {remaining} người còn lại',
+  variantLine: '{count} người nhận · nhóm thử {sample}',
+  variantLineRemaining: '{count} người nhận · nhóm thử {sample}, sau đó {remaining} người còn lại',
 
   // ── Engagement chart ─────────────────────────────────────────────────
   engagementTitle: 'Tương tác trong 72 giờ đầu',
@@ -182,7 +182,7 @@ export default translate(m, {
   coming: 'Lượt mở và lượt nhấp đang về; đường biểu đồ được vẽ dần trong 72 giờ.',
   within6h: '{final, select, yes {{share} lượt mở bởi người đọc diễn ra trong 6 giờ đầu.} other {Đến lúc này, {share} lượt mở bởi người đọc diễn ra trong 6 giờ đầu.}}',
   within6hRollout:
-    '{final, select, yes {{share} lượt mở bởi người đọc diễn ra trong 6 giờ đầu; phương án thắng {variant} của A/B được gửi lúc {time}, tạo nên đợt tăng thứ hai.} other {Đến lúc này, {share} lượt mở bởi người đọc diễn ra trong 6 giờ đầu; phương án thắng {variant} của A/B được gửi lúc {time}, tạo nên đợt tăng thứ hai.}}',
+    '{final, select, yes {{share} lượt mở bởi người đọc diễn ra trong 6 giờ đầu; bản thắng {variant} của A/B được gửi lúc {time}, tạo nên đợt tăng thứ hai.} other {Đến lúc này, {share} lượt mở bởi người đọc diễn ra trong 6 giờ đầu; bản thắng {variant} của A/B được gửi lúc {time}, tạo nên đợt tăng thứ hai.}}',
 
   // ── Click map ────────────────────────────────────────────────────────
   clickMap: 'Bản đồ lượt nhấp',

@@ -122,7 +122,7 @@ export default translate(m, {
   actUnsubscribedSubject: '<b>Hủy đăng ký</b> từ {subject}',
   actDelivery:
     '<b>{type, select, delivered {Gửi thành công} deferred {Bị hoãn} soft_bounce {Trả thư tạm thời} hard_bounce {Trả thư vĩnh viễn} complaint {Khiếu nại} rejected {Bị từ chối} open {Đã mở} click {Đã nhấp} unsubscribe {Hủy đăng ký} other {{label}}}</b> {subject}',
-  actVariant: 'phương án {variant}',
+  actVariant: 'biến thể {variant}',
   actVia: 'qua {provider}',
   actSentFrom: 'gửi từ {origin}',
   failover: 'chuyển dự phòng',
