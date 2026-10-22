@@ -201,7 +201,7 @@
   "label.ab": "{kind, select, subject {Thử nghiệm tiêu đề} content {Thử nghiệm nội dung} send_time {Thử nghiệm thời điểm gửi} other {Thử nghiệm A/B}} · {variants} biến thể · nhóm thử {sample}",
   "label.excluded": "{suppressed, number} bị chặn gửi · {bounced, select, yes {gần đây có trả thư} other {0 trả thư trong 30 ngày}} · địa chỉ chức danh",
   "label.autoPause": "Tỷ lệ trả thư {bounce} · tỷ lệ khiếu nại {complaint} theo nhà cung cấp hộp thư",
-  "label.visibility": "{visibility, select, members {Thành viên} paid {Trả phí} other {Công khai}}",
+  "label.visibility": "{visibility, select, members {Hội viên} paid {Trả phí} other {Công khai}}",
   "label.automationChange": "{kind, select, added {đã thêm} removed {đã xóa} other {đã đổi}}: {title}",
   "note.comment": "{name}: “{comment}”",
   "note.cancelled": "tác giả đã rút lại",
