@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/webhooks"
@@ -60,31 +61,15 @@ type WhatsAppTemplate struct {
 	SyncedAt      time.Time                `json:"syncedAt"`
 }
 
-var languageLabels = map[string]string{"en_US": "English (US)", "en_GB": "English (UK)", "en": "English", "de": "German", "fr": "French", "es": "Spanish",
-	"es_MX": "Spanish (MEX)", "es_ES": "Spanish (SPA)", "nl": "Dutch", "it": "Italian", "pt_BR": "Portuguese (BR)", "pt_PT": "Portuguese (POR)", "vi": "Vietnamese",
-	"ja": "Japanese", "ko": "Korean", "zh_CN": "Chinese (CHN)", "ga": "Irish", "pl": "Polish", "sv": "Swedish", "da": "Danish", "nb": "Norwegian", "fi": "Finnish"}
+// A template's language has a name (language.<code> in
+// messages/<locale>.json), and Meta's rejection codes have words
+// (reason.<code>), used until Meta's own words arrive with a status
+// webhook: LanguageLabelIn, reasonWords and reasonIn (lang.go).
 
-// LanguageLabel names a template's language: "English (US)".
-func LanguageLabel(code string) string {
-	if l, ok := languageLabels[code]; ok {
-		return l
-	}
-	return code
-}
-
-// reasonWords are Meta's rejection codes in words, used until Meta's own
-// words arrive with a status webhook.
-var reasonWords = map[string]string{
-	"INVALID_FORMAT":       "The template's format isn't valid.",
-	"ABUSIVE_CONTENT":      "Meta found content that breaks its policies.",
-	"INCORRECT_CATEGORY":   "The category doesn't match the content.",
-	"TAG_CONTENT_MISMATCH": "The content doesn't match the category.",
-	"SCAM":                 "Meta flagged the content as a possible scam.",
-	"PROMOTIONAL":          "The content is promotional: use the Marketing category.",
-}
-
-func templateView(t store.WhatsappTemplate) WhatsAppTemplate {
-	out := WhatsAppTemplate{ID: t.ID.String(), Name: t.Name, Language: t.Language, LanguageLabel: LanguageLabel(t.Language), Category: t.Category,
+// templateView is a template as a reader reads it: its language's name and
+// a rejection reason in ReputeCast's words in their language.
+func templateView(l i18n.Lang, t store.WhatsappTemplate) WhatsAppTemplate {
+	out := WhatsAppTemplate{ID: t.ID.String(), Name: t.Name, Language: t.Language, LanguageLabel: LanguageLabelIn(l, t.Language), Category: t.Category,
 		Status: t.Status, StatusSince: t.StatusSince, Reason: t.Reason, ReasonCode: t.ReasonCode, Body: t.Body, Variables: []WhatsAppTemplateVar{},
 		Buttons: []WhatsAppTemplateButton{}, SyncedAt: t.SyncedAt}
 	_ = json.Unmarshal(t.Variables, &out.Variables)
@@ -95,8 +80,8 @@ func templateView(t store.WhatsappTemplate) WhatsAppTemplate {
 	if out.Buttons == nil {
 		out.Buttons = []WhatsAppTemplateButton{}
 	}
-	if out.Reason == "" && t.Status == "rejected" {
-		out.Reason = reasonWords[strings.ToUpper(t.ReasonCode)]
+	if t.Status == "rejected" {
+		out.Reason = reasonIn(l, t.ReasonCode, t.Reason)
 	}
 	return out
 }
@@ -217,7 +202,7 @@ func (s *Service) Sync(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	out := WhatsAppSyncResult{Added: []string{}, Changed: []string{}, Removed: []string{}}
 	a, err := s.account(ctx, s.Q, ws)
 	if errors.Is(err, errNoAccount) {
-		return out, api.Conflict("Connect WhatsApp first.")
+		return out, api.Conflict(mConnectFirst.Text(langOf(ctx), nil))
 	}
 	if err != nil {
 		return out, err
@@ -232,11 +217,11 @@ func (s *Service) Sync(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		if errors.As(err, &me) && me.TokenRejected() {
 			_ = s.tokenRejected(ctx, ws, accountOf(a), me)
 			if !system {
-				return out, api.Err(502, "token_rejected", "Meta rejected the access token. Replace it to sync the templates.")
+				return out, api.Err(502, "token_rejected", mSyncTokenRejected.Text(langOf(ctx), nil))
 			}
 		}
 		if !system {
-			return out, api.Err(502, "meta_unavailable", "Meta's Graph API didn't answer. Try again in a moment.")
+			return out, api.Err(502, "meta_unavailable", mMetaUnavailable.Text(langOf(ctx), nil))
 		}
 		return out, err
 	}
@@ -272,7 +257,7 @@ func (s *Service) Sync(ctx context.Context, ws *store.Workspace, p *authz.Princi
 			}
 			reason := ""
 			if status == "rejected" {
-				reason = reasonWords[strings.ToUpper(t.RejectedReason)]
+				reason = reasonWords(t.RejectedReason)
 			}
 			code := ""
 			if status == "rejected" && !strings.EqualFold(t.RejectedReason, "NONE") {
@@ -343,20 +328,23 @@ func containsID(ids []uuid.UUID, id uuid.UUID) bool {
 	return false
 }
 
-// notifyRejected tells the providers' managers Meta rejected a template.
+// notifyRejected tells the providers' managers Meta rejected a template,
+// each in their own language; a reason Meta gave in its own words stays as
+// Meta gave it.
 func (s *Service) notifyRejected(ctx context.Context, ws *store.Workspace, accountID uuid.UUID, name string) {
 	t, err := s.Q.WhatsAppTemplateByName(ctx, store.WhatsAppTemplateByNameParams{AccountID: accountID, Name: name})
-	reason := ""
-	if err == nil {
-		reason = templateView(t).Reason
-	}
-	summary := "Meta rejected " + name
-	if reason != "" {
-		summary += ": “" + reason + "”"
+	args := i18n.Args{"name": name}
+	summary := mNotifyRejectedSummary.Keep(args)
+	if err == nil && t.Status == "rejected" {
+		switch words := reasonWords(t.ReasonCode); {
+		case words != "" && (t.Reason == "" || t.Reason == words):
+			summary = mNotifyRejectedCode.Keep(i18n.Args{"name": name, "code": strings.ToLower(t.ReasonCode), "reason": words})
+		case t.Reason != "":
+			summary = mNotifyRejectedMeta.Keep(i18n.Args{"name": name, "reason": t.Reason})
+		}
 	}
 	if err := notify.ToMembersWith(ctx, s.Pool, ws.ID, authz.ProvidersView, notify.Notification{Kind: notify.KindWhatsAppAttention, Severity: "warn",
-		Title: "WhatsApp template " + name + " rejected", Summary: summary,
-		Body: "Fix the template in WhatsApp Manager and submit it again; ReputeCast picks up the new status at the next sync.",
+		TitleText: mNotifyRejectedTitle.Keep(args), SummaryText: summary, BodyText: mNotifyRejectedBody.Keep(nil),
 		Link: "/w/" + ws.Slug + "/providers/whatsapp/templates", Data: map[string]any{"template": name}}); err != nil {
 		s.log().WarnContext(ctx, "whatsapp template notification", "err", err)
 	}
@@ -386,8 +374,9 @@ func (s *Service) Templates(ctx context.Context, ws *store.Workspace) ([]WhatsAp
 	if err != nil {
 		return out, err
 	}
+	l := langOf(ctx)
 	for _, t := range ts {
-		out = append(out, templateView(t))
+		out = append(out, templateView(l, t))
 	}
 	return out, nil
 }
@@ -410,7 +399,7 @@ func (s *Service) applyTemplateStatus(ctx context.Context, ws *store.Workspace, 
 	}
 	words := strings.TrimSpace(e.ReasonText)
 	if words == "" && status == "rejected" {
-		words = reasonWords[code]
+		words = reasonWords(code)
 	}
 	err = s.tx(ctx, func(q *store.Queries, tx pgx.Tx) error {
 		if err := q.WhatsAppTemplateSetStatus(ctx, store.WhatsAppTemplateSetStatusParams{Status: status, At: now, ReasonCode: code, Reason: words, AccountID: a.ID,
