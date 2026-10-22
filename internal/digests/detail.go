@@ -15,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/readiness"
@@ -489,7 +490,7 @@ func (s *Service) nextIssue(ctx context.Context, ws *store.Workspace, d store.Di
 				if run, err := ch.Latest(ctx, *issue.CampaignID); err == nil && run != nil {
 					rd := &DigestIssueReadiness{RunID: run.ID, Verdict: run.Verdict, Passed: run.Counts.Passed, Warnings: run.Counts.Warnings, Blocks: run.Counts.Blocks,
 						RanAt: run.RanAt, Blocking: []string{}}
-					for _, c := range run.Checks {
+					for _, c := range readiness.InChecks(run.Checks, i18n.LangFrom(ctx)) {
 						if c.Status == readiness.Block {
 							rd.Blocking = append(rd.Blocking, firstNonEmpty(c.FlatTitle, c.Title))
 						}

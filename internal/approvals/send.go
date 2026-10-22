@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/readiness"
@@ -646,6 +647,22 @@ func (s *Service) heldView(ctx context.Context, h store.CampaignIncident) *Revie
 			out.Reason = firstNonEmptyStr(out.Blocks[0].FlatTitle, out.Blocks[0].Title)
 		}
 	}
+	// The blocks read in the reader's language; a reason that is a block's
+	// title (as the run stored it) reads as that block does.
+	l := i18n.LangFrom(ctx)
+	read := readiness.InChecks(out.Blocks, l)
+	for i, b := range out.Blocks {
+		switch out.Reason {
+		case b.FlatTitle:
+			out.Reason = read[i].FlatTitle
+		case b.Title:
+			out.Reason = read[i].Title
+		default:
+			continue
+		}
+		break
+	}
+	out.Blocks = read
 	return out
 }
 

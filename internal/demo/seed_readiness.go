@@ -100,7 +100,7 @@ func (r *readinessSeed) ses(n int64, pct float64) readiness.ShareFacts {
 	return readiness.ShareFacts{ProviderID: s.Providers["ses"].String(), Name: "Amazon SES", Short: "SES", Adapter: "ses", Label: "us-east-1", Recipients: n, Percent: pct,
 		Status: state.Healthy, Available: true, Rate: 14, Pricing: state.Pricing{Model: "metered", Per1000: 0.10}, Bounce: f64(0.6), Complaint: f64(0.04),
 		Limits:  state.Limits{Bounce: state.Limit{Limit: 5, Review: 5, Pause: 10, Label: "SES"}, Complaint: state.Limit{Limit: 0.1, Review: 0.1, Pause: 0.5, Label: "SES"}},
-		Account: "Production · no enforcement", Quota: &state.Quota{Kind: "rolling_24h", Max: 50000, Used: 2140}, BulkAllowed: true, Terms: "yes, with production access",
+		Account: "Production · no enforcement", Quota: &state.Quota{Kind: "rolling_24h", Max: 50000, Used: 2140}, BulkAllowed: true, Terms: "yes, with production access", TermsKind: "productionAccess",
 		Tracking: state.Tracking{Scope: "Configuration set rc-broadcasts", Mode: "reputecast"}, ConnectedAt: s.Ago(210 * 24 * time.Hour)}
 }
 
@@ -110,7 +110,7 @@ func (r *readinessSeed) postal(n int64, pct float64) readiness.ShareFacts {
 		Recipients: n, Percent: pct, Status: state.WarmingUp, Available: true, WarmupDay: 9, WarmupDays: 21, WarmupCap: 6000, WarmupToday: true, Rate: 2, RateRamp: true,
 		Pricing: state.Pricing{Model: "self_hosted", Monthly: 24}, Bounce: f64(0.9), Complaint: f64(0.05),
 		Limits: state.Limits{Bounce: state.Limit{Limit: 2, Label: "warm-up guard"}, Complaint: state.Limit{Limit: 0.1}}, Account: "Postal 3.3.4 · reachable",
-		BulkAllowed: true, Terms: "self-hosted, your own policy", Tracking: state.Tracking{Scope: "mail server mta.acme.io", Mode: "reputecast"},
+		BulkAllowed: true, Terms: "self-hosted, your own policy", TermsKind: "ownPolicy", Tracking: state.Tracking{Scope: "mail server mta.acme.io", Mode: "reputecast"},
 		IPs: []string{"203.0.113.25"}, ConnectedAt: s.Ago(8*24*time.Hour + 2*time.Hour)}
 }
 
@@ -129,8 +129,8 @@ func (r *readinessSeed) baseFacts(checked time.Time) readiness.Facts {
 		Auth: readiness.AuthFacts{Domain: "news.acme.io", Checked: true, CheckedAt: &checked,
 			SPFRecord: "v=spf1 include:amazonses.com include:spf.mta.acme.io -all",
 			SPF:       []readiness.ProviderAuthFacts{{Short: "SES", OK: true}, {Short: "Postal", OK: true}},
-			DKIM: []readiness.ProviderAuthFacts{{Short: "SES", OK: true, Detail: "3 Easy DKIM CNAMEs verified", KeyBits: 2048},
-				{Short: "Postal", OK: true, Detail: "selector postal-2026 verified", KeyBits: 2048}},
+			DKIM: []readiness.ProviderAuthFacts{{Short: "SES", OK: true, Detail: "3 Easy DKIM CNAMEs verified", DetailKind: readiness.AuthCNAMEs, CNAMEs: 3, KeyBits: 2048},
+				{Short: "Postal", OK: true, Detail: "selector postal-2026 verified", DetailKind: readiness.AuthSelector, Selector: "postal-2026", KeyBits: 2048}},
 			MailFrom:    []readiness.ProviderAuthFacts{{Short: "SES", OK: true, Domain: "bounce.news.acme.io"}, {Short: "Postal", OK: true, Domain: "rp.news.acme.io"}},
 			DMARCStatus: "pass", DMARCPolicy: "quarantine", DMARCRecord: "v=DMARC1; p=quarantine; rua=mailto:dmarc@reports.hostrepute.com; adkim=s", DMARCAligned: f64(100),
 			BIMIStatus: "missing"},
@@ -198,7 +198,7 @@ func (r *readinessSeed) weeklyDigest(ctx context.Context) error {
 	f := r.baseFacts(checked)
 	f.Campaign = readiness.CampaignFacts{ID: id.String(), Name: "Weekly Digest #142", Subject: subject, Version: 14, CompiledAt: &compiled, SenderName: "Acme Newsletter",
 		SenderEmail: "digest@news.acme.io", SenderDomain: "news.acme.io", StartAt: sched, ScheduleMode: "at"}
-	f.Audience = readiness.AudienceFacts{BaseLabel: "Weekly Digest list", GroupLabel: "Weekly Digest", Lists: []string{"Weekly Digest"}, Base: 31988, Suppressed: 331,
+	f.Audience = readiness.AudienceFacts{BaseLabel: "Weekly Digest list", GroupLabel: "Weekly Digest", BaseKind: readiness.BaseList, BaseName: "Weekly Digest", Lists: []string{"Weekly Digest"}, Base: 31988, Suppressed: 331,
 		Role: 27, Duplicates: 26, Final: 31604, Unengaged: 412, UnengagedDays: 180,
 		Mailboxes: map[string]int64{"gmail": 14538, "outlook": 6637, "yahoo": 2844, "icloud": 2528, "other": 5057}}
 	f.Route = readiness.RouteFacts{Stream: "broadcast", Policy: "pause_and_ask", Shares: []readiness.ShareFacts{r.ses(28444, 90), r.postal(3160, 10)}}
@@ -267,12 +267,13 @@ func (r *readinessSeed) flashSale(ctx context.Context) error {
 	f.Auth.SPF, f.Auth.DKIM, f.Auth.MailFrom = f.Auth.SPF[:1], f.Auth.DKIM[:1], f.Auth.MailFrom[:1]
 	f.Campaign = readiness.CampaignFacts{ID: id.String(), Name: "Flash sale: 48 hours only", Subject: "FLASH SALE!!! 48 HOURS ONLY", Version: 6, CompiledAt: &compiled,
 		SenderName: "Acme", SenderEmail: "hello@news.acme.io", SenderDomain: "news.acme.io", StartAt: s.Now, ScheduleMode: "now"}
-	f.Audience = readiness.AudienceFacts{BaseLabel: "All subscribers", GroupLabel: "All subscribers", Lists: []string{"Weekly Digest", "Product Updates", "Beta Program"},
+	f.Audience = readiness.AudienceFacts{BaseLabel: "All subscribers", GroupLabel: "All subscribers", BaseKind: readiness.BaseAll, Lists: []string{"Weekly Digest", "Product Updates", "Beta Program"},
 		Base: 48213, Suppressed: 340, Role: 31, Final: 47842, Unengaged: 1604, UnengagedDays: 180, SunsetOverride: true,
 		Mailboxes: map[string]int64{"gmail": 22007, "outlook": 10047, "yahoo": 4306, "icloud": 3827, "other": 7655}}
 	postal := r.postal(4784, 10)
 	postal.Status, postal.Available, postal.DownSince = state.Down, false, &down
 	postal.DownDetail = "mta.acme.io has refused connections since 08:52 (ECONNREFUSED on port 25 and 443)"
+	postal.Down = &readiness.DownFacts{Since: down, Who: "mta.acme.io", Code: "ECONNREFUSED on port 25 and 443"}
 	f.Route = readiness.RouteFacts{Stream: "broadcast", Policy: "pause_and_ask", Shares: []readiness.ShareFacts{r.ses(43058, 90), postal}}
 	blockURL := "https://go.acme-promo.link/sale"
 	f.Content = readiness.ContentFacts{Checked: true, FooterRemovedAt: &compiled, InlineCSSBytes: 14 * 1024, URIBlocklists: readiness.URIBlocklists, OwnDomain: "acme.io",
@@ -460,7 +461,7 @@ func (r *readinessSeed) november(ctx context.Context) error {
 	f.Campaign = readiness.CampaignFacts{ID: id.String(), Name: "November Product Update", Subject: novemberSubject, Preheader: novemberPreheader, Version: len(labels),
 		CompiledAt: &saved, SenderName: "Acme Newsletter", SenderEmail: "product@news.acme.io", SenderDomain: "news.acme.io", StartAt: sched, ScheduleMode: "at"}
 	mb := Split(47912, []float64{0.46, 0.21, 0.09, 0.08, 0.16})
-	f.Audience = readiness.AudienceFacts{BaseLabel: "Weekly Digest + Product Updates", GroupLabel: "Weekly Digest + Product Updates", Lists: []string{"Weekly Digest", "Product Updates"},
+	f.Audience = readiness.AudienceFacts{BaseLabel: "Weekly Digest + Product Updates", GroupLabel: "Weekly Digest + Product Updates", BaseKind: readiness.BaseMany, Lists: []string{"Weekly Digest", "Product Updates"},
 		Base: 48240, Suppressed: 301, Role: 27, Final: 47912, Unengaged: 1485, UnengagedDays: 180,
 		Mailboxes: map[string]int64{"gmail": mb[0], "outlook": mb[1], "yahoo": mb[2], "icloud": mb[3], "other": mb[4]}}
 	postal := r.postal(4791, 10)

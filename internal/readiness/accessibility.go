@@ -12,6 +12,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -81,33 +82,37 @@ func (s *Service) fixLanguageVersions(ctx context.Context, ws *store.Workspace, 
 	return changed, nil
 }
 
-// languageList is content languages' names, joined with commas: "English,
-// Spanish, German".
-func languageList(codes []string) map[string]any {
+// Ways of listing the languages an issue is in.
+const (
+	listCommas = iota // "English, Spanish, German"
+	listAnd           // "English, Spanish and German"
+	listOr            // "English, Spanish or German"
+)
+
+// a11yLanguages lists content languages as the accessibility checks name
+// them, in each reader's language; when the catalog names one differently
+// in English, the checks' own English list is kept.
+func a11yLanguages(codes []string, how int) any {
 	names := make([]any, 0, len(codes))
+	english := make([]string, 0, len(codes))
 	for _, c := range codes {
 		names = append(names, ArgLanguage(c))
+		english = append(english, accessibility.LanguageName(c))
 	}
-	return argJoin(", ", names)
-}
-
-// languagesAnd is content languages' names as a list: "English, Spanish
-// and German".
-func languagesAnd(codes []string) map[string]any {
-	names := make([]any, 0, len(codes))
-	for _, c := range codes {
-		names = append(names, ArgLanguage(c))
+	var arg map[string]any
+	var want string
+	switch how {
+	case listAnd:
+		arg, want = ArgAnd(names), i18n.AndList(i18n.English, english)
+	case listOr:
+		arg, want = ArgOr(names), i18n.OrList(i18n.English, english)
+	default:
+		arg, want = argJoin(", ", names), strings.Join(english, ", ")
 	}
-	return ArgAnd(names)
-}
-
-// languageNamesEn is how the accessibility checks name languages, in English.
-func languageNamesEn(codes []string) string {
-	names := make([]string, 0, len(codes))
-	for _, c := range codes {
-		names = append(names, accessibility.LanguageName(c))
+	if fmt.Sprint(resolve(arg, i18n.Default)) == want {
+		return arg
 	}
-	return strings.Join(names, ", ")
+	return want
 }
 
 // a11yTitle words a serious issue (other than contrast) from its fields:
@@ -253,8 +258,7 @@ func (b *builder) accessibility() {
 			}
 		default:
 			c.Label = tx("label.altText", nil)
-			title := tx("a11y.titleIn", A{"title": a11yTitle(is), "languages": languageList(is.Languages)})
-			c.Title = verified(title, is.Title+" · "+languageNamesEn(is.Languages))
+			c.Title = tx("a11y.titleIn", A{"title": a11yTitle(is), "languages": a11yLanguages(is.Languages, listCommas)})
 			c.Detail = tx("a11y.altDetail", nil)
 			if is.Kind == accessibility.KindLinkNoText {
 				c.Label = tx("label.linkText", nil)
@@ -274,15 +278,11 @@ func (b *builder) accessibility() {
 		b.add(c)
 	}
 	if a.Fixed != nil {
-		english := fmt.Sprintf("Fixed by %s at %s", firstNonEmpty(a.Fixed.By, "someone"), Clock(a.Fixed.At, b.f.Now, b.loc))
-		if len(a.Fixed.Languages) > 0 {
-			english += " in " + accessibility.LanguageList(a.Fixed.Languages)
-		}
 		detail := tx("a11y.fixed", A{"name": a.Fixed.By, "named": yes(a.Fixed.By != ""), "when": b.when(a.Fixed.At),
-			"inLanguages": yes(len(a.Fixed.Languages) > 0), "languages": languagesAnd(a.Fixed.Languages)})
+			"inLanguages": yes(len(a.Fixed.Languages) > 0), "languages": a11yLanguages(a.Fixed.Languages, listAnd)})
 		// The summary is the accessibility checks' own English.
 		b.add(check{Key: "accessibility.fixed", Group: GroupAccessibility, Status: Pass, Title: RawText(a.Fixed.Summary),
-			Detail: verified(detail, english+" · recorded in the audit log"), Label: tx("label.fixed", nil), Short: RawText(lowerFirst(a.Fixed.Summary))})
+			Detail: detail, Label: tx("label.fixed", nil), Short: RawText(lowerFirst(a.Fixed.Summary))})
 	}
 	if len(moderate) > 0 {
 		b.add(b.moderateRow(moderate, r))
@@ -376,10 +376,7 @@ func (b *builder) moderateRow(moderate []accessibility.AccessibilityIssue, r acc
 					}
 				}
 				if len(suggested) > 0 && len(own) > 0 {
-					page := tx("a11y.linkedPage", A{"page": languagesAnd(suggested), "own": languagesAnd(own), "count": len(own)})
-					english := fmt.Sprintf("The linked page is in %s, so %s %s their own words.", accessibility.LanguageList(suggested), accessibility.LanguageList(own),
-						Plural(int64(len(own)), "needs", "need"))
-					c.Detail = sentences(c.Detail, verified(page, english))
+					c.Detail = sentences(c.Detail, tx("a11y.linkedPage", A{"page": a11yLanguages(suggested, listAnd), "own": a11yLanguages(own, listAnd), "count": len(own)}))
 				}
 				break
 			}
@@ -424,24 +421,9 @@ func (b *builder) accessibilityCaption() Text {
 	r := a.Report
 	codes := r.Counts.Languages
 	if len(r.Issues) == 0 {
-		names := make([]any, 0, len(codes))
-		english := make([]string, 0, len(codes))
-		for _, c := range codes {
-			names = append(names, ArgLanguage(c))
-			english = append(english, accessibility.LanguageName(c))
-		}
-		or := strings.Join(english, ", ")
-		if len(english) > 1 {
-			or = strings.Join(english[:len(english)-1], ", ") + " or " + english[len(english)-1]
-		}
-		return verified(tx("a11y.captionClean", A{"languages": ArgOr(names)}), "No issues in "+or)
+		return tx("a11y.captionClean", A{"languages": a11yLanguages(codes, listOr)})
 	}
-	t := tx("a11y.caption", A{"count": len(r.Issues), "languages": languagesAnd(codes), "serious": r.Serious})
-	english := fmt.Sprintf("%d %s in %s", len(r.Issues), Plural(int64(len(r.Issues)), "issue", "issues"), accessibility.LanguageList(codes))
-	if r.Serious > 0 {
-		english += fmt.Sprintf(" · %d serious", r.Serious)
-	}
-	return verified(t, english)
+	return tx("a11y.caption", A{"count": len(r.Issues), "languages": a11yLanguages(codes, listAnd), "serious": r.Serious})
 }
 
 // accessibilityNote is the line a Blocked verdict adds when the workspace

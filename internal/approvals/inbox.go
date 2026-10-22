@@ -14,6 +14,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -440,7 +441,7 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 		rd := snap.Readiness
 		out.Readiness = &ApprovalReadinessView{Verdict: firstNonEmptyStr(rd.Verdict, readiness.VerdictReady), Passed: rd.Passed, Warnings: rd.Warnings, Blocks: rd.Blocks,
-			Total: rd.Total, CheckedAt: rd.RanAt, Issues: rd.Issues}
+			Total: rd.Total, CheckedAt: rd.RanAt, Issues: readiness.InChecks(rd.Issues, i18n.LangFrom(ctx))}
 		excluded := []string{readiness.Count(snap.Suppressed) + " suppressed"}
 		excluded = append(excluded, "0 bounced in 30 days")
 		if snap.Bounced > 0 {
