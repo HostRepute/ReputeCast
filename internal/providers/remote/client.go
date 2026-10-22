@@ -19,6 +19,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/version"
@@ -192,16 +193,18 @@ func endpointClient(allowPrivate, plainHTTP bool) (*http.Client, error) {
 }
 
 // adapterError marks failures of the adapter process itself (not of the
-// provider), which count toward the circuit breaker.
-func (in *Installation) adapterError(op, code, msg string, cause error) error {
+// provider), which count toward the circuit breaker. Its message is
+// ReputeCast's, kept with the call for readers in other languages.
+func (in *Installation) adapterError(op, code string, m i18n.Msg, args i18n.Args, cause error) error {
+	msg, text := say(m, args)
 	in.breaker.failure(msg)
 	in.log.Warn("community adapter call failed", "adapter", in.Manifest.Key(), "op", op, "code", code, "err", msg)
-	return &providers.CallError{Op: op, Code: code, Message: msg, Temporary: true, Cause: cause}
+	return &providers.CallError{Op: op, Code: code, Message: msg, Text: text, Temporary: true, Cause: cause}
 }
 
 // invalidAnswer reports a response that doesn't follow the protocol.
 func (in *Installation) invalidAnswer(op string, err error) error {
-	return in.adapterError(op, "adapter_invalid_response", "The "+in.Manifest.Name+" adapter answered "+op+" outside the protocol: "+err.Error()+".", err)
+	return in.adapterError(op, "adapter_invalid_response", mCallInvalid, i18n.Args{"name": in.Manifest.Name, "op": op, "error": err.Error()}, err)
 }
 
 // call sends one operation and decodes its result into out. Provider
@@ -215,18 +218,21 @@ func (in *Installation) call(ctx context.Context, op string, conn *Connection, k
 	}
 	switch {
 	case in.endpointErr != "":
-		return &providers.CallError{Op: op, Code: "adapter_not_configured", Temporary: true,
-			Message: fmt.Sprintf("The address set for the %s adapter is refused: %s.", in.Manifest.Name, in.endpointErr)}
+		ce := &providers.CallError{Op: op, Code: "adapter_not_configured", Temporary: true}
+		ce.Message, ce.Text = say(mCallEndpoint, i18n.Args{"name": in.Manifest.Name, "error": in.endpointErr})
+		return ce
 	case in.Endpoint == "" || len(in.secrets) == 0:
-		return &providers.CallError{Op: op, Code: "adapter_not_configured", Temporary: true,
-			Message: fmt.Sprintf("The %s adapter has no address yet. An instance admin sets it with `reputecast adapter set-url %s <url>`.", in.Manifest.Name, in.Manifest.ID)}
+		ce := &providers.CallError{Op: op, Code: "adapter_not_configured", Temporary: true}
+		ce.Message, ce.Text = say(mCallNoAddress, i18n.Args{"name": in.Manifest.Name, "id": in.Manifest.ID})
+		return ce
 	}
 	if key == "" {
 		key = uuid.Must(uuid.NewV7()).String()
 	}
 	if ok, until := in.breaker.allow(); !ok && !isProbe(ctx) {
-		return &providers.CallError{Op: op, Code: "adapter_unavailable", Temporary: true,
-			Message: fmt.Sprintf("The %s adapter isn't answering, so ReputeCast pauses calls to it until %s.", in.Manifest.Name, until.UTC().Format("15:04:05 UTC"))}
+		ce := &providers.CallError{Op: op, Code: "adapter_unavailable", Temporary: true}
+		ce.Message, ce.Text = say(mCallPaused, i18n.Args{"name": in.Manifest.Name, "until": until.UTC().Format("15:04:05 UTC")})
+		return ce
 	}
 	cctx, cancel := context.WithTimeout(ctx, spec.Timeout)
 	defer cancel()
@@ -256,7 +262,9 @@ func (in *Installation) call(ctx context.Context, op string, conn *Connection, k
 	case in.sem <- struct{}{}:
 	case <-cctx.Done():
 		in.breaker.release()
-		return &providers.CallError{Op: op, Code: "adapter_busy", Temporary: true, Message: fmt.Sprintf("%d calls to the %s adapter were already waiting.", MaxInFlight, in.Manifest.Name), Cause: cctx.Err()}
+		ce := &providers.CallError{Op: op, Code: "adapter_busy", Temporary: true, Cause: cctx.Err()}
+		ce.Message, ce.Text = say(mCallBusy, i18n.Args{"count": strconv.Itoa(MaxInFlight), "name": in.Manifest.Name})
+		return ce
 	}
 	defer func() { <-in.sem }()
 	resp, err := in.client.Do(req)
@@ -265,19 +273,19 @@ func (in *Installation) call(ctx context.Context, op string, conn *Connection, k
 			in.breaker.release()
 			return &providers.CallError{Op: op, Message: "cancelled", Temporary: true, Cause: err}
 		}
-		return in.adapterError(op, "adapter_unreachable", "The "+in.Manifest.Name+" adapter can't be reached: "+describe(cctx, err)+".", err)
+		return in.adapterError(op, "adapter_unreachable", mCallUnreachable, i18n.Args{"name": in.Manifest.Name, "error": describe(cctx, err)}, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, spec.MaxResponse+1))
 	if err != nil {
-		return in.adapterError(op, "adapter_unreachable", "The "+in.Manifest.Name+" adapter's answer was cut off: "+describe(cctx, err)+".", err)
+		return in.adapterError(op, "adapter_unreachable", mCallCutOff, i18n.Args{"name": in.Manifest.Name, "error": describe(cctx, err)}, err)
 	}
 	if int64(len(raw)) > spec.MaxResponse {
 		return in.invalidAnswer(op, invalidf("the answer is larger than %d bytes", spec.MaxResponse))
 	}
 	if err := Verify(in.secrets, resp.Header.Get(HeaderTimestamp), resp.Header.Get(HeaderSignature), raw, in.now()); err != nil {
 		if resp.StatusCode == http.StatusUnauthorized {
-			return in.adapterError(op, "adapter_unauthenticated", "The "+in.Manifest.Name+" adapter rejected ReputeCast's signature. Issue a new secret with `reputecast adapter secret "+in.Manifest.ID+"`, set it on the adapter process, and check both clocks.", nil)
+			return in.adapterError(op, "adapter_unauthenticated", mCallSignature, i18n.Args{"name": in.Manifest.Name, "id": in.Manifest.ID}, nil)
 		}
 		return in.invalidAnswer(op, invalidf("HTTP %d not signed with this installation's secret (%v)", resp.StatusCode, err))
 	}
@@ -329,12 +337,14 @@ func (in *Installation) wireError(op string, e *WireError) error {
 		in.breaker.success()
 		return fmt.Errorf("%w: %s", providers.ErrNotSupported, msg)
 	case CodeUnauthenticated:
-		return in.adapterError(op, "adapter_unauthenticated", "The "+in.Manifest.Name+" adapter rejected ReputeCast's signature. Issue a new secret with `reputecast adapter secret "+in.Manifest.ID+"`, set it on the adapter process, and check both clocks.", nil)
+		return in.adapterError(op, "adapter_unauthenticated", mCallSignature, i18n.Args{"name": in.Manifest.Name, "id": in.Manifest.ID}, nil)
 	case CodeInvalidRequest, CodeTooLarge:
 		in.breaker.failure(msg)
-		return &providers.CallError{Op: op, Code: "adapter_" + e.Code, Message: "The " + in.Manifest.Name + " adapter refused the request: " + msg}
+		ce := &providers.CallError{Op: op, Code: "adapter_" + e.Code}
+		ce.Message, ce.Text = say(mCallRefused, i18n.Args{"name": in.Manifest.Name, "error": msg})
+		return ce
 	default:
-		return in.adapterError(op, "adapter_internal", "The "+in.Manifest.Name+" adapter failed: "+msg, nil)
+		return in.adapterError(op, "adapter_internal", mCallFailed, i18n.Args{"name": in.Manifest.Name, "error": msg}, nil)
 	}
 	// The adapter answered properly; the provider failed.
 	in.breaker.success()

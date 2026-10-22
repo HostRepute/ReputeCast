@@ -1,7 +1,9 @@
 package providers
 
 import (
+	"errors"
 	"strconv"
+	"strings"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
 )
@@ -48,6 +50,32 @@ func TextIn(english string, t i18n.Text, l i18n.Lang) string {
 		return s
 	}
 	return english
+}
+
+// ErrorIn writes an error for a reader: err.Error(), with the message of a
+// CallError the adapter worded itself in the reader's language.
+func ErrorIn(err error, l i18n.Lang) string {
+	if err == nil {
+		return ""
+	}
+	var ce *CallError
+	if !errors.As(err, &ce) || ce.Text.IsZero() || l.Locale == i18n.English || l.Locale == "" {
+		return err.Error()
+	}
+	c := *ce
+	c.Message = TextIn(ce.Message, ce.Text, l)
+	return strings.Replace(err.Error(), ce.Error(), c.Error(), 1)
+}
+
+// MessageIn is the message of a failed call for a reader: a CallError's
+// message (in the reader's language when the adapter kept its message),
+// else err.Error().
+func MessageIn(err error, l i18n.Lang) string {
+	var ce *CallError
+	if errors.As(err, &ce) && ce.Message != "" {
+		return TextIn(ce.Message, ce.Text, l)
+	}
+	return err.Error()
 }
 
 // fill sets a text from the catalog's message for key, when the catalog

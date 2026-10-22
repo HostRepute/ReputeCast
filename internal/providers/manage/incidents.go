@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
@@ -101,7 +102,12 @@ func (s *Service) outage(ctx context.Context, sn *snapshot, p store.Provider, ca
 		return nil, err
 	}
 	for _, r := range rows {
-		inc := ProviderIncidentEntry{ID: r.ID.String(), At: r.OccurredAt, Kind: r.Kind, Severity: r.Severity, Title: r.Title, Detail: r.Detail}
+		// The titles the health job kept as messages read in the reader's
+		// language; incidents from before, and other areas', in English.
+		var texts map[string]i18n.Text
+		_ = json.Unmarshal(r.Texts, &texts)
+		inc := ProviderIncidentEntry{ID: r.ID.String(), At: r.OccurredAt, Kind: r.Kind, Severity: r.Severity,
+			Title: providers.TextIn(r.Title, texts["title"], sn.lang), Detail: providers.TextIn(r.Detail, texts["detail"], sn.lang)}
 		if r.CampaignID != nil {
 			inc.CampaignID = r.CampaignID.String()
 		}
@@ -140,7 +146,7 @@ func (s *Service) outageStream(ctx context.Context, sn *snapshot, p store.Provid
 				}
 				for _, c := range counts {
 					st.Rerouted += c.N
-					st.ReroutedBy = append(st.ReroutedBy, ProviderNamedCount{Name: kindLabel(c.Kind, c.N), Count: c.N})
+					st.ReroutedBy = append(st.ReroutedBy, ProviderNamedCount{Name: kindLabel(sn.lang, c.Kind, c.N), Count: c.N})
 				}
 			}
 		}
@@ -190,7 +196,7 @@ func (s *Service) outageStream(ctx context.Context, sn *snapshot, p store.Provid
 			}
 			for _, r := range rows {
 				st.Rerouted += r.N
-				st.ReroutedBy = append(st.ReroutedBy, ProviderNamedCount{Name: kindLabel(r.Kind, r.N), Count: r.N})
+				st.ReroutedBy = append(st.ReroutedBy, ProviderNamedCount{Name: kindLabel(sn.lang, r.Kind, r.N), Count: r.N})
 			}
 		}
 		return st, nil
@@ -329,7 +335,8 @@ func (s *Service) silent(ctx context.Context, sn *snapshot, p store.Provider) (*
 		}
 	}
 	for _, c := range h.Webhooks.Checks {
-		out.Checks = append(out.Checks, ProviderWebhookCheck{Key: c.Key, OK: c.OK, At: c.At, Detail: c.Detail, ID: c.ID, URL: c.URL, Count: c.Count, Queued: c.Queued})
+		out.Checks = append(out.Checks, ProviderWebhookCheck{Key: c.Key, OK: c.OK, At: c.At, Detail: providers.TextIn(c.Detail, c.DetailText, sn.lang), ID: c.ID, URL: c.URL,
+			Count: c.Count, Queued: c.Queued})
 	}
 	out.Causes = append(out.Causes, h.Webhooks.Causes...)
 	from := sn.now.Truncate(time.Hour).Add(-23 * time.Hour)
@@ -358,7 +365,8 @@ func (s *Service) silent(ctx context.Context, sn *snapshot, p store.Provider) (*
 		rows = append(rows, store.ProvAwaitingStatusRow(r))
 	}
 	for _, r := range rows {
-		m := ProviderAwaitingMessage{Recipient: MaskEmail(r.Email), Source: sourceLabel(r.CampaignName, r.AutomationName, r.AutomationNode, r.Kind), Status: "accepted", DeliveredAt: r.DeliveredAt}
+		m := ProviderAwaitingMessage{Recipient: MaskEmail(r.Email), Source: sourceLabel(sn.lang, r.CampaignName, r.AutomationName, r.AutomationNode, r.Kind), Status: "accepted",
+			DeliveredAt: r.DeliveredAt}
 		if r.SentAt != nil {
 			m.At = *r.SentAt
 		}
@@ -407,8 +415,8 @@ func (s *Service) authFailure(ctx context.Context, sn *snapshot, p store.Provide
 }
 
 // sourceLabel names what sent a message: the campaign, the automation step
-// or the kind of system mail.
-func sourceLabel(campaign, automation string, node *string, kind string) string {
+// or the kind of system mail (in the reader's language).
+func sourceLabel(l i18n.Lang, campaign, automation string, node *string, kind string) string {
 	switch {
 	case campaign != "":
 		return campaign
@@ -418,19 +426,7 @@ func sourceLabel(campaign, automation string, node *string, kind string) string 
 		}
 		return automation
 	}
-	switch kind {
-	case "double_opt_in":
-		return "Double opt-in confirmation"
-	case "preference_link":
-		return "Preference-center link"
-	case "invite":
-		return "Team invite"
-	case "password_reset":
-		return "Password reset"
-	case "api":
-		return "API · transactional"
-	}
-	return "–"
+	return mSource.Text(l, i18n.Args{"kind": kind})
 }
 
 // MaskEmail hides most of an address's local part: "r.w···@outlook.com".

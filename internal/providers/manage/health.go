@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/providers"
@@ -176,7 +177,9 @@ func (s *Service) Check(ctx context.Context, p store.Provider, probe bool) (stor
 		var err error
 		adapter, err = s.Factory.Open(ctx, p)
 		if err != nil {
-			callErr = &providers.CallError{Op: "configuration", Message: "The stored settings can't be read: " + err.Error(), Auth: true}
+			ce := &providers.CallError{Op: "configuration", Message: "The stored settings can't be read: " + err.Error(), Auth: true}
+			ce.Text = mErrorSettings.Keep(i18n.Args{"error": err.Error()})
+			callErr = ce
 		} else {
 			cctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 			switch a := adapter.(type) {
@@ -225,7 +228,7 @@ func (s *Service) Check(ctx context.Context, p store.Provider, probe bool) (stor
 				h.Rate.Max = quota.MaxRate
 			}
 			if quota.Account != "" {
-				h.Account = quota.Account
+				h.Account, h.AccountText = quota.Account, quota.AccountText
 			}
 			h.Sandbox = quota.Sandbox
 			h.VDM = quota.VDM
@@ -274,7 +277,7 @@ func (s *Service) Check(ctx context.Context, p store.Provider, probe bool) (stor
 		if sr, ok := adapter.(providers.StatusReporter); ok {
 			cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 			if st, err := sr.ServiceStatus(cctx); err == nil {
-				h.Down.ProviderStatus = &state.ProviderStatus{Incident: st.Incident, Summary: st.Summary, CheckedAt: now}
+				h.Down.ProviderStatus = &state.ProviderStatus{Incident: st.Incident, Summary: st.Summary, SummaryText: st.SummaryText, CheckedAt: now}
 			}
 			cancel()
 		}
@@ -394,16 +397,22 @@ func (s *Service) diagnose(ctx context.Context, p store.Provider, adapter provid
 	now := s.now()
 	yes, no := true, false
 	checks := []state.WebhookCheck{}
-	detail := map[string]string{"postal": "/api/v1/messages responds", "ses": "GetAccount responds", "postmark": "GET /server responds", "smtp": "AUTH accepted"}[p.Adapter]
-	if detail == "" {
-		detail = opName(p.Adapter) + " responds"
+	// "GetAccount responds", "AUTH accepted" (SMTP)
+	api := state.WebhookCheck{Key: "api", At: &now}
+	if p.Adapter == "smtp" {
+		api.Detail, api.DetailText = keep(mCheckAuthAccepted, nil)
+	} else {
+		op := map[string]string{"postal": "/api/v1/messages", "ses": "GetAccount", "postmark": "GET /server"}[p.Adapter]
+		if op == "" {
+			op = opName(p.Adapter)
+		}
+		api.Detail, api.DetailText = keep(mCheckResponds, i18n.Args{"op": op})
 	}
-	api := state.WebhookCheck{Key: "api", At: &now, Detail: detail}
 	if probeErr == nil {
 		api.OK = &yes
 	} else {
 		api.OK = &no
-		api.Detail = probeErr.Error()
+		api.Detail, api.DetailText = probeErr.Error(), i18n.Text{}
 	}
 	checks = append(checks, api)
 	url := WebhookURL(s.URLs, p)
@@ -422,13 +431,14 @@ func (s *Service) diagnose(ctx context.Context, p store.Provider, adapter provid
 	code, err := s.selfTest(ctx, p)
 	end := state.WebhookCheck{Key: "endpoint"}
 	if err == nil && code == http.StatusOK {
-		end.OK, end.Detail = &yes, "200 OK on a self-test"
+		end.OK = &yes
+		end.Detail, end.DetailText = keep(mCheckSelfTestOK, nil)
 	} else {
 		end.OK = &no
 		if err != nil {
 			end.Detail = err.Error()
 		} else {
-			end.Detail = strconv.Itoa(code) + " on a self-test"
+			end.Detail, end.DetailText = keep(mCheckSelfTest, i18n.Args{"status": strconv.Itoa(code)})
 		}
 	}
 	checks = append(checks, end)
@@ -525,8 +535,15 @@ func streamLabel(s string) string {
 	return "System"
 }
 
-func (s *Service) incident(ctx context.Context, q *store.Queries, wsID uuid.UUID, at time.Time, kind, severity, title, detail string, provider, campaign *uuid.UUID) error {
-	return q.ProvInsertIncident(ctx, store.ProvInsertIncidentParams{ID: newID(), WorkspaceID: wsID, OccurredAt: at, Kind: kind, Severity: severity, Title: title, Detail: detail, CampaignID: campaign, ProviderID: provider})
+// incident records an entry of the incident timeline: its English title,
+// and the message it comes from for readers in other languages.
+func (s *Service) incident(ctx context.Context, q *store.Queries, wsID uuid.UUID, at time.Time, kind, severity, title string, text i18n.Text, provider, campaign *uuid.UUID) error {
+	var texts json.RawMessage
+	if !text.IsZero() {
+		texts, _ = json.Marshal(map[string]i18n.Text{"title": text})
+	}
+	return q.ProvInsertIncident(ctx, store.ProvInsertIncidentParams{ID: newID(), WorkspaceID: wsID, OccurredAt: at, Kind: kind, Severity: severity, Title: title,
+		CampaignID: campaign, ProviderID: provider, Texts: texts})
 }
 
 var systemActor = &audit.Actor{Type: authz.ActorSystem, Name: "System"}
@@ -547,7 +564,9 @@ func (s *Service) onDown(ctx context.Context, tx pgx.Tx, ws store.Workspace, p s
 		byID[x.ID] = x
 	}
 	short := state.Short(p.Name, p.Adapter)
+	// "503 ServiceUnavailable on SendEmail", "API errors" without one.
 	errText := "API errors"
+	failed := i18n.Args{"name": p.Name, "hasError": "no", "error": "", "hasOp": "no", "op": ""}
 	if h.LastError != nil {
 		errText = strings.TrimSpace(strings.Join([]string{strconv.Itoa(h.LastError.Status), h.LastError.Code}, " "))
 		if h.LastError.Status == 0 {
@@ -556,15 +575,17 @@ func (s *Service) onDown(ctx context.Context, tx pgx.Tx, ws store.Workspace, p s
 		if errText == "" {
 			errText = h.LastError.Message
 		}
+		failed["hasError"], failed["error"] = "yes", errText
 		if h.LastError.Op != "" {
 			errText += " on " + h.LastError.Op
+			failed["hasOp"], failed["op"] = "yes", h.LastError.Op
 		}
 	}
-	title := p.Name + ": " + errText + " · health check failed."
+	title, titleText := p.Name+": "+errText+" · health check failed.", mIncidentDown.Keep(failed)
 	if h.Down.Reason == "auth" {
-		title = p.Name + " rejected the credentials: " + errText + "."
+		title, titleText = p.Name+" rejected the credentials: "+errText+".", mIncidentAuthDown.Keep(failed)
 	}
-	if err := s.incident(ctx, q, ws.ID, h.Down.Since, "provider_down", "bad", title, "", &p.ID, nil); err != nil {
+	if err := s.incident(ctx, q, ws.ID, h.Down.Since, "provider_down", "bad", title, titleText, &p.ID, nil); err != nil {
 		return err
 	}
 	var auto, held []string
@@ -592,8 +613,10 @@ func (s *Service) onDown(ctx context.Context, tx pgx.Tx, ws store.Workspace, p s
 		if !hold {
 			fb := byID[*target]
 			auto = append(auto, streamLabel(string(stream)))
+			failures := max(h.ConsecutiveFailures, 1)
 			if err := s.incident(ctx, q, ws.ID, now, "failover", "ok",
-				fmt.Sprintf("%s: switched to %s after %d failed health checks.", streamLabel(string(stream)), state.Short(fb.Name, fb.Adapter), max(h.ConsecutiveFailures, 1)), "", &p.ID, nil); err != nil {
+				fmt.Sprintf("%s: switched to %s after %d failed health checks.", streamLabel(string(stream)), state.Short(fb.Name, fb.Adapter), failures),
+				mIncidentFailover.Keep(i18n.Args{"stream": string(stream), "fallback": state.Short(fb.Name, fb.Adapter), "count": failures}), &p.ID, nil); err != nil {
 				return err
 			}
 			continue
@@ -621,7 +644,8 @@ func (s *Service) onDown(ctx context.Context, tx pgx.Tx, ws store.Workspace, p s
 			}
 			cid := c.ID
 			if err := s.incident(ctx, q, ws.ID, now, "broadcast_held", "warn",
-				fmt.Sprintf("Broadcasts: %q %s share held, %d recipients. Decision requested.", c.Name, short, heldN), "", &p.ID, &cid); err != nil {
+				fmt.Sprintf("Broadcasts: %q %s share held, %d recipients. Decision requested.", c.Name, short, heldN),
+				mIncidentHeld.Keep(i18n.Args{"campaign": fmt.Sprintf("%q", c.Name), "short": short, "count": heldN}), &p.ID, &cid); err != nil {
 				return err
 			}
 			if err := notify.ToMembersWith(ctx, tx, ws.ID, authz.CampaignsSend, notify.Notification{
@@ -675,7 +699,8 @@ func (s *Service) onRecovered(ctx context.Context, tx pgx.Tx, ws store.Workspace
 	for _, f := range ended {
 		if f.Mode == "automatic" {
 			if err := s.incident(ctx, q, ws.ID, now, "failover_ended", "ok",
-				fmt.Sprintf("%s: back on %s after %d healthy minutes.", streamLabel(f.Stream), short, SwitchBackMinutes), "", &p.ID, nil); err != nil {
+				fmt.Sprintf("%s: back on %s after %d healthy minutes.", streamLabel(f.Stream), short, SwitchBackMinutes),
+				mIncidentFailoverEnded.Keep(i18n.Args{"stream": f.Stream, "short": short, "minutes": SwitchBackMinutes}), &p.ID, nil); err != nil {
 				return err
 			}
 		}
@@ -707,7 +732,8 @@ func (s *Service) onRecovered(ctx context.Context, tx pgx.Tx, ws store.Workspace
 	if down != nil {
 		minutes = int(now.Sub(down.Since).Minutes())
 	}
-	if err := s.incident(ctx, q, ws.ID, now, "provider_recovered", "ok", fmt.Sprintf("%s recovered after %d min.", p.Name, minutes), "", &p.ID, nil); err != nil {
+	if err := s.incident(ctx, q, ws.ID, now, "provider_recovered", "ok", fmt.Sprintf("%s recovered after %d min.", p.Name, minutes),
+		mIncidentRecovered.Keep(i18n.Args{"name": p.Name, "minutes": minutes}), &p.ID, nil); err != nil {
 		return err
 	}
 	wsID := ws.ID
@@ -728,8 +754,10 @@ func (s *Service) onSilent(ctx context.Context, tx pgx.Tx, ws store.Workspace, p
 			return err
 		}
 	}
-	since := h.Webhooks.SilentSince.In(state.Location(ws.Timezone)).Format("15:04")
-	if err := s.incident(ctx, q, ws.ID, now, "webhooks_silent", "warn", p.Name+": no webhook events since "+since+" while mail went out.", "", &p.ID, nil); err != nil {
+	sinceAt := h.Webhooks.SilentSince.In(state.Location(ws.Timezone))
+	since := sinceAt.Format("15:04")
+	if err := s.incident(ctx, q, ws.ID, now, "webhooks_silent", "warn", p.Name+": no webhook events since "+since+" while mail went out.",
+		mIncidentSilent.Keep(i18n.Args{"name": p.Name, "since": sinceAt}), &p.ID, nil); err != nil {
 		return err
 	}
 	if err := notify.ToMembersWith(ctx, tx, ws.ID, authz.ProvidersManage, notify.Notification{
@@ -753,7 +781,8 @@ func (s *Service) onResumed(ctx context.Context, tx pgx.Tx, ws store.Workspace, 
 	if err := q.ProvResolveIncidents(ctx, store.ProvResolveIncidentsParams{ProviderID: &p.ID, Kinds: []string{"webhooks_silent"}, ResolvedAt: &now}); err != nil {
 		return err
 	}
-	if err := s.incident(ctx, q, ws.ID, now, "webhooks_resumed", "ok", p.Name+": webhook events are arriving again.", "", &p.ID, nil); err != nil {
+	if err := s.incident(ctx, q, ws.ID, now, "webhooks_resumed", "ok", p.Name+": webhook events are arriving again.",
+		mIncidentResumed.Keep(i18n.Args{"name": p.Name}), &p.ID, nil); err != nil {
 		return err
 	}
 	wsID := ws.ID
@@ -784,6 +813,7 @@ func (s *Service) refreshTracking(ctx context.Context, p store.Provider) (state.
 		cur.Error = err.Error()
 	} else {
 		cur.OpenPixel, cur.LinkRewrite, cur.Detail, cur.Scope, cur.Error = t.OpenPixel, t.LinkRewrite, t.Detail, t.Scope, ""
+		cur.DetailText, cur.ScopeText = t.DetailText, t.ScopeText
 	}
 	b, _ := json.Marshal(cur)
 	return cur, s.Q.ProvUpdateTracking(ctx, store.ProvUpdateTrackingParams{ID: p.ID, Tracking: b})

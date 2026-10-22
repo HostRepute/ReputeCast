@@ -243,8 +243,8 @@ ORDER BY occurred_at DESC, id DESC
 LIMIT 12;
 
 -- name: ProvInsertIncident :exec
-INSERT INTO incidents (id, workspace_id, occurred_at, kind, severity, title, detail, campaign_id, provider_id)
-VALUES (@id, @workspace_id, @occurred_at, @kind, @severity, @title, @detail, @campaign_id, @provider_id);
+INSERT INTO incidents (id, workspace_id, occurred_at, kind, severity, title, detail, campaign_id, provider_id, texts)
+VALUES (@id, @workspace_id, @occurred_at, @kind, @severity, @title, @detail, @campaign_id, @provider_id, coalesce(sqlc.narg(texts)::jsonb, '{}'::jsonb));
 
 -- name: ProvResolveIncidents :exec
 UPDATE incidents SET resolved_at = @resolved_at

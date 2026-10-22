@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
@@ -23,7 +24,9 @@ const SwitchBackMinutes = 10
 
 // snapshot gathers everything the overview needs in a few queries.
 type snapshot struct {
-	ws        *store.Workspace
+	ws *store.Workspace
+	// lang is how the reader reads (i18n.LangFrom).
+	lang      i18n.Lang
 	loc       *time.Location
 	now       time.Time
 	provs     []store.Provider
@@ -54,7 +57,7 @@ func dateOf(t time.Time, loc *time.Location) time.Time {
 }
 
 func (s *Service) load(ctx context.Context, ws *store.Workspace) (*snapshot, error) {
-	sn := &snapshot{ws: ws, loc: state.Location(ws.Timezone), now: s.now(), byID: map[uuid.UUID]store.Provider{}}
+	sn := &snapshot{ws: ws, lang: i18n.LangFrom(ctx), loc: state.Location(ws.Timezone), now: s.now(), byID: map[uuid.UUID]store.Provider{}}
 	var err error
 	if sn.provs, err = s.Q.ProvListActive(ctx, ws.ID); err != nil {
 		return nil, err
@@ -251,8 +254,8 @@ func (s *Service) card(sn *snapshot, p store.Provider) ProviderCard {
 	caps := state.Caps(p)
 	c := ProviderCard{
 		ID: p.ID.String(), Adapter: p.Adapter, Name: p.Name, Short: state.Short(p.Name, p.Adapter), Label: p.Label, Color: state.Color(p.Adapter),
-		Status: p.Status, Roles: roles(sn, p.ID), IPMode: p.IpMode, IPs: p.Ips, Account: h.Account, AccountKind: "account",
-		Capabilities: providerBadges(p), TakingFailover: []string{}, CheckedAt: p.LastCheckedAt, ConnectedAt: p.ConnectedAt, Credentials: []ProviderCredentialField{},
+		Status: p.Status, Roles: roles(sn, p.ID), IPMode: p.IpMode, IPs: p.Ips, Account: providers.TextIn(h.Account, h.AccountText, sn.lang), AccountKind: "account",
+		Capabilities: providerBadges(sn.lang, p), TakingFailover: []string{}, CheckedAt: p.LastCheckedAt, ConnectedAt: p.ConnectedAt, Credentials: []ProviderCredentialField{},
 	}
 	if c.IPs == nil {
 		c.IPs = []string{}
@@ -338,7 +341,7 @@ func (s *Service) card(sn *snapshot, p store.Provider) ProviderCard {
 		}
 	}
 	if h.Down != nil && p.Status == state.Down {
-		c.Down = downOf(p, h)
+		c.Down = downOf(sn.lang, p, h)
 	}
 	for _, f := range sn.failovers {
 		if f.FallbackProviderID != nil && *f.FallbackProviderID == p.ID && f.Mode == "automatic" {
@@ -352,7 +355,7 @@ func (s *Service) card(sn *snapshot, p store.Provider) ProviderCard {
 		for _, f := range d.Fields {
 			if f.Secret {
 				v, _ := have[f.Key].(string)
-				c.Credentials = append(c.Credentials, ProviderCredentialField{Key: f.Key, Label: f.Label, Set: v != ""})
+				c.Credentials = append(c.Credentials, ProviderCredentialField{Key: f.Key, Label: f.In(sn.lang).Label, Set: v != ""})
 			}
 		}
 	}
@@ -371,24 +374,26 @@ func errorRate7dFromHealth(p store.Provider) (float64, bool) {
 	return 0, false
 }
 
-func downOf(p store.Provider, h state.Health) *ProviderDownState {
+func downOf(l i18n.Lang, p store.Provider, h state.Health) *ProviderDownState {
 	d := &ProviderDownState{Since: h.Down.Since, Reason: h.Down.Reason, LastSuccessAt: h.LastSuccessAt, LastSuccessOp: h.LastSuccessOp, Errors: []ProviderCallError{}}
 	for _, e := range h.RecentErrors {
-		d.Errors = append(d.Errors, ProviderCallError{At: e.At, Op: e.Op, Status: e.Status, Code: e.Code, Message: e.Message})
+		d.Errors = append(d.Errors, ProviderCallError{At: e.At, Op: e.Op, Status: e.Status, Code: e.Code, Message: providers.TextIn(e.Message, e.Text, l)})
 	}
 	if len(d.Errors) == 0 && h.LastError != nil {
 		e := h.LastError
-		d.Errors = append(d.Errors, ProviderCallError{At: e.At, Op: e.Op, Status: e.Status, Code: e.Code, Message: e.Message})
+		d.Errors = append(d.Errors, ProviderCallError{At: e.At, Op: e.Op, Status: e.Status, Code: e.Code, Message: providers.TextIn(e.Message, e.Text, l)})
 	}
-	if h.Down.ProviderStatus != nil && h.Down.ProviderStatus.Incident {
-		d.StatusSummary = h.Down.ProviderStatus.Summary
+	if ps := h.Down.ProviderStatus; ps != nil && ps.Incident {
+		d.StatusSummary = providers.TextIn(ps.Summary, ps.SummaryText, l)
 	}
 	if desc, ok := providers.Lookup(p.Adapter); ok {
-		if pg, ok := statusPage(desc); ok {
+		if pg, ok := statusPage(l, desc); ok {
 			d.StatusLabel, d.StatusURL = pg[0], pg[1]
 		}
 		for _, f := range desc.Fields {
 			if f.Secret && f.Required {
+				// The adapter's English: the banner derives its words
+				// ("the token") from it.
 				d.CredentialLabel = f.Label
 				break
 			}
@@ -397,14 +402,13 @@ func downOf(p store.Provider, h state.Health) *ProviderDownState {
 	return d
 }
 
-// statusPage asks an adapter instance for its status page without
-// credentials (StatusPageURL never uses them).
-func statusPage(d providers.Descriptor) ([2]string, bool) {
+// statusPage is the provider's public status page and its button's label.
+func statusPage(l i18n.Lang, d providers.Descriptor) ([2]string, bool) {
 	switch d.Adapter {
 	case "ses":
-		return [2]string{"AWS status", "https://health.aws.amazon.com/health/status"}, true
+		return [2]string{mStatusPage.Text(l, i18n.Args{"provider": "AWS"}), "https://health.aws.amazon.com/health/status"}, true
 	case "postmark":
-		return [2]string{"Postmark status", "https://status.postmarkapp.com"}, true
+		return [2]string{mStatusPage.Text(l, i18n.Args{"provider": "Postmark"}), "https://status.postmarkapp.com"}, true
 	}
 	return [2]string{}, false
 }
@@ -513,34 +517,13 @@ func streamRole(sn *snapshot, stream providers.Stream, id uuid.UUID) string {
 	return ""
 }
 
-// kindLabel names system mail kinds for sentences ("double opt-in confirmations").
-func kindLabel(kind string, n int64) string {
-	plural := n != 1
+// kindLabel names system mail kinds for sentences ("double opt-in
+// confirmations"), in the reader's language; a kind it doesn't know reads as
+// its name.
+func kindLabel(l i18n.Lang, kind string, n int64) string {
 	switch kind {
-	case "double_opt_in":
-		if plural {
-			return "double opt-in confirmations"
-		}
-		return "double opt-in confirmation"
-	case "invite":
-		if plural {
-			return "team invites"
-		}
-		return "team invite"
-	case "preference_link":
-		if plural {
-			return "preference-center links"
-		}
-		return "preference-center link"
-	case "password_reset":
-		if plural {
-			return "password resets"
-		}
-		return "password reset"
-	case "api":
-		return "API messages"
-	case "":
-		return "other messages"
+	case "double_opt_in", "invite", "preference_link", "password_reset", "api", "":
+		return mKindLabel.Text(l, i18n.Args{"kind": kind, "count": n})
 	}
 	return strings.ReplaceAll(kind, "_", " ")
 }
