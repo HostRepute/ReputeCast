@@ -186,7 +186,7 @@ function FormRow({ f, slug }: { f: FormSummary; slug: string }) {
       <td>
         <span className={`badge ${f.status === 'live' ? 'ok' : 'mut'}`}>{f.status === 'live' ? t(m.formLive) : f.status === 'paused' ? t(m.formPaused) : t(m.formDraft)}</span>
       </td>
-      <td className="nowrap">{d ? t(m.submissions, { count: d.stats.submissions, days: d.stats.days }) : <span className="k">…</span>}</td>
+      <td className="nowrap sv-activity">{d ? t(m.submissions, { count: d.stats.submissions, days: d.stats.days }) : <span className="k">…</span>}</td>
       <td className="k">—</td>
     </tr>
   )
@@ -208,7 +208,7 @@ function SurveyRow({ s, slug }: { s: Survey; slug: string }) {
       <td>
         <SurveyStatus s={s} />
       </td>
-      <td className="nowrap">{t(m.startedCompleted, { started: count(s.started), completed: count(s.completed) })}</td>
+      <td className="nowrap sv-activity">{t(m.startedCompleted, { started: count(s.started), completed: count(s.completed) })}</td>
       <td className="nowrap">
         {s.createdBy ? (
           <span className="sv-owner">

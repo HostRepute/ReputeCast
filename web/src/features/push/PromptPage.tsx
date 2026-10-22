@@ -224,7 +224,7 @@ function Designer({ data }: { data: Prompt }) {
           </div>
           <div className="pp-sec">
             <span className="t">{t(m.type)}</span>
-            <div>
+            <div className="pp-type">
               <div className="seg" role="group" aria-label={t(m.type)}>
                 {[m.typeEmbedded, m.typePopup, m.typeHosted].map((x) => (
                   <button key={x.id} type="button" aria-pressed="false" aria-disabled="true" title={t(m.typeLocked)}>

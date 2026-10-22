@@ -128,3 +128,37 @@
   min-width: 0;
   text-align: right;
 }
+
+/* Web push, WhatsApp, surveys, polls, content languages, conditional
+   content and integrations (V11). */
+
+/* Forms & pages › Forms: the Activity column's counts ("688 đã bắt đầu ·
+   571 đã hoàn thành", "4.412 người đọc đã cấp quyền") wrap instead of
+   pushing the Owner column out of the card. */
+:root:not([lang='en']) .sv-tbl td.sv-activity {
+  white-space: normal;
+  min-width: 150px;
+}
+
+/* The integrations a member owns, in Team's deactivate and remove dialogs
+   (integrations/MemberIntegrations): a longer line under the name wraps
+   beside the Take over and Disconnect choices instead of pushing them to
+   a row of their own; on phones they still move under it. */
+:root:not([lang='en']) .int-member-who {
+  flex: 1 1 220px;
+}
+
+/* The push prompt designer's Type (push/PromptPage): its four kinds don't
+   fit the 325 px panel in one row, so they stack, one per row, instead of
+   running out of it. */
+:root:not([lang='en']) .pp-type .seg {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+:root:not([lang='en']) .pp-type .seg button {
+  justify-content: flex-start;
+}
+:root:not([lang='en']) .pp-type .seg button + button {
+  border-left: 0;
+  border-top: 1px solid var(--line-strong);
+}
