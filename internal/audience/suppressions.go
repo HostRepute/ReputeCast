@@ -18,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -165,6 +166,7 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 		page = 1
 	}
 	out := SuppressionList{Items: []SuppressionItem{}, Page: page, PageSize: pageSize, Sync: []SuppressionProviderSync{}, Sources: []SuppressionFilterOption{}}
+	l := i18n.LangFrom(ctx)
 	fs := filterSQL{where: "s.workspace_id = $1", args: []any{ws.ID}}
 	if q := strings.TrimSpace(strings.ToLower(f.Q)); q != "" {
 		fs.add("s.email LIKE ?", "%"+escapeLike(q)+"%")
@@ -176,13 +178,13 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 	case strings.HasPrefix(f.Source, "provider:"):
 		id, err := uuid.Parse(strings.TrimPrefix(f.Source, "provider:"))
 		if err != nil {
-			return out, api.Invalid("source", "Pick a source from the list.")
+			return out, api.Invalid("source", mSuppressionSource.Text(l, nil))
 		}
 		fs.add("s.source_provider_id = ?", id)
 	case strings.HasPrefix(f.Source, "import:"):
 		id, err := uuid.Parse(strings.TrimPrefix(f.Source, "import:"))
 		if err != nil {
-			return out, api.Invalid("source", "Pick a source from the list.")
+			return out, api.Invalid("source", mSuppressionSource.Text(l, nil))
 		}
 		fs.add("s.import_id = ?", id)
 	case f.Source != "":
@@ -203,7 +205,7 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 	if f.Import != "" {
 		id, err := uuid.Parse(f.Import)
 		if err != nil {
-			return out, api.Invalid("import", "Pick an import group.")
+			return out, api.Invalid("import", mImportGroup.Text(l, nil))
 		}
 		fs.add("s.import_id = ?", id)
 	}
@@ -212,12 +214,12 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 	r AS (
 		SELECT false AS grp, f.id, f.email, ARRAY[f.reason] AS reasons, f.source, f.source_provider_id, f.original_code, f.created_at,
 		       f.campaign_id, f.automation_id, f.automation_step, f.context,
-		       CASE WHEN f.reason IN ('unsubscribe', 'role') THEN 'marketing' ELSE f.scope END, f.import_id, 1::bigint AS n, f.created_by
+		       CASE WHEN f.reason IN ('unsubscribe', 'role') THEN 'marketing' ELSE f.scope END, f.import_id, 1::bigint AS n, f.created_by, f.texts
 		FROM f WHERE NOT ` + fmt.Sprint(group) + ` OR f.import_id IS NULL
 		UNION ALL
 		SELECT true, (array_agg(f.id ORDER BY f.created_at, f.id))[1], '', array_agg(DISTINCT f.reason), 'import', NULL, max(f.original_code),
 		       max(f.created_at), NULL, NULL, '', max(f.context), CASE WHEN bool_or(f.scope = 'all') THEN 'all' ELSE 'marketing' END,
-		       f.import_id, count(*)::bigint, NULL
+		       f.import_id, count(*)::bigint, NULL, (array_agg(f.texts ORDER BY f.original_code DESC, f.context DESC))[1]
 		FROM f WHERE ` + fmt.Sprint(group) + ` AND f.import_id IS NOT NULL GROUP BY f.import_id
 	)`
 	if err := s.Pool.QueryRow(ctx, cte+` SELECT count(*), coalesce(sum(n), 0)::bigint FROM r`, fs.args...).Scan(&out.Total, &out.Matching); err != nil {
@@ -226,7 +228,7 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 	args := append(fs.args, pageSize, (page-1)*pageSize)
 	rows, err := s.Pool.Query(ctx, cte+fmt.Sprintf(`
 		SELECT r.grp, r.id, r.email, r.reasons, r.source, r.original_code, r.created_at, r.campaign_id, r.automation_step,
-		       r.context, r.scope, r.import_id, r.n,
+		       r.context, r.scope, r.import_id, r.n, r.texts,
 		       coalesce(p.name, ''), coalesce(p.adapter, ''), coalesce(u.name, ''), coalesce(i.source, ''), coalesce(i.file_name, ''),
 		       coalesce(cp.name, ''), coalesce(a.name, '')
 		FROM r
@@ -246,10 +248,12 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 		var id uuid.UUID
 		var campaignID, importID *uuid.UUID
 		var email, source, step, provName, adapter, userName, impSource, fileName, campaign, automation string
+		var texts json.RawMessage
 		if err := rows.Scan(&it.Group, &id, &email, &it.Reasons, &source, &it.OriginalCode, &it.At, &campaignID, &step,
-			&it.Context, &it.Scope, &importID, &it.Rows, &provName, &adapter, &userName, &impSource, &fileName, &campaign, &automation); err != nil {
+			&it.Context, &it.Scope, &importID, &it.Rows, &texts, &provName, &adapter, &userName, &impSource, &fileName, &campaign, &automation); err != nil {
 			return out, err
 		}
+		it.OriginalCode, it.Context = KeptIn(l, texts, "original_code", it.OriginalCode), KeptIn(l, texts, "context", it.Context)
 		it.ID = id.String()
 		it.Reasons = sortReasons(it.Reasons)
 		if importID != nil {
@@ -262,14 +266,14 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 		case it.Group:
 			it.Address = fileName
 			if it.Address == "" {
-				it.Address = importerLabel(impSource) + " export"
+				it.Address = mSupExport.Text(l, i18n.Args{"importer": importerLabelIn(l, impSource)})
 			}
 		case emailaddr.IsRole(email):
 			it.Address = email
 		default:
 			it.Address = emailaddr.Mask(email)
 		}
-		it.Source = suppressionSource(source, provName, adapter, userName, impSource)
+		it.Source = suppressionSource(l, source, provName, adapter, userName, impSource)
 		switch {
 		case campaign != "":
 			it.Context = campaign
@@ -309,7 +313,12 @@ func sortReasons(in []string) []string {
 	return out
 }
 
-func importerLabel(src string) string {
+// importerLabel names an importer in English: "Brevo", "CSV".
+func importerLabel(src string) string { return importerLabelIn(i18n.Default, src) }
+
+// importerLabelIn names an importer; a tool ReputeCast doesn't name reads
+// "Import" in the reader's language.
+func importerLabelIn(l i18n.Lang, src string) string {
 	switch src {
 	case "brevo":
 		return "Brevo"
@@ -326,29 +335,34 @@ func importerLabel(src string) string {
 	case "xlsx":
 		return "XLSX"
 	}
-	return "Import"
+	return mImporterOther.Text(l, nil)
 }
 
-func suppressionSource(source, provider, adapter, user, importSource string) SuppressionSource {
+// supSourceLabel is a suppression source's name in a reader's language.
+func supSourceLabel(l i18n.Lang, kind string) string {
+	return msgs.M("suppressionSource."+kind).Text(l, nil)
+}
+
+func suppressionSource(l i18n.Lang, source, provider, adapter, user, importSource string) SuppressionSource {
 	if provider != "" {
 		return SuppressionSource{Kind: "provider", Label: provider, Adapter: adapter}
 	}
 	switch {
 	case source == "preference_center":
-		return SuppressionSource{Kind: source, Label: "Preference center"}
+		return SuppressionSource{Kind: source, Label: supSourceLabel(l, source)}
 	case source == "one_click" || source == "list_unsubscribe":
-		return SuppressionSource{Kind: "one_click", Label: "List-Unsubscribe one-click"}
+		return SuppressionSource{Kind: "one_click", Label: supSourceLabel(l, "one_click")}
 	case source == "bounce_mailbox":
-		return SuppressionSource{Kind: source, Label: "SMTP bounce mailbox"}
+		return SuppressionSource{Kind: source, Label: supSourceLabel(l, source)}
 	case source == "api":
-		return SuppressionSource{Kind: source, Label: "API"}
+		return SuppressionSource{Kind: source, Label: supSourceLabel(l, source)}
 	case source == "import" || strings.HasPrefix(source, "import:"):
 		if importSource == "" {
 			importSource = strings.TrimPrefix(source, "import:")
 		}
-		return SuppressionSource{Kind: "import", Label: importerLabel(importSource) + " import"}
+		return SuppressionSource{Kind: "import", Label: mSupImport.Text(l, i18n.Args{"importer": importerLabelIn(l, importSource)})}
 	case source == "csv":
-		return SuppressionSource{Kind: source, Label: "CSV upload"}
+		return SuppressionSource{Kind: source, Label: supSourceLabel(l, source)}
 	case strings.HasPrefix(source, "verify:"):
 		if name, ok := verificationServices[strings.TrimPrefix(source, "verify:")]; ok {
 			return SuppressionSource{Kind: "verification", Label: name}
@@ -357,7 +371,7 @@ func suppressionSource(source, provider, adapter, user, importSource string) Sup
 		if user != "" {
 			return SuppressionSource{Kind: source, Label: user}
 		}
-		return SuppressionSource{Kind: source, Label: "Manual"}
+		return SuppressionSource{Kind: source, Label: supSourceLabel(l, source)}
 	}
 	return SuppressionSource{Kind: source, Label: source}
 }
@@ -373,11 +387,12 @@ func (s *Service) syncStates(ctx context.Context, ws *store.Workspace) ([]Suppre
 		return nil, err
 	}
 	out := make([]SuppressionProviderSync, 0, len(rows))
+	l := i18n.LangFrom(ctx)
 	for _, r := range rows {
 		ps := SuppressionProviderSync{ProviderID: r.ID.String(), Name: r.Name, Adapter: r.Adapter, Pulled: r.Pulled, Pushed: r.Pushed, Detail: r.StatusDetail}
 		if !state.Caps(store.Provider{Adapter: r.Adapter, Capabilities: r.Capabilities}).SuppressionSync {
 			ps.Local, ps.Status, ps.Pulled, ps.Pushed = true, "in_sync", r.Added, 0
-			ps.PulledNote = "from its bounces and complaints"
+			ps.PulledNote = msgs.M("pulled.events").Text(l, nil)
 			if r.Added > 0 {
 				at := r.AddedAt
 				ps.At = &at
@@ -389,12 +404,10 @@ func (s *Service) syncStates(ctx context.Context, ws *store.Workspace) ([]Suppre
 			continue
 		}
 		switch r.Adapter {
-		case "ses":
-			ps.PulledNote = "pulled from the account-level list"
-		case "postmark":
-			ps.PulledNote = "pulled (bounces, complaints, manual)"
+		case "ses", "postmark":
+			ps.PulledNote = msgs.M("pulled."+r.Adapter).Text(l, nil)
 		default:
-			ps.PulledNote = "pulled"
+			ps.PulledNote = msgs.M("pulled.other").Text(l, nil)
 		}
 		at := r.LastPushAt
 		if r.LastPullAt != nil && (at == nil || r.LastPullAt.After(*at)) {
@@ -440,7 +453,7 @@ func (s *Service) suppressionSources(ctx context.Context, ws *store.Workspace) (
 		if err := rows.Scan(&id, &src, &at); err != nil {
 			return out, err
 		}
-		out = append(out, SuppressionFilterOption{Value: "import:" + id.String(), Label: importerLabel(src) + " import"})
+		out = append(out, SuppressionFilterOption{Value: "import:" + id.String(), Label: mSupImport.Text(i18n.LangFrom(ctx), i18n.Args{"importer": importerLabelIn(i18n.LangFrom(ctx), src)})})
 	}
 	if err := rows.Err(); err != nil {
 		return out, err
@@ -462,7 +475,7 @@ func (s *Service) suppressionSources(ctx context.Context, ws *store.Workspace) (
 	}
 	// Unsubscribes (preference center, one-click) are found with the reason
 	// filter; the source filter lists providers, imports and the team.
-	out = append(out, SuppressionFilterOption{Value: "manual", Label: "Manual"})
+	out = append(out, SuppressionFilterOption{Value: "manual", Label: supSourceLabel(i18n.LangFrom(ctx), "manual")})
 	return out, vs.Err()
 }
 
@@ -481,10 +494,17 @@ type AddSuppressionsInput struct {
 
 // AddSuppressions adds addresses to the shared suppression list by hand.
 func (s *Service) AddSuppressions(ctx context.Context, ws *store.Workspace, in AddSuppressionsInput) (SuppressionAddResult, error) {
-	return s.addSuppressions(ctx, ws, in.Emails, "manual", strings.TrimSpace(in.Note))
+	return s.addSuppressions(ctx, ws, in.Emails, "manual", keep{English: strings.TrimSpace(in.Note)})
 }
 
-func (s *Service) addSuppressions(ctx context.Context, ws *store.Workspace, emails []string, source, note string) (SuppressionAddResult, error) {
+// AddSuppressionsKept adds addresses with a note in ReputeCast's own words
+// (a report's "Hard · unknown user bounces on Weekly Digest #142"), keeping
+// its message so readers in another language see the note in theirs.
+func (s *Service) AddSuppressionsKept(ctx context.Context, ws *store.Workspace, emails []string, note string, text i18n.Text) (SuppressionAddResult, error) {
+	return s.addSuppressions(ctx, ws, emails, "manual", keep{English: note, Text: text})
+}
+
+func (s *Service) addSuppressions(ctx context.Context, ws *store.Workspace, emails []string, source string, note keep) (SuppressionAddResult, error) {
 	res := SuppressionAddResult{Invalid: []string{}}
 	valid := []string{}
 	seen := map[string]bool{}
@@ -500,13 +520,14 @@ func (s *Service) addSuppressions(ctx context.Context, ws *store.Workspace, emai
 		}
 	}
 	actor := actorID(ctx)
+	texts := KeptTexts(map[string]i18n.Text{"original_code": note.Text})
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		added := []string{}
 		for _, e := range valid {
 			_, err := q.InsertSuppression(ctx, store.InsertSuppressionParams{
-				ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, Email: e, Reason: "manual", Source: source, OriginalCode: note,
-				CreatedBy: actor, Scope: "all", CreatedAt: s.now(),
+				ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, Email: e, Reason: "manual", Source: source, OriginalCode: note.English,
+				CreatedBy: actor, Scope: "all", Texts: texts, CreatedAt: s.now(),
 			})
 			if errors.Is(err, pgx.ErrNoRows) {
 				res.Already++
@@ -533,7 +554,7 @@ func (s *Service) addSuppressions(ctx context.Context, ws *store.Workspace, emai
 			return err
 		}
 		ev := audit.Event{WorkspaceID: &ws.ID, Action: "suppression.add", TargetType: "suppression", TargetName: strings.Join(first(added, 3), ", "),
-			Reason: note, Metadata: map[string]any{"count": len(added), "emails": first(added, 50), "source": source}}
+			Reason: note.English, Metadata: map[string]any{"count": len(added), "emails": first(added, 50), "source": source}}
 		if len(added) == 1 {
 			ev.TargetName = added[0]
 		}
@@ -655,7 +676,7 @@ func (s *Service) UploadSuppressions(ctx context.Context, ws *store.Workspace, b
 			break
 		}
 		if err != nil {
-			return SuppressionUploadResult{}, api.Invalid("body", fmt.Sprintf("%s isn't a readable CSV: %v.", fileName, err))
+			return SuppressionUploadResult{}, api.Invalid("body", say(ctx, mCSVUnreadable, i18n.Args{"file": fileName, "error": err.Error()}))
 		}
 		if header {
 			header = false
@@ -674,11 +695,11 @@ func (s *Service) UploadSuppressions(ctx context.Context, ws *store.Workspace, b
 			rows++
 		}
 		if rows > 100000 {
-			return SuppressionUploadResult{}, api.Invalid("body", "Upload at most 100,000 addresses at a time.")
+			return SuppressionUploadResult{}, api.Invalid("body", say(ctx, mUploadTooMany, nil))
 		}
 	}
 	if len(emails) == 0 {
-		return SuppressionUploadResult{}, api.Invalid("body", "The file has no addresses. Put them in a column named email.")
+		return SuppressionUploadResult{}, api.Invalid("body", say(ctx, mUploadEmpty, nil))
 	}
 	if reason == "" {
 		reason = "manual"
@@ -690,6 +711,8 @@ func (s *Service) UploadSuppressions(ctx context.Context, ws *store.Workspace, b
 func (s *Service) addUploaded(ctx context.Context, ws *store.Workspace, emails []string, reason, note, fileName string) (SuppressionAddResult, error) {
 	res := SuppressionAddResult{Invalid: []string{}}
 	actor := actorID(ctx)
+	where := kept(mContextCSVUpload, i18n.Args{"file": fileName})
+	texts := KeptTexts(map[string]i18n.Text{"context": where.Text})
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		for _, raw := range emails {
@@ -702,7 +725,7 @@ func (s *Service) addUploaded(ctx context.Context, ws *store.Workspace, emails [
 			}
 			_, err := q.InsertSuppression(ctx, store.InsertSuppressionParams{
 				ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, Email: e, Reason: reason, Source: "csv", OriginalCode: note,
-				CreatedBy: actor, Scope: scopeFor(reason), Context: "CSV upload · " + fileName, CreatedAt: s.now(),
+				CreatedBy: actor, Scope: scopeFor(reason), Context: where.English, Texts: texts, CreatedAt: s.now(),
 			})
 			if errors.Is(err, pgx.ErrNoRows) {
 				res.Already++
@@ -766,18 +789,19 @@ func (s *Service) PullFromProviders(ctx context.Context, ws *store.Workspace, bo
 		provs = append(provs, p)
 	}
 	rows.Close()
+	l := i18n.LangFrom(ctx)
 	for _, p := range provs {
 		pp := SuppressionPullProvider{Name: p.name}
 		desc, ok := providers.Lookup(p.adapter)
 		if !ok || desc.New == nil {
-			pp.Skipped = "adapter not installed"
+			pp.Skipped = mSkipNoAdapter.Text(l, nil)
 			out.Providers = append(out.Providers, pp)
 			continue
 		}
 		var creds []byte
 		if len(p.creds) > 0 && box != nil {
 			if creds, err = box.Open(p.creds, "provider:"+p.id.String()+":credentials"); err != nil {
-				pp.Skipped = "credentials can't be read"
+				pp.Skipped = mSkipCredentials.Text(l, nil)
 				out.Providers = append(out.Providers, pp)
 				continue
 			}
@@ -790,13 +814,13 @@ func (s *Service) PullFromProviders(ctx context.Context, ws *store.Workspace, bo
 		}
 		syncer, ok := inst.(providers.SuppressionSyncer)
 		if !ok {
-			pp.Skipped = "no suppression list API"
+			pp.Skipped = mSkipNoAPI.Text(l, nil)
 			out.Providers = append(out.Providers, pp)
 			continue
 		}
 		list, err := syncer.ListSuppressions(ctx, time.Time{})
 		if err != nil {
-			pp.Skipped = "the provider didn't answer: " + err.Error()
+			pp.Skipped = mSkipNoAnswer.Text(l, i18n.Args{"error": err.Error()})
 			out.Providers = append(out.Providers, pp)
 			continue
 		}

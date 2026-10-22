@@ -331,7 +331,7 @@ export function BulkResultPanel({ result, onDismiss }: { result: Schemas['Contac
   const tr = useT()
   const { slug } = useWorkspace()
   const [show, setShow] = useState(false)
-  const suppressed = result.failures.filter((f) => /suppress/i.test(f.reason)).length
+  const suppressed = result.failures.filter((f) => f.code === 'suppressed').length
   const failed = { n: result.failed, count: count(result.failed) }
   return (
     <div role="alert" className="card flex flex-col gap-2 border-[#FCD34D] px-4.5 py-4">

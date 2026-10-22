@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/segments"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -136,10 +137,11 @@ func (s *Service) Profile(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	if err != nil {
 		return ContactProfile{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	out := ContactProfile{
 		ID: c.ID.String(), Email: c.Email, FirstName: c.FirstName, LastName: c.LastName, Name: strings.TrimSpace(c.FirstName + " " + c.LastName),
-		Tier: c.Tier, Consent: c.Consent, MailboxProvider: c.MailboxProvider, MailboxLabel: MailboxLabel(c.MailboxProvider, c.MailboxDetail),
-		JoinedAt: c.CreatedAt, Source: c.Source, SourceLabel: segments.SourceLabel(c.Source), RoleAddress: c.RoleAddress,
+		Tier: c.Tier, Consent: c.Consent, MailboxProvider: c.MailboxProvider, MailboxLabel: mailboxLabelIn(l, c.MailboxProvider, c.MailboxDetail),
+		JoinedAt: c.CreatedAt, Source: c.Source, SourceLabel: segments.SourceLabelIn(l, c.Source), RoleAddress: c.RoleAddress,
 		Tags: c.Tags, Fields: []ContactProfileField{}, Lists: []ContactListConsent{}, Preferences: ContactProfilePreferences{Frequency: "all"},
 	}
 	if out.Tags == nil {
@@ -164,7 +166,7 @@ func (s *Service) Profile(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	if err != nil {
 		return out, err
 	}
-	out.Fields = profileFields(c, fields)
+	out.Fields = profileFields(l, c, fields)
 	if err := s.listConsent(ctx, ws, c, &out); err != nil {
 		return out, err
 	}
@@ -187,26 +189,27 @@ func (s *Service) Profile(ctx context.Context, ws *store.Workspace, id uuid.UUID
 }
 
 // profileFields lists built-in fields, then custom fields, then language.
-func profileFields(c store.Contact, custom []store.CustomField) []ContactProfileField {
+func profileFields(l i18n.Lang, c store.Contact, custom []store.CustomField) []ContactProfileField {
+	label := func(key string) string { return msgs.M("field."+key).Text(l, nil) }
 	out := []ContactProfileField{
-		{Key: "first_name", Label: "First name", Value: c.FirstName, Type: "builtin"},
-		{Key: "last_name", Label: "Last name", Value: c.LastName, Type: "builtin"},
-		{Key: "company", Label: "Company", Value: c.Company, Type: "builtin"},
+		{Key: "first_name", Label: label("first_name"), Value: c.FirstName, Type: "builtin"},
+		{Key: "last_name", Label: label("last_name"), Value: c.LastName, Type: "builtin"},
+		{Key: "company", Label: label("company"), Value: c.Company, Type: "builtin"},
 	}
 	loc := []string{}
 	if c.Country != "" {
-		loc = append(loc, CountryName(c.Country))
+		loc = append(loc, CountryNameIn(l, c.Country))
 	}
 	if c.Timezone != "" {
 		loc = append(loc, c.Timezone)
 	}
-	out = append(out, ContactProfileField{Key: "country_timezone", Label: "Country · timezone", Value: strings.Join(loc, " · "), Type: "builtin"})
+	out = append(out, ContactProfileField{Key: "country_timezone", Label: label("country_timezone"), Value: strings.Join(loc, " · "), Type: "builtin"})
 	var attrs map[string]any
 	_ = json.Unmarshal(c.Attributes, &attrs)
 	for _, f := range custom {
 		out = append(out, ContactProfileField{Key: f.Key, Label: f.Key, Value: attrString(attrs[f.Key]), Custom: true, Type: f.Type, Display: f.Display})
 	}
-	return append(out, ContactProfileField{Key: "language", Label: "Language", Value: c.Language, Type: "builtin"})
+	return append(out, ContactProfileField{Key: "language", Label: label("language"), Value: c.Language, Type: "builtin"})
 }
 
 func attrString(v any) string {
@@ -244,11 +247,13 @@ func (s *Service) listConsent(ctx context.Context, ws *store.Workspace, c store.
 		status[m.ListID] = m.Status
 	}
 	byList := map[uuid.UUID][]ContactConsentEvent{}
+	l := i18n.LangFrom(ctx)
 	for _, e := range events {
 		if e.ListID == nil {
 			continue
 		}
-		v := ContactConsentEvent{Action: e.Action, Source: e.Source, SourceLabel: consentSourceLabel(e.Source, e.Action), Detail: e.Detail, Note: e.Note,
+		v := ContactConsentEvent{Action: e.Action, Source: e.Source, SourceLabel: consentSourceLabel(l, e.Source, e.Action),
+			Detail: KeptIn(l, e.Texts, "detail", e.Detail), Note: KeptIn(l, e.Texts, "note", e.Note),
 			Actor: e.ActorName, ConsentVersion: e.ConsentVersion, ConsentText: e.ConsentText, Language: e.Language, At: e.OccurredAt}
 		if e.Ip != nil {
 			v.IP = e.Ip.String()
@@ -269,30 +274,22 @@ func (s *Service) listConsent(ctx context.Context, ws *store.Workspace, c store.
 	return nil
 }
 
-// consentSourceLabel names where a consent event came from. A store's
-// records (X20) read "Shopify: accepted marketing at checkout"; its
-// unsubscribes, "Shopify".
-func consentSourceLabel(src, action string) string {
+// consentSourceLabel names where a consent event came from, in a reader's
+// language. A store's records (X20) read "Shopify: accepted marketing at
+// checkout"; its unsubscribes, "Shopify".
+func consentSourceLabel(l i18n.Lang, src, action string) string {
 	if strings.HasPrefix(src, "store:") {
 		if action == "subscribed" || action == "resubscribed" {
-			return segments.SourceLabel(src) + ": accepted marketing at checkout"
+			return mSourceCheckout.Text(l, i18n.Args{"source": segments.SourceLabelIn(l, src)})
 		}
-		return segments.SourceLabel(src)
+		return segments.SourceLabelIn(l, src)
 	}
 	switch src {
-	case "preference_center":
-		return "the preference center"
-	case "one_click":
-		return "List-Unsubscribe one-click"
-	case "repermission":
-		return "re-permission email"
-	case "team":
-		return "the team"
-	case "api":
-		return "the API"
+	case "preference_center", "one_click", "repermission", "team", "api":
+		return msgs.M("source."+src).Text(l, nil)
 	}
 	if strings.HasPrefix(src, "import:") || strings.HasPrefix(src, "form:") || strings.HasPrefix(src, "product_checkout:") {
-		return segments.SourceLabel(src)
+		return segments.SourceLabelIn(l, src)
 	}
 	return src
 }
@@ -326,21 +323,21 @@ func customValue(f store.CustomField, v any) (any, error) {
 	case "number":
 		n, err := strconv.ParseFloat(s, 64)
 		if err != nil {
-			return nil, fmt.Errorf("%s is a number field; %q isn't a number", f.Key, s)
+			return nil, &fieldValueError{key: f.Key, msg: mFieldNumber, args: i18n.Args{"value": strconv.Quote(s)}}
 		}
 		return n, nil
 	case "date":
 		if !datePattern.MatchString(s) {
-			return nil, fmt.Errorf("%s is a date field; use a date like 2026-10-30", f.Key)
+			return nil, &fieldValueError{key: f.Key, msg: mFieldDate}
 		}
 		if _, err := time.Parse("2006-01-02", s); err != nil {
-			return nil, fmt.Errorf("%s: %q isn't a real date", f.Key, s)
+			return nil, &fieldValueError{key: f.Key, msg: mFieldRealDate, args: i18n.Args{"value": strconv.Quote(s)}}
 		}
 		return s, nil
 	case "boolean":
 		b, err := strconv.ParseBool(strings.ToLower(s))
 		if err != nil {
-			return nil, fmt.Errorf("%s is a yes/no field; use true or false", f.Key)
+			return nil, &fieldValueError{key: f.Key, msg: mFieldBool}
 		}
 		return b, nil
 	case "select":
@@ -352,17 +349,40 @@ func customValue(f store.CustomField, v any) (any, error) {
 					return s, nil
 				}
 			}
-			return nil, fmt.Errorf("%s must be one of %s", f.Key, strings.Join(opts, ", "))
+			return nil, &fieldValueError{key: f.Key, msg: mFieldSelect, args: i18n.Args{"options": strings.Join(opts, ", ")}}
 		}
 	}
 	if len(s) > 500 {
-		return nil, fmt.Errorf("%s is limited to 500 characters", f.Key)
+		return nil, &fieldValueError{key: f.Key, msg: mFieldTooLong}
 	}
 	return s, nil
 }
 
+// fieldValueError says what's wrong with a custom field's value, as a
+// sentence that starts with the field's key ("Mrr is a number field…" in
+// English, where the key takes a capital).
+type fieldValueError struct {
+	key  string
+	msg  i18n.Msg
+	args i18n.Args
+}
+
+func (e *fieldValueError) text(l i18n.Lang) string {
+	args := i18n.Args{"key": e.key}
+	if l.Locale == "" || l.Locale == i18n.English {
+		args["key"] = capitalize(e.key)
+	}
+	for k, v := range e.args {
+		args[k] = v
+	}
+	return e.msg.Text(l, args)
+}
+
+func (e *fieldValueError) Error() string { return e.text(i18n.Default) }
+
 // UpdateContact changes a contact's fields and tags.
 func (s *Service) UpdateContact(ctx context.Context, ws *store.Workspace, id uuid.UUID, in ContactUpdate) (ContactProfile, error) {
+	l := i18n.LangFrom(ctx)
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		c, err := s.getContact(ctx, q, ws, id)
@@ -380,7 +400,7 @@ func (s *Service) UpdateContact(ctx context.Context, ws *store.Workspace, id uui
 		set(&p.LastName, in.LastName)
 		set(&p.Company, in.Company)
 		if in.Language != nil {
-			code, err := NormalizeLanguage(*in.Language, "body.language")
+			code, err := NormalizeLanguageIn(l, *in.Language, "body.language")
 			if err != nil {
 				return err
 			}
@@ -393,7 +413,7 @@ func (s *Service) UpdateContact(ctx context.Context, ws *store.Workspace, id uui
 			tz := strings.TrimSpace(*in.Timezone)
 			if tz != "" {
 				if _, err := time.LoadLocation(tz); err != nil {
-					return api.Invalid("body.timezone", fmt.Sprintf("%q isn't a timezone. Use a name like America/Chicago.", tz))
+					return api.Invalid("body.timezone", mTimezone.Text(l, i18n.Args{"value": strconv.Quote(tz)}))
 				}
 			}
 			p.Timezone = tz
@@ -415,11 +435,11 @@ func (s *Service) UpdateContact(ctx context.Context, ws *store.Workspace, id uui
 			for k, v := range in.Fields {
 				f, ok := byKey[k]
 				if !ok {
-					return api.Invalid("body.fields."+k, fmt.Sprintf("%s isn't a custom field. Create it first under Fields.", k))
+					return api.Invalid("body.fields."+k, mNotCustomField.Text(l, i18n.Args{"key": k}))
 				}
 				val, err := customValue(f, v)
 				if err != nil {
-					return api.Invalid("body.fields."+k, capitalize(err.Error())+".")
+					return api.Invalid("body.fields."+k, err.(*fieldValueError).text(l))
 				}
 				if val == nil {
 					delete(attrs, k)
@@ -502,34 +522,35 @@ type NewContactResult struct {
 
 // CreateContact adds one contact from the app.
 func (s *Service) CreateContact(ctx context.Context, ws *store.Workspace, in NewContact) (NewContactResult, error) {
+	l := i18n.LangFrom(ctx)
 	email, problem := emailaddr.Check(in.Email)
 	if problem != "" {
-		return NewContactResult{}, api.Invalid("body.email", fmt.Sprintf("That isn't an email address (%s).", problem))
+		return NewContactResult{}, api.Invalid("body.email", mEmailInvalid.Text(l, i18n.Args{"problem": emailProblem(l, problem)}))
 	}
 	if len(in.Lists) == 0 {
-		return NewContactResult{}, api.Invalid("body.lists", "Pick at least one list.")
+		return NewContactResult{}, api.Invalid("body.lists", mPickLists.Text(l, nil))
 	}
-	language, lerr := NormalizeLanguage(in.Language, "body.language")
+	language, lerr := NormalizeLanguageIn(l, in.Language, "body.language")
 	if lerr != nil {
 		return NewContactResult{}, lerr
 	}
 	if sup, err := s.Q.GetSuppressionByEmail(ctx, store.GetSuppressionByEmailParams{WorkspaceID: ws.ID, Email: email}); err == nil {
-		return NewContactResult{}, api.Conflict(fmt.Sprintf("%s is on the suppression list (%s). Remove it there first if they gave you a new opt-in.", email, reasonName(sup.Reason)))
+		return NewContactResult{}, api.Conflict(mContactSuppressed.Text(l, i18n.Args{"email": email, "reason": reasonNameIn(l, sup.Reason)}))
 	}
 	if _, err := s.Q.GetContactByEmail(ctx, store.GetContactByEmailParams{WorkspaceID: ws.ID, Email: email}); err == nil {
-		return NewContactResult{}, api.Conflict(fmt.Sprintf("%s is already a contact. Open their profile to change lists.", email))
+		return NewContactResult{}, api.Conflict(mContactExists.Text(l, i18n.Args{"email": email}))
 	}
 	listIDs := make([]uuid.UUID, 0, len(in.Lists))
-	for _, l := range in.Lists {
-		id, err := uuid.Parse(l)
+	for _, raw := range in.Lists {
+		id, err := uuid.Parse(raw)
 		if err != nil {
-			return NewContactResult{}, api.Invalid("body.lists", "Pick lists from this workspace.")
+			return NewContactResult{}, api.Invalid("body.lists", mWorkspaceLists.Text(l, nil))
 		}
 		if _, err := s.Q.GetList(ctx, store.GetListParams{WorkspaceID: ws.ID, ID: id}); err != nil {
-			return NewContactResult{}, api.Invalid("body.lists", "Pick lists from this workspace.")
+			return NewContactResult{}, api.Invalid("body.lists", mWorkspaceLists.Text(l, nil))
 		}
 		if !scopeAllowsList(ctx, id) {
-			return NewContactResult{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, "Your role is limited to other lists.")
+			return NewContactResult{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, mScopeLists.Text(l, nil))
 		}
 		listIDs = append(listIDs, id)
 	}
@@ -630,11 +651,12 @@ func (s *Service) SendConfirmations(ctx context.Context, ws *store.Workspace, id
 		return 0, err
 	}
 	sent := 0
+	note := kept(mNoteConfirmSent, nil)
 	for _, c := range contacts {
 		if ok, _ := s.sendConfirmation(ctx, ws, c); ok {
 			sent++
 			_ = s.Q.InsertConsentEvent(ctx, store.InsertConsentEventParams{ID: uuid.Must(uuid.NewV7()), ContactID: c.ID, Action: "optin_sent", Source: "repermission",
-				Note: "confirmation sent via the System stream", OccurredAt: s.now()})
+				Note: note.English, Texts: KeptTexts(map[string]i18n.Text{"note": note.Text}), OccurredAt: s.now()})
 		}
 	}
 	return sent, nil
@@ -653,14 +675,15 @@ func (s *Service) ResendOptIn(ctx context.Context, ws *store.Workspace, id uuid.
 		return OptInResendResult{}, err
 	}
 	if _, err := s.Q.GetSuppressionByEmail(ctx, store.GetSuppressionByEmailParams{WorkspaceID: ws.ID, Email: c.Email}); err == nil {
-		return OptInResendResult{}, api.Conflict(c.Email + " is on the suppression list, so no opt-in email can be sent.")
+		return OptInResendResult{}, api.Conflict(say(ctx, mOptinSuppressed, i18n.Args{"email": c.Email}))
 	}
 	sent, url := s.sendConfirmation(ctx, ws, c)
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if sent {
+			note := kept(mNoteConfirmSent, nil)
 			if err := q.InsertConsentEvent(ctx, store.InsertConsentEventParams{ID: uuid.Must(uuid.NewV7()), ContactID: c.ID, Action: "optin_sent", Source: "team",
-				Note: "confirmation sent via the System stream", ActorID: actorID(ctx), OccurredAt: s.now()}); err != nil {
+				Note: note.English, Texts: KeptTexts(map[string]i18n.Text{"note": note.Text}), ActorID: actorID(ctx), OccurredAt: s.now()}); err != nil {
 				return err
 			}
 		}
@@ -703,12 +726,12 @@ func (s *Service) SuppressContact(ctx context.Context, ws *store.Workspace, id u
 	if err != nil {
 		return err
 	}
-	res, err := s.addSuppressions(ctx, ws, []string{c.Email}, "manual", strings.TrimSpace(in.Reason))
+	res, err := s.addSuppressions(ctx, ws, []string{c.Email}, "manual", keep{English: strings.TrimSpace(in.Reason)})
 	if err != nil {
 		return err
 	}
 	if res.Added == 0 {
-		return api.Conflict(c.Email + " is already on the suppression list.")
+		return api.Conflict(say(ctx, mAlreadySuppressed, i18n.Args{"email": c.Email}))
 	}
 	return nil
 }

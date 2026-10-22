@@ -11,6 +11,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/segments"
 )
 
@@ -90,7 +91,7 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 	if f.List != "" {
 		id, err := uuid.Parse(f.List)
 		if err != nil {
-			return api.Invalid("list", "Pick a list from this workspace.")
+			return api.Invalid("list", say(ctx, mFilterList, nil))
 		}
 		out.add("EXISTS (SELECT 1 FROM list_memberships lm WHERE lm.contact_id = c.id AND lm.list_id = ? AND lm.status <> 'unsubscribed')", id)
 	}
@@ -119,7 +120,7 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 	if f.JoinedAfter != "" {
 		d, err := time.Parse("2006-01-02", f.JoinedAfter)
 		if err != nil {
-			return api.Invalid("joinedAfter", "Use a date like 2026-09-01.")
+			return api.Invalid("joinedAfter", say(ctx, mJoinedAfter, nil))
 		}
 		out.add("c.created_at >= ?", d)
 	}
@@ -142,16 +143,16 @@ func (s *Service) applyFilter(ctx context.Context, wsID uuid.UUID, out *filterSQ
 		return err
 	}
 	productsFilter(out, f.ProductsFilter)
-	if err := s.storeFilter(out, f.StoreFilter); err != nil {
+	if err := s.storeFilter(ctx, out, f.StoreFilter); err != nil {
 		return err
 	}
-	if err := channelFilter(out, f.ChannelFilter); err != nil {
+	if err := channelFilter(ctx, out, f.ChannelFilter); err != nil {
 		return err
 	}
 	if f.Segment != "" {
 		id, err := uuid.Parse(f.Segment)
 		if err != nil {
-			return api.Invalid("segment", "Pick a segment from this workspace.")
+			return api.Invalid("segment", say(ctx, mFilterSegment, nil))
 		}
 		ids, err := s.Segments.ContactIDs(ctx, wsID, id)
 		if err != nil {
@@ -186,33 +187,18 @@ func escapeLike(s string) string {
 	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
 }
 
-// TierName is how a tier reads in the UI.
-func TierName(t string) string {
-	switch t {
-	case "active":
-		return "Active"
-	case "cooling":
-		return "Cooling"
-	case "at_risk":
-		return "At risk"
-	case "sunset":
-		return "Sunset"
-	}
-	return t
-}
+// TierName is how a tier reads in the UI, in English.
+func TierName(t string) string { return TierNameIn(i18n.Default, t) }
 
-// ConsentName is how a consent state reads in the UI.
-func ConsentName(c string) string {
-	switch c {
-	case "double":
-		return "Double opt-in"
-	case "single":
-		return "Single opt-in"
-	case "pending":
-		return "Imported · pending"
-	}
-	return c
-}
+// TierNameIn is how a tier reads in a reader's language: "At risk".
+func TierNameIn(l i18n.Lang, t string) string { return lookup(l, "tier."+t, t) }
+
+// ConsentName is how a consent state reads in the UI, in English.
+func ConsentName(c string) string { return ConsentNameIn(i18n.Default, c) }
+
+// ConsentNameIn is how a consent state reads in a reader's language:
+// "Double opt-in".
+func ConsentNameIn(l i18n.Lang, c string) string { return lookup(l, "consent."+c, c) }
 
 // MailboxLabel is "Outlook" or "Other · Google Workspace".
 func MailboxLabel(provider, detail string) string {

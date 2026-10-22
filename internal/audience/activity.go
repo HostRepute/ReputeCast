@@ -3,6 +3,7 @@ package audience
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/netip"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -179,7 +181,7 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 	if cursor != "" {
 		at, id, err := decodeCursor(cursor)
 		if err != nil {
-			return ContactActivityPage{}, api.Invalid("cursor", "This page link expired. Reload the timeline.")
+			return ContactActivityPage{}, api.Invalid("cursor", say(ctx, mCursorExpired, nil))
 		}
 		args = append(args, at, id)
 		cur = " WHERE (ev.occurred_at, ev.id) < ($4, $5)"
@@ -194,7 +196,8 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 		       coalesce((SELECT l.label FROM campaign_links l WHERE l.campaign_id = cp.id AND l.url = de.url ORDER BY l.position LIMIT 1), '') AS link_label,
 		       ''::text AS list, ''::text AS source, ''::text AS detail, ''::text AS note, NULL::inet AS ip, ''::text AS actor, ''::text AS version,
 		       coalesce(m.language, '') AS language,
-		       coalesce(m.language_reason, '') AS language_reason, coalesce(m.contact_language, '') AS contact_language
+		       coalesce(m.language_reason, '') AS language_reason, coalesce(m.contact_language, '') AS contact_language,
+		       '{}'::jsonb AS texts
 		FROM delivery_events de
 		LEFT JOIN messages m ON m.id = de.message_id
 		LEFT JOIN campaigns cp ON cp.id = coalesce(de.campaign_id, m.campaign_id)
@@ -204,7 +207,7 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 		UNION ALL
 		SELECT ce.id, 'consent', ce.action, ce.occurred_at, '', false, '', NULL, '', '', '', '', '', '', '', '', false, '', ce.user_agent, '',
 		       coalesce(l.name, ''), ce.source, ce.detail, ce.note, ce.ip, coalesce(u.name, ''), ce.consent_version,
-		       ce.language, '', ''
+		       ce.language, '', '', ce.texts
 		FROM consent_events ce
 		LEFT JOIN lists l ON l.id = ce.list_id
 		LEFT JOIN users u ON u.id = ce.actor_id
@@ -227,17 +230,20 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 		return out, err
 	}
 	multilingual := len(st.Languages) > 1
+	l := i18n.LangFrom(ctx)
 	for rows.Next() {
 		var it ContactActivityItem
 		var id uuid.UUID
 		var src, campaign, origin, automation, node, provider, adapter, userAgent, url, lang, reason, contactLang string
 		var delivered *time.Time
 		var ip *netip.Addr
+		var texts json.RawMessage
 		if err := rows.Scan(&id, &src, &it.Type, &it.At, &it.Variant, &it.Failover, &it.RouteNote, &delivered, &campaign, &origin,
 			&automation, &node, &provider, &adapter, &it.Code, &it.Diagnostic, &it.Machine, &url, &userAgent, &it.LinkLabel,
-			&it.List, &it.Source, &it.Detail, &it.Note, &ip, &it.Actor, &it.ConsentVersion, &lang, &reason, &contactLang); err != nil {
+			&it.List, &it.Source, &it.Detail, &it.Note, &ip, &it.Actor, &it.ConsentVersion, &lang, &reason, &contactLang, &texts); err != nil {
 			return out, err
 		}
+		it.Detail, it.Note = KeptIn(l, texts, "detail", it.Detail), KeptIn(l, texts, "note", it.Note)
 		it.ID = id.String()
 		if src == "consent" {
 			it.ConsentLanguage = lang
@@ -248,13 +254,13 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 			if reason != languages.ReasonMatch {
 				it.LanguageReason = reason
 			}
-			it.ContactLanguageName = languageName(contactLang)
+			it.ContactLanguageName = languageNameIn(l, contactLang)
 		}
 		if src == "consent" {
 			it.Category = "consent"
-			it.SourceLabel = consentSourceLabel(it.Source, it.Type)
+			it.SourceLabel = consentSourceLabel(l, it.Source, it.Type)
 			if strings.HasPrefix(it.Source, "import:") {
-				it.SourceLabel = importerLabel(strings.TrimPrefix(it.Source, "import:"))
+				it.SourceLabel = importerLabelIn(l, strings.TrimPrefix(it.Source, "import:"))
 			}
 			if ip != nil {
 				it.IP = ip.String()
@@ -275,15 +281,15 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 					it.Subject += " · " + node
 				}
 			default:
-				it.Subject = "an email"
+				it.Subject = mAnEmail.Text(l, nil)
 			}
 			if provider != "" {
 				it.Provider = &ContactActivityProvider{Name: provider, Adapter: adapter}
 			} else if origin != "" {
-				it.Imported = importerLabel(origin)
+				it.Imported = importerLabelIn(l, origin)
 			}
 			if it.Type == "open" {
-				it.Client = MailClient(userAgent)
+				it.Client = MailClientIn(l, userAgent)
 				if delivered != nil && it.At.After(*delivered) {
 					m := int64(it.At.Sub(*delivered).Minutes())
 					it.AfterDeliveryMin = &m
@@ -338,36 +344,51 @@ func decodeCursor(c string) (time.Time, uuid.UUID, error) {
 	return at, id, err
 }
 
-// MailClient names the mail client behind an open's user agent.
-func MailClient(ua string) string {
+// MailClient names the mail client behind an open's user agent, in
+// English.
+func MailClient(ua string) string { return MailClientIn(i18n.Default, ua) }
+
+// MailClientIn names the mail client in a reader's language: "Outlook on
+// Windows"; names (Gmail, Thunderbird) stay as they are.
+func MailClientIn(l i18n.Lang, ua string) string {
+	key, name := mailClient(ua)
+	if key == "" {
+		return name
+	}
+	return msgs.M("client."+key).Text(l, nil)
+}
+
+// mailClient is the client's message key (client.<key>), or its name when
+// it reads the same in every language.
+func mailClient(ua string) (key, name string) {
 	u := strings.ToLower(ua)
 	switch {
 	case u == "":
-		return ""
+		return "", ""
 	case strings.Contains(u, "googleimageproxy"):
-		return "Gmail"
+		return "", "Gmail"
 	case strings.Contains(u, "outlook") || strings.Contains(u, "microsoft office"):
 		switch {
 		case strings.Contains(u, "windows"):
-			return "Outlook on Windows"
+			return "outlook_windows", ""
 		case strings.Contains(u, "mac"):
-			return "Outlook on Mac"
+			return "outlook_mac", ""
 		case strings.Contains(u, "iphone") || strings.Contains(u, "android"):
-			return "Outlook mobile"
+			return "outlook_mobile", ""
 		}
-		return "Outlook"
+		return "", "Outlook"
 	case strings.Contains(u, "yahoomailproxy"):
-		return "Yahoo Mail"
+		return "", "Yahoo Mail"
 	case strings.Contains(u, "thunderbird"):
-		return "Thunderbird"
+		return "", "Thunderbird"
 	case strings.Contains(u, "iphone") || strings.Contains(u, "ipad"):
-		return "Apple Mail on iPhone"
+		return "apple_iphone", ""
 	case strings.Contains(u, "macintosh"):
-		return "Apple Mail on Mac"
+		return "apple_mac", ""
 	case strings.Contains(u, "android"):
-		return "Android"
+		return "", "Android"
 	case strings.Contains(u, "windows"):
-		return "Browser on Windows"
+		return "browser_windows", ""
 	}
-	return "Other client"
+	return "other", ""
 }

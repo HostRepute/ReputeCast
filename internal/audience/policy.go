@@ -11,6 +11,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -107,29 +108,30 @@ func (p SunsetPolicy) doc() policyDoc {
 		StopAfterDays: p.StopAfterDays, DeleteAfter: p.DeleteAfter, DeleteAfterMonths: p.DeleteAfterMonths}
 }
 
-// Validate checks that the tier thresholds are in order.
-func (p SunsetPolicy) Validate() error {
+// Validate checks that the tier thresholds are in order; its problems are
+// in the reader's language.
+func (p SunsetPolicy) Validate(l i18n.Lang) error {
 	if p.ActiveDays < 1 {
-		return api.Invalid("body.activeDays", "Active needs at least 1 day.")
+		return api.Invalid("body.activeDays", mPolicyActive.Text(l, nil))
 	}
 	if p.AtRiskDays <= p.ActiveDays+1 {
-		return api.Invalid("body.atRiskDays", fmt.Sprintf("At risk must start after %d days so Cooling has room.", p.ActiveDays+1))
+		return api.Invalid("body.atRiskDays", mPolicyAtRisk.Text(l, i18n.Args{"days": p.ActiveDays + 1}))
 	}
 	if p.SunsetDays <= p.AtRiskDays {
-		return api.Invalid("body.sunsetDays", fmt.Sprintf("Sunset must start after At risk (%d days).", p.AtRiskDays))
+		return api.Invalid("body.sunsetDays", mPolicySunset.Text(l, i18n.Args{"days": p.AtRiskDays}))
 	}
 	if p.StopBroadcasts && p.StopAfterDays < 1 {
-		return api.Invalid("body.stopAfterDays", "Stop Broadcasts at least 1 day after Sunset.")
+		return api.Invalid("body.stopAfterDays", mPolicyStop.Text(l, nil))
 	}
 	if p.DeleteAfter && p.DeleteAfterMonths < 1 {
-		return api.Invalid("body.deleteAfterMonths", "Delete after at least 1 month.")
+		return api.Invalid("body.deleteAfterMonths", mPolicyDelete.Text(l, nil))
 	}
 	return nil
 }
 
 // SavePolicy stores the sunset policy. Tiers change at the next nightly run.
 func (s *Service) SavePolicy(ctx context.Context, ws *store.Workspace, p SunsetPolicy) (SunsetPolicy, error) {
-	if err := p.Validate(); err != nil {
+	if err := p.Validate(i18n.LangFrom(ctx)); err != nil {
 		return p, err
 	}
 	before := ParsePolicy(ws.SunsetPolicy)
