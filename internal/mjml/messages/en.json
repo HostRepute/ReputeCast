@@ -3,7 +3,7 @@
 
   "parse.unclosedComment": {"message": "unclosed comment", "note": "an MJML syntax problem, after \"Line 3: \"; lower case"},
   "parse.unfinishedClosingTag": "unfinished closing tag",
-  "parse.noOpeningTag": {"message": "</{tag}> has no opening tag", "note": "tag: an MJML or HTML tag name, mj-section"},
+  "parse.noOpeningTag": {"message": "'</'{tag}> has no opening tag", "note": "tag: an MJML or HTML tag name, mj-section"},
   "parse.unclosedTag": {"message": "unclosed <{tag}>", "note": "tag: an MJML tag name, mj-section"},
   "parse.unfinishedTag": {"message": "unfinished <{tag}>", "note": "the source ends inside the tag's attributes"},
   "parse.unclosedQuote": {"message": "unclosed quote in <{tag}>", "note": "an attribute value's quote is never closed"},

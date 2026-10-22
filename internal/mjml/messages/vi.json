@@ -3,7 +3,7 @@
 
   "parse.unclosedComment": "chú thích chưa được đóng",
   "parse.unfinishedClosingTag": "thẻ đóng chưa hoàn chỉnh",
-  "parse.noOpeningTag": "</{tag}> không có thẻ mở",
+  "parse.noOpeningTag": "'</'{tag}> không có thẻ mở",
   "parse.unclosedTag": "<{tag}> chưa được đóng",
   "parse.unfinishedTag": "<{tag}> chưa hoàn chỉnh",
   "parse.unclosedQuote": "dấu ngoặc kép trong <{tag}> chưa được đóng",

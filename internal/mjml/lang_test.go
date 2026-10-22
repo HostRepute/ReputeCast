@@ -35,6 +35,9 @@ func TestProblemsInVietnamese(t *testing.T) {
 	if _, err := Parse("<mj-body></mj-body>"); !errors.As(err, &pe) || pe.Error() != "Line 1: the document must start with <mjml>" || pe.In(vi) != "Dòng 1: tài liệu phải bắt đầu bằng <mjml>" {
 		t.Fatalf("no root: %v", err)
 	}
+	if _, err := Parse("</mj-section>"); !errors.As(err, &pe) || pe.Error() != "Line 1: </mj-section> has no opening tag" || pe.In(vi) != "Dòng 1: </mj-section> không có thẻ mở" {
+		t.Fatalf("no opening tag: %v", err)
+	}
 	bad := "<mjml><mj-body><mj-section><mj-column><mj-text>x</mj-section></mj-body></mjml>"
 	if res := CompileIn(vi, bad); len(res.Errors) != 1 || res.Errors[0].Message != "Dòng 1: <mj-text> chưa được đóng" {
 		t.Fatalf("compile in Vietnamese: %+v", res.Errors)
