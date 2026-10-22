@@ -4,8 +4,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hostrepute/reputecast/internal/providers/bounce"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/providers/bounce"
 	provstate "github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 )

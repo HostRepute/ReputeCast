@@ -36,10 +36,10 @@ var (
 )
 
 // bounceLabel is a bounce type in a reader's language: "Hard · unknown user".
-func bounceLabel(l i18n.Lang, key string) string { return msgs.M("bounce." + key).Text(l, nil) }
+func bounceLabel(l i18n.Lang, key string) string { return msgs.M("bounce."+key).Text(l, nil) }
 
 // reasonLabel is an unsubscribe reason in a reader's language: "Too many emails".
-func reasonLabel(l i18n.Lang, key string) string { return msgs.M("reason." + key).Text(l, nil) }
+func reasonLabel(l i18n.Lang, key string) string { return msgs.M("reason."+key).Text(l, nil) }
 
 // abLabel is what an A/B test compares, in a reader's language: "subject
 // line"; "" for a kind it doesn't know.
