@@ -2,7 +2,6 @@ package approvals
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -57,8 +57,9 @@ type ApprovalPolicyView struct {
 func (s *Service) PolicyView(ctx context.Context, ws *store.Workspace, p *authz.Principal) (ApprovalPolicyView, error) {
 	out := ApprovalPolicyView{Policy: ParsePolicy(ws.ApprovalPolicy), Approvers: []ApprovalPerson{}, Pending: []ApprovalPendingItem{},
 		Matches: ApprovalPolicyMatches{LacksSend: []string{}, LacksSendRoles: []string{}, ApprovalLists: []string{}}, CanManage: p.Can(authz.WorkspaceManage)}
+	l := langOf(ctx)
 	if !out.CanManage {
-		out.Reason = authz.DeniedMessage(authz.WorkspaceManage, access.Helpers(ctx, s.Q, ws.ID, authz.WorkspaceManage))
+		out.Reason = api.DeniedText(l, authz.WorkspaceManage, access.Helpers(ctx, s.Q, ws.ID, authz.WorkspaceManage))
 	}
 	ms, err := s.members(ctx, s.Q, ws.ID)
 	if err != nil {
@@ -70,7 +71,7 @@ func (s *Service) PolicyView(ctx context.Context, ws *store.Workspace, p *authz.
 	roles := map[string]bool{}
 	for _, m := range ms {
 		if m.Perms.Has(authz.CampaignsApprove) {
-			out.Approvers = append(out.Approvers, s.person(m))
+			out.Approvers = append(out.Approvers, s.person(langOf(ctx), m))
 		}
 		if m.Perms.Has(authz.CampaignsEdit) && !m.Perms.Has(authz.CampaignsSend) {
 			out.Matches.LacksSend = append(out.Matches.LacksSend, m.Name)
@@ -98,13 +99,13 @@ func (s *Service) PolicyView(ctx context.Context, ws *store.Workspace, p *authz.
 			for _, w := range plans {
 				if w.ProviderID == pr.ID && w.Status != "done" {
 					day := min(max(state.WarmupDay(w.StartDate, s.now(), loc), 1), int(w.Days))
-					parts = append(parts, fmt.Sprintf("%s is warming up, day %d of %d", label, day, w.Days))
+					parts = append(parts, mPolicyWarming.Text(l, i18n.Args{"provider": label, "day": day, "days": w.Days}))
 					warming = true
 					break
 				}
 			}
 			if !warming && s.now().Sub(pr.ConnectedAt) < time.Duration(out.Policy.NewProviderDays)*24*time.Hour {
-				parts = append(parts, fmt.Sprintf("%s was connected %d days ago", label, int(s.now().Sub(pr.ConnectedAt).Hours()/24)))
+				parts = append(parts, mPolicyConnected.Text(l, i18n.Args{"provider": label, "days": int(s.now().Sub(pr.ConnectedAt).Hours() / 24)}))
 			}
 		}
 		if len(parts) > 0 {
@@ -135,10 +136,10 @@ func (s *Service) PolicyView(ctx context.Context, ws *store.Workspace, p *authz.
 // SavePolicy stores the approval policy.
 func (s *Service) SavePolicy(ctx context.Context, ws *store.Workspace, p *authz.Principal, in ApprovalPolicy) (ApprovalPolicyView, error) {
 	if in.AudienceMin.Enabled && in.AudienceMin.N < 1 {
-		return ApprovalPolicyView{}, api.Invalid("body.audienceMin.n", "Enter a number of recipients, like 10,000.")
+		return ApprovalPolicyView{}, api.Invalid("body.audienceMin.n", say(ctx, mAudienceMin, i18n.Args{"example": 10000}))
 	}
 	if in.ApprovalsRequired < 1 || in.ApprovalsRequired > 2 {
-		return ApprovalPolicyView{}, api.Invalid("body.approvalsRequired", "Require 1 or 2 approvals.")
+		return ApprovalPolicyView{}, api.Invalid("body.approvalsRequired", say(ctx, mApprovalsRequired, nil))
 	}
 	if in.NewProviderDays <= 0 {
 		in.NewProviderDays = 14

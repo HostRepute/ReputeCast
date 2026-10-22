@@ -13,11 +13,13 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -141,19 +143,21 @@ func Initials(name string) string {
 	return out
 }
 
-func (s *Service) person(m member) ApprovalPerson {
-	p := ApprovalPerson{ID: m.ID.String(), Name: m.Name, Email: m.Email, Initials: Initials(m.Name), Color: m.Color, Role: m.RoleName}
+// person is a member as the approval screens show them, their role and
+// presence in the reader's language.
+func (s *Service) person(l i18n.Lang, m member) ApprovalPerson {
+	p := ApprovalPerson{ID: m.ID.String(), Name: m.Name, Email: m.Email, Initials: Initials(m.Name), Color: m.Color, Role: api.RoleName(l, m.RoleKey, m.RoleName)}
 	if m.LastActive != nil {
 		ago := s.now().Sub(*m.LastActive)
 		switch {
 		case ago < 15*time.Minute:
-			p.Presence = "online"
+			p.Presence = mPresenceOnline.Text(l, nil)
 		case ago < time.Hour:
-			p.Presence = fmt.Sprintf("active %d min ago", int(ago.Minutes()))
+			p.Presence = mPresenceMinutes.Text(l, i18n.Args{"count": int(ago.Minutes())})
 		case ago < 24*time.Hour:
-			p.Presence = fmt.Sprintf("active %d h ago", int(ago.Hours()))
+			p.Presence = mPresenceHours.Text(l, i18n.Args{"count": int(ago.Hours())})
 		default:
-			p.Presence = fmt.Sprintf("active %d days ago", int(ago.Hours()/24))
+			p.Presence = mPresenceDays.Text(l, i18n.Args{"count": int(ago.Hours() / 24)})
 		}
 	}
 	return p

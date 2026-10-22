@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -364,7 +365,7 @@ func Diff(s Snapshot, c Current, loc *time.Location) []ApprovalChange {
 		moved := float64(c.AudienceCount-base) / float64(base) * 100
 		if math.Abs(moved) > InvalidationShare {
 			out = append(out, ApprovalChange{Field: "audience_count", Label: "Audience",
-				Before: readiness.Count(s.AudienceCount), After: fmt.Sprintf("%s (%s)", readiness.Count(s.AudienceCount+c.AudienceCount-base), signedPct(moved))})
+				Before: readiness.Count(s.AudienceCount), After: fmt.Sprintf("%s (%s)", readiness.Count(s.AudienceCount+c.AudienceCount-base), signedPct(i18n.Default, moved))})
 		}
 	}
 	if s.RouteKey != "" && c.RouteKey != "" && s.RouteKey != c.RouteKey {
@@ -405,17 +406,6 @@ func changedSections(before, after []string) string {
 	return strings.Join(parts, " · ")
 }
 
-func signedPct(v float64) string {
-	s := fmt.Sprintf("%.0f%%", math.Abs(v))
-	if math.Abs(v) < 10 {
-		s = fmt.Sprintf("%.1f%%", math.Abs(v))
-	}
-	if v >= 0 {
-		return "+" + s
-	}
-	return "−" + s
-}
-
 func sameAudience(a, b json.RawMessage) bool {
 	x, y := readiness.ParseAudience(a), readiness.ParseAudience(b)
 	eq := func(p, q []string) bool {
@@ -444,24 +434,36 @@ func sameSchedule(a, b json.RawMessage) bool {
 	return tx.Equal(ty)
 }
 
-// ScheduleText is "Nov 4, 09:00", "Send now" or "Best time within 24 h of Nov 4, 09:00".
+// ScheduleText is "Nov 4, 09:00", "Send now" or "Best time within 24 h of
+// Nov 4, 09:00", in English (as stored and as API clients read it).
 func ScheduleText(raw json.RawMessage, loc *time.Location) string {
+	return scheduleKept(raw, loc).text(i18n.Default)
+}
+
+// scheduleTextIn is ScheduleText in a reader's language and region.
+func scheduleTextIn(l i18n.Lang, raw json.RawMessage, loc *time.Location) string {
+	return scheduleKept(raw, loc).text(l)
+}
+
+// scheduleKept is a schedule as a kept message: send now, or the moment (in
+// the schedule's zone), at best time or not.
+func scheduleKept(raw json.RawMessage, loc *time.Location) keptValue {
 	s := readiness.ParseSchedule(raw)
 	if s.Mode == "now" || s.At == "" {
-		return "Send now"
+		return keptValue{Text: mScheduleNow.Keep(nil)}
 	}
 	t, err := time.Parse(time.RFC3339, s.At)
 	if err != nil {
-		return s.At
+		return keptValue{Raw: s.At}
 	}
 	if s.Timezone != "" {
 		loc = state.Location(s.Timezone)
 	}
-	text := t.In(loc).Format("Jan 2, 15:04")
+	at := i18n.Args{"at": t.In(loc).Format(time.RFC3339)}
 	if s.Mode == "best_time" {
-		return "Best time within 24 h of " + text
+		return keptValue{Text: mScheduleBest.Keep(at)}
 	}
-	return text
+	return keptValue{Text: mScheduleAt.Keep(at)}
 }
 
 // InvalidationReason sums up the changes: "subject changed", "audience
