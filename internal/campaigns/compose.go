@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/media"
@@ -355,7 +356,7 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	for _, u := range liquid.Uses(subject + "\n" + preheader + "\n" + html) {
 		tv := ComposerTokenValue{Key: u.Key, Token: tokenText(u), PerRecipient: systemLinks[u.Key] || pollVar(u.Key) || paidaccess.IsReaderLink(u.Key)}
 		if tv.PerRecipient {
-			tv.Value = "per-recipient link"
+			tv.Value = mLabelPerRecipient.Text(i18n.LangFrom(ctx), nil)
 		} else {
 			v := fmt.Sprint(lookup(vars, u.Key))
 			if strings.TrimSpace(v) == "" || v == "<nil>" {
@@ -413,14 +414,15 @@ func audienceLists(raw json.RawMessage) []uuid.UUID {
 // previewContact picks the contact to personalize for. Without
 // subscribers:view only the synthetic samples are available.
 func (s *Service) previewContact(ctx context.Context, ws *store.Workspace, p *authz.Principal, audience json.RawMessage, in ComposerPreviewRequest) (*ComposerPreviewContact, map[string]any, error) {
+	l := i18n.LangFrom(ctx)
 	if in.Sample == "no_first_name" {
-		return &ComposerPreviewContact{Name: "", Email: "someone@example.com", Label: "Contact without first_name · fallbacks"}, map[string]any{}, nil
+		return &ComposerPreviewContact{Name: "", Email: "someone@example.com", Label: mLabelSampleNoFirst.Text(l, nil)}, map[string]any{}, nil
 	}
 	if !p.Can(authz.SubscribersView) {
 		if in.ContactID != "" || in.Sample == "random" {
 			return nil, nil, api.Forbidden(authz.SubscribersView, s.helpers(ctx, ws.ID, authz.SubscribersView))
 		}
-		return &ComposerPreviewContact{Name: "Sam Rivera", Email: "sam@example.com", Label: "Sample contact"}, map[string]any{}, nil
+		return &ComposerPreviewContact{Name: "Sam Rivera", Email: "sam@example.com", Label: mLabelSample.Text(l, nil)}, map[string]any{}, nil
 	}
 	var row store.ComposerPreviewContactByIDRow
 	var err error
@@ -449,7 +451,7 @@ func (s *Service) previewContact(ctx context.Context, ws *store.Workspace, p *au
 		if in.ContactID != "" {
 			return nil, nil, api.NotFound("Contact")
 		}
-		return &ComposerPreviewContact{Name: "Sam Rivera", Email: "sam@example.com", Label: "Sample contact · no contacts in this audience yet"}, map[string]any{}, nil
+		return &ComposerPreviewContact{Name: "Sam Rivera", Email: "sam@example.com", Label: mLabelSampleNoContact.Text(l, nil)}, map[string]any{}, nil
 	}
 	if err != nil {
 		return nil, nil, err
@@ -457,9 +459,9 @@ func (s *Service) previewContact(ctx context.Context, ws *store.Workspace, p *au
 	attrs := map[string]any{}
 	_ = json.Unmarshal(row.Attributes, &attrs)
 	name := strings.TrimSpace(row.FirstName + " " + row.LastName)
-	label := "first_name set"
+	label := mLabelFirstNameSet.Text(l, nil)
 	if row.FirstName == "" {
-		label = "no first_name · fallback"
+		label = mLabelNoFirstFallback.Text(l, nil)
 	}
 	return &ComposerPreviewContact{ID: row.ID.String(), Name: name, Email: row.Email, Label: label, Language: row.Language}, attrs, nil
 }
@@ -480,10 +482,11 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, id u
 		return ComposerPreviewContactList{}, err
 	}
 	out := ComposerPreviewContactList{Items: make([]ComposerPreviewContact, 0, len(rows))}
+	l := i18n.LangFrom(ctx)
 	for _, r := range rows {
-		label := "first_name set"
+		label := mLabelFirstNameSet.Text(l, nil)
 		if r.FirstName == "" {
-			label = "no first_name"
+			label = mLabelNoFirstName.Text(l, nil)
 		}
 		out.Items = append(out.Items, ComposerPreviewContact{ID: r.ID.String(), Name: strings.TrimSpace(r.FirstName + " " + r.LastName), Email: r.Email, Label: label, Language: r.Language})
 	}
@@ -512,12 +515,13 @@ type ComposerTestSendResult struct {
 // SendTest delivers test emails through the System route. Content Writers
 // and other members without campaigns:send can only send to themselves.
 func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in ComposerTestSend) (ComposerTestSendResult, error) {
+	l := i18n.LangFrom(ctx)
 	to := make([]string, 0, len(in.To))
 	seen := map[string]bool{}
 	for _, raw := range in.To {
 		addr, err := mail.ParseAddress(strings.TrimSpace(raw))
 		if err != nil {
-			return ComposerTestSendResult{}, api.Invalid("body.to", fmt.Sprintf("“%s” isn't an email address.", raw))
+			return ComposerTestSendResult{}, api.Invalid("body.to", mProblemNotEmail.Text(l, i18n.Args{"address": raw}))
 		}
 		e := strings.ToLower(addr.Address)
 		if seen[e] {
@@ -525,7 +529,7 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		}
 		seen[e] = true
 		if !strings.EqualFold(e, p.Email) && !p.Can(authz.CampaignsSend) {
-			return ComposerTestSendResult{}, api.Forbidden(authz.CampaignsSend, s.helpers(ctx, ws.ID, authz.CampaignsSend)).WithMeta("reason", "Without campaigns:send, test emails can only go to your own address.")
+			return ComposerTestSendResult{}, api.Forbidden(authz.CampaignsSend, s.helpers(ctx, ws.ID, authz.CampaignsSend)).WithMeta("reason", mProblemTestOwnAddress.Text(l, nil))
 		}
 		to = append(to, e)
 	}
@@ -563,8 +567,7 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	}
 	sender := s.mailer()
 	if !sender.SystemAvailable(ctx, &ws.ID) {
-		return ComposerTestSendResult{}, api.Err(http.StatusConflict, api.CodeProviderUnavailable,
-			"Test emails go out through the System route, and no sending provider can deliver them yet. Connect one in Sending providers, or check the email in Preview.")
+		return ComposerTestSendResult{}, api.Err(http.StatusConflict, api.CodeProviderUnavailable, mProblemNoSystemRoute.Text(l, nil))
 	}
 	provider := ""
 	for _, addr := range to {
@@ -582,10 +585,10 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, p *authz.Pr
 			name, err := sender.SendSystem(ctx, mailer.Message{WorkspaceID: &ws.ID, To: addr, Subject: "[Test] " + e.subject, HTML: body, Text: contentcheck.PlainText(body), Kind: "campaign_test"})
 			if err != nil {
 				if errors.Is(err, mailer.ErrNoSystemProvider) {
-					return ComposerTestSendResult{}, api.Err(http.StatusConflict, api.CodeProviderUnavailable,
-						"Test emails go out through the System route, and no sending provider can deliver them yet. Connect one in Sending providers, or check the email in Preview.")
+					return ComposerTestSendResult{}, api.Err(http.StatusConflict, api.CodeProviderUnavailable, mProblemNoSystemRoute.Text(l, nil))
 				}
-				return ComposerTestSendResult{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, "The sending provider refused the test email: "+err.Error())
+				// The provider's own error stays as it answered.
+				return ComposerTestSendResult{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, mProblemTestRefused.Text(l, i18n.Args{"error": err.Error()}))
 			}
 			provider = name
 		}

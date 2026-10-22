@@ -578,7 +578,7 @@ func (s *Service) App(ctx context.Context, ws *store.Workspace, p *authz.Princip
 	out.Status, out.Reasons, out.ConnectionID, out.Label = l.status(), l.rs, row.ID.String(), row.Label
 	out.ConnectedAt = &row.ConnectedAt
 	if row.ConnectedBy != nil {
-		out.ConnectedBy = &IntegrationPerson{ID: row.ConnectedBy.String(), Name: firstNonEmpty(row.ConnectedByName, "Former member")}
+		out.ConnectedBy = &IntegrationPerson{ID: row.ConnectedBy.String(), Name: firstNonEmpty(row.ConnectedByName, text(ctx, "label.formerMember", nil))}
 	}
 	out.Address = settingString(row.Settings, "address")
 	out.Items = s.itemStates(ctx, ws, l)
@@ -586,7 +586,7 @@ func (s *Service) App(ctx context.Context, ws *store.Workspace, p *authz.Princip
 	lists, _ := access.ListNames(ctx, s.Q, ws.ID)
 	cur, old := current(l.keys, s.now())
 	if cur != nil {
-		v := keyView(*cur, lists, s.now())
+		v := keyView(lang(ctx), *cur, lists, s.now())
 		out.Key = &v
 		if fc, err := s.Q.IntegrationFirstCall(ctx, store.IntegrationFirstCallParams{IntegrationID: row.ID, ApiKeyID: &cur.ID}); err == nil {
 			out.FirstCall = &IntegrationFirstCall{At: fc.OccurredAt, Operation: fc.Operation, Status: fc.Status, Client: fc.Client}
@@ -596,7 +596,7 @@ func (s *Service) App(ctx context.Context, ws *store.Workspace, p *authz.Princip
 		}
 	}
 	if old != nil {
-		v := keyView(*old, lists, s.now())
+		v := keyView(lang(ctx), *old, lists, s.now())
 		out.OldKey = &v
 	}
 	for _, h := range l.hooks {
@@ -1134,7 +1134,7 @@ func (s *Service) ManagedKeys(ctx context.Context, ws *store.Workspace) (Integra
 		if cur == nil || cur.RevokedAt != nil {
 			continue
 		}
-		k := IntegrationManagedKey{IntegrationKeyView: keyView(*cur, lists, s.now()), ConnectionID: l.conn.ID.String(), Kind: l.conn.Kind, Label: l.conn.Label,
+		k := IntegrationManagedKey{IntegrationKeyView: keyView(lang(ctx), *cur, lists, s.now()), ConnectionID: l.conn.ID.String(), Kind: l.conn.Kind, Label: l.conn.Label,
 			Workflows: []IntegrationWorkflowRef{}}
 		wfs, err := s.Q.IntegrationWorkflows(ctx, store.IntegrationWorkflowsParams{IntegrationID: l.conn.ID, Since: s.now().Add(-WorkflowRetention)})
 		if err == nil {

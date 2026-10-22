@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -24,6 +25,9 @@ type ReadinessPoll struct {
 	Question string
 	Path     []int
 	Problems []string
+	// ProblemTexts are the Problems kept as messages, for a run that keeps
+	// its text for later readers.
+	ProblemTexts []i18n.Text
 	// Close says when it closes: Mode date with ClosesAt (the end of that
 	// day), days with Days after sending, or manual.
 	Close    PollClose
@@ -60,7 +64,7 @@ func (s *Service) CampaignReadiness(ctx context.Context, ws *store.Workspace, ca
 	tz := ws.Timezone
 	for _, b := range Read(src) {
 		c := b.Config
-		rp := ReadinessPoll{ID: c.ID, Question: c.Question, Path: b.Path, Problems: c.Problems(), Close: c.Close}
+		rp := ReadinessPoll{ID: c.ID, Question: c.Question, Path: b.Path, Problems: c.Problems(), ProblemTexts: c.ProblemTexts(), Close: c.Close}
 		if c.Close.Mode == CloseDate {
 			rp.ClosesAt = closesAt(c.Close, nil, tz)
 		}

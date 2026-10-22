@@ -2,6 +2,7 @@ import { defineMessages } from '@/i18n'
 
 /** The push composer (brief §5.11, boards PushComposer and PushStates › Composer). */
 export const m = defineMessages('pushComposer', {
+  skip: 'Skip to content',
   docTitle: '{name} · push',
   kind: 'Push campaign',
   campaigns: 'Campaigns',

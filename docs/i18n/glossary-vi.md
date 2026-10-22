@@ -382,6 +382,31 @@ fallback "there" is "bạn".
 | readers (of a language) | người đọc |
 | page copy · built-in labels | nội dung trang · nhãn có sẵn |
 | Results per language · click map | Kết quả theo ngôn ngữ · bản đồ lượt nhấp |
+| copy (a form's or page's own text) · Copy in | nội dung · Nội dung bằng |
+| Live · Incomplete · Not set up (copy) | Đang dùng · Chưa đủ · Chưa thiết lập |
+| string (text to write) | chuỗi |
+| visitors | khách truy cập ("Khách truy cập dùng {language}") |
+
+A content language's name comes from the browser's or CLDR's names in
+the app language ("Tiếng Tây Ban Nha"), capitalized as they write it; the
+app's own picker names each language in itself.
+
+## Conditional content
+
+| English | Tiếng Việt |
+|---|---|
+| combination (of blocks) · version | tổ hợp · phiên bản |
+| conditional block | khối có điều kiện |
+| Gmail clips · clipping size | Gmail cắt bớt · ngưỡng cắt bớt |
+| includes · excludes | bao gồm · không bao gồm |
+| is · isn't · contains · is set · is empty | là · khác · chứa · đã có giá trị · đang trống (as automations' conditions) |
+| is at least · is at most · is between … and … | tối thiểu là · tối đa là · nằm trong khoảng … đến … |
+| is greater than · is less than · is before · is after | lớn hơn · nhỏ hơn · trước · sau |
+| is in · is not in | thuộc · không thuộc |
+| Match ALL / ANY of these | Khớp TẤT CẢ / BẤT KỲ điều kiện sau (the uppercase words stay uppercase) |
+| operator | toán tử |
+| Preview as · Show why | Xem trước dưới dạng · Hiện lý do |
+| Visibility (who sees a block) | Hiển thị |
 
 ## Accessibility
 
@@ -728,6 +753,84 @@ is a name and stays in English.
 
 "GSM-7", "UCS-2", "Unicode", "VoIP" and "emoji" stay as they are. A
 phone number, a sender ID and a country code are data: never translated.
+
+## Web push and WhatsApp
+
+| English | Tiếng Việt |
+|---|---|
+| access token · permanent access token · system user | mã truy cập · mã truy cập vĩnh viễn · người dùng hệ thống |
+| Allow · Not now · Granted (a prompt's numbers) | Cho phép · Để sau · Đã cấp quyền |
+| anonymous · linked (a subscription) | ẩn danh · đã liên kết (với liên hệ) |
+| app secret · verify token · callback URL · phone number ID | khóa bí mật ứng dụng · mã xác minh · URL callback · ID số điện thoại |
+| banner (a notification's style on a desktop) | biểu ngữ |
+| Bell button · Dialog · Slide-in bar (prompt styles) | Nút chuông · Hộp thoại · Thanh trượt vào |
+| business account · display name | tài khoản doanh nghiệp · tên hiển thị ("WhatsApp Business Account" is a name) |
+| category (of a template): Marketing · Utility · Authentication | danh mục: Tiếp thị · Tiện ích · Xác thực |
+| conversation · customer service window | cuộc hội thoại · khung chăm sóc khách hàng (short: "khung 24 giờ", never the quiet-hours "khung giờ gửi") |
+| expiry · Expires after | thời hạn · Hết hạn sau |
+| free-form reply · quick reply | tin trả lời tự do · trả lời nhanh |
+| frequency cap | giới hạn tần suất |
+| header · body · footer · buttons (of a template) | phần đầu · phần thân · phần chân · nút |
+| Home Screen (iPhone, iPad) | Màn hình chính |
+| icon · badge · image (of a notification) | biểu tượng · huy hiệu · hình ảnh |
+| In review · In appeal · submit (a template) | Đang xét duyệt · Đang kháng nghị · gửi duyệt |
+| messaging limit · rolling 24 hours | giới hạn nhắn tin · 24 giờ gần nhất |
+| notification (one push message) | thông báo |
+| permission prompt (the browser's own) | hộp xin quyền (của trình duyệt) |
+| prompt · prompt designer | lời nhắc · trình thiết kế lời nhắc |
+| publication site | trang web của ấn phẩm |
+| push (in a sentence) · Push (the channel) | thông báo đẩy · Thông báo đẩy |
+| push service (the browser maker's) | dịch vụ đẩy |
+| quality rating · High · Medium · Low | xếp hạng chất lượng · Cao · Trung bình · Thấp |
+| rate card · Edit rates | bảng giá · Sửa bảng giá |
+| read receipts | thông báo đã xem (WhatsApp's own Vietnamese) |
+| Rotate keys · public key · private key | Xoay vòng khóa · khóa công khai · khóa riêng tư |
+| Sealed | Đã niêm phong |
+| Shown (a count) · Shown (an event) · Gone · removed | Lượt hiển thị · Đã hiển thị · Hết hạn · đã xóa |
+| site (where readers subscribe) · scope (of a service worker) | trang · phạm vi |
+| snippet | đoạn mã |
+| subscriber · subscription | người đăng ký · lượt đăng ký |
+| Sync now | Đồng bộ ngay |
+| Tapped (a WhatsApp button) | Đã nhấn |
+| template (WhatsApp) | mẫu (mẫu tin nhắn where it must be explicit) |
+| token (that a link carries to know the reader) | mã nhận diện (never "mã thông báo") |
+
+"service worker", "VAPID", "Meta", "Graph API" and Meta's own screens and
+paths (WhatsApp Manager, Meta for Developers › … › Configuration) stay as
+they are.
+
+## Surveys and polls
+
+| English | Tiếng Việt |
+|---|---|
+| 0–10 scale · Emoji scale · faces | thang 0–10 · thang emoji · khuôn mặt |
+| answer · answer page | câu trả lời · trang trả lời |
+| Breakdown · Break down by | Phân tích · Phân tích theo |
+| completion rate · drop-off · started · completed | tỷ lệ hoàn thành · bỏ dở · đã bắt đầu · đã hoàn thành |
+| Embedded · Popup · Hosted page (form kinds) | Nhúng · Bật lên · Trang trên ReputeCast |
+| link scanner · security gateway · prefetching proxy | trình quét liên kết · cổng bảo mật · proxy tải trước (machine visits, never a person) |
+| Not likely · Very likely (an NPS scale's ends) | Không có khả năng · Rất có khả năng |
+| Open · Closed (a survey or a poll) | Đang mở · Đã đóng |
+| Owner (the forms list's column) | Người phụ trách (not the role "Chủ sở hữu") |
+| poll (the block) · a poll | Bình chọn · cuộc bình chọn |
+| promoters · passives · detractors | người ủng hộ · người trung lập · người phản đối ("NPS" and "Net Promoter Score" stay) |
+| question · respondent · response | câu hỏi · người trả lời · lượt trả lời |
+| submission | lượt gửi |
+| survey | khảo sát |
+| Top answer | Được chọn nhiều nhất |
+| vote · voter | lượt bình chọn · người bình chọn |
+
+## Notifications
+
+| English | Tiếng Việt |
+|---|---|
+| digest (recurring) · issue (of a digest) | bản tin định kỳ · kỳ bản tin |
+| event type (a row of Notification preferences) | loại sự kiện |
+| Everyone with campaigns:pause | Mọi người có quyền campaigns:pause |
+| paid tier (Earn) | hạng thành viên |
+| placement test · seed mailbox | kiểm tra vị trí hộp thư · hộp thư mẫu |
+| Sending (the notification center's tab) | Gửi thư |
+| verification credits | credit xác minh |
 
 ## Agency accounts
 

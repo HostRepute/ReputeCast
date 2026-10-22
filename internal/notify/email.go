@@ -189,10 +189,13 @@ func (w *EmailWorker) sendDigest(ctx context.Context, q *store.Queries, u store.
 		prefs = base + "/w/" + slug + "/notifications#preferences"
 	}
 	d := membermail.NotificationEmail{Workspace: rows[0].WorkspaceName, Base: base, Preferences: prefs}
+	l := applang.ForUser(ctx, q, u)
 	for _, n := range rows {
-		d.Items = append(d.Items, membermail.NotificationLine{Title: n.Title, Body: n.Body, Link: n.Link})
+		// Each notification in the recipient's language, as the center shows it.
+		title, _, body := Localize(l, n.Title, n.Summary, n.Body, n.Data)
+		d.Items = append(d.Items, membermail.NotificationLine{Title: title, Body: body, Link: n.Link})
 	}
-	msg := membermail.Notification(applang.ForUser(ctx, q, u), d)
+	msg := membermail.Notification(l, d)
 	msg.WorkspaceID, msg.To, msg.ToName = rows[0].WorkspaceID, u.Email, u.Name
 	w.send(ctx, q, u, msg, ids(rows))
 }

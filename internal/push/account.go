@@ -2,7 +2,6 @@ package push
 
 import (
 	"context"
-	"embed"
 	"html"
 	"net/http"
 	"slices"
@@ -26,11 +25,6 @@ import (
 func init() {
 	website.RegisterAccountSection(accountSection)
 }
-
-//go:embed messages/*.json
-var messagesFS embed.FS
-
-var msgs = i18n.MustLoad(messagesFS, "push")
 
 // services are the push services of the running apps: the account
 // section, registered once for the process, asks them whether a
@@ -77,6 +71,10 @@ func accountSection(ctx context.Context, ws *store.Workspace, _ uuid.UUID, l i18
 		b.WriteString(` data-` + k + `="` + e(t("account."+k)) + `"`)
 	}
 	b.WriteString(` data-turnoff="` + e(t("account.turnOff")) + `" data-since="` + e(msgs.M("account.since").Text(l, i18n.Args{"date": "{date}"})) + `"`)
+	// The member's other browsers, named in the page's language.
+	for _, k := range []string{BrowserChrome, BrowserChromeAndroid, BrowserEdge, BrowserFirefox, BrowserSafari, BrowserSafariIOS, BrowserOther} {
+		b.WriteString(` data-browser-` + k + `="` + e(browserLabel(l, k)) + `"`)
+	}
 	b.WriteString(`><div class="st-line"><div class="tx"><b id="pn-this">` + e(t("account.browser")) + `</b><span class="st-k" data-rc-push-state></span></div>`)
 	b.WriteString(`<input type="checkbox" class="st-sw" role="switch" aria-labelledby="pn-this" data-rc-push-toggle disabled></div>`)
 	b.WriteString(`<p class="st-note st-pn-help" data-rc-push-blocked hidden>` + msgs.M("account.allowAgain").HTML(l, nil, i18n.Tags{"b": func(in string) string { return "<b>" + in + "</b>" }}) + `</p>`)
@@ -86,8 +84,11 @@ func accountSection(ctx context.Context, ws *store.Workspace, _ uuid.UUID, l i18
 
 // PushAccountSubscription is one of the member's browsers.
 type PushAccountSubscription struct {
-	ID      string    `json:"id"`
+	ID string `json:"id"`
+	// Browser names it in English; Kind is the browser's key, which the
+	// account page names in its own language (data-browser-<kind>).
 	Browser string    `json:"browser"`
+	Kind    string    `json:"kind"`
 	Since   time.Time `json:"since"`
 	// Endpoint is how the page tells this browser apart: its own
 	// subscription's push resource.
@@ -124,7 +125,8 @@ func (s *Service) serveAccount(w http.ResponseWriter, r *http.Request, ws *store
 	}
 	out := []PushAccountSubscription{}
 	for _, row := range rows {
-		out = append(out, PushAccountSubscription{ID: row.ID.String(), Browser: browserLabel(row.Browser), Since: row.CreatedAt, Endpoint: row.Endpoint})
+		out = append(out, PushAccountSubscription{ID: row.ID.String(), Browser: browserLabel(i18n.Default, row.Browser), Kind: row.Browser, Since: row.CreatedAt,
+			Endpoint: row.Endpoint})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"subscriptions": out, "timeZone": tzName(ws)})
 }
@@ -161,23 +163,20 @@ func (s *Service) serveAccountOff(w http.ResponseWriter, r *http.Request, ws *st
 	writeJSON(w, http.StatusOK, map[string]string{"status": "turned_off"})
 }
 
-// browserLabel names a browser as the account page writes it.
-func browserLabel(b string) string {
+// browserLabel names a browser as the account page writes it, in l:
+// "Chrome", "Safari on iPhone and iPad".
+func browserLabel(l i18n.Lang, b string) string {
 	switch b {
 	case BrowserChrome:
 		return "Chrome"
-	case BrowserChromeAndroid:
-		return "Chrome on Android"
 	case BrowserEdge:
 		return "Edge"
 	case BrowserFirefox:
 		return "Firefox"
-	case BrowserSafari:
-		return "Safari on macOS"
-	case BrowserSafariIOS:
-		return "Safari on iPhone and iPad"
+	case BrowserChromeAndroid, BrowserSafari, BrowserSafariIOS:
+		return msgs.M("browser."+b).Text(l, nil)
 	}
-	return "Another browser"
+	return msgs.M("browser.other").Text(l, nil)
 }
 
 // SiteScripts are the scripts a site page of the publication website loads

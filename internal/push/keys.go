@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/channels"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/push/webpush"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -111,8 +112,9 @@ func (s *Service) vapid(k store.PushKey) (*webpush.VAPIDKey, error) {
 // website as the first site when the workspace has one: it works at once
 // because ReputeCast serves its service worker.
 func (s *Service) Enable(ctx context.Context, ws *store.Workspace, p *authz.Principal, in PushEnableInput) error {
+	l := i18n.LangFrom(ctx)
 	if _, err := s.liveKey(ctx, s.Q, ws); err == nil {
-		return api.Conflict("Push is already on for this workspace.")
+		return api.Conflict(mProblemAlreadyOn.Text(l, nil))
 	} else if !errors.Is(err, errNoKeys) {
 		return err
 	}
@@ -124,7 +126,7 @@ func (s *Service) Enable(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	contact, ok := checkContact(contact)
 	if !ok {
-		return api.Invalid("body.contact", "Enter an email address or an https:// address the push services can reach you at.")
+		return api.Invalid("body.contact", mProblemContact.Text(l, nil))
 	}
 	id, pub, enc, err := s.newKey()
 	if err != nil {
@@ -139,7 +141,7 @@ func (s *Service) Enable(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if err := q.PushKeyInsert(ctx, store.PushKeyInsertParams{ID: id, WorkspaceID: ws.ID, PublicKey: pub, PrivateEnc: enc, Contact: contact,
 			CreatedBy: uuidPtr(p.UserID), CreatedAt: now}); err != nil {
 			if strings.Contains(err.Error(), "push_keys_live_idx") {
-				return api.Conflict("Push is already on for this workspace.")
+				return api.Conflict(mProblemAlreadyOn.Text(l, nil))
 			}
 			return err
 		}
@@ -169,16 +171,17 @@ type PushContactInput struct {
 
 // SetContact changes the contact address.
 func (s *Service) SetContact(ctx context.Context, ws *store.Workspace, in PushContactInput) error {
+	l := i18n.LangFrom(ctx)
 	k, err := s.liveKey(ctx, s.Q, ws)
 	if errors.Is(err, errNoKeys) {
-		return api.Conflict("Turn push on first: the contact goes with the keys.")
+		return api.Conflict(mProblemContactNoKeys.Text(l, nil))
 	}
 	if err != nil {
 		return err
 	}
 	contact, ok := checkContact(in.Contact)
 	if !ok {
-		return api.Invalid("body.contact", "Enter an email address or an https:// address the push services can reach you at.")
+		return api.Invalid("body.contact", mProblemContact.Text(l, nil))
 	}
 	if contact == k.Contact {
 		return nil
@@ -261,9 +264,10 @@ type PushRotateInput struct {
 // Rotate replaces the keys. Every subscription made with the old keys ends:
 // readers have to allow notifications again.
 func (s *Service) Rotate(ctx context.Context, ws *store.Workspace, p *authz.Principal, in PushRotateInput) (PushRotation, error) {
+	l := i18n.LangFrom(ctx)
 	old, err := s.liveKey(ctx, s.Q, ws)
 	if errors.Is(err, errNoKeys) {
-		return PushRotation{}, api.Conflict("Push isn't on: there are no keys to rotate.")
+		return PushRotation{}, api.Conflict(mProblemNoKeysToRotate.Text(l, nil))
 	}
 	if err != nil {
 		return PushRotation{}, err
@@ -274,7 +278,7 @@ func (s *Service) Rotate(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	typed := strings.NewReplacer(",", "", " ", "", ".", "", "\u00a0", "", "\u202f", "").Replace(strings.TrimSpace(in.Confirm))
 	if typed != pre.Confirm {
-		return pre, api.Invalid("body.confirm", "Type "+pre.Confirm+" to confirm: that's how many subscriptions end.")
+		return pre, api.Invalid("body.confirm", mProblemRotateConfirm.Text(l, i18n.Args{"n": pre.Confirm}))
 	}
 	id, pub, enc, err := s.newKey()
 	if err != nil {

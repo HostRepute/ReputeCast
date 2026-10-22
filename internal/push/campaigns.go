@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -20,6 +21,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/media"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -269,13 +271,14 @@ func contentHash(c store.PushCampaignRow) string {
 	return hex.EncodeToString(h.Sum(nil))[:16]
 }
 
-// parseIDs reads ids of the workspace's rows.
-func parseIDs(raw []string, field, what string) ([]uuid.UUID, error) {
+// parseIDs reads ids of the workspace's rows; what is sites, lists or
+// segments.
+func parseIDs(l i18n.Lang, raw []string, field, what string) ([]uuid.UUID, error) {
 	out := make([]uuid.UUID, 0, len(raw))
 	for _, r := range raw {
 		id, err := uuid.Parse(strings.TrimSpace(r))
 		if err != nil {
-			return nil, api.Invalid(field, "Pick "+what+" of this workspace.")
+			return nil, api.Invalid(field, mProblemPickIDs.Text(l, i18n.Args{"what": what}))
 		}
 		if !slices.Contains(out, id) {
 			out = append(out, id)
@@ -286,11 +289,12 @@ func parseIDs(raw []string, field, what string) ([]uuid.UUID, error) {
 
 // CreateCampaign makes a push campaign, audited like any campaign.
 func (s *Service) CreateCampaign(ctx context.Context, ws *store.Workspace, p *authz.Principal, in PushCampaignCreate) (PushCampaign, error) {
+	l := i18n.LangFrom(ctx)
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		return PushCampaign{}, api.Invalid("body.name", "Give the campaign a name.")
+		return PushCampaign{}, api.Invalid("body.name", mProblemCampaignName.Text(l, nil))
 	}
-	sites, err := parseIDs(in.SiteIDs, "body.siteIds", "sites")
+	sites, err := parseIDs(l, in.SiteIDs, "body.siteIds", "sites")
 	if err != nil {
 		return PushCampaign{}, err
 	}
@@ -305,12 +309,12 @@ func (s *Service) CreateCampaign(ctx context.Context, ws *store.Workspace, p *au
 	}
 	for _, id := range sites {
 		if !slices.ContainsFunc(all, func(st store.PushSitesRow) bool { return st.ID == id }) {
-			return PushCampaign{}, api.Invalid("body.siteIds", "Pick sites of this workspace's push setup.")
+			return PushCampaign{}, api.Invalid("body.siteIds", mProblemPickSites.Text(l, nil))
 		}
 	}
 	link, ok := normalizeLink(in.Link)
 	if !ok {
-		return PushCampaign{}, api.Invalid("body.link", "Enter the address the notification opens, like news.acme.io/p/feature-flags.")
+		return PushCampaign{}, api.Invalid("body.link", mProblemLink.Text(l, i18n.Args{"example": "news.acme.io/p/feature-flags"}))
 	}
 	id := uuid.Must(uuid.NewV7())
 	now := s.now()
@@ -753,21 +757,22 @@ func (s *Service) UpdateCampaign(ctx context.Context, ws *store.Workspace, p *au
 	if err != nil {
 		return PushCampaign{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	switch c.Status {
 	case "draft", "approval", "approved":
 	default:
-		return PushCampaign{}, api.Conflict("This campaign is " + c.Status + ": it can't be edited any more.")
+		return PushCampaign{}, api.Conflict(mProblemNotEditable.Text(l, i18n.Args{"status": c.Status}))
 	}
 	if in.Version > 0 && in.Version < int(c.Version) {
-		return PushCampaign{}, api.Err(409, "stale_version", fmt.Sprintf("Someone saved version %d since you opened it. Reload to see their changes.", c.Version))
+		return PushCampaign{}, api.Err(409, "stale_version", mProblemStaleVersion.Text(l, i18n.Args{"version": strconv.Itoa(int(c.Version))}))
 	}
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		return PushCampaign{}, api.Invalid("body.name", "Give the campaign a name.")
+		return PushCampaign{}, api.Invalid("body.name", mProblemCampaignName.Text(l, nil))
 	}
 	link, ok := normalizeLink(in.Link)
 	if !ok {
-		return PushCampaign{}, api.Invalid("body.link", "Enter the address the notification opens, like news.acme.io/p/feature-flags-at-scale.")
+		return PushCampaign{}, api.Invalid("body.link", mProblemLink.Text(l, i18n.Args{"example": "news.acme.io/p/feature-flags-at-scale"}))
 	}
 	buttons := []PushButton{}
 	for i, b := range in.Buttons {
@@ -777,19 +782,19 @@ func (s *Service) UpdateCampaign(ctx context.Context, ws *store.Workspace, p *au
 		}
 		u, ok := normalizeLink(b.URL)
 		if !ok || u == "" || lbl == "" {
-			return PushCampaign{}, api.Invalid(fmt.Sprintf("body.buttons[%d]", i), "A button needs a label and the address it opens.")
+			return PushCampaign{}, api.Invalid(fmt.Sprintf("body.buttons[%d]", i), mProblemButton.Text(l, nil))
 		}
 		buttons = append(buttons, PushButton{Label: clip(lbl, 40), URL: u})
 	}
-	sites, err := parseIDs(in.SiteIDs, "body.siteIds", "sites")
+	sites, err := parseIDs(l, in.SiteIDs, "body.siteIds", "sites")
 	if err != nil {
 		return PushCampaign{}, err
 	}
-	lists, err := parseIDs(in.Lists, "body.lists", "lists")
+	lists, err := parseIDs(l, in.Lists, "body.lists", "lists")
 	if err != nil {
 		return PushCampaign{}, err
 	}
-	segments, err := parseIDs(in.Segments, "body.segments", "segments")
+	segments, err := parseIDs(l, in.Segments, "body.segments", "segments")
 	if err != nil {
 		return PushCampaign{}, err
 	}
@@ -797,11 +802,11 @@ func (s *Service) UpdateCampaign(ctx context.Context, ws *store.Workspace, p *au
 	if in.ImageMediaID != "" {
 		mid, err := uuid.Parse(in.ImageMediaID)
 		if err != nil {
-			return PushCampaign{}, api.Invalid("body.imageMediaId", "Pick an image from the media library.")
+			return PushCampaign{}, api.Invalid("body.imageMediaId", mProblemPickImage.Text(l, nil))
 		}
 		var ok bool
 		if err := s.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM media_assets WHERE id = $1 AND workspace_id = $2)`, mid, ws.ID).Scan(&ok); err != nil || !ok {
-			return PushCampaign{}, api.Invalid("body.imageMediaId", "Pick an image from the media library.")
+			return PushCampaign{}, api.Invalid("body.imageMediaId", mProblemPickImage.Text(l, nil))
 		}
 		image = &mid
 	}
@@ -851,7 +856,8 @@ func (s *Service) DuplicateCampaign(ctx context.Context, ws *store.Workspace, p 
 		return PushCampaign{}, err
 	}
 	nid := uuid.Must(uuid.NewV7())
-	name := clip("Copy of "+c.Name, 200)
+	// A default name, like the composer's: in the language of whoever duplicates it.
+	name := clip(mLabelCopyOf.Text(i18n.LangFrom(ctx), i18n.Args{"name": c.Name}), 200)
 	now := s.now()
 	err = s.tx(ctx, func(q *store.Queries, _ pgx.Tx) error {
 		if err := q.PushCampaignInsert(ctx, store.PushCampaignInsertParams{ID: nid, WorkspaceID: ws.ID, Name: name, Audience: audienceJSON(c.SiteIds, c.Lists, c.Segments),

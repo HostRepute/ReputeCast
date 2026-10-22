@@ -22,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -82,37 +83,6 @@ type ContactTagInput struct {
 	Tags  []string `json:"tags" minItems:"1" maxItems:"50"`
 }
 
-func suppressionWords(reason string) string {
-	switch reason {
-	case "hard_bounce":
-		return "hard bounce"
-	case "complaint":
-		return "spam complaint"
-	case "unsubscribe":
-		return "unsubscribed from everything"
-	case "manual":
-		return "added by your team"
-	case "imported":
-		return "imported from a provider"
-	case "role":
-		return "role address"
-	case "spam_trap":
-		return "spam trap"
-	case "invalid":
-		return "invalid address"
-	}
-	return reason
-}
-
-// consentDate is how a date reads in a consent answer ("2 Oct").
-func consentDate(t time.Time, loc *time.Location) string {
-	t = t.In(loc)
-	if t.Year() != time.Now().In(loc).Year() {
-		return t.Format("2 Jan 2006")
-	}
-	return t.Format("2 Jan")
-}
-
 func wsLocation(ws *store.Workspace) *time.Location {
 	if loc, err := time.LoadLocation(ws.Timezone); err == nil {
 		return loc
@@ -146,10 +116,10 @@ func (s *Service) planJoins(ctx context.Context, ws *store.Workspace, p *authz.P
 		id, err := uuid.Parse(strings.TrimSpace(r))
 		l, ok := byID[id]
 		if err != nil || !ok {
-			return nil, api.Invalid("body.lists", fmt.Sprintf("%q isn't a list of this workspace.", r))
+			return nil, api.Invalid("body.lists", problem(ctx, "problem.listUnknown", i18n.Args{"list": r}))
 		}
 		if !p.Scope.AllowsList(id) {
-			return nil, api.Err(http.StatusForbidden, api.CodePermissionDenied, fmt.Sprintf("This key is limited to other lists than %s.", l.Name))
+			return nil, api.Err(http.StatusForbidden, api.CodePermissionDenied, problem(ctx, "problem.listOutOfScope", i18n.Args{"list": l.Name}))
 		}
 		status := "subscribed"
 		if consent == "double" || consent == "" && l.DoubleOptIn {
@@ -162,11 +132,11 @@ func (s *Service) planJoins(ctx context.Context, ws *store.Workspace, p *authz.P
 				if e, err := s.Q.IntegrationLastLeft(ctx, store.IntegrationLastLeftParams{ContactID: contact.ID, ListID: &id}); err == nil {
 					left = &e.OccurredAt
 				}
-				when := "earlier"
+				args := i18n.Args{"email": email, "list": l.Name, "when": "earlier"}
 				if left != nil {
-					when = "on " + consentDate(*left, wsLocation(ws))
+					args["when"], args["at"] = "on", left.In(wsLocation(ws))
 				}
-				return nil, api.Err(http.StatusConflict, CodeUnsubscribed, fmt.Sprintf("%s left %s %s. ReputeCast doesn't add people back to a list they left.", email, l.Name, when)).
+				return nil, api.Err(http.StatusConflict, CodeUnsubscribed, problem(ctx, "problem.leftList", args)).
 					WithMeta("list", l.Name, "listId", id.String(), "leftAt", left)
 			} else if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 				return nil, err
@@ -188,15 +158,20 @@ func (s *Service) refuseSuppressed(ctx context.Context, ws *store.Workspace, ema
 	if err != nil {
 		return err
 	}
-	return api.Err(http.StatusConflict, CodeSuppressed, fmt.Sprintf("%s is on the suppression list since %s (%s). ReputeCast doesn't add suppressed addresses.",
-		email, consentDate(sup.CreatedAt, wsLocation(ws)), suppressionWords(sup.Reason))).
+	return api.Err(http.StatusConflict, CodeSuppressed, problem(ctx, "problem.suppressed",
+		i18n.Args{"email": email, "at": sup.CreatedAt.In(wsLocation(ws)), "reason": sup.Reason, "reasonText": sup.Reason})).
 		WithMeta("reason", sup.Reason, "since", sup.CreatedAt)
 }
 
-func cleanEmail(raw string) (string, error) {
-	email, problem := emailaddr.Check(raw)
-	if problem != "" {
-		return "", api.Invalid("body.email", fmt.Sprintf("That isn't an email address (%s).", problem))
+// emailProblems name emailaddr's problems for problem.notEmail.
+var emailProblems = map[string]string{
+	emailaddr.ProblemNoDomain: "noDomain", emailaddr.ProblemDoubleDot: "doubleDot", emailaddr.ProblemTooLong: "tooLong", emailaddr.ProblemNotAnAddress: "notAnAddress",
+}
+
+func cleanEmail(ctx context.Context, raw string) (string, error) {
+	email, why := emailaddr.Check(raw)
+	if why != "" {
+		return "", api.Invalid("body.email", problem(ctx, "problem.notEmail", i18n.Args{"problem": emailProblems[why]}))
 	}
 	return email, nil
 }
@@ -205,7 +180,7 @@ func cleanEmail(raw string) (string, error) {
 // to lists without ever adding someone back to a list they left or adding a
 // suppressed address.
 func (s *Service) UpsertContact(ctx context.Context, ws *store.Workspace, p *authz.Principal, in ContactUpsertInput) (ContactUpsertResult, error) {
-	email, err := cleanEmail(in.Email)
+	email, err := cleanEmail(ctx, in.Email)
 	if err != nil {
 		return ContactUpsertResult{}, err
 	}
@@ -352,14 +327,14 @@ func (s *Service) confirm(ctx context.Context, ws *store.Workspace, contactID uu
 
 // AddToList adds an existing contact to a list, single or double opt-in.
 func (s *Service) AddToList(ctx context.Context, ws *store.Workspace, p *authz.Principal, listID string, in ContactListAddInput) (ContactUpsertResult, error) {
-	email, err := cleanEmail(in.Email)
+	email, err := cleanEmail(ctx, in.Email)
 	if err != nil {
 		return ContactUpsertResult{}, err
 	}
 	c, err := s.Q.GetContactByEmail(ctx, store.GetContactByEmailParams{WorkspaceID: ws.ID, Email: email})
 	if errors.Is(err, pgx.ErrNoRows) {
 		s.noteContactCall(ctx, "add_to_list", email, nil, []string{listID}, nil, in.Consent)
-		return ContactUpsertResult{}, api.Err(http.StatusNotFound, api.CodeNotFound, fmt.Sprintf("No contact with %s in this workspace. Use “Create or update a contact” to add them.", email))
+		return ContactUpsertResult{}, api.Err(http.StatusNotFound, api.CodeNotFound, problem(ctx, "problem.noContact", i18n.Args{"email": email}))
 	}
 	if err != nil {
 		return ContactUpsertResult{}, err
@@ -391,7 +366,7 @@ func (s *Service) AddToList(ctx context.Context, ws *store.Workspace, p *authz.P
 
 // TagContact adds tags to an existing contact.
 func (s *Service) TagContact(ctx context.Context, ws *store.Workspace, in ContactTagInput) (ContactUpsertResult, error) {
-	email, err := cleanEmail(in.Email)
+	email, err := cleanEmail(ctx, in.Email)
 	if err != nil {
 		return ContactUpsertResult{}, err
 	}
@@ -401,13 +376,13 @@ func (s *Service) TagContact(ctx context.Context, ws *store.Workspace, in Contac
 	noteTargetJSON(ctx, CallTarget{Kind: "add_tag", Email: email, Tag: strings.Join(tags, ", ")})
 	c, err := s.Q.GetContactByEmail(ctx, store.GetContactByEmailParams{WorkspaceID: ws.ID, Email: email})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return ContactUpsertResult{}, api.Err(http.StatusNotFound, api.CodeNotFound, fmt.Sprintf("No contact with %s in this workspace. Use “Create or update a contact” to add them.", email))
+		return ContactUpsertResult{}, api.Err(http.StatusNotFound, api.CodeNotFound, problem(ctx, "problem.noContact", i18n.Args{"email": email}))
 	}
 	if err != nil {
 		return ContactUpsertResult{}, err
 	}
 	if len(tags) == 0 {
-		return ContactUpsertResult{}, api.Invalid("body.tags", "Name at least one tag.")
+		return ContactUpsertResult{}, api.Invalid("body.tags", problem(ctx, "problem.noTag", nil))
 	}
 	api.NoteCall(ctx, noteContact, c.ID.String())
 	merged := cleanTags(tags, c.Tags)
@@ -535,11 +510,11 @@ func (s *Service) fieldValues(ctx context.Context, ws *store.Workspace, c *store
 		for k, v := range in {
 			f, ok := byKey[k]
 			if !ok {
-				return nil, api.Invalid("body.fields."+k, fmt.Sprintf("%s isn't a custom field. Create it first under Audience › Fields.", k))
+				return nil, api.Invalid("body.fields."+k, problem(ctx, "problem.fieldUnknown", i18n.Args{"field": k}))
 			}
-			val, err := fieldValue(f, v)
-			if err != nil {
-				return nil, api.Invalid("body.fields."+k, capitalize(err.Error())+".")
+			val, bad := fieldValue(f, v)
+			if bad != nil {
+				return nil, api.Invalid("body.fields."+k, problem(ctx, bad.key, bad.args))
 			}
 			if val == nil {
 				delete(attrs, k)
@@ -553,7 +528,14 @@ func (s *Service) fieldValues(ctx context.Context, ws *store.Workspace, c *store
 
 var datePattern = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
 
-func fieldValue(f store.IntegrationCustomFieldsRow, v any) (any, error) {
+// badValue is why a custom field refuses a value: a problem's message and
+// its arguments. The field's key starts each sentence, with a capital.
+type badValue struct {
+	key  string
+	args i18n.Args
+}
+
+func fieldValue(f store.IntegrationCustomFieldsRow, v any) (any, *badValue) {
 	if v == nil {
 		return nil, nil
 	}
@@ -561,25 +543,26 @@ func fieldValue(f store.IntegrationCustomFieldsRow, v any) (any, error) {
 	if s == "" {
 		return nil, nil
 	}
+	field := capitalize(f.Key)
 	switch f.Type {
 	case "number":
 		n, err := strconv.ParseFloat(s, 64)
 		if err != nil {
-			return nil, fmt.Errorf("%s is a number field; %q isn't a number", f.Key, s)
+			return nil, &badValue{"problem.fieldNumber", i18n.Args{"field": field, "value": s}}
 		}
 		return n, nil
 	case "date":
 		if !datePattern.MatchString(s) {
-			return nil, fmt.Errorf("%s is a date field; use a date like 2026-10-30", f.Key)
+			return nil, &badValue{"problem.fieldDate", i18n.Args{"field": field}}
 		}
 		if _, err := time.Parse("2006-01-02", s); err != nil {
-			return nil, fmt.Errorf("%s: %q isn't a real date", f.Key, s)
+			return nil, &badValue{"problem.fieldRealDate", i18n.Args{"field": field, "value": s}}
 		}
 		return s, nil
 	case "boolean":
 		b, err := strconv.ParseBool(strings.ToLower(s))
 		if err != nil {
-			return nil, fmt.Errorf("%s is a yes/no field; use true or false", f.Key)
+			return nil, &badValue{"problem.fieldBoolean", i18n.Args{"field": field}}
 		}
 		return b, nil
 	case "select":
@@ -591,7 +574,8 @@ func fieldValue(f store.IntegrationCustomFieldsRow, v any) (any, error) {
 					return s, nil
 				}
 			}
-			return nil, fmt.Errorf("%s must be one of %s", f.Key, strings.Join(opts, ", "))
+			// The choices are the workspace's own words, listed as data.
+			return nil, &badValue{"problem.fieldSelect", i18n.Args{"field": field, "options": strings.Join(opts, ", ")}}
 		}
 	}
 	return s, nil

@@ -3,7 +3,7 @@ import { $api, errorMessage, http, type Schemas } from '@/api/client'
 import { Button } from '@/components/ui/Button'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
-import { clock, count, shortDate } from '@/lib/format'
+import { clock, count, pct, shortDate } from '@/lib/format'
 import { deniedReason, useCan, useWorkspace } from '@/lib/session'
 import { saveBlob } from '@/features/audience/download'
 import { m } from './messages'
@@ -14,10 +14,6 @@ type Survey = Schemas['Survey']
 type QResult = Schemas['SurveyQuestionResult']
 
 const b = (chunks: ReactNode[]) => <b>{chunks}</b>
-
-function pct(v: number): string {
-  return `${v.toFixed(1)}%`
-}
 
 function Tile({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (

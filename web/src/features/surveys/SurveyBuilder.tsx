@@ -56,10 +56,9 @@ function nextKey(qs: Question[]): string {
 function newQuestion(t: ReturnType<typeof useT>, type: QType, qs: Question[]): Question {
   const base: Question = { key: nextKey(qs), type, text: '', required: true, answers: [], save: { to: 'none' } }
   if (type === 'single' || type === 'multi') base.answers = [{ key: 1, label: '' }, { key: 2, label: '' }]
-  if (type === 'scale') Object.assign(base, { nps: true, low: 'Not likely', high: 'Very likely' })
+  if (type === 'scale') Object.assign(base, { nps: true, low: t(m.scaleLow), high: t(m.scaleHigh) })
   if (type === 'emoji') base.faces = 5
   if (type === 'short' || type === 'long') base.required = false
-  void t
   return base
 }
 
@@ -574,7 +573,7 @@ function QuestionEditor({
   const setType = (type: QType) => {
     const patch: Partial<Question> = { type }
     if ((type === 'single' || type === 'multi') && q.answers.length < 2) patch.answers = [...q.answers, ...Array.from({ length: 2 - q.answers.length }, (_, i) => ({ key: q.answers.length + i + 1, label: '' }))]
-    if (type === 'scale' && q.nps === undefined) Object.assign(patch, { nps: true, low: 'Not likely', high: 'Very likely' })
+    if (type === 'scale' && q.nps === undefined) Object.assign(patch, { nps: true, low: t(m.scaleLow), high: t(m.scaleHigh) })
     if (type === 'emoji' && !q.faces) patch.faces = 5
     if (q.save.to === 'tags' && type !== 'single' && type !== 'multi') patch.save = { to: 'none' }
     if (q.save.to === 'field') patch.save = { to: 'field' }
@@ -665,7 +664,7 @@ function QuestionEditor({
           <div className="sv-f">
             <span className="sv-f-l">{t(m.wording)}</span>
             <label className="tg">
-              <input type="checkbox" checked={!!q.nps} onChange={(e) => onChange({ nps: e.target.checked, ...(e.target.checked ? { low: 'Not likely', high: 'Very likely' } : {}) })} />
+              <input type="checkbox" checked={!!q.nps} onChange={(e) => onChange({ nps: e.target.checked, ...(e.target.checked ? { low: t(m.scaleLow), high: t(m.scaleHigh) } : {}) })} />
               {t(m.useNps)}
             </label>
             <div className="row2">
@@ -770,7 +769,7 @@ function LivePreview({ s, draft, selected, n }: { s: Survey; draft: Draft; selec
   }, [draft, slug])
   const mark = selected
     ? `<style>#${selected}{outline:2px solid #1D4ED8;outline-offset:8px;border-radius:4px;position:relative;margin-top:22px}#${selected}::before{content:${JSON.stringify(
-        t(m.questionOf, { n, total: draft.questions.length }).split(' ').slice(0, 2).join(' '),
+        t(m.previewMark, { n }),
       )};position:absolute;top:-36px;left:-10px;background:#1D4ED8;color:#fff;font:600 11px/20px 'IBM Plex Sans',sans-serif;padding:0 8px;border-radius:4px 4px 0 0}</style>`
     : ''
   const html = got?.html ? got.html.replace('</head>', `${mark}</head>`) : ''
