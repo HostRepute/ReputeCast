@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -68,16 +69,24 @@ var starters = []starter{
 const BlogDigestStarter = "blog-digest"
 
 // StarterMJML returns a starter's MJML with the workspace address filled in
-// and image URLs pointing at /media/starters/.
+// and image URLs pointing at /media/starters/, its sample content in
+// English.
 func StarterMJML(key, address string) (string, bool) {
+	return StarterMJMLIn(i18n.Default, key, address)
+}
+
+// StarterMJMLIn is StarterMJML with the sample content written in l, for
+// the readers of the email someone starts from it.
+func StarterMJMLIn(l i18n.Lang, key, address string) (string, bool) {
 	b, err := startersFS.ReadFile("starters/" + key + ".mjml")
 	if err != nil {
 		return "", false
 	}
 	if strings.TrimSpace(address) == "" {
-		address = DefaultAddress
+		address = DefaultAddressIn(l)
 	}
-	src := strings.ReplaceAll(string(b), AddressPlaceholder, escapeText(address))
+	src := samples(l, string(b))
+	src = strings.ReplaceAll(src, AddressPlaceholder, escapeText(address))
 	src = strings.ReplaceAll(src, `src="rc-asset:`, `src="/media/starters/`)
 	return src, true
 }
@@ -149,12 +158,14 @@ func (s *Service) Gallery(ctx context.Context, ws *store.Workspace) (EmailTempla
 // digest mode (digest true), which adds the digest starters.
 func (s *Service) GalleryFor(ctx context.Context, ws *store.Workspace, digest bool) (EmailTemplateGallery, error) {
 	g := EmailTemplateGallery{Starters: []EmailTemplateSummary{}, Templates: []EmailTemplateSummary{}, Sections: []EmailTemplateSummary{}}
+	l := i18n.LangFrom(ctx)
 	for _, st := range starters {
 		if st.digest && !digest {
 			continue
 		}
-		src, _ := StarterMJML(st.key, "")
-		g.Starters = append(g.Starters, EmailTemplateSummary{ID: StarterPrefix + st.key, Kind: "template", Name: st.name, Description: st.description, Thumb: st.thumb, Builtin: true, SizeBytes: len(src)})
+		src, _ := StarterMJMLIn(l, st.key, "")
+		name, desc := starterName(l, st)
+		g.Starters = append(g.Starters, EmailTemplateSummary{ID: StarterPrefix + st.key, Kind: "template", Name: name, Description: desc, Thumb: st.thumb, Builtin: true, SizeBytes: len(src)})
 	}
 	rows, err := s.Q.ListEmailTemplates(ctx, store.ListEmailTemplatesParams{WorkspaceID: ws.ID, Kind: ""})
 	if err != nil {
@@ -196,21 +207,23 @@ func summary(id uuid.UUID, kind, name, desc string, thumb json.RawMessage, size 
 // a starter's footer.
 func (s *Service) Get(ctx context.Context, ws *store.Workspace, id, address string) (EmailTemplateDetail, error) {
 	if key, ok := strings.CutPrefix(id, StarterPrefix); ok {
+		l := i18n.LangFrom(ctx)
 		for _, st := range starters {
 			if st.key == key {
-				src, _ := StarterMJML(key, address)
-				return EmailTemplateDetail{EmailTemplateSummary: EmailTemplateSummary{ID: id, Kind: "template", Name: st.name, Description: st.description, Thumb: st.thumb, Builtin: true, SizeBytes: len(src)}, MJML: src}, nil
+				src, _ := StarterMJMLIn(l, key, address)
+				name, desc := starterName(l, st)
+				return EmailTemplateDetail{EmailTemplateSummary: EmailTemplateSummary{ID: id, Kind: "template", Name: name, Description: desc, Thumb: st.thumb, Builtin: true, SizeBytes: len(src)}, MJML: src}, nil
 			}
 		}
-		return EmailTemplateDetail{}, api.NotFound("Template")
+		return EmailTemplateDetail{}, notFound(ctx)
 	}
 	uid, err := uuid.Parse(id)
 	if err != nil {
-		return EmailTemplateDetail{}, api.NotFound("Template")
+		return EmailTemplateDetail{}, notFound(ctx)
 	}
 	r, err := s.Q.GetEmailTemplate(ctx, store.GetEmailTemplateParams{WorkspaceID: ws.ID, ID: uid})
 	if err != nil {
-		return EmailTemplateDetail{}, api.MapError(err, "Template")
+		return EmailTemplateDetail{}, mapError(ctx, err)
 	}
 	return EmailTemplateDetail{EmailTemplateSummary: summary(r.ID, r.Kind, r.Name, r.Description, r.Thumb, r.SizeBytes, r.SourceCampaignID, r.UpdatedAt, r.UpdatedByName), MJML: r.Mjml, HTML: r.Html}, nil
 }
@@ -226,27 +239,24 @@ type EmailTemplateInput struct {
 }
 
 func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Workspace, id uuid.UUID, in *EmailTemplateInput) error {
+	l := i18n.LangFrom(ctx)
 	in.Name = strings.TrimSpace(in.Name)
 	if in.Name == "" {
-		return api.Invalid("body.name", "Give the template a name.")
+		return api.Invalid("body.name", mName.Text(l, nil))
 	}
 	src := in.MJML
 	if in.Kind == "section" && !strings.Contains(src, "<mjml") {
 		src = "<mjml><mj-body>" + src + "</mj-body></mjml>"
 	}
 	if _, err := mjml.Parse(src); err != nil {
-		return api.Invalid("body.mjml", "The MJML doesn't parse: "+err.Error())
+		return api.Invalid("body.mjml", mMJML.Text(l, i18n.Args{"error": err.Error()}))
 	}
 	taken, err := q.EmailTemplateNameTaken(ctx, store.EmailTemplateNameTakenParams{WorkspaceID: ws.ID, Kind: in.Kind, Name: in.Name, ID: id})
 	if err != nil {
 		return err
 	}
 	if taken {
-		what := "template"
-		if in.Kind == "section" {
-			what = "saved section"
-		}
-		return api.Invalid("body.name", "A "+what+" called “"+in.Name+"” already exists. Pick another name.")
+		return api.Invalid("body.name", mNameTaken.Text(l, i18n.Args{"kind": in.Kind, "name": in.Name}))
 	}
 	return nil
 }
@@ -293,13 +303,13 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, actor *uuid.U
 func (s *Service) Update(ctx context.Context, ws *store.Workspace, actor *uuid.UUID, id string, in EmailTemplateInput) (EmailTemplateDetail, error) {
 	uid, err := uuid.Parse(id)
 	if err != nil {
-		return EmailTemplateDetail{}, api.NotFound("Template")
+		return EmailTemplateDetail{}, notFound(ctx)
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		cur, err := q.GetEmailTemplate(ctx, store.GetEmailTemplateParams{WorkspaceID: ws.ID, ID: uid})
 		if err != nil {
-			return api.MapError(err, "Template")
+			return mapError(ctx, err)
 		}
 		in.Kind = cur.Kind
 		if err := s.validate(ctx, q, ws, uid, &in); err != nil {
@@ -324,13 +334,13 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, actor *uuid.U
 func (s *Service) Delete(ctx context.Context, ws *store.Workspace, actor *uuid.UUID, id string) error {
 	uid, err := uuid.Parse(id)
 	if err != nil {
-		return api.NotFound("Template")
+		return notFound(ctx)
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		cur, err := q.GetEmailTemplate(ctx, store.GetEmailTemplateParams{WorkspaceID: ws.ID, ID: uid})
 		if err != nil {
-			return api.MapError(err, "Template")
+			return mapError(ctx, err)
 		}
 		now := s.now()
 		if _, err := q.SoftDeleteEmailTemplate(ctx, store.SoftDeleteEmailTemplateParams{WorkspaceID: ws.ID, ID: uid, Now: &now, UpdatedBy: actor}); err != nil {
