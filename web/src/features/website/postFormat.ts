@@ -1,4 +1,5 @@
-import { clock, dayMonthDate } from '@/lib/format'
+import { getI18n } from '@/i18n'
+import { calendarDate, clock, dayMonthDate } from '@/lib/format'
 import { offsetMinutes } from '@/features/audit/zoned'
 
 /** "13 Oct 08:00": a post's day and time in the workspace's timezone. */
@@ -8,6 +9,12 @@ export function dateTime(d: string): string {
 
 /** A moment's day, month and time in a timezone of its own (a scheduled post's). */
 export function zonedDayTime(d: string, tz: string | undefined): { day: string; time: string } {
+  // Other region formats name the month their own way ("21 thg 10").
+  if (getI18n().regionFormat !== 'standard') {
+    if (!tz) return { day: dayMonthDate(d), time: clock(d) }
+    const local = isoToZonedLocal(d, tz)
+    return { day: calendarDate(local.slice(0, 10), 'monthDay'), time: local.slice(11, 16) }
+  }
   try {
     const p: Record<string, string> = {}
     for (const x of new Intl.DateTimeFormat('en-US', { timeZone: tz || undefined, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(d))) p[x.type] = x.value

@@ -495,6 +495,66 @@ argument and puts the name in its `other` branch: `{ends, select, other
 `{count, plural, other {# …}}` rather than a bare `{count}`, so the number
 is grouped by the region format (48.213).
 
+## Website and pages
+
+The publication website, its posts, the page builder and the public pages'
+own words. Words a reader sees follow the built-in labels of the public
+pages (`internal/pagelabels`): "bản tin", "số", "Lưu trữ", "Tùy chọn email".
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| About (page, template) | Giới thiệu | |
+| Access (Website › Access) | Quyền truy cập | |
+| archive · Archive (the page, the link) | kho lưu trữ · Lưu trữ | the archive as a whole; "trang lưu trữ" when the page itself is meant |
+| band (subscribe band) | dải | a full-width strip of the home page |
+| block · layers | khối · lớp | the page builder's |
+| built-in page | trang có sẵn | like "nhãn có sẵn" |
+| byline · By {name} | tác giả · Tác giả: {name} | |
+| canonical URL | URL chính tắc | as Google's tools say it |
+| card (paywall card, a post's card) | khung | "thẻ" is a tag |
+| certificate | chứng chỉ | |
+| countdown | đếm ngược | |
+| cover (image) | ảnh bìa | |
+| excerpt | đoạn trích | |
+| FAQ (block) | Hỏi đáp | |
+| featured · Feature on home | nổi bật · Nổi bật trên trang chủ | |
+| feed · RSS feed | nguồn cấp · nguồn cấp RSS | |
+| free preview · Free preview ends here (the post's block) | phần xem trước miễn phí · Hết phần miễn phí | |
+| Hero (block) | Hero | the block's name, as in the composer |
+| home page | trang chủ | |
+| issue (of a newsletter) | số | "48 số", "Đọc số mới nhất" |
+| lead magnet | quà tặng đăng ký | a free file for confirmed subscribers |
+| live (the website) · live (a page, a form, a version) | đang hoạt động · đang chạy | as Earn and the signup forms have it |
+| member · free member · paid member (of the site) · membership | hội viên · hội viên miễn phí · hội viên trả phí · gói hội viên | a reader who signs in, as Earn has it; "thành viên" is a team member |
+| meter | hạn mức đọc miễn phí | "Hạn mức đọc" as a heading |
+| navigation · header · footer | điều hướng · đầu trang · chân trang | |
+| page · Pages | trang · Trang | |
+| page builder | trình dựng trang | |
+| Pay what you want | Trả tùy ý | |
+| paywall | tường phí | |
+| post · web-only post | bài viết · bài viết chỉ trên web | |
+| publish · unpublish · unschedule | xuất bản · gỡ xuất bản · hủy lên lịch | Unpublished: Đã gỡ xuất bản |
+| redirect | chuyển hướng | |
+| referrer (where views come from) | nguồn truy cập | a person who refers is "người giới thiệu" |
+| registration (event) | ghi danh | "đăng ký" is a signup |
+| sales page | trang bán hàng | |
+| signups · upgrades · views · visitors | lượt đăng ký · lượt nâng cấp · lượt xem · khách truy cập | |
+| site · website | trang web | |
+| sitemap | sơ đồ trang web | |
+| slug | đường dẫn | the page's or tag's part of the address |
+| social image | ảnh chia sẻ | the image a shared link shows |
+| store product (block) | sản phẩm cửa hàng | |
+| tab (a panel's: the Web tab) | tab | "thẻ" is a tag |
+| tag | thẻ | |
+| tagline | khẩu hiệu | |
+| testimonial | lời nhận xét | |
+| theme | giao diện | |
+| tier · paid tier | gói · gói trả phí | as Earn has it; a tier's name, such as "Insider", stays as it is |
+| title (a post's, a page's, the site's) · SEO title | tựa đề · tựa đề SEO | as an archived issue's; "tiêu đề" is an email's subject ("tiêu đề thư" beside a title) |
+| visibility · Public · Members · Paid | chế độ hiển thị · Công khai · Hội viên · Trả phí | |
+| visitor | khách truy cập | someone who isn't signed in |
+| webinar | hội thảo trực tuyến | |
+
 ## Team
 
 | English | Tiếng Việt |

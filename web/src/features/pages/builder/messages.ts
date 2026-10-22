@@ -618,6 +618,7 @@ export const m = defineMessages('pageBuilder', {
   leaveBody: "Your latest changes aren't saved yet. Leaving now keeps version {version}; saving creates version {next}.",
   leaveSave: 'Save as v{version} and leave',
   leaveSaveFailed: "The page couldn't be saved. Check your connection and try again.",
+  whileEnding: 'the page autosaves',
 
   // Breadcrumb and status bar
   crumbLabel: 'Selected block',
