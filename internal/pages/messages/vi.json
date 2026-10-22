@@ -28,5 +28,15 @@
   "reminders.exist": "Tự động hóa nhắc lịch “{name}” đã tồn tại.",
   "reminders.unavailable": "Máy chủ này không có tự động hóa.",
   "reminders.noTime": "Hãy đặt ngày, giờ bắt đầu và múi giờ của sự kiện trước.",
-  "reminders.name": "{title} · nhắc lịch"
+  "reminders.name": "{title} · nhắc lịch",
+  "diff.form": "Biểu mẫu đăng ký",
+  "diff.countdown": "Đếm ngược",
+  "diff.event": "Thông tin sự kiện",
+  "diff.product": "Sản phẩm",
+  "diff.products": "Lưới sản phẩm",
+  "diff.store": "Sản phẩm cửa hàng",
+  "diff.tiers": "Bảng giá",
+  "diff.posts": "Bài viết mới",
+  "diff.video": "Video",
+  "diff.image": "Hình ảnh"
 }
