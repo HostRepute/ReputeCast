@@ -338,6 +338,7 @@ type ApprovalRequest struct {
 	TransactionalTemplateID *uuid.UUID      `json:"transactionalTemplateId"`
 	WebsitePostID           *uuid.UUID      `json:"websitePostId"`
 	WebsitePageID           *uuid.UUID      `json:"websitePageId"`
+	InvalidatedReasonText   json.RawMessage `json:"invalidatedReasonText"`
 }
 
 type ArchiveIssue struct {
@@ -561,6 +562,7 @@ type AutomationVersion struct {
 	RetiredAt    *time.Time      `json:"retiredAt"`
 	Summary      string          `json:"summary"`
 	Migration    string          `json:"migration"`
+	SummaryText  json.RawMessage `json:"summaryText"`
 }
 
 type AutomationWebhookCall struct {

@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/readiness"
@@ -72,19 +73,19 @@ func (s *Service) Send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 func (s *Service) ScheduleApproved(ctx context.Context, ws *store.Workspace, p *authz.Principal, requestID uuid.UUID, in ReviewSendInput) (ReviewSendResult, error) {
 	r, err := s.Q.ApprovalGet(ctx, store.ApprovalGetParams{WorkspaceID: ws.ID, ID: requestID})
 	if err != nil {
-		return ReviewSendResult{}, api.MapError(err, "Approval request")
+		return ReviewSendResult{}, mapErr(ctx, err)
 	}
 	if r.CampaignID == nil {
-		return ReviewSendResult{}, api.Conflict("Only campaign approvals can be scheduled.")
+		return ReviewSendResult{}, api.Conflict(say(ctx, mCampaignOnly, nil))
 	}
 	if (r.RequestedBy == nil || *r.RequestedBy != p.UserID) && !p.Can(authz.CampaignsSend) {
 		return ReviewSendResult{}, api.Forbidden(authz.CampaignsSend, nil)
 	}
 	if r.Status == "pending" || r.Status == "approved" {
-		if changes, err := s.Revalidate(ctx, ws, *r.CampaignID); err != nil {
+		if changes, err := s.revalidate(ctx, ws, *r.CampaignID); err != nil {
 			return ReviewSendResult{}, err
 		} else if len(changes) > 0 {
-			return ReviewSendResult{}, api.Err(http.StatusConflict, "approval_invalidated", "The approval no longer covers the campaign: "+InvalidationReason(changes)+". Ask for approval again.")
+			return ReviewSendResult{}, s.noLongerCovers(ctx, changes)
 		}
 	}
 	open, err := s.open(ctx, *r.CampaignID)
@@ -92,7 +93,7 @@ func (s *Service) ScheduleApproved(ctx context.Context, ws *store.Workspace, p *
 		return ReviewSendResult{}, err
 	}
 	if open == nil || open.ID != r.ID || open.Status != "approved" {
-		return ReviewSendResult{}, api.Conflict("This request isn't approved.")
+		return ReviewSendResult{}, api.Conflict(say(ctx, mNotApproved, nil))
 	}
 	c, err := s.Readiness.Campaign(ctx, ws, *r.CampaignID)
 	if err != nil {
@@ -109,14 +110,14 @@ func (s *Service) ScheduleApproved(ctx context.Context, ws *store.Workspace, p *
 // policy allows it. It's logged and every approver is told.
 func (s *Service) Bypass(ctx context.Context, ws *store.Workspace, p *authz.Principal, campaignID uuid.UUID, in ApprovalBypassInput) (ReviewSendResult, error) {
 	if p.RoleKey != authz.RoleOwner {
-		return ReviewSendResult{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, "Only an Owner can send without approval.")
+		return ReviewSendResult{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, say(ctx, mBypassOwnerOnly, nil))
 	}
 	if !ParsePolicy(ws.ApprovalPolicy).EmergencyBypass {
-		return ReviewSendResult{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, "Emergency bypass is turned off in the approval policy.")
+		return ReviewSendResult{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, say(ctx, mBypassOff, nil))
 	}
 	reason := strings.TrimSpace(in.Reason)
 	if len([]rune(reason)) < 10 {
-		return ReviewSendResult{}, api.Invalid("body.reason", "Say why this can't wait for an approver, in a sentence.")
+		return ReviewSendResult{}, api.Invalid("body.reason", say(ctx, mBypassReason, nil))
 	}
 	u, err := s.Q.GetUser(ctx, p.UserID)
 	if err != nil {
@@ -125,7 +126,7 @@ func (s *Service) Bypass(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if u.PasswordHash != nil {
 		ok, err := authn.VerifyPassword(in.Password, *u.PasswordHash)
 		if err != nil || !ok {
-			return ReviewSendResult{}, api.Invalid("body.password", "That password isn't right.")
+			return ReviewSendResult{}, api.Invalid("body.password", say(ctx, mWrongPassword, nil))
 		}
 	}
 	c, err := s.Readiness.Campaign(ctx, ws, campaignID)
@@ -149,9 +150,9 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	switch c.Status {
 	case "draft", "approval", "approved":
 	case "scheduled":
-		return ReviewSendResult{}, api.Conflict("The campaign is already scheduled. Unschedule it to change when it goes out.")
+		return ReviewSendResult{}, api.Conflict(say(ctx, mAlreadyScheduled, nil))
 	default:
-		return ReviewSendResult{}, api.Conflict("This campaign already started sending.")
+		return ReviewSendResult{}, api.Conflict(say(ctx, mAlreadySending, nil))
 	}
 	// The campaign as the person reviewed it, before a new schedule.
 	reviewed := c
@@ -168,7 +169,7 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	if sched.Mode != "now" {
 		t := sched.StartAt(now)
 		if t.Before(now.Add(time.Minute)) {
-			return ReviewSendResult{}, api.Invalid("body.schedule.date", "Pick a time in the future, or send now.")
+			return ReviewSendResult{}, api.Invalid("body.schedule.date", say(ctx, mPickFuture, nil))
 		}
 		at = &t
 	}
@@ -190,17 +191,16 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		return ReviewSendResult{}, err
 	}
 	if run == nil || (in.RunID != "" && run.ID != in.RunID) {
-		return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_changed", "Send Readiness ran again since you looked. Review the new results and confirm again.")
+		return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_changed", say(ctx, mReadinessChanged, nil))
 	}
 	if run.Fingerprint != s.Readiness.CurrentFingerprint(ctx, ws, reviewed) {
-		return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_stale", "The campaign changed since the checks ran. Run them again before sending.")
+		return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_stale", say(ctx, mReadinessStale, nil))
 	}
 	if run.Verdict == readiness.VerdictBlocked {
-		return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_blocked", fmt.Sprintf("Sending stays disabled until every block is fixed (%d %s).",
-			run.Counts.Blocks, readiness.Plural(int64(run.Counts.Blocks), "block", "blocks")))
+		return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_blocked", say(ctx, mSendBlocked, i18n.Args{"count": run.Counts.Blocks}))
 	}
 	if run.Incomplete && run.UnknownAcceptedAt == nil {
-		return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_incomplete", "Some checks couldn't run. Retry them, or continue with provider data only.")
+		return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_incomplete", say(ctx, mReadinessIncomplete, nil))
 	}
 	missing := []string{}
 	for _, ch := range run.Checks {
@@ -209,13 +209,13 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		}
 	}
 	if len(missing) > 0 {
-		return ReviewSendResult{}, api.Invalid("body.acknowledged", "Confirm each warning before sending: "+strings.Join(missing, "; ")+".")
+		return ReviewSendResult{}, api.Invalid("body.acknowledged", say(ctx, mConfirmWarnings, i18n.Args{"warnings": strings.Join(missing, "; ")}))
 	}
 	recipients := run.Estimates.Audience.Final
 	// Large sends are confirmed by typing the count; a bypass is confirmed
 	// by the written reason and the Owner's password instead.
 	if recipients >= LargeSend && mode.bypass == "" && digits(in.Confirm) != fmt.Sprint(recipients) {
-		return ReviewSendResult{}, api.Invalid("body.confirm", fmt.Sprintf("Type %d to confirm the send.", recipients))
+		return ReviewSendResult{}, api.Invalid("body.confirm", say(ctx, mTypeCount, i18n.Args{"count": fmt.Sprint(recipients)}))
 	}
 	ms, err := s.members(ctx, s.Q, ws.ID)
 	if err != nil {
@@ -236,18 +236,17 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 			return ReviewSendResult{}, err
 		}
 		if rules := ParsePolicy(ws.ApprovalPolicy).Evaluate(facts); len(rules) > 0 {
-			if changes, err := s.Revalidate(ctx, ws, c.ID); err != nil {
+			if changes, err := s.revalidate(ctx, ws, c.ID); err != nil {
 				return ReviewSendResult{}, err
 			} else if len(changes) > 0 {
-				return ReviewSendResult{}, api.Err(http.StatusConflict, "approval_invalidated", "The approval no longer covers the campaign: "+InvalidationReason(changes)+". Ask for approval again.")
+				return ReviewSendResult{}, s.noLongerCovers(ctx, changes)
 			}
 			open, err := s.open(ctx, c.ID)
 			if err != nil {
 				return ReviewSendResult{}, err
 			}
 			if open == nil || open.Status != "approved" {
-				return ReviewSendResult{}, api.Err(http.StatusConflict, "approval_required", "This send needs approval first ("+strings.TrimPrefix(strings.TrimPrefix(rulesLine(rules), "rules: "), "rule: ")+").").
-					WithMeta("rules", ruleKeys(rules))
+				return ReviewSendResult{}, approvalRequired(ctx, rules)
 			}
 			approval = open
 		}
@@ -259,7 +258,7 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 			return ReviewSendResult{}, err
 		}
 		if err == nil && fresh.Verdict == readiness.VerdictBlocked {
-			return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_blocked", "Send Readiness turned Blocked when the send started, so nothing was sent: "+firstBlock(fresh)+".")
+			return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_blocked", say(ctx, mBlockedAtStart, i18n.Args{"reason": firstBlockIn(langOf(ctx), fresh)}))
 		}
 		if err == nil {
 			// The engine starts on this run instead of running the checks again.
@@ -276,13 +275,12 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 			WorkspaceID: ws.ID, ID: c.ID})
 		switch {
 		case errors.Is(err, sending.ErrUnavailable):
-			return ReviewSendResult{}, api.Err(http.StatusServiceUnavailable, "sending_unavailable",
-				"Sending isn't available yet: the sending engine isn't running in this installation. Nothing was scheduled; the checks, the schedule and the approval are kept.")
+			return ReviewSendResult{}, api.Err(http.StatusServiceUnavailable, "sending_unavailable", say(ctx, mSendingUnavailable, nil))
 		case errors.Is(err, sending.ErrNotReady):
-			msg := "Send Readiness blocked the send as it started, so nothing was sent."
+			msg := say(ctx, mBlockedAsStarted, nil)
 			var nr *sending.NotReadyError
 			if errors.As(err, &nr) && nr.Reason != "" {
-				msg = "Send Readiness blocked the send as it started, so nothing was sent: " + strings.TrimSuffix(nr.Reason, ".") + "."
+				msg = say(ctx, mBlockedAsStartedReason, i18n.Args{"reason": strings.TrimSuffix(gapIn(langOf(ctx), nr.Reason), ".")})
 			}
 			return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_blocked", msg)
 		}
@@ -339,13 +337,17 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	return out, err
 }
 
-func firstBlock(run readiness.ReadinessRun) string {
+func firstBlock(run readiness.ReadinessRun) string { return firstBlockIn(i18n.Default, run) }
+
+// firstBlockIn is the first blocking check's title, as Send Readiness wrote
+// it, or "a check failed" in the reader's language.
+func firstBlockIn(l i18n.Lang, run readiness.ReadinessRun) string {
 	for _, ch := range run.Checks {
 		if ch.Status == readiness.Block {
 			return ch.FlatTitle
 		}
 	}
-	return "a check failed"
+	return mGapCheckFailed.Text(l, nil)
 }
 
 // recordBypass stores the bypass with the snapshot, logs it and tells every approver.
@@ -408,7 +410,7 @@ func (s *Service) Unschedule(ctx context.Context, ws *store.Workspace, p *authz.
 		return err
 	}
 	if c.Status != "scheduled" {
-		return api.Conflict("The campaign isn't scheduled.")
+		return api.Conflict(say(ctx, mNotScheduled, nil))
 	}
 	if err := s.starter().Cancel(ctx, c.ID, p.UserID); err != nil && !errors.Is(err, sending.ErrUnavailable) {
 		return err
@@ -450,7 +452,7 @@ func (s *Service) CheckSendTime(ctx context.Context, wsID, campaignID uuid.UUID)
 	if errors.Is(err, readiness.ErrRunning) {
 		latest, lerr := s.Readiness.Latest(ctx, campaignID)
 		if lerr != nil || latest == nil || s.now().Sub(latest.RanAt) > 10*time.Minute {
-			return fmt.Errorf("%w: Send Readiness is still running", sending.ErrNotReady)
+			return fmt.Errorf("%w: %s", sending.ErrNotReady, english(mGapRunning, nil))
 		}
 		run = *latest
 	} else if err != nil {
@@ -501,12 +503,14 @@ func (s *Service) approvalGap(ctx context.Context, ws *store.Workspace, campaign
 	}
 	switch last.Status {
 	case "pending":
-		return "approval is still pending", nil
+		return english(mGapPending, nil), nil
 	case "invalidated":
-		return "the approval no longer covers the campaign", nil
+		return english(mGapInvalidated, nil), nil
 	}
-	settled := map[string]string{"changes_requested": "an approver asked for changes", "rejected": "the approval was rejected",
-		"cancelled": "the approval request was withdrawn"}[last.Status]
+	settled := ""
+	if m, ok := gapMsgs[last.Status]; ok {
+		settled = english(m, nil)
+	}
 	if settled == "" {
 		return "", nil
 	}
@@ -582,7 +586,7 @@ func (s *Service) SendRecheck(ctx context.Context, campaignID uuid.UUID) (SendRe
 		}
 		if latest == nil || s.now().Sub(latest.RanAt) > 10*time.Minute {
 			out.Verdict = readiness.VerdictBlocked
-			out.Blocking = append(out.Blocking, "Send Readiness is still running")
+			out.Blocking = append(out.Blocking, english(mGapRunning, nil))
 			return out, nil
 		}
 		run = *latest
@@ -620,7 +624,7 @@ type HoldDetail struct {
 func (s *Service) heldView(ctx context.Context, h store.CampaignIncident) *ReviewHeld {
 	var d HoldDetail
 	_ = json.Unmarshal(h.Detail, &d)
-	out := &ReviewHeld{Since: h.TrippedAt, Reason: d.Reason, Held: h.Held, Blocks: d.Blocks}
+	out := &ReviewHeld{Since: h.TrippedAt, Reason: gapIn(langOf(ctx), d.Reason), Held: h.Held, Blocks: d.Blocks}
 	if len(out.Blocks) == 0 || out.Held == 0 {
 		if out.Blocks == nil {
 			out.Blocks = []readiness.ReadinessCheck{}
@@ -641,7 +645,7 @@ func (s *Service) heldView(ctx context.Context, h store.CampaignIncident) *Revie
 	if out.Reason == "" {
 		switch {
 		case len(d.Blocking) > 0:
-			out.Reason = d.Blocking[0]
+			out.Reason = gapIn(langOf(ctx), d.Blocking[0])
 		case len(out.Blocks) > 0:
 			out.Reason = firstNonEmptyStr(out.Blocks[0].FlatTitle, out.Blocks[0].Title)
 		}

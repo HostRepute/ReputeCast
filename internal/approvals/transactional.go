@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/transactional"
@@ -104,13 +105,13 @@ func (g TransactionalGate) Check(ctx context.Context, q *store.Queries, req tran
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return transactional.PublishDecision{}, err
 	}
-	who := orNames(approvers)
-	reason := fmt.Sprintf("The workspace rule “Publishing a transactional template needs approval” is on. %s can approve; you can't approve your own change.", who)
+	who := i18n.Args{"approvers": i18n.OrList(langOf(ctx).Locale, approvers)}
+	reason := say(ctx, mPublishTemplateRule, who)
 	if pending, err := q.TxnApprovalPending(ctx, &req.TemplateID); err == nil && pending.DraftHash == req.DraftHash {
-		reason = fmt.Sprintf("Approval is requested. Waiting for %s.", who)
+		reason = say(ctx, mPublishWaiting, who)
 	}
 	if len(approvers) == 0 {
-		reason = "The workspace rule “Publishing a transactional template needs approval” is on, and nobody else holds campaigns:approve. Ask an Owner to change Settings › Approvals."
+		reason = say(ctx, mPublishTemplateNoApprover, nil)
 	}
 	return transactional.PublishDecision{NeedsApproval: true, Approvers: approvers, Reason: reason}, nil
 }
@@ -207,13 +208,13 @@ func (s *Service) templateApproval(ctx context.Context, q *store.Queries, ws *st
 	}
 	switch {
 	case !out.Required:
-		out.RequestReason = "Publishing doesn't need approval in this workspace."
+		out.RequestReason = say(ctx, mReasonTemplateNoNeed, nil)
 	case !p.Can(authz.TransactionalPublish):
 		out.RequestReason = t.Access.PublishReason
 	case !p.IsHuman():
-		out.RequestReason = "Only people can ask for approval."
+		out.RequestReason = say(ctx, mReasonPeopleOnly, nil)
 	case len(names) == 0:
-		out.RequestReason = "Nobody else holds campaigns:approve. Ask an Owner to change Settings › Approvals."
+		out.RequestReason = say(ctx, mReasonTemplateNoApprovers, nil)
 	default:
 		out.CanRequest = true
 	}
@@ -233,7 +234,7 @@ func (s *Service) RequestTemplateApproval(ctx context.Context, ws *store.Workspa
 	}
 	policy := ParsePolicy(ws.ApprovalPolicy)
 	if !policy.TransactionalPublish {
-		return TransactionalApprovalState{}, api.Conflict("Publishing doesn't need approval in this workspace: publish the draft directly.")
+		return TransactionalApprovalState{}, api.Conflict(say(ctx, mTemplateNoNeed, nil))
 	}
 	t, err := s.TransactionalTemplates.Template(ctx, ws, p, ref)
 	if err != nil {
@@ -245,7 +246,7 @@ func (s *Service) RequestTemplateApproval(ctx context.Context, ws *store.Workspa
 	}
 	if len(pv.Blocking) > 0 {
 		return TransactionalApprovalState{}, api.Err(http.StatusConflict, transactional.CodeTemplateDoesntRun,
-			"This draft can't be published yet: "+strings.TrimSuffix(pv.Blocking[0], ".")+". Fix it before asking for approval.")
+			say(ctx, mTemplateBlocked, i18n.Args{"reason": strings.TrimSuffix(pv.Blocking[0], ".")}))
 	}
 	templateID, _ := uuid.Parse(t.ID)
 	ms, err := s.members(ctx, s.Q, ws.ID)
@@ -259,10 +260,10 @@ func (s *Service) RequestTemplateApproval(ctx context.Context, ws *store.Workspa
 		}
 	}
 	if len(approvers) == 0 {
-		return TransactionalApprovalState{}, api.Conflict("Nobody else holds campaigns:approve, so nobody can approve this. Ask an Owner to change Settings › Approvals.")
+		return TransactionalApprovalState{}, api.Conflict(say(ctx, mTemplateNoApprovers, nil))
 	}
 	snap := Snapshot{Version: pv.NextVersion, DraftHash: t.DraftHash, Subject: t.Subject, Preheader: t.Preheader,
-		Rules:         []ApprovalRuleMatch{{Key: RuleTransactionalPublish, Label: "Publishing a transactional template needs approval", Short: "template publish", Badge: "Template publish"}},
+		Rules:         []ApprovalRuleMatch{match(RuleTransactionalPublish, mRuleTemplate, mRuleTemplateShort, mRuleTemplateBadge, nil)},
 		Transactional: transactionalSnapshot(t, pv)}
 	if m := memberByID(ms, &p.UserID); m != nil {
 		snap.AuthorRole = m.RoleName
@@ -299,7 +300,7 @@ func (s *Service) RequestTemplateApproval(ctx context.Context, ws *store.Workspa
 	})
 	if err != nil {
 		if isUniqueViolation(err) {
-			return TransactionalApprovalState{}, api.Conflict("Someone asked for approval of this template a moment ago. Reload the dialog.")
+			return TransactionalApprovalState{}, api.Conflict(say(ctx, mTemplateRace, nil))
 		}
 		return TransactionalApprovalState{}, err
 	}

@@ -3,6 +3,8 @@ import { Badge } from '@/components/ui/Badge'
 import { cn } from '@/lib/cn'
 import { clock, monthName } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
+import { useT } from '@/i18n'
+import { m } from './messages'
 import { bouncePct, complaintPct, rateColor, statusBadge } from '../providers/common'
 import { bounceLabel, complaintLabel, costCell, quotaRow, rateCell, webhookAgo } from './words'
 
@@ -23,10 +25,11 @@ function Meter({ label, value, percent, color }: { label: string; value: string;
 
 /** One sending provider: status, rates against its own limits, quota, rate, last webhook, cost (Main board). */
 export function ProviderOverviewCard({ p, monthStart }: { p: Schemas['OverviewProviderCard']; monthStart: string }) {
+  const t = useT()
   const now = useNow(30_000)
   const c = p.card
   const stale = Boolean(p.refresh)
-  const badge = stale ? { tone: 'bad' as const, text: p.refresh!.lastSuccessAt ? `Stale · ${clock(p.refresh!.lastSuccessAt)}` : 'Stale' } : statusBadge(c, now)
+  const badge = stale ? { tone: 'bad' as const, text: p.refresh!.lastSuccessAt ? t(m.staleSince, { time: clock(p.refresh!.lastSuccessAt) }) : t(m.stale) } : statusBadge(c, now)
   const b = c.bounce
   const cp = c.complaint
   const quota = stale ? null : quotaRow(c, now)
@@ -49,8 +52,14 @@ export function ProviderOverviewCard({ p, monthStart }: { p: Schemas['OverviewPr
       </div>
       {stale ? (
         <span className="k">
-          {c.webhook.kind ? `Events via ${c.webhook.kind === 'Registered' ? 'webhook' : c.webhook.kind}: last received ${webhookAgo(c.webhook.lastEventAt, now)}` : 'No event feed'}
-          {c.webhook.lastEventAt && !c.webhook.silentSince ? ', so delivery tracking is unaffected.' : '.'}
+          {c.webhook.kind
+            ? t(m.eventsVia, {
+                webhook: c.webhook.kind === 'Registered' ? 'yes' : 'no',
+                feed: c.webhook.kind,
+                ago: webhookAgo(c.webhook.lastEventAt, now),
+                unaffected: c.webhook.lastEventAt && !c.webhook.silentSince ? 'yes' : 'no',
+              })
+            : t(m.noFeed, { unaffected: c.webhook.lastEventAt && !c.webhook.silentSince ? 'yes' : 'no' })}
         </span>
       ) : (
         <div className="grid gap-2 text-[12px] [grid-template-columns:repeat(3,minmax(0,1fr))] max-md:[grid-template-columns:repeat(auto-fit,minmax(140px,1fr))]">
@@ -59,11 +68,11 @@ export function ProviderOverviewCard({ p, monthStart }: { p: Schemas['OverviewPr
             <div className="n">{rate.value}</div>
           </div>
           <div>
-            <div className="k">Last webhook</div>
+            <div className="k">{t(m.lastWebhook)}</div>
             <div className="n">{webhookAgo(c.webhook.lastEventAt, now)}</div>
           </div>
           <div>
-            <div className="k">Cost · {monthName(monthStart)}</div>
+            <div className="k">{t(m.costMonth, { month: monthName(monthStart) })}</div>
             <div className="n">{costCell(c)}</div>
           </div>
         </div>

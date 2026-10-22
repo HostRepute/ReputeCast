@@ -1,37 +1,22 @@
 import { Link } from '@tanstack/react-router'
 import { $api, type Schemas } from '@/api/client'
-import { defineMessages, useT } from '@/i18n'
+import { Th } from '@/components/ui/Table'
+import { useT } from '@/i18n'
 import { count } from '@/lib/format'
 import { useOptionalWorkspace, useWorkspace } from '@/lib/session'
 import { commerceBase, money, share } from './api'
+import { cr } from './elsewhere.messages'
 import './commerce.css'
 
 type Row = Schemas['CommerceCampaignStoreRow']
 
-/**
+/*
  * Store orders in revenue (design expansion phase 7): the campaign
  * report's store rows ("Acme Merch · 31 orders · $1,612"), in a section of
  * their own after Earn's Revenue and Sponsor sections (X17, which shows
  * upgrades and conversions), and Earn › Overview's "Store revenue from
  * email" card, beside the revenue overview's Conversions.
  */
-const cr = defineMessages('commerce.revenue', {
-  title: 'Store orders · {campaign}',
-  caption: 'Store orders credited to this email',
-  source: 'Source',
-  count: 'Count',
-  revenue: 'Revenue',
-  how: "How it's credited",
-  orders: '{count, plural, one {# order} other {# orders}}',
-  credited: '{platform} · {days, plural, one {# day} other {# days}} after a click · {token} by click token, {email} by email',
-  total: 'Total credited',
-  totalNote: 'Each order is credited to one email',
-  attribution: '{store} attribution',
-  cardTitle: 'Store revenue from email',
-  cardValue: '{amount} of {total}',
-  cardSub: '{share} of {stores, plural, one {the store’s} other {the stores’}} revenue · {orders, plural, one {# order} other {# orders}} in {days} days',
-  cardNone: 'No store order was credited to an email in the last {days} days.',
-})
 
 const platformName = (p: string) => (p === 'woocommerce' ? 'WooCommerce' : 'Shopify')
 
@@ -99,14 +84,10 @@ function StoreRevenueSection({ campaignId, campaign }: { campaignId: string; cam
         <table className="tbl compact" aria-label={t(cr.title, { campaign })}>
           <thead>
             <tr>
-              <th scope="col">{t(cr.source)}</th>
-              <th scope="col" className="r">
-                {t(cr.count)}
-              </th>
-              <th scope="col" className="r">
-                {t(cr.revenue)}
-              </th>
-              <th scope="col">{t(cr.how)}</th>
+              <Th>{t(cr.source)}</Th>
+              <Th align="right">{t(cr.count)}</Th>
+              <Th align="right">{t(cr.revenue)}</Th>
+              <Th>{t(cr.how)}</Th>
             </tr>
           </thead>
           <tbody>

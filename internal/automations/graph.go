@@ -2,13 +2,15 @@ package automations
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
 	"net/url"
 	"regexp"
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Node types, as named in the step palette.
@@ -502,6 +504,9 @@ type Refs struct {
 	// Field Guide".
 	Milestones map[string]string
 	Stores     map[string]string // store id → name (connected stores)
+	// milestones are the same milestones' parts, to name them in each
+	// reader's language.
+	milestones map[string]milestone
 }
 
 var (
@@ -510,23 +515,97 @@ var (
 	reTag   = regexp.MustCompile(`^[\p{L}\p{N}][\p{L}\p{N} _.:/-]{0,63}$`)
 )
 
+var (
+	mStepNamed = msg("step.named")
+	mPathYes   = msg("path.yes")
+	mPathNo    = msg("path.no")
+
+	mProblemEmpty                   = msg("problem.empty")
+	mProblemDuplicateID             = msg("problem.duplicateId")
+	mProblemNoTrigger               = msg("problem.noTrigger")
+	mProblemManyTriggers            = msg("problem.manyTriggers")
+	mProblemDanglingEdge            = msg("problem.danglingEdge")
+	mProblemSelfLoop                = msg("problem.selfLoop")
+	mProblemDuplicateEdge           = msg("problem.duplicateEdge")
+	mProblemCycle                   = msg("problem.cycle")
+	mProblemTriggerInput            = msg("problem.triggerInput")
+	mProblemOrphan                  = msg("problem.orphan")
+	mProblemGoalOutputs             = msg("problem.goalOutputs")
+	mProblemTerminalOutput          = msg("problem.terminalOutput")
+	mProblemMissingPath             = msg("problem.missingPath")
+	mProblemDuplicatePath           = msg("problem.duplicatePath")
+	mProblemUnknownPath             = msg("problem.unknownPath")
+	mProblemManyOutputs             = msg("problem.manyOutputs")
+	mProblemTriggerKind             = msg("problem.triggerKind")
+	mProblemPickJoinList            = msg("problem.pickJoinList")
+	mProblemTriggerListDeleted      = msg("problem.triggerListDeleted")
+	mProblemPickForm                = msg("problem.pickForm")
+	mProblemTriggerFormDeleted      = msg("problem.triggerFormDeleted")
+	mProblemTriggerTag              = msg("problem.triggerTag")
+	mProblemTriggerEvent            = msg("problem.triggerEvent")
+	mProblemPickPoll                = msg("problem.pickPoll")
+	mProblemTriggerPollDeleted      = msg("problem.triggerPollDeleted")
+	mProblemPickDateField           = msg("problem.pickDateField")
+	mProblemTriggerFieldDeleted     = msg("problem.triggerFieldDeleted")
+	mProblemTriggerFieldType        = msg("problem.triggerFieldType")
+	mProblemTime24                  = msg("problem.time24")
+	mProblemTriggerMilestoneDeleted = msg("problem.triggerMilestoneDeleted")
+	mProblemReentry                 = msg("problem.reentry")
+	mProblemDelayMissing            = msg("problem.delayMissing")
+	mProblemDelayMax                = msg("problem.delayMax")
+	mProblemPickEmail               = msg("problem.pickEmail")
+	mProblemEmailDeleted            = msg("problem.emailDeleted")
+	mProblemRouteGone               = msg("problem.routeGone")
+	mProblemSkipListDeleted         = msg("problem.skipListDeleted")
+	mProblemSubject                 = msg("problem.subject")
+	mProblemSendWindow              = msg("problem.sendWindow")
+	mProblemCondition               = msg("problem.condition")
+	mProblemOpenClickWindow         = msg("problem.openClickWindow")
+	mProblemPickField               = msg("problem.pickField")
+	mProblemConditionFieldDeleted   = msg("problem.conditionFieldDeleted")
+	mProblemFieldOp                 = msg("problem.fieldOp")
+	mProblemConditionTag            = msg("problem.conditionTag")
+	mProblemPickConditionList       = msg("problem.pickConditionList")
+	mProblemConditionListDeleted    = msg("problem.conditionListDeleted")
+	mProblemConditionEvent          = msg("problem.conditionEvent")
+	mProblemClickReplyWindow        = msg("problem.clickReplyWindow")
+	mProblemSplitVariants           = msg("problem.splitVariants")
+	mProblemSplitLetter             = msg("problem.splitLetter")
+	mProblemSplitWeights            = msg("problem.splitWeights")
+	mProblemWebhookURL              = msg("problem.webhookUrl")
+	mProblemWebhookFullURL          = msg("problem.webhookFullUrl")
+	mProblemWebhookScheme           = msg("problem.webhookScheme")
+	mProblemWebhookCredentials      = msg("problem.webhookCredentials")
+	mProblemWebhookPrivate          = msg("problem.webhookPrivate")
+	mProblemWebhookMethod           = msg("problem.webhookMethod")
+	mProblemListAction              = msg("problem.listAction")
+	mProblemPickList                = msg("problem.pickList")
+	mProblemStepListDeleted         = msg("problem.stepListDeleted")
+	mProblemStepTag                 = msg("problem.stepTag")
+)
+
 // Validate checks the structure (one trigger, every step reachable, every
 // branch path connected, no loops) and each step's settings. refs may be nil
-// to skip reference checks.
+// to skip reference checks. Its messages are in English; validate writes
+// them in a reader's language.
 func Validate(g AutomationGraph, refs *Refs) []AutomationGraphIssue {
+	return validate(english, g, refs)
+}
+
+func validate(l i18n.Lang, g AutomationGraph, refs *Refs) []AutomationGraphIssue {
 	issues := []AutomationGraphIssue{}
-	add := func(node, edge, code, sev, msg string) {
-		issues = append(issues, AutomationGraphIssue{NodeID: node, EdgeID: edge, Code: code, Severity: sev, Message: msg})
+	add := func(node, edge, code, sev string, t i18n.Text) {
+		issues = append(issues, AutomationGraphIssue{NodeID: node, EdgeID: edge, Code: code, Severity: sev, Message: say(l, t)})
 	}
 	if len(g.Nodes) == 0 {
-		add("", "", "empty", "error", "The flow is empty. Drag a trigger onto the canvas to start.")
+		add("", "", "empty", "error", txt(mProblemEmpty))
 		return issues
 	}
 	ids := map[string]bool{}
 	triggers := 0
 	for _, n := range g.Nodes {
 		if ids[n.ID] {
-			add(n.ID, "", "duplicate_id", "error", fmt.Sprintf("Two steps share the id %s. Delete one and add it again.", quote(n.ID)))
+			add(n.ID, "", "duplicate_id", "error", txt(mProblemDuplicateID, "id", n.ID))
 		}
 		ids[n.ID] = true
 		if n.Type == NodeTrigger {
@@ -535,31 +614,31 @@ func Validate(g AutomationGraph, refs *Refs) []AutomationGraphIssue {
 	}
 	switch {
 	case triggers == 0:
-		add("", "", "no_trigger", "error", "The flow has no trigger. Drag one from Triggers so contacts can enter.")
+		add("", "", "no_trigger", "error", txt(mProblemNoTrigger))
 	case triggers > 1:
-		add("", "", "many_triggers", "error", "A flow has one trigger. Delete the extra ones.")
+		add("", "", "many_triggers", "error", txt(mProblemManyTriggers))
 	}
 	edgeKeys := map[string]bool{}
 	for _, e := range g.Edges {
 		if !ids[e.Source] || !ids[e.Target] {
-			add("", e.ID, "dangling_edge", "error", "A connection points to a step that no longer exists. Delete it.")
+			add("", e.ID, "dangling_edge", "error", txt(mProblemDanglingEdge))
 			continue
 		}
 		if e.Source == e.Target {
-			add(e.Source, e.ID, "self_loop", "error", "A step can't lead to itself.")
+			add(e.Source, e.ID, "self_loop", "error", txt(mProblemSelfLoop))
 		}
 		key := e.Source + "→" + e.Target + "/" + e.Data.Path
 		if edgeKeys[key] {
-			add(e.Source, e.ID, "duplicate_edge", "error", "Two connections join the same steps. Delete one.")
+			add(e.Source, e.ID, "duplicate_edge", "error", txt(mProblemDuplicateEdge))
 		}
 		edgeKeys[key] = true
 	}
 	if g.HasCycle() {
-		add("", "", "cycle", "error", "The flow loops back to an earlier step. Flows run top to bottom; remove the connection that goes back up.")
+		add("", "", "cycle", "error", txt(mProblemCycle))
 	}
 	if t := g.Trigger(); t != nil {
 		if len(g.In(t.ID)) > 0 {
-			add(t.ID, "", "trigger_input", "error", "Nothing can lead into the trigger. Remove the connection into it.")
+			add(t.ID, "", "trigger_input", "error", txt(mProblemTriggerInput))
 		}
 		reach := map[string]bool{}
 		var walk func(string)
@@ -575,23 +654,23 @@ func Validate(g AutomationGraph, refs *Refs) []AutomationGraphIssue {
 		walk(t.ID)
 		for _, n := range g.Nodes {
 			if !reach[n.ID] {
-				add(n.ID, "", "orphan", "error", fmt.Sprintf("%s isn't connected to the trigger, so no contact would reach it. Connect it or delete it.", capFirst(stepName(g, n, refs))))
+				add(n.ID, "", "orphan", "error", txt(mProblemOrphan, "step", upper(stepName(g, n, refs))))
 			}
 		}
 	}
 	for _, n := range g.Nodes {
 		out := g.Out(n.ID)
-		name := capFirst(stepName(g, n, refs))
+		step := upper(stepName(g, n, refs))
 		switch {
 		case n.Type == NodeGoal:
 			// A goal ends the flow when it's met; a contact who hasn't met
 			// it carries on to the next step, if there is one.
 			if len(out) > 1 {
-				add(n.ID, "", "many_outputs", "error", fmt.Sprintf("%s leads to %d steps. Keep one connection.", name, len(out)))
+				add(n.ID, "", "many_outputs", "error", txt(mProblemGoalOutputs, "step", step, "count", len(out)))
 			}
 		case n.Terminal():
 			if len(out) > 0 {
-				add(n.ID, "", "terminal_output", "error", fmt.Sprintf("%s ends the flow, so it can't lead to another step.", name))
+				add(n.ID, "", "terminal_output", "error", txt(mProblemTerminalOutput, "step", step))
 			}
 		case n.Type == NodeBranch || n.Type == NodeSplit:
 			have := map[string]int{}
@@ -600,33 +679,37 @@ func Validate(g AutomationGraph, refs *Refs) []AutomationGraphIssue {
 			}
 			for _, p := range n.Paths() {
 				if have[p] == 0 {
-					add(n.ID, "", "missing_path", "error", fmt.Sprintf("%s has no %s path. Connect it to a step or an exit.", name, quote(pathLabel(n, p))))
+					add(n.ID, "", "missing_path", "error", txt(mProblemMissingPath, "step", step, "path", pathLabel(n, p)))
 				} else if have[p] > 1 {
-					add(n.ID, "", "duplicate_path", "error", fmt.Sprintf("%s has two %s paths. Keep one.", name, quote(pathLabel(n, p))))
+					add(n.ID, "", "duplicate_path", "error", txt(mProblemDuplicatePath, "step", step, "path", pathLabel(n, p)))
 				}
 			}
 			for _, e := range out {
 				if !slices.Contains(n.Paths(), e.Data.Path) {
-					add(n.ID, e.ID, "unknown_path", "error", fmt.Sprintf("A connection out of %s isn't one of its paths. Delete it and connect again.", stepName(g, n, refs)))
+					add(n.ID, e.ID, "unknown_path", "error", txt(mProblemUnknownPath, "step", stepName(g, n, refs)))
 				}
 			}
 		default:
 			if len(out) > 1 {
-				add(n.ID, "", "many_outputs", "error", fmt.Sprintf("%s leads to %d steps. Only branches and splits fork; keep one connection.", name, len(out)))
+				add(n.ID, "", "many_outputs", "error", txt(mProblemManyOutputs, "step", step, "count", len(out)))
 			}
 		}
-		for _, msg := range checkConfig(n, refs) {
-			add(n.ID, "", msg.code, "error", msg.text)
+		for _, p := range checkConfig(n, refs) {
+			add(n.ID, "", p.code, "error", p.text)
 		}
 	}
 	return issues
 }
 
-type configProblem struct{ code, text string }
+// configProblem is a problem with a step's settings.
+type configProblem struct {
+	code string
+	text i18n.Text
+}
 
 func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 	var out []configProblem
-	bad := func(code, format string, a ...any) { out = append(out, configProblem{code, fmt.Sprintf(format, a...)}) }
+	bad := func(code string, t i18n.Text) { out = append(out, configProblem{code, t}) }
 	listExists := func(id string) bool {
 		if refs == nil {
 			return true
@@ -639,54 +722,54 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 	case NodeTrigger:
 		t := d.Trigger
 		if t == nil || t.Kind == "" {
-			bad("trigger_kind", "Pick what starts the flow: a list join, a form, a tag, an API event, a date or a score.")
+			bad("trigger_kind", txt(mProblemTriggerKind))
 			break
 		}
 		switch t.Kind {
 		case TriggerJoinedList:
 			if t.ListID == "" {
-				bad("missing_ref", "Pick the list contacts join.")
+				bad("missing_ref", txt(mProblemPickJoinList))
 			} else if !listExists(t.ListID) {
-				bad("missing_ref", "The trigger's list was deleted. Pick another list.")
+				bad("missing_ref", txt(mProblemTriggerListDeleted))
 			}
 		case TriggerFormSubmitted:
 			if t.FormID == "" {
-				bad("missing_ref", "Pick the signup form.")
+				bad("missing_ref", txt(mProblemPickForm))
 			} else if refs != nil {
 				if _, ok := refs.Forms[t.FormID]; !ok {
-					bad("missing_ref", "The trigger's form was deleted. Pick another form.")
+					bad("missing_ref", txt(mProblemTriggerFormDeleted))
 				}
 			}
 		case TriggerTagAdded:
 			if !reTag.MatchString(t.Tag) {
-				bad("invalid_tag", "Name the tag that starts the flow (letters, numbers, spaces and - _ . : /).")
+				bad("invalid_tag", txt(mProblemTriggerTag))
 			}
 		case TriggerAPIEvent:
 			if !reEvent.MatchString(t.Event) {
-				bad("invalid_event", "Name the API event, like workspace.created (letters, numbers and . _ : -).")
+				bad("invalid_event", txt(mProblemTriggerEvent))
 			}
 		case TriggerBoughtProduct:
 			checkProduct(t.ProductID, refs, bad)
 		case TriggerPollAnswered:
 			if t.Poll == "" {
-				bad("missing_ref", "Pick the poll or survey.")
+				bad("missing_ref", txt(mProblemPickPoll))
 			} else if refs != nil && refs.Polls != nil {
 				if _, ok := refs.Polls[t.Poll]; !ok {
-					bad("missing_ref", "The trigger's poll or survey was deleted. Pick another one.")
+					bad("missing_ref", txt(mProblemTriggerPollDeleted))
 				}
 			}
 		case TriggerDateField:
 			if t.Field == "" {
-				bad("missing_ref", "Pick the date field.")
+				bad("missing_ref", txt(mProblemPickDateField))
 			} else if refs != nil && t.Field != "created_at" {
 				if typ, ok := refs.Fields[t.Field]; !ok {
-					bad("missing_ref", "The trigger's date field was deleted. Pick another field.")
+					bad("missing_ref", txt(mProblemTriggerFieldDeleted))
 				} else if typ != "date" {
-					bad("invalid_field", "The trigger needs a date field.")
+					bad("invalid_field", txt(mProblemTriggerFieldType))
 				}
 			}
 			if t.At != "" && !reHHMM.MatchString(t.At) {
-				bad("invalid_time", "Use a 24-hour time like 09:00.")
+				bad("invalid_time", txt(mProblemTime24))
 			}
 		}
 		if t.Kind == TriggerScoreCrosses {
@@ -694,100 +777,98 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 		}
 		if t.Kind == TriggerMilestoneReached && t.MilestoneID != "" && refs != nil && refs.Milestones != nil {
 			if _, ok := refs.Milestones[t.MilestoneID]; !ok {
-				bad("missing_ref", "The trigger's milestone was deleted. Pick another milestone.")
+				bad("missing_ref", txt(mProblemTriggerMilestoneDeleted))
 			}
 		}
 		if isStoreTrigger(t.Kind) {
-			for _, p := range checkStoreTrigger(t, refs) {
-				bad(p.code, "%s", p.text)
-			}
+			out = append(out, checkStoreTrigger(t, refs)...)
 		}
 		if t.Reentry != "" && t.Reentry != "once" && t.Reentry != "always" {
-			bad("invalid_reentry", "Re-entry is once or always.")
+			bad("invalid_reentry", txt(mProblemReentry))
 		}
 	case NodeDelay:
 		if d.Delay == nil || d.Delay.Amount <= 0 {
-			bad("invalid_delay", "Set how long to wait.")
+			bad("invalid_delay", txt(mProblemDelayMissing))
 		} else if d.Delay.Duration() > 366*24*time.Hour {
-			bad("invalid_delay", "Delays can be at most a year.")
+			bad("invalid_delay", txt(mProblemDelayMax))
 		}
 	case NodeEmail:
 		e := d.Email
 		if e == nil || e.EmailID == "" {
-			bad("missing_email", "Pick the email to send.")
+			bad("missing_email", txt(mProblemPickEmail))
 			break
 		}
 		if refs != nil {
 			if _, ok := refs.Emails[e.EmailID]; !ok {
-				bad("missing_ref", "This step's email was deleted. Pick another email.")
+				bad("missing_ref", txt(mProblemEmailDeleted))
 			}
 			if e.Route != "" {
 				if _, ok := refs.Providers[e.Route]; !ok {
-					bad("missing_ref", "The sending provider this step overrides to was disconnected. Use the Automations route.")
+					bad("missing_ref", txt(mProblemRouteGone))
 				}
 			}
 			if e.SkipListID != "" && !listExists(e.SkipListID) {
-				bad("missing_ref", "The \"Skip if\" list was deleted. Pick another list or clear the rule.")
+				bad("missing_ref", txt(mProblemSkipListDeleted))
 			}
 		}
 		if strings.TrimSpace(e.Subject) == "" {
-			bad("missing_subject", "Write a subject line.")
+			bad("missing_subject", txt(mProblemSubject))
 		}
 		if w := e.SendWindow; w != nil && w.Enabled && (!reHHMM.MatchString(w.Start) || !reHHMM.MatchString(w.End) || w.Start == w.End) {
-			bad("invalid_window", "Set the send window as two different times like 07:00 and 21:00.")
+			bad("invalid_window", txt(mProblemSendWindow))
 		}
 	case NodeBranch, NodeFilter, NodeGoal:
 		c := d.Condition
 		if c == nil {
 			if n.Type != NodeGoal {
-				bad("missing_condition", "Set the condition.")
+				bad("missing_condition", txt(mProblemCondition))
 			}
 			break
 		}
 		switch c.Kind {
 		case "opened", "clicked":
 			if n.Type == NodeBranch && (c.Within == nil || c.Within.Amount <= 0) {
-				bad("invalid_window", "Set how long to wait for the open or click.")
+				bad("invalid_window", txt(mProblemOpenClickWindow))
 			}
 		case "field":
 			if c.Field == "" {
-				bad("missing_ref", "Pick the contact field to check.")
+				bad("missing_ref", txt(mProblemPickField))
 			} else if refs != nil && !isBuiltinField(c.Field) {
 				if _, ok := refs.Fields[c.Field]; !ok {
-					bad("missing_ref", "The condition's field was deleted. Pick another field.")
+					bad("missing_ref", txt(mProblemConditionFieldDeleted))
 				}
 			}
 			if !slices.Contains([]string{"equals", "not_equals", "contains", "is_set", "is_not_set", "is_one_of"}, c.Op) {
-				bad("invalid_op", "Pick how to compare the field.")
+				bad("invalid_op", txt(mProblemFieldOp))
 			}
 		case "tag":
 			if !reTag.MatchString(c.Tag) {
-				bad("invalid_tag", "Name the tag to check.")
+				bad("invalid_tag", txt(mProblemConditionTag))
 			}
 		case "list":
 			if c.ListID == "" {
-				bad("missing_ref", "Pick the list to check.")
+				bad("missing_ref", txt(mProblemPickConditionList))
 			} else if !listExists(c.ListID) {
-				bad("missing_ref", "The condition's list was deleted. Pick another list.")
+				bad("missing_ref", txt(mProblemConditionListDeleted))
 			}
 		case "event":
 			if !reEvent.MatchString(c.Event) {
-				bad("invalid_event", "Name the API event, like teammate.invited.")
+				bad("invalid_event", txt(mProblemConditionEvent))
 			}
 		case TriggerBoughtProduct:
 			checkProduct(c.ProductID, refs, bad)
 		case CondSMSConsent:
 			if c.ListID != "" && !listExists(c.ListID) {
-				bad("missing_ref", "The condition's list was deleted. Pick another list.")
+				bad("missing_ref", txt(mProblemConditionListDeleted))
 			}
 		case CondSMSClicked, CondSMSReplied:
 			if n.Type == NodeBranch && (c.Within == nil || c.Within.Amount <= 0) {
-				bad("invalid_window", "Set how long to wait for the click or reply.")
+				bad("invalid_window", txt(mProblemClickReplyWindow))
 			}
 		}
 	case NodeSplit:
 		if len(d.Variants) < 2 {
-			bad("invalid_split", "An A/B split needs at least two variants.")
+			bad("invalid_split", txt(mProblemSplitVariants))
 			break
 		}
 		sum := 0
@@ -795,66 +876,89 @@ func checkConfig(n AutomationNode, refs *Refs) []configProblem {
 		for _, v := range d.Variants {
 			sum += v.Weight
 			if keys[v.Key] {
-				bad("invalid_split", "Each variant needs its own letter.")
+				bad("invalid_split", txt(mProblemSplitLetter))
 			}
 			keys[v.Key] = true
 		}
 		if sum != 100 {
-			bad("invalid_split", "The split's weights add up to %d%%. Make them add up to 100%%.", sum)
+			bad("invalid_split", txt(mProblemSplitWeights, "sum", float64(sum)/100))
 		}
 	case NodeWebhook:
 		w := d.Webhook
 		if w == nil || w.URL == "" {
-			bad("missing_url", "Enter the URL to call.")
+			bad("missing_url", txt(mProblemWebhookURL))
 			break
 		}
-		if err := checkWebhookURL(w.URL); err != nil {
-			bad("invalid_url", "%s", err.Error())
+		if p := webhookURLProblem(w.URL); !emptyText(p) {
+			bad("invalid_url", p)
 		}
 		if w.Method != "" && w.Method != http.MethodPost && w.Method != http.MethodPut {
-			bad("invalid_method", "Webhooks use POST or PUT.")
+			bad("invalid_method", txt(mProblemWebhookMethod))
 		}
 	case NodeSMS, NodePush, NodeWhatsApp:
-		for _, p := range checkChannelNode(n, listExists) {
-			bad(p.Code, "%s", p.Message)
-		}
+		out = append(out, checkChannelNode(n, listExists)...)
 	case NodeList:
 		a := d.Action
 		if a == nil {
-			bad("missing_action", "Pick what to do: add or remove a list or a tag.")
+			bad("missing_action", txt(mProblemListAction))
 			break
 		}
 		switch a.Kind {
 		case "add_list", "remove_list":
 			if a.ListID == "" {
-				bad("missing_ref", "Pick the list.")
+				bad("missing_ref", txt(mProblemPickList))
 			} else if !listExists(a.ListID) {
-				bad("missing_ref", "This step's list was deleted. Pick another list.")
+				bad("missing_ref", txt(mProblemStepListDeleted))
 			}
 		case "add_tag", "remove_tag":
 			if !reTag.MatchString(a.Tag) {
-				bad("invalid_tag", "Name the tag.")
+				bad("invalid_tag", txt(mProblemStepTag))
 			}
 		}
 	}
 	return out
 }
 
+// webhookURLProblem says what's wrong with a webhook step's URL, as
+// checkWebhookURL does, for the canvas; nothing when the URL is fine.
+func webhookURLProblem(raw string) i18n.Text {
+	err := checkWebhookURL(raw)
+	switch {
+	case err == nil:
+		return i18n.Text{}
+	case errors.Is(err, errWebhookFullURL):
+		return txt(mProblemWebhookFullURL)
+	case errors.Is(err, errWebhookScheme):
+		return txt(mProblemWebhookScheme)
+	case errors.Is(err, errWebhookCredentials):
+		return txt(mProblemWebhookCredentials)
+	}
+	return txt(mProblemWebhookPrivate)
+}
+
+// Why checkWebhookURL refuses a URL (the webhook call log keeps the English).
+var (
+	errWebhookFullURL     = errors.New("enter a full URL starting with https://")
+	errWebhookScheme      = errors.New("webhooks call http:// or https:// URLs")
+	errWebhookCredentials = errors.New("put credentials in the signing secret, not in the URL")
+	errWebhookPrivate     = errors.New("webhooks can't call private, loopback or internal addresses")
+)
+
 // checkWebhookURL rejects URLs a webhook may never call (the network check
 // at call time also blocks names that resolve to private addresses).
 func checkWebhookURL(raw string) error {
 	u, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil || u.Host == "" {
-		return fmt.Errorf("enter a full URL starting with https://")
+		return errWebhookFullURL
 	}
 	if u.Scheme != "https" && u.Scheme != "http" {
-		return fmt.Errorf("webhooks call http:// or https:// URLs")
+		return errWebhookScheme
 	}
 	if u.User != nil {
-		return fmt.Errorf("put credentials in the signing secret, not in the URL")
+		return errWebhookCredentials
 	}
 	if blockedHost(u.Hostname()) {
-		return fmt.Errorf("webhooks can't call private, loopback or internal addresses")
+		return errWebhookPrivate
 	}
 	return nil
 }
@@ -867,15 +971,17 @@ func isBuiltinField(f string) bool {
 	return false
 }
 
-func pathLabel(n AutomationNode, p string) string {
+// pathLabel names a path out of a branch or split: Yes, No, or the
+// variant's letter.
+func pathLabel(n AutomationNode, p string) i18n.Text {
 	switch p {
 	case PathYes:
-		return "Yes"
+		return txt(mPathYes)
 	case PathNo:
-		return "No"
+		return txt(mPathNo)
 	}
 	_ = n
-	return p
+	return name(p)
 }
 
 func capFirst(s string) string {

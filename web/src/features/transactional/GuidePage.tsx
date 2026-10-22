@@ -12,15 +12,16 @@ import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
+import { andList, count, decimal } from '@/lib/format'
 import { useDocumentTitle, useNow, useOverflowX } from '@/lib/hooks'
 import { useMe, usePermissionReason, useWorkspace } from '@/lib/session'
 import '@/features/connect/connect.css'
-import { perSec, streamName, type Stream } from '@/features/providers/common'
+import type { Stream } from '@/features/providers/common'
 import { codeSample, highlight } from './codeSamples'
 import { mu } from './guide.messages'
 import { stampMs } from './MessagePage'
 import { mt } from './messages'
-import { CodeBox, secs, type CodeLang } from './shared'
+import { CodeBox, secs, sizeText, type CodeLang } from './shared'
 
 const API = '/api/v1/workspaces/{workspace}/transactional' as const
 const W = '/api/v1/workspaces/{workspace}' as const
@@ -31,6 +32,11 @@ type Setup = Schemas['TransactionalSetup']
 type Overview = Schemas['TransactionalOverview']
 type Detail = Schemas['TransactionalMessageDetail']
 type Tr = ReturnType<typeof useT>
+
+/** A provider's send rate, as "14" or "2.5" (per second), in the region format. */
+function perSecond(v: number): string {
+  return Number.isInteger(v) ? count(v) : decimal(v, 1)
+}
 
 /** The step a workspace is at: the first one not done yet. */
 export function firstOpen(setup: Pick<Setup, 'senders' | 'keys'>, ov: Pick<Overview, 'route' | 'firstRun'>): GuideStep {
@@ -215,8 +221,7 @@ function Steps({ current, sender, setup, ov, tpl, keyName }: { current: GuideSte
             </span>
             <div>
               <div className="font-semibold">
-                {done ? <span className="vh">{t(mu.doneSr)}</span> : null}
-                {d.title}
+                {done ? <T msg={mu.doneStep} values={{ step: d.title, vh: (c) => <span className="vh">{c}</span> }} /> : d.title}
               </div>
               {d.line ? <div className="k">{d.line}</div> : null}
             </div>
@@ -277,8 +282,9 @@ function recordsSentence(t: Tr, records: { purpose: string; provider: string }[]
   const dkim = uniq(records.filter((r) => r.purpose === 'dkim').map((r) => r.provider))
   const rp = uniq(records.filter((r) => r.purpose === 'return_path').map((r) => r.provider))
   const parts: string[] = []
-  if (dkim.length) parts.push(t(mu.dnsDkim, { providers: dkim.join(t(mu.andFor)) }))
-  if (rp.length) parts.push(rp.length > 1 && rp.length === dkim.length && rp.every((p) => dkim.includes(p)) ? t(mu.dnsReturnEach) : t(mu.dnsReturn, { providers: rp.join(t(mu.andFor)) }))
+  const forEach = (providers: string[]) => andList(providers.map((provider) => t(mu.forProvider, { provider })))
+  if (dkim.length) parts.push(t(mu.dnsDkim, { providers: forEach(dkim) }))
+  if (rp.length) parts.push(rp.length > 1 && rp.length === dkim.length && rp.every((p) => dkim.includes(p)) ? t(mu.dnsReturnEach) : t(mu.dnsReturn, { providers: forEach(rp) }))
   if (records.some((r) => r.purpose === 'spf')) parts.push(t(mu.dnsSpf))
   if (records.some((r) => r.purpose === 'dmarc')) parts.push(t(mu.dnsDmarc))
   if (records.some((r) => r.purpose === 'verification')) parts.push(t(mu.dnsVerification))
@@ -578,7 +584,7 @@ function RouteForm({
   const usedBy = (id: string) =>
     cfg.streams
       .filter((s) => s.stream !== 'transactional' && s.splits.some((x) => x.providerId === id))
-      .map((s) => streamName[s.stream as Stream])
+      .map((s) => t(mu.streamName, { stream: s.stream as Stream }))
       .filter(Boolean)
   const p = providers.find((x) => x.id === primary)
   const shared = [primary, fb]
@@ -686,7 +692,7 @@ function RouteForm({
           <span className="k">
             {shared
               ? rates.get(shared.id)
-                ? t(mu.priorityRate, { name: shared.short || shared.name, rate: perSec(rates.get(shared.id)!) })
+                ? t(mu.priorityRate, { name: shared.short || shared.name, rate: perSecond(rates.get(shared.id)!) })
                 : t(mu.priorityShared, { name: shared.short || shared.name })
               : t(mu.priorityBody)}
           </span>
@@ -915,8 +921,8 @@ function timelineRows(t: Tr, d: Detail, provider: string): Row[] {
   const handed = at('handed')
   const delivered = at('delivered')
   const bad = d.timeline.find((e) => ['bounced', 'failed', 'rejected', 'not_delivered', 'provider_rejected'].includes(e.kind))
-  const who = d.keyRef ? t(mu.byKey, { key: d.keyRef.name, ip: d.ip ? ` · ${d.ip}` : '' }) : d.sentBy ? t(mu.byPerson, { name: d.sentBy }) : ''
-  const size = d.contentBytes >= 1024 ? `${Math.round(d.contentBytes / 1024)} KB` : `${d.contentBytes} B`
+  const who = d.keyRef ? (d.ip ? t(mu.byKeyIp, { key: d.keyRef.name, ip: d.ip }) : t(mu.byKey, { key: d.keyRef.name })) : d.sentBy ? t(mu.byPerson, { name: d.sentBy }) : ''
+  const size = sizeText(d.contentBytes)
   const rows: Row[] = [
     { title: t(mu.callReceived), detail: t(mu.callReceivedDetail, { time: stampMs(accepted?.at ?? d.at), who, status: accepted?.status ?? 202 }), state: 'done' },
     {
@@ -926,7 +932,7 @@ function timelineRows(t: Tr, d: Detail, provider: string): Row[] {
     },
     {
       title: t(mu.handed, { provider: handed?.provider ?? d.provider?.name ?? provider }),
-      detail: handed ? t(mu.handedDetail, { time: stampMs(handed.at), which: d.route.failedOver ? t(mu.fallbackWord) : t(mu.primaryWord) }) : undefined,
+      detail: handed ? t(mu.handedDetail, { time: stampMs(handed.at), which: d.route.failedOver ? 'fallback' : 'primary' }) : undefined,
       state: handed ? 'done' : rendered ? 'wait' : 'todo',
     },
   ]

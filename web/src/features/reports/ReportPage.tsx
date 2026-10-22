@@ -9,8 +9,10 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel } from '@/components/ui/Feedback'
 import { toast } from '@/components/ui/Toast'
-import { TableScroll } from '@/components/ui/Table'
-import { clock, count } from '@/lib/format'
+import { TableScroll, Th } from '@/components/ui/Table'
+import { andList, clock, count } from '@/lib/format'
+import { t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { useCampaignPolls } from '@/features/polls/report'
 import { ReportBody, type ReportActions } from './ReportBody'
@@ -25,6 +27,7 @@ import { ReportProductSales } from '@/features/products/report'
 import './reports.css'
 import { CampaignEarn } from '@/features/earn/revenue/CampaignEarn'
 import { ReportWebSection } from '@/features/website/elsewhere'
+import { m } from './messages'
 
 type BounceRow = Schemas['ReportBounceRow']
 
@@ -41,11 +44,12 @@ function saveBlob(blob: Blob, name: string) {
 }
 
 function Breadcrumb({ name }: { name: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   return (
-    <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-[13px]">
+    <nav aria-label={t(m.breadcrumb)} className="flex items-center gap-2 text-[13px]">
       <Link to="/w/$workspace/campaigns" params={{ workspace: slug }} className="text-ink-3 no-underline hover:text-ink-3">
-        Campaigns
+        {t(m.campaigns)}
       </Link>
       <span className="k" aria-hidden="true">
         /
@@ -59,6 +63,7 @@ function Breadcrumb({ name }: { name: string }) {
 
 /** Empty: the campaign hasn't sent anything yet (ReportStates). */
 function NotSent({ r, campaignId }: { r: CampaignReport; campaignId: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const n = r.notSent!
   return (
@@ -67,17 +72,17 @@ function NotSent({ r, campaignId }: { r: CampaignReport; campaignId: string }) {
         <rect x="6" y="12" width="36" height="26" rx="4" fill="none" stroke="#9AA3B2" strokeWidth="2" />
         <path d="M12 32V22M20 32V18M28 32V26M36 32V15" stroke="#9AA3B2" strokeWidth="2.5" strokeLinecap="round" />
       </svg>
-      <h2 className="m-0 text-[17px] font-bold">No results for {r.campaign.name} yet</h2>
+      <h2 className="m-0 text-[17px] font-bold">{t(m.noResults, { name: r.campaign.name })}</h2>
       <span className="max-w-[520px] text-ink-2">
-        {notSentLead(n)} Delivery, bounce and complaint counts appear here live as it sends; opens and clicks keep updating for 72 hours.
+        {notSentLead(n)} {t(m.notSentBody)}
       </span>
       <div className="mt-1 flex flex-wrap justify-center gap-2.5">
         <ButtonLink to="/w/$workspace/campaigns/$campaignId/review" params={{ workspace: slug, campaignId }}>
-          View Send Readiness
+          {t(m.viewReadiness)}
         </ButtonLink>
         {n.lastReport ? (
           <ButtonLink variant="primary" to="/w/$workspace/campaigns/$campaignId/report" params={{ workspace: slug, campaignId: n.lastReport.id }}>
-            See the last report instead
+            {t(m.lastReport)}
           </ButtonLink>
         ) : null}
       </div>
@@ -87,35 +92,43 @@ function NotSent({ r, campaignId }: { r: CampaignReport; campaignId: string }) {
 
 /** Error: provider events wait to be processed, so some counts are behind. */
 function BacklogAlert({ b, onRefresh }: { b: Schemas['ReportIngestBacklog']; onRefresh: () => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const first = b.providers[0]!
   const since = clock(b.since)
-  const queue = first.feed === 'SNS' ? `The SNS queue for ${first.name}` : `${first.name}'s ${first.feed === 'Bounce mailbox' ? 'bounce mailbox' : 'webhook events'}`
   const waiting = b.providers.reduce((s, p) => s + p.waiting, 0)
   const others = b.providers.slice(1).map((p) => p.name)
-  const current = b.current.length ? ` ${b.current.join(' and ')} events are current.` : ''
+  const queue = {
+    feed: first.feed === 'SNS' ? 'sns' : first.feed === 'Bounce mailbox' ? 'mailbox' : 'webhook',
+    name: first.name,
+    since,
+    n: waiting,
+    waiting: count(waiting),
+  }
+  const sentences = [others.length ? t(m.backlogQueueOthers, { ...queue, others: andList(others) }) : t(m.backlogQueue, queue), t(m.backlogComplete, { since })]
+  if (b.current.length) sentences.push(t(m.backlogCurrent, { providers: andList(b.current) }))
   return (
     <StateAlert
-      title={`Event ingestion is ${b.minutes} ${b.minutes === 1 ? 'minute' : 'minutes'} behind`}
+      title={t(m.backlogTitle, { n: b.minutes })}
       actions={
         <>
           <Button size="sm" onClick={onRefresh}>
-            Refresh
+            {t(m.refresh)}
           </Button>
           <ButtonLink size="sm" to="/w/$workspace/providers/events" params={{ workspace: slug }}>
-            View event queue
+            {t(m.viewQueue)}
           </ButtonLink>
         </>
       }
     >
-      {queue} backed up at {since} ({count(waiting)} events waiting){others.length ? `, and ${others.join(' and ')} too` : ''}. Delivered, bounce and complaint counts below are complete up to {since} and will
-      catch up on their own.{current}
+      {sentences.join(' ')}
     </StateAlert>
   )
 }
 
 /** The Review dialog of a bounce type: what the providers said, then suppress or leave them. */
 function ReviewDialog({ row, campaignId, onClose, onSuppress, suppressReason }: { row: BounceRow; campaignId: string; onClose: () => void; onSuppress: () => void; suppressReason?: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report/bounces/{type}', {
     params: { path: { workspace: slug, campaignId, type: row.type } },
@@ -125,33 +138,31 @@ function ReviewDialog({ row, campaignId, onClose, onSuppress, suppressReason }: 
       open
       onOpenChange={(o) => !o && onClose()}
       title={`${row.label} · ${count(row.count)}`}
-      description="What each sending provider said. Addresses aren't shown here; suppressing adds them to the shared list every provider uses."
+      description={t(m.reviewBody)}
       size="lg"
       footer={
         <>
-          <Button onClick={onClose}>Leave them</Button>
+          <Button onClick={onClose}>{t(m.leaveThem)}</Button>
           {row.unsuppressed > 0 ? (
             <Button variant="primary" disabledReason={suppressReason} onClick={onSuppress}>
-              Add {count(row.unsuppressed)} to suppression
+              {t(m.addToSuppression, { count: count(row.unsuppressed) })}
             </Button>
           ) : null}
         </>
       }
     >
       {q.isError ? (
-        <ErrorPanel title="Couldn't load the diagnostics" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
+        <ErrorPanel title={t(m.diagnosticsFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
           {errorMessage(q.error)}
         </ErrorPanel>
       ) : (
-        <TableScroll label="Diagnostics">
+        <TableScroll label={t(m.diagnostics)}>
           <table className="tbl rep-tbl phone-wrap">
             <thead>
               <tr>
-                <th scope="col">Provider and code</th>
-                <th scope="col">What the provider said</th>
-                <th scope="col" className="r">
-                  Count
-                </th>
+                <Th>{t(m.colProviderCode)}</Th>
+                <Th>{t(m.colSaid)}</Th>
+                <Th align="right">{t(m.colCount)}</Th>
               </tr>
             </thead>
             <tbody>
@@ -165,7 +176,7 @@ function ReviewDialog({ row, campaignId, onClose, onSuppress, suppressReason }: 
               {q.isPending ? (
                 <tr>
                   <td colSpan={3} className="k">
-                    Loading…
+                    {t(common.loading)}
                   </td>
                 </tr>
               ) : null}
@@ -179,6 +190,7 @@ function ReviewDialog({ row, campaignId, onClose, onSuppress, suppressReason }: 
 
 /** 7.7 Campaign report. */
 export function ReportPage({ campaignId }: { campaignId: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const path = { workspace: slug, campaignId }
@@ -219,7 +231,7 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
   // shell's 404 or 403 screen.
   if (!r && q.error instanceof ApiError && (q.error.status === 404 || q.error.status === 403)) throw q.error
 
-  const name = r?.campaign.name ?? 'Report'
+  const name = r?.campaign.name ?? t(m.report)
   const sent = r && !r.notSent
 
   const exportCSV = async () => {
@@ -228,7 +240,7 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
       const { data } = await http.GET('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report/export.csv', { params: { path }, parseAs: 'blob' })
       if (data) saveBlob(data as Blob, `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'campaign'}-report.csv`)
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't export the report", detail: errorMessage(e), retry: () => void exportCSV() })
+      toast({ kind: 'error', title: tt(m.exportFailed), detail: errorMessage(e), retry: () => void exportCSV() })
     } finally {
       setExporting(undefined)
     }
@@ -240,7 +252,7 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
       // The printable report: pick "Save as PDF" as the destination.
       window.setTimeout(() => window.print(), 50)
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't export the report", detail: errorMessage(e) })
+      toast({ kind: 'error', title: tt(m.exportFailed), detail: errorMessage(e) })
     } finally {
       setExporting(undefined)
     }
@@ -252,7 +264,7 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
       return
     }
     const ok = await copyText(link.url)
-    toast(ok ? { kind: 'success', title: 'Link copied', detail: 'The read-only link is at the bottom of the report.' } : { kind: 'info', title: 'The read-only link is at the bottom of the report' })
+    toast(ok ? { kind: 'success', title: tt(m.linkCopied), detail: tt(m.linkAtBottom) } : { kind: 'info', title: tt(m.linkAtBottomTitle) })
     shareCard.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     shareCard.current?.focus({ preventScroll: true })
   }
@@ -266,11 +278,11 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
 
   return (
     <Page
-      title={r ? `${name} report` : 'Campaign report'}
+      title={r ? t(m.pageTitle, { name }) : t(m.pageTitleLoading)}
       contentClassName="rep-crumbs"
       badges={
         <>
-          <Breadcrumb name={r ? name : 'Report'} />
+          <Breadcrumb name={r ? name : t(m.report)} />
           {badge ? (
             <Badge tone={badge.tone} dot>
               {badge.text}
@@ -284,21 +296,21 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
           <>
             {ai.button}
             <Button disabledReason={shareReason} loading={exporting === 'csv'} onClick={() => void exportCSV()}>
-              Export CSV
+              {t(m.exportCsv)}
             </Button>
             <Button disabledReason={shareReason} loading={exporting === 'pdf'} onClick={() => void exportPDF()}>
-              Export PDF
+              {t(m.exportPdf)}
             </Button>
             <Button disabledReason={shareReason} onClick={() => void share()}>
-              Share read-only link
+              {t(m.shareLink)}
             </Button>
             {editReason ? (
               <Button variant="primary" disabledReason={editReason}>
-                Duplicate campaign
+                {t(m.duplicate)}
               </Button>
             ) : (
               <ButtonLink variant="primary" to="/w/$workspace/campaigns/new" params={{ workspace: slug }} search={{ from: campaignId }}>
-                Duplicate campaign
+                {t(m.duplicate)}
               </ButtonLink>
             )}
           </>
@@ -306,8 +318,8 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
       }
     >
       {q.isError && !r ? (
-        <ErrorPanel title="Couldn't load this report" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
-          {errorMessage(q.error)} Nothing was changed.
+        <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
+          {errorMessage(q.error)} {t(m.nothingChanged)}
         </ErrorPanel>
       ) : !r ? (
         <ReportSkeleton />
@@ -337,19 +349,19 @@ export function ReportPage({ campaignId }: { campaignId: string }) {
           open
           onOpenChange={(o) => !o && setSuppressing(undefined)}
           tone="warn"
-          badge="Suppression list"
-          title={`Add ${count(suppressing.unsuppressed)} ${suppressing.unsuppressed === 1 ? 'address' : 'addresses'} to the suppression list?`}
-          description={`They bounced as “${suppressing.label}” on ${name}. Every sending provider stops mailing them; you can take an address off the list in Audience › Suppressions.`}
-          confirmLabel={`Add ${count(suppressing.unsuppressed)} to suppression`}
-          busyLabel="Adding…"
+          badge={t(m.suppressBadge)}
+          title={t(m.suppressTitle, { n: suppressing.unsuppressed, count: count(suppressing.unsuppressed) })}
+          description={t(m.suppressBody, { type: suppressing.label, name })}
+          confirmLabel={t(m.addToSuppression, { count: count(suppressing.unsuppressed) })}
+          busyLabel={t(m.adding)}
           onConfirm={async () => {
             const res = await suppress.mutateAsync({ params: { path: { ...path, type: suppressing.type as BounceRow['type'] } } })
             await qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/report'] })
             setReviewing(undefined)
             toast({
               kind: 'success',
-              title: `${count(res.added)} ${res.added === 1 ? 'address' : 'addresses'} suppressed`,
-              detail: res.already ? `${count(res.already)} were already on the list.` : 'Every sending provider gets the update.',
+              title: tt(m.suppressDone, { n: res.added, count: count(res.added) }),
+              detail: res.already ? tt(m.suppressAlready, { count: count(res.already) }) : tt(m.suppressEveryProvider),
             })
           }}
         />

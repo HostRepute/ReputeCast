@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/website"
@@ -85,10 +86,11 @@ func postRule(policy ApprovalPolicy, p *authz.Principal, req website.PostApprova
 // postRuleMatch is the matched rule as the inbox shows it.
 func postRuleMatch(rule string, p *authz.Principal, role string) ApprovalRuleMatch {
 	if rule == RuleAuthorLacksSend {
-		return ApprovalRuleMatch{Key: RuleAuthorLacksSend, Label: "The author lacks the send permission (website:publish)", Short: "author lacks publish",
-			Badge: "Author lacks publish", Author: p.Name, Role: role}
+		m := match(RuleAuthorLacksSend, mRulePostLacks, mRulePostLacksShort, mRulePostLacksBadge, nil)
+		m.Author, m.Role = p.Name, role
+		return m
 	}
-	return ApprovalRuleMatch{Key: RulePostPublish, Label: "Publishing a post or page needs approval", Short: "post publish", Badge: "Post publish"}
+	return match(RulePostPublish, mRulePost, mRulePostShort, mRulePostBadge, nil)
 }
 
 // approverNames are the approvers who may decide on p's post.
@@ -128,25 +130,25 @@ func (g WebsiteGate) PostDecision(ctx context.Context, ws *store.Workspace, p *a
 		return out, err
 	}
 	out.NeedsApproval = true
-	who := orNames(approvers)
+	who := i18n.Args{"approvers": i18n.OrList(langOf(ctx).Locale, approvers)}
 	switch rule {
 	case RuleAuthorLacksSend:
-		out.Reason = fmt.Sprintf("Publishing needs website:publish, so the rule “The author lacks the send permission” applies. %s can approve.", who)
+		out.Reason = say(ctx, mPublishLacksPublish, who)
 	default:
-		out.Reason = fmt.Sprintf("The workspace rule “Publishing a post or page needs approval” is on. %s can approve; you can't approve your own post.", who)
+		out.Reason = say(ctx, mPublishPostRule, who)
 	}
 	if pend, err := g.S.Q.PostApprovalPending(ctx, &req.PostID); err == nil {
 		out.Pending, out.RequestedBy = pend.ID.String(), pend.RequestedByName
 		at := pend.RequestedAt
 		out.RequestedAt = &at
 		if pend.DraftHash == req.Hash {
-			out.Reason = fmt.Sprintf("Approval is requested. Waiting for %s.", who)
+			out.Reason = say(ctx, mPublishWaiting, who)
 		}
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return out, err
 	}
 	if len(approvers) == 0 {
-		out.Reason = "Publishing this post needs approval, and nobody else holds campaigns:approve. Ask an Owner to change Settings › Approvals."
+		out.Reason = say(ctx, mPublishPostNoApprovers, nil)
 	}
 	return out, nil
 }
@@ -157,12 +159,12 @@ func (g WebsiteGate) PostDecision(ctx context.Context, ws *store.Workspace, p *a
 func (g WebsiteGate) RequestPost(ctx context.Context, ws *store.Workspace, p *authz.Principal, req website.PostApprovalRequest, note string) (uuid.UUID, error) {
 	s := g.S
 	if !p.IsHuman() {
-		return uuid.Nil, api.Err(403, api.CodePermissionDenied, "Only people can ask for approval. Agents propose publishing a post from the composer.")
+		return uuid.Nil, api.Err(403, api.CodePermissionDenied, say(ctx, mPostPeopleOnly, nil))
 	}
 	policy := ParsePolicy(ws.ApprovalPolicy)
 	rule := postRule(policy, p, req)
 	if rule == "" {
-		return uuid.Nil, api.Conflict("Publishing this post doesn't need approval: publish it directly.")
+		return uuid.Nil, api.Conflict(say(ctx, mPostNoNeed, nil))
 	}
 	ms, err := s.members(ctx, s.Q, ws.ID)
 	if err != nil {
@@ -175,14 +177,14 @@ func (g WebsiteGate) RequestPost(ctx context.Context, ws *store.Workspace, p *au
 		}
 	}
 	if len(approvers) == 0 {
-		return uuid.Nil, api.Conflict("Nobody else holds campaigns:approve, so nobody can approve this post. Ask an Owner to change Settings › Approvals.")
+		return uuid.Nil, api.Conflict(say(ctx, mPostNoApprovers, nil))
 	}
 	role := ""
 	if m := memberByID(ms, &p.UserID); m != nil {
 		role = m.RoleName
 	}
-	match := postRuleMatch(rule, p, role)
-	snap := Snapshot{DraftHash: req.Hash, Subject: req.Title, Preheader: req.Excerpt, Rules: []ApprovalRuleMatch{match}, AuthorRole: role,
+	rm := postRuleMatch(rule, p, role)
+	snap := Snapshot{DraftHash: req.Hash, Subject: req.Title, Preheader: req.Excerpt, Rules: []ApprovalRuleMatch{rm}, AuthorRole: role,
 		Website: &ApprovalWebsiteSnapshot{PostID: req.PostID.String(), Title: req.Title, Kind: req.Kind, Slug: req.Slug, Path: req.Path, Visibility: req.Visibility,
 			VisibilityLabel: req.VisibilityLabel, When: req.When, PublishAt: req.PublishAt, Excerpt: req.Excerpt}}
 	note = strings.TrimSpace(note)
@@ -216,7 +218,7 @@ func (g WebsiteGate) RequestPost(ctx context.Context, ws *store.Workspace, p *au
 	})
 	if err != nil {
 		if isUniqueViolation(err) {
-			return uuid.Nil, api.Conflict("Someone asked for approval of this post a moment ago. Reload it.")
+			return uuid.Nil, api.Conflict(say(ctx, mPostRace, nil))
 		}
 		return uuid.Nil, err
 	}
@@ -235,7 +237,7 @@ func (g WebsiteGate) PostChanged(ctx context.Context, ws *store.Workspace, p *au
 	s := g.S
 	now := s.now()
 	rows, err := s.Q.PostApprovalInvalidate(ctx, store.PostApprovalInvalidateParams{PostID: &postID, Now: &now, DraftHash: hash,
-		Reason: "The post changed after the request: its content, address, visibility or publish time."})
+		Reason: english(mInvalidPost, nil), ReasonText: textJSON(mInvalidPost.Keep(nil))})
 	if err != nil || len(rows) == 0 {
 		return err
 	}

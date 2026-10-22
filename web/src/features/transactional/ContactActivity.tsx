@@ -1,24 +1,12 @@
 import { Link } from '@tanstack/react-router'
 import { $api, type Schemas } from '@/api/client'
 import { Icon, type IconName } from '@/components/icons/Icon'
-import { defineMessages, useT } from '@/i18n'
+import { T, useT } from '@/i18n'
+import { andList } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
+import { ma } from './elsewhere.messages'
 import { mt } from './messages'
 import { secs, useStatusLabel } from './shared'
-
-const mc = defineMessages('transactional.contact', {
-  transactional: 'Transactional',
-  via: 'via',
-  afterCall: '{time} after the call',
-  contentVisible: 'content visible with transactional:content',
-  contentHidden: 'content needs transactional:content',
-  notifications: 'Notifications from {product}',
-  categoryOn: '{name} on',
-  categoryOff: '{name} off',
-  notificationsLine: 'Optional categories the contact can turn off in the preference center · {essential} emails always arrive',
-  notificationsLineNoEssential: 'Optional categories the contact can turn off in the preference center',
-  and: ' and ',
-})
 
 const API = '/api/v1/workspaces/{workspace}/transactional' as const
 
@@ -90,7 +78,7 @@ export function TransactionalActivityRow({ m, when, product, canViewContent }: {
   const { slug } = useWorkspace()
   const status = useStatusLabel()
   const l = look(m.status)
-  const meta = [when(m.at), product, m.deliveryMs !== undefined ? t(mc.afterCall, { time: secs(m.deliveryMs) }) : '', canViewContent ? t(mc.contentVisible) : t(mc.contentHidden)]
+  const meta = [when(m.at), product, m.deliveryMs !== undefined ? t(ma.afterCall, { time: secs(m.deliveryMs) }) : '', canViewContent ? t(ma.contentVisible) : t(ma.contentHidden)]
   return (
     <li className="ev">
       <span className="ic" style={{ background: l.bg, color: l.fg }}>
@@ -98,17 +86,21 @@ export function TransactionalActivityRow({ m, when, product, canViewContent }: {
       </span>
       <div className="flex flex-1 flex-col gap-0.5">
         <span>
-          <b>{status(m.status)}</b>{' '}
-          <Link to="/w/$workspace/transactional/messages/$messageId" params={{ workspace: slug, messageId: m.id }}>
-            {m.raw ? t(mt.raw) : (m.template?.name ?? m.subject)}
-          </Link>{' '}
-          <span className="badge mut h-5">{t(mc.transactional)}</span>
-          {m.provider ? (
-            <>
-              {` ${t(mc.via)} `}
-              <span className="badge mut h-5">{m.provider}</span>
-            </>
-          ) : null}
+          <T
+            msg={m.provider ? ma.rowVia : ma.row}
+            values={{
+              status: status(m.status),
+              name: m.raw ? t(mt.raw) : (m.template?.name ?? m.subject),
+              provider: m.provider ?? '',
+              b: (c) => <b>{c}</b>,
+              link: (c) => (
+                <Link to="/w/$workspace/transactional/messages/$messageId" params={{ workspace: slug, messageId: m.id }}>
+                  {c}
+                </Link>
+              ),
+              badge: (c) => <span className="badge mut h-5">{c}</span>,
+            }}
+          />
         </span>
         <span className="k">{meta.filter(Boolean).join(' · ')}</span>
       </div>
@@ -128,9 +120,9 @@ export function NotificationsRow({ tx, product, essential }: { tx: Activity; pro
       </span>
       <div className="flex flex-1 flex-col gap-0.5">
         <span>
-          <b>{t(mc.notifications, { product })}</b> {tx.categories.map((c) => (c.on ? t(mc.categoryOn, { name: c.name }) : t(mc.categoryOff, { name: c.name }))).join(' · ')}
+          <b>{t(ma.notifications, { product })}</b> {tx.categories.map((c) => (c.on ? t(ma.categoryOn, { name: c.name }) : t(ma.categoryOff, { name: c.name }))).join(' · ')}
         </span>
-        <span className="k">{essential.length ? t(mc.notificationsLine, { essential: essential.join(t(mc.and)) }) : t(mc.notificationsLineNoEssential)}</span>
+        <span className="k">{essential.length ? t(ma.notificationsLine, { essential: andList(essential) }) : t(ma.notificationsLineNoEssential)}</span>
       </div>
     </li>
   )

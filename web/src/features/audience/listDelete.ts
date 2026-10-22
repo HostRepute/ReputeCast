@@ -1,15 +1,15 @@
 import type { components } from '@/api/schema'
+import { t } from '@/i18n'
 import { andList, count, orList } from '@/lib/format'
+import { m } from './lists.messages'
 
 export type ListImpact = components['schemas']['ListImpact']
 export type ListRestore = components['schemas']['ListRestore']
 
-const plural = (n: number, one: string, many: string) => (n === 1 ? one : many)
-
 /** "Weekly Digest", "Weekly Digest or Beta Program", "A, B, C or 2 other lists". */
 export function otherListsText(im: Pick<ListImpact, 'otherLists' | 'otherListCount'>): string {
   const more = im.otherListCount - im.otherLists.length
-  return orList(more > 0 ? [...im.otherLists, `${count(more)} other ${plural(more, 'list', 'lists')}`] : im.otherLists)
+  return orList(more > 0 ? [...im.otherLists, t(m.otherLists, { n: more, count: count(more) })] : im.otherLists)
 }
 
 /**
@@ -19,15 +19,17 @@ export function otherListsText(im: Pick<ListImpact, 'otherLists' | 'otherListCou
  * subscription. Suppressions are never removed."
  */
 export function membersText(im: ListImpact): string {
-  const kept = 'Suppressions are never removed.'
-  if (im.members === 0) return `Nobody is subscribed to this list. ${kept}`
-  const on = `${count(im.members)} ${plural(im.members, 'contact is', 'contacts are')} on this list.`
+  if (im.members === 0) return t(m.nobody)
+  const on = t(m.onList, { n: im.members, count: count(im.members) })
   const only = im.members - im.elsewhere
-  const elsewhere = `${plural(im.elsewhere, 'is', 'are')} also on ${otherListsText(im)} and ${plural(im.elsewhere, 'stays', 'stay')} subscribed there`
-  const alone = `${plural(only, 'is', 'are')} on no other list and will become ${plural(only, 'a contact', 'contacts')} without a subscription`
-  if (im.elsewhere === 0) return `${on} ${im.members === 1 ? 'It' : 'All of them'} ${alone}. ${kept}`
-  if (only === 0) return `${on} ${im.members === 1 ? 'It' : 'All of them'} ${elsewhere}. ${kept}`
-  return `${on} ${count(im.elsewhere)} ${elsewhere}; ${count(only)} ${alone}. ${kept}`
+  const lists = otherListsText(im)
+  const middle =
+    im.elsewhere === 0
+      ? t(m.allAlone, { n: im.members })
+      : only === 0
+        ? t(m.allElsewhere, { n: im.members, lists })
+        : t(m.split, { elsewhere: im.elsewhere, elsewhereCount: count(im.elsewhere), lists, alone: only, aloneCount: count(only) })
+  return `${on} ${middle} ${t(m.kept)}`
 }
 
 /**
@@ -37,27 +39,27 @@ export function membersText(im: ListImpact): string {
  */
 export function affectsText(im: ListImpact): string {
   const parts: string[] = []
-  if (im.forms.length) parts.push(`${count(im.forms.length)} signup ${plural(im.forms.length, 'form', 'forms')}`)
+  if (im.forms.length) parts.push(t(m.forms, { n: im.forms.length, count: count(im.forms.length) }))
   if (im.automations.length) {
-    const names = im.automations.length <= 2 ? ` (${im.automations.map((a) => `"${a.name}"`).join(', ')})` : ''
-    parts.push(`${count(im.automations.length)} automation ${plural(im.automations.length, 'trigger', 'triggers')}${names}`)
+    const n = { n: im.automations.length, count: count(im.automations.length) }
+    parts.push(im.automations.length <= 2 ? t(m.automationsNamed, { ...n, names: im.automations.map((a) => `"${a.name}"`).join(', ') }) : t(m.automations, n))
   }
-  if (im.campaigns.length) parts.push(`${count(im.campaigns.length)} scheduled ${plural(im.campaigns.length, 'campaign', 'campaigns')}`)
+  if (im.campaigns.length) parts.push(t(m.campaigns, { n: im.campaigns.length, count: count(im.campaigns.length) }))
   if (!parts.length) return ''
   const one = im.forms.length + im.automations.length + im.campaigns.length === 1
-  return `${andList(parts)} ${one ? 'uses this list. It will pause.' : 'use this list. They will pause.'}`
+  return t(m.usesIt, { one: one ? 'yes' : 'no', things: andList(parts) })
 }
 
 /** What a restore turned back on, for its toast: "1 signup form and 1 automation are live again; Weekly Digest #142 is back on schedule." */
 export function restoredText(r: ListRestore): string {
   const live = [
-    r.forms.length ? `${count(r.forms.length)} signup ${plural(r.forms.length, 'form', 'forms')}` : '',
-    r.automations.length ? `${count(r.automations.length)} ${plural(r.automations.length, 'automation', 'automations')}` : '',
+    r.forms.length ? t(m.restoredForms, { n: r.forms.length, count: count(r.forms.length) }) : '',
+    r.automations.length ? t(m.restoredAutomations, { n: r.automations.length, count: count(r.automations.length) }) : '',
   ].filter(Boolean)
   const parts: string[] = []
-  if (live.length) parts.push(`${andList(live)} ${r.forms.length + r.automations.length === 1 ? 'is' : 'are'} live again`)
-  if (r.campaigns.length) parts.push(`${andList(r.campaigns)} ${plural(r.campaigns.length, 'is', 'are')} back on schedule`)
-  let out = parts.length ? `${parts.join('; ')}.` : 'Its members are back.'
-  if (r.left.length) out += ` ${andList(r.left)} ${plural(r.left.length, 'stays', 'stay')} as ${plural(r.left.length, 'it is', 'they are')}.`
+  if (live.length) parts.push(t(m.liveAgain, { one: r.forms.length + r.automations.length === 1 ? 'yes' : 'no', things: andList(live) }))
+  if (r.campaigns.length) parts.push(t(m.backOnSchedule, { n: r.campaigns.length, campaigns: andList(r.campaigns) }))
+  let out = parts.length ? `${parts.join('; ')}.` : t(m.membersBack)
+  if (r.left.length) out += ` ${t(m.stayAsIs, { n: r.left.length, names: andList(r.left) })}`
   return out
 }

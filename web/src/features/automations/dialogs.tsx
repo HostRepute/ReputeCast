@@ -352,7 +352,7 @@ function VersionHistoryContent({
         published.map((x) => {
           const when = dayMonthDate(x.publishedAt ?? x.createdAt)
           const retired = x.retiredAt && dayMonthDate(x.retiredAt) !== when ? ` · ${t(mf.retired, { date: dayMonthDate(x.retiredAt) })}` : ''
-          const who = x.summary.startsWith('created from') ? '' : ` · ${x.publishedBy || x.createdBy}`
+          const who = x.fromCreation ? '' : ` · ${x.publishedBy || x.createdBy}`
           const live = x.status === 'live'
           return (
             <div key={x.version} className="ver" style={live ? { background: 'var(--accent-tint)' } : undefined}>

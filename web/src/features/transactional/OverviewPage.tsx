@@ -11,9 +11,9 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { Segmented } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
-import { TableScroll } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
 import { T, useT } from '@/i18n'
-import { ago, clock, count, dayMonthDate } from '@/lib/format'
+import { ago, andList, clock, count, dayMonthDate, trimPct } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useMe, useWorkspace } from '@/lib/session'
 import { codeSample, highlight } from './codeSamples'
@@ -207,7 +207,7 @@ function Stats({ q, period }: { q: { data?: Overview; isPending: boolean; error:
         sub={s.smtp ? t(mo.sentFromKeysAndRelay, { keys: s.keys }) : t(mo.sentFromKeys, { keys: s.keys })}
       />
       <Stat label={t(mo.delivered)} value={s.sent ? deliveredPct(s.deliveryRate) : '—'} sub={t(mo.deliveredMessages, { count: s.delivered })} />
-      <Stat label={t(mo.bounced)} value={s.sent ? `${s.bounceRate.toFixed(2)}%` : '—'} sub={t(mo.bouncedSub, { count: count(s.bounced), deferred: s.deferred })} />
+      <Stat label={t(mo.bounced)} value={s.sent ? bouncePct(s.bounceRate, true) : '—'} sub={t(mo.bouncedSub, { count: count(s.bounced), deferred: s.deferred })} />
       <Stat
         label={t(mo.complaints)}
         value={count(s.complained)}
@@ -330,25 +330,17 @@ function TemplatesCard({ q, period }: { q: { data?: Schemas['TransactionalTempla
                   <table className="tbl" aria-label={t(mo.tableLabel)}>
                     <thead>
                       <tr>
-                        <th scope="col">{t(mo.colTemplate)}</th>
-                        <th scope="col">{t(mo.colCategory)}</th>
-                        <th scope="col">{t(mo.colVersion)}</th>
-                        <th scope="col" className="r">
-                          {t(mo.colSent, { period: periodWords(t, period) })}
-                        </th>
-                        <th scope="col" className="r">
-                          {t(mo.colDelivered)}
-                        </th>
-                        <th scope="col" className="r">
-                          {t(mo.colBounced)}
-                        </th>
-                        <th scope="col" className="r">
-                          {t(mo.colMedian)}
-                        </th>
-                        <th scope="col">{t(mo.colLastSent)}</th>
-                        <th scope="col">
+                        <Th>{t(mo.colTemplate)}</Th>
+                        <Th>{t(mo.colCategory)}</Th>
+                        <Th>{t(mo.colVersion)}</Th>
+                        <Th align="right">{t(mo.colSent, { period: periodWords(t, period) })}</Th>
+                        <Th align="right">{t(mo.colDelivered)}</Th>
+                        <Th align="right">{t(mo.colBounced)}</Th>
+                        <Th align="right">{t(mo.colMedian)}</Th>
+                        <Th>{t(mo.colLastSent)}</Th>
+                        <Th>
                           <span className="vh">{t(mo.edit)}</span>
-                        </th>
+                        </Th>
                       </tr>
                     </thead>
                     <tbody>
@@ -460,7 +452,7 @@ function SendCard({ o, items }: { o: Overview; items: Item[] }) {
       </div>
       <div className="pad flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone="info">POST</Badge>
+          <Badge tone="info">{'POST'}</Badge>
           <span className="mono" style={{ fontSize: 12.5, overflowWrap: 'anywhere' }}>
             {o.endpoint}
           </span>
@@ -613,9 +605,10 @@ function incidentDetail(t: ReturnType<typeof useT>, a: Alert) {
       const typos = top.length > 0 && top.every((d) => d.typoOf)
       return t(mo.incidentBounceDetail, {
         when,
-        value: `${a.value}%`,
-        limit: `${a.threshold}%`,
-        domains: domains.length ? t(typos ? mo.incidentDomainsTypos : mo.incidentDomains, { domains: domains.join(' and ') }) : '',
+        value: trimPct(a.value),
+        limit: trimPct(a.threshold),
+        mostly: !domains.length ? 'none' : typos ? 'typos' : 'domains',
+        domains: andList(domains),
       })
     }
     case 'failed':
@@ -632,7 +625,7 @@ function AlertNote({ a, hour }: { a: Alert; hour: Schemas['TransactionalHour'] }
   const name = alertTemplate(a)
   const title =
     a.kind === 'bounce_rate'
-      ? t(mo.alertBounceTitle, { template: name, value: `${a.value}%`, limit: `${a.threshold}%` })
+      ? t(mo.alertBounceTitle, { template: name, value: trimPct(a.value), limit: trimPct(a.threshold) })
       : a.kind === 'failed'
         ? name
           ? t(mo.alertFailedTitle, { template: name, value: a.value, limit: a.threshold })
@@ -640,7 +633,7 @@ function AlertNote({ a, hour }: { a: Alert; hour: Schemas['TransactionalHour'] }
         : name
           ? t(mo.alertMedianTitle, { template: name, value: secs(a.value * 1000), limit: secs(a.threshold * 1000) })
           : t(mo.alertWorkspaceMedianTitle, { value: secs(a.value * 1000), limit: secs(a.threshold * 1000) })
-  const domains = (a.domains ?? []).map((d) => `${d.domain} ${d.count}`).join(', ')
+  const domains = (a.domains ?? []).map((d) => `${d.domain} ${count(d.count)}`).join(', ')
   const status = a.kind === 'bounce_rate' ? 'bounced' : a.kind === 'failed' ? 'failed' : undefined
   return (
     <section className="flex flex-col gap-3.5">
@@ -686,8 +679,8 @@ function AlertNote({ a, hour }: { a: Alert; hour: Schemas['TransactionalHour'] }
       {a.kind === 'bounce_rate' ? (
         <div className="tx-stats">
           <Stat label={t(mo.hourTemplate, { template: name })} value={count(a.sent ?? 0)} sub={t(mo.hourSent)} />
-          <Stat label={t(mo.hourBounced)} value={`${a.value}%`} sub={t(mo.hourBouncedSub, { count: a.hard ?? a.bounced ?? 0 })} hot />
-          <Stat label={t(mo.hourOthers)} value={bouncePct(hour.bounceRate).replace(/0+%$/, '%').replace(/\.%$/, '%')} sub={t(mo.hourOthersSub)} />
+          <Stat label={t(mo.hourBounced)} value={trimPct(a.value)} sub={t(mo.hourBouncedSub, { count: a.hard ?? a.bounced ?? 0 })} hot />
+          <Stat label={t(mo.hourOthers)} value={trimPct(hour.bounceRate)} sub={t(mo.hourOthersSub)} />
           <Stat label={t(mo.hourDelivery)} value={secs(hour.medianMs)} sub={t(mo.hourDeliverySub)} />
         </div>
       ) : null}
@@ -706,7 +699,7 @@ function NoRouteNote({ o }: { o: Overview }) {
       <div className="flex min-w-0 flex-col gap-1">
         <span className="font-bold">{t(mo.noRouteTitle)}</span>
         <span>
-          <T msg={mo.noRouteBody} values={{ code: <span className="mono">no_healthy_route</span> }} />
+          <T msg={mo.noRouteBody} values={{ code: <span className="mono">{'no_healthy_route'}</span> }} />
         </span>
         {o.can.editRoute ? (
           <div className="mt-2 flex flex-wrap gap-2">
@@ -835,7 +828,7 @@ function FirstRun() {
           </ButtonLink>
         </div>
         <span className="k">
-          <T msg={mo.firstRunNote} values={{ code: <span className="mono">template_not_found</span> }} />
+          <T msg={mo.firstRunNote} values={{ code: <span className="mono">{'template_not_found'}</span> }} />
         </span>
       </div>
     </section>

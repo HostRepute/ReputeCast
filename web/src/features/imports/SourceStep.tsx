@@ -6,17 +6,19 @@ import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { TableScroll } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
 import { useAudienceSummary } from '@/features/audience/AudienceTabs'
 import { saveBlob, fileName as downloadName } from '@/features/audience/download'
 import { NotifuseTemplatesOption } from '@/features/transactional-import/NotifuseOption'
 import { m as notifuse } from '@/features/transactional-import/notifuse.messages'
-import { t } from '@/i18n'
+import { t, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { clock, count } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { ImportFrame, PreviousImport, stepPath, useImportDetail, useRefreshImport, WizardHeading, type Detail } from './ImportFrame'
 import { ReadingSource } from './states'
 import { PaidMembersImportHint } from '@/features/earn/entries'
+import { m } from './messages'
 
 type Source = Schemas['ImportCreateInput']['source']
 type ListChoice = Schemas['ImportListChoice']
@@ -30,12 +32,51 @@ interface SourceInfo {
   keyUrl?: string
 }
 
+// Getters, so the lines read in the app's current language.
 export const sources: SourceInfo[] = [
-  { id: 'brevo', name: 'Brevo', what: 'API key · lists, attributes, blocklist', unit: 'list', keyUrl: 'https://app.brevo.com/settings/keys/api' },
-  { id: 'mailchimp', name: 'Mailchimp', what: 'API key · audiences, tags, merge fields, cleaned', unit: 'audience', keyUrl: 'https://admin.mailchimp.com/account/api/' },
-  { id: 'mailerlite', name: 'MailerLite', what: 'API key · groups, fields', unit: 'group', keyUrl: 'https://dashboard.mailerlite.com/integrations/api' },
-  { id: 'listmonk', name: 'listmonk', what: 'API · lists, attribs', unit: 'list' },
-  { id: 'keila', name: 'Keila', what: 'API key · segments, data', unit: 'segment' },
+  {
+    id: 'brevo',
+    name: 'Brevo',
+    get what() {
+      return t(m.whatBrevo)
+    },
+    unit: 'list',
+    keyUrl: 'https://app.brevo.com/settings/keys/api',
+  },
+  {
+    id: 'mailchimp',
+    name: 'Mailchimp',
+    get what() {
+      return t(m.whatMailchimp)
+    },
+    unit: 'audience',
+    keyUrl: 'https://admin.mailchimp.com/account/api/',
+  },
+  {
+    id: 'mailerlite',
+    name: 'MailerLite',
+    get what() {
+      return t(m.whatMailerlite)
+    },
+    unit: 'group',
+    keyUrl: 'https://dashboard.mailerlite.com/integrations/api',
+  },
+  {
+    id: 'listmonk',
+    name: 'listmonk',
+    get what() {
+      return t(m.whatListmonk)
+    },
+    unit: 'list',
+  },
+  {
+    id: 'keila',
+    name: 'Keila',
+    get what() {
+      return t(m.whatKeila)
+    },
+    unit: 'segment',
+  },
   {
     id: 'notifuse',
     name: 'Notifuse',
@@ -44,7 +85,16 @@ export const sources: SourceInfo[] = [
     },
     unit: 'list',
   },
-  { id: 'csv', name: 'CSV or XLSX', what: 'Drag a file · map columns yourself', unit: 'file' },
+  {
+    id: 'csv',
+    get name() {
+      return t(m.fileSource)
+    },
+    get what() {
+      return t(m.whatFile)
+    },
+    unit: 'file',
+  },
 ]
 
 const isFile = (s?: string) => s === 'csv' || s === 'xlsx'
@@ -52,6 +102,7 @@ const sourceInfo = (s?: string) => sources.find((x) => x.id === (isFile(s) ? 'cs
 
 /** Step 1: where the contacts live now (MigrationSource, MigrationStates). */
 export function SourceStep({ importId }: { importId?: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = useImportDetail(importId ?? '')
   const history = $api.useQuery('get', '/api/v1/workspaces/{workspace}/imports', { params: { path: { workspace: slug } } }, { enabled: !importId })
@@ -59,27 +110,24 @@ export function SourceStep({ importId }: { importId?: string }) {
   const previous = d?.previous ?? history.data?.items.find((i) => i.status === 'done')
   return (
     <ImportFrame
-      title="Import contacts"
-      badge={<Badge tone="neutral">Step 1 of 5</Badge>}
+      title={t(m.title)}
+      badge={<Badge tone="neutral">{t(m.stepOf, { step: 1, total: 5 })}</Badge>}
       exit={
         <ButtonLink to="/w/$workspace/audience" params={{ workspace: slug }}>
-          Exit
+          {t(m.exit)}
         </ButtonLink>
       }
       step={1}
-      hints={{ 1: 'Where the contacts live now', 3: 'Suppressions stay suppressed', 4: 'Duplicates, invalid, risky' }}
+      hints={{ 1: t(m.hintSource), 3: t(m.hintConsent), 4: t(m.hintPreview) }}
       footer={previous ? <PreviousImport p={previous} /> : undefined}
     >
-      <WizardHeading
-        title="Where are your contacts today?"
-        lead="API imports bring lists, fields, tags and consent status. Unsubscribed, bounced and complained contacts become suppressions and are never re-subscribed."
-      />
+      <WizardHeading title={t(m.sourceTitle)} lead={t(m.sourceLead)} />
       {importId && q.isError ? (
-        <ErrorPanel title="Couldn't load this import" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
+        <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
           {errorMessage(q.error)}
         </ErrorPanel>
       ) : importId && !d ? (
-        <ReadingSource title="Loading the import" />
+        <ReadingSource title={t(m.loading)} />
       ) : (
         <SourceBody d={d} firstImport={!importId && history.data?.items.length === 0} />
       )}
@@ -88,6 +136,7 @@ export function SourceStep({ importId }: { importId?: string }) {
 }
 
 function SourceBody({ d, firstImport }: { d?: Detail; firstImport: boolean }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const refresh = useRefreshImport()
@@ -117,7 +166,7 @@ function SourceBody({ d, firstImport }: { d?: Detail; firstImport: boolean }) {
   const upload = async (file: File) => {
     setErr(null)
     if (file.size > 100 << 20) {
-      setErr('That file is over 100 MB. Split it, or import from the source’s API.')
+      setErr(t(m.tooBig))
       return
     }
     setUploading(true)
@@ -143,7 +192,7 @@ function SourceBody({ d, firstImport }: { d?: Detail; firstImport: boolean }) {
 
   return (
     <>
-      <div ref={cards} className="mgrid grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(190px,1fr))]" role="group" aria-label="Sources">
+      <div ref={cards} className="mgrid grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(190px,1fr))]" role="group" aria-label={t(m.sources)}>
         {sources.map((s) => (
           <button
             key={s.id}
@@ -157,7 +206,7 @@ function SourceBody({ d, firstImport }: { d?: Detail; firstImport: boolean }) {
             <span className="k">{s.what}</span>
             {current === s.id ? (
               <Badge tone="ok" className="self-start">
-                Selected
+                {t(m.selected)}
               </Badge>
             ) : null}
           </button>
@@ -178,10 +227,10 @@ function SourceBody({ d, firstImport }: { d?: Detail; firstImport: boolean }) {
       ) : (
         <div className="flex flex-wrap justify-between gap-2.5">
           <ButtonLink to="/w/$workspace/audience" params={{ workspace: slug }}>
-            Cancel
+            {t(common.cancel)}
           </ButtonLink>
-          <Button variant="primary" className="wnext" disabledReason={d ? (isFile(d.source) ? 'Upload a file first.' : `Connect ${d.sourceName} first.`) : 'Pick a source first.'}>
-            Continue to field mapping
+          <Button variant="primary" className="wnext" disabledReason={d ? (isFile(d.source) ? t(m.needFile) : t(m.needConnect, { source: d.sourceName })) : t(m.needSource)}>
+            {t(m.continueFields)}
           </Button>
         </div>
       )}
@@ -191,6 +240,7 @@ function SourceBody({ d, firstImport }: { d?: Detail; firstImport: boolean }) {
 
 /** Empty: no import yet, the CSV drop zone (MigrationStates). */
 function EmptyDrop({ firstImport, busy, onFile, onSources }: { firstImport: boolean; busy: boolean; onFile: (f: File) => void; onSources: () => void }) {
+  const t = useT()
   const input = useRef<HTMLInputElement>(null)
   const [over, setOver] = useState(false)
   return (
@@ -211,8 +261,8 @@ function EmptyDrop({ firstImport, busy, onFile, onSources }: { firstImport: bool
       <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true">
         <path d="M24 32V12M15 21l9-9 9 9M10 38h28" fill="none" stroke="#9AA3B2" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <span className="text-[17px] font-bold">Drop a CSV or XLSX here, or choose a source above</span>
-      <span className="lead max-w-[520px]">Up to 500,000 rows. The first row should be headers. You'll map columns and pick a consent column on the next steps.</span>
+      <span className="text-[17px] font-bold">{t(m.dropTitle)}</span>
+      <span className="lead max-w-[520px]">{t(m.dropLead, { max: count(500_000) })}</span>
       <div className="mt-1 flex flex-wrap justify-center gap-2.5">
         <input
           ref={input}
@@ -228,17 +278,18 @@ function EmptyDrop({ firstImport, busy, onFile, onSources }: { firstImport: bool
           }}
         />
         <Button variant="primary" loading={busy} onClick={() => input.current?.click()}>
-          Choose a file
+          {t(m.chooseFile)}
         </Button>
-        <Button onClick={onSources}>Connect Brevo, Mailchimp, MailerLite, listmonk or Keila</Button>
+        <Button onClick={onSources}>{t(m.connectApis)}</Button>
       </div>
-      {firstImport ? <span className="k">No imports yet in this workspace.</span> : null}
+      {firstImport ? <span className="k">{t(m.noImportsYet)}</span> : null}
     </div>
   )
 }
 
 /** The uploaded file, or what's wrong with it (MigrationStates › broken file). */
 function FileCard({ d, busy, onFile }: { d: Detail; busy: boolean; onFile: (f: File) => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const refresh = useRefreshImport()
   const skip = $api.useMutation('post', '/api/v1/workspaces/{workspace}/imports/{id}/skip-bad-rows')
@@ -271,14 +322,20 @@ function FileCard({ d, busy, onFile }: { d: Detail; busy: boolean; onFile: (f: F
       <div role="alert" className="card flex flex-col gap-2 border-[#FCA5A5] px-4.5 py-4">
         {picker}
         <div className="flex items-center gap-2.5">
-          <Badge tone="bad">File</Badge>
+          <Badge tone="bad">{t(m.fileBadge)}</Badge>
           <span className="font-semibold">
-            {first && e.header ? `${d.fileName}: row ${count(first.line)} has ${first.columns} columns, the header has ${e.header}` : `${d.fileName}: ${e.message}`}
+            {first && e.header
+              ? t(m.rowColumns, { file: d.fileName, row: count(first.line), columns: first.columns, header: e.header })
+              : t(m.fileProblem, { file: d.fileName, message: e.message })}
           </span>
         </div>
         <span className="k">
           {first
-            ? `Usually an unquoted comma inside a value.${more.length > 0 ? ` ${more.length} more ${more.length === 1 ? 'row has' : 'rows have'} the same problem (${more.slice(0, 5).join(', ')}${more.length > 5 ? ', …' : ''}).` : ''} You can skip ${bad.length === 1 ? 'that row' : 'those rows'} or fix the file and upload again.`
+            ? [
+                t(m.unquoted),
+                ...(more.length > 0 ? [t(m.moreRows, { n: more.length, rows: `${more.slice(0, 5).join(', ')}${more.length > 5 ? ', …' : ''}` })] : []),
+                t(m.skipOrFix, { n: bad.length }),
+              ].join(' ')
             : e.message}
         </span>
         {err ? <Note tone="bad">{err}</Note> : null}
@@ -298,16 +355,16 @@ function FileCard({ d, busy, onFile }: { d: Detail; busy: boolean; onFile: (f: F
                 }
               }}
             >
-              Skip the {count(bad.length)} {bad.length === 1 ? 'row' : 'rows'} and continue
+              {t(m.skipRows, { n: bad.length, count: count(bad.length) })}
             </Button>
           ) : null}
           {bad.length > 0 ? (
             <Button size="sm" onClick={() => void download(slug, d.id, 'unreadable')}>
-              Download the {count(bad.length)} {bad.length === 1 ? 'row' : 'rows'}
+              {t(m.downloadRows, { n: bad.length, count: count(bad.length) })}
             </Button>
           ) : null}
           <Button size="sm" loading={busy} onClick={() => input.current?.click()}>
-            Upload a fixed file
+            {t(m.uploadFixed)}
           </Button>
         </div>
       </div>
@@ -317,18 +374,18 @@ function FileCard({ d, busy, onFile }: { d: Detail; busy: boolean; onFile: (f: F
   return (
     <section className="card flex flex-col gap-3.5 px-5 py-4.5">
       {picker}
-      <h3 className="h2">Your file</h3>
+      <h3 className="h2">{t(m.yourFile)}</h3>
       <div className="flex flex-wrap items-center gap-3">
         <span className="mono font-semibold">{d.fileName}</span>
         <Badge tone="ok" dot>
-          Read · {count(list?.subscribed ?? d.stagedRows)} rows · {d.fieldCount} columns
+          {t(m.fileRead, { rows: list?.subscribed ?? d.stagedRows, rowCount: count(list?.subscribed ?? d.stagedRows), columns: d.fieldCount })}
         </Badge>
-        {d.options.skipRows.length > 0 ? <span className="k">{count(d.options.skipRows.length)} broken rows left out</span> : null}
+        {d.options.skipRows.length > 0 ? <span className="k">{t(m.brokenLeftOut, { n: d.options.skipRows.length, count: count(d.options.skipRows.length) })}</span> : null}
         <Button size="sm" className="ml-auto" loading={busy} onClick={() => input.current?.click()}>
-          Upload another file
+          {t(m.uploadAnother)}
         </Button>
       </div>
-      <span className="k">The file stays in this workspace's database until the import finishes or you discard it.</span>
+      <span className="k">{t(m.fileStays)}</span>
     </section>
   )
 }
@@ -341,7 +398,7 @@ async function download(slug: string, id: string, kind: 'report' | 'skipped' | '
     })
     if (data) saveBlob(data as unknown as Blob, downloadName(response, `import-${kind}.csv`))
   } catch (e) {
-    toast({ kind: 'error', title: "Couldn't download the rows", detail: errorMessage(e) })
+    toast({ kind: 'error', title: t(m.downloadFailed), detail: errorMessage(e) })
   }
 }
 export { download as downloadImportFile }
@@ -353,6 +410,7 @@ function dataCenter(key: string) {
 
 /** Connect <source>: the key (write-only), its address, and what was found. */
 function ConnectCard({ d }: { d: Detail }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const refresh = useRefreshImport()
   const info = sourceInfo(d.source)
@@ -366,7 +424,7 @@ function ConnectCard({ d }: { d: Detail }) {
   const submit = async () => {
     setErr(null)
     if (!key.trim()) {
-      setErr(`Paste the ${d.sourceName} API key.`)
+      setErr(t(m.pasteKey, { source: d.sourceName }))
       return
     }
     try {
@@ -381,7 +439,7 @@ function ConnectCard({ d }: { d: Detail }) {
       if (!(e instanceof ApiError && e.code === 'source_auth_failed')) setErr(errorMessage(e))
     }
   }
-  if (connect.isPending) return <ReadingSource title={`Checking the key and reading ${info?.unit ?? 'list'}s from ${d.sourceName}`} />
+  if (connect.isPending) return <ReadingSource title={t(m.checkingKey, { unit: info?.unit ?? 'list', source: d.sourceName })} />
   if (authFailed) {
     const msg = connect.error instanceof ApiError ? connect.error.message : (d.error?.message ?? '')
     // The card title already says who rejected the key.
@@ -390,11 +448,11 @@ function ConnectCard({ d }: { d: Detail }) {
       <div role="alert" className="card flex flex-col gap-2 border-[#FCA5A5] px-4.5 py-4">
         <div className="flex items-center gap-2.5">
           <Badge tone="bad">{d.error?.status ?? 401}</Badge>
-          <span className="font-semibold">{d.sourceName} rejected the API key</span>
+          <span className="font-semibold">{t(m.keyRejected, { source: d.sourceName })}</span>
         </div>
         <span className="k">
           {body.split(/(x{8}-[a-z]{2}\d{1,3})/).map((part, i) => (i % 2 ? <span key={i} className="mono">{part}</span> : part))}
-          {d.source === 'mailchimp' ? '' : ' Check that the key is active and allowed to read contacts.'}
+          {d.source === 'mailchimp' ? '' : ` ${t(m.keyActive)}`}
         </span>
         <form
           className="contents"
@@ -404,12 +462,12 @@ function ConnectCard({ d }: { d: Detail }) {
           }}
         >
           <label className="lbl">
-            API key
+            {t(m.apiKey)}
             <input
               className="in mono"
               type="password"
               autoComplete="off"
-              placeholder="Paste again"
+              placeholder={t(m.pasteAgain)}
               aria-invalid="true"
               style={{ borderColor: '#DC2626', background: '#FFF5F5' }}
               value={key}
@@ -419,11 +477,11 @@ function ConnectCard({ d }: { d: Detail }) {
           {err ? <span className="err">{err}</span> : null}
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="primary" type="submit">
-              Try again
+              {t(common.tryAgain)}
             </Button>
             {info?.keyUrl ? (
               <ButtonAnchor size="sm" href={info.keyUrl} newTab>
-                {d.sourceName} API keys
+                {t(m.keysPage, { source: d.sourceName })}
               </ButtonAnchor>
             ) : null}
           </div>
@@ -434,7 +492,7 @@ function ConnectCard({ d }: { d: Detail }) {
   const conn = d.connection
   return (
     <section className="card flex flex-col gap-3.5 px-5 py-4.5">
-      <h3 className="h2">Connect {d.sourceName}</h3>
+      <h3 className="h2">{t(m.connectSource, { source: d.sourceName })}</h3>
       <form
         className="contents"
         onSubmit={(e) => {
@@ -445,7 +503,7 @@ function ConnectCard({ d }: { d: Detail }) {
         <div className="mgrid grid items-end gap-3 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
           {selfHosted ? (
             <label className="lbl">
-              Server address
+              {t(m.serverAddress)}
               <input
                 className="in mono"
                 type="url"
@@ -457,38 +515,38 @@ function ConnectCard({ d }: { d: Detail }) {
           ) : null}
           {d.source === 'listmonk' ? (
             <label className="lbl">
-              API user
+              {t(m.apiUser)}
               <input className="in mono" autoComplete="off" value={user} onChange={(e) => setUser(e.target.value)} />
             </label>
           ) : null}
           <label className={`lbl ${selfHosted ? '' : 'col-span-2'}`}>
-            {d.source === 'listmonk' ? 'API token' : 'API key'}
+            {d.source === 'listmonk' ? t(m.apiToken) : t(m.apiKey)}
             <input
               className="in mono"
               type="password"
               autoComplete="off"
-              placeholder={`Paste a ${d.sourceName} API key (read-only is enough)`}
+              placeholder={t(m.keyPlaceholder, { source: d.sourceName })}
               value={key}
               onChange={(e) => setKey(e.target.value)}
             />
           </label>
           {d.source === 'mailchimp' ? (
             <label className="lbl">
-              Data center
+              {t(m.dataCenter)}
               <input className="in mono" value={dataCenter(key) ?? conn?.dataCenter ?? ''} readOnly />
-              <span className="k font-medium">detected from the key suffix</span>
+              <span className="k font-medium">{t(m.fromSuffix)}</span>
             </label>
           ) : null}
         </div>
         {err ? <Note tone="bad">{err}</Note> : null}
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit">Connect</Button>
+          <Button type="submit">{t(m.connect)}</Button>
           {conn ? (
             <Badge tone="ok" dot>
-              Connected · account "{conn.account}" · {count(conn.lists.length)} {conn.lists.length === 1 ? info?.unit : `${info?.unit}s`}
+              {t(m.connected, { account: conn.account, n: conn.lists.length, count: count(conn.lists.length), unit: info?.unit ?? 'list' })}
             </Badge>
           ) : null}
-          <span className="k">Nothing is written to {d.sourceName}.</span>
+          <span className="k">{t(m.nothingWritten, { source: d.sourceName })}</span>
         </div>
       </form>
     </section>
@@ -497,6 +555,7 @@ function ConnectCard({ d }: { d: Detail }) {
 
 /** Choose what to import: lists, where each goes, tags, engagement, suppressions. */
 function Choose({ d }: { d: Detail }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const refresh = useRefreshImport()
@@ -512,7 +571,7 @@ function Choose({ d }: { d: Detail }) {
   // them, so the select never shows a list the draft doesn't hold.
   const [opts, setOpts] = useState<Schemas['ImportOptions']>(() => ({
     ...d.options,
-    lists: d.options.lists.map((l) => (l.target ? l : { ...l, target: `new:${conn.lists.find((x) => x.id === l.sourceId)?.name ?? 'Imported contacts'}` })),
+    lists: d.options.lists.map((l) => (l.target ? l : { ...l, target: `new:${conn.lists.find((x) => x.id === l.sourceId)?.name ?? t(m.defaultList)}` })),
   }))
   const [err, setErr] = useState<string | null>(null)
   const choice = (id: string) => opts.lists.find((l) => l.sourceId === id)
@@ -524,7 +583,7 @@ function Choose({ d }: { d: Detail }) {
   const tags = picked.reduce((n, l) => n + l.tags, 0)
   const examples = picked.flatMap((l) => l.tagExamples).slice(0, 3)
   const synced = d.providerSync.filter((p) => p.pulled > 0)
-  const missing = picked.length === 0 ? `Choose at least one ${info?.unit ?? 'list'} to import.` : opts.lists.some((l) => !l.target) ? 'Pick the list each one goes into.' : undefined
+  const missing = picked.length === 0 ? t(m.chooseOne, { unit: info?.unit ?? 'list' }) : opts.lists.some((l) => !l.target) ? t(m.pickTarget) : undefined
   const submit = async () => {
     setErr(null)
     try {
@@ -540,38 +599,28 @@ function Choose({ d }: { d: Detail }) {
     <>
       <section className="card flex flex-col">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-5 py-3.5">
-          <h3 className="h2">Choose what to import</h3>
-          <span className="k">{file ? `read from ${d.fileName}` : `counts from the ${d.sourceName} API, ${clock(conn.checkedAt)}`}</span>
+          <h3 className="h2">{t(m.chooseTitle)}</h3>
+          <span className="k">{file ? t(m.readFrom, { file: d.fileName }) : t(m.countsFrom, { source: d.sourceName, time: clock(conn.checkedAt) })}</span>
         </div>
-        <TableScroll label="What to import">
+        <TableScroll label={t(m.whatToImport)}>
           <table className="tbl">
             <thead>
               <tr>
                 <th scope="col">
-                  <span className="vh">Import</span>
+                  <span className="vh">{t(m.colImport)}</span>
                 </th>
-                <th scope="col">{file ? 'File' : `${d.sourceName} ${info?.unit ?? 'list'}`}</th>
+                <Th>{file ? t(m.colFile) : t(m.colSourceList, { source: d.sourceName, unit: info?.unit ?? 'list' })}</Th>
                 {file ? (
-                  <th scope="col" className="r">
-                    Rows
-                  </th>
+                  <Th align="right">{t(m.colRows)}</Th>
                 ) : (
                   <>
-                    <th scope="col" className="r">
-                      Subscribed
-                    </th>
-                    <th scope="col" className="r">
-                      Unsubscribed
-                    </th>
-                    <th scope="col" className="r">
-                      Cleaned (bounced)
-                    </th>
-                    <th scope="col" className="r">
-                      Pending
-                    </th>
+                    <Th align="right">{t(m.colSubscribed)}</Th>
+                    <Th align="right">{t(m.colUnsubscribed)}</Th>
+                    <Th align="right">{t(m.colCleaned)}</Th>
+                    <Th align="right">{t(m.colPending)}</Th>
                   </>
                 )}
-                <th scope="col">Import into</th>
+                <Th>{t(m.colInto)}</Th>
               </tr>
             </thead>
             <tbody>
@@ -582,7 +631,7 @@ function Choose({ d }: { d: Detail }) {
                     <td>
                       <input
                         type="checkbox"
-                        aria-label={`Import ${l.name}`}
+                        aria-label={t(m.importList, { name: l.name })}
                         checked={Boolean(c)}
                         onChange={(e) => setChoice(l.id, e.target.checked ? { sourceId: l.id, target: defaultTarget(l.name) } : null)}
                       />
@@ -591,8 +640,12 @@ function Choose({ d }: { d: Detail }) {
                       {l.name}
                       <div className="k">
                         {file
-                          ? `${l.fields} columns`
-                          : [`${info?.unit ?? 'list'} id ${l.id}`, l.fields ? `${l.fields} ${d.source === 'mailchimp' ? 'merge fields' : 'fields'}` : '', l.tags ? `${l.tags} tags` : '']
+                          ? t(m.listColumns, { n: l.fields })
+                          : [
+                              t(m.listId, { unit: info?.unit ?? 'list', id: l.id }),
+                              l.fields ? t(m.listFields, { merge: d.source === 'mailchimp' ? 'yes' : 'no', n: l.fields }) : '',
+                              l.tags ? t(m.listTags, { n: l.tags }) : '',
+                            ]
                               .filter(Boolean)
                               .join(' · ')}
                       </div>
@@ -609,19 +662,19 @@ function Choose({ d }: { d: Detail }) {
                     )}
                     <td>
                       <select
-                        aria-label="Import into list"
+                        aria-label={t(m.intoList)}
                         className="in"
                         disabled={!c}
                         value={c?.target ?? ''}
                         onChange={(e) => setChoice(l.id, { sourceId: l.id, target: e.target.value })}
                       >
-                        {!c ? <option value="">Not imported</option> : null}
+                        {!c ? <option value="">{t(m.notImported)}</option> : null}
                         {lists.map((x) => (
                           <option key={x.id} value={x.id}>
                             {x.name}
                           </option>
                         ))}
-                        <option value={`new:${l.name}`}>New list "{l.name}"</option>
+                        <option value={`new:${l.name}`}>{t(m.newList, { name: l.name })}</option>
                       </select>
                     </td>
                   </tr>
@@ -636,10 +689,12 @@ function Choose({ d }: { d: Detail }) {
               <label className="flex items-start gap-2.5 text-[13px]">
                 <input type="checkbox" className="mt-[3px]" checked={opts.importTags} onChange={(e) => setOpts({ ...opts, importTags: e.target.checked })} />
                 <span>
-                  Import tags as ReputeCast tags{' '}
+                  {t(m.importTags)}{' '}
                   {tags > 0 ? (
                     <span className="k">
-                      · {count(tags)} tags{examples.length > 0 ? `, for example ${examples.map((t) => `"${t}"`).join(', ')}` : ''}
+                      {examples.length > 0
+                        ? t(m.tagCountExamples, { n: tags, count: count(tags), examples: examples.map((x) => `"${x}"`).join(', ') })
+                        : t(m.tagCount, { n: tags, count: count(tags) })}
                     </span>
                   ) : null}
                 </span>
@@ -647,8 +702,7 @@ function Choose({ d }: { d: Detail }) {
               <label className="flex items-start gap-2.5 text-[13px]">
                 <input type="checkbox" className="mt-[3px]" checked={opts.importEngagement} onChange={(e) => setOpts({ ...opts, importEngagement: e.target.checked })} />
                 <span>
-                  Import engagement history where {d.sourceName} exposes it{' '}
-                  <span className="k">· last open and click dates{d.source === 'mailchimp' ? ', member rating' : ''} → used for tiers</span>
+                  {t(m.importEngagement, { source: d.sourceName })} <span className="k">{t(m.engagementNote, { rating: d.source === 'mailchimp' ? 'yes' : 'no' })}</span>
                 </span>
               </label>
             </>
@@ -659,8 +713,8 @@ function Choose({ d }: { d: Detail }) {
           <label className="flex items-start gap-2.5 text-[13px]">
             <input type="checkbox" className="mt-[3px]" checked={opts.pullSuppressions} onChange={(e) => setOpts({ ...opts, pullSuppressions: e.target.checked })} />
             <span>
-              Also pull existing suppressions from connected sending providers{' '}
-              {synced.length > 0 ? <span className="k">· {synced.map((p) => `${p.short} ${count(p.pulled)}`).join(', ')} are already in the shared list</span> : null}
+              {t(m.pullSuppressions)}{' '}
+              {synced.length > 0 ? <span className="k">{t(m.alreadyShared, { providers: synced.map((p) => `${p.short} ${count(p.pulled)}`).join(', ') })}</span> : null}
             </span>
           </label>
         </div>
@@ -668,10 +722,10 @@ function Choose({ d }: { d: Detail }) {
       {err ? <Note tone="bad">{err}</Note> : null}
       <div className="flex flex-wrap justify-between gap-2.5">
         <ButtonLink to="/w/$workspace/audience" params={{ workspace: slug }}>
-          Cancel
+          {t(common.cancel)}
         </ButtonLink>
         <Button variant="primary" className="wnext" disabledReason={reason ?? missing} loading={update.isPending || stage.isPending} onClick={() => void submit()}>
-          Continue to field mapping
+          {t(m.continueFields)}
         </Button>
       </div>
     </>

@@ -19110,6 +19110,7 @@ export interface components {
             /** Format: date-time */
             invalidatedAt?: string;
             invalidatedBy?: string;
+            invalidatedFields?: string;
             invalidatedReason?: string;
             name: string;
             /** Format: int64 */
@@ -19331,6 +19332,7 @@ export interface components {
             /** Format: date-time */
             invalidatedAt?: string;
             invalidatedBy?: string;
+            invalidatedFields?: string;
             invalidatedReason?: string;
             /** Format: int64 */
             needed: number;
@@ -20464,6 +20466,7 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             createdBy: string;
+            fromCreation?: boolean;
             /** Format: int64 */
             inFlow: number;
             /** Format: date-time */

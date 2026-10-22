@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -91,23 +92,22 @@ func (s *Service) requestChannel(ctx context.Context, ws *store.Workspace, p *au
 	switch d.Status {
 	case "draft", "approval", "approved", "scheduled":
 	default:
-		return uuid.Nil, api.Conflict("This campaign already started sending.")
+		return uuid.Nil, api.Conflict(say(ctx, mAlreadySending, nil))
 	}
 	if open, err := s.open(ctx, campaignID); err != nil {
 		return uuid.Nil, err
 	} else if open != nil {
 		if open.Status == "pending" {
-			return uuid.Nil, api.Conflict("Approval is already requested and waiting for an approver.")
+			return uuid.Nil, api.Conflict(say(ctx, mPendingRequest, nil))
 		}
 		if changes, err := s.Revalidate(ctx, ws, campaignID); err != nil {
 			return uuid.Nil, err
 		} else if len(changes) == 0 {
-			return uuid.Nil, api.Conflict("This version is already approved. Schedule it from Review & send.")
+			return uuid.Nil, api.Conflict(say(ctx, mAlreadyApproved, nil))
 		}
 	}
 	if d.Blocks > 0 {
-		return uuid.Nil, api.Err(http.StatusConflict, "readiness_blocked", fmt.Sprintf("The checks are Blocked (%d %s). Fix the blocking issues before asking for approval.",
-			d.Blocks, readiness.Plural(int64(d.Blocks), "block", "blocks")))
+		return uuid.Nil, api.Err(http.StatusConflict, "readiness_blocked", say(ctx, mChecksBlocked, i18n.Args{"count": d.Blocks}))
 	}
 	ms, err := s.members(ctx, s.Q, ws.ID)
 	if err != nil {
@@ -125,7 +125,7 @@ func (s *Service) requestChannel(ctx context.Context, ws *store.Workspace, p *au
 			perm := authz.Permission(facts.SendPermission)
 			return uuid.Nil, api.Forbidden(perm, approverNames(ms, nil, perm))
 		}
-		return uuid.Nil, api.Err(http.StatusConflict, "approval_not_required", "No approval rule matches this send, so you can schedule it yourself.")
+		return uuid.Nil, api.Err(http.StatusConflict, "approval_not_required", say(ctx, mNotRequired, nil))
 	}
 	approvers := []member{}
 	for _, a := range approversOf(ms) {
@@ -134,8 +134,7 @@ func (s *Service) requestChannel(ctx context.Context, ws *store.Workspace, p *au
 		}
 	}
 	if len(approvers) < policy.ApprovalsRequired {
-		return uuid.Nil, api.Err(http.StatusConflict, "no_approvers", fmt.Sprintf("This send needs %d %s from someone other than you, and the workspace has %d. An Owner can give campaigns:approve to another role.",
-			policy.ApprovalsRequired, readiness.Plural(int64(policy.ApprovalsRequired), "approval", "approvals"), len(approvers)))
+		return uuid.Nil, api.Err(http.StatusConflict, "no_approvers", say(ctx, mNoApprovers, i18n.Args{"needed": policy.ApprovalsRequired, "have": len(approvers)}))
 	}
 	snap := d.Snapshot
 	snap.Rules, snap.AuthorRole = rules, author.RoleName
@@ -161,7 +160,7 @@ func (s *Service) insertChannelRequest(ctx context.Context, ws *store.Workspace,
 			RequestedBy: &by, RequestedAt: now, Note: note, Status: "pending", MatchedRules: ruleKeys(rules), ApprovalsRequired: int32(required),
 			Snapshot: sb, CampaignVersion: &version, PreviousID: previous}); err != nil {
 			if strings.Contains(err.Error(), "approval_requests_open_campaign") {
-				return api.Conflict("Approval is already requested for this campaign.")
+				return api.Conflict(say(ctx, mRequestedForCampaign, nil))
 			}
 			return err
 		}
@@ -205,7 +204,7 @@ func (s *Service) rerequestChannel(ctx context.Context, ws *store.Workspace, pre
 		return uuid.Nil, err
 	}
 	if d.Blocks > 0 {
-		return uuid.Nil, api.Err(http.StatusConflict, "readiness_blocked", "The checks are Blocked for the new version. The author has to fix the blocking issues first.")
+		return uuid.Nil, api.Err(http.StatusConflict, "readiness_blocked", say(ctx, mChecksBlockedNew, nil))
 	}
 	ms, err := s.members(ctx, s.Q, ws.ID)
 	if err != nil {
@@ -213,7 +212,7 @@ func (s *Service) rerequestChannel(ctx context.Context, ws *store.Workspace, pre
 	}
 	author := memberByID(ms, prev.RequestedBy)
 	if author == nil {
-		return uuid.Nil, api.Conflict("The author is no longer a member; ask someone to request approval again.")
+		return uuid.Nil, api.Conflict(say(ctx, mAuthorGone, nil))
 	}
 	policy := ParsePolicy(ws.ApprovalPolicy)
 	rules := policy.Evaluate(channelFacts(d, *author, s.now()))
@@ -251,18 +250,17 @@ func (s *Service) ChannelGate(ctx context.Context, ws *store.Workspace, p *authz
 	if len(rules) == 0 {
 		return nil, nil
 	}
-	if changes, err := s.Revalidate(ctx, ws, campaignID); err != nil {
+	if changes, err := s.revalidate(ctx, ws, campaignID); err != nil {
 		return nil, err
 	} else if len(changes) > 0 {
-		return nil, api.Err(http.StatusConflict, "approval_invalidated", "The approval no longer covers the campaign: "+InvalidationReason(changes)+". Ask for approval again.")
+		return nil, s.noLongerCovers(ctx, changes)
 	}
 	open, err := s.open(ctx, campaignID)
 	if err != nil {
 		return nil, err
 	}
 	if open == nil || open.Status != "approved" {
-		return nil, api.Err(http.StatusConflict, "approval_required", "This send needs approval first ("+strings.TrimPrefix(strings.TrimPrefix(rulesLine(rules), "rules: "), "rule: ")+").").
-			WithMeta("rules", ruleKeys(rules))
+		return nil, approvalRequired(ctx, rules)
 	}
 	return open, nil
 }
@@ -285,10 +283,10 @@ func (s *Service) ChannelReview(ctx context.Context, ws *store.Workspace, p *aut
 		return ReviewApproval{}, err
 	}
 	policy := ParsePolicy(ws.ApprovalPolicy)
-	out := ReviewApproval{Rules: []ApprovalRuleMatch{}, Approvers: []ApprovalPerson{}, Needed: policy.ApprovalsRequired, PolicyRules: policy.RuleLabels(),
+	out := ReviewApproval{Rules: []ApprovalRuleMatch{}, Approvers: []ApprovalPerson{}, Needed: policy.ApprovalsRequired, PolicyRules: policy.RuleLabelsIn(langOf(ctx)),
 		MedianWaitMinutes: s.medianWait(ctx, ws)}
 	for _, a := range approversOf(ms) {
-		out.Approvers = append(out.Approvers, s.person(a))
+		out.Approvers = append(out.Approvers, s.person(langOf(ctx), a))
 	}
 	if me := memberByID(ms, &p.UserID); me != nil {
 		out.Rules = policy.Evaluate(channelFacts(d, *me, s.now()))
@@ -304,7 +302,7 @@ func (s *Service) ChannelReview(ctx context.Context, ws *store.Workspace, p *aut
 			RequestedAt: last.RequestedAt, Note: last.Note, Status: last.Status, MatchedRules: last.MatchedRules, ApprovalsRequired: last.ApprovalsRequired,
 			Snapshot: last.Snapshot, InvalidatedAt: last.InvalidatedAt, InvalidatedReason: last.InvalidatedReason, Changes: last.Changes, BypassReason: last.BypassReason,
 			DecidedAt: last.DecidedAt, CampaignVersion: last.CampaignVersion, DecidedBy: last.DecidedBy, InvalidatedBy: last.InvalidatedBy, RemindedAt: last.RemindedAt,
-			PreviousID: last.PreviousID, InvalidatedFrom: last.InvalidatedFrom}
+			PreviousID: last.PreviousID, InvalidatedFrom: last.InvalidatedFrom, InvalidatedReasonText: last.InvalidatedReasonText}
 		req = &r
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return out, err
@@ -326,15 +324,15 @@ func (s *Service) ChannelReview(ctx context.Context, ws *store.Workspace, p *aut
 	}
 	switch {
 	case !p.Can(authz.CampaignsEdit):
-		out.RequestReason = "Asking for approval needs the campaigns:edit permission."
+		out.RequestReason = say(ctx, mReasonNeedsEdit, nil)
 	case !out.Required:
-		out.RequestReason = "No approval rule matches this send."
+		out.RequestReason = say(ctx, mReasonNoRule, nil)
 	case d.Blocks > 0:
-		out.RequestReason = "Fix the blocking issues before asking for approval."
+		out.RequestReason = say(ctx, mReasonFixBlocks, nil)
 	case req != nil && req.Status == "pending":
-		out.RequestReason = "Approval is already requested."
+		out.RequestReason = say(ctx, mReasonRequested, nil)
 	case req != nil && req.Status == "approved":
-		out.RequestReason = "This version is approved."
+		out.RequestReason = say(ctx, mReasonApproved, nil)
 	default:
 		others := 0
 		for _, a := range approversOf(ms) {
@@ -343,10 +341,11 @@ func (s *Service) ChannelReview(ctx context.Context, ws *store.Workspace, p *aut
 			}
 		}
 		if others < policy.ApprovalsRequired {
-			out.RequestReason = "Nobody else holds campaigns:approve. An Owner can give it to another role."
+			out.RequestReason = say(ctx, mReasonNoOtherApprover, nil)
 		} else {
 			out.CanRequest = true
 		}
 	}
+	out.Rules = localRules(langOf(ctx), out.Rules)
 	return out, nil
 }

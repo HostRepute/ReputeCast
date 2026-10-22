@@ -173,6 +173,13 @@ export function clock(d: string | number | Date): string {
   return time.format(toDate(d))
 }
 
+/** A time of day kept as "HH:MM" (quiet hours, a digest's send time), on the reader's clock: "22:00", "10:00 PM". */
+export function timeOfDay(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number)
+  if (standardClock() || h === undefined || m === undefined || !Number.isInteger(h) || !Number.isInteger(m)) return hhmm
+  return formatTime(region(), { year: 2000, month: 1, day: 1, weekday: 6, hour: h, minute: m, second: 0 }, getI18n().hourCycle)
+}
+
 /** "Jan 1, 2027" */
 export function usDate(d: string | number | Date): string {
   if (!standard()) return formatDate(region(), 'date', zoned(toDate(d)))
@@ -215,16 +222,12 @@ export function duration(minutes: number): string {
 
 /** Joins names as "A, B or C". */
 export function orList(names: string[]): string {
-  if (!getI18n().locale.startsWith('en')) return formatList(names, 'disjunction')
-  if (names.length <= 1) return names[0] ?? ''
-  return `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`
+  return formatList(names, 'disjunction')
 }
 
 /** Joins names as "A, B and C". */
 export function andList(names: string[]): string {
-  if (!getI18n().locale.startsWith('en')) return formatList(names)
-  if (names.length <= 1) return names[0] ?? ''
-  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+  return formatList(names)
 }
 
 /** "09:18:51" (clock with seconds, for live streams). */

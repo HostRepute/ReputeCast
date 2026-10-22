@@ -157,6 +157,20 @@
     border-radius: 8px;
     flex-wrap: nowrap;
   }
+  /* On phones a rule's field (rule 1's minimum) goes under its text, lined
+     up with it: beside it, the text gets a word per line and "recipients"
+     breaks (the board's phone rendering does both). */
+  @media (max-width: 767px) {
+    label.ap-rule:has(> .ap-rule-extra) {
+      flex-wrap: wrap;
+      row-gap: 8px;
+    }
+    label.ap-rule > .ap-rule-extra {
+      flex: 1 0 100%;
+      padding-left: 52px;
+      box-sizing: border-box;
+    }
+  }
   /* The radio stays beside its text, at the first line (ApprovalPolicy). */
   label.ap-opt {
     display: flex;

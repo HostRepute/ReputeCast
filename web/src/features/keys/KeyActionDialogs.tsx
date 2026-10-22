@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { errorMessage, http, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -8,8 +8,12 @@ import { ConfirmDialog, DialogOption, DialogRow } from '@/components/ui/ConfirmD
 import { Dialog } from '@/components/ui/Dialog'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { ago, count, usDate } from '@/lib/format'
+import { T, t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { ago, count, monthDay, usDate } from '@/lib/format'
+import { m as fm } from '@/lib/format.messages'
 import { useWorkspace } from '@/lib/session'
+import { m } from './messages'
 import { keySummary, type Key } from './parts'
 
 export type KeyAction = 'rotate' | 'revoke' | 'delete' | 'replace'
@@ -56,11 +60,12 @@ export function KeyActionDialog({
   onClose: () => void
   onSecret: (c: Schemas['APIKeyCreated'], action: 'rotated' | 'replaced') => void
 }) {
+  const t = useT()
   const calls = useKeyCalls(k)
   // Revoking offers a replacement with the same scopes, checked by default (Dialogs board).
   const [replace, setReplace] = useState(true)
   const agent = k.kind === 'mcp_agent'
-  const noun = agent ? 'agent token' : 'API key'
+  const kind = agent ? 'agent' : 'key'
   if (action === 'replace') return <ExpiredKeyDialog k={k} onClose={onClose} onSecret={onSecret} />
   const run = async () => {
     if (action === 'rotate' || (action === 'revoke' && replace)) {
@@ -73,32 +78,36 @@ export function KeyActionDialog({
     if (action === 'revoke') await calls.revoke()
     else await calls.remove()
     calls.refresh()
-    toast({ kind: 'deleted', title: `“${k.name}” ${action === 'revoke' ? 'revoked' : 'deleted'}`, detail: `logged as ${agent ? 'agent' : 'apikey'}.${action === 'revoke' ? 'revoked' : 'deleted'}` })
+    toast({
+      kind: 'deleted',
+      title: tt(action === 'revoke' ? m.revokedToast : m.deletedToast, { name: k.name }),
+      detail: tt(m.loggedAs, { action: `${agent ? 'agent' : 'apikey'}.${action === 'revoke' ? 'revoked' : 'deleted'}` }),
+    })
   }
   const copy = {
     rotate: {
       tone: 'warn' as const,
-      badge: `Rotate ${noun}`,
-      title: `Rotate "${k.name}"?`,
-      text: `A new ${noun} is created with the same permissions and shown once. The current value stops working at once, so update whatever uses it right after.`,
-      button: `Rotate ${noun}`,
-      busy: 'Rotating…',
+      badge: t(m.rotateBadge, { kind }),
+      title: t(m.rotateTitle, { name: k.name }),
+      text: t(m.rotateText, { kind }),
+      button: t(m.rotateConfirm, { kind }),
+      busy: t(m.rotating),
     },
     revoke: {
       tone: 'warn' as const,
-      badge: `Revoke ${noun}`,
-      title: `Revoke "${k.name}"?`,
-      text: `${lastUse(k, agent ? 'token' : 'key')} Anything using it will get 401 immediately${agent ? '; the agent loses access to the MCP server' : ''}.`,
-      button: agent ? 'Revoke token' : 'Revoke key',
-      busy: 'Revoking…',
+      badge: t(m.revokeBadge, { kind }),
+      title: t(m.revokeTitle, { name: k.name }),
+      text: t(m.revokeText, { kind, lastUse: lastUse(k) }),
+      button: t(m.revokeConfirm, { kind }),
+      busy: t(m.revoking),
     },
     delete: {
       tone: 'bad' as const,
-      badge: `Delete ${noun}`,
-      title: `Delete "${k.name}"?`,
-      text: `The expired ${noun} is removed from this list. The audit log keeps every call it made.`,
-      button: `Delete ${noun}`,
-      busy: 'Deleting…',
+      badge: t(m.deleteBadge, { kind }),
+      title: t(m.deleteTitle, { name: k.name }),
+      text: t(m.deleteText, { kind }),
+      button: t(m.deleteConfirm, { kind }),
+      busy: t(m.deleting),
     },
   }[action]
   return (
@@ -115,9 +124,9 @@ export function KeyActionDialog({
       onConfirm={run}
     >
       {action === 'revoke' ? (
-        <DialogOption type="checkbox" checked={replace} onChange={setReplace} title={`Create a replacement ${agent ? 'token' : 'key'} with the same scopes and show it once`} />
+        <DialogOption type="checkbox" checked={replace} onChange={setReplace} title={t(m.replaceOption, { kind })} />
       ) : (
-        <DialogRow tone="neutral" label={agent ? 'Agent' : 'Key'} first>
+        <DialogRow tone="neutral" label={agent ? t(m.rowAgent) : t(m.rowKey)} first>
           {keySummary(k)}
         </DialogRow>
       )}
@@ -125,15 +134,20 @@ export function KeyActionDialog({
   )
 }
 
-/** "This key was last used 4 min ago from 198.51.100.12." */
-function lastUse(k: Key, what: string): string {
-  if (!k.lastUsedAt) return `This ${what} hasn't been used yet.`
-  const when = ago(k.lastUsedAt)
-  return `This ${what} was last used ${when === 'now' ? 'just now' : when}${k.lastUsedIp ? ` from ${k.lastUsedIp}` : ''}.`
+/** "This key was last used 4 min ago from 198.51.100.12." (an agent's says "This token"). */
+function lastUse(k: Key): string {
+  const kind = k.kind === 'mcp_agent' ? 'agent' : 'key'
+  if (!k.lastUsedAt) return tt(m.lastUseNever, { kind })
+  const ago_ = ago(k.lastUsedAt)
+  const when = ago_ === tt(fm.now) ? tt(m.justNow) : ago_
+  return k.lastUsedIp ? tt(m.lastUseFrom, { kind, when, ip: k.lastUsedIp }) : tt(m.lastUse, { kind, when })
 }
+
+const mono = (c: ReactNode) => <span className="mono">{c}</span>
 
 /** An expired key that something still calls (SettingsKeysStates, "Expired key"). */
 function ExpiredKeyDialog({ k, onClose, onSecret }: { k: Key; onClose: () => void; onSecret: (c: Schemas['APIKeyCreated'], action: 'rotated' | 'replaced') => void }) {
+  const t = useT()
   const calls = useKeyCalls(k)
   const [busy, setBusy] = useState<'replace' | 'delete'>()
   const [error, setError] = useState<string>()
@@ -155,7 +169,7 @@ function ExpiredKeyDialog({ k, onClose, onSecret }: { k: Key; onClose: () => voi
     try {
       await calls.remove()
       calls.refresh()
-      toast({ kind: 'deleted', title: `“${k.name}” deleted` })
+      toast({ kind: 'deleted', title: tt(m.deletedToast, { name: k.name }) })
       onClose()
     } catch (e) {
       setError(errorMessage(e))
@@ -167,55 +181,55 @@ function ExpiredKeyDialog({ k, onClose, onSecret }: { k: Key; onClose: () => voi
     <Dialog
       open
       onOpenChange={(o) => !o && onClose()}
-      eyebrow={<Badge tone="bad">Expired</Badge>}
-      title="Expired key"
-      description={
-        <span className="text-[13.5px]">
-          {k.name}
-          {k.expiresAt ? ` · expired ${usDate(k.expiresAt)}` : ''}
-        </span>
-      }
+      eyebrow={<Badge tone="bad">{t(m.expiredEyebrow)}</Badge>}
+      title={t(m.expiredTitle)}
+      description={<span className="text-[13.5px]">{k.expiresAt ? t(m.expiredDesc, { name: k.name, date: usDate(k.expiresAt) }) : k.name}</span>}
       hideClose
       footer={
         <>
-          <Button onClick={onClose}>Close</Button>
+          <Button onClick={onClose}>{t(common.close)}</Button>
         </>
       }
     >
       {r && r.calls > 0 ? (
         <Note tone="bad" label="401">
-          Requests with this key have returned <span className="mono">401 key_expired</span>
-          {r.since ? ` since ${usDate(r.since).replace(/, \d{4}$/, '')}` : ''}: {count(r.calls)} {r.calls === 1 ? 'call' : 'calls'} in the last 7 days
-          {r.ip ? (
-            <>
-              {' '}
-              from <span className="mono">{r.ip}</span>
-            </>
-          ) : null}
-          {r.client ? ` (${r.client})` : ''}. Something still uses it.
+          <T
+            msg={m.rejected}
+            values={{
+              mono,
+              hasSince: r.since ? 'yes' : 'no',
+              since: r.since ? monthDay(r.since) : '',
+              calls: r.calls,
+              callsText: count(r.calls),
+              hasIp: r.ip ? 'yes' : 'no',
+              ip: r.ip ?? '',
+              hasClient: r.client ? 'yes' : 'no',
+              client: r.client ?? '',
+            }}
+          />
         </Note>
       ) : (
-        <Note tone="neutral">No calls since it expired.</Note>
+        <Note tone="neutral">{t(m.noCallsSinceExpired)}</Note>
       )}
       <KeyValues
         className="text-[12.5px]"
         items={[
-          ['Permissions', k.permissions.join(', ')],
-          ['Created', `${usDate(k.createdAt)} by ${k.createdBy.name}`],
-          ['Last successful call', k.lastUsedAt ? usDate(k.lastUsedAt) : 'Never'],
+          [t(m.kvPermissions), k.permissions.join(', ')],
+          [t(m.kvCreated), t(m.createdByOn, { date: usDate(k.createdAt), name: k.createdBy.name })],
+          [t(m.kvLastCall), k.lastUsedAt ? usDate(k.lastUsedAt) : t(m.lastCallNever)],
         ]}
       />
       <div className="row gap-2">
         <Button size="sm" variant="primary" loading={busy === 'replace'} onClick={() => void replace()}>
-          Create replacement with the same permissions
+          {t(m.replaceSame)}
         </Button>
         <Button size="sm" loading={busy === 'delete'} onClick={() => void remove()}>
-          Delete
+          {t(common.delete)}
         </Button>
       </div>
-      <span className="k">Expired keys stay listed for 90 days so you can see what still calls them.</span>
+      <span className="k">{t(m.expiredKept)}</span>
       {error ? (
-        <Note tone="bad" label="Not done">
+        <Note tone="bad" label={t(m.notDone)}>
           {error}
         </Note>
       ) : null}

@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -127,8 +128,11 @@ func (s *Service) Templates(ctx context.Context, ws *store.Workspace, p *authz.P
 	}
 	out := TransactionalTemplateList{Items: make([]TransactionalTemplateListItem, 0, len(rows)), Period: period, CanEdit: p.Can(authz.TransactionalEdit), CanPublish: p.Can(authz.TransactionalPublish)}
 	if !out.CanEdit {
-		out.ReadOnlyReason = "You can view templates, test renders, the log and reports. Editing needs transactional:edit and publishing needs transactional:publish. Ask " +
-			joinNames(s.helpers(ctx, ws.ID, authz.TransactionalPublish, 3)) + "."
+		if helpers := s.helpers(ctx, ws.ID, authz.TransactionalPublish, 3); len(helpers) > 0 {
+			out.ReadOnlyReason = say(ctx, "readOnly.templates", i18n.Args{"names": askNames(ctx, helpers)})
+		} else {
+			out.ReadOnlyReason = say(ctx, "readOnly.templatesNoNames", nil)
+		}
 	}
 	// Digital products' delivery templates (X19).
 	usedBy := map[uuid.UUID]int{}

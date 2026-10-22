@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { $api } from '@/api/client'
 import { CardSection } from '@/components/ui/Card'
-import { TableScroll } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
 import { useT } from '@/i18n'
 import { useCan, useWorkspace } from '@/lib/session'
 import { CAMPAIGN_SALES } from './elsewhere'
@@ -40,13 +40,9 @@ export function ReportProductSales({ campaignId }: { campaignId: string }) {
         <table className="tbl phone-wrap">
           <thead>
             <tr>
-              <th scope="col">{t(mr.colProduct)}</th>
-              <th scope="col" className="r">
-                {t(mr.colOrders)}
-              </th>
-              <th scope="col" className="r">
-                {t(mr.colRevenue)}
-              </th>
+              <Th>{t(mr.colProduct)}</Th>
+              <Th align="right">{t(mr.colOrders)}</Th>
+              <Th align="right">{t(mr.colRevenue)}</Th>
             </tr>
           </thead>
           <tbody>
