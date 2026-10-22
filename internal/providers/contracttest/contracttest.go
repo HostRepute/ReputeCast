@@ -1,7 +1,8 @@
 // Package contracttest is the shared test suite every sending-provider
 // adapter must pass (TECH_STACK note 10): registration and capabilities,
-// Send (success, permanent rejection, outage, rejected credentials) against
-// a fake of the provider's API, and ParseWebhook (signature verification and
+// the texts people read about the adapter (in every app language), Send
+// (success, permanent rejection, outage, rejected credentials) against a
+// fake of the provider's API, and ParseWebhook (signature verification and
 // normalization) against recorded payloads.
 //
 // An adapter's test calls Run with a Suite:
@@ -31,6 +32,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 )
 
@@ -165,6 +167,20 @@ func Run(t *testing.T, s Suite) {
 			}
 		}
 		checkCapabilities(t, d.Capabilities)
+	})
+
+	// What people read about the adapter reads in their language: every
+	// message says what its English says, and a built-in adapter leaves no
+	// text without one, translated into every app language.
+	t.Run("Texts", func(t *testing.T) {
+		d, ok := providers.Lookup(s.Adapter)
+		if !ok {
+			t.Fatalf("adapter %q is not registered", s.Adapter)
+		}
+		CheckTexts(t, d)
+		env.reset()
+		p := s.New(t, env)
+		CheckTexts(t, providers.Descriptor{Adapter: d.Adapter, Capabilities: p.Capabilities(), Messages: d.Messages})
 	})
 
 	t.Run("Capabilities", func(t *testing.T) {
@@ -351,6 +367,53 @@ func Run(t *testing.T, s Suite) {
 				}
 			}
 		})
+	}
+}
+
+// CheckTexts checks the texts of a descriptor (docs/adapters.md, "Text for
+// people"): each message must say what the English it was kept with says,
+// and an adapter with a catalog gives every text a message from it and has
+// the catalog translated into every app language. A community adapter's
+// texts are English; the messages ReputeCast adds to them are checked the
+// same way.
+func CheckTexts(t *testing.T, d providers.Descriptor) {
+	t.Helper()
+	for _, x := range d.Texts() {
+		if x.Text.IsZero() {
+			if d.Messages != nil {
+				t.Errorf("%s %q has no message in %s's catalog, so it reads in English in every language", x.What, x.English, d.Messages.Namespace)
+			}
+			continue
+		}
+		if got := x.Text.In(i18n.Default); got != x.English {
+			t.Errorf("%s: the message %s says %q, but the English beside it is %q", x.What, x.Text.ID, got, x.English)
+		}
+	}
+	if d.Messages == nil {
+		return
+	}
+	for _, l := range i18n.Locales() {
+		if l == i18n.English || l == i18n.Pseudo {
+			continue
+		}
+		if missing := d.Messages.Missing(l); len(missing) > 0 {
+			t.Errorf("%s's catalog isn't translated into %s: %s", d.Messages.Namespace, l.Name(), strings.Join(missing, ", "))
+		}
+	}
+}
+
+// CheckText checks one text an adapter returned with its message (an
+// account standing, a tracking detail, a provisioning row): the message
+// must exist and say what the English says.
+func CheckText(t *testing.T, what, english string, text i18n.Text) {
+	t.Helper()
+	switch {
+	case english == "":
+		return
+	case text.IsZero():
+		t.Errorf("%s %q has no message, so it reads in English in every language", what, english)
+	case text.In(i18n.Default) != english:
+		t.Errorf("%s: the message %s says %q, but the English beside it is %q", what, text.ID, text.In(i18n.Default), english)
 	}
 }
 

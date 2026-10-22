@@ -1,6 +1,10 @@
 package providers
 
-import "context"
+import (
+	"context"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
+)
 
 // Optional interfaces of the connect flow (internal/connect): detailed
 // connection tests, provider-side provisioning with per-step progress and
@@ -9,6 +13,9 @@ import "context"
 //
 // Texts returned to the flow may mark names and values with backticks
 // ("Created SNS topic `reputecast-events`"): the UI shows them in monospace.
+// Each text may carry the message it comes from beside it (SummaryText,
+// LabelText, DoneText), so the flow shows it in the reader's language
+// (text.go).
 
 // ConnectionReport is the detailed result of a connection test.
 type ConnectionReport struct {
@@ -20,6 +27,8 @@ type ConnectionReport struct {
 	// Auth is the login method the server accepted ("plain", "login"), so
 	// sends can use it rather than discover it again; empty without login.
 	Auth string
+	// SummaryText is the message Summary comes from.
+	SummaryText i18n.Text
 }
 
 // ConnectionTester is implemented by adapters that can describe a connection
@@ -93,6 +102,8 @@ type ProvisionStep struct {
 	Key string
 	// Label says what the step will do ("Create configuration set `rc-system`").
 	Label string
+	// LabelText is the message Label comes from.
+	LabelText i18n.Text
 }
 
 // ProvisionInput is what provisioning needs from ReputeCast.
@@ -110,6 +121,8 @@ type ProvisionResult struct {
 	// Done describes what exists now ("Created SNS topic `reputecast-events`
 	// and subscribed `https://…`").
 	Done string
+	// DoneText is the message Done comes from.
+	DoneText i18n.Text
 	// Settings are merged into the provider's settings (topic ARNs,
 	// configuration sets per stream).
 	Settings map[string]any

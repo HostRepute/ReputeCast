@@ -81,29 +81,23 @@ func Descriptor() providers.Descriptor {
 			DomainAPI:       "full",
 			SuppressionSync: true,
 			BatchSize:       1,
-			DedicatedIPs:    "Pro plan and up, one included",
 			Sandbox:         "mode",
 			QuotaDiscovery:  true,
-			Pricing:         "plan, free trial 100 per day, then from $19.95 per month",
+			// Pricing, DedicatedIPs and every other text people read (the
+			// terms' note, the Adapters tab's words, the fields' labels and
+			// hints) are in messages/en.json: WithMessages fills them.
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",
-		Terms: []providers.Terms{{Bulk: providers.BulkAllowed,
-			Note:    "Opted-in recipients with provable consent only, renewed after long inactivity. Every marketing email needs a postal address, an unsubscribe link and a privacy-policy link; no purchased lists.",
-			Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
-		Events:          "Event webhook",
-		DomainSetup:     "API",
-		SuppressionMode: "Two-way",
+		Terms:      []providers.Terms{{Bulk: providers.BulkAllowed, Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
 		Fields: []providers.Field{
-			{Key: "api_key", Label: "API key", Secret: true, Required: true,
-				Help: "SendGrid › Settings › API Keys. Full Access lets ReputeCast register the signed Event Webhook, authenticate domains and sync suppressions."},
-			{Key: "region", Label: "Region", Options: []string{"global", "eu"}, Help: "EU only for an EU subuser (Pro plans and up)."},
-			{Key: "ip_pool", Label: "IP pool", Help: "Optional. Sends through this pool of dedicated IPs."},
-			{Key: "webhook_verification_key", Label: "Event Webhook verification key",
-				Help: "Read from SendGrid for the webhook ReputeCast registers. Paste it only for a webhook you set up yourself (Mail Settings › Event Webhook › Signature verification)."},
+			{Key: "api_key", Secret: true, Required: true},
+			{Key: "region", Options: []string{"global", "eu"}},
+			{Key: "ip_pool"},
+			{Key: "webhook_verification_key"},
 		},
 		New: New,
-	}
+	}.WithMessages(msgs)
 }
 
 // Provider talks to one SendGrid account (or subuser).

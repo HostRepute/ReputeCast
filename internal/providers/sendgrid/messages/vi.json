@@ -1,0 +1,24 @@
+{
+  "pricing": "theo gói, dùng thử miễn phí 100 email mỗi ngày, sau đó từ 19,95 US$ mỗi tháng",
+  "dedicatedIps": "từ gói Pro trở lên, có sẵn một IP",
+  "terms.0.note": "Chỉ người nhận đã đồng ý và chứng minh được sự đồng ý, cần xin lại sau thời gian dài không tương tác. Mọi email tiếp thị đều cần địa chỉ bưu chính, liên kết hủy đăng ký và liên kết chính sách quyền riêng tư; không dùng danh sách mua.",
+  "events": "Event webhook",
+  "domainSetup": "API",
+  "suppressionMode": "Hai chiều",
+  "field.api_key.label": "Khóa API",
+  "field.api_key.help": "SendGrid › Settings › API Keys. Quyền Full Access cho phép ReputeCast đăng ký Event Webhook có chữ ký, xác thực tên miền và đồng bộ danh sách chặn gửi.",
+  "field.region.label": "Khu vực",
+  "field.region.help": "Chỉ chọn EU cho subuser ở EU (từ gói Pro trở lên).",
+  "field.ip_pool.label": "Nhóm IP",
+  "field.ip_pool.help": "Không bắt buộc. Gửi qua nhóm IP riêng này.",
+  "field.webhook_verification_key.label": "Event Webhook verification key",
+  "field.webhook_verification_key.help": "ReputeCast đọc khóa này từ SendGrid cho webhook mà nó đăng ký. Chỉ dán vào khi bạn tự thiết lập webhook (Mail Settings › Event Webhook › Signature verification).",
+
+  "account": "{kind, select, free {Tài khoản miễn phí} other {Tài khoản trả phí}} · uy tín {reputation, number}%",
+  "account.restricted": "Khóa API bị hạn chế · cần thêm quyền để đọc thông tin tài khoản",
+  "tracking.scope": "Mọi thư ReputeCast gửi",
+  "tracking.off": "Theo dõi lượt mở và lượt nhấp đều tắt cho tài khoản và trên mọi thư ReputeCast gửi.",
+  "tracking.on": "{on, select, open {Theo dõi lượt mở ở cấp tài khoản đang bật, nhưng ReputeCast tắt theo dõi của SendGrid trên mọi thư mà ReputeCast gửi.} click {Theo dõi lượt nhấp ở cấp tài khoản đang bật, nhưng ReputeCast tắt theo dõi của SendGrid trên mọi thư mà ReputeCast gửi.} other {Theo dõi lượt mở và lượt nhấp ở cấp tài khoản đang bật, nhưng ReputeCast tắt theo dõi của SendGrid trên mọi thư mà ReputeCast gửi.}}",
+  "error.noWebhookId": "SendGrid không trả về mã của webhook",
+  "error.domainMissing": "{domain} chưa được xác thực trong SendGrid"
+}

@@ -24,6 +24,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/apiclient"
 	"github.com/hostrepute/reputecast/internal/providers/flex"
@@ -85,31 +86,25 @@ func Descriptor() providers.Descriptor {
 			DomainAPI:       "full",
 			SuppressionSync: true,
 			BatchSize:       1,
-			DedicatedIPs:    "Scale plan, one included; $59 per extra IP per month",
 			Sandbox:         "detection",
 			QuotaDiscovery:  true,
-			Pricing:         "plan, free 100 per day, then from $15 per month for 10,000",
 			RemovesWebhook:  true,
+			// Pricing, DedicatedIPs and every other text people read (the
+			// terms' note, the Adapters tab's words, the fields' labels and
+			// hints) are in messages/en.json: WithMessages fills them.
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",
-		Terms: []providers.Terms{{Bulk: providers.BulkAllowed,
-			Note:    "Explicit, provable opt-in only; no bought, rented or scraped lists. Every marketing email needs an unsubscribe link and a privacy-policy link. Mailgun's limits: 5% bounces, 0.08% complaints.",
-			Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
-		Events:          "Webhooks",
-		DomainSetup:     "API",
-		SuppressionMode: "Two-way",
+		Terms:      []providers.Terms{{Bulk: providers.BulkAllowed, Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
 		Fields: []providers.Field{
-			{Key: "api_key", Label: "Private API key", Secret: true, Required: true,
-				Help: "Mailgun › API Security. Use a Private API key (or a Developer key), not a Domain Sending key or the HTTP webhook signing key."},
-			{Key: "region", Label: "Region", Required: true, Options: []string{"us", "eu"}, Help: "US · api.mailgun.net or EU · api.eu.mailgun.net, where the domain was created."},
-			{Key: "domain", Label: "Sending domain", Required: true, Help: "The Mailgun domain mail is sent from, e.g. mg.acme.io. ReputeCast can add it for you."},
-			{Key: "monthly_limit", Label: "Plan · emails per month", Help: "Used for the quota bar when the account has no custom sending limit."},
-			{Key: "webhook_signing_key", Label: "HTTP webhook signing key", Secret: true,
-				Help: "Optional. ReputeCast reads it from Mailgun; enter it only if your key can't (API Security › HTTP webhook signing key)."},
+			{Key: "api_key", Secret: true, Required: true},
+			{Key: "region", Required: true, Options: []string{"us", "eu"}},
+			{Key: "domain", Required: true},
+			{Key: "monthly_limit"},
+			{Key: "webhook_signing_key", Secret: true},
 		},
 		New: New,
-	}
+	}.WithMessages(msgs)
 }
 
 // Provider talks to one Mailgun domain.
@@ -191,7 +186,7 @@ func (p *Provider) classify(err error, domain string) error {
 	switch {
 	case ce.Status == http.StatusNotFound && strings.Contains(msg, "domain"):
 		ce.Code, ce.Auth = "domain_not_found", strings.EqualFold(domain, p.s.Domain)
-		ce.Message = "Mailgun doesn't know the domain " + domain + " in this region. Check the domain and the region."
+		ce.Message, ce.Text = say(mDomainUnknown, i18n.Args{"domain": domain})
 	case ce.Status == http.StatusPaymentRequired:
 		ce.Code, ce.Temporary = "payment_required", true
 	case ce.Status == http.StatusForbidden && (strings.Contains(msg, "authorized recipients") || strings.Contains(msg, "sandbox")):
