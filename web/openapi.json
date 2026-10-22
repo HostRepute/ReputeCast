@@ -13004,6 +13004,9 @@
           "createdBy": {
             "type": "string"
           },
+          "fromCreation": {
+            "type": "boolean"
+          },
           "inFlow": {
             "format": "int64",
             "type": "integer"

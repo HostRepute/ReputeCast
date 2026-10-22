@@ -2,10 +2,12 @@ package automations
 
 import (
 	"context"
-	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -88,22 +90,23 @@ func (s *Service) emailsOf(ctx context.Context, q *store.Queries, wsID uuid.UUID
 		if err != nil {
 			continue
 		}
-		out = append(out, AccessibilityEmail{NodeID: n.ID, EmailID: id, Version: n.Data.Email.EmailVersion, Step: stepRef(g, n, e.Name), MJML: e.Mjml, HTML: e.Html})
+		out = append(out, AccessibilityEmail{NodeID: n.ID, EmailID: id, Version: n.Data.Email.EmailVersion, Step: stepRef(langOf(ctx), g, n, e.Name), MJML: e.Mjml, HTML: e.Html})
 	}
 	return out
 }
 
 // stepRef is "Step 3 B": the email's step, with the path of the A/B split
 // that leads to it.
-func stepRef(g AutomationGraph, n AutomationNode, emailName string) string {
+func stepRef(l i18n.Lang, g AutomationGraph, n AutomationNode, emailName string) string {
 	ref := n.Data.Label
 	if ref == "" {
 		ref = EmailShortRef(emailName)
 	}
 	if ref == "" {
-		ref = "Send email"
+		ref = say(l, txt(mRefSendEmail))
 	}
-	ref = strings.ToUpper(ref[:1]) + ref[1:]
+	first, size := utf8.DecodeRuneInString(ref)
+	ref = string(unicode.ToUpper(first)) + ref[size:]
 	for _, e := range g.Edges {
 		if e.Target != n.ID || e.Data.Path == "" {
 			continue

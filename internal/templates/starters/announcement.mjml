@@ -8,21 +8,21 @@
   <mj-body width="600px" background-color="#F3F4F6">
     <mj-section background-color="#ffffff" padding="0px">
       <mj-column>
-        <mj-image src="rc-asset:banner.png" alt="Describe the banner" width="600px" padding="0px"></mj-image>
+        <mj-image src="rc-asset:banner.png" alt="%%T:announce.bannerAlt%%" width="600px" padding="0px"></mj-image>
       </mj-column>
     </mj-section>
     <mj-section background-color="#ffffff" padding="24px 24px 28px">
       <mj-column>
-        <mj-text font-size="28px" line-height="1.15" font-weight="700" color="#0B1220" padding="0px 0px 12px"><h1 style="margin:0;font-size:28px;line-height:1.15;font-weight:700">One big announcement</h1></mj-text>
-        <mj-text font-size="15px" line-height="1.55" padding="0px 0px 12px">Hi {{ first_name | default: "there" }}, lead with the news, then the one detail that makes it matter.</mj-text>
-        <mj-text font-size="15px" line-height="1.55" padding="0px 0px 18px">Add the date, the price or the deadline if there is one.</mj-text>
-        <mj-button href="https://example.com/announcement" align="left" background-color="#0F766E" color="#ffffff" font-family="'IBM Plex Sans', Helvetica, Arial, sans-serif" font-size="14px" font-weight="600" border-radius="6px" inner-padding="11px 18px" padding="0px">Read the announcement</mj-button>
+        <mj-text font-size="28px" line-height="1.15" font-weight="700" color="#0B1220" padding="0px 0px 12px"><h1 style="margin:0;font-size:28px;line-height:1.15;font-weight:700">%%T:announce.headline%%</h1></mj-text>
+        <mj-text font-size="15px" line-height="1.55" padding="0px 0px 12px">%%T:announce.lead%%</mj-text>
+        <mj-text font-size="15px" line-height="1.55" padding="0px 0px 18px">%%T:announce.detail%%</mj-text>
+        <mj-button href="https://example.com/announcement" align="left" background-color="#0F766E" color="#ffffff" font-family="'IBM Plex Sans', Helvetica, Arial, sans-serif" font-size="14px" font-weight="600" border-radius="6px" inner-padding="11px 18px" padding="0px">%%T:announce.button%%</mj-button>
       </mj-column>
     </mj-section>
     <!-- rc:footer -->
     <mj-section background-color="#F3F4F6" padding="18px 24px">
       <mj-column>
-        <mj-text align="center" font-family="'IBM Plex Sans', Helvetica, Arial, sans-serif" font-size="12px" line-height="1.6" color="#5B6472" padding="0px">%%ADDRESS%%<br><a href="{{ unsubscribe_url }}" style="color:#0F766E;text-decoration:none">Unsubscribe</a> · <a href="{{ preferences_url }}" style="color:#0F766E;text-decoration:none">Email preferences</a> · <a href="{{ view_in_browser_url }}" style="color:#0F766E;text-decoration:none">View in browser</a></mj-text>
+        <mj-text align="center" font-family="'IBM Plex Sans', Helvetica, Arial, sans-serif" font-size="12px" line-height="1.6" color="#5B6472" padding="0px">%%ADDRESS%%<br><a href="{{ unsubscribe_url }}" style="color:#0F766E;text-decoration:none">%%T:footer.unsubscribe%%</a> · <a href="{{ preferences_url }}" style="color:#0F766E;text-decoration:none">%%T:footer.preferences%%</a> · <a href="{{ view_in_browser_url }}" style="color:#0F766E;text-decoration:none">%%T:footer.viewInBrowser%%</a></mj-text>
       </mj-column>
     </mj-section>
   </mj-body>

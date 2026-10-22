@@ -1,0 +1,12 @@
+{
+  "problem.chooseImage": {"message": "Choose an image to upload.", "note": "the image library's upload: no file was sent"},
+  "problem.interrupted": "The upload was interrupted. Try again.",
+  "problem.empty": "The file is empty.",
+  "problem.tooLarge": {"message": "The image is {size} MB; the limit is 5 MB. Email images work best under 200 KB.", "note": "size: the image's size in megabytes with one decimal, 6.2"},
+  "problem.webp": "WebP images don't display in Outlook and several other email clients. Upload a PNG, JPEG or GIF.",
+  "problem.svg": "SVG images don't display in Gmail or Outlook. Upload a PNG, JPEG or GIF.",
+  "problem.notImage": "That file isn't an image ReputeCast can use. Upload a PNG, JPEG or GIF.",
+  "problem.damaged": "The image is damaged or incomplete and couldn't be read. Export it again and retry.",
+  "problem.dimensions": "The image dimensions are invalid or too large (100 megapixels at most).",
+  "problem.notFound": {"message": "Image not found.", "note": "removing an image from the library that is no longer there"}
+}

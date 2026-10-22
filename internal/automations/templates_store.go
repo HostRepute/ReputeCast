@@ -17,36 +17,30 @@ import (
 // in the store's voice (Service.StoreEmail).
 func init() {
 	templates = append(templates, templateDef{
-		AutomationStarterTemplate: AutomationStarterTemplate{
-			Key: "abandoned-cart", Name: "Abandoned cart",
-			Summary: "Trigger an hour after a store checkout is abandoned, 2 emails with the cart and new products, goal on the order.",
-			Outline: "Abandoned checkout → email with the cart → wait 23 h → goal: placed an order → second email → exit",
-			Steps:   6, Preview: []string{NodeTrigger, NodeEmail, NodeDelay, NodeGoal, NodeEmail},
-		},
-		description: "2 emails over a day",
-		store:       true,
-		emails: []templateEmail{
-			{key: "c1", name: `Abandoned cart · email 1 "You left something behind"`, subject: "You left something behind", preheader: "Your cart is saved.",
-				heading: "You left something behind", cta: "Return to checkout", body: []string{"Your cart is saved. Pick up where you left off."}},
-			{key: "c2", name: `Email 2 "Still deciding?"`, subject: "Still deciding?", preheader: "Your cart is still saved.",
-				heading: "Still deciding?", cta: "Return to checkout", body: []string{"Your cart is saved for a few more days."}},
-		},
-		build: func(storeID string) AutomationGraph {
+		key: "abandoned-cart", msg: "cart", steps: 6, preview: []string{NodeTrigger, NodeEmail, NodeDelay, NodeGoal, NodeEmail},
+		store:  true,
+		emails: []starterEmailDef{{"c1", 1}, {"c2", 1}},
+		build: func(storeID string, say func(string) string) AutomationGraph {
 			skip := 7
 			return AutomationGraph{
 				Nodes: []AutomationNode{
 					fork("n1", NodeTrigger, AutomationNodeData{Trigger: &AutomationTrigger{Kind: TriggerAbandonedCheckout, Store: storeID, AfterHours: 1, SkipDays: &skip, Reentry: "always"}}),
-					emailNode("n2", "c1", "You left something behind"),
+					emailNode("n2", "c1", say("c1.subject")),
 					fork("n3", NodeDelay, AutomationNodeData{Delay: &AutomationDuration{Amount: 23, Unit: "hours"}}),
-					fork("n4", NodeGoal, AutomationNodeData{Label: "Placed an order", Condition: &AutomationCondition{Kind: ConditionPlacedOrder, Store: storeID}}),
-					emailNode("n5", "c2", "Still deciding?"),
-					fork("n6", NodeExit, AutomationNodeData{Label: "Leave the flow"}),
+					fork("n4", NodeGoal, AutomationNodeData{Label: say("goal"), Condition: &AutomationCondition{Kind: ConditionPlacedOrder, Store: storeID}}),
+					emailNode("n5", "c2", say("c2.subject")),
+					fork("n6", NodeExit, AutomationNodeData{Label: say("exit")}),
 				},
 				Edges: []AutomationEdge{link("n1", "n2", ""), link("n2", "n3", ""), link("n3", "n4", ""), link("n4", "n5", ""), link("n5", "n6", "")},
 			}
 		},
 	})
 }
+
+var (
+	mProblemStoreNotInWorkspace = msg("problem.storeNotInWorkspace")
+	mProblemConnectStore        = msg("problem.connectStore")
+)
 
 // templateStore is the store a store-triggered starter starts on: the one
 // asked for, else the workspace's first connected store.
@@ -68,10 +62,10 @@ func templateStore(ctx context.Context, q *store.Queries, wsID uuid.UUID, want s
 		}
 	}
 	if want != "" {
-		return "", api.Invalid("body.store", "That store isn't connected to this workspace.")
+		return "", api.Invalid("body.store", say(langOf(ctx), txt(mProblemStoreNotInWorkspace)))
 	}
 	if first == "" {
-		return "", api.Invalid("body.store", "Connect a store first: the Abandoned cart starter starts on a store's abandoned checkouts.")
+		return "", api.Invalid("body.store", say(langOf(ctx), txt(mProblemConnectStore)))
 	}
 	return first, nil
 }

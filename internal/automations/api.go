@@ -224,7 +224,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "list-automation-templates", Path: "/workspaces/{workspace}/automations/templates", Summary: "List starter templates", Tags: tags, Access: view},
 		func(ctx context.Context, _ *api.WorkspaceInput) (*api.Body[AutomationTemplates], error) {
-			return api.OK(AutomationTemplates{Templates: templatesFor(s.hasStore(ctx, api.WorkspaceFrom(ctx).ID))}), nil
+			return api.OK(AutomationTemplates{Templates: templatesFor(langOf(ctx), s.hasStore(ctx, api.WorkspaceFrom(ctx).ID))}), nil
 		})
 	api.Get(h, api.Op{ID: "automation-options", Path: "/workspaces/{workspace}/automations/options", Summary: "Lists, forms, fields, emails, providers, tags and events steps can use", Tags: tags, Access: view},
 		func(ctx context.Context, _ *api.WorkspaceInput) (*api.Body[AutomationOptions], error) {
@@ -480,6 +480,6 @@ func (s *Service) CompareVersions(ctx context.Context, ws *store.Workspace, id u
 			failures[f.NodeID] = WebhookFailure{Since: f.FirstAt, Failures: f.Failures}
 		}
 	}
-	items := Diff(s.graphOf(fv.Graph), s.graphOf(tv.Graph), DiffContext{FromRefs: refs, ToVersion: to, Loc: workspaceLoc(ws), Failures: failures})
+	items := Diff(s.graphOf(fv.Graph), s.graphOf(tv.Graph), DiffContext{FromRefs: refs, ToVersion: to, Loc: workspaceLoc(ws), Failures: failures, Lang: langOf(ctx)})
 	return AutomationDiff{From: from, To: to, Items: items, Changes: Changes(items)}, nil
 }
