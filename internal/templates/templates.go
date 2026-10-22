@@ -45,8 +45,8 @@ const AddressPlaceholder = "%%ADDRESS%%"
 const DefaultAddress = "Your company · Street and number · City, postcode"
 
 type starter struct {
-	key, name, description string
-	thumb                  []mjml.MJMLThumbItem
+	key   string
+	thumb []mjml.MJMLThumbItem
 	// digest starters are offered in the composer's digest mode only (a
 	// recurring digest's template), and only there.
 	digest bool
@@ -54,14 +54,14 @@ type starter struct {
 
 // The gallery order and wireframes of the starters (ComposerEmpty board).
 var starters = []starter{
-	{key: "blank", name: "Blank", description: "Just a body and a footer block", thumb: []mjml.MJMLThumbItem{}},
-	{key: "weekly-digest", name: "Weekly digest", description: "Hero, two article cards, footer", thumb: []mjml.MJMLThumbItem{{H: 10, W: 40}, {H: 34}, {Row: []mjml.MJMLThumbItem{{H: 28}, {H: 28}}}, {H: 8}}},
-	{key: "product-update", name: "Product update", description: "One announcement, one button", thumb: []mjml.MJMLThumbItem{{H: 10, W: 40}, {H: 40}, {H: 8, W: 70}, {H: 14, W: 35, Accent: true}}},
-	{key: "plain-text", name: "Plain text", description: "Personal note, no images", thumb: []mjml.MJMLThumbItem{{H: 8, W: 90}, {H: 8, W: 85}, {H: 8, W: 88}, {H: 8, W: 60}}},
-	{key: "announcement", name: "Announcement", description: "Full-width hero", thumb: []mjml.MJMLThumbItem{{H: 48}, {H: 10, W: 60}, {H: 8, W: 80}}},
-	{key: "product-grid", name: "Product grid", description: "Three product cards per row", thumb: []mjml.MJMLThumbItem{{Row: []mjml.MJMLThumbItem{{H: 30}, {H: 30}, {H: 30}}}, {H: 8, W: 70}, {Row: []mjml.MJMLThumbItem{{H: 30}, {H: 30}, {H: 30}}}}},
+	{key: "blank", thumb: []mjml.MJMLThumbItem{}},
+	{key: "weekly-digest", thumb: []mjml.MJMLThumbItem{{H: 10, W: 40}, {H: 34}, {Row: []mjml.MJMLThumbItem{{H: 28}, {H: 28}}}, {H: 8}}},
+	{key: "product-update", thumb: []mjml.MJMLThumbItem{{H: 10, W: 40}, {H: 40}, {H: 8, W: 70}, {H: 14, W: 35, Accent: true}}},
+	{key: "plain-text", thumb: []mjml.MJMLThumbItem{{H: 8, W: 90}, {H: 8, W: 85}, {H: 8, W: 88}, {H: 8, W: 60}}},
+	{key: "announcement", thumb: []mjml.MJMLThumbItem{{H: 48}, {H: 10, W: 60}, {H: 8, W: 80}}},
+	{key: "product-grid", thumb: []mjml.MJMLThumbItem{{Row: []mjml.MJMLThumbItem{{H: 30}, {H: 30}, {H: 30}}}, {H: 8, W: 70}, {Row: []mjml.MJMLThumbItem{{H: 30}, {H: 30}, {H: 30}}}}},
 	// Recurring digests (design expansion, phase 3).
-	{key: "blog-digest", name: "Blog digest", description: "Header, intro, the feed's posts as cards, footer", digest: true,
+	{key: "blog-digest", digest: true,
 		thumb: []mjml.MJMLThumbItem{{H: 10, W: 40}, {H: 8, W: 85}, {H: 30}, {H: 8, W: 70}, {H: 30}, {H: 8}}},
 }
 

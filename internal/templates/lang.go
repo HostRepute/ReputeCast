@@ -72,14 +72,15 @@ func DefaultAddressIn(l i18n.Lang) string { return mAddress.Text(l, nil) }
 
 // starterName names a starter and says what it holds, in l.
 func starterName(l i18n.Lang, st starter) (string, string) {
-	name, desc := st.name, st.description
-	if m, err := msgs.Lookup("starter." + st.key + ".name"); err == nil {
-		name = m.Text(l, nil)
+	return msgs.M("starter."+st.key+".name").Text(l, nil), msgs.M("starter."+st.key+".description").Text(l, nil)
+}
+
+// Every starter has its name and description (a missing one stops the
+// program at once, like any message).
+func init() {
+	for _, st := range starters {
+		starterName(i18n.Default, st)
 	}
-	if m, err := msgs.Lookup("starter." + st.key + ".description"); err == nil {
-		desc = m.Text(l, nil)
-	}
-	return name, desc
 }
 
 // notFound is the 404 of a template that isn't there.
