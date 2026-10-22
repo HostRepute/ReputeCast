@@ -372,12 +372,19 @@ func Run(t *testing.T, s Suite) {
 
 // CheckTexts checks the texts of a descriptor (docs/adapters.md, "Text for
 // people"): each message must say what the English it was kept with says,
-// and an adapter with a catalog gives every text a message from it and has
-// the catalog translated into every app language. A community adapter's
-// texts are English; the messages ReputeCast adds to them are checked the
-// same way.
+// and a built-in adapter of a kind the catalog shows (api, smtp,
+// self_hosted, http) names its catalog, gives every text a message from it
+// and has the catalog translated into every app language. A community
+// adapter's texts are English; the messages ReputeCast adds to them are
+// checked the same way.
 func CheckTexts(t *testing.T, d providers.Descriptor) {
 	t.Helper()
+	switch d.Kind {
+	case "api", "smtp", "self_hosted", "http":
+		if d.Messages == nil {
+			t.Fatalf("%s keeps no catalog: a built-in adapter declares its texts in messages/<locale>.json and calls WithMessages in its Descriptor", d.Adapter)
+		}
+	}
 	for _, x := range d.Texts() {
 		if x.Text.IsZero() {
 			if d.Messages != nil {

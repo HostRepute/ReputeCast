@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 )
 
@@ -29,14 +30,17 @@ func (p *Provider) Verify(ctx context.Context) (providers.Quota, error) {
 	if err != nil && (!errors.As(err, &ce) || ce.Status != http.StatusNotFound) {
 		return providers.Quota{}, err
 	}
-	q := providers.Quota{Account: "Communication Services · reachable"}
+	// "Communication Services · reachable · 30 per minute · 100 per hour"
+	var q providers.Quota
+	account := i18n.Args{"minute": "no", "hour": "no"}
 	if p.s.PerMinute > 0 {
 		q.MaxRate = float64(p.s.PerMinute) / 60
-		q.Account += " · " + strconv.FormatInt(int64(p.s.PerMinute), 10) + " per minute"
+		account["minute"], account["perMinute"] = "yes", strconv.FormatInt(int64(p.s.PerMinute), 10)
 	}
 	if p.s.PerHour > 0 {
-		q.Account += " · " + strconv.FormatInt(int64(p.s.PerHour), 10) + " per hour"
+		account["hour"], account["perHour"] = "yes", strconv.FormatInt(int64(p.s.PerHour), 10)
 	}
+	q.Account, q.AccountText = say(mAccount, account)
 	return q, nil
 }
 
@@ -44,8 +48,10 @@ func (p *Provider) Verify(ctx context.Context) (providers.Quota, error) {
 // domain setting in Azure, but ReputeCast sends every message with
 // userEngagementTrackingDisabled, so ACS never tracks its mail.
 func (p *Provider) Tracking(context.Context) (providers.Tracking, error) {
-	return providers.Tracking{Scope: "Every message ReputeCast sends",
-		Detail: "ReputeCast sends every message with userEngagementTrackingDisabled, whatever the domain's engagement tracking setting."}, nil
+	var t providers.Tracking
+	t.Scope, t.ScopeText = say(mTrackingScope, nil)
+	t.Detail, t.DetailText = say(mTrackingDetail, nil)
+	return t, nil
 }
 
 // DisableTracking implements providers.TrackingManager: nothing to change.
