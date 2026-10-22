@@ -13,7 +13,7 @@ import { toast } from '@/components/ui/Toast'
 import { TableScroll, Th } from '@/components/ui/Table'
 import { T, getI18n, t, useT } from '@/i18n'
 import { common } from '@/i18n/common'
-import { formatDate, formatPattern } from '@/i18n/regions'
+import { formatDate, formatPattern, weekdayLabel } from '@/i18n/regions'
 import { WelcomePromptCard } from '@/features/welcome-prompt/WelcomePromptCard'
 import { NetGrowthBySource } from '@/features/growth/BySource'
 import { TiersNote } from '@/features/scoring/TiersNote'
@@ -39,6 +39,12 @@ function calDay(s: string, plusDays = 0, long = false) {
   const parts = { year: day.getUTCFullYear(), month: day.getUTCMonth() + 1, day: day.getUTCDate(), weekday: day.getUTCDay(), hour: 0, minute: 0, second: 0 }
   const region = getI18n().regionFormat
   return long ? formatPattern(region, 'd MMMM', parts) : formatDate(region, 'dayMonth', parts)
+}
+/** The API's weekday ("Friday": Postgres names it in English) in the region format's words. */
+const apiDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+function dayName(day: string) {
+  const i = apiDays.indexOf(day)
+  return i < 0 ? day : weekdayLabel(getI18n().regionFormat, i)
 }
 /** Shares (0–1) as "55.5" / "61" percent for the chart description. */
 const sharePct = (v: number) => {
@@ -228,8 +234,8 @@ function PolicyCard({ h }: { h: Health }) {
   const winBack = h.winBackRate !== undefined && h.winBackRate !== null ? ` · ${tr(m.winBack, { rate: pct(h.winBackRate) })}` : ''
   const week = h.thisWeek
   const weekText = [
-    week.entering > 0 ? tr(m.weekEnter, { day: week.enterDay || 'none', reengage: p.reengage ? 'yes' : 'no', count: count(week.entering) }) : '',
-    week.stopping > 0 ? tr(m.weekStop, { day: week.stopDay || 'none', count: count(week.stopping) }) : '',
+    week.entering > 0 ? tr(m.weekEnter, { day: week.enterDay ? dayName(week.enterDay) : 'none', reengage: p.reengage ? 'yes' : 'no', count: count(week.entering) }) : '',
+    week.stopping > 0 ? tr(m.weekStop, { day: week.stopDay ? dayName(week.stopDay) : 'none', count: count(week.stopping) }) : '',
   ]
     .filter(Boolean)
     .join('; ')
