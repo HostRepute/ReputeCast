@@ -14,8 +14,8 @@ export default translate(me, {
   webAt: 'lúc {date}',
   webNow: 'ngay khi chiến dịch được gửi đi',
   visPublic: 'công khai',
-  visMembers: 'cho thành viên',
-  visPaid: 'cho thành viên trả phí',
+  visMembers: 'cho hội viên',
+  visPaid: 'cho hội viên trả phí',
   edit: 'Sửa',
 
   // Campaigns · the Web column
@@ -34,9 +34,9 @@ export default translate(me, {
   reportViews: 'Lượt xem · 30 ngày',
   reportViewsSub: 'tổng cộng {total}',
   reportSignups: 'Lượt đăng ký',
-  reportSignupsSub: 'thành viên tham gia từ bài viết',
+  reportSignupsSub: 'hội viên tham gia từ bài viết',
   reportUpgrades: 'Lượt nâng cấp',
-  reportUpgradesSub: 'lên hạng trả phí',
+  reportUpgradesSub: 'lên gói trả phí',
   topReferrers: 'Nguồn truy cập hàng đầu',
   referrersLabel: 'Lượt xem theo nguồn truy cập',
   utm: 'Nguồn UTM: {sources}. Đếm trên máy chủ, không dùng cookie.',
@@ -51,11 +51,11 @@ export default translate(me, {
   // The contact profile's Website card
   cardTitle: 'Trang web',
   cardSub: '{host}',
-  member: 'Thành viên',
+  member: 'Hội viên',
   memberSince: 'từ {date} · {kind}',
   memberFree: 'miễn phí',
   memberPaid: 'trả phí · {tiers}',
-  notMember: 'Không phải thành viên: chưa đăng nhập vào {host}',
+  notMember: 'Không phải hội viên: chưa đăng nhập vào {host}',
   lastSignin: 'Lần đăng nhập gần nhất',
   lastSigninText: '{date} · {method}',
   methodLink: 'bằng liên kết đăng nhập',
@@ -79,12 +79,12 @@ export default translate(me, {
   eventSignedOutBy: 'bởi {actor}',
   eventJoined: 'Đã tham gia trên {host}',
   eventEmailChanged: 'Đã đổi địa chỉ email',
-  siteOff: 'Trang web đang tắt: thành viên không đăng nhập được.',
+  siteOff: 'Trang web đang tắt: hội viên không đăng nhập được.',
 
   // The contacts filter
   filterSignedIn: 'Đã đăng nhập vào trang web · {count}',
-  filterPaid: 'Thành viên trả phí · {count}',
-  filterLabel: 'Thành viên',
+  filterPaid: 'Hội viên trả phí · {count}',
+  filterLabel: 'Hội viên',
 
   // The segment condition
   condSignedIn: 'Đã đăng nhập vào trang web',
@@ -107,7 +107,7 @@ export default translate(me, {
   inboxPostLine: 'Bài viết · {visibility} · {name} yêu cầu, {date} · bản xem trước trên web',
   reviewWeb: 'Bài viết trên web',
   reviewWebSub: '{url} · như người đọc có quyền xem thấy',
-  reviewTitle: 'Tiêu đề',
+  reviewTitle: 'Tựa đề',
   reviewAddress: 'Địa chỉ',
   reviewVisibility: 'Chế độ hiển thị',
   reviewWhen: 'Thời điểm xuất bản',

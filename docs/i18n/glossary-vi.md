@@ -505,7 +505,7 @@ pages (`internal/pagelabels`): "bản tin", "số", "Lưu trữ", "Tùy chọn e
 |---|---|---|
 | About (page, template) | Giới thiệu | |
 | Access (Website › Access) | Quyền truy cập | |
-| archive · Archive (the page, the link) | kho lưu trữ · Lưu trữ | |
+| archive · Archive (the page, the link) | kho lưu trữ · Lưu trữ | the archive as a whole; "trang lưu trữ" when the page itself is meant |
 | band (subscribe band) | dải | a full-width strip of the home page |
 | block · layers | khối · lớp | the page builder's |
 | built-in page | trang có sẵn | like "nhãn có sẵn" |
@@ -524,8 +524,8 @@ pages (`internal/pagelabels`): "bản tin", "số", "Lưu trữ", "Tùy chọn e
 | home page | trang chủ | |
 | issue (of a newsletter) | số | "48 số", "Đọc số mới nhất" |
 | lead magnet | quà tặng đăng ký | a free file for confirmed subscribers |
-| live (site, form) · live version | đang hoạt động · đang chạy | |
-| member · free member · paid member (of the site) | thành viên · thành viên miễn phí · thành viên trả phí | a reader who signs in |
+| live (the website) · live (a page, a form, a version) | đang hoạt động · đang chạy | as Earn and the signup forms have it |
+| member · free member · paid member (of the site) · membership | hội viên · hội viên miễn phí · hội viên trả phí · gói hội viên | a reader who signs in, as Earn has it; "thành viên" is a team member |
 | meter | hạn mức đọc miễn phí | "Hạn mức đọc" as a heading |
 | navigation · header · footer | điều hướng · đầu trang · chân trang | |
 | page · Pages | trang · Trang | |
@@ -549,8 +549,9 @@ pages (`internal/pagelabels`): "bản tin", "số", "Lưu trữ", "Tùy chọn e
 | tagline | khẩu hiệu | |
 | testimonial | lời nhận xét | |
 | theme | giao diện | |
-| tier (paid) | hạng trả phí | a tier's name, such as "Insider", stays as it is |
-| visibility · Public · Members · Paid | chế độ hiển thị · Công khai · Thành viên · Trả phí | |
+| tier · paid tier | gói · gói trả phí | as Earn has it; a tier's name, such as "Insider", stays as it is |
+| title (a post's, a page's, the site's) · SEO title | tựa đề · tựa đề SEO | as an archived issue's; "tiêu đề" is an email's subject ("tiêu đề thư" beside a title) |
+| visibility · Public · Members · Paid | chế độ hiển thị · Công khai · Hội viên · Trả phí | |
 | visitor | khách truy cập | someone who isn't signed in |
 | webinar | hội thảo trực tuyến | |
 

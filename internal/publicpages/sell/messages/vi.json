@@ -128,15 +128,15 @@
   "tiers.month": "{price} mỗi tháng",
   "tiers.year": "{price} mỗi năm",
   "tiers.choose": "Chọn",
-  "tiers.none": "Chưa có hạng trả phí nào.",
+  "tiers.none": "Chưa có gói trả phí nào.",
 
   "posts.empty": "Chưa có bài viết nào.",
   "store.empty": "Sản phẩm từ cửa hàng đã kết nối sẽ hiện ở đây.",
 
-  "gate.membersTitle": "Trang này dành cho thành viên",
+  "gate.membersTitle": "Trang này dành cho hội viên",
   "gate.membersText": "Hãy đăng nhập bằng email bạn dùng để đăng ký để đọc trang này.",
-  "gate.paidTitle": "Trang này dành cho thành viên trả phí",
-  "gate.paidText": "Trang này đi kèm gói thành viên trả phí. Thành viên trả phí có thể đăng nhập để đọc.",
+  "gate.paidTitle": "Trang này dành cho hội viên trả phí",
+  "gate.paidText": "Trang này đi kèm gói hội viên trả phí. Hội viên trả phí có thể đăng nhập để đọc.",
   "gate.signinOff": "Trang web này đã tắt đăng nhập, nên không thể đọc trang này ở đây.",
 
   "account.purchases": "Giao dịch mua",
