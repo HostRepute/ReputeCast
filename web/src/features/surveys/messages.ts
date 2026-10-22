@@ -124,6 +124,10 @@ export const m = defineMessages('surveys', {
   useNps: 'Use the NPS wording',
   lowReads: '0 reads',
   highReads: '10 reads',
+  // The ends of a new 0–10 scale, until the author rewrites them: the
+  // survey's page shows them, so they're in the app language.
+  scaleLow: 'Not likely',
+  scaleHigh: 'Very likely',
   npsHint: 'Results show the NPS: promoters (9–10) minus detractors (0–6).',
   faces: 'Faces',
   facesThree: 'Three',
@@ -150,6 +154,7 @@ export const m = defineMessages('surveys', {
   firstBody: '“{name}” has no questions yet. Pick a type; you can change it later. Up to 20 questions, all on one page.',
 
   // Preview.
+  previewMark: 'Question {n}',
   livePreview: 'Live preview · {url}',
   livePreviewDraft: 'Live preview',
   desktop: 'Desktop',
