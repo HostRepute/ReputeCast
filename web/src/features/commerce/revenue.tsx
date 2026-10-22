@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { $api, type Schemas } from '@/api/client'
+import { Th } from '@/components/ui/Table'
 import { useT } from '@/i18n'
 import { count } from '@/lib/format'
 import { useOptionalWorkspace, useWorkspace } from '@/lib/session'
@@ -83,14 +84,10 @@ function StoreRevenueSection({ campaignId, campaign }: { campaignId: string; cam
         <table className="tbl compact" aria-label={t(cr.title, { campaign })}>
           <thead>
             <tr>
-              <th scope="col">{t(cr.source)}</th>
-              <th scope="col" className="r">
-                {t(cr.count)}
-              </th>
-              <th scope="col" className="r">
-                {t(cr.revenue)}
-              </th>
-              <th scope="col">{t(cr.how)}</th>
+              <Th>{t(cr.source)}</Th>
+              <Th align="right">{t(cr.count)}</Th>
+              <Th align="right">{t(cr.revenue)}</Th>
+              <Th>{t(cr.how)}</Th>
             </tr>
           </thead>
           <tbody>

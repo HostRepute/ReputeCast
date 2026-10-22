@@ -11,7 +11,7 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Field, Input, OptionCard } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { TableScroll } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
 import { T, useT } from '@/i18n'
 import { andList, count } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
@@ -113,18 +113,14 @@ function SettingsForm({ s, cats }: { s: Settings; cats: Schemas['TransactionalCa
           <table className="tbl" aria-label={t(mg.categoriesLabel)}>
             <thead>
               <tr>
-                <th scope="col">{t(mg.colCategory)}</th>
-                <th scope="col">{t(mg.colKind)}</th>
-                <th scope="col">{t(mg.colSees)}</th>
-                <th scope="col" className="r">
-                  {t(mg.colTemplates)}
-                </th>
-                <th scope="col" className="r">
-                  {t(mg.colOptedOut)}
-                </th>
-                <th scope="col">
+                <Th>{t(mg.colCategory)}</Th>
+                <Th>{t(mg.colKind)}</Th>
+                <Th>{t(mg.colSees)}</Th>
+                <Th align="right">{t(mg.colTemplates)}</Th>
+                <Th align="right">{t(mg.colOptedOut)}</Th>
+                <Th>
                   <span className="vh">{t(mg.edit)}</span>
-                </th>
+                </Th>
               </tr>
             </thead>
             <tbody>

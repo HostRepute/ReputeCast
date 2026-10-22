@@ -9,6 +9,7 @@ import { Bar, KeyValues } from '@/components/ui/Data'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Menu, MenuItem } from '@/components/ui/Menu'
 import { toast } from '@/components/ui/Toast'
+import { Th } from '@/components/ui/Table'
 import { AttentionIcon, Tile } from '@/features/integrations/shared'
 import '@/features/integrations/integrations.css'
 import { T, formatList, useT, type MessageDescriptor } from '@/i18n'
@@ -919,16 +920,12 @@ function AttributionCard({ page: p }: { page: Page_ }) {
                 </colgroup>
                 <thead>
                   <tr>
-                    <th scope="col">{t(cm.attrTo)}</th>
-                    <th scope="col" className="r">
-                      {t(cm.attrOrders)}
-                    </th>
-                    <th scope="col" className="r">
-                      {t(cm.attrRevenue)}
-                    </th>
-                    <th scope="col">
+                    <Th>{t(cm.attrTo)}</Th>
+                    <Th align="right">{t(cm.attrOrders)}</Th>
+                    <Th align="right">{t(cm.attrRevenue)}</Th>
+                    <Th>
                       <span className="vh">{t(cm.attrOrders)}</span>
-                    </th>
+                    </Th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1060,12 +1057,12 @@ function WebhooksCard({ page: p, platform }: { page: Page_; platform: string }) 
             )}
             <thead>
               <tr>
-                <th scope="col">{t(cm.hookTopic)}</th>
-                <th scope="col">{t(cm.hookStatus)}</th>
-                <th scope="col">{t(cm.hookLast)}</th>
-                <th scope="col">
+                <Th>{t(cm.hookTopic)}</Th>
+                <Th>{t(cm.hookStatus)}</Th>
+                <Th>{t(cm.hookLast)}</Th>
+                <Th>
                   <span className="vh">{t(cm.hookAgain)}</span>
-                </th>
+                </Th>
               </tr>
             </thead>
             <tbody>

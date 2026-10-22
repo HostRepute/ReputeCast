@@ -11,7 +11,7 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { Segmented } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
-import { TableScroll } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
 import { T, useT } from '@/i18n'
 import { ago, andList, clock, count, dayMonthDate, trimPct } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
@@ -330,25 +330,17 @@ function TemplatesCard({ q, period }: { q: { data?: Schemas['TransactionalTempla
                   <table className="tbl" aria-label={t(mo.tableLabel)}>
                     <thead>
                       <tr>
-                        <th scope="col">{t(mo.colTemplate)}</th>
-                        <th scope="col">{t(mo.colCategory)}</th>
-                        <th scope="col">{t(mo.colVersion)}</th>
-                        <th scope="col" className="r">
-                          {t(mo.colSent, { period: periodWords(t, period) })}
-                        </th>
-                        <th scope="col" className="r">
-                          {t(mo.colDelivered)}
-                        </th>
-                        <th scope="col" className="r">
-                          {t(mo.colBounced)}
-                        </th>
-                        <th scope="col" className="r">
-                          {t(mo.colMedian)}
-                        </th>
-                        <th scope="col">{t(mo.colLastSent)}</th>
-                        <th scope="col">
+                        <Th>{t(mo.colTemplate)}</Th>
+                        <Th>{t(mo.colCategory)}</Th>
+                        <Th>{t(mo.colVersion)}</Th>
+                        <Th align="right">{t(mo.colSent, { period: periodWords(t, period) })}</Th>
+                        <Th align="right">{t(mo.colDelivered)}</Th>
+                        <Th align="right">{t(mo.colBounced)}</Th>
+                        <Th align="right">{t(mo.colMedian)}</Th>
+                        <Th>{t(mo.colLastSent)}</Th>
+                        <Th>
                           <span className="vh">{t(mo.edit)}</span>
-                        </th>
+                        </Th>
                       </tr>
                     </thead>
                     <tbody>

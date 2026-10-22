@@ -8,7 +8,7 @@ import { ForbiddenState } from '@/components/shell/SystemScreens'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
-import { TableScroll } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
 import { useI18n, useT } from '@/i18n'
 import { languageLabel } from '@/features/languages/composerParts'
 import { clock, clockSeconds, count, dayMonthYear } from '@/lib/format'
@@ -477,13 +477,13 @@ function LogTable({ items }: { items: LogItem[] }) {
         <table className="tbl" aria-label={t(ml.tableLabel)}>
           <thead>
             <tr>
-              <th scope="col">{t(ml.colTime)}</th>
-              <th scope="col">{t(ml.colRecipient)}</th>
-              <th scope="col">{t(ml.colTemplate)}</th>
-              <th scope="col">{t(ml.colProvider)}</th>
-              {showLanguage ? <th scope="col">{t(ml.colLanguage)}</th> : null}
-              <th scope="col">{t(ml.colStatus)}</th>
-              <th scope="col">{t(ml.colEngagement)}</th>
+              <Th>{t(ml.colTime)}</Th>
+              <Th>{t(ml.colRecipient)}</Th>
+              <Th>{t(ml.colTemplate)}</Th>
+              <Th>{t(ml.colProvider)}</Th>
+              {showLanguage ? <Th>{t(ml.colLanguage)}</Th> : null}
+              <Th>{t(ml.colStatus)}</Th>
+              <Th>{t(ml.colEngagement)}</Th>
             </tr>
           </thead>
           <tbody>

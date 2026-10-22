@@ -9,7 +9,7 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { KeyActionDialog, type KeyAction } from '@/features/keys/KeyActionDialogs'
 import { KeySecretDialog } from '@/features/keys/KeySecretDialog'
-import { TableScroll } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
 import { T, useT } from '@/i18n'
 import { ago, dayMonthYear } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
@@ -130,9 +130,9 @@ function ApiCard({ s }: { s: Setup }) {
         <table className="tbl" aria-label={t(ms.endpointsLabel)}>
           <thead>
             <tr>
-              <th scope="col">{t(ms.colMethod)}</th>
-              <th scope="col">{t(ms.colPath)}</th>
-              <th scope="col">{t(ms.colWhat)}</th>
+              <Th>{t(ms.colMethod)}</Th>
+              <Th>{t(ms.colPath)}</Th>
+              <Th>{t(ms.colWhat)}</Th>
             </tr>
           </thead>
           <tbody>
@@ -528,9 +528,9 @@ function ErrorsCard({ s }: { s: Setup }) {
         <table className="tbl" aria-label={t(ms.errorsLabel)}>
           <thead>
             <tr>
-              <th scope="col">{t(ms.colCode)}</th>
-              <th scope="col">{t(ms.colWhen)}</th>
-              <th scope="col">{t(ms.colDo)}</th>
+              <Th>{t(ms.colCode)}</Th>
+              <Th>{t(ms.colWhen)}</Th>
+              <Th>{t(ms.colDo)}</Th>
             </tr>
           </thead>
           <tbody>
