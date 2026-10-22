@@ -3,6 +3,8 @@ package ai
 import (
 	"context"
 	"embed"
+	"strconv"
+	"strings"
 
 	"github.com/google/uuid"
 
@@ -86,6 +88,12 @@ var (
 	mImageFormat       = msgs.M("image.format")
 	mImageDecode       = msgs.M("image.decode")
 
+	mNewSegment       = msgs.M("activity.newSegment")
+	mDetailRateLimit  = msgs.M("activity.rateLimited")
+	mDetailTimedOut   = msgs.M("activity.timedOut")
+	mDetailUnreach    = msgs.M("activity.unreachable")
+	mDetailKeyRefused = msgs.M("activity.keyRejected")
+
 	mTestPrompt        = msgs.M("test.prompt")
 	mDroppedConditions = msgs.M("segment.dropped")
 
@@ -165,4 +173,44 @@ func (s *Service) notifyMembers(ctx context.Context, workspaceID uuid.UUID, perm
 		}
 	}
 	return nil
+}
+
+// What the activity log keeps in English, written in each reader's
+// language when it is read.
+const (
+	// newSegmentLabel is what a segment draft is on before the segment has a name.
+	newSegmentLabel   = "New segment"
+	detailRateLimited = "rate limited"
+	detailTimedOut    = "timed out"
+	detailUnreachable = "unreachable"
+	// detailKeyRejected follows the status: "401 key rejected".
+	detailKeyRejected = " key rejected"
+)
+
+// onIn is what a request was on, for a reader: a campaign's or segment's
+// name stays as it is; a segment without one yet is named in their words.
+func onIn(l i18n.Lang, kind string, target *uuid.UUID, label string) string {
+	if kind == "segment" && target == nil && label == newSegmentLabel {
+		return mNewSegment.Text(l, nil)
+	}
+	return label
+}
+
+// detailIn is why a request failed, for a reader: a provider's own error
+// type ("529 overloaded") stays as it is.
+func detailIn(l i18n.Lang, detail string) string {
+	switch detail {
+	case detailRateLimited:
+		return mDetailRateLimit.Text(l, nil)
+	case detailTimedOut:
+		return mDetailTimedOut.Text(l, nil)
+	case detailUnreachable:
+		return mDetailUnreach.Text(l, nil)
+	}
+	if status, ok := strings.CutSuffix(detail, detailKeyRejected); ok {
+		if _, err := strconv.Atoi(status); err == nil {
+			return mDetailKeyRefused.Text(l, i18n.Args{"status": status})
+		}
+	}
+	return detail
 }

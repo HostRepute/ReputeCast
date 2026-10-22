@@ -58,6 +58,11 @@
   "problem.pickProvider": "Pick one of the providers.",
   "problem.campaignId": { "message": "Name the campaign.", "note": "a request without the campaign it is about" },
   "problem.suggestionId": { "message": "Name the suggestion.", "note": "a request without the suggestion it keeps or accepts" },
+  "activity.newSegment": { "message": "New segment", "note": "the AI activity log's “On” column, for a segment not saved yet" },
+  "activity.rateLimited": { "message": "rate limited", "note": "why a request failed, after “Error ·” in the AI activity log" },
+  "activity.timedOut": "timed out",
+  "activity.unreachable": "unreachable",
+  "activity.keyRejected": { "message": "{status} key rejected", "note": "status: the provider's HTTP status, such as 401" },
   "version.translated": { "message": "Translated with AI ({model})", "note": "a language version's name in its history; model: the model's name" },
   "segment.dropped": { "message": "{count, plural, one {One drafted condition wasn't one of the builder's, so it was left out.} other {# drafted conditions weren't the builder's, so they were left out.}}", "note": "a segment draft used conditions the builder doesn't have" },
 

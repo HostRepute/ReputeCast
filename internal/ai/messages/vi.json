@@ -58,6 +58,11 @@
   "problem.pickProvider": "Hãy chọn một trong các nhà cung cấp.",
   "problem.campaignId": "Hãy cho biết chiến dịch.",
   "problem.suggestionId": "Hãy cho biết gợi ý.",
+  "activity.newSegment": "Phân khúc mới",
+  "activity.rateLimited": "bị giới hạn tần suất",
+  "activity.timedOut": "hết thời gian chờ",
+  "activity.unreachable": "không kết nối được",
+  "activity.keyRejected": "{status} khóa bị từ chối",
   "version.translated": "Dịch bằng AI ({model})",
   "segment.dropped": "{count, plural, =1 {Một điều kiện được soạn không thuộc trình tạo phân khúc, nên đã bị bỏ ra.} other {# điều kiện được soạn không thuộc trình tạo phân khúc, nên đã bị bỏ ra.}}",
 

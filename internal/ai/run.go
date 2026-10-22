@@ -218,13 +218,13 @@ func errorDetail(err error) string {
 	}
 	switch e.Kind {
 	case llm.ErrRateLimit:
-		return "rate limited"
+		return detailRateLimited
 	case llm.ErrTimeout:
-		return "timed out"
+		return detailTimedOut
 	case llm.ErrNetwork:
-		return "unreachable"
+		return detailUnreachable
 	case llm.ErrAuth:
-		return fmt.Sprintf("%d key rejected", e.Status)
+		return fmt.Sprintf("%d%s", e.Status, detailKeyRejected)
 	}
 	if e.Status > 0 {
 		return clip(fmt.Sprintf("%d %s", e.Status, shortCode(e)), 120)
