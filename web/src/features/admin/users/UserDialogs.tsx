@@ -8,21 +8,26 @@ import { Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { copyText } from '@/features/access/parts'
-import { andList } from '@/lib/format'
+import { T, t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { andList, calendarDate, count } from '@/lib/format'
+import { roleName } from '@/lib/roles'
 import { useMe } from '@/lib/session'
 import { useInvalidateUsers } from '../queries'
+import { m } from './messages'
 
 type User = Schemas['InstanceUser']
 
 const first = (name: string) => name.split(' ')[0] ?? name
-const ordinals = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth']
 
 function Eyebrow() {
-  return <span className="k">Dialog · instance admin</span>
+  const t = useT()
+  return <span className="k">{t(m.dialogEyebrow)}</span>
 }
 
 /** Reset two-factor (InstanceUserDialogs): reason required, verify first, confirm with your password. */
 export function ResetTwoFactorDialog({ user, onClose }: { user: User; onClose: () => void }) {
+  const t = useT()
   const id = useId()
   const { data: me } = useMe()
   const policy = $api.useQuery('get', '/api/v1/admin/policy')
@@ -34,14 +39,14 @@ export function ResetTwoFactorDialog({ user, onClose }: { user: User; onClose: (
   const hasPassword = me?.user.hasPassword ?? true
   const grace = policy.data?.graceDays ?? 7
   const name = first(user.name)
-  const blocked = !reason.trim() ? 'A reason is required' : hasPassword && !password ? 'Confirm with your password' : undefined
+  const blocked = !reason.trim() ? t(m.reasonMissing) : hasPassword && !password ? t(m.passwordMissing) : undefined
   const submit = async () => {
     if (blocked) return
     setError(undefined)
     try {
       await reset.mutateAsync({ params: { path: { userId: user.id } }, body: { reason: reason.trim(), password: password || undefined } })
       await invalidate()
-      toast({ kind: 'success', title: `Two-factor reset for ${user.name}`, detail: `${name} was signed out and notified` })
+      toast({ kind: 'success', title: tt(m.twoFactorReset, { name: user.name }), detail: tt(m.twoFactorResetDetail, { name }) })
       onClose()
     } catch (e) {
       const msg = errorMessage(e)
@@ -55,33 +60,28 @@ export function ResetTwoFactorDialog({ user, onClose }: { user: User; onClose: (
       hideClose
       dismissible={false}
       eyebrow={<Eyebrow />}
-      title={`Reset two-factor for ${user.name}?`}
-      description={
-        <span className="text-[13.5px]">
-          Removes their authenticator and recovery codes. {name} signs in with a password only until they set two-factor up again; the {grace}-day grace period
-          restarts. The reset is logged with your reason, and {name} is notified.
-        </span>
-      }
+      title={t(m.resetTitle, { name: user.name })}
+      description={<span className="text-[13.5px]">{t(m.resetBody, { name, days: grace })}</span>}
       footer={
         <>
           <Button onClick={onClose} disabled={reset.isPending}>
-            Cancel
+            {t(common.cancel)}
           </Button>
           <Button variant="primary" onClick={() => void submit()} loading={reset.isPending} disabledReason={blocked}>
-            Reset two-factor
+            {t(m.resetTwoFactor)}
           </Button>
         </>
       }
     >
       <label className="lbl" htmlFor={`${id}-reason`}>
         <span>
-          Reason <span className="k font-medium">· required, recorded in the audit log</span>
+          <T msg={m.reasonLabel} values={{ k: (c) => <span className="k font-medium">{c}</span> }} />
         </span>
         <textarea
           id={`${id}-reason`}
           className="in h-auto py-2"
           rows={3}
-          placeholder="e.g. Lost phone, identity confirmed by video call on Oct 12"
+          placeholder={t(m.reasonPlaceholder, { date: calendarDate('2026-10-12', 'monthDay') })}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           maxLength={500}
@@ -89,12 +89,12 @@ export function ResetTwoFactorDialog({ user, onClose }: { user: User; onClose: (
           aria-describedby={error?.field === 'reason' ? `${id}-err` : undefined}
         />
       </label>
-      <Note tone="warn" label="Verify first">
-        Confirm the request came from {name} (for example on a call), not from an email asking you to reset it.
+      <Note tone="warn" label={t(m.verifyFirst)}>
+        {t(m.verifyBody, { name })}
       </Note>
       {hasPassword ? (
         <label className="lbl" htmlFor={`${id}-pw`}>
-          Confirm with your password
+          {t(m.passwordLabel)}
           <input
             id={`${id}-pw`}
             className="in"
@@ -107,7 +107,7 @@ export function ResetTwoFactorDialog({ user, onClose }: { user: User; onClose: (
           />
         </label>
       ) : (
-        <Note tone="neutral">You sign in with single sign-on, so your session&apos;s two-factor confirms this reset.</Note>
+        <Note tone="neutral">{t(m.ssoConfirms)}</Note>
       )}
       {error ? (
         <span className="err" id={`${id}-err`} role="alert">
@@ -120,6 +120,7 @@ export function ResetTwoFactorDialog({ user, onClose }: { user: User; onClose: (
 
 /** Send a password reset (InstanceUserDialogs): the System stream, or the CLI command that prints the same link. */
 export function PasswordResetDialog({ user, onClose }: { user: User; onClose: () => void }) {
+  const t = useT()
   const info = $api.useQuery('get', '/api/v1/admin/users/{userId}/password-reset', { params: { path: { userId: user.id } } })
   const send = $api.useMutation('post', '/api/v1/admin/users/{userId}/password-reset')
   const [error, setError] = useState<string>()
@@ -132,39 +133,41 @@ export function PasswordResetDialog({ user, onClose }: { user: User; onClose: ()
       onOpenChange={(o) => !o && !send.isPending && onClose()}
       hideClose
       eyebrow={<Eyebrow />}
-      title={`Send a password reset to ${user.name}`}
-      description={<span className="text-[13.5px]">A one-time link that works for {d?.minutesValid ?? 15} minutes, sent on the System stream.</span>}
+      title={t(m.passwordResetTitle, { name: user.name })}
+      description={<span className="text-[13.5px]">{t(m.passwordResetBody, { minutes: d?.minutesValid ?? 15 })}</span>}
       footer={
         <>
           <Button onClick={onClose} disabled={send.isPending}>
-            Cancel
+            {t(common.cancel)}
           </Button>
           <Button
             onClick={async () => {
               const ok = await copyText(command)
-              toast(ok ? { kind: 'success', title: 'CLI command copied', detail: 'run it on the server; it prints the link' } : { kind: 'error', title: "Couldn't copy", detail: 'select the command and copy it' })
+              toast(
+                ok
+                  ? { kind: 'success', title: tt(m.cliCopied), detail: tt(m.cliCopiedDetail) }
+                  : { kind: 'error', title: tt(m.copyFailed), detail: tt(m.copyFailedDetail) },
+              )
             }}
           >
-            Copy CLI command
+            {t(m.copyCli)}
           </Button>
           <Button
             variant="primary"
             loading={send.isPending}
-            disabledReason={
-              !d ? 'Checking the System stream…' : d.deactivatedNotice ? d.deactivatedNotice : !d.system ? 'No System-stream provider can send email yet. Use the CLI command.' : undefined
-            }
+            disabledReason={!d ? t(m.checkingSystem) : d.deactivatedNotice ? d.deactivatedNotice : !d.system ? t(m.noSystemReason) : undefined}
             onClick={async () => {
               setError(undefined)
               try {
                 const r = await send.mutateAsync({ params: { path: { userId: user.id } } })
-                toast({ kind: 'success', title: `Reset link sent to ${user.email}`, detail: `via ${r.via} · works for 15 minutes` })
+                toast({ kind: 'success', title: tt(m.resetSent, { email: user.email }), detail: tt(m.resetSentDetail, { via: r.via, minutes: 15 }) })
                 onClose()
               } catch (e) {
                 setError(errorMessage(e))
               }
             }}
           >
-            Send reset email
+            {t(m.sendResetEmail)}
           </Button>
         </>
       }
@@ -173,26 +176,23 @@ export function PasswordResetDialog({ user, onClose }: { user: User; onClose: ()
         <Skeleton w="100%" h={44} r={8} />
       ) : d?.system ? (
         healthy ? (
-          <Note tone="ok" label="System stream">
-            {d.provider ?? 'The System-stream provider'} is healthy · the email goes out immediately.
+          <Note tone="ok" label={t(m.systemStream)}>
+            {t(m.systemHealthy, { hasProvider: d.provider ? 'yes' : 'no', provider: d.provider ?? '' })}
           </Note>
         ) : (
-          <Note tone="warn" label="System stream">
-            {d.provider} is {d.providerStatus?.replace('_', ' ')} · the email may be delayed. The CLI command works either way.
+          <Note tone="warn" label={t(m.systemStream)}>
+            {t(m.systemUnhealthy, { provider: d.provider ?? '', status: d.providerStatus ?? '', statusText: d.providerStatus?.replace('_', ' ') ?? '' })}
           </Note>
         )
       ) : (
-        <Note tone="warn" label="No System provider">
-          {d?.provider
-            ? `${d.provider} is on the System stream but can't send system mail right now, so the email can't go out.`
-            : "No sending provider is connected to the System stream yet, so the email can't go out."}{' '}
-          Run the command below on the server instead.
+        <Note tone="warn" label={t(m.noSystemLabel)}>
+          {t(m.noSystemBody, { hasProvider: d?.provider ? 'yes' : 'no', provider: d?.provider ?? '' })}
         </Note>
       )}
       {d?.deactivatedNotice ? <Note tone="warn">{d.deactivatedNotice}</Note> : null}
       <div className="note n">
         <span className="col gap-1.5">
-          <span>No System provider, or the user can&apos;t receive email? Run this on the server instead; it prints the same link:</span>
+          <span>{t(m.cliNote)}</span>
           <pre className="code">{command}</pre>
         </span>
       </div>
@@ -203,28 +203,29 @@ export function PasswordResetDialog({ user, onClose }: { user: User; onClose: ()
 
 /** Make instance admin (InstanceUserDialogs). */
 export function MakeAdminDialog({ user, admins, onClose }: { user: User; admins: string[]; onClose: () => void }) {
+  const t = useT()
   const set = $api.useMutation('put', '/api/v1/admin/users/{userId}/instance-admin')
   const invalidate = useInvalidateUsers()
   const [error, setError] = useState<string>()
   const name = first(user.name)
-  const roles = user.workspaces.filter((w) => w.status === 'active').map((w) => `${w.role} in ${w.name}`)
+  const roles = user.workspaces.filter((w) => w.status === 'active').map((w) => t(m.roleIn, { role: roleName({ name: w.role }), workspace: w.name }))
   const twofa =
     user.twoFactor.state === 'idp'
-      ? `Two-factor is already enforced for them by ${user.ssoProvider ?? 'their identity provider'}`
+      ? t(m.twoFAByIdp, { hasProvider: user.ssoProvider ? 'yes' : 'no', provider: user.ssoProvider ?? '' })
       : user.twoFactor.state === 'on'
-        ? `Two-factor is on (${user.twoFactor.method === 'passkey' ? 'passkey' : 'authenticator app'})`
-        : `${name} doesn't use two-factor yet: ask them to add a passkey or an authenticator first`
+        ? t(m.twoFAIsOn, { method: user.twoFactor.method === 'passkey' ? 'passkey' : 'app' })
+        : t(m.twoFANotYet, { name })
   return (
     <Dialog
       open
       onOpenChange={(o) => !o && !set.isPending && onClose()}
       hideClose
       eyebrow={<Eyebrow />}
-      title={`Make ${user.name} an instance admin?`}
+      title={t(m.makeAdminTitle, { name: user.name })}
       footer={
         <>
           <Button onClick={onClose} disabled={set.isPending}>
-            Cancel
+            {t(common.cancel)}
           </Button>
           <Button
             variant="primary"
@@ -234,28 +235,25 @@ export function MakeAdminDialog({ user, admins, onClose }: { user: User; admins:
               try {
                 await set.mutateAsync({ params: { path: { userId: user.id } }, body: { admin: true } })
                 await invalidate()
-                toast({ kind: 'success', title: `${user.name} is an instance admin` })
+                toast({ kind: 'success', title: tt(m.madeAdmin, { name: user.name }) })
                 onClose()
               } catch (e) {
                 setError(errorMessage(e))
               }
             }}
           >
-            Make instance admin
+            {t(m.makeAdmin)}
           </Button>
         </>
       }
     >
       <ul className="m-0 flex list-disc flex-col gap-1 pl-[18px] text-[13.5px] text-ink-nav">
-        <li>Manages users, sign-in methods, SSO, security policies and workspaces for the whole instance</li>
-        <li>{roles.length ? `Does not change their workspace roles (${roles.join(', ')})` : 'Does not add them to any workspace'}</li>
+        <li>{t(m.managesInstance)}</li>
+        <li>{roles.length ? t(m.keepsRoles, { roles: roles.join(', ') }) : t(m.noWorkspaces)}</li>
         <li>{twofa}</li>
       </ul>
       <div className="note n">
-        <span>
-          Instance admins: {admins.length ? andList(admins) : 'none'}. {name} would be the {ordinals[admins.length] ?? `${admins.length + 1}th`}
-          {admins.length === 1 ? ', which also gives you a backup for break-glass access.' : '.'}
-        </span>
+        <span>{t(m.adminsNote, { count: admins.length, admins: andList(admins), name, position: count(admins.length + 1) })}</span>
       </div>
       {error ? <Note tone="bad">{error}</Note> : null}
     </Dialog>
@@ -264,6 +262,7 @@ export function MakeAdminDialog({ user, admins, onClose }: { user: User; admins:
 
 /** Remove instance admin (never the last one). */
 export function RemoveAdminDialog({ user, admins, onClose }: { user: User; admins: string[]; onClose: () => void }) {
+  const t = useT()
   const set = $api.useMutation('put', '/api/v1/admin/users/{userId}/instance-admin')
   const invalidate = useInvalidateUsers()
   const last = admins.length <= 1
@@ -272,20 +271,20 @@ export function RemoveAdminDialog({ user, admins, onClose }: { user: User; admin
       open
       onOpenChange={(o) => !o && onClose()}
       tone="warn"
-      badge="Instance admin"
-      title={`Remove ${user.name} as instance admin?`}
+      badge={t(m.removeBadge)}
+      title={t(m.removeTitle, { name: user.name })}
       description={
         last
-          ? `${user.name} is the only instance admin. Make someone else an instance admin first, so the instance is never left without one.`
-          : `${first(user.name)} keeps their workspace roles but can no longer open Instance admin. Remaining: ${andList(admins.filter((a) => a !== user.name))}.`
+          ? t(m.removeLast, { name: user.name })
+          : t(m.removeBody, { name: first(user.name), remaining: andList(admins.filter((a) => a !== user.name)) })
       }
-      confirmLabel="Remove instance admin"
+      confirmLabel={t(m.removeAdmin)}
       confirmVariant="primary"
       onConfirm={async () => {
-        if (last) throw new Error('The last instance admin can’t be removed.')
+        if (last) throw new Error(tt(m.lastAdmin))
         await set.mutateAsync({ params: { path: { userId: user.id } }, body: { admin: false } })
         await invalidate()
-        toast({ kind: 'success', title: `${user.name} is no longer an instance admin` })
+        toast({ kind: 'success', title: tt(m.removedAdmin, { name: user.name }) })
       }}
     />
   )
@@ -293,6 +292,7 @@ export function RemoveAdminDialog({ user, admins, onClose }: { user: User; admin
 
 /** Deactivate an account: consequences first, keys kept or revoked, a reason for the audit log. */
 export function DeactivateUserDialog({ user, onClose }: { user: User; onClose: () => void }) {
+  const t = useT()
   const deactivate = $api.useMutation('post', '/api/v1/admin/users/{userId}/deactivate')
   const invalidate = useInvalidateUsers()
   const [revoke, setRevoke] = useState(true)
@@ -303,38 +303,38 @@ export function DeactivateUserDialog({ user, onClose }: { user: User; onClose: (
     <ConfirmDialog
       open
       onOpenChange={(o) => !o && onClose()}
-      badge="Deactivate account"
-      title={`Deactivate ${user.name}?`}
-      description={`Signs ${name} out${user.sessions > 0 ? ` of ${user.sessions} ${user.sessions === 1 ? 'session' : 'sessions'} and` : ' of'} every workspace now. Their history, campaigns and audit entries stay; you can reactivate the account later.`}
-      confirmLabel="Deactivate account"
-      busyLabel="Deactivating…"
-      reason={{ label: 'Reason · recorded in the audit log', minLength: 3 }}
+      badge={t(m.deactivateAccount)}
+      title={t(m.deactivateTitle, { name: user.name })}
+      description={t(m.deactivateBody, { name, sessions: user.sessions })}
+      confirmLabel={t(m.deactivateAccount)}
+      busyLabel={t(m.deactivating)}
+      reason={{ label: t(m.deactivateReason), minLength: 3 }}
       onConfirm={async ({ reason }) => {
-        if (blocked) throw new Error(`${name} is the only Owner of ${andList(user.soleOwnerOf)}. Transfer ownership first.`)
+        if (blocked) throw new Error(tt(m.soleOwner, { name, workspaces: andList(user.soleOwnerOf) }))
         const r = await deactivate.mutateAsync({ params: { path: { userId: user.id } }, body: { reason: reason ?? '', revokeKeys: revoke } })
         await invalidate()
         toast({
           kind: 'success',
-          title: `${user.name} deactivated`,
-          detail: `${r.sessions} ${r.sessions === 1 ? 'session' : 'sessions'} ended${r.keys ? ` · ${r.keys} API ${r.keys === 1 ? 'key' : 'keys'} revoked` : ''}`,
+          title: tt(m.deactivatedToast, { name: user.name }),
+          detail: tt(m.deactivatedDetail, { sessions: r.sessions, keys: r.keys }),
         })
       }}
     >
-      <DialogRow tone="info" label="Workspaces" first>
-        {active.length ? active.map((w) => `${w.name} (${w.role})`).join(', ') : 'None'}
+      <DialogRow tone="info" label={t(m.workspacesRow)} first>
+        {active.length ? active.map((w) => `${w.name} (${roleName({ name: w.role })})`).join(', ') : t(common.none)}
       </DialogRow>
       {user.apiKeys > 0 ? (
         <DialogOption
           type="checkbox"
           checked={revoke}
           onChange={setRevoke}
-          title={`Revoke the ${user.apiKeys} API ${user.apiKeys === 1 ? 'key' : 'keys'} and agents ${name} created`}
-          description="Leave unchecked to keep integrations running; they stop at the next permission change anyway."
+          title={t(m.revokeKeys, { count: user.apiKeys, name })}
+          description={t(m.revokeKeysHint)}
         />
       ) : null}
       {blocked ? (
         <Note tone="bad">
-          {name} is the only Owner of {andList(user.soleOwnerOf)}. <Badge tone="bad">Blocked</Badge> Transfer ownership in the workspace&apos;s settings first.
+          <T msg={m.soleOwnerNote} values={{ name, workspaces: andList(user.soleOwnerOf), badge: (c) => <Badge tone="bad">{c}</Badge> }} />
         </Note>
       ) : null}
     </ConfirmDialog>

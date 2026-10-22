@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState, type ReactNode } from 'react'
 import { $api, errorMessage, type Schemas } from '@/api/client'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
@@ -7,9 +7,19 @@ import { Note } from '@/components/ui/Note'
 import { Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { AccessTable, PersonCell } from '@/features/access/parts'
+import { T, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { andList } from '@/lib/format'
 import { useInvalidateSSO } from '../queries'
+import { m as sm } from './messages'
 
 type Detail = Schemas['SSOProviderDetail']
+
+/** "A, B and C" with nodes, in the app language. */
+function andNodes(nodes: ReactNode[]): ReactNode {
+  const words = andList(nodes.map((_, i) => `§${i}§`))
+  return words.split(/§(\d+)§/).map((part, i) => (i % 2 === 1 ? <Fragment key={i}>{nodes[Number(part)]}</Fragment> : part))
+}
 
 /**
  * Turning on domain enforcement (SSOStates): who signs in how today and
@@ -17,6 +27,7 @@ type Detail = Schemas['SSOProviderDetail']
  * sent to the IdP at their next sign-in.
  */
 export function EnforcementDialog({ d, onClose, onDone }: { d: Detail; onClose: () => void; onDone: (d: Detail) => void }) {
+  const t = useT()
   const domains = d.domains
   const preview = $api.useQuery('get', '/api/v1/admin/sso/{providerId}/enforcement', { params: { path: { providerId: d.id }, query: { domain: domains } } })
   const set = $api.useMutation('put', '/api/v1/admin/sso/{providerId}/enforcement')
@@ -32,36 +43,32 @@ export function EnforcementDialog({ d, onClose, onDone }: { d: Detail; onClose: 
       hideClose
       dismissible={false}
       size="lg"
-      eyebrow={<span className="k">Dialog · turning on domain enforcement</span>}
-      title={`Enforce ${d.name} sign-in for ${list}?`}
-      description={
-        <span className="text-[13.5px]">
-          Password sign-in stops working for {list} accounts at their next sign-in. Passkeys and social sign-ins for this domain are disabled too.
-        </span>
-      }
+      eyebrow={<span className="k">{t(sm.enforceEyebrow)}</span>}
+      title={t(sm.enforceTitle, { provider: d.name, domains: list })}
+      description={<span className="text-[13.5px]">{t(sm.enforceBody, { domains: list })}</span>}
       footer={
         <>
           <Button onClick={onClose} disabled={set.isPending}>
-            Cancel
+            {t(common.cancel)}
           </Button>
           <Button
             variant="primary"
             loading={set.isPending}
-            disabledReason={!p ? 'Loading who is affected…' : p.conflict ? `${p.conflict} already enforces this domain` : undefined}
+            disabledReason={!p ? t(sm.enforceLoading) : p.conflict ? t(sm.enforceConflictReason, { provider: p.conflict }) : undefined}
             onClick={async () => {
               setError(undefined)
               try {
                 const r = await set.mutateAsync({ params: { path: { providerId: d.id } }, body: { domains, confirm: true } })
                 onDone(r)
                 await invalidate()
-                toast({ kind: 'success', title: `${d.name} is enforced for ${list}`, detail: 'break-glass Owners keep their password' })
+                toast({ kind: 'success', title: t(sm.enforcedToast, { provider: d.name, domains: list }), detail: t(sm.enforcedDetail) })
                 onClose()
               } catch (e) {
                 setError(errorMessage(e))
               }
             }}
           >
-            Turn on enforcement
+            {t(sm.enforceConfirm)}
           </Button>
         </>
       }
@@ -77,12 +84,12 @@ export function EnforcementDialog({ d, onClose, onDone }: { d: Detail; onClose: 
       ) : (
         <>
           {p.members.length > 0 ? (
-            <AccessTable caption="Who signs in how">
+            <AccessTable caption={t(sm.enforceTable)}>
               <thead>
                 <tr>
-                  <Th>Member</Th>
-                  <Th>Today</Th>
-                  <Th>After</Th>
+                  <Th>{t(sm.colMember)}</Th>
+                  <Th>{t(sm.colToday)}</Th>
+                  <Th>{t(sm.colAfter)}</Th>
                 </tr>
               </thead>
               <tbody>
@@ -98,37 +105,36 @@ export function EnforcementDialog({ d, onClose, onDone }: { d: Detail; onClose: 
               </tbody>
             </AccessTable>
           ) : (
-            <Note tone="neutral">Nobody has an account at {list} yet. People who sign in later go straight to {d.name}.</Note>
+            <Note tone="neutral">{t(sm.enforceNobody, { domains: list, provider: d.name })}</Note>
           )}
           {p.breakGlass.length > 0 ? (
-            <Note tone="ok" label="Break-glass">
-              Keeps password + two-factor access, even with enforcement on:{' '}
-              {p.breakGlass.map((o, i) => (
-                <span key={o.email}>
-                  {i > 0 ? (i === p.breakGlass.length - 1 ? ' and ' : ', ') : null}
-                  <b>{o.name}</b> (Owner, {o.workspace})
-                </span>
-              ))}
-              . Their password sign-ins are logged as break-glass.
+            <Note tone="ok" label={t(sm.breakGlassLabel)}>
+              <T
+                msg={sm.breakGlassKeeps}
+                values={{
+                  owners: <>{andNodes(p.breakGlass.map((o) => <T key={o.email} msg={sm.breakGlassOwner} values={{ name: o.name, workspace: o.workspace, b: (c) => <b>{c}</b> }} />))}</>,
+                }}
+              />
             </Note>
           ) : (
-            <Note tone="warn" label="No break-glass">
-              No Owner at {list} keeps a password sign-in. If {d.name} is down, nobody at {list} can sign in; ask an instance admin at another domain to keep access.
+            <Note tone="warn" label={t(sm.noBreakGlassLabel)}>
+              {t(sm.noBreakGlass, { domains: list, provider: d.name })}
             </Note>
           )}
           {unlinked.length > 0 ? (
-            <Note tone="warn" label={`${unlinked.length} ${unlinked.length === 1 ? 'member' : 'members'}`}>
-              {unlinked.map((m, i) => (
-                <span key={m.id}>
-                  {i > 0 ? (i === unlinked.length - 1 ? ' and ' : ', ') : null}
-                  <b>{m.name}</b>
-                </span>
-              ))}{' '}
-              {unlinked.length === 1 ? 'signs in with a password today and has' : 'sign in with a password today and have'} no {d.name} account linked yet.{' '}
-              {unlinked.length === 1 ? 'They will be asked' : 'They will each be asked'} to continue with {d.name.split(' ')[0]} at their next sign-in; their role and history stay.
+            <Note tone="warn" label={t(sm.unlinkedLabel, { count: unlinked.length })}>
+              <T
+                msg={sm.unlinkedBody}
+                values={{
+                  names: <>{andNodes(unlinked.map((m) => <b key={m.id}>{m.name}</b>))}</>,
+                  count: unlinked.length,
+                  provider: d.name,
+                  short: d.name.split(' ')[0] ?? d.name,
+                }}
+              />
             </Note>
           ) : null}
-          {p.conflict ? <Note tone="bad">{p.conflict} already enforces one of these domains. Turn it off there first.</Note> : null}
+          {p.conflict ? <Note tone="bad">{t(sm.enforceConflict, { provider: p.conflict })}</Note> : null}
         </>
       )}
       {error ? <Note tone="bad">{error}</Note> : null}
