@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Build ReputeCast community sending adapters: protocol types, defineAdapter, a signed protocol server, webhook helpers and the contract-test runner.",
   "license": "AGPL-3.0-only",
-  "homepage": "https://github.com/hostrepute/reputecast/blob/main/docs/adapters.md#community-adapters",
+  "homepage": "https://docs.reputecast.com/adapters/community/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hostrepute/reputecast.git",

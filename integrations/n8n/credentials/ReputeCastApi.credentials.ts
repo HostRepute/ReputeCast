@@ -21,8 +21,7 @@ export class ReputeCastApi implements ICredentialType {
 
 	icon: Icon = { light: 'file:../icons/reputecast.svg', dark: 'file:../icons/reputecast.svg' };
 
-	documentationUrl =
-		'https://github.com/hostrepute/reputecast/blob/main/integrations/n8n/README.md#credentials';
+	documentationUrl = 'https://docs.reputecast.com/integrations/n8n/#connect-n8n';
 
 	properties: INodeProperties[] = [
 		{

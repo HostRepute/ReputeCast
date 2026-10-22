@@ -30,7 +30,7 @@ import (
 
 // Links on the Adapters tab.
 const (
-	SDKURL      = "https://github.com/hostrepute/reputecast/blob/main/docs/adapters.md#community-adapters"
+	SDKURL      = "https://docs.reputecast.com/adapters/community/"
 	TemplateURL = "https://github.com/hostrepute/reputecast/tree/main/sdk/adapter-template"
 	RegistryURL = "https://github.com/hostrepute/reputecast-adapters"
 )

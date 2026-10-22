@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       ReputeCast
- * Plugin URI:        https://github.com/hostrepute/reputecast/tree/main/integrations/wordpress
+ * Plugin URI:        https://docs.reputecast.com/integrations/wordpress/
  * Description:       Signup forms from ReputeCast, the open-source newsletter platform, as a block and a shortcode. Published posts become campaign drafts in ReputeCast, the site reports its health there, and WooCommerce stores get the checkout's marketing consent and abandoned checkouts.
  * Version:           1.4.0
  * Requires at least: 6.4

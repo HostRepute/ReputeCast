@@ -16,7 +16,7 @@ import { copy, failed, FieldError, fieldErrors, StatusRow, useSetupActions, type
 import { Ticks } from './text'
 import { continueClass, StepHeading, WizardFooter } from './Wizard'
 
-const REVERSE_PROXY_GUIDE = 'https://github.com/hostrepute/reputecast/blob/main/docs/deploy/reverse-proxy.md'
+const REVERSE_PROXY_GUIDE = 'https://docs.reputecast.com/self-hosting/reverse-proxy/'
 
 const mono = (chunks: React.ReactNode[]) => <span className="mono">{chunks}</span>
 

@@ -629,7 +629,7 @@ function LiveCount({
           <Button size="sm" variant="primary" onClick={() => void preview.refetch()}>
             {t(m.retryCount)}
           </Button>
-          <ButtonAnchor size="sm" href="https://github.com/hostrepute/reputecast/blob/main/docs/deploy/postgres-tuning.md">
+          <ButtonAnchor size="sm" href="https://docs.reputecast.com/self-hosting/postgres/#sql-segments">
             {t(m.tuningGuide)}
           </ButtonAnchor>
         </div>

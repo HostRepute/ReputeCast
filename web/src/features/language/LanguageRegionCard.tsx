@@ -15,7 +15,7 @@ import { FOLLOW, useMemberLanguage, useSaveMemberLanguage, type MemberLanguage }
 import './language.css'
 
 /** The translation guide ("Help translate ReputeCast"). */
-export const TRANSLATE_GUIDE = 'https://github.com/hostrepute/reputecast/blob/main/docs/i18n/translating.md'
+export const TRANSLATE_GUIDE = 'https://docs.reputecast.com/developers/translating/'
 
 const ExternalIcon = () => (
   <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

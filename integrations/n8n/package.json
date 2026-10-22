@@ -3,7 +3,7 @@
   "version": "1.1.0",
   "description": "ReputeCast nodes for n8n: start workflows from ReputeCast events, and create contacts, tag them, record events and send transactional email from your workflows.",
   "license": "MIT",
-  "homepage": "https://github.com/hostrepute/reputecast/tree/main/integrations/n8n",
+  "homepage": "https://docs.reputecast.com/integrations/n8n/",
   "keywords": [
     "n8n-community-node-package",
     "reputecast",

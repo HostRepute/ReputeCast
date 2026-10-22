@@ -125,7 +125,7 @@ func TestRuntimeEndToEnd(t *testing.T) {
 	if listed == nil || listed.Kind != "remote" || listed.Maintainer != "reputecast-tests" || strings.Join(listed.Capabilities, " · ") != "webhooks · suppression sync · batch 50 · domain setup via API · quota & rate discovery" {
 		t.Fatalf("listed %+v", listed)
 	}
-	if !strings.Contains(tab.SDKURL, "docs/adapters.md") || !strings.HasSuffix(tab.TemplateURL, "sdk/adapter-template") {
+	if tab.SDKURL != "https://docs.reputecast.com/adapters/community/" || !strings.HasSuffix(tab.TemplateURL, "sdk/adapter-template") {
 		t.Fatalf("links %s %s", tab.SDKURL, tab.TemplateURL)
 	}
 
