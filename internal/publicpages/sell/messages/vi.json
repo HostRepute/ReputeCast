@@ -85,6 +85,10 @@
   "shop.pwywFrom": "Trả tùy ý · từ {min}",
   "shop.crumb": "Cửa hàng",
   "shop.fileMeta": "{file} · mở bằng {apps}",
+  "shop.apps.sheet": "Excel, Numbers hoặc Google Sheets",
+  "shop.apps.doc": "Word, Pages hoặc Google Docs",
+  "shop.apps.slides": "PowerPoint, Keynote hoặc Google Slides",
+  "shop.apps.ebook": "Apple Books hoặc bất kỳ ứng dụng đọc sách điện tử nào",
 
   "event.online": "Trực tuyến, trên {platform}",
   "event.onlinePlain": "Trực tuyến",

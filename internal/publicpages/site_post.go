@@ -417,8 +417,10 @@ func (h *Handler) paywall(ctx context.Context, s *site, v *siteView, p store.Web
 	if err != nil {
 		return nil, err
 	}
+	// The default button reads in the page's language, as the heading and
+	// the free row do; a button the publisher wrote stays as written.
 	button := pv.Paywall.Upgrade
-	if button == "" {
+	if button == "" || button == website.DefaultPaywall().Upgrade {
 		button = v.T("site.upgrade")
 	}
 	up := h.upgradeHref(ctx, s, reader)

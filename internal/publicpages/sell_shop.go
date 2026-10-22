@@ -82,16 +82,16 @@ func (h *Handler) shopPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // appsFor names the apps a file opens in ("Excel, Numbers or Google Sheets").
-func appsFor(kind string) string {
+func appsFor(v *siteView, kind string) string {
 	switch strings.ToLower(kind) {
 	case "xlsx", "csv":
-		return "Excel, Numbers or Google Sheets"
+		return v.S("shop.apps.sheet")
 	case "docx":
-		return "Word, Pages or Google Docs"
+		return v.S("shop.apps.doc")
 	case "pptx":
-		return "PowerPoint, Keynote or Google Slides"
+		return v.S("shop.apps.slides")
 	case "epub":
-		return "Apple Books or any e-reader"
+		return v.S("shop.apps.ebook")
 	}
 	return ""
 }
@@ -159,7 +159,7 @@ func (h *Handler) productBody(r *http.Request, s *site, v *siteView, p products.
 	}
 	if p.Files.Count > 0 {
 		file := pr.fileLine(p.Files)
-		if apps := appsFor(p.Files.Kind); apps != "" {
+		if apps := appsFor(v, p.Files.Kind); apps != "" {
 			b.Meta = v.S("shop.fileMeta", "file", file, "apps", apps)
 		} else {
 			b.Meta = file
