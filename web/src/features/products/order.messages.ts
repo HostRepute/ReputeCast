@@ -63,7 +63,8 @@ export const po = defineMessages('products.order', {
   deliverySent: '{template} v{version} · sent via {provider} at {time}',
   deliverySentNew: 'New link: {template} v{version} · sent via {provider} at {time}',
   deliveryQueued: '{template} v{version} · queued',
-  deliveryFailed: '{template} v{version} · {status} at {provider}',
+  deliveryFailed:
+    '{template} v{version} · {status, select, bounced {bounced} complained {complained} rejected {rejected} cancelled {cancelled} other {failed}} at {provider}',
   deliveryNone: 'Not sent yet',
   deliveryNoneFailed: 'Not sent: {reason}',
   opensInMessages: 'Opens in Transactional › Messages',

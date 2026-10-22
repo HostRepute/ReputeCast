@@ -298,6 +298,14 @@
   line-height: 1.25;
 }
 
+/* Products: the product editor's numbers ("6.206 US$" where the region
+   format writes the currency after the amount, joined by a no-break space)
+   take two columns instead of three in the narrow side panel, so an amount
+   never runs past its tile. */
+:root:not([lang='en']) .pr-nums {
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+}
+
 /* Instance admin, keys, webhooks and the audit logs (V01). */
 
 /* Rule 1 on Instance admin › Users and both audit logs: from tablets up,

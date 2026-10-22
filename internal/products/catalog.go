@@ -757,7 +757,7 @@ func (s *Service) route(ctx context.Context, ws *store.Workspace) (string, bool,
 	}
 	if def.Fallback != nil {
 		if fb := name(*def.Fallback); fb != "" {
-			return primary + ", then " + fb, true, nil
+			return word(lang(ctx), "route.withFallback", map[string]any{"primary": primary, "fallback": fb}), true, nil
 		}
 	}
 	return primary, true, nil
@@ -980,7 +980,7 @@ func freeSlug(ctx context.Context, q *store.Queries, wsID, id uuid.UUID, base st
 		}
 		slug = base + suffix
 	}
-	return "", api.Conflict("Every address like this one is taken. Pick another.")
+	return "", api.Conflict(word(lang(ctx), "product.slugExhausted", nil))
 }
 
 // Save saves a product's draft. A published product's live version

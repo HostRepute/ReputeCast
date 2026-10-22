@@ -3,7 +3,6 @@ package transactional
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -75,7 +75,7 @@ func (s *Service) Categories(ctx context.Context, ws *store.Workspace, p *authz.
 		out.Items = append(out.Items, TransactionalCategory{ID: r.ID.String(), Name: r.Name, Kind: r.Kind, Description: r.Description, Templates: r.Templates, OptedOut: r.OptedOut})
 	}
 	if !out.CanEdit {
-		out.Reason = deniedMessage("Changing categories", authz.TransactionalPublish, s.helpers(ctx, ws.ID, authz.TransactionalPublish, 3))
+		out.Reason = deniedMessage(ctx, "categories", authz.TransactionalPublish, s.helpers(ctx, ws.ID, authz.TransactionalPublish, 3))
 	}
 	return out, nil
 }
@@ -85,21 +85,21 @@ func (s *Service) requireSettings(ctx context.Context, ws *store.Workspace, p *a
 		return nil
 	}
 	pr := api.Forbidden(authz.TransactionalPublish, s.helpers(ctx, ws.ID, authz.TransactionalPublish, 3))
-	pr.Detail = deniedMessage("Changing Transactional settings", authz.TransactionalPublish, pr.Helpers)
+	pr.Detail = deniedMessage(ctx, "settings", authz.TransactionalPublish, pr.Helpers)
 	return pr
 }
 
-func cleanCategory(in TransactionalCategoryInput) (TransactionalCategoryInput, error) {
+func cleanCategory(ctx context.Context, in TransactionalCategoryInput) (TransactionalCategoryInput, error) {
 	in.Name = strings.TrimSpace(in.Name)
 	in.Description = strings.TrimSpace(in.Description)
 	if in.Name == "" {
-		return in, api.Invalid("body.name", "Give the category a name.")
+		return in, api.Invalid("body.name", say(ctx, "category.nameRequired", nil))
 	}
 	if in.Kind != KindEssential && in.Kind != KindOptional {
-		return in, api.Invalid("body.kind", "Pick Essential or Optional.")
+		return in, api.Invalid("body.kind", say(ctx, "category.kindPick", nil))
 	}
 	if in.Kind == KindOptional && in.Description == "" {
-		return in, api.Invalid("body.description", "Optional categories need a description: recipients read it in the preference center.")
+		return in, api.Invalid("body.description", say(ctx, "category.descriptionRequired", nil))
 	}
 	return in, nil
 }
@@ -114,7 +114,7 @@ func (s *Service) CreateCategory(ctx context.Context, ws *store.Workspace, p *au
 	if err := s.requireSettings(ctx, ws, p); err != nil {
 		return TransactionalCategory{}, err
 	}
-	in, err := cleanCategory(in)
+	in, err := cleanCategory(ctx, in)
 	if err != nil {
 		return TransactionalCategory{}, err
 	}
@@ -124,7 +124,7 @@ func (s *Service) CreateCategory(ctx context.Context, ws *store.Workspace, p *au
 		if err := q.TxnCategoryInsert(ctx, store.TxnCategoryInsertParams{ID: id, WorkspaceID: ws.ID, Name: in.Name, Kind: in.Kind, Description: in.Description,
 			CreatedBy: userRef(p), CreatedAt: s.now()}); err != nil {
 			if isUnique(err) {
-				return api.Invalid("body.name", fmt.Sprintf("There is already a category called “%s”.", in.Name))
+				return api.Invalid("body.name", say(ctx, "category.nameTaken", i18n.Args{"name": in.Name}))
 			}
 			return err
 		}
@@ -142,7 +142,7 @@ func (s *Service) UpdateCategory(ctx context.Context, ws *store.Workspace, p *au
 	if err := s.requireSettings(ctx, ws, p); err != nil {
 		return TransactionalCategory{}, err
 	}
-	in, err := cleanCategory(in)
+	in, err := cleanCategory(ctx, in)
 	if err != nil {
 		return TransactionalCategory{}, err
 	}
@@ -158,11 +158,11 @@ func (s *Service) UpdateCategory(ctx context.Context, ws *store.Workspace, p *au
 			return err
 		}
 		if cur.Kind != in.Kind && n > 0 {
-			return api.Err(http.StatusConflict, api.CodeConflict, fmt.Sprintf("%s has %d %s, so its kind can't change. Move them to another category first.", cur.Name, n, plural(int(n), "template", "templates")))
+			return api.Err(http.StatusConflict, api.CodeConflict, say(ctx, "category.kindFixed", i18n.Args{"name": cur.Name, "count": n}))
 		}
 		if err := q.TxnCategoryUpdate(ctx, store.TxnCategoryUpdateParams{WorkspaceID: ws.ID, ID: id, Name: in.Name, Kind: in.Kind, Description: in.Description, UpdatedAt: s.now()}); err != nil {
 			if isUnique(err) {
-				return api.Invalid("body.name", fmt.Sprintf("There is already a category called “%s”.", in.Name))
+				return api.Invalid("body.name", say(ctx, "category.nameTaken", i18n.Args{"name": in.Name}))
 			}
 			return err
 		}
@@ -190,7 +190,7 @@ func (s *Service) DeleteCategory(ctx context.Context, ws *store.Workspace, p *au
 			return err
 		}
 		if n > 0 {
-			return api.Err(http.StatusConflict, api.CodeConflict, fmt.Sprintf("%s still has %d %s. Move them to another category before deleting it.", cur.Name, n, plural(int(n), "template", "templates")))
+			return api.Err(http.StatusConflict, api.CodeConflict, say(ctx, "category.hasTemplates", i18n.Args{"name": cur.Name, "count": n}))
 		}
 		if _, err := q.TxnCategoryDelete(ctx, store.TxnCategoryDeleteParams{WorkspaceID: ws.ID, ID: id}); err != nil {
 			return err

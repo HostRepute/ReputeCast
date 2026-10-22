@@ -22,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/templates"
@@ -106,13 +107,24 @@ func (s *Service) access(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	a := TransactionalTemplateAccess{CanEdit: p.Can(authz.TransactionalEdit), CanPublish: p.Can(authz.TransactionalPublish),
 		CanSendTestToOthers: p.Can(authz.TransactionalSend), CanViewContent: p.Can(authz.TransactionalContent), PublishHelpers: []string{}}
 	if !a.CanEdit {
-		a.EditReason = "You can open every tab and render with test data. " + deniedMessage("Editing", authz.TransactionalEdit, s.helpers(ctx, ws.ID, authz.TransactionalEdit, 3))
+		edit := i18n.Args{"permission": string(authz.TransactionalEdit)}
+		if helpers := s.helpers(ctx, ws.ID, authz.TransactionalEdit, 3); len(helpers) > 0 {
+			edit["names"] = askNames(ctx, helpers)
+			a.EditReason = say(ctx, "denied.editorAsk", edit)
+		} else {
+			a.EditReason = say(ctx, "denied.editor", edit)
+		}
 	}
 	if !a.CanPublish {
 		a.PublishHelpers = s.helpers(ctx, ws.ID, authz.TransactionalPublish, 3)
-		a.PublishReason = deniedMessage("Publishing", authz.TransactionalPublish, a.PublishHelpers)
-		if a.CanEdit {
-			a.PublishReason += " Your draft is saved."
+		publish := i18n.Args{"permission": string(authz.TransactionalPublish), "names": askNames(ctx, a.PublishHelpers)}
+		switch {
+		case a.CanEdit && len(a.PublishHelpers) > 0:
+			a.PublishReason = say(ctx, "denied.publishSavedAsk", publish)
+		case a.CanEdit:
+			a.PublishReason = say(ctx, "denied.publishSaved", publish)
+		default:
+			a.PublishReason = deniedMessage(ctx, "publish", authz.TransactionalPublish, a.PublishHelpers)
 		}
 	}
 	return a
@@ -183,15 +195,15 @@ func KeyFromName(name string) string {
 	return clip(strings.Trim(b.String(), "-"), 64)
 }
 
-func validateKey(key string) error {
+func validateKey(ctx context.Context, key string) error {
 	if key == "" {
-		return api.Invalid("body.key", "Give the template an ID, such as password-reset.")
+		return api.Invalid("body.key", say(ctx, "template.keyRequired", nil))
 	}
 	if len(key) > 64 || !keyRe.MatchString(key) {
-		return api.Invalid("body.key", "The ID can use lowercase letters, digits and single hyphens, such as password-reset.")
+		return api.Invalid("body.key", say(ctx, "template.keyFormat", nil))
 	}
 	if _, err := uuid.Parse(key); err == nil {
-		return api.Invalid("body.key", "The ID can't look like a message ID; use words, such as password-reset.")
+		return api.Invalid("body.key", say(ctx, "template.keyLooksLikeId", nil))
 	}
 	return nil
 }
@@ -222,13 +234,13 @@ type TransactionalTemplateCreate struct {
 func (s *Service) CreateTemplate(ctx context.Context, ws *store.Workspace, p *authz.Principal, in TransactionalTemplateCreate) (TransactionalTemplate, error) {
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		return TransactionalTemplate{}, api.Invalid("body.name", "Give the template a name.")
+		return TransactionalTemplate{}, api.Invalid("body.name", say(ctx, "template.nameRequired", nil))
 	}
 	key := strings.ToLower(strings.TrimSpace(in.Key))
 	if key == "" {
 		key = KeyFromName(name)
 	}
-	if err := validateKey(key); err != nil {
+	if err := validateKey(ctx, key); err != nil {
 		return TransactionalTemplate{}, err
 	}
 	st, err := s.settingsRow(ctx, s.Q, ws.ID)
@@ -246,7 +258,7 @@ func (s *Service) CreateTemplate(ctx context.Context, ws *store.Workspace, p *au
 	case in.Starter != "":
 		sd, ok := starterByKey(in.Starter)
 		if !ok {
-			return TransactionalTemplate{}, api.Invalid("body.starter", "There is no starter called "+in.Starter+".")
+			return TransactionalTemplate{}, api.Invalid("body.starter", say(ctx, "template.starterUnknown", i18n.Args{"starter": in.Starter}))
 		}
 		product := s.product(ctx, ws)
 		src := sd.mjmlFor(product, s.footer(ctx, ws))
@@ -289,7 +301,7 @@ func (s *Service) CreateTemplate(ctx context.Context, ws *store.Workspace, p *au
 	if err := validateVariables(c.Variables); err != nil {
 		return TransactionalTemplate{}, err
 	}
-	if err := validateTestData(testData); err != nil {
+	if err := validateTestData(ctx, testData); err != nil {
 		return TransactionalTemplate{}, err
 	}
 	if strings.TrimSpace(c.HTML) == "" && strings.TrimSpace(c.MJML) != "" {
@@ -312,7 +324,7 @@ func (s *Service) CreateTemplate(ctx context.Context, ws *store.Workspace, p *au
 		if taken, err := q.TxnTemplateKeyTaken(ctx, store.TxnTemplateKeyTakenParams{WorkspaceID: ws.ID, Key: key, ID: id}); err != nil {
 			return err
 		} else if taken {
-			return api.Invalid("body.key", fmt.Sprintf("Another template already uses the ID %s.", key))
+			return api.Invalid("body.key", say(ctx, "template.keyTaken", i18n.Args{"key": key}))
 		}
 		category, err := s.pickCategory(ctx, q, ws.ID, in.CategoryID, categoryKind)
 		if err != nil {
@@ -326,7 +338,7 @@ func (s *Service) CreateTemplate(ctx context.Context, ws *store.Workspace, p *au
 			DraftHash: hash, Now: now, CreatedBy: userRef(p), Origin: mustJSON(origin),
 		}); err != nil {
 			if isUnique(err) {
-				return api.Invalid("body.key", fmt.Sprintf("Another template already uses the ID %s.", key))
+				return api.Invalid("body.key", say(ctx, "template.keyTaken", i18n.Args{"key": key}))
 			}
 			return err
 		}
@@ -356,10 +368,10 @@ func (s *Service) pickCategory(ctx context.Context, q *store.Queries, wsID uuid.
 	if ref != "" {
 		id, err := uuid.Parse(ref)
 		if err != nil {
-			return nil, api.Invalid("body.categoryId", "Pick a category from the list.")
+			return nil, api.Invalid("body.categoryId", say(ctx, "template.categoryPick", nil))
 		}
 		if _, err := q.TxnCategory(ctx, store.TxnCategoryParams{WorkspaceID: wsID, ID: id}); err != nil {
-			return nil, api.Invalid("body.categoryId", "That category doesn't exist in this workspace.")
+			return nil, api.Invalid("body.categoryId", say(ctx, "template.categoryGone", nil))
 		}
 		return &id, nil
 	}
@@ -400,15 +412,15 @@ func (s *Service) footer(_ context.Context, ws *store.Workspace) string {
 	return templates.WorkspaceAddress(ws)
 }
 
-func validateTestData(sets []TransactionalTestData) error {
+func validateTestData(ctx context.Context, sets []TransactionalTestData) error {
 	seen := map[string]bool{}
 	for i, t := range sets {
 		name := strings.TrimSpace(t.Name)
 		if name == "" {
-			return api.Invalid(fmt.Sprintf("body.testData[%d].name", i), "Name each test data set.")
+			return api.Invalid(fmt.Sprintf("body.testData[%d].name", i), say(ctx, "template.testDataName", nil))
 		}
 		if seen[strings.ToLower(name)] {
-			return api.Invalid(fmt.Sprintf("body.testData[%d].name", i), fmt.Sprintf("There are two test data sets called “%s”.", name))
+			return api.Invalid(fmt.Sprintf("body.testData[%d].name", i), say(ctx, "template.testDataTwice", i18n.Args{"name": name}))
 		}
 		seen[strings.ToLower(name)] = true
 	}
@@ -441,7 +453,7 @@ func (s *Service) UpdateTemplate(ctx context.Context, ws *store.Workspace, p *au
 		if in.Name != nil {
 			n := strings.TrimSpace(*in.Name)
 			if n == "" {
-				return api.Invalid("body.name", "Give the template a name.")
+				return api.Invalid("body.name", say(ctx, "template.nameRequired", nil))
 			}
 			if n != name {
 				before["name"], after["name"] = name, n
@@ -452,15 +464,15 @@ func (s *Service) UpdateTemplate(ctx context.Context, ws *store.Workspace, p *au
 			k := strings.ToLower(strings.TrimSpace(*in.Key))
 			if k != key {
 				if cur.FirstPublishedAt != nil {
-					return api.Err(http.StatusConflict, api.CodeConflict, fmt.Sprintf("The ID %s is fixed: it was published and your app calls it. Duplicate the template to use another ID.", key))
+					return api.Err(http.StatusConflict, api.CodeConflict, say(ctx, "template.keyFixed", i18n.Args{"key": key}))
 				}
-				if err := validateKey(k); err != nil {
+				if err := validateKey(ctx, k); err != nil {
 					return err
 				}
 				if taken, err := q.TxnTemplateKeyTaken(ctx, store.TxnTemplateKeyTakenParams{WorkspaceID: ws.ID, Key: k, ID: id}); err != nil {
 					return err
 				} else if taken {
-					return api.Invalid("body.key", fmt.Sprintf("Another template already uses the ID %s.", k))
+					return api.Invalid("body.key", say(ctx, "template.keyTaken", i18n.Args{"key": k}))
 				}
 				before["key"], after["key"] = key, k
 				key = k
@@ -485,7 +497,7 @@ func (s *Service) UpdateTemplate(ctx context.Context, ws *store.Workspace, p *au
 		}
 		if err := q.TxnTemplateUpdateMeta(ctx, store.TxnTemplateUpdateMetaParams{WorkspaceID: ws.ID, ID: id, Key: key, Name: name, Description: desc, CategoryID: category, UpdatedAt: s.now()}); err != nil {
 			if isUnique(err) {
-				return api.Invalid("body.key", fmt.Sprintf("Another template already uses the ID %s.", key))
+				return api.Invalid("body.key", say(ctx, "template.keyTaken", i18n.Args{"key": key}))
 			}
 			return err
 		}
@@ -558,7 +570,7 @@ func (s *Service) SaveDraft(ctx context.Context, ws *store.Workspace, p *authz.P
 		contentChanged := false
 		if in.Subject != nil {
 			if strings.ContainsAny(*in.Subject, "\r\n") {
-				return api.Invalid("body.subject", "The subject must be one line.")
+				return api.Invalid("body.subject", say(ctx, "template.subjectOneLine", nil))
 			}
 			c.Subject = *in.Subject
 			contentChanged = true
@@ -591,7 +603,7 @@ func (s *Service) SaveDraft(ctx context.Context, ws *store.Workspace, p *authz.P
 			c.Variables = *in.Variables
 		}
 		if in.TestData != nil {
-			if err := validateTestData(*in.TestData); err != nil {
+			if err := validateTestData(ctx, *in.TestData); err != nil {
 				return err
 			}
 			testData = *in.TestData
@@ -602,14 +614,14 @@ func (s *Service) SaveDraft(ctx context.Context, ws *store.Workspace, p *authz.P
 			} else {
 				sid, err := uuid.Parse(*in.SenderID)
 				if err != nil {
-					return api.Invalid("body.senderId", "Pick a sender from the list.")
+					return api.Invalid("body.senderId", say(ctx, "sender.pick", nil))
 				}
 				snd, err := q.TxnSenderByID(ctx, store.TxnSenderByIDParams{WorkspaceID: ws.ID, ID: sid})
 				if err != nil {
-					return api.Invalid("body.senderId", "That sender doesn't exist in this workspace.")
+					return api.Invalid("body.senderId", say(ctx, "sender.gone", nil))
 				}
 				if !snd.Transactional {
-					return api.Invalid("body.senderId", snd.Email+" isn't on a Transactional domain. Pick a sender on one in Settings › Senders.")
+					return api.Invalid("body.senderId", say(ctx, "sender.notTransactionalShort", i18n.Args{"email": snd.Email}))
 				}
 				sender = &sid
 			}
@@ -618,7 +630,7 @@ func (s *Service) SaveDraft(ctx context.Context, ws *store.Workspace, p *authz.P
 			r := strings.TrimSpace(*in.ReplyTo)
 			if r != "" {
 				if _, err := mail.ParseAddress(r); err != nil {
-					return api.Invalid("body.replyTo", "The reply-to isn't a valid email address.")
+					return api.Invalid("body.replyTo", say(ctx, "replyTo.invalid", nil))
 				}
 			}
 			replyTo = r
@@ -706,13 +718,13 @@ func (s *Service) draftConflict(ctx context.Context, q *store.Queries, cur store
 			mine = append(mine, "variables")
 		}
 	}
-	who := "Someone"
+	who := say(ctx, "template.someone", nil)
 	if cur.DraftSavedBy != nil {
 		if u, err := q.GetUser(ctx, *cur.DraftSavedBy); err == nil && u.Name != "" {
 			who = u.Name
 		}
 	}
-	return api.Err(http.StatusConflict, CodeVersionConflict, fmt.Sprintf("%s saved this draft at %s while you were editing.", who, cur.DraftSavedAt.Format("15:04"))).
+	return api.Err(http.StatusConflict, CodeVersionConflict, say(ctx, "template.draftConflict", i18n.Args{"who": who, "time": clockIn(ctx, cur.DraftSavedAt)})).
 		WithMeta("draftRevision", cur.DraftRevision, "savedBy", who, "savedAt", cur.DraftSavedAt, "theirChanges", theirs, "yourChanges", mine)
 }
 
@@ -765,7 +777,7 @@ func (s *Service) DeleteTemplate(ctx context.Context, ws *store.Workspace, p *au
 			return api.MapError(err, "Template")
 		}
 		if cur.LiveVersion != nil && cur.ArchivedAt == nil {
-			return api.Err(http.StatusConflict, api.CodeConflict, fmt.Sprintf("%s is live: your app may still call it. Archive it first; archived templates answer template_not_found.", cur.Key))
+			return api.Err(http.StatusConflict, api.CodeConflict, say(ctx, "template.deleteLive", i18n.Args{"key": cur.Key}))
 		}
 		if err := q.TxnTemplateDelete(ctx, store.TxnTemplateDeleteParams{WorkspaceID: ws.ID, ID: id, Now: s.now()}); err != nil {
 			return err

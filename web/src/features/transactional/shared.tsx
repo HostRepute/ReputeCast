@@ -1,11 +1,12 @@
-import { useState, type ReactNode } from 'react'
+import { Fragment, useState, type ReactNode } from 'react'
 import type { Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { NavTabs, type NavTab } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
-import { useT } from '@/i18n'
-import { clock, count, dayMonthDate, shortDate } from '@/lib/format'
+import { getI18n, t as tt, useI18n, useT } from '@/i18n'
+import { weekdayLabel } from '@/i18n/regions'
+import { clock, count, dayMonthDate, decimal, pct, zonedParts } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { mt } from './messages'
 import './transactional.css'
@@ -30,35 +31,40 @@ function txTabs(workspace: string, t: ReturnType<typeof useT>): NavTab[] {
   ]
 }
 
-/** "1.3 s"; a minute or more reads "3 min". */
+/** "1.3 s"; a minute or more reads "3 min". Numbers follow the region format. */
 export function secs(ms: number | null | undefined): string {
   if (ms === null || ms === undefined || ms < 0) return '—'
-  if (ms >= 60_000) return `${Math.round(ms / 60_000)} min`
+  if (ms >= 60_000) return tt(mt.minutes, { value: count(ms / 60_000) })
   // A local mail catcher answers in milliseconds.
-  if (ms < 100) return `${Math.round(ms)} ms`
-  return `${(ms / 1000).toFixed(1)} s`
+  if (ms < 100) return tt(mt.milliseconds, { value: count(ms) })
+  return tt(mt.seconds, { value: decimal(ms / 1000, 1) })
+}
+
+/** A size as the log says it: "38 KB", "912 B". */
+export function sizeText(bytes: number): string {
+  return bytes >= 1024 ? tt(mt.sizeKB, { value: count(bytes / 1024) }) : tt(mt.sizeBytes, { value: count(bytes) })
 }
 
 /** Delivery rates keep one decimal, except a whole 100%: "99.9%", "100%". */
 export function deliveredPct(v: number | null | undefined): string {
   if (v === null || v === undefined || Number.isNaN(v)) return '—'
-  if (v >= 99.995) return '100%'
-  if (v === 0) return '0%'
-  return `${v.toFixed(1)}%`
+  if (v >= 99.995) return pct(100, 0)
+  if (v === 0) return pct(0, 0)
+  return pct(v, 1)
 }
 
-/** Bounce rates keep two decimals ("0.09%", "1.41%"); none reads "0%". */
-export function bouncePct(v: number | null | undefined): string {
+/** Bounce rates keep two decimals ("0.09%", "1.41%"); none reads "0%" (or "0.00%" with `keepZero`). */
+export function bouncePct(v: number | null | undefined, keepZero = false): string {
   if (v === null || v === undefined || Number.isNaN(v)) return '—'
-  if (v === 0) return '0%'
-  return `${v.toFixed(2)}%`
+  if (v === 0 && !keepZero) return pct(0, 0)
+  return pct(v, 2)
 }
 
 /** Complaint rates are tiny: "0.007%". */
 export function complaintPct(v: number | null | undefined): string {
   if (v === null || v === undefined || Number.isNaN(v)) return '—'
-  if (v === 0) return '0%'
-  return v < 0.01 ? `${v.toFixed(3)}%` : `${v.toFixed(2)}%`
+  if (v === 0) return pct(0, 0)
+  return pct(v, v < 0.01 ? 3 : 2)
 }
 
 const DAY = 86_400_000
@@ -68,7 +74,7 @@ export function lastSent(d: string | null | undefined, now: Date = new Date()): 
   if (!d) return '—'
   const t = new Date(d)
   if (dayMonthDate(t) === dayMonthDate(now) && now.getTime() - t.getTime() < DAY) return clock(t)
-  if (now.getTime() - t.getTime() < 7 * DAY) return `${shortDate(t).split(' ')[0]} ${clock(t)}`
+  if (now.getTime() - t.getTime() < 7 * DAY) return `${weekdayLabel(getI18n().regionFormat, zonedParts(t).weekday, 'short')} ${clock(t)}`
   return dayMonthDate(t)
 }
 
@@ -234,6 +240,18 @@ export function CodeBox({ lang, onLang, code, children }: { lang: CodeLang; onLa
       <pre>{children}</pre>
     </div>
   )
+}
+
+/**
+ * Items joined as the app language lists them ("a, b and c"; Vietnamese
+ * "a, b và c"), each drawn by `render`: a list with markup, which
+ * formatList can't give.
+ */
+export function RichList({ items, render }: { items: string[]; render: (item: string) => ReactNode }) {
+  const { locale } = useI18n()
+  // English lists (and the pseudo-locale's) follow the house style, without the serial comma.
+  const parts = new Intl.ListFormat(locale.startsWith('en') ? 'en-GB' : locale, { style: 'long', type: 'conjunction' }).formatToParts(items)
+  return <>{parts.map((p, i) => (p.type === 'element' ? <Fragment key={i}>{render(p.value)}</Fragment> : p.value))}</>
 }
 
 /** "3,212" */

@@ -212,11 +212,11 @@ func Register(h huma.API, s *Service) {
 		func(ctx context.Context, in *coverInput) (*api.Body[ProductCover], error) {
 			f := in.RawBody.Data().File
 			if !f.IsSet {
-				return nil, api.Invalid("body.file", "Choose an image to upload.")
+				return nil, api.Invalid("body.file", word(lang(ctx), "cover.choose", nil))
 			}
 			data, err := io.ReadAll(io.LimitReader(f, 5<<20+1))
 			if err != nil {
-				return nil, api.Invalid("body.file", "The upload was interrupted. Try again.")
+				return nil, api.Invalid("body.file", word(lang(ctx), "cover.interrupted", nil))
 			}
 			ws := api.WorkspaceFrom(ctx)
 			if _, err := s.Q.ProductGet(ctx, store.ProductGetParams{WorkspaceID: ws.ID, ID: pid(in.ProductPath)}); err != nil {
