@@ -102,6 +102,7 @@ export default translate(m, {
   conversionsOnly: '<mono>{permission}</mono> là quyền duy nhất. Khóa này ghi nhận chuyển đổi kèm giá trị và không đọc được gì.',
   permissionsLabel: 'Quyền',
   sensitiveTitle: 'Quyền nhạy cảm',
+  sensitiveFlag: 'nhạy cảm',
   includedBy: 'bao gồm trong {key}',
   listScopeLabel: 'Phạm vi danh sách <opt>· không bắt buộc</opt>',
   allListsOption: 'Mọi danh sách',

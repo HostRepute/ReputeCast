@@ -29,7 +29,7 @@ export default translate(m, {
 
   urlCheckLabel: 'Kết quả kiểm tra URL',
   urlChecked: 'Đã kiểm tra URL công khai {ago}',
-  checkReachable: 'Khả năng truy cập',
+  checkReachable: 'Kết nối',
 
   logoWrongType: 'Hãy tải lên tệp SVG hoặc PNG',
   logoWrongTypeDetail: '{name} là {hasType, select, yes {{type}} other {một loại tệp khác}}',

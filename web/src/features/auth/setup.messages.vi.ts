@@ -81,7 +81,7 @@ export default translate(m, {
   publicUrlHint:
     'Dùng cho webhook của nhà cung cấp, URI chuyển hướng SSO, trang công khai và liên kết trong mọi email. Nếu đổi sau này, các webhook hiện có sẽ lỗi cho đến khi được đăng ký lại.',
   urlCheckLabel: 'Kết quả kiểm tra URL',
-  checkReachable: 'Khả năng truy cập',
+  checkReachable: 'Kết nối',
   checking: 'Đang kiểm tra…',
   checked: 'Đã kiểm tra {ago}',
   secondsAgo: '{n} giây trước',

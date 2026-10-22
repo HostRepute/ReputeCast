@@ -246,7 +246,7 @@ export function CreateKeyDialog({
                             <>
                               {' '}
                               <span title={t(m.sensitiveTitle)}>
-                                <SensitiveFlag />
+                                <SensitiveFlag>{t(m.sensitiveFlag)}</SensitiveFlag>
                               </span>
                             </>
                           ) : null}

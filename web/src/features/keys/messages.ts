@@ -115,6 +115,7 @@ export const m = defineMessages('keys', {
   conversionsOnly: '<mono>{permission}</mono> is the only permission. It records conversions with a value and reads nothing.',
   permissionsLabel: 'Permissions',
   sensitiveTitle: 'Sensitive permission',
+  sensitiveFlag: 'sensitive',
   includedBy: 'included by {key}',
   listScopeLabel: 'List scope <opt>· optional</opt>',
   allListsOption: 'All lists',
