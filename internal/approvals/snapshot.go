@@ -59,6 +59,9 @@ type Snapshot struct {
 	AuthorRole string `json:"author_role"`
 
 	Automation *ApprovalAutomationSnapshot `json:"automation,omitempty"`
+	// AutomationItems keep Automation.Changes' kinds and titles as messages
+	// for later readers (requests made before have none).
+	AutomationItems []automationItem `json:"automation_items,omitempty"`
 	// Languages are the language versions the approval covers.
 	Languages []languages.VersionSnapshot `json:"languages,omitempty"`
 	// DraftHash and Transactional: what a transactional template publish

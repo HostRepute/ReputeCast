@@ -441,6 +441,7 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		Comments: []ApprovalCommentView{}, Automation: snap.Automation, Transactional: snap.Transactional, Website: snap.Website, Channel: r.CampaignChannel, SMS: snap.SMS, Page: snap.Page,
 		Push: snap.Push, WhatsApp: snap.WhatsApp}
 	l := langOf(ctx)
+	out.Automation = localAutomation(l, snap)
 	if snap.Page != nil {
 		pg := *snap.Page
 		pg.VisibilityLabel = pageVisibilityLabel(l, pg.Visibility)

@@ -126,6 +126,25 @@ func TestInvalidationReadsInTheReadersLanguage(t *testing.T) {
 	}
 }
 
+// An automation publish request keeps its change list's messages: a
+// Vietnamese reader reads them in Vietnamese, older requests as stored.
+func TestAutomationChangesInVietnamese(t *testing.T) {
+	snap := Snapshot{Automation: &ApprovalAutomationSnapshot{Version: 4, Changes: []string{"added: A/B split"}},
+		AutomationItems: []automationItem{{Kind: "added", Title: i18n.Text{ID: "automations.diff.headSplit"}}}}
+	raw, _ := json.Marshal(snap)
+	back := ParseSnapshot(raw)
+	if got := localAutomation(vi, back).Changes[0]; got != "đã thêm: Chia A/B" {
+		t.Errorf("Vietnamese: %q", got)
+	}
+	if got := localAutomation(i18n.Default, back).Changes[0]; got != "added: A/B split" {
+		t.Errorf("English: %q", got)
+	}
+	back.AutomationItems = nil
+	if got := localAutomation(vi, back).Changes[0]; got != "added: A/B split" {
+		t.Errorf("stored before: %q", got)
+	}
+}
+
 func TestHeldReasonsAndScheduleInVietnamese(t *testing.T) {
 	if got := gapIn(vi, "Approval is still pending"); got != "Phê duyệt vẫn đang chờ" {
 		t.Errorf("engine's reason: %s", got)

@@ -67,10 +67,11 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 	if err := tx.QueryRow(ctx, `SELECT id FROM approval_requests WHERE automation_id = $1 AND status = 'pending' LIMIT 1`, auto).Scan(&existing); err == nil {
 		return automations.GateDecision{Required: true, ApprovalID: existing, Message: say(ctx, mPublishAutomationAlready, who)}, nil
 	}
-	changes := []string{}
+	changes, items := []string{}, []automationItem{}
 	for _, it := range req.Changes {
 		if it.Kind != "unchanged" {
 			changes = append(changes, it.Kind+": "+it.Title)
+			items = append(items, automationItem{Kind: it.Kind, Title: it.TitleText})
 		}
 	}
 	rules := []ApprovalRuleMatch{}
@@ -90,7 +91,8 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 		rules = append(rules, clientSignoffMatch())
 	}
 	keys := ruleKeys(rules)
-	snap := Snapshot{Version: req.Version, Rules: rules, Automation: &ApprovalAutomationSnapshot{Version: req.Version, Migration: req.Migration, Changes: changes}}
+	snap := Snapshot{Version: req.Version, Rules: rules, Automation: &ApprovalAutomationSnapshot{Version: req.Version, Migration: req.Migration, Changes: changes},
+		AutomationItems: items}
 	if m := memberByID(ms, &req.By); m != nil {
 		snap.AuthorRole = m.RoleName
 	}

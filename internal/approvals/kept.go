@@ -3,6 +3,7 @@ package approvals
 import (
 	"encoding/json"
 
+	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
@@ -26,6 +27,34 @@ func (v keptValue) text(l i18n.Lang) string {
 		return render(l, v.Text)
 	}
 	return v.Raw
+}
+
+// automationItem is a change in the automation version a request
+// publishes: added, changed or removed, and the step as automations names
+// it (its kept message).
+type automationItem struct {
+	Kind  string    `json:"kind"`
+	Title i18n.Text `json:"title,omitzero"`
+}
+
+// localAutomation is what an automation publish request covers, its
+// changes in the reader's language.
+func localAutomation(l i18n.Lang, snap Snapshot) *ApprovalAutomationSnapshot {
+	a := snap.Automation
+	if a == nil || l.Locale == i18n.English || len(snap.AutomationItems) != len(a.Changes) {
+		return a
+	}
+	out := *a
+	out.Changes = make([]string, len(a.Changes))
+	for i, it := range snap.AutomationItems {
+		out.Changes[i] = a.Changes[i]
+		if it.Title.ID != "" || len(it.Title.Args) > 0 {
+			if title := automations.TextIn(l, it.Title); title != "" {
+				out.Changes[i] = mChangeKind.Text(l, i18n.Args{"kind": it.Kind, "title": title})
+			}
+		}
+	}
+	return &out
 }
 
 // withRuleTexts gives stored rules the messages kept beside them.
