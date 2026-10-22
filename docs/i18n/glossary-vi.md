@@ -270,7 +270,7 @@ pages (`internal/pagelabels`): "bản tin", "số", "Lưu trữ", "Tùy chọn e
 | FAQ (block) | Hỏi đáp | |
 | featured · Feature on home | nổi bật · Nổi bật trên trang chủ | |
 | feed · RSS feed | nguồn cấp · nguồn cấp RSS | |
-| free preview | phần xem trước miễn phí | |
+| free preview · Free preview ends here (the post's block) | phần xem trước miễn phí · Hết phần miễn phí | |
 | Hero (block) | Hero | the block's name, as in the composer |
 | home page | trang chủ | |
 | issue (of a newsletter) | số | "48 số", "Đọc số mới nhất" |
@@ -294,6 +294,8 @@ pages (`internal/pagelabels`): "bản tin", "số", "Lưu trữ", "Tùy chọn e
 | sitemap | sơ đồ trang web | |
 | slug | đường dẫn | the page's or tag's part of the address |
 | social image | ảnh chia sẻ | the image a shared link shows |
+| store product (block) | sản phẩm cửa hàng | |
+| tab (a panel's: the Web tab) | tab | "thẻ" is a tag |
 | tag | thẻ | |
 | tagline | khẩu hiệu | |
 | testimonial | lời nhận xét | |
