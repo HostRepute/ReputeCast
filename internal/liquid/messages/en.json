@@ -1,0 +1,11 @@
+{
+  "token.first_name": {"message": "First name", "note": "the composer's token menu: a contact field"},
+  "token.last_name": "Last name",
+  "token.email": "Email address",
+  "token.unsubscribe_url": {"message": "Unsubscribe link", "note": "the composer's token menu: links ReputeCast fills in per recipient at send time"},
+  "token.preferences_url": "Email preferences link",
+  "token.view_in_browser_url": "View in browser link",
+  "fallback.first_name": {"message": "there", "note": "goes into the email for its readers when a contact has no first name: Hi {{ first_name | default: \"there\" }}. One word, lower case, no punctuation"},
+  "problem.line": {"message": "Line {line}: {message}", "note": "a personalization tag that doesn't parse; message is the template parser's own explanation, in English"},
+  "problem.loopLimit": {"message": "Loops are limited to {max} items; ({from}..{to}) has {count}.", "note": "a for loop over a range of numbers that is too long; ({from}..{to}) is the range as written in the template"}
+}
