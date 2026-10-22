@@ -60,7 +60,7 @@ export default translate(mp, {
   draftLine: 'chưa xuất bản',
   waitingFor: 'chờ phê duyệt · {approvers} có thể phê duyệt',
   waitingShort: 'chờ phê duyệt',
-  changesRequested: 'người phê duyệt yêu cầu chỉnh sửa',
+  changesRequested: 'người phê duyệt yêu cầu thay đổi',
   unpublishedLine: '{name} gỡ ngày {date}: “{reason}” · {views, plural, other {# lượt xem}} trước đó',
   unpublishedNoReason: '{name} gỡ ngày {date} · {views, plural, other {# lượt xem}} trước đó',
   unpublishedShort: '{name} gỡ ngày {date}',

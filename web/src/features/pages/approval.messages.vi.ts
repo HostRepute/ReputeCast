@@ -34,6 +34,6 @@ export default translate(m, {
   // The decision
   decisionNote:
     'Phê duyệt áp dụng cho đúng phiên bản này: nội dung, địa chỉ, chế độ hiển thị và thời điểm xuất bản. {when, select, at {Trang được xuất bản vào thời điểm đã đặt} other {Trang được xuất bản ngay khi được phê duyệt}}. Nếu {name} thay đổi trang trước đó, việc xuất bản cần phê duyệt mới.',
-  rejectDetail: '{name} sẽ được báo và trang không được xuất bản. Hãy từ chối khi trang hoàn toàn không nên xuất bản; nếu cần sửa, hãy yêu cầu chỉnh sửa.',
+  rejectDetail: '{name} sẽ được báo và trang không được xuất bản. Hãy từ chối khi trang hoàn toàn không nên xuất bản; nếu cần sửa, hãy yêu cầu thay đổi.',
   changesDetail: 'Yêu cầu được gửi lại cho {name} kèm nhận xét của bạn. Trang không được xuất bản cho đến khi họ yêu cầu lại.',
 })
