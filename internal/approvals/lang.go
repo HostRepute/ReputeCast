@@ -413,16 +413,12 @@ func capitalize(s string) string {
 }
 
 // noLongerCovers is the problem of a send whose approval stopped covering it.
-func (s *Service) noLongerCovers(ctx context.Context, changes []ApprovalChange) error {
-	return api.Err(http.StatusConflict, "approval_invalidated", say(ctx, mNoLongerCovers, i18n.Args{"reason": InvalidationReason(changes)}))
+func (s *Service) noLongerCovers(ctx context.Context, changes []storedChange) error {
+	return api.Err(http.StatusConflict, "approval_invalidated", say(ctx, mNoLongerCovers, i18n.Args{"reason": render(langOf(ctx), reasonOf(changes))}))
 }
 
 // approvalRequired is the problem of a send that needs an approval first.
 func approvalRequired(ctx context.Context, rules []ApprovalRuleMatch) error {
-	shorts := make([]string, len(rules))
-	for i, r := range rules {
-		shorts[i] = r.Short
-	}
-	return api.Err(http.StatusConflict, "approval_required", say(ctx, mApprovalRequired, i18n.Args{"rules": strings.Join(shorts, " · ")})).
+	return api.Err(http.StatusConflict, "approval_required", say(ctx, mApprovalRequired, i18n.Args{"rules": shortsOf(localRules(langOf(ctx), rules))})).
 		WithMeta("rules", ruleKeys(rules))
 }

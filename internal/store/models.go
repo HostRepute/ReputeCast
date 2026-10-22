@@ -337,6 +337,7 @@ type ApprovalRequest struct {
 	TransactionalTemplateID *uuid.UUID      `json:"transactionalTemplateId"`
 	WebsitePostID           *uuid.UUID      `json:"websitePostId"`
 	WebsitePageID           *uuid.UUID      `json:"websitePageId"`
+	InvalidatedReasonText   json.RawMessage `json:"invalidatedReasonText"`
 }
 
 type ArchiveIssue struct {

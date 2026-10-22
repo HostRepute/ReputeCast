@@ -250,7 +250,7 @@ func (s *Service) ChannelGate(ctx context.Context, ws *store.Workspace, p *authz
 	if len(rules) == 0 {
 		return nil, nil
 	}
-	if changes, err := s.Revalidate(ctx, ws, campaignID); err != nil {
+	if changes, err := s.revalidate(ctx, ws, campaignID); err != nil {
 		return nil, err
 	} else if len(changes) > 0 {
 		return nil, s.noLongerCovers(ctx, changes)
@@ -283,7 +283,7 @@ func (s *Service) ChannelReview(ctx context.Context, ws *store.Workspace, p *aut
 		return ReviewApproval{}, err
 	}
 	policy := ParsePolicy(ws.ApprovalPolicy)
-	out := ReviewApproval{Rules: []ApprovalRuleMatch{}, Approvers: []ApprovalPerson{}, Needed: policy.ApprovalsRequired, PolicyRules: policy.RuleLabels(),
+	out := ReviewApproval{Rules: []ApprovalRuleMatch{}, Approvers: []ApprovalPerson{}, Needed: policy.ApprovalsRequired, PolicyRules: policy.RuleLabelsIn(langOf(ctx)),
 		MedianWaitMinutes: s.medianWait(ctx, ws)}
 	for _, a := range approversOf(ms) {
 		out.Approvers = append(out.Approvers, s.person(langOf(ctx), a))
@@ -302,7 +302,7 @@ func (s *Service) ChannelReview(ctx context.Context, ws *store.Workspace, p *aut
 			RequestedAt: last.RequestedAt, Note: last.Note, Status: last.Status, MatchedRules: last.MatchedRules, ApprovalsRequired: last.ApprovalsRequired,
 			Snapshot: last.Snapshot, InvalidatedAt: last.InvalidatedAt, InvalidatedReason: last.InvalidatedReason, Changes: last.Changes, BypassReason: last.BypassReason,
 			DecidedAt: last.DecidedAt, CampaignVersion: last.CampaignVersion, DecidedBy: last.DecidedBy, InvalidatedBy: last.InvalidatedBy, RemindedAt: last.RemindedAt,
-			PreviousID: last.PreviousID, InvalidatedFrom: last.InvalidatedFrom}
+			PreviousID: last.PreviousID, InvalidatedFrom: last.InvalidatedFrom, InvalidatedReasonText: last.InvalidatedReasonText}
 		req = &r
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return out, err
@@ -346,5 +346,6 @@ func (s *Service) ChannelReview(ctx context.Context, ws *store.Workspace, p *aut
 			out.CanRequest = true
 		}
 	}
+	out.Rules = localRules(langOf(ctx), out.Rules)
 	return out, nil
 }

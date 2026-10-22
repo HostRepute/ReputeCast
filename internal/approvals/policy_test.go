@@ -108,7 +108,7 @@ func TestDiff(t *testing.T) {
 	if len(d) != 1 || d[0].Field != "audience_count" || d[0].Before != "47,912" || d[0].After != "54,620 (+14%)" {
 		t.Fatalf("+14%%: %+v", d)
 	}
-	if r := InvalidationReason(d); r != "audience moved +14% after approval" {
+	if r := InvalidationReason(d); r != "audience moved +14%" {
 		t.Fatalf("reason: %s", r)
 	}
 

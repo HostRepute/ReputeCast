@@ -67,31 +67,32 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 	if err := tx.QueryRow(ctx, `SELECT id FROM approval_requests WHERE automation_id = $1 AND status = 'pending' LIMIT 1`, auto).Scan(&existing); err == nil {
 		return automations.GateDecision{Required: true, ApprovalID: existing, Message: say(ctx, mPublishAutomationAlready, who)}, nil
 	}
-	changes := []string{}
+	changes, items := []string{}, []automationItem{}
 	for _, it := range req.Changes {
 		if it.Kind != "unchanged" {
 			changes = append(changes, it.Kind+": "+it.Title)
+			items = append(items, automationItem{Kind: it.Kind, Title: it.TitleText})
 		}
 	}
 	rules := []ApprovalRuleMatch{}
 	if policy.AutomationPublish {
-		rules = append(rules, ApprovalRuleMatch{Key: RuleAutomationPublish, Label: "Publishing an automation requires approval", Short: "automation publish", Badge: "Automation publish"})
+		rules = append(rules, match(RuleAutomationPublish, mRuleAutomation, mRuleAutomationShort, mRuleAutomationBadge, nil))
 	}
 	if len(req.Missing) > 0 {
 		perm := req.Missing[0]
 		m := memberByID(ms, &req.By)
-		match := ApprovalRuleMatch{Key: RuleAuthorLacksSend, Label: "The flow has a step that needs " + string(perm) + ", which the author doesn't hold",
-			Short: "author lacks send", Badge: "author lacks send"}
+		rm := match(RuleAuthorLacksSend, mRuleAutomationLacks, mRuleLacksSendShort, mRuleLacksSendShort, i18n.Args{"permission": string(perm)})
 		if m != nil {
-			match.Author, match.Role = m.Name, m.RoleName
+			rm.Author, rm.Role = m.Name, m.RoleName
 		}
-		rules = append(rules, match)
+		rules = append(rules, rm)
 	}
 	if signoff {
 		rules = append(rules, clientSignoffMatch())
 	}
 	keys := ruleKeys(rules)
-	snap := Snapshot{Version: req.Version, Rules: rules, Automation: &ApprovalAutomationSnapshot{Version: req.Version, Migration: req.Migration, Changes: changes}}
+	snap := Snapshot{Version: req.Version, Rules: rules, Automation: &ApprovalAutomationSnapshot{Version: req.Version, Migration: req.Migration, Changes: changes},
+		AutomationItems: items}
 	if m := memberByID(ms, &req.By); m != nil {
 		snap.AuthorRole = m.RoleName
 	}

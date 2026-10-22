@@ -164,10 +164,13 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		}
 		var rules []ApprovalRuleMatch
 		_ = json.Unmarshal(r.Rules, &rules)
+		var texts map[string]ruleTexts
+		_ = json.Unmarshal(r.RuleTexts, &texts)
+		rules = withRuleTexts(rules, texts)
 		var route []SnapshotShare
 		_ = json.Unmarshal(r.Route, &route)
 		sched := readiness.ParseSchedule(r.Schedule)
-		it := ApprovalListItem{ID: r.ID.String(), SubjectType: r.SubjectType, Name: r.SubjectName, Rules: rulesLine(rules), Route: routeText(l, route),
+		it := ApprovalListItem{ID: r.ID.String(), SubjectType: r.SubjectType, Name: r.SubjectName, Rules: rulesLineIn(l, rules), Route: routeText(l, route),
 			ScheduleMode: sched.Mode, RequestedAt: r.RequestedAt, Status: r.Status, DecidedBy: r.DecidedByName, DecidedAt: r.DecidedAt,
 			Author: ApprovalPerson{Name: r.RequestedByName, Email: r.RequestedByEmail, Initials: Initials(r.RequestedByName), Color: r.RequestedByColor}}
 		it.Audience = r.AudienceCount
@@ -195,6 +198,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 			it.WebsitePageID = r.WebsitePageID.String()
 			var pg ApprovalPageSnapshot
 			if json.Unmarshal(r.Page, &pg) == nil && pg.PageID != "" {
+				pg.VisibilityLabel = pageVisibilityLabel(l, pg.Visibility)
 				it.Page = &pg
 			}
 		}
@@ -210,7 +214,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 				it.Note = mNoteComment.Text(l, i18n.Args{"name": r.DecidedByName, "comment": r.LastComment})
 			}
 		case "invalidated":
-			it.Note = r.InvalidatedReason
+			it.Note = invalidatedNote(l, r)
 			var changes []ApprovalChange
 			_ = json.Unmarshal(r.Changes, &changes)
 			for _, ch := range changes {
@@ -236,11 +240,25 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		out.Approvers = append(out.Approvers, ApprovalFilterOption{ID: a.ID.String(), Name: a.Name})
 	}
 	policy := ParsePolicy(ws.ApprovalPolicy)
-	out.Policy = ApprovalPolicySummary{Rules: policy.RuleLabels(), ApprovalsRequired: policy.ApprovalsRequired, Approvers: []string{}, MedianWaitMinutes: s.medianWait(ctx, ws)}
+	out.Policy = ApprovalPolicySummary{Rules: policy.RuleLabelsIn(l), ApprovalsRequired: policy.ApprovalsRequired, Approvers: []string{}, MedianWaitMinutes: s.medianWait(ctx, ws)}
 	for _, a := range approversOf(ms) {
 		out.Policy.Approvers = append(out.Policy.Approvers, a.Name)
 	}
 	return out, nil
+}
+
+// invalidatedNote is the inbox's line under an invalidated request: what
+// changed, and "after approval" when it had been approved ("audience moved
+// +14% after approval"). A reason kept in English only reads in English.
+func invalidatedNote(l i18n.Lang, r store.ApprovalListRow) string {
+	reason := reasonFor(l, r.InvalidatedReason, r.InvalidatedReasonText)
+	if r.InvalidatedFrom != "approved" || r.SubjectType == "website_post" || r.SubjectType == "website_page" {
+		return reason
+	}
+	if len(r.InvalidatedReasonText) == 0 {
+		l = i18n.Default
+	}
+	return mInvalidAfter.Text(l, i18n.Args{"reason": reason})
 }
 
 func parseCount(s string) (int64, bool) {
@@ -410,7 +428,7 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	base := store.ApprovalRequest{ID: r.ID, WorkspaceID: r.WorkspaceID, SubjectType: r.SubjectType, CampaignID: r.CampaignID, AutomationID: r.AutomationID, RequestedBy: r.RequestedBy,
 		RequestedAt: r.RequestedAt, Note: r.Note, Status: r.Status, MatchedRules: r.MatchedRules, ApprovalsRequired: r.ApprovalsRequired, Snapshot: r.Snapshot,
-		InvalidatedAt: r.InvalidatedAt, InvalidatedReason: r.InvalidatedReason, Changes: r.Changes, BypassReason: r.BypassReason, DecidedAt: r.DecidedAt,
+		InvalidatedAt: r.InvalidatedAt, InvalidatedReason: r.InvalidatedReason, InvalidatedReasonText: r.InvalidatedReasonText, Changes: r.Changes, BypassReason: r.BypassReason, DecidedAt: r.DecidedAt,
 		CampaignVersion: r.CampaignVersion, ReadinessRunID: r.ReadinessRunID, DecidedBy: r.DecidedBy, InvalidatedBy: r.InvalidatedBy, RemindedAt: r.RemindedAt,
 		PreviousID: r.PreviousID, InvalidatedFrom: r.InvalidatedFrom, TransactionalTemplateID: r.TransactionalTemplateID, WebsitePostID: r.WebsitePostID,
 		WebsitePageID: r.WebsitePageID}
@@ -422,6 +440,13 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	out := ApprovalDetail{ApprovalRequestView: view, Name: r.SubjectName, Author: view.RequestedBy, Approvers: []ApprovalPerson{}, ChangesSince: []ApprovalChange{},
 		Comments: []ApprovalCommentView{}, Automation: snap.Automation, Transactional: snap.Transactional, Website: snap.Website, Channel: r.CampaignChannel, SMS: snap.SMS, Page: snap.Page,
 		Push: snap.Push, WhatsApp: snap.WhatsApp}
+	l := langOf(ctx)
+	out.Automation = localAutomation(l, snap)
+	if snap.Page != nil {
+		pg := *snap.Page
+		pg.VisibilityLabel = pageVisibilityLabel(l, pg.Visibility)
+		out.Page = &pg
+	}
 	out.Author.Role = firstNonEmptyStr(snap.AuthorRole, out.Author.Role)
 	if out.ClientSignoff, err = s.detailSignoff(ctx, r.MatchedRules, r.ID, ms, r.RequestedBy, p.UserID); err != nil {
 		return ApprovalDetail{}, err
@@ -468,7 +493,6 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 		out.Route = rv
 		sv := readiness.ScheduleView(snap.Schedule, ws.Timezone)
-		l := langOf(ctx)
 		out.Schedule = &ApprovalScheduleView{Mode: sv.Mode, At: sv.At, Timezone: sv.Timezone, Minutes: snap.Minutes,
 			AutoPause: mAutoPause.Text(l, i18n.Args{"bounce": trimPct(l, snap.Thresholds.Bounce, 2), "complaint": l.Region.Percent(snap.Thresholds.MailboxComplaint, 2)})}
 		if h, err := s.Q.ApprovalOpenHold(ctx, *r.CampaignID); err == nil {
@@ -483,14 +507,11 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	if r.PreviousID != nil {
 		if prev, err := s.Q.ApprovalGet(ctx, store.ApprovalGetParams{WorkspaceID: ws.ID, ID: *r.PreviousID}); err == nil {
-			var changes []ApprovalChange
-			_ = json.Unmarshal(prev.Changes, &changes)
+			changes := changesFor(l, prev.Changes)
 			if len(changes) == 0 {
-				changes = Diff(ParseSnapshot(prev.Snapshot), currentFromSnapshot(snap), state.Location(ws.Timezone))
+				changes = localChanges(l, diff(ParseSnapshot(prev.Snapshot), currentFromSnapshot(snap), state.Location(ws.Timezone)))
 			}
-			if changes != nil {
-				out.ChangesSince = changes
-			}
+			out.ChangesSince = changes
 		}
 	}
 	if next, err := s.nextOf(ctx, id); err == nil && next != uuid.Nil {

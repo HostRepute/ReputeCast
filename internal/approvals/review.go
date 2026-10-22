@@ -222,7 +222,7 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 
 func (s *Service) reviewApproval(ctx context.Context, ws *store.Workspace, p *authz.Principal, c store.ReadinessCampaignRow, run *readiness.ReadinessRun, ms []member) (ReviewApproval, error) {
 	policy := ParsePolicy(ws.ApprovalPolicy)
-	out := ReviewApproval{Rules: []ApprovalRuleMatch{}, Approvers: []ApprovalPerson{}, Needed: policy.ApprovalsRequired, PolicyRules: policy.RuleLabels(),
+	out := ReviewApproval{Rules: []ApprovalRuleMatch{}, Approvers: []ApprovalPerson{}, Needed: policy.ApprovalsRequired, PolicyRules: policy.RuleLabelsIn(langOf(ctx)),
 		MedianWaitMinutes: s.medianWait(ctx, ws)}
 	for _, a := range approversOf(ms) {
 		out.Approvers = append(out.Approvers, s.person(langOf(ctx), a))
@@ -246,7 +246,7 @@ func (s *Service) reviewApproval(ctx context.Context, ws *store.Workspace, p *au
 			RequestedBy: last.RequestedBy, RequestedAt: last.RequestedAt, Note: last.Note, Status: last.Status, MatchedRules: last.MatchedRules, ApprovalsRequired: last.ApprovalsRequired,
 			Snapshot: last.Snapshot, InvalidatedAt: last.InvalidatedAt, InvalidatedReason: last.InvalidatedReason, Changes: last.Changes, BypassReason: last.BypassReason,
 			DecidedAt: last.DecidedAt, CampaignVersion: last.CampaignVersion, ReadinessRunID: last.ReadinessRunID, DecidedBy: last.DecidedBy, InvalidatedBy: last.InvalidatedBy,
-			RemindedAt: last.RemindedAt, PreviousID: last.PreviousID, InvalidatedFrom: last.InvalidatedFrom}
+			RemindedAt: last.RemindedAt, PreviousID: last.PreviousID, InvalidatedFrom: last.InvalidatedFrom, InvalidatedReasonText: last.InvalidatedReasonText}
 		req = &r
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return out, err
@@ -294,5 +294,6 @@ func (s *Service) reviewApproval(ctx context.Context, ws *store.Workspace, p *au
 		}
 	}
 	out.CanBypass = out.Required && p.RoleKey == authz.RoleOwner && policy.EmergencyBypass && p.IsHuman()
+	out.Rules = localRules(langOf(ctx), out.Rules)
 	return out, nil
 }

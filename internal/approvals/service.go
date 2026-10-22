@@ -229,6 +229,15 @@ func (s *Service) CampaignChanged(ctx context.Context, ws *store.Workspace, id u
 // invalidates it when anything it covers changed or the audience moved more
 // than 10%. It returns the invalidated request's changes (none when valid).
 func (s *Service) Revalidate(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID) ([]ApprovalChange, error) {
+	changes, err := s.revalidate(ctx, ws, campaignID)
+	if len(changes) == 0 {
+		return nil, err
+	}
+	return plainChanges(changes), err
+}
+
+// revalidate is Revalidate with the changes as they are stored.
+func (s *Service) revalidate(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID) ([]storedChange, error) {
 	open, err := s.Q.ApprovalOpenForCampaign(ctx, &campaignID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -250,16 +259,20 @@ func (s *Service) Revalidate(ctx context.Context, ws *store.Workspace, campaignI
 		return nil, err
 	}
 	snap := ParseSnapshot(open.Snapshot)
-	changes := Diff(snap, cur, state.Location(ws.Timezone))
+	changes := diff(snap, cur, state.Location(ws.Timezone))
 	if len(changes) == 0 {
 		return nil, nil
 	}
 	return changes, s.invalidate(ctx, ws, open, c, changes)
 }
 
-func (s *Service) invalidate(ctx context.Context, ws *store.Workspace, r store.ApprovalRequest, c store.ReadinessCampaignRow, changes []ApprovalChange) error {
+// invalidate records that an open request no longer covers the campaign:
+// its changes and reason in English, with their messages kept beside them
+// for readers in other languages.
+func (s *Service) invalidate(ctx context.Context, ws *store.Workspace, r store.ApprovalRequest, c store.ReadinessCampaignRow, changes []storedChange) error {
 	now := s.now()
-	reason := InvalidationReason(changes)
+	reasonText := reasonOf(changes)
+	reason := render(i18n.Default, reasonText)
 	cb, _ := json.Marshal(changes)
 	ms, err := s.members(ctx, s.Q, ws.ID)
 	if err != nil {
@@ -286,7 +299,7 @@ func (s *Service) invalidate(ctx context.Context, ws *store.Workspace, r store.A
 			return err
 		}
 		if err := q.ApprovalInvalidate(ctx, store.ApprovalInvalidateParams{ID: r.ID, InvalidatedAt: &now, InvalidatedReason: reason, Changes: cb, InvalidatedBy: by,
-			InvalidatedFrom: locked.Status}); err != nil {
+			InvalidatedFrom: locked.Status, InvalidatedReasonText: textJSON(reasonText)}); err != nil {
 			return err
 		}
 		// The campaign goes back to draft; a scheduled send keeps its slot but
@@ -296,7 +309,7 @@ func (s *Service) invalidate(ctx context.Context, ws *store.Workspace, r store.A
 		}
 		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "approval.invalidated", TargetType: "approval_request", TargetID: r.ID.String(), TargetName: c.Name,
 			Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Reason: reason,
-			Before: map[string]any{"status": locked.Status}, After: map[string]any{"status": "invalidated", "changes": changes},
+			Before: map[string]any{"status": locked.Status}, After: map[string]any{"status": "invalidated", "changes": plainChanges(changes)},
 			Metadata: map[string]any{"campaign_id": c.ID.String(), "edited_by": byName, "summary": reason}}); err != nil {
 			return err
 		}
