@@ -135,7 +135,7 @@ export default translate(m, {
   deleteRouting: 'Quy tắc định tuyến và kế hoạch khởi động',
   deleteKeys: 'Khóa API và tác tử MCP của không gian làm việc này ngừng hoạt động',
   deleteKept: '<b>Giữ lại:</b> danh sách chặn gửi dùng chung, nhật ký kiểm tra và tài khoản của các thành viên ({count, plural, other {# thành viên}})',
-  recommended: 'Khuyến nghị',
+  recommended: 'Khuyên dùng',
   exportBody: 'Hãy xuất mọi thứ trước: liên hệ kèm thông tin đồng ý, chiến dịch dạng MJML, báo cáo dạng CSV, nhật ký kiểm tra dạng JSON.',
   exportButton: 'Xuất mọi thứ trước',
   exportNotMember:

@@ -89,7 +89,7 @@ export default translate(m, {
     '{count, plural, other {# nhà cung cấp gửi thư}}, quy tắc định tuyến và kế hoạch khởi động (bản thân các tài khoản nhà cung cấp không bị ảnh hưởng)',
   deleteKeys: 'Khóa API và tác tử MCP của không gian làm việc này ngừng hoạt động',
   deleteKept: '<b>Giữ lại:</b> danh sách chặn gửi dùng chung, nhật ký kiểm tra và tài khoản của các thành viên',
-  recommended: 'Khuyến nghị',
+  recommended: 'Khuyên dùng',
   exportBody: 'Hãy xuất mọi thứ trước: liên hệ kèm thông tin đồng ý, chiến dịch dạng MJML, báo cáo dạng CSV, nhật ký kiểm tra dạng JSON.',
   exportButton: 'Xuất mọi thứ trước',
   exportNeeds: 'Xuất liên hệ cần quyền subscribers:export.',

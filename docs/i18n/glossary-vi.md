@@ -604,7 +604,6 @@ is a name and stays in English.
 | preset (an SSO provider's, a key's) | cấu hình sẵn | |
 | provider status: degraded · down | đang suy giảm · đang gián đoạn | as Channels and SMS' Suy giảm · Gián đoạn |
 | re-authentication | xác thực lại | |
-| Recommended (badge) | Khuyến nghị | |
 | Redirect URI | URI chuyển hướng | |
 | reference ID · request ID | mã tham chiếu · mã yêu cầu | |
 | result: Allowed · Denied · Error | Được phép · Bị từ chối · Lỗi | |

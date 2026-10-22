@@ -56,7 +56,7 @@ export default translate(m, {
   secondFactorTitle: 'Thêm khóa truy cập hoặc ứng dụng xác thực',
   passkeyQuickest: 'Khóa truy cập là cách nhanh nhất: Touch ID, Face ID, Windows Hello hoặc khóa bảo mật.',
   passkeyAdded: 'Đã thêm khóa truy cập',
-  addPasskey: 'Thêm khóa truy cập (khuyến nghị)',
+  addPasskey: 'Thêm khóa truy cập (khuyên dùng)',
   setUpAuthenticator: 'Thiết lập ứng dụng xác thực',
   changeLater: 'Bạn có thể thêm khóa truy cập khác và đổi ứng dụng xác thực sau trong Tài khoản và bảo mật.',
 
