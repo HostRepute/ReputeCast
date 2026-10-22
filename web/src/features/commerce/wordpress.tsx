@@ -2,31 +2,19 @@ import { useState } from 'react'
 import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
-import { defineMessages, useT } from '@/i18n'
+import { useT } from '@/i18n'
 import { useWorkspace } from '@/lib/session'
 import { ConnectStoreDialog } from './ConnectStoreDialog'
+import { cw } from './elsewhere.messages'
 import './commerce.css'
 
 type Woo = Schemas['IntegrationSiteWoo']
 
-/**
+/*
  * Settings › Integrations › WordPress: a site running WooCommerce shows
  * "WooCommerce detected", the plugin's checkout consent and abandoned
  * checkout reporting, linked to the store's page (design expansion phase 7).
  */
-const cw = defineMessages('commerce.wordpress', {
-  detected: 'WooCommerce detected',
-  version: 'WooCommerce {version}',
-  consentOn: 'The checkout asks for marketing consent: “Email me about new products and offers from the store. Unsubscribe any time.”',
-  consentOff: "The checkout doesn't ask for marketing consent: turn it on in the plugin's settings.",
-  checkoutsOn: 'Abandoned checkouts are reported, with the click token kept on each order.',
-  checkoutsOff: "Abandoned checkouts aren't reported: turn it on in the plugin's settings.",
-  store: 'Store',
-  openStore: 'Open {name}',
-  storeOff: '{name} is disconnected',
-  notConnected: 'The store isn’t connected to ReputeCast: connect it for orders, products and attribution.',
-  connect: 'Connect WooCommerce',
-})
 
 function Line({ ok, children }: { ok: boolean; children: string }) {
   return (

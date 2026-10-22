@@ -7,17 +7,19 @@ import { cn } from '@/lib/cn'
 import { count, dayMonthDate } from '@/lib/format'
 import { useDocumentTitle, useOverflowX } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
+import { T, useT, type MessageDescriptor } from '@/i18n'
+import { m } from './messages'
 import './imports.css'
 
 export type Detail = Schemas['ImportDetail']
 export type StepNo = 1 | 2 | 3 | 4 | 5
 
-const steps: { n: StepNo; label: string }[] = [
-  { n: 1, label: 'Source' },
-  { n: 2, label: 'Map fields' },
-  { n: 3, label: 'Consent' },
-  { n: 4, label: 'Preview' },
-  { n: 5, label: 'Import' },
+const steps: { n: StepNo; label: MessageDescriptor }[] = [
+  { n: 1, label: m.stepSource },
+  { n: 2, label: m.stepFields },
+  { n: 3, label: m.stepConsent },
+  { n: 4, label: m.stepPreview },
+  { n: 5, label: m.stepImport },
 ]
 
 /** Where each wizard step lives. */
@@ -67,6 +69,7 @@ export function ImportFrame({
   /** Board-specific control sizes (s34, sfull, ftd8 in imports.css). */
   mainClassName?: string
 }) {
+  const t = useT()
   const ws = useWorkspace()
   useDocumentTitle(`${documentTitle ?? title} · ${ws.me.workspace.name} · ReputeCast`)
   // On phones the steps scroll sideways; then the rail takes keyboard focus.
@@ -75,7 +78,7 @@ export function ImportFrame({
   return (
     <div className="mig rc-app">
       <header>
-        <Link to="/w/$workspace" params={{ workspace: ws.slug }} className="flex items-center gap-2.5 text-ink" aria-label="ReputeCast home">
+        <Link to="/w/$workspace" params={{ workspace: ws.slug }} className="flex items-center gap-2.5 text-ink" aria-label={t(m.home)}>
           <LogoMark size={26} />
           <span className="text-[15px] font-bold">ReputeCast</span>
         </Link>
@@ -96,7 +99,7 @@ export function ImportFrame({
         <div className="wiz">
           {/* A scrolling region is the exception to the rule: it must take focus. */}
           {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
-          <nav ref={stepsRef} className="card wizsteps" aria-label="Import steps" tabIndex={stepsScroll ? 0 : undefined}>
+          <nav ref={stepsRef} className="card wizsteps" aria-label={t(m.steps)} tabIndex={stepsScroll ? 0 : undefined}>
             {steps.map((s) => {
               const state = s.n < step ? 'done' : s.n === step ? 'cur' : ''
               return (
@@ -104,8 +107,8 @@ export function ImportFrame({
                   <span className="num">{state === 'done' ? '✓' : s.n}</span>
                   <div>
                     <div className="font-semibold">
-                      {s.label}
-                      {state === 'done' ? <span className="vh"> (done)</span> : null}
+                      {t(s.label)}
+                      {state === 'done' ? <span className="vh"> {t(m.stepDone)}</span> : null}
                     </div>
                     {hints[s.n] ? <div className="k">{hints[s.n]}</div> : null}
                   </div>
@@ -137,12 +140,20 @@ export function PreviousImport({ p }: { p?: Schemas['ImportSummary'] }) {
   const { slug } = useWorkspace()
   if (!p) return null
   return (
-    <>
-      Previous imports: {p.sourceName}, {dayMonthDate(p.finishedAt ?? p.createdAt)}, {count(p.contacts)} contacts.{' '}
-      <Link to={stepPath.report} params={{ workspace: slug, importId: p.id }}>
-        View report
-      </Link>
-    </>
+    <T
+      msg={m.previous}
+      values={{
+        source: p.sourceName,
+        date: dayMonthDate(p.finishedAt ?? p.createdAt),
+        n: p.contacts,
+        count: count(p.contacts),
+        link: (c) => (
+          <Link to={stepPath.report} params={{ workspace: slug, importId: p.id }}>
+            {c}
+          </Link>
+        ),
+      }}
+    />
   )
 }
 

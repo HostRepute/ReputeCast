@@ -45,6 +45,7 @@ export const m = defineMessages('transactional.import', {
   dropHere: 'Drop .mjml or .html files here, or choose them. Up to 50 files, 2 MB each.',
   filesChosen: '{count, plural, one {# file} other {# files}}',
   removeFile: 'Remove {name}',
+  fileSize: '{size} KB',
   tooMany: 'Up to 50 files at a time: {count} were chosen.',
   tooBig: '{name} is larger than 2 MB.',
   notTemplate: '{name} isn’t an .mjml or .html file.',

@@ -1,0 +1,57 @@
+{
+  "alt.title": "{image, select, logo {Logo} hero {Hình hero} section {Hình trong phần {section}} other {Một hình}} chưa có văn bản thay thế",
+  "alt.tag": "Hình chưa có văn bản thay thế",
+  "alt.detail": "Outlook và nhiều ứng dụng email doanh nghiệp tắt hình ảnh theo mặc định; khi đó văn bản thay thế là thứ hiển thị, và bộ lọc spam chấm điểm cao hơn cho thư chỉ có hình.",
+  "alt.fix": "Lưu",
+
+  "size.near": "{kb} KB, gần giới hạn cắt thư 102 KB của Gmail",
+  "size.over": "{kb} KB, vượt giới hạn cắt thư 102 KB của Gmail",
+  "size.detail": "Gmail sẽ cắt thư và ẩn chân thư, kể cả liên kết hủy đăng ký.",
+  "size.minify": "Rút gọn CSS nội tuyến · tiết kiệm khoảng {kb} KB",
+  "size.bulkOne": "Phần {section} chiếm phần lớn dung lượng ({share, number, percent}).",
+  "size.bulkMany": "{count} phần {section} chiếm phần lớn dung lượng ({share, number, percent}).",
+  "size.bulkCards": "{count} {section}{css, select, yes { có CSS nội tuyến} other {}} chiếm phần lớn dung lượng.",
+  "size.removeSection": "Xóa phần {section}",
+  "size.removeRow": "{n, plural, =1 {Xóa hàng đầu tiên} =2 {Xóa hàng thứ hai} =3 {Xóa hàng thứ ba} =4 {Xóa hàng thứ tư} =5 {Xóa hàng thứ năm} =6 {Xóa hàng thứ sáu} =7 {Xóa hàng thứ bảy} =8 {Xóa hàng thứ tám} =9 {Xóa hàng thứ chín} =10 {Xóa hàng thứ mười} other {Xóa hàng thứ #}}",
+
+  "ratio.title": "Hình ảnh chiếm {share, number, percent} email",
+  "ratio.detail": "Bộ lọc spam chấm điểm cao hơn cho thư nhiều hình, và phần lớn nội dung biến mất khi hình ảnh bị tắt. Hãy thêm chữ hoặc dùng ít hình hơn.",
+
+  "footer.both": "Nội dung thư không có liên kết hủy đăng ký hay địa chỉ bưu chính",
+  "footer.bothTag": "Không có liên kết hủy đăng ký hay địa chỉ bưu chính",
+  "footer.address": "Chân thư không có địa chỉ bưu chính",
+  "footer.addressTag": "Không có địa chỉ bưu chính",
+  "footer.unsubscribe": "Nội dung thư không có liên kết hủy đăng ký",
+  "footer.unsubscribeTag": "Không có liên kết hủy đăng ký",
+  "footer.detail": "Các header được thêm tự động, nhưng thư vẫn phải có liên kết và địa chỉ hiển thị.",
+  "footer.fix": "Chèn khối chân thư",
+
+  "liquid.title": "{where, select, subject {Tiêu đề} preheader {Dòng xem trước} other {Nội dung}}: {problem}",
+  "liquid.detail": "Hãy sửa thẻ cá nhân hóa; thẻ bị lỗi sẽ hiện ra thành chữ hoặc làm dừng việc gửi.",
+  "unknownField.title": "{token} không phải là trường liên hệ; thẻ này sẽ không hiện gì",
+  "unknownField.detail": "Hãy kiểm tra chính tả, hoặc thêm giá trị dự phòng như | default: \"…\".",
+
+  "subject.missing": "Tiêu đề đang trống",
+  "subject.missingDetail": "Hộp thư đến hiển thị tiêu đề trước tiên; hãy viết tiêu đề trước khi gửi.",
+  "subject.spam": "Tiêu đề có {count} dấu hiệu spam",
+  "subject.suggested": "Gợi ý: {suggestion}",
+  "subject.useSuggestion": "Dùng gợi ý",
+
+  "plainText.title": "Phiên bản văn bản thuần đang trống",
+  "plainText.detail": "Email không có chữ nên phần text/plain bị trống. Hãy thêm một câu cho biết hình ảnh thể hiện điều gì.",
+
+  "link.emptyTitle": "Nút “{text}” chưa có liên kết",
+  "link.emptyTag": "Nút chưa có liên kết",
+  "link.emptyDetail": "Người đọc sẽ nhấp vào nút này; hãy trỏ nó đến trang mà nút nhắc tới.",
+  "link.edit": "Sửa liên kết",
+  "link.blocklistTitle": "{kind, select, button {Nút} image {Hình} nav {Liên kết menu} social {Liên kết mạng xã hội} other {Liên kết}} trỏ đến {host}, tên miền bị liệt kê trên {lists}",
+  "link.blocklistTag": "Tên miền liên kết bị liệt kê trên {lists}",
+  "link.blocklistDetail": "Thư có liên kết đến tên miền trong danh sách chặn sẽ bị lọc, dù uy tín của bạn thế nào. Hãy dùng tên miền do bạn kiểm soát.",
+  "link.replaceWith": "Thay bằng {target}",
+  "link.shortenerTitle": "{kind, select, button {Nút} image {Hình} nav {Liên kết menu} social {Liên kết mạng xã hội} other {Liên kết}} chuyển hướng qua {host}, một dịch vụ rút gọn URL",
+  "link.shortenerTag": "Liên kết rút gọn",
+  "link.shortenerDetail": "Liên kết rút gọn che giấu đích đến; bộ lọc coi chúng là đáng ngờ và nhiều tên miền rút gọn nằm trong danh sách chặn. Hãy liên kết thẳng đến trang.",
+  "link.brokenTitle": "{kind, select, button {Nút} image {Hình} nav {Liên kết menu} social {Liên kết mạng xã hội} other {Liên kết}} đến {url} {status, select, 0 {không phản hồi} other {trả về {status}}}",
+  "link.brokenTag": "Liên kết hỏng",
+  "link.brokenDetail": "Người nhấp vào sẽ gặp trang lỗi. Hãy sửa địa chỉ hoặc gỡ liên kết."
+}

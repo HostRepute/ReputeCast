@@ -22,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -221,7 +222,7 @@ func decodeCursor(s string) (*time.Time, *uuid.UUID, error) {
 
 // window turns a filter's range into times: the last hour, day, week or
 // 30 days, or custom dates within the last 90 days.
-func (s *Service) window(ws *store.Workspace, f LogFilter) (time.Time, time.Time, error) {
+func (s *Service) window(ctx context.Context, ws *store.Workspace, f LogFilter) (time.Time, time.Time, error) {
 	now := s.now()
 	until := now.Add(time.Minute)
 	oldest := now.Add(-MetadataRetentionDays * 24 * time.Hour)
@@ -238,34 +239,34 @@ func (s *Service) window(ws *store.Workspace, f LogFilter) (time.Time, time.Time
 		loc := location(ws)
 		from, err := time.ParseInLocation("2006-01-02", f.From, loc)
 		if err != nil {
-			return time.Time{}, time.Time{}, api.Invalid("query.from", "Pick a start date, such as 2026-10-01.")
+			return time.Time{}, time.Time{}, api.Invalid("query.from", say(ctx, "log.startDate", nil))
 		}
 		to := now
 		if f.To != "" {
 			t, err := time.ParseInLocation("2006-01-02", f.To, loc)
 			if err != nil {
-				return time.Time{}, time.Time{}, api.Invalid("query.to", "Pick an end date, such as 2026-10-15.")
+				return time.Time{}, time.Time{}, api.Invalid("query.to", say(ctx, "log.endDate", nil))
 			}
 			to = t.AddDate(0, 0, 1)
 		}
 		if to.Before(from) {
-			return time.Time{}, time.Time{}, api.Invalid("query.to", "The end date is before the start date.")
+			return time.Time{}, time.Time{}, api.Invalid("query.to", say(ctx, "log.endBeforeStart", nil))
 		}
 		if from.Before(oldest.Add(-24 * time.Hour)) {
-			return time.Time{}, time.Time{}, api.Invalid("query.from", fmt.Sprintf("Messages are kept %d days; pick a date after %s.", MetadataRetentionDays, oldest.In(loc).Format("2 Jan 2006")))
+			return time.Time{}, time.Time{}, api.Invalid("query.from", say(ctx, "log.tooOld", i18n.Args{"days": MetadataRetentionDays, "date": dayIn(ctx, oldest.In(loc))}))
 		}
 		return from, to, nil
 	}
-	return time.Time{}, time.Time{}, api.Invalid("query.range", "Pick 1h, 24h, 7d, 30d or custom.")
+	return time.Time{}, time.Time{}, api.Invalid("query.range", say(ctx, "log.range", nil))
 }
 
-func optionalUUID(field, s string) (*uuid.UUID, error) {
+func optionalUUID(ctx context.Context, field, s string) (*uuid.UUID, error) {
 	if strings.TrimSpace(s) == "" {
 		return nil, nil
 	}
 	id, err := uuid.Parse(s)
 	if err != nil {
-		return nil, api.Invalid(field, "Pick one from the list.")
+		return nil, api.Invalid(field, say(ctx, "log.pickOne", nil))
 	}
 	return &id, nil
 }
@@ -279,8 +280,8 @@ func optionalText(s string) *string {
 }
 
 // logParams turns a filter into the log query's parameters.
-func (s *Service) logParams(ws *store.Workspace, f LogFilter) (store.TxnLogParams, error) {
-	since, until, err := s.window(ws, f)
+func (s *Service) logParams(ctx context.Context, ws *store.Workspace, f LogFilter) (store.TxnLogParams, error) {
+	since, until, err := s.window(ctx, ws, f)
 	if err != nil {
 		return store.TxnLogParams{}, err
 	}
@@ -290,25 +291,25 @@ func (s *Service) logParams(ws *store.Workspace, f LogFilter) (store.TxnLogParam
 	}
 	if f.Status != "" && f.Status != "all" {
 		if !slices.Contains(logStatuses, f.Status) {
-			return p, api.Invalid("query.status", "Pick a status from the list.")
+			return p, api.Invalid("query.status", say(ctx, "log.status", nil))
 		}
 		p.Status = &f.Status
 	}
 	if t := strings.ToLower(strings.TrimSpace(f.Template)); t != "" {
 		p.Template = &t
 	}
-	if p.ProviderID, err = optionalUUID("query.provider", f.Provider); err != nil {
+	if p.ProviderID, err = optionalUUID(ctx, "query.provider", f.Provider); err != nil {
 		return p, err
 	}
-	if p.KeyID, err = optionalUUID("query.key", f.Key); err != nil {
+	if p.KeyID, err = optionalUUID(ctx, "query.key", f.Key); err != nil {
 		return p, err
 	}
 	p.Q = optionalText(strings.ToLower(f.Query))
 	if p.BeforeAt, p.BeforeID, err = decodeCursor(f.Before); err != nil {
-		return p, api.Invalid("query.before", "That page link is out of date; reload the log.")
+		return p, api.Invalid("query.before", say(ctx, "log.pageStale", nil))
 	}
 	if p.AfterAt, p.AfterID, err = decodeCursor(f.After); err != nil {
-		return p, api.Invalid("query.after", "That cursor is out of date; reload the log.")
+		return p, api.Invalid("query.after", say(ctx, "log.cursorStale", nil))
 	}
 	return p, nil
 }
@@ -422,7 +423,7 @@ func logItem(r store.TxnLogRow) TransactionalLogItem {
 
 // MessageLog lists the message log.
 func (s *Service) MessageLog(ctx context.Context, ws *store.Workspace, f LogFilter) (TransactionalLog, error) {
-	p, err := s.logParams(ws, f)
+	p, err := s.logParams(ctx, ws, f)
 	if err != nil {
 		return TransactionalLog{}, err
 	}
@@ -662,10 +663,10 @@ type TransactionalRouteInfo struct {
 }
 
 // messageID parses a message's ID from its path.
-func messageID(s string) (uuid.UUID, error) {
+func messageID(ctx context.Context, s string) (uuid.UUID, error) {
 	id, err := uuid.Parse(strings.TrimSpace(s))
 	if err != nil {
-		return uuid.Nil, problem(http.StatusNotFound, "not_found", fmt.Sprintf("There is no message %s in this workspace. It may be older than %d days.", clip(s, 40), MetadataRetentionDays))
+		return uuid.Nil, problem(http.StatusNotFound, "not_found", say(ctx, "message.notFound", i18n.Args{"id": clip(s, 40), "days": MetadataRetentionDays}))
 	}
 	return id, nil
 }
@@ -673,7 +674,7 @@ func messageID(s string) (uuid.UUID, error) {
 func (s *Service) detailRow(ctx context.Context, ws *store.Workspace, id uuid.UUID) (store.TxnMessageDetailRow, error) {
 	r, err := s.Q.TxnMessageDetail(ctx, store.TxnMessageDetailParams{ID: id, WorkspaceID: ws.ID})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return r, problem(http.StatusNotFound, "not_found", fmt.Sprintf("There is no message %s in this workspace. It may be older than %d days.", id, MetadataRetentionDays))
+		return r, problem(http.StatusNotFound, "not_found", say(ctx, "message.notFound", i18n.Args{"id": id.String(), "days": MetadataRetentionDays}))
 	}
 	return r, err
 }
@@ -1100,10 +1101,10 @@ func (s *Service) Content(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	}
 	c, err := s.Q.TxnContent(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
-		detail := "This message's content wasn't kept: content retention is 0 days, or the message was stopped before it was rendered for sending."
+		detail := say(ctx, "content.notKept", nil)
 		if r.ContentRemovedAt != nil {
-			detail = fmt.Sprintf("The rendered content was removed on %s, as the content retention says. The summary and events stay until %s.",
-				r.ContentRemovedAt.In(location(ws)).Format("2 Jan 2006"), r.AcceptedAt.Add(MetadataRetentionDays*24*time.Hour).In(location(ws)).Format("2 Jan 2006"))
+			detail = say(ctx, "content.removed", i18n.Args{"date": dayIn(ctx, r.ContentRemovedAt.In(location(ws))),
+				"until": dayIn(ctx, r.AcceptedAt.Add(MetadataRetentionDays*24*time.Hour).In(location(ws)))})
 		}
 		return TransactionalContent{}, problem(http.StatusGone, "content_removed", detail)
 	}
@@ -1156,15 +1157,15 @@ func (s *Service) Resend(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 		switch st.Reason {
 		case "sensitive":
 			return TransactionalSendResult{}, problem(http.StatusConflict, "resend_unavailable",
-				fmt.Sprintf("%s %s sensitive and wasn't stored, so this message can't be sent again from here. Your app can send a new one.", joinAnd(st.Sensitive), plural(len(st.Sensitive), "is", "are")))
+				say(ctx, "resend.sensitive", i18n.Args{"names": i18n.AndList(i18n.LangFrom(ctx).Locale, st.Sensitive), "count": len(st.Sensitive)}))
 		case "attachments":
-			return TransactionalSendResult{}, problem(http.StatusConflict, "resend_unavailable", "Attachments aren't stored, so this message can't be sent again from here. Your app can send it again.")
+			return TransactionalSendResult{}, problem(http.StatusConflict, "resend_unavailable", say(ctx, "resend.attachments", nil))
 		case "raw":
-			return TransactionalSendResult{}, problem(http.StatusConflict, "resend_unavailable", "Mail that arrived by SMTP was rendered by your app, so it can only be sent again from there.")
+			return TransactionalSendResult{}, problem(http.StatusConflict, "resend_unavailable", say(ctx, "resend.raw", nil))
 		case "template":
-			return TransactionalSendResult{}, problem(http.StatusConflict, "resend_unavailable", fmt.Sprintf("%s has no published version any more, so there is nothing to send.", r.TemplateKey))
+			return TransactionalSendResult{}, problem(http.StatusConflict, "resend_unavailable", say(ctx, "resend.template", i18n.Args{"key": r.TemplateKey}))
 		default:
-			return TransactionalSendResult{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, deniedMessage("Resending", authz.TransactionalSend, s.helpers(ctx, ws.ID, authz.TransactionalSend, 3)))
+			return TransactionalSendResult{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, deniedMessage(ctx, "resend", authz.TransactionalSend, s.helpers(ctx, ws.ID, authz.TransactionalSend, 3)))
 		}
 	}
 	in := TransactionalSend{Template: r.TemplateKey, To: TransactionalAddress{Email: r.Email, Name: r.ToName}, Tags: r.Tags}
@@ -1219,7 +1220,7 @@ func (s *Service) Resend(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 // transactional:content, because it holds addresses, and is audited.
 func (s *Service) Export(ctx context.Context, ws *store.Workspace, f LogFilter) ([]byte, int, error) {
 	f.Before, f.After = "", ""
-	p, err := s.logParams(ws, f)
+	p, err := s.logParams(ctx, ws, f)
 	if err != nil {
 		return nil, 0, err
 	}

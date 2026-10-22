@@ -58,7 +58,7 @@ func (s *Service) FormDownloadOf(ctx context.Context, ws *store.Workspace, formI
 // FormDownloadDays sets how long a form's download links work.
 func (s *Service) FormDownloadDays(ctx context.Context, ws *store.Workspace, p *authz.Principal, formID uuid.UUID, days int32) (FormDownload, error) {
 	if days < 1 || days > 30 {
-		return FormDownload{}, api.Invalid("body.days", "Links work for 1 to 30 days.")
+		return FormDownload{}, api.Invalid("body.days", word(lang(ctx), "leadMagnet.days", nil))
 	}
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)

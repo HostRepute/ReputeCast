@@ -557,18 +557,14 @@ function ClientDetails({ id }: { id: string }) {
         </dl>
         {d.billed.length ? (
           <div className="flex flex-col">
-            <b className="mb-1 text-[13px]">{t(um.billedTitle)}</b>
-            <table className="tbl compact">
-              <tbody>
-                {d.billed.map((b) => (
-                  <tr key={b.month}>
-                    <td className="k">{monthLabel(b.month, 'short')}</td>
-                    <td>{b.rate ? rateText(t, b.rate, true) : t(um.notBilled)}</td>
-                    <td className="r num font-semibold">{b.toRebill != null ? usd(b.toRebill) : t(m.dash)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <span className="k mb-0.5 font-semibold text-ink-nav">{t(um.billedTitle)}</span>
+            {d.billed.map((b) => (
+              <div key={b.month} className="ag-mrow">
+                <span className="k w-[86px] flex-none">{monthLabel(b.month, 'short')}</span>
+                <span className="min-w-0 flex-1">{b.rate ? rateText(t, b.rate, true) : t(um.notBilled)}</span>
+                <span className="num font-semibold">{b.toRebill != null ? usd(b.toRebill) : t(m.dash)}</span>
+              </div>
+            ))}
           </div>
         ) : null}
       </div>

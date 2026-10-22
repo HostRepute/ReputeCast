@@ -13,15 +13,16 @@ import (
 )
 
 type AccessibilityFix struct {
-	ID          uuid.UUID  `json:"id"`
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	CampaignID  uuid.UUID  `json:"campaignId"`
-	ContentHash string     `json:"contentHash"`
-	Kinds       []string   `json:"kinds"`
-	Summary     string     `json:"summary"`
-	Languages   []string   `json:"languages"`
-	FixedBy     *uuid.UUID `json:"fixedBy"`
-	FixedAt     time.Time  `json:"fixedAt"`
+	ID           uuid.UUID       `json:"id"`
+	WorkspaceID  uuid.UUID       `json:"workspaceId"`
+	CampaignID   uuid.UUID       `json:"campaignId"`
+	ContentHash  string          `json:"contentHash"`
+	Kinds        []string        `json:"kinds"`
+	Summary      string          `json:"summary"`
+	Languages    []string        `json:"languages"`
+	FixedBy      *uuid.UUID      `json:"fixedBy"`
+	FixedAt      time.Time       `json:"fixedAt"`
+	SummaryTexts json.RawMessage `json:"summaryTexts"`
 }
 
 type AccessibilityLinkTitle struct {
@@ -337,6 +338,7 @@ type ApprovalRequest struct {
 	TransactionalTemplateID *uuid.UUID      `json:"transactionalTemplateId"`
 	WebsitePostID           *uuid.UUID      `json:"websitePostId"`
 	WebsitePageID           *uuid.UUID      `json:"websitePageId"`
+	InvalidatedReasonText   json.RawMessage `json:"invalidatedReasonText"`
 }
 
 type ArchiveIssue struct {
@@ -560,6 +562,7 @@ type AutomationVersion struct {
 	RetiredAt    *time.Time      `json:"retiredAt"`
 	Summary      string          `json:"summary"`
 	Migration    string          `json:"migration"`
+	SummaryText  json.RawMessage `json:"summaryText"`
 }
 
 type AutomationWebhookCall struct {

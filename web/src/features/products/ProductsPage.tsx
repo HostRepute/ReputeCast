@@ -9,7 +9,7 @@ import { CardSection } from '@/components/ui/Card'
 import { Bar, StackBar } from '@/components/ui/Data'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Select } from '@/components/ui/Field'
-import { TableScroll } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
 import { Segmented } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
@@ -242,22 +242,16 @@ function ProductsCard({ data }: { data: Overview }) {
           <table className="tbl pr-tbl" aria-label={t(pm.tableLabel)}>
             <thead>
               <tr>
-                <th scope="col">{t(pm.colProduct)}</th>
-                <th scope="col">{t(pm.colPrice)}</th>
-                <th scope="col">{t(pm.colStatus)}</th>
-                <th scope="col" className="r">
-                  {t(pm.colOrders)}
-                </th>
-                <th scope="col" className="r">
-                  {t(pm.colGross)}
-                </th>
-                <th scope="col" className="r">
-                  {t(pm.colRefunds)}
-                </th>
-                <th scope="col">{t(pm.colSalesPage)}</th>
-                <th scope="col">
+                <Th>{t(pm.colProduct)}</Th>
+                <Th>{t(pm.colPrice)}</Th>
+                <Th>{t(pm.colStatus)}</Th>
+                <Th align="right">{t(pm.colOrders)}</Th>
+                <Th align="right">{t(pm.colGross)}</Th>
+                <Th align="right">{t(pm.colRefunds)}</Th>
+                <Th>{t(pm.colSalesPage)}</Th>
+                <Th>
                   <span className="vh">{t(pm.colActions)}</span>
-                </th>
+                </Th>
               </tr>
             </thead>
             <tbody>
@@ -512,14 +506,12 @@ function OrdersTable({ list, selected, onOpen }: { list: OrderList; selected?: s
           <table className="tbl pr-tbl" aria-label={t(pm.ordersLabel)}>
             <thead>
               <tr>
-                <th scope="col">{t(pm.colOrder)}</th>
-                <th scope="col">{t(pm.colBuyer)}</th>
-                <th scope="col">{t(pm.colProduct)}</th>
-                <th scope="col" className="r">
-                  {t(pm.colAmount)}
-                </th>
-                <th scope="col">{t(pm.colStatus)}</th>
-                <th scope="col">{t(pm.colDownload)}</th>
+                <Th>{t(pm.colOrder)}</Th>
+                <Th>{t(pm.colBuyer)}</Th>
+                <Th>{t(pm.colProduct)}</Th>
+                <Th align="right">{t(pm.colAmount)}</Th>
+                <Th>{t(pm.colStatus)}</Th>
+                <Th>{t(pm.colDownload)}</Th>
               </tr>
             </thead>
             <tbody>

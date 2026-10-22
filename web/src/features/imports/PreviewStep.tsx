@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
-import { TableScroll } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
 import { count } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { stepPath, useImportDetail, WizardHeading, type Detail } from './ImportFrame'
@@ -16,12 +16,15 @@ import { ReadingSource } from './states'
 import { FoundBy, ImportVerifyCard, serviceInvalidLabel, useCheckedNotes } from '@/features/verification/ImportCheck'
 import { m as vm } from '@/features/verification/messages'
 import { useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { m } from './messages'
 
 type Preview = Schemas['ImportPreview']
 type Options = Schemas['ImportOptions']
 
 /** Step 4: the dry run (MigrationPreview). */
 export function PreviewStep({ importId }: { importId: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = useImportDetail(importId)
   const d = q.data
@@ -33,21 +36,18 @@ export function PreviewStep({ importId }: { importId: string }) {
   )
   const p = preview.data
   return (
-    <StepFrame d={d} step={4} hints={{ 3: p ? `${count(p.suppressCount)} to suppress` : undefined, 4: 'Nothing is written yet' }} mainClassName="s34">
-      <WizardHeading
-        title={p ? `${count(p.rows)} rows checked. Here's what would happen.` : 'Checking the rows'}
-        lead="Dry run against your current contacts and the shared suppression list. Adjust the risky groups, then import."
-      />
+    <StepFrame d={d} step={4} hints={{ 3: p ? t(m.hintSuppress, { count: count(p.suppressCount) }) : undefined, 4: t(m.hintNothingWritten) }} mainClassName="s34">
+      <WizardHeading title={p ? t(m.previewTitle, { n: p.rows, count: count(p.rows) }) : t(m.checkingRows)} lead={t(m.previewLead)} />
       {q.isError || preview.isError ? (
-        <ErrorPanel title="Couldn't run the preview" actions={<Button onClick={() => void (q.isError ? q.refetch() : preview.refetch())}>Retry</Button>}>
-          {errorMessage(q.error ?? preview.error)} Nothing was imported.
+        <ErrorPanel title={t(m.previewFailed)} actions={<Button onClick={() => void (q.isError ? q.refetch() : preview.refetch())}>{t(common.retry)}</Button>}>
+          {errorMessage(q.error ?? preview.error)} {t(m.nothingImported)}
         </ErrorPanel>
       ) : !d ? (
-        <ReadingSource title="Loading the import" />
+        <ReadingSource title={t(m.loading)} />
       ) : !d.stagedAt ? (
         <NotRead d={d} />
       ) : !p ? (
-        <ReadingSource title="Checking every row against your contacts and the suppression list" detail={`${count(d.stagedRows)} rows`} />
+        <ReadingSource title={t(m.checkingEvery)} detail={t(m.rows, { n: d.stagedRows, count: count(d.stagedRows) })} />
       ) : (
         <Result d={d} p={p} refreshing={preview.isFetching} />
       )}
@@ -88,13 +88,13 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
     }
   }
   const tiles: [string, number, string, string?][] = [
-    ['Will be imported', p.willImport, checked?.willImport ?? 'new contacts, subscribed', '#86EFAC'],
-    ['Merged with existing', p.merged, 'already in ReputeCast'],
-    ['Suppressed', p.suppressed, 'unsubscribed, bounced, complained', '#FCA5A5'],
-    ['Invalid, skipped', p.invalid, checked?.invalid ?? 'not an email address'],
-    ['Risky, your call', p.risky, checked?.risky ?? 'role, disposable, typo, trap-like', '#FCD34D'],
+    [t(m.tileWillImport), p.willImport, checked?.willImport ?? t(m.tileWillImportNote), '#86EFAC'],
+    [t(m.tileMergedExisting), p.merged, t(m.tileMergedNote)],
+    [t(m.tileSuppressed), p.suppressed, t(m.tileSuppressedNote), '#FCA5A5'],
+    [t(m.tileInvalid), p.invalid, checked?.invalid ?? t(m.tileInvalidNote)],
+    [t(m.tileRisky), p.risky, checked?.risky ?? t(m.tileRiskyNote), '#FCD34D'],
   ]
-  if (p.notImported > 0) tiles.push(['Not imported', p.notImported, 'statuses set to Skip'])
+  if (p.notImported > 0) tiles.push([t(m.tileNotImported), p.notImported, t(m.tileNotImportedNote)])
   return (
     <>
       <div className="mgrid grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]" aria-busy={refreshing}>
@@ -111,28 +111,24 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
       {p.riskyGroups.length > 0 ? (
         <section className="card flex flex-col">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-5 py-3.5">
-            <h3 className="h2">{p.verification ? t(vm.importRiskyAfter, { count: p.risky }) : `Risky addresses · ${count(p.risky)}`}</h3>
-            <span className="k">{checked?.header ?? "imported addresses that bounce or hit traps hurt every provider's reputation"}</span>
+            <h3 className="h2">{p.verification ? t(vm.importRiskyAfter, { count: p.risky }) : t(m.riskyTitle, { count: count(p.risky) })}</h3>
+            <span className="k">{checked?.header ?? t(m.riskyNote)}</span>
           </div>
-          <TableScroll label="Risky addresses">
+          <TableScroll label={t(m.riskyTable)}>
             <table className="tbl mpre">
               <thead>
                 <tr>
-                  <th scope="col">Group</th>
-                  <th scope="col" className="r">
-                    Rows
-                  </th>
+                  <Th>{t(m.colGroup)}</Th>
+                  <Th align="right">{t(m.colRows)}</Th>
                   {p.verification ? (
-                    <th scope="col">{t(vm.colFoundBy)}</th>
+                    <Th>{t(vm.colFoundBy)}</Th>
                   ) : (
                     <>
-                      <th scope="col">Why it's risky</th>
-                      <th scope="col">Examples</th>
+                      <Th>{t(m.colWhy)}</Th>
+                      <Th>{t(m.colExamples)}</Th>
                     </>
                   )}
-                  <th scope="col" className="w-[260px]">
-                    Action
-                  </th>
+                  <Th className="w-[260px]">{t(m.colAction)}</Th>
                 </tr>
               </thead>
               <tbody>
@@ -152,7 +148,7 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
                     )}
                     <td>
                       <select
-                        aria-label={`Action for ${g.label}`}
+                        aria-label={t(m.actionFor, { label: g.label })}
                         className="in w-full"
                         value={g.action}
                         disabled={update.isPending}
@@ -175,29 +171,29 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
       {p.duplicates.length > 0 || p.merged > 0 ? (
         <section className="card flex flex-col">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-5 py-3.5">
-            <h3 className="h2">Duplicates · {count(p.merged)} already in ReputeCast</h3>
+            <h3 className="h2">{t(m.duplicatesTitle, { count: count(p.merged) })}</h3>
             <label className="k flex items-center gap-2 max-sm:w-full">
-              <span className="whitespace-nowrap">On conflict</span>
+              <span className="whitespace-nowrap">{t(m.onConflict)}</span>
               <select
                 className="in max-sm:min-w-0 max-sm:flex-1"
                 value={p.onConflict}
                 disabled={update.isPending}
                 onChange={(e) => void change({ onConflict: e.target.value as Options['onConflict'] })}
               >
-                <option value="fill">Fill empty fields only (recommended)</option>
-                <option value="overwrite">Overwrite with {d.sourceName} values</option>
-                <option value="keep">Keep ReputeCast values</option>
+                <option value="fill">{t(m.conflictFill)}</option>
+                <option value="overwrite">{t(m.conflictOverwrite, { source: d.sourceName })}</option>
+                <option value="keep">{t(m.conflictKeep)}</option>
               </select>
             </label>
           </div>
-          <TableScroll label="Duplicates">
+          <TableScroll label={t(m.duplicates)}>
             <table className="tbl mpre">
               <thead>
                 <tr>
-                  <th scope="col">Email</th>
-                  <th scope="col">In ReputeCast</th>
-                  <th scope="col">In {d.sourceName}</th>
-                  <th scope="col">Result</th>
+                  <Th>{t(m.colEmail)}</Th>
+                  <Th>{t(m.colInReputeCast)}</Th>
+                  <Th>{t(m.colInSource, { source: d.sourceName })}</Th>
+                  <Th>{t(m.colResult)}</Th>
                 </tr>
               </thead>
               <tbody>
@@ -219,9 +215,9 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
       {p.invalid > 0 ? (
         <section className="card flex flex-col">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-5 py-3.5">
-            <h3 className="h2">Invalid · {count(p.invalid)} skipped</h3>
+            <h3 className="h2">{t(m.invalidTitle, { count: count(p.invalid) })}</h3>
             <Button size="sm" onClick={() => void downloadImportFile(slug, d.id, 'invalid')}>
-              Download these rows
+              {t(m.downloadThese)}
             </Button>
           </div>
           <div className="k flex flex-wrap gap-4 px-5 py-3">
@@ -229,7 +225,7 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
               <span key={g.problem} className="mono">
                 {g.service
                   ? serviceInvalidLabel(t, g.service, g.rows)
-                  : `${g.example ? `${g.example} (${g.problem})` : g.problem === 'no MX record' ? 'domain has no MX record' : g.problem} · ${count(g.rows)}`}
+                  : `${g.example ? `${g.example} (${g.problem})` : g.problem === 'no MX record' ? t(m.noMx) : g.problem} · ${count(g.rows)}`}
               </span>
             ))}
           </div>
@@ -237,17 +233,18 @@ function Result({ d, p, refreshing }: { d: Detail; p: Preview; refreshing: boole
       ) : null}
       <div className="flex flex-wrap justify-between gap-2.5">
         <ButtonLink to={stepPath.consent} params={{ workspace: slug, importId: d.id }}>
-          Back
+          {t(m.back)}
         </ButtonLink>
         <Button
           variant="primary"
           className="wnext"
-          disabledReason={reason ?? (p.importCount + p.suppressCount === 0 ? 'Nothing to import: every row is invalid or skipped.' : undefined)}
+          disabledReason={reason ?? (p.importCount + p.suppressCount === 0 ? t(m.nothingToImport) : undefined)}
           loading={start.isPending}
           onClick={() => void run()}
         >
-          Import {count(p.importCount)} {p.importCount === 1 ? 'contact' : 'contacts'}
-          {p.suppressCount > 0 ? ` and ${count(p.suppressCount)} ${p.suppressCount === 1 ? 'suppression' : 'suppressions'}` : ''}
+          {p.suppressCount > 0
+            ? t(m.importButtonSuppressions, { n: p.importCount, count: count(p.importCount), s: p.suppressCount, suppressions: count(p.suppressCount) })
+            : t(m.importButton, { n: p.importCount, count: count(p.importCount) })}
         </Button>
       </div>
     </>

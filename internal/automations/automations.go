@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -22,6 +21,7 @@ import (
 	"github.com/riverqueue/river/rivertype"
 
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -137,7 +137,7 @@ const (
 // loadRefs loads what steps can point at in a workspace.
 func (s *Service) loadRefs(ctx context.Context, q *store.Queries, wsID uuid.UUID) (*Refs, error) {
 	r := &Refs{Lists: map[string]string{}, Forms: map[string]string{}, Emails: map[string]int{}, EmailNames: map[string]string{}, Fields: map[string]string{}, Providers: map[string]string{},
-		Polls: map[string]string{}, Milestones: map[string]string{}}
+		Polls: map[string]string{}, Milestones: map[string]string{}, milestones: map[string]milestone{}}
 	if err := loadProductRefs(ctx, q, wsID, r); err != nil {
 		return nil, err
 	}
@@ -186,19 +186,23 @@ func (s *Service) loadRefs(ctx context.Context, q *store.Queries, wsID uuid.UUID
 		return nil, err
 	}
 	for _, m := range ms {
-		r.Milestones[m.ID.String()] = milestoneName(m.Count, m.RewardName)
+		r.Milestones[m.ID.String()] = milestoneName(english, m.Count, m.RewardName)
+		r.milestones[m.ID.String()] = milestone{count: m.Count, reward: m.RewardName}
 	}
 	return r, nil
 }
 
 // milestoneName is how a flow names a referral milestone: "3 referrals ·
 // The Acme Field Guide".
-func milestoneName(count int32, reward string) string {
-	if count == 1 {
-		return fmt.Sprintf("1 referral · %s", reward)
-	}
-	return fmt.Sprintf("%d referrals · %s", count, reward)
+func milestoneName(l i18n.Lang, count int32, reward string) string {
+	return say(l, milestoneText(count, reward))
 }
+
+var (
+	mRouteNotSetUp = msg("route.notSetUp")
+	mRouteShare    = msg("route.share")
+	mRouteFailover = msg("route.failover")
+)
 
 // AutomationRouteProvider is a sending provider on the Automations route.
 type AutomationRouteProvider struct {
@@ -270,8 +274,10 @@ func healthyStatus(status string) bool {
 	return status == "healthy" || status == "degraded" || status == "warming_up" || status == "sandbox"
 }
 
+// route is the Automations route, its label in the request's language.
 func (s *Service) route(ctx context.Context, q *store.Queries, wsID uuid.UUID) (AutomationRoute, error) {
-	out := AutomationRoute{Label: "not set up", Primary: []AutomationRouteProvider{}}
+	l := langOf(ctx)
+	out := AutomationRoute{Label: say(l, txt(mRouteNotSetUp)), Primary: []AutomationRouteProvider{}}
 	provs, err := q.AutomationProviders(ctx, wsID)
 	if err != nil {
 		return out, err
@@ -293,7 +299,7 @@ func (s *Service) route(ctx context.Context, q *store.Queries, wsID uuid.UUID) (
 		Weight     int       `json:"weight"`
 	}
 	_ = json.Unmarshal(rule.Splits, &splits)
-	var parts []string
+	var parts []i18n.Text
 	for _, sp := range splits {
 		p, ok := byID[sp.ProviderID]
 		if !ok {
@@ -305,9 +311,9 @@ func (s *Service) route(ctx context.Context, q *store.Queries, wsID uuid.UUID) (
 			out.Healthy = true
 		}
 		if len(splits) > 1 {
-			parts = append(parts, r.Short+" "+itoa(sp.Weight)+"%")
+			parts = append(parts, txt(mRouteShare, "provider", r.Short, "share", float64(sp.Weight)/100))
 		} else {
-			parts = append(parts, r.Short)
+			parts = append(parts, name(r.Short))
 		}
 	}
 	if rule.FallbackProviderID != nil {
@@ -320,15 +326,14 @@ func (s *Service) route(ctx context.Context, q *store.Queries, wsID uuid.UUID) (
 		}
 	}
 	if len(parts) > 0 {
-		out.Label = strings.Join(parts, " / ")
+		label := joined(" / ", parts)
 		if out.Fallback != nil {
-			out.Label += ", failover " + out.Fallback.Short
+			label = txt(mRouteFailover, "providers", label, "fallback", out.Fallback.Short)
 		}
+		out.Label = say(l, label)
 	}
 	return out, nil
 }
-
-func itoa(n int) string { return formatCount(int64(n)) }
 
 // graphOf parses a stored graph, treating corrupt data as an empty flow.
 func (s *Service) graphOf(raw []byte) AutomationGraph {

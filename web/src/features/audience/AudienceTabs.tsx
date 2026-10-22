@@ -4,6 +4,7 @@ import { m as scoring } from '@/features/scoring/messages'
 import { useT } from '@/i18n'
 import { count } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
+import { m } from './messages'
 
 /** The audience summary behind the tabs and the empty state. */
 export function useAudienceSummary() {
@@ -22,19 +23,22 @@ export function AudienceTabs() {
   const summary = useAudienceSummary()
   const s = summary.data
   const show = s && s.contacts > 0
-  const n = (v: number) => (show ? ` · ${count(v)}` : '')
   return (
     <NavTabs
-      label="Audience sections"
+      label={t(m.sections)}
       className="ml-3 max-md:ml-0"
       tabs={[
-        { label: `Contacts${n(s?.contacts ?? 0)}`, to: '/w/$workspace/audience', params: { workspace: slug }, exact: true },
-        { label: `Segments${n(s?.segments ?? 0)}`, to: '/w/$workspace/audience/segments', params: { workspace: slug } },
-        { label: 'List health', to: '/w/$workspace/audience/health', params: { workspace: slug } },
+        { label: show ? t(m.tabContactsCount, { count: count(s.contacts) }) : t(m.tabContacts), to: '/w/$workspace/audience', params: { workspace: slug }, exact: true },
+        { label: show ? t(m.tabSegmentsCount, { count: count(s.segments) }) : t(m.tabSegments), to: '/w/$workspace/audience/segments', params: { workspace: slug } },
+        { label: t(m.tabHealth), to: '/w/$workspace/audience/health', params: { workspace: slug } },
         // Scoring and Growth (X13).
         { label: t(scoring.tabScoring), to: '/w/$workspace/audience/scoring', params: { workspace: slug } },
         { label: t(scoring.tabGrowth), to: '/w/$workspace/audience/growth', params: { workspace: slug } },
-        { label: `Suppression list${n(s?.suppressions ?? 0)}`, to: '/w/$workspace/audience/suppressions', params: { workspace: slug } },
+        {
+          label: show ? t(m.tabSuppressionsCount, { count: count(s.suppressions) }) : t(m.tabSuppressions),
+          to: '/w/$workspace/audience/suppressions',
+          params: { workspace: slug },
+        },
       ]}
     />
   )

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 )
 
@@ -233,31 +234,28 @@ func (c *checker) nodeAt(k string) *mjml.Node {
 	return c.d.nodes[k]
 }
 
-// imageName names an image in a sentence: "The hero image", "The logo".
-func (c *checker) imageName(p []int, linked bool) string {
+// imageArgs say which image an issue names (name.image, alt.title…): the
+// hero image, the logo, an image in a section, or an image.
+func (c *checker) imageArgs(p []int) i18n.Args {
 	label := c.sectionLabel(p)
 	if label == "" && c.d != nil && len(p) > 0 {
 		_, label = c.d.section(p)
 	}
-	prefix := "The "
-	if linked {
-		prefix = "The linked "
-	}
 	switch label {
 	case "hero":
-		return prefix + "hero image"
+		return i18n.Args{"image": "hero"}
 	case "header":
-		return prefix + "logo"
+		return i18n.Args{"image": "logo"}
 	case "", "image", "text":
-		if linked {
-			return "A linked image"
-		}
-		return "An image"
+		return i18n.Args{"image": "other"}
 	}
-	if linked {
-		return "A linked image in the " + label + " section"
-	}
-	return "An image in the " + label + " section"
+	return i18n.Args{"image": "section", "section": label}
+}
+
+// named sets what an issue is about from its message.
+func named(is AccessibilityIssue, name i18n.Text) AccessibilityIssue {
+	is.Texts.Name, is.Name = name, titleIn(i18n.Default, name)
+	return is
 }
 
 func (c *checker) images() {
@@ -289,14 +287,14 @@ func (c *checker) images() {
 			continue
 		}
 		p := pathOf(im.path)
-		name := c.imageName(p, false)
+		image := c.imageArgs(p)
 		file := path.Base(strings.SplitN(im.src, "?", 2)[0])
-		c.add(KindAltText+":"+im.path+":"+fmt.Sprint(im.index), AccessibilityIssue{
-			Kind: KindAltText, Severity: Serious, Title: name + " has no alt text",
-			Detail: "Screen readers skip it or read the file name. Alt text is written in each language.", Tag: "No alt text",
+		is := worded(AccessibilityIssue{
+			Kind: KindAltText, Severity: Serious,
 			Path: p, Location: c.location(p, ""), Element: AccessibilityElement{Tag: tagOr(n, "img"), Role: "image", Label: file, Section: c.sectionLabel(p), Index: im.index, Src: im.src},
 			Fix: AccessibilityFixSpec{Kind: KindAltText, PerLanguage: true, Decorative: true},
-		}, AccessibilityIssueVersion{})
+		}, mAltTitle.Keep(image), mAltTag.Keep(nil), mAltDetail.Keep(nil))
+		c.add(KindAltText+":"+im.path+":"+fmt.Sprint(im.index), named(is, mNameImage.Keep(image)), AccessibilityIssueVersion{})
 	}
 }
 
@@ -349,30 +347,26 @@ func (c *checker) links() {
 			key := KindLinkNoText + ":" + l.path + ":" + fmt.Sprint(l.index)
 			if len(l.imgs) > 0 {
 				im := l.imgs[0]
-				label := c.imageName(p, true)
-				title := label + " has no alt text, so its link has no text"
-				c.add(key, AccessibilityIssue{Kind: KindLinkNoText, Severity: Serious, Title: title,
-					Detail: "Screen readers announce a link and nothing else. Its alt text is the link's text, written in each language.", Tag: "Link has no text",
+				image := c.imageArgs(p)
+				is := worded(AccessibilityIssue{Kind: KindLinkNoText, Severity: Serious,
 					Path: p, Location: c.location(p, inner), Element: AccessibilityElement{Tag: tag, Role: "linked_image", Label: path.Base(strings.SplitN(im.src, "?", 2)[0]),
 						Section: c.sectionLabel(p), Index: l.index, Href: l.href, Src: im.src},
-					Fix: AccessibilityFixSpec{Kind: KindAltText, PerLanguage: true}}, AccessibilityIssueVersion{})
+					Fix: AccessibilityFixSpec{Kind: KindAltText, PerLanguage: true}}, mLinkedAltTitle.Keep(image), mNoTextLinkTag.Keep(nil), mLinkedAltDetail.Keep(nil))
+				c.add(key, named(is, mNameLinkedImage.Keep(image)), AccessibilityIssueVersion{})
 				continue
 			}
-			what := "A link"
-			if role == "button" {
-				what = "A button"
-			}
+			what := i18n.Args{"what": role}
 			if s := c.sectionLabel(p); s != "" {
-				what += " in the " + s + " section"
+				what = i18n.Args{"what": role + "In", "section": s}
 			}
-			tagText := "Link has no text"
+			tagText := mNoTextLinkTag
 			if role == "button" {
-				tagText = "Button has no text"
+				tagText = mNoTextButtonTag
 			}
-			c.add(key, AccessibilityIssue{Kind: KindLinkNoText, Severity: Serious, Title: what + " has no text",
-				Detail: "Screen readers announce it and nothing else. Add text that says where it goes, in each language.", Tag: tagText,
+			is := worded(AccessibilityIssue{Kind: KindLinkNoText, Severity: Serious,
 				Path: p, Location: c.location(p, inner), Element: AccessibilityElement{Tag: tag, Role: role, Section: c.sectionLabel(p), Index: l.index, Href: l.href},
-				Fix: AccessibilityFixSpec{Kind: KindLinkText, PerLanguage: true}}, AccessibilityIssueVersion{})
+				Fix: AccessibilityFixSpec{Kind: KindLinkText, PerLanguage: true}}, mNoTextTitle.Keep(what), tagText.Keep(nil), mNoTextDetail.Keep(nil))
+			c.add(key, named(is, mNameNoText.Keep(what)), AccessibilityIssueVersion{})
 			continue
 		}
 		vague, bare := SaysNothing(name, c.lang), BareURL(name, l.href)
@@ -432,16 +426,11 @@ func (c *checker) linkTextIssue(g *linkGroup) {
 	}
 	is := AccessibilityIssue{Kind: KindLinkText, Severity: Moderate, Path: p, Paths: paths, Location: c.location(p, g.inner), Element: el,
 		Fix: AccessibilityFixSpec{Kind: KindLinkText, PerLanguage: true, Links: targets}}
-	n := len(g.links)
-	switch {
-	case g.bare && n == 1:
-		is.Title, is.Tag = "A bare URL is the link text: "+g.name, "Bare URL as link text"
-	case g.bare:
-		is.Title, is.Tag = fmt.Sprintf("%s links show a bare URL as their text: %s", capitalize(numberWord(n)), g.name), "Bare URL as link text"
-	case n == 1:
-		is.Title, is.Tag = quote(g.name)+" doesn't say where the link goes", quote(g.name)+" says nothing"
-	default:
-		is.Title, is.Tag = fmt.Sprintf("%s %s links don't say where they go", capitalize(numberWord(n)), quote(g.name)), quote(g.name)+" says nothing"
+	words := i18n.Args{"count": len(g.links), "text": g.name}
+	if g.bare {
+		is = worded(is, mBareTitle.Keep(words), mBareTag.Keep(nil))
+	} else {
+		is = worded(is, mVagueTitle.Keep(words), mVagueTag.Keep(i18n.Args{"text": g.name}))
 	}
 	c.add(KindLinkText+":"+strings.Join(keys, ","), is, ver)
 }
@@ -512,20 +501,29 @@ func (c *checker) contrast() {
 		}
 		spec.From, spec.Against = from.Hex(), against.Hex()
 		spec.Suggestions = c.suggest(g, from, against, buttonBG)
-		var title, detail string
+		// A button names its text's color, other text its background's
+		// ("white text on #5EBFB0", "#9CA3AF text on white").
+		colors := i18n.Args{"label": label, "fg": g.fg.Hex(), "bg": g.bg.Hex(), "fgName": "", "bgName": "", "ratio": g.ratio, "need": g.need}
 		if g.button {
-			title = fmt.Sprintf("%s: %s text on %s is %s. It needs %s.", quote(label), ColorName(g.fg), g.bg.Hex(), FormatRatio(g.ratio), formatNeed(g.need))
+			colors["fgName"] = colorWord(g.fg)
 		} else {
-			title = fmt.Sprintf("%s: %s text on %s is %s. It needs %s.", quote(label), g.fg.Hex(), ColorName(g.bg), FormatRatio(g.ratio), formatNeed(g.need))
+			colors["bgName"] = colorWord(g.bg)
 		}
-		detail = "The color is shared, so one fix covers every language."
-		c.add(KindContrast+":"+g.path+":"+g.fg.Hex()+"/"+g.bg.Hex(), AccessibilityIssue{Kind: KindContrast, Severity: Serious, Title: title, Detail: detail,
-			Tag: "Contrast " + FormatRatio(g.ratio), Path: p, Location: c.location(p, ""),
-			Element: AccessibilityElement{Tag: tagOr(n, "span"), Role: role, Label: label, Section: c.sectionLabel(p)}, Fix: spec}, AccessibilityIssueVersion{})
+		is := worded(AccessibilityIssue{Kind: KindContrast, Severity: Serious, Path: p, Location: c.location(p, ""),
+			Element: AccessibilityElement{Tag: tagOr(n, "span"), Role: role, Label: label, Section: c.sectionLabel(p)}, Fix: spec},
+			mContrastTitle.Keep(colors), mContrastTag.Keep(i18n.Args{"ratio": g.ratio}), mContrastDetail.Keep(nil))
+		c.add(KindContrast+":"+g.path+":"+g.fg.Hex()+"/"+g.bg.Hex(), is, AccessibilityIssueVersion{})
 	}
 }
 
-func formatNeed(n float64) string { return strings.TrimSuffix(fmt.Sprintf("%.1f", n), ".0") + ":1" }
+// colorWord is ColorName's word for white and black, for contrast.title;
+// "" for the other colors, which read as their hex value.
+func colorWord(c Color) string {
+	if n := ColorName(c); n != c.Hex() {
+		return n
+	}
+	return ""
+}
 
 // suggest offers the colors that fix a contrast issue: the email's other
 // buttons' color, the nearest shade that passes AA and one that passes AAA.
@@ -593,14 +591,18 @@ func (c *checker) sizes() {
 		n := c.nodeAt(k)
 		size := roundPx(smallest[k])
 		label := c.sectionLabel(p)
-		what := "Text"
+		args := i18n.Args{"px": size, "min": c.opts.MinTextPx}
+		title, subject := mSizeTitle, mSizeSubject
 		if label != "" {
-			what = capitalize(label) + " text"
+			args["section"] = label
+			title, subject = mSizeTitleIn, mSizeSubjectIn
 		}
-		c.add(KindTextSize+":"+k, AccessibilityIssue{Kind: KindTextSize, Severity: Moderate,
-			Title: fmt.Sprintf("%s is %s px. The minimum is %d px.", what, trimFloat(size), c.opts.MinTextPx), Tag: trimFloat(size) + " px text",
+		is := worded(AccessibilityIssue{Kind: KindTextSize, Severity: Moderate,
 			Path: p, Location: c.location(p, ""), Element: AccessibilityElement{Tag: tagOr(n, "span"), Role: "text", Section: label},
-			Fix: AccessibilityFixSpec{Kind: KindTextSize, OneClick: true, FromPx: size, ToPx: c.opts.MinTextPx, Subject: what}}, AccessibilityIssueVersion{})
+			Fix: AccessibilityFixSpec{Kind: KindTextSize, OneClick: true, FromPx: size, ToPx: c.opts.MinTextPx}}, title.Keep(args), mSizeTag.Keep(i18n.Args{"px": size}))
+		is.Texts.Subject = subject.Keep(args)
+		is.Fix.Subject = titleIn(i18n.Default, is.Texts.Subject)
+		c.add(KindTextSize+":"+k, is, AccessibilityIssueVersion{})
 	}
 }
 
@@ -657,33 +659,27 @@ func (c *checker) headings() {
 			keyParts = append(keyParts, f.h.path+"."+fmt.Sprint(f.h.index))
 		}
 		n := len(run)
-		what := "headings"
+		cardsArg := "no"
 		if cards {
-			what = "card titles"
+			cardsArg = "yes"
 		}
-		var title, fixLabel string
-		subject := capitalize(what)
-		switch n {
-		case 1:
-			subject = quote(texts[0])
-			title = fmt.Sprintf("%s is Heading %d, right after a Heading %d", quote(texts[0]), first.from, first.prev)
-			fixLabel = fmt.Sprintf("Change it to Heading %d", first.to)
-		case 2:
-			title = fmt.Sprintf("Both %s are Heading %d, right after the Heading %d", what, first.from, first.prev)
-			fixLabel = fmt.Sprintf("Change both to Heading %d", first.to)
-		default:
-			title = fmt.Sprintf("%d %s are Heading %d, right after the Heading %d", n, what, first.from, first.prev)
-			fixLabel = fmt.Sprintf("Change all %d to Heading %d", n, first.to)
+		levels := i18n.Args{"count": n, "text": texts[0], "from": first.from, "prev": first.prev, "to": first.to, "cards": cardsArg}
+		subject := mHeadingSubject.Keep(i18n.Args{"cards": cardsArg})
+		if n == 1 {
+			subject = mHeadingSubject1.Keep(i18n.Args{"text": texts[0]})
 		}
 		p := pathOf(first.h.path)
 		inner := fmt.Sprintf("h%d", first.from)
 		if n > 1 {
 			inner += fmt.Sprintf(" × %d", n)
 		}
-		c.add(KindHeading+":"+strings.Join(keyParts, ","), AccessibilityIssue{Kind: KindHeading, Severity: Moderate, Title: title, Detail: fixLabel + ". The text keeps its look.",
-			Tag: fmt.Sprintf("Heading %d after Heading %d", first.from, first.prev), Path: p, Paths: paths, Location: c.location(p, inner),
+		is := worded(AccessibilityIssue{Kind: KindHeading, Severity: Moderate, Path: p, Paths: paths, Location: c.location(p, inner),
 			Element: AccessibilityElement{Tag: fmt.Sprintf("h%d", first.from), Role: "heading", Label: texts[0], Section: c.sectionLabel(p), Index: first.h.index, Count: n},
-			Fix:     AccessibilityFixSpec{Kind: KindHeading, OneClick: true, Headings: changes, Subject: subject}}, AccessibilityIssueVersion{})
+			Fix:     AccessibilityFixSpec{Kind: KindHeading, OneClick: true, Headings: changes}},
+			mHeadingTitle.Keep(levels), mHeadingTag.Keep(i18n.Args{"from": first.from, "prev": first.prev}), mHeadingDetail.Keep(i18n.Args{"count": n, "to": first.to}))
+		is.Texts.Subject = subject
+		is.Fix.Subject = titleIn(i18n.Default, subject)
+		c.add(KindHeading+":"+strings.Join(keyParts, ","), is, AccessibilityIssueVersion{})
 	}
 }
 
@@ -737,11 +733,13 @@ func merge(checks []versionCheck, langs []AccessibilityLanguage) []Accessibility
 	for _, k := range keys {
 		is := byKey[k]
 		if is.Kind == KindLinkText {
-			is.Detail = linkTextDetail(*is, langs)
+			is.Texts.Detail = linkTextDetail(*is, langs)
+			is.Detail, _ = sentencesIn(i18n.Default, is.Texts.Detail)
 		}
 		if is.Kind == KindContrast && len(langs) < 2 {
-			is.Detail = "" // one version: nothing is shared
+			is.Detail, is.Texts.Detail = "", nil // one version: nothing is shared
 		}
+		is.Texts.Short = shortText(*is)
 		is.Short = ShortName(*is)
 		out = append(out, *is)
 	}
@@ -760,8 +758,8 @@ func merge(checks []versionCheck, langs []AccessibilityLanguage) []Accessibility
 }
 
 // linkTextDetail names the link's text in the other languages and who gets
-// the page's title as a suggestion.
-func linkTextDetail(is AccessibilityIssue, langs []AccessibilityLanguage) string {
+// the page's title as a suggestion: one message a sentence.
+func linkTextDetail(is AccessibilityIssue, langs []AccessibilityLanguage) []i18n.Text {
 	var others []string
 	var suggested, field []string
 	src := ""
@@ -772,29 +770,22 @@ func linkTextDetail(is AccessibilityIssue, langs []AccessibilityLanguage) string
 			others = append(others, quote(v.Text))
 		}
 		if v.Suggestion != "" {
-			suggested = append(suggested, LanguageName(v.Lang))
+			suggested = append(suggested, v.Lang)
 		} else {
-			field = append(field, LanguageName(v.Lang))
+			field = append(field, v.Lang)
 		}
 	}
-	var parts []string
+	var out []i18n.Text
 	if len(others) > 0 {
-		parts = append(parts, "Also "+joinAnd(others)+".")
+		out = append(out, mLinkTextAlso.Keep(i18n.Args{"textList": others}))
 	}
 	switch {
 	case len(suggested) > 0 && len(field) > 0:
-		parts = append(parts, fmt.Sprintf("The linked page is in %s, so %s %s a field to write the words.", joinAnd(suggested), joinAnd(field), plural3(len(field), "gets", "get")))
+		out = append(out, mLinkTextSplit.Keep(i18n.Args{"suggestedLangs": suggested, "fieldLangs": field, "count": len(field)}))
 	case len(suggested) == 0 && len(langs) > 0:
-		parts = append(parts, "Write words that say where the link goes.")
+		out = append(out, mLinkTextWrite.Keep(nil))
 	}
-	return strings.Join(parts, " ")
-}
-
-func plural3(n int, one, many string) string {
-	if n == 1 {
-		return one
-	}
-	return many
+	return out
 }
 
 func contains(list []string, s string) bool {

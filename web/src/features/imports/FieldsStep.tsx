@@ -6,12 +6,15 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
-import { TableScroll } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
+import { T, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { count } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { ImportFrame, sourceHint, stepPath, useImportDetail, WizardHeading, type Detail } from './ImportFrame'
 import { PausedCard, ReadingSource, readingDetail, SourceFailed } from './states'
 import { ImportLanguageRow } from '@/features/page-languages/imports'
+import { m } from './messages'
 
 type Row = Schemas['ImportFieldRow']
 interface Choice {
@@ -50,14 +53,15 @@ export function StepFrame({
   mainClassName?: string
   children: ReactNode
 }) {
+  const t = useT()
   const { slug } = useWorkspace()
   return (
     <ImportFrame
-      title={d ? `Import contacts · ${d.sourceName}` : 'Import contacts'}
-      badge={<Badge tone="neutral">Step {step} of 5</Badge>}
+      title={d ? t(m.titleFrom, { source: d.sourceName }) : t(m.title)}
+      badge={<Badge tone="neutral">{t(m.stepOf, { step, total: 5 })}</Badge>}
       exit={
         <ButtonLink to="/w/$workspace/audience" params={{ workspace: slug }}>
-          Exit
+          {t(m.exit)}
         </ButtonLink>
       }
       step={step}
@@ -71,6 +75,7 @@ export function StepFrame({
 
 /** Step 2: map the source's fields (MigrationFields). */
 export function FieldsStep({ importId }: { importId: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = useImportDetail(importId)
   const d = q.data
@@ -81,19 +86,24 @@ export function FieldsStep({ importId }: { importId: string }) {
     { params: { path: { workspace: slug, id: importId } } },
     { enabled: Boolean(d && !reading) },
   )
-  const unit = d?.source === 'mailchimp' ? 'merge fields' : d?.source === 'csv' || d?.source === 'xlsx' ? 'columns' : 'fields'
+  const unit = d?.source === 'mailchimp' ? 'merge' : d?.source === 'csv' || d?.source === 'xlsx' ? 'columns' : 'fields'
   return (
-    <StepFrame d={d} step={2} hints={d && d.fieldCount > 0 ? { 2: `${count(d.fieldCount)} ${unit} found` } : undefined} mainClassName="s34 sfull ftd8">
+    <StepFrame
+      d={d}
+      step={2}
+      hints={d && d.fieldCount > 0 ? { 2: t(m.hintFields, { unit, n: d.fieldCount, count: count(d.fieldCount) }) } : undefined}
+      mainClassName="s34 sfull ftd8"
+    >
       <WizardHeading
-        title={d ? (d.source === 'csv' || d.source === 'xlsx' ? 'Map your columns to ReputeCast' : `Map ${d.sourceName} fields to ReputeCast`) : 'Map fields'}
-        lead="Matches were guessed from names and sample values. New custom fields are created on import; unmapped fields are skipped, never lost from the source."
+        title={d ? (d.source === 'csv' || d.source === 'xlsx' ? t(m.mapColumns) : t(m.mapSourceFields, { source: d.sourceName })) : t(m.mapFields)}
+        lead={t(m.mapLead)}
       />
       {q.isError ? (
-        <ErrorPanel title="Couldn't load this import" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
+        <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
           {errorMessage(q.error)}
         </ErrorPanel>
       ) : !d ? (
-        <ReadingSource title="Loading the import" />
+        <ReadingSource title={t(m.loading)} />
       ) : d.status === 'paused' ? (
         <PausedCard d={d} now={q.dataUpdatedAt} />
       ) : d.error && !d.stagedAt ? (
@@ -102,15 +112,19 @@ export function FieldsStep({ importId }: { importId: string }) {
         <NotRead d={d} />
       ) : reading ? (
         <ReadingSource
-          title={d.source === 'csv' || d.source === 'xlsx' ? `Reading ${d.fileName}` : `Reading ${d.source === 'mailchimp' ? 'audiences and merge fields' : 'lists and fields'} from ${d.sourceName}`}
+          title={
+            d.source === 'csv' || d.source === 'xlsx'
+              ? t(m.readingFile, { file: d.fileName })
+              : t(m.readingFrom, { mailchimp: d.source === 'mailchimp' ? 'yes' : 'no', source: d.sourceName })
+          }
           detail={readingDetail(d)}
         />
       ) : fields.isError ? (
-        <ErrorPanel title="Couldn't load the fields" actions={<Button onClick={() => fields.refetch()}>Retry</Button>}>
+        <ErrorPanel title={t(m.fieldsFailed)} actions={<Button onClick={() => fields.refetch()}>{t(common.retry)}</Button>}>
           {errorMessage(fields.error)}
         </ErrorPanel>
       ) : !fields.data || !fields.data.ready ? (
-        <ReadingSource title={`Reading fields from ${d.sourceName}`} detail={readingDetail(d)} />
+        <ReadingSource title={t(m.readingFieldsFrom, { source: d.sourceName })} detail={readingDetail(d)} />
       ) : (
         <Mapping key={fields.dataUpdatedAt} d={d} rows={fields.data.fields} />
       )}
@@ -119,6 +133,7 @@ export function FieldsStep({ importId }: { importId: string }) {
 }
 
 function Mapping({ d, rows }: { d: Detail; rows: Row[] }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -155,34 +170,30 @@ function Mapping({ d, rows }: { d: Detail; rows: Row[] }) {
       setErr(errorMessage(e))
     }
   }
-  const sourceCol = d.source === 'csv' || d.source === 'xlsx' ? 'Column' : `${d.sourceName} field`
+  const sourceCol = d.source === 'csv' || d.source === 'xlsx' ? t(m.colColumn) : t(m.colSourceField, { source: d.sourceName })
   return (
     <>
       <section className="card flex flex-col">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-5 py-3">
           <div className="flex flex-wrap gap-1.5" role="status">
-            <Badge tone="ok">{count(counts.mapped)} mapped</Badge>
-            <Badge tone="info">
-              {count(counts.new)} new {counts.new === 1 ? 'field' : 'fields'}
-            </Badge>
-            <Badge tone="neutral">{count(counts.skipped)} skipped</Badge>
+            <Badge tone="ok">{t(m.mappedCount, { count: count(counts.mapped) })}</Badge>
+            <Badge tone="info">{t(m.newFields, { n: counts.new, count: count(counts.new) })}</Badge>
+            <Badge tone="neutral">{t(m.skippedCount, { count: count(counts.skipped) })}</Badge>
           </div>
           <Button size="sm" loading={resetting} onClick={() => void reset()}>
-            Reset to guesses
+            {t(m.resetGuesses)}
           </Button>
         </div>
         {err ? <Note tone="bad">{err}</Note> : null}
-        <TableScroll label="Field mapping">
+        <TableScroll label={t(m.fieldMapping)}>
           <table className="tbl">
             <thead>
               <tr>
-                <th scope="col">{sourceCol}</th>
-                <th scope="col">Sample values</th>
-                <th scope="col" className="w-[280px]">
-                  ReputeCast field
-                </th>
-                <th scope="col">Type</th>
-                <th scope="col">Status</th>
+                <Th>{sourceCol}</Th>
+                <Th>{t(m.colSamples)}</Th>
+                <Th className="w-[280px]">{t(m.colTarget)}</Th>
+                <Th>{t(m.colType)}</Th>
+                <Th>{t(m.colStatus)}</Th>
               </tr>
             </thead>
             <tbody>
@@ -198,7 +209,7 @@ function Mapping({ d, rows }: { d: Detail; rows: Row[] }) {
                       <td className="k mono">{r.samples.join(' · ') || '–'}</td>
                       <td>
                         <select
-                          aria-label={`Map ${r.label} to`}
+                          aria-label={t(m.mapTo, { label: r.label })}
                           className="in"
                           value={c.target}
                           onChange={(e) => {
@@ -216,22 +227,31 @@ function Mapping({ d, rows }: { d: Detail; rows: Row[] }) {
                       <td className={st === 'new' ? undefined : 'k'}>
                         {st === 'new' ? (
                           <select
-                            aria-label={`Type of ${r.label}`}
+                            aria-label={t(m.typeOf, { label: r.label })}
                             className="in w-[110px]"
                             value={c.type ?? 'text'}
                             onChange={(e) => setChoices((all) => ({ ...all, [r.source]: { target: c.target, type: e.target.value as Choice['type'] } }))}
                           >
-                            <option value="text">text</option>
-                            <option value="number">number</option>
-                            <option value="date">date</option>
-                            <option value="boolean">boolean</option>
+                            {(['text', 'number', 'date', 'boolean'] as const).map((v) => (
+                              <option key={v} value={v}>
+                                {t(m.fieldType, { type: v })}
+                              </option>
+                            ))}
                           </select>
-                        ) : (
+                        ) : type === '–' ? (
                           type
+                        ) : (
+                          t(m.fieldType, { type })
                         )}
                       </td>
                       <td>
-                        {st === 'new' ? <Badge tone="info">New field</Badge> : st === 'skipped' ? <Badge tone="neutral">Skipped</Badge> : <Badge tone="ok">Mapped</Badge>}
+                        {st === 'new' ? (
+                          <Badge tone="info">{t(m.newField)}</Badge>
+                        ) : st === 'skipped' ? (
+                          <Badge tone="neutral">{t(m.skipped)}</Badge>
+                        ) : (
+                          <Badge tone="ok">{t(m.mapped)}</Badge>
+                        )}
                       </td>
                     </tr>
                     {c.target === 'language' ? <ImportLanguageRow importId={d.id} field={r.source} columns={5} /> : null}
@@ -243,17 +263,16 @@ function Mapping({ d, rows }: { d: Detail; rows: Row[] }) {
         </TableScroll>
         <div className="flex flex-wrap gap-4 border-t border-line-2 px-5 py-3 text-[13px] text-ink-2">
           <span>
-            <strong>Duplicates:</strong> matched on email, case-insensitive. Existing contacts are merged; imported values fill empty fields only, unless you choose "overwrite" in the
-            preview step.
+            <T msg={m.duplicatesRule} values={{ b: (c) => <strong>{c}</strong> }} />
           </span>
         </div>
       </section>
       <div className="flex flex-wrap justify-between gap-2.5">
         <ButtonLink to={stepPath.source} params={{ workspace: slug, importId: d.id }}>
-          Back
+          {t(m.back)}
         </ButtonLink>
         <Button variant="primary" className="wnext" disabledReason={reason} loading={save.isPending} onClick={() => void submit()}>
-          Continue to consent
+          {t(m.continueConsent)}
         </Button>
       </div>
     </>
@@ -262,13 +281,14 @@ function Mapping({ d, rows }: { d: Detail; rows: Row[] }) {
 
 /** Nothing was read from the source yet: back to step 1. */
 export function NotRead({ d }: { d: Detail }) {
+  const t = useT()
   const { slug } = useWorkspace()
   return (
     <Note tone="info">
       <span>
-        Nothing has been read from {d.sourceName} yet. Choose what to import first.{' '}
+        {t(m.notRead, { source: d.sourceName })}{' '}
         <ButtonLink size="sm" to={stepPath.source} params={{ workspace: slug, importId: d.id }}>
-          Back to the source
+          {t(m.backToSource)}
         </ButtonLink>
       </span>
     </Note>

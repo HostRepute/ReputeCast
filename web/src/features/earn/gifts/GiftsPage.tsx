@@ -196,7 +196,7 @@ function ReadOnlyNote({ v }: { v: View }) {
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
         <span className="font-bold">{t(mg.readOnlyTitle, { name: user?.name || user?.email || '', role })}</span>
         <div>
-          <T msg={msg} values={{ mono, helpers: helpers || t(mg.readOnlyNoHelpers) }} />
+          <T msg={msg} values={{ mono, helpers: helpers || t(mg.helpersFallback) }} />
         </div>
       </div>
     </div>

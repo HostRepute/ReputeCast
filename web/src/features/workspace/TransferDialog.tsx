@@ -5,7 +5,11 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { toast } from '@/components/ui/Toast'
+import { useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { roleName } from '@/lib/roles'
 import { useWorkspace, workspaceMeKey } from '@/lib/session'
+import { m } from './messages'
 
 /** Transfer ownership (WorkspaceDialogs, left): pick an eligible member and re-authenticate. */
 export function TransferDialog({
@@ -19,6 +23,7 @@ export function TransferDialog({
   onOpenChange: (o: boolean) => void
   initialMemberId?: string
 }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const eligible = settings.candidates.filter((c) => c.eligible)
@@ -30,14 +35,14 @@ export function TransferDialog({
   const submit = () => {
     setError(undefined)
     if (settings.hasPassword && !password) {
-      setError({ field: 'password', message: 'Enter your password to confirm.' })
+      setError({ field: 'password', message: t(m.passwordRequired) })
       return
     }
     transfer.mutate(
       { params: { path: { workspace: slug } }, body: { memberId, password: password || undefined } },
       {
         onSuccess: () => {
-          toast({ title: `${target?.name} is now the Owner`, detail: 'you are an Admin' })
+          toast({ title: t(m.transferred, { name: target?.name ?? '' }), detail: t(m.transferredDetail) })
           void qc.invalidateQueries()
           void qc.invalidateQueries({ queryKey: workspaceMeKey(slug) })
           onOpenChange(false)
@@ -53,52 +58,48 @@ export function TransferDialog({
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      eyebrow={<span className="k">Dialog · Owner only</span>}
-      title={`Transfer ownership of ${settings.name}`}
-      description={
-        <span className="text-[13.5px]">
-          The new Owner gets every permission, including deleting the workspace and transferring it again. You become an Admin and keep your break-glass sign-in as an
-          instance admin.
-        </span>
-      }
+      eyebrow={<span className="k">{t(m.transferEyebrow)}</span>}
+      title={t(m.transferDialogTitle, { name: settings.name })}
+      description={<span className="text-[13.5px]">{t(m.transferDescription)}</span>}
       hideClose
       dismissible={false}
       footer={
         <>
-          <Button onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button variant="primary" loading={transfer.isPending} disabledReason={target?.eligible ? undefined : 'Pick a member with two-factor.'} onClick={submit}>
-            Transfer ownership
+          <Button onClick={() => onOpenChange(false)}>{t(common.cancel)}</Button>
+          <Button variant="primary" loading={transfer.isPending} disabledReason={target?.eligible ? undefined : t(m.transferPick)} onClick={submit}>
+            {t(m.transferConfirm)}
           </Button>
         </>
       }
     >
       <label className="lbl">
-        New owner
+        {t(m.newOwner)}
         <select className="in" value={memberId} onChange={(e) => setMemberId(e.target.value)}>
-          {settings.candidates.length === 0 ? <option value="">No other active members yet</option> : null}
+          {settings.candidates.length === 0 ? <option value="">{t(m.noCandidates)}</option> : null}
           {settings.candidates.map((c) => (
             <option key={c.memberId} value={c.memberId} disabled={!c.eligible}>
-              {c.name} · {c.roleName} · {c.email}
-              {c.eligible ? '' : ' (no two-factor)'}
+              {c.eligible
+                ? `${c.name} · ${roleName({ name: c.roleName })} · ${c.email}`
+                : t(m.candidateNoTwoFactor, { name: c.name, role: roleName({ name: c.roleName }), email: c.email })}
             </option>
           ))}
         </select>
-        <span className="k font-medium">Only active members with two-factor can become Owner.</span>
+        <span className="k font-medium">{t(m.transferHint)}</span>
       </label>
       {target?.note ? (
         <div className="note w">
-          <Badge tone="warn">2FA</Badge>
+          <Badge tone="warn">{'2FA'}</Badge>
           <span>{target.note}</span>
         </div>
       ) : target?.reason ? (
         <div className="note b" role="alert">
-          <Badge tone="bad">2FA</Badge>
-          <span>{target.reason} Ask them to add a passkey or an authenticator app first.</span>
+          <Badge tone="bad">{'2FA'}</Badge>
+          <span>{t(m.askTwoFactor, { reason: target.reason })}</span>
         </div>
       ) : null}
       {settings.hasPassword ? (
         <label className="lbl">
-          Confirm with your password
+          {t(m.passwordLabel)}
           <input
             className="in"
             type="password"
@@ -114,11 +115,11 @@ export function TransferDialog({
             </span>
           ) : null}
           <span className="k font-medium" id="transfer-pw-hint">
-            Re-authentication is required for this action.
+            {t(m.reauthHint)}
           </span>
         </label>
       ) : (
-        <span className="k">You sign in through single sign-on: the transfer is accepted within 10 minutes of signing in.</span>
+        <span className="k">{t(m.ssoNote, { minutes: 10 })}</span>
       )}
       {error && error.field !== 'password' ? (
         <div className="note b" role="alert">

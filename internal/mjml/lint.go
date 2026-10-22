@@ -1,17 +1,29 @@
 package mjml
 
 import (
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Lint returns layout warnings the MJML compiler doesn't report: images
 // wider than their column (Outlook draws them at full width and breaks the
-// layout) and columns adding up to more than their section.
-func Lint(src string) []MJMLProblem {
+// layout) and columns adding up to more than their section. They are in
+// English; LintIn writes them in a reader's language.
+func Lint(src string) []MJMLProblem { return LintIn(i18n.Default, src) }
+
+// LintIn is Lint in a reader's language, with numbers in their region's
+// format.
+func LintIn(lang i18n.Lang, src string) []MJMLProblem {
 	out := []MJMLProblem{}
+	warn := func(line int, tag string, m i18n.Msg, args i18n.Args) {
+		p := lineProblem(line, tag, m, args)
+		p.Message = p.In(lang)
+		out = append(out, p)
+	}
+	px0 := func(v float64) string { return strconv.FormatFloat(v, 'f', 0, 64) }
 	root, err := Parse(src)
 	if err != nil {
 		return out
@@ -57,7 +69,7 @@ func Lint(src string) []MJMLProblem {
 			}
 		}
 		if sumPct > 100.5 {
-			out = append(out, MJMLProblem{Line: n.Line, Tag: n.Tag, Message: fmt.Sprintf("Line %d: the columns of this section add up to %.0f%%; MJML squeezes them and the layout shifts. Make them add up to 100%%.", n.Line, sumPct)})
+			warn(n.Line, n.Tag, mLintColumns, i18n.Args{"sum": lang.Region.Percent(sumPct, 0), "full": lang.Region.Percent(100, 0)})
 		}
 		free := len(cols) - sized
 		for _, c := range cols {
@@ -69,7 +81,7 @@ func Lint(src string) []MJMLProblem {
 			box := cw - pl - pr
 			label := c.Attr("width")
 			if label == "" {
-				label = fmt.Sprintf("%.0f%%", cw/inner*100)
+				label = lang.Region.Percent(cw/inner*100, 0)
 			}
 			c.Walk(func(x *Node, _ []int) {
 				if x.Tag != "mj-image" {
@@ -79,7 +91,7 @@ func Lint(src string) []MJMLProblem {
 				il, ir := hpadding(x, "padding", 25)
 				avail := box - il - ir
 				if iw > 0 && float64(iw) > avail+0.5 {
-					out = append(out, MJMLProblem{Line: x.Line, Tag: "mj-image", Message: fmt.Sprintf("Line %d: mj-image width %dpx exceeds the %s column (%.0fpx); it will be scaled down. Set width=\"%.0fpx\" or remove it.", x.Line, iw, label, cw, math.Floor(avail))})
+					warn(x.Line, "mj-image", mLintImageWidth, i18n.Args{"width": strconv.Itoa(iw), "column": label, "columnPx": px0(cw), "fitPx": px0(math.Floor(avail))})
 				}
 			})
 		}

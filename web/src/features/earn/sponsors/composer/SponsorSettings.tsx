@@ -227,7 +227,7 @@ export function SponsorSettings({ c: comp }: { c: Component }) {
           <div className="flex flex-wrap gap-1">
             {utm.map(([k, v]) => (
               <span key={k} className="sp-utm">
-                utm_{k}={v}
+                {'utm_'}{k}={v}
               </span>
             ))}
           </div>

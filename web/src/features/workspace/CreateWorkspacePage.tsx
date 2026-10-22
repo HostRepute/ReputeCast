@@ -5,7 +5,10 @@ import { ApiError, errorMessage, http } from '@/api/client'
 import { AuthLayout } from '@/components/shell/AuthLayout'
 import { Button } from '@/components/ui/Button'
 import { Note } from '@/components/ui/Note'
+import { useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { meQueryKey, useMe } from '@/lib/session'
+import { m } from './messages'
 import { timezoneOptions } from './timezones'
 
 function browserZone() {
@@ -21,6 +24,7 @@ function browserZone() {
  * its Owner. Workspaces are unlimited.
  */
 export function CreateWorkspacePage() {
+  const t = useT()
   const me = useMe().data
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -34,7 +38,7 @@ export function CreateWorkspacePage() {
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!name.trim()) {
-      setError({ field: 'name', message: 'Give the workspace a name, for example your newsletter or brand.' })
+      setError({ field: 'name', message: t(m.createNameRequired) })
       return
     }
     setBusy(true)
@@ -51,23 +55,21 @@ export function CreateWorkspacePage() {
     }
   }
   return (
-    <AuthLayout title="Create a workspace" labelledBy="h-new-ws">
+    <AuthLayout title={t(m.createTitle)} labelledBy="h-new-ws">
       <div className="flex flex-col gap-1">
-        <h1 id="h-new-ws">Create a workspace</h1>
-        <span className="k">
-          You become its Owner. Each workspace keeps its own contacts, campaigns, providers and team; the suppression list is shared across the instance.
-        </span>
+        <h1 id="h-new-ws">{t(m.createTitle)}</h1>
+        <span className="k">{t(m.createIntro)}</span>
       </div>
       <form className="flex flex-col gap-4" onSubmit={submit} noValidate>
         <label className="lbl">
-          Workspace name
+          {t(m.nameLabel)}
           <input
             className="in"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={80}
-            placeholder="Acme Newsletter"
+            placeholder={t(m.namePlaceholder)}
             autoFocus
             aria-invalid={error?.field === 'name' || undefined}
             aria-describedby={error?.field === 'name' ? errId : undefined}
@@ -79,7 +81,7 @@ export function CreateWorkspacePage() {
           ) : null}
         </label>
         <label className="lbl">
-          Timezone
+          {t(m.timezoneLabel)}
           <select className="in" value={tz} onChange={(e) => setTz(e.target.value)}>
             {zones.map((z) => (
               <option key={z.value} value={z.value}>
@@ -87,24 +89,24 @@ export function CreateWorkspacePage() {
               </option>
             ))}
           </select>
-          <span className="k font-medium">Schedules and reports use this timezone. You can change it later in Settings.</span>
+          <span className="k font-medium">{t(m.createTimezoneHint)}</span>
         </label>
         {error && !error.field ? (
-          <Note tone="bad" label="Not created">
+          <Note tone="bad" label={t(m.notCreated)}>
             {error.message}
           </Note>
         ) : null}
         <Button type="submit" variant="primary" loading={busy}>
-          Create workspace
+          {t(m.createButton)}
         </Button>
       </form>
       <div className="links">
         {back ? (
           <Link to="/w/$workspace" params={{ workspace: back }}>
-            Back to {me?.workspaces[0]?.name}
+            {t(m.backTo, { name: me?.workspaces[0]?.name ?? '' })}
           </Link>
         ) : (
-          <Link to="/">Back</Link>
+          <Link to="/">{t(common.back)}</Link>
         )}
       </div>
     </AuthLayout>

@@ -2,13 +2,12 @@ package approvals
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"sort"
 	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -61,9 +60,15 @@ type ApprovalRequestView struct {
 	DecidedBy   string                 `json:"decidedBy,omitempty"`
 	DecidedAt   *time.Time             `json:"decidedAt,omitempty"`
 	// Comment is the latest decision's comment.
-	Comment           string                  `json:"comment,omitempty"`
-	InvalidatedAt     *time.Time              `json:"invalidatedAt,omitempty"`
+	Comment       string     `json:"comment,omitempty"`
+	InvalidatedAt *time.Time `json:"invalidatedAt,omitempty"`
+	// InvalidatedReason says what changed ("subject changed", "audience
+	// moved +14%"); screens add "after approval" when one was given.
+	// InvalidatedFields is what it says changed, for a screen that writes its
+	// own sentence around it ("edited the subject and a link"); empty when
+	// the reason isn't about edited fields.
 	InvalidatedReason string                  `json:"invalidatedReason,omitempty"`
+	InvalidatedFields string                  `json:"invalidatedFields,omitempty"`
 	InvalidatedBy     string                  `json:"invalidatedBy,omitempty"`
 	Changes           []ApprovalChange        `json:"changes"`
 	Snapshot          ApprovalSnapshotSummary `json:"snapshot"`
@@ -73,11 +78,11 @@ type ApprovalRequestView struct {
 	FollowsID         string                  `json:"followsId,omitempty"`
 }
 
-func routeText(shares []SnapshotShare) string {
+func routeText(l i18n.Lang, shares []SnapshotShare) string {
 	parts := []string{}
 	for _, s := range shares {
 		if s.Recipients > 0 {
-			parts = append(parts, s.Short+" "+readiness.Count(s.Recipients))
+			parts = append(parts, s.Short+" "+count(l, s.Recipients))
 		}
 	}
 	if len(parts) == 0 {
@@ -90,7 +95,7 @@ func routeText(shares []SnapshotShare) string {
 	return out
 }
 
-func routeLabel(shares []SnapshotShare) string {
+func routeLabel(l i18n.Lang, shares []SnapshotShare) string {
 	out := ""
 	for i, s := range shares {
 		if s.Recipients == 0 && len(shares) > 1 {
@@ -99,23 +104,25 @@ func routeLabel(shares []SnapshotShare) string {
 		if i > 0 && out != "" {
 			out += " / "
 		}
-		out += fmt.Sprintf("%s %s", s.Short, trim(s.Percent))
+		out += s.Short + " " + decimal(l, s.Percent)
 	}
 	return out
 }
 
-func summaryOf(snap Snapshot, wsTZ string) ApprovalSnapshotSummary {
+func summaryOf(l i18n.Lang, snap Snapshot, wsTZ string) ApprovalSnapshotSummary {
 	sv := readiness.ScheduleView(snap.Schedule, wsTZ)
-	return ApprovalSnapshotSummary{Version: snap.Version, Subject: snap.Subject, AudienceCount: snap.AudienceCount, RouteLabel: routeLabel(snap.Route), RouteText: routeText(snap.Route),
-		SplitLabel: snap.SplitLabel, ScheduleText: ScheduleText(snap.Schedule, state.Location(wsTZ)), ScheduleMode: sv.Mode, ScheduleAt: sv.At, Timezone: sv.Timezone}
+	return ApprovalSnapshotSummary{Version: snap.Version, Subject: snap.Subject, AudienceCount: snap.AudienceCount, RouteLabel: routeLabel(l, snap.Route), RouteText: routeText(l, snap.Route),
+		SplitLabel: snap.SplitLabel, ScheduleText: scheduleTextIn(l, snap.Schedule, state.Location(wsTZ)), ScheduleMode: sv.Mode, ScheduleAt: sv.At, Timezone: sv.Timezone}
 }
 
 // requestView builds the view of a request.
 func (s *Service) requestView(ctx context.Context, ws *store.Workspace, r store.ApprovalRequest, ms []member) (ApprovalRequestView, error) {
 	snap := ParseSnapshot(r.Snapshot)
+	l := langOf(ctx)
 	v := ApprovalRequestView{ID: r.ID.String(), Status: r.Status, SubjectType: r.SubjectType, RequestedAt: r.RequestedAt, Note: r.Note, Version: snap.Version,
-		Needed: int(r.ApprovalsRequired), DecidedAt: r.DecidedAt, InvalidatedAt: r.InvalidatedAt, InvalidatedReason: r.InvalidatedReason, Changes: []ApprovalChange{},
-		Decisions: []ApprovalDecisionView{}, Snapshot: summaryOf(snap, ws.Timezone), Rules: snap.Rules, BypassReason: r.BypassReason}
+		Needed: int(r.ApprovalsRequired), DecidedAt: r.DecidedAt, InvalidatedAt: r.InvalidatedAt, InvalidatedReason: reasonFor(l, r.InvalidatedReason, r.InvalidatedReasonText),
+		InvalidatedFields: fieldsFor(l, r.InvalidatedReason, r.InvalidatedReasonText), Changes: []ApprovalChange{},
+		Decisions: []ApprovalDecisionView{}, Snapshot: summaryOf(langOf(ctx), snap, ws.Timezone), Rules: localRules(langOf(ctx), snap.Rules), BypassReason: r.BypassReason}
 	if r.CampaignVersion != nil {
 		v.Version = int(*r.CampaignVersion)
 	}
@@ -123,7 +130,7 @@ func (s *Service) requestView(ctx context.Context, ws *store.Workspace, r store.
 		v.FollowsID = r.PreviousID.String()
 	}
 	if m := memberByID(ms, r.RequestedBy); m != nil {
-		v.RequestedBy = s.person(*m)
+		v.RequestedBy = s.person(langOf(ctx), *m)
 	} else if r.RequestedBy != nil {
 		if u, err := s.Q.GetUser(ctx, *r.RequestedBy); err == nil {
 			v.RequestedBy = ApprovalPerson{ID: u.ID.String(), Name: u.Name, Email: u.Email, Initials: Initials(u.Name), Color: u.AvatarColor}
@@ -135,10 +142,7 @@ func (s *Service) requestView(ctx context.Context, ws *store.Workspace, r store.
 	if m := memberByID(ms, r.InvalidatedBy); m != nil {
 		v.InvalidatedBy = m.Name
 	}
-	_ = json.Unmarshal(r.Changes, &v.Changes)
-	if v.Changes == nil {
-		v.Changes = []ApprovalChange{}
-	}
+	v.Changes = changesFor(l, r.Changes)
 	decisions, err := s.Q.ApprovalDecisions(ctx, []uuid.UUID{r.ID})
 	if err != nil {
 		return v, err
