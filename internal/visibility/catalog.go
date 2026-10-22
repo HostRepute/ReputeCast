@@ -3,6 +3,7 @@ package visibility
 import (
 	"context"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/scoring"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -137,10 +138,14 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (VisibilityC
 	if err != nil {
 		return out, err
 	}
-	for _, code := range st.Languages {
-		out.Languages = append(out.Languages, VisibilityOption{Value: code, Label: languages.NameOf(code)})
-	}
 	l := lang(ctx)
+	for _, code := range st.Languages {
+		label := languages.NameOf(code)
+		if l.Locale != i18n.English {
+			label = languageName(l, code)
+		}
+		out.Languages = append(out.Languages, VisibilityOption{Value: code, Label: label})
+	}
 	for _, t := range Tiers {
 		out.Tiers = append(out.Tiers, VisibilityOption{Value: t, Label: tierName(l, t)})
 	}
