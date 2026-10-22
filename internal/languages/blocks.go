@@ -38,6 +38,8 @@ type Block struct {
 	// Start and End are the block's byte range in the source.
 	Start int `json:"-"`
 	End   int `json:"-"`
+	// ref says what the block is, to name it in any language.
+	ref BlockRef
 }
 
 // BlockSegment is one piece of a block a translator reads or writes: a text, a
@@ -97,7 +99,7 @@ func Blocks(mjmlSrc, htmlSrc string) []Block {
 				b.Heading = s.Heading
 			}
 		}
-		b.Name = blockName(b, n, i, &firstText)
+		b.Name, b.ref = blockName(b, n, i, &firstText)
 		out = append(out, b)
 	}
 	return out
@@ -108,7 +110,8 @@ func htmlBlocks(src string) []Block {
 		return []Block{}
 	}
 	text := plain(src)
-	b := Block{Tag: "html", Label: "email", Name: "The email", Segments: []BlockSegment{{Kind: "raw", Text: text, Path: []int{}}}, Start: 0, End: len(src)}
+	b := Block{Tag: "html", Label: "email", Name: "The email", Segments: []BlockSegment{{Kind: "raw", Text: text, Path: []int{}}}, Start: 0, End: len(src),
+		ref: BlockRef{Kind: "email"}}
 	b.Raw = shortHash(src)
 	b.Hash = textHash(b.Segments)
 	b.Text = text
@@ -280,8 +283,9 @@ func imageName(src string) string {
 
 var numberWords = []string{"", "One", "Two", "Three", "Four", "Five", "Six"}
 
-// blockName names a block for the compare view.
-func blockName(b Block, n *mjml.Node, index int, firstText *bool) string {
+// blockName names a block for the compare view, in English, and says what
+// it is to name it in other languages.
+func blockName(b Block, n *mjml.Node, index int, firstText *bool) (string, BlockRef) {
 	var texts, images, buttons, socials, navs, others int
 	for _, s := range b.Segments {
 		switch s.Kind {
@@ -305,32 +309,32 @@ func blockName(b Block, n *mjml.Node, index int, firstText *bool) string {
 			cols++
 		}
 	}
-	name := ""
+	name, ref := "", BlockRef{}
 	switch {
 	case b.Label == "header" || n.Marker == "header-logo" || n.Marker == "header":
-		name = "Header"
+		name, ref.Kind = "Header", "header"
 		if images > 0 && (texts > 0 || navs > 0) {
-			name = "Header · logo and links"
+			name, ref.Kind = "Header · logo and links", "headerLinks"
 		}
 	case b.Label == "footer" || n.Marker == "footer":
-		name = "Footer"
+		name, ref.Kind = "Footer", "footer"
 	case n.Tag == "mj-raw" || (others > 0 && texts+images+buttons == 0):
-		name = "Raw HTML"
+		name, ref.Kind = "Raw HTML", "raw"
 	case socials > 0 && texts == 0:
-		name = "Social links"
+		name, ref.Kind = "Social links", "social"
 	case cols >= 2 && images >= cols && texts > 0:
-		name = cardsName(cols)
+		name, ref.Kind, ref.Count = cardsName(cols), "cards", cols
 	case cols >= 2:
-		name = strconv.Itoa(cols) + " columns"
+		name, ref.Kind, ref.Count = strconv.Itoa(cols)+" columns", "columns", cols
 	case b.Label == "hero" || n.Tag == "mj-hero":
-		name = "Hero"
+		name, ref.Kind = "Hero", "hero"
 	case images > 0 && texts == 0 && buttons == 0:
-		name = "Image"
+		name, ref.Kind = "Image", "image"
 		if index <= 2 {
-			name = "Hero image"
+			name, ref.Kind = "Hero image", "heroImage"
 		}
 	case buttons > 0 && texts == 0:
-		name = "Button"
+		name, ref.Kind = "Button", "button"
 	case texts > 0:
 		first := b.Segments[0]
 		for _, s := range b.Segments {
@@ -341,22 +345,24 @@ func blockName(b Block, n *mjml.Node, index int, firstText *bool) string {
 		}
 		switch {
 		case texts == 1 && images == 0 && (first.Heading == 1 || fontSize(n) >= 24):
-			name = "Headline"
+			name, ref.Kind = "Headline", "headline"
 		case *firstText && images == 0 && first.Heading == 0:
-			name = "Intro"
+			name, ref.Kind = "Intro", "intro"
 		default:
-			name = `Text · "` + firstWords(first.Text, 5) + `"`
+			words := firstWords(first.Text, 5)
+			name, ref.Kind, ref.Words = `Text · "`+words+`"`, "text", words
 		}
 		if name != "Headline" {
 			*firstText = false
 		}
 	default:
-		name = strings.ToUpper(b.Label[:1]) + b.Label[1:]
+		name, ref.Kind, ref.Label = strings.ToUpper(b.Label[:1])+b.Label[1:], "other", b.Label
 	}
 	if b.Heading > 0 {
 		name += " · Heading " + strconv.Itoa(b.Heading)
+		ref.Heading = b.Heading
 	}
-	return name
+	return name, ref
 }
 
 func cardsName(cols int) string {

@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -244,13 +245,13 @@ func (s *Service) addVersion(ctx context.Context, q *store.Queries, o Owner, p *
 		CreatedAt: now, UpdatedBy: t.UpdatedBy, UpdatedAt: now, AutosavedAt: &now}); err != nil {
 		return t, err
 	}
-	label := "copied from " + NameOf(st.Language)
+	lab := newLabel(mLabelCopiedFrom, st.Language, nil)
 	if start == StartLayout {
-		label = "layout of " + NameOf(st.Language)
+		lab = newLabel(mLabelLayoutOf, st.Language, nil)
 	}
 	if err := q.ContentTranslationVersionInsert(ctx, store.ContentTranslationVersionInsertParams{TranslationID: t.ID, Version: 1, Subject: t.Subject, Preheader: t.Preheader,
-		Mjml: t.Mjml, Html: t.Html, PlainText: t.PlainText, AbTest: t.AbTest, Links: t.Links, SavedBy: actorID(p), SavedAt: now, Label: label, Source: "create",
-		SizeBytes: int32(len(t.Html))}); err != nil {
+		Mjml: t.Mjml, Html: t.Html, PlainText: t.PlainText, AbTest: t.AbTest, Links: t.Links, SavedBy: actorID(p), SavedAt: now, Label: lab.English, Source: "create",
+		SizeBytes: int32(len(t.Html)), LabelText: lab.raw()}); err != nil {
 		return t, err
 	}
 	return t, nil
@@ -270,9 +271,11 @@ type SaveInput struct {
 	HTML        string
 	ABTest      json.RawMessage
 	Label       string
-	Source      string
-	Force       bool
-	Minify      bool
+	// LabelText is Label's message, kept for readers of other languages.
+	LabelText i18n.Text
+	Source    string
+	Force     bool
+	Minify    bool
 	// Audited is set when the caller writes the audit entry (MCP agents).
 	Audited bool
 }
@@ -293,7 +296,7 @@ func (s *Service) saveVersion(ctx context.Context, q *store.Queries, o Owner, p 
 	kind, id, ver := o.key()
 	cur, err := q.ContentTranslationForUpdate(ctx, store.ContentTranslationForUpdateParams{OwnerKind: kind, OwnerID: id, OwnerVersion: ver, Language: lang})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return Saved{}, cur, api.NotFound(NameOf(lang) + " version")
+		return Saved{}, cur, versionNotFound(langOf(ctx), lang)
 	}
 	if err != nil {
 		return Saved{}, cur, err
@@ -310,11 +313,13 @@ func (s *Service) saveVersion(ctx context.Context, q *store.Queries, o Owner, p 
 		if cur.AutosavedAt != nil {
 			at = *cur.AutosavedAt
 		}
-		who := by
-		if who == "" {
-			who = "Someone"
+		rl := langOf(ctx)
+		when := rl.Region.Time(at.In(zoneOf(ctx, q, o.WorkspaceID)), "")
+		detail := named(rl, mConflict, lang, i18n.Args{"name": by, "time": when})
+		if by == "" {
+			detail = named(rl, mConflictSomeone, lang, i18n.Args{"time": when})
 		}
-		return Saved{}, cur, api.Err(http.StatusConflict, codeVersionConflict, fmt.Sprintf("%s saved %s at %s while you were editing it.", who, NameOf(lang), at.Format("15:04"))).
+		return Saved{}, cur, api.Err(http.StatusConflict, codeVersionConflict, detail).
 			WithMeta("version", cur.Version, "draftRevision", cur.Version, "savedBy", by, "savedAt", at, "language", lang, "theirChanges", nonNil(theirs), "yourChanges", mine)
 	}
 	src, html := in.MJML, in.HTML
@@ -322,7 +327,7 @@ func (s *Service) saveVersion(ctx context.Context, q *store.Queries, o Owner, p 
 		src = mjml.SetHeadMeta(src, in.Subject, in.Preheader)
 		res := mjml.Compile(src)
 		if len(res.Errors) > 0 {
-			return Saved{}, cur, api.Invalid("body.mjml", "The MJML doesn't compile: "+res.Errors[0].Message)
+			return Saved{}, cur, api.Invalid("body.mjml", mMJML.Text(langOf(ctx), i18n.Args{"error": res.Errors[0].Message}))
 		}
 		html = res.HTML
 	}
@@ -340,7 +345,7 @@ func (s *Service) saveVersion(ctx context.Context, q *store.Queries, o Owner, p 
 	hash := contentHash(in.Subject, in.Preheader, src, html, in.ABTest)
 	version := cur.Version + 1
 	if version >= maxTranslationVersion {
-		return Saved{}, cur, api.Conflict("This language version has too many saved versions.")
+		return Saved{}, cur, api.Conflict(mTooManyVersions.Text(langOf(ctx), nil))
 	}
 	now := s.now()
 	if err := q.ContentTranslationSave(ctx, store.ContentTranslationSaveParams{ID: cur.ID, Subject: in.Subject, Preheader: in.Preheader, Mjml: src, Html: html,
@@ -353,7 +358,7 @@ func (s *Service) saveVersion(ctx context.Context, q *store.Queries, o Owner, p 
 	}
 	if err := q.ContentTranslationVersionInsert(ctx, store.ContentTranslationVersionInsertParams{TranslationID: cur.ID, Version: version, Subject: in.Subject,
 		Preheader: in.Preheader, Mjml: src, Html: html, PlainText: plain, AbTest: in.ABTest, Links: lb, SavedBy: actorID(p), SavedAt: now,
-		Label: strings.TrimSpace(in.Label), Source: source, SizeBytes: int32(len(html))}); err != nil {
+		Label: strings.TrimSpace(in.Label), Source: source, SizeBytes: int32(len(html)), LabelText: label{Text: in.LabelText}.raw()}); err != nil {
 		return Saved{}, cur, err
 	}
 	if _, err := q.ContentTranslationPruneVersions(ctx, store.ContentTranslationPruneVersionsParams{TranslationID: cur.ID, Keep: keepTranslationSaves}); err != nil {
@@ -386,9 +391,9 @@ func baseMJML(ctx context.Context, q *store.Queries, id uuid.UUID, version int) 
 }
 
 // notFoundVersion maps a missing language version to a 404 that names it.
-func notFoundVersion(err error, lang string) error {
+func notFoundVersion(l i18n.Lang, err error, lang string) error {
 	if errors.Is(err, pgx.ErrNoRows) {
-		return api.NotFound(NameOf(lang) + " version")
+		return versionNotFound(l, lang)
 	}
 	return err
 }
@@ -398,7 +403,7 @@ func lockVersion(ctx context.Context, q *store.Queries, o Owner, lang string) (s
 	kind, id, ver := o.key()
 	t, err := q.ContentTranslationForUpdate(ctx, store.ContentTranslationForUpdateParams{OwnerKind: kind, OwnerID: id, OwnerVersion: ver, Language: lang})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return t, api.NotFound(NameOf(lang) + " version")
+		return t, versionNotFound(langOf(ctx), lang)
 	}
 	return t, err
 }
@@ -439,7 +444,7 @@ func (s *Service) removeVersion(ctx context.Context, q *store.Queries, o Owner, 
 		return err
 	}
 	if n == 0 {
-		return api.NotFound(NameOf(lang) + " version")
+		return versionNotFound(langOf(ctx), lang)
 	}
 	return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &o.WorkspaceID, Action: o.auditPrefix() + "remove", TargetType: o.Kind, TargetID: o.ID.String(), TargetName: o.Name,
 		Before: map[string]any{"language": lang}, Metadata: map[string]any{"language": lang}})

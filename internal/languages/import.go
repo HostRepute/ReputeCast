@@ -126,11 +126,11 @@ func (s *Service) ImportVersion(ctx context.Context, q *store.Queries, in Import
 		CreatedBy: in.By, CreatedAt: in.At, UpdatedBy: in.By, UpdatedAt: in.At, AutosavedAt: &in.At}); err != nil {
 		return err
 	}
-	label := in.Label
-	if label == "" {
-		label = "translated from " + NameOf(st.Language)
+	lab := label{English: in.Label}
+	if lab.English == "" {
+		lab = newLabel(mLabelTranslatedFrom, st.Language, nil)
 	}
 	return q.ContentTranslationVersionInsert(ctx, store.ContentTranslationVersionInsertParams{TranslationID: t.ID, Version: 1, Subject: t.Subject, Preheader: t.Preheader,
-		Mjml: t.Mjml, Html: t.Html, PlainText: t.PlainText, AbTest: t.AbTest, Links: t.Links, SavedBy: in.By, SavedAt: in.At, Label: label, Source: "manual",
-		SizeBytes: int32(len(t.Html))})
+		Mjml: t.Mjml, Html: t.Html, PlainText: t.PlainText, AbTest: t.AbTest, Links: t.Links, SavedBy: in.By, SavedAt: in.At, Label: lab.English, Source: "manual",
+		SizeBytes: int32(len(t.Html)), LabelText: lab.raw()})
 }

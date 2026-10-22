@@ -3,10 +3,12 @@ package languages
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -27,6 +29,9 @@ type BlockSnapshot struct {
 	Name string `json:"name"`
 	Hash string `json:"hash"`
 	Raw  string `json:"raw"`
+	// Ref says what the block is, to name it in any language; snapshots
+	// taken before it was kept have none (their English Name is used).
+	Ref *BlockRef `json:"ref,omitempty"`
 }
 
 // CampaignSnapshot returns what an approval covers of a campaign's
@@ -43,7 +48,8 @@ func (s *Service) CampaignSnapshot(ctx context.Context, q *store.Queries, campai
 	for _, r := range rows {
 		v := VersionSnapshot{Language: r.Language, Status: r.Status, Held: r.Held, Version: int(r.Version), Hash: r.ContentHash, Subject: r.Subject, Blocks: []BlockSnapshot{}}
 		for _, b := range Blocks(r.Mjml, r.Html) {
-			v.Blocks = append(v.Blocks, BlockSnapshot{Name: b.Name, Hash: b.Hash, Raw: b.Raw})
+			ref := b.ref
+			v.Blocks = append(v.Blocks, BlockSnapshot{Name: b.Name, Hash: b.Hash, Raw: b.Raw, Ref: &ref})
 		}
 		out = append(out, v)
 	}
@@ -64,7 +70,7 @@ type VersionContent struct {
 func (s *Service) CampaignVersionAt(ctx context.Context, campaignID uuid.UUID, lang string, version int) (VersionContent, error) {
 	t, err := s.Q.ContentTranslation(ctx, store.ContentTranslationParams{OwnerKind: OwnerCampaign, OwnerID: campaignID, Language: Base(lang)})
 	if err != nil {
-		return VersionContent{}, notFoundVersion(err, lang)
+		return VersionContent{}, notFoundVersion(langOf(ctx), err, lang)
 	}
 	if version > 0 && version != int(t.Version) {
 		if v, err := s.Q.ContentTranslationVersion(ctx, store.ContentTranslationVersionParams{TranslationID: t.ID, Version: int32(version)}); err == nil {
@@ -88,8 +94,15 @@ type VersionChange struct {
 
 // DiffVersions compares the versions an approval covered with the
 // versions now: added, removed, edited (naming the blocks), marked
-// translated or held.
+// translated or held. It writes in English; DiffVersionsIn writes for a
+// reader.
 func DiffVersions(before, after []VersionSnapshot) []VersionChange {
+	return DiffVersionsIn(i18n.Default, before, after)
+}
+
+// DiffVersionsIn is DiffVersions in a reader's language: the language
+// names and what changed read in l.
+func DiffVersionsIn(l i18n.Lang, before, after []VersionSnapshot) []VersionChange {
 	out := []VersionChange{}
 	prev := map[string]VersionSnapshot{}
 	for _, v := range before {
@@ -98,53 +111,58 @@ func DiffVersions(before, after []VersionSnapshot) []VersionChange {
 	seen := map[string]bool{}
 	for _, v := range after {
 		seen[v.Language] = true
-		name := NameOf(v.Language)
+		name := NameIn(l, v.Language)
 		p, ok := prev[v.Language]
 		switch {
 		case !ok:
-			out = append(out, VersionChange{Language: v.Language, Name: name, Before: "none", After: fmt.Sprintf("v%d · added", v.Version), What: "version added"})
+			out = append(out, VersionChange{Language: v.Language, Name: name, Before: mDiffNone.Text(l, nil),
+				After: mDiffAdded.Text(l, i18n.Args{"version": strconv.Itoa(v.Version)}), What: mChangeVersionAdded.Text(l, nil)})
 		case p.Hash != v.Hash:
-			what := changedBlocks(p, v)
-			out = append(out, VersionChange{Language: v.Language, Name: name, Before: fmt.Sprintf("v%d", p.Version), After: fmt.Sprintf("v%d · %s", v.Version, what), What: what})
+			what := changedBlocks(l, p, v)
+			out = append(out, VersionChange{Language: v.Language, Name: name, Before: fmt.Sprintf("v%d", p.Version),
+				After: mDiffChanged.Text(l, i18n.Args{"version": strconv.Itoa(v.Version), "what": what}), What: what})
 		case p.Status != v.Status:
-			what := "marked translated"
+			what := mChangeMarkedTranslated
 			if v.Status != storedTranslated {
-				what = "back to draft"
+				what = mChangeBackToDraft
 			}
-			out = append(out, VersionChange{Language: v.Language, Name: name, Before: statusName(p.Status), After: statusName(v.Status), What: what})
+			out = append(out, VersionChange{Language: v.Language, Name: name, Before: statusName(l, p.Status), After: statusName(l, v.Status), What: what.Text(l, nil)})
 		case p.Held != v.Held:
-			what := "sent again"
+			what := mChangeSentAgain
 			if v.Held {
-				what = "held"
+				what = mChangeHeld
 			}
-			out = append(out, VersionChange{Language: v.Language, Name: name, Before: heldWord(p.Held), After: heldWord(v.Held), What: what})
+			out = append(out, VersionChange{Language: v.Language, Name: name, Before: heldWord(l, p.Held), After: heldWord(l, v.Held), What: what.Text(l, nil)})
 		}
 	}
 	for _, p := range before {
 		if !seen[p.Language] {
-			out = append(out, VersionChange{Language: p.Language, Name: NameOf(p.Language), Before: fmt.Sprintf("v%d", p.Version), After: "removed", What: "version removed"})
+			out = append(out, VersionChange{Language: p.Language, Name: NameIn(l, p.Language), Before: fmt.Sprintf("v%d", p.Version),
+				After: mDiffRemoved.Text(l, nil), What: mChangeVersionRemoved.Text(l, nil)})
 		}
 	}
 	return out
 }
 
-func statusName(s string) string {
+func statusName(l i18n.Lang, s string) string {
+	status := "draft"
 	if s == storedTranslated {
-		return "translated"
+		status = "translated"
 	}
-	return "draft"
+	return mDiffStatus.Text(l, i18n.Args{"status": status})
 }
 
-func heldWord(held bool) string {
+func heldWord(l i18n.Lang, held bool) string {
+	h := "no"
 	if held {
-		return "held"
+		h = "yes"
 	}
-	return "sent"
+	return mDiffHeld.Text(l, i18n.Args{"held": h})
 }
 
 // changedBlocks names what changed between two snapshots of a version:
 // "intro changed", "subject and 2 blocks changed".
-func changedBlocks(before, after VersionSnapshot) string {
+func changedBlocks(l i18n.Lang, before, after VersionSnapshot) string {
 	old := make([]AlignKey, len(before.Blocks))
 	for i, b := range before.Blocks {
 		old[i] = AlignKey{Raw: b.Raw, Hash: b.Hash}
@@ -154,14 +172,14 @@ func changedBlocks(before, after VersionSnapshot) string {
 		cur[i] = AlignKey{Raw: b.Raw, Hash: b.Hash}
 	}
 	m := Align(old, cur)
-	names := []string{}
+	changed := []BlockSnapshot{}
 	used := map[int]bool{}
 	for i, j := range m {
 		if j >= 0 {
 			used[j] = true
 		}
 		if j < 0 || old[j].Raw != cur[i].Raw {
-			names = append(names, shortBlock(after.Blocks[i].Name))
+			changed = append(changed, after.Blocks[i])
 		}
 	}
 	removed := 0
@@ -170,27 +188,35 @@ func changedBlocks(before, after VersionSnapshot) string {
 			removed++
 		}
 	}
-	parts := []string{}
-	if before.Subject != after.Subject {
-		parts = append(parts, "subject")
-	}
+	subject := before.Subject != after.Subject
 	switch {
-	case len(names) == 1:
-		parts = append(parts, names[0])
-	case len(names) > 1:
-		parts = append(parts, fmt.Sprintf("%d blocks", len(names)))
+	case len(changed) == 0 && removed > 0 && subject:
+		return mChangeSubjectBlockRemoved.Text(l, nil)
+	case len(changed) == 0 && removed > 0:
+		return mChangeBlockRemoved.Text(l, nil)
+	case len(changed) == 0 && subject:
+		return mChangeSubject.Text(l, nil)
+	case len(changed) == 0:
+		return mChangeEdited.Text(l, nil)
+	case len(changed) == 1 && subject:
+		return mChangeSubjectBlock.Text(l, i18n.Args{"block": shortName(l, changed[0])})
+	case len(changed) == 1:
+		return mChangeBlock.Text(l, i18n.Args{"block": shortName(l, changed[0])})
+	case subject:
+		return mChangeSubjectBlocks.Text(l, i18n.Args{"count": len(changed)})
 	}
-	if removed > 0 && len(names) == 0 {
-		parts = append(parts, "a block removed")
-		return strings.Join(parts, " and ")
-	}
-	if len(parts) == 0 {
-		return "edited"
-	}
-	return strings.Join(parts, " and ") + " changed"
+	return mChangeBlocks.Text(l, i18n.Args{"count": len(changed)})
 }
 
-// shortBlock is a block's name in a sentence: "intro", "two cards".
+// shortName is a block in a sentence, in l: "intro", "two cards".
+func shortName(l i18n.Lang, b BlockSnapshot) string {
+	if l.Locale != i18n.English && b.Ref != nil && b.Ref.Kind != "" {
+		return b.Ref.Short(l)
+	}
+	return shortBlock(b.Name)
+}
+
+// shortBlock is a block's English name in a sentence: "intro", "two cards".
 func shortBlock(name string) string {
 	if i := strings.Index(name, " · Heading"); i >= 0 {
 		name = name[:i]

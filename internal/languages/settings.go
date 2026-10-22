@@ -18,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -234,8 +235,8 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		if r.RemovedAt != nil {
 			continue
 		}
-		l, _ := Lookup(r.Code)
-		wl := WorkspaceLanguage{Code: r.Code, Name: l.Name, Native: l.Native, Own: counts.byBase[r.Code], IsDefault: r.IsDefault, IsFallback: r.IsFallback,
+		info, _ := Lookup(r.Code)
+		wl := WorkspaceLanguage{Code: r.Code, Name: NameIn(langOf(ctx), r.Code), Native: info.Native, Own: counts.byBase[r.Code], IsDefault: r.IsDefault, IsFallback: r.IsFallback,
 			PageCopy: LanguagePageCopy{Status: r.PageCopyStatus, Missing: int(r.PageCopyMissing), By: r.PageCopyByName, At: r.PageCopyAt, BuiltinLabels: BuiltinLabels[r.Code]},
 			AddedBy:  r.AddedByName}
 		if r.AddedByName != "" {
@@ -300,15 +301,17 @@ func (s *Service) LanguageCatalog(ctx context.Context, ws *store.Workspace, quer
 	if err != nil {
 		return nil, err
 	}
-	q := fold(query)
+	rl := langOf(ctx)
+	q, plain := fold(query), plainKey(query)
 	out := []CatalogLanguage{}
-	for _, l := range Catalog() {
+	for _, l := range catalogIn(rl) {
+		name := NameIn(rl, l.Code)
 		if q != "" && !strings.HasPrefix(fold(l.Name), q) && !strings.HasPrefix(fold(l.Native), q) && !strings.HasPrefix(l.Code, q) &&
-			!strings.Contains(fold(l.Name), q) {
+			!strings.Contains(fold(l.Name), q) && (rl.Locale == i18n.English || !strings.Contains(plainKey(name), plain)) {
 			continue
 		}
 		codes := counts.codesOf(l.Code)
-		out = append(out, CatalogLanguage{Code: l.Code, Name: l.Name, Native: l.Native, RTL: l.RTL, Regions: nonNil(l.Regions),
+		out = append(out, CatalogLanguage{Code: l.Code, Name: name, Native: l.Native, RTL: l.RTL, Regions: nonNil(l.Regions),
 			Contacts: counts.byBase[l.Code], ContactCodes: codes, BuiltinLabels: BuiltinLabels[l.Code], Added: st.Offers(l.Code)})
 	}
 	sort.SliceStable(out, func(i, j int) bool {
@@ -327,26 +330,36 @@ func (s *Service) LanguageCatalog(ctx context.Context, ws *store.Workspace, quer
 	return out, nil
 }
 
-// ErrRTL is the board's sentence for right-to-left languages.
-func rtlRefusal(l Language, fallback string) error {
-	return api.Invalid("body.code", fmt.Sprintf("Right-to-left languages aren't supported yet. Contacts with %s get %s.", l.Name, NameOf(fallback)))
+// catalogIn is Catalog in the order of the languages' names in l.
+func catalogIn(l i18n.Lang) []Language {
+	out := Catalog()
+	if l.Locale == "" || l.Locale == i18n.English || l.Locale == i18n.Pseudo {
+		return out
+	}
+	sort.SliceStable(out, func(i, j int) bool { return plainKey(NameIn(l, out[i].Code)) < plainKey(NameIn(l, out[j].Code)) })
+	return out
+}
+
+// rtlRefusal is the board's sentence for right-to-left languages.
+func rtlRefusal(rl i18n.Lang, l Language, fallback string) error {
+	return api.Invalid("body.code", mRTL.Text(rl, i18n.Args{"language": NameIn(rl, l.Code), "fallback": NameIn(rl, fallback)}))
 }
 
 // AddLanguage adds a language to the workspace.
 func (s *Service) AddLanguage(ctx context.Context, ws *store.Workspace, p *authz.Principal, code string) (WorkspaceLanguages, error) {
 	l, ok := Lookup(code)
 	if !ok || Base(code) != strings.ToLower(strings.TrimSpace(code)) {
-		return WorkspaceLanguages{}, api.Invalid("body.code", "Pick a language from the list. A workspace language is a base language, such as es; es-MX matches it.")
+		return WorkspaceLanguages{}, api.Invalid("body.code", mPickFromList.Text(langOf(ctx), nil))
 	}
 	st, err := s.Settings(ctx, s.Q, ws.ID)
 	if err != nil {
 		return WorkspaceLanguages{}, err
 	}
 	if l.RTL {
-		return WorkspaceLanguages{}, rtlRefusal(l, st.Fallback)
+		return WorkspaceLanguages{}, rtlRefusal(langOf(ctx), l, st.Fallback)
 	}
 	if st.Offers(l.Code) {
-		return WorkspaceLanguages{}, api.Conflict(l.Name + " is already one of your languages.")
+		return WorkspaceLanguages{}, api.Conflict(named(langOf(ctx), mAlreadyAdded, l.Code, nil))
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -417,9 +430,10 @@ func (s *Service) Removal(ctx context.Context, ws *store.Workspace, code string)
 	}
 	code = Base(code)
 	if !st.Offers(code) {
-		return LanguageRemoval{}, api.NotFound("Language")
+		return LanguageRemoval{}, notFound(ctx, mLanguageNotFound)
 	}
-	out := LanguageRemoval{Code: code, Name: NameOf(code), Has: []RemovalItem{}, Fallback: st.Fallback, Refusal: refusal(st, code)}
+	rl := langOf(ctx)
+	out := LanguageRemoval{Code: code, Name: NameIn(rl, code), Has: []RemovalItem{}, Fallback: st.Fallback, Refusal: refusal(rl, st, code)}
 	counts, err := s.contactCounts(ctx, s.Q, ws.ID)
 	if err != nil {
 		return out, err
@@ -473,10 +487,11 @@ func (s *Service) liveLanguages(ctx context.Context, st Settings, id uuid.UUID, 
 		states = append(states, VersionState{Language: r.Language, Status: r.Status, Held: r.Held})
 	}
 	ch := NewChooser(source, st, states)
-	out := []string{NameOf(source)}
+	rl := langOf(ctx)
+	out := []string{NameIn(rl, source)}
 	for _, l := range st.Languages {
 		if l != source && ch.Ready(l) {
-			out = append(out, NameOf(l))
+			out = append(out, NameIn(rl, l))
 		}
 	}
 	return out
@@ -518,13 +533,12 @@ func (s *Service) campaignVersionStatus(ctx context.Context, ws *store.Workspace
 	return status, changed
 }
 
-func refusal(st Settings, code string) string {
-	name := NameOf(code)
+func refusal(l i18n.Lang, st Settings, code string) string {
 	switch {
 	case st.Default == code:
-		return fmt.Sprintf("%s is the default language. Choose another default before removing it.", name)
+		return named(l, mIsDefault, code, nil)
 	case st.Fallback == code:
-		return fmt.Sprintf("%s is the fallback language. Choose another fallback before removing it.", name)
+		return named(l, mIsFallback, code, nil)
 	}
 	return ""
 }
@@ -543,9 +557,9 @@ func (s *Service) RemoveLanguage(ctx context.Context, ws *store.Workspace, p *au
 			return err
 		}
 		if !st.Offers(code) {
-			return api.NotFound("Language")
+			return notFound(ctx, mLanguageNotFound)
 		}
-		if why := refusal(st, code); why != "" {
+		if why := refusal(langOf(ctx), st, code); why != "" {
 			return api.Conflict(why)
 		}
 		at := s.now()
@@ -554,7 +568,7 @@ func (s *Service) RemoveLanguage(ctx context.Context, ws *store.Workspace, p *au
 			return err
 		}
 		if n == 0 {
-			return api.NotFound("Language")
+			return notFound(ctx, mLanguageNotFound)
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "language.remove", TargetType: "language", TargetID: code, TargetName: NameOf(code),
 			Before: map[string]any{"code": code}, Metadata: map[string]any{"permission": string(authz.WorkspaceManage)}})
@@ -590,7 +604,7 @@ func (s *Service) FallbackPreview(ctx context.Context, ws *store.Workspace, code
 	}
 	code = Base(code)
 	if !st.Offers(code) {
-		return FallbackImpact{}, api.Invalid("code", "Pick one of your languages.")
+		return FallbackImpact{}, api.Invalid("code", mPickYourLanguage.Text(langOf(ctx), nil))
 	}
 	counts, err := s.contactCounts(ctx, s.Q, ws.ID)
 	if err != nil {
@@ -623,10 +637,10 @@ func (s *Service) SetDefaults(ctx context.Context, ws *store.Workspace, p *authz
 			return err
 		}
 		if !st.Offers(in.Default) {
-			return api.Invalid("body.default", "Pick one of your languages as the default.")
+			return api.Invalid("body.default", mPickDefault.Text(langOf(ctx), nil))
 		}
 		if !st.Offers(in.Fallback) {
-			return api.Invalid("body.fallback", "Pick one of your languages as the fallback.")
+			return api.Invalid("body.fallback", mPickFallback.Text(langOf(ctx), nil))
 		}
 		meta := map[string]any{"permission": string(authz.WorkspaceManage)}
 		if in.Default != st.Default {

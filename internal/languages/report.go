@@ -143,12 +143,13 @@ func (s *Service) CampaignResults(ctx context.Context, ws *store.Workspace, camp
 		row   ReportLanguageRow
 		kinds map[string]int64
 	}
+	rl := langOf(ctx)
 	main := map[string]*acc{}
 	fallback := map[string]*acc{}
 	get := func(m map[string]*acc, lang string) *acc {
 		a, ok := m[lang]
 		if !ok {
-			a = &acc{row: ReportLanguageRow{Language: lang, Name: NameOf(lang), Readers: []string{}, Kinds: []string{}}, kinds: map[string]int64{}}
+			a = &acc{row: ReportLanguageRow{Language: lang, Name: NameIn(rl, lang), Readers: []string{}, Kinds: []string{}}, kinds: map[string]int64{}}
 			m[lang] = a
 		}
 		return a
@@ -216,11 +217,11 @@ func (s *Service) CampaignResults(ctx context.Context, ws *store.Workspace, camp
 			row.Kinds = append(row.Kinds, k)
 			switch k {
 			case "no_language":
-				row.Readers = append(row.Readers, "no language")
+				row.Readers = append(row.Readers, mReadersNoLanguage.Text(rl, nil))
 			case "not_offered":
-				row.Readers = append(row.Readers, "other languages")
+				row.Readers = append(row.Readers, mReadersOtherLanguages.Text(rl, nil))
 			default:
-				row.Readers = append(row.Readers, NameOf(k))
+				row.Readers = append(row.Readers, NameIn(rl, k))
 			}
 		}
 		row.DeliveredRate = rateOf(row.Delivered, row.Sent)
@@ -258,8 +259,8 @@ func (s *Service) CampaignResults(ctx context.Context, ws *store.Workspace, camp
 		sent[k] += row.Sent
 	}
 	for _, k := range order(main) {
-		out.Sent = append(out.Sent, ReportLanguageCount{Language: k, Name: NameOf(k), Count: sent[k]})
-		out.ClickMaps = append(out.ClickMaps, ReportLanguageOption{Language: k, Name: NameOf(k)})
+		out.Sent = append(out.Sent, ReportLanguageCount{Language: k, Name: NameIn(rl, k), Count: sent[k]})
+		out.ClickMaps = append(out.ClickMaps, ReportLanguageOption{Language: k, Name: NameIn(rl, k)})
 	}
 	out.Languages, out.Versions = len(langs), len(out.Rows)
 	if len(fbRows) > 0 {
