@@ -52,7 +52,11 @@ export const m = defineMessages('sms', {
   capShortReceipts: 'Receipts',
   capShortInbound: 'Keywords',
   capShortRegistration: 'Registration via API',
-  capNotSupported: 'Not supported: ',
+  // A capability with a note from the manifest: "Registration status · set by hand".
+  capNotedRegistration: 'Registration status',
+  capNotedPricing: 'Pricing',
+  capNotedShortRegistration: 'Registration',
+  capNotSupported: 'Not supported: {capability}',
   // Suppression reasons.
   reasonOpted_out: 'Opted out by text',
   reasonLandline: 'Landline',
@@ -71,7 +75,15 @@ export const m = defineMessages('sms', {
   failRejected: 'Refused by the provider',
   failProvider_down: 'Not sent: provider down',
   failOther: 'Other failure',
+  // Why a route can't send to a country, in "Ireland skipped (pending)".
+  holdPending: 'pending',
+  holdRejected: 'rejected',
+  holdNot_registered: 'not registered',
+  holdNot_supported: 'not supported',
+  holdNo_route: 'no route',
   perSecond: '{n} /s',
+  // A provider whose prices a cost comes from, in a list: "From Twilio’s and Vonage’s pricing on 6 Oct".
+  pricingOf: '{provider}’s',
   none: '–',
   countryCode: '{code}',
   routeNone: 'None yet',

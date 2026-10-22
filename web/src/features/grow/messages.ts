@@ -217,3 +217,8 @@ export const mo = defineMessages('grow.overview', {
   readOnlyText: 'You can see results, referrers and recommendations. Changing the program needs <mono>grow:edit</mono> and deciding on held referrals needs <mono>grow:review</mono>: ask {editHelpers}. Partner links need <mono>grow:connect</mono>: ask {connectHelpers}.',
   readOnlyTextNoHelpers: 'You can see results, referrers and recommendations. Changing the program needs <mono>grow:edit</mono>, deciding on held referrals <mono>grow:review</mono>, and partner links <mono>grow:connect</mono>.',
 })
+
+/** The line under a signup form's embed code (Forms › form builder), once a referral program exists. */
+export const mfr = defineMessages('grow.forms', {
+  refNote: 'Referral links can point here. <mono>?ref=</mono> codes are recorded.',
+})

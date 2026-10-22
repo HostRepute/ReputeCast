@@ -122,7 +122,7 @@ export function ScoreGrowthFields({ draft, onChange, open }: { draft: ScoreGrowt
         </Field>
       </div>
       <Field label={t(m.referringDomain)}>
-        <Input value={draft.referringDomain ?? ''} placeholder="news.ycombinator.com" onChange={(e) => onChange({ ...draft, referringDomain: text(e.target.value) })} />
+        <Input value={draft.referringDomain ?? ''} placeholder={'news.ycombinator.com'} onChange={(e) => onChange({ ...draft, referringDomain: text(e.target.value) })} />
       </Field>
       <span className="k">{t(m.moreHint)}</span>
     </>

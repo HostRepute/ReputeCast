@@ -14,22 +14,21 @@ import { FeedItemsInspector, isFeedItems, useDigestMode } from '@/features/diges
 import { isGrowBlock } from '@/features/grow/composer/blocks'
 import { GrowBlockInspector, GrowStyleNote } from '@/features/grow/composer/Panel'
 import { dc } from '@/features/digests/composer/messages'
-import { t as tt } from '@/i18n'
+import { t as tt, useT } from '@/i18n'
 import { useWebMode, WebTabPanel } from '@/features/website/composer/campaign'
 import { mc } from '@/features/website/composer/messages'
+import { mc as canvasMessages } from './canvas.messages'
+import { m } from './messages'
 
 /** Issues the Deliverability tab counts: blocks and warnings about the content (the subject has its own line). */
 export function contentIssues(issues: Issue[] | undefined): Issue[] {
   return (issues ?? []).filter((i) => (i.severity === 'block' || i.severity === 'warn') && i.group !== 'Subject')
 }
 
-function plural(n: number, one: string, many = `${one}s`) {
-  return `${n} ${n === 1 ? one : many}`
-}
-
 /** "Deliverability on this section": images with alt text and links, from the last check. */
 function SectionHealth({ selected }: { selected: Component | null }) {
   const c = useComposer()
+  const t = useT()
   const body = bodyOf(c)
   const sec = sectionOf(selected)
   const index = sec && body ? mjChildren(body).indexOf(sec) : -1
@@ -39,28 +38,28 @@ function SectionHealth({ selected }: { selected: Component | null }) {
   let text: string
   if (!c.checks) {
     tone = 'neutral'
-    text = 'Checking…'
+    text = t(m.checking)
   } else if (index < 0) {
     const n = contentIssues(c.checks.issues).length
     tone = c.checks.blocks ? 'bad' : n ? 'warn' : 'ok'
-    text = n ? `${plural(c.checks.blocks, 'block')} · ${plural(c.checks.warnings, 'warning')} in the email` : `${plural(c.checks.images, 'image')} · ${plural(c.checks.links, 'link')} · no warnings`
+    text = n ? t(m.emailIssues, { blocks: c.checks.blocks, warnings: c.checks.warnings }) : t(m.emailClean, { images: c.checks.images, links: c.checks.links })
   } else if (!stats) {
     tone = 'neutral'
-    text = 'Nothing to check in this section'
+    text = t(m.nothingToCheck)
   } else {
     const parts: string[] = []
     const missingAlt = stats.images - stats.imagesWithAlt
     const badLinks = stats.links - stats.linksOk
-    if (stats.images) parts.push(missingAlt ? `${missingAlt} of ${plural(stats.images, 'image')} missing alt text` : `${plural(stats.images, 'image')} with alt text`)
-    if (stats.links) parts.push(badLinks ? `${badLinks} of ${plural(stats.links, 'link')} flagged` : `${plural(stats.links, 'link')} OK`)
-    if (!parts.length) parts.push('No images or links')
+    if (stats.images) parts.push(missingAlt ? t(m.imagesMissingAlt, { missing: missingAlt, count: stats.images }) : t(m.imagesWithAlt, { count: stats.images }))
+    if (stats.links) parts.push(badLinks ? t(m.linksFlagged, { flagged: badLinks, count: stats.links }) : t(m.linksOk, { count: stats.links }))
+    if (!parts.length) parts.push(t(m.noImagesOrLinks))
     if (issues.some((i) => i.severity === 'block')) tone = 'bad'
     else if (issues.length || missingAlt || badLinks) tone = 'warn'
     text = parts.join(' · ')
   }
   return (
     <div className="flex flex-col gap-1.5 border-t border-line-2" style={{ padding: '10px 12px', marginTop: 'auto' }}>
-      <span className="k">{index >= 0 ? 'Deliverability on this section' : 'Deliverability'}</span>
+      <span className="k">{index >= 0 ? t(m.sectionHealth) : t(m.deliverability)}</span>
       <Badge tone={tone} className="self-start">
         {text}
       </Badge>
@@ -71,6 +70,7 @@ function SectionHealth({ selected }: { selected: Component | null }) {
 /** "Mobile checks": tap targets and text size, measured on the mobile canvas. */
 function MobileChecks({ selected }: { selected: Component | null }) {
   const c = useComposer()
+  const t = useT()
   const [result, setResult] = useState<{ smallButtons: number; smallText: number; buttons: number; texts: number } | null>(null)
   useEffect(() => {
     const h = window.setTimeout(() => {
@@ -102,14 +102,14 @@ function MobileChecks({ selected }: { selected: Component | null }) {
   const ok = result && !result.smallButtons && !result.smallText
   const parts: string[] = []
   if (result) {
-    if (result.buttons) parts.push(result.smallButtons ? `${plural(result.smallButtons, 'button')} under 44 px tall` : 'Buttons ≥ 44 px tall')
-    if (result.texts) parts.push(result.smallText ? `${plural(result.smallText, 'text block')} under 14 px` : 'text ≥ 14 px')
+    if (result.buttons) parts.push(result.smallButtons ? t(m.smallButtons, { count: result.smallButtons }) : t(m.buttonsOk))
+    if (result.texts) parts.push(result.smallText ? t(m.smallText, { count: result.smallText }) : t(m.textOk))
   }
   return (
     <div className="flex flex-col gap-1.5 border-t border-line-2" style={{ padding: '10px 12px', marginTop: 'auto' }}>
-      <span className="k">Mobile checks</span>
+      <span className="k">{t(m.mobileChecks)}</span>
       <Badge tone={!result ? 'neutral' : ok ? 'ok' : 'warn'} className="self-start">
-        {!result ? 'Checking…' : parts.length ? parts.join(' · ') : 'No buttons or text here'}
+        {!result ? t(m.checking) : parts.length ? parts.join(' · ') : t(m.nothingMobile)}
       </Badge>
     </div>
   )
@@ -118,22 +118,24 @@ function MobileChecks({ selected }: { selected: Component | null }) {
 function InspectorHead({ c, tab }: { c: Component; tab: 'style' | 'settings' }) {
   return (
     <div className="flex flex-col gap-0.5 border-b border-line-2" style={{ padding: '10px 12px' }}>
-      <span className="font-semibold">{tagOf(c) || 'element'}</span>
+      <span className="font-semibold">{tagOf(c) || tt(canvasMessages.element)}</span>
       <span className="k">{describe(c, tab)}</span>
     </div>
   )
 }
 
 function NothingSelected() {
+  const t = useT()
   return (
     <div className="k" style={{ padding: '14px 12px' }}>
-      Select a component on the canvas to edit its MJML attributes.
+      {t(m.selectHint)}
     </div>
   )
 }
 
 function IssueRow({ issue }: { issue: Issue }) {
   const c = useComposer()
+  const t = useT()
   const [alt, setAlt] = useState('')
   const tone = issue.severity === 'block' ? 'is-block' : issue.group === 'Subject' ? '' : 'is-warn'
   const select = () => {
@@ -142,7 +144,7 @@ function IssueRow({ issue }: { issue: Issue }) {
   return (
     <div className={`iss ${tone}`}>
       <div className="t">
-        <Badge tone={issue.severity === 'block' ? 'bad' : 'warn'}>{issue.severity === 'block' ? 'Block' : 'Warn'}</Badge>
+        <Badge tone={issue.severity === 'block' ? 'bad' : 'warn'}>{issue.severity === 'block' ? t(m.severityBlock) : t(m.severityWarn)}</Badge>
         {issue.path.length ? (
           <button type="button" className="text-left font-semibold" style={{ border: 0, background: 'none', padding: 0, font: 'inherit', fontWeight: 600, color: 'inherit', cursor: 'pointer' }} onClick={select}>
             {issue.title}
@@ -165,7 +167,7 @@ function IssueRow({ issue }: { issue: Issue }) {
                   setAlt('')
                 }}
               >
-                <input aria-label="Describe the image" className="in" placeholder="Describe the image" style={{ flex: 1 }} value={alt} onChange={(e) => setAlt(e.target.value)} />
+                <input aria-label={t(m.describeImage)} className="in" placeholder={t(m.describeImage)} style={{ flex: 1 }} value={alt} onChange={(e) => setAlt(e.target.value)} />
                 <button type="submit" className="btn sm" disabled={!alt.trim()}>
                   {f.label}
                 </button>
@@ -184,13 +186,14 @@ function IssueRow({ issue }: { issue: Issue }) {
 
 function DeliverabilityTab() {
   const c = useComposer()
+  const t = useT()
   const all = (c.checks?.issues ?? []).filter((i) => i.severity === 'block' || i.severity === 'warn')
   const rank = (i: Issue) => (i.group === 'Subject' ? 2 : i.severity === 'block' ? 0 : 1)
   const sorted = [...all].sort((a, b) => rank(a) - rank(b))
   if (!sorted.length)
     return (
       <div className="k" style={{ padding: '14px 12px' }}>
-        No warnings. Send Readiness runs the full set, including link checks, before anything goes out.
+        {t(m.noWarningsLong)}
       </div>
     )
   return (
@@ -205,6 +208,7 @@ function DeliverabilityTab() {
 /** Right panel: Style · Settings · Deliverability. */
 export function RightPanel() {
   const c = useComposer()
+  const t = useT()
   const a11y = useAccessibility()
   const digest = useDigestMode()
   const web = useWebMode()
@@ -218,10 +222,10 @@ export function RightPanel() {
       <aside className="cpanel right dim" aria-hidden="true" inert>
         <div className="ptab">
           <button type="button" className="on" disabled>
-            Style
+            {t(m.tabStyle)}
           </button>
           <button type="button" disabled>
-            Settings
+            {t(m.tabSettings)}
           </button>
         </div>
         <NothingSelected />
@@ -232,19 +236,19 @@ export function RightPanel() {
   // The Feed items block has its own checks (the posts it draws are not in the template).
   const footer = sel && (isFeedItems(sel) || isGrowBlock(sel)) ? null : c.device === 'mobile' ? <MobileChecks selected={sel} /> : <SectionHealth selected={sel} />
   const items: { value: 'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'; label: string }[] = [
-    { value: 'style', label: 'Style' },
-    { value: 'settings', label: 'Settings' },
+    { value: 'style', label: t(m.tabStyle) },
+    { value: 'settings', label: t(m.tabSettings) },
   ]
   // The website's Web tab (features/website), while it's on.
   if (web) items.push({ value: 'web', label: tt(mc.tabWeb) })
   const allWarn = (c.checks?.issues ?? []).filter((i) => i.severity === 'block' || i.severity === 'warn')
-  if (allWarn.length) items.push({ value: 'deliverability', label: `Deliverability · ${issues.length || allWarn.length}` })
+  if (allWarn.length) items.push({ value: 'deliverability', label: t(m.tabDeliverability, { count: issues.length || allWarn.length }) })
   const a11yTab = accessibilityTab(a11y)
   if (a11yTab) items.push({ value: 'accessibility', label: a11yTab })
   return (
     // Digest mode keeps the wide panel: the Feed items settings need the room.
-    <aside className={tab === 'accessibility' || items.length > 3 || digest ? 'cpanel right a11y-wide' : 'cpanel right'} aria-label="Style, settings, deliverability and accessibility">
-      <PanelTabs value={tab} onChange={c.setRightTab} label="Inspector" items={items} className="flex flex-1 flex-col">
+    <aside className={tab === 'accessibility' || items.length > 3 || digest ? 'cpanel right a11y-wide' : 'cpanel right'} aria-label={t(m.rightPanelLabel)}>
+      <PanelTabs value={tab} onChange={c.setRightTab} label={t(m.inspector)} items={items} className="flex flex-1 flex-col">
         <TabPanel value="style" className="flex flex-1 flex-col" tabIndex={-1}>
           {sel && isFeedItems(sel) ? (
             <div className="k" style={{ padding: '14px 12px' }}>

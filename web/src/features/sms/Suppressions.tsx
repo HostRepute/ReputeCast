@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Select } from '@/components/ui/Field'
-import { Table } from '@/components/ui/Table'
+import { Table, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { channelIcon } from '@/features/channels/ChannelSwitch'
 import { m as cm } from '@/features/channels/messages'
@@ -134,13 +134,13 @@ export function SmsSuppressions({ search, onSearch, switcher }: { search: SmsSup
             <Table caption={t(m.table)}>
               <thead>
                 <tr>
-                  <th scope="col">{t(m.colNumber)}</th>
-                  <th scope="col">{t(m.colReason)}</th>
-                  <th scope="col">{t(m.colSource)}</th>
-                  <th scope="col">{t(m.colWhen)}</th>
-                  <th scope="col">
+                  <Th>{t(m.colNumber)}</Th>
+                  <Th>{t(m.colReason)}</Th>
+                  <Th>{t(m.colSource)}</Th>
+                  <Th>{t(m.colWhen)}</Th>
+                  <Th>
                     <span className="vh">{t(m.colActions)}</span>
-                  </th>
+                  </Th>
                 </tr>
               </thead>
               <tbody>

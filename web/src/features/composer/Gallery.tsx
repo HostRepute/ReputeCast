@@ -7,6 +7,8 @@ import { Thumb } from './Thumb'
 import { GalleryCaption, GalleryResult, galleryTileClass, useGalleryResults } from '@/features/accessibility/composer/Gallery'
 import { isDigestTemplate } from '@/features/digests/composer/DigestMode'
 import { AgencyComposerGallery } from '@/features/agency/ComposerLibrary'
+import { useT } from '@/i18n'
+import { m } from './messages'
 
 /**
  * The empty canvas (ComposerEmpty): start from a starter template, one of
@@ -14,6 +16,7 @@ import { AgencyComposerGallery } from '@/features/agency/ComposerLibrary'
  */
 export function EmptyGallery() {
   const c = useComposer()
+  const t = useT()
   const g = $api.useQuery(
     'get',
     '/api/v1/workspaces/{workspace}/templates',
@@ -30,9 +33,9 @@ export function EmptyGallery() {
     setBusy(id)
     try {
       const { data } = await http.GET('/api/v1/workspaces/{workspace}/templates/{templateId}', { params: { path: { workspace: c.slug, templateId: id } } })
-      if (data) c.loadContent(data.mjml, { source: 'template', label: id === 'starter:blank' ? 'started from a blank canvas' : `created from template “${name}”` })
+      if (data) c.loadContent(data.mjml, { source: 'template', label: id === 'starter:blank' ? t(m.noteBlank) : t(m.noteFromTemplate, { name }) })
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't open the template", detail: errorMessage(e) })
+      toast({ kind: 'error', title: t(m.templateFailed), detail: errorMessage(e) })
     } finally {
       setBusy(null)
     }
@@ -42,9 +45,9 @@ export function EmptyGallery() {
     setBusy(id)
     try {
       const { data } = await http.GET('/api/v1/workspaces/{workspace}/campaigns/{campaignId}', { params: { path: { workspace: c.slug, campaignId: id } } })
-      if (data) c.loadContent(data.mjml, { source: 'template', label: `copied “${name}”` })
+      if (data) c.loadContent(data.mjml, { source: 'template', label: t(m.noteCopied, { name }) })
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't copy the campaign", detail: errorMessage(e) })
+      toast({ kind: 'error', title: t(m.copyFailed), detail: errorMessage(e) })
     } finally {
       setBusy(null)
     }
@@ -56,11 +59,11 @@ export function EmptyGallery() {
         <div className="flex flex-col gap-1">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <h2 className="m-0 text-[20px] font-bold" style={{ letterSpacing: '-.01em' }}>
-              Start from a template or a blank canvas
+              {t(m.galleryTitle)}
             </h2>
             <GalleryCaption data={a11y.data} />
           </div>
-          <span className="k">Templates are MJML, so everything stays editable. Your saved sections and the last campaign are here too.</span>
+          <span className="k">{t(m.galleryLead)}</span>
         </div>
         {g.isPending ? (
           <div className="tpl-grid grid gap-3" aria-busy="true">
@@ -72,28 +75,28 @@ export function EmptyGallery() {
             ))}
           </div>
         ) : g.isError ? (
-          <p className="k">Templates couldn't load. {errorMessage(g.error)}</p>
+          <p className="k">{t(m.templatesFailed, { error: errorMessage(g.error) })}</p>
         ) : (
           <>
             <div className="tpl-grid grid gap-3">
-              {g.data.starters.map((t) => (
-                <button key={t.id} type="button" className={galleryTileClass(a11y.byId.get(t.id))} disabled={!c.canEdit} aria-busy={busy === t.id || undefined} onClick={() => void applyTemplate(t.id, t.name)}>
-                  <Thumb items={t.thumb} blank={t.id === 'starter:blank'} />
-                  <span className="font-semibold">{t.name}</span>
-                  <span className="k">{t.description}</span>
-                  <GalleryResult result={a11y.byId.get(t.id)} />
+              {g.data.starters.map((tpl) => (
+                <button key={tpl.id} type="button" className={galleryTileClass(a11y.byId.get(tpl.id))} disabled={!c.canEdit} aria-busy={busy === tpl.id || undefined} onClick={() => void applyTemplate(tpl.id, tpl.name)}>
+                  <Thumb items={tpl.thumb} blank={tpl.id === 'starter:blank'} />
+                  <span className="font-semibold">{tpl.name}</span>
+                  <span className="k">{tpl.description}</span>
+                  <GalleryResult result={a11y.byId.get(tpl.id)} />
                 </button>
               ))}
             </div>
             <div className="flex flex-col gap-2">
-              <span className="font-semibold">Yours</span>
+              <span className="font-semibold">{t(m.yours)}</span>
               <div className="tpl-grid grid gap-3">
-                {g.data.templates.map((t) => (
-                  <button key={t.id} type="button" className={galleryTileClass(a11y.byId.get(t.id))} disabled={!c.canEdit} aria-busy={busy === t.id || undefined} onClick={() => void applyTemplate(t.id, t.name)}>
-                    <Thumb items={t.thumb} />
-                    <span className="font-semibold">{t.name}</span>
-                    <span className="k">Saved template{t.updatedAt ? ` · edited ${dayMonthDate(t.updatedAt)}` : ''}</span>
-                    <GalleryResult result={a11y.byId.get(t.id)} />
+                {g.data.templates.map((tpl) => (
+                  <button key={tpl.id} type="button" className={galleryTileClass(a11y.byId.get(tpl.id))} disabled={!c.canEdit} aria-busy={busy === tpl.id || undefined} onClick={() => void applyTemplate(tpl.id, tpl.name)}>
+                    <Thumb items={tpl.thumb} />
+                    <span className="font-semibold">{tpl.name}</span>
+                    <span className="k">{tpl.updatedAt ? t(m.savedTemplateEdited, { date: dayMonthDate(tpl.updatedAt) }) : t(m.savedTemplate)}</span>
+                    <GalleryResult result={a11y.byId.get(tpl.id)} />
                   </button>
                 ))}
                 {g.data.lastCampaign ? (
@@ -105,14 +108,14 @@ export function EmptyGallery() {
                     onClick={() => g.data.lastCampaign && void copyCampaign(g.data.lastCampaign.id, g.data.lastCampaign.name)}
                   >
                     <Thumb items={g.data.lastCampaign.thumb} />
-                    <span className="font-semibold">Copy of {g.data.lastCampaign.name}</span>
-                    <span className="k">Last sent campaign · {dayMonthDate(g.data.lastCampaign.sentAt)}</span>
+                    <span className="font-semibold">{t(m.copyOf, { name: g.data.lastCampaign.name })}</span>
+                    <span className="k">{t(m.lastSent, { date: dayMonthDate(g.data.lastCampaign.sentAt) })}</span>
                     <GalleryResult result={a11y.last} />
                   </button>
                 ) : null}
                 <button type="button" className="tpl" style={{ borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' }} disabled={!c.canEdit} onClick={() => c.openDialog('import')}>
-                  <span className="font-semibold">Import MJML or HTML</span>
-                  <span className="k">Paste or upload a file</span>
+                  <span className="font-semibold">{t(m.importTile)}</span>
+                  <span className="k">{t(m.importTileLine)}</span>
                 </button>
               </div>
             </div>

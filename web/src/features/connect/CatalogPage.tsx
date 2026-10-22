@@ -7,8 +7,13 @@ import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { NoResults } from '@/components/ui/NoResults'
 import { ConnectChannels } from '@/features/channels/ConnectChannels'
 import { ReadOnlyNote } from '@/features/senders/ReadOnlyNote'
+import { T, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
+import { count } from '@/lib/format'
 import { deniedReason, useWorkspace } from '@/lib/session'
+import { mc } from './catalog.messages'
+import { m } from './messages'
 import { StepBadge, StepHeading, WizardBody, WizardLayout } from './Wizard'
 
 type Entry = Schemas['ConnectCatalogEntry']
@@ -16,6 +21,7 @@ type Community = Schemas['ConnectCommunityEntry']
 
 /** 7.2 step 1 (SetupCatalog): every adapter this build can connect. */
 export function CatalogPage() {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/connect/catalog', { params: { path: { workspace: slug } } })
   const [search, setSearch] = useState('')
@@ -42,53 +48,49 @@ export function CatalogPage() {
     setDedicated(false)
   }
   return (
-    <WizardLayout title="Connect a sending provider" badge={<StepBadge n={1} />}>
+    <WizardLayout title={t(m.title)} badge={<StepBadge n={1} />}>
       <WizardBody current={1}>
         {data && !data.canConnect ? (
-          <ReadOnlyNote action="Connecting a provider" perm="providers:manage" helpers={data.helpers}>
-            You can look at the catalog and at setups others started.
-          </ReadOnlyNote>
+          <ReadOnlyNote msg={m.readOnlyCatalog} perm="providers:manage" helpers={data.helpers} />
         ) : null}
-        <StepHeading title="Which provider delivers your mail?">
-          Every adapter reports what it can do. Badges come from each adapter&apos;s manifest; terms are reviewed quarterly.
-        </StepHeading>
+        <StepHeading title={t(mc.heading)}>{t(mc.lead)}</StepHeading>
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Email · SMS · …: the other channels' catalogs (X21). */}
           <ConnectChannels current="email" />
           <label className="k flex items-center gap-2" htmlFor={searchId}>
-            Search
+            {t(common.search)}
             <input
               id={searchId}
               className="in w-[220px] max-md:w-auto max-md:min-w-0 max-md:flex-1"
               type="search"
-              placeholder="Provider name"
+              placeholder={t(mc.searchPlaceholder)}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </label>
           <label className="flex items-center gap-2 text-[13px]">
             <input type="checkbox" checked={bulk} onChange={(e) => setBulk(e.target.checked)} />
-            Allows bulk marketing
+            {t(mc.filterBulk)}
           </label>
           <label className="flex items-center gap-2 text-[13px]">
             <input type="checkbox" checked={webhooks} onChange={(e) => setWebhooks(e.target.checked)} />
-            Has bounce webhooks
+            {t(mc.filterWebhooks)}
           </label>
           <label className="flex items-center gap-2 text-[13px]">
             <input type="checkbox" checked={dedicated} onChange={(e) => setDedicated(e.target.checked)} />
-            Dedicated IPs
+            {t(mc.filterDedicated)}
           </label>
-          {data ? <span className="k ml-auto">{`${data.builtin.length} built-in · ${data.community.length} community`}</span> : null}
+          {data ? <span className="k ml-auto">{t(mc.counts, { builtin: count(data.builtin.length), community: count(data.community.length) })}</span> : null}
         </div>
         {q.isError ? (
-          <ErrorPanel title="Couldn't load the providers" actions={<Button onClick={() => void q.refetch()}>Retry</Button>}>
+          <ErrorPanel title={t(mc.loadFailed)} actions={<Button onClick={() => void q.refetch()}>{t(common.retry)}</Button>}>
             {errorMessage(q.error)}
           </ErrorPanel>
         ) : !data ? (
           <CardsSkeleton />
         ) : shown.length === 0 ? (
-          <NoResults title="No provider matches" actions={<Button onClick={clear}>Clear the filters</Button>}>
-            {search.trim() ? `Nothing called “${search.trim()}” with the filters you picked.` : 'No provider has every capability you picked.'}
+          <NoResults title={t(mc.noMatch)} actions={<Button onClick={clear}>{t(mc.clearFilters)}</Button>}>
+            {search.trim() ? t(mc.noMatchSearch, { query: search.trim() }) : t(mc.noMatchFilters)}
           </NoResults>
         ) : (
           <div className="cn-grid grid gap-3.5 max-md:grid-cols-1!" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))' }}>
@@ -104,6 +106,7 @@ export function CatalogPage() {
 }
 
 function ProviderCard({ entry: e, reason }: { entry: Entry; reason?: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const tone = e.termsTone === 'neutral' ? 'neutral' : e.termsTone
   return (
@@ -118,14 +121,13 @@ function ProviderCard({ entry: e, reason }: { entry: Entry; reason?: string }) {
       <div className="flex flex-wrap gap-[5px]">
         {e.chips.map((c) => (
           <span key={c.label} className={cn('cn-cap', c.kind === 'yes' && 'y', c.kind === 'no' && 'n', c.kind === 'partial' && 'p')}>
-            {c.kind === 'no' ? <span className="vh">Not supported: </span> : null}
-            {c.label}
+            {c.kind === 'no' ? <T msg={mc.notSupported} values={{ capability: c.label, vh: (chunks) => <span className="vh">{chunks}</span> }} /> : c.label}
           </span>
         ))}
       </div>
       <DisabledReason reason={reason}>
         <ButtonLink to="/w/$workspace/providers/connect/$adapter" params={{ workspace: slug, adapter: e.adapter }} variant={e.recommended ? 'primary' : 'default'}>
-          {`Connect ${e.short}`}
+          {t(mc.connectProvider, { provider: e.short })}
         </ButtonLink>
       </DisabledReason>
     </article>
@@ -133,18 +135,19 @@ function ProviderCard({ entry: e, reason }: { entry: Entry; reason?: string }) {
 }
 
 function CommunityCard({ items, reason }: { items: Community[]; reason?: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   return (
     <section className="card flex flex-col" aria-labelledby="community-h">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-4.5 py-3.5">
         <div className="flex flex-col">
           <h3 className="h2" id="community-h">
-            Community adapters
+            {t(mc.communityTitle)}
           </h3>
-          <span className="k">Built with the adapter SDK. Review the maintainer and version before connecting.</span>
+          <span className="k">{t(mc.communityLine)}</span>
         </div>
         <ButtonLink size="sm" to="/w/$workspace/providers/adapters" params={{ workspace: slug }}>
-          Manage adapters
+          {t(mc.manageAdapters)}
         </ButtonLink>
       </div>
       {/* As on the phone board: two 140 px columns (the provider cards above stay one per row there, where the board breaks names letter by letter). */}
@@ -158,12 +161,12 @@ function CommunityCard({ items, reason }: { items: Community[]; reason?: string 
             <span className="k">{c.summary}</span>
             {c.configure ? (
               <ButtonLink size="sm" className="self-start" to="/w/$workspace/providers/adapters" params={{ workspace: slug }}>
-                Configure
+                {t(mc.configure)}
               </ButtonLink>
             ) : (
               <DisabledReason reason={reason ?? (c.adapter ? undefined : c.reason)}>
                 <ButtonLink size="sm" className="self-start" to="/w/$workspace/providers/connect/$adapter" params={{ workspace: slug, adapter: c.adapter || c.name }}>
-                  Connect
+                  {t(mc.connect)}
                 </ButtonLink>
               </DisabledReason>
             )}
@@ -175,10 +178,11 @@ function CommunityCard({ items, reason }: { items: Community[]; reason?: string 
 }
 
 function CardsSkeleton() {
+  const t = useT()
   return (
     <div className="grid gap-3.5 max-md:grid-cols-1!" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))' }} aria-busy="true">
       <span className="vh" role="status">
-        Loading the providers…
+        {t(mc.loading)}
       </span>
       {[0, 1, 2, 3, 4, 5].map((i) => (
         <div key={i} className="card cn-prov" aria-hidden="true">

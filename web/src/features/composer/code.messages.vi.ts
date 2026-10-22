@@ -1,0 +1,52 @@
+import { translate } from '@/i18n'
+import { mk } from './code.messages'
+
+/** Vietnamese for the composer's code view (docs/i18n/glossary-vi.md). MJML, HTML and tags stay as they are. */
+export default translate(mk, {
+  codeView: 'Chế độ mã',
+  importMjml: 'Nhập MJML',
+  format: 'Định dạng',
+  copyHtml: 'Sao chép HTML đã biên dịch',
+  copied: 'Đã sao chép HTML đã biên dịch',
+  copyFailed: 'Không sao chép được',
+  clipboardBlocked: 'Trình duyệt của bạn đã chặn bộ nhớ tạm.',
+  engineNote: 'mjml 4 · grapesjs-mjml 1.0 · thay đổi ở đây cập nhật khung thiết kế và cây lớp',
+  applyToCanvas: 'Áp dụng lên khung thiết kế',
+  noteEdited: 'sửa MJML',
+
+  mjmlError: 'Lỗi MJML',
+  lineError: 'Dòng {line}: {message}',
+  keepsLastGood: 'Khung thiết kế giữ phiên bản tốt gần nhất. Hãy sửa trong chế độ mã hoặc hoàn tác thay đổi gần nhất.',
+  goToLine: 'Đến dòng {line}',
+  undoMine: 'Hoàn tác thay đổi của tôi',
+  needsBody: 'tài liệu cần có {tag}',
+  unclosed: '{tag} chưa được đóng',
+  noOpening: '{tag} không có thẻ mở',
+
+  mjmlPane: 'MJML · nguồn chuẩn',
+  mjmlAside: '{lines} dòng · dòng {line}, cột {col}',
+  mjmlSource: 'Mã nguồn MJML',
+  htmlPane: 'HTML đã biên dịch · chỉ đọc',
+  htmlAside: '{size} · bảng và CSS nội tuyến cho Outlook',
+  compiledHtml: 'HTML đã biên dịch',
+
+  panelLabel: 'Kết quả biên dịch và thẻ',
+  codeTools: 'Công cụ mã',
+  tabCompile: 'Biên dịch',
+  tabTokens: 'Thẻ',
+  ok: 'Ổn',
+  error: 'Lỗi',
+  warn: 'Cảnh báo',
+  info: 'Ghi chú',
+  compiledIn: 'Biên dịch trong {ms} ms · {errors} lỗi · {warnings} cảnh báo',
+  compiling: 'Đang biên dịch…',
+  markerNote: 'Các chú thích như <mono>rc:footer</mono> đánh dấu khối ReputeCast để chúng vẫn sửa được như một khối trên khung thiết kế.',
+  trackingNote: 'Liên kết theo dõi và pixel mở thư được thêm lúc gửi, theo từng nhà cung cấp gửi thư, nên chúng không xuất hiện ở đây.',
+  tokensAvailable: 'Thẻ cá nhân hóa có sẵn',
+  fallbacksNote: 'Giá trị dự phòng sau dấu | được dùng khi trường đó trống.',
+  groupContact: 'Trường liên hệ',
+  groupCustom: 'Trường tùy chỉnh',
+  groupReferral: 'Giới thiệu',
+  groupSystem: 'Liên kết và hệ thống',
+  copiedToken: 'Đã sao chép {token}',
+})

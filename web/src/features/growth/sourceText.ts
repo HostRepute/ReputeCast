@@ -1,6 +1,6 @@
 import type { Schemas } from '@/api/client'
 import { formatList, t } from '@/i18n'
-import { count, dayMonthDate, decimal, monthName, pct, zonedParts } from '@/lib/format'
+import { count, dayMonthDate, decimal, monthYear, pct } from '@/lib/format'
 import { m } from './messages'
 
 export type Source = Schemas['GrowthSource']
@@ -8,11 +8,6 @@ export type Source = Schemas['GrowthSource']
 /** A calendar day ("2026-09-16") as a moment that falls on that day in any timezone. */
 export function dayOf(day: string): Date {
   return new Date(`${day}T12:00:00Z`)
-}
-
-/** "Feb 2024", "June 2026". */
-export function monthYear(d: string | Date, style: 'short' | 'long' = 'short'): string {
-  return `${monthName(d, style)} ${zonedParts(d).year}`
 }
 
 /** Whether the source is an import's (its own or one it carried). */

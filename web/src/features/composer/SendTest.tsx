@@ -6,6 +6,8 @@ import { useMe } from '@/lib/session'
 import { useComposer } from './context'
 import { TestLanguagePicker, testLanguageBody } from '@/features/languages/composerParts'
 import { TestSplit } from '@/features/placement/EntryPoints'
+import { t as tt, useT } from '@/i18n'
+import { m } from './messages'
 
 async function sendTest(slug: string, campaignId: string, to: string[], variant: string, language?: string) {
   const { data } = await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/test', {
@@ -24,10 +26,10 @@ function useSend() {
       // Tests use the saved content.
       await c.save()
       const r = await sendTest(c.slug, c.campaign.id, to, c.variant, language)
-      toast({ kind: 'success', title: `Test sent to ${r.sent.join(', ')}`, detail: r.provider ? `via ${r.provider}` : undefined })
+      toast({ kind: 'success', title: tt(m.testSent, { to: r.sent.join(', ') }), detail: r.provider ? tt(m.testVia, { provider: r.provider }) : undefined })
       return true
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't send the test", detail: e instanceof ApiError ? e.message : 'Check your connection and try again.' })
+      toast({ kind: 'error', title: tt(m.testFailed), detail: e instanceof ApiError ? e.message : tt(m.checkConnection) })
       return false
     } finally {
       setBusy(false)
@@ -42,6 +44,7 @@ function useSend() {
  */
 export function SendTestButton({ disabled, toMe }: { disabled?: boolean; toMe?: boolean }) {
   const c = useComposer()
+  const t = useT()
   const { data: me } = useMe()
   const email = me?.user.email ?? ''
   const { busy, run } = useSend()
@@ -52,14 +55,14 @@ export function SendTestButton({ disabled, toMe }: { disabled?: boolean; toMe?: 
   if (disabled) {
     return (
       <button type="button" className="btn" disabled style={{ opacity: 0.5 }}>
-        Send test
+        {t(m.sendTest)}
       </button>
     )
   }
   if (!c.campaign.access.canSendTestToOthers || toMe) {
     const own = (
       <button type="button" className="btn" aria-busy={busy || undefined} onClick={() => void run([email])}>
-        {toMe && email ? `Send test to ${email}` : 'Send test to me'}
+        {toMe && email ? t(m.sendTestTo, { email }) : t(m.sendTestToMe)}
       </button>
     )
     // X14: the menu adds Run a placement test… (not in the preview's row).
@@ -78,7 +81,7 @@ export function SendTestButton({ disabled, toMe }: { disabled?: boolean; toMe?: 
     <Popover
       trigger={
         <button type="button" className="btn">
-          Send test
+          {t(m.sendTest)}
         </button>
       }
       open={open}
@@ -86,10 +89,10 @@ export function SendTestButton({ disabled, toMe }: { disabled?: boolean; toMe?: 
         setOpen(o)
         if (o) setPicked([email])
       }}
-      label="Send a test"
+      label={t(m.sendATest)}
       className="w-[320px] max-w-[calc(100vw-24px)]"
     >
-      <span className="mh">Send a test of {c.variant === 'A' ? 'this version' : `variant ${c.variant}`} to</span>
+      <span className="mh">{t(m.sendTestOf, { variant: c.variant })}</span>
       {members.map((m) => (
         <label key={m.email} className="chk items-center rounded-lg px-2.5 py-1.5 hover:bg-ground" aria-label={`${m.name || m.email}, ${m.email}`}>
           <input type="checkbox" checked={picked.includes(m.email)} onChange={() => toggle(m.email)} />
@@ -101,11 +104,11 @@ export function SendTestButton({ disabled, toMe }: { disabled?: boolean; toMe?: 
       ))}
       <TestLanguagePicker value={language} onChange={setLanguage} />
       <label className="lbl px-2.5 py-1.5">
-        Other addresses
-        <input className="in" value={extra} onChange={(e) => setExtra(e.target.value)} placeholder="name@example.com" />
+        {t(m.otherAddresses)}
+        <input className="in" value={extra} onChange={(e) => setExtra(e.target.value)} placeholder={'name@example.com'} />
       </label>
       <div className="flex items-center gap-2 border-t border-line-2 px-2.5 pt-2.5 pb-1">
-        <span className="k flex-1">Goes out through the System route, with “[Test]” in the subject.</span>
+        <span className="k flex-1">{t(m.testRoute)}</span>
         <button
           type="button"
           className="btn pri sm"
@@ -113,7 +116,7 @@ export function SendTestButton({ disabled, toMe }: { disabled?: boolean; toMe?: 
           aria-busy={busy || undefined}
           onClick={() => void run(recipients, language).then((ok) => ok && setOpen(false))}
         >
-          Send
+          {t(m.send)}
         </button>
       </div>
     </Popover>

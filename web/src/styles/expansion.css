@@ -94,6 +94,144 @@
   align-items: flex-end;
 }
 
+/* SMS (features/sms), rule 1: the amount or count that ends a summary row
+   ("846 tin nhắn · 2 đoạn tin mỗi tin … 38,67 US$") stays on one line; the
+   longer words beside it wrap instead of splitting "US$". */
+:root:not([lang='en']) .sms-sum .n {
+  white-space: nowrap;
+}
+
+/* Grow: a milestone's unit under its number ("lượt giới thiệu") and where a
+   recommendation shows ("Trang xác nhận", "Email chào mừng") stay on one
+   line; their narrow columns make room instead of breaking the words. */
+:root:not([lang='en']) .gw-unit,
+:root:not([lang='en']) .gw-where > span {
+  white-space: nowrap;
+}
+
+/* Approvals, automations and the composer (V04). */
+
+/* Rule 1 on the approval inbox (ApprovalInbox): its filters grow to their
+   longest choice ("Mọi người phê duyệt"), never narrower than the board's
+   date range; phones keep them full width. */
+@media (min-width: 768px) {
+  :root:not([lang='en']) .ap-filters select.in {
+    width: auto;
+    min-width: 140px;
+  }
+}
+
+/* The composer preview's personalization values ("liên kết riêng cho từng
+   người nhận") share the row with their token instead of squeezing it. */
+:root:not([lang='en']) .cmp-token-value {
+  flex: 0 1 auto;
+  min-width: 0;
+  text-align: right;
+}
+
+/* ── Sending and deliverability ──────────────────────────────────────── */
+
+/* Sending providers: a meter's number never breaks (rule 1). On phones the
+   app lets words break anywhere, so a longer label squeezed "0,04%" into
+   "0,0" over "4%"; the value breaks only between words and the label wraps
+   instead. */
+:root:not([lang='en']) .pv-m .l > .n {
+  overflow-wrap: normal;
+}
+
+/* A provider fact whose value runs to two lines ("Webhook · SNS · sự kiện
+   gần nhất…") keeps a gap from its key and wraps on the right, as Settings
+   › Providers' .sd-kv does. */
+:root:not([lang='en']) .pv-fact {
+  column-gap: 12px;
+}
+:root:not([lang='en']) .pv-fact > .k {
+  flex: none;
+}
+:root:not([lang='en']) .pv-fact > :last-child {
+  text-align: right;
+}
+
+/* A held broadcast's decision ("Chuyển sang Postal · vượt giới hạn…") may
+   run longer than its column: the button wraps inside the column instead
+   of spilling out of the card (rule 1 over rule 4). */
+:root:not([lang='en']) .pv-decide .btn {
+  white-space: normal;
+  max-width: 100%;
+  text-align: start;
+  padding-block: 5px;
+}
+
+/* Warm-up log: a date in the region format ("CN, 18 thg 10") is longer than
+   "Sun 18 Oct" and broke over four lines; it stays on one line and the
+   entry wraps beside it. */
+:root:not([lang='en']) .pv-log-date {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* Connect wizard (rule 4): on phones the "How to fix" cards of an
+   unreachable webhook endpoint take the whole width, so their buttons
+   ("Tạm dùng hỏi định kỳ") keep to one line. English keeps the board's two
+   140 px columns. A variable, because the grid's columns are a Tailwind
+   `!` utility. */
+@media (max-width: 767px) {
+  :root:not([lang='en']) .cn-fix {
+    --cn-fix-min: 100%;
+  }
+}
+
+/* A stream card's facts: the key keeps its words on one line ("Chuyển dự
+   phòng") and a long value wraps beside it. */
+:root:not([lang='en']) .cn-kv > .k {
+  flex: none;
+}
+
+/* Deliverability (rule 4): the blocklist table scrolls sideways in its
+   card, so on phones its "Delisting page" button and its dates keep one
+   line ("Trang gỡ khỏi danh sách", "16 thg 10"). */
+:root:not([lang='en']) .dl-blocklists td .btn,
+:root:not([lang='en']) .dl-blocklists td.dl-since {
+  white-space: nowrap;
+}
+
+/* Postmaster and SNDS: on phones each label and its value take the card's
+   width, so a longer label ("Tỷ lệ spam, 30 ngày") doesn't push its number
+   ("0,05%") onto two lines. */
+@media (max-width: 767px) {
+  :root:not([lang='en']) .dl-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Connect HostRepute: the card's longer subtitle wraps beside its status
+   badge instead of pushing the badge under it. */
+:root:not([lang='en']) .hr-head {
+  flex: 1 1 320px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+:root:not([lang='en']) .hr-head > svg {
+  flex: none;
+}
+
+/* HostRepute's assets: Vietnamese words are short, so the Type column
+   shrank to one word a line ("Tên / miền / gửi / thư"); it keeps two. */
+:root:not([lang='en']) .hr-assets td:nth-child(2) {
+  min-width: 6.5em;
+}
+
+/* Live monitor: the top bar's events line wraps beside Pause and Cancel
+   send instead of pushing the bell and the user menu to a row of their own
+   (English keeps the board's single line). Phones wrap the top bar anyway. */
+@media (min-width: 768px) {
+  :root:not([lang='en']) .top .acts > .lv-caption {
+    flex: 1 1 260px;
+    min-width: 0;
+    text-align: right;
+  }
+}
+
 /* The page builder's block tiles (PageBuilder): a name longer than its tile
    breaks inside the word instead of spilling out of the button, as the
    pseudo-locale's "Ţéšţîmöñîåļš" would. */

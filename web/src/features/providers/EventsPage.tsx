@@ -9,11 +9,15 @@ import { EmptyRow, Table, Td, Th } from '@/components/ui/Table'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
 import { Grid } from '@/components/ui/Layout'
 import { toast } from '@/components/ui/Toast'
+import { t as tt, useT, type MessageDescriptor } from '@/i18n'
+import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
 import { clock, clockSeconds, count, dayMonthDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { ProvidersTabs, throwIfForbidden } from './common'
+import { me } from './events.messages'
+import { m } from './messages'
 
 type EventType = Schemas['ProviderLogEvent']['type']
 
@@ -26,28 +30,29 @@ export interface EventsSearch {
 
 const PAGE_SIZE = 25
 
-const typeBadge: Record<EventType, { tone: Tone; text: string }> = {
-  delivered: { tone: 'ok', text: 'delivered' },
-  deferred: { tone: 'warn', text: 'deferred' },
-  hard_bounce: { tone: 'bad', text: 'hard bounce' },
-  soft_bounce: { tone: 'warn', text: 'soft bounce' },
-  complaint: { tone: 'bad', text: 'complaint' },
-  rejected: { tone: 'bad', text: 'rejected' },
+const typeBadge: Record<EventType, { tone: Tone; text: MessageDescriptor }> = {
+  delivered: { tone: 'ok', text: me.typeDelivered },
+  deferred: { tone: 'warn', text: me.typeDeferred },
+  hard_bounce: { tone: 'bad', text: me.typeHardBounce },
+  soft_bounce: { tone: 'warn', text: me.typeSoftBounce },
+  complaint: { tone: 'bad', text: me.typeComplaint },
+  rejected: { tone: 'bad', text: me.typeRejected },
 }
 
-const typeOptions: { value: EventType; label: string }[] = [
-  { value: 'delivered', label: 'Delivered' },
-  { value: 'deferred', label: 'Deferred' },
-  { value: 'hard_bounce', label: 'Hard bounce' },
-  { value: 'soft_bounce', label: 'Soft bounce' },
-  { value: 'complaint', label: 'Complaint' },
-  { value: 'rejected', label: 'Rejected' },
+const typeOptions: { value: EventType; label: MessageDescriptor }[] = [
+  { value: 'delivered', label: me.optionDelivered },
+  { value: 'deferred', label: me.optionDeferred },
+  { value: 'hard_bounce', label: me.optionHardBounce },
+  { value: 'soft_bounce', label: me.optionSoftBounce },
+  { value: 'complaint', label: me.optionComplaint },
+  { value: 'rejected', label: me.optionRejected },
 ]
 
 /** 7.3 Events & sync: the raw event log, suppression sync and provider-side tracking. */
 export function EventsPage({ search }: { search: EventsSearch }) {
+  const t = useT()
   return (
-    <Page title="Sending providers & routing" filters={<ProvidersTabs />}>
+    <Page title={t(m.title)} filters={<ProvidersTabs />}>
       <EventLog search={search} />
       <Grid min={420} gap={20}>
         <SyncCard />
@@ -58,6 +63,7 @@ export function EventsPage({ search }: { search: EventsSearch }) {
 }
 
 function EventLog({ search }: { search: EventsSearch }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const page = search.page ?? 1
@@ -77,50 +83,55 @@ function EventLog({ search }: { search: EventsSearch }) {
       <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-line-2 px-5 py-3.5">
         <div className="flex flex-col">
           <h2 className="h2" id="pv-event-log">
-            Event log
+            {t(me.logTitle)}
           </h2>
-          <span className="k">Every raw provider event beside the normalized ReputeCast event. The original code is always kept.</span>
+          <span className="k">{t(me.logLine)}</span>
         </div>
         <div className="flex flex-wrap gap-2">
-          <select className="in max-md:w-full" aria-label="Provider" value={search.provider ?? ''} onChange={(e) => go({ provider: e.target.value || undefined })}>
-            <option value="">All sending providers</option>
+          <select className="in max-md:w-full" aria-label={t(me.providerFilter)} value={search.provider ?? ''} onChange={(e) => go({ provider: e.target.value || undefined })}>
+            <option value="">{t(me.allProviders)}</option>
             {providers.data?.providers.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
               </option>
             ))}
           </select>
-          <select className="in max-md:w-full" aria-label="Event type" value={search.type ?? ''} onChange={(e) => go({ type: (e.target.value || undefined) as EventType | undefined })}>
-            <option value="">All events</option>
-            {typeOptions.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
+          <select
+            className="in max-md:w-full"
+            aria-label={t(me.typeFilter)}
+            value={search.type ?? ''}
+            onChange={(e) => go({ type: (e.target.value || undefined) as EventType | undefined })}
+          >
+            <option value="">{t(me.allEvents)}</option>
+            {typeOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {t(o.label)}
               </option>
             ))}
           </select>
           <SearchInput initial={search.q ?? ''} onSearch={(v) => go({ q: v || undefined })} />
           <ButtonAnchor href={exportUrl} newTab={false} download="provider-events.csv">
-            Export CSV
+            {t(me.exportCsv)}
           </ButtonAnchor>
         </div>
       </div>
       {q.isError ? (
         <div className="p-5">
-          <ErrorPanel title="Couldn't load the event log" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
-            {errorMessage(q.error)} Events keep being recorded.
+          <ErrorPanel title={t(me.loadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
+            {errorMessage(q.error)} {t(me.loadFailedBody)}
           </ErrorPanel>
         </div>
       ) : (
         <Table className="pv-10 pv-top" phoneWrap fit aria-busy={q.isFetching || undefined}>
           <thead>
             <tr>
-              <Th>Received</Th>
-              <Th>Sending provider</Th>
-              <Th>Raw event</Th>
-              <Th>Normalized</Th>
-              <Th>Original code · diagnostic</Th>
-              <Th>Recipient</Th>
-              <Th>Source</Th>
+              <Th>{t(me.colReceived)}</Th>
+              <Th>{t(me.colProvider)}</Th>
+              <Th>{t(me.colRaw)}</Th>
+              <Th>{t(me.colNormalized)}</Th>
+              <Th>{t(me.colCode)}</Th>
+              <Th>{t(me.colRecipient)}</Th>
+              <Th>{t(me.colSource)}</Th>
             </tr>
           </thead>
           <tbody>
@@ -135,9 +146,7 @@ function EventLog({ search }: { search: EventsSearch }) {
                 </tr>
               ))
             ) : data.items.length === 0 ? (
-              <EmptyRow colSpan={7}>
-                {search.q || search.type || search.provider ? 'No events match these filters.' : 'No provider events yet: they appear here as soon as a provider reports a delivery, bounce or complaint.'}
-              </EmptyRow>
+              <EmptyRow colSpan={7}>{search.q || search.type || search.provider ? t(me.noMatch) : t(me.empty)}</EmptyRow>
             ) : (
               data.items.map((e) => (
                 <tr key={e.id}>
@@ -147,7 +156,7 @@ function EventLog({ search }: { search: EventsSearch }) {
                     <span className="pv-raw mono">{e.rawType}</span>
                   </Td>
                   <Td>
-                    <Badge tone={typeBadge[e.type].tone}>{typeBadge[e.type].text}</Badge>
+                    <Badge tone={typeBadge[e.type].tone}>{t(typeBadge[e.type].text)}</Badge>
                   </Td>
                   <Td className="mono text-[12px]">{[e.code, e.diagnostic].filter(Boolean).join(' ')}</Td>
                   <Td className="mono">{e.recipient}</Td>
@@ -160,14 +169,14 @@ function EventLog({ search }: { search: EventsSearch }) {
       )}
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line-2 px-5 py-2.5">
         <span className="k" aria-live="polite">
-          {data ? `Showing ${count(data.items.length)} of ${count(data.total)} events · retained ${data.retentionDays} days` : 'Loading events…'}
+          {data ? t(me.showing, { shown: count(data.items.length), total: data.total, days: data.retentionDays }) : t(me.loadingEvents)}
         </span>
         <div className="flex gap-1.5">
           <Button size="sm" disabled={page <= 1} onClick={() => go({ page: page - 1 > 1 ? page - 1 : undefined })}>
-            Previous
+            {t(me.previous)}
           </Button>
           <Button size="sm" disabled={page >= pages} onClick={() => go({ page: page + 1 })}>
-            Next
+            {t(me.next)}
           </Button>
         </div>
       </div>
@@ -176,6 +185,7 @@ function EventLog({ search }: { search: EventsSearch }) {
 }
 
 function SearchInput({ initial, onSearch }: { initial: string; onSearch: (v: string) => void }) {
+  const t = useT()
   const [value, setValue] = useState(initial)
   useEffect(() => {
     if (value === initial) return
@@ -186,41 +196,42 @@ function SearchInput({ initial, onSearch }: { initial: string; onSearch: (v: str
     <input
       className="in w-[220px] max-md:w-full"
       type="search"
-      placeholder="Recipient or message id"
-      aria-label="Search events"
+      placeholder={t(me.searchPlaceholder)}
+      aria-label={t(me.searchLabel)}
       value={value}
       onChange={(e) => setValue(e.target.value)}
     />
   )
 }
 
-const direction: Record<Schemas['SuppressionSyncRow']['direction'], string> = {
-  two_way: 'Two-way',
-  push: 'Push only',
-  pull: 'Pull only',
-  off: 'Off',
-  local: 'Local only',
-  import: 'One-time pull',
+const direction: Record<Schemas['SuppressionSyncRow']['direction'], MessageDescriptor> = {
+  two_way: me.dirTwoWay,
+  push: me.dirPush,
+  pull: me.dirPull,
+  off: me.dirOff,
+  local: me.dirLocal,
+  import: me.dirImport,
 }
 
-const syncStatus: Record<Schemas['SuppressionSyncRow']['status'], { tone: Tone; text: string }> = {
-  in_sync: { tone: 'ok', text: 'In sync' },
-  syncing: { tone: 'info', text: 'Syncing' },
-  error: { tone: 'bad', text: 'Error' },
-  local: { tone: 'neutral', text: 'Enforced locally' },
-  done: { tone: 'neutral', text: 'Done' },
-  off: { tone: 'neutral', text: 'Off' },
+const syncStatus: Record<Schemas['SuppressionSyncRow']['status'], { tone: Tone; text: MessageDescriptor }> = {
+  in_sync: { tone: 'ok', text: me.syncInSync },
+  syncing: { tone: 'info', text: me.syncSyncing },
+  error: { tone: 'bad', text: me.syncError },
+  local: { tone: 'neutral', text: me.syncLocal },
+  done: { tone: 'neutral', text: me.syncDone },
+  off: { tone: 'neutral', text: me.syncOff },
 }
 
-const reasonBadge: Record<string, { tone: Tone; text: string }> = {
-  hard_bounce: { tone: 'bad', text: 'hard bounce' },
-  complaint: { tone: 'bad', text: 'complaint' },
-  unsubscribe: { tone: 'neutral', text: 'unsubscribed' },
-  manual: { tone: 'neutral', text: 'manual' },
+const reasonBadge: Record<string, { tone: Tone; text: MessageDescriptor }> = {
+  hard_bounce: { tone: 'bad', text: me.reasonHardBounce },
+  complaint: { tone: 'bad', text: me.reasonComplaint },
+  unsubscribe: { tone: 'neutral', text: me.reasonUnsubscribed },
+  manual: { tone: 'neutral', text: me.reasonManual },
 }
 
 /** The shared suppression list and how each provider stays in sync with it. */
 function SyncCard() {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const now = useNow()
@@ -229,14 +240,14 @@ function SyncCard() {
   const run = $api.useMutation('post', '/api/v1/workspaces/{workspace}/suppression-sync/run', {
     onSuccess: (r) => {
       void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/suppression-sync'] })
-      toast({ kind: 'success', title: r.queued ? `Syncing ${r.queued} provider${r.queued === 1 ? '' : 's'}` : 'Nothing to sync', detail: 'Pulled addresses join the shared list; the list is pushed back out.' })
+      toast({ kind: 'success', title: r.queued ? tt(me.syncQueued, { count: r.queued }) : tt(me.nothingToSync), detail: tt(me.syncDetail) })
     },
-    onError: (e) => toast({ kind: 'error', title: "The sync didn't start", detail: errorMessage(e) }),
+    onError: (e) => toast({ kind: 'error', title: tt(me.syncFailed), detail: errorMessage(e) }),
   })
   const data = q.data
-  const when = (t?: string) => {
-    if (!t) return '–'
-    const d = new Date(t)
+  const when = (at?: string) => {
+    if (!at) return '–'
+    const d = new Date(at)
     return now.getTime() - d.getTime() > 20 * 3600_000 ? dayMonthDate(d) : clock(d)
   }
   return (
@@ -244,17 +255,17 @@ function SyncCard() {
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-5 py-3.5">
         <div className="flex flex-col">
           <h2 className="h2" id="pv-sync">
-            Shared suppression list sync
+            {t(me.syncTitle)}
           </h2>
-          <span className="k">{data ? `${count(data.total)} addresses · a bounce at one provider stops mail everywhere` : 'Loading…'}</span>
+          <span className="k">{data ? t(me.syncLine, { count: data.total }) : t(common.loading)}</span>
         </div>
         <Button size="sm" variant="primary" disabledReason={reason} loading={run.isPending} onClick={() => run.mutate({ params: { path: { workspace: slug } } })}>
-          Sync all now
+          {t(me.syncAll)}
         </Button>
       </div>
       {q.isError ? (
         <div className="p-5">
-          <ErrorPanel title="Couldn't load the sync status" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
+          <ErrorPanel title={t(me.syncLoadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
             {errorMessage(q.error)}
           </ErrorPanel>
         </div>
@@ -262,12 +273,12 @@ function SyncCard() {
         <Table className="pv-10 pv-top" phoneWrap fit>
           <thead>
             <tr>
-              <Th>Sending provider</Th>
-              <Th>Direction</Th>
-              <Th>Pulled in</Th>
-              <Th>Pushed out</Th>
-              <Th>Last sync</Th>
-              <Th>Status</Th>
+              <Th>{t(me.colProvider)}</Th>
+              <Th>{t(me.colDirection)}</Th>
+              <Th>{t(me.colPulled)}</Th>
+              <Th>{t(me.colPushed)}</Th>
+              <Th>{t(me.colLastSync)}</Th>
+              <Th>{t(me.colStatus)}</Th>
             </tr>
           </thead>
           <tbody>
@@ -290,13 +301,13 @@ function SyncCard() {
                         <span className="whitespace-nowrap">{r.provider}</span>
                         <div className="k">{r.scope}</div>
                       </Td>
-                      <Td className="whitespace-nowrap">{direction[r.direction]}</Td>
+                      <Td className="whitespace-nowrap">{t(direction[r.direction])}</Td>
                       <Td num>{count(r.pulled)}</Td>
                       <Td num={r.pushed !== undefined}>{r.pushed !== undefined ? count(r.pushed) : '–'}</Td>
                       <Td className="whitespace-nowrap">{when(r.lastSync)}</Td>
                       <Td>
                         <Badge tone={st.tone} title={r.detail}>
-                          {st.text}
+                          {t(st.text)}
                         </Badge>
                       </Td>
                     </tr>
@@ -312,13 +323,13 @@ function SyncCard() {
           .map((r) => (
             <span key={r.reason}>
               <Badge tone={reasonBadge[r.reason]!.tone} className="h-5">
-                {reasonBadge[r.reason]!.text}
+                {t(reasonBadge[r.reason]!.text)}
               </Badge>{' '}
               {count(r.count)}
             </span>
           ))}
         <Link to="/w/$workspace/audience/suppressions" params={{ workspace: slug }} className="ml-auto font-medium">
-          Open suppression list
+          {t(me.openSuppressions)}
         </Link>
       </div>
     </section>
@@ -327,6 +338,7 @@ function SyncCard() {
 
 /** Open pixels and link rewriting added by providers, and what to do about them. */
 function TrackingCard() {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const reason = usePermissionReason('providers:manage')
@@ -337,11 +349,18 @@ function TrackingCard() {
       const a = v.body.action
       toast({
         kind: 'success',
-        title: a === 'disable' ? `Turned off in ${r.provider}` : a === 'keep_provider' ? `Keeping ${r.provider}'s tracking` : a === 'use_reputecast' ? 'ReputeCast tracks opens and clicks again' : 'Checked again',
+        title:
+          a === 'disable'
+            ? tt(me.turnedOff, { provider: r.provider })
+            : a === 'keep_provider'
+              ? tt(me.keeping, { provider: r.provider })
+              : a === 'use_reputecast'
+                ? tt(me.oursAgain)
+                : tt(me.checkedAgain),
         detail: r.detail,
       })
     },
-    onError: (e) => toast({ kind: 'error', title: "Tracking didn't change", detail: errorMessage(e) }),
+    onError: (e) => toast({ kind: 'error', title: tt(me.trackingFailed), detail: errorMessage(e) }),
   })
   const run = (providerId: string, action: Schemas['ProviderTrackingActionInput']['action']) =>
     act.mutate({ params: { path: { workspace: slug, providerId } }, body: { action } })
@@ -350,14 +369,14 @@ function TrackingCard() {
     <section className="card flex flex-col" aria-labelledby="pv-tracking">
       <div className="flex flex-col border-b border-line-2 px-5 py-3.5">
         <h2 className="h2" id="pv-tracking">
-          Provider-side tracking check
+          {t(me.trackingTitle)}
         </h2>
-        <span className="k">ReputeCast tracks opens and clicks itself. A provider doing it too double-counts and rewrites links twice.</span>
+        <span className="k">{t(me.trackingLine)}</span>
       </div>
       <div className="flex flex-col">
         {q.isError ? (
           <div className="p-5">
-            <ErrorPanel title="Couldn't load the tracking checks" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
+            <ErrorPanel title={t(me.trackingLoadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
               {errorMessage(q.error)}
             </ErrorPanel>
           </div>
@@ -372,47 +391,50 @@ function TrackingCard() {
             </div>
           ))
         ) : (
-          items.map((t, i) => {
+          items.map((c, i) => {
             const last = i === items.length - 1
-            const warn = t.status === 'warn' && t.mode === 'reputecast'
-            const what = t.openPixel ? 'its own open pixel' : 'its own link tracking'
+            const warn = c.status === 'warn' && c.mode === 'reputecast'
             return (
-              <div key={t.providerId} className={cn('flex items-start gap-3 px-5 py-3.5', !last && 'border-b border-line-2', warn && 'bg-warn-tint')}>
-                {t.mode === 'provider' ? (
-                  <Badge>Kept</Badge>
-                ) : t.status === 'ok' ? (
-                  <Badge tone="ok">OK</Badge>
-                ) : t.status === 'warn' ? (
-                  <Badge tone="warn">Warn</Badge>
+              <div key={c.providerId} className={cn('flex items-start gap-3 px-5 py-3.5', !last && 'border-b border-line-2', warn && 'bg-warn-tint')}>
+                {c.mode === 'provider' ? (
+                  <Badge>{t(me.kept)}</Badge>
+                ) : c.status === 'ok' ? (
+                  <Badge tone="ok">{t(me.ok)}</Badge>
+                ) : c.status === 'warn' ? (
+                  <Badge tone="warn">{t(me.warn)}</Badge>
                 ) : (
-                  <Badge>Unknown</Badge>
+                  <Badge>{t(me.unknown)}</Badge>
                 )}
                 <div className={cn('flex flex-1 flex-col', warn ? 'gap-1.5' : 'gap-0.5')}>
                   <span className="font-semibold">
-                    {warn ? `${t.provider} adds ${what} on the ${t.scope}` : t.mode === 'provider' ? `${t.provider} tracks opens and clicks; ReputeCast's are ignored` : t.provider}
+                    {warn
+                      ? t(me.addsTracking, { what: c.openPixel ? 'pixel' : 'links', provider: c.provider, scope: c.scope })
+                      : c.mode === 'provider'
+                        ? t(me.providerTracks, { provider: c.provider })
+                        : c.provider}
                   </span>
-                  <span className="k">{t.detail || (t.status === 'unknown' ? "ReputeCast couldn't read this setting yet." : '')}</span>
+                  <span className="k">{c.detail || (c.status === 'unknown' ? t(me.unknownDetail) : '')}</span>
                   {warn ? (
                     <div className="flex flex-wrap gap-2">
-                      {t.canDisable ? (
-                        <Button size="sm" variant="primary" disabledReason={reason} onClick={() => run(t.providerId, 'disable')}>
-                          Turn off in {t.provider} via API
+                      {c.canDisable ? (
+                        <Button size="sm" variant="primary" disabledReason={reason} onClick={() => run(c.providerId, 'disable')}>
+                          {t(me.turnOff, { provider: c.provider })}
                         </Button>
                       ) : null}
-                      <Button size="sm" disabledReason={reason} onClick={() => run(t.providerId, 'keep_provider')}>
-                        Keep {t.provider}&apos;s tracking, ignore ours
+                      <Button size="sm" disabledReason={reason} onClick={() => run(c.providerId, 'keep_provider')}>
+                        {t(me.keepProvider, { provider: c.provider })}
                       </Button>
                     </div>
-                  ) : t.mode === 'provider' ? (
+                  ) : c.mode === 'provider' ? (
                     <div className="flex flex-wrap gap-2">
-                      <Button size="sm" disabledReason={reason} onClick={() => run(t.providerId, 'use_reputecast')}>
-                        Use ReputeCast&apos;s tracking again
+                      <Button size="sm" disabledReason={reason} onClick={() => run(c.providerId, 'use_reputecast')}>
+                        {t(me.useOurs)}
                       </Button>
                     </div>
-                  ) : t.status === 'unknown' ? (
+                  ) : c.status === 'unknown' ? (
                     <div className="flex flex-wrap gap-2">
-                      <Button size="sm" disabledReason={reason} onClick={() => run(t.providerId, 'recheck')}>
-                        Check again
+                      <Button size="sm" disabledReason={reason} onClick={() => run(c.providerId, 'recheck')}>
+                        {t(me.checkAgain)}
                       </Button>
                     </div>
                   ) : null}

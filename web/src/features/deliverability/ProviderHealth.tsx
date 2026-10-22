@@ -1,33 +1,37 @@
 import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Bar } from '@/components/ui/Data'
+import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { trimPct } from '@/lib/format'
 import { KV } from './AssetCards'
+import { m } from './messages'
 import { barColor, toneOf } from './words'
 
 function RateRow({ r }: { r: Schemas['DeliverabilityRateLimit'] }) {
+  const t = useT()
   const label = r.thresholds ? `${r.label} · ${r.thresholds}` : r.label
   return (
     <div>
       <KV label={label} labelClass="k">
         {trimPct(r.value)}
       </KV>
-      <Bar value={r.usage} color={barColor[r.tone] ?? barColor.ok} label={`${label}: ${trimPct(r.value)}`} />
+      <Bar value={r.usage} color={barColor[r.tone] ?? barColor.ok} label={t(m.rateBarLabel, { label, value: trimPct(r.value) })} />
     </div>
   )
 }
 
 /** Account health per sending provider, against each provider's own thresholds. */
 export function ProviderHealthCard({ providers, connected }: { providers: Schemas['DeliverabilityProviderHealth'][]; connected: boolean }) {
+  const t = useT()
   if (!providers.length) return null
   return (
     <section className="card" aria-labelledby="h-provider-health">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-4.5 py-3.5">
         <h2 className="h2" id="h-provider-health">
-          Account health per sending provider
+          {t(m.providerHealthTitle)}
         </h2>
-        <span className="k">{connected ? "each provider's own thresholds" : "straight from each provider's API, unaffected by HostRepute"}</span>
+        <span className="k">{connected ? t(m.providerHealthConnected) : t(m.providerHealthDirect)}</span>
       </div>
       <div className="grid gap-0 [grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr))]">
         {providers.map((p, i) => (

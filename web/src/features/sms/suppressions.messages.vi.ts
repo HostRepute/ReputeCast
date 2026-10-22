@@ -1,0 +1,53 @@
+import { translate } from '@/i18n'
+import { m } from './suppressions.messages'
+
+/** Taking a number off the list is "gỡ": the number isn't deleted, its suppression is lifted. */
+export default translate(m, {
+  tabCount: '{channel} · {count}',
+  channelsNote:
+    '{count, plural, =0 {Số SMS có danh sách riêng} =1 {Số SMS có danh sách riêng, dùng cho {providers}} other {Số SMS có danh sách riêng, dùng chung cho {providers}}}: hủy nhận qua tin nhắn, số cố định, ngừng hoạt động, số không hợp lệ, bị nhà mạng lọc, danh sách hủy nhận của nhà cung cấp và thủ công. STOP không bao giờ ảnh hưởng đến email.',
+  reason: 'Lý do',
+  anyReason: 'Mọi lý do',
+  provider: 'Nhà cung cấp',
+  anyProvider: 'Mọi nhà cung cấp',
+  shared: '{count} số · dùng chung cho {providers}',
+  table: 'Danh sách chặn gửi SMS',
+  colNumber: 'Số',
+  colReason: 'Lý do · mã gốc',
+  colSource: 'Nguồn',
+  colWhen: 'Thời điểm · chiến dịch hoặc tự động hóa',
+  colActions: 'Thao tác',
+  remove: 'Gỡ',
+  onlyStart: 'Chỉ chính người đó mới quay lại được, bằng cách nhắn START',
+  today: 'Hiện có {total} số: {parts}.',
+  nowOpted_out: '{count} số hủy nhận qua tin nhắn',
+  nowLandline: '{count} số cố định',
+  nowNot_in_service: '{count} số ngừng hoạt động',
+  nowInvalid: '{count} số không hợp lệ',
+  nowFiltered: '{count} số bị nhà mạng lọc',
+  nowProvider_list: '{count} số từ danh sách hủy nhận của chính nhà cung cấp',
+  nowManual: '{count} số thêm thủ công',
+  otherReasons: 'Các lý do khác sẽ xuất hiện khi xảy ra: {reasons}.',
+  laterOpted_out: 'hủy nhận qua tin nhắn',
+  laterLandline: 'số cố định',
+  laterNot_in_service: 'ngừng hoạt động',
+  laterInvalid: 'số không hợp lệ',
+  laterFiltered: 'bị nhà mạng lọc',
+  laterFilteredRecent: 'bị nhà mạng lọc ({count, plural, =1 {một lần} other {# lần}} trong 30 ngày)',
+  laterProvider_list: 'danh sách hủy nhận của chính nhà cung cấp',
+  laterManual: 'thủ công',
+  showing:
+    'Hiển thị {shown} trên {total} · số điện thoại được che một phần. Các lý do khác ngoài hủy nhận qua tin nhắn có thể được gỡ kèm lý do; việc này cần quyền subscribers:edit và được ghi vào nhật ký kiểm tra.',
+  previous: 'Trước',
+  next: 'Sau',
+  empty: 'Chưa có số nào trong danh sách chặn gửi SMS.',
+  noMatch: 'Không có số nào khớp với các bộ lọc này.',
+  loading: 'Đang tải danh sách chặn gửi SMS',
+  errorTitle: 'Không tải được danh sách chặn gửi SMS',
+  retry: 'Thử lại',
+  removeTitle: 'Gỡ {number} khỏi danh sách chặn gửi SMS?',
+  removeText:
+    'Số này bị chặn gửi vì “{reason}”. Tin nhắn có thể đến số này trở lại ở những danh sách nó đã đồng ý nhận SMS. Việc gỡ và lý do được ghi vào nhật ký kiểm tra.',
+  removeReason: 'Lý do số này được nhận tin nhắn trở lại',
+  removed: 'Đã gỡ {number} khỏi danh sách chặn gửi SMS',
+})

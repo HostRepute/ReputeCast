@@ -4,6 +4,8 @@ import { toast } from '@/components/ui/Toast'
 import type { ComposerState, Issue } from './context'
 import { footerBlock } from './editor/blocks'
 import { atPath, mjChildren, tagOf } from './editor/labels'
+import { t } from '@/i18n'
+import { m } from './messages'
 
 export type Fix = Issue['fixes'][number]
 
@@ -79,7 +81,7 @@ export async function applyFix(c: ComposerState, issue: Issue, fix: Fix, value?:
     case 'replace_link': {
       const target = componentAt(c, fix.path ?? issue.path)
       if (!target || !fix.value || !issue.url) return
-      if (replaceLink(target, issue.url, fix.value)) toast({ kind: 'success', title: `Link replaced with ${fix.value.replace(/^https?:\/\//, '')}` })
+      if (replaceLink(target, issue.url, fix.value)) toast({ kind: 'success', title: t(m.linkReplaced, { url: fix.value.replace(/^https?:\/\//, '') }) })
       return
     }
     case 'edit_link':
@@ -102,7 +104,7 @@ export async function applyFix(c: ComposerState, issue: Issue, fix: Fix, value?:
       const sec = body && index !== undefined ? mjChildren(body)[index] : undefined
       if (!sec) return
       sec.remove()
-      toast({ kind: 'info', title: 'Section removed', detail: 'Undo with ⌘Z if you need it back.' })
+      toast({ kind: 'info', title: t(m.sectionRemoved), detail: t(m.sectionRemovedDetail) })
       return
     }
     case 'use_subject':
@@ -119,9 +121,9 @@ export async function applyFix(c: ComposerState, issue: Issue, fix: Fix, value?:
           body: { settings: { minify: true } },
         })
         c.onSettingsChanged()
-        toast({ kind: 'success', title: 'Inline CSS is minified on save and send', detail: 'The canvas and the MJML stay as they are.' })
+        toast({ kind: 'success', title: t(m.minified), detail: t(m.minifiedDetail) })
       } catch (e) {
-        toast({ kind: 'error', title: "Couldn't turn on minifying", detail: e instanceof Error ? e.message : String(e) })
+        toast({ kind: 'error', title: t(m.minifyFailed), detail: e instanceof Error ? e.message : String(e) })
       }
       return
   }

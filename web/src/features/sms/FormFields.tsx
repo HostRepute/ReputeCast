@@ -26,8 +26,7 @@ export function SmsPhoneToggle({ on, required, readOnly, onToggle }: { on: boole
   return (
     <label className="fb-check">
       <input type="checkbox" checked={on} disabled={readOnly} onChange={(e) => onToggle(e.target.checked)} />
-      {t(m.phone)}
-      {on ? t(required ? m.required : m.optional) : ''}
+      {on ? t(required ? m.phoneRequired : m.phoneOptional) : t(m.phone)}
     </label>
   )
 }
@@ -110,9 +109,17 @@ export function SmsConsentSettings({
   )
 }
 
+/**
+ * The public form's own words for the phone field when the form sets none:
+ * the preview shows the form as visitors see it, in the form's language, and
+ * like the rest of FormPreview it falls back to the English defaults the
+ * public form uses (texting's signup.* in the server catalog). They aren't
+ * the app's text, so they don't follow the app language.
+ */
+const PREVIEW_PHONE = { label: 'Mobile number', country: 'Country', placeholder: '312 555 0123' }
+
 /** The preview's phone field: the country picker, then the number. */
 export function SmsPhonePreview({ label, optional }: { label?: string; optional?: string }) {
-  const t = useT()
   const { slug } = useWorkspace()
   const sms = useChannelSetUp('sms')
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/sms/overview', { params: { path: { workspace: slug } } }, { enabled: sms, retry: false })
@@ -121,18 +128,18 @@ export function SmsPhonePreview({ label, optional }: { label?: string; optional?
   return (
     <div className="pf-field">
       <span>
-        {label || t(m.phone)}
+        {label || PREVIEW_PHONE.label}
         {optional ? <span className="pf-opt"> {optional}</span> : null}
       </span>
       <span className="flex gap-1.5">
-        <select aria-label={t(m.countryAria)} className="w-auto! max-w-[45%] flex-none" defaultValue={shown[0]}>
+        <select aria-label={PREVIEW_PHONE.country} className="w-auto! max-w-[45%] flex-none" defaultValue={shown[0]}>
           {shown.map((c) => (
             <option key={c} value={c}>
               {countryName(c)}
             </option>
           ))}
         </select>
-        <input type="tel" aria-label={label || t(m.phone)} placeholder={t(m.placeholder)} />
+        <input type="tel" aria-label={label || PREVIEW_PHONE.label} placeholder={PREVIEW_PHONE.placeholder} />
       </span>
     </div>
   )
@@ -143,8 +150,10 @@ export function SmsConsentPreview({ text, privacy, privacyWords, color }: { text
   const t = useT()
   const { slug } = useWorkspace()
   const terms = $api.useQuery('get', '/api/v1/workspaces/{workspace}/sms/terms', { params: { path: { workspace: slug } } }, { retry: false })
+  // The consent text is the form's, in its own language: its words for the
+  // terms are the app language's or, as on an English form, the English ones.
   const links = [
-    { hit: findWords(text, t(m.termsWords)), href: terms.data?.url ?? '' },
+    { hit: findWords(text, t(m.termsWords)) ?? findWords(text, m.termsWords.message), href: terms.data?.url ?? '' },
     { hit: privacy ? findWords(text, privacyWords || 'privacy policy') : null, href: privacy },
   ]
     .filter((l): l is { hit: { at: number; length: number }; href: string } => Boolean(l.hit && l.href))

@@ -126,7 +126,9 @@ export const m = defineMessages('smsRules', {
   step2: 'That route sends through {provider} as {sender}.',
   step2NoReply: 'That route sends through {provider} as {sender}. People in {country} can’t reply to a sender ID; keywords still work by texting the help number.',
   step3Ok: '{number} isn’t on the SMS suppression list.',
-  step3Suppressed: '{number} is on the SMS suppression list: {reason}.',
+  // reason: the suppression's code; reasonText: an unknown code as words.
+  step3Suppressed:
+    '{number} is on the SMS suppression list: {reason, select, opted_out {opted out} landline {landline} not_in_service {not in service} invalid {invalid} filtered {filtered} provider_list {provider list} manual {manual} other {{reasonText}}}.',
   step4Inside: 'It’s {time} in {place}, inside {window}.',
   step4Outside: 'It’s {time} in {place}, outside {window}.',
   waits: 'Quiet hours: it would wait until {opens}.',

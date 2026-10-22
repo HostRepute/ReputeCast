@@ -1,24 +1,27 @@
 import { useReactFlow, useStore, type ReactFlowState } from '@xyflow/react'
 import { useRef } from 'react'
+import { useT } from '@/i18n'
+import { mf } from '../flow.messages'
 import type { StepNodeType } from './StepNode'
 
 /** Zoom in, zoom out, fit view and lock (AutomationFlow › Canvas controls). */
 export function CanvasControls({ locked, onLock }: { locked: boolean; onLock: (v: boolean) => void }) {
+  const t = useT()
   const rf = useReactFlow()
   return (
-    <div className="fe-ctl" role="group" aria-label="Canvas controls">
-      <button type="button" className="btn ic" aria-label="Zoom in" onClick={() => void rf.zoomIn({ duration: 150 })}>
+    <div className="fe-ctl" role="group" aria-label={t(mf.controls)}>
+      <button type="button" className="btn ic" aria-label={t(mf.zoomIn)} onClick={() => void rf.zoomIn({ duration: 150 })}>
         +
       </button>
-      <button type="button" className="btn ic" aria-label="Zoom out" onClick={() => void rf.zoomOut({ duration: 150 })}>
+      <button type="button" className="btn ic" aria-label={t(mf.zoomOut)} onClick={() => void rf.zoomOut({ duration: 150 })}>
         −
       </button>
-      <button type="button" className="btn ic" aria-label="Fit view" onClick={() => void rf.fitView({ padding: 0.08, duration: 200 })}>
+      <button type="button" className="btn ic" aria-label={t(mf.fitView)} onClick={() => void rf.fitView({ padding: 0.08, duration: 200 })}>
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
           <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4" />
         </svg>
       </button>
-      <button type="button" className="btn ic" aria-label={locked ? 'Unlock canvas' : 'Lock canvas'} aria-pressed={locked} onClick={() => onLock(!locked)}>
+      <button type="button" className="btn ic" aria-label={locked ? t(mf.unlock) : t(mf.lock)} aria-pressed={locked} onClick={() => onLock(!locked)}>
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
           <rect x="3" y="7" width="10" height="7" rx="1.5" />
           <path d={locked ? 'M5 7V5a3 3 0 0 1 6 0v2' : 'M5 7V5a3 3 0 0 1 5.6-1.5'} />
@@ -36,6 +39,7 @@ const selector = (s: ReactFlowState) => ({ transform: s.transform, width: s.widt
  * area is outlined, clipped to the box. Click or drag to move the view there.
  */
 export function FlowMiniMap({ nodes, selected }: { nodes: StepNodeType[]; selected?: string }) {
+  const t = useT()
   const { transform, width, height } = useStore(selector, (a, b) => a.transform === b.transform && a.width === b.width && a.height === b.height)
   const rf = useReactFlow()
   const box = useRef<HTMLDivElement>(null)
@@ -74,7 +78,7 @@ export function FlowMiniMap({ nodes, selected }: { nodes: StepNodeType[]; select
     <div
       className="fe-minimap"
       role="img"
-      aria-label="Minimap"
+      aria-label={t(mf.minimap)}
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture(e.pointerId)
         moveTo(e.clientX, e.clientY)

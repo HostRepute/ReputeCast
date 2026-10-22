@@ -2,9 +2,11 @@ import { useState, type ReactNode } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Grid, Row } from '@/components/ui/Layout'
+import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { runAction, type LiveActions, type LivePermissions } from './actions'
 import { MailboxTable, ProgressCard, ProviderTable, Tiles } from './LiveParts'
+import { m } from './messages'
 import {
   defaultOption,
   incidentTitle,
@@ -54,6 +56,7 @@ const tones = {
 }
 
 function IncidentPanel({ s, incident, actions, can, onCancelAll }: { s: Snapshot; incident: Incident; actions: LiveActions; can: LivePermissions; onCancelAll: () => void }) {
+  const tr = useT()
   const outage = incident.kind === 'provider_outage'
   const t = tones[outage ? 'warn' : 'bad']
   const options = incident.detail.options ?? []
@@ -90,8 +93,8 @@ function IncidentPanel({ s, incident, actions, can, onCancelAll }: { s: Snapshot
       </Grid>
       {options.length ? (
         <div className="flex flex-col gap-3 border-t border-line-2 px-[22px] py-[18px]">
-          <h2 className="h2">Choose how to continue</h2>
-          <Grid min={280} gap={12} role="radiogroup" aria-label="Choose how to continue">
+          <h2 className="h2">{tr(m.chooseTitle)}</h2>
+          <Grid min={280} gap={12} role="radiogroup" aria-label={tr(m.chooseLabel)}>
             {options.map((o) => (
               <Choice key={o.key} name={`continue-${incident.id}`} option={o} checked={picked?.key === o.key} onChange={() => setChoice(o.key)} />
             ))}
@@ -99,11 +102,11 @@ function IncidentPanel({ s, incident, actions, can, onCancelAll }: { s: Snapshot
           <div className="flex flex-wrap justify-end gap-2.5">
             {s.options.canCancel ? (
               <Button variant="danger" onClick={onCancelAll} disabledReason={can.cancel}>
-                Cancel whole campaign
+                {tr(m.cancelWhole)}
               </Button>
             ) : null}
-            <Button variant="primary" className="min-h-[40px] px-[18px]" onClick={() => void go()} loading={busy} disabledReason={can.decide ?? (action ? undefined : 'Pick how to continue first.')}>
-              {picked?.action || picked?.title || 'Continue'}
+            <Button variant="primary" className="min-h-[40px] px-[18px]" onClick={() => void go()} loading={busy} disabledReason={can.decide ?? (action ? undefined : tr(m.pickFirst))}>
+              {picked?.action || picked?.title || tr(m.continue)}
             </Button>
           </div>
         </div>
@@ -140,9 +143,10 @@ function Column({ title, children, border = true }: { title: string; children: R
 
 /** "What tripped": the scope's rate against the limit, then the context. */
 function Tripped({ s, incident }: { s: Snapshot; incident: Incident }) {
+  const t = useT()
   const f = trippedFacts(incident, s)
   return (
-    <Column title="What tripped">
+    <Column title={t(m.whatTripped)}>
       <Row justify="space-between" gap={12} align="normal" className="text-[13px]">
         <span>{f.head.label}</span>
         <span className="n text-bad-fg">{f.head.value}</span>
@@ -163,9 +167,10 @@ function Tripped({ s, incident }: { s: Snapshot; incident: Incident }) {
 
 /** "What Postal returned": the failed calls, then how retries worked. */
 function ProviderLog({ incident }: { incident: Incident }) {
+  const t = useT()
   const lines = logLines(incident)
   return (
-    <Column title={`What ${incident.providerShort || incident.provider} returned`}>
+    <Column title={t(m.whatReturned, { provider: incident.providerShort || incident.provider })}>
       {lines.length ? (
         <div className="mono flex flex-col gap-1.5 text-[12.5px]">
           {lines.map((l) => (
@@ -175,17 +180,18 @@ function ProviderLog({ incident }: { incident: Incident }) {
           ))}
         </div>
       ) : (
-        <span className="text-[13px]">ReputeCast&apos;s health checks marked the provider down; no send call to it has succeeded since.</span>
+        <span className="text-[13px]">{t(m.healthDown)}</span>
       )}
-      <span className="k">Retries used exponential back-off (5 s to 60 s). No message was sent twice: each attempt carries an idempotency key.</span>
+      <span className="k">{t(m.retries)}</span>
     </Column>
   )
 }
 
 function Causes({ incident, border }: { incident: Incident; border?: boolean }) {
+  const t = useT()
   const causes = incident.detail.causes ?? []
   return (
-    <Column title="Likely causes" border={border}>
+    <Column title={t(m.likelyCauses)} border={border}>
       {causes.length ? (
         <ol className="m-0 flex list-decimal flex-col gap-2 pl-[18px] text-[13px]">
           {causes.map((c, i) => (
@@ -197,16 +203,17 @@ function Causes({ incident, border }: { incident: Incident; border?: boolean }) 
           ))}
         </ol>
       ) : (
-        <span className="text-[13px]">Nothing in this send explains it yet; the evidence is on the left.</span>
+        <span className="text-[13px]">{t(m.noCauses)}</span>
       )}
     </Column>
   )
 }
 
 function Recommended({ incident }: { incident: Incident }) {
+  const t = useT()
   const recs = incident.detail.recommendations ?? []
   return (
-    <Column title="Recommended" border={false}>
+    <Column title={t(m.recommended)} border={false}>
       {recs.length ? (
         <ul className="m-0 flex list-disc flex-col gap-2 pl-[18px] text-[13px]">
           {recs.map((r, i) => (
@@ -214,7 +221,7 @@ function Recommended({ incident }: { incident: Incident }) {
           ))}
         </ul>
       ) : (
-        <span className="text-[13px]">Resume when you&apos;re confident, or cancel this share; the rest of the campaign keeps going.</span>
+        <span className="text-[13px]">{t(m.recommendedDefault)}</span>
       )}
     </Column>
   )
@@ -222,23 +229,24 @@ function Recommended({ incident }: { incident: Incident }) {
 
 /** "If you move the share to SES": cost, time, quota and reputation risk. */
 function MoveEstimate({ incident }: { incident: Incident }) {
-  const m = moveFacts(incident)
-  if (!m) return null
+  const t = useT()
+  const mv = moveFacts(incident)
+  if (!mv) return null
   return (
-    <Column title={m.title} border={false}>
-      {m.rows.map((r) => (
+    <Column title={mv.title} border={false}>
+      {mv.rows.map((r) => (
         <Row key={r.label} justify="space-between" gap={12} align="normal" className="text-[13px]">
           <span>{r.label}</span>
           <span className="n">{r.value}</span>
         </Row>
       ))}
-      {m.risk ? (
+      {mv.risk ? (
         <Row justify="space-between" gap={12} align="normal" className="text-[13px]">
-          <span>Reputation risk</span>
-          <Badge tone={m.risk.tone}>{m.risk.text}</Badge>
+          <span>{t(m.reputationRisk)}</span>
+          <Badge tone={mv.risk.tone}>{mv.risk.text}</Badge>
         </Row>
       ) : null}
-      {m.note ? <span className="k">{m.note}</span> : null}
+      {mv.note ? <span className="k">{mv.note}</span> : null}
     </Column>
   )
 }

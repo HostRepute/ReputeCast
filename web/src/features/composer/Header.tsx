@@ -1,7 +1,8 @@
 import { Link } from '@tanstack/react-router'
 import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
-import { clock } from '@/lib/format'
+import { clock, orList } from '@/lib/format'
+import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
 import { useComposer, type SaveStatus } from './context'
 import { statusWord } from './format'
@@ -13,43 +14,46 @@ import { ComposerLanguageSwitcher, versionLanguage, withoutVersion } from '@/fea
 import { DigestBadge, DigestHeaderActions, isDigestTemplate } from '@/features/digests/composer/DigestMode'
 import { IssueHeaderLabel, IssueHeaderStatus, isDigestIssue } from '@/features/digests/composer/IssueMode'
 import { dc } from '@/features/digests/composer/messages'
-import { useT } from '@/i18n'
+import { T, t as tt, useT } from '@/i18n'
+import { m } from './messages'
 import { useAssistBanner } from '@/features/ai/composer/panel'
 import { AssistMenu } from '@/features/ai/composer/assistMenu'
 import { WebChip } from '@/features/website/composer/campaign'
 
 const routeColors: Record<string, string> = { ses: 'var(--chart-ses)', postal: 'var(--chart-postal)', postmark: 'var(--chart-postmark)' }
 
+/** The header badge: "Draft · autosaved 09:41 · v12". Every form ends with " · v{version}" (withoutVersion drops it). */
 export function statusText(status: SaveStatus, campaignStatus: string): string {
   const word = statusWord(campaignStatus)
   switch (status.kind) {
     case 'new':
-      return 'New draft · not saved yet'
+      return tt(m.statusNew)
     case 'saving':
-      return `${word} · saving… · v${status.version}`
+      return tt(m.statusSaving, { status: word, version: status.version })
     case 'offline':
-      return `${word} · not saved · v${status.version}`
+      return tt(m.statusNotSaved, { status: word, version: status.version })
     case 'conflict':
-      return `${word} · conflict · v${status.version}`
+      return tt(m.statusConflict, { status: word, version: status.version })
     case 'error':
-      return `${word} · not saved · v${status.version}`
+      return tt(m.statusNotSaved, { status: word, version: status.version })
     case 'dirty':
-      return status.at ? `${word} · autosaved ${clock(status.at)} · v${status.version}` : `${word} · editing · v${status.version}`
+      return status.at ? tt(m.statusAutosaved, { status: word, time: clock(status.at), version: status.version }) : tt(m.statusEditing, { status: word, version: status.version })
     default:
-      return `${word} · autosaved ${clock(status.at)} · v${status.version}`
+      return tt(m.statusAutosaved, { status: word, time: clock(status.at), version: status.version })
   }
 }
 
 function RouteButton() {
   const { campaign, context, slug } = useComposer()
+  const t = useT()
   // A campaign without its own split follows the Broadcasts routing rule.
   const fromRule = campaign.route.source !== 'campaign'
   const route = campaign.route.shares.length ? campaign.route : context.broadcastRoute
   // The words the button shows, so its accessible name starts with them (WCAG 2.5.3).
   const visible = fromRule
     ? route.shares.length
-      ? `Broadcasts route · ${route.shares.map((s) => `${s.short} ${Math.round(s.percent)}`).join(' / ')}`
-      : 'Broadcasts route · not set up'
+      ? t(m.routeBroadcasts, { shares: route.shares.map((s) => `${s.short} ${Math.round(s.percent)}`).join(' / ') })
+      : t(m.routeNotSetUp)
     : route.shares.map((s) => `${s.short} ${Math.round(s.percent)}%`).join(' ')
   const label = (
     <>
@@ -70,14 +74,13 @@ function RouteButton() {
   )
   if (!campaign.access.canManageRouting) {
     return (
-      <span className="btn" aria-disabled="true" title="Routing needs providers:manage" style={{ opacity: 0.7, cursor: 'default' }}>
-        {label}
-        {fromRule ? null : ' · read-only'}
+      <span className="btn" aria-disabled="true" title={t(m.routeNeedsPermission)} style={{ opacity: 0.7, cursor: 'default' }}>
+        {fromRule ? label : <T msg={m.routeReadOnly} values={{ route: label }} />}
       </span>
     )
   }
   return (
-    <Link to="/w/$workspace/providers/routing" params={{ workspace: slug }} className="btn" aria-label={`${visible}: open routing`}>
+    <Link to="/w/$workspace/providers/routing" params={{ workspace: slug }} className="btn" aria-label={t(m.routeOpen, { route: visible })}>
       {label}
     </Link>
   )
@@ -97,11 +100,11 @@ export function Header({ onReview }: { onReview: () => void }) {
   const blocks = c.checks?.issues.filter((i) => i.severity === 'block' && i.group !== 'Subject').length ?? 0
   const empty = c.isEmpty
   const preview = view === 'preview'
-  const reviewLabel = campaign.access.canSend ? 'Review & send' : 'Request approval'
+  const reviewLabel = campaign.access.canSend ? t(m.reviewSend) : t(m.requestApproval)
   return (
     <header className="cmp-head">
       {preview ? (
-        <button type="button" className="btn ic" aria-label="Back to editor" onClick={() => c.setView('visual')}>
+        <button type="button" className="btn ic" aria-label={t(m.backToEditor)} onClick={() => c.setView('visual')}>
           <ToolIcon name="back" size={16} />
         </button>
       ) : digest || issue ? (
@@ -109,7 +112,7 @@ export function Header({ onReview }: { onReview: () => void }) {
           <ToolIcon name="back" size={16} />
         </Link>
       ) : (
-        <Link to="/w/$workspace/campaigns" params={{ workspace: slug }} className="btn ic" aria-label="Back to campaigns">
+        <Link to="/w/$workspace/campaigns" params={{ workspace: slug }} className="btn ic" aria-label={t(m.backToCampaigns)}>
           <ToolIcon name="back" size={16} />
         </Link>
       )}
@@ -117,20 +120,20 @@ export function Header({ onReview }: { onReview: () => void }) {
         {preview || view === 'mjml' || view === 'html' || !canEdit ? (
           <>
             <span className="k" style={{ fontSize: 11 }}>
-              {preview ? 'Preview' : digest ? t(dc.template) : issue ? <IssueHeaderLabel fallback="Campaign" /> : 'Campaign'}
+              {preview ? t(m.previewLabel) : digest ? t(dc.template) : issue ? <IssueHeaderLabel fallback={t(m.campaignLabel)} /> : t(m.campaignLabel)}
             </span>
-            <span className="text-[15px] font-bold">{c.name || 'Untitled campaign'}</span>
+            <span className="text-[15px] font-bold">{c.name || t(m.untitled)}</span>
           </>
         ) : (
           <>
             <label className="k" htmlFor="cname" style={{ fontSize: 11 }}>
-              {digest ? t(dc.template) : issue ? <IssueHeaderLabel fallback="Campaign" /> : 'Campaign'}
+              {digest ? t(dc.template) : issue ? <IssueHeaderLabel fallback={t(m.campaignLabel)} /> : t(m.campaignLabel)}
             </label>
             <input
               id="cname"
               className={empty ? 'cmp-name wide' : 'cmp-name'}
               value={c.name}
-              placeholder="Untitled campaign"
+              placeholder={t(m.untitled)}
               onChange={(e) => c.setName(e.target.value)}
               onBlur={() => c.commitName()}
               onKeyDown={(e) => {
@@ -159,7 +162,7 @@ export function Header({ onReview }: { onReview: () => void }) {
       ) : (
         <Badge id="cstatus" tone={status.kind === 'offline' || status.kind === 'error' ? 'bad' : status.kind === 'conflict' ? 'warn' : 'neutral'} role="status">
           {withoutVersion(
-            preview ? `${statusWord(word)} · v${status.kind === 'new' ? 1 : status.version}` : statusText(status, word),
+            preview ? t(m.statusVersion, { status: statusWord(word), version: status.kind === 'new' ? 1 : status.version }) : statusText(status, word),
             Boolean(versionLanguage(campaign) || c.missingLanguage),
           )}
         </Badge>
@@ -190,7 +193,7 @@ export function Header({ onReview }: { onReview: () => void }) {
           <>
             <AssistMenu />
             <button type="button" className="btn" disabled={empty} style={empty ? { opacity: 0.5 } : undefined} onClick={() => c.setView('preview')}>
-              Preview
+              {t(m.preview)}
             </button>
             <SendTestButton disabled={empty} />
             <button
@@ -201,8 +204,7 @@ export function Header({ onReview }: { onReview: () => void }) {
               aria-describedby={campaign.access.canSend ? undefined : 'perm-hint'}
               onClick={onReview}
             >
-              {reviewLabel}
-              {blocks ? ` · ${blocks} ${blocks === 1 ? 'block' : 'blocks'}` : ''}
+              {blocks ? t(m.reviewBlocks, { action: campaign.access.canSend ? 'send' : 'approval', count: blocks }) : reviewLabel}
             </button>
           </>
         )}
@@ -222,28 +224,31 @@ export function PermissionBanner() {
   const { campaign, slug } = useComposer()
   const { me } = useWorkspace()
   const { data } = useMe()
+  const t = useT()
   // With the assistant (AIComposer): "You can edit this campaign and use the assistant."
   const assisted = useAssistBanner()
   const user = data?.user
   if (!user) return null
   const helpers = campaign.access.sendHelpers
-  const hidden: string[] = ['Scheduling', 'test sends to the whole team']
-  if (!campaign.access.canManageRouting) hidden.push('route changes')
-  const ask = helpers.length ? `: ask ${helpers.length === 1 ? helpers[0] : `${helpers.slice(0, -1).join(', ')} or ${helpers[helpers.length - 1]}`}` : ''
-  const list = hidden.length > 1 ? `${hidden.slice(0, -1).join(', ')} and ${hidden[hidden.length - 1]}` : hidden[0]
   return (
     <div role="status" className="cmp-perm">
       <Avatar name={user.name || user.email} color={user.avatarColor} size={24} />
       <span id="perm-hint" style={{ flex: '1 1 480px', minWidth: 0 }}>
         {assisted ? (
-          assisted({ name: user.name || user.email, role: me.workspace.roleName, helpers })
+          assisted({ name: user.name || user.email, role: roleName({ key: me.workspace.roleKey, name: me.workspace.roleName }), helpers })
         ) : (
-          <>
-            <b>
-              {user.name || user.email} · {me.workspace.roleName}.
-            </b>{' '}
-            You can edit this campaign and request approval. Sending needs the <span className="mono">campaigns:send</span> permission{ask}. {list} are hidden for your role.
-          </>
+          <T
+            msg={m.permissionBanner}
+            values={{
+              name: user.name || user.email,
+              role: roleName({ key: me.workspace.roleKey, name: me.workspace.roleName }),
+              hasHelpers: helpers.length ? 'yes' : 'no',
+              helpers: orList(helpers),
+              routing: campaign.access.canManageRouting ? 'no' : 'yes',
+              b: (chunks) => <b>{chunks}</b>,
+              mono: (chunks) => <span className="mono">{chunks}</span>,
+            }}
+          />
         )}
       </span>
       <Link
@@ -251,7 +256,7 @@ export function PermissionBanner() {
         params={{ workspace: slug, campaignId: campaign.id }}
         style={{ marginLeft: 'auto', fontWeight: 600, minHeight: 24, display: 'inline-flex', alignItems: 'center' }}
       >
-        What approval covers
+        {t(m.whatApprovalCovers)}
       </Link>
     </div>
   )

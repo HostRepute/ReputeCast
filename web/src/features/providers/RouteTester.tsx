@@ -2,9 +2,11 @@ import { keepPreviousData } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { $api, errorMessage } from '@/api/client'
 import { Field, Input, Select } from '@/components/ui/Field'
+import { useT } from '@/i18n'
 import { useWorkspace } from '@/lib/session'
 import { providerColor, streamName, type Stream } from './common'
 import { costText, fallbackText, mailboxName, stepText, toInput, type Draft, type RoutingConfig } from './routing-model'
+import { mr } from './routing.messages'
 
 function useDebounced<T>(value: T, ms: number): T {
   const [v, setV] = useState(value)
@@ -22,6 +24,7 @@ const looksLikeEmail = (s: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s.trim()
  * draft when there is one) for one address and explains each step.
  */
 export function RouteTester({ cfg, draft }: { cfg: RoutingConfig; draft?: Draft }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const [stream, setStream] = useState<Stream>('broadcast')
   const [listId, setListId] = useState(cfg.lists[0]?.id ?? '')
@@ -53,12 +56,12 @@ export function RouteTester({ cfg, draft }: { cfg: RoutingConfig; draft?: Draft 
     <section className="card flex flex-col" aria-labelledby="pv-tester">
       <div className="flex flex-col gap-0.5 border-b border-line-2 px-5 py-3.5">
         <h2 className="h2" id="pv-tester">
-          Route tester
+          {t(mr.testerTitle)}
         </h2>
-        <span className="k">Which provider would send this email?</span>
+        <span className="k">{t(mr.testerLine)}</span>
       </div>
       <div className="flex flex-col gap-3 px-5 py-[18px]">
-        <Field label="Stream">
+        <Field label={t(mr.testerStream)}>
           <Select value={stream} onChange={(e) => setStream(e.target.value as Stream)}>
             {(['broadcast', 'automation', 'system', 'transactional'] as Stream[]).map((s) => (
               <option key={s} value={s}>
@@ -68,9 +71,9 @@ export function RouteTester({ cfg, draft }: { cfg: RoutingConfig; draft?: Draft 
           </Select>
         </Field>
         {txn ? (
-          <Field label="Template">
+          <Field label={t(mr.testerTemplate)}>
             <Select value={template} onChange={(e) => setTemplate(e.target.value)}>
-              {cfg.templates.length ? null : <option value="">No templates yet</option>}
+              {cfg.templates.length ? null : <option value="">{t(mr.noTemplates)}</option>}
               {cfg.templates.map((x) => (
                 <option key={x.id} value={x.id}>
                   {x.id}
@@ -79,9 +82,9 @@ export function RouteTester({ cfg, draft }: { cfg: RoutingConfig; draft?: Draft 
             </Select>
           </Field>
         ) : (
-          <Field label="List">
+          <Field label={t(mr.testerList)}>
             <Select value={listId} onChange={(e) => setListId(e.target.value)}>
-              {cfg.lists.length ? null : <option value="">No lists yet</option>}
+              {cfg.lists.length ? null : <option value="">{t(mr.noLists)}</option>}
               {cfg.lists.map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.name}
@@ -90,9 +93,9 @@ export function RouteTester({ cfg, draft }: { cfg: RoutingConfig; draft?: Draft 
             </Select>
           </Field>
         )}
-        <Field label="Sender domain">
+        <Field label={t(mr.testerDomain)}>
           <Select value={domain} onChange={(e) => setDomain(e.target.value)}>
-            {cfg.senderDomains.length ? null : <option value="">No sending domain yet</option>}
+            {cfg.senderDomains.length ? null : <option value="">{t(mr.noDomains)}</option>}
             {cfg.senderDomains.map((d) => (
               <option key={d} value={d}>
                 {d}
@@ -100,31 +103,31 @@ export function RouteTester({ cfg, draft }: { cfg: RoutingConfig; draft?: Draft 
             ))}
           </Select>
         </Field>
-        <Field label="Recipient">
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" autoComplete="off" spellCheck={false} />
+        <Field label={t(mr.testerRecipient)}>
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={'name@example.com'} autoComplete="off" spellCheck={false} />
         </Field>
         <div className="flex flex-col gap-2.5 rounded-[10px] border border-line bg-ground-3 p-3.5" aria-live="polite">
           {!valid ? (
-            <span className="k">Enter an address, like name@example.com, to see which provider would send to it.</span>
+            <span className="k">{t(mr.enterAddress)}</span>
           ) : q.isError ? (
             <span className="text-[13px] text-bad-fg" role="alert">
               {errorMessage(q.error)}
             </span>
           ) : !r ? (
-            <span className="k">Working out the route…</span>
+            <span className="k">{t(mr.working)}</span>
           ) : (
             <>
               <div className="flex items-center gap-2.5">
                 <span className="dot h-3 w-3" style={{ color: providerColor[r.color] }} aria-hidden="true" />
                 <span className="text-[18px] font-bold">{r.provider}</span>
               </div>
-              <Row k="Mailbox provider">
+              <Row k={t(mr.mailboxProvider)}>
                 <span className="n">{mailboxName[r.mailboxProvider] ?? r.mailboxProvider}</span>
               </Row>
-              <Row k="DKIM selector">
-                <span className="mono min-w-0 text-right break-all">{r.dkimSelector || 'not set up yet'}</span>
+              <Row k={t(mr.dkimSelector)}>
+                <span className="mono min-w-0 text-right break-all">{r.dkimSelector || t(mr.notSetUp)}</span>
               </Row>
-              <Row k="Cost">
+              <Row k={t(mr.cost)}>
                 <span className="n">{costText(r.cost)}</span>
               </Row>
               <ol className="m-0 flex list-none flex-col gap-2 border-t border-line pt-2.5 pl-0">
@@ -138,7 +141,7 @@ export function RouteTester({ cfg, draft }: { cfg: RoutingConfig; draft?: Draft 
                 ))}
               </ol>
               <div className="text-[12.5px] text-ink-2">
-                <span className="font-semibold text-ink">If it fails:</span> {fallbackText(r, stream)}
+                <span className="font-semibold text-ink">{t(mr.ifItFails)}</span> {fallbackText(r, stream)}
               </div>
             </>
           )}

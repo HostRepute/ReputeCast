@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useRef, useState } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { $api, ApiError, errorMessage, http, type Schemas } from '@/api/client'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
@@ -9,39 +9,45 @@ import { KeyValues } from '@/components/ui/Data'
 import { Note } from '@/components/ui/Note'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
+import { T, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { andList, count, dayMonthDate, trimPct } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
+import { md } from './dmarc.messages'
 import { providerColor } from './words'
 
 function resultTone(v: string): Tone {
   return v === 'aligned' || v === 'pass' ? 'ok' : 'bad'
 }
 
+const mono = (c: ReactNode[]) => <span className="mono">{c}</span>
+
 /** DMARC reports · last 7 days, per sending source. */
 export function DmarcCard({ d, className }: { d: Schemas['DeliverabilityDMARCSummary']; className?: string }) {
+  const t = useT()
   const [investigate, setInvestigate] = useState<string | null>(null)
   const pass = d.passRate ?? 0
-  const caption = d.via === 'hostrepute' && d.rua ? `aggregate reports to ${d.rua}` : `${count(d.reports)} uploaded aggregate ${d.reports === 1 ? 'report' : 'reports'}`
+  const caption = d.via === 'hostrepute' && d.rua ? t(md.captionRua, { rua: d.rua }) : t(md.captionUploaded, { count: d.reports })
   const enforced = d.policy === 'quarantine' || d.policy === 'reject'
   return (
     <section className={className ?? 'card min-w-0 flex-[1_1_440px]'} aria-labelledby="h-dmarc">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-4.5 py-3.5">
         <div className="flex flex-col">
           <h2 className="h2" id="h-dmarc">
-            DMARC reports · last {d.days} days
+            {t(md.title, { days: d.days })}
           </h2>
           <span className="k">{caption}</span>
         </div>
-        <Badge tone={pass >= 98 ? 'ok' : pass >= 90 ? 'warn' : 'bad'}>{trimPct(d.passRate)} pass</Badge>
+        <Badge tone={pass >= 98 ? 'ok' : pass >= 90 ? 'warn' : 'bad'}>{t(md.passBadge, { rate: trimPct(d.passRate) })}</Badge>
       </div>
-      <Table density="dense" phoneWrap caption="DMARC results by sending source">
+      <Table density="dense" phoneWrap caption={t(md.tableCaption)}>
         <thead>
           <tr>
-            <Th>Source</Th>
-            <Th align="right">Messages</Th>
-            <Th>SPF</Th>
-            <Th>DKIM</Th>
-            <Th>Result</Th>
+            <Th>{t(md.colSource)}</Th>
+            <Th align="right">{t(md.colMessages)}</Th>
+            <Th>{'SPF'}</Th>
+            <Th>{'DKIM'}</Th>
+            <Th>{t(md.colResult)}</Th>
           </tr>
         </thead>
         <tbody>
@@ -52,7 +58,7 @@ export function DmarcCard({ d, className }: { d: Schemas['DeliverabilityDMARCSum
                   <span className="dot" style={{ color: s.known ? providerColor(s.adapter) : '#B91C1C' }} aria-hidden="true" />
                   {s.label}
                 </span>
-                {s.known ? null : <div className="k">not one of your providers</div>}
+                {s.known ? null : <div className="k">{t(md.notYourProvider)}</div>}
               </Td>
               <Td align="right" num>
                 {count(s.messages)}
@@ -74,11 +80,11 @@ export function DmarcCard({ d, className }: { d: Schemas['DeliverabilityDMARCSum
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line-2 px-4.5 py-2.5">
           <span className="k">
             {enforced
-              ? `Someone is sending as ${d.domain} from an unknown host; p=${d.policy} kept it out of inboxes.`
-              : `Someone is sending as ${d.domain} from an unknown host; with p=${d.policy || 'none'}, receivers may still deliver it.`}
+              ? t(md.unknownEnforced, { domain: d.domain ?? '', policy: d.policy ?? '' })
+              : t(md.unknownNotEnforced, { domain: d.domain ?? '', policy: d.policy || 'none' })}
           </span>
           <Button size="sm" onClick={() => setInvestigate(d.unknown!.ip ?? null)}>
-            Investigate source
+            {t(md.investigate)}
           </Button>
         </div>
       ) : null}
@@ -89,6 +95,7 @@ export function DmarcCard({ d, className }: { d: Schemas['DeliverabilityDMARCSum
 
 /** "Investigate source": what the reports say about one sending IP. */
 function InvestigateDialog({ ip, domain, onClose }: { ip: string; domain: string; onClose: () => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/deliverability/dmarc/sources/{ip}', { params: { path: { workspace: slug, ip } } })
   const s = q.data
@@ -96,9 +103,9 @@ function InvestigateDialog({ ip, domain, onClose }: { ip: string; domain: string
     <Dialog
       open
       onOpenChange={(o) => !o && onClose()}
-      title={`Sending source ${ip}`}
-      description={s?.known ? `${s.provider} sends from this IP.` : `This IP isn't one of your providers. It sent mail as ${domain} in the last 7 days.`}
-      footer={<Button onClick={onClose}>Close</Button>}
+      title={t(md.sourceTitle, { ip })}
+      description={s?.known ? t(md.sourceKnown, { provider: s.provider ?? '' }) : t(md.sourceUnknown, { domain })}
+      footer={<Button onClick={onClose}>{t(common.close)}</Button>}
     >
       {q.isPending ? (
         <div className="flex flex-col gap-2" aria-busy="true">
@@ -107,25 +114,29 @@ function InvestigateDialog({ ip, domain, onClose }: { ip: string; domain: string
           <Skeleton w="60%" />
         </div>
       ) : q.isError || !s ? (
-        <Note tone="bad">{errorMessage(q.error)} Nothing was changed.</Note>
+        <Note tone="bad">
+          {errorMessage(q.error)} {t(md.nothingChanged)}
+        </Note>
       ) : (
         <>
           <KeyValues
             items={[
-              ['Messages, 7 d', `${count(s.messages)} in ${s.reports} ${s.reports === 1 ? 'report' : 'reports'}`],
-              ['Seen', `${dayMonthDate(s.firstSeen)} to ${dayMonthDate(s.lastSeen)}`],
-              ['Reported by', andList(s.reporters)],
-              ['Reverse DNS', <span className="mono">{s.ptr || 'none'}</span>],
-              ['From domains', <span className="mono">{s.headerFrom.join(', ') || '—'}</span>],
+              [t(md.messages7d), t(md.messagesInReports, { messages: count(s.messages), reports: s.reports })],
+              [t(md.seen), t(md.seenRange, { from: dayMonthDate(s.firstSeen), to: dayMonthDate(s.lastSeen) })],
+              [t(md.reportedBy), andList(s.reporters)],
+              [t(md.reverseDns), <span className="mono">{s.ptr || t(md.none)}</span>],
+              [t(md.fromDomains), <span className="mono">{s.headerFrom.join(', ') || '—'}</span>],
               ['SPF', `${s.spf}${s.spfDomains.length ? ` (${s.spfDomains.join(', ')})` : ''}`],
               ['DKIM', `${s.dkim}${s.dkimDomains.length ? ` (${s.dkimDomains.join(', ')})` : ''}`],
-              ['What receivers did', s.disposition === 'none' ? 'delivered (no DMARC action)' : s.disposition === 'quarantine' ? 'quarantined (spam folder)' : 'rejected'],
+              [
+                t(md.receiversDid),
+                s.disposition === 'none' ? t(md.dispositionNone) : s.disposition === 'quarantine' ? t(md.dispositionQuarantine) : t(md.dispositionReject),
+              ],
             ]}
           />
           {!s.known ? (
             <Note tone={s.disposition === 'none' ? 'warn' : 'info'}>
-              If this is a service you use (a CRM, a help desk, an invoicing tool), add it to the SPF record of {domain} and turn on DKIM signing there. If it isn't, nothing
-              to do: {s.policy ? `p=${s.policy}` : 'your DMARC policy'} {s.disposition === 'none' ? 'should be raised to quarantine so receivers stop delivering it' : 'keeps it out of inboxes'}.
+              {t(md.unknownAdvice, { domain, hasPolicy: s.policy ? 'yes' : 'no', policy: s.policy ?? '', delivered: s.disposition === 'none' ? 'yes' : 'no' })}
             </Note>
           ) : null}
         </>
@@ -136,31 +147,22 @@ function InvestigateDialog({ ip, domain, onClose }: { ip: string; domain: string
 
 /** DMARC report summary without reports (HostRepute not receiving them). */
 export function DmarcEmptyCard({ connected, rua }: { connected: boolean; rua?: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const [upload, setUpload] = useState(false)
   return (
     <section className="card flex flex-col gap-2.5 border-dashed px-4.5 py-4" aria-labelledby="h-dmarc-empty">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="h2" id="h-dmarc-empty">
-          DMARC report summary
+          {t(md.emptyTitle)}
         </h2>
-        <Badge tone="neutral">No reports yet</Badge>
+        <Badge tone="neutral">{t(md.noReports)}</Badge>
       </div>
-      {connected && rua ? (
-        <span className="k">
-          Aggregate reports need a mailbox to land in. Point <span className="mono">rua=</span> at <span className="mono">{rua}</span> and HostRepute parses them for you, or paste
-          the XML reports here.
-        </span>
-      ) : (
-        <span className="k">
-          Aggregate reports need a mailbox to land in. Point <span className="mono">rua=</span> at HostRepute (parsed for you) or at any mailbox you own and paste the XML reports
-          here.
-        </span>
-      )}
+      <span className="k">{connected && rua ? <T msg={md.emptyRua} values={{ rua, mono }} /> : <T msg={md.emptyNoRua} values={{ mono }} />}</span>
       <div className="flex flex-wrap gap-2">
         {connected ? null : (
           <ButtonLink size="sm" to="/w/$workspace/deliverability/connect" params={{ workspace: slug }}>
-            Use HostRepute as rua
+            {t(md.useHostRepute)}
           </ButtonLink>
         )}
         <UploadButton open={upload} setOpen={setUpload} />
@@ -171,6 +173,7 @@ export function DmarcEmptyCard({ connected, rua }: { connected: boolean; rua?: s
 
 /** "Upload report XML" and its dialog. */
 export function UploadButton({ open, setOpen }: { open: boolean; setOpen: (o: boolean) => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const reason = usePermissionReason('domains:manage')
   const qc = useQueryClient()
@@ -180,7 +183,7 @@ export function UploadButton({ open, setOpen }: { open: boolean; setOpen: (o: bo
   const [busy, setBusy] = useState(false)
   async function send() {
     if (!file) {
-      setError('Choose a report file first.')
+      setError(t(md.chooseFile))
       return
     }
     setBusy(true)
@@ -195,7 +198,7 @@ export function UploadButton({ open, setOpen }: { open: boolean; setOpen: (o: bo
       await qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/deliverability'] })
       setOpen(false)
       setFile(null)
-      toast({ title: `Report from ${data?.orgName} added`, detail: `${count(data?.messages ?? 0)} messages for ${data?.domain}` })
+      toast({ title: t(md.uploaded, { org: data?.orgName ?? '' }), detail: t(md.uploadedDetail, { messages: count(data?.messages ?? 0), domain: data?.domain ?? '' }) })
     } catch (e) {
       setError(e instanceof ApiError ? e.message : errorMessage(e))
     } finally {
@@ -205,7 +208,7 @@ export function UploadButton({ open, setOpen }: { open: boolean; setOpen: (o: bo
   return (
     <>
       <Button size="sm" onClick={() => setOpen(true)} disabledReason={reason}>
-        Upload report XML
+        {t(md.uploadButton)}
       </Button>
       <Dialog
         open={open}
@@ -216,19 +219,19 @@ export function UploadButton({ open, setOpen }: { open: boolean; setOpen: (o: bo
             setError(null)
           }
         }}
-        title="Upload a DMARC aggregate report"
-        description="The .xml file a mailbox provider sent to your rua= address, or the .xml.gz or .zip it came in. Only the report's counts are stored."
+        title={t(md.uploadTitle)}
+        description={t(md.uploadDescription)}
         footer={
           <>
-            <Button onClick={() => setOpen(false)}>Cancel</Button>
+            <Button onClick={() => setOpen(false)}>{t(common.cancel)}</Button>
             <Button variant="primary" onClick={send} loading={busy}>
-              Upload
+              {t(md.upload)}
             </Button>
           </>
         }
       >
         <div className="lbl">
-          <label htmlFor="dmarc-file">Report file</label>
+          <label htmlFor="dmarc-file">{t(md.reportFile)}</label>
           <input
             ref={input}
             id="dmarc-file"

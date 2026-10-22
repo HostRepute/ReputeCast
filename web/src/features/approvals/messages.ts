@@ -1,0 +1,91 @@
+import { defineMessages } from '@/i18n'
+
+/**
+ * Send approvals: the request status words, the diff lines and the
+ * "unchanged" summaries shared with Review & send (parts.tsx), and the
+ * approval inbox (ApprovalInbox board).
+ */
+export const m = defineMessages('approvals', {
+  // ── Request statuses (badges) ─────────────────────────────────────────
+  statusPending: 'Pending',
+  statusPendingLong: 'Pending approval',
+  statusApproved: 'Approved',
+  statusChangesRequested: 'Changes requested',
+  statusRejected: 'Rejected',
+  statusInvalidated: 'Invalidated',
+  statusBypassed: 'Bypassed',
+  statusSent: 'Sent',
+  statusCancelled: 'Cancelled',
+
+  // ── Diff lines and what stayed the same ───────────────────────────────
+  whatChanged: 'What changed',
+  before: 'Before:',
+  after: 'After:',
+  diffLabelled: '{label}: {value}',
+  unchangedAudience: 'Audience {count}',
+  unchangedAudienceMoved: 'Audience {count} ({change})',
+  unchangedRoute: 'route',
+  unchangedScheduleNow: 'schedule: send now',
+  unchangedSchedule: 'schedule {when}',
+  fieldAudience: 'audience',
+  fieldRoute: 'route',
+  fieldSchedule: 'schedule',
+  unchangedSentence: '{count, plural, one {{fields} is unchanged.} other {{fields} are unchanged.}}',
+  rulesLine: '{count, plural, one {rule: {rules}} other {rules: {rules}}}',
+
+  // ── Approval inbox ────────────────────────────────────────────────────
+  title: 'Approvals',
+  filterLabel: 'Approval status',
+  filter: '{status, select, pending {Pending} approved {Approved} changes_requested {Changes requested} rejected {Rejected} invalidated {Invalidated} other {All}}',
+  filterCount:
+    '{status, select, pending {Pending} approved {Approved} changes_requested {Changes requested} rejected {Rejected} invalidated {Invalidated} other {All}} · {count}',
+  loadFailed: "Couldn't load the approval requests",
+  nothingChanged: 'Nothing was changed.',
+  requestsTitle: 'Approval requests',
+  requestsCaptionAll: 'Everything that needed a second person · approvers see all requests, authors see their own',
+  requestsCaptionOwn: 'Your requests · approvers see every request',
+  filterByAuthor: 'Filter by author',
+  anyAuthor: 'Any author',
+  filterByApprover: 'Filter by approver',
+  anyApprover: 'Any approver',
+  dateRange: 'Date range',
+  lastDays: 'Last {days} days',
+  allTime: 'All time',
+  emptyPendingTitle: 'Nothing waiting for you',
+  emptyPendingBody: 'Requests appear here and in your notifications. Authors can still see their own requests.',
+  emptyTitleYet:
+    '{status, select, pending {No pending requests yet} approved {No approved requests yet} changes_requested {No changes-requested requests yet} rejected {No rejected requests yet} invalidated {No invalidated requests yet} other {No requests yet}}',
+  emptyTitleDays:
+    '{status, select, pending {No pending requests in the last {days} days} approved {No approved requests in the last {days} days} changes_requested {No changes-requested requests in the last {days} days} rejected {No rejected requests in the last {days} days} invalidated {No invalidated requests in the last {days} days} other {No requests in the last {days} days}}',
+  emptyFiltered: 'Clear the filters or pick a longer date range to see more.',
+  emptyNone: 'Requests appear here once someone asks for an approval.',
+  tableCaption: 'Approval requests',
+  colCampaign: 'Campaign',
+  colAuthor: 'Author',
+  colAudience: 'Audience',
+  colRoute: 'Route',
+  colScheduled: 'Scheduled',
+  colRequested: 'Requested',
+  colStatus: 'Status',
+  colActions: 'Actions',
+  scheduledSent: 'Sent {date}',
+  unscheduled: 'Unscheduled',
+  noteWithdrawn: 'withdrawn by the author',
+  noteBypassed: 'sent without approval by an Owner',
+  report: 'Report',
+  review: 'Review',
+  viewDiff: 'View diff',
+  view: 'View',
+  policyTitle: 'Policy in force',
+  editPolicy: 'Edit policy',
+  viewPolicy: 'View policy',
+  policyRules: 'Rules',
+  policyApprovals: 'Approvals',
+  policyMedianWait: 'Median wait',
+  noRules: 'No rule is on: sends never need approval',
+  approvalsFrom: '{count} from {approvers}',
+  approvalsFromNobody: '{count} from nobody yet (no member holds campaigns:approve)',
+  medianWait: '{wait} over the last 30 days',
+  medianWaitNone: 'No decisions in the last 30 days',
+  loading: 'Loading approval requests',
+})
