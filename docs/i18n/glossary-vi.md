@@ -392,6 +392,59 @@ is a name and stays in English.
 | In-app · All events | Trong ứng dụng · Tất cả sự kiện |
 | MCP agent | tác tử MCP |
 
+## Instance admin, keys, webhooks and the audit log
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| actor (audit) · Any actor type | người thực hiện · Mọi loại người thực hiện | who did it: a member, a key, an agent or the system |
+| All retained (date range) | Toàn bộ thời gian lưu giữ | |
+| batch (of streamed entries) | lô | as in "endpoint theo lô" |
+| break-glass Owner | Chủ sở hữu có tài khoản khẩn cấp | never "Chủ sở hữu khẩn cấp" |
+| claim · Client ID · client secret · Scopes (OIDC) | claim · Client ID · client secret · Scope | named as the identity provider's console names them |
+| danger zone | Vùng nguy hiểm | |
+| delivery (webhook) · Delivery log | lần gửi · Nhật ký gửi | |
+| Development build | Bản dựng phát triển | |
+| digest (email) · Hourly digest · Daily digest | email tổng hợp · Tổng hợp mỗi giờ · Tổng hợp hằng ngày | notification preferences |
+| discovery · issuer · Issuer URL (OIDC) | discovery · nhà phát hành · URL nhà phát hành (issuer) | |
+| Effective permissions | Quyền thực tế | a member's page; the column is "Thực tế" |
+| endpoint · payload | endpoint · payload | not translated |
+| enforce (SSO, two-factor) · enforcement | bắt buộc · chế độ bắt buộc | "Enforce SSO for acme.io": "Bắt buộc SSO cho acme.io" |
+| entry (audit) · Entry details | mục · Chi tiết mục nhật ký | |
+| Failing · Paused (an endpoint) | Đang lỗi · Đã tạm dừng | "Healthy" is "Ổn định" |
+| Force sign-out | Buộc đăng xuất | |
+| Given (approvals a member gave) | Đã xét duyệt | |
+| group mapping · group object ID | ánh xạ nhóm · object ID của nhóm | |
+| hourly cleanup | lần dọn dẹp hằng giờ | |
+| identity provider | nhà cung cấp danh tính | "IdP" stays |
+| immutable (audit entries) | không thể sửa đổi | |
+| instance-level (entries) · Instance level | cấp hệ thống · Cấp hệ thống | |
+| JIT account creation | tạo tài khoản tự động (JIT) | |
+| Locked (sign-in) · Unlock sign-in | Bị khóa · Mở khóa đăng nhập | a lockout is "khóa đăng nhập" |
+| Make instance admin · Remove instance admin | Đặt làm quản trị viên hệ thống · Gỡ quyền quản trị hệ thống | |
+| preset (an SSO provider's, a key's) | cấu hình sẵn | |
+| provider status: degraded · down | đang suy giảm · đang gián đoạn | as Channels and SMS' Suy giảm · Gián đoạn |
+| re-authentication | xác thực lại | |
+| Recommended (badge) | Khuyến nghị | |
+| Redirect URI | URI chuyển hướng | |
+| reference ID · request ID | mã tham chiếu · mã yêu cầu | |
+| result: Allowed · Denied · Error | Được phép · Bị từ chối · Lỗi | |
+| retention | thời gian lưu giữ | |
+| revoke · rotate · replace (a key or secret) | thu hồi · xoay vòng · thay | |
+| secret · signing secret | khóa bí mật · khóa bí mật để ký | "secrets" in general: thông tin bí mật |
+| Send approvals (Settings › General) | Phê duyệt trước khi gửi | |
+| Sending (notification category) | Gửi thư | so it isn't read as the status "Đang gửi" |
+| SIEM or warehouse | SIEM hoặc kho dữ liệu | |
+| single sign-on | đăng nhập một lần | "SSO" stays |
+| stream (audit entries, noun) · stream (verb) · streaming endpoint | luồng · truyền · endpoint truyền luồng | the System stream is "luồng Hệ thống" |
+| test sign-in | đăng nhập thử | |
+| Then allowed | Sau đó được phép | a sign-in that was rejected, then allowed |
+| token (an agent's) | token | "agent token": "token của tác tử" |
+| typed confirmation | xác nhận bằng cách nhập tên | |
+| Up to date · Update available (a release) | Đã là bản mới nhất · Có bản cập nhật | language versions keep "Đã cập nhật" |
+| user (an account on the instance) | người dùng | a workspace's people are "thành viên" |
+| Workspace ID | Mã không gian làm việc | |
+| workspace switcher | bộ chuyển không gian làm việc | |
+
 ## Channels and SMS
 
 | English | Tiếng Việt |

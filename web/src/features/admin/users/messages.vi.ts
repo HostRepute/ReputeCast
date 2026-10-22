@@ -122,7 +122,7 @@ export default translate(m, {
   systemStream: 'Luồng Hệ thống',
   systemHealthy: '{hasProvider, select, yes {{provider}} other {Nhà cung cấp của luồng Hệ thống}} đang ổn định · email sẽ được gửi đi ngay.',
   systemUnhealthy:
-    '{provider} {status, select, degraded {đang hoạt động kém} down {đang ngừng hoạt động} sandbox {đang ở chế độ sandbox} paused {đang tạm dừng} other {đang ở trạng thái {statusText}}} · email có thể bị chậm. Lệnh CLI vẫn dùng được trong mọi trường hợp.',
+    '{provider} {status, select, degraded {đang suy giảm} down {đang gián đoạn} sandbox {đang ở chế độ sandbox} paused {đang tạm dừng} other {đang ở trạng thái {statusText}}} · email có thể bị chậm. Lệnh CLI vẫn dùng được trong mọi trường hợp.',
   noSystemLabel: 'Chưa có nhà cung cấp Hệ thống',
   noSystemBody:
     '{hasProvider, select, yes {{provider} đang ở luồng Hệ thống nhưng hiện không gửi được thư hệ thống, nên email không thể gửi đi.} other {Chưa có nhà cung cấp gửi thư nào được kết nối với luồng Hệ thống, nên email không thể gửi đi.}} Hãy chạy lệnh bên dưới trên máy chủ.',
