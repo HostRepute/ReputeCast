@@ -7,9 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/templates"
 )
@@ -54,7 +56,7 @@ func (s *Service) Gallery(ctx context.Context, ws *store.Workspace, starterIDs [
 			}
 			s.remember(key, r)
 		}
-		return AccessibilityTemplateResult{ID: id, Issues: len(r.Issues), Serious: r.Serious, Summary: GallerySummary(r.Issues)}, nil
+		return AccessibilityTemplateResult{ID: id, Issues: len(r.Issues), Serious: r.Serious, Summary: GallerySummaryIn(i18n.LangFrom(ctx), r.Issues)}, nil
 	}
 	address := templates.WorkspaceAddress(ws)
 	for _, id := range starterIDs {
@@ -91,49 +93,50 @@ func (s *Service) Gallery(ctx context.Context, ws *store.Workspace, starterIDs [
 	return out, nil
 }
 
-var numberWords = []string{"zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"}
-
-func numberWord(n int) string {
-	if n >= 0 && n < len(numberWords) {
-		return numberWords[n]
-	}
-	return count(n)
-}
-
 // GallerySummary explains a template's issues in a sentence or two: the
 // serious ones first, then the rest.
 func GallerySummary(issues []AccessibilityIssue) string {
+	return GallerySummaryIn(i18n.Default, issues)
+}
+
+// GallerySummaryIn is GallerySummary in a reader's language.
+func GallerySummaryIn(l i18n.Lang, issues []AccessibilityIssue) string {
 	if len(issues) == 0 {
 		return ""
 	}
 	var serious []string
 	for _, is := range issues {
 		if is.Severity == Serious {
-			serious = append(serious, lowerFirst(strings.TrimSuffix(is.Title, ".")))
+			title := is.Title
+			if s := titleIn(l, is.Texts.Title); s != "" {
+				title = s
+			}
+			serious = append(serious, lowerFirst(strings.TrimSuffix(title, ".")))
 		}
 	}
-	moderate := moderateSummary(issues)
+	moderate := moderateSummary(l, issues)
 	switch {
 	case len(serious) > 0 && moderate != "":
-		return "Serious: " + strings.Join(serious, "; ") + ". Also " + moderate + "."
+		return mGallerySeriousAlso.Text(l, i18n.Args{"list": strings.Join(serious, "; "), "moderate": moderate})
 	case len(serious) > 0:
-		return "Serious: " + strings.Join(serious, "; ") + "."
+		return mGallerySerious.Text(l, i18n.Args{"list": strings.Join(serious, "; ")})
 	}
-	return capitalize(moderate) + "."
+	return capitalize(mGalleryModerate.Text(l, i18n.Args{"moderate": moderate}))
 }
 
 // moderateSummary is "two “Read more” links, a bare URL and 11 px text".
-func moderateSummary(issues []AccessibilityIssue) string {
+func moderateSummary(l i18n.Lang, issues []AccessibilityIssue) string {
 	type group struct {
-		phrase string
-		n      int
+		m    i18n.Msg
+		args i18n.Args
+		n    int
 	}
 	var order []string
 	groups := map[string]*group{}
-	add := func(key, phrase string, n int) {
+	add := func(key string, m i18n.Msg, args i18n.Args, n int) {
 		g := groups[key]
 		if g == nil {
-			g = &group{phrase: phrase}
+			g = &group{m: m, args: args}
 			groups[key] = g
 			order = append(order, key)
 		}
@@ -146,35 +149,34 @@ func moderateSummary(issues []AccessibilityIssue) string {
 		switch is.Kind {
 		case KindLinkText:
 			if strings.HasPrefix(is.Title, "A bare URL") {
-				add("bare", "bare URL", is.Element.Count)
+				add("bare", mGalleryBare, i18n.Args{}, is.Element.Count)
 			} else {
-				add("vague:"+strings.ToLower(is.Element.Label), quote(is.Element.Label)+" link", is.Element.Count)
+				add("vague:"+strings.ToLower(is.Element.Label), mGalleryVague, i18n.Args{"text": is.Element.Label}, is.Element.Count)
 			}
 		case KindHeading:
-			add("heading", "skipped heading level", 1)
+			add("heading", mGalleryHeading, i18n.Args{}, 1)
 		case KindTextSize:
-			add("size:"+trimFloat(is.Fix.FromPx), trimFloat(is.Fix.FromPx)+" px text", 1)
+			add("size:"+trimFloat(is.Fix.FromPx), mGallerySize, i18n.Args{"px": is.Fix.FromPx}, 1)
 		}
 	}
-	var parts []string
+	parts := make([]string, 0, len(order))
 	for _, k := range order {
 		g := groups[k]
-		switch {
-		case strings.HasPrefix(k, "size:"):
-			parts = append(parts, g.phrase)
-		case g.n == 1:
-			parts = append(parts, "a "+g.phrase)
-		default:
-			parts = append(parts, numberWord(g.n)+" "+g.phrase+"s")
+		args := i18n.Args{"count": g.n}
+		for name, v := range g.args {
+			args[name] = v
 		}
+		parts = append(parts, g.m.Text(l, args))
 	}
-	return joinAnd(parts)
+	return i18n.AndList(l.Locale, parts)
 }
 
+// lowerFirst puts a sentence's first word in lower case, inside another
+// sentence; a word written in capitals (SES) keeps them.
 func lowerFirst(s string) string {
 	r := []rune(s)
-	if len(r) > 1 && r[0] >= 'A' && r[0] <= 'Z' && r[1] >= 'a' && r[1] <= 'z' {
-		r[0] += 'a' - 'A'
+	if len(r) > 1 && unicode.IsUpper(r[0]) && unicode.IsLower(r[1]) {
+		r[0] = unicode.ToLower(r[0])
 	}
 	return string(r)
 }

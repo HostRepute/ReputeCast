@@ -13,15 +13,16 @@ import (
 )
 
 type AccessibilityFix struct {
-	ID          uuid.UUID  `json:"id"`
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	CampaignID  uuid.UUID  `json:"campaignId"`
-	ContentHash string     `json:"contentHash"`
-	Kinds       []string   `json:"kinds"`
-	Summary     string     `json:"summary"`
-	Languages   []string   `json:"languages"`
-	FixedBy     *uuid.UUID `json:"fixedBy"`
-	FixedAt     time.Time  `json:"fixedAt"`
+	ID           uuid.UUID       `json:"id"`
+	WorkspaceID  uuid.UUID       `json:"workspaceId"`
+	CampaignID   uuid.UUID       `json:"campaignId"`
+	ContentHash  string          `json:"contentHash"`
+	Kinds        []string        `json:"kinds"`
+	Summary      string          `json:"summary"`
+	Languages    []string        `json:"languages"`
+	FixedBy      *uuid.UUID      `json:"fixedBy"`
+	FixedAt      time.Time       `json:"fixedAt"`
+	SummaryTexts json.RawMessage `json:"summaryTexts"`
 }
 
 type AccessibilityLinkTitle struct {
