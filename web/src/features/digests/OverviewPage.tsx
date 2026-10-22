@@ -356,7 +356,7 @@ function SettingsCard({ d }: { d: Digest }) {
               shares.length ? (
                 <span key="r" className="flex flex-col gap-1">
                   <StackBar label={routeText} height={6} segments={shares.map((s) => ({ value: s.percent, color: routeColors[s.adapter] ?? 'var(--chart-other)' }))} />
-                  <span className="k">{t(m.routeValue, { stream: 'Broadcasts', shares: routeText })}</span>
+                  <span className="k">{t(m.routeValue, { stream: t(m.streamBroadcasts), shares: routeText })}</span>
                 </span>
               ) : (
                 '–'

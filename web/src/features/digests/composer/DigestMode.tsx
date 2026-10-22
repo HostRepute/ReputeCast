@@ -219,7 +219,7 @@ export function FeedTokensMenu({ onInsert }: { onInsert: (token: string) => void
         </MenuItem>
       ))}
       <div className="flex flex-col gap-[3px]" style={{ padding: '6px 10px 4px' }}>
-        <span className={cn(tokenClass, 'self-start')}>issue.items</span>
+        <span className={cn(tokenClass, 'self-start')}>{'issue.items'}</span>
         <span className="k">{t(dc.tokensItems)}</span>
       </div>
       <MenuSeparator />

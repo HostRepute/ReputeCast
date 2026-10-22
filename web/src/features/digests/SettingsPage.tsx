@@ -314,7 +314,7 @@ function FeedCard({ f, set, errors, d, sites }: CardProps & { sites: Schemas['Di
                       set('feedUrl', e.target.value)
                       finder.clear()
                     }}
-                    placeholder="https://blog.example.com/feed/"
+                    placeholder={'https://blog.example.com/feed/'}
                   />
                   <FindButton busy={Boolean(finder.finding)} disabled={!f.feedUrl.trim()} onFind={() => void finder.find(f.feedUrl)} />
                 </span>

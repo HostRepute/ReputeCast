@@ -119,8 +119,9 @@ export function setFeedPreview(mjml: string) {
   listeners.forEach((l) => l())
 }
 
-/** A gray placeholder while the posts load. */
-const placeholder = `<mj-section background-color="#ffffff" padding="24px"><mj-column><mj-text align="center" color="#5B6472" font-size="13px">Feed items</mj-text></mj-column></mj-section>`
+/** A gray placeholder while the posts load, with the block's name in the app language. */
+const placeholder = () =>
+  `<mj-section background-color="#ffffff" padding="24px"><mj-column><mj-text align="center" color="#5B6472" font-size="13px">${tt(dc.blockTitle).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</mj-text></mj-column></mj-section>`
 
 type View = {
   model: Component
@@ -199,7 +200,7 @@ export function loadFeedItems(editor: Editor, { coreMjmlModel, coreMjmlView }: C
         return { start: '<mjml><mj-body>', end: '</mj-body></mjml>' }
       },
       getInnerMjmlTemplate() {
-        return { start: previewMjml || placeholder, end: '' }
+        return { start: previewMjml || placeholder(), end: '' }
       },
       getTemplateFromEl(this: View, sandboxEl: HTMLElement) {
         // The body's wrapper div holds the sections. The block has no child

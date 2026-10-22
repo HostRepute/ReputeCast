@@ -2,7 +2,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { $api, type Schemas } from '@/api/client'
 import { Badge, type Tone } from '@/components/ui/Badge'
 import { Icon } from '@/components/icons/Icon'
-import { t as tt, useT } from '@/i18n'
+import { getI18n, t as tt, useT } from '@/i18n'
+import { formatDecimal } from '@/i18n/regions'
 import { clock, shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { m } from './messages'
@@ -162,9 +163,10 @@ export function dateTime(d: string): string {
   return `${shortDate(d)}, ${clock(d)}`
 }
 
-/** A signed number: "+31", "−1.4" (with a real minus sign). */
+/** A signed number: "+31", "−1.4" (with a real minus sign), "−1,4" in a region format that writes a decimal comma. */
 export function signed(v: number, digits = 0): string {
-  const s = Math.abs(v).toFixed(digits)
+  const region = getI18n().regionFormat
+  const s = region === 'standard' ? Math.abs(v).toFixed(digits) : formatDecimal(region, Math.abs(v), digits)
   if (v > 0) return `+${s}`
   if (v < 0) return `−${s}`
   return s
