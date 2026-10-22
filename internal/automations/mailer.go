@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -180,22 +181,33 @@ var (
 	reImgAlt = regexp.MustCompile(`(?is)\balt\s*=\s*("[^"]+"|'[^']+')`)
 )
 
+var (
+	mCheckNoSubject     = msg("check.noSubject")
+	mCheckEmpty         = msg("check.empty")
+	mCheckNoUnsubscribe = msg("check.noUnsubscribe")
+	mCheckClipped       = msg("check.clipped")
+	mCheckNoAlt         = msg("check.noAlt")
+)
+
 // Check implements ContentChecker.
-func (BasicContentChecks) Check(c EmailContent) string {
+func (BasicContentChecks) Check(c EmailContent) string { return say(english, basicCheck(c)) }
+
+// basicCheck is the first problem BasicContentChecks finds, or nothing.
+func basicCheck(c EmailContent) i18n.Text {
 	switch {
 	case strings.TrimSpace(c.Subject) == "":
-		return "no subject"
+		return txt(mCheckNoSubject)
 	case strings.TrimSpace(c.HTML) == "" && strings.TrimSpace(c.MJML) == "":
-		return "the email is empty"
+		return txt(mCheckEmpty)
 	case !strings.Contains(c.HTML+c.MJML, "unsubscribe_url") && !strings.Contains(strings.ToLower(c.HTML), "unsubscribe"):
-		return "no unsubscribe link"
+		return txt(mCheckNoUnsubscribe)
 	case len(c.HTML) > 102*1024:
-		return "over Gmail's 102 KB clipping limit"
+		return txt(mCheckClipped)
 	}
 	for _, img := range reImg.FindAllString(c.HTML, -1) {
 		if !reImgAlt.MatchString(img) {
-			return "an image has no alt text"
+			return txt(mCheckNoAlt)
 		}
 	}
-	return ""
+	return i18n.Text{}
 }

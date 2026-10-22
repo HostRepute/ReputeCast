@@ -2,15 +2,25 @@ package automations
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/store"
+)
+
+var (
+	mStepsOne        = msg("steps.one")
+	mStepsRange      = msg("steps.range")
+	mStepsList       = msg("steps.list")
+	mDiffLanguages   = msg("diff.languages")
+	mDiffTranslated  = msg("diff.translatedBy")
+	mCheckLangOutdtd = msg("check.languageOutdated")
 )
 
 // EmailLanguages is what flows ask of the content languages domain
@@ -59,34 +69,35 @@ func (s *Service) emailSteps(ctx context.Context, q *store.Queries, ws *store.Wo
 	return out
 }
 
-// steps names step numbers: "step 2", "steps 1 and 3", "steps 1 to 3".
-func stepRange(nums []int) string {
+// stepRange names step numbers: "step 2", "steps 1 and 3", "steps 1 to 3".
+func stepRange(nums []int) i18n.Text {
 	sort.Ints(nums)
 	if len(nums) == 1 {
-		return fmt.Sprintf("step %d", nums[0])
+		return txt(mStepsOne, "n", strconv.Itoa(nums[0]))
 	}
 	run := true
 	for i := 1; i < len(nums); i++ {
 		run = run && nums[i] == nums[i-1]+1
 	}
 	if run && len(nums) > 2 {
-		return fmt.Sprintf("steps %d to %d", nums[0], nums[len(nums)-1])
+		return txt(mStepsRange, "from", strconv.Itoa(nums[0]), "to", strconv.Itoa(nums[len(nums)-1]))
 	}
-	words := make([]string, len(nums))
+	words := make([]i18n.Text, len(nums))
 	for i, n := range nums {
-		words[i] = fmt.Sprint(n)
+		words[i] = name(strconv.Itoa(n))
 	}
-	return "steps " + strings.Join(words[:len(words)-1], ", ") + " and " + words[len(words)-1]
+	return txt(mStepsList, "numbers", andList(words))
 }
 
-func langJoinAnd(items []string) string {
-	switch len(items) {
-	case 0:
-		return ""
-	case 1:
-		return items[0]
+// stepKey identifies a set of step numbers.
+func stepKey(nums []int) string {
+	s := append([]int(nil), nums...)
+	sort.Ints(s)
+	parts := make([]string, len(s))
+	for i, n := range s {
+		parts[i] = strconv.Itoa(n)
 	}
-	return strings.Join(items[:len(items)-1], ", ") + " and " + items[len(items)-1]
+	return strings.Join(parts, ",")
 }
 
 // sameSource reports whether two versions of an email have the same
@@ -154,10 +165,12 @@ func (s *Service) languageDiff(ctx context.Context, q *store.Queries, ws *store.
 	}
 	// One line per set of steps: "Spanish and German versions of steps 1 to 3".
 	bySteps := map[string][]string{}
+	stepsOf := map[string][]int{}
 	nodes := map[string][]string{}
 	for code, nums := range added {
-		k := stepRange(append([]int(nil), nums...))
-		bySteps[k] = append(bySteps[k], languages.NameOf(code))
+		k := stepKey(nums)
+		bySteps[k] = append(bySteps[k], code)
+		stepsOf[k] = nums
 		for _, st := range all {
 			for _, n := range nums {
 				if st.number == n {
@@ -166,27 +179,36 @@ func (s *Service) languageDiff(ctx context.Context, q *store.Queries, ws *store.
 			}
 		}
 	}
+	// In the order the lines always had: by the English of their steps.
 	keys := make([]string, 0, len(bySteps))
 	for k := range bySteps {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
+	sort.Slice(keys, func(i, j int) bool {
+		return say(english, stepRange(stepsOf[keys[i]])) < say(english, stepRange(stepsOf[keys[j]]))
+	})
 	names := make([]string, 0, len(translators))
 	for n := range translators {
 		names = append(names, n)
 	}
 	sort.Strings(names)
 	for i, k := range keys {
-		langs := bySteps[k]
-		sort.Strings(langs)
-		word := "versions"
-		if len(langs) == 1 {
-			word = "version"
+		codes := bySteps[k]
+		sort.Slice(codes, func(a, b int) bool { return languages.NameOf(codes[a]) < languages.NameOf(codes[b]) })
+		langs := make([]i18n.Text, len(codes))
+		for j, c := range codes {
+			langs[j] = langName(c)
 		}
-		item := AutomationDiffItem{Kind: "added", Title: fmt.Sprintf("%s %s of %s", langJoinAnd(langs), word, k), NodeIDs: langUniq(nodes[k])}
+		item := AutomationDiffItem{Kind: "added", NodeIDs: langUniq(nodes[k]),
+			TitleText: txt(mDiffLanguages, "languages", andList(langs), "count", len(codes), "steps", stepRange(stepsOf[k]))}
 		if i == 0 && len(names) > 0 {
-			item.Detail = fmt.Sprintf("Translated by %s.", langJoinAnd(names))
+			who := make([]i18n.Text, len(names))
+			for j, n := range names {
+				who[j] = name(n)
+			}
+			item.DetailText = txt(mDiffTranslated, "names", andList(who))
 		}
+		item.Title, item.Detail = say(english, item.TitleText), say(english, item.DetailText)
 		out = append([]AutomationDiffItem{item}, out...)
 	}
 	return out
@@ -206,7 +228,7 @@ func langUniq(in []string) []string {
 
 // languageChecks warn about outdated language versions ("Step 2's German
 // version is outdated"); they never stop publishing.
-func (s *Service) languageChecks(ctx context.Context, ws *store.Workspace, g AutomationGraph) []AutomationPublishCheck {
+func (s *Service) languageChecks(ctx context.Context, ws *store.Workspace, g AutomationGraph, l i18n.Lang) []AutomationPublishCheck {
 	if s.Languages == nil {
 		return nil
 	}
@@ -218,8 +240,12 @@ func (s *Service) languageChecks(ctx context.Context, ws *store.Workspace, g Aut
 		}
 		sort.Strings(codes)
 		for _, code := range codes {
-			if l := st.langs[code]; l.Status == languages.StatusOutdated && !l.Held {
-				out = append(out, AutomationPublishCheck{Status: "warn", Label: fmt.Sprintf("Step %d’s %s version is outdated", st.number, l.Name)})
+			if v := st.langs[code]; v.Status == languages.StatusOutdated && !v.Held {
+				language := name(v.Name)
+				if l.Locale != i18n.English {
+					language = langName(code)
+				}
+				out = append(out, AutomationPublishCheck{Status: "warn", Label: say(l, txt(mCheckLangOutdtd, "step", strconv.Itoa(st.number), "language", language))})
 			}
 		}
 	}
