@@ -14,13 +14,14 @@ import { Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { T, formatList, useT } from '@/i18n'
 import { clock, count, dayMonthDate, money, shortDate, weekdayDate } from '@/lib/format'
+import { roleName } from '@/lib/roles'
 import { deniedReason, useMe, useWorkspace } from '@/lib/session'
 import '@/features/integrations/integrations.css'
 import { aiBase, AI_FEATURES, referenceOf, useAISettings, useRefreshAI, type AIConnection, type AIFeature, type AISettings, type AITest } from './api'
 import { AIModelCard, AITile } from './catalog'
 import { CapDialog, ChangeModelDialog, ConnectDialog, DisconnectDialog, PricesDialog, ReplaceKeyDialog, TestPanel } from './ConnectDialog'
 import { AI_PROVIDERS, type AIProvider } from './entries'
-import { calendarDay, dollars, seconds, tokens } from './format'
+import { ALT_TEXT_WIDTH, calendarDay, dollars, seconds, tokens } from './format'
 import { m } from './messages'
 import { AINote, EyeOffIcon, featureName, featureSends, LeavesNote, OutcomeBadge, rowFeature, tags } from './parts'
 import './ai.css'
@@ -345,7 +346,7 @@ function capShort(t: ReturnType<typeof useT>, c: AIConnection): string {
 function ReadOnlyNote({ s }: { s: AISettings }) {
   const { me } = useWorkspace()
   const user = useMe().data?.user
-  const values = { ...tags, name: user?.name ?? '', role: me.workspace.roleName, helpers: formatList(s.helpers, 'disjunction') }
+  const values = { ...tags, name: user?.name ?? '', role: roleName({ key: me.workspace.roleKey, name: me.workspace.roleName }), helpers: formatList(s.helpers, 'disjunction') }
   return (
     <AINote tone="neutral">
       <T msg={s.helpers.length ? m.readOnly : m.readOnlyAlone} values={values} />
@@ -573,8 +574,8 @@ function ByMember({ s, c }: { s: AISettings; c: AIConnection }) {
       <div className="ai-cb">{rows.length ? <ShareRows rows={rows} /> : <span className="k">{t(m.nobodyYet)}</span>}</div>
       <div className="ai-foot">
         <span className="k leading-normal">
-          {s.aiUseRoles.length ? `${t(m.aiUseRoles, { roles: formatList(s.aiUseRoles) })} ` : ''}
-          {s.withoutAiUse.slice(0, 3).map((w) => `${t(m.aiUseWithout, { name: w.name, role: w.role })} `)}
+          {s.aiUseRoles.length ? `${t(m.aiUseRoles, { roles: formatList(s.aiUseRoles.map((name) => roleName({ name }))) })} ` : ''}
+          {s.withoutAiUse.slice(0, 3).map((w) => `${t(m.aiUseWithout, { name: w.name, role: roleName({ name: w.role }) })} `)}
           {t(m.aiUseAgents)}
         </span>
       </div>
@@ -614,7 +615,7 @@ function Features({ s }: { s: AISettings }) {
               <div className="ai-fl">
                 <span>{name}</span>
                 <span className="k">
-                  <T msg={featureSends[f]} values={tags} />
+                  <T msg={featureSends[f]} values={{ ...tags, width: ALT_TEXT_WIDTH }} />
                 </span>
                 {!available ? (
                   <span className="ai-warn">
