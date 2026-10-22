@@ -163,6 +163,33 @@
   border-top: 1px solid var(--line-strong);
 }
 
+/* The prompt designer's preview views (push/PromptPage): below 1280 px the
+   four views take two rows of two, each on one line, instead of wrapping
+   inside their buttons. */
+@media (max-width: 1279px) {
+  :root:not([lang='en']) .pp-bar .seg {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+  :root:not([lang='en']) .pp-bar .seg button {
+    white-space: nowrap;
+    justify-content: center;
+  }
+  :root:not([lang='en']) .pp-bar .seg button:nth-child(odd) {
+    border-left: 0;
+  }
+  :root:not([lang='en']) .pp-bar .seg button:nth-child(n + 3) {
+    border-top: 1px solid var(--line-strong);
+  }
+}
+
+/* The mock site's menu in the prompt preview ("Bài viết", "Giới thiệu")
+   keeps each item on one line; the site's name beside it shortens. */
+:root:not([lang='en']) .pp-nav > span {
+  white-space: nowrap;
+}
+
 /* A form's or page's built-in labels row (page-languages/copy): its count
    ("220 trên 220") stays on one line; the longer language name beside it
    wraps instead. */
