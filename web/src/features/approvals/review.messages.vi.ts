@@ -146,7 +146,7 @@ export default translate(mr, {
   // ── Automation ────────────────────────────────────────────────────────
   automationTitle: 'Tự động hóa',
   automationCaption: 'Phiên bản mà phê duyệt sẽ xuất bản',
-  contactsInFlight: 'Liên hệ đang trong luồng',
+  contactsInFlight: 'Liên hệ đang trong quy trình',
 
   // ── Discussion ────────────────────────────────────────────────────────
   discussionTitle: 'Thảo luận',

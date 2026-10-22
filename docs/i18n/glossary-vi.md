@@ -223,7 +223,7 @@ order of the English.
 | event log · raw event · normalized event | nhật ký sự kiện · sự kiện gốc · sự kiện chuẩn hóa | |
 | failover · fallback · primary | chuyển dự phòng · dự phòng · chính | "nhà cung cấp dự phòng", "nhà cung cấp chính" |
 | feedback loop | vòng phản hồi | |
-| flow (an automation's, in sending text) | quy trình tự động | there "luồng" is a stream: "email do các quy trình tự động gửi"; the Automations section names the flow editor's flows |
+| flow (an automation's, in sending text) | quy trình tự động | "luồng" is a stream: "email do các quy trình tự động gửi"; on the Automations screens a flow is "quy trình" |
 | guard (Warm-up page) | ngưỡng bảo vệ | "Tỷ lệ trả thư · ngưỡng bảo vệ 2%" |
 | held (recipients) | tạm giữ | |
 | incident · outage | sự cố · sự cố ngừng hoạt động | |
@@ -336,12 +336,12 @@ fallback "there" is "bạn".
 | automation (one, or the section) | tự động hóa ("Tự động hóa mới") |
 | Branch · Yes · No | Rẽ nhánh · Có · Không |
 | Delay (step) · Wait 10 minutes | Trì hoãn · Chờ 10 phút |
-| double opt-in | đăng ký kép |
+| double opt-in · double opt-in confirmed only | xác nhận hai bước · chỉ người đã hoàn tất xác nhận hai bước |
 | edge (a connection on the canvas) | đường nối |
 | exit · goal · goal rate | thoát · mục tiêu · tỷ lệ đạt mục tiêu |
 | fail over · failover | chuyển dự phòng |
 | Filter (step) | Lọc |
-| flow | luồng (a named stream keeps its capital: "Luồng Tự động hóa") |
+| flow · in the flow · leave the flow | quy trình · trong quy trình · rời quy trình ("quy trình tự động" where the kind needs saying; "luồng" is only a stream: "Luồng Tự động hóa") |
 | List action | Thao tác danh sách |
 | method (HTTP) | phương thức |
 | override (a route) | ghi đè; "route override" on a step is "tuyến riêng" |
@@ -363,7 +363,7 @@ fallback "there" is "bạn".
 | Approve · Reject · Request changes | Phê duyệt · Từ chối · Yêu cầu thay đổi |
 | Bypassed · emergency bypass | Đã bỏ qua · bỏ qua khẩn cấp |
 | comment · Discussion · evidence | nhận xét · Thảo luận · bằng chứng |
-| Contacts in flight | Liên hệ đang trong luồng |
+| Contacts in flight | Liên hệ đang trong quy trình |
 | Invalidated · Approval invalidated | Mất hiệu lực · Phê duyệt không còn hiệu lực |
 | median wait | thời gian chờ trung vị (a median, not an average: not "trung bình") |
 | Pending · Rejected | Đang chờ · Bị từ chối |
