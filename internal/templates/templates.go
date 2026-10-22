@@ -249,7 +249,12 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 		src = "<mjml><mj-body>" + src + "</mj-body></mjml>"
 	}
 	if _, err := mjml.Parse(src); err != nil {
-		return api.Invalid("body.mjml", mMJML.Text(l, i18n.Args{"error": err.Error()}))
+		detail := err.Error()
+		var pe *mjml.ParseError
+		if errors.As(err, &pe) {
+			detail = pe.In(l)
+		}
+		return api.Invalid("body.mjml", mMJML.Text(l, i18n.Args{"error": detail}))
 	}
 	taken, err := q.EmailTemplateNameTaken(ctx, store.EmailTemplateNameTakenParams{WorkspaceID: ws.ID, Kind: in.Kind, Name: in.Name, ID: id})
 	if err != nil {

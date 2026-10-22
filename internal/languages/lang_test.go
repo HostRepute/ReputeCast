@@ -1,6 +1,7 @@
 package languages
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -73,6 +74,21 @@ func TestDiffVersionsInVietnamese(t *testing.T) {
 	if vn[2].Name != "Tiếng Tây Ban Nha" || vn[2].After != "đã xóa" || vn[2].What != "đã xóa phiên bản" {
 		t.Errorf("removed: %+v", vn[2])
 	}
+	// A change stored with an English approval reads in Vietnamese later.
+	raw, err := json.Marshal(en[0].Detail)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var kept VersionChangeDetail
+	if err := json.Unmarshal(raw, &kept); err != nil {
+		t.Fatal(err)
+	}
+	if name, b, a, what := kept.Texts(vi); name != vn[0].Name || b != vn[0].Before || a != vn[0].After || what != vn[0].What {
+		t.Errorf("kept detail: %q %q %q %q", name, b, a, what)
+	}
+	if name, _, a, _ := kept.Texts(i18n.Default); name != "German" || a != en[0].After {
+		t.Errorf("kept detail in English: %q %q", name, a)
+	}
 	// Snapshots taken before blocks kept their refs name them in English.
 	now := after[0]
 	now.Blocks = append([]BlockSnapshot{}, now.Blocks...)
@@ -106,7 +122,7 @@ func TestKeptLabels(t *testing.T) {
 	if lab.English != "link applied from English" {
 		t.Fatalf("English: %q", lab.English)
 	}
-	if got := labelIn(vi, lab.English, lab.raw()); got != "liên kết áp dụng từ Tiếng Anh" {
+	if got := labelIn(vi, lab.English, lab.raw()); got != "liên kết áp dụng từ tiếng Anh" {
 		t.Errorf("Vietnamese: %q", got)
 	}
 	if got := labelIn(i18n.Default, lab.English, lab.raw()); got != lab.English {

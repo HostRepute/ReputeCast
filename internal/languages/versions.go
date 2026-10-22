@@ -327,7 +327,7 @@ func (s *Service) saveVersion(ctx context.Context, q *store.Queries, o Owner, p 
 		src = mjml.SetHeadMeta(src, in.Subject, in.Preheader)
 		res := mjml.Compile(src)
 		if len(res.Errors) > 0 {
-			return Saved{}, cur, api.Invalid("body.mjml", mMJML.Text(langOf(ctx), i18n.Args{"error": res.Errors[0].Message}))
+			return Saved{}, cur, api.Invalid("body.mjml", mMJML.Text(langOf(ctx), i18n.Args{"error": res.Errors[0].In(langOf(ctx))}))
 		}
 		html = res.HTML
 	}

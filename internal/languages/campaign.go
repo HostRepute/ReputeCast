@@ -303,7 +303,7 @@ func (s *Service) ApplyCampaignChange(ctx context.Context, ws *store.Workspace, 
 			if strings.TrimSpace(mj) != "" {
 				res := mjml.Compile(mjml.SetHeadMeta(mj, v.row.Subject, v.row.Preheader))
 				if len(res.Errors) > 0 {
-					return api.Invalid("body.to", named(langOf(ctx), mApplyDoesntCompile, v.row.Language, i18n.Args{"error": res.Errors[0].Message}))
+					return api.Invalid("body.to", named(langOf(ctx), mApplyDoesntCompile, v.row.Language, i18n.Args{"error": res.Errors[0].In(langOf(ctx))}))
 				}
 				html = res.HTML
 			}
@@ -469,7 +469,7 @@ func (s *Service) loadView(ctx context.Context, q *store.Queries, o Owner, st so
 func (s *Service) saveWithLinks(ctx context.Context, q *store.Queries, o Owner, p *authz.Principal, v view, st sourceState, mj string, fix func(Links, []Block) Links, lab label) error {
 	res := mjml.Compile(mjml.SetHeadMeta(mj, v.row.Subject, v.row.Preheader))
 	if len(res.Errors) > 0 {
-		return api.Invalid("body", named(langOf(ctx), mDoesntCompile, v.row.Language, i18n.Args{"error": res.Errors[0].Message}))
+		return api.Invalid("body", named(langOf(ctx), mDoesntCompile, v.row.Language, i18n.Args{"error": res.Errors[0].In(langOf(ctx))}))
 	}
 	_, t, err := s.saveVersion(ctx, q, o, p, v.row.Language, SaveInput{BaseVersion: int(v.row.Version), Subject: v.row.Subject, Preheader: v.row.Preheader,
 		MJML: mj, HTML: res.HTML, ABTest: v.row.AbTest, Label: lab.English, LabelText: lab.Text, Source: "manual"})

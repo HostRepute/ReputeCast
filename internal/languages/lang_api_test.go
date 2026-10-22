@@ -37,7 +37,7 @@ func TestLanguagesInVietnamese(t *testing.T) {
 		t.Fatalf("names in English: %+v", list.Languages)
 	}
 	p := vi.Do("POST", ws+"/languages", map[string]any{"code": "ar"}).MustStatus(t, 422).Problem(t)
-	if p["detail"] != "Chưa hỗ trợ ngôn ngữ viết từ phải sang trái. Liên hệ dùng Tiếng Ả Rập nhận Tiếng Anh." {
+	if p["detail"] != "Chưa hỗ trợ ngôn ngữ viết từ phải sang trái. Liên hệ dùng tiếng Ả Rập nhận tiếng Anh." {
 		t.Fatalf("right to left, in Vietnamese: %v", p)
 	}
 
@@ -48,7 +48,7 @@ func TestLanguagesInVietnamese(t *testing.T) {
 	en.Do("PUT", camp+"/content", map[string]any{"baseVersion": 1, "subject": "Scheduled rollouts", "mjml": draft("Hi, you can now schedule flag changes.", "")}).MustStatus(t, 200)
 	en.Do("POST", base, map[string]any{"language": "es"}).MustStatus(t, 201)
 	p = vi.Do("POST", base, map[string]any{"language": "es"}).MustStatus(t, 409).Problem(t)
-	if p["detail"] != "Email đã có phiên bản Tiếng Tây Ban Nha." {
+	if p["detail"] != "Email đã có phiên bản tiếng Tây Ban Nha." {
 		t.Fatalf("already has it, in Vietnamese: %v", p)
 	}
 
@@ -57,7 +57,7 @@ func TestLanguagesInVietnamese(t *testing.T) {
 	type history struct{ Items []struct{ Label string } }
 	var h history
 	vi.Do("GET", base+"/es/versions", nil).MustStatus(t, 200).JSON(t, &h)
-	if len(h.Items) != 1 || h.Items[0].Label != "chép từ Tiếng Anh" {
+	if len(h.Items) != 1 || h.Items[0].Label != "chép từ tiếng Anh" {
 		t.Fatalf("history in Vietnamese: %+v", h)
 	}
 	en.Do("GET", base+"/es/versions", nil).MustStatus(t, 200).JSON(t, &h)

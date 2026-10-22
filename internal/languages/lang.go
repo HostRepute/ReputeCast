@@ -10,12 +10,14 @@ import (
 	"sync"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"golang.org/x/text/language"
 	"golang.org/x/text/language/display"
 	"golang.org/x/text/unicode/norm"
 
+	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -111,9 +113,10 @@ var (
 // langOf is the language the request reads in.
 func langOf(ctx context.Context) i18n.Lang { return i18n.LangFrom(ctx) }
 
-// named is a message whose {language} names a language code in l.
+// named is a message whose {language} names a language code in l, as a
+// name reads inside a sentence.
 func named(l i18n.Lang, m i18n.Msg, code string, args i18n.Args) string {
-	a := i18n.Args{"language": NameIn(l, code)}
+	a := i18n.Args{"language": nameInSentence(l, code)}
 	for k, v := range args {
 		a[k] = v
 	}
@@ -125,10 +128,11 @@ var (
 	namers   = map[i18n.Locale]display.Namer{}
 )
 
-// NameIn names a language in a reader's language, as browsers name it
-// (CLDR): "Spanish", "Tiếng Tây Ban Nha". English readers (and the
-// pseudo-locale) get the catalog's English name, NameOf; a code the
-// catalog doesn't have is named by its code.
+// NameIn names a language in a reader's language, as a label: "Spanish",
+// "Tiếng Tây Ban Nha". English readers (and the pseudo-locale) get the
+// catalog's English name, NameOf. Other readers get the names the app
+// uses elsewhere (accessibility.LanguageNameIn), else CLDR's, as browsers
+// name languages; a code the catalog doesn't have is named by its code.
 func NameIn(l i18n.Lang, code string) string {
 	if l.Locale == "" || l.Locale == i18n.English || l.Locale == i18n.Pseudo {
 		return NameOf(code)
@@ -136,6 +140,9 @@ func NameIn(l i18n.Lang, code string) string {
 	lang, ok := Lookup(code)
 	if !ok {
 		return code
+	}
+	if n := accessibility.LanguageNameIn(l, lang.Code); n != "" && n != lang.Code {
+		return n
 	}
 	tag, err := language.Parse(lang.Code)
 	if err != nil {
@@ -154,6 +161,21 @@ func NameIn(l i18n.Lang, code string) string {
 		}
 	}
 	return lang.Name
+}
+
+// nameInSentence is a language's name inside a sentence: Vietnamese names
+// start with the common noun "tiếng", in lower case there ("bằng tiếng
+// Anh").
+func nameInSentence(l i18n.Lang, code string) string {
+	name := NameIn(l, code)
+	if l.Locale != i18n.Vietnamese {
+		return name
+	}
+	r, n := utf8.DecodeRuneInString(name)
+	if r == utf8.RuneError {
+		return name
+	}
+	return string(unicode.ToLower(r)) + name[n:]
 }
 
 // plainKey lowercases a text and drops its diacritics, to search and sort
@@ -236,7 +258,7 @@ func withLanguage(l i18n.Lang, args i18n.Args) i18n.Args {
 	if !ok {
 		return args
 	}
-	out := i18n.Args{"language": NameIn(l, code)}
+	out := i18n.Args{"language": nameInSentence(l, code)}
 	for k, v := range args {
 		out[k] = v
 	}

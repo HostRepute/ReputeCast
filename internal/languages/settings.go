@@ -342,7 +342,7 @@ func catalogIn(l i18n.Lang) []Language {
 
 // rtlRefusal is the board's sentence for right-to-left languages.
 func rtlRefusal(rl i18n.Lang, l Language, fallback string) error {
-	return api.Invalid("body.code", mRTL.Text(rl, i18n.Args{"language": NameIn(rl, l.Code), "fallback": NameIn(rl, fallback)}))
+	return api.Invalid("body.code", mRTL.Text(rl, i18n.Args{"language": nameInSentence(rl, l.Code), "fallback": nameInSentence(rl, fallback)}))
 }
 
 // AddLanguage adds a language to the workspace.
