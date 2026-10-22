@@ -3,10 +3,119 @@ package automations
 import (
 	"fmt"
 	"strings"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // The canvas (web/src/features/automations/graph.ts) renders the same titles;
-// keep the two in step.
+// keep the two in step. Each name here is a text (lang.go): the exported
+// functions write it in English, for agents, webhook payloads and the audit
+// log; screens write it in the reader's language with say.
+
+var (
+	mTypeTrigger = msg("type.trigger")
+	mTypeDelay   = msg("type.delay")
+	mTypeEmail   = msg("type.email")
+	mTypeBranch  = msg("type.branch")
+	mTypeFilter  = msg("type.filter")
+	mTypeSplit   = msg("type.split")
+	mTypeWebhook = msg("type.webhook")
+	mTypeList    = msg("type.list")
+	mTypeGoal    = msg("type.goal")
+	mTypeExit    = msg("type.exit")
+	mTypeSMS     = msg("type.sms")
+	mTypeStep    = msg("type.step")
+
+	mTriggerJoinedList        = msg("trigger.joinedList")
+	mTriggerFormSubmitted     = msg("trigger.formSubmitted")
+	mTriggerTagAdded          = msg("trigger.tagAdded")
+	mTriggerAPIEvent          = msg("trigger.apiEvent")
+	mTriggerDateField         = msg("trigger.dateField")
+	mTriggerScoreCrosses      = msg("trigger.scoreCrosses")
+	mTriggerPollAnswered      = msg("trigger.pollAnswered")
+	mTriggerBoughtProduct     = msg("trigger.boughtProduct")
+	mTriggerMilestoneReached  = msg("trigger.milestoneReached")
+	mTriggerOrderPlaced       = msg("trigger.orderPlaced")
+	mTriggerFirstOrder        = msg("trigger.firstOrder")
+	mTriggerAbandonedCheckout = msg("trigger.abandonedCheckout")
+	mTriggerOther             = msg("trigger.other")
+	mTriggerLabel             = msg("trigger.label")
+	mTriggerNone              = msg("trigger.none")
+
+	mRefAList          = msg("ref.aList")
+	mRefAForm          = msg("ref.aForm")
+	mRefAPoll          = msg("ref.aPoll")
+	mRefAMilestone     = msg("ref.aMilestone")
+	mRefAnyMilestone   = msg("ref.anyMilestone")
+	mRefAStore         = msg("ref.aStore")
+	mRefAnyProduct     = msg("ref.anyProduct")
+	mRefDeletedProduct = msg("ref.deletedProduct")
+	mRefRemovedStep    = msg("ref.removedStep")
+	mRefTrigger        = msg("ref.trigger")
+	mRefSendEmail      = msg("ref.sendEmail")
+	mRefAnyEmail       = msg("ref.anyEmail")
+	mRefAnyText        = msg("ref.anyText")
+	mRefMilestone      = msg("ref.milestone")
+
+	mDuration          = msg("duration")
+	mDurationAdjective = msg("durationAdjective")
+
+	mCondOpened           = msg("cond.opened")
+	mCondOpenedWithin     = msg("cond.openedWithin")
+	mCondClickedURL       = msg("cond.clickedUrl")
+	mCondClickedURLWithin = msg("cond.clickedUrlWithin")
+	mCondClickedIn        = msg("cond.clickedIn")
+	mCondClickedInWithin  = msg("cond.clickedInWithin")
+	mCondTagged           = msg("cond.tagged")
+	mCondInList           = msg("cond.inList")
+	mCondSentEvent        = msg("cond.sentEvent")
+	mCondBought           = msg("cond.bought")
+	mCondPlacedOrder      = msg("cond.placedOrder")
+	mCondFieldSet         = msg("cond.fieldSet")
+	mCondFieldEmpty       = msg("cond.fieldEmpty")
+	mCondFieldNot         = msg("cond.fieldNot")
+	mCondFieldContains    = msg("cond.fieldContains")
+	mCondFieldIs          = msg("cond.fieldIs")
+	mCondFieldOneOf       = msg("cond.fieldOneOf")
+	mCondSMSConsent       = msg("cond.smsConsent")
+	mCondSMSConsentAny    = msg("cond.smsConsentAny")
+	mCondSMSClicked       = msg("cond.smsClicked")
+	mCondSMSClickedWithin = msg("cond.smsClickedWithin")
+	mCondSMSReplied       = msg("cond.smsReplied")
+	mCondSMSRepliedWithin = msg("cond.smsRepliedWithin")
+
+	mTitlePickTrigger    = msg("title.pickTrigger")
+	mTitleWait           = msg("title.wait")
+	mTitleWaitFor        = msg("title.waitFor")
+	mTitlePickEmail      = msg("title.pickEmail")
+	mTitleBranch         = msg("title.branch")
+	mTitleSetCondition   = msg("title.setCondition")
+	mTitleFilter         = msg("title.filter")
+	mTitleSplitOn        = msg("title.splitOn")
+	mTitleSetURL         = msg("title.setUrl")
+	mTitlePickAction     = msg("title.pickAction")
+	mTitleAddToList      = msg("title.addToList")
+	mTitleRemoveFromList = msg("title.removeFromList")
+	mTitleAddTag         = msg("title.addTag")
+	mTitleRemoveTag      = msg("title.removeTag")
+	mTitleUnsubscribeAll = msg("title.unsubscribeAll")
+	mTitleExit           = msg("title.exit")
+	mTitleSMS            = msg("title.sms")
+	mTitleWriteText      = msg("title.writeText")
+
+	mGoalEnd         = msg("goal.end")
+	mGoalClickedURL  = msg("goal.clickedUrl")
+	mGoalClickedAny  = msg("goal.clickedAny")
+	mGoalOpened      = msg("goal.opened")
+	mGoalTagged      = msg("goal.tagged")
+	mGoalJoined      = msg("goal.joined")
+	mGoalJoinedAny   = msg("goal.joinedAny")
+	mGoalSent        = msg("goal.sent")
+	mGoalBought      = msg("goal.bought")
+	mGoalBoughtAny   = msg("goal.boughtAny")
+	mGoalPlacedOrder = msg("goal.placedOrder")
+	mGoalOther       = msg("goal.other")
+)
 
 func (r *Refs) emailName(id string) string {
 	if r == nil || r.EmailNames == nil {
@@ -16,162 +125,201 @@ func (r *Refs) emailName(id string) string {
 }
 
 // TypeName is the step type as the palette names it.
-func TypeName(t string) string {
+func TypeName(t string) string { return say(english, typeName(t)) }
+
+func typeName(t string) i18n.Text {
 	switch t {
 	case NodeTrigger:
-		return "Trigger"
+		return txt(mTypeTrigger)
 	case NodeDelay:
-		return "Delay"
+		return txt(mTypeDelay)
 	case NodeEmail:
-		return "Send email"
+		return txt(mTypeEmail)
 	case NodeBranch:
-		return "Branch"
+		return txt(mTypeBranch)
 	case NodeFilter:
-		return "Filter"
+		return txt(mTypeFilter)
 	case NodeSplit:
-		return "A/B split"
+		return txt(mTypeSplit)
 	case NodeWebhook:
-		return "Webhook"
+		return txt(mTypeWebhook)
 	case NodeList:
-		return "List action"
+		return txt(mTypeList)
 	case NodeGoal:
-		return "Goal"
+		return txt(mTypeGoal)
 	case NodeExit:
-		return "Exit"
+		return txt(mTypeExit)
 	case NodeSMS:
-		return "Send SMS"
+		return txt(mTypeSMS)
 	}
-	return "Step"
+	return txt(mTypeStep)
 }
 
 // TriggerKindLabel names a trigger kind ("Joined list").
-func TriggerKindLabel(kind string) string {
+func TriggerKindLabel(kind string) string { return say(english, triggerKindLabel(kind)) }
+
+func triggerKindLabel(kind string) i18n.Text {
 	switch kind {
 	case TriggerJoinedList:
-		return "Joined list"
+		return txt(mTriggerJoinedList)
 	case TriggerFormSubmitted:
-		return "Form submitted"
+		return txt(mTriggerFormSubmitted)
 	case TriggerTagAdded:
-		return "Tag added"
+		return txt(mTriggerTagAdded)
 	case TriggerAPIEvent:
-		return "API event"
+		return txt(mTriggerAPIEvent)
 	case TriggerDateField:
-		return "Date field"
+		return txt(mTriggerDateField)
 	case TriggerScoreCrosses:
-		return "Score crosses…"
+		return txt(mTriggerScoreCrosses)
 	case TriggerPollAnswered:
-		return "Answered a poll or survey"
+		return txt(mTriggerPollAnswered)
 	case TriggerBoughtProduct:
-		return "Bought a product"
+		return txt(mTriggerBoughtProduct)
 	case TriggerMilestoneReached:
-		return "Reached a milestone"
+		return txt(mTriggerMilestoneReached)
 	case TriggerOrderPlaced:
-		return "Order placed"
+		return txt(mTriggerOrderPlaced)
 	case TriggerFirstOrder:
-		return "First order"
+		return txt(mTriggerFirstOrder)
 	case TriggerAbandonedCheckout:
-		return "Abandoned checkout"
+		return txt(mTriggerAbandonedCheckout)
 	}
-	return "Trigger"
+	return txt(mTriggerOther)
 }
 
 // TriggerRef is what a trigger points at, for "Joined list · Weekly Digest".
 func TriggerRef(t *AutomationTrigger, refs *Refs) string {
+	return say(english, triggerRef(t, refs))
+}
+
+// triggerRef is empty (no ID, no arguments) when the trigger points at nothing.
+func triggerRef(t *AutomationTrigger, refs *Refs) i18n.Text {
 	if t == nil {
-		return ""
+		return i18n.Text{}
 	}
 	switch t.Kind {
 	case TriggerJoinedList:
 		if refs != nil {
 			if n, ok := refs.Lists[t.ListID]; ok {
-				return n
+				return nameOrNothing(n)
 			}
 		}
-		return "a list"
+		return txt(mRefAList)
 	case TriggerFormSubmitted:
 		if refs != nil {
 			if n, ok := refs.Forms[t.FormID]; ok {
-				return n
+				return nameOrNothing(n)
 			}
 		}
-		return "a form"
+		return txt(mRefAForm)
 	case TriggerTagAdded:
-		return t.Tag
+		return nameOrNothing(t.Tag)
 	case TriggerAPIEvent:
-		return t.Event
+		return nameOrNothing(t.Event)
 	case TriggerDateField:
-		return t.Field
+		return nameOrNothing(t.Field)
 	case TriggerScoreCrosses:
 		return scoreTriggerRef(t)
 	case TriggerPollAnswered:
 		if refs != nil {
 			if n, ok := refs.Polls[t.Poll]; ok {
-				return n
+				return nameOrNothing(n)
 			}
 		}
-		return "a poll"
+		return txt(mRefAPoll)
 	case TriggerBoughtProduct:
 		return productRef(t.ProductID, refs)
 	case TriggerMilestoneReached:
 		if t.MilestoneID == "" {
-			return "any milestone"
+			return txt(mRefAnyMilestone)
 		}
 		if refs != nil {
+			if m, ok := refs.milestones[t.MilestoneID]; ok {
+				return milestoneText(m.count, m.reward)
+			}
 			if n, ok := refs.Milestones[t.MilestoneID]; ok {
-				return n
+				return nameOrNothing(n)
 			}
 		}
-		return "a milestone"
+		return txt(mRefAMilestone)
 	case TriggerOrderPlaced, TriggerFirstOrder, TriggerAbandonedCheckout:
 		if refs != nil {
 			if n, ok := refs.Stores[t.Store]; ok {
-				return n
+				return nameOrNothing(n)
 			}
 		}
-		return "a store"
+		return txt(mRefAStore)
 	}
-	return ""
+	return i18n.Text{}
+}
+
+// nameOrNothing is a name, or nothing when it's empty.
+func nameOrNothing(s string) i18n.Text {
+	if s == "" {
+		return i18n.Text{}
+	}
+	return name(s)
+}
+
+// milestone is a referral milestone as a flow names it.
+type milestone struct {
+	count  int32
+	reward string
+}
+
+// milestoneText is how a flow names a referral milestone: "3 referrals ·
+// The Acme Field Guide".
+func milestoneText(count int32, reward string) i18n.Text {
+	return txt(mRefMilestone, "count", count, "reward", reward)
 }
 
 // productRef names a "Bought a product" trigger's or goal's product: any
 // product, or one that's gone.
-func productRef(id string, refs *Refs) string {
+func productRef(id string, refs *Refs) i18n.Text {
 	if id == "" {
-		return "any product"
+		return txt(mRefAnyProduct)
 	}
 	if refs != nil {
 		if n, ok := refs.Products[id]; ok {
-			return n
+			return name(n)
 		}
 	}
-	return "a deleted product"
+	return txt(mRefDeletedProduct)
 }
 
 // TriggerLabel is the list's trigger column: "Joined list · Weekly Digest".
 func TriggerLabel(t *AutomationTrigger, refs *Refs) string {
+	return say(english, triggerLabel(t, refs))
+}
+
+func triggerLabel(t *AutomationTrigger, refs *Refs) i18n.Text {
 	if t == nil || t.Kind == "" {
-		return "No trigger yet"
+		return txt(mTriggerNone)
 	}
-	ref := TriggerRef(t, refs)
-	if ref == "" {
-		return TriggerKindLabel(t.Kind)
+	ref := triggerRef(t, refs)
+	if emptyText(ref) {
+		return triggerKindLabel(t.Kind)
 	}
-	return TriggerKindLabel(t.Kind) + " · " + ref
+	return txt(mTriggerLabel, "kind", triggerKindLabel(t.Kind), "ref", ref)
 }
 
 // DurationText reads "10 minutes", "1 day", "2 weeks".
-func DurationText(d *AutomationDuration) string {
+func DurationText(d *AutomationDuration) string { return say(english, durationText(d)) }
+
+func durationText(d *AutomationDuration) i18n.Text {
 	if d == nil {
-		return ""
+		return i18n.Text{}
 	}
-	unit := strings.TrimSuffix(d.Unit, "s")
-	if unit == "" {
-		unit = "day"
+	return txt(mDuration, "unit", d.Unit, "n", d.Amount)
+}
+
+// durationAdjective reads "2-day", "10-minute".
+func durationAdjective(d *AutomationDuration) i18n.Text {
+	if d == nil {
+		return i18n.Text{}
 	}
-	if d.Amount == 1 {
-		return "1 " + unit
-	}
-	return fmt.Sprintf("%d %ss", d.Amount, unit)
+	return txt(mDurationAdjective, "unit", d.Unit, "n", d.Amount)
 }
 
 // emailPrefix is the part of an email name before its quoted subject:
@@ -230,54 +378,65 @@ func emailNodeName(n AutomationNode, refs *Refs) string {
 // NodeRef is how other text refers to a step: an email by its prefix
 // ("Step 2"), anything else by its label or title.
 func NodeRef(g AutomationGraph, n AutomationNode, refs *Refs) string {
+	return say(english, nodeRef(g, n, refs))
+}
+
+func nodeRef(g AutomationGraph, n AutomationNode, refs *Refs) i18n.Text {
 	if n.Data.Label != "" {
-		return n.Data.Label
+		return name(n.Data.Label)
 	}
 	if n.Type == NodeEmail {
-		name := emailNodeName(n, refs)
-		if p := emailPrefix(name); p != "" {
-			return p
+		nm := emailNodeName(n, refs)
+		if p := emailPrefix(nm); p != "" {
+			return name(p)
 		}
-		if name != "" {
-			return name
+		if nm != "" {
+			return name(nm)
 		}
-		return "Send email"
+		return txt(mRefSendEmail)
 	}
-	return NodeTitle(g, n, refs)
+	return nodeTitle(g, n, refs)
 }
 
 // inlineRef is a lower-case reference for running text ("step 1").
-func inlineRef(g AutomationGraph, id string, refs *Refs) string {
+func inlineRef(g AutomationGraph, id string, refs *Refs) i18n.Text {
 	n := g.Node(id)
 	if n == nil {
-		return "a removed step"
+		return txt(mRefRemovedStep)
 	}
 	if n.Type == NodeEmail && n.Data.Label == "" {
-		if name := emailNodeName(*n, refs); name != "" {
-			return lowerFirst(EmailShortRef(name))
+		if nm := emailNodeName(*n, refs); nm != "" {
+			return lower(name(EmailShortRef(nm)))
 		}
 	}
-	return lowerFirst(NodeRef(g, *n, refs))
+	return lower(nodeRef(g, *n, refs))
 }
 
-// stepName names a step in a sentence: `Branch "Opened step 1 within 2 days?"`.
-func stepName(g AutomationGraph, n AutomationNode, refs *Refs) string {
+// stepName names a step in a sentence: `branch "Opened step 1 within 2 days?"`.
+func stepName(g AutomationGraph, n AutomationNode, refs *Refs) i18n.Text {
 	if n.Type == NodeTrigger {
-		return "the trigger"
+		return txt(mRefTrigger)
 	}
-	return fmt.Sprintf("%s %s", strings.ToLower(TypeName(n.Type)[:1])+TypeName(n.Type)[1:], quote(NodeRef(g, n, refs)))
+	return txt(mStepNamed, "type", lowerType(typeName(n.Type)), "step", nodeRef(g, n, refs))
 }
 
-// conditionPhrase reads a condition after "Only contacts …" or as a question.
-func conditionPhrase(g AutomationGraph, c *AutomationCondition, refs *Refs) string {
+// conditionPhrase reads a condition after "Only contacts …" or as a
+// question; it's empty for a condition it can't read.
+func conditionPhrase(g AutomationGraph, c *AutomationCondition, refs *Refs) i18n.Text {
 	if c == nil {
-		return ""
+		return i18n.Text{}
 	}
-	within := ""
+	var within i18n.Text
 	if c.Within != nil && c.Within.Amount > 0 {
-		within = " within " + DurationText(c.Within)
+		within = durationText(c.Within)
 	}
-	target := "any email"
+	withWindow := func(plain, windowed i18n.Msg, kv ...any) i18n.Text {
+		if emptyText(within) {
+			return txt(plain, kv...)
+		}
+		return txt(windowed, append(kv, "duration", within)...)
+	}
+	target := txt(mRefAnyEmail)
 	if c.Step != "" {
 		target = inlineRef(g, c.Step, refs)
 	}
@@ -285,178 +444,187 @@ func conditionPhrase(g AutomationGraph, c *AutomationCondition, refs *Refs) stri
 	case CondSMSConsent, CondSMSClicked, CondSMSReplied:
 		return smsPhrase(g, c, refs, within)
 	case "opened":
-		return "opened " + target + within
+		return withWindow(mCondOpened, mCondOpenedWithin, "step", target)
 	case "clicked":
 		if c.URLContains != "" {
-			return fmt.Sprintf("clicked a %s link%s", c.URLContains, within)
+			return withWindow(mCondClickedURL, mCondClickedURLWithin, "url", c.URLContains)
 		}
-		return "clicked a link in " + target + within
+		return withWindow(mCondClickedIn, mCondClickedInWithin, "step", target)
 	case "tag":
-		return "tagged " + c.Tag
+		return txt(mCondTagged, "tag", c.Tag)
 	case "list":
-		name := "a list"
+		list := txt(mRefAList)
 		if refs != nil && refs.Lists[c.ListID] != "" {
-			name = refs.Lists[c.ListID]
+			list = name(refs.Lists[c.ListID])
 		}
-		return "in " + name
+		return txt(mCondInList, "list", list)
 	case "event":
-		return "sent " + c.Event
+		return txt(mCondSentEvent, "event", c.Event)
 	case TriggerBoughtProduct:
-		return "bought " + productRef(c.ProductID, refs)
+		return txt(mCondBought, "product", productRef(c.ProductID, refs))
 	case ConditionPlacedOrder:
-		return "placed an order"
+		return txt(mCondPlacedOrder)
 	case "field":
 		switch c.Op {
 		case "is_set":
-			return c.Field + " is set"
+			return txt(mCondFieldSet, "field", c.Field)
 		case "is_not_set":
-			return c.Field + " is empty"
+			return txt(mCondFieldEmpty, "field", c.Field)
 		case "not_equals":
-			return fmt.Sprintf("%s isn't %s", c.Field, c.Value)
+			return txt(mCondFieldNot, "field", c.Field, "value", c.Value)
 		case "contains":
-			return fmt.Sprintf("%s contains %s", c.Field, c.Value)
+			return txt(mCondFieldContains, "field", c.Field, "value", c.Value)
 		case "is_one_of":
-			return fmt.Sprintf("%s is %s", c.Field, orValues(c.Value))
+			return txt(mCondFieldOneOf, "field", c.Field, "values", orValuesText(c.Value))
 		}
-		return fmt.Sprintf("%s is %s", c.Field, c.Value)
+		return txt(mCondFieldIs, "field", c.Field, "value", c.Value)
 	}
-	return ""
+	return i18n.Text{}
 }
 
 // NodeTitle is the bold line on the canvas node.
 func NodeTitle(g AutomationGraph, n AutomationNode, refs *Refs) string {
+	return say(english, nodeTitle(g, n, refs))
+}
+
+func nodeTitle(g AutomationGraph, n AutomationNode, refs *Refs) i18n.Text {
 	d := n.Data
 	switch n.Type {
 	case NodeTrigger:
 		if d.Trigger == nil || d.Trigger.Kind == "" {
-			return "Pick a trigger"
+			return txt(mTitlePickTrigger)
 		}
-		if ref := TriggerRef(d.Trigger, refs); ref != "" {
+		if ref := triggerRef(d.Trigger, refs); !emptyText(ref) {
 			return ref
 		}
-		return TriggerKindLabel(d.Trigger.Kind)
+		return triggerKindLabel(d.Trigger.Kind)
 	case NodeDelay:
 		if d.Delay == nil {
-			return "Wait"
+			return txt(mTitleWait)
 		}
-		return "Wait " + DurationText(d.Delay)
+		return txt(mTitleWaitFor, "duration", durationText(d.Delay))
 	case NodeEmail:
-		if name := emailNodeName(n, refs); name != "" {
-			return name
+		if nm := emailNodeName(n, refs); nm != "" {
+			return name(nm)
 		}
-		return "Pick an email"
+		return txt(mTitlePickEmail)
 	case NodeBranch:
 		if d.Label != "" {
-			return d.Label
+			return name(d.Label)
 		}
-		if p := conditionPhrase(g, d.Condition, refs); p != "" {
-			return capFirst(p) + "?"
+		if p := conditionPhrase(g, d.Condition, refs); !emptyText(p) {
+			return txt(mTitleBranch, "condition", upper(p))
 		}
-		return "Set a condition"
+		return txt(mTitleSetCondition)
 	case NodeFilter:
-		if p := conditionPhrase(g, d.Condition, refs); p != "" {
-			return "Only contacts " + p
+		if p := conditionPhrase(g, d.Condition, refs); !emptyText(p) {
+			return txt(mTitleFilter, "condition", p)
 		}
-		return "Set a condition"
+		return txt(mTitleSetCondition)
 	case NodeSplit:
-		parts := make([]string, 0, len(d.Variants))
-		for _, v := range d.Variants {
-			parts = append(parts, fmt.Sprint(v.Weight))
-		}
-		title := strings.Join(parts, " / ")
+		weights := name(splitWeights(n))
 		if len(d.Variants) > 0 {
 			if next := g.NextOnPath(n.ID, d.Variants[0].Key); next != "" {
-				title += " on " + inlineRef(g, next, refs)
+				return txt(mTitleSplitOn, "weights", weights, "step", inlineRef(g, next, refs))
 			}
 		}
-		return title
+		return weights
 	case NodeWebhook:
 		if d.Webhook != nil && d.Webhook.Name != "" {
-			return d.Webhook.Name
+			return name(d.Webhook.Name)
 		}
 		if d.Webhook != nil && d.Webhook.URL != "" {
-			return hostOf(d.Webhook.URL)
+			return name(hostOf(d.Webhook.URL))
 		}
-		return "Set a URL"
+		return txt(mTitleSetURL)
 	case NodeList:
 		a := d.Action
 		if a == nil {
-			return "Pick an action"
+			return txt(mTitlePickAction)
 		}
-		list := "a list"
+		list := txt(mRefAList)
 		if refs != nil && refs.Lists[a.ListID] != "" {
-			list = refs.Lists[a.ListID]
+			list = name(refs.Lists[a.ListID])
 		}
 		switch a.Kind {
 		case "add_list":
-			return "Add to " + list
+			return txt(mTitleAddToList, "list", list)
 		case "remove_list":
-			return "Remove from " + list
+			return txt(mTitleRemoveFromList, "list", list)
 		case "add_tag":
-			return "Add tag " + a.Tag
+			return txt(mTitleAddTag, "tag", a.Tag)
 		case "remove_tag":
-			return "Remove tag " + a.Tag
+			return txt(mTitleRemoveTag, "tag", a.Tag)
 		case "unsubscribe_all":
-			return "Unsubscribe from all lists"
+			return txt(mTitleUnsubscribeAll)
 		}
-		return "Pick an action"
+		return txt(mTitlePickAction)
 	case NodeGoal:
 		return goalTitle(d.Condition, refs)
 	case NodeExit:
 		if d.Label != "" {
-			return d.Label
+			return name(d.Label)
 		}
-		return "Leave the flow · stays on the list"
+		return txt(mTitleExit)
 	case NodeSMS:
 		if d.Label != "" {
-			return d.Label
+			return name(d.Label)
 		}
 		if d.SMS != nil && strings.TrimSpace(d.SMS.Body) != "" {
-			return "Send SMS"
+			return txt(mTitleSMS)
 		}
-		return "Write the text"
+		return txt(mTitleWriteText)
 	}
-	return TypeName(n.Type)
+	return typeName(n.Type)
 }
 
-func goalTitle(c *AutomationCondition, refs *Refs) string {
+// splitWeights reads an A/B split's weights: "50 / 50".
+func splitWeights(n AutomationNode) string {
+	parts := make([]string, 0, len(n.Data.Variants))
+	for _, v := range n.Data.Variants {
+		parts = append(parts, fmt.Sprint(v.Weight))
+	}
+	return strings.Join(parts, " / ")
+}
+
+func goalTitle(c *AutomationCondition, refs *Refs) i18n.Text {
 	if c == nil {
-		return "Reached the end of the flow"
+		return txt(mGoalEnd)
 	}
 	switch c.Kind {
 	case "clicked":
 		if c.URLContains != "" {
-			return fmt.Sprintf("Clicked a %s link", c.URLContains)
+			return txt(mGoalClickedURL, "url", c.URLContains)
 		}
-		return "Clicked any link"
+		return txt(mGoalClickedAny)
 	case "opened":
-		return "Opened an email"
+		return txt(mGoalOpened)
 	case "tag":
-		return "Tagged " + c.Tag
+		return txt(mGoalTagged, "tag", c.Tag)
 	case "list":
 		if refs != nil && refs.Lists[c.ListID] != "" {
-			return "Joined " + refs.Lists[c.ListID]
+			return txt(mGoalJoined, "list", refs.Lists[c.ListID])
 		}
-		return "Joined a list"
+		return txt(mGoalJoinedAny)
 	case "event":
-		return "Sent " + c.Event
+		return txt(mGoalSent, "event", c.Event)
 	case TriggerBoughtProduct:
 		if c.ProductID == "" {
-			return "Bought a product"
+			return txt(mGoalBoughtAny)
 		}
-		return "Bought " + productRef(c.ProductID, refs)
+		return txt(mGoalBought, "product", productRef(c.ProductID, refs))
 	case ConditionPlacedOrder:
-		return "Placed an order"
+		return txt(mGoalPlacedOrder)
 	case "field", CondSMSConsent, CondSMSClicked, CondSMSReplied:
-		return capFirst(conditionPhrase(AutomationGraph{}, c, refs))
+		return upper(conditionPhrase(AutomationGraph{}, c, refs))
 	}
-	return "Goal"
+	return txt(mGoalOther)
 }
 
 // smsPhrase is a condition on texts: "has SMS consent for Acme Summit
 // 2026", "clicked a link in Day-before reminder".
-func smsPhrase(g AutomationGraph, c *AutomationCondition, refs *Refs, within string) string {
-	text := "any text"
+func smsPhrase(g AutomationGraph, c *AutomationCondition, refs *Refs, within i18n.Text) i18n.Text {
+	text := txt(mRefAnyText)
 	if c.Step != "" {
 		if g.Node(c.Step) != nil {
 			text = inlineRef(g, c.Step, refs)
@@ -465,23 +633,31 @@ func smsPhrase(g AutomationGraph, c *AutomationCondition, refs *Refs, within str
 	switch c.Kind {
 	case CondSMSConsent:
 		if c.ListID == "" {
-			return "has SMS consent"
+			return txt(mCondSMSConsentAny)
 		}
-		name := "a list"
+		list := txt(mRefAList)
 		if refs != nil && refs.Lists[c.ListID] != "" {
-			name = refs.Lists[c.ListID]
+			list = name(refs.Lists[c.ListID])
 		}
-		return "has SMS consent for " + name
+		return txt(mCondSMSConsent, "list", list)
 	case CondSMSClicked:
-		return "clicked a link in " + text + within
+		if emptyText(within) {
+			return txt(mCondSMSClicked, "text", text)
+		}
+		return txt(mCondSMSClickedWithin, "text", text, "duration", within)
 	}
-	return "replied to " + text + within
+	if emptyText(within) {
+		return txt(mCondSMSReplied, "text", text)
+	}
+	return txt(mCondSMSRepliedWithin, "text", text, "duration", within)
 }
 
 // GoalLabel is the short goal name for the automations list.
-func GoalLabel(n AutomationNode, refs *Refs) string {
+func GoalLabel(n AutomationNode, refs *Refs) string { return say(english, goalLabel(n, refs)) }
+
+func goalLabel(n AutomationNode, refs *Refs) i18n.Text {
 	if n.Data.Label != "" {
-		return n.Data.Label
+		return name(n.Data.Label)
 	}
 	return goalTitle(n.Data.Condition, refs)
 }
@@ -506,7 +682,3 @@ func shortURL(raw string) string {
 	}
 	return scheme + host + "/…"
 }
-
-// quote wraps a name in straight double quotes, as the product copy does
-// ("Step 2", "No" path); unlike %q it never escapes inner characters.
-func quote(s string) string { return `"` + s + `"` }

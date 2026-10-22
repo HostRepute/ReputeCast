@@ -560,6 +560,7 @@ type AutomationVersion struct {
 	RetiredAt    *time.Time      `json:"retiredAt"`
 	Summary      string          `json:"summary"`
 	Migration    string          `json:"migration"`
+	SummaryText  json.RawMessage `json:"summaryText"`
 }
 
 type AutomationWebhookCall struct {

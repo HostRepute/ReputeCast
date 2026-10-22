@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -110,12 +111,14 @@ func loadProductRefs(ctx context.Context, q *store.Queries, wsID uuid.UUID, r *R
 	return nil
 }
 
+var mProblemProductDeleted = msg("problem.productDeleted")
+
 // checkProduct validates the product a trigger or goal names (empty: any).
-func checkProduct(id string, refs *Refs, bad func(code, format string, a ...any)) {
+func checkProduct(id string, refs *Refs, bad func(code string, t i18n.Text)) {
 	if id == "" || refs == nil || refs.Products == nil {
 		return
 	}
 	if _, ok := refs.Products[id]; !ok {
-		bad("missing_ref", "The product was deleted. Pick another product, or any product.")
+		bad("missing_ref", txt(mProblemProductDeleted))
 	}
 }

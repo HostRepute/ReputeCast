@@ -1889,7 +1889,7 @@ func (q *Queries) GetAutomationStepSecret(ctx context.Context, arg GetAutomation
 }
 
 const getAutomationVersion = `-- name: GetAutomationVersion :one
-SELECT v.automation_id, v.version, v.graph, v.created_by, v.created_at, v.published_by, v.published_at, v.retired_at, v.summary, v.migration, coalesce(cu.name, '')::text AS created_by_name, coalesce(pu.name, '')::text AS published_by_name
+SELECT v.automation_id, v.version, v.graph, v.created_by, v.created_at, v.published_by, v.published_at, v.retired_at, v.summary, v.migration, v.summary_text, coalesce(cu.name, '')::text AS created_by_name, coalesce(pu.name, '')::text AS published_by_name
 FROM automation_versions v
 LEFT JOIN users cu ON cu.id = v.created_by
 LEFT JOIN users pu ON pu.id = v.published_by
@@ -1912,6 +1912,7 @@ type GetAutomationVersionRow struct {
 	RetiredAt       *time.Time      `json:"retiredAt"`
 	Summary         string          `json:"summary"`
 	Migration       string          `json:"migration"`
+	SummaryText     json.RawMessage `json:"summaryText"`
 	CreatedByName   string          `json:"createdByName"`
 	PublishedByName string          `json:"publishedByName"`
 }
@@ -1930,6 +1931,7 @@ func (q *Queries) GetAutomationVersion(ctx context.Context, arg GetAutomationVer
 		&i.RetiredAt,
 		&i.Summary,
 		&i.Migration,
+		&i.SummaryText,
 		&i.CreatedByName,
 		&i.PublishedByName,
 	)
@@ -2064,8 +2066,8 @@ func (q *Queries) InsertAutomationRun(ctx context.Context, arg InsertAutomationR
 }
 
 const insertAutomationVersion = `-- name: InsertAutomationVersion :exec
-INSERT INTO automation_versions (automation_id, version, graph, created_by, summary)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO automation_versions (automation_id, version, graph, created_by, summary, summary_text)
+VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type InsertAutomationVersionParams struct {
@@ -2074,6 +2076,7 @@ type InsertAutomationVersionParams struct {
 	Graph        json.RawMessage `json:"graph"`
 	CreatedBy    *uuid.UUID      `json:"createdBy"`
 	Summary      string          `json:"summary"`
+	SummaryText  json.RawMessage `json:"summaryText"`
 }
 
 func (q *Queries) InsertAutomationVersion(ctx context.Context, arg InsertAutomationVersionParams) error {
@@ -2083,6 +2086,7 @@ func (q *Queries) InsertAutomationVersion(ctx context.Context, arg InsertAutomat
 		arg.Graph,
 		arg.CreatedBy,
 		arg.Summary,
+		arg.SummaryText,
 	)
 	return err
 }
@@ -2339,7 +2343,7 @@ func (q *Queries) ListAutomationRunsForMigration(ctx context.Context, arg ListAu
 }
 
 const listAutomationVersions = `-- name: ListAutomationVersions :many
-SELECT v.automation_id, v.version, v.created_at, v.published_at, v.retired_at, v.summary, v.migration,
+SELECT v.automation_id, v.version, v.created_at, v.published_at, v.retired_at, v.summary, v.summary_text, v.migration,
        coalesce(cu.name, '')::text AS created_by_name, coalesce(pu.name, '')::text AS published_by_name
 FROM automation_versions v
 LEFT JOIN users cu ON cu.id = v.created_by
@@ -2349,15 +2353,16 @@ ORDER BY v.version DESC
 `
 
 type ListAutomationVersionsRow struct {
-	AutomationID    uuid.UUID  `json:"automationId"`
-	Version         int32      `json:"version"`
-	CreatedAt       time.Time  `json:"createdAt"`
-	PublishedAt     *time.Time `json:"publishedAt"`
-	RetiredAt       *time.Time `json:"retiredAt"`
-	Summary         string     `json:"summary"`
-	Migration       string     `json:"migration"`
-	CreatedByName   string     `json:"createdByName"`
-	PublishedByName string     `json:"publishedByName"`
+	AutomationID    uuid.UUID       `json:"automationId"`
+	Version         int32           `json:"version"`
+	CreatedAt       time.Time       `json:"createdAt"`
+	PublishedAt     *time.Time      `json:"publishedAt"`
+	RetiredAt       *time.Time      `json:"retiredAt"`
+	Summary         string          `json:"summary"`
+	SummaryText     json.RawMessage `json:"summaryText"`
+	Migration       string          `json:"migration"`
+	CreatedByName   string          `json:"createdByName"`
+	PublishedByName string          `json:"publishedByName"`
 }
 
 func (q *Queries) ListAutomationVersions(ctx context.Context, automationID uuid.UUID) ([]ListAutomationVersionsRow, error) {
@@ -2376,6 +2381,7 @@ func (q *Queries) ListAutomationVersions(ctx context.Context, automationID uuid.
 			&i.PublishedAt,
 			&i.RetiredAt,
 			&i.Summary,
+			&i.SummaryText,
 			&i.Migration,
 			&i.CreatedByName,
 			&i.PublishedByName,
@@ -2703,22 +2709,24 @@ func (q *Queries) PauseAutomation(ctx context.Context, arg PauseAutomationParams
 }
 
 const publishAutomationVersion = `-- name: PublishAutomationVersion :exec
-UPDATE automation_versions SET published_at = now(), published_by = $1, summary = $2, migration = $3
-WHERE automation_id = $4 AND version = $5
+UPDATE automation_versions SET published_at = now(), published_by = $1, summary = $2, summary_text = $3, migration = $4
+WHERE automation_id = $5 AND version = $6
 `
 
 type PublishAutomationVersionParams struct {
-	PublishedBy  *uuid.UUID `json:"publishedBy"`
-	Summary      string     `json:"summary"`
-	Migration    string     `json:"migration"`
-	AutomationID uuid.UUID  `json:"automationId"`
-	Version      int32      `json:"version"`
+	PublishedBy  *uuid.UUID      `json:"publishedBy"`
+	Summary      string          `json:"summary"`
+	SummaryText  json.RawMessage `json:"summaryText"`
+	Migration    string          `json:"migration"`
+	AutomationID uuid.UUID       `json:"automationId"`
+	Version      int32           `json:"version"`
 }
 
 func (q *Queries) PublishAutomationVersion(ctx context.Context, arg PublishAutomationVersionParams) error {
 	_, err := q.db.Exec(ctx, publishAutomationVersion,
 		arg.PublishedBy,
 		arg.Summary,
+		arg.SummaryText,
 		arg.Migration,
 		arg.AutomationID,
 		arg.Version,

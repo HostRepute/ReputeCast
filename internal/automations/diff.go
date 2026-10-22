@@ -3,11 +3,13 @@ package automations
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // AutomationDiffItem is one line of a version diff: what was added, changed or removed,
@@ -17,7 +19,15 @@ type AutomationDiffItem struct {
 	Title   string   `json:"title"`
 	Detail  string   `json:"detail,omitempty"`
 	NodeIDs []string `json:"nodeIds"`
+	// TitleText and DetailText are the title and detail as texts, for
+	// readers in other languages (TextIn writes them).
+	TitleText  i18n.Text `json:"-"`
+	DetailText i18n.Text `json:"-"`
 }
+
+// TextIn writes one of the package's texts (a diff line's TitleText) in a
+// reader's language.
+func TextIn(l i18n.Lang, t i18n.Text) string { return say(l, t) }
 
 // WebhookFailure is what the diff says about a removed webhook that was failing.
 type WebhookFailure struct {
@@ -38,7 +48,73 @@ type DiffContext struct {
 	// Check runs content checks on an email version: "" when it passes,
 	// otherwise the first problem ("no unsubscribe link").
 	Check func(emailID string, version int) string
+	// Lang is the language the lines are written in (English when unset).
+	Lang i18n.Lang
+	// checkText is Check with the problem as a text (the service's checks).
+	checkText func(emailID string, version int) i18n.Text
 }
+
+var (
+	mDiffHeadTrigger   = msg("diff.headTrigger")
+	mDiffHeadSplit     = msg("diff.headSplit")
+	mDiffHeadDelay     = msg("diff.headDelay")
+	mDiffHeadEmail     = msg("diff.headEmail")
+	mDiffHeadWebhook   = msg("diff.headWebhook")
+	mDiffHeadBranch    = msg("diff.headBranch")
+	mDiffHeadGoal      = msg("diff.headGoal")
+	mDiffHeadExit      = msg("diff.headExit")
+	mDiffAfter         = msg("diff.after")
+	mDiffAfterSplit    = msg("diff.afterSplit")
+	mDiffSplit         = msg("diff.split")
+	mDiffEmailRef      = msg("diff.emailRef")
+	mDiffNewEmails     = msg("diff.newEmails")
+	mDiffAlsoAdds      = msg("diff.alsoAdds")
+	mDiffChecksFail    = msg("diff.checksFail")
+	mDiffCheckFailure  = msg("diff.checkFailure")
+	mDiffChecksPass    = msg("diff.checksPass")
+	mDiffWebhookFail   = msg("diff.webhookFailing")
+	mDiffRemovedEmail  = msg("diff.removedEmail")
+	mDiffDelayBefore   = msg("diff.delayBefore")
+	mDiffDelayAfter    = msg("diff.delayAfter")
+	mDiffDelay         = msg("diff.delay")
+	mDiffDelayDetail   = msg("diff.delayDetail")
+	mDiffEmailNowSends = msg("diff.emailNowSends")
+	mDiffEmailContent  = msg("diff.emailContent")
+	mDiffEmailSubject  = msg("diff.emailSubject")
+	mDiffEmailRoute    = msg("diff.emailRoute")
+	mDiffRouteAuto     = msg("diff.routeAutomations")
+	mDiffRouteOnly     = msg("diff.routeOnly")
+	mDiffStepRenamed   = msg("diff.stepRenamed")
+	mDiffSendingRules  = msg("diff.sendingRules")
+	mDiffEmailDetail   = msg("diff.emailDetail")
+	mDiffTrigger       = msg("diff.trigger")
+	mDiffTriggerDetail = msg("diff.triggerDetail")
+	mDiffBranch        = msg("diff.branch")
+	mDiffBranchDetail  = msg("diff.branchDetail")
+	mDiffSplitWeights  = msg("diff.splitWeights")
+	mDiffWebhookURL    = msg("diff.webhookUrl")
+	mDiffWebhook       = msg("diff.webhook")
+	mDiffGoal          = msg("diff.goal")
+	mDiffGoalRenamed   = msg("diff.goalRenamed")
+	mDiffStepTitle     = msg("diff.stepTitle")
+	mDiffStepChanged   = msg("diff.stepChanged")
+	mDiffRewire        = msg("diff.rewire")
+	mDiffPathGoesTo    = msg("diff.pathGoesTo")
+	mDiffContactsGoTo  = msg("diff.contactsGoTo")
+	mDiffFlowEnds      = msg("diff.flowEnds")
+	mDiffEndOfFlow     = msg("diff.endOfFlow")
+	mRefQuoted         = msg("ref.quoted")
+
+	mUnchangedTrigger = msg("unchanged.trigger")
+	mUnchangedEmail   = msg("unchanged.email")
+	mUnchangedBranch  = msg("unchanged.branch")
+	mUnchangedSplit   = msg("unchanged.split")
+	mUnchangedFilter  = msg("unchanged.filter")
+	mUnchangedWebhook = msg("unchanged.webhook")
+	mUnchangedPath    = msg("unchanged.path")
+	mUnchangedGoal    = msg("unchanged.goal")
+	mUnchangedExit    = msg("unchanged.exit")
+)
 
 // Changes counts the diff items that are changes (not the unchanged line).
 func Changes(items []AutomationDiffItem) int {
@@ -49,6 +125,16 @@ func Changes(items []AutomationDiffItem) int {
 		}
 	}
 	return n
+}
+
+// diffIn writes a diff's lines in a language.
+func diffIn(l i18n.Lang, items []AutomationDiffItem) []AutomationDiffItem {
+	out := make([]AutomationDiffItem, len(items))
+	for i, it := range items {
+		it.Title, it.Detail = say(l, it.TitleText), say(l, it.DetailText)
+		out[i] = it
+	}
+	return out
 }
 
 // Diff compares two versions of a flow, step by step: steps keep their ids
@@ -119,13 +205,13 @@ func Diff(from, to AutomationGraph, dc DiffContext) []AutomationDiffItem {
 	for _, cl := range clusters(from, removed) {
 		items = append(items, describeCluster(from, cl, "removed", dc, dc.FromRefs))
 	}
-	if u := unchangedLine(to, added, changedNodes, dc.ToRefs); u.Title != "" {
+	if u, ok := unchangedLine(to, added, changedNodes, dc.ToRefs); ok {
 		items = append(items, u)
 	}
 	if items == nil {
 		items = []AutomationDiffItem{}
 	}
-	return items
+	return diffIn(dc.Lang, items)
 }
 
 // sameStep compares type and settings, ignoring the canvas position and
@@ -225,129 +311,98 @@ func clusters(g AutomationGraph, set map[string]bool) [][]string {
 }
 
 // quotedRef names a step for a diff line: "the trigger" or "Step 2" in quotes.
-func quotedRef(g AutomationGraph, id string, refs *Refs) string {
+func quotedRef(g AutomationGraph, id string, refs *Refs) i18n.Text {
 	n := g.Node(id)
 	if n == nil {
-		return "a removed step"
+		return txt(mRefRemovedStep)
 	}
 	if n.Type == NodeTrigger {
-		return "the trigger"
+		return txt(mRefTrigger)
 	}
-	return `"` + NodeRef(g, *n, refs) + `"`
-}
-
-func weights(n AutomationNode) string {
-	parts := make([]string, 0, len(n.Data.Variants))
-	for _, v := range n.Data.Variants {
-		parts = append(parts, fmt.Sprint(v.Weight))
-	}
-	return strings.Join(parts, " / ")
+	return txt(mRefQuoted, "step", nodeRef(g, *n, refs))
 }
 
 // headline describes a step on its own ("A/B split", `Webhook "notify-slack"`).
-func headline(g AutomationGraph, n AutomationNode, refs *Refs) string {
+func headline(g AutomationGraph, n AutomationNode, refs *Refs) i18n.Text {
 	switch n.Type {
 	case NodeTrigger:
-		return "Trigger: " + TriggerLabel(n.Data.Trigger, refs)
+		return txt(mDiffHeadTrigger, "trigger", triggerLabel(n.Data.Trigger, refs))
 	case NodeSplit:
-		return "A/B split"
+		return txt(mDiffHeadSplit)
 	case NodeDelay:
-		return "Delay of " + DurationText(n.Data.Delay)
+		return txt(mDiffHeadDelay, "duration", durationText(n.Data.Delay))
 	case NodeEmail:
-		return fmt.Sprintf("Email %s", quote(NodeRef(g, n, refs)))
+		return txt(mDiffHeadEmail, "step", nodeRef(g, n, refs))
 	case NodeWebhook:
-		return fmt.Sprintf("Webhook %s", quote(NodeTitle(g, n, refs)))
+		return txt(mDiffHeadWebhook, "step", nodeTitle(g, n, refs))
 	case NodeBranch:
-		return fmt.Sprintf("Branch %s", quote(NodeTitle(g, n, refs)))
+		return txt(mDiffHeadBranch, "step", nodeTitle(g, n, refs))
 	case NodeGoal:
-		return fmt.Sprintf("Goal %s", quote(NodeTitle(g, n, refs)))
+		return txt(mDiffHeadGoal, "step", nodeTitle(g, n, refs))
 	case NodeExit:
-		return "Exit"
+		return txt(mDiffHeadExit)
 	}
-	return NodeTitle(g, n, refs)
+	return nodeTitle(g, n, refs)
 }
 
 // emailItemRef is how a new email reads in a list: `3A "Set up your first flag"`.
-func emailItemRef(g AutomationGraph, n AutomationNode, refs *Refs) string {
-	name := emailNodeName(n, refs)
-	ref := NodeRef(g, n, refs)
-	if n.Data.Label == "" {
+func emailItemRef(g AutomationGraph, n AutomationNode, refs *Refs) i18n.Text {
+	nm := emailNodeName(n, refs)
+	ref := nodeRef(g, n, refs)
+	if n.Data.Label == "" && nm != "" {
 		// A variant after a split takes its letter: Step 3 + A → 3A.
 		for _, e := range g.In(n.ID) {
 			if src := g.Node(e.Source); src != nil && src.Type == NodeSplit && e.Data.Path != "" {
-				ref = strings.TrimPrefix(ref+e.Data.Path, "Step ")
+				ref = name(strings.TrimPrefix(say(english, ref)+e.Data.Path, "Step "))
 				break
 			}
 		}
 	}
-	if q := emailQuoted(name); q != "" && q != ref {
-		return fmt.Sprintf("%s %s", ref, quote(q))
+	if q := emailQuoted(nm); q != "" && q != say(english, ref) {
+		return txt(mDiffEmailRef, "step", ref, "subject", q)
 	}
-	return quote(ref)
+	return txt(mRefQuoted, "step", ref)
 }
 
-var numberWords = []string{"No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"}
-
-func countWord(n int) string {
-	if n >= 0 && n < len(numberWords) {
-		return numberWords[n]
-	}
-	return fmt.Sprint(n)
+// dayMonth is a day without its year in the reader's region format, in the
+// workspace's zone: "29 Sep".
+func dayMonth(t time.Time, loc *time.Location) i18n.Text {
+	return i18n.Text{Args: i18n.Args{"dayMonth": t.In(loc)}}
 }
 
-func andJoin(parts []string) string {
-	switch len(parts) {
-	case 0:
-		return ""
-	case 1:
-		return parts[0]
-	}
-	return strings.Join(parts[:len(parts)-1], ", ") + " and " + parts[len(parts)-1]
-}
-
-func formatCount(n int64) string {
-	s := fmt.Sprint(n)
-	if n < 0 {
-		return "-" + formatCount(-n)
-	}
-	var b strings.Builder
-	for i, c := range s {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			b.WriteByte(',')
-		}
-		b.WriteRune(c)
-	}
-	return b.String()
-}
-
-func dayMonth(t time.Time, loc *time.Location) string {
-	return t.In(loc).Format("2 Jan")
+// clock is a time of day in the reader's region format: "09:02".
+func clock(t time.Time, loc *time.Location) i18n.Text {
+	return i18n.Text{Args: i18n.Args{"clock": t.In(loc)}}
 }
 
 func describeCluster(g AutomationGraph, ids []string, kind string, dc DiffContext, refs *Refs) AutomationDiffItem {
 	root := g.Node(ids[0])
 	item := AutomationDiffItem{Kind: kind, NodeIDs: ids}
 	title := headline(g, *root, refs)
+	prev := ""
 	if root.Type != NodeTrigger {
-		if prev := g.Prev(root.ID); prev != "" {
-			title += " after " + quotedRef(g, prev, refs)
-		}
+		prev = g.Prev(root.ID)
 	}
-	if root.Type == NodeSplit {
-		title += ", " + weights(*root)
+	switch {
+	case prev != "" && root.Type == NodeSplit:
+		title = txt(mDiffAfterSplit, "step", title, "prev", quotedRef(g, prev, refs), "weights", splitWeights(*root))
+	case prev != "":
+		title = txt(mDiffAfter, "step", title, "prev", quotedRef(g, prev, refs))
+	case root.Type == NodeSplit:
+		title = txt(mDiffSplit, "step", title, "weights", splitWeights(*root))
 	}
-	item.Title = title
+	item.TitleText = title
 
-	var details []string
+	var details []i18n.Text
 	var emails []AutomationNode
-	var others []string
+	var others []i18n.Text
 	for _, id := range ids {
 		n := g.Node(id)
 		switch {
 		case n.Type == NodeEmail:
 			emails = append(emails, *n)
 		case id != root.ID:
-			others = append(others, strings.ToLower(TypeName(n.Type)))
+			others = append(others, lowercase(typeName(n.Type)))
 		}
 	}
 	if kind == "added" {
@@ -356,20 +411,16 @@ func describeCluster(g AutomationGraph, ids []string, kind string, dc DiffContex
 			listed = emails[1:]
 		}
 		if len(listed) > 0 {
-			refsList := make([]string, 0, len(listed))
+			refsList := make([]i18n.Text, 0, len(listed))
 			for _, e := range listed {
 				refsList = append(refsList, emailItemRef(g, e, refs))
 			}
-			noun := "new email step"
-			if len(listed) > 1 {
-				noun += "s"
-			}
-			details = append(details, fmt.Sprintf("%s %s: %s.", countWord(len(listed)), noun, andJoin(refsList)))
+			details = append(details, txt(mDiffNewEmails, "count", len(listed), "emails", andList(refsList)))
 		}
 		if len(others) > 0 {
-			details = append(details, "Also adds "+andJoin(others)+".")
+			details = append(details, txt(mDiffAlsoAdds, "steps", andList(others)))
 		}
-		if s := checkSentence(g, emails, dc, refs); s != "" {
+		if s := checkSentence(g, emails, dc, refs); !emptyText(s) {
 			details = append(details, s)
 		}
 	} else {
@@ -377,52 +428,55 @@ func describeCluster(g AutomationGraph, ids []string, kind string, dc DiffContex
 			n := g.Node(id)
 			if n.Type == NodeWebhook {
 				if f, ok := dc.Failures[id]; ok && f.Failures > 0 {
-					status := "errors"
-					if f.Status > 0 {
-						status = fmt.Sprint(f.Status)
-					}
 					url := f.URL
 					if url == "" && n.Data.Webhook != nil {
 						url = n.Data.Webhook.URL
 					}
-					details = append(details, fmt.Sprintf("Endpoint %s was returning %s since %s. %s failed calls are in the webhook log.",
-						shortURL(url), status, dayMonth(f.Since, dc.Loc), formatCount(f.Failures)))
+					hasStatus := "no"
+					if f.Status > 0 {
+						hasStatus = "yes"
+					}
+					details = append(details, txt(mDiffWebhookFail, "url", shortURL(url), "hasStatus", hasStatus, "status", itoaPlain(f.Status),
+						"date", dayMonth(f.Since, dc.Loc), "count", f.Failures))
 				}
 			}
 		}
 		if len(emails) > 0 && len(details) == 0 {
-			details = append(details, "Contacts who haven't reached it yet won't get it.")
+			details = append(details, txt(mDiffRemovedEmail))
 		}
 	}
-	item.Detail = strings.Join(details, " ")
+	item.DetailText = joined(" ", details)
 	return item
 }
 
+// itoaPlain writes a code or a version as it is, without grouping: 404.
+func itoaPlain(n int) string { return strconv.Itoa(n) }
+
 // checkSentence reports Send Readiness content checks of new emails.
-func checkSentence(g AutomationGraph, emails []AutomationNode, dc DiffContext, refs *Refs) string {
-	if dc.Check == nil || len(emails) == 0 {
-		return ""
+func checkSentence(g AutomationGraph, emails []AutomationNode, dc DiffContext, refs *Refs) i18n.Text {
+	if (dc.Check == nil && dc.checkText == nil) || len(emails) == 0 {
+		return i18n.Text{}
 	}
-	var failing []string
+	var failing []i18n.Text
 	for _, e := range emails {
 		cfg := e.Data.Email
 		if cfg == nil {
 			continue
 		}
-		if problem := dc.Check(cfg.EmailID, cfg.EmailVersion); problem != "" {
-			failing = append(failing, fmt.Sprintf("%s: %s", quote(NodeRef(g, e, refs)), problem))
+		var problem i18n.Text
+		if dc.checkText != nil {
+			problem = dc.checkText(cfg.EmailID, cfg.EmailVersion)
+		} else if p := dc.Check(cfg.EmailID, cfg.EmailVersion); p != "" {
+			problem = name(p)
+		}
+		if !emptyText(problem) {
+			failing = append(failing, txt(mDiffCheckFailure, "step", nodeRef(g, e, refs), "problem", problem))
 		}
 	}
 	if len(failing) > 0 {
-		return "Fails Send Readiness content checks: " + strings.Join(failing, "; ") + "."
+		return txt(mDiffChecksFail, "failures", joined("; ", failing))
 	}
-	switch len(emails) {
-	case 1:
-		return "It passes Send Readiness content checks."
-	case 2:
-		return "Both pass Send Readiness content checks."
-	}
-	return fmt.Sprintf("All %d pass Send Readiness content checks.", len(emails))
+	return txt(mDiffChecksPass, "count", len(emails))
 }
 
 func describeChange(from, to AutomationGraph, a, b AutomationNode, dc DiffContext) AutomationDiffItem {
@@ -431,14 +485,15 @@ func describeChange(from, to AutomationGraph, a, b AutomationNode, dc DiffContex
 	ref := quotedRef(to, b.ID, refsB)
 	switch b.Type {
 	case NodeDelay:
-		target := ""
+		was, now := durationText(a.Data.Delay), durationText(b.Data.Delay)
 		if next := to.Next(b.ID); next != "" {
-			target = "before " + quotedRef(to, next, refsB)
+			item.TitleText = txt(mDiffDelayBefore, "step", quotedRef(to, next, refsB), "from", was, "to", now)
 		} else if prev := to.Prev(b.ID); prev != "" {
-			target = "after " + quotedRef(to, prev, refsB)
+			item.TitleText = txt(mDiffDelayAfter, "step", quotedRef(to, prev, refsB), "from", was, "to", now)
+		} else {
+			item.TitleText = txt(mDiffDelay, "from", was, "to", now)
 		}
-		item.Title = strings.TrimSpace(fmt.Sprintf("Delay %s: %s → %s", target, DurationText(a.Data.Delay), DurationText(b.Data.Delay)))
-		item.Detail = fmt.Sprintf("Contacts already waiting keep their original timer unless you move them to v%d below.", dc.ToVersion)
+		item.DetailText = txt(mDiffDelayDetail, "version", itoaPlain(dc.ToVersion))
 	case NodeEmail:
 		ea, eb := a.Data.Email, b.Data.Email
 		if ea == nil {
@@ -449,50 +504,49 @@ func describeChange(from, to AutomationGraph, a, b AutomationNode, dc DiffContex
 		}
 		switch {
 		case ea.EmailID != eb.EmailID:
-			item.Title = fmt.Sprintf("%s now sends %s", ref, quote(NodeTitle(to, b, refsB)))
+			item.TitleText = txt(mDiffEmailNowSends, "step", ref, "email", nodeTitle(to, b, refsB))
 		case ea.EmailVersion != eb.EmailVersion:
-			item.Title = fmt.Sprintf("New content for %s: v%d → v%d", ref, ea.EmailVersion, eb.EmailVersion)
+			item.TitleText = txt(mDiffEmailContent, "step", ref, "from", itoaPlain(ea.EmailVersion), "to", itoaPlain(eb.EmailVersion))
 		case ea.Subject != eb.Subject:
-			item.Title = fmt.Sprintf("Subject of %s: %s → %s", ref, quote(ea.Subject), quote(eb.Subject))
+			item.TitleText = txt(mDiffEmailSubject, "step", ref, "from", ea.Subject, "to", eb.Subject)
 		case ea.Route != eb.Route:
-			route := "the Automations route"
+			route := txt(mDiffRouteAuto)
 			if refsB != nil && refsB.Providers[eb.Route] != "" {
-				route = refsB.Providers[eb.Route] + " only"
+				route = txt(mDiffRouteOnly, "provider", refsB.Providers[eb.Route])
 			}
-			item.Title = fmt.Sprintf("%s now sends through %s", ref, route)
+			item.TitleText = txt(mDiffEmailRoute, "step", ref, "route", route)
 		case a.Data.Label != b.Data.Label:
-			item.Title = fmt.Sprintf("Step renamed: %s → %s", quote(NodeRef(from, a, refsA)), quote(NodeRef(to, b, refsB)))
+			item.TitleText = txt(mDiffStepRenamed, "from", nodeRef(from, a, refsA), "to", nodeRef(to, b, refsB))
 		default:
-			item.Title = fmt.Sprintf("Sending rules of %s changed", ref)
+			item.TitleText = txt(mDiffSendingRules, "step", ref)
 		}
-		item.Detail = "Contacts who already got this email won't get it again."
+		item.DetailText = txt(mDiffEmailDetail)
 	case NodeTrigger:
-		item.Title = fmt.Sprintf("Trigger: %s → %s", TriggerLabel(a.Data.Trigger, refsA), TriggerLabel(b.Data.Trigger, refsB))
-		item.Detail = "Contacts already in the flow stay; new entrants come from the new trigger."
+		item.TitleText = txt(mDiffTrigger, "from", triggerLabel(a.Data.Trigger, refsA), "to", triggerLabel(b.Data.Trigger, refsB))
+		item.DetailText = txt(mDiffTriggerDetail)
 	case NodeBranch:
-		item.Title = fmt.Sprintf("Branch: %s → %s", quote(NodeTitle(from, a, refsA)), quote(NodeTitle(to, b, refsB)))
-		item.Detail = fmt.Sprintf("Contacts waiting at the branch are checked against the new condition if you move them to v%d.", dc.ToVersion)
+		item.TitleText = txt(mDiffBranch, "from", nodeTitle(from, a, refsA), "to", nodeTitle(to, b, refsB))
+		item.DetailText = txt(mDiffBranchDetail, "version", itoaPlain(dc.ToVersion))
 	case NodeSplit:
-		item.Title = fmt.Sprintf("A/B split: %s → %s", weights(a), weights(b))
+		item.TitleText = txt(mDiffSplitWeights, "from", splitWeights(a), "to", splitWeights(b))
 	case NodeWebhook:
 		wa, wb := a.Data.Webhook, b.Data.Webhook
 		switch {
 		case wa != nil && wb != nil && wa.URL != wb.URL:
-			item.Title = fmt.Sprintf("Webhook %s now calls %s", quote(NodeTitle(to, b, refsB)), shortURL(wb.URL))
+			item.TitleText = txt(mDiffWebhookURL, "step", nodeTitle(to, b, refsB), "url", shortURL(wb.URL))
 		default:
-			item.Title = fmt.Sprintf("Webhook %s changed", quote(NodeTitle(to, b, refsB)))
+			item.TitleText = txt(mDiffWebhook, "step", nodeTitle(to, b, refsB))
 		}
 	case NodeGoal:
-		item.Title = fmt.Sprintf("Goal: %s → %s", quote(NodeTitle(from, a, refsA)), quote(NodeTitle(to, b, refsB)))
+		item.TitleText = txt(mDiffGoal, "from", nodeTitle(from, a, refsA), "to", nodeTitle(to, b, refsB))
 		if a.Data.Label != b.Data.Label && NodeTitle(from, a, refsA) == NodeTitle(to, b, refsB) {
-			item.Title = fmt.Sprintf("Goal renamed: %s → %s", quote(GoalLabel(a, refsA)), quote(GoalLabel(b, refsB)))
+			item.TitleText = txt(mDiffGoalRenamed, "from", goalLabel(a, refsA), "to", goalLabel(b, refsB))
 		}
 	default:
-		before, after := NodeTitle(from, a, refsA), NodeTitle(to, b, refsB)
-		if before != after {
-			item.Title = fmt.Sprintf("%s: %s → %s", TypeName(b.Type), quote(before), quote(after))
+		if NodeTitle(from, a, refsA) != NodeTitle(to, b, refsB) {
+			item.TitleText = txt(mDiffStepTitle, "type", typeName(b.Type), "from", nodeTitle(from, a, refsA), "to", nodeTitle(to, b, refsB))
 		} else {
-			item.Title = fmt.Sprintf("%s %s changed", TypeName(b.Type), ref)
+			item.TitleText = txt(mDiffStepChanged, "type", typeName(b.Type), "step", ref)
 		}
 	}
 	return item
@@ -501,34 +555,35 @@ func describeChange(from, to AutomationGraph, a, b AutomationNode, dc DiffContex
 func describeRewire(to AutomationGraph, n AutomationNode, after []string, dc DiffContext) AutomationDiffItem {
 	refs := dc.ToRefs
 	item := AutomationDiffItem{Kind: "changed", NodeIDs: []string{n.ID}}
-	var parts []string
+	var parts []i18n.Text
 	for _, s := range after {
 		path, target, _ := strings.Cut(s, "→")
-		dest := "the end of the flow"
+		dest := txt(mDiffEndOfFlow)
 		if target != "" {
 			dest = quotedRef(to, target, refs)
 		}
 		if path != "" {
-			parts = append(parts, fmt.Sprintf("the %s path goes to %s", quote(pathLabel(n, path)), dest))
+			parts = append(parts, txt(mDiffPathGoesTo, "path", pathLabel(n, path), "dest", dest))
 		} else {
-			parts = append(parts, "contacts go to "+dest)
+			parts = append(parts, txt(mDiffContactsGoTo, "dest", dest))
 		}
 	}
 	if len(parts) == 0 {
-		parts = append(parts, "the flow now ends")
+		parts = append(parts, txt(mDiffFlowEnds))
 	}
-	item.Title = fmt.Sprintf("After %s, %s", quotedRef(to, n.ID, refs), andJoin(parts))
+	item.TitleText = txt(mDiffRewire, "step", quotedRef(to, n.ID, refs), "changes", andList(parts))
 	return item
 }
 
 // unchangedLine lists the steps that stayed the same: the trigger and the
 // steps before the first fork, every branch path with no change at all (as
 // `"No" path`), then goals and exits. Delays and steps on changed paths are
-// left out; they're covered by the lines above.
-func unchangedLine(g AutomationGraph, added, changed map[string]bool, refs *Refs) AutomationDiffItem {
+// left out; they're covered by the lines above. It's false when nothing
+// stayed the same.
+func unchangedLine(g AutomationGraph, added, changed map[string]bool, refs *Refs) (AutomationDiffItem, bool) {
 	item := AutomationDiffItem{Kind: "unchanged", NodeIDs: []string{}}
 	untouched := func(id string) bool { return !added[id] && !changed[id] }
-	var parts []string
+	var parts []i18n.Text
 	var ids []string
 	var terminals []AutomationNode
 	listed := map[string]bool{}
@@ -583,7 +638,7 @@ func unchangedLine(g AutomationGraph, added, changed map[string]bool, refs *Refs
 					start := g.NextOnPath(id, p)
 					members, clean := visitPath(start)
 					if clean && len(members) > 0 {
-						parts = append(parts, fmt.Sprintf("%s path", quote(pathLabel(*n, p))))
+						parts = append(parts, txt(mUnchangedPath, "path", pathLabel(*n, p)))
 						ids = append(ids, members...)
 					}
 					for _, m := range members {
@@ -605,49 +660,51 @@ func unchangedLine(g AutomationGraph, added, changed map[string]bool, refs *Refs
 		}
 	}
 	sort.SliceStable(terminals, func(i, j int) bool { return terminals[i].Type == NodeGoal && terminals[j].Type != NodeGoal })
+	hasGoal, hasExit := false, false
 	for _, t := range terminals {
 		if !untouched(t.ID) {
 			continue
 		}
-		name := "exit"
-		if t.Type == NodeGoal {
-			name = "goal"
-		}
-		if !slices.Contains(parts, name) {
-			parts = append(parts, name)
+		switch {
+		case t.Type == NodeGoal && !hasGoal:
+			parts = append(parts, txt(mUnchangedGoal))
+			hasGoal = true
+		case t.Type != NodeGoal && !hasExit:
+			parts = append(parts, txt(mUnchangedExit))
+			hasExit = true
 		}
 		ids = append(ids, t.ID)
 	}
-	if len(parts) > 0 {
-		parts[0] = capFirst(parts[0])
+	if len(parts) == 0 {
+		return item, false
 	}
-	item.Title = andJoin(parts)
+	item.TitleText = upper(andList(parts))
 	item.NodeIDs = ids
-	return item
+	return item, true
 }
 
-func unchangedName(g AutomationGraph, n AutomationNode, refs *Refs) string {
+func unchangedName(g AutomationGraph, n AutomationNode, refs *Refs) i18n.Text {
 	switch n.Type {
 	case NodeTrigger:
-		return "trigger"
+		return txt(mUnchangedTrigger)
 	case NodeEmail:
 		if n.Data.Label != "" {
-			return n.Data.Label
+			return name(n.Data.Label)
 		}
-		if name := emailNodeName(n, refs); name != "" {
-			return lowerFirst(EmailShortRef(name))
+		if nm := emailNodeName(n, refs); nm != "" {
+			return lower(name(EmailShortRef(nm)))
 		}
-		return "email"
+		return txt(mUnchangedEmail)
 	case NodeBranch:
-		return "branch"
+		return txt(mUnchangedBranch)
 	case NodeSplit:
-		return "A/B split"
+		return txt(mUnchangedSplit)
 	case NodeWebhook:
-		return fmt.Sprintf("webhook %s", quote(NodeTitle(g, n, refs)))
+		return txt(mUnchangedWebhook, "step", nodeTitle(g, n, refs))
 	case NodeList:
-		return lowerFirst(NodeTitle(g, n, refs))
+		return lower(nodeTitle(g, n, refs))
 	case NodeFilter:
-		return "filter"
+		return txt(mUnchangedFilter)
 	}
-	return strings.ToLower(TypeName(n.Type))
+	return lowercase(typeName(n.Type))
 }
