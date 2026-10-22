@@ -1,25 +1,10 @@
 import { $api, type Schemas } from '@/api/client'
-import { defineMessages, useT } from '@/i18n'
+import { useT } from '@/i18n'
 import { dayMonthDate, shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
+import { m } from './contact.messages'
 
 type Item = Schemas['ContactActivityItem']
-
-/**
- * Poll answers and survey responses on the contact profile (design
- * expansion, X11; brief §6): timeline items, and where a field came from.
- */
-const m = defineMessages('pollContact', {
-  answered: 'Answered {answer} to “{question}” in {campaign}',
-  answeredComment: 'Answered {answer} to “{question}” in {campaign} · with a comment',
-  changed: 'changed from {previous}',
-  quote: '“{text}”',
-  responded: 'Responded to the survey “{name}” · {answered} of {questions} answered',
-  started: 'Started the survey “{name}” · {answered} of {questions} answered',
-  editable: 'can change it until {date}',
-  fromPoll: 'from a poll, {date}',
-  fromSurvey: 'from a survey, {date}',
-})
 
 /** "How likely are you to recommend the Weekly Digest…": long questions end in an ellipsis. */
 function short(q: string, max = 52): string {
