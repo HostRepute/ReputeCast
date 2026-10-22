@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 )
 
@@ -199,13 +200,34 @@ func (c PollConfig) AnswerList() []Answer {
 	return out
 }
 
-// Problems are what keeps a poll from working: a missing question, fewer
-// than two or more than five answers, a tag or field missing where answers
-// are saved.
-func (c PollConfig) Problems() []string {
+// Problems are what keeps a poll from working, in English: a missing
+// question, fewer than two or more than five answers, a tag or field
+// missing where answers are saved.
+func (c PollConfig) Problems() []string { return c.ProblemsIn(i18n.Default) }
+
+// ProblemsIn are the poll's problems in a reader's language.
+func (c PollConfig) ProblemsIn(l i18n.Lang) []string {
 	out := []string{}
+	for _, m := range c.problems() {
+		out = append(out, m.Text(l, nil))
+	}
+	return out
+}
+
+// ProblemTexts are the poll's problems kept as messages, for text stored
+// for later readers (a Send Readiness run).
+func (c PollConfig) ProblemTexts() []i18n.Text {
+	out := []i18n.Text{}
+	for _, m := range c.problems() {
+		out = append(out, m.Keep(nil))
+	}
+	return out
+}
+
+func (c PollConfig) problems() []i18n.Msg {
+	out := []i18n.Msg{}
 	if strings.TrimSpace(c.Question) == "" {
-		out = append(out, "Write the poll's question.")
+		out = append(out, mPollQuestion)
 	}
 	if c.Kind == KindChoice {
 		n := 0
@@ -215,25 +237,25 @@ func (c PollConfig) Problems() []string {
 			}
 		}
 		if n < 2 {
-			out = append(out, "A poll needs at least two answers.")
+			out = append(out, mPollTwoAnswers)
 		}
 		if len(c.Answers) > 5 {
-			out = append(out, "A poll takes at most five answers.")
+			out = append(out, mPollFive)
 		}
 		if c.Save == SaveTag {
 			for _, a := range c.Answers {
 				if strings.TrimSpace(a.Tag) == "" {
-					out = append(out, "Give every answer a tag, or save the answer to a field.")
+					out = append(out, mPollTags)
 					break
 				}
 			}
 		}
 	}
 	if c.Save == SaveField && strings.TrimSpace(c.Field) == "" {
-		out = append(out, "Pick the field the answer is saved to.")
+		out = append(out, mPollField)
 	}
 	if c.After == "survey" && c.Survey == "" {
-		out = append(out, "Pick the survey the poll continues to.")
+		out = append(out, mPollSurvey)
 	}
 	return out
 }

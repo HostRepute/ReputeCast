@@ -9,10 +9,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/api"
-	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/permcheck"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -293,6 +292,7 @@ func (s *Service) PollResultsOf(ctx context.Context, ws *store.Workspace, p *aut
 }
 
 func (s *Service) breakdowns(ctx context.Context, pollID uuid.UUID, cfg PollConfig, answers []Answer, total int64) PollBreakdowns {
+	l := i18n.LangFrom(ctx)
 	out := PollBreakdowns{Tiers: []PollBreakdownRow{}, Lists: []PollBreakdownRow{}, Languages: []PollBreakdownRow{}}
 	type acc struct {
 		key, label string
@@ -320,7 +320,7 @@ func (s *Service) breakdowns(ctx context.Context, pollID uuid.UUID, cfg PollConf
 		for _, r := range rows {
 			a := tiers[r.Tier]
 			if a == nil {
-				a = &acc{key: r.Tier, label: audience.TierName(r.Tier), counts: map[int]int64{}}
+				a = &acc{key: r.Tier, label: tierLabel(l, r.Tier), counts: map[int]int64{}}
 				tiers[r.Tier] = a
 			}
 			a.counts[int(r.Answer)] += r.N
@@ -330,7 +330,7 @@ func (s *Service) breakdowns(ctx context.Context, pollID uuid.UUID, cfg PollConf
 	for _, t := range []string{"active", "cooling", "at_risk", "sunset", ""} {
 		if a := tiers[t]; a != nil {
 			if t == "" {
-				a.label = "No tier yet"
+				a.label = mLabelNoTier.Text(l, nil)
 			}
 			tierRows = append(tierRows, a)
 		}
@@ -360,9 +360,9 @@ func (s *Service) breakdowns(ctx context.Context, pollID uuid.UUID, cfg PollConf
 		for _, r := range rows {
 			a := langs[r.Language]
 			if a == nil {
-				label := accessibility.LanguageName(r.Language)
+				label := languageLabel(l, r.Language)
 				if r.Language == "" {
-					label = "Not set"
+					label = mLabelNotSet.Text(l, nil)
 				}
 				a = &acc{key: r.Language, label: label, counts: map[int]int64{}}
 				langs[r.Language] = a
