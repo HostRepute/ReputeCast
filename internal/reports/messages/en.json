@@ -1,0 +1,35 @@
+{
+  "audience.all": { "message": "All subscribers", "note": "the audience of a campaign sent to every list" },
+  "audience.segments": "{count, plural, one {# segment} other {# segments}}",
+  "note.ab": { "message": "A/B {kind, select, subject {subject} content {content} send_time {send time} other {{kindName}}}", "note": "an A/B test that ran, in the report's header: A/B subject" },
+  "note.abWinner": { "message": "A/B {kind, select, subject {subject} content {content} send_time {send time} other {{kindName}}}, winner {winner}", "note": "winner: A or B" },
+  "note.bounceSuppressed": { "message": "{type, select, unknown_user {Hard · unknown user bounces on {campaign}} domain_invalid {Hard · domain not found bounces on {campaign}} mailbox_full {Soft · mailbox full bounces on {campaign}} deferral_expired {Soft · deferral expired bounces on {campaign}} blocked {Blocked · policy or reputation bounces on {campaign}} other {Other bounces on {campaign}}}", "note": "the note on addresses a report suppressed, shown in the suppression list; type: the bounce type (as bounce.*); campaign: the campaign's name" },
+
+  "label.referralLinks": { "message": "Referral links (personal)", "note": "the click map's entry for every reader's own referral links" },
+
+  "bounce.unknown_user": { "message": "Hard · unknown user", "note": "a bounce type: hard or soft, then what happened" },
+  "bounce.domain_invalid": "Hard · domain not found",
+  "bounce.mailbox_full": "Soft · mailbox full",
+  "bounce.deferral_expired": "Soft · deferral expired",
+  "bounce.blocked": "Blocked · policy or reputation",
+  "bounce.other": "Other",
+
+  "reason.too_frequent": { "message": "Too many emails", "note": "why a reader unsubscribed, as they chose it on the unsubscribe page" },
+  "reason.not_relevant": "Content not relevant",
+  "reason.none": "No reason given",
+  "reason.never_signed_up": "Didn't sign up",
+  "reason.spam": "Looks like spam",
+  "reason.other": "Other",
+
+  "ab.subject": { "message": "subject line", "note": "what an A/B test compares, after A/B test ·" },
+  "ab.content": "content",
+  "ab.send_time": "send time",
+
+  "problem.nothingToShare": "There's nothing to share yet: {campaign} hasn't been sent. Share its report once results come in.",
+  "problem.tooManyLinks": "This report already has 10 active links. Revoke one you no longer need, then create a new one.",
+  "problem.sharedRateLimited": "Too many requests for shared reports from your network. Wait a minute and reload.",
+  "problem.sharedGone": "This link doesn't work. It may have been revoked, or it expired. Ask the person who shared it for a new one.",
+  "problem.unknownBounceType": "Unknown bounce type.",
+  "problem.softBounces": "Soft bounces aren't suppressed: the address is retried on the next send, and suppressed only if it keeps failing.",
+  "problem.allSuppressed": "Every address that bounced this way is already on the suppression list."
+}

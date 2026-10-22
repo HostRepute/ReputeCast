@@ -5,15 +5,16 @@ import (
 	"strings"
 
 	"github.com/hostrepute/reputecast/internal/providers/bounce"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	provstate "github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
 // bounceType is one row of "Bounces by type": a group of the shared bounce
-// taxonomy (internal/providers/bounce) as people read it.
+// taxonomy (internal/providers/bounce) as people read it, named by
+// bounce.<key> in messages/<locale>.json.
 type bounceType struct {
 	Key     string
-	Label   string
 	Tone    string
 	Classes []string
 	// Suppress says what happens to the addresses: auto (suppressed when
@@ -24,12 +25,12 @@ type bounceType struct {
 
 // bounceTypes are the report's bounce types, in display order.
 var bounceTypes = []bounceType{
-	{Key: "unknown_user", Label: "Hard · unknown user", Tone: "bad", Classes: []string{bounce.MailboxUnknown}, Suppress: "auto"},
-	{Key: "domain_invalid", Label: "Hard · domain not found", Tone: "bad", Classes: []string{bounce.DomainInvalid}, Suppress: "auto"},
-	{Key: "mailbox_full", Label: "Soft · mailbox full", Tone: "warn", Classes: []string{bounce.MailboxFull}, Suppress: "retry"},
-	{Key: "deferral_expired", Label: "Soft · deferral expired", Tone: "warn", Classes: []string{bounce.Temporary}, Suppress: "retry"},
-	{Key: "blocked", Label: "Blocked · policy or reputation", Tone: "bad", Classes: []string{bounce.PolicyBlock, bounce.SpamBlock, bounce.Reputation}, Suppress: "manual"},
-	{Key: "other", Label: "Other", Tone: "neutral", Classes: []string{bounce.Other, ""}, Suppress: "review"},
+	{Key: "unknown_user", Tone: "bad", Classes: []string{bounce.MailboxUnknown}, Suppress: "auto"},
+	{Key: "domain_invalid", Tone: "bad", Classes: []string{bounce.DomainInvalid}, Suppress: "auto"},
+	{Key: "mailbox_full", Tone: "warn", Classes: []string{bounce.MailboxFull}, Suppress: "retry"},
+	{Key: "deferral_expired", Tone: "warn", Classes: []string{bounce.Temporary}, Suppress: "retry"},
+	{Key: "blocked", Tone: "bad", Classes: []string{bounce.PolicyBlock, bounce.SpamBlock, bounce.Reputation}, Suppress: "manual"},
+	{Key: "other", Tone: "neutral", Classes: []string{bounce.Other, ""}, Suppress: "review"},
 }
 
 func bounceTypeOf(class string) bounceType {
@@ -54,7 +55,7 @@ func bounceTypeByKey(key string) (bounceType, bool) {
 
 // bounceTable groups the campaign's bounce events into the taxonomy, with
 // each provider's original codes, most frequent first.
-func bounceTable(rows []store.ReportBounceCodesRow) ReportBounceTable {
+func bounceTable(l i18n.Lang, rows []store.ReportBounceCodesRow) ReportBounceTable {
 	type acc struct {
 		row        ReportBounceRow
 		recipients int64
@@ -73,7 +74,7 @@ func bounceTable(rows []store.ReportBounceCodesRow) ReportBounceTable {
 		t := bounceTypeOf(r.BounceClass)
 		a := byKey[t.Key]
 		if a == nil {
-			a = &acc{row: ReportBounceRow{Type: t.Key, Label: t.Label, Tone: t.Tone, Codes: []ReportCodeCount{}}, codes: map[string]*ReportCodeCount{}}
+			a = &acc{row: ReportBounceRow{Type: t.Key, Label: bounceLabel(l, t.Key), Tone: t.Tone, Codes: []ReportCodeCount{}}, codes: map[string]*ReportCodeCount{}}
 			byKey[t.Key] = a
 		}
 		a.row.Count += r.N

@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -44,7 +45,7 @@ func TestBounceTable(t *testing.T) {
 		{BounceClass: "policy_block", Type: "hard_bounce", ProviderID: &ses, ProviderName: "Amazon SES", Adapter: "ses", OriginalType: "Permanent/Suppressed", N: 4, Recipients: 4},
 		{BounceClass: "", Type: "soft_bounce", ProviderID: &ses, ProviderName: "Amazon SES", Adapter: "ses", OriginalType: "Undetermined", N: 2},
 	}
-	tbl := bounceTable(rows)
+	tbl := bounceTable(i18n.Default, rows)
 	if tbl.Total != 188 || len(tbl.Rows) != 4 {
 		t.Fatalf("table: %+v", tbl)
 	}
@@ -67,7 +68,7 @@ func TestBounceTable(t *testing.T) {
 }
 
 func TestUnsubscribes(t *testing.T) {
-	u := unsubscribes(112, []store.ReportUnsubscribeReasonsRow{
+	u := unsubscribes(i18n.Default, 112, []store.ReportUnsubscribeReasonsRow{
 		{Reason: "too_frequent", N: 41}, {Reason: "not_relevant", N: 33}, {Reason: "never_signed_up", N: 9}, {Reason: "other", N: 7},
 		{Reason: "too_frequent", ChoseFewer: true, N: 28}, {Reason: "one_click", N: 5},
 	})
@@ -79,7 +80,7 @@ func TestUnsubscribes(t *testing.T) {
 		t.Fatalf("reasons: %+v", u)
 	}
 	// More answers than counted unsubscribes (counters still catching up).
-	if u := unsubscribes(3, []store.ReportUnsubscribeReasonsRow{{Reason: "spam", N: 5}}); u.Total != 5 || len(u.Reasons) != 1 {
+	if u := unsubscribes(i18n.Default, 3, []store.ReportUnsubscribeReasonsRow{{Reason: "spam", N: 5}}); u.Total != 5 || len(u.Reasons) != 1 {
 		t.Fatalf("catch-up: %+v", u)
 	}
 }
@@ -92,14 +93,14 @@ func TestClickMap(t *testing.T) {
 		{ID: uuid.New(), Url: "{{ unsubscribe_url }}", Label: "Unsubscribe", Position: 3, Clicks: 40},
 		{ID: uuid.New(), Url: "{{ preferences_url }}", Label: "Preferences", Position: 4, Clicks: 40},
 	}
-	m := clickMap("<a href='x'>x</a>", rows)
+	m := clickMap(i18n.Default, "<a href='x'>x</a>", rows)
 	if !m.Available || m.Total != 1000 || m.Links[1].Label != "acme.io/changelog" || !m.Links[0].Hot || !m.Links[1].Hot || m.Links[3].Hot || !m.Links[3].Grouped {
 		t.Fatalf("map: %+v", m)
 	}
 	if m.Other == nil || m.Other.Links != 2 || m.Other.Share != 8 || strings.Join(m.Other.Labels, ",") != "Unsubscribe,Preferences" {
 		t.Fatalf("other: %+v", m.Other)
 	}
-	if clickMap("  ", rows).Available {
+	if clickMap(i18n.Default, "  ", rows).Available {
 		t.Fatal("missing content must not render")
 	}
 }

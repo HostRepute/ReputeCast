@@ -5,7 +5,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/hostrepute/reputecast/internal/audience"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/reports"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -32,11 +32,11 @@ type reportSuppressor struct{ a *App }
 // maxNote is the longest note the suppression list keeps.
 const maxNote = 300
 
-func (r reportSuppressor) AddSuppressions(ctx context.Context, ws *store.Workspace, emails []string, note string) (int, int, error) {
+func (r reportSuppressor) AddSuppressions(ctx context.Context, ws *store.Workspace, emails []string, note string, text i18n.Text) (int, int, error) {
 	if n := []rune(note); len(n) > maxNote {
 		note = string(n[:maxNote-1]) + "…"
 	}
-	res, err := r.a.audience().AddSuppressions(ctx, ws, audience.AddSuppressionsInput{Emails: emails, Note: note})
+	res, err := r.a.audience().AddSuppressionsKept(ctx, ws, emails, note, text)
 	if err != nil {
 		return 0, 0, err
 	}
