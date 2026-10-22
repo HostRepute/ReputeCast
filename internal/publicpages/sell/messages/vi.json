@@ -89,6 +89,7 @@
   "shop.apps.doc": "Word, Pages hoặc Google Docs",
   "shop.apps.slides": "PowerPoint, Keynote hoặc Google Slides",
   "shop.apps.ebook": "Apple Books hoặc bất kỳ ứng dụng đọc sách điện tử nào",
+  "shop.formUnreadable": "Không đọc được biểu mẫu.",
 
   "event.online": "Trực tuyến, trên {platform}",
   "event.onlinePlain": "Trực tuyến",

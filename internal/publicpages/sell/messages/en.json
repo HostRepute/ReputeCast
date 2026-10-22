@@ -89,6 +89,7 @@
   "shop.apps.doc": "Word, Pages or Google Docs",
   "shop.apps.slides": "PowerPoint, Keynote or Google Slides",
   "shop.apps.ebook": "Apple Books or any e-reader",
+  "shop.formUnreadable": { "message": "The form couldn't be read.", "note": "a plain-text error when a Buy button's form arrives broken" },
 
   "event.online": { "message": "Online, on {platform}", "note": "platform: Zoom" },
   "event.onlinePlain": "Online",

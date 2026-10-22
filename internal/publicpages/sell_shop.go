@@ -11,6 +11,7 @@ import (
 	"golang.org/x/net/html"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	pagesvc "github.com/hostrepute/reputecast/internal/pages"
 	"github.com/hostrepute/reputecast/internal/products"
 	"github.com/hostrepute/reputecast/internal/website"
@@ -202,7 +203,11 @@ func (h *Handler) handoff(w http.ResponseWriter, r *http.Request, start bool) {
 		return
 	}
 	if !h.parseForm(w, r, 16<<10) {
-		http.Error(w, "The form couldn't be read.", http.StatusBadRequest)
+		l := i18n.For(i18n.English)
+		if loc, ok := i18n.ParseLocale(h.visitorLang(nil, r, s, nil).Code); ok {
+			l = i18n.For(loc)
+		}
+		http.Error(w, sellMsgs.M("shop.formUnreadable").Text(l, nil), http.StatusBadRequest)
 		return
 	}
 	ctx := r.Context()
