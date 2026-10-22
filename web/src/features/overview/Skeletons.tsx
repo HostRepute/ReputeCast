@@ -1,4 +1,6 @@
 import type { CSSProperties } from 'react'
+import { useT } from '@/i18n'
+import { m } from './messages'
 
 /** The states board's grey block (6px corners). */
 function Sk({ w, h, r, style }: { w?: number | string; h: number; r?: number; style?: CSSProperties }) {
@@ -7,10 +9,11 @@ function Sk({ w, h, r, style }: { w?: number | string; h: number; r?: number; st
 
 /** Loading "Sender health": title, link, the ring and four lines (OverviewStates). */
 export function HealthSkeleton() {
+  const t = useT()
   return (
     <div className="card flex flex-col gap-4 px-[22px] py-5" aria-busy="true">
       <span className="vh" role="status">
-        Loading sender health
+        {t(m.loadingHealth)}
       </span>
       <div className="flex justify-between">
         <Sk w={120} h={16} />
@@ -31,10 +34,11 @@ export function HealthSkeleton() {
 
 /** Loading "Next scheduled campaign" (OverviewStates). */
 export function NextSkeleton() {
+  const t = useT()
   return (
     <div className="card flex flex-col gap-4 px-[22px] py-5" aria-busy="true">
       <span className="vh" role="status">
-        Loading the next campaign
+        {t(m.loadingNext)}
       </span>
       <div className="flex justify-between">
         <Sk w={180} h={16} />
@@ -58,6 +62,7 @@ export function NextSkeleton() {
 
 /** Loading provider cards: a name, a status and three bars each (OverviewStates). */
 export function ProvidersSkeleton() {
+  const t = useT()
   const names: [number, number][] = [
     [110, 80],
     [90, 80],
@@ -66,7 +71,7 @@ export function ProvidersSkeleton() {
   return (
     <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr))]" aria-busy="true">
       <span className="vh" role="status">
-        Loading sending providers
+        {t(m.loadingProviders)}
       </span>
       {names.map(([a, b], i) => (
         <div key={i} className="card flex flex-col gap-3 px-5 py-4.5">
@@ -85,10 +90,11 @@ export function ProvidersSkeleton() {
 
 /** A generic card of grey lines for the cards below the fold. */
 export function CardSkeleton({ lines }: { lines: number }) {
+  const t = useT()
   return (
     <div className="card flex flex-col gap-3.5 px-[22px] py-5" aria-busy="true">
       <span className="vh" role="status">
-        Loading
+        {t(m.loading)}
       </span>
       <Sk w={160} h={16} />
       {Array.from({ length: lines }, (_, i) => (

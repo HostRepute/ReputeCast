@@ -1,6 +1,6 @@
 import type { Schemas } from '@/api/client'
 import type { Tone } from '@/components/ui/Badge'
-import type { useT } from '@/i18n'
+import { getI18n, t as tr, type useT } from '@/i18n'
 import { count, dayMonthDate, dayMonthYear, money as dollars } from '@/lib/format'
 import { me } from './messages'
 
@@ -140,7 +140,16 @@ export function platformName(p: string | undefined): string {
     case 'kit':
       return 'Kit'
   }
-  return 'a CSV file'
+  return tr(me.platformCsv)
+}
+
+/** A country's name in the app's language: "United States", "Hoa Kỳ". */
+export function countryName(code: string): string {
+  try {
+    return new Intl.DisplayNames([getI18n().locale], { type: 'region' }).of(code) ?? code
+  } catch {
+    return code
+  }
 }
 
 /**

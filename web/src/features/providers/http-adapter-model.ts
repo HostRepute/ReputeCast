@@ -1,25 +1,88 @@
 import { ApiError, errorMessage, type Schemas } from '@/api/client'
+import { t } from '@/i18n'
+import { ma } from './adapters.messages'
 
 export type WebhookAuth = NonNullable<Schemas['AdapterHTTPMapping']['webhookAuth']>
 type Header = Schemas['AdapterHTTPHeader']
 
-/** How the provider's webhooks are authenticated (docs/adapters.md › The generic HTTP adapter). */
+/**
+ * How the provider's webhooks are authenticated (docs/adapters.md › The
+ * generic HTTP adapter). Labels are read when shown, in the app language.
+ */
 export const webhookAuths: { value: WebhookAuth; label: string; header?: string; placeholder?: string }[] = [
-  { value: 'hmac', label: 'HMAC signature in a header', header: 'Signature header', placeholder: 'X-Signature' },
-  { value: 'standard', label: 'Standard Webhooks (webhook-signature)' },
-  { value: 'basic', label: 'Basic auth' },
-  { value: 'header', label: 'Secret in a header', header: 'Header with the secret', placeholder: 'X-Webhook-Token' },
-  { value: 'none', label: 'None: the webhook URL only' },
+  {
+    value: 'hmac',
+    get label() {
+      return t(ma.authHmac)
+    },
+    get header() {
+      return t(ma.authHmacHeader)
+    },
+    placeholder: 'X-Signature',
+  },
+  {
+    value: 'standard',
+    get label() {
+      return t(ma.authStandard)
+    },
+  },
+  {
+    value: 'basic',
+    get label() {
+      return t(ma.authBasic)
+    },
+  },
+  {
+    value: 'header',
+    get label() {
+      return t(ma.authHeader)
+    },
+    get header() {
+      return t(ma.authSecretHeader)
+    },
+    placeholder: 'X-Webhook-Token',
+  },
+  {
+    value: 'none',
+    get label() {
+      return t(ma.authNone)
+    },
+  },
 ]
 
 export type WebhookPaths = Required<Schemas['AdapterHTTPWebhookPaths']>
 
 /** The paths a custom JSONPath map reads, inside one event unless noted. */
 export const webhookPathFields: { key: keyof WebhookPaths; label: string; placeholder: string; optional?: boolean }[] = [
-  { key: 'type', label: 'Event type', placeholder: '$.event' },
-  { key: 'recipient', label: 'Recipient', placeholder: '$.email' },
-  { key: 'messageId', label: 'Message id', placeholder: '$.message_id' },
-  { key: 'events', label: 'Events in one request', placeholder: '$.events[*]', optional: true },
+  {
+    key: 'type',
+    get label() {
+      return t(ma.pathType)
+    },
+    placeholder: '$.event',
+  },
+  {
+    key: 'recipient',
+    get label() {
+      return t(ma.pathRecipient)
+    },
+    placeholder: '$.email',
+  },
+  {
+    key: 'messageId',
+    get label() {
+      return t(ma.pathMessageId)
+    },
+    placeholder: '$.message_id',
+  },
+  {
+    key: 'events',
+    get label() {
+      return t(ma.pathEvents)
+    },
+    placeholder: '$.events[*]',
+    optional: true,
+  },
 ]
 
 /** "Name: value" lines into request headers; blank lines are skipped. */
@@ -30,7 +93,7 @@ export function parseHeaderLines(text: string): { headers: Header[]; error?: str
     const line = lines[i]!.trim()
     if (!line) continue
     const at = line.indexOf(':')
-    if (at <= 0) return { headers, error: `Line ${i + 1}: write each header as Name: value.` }
+    if (at <= 0) return { headers, error: t(ma.headerLineError, { line: i + 1 }) }
     headers.push({ name: line.slice(0, at).trim(), value: line.slice(at + 1).trim() })
   }
   return { headers }

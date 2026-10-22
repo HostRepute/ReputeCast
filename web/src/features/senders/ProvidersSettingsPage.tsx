@@ -13,9 +13,13 @@ import { problemMessage } from '@/features/connect/parts'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { SmsSettingsSummary } from '@/features/sms/SettingsSummary'
 import { ChannelSettingsSummary } from '@/features/push/SettingsSummary'
+import { t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
-import { count, dayMonthYear, money, monthName } from '@/lib/format'
+import { count, dayMonthYear, decimal, money, monthName } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
+import { m } from './messages'
+import { mp } from './providers.messages'
 import { ReadOnlyNote } from './ReadOnlyNote'
 import './senders.css'
 
@@ -34,12 +38,13 @@ const THROTTLES: { key: string; label: string; color: string }[] = [
 
 /** 7.13 Settings › Providers (SettingsProviders): provider summaries and workspace-wide sending defaults. */
 export function ProvidersSettingsPage() {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', settingsPath, { params: { path: { workspace: slug } } })
   return (
-    <Page title="Settings" documentTitle="Providers · Settings" tabs={settingsTabs(slug)}>
+    <Page title={t(m.settings)} documentTitle={t(mp.documentTitle)} tabs={settingsTabs(slug)}>
       {q.isError ? (
-        <ErrorPanel title="Couldn't load the provider settings" actions={<Button onClick={() => void q.refetch()}>Retry</Button>}>
+        <ErrorPanel title={t(mp.loadFailed)} actions={<Button onClick={() => void q.refetch()}>{t(common.retry)}</Button>}>
           {errorMessage(q.error)}
         </ErrorPanel>
       ) : q.data ? (
@@ -47,7 +52,7 @@ export function ProvidersSettingsPage() {
       ) : (
         <div className="flex flex-col gap-5" aria-busy="true">
           <span className="vh" role="status">
-            Loading the provider settings…
+            {t(mp.loading)}
           </span>
           <section className="card flex flex-wrap" aria-hidden="true">
             {[0, 1, 2].map((i) => (
@@ -78,36 +83,55 @@ export function ProvidersSettingsPage() {
   )
 }
 
-/** The defaults as the board writes them in the inputs. */
+/** The defaults as the board writes them in the inputs, with the numbers in the region format. */
 function formFrom(d: Defaults) {
   return {
-    bounce: `${d.bounce.toFixed(1)} %`,
-    complaint: `${d.complaint.toFixed(2)} %`,
-    mailboxComplaint: `${d.mailboxComplaint.toFixed(2)} %`,
+    bounce: `${decimal(d.bounce, 1)} %`,
+    complaint: `${decimal(d.complaint, 2)} %`,
+    mailboxComplaint: `${decimal(d.mailboxComplaint, 2)} %`,
     providerError: `${trim(d.providerError)} %`,
     pauseScope: d.pauseScope,
-    confirmOver: `${count(d.confirmOver)} recipients · type the count to confirm`,
+    confirmOver: tt(mp.confirmOverValue, { count: count(d.confirmOver) }),
     throttles: Object.fromEntries(THROTTLES.map((t) => [t.key, throttleText(d.throttles[t.key])])),
     suppressionSync: d.suppressionSync,
   }
 }
 
+/** Up to two decimals, without trailing zeros: 5, 2.5, 0.25. */
 function trim(v: number): string {
-  return String(Number(v.toFixed(2)))
+  const n = Number(v.toFixed(2))
+  return decimal(n, (String(n).split('.')[1] ?? '').length)
 }
 
 function throttleText(v: number | undefined): string {
-  return v ? `${trim(v)} per second` : 'no limit'
+  return v ? tt(mp.perSecond, { n: trim(v) }) : tt(mp.noLimit)
 }
 
-/** The first number in a field ("2.0 %" → 2, "5,000 recipients…" → 5000); "no limit" is 0. */
+/**
+ * The first number in a field ("2.0 %" → 2, "5,000 recipients…" → 5000,
+ * "2,5 %" → 2.5, "5.000 người nhận…" → 5000); "no limit", in English or the
+ * app language, is 0. A single mark followed by three digits groups
+ * thousands; otherwise it's the decimal point, whichever the region uses.
+ */
 export function numberIn(s: string): number | undefined {
-  if (/^\s*(no limit|none|unlimited)?\s*$/i.test(s)) return 0
-  const m = s.replace(/,/g, '').match(/\d+(\.\d+)?/)
-  return m ? Number(m[0]) : undefined
+  const text = s.trim().toLowerCase()
+  if (!text || /^(no limit|none|unlimited)$/.test(text) || text === tt(mp.noLimit).toLowerCase()) return 0
+  const token = /\d[\d.,\s]*/.exec(s)?.[0]
+  if (!token) return undefined
+  let n = token.replace(/\s/g, '')
+  const marks = n.match(/[.,]/g) ?? []
+  if (marks.length) {
+    const last = Math.max(n.lastIndexOf('.'), n.lastIndexOf(','))
+    const after = n.length - last - 1
+    const decimalPoint = new Set(marks).size > 1 || (marks.length === 1 && (after !== 3 || /^0[.,]/.test(n)))
+    n = decimalPoint ? `${n.slice(0, last).replace(/[.,]/g, '')}.${n.slice(last + 1)}` : n.replace(/[.,]/g, '')
+  }
+  const v = Number(n)
+  return Number.isFinite(v) ? v : undefined
 }
 
 function SettingsBody({ data }: { data: Settings }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const reason = usePermissionReason('providers:manage', data.helpers)
@@ -121,17 +145,17 @@ function SettingsBody({ data }: { data: Settings }) {
     const nums = { bounce: numberIn(f.bounce), complaint: numberIn(f.complaint), mailboxComplaint: numberIn(f.mailboxComplaint), providerError: numberIn(f.providerError), confirmOver: numberIn(f.confirmOver) }
     const bad = Object.entries(nums).find(([, v]) => v === undefined)
     if (bad) {
-      setError('Each threshold needs a number, like 2.0 %.')
+      setError(t(mp.needNumber, { example: `${decimal(2, 1)} %` }))
       return
     }
     const throttles: Record<string, number> = {}
-    for (const t of THROTTLES) {
-      const v = numberIn(f.throttles[t.key] ?? '')
+    for (const th of THROTTLES) {
+      const v = numberIn(f.throttles[th.key] ?? '')
       if (v === undefined) {
-        setError(`Write the ${t.label} throttle as "5 per second", or "no limit".`)
+        setError(t(mp.throttleFormat, { provider: th.label, example: t(mp.perSecond, { n: decimal(5, 0) }), noLimit: t(mp.noLimit) }))
         return
       }
-      throttles[t.key] = v
+      throttles[th.key] = v
     }
     setError(undefined)
     save.mutate(
@@ -151,7 +175,7 @@ function SettingsBody({ data }: { data: Settings }) {
       {
         onSuccess: (next) => {
           qc.setQueryData($api.queryOptions('get', settingsPath, { params: { path: { workspace: slug } } }).queryKey, next)
-          toast({ title: 'Sending defaults saved', detail: 'New campaigns start from them.' })
+          toast({ title: t(mp.saved), detail: t(mp.savedDetail) })
         },
         onError: (e) => setError(problemMessage(e)),
       },
@@ -160,25 +184,21 @@ function SettingsBody({ data }: { data: Settings }) {
   const month = monthName(data.monthStart)
   return (
     <>
-      {reason ? (
-        <ReadOnlyNote perm="providers:manage" helpers={data.helpers}>
-          You can view the providers and the sending defaults.
-        </ReadOnlyNote>
-      ) : null}
-      <section className="card flex flex-wrap" aria-label="Connected providers">
+      {reason ? <ReadOnlyNote msg={mp.readOnlyText} perm="providers:manage" helpers={data.helpers} /> : null}
+      <section className="card flex flex-wrap" aria-label={t(mp.connectedProviders)}>
         {data.providers.length === 0 ? (
-          <div className="flex-[1_1_100%] px-5 py-4.5 text-ink-2">No sending provider is connected yet.</div>
+          <div className="flex-[1_1_100%] px-5 py-4.5 text-ink-2">{t(mp.noneConnected)}</div>
         ) : (
           data.providers.map((p, i) => <ProviderColumn key={p.id} card={p} month={month} last={i === data.providers.length - 1} />)
         )}
         <div className="flex flex-[1_1_100%] flex-wrap items-center justify-between gap-2 border-t border-line-2 px-5 py-3">
-          <span className="k">Health, routing, warm-up, events and adapters live on the Sending providers page.</span>
+          <span className="k">{t(mp.pageNote)}</span>
           <div className="flex gap-2">
             <ButtonLink size="sm" to="/w/$workspace/providers/connect" params={{ workspace: slug }}>
-              Add provider
+              {t(mp.addProvider)}
             </ButtonLink>
             <ButtonLink size="sm" variant="primary" to="/w/$workspace/providers" params={{ workspace: slug }}>
-              Open Sending providers
+              {t(mp.openProviders)}
             </ButtonLink>
           </div>
         </div>
@@ -193,59 +213,59 @@ function SettingsBody({ data }: { data: Settings }) {
       <Grid min={380} gap={20}>
         <section className="card flex flex-col gap-3 px-5 py-4.5" aria-labelledby="defaults-h">
           <h2 className="h2" id="defaults-h">
-            Workspace-wide sending defaults
+            {t(mp.defaultsTitle)}
           </h2>
-          <span className="k">New campaigns start from these; each campaign can override them in Review &amp; send.</span>
+          <span className="k">{t(mp.defaultsLine)}</span>
           <div className="grid grid-cols-2 gap-2.5 max-md:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]!">
-            <TextField label="Auto-pause · bounce rate" value={f.bounce} onChange={(v) => set({ bounce: v })} disabled={Boolean(reason)} />
-            <TextField label="Auto-pause · complaint rate" value={f.complaint} onChange={(v) => set({ complaint: v })} disabled={Boolean(reason)} />
-            <TextField label="Per mailbox provider complaint" value={f.mailboxComplaint} onChange={(v) => set({ mailboxComplaint: v })} disabled={Boolean(reason)} />
-            <TextField label="Provider error rate · 3 min" value={f.providerError} onChange={(v) => set({ providerError: v })} disabled={Boolean(reason)} />
+            <TextField label={t(mp.bounce)} value={f.bounce} onChange={(v) => set({ bounce: v })} disabled={Boolean(reason)} />
+            <TextField label={t(mp.complaint)} value={f.complaint} onChange={(v) => set({ complaint: v })} disabled={Boolean(reason)} />
+            <TextField label={t(mp.mailboxComplaint)} value={f.mailboxComplaint} onChange={(v) => set({ mailboxComplaint: v })} disabled={Boolean(reason)} />
+            <TextField label={t(mp.providerError)} value={f.providerError} onChange={(v) => set({ providerError: v })} disabled={Boolean(reason)} />
           </div>
           <label className="lbl">
-            Pause scope
+            {t(mp.pauseScope)}
             <select className="in" value={f.pauseScope} onChange={(e) => set({ pauseScope: e.target.value as Defaults['pauseScope'] })} disabled={Boolean(reason)}>
-              <option value="route">Only the affected route or mailbox provider</option>
-              <option value="campaign">The whole campaign</option>
+              <option value="route">{t(mp.pauseRoute)}</option>
+              <option value="campaign">{t(mp.pauseCampaign)}</option>
             </select>
           </label>
-          <TextField label="Confirmation for sends over" value={f.confirmOver} onChange={(v) => set({ confirmOver: v })} disabled={Boolean(reason)} />
+          <TextField label={t(mp.confirmOver)} value={f.confirmOver} onChange={(v) => set({ confirmOver: v })} disabled={Boolean(reason)} />
         </section>
 
         <section className="card flex flex-col gap-3 px-5 py-4.5" aria-labelledby="throttles-h">
           <h2 className="h2" id="throttles-h">
-            Throttles per mailbox provider
+            {t(mp.throttlesTitle)}
           </h2>
-          <span className="k">Applied on every route. ReputeCast lowers them automatically when a provider defers.</span>
+          <span className="k">{t(mp.throttlesLine)}</span>
           <div className="grid grid-cols-2 gap-2.5 max-md:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]!">
-            {THROTTLES.map((t) => (
-              <label key={t.key} className="lbl">
+            {THROTTLES.map((th) => (
+              <label key={th.key} className="lbl">
                 <span className="flex items-center gap-1.5">
-                  <span className="dot" style={{ color: t.color }} aria-hidden="true" />
-                  {t.label}
+                  <span className="dot" style={{ color: th.color }} aria-hidden="true" />
+                  {th.label}
                 </span>
-                <input className="in" value={f.throttles[t.key] ?? ''} onChange={(e) => set({ throttles: { ...f.throttles, [t.key]: e.target.value } })} disabled={Boolean(reason)} />
+                <input className="in" value={f.throttles[th.key] ?? ''} onChange={(e) => set({ throttles: { ...f.throttles, [th.key]: e.target.value } })} disabled={Boolean(reason)} />
               </label>
             ))}
           </div>
           <label className="lbl">
-            Suppression sync interval
+            {t(mp.suppressionSync)}
             <select className="in" value={f.suppressionSync} onChange={(e) => set({ suppressionSync: e.target.value as Defaults['suppressionSync'] })} disabled={Boolean(reason)}>
-              <option value="15m">Every 15 minutes, plus immediately after each bounce</option>
-              <option value="1h">Hourly</option>
+              <option value="15m">{t(mp.sync15m)}</option>
+              <option value="1h">{t(mp.sync1h)}</option>
             </select>
           </label>
           <div className="lbl">
-            <span id="secrets-l">Webhook signing secrets</span>
+            <span id="secrets-l">{t(mp.secrets)}</span>
             <div className="flex gap-2 max-md:flex-wrap">
               <input
                 className="in flex-1 bg-white max-md:w-0 max-md:min-w-full"
-                value={data.defaults.secretsRotatedAt ? `Rotated ${dayMonthYear(data.defaults.secretsRotatedAt)}` : 'Not rotated since the providers were connected'}
+                value={data.defaults.secretsRotatedAt ? t(mp.rotatedOn, { date: dayMonthYear(data.defaults.secretsRotatedAt) }) : t(mp.notRotated)}
                 readOnly
                 aria-labelledby="secrets-l"
               />
-              <Button onClick={() => setRotating(true)} disabledReason={reason ?? (data.providers.length ? undefined : 'Connect a provider first.')}>
-                Rotate
+              <Button onClick={() => setRotating(true)} disabledReason={reason ?? (data.providers.length ? undefined : t(mp.connectFirst))}>
+                {t(mp.rotate)}
               </Button>
             </div>
           </div>
@@ -258,28 +278,28 @@ function SettingsBody({ data }: { data: Settings }) {
             setError(undefined)
           }}
         >
-          Discard
+          {t(mp.discard)}
         </Button>
         <Button variant="primary" onClick={submit} loading={save.isPending} disabledReason={reason}>
-          Save defaults
+          {t(mp.saveDefaults)}
         </Button>
       </div>
       <ConfirmDialog
         open={rotating}
         onOpenChange={setRotating}
         tone="warn"
-        badge="Rotate secrets"
-        title="Rotate every provider's webhook signing secret?"
-        description="ReputeCast makes a new secret for each provider and registers it where the provider's API allows. Providers whose webhook you set up by hand need the new secret there too; until then their events are refused."
-        confirmLabel="Rotate secrets"
+        badge={t(mp.rotateSecrets)}
+        title={t(mp.rotateTitle)}
+        description={t(mp.rotateBody)}
+        confirmLabel={t(mp.rotateSecrets)}
         confirmVariant="primary"
-        busyLabel="Rotating…"
+        busyLabel={t(mp.rotating)}
         onConfirm={async () => {
           const res = await rotate(slug)
           qc.setQueryData($api.queryOptions('get', settingsPath, { params: { path: { workspace: slug } } }).queryKey, res.page)
           toast({
-            title: `Rotated ${res.rotated} ${res.rotated === 1 ? 'secret' : 'secrets'}`,
-            detail: res.skipped.length ? `Update the webhook by hand in ${res.skipped.join(', ')}.` : undefined,
+            title: t(mp.rotated, { count: res.rotated }),
+            detail: res.skipped.length ? t(mp.rotatedByHand, { providers: res.skipped.join(', ') }) : undefined,
           })
         }}
       />
@@ -302,7 +322,13 @@ function TextField({ label, value, onChange, disabled }: { label: string; value:
 }
 
 function ProviderColumn({ card: p, month, last }: { card: Card; month: string; last: boolean }) {
-  const cost = p.cost.basis === 'plan' ? `${money(p.cost.monthly)} plan` : p.cost.basis === 'self_hosted' ? `${money(p.cost.toDate, p.cost.toDate ? 2 : 0)} metered` : money(p.cost.toDate)
+  const t = useT()
+  const cost =
+    p.cost.basis === 'plan'
+      ? t(mp.costPlan, { amount: money(p.cost.monthly) })
+      : p.cost.basis === 'self_hosted'
+        ? t(mp.costMetered, { amount: money(p.cost.toDate, p.cost.toDate ? 2 : 0) })
+        : money(p.cost.toDate)
   return (
     <div className={cn('flex flex-[1_1_260px] flex-col gap-2 px-5 py-4.5', !last && 'border-r border-line-2')}>
       <div className="flex items-center justify-between">
@@ -312,19 +338,19 @@ function ProviderColumn({ card: p, month, last }: { card: Card; month: string; l
         </Badge>
       </div>
       <div className="sd-kv">
-        <span className="k">Streams</span>
-        <span>{p.streams || 'Not routed yet'}</span>
+        <span className="k">{t(mp.streams)}</span>
+        <span>{p.streams || t(mp.notRouted)}</span>
       </div>
       <div className="sd-kv">
         <span className="k">{p.identityLabel}</span>
         <span className="mono">{p.identity}</span>
       </div>
       <div className="sd-kv">
-        <span className="k">Connected</span>
-        <span>{`${dayMonthYear(p.connectedAt)} · ${p.connectedVia}`}</span>
+        <span className="k">{t(mp.connected)}</span>
+        <span>{t(mp.connectedValue, { date: dayMonthYear(p.connectedAt), via: p.connectedVia })}</span>
       </div>
       <div className="sd-kv">
-        <span className="k">{`Cost · ${month}`}</span>
+        <span className="k">{t(mp.costMonth, { month })}</span>
         <span className="n">{cost}</span>
       </div>
     </div>

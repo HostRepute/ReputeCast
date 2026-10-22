@@ -1,5 +1,5 @@
 import { Dialog as RDialog } from 'radix-ui'
-import type { ReactNode } from 'react'
+import { useLayoutEffect, useRef, type ReactNode } from 'react'
 import { useT } from '@/i18n'
 import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
@@ -34,8 +34,8 @@ export interface DialogProps {
 }
 
 /**
- * Modal dialog: focus is trapped inside and returned to the trigger on close
- * (Radix). Escape closes unless `dismissible` is false.
+ * Modal dialog: focus is trapped inside and returned on close to whatever
+ * had it when the dialog opened. Escape closes unless `dismissible` is false.
  */
 export function Dialog({
   open,
@@ -53,6 +53,23 @@ export function Dialog({
   onOpenAutoFocus,
 }: DialogProps) {
   const t = useT()
+  // Radix gives focus back to a Dialog.Trigger, and most dialogs open from a
+  // plain button instead: keep what had focus when the dialog opened (before
+  // Radix moves it inside) and give it back on close.
+  const opener = useRef<HTMLElement | null>(null)
+  useLayoutEffect(() => {
+    if (!open) return
+    const el = document.activeElement
+    opener.current = el instanceof HTMLElement && el !== document.body ? el : null
+  }, [open])
+  const onCloseAutoFocus = (e: Event) => {
+    const el = opener.current
+    opener.current = null
+    if (el?.isConnected) {
+      e.preventDefault()
+      el.focus()
+    }
+  }
   if (layout !== 'standard') {
     return (
       <RDialog.Root open={open} onOpenChange={onOpenChange}>
@@ -63,6 +80,7 @@ export function Dialog({
               onPointerDownOutside={(e) => !dismissible && e.preventDefault()}
               onEscapeKeyDown={(e) => !dismissible && e.preventDefault()}
               onOpenAutoFocus={onOpenAutoFocus}
+              onCloseAutoFocus={onCloseAutoFocus}
             >
               {eyebrow ? <div className="flex flex-wrap items-center gap-2">{eyebrow}</div> : null}
               <RDialog.Title className="ct">{title}</RDialog.Title>
@@ -88,6 +106,7 @@ export function Dialog({
             onPointerDownOutside={(e) => !dismissible && e.preventDefault()}
             onEscapeKeyDown={(e) => !dismissible && e.preventDefault()}
             onOpenAutoFocus={onOpenAutoFocus}
+            onCloseAutoFocus={onCloseAutoFocus}
             aria-describedby={description ? undefined : undefined}
           >
             <div className="dh">

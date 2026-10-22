@@ -1,10 +1,7 @@
 import { $api } from '@/api/client'
-import { defineMessages, useT } from '@/i18n'
+import { useT } from '@/i18n'
 import { useWorkspace } from '@/lib/session'
-
-const mc = defineMessages('earn.sponsorChip', {
-  chip: 'Sponsored · {sponsor}',
-})
+import { mch as mc } from './chips.messages'
 
 /** The sponsor of each campaign with a booking, by campaign id (the Campaigns list's chips). */
 export function useSponsorChips(): Map<string, string> {

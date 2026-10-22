@@ -1,11 +1,16 @@
 import type { Schemas } from '@/api/client'
-import { ago, andList, clock, clockSeconds, count, duration, money, monthDay, rate, shortDate, trimPct } from '@/lib/format'
+import { m as pm } from '@/features/providers/messages'
+import { streamName, type Stream } from '@/features/providers/common'
+import { t as tt, type MessageDescriptor } from '@/i18n'
+import { ago, andList, clock, clockSeconds, count, decimal, duration, money, monthDay, orList, pct, rate, shortDate, trimPct } from '@/lib/format'
+import { mm } from './model.messages'
 
 /**
  * The live sending monitor's words and numbers (spec 7.6; boards
  * LiveMonitor, LiveMonitorPaused, LiveMonitorOutage, LiveMonitorStates,
  * LiveMonitorMobile), computed from the engine's snapshot. Pure functions,
- * pinned by model.test.ts against the boards' copy.
+ * pinned by model.test.ts against the boards' copy. The words come from
+ * model.messages.ts in the app language; numbers and times from lib/format.
  */
 
 export type Snapshot = Schemas['LiveSnapshot']
@@ -27,10 +32,32 @@ export const mailboxColor: Record<MailboxKey, string> = {
   other: 'var(--chart-other)',
 }
 
-export const mailboxNames: Record<MailboxKey, string> = { gmail: 'Gmail', outlook: 'Outlook', yahoo: 'Yahoo', icloud: 'iCloud', other: 'Other' }
+/** Mailbox providers by key; "Other" is a word, the rest are names. */
+export const mailboxNames: Record<MailboxKey, string> = {
+  gmail: 'Gmail',
+  outlook: 'Outlook',
+  yahoo: 'Yahoo',
+  icloud: 'iCloud',
+  get other() {
+    return tt(mm.mailboxOther)
+  },
+}
 
 export function mailboxName(key: string | undefined): string {
   return (key && mailboxNames[key as MailboxKey]) || key || ''
+}
+
+/** A list of mailbox provider names from the server, with "Other" in the app language. */
+function mailboxNamesOf(names: string[]): string[] {
+  return names.map((n) => (n === 'Other' ? mailboxNames.other : n))
+}
+
+const streamKeys: Record<string, Stream> = { Broadcasts: 'broadcast', Automations: 'automation', System: 'system', Transactional: 'transactional' }
+
+/** A stream's name from the server ("Automations"), in the app language. */
+function streamLabel(name: string): string {
+  const key = streamKeys[name]
+  return key ? streamName[key] : name
 }
 
 /** Sending-provider series colours. */
@@ -63,12 +90,12 @@ export function usageWidth(value: number, limit: number): number {
 
 /** One decimal: 99.3%. */
 export function pct1(v: number | null | undefined): string {
-  return v === null || v === undefined || Number.isNaN(v) ? '—' : `${v.toFixed(1)}%`
+  return pct(v, 1)
 }
 
 /** Two decimals, for complaint rates: 0.02%. */
 export function pct2(v: number | null | undefined): string {
-  return v === null || v === undefined || Number.isNaN(v) ? '—' : `${v.toFixed(2)}%`
+  return pct(v, 2)
 }
 
 /** n of d as a percentage, or undefined without a base. */
@@ -78,42 +105,43 @@ export function share(n: number, d: number): number | undefined {
 
 /** A live rate: "14.2 /s", "2.0 /s", "0 /s". */
 export function perSec(v: number): string {
-  return v <= 0 ? '0 /s' : `${v.toFixed(1)} /s`
+  return tt(mm.perSecond, { rate: v <= 0 ? decimal(0, 0) : decimal(v, 1) })
 }
 
 /** A throttle or a rounded rate: "5 /s", "14 /s". */
 export function wholePerSec(v: number): string {
-  return `${Number.isInteger(v) ? v : Math.round(v * 10) / 10} /s`
+  const r = Number.isInteger(v) ? v : Math.round(v * 10) / 10
+  return tt(mm.perSecond, { rate: decimal(r, Number.isInteger(r) ? 0 : 1) })
 }
 
 /** "62%": whole percent, never 100% before everything is sent. */
 export function progressText(s: Pick<Snapshot, 'sent' | 'recipients' | 'percent'>): string {
-  if (s.recipients <= 0) return '0%'
-  if (s.sent >= s.recipients) return '100%'
-  return `${Math.min(99, Math.round((s.sent / s.recipients) * 100))}%`
+  if (s.recipients <= 0) return pct(0, 0)
+  if (s.sent >= s.recipients) return pct(100, 0)
+  return pct(Math.min(99, Math.round((s.sent / s.recipients) * 100)), 0)
 }
 
 /** "1 min 26 s", "45 s", "3 min". */
 export function secondsText(total: number): string {
   const s = Math.max(0, Math.round(total))
-  if (s < 60) return `${s} s`
+  if (s < 60) return tt(mm.seconds, { s })
   const m = Math.floor(s / 60)
   const r = s % 60
   if (m >= 60) return duration(m)
-  return r ? `${m} min ${r} s` : `${m} min`
+  return r ? tt(mm.minutesSeconds, { m, s: r }) : tt(mm.minutes, { m })
 }
 
 /** "$0.12", and "$0" for nothing (self-hosted providers). */
 export function cost(v: number): string {
-  return v === 0 ? '$0' : money(v)
+  return v === 0 ? money(0, 0) : money(v)
 }
 
 /** "1 s ago", "40 s ago", "3 min ago" for a live feed. */
 export function liveAgo(at: string | undefined, now: Date): string {
-  if (!at) return 'no events yet'
+  if (!at) return tt(mm.noEventsYet)
   const s = Math.round((now.getTime() - new Date(at).getTime()) / 1000)
-  if (s < 60) return `${Math.max(1, s)} s ago`
-  if (s < 3600) return `${Math.round(s / 60)} min ago`
+  if (s < 60) return tt(mm.secondsAgo, { n: Math.max(1, s) })
+  if (s < 3600) return tt(mm.minutesAgo, { n: Math.round(s / 60) })
   return ago(at, now)
 }
 
@@ -124,18 +152,27 @@ export function shortStamp(d: string): string {
 
 /** "Started by Sofia Rossi · approved by Marcus Chen, Oct 10 16:20". */
 export function startedLine(s: Snapshot): string {
-  const parts: string[] = []
-  if (s.startedBy) parts.push(`Started by ${s.startedBy}`)
-  else if (s.state === 'scheduled' && s.scheduledBy) parts.push(`Scheduled by ${s.scheduledBy}`)
-  if (s.approvedBy) parts.push(`approved by ${s.approvedBy}${s.approvedAt ? `, ${shortStamp(s.approvedAt)}` : ''}`)
-  const line = parts.join(' · ')
-  return line ? line[0]!.toUpperCase() + line.slice(1) : ''
+  const lead = s.startedBy ? 'started' : s.state === 'scheduled' && s.scheduledBy ? 'scheduled' : ''
+  const person = s.startedBy || s.scheduledBy
+  const approver = s.approvedBy
+  const when = s.approvedAt ? shortStamp(s.approvedAt) : ''
+  if (!approver) {
+    if (lead === 'started') return tt(mm.startedBy, { person })
+    if (lead === 'scheduled') return tt(mm.scheduledBy, { person })
+    return ''
+  }
+  const v = { person, approver, when }
+  if (lead === 'started') return tt(when ? mm.startedApprovedAt : mm.startedApproved, v)
+  if (lead === 'scheduled') return tt(when ? mm.scheduledApprovedAt : mm.scheduledApproved, v)
+  return tt(when ? mm.approvedByAt : mm.approvedBy, v)
 }
 
-/** Who can help with a permission: "Ask Marcus Chen or Linh Nguyen." */
-export function needs(action: string, perm: string, helpers: string[] | undefined): string {
-  const ask = helpers?.length ? ` Ask ${helpers.length === 1 ? helpers[0] : `${helpers.slice(0, -1).join(', ')} or ${helpers[helpers.length - 1]}`}.` : ''
-  return `${action} needs the ${perm} permission.${ask}`
+const needsMessages = { pause: mm.needsPause, resume: mm.needsResume, cancel: mm.needsCancel, decide: mm.needsDecide }
+
+/** Who can help with a permission: "Pausing a send needs the campaigns:pause permission. Ask Marcus Chen or Linh Nguyen." */
+export function needs(action: keyof typeof needsMessages, perm: string, helpers: string[] | undefined): string {
+  const line = tt(needsMessages[action], { perm })
+  return helpers?.length ? `${line} ${tt(mm.askHelpers, { helpers: orList(helpers) })}` : line
 }
 
 export type Segment = { key: string; value: number; color: string; title: string }
@@ -145,35 +182,35 @@ export function progressSegments(s: Snapshot, incident?: Incident): Segment[] {
   const segs: Segment[] = s.providers.filter((p) => p.sent > 0).map((p) => ({ key: p.id, value: p.sent, color: providerColor[p.color], title: p.short }))
   if (s.held > 0) {
     const route = incident?.kind === 'provider_outage'
-    segs.push({ key: 'held', value: s.held, color: route ? heldRouteColor : heldMailboxColor, title: 'Held' })
+    segs.push({ key: 'held', value: s.held, color: route ? heldRouteColor : heldMailboxColor, title: tt(mm.held) })
   }
   return segs
 }
 
 /** "19,594 of 31,604 sent", with what's held in the decision views. */
 export function sentLine(s: Snapshot, incident?: Incident): string {
-  const base = `${count(s.sent)} of ${count(s.recipients)} sent`
-  if (!incident || s.held <= 0) return base
-  if (incident.kind === 'provider_outage') return `${base} · ${count(s.held)} held on ${incident.providerShort}`
-  return `${base} · ${count(s.held)} held`
+  const v = { sent: count(s.sent), total: count(s.recipients), held: count(s.held) }
+  if (!incident || s.held <= 0) return tt(mm.sentOf, v)
+  if (incident.kind === 'provider_outage') return tt(mm.sentOfHeldOn, { ...v, provider: incident.providerShort })
+  return tt(mm.sentOfHeld, v)
 }
 
 /** "Started 09:00:04 · ETA 13 min · finishes about 09:34". */
 export function timingLine(s: Snapshot, incident?: Incident): string {
   const parts: string[] = []
-  if (s.startedAt) parts.push(`Started ${clockSeconds(s.startedAt)}`)
+  if (s.startedAt) parts.push(tt(mm.timingStarted, { time: clockSeconds(s.startedAt) }))
   const eta = s.etaSeconds !== undefined ? duration(s.etaSeconds / 60) : ''
   if (incident?.kind === 'threshold' && incident.scope !== 'campaign') {
-    parts.push(`paused route since ${clockSeconds(incident.trippedAt)}`)
-    if (eta) parts.push(`ETA for the rest ${eta}`)
+    parts.push(tt(mm.timingPausedRoute, { time: clockSeconds(incident.trippedAt) }))
+    if (eta) parts.push(tt(mm.timingEtaRest, { eta }))
   } else if (incident?.kind === 'provider_outage') {
     const others = continuingProviders(s, incident)
-    if (s.finishesAt && others.length) parts.push(`${andList(others.map((p) => p.short))} finishes about ${clock(s.finishesAt)}`)
+    if (s.finishesAt && others.length) parts.push(tt(mm.timingProvidersFinish, { providers: andList(others.map((p) => p.short)), time: clock(s.finishesAt) }))
   } else if (s.state === 'sending' || s.state === 'partial') {
-    if (eta) parts.push(`ETA ${eta}`)
-    if (s.finishesAt) parts.push(`finishes about ${clock(s.finishesAt)}`)
+    if (eta) parts.push(tt(mm.timingEta, { eta }))
+    if (s.finishesAt) parts.push(tt(mm.timingFinishes, { time: clock(s.finishesAt) }))
   } else if (s.state === 'paused' && s.pausedAt) {
-    parts.push(`paused since ${clockSeconds(s.pausedAt)}`)
+    parts.push(tt(mm.timingPausedSince, { time: clockSeconds(s.pausedAt) }))
   }
   return parts.join(' · ')
 }
@@ -186,43 +223,51 @@ export function abLine(ab: Snapshot['ab']): string {
   const lead = ab.phase === 'decided' && ab.winner ? ab.winner : ab.leader
   const first = ab.variants.find((v) => v.key === lead) ?? ab.variants[0]!
   const rest = ab.variants.filter((v) => v.key !== first.key)
-  const rates = [first, ...rest].map((v) => `${v.rate.toFixed(1)}%`).join(' vs ')
-  const verb = ab.phase === 'decided' ? 'won' : 'leading'
-  return `A/B ${kind} test: variant ${first.key} ${verb}, ${rates} ${metric} on the ${ab.sample}% sample`
+  const rates = [first, ...rest].map((v) => pct(v.rate, 1)).reduce((a, b) => tt(mm.abVs, { a, b }))
+  return tt(mm.abLine, { phase: ab.phase === 'decided' ? 'decided' : 'testing', kind, variant: first.key, rates, metric, sample: pct(ab.sample, 0) })
 }
 
 export type TilesVariant = 'live' | 'threshold' | 'outage'
-export type Tile = { key: string; label: string; value: string; sub: string; alert?: boolean }
+/** A counter: `num` is the count behind `value`, for counting up. */
+export type Tile = { key: string; label: string; value: string; sub: string; alert?: boolean; num?: number }
+
+function countTile(key: string, label: MessageDescriptor, n: number, sub: string): Tile {
+  return { key, label: tt(label), value: count(n), sub, num: n }
+}
 
 export function tiles(s: Snapshot, variant: TilesVariant = 'live', incident?: Incident): Tile[] {
   const t = s.totals
-  const delivered = { key: 'delivered', label: 'Delivered', value: count(t.delivered), sub: `${pct1(share(t.delivered, s.sent))} of sent` }
+  const delivered = countTile('delivered', mm.tileDelivered, t.delivered, tt(mm.deliveredSub, { rate: pct1(share(t.delivered, s.sent)) }))
   const bounceRate = rate(share(t.bounced, s.sent) ?? 0)
-  const bounced = {
-    key: 'bounced',
-    label: 'Bounced',
-    value: count(t.bounced),
-    sub: variant === 'outage' ? bounceRate : `${bounceRate} · ${count(t.hardBounced)} hard, ${count(t.softBounced)} soft`,
-  }
+  const bounced = countTile(
+    'bounced',
+    mm.tileBounced,
+    t.bounced,
+    variant === 'outage' ? bounceRate : tt(mm.bouncedSub, { rate: bounceRate, hard: count(t.hardBounced), soft: count(t.softBounced) }),
+  )
   const complaintRate = pct2(share(t.complained, t.delivered) ?? 0)
-  let complained: Tile = { key: 'complained', label: 'Complained', value: count(t.complained), sub: variant === 'live' ? `${complaintRate} of delivered` : complaintRate }
+  let complained = countTile('complained', mm.tileComplained, t.complained, variant === 'live' ? tt(mm.complainedSub, { rate: complaintRate }) : complaintRate)
   if (variant === 'threshold' && incident?.metric === 'complaint' && incident.scope === 'mailbox_provider') {
     const mb = s.mailboxes.find((m) => m.key === incident.mailbox)
-    complained = { ...complained, sub: `${complaintRate} overall · ${incident.mailboxName} ${pct2(mb?.complaintRate ?? incident.value)}`, alert: true }
+    complained = {
+      ...complained,
+      sub: tt(mm.complainedOverall, { rate: complaintRate, mailbox: scopeName(incident), mailboxRate: pct2(mb?.complaintRate ?? incident.value) }),
+      alert: true,
+    }
   }
-  const opened = {
-    key: 'opened',
-    label: 'Opened',
-    value: count(t.opened),
-    sub: `${pct1(share(t.opened, t.delivered) ?? 0)} · ${count(t.openedHuman)} human, ${count(t.openedMachine)} machine`,
-  }
+  const opened = countTile(
+    'opened',
+    mm.tileOpened,
+    t.opened,
+    tt(mm.openedSub, { rate: pct1(share(t.opened, t.delivered) ?? 0), human: count(t.openedHuman), machine: count(t.openedMachine) }),
+  )
   const clickRate = pct1(share(t.clicked, t.delivered) ?? 0)
-  const clicked = {
-    key: 'clicked',
-    label: 'Clicked',
-    value: count(t.clicked),
-    sub: variant === 'live' ? `${clickRate} · ${pct1(share(t.clicked, t.opened) ?? 0)} click-to-open` : clickRate,
-  }
+  const clicked = countTile(
+    'clicked',
+    mm.tileClicked,
+    t.clicked,
+    variant === 'live' ? tt(mm.clickedSub, { rate: clickRate, ctor: pct1(share(t.clicked, t.opened) ?? 0) }) : clickRate,
+  )
   return [delivered, bounced, complained, opened, clicked]
 }
 
@@ -230,11 +275,12 @@ export function tiles(s: Snapshot, variant: TilesVariant = 'live', incident?: In
 export function finalTiles(s: Snapshot): Tile[] {
   const t = s.totals
   const providers = s.providers.filter((p) => p.sent > 0)
+  const bounceRate = rate(share(t.bounced, s.sent) ?? 0)
   return [
-    { key: 'delivered', label: 'Delivered', value: count(t.delivered), sub: pct1(share(t.delivered, s.sent)) },
-    { key: 'bounced', label: 'Bounced', value: count(t.bounced), sub: `${rate(share(t.bounced, s.sent) ?? 0)}${t.hardBounced > 0 ? ' · added to suppression' : ''}` },
-    { key: 'complained', label: 'Complained', value: count(t.complained), sub: pct2(share(t.complained, t.delivered) ?? 0) },
-    { key: 'cost', label: 'Cost', value: cost(s.cost.total), sub: providers.map((p) => `${p.short} ${cost(p.cost)}`).join(' · ') },
+    countTile('delivered', mm.tileDelivered, t.delivered, pct1(share(t.delivered, s.sent))),
+    countTile('bounced', mm.tileBounced, t.bounced, t.hardBounced > 0 ? tt(mm.bouncedSuppressed, { rate: bounceRate }) : bounceRate),
+    countTile('complained', mm.tileComplained, t.complained, pct2(share(t.complained, t.delivered) ?? 0)),
+    { key: 'cost', label: tt(mm.tileCost), value: cost(s.cost.total), sub: providers.map((p) => `${p.short} ${cost(p.cost)}`).join(' · ') },
   ]
 }
 
@@ -247,16 +293,16 @@ export type ThresholdRow = { key: string; label: string; short: string; value: s
 
 export function thresholdRows(s: Snapshot): ThresholdRow[] {
   return s.thresholds.map((t) => {
-    const mb = mailboxName(t.mailbox)
+    const mailbox = mailboxName(t.mailbox)
     switch (t.key) {
       case 'bounce':
-        return row(t, 'Bounce rate', 'Bounce', `${t.value.toFixed(2)}% of ${t.limit.toFixed(1)}%`)
+        return row(t, tt(mm.thresholdBounce), tt(mm.thresholdBounceShort), tt(mm.ofLimit, { value: pct(t.value, 2), limit: pct(t.limit, 1) }))
       case 'complaint':
-        return row(t, 'Complaint rate', 'Complaint', `${t.value.toFixed(2)}% of ${t.limit.toFixed(2)}%`)
+        return row(t, tt(mm.thresholdComplaint), tt(mm.thresholdComplaintShort), tt(mm.ofLimit, { value: pct(t.value, 2), limit: pct(t.limit, 2) }))
       case 'mailbox_complaint':
-        return row(t, `${mb} complaints (highest mailbox provider)`, `${mb} complaint`, `${t.value.toFixed(2)}% of ${t.limit.toFixed(2)}%`)
+        return row(t, tt(mm.thresholdMailbox, { mailbox }), tt(mm.thresholdMailboxShort, { mailbox }), tt(mm.ofLimit, { value: pct(t.value, 2), limit: pct(t.limit, 2) }))
       default:
-        return row(t, 'Provider API errors, 3 min', 'Provider errors', `${errorRate(t.value)} of ${trimPct(t.limit)}`)
+        return row(t, tt(mm.thresholdErrors), tt(mm.thresholdErrorsShort), tt(mm.ofLimit, { value: errorRate(t.value), limit: trimPct(t.limit) }))
     }
   })
 }
@@ -266,38 +312,38 @@ function row(t: Threshold, label: string, short: string, value: string): Thresho
 }
 
 export function scopeLine(s: Snapshot): string {
-  return s.thresholdScope === 'campaign' ? 'Scope: pause the whole campaign.' : 'Scope: pause only the affected route or mailbox provider.'
+  return s.thresholdScope === 'campaign' ? tt(mm.scopeCampaign) : tt(mm.scopeRoute)
 }
 
 /** A mailbox provider's state word: the live view shows health, the decision view activity. */
 export function mailboxStatus(m: Mailbox, s: Snapshot, decision: boolean): { tone: Tone; text: string } {
-  if (m.held) return { tone: 'bad', text: m.heldSince ? `Paused ${clock(m.heldSince)}` : 'Paused' }
+  if (m.held) return { tone: 'bad', text: m.heldSince ? tt(mm.mailboxPausedAt, { time: clock(m.heldSince) }) : tt(mm.mailboxPaused) }
   if (decision) {
-    if (m.remaining > 0) return { tone: 'ok', text: 'Sending' }
-    return { tone: 'neutral', text: 'Done' }
+    if (m.remaining > 0) return { tone: 'ok', text: tt(mm.mailboxSending) }
+    return { tone: 'neutral', text: tt(mm.mailboxDone) }
   }
   const limit = s.thresholds.find((t) => t.key === 'mailbox_complaint')?.limit ?? 0.1
   // Over the limit without a pause yet: the engine pauses once there are
   // enough complaints to be sure it isn't chance.
-  if (m.complaintRate !== undefined && m.complaintRate > limit && m.delivered >= 500) return { tone: 'warn', text: 'Over limit' }
-  if (m.complaintRate !== undefined && m.complaintRate >= limit * 0.8 && m.delivered >= 500) return { tone: 'warn', text: 'Near limit' }
-  return { tone: 'ok', text: 'OK' }
+  if (m.complaintRate !== undefined && m.complaintRate > limit && m.delivered >= 500) return { tone: 'warn', text: tt(mm.mailboxOverLimit) }
+  if (m.complaintRate !== undefined && m.complaintRate >= limit * 0.8 && m.delivered >= 500) return { tone: 'warn', text: tt(mm.mailboxNearLimit) }
+  return { tone: 'ok', text: tt(mm.mailboxOk) }
 }
 
 /** "full", "5 /s" or "held". */
 export function mailboxRate(m: Mailbox): string {
-  if (m.held) return 'held'
-  return m.throttle ? wholePerSec(m.throttle) : 'full'
+  if (m.held) return tt(mm.rateHeld)
+  return m.throttle ? wholePerSec(m.throttle) : tt(mm.rateFull)
 }
 
 /** A sending provider's state word. */
 export function providerStatus(p: Provider, mobile = false): { tone: Tone; text: string } {
-  if (p.downSince && (p.routeStatus === 'held' || p.status === 'down')) return { tone: 'bad', text: `Down since ${clock(p.downSince)}` }
-  if (p.routeStatus === 'held' || p.routeStatus === 'paused') return { tone: 'warn', text: 'Held' }
-  if (p.status === 'down') return { tone: 'bad', text: 'Down' }
-  if (p.status === 'degraded') return { tone: 'warn', text: 'Degraded' }
-  if (p.warmupDay !== undefined) return { tone: 'info', text: mobile ? 'Warm-up' : 'Warming up' }
-  return { tone: 'ok', text: 'Healthy' }
+  if (p.downSince && (p.routeStatus === 'held' || p.status === 'down')) return { tone: 'bad', text: tt(mm.providerDownSince, { time: clock(p.downSince) }) }
+  if (p.routeStatus === 'held' || p.routeStatus === 'paused') return { tone: 'warn', text: tt(mm.providerHeld) }
+  if (p.status === 'down') return { tone: 'bad', text: tt(pm.statusDown) }
+  if (p.status === 'degraded') return { tone: 'warn', text: tt(pm.statusDegraded) }
+  if (p.warmupDay !== undefined) return { tone: 'info', text: mobile ? tt(mm.providerWarmup) : tt(pm.statusWarmingUp) }
+  return { tone: 'ok', text: tt(pm.statusHealthy) }
 }
 
 /** The line under a provider's name: quota, warm-up, or where it runs when it's down. */
@@ -305,8 +351,8 @@ export function providerNote(p: Provider, decision: boolean): string {
   if (decision && (p.routeStatus === 'held' || p.downSince)) return [p.host, p.ip].filter(Boolean).join(' · ')
   if (decision) return ''
   if (p.warmupDay !== undefined && p.warmupCap !== undefined)
-    return `warm-up day ${p.warmupDay} · ${count(p.warmupSent ?? 0)} of today's ${count(p.warmupCap)} cap`
-  if (p.quotaFree !== undefined) return `quota ${count(p.quotaFree)} free after this send`
+    return tt(mm.providerWarmupNote, { day: p.warmupDay, sent: count(p.warmupSent ?? 0), cap: count(p.warmupCap) })
+  if (p.quotaFree !== undefined) return tt(mm.providerQuotaNote, { free: count(p.quotaFree) })
   return ''
 }
 
@@ -321,14 +367,14 @@ export function orderedMailboxes(s: Snapshot, decision: boolean): Mailbox[] {
   return [...s.mailboxes].sort((a, b) => Number(b.held) - Number(a.held))
 }
 
-const metricWords: Record<string, { one: string; many: string; base: string }> = {
-  complaint: { one: 'complaint', many: 'complaints', base: 'delivered' },
-  bounce: { one: 'bounce', many: 'bounces', base: 'sent' },
-  deferral: { one: 'deferral', many: 'deferrals', base: 'sent' },
+/** The metrics an incident's words know; another one keeps its own name. */
+function metricKey(metric: string): string {
+  return metric === 'complaint' || metric === 'bounce' || metric === 'deferral' ? metric : 'other'
 }
 
-function words(metric: string) {
-  return metricWords[metric] ?? { one: metric, many: metric, base: 'sent' }
+/** The values a metric's messages take: its key, its name and the name capitalised. */
+function metricValues(metric: string) {
+  return { metric: metricKey(metric) === 'other' ? metric : metricKey(metric), Metric: metric ? metric[0]!.toUpperCase() + metric.slice(1) : metric }
 }
 
 /** A rate the way thresholds show it: complaints with two decimals, others with one below 1%. */
@@ -345,7 +391,7 @@ export function limitText(metric: string, v: number | undefined): string {
 
 /** Whose share tripped: "Outlook", "Postal" or "" for the whole campaign. */
 export function scopeName(i: Incident): string {
-  if (i.scope === 'mailbox_provider') return i.mailboxName || mailboxName(i.mailbox)
+  if (i.scope === 'mailbox_provider') return i.mailbox === 'other' ? mailboxNames.other : i.mailboxName || mailboxName(i.mailbox)
   if (i.scope === 'route') return i.providerShort || i.provider
   return ''
 }
@@ -353,20 +399,19 @@ export function scopeName(i: Incident): string {
 /** "Outlook complaint rate reached 0.18% (limit 0.10%)". */
 export function incidentTitle(i: Incident): string {
   if (i.kind === 'provider_outage') return outageTitle(i)
-  const w = words(i.metric)
   const who = scopeName(i)
-  const subject = who ? `${who} ${w.one} rate` : `${w.one[0]!.toUpperCase()}${w.one.slice(1)} rate`
-  return `${subject} reached ${rateText(i.metric, i.value)} (limit ${limitText(i.metric, i.limit)})`
+  const v = { ...metricValues(i.metric), who, value: rateText(i.metric, i.value), limit: limitText(i.metric, i.limit) }
+  return who ? tt(mm.incidentTitle, v) : tt(mm.incidentTitleAll, v)
 }
 
 /** "Postal returned connection errors for 3 minutes". */
 export function outageTitle(i: Incident): string {
   const d = i.detail
   const name = i.provider || i.providerShort
-  if (d.reason === 'auth') return `${name} rejected the credentials`
-  if (!d.from || !d.to) return d.errorKind ? `${name} returned ${d.errorKind}` : `${name} is down`
+  if (d.reason === 'auth') return tt(mm.outageAuth, { name })
+  if (!d.from || !d.to) return d.errorKind ? tt(mm.outageReturned, { name, errorKind: d.errorKind }) : tt(mm.outageDown, { name })
   const mins = Math.max(1, Math.round((new Date(d.to).getTime() - new Date(d.from).getTime()) / 60000))
-  return `${name} returned ${d.errorKind || 'errors'} for ${mins} ${mins === 1 ? 'minute' : 'minutes'}`
+  return d.errorKind ? tt(mm.outageReturnedFor, { name, errorKind: d.errorKind, mins }) : tt(mm.outageErrorsFor, { name, mins })
 }
 
 /**
@@ -377,24 +422,22 @@ export function outageTitle(i: Incident): string {
  */
 export function thresholdSummary(i: Incident, s: Snapshot): string {
   const d = i.detail
-  const w = words(i.metric)
   const who = scopeName(i)
-  const recipients = who ? `${who} recipients` : 'recipients'
   const events = d.events ?? 0
   const parts = [
-    `Tripped at ${clockSeconds(i.trippedAt)}, after ${count(d.sent ?? 0)} of ${count(d.total ?? 0)} ${recipients} were sent.`,
-    `${count(events)} ${events === 1 ? w.one : w.many} out of ${count(d.base ?? 0)} ${w.base}.`,
+    tt(who ? mm.summaryTrippedWho : mm.summaryTripped, { time: clockSeconds(i.trippedAt), sent: count(d.sent ?? 0), total: count(d.total ?? 0), who }),
+    tt(mm.summaryEvents, { ...metricValues(i.metric), events, count: count(events), base: count(d.base ?? 0) }),
   ]
-  const pctText = progressText(s)
+  const progress = progressText(s)
   if (i.scope === 'campaign') {
-    parts.push(`ReputeCast paused the campaign with ${count(i.held)} recipients left, ${pctText} complete.`)
+    parts.push(tt(mm.summaryCampaignPaused, { held: count(i.held), progress }))
     return parts.join(' ')
   }
-  parts.push(`ReputeCast held the remaining ${count(i.held)} ${recipients}.`)
+  parts.push(tt(who ? mm.summaryHeldWho : mm.summaryHeld, { held: count(i.held), who }))
   const continuing =
-    i.scope === 'route' ? continuingProviders(s, i).map((p) => p.name) : s.continuing.length ? s.continuing : (d.continuing ?? [])
-  if (continuing.length) parts.push(`${andList(continuing)} ${continuing.length === 1 ? 'continues' : 'continue'}, now ${pctText} complete overall.`)
-  else parts.push(`Now ${pctText} complete overall.`)
+    i.scope === 'route' ? continuingProviders(s, i).map((p) => p.name) : mailboxNamesOf(s.continuing.length ? s.continuing : (d.continuing ?? []))
+  if (continuing.length) parts.push(tt(mm.summaryContinue, { count: continuing.length, names: andList(continuing), progress }))
+  else parts.push(tt(mm.summaryNow, { progress }))
   return parts.join(' ')
 }
 
@@ -409,53 +452,63 @@ export function outageSummary(i: Incident, s: Snapshot): string {
   const d = i.detail
   const p = s.providers.find((x) => x.id === i.providerId)
   const short = i.providerShort || i.provider
-  const sent = p?.sent ?? d.sentOnRoute ?? 0
-  const remaining = p?.remaining ?? d.remaining ?? i.held
-  const hold = `so the ${short} share of this campaign is on hold: ${count(sent)} sent, ${count(remaining)} remaining.`
+  const hold = { short, provider: i.provider, sent: count(p?.sent ?? d.sentOnRoute ?? 0), remaining: count(p?.remaining ?? d.remaining ?? i.held) }
   const parts: string[] = []
   if (d.reason === 'auth') {
-    parts.push(`${d.from ? `Since ${clockSeconds(d.from)}, ` : ''}${i.provider} refused the credentials on every send, ${hold}`)
+    parts.push(d.from ? tt(mm.outageAuthSince, { ...hold, from: clockSeconds(d.from) }) : tt(mm.outageAuthAlways, hold))
   } else if (d.from && d.to) {
-    const attempts = d.attempts ?? 0
     parts.push(
-      `From ${clockSeconds(d.from)} to ${clockSeconds(d.to)}, ${count(attempts)} send ${attempts === 1 ? 'attempt' : 'attempts'} to ${d.host || i.provider} failed and ${count(d.succeeded ?? 0)} succeeded, ${hold}`,
+      tt(mm.outageWindow, {
+        ...hold,
+        from: clockSeconds(d.from),
+        to: clockSeconds(d.to),
+        attempts: d.attempts ?? 0,
+        host: d.host || i.provider,
+        succeeded: count(d.succeeded ?? 0),
+      }),
     )
   } else {
-    parts.push(`ReputeCast's health checks found ${i.provider} down at ${clockSeconds(i.trippedAt)}, ${hold}`)
+    parts.push(tt(mm.outageHealth, { ...hold, time: clockSeconds(i.trippedAt) }))
   }
   const others = continuingProviders(s, i)
-  const pctText = progressText(s)
+  const progress = progressText(s)
   if (others.length) {
     const r = Math.round(others.reduce((a, x) => a + x.rate, 0))
-    parts.push(`${andList(others.map((x) => x.name))} ${others.length === 1 ? 'keeps' : 'keep'} sending at ${r} /s, ${pctText} complete overall.`)
+    parts.push(tt(mm.outageKeepSending, { count: others.length, names: andList(others.map((x) => x.name)), rate: tt(mm.perSecond, { rate: decimal(r, 0) }), progress }))
   } else {
-    parts.push(`No other provider is sending, ${pctText} complete overall.`)
+    parts.push(tt(mm.outageNoOther, { progress }))
   }
-  if (d.policy === 'pause_and_ask') parts.push('Nothing moved automatically because Broadcast failover is set to pause and ask.')
-  else if (d.policy === 'warm_only') parts.push('Nothing moved automatically because no warmed-up provider can take the share.')
-  else parts.push('Nothing moved automatically because no other provider can take the share.')
+  if (d.policy === 'pause_and_ask') parts.push(tt(mm.policyPauseAsk))
+  else if (d.policy === 'warm_only') parts.push(tt(mm.policyWarmOnly))
+  else parts.push(tt(mm.policyNone))
   return parts.join(' ')
 }
 
 export type Fact = { label: string; value: string; bad?: boolean }
 
+/** "Complaints", or "Outlook complaints" for a mailbox or sending provider. */
+function metricLabel(metric: string, who: string): string {
+  const v = { ...metricValues(metric), who }
+  return who ? tt(mm.factWho, v) : tt(mm.factAll, v)
+}
+
 /** "What tripped": the scope's rate, the limit, the campaign-wide rate and the other metric. */
 export function trippedFacts(i: Incident, s: Snapshot): { head: Fact; bar: { width: number }; rows: Fact[] } {
   const d = i.detail
-  const w = words(i.metric)
   const who = scopeName(i)
   const t = s.totals
   const head: Fact = {
-    label: who ? `${who} ${w.many}` : `${w.many[0]!.toUpperCase()}${w.many.slice(1)}`,
-    value: `${count(d.events ?? 0)} of ${count(d.base ?? 0)} · ${rateText(i.metric, i.value)}`,
+    label: metricLabel(i.metric, who),
+    value: tt(mm.factValue, { events: count(d.events ?? 0), base: count(d.base ?? 0), rate: rateText(i.metric, i.value) }),
     bad: true,
   }
-  const rows: Fact[] = [
-    { label: `Limit, ${i.scope === 'mailbox_provider' ? 'per mailbox provider' : i.scope === 'route' ? 'per sending provider' : 'whole campaign'}`, value: limitText(i.metric, i.limit) },
-  ]
+  const rows: Fact[] = [{ label: tt(mm.factLimit, { scope: i.scope }), value: limitText(i.metric, i.limit) }]
   if (i.scope !== 'campaign') {
     const [n, base] = i.metric === 'complaint' ? [t.complained, t.delivered] : i.metric === 'bounce' ? [t.bounced, s.sent] : [t.deferred, s.sent]
-    rows.push({ label: `Campaign-wide ${w.many}`, value: `${count(n)} of ${count(base)} · ${rateText(i.metric, share(n, base) ?? 0)}` })
+    rows.push({
+      label: tt(mm.factCampaignWide, metricValues(i.metric)),
+      value: tt(mm.factValue, { events: count(n), base: count(base), rate: rateText(i.metric, share(n, base) ?? 0) }),
+    })
   }
   // The other metric, now, for the same scope.
   const mb = i.scope === 'mailbox_provider' ? s.mailboxes.find((m) => m.key === i.mailbox) : undefined
@@ -464,10 +517,10 @@ export function trippedFacts(i: Incident, s: Snapshot): { head: Fact; bar: { wid
   const complaintLimit = s.thresholds.find((x) => x.key === (i.scope === 'mailbox_provider' ? 'mailbox_complaint' : 'complaint'))?.limit ?? 0.1
   if (i.metric === 'bounce') {
     const v = mb?.complaintRate ?? pv?.complaintRate ?? share(t.complained, t.delivered)
-    rows.push({ label: who ? `${who} complaints` : 'Complaints', value: `${pct2(v ?? 0)} of ${pct2(complaintLimit)}` })
+    rows.push({ label: metricLabel('complaint', who), value: tt(mm.ofLimit, { value: pct2(v ?? 0), limit: pct2(complaintLimit) }) })
   } else {
     const v = mb?.bounceRate ?? pv?.bounceRate ?? share(t.bounced, s.sent)
-    rows.push({ label: who ? `${who} bounces` : 'Bounces', value: `${pct1(v ?? 0)} of ${pct1(bounceLimit)}` })
+    rows.push({ label: metricLabel('bounce', who), value: tt(mm.ofLimit, { value: pct1(v ?? 0), limit: pct1(bounceLimit) }) })
   }
   return { head, bar: { width: usageWidth(i.value ?? 0, i.limit ?? 0) || (i.value ? 100 : 0) }, rows }
 }
@@ -479,17 +532,18 @@ export function logLines(i: Incident): { key: string; text: string; bad: boolean
 
 /** "If you move the share to SES": cost, time, quota and reputation risk. */
 export function moveFacts(i: Incident): { title: string; rows: Fact[]; risk?: { tone: Tone; text: string }; note?: string } | null {
-  const m = i.detail.move
-  if (!m) return null
+  const mv = i.detail.move
+  if (!mv) return null
   const rows: Fact[] = [
-    { label: 'Extra cost', value: money(m.extraCost) },
-    { label: m.rate ? `Extra time at ${wholePerSec(Math.round(m.rate))}` : 'Extra time', value: secondsText(m.extraSeconds) },
+    { label: tt(mm.moveCost), value: money(mv.extraCost) },
+    { label: mv.rate ? tt(mm.moveTimeAt, { rate: wholePerSec(Math.round(mv.rate)) }) : tt(mm.moveTime), value: secondsText(mv.extraSeconds) },
   ]
-  if (m.quotaFree !== undefined && m.quotaMax !== undefined) rows.push({ label: `${m.targetShort} quota after`, value: `${count(m.quotaFree)} free of ${count(m.quotaMax)}` })
+  if (mv.quotaFree !== undefined && mv.quotaMax !== undefined)
+    rows.push({ label: tt(mm.moveQuota, { provider: mv.targetShort }), value: tt(mm.moveQuotaValue, { free: count(mv.quotaFree), max: count(mv.quotaMax) }) })
   return {
-    title: `If you move the share to ${m.targetShort}`,
+    title: tt(mm.moveTitle, { provider: mv.targetShort }),
     rows,
-    risk: { tone: m.risk === 'low' ? 'ok' : 'warn', text: m.riskText },
+    risk: { tone: mv.risk === 'low' ? 'ok' : 'warn', text: mv.riskText },
     note: i.detail.warmupNote || undefined,
   }
 }
@@ -526,44 +580,49 @@ export function optionAction(i: Incident, key: string): LiveAction | null {
   return null
 }
 
+/** "Auto-paused · Outlook", or "Auto-paused" for the whole campaign. */
+export function autoPausedText(i: Incident): string {
+  const who = scopeName(i)
+  return who ? tt(mm.badgeAutoPausedWho, { who }) : tt(mm.badgeAutoPaused)
+}
+
 export function headerBadges(s: Snapshot, incident: Incident | undefined): { tone: Tone; text: string; pulse?: boolean; live?: boolean }[] {
   if (incident?.kind === 'threshold') {
-    const who = scopeName(incident)
-    const out: { tone: Tone; text: string; pulse?: boolean; live?: boolean }[] = [{ tone: 'bad', text: who ? `Auto-paused · ${who}` : 'Auto-paused', pulse: true }]
-    if (incident.scope === 'mailbox_provider' && s.continuing.length) out.push({ tone: 'ok', text: 'Other mailbox providers still sending' })
+    const out: { tone: Tone; text: string; pulse?: boolean; live?: boolean }[] = [{ tone: 'bad', text: autoPausedText(incident), pulse: true }]
+    if (incident.scope === 'mailbox_provider' && s.continuing.length) out.push({ tone: 'ok', text: tt(mm.badgeOthersSending) })
     if (incident.scope === 'route') {
       const others = continuingProviders(s, incident)
-      if (others.length) out.push({ tone: 'ok', text: `${andList(others.map((p) => p.short))} still sending` })
+      if (others.length) out.push({ tone: 'ok', text: tt(mm.badgeStillSending, { providers: andList(others.map((p) => p.short)) }) })
     }
     return out
   }
   if (incident?.kind === 'provider_outage') {
     const p = s.providers.find((x) => x.id === incident.providerId)
     const out: { tone: Tone; text: string; pulse?: boolean; live?: boolean }[] = [
-      { tone: 'warn', text: `${incident.providerShort} route held · ${p?.retrying ? 'retrying every 60 s' : 'waiting for your decision'}` },
+      { tone: 'warn', text: tt(p?.retrying ? mm.badgeRouteRetrying : mm.badgeRouteWaiting, { provider: incident.providerShort }) },
     ]
     const others = continuingProviders(s, incident)
-    if (others.length) out.push({ tone: 'ok', text: `${andList(others.map((x) => x.short))} still sending` })
+    if (others.length) out.push({ tone: 'ok', text: tt(mm.badgeStillSending, { providers: andList(others.map((x) => x.short)) }) })
     return out
   }
   switch (s.state) {
     case 'preparing':
-      return [{ tone: 'info', text: 'Starting' }]
+      return [{ tone: 'info', text: tt(mm.badgeStarting) }]
     case 'sending':
     case 'partial':
-      return [{ tone: 'ok', text: 'Sending · live', live: true }]
+      return [{ tone: 'ok', text: tt(mm.badgeSendingLive), live: true }]
     case 'paused':
-      return [{ tone: 'warn', text: s.pausedBy ? `Paused by ${s.pausedBy}` : 'Paused' }]
+      return [{ tone: 'warn', text: s.pausedBy ? tt(mm.badgePausedBy, { name: s.pausedBy }) : tt(mm.badgePaused) }]
     case 'scheduled':
-      return [{ tone: 'info', text: 'Scheduled' }]
+      return [{ tone: 'info', text: tt(mm.badgeScheduled) }]
     case 'finished':
-      return [{ tone: 'ok', text: 'Sent' }]
+      return [{ tone: 'ok', text: tt(mm.badgeSent) }]
     case 'cancelled':
-      return [{ tone: 'neutral', text: s.sent > 0 ? 'Cancelled · partially sent' : 'Cancelled' }]
+      return [{ tone: 'neutral', text: s.sent > 0 ? tt(mm.badgeCancelledPartial) : tt(mm.badgeCancelled) }]
     case 'failed':
-      return [{ tone: 'bad', text: 'Failed' }]
+      return [{ tone: 'bad', text: tt(mm.badgeFailed) }]
   }
-  return [{ tone: 'neutral', text: 'Draft' }]
+  return [{ tone: 'neutral', text: tt(mm.badgeDraft) }]
 }
 
 /** The open incident that needs a decision (an auto-pause or an outage). */
@@ -583,61 +642,56 @@ export function isStarting(s: Snapshot, now: Date): boolean {
 
 /** "Starting send · 09:00:04" and what's happening. */
 export function startingText(s: Snapshot): { title: string; body: string } {
-  const at = s.startedAt ? ` · ${clockSeconds(s.startedAt)}` : ''
+  const title = s.startedAt ? tt(mm.startingTitle, { time: clockSeconds(s.startedAt) }) : tt(mm.startingTitleNoTime)
   const via = andList(s.providers.map((p) => p.short))
   if (s.state === 'preparing') {
-    return {
-      title: `Starting send${at}`,
-      body: `Building the queue${s.recipients ? ` for ${count(s.recipients)} recipients` : ''}: suppressed, unsubscribed and paused contacts are left out.${via ? ` The first batches go to ${via} as soon as it's ready.` : ''}`,
-    }
+    const building = s.recipients ? tt(mm.startingBuilding, { count: count(s.recipients) }) : tt(mm.startingBuildingNoCount)
+    return { title, body: via ? `${building} ${tt(mm.startingFirstBatches, { providers: via })}` : building }
   }
   return {
-    title: `Starting send${at}`,
-    body: `Queue built for ${count(s.recipients)} recipients. Handing the first batches to ${via || 'your providers'}; delivery events usually arrive within 10 seconds.`,
+    title,
+    body: via ? tt(mm.startingBuilt, { count: count(s.recipients), providers: via }) : tt(mm.startingBuiltYours, { count: count(s.recipients) }),
   }
 }
 
 /** "34 minutes", "1 minute", "1 h 12 min": how long a send took. */
 export function tookText(seconds: number): string {
-  const m = Math.max(1, Math.round(seconds / 60))
-  if (m < 60) return `${m} ${m === 1 ? 'minute' : 'minutes'}`
-  return duration(m)
+  const n = Math.max(1, Math.round(seconds / 60))
+  if (n < 60) return tt(mm.minutesLong, { n })
+  return duration(n)
 }
 
 /** "Weekly Digest #142 finished at 09:34:12" and the summary under it. */
 export function finishedText(s: Snapshot): { title: string; body: string } {
   const t = s.totals
-  const at = s.completedAt ? ` at ${clockSeconds(s.completedAt)}` : ''
-  const took = s.durationSeconds !== undefined ? ` in ${tookText(s.durationSeconds)}` : ''
   const trips = s.incidents.filter((i) => i.kind === 'threshold').length
   const outages = s.incidents.filter((i) => i.kind === 'provider_outage').length
-  let tripped = trips === 0 ? 'No threshold tripped.' : trips === 1 ? 'One threshold paused part of the send.' : `${trips} thresholds paused parts of the send.`
-  if (outages) tripped += ` ${outages === 1 ? 'A provider outage' : `${outages} provider outages`} held part of it.`
+  const v = { sent: count(s.sent), delivered: count(t.delivered), rate: pct1(share(t.delivered, s.sent)), bounced: count(t.bounced), complaints: t.complained }
+  const parts = [
+    s.durationSeconds !== undefined ? tt(mm.finishedIn, { ...v, took: tookText(s.durationSeconds) }) : tt(mm.finishedNoTime, v),
+    tt(mm.finishedTrips, { n: trips }),
+  ]
+  if (outages) parts.push(tt(mm.finishedOutages, { n: outages }))
+  parts.push(tt(mm.finishedReport))
   return {
-    title: `${s.name} finished${at}`,
-    body: `${count(s.sent)} sent${took}: ${count(t.delivered)} delivered (${pct1(share(t.delivered, s.sent))}), ${count(t.bounced)} bounced, ${count(t.complained)} ${t.complained === 1 ? 'complaint' : 'complaints'}. ${tripped} Opens and clicks keep updating in the report for 72 hours.`,
+    title: s.completedAt ? tt(mm.finishedAt, { name: s.name, time: clockSeconds(s.completedAt) }) : tt(mm.finished, { name: s.name }),
+    body: parts.join(' '),
   }
 }
 
 export function cancelledText(s: Snapshot): { title: string; body: string } {
-  const at = s.completedAt ? ` at ${clockSeconds(s.completedAt)}` : ''
-  if (s.sent === 0) return { title: `${s.name} was cancelled${at}`, body: 'Nothing was sent. The campaign can be scheduled again from Review & send.' }
-  return {
-    title: `${s.name} was cancelled${at}`,
-    body: `${count(s.sent)} of ${count(s.recipients)} were sent before it stopped; ${count(s.unsent)} weren't sent and are marked "not sent" in the report. Opens and clicks keep updating for 72 hours.`,
-  }
+  const title = s.completedAt ? tt(mm.cancelledAt, { name: s.name, time: clockSeconds(s.completedAt) }) : tt(mm.cancelled, { name: s.name })
+  if (s.sent === 0) return { title, body: tt(mm.cancelledNothing) }
+  return { title, body: tt(mm.cancelledSome, { sent: count(s.sent), total: count(s.recipients), unsent: count(s.unsent) }) }
 }
 
 /** The manual pause banner. */
 export function pausedText(s: Snapshot): { title: string; body: string } {
-  const by = s.pausedBy ? ` by ${s.pausedBy}` : ''
-  const at = s.pausedAt ? ` at ${clockSeconds(s.pausedAt)}` : ''
-  const reason = s.pauseReason ? `"${s.pauseReason}" ` : ''
-  const waiting = s.held + s.queued + s.waiting
-  return {
-    title: `Paused${by}${at}`,
-    body: `${reason}${count(waiting)} recipients are waiting. Nothing more is sent until someone with campaigns:send resumes it; what was already sent keeps reporting opens and clicks.`.trim(),
-  }
+  const name = s.pausedBy
+  const time = s.pausedAt ? clockSeconds(s.pausedAt) : ''
+  const title = name ? tt(time ? mm.pausedByAt : mm.pausedBy, { name, time }) : time ? tt(mm.pausedAt, { time }) : tt(mm.paused)
+  const v = { count: count(s.held + s.queued + s.waiting), perm: 'campaigns:send', reason: s.pauseReason }
+  return { title, body: s.pauseReason ? tt(mm.pausedBodyReason, v) : tt(mm.pausedBody, v) }
 }
 
 /** "Lost the live event stream at 09:18:51" and what that means. */
@@ -645,22 +699,23 @@ export function lostText(at: Date, lastUpdate: string | undefined, attempt: numb
   const since = lastUpdate ? new Date(lastUpdate) : at
   const behind = Math.max(1, Math.ceil((now.getTime() - since.getTime()) / 60000))
   const asOf = lastUpdate ? clockSeconds(lastUpdate) : clockSeconds(at)
-  const retry = stopped ? `Stopped reconnecting after ${max} attempts.` : `Reconnecting automatically (attempt ${Math.max(1, attempt)} of ${max}).`
+  const retry = stopped ? tt(mm.lostStopped, { max }) : tt(mm.lostRetrying, { attempt: Math.max(1, attempt), max })
   return {
-    title: `Lost the live event stream at ${clockSeconds(at)}`,
-    body: `The browser's connection to ReputeCast dropped. Sending continues on the server; the counts below are from ${asOf} and may be up to ${behind} ${behind === 1 ? 'minute' : 'minutes'} behind. ${retry}`,
+    title: tt(mm.lostTitle, { time: clockSeconds(at) }),
+    body: `${tt(mm.lostBody, { asOf, behind })} ${retry}`,
   }
 }
 
 /** Mobile progress line: "ETA 13 min · about 09:34". */
 export function mobileEta(s: Snapshot): string {
-  if (s.etaSeconds === undefined) return s.state === 'paused' ? 'Paused' : ''
-  return `ETA ${duration(s.etaSeconds / 60)}${s.finishesAt ? ` · about ${clock(s.finishesAt)}` : ''}`
+  if (s.etaSeconds === undefined) return s.state === 'paused' ? tt(mm.mobileEtaPaused) : ''
+  const eta = duration(s.etaSeconds / 60)
+  return s.finishesAt ? tt(mm.mobileEta, { eta, time: clock(s.finishesAt) }) : tt(mm.timingEta, { eta })
 }
 
 /** The delivered-share legend: whole percents that add up to 100 (largest remainder). */
 export function deliveredMix(s: Snapshot): { key: MailboxKey; name: string; percent: number }[] {
-  const rows = s.deliveredMix.map((m) => ({ key: m.key as MailboxKey, name: m.name, exact: m.percent, percent: Math.floor(m.percent) }))
+  const rows = s.deliveredMix.map((m) => ({ key: m.key as MailboxKey, name: m.key === 'other' ? mailboxNames.other : m.name, exact: m.percent, percent: Math.floor(m.percent) }))
   const total = rows.reduce((a, r) => a + r.exact, 0)
   if (total > 0) {
     let left = Math.round(total) - rows.reduce((a, r) => a + r.percent, 0)
@@ -693,20 +748,28 @@ export function queuedCount(s: Snapshot, incident?: Incident): number {
 export function progressLegend(s: Snapshot, incident?: Incident, mobile = false): LegendItem[] {
   const items: LegendItem[] = s.providers
     .filter((p) => p.sent > 0 || p.planned > 0)
-    .map((p) => ({ key: p.id, color: providerColor[p.color], text: mobile ? `${p.short} ${count(p.sent)}` : `${p.name} ${count(p.sent)} · ${perSec(p.rate)}` }))
+    .map((p) => ({
+      key: p.id,
+      color: providerColor[p.color],
+      text: mobile ? `${p.short} ${count(p.sent)}` : tt(mm.legendProvider, { name: p.name, sent: count(p.sent), rate: perSec(p.rate) }),
+    }))
   if (mobile) return items
   if (incident && s.held > 0) {
     if (incident.kind === 'provider_outage') {
-      items.push({ key: 'held', color: heldRouteColor, text: `Held on ${incident.providerShort} ${count(s.held)}` })
+      items.push({ key: 'held', color: heldRouteColor, text: tt(mm.legendHeldOn, { provider: incident.providerShort, count: count(s.held) }) })
     } else {
       const who = scopeName(incident)
-      items.push({ key: 'held', color: heldMailboxColor, text: who ? `Held, ${who} ${count(s.held)}` : `Held ${count(s.held)}` })
+      items.push({ key: 'held', color: heldMailboxColor, text: who ? tt(mm.legendHeldWho, { who, count: count(s.held) }) : tt(mm.legendHeld, { count: count(s.held) }) })
     }
   }
   const queued = queuedCount(s, incident)
   if (queued > 0) {
     const others = incident?.kind === 'provider_outage' ? continuingProviders(s, incident) : []
-    items.push({ key: 'queued', color: queuedColor, text: others.length === 1 ? `Queued on ${others[0]!.short} ${count(queued)}` : `Queued ${count(queued)}` })
+    items.push({
+      key: 'queued',
+      color: queuedColor,
+      text: others.length === 1 ? tt(mm.legendQueuedOn, { provider: others[0]!.short, count: count(queued) }) : tt(mm.legendQueued, { count: count(queued) }),
+    })
   }
   return items
 }
@@ -715,22 +778,17 @@ export function progressLegend(s: Snapshot, incident?: Incident, mobile = false)
 export function mobileTiles(s: Snapshot): Tile[] {
   const t = s.totals
   return [
-    { key: 'delivered', label: 'Delivered', value: count(t.delivered), sub: pct1(share(t.delivered, s.sent) ?? 0) },
-    { key: 'bounced', label: 'Bounced', value: count(t.bounced), sub: rate(share(t.bounced, s.sent) ?? 0) },
-    { key: 'complained', label: 'Complained', value: count(t.complained), sub: pct2(share(t.complained, t.delivered) ?? 0) },
-    { key: 'opened', label: 'Opened · human', value: count(t.openedHuman), sub: `+${count(t.openedMachine)} machine` },
-    {
-      key: 'clicked',
-      label: 'Clicked',
-      value: count(t.clicked),
-      sub: `${pct1(share(t.clicked, t.delivered) ?? 0)} · ${pct1(share(t.clicked, t.opened) ?? 0)} click-to-open`,
-    },
+    countTile('delivered', mm.tileDelivered, t.delivered, pct1(share(t.delivered, s.sent) ?? 0)),
+    countTile('bounced', mm.tileBounced, t.bounced, rate(share(t.bounced, s.sent) ?? 0)),
+    countTile('complained', mm.tileComplained, t.complained, pct2(share(t.complained, t.delivered) ?? 0)),
+    countTile('opened', mm.tileOpenedHuman, t.openedHuman, tt(mm.openedMachine, { n: count(t.openedMachine) })),
+    countTile('clicked', mm.tileClicked, t.clicked, tt(mm.clickedSub, { rate: pct1(share(t.clicked, t.delivered) ?? 0), ctor: pct1(share(t.clicked, t.opened) ?? 0) })),
   ]
 }
 
 /** "14.2 /s · 99.1% delivered" under a provider's name on phones. */
 export function providerLine(p: Provider): string {
-  return `${perSec(p.rate)} · ${pct1(p.deliveredRate ?? 0)} delivered`
+  return tt(mm.providerLine, { rate: perSec(p.rate), delivered: pct1(p.deliveredRate ?? 0) })
 }
 
 export type CaptionKind = 'live' | 'threshold' | 'outage'
@@ -740,27 +798,28 @@ export type CaptionKind = 'live' | 'threshold' | 'outage'
  * last 1 s ago · pause needs campaigns:pause, resume needs campaigns:send".
  */
 export function eventsCaption(s: Snapshot, now: Date, kind: CaptionKind, streaming = true): string {
-  const last = s.lastEventAt ? `last ${liveAgo(s.lastEventAt, now)}` : 'waiting for the first events'
-  const head = !streaming ? 'Reconnecting to the event stream' : kind === 'live' && s.eventsVia ? `Events via ${s.eventsVia}` : 'Events live'
+  const last = s.lastEventAt ? tt(mm.eventsLast, { ago: liveAgo(s.lastEventAt, now) }) : tt(mm.eventsWaiting)
+  const head = !streaming ? tt(mm.eventsReconnecting) : kind === 'live' && s.eventsVia ? tt(mm.eventsVia, { via: s.eventsVia }) : tt(mm.eventsLive)
+  const perms = { pause: 'campaigns:pause', send: 'campaigns:send' }
   switch (kind) {
     case 'threshold':
-      return `${head} · ${last} · anyone with campaigns:pause can stop a send; resume needs campaigns:send`
+      return [head, last, tt(mm.eventsThreshold, perms)].join(' · ')
     case 'outage':
-      return `${head} · ${last}`
+      return [head, last].join(' · ')
   }
-  return `${head} · ${last} · pause needs campaigns:pause, resume needs campaigns:send`
+  return [head, last, tt(mm.eventsPerms, perms)].join(' · ')
 }
 
 /** The phone header's line: "Live · events 1 s ago". */
 export function mobileCaption(s: Snapshot, now: Date, streaming = true): string {
-  if (!streaming) return 'Reconnecting…'
-  return s.lastEventAt ? `Live · events ${liveAgo(s.lastEventAt, now)}` : 'Live · waiting for the first events'
+  if (!streaming) return tt(mm.mobileReconnecting)
+  return s.lastEventAt ? tt(mm.mobileLive, { ago: liveAgo(s.lastEventAt, now) }) : tt(mm.mobileWaiting)
 }
 
 /** API error rates: "0.1%", "0.4%", "100%". */
 export function errorRate(v: number | undefined): string {
   if (v === undefined) return '—'
-  return v >= 10 ? `${Math.round(v)}%` : `${v.toFixed(1)}%`
+  return v >= 10 ? pct(Math.round(v), 0) : pct(v, 1)
 }
 
 /** "17,635 / 28,444": sent of the provider's planned share. */
@@ -771,24 +830,50 @@ export function sentOfPlanned(p: Provider): string {
 /** The complaint column's heading in the decision view: "Complaint · limit 0.10%". */
 export function complaintHeading(s: Snapshot): string {
   const limit = s.thresholds.find((t) => t.key === 'mailbox_complaint')?.limit ?? s.thresholds.find((t) => t.key === 'complaint')?.limit
-  return limit === undefined ? 'Complaint' : `Complaint · limit ${pct2(limit)}`
+  return limit === undefined ? tt(mm.complaintHeading) : tt(mm.complaintHeadingLimit, { limit: pct2(limit) })
 }
 
 /** "Automations and System already failed over to Postmark and SES on their own". */
 export function failoverCaption(s: Snapshot): string {
-  if (s.failovers.length) return `${andList(s.failovers.map((f) => f.stream))} already failed over to ${andList(s.failovers.map((f) => f.to))} on their own`
+  if (s.failovers.length)
+    return tt(mm.failoverDone, { streams: andList(s.failovers.map((f) => streamLabel(f.stream))), providers: andList(s.failovers.map((f) => f.to)) })
   const held = s.providers.filter((p) => p.routeStatus === 'held').map((p) => p.short)
-  if (!held.length) return 'who delivers the mail'
-  if (!s.sharedStreams.length) return `Automations and System don't use ${andList(held)}`
-  return `${andList(s.sharedStreams)} also ${s.sharedStreams.length === 1 ? 'uses' : 'use'} ${andList(held)}`
+  if (!held.length) return tt(mm.whoDelivers)
+  if (!s.sharedStreams.length) return tt(mm.failoverUnused, { providers: andList(held) })
+  return tt(mm.failoverShared, { count: s.sharedStreams.length, streams: andList(s.sharedStreams.map(streamLabel)), providers: andList(held) })
 }
 
 /** "Delivered share: Gmail 46%, Outlook 21%, …" for the stacked bar. */
 export function mixLabel(mix: { name: string; percent: number }[]): string {
-  return `Delivered share: ${mix.map((m) => `${m.name} ${m.percent}%`).join(', ')}`
+  return tt(mm.mixLabel, { items: mix.map((x) => `${x.name} ${pct(x.percent, 0)}`).join(', ') })
 }
 
 /** "Scheduled for Tue 14 Oct · 09:00". */
 export function scheduledLine(at: string | undefined): string {
-  return at ? `Scheduled for ${shortDate(at)} · ${clock(at)}` : 'Scheduled'
+  return at ? tt(mm.scheduledFor, { date: shortDate(at), time: clock(at) }) : tt(mm.scheduled)
+}
+
+/** A feed event's words as the server writes them, in the app language (its English otherwise). */
+const eventWords: Record<string, MessageDescriptor> = {
+  delivered: mm.evDelivered,
+  'hard bounce': mm.evHardBounce,
+  'soft bounce': mm.evSoftBounce,
+  deferred: mm.evDeferred,
+  complaint: mm.evComplaint,
+  rejected: mm.evRejected,
+  'opened · machine': mm.evOpenedMachine,
+  'opened · human': mm.evOpenedHuman,
+  'clicked · scanner': mm.evClickedScanner,
+  clicked: mm.evClicked,
+  unsubscribed: mm.evUnsubscribed,
+  bounce: mm.evBounce,
+  open: mm.evOpen,
+  scanner: mm.evScanner,
+  click: mm.evClick,
+}
+
+/** An event's word ("hard bounce") or its short form ("bounce"), translated when known. */
+export function eventWord(word: string): string {
+  const d = eventWords[word]
+  return d ? tt(d) : word
 }

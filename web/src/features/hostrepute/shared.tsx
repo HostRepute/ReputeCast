@@ -2,7 +2,9 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 import { $api, errorMessage, http, type Schemas } from '@/api/client'
 import { toast } from '@/components/ui/Toast'
+import { t } from '@/i18n'
 import { useWorkspace } from '@/lib/session'
+import { m } from './messages'
 
 export type Connection = Schemas['HostReputeConnection']
 export type Integrations = Schemas['HostReputeIntegrationsOverview']
@@ -51,7 +53,7 @@ export function useStartOAuth(onUrl?: (url: string) => void) {
       window.setTimeout(() => window.location.assign(url), onUrl ? 700 : 0)
     } catch (e) {
       setPending(false)
-      toast({ kind: 'error', title: "Couldn't start connecting HostRepute", detail: errorMessage(e) })
+      toast({ kind: 'error', title: t(m.oauthFailed), detail: errorMessage(e) })
     }
   }
   return { start, pending }
@@ -70,22 +72,17 @@ export function useIntegrations() {
  */
 export const plainNote = 'font-normal [font-variant-numeric:normal]'
 
-/** "three" for small counts, digits above ten. */
-export function numberWord(n: number): string {
-  return ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'][n] ?? String(n)
-}
-
 /** Role of an asset in the assets table. */
 export function roleLabel(a: Schemas['HostReputeAsset']): string {
   switch (a.role) {
     case 'sending_domain':
-      return 'Sending domain'
+      return t(m.roleSendingDomain)
     case 'organization_domain':
-      return 'Organization domain'
+      return t(m.roleOrgDomain)
     case 'dedicated_ip':
-      return a.provider ? `Dedicated IP · ${a.provider}` : 'Dedicated IP'
+      return a.provider ? t(m.roleDedicatedIpOf, { provider: a.provider }) : t(m.roleDedicatedIp)
     case 'server_hostname':
-      return a.provider ? `${a.provider} server hostname` : 'Server hostname'
+      return a.provider ? t(m.roleServerHostnameOf, { provider: a.provider }) : t(m.roleServerHostname)
   }
-  return a.type === 'ip' ? 'IP' : 'Domain'
+  return a.type === 'ip' ? t(m.roleIp) : t(m.roleDomain)
 }

@@ -1,6 +1,8 @@
 import type { Schemas } from '@/api/client'
-import { money } from '@/lib/format'
-import type { FailoverPolicy, Stream } from './common'
+import { t } from '@/i18n'
+import { count, money } from '@/lib/format'
+import { streamName, type FailoverPolicy, type Stream } from './common'
+import { mr } from './routing.messages'
 
 export type RoutingConfig = Schemas['RoutingConfig']
 export type RoutingProvider = Schemas['RoutingProvider']
@@ -109,54 +111,64 @@ export function bulkIssues(d: Draft, providers: RoutingProvider[]): BulkIssue[] 
 
 /** "Amazon SES · us-east-1", "Postal · mta.acme.io", "Postmark · Transactional". */
 export function providerOption(p: RoutingProvider, opts: { warming?: boolean; stream?: boolean } = {}): string {
-  if (opts.warming && p.warmingUp) return `${p.name} · warming up`
+  if (opts.warming && p.warmingUp) return t(mr.optionWarming, { name: p.name })
   let label = p.label.replace(/^self-hosted · /, '')
   if (!opts.stream) label = label.replace(/ stream$/, '')
   return label ? `${p.name} · ${label}` : p.name
 }
 
-export const mailboxName: Record<string, string> = { gmail: 'Gmail', outlook: 'Outlook', yahoo: 'Yahoo', icloud: 'iCloud', other: 'Other' }
-
-export const fieldText: Record<Condition['field'], string> = {
-  mailbox_provider: 'recipient mailbox provider',
-  list: 'list',
-  sender_domain: 'sender domain',
-  category: 'category',
+/** Mailbox providers by key: names, and "Other" in the app language. */
+export const mailboxName: Record<string, string> = {
+  gmail: 'Gmail',
+  outlook: 'Outlook',
+  yahoo: 'Yahoo',
+  icloud: 'iCloud',
+  get other() {
+    return t(mr.mailboxOther)
+  },
 }
 
-const streamTitle: Record<Stream, string> = { broadcast: 'Broadcasts', automation: 'Automations', system: 'System', transactional: 'Transactional' }
+/** A condition's field as its chip says it ("recipient mailbox provider"). */
+export const fieldText: Record<Condition['field'], string> = {
+  get mailbox_provider() {
+    return t(mr.fieldMailboxChip)
+  },
+  get list() {
+    return t(mr.fieldListChip)
+  },
+  get sender_domain() {
+    return t(mr.fieldDomainChip)
+  },
+  get category() {
+    return t(mr.fieldCategoryChip)
+  },
+}
 
 /** One step of the route tester as a sentence. */
 export function stepText(st: Schemas['RouteTestStep'], stream: Stream, hasConditions: boolean): string {
+  const name = streamName[stream]
   switch (st.kind) {
     case 'stream':
       return st.conditions > 0 || stream === 'broadcast'
-        ? `Stream is ${streamTitle[stream]}, so the ${streamTitle[stream]} rule set applies.`
-        : `Stream is ${streamTitle[stream]}: primary ${st.provider ?? 'not set'}, no conditions.`
+        ? t(mr.stepStreamRules, { stream: name })
+        : st.provider
+          ? t(mr.stepStreamPrimary, { stream: name, provider: st.provider })
+          : t(mr.stepStreamNoPrimary, { stream: name })
     case 'condition': {
-      const value = st.value ?? ''
-      const head =
-        st.field === 'list'
-          ? `list is ${value}`
-          : st.field === 'sender_domain'
-            ? `sender domain is ${value}`
-            : st.field === 'category'
-              ? `category is ${value}`
-              : `recipient mailbox provider is ${value}`
-      return `Condition matched: ${head}, so ${st.provider} only.${st.warming ? ` ${st.warming} is still warming up.` : ''}`
+      const matched = t(mr.stepCondition, { field: st.field ?? 'mailbox_provider', value: st.value ?? '', provider: st.provider ?? '' })
+      return st.warming ? `${matched} ${t(mr.stepStillWarming, { provider: st.warming })}` : matched
     }
     case 'split': {
       const split = (st.splits ?? []).map((x) => `${x.short} ${x.weight}`).join(' / ')
-      return `${hasConditions ? 'No condition matched. ' : ''}Weighted split ${split}: this address hashes to bucket ${st.bucket} of 100.`
+      const line = t(mr.stepSplit, { split, bucket: st.bucket })
+      return hasConditions ? `${t(mr.stepNoMatch)} ${line}` : line
     }
     case 'primary':
-      return `Primary ${st.provider}.`
+      return t(mr.stepPrimary, { provider: st.provider ?? '' })
     case 'suppression':
-      return st.suppressed ? `Suppression list checked: ${st.email} is suppressed, so nothing is sent to it.` : `Suppression list checked: ${st.email} is not suppressed.`
+      return st.suppressed ? t(mr.stepSuppressed, { email: st.email ?? '' }) : t(mr.stepNotSuppressed, { email: st.email ?? '' })
     case 'held':
-      return st.reason === 'webhooks_silent'
-        ? `${st.provider}'s webhooks are silent, so its share waits until events resume.`
-        : `${st.provider} is down right now, so this email would wait for it or its fallback.`
+      return st.reason === 'webhooks_silent' ? t(mr.stepSilent, { provider: st.provider ?? '' }) : t(mr.stepDown, { provider: st.provider ?? '' })
   }
 }
 
@@ -164,21 +176,19 @@ export function stepText(st: Schemas['RouteTestStep'], stream: Stream, hasCondit
 export function fallbackText(r: Schemas['RouteTestResult'], stream: Stream): string {
   const fb = r.fallback
   if (fb.policy === 'pause_and_ask') {
-    return stream === 'broadcast' ? 'pause and ask. Broadcast failover to a cold provider is never automatic.' : 'pause and ask: the send holds until you decide.'
+    return stream === 'broadcast' ? t(mr.fallbackPauseBroadcast) : t(mr.fallbackPause)
   }
-  if (!fb.provider) return 'no fallback is set, so the send holds until the provider recovers.'
-  if (fb.policy === 'warm_only') return `automatic failover to ${fb.provider} once it is warmed up; until then, pause and ask.`
-  return stream === 'automation'
-    ? `automatic failover to ${fb.provider} after 3 failed sends or 2 failed health checks.`
-    : `automatic failover to ${fb.provider}.`
+  if (!fb.provider) return t(mr.fallbackNone)
+  if (fb.policy === 'warm_only') return t(mr.fallbackWarmOnly, { provider: fb.provider })
+  return stream === 'automation' ? t(mr.fallbackAutomation, { provider: fb.provider }) : t(mr.fallbackAutomatic, { provider: fb.provider })
 }
 
 /** "$0.0001 · $0.10 per 1,000", "plan · about $0.0044", "$0 metered · self-hosted". */
 export function costText(c: Schemas['RouteTestCost']): string {
-  if (c.basis === 'self_hosted') return '$0 metered · self-hosted'
-  if (c.basis === 'plan') return c.perMessage !== undefined ? `plan · about $${c.perMessage.toFixed(4)}` : 'plan'
+  if (c.basis === 'self_hosted') return t(mr.costSelfHosted, { amount: money(0, 0) })
+  if (c.basis === 'plan') return c.perMessage !== undefined ? t(mr.costPlanAbout, { amount: money(c.perMessage, 4) }) : t(mr.costPlan)
   if (c.per1000 === undefined) return '—'
-  return `$${(c.per1000 / 1000).toFixed(4)} · ${money(c.per1000)} per 1,000`
+  return t(mr.costMetered, { each: money(c.per1000 / 1000, 4), per1000: money(c.per1000), thousand: count(1000) })
 }
 
 /** How the provider being removed is used in one stream. */

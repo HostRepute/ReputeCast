@@ -193,6 +193,89 @@ samples, CLI output, "MCP", "2FA", "TOTP", "IdP", "SSO", "JIT", "A/B",
 | 14 /s | 14/giây |
 | Cost · Time | Chi phí · Thời gian |
 
+## Sending and deliverability
+
+Sending providers & routing, the connect wizard, Settings › Senders and
+Providers, Deliverability, HostRepute and the live monitor. In alphabetical
+order of the English.
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| account health (a provider's) | tình trạng tài khoản | |
+| adapter · community adapter · adapter registry | adapter · adapter cộng đồng · kho adapter | "adapter" stays in English, like "webhook" |
+| aggregate report (DMARC) | báo cáo tổng hợp | |
+| alignment (DMARC) | căn chỉnh | "căn chỉnh DMARC" |
+| asset (a domain or IP HostRepute monitors) | tài sản | |
+| backfill (statuses from an API) | lấy bù | "Lấy bù trạng thái từ API của Mailgun" |
+| blocklist · listed · clean | danh sách chặn · bị liệt kê · sạch | |
+| bounce mailbox | hộp thư nhận thư trả lại | SMTP providers |
+| bounce · hard bounce · soft bounce | thư trả lại · trả thư vĩnh viễn · trả thư tạm thời | the rate is "tỷ lệ trả thư"; as in the Grow section |
+| Broadcasts · Automations · System · Transactional (streams) | Gửi hàng loạt · Tự động hóa · Hệ thống · Giao dịch | names, so capitalised in a sentence: "luồng Hệ thống" |
+| bulk marketing | tiếp thị hàng loạt | a provider's terms |
+| cap (daily, today's) | giới hạn | "Giới hạn hôm nay" |
+| catalog (of providers) | danh mục | the wizard's first step |
+| condition (routing) | điều kiện | |
+| credentials (a provider's) | thông tin xác thực | |
+| dedicated IP · shared pool | IP riêng · nhóm IP dùng chung | |
+| defer · deferral | hoãn nhận | "Yahoo hoãn nhận" |
+| degraded · down | suy giảm · ngừng hoạt động | provider statuses |
+| delisting | gỡ khỏi danh sách | "Yêu cầu gỡ khỏi danh sách" |
+| event log · raw event · normalized event | nhật ký sự kiện · sự kiện gốc · sự kiện chuẩn hóa | |
+| failover · fallback · primary | chuyển dự phòng · dự phòng · chính | "nhà cung cấp dự phòng", "nhà cung cấp chính" |
+| feedback loop | vòng phản hồi | |
+| flow (an automation's, in sending text) | quy trình tự động | there "luồng" is a stream: "email do các quy trình tự động gửi"; the Automations section names the flow editor's flows |
+| guard (Warm-up page) | ngưỡng bảo vệ | "Tỷ lệ trả thư · ngưỡng bảo vệ 2%" |
+| held (recipients) | tạm giữ | |
+| incident · outage | sự cố · sự cố ngừng hoạt động | |
+| live sending monitor | theo dõi gửi trực tiếp | "Live monitor" is "Theo dõi trực tiếp" |
+| maintainer · unmaintained (adapter) | người duy trì · ngừng duy trì | |
+| mapping (webhook, JSONPath) | ánh xạ | |
+| message id | mã thư | |
+| monitoring · monitored | giám sát · đang giám sát | HostRepute |
+| nameserver | máy chủ tên miền | |
+| polling (instead of webhooks) | hỏi định kỳ | "hỏi API sự kiện mỗi phút" |
+| Postmaster reputation: high · medium · low · bad | cao · trung bình · thấp · kém | |
+| production access (SES) | quyền gửi chính thức | the SES sandbox stays "sandbox" |
+| provisioning | khởi tạo | SNS topics and configuration sets |
+| pulled in · pushed out · two-way (suppression sync) | đã kéo về · đã đẩy đi · hai chiều | |
+| quota | hạn mức | |
+| read-only link (a live send) | liên kết chỉ xem | |
+| recommended (an option, a badge) | khuyên dùng | "IMAP (khuyên dùng)"; a recommendation's heading is "Đề xuất" |
+| region (AWS) | khu vực | AWS's own word; not the region format |
+| reputation · domain reputation · IP reputation | uy tín · uy tín tên miền · uy tín IP | |
+| reroute | định tuyến lại | |
+| reverse DNS | DNS ngược | |
+| route tester | công cụ thử tuyến | |
+| route · routing · weighted split | tuyến · định tuyến · chia theo tỷ trọng | |
+| secret (webhook signing) | khóa bí mật | "khóa bí mật ký webhook" |
+| seed list | danh sách địa chỉ thử | one address of yours at each mailbox provider |
+| self-test (of an endpoint) | tự kiểm tra | |
+| Send Readiness | Độ sẵn sàng gửi | |
+| share (of a split · of a send) | tỷ trọng · phần | |
+| slowdown (warm-up) | giảm tốc | |
+| SNDS filter result: Green · Yellow · Red | Xanh · Vàng · Đỏ | |
+| spam rate · spam trap | tỷ lệ spam · bẫy spam | |
+| spam trap hit | lượt dính bẫy spam | |
+| stale (data) · cached results | đã cũ · kết quả đã lưu | |
+| stream | luồng | |
+| suppression sync | đồng bộ danh sách chặn gửi | |
+| throttle · throttling | giới hạn tốc độ | |
+| tracking · tracking domain | theo dõi · tên miền theo dõi | |
+| verdict (HostRepute): Good · Fair · Poor · Bad | Tốt · Khá · Kém · Xấu | |
+| warm-up · warmed up · warm-up guard · ramp | khởi động · đã khởi động xong · bảo vệ khởi động · mức tăng | |
+| webhook endpoint · registration | endpoint webhook · đăng ký | |
+| write-only (a key) | chỉ ghi | "it can be replaced but never read back" |
+| zone file | tệp zone | |
+
+"sandbox", "configuration set", "SNS topic", "IAM", "ARN", "CloudFormation",
+"stack", "return-path", "DSN", "ARF", "rua", "JSONPath", "manifest.json",
+"SDK", "tunnel", "reverse proxy", "endpoint", "token", "idempotency",
+"Postmaster", "SNDS" and "JMRP" stay as they are, and so do the AWS field
+names ("Access key ID", "Secret access key", "RoleArn"), the SES region
+names, a provider's own stream names (Postmark's "Broadcast" stream:
+"luồng Broadcast") and the results in DNS records and reports ("pass",
+"fail", "p=quarantine").
+
 ## Transactional templates
 
 | English | Tiếng Việt |
@@ -314,6 +397,103 @@ fallback "there" is "bạn".
 | Warn · Block (the policy) | Cảnh báo · Chặn |
 
 "Heading" is "Đề mục", never "Tiêu đề", which is an email's subject.
+
+## Earn
+
+Payments, paid subscriptions, offers, gifts, sponsors and revenue. A
+"paid member" is a **hội viên trả phí**, never a "thành viên", which is a
+team member. A reader's Stripe subscription is a **thuê bao**, never an
+"đăng ký": "hủy đăng ký" is unsubscribing.
+
+| English | Tiếng Việt |
+|---|---|
+| access (paid) · With access | quyền truy cập · Có quyền truy cập |
+| access rank · Rank 2 | hạng truy cập · Hạng 2 |
+| Access rules | Quy tắc truy cập |
+| Active · Trialing · Past due · Cancels soon · Canceled · Ended (paid status) | Đang hoạt động · Đang dùng thử · Quá hạn · Sắp hủy · Đã hủy · Đã kết thúc |
+| archive · Archived (a tier) | lưu trữ · Đã lưu trữ |
+| attribution · attribution window · credited to (an email) | phân bổ · khung thời gian phân bổ · ghi nhận cho |
+| benefit (of a tier) | quyền lợi |
+| billing email · billing period · Manage billing | email thanh toán · chu kỳ thanh toán · Quản lý thanh toán |
+| book · booking · Booked (a sponsor in an issue) | đặt chỗ · lượt đặt chỗ · Đã đặt |
+| buyer · recipient (of a gift) | người mua · người nhận |
+| cancel page · gift page · upgrade page · welcome page | trang hủy · trang quà tặng · trang nâng cấp · trang chào mừng |
+| charge (a card) | trừ tiền (từ thẻ); "nothing is charged" is "không tính phí" |
+| checkout · test checkout | thanh toán · thanh toán thử nghiệm ("Stripe Checkout" is a name) |
+| churn · churn rate | rời bỏ · tỷ lệ rời bỏ |
+| click token | token lượt nhấp |
+| Complimentary · complimentary access | Được miễn phí · quyền truy cập miễn phí |
+| conversion · conversion API | chuyển đổi · API chuyển đổi |
+| coupon · promotion code · code | phiếu giảm giá · mã khuyến mãi · mã |
+| creative (a sponsor's) | nội dung tài trợ |
+| customer portal | cổng khách hàng |
+| deliver · delivery date (a gift) | giao · ngày giao |
+| discount · 20% off | giảm giá · giảm 20% |
+| dispute (a card payment's) | tranh chấp |
+| Earn's tabs: Overview · Plans & offers · Paid members · Gifts · Sponsors · Products · Settings | Tổng quan · Gói và ưu đãi · Hội viên trả phí · Quà tặng · Nhà tài trợ · Sản phẩm · Cài đặt |
+| expansion · contraction · reactivated (MRR movement) | mở rộng · thu hẹp · kích hoạt lại |
+| Free (the card) · free subscriber | Miễn phí · người đăng ký miễn phí |
+| free-to-paid | miễn phí sang trả phí |
+| gift · gift option | quà tặng · tùy chọn quà tặng |
+| headline (an upgrade page's, a creative's) | dòng tiêu đề; a subject is "tiêu đề", a heading "đề mục" |
+| highlight (a tier) · Most popular | làm nổi bật · Phổ biến nhất |
+| hold · on hold · release (an issue) | giữ chỗ · đang giữ chỗ · bỏ giữ chỗ |
+| in person (a gift handed over) | trao tận tay |
+| issue (of a newsletter: #143) | số (số #143); an accessibility issue is "lỗi" |
+| legacy price | giá cũ |
+| lifetime value | giá trị trọn đời |
+| live · test (a key, a mode, payments) | chính thức · thử nghiệm; "no real payments" is "không có thanh toán thật" |
+| live (a page, an offer or a template version that's running) | đang chạy |
+| map (a Stripe price to a tier) | gán |
+| member email · membership | email hội viên · gói hội viên |
+| merchant of record | bên bán hàng thay bạn |
+| monthly · yearly · Monthly · Yearly (the choice) · /month | hằng tháng · hằng năm · Theo tháng · Theo năm · /tháng |
+| MRR · ARR · MRR movement | MRR · ARR · biến động MRR |
+| Needs you (Earn's overview) | Cần bạn xử lý |
+| normal price (without an offer) | giá thường |
+| offer · signup · retention · referral reward | ưu đãi · ưu đãi đăng ký · ưu đãi giữ chân · phần thưởng giới thiệu |
+| Overdue · Unpaid · Paid (a sponsor's payment) | Quá hạn · Chưa thanh toán · Đã thanh toán |
+| paid member | hội viên trả phí |
+| paid status · paid-only | trạng thái trả phí · chỉ dành cho hội viên trả phí |
+| Paid subscriptions (what Earn sells) | Gói trả phí |
+| paid-through date | ngày hết kỳ đã trả |
+| payment provider | nhà cung cấp thanh toán |
+| payment terms (a sponsor's) | thời hạn thanh toán |
+| payouts | rút tiền về ngân hàng |
+| plan · Plans & offers | gói · Gói và ưu đãi |
+| Public · Hidden (a tier's visibility) | Công khai · Ẩn |
+| receipt · invoice | biên lai · hóa đơn |
+| record (a sponsor's payment, by hand) | ghi nhận |
+| redeem · redeem link (a gift) | nhận · liên kết nhận quà |
+| redeem · redemption (an offer code) | dùng · lượt dùng |
+| refund | hoàn tiền |
+| renew · renewal | gia hạn |
+| restricted key · secret key | khóa hạn chế · khóa bí mật |
+| results so far · final (a sponsor report's) | kết quả tạm thời · chốt |
+| revenue · income | doanh thu · thu nhập |
+| roll (a Stripe key) | xoay vòng |
+| seller ("you're the seller") | bên bán |
+| signing secret (a webhook's) · endpoint | khóa bí mật để ký (as Automations has it) · endpoint |
+| Since · Member since (a paid member's) | Tham gia · Hội viên từ |
+| slot · placement | vị trí |
+| sponsor · sponsorship · Sponsored (the block's label) | nhà tài trợ · tài trợ · Được tài trợ |
+| sponsor report | báo cáo tài trợ |
+| subscription (a reader's, billed by Stripe) | thuê bao |
+| Terms of sale · Support address | Điều khoản bán hàng · Địa chỉ hỗ trợ |
+| tier · paid tier | gói · gói trả phí |
+| timeline (a paid member's) | dòng thời gian |
+| trial · free trial | dùng thử · dùng thử miễn phí |
+| upgrade · Upgrade block | nâng cấp · khối Nâng cấp |
+| webhook silent · gap check | webhook không có tin · kiểm tra sự kiện sót |
+| write-only · sealed (a key, a secret) | chỉ ghi · niêm phong |
+
+Some English messages choose a word for English grammar only: an article
+(`{article, select, an {an} other {a}} {tier}`) or a possessive
+(`{ends, select, s {{sponsor}’} other {{sponsor}’s}}`). Vietnamese keeps the
+argument and puts the name in its `other` branch: `{ends, select, other
+{{sponsor}}}`. Where the English counts with `#`, keep
+`{count, plural, other {# …}}` rather than a bare `{count}`, so the number
+is grouped by the region format (48.213).
 
 ## Team
 
@@ -561,6 +741,41 @@ phone number, a sender ID and a country code are data: never translated.
 | threshold | ngưỡng | |
 | token (Liquid) | biến | as transactional templates' variables |
 | trigger (automation) | trình kích hoạt | |
+
+## Audience, imports, forms and reports
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| accent color · page background | màu nhấn · nền trang | public page branding |
+| allowed domains | tên miền được phép | the sites a form may be embedded on |
+| archive (public page) · issue | trang lưu trữ · số | as subscribers read them: "Lưu trữ bản tin", "Số tiếp theo" |
+| audience · merge field · cleaned (Mailchimp) | audience · merge field · cleaned | Mailchimp's own words, as its screens show them |
+| branding | thương hiệu | Forms & pages › "Thương hiệu và tên miền" |
+| column · map fields | cột · ghép trường | an import's step: "Ghép trường" |
+| confirmation link | liên kết xác nhận | |
+| consent · consent text · consent evidence | sự đồng ý · nội dung đồng ý · bằng chứng đồng ý | |
+| deferral (provider) | hoãn nhận | "deferrals expired": "thư hoãn nhận đã hết hạn" |
+| embed code · script embed · embedded (form) | mã nhúng · mã nhúng tập lệnh · nhúng | |
+| erase (a contact) | xóa vĩnh viễn | a GDPR erasure; a plain delete stays "xóa" |
+| excerpt | đoạn trích | an archived issue's |
+| export data (GDPR) | xuất dữ liệu | |
+| Forms & public pages | Biểu mẫu và trang công khai | |
+| hosted page (a form type) | trang trên ReputeCast | as "hosted" above |
+| offer a download | tặng một tệp tải xuống | the file a form gives after confirmation |
+| popup (form) | bật lên | |
+| preference center | trung tâm tùy chọn | in the app; subscribers read "trang tùy chọn" |
+| publisher (name) | đơn vị phát hành | heads every public page |
+| re-permission | xin phép lại | "re-permission flow": "quy trình xin phép lại" |
+| read-only link | liên kết chỉ xem | a shared report's |
+| RSS feed | nguồn cấp RSS | |
+| sender health | sức khỏe người gửi | the Overview's score; reputation is "uy tín" |
+| signup · submission (form) | lượt đăng ký · lượt gửi | "Views · Submissions": "Lượt xem · Lượt gửi" |
+| single opt-in | xác nhận một bước | double opt-in is "xác nhận hai bước" |
+| subscribe page · confirmation page · unsubscribe page | trang đăng ký · trang xác nhận · trang hủy đăng ký | |
+| suppressed | bị chặn gửi | the list is "danh sách chặn gửi" |
+| System stream · System mail | luồng Hệ thống · thư Hệ thống | the stream's name keeps its capital |
+| tag | thẻ | |
+| title (archived issue) | tựa đề | "tiêu đề" is an email's subject, "đề mục" a heading |
 
 ## Words used everywhere
 

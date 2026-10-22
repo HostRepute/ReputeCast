@@ -2,26 +2,29 @@ import { Link } from '@tanstack/react-router'
 import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { ButtonLink } from '@/components/ui/Button'
+import { useT, type MessageDescriptor } from '@/i18n'
 import { useWorkspace } from '@/lib/session'
+import { m } from './messages'
+import { ms } from './setup.messages'
 import { Ticks } from './text'
 import { WizardLayout } from './Wizard'
 
 type Row = Schemas['ConnectDoneRow']
 
-const ROW_BADGE: Record<Row['status'], { tone: 'ok' | 'neutral' | 'bad' | 'warn'; label: string }> = {
-  done: { tone: 'ok', label: 'Done' },
-  skipped: { tone: 'neutral', label: 'Skipped' },
-  failed: { tone: 'bad', label: 'Failed' },
-  pending: { tone: 'warn', label: 'Pending' },
+const ROW_BADGE: Record<Row['status'], { tone: 'ok' | 'neutral' | 'bad' | 'warn'; label: MessageDescriptor }> = {
+  done: { tone: 'ok', label: m.stateDone },
+  skipped: { tone: 'neutral', label: m.stateSkipped },
+  failed: { tone: 'bad', label: m.stateFailed },
+  pending: { tone: 'warn', label: m.statePending },
 }
 
 /** 7.2 summary (SetupDone): what was configured and what to do next. */
 export function DonePage({ setup }: { setup: Schemas['ConnectSetup'] }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const done = setup.done!
-  const minutes = done.minutes === 1 ? '1 minute' : `${done.minutes} minutes`
   return (
-    <WizardLayout title="Connect a sending provider" badge={<Badge tone="ok">Done</Badge>} exit={false}>
+    <WizardLayout title={t(m.title)} badge={<Badge tone="ok">{t(ms.doneBadge)}</Badge>} exit={false}>
       {/* The summary isn't a wizard step: as on the board it keeps its 40 px × 28 px padding at every width. */}
       <main id="main" tabIndex={-1} className="mx-auto box-border flex w-full max-w-[860px] flex-col gap-[18px] px-7 py-10">
         <div className="flex flex-wrap items-center gap-[18px]">
@@ -31,23 +34,20 @@ export function DonePage({ setup }: { setup: Schemas['ConnectSetup'] }) {
           </svg>
           <div className="flex flex-col gap-1">
             <h2 className="m-0 text-[26px] font-bold tracking-[-0.02em]">{done.title}</h2>
-            <span className="text-ink-2">
-              {`Setup took ${minutes}. Everything below is live`}
-              {done.domain ? `, and the Overview now shows sender health for ${done.domain}.` : '.'}
-            </span>
+            <span className="text-ink-2">{done.domain ? t(ms.tookDomain, { minutes: done.minutes, domain: done.domain }) : t(ms.took, { minutes: done.minutes })}</span>
           </div>
         </div>
 
         <section className="card flex flex-col" aria-labelledby="configured-h">
           <div className="flex items-center justify-between px-4.5 py-3.5 max-md:flex-wrap">
             <h3 className="h2" id="configured-h">
-              What was configured
+              {t(ms.configuredTitle)}
             </h3>
-            <span className="k">all reversible from Sending providers</span>
+            <span className="k">{t(ms.configuredLine)}</span>
           </div>
           {done.rows.map((r) => (
             <div key={r.lead} className="cn-row lg">
-              <Badge tone={ROW_BADGE[r.status].tone}>{ROW_BADGE[r.status].label}</Badge>
+              <Badge tone={ROW_BADGE[r.status].tone}>{t(ROW_BADGE[r.status].label)}</Badge>
               <span className="cn-row-text min-w-0">
                 <strong>{r.lead}</strong>
                 <Ticks text={r.text} />
@@ -55,7 +55,7 @@ export function DonePage({ setup }: { setup: Schemas['ConnectSetup'] }) {
                   <>
                     {' '}
                     <Link to="/w/$workspace/import" params={{ workspace: slug }}>
-                      Import now
+                      {t(ms.importNow)}
                     </Link>
                   </>
                 ) : null}
@@ -66,30 +66,28 @@ export function DonePage({ setup }: { setup: Schemas['ConnectSetup'] }) {
 
         <section className="card flex flex-col gap-3 px-5 py-4.5" aria-labelledby="recommended-h">
           <h3 className="h2" id="recommended-h">
-            Recommended before your first campaign
+            {t(ms.recommendedTitle)}
           </h3>
           <div className="grid gap-3 max-md:grid-cols-1!" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))' }}>
             <div className="flex flex-col gap-1.5 rounded-lg border border-line px-3.5 py-3">
-              <span className="font-semibold">Add another provider</span>
-              <span className="k">A second provider for System mail, or a Postal server for a weighted split. Several can run at once.</span>
+              <span className="font-semibold">{t(ms.addProviderTitle)}</span>
+              <span className="k">{t(ms.addProviderLine)}</span>
               <ButtonLink size="sm" variant="primary" className="self-start" to="/w/$workspace/providers/connect" params={{ workspace: slug }}>
-                Add another provider
+                {t(ms.addProvider)}
               </ButtonLink>
             </div>
             <div className="flex flex-col gap-1.5 rounded-lg border border-line px-3.5 py-3">
-              <span className="font-semibold">Connect HostRepute</span>
-              <span className="k">
-                {done.hostRepute ? 'Connected: 84 blocklists, Google Postmaster and Microsoft SNDS show inside Send Readiness.' : 'Optional, free: 84 blocklists, Google Postmaster and Microsoft SNDS inside Send Readiness.'}
-              </span>
+              <span className="font-semibold">{t(ms.hostReputeTitle)}</span>
+              <span className="k">{done.hostRepute ? t(ms.hostReputeConnected) : t(ms.hostReputeOptional)}</span>
               <ButtonLink size="sm" className="self-start" to={done.hostRepute ? '/w/$workspace/deliverability' : '/w/$workspace/deliverability/connect'} params={{ workspace: slug }}>
-                {done.hostRepute ? 'Open' : 'Connect'}
+                {done.hostRepute ? t(ms.open) : t(ms.connect)}
               </ButtonLink>
             </div>
             <div className="flex flex-col gap-1.5 rounded-lg border border-line px-3.5 py-3">
-              <span className="font-semibold">Create a signup form</span>
-              <span className="k">Double opt-in is on by default; confirmations go out on the System stream.</span>
+              <span className="font-semibold">{t(ms.formTitle)}</span>
+              <span className="k">{t(ms.formLine)}</span>
               <ButtonLink size="sm" className="self-start" to="/w/$workspace/forms" params={{ workspace: slug }}>
-                Build a form
+                {t(ms.buildForm)}
               </ButtonLink>
             </div>
           </div>
@@ -97,10 +95,10 @@ export function DonePage({ setup }: { setup: Schemas['ConnectSetup'] }) {
 
         <div className="flex flex-wrap justify-end gap-2.5">
           <ButtonLink to="/w/$workspace/providers/connect" params={{ workspace: slug }}>
-            Add another provider
+            {t(ms.addProvider)}
           </ButtonLink>
           <ButtonLink variant="primary" className="min-h-10 px-4.5" to="/w/$workspace" params={{ workspace: slug }}>
-            Go to Overview
+            {t(ms.goToOverview)}
           </ButtonLink>
         </div>
       </main>

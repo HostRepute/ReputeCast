@@ -2,15 +2,19 @@ import { useNavigate } from '@tanstack/react-router'
 import { useState, type ReactNode } from 'react'
 import { ApiError } from '@/api/client'
 import { Page, type Crumb } from '@/components/shell/Page'
+import { m as shell } from '@/components/shell/messages'
 import { ForbiddenState, NotFoundState, problemReference, ServerErrorState } from '@/components/shell/SystemScreens'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
+import { t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { clockSeconds } from '@/lib/format'
 import { useMediaQuery, useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { CancelSendDialog, useLiveActions, useLivePermissions, type LiveActions, type LivePermissions } from './actions'
 import { DecisionView } from './Decision'
 import { LiveBody } from './LiveParts'
+import { m } from './messages'
 import { MobileLive } from './Mobile'
 import { eventsCaption, headerBadges, isStarting, lostText, openIncident, startedLine, type CaptionKind, type Incident, type Snapshot } from './model'
 import {
@@ -38,12 +42,13 @@ export interface LiveSearch {
  * kept live by the event stream.
  */
 export function LiveMonitorPage({ campaignId, search }: { campaignId: string; search: LiveSearch }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const live = useLiveSend(slug, campaignId)
   if (!live.snapshot) {
     if (live.query.isError) return <LiveError error={live.query.error} retry={() => void live.query.refetch()} campaignId={campaignId} />
     return (
-      <Page title="Live sending monitor" breadcrumb={crumbs(slug, 'Loading…')}>
+      <Page title={t(m.title)} breadcrumb={crumbs(slug, t(common.loading))}>
         <LiveSkeleton />
       </Page>
     )
@@ -52,7 +57,7 @@ export function LiveMonitorPage({ campaignId, search }: { campaignId: string; se
 }
 
 function crumbs(slug: string, name: string): Crumb[] {
-  return [{ label: 'Campaigns', to: '/w/$workspace/campaigns', params: { workspace: slug } }, { label: name }]
+  return [{ label: tt(m.campaigns), to: '/w/$workspace/campaigns', params: { workspace: slug } }, { label: name }]
 }
 
 /** Which body the screen shows. */
@@ -91,6 +96,7 @@ function LiveScreen({
   stream: StreamState & { reconnect: () => void }
   apply: (s: Snapshot) => void
 }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const now = useNow(1000)
@@ -194,8 +200,8 @@ function LiveScreen({
 
   return (
     <Page
-      title="Live sending monitor"
-      documentTitle={`${s.name} · Live`}
+      title={t(m.title)}
+      documentTitle={t(m.documentTitle, { name: s.name })}
       breadcrumb={crumbs(slug, s.name)}
       subtitle={startedLine(s) || undefined}
       badges={<HeaderBadges s={s} incident={incident} mode={mode} />}
@@ -253,12 +259,13 @@ function HeaderActions({
   onCancel: () => void
   onBack: () => void
 }) {
+  const t = useT()
   if (mode === 'decision') {
     const kind: CaptionKind = incident?.kind === 'provider_outage' ? 'outage' : 'threshold'
     return (
       <>
-        <span className="k">{eventsCaption(s, now, kind, !lost)}</span>
-        <Button onClick={onBack}>Back to live view</Button>
+        <span className="k lv-caption">{eventsCaption(s, now, kind, !lost)}</span>
+        <Button onClick={onBack}>{t(m.backToLive)}</Button>
       </>
     )
   }
@@ -266,15 +273,15 @@ function HeaderActions({
   const paused = s.state === 'paused' && !incident
   return (
     <>
-      <span className="k">{eventsCaption(s, now, 'live', !lost)}</span>
+      <span className="k lv-caption">{eventsCaption(s, now, 'live', !lost)}</span>
       {s.options.canPause ? (
-        <Button onClick={onPause} disabledReason={can.pause} loading={actions.pending} title="Pausing needs campaigns:pause">
-          Pause
+        <Button onClick={onPause} disabledReason={can.pause} loading={actions.pending} title={t(m.pauseNeeds, { perm: 'campaigns:pause' })}>
+          {t(m.pause)}
         </Button>
       ) : null}
       {s.options.canCancel && !paused ? (
         <Button variant="danger" onClick={onCancel} disabledReason={can.cancel}>
-          Cancel send
+          {t(m.cancelSend)}
         </Button>
       ) : null}
     </>
@@ -283,27 +290,28 @@ function HeaderActions({
 
 /** 403, 404 or 500 while loading the monitor. */
 function LiveError({ error, retry, campaignId }: { error: unknown; retry: () => void; campaignId: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const status = error instanceof ApiError ? error.status : 0
   const back = (
     <ButtonLink to="/w/$workspace/campaigns" params={{ workspace: slug }}>
-      Back to campaigns
+      {t(m.backToCampaigns)}
     </ButtonLink>
   )
   let body: ReactNode
   if (error instanceof ApiError && status === 403 && error.problem.permission) {
-    body = <ForbiddenState permission={error.problem.permission} title="Your role can't watch this send" readOnly={back} />
+    body = <ForbiddenState permission={error.problem.permission} title={t(m.forbiddenTitle)} readOnly={back} />
   } else if (status === 404) {
     body = (
       <NotFoundState path={`/campaigns/${campaignId}/live`} reference={problemReference(error)} primary={back}>
-        The campaign may have been deleted, or the link is from another workspace.
+        {t(m.notFoundBody)}
       </NotFoundState>
     )
   } else {
-    body = <ServerErrorState reference={problemReference(error)} savedNote="Sending continues on the server." onRetry={retry} back={back} />
+    body = <ServerErrorState reference={problemReference(error)} savedNote={t(m.serverErrorNote)} onRetry={retry} back={back} />
   }
   return (
-    <Page title={status === 404 ? 'Not found' : status === 403 ? 'No access' : 'Live sending monitor'} breadcrumb={crumbs(slug, 'Live sending monitor')}>
+    <Page title={status === 404 ? t(shell.stateNotFoundTitle) : status === 403 ? t(shell.stateNoAccessTitle) : t(m.title)} breadcrumb={crumbs(slug, t(m.title))}>
       {body}
     </Page>
   )

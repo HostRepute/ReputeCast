@@ -31,7 +31,7 @@ export function ChannelCostRule({ value, disabled, onChange }: { value?: Cost; d
           <span className="font-semibold">{t(m.costTitle)}</span>
           <span className="k whitespace-normal">{t(m.costDetail)}</span>
         </span>
-        <span className="row flex-nowrap! gap-1.5!">
+        <span className="ap-rule-extra row flex-nowrap! gap-1.5!">
           <span className="k" aria-hidden="true">
             $
           </span>

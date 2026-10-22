@@ -50,7 +50,7 @@ export function SettingsPage({ tab, onTab }: { tab: SettingsTab; onTab: (t: Sett
               <div>
                 <T
                   msg={pay.data.helpers.length ? ms.readOnly : ms.readOnlyNoHelpers}
-                  values={{ payments: <span className="mono">payments:manage</span>, publish: <span className="mono">transactional:publish</span>, helpers: orList(pay.data.helpers) }}
+                  values={{ payments: <span className="mono">{'payments:manage'}</span>, publish: <span className="mono">{'transactional:publish'}</span>, helpers: orList(pay.data.helpers) }}
                 />
               </div>
             </div>

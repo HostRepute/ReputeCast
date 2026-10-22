@@ -72,6 +72,7 @@ export const mc = defineMessages('earn.connect', {
   whyTax: 'Show whether Stripe Tax is on',
   keyLabel: 'Restricted key',
   keyHint: 'Starts with {live} or {test}. Write-only: it’s sealed when saved and never shown again.',
+  keyPlaceholder: 'rk_live_… or rk_test_…',
   checkKey: 'Check key',
   checking: 'Checking…',
   secretKeyTitle: 'This is a secret key',

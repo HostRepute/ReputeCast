@@ -6,27 +6,23 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Grid } from '@/components/ui/Layout'
+import { useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { cn } from '@/lib/cn'
-import { ago, clock, count, money, monthName } from '@/lib/format'
+import { ago, clock, count, money, monthName, pct } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { failoverText, providerColor, ProvidersTabs, streamName, throwIfForbidden, type Stream } from './common'
+import { m } from './messages'
+import { mo } from './overview.messages'
 import { AuthBanner, AuthCard, AwaitingTable, IncidentTimeline, OutageAlert, SilentAlert } from './ProviderIncidents'
 import { CompactRow, DownRow, OutageRow, ProviderRow, SilentRow } from './ProviderRows'
 import { ProviderSettingsDialog } from './ProviderSettingsDialog'
 
 type Overview = Schemas['ProvidersOverview']
 
-const statusWord: Record<Schemas['ProviderStatusCount']['status'], string> = {
-  healthy: 'Healthy',
-  warming_up: 'Warming up',
-  degraded: 'Degraded',
-  down: 'Down',
-  sandbox: 'Sandbox',
-  paused: 'Paused',
-}
-
 /** 7.3 Sending providers: health, limits, cost and routing of every connected provider. */
 export function ProvidersPage() {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/providers', { params: { path: { workspace: slug } } }, { refetchInterval: 60_000 })
   throwIfForbidden(q.error)
@@ -35,10 +31,10 @@ export function ProvidersPage() {
   const empty = data && data.providers.length === 0
   const settingsCard = settings && data?.providers.find((p) => p.id === settings.id)
   return (
-    <Page title="Sending providers & routing" filters={<ProvidersTabs />} actions={data && !empty ? <HeaderActions data={data} /> : null}>
+    <Page title={t(m.title)} filters={<ProvidersTabs />} actions={data && !empty ? <HeaderActions data={data} /> : null}>
       {q.isError ? (
-        <ErrorPanel title="Couldn't load your sending providers" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
-          {errorMessage(q.error)} Sending isn&apos;t affected: provider health is checked in the background.
+        <ErrorPanel title={t(mo.loadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
+          {errorMessage(q.error)} {t(mo.loadFailedBody)}
         </ErrorPanel>
       ) : q.isPending ? (
         <ProvidersSkeleton />
@@ -53,6 +49,7 @@ export function ProvidersPage() {
 }
 
 function HeaderActions({ data }: { data: Overview }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const reason = usePermissionReason('providers:manage')
   const down = data.providers.filter((p) => p.status === 'down').length
@@ -62,22 +59,22 @@ function HeaderActions({ data }: { data: Overview }) {
     <>
       {down ? (
         <Badge tone="bad" dot>
-          {down} provider{down === 1 ? '' : 's'} down
+          {t(mo.providersDown, { count: down })}
         </Badge>
       ) : degraded ? (
         <Badge tone="warn" dot>
-          {degraded} provider{degraded === 1 ? '' : 's'} degraded
+          {t(mo.providersDegraded, { count: degraded })}
         </Badge>
       ) : data.summary.checkedAt ? (
-        <span className="k">{n === 1 ? `Checked ${ago(data.summary.checkedAt)}` : `All ${n} providers checked ${ago(data.summary.checkedAt)}`}</span>
+        <span className="k">{n === 1 ? t(mo.checkedOne, { ago: ago(data.summary.checkedAt) }) : t(mo.checkedAll, { count: n, ago: ago(data.summary.checkedAt) })}</span>
       ) : null}
       {reason ? (
         <Button variant="primary" disabledReason={reason}>
-          Add provider
+          {t(mo.addProvider)}
         </Button>
       ) : (
         <ButtonLink variant="primary" to="/w/$workspace/providers/connect" params={{ workspace: slug }}>
-          Add provider
+          {t(mo.addProvider)}
         </ButtonLink>
       )}
     </>
@@ -156,20 +153,25 @@ function Tile({ label, value, sub }: { label: string; value: string; sub: string
 
 /** The four KPI tiles: providers, volume, cost and the shared suppression list. */
 function Summary({ data }: { data: Overview }) {
+  const t = useT()
   const s = data.summary
   return (
     <Grid min={220} gap={16}>
-      <Tile label="Providers" value={`${s.connected} connected`} sub={s.byStatus.map((b) => `${b.count} ${statusWord[b.status]}`).join(' · ')} />
-      <Tile label="Sent this month, all providers" value={count(s.sentThisMonth)} sub={s.sentBy.map((b) => `${b.short} ${count(b.value)}`).join(' · ')} />
       <Tile
-        label={`Cost to date, ${monthName(s.monthStart, 'long')}`}
+        label={t(mo.tileProviders)}
+        value={t(mo.tileConnected, { count: s.connected })}
+        sub={s.byStatus.map((b) => t(mo.statusCount, { count: b.count, status: b.status })).join(' · ')}
+      />
+      <Tile label={t(mo.tileSent)} value={count(s.sentThisMonth)} sub={s.sentBy.map((b) => `${b.short} ${count(b.value)}`).join(' · ')} />
+      <Tile
+        label={t(mo.tileCost, { month: monthName(s.monthStart, 'long') })}
         value={money(s.costToDate)}
-        sub={s.costPer1000 !== undefined ? `${money(s.costPer1000)} per 1,000 blended` : 'no mail sent yet this month'}
+        sub={s.costPer1000 !== undefined ? t(mo.costBlended, { amount: money(s.costPer1000), thousand: count(1000) }) : t(mo.costNoMail)}
       />
       <Tile
-        label="Shared suppression list"
+        label={t(mo.tileSuppression)}
         value={count(s.suppressions)}
-        sub={s.syncedAt ? (s.inSync ? `synced to all providers ${clock(s.syncedAt)}` : `syncing · last complete ${clock(s.syncedAt)}`) : 'enforced before every send'}
+        sub={s.syncedAt ? (s.inSync ? t(mo.syncedAll, { time: clock(s.syncedAt) }) : t(mo.syncing, { time: clock(s.syncedAt) })) : t(mo.enforced)}
       />
     </Grid>
   )
@@ -177,13 +179,14 @@ function Summary({ data }: { data: Overview }) {
 
 /** Routing per stream: the split, its fallback and failover policy. */
 function RoutingSummary({ routes }: { routes: Schemas['ProviderStreamRoute'][] }) {
+  const t = useT()
   const { slug } = useWorkspace()
   return (
     <section className="card flex flex-col">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-5 py-3.5">
-        <h2 className="h2">Routing per stream</h2>
+        <h2 className="h2">{t(mo.routingTitle)}</h2>
         <Link to="/w/$workspace/providers/routing" params={{ workspace: slug }} className="text-[13px] font-medium">
-          Edit rules, failover and route tester
+          {t(mo.routingEdit)}
         </Link>
       </div>
       <Grid min={300} gap={0}>
@@ -196,15 +199,17 @@ function RoutingSummary({ routes }: { routes: Schemas['ProviderStreamRoute'][] }
 }
 
 function StreamRoute({ r, last }: { r: Schemas['ProviderStreamRoute']; last: boolean }) {
+  const t = useT()
   const single = r.splits.length === 1
   const legend = [
-    ...r.splits.map((s) => ({ color: providerColor[s.color], text: single ? `${s.short} primary` : `${s.short} ${s.percent}%` })),
-    ...(r.fallback ? [{ color: providerColor[r.fallback.color], text: `${r.fallback.short} fallback` }] : []),
+    ...r.splits.map((s) => ({ color: providerColor[s.color], text: single ? t(mo.legendPrimary, { provider: s.short }) : t(mo.legendShare, { provider: s.short, share: pct(s.percent, 0) }) })),
+    ...(r.fallback ? [{ color: providerColor[r.fallback.color], text: t(mo.legendFallback, { provider: r.fallback.short }) }] : []),
   ]
-  const label = `${streamName[r.stream as Stream]}: ${legend.map((l) => l.text).join(', ')}`
+  const stream = streamName[r.stream as Stream]
+  const label = t(mo.routeLabel, { stream, legend: legend.map((l) => l.text).join(', ') })
   return (
     <div className={cn('flex flex-col gap-2 px-5 py-4', !last && 'border-r border-line-2')}>
-      <span className="font-semibold">{streamName[r.stream as Stream]}</span>
+      <span className="font-semibold">{stream}</span>
       <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-[5px]" role="img" aria-label={label}>
         {r.splits.length ? (
           r.splits.map((s) => <div key={s.providerId} style={{ width: `${s.percent}%`, background: providerColor[s.color] }} />)
@@ -221,11 +226,11 @@ function StreamRoute({ r, last }: { r: Schemas['ProviderStreamRoute']; last: boo
             </span>
           ))
         ) : (
-          <span>No provider yet</span>
+          <span>{t(mo.noProviderYet)}</span>
         )}
       </div>
       <span className="k">
-        {r.conditions ? `${r.conditions} condition${r.conditions === 1 ? '' : 's'} · ` : ''}failover: {failoverText[r.failover]}
+        {r.conditions ? t(mo.routeConditionsFailover, { count: r.conditions, policy: failoverText[r.failover] }) : t(mo.routeFailover, { policy: failoverText[r.failover] })}
       </span>
     </div>
   )
@@ -233,6 +238,7 @@ function StreamRoute({ r, last }: { r: Schemas['ProviderStreamRoute']; last: boo
 
 /** Empty state: nothing connected yet. */
 function NoProviders() {
+  const t = useT()
   const { slug } = useWorkspace()
   const reason = usePermissionReason('providers:manage')
   return (
@@ -243,32 +249,30 @@ function NoProviders() {
         <circle cx="16" cy="17.5" r="2" fill="#9AA3B2" />
         <circle cx="16" cy="38.5" r="2" fill="#9AA3B2" />
       </svg>
-      <h2 className="m-0 text-[18px] font-bold">No sending providers yet</h2>
-      <span className="max-w-[520px] text-ink-2">
-        Connect Amazon SES, Postmark, Mailgun, SendGrid, Resend, SparkPost, Mailjet, Brevo, Azure Communication Services, a Postal server or any SMTP server. Each one takes about 10 minutes,
-        and you can run several at once.
-      </span>
+      <h2 className="m-0 text-[18px] font-bold">{t(mo.emptyTitle)}</h2>
+      <span className="max-w-[520px] text-ink-2">{t(mo.emptyBody)}</span>
       <div className="mt-1.5 flex flex-wrap justify-center gap-2.5">
         {reason ? (
           <Button variant="primary" className="min-h-10" disabledReason={reason}>
-            Connect a provider
+            {t(mo.connectProvider)}
           </Button>
         ) : (
           <ButtonLink variant="primary" className="min-h-10" to="/w/$workspace/providers/connect" params={{ workspace: slug }}>
-            Connect a provider
+            {t(mo.connectProvider)}
           </ButtonLink>
         )}
         <ButtonLink to="/w/$workspace/providers/adapters" params={{ workspace: slug }}>
-          Browse adapters
+          {t(mo.browseAdapters)}
         </ButtonLink>
       </div>
-      <span className="k">Routing, failover and warm-up become available once a provider is connected.</span>
+      <span className="k">{t(mo.emptyFoot)}</span>
     </section>
   )
 }
 
 /** Loading: skeletons shaped like two provider rows. */
 function ProvidersSkeleton() {
+  const t = useT()
   const row = (lines: number[], bars: number, chips: number[], last = false) => (
     <div className={cn('flex flex-wrap gap-5 px-[22px] py-5', !last && 'border-b border-line-2')}>
       <div className="flex flex-[1_1_260px] flex-col gap-2.5">
@@ -293,7 +297,7 @@ function ProvidersSkeleton() {
     </div>
   )
   return (
-    <Loading label="Fetching health from your sending providers">
+    <Loading label={t(mo.loading)}>
       <div className="card flex flex-col">
         {row([130, 200, 240, 180], 4, [120, 150, 110, 130, 90])}
         {row([100, 220, 180], 3, [140, 100, 120], true)}

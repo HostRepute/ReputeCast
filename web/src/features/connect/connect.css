@@ -210,6 +210,9 @@
     padding: 12px;
   }
   .cn-steps {
+    /* Holds the steps' visually hidden "Done:" (.vh, absolutely
+       positioned), so the page itself never scrolls sideways. */
+    position: relative;
     max-width: none;
     flex: 1 1 100%;
     flex-direction: row;
