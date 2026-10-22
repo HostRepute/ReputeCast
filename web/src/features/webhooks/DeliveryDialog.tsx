@@ -6,13 +6,17 @@ import { Dialog } from '@/components/ui/Dialog'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
+import { t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { monthDayTimeSeconds } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { copyText } from '../access/parts'
+import { m } from './messages'
 import { attemptsText, endpointText, eventText, responseBadge } from './parts'
 
 /** One delivery: what was sent (the signed JSON body) and what the endpoint answered. */
 export function DeliveryDialog({ id, onClose }: { id: string; onClose: () => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/webhooks/deliveries/{deliveryId}', { params: { path: { workspace: slug, deliveryId: id } } })
   const d = q.data?.delivery
@@ -22,30 +26,30 @@ export function DeliveryDialog({ id, onClose }: { id: string; onClose: () => voi
     <Dialog
       open
       onOpenChange={(o) => !o && onClose()}
-      eyebrow={<span className="k">Dialog · delivery payload</span>}
-      title={d ? eventText(d) : 'Delivery'}
+      eyebrow={<span className="k">{t(m.deliveryEyebrow)}</span>}
+      title={d ? eventText(d) : t(m.deliveryTitle)}
       description={d ? <span className="text-[13.5px]">{endpointText(d)}</span> : undefined}
       size="lg"
       footer={
         <>
           <Button
             className="mr-auto"
-            disabledReason={q.data ? undefined : 'Loading…'}
+            disabledReason={q.data ? undefined : t(common.loading)}
             onClick={async () => {
               const ok = await copyText(body)
-              toast({ kind: ok ? 'success' : 'error', title: ok ? 'Payload copied' : 'Copy failed' })
+              toast({ kind: ok ? 'success' : 'error', title: ok ? tt(m.payloadCopied) : tt(m.copyFailed) })
             }}
           >
-            Copy JSON
+            {t(m.copyJson)}
           </Button>
           <Button variant="primary" onClick={onClose}>
-            Close
+            {t(common.close)}
           </Button>
         </>
       }
     >
       {q.isError ? (
-        <Note tone="bad" label="Not loaded">
+        <Note tone="bad" label={t(m.notLoaded)}>
           {errorMessage(q.error)}
         </Note>
       ) : !q.data || !d ? (
@@ -58,17 +62,17 @@ export function DeliveryDialog({ id, onClose }: { id: string; onClose: () => voi
           <KeyValues
             className="text-[12.5px]"
             items={[
-              ['Created', monthDayTimeSeconds(d.createdAt)],
-              ['Response', resp ? <Badge tone={resp.tone}>{resp.label}</Badge> : <span className="k">Not attempted yet</span>],
-              ['Attempts', attemptsText(d)],
-              ['Delivery ID', <span className="mono">{d.id}</span>],
+              [t(m.kvCreated), monthDayTimeSeconds(d.createdAt)],
+              [t(m.kvResponse), resp ? <Badge tone={resp.tone}>{resp.label}</Badge> : <span className="k">{t(m.notAttempted)}</span>],
+              [t(m.kvAttempts), attemptsText(d)],
+              [t(m.kvDeliveryId), <span className="mono">{d.id}</span>],
             ]}
           />
-          <span className="text-[12px] font-semibold text-ink-2">Payload</span>
+          <span className="text-[12px] font-semibold text-ink-2">{t(m.payloadLabel)}</span>
           <pre className="pre max-h-[320px]">{body}</pre>
           {q.data.response ? (
             <>
-              <span className="text-[12px] font-semibold text-ink-2">Response body</span>
+              <span className="text-[12px] font-semibold text-ink-2">{t(m.responseBody)}</span>
               <pre className="pre max-h-[160px]">{q.data.response}</pre>
             </>
           ) : null}

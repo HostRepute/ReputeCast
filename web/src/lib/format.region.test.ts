@@ -18,6 +18,7 @@ import {
   rate,
   setDisplayTimeZone,
   shortDate,
+  timeOfDay,
   trimPct,
   until,
   usDate,
@@ -68,6 +69,8 @@ describe('format in other region formats and languages', () => {
     await setPreferences({ locale: 'en', regionFormat: 'en-US' })
     expect(weekdayDate('2026-10-13T13:00:00Z')).toBe('Tue, Oct 13, 2026')
     expect(clock('2026-10-13T13:00:00Z')).toBe('9:00 AM')
+    expect(timeOfDay('22:00')).toBe('10:00 PM')
+    expect(timeOfDay('07:30')).toBe('7:30 AM')
     expect(shortDate('2026-10-13T13:00:00Z')).toBe('Tue, Oct 13')
     expect(weekStartsOn()).toBe(0)
     // Words stay English: they follow the language, not the region.
@@ -77,6 +80,7 @@ describe('format in other region formats and languages', () => {
   it('lets the clock and the week differ from the region', async () => {
     await setPreferences({ locale: 'en', regionFormat: 'standard', hourCycle: 'h12', weekStart: 'sunday' })
     expect(clock('2026-10-14T01:05:00Z')).toBe('9:05 PM')
+    expect(timeOfDay('22:00')).toBe('10:00 PM')
     expect(weekStartsOn()).toBe(0)
     expect(count(48213)).toBe('48,213')
   })

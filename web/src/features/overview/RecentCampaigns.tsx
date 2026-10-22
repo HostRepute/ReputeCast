@@ -7,32 +7,35 @@ import { useWorkspace } from '@/lib/session'
 import { RouteBadges } from '../campaigns/RouteBadges'
 import { CampaignStatusBadge } from '../campaigns/StatusBadge'
 import { ChannelTag } from '@/features/channels/ChannelFilter'
+import { useT } from '@/i18n'
+import { m } from './messages'
 
 /** "Recent campaigns": the latest sends, as the campaigns list shows them (Main board). */
 export function RecentCampaigns({ items }: { items: Schemas['CampaignListItem'][] }) {
+  const t = useT()
   const { slug } = useWorkspace()
   return (
     <section className="card flex flex-col" aria-labelledby="ov-recent-h">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-2 px-5 py-4">
         <h2 className="h2" id="ov-recent-h">
-          Recent campaigns
+          {t(m.recentCampaigns)}
         </h2>
         <Link to="/w/$workspace/campaigns" params={{ workspace: slug }} className="text-[13px] font-medium">
-          All campaigns
+          {t(m.allCampaigns)}
         </Link>
       </div>
       {items.length ? (
         <Table phoneWrap>
           <thead>
             <tr>
-              <Th>Campaign</Th>
-              <Th>Sent</Th>
-              <Th>Recipients</Th>
-              <Th>Delivered</Th>
-              <Th>Human opens</Th>
-              <Th>Clicks</Th>
-              <Th>Sending providers</Th>
-              <Th>Status</Th>
+              <Th>{t(m.colCampaign)}</Th>
+              <Th>{t(m.colSent)}</Th>
+              <Th>{t(m.colRecipients)}</Th>
+              <Th>{t(m.colDelivered)}</Th>
+              <Th>{t(m.colHumanOpens)}</Th>
+              <Th>{t(m.colClicks)}</Th>
+              <Th>{t(m.colProviders)}</Th>
+              <Th>{t(m.colStatus)}</Th>
             </tr>
           </thead>
           <tbody>
@@ -53,7 +56,7 @@ export function RecentCampaigns({ items }: { items: Schemas['CampaignListItem'][
                     </Link>
                     <div className="k">
                       {c.channel === 'sms' ? <ChannelTag channel="sms" /> : null}
-                      {c.audience || (c.origin ? `imported from ${c.origin}` : '—')}
+                      {c.audience || (c.origin ? t(m.importedFrom, { origin: c.origin }) : '—')}
                     </div>
                   </Td>
                   <Td>{c.startedAt ? shortDate(c.startedAt) : '—'}</Td>
@@ -61,15 +64,17 @@ export function RecentCampaigns({ items }: { items: Schemas['CampaignListItem'][
                   <Td num>{c.delivered != null ? pct(c.delivered) : '—'}</Td>
                   <Td num>{c.humanOpens != null ? pct(c.humanOpens) : '—'}</Td>
                   <Td num>{c.clicks != null ? pct(c.clicks) : '—'}</Td>
-                  <Td>{c.origin ? <span className="k">{c.origin[0]!.toUpperCase() + c.origin.slice(1)} · imported</span> : <RouteBadges routes={c.routes} sent />}</Td>
-                  <Td>{c.status === 'sent' ? <Badge tone="ok">Sent</Badge> : <CampaignStatusBadge status={c.status} blocked={c.blocked} />}</Td>
+                  <Td>
+                    {c.origin ? <span className="k">{t(m.imported, { origin: c.origin[0]!.toUpperCase() + c.origin.slice(1) })}</span> : <RouteBadges routes={c.routes} sent />}
+                  </Td>
+                  <Td>{c.status === 'sent' ? <Badge tone="ok">{t(m.sent)}</Badge> : <CampaignStatusBadge status={c.status} blocked={c.blocked} />}</Td>
                 </tr>
               )
             })}
           </tbody>
         </Table>
       ) : (
-        <p className="k m-0 px-5 py-4">Campaigns appear here once they go out, with their delivery, human opens and clicks.</p>
+        <p className="k m-0 px-5 py-4">{t(m.recentEmpty)}</p>
       )}
     </section>
   )

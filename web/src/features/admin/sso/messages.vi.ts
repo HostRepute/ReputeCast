@@ -1,0 +1,78 @@
+import { translate } from '@/i18n'
+import { m } from './messages'
+
+export default translate(m, {
+  listTitle: 'Nhà cung cấp SSO',
+  listCaption: 'Cấu hình ở cấp hệ thống · có cấu hình sẵn cho Google Workspace, Microsoft Entra ID, Okta, Keycloak, Authentik và OIDC tổng quát',
+  addProvider: 'Thêm nhà cung cấp SSO',
+  listLoadFailed: 'Không tải được nhà cung cấp SSO',
+  listLoadFailedBody: 'Đăng nhập vẫn hoạt động với các nhà cung cấp đã lưu.',
+  listLoading: 'Đang tải nhà cung cấp SSO',
+  emptyTitle: 'Chưa có nhà cung cấp SSO nào',
+  emptyBody:
+    'Kết nối nhà cung cấp danh tính của tổ chức bạn qua OpenID Connect: mọi người đăng nhập bằng nhà cung cấp đó, tài khoản có thể được tạo tự động và nhóm có thể được ánh xạ sang vai trò.',
+
+  cardAnyDomain: 'mọi tên miền',
+  cardState: '{state, select, enabledOn {đã bật ngày {date}} enabled {đã bật} draft {đang thiết lập} other {đã tắt}}',
+  cardIssuer: 'Nhà phát hành',
+  cardDomains: 'Tên miền được phép',
+  cardAnyDomainValue: 'Mọi tên miền',
+  cardJit: 'JIT',
+  cardJitOn: 'Bật · {workspace} · {role}',
+  cardJitOff: 'Tắt · chỉ tài khoản đã có mới đăng nhập được',
+  cardGroupMapping: 'Ánh xạ nhóm',
+  cardMappings: '{count, plural, =0 {Chưa có} other {# ánh xạ}}',
+  cardEnforced: 'Áp dụng bắt buộc',
+  cardEnforcedYes: 'Có · tắt mật khẩu cho {domains}{count, plural, =0 {} other {, trừ Chủ sở hữu có tài khoản khẩn cấp {names}}}',
+  cardEnforcedNo: 'Không · đăng nhập bằng mật khẩu vẫn bật',
+  cardTwoFactor: 'Xác thực hai lớp',
+  cardDiscovery: 'Discovery',
+  cardDiscoveryFailed: 'Thất bại · mở phần thiết lập để sửa nhà phát hành',
+  testSignIn: 'Đăng nhập thử',
+  testStartFailed: 'Không bắt đầu được đăng nhập thử',
+  continueSetup: 'Tiếp tục thiết lập',
+  enable: 'Bật',
+  enabledToast: 'Đã bật {name}',
+  enabledDetail: 'nút của nó đã hiện trên trang đăng nhập',
+  enableFailed: 'Không bật được {name}',
+  disable: 'Tắt',
+  disableBadge: 'Tắt nhà cung cấp SSO',
+  disableTitle: 'Tắt {name}?',
+  disableBody:
+    'Nút của nó sẽ rời khỏi trang đăng nhập, và {count} người đang đăng nhập bằng nó sẽ không đăng nhập được cho đến khi nó được bật lại{enforced, select, yes {; chế độ bắt buộc cho {domains} kết thúc và đăng nhập bằng mật khẩu hoạt động trở lại ở đó} other {}}. Cài đặt, ánh xạ và danh tính đã liên kết được giữ lại.',
+  disabledToast: 'Đã tắt {name}',
+  deleteBadge: 'Xóa nhà cung cấp SSO',
+  deleteTitle: 'Xóa {name}?',
+  deleteBody: 'Xóa cài đặt, client secret và {count} danh tính đã liên kết. Tài khoản vẫn được giữ; mọi người sẽ đăng nhập bằng cách khác.',
+  deleteConfirm: 'Xóa nhà cung cấp',
+  deleteTyped: 'Nhập {name} để xác nhận',
+  deletedToast: 'Đã xóa {name}',
+
+  groupMappingUnavailable:
+    '<b>Không dùng được ánh xạ nhóm với {name}.</b> {google, select, yes {Google không gửi claim groups qua OIDC.} other {Nhà cung cấp danh tính này không gửi claim groups.}} Hãy ánh xạ người dùng theo tên miền email (vai trò mặc định của JIT) hoặc gán vai trò cho từng người trong trang Nhóm.',
+
+  enforceEyebrow: 'Hộp thoại · bật chế độ bắt buộc theo tên miền',
+  enforceTitle: 'Bắt buộc đăng nhập bằng {provider} cho {domains}?',
+  enforceBody: 'Đăng nhập bằng mật khẩu sẽ ngừng hoạt động với các tài khoản {domains} từ lần đăng nhập tiếp theo. Khóa truy cập và đăng nhập bằng mạng xã hội cho tên miền này cũng bị tắt.',
+  enforceLoading: 'Đang tải những người bị ảnh hưởng…',
+  enforceConflictReason: '{provider} đã bắt buộc tên miền này',
+  enforcedToast: 'Đã bắt buộc {provider} cho {domains}',
+  enforcedDetail: 'Chủ sở hữu có tài khoản khẩn cấp vẫn giữ mật khẩu',
+  enforceConfirm: 'Bật chế độ bắt buộc',
+  enforceTable: 'Ai đăng nhập bằng cách nào',
+  colMember: 'Thành viên',
+  colToday: 'Hiện tại',
+  colAfter: 'Sau khi bật',
+  enforceNobody: 'Chưa ai có tài khoản ở {domains}. Người đăng nhập sau này sẽ được chuyển thẳng đến {provider}.',
+  breakGlassLabel: 'Khẩn cấp',
+  breakGlassKeeps:
+    'Vẫn giữ quyền truy cập bằng mật khẩu + xác thực hai lớp, kể cả khi bật chế độ bắt buộc: {owners}. Các lần đăng nhập bằng mật khẩu của họ được ghi là đăng nhập khẩn cấp.',
+  breakGlassOwner: '<b>{name}</b> (Chủ sở hữu, {workspace})',
+  noBreakGlassLabel: 'Không có tài khoản khẩn cấp',
+  noBreakGlass:
+    'Không có Chủ sở hữu nào ở {domains} giữ lối đăng nhập bằng mật khẩu. Nếu {provider} gặp sự cố, không ai ở {domains} đăng nhập được; hãy nhờ một quản trị viên hệ thống ở tên miền khác giữ quyền truy cập.',
+  unlinkedLabel: '{count} thành viên',
+  unlinkedBody:
+    '{names} hiện đăng nhập bằng mật khẩu và chưa liên kết tài khoản {provider} nào. {count, plural, =1 {Người này sẽ được yêu cầu} other {Mỗi người sẽ được yêu cầu}} tiếp tục với {short} ở lần đăng nhập tiếp theo; vai trò và lịch sử vẫn được giữ nguyên.',
+  enforceConflict: '{provider} đã bắt buộc một trong các tên miền này. Hãy tắt ở đó trước.',
+})

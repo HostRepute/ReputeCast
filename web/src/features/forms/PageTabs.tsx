@@ -15,10 +15,16 @@ import { count, longDate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { PageCopyView, PageLanguageSection, usePageCopy, type PageGroup } from '@/features/page-languages/PageCopyView'
 import { copyText, FormsTabs, hostPath, throwIfForbidden, useInvalidateForms, usePublicPages, type PublicPages } from './common'
+import { t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { m as fb } from './builder.messages'
+import { m } from './pages.messages'
 
 type Pages = Schemas['Pages']
 type PageInput = Schemas['PublicPageInput']
 type PreviewPage = 'subscribe' | 'confirm' | 'preferences' | 'unsubscribe' | 'archive'
+/** The page a tab edits, as its messages name it. */
+type TabPage = 'subscribe' | 'preferences' | 'unsubscribe' | 'archive'
 
 /** What a tab edits: some pages' options, the hosted form, the preview contact. */
 interface Draft {
@@ -33,24 +39,25 @@ type Pick = (d: Draft) => PageInput
  * Loads the public page settings and hands a tab its editor once they're
  * there; the editor starts over after each save (new updatedAt).
  */
-function PageTab({ name, children }: { name: string; children: (settings: PublicPages) => ReactNode }) {
+function PageTab({ name, children }: { name: TabPage; children: (settings: PublicPages) => ReactNode }) {
+  const t = useT()
   const settings = usePublicPages()
   throwIfForbidden(settings.error)
   if (settings.isError) {
     return (
-      <Page title="Forms & public pages" filters={<FormsTabs />}>
-        <ErrorPanel title={`Couldn't load the ${name}`} actions={<Button onClick={() => settings.refetch()}>Retry</Button>}>
-          {errorMessage(settings.error)} Nothing was changed; the page keeps working for subscribers.
+      <Page title={t(fb.pageTitle)} filters={<FormsTabs />}>
+        <ErrorPanel title={t(m.loadFailed, { page: name })} actions={<Button onClick={() => settings.refetch()}>{t(common.retry)}</Button>}>
+          {errorMessage(settings.error)} {t(m.keepsWorking)}
         </ErrorPanel>
       </Page>
     )
   }
   if (settings.isPending) {
     return (
-      <Page title="Forms & public pages" filters={<FormsTabs />} contentClassName="fb-main">
+      <Page title={t(fb.pageTitle)} filters={<FormsTabs />} contentClassName="fb-main">
         <div className="fb-cols" aria-busy="true">
           <span className="vh" role="status">
-            Loading the {name}
+            {t(m.loading, { page: name })}
           </span>
           <aside className="fb-left">
             {[3, 4, 2].map((n, i) => (
@@ -117,7 +124,7 @@ function PageEditor(props: EditorProps) {
         extraBar={extraBar}
         preview={(device) => (
           <div className={cn('fb-stage wide', device === 'mobile' && 'phone')}>
-            <PagePreview page={preview} draft={body} form={form} label={previewLabel} language={language} />
+            <PagePreview page={preview} draft={body} form={form} language={language} />
           </div>
         )}
       />
@@ -127,6 +134,7 @@ function PageEditor(props: EditorProps) {
 }
 
 function BaseEditor({ settings, pick, preview, previewLabel, previewURL, extraBar, options, form }: EditorProps) {
+  const t = useT()
   const { slug } = useWorkspace()
   const invalidate = useInvalidateForms()
   const reason = usePermissionReason('forms:edit')
@@ -140,23 +148,23 @@ function BaseEditor({ settings, pick, preview, previewLabel, previewURL, extraBa
   const submit = async () => {
     try {
       await save.mutateAsync({ params: { path: { workspace: slug } }, body })
-      toast({ kind: 'success', title: 'Saved', detail: 'Subscribers see the change on their next visit.' })
+      toast({ kind: 'success', title: tt(m.saved), detail: tt(m.savedBody) })
       await invalidate()
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't save the page", detail: errorMessage(e), retry: () => void submit().catch(() => undefined) })
+      toast({ kind: 'error', title: tt(m.saveFailed), detail: errorMessage(e), retry: () => void submit().catch(() => undefined) })
       throw e
     }
   }
   return (
     <Page
-      title="Forms & public pages"
+      title={t(fb.pageTitle)}
       filters={<FormsTabs />}
       actions={
         dirty ? (
           <>
-            <Button onClick={() => setDraft(initial)}>Discard</Button>
-            <Button variant="primary" onClick={() => void submit().catch(() => undefined)} loading={save.isPending} busyLabel="Saving…" disabledReason={reason}>
-              Save changes
+            <Button onClick={() => setDraft(initial)}>{t(fb.discard)}</Button>
+            <Button variant="primary" onClick={() => void submit().catch(() => undefined)} loading={save.isPending} busyLabel={t(m.saving)} disabledReason={reason}>
+              {t(common.saveChanges)}
             </Button>
           </>
         ) : null
@@ -164,31 +172,31 @@ function BaseEditor({ settings, pick, preview, previewLabel, previewURL, extraBa
       contentClassName="fb-main"
     >
       <div className="fb-cols">
-        <aside className="fb-left" aria-label="Page options">
+        <aside className="fb-left" aria-label={t(m.pageOptions)}>
           <PageLanguageSection />
           {options(draft, setDraft, readOnly)}
         </aside>
-        <section className="fb-center" aria-label="Live preview">
+        <section className="fb-center" aria-label={t(fb.livePreview)}>
           <div className="fb-bar">
-            <span className="k">Live preview · {previewURL ? hostPath(previewURL) : previewLabel}</span>
+            <span className="k">{t(fb.livePreviewWhere, { where: previewURL ? hostPath(previewURL) : previewLabel })}</span>
             <div className="ml-auto flex flex-wrap items-center gap-2.5">
               {extraBar}
-              <div className="fb-seg" role="group" aria-label="Preview size">
+              <div className="fb-seg" role="group" aria-label={t(fb.previewSize)}>
                 <button type="button" aria-pressed={device === 'desktop'} onClick={() => setDevice('desktop')}>
-                  Desktop
+                  {t(fb.desktop)}
                 </button>
                 <button type="button" aria-pressed={device === 'mobile'} onClick={() => setDevice('mobile')}>
-                  Mobile
+                  {t(fb.mobile)}
                 </button>
               </div>
             </div>
           </div>
           <div className={cn('fb-stage wide', device === 'mobile' && 'phone')}>
-            <PagePreview page={preview} draft={body} form={form} label={previewLabel} />
+            <PagePreview page={preview} draft={body} form={form} />
           </div>
         </section>
       </div>
-      <UnsavedChangesGuard dirty={dirty && !readOnly} description="You changed this page's options since they were saved." saveLabel="Save and leave" onSave={submit} />
+      <UnsavedChangesGuard dirty={dirty && !readOnly} description={t(m.unsaved)} saveLabel={t(m.saveLeave)} onSave={submit} />
     </Page>
   )
 }
@@ -197,7 +205,8 @@ function BaseEditor({ settings, pick, preview, previewLabel, previewURL, extraBa
  * The page as the server renders it, inert, in a frame sized to its content:
  * in a language once its copy is Live there, else as its visitors see it.
  */
-function PagePreview({ page, draft, form, label, language }: { page: PreviewPage; draft: PageInput; form?: string; label: string; language?: string }) {
+function PagePreview({ page, draft, form, language }: { page: PreviewPage; draft: PageInput; form?: string; language?: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const json = JSON.stringify(draft)
   const [settled, setSettled] = useState(json)
@@ -226,7 +235,7 @@ function PagePreview({ page, draft, form, label, language }: { page: PreviewPage
   }
   if (q.isError) {
     return (
-      <ErrorPanel title="Couldn't show the preview" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
+      <ErrorPanel title={t(m.previewFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
         {errorMessage(q.error)}
       </ErrorPanel>
     )
@@ -236,31 +245,32 @@ function PagePreview({ page, draft, form, label, language }: { page: PreviewPage
   }
   return (
     <div className="fb-frame">
-      <iframe ref={frame} title={`Preview of the ${label}`} srcDoc={q.data.html} sandbox="allow-same-origin" style={{ height }} onLoad={onLoad} />
+      <iframe ref={frame} title={t(m.previewOf, { page })} srcDoc={q.data.html} sandbox="allow-same-origin" style={{ height }} onLoad={onLoad} />
     </div>
   )
 }
 
 /** "Page address": the page's URL with copy and open. */
 function AddressSection({ title, url, note }: { title: string; url: string; note?: ReactNode }) {
+  const t = useT()
   return (
     <div className="fb-sec">
       <span className="fb-title">{title}</span>
       {note ? <span className="k">{note}</span> : null}
-      <input className="fb-in mono" aria-label={`${title} URL`} value={url} readOnly />
+      <input className="fb-in mono" aria-label={t(m.urlOf, { title })} value={url} readOnly />
       <div className="flex gap-1.5">
         <Button
           size="sm"
           onClick={async () =>
             (await copyText(url))
-              ? toast({ kind: 'success', title: 'Link copied', detail: hostPath(url) })
-              : toast({ kind: 'error', title: "Couldn't copy the link", detail: 'Select it in the field and copy it yourself.' })
+              ? toast({ kind: 'success', title: tt(fb.linkCopied), detail: hostPath(url) })
+              : toast({ kind: 'error', title: tt(fb.copyFailed), detail: tt(fb.copyYourself) })
           }
         >
-          Copy link
+          {t(fb.copyLink)}
         </Button>
         <a className="btn sm" href={url} target="_blank" rel="noreferrer">
-          Open
+          {t(fb.open)}
         </a>
       </div>
     </div>
@@ -269,18 +279,19 @@ function AddressSection({ title, url, note }: { title: string; url: string; note
 
 /** "Preview as": whose page the previews show. */
 function PreviewAsSection({ draft, set, readOnly }: { draft: Draft; set: (fn: (d: Draft) => Draft) => void; readOnly: boolean }) {
+  const t = useT()
   return (
     <div className="fb-sec last">
-      <span className="fb-title">Preview as</span>
+      <span className="fb-title">{t(m.previewAs)}</span>
       <input
         className="fb-in mono"
-        aria-label="Preview as subscriber"
-        placeholder="The latest confirmed subscriber"
+        aria-label={t(m.previewAsLabel)}
+        placeholder={t(m.previewAsPlaceholder)}
         value={draft.pages.previewEmail}
         disabled={readOnly}
         onChange={(e) => set((d) => ({ ...d, pages: { ...d.pages, previewEmail: e.target.value } }))}
       />
-      <span className="k">The preview shows this subscriber's lists and settings. Nothing changes for them.</span>
+      <span className="k">{t(m.previewAsNote)}</span>
     </div>
   )
 }
@@ -328,9 +339,10 @@ function OfferedLists({ formId, lists, children }: { formId: string; lists: Sche
 }
 
 export function SubscribePageTab() {
+  const t = useT()
   const [shown, setShown] = useState<'subscribe' | 'confirm'>('subscribe')
   return (
-    <PageTab name="subscribe page">
+    <PageTab name="subscribe">
       {(settings) => {
         const hosted = (d: Draft) => d.hostedFormId
         return (
@@ -340,15 +352,15 @@ export function SubscribePageTab() {
             group="subscribe"
             pick={(d) => ({ subscribe: d.pages.subscribe, confirm: d.pages.confirm, hostedFormId: hosted(d) })}
             preview={shown}
-            previewLabel={shown === 'subscribe' ? 'subscribe page' : 'confirmation page'}
+            previewLabel={t(m.pageName, { page: shown })}
             previewURL={shown === 'subscribe' ? settings.urls.subscribe : ''}
             extraBar={
-              <div className="fb-seg" role="group" aria-label="Page">
+              <div className="fb-seg" role="group" aria-label={t(m.page)}>
                 <button type="button" aria-pressed={shown === 'subscribe'} onClick={() => setShown('subscribe')}>
-                  Subscribe
+                  {t(m.subscribe)}
                 </button>
                 <button type="button" aria-pressed={shown === 'confirm'} onClick={() => setShown('confirm')}>
-                  Confirmation
+                  {t(m.confirmation)}
                 </button>
               </div>
             }
@@ -359,32 +371,32 @@ export function SubscribePageTab() {
               const setConf = (patch: Partial<typeof c>) => set((x) => ({ ...x, pages: { ...x.pages, confirm: { ...x.pages.confirm, ...patch } } }))
               return (
                 <>
-                  <AddressSection title="Page address" url={settings.urls.subscribe} />
+                  <AddressSection title={t(m.pageAddress)} url={settings.urls.subscribe} />
                   <div className="fb-sec">
-                    <span className="k">Form</span>
-                    <select aria-label="Form on the subscribe page" className="fb-in" value={d.hostedFormId} disabled={readOnly} onChange={(e) => set((x) => ({ ...x, hostedFormId: e.target.value }))}>
-                      <option value="">Built-in form · email, first name, public lists</option>
+                    <span className="k">{t(m.form)}</span>
+                    <select aria-label={t(m.formOnPage)} className="fb-in" value={d.hostedFormId} disabled={readOnly} onChange={(e) => set((x) => ({ ...x, hostedFormId: e.target.value }))}>
+                      <option value="">{t(m.builtinForm)}</option>
                       {settings.forms.map((f) => (
                         <option key={f.id} value={f.id}>
-                          {f.name}
-                          {f.status === 'draft' ? ' · draft' : ''}
+                          {f.status === 'draft' ? t(m.draftForm, { name: f.name }) : f.name}
                         </option>
                       ))}
                     </select>
-                    <span className="k">The page shows this form's fields, lists and consent text. The copy below replaces its heading.</span>
+                    <span className="k">{t(m.formNote)}</span>
                   </div>
                   <div className="fb-sec">
-                    <span className="k">Copy</span>
+                    <span className="k">{t(m.copy)}</span>
                     <label className="lbl">
-                      Heading
+                      {t(m.heading)}
+                      {/* The placeholder is the page's own default heading, in the page's language. */}
                       <input className="fb-in" value={p.heading} maxLength={120} placeholder={`The ${settings.branding.publisherName} newsletter`} disabled={readOnly} onChange={(e) => setSub({ heading: e.target.value })} />
                     </label>
                     <label className="lbl">
-                      Description
+                      {t(m.description)}
                       <textarea className="fb-in" value={p.description} maxLength={600} disabled={readOnly} onChange={(e) => setSub({ description: e.target.value })} />
                     </label>
                     <label className="lbl">
-                      Under the button
+                      {t(m.underButton)}
                       <textarea className="fb-in" value={p.footnote} maxLength={300} disabled={readOnly} onChange={(e) => setSub({ footnote: e.target.value })} />
                     </label>
                   </div>
@@ -392,28 +404,34 @@ export function SubscribePageTab() {
                     {(offered) => (
                       <>
                         <div className="fb-sec">
-                          <span className="k">Lists · the line under each</span>
-                          <ListLines lists={offered} values={p.listText} readOnly={readOnly} onChange={(listText) => setSub({ listText })} hint="{subscribers} shows the list's size, like 31,988." />
+                          <span className="k">{t(m.listLines)}</span>
+                          <ListLines
+                            lists={offered}
+                            values={p.listText}
+                            readOnly={readOnly}
+                            onChange={(listText) => setSub({ listText })}
+                            hint={t(m.subscribersHint, { example: count(31_988) })}
+                          />
                         </div>
                         <div className="fb-sec">
-                          <span className="k">After the confirmation click · what each list brings</span>
-                          <ListLines lists={offered} values={c.listText} readOnly={readOnly} onChange={(listText) => setConf({ listText })} hint="The next scheduled issue is added after it." />
+                          <span className="k">{t(m.afterClick)}</span>
+                          <ListLines lists={offered} values={c.listText} readOnly={readOnly} onChange={(listText) => setConf({ listText })} hint={t(m.nextIssueHint)} />
                         </div>
                       </>
                     )}
                   </OfferedLists>
                   <div className="fb-sec">
-                    <span className="k">Confirmation page</span>
+                    <span className="k">{t(m.confirmationPage)}</span>
                     <label className="fb-check start">
                       <input type="checkbox" checked={c.inboxTip} disabled={readOnly} onChange={(e) => setConf({ inboxTip: e.target.checked })} />
-                      <span>Ask new subscribers to add {settings.senderEmail || 'your sender'} to their contacts</span>
+                      <span>{t(m.inboxTip, { named: settings.senderEmail ? 'yes' : 'no', sender: settings.senderEmail })}</span>
                     </label>
                   </div>
                   <div className="fb-sec last">
-                    <span className="k">Search engines</span>
+                    <span className="k">{t(m.searchEngines)}</span>
                     <label className="fb-check">
                       <input type="checkbox" checked={p.index} disabled={readOnly} onChange={(e) => setSub({ index: e.target.checked })} />
-                      Let search engines list the subscribe page
+                      {t(m.indexSubscribe)}
                     </label>
                   </div>
                 </>
@@ -427,8 +445,9 @@ export function SubscribePageTab() {
 }
 
 export function PreferencesTab() {
+  const t = useT()
   return (
-    <PageTab name="preference center">
+    <PageTab name="preferences">
       {(settings) => (
         <PageEditor
           key={settings.updatedAt}
@@ -436,7 +455,7 @@ export function PreferencesTab() {
           group="preferences"
           pick={(d) => ({ preferences: d.pages.preferences, previewEmail: d.pages.previewEmail })}
           preview="preferences"
-          previewLabel="preference center"
+          previewLabel={t(m.pageName, { page: 'preferences' })}
           previewURL={settings.urls.preferences}
           options={(d, set, readOnly) => {
             const p = d.pages.preferences
@@ -444,13 +463,9 @@ export function PreferencesTab() {
             const offered = (id: string, pub: boolean) => (p.lists.length ? p.lists.includes(id) : pub)
             return (
               <>
-                <AddressSection
-                  title="Page address"
-                  url={settings.urls.preferences}
-                  note="Every email links to each subscriber's own page. This address emails that link to whoever asks for it."
-                />
+                <AddressSection title={t(m.pageAddress)} url={settings.urls.preferences} note={t(m.prefsNote)} />
                 <div className="fb-sec">
-                  <span className="k">Lists offered</span>
+                  <span className="k">{t(m.listsOffered)}</span>
                   {settings.lists.map((l) => (
                     <label key={l.id} className="fb-check">
                       <input
@@ -465,25 +480,25 @@ export function PreferencesTab() {
                       {l.name}
                     </label>
                   ))}
-                  <span className="k">Subscribers always see the lists they're on.</span>
+                  <span className="k">{t(m.alwaysSee)}</span>
                 </div>
                 <div className="fb-sec">
-                  <span className="k">Lists · the line under each</span>
+                  <span className="k">{t(m.listLines)}</span>
                   <ListLines lists={settings.lists.filter((l) => offered(l.id, l.public))} values={p.listText} readOnly={readOnly} onChange={(listText) => setPrefs({ listText })} />
                 </div>
                 <div className="fb-sec">
-                  <span className="k">Choices</span>
+                  <span className="k">{t(m.choices)}</span>
                   <label className="fb-check">
                     <input type="checkbox" checked={p.frequency} disabled={readOnly} onChange={(e) => setPrefs({ frequency: e.target.checked })} />
-                    How often · every issue, weekly roundup, monthly best-of
+                    {t(m.howOften)}
                   </label>
                   <label className="fb-check">
                     <input type="checkbox" checked={p.pause} disabled={readOnly} onChange={(e) => setPrefs({ pause: e.target.checked })} />
-                    Need a break · pause 30 or 90 days
+                    {t(m.needBreak)}
                   </label>
                   <label className="fb-check">
                     <input type="checkbox" checked={p.firstName} disabled={readOnly} onChange={(e) => setPrefs({ firstName: e.target.checked })} />
-                    First name
+                    {t(m.firstName)}
                   </label>
                 </div>
                 <PreviewAsSection draft={d} set={set} readOnly={readOnly} />
@@ -497,10 +512,11 @@ export function PreferencesTab() {
 }
 
 export function UnsubscribeTab() {
+  const t = useT()
   const { slug } = useWorkspace()
   const stats = $api.useQuery('get', '/api/v1/workspaces/{workspace}/public-pages/unsubscribe/stats', { params: { path: { workspace: slug } } })
   return (
-    <PageTab name="unsubscribe page">
+    <PageTab name="unsubscribe">
       {(settings) => (
         <PageEditor
           key={settings.updatedAt}
@@ -508,7 +524,7 @@ export function UnsubscribeTab() {
           group="unsubscribe"
           pick={(d) => ({ unsubscribe: d.pages.unsubscribe, previewEmail: d.pages.previewEmail })}
           preview="unsubscribe"
-          previewLabel="unsubscribe page"
+          previewLabel={t(m.pageName, { page: 'unsubscribe' })}
           previewURL=""
           options={(d, set, readOnly) => {
             const p = d.pages.unsubscribe
@@ -517,60 +533,58 @@ export function UnsubscribeTab() {
             return (
               <>
                 <div className="fb-sec">
-                  <span className="k">Fewer emails instead</span>
+                  <span className="k">{t(m.fewerInstead)}</span>
                   <label className="fb-check">
                     <input type="checkbox" checked={p.fewer} disabled={readOnly} onChange={(e) => setUnsub({ fewer: e.target.checked })} />
-                    Offer the monthly best-of before they leave
+                    {t(m.offerBestOf)}
                   </label>
                   {p.fewer ? (
                     <>
                       <label className="lbl">
-                        Heading
+                        {t(m.heading)}
                         <input className="fb-in" value={p.fewerTitle} maxLength={120} disabled={readOnly} onChange={(e) => setUnsub({ fewerTitle: e.target.value })} />
                       </label>
                       <label className="lbl">
-                        Text
+                        {t(m.text)}
                         <textarea className="fb-in" value={p.fewerText} maxLength={400} disabled={readOnly} onChange={(e) => setUnsub({ fewerText: e.target.value })} />
                       </label>
                       <label className="lbl">
-                        Button
+                        {t(m.button)}
                         <input className="fb-in" value={p.fewerButton} maxLength={60} disabled={readOnly} onChange={(e) => setUnsub({ fewerButton: e.target.value })} />
                       </label>
                     </>
                   ) : null}
                 </div>
                 <div className="fb-sec">
-                  <span className="k">Reason</span>
+                  <span className="k">{t(m.reason)}</span>
                   <label className="fb-check">
                     <input type="checkbox" checked={p.reasons} disabled={readOnly} onChange={(e) => setUnsub({ reasons: e.target.checked })} />
-                    Ask why they're leaving · optional for them
+                    {t(m.askWhy)}
                   </label>
-                  <span className="k">Answers show in each campaign's report.</span>
+                  <span className="k">{t(m.answersShow)}</span>
                 </div>
                 <div className="fb-sec">
-                  <span className="k">One-click unsubscribe</span>
-                  <span className="text-[13px] text-ink-2">
-                    Every email carries List-Unsubscribe and List-Unsubscribe-Post (RFC 8058). Mail apps unsubscribe with one click, without this page, and it takes effect at once.
-                  </span>
+                  <span className="k">{t(m.oneClick)}</span>
+                  <span className="text-[13px] text-ink-2">{t(m.oneClickBody)}</span>
                 </div>
                 <div className="fb-sec">
-                  <span className="fb-title">Last {s?.days ?? 30} days</span>
+                  <span className="fb-title">{t(m.lastDays, { days: s?.days ?? 30 })}</span>
                   {s ? (
                     <div className="fb-nums">
                       <div>
-                        <div className="k">Left a list</div>
+                        <div className="k">{t(m.leftList)}</div>
                         <div className="n text-[18px]">{count(s.unsubscribed)}</div>
                       </div>
                       <div>
-                        <div className="k">With one click</div>
+                        <div className="k">{t(m.withOneClick)}</div>
                         <div className="n text-[18px]">{count(s.oneClick)}</div>
                       </div>
                       <div>
-                        <div className="k">Chose fewer emails</div>
+                        <div className="k">{t(m.choseFewer)}</div>
                         <div className="n text-[18px]">{count(s.choseFewer)}</div>
                       </div>
                       <div>
-                        <div className="k">Said why</div>
+                        <div className="k">{t(m.saidWhy)}</div>
                         <div className="n text-[18px]">{count(s.answered)}</div>
                       </div>
                     </div>
@@ -591,6 +605,7 @@ export function UnsubscribeTab() {
 }
 
 export function ArchiveTab() {
+  const t = useT()
   return (
     <PageTab name="archive">
       {(settings) => (
@@ -600,7 +615,7 @@ export function ArchiveTab() {
           group="archive"
           pick={(d) => ({ archive: d.pages.archive })}
           preview="archive"
-          previewLabel="archive"
+          previewLabel={t(m.pageName, { page: 'archive' })}
           previewURL={settings.urls.archive}
           options={(d, set, readOnly) => {
             const p = d.pages.archive
@@ -609,33 +624,33 @@ export function ArchiveTab() {
             return (
               <>
                 <div className="fb-sec">
-                  <span className="fb-title">Archive</span>
+                  <span className="fb-title">{t(m.archive)}</span>
                   <label className="fb-check">
                     <input type="checkbox" checked={p.enabled} disabled={readOnly} onChange={(e) => setArch({ enabled: e.target.checked })} />
-                    Publish past issues at
+                    {t(m.publishAt)}
                   </label>
-                  <input className="fb-in mono" aria-label="Archive URL" value={settings.urls.archive} readOnly />
+                  <input className="fb-in mono" aria-label={t(m.archiveUrl)} value={settings.urls.archive} readOnly />
                   <div className="flex flex-wrap gap-1.5">
                     <Button
                       size="sm"
                       onClick={async () =>
                         (await copyText(settings.urls.archive))
-                          ? toast({ kind: 'success', title: 'Link copied', detail: hostPath(settings.urls.archive) })
-                          : toast({ kind: 'error', title: "Couldn't copy the link" })
+                          ? toast({ kind: 'success', title: tt(fb.linkCopied), detail: hostPath(settings.urls.archive) })
+                          : toast({ kind: 'error', title: tt(fb.copyFailed) })
                       }
                     >
-                      Copy link
+                      {t(fb.copyLink)}
                     </Button>
                     <a className="btn sm" href={settings.urls.archive} target="_blank" rel="noreferrer">
-                      Open
+                      {t(fb.open)}
                     </a>
                     <a className="btn sm" href={settings.urls.feed} target="_blank" rel="noreferrer">
-                      RSS feed
+                      {t(m.rssFeed)}
                     </a>
                   </div>
                 </div>
                 <div className="fb-sec">
-                  <span className="k">Lists published</span>
+                  <span className="k">{t(m.listsPublished)}</span>
                   {settings.lists.map((l) => (
                     <label key={l.id} className="fb-check">
                       <input
@@ -650,17 +665,17 @@ export function ArchiveTab() {
                       {l.name}
                     </label>
                   ))}
-                  <span className="k">Sent campaigns of these lists appear once they finish sending.</span>
+                  <span className="k">{t(m.appearOnceSent)}</span>
                 </div>
                 <div className="fb-sec">
-                  <span className="k">Options</span>
+                  <span className="k">{t(m.options)}</span>
                   <label className="fb-check">
                     <input type="checkbox" checked={p.subscribeBox} disabled={readOnly} onChange={(e) => setArch({ subscribeBox: e.target.checked })} />
-                    Show "Get the next one in your inbox"
+                    {t(m.subscribeBox)}
                   </label>
                   <label className="fb-check">
                     <input type="checkbox" checked={p.index} disabled={readOnly} onChange={(e) => setArch({ index: e.target.checked })} />
-                    Let search engines list it · sitemap.xml
+                    {t(m.indexArchive)}
                   </label>
                 </div>
                 <ArchiveIssues readOnly={readOnly} lists={settings.lists} />
@@ -675,6 +690,7 @@ export function ArchiveTab() {
 
 /** The archive's issues: hide one, show it again, or change its title. */
 function ArchiveIssues({ readOnly, lists }: { readOnly: boolean; lists: Schemas['PublicPageList'][] }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const invalidate = useInvalidateForms()
   const [page, setPage] = useState(1)
@@ -703,26 +719,26 @@ function ArchiveIssues({ readOnly, lists }: { readOnly: boolean; lists: Schemas[
       })
       toast({
         kind: 'success',
-        title: it.hidden ? `"${it.title}" is back in the archive` : `"${it.title}" is hidden`,
-        detail: it.hidden ? undefined : 'It leaves the archive, the feed and the sitemap. The email itself is unchanged.',
+        title: it.hidden ? tt(m.backInArchive, { title: it.title }) : tt(m.hidden, { title: it.title }),
+        detail: it.hidden ? undefined : tt(m.hiddenBody),
         undo: () => void toggle({ ...it, hidden: !it.hidden }),
       })
       await invalidate()
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't change the issue", detail: errorMessage(e) })
+      toast({ kind: 'error', title: tt(m.issueFailed), detail: errorMessage(e) })
     }
   }
   const d = issues.data
   return (
     <div className="fb-sec last">
-      <span className="fb-title">Issues{d ? ` · ${count(d.published)} published` : ''}</span>
-      <input className="fb-in" type="search" aria-label="Search issues" placeholder="Search issues" value={q} onChange={(e) => setQ(e.target.value)} />
+      <span className="fb-title">{d ? t(m.issuesPublished, { count: count(d.published) }) : t(m.issues)}</span>
+      <input className="fb-in" type="search" aria-label={t(m.searchIssues)} placeholder={t(m.searchIssues)} value={q} onChange={(e) => setQ(e.target.value)} />
       {issues.isError ? (
         <span className="k">{errorMessage(issues.error)}</span>
       ) : !d ? (
         <Skeleton h={160} />
       ) : d.issues.length === 0 ? (
-        <span className="k">{search ? `No issue matches “${search}”.` : 'No issues yet. Sent campaigns of the published lists appear here.'}</span>
+        <span className="k">{search ? t(m.noMatch, { search }) : t(m.noIssues)}</span>
       ) : (
         <div className="flex flex-col">
           {d.issues.map((it) => (
@@ -731,31 +747,31 @@ function ArchiveIssues({ readOnly, lists }: { readOnly: boolean; lists: Schemas[
                 <a href={it.url} target="_blank" rel="noreferrer" className={cn('min-w-0 text-[13px] font-semibold text-ink no-underline', it.hidden && 'text-ink-3')}>
                   {it.title}
                 </a>
-                {it.hidden ? <Badge tone="neutral">Hidden</Badge> : null}
+                {it.hidden ? <Badge tone="neutral">{t(m.hiddenBadge)}</Badge> : null}
               </div>
               <span className="k">
                 {[it.listName, longDate(it.sentAt), it.label].filter(Boolean).join(' · ')}
               </span>
               <div className="flex gap-1.5">
-                <Button size="xs" onClick={() => void toggle(it)} disabledReason={readOnly ? 'Editing the archive needs the forms:edit permission.' : undefined}>
-                  {it.hidden ? 'Show' : 'Hide'}
+                <Button size="xs" onClick={() => void toggle(it)} disabledReason={readOnly ? t(m.needsEdit) : undefined}>
+                  {it.hidden ? t(m.show) : t(m.hide)}
                 </Button>
-                <Button size="xs" onClick={() => setEditing(it)} disabledReason={readOnly ? 'Editing the archive needs the forms:edit permission.' : undefined}>
-                  Edit
+                <Button size="xs" onClick={() => setEditing(it)} disabledReason={readOnly ? t(m.needsEdit) : undefined}>
+                  {t(common.edit)}
                 </Button>
               </div>
             </div>
           ))}
           <div className="flex items-center justify-between gap-2 pt-2">
             <span className="k" role="status">
-              {count((d.page - 1) * d.pageSize + 1)} to {count((d.page - 1) * d.pageSize + d.issues.length)} of {count(d.total)}
+              {t(m.range, { from: count((d.page - 1) * d.pageSize + 1), to: count((d.page - 1) * d.pageSize + d.issues.length), total: count(d.total) })}
             </span>
             <div className="flex gap-1.5">
               <Button size="xs" disabled={page <= 1} onClick={() => setPage((x) => x - 1)}>
-                Newer
+                {t(m.newer)}
               </Button>
               <Button size="xs" disabled={(d.page - 1) * d.pageSize + d.issues.length >= d.total} onClick={() => setPage((x) => x + 1)}>
-                Older
+                {t(m.older)}
               </Button>
             </div>
           </div>
@@ -767,6 +783,7 @@ function ArchiveIssues({ readOnly, lists }: { readOnly: boolean; lists: Schemas[
 }
 
 function IssueDialog({ issue, lists, onClose }: { issue: Schemas['ArchiveIssueItem']; lists: Schemas['PublicPageList'][]; onClose: () => void }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const invalidate = useInvalidateForms()
   const update = $api.useMutation('put', '/api/v1/workspaces/{workspace}/public-pages/archive/issues/{campaign}')
@@ -778,7 +795,7 @@ function IssueDialog({ issue, lists, onClose }: { issue: Schemas['ArchiveIssueIt
   const submit = async () => {
     try {
       await update.mutateAsync({ params: { path: { workspace: slug, campaign: issue.campaignId } }, body: { hidden: issue.hidden, title, excerpt, label, listId } })
-      toast({ kind: 'success', title: 'Issue updated', detail: 'The archive, its feed and the issue page show it now.' })
+      toast({ kind: 'success', title: tt(m.issueUpdated), detail: tt(m.issueUpdatedBody) })
       await invalidate()
       onClose()
     } catch (e) {
@@ -789,13 +806,13 @@ function IssueDialog({ issue, lists, onClose }: { issue: Schemas['ArchiveIssueIt
     <Dialog
       open
       onOpenChange={(o) => !o && onClose()}
-      title="Edit archived issue"
-      description={`Sent as "${issue.subject}". The email itself doesn't change.`}
+      title={t(m.editIssue)}
+      description={t(m.sentAs, { subject: issue.subject })}
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t(common.cancel)}</Button>
           <Button variant="primary" onClick={() => void submit()} loading={update.isPending}>
-            Save issue
+            {t(m.saveIssue)}
           </Button>
         </>
       }
@@ -807,17 +824,17 @@ function IssueDialog({ issue, lists, onClose }: { issue: Schemas['ArchiveIssueIt
           void submit()
         }}
       >
-        <Field label="Title" hint="Empty uses the subject line." error={error}>
+        <Field label={t(m.title)} hint={t(m.titleHint)} error={error}>
           <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={issue.subject} maxLength={200} className="w-full" />
         </Field>
-        <Field label="Excerpt" hint="Empty uses the preheader.">
+        <Field label={t(m.excerpt)} hint={t(m.excerptHint)}>
           <Textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)} maxLength={500} className="w-full" />
         </Field>
         <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
-          <Field label="Label" hint='Shown after the date, like "#141".'>
+          <Field label={t(m.label)} hint={t(m.labelHint, { example: '#141' })}>
             <Input value={label} onChange={(e) => setLabel(e.target.value)} maxLength={40} className="w-full" />
           </Field>
-          <Field label="Filed under">
+          <Field label={t(m.filedUnder)}>
             <Select value={listId} onChange={(e) => setListId(e.target.value)} className="w-full">
               {lists.map((l) => (
                 <option key={l.id} value={l.id}>

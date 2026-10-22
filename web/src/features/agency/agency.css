@@ -164,6 +164,15 @@
   }
 
   /* An option card (a level, a rate part). */
+  /* A row of the client details' "Billed, last months" (AgencyUsage's .mrow):
+     the month, the rate (wraps), the amount. */
+  .ag-mrow {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 0;
+    border-top: 1px solid var(--line-2);
+  }
   .ag-optc {
     display: flex;
     gap: 10px;

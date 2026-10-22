@@ -402,7 +402,7 @@ function ApiCard({ s }: { s: Settings }) {
     <RevenueCard title={t(ma.apiTitle)} sub={t(ma.apiText)}>
       <div className="er-pad flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone="info">POST</Badge>
+          <Badge tone="info">{'POST'}</Badge>
           <span className="mono" style={{ fontSize: 12.5, overflowWrap: 'anywhere' }}>
             {path}
           </span>

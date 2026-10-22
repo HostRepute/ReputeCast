@@ -7,14 +7,17 @@ import { Grid } from '@/components/ui/Layout'
 import { toast } from '@/components/ui/Toast'
 import { count } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
+import { t as tt, useT } from '@/i18n'
 import { useInvalidateForms } from './common'
+import { m } from './builder.messages'
 
 /** "Loading · building the preview": two cards shaped like the builder. */
-export function FormsLoading({ label = 'Loading the signup forms' }: { label?: string }) {
+export function FormsLoading({ label }: { label?: string }) {
+  const t = useT()
   return (
     <Grid min={300} gap={16} aria-busy="true">
       <span className="vh" role="status">
-        {label}
+        {label ?? t(m.loadingForms)}
       </span>
       <div className="card flex flex-col gap-2.5 p-4">
         <Skeleton w={140} h={16} />
@@ -33,18 +36,17 @@ export function FormsLoading({ label = 'Loading the signup forms' }: { label?: s
 
 /** "No signup forms yet": the hosted page already works; make a form for your site. */
 export function FormsEmpty({ hostedUrl, hostedLabel, onCreate, createReason }: { hostedUrl: string; hostedLabel: string; onCreate: () => void; createReason?: string }) {
+  const t = useT()
   return (
     <section className="card flex flex-col items-center gap-2.5 border-dashed px-7 py-8 text-center">
-      <h2 className="m-0 text-[17px] font-bold">No signup forms yet</h2>
-      <p className="max-w-[520px] text-ink-2">
-        The hosted subscribe page at {hostedLabel} already works. Create an embedded or popup form to collect signups on your own site.
-      </p>
+      <h2 className="m-0 text-[17px] font-bold">{t(m.emptyTitle)}</h2>
+      <p className="max-w-[520px] text-ink-2">{t(m.emptyBody, { host: hostedLabel })}</p>
       <div className="flex flex-wrap justify-center gap-2.5">
         <Button variant="primary" onClick={onCreate} disabledReason={createReason}>
-          Create a form
+          {t(m.createAForm)}
         </Button>
         <a className="btn" href={hostedUrl} target="_blank" rel="noreferrer">
-          Open hosted page
+          {t(m.openHosted)}
         </a>
       </div>
     </section>
@@ -56,6 +58,7 @@ export function FormsEmpty({ hostedUrl, hostedLabel, onCreate, createReason }: {
  * or keep it blocked (the alert goes away until it submits again tomorrow).
  */
 export function BlockedOriginAlert({ form, blocked }: { form: Schemas['SignupForm']; blocked: Schemas['SignupFormBlockedOrigin'] }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const reason = usePermissionReason('forms:edit')
   const invalidate = useInvalidateForms()
@@ -66,34 +69,30 @@ export function BlockedOriginAlert({ form, blocked }: { form: Schemas['SignupFor
     try {
       if (which === 'allow') {
         await allow.mutateAsync({ params, body: { origin: blocked.origin } })
-        toast({ kind: 'success', title: `${blocked.origin} can submit "${form.name}" now`, detail: 'It was added to the allowed domains.' })
+        toast({ kind: 'success', title: tt(m.canSubmit, { origin: blocked.origin, name: form.name }), detail: tt(m.addedToAllowed) })
       } else {
         await keep.mutateAsync({ params, body: { origin: blocked.origin } })
-        toast({ kind: 'success', title: `${blocked.origin} stays blocked`, detail: 'This alert comes back only if it submits again tomorrow.' })
+        toast({ kind: 'success', title: tt(m.staysBlocked, { origin: blocked.origin }), detail: tt(m.comesBack) })
       }
       await invalidate()
     } catch (e) {
-      toast({ kind: 'error', title: "Couldn't change the allowed domains", detail: errorMessage(e), retry: () => void run(which) })
+      toast({ kind: 'error', title: tt(m.domainsFailed), detail: errorMessage(e), retry: () => void run(which) })
     }
   }
   const n = blocked.count
   return (
     <div role="alert" className="card fb-alert alert-bad">
       <div className="flex items-center gap-2.5 max-md:flex-wrap">
-        <Badge tone="bad">Blocked</Badge>
-        <span className="font-semibold">
-          {count(n)} {n === 1 ? 'submission' : 'submissions'} from {blocked.origin} {n === 1 ? 'was' : 'were'} rejected today
-        </span>
+        <Badge tone="bad">{t(m.blocked)}</Badge>
+        <span className="font-semibold">{t(m.rejectedToday, { n, count: count(n), origin: blocked.origin })}</span>
       </div>
-      <span className="k">
-        {blocked.origin} isn't an allowed domain for form "{form.name}". Add it, or keep it blocked if those are test submissions.
-      </span>
+      <span className="k">{t(m.notAllowed, { origin: blocked.origin, name: form.name })}</span>
       <div className="flex gap-2 max-md:flex-wrap">
         <Button size="sm" variant="primary" onClick={() => void run('allow')} loading={allow.isPending} disabledReason={reason}>
-          Allow {blocked.origin}
+          {t(m.allow, { origin: blocked.origin })}
         </Button>
         <Button size="sm" onClick={() => void run('keep')} loading={keep.isPending} disabledReason={reason}>
-          Keep blocked
+          {t(m.keepBlocked)}
         </Button>
       </div>
     </div>
@@ -105,6 +104,7 @@ export function BlockedOriginAlert({ form, blocked }: { form: Schemas['SignupFor
  * back to the honeypot; paste the right key. The secret stays as stored.
  */
 export function TurnstileAlert({ turnstile }: { turnstile: Schemas['PublicTurnstile'] }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const reason = usePermissionReason('forms:edit')
   const invalidate = useInvalidateForms()
@@ -120,9 +120,9 @@ export function TurnstileAlert({ turnstile }: { turnstile: Schemas['PublicTurnst
       await invalidate()
       if (out.turnstile.status === 'ok') {
         setKey('')
-        toast({ kind: 'success', title: 'Turnstile site key saved', detail: 'Cloudflare accepted the keys; suspicious signups get the check again.' })
+        toast({ kind: 'success', title: tt(m.turnstileSaved), detail: tt(m.turnstileAccepted) })
       } else {
-        setError(`${out.turnstile.error}. Check the key in the Cloudflare dashboard.`)
+        setError(tt(m.checkKey, { error: out.turnstile.error ?? '' }))
       }
     } catch (e) {
       setError(errorMessage(e))
@@ -131,17 +131,15 @@ export function TurnstileAlert({ turnstile }: { turnstile: Schemas['PublicTurnst
   return (
     <div role="alert" className="card fb-alert alert-warn">
       <div className="flex items-center gap-2.5 max-md:flex-wrap">
-        <Badge tone="warn">Turnstile</Badge>
-        <span className="font-semibold">{turnstile.error || 'Cloudflare rejected the Turnstile keys'}</span>
+        <Badge tone="warn">{'Turnstile'}</Badge>
+        <span className="font-semibold">{turnstile.error || t(m.turnstileRejected)}</span>
       </div>
-      <span className="k">
-        Spam protection fell back to the honeypot and timing check. Paste the key from the Cloudflare dashboard; the secret key is stored encrypted.
-      </span>
+      <span className="k">{t(m.turnstileFellBack)}</span>
       <label className="lbl">
-        Turnstile site key
+        {t(m.siteKey)}
         <input
           className="fb-in mono in-warn"
-          placeholder="0x4AAAAAAA…"
+          placeholder={'0x4AAAAAAA…'}
           value={key}
           disabled={Boolean(reason)}
           title={reason}

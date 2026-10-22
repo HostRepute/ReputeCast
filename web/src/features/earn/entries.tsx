@@ -2,8 +2,9 @@ import type { Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { ButtonLink } from '@/components/ui/Button'
 import { Link } from '@tanstack/react-router'
-import { defineMessages, T, useT, type MessageDescriptor } from '@/i18n'
+import { T, useT, type MessageDescriptor } from '@/i18n'
 import { useCan, useWorkspace } from '@/lib/session'
+import { mpi } from './entries.messages'
 import './earn.css'
 
 /**
@@ -12,28 +13,7 @@ import './earn.css'
  * Payments, and Paddle and Lemon Squeezy, not available yet.
  */
 
-export const mpi = defineMessages('earn.integrations', {
-  stripe: 'Stripe',
-  paddle: 'Paddle',
-  lemonsqueezy: 'Lemon Squeezy',
-  byOwnStripe: 'Your own Stripe account',
-  byMerchant: 'Merchant of record',
-  stripeLine: 'Paid subscriptions and one-time payments, with a customer portal for your readers.',
-  merchantLine: 'A merchant of record: it sells to your readers for you and handles sales tax and VAT.',
-  capSubscriptions: 'Subscriptions',
-  capOneTime: 'One-time payments',
-  capPortal: 'Customer portal',
-  capTestMode: 'Test mode',
-  capTax: 'Tax calculation',
-  factRestricted: 'A restricted key, never a secret key',
-  factConnected: '{account} · {mode, select, live {Live} other {Test}}',
-  factNotInRelease: 'Not in this release',
-  notAvailable: 'Not available yet',
-  connect: 'Connect',
-  manage: 'Manage',
-  view: 'View',
-  importHint: 'Moving paid members from Substack, Ghost, beehiiv or Kit? <a>Import them in Earn</a>, matched with your Stripe subscriptions.',
-})
+export { mpi }
 
 export const paymentKeys = ['stripe', 'paddle', 'lemonsqueezy'] as const
 export type PaymentKey = (typeof paymentKeys)[number]

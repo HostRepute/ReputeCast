@@ -7,6 +7,9 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { useDocumentTitle } from '@/lib/hooks'
 import { setDisplayTimeZone, shortDate } from '@/lib/format'
+import { useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { m } from './messages'
 import { ReportBody } from './ReportBody'
 import { ReportSkeleton } from './ReportSkeleton'
 import { headerCaption, statusBadge } from './words'
@@ -35,6 +38,7 @@ function useNoIndex() {
  * for anyone with the link. No app shell, no sign-in, no contact data.
  */
 export function SharedReportPage({ token }: { token: string }) {
+  const t = useT()
   useNoIndex()
   const q = useQuery({
     queryKey: ['shared-report', token],
@@ -48,7 +52,7 @@ export function SharedReportPage({ token }: { token: string }) {
   const r = q.data?.report
   // Times read in the browser's timezone for someone outside the workspace.
   useEffect(() => setDisplayTimeZone(undefined), [])
-  useDocumentTitle(r ? `${r.campaign.name} · report · ${q.data!.workspace}` : 'Shared report · ReputeCast')
+  useDocumentTitle(r ? t(m.sharedDocTitle, { name: r.campaign.name, workspace: q.data!.workspace }) : t(m.sharedDocTitleLoading))
   const badge = r ? statusBadge(r.campaign) : undefined
   const caption = r ? headerCaption(r.campaign) : ''
   const gone = q.error instanceof ApiError && q.error.status === 404
@@ -56,16 +60,16 @@ export function SharedReportPage({ token }: { token: string }) {
   return (
     <div className="rc-app min-h-dvh bg-ground">
       <a href="#main" className="skip">
-        Skip to content
+        {t(m.skip)}
       </a>
       <header className="top">
         <div className="mx-auto flex w-full max-w-[1152px] flex-wrap items-center gap-3">
-          <span className="flex items-center gap-2.5 text-ink" aria-label="ReputeCast">
+          <span className="flex items-center gap-2.5 text-ink" aria-label={'ReputeCast'}>
             <LogoMark size={26} />
             <span className="text-[15px] font-bold tracking-[-0.01em]">ReputeCast</span>
           </span>
-          <span className="k">Read-only report</span>
-          {q.data ? <span className="k ml-auto">Shared by {q.data.workspace}</span> : null}
+          <span className="k">{t(m.readOnlyReport)}</span>
+          {q.data ? <span className="k ml-auto">{t(m.sharedBy, { workspace: q.data.workspace })}</span> : null}
         </div>
       </header>
       {/* As wide as the report inside the app at 1440 px, so the tiles and cards fall the same way. */}
@@ -77,15 +81,11 @@ export function SharedReportPage({ token }: { token: string }) {
             <FullPageState
               icon={gone ? 'searchLarge' : 'warningTriangle'}
               tone={gone ? 'neutral' : 'warn'}
-              badge={gone ? 'Link not working' : limited ? 'Too many requests' : 'Something went wrong'}
-              title={gone ? 'This link doesn’t open a report' : limited ? 'Too many requests from your network' : 'The report didn’t load'}
-              actions={!gone ? <Button onClick={() => void q.refetch()}>Try again</Button> : undefined}
+              badge={gone ? t(m.goneBadge) : limited ? t(m.limitedBadge) : t(m.errorBadge)}
+              title={gone ? t(m.goneTitle) : limited ? t(m.limitedTitle) : t(m.errorTitle)}
+              actions={!gone ? <Button onClick={() => void q.refetch()}>{t(common.tryAgain)}</Button> : undefined}
             >
-              {gone
-                ? 'It may have been revoked, or it expired. Ask the person who shared it for a new one.'
-                : limited
-                  ? 'Wait a minute, then try again.'
-                  : `${errorMessage(q.error)} Try again in a moment.`}
+              {gone ? t(m.goneBody) : limited ? t(m.limitedBody) : `${errorMessage(q.error)} ${t(m.errorBody)}`}
             </FullPageState>
           </div>
         ) : r ? (
@@ -101,8 +101,7 @@ export function SharedReportPage({ token }: { token: string }) {
             </div>
             <ReportBody r={r} />
             <p className="k m-0">
-              Aggregate results only: this link never shows who received, opened or clicked.
-              {q.data!.expiresAt ? ` It stops working on ${shortDate(q.data!.expiresAt)}.` : ''} Made with ReputeCast, the self-hosted newsletter platform.
+              {[t(m.aggregateOnly), ...(q.data!.expiresAt ? [t(m.stopsOn, { date: shortDate(q.data!.expiresAt) })] : []), t(m.madeWith)].join(' ')}
             </p>
           </>
         ) : null}

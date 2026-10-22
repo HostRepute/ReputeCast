@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -152,7 +153,7 @@ func (s *Service) Settings(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		out.DefaultSender = &TransactionalSenderRef{ID: st.DefaultSenderID.String(), Name: st.DefaultSenderName, Email: st.DefaultSenderEmail}
 	}
 	if !out.CanEdit {
-		out.Reason = deniedMessage("Changing Transactional settings", authz.TransactionalPublish, s.helpers(ctx, ws.ID, authz.TransactionalPublish, 3))
+		out.Reason = deniedMessage(ctx, "settings", authz.TransactionalPublish, s.helpers(ctx, ws.ID, authz.TransactionalPublish, 3))
 	}
 	return out, nil
 }
@@ -165,11 +166,11 @@ func (s *Service) SaveSettings(ctx context.Context, ws *store.Workspace, p *auth
 	in.DefaultReplyTo = strings.TrimSpace(in.DefaultReplyTo)
 	if in.DefaultReplyTo != "" {
 		if _, err := mail.ParseAddress(in.DefaultReplyTo); err != nil {
-			return TransactionalSettings{}, api.Invalid("body.defaultReplyTo", "The reply-to isn't a valid email address.")
+			return TransactionalSettings{}, api.Invalid("body.defaultReplyTo", say(ctx, "replyTo.invalid", nil))
 		}
 	}
 	if in.ContentRetentionDays < 0 || in.ContentRetentionDays > 90 {
-		return TransactionalSettings{}, api.Invalid("body.contentRetentionDays", "Keep content between 0 and 90 days.")
+		return TransactionalSettings{}, api.Invalid("body.contentRetentionDays", say(ctx, "settings.retentionRange", nil))
 	}
 	in.AlertBounceRate = math.Round(in.AlertBounceRate*100) / 100
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -185,14 +186,14 @@ func (s *Service) SaveSettings(ctx context.Context, ws *store.Workspace, p *auth
 		if in.DefaultSenderID != "" {
 			id, err := uuid.Parse(in.DefaultSenderID)
 			if err != nil {
-				return api.Invalid("body.defaultSenderId", "Pick a sender from the list.")
+				return api.Invalid("body.defaultSenderId", say(ctx, "sender.pick", nil))
 			}
 			snd, err := q.TxnSenderByID(ctx, store.TxnSenderByIDParams{WorkspaceID: ws.ID, ID: id})
 			if err != nil {
-				return api.Invalid("body.defaultSenderId", "That sender doesn't exist in this workspace.")
+				return api.Invalid("body.defaultSenderId", say(ctx, "sender.gone", nil))
 			}
 			if !snd.Transactional {
-				return api.Invalid("body.defaultSenderId", snd.Email+" isn't on a Transactional domain. Pick a sender on one, such as notify.acme.io, in Settings › Senders.")
+				return api.Invalid("body.defaultSenderId", say(ctx, "sender.notTransactional", i18n.Args{"email": snd.Email}))
 			}
 			sender = &id
 		}

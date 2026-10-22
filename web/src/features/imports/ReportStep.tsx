@@ -2,7 +2,7 @@ import { Navigate } from '@tanstack/react-router'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel } from '@/components/ui/Feedback'
-import { TableScroll } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
 import { NotifuseTemplatesDone } from '@/features/transactional-import/NotifuseOption'
 import { WelcomePromptCard } from '@/features/welcome-prompt/WelcomePromptCard'
 import { andList, clock, count, dayMonthDate } from '@/lib/format'
@@ -13,46 +13,44 @@ import { downloadImportFile } from './SourceStep'
 import { ReadingSource } from './states'
 import { $api, errorMessage } from '@/api/client'
 import { serviceReasonKeys, serviceReasonRow } from '@/features/verification/ImportCheck'
+import { t, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { m } from './messages'
 
 /** "3 minutes 10 seconds" */
 function took(ms: number) {
   const s = Math.max(1, Math.round(ms / 1000))
-  const m = Math.floor(s / 60)
+  const min = Math.floor(s / 60)
   const rest = s % 60
-  const sec = `${rest} second${rest === 1 ? '' : 's'}`
-  if (m === 0) return sec
-  const min = `${m} minute${m === 1 ? '' : 's'}`
-  return rest ? `${min} ${sec}` : min
+  if (min === 0) return t(m.tookSeconds, { s: rest })
+  return rest ? t(m.tookBoth, { min, s: rest }) : t(m.tookMinutes, { min })
 }
 
 /** Why rows were skipped or changed, in the report's words. */
 function reasonRow(key: string, d: Detail): [string, string] | null {
-  const src = d.sourceName
   switch (key) {
     case 'invalid':
-      return ['Invalid address', 'Not imported. Listed in the CSV with the row number and the raw value.']
+      return [t(m.reasonInvalid), t(m.reasonInvalidWhat)]
     case 'disposable':
-      return ['Disposable domain', 'Not imported, as chosen in the preview.']
+      return [t(m.reasonDisposable), t(m.reasonAsChosen)]
     case 'trap':
-      return ['Spam-trap pattern', 'Not imported, as chosen. Addresses are redacted in the report.']
+      return [t(m.reasonTrap), t(m.reasonTrapWhat)]
     case 'typo_fixed':
-      return ['Likely typo, fixed', 'Imported with the corrected domain and tagged "review-typo". Original value kept in the report.']
+      return [t(m.reasonTypoFixed), t(m.reasonTypoFixedWhat)]
     case 'typo':
-      return ['Likely typo', 'Not imported, as chosen in the preview.']
+      return [t(m.reasonTypo), t(m.reasonAsChosen)]
     case 'role':
       return d.options.risky.role === 'skip'
-        ? ['Role address', 'Not imported, as chosen in the preview.']
+        ? [t(m.reasonRole), t(m.reasonAsChosen)]
         : d.options.risky.role === 'import'
-          ? ['Role address', 'Imported normally, as chosen in the preview.']
-          : ['Role address', 'Imported and excluded from Broadcasts automatically.']
+          ? [t(m.reasonRole), t(m.reasonRoleImported)]
+          : [t(m.reasonRole), t(m.reasonRoleExcluded)]
     case 'stale':
-      return d.options.risky.stale === 'skip'
-        ? ['Never engaged, 2+ years old', 'Not imported, as chosen in the preview.']
-        : ['Never engaged, 2+ years old', 'Imported as pending; a re-permission email went out through the System stream.']
+      return d.options.risky.stale === 'skip' ? [t(m.reasonStale), t(m.reasonAsChosen)] : [t(m.reasonStale), t(m.reasonStaleWhat)]
     case 'already_suppressed':
-      return ['Already suppressed in ReputeCast', `${src} said subscribed, ReputeCast had a bounce or unsubscribe. Suppression wins; not re-subscribed.`]
+      return [t(m.reasonAlready), t(m.reasonAlreadyWhat, { source: d.sourceName })]
     case 'status_skipped':
-      return ['Status set to Skip', 'Not imported, as chosen in the consent step.']
+      return [t(m.reasonStatusSkipped), t(m.reasonStatusSkippedWhat)]
   }
   return null
 }
@@ -61,6 +59,7 @@ const reasonOrder = ['invalid', 'disposable', 'trap', 'typo_fixed', 'typo', 'rol
 
 /** The import summary (MigrationDone). */
 export function ReportStep({ importId }: { importId: string }) {
+  const tr = useT()
   const { slug } = useWorkspace()
   const q = useImportDetail(importId)
   const d = q.data
@@ -69,20 +68,20 @@ export function ReportStep({ importId }: { importId: string }) {
   }
   const badge =
     d?.status === 'done' ? (
-      <Badge tone="ok">Done</Badge>
+      <Badge tone="ok">{tr(m.badgeDone)}</Badge>
     ) : d?.status === 'cancelled' ? (
-      <Badge tone="warn">Stopped</Badge>
+      <Badge tone="warn">{tr(m.badgeStopped)}</Badge>
     ) : d?.status === 'failed' ? (
-      <Badge tone="bad">Failed</Badge>
+      <Badge tone="bad">{tr(m.badgeFailed)}</Badge>
     ) : undefined
   return (
-    <ImportFrame title={d ? `Import contacts · ${d.sourceName}` : 'Import contacts'} documentTitle="Import summary" badge={badge} narrow>
+    <ImportFrame title={d ? tr(m.titleFrom, { source: d.sourceName }) : tr(m.title)} documentTitle={tr(m.summaryTitle)} badge={badge} narrow>
       {q.isError ? (
-        <ErrorPanel title="Couldn't load the import" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
+        <ErrorPanel title={tr(m.loadFailedThe)} actions={<Button onClick={() => q.refetch()}>{tr(common.retry)}</Button>}>
           {errorMessage(q.error)}
         </ErrorPanel>
       ) : !d ? (
-        <ReadingSource title="Loading the summary" />
+        <ReadingSource title={tr(m.loadingSummary)} />
       ) : (
         <Summary d={d} now={q.dataUpdatedAt} />
       )}
@@ -91,6 +90,7 @@ export function ReportStep({ importId }: { importId: string }) {
 }
 
 function Summary({ d, now }: { d: Detail; now: number }) {
+  const tr = useT()
   const { slug } = useWorkspace()
   const flows = $api.useQuery('get', '/api/v1/workspaces/{workspace}/automations', { params: { path: { workspace: slug } } }, { retry: false })
   const s = d.stats
@@ -106,43 +106,63 @@ function Summary({ d, now }: { d: Detail; now: number }) {
   const finishedAt = finished ? (dayMonthDate(finished) === dayMonthDate(now) ? clock(finished) : `${dayMonthDate(finished)}, ${clock(finished)}`) : ''
   const listsLine =
     lists.length === 1
-      ? `${lists[0]!.name} now has ${count(lists[0]!.contacts)} contacts.`
+      ? tr(m.listOne, { name: lists[0]!.name, count: count(lists[0]!.contacts) })
       : lists.length > 1
-        ? `${andList(lists.map((l, i) => (i === 0 ? `${l.name} now has ${count(l.contacts)}` : `${l.name} ${count(l.contacts)}`)))} contacts.`
+        ? tr(m.listsMany, {
+            lists: andList(lists.map((l, i) => tr(i === 0 ? m.listFirst : m.listNext, { name: l.name, count: count(l.contacts) }))),
+          })
         : ''
   const skippedParts = [
-    reasons.invalid || reasons.invalid_service ? `${count((reasons.invalid ?? 0) + (reasons.invalid_service ?? 0))} invalid` : '',
-    reasons.disposable ? `${count(reasons.disposable)} disposable` : '',
-    reasons.trap ? `${count(reasons.trap)} trap-like` : '',
+    reasons.invalid || reasons.invalid_service ? tr(m.skippedInvalid, { count: count((reasons.invalid ?? 0) + (reasons.invalid_service ?? 0)) }) : '',
+    reasons.disposable ? tr(m.skippedDisposable, { count: count(reasons.disposable) }) : '',
+    reasons.trap ? tr(m.skippedTrap, { count: count(reasons.trap) }) : '',
   ].filter(Boolean)
   const known = (reasons.invalid ?? 0) + (reasons.invalid_service ?? 0) + (reasons.disposable ?? 0) + (reasons.trap ?? 0)
-  if (skipped - known > 0 && skippedParts.length > 0) skippedParts.push(`${count(skipped - known)} other`)
+  if (skipped - known > 0 && skippedParts.length > 0) skippedParts.push(tr(m.skippedOther, { count: count(skipped - known) }))
   const rows = reasonOrder
     .filter((k) => (reasons[k] ?? 0) > 0)
     .map((k) => [k, reasons[k]!, reasonRow(k, d) ?? serviceReasonRow(k)] as const)
     .filter((r): r is readonly [string, number, [string, string]] => r[2] !== null)
   const flow = flows.data?.items?.find((f) => /re-?permission/i.test(f.name))
-  const firstList = lists[0]?.name ?? 'this list'
+  const firstList = lists[0]?.name
   const tiles: [string, number, string, string?][] = [
-    ['Imported', s?.imported ?? d.progress.imported, 'new, subscribed', '#86EFAC'],
-    ['Merged', s?.merged ?? d.progress.merged, 'existing updated'],
+    [tr(m.tileImported), s?.imported ?? d.progress.imported, tr(m.tileImportedNote), '#86EFAC'],
+    [tr(m.tileMerged), s?.merged ?? d.progress.merged, tr(m.tileExistingUpdated)],
     [
-      'Suppressed',
+      tr(m.tileSuppressed),
       suppressed,
-      [by.unsubscribe ? `${count(by.unsubscribe)} unsubscribed` : '', by.hard_bounce ? `${count(by.hard_bounce)} bounced` : '', by.complaint ? `${count(by.complaint)} complaints` : '']
+      [
+        by.unsubscribe ? tr(m.suppressedUnsubscribed, { count: count(by.unsubscribe) }) : '',
+        by.hard_bounce ? tr(m.suppressedBounced, { count: count(by.hard_bounce) }) : '',
+        by.complaint ? tr(m.suppressedComplaints, { count: count(by.complaint) }) : '',
+      ]
         .filter(Boolean)
-        .join(' · ') || 'never re-subscribed',
+        .join(' · ') || tr(m.tileNeverResubscribed),
       '#FCA5A5',
     ],
-    ['Pending re-permission', pending, s?.confirmsSent ? 'confirmation sent via System stream' : 'waiting for a new opt-in', '#FCD34D'],
-    ['Skipped', skipped, skippedParts.join(' · ') || 'invalid, disposable, traps'],
+    [tr(m.tilePending), pending, s?.confirmsSent ? tr(m.pendingSent) : tr(m.pendingWaiting), '#FCD34D'],
+    [tr(m.tileSkipped), skipped, skippedParts.join(' · ') || tr(m.tileSkippedNote)],
   ]
   const headline =
     d.status === 'done'
-      ? `${count(imported)} ${imported === 1 ? 'contact' : 'contacts'} imported from ${d.sourceName}`
+      ? tr(m.headlineDone, { n: imported, count: count(imported), source: d.sourceName })
       : d.status === 'cancelled'
-        ? `Import stopped · ${count(imported)} ${imported === 1 ? 'contact' : 'contacts'} imported from ${d.sourceName}`
-        : `The import from ${d.sourceName} failed`
+        ? tr(m.headlineStopped, { n: imported, count: count(imported), source: d.sourceName })
+        : tr(m.headlineFailed, { source: d.sourceName })
+  const duration = s?.durationMs ? took(s.durationMs) : undefined
+  const doneLead = [
+    finished
+      ? duration
+        ? tr(m.finishedAtTook, { time: finishedAt, took: duration })
+        : tr(m.finishedAt, { time: finishedAt })
+      : duration
+        ? tr(m.finishedTook, { took: duration })
+        : tr(m.finished),
+    listsLine,
+    suppressed > 0 ? tr(m.consentCarriedSuppressed, { n: suppressed, count: count(suppressed) }) : tr(m.consentCarried),
+  ]
+    .filter(Boolean)
+    .join(' ')
   return (
     <>
       <div className="flex flex-wrap items-center gap-4.5">
@@ -155,17 +175,13 @@ function Summary({ d, now }: { d: Detail; now: number }) {
         <div className="flex flex-col gap-1">
           <h2 className="m-0 text-[26px] font-bold tracking-[-0.02em]">{headline}</h2>
           <span className="lead">
-            {d.status === 'done' ? (
-              <>
-                {finished ? `Finished ${finishedAt}` : 'Finished'}
-                {s?.durationMs ? `, ${took(s.durationMs)}` : ''}. {listsLine} Consent carried over for every row
-                {suppressed > 0 ? `; ${count(suppressed)} ${suppressed === 1 ? 'address was' : 'addresses were'} suppressed and will never be re-subscribed by an import` : ''}.
-              </>
-            ) : d.status === 'cancelled' ? (
-              `Stopped${finished ? ` at ${clock(finished)}` : ''}. Rows imported before that stay; nothing else was changed.`
-            ) : (
-              `${d.error?.message ?? 'The import stopped with an error.'} Rows imported before the error stay.`
-            )}
+            {d.status === 'done'
+              ? doneLead
+              : d.status === 'cancelled'
+                ? finished
+                  ? tr(m.stoppedAt, { time: clock(finished) })
+                  : tr(m.stopped)
+                : `${d.error?.message ?? tr(m.stoppedError)} ${tr(m.rowsStay)}`}
           </span>
         </div>
       </div>
@@ -182,25 +198,23 @@ function Summary({ d, now }: { d: Detail; now: number }) {
       {d.status === 'done' ? <WelcomePromptCard where={{ context: 'import', id: d.id }} /> : null}
       <section className="card flex flex-col">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-4.5 py-3.5">
-          <h3 className="h2">Skipped and changed rows</h3>
+          <h3 className="h2">{tr(m.skippedChanged)}</h3>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" disabled={skipped === 0} onClick={() => void downloadImportFile(slug, d.id, 'skipped')}>
-              Download skipped rows · CSV, {count(skipped)}
+              {tr(m.downloadSkipped, { count: count(skipped) })}
             </Button>
             <Button size="sm" onClick={() => void downloadImportFile(slug, d.id, 'report')}>
-              Download full report · CSV
+              {tr(m.downloadReport)}
             </Button>
           </div>
         </div>
-        <TableScroll label="Import report">
+        <TableScroll label={tr(m.importReport)}>
           <table className="tbl">
             <thead>
               <tr>
-                <th scope="col">Reason</th>
-                <th scope="col" className="r">
-                  Rows
-                </th>
-                <th scope="col">What happened</th>
+                <Th>{tr(m.colReason)}</Th>
+                <Th align="right">{tr(m.colRows)}</Th>
+                <Th>{tr(m.colWhat)}</Th>
               </tr>
             </thead>
             <tbody>
@@ -214,7 +228,7 @@ function Summary({ d, now }: { d: Detail; now: number }) {
               {rows.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="py-6 text-center text-ink-3">
-                    Every row was imported as it was.
+                    {tr(m.everyRow)}
                   </td>
                 </tr>
               ) : null}
@@ -224,40 +238,44 @@ function Summary({ d, now }: { d: Detail; now: number }) {
       </section>
       {d.status === 'done' ? (
         <section className="card flex flex-col gap-3 px-5 py-4.5">
-          <h3 className="h2">Recommended next steps</h3>
+          <h3 className="h2">{tr(m.nextSteps)}</h3>
           <div className="mgrid grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
             <div className="flex flex-col gap-1.5 rounded-lg border border-line px-3.5 py-3">
-              <span className="font-semibold">Warm them in gradually</span>
-              <span className="k">
-                Send Readiness will warn if a campaign to {firstList} includes more than 20% never-mailed-from-this-domain contacts. Consider a first send to the Active tier only.
-              </span>
+              <span className="font-semibold">{tr(m.warmTitle)}</span>
+              <span className="k">{tr(m.warmBody, { named: firstList ? 'yes' : 'no', list: firstList ?? '' })}</span>
             </div>
             {pending > 0 ? (
               <div className="flex flex-col gap-1.5 rounded-lg border border-line px-3.5 py-3">
-                <span className="font-semibold">Watch the {count(pending)} pending</span>
+                <span className="font-semibold">{tr(m.watchPending, { count: count(pending) })}</span>
                 <span className="k">
-                  {s?.confirmsSent && finished ? `Re-permission emails went out at ${clock(finished)}. ` : ''}Non-responders are suppressed automatically after 14 days.
+                  {[s?.confirmsSent && finished ? tr(m.repermissionSent, { time: clock(finished) }) : '', tr(m.nonResponders)].filter(Boolean).join(' ')}
                 </span>
                 {flow ? (
                   <ButtonLink size="sm" className="self-start" to="/w/$workspace/automations/$automationId" params={{ workspace: slug, automationId: flow.id }}>
-                    Open re-permission flow
+                    {tr(m.openFlow)}
                   </ButtonLink>
                 ) : (
                   <ButtonLink size="sm" className="self-start" to="/w/$workspace/automations" params={{ workspace: slug }}>
-                    Open re-permission flow
+                    {tr(m.openFlow)}
                   </ButtonLink>
                 )}
               </div>
             ) : null}
             {suppressed > 0 ? (
               <div className="flex flex-col gap-1.5 rounded-lg border border-line px-3.5 py-3">
-                <span className="font-semibold">Suppressions synced</span>
+                <span className="font-semibold">{tr(m.synced)}</span>
                 <span className="k">
-                  {count(suppressed)} new {suppressed === 1 ? 'address' : 'addresses'} {s?.pushedTo?.length ? `pushed to ${andList(s.pushedTo.map((p) => p.replace(/^Amazon /, '')))}` : 'added to the shared list'}
-                  {finished ? ` at ${clock(finished)}` : ''}. The next campaign can't reach them on any provider.
+                  {tr(m.syncedBody, {
+                    pushed: s?.pushedTo?.length ? 'yes' : 'no',
+                    n: suppressed,
+                    count: count(suppressed),
+                    providers: andList((s?.pushedTo ?? []).map((p) => p.replace(/^Amazon /, ''))),
+                    at: finished ? 'yes' : 'no',
+                    time: finished ? clock(finished) : '',
+                  })}
                 </span>
                 <ButtonLink size="sm" className="self-start" to="/w/$workspace/audience/suppressions" params={{ workspace: slug }}>
-                  View suppression list
+                  {tr(m.viewSuppressions)}
                 </ButtonLink>
               </div>
             ) : null}
@@ -268,10 +286,10 @@ function Summary({ d, now }: { d: Detail; now: number }) {
       )}
       <div className="flex flex-wrap justify-end gap-2.5">
         <ButtonLink to="/w/$workspace/import" params={{ workspace: slug }}>
-          Import another source
+          {tr(m.importAnother)}
         </ButtonLink>
         <ButtonLink variant="primary" className="wnext" to="/w/$workspace/audience" params={{ workspace: slug }}>
-          View contacts
+          {tr(m.viewContacts)}
         </ButtonLink>
       </div>
     </>

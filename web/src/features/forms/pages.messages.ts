@@ -1,0 +1,120 @@
+import { defineMessages } from '@/i18n'
+
+/**
+ * The built-in public pages' editors (Forms & pages › Pages): subscribe and
+ * confirmation, preference center, unsubscribe page and archive. `{page}`
+ * names one of them. The preview shows each page's own copy.
+ */
+export const m = defineMessages('forms.pages', {
+  // ── The page being edited ────────────────────────────────────────────
+  loadFailed:
+    "{page, select, subscribe {Couldn't load the subscribe page} preferences {Couldn't load the preference center} unsubscribe {Couldn't load the unsubscribe page} other {Couldn't load the archive}}",
+  keepsWorking: 'Nothing was changed; the page keeps working for subscribers.',
+  loading: '{page, select, subscribe {Loading the subscribe page} preferences {Loading the preference center} unsubscribe {Loading the unsubscribe page} other {Loading the archive}}',
+  pageName: '{page, select, subscribe {subscribe page} confirm {confirmation page} preferences {preference center} unsubscribe {unsubscribe page} other {archive}}',
+  previewOf:
+    '{page, select, subscribe {Preview of the subscribe page} confirm {Preview of the confirmation page} preferences {Preview of the preference center} unsubscribe {Preview of the unsubscribe page} other {Preview of the archive}}',
+  saved: 'Saved',
+  savedBody: 'Subscribers see the change on their next visit.',
+  saveFailed: "Couldn't save the page",
+  saving: 'Saving…',
+  pageOptions: 'Page options',
+  unsaved: "You changed this page's options since they were saved.",
+  saveLeave: 'Save and leave',
+  previewFailed: "Couldn't show the preview",
+
+  // ── Shared sections ──────────────────────────────────────────────────
+  pageAddress: 'Page address',
+  urlOf: '{title} URL',
+  previewAs: 'Preview as',
+  previewAsLabel: 'Preview as subscriber',
+  previewAsPlaceholder: 'The latest confirmed subscriber',
+  previewAsNote: "The preview shows this subscriber's lists and settings. Nothing changes for them.",
+  listLines: 'Lists · the line under each',
+
+  // ── Subscribe and confirmation ───────────────────────────────────────
+  page: 'Page',
+  subscribe: 'Subscribe',
+  confirmation: 'Confirmation',
+  form: 'Form',
+  formOnPage: 'Form on the subscribe page',
+  builtinForm: 'Built-in form · email, first name, public lists',
+  draftForm: '{name} · draft',
+  formNote: "The page shows this form's fields, lists and consent text. The copy below replaces its heading.",
+  copy: 'Copy',
+  heading: 'Heading',
+  description: 'Description',
+  underButton: 'Under the button',
+  subscribersHint: "'{subscribers}' shows the list's size, like {example}.",
+  afterClick: 'After the confirmation click · what each list brings',
+  nextIssueHint: 'The next scheduled issue is added after it.',
+  confirmationPage: 'Confirmation page',
+  inboxTip: '{named, select, yes {Ask new subscribers to add {sender} to their contacts} other {Ask new subscribers to add your sender to their contacts}}',
+  searchEngines: 'Search engines',
+  indexSubscribe: 'Let search engines list the subscribe page',
+
+  // ── Preference center ────────────────────────────────────────────────
+  prefsNote: "Every email links to each subscriber's own page. This address emails that link to whoever asks for it.",
+  listsOffered: 'Lists offered',
+  alwaysSee: "Subscribers always see the lists they're on.",
+  choices: 'Choices',
+  howOften: 'How often · every issue, weekly roundup, monthly best-of',
+  needBreak: 'Need a break · pause 30 or 90 days',
+  firstName: 'First name',
+
+  // ── Unsubscribe page ─────────────────────────────────────────────────
+  fewerInstead: 'Fewer emails instead',
+  offerBestOf: 'Offer the monthly best-of before they leave',
+  text: 'Text',
+  button: 'Button',
+  reason: 'Reason',
+  askWhy: "Ask why they're leaving · optional for them",
+  answersShow: "Answers show in each campaign's report.",
+  oneClick: 'One-click unsubscribe',
+  oneClickBody:
+    'Every email carries List-Unsubscribe and List-Unsubscribe-Post (RFC 8058). Mail apps unsubscribe with one click, without this page, and it takes effect at once.',
+  lastDays: 'Last {days} days',
+  leftList: 'Left a list',
+  withOneClick: 'With one click',
+  choseFewer: 'Chose fewer emails',
+  saidWhy: 'Said why',
+
+  // ── Archive ──────────────────────────────────────────────────────────
+  archive: 'Archive',
+  publishAt: 'Publish past issues at',
+  archiveUrl: 'Archive URL',
+  rssFeed: 'RSS feed',
+  listsPublished: 'Lists published',
+  appearOnceSent: 'Sent campaigns of these lists appear once they finish sending.',
+  options: 'Options',
+  subscribeBox: 'Show "Get the next one in your inbox"',
+  indexArchive: 'Let search engines list it · sitemap.xml',
+  backInArchive: '"{title}" is back in the archive',
+  hidden: '"{title}" is hidden',
+  hiddenBody: 'It leaves the archive, the feed and the sitemap. The email itself is unchanged.',
+  issueFailed: "Couldn't change the issue",
+  issues: 'Issues',
+  issuesPublished: 'Issues · {count} published',
+  searchIssues: 'Search issues',
+  noMatch: 'No issue matches “{search}”.',
+  noIssues: 'No issues yet. Sent campaigns of the published lists appear here.',
+  hiddenBadge: 'Hidden',
+  needsEdit: 'Editing the archive needs the forms:edit permission.',
+  show: 'Show',
+  hide: 'Hide',
+  range: '{from} to {to} of {total}',
+  newer: 'Newer',
+  older: 'Older',
+  issueUpdated: 'Issue updated',
+  issueUpdatedBody: 'The archive, its feed and the issue page show it now.',
+  editIssue: 'Edit archived issue',
+  sentAs: 'Sent as "{subject}". The email itself doesn\'t change.',
+  saveIssue: 'Save issue',
+  title: 'Title',
+  titleHint: 'Empty uses the subject line.',
+  excerpt: 'Excerpt',
+  excerptHint: 'Empty uses the preheader.',
+  label: 'Label',
+  labelHint: 'Shown after the date, like "{example}".',
+  filedUnder: 'Filed under',
+})

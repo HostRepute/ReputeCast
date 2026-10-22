@@ -186,6 +186,19 @@
     padding: 14px 18px;
     border-bottom: 1px solid var(--line-2);
   }
+  /* Settings › Payments' event log filters: search, kind and period. On
+     phones the search takes its own row, so the page never scrolls sideways. */
+  .ea-logf {
+    grid-template-columns: minmax(220px, 1fr) 190px 150px;
+  }
+  @media (max-width: 767px) {
+    .ea-logf {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    .ea-logf > :first-child {
+      grid-column: 1 / -1;
+    }
+  }
   .ea-search {
     display: flex;
     align-items: center;
