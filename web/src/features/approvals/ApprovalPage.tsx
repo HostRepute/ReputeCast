@@ -802,7 +802,7 @@ function AutomationCard({ detail: d }: { detail: Detail }) {
           <dt>{t(mr.version)}</dt>
           <dd>v{a?.version ?? d.version}</dd>
           <dt>{t(mr.contactsInFlight)}</dt>
-          <dd>{a?.migration || '—'}</dd>
+          <dd>{a?.migration ? t(mr.migration, { migration: a.migration, version: a.version }) : '—'}</dd>
         </dl>
         {a?.changes.length ? (
           <ul className="ap-list">
