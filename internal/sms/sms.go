@@ -29,6 +29,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Capability is a badge on a provider's catalog card and provider card.
@@ -66,6 +68,8 @@ type Badge struct {
 	Support    Support    `json:"support" enum:"yes,partial,no"`
 	// Note qualifies it: "outside US and Canada", "read only", "set by hand".
 	Note string `json:"note,omitempty"`
+	// NoteText is the message Note comes from (text.go).
+	NoteText i18n.Text `json:"-"`
 }
 
 // Field is one input of the connection form.
@@ -78,6 +82,9 @@ type Field struct {
 	Options  []string `json:"options,omitempty"`
 	Help     string   `json:"help,omitempty"`
 	Default  string   `json:"default,omitempty"`
+	// LabelText and HelpText are the messages Label and Help come from.
+	LabelText i18n.Text `json:"-"`
+	HelpText  i18n.Text `json:"-"`
 }
 
 // Manifest describes an adapter for the catalog, the connection step and
@@ -99,6 +106,10 @@ type Manifest struct {
 	Console    func(kind, id string) string
 	Version    string
 	Maintainer string
+	// SummaryText is the message Summary comes from, and Messages the
+	// adapter's catalog its texts come from (text.go).
+	SummaryText i18n.Text
+	Messages    *i18n.Catalog
 }
 
 // Has reports the support the manifest declares for c.

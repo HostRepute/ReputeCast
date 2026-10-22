@@ -1,5 +1,6 @@
 // Package contracttest is the shared contract suite every SMS adapter
-// passes (brief §3.1): sending, delivery receipts and inbound messages,
+// passes (brief §3.1): its manifest and the texts people read in every app
+// language, sending, delivery receipts and inbound messages,
 // signature checks, and the optional capabilities its manifest declares:
 // the account's numbers, webhook registration, opt-out sync, registration
 // status and pricing.
@@ -21,6 +22,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/sms"
 	"github.com/hostrepute/reputecast/internal/sms/smsfake"
 )
@@ -101,6 +103,7 @@ func Run(t *testing.T, s Suite) {
 		t.Fatalf("adapter %q is not registered", s.Adapter)
 	}
 	t.Run("Manifest", func(t *testing.T) { checkManifest(t, d) })
+	t.Run("Texts", func(t *testing.T) { CheckTexts(t, d.Manifest) })
 
 	p := s.New(t, env)
 	t.Run("Capabilities", func(t *testing.T) { checkCapabilities(t, d, p) })
@@ -280,6 +283,33 @@ func hasPhone(list []sms.OptOut, phone string) bool {
 }
 
 var secretish = []string{"secret", "token", "password", "private"}
+
+// CheckTexts checks what people read in a manifest (internal/sms, text.go):
+// the adapter keeps its texts in its own catalog, every text has a message
+// saying what its English says, and the catalog is translated into every
+// app language.
+func CheckTexts(t *testing.T, m sms.Manifest) {
+	t.Helper()
+	if m.Messages == nil {
+		t.Fatalf("%s keeps no catalog: an SMS adapter declares its texts in messages/<locale>.json and calls WithMessages on its manifest", m.Adapter)
+	}
+	for _, x := range m.Texts() {
+		switch {
+		case x.Text.IsZero():
+			t.Errorf("%s %q has no message in %s's catalog, so it reads in English in every language", x.What, x.English, m.Messages.Namespace)
+		case x.Text.In(i18n.Default) != x.English:
+			t.Errorf("%s: the message %s says %q, but the English beside it is %q", x.What, x.Text.ID, x.Text.In(i18n.Default), x.English)
+		}
+	}
+	for _, l := range i18n.Locales() {
+		if l == i18n.English || l == i18n.Pseudo {
+			continue
+		}
+		if missing := m.Messages.Missing(l); len(missing) > 0 {
+			t.Errorf("%s's catalog isn't translated into %s: %s", m.Messages.Namespace, l.Name(), strings.Join(missing, ", "))
+		}
+	}
+}
 
 func checkManifest(t *testing.T, d sms.Descriptor) {
 	if d.Name == "" || d.Summary == "" || d.New == nil || d.Maintainer == "" || d.Version == "" {

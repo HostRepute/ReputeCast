@@ -1,0 +1,27 @@
+{
+  "summary": {
+    "message": "Pay as you go · strong sender ID coverage in Europe",
+    "note": "the catalog card's line"
+  },
+  "badge.opt_out_sync.note": {
+    "message": "from replies and refused texts",
+    "note": "how the opt-out list is learned: Opt-out sync · from replies and refused texts"
+  },
+  "badge.registration.note": {
+    "message": "set by hand",
+    "note": "registrations are entered by hand: Registration status · set by hand"
+  },
+  "field.api_key.label": "API key",
+  "field.api_secret.label": {
+    "message": "API secret",
+    "note": "Vonage's own name for the credential"
+  },
+  "field.signature_secret.label": {
+    "message": "Signature secret",
+    "note": "Vonage's own name for the credential"
+  },
+  "field.signature_secret.help": {
+    "message": "Settings › API settings › Signed webhooks, with HMAC SHA-256. ReputeCast checks every receipt and reply against it.",
+    "note": "Vonage's menu names stay as Vonage writes them"
+  }
+}
