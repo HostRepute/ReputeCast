@@ -6,4 +6,7 @@ export default translate(m, {
   admin: 'Quản trị viên',
   editor: 'Biên tập viên',
   viewer: 'Người xem',
+  // Client roles (glossary › Agency accounts).
+  clientApprover: 'Người duyệt phía khách hàng',
+  clientViewer: 'Người xem phía khách hàng',
 })
