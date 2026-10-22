@@ -121,7 +121,7 @@ const contacts = translate(cf, {
 })
 
 const profile = translate(cp, {
-  title: 'Đơn hàng từ cửa hàng · {store} · {count}',
+  title: 'Đơn hàng tại {store} · {count}',
   titleMany: 'Đơn hàng từ cửa hàng · {count}',
   order: '{name} · {item}',
   orderMore: '{name} · {item} và {more, plural, other {# sản phẩm khác}}',

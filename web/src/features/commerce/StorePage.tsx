@@ -13,7 +13,7 @@ import { AttentionIcon, Tile } from '@/features/integrations/shared'
 import '@/features/integrations/integrations.css'
 import { T, formatList, useT, type MessageDescriptor } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { ago, clock, count, dayMonthDate, longDate, pct } from '@/lib/format'
+import { ago, clock, count, dayMonthDate, dayMonthYear, pct } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useMe, useWorkspace } from '@/lib/session'
 import { ActivityEntry, ActivityLogDialog, type ActivityContext } from './Activity'
@@ -222,7 +222,7 @@ function Header({ page: p, onDialog }: { page: Page_; onDialog: (d: Dialog) => v
   const platform = woo ? t(cm.woocommerce) : t(cm.shopify)
   const st = syncStatus(t, s.sync, s.platform)
   const host = woo ? s.address : storefront(p)
-  const date = p.connectedAt ? longDate(p.connectedAt).replace(/^\S+\s/, '') : ''
+  const date = p.connectedAt ? dayMonthYear(p.connectedAt) : ''
   const facts = woo
     ? s.sync.state === 'no_plugin'
       ? s.demo

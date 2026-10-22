@@ -13,7 +13,7 @@ import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { TableScroll } from '@/components/ui/Table'
 import { T, useT } from '@/i18n'
-import { count } from '@/lib/format'
+import { andList, count } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { mt } from './messages'
 import { mg } from './settings.messages'
@@ -260,7 +260,7 @@ function SettingsForm({ s, cats }: { s: Settings; cats: Schemas['TransactionalCa
                     <input type="checkbox" className="tg" checked readOnly tabIndex={-1} />
                   </div>
                 ))}
-                {essential.length ? <span className="k">{t(mg.previewEssential, { names: essential.map((c) => c.name.toLowerCase()).join(' and ').replace(/^./, (x) => x.toUpperCase()) })}</span> : null}
+                {essential.length ? <span className="k">{t(mg.previewEssential, { names: andList(essential.map((c) => c.name.toLowerCase())).replace(/^./, (x) => x.toUpperCase()) })}</span> : null}
               </div>
               <a className="tx-lnk" href={`/p/${encodeURIComponent(slug)}/preferences`} target="_blank" rel="noopener noreferrer">
                 {t(mg.openPreferences)}
