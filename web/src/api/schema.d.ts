@@ -20463,6 +20463,7 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             createdBy: string;
+            fromCreation?: boolean;
             /** Format: int64 */
             inFlow: number;
             /** Format: date-time */
