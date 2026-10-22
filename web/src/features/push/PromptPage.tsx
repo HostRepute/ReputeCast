@@ -10,7 +10,7 @@ import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Segmented } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
 import { FormsTabs, useFormsOverview } from '@/features/forms/common'
-import { T, useT } from '@/i18n'
+import { T, useT, type MessageDescriptor } from '@/i18n'
 import { count, dayMonthDate, dayMonthYear, monthDayTimeSeconds, pct } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 import { browserName, styleName, throwIfForbidden, type PushPromptConfig } from './common'
@@ -165,6 +165,17 @@ function Designer({ data }: { data: Prompt }) {
       <Badge tone="neutral">{t(m.statusDraft)}</Badge>
     )
   const busy = save.isPending || publish.isPending
+  // "After “Not now”, ask again in [14] days": one sentence around its number field.
+  const askAgain = (
+    <T
+      msg={m.askAgain}
+      values={{
+        text: (c) => <span className="flex-1">{c}</span>,
+        n: <NumberInput value={cfg.askAgainDays} onValue={(n) => set('askAgainDays', Math.max(1, Math.min(365, n)))} label={t(m.daysLabel)} />,
+        unit: (c) => <span className="k">{c}</span>,
+      }}
+    />
+  )
   return (
     <Page
       title={t(m.screenTitle)}
@@ -267,8 +278,7 @@ function Designer({ data }: { data: Prompt }) {
                 <Rule
                   checked={cfg.when.seconds.on}
                   onCheck={(on) => setWhen({ seconds: { ...cfg.when.seconds, on } })}
-                  before={t(m.after)}
-                  after={t(m.secondsOnPage)}
+                  msg={m.ruleSeconds}
                   value={cfg.when.seconds.n}
                   label={t(m.secondsLabel)}
                   onValue={(n) => setWhen({ seconds: { ...cfg.when.seconds, n } })}
@@ -276,8 +286,7 @@ function Designer({ data }: { data: Prompt }) {
                 <Rule
                   checked={cfg.when.scroll.on}
                   onCheck={(on) => setWhen({ scroll: { ...cfg.when.scroll, on } })}
-                  before={t(m.afterScrolling)}
-                  after={t(m.percentOfPost)}
+                  msg={m.ruleScroll}
                   value={cfg.when.scroll.n}
                   label={t(m.percentLabel)}
                   onValue={(n) => setWhen({ scroll: { ...cfg.when.scroll, n: Math.min(100, n) } })}
@@ -285,8 +294,7 @@ function Designer({ data }: { data: Prompt }) {
                 <Rule
                   checked={cfg.when.posts.on}
                   onCheck={(on) => setWhen({ posts: { ...cfg.when.posts, on } })}
-                  before={t(m.afterReading)}
-                  after={t(m.posts)}
+                  msg={m.rulePosts}
                   value={cfg.when.posts.n}
                   label={t(m.postsLabel)}
                   onValue={(n) => setWhen({ posts: { ...cfg.when.posts, n } })}
@@ -311,11 +319,7 @@ function Designer({ data }: { data: Prompt }) {
           <WhereSection data={data} cfg={cfg} set={set} editable={editable} siteKeyState={siteKeyState} setSiteKey={setSiteKey} />
           <fieldset className="pp-sec m-0 min-w-0 border-x-0 border-t-0" disabled={!editable}>
             <legend className="t float-left mb-[9px] w-full">{t(m.frequency)}</legend>
-            <label className="pp-rule clear-both">
-              <span className="flex-1">{t(m.askAgain)}</span>
-              <NumberInput value={cfg.askAgainDays} onValue={(n) => set('askAgainDays', Math.max(1, Math.min(365, n)))} label={t(m.daysLabel)} />
-              <span className="k">{t(m.days)}</span>
-            </label>
+            <label className="pp-rule clear-both">{askAgain}</label>
             <span className="k text-ink-2">{t(m.frequencyHint)}</span>
           </fieldset>
           <fieldset className="pp-sec m-0 min-w-0 border-x-0 border-t-0" disabled={!editable}>
@@ -493,28 +497,28 @@ function NumberInput({ value, onValue, label }: { value: number; onValue: (n: nu
   )
 }
 
+/** A "When" rule: one sentence with its number field in it ("After [30] seconds on a page"). */
 function Rule({
   checked,
   onCheck,
-  before,
-  after,
+  msg,
   value,
   label,
   onValue,
 }: {
   checked: boolean
   onCheck: (on: boolean) => void
-  before: string
-  after: string
+  msg: MessageDescriptor
   value: number
   label: string
   onValue: (n: number) => void
 }) {
+  const t = useT()
   return (
     <div className="pp-rule clear-both">
-      <input type="checkbox" checked={checked} onChange={(e) => onCheck(e.target.checked)} aria-label={`${before} ${value} ${after}`} />
+      <input type="checkbox" checked={checked} onChange={(e) => onCheck(e.target.checked)} aria-label={t(msg, { n: value })} />
       <span className="min-w-0 flex-1">
-        {before} <NumberInput value={value} onValue={(n) => onValue(Math.max(1, n))} label={label} /> {after}
+        <T msg={msg} values={{ n: <NumberInput value={value} onValue={(n) => onValue(Math.max(1, n))} label={label} /> }} />
       </span>
     </div>
   )
@@ -887,7 +891,6 @@ function Consent({ data }: { data: Prompt }) {
   const t = useT()
   const { slug } = useWorkspace()
   const c = data.consent
-  const how = c?.linkedBy === 'member' ? m.linkedMember : c?.linkedBy === 'account' ? m.linkedAccount : c?.linkedBy === 'preferences' ? m.linkedPreferences : m.linkedLink
   return (
     <div className="card flex flex-col gap-3 px-[18px] py-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2.5">
@@ -905,7 +908,8 @@ function Consent({ data }: { data: Prompt }) {
                   browser: t(browserName(c.browser, true)),
                   site: c.site,
                   name: c.contact,
-                  how: t(how),
+                  // member, preferences or account; anything else came from a link.
+                  how: c.linkedBy ?? '',
                   link: (x) => (
                     <Link to="/w/$workspace/audience/contacts/$contactId" params={{ workspace: slug, contactId: c.contactId! }}>
                       {x}

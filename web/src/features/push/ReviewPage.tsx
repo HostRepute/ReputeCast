@@ -185,7 +185,7 @@ function Review({ d, onRecheck, rechecking }: { d: Review; onRecheck: () => void
               {d.test ? (
                 <div className="flex items-center justify-between gap-2 text-[13px]">
                   <span className="k text-[12.5px]">{t(m.testLine, { browser: t(browserName(d.test.browser)), time: clock(d.test.at) })}</span>
-                  <Badge tone={d.test.status === 'failed' ? 'bad' : d.test.status === 'shown' || d.test.status === 'clicked' ? 'ok' : 'neutral'}>{d.test.status}</Badge>
+                  <Badge tone={d.test.status === 'failed' ? 'bad' : d.test.status === 'shown' || d.test.status === 'clicked' ? 'ok' : 'neutral'}>{t(m.testStatus, { status: d.test.status })}</Badge>
                 </div>
               ) : (
                 <span className="k">{t(m.testNone)}</span>
@@ -296,7 +296,7 @@ function Verdict({
     text = (
       <T
         msg={d.approval.required && !d.access.canSend ? m.approvalText : d.approval.required ? m.approvalTextRules : m.approvalText}
-        values={{ perm: <span className="mono">push:send</span>, helpers: orList(helpers) }}
+        values={{ perm: <span className="mono">{'push:send'}</span>, helpers: orList(helpers) }}
       />
     )
   } else if (approved) {
@@ -436,7 +436,7 @@ function CheckRow({ c, d }: { c: Check; d: Review }) {
       detail =
         c.status === 'pass' ? (
           c.author ? (
-            <T msg={m.approvalOk} values={{ name: c.author, perm: <span className="mono">push:send</span> }} />
+            <T msg={m.approvalOk} values={{ name: c.author, perm: <span className="mono">{'push:send'}</span> }} />
           ) : (
             t(m.approvalOkAnon)
           )
