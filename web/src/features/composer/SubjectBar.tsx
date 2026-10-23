@@ -45,7 +45,11 @@ export function SubjectBar() {
     : digest && !spam
       ? t(dc.subjectLabel)
       : spam
-    ? t(m.subjectSpam, { count: heuristics.length, list: heuristics.join(', ') })
+    ? t(m.subjectSpam, {
+        count: heuristics.length,
+        // The checks name each heuristic in English ("all caps"); the label names it in the app's language.
+        list: heuristics.map((h) => t(m.subjectHeuristic, { h: h.replace(/[^a-z]+/gi, '_').toLowerCase(), name: h })).join(', '),
+      })
     : c.abTest && c.abTest.kind === 'subject'
       ? t(m.subjectVariant, { variant: c.variant })
       : t(m.subject)
