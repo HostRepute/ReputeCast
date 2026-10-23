@@ -20,5 +20,8 @@
   "error.hotFrom": { "message": "Hot starts above Warm ({warm}) and at 100 at most.", "note": "warm: the Warm threshold" },
   "error.conflict": "Someone saved scoring after you opened it. Reload to see their changes, then make yours again.",
   "error.nothingToRetry": "No recalculation stopped, so there is nothing to try again.",
-  "error.notSetUp": "This workspace hasn't set up scoring yet."
+  "error.notSetUp": "This workspace hasn't set up scoring yet.",
+
+  "notify.recalcTitle": { "message": "Score recalculation finished", "note": "the notification when a recalculation of every contact's score is done" },
+  "notify.recalcBody": { "message": "{changed, plural, one {1 contact changed band} other {# contacts changed band}}{flows, select, one { · {flow1} {start, select, yes {started} other {not started}} for {n1}} two { · {flow1} {start, select, yes {started} other {not started}} for {n1} · {flow2} {start, select, yes {started} other {not started}} for {n2}} three { · {flow1} {start, select, yes {started} other {not started}} for {n1} · {flow2} {start, select, yes {started} other {not started}} for {n2} · {flow3} {start, select, yes {started} other {not started}} for {n3}} other {}}", "note": "flow1…flow3: the names of \"Score crosses…\" automations; n1…n3: how many contacts each started (or would have started) for" }
 }
