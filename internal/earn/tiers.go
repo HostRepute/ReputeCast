@@ -453,8 +453,13 @@ var slugRe = regexp.MustCompile(`[^a-z0-9]+`)
 func slugFrom(name string) string {
 	s := strings.ToLower(norm.NFKD.String(name))
 	s = strings.Map(func(r rune) rune {
-		if unicode.Is(unicode.Mn, r) {
+		switch {
+		case unicode.Is(unicode.Mn, r):
 			return -1
+		case r == 'đ':
+			// Vietnamese đ has no mark to drop: "Hội viên Đặc biệt" →
+			// hoi-vien-dac-biet.
+			return 'd'
 		}
 		return r
 	}, s)

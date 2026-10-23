@@ -128,6 +128,16 @@ func TestFormatsInEachLanguage(t *testing.T) {
 	}
 }
 
+// A tier's address from a name in another language keeps its letters,
+// without their marks (đ included).
+func TestSlugFromFoldsMarks(t *testing.T) {
+	for in, want := range map[string]string{"Hội viên Đặc biệt": "hoi-vien-dac-biet", "Weekly Digest Insider": "weekly-digest-insider"} {
+		if got := slugFrom(in); got != want {
+			t.Errorf("slugFrom(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
 // A source ReputeCast wrote before sources kept their message reads in the
 // reader's language; one a person wrote stays as stored.
 func TestSourceKept(t *testing.T) {
