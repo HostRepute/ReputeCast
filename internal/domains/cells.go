@@ -2,10 +2,10 @@ package domains
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/hostrepute/reputecast/internal/dnscheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -53,9 +53,14 @@ func decodeSummary(raw json.RawMessage) dnscheck.AuthSummary {
 
 func cell(text, tone string) SenderDomainCell { return SenderDomainCell{Text: text, Tone: tone} }
 
+// cellIn is a cell whose text is one of the package's messages.
+func cellIn(l i18n.Lang, key, tone string, args i18n.Args) SenderDomainCell {
+	return cell(text(l, key, args), tone)
+}
+
 // domainRow builds one row of the domains table from the stored records and
-// the last authentication check.
-func domainRow(d store.SendingDomain, provs []store.Provider) SendingDomainRow {
+// the last authentication check, in a reader's language.
+func domainRow(l i18n.Lang, d store.SendingDomain, provs []store.Provider) SendingDomainRow {
 	recs := DecodeRecords(d.DnsRecords)
 	sum := decodeSummary(d.AuthSummary)
 	det := decodeAuthDetail(d.AuthDetail)
@@ -100,7 +105,7 @@ func domainRow(d store.SendingDomain, provs []store.Provider) SendingDomainRow {
 			dkimVerified++
 		}
 	}
-	row.DKIM = dkimCell(dkimProviders, dkimVerified, pendingType, pendingIndex, pendingTotal)
+	row.DKIM = dkimCell(l, dkimProviders, dkimVerified, pendingType, pendingIndex, pendingTotal)
 	// With the providers' own return paths, receivers check SPF on the
 	// providers' domains, so the domain's own qualifier says nothing about
 	// this mail.
@@ -108,39 +113,42 @@ func domainRow(d store.SendingDomain, provs []store.Provider) SendingDomainRow {
 	if len(det.MailFrom) == 0 {
 		qualifier = ""
 	}
-	row.SPF = spfCell(sum.SPF, qualifier)
-	row.DMARC = dmarcCell(sum.DMARC)
-	row.ReturnPath = returnPathCell(det.MailFrom, d.Domain)
-	row.Tracking = trackingCell(d.TrackingDomain, d.TrackingStatus)
+	row.SPF = spfCell(l, sum.SPF, qualifier)
+	row.DMARC = dmarcCell(l, sum.DMARC)
+	row.ReturnPath = returnPathCell(l, det.MailFrom, d.Domain)
+	row.Tracking = trackingCell(l, d.TrackingDomain, d.TrackingStatus)
 	if d.Transactional && d.TrackingDomain == "" {
 		// Transactional templates track nothing by default (SettingsSenders).
-		row.Tracking = cell("Off · no tracking", "neutral")
+		row.Tracking = cellIn(l, "cell.offNoTracking", "neutral", nil)
 	}
-	row.BIMI = bimiCell(sum.BIMI)
+	row.BIMI = bimiCell(l, sum.BIMI)
 	if d.LastCheckedAt == nil {
-		row.SPF, row.DMARC, row.BIMI = cell("Not checked", "neutral"), cell("Not checked", "neutral"), cell("Not checked", "neutral")
+		notChecked := cellIn(l, "cell.notChecked", "neutral", nil)
+		row.SPF, row.DMARC, row.BIMI = notChecked, notChecked, notChecked
 	}
 	return row
 }
 
 // dkimCell: "3 of 3 providers", "Verified", "Pending CNAME 2 of 3".
-func dkimCell(providers, verified int, pendingType string, pendingIndex, pendingTotal int) SenderDomainCell {
+func dkimCell(l i18n.Lang, providers, verified int, pendingType string, pendingIndex, pendingTotal int) SenderDomainCell {
 	switch {
 	case providers == 0:
-		return cell("Not set up", "neutral")
+		return cellIn(l, "cell.notSetUp", "neutral", nil)
 	case verified == providers && providers == 1:
-		return cell("Verified", "ok")
+		return cellIn(l, "cell.verified", "ok", nil)
 	case verified == providers:
-		return cell(fmt.Sprintf("%d of %d providers", verified, providers), "ok")
+		return cellIn(l, "cell.providers", "ok", i18n.Args{"verified": verified, "total": providers})
 	case providers == 1 && pendingTotal > 1:
-		return cell(fmt.Sprintf("Pending %s %d of %d", pendingType, pendingIndex, pendingTotal), "warn")
+		return cellIn(l, "cell.pendingRecord", "warn", i18n.Args{"type": pendingType, "index": pendingIndex, "total": pendingTotal})
 	case providers == 1:
-		return cell("Pending", "warn")
+		return cellIn(l, "cell.pending", "warn", nil)
 	}
-	return cell(fmt.Sprintf("%d of %d providers", verified, providers), "warn")
+	return cellIn(l, "cell.providers", "warn", i18n.Args{"verified": verified, "total": providers})
 }
 
-func spfCell(status, all string) SenderDomainCell {
+// spfCell is the SPF cell: the result as DNS says it ("pass · -all"), or
+// what went wrong.
+func spfCell(l i18n.Lang, status, all string) SenderDomainCell {
 	switch status {
 	case dnscheck.StatusPass:
 		if all == "-all" {
@@ -148,40 +156,41 @@ func spfCell(status, all string) SenderDomainCell {
 		}
 		return cell("pass", "ok")
 	case dnscheck.StatusMissing:
-		return cell("Missing", "bad")
+		return cellIn(l, "cell.missing", "bad", nil)
 	case dnscheck.StatusTooMany:
-		return cell("Too many lookups", "bad")
+		return cellIn(l, "cell.tooManyLookups", "bad", nil)
 	case dnscheck.StatusFail:
 		return cell("fail", "bad")
 	case dnscheck.StatusInvalid:
-		return cell("Invalid", "bad")
+		return cellIn(l, "cell.invalid", "bad", nil)
 	case "":
-		return cell("Not checked", "neutral")
+		return cellIn(l, "cell.notChecked", "neutral", nil)
 	}
-	return cell("Couldn't check", "neutral")
+	return cellIn(l, "cell.couldntCheck", "neutral", nil)
 }
 
-func dmarcCell(v string) SenderDomainCell {
+// dmarcCell is the DMARC cell: the policy as DNS writes it ("p=quarantine").
+func dmarcCell(l i18n.Lang, v string) SenderDomainCell {
 	switch v {
 	case "quarantine", "reject":
 		return cell("p="+v, "ok")
 	case "none":
 		return cell("p=none", "warn")
 	case dnscheck.StatusMissing:
-		return cell("Missing", "bad")
+		return cellIn(l, "cell.missing", "bad", nil)
 	case dnscheck.StatusInvalid:
-		return cell("Invalid", "bad")
+		return cellIn(l, "cell.invalid", "bad", nil)
 	case "":
-		return cell("Not checked", "neutral")
+		return cellIn(l, "cell.notChecked", "neutral", nil)
 	}
-	return cell("Couldn't check", "neutral")
+	return cellIn(l, "cell.couldntCheck", "neutral", nil)
 }
 
 // returnPathCell lists the custom MAIL FROM hosts by their first label
 // ("bounce. · rp."), or "Default" when the providers use their own.
-func returnPathCell(hosts []MailFromHost, domain string) SenderDomainCell {
+func returnPathCell(l i18n.Lang, hosts []MailFromHost, domain string) SenderDomainCell {
 	if len(hosts) == 0 {
-		return cell("Default", "neutral")
+		return cellIn(l, "cell.default", "neutral", nil)
 	}
 	parts := make([]string, 0, len(hosts))
 	tone := "ok"
@@ -198,26 +207,24 @@ func returnPathCell(hosts []MailFromHost, domain string) SenderDomainCell {
 	return cell(strings.Join(parts, " · "), tone)
 }
 
-func trackingCell(domain, status string) SenderDomainCell {
+func trackingCell(l i18n.Lang, domain, status string) SenderDomainCell {
 	switch {
 	case domain == "":
-		return cell("None", "neutral")
+		return cellIn(l, "cell.none", "neutral", nil)
 	case status == StatusVerified:
 		return cell(domain, "ok")
 	case status == StatusMissing || status == StatusWrong:
-		return cell(domain+" · not pointed yet", "warn")
+		return cellIn(l, "cell.trackingNotPointed", "warn", i18n.Args{"domain": domain})
 	}
-	return cell(domain+" · pending", "warn")
+	return cellIn(l, "cell.trackingPending", "warn", i18n.Args{"domain": domain})
 }
 
-func bimiCell(status string) SenderDomainCell {
+func bimiCell(l i18n.Lang, status string) SenderDomainCell {
 	switch status {
 	case dnscheck.StatusPass:
-		return cell("Set", "ok")
+		return cellIn(l, "cell.set", "ok", nil)
 	case dnscheck.StatusInvalid:
-		return cell("Invalid", "warn")
-	case "", dnscheck.StatusMissing:
-		return cell("Not set", "neutral")
+		return cellIn(l, "cell.invalid", "warn", nil)
 	}
-	return cell("Not set", "neutral")
+	return cellIn(l, "cell.notSet", "neutral", nil)
 }

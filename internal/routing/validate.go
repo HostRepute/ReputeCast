@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 )
 
@@ -49,8 +50,9 @@ type RoutingIssue struct {
 	Blocking   bool   `json:"blocking"`
 }
 
-// Validate checks a routing set against the connected providers.
-func Validate(set Set, facts map[uuid.UUID]Facts) []RoutingIssue {
+// Validate checks a routing set against the connected providers; the
+// issues' messages are in the reader's language.
+func Validate(l i18n.Lang, set Set, facts map[uuid.UUID]Facts) []RoutingIssue {
 	issues := []RoutingIssue{}
 	for _, stream := range Streams {
 		st := string(stream)
@@ -62,7 +64,7 @@ func Validate(set Set, facts map[uuid.UUID]Facts) []RoutingIssue {
 			continue
 		}
 		if !hasDefault {
-			issues = append(issues, RoutingIssue{Code: IssueNoRoute, Stream: st, Field: "splits", Message: streamName(stream) + " has no primary provider.", Blocking: true})
+			issues = append(issues, RoutingIssue{Code: IssueNoRoute, Stream: st, Field: "splits", Message: text(l, "issue.noRoute", i18n.Args{"stream": streamArg(stream)}), Blocking: true})
 			continue
 		}
 		total := 0
@@ -70,24 +72,25 @@ func Validate(set Set, facts map[uuid.UUID]Facts) []RoutingIssue {
 		for _, sp := range def.Splits {
 			total += sp.Weight
 			if seen[sp.ProviderID] {
-				issues = append(issues, RoutingIssue{Code: IssueDuplicate, Stream: st, Field: "splits", ProviderID: sp.ProviderID.String(), Message: "A provider appears twice in the split.", Blocking: true})
+				issues = append(issues, RoutingIssue{Code: IssueDuplicate, Stream: st, Field: "splits", ProviderID: sp.ProviderID.String(), Message: text(l, "issue.duplicate", nil), Blocking: true})
 			}
 			seen[sp.ProviderID] = true
 			if _, ok := facts[sp.ProviderID]; !ok {
-				issues = append(issues, RoutingIssue{Code: IssueUnknownProvider, Stream: st, Field: "splits", ProviderID: sp.ProviderID.String(), Message: "This provider is not connected to the workspace.", Blocking: true})
+				issues = append(issues, RoutingIssue{Code: IssueUnknownProvider, Stream: st, Field: "splits", ProviderID: sp.ProviderID.String(), Message: text(l, "issue.unknownProvider", nil), Blocking: true})
 			}
 			if sp.Weight < 0 || sp.Weight > 100 {
-				issues = append(issues, RoutingIssue{Code: IssueWeights, Stream: st, Field: "splits", Message: "Shares go from 0 to 100%.", Blocking: true})
+				issues = append(issues, RoutingIssue{Code: IssueWeights, Stream: st, Field: "splits", Message: text(l, "issue.weightRange", i18n.Args{"min": 0, "max": 1}), Blocking: true})
 			}
 		}
 		if total != 100 {
-			issues = append(issues, RoutingIssue{Code: IssueWeights, Stream: st, Field: "splits", Message: fmt.Sprintf("The %s split adds up to %d%%; it must add up to 100%%.", streamName(stream), total), Blocking: true})
+			issues = append(issues, RoutingIssue{Code: IssueWeights, Stream: st, Field: "splits",
+				Message: text(l, "issue.weightSum", i18n.Args{"stream": streamArg(stream), "total": float64(total) / 100, "full": 1}), Blocking: true})
 		}
 		if def.Fallback != nil {
 			if _, ok := facts[*def.Fallback]; !ok {
-				issues = append(issues, RoutingIssue{Code: IssueUnknownProvider, Stream: st, Field: "fallback", ProviderID: def.Fallback.String(), Message: "The fallback is not connected to the workspace.", Blocking: true})
+				issues = append(issues, RoutingIssue{Code: IssueUnknownProvider, Stream: st, Field: "fallback", ProviderID: def.Fallback.String(), Message: text(l, "issue.fallbackUnknown", nil), Blocking: true})
 			} else if seen[*def.Fallback] {
-				issues = append(issues, RoutingIssue{Code: IssueFallbackIsRoute, Stream: st, Field: "fallback", ProviderID: def.Fallback.String(), Message: "The fallback is already part of the split; pick another provider or none.", Blocking: true})
+				issues = append(issues, RoutingIssue{Code: IssueFallbackIsRoute, Stream: st, Field: "fallback", ProviderID: def.Fallback.String(), Message: text(l, "issue.fallbackInSplit", nil), Blocking: true})
 			}
 		}
 		for i, r := range rules {
@@ -96,11 +99,11 @@ func Validate(set Set, facts map[uuid.UUID]Facts) []RoutingIssue {
 			}
 			field := fmt.Sprintf("conditions[%d]", i)
 			if len(r.Splits) != 1 {
-				issues = append(issues, RoutingIssue{Code: IssueWeights, Stream: st, Field: field, Message: "A condition sends to exactly one provider.", Blocking: true})
+				issues = append(issues, RoutingIssue{Code: IssueWeights, Stream: st, Field: field, Message: text(l, "issue.conditionOne", nil), Blocking: true})
 				continue
 			}
 			if _, ok := facts[r.Splits[0].ProviderID]; !ok {
-				issues = append(issues, RoutingIssue{Code: IssueUnknownProvider, Stream: st, Field: field, ProviderID: r.Splits[0].ProviderID.String(), Message: "This provider is not connected to the workspace.", Blocking: true})
+				issues = append(issues, RoutingIssue{Code: IssueUnknownProvider, Stream: st, Field: field, ProviderID: r.Splits[0].ProviderID.String(), Message: text(l, "issue.unknownProvider", nil), Blocking: true})
 			}
 		}
 		// Terms: every provider that can carry Broadcasts must allow bulk mail.
@@ -110,9 +113,9 @@ func Validate(set Set, facts map[uuid.UUID]Facts) []RoutingIssue {
 				if !ok || f.BulkAllowed {
 					return
 				}
-				msg := f.Name + "'s terms don't allow bulk marketing."
+				msg := text(l, "issue.bulkTerms", i18n.Args{"provider": f.Name})
 				if f.Bulk == providers.BulkBroadcastStreams {
-					msg = f.Name + " allows bulk mail only on a Broadcast stream, and this route uses its transactional stream."
+					msg = text(l, "issue.bulkStreams", i18n.Args{"provider": f.Name})
 				}
 				issues = append(issues, RoutingIssue{Code: IssueBulkTerms, Stream: st, Field: field, ProviderID: id.String(), Message: msg})
 			}
@@ -130,11 +133,11 @@ func Validate(set Set, facts map[uuid.UUID]Facts) []RoutingIssue {
 		// A warming-up fallback can't take a broadcast until it's warm.
 		if def.Fallback != nil {
 			if f, ok := facts[*def.Fallback]; ok && f.WarmingUp && stream == providers.StreamBroadcast && set.Policy(stream) != PauseAndAsk {
-				msg := f.Name + " is warming up"
+				args := i18n.Args{"provider": f.Name, "hasDay": "no", "day": f.WarmupDays}
 				if f.WarmupDays > 0 {
-					msg += fmt.Sprintf(": failover to it is blocked by the warm-up guard until day %d", f.WarmupDays)
+					args["hasDay"] = "yes"
 				}
-				issues = append(issues, RoutingIssue{Code: IssueWarmingFallback, Stream: st, Field: "fallback", ProviderID: f.ID.String(), Message: msg + "."})
+				issues = append(issues, RoutingIssue{Code: IssueWarmingFallback, Stream: st, Field: "fallback", ProviderID: f.ID.String(), Message: text(l, "issue.warmingFallback", args)})
 			}
 		}
 	}
@@ -149,16 +152,4 @@ func Blocking(issues []RoutingIssue) bool {
 		}
 	}
 	return false
-}
-
-func streamName(s providers.Stream) string {
-	switch s {
-	case providers.StreamBroadcast:
-		return "Broadcasts"
-	case providers.StreamAutomation:
-		return "Automations"
-	case StreamTransactional:
-		return "Transactional"
-	}
-	return "System"
 }

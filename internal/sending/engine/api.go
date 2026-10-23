@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/sending"
 )
 
@@ -31,6 +32,9 @@ type liveStreamInput struct {
 	// The browser can't set Last-Event-ID on a new EventSource, so a client
 	// that reconnects by itself passes it in the query.
 	LastEventIDQuery string `query:"lastEventId" doc:"Same as the Last-Event-ID header, for clients that reconnect by themselves"`
+	// An EventSource can't set Accept-Language either: the app passes its
+	// language here, or the snapshots read in the browser's.
+	Lang string `query:"lang" doc:"The language the snapshots' words read in (en, vi); like Accept-Language, for clients that can't set headers"`
 }
 
 // LivePauseRequest pauses a running send.
@@ -100,10 +104,10 @@ func Register(h huma.API, e *Engine) {
 			ws := api.WorkspaceFrom(ctx)
 			s, err := e.Snapshot(ctx, ws.ID, id)
 			if err != nil {
-				return nil, mapErr(err)
+				return nil, mapErr(ctx, err)
 			}
 			s.Helpers = &LiveHelpers{Pause: access.Helpers(ctx, e.Q, ws.ID, authz.CampaignsPause), Send: access.Helpers(ctx, e.Q, ws.ID, authz.CampaignsSend)}
-			return api.OK(s), nil
+			return api.OK(s.In(i18n.LangFrom(ctx))), nil
 		})
 	sse.Register(h, huma.Operation{
 		OperationID: "stream-live-send", Method: http.MethodGet, Path: api.Version + base + "/stream",
@@ -124,6 +128,12 @@ func Register(h huma.API, e *Engine) {
 		if _, err := e.Snapshot(ctx, ws.ID, id); err != nil {
 			return
 		}
+		// One snapshot is computed for every watcher; each reads it in their
+		// own language.
+		lang := i18n.LangFrom(ctx)
+		if in.Lang != "" {
+			lang = api.RequestLang(in.Lang, api.UserFrom(ctx))
+		}
 		updates, cancel := e.Subscribe(ctx, ws.ID, id)
 		defer cancel()
 		resumed := in.LastEventID != "" || in.LastEventIDQuery != ""
@@ -135,6 +145,7 @@ func Register(h huma.API, e *Engine) {
 			case <-ctx.Done():
 				return
 			case s := <-updates:
+				s = s.In(lang)
 				s.Resumed = resumed
 				resumed = false
 				if err := send(sse.Message{ID: int(s.Version), Data: s}); err != nil {
@@ -155,7 +166,7 @@ func Register(h huma.API, e *Engine) {
 				return nil, err
 			}
 			if err := e.Pause(ctx, id, by, in.Body.Reason); err != nil {
-				return nil, mapErr(err)
+				return nil, mapErr(ctx, err)
 			}
 			return e.result(ctx, id, LiveActionResult{})
 		})
@@ -170,13 +181,13 @@ func Register(h huma.API, e *Engine) {
 			if in.Body.ProviderID != "" {
 				pid, err := uuid.Parse(in.Body.ProviderID)
 				if err != nil {
-					return nil, api.Invalid("body.providerId", "That isn't a provider id.")
+					return nil, api.Invalid("body.providerId", say(ctx, "problem.providerId", nil))
 				}
 				req.ProviderID = &pid
 			}
 			res, err := e.ResumeScope(ctx, id, by, req)
 			if err != nil {
-				return nil, mapErr(err)
+				return nil, mapErr(ctx, err)
 			}
 			return e.result(ctx, id, LiveActionResult{Excluded: res.Excluded})
 		})
@@ -191,13 +202,13 @@ func Register(h huma.API, e *Engine) {
 			if in.Body.ProviderID != "" {
 				p, err := uuid.Parse(in.Body.ProviderID)
 				if err != nil {
-					return nil, api.Invalid("body.providerId", "That isn't a provider id.")
+					return nil, api.Invalid("body.providerId", say(ctx, "problem.providerId", nil))
 				}
 				pid = &p
 			}
 			n, err := e.CancelShare(ctx, id, by, in.Body.Mailbox, pid)
 			if err != nil {
-				return nil, mapErr(err)
+				return nil, mapErr(ctx, err)
 			}
 			return e.result(ctx, id, LiveActionResult{Cancelled: n})
 		})
@@ -211,11 +222,11 @@ func Register(h huma.API, e *Engine) {
 			from, err1 := uuid.Parse(in.Body.FromProviderID)
 			to, err2 := uuid.Parse(in.Body.ToProviderID)
 			if err1 != nil || err2 != nil {
-				return nil, api.Invalid("body", "Pick the providers to move between.")
+				return nil, api.Invalid("body", say(ctx, "problem.pickProviders", nil))
 			}
 			n, err := e.MoveShare(ctx, id, by, from, to)
 			if err != nil {
-				return nil, mapErr(err)
+				return nil, mapErr(ctx, err)
 			}
 			return e.result(ctx, id, LiveActionResult{Moved: n})
 		})
@@ -228,10 +239,10 @@ func Register(h huma.API, e *Engine) {
 			}
 			pid, err := uuid.Parse(in.Body.ProviderID)
 			if err != nil {
-				return nil, api.Invalid("body.providerId", "That isn't a provider id.")
+				return nil, api.Invalid("body.providerId", say(ctx, "problem.providerId", nil))
 			}
 			if err := e.RetryRoute(ctx, id, by, pid); err != nil {
-				return nil, mapErr(err)
+				return nil, mapErr(ctx, err)
 			}
 			return e.result(ctx, id, LiveActionResult{})
 		})
@@ -243,7 +254,7 @@ func Register(h huma.API, e *Engine) {
 				return nil, err
 			}
 			if err := e.PickWinner(ctx, id, by, in.Body.Variant); err != nil {
-				return nil, mapErr(err)
+				return nil, mapErr(ctx, err)
 			}
 			return e.result(ctx, id, LiveActionResult{})
 		})
@@ -252,9 +263,9 @@ func Register(h huma.API, e *Engine) {
 func (e *Engine) result(ctx context.Context, id uuid.UUID, r LiveActionResult) (*api.Body[LiveActionResult], error) {
 	s, err := e.Snapshot(ctx, api.WorkspaceFrom(ctx).ID, id)
 	if err != nil {
-		return nil, mapErr(err)
+		return nil, mapErr(ctx, err)
 	}
-	r.Snapshot = s
+	r.Snapshot = s.In(i18n.LangFrom(ctx))
 	return api.OK(r), nil
 }
 
@@ -281,7 +292,8 @@ func (e *Engine) actionIDs(ctx context.Context, raw string) (uuid.UUID, uuid.UUI
 	return id, by, nil
 }
 
-func mapErr(err error) error {
+// mapErr turns the engine's errors into problems in the request's language.
+func mapErr(ctx context.Context, err error) error {
 	var se *StateError
 	switch {
 	case err == nil:
@@ -289,13 +301,14 @@ func mapErr(err error) error {
 	case errors.Is(err, ErrNotFound):
 		return api.NotFound("Campaign")
 	case errors.As(err, &se):
-		return api.Conflict(se.Msg)
+		return api.Conflict(se.In(i18n.LangFrom(ctx)))
 	case errors.Is(err, sending.ErrNotReady):
 		var nr *sending.NotReadyError
 		if errors.As(err, &nr) && nr.Reason != "" {
-			return api.Conflict("Send Readiness is blocked (" + strings.TrimSuffix(nr.Reason, ".") + "), so the send didn't start. Fix the blocking checks on Review & send.")
+			// The blocking check's title is Send Readiness's own words.
+			return api.Conflict(say(ctx, "problem.readinessBlocked", i18n.Args{"reason": strings.TrimSuffix(nr.Reason, ".")}))
 		}
-		return api.Conflict("Send Readiness is blocked, so the send didn't start. Fix the blocking checks on Review & send.")
+		return api.Conflict(say(ctx, "problem.readinessBlockedAny", nil))
 	}
 	return err
 }

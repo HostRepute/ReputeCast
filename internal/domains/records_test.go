@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/dnscheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -51,7 +52,7 @@ func TestRecordLabels(t *testing.T) {
 		{ProviderID: "a", Purpose: PurposeSPF, Type: "TXT", Name: "news.acme.io"},
 		{Purpose: PurposeDMARC, Type: "TXT", Name: "_dmarc.news.acme.io"},
 	}
-	labels, notes := recordLabels(recs, "news.acme.io", func(string) string { return "Easy DKIM, 2048-bit" })
+	labels, notes := recordLabels(i18n.Default, recs, "news.acme.io", func(string) string { return "Easy DKIM, 2048-bit" })
 	want := []string{"DKIM 1 of 2", "DKIM 2 of 2", "Return-path / MAIL FROM", "SPF for MAIL FROM", "SPF for the sending domain", "DMARC"}
 	for i, w := range want {
 		if labels[i] != w {
@@ -67,22 +68,22 @@ func TestRecordLabels(t *testing.T) {
 }
 
 func TestCells(t *testing.T) {
-	if c := dkimCell(3, 3, "", 0, 0); c.Text != "3 of 3 providers" || c.Tone != "ok" {
+	if c := dkimCell(i18n.Default, 3, 3, "", 0, 0); c.Text != "3 of 3 providers" || c.Tone != "ok" {
 		t.Errorf("dkim all: %+v", c)
 	}
-	if c := dkimCell(1, 0, "CNAME", 2, 3); c.Text != "Pending CNAME 2 of 3" || c.Tone != "warn" {
+	if c := dkimCell(i18n.Default, 1, 0, "CNAME", 2, 3); c.Text != "Pending CNAME 2 of 3" || c.Tone != "warn" {
 		t.Errorf("dkim pending: %+v", c)
 	}
-	if c := spfCell("pass", "-all"); c.Text != "pass · -all" {
+	if c := spfCell(i18n.Default, "pass", "-all"); c.Text != "pass · -all" {
 		t.Errorf("spf: %+v", c)
 	}
-	if c := dmarcCell("none"); c.Text != "p=none" || c.Tone != "warn" {
+	if c := dmarcCell(i18n.Default, "none"); c.Text != "p=none" || c.Tone != "warn" {
 		t.Errorf("dmarc none: %+v", c)
 	}
-	if c := returnPathCell([]MailFromHost{{Host: "bounce.news.acme.io", Status: "aligned"}, {Host: "rp.news.acme.io", Status: "aligned"}}, "news.acme.io"); c.Text != "bounce. · rp." {
+	if c := returnPathCell(i18n.Default, []MailFromHost{{Host: "bounce.news.acme.io", Status: "aligned"}, {Host: "rp.news.acme.io", Status: "aligned"}}, "news.acme.io"); c.Text != "bounce. · rp." {
 		t.Errorf("return path: %+v", c)
 	}
-	if c := returnPathCell(nil, "acme.io"); c.Text != "Default" {
+	if c := returnPathCell(i18n.Default, nil, "acme.io"); c.Text != "Default" {
 		t.Errorf("default return path: %+v", c)
 	}
 }
@@ -95,13 +96,13 @@ func TestDNSHostName(t *testing.T) {
 
 func TestNormalizeDomain(t *testing.T) {
 	for in, want := range map[string]string{"News.Acme.io.": "news.acme.io", "https://acme.io": "acme.io", "hello@news.acme.io": "news.acme.io", "bücher.example": "xn--bcher-kva.example"} {
-		got, err := NormalizeDomain("d", in)
+		got, err := NormalizeDomain(context.Background(), "d", in)
 		if err != nil || got != want {
 			t.Errorf("NormalizeDomain(%q) = %q, %v", in, got, err)
 		}
 	}
 	for _, bad := range []string{"localhost", "a b.com", "-x.com", ""} {
-		if _, err := NormalizeDomain("d", bad); err == nil {
+		if _, err := NormalizeDomain(context.Background(), "d", bad); err == nil {
 			t.Errorf("NormalizeDomain(%q) should fail", bad)
 		}
 	}
@@ -118,7 +119,7 @@ func TestVerifyRecords(t *testing.T) {
 	if spf.Status != StatusWrong || spf.Value != "v=spf1 include:_spf.google.com include:amazonses.com -all" || spf.Found == "" || spf.TTL != 0 {
 		t.Errorf("domain SPF: %+v", spf)
 	}
-	if got := statusText(spf); got != "Pending · old value still cached" {
+	if got := statusText(i18n.Default, spf); got != "Pending · old value still cached" {
 		t.Errorf("status without a TTL: %q", got)
 	}
 	// With a TTL lookup, the old value's TTL says how long it may be cached.
@@ -129,8 +130,8 @@ func TestVerifyRecords(t *testing.T) {
 		return time.Hour, nil
 	}
 	spf = s.verify(ctx, "news.example.com", Record{Purpose: PurposeSPF, Type: "TXT", Name: "news.example.com", Mechanisms: []string{"include:amazonses.com"}})
-	if spf.TTL != 3600 || statusText(spf) != "Pending · old value still cached (TTL 3600)" {
-		t.Errorf("status with a TTL: %+v %q", spf, statusText(spf))
+	if spf.TTL != 3600 || statusText(i18n.Default, spf) != "Pending · old value still cached (TTL 3600)" {
+		t.Errorf("status with a TTL: %+v %q", spf, statusText(i18n.Default, spf))
 	}
 	dm := s.verify(ctx, "news.example.com", Record{Purpose: PurposeDMARC, Type: "TXT", Name: "_dmarc.news.example.com", Value: SuggestDMARC("")})
 	if dm.Status != StatusVerified || dm.FoundName != "_dmarc.example.com" || !strings.Contains(dm.Found, "p=reject") {
@@ -144,11 +145,11 @@ func TestVerifyRecords(t *testing.T) {
 	if missing.Status != StatusMissing {
 		t.Errorf("missing DKIM: %+v", missing)
 	}
-	if tip := dmarcTip("news.example.com", []Record{dm}, AuthDetail{DMARCPolicy: "reject", DMARCInherited: true}, nil); tip != "news.example.com follows `p=reject` from example.com's DMARC record." {
+	if tip := dmarcTip(i18n.Default, "news.example.com", []Record{dm}, AuthDetail{DMARCPolicy: "reject", DMARCInherited: true}, nil); tip != "news.example.com follows `p=reject` from example.com's DMARC record." {
 		t.Errorf("tip: %q", tip)
 	}
 	want := "start with `p=none` if other services also send as news.example.com; ReputeCast suggested `p=quarantine` because only SES is configured. Reports go to HostRepute and appear in Deliverability."
-	if tip := dmarcTip("news.example.com", []Record{{Purpose: PurposeDMARC, Value: SuggestDMARC("dmarc@reports.hostrepute.com"), Status: StatusMissing}}, AuthDetail{},
+	if tip := dmarcTip(i18n.Default, "news.example.com", []Record{{Purpose: PurposeDMARC, Value: SuggestDMARC("dmarc@reports.hostrepute.com"), Status: StatusMissing}}, AuthDetail{},
 		[]SenderProviderColumn{{Short: "SES"}}); tip != want {
 		t.Errorf("tip: %q", tip)
 	}

@@ -1,0 +1,16 @@
+{
+  "reason.head": "Yêu cầu HEAD từ một trình quét liên kết",
+  "reason.noAgent": "Không có user agent, có thể là một trình quét",
+  "reason.apple": "Apple Mail Privacy Protection tải trước",
+  "reason.google": "Proxy hình ảnh của Google tải trước",
+  "reason.yahoo": "Proxy hình ảnh của Yahoo Mail tải trước",
+  "reason.fastOpen": "Mở trong vòng 2 giây sau khi gửi, có thể là một trình quét",
+  "reason.fastClick": "Nhấp trong vòng 10 giây sau khi gửi, có thể là một trình quét liên kết",
+  "reason.burst": "Mọi liên kết đều được nhấp trong vài giây, có thể là một trình quét liên kết",
+  "reason.securityScanner": "Trình quét bảo mật ({kind, select, headless {một trình duyệt không giao diện} script {một tập lệnh} bot {một bot} preview {một bản xem trước liên kết} other {{name}}})",
+  "reason.linkScanner": "Trình quét liên kết ({kind, select, headless {một trình duyệt không giao diện} script {một tập lệnh} bot {một bot} preview {một bản xem trước liên kết} other {{name}}})",
+  "client.unknown": "Ứng dụng email không xác định",
+  "client.anyOn": "Một ứng dụng email trên {os}",
+  "client.on": "{app} trên {os}",
+  "page.gone": "Liên kết này không còn hợp lệ. Nếu bạn đã sao chép liên kết, hãy kiểm tra xem đã chép đủ cả địa chỉ chưa."
+}

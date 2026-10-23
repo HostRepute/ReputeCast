@@ -1,0 +1,53 @@
+{
+  "status": "{status, select, healthy {Ổn định} degraded {Suy giảm} down {Ngừng hoạt động} sandbox {Sandbox} warming_up {Đang khởi động} paused {Đã tạm dừng} other {{raw}}}",
+  "name.selfHosted": "{name} (tự lưu trữ)",
+  "rate.bounce": "Tỷ lệ trả thư",
+  "rate.complaint": "Tỷ lệ khiếu nại",
+  "rate.spamComplaint": "Tỷ lệ khiếu nại spam",
+  "threshold.reviewPause": "xem xét {review}, tạm dừng {pause}",
+  "threshold.warmupGuard": "ngưỡng bảo vệ khởi động {limit}",
+  "threshold.guard": "ngưỡng bảo vệ {limit}",
+  "threshold.limit": "giới hạn {limit}",
+  "note.reputationDashboard": "Bảng điều khiển uy tín",
+  "note.vdmOff": "Chỉ có chỉ số trả thư và khiếu nại; không có VDM",
+  "note.vdmOn": "Đã bật Virtual Deliverability Manager",
+  "note.stream": "Luồng",
+  "note.streamNone": "{kind}",
+  "note.streamOnly": "{kind} · chỉ thư {stream}",
+  "note.streamTwo": "{kind} · thư {first} và {second}",
+  "stream.name": "{stream, select, broadcast {Gửi hàng loạt} automation {Tự động hóa} system {Hệ thống} transactional {Giao dịch} other {{raw}}}",
+  "note.thresholds": "Ngưỡng",
+  "note.thresholdsValue": "Do ReputeCast đặt; {name} không có giới hạn tài khoản",
+
+  "link.warmup": "Kế hoạch khởi động",
+  "link.report": "Báo cáo",
+  "link.details": "Chi tiết",
+  "link.import": "Tóm tắt lần nhập",
+  "delisting.pending": "Đã yêu cầu gỡ khỏi danh sách ngày {date}, đang chờ.",
+  "delisting.denied": "Đã yêu cầu gỡ khỏi danh sách ngày {date}, bị từ chối.",
+  "delisting.done": "Đã được gỡ khỏi danh sách sau yêu cầu ngày {date}.",
+  "peak.migration": "lần gửi đầu tiên sau khi chuyển sang ReputeCast",
+
+  "listing.title": "{asset} bị liệt kê trên {source}",
+  "listing.detail": "Phát hiện qua lần kiểm tra hằng ngày có sẵn (mức ảnh hưởng {impact, select, high {cao} medium {trung bình} other {thấp}}).",
+  "listing.body": "Phát hiện qua lần kiểm tra hằng ngày có sẵn (mức ảnh hưởng {impact, select, high {cao} medium {trung bình} other {thấp}}). Trang gỡ khỏi danh sách: {url}",
+
+  "reason.stale": "Không thể làm mới dữ liệu HostRepute: hãy kết nối lại HostRepute hoặc chờ lần kiểm tra có sẵn.",
+  "reason.rejected": "HostRepute đã từ chối token vào {at, date}; hãy kết nối lại để tiếp tục kiểm tra danh sách chặn.",
+  "reason.none": "Chưa có lần kiểm tra danh sách chặn nào chạy.",
+
+  "problem.notListed": "{asset} không bị liệt kê trên danh sách chặn nào mà ReputeCast kiểm tra.",
+  "problem.delistViaHostRepute": "Yêu cầu gỡ khỏi danh sách được gửi qua HostRepute. Thay vào đó, hãy yêu cầu trên trang riêng của danh sách: {url}",
+  "problem.ip": "Hãy nhập một địa chỉ IPv4 hoặc IPv6.",
+  "problem.chooseReport": "Hãy chọn một báo cáo tổng hợp DMARC: tệp .xml, hoặc tệp .xml.gz hay .zip mà nhà cung cấp hộp thư đã gửi.",
+  "problem.zipNoXML": "Tệp zip không có báo cáo .xml nào.",
+  "problem.tooLarge": "Báo cáo lớn hơn {mb, number} MB.",
+  "problem.notDMARC": "Đây không phải báo cáo tổng hợp DMARC: {error}.",
+  "problem.notDMARCEmpty": "Đây không phải báo cáo tổng hợp DMARC: không có report_metadata hay bản ghi nào.",
+  "problem.notSendingDomain": "Báo cáo này dành cho {domain}, không phải tên miền gửi thư của không gian làm việc này.",
+
+  "label.unknownSource": "Không rõ · {ip}",
+
+  "run.unanswered": "{failed} trên {total} lượt tra cứu không có phản hồi; các kết quả đó hiển thị là không rõ.",
+  "run.stopped": "Lần kiểm tra đã ngừng phản hồi."
+}

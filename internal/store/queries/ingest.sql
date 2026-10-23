@@ -83,13 +83,18 @@ WHERE workspace_id = @workspace_id AND email = @email AND status = 'active';
 -- name: IngestEventLog :many
 -- The provider event log: provider events (not ReputeCast's own opens and
 -- clicks), newest first, retained 90 days.
+-- The message's kind and automation step write its source label in a
+-- reader's language (source keeps the English).
 SELECT e.id, e.received_at, e.occurred_at, e.type, e.original_type, e.original_code, e.diagnostic, e.bounce_class,
        e.recipient, e.provider_message_id, e.source, e.provider_id, e.campaign_id,
        coalesce(p.name, '')::text AS provider_name, coalesce(p.adapter, '')::text AS adapter,
-       coalesce(r.source, '')::text AS raw_source
+       coalesce(r.source, '')::text AS raw_source,
+       coalesce(m.kind, '')::text AS message_kind, (m.campaign_id IS NOT NULL)::boolean AS message_campaign,
+       (m.automation_id IS NOT NULL)::boolean AS message_automation, coalesce(m.automation_node, '')::text AS message_node
 FROM delivery_events e
 LEFT JOIN providers p ON p.id = e.provider_id
 LEFT JOIN provider_raw_events r ON r.id = e.raw_event_id
+LEFT JOIN messages m ON m.id = e.message_id
 WHERE e.workspace_id = @workspace_id
   AND e.type IN ('delivered', 'deferred', 'hard_bounce', 'soft_bounce', 'complaint', 'rejected')
   AND e.received_at >= @since

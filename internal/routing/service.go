@@ -230,7 +230,8 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 		return RoutingConfig{}, err
 	}
 	listNames := map[string]string{}
-	out := RoutingConfig{Providers: provs, Lists: []RoutingNamed{}, SenderDomains: []string{}, Categories: []RoutingNamed{}, Templates: []RoutingNamed{}, Issues: Validate(set, facts)}
+	l := i18n.LangFrom(ctx)
+	out := RoutingConfig{Providers: provs, Lists: []RoutingNamed{}, SenderDomains: []string{}, Categories: []RoutingNamed{}, Templates: []RoutingNamed{}, Issues: Validate(l, set, facts)}
 	for _, l := range lists {
 		out.Lists = append(out.Lists, RoutingNamed{ID: l.ID.String(), Name: l.Name})
 		listNames[l.ID.String()] = l.Name
@@ -294,7 +295,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 			if len(r.Splits) == 0 {
 				continue
 			}
-			c := conditionView(r, listNames, categoryNames)
+			c := conditionView(l, r, listNames, categoryNames)
 			v.Conditions = append(v.Conditions, c)
 		}
 		slices.SortStableFunc(v.Splits, func(a, b RoutingSplit) int { return b.Weight - a.Weight })
@@ -311,7 +312,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 	return out, nil
 }
 
-func conditionView(r Rule, listNames, categoryNames map[string]string) RoutingConditionView {
+func conditionView(l i18n.Lang, r Rule, listNames, categoryNames map[string]string) RoutingConditionView {
 	c := RoutingConditionView{RoutingCondition: RoutingCondition{ProviderID: r.Splits[0].ProviderID.String(), Note: r.Name}}
 	switch {
 	case len(r.Conditions.Categories) > 0:
@@ -319,21 +320,21 @@ func conditionView(r Rule, listNames, categoryNames map[string]string) RoutingCo
 		for _, v := range c.Values {
 			name := categoryNames[v]
 			if name == "" {
-				name = "deleted category"
+				name = text(l, "label.deletedCategory", nil)
 			}
 			c.ValueLabels = append(c.ValueLabels, name)
 		}
 	case len(r.Conditions.MailboxProviders) > 0:
 		c.Field, c.Values = "mailbox_provider", r.Conditions.MailboxProviders
 		for _, v := range c.Values {
-			c.ValueLabels = append(c.ValueLabels, MailboxName(v))
+			c.ValueLabels = append(c.ValueLabels, MailboxNameIn(l, v))
 		}
 	case len(r.Conditions.Lists) > 0:
 		c.Field, c.Values = "list", r.Conditions.Lists
 		for _, v := range c.Values {
 			name := listNames[v]
 			if name == "" {
-				name = "deleted list"
+				name = text(l, "label.deletedList", nil)
 			}
 			c.ValueLabels = append(c.ValueLabels, name)
 		}
@@ -480,8 +481,9 @@ func (s *Service) syncedAt(ctx context.Context, provs []RoutingProvider) *time.T
 	return oldest
 }
 
-// toSet converts a save input to rules, with field errors for bad ids.
-func toSet(in RoutingSaveInput, base Set) (Set, error) {
+// toSet converts a save input to rules, with field errors for bad ids (in
+// the request's language).
+func toSet(ctx context.Context, in RoutingSaveInput, base Set) (Set, error) {
 	out := Set{Policies: map[providers.Stream]Policy{}}
 	for k, v := range base.Policies {
 		out.Policies[k] = v
@@ -490,7 +492,7 @@ func toSet(in RoutingSaveInput, base Set) (Set, error) {
 	for i, st := range in.Streams {
 		stream := providers.Stream(st.Stream)
 		if replaced[stream] {
-			return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].stream", i), "Each stream can appear once.")
+			return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].stream", i), say(ctx, "problem.streamTwice", nil))
 		}
 		replaced[stream] = true
 		out.Policies[stream] = Policy(st.Failover)
@@ -498,13 +500,13 @@ func toSet(in RoutingSaveInput, base Set) (Set, error) {
 			if stream == StreamTransactional {
 				continue // no Transactional route
 			}
-			return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].splits", i), "Pick a primary provider for "+streamName(stream)+".")
+			return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].splits", i), say(ctx, "problem.pickPrimary", i18n.Args{"stream": streamArg(stream)}))
 		}
 		var fallback *uuid.UUID
 		if st.Fallback != "" {
 			id, err := uuid.Parse(st.Fallback)
 			if err != nil {
-				return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].fallback", i), "Pick a fallback provider or none.")
+				return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].fallback", i), say(ctx, "problem.pickFallback", nil))
 			}
 			fallback = &id
 		}
@@ -512,7 +514,7 @@ func toSet(in RoutingSaveInput, base Set) (Set, error) {
 		for j, sp := range st.Splits {
 			id, err := uuid.Parse(sp.ProviderID)
 			if err != nil {
-				return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].splits[%d].providerId", i, j), "Pick a provider.")
+				return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].splits[%d].providerId", i, j), say(ctx, "problem.pickProvider", nil))
 			}
 			if sp.Weight == 0 && len(st.Splits) > 1 {
 				continue
@@ -523,7 +525,7 @@ func toSet(in RoutingSaveInput, base Set) (Set, error) {
 		for j, c := range st.Conditions {
 			id, err := uuid.Parse(c.ProviderID)
 			if err != nil {
-				return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].providerId", i, j), "Pick the provider this condition sends to.")
+				return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].providerId", i, j), say(ctx, "problem.pickConditionProvider", nil))
 			}
 			values := []string{}
 			for _, v := range c.Values {
@@ -532,31 +534,31 @@ func toSet(in RoutingSaveInput, base Set) (Set, error) {
 				}
 			}
 			if len(values) == 0 {
-				return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].values", i, j), "Pick at least one value.")
+				return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].values", i, j), say(ctx, "problem.pickValue", nil))
 			}
 			var cond Conditions
 			switch c.Field {
 			case "mailbox_provider":
 				for _, v := range values {
 					if !slices.Contains(MailboxProviders, v) {
-						return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].values", i, j), "Mailbox providers are gmail, outlook, yahoo, icloud and other.")
+						return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].values", i, j), say(ctx, "problem.mailboxValues", nil))
 					}
 				}
 				cond.MailboxProviders = values
 			case "list":
 				for _, v := range values {
 					if _, err := uuid.Parse(v); err != nil {
-						return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].values", i, j), "Pick lists from this workspace.")
+						return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].values", i, j), say(ctx, "problem.pickLists", nil))
 					}
 				}
 				cond.Lists = values
 			case "category":
 				if stream != StreamTransactional {
-					return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].field", i, j), "Only Transactional routes have conditions by category.")
+					return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].field", i, j), say(ctx, "problem.categoryStream", nil))
 				}
 				for _, v := range values {
 					if _, err := uuid.Parse(v); err != nil {
-						return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].values", i, j), "Pick categories from this workspace.")
+						return Set{}, api.Invalid(fmt.Sprintf("body.streams[%d].conditions[%d].values", i, j), say(ctx, "problem.pickCategories", nil))
 					}
 				}
 				cond.Categories = values
@@ -588,7 +590,7 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveI
 	if err != nil {
 		return RoutingConfig{}, err
 	}
-	set, err := toSet(in, base)
+	set, err := toSet(ctx, in, base)
 	if err != nil {
 		return RoutingConfig{}, err
 	}
@@ -608,7 +610,7 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveI
 	for _, r := range set.Rules {
 		for _, l := range r.Conditions.Lists {
 			if !known[l] {
-				return RoutingConfig{}, api.Invalid("body.streams", "A condition names a list that isn't in this workspace.")
+				return RoutingConfig{}, api.Invalid("body.streams", say(ctx, "problem.unknownList", nil))
 			}
 		}
 	}
@@ -620,14 +622,14 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveI
 		for _, r := range set.Rules {
 			for _, c := range r.Conditions.Categories {
 				if !knownCat[c] {
-					return RoutingConfig{}, api.Invalid("body.streams", "A condition names a category that isn't in this workspace.")
+					return RoutingConfig{}, api.Invalid("body.streams", say(ctx, "problem.unknownCategory", nil))
 				}
 			}
 		}
 	} else {
 		return RoutingConfig{}, err
 	}
-	issues := Validate(set, facts)
+	issues := Validate(i18n.LangFrom(ctx), set, facts)
 	if Blocking(issues) {
 		for _, i := range issues {
 			if i.Blocking {
@@ -642,7 +644,7 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveI
 		}
 	}
 	if len(bulk) > 0 && !in.AcknowledgeBulkTerms {
-		return RoutingConfig{}, api.Err(http.StatusConflict, "bulk_terms", bulk[0].Message+" Choose another provider, or keep it and acknowledge the terms.").WithMeta("issues", bulk)
+		return RoutingConfig{}, api.Err(http.StatusConflict, "bulk_terms", say(ctx, "problem.bulkTerms", i18n.Args{"issue": bulk[0].Message})).WithMeta("issues", bulk)
 	}
 	p := api.PrincipalFrom(ctx)
 	var by *uuid.UUID

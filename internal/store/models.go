@@ -4852,12 +4852,13 @@ type VisibilityCount struct {
 }
 
 type WarmupEvent struct {
-	ID         uuid.UUID `json:"id"`
-	PlanID     uuid.UUID `json:"planId"`
-	OccurredAt time.Time `json:"occurredAt"`
-	Kind       string    `json:"kind"`
-	Title      string    `json:"title"`
-	Body       string    `json:"body"`
+	ID         uuid.UUID       `json:"id"`
+	PlanID     uuid.UUID       `json:"planId"`
+	OccurredAt time.Time       `json:"occurredAt"`
+	Kind       string          `json:"kind"`
+	Title      string          `json:"title"`
+	Body       string          `json:"body"`
+	Texts      json.RawMessage `json:"texts"`
 }
 
 type WarmupPlan struct {
@@ -4879,6 +4880,7 @@ type WarmupPlan struct {
 	CreatedBy         *uuid.UUID      `json:"createdBy"`
 	PausedAt          *time.Time      `json:"pausedAt"`
 	UpdatedAt         time.Time       `json:"updatedAt"`
+	Texts             json.RawMessage `json:"texts"`
 }
 
 type Webhook struct {

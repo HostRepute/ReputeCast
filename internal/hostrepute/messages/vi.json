@@ -1,0 +1,27 @@
+{
+  "scope.monitorRead": "dữ liệu danh sách chặn, Postmaster, SNDS và DMARC",
+  "scope.alertsRead": "sự cố",
+  "scope.assetsWrite": "thêm tên miền và IP vào giám sát",
+
+  "unreachable": "Không kết nối được {host} ({reason, select, timeout_s {hết thời gian chờ sau {n} giây} timeout_ms {hết thời gian chờ sau {n} ms} timeout {hết thời gian chờ} refused {kết nối bị từ chối} dns {tra cứu DNS thất bại} token {làm mới token thất bại} http {HTTP {status}} other {lỗi mạng}}, {attempts, plural, other {# lần thử}})",
+  "unreachableHostRepute": "Không kết nối được HostRepute",
+  "syncFailed": "Đồng bộ HostRepute thất bại: {error}",
+
+  "problem.unavailable": "{reach}. {nothing, select, saved {Chưa lưu gì; hãy thử lại sau một phút.} changed {Chưa có gì thay đổi; hãy thử lại sau một phút.} other {Chưa có yêu cầu nào được gửi; hãy thử lại sau một phút.}}",
+  "problem.keyFormat": "Hãy dán toàn bộ khóa, không có khoảng trắng. Khóa bắt đầu bằng hr_live_.",
+  "problem.answeredError": "HostRepute trả về lỗi ({error}). Chưa lưu gì.",
+  "problem.keyRejected": "HostRepute không chấp nhận khóa này. Hãy sao chép lại từ HostRepute → Settings → API; khóa cần các phạm vi monitor:read, alerts:read và assets:write.",
+  "problem.notConnected": "HostRepute chưa được kết nối. Hãy kết nối trước trong Cài đặt › Tích hợp.",
+  "problem.reconnect": "HostRepute đã từ chối token{when, select, yes { vào {date}} other {}}. Hãy kết nối lại HostRepute rồi thử lại.",
+  "problem.noAssetsScope": "Kết nối này không có phạm vi assets:write, nên ReputeCast không thể thêm vào giám sát. Hãy kết nối lại HostRepute và chấp thuận phạm vi đó.",
+  "problem.notCandidate": "Chỉ có thể thêm vào giám sát các tên miền gửi thư, IP riêng và tên máy chủ của không gian làm việc này.",
+  "problem.limit": "Nhóm HostRepute “{team}” của bạn đang giám sát {used, number} trên {limit, number} tài sản mà gói cho phép, nên chưa thể thêm {asset} lúc này. Đây là giới hạn của HostRepute, không phải của ReputeCast.",
+  "problem.notMonitored": "{asset} không được HostRepute giám sát.",
+
+  "notify.reconnectTitle": "Cần kết nối lại HostRepute",
+  "notify.reconnectBody": "HostRepute đã từ chối token. Dữ liệu danh sách chặn, Postmaster, SNDS và DMARC sẽ cũ cho đến khi có người kết nối lại; Độ sẵn sàng gửi đánh dấu mục kiểm tra uy tín là không xác định.",
+
+  "run.notConnected": "HostRepute chưa được kết nối.",
+  "run.tokenRejected": "HostRepute đã từ chối token. Hãy kết nối lại để tiếp tục.",
+  "run.tokenRejectedDetail": "HostRepute đã từ chối token (bị thu hồi từ phía HostRepute hoặc đã hết hạn)."
+}

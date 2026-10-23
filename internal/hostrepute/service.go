@@ -26,6 +26,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -361,14 +362,16 @@ func principalUserID(ctx context.Context) *uuid.UUID {
 	return nil
 }
 
-// problem for HostRepute being unreachable during a request.
-func unavailableProblem(err error, nothing string) error {
-	msg := "Couldn't reach HostRepute."
+// unavailableProblem is HostRepute being unreachable during a request, and
+// what wasn't done ("saved", "changed", "requested").
+func unavailableProblem(ctx context.Context, err error, nothing string) error {
+	l := i18n.LangFrom(ctx)
+	reach := msgs.M("unreachableHostRepute").Text(l, nil)
 	var ue *UnavailableError
 	if errors.As(err, &ue) {
-		msg = ue.Error() + "."
+		reach = ue.In(l)
 	}
-	return api.Err(http.StatusServiceUnavailable, "hostrepute_unavailable", msg+" "+nothing)
+	return api.Err(http.StatusServiceUnavailable, "hostrepute_unavailable", msgs.M("problem.unavailable").Text(l, i18n.Args{"reach": reach, "nothing": nothing}))
 }
 
 // ConnectAPIKey connects with a HostRepute API key (the alternative to the
@@ -377,13 +380,13 @@ func unavailableProblem(err error, nothing string) error {
 func (s *Service) ConnectAPIKey(ctx context.Context, ws *store.Workspace, key string) (HostReputeConnection, error) {
 	key = strings.TrimSpace(key)
 	if key == "" || strings.ContainsAny(key, " \t\r\n") {
-		return HostReputeConnection{}, api.Invalid("body.apiKey", "Paste the whole key, without spaces. It starts with hr_live_.")
+		return HostReputeConnection{}, api.Invalid("body.apiKey", say(ctx, "problem.keyFormat", nil))
 	}
 	var c Client
 	apiURL := s.apiURL()
 	if apiURL == DemoAPIURL {
 		if !strings.HasPrefix(key, "hr_") {
-			return HostReputeConnection{}, keyRejected()
+			return HostReputeConnection{}, keyRejected(ctx)
 		}
 		c = s.demoClient(ws.ID, DemoMonitored)
 	} else {
@@ -392,11 +395,11 @@ func (s *Service) ConnectAPIKey(ctx context.Context, ws *store.Workspace, key st
 	acct, err := c.Account(ctx)
 	switch {
 	case errors.Is(err, ErrUnauthorized), errors.Is(err, ErrForbidden):
-		return HostReputeConnection{}, keyRejected()
+		return HostReputeConnection{}, keyRejected(ctx)
 	case errors.Is(err, ErrUnavailable):
-		return HostReputeConnection{}, unavailableProblem(err, "Nothing was saved; try again in a minute.")
+		return HostReputeConnection{}, unavailableProblem(ctx, err, "saved")
 	case err != nil:
-		return HostReputeConnection{}, api.Err(http.StatusBadGateway, "hostrepute_error", "HostRepute answered with an error ("+err.Error()+"). Nothing was saved.")
+		return HostReputeConnection{}, api.Err(http.StatusBadGateway, "hostrepute_error", say(ctx, "problem.answeredError", i18n.Args{"error": err.Error()}))
 	}
 	monitored := s.register(ctx, c, ws.ID)
 	if err := s.save(ctx, ws.ID, principalActor(ctx), connected{method: "api_key", account: acct, access: key, apiURL: apiURL, monitored: monitored}); err != nil {
@@ -405,8 +408,8 @@ func (s *Service) ConnectAPIKey(ctx context.Context, ws *store.Workspace, key st
 	return s.Connection(ctx, ws.ID)
 }
 
-func keyRejected() error {
-	return api.Invalid("body.apiKey", "HostRepute didn't accept this key. Copy it again from HostRepute → Settings → API; it needs the monitor:read, alerts:read and assets:write scopes.")
+func keyRejected(ctx context.Context) error {
+	return api.Invalid("body.apiKey", say(ctx, "problem.keyRejected", nil))
 }
 
 // stateTTL is how long a person has to approve on HostRepute.
@@ -590,17 +593,17 @@ func (s *Service) Disconnect(ctx context.Context, ws *store.Workspace) error {
 func (s *Service) requireConnected(ctx context.Context, ws uuid.UUID) (store.HostreputeConnection, error) {
 	conn, err := s.Q.GetHostReputeConnection(ctx, ws)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return conn, api.Conflict("HostRepute isn't connected. Connect it first in Settings › Integrations.")
+		return conn, api.Conflict(say(ctx, "problem.notConnected", nil))
 	}
 	if err != nil {
 		return conn, err
 	}
 	if conn.Status != "connected" && conn.Status != "limit_reached" {
-		when := ""
+		args := i18n.Args{"when": "no", "date": ""}
 		if conn.TokenRejectedAt != nil {
-			when = " on " + conn.TokenRejectedAt.Format("Jan 2")
+			args["when"], args["date"] = "yes", monthDay(i18n.LangFrom(ctx), *conn.TokenRejectedAt)
 		}
-		return conn, api.Err(http.StatusConflict, "hostrepute_reconnect", "HostRepute rejected the token"+when+". Reconnect HostRepute, then try again.")
+		return conn, api.Err(http.StatusConflict, "hostrepute_reconnect", say(ctx, "problem.reconnect", args))
 	}
 	return conn, nil
 }
@@ -614,7 +617,7 @@ func (s *Service) AddAsset(ctx context.Context, ws *store.Workspace, asset strin
 		return HostReputeConnection{}, err
 	}
 	if !slices.Contains(conn.Scopes, ScopeAssetsWrite) {
-		return HostReputeConnection{}, api.Err(http.StatusConflict, "hostrepute_scope", "This connection doesn't have the assets:write scope, so ReputeCast can't add to monitoring. Reconnect HostRepute and approve it.")
+		return HostReputeConnection{}, api.Err(http.StatusConflict, "hostrepute_scope", say(ctx, "problem.noAssetsScope", nil))
 	}
 	cands, err := Candidates(ctx, s.Q, ws.ID)
 	if err != nil {
@@ -622,7 +625,7 @@ func (s *Service) AddAsset(ctx context.Context, ws *store.Workspace, asset strin
 	}
 	cand, ok := findCandidate(cands, strings.ToLower(strings.TrimSpace(asset)))
 	if !ok {
-		return HostReputeConnection{}, api.Invalid("body.asset", "Only this workspace's sending domains, dedicated IPs and server hostnames can be added to monitoring.")
+		return HostReputeConnection{}, api.Invalid("body.asset", say(ctx, "problem.notCandidate", nil))
 	}
 	monitored := parseMonitored(conn.Monitored)
 	if slices.ContainsFunc(monitored, func(m monitoredAsset) bool { return strings.EqualFold(m.Asset, cand.Asset) }) {
@@ -656,9 +659,8 @@ func (s *Service) limitOrError(ctx context.Context, err error, conn store.Hostre
 		if team == "" {
 			team = conn.TeamName
 		}
-		p := api.Err(http.StatusConflict, "monitor_limit_reached", fmt.Sprintf(
-			"Your HostRepute team “%s” monitors %d of %d assets allowed by its plan, so %s can't be added right now. This is a HostRepute limit, not a ReputeCast one.",
-			team, le.Used, le.Limit, cand.Asset)).WithMeta("limit", le.Limit, "used", le.Used, "team", team, "asset", cand.Asset)
+		p := api.Err(http.StatusConflict, "monitor_limit_reached", say(ctx, "problem.limit", i18n.Args{"team": team, "used": le.Used, "limit": le.Limit, "asset": cand.Asset})).
+			WithMeta("limit", le.Limit, "used", le.Used, "team", team, "asset", cand.Asset)
 		if swap := swapSuggestion(monitored, cands, cand); swap != nil {
 			p = p.WithMeta("swap", swap.Asset, "swapRole", swap.Role)
 		}
@@ -666,9 +668,9 @@ func (s *Service) limitOrError(ctx context.Context, err error, conn store.Hostre
 			TargetName: cand.Asset, Result: audit.Failed, Reason: fmt.Sprintf("HostRepute monitoring limit reached (%d of %d)", le.Used, le.Limit)})
 		return p
 	case errors.Is(err, ErrUnauthorized):
-		return api.Err(http.StatusConflict, "hostrepute_reconnect", "HostRepute rejected the token. Reconnect HostRepute, then try again.")
+		return api.Err(http.StatusConflict, "hostrepute_reconnect", say(ctx, "problem.reconnect", i18n.Args{"when": "no", "date": ""}))
 	case errors.Is(err, ErrUnavailable):
-		return unavailableProblem(err, "Nothing changed; try again in a minute.")
+		return unavailableProblem(ctx, err, "changed")
 	}
 	return err
 }
@@ -697,7 +699,7 @@ func (s *Service) SwapAsset(ctx context.Context, ws *store.Workspace, remove, ad
 	monitored := parseMonitored(conn.Monitored)
 	i := slices.IndexFunc(monitored, func(m monitoredAsset) bool { return strings.EqualFold(m.Asset, remove) })
 	if i < 0 {
-		return HostReputeConnection{}, api.Invalid("body.remove", remove+" isn't monitored by HostRepute.")
+		return HostReputeConnection{}, api.Invalid("body.remove", say(ctx, "problem.notMonitored", i18n.Args{"asset": remove}))
 	}
 	cands, err := Candidates(ctx, s.Q, ws.ID)
 	if err != nil {
@@ -705,7 +707,7 @@ func (s *Service) SwapAsset(ctx context.Context, ws *store.Workspace, remove, ad
 	}
 	cand, ok := findCandidate(cands, strings.ToLower(strings.TrimSpace(add)))
 	if !ok {
-		return HostReputeConnection{}, api.Invalid("body.add", "Only this workspace's sending domains, dedicated IPs and server hostnames can be added to monitoring.")
+		return HostReputeConnection{}, api.Invalid("body.add", say(ctx, "problem.notCandidate", nil))
 	}
 	c, w, err := s.clientFor(ctx, conn)
 	if err != nil {
@@ -810,9 +812,9 @@ func (s *Service) RequestDelisting(ctx context.Context, ws uuid.UUID, asset, sou
 	s.saveRefreshedToken(ctx, conn, w)
 	switch {
 	case errors.Is(err, ErrUnauthorized):
-		return d, api.Err(http.StatusConflict, "hostrepute_reconnect", "HostRepute rejected the token. Reconnect HostRepute, then try again.")
+		return d, api.Err(http.StatusConflict, "hostrepute_reconnect", say(ctx, "problem.reconnect", i18n.Args{"when": "no", "date": ""}))
 	case errors.Is(err, ErrUnavailable):
-		return d, unavailableProblem(err, "Nothing was requested; try again in a minute.")
+		return d, unavailableProblem(ctx, err, "requested")
 	case errors.Is(err, ErrNotFound):
 		return d, api.NotFound("Listing")
 	}

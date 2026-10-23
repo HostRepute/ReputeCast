@@ -100,19 +100,19 @@ func ClassifyOpen(s Signal) Verdict {
 	low := strings.ToLower(ua)
 	switch {
 	case strings.EqualFold(s.Method, "HEAD"):
-		return Verdict{Machine: true, Reason: "HEAD request from a link scanner"}
+		return Verdict{Machine: true, Reason: reasonHead}
 	case ua == "":
-		return Verdict{Machine: true, Reason: "No user agent, likely a scanner"}
+		return Verdict{Machine: true, Reason: reasonNoAgent}
 	case s.IP.IsValid() && appleNet.Contains(s.IP.Unmap()), ua == "Mozilla/5.0":
-		return Verdict{Machine: true, Reason: "Apple Mail Privacy Protection prefetch"}
+		return Verdict{Machine: true, Reason: reasonApple}
 	case strings.Contains(low, "googleimageproxy"):
 		if known(s) && s.SinceSend < openPrefetchWindow {
-			return Verdict{Machine: true, Reason: "Google image proxy prefetch"}
+			return Verdict{Machine: true, Reason: reasonGoogle}
 		}
 		return Verdict{Client: "Gmail"}
 	case strings.Contains(low, "yahoomailproxy"):
 		if known(s) && s.SinceSend < openPrefetchWindow {
-			return Verdict{Machine: true, Reason: "Yahoo Mail image proxy prefetch"}
+			return Verdict{Machine: true, Reason: reasonYahoo}
 		}
 		return Verdict{Client: "Yahoo Mail"}
 	}
@@ -123,7 +123,7 @@ func ClassifyOpen(s Signal) Verdict {
 		return Verdict{Machine: true, Reason: "Security scanner (" + name + ")"}
 	}
 	if known(s) && s.SinceSend < tooFastOpen {
-		return Verdict{Machine: true, Reason: "Opened within 2 s of sending, likely a scanner"}
+		return Verdict{Machine: true, Reason: reasonFastOpen}
 	}
 	return Verdict{Client: ClientName(ua)}
 }
@@ -141,9 +141,9 @@ func ClassifyClick(s Signal, burst bool) Verdict {
 	low := strings.ToLower(ua)
 	switch {
 	case strings.EqualFold(s.Method, "HEAD"):
-		return Verdict{Machine: true, Reason: "HEAD request from a link scanner"}
+		return Verdict{Machine: true, Reason: reasonHead}
 	case ua == "":
-		return Verdict{Machine: true, Reason: "No user agent, likely a scanner"}
+		return Verdict{Machine: true, Reason: reasonNoAgent}
 	}
 	if name := scannerAgent(low); name != "" {
 		return Verdict{Machine: true, Reason: "Link scanner (" + name + ")"}
@@ -152,10 +152,10 @@ func ClassifyClick(s Signal, burst bool) Verdict {
 		return Verdict{Machine: true, Reason: "Link scanner (" + name + ")"}
 	}
 	if known(s) && s.SinceSend < tooFastClick {
-		return Verdict{Machine: true, Reason: "Clicked within 10 s of sending, likely a link scanner"}
+		return Verdict{Machine: true, Reason: reasonFastClick}
 	}
 	if burst {
-		return Verdict{Machine: true, Reason: "Every link clicked within seconds, likely a link scanner"}
+		return Verdict{Machine: true, Reason: reasonBurst}
 	}
 	return Verdict{Client: ClientName(ua)}
 }
@@ -232,5 +232,5 @@ func ClientName(ua string) string {
 	case os != "":
 		return "A mail client on " + os
 	}
-	return "Unknown mail client"
+	return clientUnknown
 }

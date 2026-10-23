@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/media"
 	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/providers"
@@ -198,10 +199,10 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 	}
 	def := parseAudience(cc.Audience)
 	if len(def.Lists) == 0 && len(def.Segments) == 0 {
-		return e.fail(ctx, cc, "The campaign has no audience. Pick a list or segment on Review & send, then start it again.", now)
+		return e.fail(ctx, cc, english("fail.noAudience", nil), now)
 	}
 	if cc.SenderEmail == "" {
-		return e.fail(ctx, cc, "The campaign has no sender. Pick one in the composer, then start it again.", now)
+		return e.fail(ctx, cc, english("fail.noSender", nil), now)
 	}
 	set, err := routing.Load(ctx, e.Q, cc.WorkspaceID)
 	if err != nil {
@@ -219,7 +220,7 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 	ab := abTestOf(cc.AbTest)
 	content, err := e.snapshotContent(cc, ab)
 	if err != nil {
-		return e.fail(ctx, cc, "The email can't be rendered: "+err.Error(), now)
+		return e.fail(ctx, cc, english("fail.render", i18n.Args{"error": err.Error()}), now)
 	}
 	if snd.PrepareCursor == nil {
 		if err := e.sendLanguages(ctx, cc.WorkspaceID, campaignID, &content); err != nil {
@@ -277,7 +278,7 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 	var planner Planner
 	if e.Conditional != nil {
 		if planner, err = e.Conditional.Plan(ctx, cc.WorkspaceID, campaignID); err != nil {
-			return e.fail(ctx, cc, "The email's conditional content can't be decided: "+err.Error(), now)
+			return e.fail(ctx, cc, english("fail.conditional", i18n.Args{"error": err.Error()}), now)
 		}
 	}
 	for {
@@ -858,7 +859,7 @@ func (r *router) route(ctx context.Context, c store.SendingAudiencePageRow, mbp 
 	if r.override != nil {
 		if p, ok := r.byID[*r.override]; ok {
 			r.planned[p.ID]++
-			return routed{provider: p.ID, note: "Campaign route: " + state.Short(p.Name, p.Adapter) + " only"}, nil
+			return routed{provider: p.ID, note: routing.RouteNote("campaignRoute", i18n.Args{"provider": state.Short(p.Name, p.Adapter)})}, nil
 		}
 	}
 	lists := make([]string, len(c.Lists))
@@ -867,39 +868,41 @@ func (r *router) route(ctx context.Context, c store.SendingAudiencePageRow, mbp 
 	}
 	d, ok := r.set.Resolve(routing.Recipient{Stream: providers.StreamBroadcast, Email: c.Email, Lists: lists, SenderDomain: r.senderDomain, MailboxProvider: mbp})
 	if !ok {
-		return routed{}, sendFailure("No sending provider is set up for Broadcasts. Add a route in Sending providers › Routing, then start the send again.")
+		return routed{}, sendFailure(english("fail.noRoute", nil))
 	}
 	pid := d.ProviderID
 	p, ok := r.byID[pid]
 	if !ok {
-		return routed{}, sendFailure("The Broadcasts route points at a provider that is no longer connected. Fix the route, then start the send again.")
+		return routed{}, sendFailure(english("fail.routeGone", nil))
 	}
 	out := routed{provider: pid}
 	short := state.Short(p.Name, p.Adapter)
+	pr := r.rate(ctx, p)
+	// The notes are routing's messages, in English as stored
+	// (routing.NoteIn reads them in other languages).
 	switch {
 	case d.Matched != "" && d.Rule.Name != "":
-		out.note = short + " by rule: " + d.Rule.Name
+		out.note = routing.RouteNote("byRule", i18n.Args{"provider": short, "rule": d.Rule.Name})
+	case d.Split && pr.WarmingUp:
+		out.note = routing.RouteNote("splitWarmup", i18n.Args{"provider": short, "split": splitLabel(d.Rule.Splits), "day": pr.WarmupDay})
 	case d.Split:
-		out.note = short + " share of the " + splitLabel(d.Rule.Splits) + " split"
+		out.note = routing.RouteNote("split", i18n.Args{"provider": short, "split": splitLabel(d.Rule.Splits)})
 	}
-	pr := r.rate(ctx, p)
 	if pr.WarmingUp {
-		if d.Split {
-			out.note += fmt.Sprintf(", warm-up day %d", pr.WarmupDay)
-		}
 		allowed := len(pr.Tiers) == 0 || slices.Contains(pr.Tiers, c.Tier)
 		capLeft := pr.Cap <= 0 || pr.SentToday+r.planned[pid] < pr.Cap
 		if !allowed || !capLeft || pr.Paused {
 			if alt, ok := r.warmAlternative(ctx, d.Rule, pid); ok {
 				ap := r.byID[alt]
-				why := "over today's warm-up cap"
+				why := "cap"
 				if !allowed {
-					why = fmt.Sprintf("not sending to %s contacts on warm-up day %d", strings.ReplaceAll(c.Tier, "_", " "), pr.WarmupDay)
+					why = "tier"
 				}
 				if pr.Paused {
-					why = "warm-up paused"
+					why = "paused"
 				}
-				out = routed{provider: alt, note: state.Short(ap.Name, ap.Adapter) + " instead of " + short + ": " + why}
+				out = routed{provider: alt, note: routing.RouteNote("instead", i18n.Args{"alt": state.Short(ap.Name, ap.Adapter), "provider": short, "why": why,
+					"tier": c.Tier, "day": pr.WarmupDay})}
 			}
 		}
 	}
@@ -914,7 +917,7 @@ func (r *router) route(ctx context.Context, c store.SendingAudiencePageRow, mbp 
 		if !hold && target != nil && r.set.Policy(providers.StreamBroadcast) != routing.PauseAndAsk {
 			fb := r.byID[*target]
 			out = routed{provider: fb.ID, failover: true,
-				note: state.Short(cur.Name, cur.Adapter) + " was down; Broadcasts failed over to " + state.Short(fb.Name, fb.Adapter)}
+				note: routing.RouteNote("failover", i18n.Args{"provider": state.Short(cur.Name, cur.Adapter), "fallback": state.Short(fb.Name, fb.Adapter)})}
 		}
 	}
 	r.planned[out.provider]++

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -118,9 +119,9 @@ func (st *state) blocklistStatus(builtin int) DeliverabilityBlocklistStatus {
 }
 
 // Export writes the findings as CSV: one row per check, for spreadsheets
-// and tickets.
+// and tickets. Its rows are data: they stay English in every language.
 func (s *Service) Export(ctx context.Context, ws *store.Workspace) ([]byte, error) {
-	o, err := s.Overview(ctx, ws)
+	o, err := s.Overview(i18n.WithLang(ctx, i18n.Default), ws)
 	if err != nil {
 		return nil, err
 	}
