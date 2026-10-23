@@ -74,8 +74,8 @@ func TestDecodersHaveDefaults(t *testing.T) {
 func TestDetailInReadsTheHealthChecksWords(t *testing.T) {
 	vi := i18n.For(i18n.Vietnamese)
 	for detail, want := range map[string]string{
-		DetailDown:           "Ngừng hoạt động",
-		DetailDownAuth:       "Ngừng hoạt động · xác thực thất bại",
+		DetailDown:           "Gián đoạn",
+		DetailDownAuth:       "Gián đoạn · xác thực thất bại",
 		DetailWebhooksSilent: "Webhook im lặng",
 		"Approved":           "Approved", // the provider's own word for the account
 		"":                   "",

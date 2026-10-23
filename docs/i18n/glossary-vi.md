@@ -265,7 +265,7 @@ order of the English.
 | credentials (a provider's) | thông tin xác thực | |
 | dedicated IP · shared pool | IP riêng · nhóm IP dùng chung | |
 | defer · deferral | hoãn nhận | "Yahoo hoãn nhận" |
-| degraded · down | suy giảm · ngừng hoạt động | provider statuses |
+| degraded · down | suy giảm · gián đoạn | provider statuses |
 | delisting | gỡ khỏi danh sách | "Yêu cầu gỡ khỏi danh sách" |
 | event log · raw event · normalized event | nhật ký sự kiện · sự kiện gốc · sự kiện chuẩn hóa | |
 | failover · fallback · primary | chuyển dự phòng · dự phòng · chính | "nhà cung cấp dự phòng", "nhà cung cấp chính" |
@@ -273,7 +273,7 @@ order of the English.
 | flow (an automation's, in sending text) | quy trình tự động | "luồng" is a stream: "email do các quy trình tự động gửi"; on the Automations screens a flow is "quy trình" |
 | guard (Warm-up page) | ngưỡng bảo vệ | "Tỷ lệ trả thư · ngưỡng bảo vệ 2%" |
 | held (recipients) | tạm giữ | |
-| incident · outage | sự cố · sự cố ngừng hoạt động | |
+| incident · outage | sự cố · sự cố gián đoạn | |
 | live sending monitor | theo dõi gửi trực tiếp | "Live monitor" is "Theo dõi trực tiếp" |
 | maintainer · unmaintained (adapter) | người duy trì · ngừng duy trì | |
 | mapping (webhook, JSONPath) | ánh xạ | |
@@ -346,6 +346,35 @@ A provider's names for its keys, plans, menus and stream types stay as the
 provider writes them ("Server API token", "Private API key", "Account SID",
 "Auth token", "Full access", "Broadcasts API", "Scale plan"), and so do its
 event names ("Delivery", "SpamComplaint") and its error codes.
+
+### What the sending engine, Deliverability and HostRepute write
+
+The live monitor's incident panel (likely causes, recommendations and the
+ways to continue), its notifications and feed, Deliverability's account
+health and check runs, the HostRepute connection, route notes on a
+contact's timeline and why a transactional message failed.
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| "October Product Update" auto-paused · Outlook | “October Product Update” tự tạm dừng · Outlook | a campaign's name between “ ” |
+| built-in daily check (blocklists) | lần kiểm tra hằng ngày có sẵn | without HostRepute |
+| check run · lookups that didn't answer | lần kiểm tra · lượt tra cứu không có phản hồi | |
+| connection errors · throttling errors · API errors | lỗi kết nối · lỗi giới hạn tốc độ · lỗi API | "Postal trả về lỗi kết nối trong 3 phút" |
+| decision requested · waiting for a decision | đang chờ quyết định · đang chờ bạn quyết định | a held share |
+| health check · still failing · answering again | kiểm tra tình trạng · vẫn lỗi · đã phản hồi lại | the outage log's lines |
+| never-engaged · lapsed (contacts) | chưa từng tương tác · đã ngừng tương tác | |
+| placement ("protects placement") | vị trí thư | as in Placement tests |
+| Reputation dashboard (SES) | Bảng điều khiển uy tín | |
+| Resume as is · Resume with changes · Cancel the Outlook share · Retry Postal · Move 1,204 to SES | Tiếp tục như cũ · Tiếp tục với thay đổi · Hủy phần của Outlook · Thử lại Postal · Chuyển 1.204 sang SES | the incident panel's ways to continue; "(khuyên dùng)" after the recommended one |
+| route note: SES share of the 90/10 split · by rule · instead of · failed over to | Phần của SES trong phân bổ 90/10 · theo quy tắc · thay cho · đã chuyển dự phòng sang | |
+| scope (a HostRepute token's) | phạm vi | the scopes' keys stay: monitor:read |
+| Send held (a scheduled send) | Lần gửi bị tạm giữ | |
+| status page (a provider's) | trang trạng thái | |
+| web process (a self-hosted provider's) | tiến trình web | |
+
+The providers' own replies stay as they come: SMTP codes and texts
+("421 4.7.0 TSS04"), API errors, the outage log's error lines
+("ECONNREFUSED mta.acme.io:443") and a bounce's diagnostic.
 
 ## Transactional templates
 
@@ -1082,7 +1111,7 @@ they are.
 | Gross · Net | Tổng thu · Thực thu | product revenue before and after refunds |
 | idempotency key | khóa idempotency | |
 | list offer | lời mời vào danh sách | the checkbox next to a product's Buy button |
-| live · test (payments, keys, modes) | thật · thử nghiệm | the message log's live updates are "Trực tiếp" |
+| live · test (payments, keys, modes) | chính thức · thử nghiệm (as Earn has it) | the message log's live updates are "Trực tiếp" |
 | median delivery | thời gian gửi trung vị | |
 | message (transactional) · Messages (tab) | thư · Thư | |
 | order | đơn hàng | |

@@ -1,0 +1,23 @@
+{
+  "check.noHostname": "Chưa có tên máy chủ",
+  "check.unresolved": "{host} không phân giải được",
+  "check.unresolvedAdd": "{host} không phân giải được: hãy thêm bản ghi A hoặc AAAA trỏ về máy chủ này",
+  "check.portUnresolved": "Chưa kiểm tra được cổng {port} cho đến khi {host} phân giải được",
+  "check.certUnresolved": "Chưa kiểm tra được chứng chỉ cho đến khi {host} phân giải được",
+  "check.resolves": "DNS · {host} trỏ về {addresses}",
+  "check.portUnreachable": "Không truy cập được cổng {port} tại {host}: {error}",
+  "check.portReachable": "Truy cập được cổng {port} từ internet",
+  "check.certUnverified": "Không xác minh được chứng chỉ: {error}",
+  "check.noCert": "SMTP relay không gửi chứng chỉ nào",
+  "check.certExpired": "Chứng chỉ đã hết hạn ngày {at, date}",
+  "check.certValid": "Chứng chỉ có hiệu lực đến {at, date}",
+
+  "notify.title": "Không truy cập được SMTP relay",
+  "notify.body": "{why, select, unresolved {Chưa kiểm tra được cổng {port} cho đến khi {host} phân giải được} other {Không truy cập được cổng {port} tại {host}: {error}}}. Các ứng dụng gửi qua SMTP không kết nối được; HTTP API vẫn hoạt động.",
+
+  "problem.hostnameNeeded": "Hãy nhập tên máy chủ mà các ứng dụng kết nối đến, chẳng hạn tên máy chủ của chính hệ thống này.",
+  "problem.hostnameFormat": "Hãy nhập một tên máy chủ như reputecast.acme.io.",
+  "problem.portsDiffer": "Cổng STARTTLS và cổng TLS phải khác nhau.",
+  "problem.certFiles": "Hãy nhập đường dẫn của tệp chứng chỉ và tệp khóa, theo cách máy chủ này thấy chúng.",
+  "problem.certUnreadable": "Không đọc được chứng chỉ và khóa: {error}"
+}

@@ -68,7 +68,7 @@ func TestTextsInVietnamese(t *testing.T) {
 		Primary:  []AutomationRouteProvider{{Short: "SES", Status: "down", DownSince: &down, DownReason: "outage"}},
 		Fallback: &AutomationRouteProvider{Short: "Postmark", Status: "down", DownSince: &down, DownReason: "auth", LastErrorStatus: 401},
 	}
-	if got := say(vi, heldDetailText(route, 23, ny, now)); got != "SES ngừng hoạt động từ 09:02 và Postmark (dự phòng) trả về 401: khóa API hoặc token của nhà cung cấp bị từ chối. 23 email đang chờ và sẽ được gửi ngay khi có nhà cung cấp ổn định; thời gian trì hoãn trong quy trình vẫn tiếp tục tính." {
+	if got := say(vi, heldDetailText(route, 23, ny, now)); got != "SES gián đoạn từ 09:02 và Postmark (dự phòng) trả về 401: khóa API hoặc token của nhà cung cấp bị từ chối. 23 email đang chờ và sẽ được gửi ngay khi có nhà cung cấp ổn định; thời gian trì hoãn trong quy trình vẫn tiếp tục tính." {
 		t.Errorf("held detail %q", got)
 	}
 	if got := say(vi, finishEstimateText(welcomeV3(), nil)); got != "ngay lập tức" {

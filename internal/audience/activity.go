@@ -14,7 +14,9 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
+	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/tracking"
 )
 
 // ContactActivityProvider is the sending provider that delivered an email.
@@ -244,6 +246,7 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, contactID u
 			return out, err
 		}
 		it.Detail, it.Note = KeptIn(l, texts, "detail", it.Detail), KeptIn(l, texts, "note", it.Note)
+		it.RouteNote, it.Diagnostic = routing.NoteIn(l, it.RouteNote), tracking.DiagnosticIn(l, it.Diagnostic)
 		it.ID = id.String()
 		if src == "consent" {
 			it.ConsentLanguage = lang

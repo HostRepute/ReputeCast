@@ -283,7 +283,7 @@
   "done.contactsEmpty": "đã bắt đầu trống với {count, number} danh sách.",
   "done.contactsKept": "đã giữ danh sách của không gian làm việc; không nhập gì.",
 
-  "status.label": "{status, select, healthy {Ổn định} warming_up {{hasDay, select, yes {Đang khởi động · ngày {day}} other {Đang khởi động}}} degraded {Suy giảm} down {Ngừng hoạt động} sandbox {Sandbox} other {Đã tạm dừng}}",
+  "status.label": "{status, select, healthy {Ổn định} warming_up {{hasDay, select, yes {Đang khởi động · ngày {day}} other {Đang khởi động}}} degraded {Suy giảm} down {Gián đoạn} sandbox {Sandbox} other {Đã tạm dừng}}",
   "settings.streamFallback": "dự phòng {stream}",
   "settings.streamRules": "{stream} (theo quy tắc)",
   "settings.notRouted": "Chưa định tuyến",

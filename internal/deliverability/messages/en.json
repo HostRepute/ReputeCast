@@ -1,0 +1,53 @@
+{
+  "status": { "message": "{status, select, healthy {Healthy} degraded {Degraded} down {Down} sandbox {Sandbox} warming_up {Warming up} paused {Paused} other {{raw}}}", "note": "a sending provider's status, on its account health card" },
+  "name.selfHosted": { "message": "{name} (self-hosted)", "note": "a self-hosted provider's name (Postal), never translated" },
+  "rate.bounce": "Bounce rate",
+  "rate.complaint": "Complaint rate",
+  "rate.spamComplaint": { "message": "Spam complaint rate", "note": "Postmark's name for its complaint rate" },
+  "threshold.reviewPause": { "message": "review {review}, pause {pause}", "note": "SES's own enforcement levels: it reviews the account above the first rate and pauses it above the second" },
+  "threshold.warmupGuard": { "message": "warm-up guard {limit}", "note": "the warm-up planner's limit while a provider warms up" },
+  "threshold.guard": { "message": "guard {limit}", "note": "the limit ReputeCast sets for a self-hosted provider" },
+  "threshold.limit": "limit {limit}",
+  "note.reputationDashboard": { "message": "Reputation dashboard", "note": "SES's reputation dashboard, on its account health card" },
+  "note.vdmOff": { "message": "Bounce and complaint metrics only; no VDM", "note": "VDM: SES's Virtual Deliverability Manager" },
+  "note.vdmOn": { "message": "Virtual Deliverability Manager on", "note": "Virtual Deliverability Manager is SES's name, never translated" },
+  "note.stream": { "message": "Stream", "note": "Postmark's message stream" },
+  "note.streamNone": { "message": "{kind}", "note": "kind: Postmark's stream type, Broadcast or Transactional, never translated" },
+  "note.streamOnly": "{kind} · {stream} mail only",
+  "note.streamTwo": "{kind} · {first} and {second} mail",
+  "stream.name": { "message": "{stream, select, broadcast {Broadcast} automation {Automation} system {System} transactional {Transactional} other {{raw}}}", "note": "ReputeCast's streams, in a provider's note" },
+  "note.thresholds": "Thresholds",
+  "note.thresholdsValue": "Set by ReputeCast; {name} has no account limits",
+
+  "link.warmup": { "message": "Warm-up plan", "note": "a link after an incident of the timeline" },
+  "link.report": "Report",
+  "link.details": "Details",
+  "link.import": "Import summary",
+  "delisting.pending": { "message": "Delisting requested {date}, pending.", "note": "added after a listing incident; date: the day it was requested (8 Oct)" },
+  "delisting.denied": "Delisting requested {date}, denied.",
+  "delisting.done": "Delisted after a request on {date}.",
+  "peak.migration": { "message": "first send after migration", "note": "explains the Gmail spam rate's peak: the first send after moving to ReputeCast" },
+
+  "listing.title": { "message": "{asset} listed on {source}", "note": "asset: a domain or IP; source: a blocklist's name, never translated" },
+  "listing.detail": "Found by the built-in daily check ({impact, select, high {high} medium {medium} other {low}} impact).",
+  "listing.body": "Found by the built-in daily check ({impact, select, high {high} medium {medium} other {low}} impact). Delisting page: {url}",
+
+  "reason.stale": { "message": "HostRepute data can't be refreshed: reconnect HostRepute or wait for the built-in check.", "note": "why the blocklist check of Send Readiness is unknown" },
+  "reason.rejected": { "message": "HostRepute rejected the token on {at, date}; reconnect to resume blocklist checks.", "note": "at: the day HostRepute rejected it" },
+  "reason.none": "No blocklist check has run yet.",
+
+  "problem.notListed": "{asset} isn't listed on any blocklist we check.",
+  "problem.delistViaHostRepute": "Delisting requests go through HostRepute. Request it on the list's own page instead: {url}",
+  "problem.ip": "Give an IPv4 or IPv6 address.",
+  "problem.chooseReport": "Choose a DMARC aggregate report: an .xml file, or the .xml.gz or .zip a mailbox provider sent.",
+  "problem.zipNoXML": "The zip file has no .xml report.",
+  "problem.tooLarge": "The report is larger than {mb, number} MB.",
+  "problem.notDMARC": { "message": "This isn't a DMARC aggregate report: {error}.", "note": "error: why the XML couldn't be read, in English" },
+  "problem.notDMARCEmpty": "This isn't a DMARC aggregate report: no report_metadata or records.",
+  "problem.notSendingDomain": "This report is for {domain}, which isn't a sending domain of this workspace.",
+
+  "label.unknownSource": { "message": "Unknown · {ip}", "note": "a DMARC report's sending source that isn't one of the workspace's providers" },
+
+  "run.unanswered": { "message": "{failed} of {total} lookups didn't answer; they show as unknown.", "note": "after a built-in blocklist check: DNS lookups of the blocklists that gave no answer" },
+  "run.stopped": { "message": "The check stopped answering.", "note": "why a Deliverability check run failed" }
+}

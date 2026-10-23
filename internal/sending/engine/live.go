@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
@@ -92,6 +93,9 @@ type LiveSnapshot struct {
 	// Helpers names who can pause and who can resume, for the reason on a
 	// disabled button. Only the GET fills it; the stream leaves it out.
 	Helpers *LiveHelpers `json:"helpers,omitempty"`
+
+	// text is what In needs to write the snapshot in another language.
+	text *liveText
 }
 
 // LiveHelpers are up to two members who hold each action's permission.
@@ -244,6 +248,9 @@ type LiveEvent struct {
 	Tone    string    `json:"tone" enum:"ok,warn,bad,info,neutral"`
 	Address string    `json:"address"`
 	Detail  string    `json:"detail"`
+
+	// parts are what the line's words are made of (In).
+	parts *eventParts
 }
 
 // LiveFailover is another stream that moved off a provider on its own.
@@ -315,7 +322,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		StartedAt: cc.StartedAt, ScheduledAt: cc.ScheduledAt, CompletedAt: cc.CompletedAt, ThresholdScope: "route",
 		Mailboxes: []LiveMailbox{}, Providers: []LiveProvider{}, Thresholds: []LiveThreshold{}, DeliveredMix: []LiveShare{}, Incidents: []LiveIncident{},
 		Events: []LiveEvent{}, Failovers: []LiveFailover{}, SharedStreams: []string{}, ProvidersHeld: []string{}, MailboxesHeld: []string{}, Continuing: []string{}, Throttles: []LiveThrottle{},
-		Routes: []LiveRouteShare{}}
+		Routes: []LiveRouteShare{}, text: &liveText{}}
 	loc := state.Location(cc.WorkspaceTimezone)
 	snd, sendErr := e.Q.SendingGetSend(ctx, campaignID)
 	hasSend := sendErr == nil
@@ -461,7 +468,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	}
 	heldProviders := map[uuid.UUID]bool{}
 	var maxAPI *float64
-	via := []string{}
+	via := []viaPart{}
 	routeLabel := []string{}
 	for _, r := range routes {
 		p, err := e.Q.ProvGetAny(ctx, r.ProviderID)
@@ -524,7 +531,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			v := *lp.APIErrorRate
 			maxAPI = &v
 		}
-		via = append(via, webhooksVia(p))
+		via = append(via, viaOf(p))
 		s.Providers = append(s.Providers, lp)
 		s.Details.CostPlanned += lp.PlannedCost
 		s.Details.Cost += lp.Cost
@@ -538,7 +545,12 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	s.Details.Cost = math.Round(s.Details.Cost*100) / 100
 	s.Details.CostPlanned = math.Round(s.Details.CostPlanned*100) / 100
 	s.Cost = LiveCostByRoute{Total: s.Details.Cost, Planned: s.Details.CostPlanned}
-	s.EventsVia = joinAnd(uniqStrings(via))
+	s.text.via = uniqVia(via)
+	viaWords := make([]string, len(s.text.via))
+	for i, v := range s.text.via {
+		viaWords[i] = v.in(i18n.Default)
+	}
+	s.EventsVia = joinAnd(viaWords)
 	var bestMailbox string
 	var bestRate float64 = -1
 	for _, k := range routing.MailboxProviders {
@@ -562,6 +574,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			since := h.Since
 			lm.HeldSince = &since
 			s.MailboxesHeld = append(s.MailboxesHeld, lm.Name)
+			s.text.held = append(s.text.held, k)
 		} else if lm.Remaining > 0 && (s.State == "sending" || s.State == "partial") {
 			lm.Status = "sending"
 		} else if lm.Remaining == 0 && lm.Sent > 0 && s.State != "finished" {
@@ -634,6 +647,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	for _, lm := range s.Mailboxes {
 		if !lm.Held && lm.Remaining > 0 {
 			s.Continuing = append(s.Continuing, lm.Name)
+			s.text.continuing = append(s.text.continuing, lm.Key)
 		}
 	}
 	if cc.StartedAt != nil && cc.CompletedAt != nil {
@@ -644,7 +658,8 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 	if s.Details.From == "" {
 		s.Details.From = cc.SenderEmail
 	}
-	s.Details.Audience = e.audienceLabel(ctx, cc.WorkspaceID, cc.Audience)
+	s.text.audience = e.audienceLabel(ctx, cc.WorkspaceID, cc.Audience)
+	s.Details.Audience = s.text.audience.in(i18n.Default)
 	s.Details.AudienceCount = s.Recipients
 	s.Details.Route = strings.Join(routeLabel, " · ")
 	s.Details.ScheduledBy = s.ScheduledBy
@@ -696,7 +711,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			}
 			li.ProviderID, li.Provider, li.ProviderShort = in.ProviderID.String(), p.Name, state.Short(p.Name, p.Adapter)
 		}
-		_ = json.Unmarshal(in.Detail, &li.Detail)
+		li.Detail = parseDetail(in.Detail)
 		s.Incidents = append(s.Incidents, li)
 		if in.ResolvedAt == nil && s.Incident == nil && (in.Kind == "threshold" || in.Kind == "provider_outage") {
 			c := li
@@ -741,6 +756,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 					}
 					if uses {
 						s.SharedStreams = append(s.SharedStreams, streamName(string(st)))
+						s.text.shared = append(s.text.shared, string(st))
 						break
 					}
 				}
@@ -758,6 +774,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 					continue
 				}
 				s.Failovers = append(s.Failovers, LiveFailover{Stream: streamName(f.Stream), To: state.Short(fb.Name, fb.Adapter)})
+				s.text.failovers = append(s.text.failovers, f.Stream)
 			}
 		}
 	}
@@ -817,7 +834,7 @@ func (e *Engine) names(ctx context.Context, ids ...*uuid.UUID) map[uuid.UUID]str
 }
 
 // audienceLabel is "Weekly Digest" or "Weekly Digest + 1 segment".
-func (e *Engine) audienceLabel(ctx context.Context, ws uuid.UUID, raw json.RawMessage) string {
+func (e *Engine) audienceLabel(ctx context.Context, ws uuid.UUID, raw json.RawMessage) audienceParts {
 	def := parseAudience(raw)
 	lists, _ := e.Q.SendingListNames(ctx, ws)
 	names := map[uuid.UUID]string{}
@@ -829,15 +846,15 @@ func (e *Engine) audienceLabel(ctx context.Context, ws uuid.UUID, raw json.RawMe
 			public = append(public, l.ID)
 		}
 	}
-	var parts []string
+	var out audienceParts
 	// "All subscribers": every public list (a private one, such as an
 	// event's registrants, isn't one readers sign up for).
 	if len(def.Segments) == 0 && len(public) > 1 && !slices.ContainsFunc(public, func(id uuid.UUID) bool { return !slices.Contains(def.Lists, id) }) {
-		parts = append(parts, "All subscribers")
+		out.all = true
 	} else {
 		for _, id := range def.Lists {
 			if n, ok := names[id]; ok {
-				parts = append(parts, n)
+				out.names = append(out.names, n)
 			}
 		}
 	}
@@ -849,11 +866,11 @@ func (e *Engine) audienceLabel(ctx context.Context, ws uuid.UUID, raw json.RawMe
 		}
 		for _, id := range def.Segments {
 			if n, ok := segNames[id]; ok {
-				parts = append(parts, n)
+				out.names = append(out.names, n)
 			}
 		}
 	}
-	return strings.Join(parts, " + ")
+	return out
 }
 
 // liveEvent turns a delivery event into a feed line.
@@ -870,54 +887,40 @@ func (e *Engine) liveEvent(f store.SendingFeedRow, provs map[uuid.UUID]store.Pro
 		}
 		short = state.Short(p.Name, p.Adapter)
 	}
-	code := strings.TrimSpace(f.OriginalCode)
-	join := func(parts ...string) string {
-		out := []string{}
-		for _, p := range parts {
-			if strings.TrimSpace(p) != "" {
-				out = append(out, p)
-			}
-		}
-		return strings.Join(out, " · ")
-	}
+	p := &eventParts{short: short, code: strings.TrimSpace(f.OriginalCode), diag: f.Diagnostic, url: f.Url, vary: f.Variant, suppresses: f.Suppresses}
 	switch providers.EventType(f.Type) {
 	case providers.EventDelivered:
-		ev.Label, ev.Short, ev.Tone, ev.Detail = "delivered", "delivered", "ok", join(short, code)
+		p.kind, ev.Tone = "delivered", "ok"
 	case providers.EventHardBounce:
-		d := join(short, strings.TrimSpace(code+" "+f.Diagnostic))
-		if f.Suppresses {
-			d = join(d, "added to suppression list")
-		}
-		ev.Label, ev.Short, ev.Tone, ev.Detail = "hard bounce", "bounce", "bad", d
+		p.kind, ev.Tone = "hardBounce", "bad"
 	case providers.EventSoftBounce:
-		ev.Label, ev.Short, ev.Tone, ev.Detail = "soft bounce", "bounce", "warn", join(short, strings.TrimSpace(code+" "+f.Diagnostic))
+		p.kind, ev.Tone = "softBounce", "warn"
 	case providers.EventDeferred:
-		ev.Label, ev.Short, ev.Tone, ev.Detail = "deferred", "deferred", "warn", join(short, code, f.Diagnostic)
+		p.kind, ev.Tone = "deferred", "warn"
 	case providers.EventComplaint:
-		ev.Label, ev.Short, ev.Tone, ev.Detail = "complaint", "complaint", "bad", join(short, "feedback loop report", "added to suppression list")
+		p.kind, ev.Tone = "complaint", "bad"
 	case providers.EventRejected:
-		ev.Label, ev.Short, ev.Tone, ev.Detail = "rejected", "rejected", "bad", join(short, strings.TrimSpace(code+" "+f.Diagnostic))
+		p.kind, ev.Tone = "rejected", "bad"
 	case providers.EventOpen:
+		p.kind, ev.Tone = "openedHuman", "info"
 		if f.Machine {
-			ev.Label, ev.Short, ev.Tone, ev.Detail = "opened · machine", "open", "neutral", f.Diagnostic
-		} else {
-			d := f.Diagnostic
-			if f.Variant != "" {
-				d = join(d, "variant "+f.Variant)
-			}
-			ev.Label, ev.Short, ev.Tone, ev.Detail = "opened · human", "open", "info", d
+			p.kind, ev.Tone = "openedMachine", "neutral"
 		}
 	case providers.EventClick:
+		p.kind, ev.Tone = "clicked", "ok"
 		if f.Machine {
-			ev.Label, ev.Short, ev.Tone, ev.Detail = "clicked · scanner", "scanner", "neutral", join(linkText(f.Url), f.Diagnostic)
-		} else {
-			ev.Label, ev.Short, ev.Tone, ev.Detail = "clicked", "click", "ok", linkText(f.Url)
+			p.kind, ev.Tone = "clickedScanner", "neutral"
 		}
 	case providers.EventUnsubscribe:
-		ev.Label, ev.Short, ev.Tone, ev.Detail = "unsubscribed", "unsubscribed", "neutral", short
+		p.kind, ev.Tone = "unsubscribed", "neutral"
 	default:
-		ev.Label, ev.Short, ev.Tone, ev.Detail = f.Type, f.Type, "neutral", short
+		p.kind, ev.Tone = "other", "neutral"
 	}
+	ev.Label, ev.Short = f.Type, f.Type
+	if w, ok := eventWords[p.kind]; ok {
+		ev.Label, ev.Short = w[0], w[1]
+	}
+	ev.Detail, ev.parts = p.detail(i18n.Default), p
 	return ev
 }
 
@@ -949,16 +952,16 @@ func linkText(raw string) string {
 	return strings.TrimSuffix(u.Host+u.Path, "/")
 }
 
-// webhooksVia names how a provider reports events ("SNS", "Postal webhooks").
-func webhooksVia(p store.Provider) string {
+// viaOf is how a provider reports events ("SNS", "Postal webhooks").
+func viaOf(p store.Provider) viaPart {
 	c := state.Caps(p)
 	switch c.Webhooks {
 	case "SNS":
-		return "SNS"
+		return viaPart{kind: "sns"}
 	case "Bounce mailbox":
-		return "the bounce mailbox"
+		return viaPart{kind: "mailbox"}
 	}
-	return state.Short(p.Name, p.Adapter) + " webhooks"
+	return viaPart{kind: "webhooks", name: state.Short(p.Name, p.Adapter)}
 }
 
 func streamName(s string) string {
@@ -981,16 +984,17 @@ func joinAnd(xs []string) string {
 	return strings.Join(xs[:len(xs)-1], ", ") + " and " + xs[len(xs)-1]
 }
 
-func uniqStrings(xs []string) []string {
-	seen := map[string]bool{}
-	out := []string{}
+// uniqVia lists each way once, SNS first.
+func uniqVia(xs []viaPart) []viaPart {
+	seen := map[viaPart]bool{}
+	out := []viaPart{}
 	for _, x := range xs {
 		if !seen[x] {
 			seen[x] = true
 			out = append(out, x)
 		}
 	}
-	sort.SliceStable(out, func(i, j int) bool { return out[i] == "SNS" && out[j] != "SNS" })
+	sort.SliceStable(out, func(i, j int) bool { return out[i].kind == "sns" && out[j].kind != "sns" })
 	return out
 }
 

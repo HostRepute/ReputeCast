@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -265,7 +267,7 @@ func (e *Engine) autoPause(ctx context.Context, rs *runState, ts tallies, tr tri
 		}
 	}
 	detail := e.analyzeThreshold(ctx, rs, ts, tr, held, now)
-	db_detail, _ := json.Marshal(detail)
+	db_detail := detail.stored()
 	id := newID()
 	var pid *uuid.UUID
 	if tr.scope == "route" {
@@ -281,6 +283,10 @@ func (e *Engine) autoPause(ctx context.Context, rs *runState, ts tallies, tr tri
 		scopeName = rs.routes[tr.provider].shortName()
 	}
 	headline := thresholdHeadline(tr, scopeName)
+	// The headline's words for the notification and the incident title,
+	// kept for each reader's language.
+	words := headlineArgs(tr, scopeName)
+	words["name"], words["held"] = quoted(c.Name), held
 	err := db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.SendingInsertIncident(ctx, store.SendingInsertIncidentParams{ID: id, CampaignID: c.ID, Kind: "threshold", Scope: tr.scope, ProviderID: pid,
@@ -312,18 +318,13 @@ func (e *Engine) autoPause(ctx context.Context, rs *runState, ts tallies, tr tri
 			rs.routes[tr.provider].status = "paused"
 		}
 		cid := c.ID
+		title := keep("incident.autoPaused", words)
 		if err := q.ProvInsertIncident(ctx, store.ProvInsertIncidentParams{ID: newID(), WorkspaceID: c.WorkspaceID, OccurredAt: now, Kind: "auto_pause", Severity: "bad",
-			Title: fmt.Sprintf("%q auto-paused: %s. %s held.", c.Name, headline, countText(held)), CampaignID: &cid, ProviderID: pid}); err != nil {
+			Title: title.In(i18n.Default), CampaignID: &cid, ProviderID: pid, Texts: titleTexts(title)}); err != nil {
 			return err
 		}
-		body := fmt.Sprintf("%s. %s held", headline, countText(held))
-		if tr.scope != "campaign" {
-			body += ", everything else still sending."
-		} else {
-			body += "."
-		}
 		if err := notify.ToMembersWith(ctx, tx, c.WorkspaceID, authz.CampaignsSend, notify.Notification{
-			Kind: notify.KindSendPaused, Severity: "bad", Title: fmt.Sprintf("%q auto-paused · %s", c.Name, scopeTitle(tr.scope, scopeName)), Body: body,
+			Kind: notify.KindSendPaused, Severity: "bad", TitleText: keep("notify.autoPausedTitle", words), BodyText: keep("notify.autoPausedBody", words),
 			Link: liveLink(c.WorkspaceSlug, c.ID), Data: map[string]any{"campaignId": c.ID.String(), "incidentId": id.String()},
 		}); err != nil {
 			return err
@@ -354,11 +355,34 @@ func (e *Engine) autoPause(ctx context.Context, rs *runState, ts tallies, tr tri
 	return err
 }
 
-func scopeTitle(scope, name string) string {
-	if scope == "campaign" {
-		return "whole campaign"
+// headlineArgs are a threshold trip's headline for the messages: whose
+// rate, which one, its value and its limit.
+func headlineArgs(tr trip, scopeName string) i18n.Args {
+	args := i18n.Args{"scope": tr.scope, "who": scopeName, "metric": tr.metric}
+	if tr.scope == "campaign" {
+		args["who"] = ""
 	}
-	return name
+	pctArgs(args, "value", tr.value)
+	pctArgs(args, "limit", tr.limit)
+	return args
+}
+
+// pctArgs puts a percentage the way fmtRate writes it ("0.18%", "2.4%")
+// into args: name as a fraction for the messages' percent format, and
+// name+"2" whether it takes two decimals.
+func pctArgs(args i18n.Args, name string, v float64) {
+	d, two := 1, "no"
+	if v < 1 {
+		d, two = 2, "yes"
+	}
+	r, _ := strconv.ParseFloat(strconv.FormatFloat(v, 'f', d, 64), 64)
+	args[name], args[name+"2"] = r/100, two
+}
+
+// titleTexts is an incidents.texts value keeping a title's message.
+func titleTexts(t i18n.Text) []byte {
+	b, _ := json.Marshal(map[string]i18n.Text{"title": t})
+	return b
 }
 
 func liveLink(slug string, id uuid.UUID) string {
@@ -522,10 +546,12 @@ func (e *Engine) holdRoute(ctx context.Context, rs *runState, r *runRoute, reaso
 		return err
 	}
 	detail := e.analyzeOutage(ctx, rs, r, reason, remaining, now)
-	b, _ := json.Marshal(detail)
+	b := detail.stored()
 	id := newID()
 	short := r.shortName()
 	headline := outageHeadline(detail, r.provider.Name)
+	words := outageArgs(detail, r.provider.Name)
+	words["name"], words["who"], words["remaining"] = quoted(c.Name), short, remaining
 	err = db.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		// The provider health job may have held it already: one open incident per route.
@@ -552,13 +578,13 @@ func (e *Engine) holdRoute(ctx context.Context, rs *runState, r *runRoute, reaso
 		if err := e.markHeld(ctx, q, rs, r, reason, id); err != nil {
 			return err
 		}
+		title := keep("incident.broadcastHeld", words)
 		if err := q.ProvInsertIncident(ctx, store.ProvInsertIncidentParams{ID: newID(), WorkspaceID: c.WorkspaceID, OccurredAt: now, Kind: "broadcast_held", Severity: "warn",
-			Title: fmt.Sprintf("Broadcasts: %q %s share held, %s recipients. Decision requested.", c.Name, short, countText(remaining)), CampaignID: &cid, ProviderID: &pid}); err != nil {
+			Title: title.In(i18n.Default), CampaignID: &cid, ProviderID: &pid, Texts: titleTexts(title)}); err != nil {
 			return err
 		}
 		if err := notify.ToMembersWith(ctx, tx, c.WorkspaceID, authz.CampaignsSend, notify.Notification{
-			Kind: notify.KindSendPaused, Severity: "bad", Title: fmt.Sprintf("%q is waiting for a decision", c.Name),
-			Body: fmt.Sprintf("%s. Its share (%s recipients) is held; the rest keeps sending.", headline, countText(remaining)),
+			Kind: notify.KindSendPaused, Severity: "bad", TitleText: keep("notify.decisionTitle", words), BodyText: keep("notify.decisionBody", words),
 			Link: liveLink(c.WorkspaceSlug, c.ID), Data: map[string]any{"campaignId": c.ID.String(), "providerId": pid.String(), "incidentId": id.String()},
 		}); err != nil {
 			return err
@@ -605,8 +631,9 @@ func (e *Engine) autoMove(ctx context.Context, rs *runState, r *runRoute, target
 			return err
 		}
 		r.status = "done"
+		title := keep("incident.failover", i18n.Args{"name": quoted(c.Name), "who": r.shortName(), "target": state.Short(target.Name, target.Adapter), "moved": moved})
 		if err := q.ProvInsertIncident(ctx, store.ProvInsertIncidentParams{ID: newID(), WorkspaceID: c.WorkspaceID, OccurredAt: now, Kind: "failover", Severity: "ok",
-			Title: fmt.Sprintf("Broadcasts: %q %s share moved to %s, %s recipients.", c.Name, r.shortName(), state.Short(target.Name, target.Adapter), countText(moved)), CampaignID: &cid, ProviderID: &pid}); err != nil {
+			Title: title.In(i18n.Default), CampaignID: &cid, ProviderID: &pid, Texts: titleTexts(title)}); err != nil {
 			return err
 		}
 		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.share_moved", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
@@ -679,8 +706,7 @@ func (e *Engine) probeHeld(ctx context.Context, rs *runState, r *runRoute, now t
 	if now.Sub(tripped) < 30*time.Second {
 		return nil
 	}
-	var d IncidentDetail
-	_ = json.Unmarshal(raw, &d)
+	d := parseDetail(raw)
 	if d.Probed {
 		return nil
 	}
@@ -700,14 +726,13 @@ func (e *Engine) probeHeld(ctx context.Context, rs *runState, r *runRoute, now t
 		}
 		cancel()
 	}
-	text := "health check · still failing"
+	line := english("probe.failing", nil)
 	if !failing {
-		text = "health check · answering again"
+		line = english("probe.answering", nil)
 	}
-	d.Log = append(d.Log, IncidentLogLine{At: now, Text: text, Bad: false})
+	d.Log = append(d.Log, IncidentLogLine{At: now, Text: line, Bad: false})
 	d.Probed = true
-	b, _ := json.Marshal(d)
-	return e.Q.SendingUpdateIncidentDetail(ctx, store.SendingUpdateIncidentDetailParams{ID: id, Detail: b, Held: held})
+	return e.Q.SendingUpdateIncidentDetail(ctx, store.SendingUpdateIncidentDetailParams{ID: id, Detail: d.stored(), Held: held})
 }
 
 func (e *Engine) callLines(k routeKey) []IncidentLogLine {
@@ -831,8 +856,11 @@ func (e *Engine) finish(ctx context.Context, rs *runState, ts tallies, now time.
 		if cur.StartedAt != nil {
 			dur = now.Sub(*cur.StartedAt)
 		}
-		body := fmt.Sprintf("%s sent in %s: %s delivered (%s), %s bounced, %s %s.", countText(t.sent), durationText(dur), countText(t.delivered), fmtPct(rate(t.delivered, t.sent)),
-			countText(t.bounced()), countText(t.complained), plural(t.complained, "complaint", "complaints"))
+		// "47,980 sent in 1 h 12 min: 47,512 delivered (99.0%), 312
+		// bounced, 7 complaints", kept for each reader's language.
+		delivered, _ := strconv.ParseFloat(strconv.FormatFloat(rate(t.delivered, t.sent), 'f', 1, 64), 64)
+		words := i18n.Args{"name": quoted(c.Name), "sent": t.sent, "delivered": t.delivered, "rate": delivered / 100, "bounced": t.bounced(), "complaints": t.complained}
+		durationArgs(words, dur)
 		seen := map[uuid.UUID]bool{}
 		for _, u := range []*uuid.UUID{rs.send.StartedBy, rs.send.ScheduledBy} {
 			if u == nil || seen[*u] {
@@ -840,8 +868,8 @@ func (e *Engine) finish(ctx context.Context, rs *runState, ts tallies, now time.
 			}
 			seen[*u] = true
 			wsID := c.WorkspaceID
-			if err := notify.ToUser(ctx, tx, *u, notify.Notification{WorkspaceID: &wsID, Kind: notify.KindSendFinished, Severity: "ok", Title: fmt.Sprintf("%q finished", c.Name),
-				Body: body, Link: liveLink(c.WorkspaceSlug, c.ID), Data: map[string]any{"campaignId": c.ID.String()}}); err != nil {
+			if err := notify.ToUser(ctx, tx, *u, notify.Notification{WorkspaceID: &wsID, Kind: notify.KindSendFinished, Severity: "ok", TitleText: keep("notify.finishedTitle", words),
+				BodyText: keep("notify.finishedBody", words), Link: liveLink(c.WorkspaceSlug, c.ID), Data: map[string]any{"campaignId": c.ID.String()}}); err != nil {
 				return err
 			}
 		}

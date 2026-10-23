@@ -62,7 +62,7 @@ export default translate(m, {
   continue: 'Tiếp tục',
   whatTripped: 'Điều gì vượt ngưỡng',
   whatReturned: '{provider} trả về gì',
-  healthDown: 'Kiểm tra tình trạng của ReputeCast đã đánh dấu nhà cung cấp ngừng hoạt động; từ đó chưa có lệnh gửi nào đến nhà cung cấp này thành công.',
+  healthDown: 'Kiểm tra tình trạng của ReputeCast đã đánh dấu nhà cung cấp gián đoạn; từ đó chưa có lệnh gửi nào đến nhà cung cấp này thành công.',
   retries:
     'Các lần thử lại dùng giãn cách tăng dần theo cấp số nhân (5 giây đến 60 giây). Không thư nào bị gửi hai lần: mỗi lần thử đều mang một khóa idempotency.',
   likelyCauses: 'Nguyên nhân có thể',

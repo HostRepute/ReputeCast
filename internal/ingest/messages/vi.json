@@ -1,0 +1,6 @@
+{
+  "problem.pickProvider": "Hãy chọn một nhà cung cấp gửi thư.",
+  "provider.bounceMailbox": "SMTP · hộp thư nhận thư trả lại",
+  "source.kind": "{kind, select, double_opt_in {Thư xác nhận hai bước} preference_link {Liên kết trung tâm tùy chọn} invite {Lời mời vào nhóm} password_reset {Thư đặt lại mật khẩu} api {API · giao dịch} other {Bản gửi kiểm tra vị trí hộp thư}}",
+  "source.step": "{automation} · bước {step}"
+}

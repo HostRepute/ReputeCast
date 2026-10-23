@@ -8,14 +8,14 @@ import { mi } from './incidents.messages'
  */
 export default translate(mi, {
   // ── Re-check ─────────────────────────────────────────────────────────
-  stillDown: '{name} vẫn ngừng hoạt động',
+  stillDown: '{name} vẫn gián đoạn',
   answered: '{name} đã phản hồi',
   stillDownDetail: 'Lần kiểm tra tự động tiếp theo chạy trong vòng 5 phút.',
   refreshed: 'Đã làm mới tình trạng.',
   checkFailed: 'Kiểm tra thất bại',
 
   // ── Outage banner ────────────────────────────────────────────────────
-  outageTitle: '{provider} ngừng hoạt động: lỗi API từ {time} ({since})',
+  outageTitle: '{provider} gián đoạn: lỗi API từ {time} ({since})',
   outageReturns: '{hasOp, select, yes {{op} trả về {codes}} other {API trả về {codes}}}{hasRate, select, yes { ở {rate} số lần gọi} other {}}.',
   outageHandled: '{handled} đã tự xử lý.',
   outageWaiting: '{waiting} {verb, select, are {đang chờ bạn quyết định} other {đang chờ bạn quyết định}}.',
@@ -70,7 +70,7 @@ export default translate(mi, {
   timelineTitle: 'Dòng thời gian sự cố',
   allIncidents: 'Mọi sự cố',
   incidentKind:
-    '{kind, select, broadcast_held {đang chờ} failover {chuyển dự phòng} failover_ended {đã chuyển lại} provider_down {ngừng hoạt động} provider_recovered {đã hồi phục} campaign_started {đã bắt đầu} webhooks_silent {im lặng} webhooks_resumed {đã hoạt động lại} other {{raw}}}',
+    '{kind, select, broadcast_held {đang chờ} failover {chuyển dự phòng} failover_ended {đã chuyển lại} provider_down {gián đoạn} provider_recovered {đã hồi phục} campaign_started {đã bắt đầu} webhooks_silent {im lặng} webhooks_resumed {đã hoạt động lại} other {{raw}}}',
 
   // ── Silent webhooks ──────────────────────────────────────────────────
   testReceived: 'Đã nhận sự kiện thử',

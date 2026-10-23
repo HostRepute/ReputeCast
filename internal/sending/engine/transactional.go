@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/riverqueue/river"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
@@ -335,7 +336,7 @@ func (o *TransactionalOutbox) reroute(ctx context.Context, now time.Time) error 
 					oc = &TransactionalOutcome{WorkspaceID: r.WorkspaceID, At: now}
 					outcomes[r.WorkspaceID] = oc
 				}
-				reason := name + " is down"
+				reason := routing.DeliveryError("down", i18n.Args{"provider": name})
 				nx, err := o.next(ctx, q, pid, r.Route, r.Tried)
 				if err != nil {
 					return err
@@ -351,7 +352,7 @@ func (o *TransactionalOutbox) reroute(ctx context.Context, now time.Time) error 
 				if r.ProviderSince != nil && now.Sub(*r.ProviderSince) < TransactionalRetryWindow {
 					continue // waits for the provider to come back
 				}
-				if err := o.fail(ctx, q, r.ID, gave, name+" was down and no other provider in the route could take the message."); err != nil {
+				if err := o.fail(ctx, q, r.ID, gave, routing.DeliveryError("downNoOther", i18n.Args{"provider": name})); err != nil {
 					return err
 				}
 				oc.Failed = append(oc.Failed, TransactionalFailure{ID: r.ID, Reason: reason})
@@ -385,7 +386,7 @@ func (o *TransactionalOutbox) reroute(ctx context.Context, now time.Time) error 
 				}
 				continue
 			}
-			if err := o.fail(ctx, q, r.ID, attempt{}, "The route's providers were removed."); err != nil {
+			if err := o.fail(ctx, q, r.ID, attempt{}, routing.DeliveryError("providersRemoved", nil)); err != nil {
 				return err
 			}
 			oc.Failed = append(oc.Failed, TransactionalFailure{ID: r.ID, Reason: "the route's providers were removed"})
@@ -518,12 +519,12 @@ func (o *TransactionalOutbox) tick(ctx context.Context, pid uuid.UUID, routes ma
 	for _, row := range rows {
 		if len(row.Sealed) == 0 {
 			// Never expected: the payload is written with the message.
-			results[row.ID] = &txResult{row: row, permanent: true, final: true, err: "The message's content is no longer available, so it can't be sent."}
+			results[row.ID] = &txResult{row: row, permanent: true, final: true, err: routing.DeliveryError("contentGone", nil)}
 			continue
 		}
 		m, x, err := o.Open(ctx, row.ID, row.Sealed)
 		if err != nil {
-			results[row.ID] = &txResult{row: row, permanent: true, final: true, err: "The message couldn't be opened: " + err.Error()}
+			results[row.ID] = &txResult{row: row, permanent: true, final: true, err: routing.DeliveryError("unreadable", i18n.Args{"error": err.Error()})}
 			continue
 		}
 		if r.sim != nil {
@@ -651,7 +652,7 @@ func (o *TransactionalOutbox) tick(ctx context.Context, pid uuid.UUID, routes ma
 				oc.FailedOver = append(oc.FailedOver, TransactionalFailover{ID: row.ID, From: pid, To: nx.ID})
 				continue
 			}
-			reason := "Every provider in the route failed: " + res.err
+			reason := routing.DeliveryError("allFailed", i18n.Args{"error": res.err})
 			if res.final {
 				reason = res.err
 			}

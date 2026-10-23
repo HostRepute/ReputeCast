@@ -1,0 +1,8 @@
+{
+  "scope.account": { "message": "account-level list", "note": "which of a provider's suppression lists the shared list syncs with (SES)" },
+  "scope.stream": { "message": "per stream", "note": "Postmark keeps a suppression list per message stream" },
+  "scope.enforced": { "message": "enforced before sending", "note": "a provider without a suppression list: ReputeCast checks the shared list itself" },
+  "scope.list": "suppression list",
+  "detail.local": "ReputeCast checks the shared list before handing mail to {provider}.",
+  "provider.import": { "message": "{name} (import)", "note": "a one-time import of suppressions from a migration; name: Brevo, Mailchimp, CSV" }
+}

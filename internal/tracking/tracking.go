@@ -33,6 +33,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/sending"
@@ -217,12 +218,12 @@ func (s *Service) click(w http.ResponseWriter, r *http.Request) {
 	token := chi.URLParam(r, "token")
 	c, err := s.Links.Verify(token, linktoken.Click)
 	if err != nil || c.MessageID == uuid.Nil {
-		gone(w)
+		gone(w, r)
 		return
 	}
 	target, m, err := s.targetOf(r.Context(), c)
 	if err != nil || target == "" {
-		gone(w)
+		gone(w, r)
 		return
 	}
 	at := s.now()
@@ -249,10 +250,13 @@ func (s *Service) click(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, target, http.StatusFound) //nolint:gosec // G710: see target
 }
 
-func gone(w http.ResponseWriter) {
+// gone answers a tracked link that no longer works, in the language the
+// visitor's browser asks for.
+func gone(w http.ResponseWriter, r *http.Request) {
+	l, _ := i18n.Negotiate(r.Header.Get("Accept-Language"))
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusNotFound)
-	_, _ = w.Write([]byte("This link is no longer valid. If you copied it, check that the whole address came along.\n"))
+	_, _ = w.Write([]byte(msgs.M("page.gone").Text(i18n.For(l), nil) + "\n"))
 }
 
 // targetOf resolves a click token to the original link and the message.

@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Cloudflare adds a domain's missing records through the Cloudflare API
@@ -54,6 +56,44 @@ type cfRecord struct {
 // ErrCloudflareToken means Cloudflare refused the token.
 var ErrCloudflareToken = errors.New("Cloudflare rejected the API token")
 
+// cloudflareError is a failed Cloudflare call, in words the domain page
+// shows (problem.cloudflare*): Cloudflare couldn't be reached, answered
+// with an error, or shows no zone for the domain.
+type cloudflareError struct {
+	kind    string // unreachable, answered, no_zone
+	status  int
+	message string // Cloudflare's own words, or the network error
+	domain  string
+	cause   error
+}
+
+func (e *cloudflareError) Error() string {
+	switch e.kind {
+	case "unreachable":
+		return "couldn't reach Cloudflare: " + e.cause.Error()
+	case "no_zone":
+		return fmt.Sprintf("no Cloudflare zone for %s is visible to this token", e.domain)
+	}
+	msg := fmt.Sprintf("Cloudflare answered %d", e.status)
+	if e.message != "" {
+		msg += ": " + e.message
+	}
+	return msg
+}
+
+func (e *cloudflareError) Unwrap() error { return e.cause }
+
+// problem is the error as the domain page shows it, in a reader's language.
+func (e *cloudflareError) problem(ctx context.Context) string {
+	switch e.kind {
+	case "unreachable":
+		return say(ctx, "problem.cloudflareUnreachable", i18n.Args{"error": e.cause.Error()})
+	case "no_zone":
+		return say(ctx, "problem.cloudflareNoZone", i18n.Args{"domain": e.domain})
+	}
+	return say(ctx, "problem.cloudflareAnswered", i18n.Args{"status": e.status, "hasMessage": yesNo(e.message != ""), "message": e.message})
+}
+
 func (c *Cloudflare) base() string {
 	if c != nil && c.BaseURL != "" {
 		return strings.TrimRight(c.BaseURL, "/")
@@ -85,7 +125,7 @@ func (c *Cloudflare) do(ctx context.Context, token, method, path string, body, o
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.client().Do(req)
 	if err != nil {
-		return fmt.Errorf("couldn't reach Cloudflare: %w", err)
+		return &cloudflareError{kind: "unreachable", cause: err}
 	}
 	defer func() { _ = resp.Body.Close() }()
 	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
@@ -95,11 +135,11 @@ func (c *Cloudflare) do(ctx context.Context, token, method, path string, body, o
 		return ErrCloudflareToken
 	}
 	if resp.StatusCode >= 300 || !r.Success {
-		msg := fmt.Sprintf("Cloudflare answered %d", resp.StatusCode)
+		e := &cloudflareError{kind: "answered", status: resp.StatusCode}
 		if len(r.Errors) > 0 {
-			msg += ": " + r.Errors[0].Message
+			e.message = r.Errors[0].Message
 		}
-		return errors.New(msg)
+		return e
 	}
 	if out != nil {
 		return json.Unmarshal(r.Result, out)
@@ -123,7 +163,7 @@ func (c *Cloudflare) zone(ctx context.Context, token, domain string) (string, st
 		}
 		name = name[strings.IndexByte(name, '.')+1:]
 	}
-	return "", "", fmt.Errorf("no Cloudflare zone for %s is visible to this token", domain)
+	return "", "", &cloudflareError{kind: "no_zone", domain: domain}
 }
 
 // Apply creates or updates every record that isn't verified yet. The

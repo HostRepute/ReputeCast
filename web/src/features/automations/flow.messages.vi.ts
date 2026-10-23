@@ -153,7 +153,7 @@ export default translate(mf, {
   versionDiff: 'Khác biệt phiên bản · v{from} → v{to}',
   inFlowRightNow: '{count} liên hệ đang ở trong quy trình này',
   migrationLabel: 'Liên hệ đã ở trong quy trình',
-  finishOn: 'Để họ hoàn tất trên v{version} (khuyến nghị)',
+  finishOn: 'Để họ hoàn tất trên v{version} (khuyên dùng)',
   finishDetail: 'Người mới vào quy trình bắt đầu trên v{to}. Không ai nhận một bước hai lần hay bị bỏ qua bước nào. v{from} ngừng hoạt động khi liên hệ cuối cùng rời đi, {estimate}.',
   moveTo: 'Chuyển họ sang v{version} tại bước hiện tại',
   checks: 'Kiểm tra trước khi xuất bản',

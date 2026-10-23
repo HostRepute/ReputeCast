@@ -52963,6 +52963,8 @@ export interface operations {
             query?: {
                 /** @description Same as the Last-Event-ID header, for clients that reconnect by themselves */
                 lastEventId?: string;
+                /** @description The language the snapshots' words read in (en, vi); like Accept-Language, for clients that can't set headers */
+                lang?: string;
             };
             header?: {
                 /** @description Resume after this event id (the snapshot version) */

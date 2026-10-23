@@ -31,7 +31,8 @@ ORDER BY date_end DESC, org_name;
 -- name: ListDeliverabilityIncidents :many
 -- The incident timeline. An incident without an explicit campaign is linked
 -- to the campaign that was sending through its provider when it happened.
-SELECT i.id, i.occurred_at, i.kind, i.severity, i.title, i.detail, i.source, i.asset, i.resolved_at,
+-- texts keeps the messages of the title and detail (migration 02250).
+SELECT i.id, i.occurred_at, i.kind, i.severity, i.title, i.detail, i.source, i.asset, i.resolved_at, i.texts,
        i.provider_id, coalesce(p.name, '')::text AS provider_name, coalesce(p.adapter, '')::text AS provider_adapter,
        coalesce(i.campaign_id, lc.id, '00000000-0000-0000-0000-000000000000'::uuid) AS campaign_id,
        coalesce(c.name, lc.name, '')::text AS campaign_name,

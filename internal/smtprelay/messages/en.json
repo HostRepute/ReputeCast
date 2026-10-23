@@ -1,0 +1,23 @@
+{
+  "check.noHostname": { "message": "No hostname yet", "note": "a status check of Instance admin › SMTP relay" },
+  "check.unresolved": { "message": "{host} doesn't resolve", "note": "host: the relay's hostname" },
+  "check.unresolvedAdd": "{host} doesn't resolve: add an A or AAAA record pointing to this server",
+  "check.portUnresolved": { "message": "Port {port} can't be checked until {host} resolves", "note": "port: 587 or 465" },
+  "check.certUnresolved": "The certificate can't be checked until {host} resolves",
+  "check.resolves": { "message": "DNS · {host} points to {addresses}", "note": "addresses: IP addresses, already joined" },
+  "check.portUnreachable": { "message": "Port {port} isn't reachable at {host}: {error}", "note": "error: the network error, in English (connection refused, i/o timeout)" },
+  "check.portReachable": "Port {port} reachable from the internet",
+  "check.certUnverified": { "message": "The certificate couldn't be verified: {error}", "note": "error: the TLS error, in English" },
+  "check.noCert": "The relay sent no certificate",
+  "check.certExpired": "The certificate expired on {at, date}",
+  "check.certValid": "Certificate valid until {at, date}",
+
+  "notify.title": { "message": "SMTP relay unreachable", "note": "a notification to instance admins" },
+  "notify.body": "{why, select, unresolved {Port {port} can't be checked until {host} resolves} other {Port {port} isn't reachable at {host}: {error}}}. Apps that send by SMTP can't connect; the HTTP API keeps working.",
+
+  "problem.hostnameNeeded": "Enter the hostname apps connect to, such as the instance's own host.",
+  "problem.hostnameFormat": "Enter a hostname like reputecast.acme.io.",
+  "problem.portsDiffer": "The STARTTLS and TLS ports must differ.",
+  "problem.certFiles": "Give the paths of the certificate and key files, as this server sees them.",
+  "problem.certUnreadable": { "message": "The certificate and key couldn't be read: {error}", "note": "error: why, in English" }
+}

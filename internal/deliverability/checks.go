@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/netip"
 	"slices"
 	"strings"
@@ -22,6 +21,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/hostrepute"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -172,11 +172,11 @@ const manualCheckGap = time.Minute
 func (s *Service) RunNow(ctx context.Context, ws *store.Workspace, builtinOnly bool) (DeliverabilityCheckRun, error) {
 	now := s.now()
 	if run, err := s.Q.RunningDeliverabilityCheckRun(ctx, store.RunningDeliverabilityCheckRunParams{WorkspaceID: ws.ID, AliveAfter: now.Add(-runTTL)}); err == nil {
-		return runView(run), nil
+		return runView(i18n.LangFrom(ctx), run), nil
 	}
 	if run, err := s.Q.LatestDeliverabilityCheckRun(ctx, ws.ID); err == nil && run.Trigger == "manual" && now.Sub(run.StartedAt) < manualCheckGap &&
 		(!builtinOnly || run.Via == "builtin") {
-		return runView(run), nil
+		return runView(i18n.LangFrom(ctx), run), nil
 	}
 	var by *uuid.UUID
 	if p := api.PrincipalFrom(ctx); p != nil && p.Type == authz.ActorUser {
@@ -208,7 +208,7 @@ func (s *Service) RunNow(ctx context.Context, ws *store.Workspace, builtinOnly b
 		if err != nil {
 			return err
 		}
-		out = runView(run)
+		out = runView(i18n.LangFrom(ctx), run)
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "deliverability.check_run", TargetType: "check_run",
 			TargetID: run.ID.String(), TargetName: "Deliverability checks", Metadata: map[string]any{"via": via}})
 	})
@@ -221,7 +221,7 @@ func (s *Service) Run(ctx context.Context, ws uuid.UUID, id uuid.UUID) (Delivera
 	if err != nil {
 		return DeliverabilityCheckRun{}, api.MapError(err, "Check run")
 	}
-	return runView(run), nil
+	return runView(i18n.LangFrom(ctx), run), nil
 }
 
 // RunChecks runs the local checks of a workspace.
@@ -299,7 +299,7 @@ func (s *Service) RunChecks(ctx context.Context, args CheckArgs) error {
 		}
 		msg := ""
 		if errs > 0 {
-			msg = fmt.Sprintf("%d of %d lookups didn't answer; they show as unknown.", errs, len(results))
+			msg = text(i18n.Default, "run.unanswered", i18n.Args{"failed": errs, "total": len(results)})
 		}
 		return tq.FinishDeliverabilityCheckRun(ctx, store.FinishDeliverabilityCheckRunParams{ID: *args.RunID, Status: "done", Answered: int32(len(results)), Total: int32(len(results)),
 			Listed: int32(listed), Error: msg, FinishedAt: &now})
@@ -320,11 +320,13 @@ func (s *Service) newListing(ctx context.Context, tx pgx.Tx, ws uuid.UUID, r dns
 	if r.List.Impact == "high" {
 		sev = "bad"
 	}
-	title := fmt.Sprintf("%s listed on %s", r.Asset, r.List.Name)
-	detail := fmt.Sprintf("Found by the built-in daily check (%s impact).", r.List.Impact)
+	// "203.0.113.25 listed on Spamhaus ZEN", kept as messages so the
+	// timeline and the notification read in each reader's language.
+	args := i18n.Args{"asset": r.Asset, "source": r.List.Name, "impact": r.List.Impact, "url": r.List.DelistURL}
+	title, detail := msgs.M("listing.title").Keep(args), msgs.M("listing.detail").Keep(args)
 	if _, err := q.InsertDeliverabilityIncident(ctx, store.InsertDeliverabilityIncidentParams{
-		ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws, OccurredAt: now, Kind: "blocklist_listed", Severity: sev, Title: title,
-		Detail: detail, ProviderID: provider, Source: "builtin", Asset: r.Asset,
+		ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws, OccurredAt: now, Kind: "blocklist_listed", Severity: sev, Title: title.In(i18n.Default),
+		Detail: detail.In(i18n.Default), ProviderID: provider, Source: "builtin", Asset: r.Asset, Texts: keptTexts(title, detail),
 	}); err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return err
 	}
@@ -333,7 +335,7 @@ func (s *Service) newListing(ctx context.Context, tx pgx.Tx, ws uuid.UUID, r dns
 		return err
 	}
 	return notify.ToMembersWith(ctx, tx, ws, authz.DeliverabilityView, notify.Notification{
-		Kind: notify.KindHostReputeAlert, Severity: sev, Title: title, Body: detail + " Delisting page: " + r.List.DelistURL,
+		Kind: notify.KindHostReputeAlert, Severity: sev, TitleText: title, BodyText: msgs.M("listing.body").Keep(args),
 		Link: "/w/" + slug + "/deliverability", Data: map[string]any{"asset": r.Asset, "source": r.List.Name, "delistUrl": r.List.DelistURL},
 	})
 }

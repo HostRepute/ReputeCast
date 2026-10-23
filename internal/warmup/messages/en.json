@@ -1,0 +1,27 @@
+{
+  "problem.complete": "This warm-up is complete. Start a new plan to warm up again.",
+  "problem.completeShort": "This warm-up is complete.",
+  "problem.pickProvider": "Pick a provider.",
+  "problem.providerNotConnected": "That provider is not connected to this workspace.",
+  "problem.planExists": { "message": "{provider} already has a warm-up plan. Change its settings instead.", "note": "provider: a sending provider's name, never translated" },
+
+  "log.started": { "message": "Plan started by {named, select, no {someone} other {{name}}}: {days, plural, one {# day} other {# days}}, {order, select, random {random sample} other {engaged-first}}.", "note": "the warm-up log; name: a member's name; engaged-first: the most engaged contacts get the first days' mail" },
+  "log.settings": "Plan settings changed by {named, select, no {someone} other {{name}}}.",
+  "log.paused": { "message": "Warm-up paused by {named, select, no {someone} other {{name}}}. No mail goes to {provider} until it resumes.", "note": "provider: a sending provider's name" },
+  "log.resumed": "Warm-up resumed by {named, select, no {someone} other {{name}}}.",
+  "log.slowdownTitle": { "message": "Automatic slowdown.", "note": "the bold lead of a log entry when the warm-up guard tripped" },
+  "log.slowdown": { "message": "{metric, select, complaint {Complaints hit {rate, number, ::percent .00} (guard {guardDigits, select, 0 {{guard, number, percent}} 1 {{guard, number, ::percent .0}} other {{guard, number, ::percent .00}}})} other {Bounces hit {rate, number, ::percent .0} (guard {guardDigits, select, 0 {{guard, number, percent}} 1 {{guard, number, ::percent .0}} other {{guard, number, ::percent .00}}})}}{mailbox, select, none {} rest {, mostly Other} other {, mostly {mailbox}}}. {action, select, pause {The plan is paused until someone resumes it.} step_back {Day {day} steps back to {cap, number}.} other {Day {day} cap held at {cap, number}.}}", "note": "the guard tripped on a day of the warm-up. rate and guard: percentages; mailbox: the mailbox provider most bounces came from (Gmail, Outlook…), rest the other mailbox providers; cap: emails a day" },
+  "log.rampResumed": "Ramp resumed: bounces back to {bounce, number, ::percent .0}.",
+  "log.dayComplete": { "message": "Day {day} complete: {sent, number} sent{inside, select, yes { inside \"{campaign}\"} other {}}, bounce {bounce, number, ::percent .0}.", "note": "campaign: the campaign that used the provider that day, never translated" },
+  "log.shareRaised": { "message": "Broadcast share raised to {share, number, percent} on day {day}.", "note": "share: the provider's share of the Broadcasts stream" },
+  "log.doneTitle": "Warm-up complete.",
+  "log.done": { "message": "{provider} is eligible as a Broadcast failover target.", "note": "provider: a sending provider's name" },
+  "log.shiftedTitle": "Schedule shifted by a day.",
+  "log.shifted": { "message": "{provider} was down during a send and its share moved to another provider, so the warm-up repeats today's step tomorrow.", "note": "provider: a sending provider's name" },
+
+  "status.pausedByGuard": { "message": "Paused by the guard on day {day}", "note": "a warm-up plan's status line under its title" },
+  "status.steppedBack": "Stepped back after day {day}",
+  "status.capHeld": "Day {day} cap held",
+  "status.complete": "Complete",
+  "status.pausedBy": "Paused by {named, select, no {someone} other {{name}}}"
+}
