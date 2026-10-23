@@ -236,7 +236,8 @@ func RegisterComposer(h huma.API, s *Service) {
 			// Checks writes English (Send Readiness keeps it); the composer
 			// reads the issues and the layout warnings in its language.
 			l := i18n.LangFrom(ctx)
-			out.ContentCheckReport = out.ContentCheckReport.In(l)
+			report := out.ContentCheckReport
+			out.ContentCheckReport = report.In(l)
 			for i := range out.Lint {
 				out.Lint[i].Message = out.Lint[i].In(l)
 			}

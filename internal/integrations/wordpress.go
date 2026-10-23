@@ -55,14 +55,6 @@ func (s *Service) checkTimeout() time.Duration {
 	return DefaultCheckTimeout
 }
 
-// seconds writes a duration as the check says it: "10 s", "0.5 s".
-func seconds(d time.Duration) string {
-	if d%time.Second == 0 {
-		return fmt.Sprintf("%d s", int(d.Seconds()))
-	}
-	return fmt.Sprintf("%.1f s", d.Seconds())
-}
-
 // WordPressCategory is a post category of a site, as the plugin reports it.
 type WordPressCategory struct {
 	ID   string `json:"id"`

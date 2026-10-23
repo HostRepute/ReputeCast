@@ -211,7 +211,7 @@ func (s *Service) serveClick(w http.ResponseWriter, r *http.Request) {
 func gone(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusNotFound)
-	_, _ = w.Write([]byte(mPublicLinkGone.Text(readerLang(r), nil) + "\n"))
+	_, _ = w.Write([]byte(mPublicLinkGone.Text(readerLang(r), nil) + "\n")) //nolint:gosec // G705: a catalog sentence, picked by the browser's language, served as text/plain
 }
 
 // readerLang is the language a site's reader reads ReputeCast's own words

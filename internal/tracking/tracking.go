@@ -256,7 +256,7 @@ func gone(w http.ResponseWriter, r *http.Request) {
 	l, _ := i18n.Negotiate(r.Header.Get("Accept-Language"))
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusNotFound)
-	_, _ = w.Write([]byte(msgs.M("page.gone").Text(i18n.For(l), nil) + "\n"))
+	_, _ = w.Write([]byte(msgs.M("page.gone").Text(i18n.For(l), nil) + "\n")) //nolint:gosec // G705: a catalog sentence, picked by the browser's language, served as text/plain
 }
 
 // targetOf resolves a click token to the original link and the message.

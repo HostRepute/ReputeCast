@@ -1,6 +1,7 @@
 version: "2"
 run:
-  timeout: 5m
+  # The whole module takes a few minutes cold, more on a busy CI runner.
+  timeout: 15m
 linters:
   default: standard
   enable:

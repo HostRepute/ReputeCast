@@ -1,6 +1,7 @@
 package server
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -17,7 +18,7 @@ func TestSPANoscriptFollowsTheRequestsLanguage(t *testing.T) {
 		{"de-DE,de;q=0.9", noscript},
 		{"vi-VN,vi;q=0.9,en;q=0.8", "<noscript>ReputeCast cần JavaScript. Các trang công khai (đăng ký, tùy chọn, lưu trữ) vẫn dùng được khi không có JavaScript.</noscript>"},
 	} {
-		req := httptest.NewRequest("GET", "/w/acme-newsletter/campaigns", nil)
+		req := httptest.NewRequest(http.MethodGet, "/w/acme-newsletter/campaigns", nil)
 		if tc.accept != "" {
 			req.Header.Set("Accept-Language", tc.accept)
 		}

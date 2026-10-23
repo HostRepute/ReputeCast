@@ -14,9 +14,8 @@ var vi = i18n.For(i18n.Vietnamese)
 // approvals store and compare, stay as they were.
 func TestBlockNamesInVietnamese(t *testing.T) {
 	bs := Blocks(doc(header, hero, headline, intro, button, footer), "")
-	en, vn := []string{}, []string{}
+	vn := []string{}
 	for _, b := range bs {
-		en = append(en, b.Ref().Name(i18n.Default))
 		vn = append(vn, b.nameIn(vi))
 		if b.nameIn(i18n.Default) != b.Name || b.Ref().Name(i18n.Default) != b.Name {
 			t.Errorf("English name %q, from its ref %q", b.Name, b.Ref().Name(i18n.Default))
