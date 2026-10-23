@@ -154,7 +154,7 @@ func TestSMSInVietnamese(t *testing.T) {
 		}
 		body, _ := io.ReadAll(resp.Body)
 		_ = resp.Body.Close()
-		if resp.StatusCode != 404 || string(body) != want {
+		if resp.StatusCode != http.StatusNotFound || string(body) != want {
 			t.Fatalf("expired link (%q): %d %q", lang, resp.StatusCode, body)
 		}
 	}
