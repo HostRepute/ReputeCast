@@ -15,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/sending"
@@ -28,14 +29,6 @@ var (
 	// ErrState: the campaign isn't in a state that allows the action.
 	ErrState = errors.New("the campaign can't do that in its current state")
 )
-
-// StateError explains why an action isn't possible now.
-type StateError struct{ Msg string }
-
-func (e *StateError) Error() string { return e.Msg }
-func (e *StateError) Unwrap() error { return ErrState }
-
-func stateErr(format string, a ...any) error { return &StateError{Msg: fmt.Sprintf(format, a...)} }
 
 // StartOptions tune a start beyond the Starter contract (the demo command).
 type StartOptions struct {
@@ -98,14 +91,14 @@ func (e *Engine) StartWith(ctx context.Context, campaignID uuid.UUID, o StartOpt
 	switch c.Status {
 	case "draft", "approval", "approved", "scheduled":
 	case "sending", "paused":
-		return stateErr("%q is already sending.", c.Name)
+		return stateErr("state.alreadySending", campaignArgs(c.Name, c.Status))
 	default:
-		return stateErr("%q was already sent or cancelled; duplicate it to send it again.", c.Name)
+		return stateErr("state.alreadySent", campaignArgs(c.Name, c.Status))
 	}
 	// Texts (and later push and WhatsApp) have their own sending
 	// (internal/texting): an email send never takes them.
 	if c.Channel != "" && c.Channel != "email" {
-		return stateErr("%q isn't an email campaign: send it from its own Review & send.", c.Name)
+		return stateErr("state.notEmail", campaignArgs(c.Name, c.Status))
 	}
 	var sc schedule
 	_ = json.Unmarshal(c.Schedule, &sc)
@@ -137,7 +130,7 @@ func (e *Engine) StartWith(ctx context.Context, campaignID uuid.UUID, o StartOpt
 		switch c.Status {
 		case "draft", "approval", "approved", "scheduled":
 		default:
-			return stateErr("%q is %s.", c.Name, c.Status)
+			return stateErr("state.is", campaignArgs(c.Name, c.Status))
 		}
 		defaults, err := q.SendingWorkspaceDefaults(ctx, c.WorkspaceID)
 		if err != nil {
@@ -331,12 +324,13 @@ func (e *Engine) hold(ctx context.Context, c store.Campaign, rc sending.Recheck,
 			return err
 		}
 		targets = append(targets, approvers...)
-		at := now.In(state.Location(ws.Timezone)).Format("15:04")
+		// The time in the workspace's zone; the reason is Send Readiness's
+		// own words.
+		words := i18n.Args{"name": c.Name, "at": now.In(state.Location(ws.Timezone)).Format(time.RFC3339), "reason": reason}
 		wsID := c.WorkspaceID
-		n := notify.Notification{WorkspaceID: &wsID, Kind: notify.KindSendBlocked, Severity: "bad", Title: "Send held",
-			Summary: fmt.Sprintf("“%s” didn't start at %s: %s", c.Name, at, reason),
-			Body:    fmt.Sprintf("“%s” didn't start at %s: %s. It stays held until a recheck passes.", c.Name, at, reason),
-			Link:    "/w/" + ws.Slug + "/campaigns/" + c.ID.String() + "/review", Data: map[string]any{"campaign_id": c.ID.String()}}
+		n := notify.Notification{WorkspaceID: &wsID, Kind: notify.KindSendBlocked, Severity: "bad", TitleText: keep("notify.heldTitle", nil),
+			SummaryText: keep("notify.heldSummary", words), BodyText: keep("notify.heldBody", words),
+			Link: "/w/" + ws.Slug + "/campaigns/" + c.ID.String() + "/review", Data: map[string]any{"campaign_id": c.ID.String()}}
 		told := map[uuid.UUID]bool{}
 		for _, u := range targets {
 			if told[u] {
@@ -400,7 +394,7 @@ func (e *Engine) Pause(ctx context.Context, campaignID, by uuid.UUID, reason str
 			return nil
 		case "sending":
 		default:
-			return stateErr("%q isn't sending (it is %s).", c.Name, c.Status)
+			return stateErr("state.notSending", campaignArgs(c.Name, c.Status))
 		}
 		if err := q.SendingSetCampaignStatus(ctx, store.SendingSetCampaignStatusParams{ID: c.ID, Status: "paused", At: now}); err != nil {
 			return err
@@ -434,7 +428,7 @@ func (e *Engine) Resume(ctx context.Context, campaignID, by uuid.UUID) error {
 			return err
 		}
 		if c.Status != "paused" && c.Status != "sending" {
-			return stateErr("%q isn't paused (it is %s).", c.Name, c.Status)
+			return stateErr("state.notPaused", campaignArgs(c.Name, c.Status))
 		}
 		ref, name := e.actorRef(ctx, q, by)
 		if err := q.SendingSetCampaignStatus(ctx, store.SendingSetCampaignStatusParams{ID: c.ID, Status: "sending", At: now}); err != nil {
@@ -542,7 +536,7 @@ func (e *Engine) Cancel(ctx context.Context, campaignID, by uuid.UUID) error {
 				Before: map[string]any{"status": "scheduled", "scheduled_at": c.ScheduledAt}, After: map[string]any{"status": status}, Actor: e.actorFor(ctx, ref, name)})
 		case "sending", "paused":
 		default:
-			return stateErr("%q isn't sending (it is %s).", c.Name, c.Status)
+			return stateErr("state.notSending", campaignArgs(c.Name, c.Status))
 		}
 		who := name
 		if who == "" {

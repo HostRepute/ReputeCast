@@ -12,8 +12,10 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/warmup"
 )
 
 // ResumeRequest resumes a mailbox provider or route on hold.
@@ -53,7 +55,7 @@ func (e *Engine) ResumeScope(ctx context.Context, campaignID, by uuid.UUID, in R
 			return err
 		}
 		if c.Status != "sending" && c.Status != "paused" {
-			return stateErr("%q isn't sending (it is %s).", c.Name, c.Status)
+			return stateErr("state.notSending", campaignArgs(c.Name, c.Status))
 		}
 		ref, name := e.actorRef(ctx, q, by)
 		snd, err := q.SendingGetSendForUpdate(ctx, campaignID)
@@ -78,7 +80,7 @@ func (e *Engine) ResumeScope(ctx context.Context, campaignID, by uuid.UUID, in R
 			holds := parseHolds(snd.Holds)
 			h, ok := holds[in.Mailbox]
 			if !ok || h.Resumed {
-				return stateErr("%s isn't on hold.", mailboxName(in.Mailbox))
+				return stateErr("state.mailboxNotHeld", i18n.Args{"mailbox": mailboxName(in.Mailbox)})
 			}
 			ts, err := e.tallies(ctx, campaignID)
 			if err != nil {
@@ -121,7 +123,7 @@ func (e *Engine) ResumeScope(ctx context.Context, campaignID, by uuid.UUID, in R
 				}
 			}
 			if !found {
-				return stateErr("That provider's share isn't on hold.")
+				return stateErr("state.shareNotHeld", nil)
 			}
 			if err := q.SendingSetRouteStatus(ctx, store.SendingSetRouteStatusParams{CampaignID: campaignID, ProviderID: *in.ProviderID, Status: "sending", StatusDetail: `{"decision":"resume"}`}); err != nil {
 				return err
@@ -257,7 +259,7 @@ func (e *Engine) CancelShare(ctx context.Context, campaignID, by uuid.UUID, mail
 			return err
 		}
 		if c.Status != "sending" && c.Status != "paused" {
-			return stateErr("%q isn't sending (it is %s).", c.Name, c.Status)
+			return stateErr("state.notSending", campaignArgs(c.Name, c.Status))
 		}
 		ref, name := e.actorRef(ctx, q, by)
 		who := firstNonEmpty(name, "a member")
@@ -338,17 +340,17 @@ func (e *Engine) MoveShare(ctx context.Context, campaignID, by, from, to uuid.UU
 			return err
 		}
 		if c.Status != "sending" && c.Status != "paused" {
-			return stateErr("%q isn't sending (it is %s).", c.Name, c.Status)
+			return stateErr("state.notSending", campaignArgs(c.Name, c.Status))
 		}
 		target, err := q.ProvGet(ctx, store.ProvGetParams{WorkspaceID: c.WorkspaceID, ID: to})
 		if err != nil {
-			return stateErr("That provider isn't connected to this workspace.")
+			return stateErr("state.providerNotConnected", nil)
 		}
 		if to == from || !state.Available(target) {
-			return stateErr("%s can't take mail right now.", target.Name)
+			return stateErr("state.providerUnavailable", i18n.Args{"provider": target.Name})
 		}
 		if !state.Caps(target).BulkAllowed() {
-			return stateErr("%s's terms don't allow bulk marketing.", target.Name)
+			return stateErr("state.noBulk", i18n.Args{"provider": target.Name})
 		}
 		fromP, err := q.ProvGetAny(ctx, from)
 		if err != nil {
@@ -399,16 +401,19 @@ func (e *Engine) shiftWarmup(ctx context.Context, q *store.Queries, tx pgx.Tx, w
 	if err != nil || plan.Status == "done" {
 		return err
 	}
+	// The plan's log keeps the entry's messages beside its English, so it
+	// reads in each reader's language.
+	title, body, texts := warmup.ShiftedEvent(p.Name)
 	var shiftedToday bool
-	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM warmup_events WHERE plan_id = $1 AND kind = 'settings' AND title = 'Schedule shifted by a day.' AND occurred_at > $2)`,
-		plan.ID, now.Add(-24*time.Hour)).Scan(&shiftedToday); err != nil || shiftedToday {
+	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM warmup_events WHERE plan_id = $1 AND kind = 'settings' AND title = $3 AND occurred_at > $2)`,
+		plan.ID, now.Add(-24*time.Hour), title).Scan(&shiftedToday); err != nil || shiftedToday {
 		return err
 	}
 	if _, err := tx.Exec(ctx, `UPDATE warmup_plans SET start_date = start_date + 1, updated_at = $2 WHERE id = $1`, plan.ID, now); err != nil {
 		return err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO warmup_events (id, plan_id, occurred_at, kind, title, body) VALUES ($1, $2, $3, 'settings', 'Schedule shifted by a day.', $4)`,
-		newID(), plan.ID, now, fmt.Sprintf("%s was down during a send and its share moved to another provider, so the warm-up repeats today's step tomorrow.", p.Name))
+	_, err = tx.Exec(ctx, `INSERT INTO warmup_events (id, plan_id, occurred_at, kind, title, body, texts) VALUES ($1, $2, $3, 'settings', $4, $5, $6)`,
+		newID(), plan.ID, now, title, body, texts)
 	return err
 }
 
@@ -426,7 +431,7 @@ func (e *Engine) RetryRoute(ctx context.Context, campaignID, by, provider uuid.U
 			return err
 		}
 		if c.Status != "sending" && c.Status != "paused" {
-			return stateErr("%q isn't sending (it is %s).", c.Name, c.Status)
+			return stateErr("state.notSending", campaignArgs(c.Name, c.Status))
 		}
 		routes, err := q.SendingRoutes(ctx, campaignID)
 		if err != nil {
@@ -437,7 +442,7 @@ func (e *Engine) RetryRoute(ctx context.Context, campaignID, by, provider uuid.U
 			held = held || (r.ProviderID == provider && r.Status == "held")
 		}
 		if !held {
-			return stateErr("That provider's share isn't on hold.")
+			return stateErr("state.shareNotHeld", nil)
 		}
 		until := now.Add(retryFor)
 		d, _ := json.Marshal(routeDetail{Decision: "retry", Until: &until})
@@ -491,18 +496,20 @@ func (e *Engine) PickWinner(ctx context.Context, campaignID, by uuid.UUID, varia
 	}
 	snd, err := e.Q.SendingGetSend(ctx, campaignID)
 	if err != nil {
-		return stateErr("%q has no send running.", cc.Name)
+		return stateErr("state.noSend", campaignArgs(cc.Name, cc.Status))
 	}
 	ab := parseAB(snd.Ab)
 	if ab.Phase != "testing" {
-		return stateErr("The A/B test of %q is already decided.", cc.Name)
+		return stateErr("state.abDecided", campaignArgs(cc.Name, cc.Status))
 	}
 	known := false
 	for _, v := range ab.Variants {
 		known = known || v == variant
 	}
 	if !known {
-		return stateErr("%q has no variant %s.", cc.Name, variant)
+		args := campaignArgs(cc.Name, cc.Status)
+		args["variant"] = variant
+		return stateErr("state.noVariant", args)
 	}
 	ref, name := e.actorRef(ctx, e.Q, by)
 	ts, err := e.tallies(ctx, campaignID)

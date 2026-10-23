@@ -76,11 +76,42 @@ func testAPI(t *testing.T, f *fixture) {
 		owner.Do("POST", "/workspaces/acme-newsletter/campaigns/"+other.String()+"/live/pause", map[string]any{}).MustStatus(t, 404)
 	}
 
-	// The event stream sends a snapshot at once.
+	// Problems read in the reader's language.
+	viOwner := f.env.Client()
+	viOwner.SignInDemo("linh@acme.io")
+	viOwner.Header = http.Header{"Accept-Language": {"vi"}}
+	random := uuid.Must(uuid.NewV7()).String()
+	if p := viOwner.Do("POST", base+"/retry", map[string]any{"providerId": random}).MustStatus(t, 409).Problem(t); p["detail"] != "Phần của nhà cung cấp đó không bị tạm giữ." {
+		t.Fatalf("Vietnamese problem: %v", p)
+	}
+	if p := owner.Do("POST", base+"/retry", map[string]any{"providerId": random}).MustStatus(t, 409).Problem(t); p["detail"] != "That provider's share isn't on hold." {
+		t.Fatalf("English problem: %v", p)
+	}
+
+	// The event stream sends a snapshot at once, in the language the app
+	// asks for (an EventSource can't set Accept-Language).
+	f.exec(`UPDATE campaign_sends SET paused_by_name = 'System' WHERE campaign_id = $1`, f.campaign)
+	if s := streamSnapshot(t, f, base+"/stream", "en"); s.CampaignID != f.campaign.String() || s.PausedBy != "System" {
+		t.Fatalf("stream snapshot campaign %s paused by %q", s.CampaignID, s.PausedBy)
+	}
+	if s := streamSnapshot(t, f, base+"/stream?lang=vi", "en"); s.PausedBy != "Hệ thống" {
+		t.Fatalf("Vietnamese stream snapshot paused by %q", s.PausedBy)
+	}
+	var vs engine.LiveSnapshot
+	viOwner.Do("GET", base, nil).MustStatus(t, 200).JSON(t, &vs)
+	if vs.PausedBy != "Hệ thống" {
+		t.Fatalf("Vietnamese snapshot paused by %q", vs.PausedBy)
+	}
+}
+
+// streamSnapshot opens the live stream as Linh and returns its first snapshot.
+func streamSnapshot(t *testing.T, f *fixture, path, acceptLanguage string) engine.LiveSnapshot {
+	t.Helper()
 	ctx, cancel := context.WithTimeout(f.ctx, 10*time.Second)
 	defer cancel()
-	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, f.env.Server.URL+"/api/v1"+base+"/stream", nil)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, f.env.Server.URL+"/api/v1"+path, nil)
 	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Accept-Language", acceptLanguage)
 	req.AddCookie(sessionCookie(t, f, "linh@acme.io"))
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -105,13 +136,14 @@ func testAPI(t *testing.T, f *fixture) {
 			if err := json.Unmarshal([]byte(strings.TrimPrefix(line, "data: ")), &s); err != nil {
 				t.Fatal(err)
 			}
-			if !gotID || s.CampaignID != f.campaign.String() {
-				t.Fatalf("stream snapshot id=%v campaign %s", gotID, s.CampaignID)
+			if !gotID {
+				t.Fatal("stream snapshot without an id")
 			}
-			return
+			return s
 		}
 	}
 	t.Fatalf("no snapshot event on the stream: %v", sc.Err())
+	return engine.LiveSnapshot{}
 }
 
 func testTracking(t *testing.T, f *fixture) {

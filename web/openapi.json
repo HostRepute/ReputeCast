@@ -111455,6 +111455,16 @@
               "description": "Same as the Last-Event-ID header, for clients that reconnect by themselves",
               "type": "string"
             }
+          },
+          {
+            "description": "The language the snapshots' words read in (en, vi); like Accept-Language, for clients that can't set headers",
+            "explode": false,
+            "in": "query",
+            "name": "lang",
+            "schema": {
+              "description": "The language the snapshots' words read in (en, vi); like Accept-Language, for clients that can't set headers",
+              "type": "string"
+            }
           }
         ],
         "responses": {
