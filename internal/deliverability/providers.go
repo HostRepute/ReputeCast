@@ -93,8 +93,12 @@ func (st *state) pools() []DeliverabilityPoolHealth {
 			pool.OnlyStream = s[0]
 		}
 		pool.AccountStatus = accountWord(st.l, p)
-		if opt, ok := strings.CutPrefix(provstate.Caps(p).DedicatedIPs, "optional, "); ok {
-			pool.DedicatedIPOption = opt
+		if caps := provstate.Caps(p); strings.HasPrefix(caps.DedicatedIPs, "optional, ") {
+			pool.DedicatedIPOption = strings.TrimPrefix(caps.DedicatedIPs, "optional, ")
+			// The adapter's own words in the reader's language, when the snapshot kept them.
+			if !caps.DedicatedIPsText.IsZero() && st.l.Locale != "" && st.l.Locale != i18n.English {
+				pool.DedicatedIPOption = caps.In(st.l).DedicatedIPs
+			}
 		}
 		// Plan providers count the month's volume against the plan.
 		if h := provstate.HealthOf(p); h.Quota != nil && h.Quota.Kind == "monthly_plan" {

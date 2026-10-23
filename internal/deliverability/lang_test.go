@@ -71,6 +71,12 @@ func TestDeliverabilityInVietnamese(t *testing.T) {
 		t.Fatalf("English report problem: %d %s", st, body)
 	}
 
+	// A provider's dedicated-IP offer reads in the adapter's words, kept with
+	// its capability snapshot.
+	if o.Pools[0].DedicatedIPOption != "không bắt buộc, 24,95 US$ mỗi IP mỗi tháng" {
+		t.Fatalf("dedicated IPs in Vietnamese: %q", o.Pools[0].DedicatedIPOption)
+	}
+
 	// The CSV export stays English.
 	r := vi.Do("GET", "/workspaces/acme-newsletter/deliverability/export", nil).MustStatus(t, 200)
 	if !strings.Contains(string(r.Body), "review 5%, pause 10%") {
