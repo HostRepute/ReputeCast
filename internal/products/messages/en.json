@@ -78,5 +78,9 @@
   "notFound.order": "Order not found.",
   "delivery.noTemplate": { "message": "the product has no delivery template", "note": "why a delivery email wasn't sent, on the order's panel after “Not sent:”" },
   "delivery.files": { "message": "{count, plural, one {the {kind}, {size}} other {the # files, {size}}}", "note": "the delivery email's {{ file }}: “the PDF, 4.2 MB”; kind: PDF, ZIP…" },
-  "size.bytes": "{n} bytes"
+  "size.bytes": "{n} bytes",
+
+  "template.deliveryName": { "message": "Product delivery", "note": "the delivery template ReputeCast creates with the first product, in the workspace's language" },
+  "category.purchases": { "message": "Purchases", "note": "the Essential transactional category ReputeCast creates for buyers' emails, in the workspace's language" },
+  "category.purchasesText": "Buyers' emails: the download links of digital products"
 }

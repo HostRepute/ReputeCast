@@ -78,5 +78,9 @@
   "notFound.order": "Không tìm thấy đơn hàng.",
   "delivery.noTemplate": "sản phẩm chưa có mẫu email giao hàng",
   "delivery.files": "{count, plural, =1 {tệp {kind}, {size}} other {# tệp, {size}}}",
-  "size.bytes": "{n} byte"
+  "size.bytes": "{n} byte",
+
+  "template.deliveryName": "Giao sản phẩm",
+  "category.purchases": "Mua hàng",
+  "category.purchasesText": "Email gửi người mua: liên kết tải xuống của sản phẩm số"
 }
