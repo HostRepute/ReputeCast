@@ -40,8 +40,9 @@ function issueNumber(is: DigestIssue, d: Digest): string {
   return '–'
 }
 
+/** A change under a number ("+1 so với #1", "−0,7 điểm %"): one line, so the unit never goes alone. */
 function Delta({ children }: { children: ReactNode }) {
-  return <span className="k block text-[12px]">{children}</span>
+  return <span className="k block whitespace-nowrap text-[12px]">{children}</span>
 }
 
 /** Issues: sent, skipped, held, waiting and paused, each compared with the sent issue before it. */
@@ -175,7 +176,7 @@ export function IssuesCard({ d, onSkip, onPreview }: { d: Digest; onSkip: (issue
                     <Td align="right">
                       {is.recipients != null ? (
                         <>
-                          <span className="n font-semibold">{is.estimated ? t(m.about, { count: count(is.recipients) }) : count(is.recipients)}</span>
+                          <span className="n whitespace-nowrap font-semibold">{is.estimated ? t(m.about, { count: count(is.recipients) }) : count(is.recipients)}</span>
                           {is.recipientsDelta != null ? <Delta>{signed(is.recipientsDelta)}</Delta> : null}
                         </>
                       ) : (
