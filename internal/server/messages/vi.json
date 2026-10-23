@@ -1,4 +1,5 @@
 {
   "rateLimit.signIn": "Mạng của bạn đã thử đăng nhập quá nhiều lần. Hãy đợi một phút rồi thử lại.",
-  "rateLimit.api": "Đã chạm giới hạn tần suất. Yêu cầu sẽ tiếp tục trong vòng một phút; endpoint theo lô nhận tối đa {max, number} mục mỗi lần gọi."
+  "rateLimit.api": "Đã chạm giới hạn tần suất. Yêu cầu sẽ tiếp tục trong vòng một phút; endpoint theo lô nhận tối đa {max, number} mục mỗi lần gọi.",
+  "spa.noscript": "ReputeCast cần JavaScript. Các trang công khai (đăng ký, tùy chọn, lưu trữ) vẫn dùng được khi không có JavaScript."
 }
