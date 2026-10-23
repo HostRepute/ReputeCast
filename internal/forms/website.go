@@ -37,7 +37,7 @@ func (s *Service) SetFooter(ctx context.Context, q *store.Queries, ws *store.Wor
 	if privacy != "" {
 		u, err := url.Parse(privacy)
 		if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
-			return api.Invalid("body.privacyUrl", "Use a full address like https://acme.io/privacy.")
+			return api.Invalid("body.privacyUrl", say(ctx, mPrivacyURL, nil))
 		}
 	}
 	patch := map[string]any{"poweredBy": poweredBy}

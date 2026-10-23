@@ -152,11 +152,11 @@ func Register(h huma.API, s *Service) {
 		func(ctx context.Context, in *logoInput) (*api.Body[PublicPagesSettings], error) {
 			f := in.RawBody.Data().File
 			if !f.IsSet {
-				return nil, api.Invalid("body.file", "Choose an image to upload.")
+				return nil, api.Invalid("body.file", say(ctx, mUploadChoose, nil))
 			}
 			data, err := io.ReadAll(io.LimitReader(f, MaxLogoBytes+1))
 			if err != nil {
-				return nil, api.Invalid("body.file", "The upload was interrupted. Try again.")
+				return nil, api.Invalid("body.file", say(ctx, mUploadInterrupted, nil))
 			}
 			out, err := s.UploadLogo(ctx, api.WorkspaceFrom(ctx), f.Filename, data)
 			return api.OK(out), err

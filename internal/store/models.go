@@ -2874,6 +2874,7 @@ type PublicPageSetting struct {
 	UpdatedBy          *uuid.UUID      `json:"updatedBy"`
 	UpdatedAt          time.Time       `json:"updatedAt"`
 	CopyLanguage       string          `json:"copyLanguage"`
+	Texts              json.RawMessage `json:"texts"`
 }
 
 type PushCampaign struct {

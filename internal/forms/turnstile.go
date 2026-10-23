@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -92,17 +93,24 @@ func (r TurnstileResult) SecretRejected() bool {
 	return slices.Contains(r.Codes, "invalid-input-secret") || slices.Contains(r.Codes, "missing-input-secret")
 }
 
-// turnstileErrorWords explains widget error codes the challenge page reports.
-func turnstileErrorWords(code string) string {
+// turnstileErrorWords explains widget error codes the challenge page
+// reports, kept for each member's language.
+func turnstileErrorWords(code string) i18n.Text {
+	args := i18n.Args{"code": code}
 	switch {
 	case strings.HasPrefix(code, "1102"):
-		return fmt.Sprintf("Cloudflare rejected the site key (error %s)", code)
+		return mTurnstileSiteRejected.Keep(args)
 	case strings.HasPrefix(code, "1101"):
-		return fmt.Sprintf("Cloudflare doesn't know this site key (error %s)", code)
+		return mTurnstileSiteUnknown.Keep(args)
 	case strings.HasPrefix(code, "1105"), strings.HasPrefix(code, "1106"):
-		return fmt.Sprintf("The Turnstile widget couldn't load (error %s)", code)
+		return mTurnstileWidget.Keep(args)
 	}
-	return fmt.Sprintf("Turnstile reported error %s", code)
+	return mTurnstileReported.Keep(args)
+}
+
+// secretRejected is Cloudflare's refusal of the secret key, with its codes.
+func secretRejected(codes []string) i18n.Text {
+	return mTurnstileSecretRejected.Keep(i18n.Args{"codes": strings.Join(codes, ", ")})
 }
 
 // PublicTurnstileInput saves the Turnstile keys. An empty secret keeps the
@@ -116,7 +124,7 @@ type PublicTurnstileInput struct {
 func (s *Service) SaveTurnstile(ctx context.Context, ws *store.Workspace, in PublicTurnstileInput) (PublicPagesSettings, error) {
 	site := strings.TrimSpace(in.SiteKey)
 	if site == "" || strings.ContainsAny(site, " \t\"'<>") {
-		return PublicPagesSettings{}, api.Invalid("body.siteKey", "Paste the site key from the Cloudflare dashboard (it starts with 0x).")
+		return PublicPagesSettings{}, api.Invalid("body.siteKey", say(ctx, mTurnstileSiteKey, nil))
 	}
 	set, err := s.settings(ctx, ws)
 	if err != nil {
@@ -125,16 +133,16 @@ func (s *Service) SaveTurnstile(ctx context.Context, ws *store.Workspace, in Pub
 	secret := strings.TrimSpace(in.Secret)
 	enc := set.row.TurnstileSecretEnc
 	if secret == "" && len(enc) == 0 {
-		return PublicPagesSettings{}, api.Invalid("body.secret", "Paste the secret key too; it's stored encrypted and never shown again.")
+		return PublicPagesSettings{}, api.Invalid("body.secret", say(ctx, mTurnstileSecret, nil))
 	}
 	if secret != "" {
 		if enc, err = s.Box.SealString(secret, "turnstile:"+ws.ID.String()+":secret"); err != nil {
 			return PublicPagesSettings{}, err
 		}
 	} else if secret, err = s.Box.OpenString(enc, "turnstile:"+ws.ID.String()+":secret"); err != nil {
-		return PublicPagesSettings{}, api.Invalid("body.secret", "The stored secret can't be read any more. Paste it again.")
+		return PublicPagesSettings{}, api.Invalid("body.secret", say(ctx, mTurnstileUnreadable, nil))
 	}
-	status, problem := "ok", ""
+	status, problem := "ok", i18n.Text{}
 	if s.Turnstile != nil {
 		// A real secret answers "invalid-input-response" to a made-up token.
 		res, err := s.Turnstile.Verify(ctx, secret, "reputecast-key-check", "", "")
@@ -142,14 +150,14 @@ func (s *Service) SaveTurnstile(ctx context.Context, ws *store.Workspace, in Pub
 		case err != nil:
 			s.log().WarnContext(ctx, "turnstile key check", "err", err)
 		case res.SecretRejected():
-			status, problem = "error", "Cloudflare rejected the secret key ("+strings.Join(res.Codes, ", ")+")"
+			status, problem = "error", secretRejected(res.Codes)
 		}
 	}
 	now := s.now()
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.PublicSettingsSetTurnstile(ctx, store.PublicSettingsSetTurnstileParams{WorkspaceID: ws.ID, SiteKey: site, SecretEnc: enc,
-			Status: status, Error: problem, CheckedAt: &now, UpdatedBy: actor(ctx), At: now}); err != nil {
+			Status: status, Error: english(problem), CheckedAt: &now, UpdatedBy: actor(ctx), At: now, Texts: keptTexts("turnstile_error", problem)}); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "public_pages.turnstile", TargetType: "workspace", TargetID: ws.ID.String(), TargetName: ws.Name,
@@ -207,22 +215,24 @@ func (s *Service) ReportTurnstileError(ctx context.Context, ws *store.Workspace,
 // turnstileFailed marks the Turnstile keys as failing (spam protection
 // falls back to the honeypot and timing check) and writes it to the audit
 // log as Cloudflare's doing, once per change of the message.
-func (s *Service) turnstileFailed(ctx context.Context, ws *store.Workspace, problem string, meta map[string]any) error {
+func (s *Service) turnstileFailed(ctx context.Context, ws *store.Workspace, problem i18n.Text, meta map[string]any) error {
+	words := english(problem)
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		before, err := q.PublicSettingsGet(ctx, ws.ID)
 		if err != nil {
 			return err
 		}
-		if err := q.PublicSettingsTurnstileError(ctx, store.PublicSettingsTurnstileErrorParams{WorkspaceID: ws.ID, Error: problem, At: ptrTime(s.now())}); err != nil {
+		if err := q.PublicSettingsTurnstileError(ctx, store.PublicSettingsTurnstileErrorParams{WorkspaceID: ws.ID, Error: words, At: ptrTime(s.now()),
+			Texts: keptTexts("turnstile_error", problem)}); err != nil {
 			return err
 		}
-		if before.TurnstileStatus == "error" && before.TurnstileError == problem {
+		if before.TurnstileStatus == "error" && before.TurnstileError == words {
 			return nil // already recorded
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "public_pages.turnstile_error", TargetType: "workspace", TargetID: ws.ID.String(),
 			TargetName: ws.Name, Actor: &audit.Actor{Type: authz.ActorSystem, Name: "Cloudflare Turnstile"},
-			Before: map[string]any{"status": before.TurnstileStatus}, After: map[string]any{"status": "error", "error": problem}, Metadata: meta})
+			Before: map[string]any{"status": before.TurnstileStatus}, After: map[string]any{"status": "error", "error": words}, Metadata: meta})
 	})
 }
 

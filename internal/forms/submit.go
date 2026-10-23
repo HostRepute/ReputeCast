@@ -99,7 +99,6 @@ type Outcome struct {
 
 // Messages a visitor sees are built-in labels (internal/pagelabels), in
 // the language the form was shown in. They say what happened and what to do.
-const msgSaveFailed = "We couldn't save your subscription just now. Nothing was lost; please try again in a minute."
 
 // localize is the form as it was shown to the visitor: the language the
 // submission says, when the form is Live in it, else its fallback.
@@ -566,7 +565,7 @@ func (s *Service) solveChallenge(ctx context.Context, ws *store.Workspace, set *
 	}
 	if !res.Success {
 		if res.SecretRejected() {
-			if err := s.turnstileFailed(ctx, ws, "Cloudflare rejected the secret key ("+strings.Join(res.Codes, ", ")+")", map[string]any{"codes": res.Codes}); err != nil {
+			if err := s.turnstileFailed(ctx, ws, secretRejected(res.Codes), map[string]any{"codes": res.Codes}); err != nil {
 				s.log().WarnContext(ctx, "record turnstile error", "err", err)
 			}
 		}
