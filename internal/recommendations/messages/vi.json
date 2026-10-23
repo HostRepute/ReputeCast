@@ -26,5 +26,20 @@
   "notify.invalidBody": "Hệ thống của họ đã từ chối chữ ký của chúng ta hoặc kết thúc quan hệ đối tác. Đề xuất bị ẩn cho đến khi bạn dán mã đối tác mới.",
   "notify.unreachableTitle": "{partner} không phản hồi",
   "notify.unreachableBody": "Các yêu cầu đăng ký đang chờ và sẽ được thử lại trong 24 giờ. Người đọc được báo rằng yêu cầu của họ đã được chuyển đi.",
-  "prefill.private": "Trang đó nằm ở địa chỉ riêng. Hãy đề xuất một trang mà ai cũng mở được."
+  "prefill.private": "Trang đó nằm ở địa chỉ riêng. Hãy đề xuất một trang mà ai cũng mở được.",
+
+  "readiness.label": "Khối Đề xuất",
+  "readiness.short": "khối Đề xuất",
+  "readiness.open": "Mở Đề xuất",
+  "readiness.none": "Hiện không có đề xuất nào hiện được. Khối Đề xuất sẽ bị ẩn.",
+  "readiness.noneAck": "Tôi hiểu khối Đề xuất sẽ không hiện.",
+  "readiness.shows": "Khối Đề xuất: hiện {count, number} đề xuất",
+  "readiness.hiddenNote": "{name} bị ẩn ({reason}).",
+  "readiness.hidden.paused": "đã tạm dừng",
+  "readiness.hidden.partner_paused": "đối tác đã tạm dừng",
+  "readiness.hidden.invalid": "liên kết đối tác không hợp lệ",
+  "readiness.hidden.limit": "đã đạt giới hạn mỗi ngày",
+  "readiness.hidden.ended": "quan hệ đối tác đã kết thúc",
+  "readiness.hidden.not_in_emails": "chỉ trên trang xác nhận",
+  "readiness.hidden.other": "{state}"
 }

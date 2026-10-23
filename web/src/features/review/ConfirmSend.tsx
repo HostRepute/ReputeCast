@@ -96,8 +96,7 @@ export function ConfirmSend({
     [t(m.rowReplyTo), c.replyTo || t(m.sameAsFrom)],
     [subjectLabel, c.subject],
     ...(languages ? [[t(mr.confirmLabel), languages] as [string, string]] : []),
-    // An A/B test's label comes from the server.
-    [t(m.rowAb), c.ab ? c.ab.label : t(m.noTest)],
+    [t(m.rowAb), c.ab ? t(m.abLabel, { kind: c.ab.kind, variants: c.ab.variants, percent: c.ab.testPercent }) : t(m.noTest)],
     [t(m.rowRoute), shares.map((s) => `${s.short} ${count(s.recipients)}`).join(' · ')],
     [t(m.rowCost), t(m.costValue, { cost: money(route.totalCost, 2), duration: minutes(route.totalMinutes) })],
     [t(m.rowAutoPause), thresholdsLine(review.thresholds)],

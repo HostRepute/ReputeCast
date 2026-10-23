@@ -135,9 +135,10 @@ func (s *Service) buildSnapshot(ctx context.Context, ws *store.Workspace, c stor
 			}
 		}
 		snap.Minutes, snap.Cost = e.Route.TotalMinutes, e.Route.TotalCost
-		for _, sh := range e.Route.Shares {
+		for i, sh := range e.Route.Shares {
 			snap.Route = append(snap.Route, SnapshotShare{ProviderID: sh.ProviderID, Name: sh.Name, Short: sh.Short, Label: sh.Label, Adapter: sh.Adapter, Percent: sh.Percent,
-				Recipients: sh.Recipients, Cost: sh.Cost, PriceLabel: sh.PriceLabel, Status: sh.Status, StatusLabel: sh.StatusLabel, WarmupDay: sh.WarmupDay, WarmupDays: sh.WarmupDays})
+				Recipients: sh.Recipients, Cost: sh.Cost, PriceLabel: sh.PriceLabel, Status: sh.Status, StatusLabel: sh.StatusLabel, WarmupDay: sh.WarmupDay, WarmupDays: sh.WarmupDays,
+				StatusText: e.ShareStatus(i)})
 		}
 		snap.Readiness = SnapshotReadiness{RunID: run.ID, Verdict: run.Verdict, Passed: run.Counts.Passed, Warnings: run.Counts.Warnings, Blocks: run.Counts.Blocks,
 			Total: run.Counts.Total, RanAt: run.RanAt, Issues: []readiness.ReadinessCheck{}}

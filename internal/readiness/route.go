@@ -68,9 +68,14 @@ func (s *Service) Route(ctx context.Context, ws *store.Workspace, override json.
 		pcts = append(pcts, fmt.Sprint(pct))
 	}
 	slices.Sort(keys)
-	out := RouteConfig{Key: strings.Join(keys, ","), Label: strings.Join(labels, " / "), StreamLabel: "Broadcasts"}
-	if len(pcts) > 0 {
-		out.StreamLabel += " " + strings.Join(pcts, " / ")
+	return RouteConfig{Key: strings.Join(keys, ","), Label: strings.Join(labels, " / "), StreamLabel: broadcastSplit(strings.Join(pcts, " / ")).en()}, nil
+}
+
+// broadcastSplit is the Broadcasts route with its split: "Broadcasts 90 /
+// 10", or "Broadcasts" without one.
+func broadcastSplit(split string) Text {
+	if split == "" {
+		return tx("stream.broadcasts", nil)
 	}
-	return out, nil
+	return tx("estimate.split", A{"stream": tx("stream.broadcasts", nil), "split": split})
 }

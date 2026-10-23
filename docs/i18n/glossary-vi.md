@@ -193,6 +193,48 @@ samples, CLI output, "MCP", "2FA", "TOTP", "IdP", "SSO", "JIT", "A/B",
 | 14 /s | 14/giây |
 | Cost · Time | Chi phí · Thời gian |
 
+### Send Readiness's checks
+
+The findings the server writes for each check (`internal/readiness`).
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| check (a row) · passed · not checked · timed out | mục kiểm tra · đạt · chưa kiểm tra · hết thời gian chờ | |
+| the verdict waits for this one | kết luận đang chờ mục này | |
+| I understand … (a warning's confirmation) | Tôi hiểu … | as the web's "I understand: {title}." |
+| unengaged (contacts) | không tương tác | no open or click in the sunset policy's days |
+| Sunset tier · At risk (names) | nhóm Ngừng gửi dần · Có nguy cơ | tier names keep their capitals |
+| spam trigger · spam heuristic | dấu hiệu spam | "trips 3 spam heuristics": "vướng 3 dấu hiệu spam" |
+| all caps · repeated punctuation · urgency phrasing · money words · click-bait | viết hoa toàn bộ · lặp dấu câu · lời lẽ thúc ép · từ ngữ về tiền · câu nhử nhấp | |
+| image-to-text ratio | tỷ lệ hình ảnh trên chữ | |
+| Gmail's 102 KB clipping limit · clips | ngưỡng cắt thư 102 KB của Gmail · cắt bớt | |
+| inline(d) CSS · minify | CSS nội tuyến · thu gọn | |
+| one-click unsubscribe (headers) | (header) hủy đăng ký một lần nhấp | "header" stays in English |
+| postal address | địa chỉ bưu chính | |
+| bulk-sender rules | quy tắc người gửi hàng loạt | Gmail and Yahoo's |
+| URL shortener · redirects through | dịch vụ rút gọn liên kết · chuyển hướng qua | |
+| responds · doesn't respond | phản hồi · không phản hồi | a link |
+| review thresholds · pause level (SES) | ngưỡng xem xét · mức tạm dừng | |
+| no enforcement | không bị thực thi giới hạn | an account's standing |
+| terms allow bulk marketing | điều khoản cho phép tiếp thị hàng loạt | |
+| production access | quyền gửi chính thức | as in Sending |
+| double-tracked · rewrites links | bị theo dõi hai lần · viết lại liên kết | |
+| aligned (DMARC, SPF) | (được) căn chỉnh | |
+| Easy DKIM CNAME · selector | CNAME Easy DKIM · selector | names and record words stay |
+| custom MAIL FROM | MAIL FROM tùy chỉnh | |
+| Conditional content · conditional block · version | Nội dung có điều kiện · khối có điều kiện · phiên bản | |
+| Visibility rule | quy tắc hiển thị | |
+| poll · survey · answer page | bình chọn · khảo sát · trang trả lời | |
+| risky · catch-all · disposable (addresses) | rủi ro · catch-all · dùng một lần | |
+| inactive (contacts) | không hoạt động | At risk and Sunset together |
+| paid members · trial · complimentary · gift (access) | thành viên trả phí · dùng thử · quyền tặng · quà tặng | |
+| Sponsor block · creative · booking · Sponsored (label) | khối Nhà tài trợ · mẫu quảng cáo · lượt đặt · Được tài trợ | |
+| Upgrade block · offer | khối Nâng cấp · ưu đãi | |
+| page copy · preference center | nội dung trang · trung tâm tùy chọn | |
+| bare URL · skipped heading level | URL trần · cấp đề mục bị bỏ qua | accessibility |
+| linked image | hình có liên kết | |
+| self-hosted (pricing) · plan | tự lưu trữ · theo gói | a provider's price |
+
 ## Sending and deliverability
 
 Sending providers & routing, the connect wizard, Settings › Senders and

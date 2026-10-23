@@ -114,10 +114,11 @@ func (s *Service) names(ctx context.Context, q *store.Queries, wsID uuid.UUID) (
 	return n, nil
 }
 
-// labels returns the base label ("Weekly Digest list", "All subscribers"),
-// the group label and the names of the lists and segments.
-func (n audienceNames) labels(a AudienceDef) (base, group string, names []string) {
-	names = []string{}
+// labels names the audience in f: the base label ("Weekly Digest list",
+// "All subscribers"), the group label, what kind of audience it is and the
+// names of the lists and segments.
+func (n audienceNames) labels(a AudienceDef, f *AudienceFacts) {
+	names := []string{}
 	for _, id := range a.Lists {
 		if v, ok := n.lists[id]; ok {
 			names = append(names, v)
@@ -128,18 +129,23 @@ func (n audienceNames) labels(a AudienceDef) (base, group string, names []string
 			names = append(names, v)
 		}
 	}
+	f.Lists = names
 	switch {
 	case len(a.Segments) == 0 && len(a.ExcludeLists) == 0 && len(n.public) > 1 && !slices.ContainsFunc(n.public, func(id string) bool { return !slices.Contains(a.Lists, id) }):
-		return "All subscribers", "All subscribers", names
+		f.BaseKind = BaseAll
 	case len(names) == 1 && len(a.Lists) == 1:
-		return names[0] + " list", names[0], names
+		f.BaseKind, f.BaseName = BaseList, names[0]
 	case len(names) == 1:
-		return names[0] + " segment", names[0], names
+		f.BaseKind, f.BaseName = BaseSegment, names[0]
 	case len(names) == 0:
-		return "Audience", "Audience", names
+		f.BaseKind = BaseNone
+	default:
+		joined := strings.Join(names, " + ")
+		f.BaseKind, f.BaseLabel, f.GroupLabel = BaseMany, joined, joined
+		return
 	}
-	joined := strings.Join(names, " + ")
-	return joined, joined, names
+	b := &builder{f: Facts{Audience: *f}}
+	f.BaseLabel, f.GroupLabel = b.baseLabel().en(), b.groupLabel().en()
 }
 
 // computeAudience counts the final recipients of a definition: suppressed,
@@ -151,7 +157,7 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 	if err != nil {
 		return out, nil, err
 	}
-	out.BaseLabel, out.GroupLabel, out.Lists = names.labels(def)
+	names.labels(def, &out)
 	if def.Empty() {
 		out.Empty = true
 		return out, nil, nil

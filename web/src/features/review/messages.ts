@@ -393,6 +393,7 @@ export const m = defineMessages('review', {
   rowExcluded: 'Excluded',
   sameAsFrom: 'same as From',
   noTest: 'No test',
+  abLabel: '{kind, select, subject {Subject test} content {Content test} other {Send-time test}} · {variants} variants · {percent}% sample',
   costValue: '{cost} · about {duration}',
   nobody: 'nobody',
   warningsToConfirm: 'Warnings to confirm',

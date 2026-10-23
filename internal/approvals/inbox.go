@@ -14,6 +14,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -458,14 +459,17 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			}
 		}
 		out.Audience = aud
-		rv := &ApprovalRouteView{SplitLabel: snap.SplitLabel, Shares: []ApprovalShare{}}
+		rv := &ApprovalRouteView{SplitLabel: readiness.SplitLabelIn(snap.SplitLabel, i18n.LangFrom(ctx)), Shares: []ApprovalShare{}}
 		for _, sh := range snap.Route {
 			if sh.Recipients == 0 && len(snap.Route) > 1 {
 				continue
 			}
 			rv.Shares = append(rv.Shares, ApprovalShare{ProviderID: sh.ProviderID, Name: sh.Name, Short: sh.Short, Label: sh.Label, Color: state.Color(sh.Adapter),
-				Recipients: sh.Recipients, Cost: sh.Cost, PriceLabel: sh.PriceLabel, Status: sh.Status, StatusLabel: sh.StatusLabel})
+				Recipients: sh.Recipients, Cost: sh.Cost, PriceLabel: sh.PriceLabel, Status: sh.Status,
+				StatusLabel: readiness.ShareStatusIn(sh.StatusLabel, sh.StatusText, sh.Status, sh.WarmupDay, sh.WarmupDays, i18n.LangFrom(ctx))})
 		}
+		// The checks the request was made on read in the reader's language.
+		out.Readiness.Issues = readiness.InChecks(out.Readiness.Issues, i18n.LangFrom(ctx))
 		out.Route = rv
 		sv := readiness.ScheduleView(snap.Schedule, ws.Timezone)
 		out.Schedule = &ApprovalScheduleView{Mode: sv.Mode, At: sv.At, Timezone: sv.Timezone, Minutes: snap.Minutes,
