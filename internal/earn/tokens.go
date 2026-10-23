@@ -26,10 +26,12 @@ import (
 const RootPaid = "paid"
 
 func init() {
-	toks := Tokens()
-	reg := make([]liquid.PersonalizationToken, len(toks))
-	for i, t := range toks {
-		reg[i] = liquid.PersonalizationToken{Key: t.Key, Label: t.Label, Kind: "paid"}
+	// The labels keep their messages: the composer's token menu writes them
+	// in the member's language (liquid.InLanguage).
+	reg := make([]liquid.PersonalizationToken, 0, len(tokenKeys))
+	for _, k := range tokenKeys {
+		m := msgs.M(k.label)
+		reg = append(reg, liquid.PersonalizationToken{Key: k.key, Label: m.Text(PageLang, nil), LabelText: m.Keep(nil), Kind: "paid"})
 	}
 	liquid.RegisterTokens(reg...)
 }

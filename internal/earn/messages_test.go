@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/liquid"
 )
 
 // Every catalog key the package names is in messages/en.json (msgs.M
@@ -223,6 +224,32 @@ func TestStarterWords(t *testing.T) {
 	}
 	if c := memberCategory(vi); c.Name != "Gói hội viên" || !slices.Equal(c.Known, []string{"Gói hội viên", "Memberships"}) {
 		t.Fatalf("category (vi): %+v", c)
+	}
+}
+
+// The Paid tokens of the composer's token menu read in the member's
+// language; the catalog keeps their English.
+func TestTokenLabelsInTheMembersLanguage(t *testing.T) {
+	labels := func(l i18n.Lang) map[string]string {
+		out := map[string]string{}
+		for _, tok := range liquid.InLanguage(liquid.Catalog(nil), l) {
+			if tok.Kind == "paid" {
+				out[tok.Key] = tok.Label
+			}
+		}
+		return out
+	}
+	en, vi := labels(defaultLang), labels(i18n.For(i18n.Vietnamese))
+	if len(en) != 7 || en["paid.tier"] != "Paid tier" || en[VarManageURL] != "Manage subscription link" {
+		t.Errorf("English: %v", en)
+	}
+	if len(vi) != 7 || vi["paid.tier"] != "Gói trả phí" || vi[VarUpgradeURL] != "Liên kết nâng cấp" {
+		t.Errorf("Vietnamese: %v", vi)
+	}
+	for _, tok := range liquid.Catalog(nil) {
+		if tok.Key == "paid.tier" && tok.Label != "Paid tier" {
+			t.Errorf("catalog: %q", tok.Label)
+		}
 	}
 }
 
