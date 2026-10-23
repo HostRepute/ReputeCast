@@ -1036,6 +1036,7 @@ type ContentTranslationVersion struct {
 	Label         string          `json:"label"`
 	Source        string          `json:"source"`
 	SizeBytes     int32           `json:"sizeBytes"`
+	LabelText     json.RawMessage `json:"labelText"`
 }
 
 type Conversion struct {

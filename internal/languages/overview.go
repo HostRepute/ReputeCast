@@ -3,6 +3,8 @@ package languages
 import (
 	"sort"
 	"time"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // EmailLanguages is an email's language versions: what the composer's
@@ -90,11 +92,13 @@ type EmailLanguage struct {
 	// source (both for the canvas tags).
 	StillIndexes   []int `json:"stillIndexes"`
 	ChangedIndexes []int `json:"changedIndexes"`
+	// changedRefs say what ChangedBlocks are (Send Readiness names them).
+	changedRefs []BlockRef
 }
 
 // overview builds the switcher's list: every workspace language (and any
-// version in a removed language), the source first.
-func overview(st sourceState, views []view, settings Settings, readers map[string]int64, total *int64) EmailLanguages {
+// version in a removed language), the source first, named for a reader in l.
+func overview(l i18n.Lang, st sourceState, views []view, settings Settings, readers map[string]int64, total *int64) EmailLanguages {
 	out := EmailLanguages{Source: st.Language, SourceVersion: st.Version, Default: settings.Default, Fallback: settings.Fallback, Blocks: len(st.Blocks),
 		Versions: []EmailLanguage{}, Readers: total, EditHelpers: []string{}, WorkspaceHelpers: []string{}}
 	out.CanChangeSource = len(views) == 0
@@ -137,11 +141,9 @@ func overview(st sourceState, views []view, settings Settings, readers map[strin
 			continue
 		}
 		seen[lang] = true
-		l, _ := Lookup(lang)
-		e := EmailLanguage{Language: lang, Name: l.Name, Native: l.Native, Offered: settings.Offers(lang), ChangedBlocks: []string{}, StillIndexes: []int{}, ChangedIndexes: []int{}}
-		if e.Name == "" {
-			e.Name = lang
-		}
+		info, _ := Lookup(lang)
+		e := EmailLanguage{Language: lang, Name: NameIn(l, lang), Native: info.Native, Offered: settings.Offers(lang), ChangedBlocks: []string{}, StillIndexes: []int{},
+			ChangedIndexes: []int{}}
 		choice := ch.Pick(lang)
 		e.Gets = choice.Language
 		switch lang {
@@ -166,14 +168,17 @@ func overview(st sourceState, views []view, settings Settings, readers map[strin
 			for _, r := range v.rows {
 				switch r.State {
 				case RowChanged, RowNew, RowRemoved:
-					name := ""
-					if r.Source != nil {
-						name = r.Source.Name
-					} else if r.Version != nil {
-						name = r.Version.Name
+					b := r.Source
+					if b == nil {
+						b = r.Version
 					}
 					if r.State == RowChanged || r.State == RowNew {
+						name, ref := "", BlockRef{}
+						if b != nil {
+							name, ref = b.nameIn(l), b.ref
+						}
 						e.ChangedBlocks = append(e.ChangedBlocks, name)
+						e.changedRefs = append(e.changedRefs, ref)
 					}
 					if r.Changed != nil && (e.LastChange == nil || r.Changed.At.After(e.LastChange.At)) {
 						c := *r.Changed

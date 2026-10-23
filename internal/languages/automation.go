@@ -11,6 +11,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -65,7 +66,7 @@ func (s *Service) AutomationEmailLanguages(ctx context.Context, ws *store.Worksp
 	if err != nil {
 		return EmailLanguages{}, err
 	}
-	out := overview(st, views, settings, nil, nil)
+	out := overview(langOf(ctx), st, views, settings, nil, nil)
 	out.CanChangeSource = false
 	s.accessOf(ctx, ws, p, &out, authz.AutomationsEdit)
 	return out, nil
@@ -91,7 +92,7 @@ func (s *Service) AutomationEmailLanguageContent(ctx context.Context, ws *store.
 		if err != nil {
 			return err
 		}
-		out = AutomationEmailLanguage{Language: v.row.Language, Name: NameOf(v.row.Language), Status: v.progress.Status, Version: int(v.row.Version),
+		out = AutomationEmailLanguage{Language: v.row.Language, Name: NameIn(langOf(ctx), v.row.Language), Status: v.progress.Status, Version: int(v.row.Version),
 			Subject: v.row.Subject, Preheader: v.row.Preheader, HTML: v.row.Html}
 		return nil
 	})
@@ -171,7 +172,7 @@ func (s *Service) SaveAutomationEmailLanguage(ctx context.Context, ws *store.Wor
 	lang = Base(lang)
 	version, err := s.nextAutomationVersion(ctx, ws, p, id, in.Version, "save", lang, func(q *store.Queries, o Owner, src Source, st sourceState, settings Settings) error {
 		if lang == st.Language {
-			return api.Invalid("path.language", "That's the language the email is written in. Edit the email itself.")
+			return api.Invalid("path.language", mFlowSourceLanguage.Text(langOf(ctx), nil))
 		}
 		views, err := s.versions(ctx, q, o, st)
 		if err != nil {
@@ -182,7 +183,7 @@ func (s *Service) SaveAutomationEmailLanguage(ctx context.Context, ws *store.Wor
 			has = has || v.row.Language == lang
 		}
 		if !has {
-			if err := checkNewVersion(settings, st, views, lang); err != nil {
+			if err := checkNewVersion(langOf(ctx), settings, st, views, lang); err != nil {
 				return err
 			}
 			if _, err := s.addVersion(ctx, q, o, p, st, src, lang, StartCopy, nil); err != nil {
@@ -196,7 +197,7 @@ func (s *Service) SaveAutomationEmailLanguage(ctx context.Context, ws *store.Wor
 		// The flow editor writes HTML: the version's MJML goes, as the
 		// email's own does when it's edited there.
 		if _, _, err := s.saveVersion(ctx, q, o, p, lang, SaveInput{BaseVersion: int(cur.Version), Subject: in.Subject, Preheader: in.Preheader, HTML: in.HTML,
-			Label: "edited in the flow editor", Source: "manual", Force: true, Audited: true}); err != nil {
+			Label: mLabelFlowEditor.Text(i18n.Default, nil), LabelText: mLabelFlowEditor.Keep(nil), Source: "manual", Force: true, Audited: true}); err != nil {
 			return err
 		}
 		if in.Translated && cur.Status != storedTranslated {
@@ -313,7 +314,7 @@ func (s *Service) AutomationEmailStates(ctx context.Context, q *store.Queries, w
 		if !settings.Offers(v.row.Language) {
 			continue
 		}
-		out = append(out, AutomationEmailState{Language: v.row.Language, Name: NameOf(v.row.Language), Status: v.progress.Status, Attention: v.progress.Attention,
+		out = append(out, AutomationEmailState{Language: v.row.Language, Name: NameIn(langOf(ctx), v.row.Language), Status: v.progress.Status, Attention: v.progress.Attention,
 			By: v.by, Held: v.row.Held})
 	}
 	return out, nil

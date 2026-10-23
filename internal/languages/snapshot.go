@@ -3,10 +3,12 @@ package languages
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -27,6 +29,9 @@ type BlockSnapshot struct {
 	Name string `json:"name"`
 	Hash string `json:"hash"`
 	Raw  string `json:"raw"`
+	// Ref says what the block is, to name it in any language; snapshots
+	// taken before it was kept have none (their English Name is used).
+	Ref *BlockRef `json:"ref,omitempty"`
 }
 
 // CampaignSnapshot returns what an approval covers of a campaign's
@@ -43,7 +48,8 @@ func (s *Service) CampaignSnapshot(ctx context.Context, q *store.Queries, campai
 	for _, r := range rows {
 		v := VersionSnapshot{Language: r.Language, Status: r.Status, Held: r.Held, Version: int(r.Version), Hash: r.ContentHash, Subject: r.Subject, Blocks: []BlockSnapshot{}}
 		for _, b := range Blocks(r.Mjml, r.Html) {
-			v.Blocks = append(v.Blocks, BlockSnapshot{Name: b.Name, Hash: b.Hash, Raw: b.Raw})
+			ref := b.ref
+			v.Blocks = append(v.Blocks, BlockSnapshot{Name: b.Name, Hash: b.Hash, Raw: b.Raw, Ref: &ref})
 		}
 		out = append(out, v)
 	}
@@ -64,7 +70,7 @@ type VersionContent struct {
 func (s *Service) CampaignVersionAt(ctx context.Context, campaignID uuid.UUID, lang string, version int) (VersionContent, error) {
 	t, err := s.Q.ContentTranslation(ctx, store.ContentTranslationParams{OwnerKind: OwnerCampaign, OwnerID: campaignID, Language: Base(lang)})
 	if err != nil {
-		return VersionContent{}, notFoundVersion(err, lang)
+		return VersionContent{}, notFoundVersion(langOf(ctx), err, lang)
 	}
 	if version > 0 && version != int(t.Version) {
 		if v, err := s.Q.ContentTranslationVersion(ctx, store.ContentTranslationVersionParams{TranslationID: t.ID, Version: int32(version)}); err == nil {
@@ -84,13 +90,60 @@ type VersionChange struct {
 	After  string
 	// What is the change in a few words ("intro changed", "added").
 	What string
+	// Detail is the change as data, to keep with an approval and write in
+	// each reader's language later (VersionChangeDetail.Texts).
+	Detail VersionChangeDetail
+}
+
+// VersionChangeDetail is what changed in a language version after
+// approval, as data: an approval stores it and writes it in each reader's
+// language when it's read (Texts).
+type VersionChangeDetail struct {
+	Language string `json:"language"`
+	// Change is added, edited, status (marked translated or back to
+	// draft), held (held or sent again) or removed.
+	Change string `json:"change"`
+	// Prev and Version are the version numbers before and after.
+	Prev    int `json:"prev,omitempty"`
+	Version int `json:"version,omitempty"`
+	// PrevStatus and Status are the stored statuses (draft, translated);
+	// PrevHeld and Held whether the version was held.
+	PrevStatus string `json:"prevStatus,omitempty"`
+	Status     string `json:"status,omitempty"`
+	PrevHeld   bool   `json:"prevHeld,omitempty"`
+	Held       bool   `json:"held,omitempty"`
+	// What an edit changed: the subject, how many blocks (one of them named
+	// by Block, or by its English BlockName for snapshots without refs),
+	// and whether a block was removed.
+	Subject   bool      `json:"subject,omitempty"`
+	Blocks    int       `json:"blocks,omitempty"`
+	Block     *BlockRef `json:"block,omitempty"`
+	BlockName string    `json:"blockName,omitempty"`
+	Removed   bool      `json:"removed,omitempty"`
 }
 
 // DiffVersions compares the versions an approval covered with the
 // versions now: added, removed, edited (naming the blocks), marked
-// translated or held.
+// translated or held. It writes in English; DiffVersionsIn writes for a
+// reader, and each change's Detail writes it for later readers.
 func DiffVersions(before, after []VersionSnapshot) []VersionChange {
-	out := []VersionChange{}
+	return DiffVersionsIn(i18n.Default, before, after)
+}
+
+// DiffVersionsIn is DiffVersions in a reader's language: the language
+// names and what changed read in l.
+func DiffVersionsIn(l i18n.Lang, before, after []VersionSnapshot) []VersionChange {
+	details := diffVersions(before, after)
+	out := make([]VersionChange, 0, len(details))
+	for _, d := range details {
+		name, b, a, what := d.Texts(l)
+		out = append(out, VersionChange{Language: d.Language, Name: name, Before: b, After: a, What: what, Detail: d})
+	}
+	return out
+}
+
+func diffVersions(before, after []VersionSnapshot) []VersionChangeDetail {
+	out := []VersionChangeDetail{}
 	prev := map[string]VersionSnapshot{}
 	for _, v := range before {
 		prev[v.Language] = v
@@ -98,53 +151,76 @@ func DiffVersions(before, after []VersionSnapshot) []VersionChange {
 	seen := map[string]bool{}
 	for _, v := range after {
 		seen[v.Language] = true
-		name := NameOf(v.Language)
 		p, ok := prev[v.Language]
+		d := VersionChangeDetail{Language: v.Language, Prev: p.Version, Version: v.Version}
 		switch {
 		case !ok:
-			out = append(out, VersionChange{Language: v.Language, Name: name, Before: "none", After: fmt.Sprintf("v%d · added", v.Version), What: "version added"})
+			d.Change, d.Prev = "added", 0
 		case p.Hash != v.Hash:
-			what := changedBlocks(p, v)
-			out = append(out, VersionChange{Language: v.Language, Name: name, Before: fmt.Sprintf("v%d", p.Version), After: fmt.Sprintf("v%d · %s", v.Version, what), What: what})
+			d.Change = "edited"
+			changedBlocks(&d, p, v)
 		case p.Status != v.Status:
-			what := "marked translated"
-			if v.Status != storedTranslated {
-				what = "back to draft"
-			}
-			out = append(out, VersionChange{Language: v.Language, Name: name, Before: statusName(p.Status), After: statusName(v.Status), What: what})
+			d.Change, d.PrevStatus, d.Status = "status", p.Status, v.Status
 		case p.Held != v.Held:
-			what := "sent again"
-			if v.Held {
-				what = "held"
-			}
-			out = append(out, VersionChange{Language: v.Language, Name: name, Before: heldWord(p.Held), After: heldWord(v.Held), What: what})
+			d.Change, d.PrevHeld, d.Held = "held", p.Held, v.Held
+		default:
+			continue
 		}
+		out = append(out, d)
 	}
 	for _, p := range before {
 		if !seen[p.Language] {
-			out = append(out, VersionChange{Language: p.Language, Name: NameOf(p.Language), Before: fmt.Sprintf("v%d", p.Version), After: "removed", What: "version removed"})
+			out = append(out, VersionChangeDetail{Language: p.Language, Change: "removed", Prev: p.Version})
 		}
 	}
 	return out
 }
 
-func statusName(s string) string {
+// Texts writes the change for a reader: the language's name, the version
+// before and after, and what changed.
+func (d VersionChangeDetail) Texts(l i18n.Lang) (name, before, after, what string) {
+	name = NameIn(l, d.Language)
+	switch d.Change {
+	case "added":
+		return name, mDiffNone.Text(l, nil), mDiffAdded.Text(l, i18n.Args{"version": strconv.Itoa(d.Version)}), mChangeVersionAdded.Text(l, nil)
+	case "edited":
+		what = d.what(l)
+		return name, fmt.Sprintf("v%d", d.Prev), mDiffChanged.Text(l, i18n.Args{"version": strconv.Itoa(d.Version), "what": what}), what
+	case "status":
+		m := mChangeMarkedTranslated
+		if d.Status != storedTranslated {
+			m = mChangeBackToDraft
+		}
+		return name, statusName(l, d.PrevStatus), statusName(l, d.Status), m.Text(l, nil)
+	case "held":
+		m := mChangeSentAgain
+		if d.Held {
+			m = mChangeHeld
+		}
+		return name, heldWord(l, d.PrevHeld), heldWord(l, d.Held), m.Text(l, nil)
+	}
+	return name, fmt.Sprintf("v%d", d.Prev), mDiffRemoved.Text(l, nil), mChangeVersionRemoved.Text(l, nil)
+}
+
+func statusName(l i18n.Lang, s string) string {
+	status := "draft"
 	if s == storedTranslated {
-		return "translated"
+		status = "translated"
 	}
-	return "draft"
+	return mDiffStatus.Text(l, i18n.Args{"status": status})
 }
 
-func heldWord(held bool) string {
+func heldWord(l i18n.Lang, held bool) string {
+	h := "no"
 	if held {
-		return "held"
+		h = "yes"
 	}
-	return "sent"
+	return mDiffHeld.Text(l, i18n.Args{"held": h})
 }
 
-// changedBlocks names what changed between two snapshots of a version:
-// "intro changed", "subject and 2 blocks changed".
-func changedBlocks(before, after VersionSnapshot) string {
+// changedBlocks records what changed between two snapshots of a version:
+// the subject, the blocks whose source changed and a removed block.
+func changedBlocks(d *VersionChangeDetail, before, after VersionSnapshot) {
 	old := make([]AlignKey, len(before.Blocks))
 	for i, b := range before.Blocks {
 		old[i] = AlignKey{Raw: b.Raw, Hash: b.Hash}
@@ -154,43 +230,57 @@ func changedBlocks(before, after VersionSnapshot) string {
 		cur[i] = AlignKey{Raw: b.Raw, Hash: b.Hash}
 	}
 	m := Align(old, cur)
-	names := []string{}
 	used := map[int]bool{}
 	for i, j := range m {
 		if j >= 0 {
 			used[j] = true
 		}
 		if j < 0 || old[j].Raw != cur[i].Raw {
-			names = append(names, shortBlock(after.Blocks[i].Name))
+			if d.Blocks == 0 {
+				d.Block, d.BlockName = after.Blocks[i].Ref, after.Blocks[i].Name
+			}
+			d.Blocks++
 		}
 	}
-	removed := 0
 	for j := range old {
-		if !used[j] {
-			removed++
+		if !used[j] && d.Blocks == 0 {
+			d.Removed = true
 		}
 	}
-	parts := []string{}
-	if before.Subject != after.Subject {
-		parts = append(parts, "subject")
+	d.Subject = before.Subject != after.Subject
+	if d.Blocks != 1 {
+		d.Block, d.BlockName = nil, ""
 	}
-	switch {
-	case len(names) == 1:
-		parts = append(parts, names[0])
-	case len(names) > 1:
-		parts = append(parts, fmt.Sprintf("%d blocks", len(names)))
-	}
-	if removed > 0 && len(names) == 0 {
-		parts = append(parts, "a block removed")
-		return strings.Join(parts, " and ")
-	}
-	if len(parts) == 0 {
-		return "edited"
-	}
-	return strings.Join(parts, " and ") + " changed"
 }
 
-// shortBlock is a block's name in a sentence: "intro", "two cards".
+// what names what an edit changed, in l: "intro changed", "subject and 2
+// blocks changed".
+func (d VersionChangeDetail) what(l i18n.Lang) string {
+	switch {
+	case d.Blocks == 0 && d.Removed && d.Subject:
+		return mChangeSubjectBlockRemoved.Text(l, nil)
+	case d.Blocks == 0 && d.Removed:
+		return mChangeBlockRemoved.Text(l, nil)
+	case d.Blocks == 0 && d.Subject:
+		return mChangeSubject.Text(l, nil)
+	case d.Blocks == 0:
+		return mChangeEdited.Text(l, nil)
+	case d.Blocks == 1:
+		block := shortBlock(d.BlockName)
+		if l.Locale != i18n.English && d.Block != nil && d.Block.Kind != "" {
+			block = d.Block.Short(l)
+		}
+		if d.Subject {
+			return mChangeSubjectBlock.Text(l, i18n.Args{"block": block})
+		}
+		return mChangeBlock.Text(l, i18n.Args{"block": block})
+	case d.Subject:
+		return mChangeSubjectBlocks.Text(l, i18n.Args{"count": d.Blocks})
+	}
+	return mChangeBlocks.Text(l, i18n.Args{"count": d.Blocks})
+}
+
+// shortBlock is a block's English name in a sentence: "intro", "two cards".
 func shortBlock(name string) string {
 	if i := strings.Index(name, " · Heading"); i >= 0 {
 		name = name[:i]
