@@ -74,6 +74,8 @@ func TestEnglishUnchanged(t *testing.T) {
 		{eta(en, 30*time.Second, 50, 100), "less than a minute left"},
 		{eta(en, time.Minute, 50, 100), "about 1 minute left"},
 		{eta(en, 3*time.Minute, 50, 100), "about 3 minutes left"},
+		{english(mNotifyTitle.Keep(i18n.Args{"count": int64(46118), "source": "Brevo"})), "46,118 contacts imported from Brevo"},
+		{english(mNotifyBody.Keep(i18n.Args{"suppressed": int64(1033), "skipped": int64(214)})), "1,033 suppressed, 214 skipped. The report lists every skipped row."},
 		{invalidProblemIn(en, ProblemNoMX), ProblemNoMX},
 		{invalidProblemIn(en, ProblemService), ProblemService},
 		{invalidProblemIn(en, "no domain"), "no domain"},

@@ -107,7 +107,6 @@ var (
 	mAnEmail         = msgs.M("label.anEmail")
 	mMailboxOther    = msgs.M("label.mailboxOther")
 	mImporterOther   = msgs.M("label.importerOther")
-	mClientOther     = msgs.M("client.other")
 	mFailSuppressed  = msgs.M("failure.suppressed")
 	mFailRefused     = msgs.M("failure.refused")
 	mAlreadyNote     = msgs.M("note.alreadySuppressed")

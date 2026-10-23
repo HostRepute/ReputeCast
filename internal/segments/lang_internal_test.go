@@ -1,6 +1,7 @@
 package segments
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
@@ -92,8 +93,8 @@ func TestSourceLabelsInVietnamese(t *testing.T) {
 func TestConditionProblemsInVietnamese(t *testing.T) {
 	d := SegmentDefinition{Groups: []SegmentGroup{{Match: "all", Conditions: []SegmentCondition{{Field: "list", Op: "includes", Value: "not-a-list"}}}}}
 	err := d.Validate(map[string]CustomField{}, nil)
-	ve, ok := err.(*ValidationError)
-	if !ok {
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
 		t.Fatalf("%v", err)
 	}
 	if ve.Message != "Pick a list for list membership." || ve.Text(i18n.Default) != ve.Message {
@@ -102,9 +103,11 @@ func TestConditionProblemsInVietnamese(t *testing.T) {
 	if got := ve.Text(i18n.For(i18n.Vietnamese)); got != "Hãy chọn một danh sách cho thành viên danh sách." {
 		t.Errorf("Vietnamese: %q", got)
 	}
-	if _, err := CheckSQL("DELETE FROM contacts"); err == nil {
-		t.Fatal("DELETE passed")
-	} else if se := err.(*SQLError); se.Message != "A SQL segment must be a SELECT (or WITH … SELECT) that returns contact ids." ||
+	var se *SQLError
+	if _, err := CheckSQL("DELETE FROM contacts"); !errors.As(err, &se) {
+		t.Fatalf("DELETE: %v", err)
+	}
+	if se.Message != "A SQL segment must be a SELECT (or WITH … SELECT) that returns contact ids." ||
 		se.Text(i18n.For(i18n.Vietnamese)) != "Phân khúc SQL phải là một câu SELECT (hoặc WITH … SELECT) trả về id liên hệ." {
 		t.Errorf("SQL: %q / %q", se.Message, se.Text(i18n.For(i18n.Vietnamese)))
 	}

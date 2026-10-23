@@ -182,5 +182,8 @@
   "fill.language": "ngôn ngữ",
 
   "invalid.noMX": "tên miền không có bản ghi MX",
-  "invalid.service": "bị dịch vụ xác minh từ chối"
+  "invalid.service": "bị dịch vụ xác minh từ chối",
+
+  "notify.title": "Đã nhập {count} liên hệ từ {source}",
+  "notify.body": "{suppressed} bị chặn gửi, {skipped} bị bỏ qua. Báo cáo liệt kê từng hàng bị bỏ qua."
 }

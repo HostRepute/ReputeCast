@@ -182,5 +182,8 @@
   "fill.language": "language",
 
   "invalid.noMX": { "message": "no MX record", "note": "why an address is invalid: its domain can't receive mail" },
-  "invalid.service": "rejected by the verification service"
+  "invalid.service": "rejected by the verification service",
+
+  "notify.title": { "message": "{count} contacts imported from {source}", "note": "the notification when an import finishes" },
+  "notify.body": "{suppressed} suppressed, {skipped} skipped. The report lists every skipped row."
 }

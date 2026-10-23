@@ -195,6 +195,9 @@ var (
 	mDupFile        = msgs.M("duplicate.file")
 	mInvalidNoMX    = msgs.M("invalid.noMX")
 	mInvalidService = msgs.M("invalid.service")
+
+	mNotifyTitle = msgs.M("notify.title")
+	mNotifyBody  = msgs.M("notify.body")
 )
 
 // textIn writes a kept message in a reader's language. A list argument

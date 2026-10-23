@@ -439,7 +439,11 @@ func (s *Service) UpdateContact(ctx context.Context, ws *store.Workspace, id uui
 				}
 				val, err := customValue(f, v)
 				if err != nil {
-					return api.Invalid("body.fields."+k, err.(*fieldValueError).text(l))
+					var fe *fieldValueError
+					if errors.As(err, &fe) {
+						return api.Invalid("body.fields."+k, fe.text(l))
+					}
+					return err
 				}
 				if val == nil {
 					delete(attrs, k)

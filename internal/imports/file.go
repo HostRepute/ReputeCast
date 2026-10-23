@@ -216,18 +216,6 @@ func latin1ToUTF8(b []byte) []byte {
 	return []byte(string(out))
 }
 
-func thousands(n int) string {
-	s := fmt.Sprint(n)
-	var out []byte
-	for i := range s {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			out = append(out, ',')
-		}
-		out = append(out, s[i])
-	}
-	return string(out)
-}
-
 // Header returns the column names.
 func (f *FileSource) Header() ([]string, error) {
 	if err := f.parse(); err != nil {

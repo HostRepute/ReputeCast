@@ -973,13 +973,12 @@ func (s *Service) finish(ctx context.Context, st *runState, status string, start
 	}
 	if st.imp.CreatedBy != nil && status == "done" {
 		wsID := st.ws.ID
-		// English until notifications keep their messages for each reader
-		// (internal/notify stores a title and a body only).
+		// Kept messages: the person reads it in their language.
 		_ = notify.ToUser(ctx, s.Pool, *st.imp.CreatedBy, notify.Notification{
 			WorkspaceID: &wsID, Kind: notify.KindJobFinished, Severity: "ok",
-			Title: fmt.Sprintf("%s contacts imported from %s", thousands(int(st.stats.Imported+st.stats.Merged)), SourceName(st.imp.Source)),
-			Body:  fmt.Sprintf("%s suppressed, %s skipped. The report lists every skipped row.", thousands(int(st.stats.Suppressed)), thousands(int(st.stats.Skipped))),
-			Link:  fmt.Sprintf("/w/%s/import/%s/report", st.ws.Slug, st.imp.ID),
+			TitleText: mNotifyTitle.Keep(i18n.Args{"count": st.stats.Imported + st.stats.Merged, "source": SourceName(st.imp.Source)}),
+			BodyText:  mNotifyBody.Keep(i18n.Args{"suppressed": st.stats.Suppressed, "skipped": st.stats.Skipped}),
+			Link:      fmt.Sprintf("/w/%s/import/%s/report", st.ws.Slug, st.imp.ID),
 		})
 	}
 	return nil

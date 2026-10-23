@@ -313,9 +313,6 @@ func sortReasons(in []string) []string {
 	return out
 }
 
-// importerLabel names an importer in English: "Brevo", "CSV".
-func importerLabel(src string) string { return importerLabelIn(i18n.Default, src) }
-
 // importerLabelIn names an importer; a tool ReputeCast doesn't name reads
 // "Import" in the reader's language.
 func importerLabelIn(l i18n.Lang, src string) string {
