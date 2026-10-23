@@ -12,9 +12,11 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"golang.org/x/text/unicode/norm"
 
 	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/api"
@@ -182,7 +184,7 @@ var keyRe = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 func KeyFromName(name string) string {
 	var b strings.Builder
 	dash := false
-	for _, r := range strings.ToLower(name) {
+	for _, r := range strings.ToLower(asciiFold(name)) {
 		switch {
 		case (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9'):
 			b.WriteRune(r)
@@ -193,6 +195,30 @@ func KeyFromName(name string) string {
 		}
 	}
 	return clip(strings.Trim(b.String(), "-"), 64)
+}
+
+// asciiFold writes a name's letters without their marks, as an ID can hold
+// them: "Mẫu chưa đặt tên" → "Mau chua dat ten", "Straße" → "Strasse".
+func asciiFold(s string) string {
+	var b strings.Builder
+	for _, r := range norm.NFD.String(s) {
+		switch {
+		case unicode.Is(unicode.Mn, r):
+		case r == 'đ', r == 'Đ':
+			b.WriteByte('d')
+		case r == 'ß':
+			b.WriteString("ss")
+		case r == 'æ', r == 'Æ':
+			b.WriteString("ae")
+		case r == 'œ', r == 'Œ':
+			b.WriteString("oe")
+		case r == 'ø', r == 'Ø':
+			b.WriteByte('o')
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 func validateKey(ctx context.Context, key string) error {

@@ -93,6 +93,16 @@ func TestStarterWords(t *testing.T) {
 	}
 }
 
+// A template's ID from a name in another language keeps its letters,
+// without their marks.
+func TestKeyFromNameFoldsMarks(t *testing.T) {
+	for in, want := range map[string]string{"Mẫu chưa đặt tên": "mau-chua-dat-ten", "Password reset": "password-reset", "Đặt lại mật khẩu": "dat-lai-mat-khau"} {
+		if got := KeyFromName(in); got != want {
+			t.Errorf("KeyFromName(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
 // liquidTokens are the {{ }} and {% %} tags of a text.
 func liquidTokens(s string) []string {
 	var out []string
