@@ -7,13 +7,34 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"golang.org/x/text/language"
+	"golang.org/x/text/language/display"
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/applang"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/notify"
 )
+
+// languageIn is a content language's name in the reader's language: the
+// catalog's English name in English, CLDR's elsewhere ("Tiếng Tây Ban
+// Nha"), as Send Readiness names them. Prompts keep the English name.
+func languageIn(l i18n.Lang, code string) string {
+	switch l.Locale {
+	case i18n.English, i18n.Pseudo, "":
+		return languages.NameOf(code)
+	}
+	tag, err := language.Parse(languages.Base(code))
+	if err != nil {
+		return languages.NameOf(code)
+	}
+	if n := display.Tags(l.Locale.Tag()).Name(tag); n != "" {
+		return n
+	}
+	return languages.NameOf(code)
+}
 
 // Problems a member reads follow their app language (messages/<locale>.json);
 // notifications are written in each recipient's language when they are

@@ -31,6 +31,9 @@ func TestActivityTextInVietnamese(t *testing.T) {
 		{"a rewritten preheader", onIn(vi, FeatureRewrite, "campaign", &id, "Weekly Digest #143 preheader"), "Dòng xem trước của Weekly Digest #143"},
 		{"a rewritten subject in English", onIn(en, FeatureRewrite, "campaign", &id, "Weekly Digest #143 subject"), "Weekly Digest #143 subject"},
 		{"subject ideas keep the name", onIn(vi, FeatureSubjectIdeas, "campaign", &id, "Test subject"), "Test subject"},
+		{"a language in Vietnamese", languageIn(vi, "es"), "Tiếng Tây Ban Nha"},
+		{"a regional language in Vietnamese", languageIn(vi, "pt-BR"), "Tiếng Bồ Đào Nha"},
+		{"a language in English", languageIn(en, "es"), "Spanish"},
 	}
 	for _, c := range cases {
 		if c.got != c.want {

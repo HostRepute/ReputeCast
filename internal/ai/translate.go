@@ -160,7 +160,7 @@ func (s *Service) Translate(ctx context.Context, ws *store.Workspace, p *authz.P
 		return AITranslation{}, err
 	}
 	if !settings.Offers(target) {
-		return AITranslation{}, invalid(ctx, "body.language", mNotWorkspaceLanguage, map[string]any{"language": languages.NameOf(target)})
+		return AITranslation{}, invalid(ctx, "body.language", mNotWorkspaceLanguage, map[string]any{"language": languageIn(i18n.LangFrom(ctx), target)})
 	}
 	src, err := s.sourceOf(ctx, ws, c.id)
 	if err != nil {
@@ -198,7 +198,7 @@ func (s *Service) Translate(ctx context.Context, ws *store.Workspace, p *authz.P
 	}
 	// The demo's sample connection answers from recordings in Spanish and German only.
 	if conn, err := s.load(ctx, s.Q, ws.ID); err == nil && conn != nil && conn.Demo && conn.connected() && demoPhrases[target] == nil {
-		return AITranslation{}, problem(ctx, http.StatusConflict, codeDemoModel, mDemoLanguage, map[string]any{"language": languages.NameOf(target)})
+		return AITranslation{}, problem(ctx, http.StatusConflict, codeDemoModel, mDemoLanguage, map[string]any{"language": languageIn(i18n.LangFrom(ctx), target)})
 	}
 	res, err := s.run(ctx, ws, p, task{feature: FeatureTranslate, action: target, targetKind: "campaign", targetID: &c.id, targetLabel: c.name, req: translatePrompt(t)})
 	if err != nil {
