@@ -1,11 +1,16 @@
 package approvals
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/readiness"
 )
@@ -158,5 +163,28 @@ func TestHeldReasonsAndScheduleInVietnamese(t *testing.T) {
 	best := json.RawMessage(`{"mode":"best_time","at":"2026-11-04T14:00:00Z","timezone":"America/New_York"}`)
 	if got := scheduleTextIn(vi, best, time.UTC); got != "Giờ tốt nhất trong vòng 24 giờ từ 4 thg 11, 09:00" {
 		t.Errorf("schedule: %s", got)
+	}
+}
+
+// explained is an engine error that says why in a reader's language.
+type explained struct{}
+
+func (explained) Error() string { return "Weekly Digest #142 is already sending." }
+func (explained) In(l i18n.Lang) string {
+	if l.Locale == i18n.Vietnamese {
+		return "Weekly Digest #142 đang được gửi."
+	}
+	return "Weekly Digest #142 is already sending."
+}
+
+// A send the engine can't start answers why, in the reader's language.
+func TestStartProblemSaysWhyInTheReadersLanguage(t *testing.T) {
+	err := startProblem(i18n.WithLang(context.Background(), vi), fmt.Errorf("start: %w", explained{}))
+	var p *api.Problem
+	if !errors.As(err, &p) || p.Status != http.StatusConflict || p.Detail != "Weekly Digest #142 đang được gửi." {
+		t.Fatalf("got %v", err)
+	}
+	if err := startProblem(context.Background(), errors.New("boom")); err == nil || err.Error() != "boom" {
+		t.Fatalf("other errors pass through: %v", err)
 	}
 }

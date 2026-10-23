@@ -273,18 +273,7 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		// Nothing was scheduled: the campaign keeps its time as it was.
 		_ = s.Q.ApprovalScheduleCampaign(ctx, store.ApprovalScheduleCampaignParams{Schedule: c.Schedule, ScheduledAt: c.ScheduledAt, UpdatedBy: c.UpdatedBy, Now: c.UpdatedAt,
 			WorkspaceID: ws.ID, ID: c.ID})
-		switch {
-		case errors.Is(err, sending.ErrUnavailable):
-			return ReviewSendResult{}, api.Err(http.StatusServiceUnavailable, "sending_unavailable", say(ctx, mSendingUnavailable, nil))
-		case errors.Is(err, sending.ErrNotReady):
-			msg := say(ctx, mBlockedAsStarted, nil)
-			var nr *sending.NotReadyError
-			if errors.As(err, &nr) && nr.Reason != "" {
-				msg = say(ctx, mBlockedAsStartedReason, i18n.Args{"reason": strings.TrimSuffix(gapIn(langOf(ctx), nr.Reason), ".")})
-			}
-			return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_blocked", msg)
-		}
-		return ReviewSendResult{}, err
+		return ReviewSendResult{}, startProblem(ctx, err)
 	}
 	out := ReviewSendResult{Status: "sending", Recipients: recipients}
 	if at != nil {
@@ -739,4 +728,24 @@ func (s *Service) hold(ctx context.Context, ws *store.Workspace, c store.Readine
 		}
 		return nil
 	})
+}
+
+// startProblem is why the engine couldn't start a send, as the API answers
+// it in the request's language.
+func startProblem(ctx context.Context, err error) error {
+	var ex sending.Explained
+	switch {
+	case errors.Is(err, sending.ErrUnavailable):
+		return api.Err(http.StatusServiceUnavailable, "sending_unavailable", say(ctx, mSendingUnavailable, nil))
+	case errors.Is(err, sending.ErrNotReady):
+		msg := say(ctx, mBlockedAsStarted, nil)
+		var nr *sending.NotReadyError
+		if errors.As(err, &nr) && nr.Reason != "" {
+			msg = say(ctx, mBlockedAsStartedReason, i18n.Args{"reason": strings.TrimSuffix(gapIn(langOf(ctx), nr.Reason), ".")})
+		}
+		return api.Err(http.StatusConflict, "readiness_blocked", msg)
+	case errors.As(err, &ex):
+		return api.Conflict(ex.In(langOf(ctx)))
+	}
+	return err
 }

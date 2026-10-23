@@ -8,6 +8,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/routing"
+	"github.com/hostrepute/reputecast/internal/sending"
 )
 
 // What the live monitor reads from the server follows the reader's app
@@ -98,6 +99,8 @@ type StateError struct {
 	Msg  string
 	text i18n.Text
 }
+
+var _ sending.Explained = (*StateError)(nil)
 
 func (e *StateError) Error() string { return e.Msg }
 func (e *StateError) Unwrap() error { return ErrState }
