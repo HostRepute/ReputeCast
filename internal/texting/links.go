@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/webhooks"
 )
@@ -83,13 +84,20 @@ func (s *Service) serveLink(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	l, err := s.Q.SmsLink(ctx, code)
 	if err != nil || !l.ExpiresAt.After(s.now()) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte("This link has expired. Short links in texts work for 12 months.\n"))
+		expired(w, r)
 		return
 	}
 	s.recordClick(ctx, l, r)
 	http.Redirect(w, r, l.Target, http.StatusFound)
+}
+
+// expired answers a short link that no longer works, in the language the
+// visitor's browser asks for.
+func expired(w http.ResponseWriter, r *http.Request) {
+	lang, _ := i18n.Negotiate(r.Header.Get("Accept-Language"))
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusNotFound)
+	_, _ = w.Write([]byte(mLinkExpired.Text(i18n.For(lang), i18n.Args{"months": 12}) + "\n")) //nolint:gosec // G705: a catalog sentence, picked by the browser's language, served as text/plain
 }
 
 // recordClick logs a click: people apart from link previews.
