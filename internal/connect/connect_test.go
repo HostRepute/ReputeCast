@@ -845,3 +845,125 @@ func TestCatalogCommunityAdapter(t *testing.T) {
 		t.Fatalf("setup: %+v", st)
 	}
 }
+
+// The connect flow reads in each reader's language: its own words now, and
+// what a setup kept from a request in another language.
+func TestSetupReadsInTheReadersLanguage(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	en := env.Client()
+	en.SignInDemo("linh@acme.io")
+	vi := env.Client()
+	vi.SignInDemo("linh@acme.io")
+	vi.Header = http.Header{"Accept-Language": {"vi"}}
+
+	var cat struct {
+		Builtin []struct {
+			Adapter, Name, Terms, Pricing string
+			Chips                         []struct{ Label string }
+		}
+		Community []struct{ Name, Version, Reason string }
+	}
+	vi.Do("GET", ws+"/connect/catalog", nil).MustStatus(t, 200).JSON(t, &cat)
+	ses := cat.Builtin[0]
+	chips := []string{}
+	for _, ch := range ses.Chips {
+		chips = append(chips, ch.Label)
+	}
+	if ses.Terms != "Khuyên dùng" || !strings.HasPrefix(ses.Pricing, "Trả theo mức dùng · 0,10 US$") ||
+		strings.Join(chips, ",") != "Webhook (SNS),Tên miền qua API,Đồng bộ danh sách chặn gửi,Gửi lô 50,IP riêng, trả phí,Phát hiện sandbox,Dò hạn mức" {
+		t.Fatalf("SES card: %+v %v", ses, chips)
+	}
+	for _, b := range cat.Builtin {
+		if b.Adapter == "smtp" && (b.Name != "Máy chủ SMTP bất kỳ" || b.Terms != "Tùy máy chủ") {
+			t.Fatalf("SMTP card: %+v", b)
+		}
+	}
+	if last := cat.Community[len(cat.Community)-1]; last.Name != "Adapter HTTP chung" || last.Version != "có sẵn" ||
+		!strings.HasSuffix(cat.Community[0].Reason, "nhưng bản dựng này không chạy được nó. Trang Adapter cho biết lý do.") {
+		t.Fatalf("community: %+v", cat.Community)
+	}
+
+	// A key rejected in an English request reads in Vietnamese afterwards.
+	var st setupT
+	en.Do("POST", ws+"/connect/setups", map[string]any{"adapter": "fakeesp"}).MustStatus(t, 201).JSON(t, &st)
+	base := ws + "/connect/setups/" + st.ID
+	en.Do("POST", base+"/connection", map[string]any{"values": map[string]string{"api_key": "bad-key", "region": "us"}}).MustStatus(t, 200).JSON(t, &st)
+	if st.Connection.Error == nil || st.Connection.Error.Message != "Fake ESP rejected this key: `401 Unauthorized · Forbidden`." {
+		t.Fatalf("English: %+v", st.Connection.Error)
+	}
+	vi.Do("GET", base, nil).MustStatus(t, 200).JSON(t, &st)
+	if st.Connection.Error == nil || st.Connection.Error.Message != "Fake ESP đã từ chối khóa này: `401 Unauthorized · Forbidden`." ||
+		st.Info.Title != "Kết nối Fake ESP" || st.Info.Heading != "Dán khóa API Fake ESP của bạn" {
+		t.Fatalf("Vietnamese: %+v %+v", st.Connection.Error, st.Info)
+	}
+	// Problems read in the request's language.
+	var problem struct{ Detail string }
+	vi.Do("POST", base+"/connection", map[string]any{"values": map[string]string{"region": "us"}}).MustStatus(t, 422).JSON(t, &problem)
+	if problem.Detail != "Hãy nhập API key." {
+		t.Errorf("missing key: %q", problem.Detail)
+	}
+	vi.Do("POST", ws+"/connect/setups", map[string]any{"adapter": "nope"}).MustStatus(t, 404).JSON(t, &problem)
+	if problem.Detail != "Bản dựng này không có adapter nope. Hãy chọn một nhà cung cấp trong danh mục." {
+		t.Errorf("unknown adapter: %q", problem.Detail)
+	}
+	vi.Do("GET", ws+"/connect/setups/"+uuid.NewString(), nil).MustStatus(t, 404).JSON(t, &problem)
+	if problem.Detail != "Không tìm thấy thiết lập này." {
+		t.Errorf("unknown setup: %q", problem.Detail)
+	}
+
+	// The demo's finished SES setup: the stepper, the region select, the
+	// summary and the test's timeline. (Its provisioning rows were seeded
+	// in English, before the messages were kept: they read as seeded.)
+	var list struct{ Items []struct{ ID string } }
+	vi.Do("GET", ws+"/connect/setups?adapter=ses&status=finished", nil).MustStatus(t, 200).JSON(t, &list)
+	var demo struct {
+		Summaries  struct{ Connection, Domain, Test, Streams string }
+		Connection struct {
+			Regions      []struct{ Label string }
+			Provisioning []struct{ Text string }
+		}
+		Done *struct {
+			Title string
+			Rows  []struct{ Lead, Text string }
+		}
+	}
+	vi.Do("GET", ws+"/connect/setups/"+list.Items[0].ID, nil).MustStatus(t, 200).JSON(t, &demo)
+	if s := demo.Summaries; s.Connection != "us-east-1 · gửi chính thức" || s.Domain != "news.acme.io · 7 trên 7" || s.Test != "đã đến nơi sau 2,4 giây" ||
+		s.Streams != "Gửi hàng loạt, Tự động hóa, Hệ thống" {
+		t.Fatalf("stepper: %+v", s)
+	}
+	if demo.Connection.Regions[0].Label != "us-east-1 · N. Virginia · có quyền gửi chính thức, hạn mức 50.000 mỗi ngày" ||
+		demo.Connection.Provisioning[0].Text != "Verified credentials and permissions" {
+		t.Fatalf("connection: %+v", demo.Connection)
+	}
+	if demo.Done == nil || demo.Done.Title != "Đã kết nối Amazon SES" || demo.Done.Rows[0].Lead != "Quyền truy cập AWS" ||
+		demo.Done.Rows[0].Text != " qua vai trò CloudFormation `ReputeCastSES`, tài khoản 123456789012, khu vực us-east-1 (gửi chính thức, 50.000 mỗi ngày, 14 mỗi giây)" ||
+		demo.Done.Rows[3].Text != " news.acme.io: DKIM (3 CNAME), MAIL FROM bounce.news.acme.io, SPF và DMARC p=quarantine, đã xác minh tất cả" {
+		t.Fatalf("done: %+v", demo.Done)
+	}
+	var test struct {
+		Subject  string
+		Timeline []struct{ Title, Detail string }
+	}
+	vi.Do("GET", ws+"/connect/setups/"+list.Items[0].ID+"/test", nil).MustStatus(t, 200).JSON(t, &test)
+	if test.Timeline[0].Title != "ReputeCast đã xếp vào hàng đợi" || test.Timeline[2].Title != "Đã gửi đến Gmail" ||
+		!strings.HasSuffix(test.Timeline[2].Detail, `sự kiện "Send" của SES qua SNS · 636 ms sau khi được nhận`) {
+		t.Fatalf("timeline: %+v", test.Timeline)
+	}
+
+	// Settings › Providers.
+	var page struct {
+		Providers []struct{ StatusLabel, Streams, IdentityLabel, ConnectedVia string }
+	}
+	vi.Do("GET", ws+"/settings/providers", nil).MustStatus(t, 200).JSON(t, &page)
+	if p := page.Providers; p[0].IdentityLabel != "Khu vực · tài khoản" || p[0].ConnectedVia != "Vai trò CloudFormation" || !strings.HasPrefix(p[0].Streams, "Gửi hàng loạt 90% · Tự động hóa") ||
+		p[2].StatusLabel != "Đang khởi động · ngày 9" {
+		t.Fatalf("settings: %+v", page.Providers)
+	}
+	vi.Do("PUT", ws+"/settings/providers", map[string]any{"bounce": 1.5, "complaint": 0.08, "mailboxComplaint": 0.1, "providerError": 5, "pauseScope": "route",
+		"confirmOver": 10000, "throttles": map[string]float64{"hotmail": 1}, "suppressionSync": "1h"}).MustStatus(t, 422).JSON(t, &problem)
+	if problem.Detail != "Giới hạn tốc độ được đặt cho gmail, outlook, yahoo và icloud." {
+		t.Errorf("throttles: %q", problem.Detail)
+	}
+}

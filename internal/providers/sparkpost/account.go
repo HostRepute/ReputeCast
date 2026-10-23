@@ -14,6 +14,7 @@ import (
 
 	"golang.org/x/net/publicsuffix"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/apiclient"
 )
@@ -79,10 +80,10 @@ func (p *Provider) Quota(ctx context.Context) (providers.Quota, error) {
 	if err != nil {
 		return providers.Quota{}, classify(err)
 	}
-	q := providers.Quota{Account: "Account " + strings.Trim(string(a.CustomerID), `"`) + " · " + cmp.Or(a.Status, "active")}
-	if a.Subscription.Name != "" {
-		q.Account += " · " + a.Subscription.Name
-	}
+	// "Account 1234 · active · Premier"
+	var q providers.Quota
+	q.Account, q.AccountText = say(mAccount, i18n.Args{"id": strings.Trim(string(a.CustomerID), `"`), "status": cmp.Or(a.Status, "active"),
+		"hasPlan": map[bool]string{true: "yes", false: "no"}[a.Subscription.Name != ""], "plan": a.Subscription.Name})
 	if u := a.Usage; u != nil {
 		switch {
 		case u.Month.Limit > 0:
@@ -328,7 +329,9 @@ func (p *Provider) SendTestEvent(ctx context.Context, hookURL string) error {
 		return err
 	}
 	if hook == nil {
-		return &providers.CallError{Op: "POST /api/v1/webhooks/{id}/validate", Code: "not_registered", Message: "No SparkPost webhook points at " + hookURL + ". Register it first."}
+		ce := &providers.CallError{Op: "POST /api/v1/webhooks/{id}/validate", Code: "not_registered"}
+		ce.Message, ce.Text = say(mNotRegistered, i18n.Args{"url": hookURL})
+		return ce
 	}
 	var out struct {
 		Results struct {
@@ -343,7 +346,9 @@ func (p *Provider) SendTestEvent(ctx context.Context, hookURL string) error {
 		return classify(err)
 	}
 	if s := out.Results.Response.Status; s != 0 && s != http.StatusOK {
-		return &providers.CallError{Op: "POST /api/v1/webhooks/{id}/validate", Status: s, Message: "the endpoint answered " + strconv.Itoa(s) + " to SparkPost's test batch"}
+		ce := &providers.CallError{Op: "POST /api/v1/webhooks/{id}/validate", Status: s}
+		ce.Message, ce.Text = say(mEndpointStatus, i18n.Args{"status": strconv.Itoa(s)})
+		return ce
 	}
 	return nil
 }
@@ -436,14 +441,15 @@ func (p *Provider) Tracking(ctx context.Context) (providers.Tracking, error) {
 	if err != nil {
 		return providers.Tracking{}, classify(err)
 	}
-	t := providers.Tracking{Scope: "Every transmission ReputeCast sends"}
+	t := providers.Tracking{}
+	t.Scope, t.ScopeText = say(mTrackingScope, nil)
 	opens := a.Options.RestTrackingDefault == nil || *a.Options.RestTrackingDefault
 	clicks := opens && (a.Options.ClickTracking == nil || *a.Options.ClickTracking)
 	switch {
 	case opens || clicks:
-		t.Detail = "The account tracks opens and clicks by default, but ReputeCast turns tracking off on every transmission it sends."
+		t.Detail, t.DetailText = say(mTrackingOn, nil)
 	default:
-		t.Detail = "Open and click tracking are off by default and on every transmission ReputeCast sends."
+		t.Detail, t.DetailText = say(mTrackingOff, nil)
 	}
 	return t, nil
 }

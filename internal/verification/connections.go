@@ -146,14 +146,14 @@ type VerificationOverview struct {
 	VerifyHelpers []string `json:"verifyHelpers"`
 }
 
-func view(d adapter.Descriptor) VerificationServiceView {
+func view(l i18n.Lang, d adapter.Descriptor) VerificationServiceView {
 	v := VerificationServiceView{
 		Key: d.Key, Name: d.Name, Initials: d.Initials, Website: d.Website, KeyHelp: d.KeyHelp,
 		Capabilities: VerificationCapabilities(d.Capabilities), Regions: []VerificationRegion{}, Mappings: []VerificationMapping{},
-		Status: "not_connected", RegionLabel: d.DefaultRegion,
+		Status: "not_connected", RegionLabel: regionName(l, d.DefaultRegion),
 	}
 	for _, r := range d.Regions {
-		v.Regions = append(v.Regions, VerificationRegion(r))
+		v.Regions = append(v.Regions, VerificationRegion{Key: r.Key, Label: regionName(l, r.Label)})
 	}
 	for _, m := range d.Mappings {
 		row := VerificationMapping{Codes: m.Codes, Result: string(m.Result), Reason: m.Reason}
@@ -194,6 +194,7 @@ func Helpers(ctx context.Context, q *store.Queries, wsID uuid.UUID, perm authz.P
 
 // Overview lists the catalog with the workspace's connections and uses.
 func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (VerificationOverview, error) {
+	l := i18n.LangFrom(ctx)
 	p := api.PrincipalFrom(ctx)
 	out := VerificationOverview{Services: []VerificationServiceView{}, Uses: []VerificationUse{},
 		CanManage: p.Can(authz.IntegrationsManage), CanVerify: p.Can(authz.SubscribersVerify),
@@ -219,9 +220,9 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (Verificati
 		}
 	}
 	for _, d := range adapter.Catalog() {
-		v := view(d)
+		v := view(l, d)
 		if r, ok := by[d.Key]; ok {
-			s.fill(&v, r)
+			s.fill(l, &v, r)
 			for _, jr := range jobs {
 				j := jr.VerificationJob
 				if j.Service != d.Key || j.CreatedAt.Before(since) {
@@ -233,7 +234,7 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (Verificati
 				if j.Status == "stopped" && j.StopReason == "no_credits" {
 					left := int64(j.Total - j.Checked)
 					if v.Balance != nil && *v.Balance < left && int64(j.Total) > v.Needed {
-						v.Needed, v.NeededLabel = int64(j.Total), j.Label
+						v.Needed, v.NeededLabel = int64(j.Total), labelIn(l, j.Kind, j.Label, jobTiers(j))
 					}
 				}
 				if j.Status == "paused" && v.PausedJob == "" {
@@ -258,28 +259,28 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (Verificati
 		out.Services = append(out.Services, v)
 	}
 	for _, j := range jobs {
-		out.Uses = append(out.Uses, useOf(j.VerificationJob, j.StartedByName))
+		out.Uses = append(out.Uses, useOf(l, j.VerificationJob, j.StartedByName))
 	}
 	slices.SortStableFunc(out.Uses, func(a, b VerificationUse) int { return b.At.Compare(a.At) })
 	return out, nil
 }
 
-func (s *Service) fill(v *VerificationServiceView, row store.VerifServiceListRow) {
+func (s *Service) fill(l i18n.Lang, v *VerificationServiceView, row store.VerifServiceListRow) {
 	r := row.VerificationService
 	v.Connected = true
 	v.Status = "connected"
 	if r.Region != "" {
 		v.Region = r.Region
-		v.RegionLabel = RegionLabel(r.Service, r.Region)
+		v.RegionLabel = regionIn(l, r.Service, r.Region)
 	}
 	v.Price = Money(r.PriceMicros).Dollars()
 	v.PriceBy = row.UpdatedByName
 	v.DefaultBulk, v.DefaultForms = r.DefaultBulk, r.DefaultForms
 	v.Balance, v.BalanceAt = r.Balance, r.BalanceAt
 	v.ConnectedBy, v.ConnectedAt = row.ConnectedByName, &r.ConnectedAt
-	v.LastUsedAt, v.LastUsedBy, v.LastUsedWhat = r.LastUsedAt, row.LastUsedByName, r.LastUsedWhat
+	v.LastUsedAt, v.LastUsedBy, v.LastUsedWhat = r.LastUsedAt, row.LastUsedByName, whatIn(l, r.LastUsedWhat)
 	v.LastError, v.LastErrorAt, v.LastErrorSince = r.LastError, r.LastErrorAt, r.LastErrorSince
-	v.LastSuccessAt, v.LastSuccessWhat = r.LastSuccessAt, r.LastSuccessWhat
+	v.LastSuccessAt, v.LastSuccessWhat = r.LastSuccessAt, whatIn(l, r.LastSuccessWhat)
 	v.TestedAt, v.TestOK = r.TestedAt, r.TestOk
 	// Down while the last error is newer than the last answer.
 	if r.LastErrorSince != nil && r.LastErrorAt != nil && (r.LastSuccessAt == nil || r.LastSuccessAt.Before(*r.LastErrorAt)) {
@@ -288,9 +289,9 @@ func (s *Service) fill(v *VerificationServiceView, row store.VerifServiceListRow
 	}
 }
 
-func useOf(j store.VerificationJob, by string) VerificationUse {
+func useOf(l i18n.Lang, j store.VerificationJob, by string) VerificationUse {
 	u := VerificationUse{ID: j.ID.String(), Kind: j.Kind, Service: j.Service, ServiceName: ServiceName(j.Service), At: j.CreatedAt, By: by,
-		Label: j.Label, Status: j.Status, Addresses: int64(j.Total), Valid: int64(j.Valid), Invalid: int64(j.Invalid), Risky: int64(j.Risky),
+		Label: labelIn(l, j.Kind, j.Label, jobTiers(j)), Status: j.Status, Addresses: int64(j.Total), Valid: int64(j.Valid), Invalid: int64(j.Invalid), Risky: int64(j.Risky),
 		Unknown: int64(j.Unknown), Suppressed: int64(j.Suppressed), FinishedAt: j.FinishedAt, Forms: []VerificationFormCount{}}
 	n := int64(j.Checked)
 	if j.Status == "finished" && n < u.Addresses {
@@ -621,12 +622,12 @@ func (s *Service) checkLow(ctx context.Context, ws *store.Workspace, id uuid.UUI
 		return
 	}
 	var needed int64
-	label := ""
+	var waiting *store.VerificationJob
 	jobs, _ := s.Q.VerifJobList(ctx, store.VerifJobListParams{WorkspaceID: ws.ID, Since: s.now().Add(-30 * 24 * time.Hour), Lim: 50})
 	for _, jr := range jobs {
 		j := jr.VerificationJob
 		if j.Service == v.Service && j.Status == "stopped" && j.StopReason == "no_credits" {
-			needed, label = int64(j.Total), j.Label
+			needed, waiting = int64(j.Total), &j
 			break
 		}
 	}
@@ -636,7 +637,7 @@ func (s *Service) checkLow(ctx context.Context, ws *store.Workspace, id uuid.UUI
 		now := s.now()
 		_ = s.Q.VerifServiceLowNotified(ctx, store.VerifServiceLowNotifiedParams{ID: v.ID, At: &now})
 		if s.Notify != nil {
-			s.Notify.CreditsLow(ctx, ws, v, needed, label)
+			s.Notify.CreditsLow(ctx, ws, v, needed, waiting)
 		}
 	case !low && v.LowNotifiedAt != nil:
 		_ = s.Q.VerifServiceLowNotified(ctx, store.VerifServiceLowNotifiedParams{ID: v.ID})

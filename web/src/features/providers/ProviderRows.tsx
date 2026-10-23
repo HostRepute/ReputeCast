@@ -84,8 +84,15 @@ function ipsText(card: ProviderCard) {
   )
 }
 
+/** A webhook's kind in the reader's words: "Registered" and "Bounce mailbox" are words, SNS and Event Grid product names. */
+function webhookKind(kind: string): string {
+  if (kind === 'Registered') return tt(mo.webhookRegistered)
+  if (kind === 'Bounce mailbox') return tt(mo.webhookBounceMailbox)
+  return kind
+}
+
 function webhookText(card: ProviderCard, withKind = true) {
-  const kind = withKind ? card.webhook.kind : ''
+  const kind = withKind ? webhookKind(card.webhook.kind) : ''
   return tt(mo.webhookLine, {
     hasKind: kind ? 'yes' : 'no',
     kind,
@@ -467,7 +474,7 @@ function Freshness({ silent }: { silent: Schemas['ProviderWebhooksSilent'] }) {
 /** Healthy providers condensed to one line while another provider is degraded. */
 export function CompactRow({ card, silent, last }: { card: ProviderCard; silent: Schemas['ProviderWebhooksSilent']; last?: boolean }) {
   const t = useT()
-  const kind = card.webhook.kind && card.webhook.kind !== 'Registered' ? card.webhook.kind : ''
+  const kind = card.webhook.kind && card.webhook.kind !== 'Registered' ? webhookKind(card.webhook.kind) : ''
   const q = card.quota
   const takesBroadcast = silent.broadcastShareHeld && card.roles.some((r) => r.stream === 'broadcast' && r.role !== 'fallback')
   return (

@@ -6,9 +6,11 @@ import { Icon } from '@/components/icons/Icon'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { Loading, Skeleton } from '@/components/ui/Feedback'
+import { Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
-import { clock, dayMonthDate, orList, shortDate, weekdayDate } from '@/lib/format'
+import { clock, count, dayMonthDate, orList, shortDate, weekdayDate } from '@/lib/format'
+import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import { ConnectDialog, DisconnectDialog, ReplaceKeyDialog } from './ServiceDialogs'
@@ -33,6 +35,9 @@ import {
 } from './shared'
 
 export type ServicesSearch = { service?: ServiceKey; connect?: boolean }
+
+/** Members with integrations:manage are told when a balance falls under it. */
+const LOW_CREDITS = 1000
 
 /** Settings › Integrations › Verification services. */
 export function ServicesPage({ search }: { search: ServicesSearch }) {
@@ -105,7 +110,7 @@ function Services({ o, search }: { o: Overview; search: ServicesSearch }) {
         <div className="note n" role="note">
           <Icon name="info" size={16} className="mt-px flex-none text-ink-3" />
           <div className="flex min-w-0 flex-col gap-1">
-            <b className="font-bold">{t(m.readOnlyTitle, { name: me?.user.name ?? '', role: ws.workspace.roleName })}</b>
+            <b className="font-bold">{t(m.readOnlyTitle, { name: me?.user.name ?? '', role: roleName({ key: ws.workspace.roleKey, name: ws.workspace.roleName }) })}</b>
             <span>
               <T msg={o.manageHelpers.length ? m.readOnly : m.readOnlyNobody} values={{ helpers: orList(o.manageHelpers), code: (c) => <span className="mono">{c}</span> }} />
             </span>
@@ -300,10 +305,10 @@ function Stats({ v, canManage }: { v: ServiceView; canManage: boolean }) {
     <div className="ih-stats">
       <Stat
         label={t(m.statBalance)}
-        value={v.balance != null ? v.balance.toLocaleString('en-US') : '—'}
+        value={count(v.balance)}
         sub={v.balanceAt ? t(m.statBalanceSub, { when: when(v.balanceAt) }) : t(m.hBalanceNone, { name: v.name })}
       />
-      <Stat label={t(m.statChecks)} value={v.checks30d.toLocaleString('en-US')} sub={t(m.statChecksSub, { count: v.bulkUses30d })} />
+      <Stat label={t(m.statChecks)} value={count(v.checks30d)} sub={t(m.statChecksSub, { count: v.bulkUses30d })} />
       {canManage ? <Stat label={t(m.statSpent)} value={money(v.spent30d)} sub={t(m.statSpentSub, { price: money(v.price, true) })} /> : null}
       <Stat
         label={t(m.statLastUsed)}
@@ -325,9 +330,9 @@ function RealtimeCard({ v, rt }: { v: ServiceView; rt: NonNullable<ReturnType<ty
   return (
     <>
       <div className="ih-stats">
-        <Stat label={t(m.statRealtime)} value={rt.checks.toLocaleString('en-US')} sub={t(m.statRealtimeSub, { date: since })} />
+        <Stat label={t(m.statRealtime)} value={count(rt.checks)} sub={t(m.statRealtimeSub, { date: since })} />
         <Stat label={t(m.statSpentRealtime)} value={money(rt.spent)} sub={t(m.statSpentSub, { price: money(v.price, true) })} />
-        <Stat label={t(m.statAskedToFix)} value={rt.askedToFix.toLocaleString('en-US')} sub={t(m.statAskedToFixSub)} />
+        <Stat label={t(m.statAskedToFix)} value={count(rt.askedToFix)} sub={t(m.statAskedToFixSub)} />
       </div>
       {counts.length > 1 && from && to ? (
         <div className="row gap-3! text-[13px]">
@@ -341,25 +346,25 @@ function RealtimeCard({ v, rt }: { v: ServiceView; rt: NonNullable<ReturnType<ty
           <table className="tbl" aria-label={t(m.formsTableLabel)}>
             <thead>
               <tr>
-                <th scope="col">{t(m.colForm)}</th>
-                <th scope="col" className="r">
+                <Th>{t(m.colForm)}</Th>
+                <Th align="right">
                   {t(m.colChecks)}
-                </th>
-                <th scope="col" className="r">
+                </Th>
+                <Th align="right">
                   {t(m.colValid)}
-                </th>
-                <th scope="col" className="r">
+                </Th>
+                <Th align="right">
                   {t(m.colInvalidFix)}
-                </th>
-                <th scope="col" className="r">
+                </Th>
+                <Th align="right">
                   {t(m.colRisky)}
-                </th>
-                <th scope="col" className="r">
+                </Th>
+                <Th align="right">
                   {t(m.colUnknown)}
-                </th>
-                <th scope="col" className="r">
+                </Th>
+                <Th align="right">
                   {t(m.colNoAnswer)}
-                </th>
+                </Th>
               </tr>
             </thead>
             <tbody>
@@ -368,12 +373,12 @@ function RealtimeCard({ v, rt }: { v: ServiceView; rt: NonNullable<ReturnType<ty
                 return (
                   <tr key={f.formKey || 'total'}>
                     <td className="font-semibold">{total ? t(m.totalSince, { date: since }) : f.name}</td>
-                    <td className={total ? 'r font-semibold' : 'r'}>{f.checks.toLocaleString('en-US')}</td>
-                    <td className="r">{f.valid.toLocaleString('en-US')}</td>
-                    <td className="r">{f.invalid.toLocaleString('en-US')}</td>
-                    <td className="r">{f.risky.toLocaleString('en-US')}</td>
-                    <td className="r">{f.unknown.toLocaleString('en-US')}</td>
-                    <td className="r">{!total && f.noAnswer ? t(m.noAnswerLater, { count: f.noAnswer }) : f.noAnswer.toLocaleString('en-US')}</td>
+                    <td className={total ? 'r font-semibold' : 'r'}>{count(f.checks)}</td>
+                    <td className="r">{count(f.valid)}</td>
+                    <td className="r">{count(f.invalid)}</td>
+                    <td className="r">{count(f.risky)}</td>
+                    <td className="r">{count(f.unknown)}</td>
+                    <td className="r">{!total && f.noAnswer ? t(m.noAnswerLater, { count: f.noAnswer }) : count(f.noAnswer)}</td>
                   </tr>
                 )
               })}
@@ -412,7 +417,7 @@ function LowCredits({ v, onTest }: { v: ServiceView; onTest: () => void }) {
         <div className="flex min-w-0 flex-col gap-1">
           <b className="font-bold">{t(m.lowCreditsTitle)}</b>
           <span>
-            {v.needed && v.neededLabel ? t(m.lowCreditsBody, { balance: v.balance ?? 0, label: v.neededLabel, needed: v.needed }) : t(m.lowCreditsBodyPlain, { balance: v.balance ?? 0 })}
+            {v.needed && v.neededLabel ? t(m.lowCreditsBody, { balance: v.balance ?? 0, label: v.neededLabel, needed: v.needed }) : t(m.lowCreditsBodyPlain, { balance: v.balance ?? 0, limit: LOW_CREDITS })}
           </span>
           <div className="mt-1.5 flex flex-wrap gap-2">
             <ButtonAnchor size="sm" href={v.website} iconRight="external">
@@ -426,7 +431,7 @@ function LowCredits({ v, onTest }: { v: ServiceView; onTest: () => void }) {
         </div>
       </div>
       <span className="k">
-        <T msg={m.lowCreditsFoot} values={{ code: (c) => <span className="mono">{c}</span> }} />
+        <T msg={m.lowCreditsFoot} values={{ limit: LOW_CREDITS, code: (c) => <span className="mono">{c}</span> }} />
       </span>
     </section>
   )
@@ -671,9 +676,9 @@ function MapCard({ v }: { v: ServiceView }) {
         <table className="tbl" aria-label={t(m.mapTableLabel, { name: v.name })}>
           <thead>
             <tr>
-              <th scope="col">{t(m.mapAnswers, { name: v.name })}</th>
-              <th scope="col">{t(m.mapBecomes)}</th>
-              <th scope="col">{t(m.mapWhat)}</th>
+              <Th>{t(m.mapAnswers, { name: v.name })}</Th>
+              <Th>{t(m.mapBecomes)}</Th>
+              <Th>{t(m.mapWhat)}</Th>
             </tr>
           </thead>
           <tbody>
@@ -744,20 +749,20 @@ function UsesCard({ v, uses, canManage }: { v: ServiceView; uses: Use[]; canMana
           <table className="tbl" aria-label={t(m.usesTableLabel, { name: v.name })}>
             <thead>
               <tr>
-                <th scope="col">{t(m.colWhen)}</th>
-                <th scope="col">{t(m.colWho)}</th>
-                <th scope="col">{t(m.colWhat)}</th>
-                <th scope="col" className="r">
+                <Th>{t(m.colWhen)}</Th>
+                <Th>{t(m.colWho)}</Th>
+                <Th>{t(m.colWhat)}</Th>
+                <Th align="right">
                   {t(m.colAddresses)}
-                </th>
-                <th scope="col" className="r">
+                </Th>
+                <Th align="right">
                   {t(m.colCost)}
-                </th>
-                <th scope="col">{t(m.colResults)}</th>
+                </Th>
+                <Th>{t(m.colResults)}</Th>
                 {canManage ? (
-                  <th scope="col">
+                  <Th>
                     <span className="vh">{t(m.job)}</span>
-                  </th>
+                  </Th>
                 ) : null}
               </tr>
             </thead>
@@ -772,7 +777,7 @@ function UsesCard({ v, uses, canManage }: { v: ServiceView; uses: Use[]; canMana
                     </span>
                   </td>
                   <td>{whatOf(u, t)}</td>
-                  <td className="r">{u.addresses.toLocaleString('en-US')}</td>
+                  <td className="r">{count(u.addresses)}</td>
                   <td className="r">{money(u.cost)}</td>
                   <td>{u.status === 'finished' ? resultsLine(u) : t(m.usesRunning, { status: u.status })}</td>
                   {canManage ? (

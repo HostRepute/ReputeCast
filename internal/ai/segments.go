@@ -267,7 +267,7 @@ func (s *Service) DraftSegment(ctx context.Context, ws *store.Workspace, p *auth
 	if desc == "" {
 		return AISegmentDraft{}, invalid(ctx, "body.description", mDescriptionNeeded, nil)
 	}
-	label := "New segment"
+	label := newSegmentLabel
 	var target *uuid.UUID
 	if id, err := uuid.Parse(in.SegmentID); err == nil {
 		if name, err := s.Q.AISegmentName(ctx, store.AISegmentNameParams{ID: id, WorkspaceID: ws.ID}); err == nil {

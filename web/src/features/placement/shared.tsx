@@ -112,6 +112,22 @@ export function dayTime(d: string): string {
   return `${shortDate(d)}, ${clock(d)}`
 }
 
+/**
+ * A mailbox provider's password, named in the app's language: "App
+ * password", "App-specific password". The API names it in English.
+ */
+export function credentialName(label: string): string {
+  switch (label) {
+    case 'App password':
+      return tr(m.credentialAppPassword)
+    case 'App-specific password':
+      return tr(m.credentialAppSpecific)
+    case 'Password':
+      return tr(m.credentialPassword)
+  }
+  return label
+}
+
 /** A copy's time to arrive: "9 s", "2 min 10 s", "34 min 5 s". */
 export function arrive(ms: number | null | undefined): string {
   if (ms == null) return '–'
@@ -127,6 +143,11 @@ export function elapsed(from: string, now = Date.now()): string {
   return arrive(Math.max(0, now - new Date(from).getTime()))
 }
 
+/** A folder and its count in one piece ("Thư rác 2"): a wrapping line breaks between folders, never inside one. */
+function glue(text: string): string {
+  return text.replace(/ /g, ' ')
+}
+
 /**
  * A provider's results in a line: "Inbox 8 · Tab 2", "Spam 9 · Promotions
  * tab 1", "Inbox 9 · iCloud not checked (sign-in failed)". The largest
@@ -134,7 +155,7 @@ export function elapsed(from: string, now = Date.now()): string {
  */
 export function resultLine(c: Counts): string {
   const parts: { n: number; text: string; order: number }[] = []
-  const add = (n: number, text: string, order: number) => n > 0 && parts.push({ n, text, order })
+  const add = (n: number, text: string, order: number) => n > 0 && parts.push({ n, text: glue(text), order })
   add(c.inbox, tr(m.resInbox, { n: c.inbox }), 0)
   add(c.tab, c.inbox === 0 && c.tabs.length === 1 ? tr(m.resNamedTab, { tab: c.tabs[0]!, n: c.tab }) : tr(m.resTab, { n: c.tab }), 1)
   add(c.spam, tr(m.resSpam, { n: c.spam }), 2)
@@ -152,10 +173,10 @@ export function resultLine(c: Counts): string {
 /** Every folder with copies, in a fixed order: "Inbox 8 · Tab 2". */
 export function plainLine(c: Counts): string {
   const out: string[] = []
-  if (c.inbox) out.push(tr(m.resInbox, { n: c.inbox }))
-  if (c.tab) out.push(tr(m.resTab, { n: c.tab }))
-  if (c.spam) out.push(tr(m.resSpam, { n: c.spam }))
-  if (c.notArrived) out.push(tr(m.resNotArrived, { n: c.notArrived }))
+  if (c.inbox) out.push(glue(tr(m.resInbox, { n: c.inbox })))
+  if (c.tab) out.push(glue(tr(m.resTab, { n: c.tab })))
+  if (c.spam) out.push(glue(tr(m.resSpam, { n: c.spam })))
+  if (c.notArrived) out.push(glue(tr(m.resNotArrived, { n: c.notArrived })))
   return out.length ? out.join(' · ') : tr(m.resNothing)
 }
 
@@ -349,7 +370,7 @@ export function SeedAttention({ seeds, onReconnect }: { seeds: SeedView[]; onRec
             msg={expired ? m.attentionExpiredBody : m.attentionFailedBody}
             values={{
               company: first.company,
-              password: first.passwordLabel.toLowerCase(),
+              password: credentialName(first.passwordLabel).toLowerCase(),
               email: first.email,
               date: shortDate(at),
               time: clock(at),

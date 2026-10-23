@@ -273,6 +273,8 @@ export const m = defineMessages('digests', {
   from: 'From',
   route: 'Route',
   routeValue: '{stream} · {shares}',
+  /** The stream a digest's issues go through, as routeValue's {stream}. */
+  streamBroadcasts: 'Broadcasts',
   sending: 'Sending',
   sendingAuto: 'Send automatically',
   sendingDraft: 'Create a draft',
@@ -322,6 +324,7 @@ export const m = defineMessages('digests', {
   chartTitle: 'Human opens by issue',
   chartSub: 'The last sent issues, one bar each',
   chartBar: '#{number} · {date}',
+  chartBarLabel: '#{number} · <d>{date}</d>',
   chartClicks: '{value} clicks',
   chartNotSent: 'not sent yet',
   chartCollecting: 'collecting',

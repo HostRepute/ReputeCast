@@ -1,0 +1,28 @@
+{
+  "pricing": { "message": "your server or relay", "note": "the pricing model of an SMTP server, on a capability chip: Pricing · your server or relay" },
+  "terms.0.note": { "message": "Your SMTP server or relay's acceptable-use policy applies.", "note": "what the terms allow, on Routing" },
+  "events": { "message": "Bounce mailbox (IMAP/POP3)", "note": "Sending providers › Adapters: how bounces come back" },
+  "domainSetup": { "message": "Manual DNS", "note": "Sending providers › Adapters: the domain's DNS records are added by hand" },
+  "suppressionMode": { "message": "Local only", "note": "Sending providers › Adapters: suppressions are kept in ReputeCast only" },
+  "field.host.label": "SMTP host",
+  "field.port.label": "Port",
+  "field.tls.label": "Encryption",
+  "field.username.label": "User name",
+  "field.password.label": "Password",
+  "field.return_path.label": "Bounce address",
+  "field.return_path.help": "The envelope sender; bounces go here, so point it at the bounce mailbox.",
+  "field.bounce_mailbox.label": "Bounce mailbox (IMAP or POP3)",
+  "field.bounce_mailbox.help": "SMTP has no webhooks. ReputeCast reads bounces and complaints from this mailbox every minute.",
+  "field.bounce_password.label": "Bounce mailbox password",
+
+  "account": { "message": "{host} · accepting mail", "note": "the server's standing on the provider card; host: smtp.acme.io" },
+  "test.summary": { "message": "{tls, select, starttls {STARTTLS, {version}} implicit {Implicit TLS, {version}} other {No TLS}} · {auth, select, none {no authentication} other {AUTH {mechanism} accepted}}", "note": "what the connection test found: STARTTLS, TLS 1.3 · AUTH PLAIN accepted; version: TLS 1.3; mechanism: PLAIN or LOGIN" },
+  "test.noHost": "Enter the SMTP host.",
+  "test.noStartTLS": { "message": "{host} doesn't offer STARTTLS on port {port}. Use implicit TLS on 465, or turn encryption off only on a private network.", "note": "port: 587" },
+  "test.noLoginMethod": { "message": "{host} doesn't offer a login method ReputeCast supports (offered: {offered}).", "note": "offered: the server's AUTH methods, CRAM-MD5 XOAUTH2" },
+  "test.refused": { "message": "ECONNREFUSED · nothing listens on that port", "note": "ECONNREFUSED is the error's name people search for" },
+  "test.notFound": { "message": "ENOTFOUND · the host name doesn't resolve", "note": "ENOTFOUND is the error's name people search for" },
+  "test.timedOut": { "message": "ETIMEDOUT · no answer within 15 s (a firewall may block the port)", "note": "ETIMEDOUT is the error's name people search for" },
+  "mailbox.rejected": "The mailbox rejected the user name or password.",
+  "mailbox.missing": "no bounce mailbox is set up yet: enter its server and login"
+}

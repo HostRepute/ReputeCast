@@ -77,7 +77,9 @@ func (p *Provider) token(ctx context.Context) (string, error) {
 		ExpiresIn   int64  `json:"expires_in"`
 	}
 	if err := json.Unmarshal(res.Body, &out); err != nil || out.AccessToken == "" {
-		return "", &providers.CallError{Op: "POST /oauth2/v2.0/token", Status: res.Status, Temporary: true, Message: "Entra ID returned no access token"}
+		ce := &providers.CallError{Op: "POST /oauth2/v2.0/token", Status: res.Status, Temporary: true}
+		ce.Message, ce.Text = say(mNoToken, nil)
+		return "", ce
 	}
 	e.token, e.expires = out.AccessToken, time.Now().Add(time.Duration(out.ExpiresIn)*time.Second)
 	return e.token, nil

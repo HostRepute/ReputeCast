@@ -1,0 +1,21 @@
+{
+  "pricing": "theo gói, do hợp đồng SparkPost của bạn quy định",
+  "dedicatedIps": "các gói trả phí trên Starter, tính theo IP mỗi tháng",
+  "terms.0.note": "Chỉ danh sách đã được cho phép, có liên kết hủy đăng ký hoạt động; không dùng danh sách mua hay thuê. Dành cho tài khoản SparkPost hiện có; tài khoản Bird mới dùng Bird Email, một API khác.",
+  "events": "Webhook",
+  "domainSetup": "API",
+  "suppressionMode": "Hai chiều",
+  "field.api_key.label": "Khóa API",
+  "field.api_key.help": "SparkPost › Configuration › API Keys, với các quyền Transmissions, Webhooks, Sending Domains, Suppression Lists, Account, Metrics và Message Events.",
+  "field.region.label": "Khu vực",
+  "field.region.help": "Tài khoản US (app.sparkpost.com) hoặc EU (app.eu.sparkpost.com).",
+  "field.ip_pool.label": "Nhóm IP",
+  "field.ip_pool.help": "Không bắt buộc. Gửi qua nhóm IP riêng này.",
+
+  "account": "Tài khoản {id} · {status}{hasPlan, select, yes { · {plan}} other {}}",
+  "tracking.scope": "Mọi lượt gửi ReputeCast thực hiện",
+  "tracking.on": "Tài khoản mặc định theo dõi lượt mở và lượt nhấp, nhưng ReputeCast tắt theo dõi trên mọi lượt gửi mà ReputeCast thực hiện.",
+  "tracking.off": "Theo dõi lượt mở và lượt nhấp mặc định đang tắt, và tắt trên mọi lượt gửi ReputeCast thực hiện.",
+  "error.notRegistered": "Không có webhook SparkPost nào trỏ đến {url}. Hãy đăng ký webhook trước.",
+  "error.endpointStatus": "endpoint đã trả về {status} cho lô thử của SparkPost"
+}

@@ -1,0 +1,14 @@
+{
+  "pricing": "theo gói, miễn phí 300 email mỗi ngày, sau đó từ 9 US$ mỗi tháng cho 5.000 email",
+  "dedicatedIps": "các gói Professional và Enterprise, dịch vụ bổ sung",
+  "terms.0.note": "Chỉ người nhận đã chủ động đồng ý rõ ràng và chứng minh được; không dùng danh sách mua hay thu thập tự động. Brevo tự thêm header hủy đăng ký của mình, và các lượt hủy đăng ký ở Brevo đi vào danh sách dùng chung qua webhook.",
+  "events": "Webhook",
+  "domainSetup": "API",
+  "suppressionMode": "Chỉ kéo về",
+  "field.api_key.label": "Khóa API",
+  "field.api_key.help": "Brevo › SMTP & API › API keys. Bắt đầu bằng xkeysib-.",
+  "field.monthly_limit.label": "Gói · số email mỗi tháng",
+  "field.monthly_limit.help": "Dùng cho thanh hạn mức khi gói là hạn mức hằng tháng.",
+
+  "account": "{company, select, none {Tài khoản Brevo} other {{name}}}{plan, select, free { · gói miễn phí · còn {n} email{today, select, yes { hôm nay} other {}}} subscription { · thuê bao · còn {n} email} credits { · còn {n} tín dụng trả trước} other {}}"
+}

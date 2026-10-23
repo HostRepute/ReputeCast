@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/smtp/bouncebox"
 	"github.com/hostrepute/reputecast/internal/providers/smtp/dsn"
@@ -75,7 +76,9 @@ func lines(b []byte) []string {
 func (p *Provider) TestConnection(ctx context.Context) (providers.ConnectionReport, error) {
 	out := providers.ConnectionReport{Transcript: []string{}}
 	if strings.TrimSpace(p.s.Host) == "" {
-		return out, &providers.CallError{Op: "SMTP connect", Message: "Enter the SMTP host."}
+		ce := &providers.CallError{Op: "SMTP connect"}
+		ce.Message, ce.Text = say(mNoHost, nil)
+		return out, ce
 	}
 	addr := net.JoinHostPort(p.s.Host, strconv.Itoa(p.s.Port))
 	deadline := time.Now().Add(30 * time.Second)
@@ -90,7 +93,9 @@ func (p *Provider) TestConnection(ctx context.Context) (providers.ConnectionRepo
 		raw, err = (&net.Dialer{Timeout: 15 * time.Second}).DialContext(ctx, "tcp", addr)
 	}
 	if err != nil {
-		return out, &providers.CallError{Op: "SMTP connect", Message: dialMessage(err), Temporary: true, Cause: err}
+		ce := &providers.CallError{Op: "SMTP connect", Temporary: true, Cause: err}
+		ce.Message, ce.Text = dialMessage(err)
+		return out, ce
 	}
 	defer func() { _ = raw.Close() }()
 	_ = raw.SetDeadline(deadline)
@@ -134,28 +139,32 @@ func (p *Provider) TestConnection(ctx context.Context) (providers.ConnectionRepo
 	out.Transcript = append(out.Transcript, reply...)
 	rec.stop()
 
-	tlsWord := "No TLS"
+	// "STARTTLS, TLS 1.3 · AUTH PLAIN accepted"
+	summary := i18n.Args{"tls": "none", "auth": "none"}
 	switch p.s.TLS {
 	case "tls":
-		tlsWord = "Implicit TLS, " + tlsVersion(tlsState)
+		summary["tls"], summary["version"] = "implicit", tlsVersion(tlsState)
 	case "none":
 	default:
 		if !starttls {
-			return out, &providers.CallError{Op: "STARTTLS", Message: fmt.Sprintf("%s doesn't offer STARTTLS on port %d. Use implicit TLS on 465, or turn encryption off only on a private network.", p.s.Host, p.s.Port)}
+			ce := &providers.CallError{Op: "STARTTLS"}
+			ce.Message, ce.Text = say(mNoStartTLS, i18n.Args{"host": p.s.Host, "port": strconv.Itoa(p.s.Port)})
+			return out, ce
 		}
 		if err := c.StartTLS(tlsCfg); err != nil {
 			return out, &providers.CallError{Op: "STARTTLS", Message: err.Error(), Temporary: true, Cause: err}
 		}
 		st, _ := c.TLSConnectionState()
 		tlsState = &st
-		tlsWord = "STARTTLS, " + tlsVersion(tlsState)
+		summary["tls"], summary["version"] = "starttls", tlsVersion(tlsState)
 	}
-	authWord := "no authentication"
 	if p.s.Username != "" && p.s.Auth != "none" {
 		_, mechs := c.Extension("AUTH")
 		mech := pickMechanism(p.s.Auth, mechs)
 		if mech == "" {
-			return out, &providers.CallError{Op: "SMTP AUTH", Message: fmt.Sprintf("%s doesn't offer a login method ReputeCast supports (offered: %s).", p.s.Host, strings.TrimSpace(mechs))}
+			ce := &providers.CallError{Op: "SMTP AUTH"}
+			ce.Message, ce.Text = say(mNoLogin, i18n.Args{"host": p.s.Host, "offered": strings.TrimSpace(mechs)})
+			return out, ce
 		}
 		var a smtp.Auth = plainAuth{user: p.s.Username, pass: p.c.Password}
 		if mech == "LOGIN" {
@@ -164,11 +173,11 @@ func (p *Provider) TestConnection(ctx context.Context) (providers.ConnectionRepo
 		if err := c.Auth(a); err != nil {
 			return out, &providers.CallError{Op: "SMTP AUTH", Status: 535, Message: err.Error(), Auth: true, Cause: err}
 		}
-		authWord = "AUTH " + mech + " accepted"
+		summary["auth"], summary["mechanism"] = "accepted", mech
 		out.Auth = strings.ToLower(mech)
 	}
 	_ = c.Quit()
-	out.Summary = tlsWord + " · " + authWord
+	out.Summary, out.SummaryText = say(mSummary, summary)
 	return out, nil
 }
 
@@ -211,18 +220,19 @@ func pickMechanism(want, offered string) string {
 	return ""
 }
 
-// dialMessage turns a dial error into the words people search for.
-func dialMessage(err error) string {
+// dialMessage turns a dial error into the words people search for, with
+// the message they come from (none for an error it doesn't know).
+func dialMessage(err error) (string, i18n.Text) {
 	low := strings.ToLower(err.Error())
 	switch {
 	case strings.Contains(low, "connection refused"):
-		return "ECONNREFUSED · nothing listens on that port"
+		return say(mRefused, nil)
 	case strings.Contains(low, "no such host"):
-		return "ENOTFOUND · the host name doesn't resolve"
+		return say(mNotFound, nil)
 	case strings.Contains(low, "timeout") || strings.Contains(low, "deadline"):
-		return "ETIMEDOUT · no answer within 15 s (a firewall may block the port)"
+		return say(mTimedOut, nil)
 	}
-	return err.Error()
+	return err.Error(), i18n.Text{}
 }
 
 // plainAuth is AUTH PLAIN without net/smtp's TLS requirement: the person
@@ -264,7 +274,9 @@ func (a loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 func (p *Provider) TestBounceMailbox(ctx context.Context) (providers.MailboxReport, error) {
 	mb := p.s.BounceMailbox
 	if mb == nil || mb.Host == "" {
-		return providers.MailboxReport{}, errors.New("no bounce mailbox is set up yet: enter its server and login")
+		ce := &providers.CallError{Op: "bounce mailbox"}
+		ce.Message, ce.Text = say(mMailboxMissing, nil)
+		return providers.MailboxReport{}, ce
 	}
 	cfg := *mb
 	if cfg.Timeout == 0 {
@@ -277,9 +289,13 @@ func (p *Provider) TestBounceMailbox(ctx context.Context) (providers.MailboxRepo
 	box, err := bouncebox.Open(ctx, cfg)
 	if err != nil {
 		if errors.Is(err, bouncebox.ErrAuth) {
-			return rep, &providers.CallError{Op: cfg.Label() + " LOGIN", Message: "The mailbox rejected the user name or password.", Auth: true, Cause: err}
+			ce := &providers.CallError{Op: cfg.Label() + " LOGIN", Auth: true, Cause: err}
+			ce.Message, ce.Text = say(mMailboxAuth, nil)
+			return rep, ce
 		}
-		return rep, &providers.CallError{Op: cfg.Label() + " connect", Message: dialMessage(err), Temporary: true, Cause: err}
+		ce := &providers.CallError{Op: cfg.Label() + " connect", Temporary: true, Cause: err}
+		ce.Message, ce.Text = dialMessage(err)
+		return rep, ce
 	}
 	defer func() { _ = box.Close() }()
 	msgs, err := box.Fetch(ctx, 200)

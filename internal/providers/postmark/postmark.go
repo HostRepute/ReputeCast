@@ -18,6 +18,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/apiclient"
 	"github.com/hostrepute/reputecast/internal/providers/bounce"
@@ -74,31 +75,28 @@ func Descriptor() providers.Descriptor {
 			DomainAPI:       "full",
 			SuppressionSync: true,
 			BatchSize:       BatchSize,
-			DedicatedIPs:    "from 300k per month",
 			Sandbox:         "test token",
 			QuotaDiscovery:  true,
-			Pricing:         "plan, from $15 per month",
+			// Pricing, DedicatedIPs and every other text people read (the
+			// terms' variants and notes, the Adapters tab's words, the
+			// fields' labels and hints) are in messages/en.json:
+			// WithMessages fills them.
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",
 		Terms: []providers.Terms{
-			{Variant: "Transactional stream", Bulk: providers.BulkForbidden, Note: "Transactional streams are for one-to-one mail triggered by a user action. Marketing on them breaks Postmark's terms.",
-				Streams: []providers.Stream{providers.StreamAutomation, providers.StreamSystem}},
-			{Variant: "Broadcast stream", Bulk: providers.BulkAllowed, Note: "Requires an unsubscribe link in every message; Postmark adds one if missing.",
-				Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation}},
+			{Bulk: providers.BulkForbidden, Streams: []providers.Stream{providers.StreamAutomation, providers.StreamSystem}},
+			{Bulk: providers.BulkAllowed, Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation}},
 		},
-		Events:          "Webhooks",
-		DomainSetup:     "API",
-		SuppressionMode: "Two-way",
 		Fields: []providers.Field{
-			{Key: "server_token", Label: "Server API token", Secret: true, Required: true, Help: "Postmark › Servers › your server › API Tokens."},
-			{Key: "account_token", Label: "Account API token", Secret: true, Help: "Optional. Lets ReputeCast add your domain and fetch its DNS records."},
-			{Key: "message_stream", Label: "Message stream", Required: true, Options: []string{"outbound"}, Help: "The transactional stream for System and Automations mail."},
-			{Key: "broadcast_stream", Label: "Broadcast stream", Help: "Needed before Broadcasts can use Postmark. ReputeCast can create it."},
-			{Key: "monthly_limit", Label: "Plan · emails per month", Help: "Used for the quota bar and cost per 1,000."},
+			{Key: "server_token", Secret: true, Required: true},
+			{Key: "account_token", Secret: true},
+			{Key: "message_stream", Required: true, Options: []string{"outbound"}},
+			{Key: "broadcast_stream"},
+			{Key: "monthly_limit"},
 		},
 		New: New,
-	}
+	}.WithMessages(msgs)
 }
 
 // Provider talks to one Postmark server.
@@ -154,7 +152,8 @@ func (p *Provider) Adapter() string { return Adapter }
 func (p *Provider) Capabilities() providers.Capabilities {
 	c := Descriptor().Capabilities
 	if p.s.MonthlyLimit > 0 {
-		c.Pricing = "plan, " + strconv.FormatInt(p.s.MonthlyLimit, 10) + " per month"
+		// "plan, 10000 per month"
+		c.Pricing, c.PricingText = say(mPricingPlan, i18n.Args{"n": strconv.FormatInt(p.s.MonthlyLimit, 10)})
 	}
 	return c
 }
@@ -482,11 +481,10 @@ func (p *Provider) Quota(ctx context.Context) (providers.Quota, error) {
 	if err := p.api.Do(ctx, "GET /stats/outbound", http.MethodGet, "/stats/outbound?"+q.Encode(), nil, &st); err != nil {
 		return providers.Quota{}, err
 	}
-	acct := "Approved"
-	if p.s.MonthlyLimit > 0 {
-		acct += " · " + humanCount(p.s.MonthlyLimit) + " per month plan"
-	}
-	return providers.Quota{Kind: "monthly_plan", Max: p.s.MonthlyLimit, Used: st.Sent, Account: acct}, nil
+	out := providers.Quota{Kind: "monthly_plan", Max: p.s.MonthlyLimit, Used: st.Sent}
+	// "Approved · 10,000 per month plan"
+	out.Account, out.AccountText = say(mAccount, i18n.Args{"plan": map[bool]string{true: "yes", false: "no"}[p.s.MonthlyLimit > 0], "n": p.s.MonthlyLimit})
+	return out, nil
 }
 
 // Reputation implements providers.ReputationReporter: Postmark's own bounce
@@ -502,18 +500,6 @@ func (p *Provider) Reputation(ctx context.Context) (providers.Reputation, error)
 		return providers.Reputation{}, err
 	}
 	return providers.Reputation{Bounce: st.BounceRate, Complaint: st.SpamComplaintsRate, Window: "7 d"}, nil
-}
-
-func humanCount(n int64) string {
-	s := strconv.FormatInt(n, 10)
-	var b strings.Builder
-	for i, r := range s {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			b.WriteByte(',')
-		}
-		b.WriteRune(r)
-	}
-	return b.String()
 }
 
 // ListSuppressions implements providers.SuppressionSyncer for every stream
@@ -720,12 +706,14 @@ func (p *Provider) Tracking(ctx context.Context) (providers.Tracking, error) {
 	if links == "" {
 		links = "None"
 	}
-	t := providers.Tracking{OpenPixel: s.TrackOpens, LinkRewrite: links != "None", Scope: "Server " + s.Name}
+	t := providers.Tracking{OpenPixel: s.TrackOpens, LinkRewrite: links != "None"}
+	t.Scope, t.ScopeText = say(mTrackingScope, i18n.Args{"name": s.Name})
 	onOff := "off"
 	if s.TrackOpens {
 		onOff = "on"
 	}
-	t.Detail = "Server setting TrackOpens is " + onOff + ", and TrackLinks is " + links + "."
+	// "Server setting TrackOpens is on, and TrackLinks is HtmlAndText."
+	t.Detail, t.DetailText = say(mTrackingDetail, i18n.Args{"opens": onOff, "links": links})
 	return t, nil
 }
 
@@ -754,7 +742,9 @@ func (p *Provider) CreateBroadcastStream(ctx context.Context, name string) (stri
 		}
 		return "", err
 	}
-	return "", &providers.CallError{Op: "POST /message-streams", Message: "both stream ids are taken; create a Broadcast stream in Postmark and enter its id"}
+	ce := &providers.CallError{Op: "POST /message-streams"}
+	ce.Message, ce.Text = say(mStreamsTaken, nil)
+	return "", ce
 }
 
 // AddDomain implements providers.DomainManager (needs the account token).
@@ -793,7 +783,9 @@ func (p *Provider) DomainStatus(ctx context.Context, domain string) ([]providers
 			return info.records(domain), nil
 		}
 	}
-	return nil, &providers.CallError{Op: "GET /domains", Status: http.StatusNotFound, Message: domain + " is not set up in Postmark"}
+	ce := &providers.CallError{Op: "GET /domains", Status: http.StatusNotFound}
+	ce.Message, ce.Text = say(mDomainMissing, i18n.Args{"domain": domain})
+	return nil, ce
 }
 
 type domainInfo struct {

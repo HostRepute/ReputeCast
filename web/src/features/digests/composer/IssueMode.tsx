@@ -6,6 +6,7 @@ import { Icon } from '@/components/icons/Icon'
 import { toast } from '@/components/ui/Toast'
 import { formatList, useT } from '@/i18n'
 import { clock, shortDate } from '@/lib/format'
+import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
 import { useComposer } from '@/features/composer/context'
 import { IssueStatusBadge, useDigest, useIssueInfo, useRefreshDigest, type IssueInfo } from '../shared'
@@ -121,7 +122,7 @@ function ViewerCard() {
           <Icon name="info" size={16} />
         </span>
         <div className="flex min-w-0 flex-col gap-1">
-          <span className="font-bold">{t(dc.viewerTitle, { name: me.user.name, role: wsMe.workspace.roleName })}</span>
+          <span className="font-bold">{t(dc.viewerTitle, { name: me.user.name, role: roleName({ key: wsMe.workspace.roleKey, name: wsMe.workspace.roleName }) })}</span>
           <span>{helpers.length ? t(dc.viewerBody, { names: formatList(helpers, 'disjunction') }) : t(dc.viewerBodyNoOne)}</span>
         </div>
       </section>

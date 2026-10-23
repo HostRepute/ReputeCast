@@ -1,0 +1,24 @@
+{
+  "pricing": { "message": "plan, free trial 100 per day, then from $19.95 per month", "note": "SendGrid's pricing model, on a capability chip: Pricing · …" },
+  "dedicatedIps": { "message": "Pro plan and up, one included", "note": "when SendGrid offers dedicated IPs; Pro is SendGrid's plan name" },
+  "terms.0.note": { "message": "Opted-in recipients with provable consent only, renewed after long inactivity. Every marketing email needs a postal address, an unsubscribe link and a privacy-policy link; no purchased lists.", "note": "what SendGrid's terms allow, on Routing" },
+  "events": { "message": "Event webhook", "note": "Sending providers › Adapters: how events come back" },
+  "domainSetup": { "message": "API", "note": "Sending providers › Adapters: how a sending domain is set up" },
+  "suppressionMode": { "message": "Two-way", "note": "Sending providers › Adapters: the suppression sync" },
+  "field.api_key.label": "API key",
+  "field.api_key.help": { "message": "SendGrid › Settings › API Keys. Full Access lets ReputeCast register the signed Event Webhook, authenticate domains and sync suppressions.", "note": "SendGrid's menu names and its permission Full Access stay as SendGrid writes them" },
+  "field.region.label": "Region",
+  "field.region.help": "EU only for an EU subuser (Pro plans and up).",
+  "field.ip_pool.label": "IP pool",
+  "field.ip_pool.help": "Optional. Sends through this pool of dedicated IPs.",
+  "field.webhook_verification_key.label": { "message": "Event Webhook verification key", "note": "SendGrid's own name for the key" },
+  "field.webhook_verification_key.help": "Read from SendGrid for the webhook ReputeCast registers. Paste it only for a webhook you set up yourself (Mail Settings › Event Webhook › Signature verification).",
+
+  "account": { "message": "{kind, select, free {Free account} other {Paid account}} · reputation {reputation, number}%", "note": "the account's standing on the provider card; reputation: SendGrid's sender reputation, a percentage" },
+  "account.restricted": "Restricted API key · account details need more scopes",
+  "tracking.scope": "Every message ReputeCast sends",
+  "tracking.off": "Open and click tracking are off for the account and on every message ReputeCast sends.",
+  "tracking.on": "{on, select, open {Account-level open tracking is on, but ReputeCast turns SendGrid's tracking off on every message it sends.} click {Account-level click tracking is on, but ReputeCast turns SendGrid's tracking off on every message it sends.} other {Account-level open and click tracking is on, but ReputeCast turns SendGrid's tracking off on every message it sends.}}",
+  "error.noWebhookId": "SendGrid didn't return the webhook's id",
+  "error.domainMissing": { "message": "{domain} is not authenticated in SendGrid", "note": "domain: news.acme.io" }
+}

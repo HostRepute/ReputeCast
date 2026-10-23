@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/apiclient"
 	"github.com/hostrepute/reputecast/internal/providers/bounce"
@@ -88,20 +89,23 @@ func (p *Provider) Quota(ctx context.Context) (providers.Quota, error) {
 	if err := p.list(ctx, "GET /v3/REST/apikey", "/v3/REST/apikey", &keys); err != nil {
 		return providers.Quota{}, err
 	}
-	q := providers.Quota{Account: "API key active"}
+	// "API key active", "API key in quarantine · 100 per hour"
+	account := i18n.Args{"state": "active"}
 	for _, k := range keys {
 		if k.APIKey != strings.TrimSpace(p.c.APIKey) {
 			continue
 		}
 		switch {
 		case !k.IsActive:
-			q.Account = "API key inactive"
+			account = i18n.Args{"state": "inactive"}
 		case k.QuarantineValue > 0:
-			q.Account = "API key in quarantine · " + strconv.FormatInt(k.QuarantineValue, 10) + " per hour"
+			account = i18n.Args{"state": "quarantine", "n": strconv.FormatInt(k.QuarantineValue, 10)}
 		case k.Runlevel != "" && k.Runlevel != "Normal":
-			q.Account = "API key " + strings.ToLower(k.Runlevel)
+			account = i18n.Args{"state": "runlevel", "runlevel": strings.ToLower(k.Runlevel)}
 		}
 	}
+	var q providers.Quota
+	q.Account, q.AccountText = say(mAccount, account)
 	now := time.Now().UTC()
 	if c, err := p.stats(ctx, time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)); err == nil {
 		q.Kind, q.Used, q.Max = "monthly_plan", int64(c.MessageSentCount), int64(p.s.MonthlyLimit)
@@ -179,7 +183,9 @@ func (p *Provider) DomainStatus(ctx context.Context, domain string) ([]providers
 		return nil, err
 	}
 	if len(infos) == 0 {
-		return nil, &providers.CallError{Op: "GET /v3/REST/dns/{domain}", Status: http.StatusNotFound, Message: domain + " is not set up in Mailjet"}
+		ce := &providers.CallError{Op: "GET /v3/REST/dns/{domain}", Status: http.StatusNotFound}
+		ce.Message, ce.Text = say(mDomainMissing, i18n.Args{"domain": domain})
+		return nil, ce
 	}
 	d := infos[0]
 	if d.DKIMStatus != "OK" || d.SPFStatus != "OK" {
@@ -311,8 +317,9 @@ func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 		}
 	}
 	if len(taken) > 0 {
-		return &providers.CallError{Op: "POST /v3/REST/eventcallbackurl", Code: "callback_taken",
-			Message: "Mailjet allows one callback URL per event and API key, and " + strings.Join(taken, ", ") + " already post to another URL. Use an API key only ReputeCast uses, or remove those callbacks in Mailjet, then register again."}
+		ce := &providers.CallError{Op: "POST /v3/REST/eventcallbackurl", Code: "callback_taken"}
+		ce.Message, ce.Text = say(mCallbackTaken, i18n.Args{"events": strings.Join(taken, ", ")})
+		return ce
 	}
 	return nil
 }
@@ -424,8 +431,10 @@ func (p *Provider) AddSuppressions(ctx context.Context, emails []string) error {
 // tracking setting has no API, but ReputeCast sends every message with
 // TrackOpens and TrackClicks disabled, so Mailjet never tracks its mail.
 func (p *Provider) Tracking(context.Context) (providers.Tracking, error) {
-	return providers.Tracking{Scope: "Every message ReputeCast sends",
-		Detail: "ReputeCast sends every message with Mailjet's TrackOpens and TrackClicks disabled, whatever the account setting."}, nil
+	var t providers.Tracking
+	t.Scope, t.ScopeText = say(mTrackingScope, nil)
+	t.Detail, t.DetailText = say(mTrackingDetail, nil)
+	return t, nil
 }
 
 // DisableTracking implements providers.TrackingManager: nothing to change,

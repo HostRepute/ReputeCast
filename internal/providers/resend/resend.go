@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/apiclient"
 	"github.com/hostrepute/reputecast/internal/providers/flex"
@@ -74,30 +75,24 @@ func Descriptor() providers.Descriptor {
 			DomainAPI:       "full",
 			SuppressionSync: true,
 			BatchSize:       BatchSize,
-			DedicatedIPs:    "Scale plan, $30 per month",
 			Sandbox:         "test addresses",
 			QuotaDiscovery:  true,
-			Pricing:         "plan, free up to 3,000 per month, then from $20 per month",
 			RemovesWebhook:  true,
+			// Pricing, DedicatedIPs and every other text people read (the
+			// terms' note, the Adapters tab's words, the fields' labels and
+			// hints) are in messages/en.json: WithMessages fills them.
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",
-		Terms: []providers.Terms{{Bulk: providers.BulkAllowed,
-			Note:    "Opted-in recipients only. Bulk mail needs a visible unsubscribe link and one-click List-Unsubscribe headers, which ReputeCast adds; Resend may close accounts above 0.08% complaints or 4% bounces.",
-			Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
-		Events:          "Webhooks",
-		DomainSetup:     "API",
-		SuppressionMode: "Two-way",
+		Terms:      []providers.Terms{{Bulk: providers.BulkAllowed, Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
 		Fields: []providers.Field{
-			{Key: "api_key", Label: "API key", Secret: true, Required: true,
-				Help: "Resend › API Keys. A Full access key lets ReputeCast register webhooks, set up domains and sync suppressions; a Sending access key can only send."},
-			{Key: "region", Label: "Region", Options: []string{"us-east-1", "eu-west-1", "sa-east-1", "ap-northeast-1"}, Help: "Where sending domains ReputeCast adds are hosted."},
-			{Key: "monthly_limit", Label: "Plan · emails per month", Help: "Used for the quota bar and cost per 1,000."},
-			{Key: "webhook_signing_secret", Label: "Webhook signing secret", Secret: true,
-				Help: "Only for a webhook you created yourself (Resend › Webhooks › Signing secret). ReputeCast reads it for the webhooks it registers."},
+			{Key: "api_key", Secret: true, Required: true},
+			{Key: "region", Options: []string{"us-east-1", "eu-west-1", "sa-east-1", "ap-northeast-1"}},
+			{Key: "monthly_limit"},
+			{Key: "webhook_signing_secret", Secret: true},
 		},
 		New: New,
-	}
+	}.WithMessages(msgs)
 }
 
 // Provider talks to one Resend team.
@@ -142,7 +137,8 @@ func (p *Provider) Adapter() string { return Adapter }
 func (p *Provider) Capabilities() providers.Capabilities {
 	c := Descriptor().Capabilities
 	if p.s.MonthlyLimit > 0 {
-		c.Pricing = "plan, " + count(int64(p.s.MonthlyLimit)) + " per month"
+		// "plan, 50,000 per month"
+		c.Pricing, c.PricingText = say(mPricingPlan, i18n.Args{"n": int64(p.s.MonthlyLimit)})
 	}
 	return c
 }
@@ -329,16 +325,4 @@ func sameSender(msgs []providers.Message) bool {
 		}
 	}
 	return true
-}
-
-func count(n int64) string {
-	s := fmt.Sprint(n)
-	var b strings.Builder
-	for i, r := range s {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			b.WriteByte(',')
-		}
-		b.WriteRune(r)
-	}
-	return b.String()
 }

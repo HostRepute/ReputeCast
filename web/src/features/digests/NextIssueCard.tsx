@@ -7,7 +7,7 @@ import { KeyValues } from '@/components/ui/Data'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { formatList, useT } from '@/i18n'
-import { clock, count, dayMonthDate, longDate, shortDate, until, zonedParts } from '@/lib/format'
+import { clock, count, dayMonthDate, longDate, shortDate, timeOfDay, until, zonedParts } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
 import { FeedItemRow } from './FeedItemRow'
@@ -113,7 +113,7 @@ function CollectingCard({ d, n, onSkip }: { d: Digest; n: DigestNextIssue; onSki
         <span className="k">
           {n.sendAt
             ? t(m.nextIssueWhen, { date: longDate(n.sendAt), time: clock(n.sendAt), timezone: tz })
-            : t(m.nextIssueWhenItems, { count: d.schedule.count ?? 3, from: d.schedule.windowFrom || '08:00', until: d.schedule.windowUntil || '18:00', timezone: tz })}
+            : t(m.nextIssueWhenItems, { count: d.schedule.count ?? 3, from: timeOfDay(d.schedule.windowFrom || '08:00'), until: timeOfDay(d.schedule.windowUntil || '18:00'), timezone: tz })}
         </span>
       </div>
       <div className="grid grid-cols-4 gap-4 max-md:grid-cols-2">

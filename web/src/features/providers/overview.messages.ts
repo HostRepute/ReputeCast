@@ -69,6 +69,9 @@ export const mo = defineMessages('providers.overview', {
   ipsShared: 'Shared pool · checked at domain level',
   /** {kind} is how events arrive ("SNS"); {ago} how long ago: "20 s ago". */
   webhookLine: '{hasKind, select, yes {{kind} · } other {}}{hasEvent, select, yes {last event {ago}} other {no events yet}}',
+  /** Webhook kinds that are words; SNS and Event Grid are product names. */
+  webhookRegistered: 'Registered',
+  webhookBounceMailbox: 'Bounce mailbox',
   factIps: 'IPs',
   factWebhooks: 'Webhooks',
   factErrorRate7d: 'API error rate · 7 d',

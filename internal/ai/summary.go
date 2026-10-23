@@ -199,7 +199,7 @@ type AIReportSummary struct {
 func (s *Service) Summarize(ctx context.Context, ws *store.Workspace, p *authz.Principal, in AIReportSummaryInput) (AIReportSummary, error) {
 	id, err := uuid.Parse(in.CampaignID)
 	if err != nil {
-		return AIReportSummary{}, api.Invalid("body.campaignId", "Name the campaign.")
+		return AIReportSummary{}, invalid(ctx, "body.campaignId", mCampaignID, nil)
 	}
 	if !p.Can(authz.ReportsView) {
 		return AIReportSummary{}, api.Forbidden(authz.ReportsView, nil)
@@ -300,7 +300,7 @@ type AIKeepSummaryInput struct {
 func (s *Service) KeepSummary(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in AIKeepSummaryInput) (AIKeptSummary, error) {
 	reqID, err := uuid.Parse(in.RequestID)
 	if err != nil {
-		return AIKeptSummary{}, api.Invalid("body.requestId", "Name the suggestion.")
+		return AIKeptSummary{}, invalid(ctx, "body.requestId", mSuggestionID, nil)
 	}
 	r, err := s.Q.AIRequest(ctx, store.AIRequestParams{ID: reqID, WorkspaceID: ws.ID})
 	uid := actorID(p)

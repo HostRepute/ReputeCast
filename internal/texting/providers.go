@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/sms"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -44,6 +45,8 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) ([]SmsCatalo
 	}
 	out := []SmsCatalogItem{}
 	for _, d := range sms.Catalog() {
+		// The manifest's texts in the reader's language (internal/sms, text.go).
+		d.Manifest = d.In(i18n.LangFrom(ctx))
 		it := SmsCatalogItem{Adapter: d.Adapter, Name: d.Name, Summary: d.Summary, Badges: d.Badges, Fields: d.Fields, Webhooks: d.Webhooks, Version: d.Version}
 		if it.Badges == nil {
 			it.Badges = []sms.Badge{}
@@ -297,6 +300,7 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	weekAgo := now.AddDate(0, 0, -7)
 	for _, pr := range provs {
 		d, _ := sms.Lookup(pr.Adapter)
+		d.Manifest = d.In(i18n.LangFrom(ctx))
 		h := healthOf(providerOf(pr))
 		c := SmsProviderCard{ID: pr.ID.String(), Adapter: pr.Adapter, Name: pr.Name, Status: pr.Status, Detail: pr.StatusDetail, Since: pr.StatusSince,
 			AccountLabel: pr.AccountLabel, Live: settingsOf(providerOf(pr))["mode"] != "test", AccountHint: pr.AccountHint, SecretLabels: []string{},

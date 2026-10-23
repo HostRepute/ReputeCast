@@ -54,19 +54,18 @@ func Descriptor() sms.Descriptor {
 	return sms.Descriptor{
 		Manifest: sms.Manifest{
 			Adapter: Adapter, Name: "Twilio",
-			Summary: "Pay as you go · US and Canada from $0.0110 per segment, carrier fees included",
 			Badges: []sms.Badge{
 				{Capability: sms.CapTollFree, Support: sms.Yes}, {Capability: sms.Cap10DLC, Support: sms.Yes},
-				{Capability: sms.CapSenderIDs, Support: sms.Yes, Note: "outside US and Canada"},
+				{Capability: sms.CapSenderIDs, Support: sms.Yes},
 				{Capability: sms.CapReceipts, Support: sms.Yes}, {Capability: sms.CapInbound, Support: sms.Yes},
-				{Capability: sms.CapOptOutSync, Support: sms.Partial, Note: "from replies and refused texts"},
+				{Capability: sms.CapOptOutSync, Support: sms.Partial},
 				{Capability: sms.CapRegistration, Support: sms.Yes}, {Capability: sms.CapPricing, Support: sms.Yes},
 			},
 			Fields: []sms.Field{
-				{Key: "account_sid", Label: "Account SID", Required: true},
-				{Key: "api_key_sid", Label: "API key SID", Required: true},
-				{Key: "api_key_secret", Label: "API key secret", Secret: true, Required: true},
-				{Key: "mode", Label: "Account", Options: []string{"live", "test"}, Default: "live"},
+				{Key: "account_sid", Required: true},
+				{Key: "api_key_sid", Required: true},
+				{Key: "api_key_secret", Secret: true, Required: true},
+				{Key: "mode", Options: []string{"live", "test"}, Default: "live"},
 			},
 			Webhooks: "registered",
 			Console: func(kind, _ string) string {
@@ -83,7 +82,9 @@ func Descriptor() sms.Descriptor {
 				return "https://console.twilio.com"
 			},
 			Version: "1.0.0", Maintainer: "ReputeCast",
-		},
+			// The summary, the badges' notes and the fields' labels and hints
+			// are in messages/en.json: WithMessages fills them.
+		}.WithMessages(msgs),
 		New: New,
 	}
 }
