@@ -307,7 +307,7 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 			Countries: []string{}, Held: []string{}, SenderKinds: []string{}, SenderIDs: []string{}, Webhooks: pr.Webhooks, WebhookURL: s.hookURL(providerOf(pr)),
 			ConnectedAt: pr.ConnectedAt, ConnectedBy: pr.ConnectedByName, LastReceiptAt: pr.LastReceiptAt, LastCheckedAt: pr.LastCheckedAt,
 			PauseFailed: g.rules.PauseFailed, PauseFiltered: g.rules.PauseFiltered, Spend: round2(spendBy[pr.ID]), PriceCountries: []string{}, Badges: d.Badges,
-			Demo: pr.Demo, Answer: h.Answer, Told: []string{}, OptOutSync: map[sms.Support]string{sms.Yes: "two_way", sms.Partial: "read_only", sms.No: "off"}[d.Has(sms.CapOptOutSync)]}
+			Demo: pr.Demo, Answer: answerIn(i18n.LangFrom(ctx), h.Answer), Told: []string{}, OptOutSync: map[sms.Support]string{sms.Yes: "two_way", sms.Partial: "read_only", sms.No: "off"}[d.Has(sms.CapOptOutSync)]}
 		if c.Badges == nil {
 			c.Badges = []sms.Badge{}
 		}
@@ -617,7 +617,7 @@ func randomToken(n int) string {
 func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Principal, in SmsConnectInput) (SmsConnectResult, error) {
 	d, ok := sms.Lookup(in.Adapter)
 	if !ok {
-		return SmsConnectResult{}, api.Invalid("body.adapter", "Pick an SMS provider from the catalog.")
+		return SmsConnectResult{}, api.Invalid("body.adapter", say(ctx, mPickCatalog, nil))
 	}
 	settings, creds := map[string]string{}, map[string]string{}
 	for _, f := range d.Fields {
@@ -626,7 +626,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 			v = f.Default
 		}
 		if f.Required && v == "" {
-			return SmsConnectResult{}, api.Invalid("body.fields."+f.Key, f.Label+" is required.")
+			return SmsConnectResult{}, api.Invalid("body.fields."+f.Key, say(ctx, mFieldRequired, i18n.Args{"field": sms.TextIn(f.Label, f.LabelText, i18n.LangFrom(ctx))}))
 		}
 		if v == "" {
 			continue
@@ -648,9 +648,10 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	acct, err := prov.Check(ctx)
 	if err != nil {
 		if errors.Is(err, sms.ErrCredentialsRejected) {
-			return SmsConnectResult{}, api.Err(http.StatusUnprocessableEntity, "credentials_rejected", d.Name+" rejected these credentials. Check them and try again.")
+			return SmsConnectResult{}, api.Err(http.StatusUnprocessableEntity, "credentials_rejected", say(ctx, mCredentialsRejected, i18n.Args{"provider": d.Name}))
 		}
-		return SmsConnectResult{}, api.Err(http.StatusBadGateway, "provider_unreachable", d.Name+" didn't answer: "+answerOf(err)+". Try again in a minute.")
+		return SmsConnectResult{}, api.Err(http.StatusBadGateway, "provider_unreachable",
+			say(ctx, mNoAnswerRetry, i18n.Args{"provider": d.Name, "answer": answerIn(i18n.LangFrom(ctx), answerOf(err))}))
 	}
 	stub := store.SmsProvider{ID: id, Adapter: d.Adapter, WebhookToken: token}
 	hooks := SmsWebhookSetup{Mode: "registered", URL: s.hookURL(stub)}
@@ -664,7 +665,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if reg, ok := prov.(sms.WebhookRegistrar); ok {
 		setup, err := reg.RegisterWebhooks(ctx, sms.Webhooks{StatusURL: hooks.URL, InboundURL: hooks.URL}, found)
 		if err != nil {
-			hooks.Mode, hooks.Error = "manual", answerOf(err)
+			hooks.Mode, hooks.Error = "manual", answerIn(i18n.LangFrom(ctx), answerOf(err))
 		} else {
 			secret = setup.Secret
 			for k, v := range setup.Settings {
@@ -792,11 +793,11 @@ func (s *Service) AccountNumbers(ctx context.Context, ws *store.Workspace, provi
 	}
 	sl, ok := ad.(sms.SenderLister)
 	if !ok {
-		return SmsFoundSenderList{}, api.Conflict(prov.Name + " doesn't list its numbers through its API. Add a sender ID instead.")
+		return SmsFoundSenderList{}, api.Conflict(say(ctx, mNoNumberList, i18n.Args{"provider": prov.Name}))
 	}
 	found, err := sl.Senders(ctx)
 	if err != nil {
-		return SmsFoundSenderList{}, api.Err(http.StatusBadGateway, "provider_unreachable", prov.Name+" didn't answer: "+answerOf(err)+".")
+		return SmsFoundSenderList{}, api.Err(http.StatusBadGateway, "provider_unreachable", noAnswer(ctx, prov.Name, err))
 	}
 	return SmsFoundSenderList{Items: s.foundSenders(ctx, prov, found)}, nil
 }
@@ -826,11 +827,11 @@ func (s *Service) ImportSenders(ctx context.Context, ws *store.Workspace, p *aut
 	}
 	sl, ok := ad.(sms.SenderLister)
 	if !ok {
-		return nil, api.Conflict(prov.Name + " doesn't list its numbers through its API. Add a sender ID instead.")
+		return nil, api.Conflict(say(ctx, mNoNumberList, i18n.Args{"provider": prov.Name}))
 	}
 	found, err := sl.Senders(ctx)
 	if err != nil {
-		return nil, api.Err(http.StatusBadGateway, "provider_unreachable", prov.Name+" didn't answer: "+answerOf(err)+".")
+		return nil, api.Err(http.StatusBadGateway, "provider_unreachable", noAnswer(ctx, prov.Name, err))
 	}
 	now := s.now()
 	added := []string{}
@@ -843,14 +844,14 @@ func (s *Service) ImportSenders(ctx context.Context, ws *store.Workspace, p *aut
 				}
 			}
 			if f == nil {
-				return api.Invalid("body.senders", want.Value+" isn't in the "+prov.Name+" account.")
+				return api.Invalid("body.senders", say(ctx, mNotInAccount, i18n.Args{"value": want.Value, "provider": prov.Name}))
 			}
 			countries := f.Countries
 			if len(want.Countries) > 0 {
 				countries = []string{}
 				for _, c := range want.Countries {
 					if !validCountry(c) {
-						return api.Invalid("body.senders.countries", "Pick countries by their two-letter code.")
+						return api.Invalid("body.senders.countries", say(ctx, mCountryCodes, nil))
 					}
 					countries = append(countries, c)
 				}
@@ -916,7 +917,7 @@ var senderIDAllowed = []string{"GB", "DE", "NL", "AT", "CH", "DK", "SE", "NO", "
 func (s *Service) AddSenderID(ctx context.Context, ws *store.Workspace, p *authz.Principal, in SmsSenderIDInput) ([]SmsSenderRow, error) {
 	pid, err := uuid.Parse(in.ProviderID)
 	if err != nil {
-		return nil, api.Invalid("body.providerId", "Pick an SMS provider of this workspace.")
+		return nil, api.Invalid("body.providerId", say(ctx, mPickProvider, nil))
 	}
 	prov, err := s.Q.SmsProvider(ctx, store.SmsProviderParams{ID: pid, WorkspaceID: ws.ID})
 	if err != nil {
@@ -924,12 +925,12 @@ func (s *Service) AddSenderID(ctx context.Context, ws *store.Workspace, p *authz
 	}
 	value := strings.ToUpper(strings.TrimSpace(in.Value))
 	if !validSenderID(value) {
-		return nil, api.Invalid("body.value", "A sender ID is up to 11 letters and digits, with at least one letter, such as ACME.")
+		return nil, api.Invalid("body.value", say(ctx, mSenderIDFormat, nil))
 	}
 	countries := []string{}
 	for _, c := range in.Countries {
 		if !validCountry(c) {
-			return nil, api.Invalid("body.countries", "Pick countries by their two-letter code.")
+			return nil, api.Invalid("body.countries", say(ctx, mCountryCodes, nil))
 		}
 		if !slices.Contains(countries, c) {
 			countries = append(countries, c)
@@ -941,7 +942,7 @@ func (s *Service) AddSenderID(ctx context.Context, ws *store.Workspace, p *authz
 		var n int64
 		_ = tx.QueryRow(ctx, `SELECT count(*) FROM sms_senders WHERE provider_id = $1 AND value = $2 AND removed_at IS NULL`, prov.ID, value).Scan(&n)
 		if n > 0 {
-			return api.Conflict(value + " is already a sender of " + prov.Name + ".")
+			return api.Conflict(say(ctx, mSenderExists, i18n.Args{"value": value, "provider": prov.Name}))
 		}
 		if err := q.SmsSenderInsert(ctx, store.SmsSenderInsertParams{ID: id, WorkspaceID: ws.ID, ProviderID: prov.ID, Kind: "sender_id", Value: value,
 			Countries: countries, Throughput: 30, AddedBy: uuidPtr(p.UserID), AddedAt: now}); err != nil {
@@ -1003,7 +1004,7 @@ func (s *Service) UpdateSender(ctx context.Context, ws *store.Workspace, p *auth
 	}
 	for _, c := range in.Countries {
 		if !validCountry(c) {
-			return nil, api.Invalid("body.countries", "Pick countries by their two-letter code.")
+			return nil, api.Invalid("body.countries", say(ctx, mCountryCodes, nil))
 		}
 	}
 	now := s.now()
@@ -1055,7 +1056,7 @@ func (s *Service) RemoveSender(ctx context.Context, ws *store.Workspace, p *auth
 	var n int64
 	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM sms_routes WHERE sender_id = $1 OR fallback_sender_id = $1`, id).Scan(&n)
 	if n > 0 {
-		return api.Conflict("A route uses this sender. Change the route in Routing & rules first.")
+		return api.Conflict(say(ctx, mSenderInRoute, nil))
 	}
 	now := s.now()
 	return s.tx(ctx, func(q *store.Queries, _ pgx.Tx) error {
@@ -1086,14 +1087,14 @@ func (s *Service) SetRegistration(ctx context.Context, ws *store.Workspace, p *a
 		return SmsRegistrationPanel{}, api.MapError(err, "Sender")
 	}
 	if in.Kind == "sender_id" && slices.Contains(nanp, in.Country) {
-		return SmsRegistrationPanel{}, api.Invalid("body.country", "Sender IDs can't be used in the US or Canada.")
+		return SmsRegistrationPanel{}, api.Invalid("body.country", say(ctx, mSenderIDNanp, nil))
 	}
 	if in.Status == "rejected" && strings.TrimSpace(in.Reason) == "" {
-		return SmsRegistrationPanel{}, api.Invalid("body.reason", "Say why it was rejected: the carrier's reason.")
+		return SmsRegistrationPanel{}, api.Invalid("body.reason", say(ctx, mRejectReason, nil))
 	}
 	on := time.Date(in.On.Year(), in.On.Month(), in.On.Day(), 0, 0, 0, 0, time.UTC)
 	if on.After(s.now()) {
-		return SmsRegistrationPanel{}, api.Invalid("body.on", "The date can't be in the future.")
+		return SmsRegistrationPanel{}, api.Invalid("body.on", say(ctx, mFutureDate, nil))
 	}
 	g, err := s.graph(ctx, s.Q, ws)
 	if err != nil {
@@ -1293,7 +1294,7 @@ func (s *Service) ReplaceCredentials(ctx context.Context, ws *store.Workspace, p
 	}
 	d, ok := sms.Lookup(prov.Adapter)
 	if !ok {
-		return api.Conflict("This build doesn't have the " + prov.Adapter + " adapter.")
+		return api.Conflict(say(ctx, mNoAdapter, i18n.Args{"adapter": prov.Adapter}))
 	}
 	settings := settingsOf(prov)
 	creds := map[string]string{}
@@ -1301,7 +1302,7 @@ func (s *Service) ReplaceCredentials(ctx context.Context, ws *store.Workspace, p
 		v := strings.TrimSpace(in.Fields[f.Key])
 		if v == "" {
 			if f.Secret && f.Required {
-				return api.Invalid("body.fields."+f.Key, f.Label+" is required.")
+				return api.Invalid("body.fields."+f.Key, say(ctx, mFieldRequired, i18n.Args{"field": sms.TextIn(f.Label, f.LabelText, i18n.LangFrom(ctx))}))
 			}
 			continue
 		}
@@ -1322,9 +1323,9 @@ func (s *Service) ReplaceCredentials(ctx context.Context, ws *store.Workspace, p
 	acct, err := ad.Check(ctx)
 	if err != nil {
 		if errors.Is(err, sms.ErrCredentialsRejected) {
-			return api.Err(http.StatusUnprocessableEntity, "credentials_rejected", d.Name+" rejected these credentials too. Check them and try again.")
+			return api.Err(http.StatusUnprocessableEntity, "credentials_rejected", say(ctx, mCredentialsAgain, i18n.Args{"provider": d.Name}))
 		}
-		return api.Err(http.StatusBadGateway, "provider_unreachable", d.Name+" didn't answer: "+answerOf(err)+".")
+		return api.Err(http.StatusBadGateway, "provider_unreachable", noAnswer(ctx, d.Name, err))
 	}
 	b, _ := json.Marshal(creds)
 	sealed, err := s.Box.Seal(b, credentialsAD(prov.ID))
@@ -1361,7 +1362,7 @@ func (s *Service) RegisterWebhooks(ctx context.Context, ws *store.Workspace, p *
 	out := SmsWebhookSetup{Mode: "registered", URL: s.hookURL(prov)}
 	reg, ok := ad.(sms.WebhookRegistrar)
 	if !ok {
-		return out, api.Conflict(prov.Name + " can't register webhooks through its API: paste the address in its console.")
+		return out, api.Conflict(say(ctx, mNoWebhookAPI, i18n.Args{"provider": prov.Name}))
 	}
 	senders := []sms.Sender{}
 	all, _ := s.Q.SmsSenders(ctx, ws.ID)
@@ -1372,7 +1373,8 @@ func (s *Service) RegisterWebhooks(ctx context.Context, ws *store.Workspace, p *
 	}
 	setup, err := reg.RegisterWebhooks(ctx, sms.Webhooks{StatusURL: out.URL, InboundURL: out.URL}, senders)
 	if err != nil {
-		return out, api.Err(http.StatusBadGateway, "provider_unreachable", prov.Name+" didn't register the webhooks: "+answerOf(err)+".")
+		return out, api.Err(http.StatusBadGateway, "provider_unreachable",
+			say(ctx, mWebhooksFailed, i18n.Args{"provider": prov.Name, "answer": answerIn(i18n.LangFrom(ctx), answerOf(err))}))
 	}
 	settings := settingsOf(prov)
 	for k, v := range setup.Settings {
@@ -1415,7 +1417,7 @@ func (s *Service) RemoveProvider(ctx context.Context, ws *store.Workspace, p *au
 	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM sms_routes r JOIN sms_senders s ON s.id = r.sender_id OR s.id = r.fallback_sender_id
 		WHERE s.provider_id = $1`, id).Scan(&n)
 	if n > 0 {
-		return api.Conflict("Routes send through " + prov.Name + ". Change them in Routing & rules first.")
+		return api.Conflict(say(ctx, mProviderInRoute, i18n.Args{"provider": prov.Name}))
 	}
 	now := s.now()
 	return s.tx(ctx, func(q *store.Queries, tx pgx.Tx) error {
@@ -1492,7 +1494,7 @@ func (s *Service) ProviderTest(ctx context.Context, ws *store.Workspace, p *auth
 	}
 	n, err := parsePhone(ph)
 	if err != nil {
-		return SmsMessageView{}, api.Invalid("body.phone", "That isn't a phone number. Use the international format, like +1 312 555 0123.")
+		return SmsMessageView{}, api.Invalid("body.phone", say(ctx, mPhoneFormat, nil))
 	}
 	g, err := s.graph(ctx, s.Q, ws)
 	if err != nil {
@@ -1507,7 +1509,8 @@ func (s *Service) ProviderTest(ctx context.Context, ws *store.Workspace, p *auth
 		}
 	}
 	if sender == nil {
-		return SmsMessageView{}, api.Err(http.StatusConflict, "no_sender", "None of "+prov.Name+"'s senders can text "+countryName(n.Country)+" yet.")
+		return SmsMessageView{}, api.Err(http.StatusConflict, "no_sender",
+			say(ctx, mNoProviderSender, i18n.Args{"provider": prov.Name, "country": countryNameIn(i18n.LangFrom(ctx), n.Country)}))
 	}
 	text := Text{Prefix: g.rules.BrandPrefix, Body: "This is a test from ReputeCast.", OptOut: g.rules.OptOutText}
 	m, err := s.sendOne(ctx, ws, g, oneText{kind: "test", recipient: Recipient{Phone: n.E164}, text: text, sender: sender, by: p.UserID})

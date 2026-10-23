@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/channels"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/sms"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -441,7 +442,7 @@ func (s *Service) SaveSendSettings(ctx context.Context, ws *store.Workspace, p *
 	switch c.Status {
 	case "draft", "approval", "approved":
 	default:
-		return SmsReview{}, api.Conflict("The campaign is scheduled or sent. Unschedule it to change when it goes out.")
+		return SmsReview{}, api.Conflict(say(ctx, mSendSettingsLocked, nil))
 	}
 	r, err := s.rules(ctx, s.Q, ws)
 	if err != nil {
@@ -457,13 +458,13 @@ func (s *Service) SaveSendSettings(ctx context.Context, ws *store.Workspace, p *
 			sendAt = in.SendAt
 		}
 		if sendAt == nil || sendAt.Before(s.now()) {
-			return SmsReview{}, api.Invalid("body.sendAt", "Pick a time in the future.")
+			return SmsReview{}, api.Invalid("body.sendAt", say(ctx, mFutureTime, nil))
 		}
 	case "local":
 		if in.LocalDate != "" {
 			d, err := time.Parse("2006-01-02", in.LocalDate)
 			if err != nil {
-				return SmsReview{}, api.Invalid("body.localDate", "Pick a date.")
+				return SmsReview{}, api.Invalid("body.localDate", say(ctx, mPickDate, nil))
 			}
 			localDate = &d
 		}
@@ -471,12 +472,12 @@ func (s *Service) SaveSendSettings(ctx context.Context, ws *store.Workspace, p *
 			t, _ := time.Parse("15:04", in.LocalTime)
 			m := int32(t.Hour()*60 + t.Minute())
 			if int(m) < r.Window.From || int(m) >= r.Window.To {
-				return SmsReview{}, api.Invalid("body.localTime", fmt.Sprintf("Only times inside %s are offered: quiet hours hold texts outside it.", r.Window.String()))
+				return SmsReview{}, api.Invalid("body.localTime", say(ctx, mInsideWindow, i18n.Args{"window": r.Window.String()}))
 			}
 			localMinute = &m
 		}
 		if localDate == nil || localMinute == nil {
-			return SmsReview{}, api.Invalid("body.localDate", "Pick a date and a time.")
+			return SmsReview{}, api.Invalid("body.localDate", say(ctx, mDateAndTime, nil))
 		}
 	}
 	policy := c.PendingPolicy
@@ -546,20 +547,20 @@ func (s *Service) Send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	switch c.Status {
 	case "draft", "approval", "approved":
 	case "scheduled":
-		return SmsSendResult{}, api.Conflict("The campaign is already scheduled. Unschedule it to change when it goes out.")
+		return SmsSendResult{}, api.Conflict(say(ctx, mAlreadyScheduled, nil))
 	default:
-		return SmsSendResult{}, api.Conflict("This campaign already went out.")
+		return SmsSendResult{}, api.Conflict(say(ctx, mAlreadyWentOut, nil))
 	}
 	rv, err := s.buildReview(ctx, ws, c)
 	if err != nil {
 		return SmsSendResult{}, err
 	}
 	if rv.fingerprint() != in.Fingerprint {
-		return SmsSendResult{}, api.Err(http.StatusConflict, "review_changed", "The text, audience, routes or costs changed since you reviewed them. Look again and confirm.")
+		return SmsSendResult{}, api.Err(http.StatusConflict, "review_changed", say(ctx, mReviewChanged, nil))
 	}
 	if rv.verdict == VerdictBlocked {
 		_, _, b := rv.counts()
-		return SmsSendResult{}, api.Err(http.StatusConflict, "readiness_blocked", fmt.Sprintf("Scheduling stays off until every block is fixed (%s).", plural(int64(b), "block", "blocks")))
+		return SmsSendResult{}, api.Err(http.StatusConflict, "readiness_blocked", say(ctx, mBlocked, i18n.Args{"count": b}))
 	}
 	missing := []string{}
 	for _, ch := range rv.checks {
@@ -568,10 +569,10 @@ func (s *Service) Send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		}
 	}
 	if len(missing) > 0 {
-		return SmsSendResult{}, api.Invalid("body.acknowledged", "Confirm each warning before sending: "+strings.Join(missing, ", ")+".")
+		return SmsSendResult{}, api.Invalid("body.acknowledged", say(ctx, mConfirmWarnings, i18n.Args{"warnings": strings.Join(missing, ", ")}))
 	}
 	if (rv.sent > LargeRecipients || rv.cost > LargeCost) && digitsOf(in.Confirm) != fmt.Sprint(rv.sent) {
-		return SmsSendResult{}, api.Invalid("body.confirm", fmt.Sprintf("Type %d to confirm the send.", rv.sent))
+		return SmsSendResult{}, api.Invalid("body.confirm", say(ctx, mTypeCount, i18n.Args{"count": fmt.Sprint(rv.sent)}))
 	}
 	var approval *store.ApprovalRequest
 	if s.Approvals != nil {
@@ -677,7 +678,7 @@ func (s *Service) schedule2(ctx context.Context, ws *store.Workspace, p *authz.P
 			return err
 		}
 		if cur != c.Status {
-			return api.Conflict("The campaign changed while you were sending it. Look again.")
+			return api.Conflict(say(ctx, mChangedWhileSending, nil))
 		}
 		if _, err := tx.CopyFrom(ctx, pgx.Identifier{"channel_messages"}, []string{"id", "workspace_id", "channel", "kind", "campaign_id", "contact_id", "list_id",
 			"recipient", "country", "time_zone", "zone_source", "provider_id", "sender_id", "sender", "body", "units", "encoding", "price", "cost", "status", "reason",
@@ -731,7 +732,7 @@ func (s *Service) Unschedule(ctx context.Context, ws *store.Workspace, p *authz.
 		return err
 	}
 	if c.Status != "scheduled" {
-		return api.Conflict("Only a scheduled campaign can be unscheduled.")
+		return api.Conflict(say(ctx, mUnscheduleOnly, nil))
 	}
 	now := s.now()
 	return s.tx(ctx, func(q *store.Queries, tx pgx.Tx) error {
@@ -740,7 +741,7 @@ func (s *Service) Unschedule(ctx context.Context, ws *store.Workspace, p *authz.
 			return err
 		}
 		if sent > 0 {
-			return api.Conflict("Texts already went out: pause or cancel the send instead.")
+			return api.Conflict(say(ctx, mTextsWentOut, nil))
 		}
 		if _, err := tx.Exec(ctx, `DELETE FROM sms_links WHERE campaign_id = $1`, c.ID); err != nil {
 			return err
@@ -775,7 +776,7 @@ func (s *Service) Act(ctx context.Context, ws *store.Workspace, p *authz.Princip
 	}
 	snd, err := s.Q.SmsSend(ctx, c.ID)
 	if err != nil {
-		return api.Conflict("This campaign hasn't been sent.")
+		return api.Conflict(say(ctx, mNotSent, nil))
 	}
 	now := s.now()
 	switch in.Action {
@@ -784,7 +785,7 @@ func (s *Service) Act(ctx context.Context, ws *store.Workspace, p *authz.Princip
 			return api.Forbidden(authz.CampaignsPause, s.helpers(ctx, ws, authz.CampaignsPause))
 		}
 		if snd.Phase != "sending" && snd.Phase != "scheduled" {
-			return api.Conflict("Only a send in progress can be paused.")
+			return api.Conflict(say(ctx, mPauseOnly, nil))
 		}
 		return s.setPhase(ctx, ws, c, snd, "paused", "person", map[string]any{"by": p.Name}, &audit.Event{Action: "campaign.paused", Reason: in.Reason})
 	case "resume":
@@ -796,7 +797,7 @@ func (s *Service) Act(ctx context.Context, ws *store.Workspace, p *authz.Princip
 			return api.Forbidden(perm, s.helpers(ctx, ws, perm))
 		}
 		if snd.Phase != "paused" {
-			return api.Conflict("Only a paused send can be resumed.")
+			return api.Conflict(say(ctx, mResumeOnly, nil))
 		}
 		// Texts held past their window wait for the next one.
 		if _, err := s.Pool.Exec(ctx, `UPDATE channel_messages SET status = 'queued', reason = '', updated_at = $2
@@ -814,7 +815,7 @@ func (s *Service) Act(ctx context.Context, ws *store.Workspace, p *authz.Princip
 			return api.Forbidden(authz.CampaignsPause, s.helpers(ctx, ws, authz.CampaignsPause))
 		}
 		if snd.Phase == "completed" || snd.Phase == "cancelled" {
-			return api.Conflict("This send is over.")
+			return api.Conflict(say(ctx, mSendOver, nil))
 		}
 		var held int64
 		if err := s.Pool.QueryRow(ctx, `WITH x AS (UPDATE channel_messages SET status = 'cancelled', reason = 'cancelled', updated_at = $2
@@ -824,7 +825,7 @@ func (s *Service) Act(ctx context.Context, ws *store.Workspace, p *authz.Princip
 		return s.setPhase(ctx, ws, c, snd, "cancelled", "", map[string]any{"cancelled": held}, &audit.Event{Action: "campaign.cancelled", Reason: in.Reason,
 			Metadata: map[string]any{"cancelled_texts": held}})
 	}
-	return api.Invalid("body.action", "Pause, resume or cancel.")
+	return api.Invalid("body.action", say(ctx, mSendAction, nil))
 }
 
 // setPhase moves a send (and its campaign) to a phase, audited.

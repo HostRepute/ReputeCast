@@ -14,6 +14,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/sms"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -104,13 +105,15 @@ func (s *Service) recordCall(ctx context.Context, p store.SmsProvider, callErr e
 	}
 }
 
-// answerOf writes a provider's answer as the provider card shows it.
+// answerOf writes a provider's answer as the provider card shows it, in
+// English: the HTTP status as it came, and ReputeCast's words where it has
+// some ("no answer"), which answerIn writes in each reader's language.
 func answerOf(err error) string {
 	var ce *sms.CallError
 	if errors.As(err, &ce) {
 		switch ce.Status {
 		case 401:
-			return "401 Unauthorized · invalid credentials"
+			return mAnswerUnauthorized.Source()
 		case 403:
 			return "403 Forbidden"
 		}
@@ -121,11 +124,17 @@ func answerOf(err error) string {
 	}
 	switch {
 	case errors.Is(err, sms.ErrCredentialsRejected):
-		return "401 Unauthorized · invalid credentials"
+		return mAnswerUnauthorized.Source()
 	case errors.Is(err, sms.ErrUnavailable):
-		return "no answer"
+		return mAnswerNone.Source()
 	}
 	return err.Error()
+}
+
+// noAnswer is the problem of a provider that didn't answer a call: "Twilio
+// didn't answer: 503 Service Unavailable.", in the request's language.
+func noAnswer(ctx context.Context, provider string, err error) string {
+	return say(ctx, mNoAnswer, i18n.Args{"provider": provider, "answer": answerIn(i18n.LangFrom(ctx), answerOf(err))})
 }
 
 // providerStatusChanged tells people a provider is down or its
@@ -135,24 +144,24 @@ func (s *Service) providerStatusChanged(ctx context.Context, p store.SmsProvider
 	if err != nil {
 		return
 	}
-	var title, summary, sev string
+	// Kept as messages, so each member reads it in their own language.
+	var title, summary i18n.Msg
+	var sev string
 	switch status {
 	case "credentials_rejected":
-		title, sev = p.Name+" credentials rejected", "bad"
-		summary = fmt.Sprintf("%s rejected the credentials. Texts through %s are held until they're replaced.", p.Name, p.Name)
+		title, summary, sev = mNotifyCredentialsTitle, mNotifyCredentialsBody, "bad"
 	case "down":
-		title, sev = p.Name+" isn't answering", "bad"
-		summary = fmt.Sprintf("%s isn't answering. Texts through %s are held; ReputeCast retries every 2 minutes.", p.Name, p.Name)
+		title, summary, sev = mNotifyDownTitle, mNotifyDownBody, "bad"
 	case "healthy":
-		title, sev = p.Name+" is back", "ok"
-		summary = fmt.Sprintf("%s answers again. Held texts go out inside each recipient's window.", p.Name)
+		title, summary, sev = mNotifyBackTitle, mNotifyBackBody, "ok"
 		s.releaseHeld(ctx, p.WorkspaceID, &p.ID, "provider_down")
 	default:
 		return
 	}
+	args := i18n.Args{"provider": p.Name}
 	link := "/w/" + ws.Slug + "/providers/sms"
 	_ = notify.ToMembersWith(ctx, s.Pool, ws.ID, authz.ProvidersView, notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindSMSProviderDown, Severity: sev,
-		Title: title, Summary: summary, Body: summary, Link: link, Data: map[string]any{"provider_id": p.ID.String(), "status": status}})
+		TitleText: title.Keep(args), SummaryText: summary.Keep(args), BodyText: summary.Keep(args), Link: link, Data: map[string]any{"provider_id": p.ID.String(), "status": status}})
 	_ = s.Audit.Log(ctx, audit.Event{WorkspaceID: &ws.ID, Action: "sms_provider.status_changed", TargetType: "sms_provider", TargetID: p.ID.String(), TargetName: p.Name,
 		Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Before: map[string]any{"status": p.Status}, After: map[string]any{"status": status, "answer": h.Answer}})
 }
@@ -233,9 +242,10 @@ func (s *Service) checkReceipts(ctx context.Context, p store.SmsProvider, h prov
 		_ = s.Q.SmsProviderSetHealth(ctx, store.SmsProviderSetHealthParams{Status: "degraded", StatusDetail: "receipts_silent", At: &now, Health: jsonOf(h), ID: p.ID})
 		ws, err := s.Q.GetWorkspace(ctx, p.WorkspaceID)
 		if err == nil {
-			summary := fmt.Sprintf("No receipts from %s for 2 hours while texts were sent. Check the status callback in %s.", p.Name, p.Name)
+			args := i18n.Args{"provider": p.Name, "hours": int(ReceiptsSilentAfter / time.Hour)}
 			_ = notify.ToMembersWith(ctx, s.Pool, ws.ID, authz.ProvidersView, notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindSMSProviderDown, Severity: "warn",
-				Title: p.Name + " receipts silent", Summary: summary, Body: summary, Link: "/w/" + ws.Slug + "/providers/sms", Data: map[string]any{"provider_id": p.ID.String()}})
+				TitleText: mNotifySilentTitle.Keep(args), SummaryText: mNotifySilentBody.Keep(args), BodyText: mNotifySilentBody.Keep(args),
+				Link: "/w/" + ws.Slug + "/providers/sms", Data: map[string]any{"provider_id": p.ID.String()}})
 		}
 	case !silent && h.SilentSince != nil:
 		h.SilentSince = nil
@@ -328,13 +338,16 @@ func (s *Service) registrationChanged(ctx context.Context, p store.SmsProvider, 
 	if what == "" {
 		what = senderLabel(sn)
 	}
-	sev, title, summary := "ok", "Registration approved", fmt.Sprintf("%s approved %s for %s.", p.Name, what, senderLabel(sn))
+	// Kept as messages, the carrier's reason as it gave it.
+	sev, title, summary := "ok", mNotifyApprovedTitle, mNotifyApprovedBody
+	args := i18n.Args{"provider": p.Name, "what": what, "sender": senderLabel(sn)}
 	if g.Status == "rejected" {
-		sev, title = "bad", "Registration rejected"
-		summary = fmt.Sprintf("%s rejected %s for %s: %s", p.Name, what, senderLabel(sn), strings.TrimSuffix(g.Reason, ".")+".")
+		sev, title, summary = "bad", mNotifyRejectedTitle, mNotifyRejectedBody
+		args["reason"] = strings.TrimSuffix(g.Reason, ".")
 	}
 	_ = notify.ToMembersWith(ctx, s.Pool, ws.ID, authz.ProvidersView, notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindSMSRegistration, Severity: sev,
-		Title: title, Summary: summary, Body: summary, Link: "/w/" + ws.Slug + "/providers/sms", Data: map[string]any{"sender_id": sn.ID.String(), "status": g.Status}})
+		TitleText: title.Keep(nil), SummaryText: summary.Keep(args), BodyText: summary.Keep(args), Link: "/w/" + ws.Slug + "/providers/sms",
+		Data: map[string]any{"sender_id": sn.ID.String(), "status": g.Status}})
 }
 
 // ReadPrices reads the price of a segment for every country the provider's
@@ -418,7 +431,7 @@ func (s *Service) SyncOptOuts(ctx context.Context, p store.SmsProvider) error {
 				}
 				code := o.Keyword
 				if code == "" {
-					code = p.Name + " opt-out list"
+					code = providerListCode(p.Name)
 				}
 				if err := s.Q.ChanSuppressionInsert(ctx, store.ChanSuppressionInsertParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: p.WorkspaceID, Channel: "sms",
 					Phone: o.Phone, Reason: "provider_list", OriginalCode: code, Source: p.Name, SourceProviderID: &p.ID, CreatedAt: now}); err == nil {

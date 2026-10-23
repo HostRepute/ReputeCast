@@ -299,7 +299,7 @@ func Register(h huma.API, s *Service) {
 			pid, _ := uuid.Parse(panel.Sender.ProviderID)
 			if prov, err := s.Q.SmsProvider(ctx, smsProviderParams(pid, ws.ID)); err == nil {
 				if err := s.ReadRegistrations(ctx, prov); err != nil {
-					return nil, api.Err(http.StatusBadGateway, "provider_unreachable", prov.Name+" didn't answer: "+answerOf(err)+".")
+					return nil, api.Err(http.StatusBadGateway, "provider_unreachable", noAnswer(ctx, prov.Name, err))
 				}
 				s.releasePending(ctx, ws)
 			}

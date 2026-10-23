@@ -115,9 +115,11 @@ func (s *Service) SavePrefs(ctx context.Context, tx pgx.Tx, ws *store.Workspace,
 	rows.Close()
 	lang := pagelabels.Lang(code)
 	brand := brandOf(ws)
-	source, page := "preference_center", "Preference center"
+	// The evidence's page is stored in English and read in each reader's
+	// language (evidenceIn).
+	source, page := "preference_center", evPreferenceCenter.Source()
 	if ev.Source == "account_page" {
-		source, page = "account_page", "Account page"
+		source, page = "account_page", evAccountPage.Source()
 	}
 	var confirm []uuid.UUID
 	for _, id := range shown {

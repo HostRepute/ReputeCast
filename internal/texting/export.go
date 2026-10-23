@@ -13,6 +13,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -80,13 +81,15 @@ func (s *Service) ReportCSV(ctx context.Context, ws *store.Workspace, p *authz.P
 }
 
 // Duplicate copies an SMS campaign's text and audience into a new draft
-// ("Copy of …"), whatever its status, audited like any new campaign.
+// ("Copy of …", in the language of whoever duplicates it, as email and
+// WhatsApp campaigns are named), whatever its status, audited like any new
+// campaign.
 func (s *Service) Duplicate(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (SmsCampaign, error) {
 	c, err := s.campaign(ctx, ws, id)
 	if err != nil {
 		return SmsCampaign{}, err
 	}
-	name := "Copy of " + c.Name
+	name := say(ctx, mLabelCopyOf, i18n.Args{"name": c.Name})
 	if len([]rune(name)) > 200 {
 		name = string([]rune(name)[:200])
 	}

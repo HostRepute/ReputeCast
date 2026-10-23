@@ -161,7 +161,7 @@ func (s *Service) Terms(ctx context.Context, ws *store.Workspace, p *authz.Princ
 func (s *Service) PublishTerms(ctx context.Context, ws *store.Workspace, p *authz.Principal, in SmsTermsContent) (SmsTerms, error) {
 	for field, v := range map[string]string{"program": in.Program, "cost": in.Cost, "help": in.Help, "optOut": in.OptOut} {
 		if strings.TrimSpace(v) == "" {
-			return SmsTerms{}, api.Invalid("body."+field, "Carriers ask for this section: it can't be empty.")
+			return SmsTerms{}, api.Invalid("body."+field, say(ctx, mCarriersAsk, nil))
 		}
 	}
 	cur, err := s.Terms(ctx, ws, p)

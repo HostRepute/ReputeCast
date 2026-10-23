@@ -15,7 +15,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/channels"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/phone"
-	"github.com/hostrepute/reputecast/internal/segments"
 	"github.com/hostrepute/reputecast/internal/sms"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -201,7 +200,7 @@ func (s *Service) ContactChannels(ctx context.Context, ws *store.Workspace, p *a
 		l.ListID = lid.String()
 		l.EmailConfirmed = l.EmailConfirmed && l.Email == "subscribed"
 		if l.EmailSource != "" {
-			l.EmailSourceLabel = emailSourceLabel(l.EmailSource)
+			l.EmailSourceLabel = emailSourceLabel(lang, l.EmailSource)
 		}
 		out.Lists = append(out.Lists, l)
 	}
@@ -295,7 +294,7 @@ func (s *Service) SetPhone(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	if strings.TrimSpace(in.Phone) != "" {
 		n, err = phone.Parse(in.Phone, in.Country)
 		if err != nil {
-			return SmsContactChannels{}, api.Invalid("body.phone", "That isn't a phone number. Use the international format, like +1 312 555 0123, or pick the country.")
+			return SmsContactChannels{}, api.Invalid("body.phone", say(ctx, mPhoneOrCountry, nil))
 		}
 	}
 	now := s.now()
@@ -343,11 +342,11 @@ func (s *Service) SetConsentByTeam(ctx context.Context, ws *store.Workspace, p *
 	}
 	listID, err := uuid.Parse(in.ListID)
 	if err != nil {
-		return SmsContactChannels{}, api.Invalid("body.listId", "Pick a list of this workspace.")
+		return SmsContactChannels{}, api.Invalid("body.listId", say(ctx, mPickList, nil))
 	}
 	var listName string
 	if err := s.Pool.QueryRow(ctx, `SELECT name FROM lists WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, listID, ws.ID).Scan(&listName); err != nil {
-		return SmsContactChannels{}, api.Invalid("body.listId", "Pick a list of this workspace.")
+		return SmsContactChannels{}, api.Invalid("body.listId", say(ctx, mPickList, nil))
 	}
 	ev := Evidence{Source: "team", ActorID: uuidPtr(p.UserID), Note: in.Note, At: s.now()}
 	if !p.IsHuman() {
@@ -355,16 +354,16 @@ func (s *Service) SetConsentByTeam(ctx context.Context, ws *store.Workspace, p *
 	}
 	if in.Status == "subscribed" {
 		if c.Phone == "" {
-			return SmsContactChannels{}, api.Invalid("body.status", "Add a phone number first.")
+			return SmsContactChannels{}, api.Invalid("body.status", say(ctx, mPhoneFirst, nil))
 		}
 		if in.Evidence == nil || strings.TrimSpace(in.Evidence.ConsentText) == "" || strings.TrimSpace(in.Evidence.Source) == "" || in.Evidence.At.IsZero() {
-			return SmsContactChannels{}, api.Invalid("body.evidence", "SMS consent needs its evidence: the exact consent text, where it was given and when.")
+			return SmsContactChannels{}, api.Invalid("body.evidence", say(ctx, mEvidence, nil))
 		}
 		if in.Evidence.At.After(s.now().Add(time.Minute)) {
-			return SmsContactChannels{}, api.Invalid("body.evidence.at", "Consent can't be given in the future.")
+			return SmsContactChannels{}, api.Invalid("body.evidence.at", say(ctx, mFutureConsent, nil))
 		}
 		if sup, err := s.Q.ChanSuppressionByPhone(ctx, store.ChanSuppressionByPhoneParams{WorkspaceID: ws.ID, Channel: "sms", Phone: c.Phone}); err == nil && sup.Reason == "opted_out" {
-			return SmsContactChannels{}, api.Conflict("This number opted out by text. Only the person can come back, by texting START.")
+			return SmsContactChannels{}, api.Conflict(say(ctx, mOptedOutByText, nil))
 		}
 		ev.Source = strings.TrimSpace(in.Evidence.Source)
 		ev.Page, ev.ConsentText, ev.ConsentVersion, ev.IP, ev.At = in.Evidence.Page, in.Evidence.ConsentText, in.Evidence.ConsentVersion, in.Evidence.IP, in.Evidence.At
@@ -519,7 +518,7 @@ func (s *Service) queueText(ctx context.Context, ws *store.Workspace, g *graph, 
 func (s *Service) queueTextTx(ctx context.Context, q *store.Queries, tx pgx.Tx, ws *store.Workspace, g *graph, t queuedText) (store.ChannelMessage, error) {
 	n, err := phone.Parse(t.recipient.Phone, "")
 	if err != nil {
-		return store.ChannelMessage{}, api.Invalid("phone", "That isn't a phone number ReputeCast can text.")
+		return store.ChannelMessage{}, api.Invalid("phone", say(ctx, mNotTextable, nil))
 	}
 	now := s.now()
 	zone, zsrc := phone.RecipientZone(t.recipient.Zone, n.E164)
@@ -596,25 +595,4 @@ func (s *Service) queueTextTx(ctx context.Context, q *store.Queries, tx pgx.Tx, 
 		}
 	}
 	return q.ChanMessage(ctx, id)
-}
-
-// emailSourceLabel names where an email subscription came from, as the
-// profile's consent card does ("Brevo import", "preference center").
-func emailSourceLabel(src string) string {
-	switch src {
-	case "preference_center":
-		return "preference center"
-	case "one_click":
-		return "List-Unsubscribe one-click"
-	case "repermission":
-		return "re-permission email"
-	case "team", "manual":
-		return "added by the team"
-	case "api":
-		return "the API"
-	}
-	if strings.HasPrefix(src, "import:") || strings.HasPrefix(src, "form:") {
-		return segments.SourceLabel(src)
-	}
-	return src
 }

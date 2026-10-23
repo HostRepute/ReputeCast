@@ -249,11 +249,11 @@ func (s *Service) accessFor(ctx context.Context, ws *store.Workspace, p *authz.P
 func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Principal, in SmsCampaignCreate) (SmsCampaign, error) {
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		return SmsCampaign{}, api.Invalid("body.name", "Give the campaign a name.")
+		return SmsCampaign{}, api.Invalid("body.name", say(ctx, mNameCampaign, nil))
 	}
 	for _, id := range in.Lists {
 		if _, err := uuid.Parse(id); err != nil {
-			return SmsCampaign{}, api.Invalid("body.lists", "Pick lists of this workspace.")
+			return SmsCampaign{}, api.Invalid("body.lists", say(ctx, mPickLists, nil))
 		}
 	}
 	return s.create(ctx, ws, p, name, Audience{Lists: in.Lists}, strings.TrimSpace(in.Body), nil)
@@ -481,16 +481,16 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	switch c.Status {
 	case "draft", "approval", "approved", "scheduled":
 	default:
-		return SmsCampaign{}, api.Conflict("This campaign already went out; duplicate it to send it again.")
+		return SmsCampaign{}, api.Conflict(say(ctx, mWentOutDuplicate, nil))
 	}
 	if in.Version != int(c.Version) {
-		return SmsCampaign{}, api.Err(http.StatusConflict, "version_conflict", "Someone saved a newer version of this text. Reload to see it.").
+		return SmsCampaign{}, api.Err(http.StatusConflict, "version_conflict", say(ctx, mVersionConflict, nil)).
 			WithMeta("version", c.Version, "by", c.UpdatedByName)
 	}
 	name, body := c.Name, c.Body
 	if in.Name != nil {
 		if strings.TrimSpace(*in.Name) == "" {
-			return SmsCampaign{}, api.Invalid("body.name", "Give the campaign a name.")
+			return SmsCampaign{}, api.Invalid("body.name", say(ctx, mNameCampaign, nil))
 		}
 		name = strings.TrimSpace(*in.Name)
 	}
@@ -501,7 +501,7 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if in.Lists != nil {
 		for _, l := range *in.Lists {
 			if _, err := uuid.Parse(l); err != nil {
-				return SmsCampaign{}, api.Invalid("body.lists", "Pick lists of this workspace.")
+				return SmsCampaign{}, api.Invalid("body.lists", say(ctx, mPickLists, nil))
 			}
 		}
 		aud.Lists = *in.Lists
@@ -509,7 +509,7 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if in.Segments != nil {
 		for _, l := range *in.Segments {
 			if _, err := uuid.Parse(l); err != nil {
-				return SmsCampaign{}, api.Invalid("body.segments", "Pick segments of this workspace.")
+				return SmsCampaign{}, api.Invalid("body.segments", say(ctx, mPickSegments, nil))
 			}
 		}
 		aud.Segments = *in.Segments

@@ -96,7 +96,7 @@ func (s *Service) ContactActivity(ctx context.Context, ws *store.Workspace, cont
 			it.Category = "delivery"
 			it.Detail = senderShown(it.Detail)
 			if it.Subject == "" {
-				it.Subject = contextOf(it.Source)
+				it.Subject = contextIn(lang, contextOf(it.Source))
 			}
 		}
 		if provider != "" {

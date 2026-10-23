@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/sms"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -80,13 +81,14 @@ const eventPage = 25
 
 // Events lists raw provider events beside their normalized ones.
 func (s *Service) Events(ctx context.Context, ws *store.Workspace, f SmsEventFilter) (SmsEventList, error) {
+	l := i18n.LangFrom(ctx)
 	month := monthStart(s.now(), location(ws.Timezone))
 	out := SmsEventList{Items: []SmsEvent{}, Month: month, Page: max(f.Page, 1), PageSize: eventPage, Providers: []SmsSuppressionProvider{}, OptOutSync: []SmsOptOutSyncRow{}}
 	var prov *uuid.UUID
 	if f.Provider != "" {
 		id, err := uuid.Parse(f.Provider)
 		if err != nil {
-			return out, api.Invalid("provider", "Pick an SMS provider of this workspace.")
+			return out, api.Invalid("provider", say(ctx, mPickProvider, nil))
 		}
 		prov = &id
 	}
@@ -158,7 +160,7 @@ func (s *Service) Events(ctx context.Context, ws *store.Workspace, f SmsEventFil
 			if m, err := s.Q.ChanMessage(ctx, msgID); err == nil {
 				e.Number = maskPhone(m.Recipient)
 				e.MessageRef = shortRef(m.ProviderMessageID)
-				e.Source = s.sourceOf(ctx, m)
+				e.Source = s.sourceOf(ctx, l, m)
 			}
 		}
 		// An inbound text: what it did.
@@ -192,7 +194,8 @@ func (s *Service) Events(ctx context.Context, ws *store.Workspace, f SmsEventFil
 			Mode: map[sms.Support]string{sms.Yes: "two_way", sms.Partial: "read_only", sms.No: "off"}[d.Has(sms.CapOptOutSync)]}
 		for _, sy := range syncs {
 			if sy.ProviderID == p.ID {
-				row.Mode, row.Pulled, row.Pushed, row.LastSyncAt, row.Status, row.Detail = sy.Mode, int64(sy.Pulled), int64(sy.Pushed), sy.LastSyncAt, sy.Status, sy.Detail
+				row.Mode, row.Pulled, row.Pushed, row.LastSyncAt, row.Status, row.Detail = sy.Mode, int64(sy.Pulled), int64(sy.Pushed), sy.LastSyncAt, sy.Status,
+					answerIn(l, sy.Detail)
 			}
 		}
 		out.OptOutSync = append(out.OptOutSync, row)
@@ -212,12 +215,13 @@ func shortRef(id string) string {
 	return id[:6] + "…" + id[len(id)-4:]
 }
 
-// sourceOf names what a text was: a campaign, a flow, a confirmation.
-func (s *Service) sourceOf(ctx context.Context, m store.ChannelMessage) string {
+// sourceOf names what a text was: a campaign, a flow, a confirmation (in
+// a reader's language).
+func (s *Service) sourceOf(ctx context.Context, l i18n.Lang, m store.ChannelMessage) string {
 	if n := s.sourceName(ctx, m.CampaignID, m.AutomationID); n != "" {
 		return n
 	}
-	return contextOf(m.Kind)
+	return contextIn(l, contextOf(m.Kind))
 }
 
 func (s *Service) sourceName(ctx context.Context, campaign, automation *uuid.UUID) string {
