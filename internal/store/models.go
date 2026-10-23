@@ -1817,19 +1817,20 @@ type ImportRow struct {
 }
 
 type Incident struct {
-	ID          uuid.UUID  `json:"id"`
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	OccurredAt  time.Time  `json:"occurredAt"`
-	Kind        string     `json:"kind"`
-	Severity    string     `json:"severity"`
-	Title       string     `json:"title"`
-	Detail      string     `json:"detail"`
-	CampaignID  *uuid.UUID `json:"campaignId"`
-	ProviderID  *uuid.UUID `json:"providerId"`
-	ResolvedAt  *time.Time `json:"resolvedAt"`
-	Source      string     `json:"source"`
-	Asset       string     `json:"asset"`
-	ExternalID  *string    `json:"externalId"`
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	OccurredAt  time.Time       `json:"occurredAt"`
+	Kind        string          `json:"kind"`
+	Severity    string          `json:"severity"`
+	Title       string          `json:"title"`
+	Detail      string          `json:"detail"`
+	CampaignID  *uuid.UUID      `json:"campaignId"`
+	ProviderID  *uuid.UUID      `json:"providerId"`
+	ResolvedAt  *time.Time      `json:"resolvedAt"`
+	Source      string          `json:"source"`
+	Asset       string          `json:"asset"`
+	ExternalID  *string         `json:"externalId"`
+	Texts       json.RawMessage `json:"texts"`
 }
 
 type InstalledAdapter struct {

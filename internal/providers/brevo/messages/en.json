@@ -1,0 +1,14 @@
+{
+  "pricing": { "message": "plan, free 300 per day, then from $9 per month for 5,000", "note": "Brevo's pricing model, on a capability chip: Pricing · …" },
+  "dedicatedIps": { "message": "Professional and Enterprise plans, add-on", "note": "when Brevo offers dedicated IPs; Professional and Enterprise are Brevo's plan names" },
+  "terms.0.note": { "message": "Active, explicit, provable opt-in only; no bought or scraped lists. Brevo adds its own unsubscribe header, and its unsubscribes reach the shared list through the webhook.", "note": "what Brevo's terms allow, on Routing" },
+  "events": { "message": "Webhooks", "note": "Sending providers › Adapters: how events come back" },
+  "domainSetup": { "message": "API", "note": "Sending providers › Adapters: how a sending domain is set up" },
+  "suppressionMode": { "message": "Pull only", "note": "Sending providers › Adapters: the suppression sync, which only pulls Brevo's list" },
+  "field.api_key.label": "API key",
+  "field.api_key.help": { "message": "Brevo › SMTP & API › API keys. Starts with xkeysib-.", "note": "Brevo's menu names stay as Brevo writes them; xkeysib- is how the key starts" },
+  "field.monthly_limit.label": { "message": "Plan · emails per month", "note": "the plan's monthly allowance" },
+  "field.monthly_limit.help": "Used for the quota bar when the plan is a monthly allowance.",
+
+  "account": { "message": "{company, select, none {Brevo account} other {{name}}}{plan, select, free { · free plan · {n} emails left{today, select, yes { today} other {}}} subscription { · subscription · {n} emails left} credits { · {n} prepaid credits left} other {}}", "note": "the account's standing on the provider card: the company's name, then its email plan; n: emails or credits left" }
+}

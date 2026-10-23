@@ -1,0 +1,30 @@
+{
+  "summary": {
+    "message": "Pay as you go · US and Canada from $0.0110 per segment, carrier fees included",
+    "note": "the catalog card's line about Twilio's pricing"
+  },
+  "badge.sender_ids.note": {
+    "message": "outside US and Canada",
+    "note": "where alphanumeric sender IDs work: Sender IDs · outside US and Canada"
+  },
+  "badge.opt_out_sync.note": {
+    "message": "from replies and refused texts",
+    "note": "how the opt-out list is learned: Opt-out sync · from replies and refused texts"
+  },
+  "field.account_sid.label": {
+    "message": "Account SID",
+    "note": "Twilio's own name for the field"
+  },
+  "field.api_key_sid.label": {
+    "message": "API key SID",
+    "note": "Twilio's own name for the field"
+  },
+  "field.api_key_secret.label": {
+    "message": "API key secret",
+    "note": "Twilio's own name for the credential"
+  },
+  "field.mode.label": {
+    "message": "Account",
+    "note": "live or test credentials"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "summary": "Trả theo mức dùng · ngay trong tài khoản AWS của bạn, cạnh SES",
+  "field.region.label": "Khu vực",
+  "field.access.label": "Quyền truy cập",
+  "field.role_arn.label": "Role ARN",
+  "field.role_arn.help": "Vai trò do mẫu CloudFormation tạo ra. ReputeCast nhận vai trò này bằng external ID.",
+  "field.external_id.label": "External ID",
+  "field.access_key_id.label": "Access key ID",
+  "field.secret_access_key.label": "Secret access key",
+  "field.opt_out_list.label": "Danh sách hủy nhận"
+}

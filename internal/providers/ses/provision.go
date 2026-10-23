@@ -20,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 )
 
@@ -75,12 +76,18 @@ func withSuffix(name, suffix string) string {
 // ProvisionSteps implements providers.Provisioner.
 func (p *Provider) ProvisionSteps(_ context.Context, in providers.ProvisionInput) []providers.ProvisionStep {
 	topic := withSuffix(TopicName, in.Suffix)
+	step := func(key string, m i18n.Msg, args i18n.Args) providers.ProvisionStep {
+		st := providers.ProvisionStep{Key: key}
+		st.Label, st.LabelText = say(m, args)
+		return st
+	}
 	out := []providers.ProvisionStep{
-		{Key: "sns_topic", Label: "Create SNS topic `" + topic + "` and subscribe `" + in.WebhookURL + "`"},
-		{Key: "sns_confirm", Label: "Confirm SNS subscription (handshake)"},
+		// "Create SNS topic `reputecast-events` and subscribe `https://…`"
+		step("sns_topic", mStepTopic, i18n.Args{"topic": topic, "url": in.WebhookURL}),
+		step("sns_confirm", mStepConfirm, nil),
 	}
 	for _, s := range streamOrder {
-		out = append(out, providers.ProvisionStep{Key: "config_set:" + s, Label: "Create configuration set `" + withSuffix(configSetNames[s], in.Suffix) + "`"})
+		out = append(out, step("config_set:"+s, mStepConfigSet, i18n.Args{"name": withSuffix(configSetNames[s], in.Suffix)}))
 	}
 	return out
 }
@@ -122,10 +129,9 @@ func (p *Provider) provisionTopic(ctx context.Context, in providers.ProvisionInp
 	if !contains(arns, topicARN) {
 		arns = append(arns, topicARN)
 	}
-	return providers.ProvisionResult{
-		Done:     "Created SNS topic `" + name + "` and subscribed `" + in.WebhookURL + "`",
-		Settings: map[string]any{"topic_arns": arns, "topic_arn": topicARN, "subscription_arn": aws.ToString(sub.SubscriptionArn)},
-	}, nil
+	res := providers.ProvisionResult{Settings: map[string]any{"topic_arns": arns, "topic_arn": topicARN, "subscription_arn": aws.ToString(sub.SubscriptionArn)}}
+	res.Done, res.DoneText = say(mDoneTopic, i18n.Args{"topic": name, "url": in.WebhookURL})
+	return res, nil
 }
 
 // subscriptionSettings are the provisioning results kept in the settings.
@@ -149,7 +155,9 @@ func (p *Provider) confirmSubscription(ctx context.Context, _ providers.Provisio
 	if out.Attributes["PendingConfirmation"] == "true" {
 		return providers.ProvisionResult{Pending: true}, nil
 	}
-	return providers.ProvisionResult{Done: "Confirmed SNS subscription (handshake received)"}, nil
+	var res providers.ProvisionResult
+	res.Done, res.DoneText = say(mDoneConfirm, nil)
+	return res, nil
 }
 
 func (p *Provider) provisionConfigSet(ctx context.Context, stream string, in providers.ProvisionInput) (providers.ProvisionResult, error) {
@@ -206,7 +214,9 @@ func (p *Provider) provisionConfigSet(ctx context.Context, stream string, in pro
 			settings["configuration_set"] = name
 		}
 	}
-	return providers.ProvisionResult{Done: "Created configuration set `" + name + "` with event destination, tracking off", Settings: settings}, nil
+	res := providers.ProvisionResult{Settings: settings}
+	res.Done, res.DoneText = say(mDoneConfigSet, i18n.Args{"name": name})
+	return res, nil
 }
 
 func isAWSCode(err error, code string) bool {

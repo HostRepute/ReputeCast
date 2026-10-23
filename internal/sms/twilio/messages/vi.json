@@ -1,0 +1,9 @@
+{
+  "summary": "Trả theo mức dùng · Mỹ và Canada từ 0,0110 US$ mỗi đoạn tin, đã gồm phí nhà mạng",
+  "badge.sender_ids.note": "ngoài Mỹ và Canada",
+  "badge.opt_out_sync.note": "từ tin trả lời và tin bị từ chối",
+  "field.account_sid.label": "Account SID",
+  "field.api_key_sid.label": "API key SID",
+  "field.api_key_secret.label": "API key secret",
+  "field.mode.label": "Tài khoản"
+}

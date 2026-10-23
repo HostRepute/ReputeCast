@@ -1,0 +1,42 @@
+{
+  "label.webhooks": { "message": "webhooks", "note": "a community adapter's capability on the Adapters tab, in a list: webhooks · suppression pull · batch 50" },
+  "label.suppressionPull": { "message": "suppression pull", "note": "it pulls the provider's suppression list" },
+  "label.suppressionPush": { "message": "suppression push", "note": "it pushes the shared suppression list to the provider" },
+  "label.suppressionSync": { "message": "suppression sync", "note": "both ways" },
+  "label.batch": { "message": "batch {n}", "note": "n: messages per call" },
+  "label.domainAPI": "domain setup via API",
+  "label.domainDKIM": "DKIM via API",
+  "label.quota": "quota discovery",
+  "label.quotaRate": "quota & rate discovery",
+
+  "terms.allowed": { "message": "The adapter's manifest says the provider's terms allow bulk marketing to opted-in lists.", "note": "what a community adapter's provider allows, on Routing, when its manifest says nothing more" },
+  "terms.forbidden": "The adapter's manifest says the provider's terms forbid bulk marketing: use it for Automations and System mail.",
+  "terms.yourPolicy": "Self-hosted: your own policy applies.",
+
+  "events.webhooks": { "message": "Webhooks", "note": "Sending providers › Adapters: how events come back" },
+  "events.none": { "message": "None", "note": "Sending providers › Adapters: no events come back" },
+  "domain.api": { "message": "API", "note": "Sending providers › Adapters: how a sending domain is set up" },
+  "domain.dkim": "DKIM via API",
+  "domain.manual": { "message": "Manual DNS", "note": "the domain's DNS records are added by hand" },
+  "suppression.pull": { "message": "Pull only", "note": "Sending providers › Adapters: the suppression sync" },
+  "suppression.push": "Push only",
+  "suppression.twoWay": "Two-way",
+  "suppression.local": { "message": "Local only", "note": "suppressions are kept in ReputeCast only" },
+
+  "call.endpointRefused": { "message": "The address set for the {name} adapter is refused: {error}.", "note": "a call to a community adapter failed; error: why the address is refused" },
+  "call.noAddress": { "message": "The {name} adapter has no address yet. An instance admin sets it with `reputecast adapter set-url {id} '<url>'`.", "note": "the command between backticks is a command line: keep it as it is" },
+  "call.paused": { "message": "The {name} adapter isn't answering, so ReputeCast pauses calls to it until {until}.", "note": "until: a time, 14:02:11 UTC" },
+  "call.busy": { "message": "{count} calls to the {name} adapter were already waiting.", "note": "count: calls" },
+  "call.unreachable": { "message": "The {name} adapter can't be reached: {error}.", "note": "error: what the network said" },
+  "call.cutOff": "The {name} adapter's answer was cut off: {error}.",
+  "call.invalid": { "message": "The {name} adapter answered {op} outside the protocol: {error}.", "note": "op: the protocol operation (send); error: what was wrong with the answer" },
+  "call.signature": { "message": "The {name} adapter rejected ReputeCast's signature. Issue a new secret with `reputecast adapter secret {id}`, set it on the adapter process, and check both clocks.", "note": "the command between backticks is a command line: keep it as it is" },
+  "call.refused": { "message": "The {name} adapter refused the request: {error}", "note": "error: the adapter's own message" },
+  "call.failed": { "message": "The {name} adapter failed: {error}", "note": "error: the adapter's own message" },
+
+  "problem.manifestUnusable": { "message": "This manifest can't be used: {error}.", "note": "error: what is wrong with it" },
+  "problem.keyTaken": { "message": "{other} is already registered as {key}. Update or remove it, or install the adapter under another id.", "note": "other: an installed adapter's name; key: community:example-esp" },
+  "problem.address": { "message": "This address can't be used: {error}.", "note": "error: why the address is refused" },
+  "problem.inUse": { "message": "{count} connected provider(s) use {name}. Disconnect them first.", "note": "count: connected providers" },
+  "problem.adminOnly": "Community adapters run for every workspace on this instance, so only instance admins can see or change where they run."
+}

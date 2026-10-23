@@ -1,0 +1,16 @@
+{
+  "pricing": "tự lưu trữ",
+  "terms.0.variant": "tự lưu trữ",
+  "terms.0.note": "Bạn tự vận hành máy chủ, nên chính sách sử dụng của nhà cung cấp hosting của bạn sẽ được áp dụng.",
+  "events": "Webhook",
+  "domainSetup": "DNS thủ công",
+  "suppressionMode": "Chỉ cục bộ",
+  "field.server_url.label": "URL máy chủ",
+  "field.server_url.help": "Địa chỉ giao diện web Postal của bạn, ví dụ https://mta.acme.io.",
+  "field.api_key.label": "Khóa API",
+  "field.api_key.help": "Postal › máy chủ thư của bạn › Credentials › API.",
+
+  "account": "Postal{hasVersion, select, yes { {version}} other {}} · truy cập được",
+  "error.badKey": "Khóa API không được chấp nhận.",
+  "error.suspended": "Máy chủ thư Postal đang bị tạm ngưng."
+}

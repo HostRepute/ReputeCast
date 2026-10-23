@@ -473,3 +473,16 @@
 :root:not([lang='en']) .pl-labels-count {
   white-space: nowrap;
 }
+
+/* Rule 6: panel tabs (PanelTabs: the composer's inspector, Blocks · Layers ·
+   Templates…) keep their words whole and scroll sideways when they don't fit
+   ("Khả năng tiếp cận · 6" ran past the composer's right edge at 1440). */
+:root:not([lang='en']) .ptab {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+:root:not([lang='en']) .ptab button {
+  flex: 1 0 auto;
+  padding: 0 10px;
+  white-space: nowrap;
+}

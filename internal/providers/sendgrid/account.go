@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 )
 
@@ -68,13 +69,10 @@ func (p *Provider) Quota(ctx context.Context) (providers.Quota, error) {
 	err = p.api.Do(ctx, "GET /v3/user/account", http.MethodGet, "/v3/user/account", nil, &acct)
 	switch {
 	case err == nil:
-		kind := "Paid account"
-		if acct.Type == "free" {
-			kind = "Free account"
-		}
-		q.Account = kind + " · reputation " + strconv.FormatFloat(acct.Reputation, 'f', -1, 64) + "%"
+		// "Paid account · reputation 99.5%"
+		q.Account, q.AccountText = say(mAccount, i18n.Args{"kind": acct.Type, "reputation": acct.Reputation})
 	case restricted(err):
-		q.Account = "Restricted API key · account details need more scopes"
+		q.Account, q.AccountText = say(mAccountRestricted, nil)
 	default:
 		return providers.Quota{}, classify(err)
 	}
@@ -140,7 +138,9 @@ func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 		id = saved.ID
 	}
 	if id == "" {
-		return &providers.CallError{Op: "POST /v3/user/webhooks/event/settings", Message: "SendGrid didn't return the webhook's id"}
+		ce := &providers.CallError{Op: "POST /v3/user/webhooks/event/settings"}
+		ce.Message, ce.Text = say(mNoWebhookID, nil)
+		return ce
 	}
 	var signed struct {
 		PublicKey string `json:"public_key"`
@@ -267,7 +267,9 @@ func (p *Provider) DomainStatus(ctx context.Context, domain string) ([]providers
 		return nil, err
 	}
 	if d == nil {
-		return nil, &providers.CallError{Op: "GET /v3/whitelabel/domains", Status: http.StatusNotFound, Message: domain + " is not authenticated in SendGrid"}
+		ce := &providers.CallError{Op: "GET /v3/whitelabel/domains", Status: http.StatusNotFound}
+		ce.Message, ce.Text = say(mDomainMissing, i18n.Args{"domain": domain})
+		return nil, ce
 	}
 	var results map[string]struct {
 		Valid  bool    `json:"valid"`
@@ -396,18 +398,17 @@ func (p *Provider) Tracking(ctx context.Context) (providers.Tracking, error) {
 	if err := p.api.Do(ctx, "GET /v3/tracking_settings/open", http.MethodGet, "/v3/tracking_settings/open", nil, &open); err != nil {
 		return providers.Tracking{}, err
 	}
-	t := providers.Tracking{Scope: "Every message ReputeCast sends"}
-	var on []string
-	if open.Enabled {
-		on = append(on, "open")
-	}
-	if click.Enabled {
-		on = append(on, "click")
-	}
-	if len(on) == 0 {
-		t.Detail = "Open and click tracking are off for the account and on every message ReputeCast sends."
-	} else {
-		t.Detail = "Account-level " + strings.Join(on, " and ") + " tracking is on, but ReputeCast turns SendGrid's tracking off on every message it sends."
+	t := providers.Tracking{}
+	t.Scope, t.ScopeText = say(mTrackingScope, nil)
+	switch {
+	case open.Enabled && click.Enabled:
+		t.Detail, t.DetailText = say(mTrackingOn, i18n.Args{"on": "both"})
+	case open.Enabled:
+		t.Detail, t.DetailText = say(mTrackingOn, i18n.Args{"on": "open"})
+	case click.Enabled:
+		t.Detail, t.DetailText = say(mTrackingOn, i18n.Args{"on": "click"})
+	default:
+		t.Detail, t.DetailText = say(mTrackingOff, nil)
 	}
 	return t, nil
 }

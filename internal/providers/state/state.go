@@ -9,6 +9,13 @@
 // are only ever added. Percentages are plain percent values (0.1 means
 // 0.1%), money is US dollars, times are UTC.
 //
+// Texts people read later (the account's standing, a status page's
+// incident, a tracking detail, an error ReputeCast or the adapter worded)
+// keep their English and, beside it, the message they come from as an
+// i18n.Text (AccountText, SummaryText…): read them with
+// providers.TextIn(english, text, lang). Rows written before the messages
+// were kept read in English.
+//
 // A provider whose providers.config holds "demo": true is sample data:
 // background jobs never call its API and the sending engine simulates it.
 package state
@@ -18,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -79,6 +87,9 @@ type CallRecord struct {
 	Status  int       `json:"status,omitempty"`
 	Code    string    `json:"code,omitempty"`
 	Message string    `json:"message,omitempty"`
+	// Text is the message Message comes from when ReputeCast or the adapter
+	// worded it (providers.CallError.Text); a provider's own answer has none.
+	Text i18n.Text `json:"text,omitzero"`
 }
 
 // Quota is the provider's sending allowance.
@@ -119,6 +130,8 @@ type ProviderStatus struct {
 	Incident  bool      `json:"incident"`
 	Summary   string    `json:"summary,omitempty"`
 	CheckedAt time.Time `json:"checkedAt"`
+	// SummaryText is the message Summary comes from.
+	SummaryText i18n.Text `json:"summaryText,omitzero"`
 }
 
 // WebhookCheck is one finding of the webhooks-silent diagnosis.
@@ -131,6 +144,8 @@ type WebhookCheck struct {
 	URL    string     `json:"url,omitempty"`
 	Count  *int64     `json:"count,omitempty"`
 	Queued *int64     `json:"queued,omitempty"`
+	// DetailText is the message Detail comes from.
+	DetailText i18n.Text `json:"detailText,omitzero"`
 }
 
 // WebhookState is the webhook freshness of a provider.
@@ -150,8 +165,10 @@ type Health struct {
 	Quota *Quota `json:"quota,omitempty"`
 	Rate  *Rate  `json:"rate,omitempty"`
 	// Account is the account standing as the provider reports it
-	// ("Production · no enforcement", "Approved · 10,000 per month plan").
-	Account string `json:"account,omitempty"`
+	// ("Production · no enforcement", "Approved · 10,000 per month plan"),
+	// and AccountText the message it comes from.
+	Account     string    `json:"account,omitempty"`
+	AccountText i18n.Text `json:"accountText,omitzero"`
 	// Sandbox is true while the account can only send to verified addresses.
 	Sandbox bool `json:"sandbox,omitempty"`
 	// ConsecutiveFailures counts failed health checks in a row.
@@ -214,8 +231,10 @@ type Pricing struct {
 	Per1000 float64 `json:"per1000,omitempty"`
 	// Monthly is the plan or server price per month.
 	Monthly float64 `json:"monthly,omitempty"`
-	// Source explains the per-1,000 figure for metered pricing ("AWS pricing").
-	Source string `json:"source,omitempty"`
+	// Source explains the per-1,000 figure for metered pricing ("AWS
+	// pricing"); SourceText is its message, for readers in other languages.
+	Source     string    `json:"source,omitempty"`
+	SourceText i18n.Text `json:"sourceText,omitzero"`
 	// NextTier is the next plan step ("adds 50,000 for $115").
 	NextTier *NextTier `json:"nextTier,omitempty"`
 }
@@ -280,6 +299,9 @@ type Tracking struct {
 	// set"); Scope is where (a configuration set, a message stream).
 	Detail string `json:"detail,omitempty"`
 	Scope  string `json:"scope,omitempty"`
+	// DetailText and ScopeText are the messages Detail and Scope come from.
+	DetailText i18n.Text `json:"detailText,omitzero"`
+	ScopeText  i18n.Text `json:"scopeText,omitzero"`
 	// Mode is "reputecast" (ours, the default) or "provider" when a person
 	// chose to keep the provider's tracking and ignore ReputeCast's.
 	Mode      string     `json:"mode,omitempty"`

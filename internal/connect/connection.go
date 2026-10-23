@@ -21,6 +21,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
@@ -115,13 +116,14 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 		return ConnectSetup{}, err
 	}
 	if st.Status == "abandoned" {
-		return ConnectSetup{}, api.Conflict("This setup was cancelled. Start again from the catalog.")
+		return ConnectSetup{}, conflict(ctx, mProblemCancelled, nil)
 	}
-	d, err := descriptor(st.Adapter)
+	d, err := descriptor(ctx, st.Adapter)
 	if err != nil {
 		return ConnectSetup{}, err
 	}
-	c := copyFor(d)
+	l := i18n.LangFrom(ctx)
+	c := copyFor(l, d)
 	var prov *store.Provider
 	if st.ProviderID != nil {
 		if p, err := s.Q.ProvGet(ctx, store.ProvGetParams{WorkspaceID: ws.ID, ID: *st.ProviderID}); err == nil {
@@ -134,16 +136,16 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 	switch flow {
 	case "ses":
 		if in.SES == nil {
-			return ConnectSetup{}, api.Invalid("body.ses", "Choose how ReputeCast gets AWS access.")
+			return ConnectSetup{}, api.Invalid("body.ses", mProblemChooseAccess.Text(l, nil))
 		}
-		b, err = s.sesConfig(prov, state, *in.SES)
+		b, err = s.sesConfig(l, prov, state, *in.SES)
 	case "smtp":
 		if in.SMTP == nil {
-			return ConnectSetup{}, api.Invalid("body.smtp", "Enter the SMTP server.")
+			return ConnectSetup{}, api.Invalid("body.smtp", mProblemEnterSMTP.Text(l, nil))
 		}
-		b, err = s.smtpConfig(prov, *in.SMTP)
+		b, err = s.smtpConfig(l, prov, *in.SMTP)
 	default:
-		b, err = s.apiConfig(d, prov, in.Values)
+		b, err = s.apiConfig(l, d, prov, in.Values)
 	}
 	if err != nil {
 		return ConnectSetup{}, err
@@ -162,7 +164,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 		}
 		b.token = w.Token
 		if in.PublicURL != "" {
-			tunnel, err := tunnelURL(in.PublicURL)
+			tunnel, err := tunnelURL(l, in.PublicURL)
 			if err != nil {
 				return ConnectSetup{}, err
 			}
@@ -183,7 +185,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 	}
 	adapter, err := newAdapter(d, providerID, ws.ID, b, webhookSecret, s.httpClient())
 	if err != nil {
-		return s.connectFailed(ctx, ws, st, state, b, &StepError{Code: "invalid_settings", Message: "These settings can't be used: " + err.Error()})
+		return s.connectFailed(ctx, ws, st, state, b, stepError("", "invalid_settings", "", mErrorSettings, i18n.Args{"error": err.Error()}))
 	}
 	now := s.now()
 	quota := providers.Quota{}
@@ -201,9 +203,9 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 		cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		rep, err := ct.TestConnection(cctx)
 		cancel()
-		probe = &ProbeState{OK: err == nil, At: now, Summary: rep.Summary, Transcript: rep.Transcript}
+		probe = &ProbeState{OK: err == nil, At: now, Summary: rep.Summary, SummaryText: rep.SummaryText, Transcript: rep.Transcript}
 		if err != nil {
-			probe.Error = callMessage(err)
+			probe.Error, probe.ErrorText = callMessage(err), callText(err)
 			state.Connection.SMTP = probe
 			return s.connectFailed(ctx, ws, st, state, b, smtpError(err))
 		}
@@ -217,7 +219,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 			quota, err = v.Verify(cctx)
 			cancel()
 			if err != nil {
-				return s.connectFailed(ctx, ws, st, state, b, keyError(d, c, b, err))
+				return s.connectFailed(ctx, ws, st, state, b, keyError(d, b, err))
 			}
 		}
 		if ai, ok := adapter.(providers.AccountIdentifier); ok {
@@ -234,7 +236,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 		return ConnectSetup{}, err
 	}
 	state.Connection.Status, state.Connection.At, state.Connection.Error = "connected", &now, nil
-	state.Connection.Account, state.Connection.AccountID = quota.Account, accountID
+	state.Connection.Account, state.Connection.AccountText, state.Connection.AccountID = quota.Account, quota.AccountText, accountID
 	state.Connection.Settings = map[string]string{}
 	for k, v := range b.settings {
 		if s, ok := v.(string); ok {
@@ -252,8 +254,8 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, rawID string
 		state.Connection.Summary = stringOf(b.settings["host"])
 		state.Connection.Webhook = &WebhookState{Mode: "mailbox"}
 	default:
-		state.Connection.Summary = connectionSummary(quota, b)
-		s.setupEvents(ctx, d, c, p, &state, now)
+		state.Connection.Summary = apiSummary(i18n.Default, b.label, quota.Account)
+		s.setupEvents(ctx, d, p, &state, now)
 	}
 	st.ProviderID = &p.ID
 	out, err := s.saveSetup(ctx, ws, st, state, "provider.connect_check", map[string]any{"adapter": d.Adapter, "result": "connected"})
@@ -274,21 +276,6 @@ func stringOf(v any) string {
 		return ""
 	}
 	return fmt.Sprint(v)
-}
-
-// connectionSummary is the stepper's line for an API provider.
-func connectionSummary(q providers.Quota, b built) string {
-	parts := []string{}
-	if b.label != "" {
-		parts = append(parts, b.label)
-	}
-	if q.Account != "" {
-		parts = append(parts, strings.ToLower(strings.SplitN(q.Account, " · ", 2)[0]))
-	}
-	if len(parts) == 0 {
-		return "connected"
-	}
-	return strings.Join(parts, " · ")
 }
 
 // saveSetup writes the setup with an audit entry.
@@ -320,7 +307,7 @@ func (s *Service) connectFailed(ctx context.Context, ws *store.Workspace, st sto
 		w.SelfTest = Preflight(ctx, w.URL, now, s.AllowPrivateURL)
 		w.Registration = nil
 		if w.SelfTest != nil {
-			w.Registration = &Registration{Status: "skipped", At: now, Detail: "after the endpoint is reachable"}
+			w.Registration = skippedRegistration(now)
 		}
 	}
 	if state.Connection.Settings == nil {
@@ -404,10 +391,18 @@ func newAdapter(d providers.Descriptor, providerID, wsID uuid.UUID, b built, web
 
 // apiConfig splits the generic form into settings and credentials, keeping
 // stored secrets the person didn't replace.
-func (s *Service) apiConfig(d providers.Descriptor, prov *store.Provider, values map[string]string) (built, error) {
+func (s *Service) apiConfig(l i18n.Lang, d providers.Descriptor, prov *store.Provider, values map[string]string) (built, error) {
 	values = clean(values)
 	b := built{settings: currentSettings(prov), creds: s.currentCreds(prov)}
 	delete(b.settings, "demo")
+	// "Enter the API key.": the field's label inside the sentence.
+	enter := func(f providers.Field) error {
+		field := strings.ToLower(f.Label)
+		if !english(l) {
+			field = lowerFirst(f.In(l).Label)
+		}
+		return api.Invalid("body.values."+f.Key, mProblemEnterField.Text(l, i18n.Args{"field": field}))
+	}
 	for _, f := range d.Fields {
 		v := values[f.Key]
 		switch {
@@ -415,34 +410,26 @@ func (s *Service) apiConfig(d providers.Descriptor, prov *store.Provider, values
 			b.creds[f.Key] = v
 		case f.Secret:
 			if _, ok := b.creds[f.Key]; !ok && f.Required {
-				return b, api.Invalid("body.values."+f.Key, "Enter the "+strings.ToLower(f.Label)+".")
+				return b, enter(f)
 			}
 		case v != "" && fieldType(f) == fieldNumber:
 			n, ok := wholeNumber(v)
 			if !ok {
-				return b, api.Invalid("body.values."+f.Key, "Enter a whole number, like 10000.")
+				return b, api.Invalid("body.values."+f.Key, mProblemWholeNumber.Text(l, nil))
 			}
 			b.settings[f.Key] = n
 		case v != "":
 			b.settings[f.Key] = v
 		case f.Required:
 			if _, ok := b.settings[f.Key]; !ok {
-				return b, api.Invalid("body.values."+f.Key, "Enter the "+strings.ToLower(f.Label)+".")
+				return b, enter(f)
 			}
 		}
 		if !f.Secret && len(f.Options) > 0 && v != "" && !contains(f.Options, v) {
-			return b, api.Invalid("body.values."+f.Key, "Pick one of the listed values.")
+			return b, api.Invalid("body.values."+f.Key, mProblemPickListed.Text(l, nil))
 		}
 	}
-	for _, key := range []string{"region", "server", "message_stream", "server_url"} {
-		if v := stringOf(b.settings[key]); v != "" {
-			if u, err := url.Parse(v); err == nil && u.Host != "" {
-				v = u.Host
-			}
-			b.label = v
-			break
-		}
-	}
+	b.label = labelOf(func(k string) string { return stringOf(b.settings[k]) })
 	return b, nil
 }
 
@@ -486,7 +473,7 @@ func contains(xs []string, s string) bool {
 var roleARN = regexp.MustCompile(`^arn:aws[a-z-]*:iam::\d{12}:role/[\w+=,.@/-]+$`)
 
 // sesConfig is the SES path: role (from the stack's output) or keys.
-func (s *Service) sesConfig(prov *store.Provider, state State, in ConnectSESInput) (built, error) {
+func (s *Service) sesConfig(l i18n.Lang, prov *store.Provider, state State, in ConnectSESInput) (built, error) {
 	b := built{settings: currentSettings(prov), creds: map[string]any{}}
 	delete(b.settings, "demo")
 	region := strings.TrimSpace(in.Region)
@@ -505,7 +492,7 @@ func (s *Service) sesConfig(prov *store.Provider, state State, in ConnectSESInpu
 			arn = state.Connection.RoleARN
 		}
 		if !roleARN.MatchString(arn) {
-			return b, api.Invalid("body.ses.roleArn", "Paste the RoleArn output of the stack, like arn:aws:iam::123456789012:role/ReputeCastSES.")
+			return b, api.Invalid("body.ses.roleArn", mProblemRoleARN.Text(l, nil))
 		}
 		b.settings["role_arn"], b.settings["external_id"] = arn, state.Connection.ExternalID
 	default:
@@ -518,10 +505,10 @@ func (s *Service) sesConfig(prov *store.Provider, state State, in ConnectSESInpu
 			secret = stringOf(cur["secret_access_key"])
 		}
 		if !strings.HasPrefix(id, "AKIA") && !strings.HasPrefix(id, "ASIA") || len(id) < 16 {
-			return b, api.Invalid("body.ses.accessKeyId", "Paste an access key id; it starts with AKIA.")
+			return b, api.Invalid("body.ses.accessKeyId", mProblemAccessKeyID.Text(l, nil))
 		}
 		if secret == "" {
-			return b, api.Invalid("body.ses.secretAccessKey", "Paste the secret access key.")
+			return b, api.Invalid("body.ses.secretAccessKey", mProblemSecretKey.Text(l, nil))
 		}
 		delete(b.settings, "role_arn")
 		delete(b.settings, "external_id")
@@ -538,12 +525,12 @@ func numberIn(s string) float64 {
 }
 
 // smtpConfig is the SMTP path's outgoing server.
-func (s *Service) smtpConfig(prov *store.Provider, in ConnectSMTPInput) (built, error) {
+func (s *Service) smtpConfig(l i18n.Lang, prov *store.Provider, in ConnectSMTPInput) (built, error) {
 	b := built{settings: currentSettings(prov), creds: s.currentCreds(prov)}
 	delete(b.settings, "demo")
 	host := strings.ToLower(strings.TrimSpace(in.Host))
 	if strings.ContainsAny(host, " /:@") || host == "" {
-		return b, api.Invalid("body.smtp.host", "Enter the server's host name, like smtp.example.com.")
+		return b, api.Invalid("body.smtp.host", mProblemSMTPHost.Text(l, nil))
 	}
 	b.settings["host"], b.settings["port"], b.settings["tls"] = host, in.Port, in.TLS
 	b.settings["username"] = strings.TrimSpace(in.Username)
@@ -565,8 +552,15 @@ func (s *Service) smtpConfig(prov *store.Provider, in ConnectSMTPInput) (built, 
 	return b, nil
 }
 
+// stepError is why a step failed: the message's English, and the message
+// kept for the setup's later readers.
+func stepError(field, code, detail string, m i18n.Msg, args i18n.Args) *StepError {
+	msg, text := say(m, args)
+	return &StepError{Field: field, Code: code, Detail: detail, Message: msg, Texts: []i18n.Text{text}}
+}
+
 // keyError explains a rejected credential check.
-func keyError(d providers.Descriptor, c adapterCopy, b built, err error) *StepError {
+func keyError(d providers.Descriptor, b built, err error) *StepError {
 	field := ""
 	for _, f := range d.Fields {
 		if f.Secret {
@@ -595,33 +589,27 @@ func keyError(d providers.Descriptor, c adapterCopy, b built, err error) *StepEr
 			low := strings.ToLower(err.Error())
 			if strings.Contains(low, "ec2 imds") || strings.Contains(low, "no valid credential") || strings.Contains(low, "failed to refresh cached credentials") ||
 				strings.Contains(low, "get identity") || strings.Contains(low, "could not find") {
-				return &StepError{Field: field, Code: "no_host_identity", Detail: detail,
-					Message: "ReputeCast couldn't assume the role: this server has no AWS credentials of its own to assume it with. Run ReputeCast with an AWS identity (an instance role or AWS_* variables), or use IAM access keys."}
+				return stepError(field, "no_host_identity", detail, mErrorNoHostIdentity, nil)
 			}
-			return &StepError{Field: field, Code: "role_rejected", Detail: detail,
-				Message: "AWS didn't let ReputeCast assume this role. Check that the stack finished, that the ARN is its RoleArn output, and that the external id wasn't changed."}
+			return stepError(field, "role_rejected", detail, mErrorRoleRejected, nil)
 		}
 		field = "access_key_id"
 	}
 	if netguard.IsBlocked(err) {
 		why := netguard.Describe(context.Background(), err)
-		return &StepError{Field: urlField(d), Code: "address_blocked", Detail: why,
-			Message: "ReputeCast won't connect to that address: `" + strings.ReplaceAll(why, "`", "'") + "`. Provider URLs can't point at private, loopback or cloud metadata addresses unless an instance admin turns on providers.allow_private_networks."}
+		return stepError(urlField(d), "address_blocked", why, mErrorProviderAddressBlocked, i18n.Args{"why": strings.ReplaceAll(why, "`", "'")})
 	}
 	if errors.Is(err, providers.ErrUnauthorized) || ce != nil && ce.Auth {
 		// "Mailgun rejected this key: `401 Unauthorized · Forbidden`. Check…"
-		msg := d.Name + " rejected this key"
-		if detail != "" {
-			msg += ": `" + strings.ReplaceAll(detail, "`", "'") + "`"
+		e := stepError(field, "invalid_credentials", detail, mErrorKeyRejected,
+			i18n.Args{"name": d.Name, "hasDetail": yesNo(detail != ""), "detail": strings.ReplaceAll(detail, "`", "'")})
+		if hint, text, ok := keyHint(d); ok {
+			e.Message += " " + hint
+			e.Texts = append(e.Texts, text)
 		}
-		msg += "."
-		if c.KeyHint != "" {
-			msg += " " + c.KeyHint
-		}
-		return &StepError{Field: field, Code: "invalid_credentials", Detail: detail, Message: msg}
+		return e
 	}
-	return &StepError{Field: field, Code: "provider_unavailable", Detail: detail,
-		Message: d.Name + " didn't answer the check. Nothing was saved; try again in a moment."}
+	return stepError(field, "provider_unavailable", detail, mErrorUnavailable, i18n.Args{"name": d.Name})
 }
 
 // checkHost refuses a mail server host that is, or resolves to, a loopback,
@@ -659,8 +647,7 @@ func (s *Service) checkHost(ctx context.Context, host string) error {
 // hostBlocked explains a mail server address the policy refuses.
 func hostBlocked(field string, err error) *StepError {
 	why := strings.ReplaceAll(err.Error(), "`", "'")
-	return &StepError{Field: field, Code: "address_blocked", Detail: why,
-		Message: "ReputeCast won't connect to that address: `" + why + "`. Mail servers can't be on private, loopback or cloud metadata addresses unless an instance admin turns on providers.allow_private_networks."}
+	return stepError(field, "address_blocked", why, mErrorMailAddressBlocked, i18n.Args{"why": why})
 }
 
 func smtpError(err error) *StepError {
@@ -669,7 +656,11 @@ func smtpError(err error) *StepError {
 	if errors.As(err, &ce) && ce.Auth {
 		field = "password"
 	}
-	return &StepError{Field: field, Code: "smtp_failed", Message: callMessage(err), Detail: callDetail(err)}
+	e := &StepError{Field: field, Code: "smtp_failed", Message: callMessage(err), Detail: callDetail(err)}
+	if t := callText(err); !t.IsZero() {
+		e.Texts = []i18n.Text{t}
+	}
+	return e
 }
 
 func callMessage(err error) string {
@@ -703,7 +694,8 @@ func pricingOf(d providers.Descriptor) state.Pricing {
 	}
 	if m := regexp.MustCompile(`\$([0-9.]+) per 1,000`).FindStringSubmatch(p); m != nil {
 		v, _ := strconv.ParseFloat(m[1], 64)
-		return state.Pricing{Model: "metered", Per1000: v, Source: d.Name + " pricing"}
+		source, text := say(mPricingSource, i18n.Args{"name": d.Name})
+		return state.Pricing{Model: "metered", Per1000: v, Source: source, SourceText: text}
 	}
 	return state.Pricing{Model: "metered"}
 }
@@ -820,9 +812,16 @@ func (s *Service) webhookBase(override string) string {
 	return s.URLs.Base()
 }
 
+// skippedRegistration is a registration that waits for the endpoint.
+func skippedRegistration(now time.Time) *Registration {
+	r := &Registration{Status: "skipped", At: now}
+	r.Detail, r.DetailText = say(mRegistrationAfterReachable, nil)
+	return r
+}
+
 // setupEvents tests the webhook endpoint the way the provider would reach
 // it and, when reachable, registers it at the provider.
-func (s *Service) setupEvents(ctx context.Context, d providers.Descriptor, c adapterCopy, p store.Provider, st *State, now time.Time) {
+func (s *Service) setupEvents(ctx context.Context, d providers.Descriptor, p store.Provider, st *State, now time.Time) {
 	w := st.Connection.Webhook
 	if w == nil {
 		w = &WebhookState{Mode: "webhook"}
@@ -841,7 +840,7 @@ func (s *Service) setupEvents(ctx context.Context, d providers.Descriptor, c ada
 	reach := s.reachable(ctx, w.URL, p)
 	w.SelfTest = &reach
 	if !reach.OK {
-		w.Registration = &Registration{Status: "skipped", At: now, Detail: "after the endpoint is reachable"}
+		w.Registration = skippedRegistration(now)
 		st.Connection.Webhook = w
 		return
 	}
@@ -858,7 +857,9 @@ func (s *Service) setupEvents(ctx context.Context, d providers.Descriptor, c ada
 	}
 	wr, ok := adapter.(providers.WebhookRegistrar)
 	if !ok {
-		w.Registration = &Registration{Status: "manual", At: now, Detail: "Add this URL as a webhook in " + d.Name + ": " + w.URL}
+		reg := &Registration{Status: "manual", At: now}
+		reg.Detail, reg.DetailText = say(mRegistrationManual, i18n.Args{"name": d.Name, "url": w.URL})
+		w.Registration = reg
 		w.NeedsSecret, w.SecretHeader = manualSecret(adapter, s.currentCreds(&p))
 		st.Connection.Webhook = w
 		return
@@ -867,9 +868,11 @@ func (s *Service) setupEvents(ctx context.Context, d providers.Descriptor, c ada
 	err = wr.RegisterWebhook(cctx, w.URL)
 	cancel()
 	if err != nil {
-		w.Registration = &Registration{Status: "failed", At: now, Detail: callMessage(err)}
+		w.Registration = &Registration{Status: "failed", At: now, Detail: callMessage(err), DetailText: callText(err)}
 	} else {
-		w.Registration = &Registration{Status: "done", At: now, Detail: c.WebhookEvents}
+		reg := &Registration{Status: "done", At: now}
+		reg.Detail, reg.DetailText = webhookEvents(d)
+		w.Registration = reg
 	}
 	st.Connection.Webhook = w
 }
@@ -919,7 +922,7 @@ func (s *Service) WebhookSecret(ctx context.Context, ws *store.Workspace, rawID 
 	}
 	w := decodeState(st.State).Connection.Webhook
 	if w == nil || !w.NeedsSecret {
-		return ConnectWebhookSecret{}, api.Conflict("This provider's webhooks don't use a secret from ReputeCast.")
+		return ConnectWebhookSecret{}, conflict(ctx, mProblemNoSecret, nil)
 	}
 	secret := randomToken(24)
 	sealed, err := s.Box.SealString(secret, manage.WebhookSecretAD(p))
@@ -956,7 +959,7 @@ func SelfTest(ctx context.Context, rawURL, token string, now time.Time, allowPri
 	out := SelfTestState{At: now}
 	u, err := url.Parse(rawURL)
 	if err != nil || u.Host == "" {
-		out.Code, out.Reason = "EINVAL", "the public URL isn't a valid URL"
+		out.fail("EINVAL", mReasonInvalidURL, nil)
 		return out
 	}
 	if allowPrivate {
@@ -978,7 +981,9 @@ func Preflight(ctx context.Context, rawURL string, now time.Time, allowPrivate b
 	}
 	u, err := url.Parse(rawURL)
 	if err != nil || u.Host == "" {
-		return &SelfTestState{At: now, Code: "EINVAL", Reason: "the public URL isn't a valid URL"}
+		out := &SelfTestState{At: now}
+		out.fail("EINVAL", mReasonInvalidURL, nil)
+		return out
 	}
 	if bad, ok := unreachable(ctx, u, now); ok {
 		return &bad
@@ -986,17 +991,26 @@ func Preflight(ctx context.Context, rawURL string, now time.Time, allowPrivate b
 	return nil
 }
 
+// fail records why a self-test failed: the error class, and the reason
+// kept for later readers.
+func (t *SelfTestState) fail(code string, m i18n.Msg, args i18n.Args) {
+	t.Code = code
+	t.Reason, t.ReasonText = say(m, args)
+}
+
 // unreachable reports a URL no provider can reach from the internet.
 func unreachable(ctx context.Context, u *url.URL, now time.Time) (SelfTestState, bool) {
 	out := SelfTestState{At: now}
 	host := strings.ToLower(u.Hostname())
 	if host == "localhost" || strings.HasSuffix(host, ".localhost") || strings.HasSuffix(host, ".local") || strings.HasSuffix(host, ".internal") || strings.HasSuffix(host, ".lan") {
-		out.Code, out.Reason, out.Private = "ECONNREFUSED", host+" only works on this machine", true
+		out.fail("ECONNREFUSED", mReasonLocalHost, i18n.Args{"host": host})
+		out.Private = true
 		return out, true
 	}
 	if ip, err := netip.ParseAddr(host); err == nil {
 		if !manage.PublicIP(ip) {
-			out.Code, out.Reason, out.Private = "ECONNREFUSED", ip.String()+" is a private address", true
+			out.fail("ECONNREFUSED", mReasonPrivateIP, i18n.Args{"ip": ip.String()})
+			out.Private = true
 			return out, true
 		}
 		return out, false
@@ -1005,7 +1019,7 @@ func unreachable(ctx context.Context, u *url.URL, now time.Time) (SelfTestState,
 	addrs, err := net.DefaultResolver.LookupNetIP(cctx, "ip", host)
 	cancel()
 	if err != nil || len(addrs) == 0 {
-		out.Code, out.Reason = "ENOTFOUND", host+" doesn't resolve in public DNS"
+		out.fail("ENOTFOUND", mReasonNoDNS, i18n.Args{"host": host})
 		return out, true
 	}
 	for _, a := range addrs {
@@ -1013,7 +1027,8 @@ func unreachable(ctx context.Context, u *url.URL, now time.Time) (SelfTestState,
 			return out, false
 		}
 	}
-	out.Code, out.Reason, out.Private = "ECONNREFUSED", "DNS resolves to "+addrs[0].Unmap().String()+", a private address", true
+	out.fail("ECONNREFUSED", mReasonPrivateDNS, i18n.Args{"ip": addrs[0].Unmap().String()})
+	out.Private = true
 	return out, true
 }
 
@@ -1033,11 +1048,11 @@ func selfTestPost(ctx context.Context, out SelfTestState, u *url.URL, rawURL, to
 		low := strings.ToLower(err.Error())
 		switch {
 		case strings.Contains(low, "refused"):
-			out.Code, out.Reason = "ECONNREFUSED", "nothing answers at "+u.Host
+			out.fail("ECONNREFUSED", mReasonRefused, i18n.Args{"host": u.Host})
 		case strings.Contains(low, "timeout") || strings.Contains(low, "deadline"):
-			out.Code, out.Reason = "ETIMEDOUT", "no answer within 10 s (a firewall may block it)"
+			out.fail("ETIMEDOUT", mReasonTimeout, nil)
 		case strings.Contains(low, "certificate") || strings.Contains(low, "tls"):
-			out.Code, out.Reason = "TLS", "the HTTPS certificate isn't valid for "+u.Host
+			out.fail("TLS", mReasonCertificate, i18n.Args{"host": u.Host})
 		default:
 			out.Code, out.Reason = "ERROR", err.Error()
 		}
@@ -1045,7 +1060,7 @@ func selfTestPost(ctx context.Context, out SelfTestState, u *url.URL, rawURL, to
 	}
 	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		out.Code, out.Reason = "HTTP "+strconv.Itoa(resp.StatusCode), "the reverse proxy doesn't pass /hooks/ to ReputeCast"
+		out.fail("HTTP "+strconv.Itoa(resp.StatusCode), mReasonProxy, nil)
 		return out
 	}
 	out.OK = true
@@ -1061,14 +1076,14 @@ type ConnectWebhookInput struct {
 }
 
 // tunnelURL checks a tunnel address: https, no path. Empty stays empty.
-func tunnelURL(raw string) (string, error) {
+func tunnelURL(l i18n.Lang, raw string) (string, error) {
 	tunnel := strings.TrimRight(strings.TrimSpace(raw), "/")
 	if tunnel == "" {
 		return "", nil
 	}
 	u, err := url.Parse(tunnel)
 	if err != nil || u.Scheme != "https" || u.Host == "" || u.Path != "" && u.Path != "/" {
-		return "", api.Invalid("body.publicUrl", "Paste the tunnel's https:// address, without a path.")
+		return "", api.Invalid("body.publicUrl", mProblemTunnel.Text(l, nil))
 	}
 	return tunnel, nil
 }
@@ -1079,11 +1094,12 @@ func (s *Service) RetestWebhook(ctx context.Context, ws *store.Workspace, rawID 
 	if err != nil {
 		return ConnectSetup{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	if st.ProviderID == nil {
 		// Not connected yet: check that providers could reach the endpoint
 		// (through the tunnel, when given); the self-test proper follows the
 		// connection.
-		tunnel, err := tunnelURL(in.PublicURL)
+		tunnel, err := tunnelURL(l, in.PublicURL)
 		if err != nil {
 			return ConnectSetup{}, err
 		}
@@ -1100,7 +1116,7 @@ func (s *Service) RetestWebhook(ctx context.Context, ws *store.Workspace, rawID 
 			w.URL = s.webhookBase(w.PublicURL) + "/hooks/" + st.Adapter + "/" + w.Token
 			w.SelfTest, w.Registration = Preflight(ctx, w.URL, now, s.AllowPrivateURL), nil
 			if w.SelfTest != nil {
-				w.Registration = &Registration{Status: "skipped", At: now, Detail: "after the endpoint is reachable"}
+				w.Registration = skippedRegistration(now)
 			}
 			return nil
 		})
@@ -1113,7 +1129,7 @@ func (s *Service) RetestWebhook(ctx context.Context, ws *store.Workspace, rawID 
 	if err != nil {
 		return ConnectSetup{}, err
 	}
-	d, err := descriptor(st.Adapter)
+	d, err := descriptor(ctx, st.Adapter)
 	if err != nil {
 		return ConnectSetup{}, err
 	}
@@ -1121,7 +1137,7 @@ func (s *Service) RetestWebhook(ctx context.Context, ws *store.Workspace, rawID 
 	if state.Connection.Webhook == nil {
 		state.Connection.Webhook = &WebhookState{Mode: "webhook"}
 	}
-	tunnel, err := tunnelURL(in.PublicURL)
+	tunnel, err := tunnelURL(l, in.PublicURL)
 	if err != nil {
 		return ConnectSetup{}, err
 	}
@@ -1136,7 +1152,7 @@ func (s *Service) RetestWebhook(ctx context.Context, ws *store.Workspace, rawID 
 	}
 	state.Connection.Webhook.PublicURL = tunnel
 	state.Connection.Webhook.Mode = "webhook"
-	s.setupEvents(ctx, d, copyFor(d), p, &state, s.now())
+	s.setupEvents(ctx, d, p, &state, s.now())
 	out, err := s.saveSetup(ctx, ws, st, state, "provider.webhook_test", map[string]any{"reachable": state.Connection.Webhook.SelfTest != nil && state.Connection.Webhook.SelfTest.OK,
 		"tunnel": tunnel != ""})
 	if err != nil {
@@ -1152,14 +1168,14 @@ func (s *Service) UsePolling(ctx context.Context, ws *store.Workspace, rawID str
 	if err != nil {
 		return ConnectSetup{}, err
 	}
-	d, err := descriptor(st.Adapter)
+	d, err := descriptor(ctx, st.Adapter)
 	if err != nil {
 		return ConnectSetup{}, err
 	}
 	if st.ProviderID == nil {
 		// Not connected yet: the connection uses polling from the start.
-		if !copyFor(d).EventsAPI {
-			return ConnectSetup{}, api.Conflict(d.Name + " has no events API to poll. Make the webhook endpoint reachable instead.")
+		if !copyTable[d.Adapter].EventsAPI {
+			return ConnectSetup{}, conflict(ctx, mProblemNoPolling, i18n.Args{"name": d.Name})
 		}
 		out, err := s.update(ctx, ws, st.ID, "provider.events_polling", map[string]any{"adapter": d.Adapter, "events": "polling"}, func(_ *store.ProviderSetup, state *State) error {
 			if state.Connection.Webhook == nil {
@@ -1179,8 +1195,8 @@ func (s *Service) UsePolling(ctx context.Context, ws *store.Workspace, rawID str
 		return ConnectSetup{}, err
 	}
 	if a := s.probeAdapter(ctx, d, &p); a != nil {
-		if _, ok := a.(providers.EventBackfiller); !ok && !copyFor(d).EventsAPI {
-			return ConnectSetup{}, api.Conflict(d.Name + " has no events API to poll. Make the webhook endpoint reachable instead.")
+		if _, ok := a.(providers.EventBackfiller); !ok && !copyTable[d.Adapter].EventsAPI {
+			return ConnectSetup{}, conflict(ctx, mProblemNoPolling, i18n.Args{"name": d.Name})
 		}
 	}
 	cfg := currentSettings(&p)
@@ -1218,12 +1234,13 @@ func (s *Service) ConnectMailbox(ctx context.Context, ws *store.Workspace, rawID
 	}
 	p, err := s.provider(ctx, ws, st)
 	if err != nil {
-		return ConnectSetup{}, api.Conflict("Test the outgoing server first: the bounce mailbox belongs to it.")
+		return ConnectSetup{}, conflict(ctx, mProblemOutgoingFirst, nil)
 	}
-	d, err := descriptor(st.Adapter)
+	d, err := descriptor(ctx, st.Adapter)
 	if err != nil {
 		return ConnectSetup{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	cfg := currentSettings(&p)
 	creds := s.currentCreds(&p)
 	folder := strings.TrimSpace(in.Folder)
@@ -1241,31 +1258,33 @@ func (s *Service) ConnectMailbox(ctx context.Context, ws *store.Workspace, rawID
 		creds["bounce_password"] = in.Password
 	}
 	if _, ok := creds["bounce_password"]; !ok && in.Username != "" {
-		return ConnectSetup{}, api.Invalid("body.password", "Enter the mailbox password.")
+		return ConnectSetup{}, api.Invalid("body.password", mProblemMailboxPassword.Text(l, nil))
 	}
 	b := built{settings: cfg, creds: creds}
 	adapter, err := newAdapter(d, p.ID, ws.ID, b, s.Factory.WebhookSecret(p), s.httpClient())
 	if err != nil {
-		return ConnectSetup{}, api.Invalid("body", "These settings can't be used: "+err.Error())
+		return ConnectSetup{}, api.Invalid("body", mErrorSettings.Text(l, i18n.Args{"error": err.Error()}))
 	}
 	now := s.now()
 	state := decodeState(st.State)
 	probe := &ProbeState{At: now}
 	if err := s.checkHost(ctx, stringOf(mb["host"])); err != nil {
-		probe.Error = hostBlocked("host", err).Message
+		e := hostBlocked("host", err)
+		probe.Error, probe.ErrorText = e.Message, e.Texts[0]
 	} else if mt, ok := adapter.(providers.BounceMailboxTester); ok {
 		cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		rep, err := mt.TestBounceMailbox(cctx)
 		cancel()
 		if err != nil {
-			probe.Error = callMessage(err)
+			probe.Error, probe.ErrorText = callMessage(err), callText(err)
 		} else {
 			probe.OK = true
-			probe.Summary = fmt.Sprintf("%d %s in %s, %d %s like DSNs", rep.Messages, plural(rep.Messages, "message", "messages"), rep.Folder, rep.Reports,
-				plural(rep.Reports, "looks", "look"))
+			// "12 messages in INBOX, 3 look like DSNs"
+			probe.Summary, probe.SummaryText = say(mMailboxSummary, i18n.Args{"messages": rep.Messages, "messagesText": strconv.Itoa(rep.Messages), "folder": rep.Folder,
+				"reports": rep.Reports, "reportsText": strconv.Itoa(rep.Reports)})
 		}
 	} else {
-		probe.Error = d.Name + " can't test a bounce mailbox."
+		probe.Error, probe.ErrorText = say(mMailboxCantTest, i18n.Args{"name": d.Name})
 	}
 	state.Connection.Mailbox = probe
 	state.Connection.MailboxTried = &MailboxTried{Address: address, Protocol: in.Protocol, Host: stringOf(mb["host"]), Port: in.Port, TLS: in.TLS,
@@ -1302,11 +1321,4 @@ func (s *Service) ConnectMailbox(ctx context.Context, ws *store.Workspace, rawID
 		return ConnectSetup{}, err
 	}
 	return s.View(ctx, ws, out)
-}
-
-func plural(n int, one, many string) string {
-	if n == 1 {
-		return one
-	}
-	return many
 }

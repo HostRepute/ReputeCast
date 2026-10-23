@@ -11,6 +11,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -83,6 +84,7 @@ type ConnectCatalog struct {
 // in this build don't appear; installed community adapters do, with the
 // reason when this build can't run them.
 func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (ConnectCatalog, error) {
+	l := i18n.LangFrom(ctx)
 	out := ConnectCatalog{Builtin: []ConnectCatalogEntry{}, Community: []ConnectCommunityEntry{}, Open: []ConnectOpenSetup{}, Helpers: s.helpers(ctx, ws.ID)}
 	provs, err := s.Q.ProvListActive(ctx, ws.ID)
 	if err != nil {
@@ -115,10 +117,10 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (ConnectCata
 		case d.Kind == "community" || strings.HasPrefix(d.Adapter, providers.RuntimePrefix):
 			continue
 		}
-		c := copyFor(d)
-		terms, tone := termsBadge(d, c)
+		c := copyFor(l, d)
+		terms, tone := termsBadge(l, d, c)
 		e := ConnectCatalogEntry{Adapter: d.Adapter, Name: c.Display, Short: c.Short, Kind: d.Kind, Recommended: c.Recommended, Terms: terms, TermsTone: tone,
-			Pricing: c.Pricing, Chips: chips(d, c), BulkAllowed: d.Capabilities.Bulk != providers.BulkForbidden,
+			Pricing: c.Pricing, Chips: chips(l, d, c), BulkAllowed: d.Capabilities.Bulk != providers.BulkForbidden,
 			Webhooks: d.Capabilities.Webhooks != "" && d.Capabilities.Webhooks != "Bounce mailbox", DedicatedIPs: d.Capabilities.DedicatedIPs != "" || d.Kind == "self_hosted",
 			Connected: connected[d.Adapter]}
 		if e.Kind == "" {
@@ -160,7 +162,7 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (ConnectCata
 		}
 		caps := manifestCapabilities(manifest)
 		if registered {
-			caps = capabilityWords(d)
+			caps = capabilityWords(l, d)
 		}
 		c.Summary = c.Maintainer
 		if len(caps) > 0 {
@@ -169,7 +171,7 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (ConnectCata
 		if registered && d.New != nil {
 			c.Adapter = key
 		} else {
-			c.Reason = c.Name + " is installed, but this build can't run it. The Adapters page says why."
+			c.Reason = mCommunityCantRun.Text(l, i18n.Args{"name": c.Name})
 		}
 		out.Community = append(out.Community, c)
 	}
@@ -177,8 +179,8 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (ConnectCata
 		return out, err
 	}
 	if httpAdapter {
-		out.Community = append(out.Community, ConnectCommunityEntry{ID: "httpgeneric", Name: "Generic HTTP adapter", Version: "built-in",
-			Summary: "Map any HTTP API's send call and webhook without code", Configure: true})
+		out.Community = append(out.Community, ConnectCommunityEntry{ID: "httpgeneric", Name: mCommunityHTTPName.Text(l, nil), Version: mCommunityBuiltIn.Text(l, nil),
+			Summary: mCommunityHTTPSummary.Text(l, nil), Configure: true})
 	}
 	open, err := s.Q.SetupOpen(ctx, store.SetupOpenParams{WorkspaceID: ws.ID})
 	if err != nil {
@@ -187,7 +189,7 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (ConnectCata
 	for _, o := range open {
 		name := o.Adapter
 		if d, ok := providers.Lookup(o.Adapter); ok {
-			name = copyFor(d).Display
+			name = copyFor(l, d).Display
 		}
 		out.Open = append(out.Open, ConnectOpenSetup{ID: o.ID.String(), Adapter: o.Adapter, Name: name, Step: o.Step, UpdatedAt: o.UpdatedAt})
 	}
@@ -200,36 +202,38 @@ func (s *Service) Catalog(ctx context.Context, ws *store.Workspace) (ConnectCata
 // capabilityWords lists what a community adapter does for the catalog
 // ("webhooks, suppression pull, domain via API"): how events come back,
 // suppressions and domain setup, as the Adapters page words them.
-func capabilityWords(d providers.Descriptor) []string {
+func capabilityWords(l i18n.Lang, d providers.Descriptor) []string {
 	caps := d.Capabilities
 	out := []string{}
+	add := func(m i18n.Msg) { out = append(out, m.Text(l, nil)) }
 	switch caps.Webhooks {
 	case "":
 	case "Bounce mailbox":
-		out = append(out, "bounce mailbox")
+		add(mCapabilityBounceMailbox)
 	default:
-		out = append(out, "webhooks")
+		add(mCapabilityWebhooks)
 	}
 	switch {
 	case strings.EqualFold(d.SuppressionMode, "Pull only"):
-		out = append(out, "suppression pull")
+		add(mCapabilitySuppressionPull)
 	case strings.EqualFold(d.SuppressionMode, "Push only"):
-		out = append(out, "suppression push")
+		add(mCapabilitySuppressionPush)
 	case caps.SuppressionSync:
-		out = append(out, "suppression sync")
+		add(mCapabilitySuppressionSync)
 	}
 	switch caps.DomainAPI {
 	case "full":
-		out = append(out, "domain via API")
+		add(mCapabilityDomainAPI)
 	case "dkim_only":
-		out = append(out, "DKIM via API")
+		add(mCapabilityDKIMAPI)
 	}
 	return out
 }
 
 // manifestCapabilities reads the capability words of an installed adapter
 // that isn't registered, when its manifest lists them as words ("webhooks",
-// "domain setup via API"); batch sizes aren't shown.
+// "domain setup via API"): the manifest's own words, as its author wrote
+// them; batch sizes aren't shown.
 func manifestCapabilities(manifest []byte) []string {
 	var m struct {
 		Capabilities json.RawMessage `json:"capabilities"`
