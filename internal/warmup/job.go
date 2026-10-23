@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -90,10 +90,15 @@ func (s *Service) Evaluate(ctx context.Context, planID uuid.UUID) error {
 		plan := ParsePlan(r.Schedule, r.Progress)
 		today := state.WarmupDay(r.StartDate, now, loc)
 		start := time.Date(r.StartDate.Year(), r.StartDate.Month(), r.StartDate.Day(), 0, 0, 0, 0, time.UTC)
-		status, detail := r.Status, r.StatusDetail
+		status, detail := r.Status, kept{English: r.StatusDetail}
+		detailTexts := r.Texts
+		setStatus := func(st string, d kept) {
+			status, detail, detailTexts = st, d, textsJSON(map[string]i18n.Text{"status_detail": d.Text})
+		}
 		events := []store.WarmupAddEventParams{}
-		addEvent := func(kind, title, body string) {
-			events = append(events, store.WarmupAddEventParams{ID: newID(), PlanID: r.ID, OccurredAt: now, Kind: kind, Title: title, Body: body})
+		addEvent := func(kind string, title, body kept) {
+			events = append(events, store.WarmupAddEventParams{ID: newID(), PlanID: r.ID, OccurredAt: now, Kind: kind, Title: title.English, Body: body.English,
+				Texts: textsJSON(map[string]i18n.Text{"title": title.Text, "body": body.Text})})
 		}
 		// Record every finished day that has no final result yet.
 		for d := 1; d < today && d <= int(r.Days); d++ {
@@ -124,37 +129,38 @@ func (s *Service) Evaluate(ctx context.Context, planID uuid.UUID) error {
 			plan.set(res)
 			switch {
 			case tripped:
-				metric := fmt.Sprintf("Bounces hit %.1f%% (guard %s%%)", res.Bounce, trim(r.SlowdownBounce))
+				// "Bounces hit 2.3% (guard 2%), mostly Yahoo. Day 7 cap held at 4,000."
+				args := i18n.Args{"metric": "bounce", "rate": res.Bounce / 100, "guard": r.SlowdownBounce / 100, "guardDigits": digits(r.SlowdownBounce)}
 				if res.Complaint > r.SlowdownComplaint {
-					metric = fmt.Sprintf("Complaints hit %.2f%% (guard %s%%)", res.Complaint, trim(r.SlowdownComplaint))
+					args = i18n.Args{"metric": "complaint", "rate": res.Complaint / 100, "guard": r.SlowdownComplaint / 100, "guardDigits": digits(r.SlowdownComplaint)}
 				}
-				if mb := dominantMailbox(ctx, tx, r.ProviderID, date); mb != "" {
-					metric += ", mostly " + mb
-				}
+				mb := dominantMailbox(ctx, tx, r.ProviderID, date)
+				args["mailbox"] = mailboxArg(mb, routing.MailboxName(mb))
+				title := keep("log.slowdownTitle", nil)
 				switch r.GuardAction {
 				case "pause":
-					status, detail = "paused", fmt.Sprintf("Paused by the guard on day %d", d)
-					addEvent("slowdown", "Automatic slowdown.", metric+". The plan is paused until someone resumes it.")
+					setStatus("paused", keep("status.pausedByGuard", i18n.Args{"day": d}))
+					addEvent("slowdown", title, keep("log.slowdown", with(args, "action", "pause")))
 				case "step_back":
 					capNext := plan.Cap(max(d-1, 1))
 					plan.set(Result{Day: d + 1, Cap: capNext, Held: true})
-					status, detail = "slowed", fmt.Sprintf("Stepped back after day %d", d)
-					addEvent("slowdown", "Automatic slowdown.", fmt.Sprintf("%s. Day %d steps back to %s.", metric, d+1, count(capNext)))
+					setStatus("slowed", keep("status.steppedBack", i18n.Args{"day": d}))
+					addEvent("slowdown", title, keep("log.slowdown", with(args, "action", "step_back", "day", d+1, "cap", capNext)))
 				default:
 					capNext := res.Cap
 					plan.set(Result{Day: d + 1, Cap: capNext, Held: true})
-					status, detail = "slowed", fmt.Sprintf("Day %d cap held", d+1)
-					addEvent("slowdown", "Automatic slowdown.", fmt.Sprintf("%s. Day %d cap held at %s.", metric, d+1, count(capNext)))
+					setStatus("slowed", keep("status.capHeld", i18n.Args{"day": d + 1}))
+					addEvent("slowdown", title, keep("log.slowdown", with(args, "action", "hold", "day", d+1, "cap", capNext)))
 				}
 			case res.Held && st.Sent > 0:
-				status, detail = "active", ""
-				addEvent("resumed", "", fmt.Sprintf("Ramp resumed: bounces back to %.1f%%.", res.Bounce))
+				setStatus("active", kept{})
+				addEvent("resumed", kept{}, keep("log.rampResumed", i18n.Args{"bounce": res.Bounce / 100}))
 			case st.Sent > 0:
-				body := fmt.Sprintf("Day %d complete: %s sent", d, count(st.Sent))
+				args := i18n.Args{"day": d, "sent": st.Sent, "bounce": res.Bounce / 100, "inside": "no", "campaign": ""}
 				if name := campaignOn(ctx, tx, r.ProviderID, date); name != "" {
-					body += fmt.Sprintf(" inside %q", name)
+					args["inside"], args["campaign"] = "yes", name
 				}
-				addEvent("day_complete", "", fmt.Sprintf("%s, bounce %.1f%%.", body, res.Bounce))
+				addEvent("day_complete", kept{}, keep("log.dayComplete", args))
 			}
 		}
 		// Raise the Broadcast share on schedule.
@@ -162,12 +168,12 @@ func (s *Service) Evaluate(ctx context.Context, planID uuid.UUID) error {
 			if raised, err := s.raiseShare(ctx, tx, ws, r.ProviderID, plan.Share(today)); err != nil {
 				return err
 			} else if raised {
-				addEvent("share_raised", "", fmt.Sprintf("Broadcast share raised to %d%% on day %d.", plan.Share(today), today))
+				addEvent("share_raised", kept{}, keep("log.shareRaised", i18n.Args{"share": float64(plan.Share(today)) / 100, "day": today}))
 			}
 		}
 		if today > int(r.Days) {
-			status, detail = "done", "Complete"
-			addEvent("done", "Warm-up complete.", r.ProviderName+" is eligible as a Broadcast failover target.")
+			setStatus("done", keep("status.complete", nil))
+			addEvent("done", keep("log.doneTitle", nil), keep("log.done", i18n.Args{"provider": r.ProviderName}))
 			if _, err := tx.Exec(ctx, `UPDATE providers SET status = 'healthy', status_detail = '' WHERE id = $1 AND status = 'warming_up'`, r.ProviderID); err != nil {
 				return err
 			}
@@ -177,7 +183,7 @@ func (s *Service) Evaluate(ctx context.Context, planID uuid.UUID) error {
 			}
 		}
 		pb, _ := json.Marshal(plan.Progress)
-		if err := q.WarmupSetProgress(ctx, store.WarmupSetProgressParams{ID: r.ID, Progress: pb, Status: status, StatusDetail: detail}); err != nil {
+		if err := q.WarmupSetProgress(ctx, store.WarmupSetProgressParams{ID: r.ID, Progress: pb, Status: status, StatusDetail: detail.English, Texts: detailTexts}); err != nil {
 			return err
 		}
 		for _, e := range events {
@@ -188,7 +194,7 @@ func (s *Service) Evaluate(ctx context.Context, planID uuid.UUID) error {
 		if status != r.Status {
 			ws := ws.ID
 			return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws, Actor: systemActor, Action: "warmup.status", TargetType: "warmup_plan", TargetID: r.ID.String(), TargetName: r.ProviderName,
-				Before: map[string]string{"status": r.Status}, After: map[string]string{"status": status, "detail": detail}})
+				Before: map[string]string{"status": r.Status}, After: map[string]string{"status": status, "detail": detail.English}})
 		}
 		return nil
 	})
@@ -244,7 +250,7 @@ func (s *Service) raiseShare(ctx context.Context, tx pgx.Tx, ws store.Workspace,
 		Before: before, After: def.Splits, Metadata: map[string]any{"reason": "warm-up schedule", "stream": "broadcast"}})
 }
 
-// dominantMailbox names the mailbox provider with most bounces on a day.
+// dominantMailbox is the mailbox provider with most bounces on a day (its key).
 func dominantMailbox(ctx context.Context, tx pgx.Tx, providerID uuid.UUID, day time.Time) string {
 	var mb string
 	var n int64
@@ -254,7 +260,7 @@ func dominantMailbox(ctx context.Context, tx pgx.Tx, providerID uuid.UUID, day t
 	if err != nil || n == 0 {
 		return ""
 	}
-	return routing.MailboxName(mb)
+	return mb
 }
 
 // campaignOn names the campaign that used the provider on a day, when one did.
@@ -278,20 +284,3 @@ func campaignOn(ctx context.Context, tx pgx.Tx, providerID uuid.UUID, day time.T
 	return ""
 }
 
-func trim(v float64) string {
-	s := fmt.Sprintf("%.2f", v)
-	s = strings.TrimRight(strings.TrimRight(s, "0"), ".")
-	return s
-}
-
-func count(n int64) string {
-	s := fmt.Sprintf("%d", n)
-	var b strings.Builder
-	for i, r := range s {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			b.WriteByte(',')
-		}
-		b.WriteRune(r)
-	}
-	return b.String()
-}

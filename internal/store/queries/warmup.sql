@@ -37,16 +37,22 @@ SET days = @days, schedule = @schedule, engaged_first = @engaged_first, slowdown
 WHERE id = @id;
 
 -- name: WarmupSetStatus :exec
-UPDATE warmup_plans SET status = @status, status_detail = @status_detail, paused_at = @paused_at, updated_at = now() WHERE id = @id;
+-- texts keeps the status detail's message for later readers ({} without one).
+UPDATE warmup_plans SET status = @status, status_detail = @status_detail, paused_at = @paused_at,
+    texts = coalesce(sqlc.narg(texts)::jsonb, '{}'), updated_at = now() WHERE id = @id;
 
 -- name: WarmupSetProgress :exec
-UPDATE warmup_plans SET progress = @progress, status = @status, status_detail = @status_detail, updated_at = now() WHERE id = @id;
+-- texts keeps the status detail's message for later readers ({} without one).
+UPDATE warmup_plans SET progress = @progress, status = @status, status_detail = @status_detail,
+    texts = coalesce(sqlc.narg(texts)::jsonb, '{}'), updated_at = now() WHERE id = @id;
 
 -- name: WarmupLog :many
 SELECT * FROM warmup_events WHERE plan_id = @plan_id ORDER BY occurred_at DESC, id DESC LIMIT @lim;
 
 -- name: WarmupAddEvent :exec
-INSERT INTO warmup_events (id, plan_id, occurred_at, kind, title, body) VALUES (@id, @plan_id, @occurred_at, @kind, @title, @body);
+-- texts keeps the title's and body's messages for later readers.
+INSERT INTO warmup_events (id, plan_id, occurred_at, kind, title, body, texts)
+VALUES (@id, @plan_id, @occurred_at, @kind, @title, @body, coalesce(sqlc.narg(texts)::jsonb, '{}'));
 
 -- name: WarmupDailyStats :many
 SELECT day, sent, delivered, bounced, complained FROM provider_daily_stats

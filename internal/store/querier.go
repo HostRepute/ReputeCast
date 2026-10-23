@@ -4015,6 +4015,7 @@ type Querier interface {
 	WarmupActiveForProvider(ctx context.Context, providerID uuid.UUID) (WarmupPlan, error)
 	// Every plan that is still running (daily warm-up job).
 	WarmupActivePlans(ctx context.Context) ([]WarmupActivePlansRow, error)
+	// texts keeps the title's and body's messages for later readers.
 	WarmupAddEvent(ctx context.Context, arg WarmupAddEventParams) error
 	WarmupDailyStats(ctx context.Context, arg WarmupDailyStatsParams) ([]WarmupDailyStatsRow, error)
 	WarmupGetPlan(ctx context.Context, arg WarmupGetPlanParams) (WarmupGetPlanRow, error)
@@ -4026,7 +4027,9 @@ type Querier interface {
 	// Scheduled campaigns with a share on the provider (the plan table shows
 	// "Weekly Digest #142 uses 3,160").
 	WarmupPlannedCampaignUse(ctx context.Context, arg WarmupPlannedCampaignUseParams) ([]WarmupPlannedCampaignUseRow, error)
+	// texts keeps the status detail's message for later readers ({} without one).
 	WarmupSetProgress(ctx context.Context, arg WarmupSetProgressParams) error
+	// texts keeps the status detail's message for later readers ({} without one).
 	WarmupSetStatus(ctx context.Context, arg WarmupSetStatusParams) error
 	WarmupUpdateSettings(ctx context.Context, arg WarmupUpdateSettingsParams) error
 	// The next contact events to deliver; deleted as they are taken.
