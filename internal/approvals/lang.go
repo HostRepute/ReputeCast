@@ -3,6 +3,7 @@ package approvals
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"errors"
 	"math"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/languages"
 )
 
 // The texts approvals write for people follow the reader's app language
@@ -100,7 +102,34 @@ func render(l i18n.Lang, t i18n.Text) string {
 		}
 		args[k] = v
 	}
+	// A language version's change names its language and what changed in
+	// the reader's language.
+	if d, ok := changeDetail(t.Args["change"]); ok {
+		name, _, _, what := d.Texts(l)
+		args["language"], args["what"] = name, what
+	}
 	return i18n.Text{ID: t.ID, Args: args}.In(l)
+}
+
+// changeDetail reads a kept language change (a detail, or its JSON).
+func changeDetail(v any) (languages.VersionChangeDetail, bool) {
+	var d languages.VersionChangeDetail
+	switch x := v.(type) {
+	case nil:
+		return d, false
+	case *languages.VersionChangeDetail:
+		if x == nil {
+			return d, false
+		}
+		return *x, true
+	case languages.VersionChangeDetail:
+		return x, true
+	}
+	b, err := json.Marshal(v)
+	if err != nil || json.Unmarshal(b, &d) != nil || d.Language == "" {
+		return d, false
+	}
+	return d, true
 }
 
 // strs reads a kept list of strings (it comes back from JSON as []any).
@@ -220,6 +249,10 @@ func sectionList(l i18n.Lang, labels []string) string {
 func fieldList(l i18n.Lang, keys []string) string {
 	out := make([]string, 0, len(keys))
 	for _, k := range keys {
+		if code, ok := strings.CutPrefix(k, "lang:"); ok {
+			out = append(out, mFieldLanguage.Text(l, i18n.Args{"language": languages.NameInSentence(l, code)}))
+			continue
+		}
 		if name, ok := strings.CutPrefix(k, "language:"); ok {
 			out = append(out, mFieldLanguage.Text(l, i18n.Args{"language": name}))
 			continue

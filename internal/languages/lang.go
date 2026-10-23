@@ -163,9 +163,11 @@ func NameIn(l i18n.Lang, code string) string {
 	return lang.Name
 }
 
-// nameInSentence is a language's name inside a sentence: Vietnamese names
+// NameInSentence is a language's name inside a sentence: Vietnamese names
 // start with the common noun "tiếng", in lower case there ("bằng tiếng
-// Anh").
+// Anh"); English names read as NameIn.
+func NameInSentence(l i18n.Lang, code string) string { return nameInSentence(l, code) }
+
 func nameInSentence(l i18n.Lang, code string) string {
 	name := NameIn(l, code)
 	if l.Locale != i18n.Vietnamese {

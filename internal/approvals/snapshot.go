@@ -354,11 +354,14 @@ type storedChange struct {
 // invalidation reason: a field key ("subject", "link", "language:German")
 // and, for an audience that moved, how far (in percent).
 type keptChange struct {
-	Label  i18n.Text `json:"label,omitzero"`
-	Before i18n.Text `json:"before,omitzero"`
-	After  i18n.Text `json:"after,omitzero"`
-	Field  string    `json:"field,omitempty"`
-	Moved  float64   `json:"moved,omitempty"`
+	// Language is a language version's change as data, written in each
+	// reader's language (languages.VersionChangeDetail.Texts).
+	Language *languages.VersionChangeDetail `json:"language,omitempty"`
+	Label    i18n.Text                      `json:"label,omitzero"`
+	Before   i18n.Text                      `json:"before,omitzero"`
+	After    i18n.Text                      `json:"after,omitzero"`
+	Field    string                         `json:"field,omitempty"`
+	Moved    float64                        `json:"moved,omitempty"`
 }
 
 // Diff compares a snapshot with the campaign as it stands. loc formats the
@@ -385,6 +388,9 @@ func localChanges(l i18n.Lang, stored []storedChange) []ApprovalChange {
 			ch.Label = kept(l, ch.Label, k.Label)
 			ch.Before = kept(l, ch.Before, k.Before)
 			ch.After = kept(l, ch.After, k.After)
+			if d := k.Language; d != nil && l.Locale != i18n.English {
+				ch.Label, ch.Before, ch.After, ch.What = d.Texts(l)
+			}
 		}
 		out[i] = ch
 	}
@@ -443,7 +449,8 @@ func diff(s Snapshot, c Current, loc *time.Location) []storedChange {
 		}
 	}
 	for _, vc := range languages.DiffVersions(s.Languages, c.Languages) {
-		add(ApprovalChange{Field: "language", Label: vc.Name, Before: vc.Before, After: vc.After, What: vc.What}, keptChange{Field: "language:" + vc.Name})
+		d := vc.Detail
+		add(ApprovalChange{Field: "language", Label: vc.Name, Before: vc.Before, After: vc.After, What: vc.What}, keptChange{Field: "language:" + vc.Name, Language: &d})
 	}
 	if s.SenderID != c.SenderID {
 		add(ApprovalChange{Field: "sender", Label: "From", Before: s.From, After: c.From}, keptChange{Label: mChangeFrom.Keep(nil)})
@@ -622,6 +629,13 @@ func reasonOf(changes []storedChange) i18n.Text {
 			fields = append(fields, "sender")
 		case "language":
 			// "German: intro changed".
+			if c.Kept != nil && c.Kept.Language != nil {
+				if len(changes) == 1 {
+					return mInvalidLanguage.Keep(i18n.Args{"language": c.Label, "what": c.What, "change": c.Kept.Language})
+				}
+				fields = append(fields, "lang:"+c.Kept.Language.Language)
+				continue
+			}
 			if len(changes) == 1 {
 				return mInvalidLanguage.Keep(i18n.Args{"language": c.Label, "what": c.What})
 			}
