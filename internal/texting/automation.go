@@ -174,9 +174,8 @@ func (st SmsStep) PublishChecks(ctx context.Context, workspaceID uuid.UUID, node
 	return out, nil
 }
 
-// Validate implements automations.ChannelStep. Its issues read in English:
-// the canvas shows a channel's issue as the channel wrote it, and
-// ChannelStep.Validate has no language (internal/automations).
+// Validate implements automations.ChannelStep: each issue keeps its
+// message, so the canvas shows it in the member's language.
 func (SmsStep) Validate(n automations.AutomationNode) []automations.ChannelIssue {
 	out := []automations.ChannelIssue{}
 	if n.Data.SMS == nil {
@@ -184,7 +183,8 @@ func (SmsStep) Validate(n automations.AutomationNode) []automations.ChannelIssue
 	}
 	for _, l := range findLinks(n.Data.SMS.Body) {
 		if l.Shortener {
-			out = append(out, automations.ChannelIssue{Code: "public_shortener", Message: l.Host + " is a public link shortener: carriers filter texts with them. Paste the full address; it's shortened on your own domain."})
+			text := msgs.M("issue.publicShortener").Keep(i18n.Args{"host": l.Host})
+			out = append(out, automations.ChannelIssue{Code: "public_shortener", Message: text.In(i18n.Default), Text: text})
 			break
 		}
 	}

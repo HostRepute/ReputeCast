@@ -76,5 +76,6 @@
   "problem.promptPath": "Paths start with / and are part of the site's addresses, like /account.",
   "problem.promptPages": "Add the pages the prompt shows on.",
   "problem.promptAskAgain": "Ask again after 1 to 365 days.",
-  "webhook.push.clicked": { "message": "A reader clicked a notification or one of its buttons (once per notification).", "note": "a webhook event, in Settings › Webhooks" }
+  "webhook.push.clicked": { "message": "A reader clicked a notification or one of its buttons (once per notification).", "note": "a webhook event, in Settings › Webhooks" },
+  "issue.titleTooLong": { "message": "Keep the title to {max, number} characters: longer titles are cut on every platform.", "note": "a Send push step's issue on the automation canvas" }
 }

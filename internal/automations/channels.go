@@ -166,6 +166,8 @@ type ChannelStep interface {
 type ChannelIssue struct {
 	Code    string
 	Message string
+	// Text is Message's message, read in each reader's language.
+	Text i18n.Text
 }
 
 var (
@@ -295,7 +297,11 @@ func checkChannelNode(n AutomationNode, listExists func(string) bool) []configPr
 	}
 	if c, ok := channelStep(n.Type); ok {
 		for _, is := range c.Validate(n) {
-			out = append(out, configProblem{is.Code, name(is.Message)})
+			t := is.Text
+			if t.IsZero() {
+				t = name(is.Message)
+			}
+			out = append(out, configProblem{is.Code, t})
 		}
 	}
 	return out

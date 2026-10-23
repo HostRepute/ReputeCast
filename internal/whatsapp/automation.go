@@ -13,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/phone"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -39,14 +40,14 @@ func (Step) Validate(n automations.AutomationNode) []automations.ChannelIssue {
 	switch st.Mode {
 	case "text":
 		if strings.TrimSpace(st.Text) == "" {
-			out = append(out, automations.ChannelIssue{Code: "missing_text", Message: "Write the message, or pick an approved template."})
+			out = append(out, channelIssue("missing_text", msgs.M("issue.missingText").Keep(nil)))
 		}
 		if st.OutsideWindow == "template" && strings.TrimSpace(st.FallbackTemplate) == "" {
-			out = append(out, automations.ChannelIssue{Code: "missing_template", Message: "Pick the template sent outside the 24-hour window."})
+			out = append(out, channelIssue("missing_template", msgs.M("issue.missingFallback").Keep(nil)))
 		}
 	default:
 		if strings.TrimSpace(st.Template) == "" {
-			out = append(out, automations.ChannelIssue{Code: "missing_template", Message: "Pick an approved template."})
+			out = append(out, channelIssue("missing_template", msgs.M("issue.missingTemplate").Keep(nil)))
 		}
 	}
 	if _, err := uuid.Parse(st.ConsentListID); err != nil {
@@ -405,4 +406,9 @@ func (s *Service) StepStats(ctx context.Context, ws *store.Workspace, automation
 		out.Steps = append(out.Steps, st)
 	}
 	return out, rows.Err()
+}
+
+// channelIssue is a step issue with its English and its message.
+func channelIssue(code string, text i18n.Text) automations.ChannelIssue {
+	return automations.ChannelIssue{Code: code, Message: text.In(i18n.Default), Text: text}
 }

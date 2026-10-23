@@ -12,6 +12,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -34,10 +35,12 @@ func (Step) Validate(n automations.AutomationNode) []automations.ChannelIssue {
 		return out
 	}
 	if runes(st.Title) > TitleMax {
-		out = append(out, automations.ChannelIssue{Code: "too_long", Message: "Keep the title to 50 characters: longer titles are cut on every platform."})
+		text := msgs.M("issue.titleTooLong").Keep(i18n.Args{"max": TitleMax})
+		out = append(out, automations.ChannelIssue{Code: "too_long", Message: text.In(i18n.Default), Text: text})
 	}
 	if _, ok := normalizeLink(st.Link); !ok {
-		out = append(out, automations.ChannelIssue{Code: "invalid_url", Message: "Enter the address the notification opens, like news.acme.io/summit/live."})
+		text := msgs.M("problem.link").Keep(i18n.Args{"example": "news.acme.io/summit/live"})
+		out = append(out, automations.ChannelIssue{Code: "invalid_url", Message: text.In(i18n.Default), Text: text})
 	}
 	return out
 }
