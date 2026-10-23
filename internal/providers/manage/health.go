@@ -315,12 +315,12 @@ func (s *Service) Check(ctx context.Context, p store.Provider, probe bool) (stor
 	switch {
 	case h.Down != nil:
 		status = state.Down
-		detail = "Down"
+		detail = state.DetailDown
 		if h.Down.Reason == "auth" {
-			detail = "Down · auth failed"
+			detail = state.DetailDownAuth
 		}
 	case h.Webhooks != nil && h.Webhooks.SilentSince != nil:
-		status, detail = state.Degraded, "Webhooks silent"
+		status, detail = state.Degraded, state.DetailWebhooksSilent
 	}
 	if probed && callErr == nil && adapter != nil {
 		snap := state.Snapshot{Capabilities: adapter.Capabilities(), BroadcastStream: caps.BroadcastStream}

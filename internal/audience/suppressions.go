@@ -386,7 +386,7 @@ func (s *Service) syncStates(ctx context.Context, ws *store.Workspace) ([]Suppre
 	out := make([]SuppressionProviderSync, 0, len(rows))
 	l := i18n.LangFrom(ctx)
 	for _, r := range rows {
-		ps := SuppressionProviderSync{ProviderID: r.ID.String(), Name: r.Name, Adapter: r.Adapter, Pulled: r.Pulled, Pushed: r.Pushed, Detail: r.StatusDetail}
+		ps := SuppressionProviderSync{ProviderID: r.ID.String(), Name: r.Name, Adapter: r.Adapter, Pulled: r.Pulled, Pushed: r.Pushed, Detail: state.DetailIn(r.StatusDetail, l)}
 		if !state.Caps(store.Provider{Adapter: r.Adapter, Capabilities: r.Capabilities}).SuppressionSync {
 			ps.Local, ps.Status, ps.Pulled, ps.Pushed = true, "in_sync", r.Added, 0
 			ps.PulledNote = msgs.M("pulled.events").Text(l, nil)
