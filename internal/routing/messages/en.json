@@ -30,5 +30,19 @@
 
   "label.deletedList": { "message": "deleted list", "note": "a condition's list that no longer exists" },
   "label.deletedCategory": "deleted category",
-  "mailbox.other": { "message": "Other", "note": "mailbox providers other than Gmail, Outlook, Yahoo and iCloud" }
+  "mailbox.other": { "message": "Other", "note": "mailbox providers other than Gmail, Outlook, Yahoo and iCloud" },
+
+  "note.campaignRoute": { "message": "Campaign route: {provider} only", "note": "why a campaign recipient went to its sending provider, on a contact's activity timeline; provider: the provider's short name (SES)" },
+  "note.byRule": { "message": "{provider} by rule: {rule}", "note": "rule: a routing rule's name" },
+  "note.split": { "message": "{provider} share of the {split} split", "note": "split: the route's weights, such as 90/10" },
+  "note.splitWarmup": "{provider} share of the {split} split, warm-up day {day}",
+  "note.instead": { "message": "{alt} instead of {provider}: {why, select, cap {over today's warm-up cap} paused {warm-up paused} other {not sending to {tier, select, at_risk {at risk} other {{tier}}} contacts on warm-up day {day}}}", "note": "a warming-up provider passed the recipient to alt; tier: active, cooling, at_risk or sunset (engagement tiers)" },
+  "note.failover": "{provider} was down; Broadcasts failed over to {fallback}",
+
+  "error.down": { "message": "{provider} is down", "note": "why a transactional message's attempt failed, in the transactional log" },
+  "error.downNoOther": "{provider} was down and no other provider in the route could take the message.",
+  "error.providersRemoved": "The route's providers were removed.",
+  "error.contentGone": "The message's content is no longer available, so it can't be sent.",
+  "error.unreadable": { "message": "The message couldn't be opened: {error}", "note": "error: what went wrong, in English" },
+  "error.allFailed": { "message": "Every provider in the route failed: {error}", "note": "error: the last provider's own error, in English" }
 }

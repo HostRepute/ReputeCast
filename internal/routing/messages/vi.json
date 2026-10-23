@@ -30,5 +30,19 @@
 
   "label.deletedList": "danh sách đã xóa",
   "label.deletedCategory": "danh mục đã xóa",
-  "mailbox.other": "Khác"
+  "mailbox.other": "Khác",
+
+  "note.campaignRoute": "Tuyến của chiến dịch: chỉ {provider}",
+  "note.byRule": "{provider} theo quy tắc: {rule}",
+  "note.split": "Phần của {provider} trong phân bổ {split}",
+  "note.splitWarmup": "Phần của {provider} trong phân bổ {split}, khởi động ngày {day}",
+  "note.instead": "{alt} thay cho {provider}: {why, select, cap {vượt giới hạn khởi động hôm nay} paused {khởi động đang tạm dừng} other {không gửi cho liên hệ nhóm {tier, select, active {Tích cực} cooling {Nguội dần} at_risk {Có nguy cơ} sunset {Ngừng gửi dần} other {{tier}}} vào ngày khởi động {day}}}",
+  "note.failover": "{provider} ngừng hoạt động; luồng Gửi hàng loạt đã chuyển dự phòng sang {fallback}",
+
+  "error.down": "{provider} đang ngừng hoạt động",
+  "error.downNoOther": "{provider} ngừng hoạt động và không nhà cung cấp nào khác trong tuyến nhận được thư này.",
+  "error.providersRemoved": "Các nhà cung cấp của tuyến đã bị gỡ.",
+  "error.contentGone": "Nội dung của thư không còn nữa, nên không thể gửi.",
+  "error.unreadable": "Không mở được thư: {error}",
+  "error.allFailed": "Mọi nhà cung cấp trong tuyến đều thất bại: {error}"
 }
