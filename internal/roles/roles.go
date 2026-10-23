@@ -294,7 +294,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 		out.ID = id.String()
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "role.created", TargetType: "role", TargetID: id.String(), TargetName: n,
-			After: map[string]any{"name": n, "description": strings.TrimSpace(in.Description), "permissions": set.Strings()},
+			After:    map[string]any{"name": n, "description": strings.TrimSpace(in.Description), "permissions": set.Strings()},
 			Metadata: audit.KeepText(map[string]any{"permission": string(authz.TeamManage)}, "summary", msgs.M("audit.permissions").Keep(i18n.Args{"count": len(set)}))})
 	})
 	return out, err

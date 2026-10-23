@@ -81,5 +81,3 @@ func (s *Service) updateLanguage(ctx context.Context, c *agentCall, cp store.Mcp
 	e.after = map[string]any{"language": saved.Language, "subject": saved.Subject, "version": saved.Version}
 	return map[string]any{"id": cp.ID, "name": cp.Name, "language": saved.Language, "version": saved.Version, "subject": saved.Subject}, e, nil
 }
-
-

@@ -632,10 +632,3 @@ func normalizeEmails(l i18n.Lang, in []string) ([]string, error) {
 	}
 	return out, nil
 }
-
-func capitalize(s string) string {
-	if s == "" {
-		return s
-	}
-	return strings.ToUpper(s[:1]) + s[1:]
-}

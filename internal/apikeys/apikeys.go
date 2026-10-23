@@ -621,8 +621,8 @@ func (s *Service) Rotate(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{
 			WorkspaceID: &ws.ID, Action: action(kind, verb), TargetType: kind, TargetID: out.Key.ID, TargetName: old.Name,
-			Before:   map[string]any{"masked": old.Prefix, "expires_at": old.ExpiresAt},
-			After:    map[string]any{"masked": out.Key.Masked, "expires_at": expires},
+			Before: map[string]any{"masked": old.Prefix, "expires_at": old.ExpiresAt},
+			After:  map[string]any{"masked": out.Key.Masked, "expires_at": expires},
 			Metadata: audit.KeepText(map[string]any{"rotated_from": old.ID.String(), "permission": string(managePerm(kind))},
 				"summary", msgs.M("audit.rotated").Keep(i18n.Args{"masked": out.Key.Masked, "old": old.Prefix})),
 		})
