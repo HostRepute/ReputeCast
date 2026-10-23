@@ -21,7 +21,7 @@
   "notify.creativeDueTitle": "Sponsor creative due tomorrow",
   "notify.creativeLateBody": "{sponsor}'s creative for #{issue} hasn't arrived. Until it's marked ready, Review & send won't let #{issue} go out with the Sponsor block.",
   "notify.creativeLateTitle": "Sponsor creative late",
-  "notify.paymentBody": "{sponsor}: {amount} for #{issue} was due on {date}. Record the payment when it arrives; ReputeCast doesn't send invoices or reminders to sponsors.",
+  "notify.paymentBody": { "message": "{sponsor}: {amount} for #{issue} was due on {at, date}. Record the payment when it arrives; ReputeCast doesn't send invoices or reminders to sponsors.", "note": "amount: the price in its currency ($400); at: the day the payment was due" },
   "notify.paymentTitle": "Sponsor payment overdue",
 
   "problem.bookingClosed": "This booking was canceled or is still a proposal. Book the issue again instead.",
@@ -98,5 +98,12 @@
   "shared.sharedNoEnd": "Shared by {publisher}",
   "shared.still": "Still coming in",
   "shared.sub": "{list} #{issue} · {date} · sponsored by {sponsor}",
-  "shared.title": "Sponsor report"
+  "shared.title": "Sponsor report",
+
+  "notFound.booking": "Booking not found.",
+  "notFound.sponsor": "Sponsor not found.",
+  "notFound.slot": "Slot not found.",
+  "notFound.link": "Link not found.",
+  "notFound.campaign": "Campaign not found.",
+  "notFound.issue": "Issue not found."
 }

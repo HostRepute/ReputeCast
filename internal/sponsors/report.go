@@ -272,11 +272,11 @@ func (s *Service) CreateShare(ctx context.Context, ws *store.Workspace, p *authz
 	case sponsor != nil:
 		sp, err := s.Q.SponsorGet(ctx, store.SponsorGetParams{ID: *sponsor, WorkspaceID: ws.ID})
 		if err != nil {
-			return SponsorShareLink{}, api.MapError(err, "Sponsor")
+			return SponsorShareLink{}, mapErr(ctx, err, "sponsor")
 		}
 		target, name = sp.ID.String(), sp.Name
 	default:
-		return SponsorShareLink{}, api.NotFound("Booking")
+		return SponsorShareLink{}, notFound(ctx, "booking")
 	}
 	token, err := newToken()
 	if err != nil {
@@ -337,7 +337,7 @@ func (s *Service) shares(ctx context.Context, ws *store.Workspace, booking, spon
 func (s *Service) RevokeShare(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) error {
 	sh, err := s.Q.SponsorShareGet(ctx, store.SponsorShareGetParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
-		return api.MapError(err, "Link")
+		return mapErr(ctx, err, "link")
 	}
 	if sh.RevokedAt != nil {
 		return nil

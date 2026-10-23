@@ -118,7 +118,7 @@ func (s *Service) CreateSlot(ctx context.Context, ws *store.Workspace, p *authz.
 func (s *Service) UpdateSlot(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in SlotInput) (SponsorSlotItem, error) {
 	old, err := s.Q.SponsorSlotGet(ctx, store.SponsorSlotGetParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
-		return SponsorSlotItem{}, api.MapError(err, "Slot")
+		return SponsorSlotItem{}, mapErr(ctx, err, "slot")
 	}
 	row, err := s.cleanSlot(ctx, ws, in)
 	if err != nil {
@@ -148,7 +148,7 @@ func (s *Service) UpdateSlot(ctx context.Context, ws *store.Workspace, p *authz.
 func (s *Service) DeleteSlot(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) error {
 	old, err := s.Q.SponsorSlotGet(ctx, store.SponsorSlotGetParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
-		return api.MapError(err, "Slot")
+		return mapErr(ctx, err, "slot")
 	}
 	var upcoming int
 	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM sponsor_bookings WHERE slot_id = $1 AND status IN ('hold','booked') AND issue_on >= $2`, id, s.today(ws)).Scan(&upcoming)
@@ -168,7 +168,7 @@ func (s *Service) DeleteSlot(ctx context.Context, ws *store.Workspace, p *authz.
 func (s *Service) slotItemByID(ctx context.Context, ws *store.Workspace, id uuid.UUID) (SponsorSlotItem, error) {
 	r, err := s.Q.SponsorSlotGet(ctx, store.SponsorSlotGetParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
-		return SponsorSlotItem{}, api.MapError(err, "Slot")
+		return SponsorSlotItem{}, mapErr(ctx, err, "slot")
 	}
 	var n int
 	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM sponsor_bookings WHERE slot_id = $1 AND status IN ('booked','sent')`, id).Scan(&n)

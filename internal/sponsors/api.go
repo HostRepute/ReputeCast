@@ -16,10 +16,10 @@ import (
 // struct of an unexported type, so a shared "id" struct would parse an
 // empty id.
 
-func parseID(raw string) (uuid.UUID, error) {
+func parseID(ctx context.Context, raw string) (uuid.UUID, error) {
 	id, err := uuid.Parse(raw)
 	if err != nil {
-		return uuid.Nil, api.NotFound("Booking")
+		return uuid.Nil, notFound(ctx, "booking")
 	}
 	return id, nil
 }
@@ -29,7 +29,7 @@ type idPath struct {
 	ID string `path:"id" format:"uuid" doc:"Id"`
 }
 
-func (p idPath) id() (uuid.UUID, error) { return parseID(p.ID) }
+func (p idPath) id(ctx context.Context) (uuid.UUID, error) { return parseID(ctx, p.ID) }
 
 type issuePath struct {
 	api.WorkspaceInput
@@ -53,7 +53,7 @@ type idBody[T any] struct {
 	Body T
 }
 
-func (p idBody[T]) id() (uuid.UUID, error) { return parseID(p.ID) }
+func (p idBody[T]) id(ctx context.Context) (uuid.UUID, error) { return parseID(ctx, p.ID) }
 
 type issueBody[T any] struct {
 	api.WorkspaceInput
@@ -77,7 +77,7 @@ type uploadInput struct {
 	}]
 }
 
-func (p uploadInput) id() (uuid.UUID, error) { return parseID(p.ID) }
+func (p uploadInput) id(ctx context.Context) (uuid.UUID, error) { return parseID(ctx, p.ID) }
 
 type logoInput struct {
 	api.WorkspaceInput
@@ -149,27 +149,27 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Put(h, api.Op{ID: "update-sponsor", Path: ws + "/sponsors/{id}", Summary: "Change a sponsor", Tags: tags, Access: manage},
 		func(ctx context.Context, in *idBody[SponsorInput]) (*api.Body[SponsorItem], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
-				return nil, api.NotFound("Sponsor")
+				return nil, notFound(ctx, "sponsor")
 			}
 			out, err := s.UpdateSponsor(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Body)
 			return api.OK(out), err
 		})
 	api.Delete(h, api.Op{ID: "delete-sponsor", Path: ws + "/sponsors/{id}", Summary: "Remove a sponsor without bookings to come", Tags: tags, Access: manage},
 		func(ctx context.Context, in *idPath) (*api.Empty, error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
-				return nil, api.NotFound("Sponsor")
+				return nil, notFound(ctx, "sponsor")
 			}
 			return api.NoContent, s.DeleteSponsor(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 		})
 	api.Post(h, api.Op{ID: "create-sponsor-share", Path: ws + "/sponsors/{id}/shares", Summary: "Share every booking of a sponsor in one read-only report",
 		Description: "The page shows only the sponsor's numbers and the creatives as sent, never contact data.", Tags: tags, Access: share, Status: http.StatusCreated},
 		func(ctx context.Context, in *idBody[ShareInput]) (*api.Body[SponsorShareLink], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
-				return nil, api.NotFound("Sponsor")
+				return nil, notFound(ctx, "sponsor")
 			}
 			out, err := s.CreateShare(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), nil, &id, in.Body)
 			return api.OK(out), err
@@ -183,18 +183,18 @@ func Register(h huma.API, s *Service) {
 	api.Put(h, api.Op{ID: "update-sponsor-slot", Path: ws + "/sponsor-slots/{id}", Summary: "Change a slot", Description: "Issues already booked keep their dates and prices.",
 		Tags: tags, Access: manage},
 		func(ctx context.Context, in *idBody[SlotInput]) (*api.Body[SponsorSlotItem], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
-				return nil, api.NotFound("Slot")
+				return nil, notFound(ctx, "slot")
 			}
 			out, err := s.UpdateSlot(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Body)
 			return api.OK(out), err
 		})
 	api.Delete(h, api.Op{ID: "delete-sponsor-slot", Path: ws + "/sponsor-slots/{id}", Summary: "Remove a slot without bookings to come", Tags: tags, Access: manage},
 		func(ctx context.Context, in *idPath) (*api.Empty, error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
-				return nil, api.NotFound("Slot")
+				return nil, notFound(ctx, "slot")
 			}
 			return api.NoContent, s.DeleteSlot(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 		})
@@ -203,7 +203,7 @@ func Register(h huma.API, s *Service) {
 		func(ctx context.Context, in *issuePath) (*api.Body[SponsorIssueDetail], error) {
 			id, err := uuid.Parse(in.ID)
 			if err != nil {
-				return nil, api.NotFound("Slot")
+				return nil, notFound(ctx, "slot")
 			}
 			out, err := s.Issue(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Number)
 			return api.OK(out), err
@@ -213,7 +213,7 @@ func Register(h huma.API, s *Service) {
 		func(ctx context.Context, in *issueBody[BookInput]) (*api.Body[SponsorBookingDetail], error) {
 			id, err := uuid.Parse(in.ID)
 			if err != nil {
-				return nil, api.NotFound("Slot")
+				return nil, notFound(ctx, "slot")
 			}
 			out, err := s.Book(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Number, in.Body)
 			return api.OK(out), err
@@ -221,7 +221,7 @@ func Register(h huma.API, s *Service) {
 
 	api.Get(h, api.Op{ID: "get-sponsor-booking", Path: ws + "/sponsor-bookings/{id}", Summary: "A booking: its terms, creative, payment, activity and report", Tags: tags, Access: view},
 		func(ctx context.Context, in *idPath) (*api.Body[SponsorBookingDetail], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -230,7 +230,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Put(h, api.Op{ID: "update-sponsor-booking", Path: ws + "/sponsor-bookings/{id}", Summary: "Change a booking's sponsor, price, status, hold date or notes", Tags: tags, Access: manage},
 		func(ctx context.Context, in *idBody[BookingInput]) (*api.Body[SponsorBookingDetail], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -240,7 +240,7 @@ func Register(h huma.API, s *Service) {
 	api.Put(h, api.Op{ID: "link-sponsor-booking-campaign", Path: ws + "/sponsor-bookings/{id}/campaign", Summary: "Link the issue to its campaign by hand, or by list and date again",
 		Tags: tags, Access: manage},
 		func(ctx context.Context, in *idBody[CampaignInput]) (*api.Body[SponsorBookingDetail], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -250,7 +250,7 @@ func Register(h huma.API, s *Service) {
 	api.Put(h, api.Op{ID: "set-sponsor-creative", Path: ws + "/sponsor-bookings/{id}/creative", Summary: "Save the creative: logo or image, headline, text, button and link",
 		Description: "ReputeCast adds the UTM parameters to the link; the click token is never added to sponsor links.", Tags: tags, Access: manage},
 		func(ctx context.Context, in *idBody[SponsorCreative]) (*api.Body[SponsorBookingDetail], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -260,7 +260,7 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "mark-sponsor-creative-ready", Path: ws + "/sponsor-bookings/{id}/creative/ready", Summary: "Mark the creative ready: the Sponsor block shows it",
 		Tags: tags, Access: manage},
 		func(ctx context.Context, in *idPath) (*api.Body[SponsorBookingDetail], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -270,7 +270,7 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "upload-sponsor-image", Path: ws + "/sponsor-bookings/{id}/creative/image", Summary: "Upload the creative's logo or image (PNG, JPEG or GIF, up to 5 MB)",
 		Tags: tags, Access: manage, MaxBodyBytes: maxImage + 64<<10, Status: http.StatusCreated},
 		func(ctx context.Context, in *uploadInput) (*api.Body[SponsorImage], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -283,7 +283,7 @@ func Register(h huma.API, s *Service) {
 	api.Put(h, api.Op{ID: "record-sponsor-payment", Path: ws + "/sponsor-bookings/{id}/payment", Summary: "Record a booking's payment by hand, or change it",
 		Description: "ReputeCast sends no invoices and moves no money: this records what the sponsor paid.", Tags: tags, Access: person},
 		func(ctx context.Context, in *idBody[PaymentInput]) (*api.Body[SponsorBookingDetail], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -293,7 +293,7 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "cancel-sponsor-booking", Path: ws + "/sponsor-bookings/{id}/cancel", Summary: "Cancel a booking, release a hold or dismiss a proposal",
 		Description: "The issue opens again and its Sponsor block is hidden.", Tags: tags, Access: manage, Status: http.StatusNoContent},
 		func(ctx context.Context, in *idBody[CancelInput]) (*api.Empty, error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -302,7 +302,7 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "confirm-sponsor-proposal", Path: ws + "/sponsor-bookings/{id}/confirm", Summary: "Book an agent's proposal",
 		Description: "MCP agents can propose a booking; a person with sponsors:manage confirms it.", Tags: tags, Access: person},
 		func(ctx context.Context, in *idPath) (*api.Body[SponsorBookingDetail], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -312,7 +312,7 @@ func Register(h huma.API, s *Service) {
 	api.Get(h, api.Op{ID: "get-sponsor-report", Path: ws + "/sponsor-bookings/{id}/report", Summary: "A sent booking's report: who got the block, human opens and clicks",
 		Description: "Machine opens and bot clicks are left out. Results are final 72 hours after the send.", Tags: tags, Access: view},
 		func(ctx context.Context, in *idPath) (*api.Body[SponsorReport], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -321,7 +321,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "list-sponsor-shares", Path: ws + "/sponsor-bookings/{id}/shares", Summary: "A booking's active read-only links", Tags: tags, Access: share},
 		func(ctx context.Context, in *idPath) (*api.Body[SponsorShareList], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -335,7 +335,7 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "create-sponsor-booking-share", Path: ws + "/sponsor-bookings/{id}/shares", Summary: "Share a booking's report as a read-only link, optionally expiring",
 		Description: "The page shows only the sponsor's numbers and the creative as sent, never contact data.", Tags: tags, Access: share, Status: http.StatusCreated},
 		func(ctx context.Context, in *idBody[ShareInput]) (*api.Body[SponsorShareLink], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -344,9 +344,9 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Delete(h, api.Op{ID: "revoke-sponsor-share", Path: ws + "/sponsor-report-shares/{id}", Summary: "Revoke a sponsor report's read-only link", Tags: tags, Access: share},
 		func(ctx context.Context, in *idPath) (*api.Empty, error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
-				return nil, api.NotFound("Link")
+				return nil, notFound(ctx, "link")
 			}
 			return api.NoContent, s.RevokeShare(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 		})
@@ -360,9 +360,9 @@ func Register(h huma.API, s *Service) {
 	api.Get(h, api.Op{ID: "get-campaign-sponsor", Path: ws + "/campaigns/{id}/sponsor", Summary: "A campaign report's Sponsor section: the issue's booking and its report",
 		Description: "Answers without a booking when the issue had no sponsor.", Tags: tags, Access: view},
 		func(ctx context.Context, in *idPath) (*api.Body[CampaignSponsor], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
-				return nil, api.NotFound("Campaign")
+				return nil, notFound(ctx, "campaign")
 			}
 			out, err := s.CampaignSponsor(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 			return api.OK(out), err
@@ -372,7 +372,7 @@ func Register(h huma.API, s *Service) {
 		func(ctx context.Context, in *blockInput) (*api.Body[SponsorBlock], error) {
 			id, err := uuid.Parse(in.ID)
 			if err != nil {
-				return nil, api.NotFound("Campaign")
+				return nil, notFound(ctx, "campaign")
 			}
 			out, err := s.CampaignBlock(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Layout, in.Label)
 			return api.OK(out), err
