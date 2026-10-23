@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/forms"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/polls"
@@ -184,5 +185,25 @@ func TestAnswersWithoutWorkspace(t *testing.T) {
 	}
 	if got := browserLabels(r).Text("page.error.text", nil); !strings.HasPrefix(got, "Something went wrong") {
 		t.Errorf("English error: %q", got)
+	}
+}
+
+func TestPreferenceFieldProblems(t *testing.T) {
+	vi := pagelabels.For("vi", nil)
+	for _, c := range []struct {
+		fe   audience.FieldError
+		want string
+	}{
+		{audience.FieldError{Code: "number", Message: "Enter a number."}, "Hãy nhập một số."},
+		{audience.FieldError{Code: "select", Options: []string{"Daily", "Weekly"}, Message: "Pick one of: Daily, Weekly."}, "Hãy chọn một trong: Daily, Weekly."},
+		{audience.FieldError{Code: "too_long", Message: "Keep it under 500 characters."}, "Hãy viết dưới 500 ký tự."},
+		{audience.FieldError{Code: "something_new", Message: "As audience wrote it."}, "As audience wrote it."},
+	} {
+		if got := fieldProblem(&c.fe, vi); got != c.want {
+			t.Errorf("%s: %q, want %q", c.fe.Code, got, c.want)
+		}
+	}
+	if got := fieldProblem(&audience.FieldError{Code: "number"}, pagelabels.English()); got != "Enter a number." {
+		t.Errorf("English: %q", got)
 	}
 }

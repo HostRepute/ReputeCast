@@ -628,13 +628,27 @@ type doneBody struct {
 	Lead template.HTML
 }
 
-// fieldProblem is a preference change's problem in the page's language.
+// fieldProblem is a preference change's problem in the page's language:
+// every code audience.FieldError names, as the signup forms write them
+// (forms' fieldErrorText).
 func fieldProblem(fe *audience.FieldError, l pagelabels.Set) string {
 	switch fe.Code {
 	case "frequency":
 		return l.Text("error.frequency", nil)
 	case "language":
 		return l.Text("error.language", nil)
+	case "email":
+		return l.Text("error.emailInvalid", nil)
+	case "pick_list":
+		return l.Text("error.pickList", nil)
+	case "list_gone":
+		return l.Text("error.listGone", nil)
+	case "number", "date", "boolean":
+		return l.Text("error."+fe.Code, nil)
+	case "select":
+		return l.Text("error.select", i18n.Args{"options": strings.Join(fe.Options, ", ")})
+	case "too_long":
+		return l.Text("error.tooLong", nil)
 	}
 	return fe.Message
 }
