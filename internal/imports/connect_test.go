@@ -41,7 +41,7 @@ func TestServerAddress(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got, problem := c.svc.serverAddress(c.in)
+			got, problem := c.svc.serverAddress(context.Background(), c.in)
 			if c.want != "" {
 				if problem != "" || got != c.want {
 					t.Fatalf("got %q, %q; want %q", got, problem, c.want)

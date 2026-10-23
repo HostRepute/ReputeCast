@@ -2,10 +2,10 @@ package overview
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/audience"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -87,54 +87,52 @@ func (a AudienceCards) Audience(ctx context.Context, ws *store.Workspace, days i
 	}
 
 	p := audience.ParsePolicy(ws.SunsetPolicy)
+	l := i18n.LangFrom(ctx)
 	counts := []int64{sum.Tiers.Active, sum.Tiers.Cooling, sum.Tiers.AtRisk, sum.Tiers.Sunset}
 	for i, t := range []string{"active", "cooling", "at_risk", "sunset"} {
-		tier := OverviewTier{Tier: t, Count: counts[i], Description: describeTier(p, t)}
+		tier := OverviewTier{Tier: t, Count: counts[i], Description: describeTier(l, p, t)}
 		if sum.Contacts > 0 {
 			tier.Pct = round(float64(counts[i])/float64(sum.Contacts)*100, 1)
 		}
 		out.Tiers = append(out.Tiers, tier)
 	}
-	out.Policy, out.PolicyEnabled = policySentence(p), p.Enabled
+	out.Policy, out.PolicyEnabled = policySentence(l, p), p.Enabled
 	return out, nil
 }
 
-// describeTier says what a tier means under the policy: "opened in the
-// last 30 days" (the thresholds audience.TierFor applies).
-func describeTier(p audience.SunsetPolicy, tier string) string {
+// describeTier says what a tier means under the policy, in the reader's
+// language: "opened in the last 30 days" (the thresholds audience.TierFor
+// applies).
+func describeTier(l i18n.Lang, p audience.SunsetPolicy, tier string) string {
 	switch tier {
 	case "active":
-		return fmt.Sprintf("opened in the last %d days", p.ActiveDays)
+		return mTierActive.Text(l, i18n.Args{"days": p.ActiveDays})
 	case "cooling":
-		return fmt.Sprintf("last open %d to %d days ago", p.ActiveDays+1, p.AtRiskDays-1)
+		return mTierRange.Text(l, i18n.Args{"from": p.ActiveDays + 1, "to": p.AtRiskDays - 1})
 	case "at_risk":
-		return fmt.Sprintf("last open %d to %d days ago", p.AtRiskDays, p.SunsetDays-1)
+		return mTierRange.Text(l, i18n.Args{"from": p.AtRiskDays, "to": p.SunsetDays - 1})
 	}
-	return fmt.Sprintf("no open in %d days", p.SunsetDays-1)
+	return mTierSunset.Text(l, i18n.Args{"days": p.SunsetDays - 1})
 }
 
-// policySentence is the sunset policy in one line.
-func policySentence(p audience.SunsetPolicy) string {
+// policySentence is the sunset policy in one sentence, in the reader's
+// language.
+func policySentence(l i18n.Lang, p audience.SunsetPolicy) string {
 	if !p.Enabled {
-		return "No sunset policy: Sunset contacts keep receiving broadcasts."
+		return mPolicyOff.Text(l, nil)
 	}
-	var s string
+	mode := "keep"
 	switch {
 	case p.Reengage && p.StopBroadcasts:
-		s = fmt.Sprintf("Sunset contacts get one re-engagement email, then stop receiving broadcasts after %d days", p.StopAfterDays)
+		mode = "both"
 	case p.StopBroadcasts:
-		s = fmt.Sprintf("Sunset contacts stop receiving broadcasts after %d days", p.StopAfterDays)
+		mode = "stop"
 	case p.Reengage:
-		s = "Sunset contacts get one re-engagement email and keep receiving broadcasts"
-	default:
-		s = "Sunset contacts keep receiving broadcasts"
+		mode = "reengage"
 	}
+	erase := "no"
 	if p.DeleteAfter {
-		unit := "months"
-		if p.DeleteAfterMonths == 1 {
-			unit = "month"
-		}
-		s += fmt.Sprintf("; they're erased after %d %s in Sunset", p.DeleteAfterMonths, unit)
+		erase = "yes"
 	}
-	return s + "."
+	return mPolicyOn.Text(l, i18n.Args{"mode": mode, "days": p.StopAfterDays, "erase": erase, "months": p.DeleteAfterMonths})
 }

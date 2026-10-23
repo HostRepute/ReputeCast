@@ -5,6 +5,8 @@ import (
 	"math"
 	"strconv"
 	"strings"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Colours of the public pages. The pages take the publisher's accent and
@@ -112,27 +114,67 @@ type Palette struct {
 	Text string `json:"accentText"`
 	// OnAccent is the text on accent buttons: white, or ink when white fails 4.5:1.
 	OnAccent string `json:"onAccent"`
-	// Notes say what was adjusted for contrast.
+	// Notes say what was adjusted for contrast, in English; notesIn writes
+	// them in a reader's language.
 	Notes []string `json:"notes"`
+	notes []paletteNote
 }
+
+// paletteNote is an adjustment for contrast: buttons use dark text because
+// white on the accent (colour) is only ratio:1, or links use a darker shade
+// (colour).
+type paletteNote struct {
+	white  bool
+	colour string
+	ratio  float64
+}
+
+func (n paletteNote) in(l i18n.Lang) string {
+	if n.white {
+		return mWhiteText.Text(l, i18n.Args{"accent": n.colour, "ratio": l.Region.Decimal(n.ratio, 1)})
+	}
+	return mDarkerLinks.Text(l, i18n.Args{"colour": n.colour})
+}
+
+// notesIn are the palette's notes in a reader's language.
+func (p Palette) notesIn(l i18n.Lang) []string {
+	out := make([]string, 0, len(p.notes))
+	for _, n := range p.notes {
+		out = append(out, n.in(l))
+	}
+	return out
+}
+
+// paletteError is why colours can't be used, explained for people: Error
+// is its English, the message keeps it for readers of other languages.
+type paletteError struct {
+	background bool // the background is too dark (the others are about a hex value)
+	text       i18n.Text
+}
+
+func (e *paletteError) Error() string { return english(e.text) }
 
 // DerivePalette computes the colours of the public pages from an accent and
 // a page background, keeping every text at WCAG 2.2 AA contrast.
 func DerivePalette(accent, background string) (Palette, error) {
 	a, ok := ParseColor(accent)
 	if !ok {
-		return Palette{}, fmt.Errorf("%q isn't a colour. Use a hex value like #4338CA", accent)
+		return Palette{}, &paletteError{text: mNotColour.Keep(i18n.Args{"value": strconv.Quote(accent), "example": "#4338CA"})}
 	}
 	bg, ok := ParseColor(background)
 	if !ok {
-		return Palette{}, fmt.Errorf("%q isn't a colour. Use a hex value like #F5F3FF", background)
+		return Palette{}, &paletteError{text: mNotColour.Keep(i18n.Args{"value": strconv.Quote(background), "example": "#F5F3FF"})}
 	}
 	if muted, _ := ParseColor(ink3Color); Contrast(muted, bg) < 4.5 {
-		return Palette{}, fmt.Errorf("%s is too dark for the page background: the footer text needs 4.5:1 against it. Pick a lighter colour", bg.Hex())
+		return Palette{}, &paletteError{background: true, text: mTooDark.Keep(i18n.Args{"colour": bg.Hex()})}
 	}
 	a, bg = a.rounded(), bg.rounded()
 	p := Palette{Accent: a.Hex(), Background: bg.Hex(), Notes: []string{}}
 	p.OnAccent = whiteColor
+	note := func(n paletteNote) {
+		p.notes = append(p.notes, n)
+		p.Notes = append(p.Notes, n.in(i18n.Default))
+	}
 	if Contrast(white, a) < 4.5 {
 		// Ink when it reads well enough, else black: when white is under
 		// 4.5:1, black is always above it.
@@ -140,11 +182,11 @@ func DerivePalette(accent, background string) (Palette, error) {
 		if ink, _ := ParseColor(inkColor); Contrast(ink, a) < 4.5 {
 			p.OnAccent = "#000000"
 		}
-		p.Notes = append(p.Notes, fmt.Sprintf("White text on %s is %.1f:1, under the 4.5:1 buttons need, so buttons use dark text.", a.Hex(), Contrast(white, a)))
+		note(paletteNote{white: true, colour: a.Hex(), ratio: Contrast(white, a)})
 	}
 	text := darkenUntil(a, 4.5, white, bg)
 	if text != a {
-		p.Notes = append(p.Notes, fmt.Sprintf("Links use %s, a darker shade, so they keep 4.5:1 on white and on the background.", text.Hex()))
+		note(paletteNote{colour: text.Hex()})
 	}
 	p.Text = text.Hex()
 	p.Hover = darkenUntil(mix(text, black, 0.82), 4.5, white, bg).Hex()

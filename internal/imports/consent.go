@@ -3,8 +3,6 @@ package imports
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -12,6 +10,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -102,14 +101,9 @@ type ImportConsentMapping struct {
 	Sms *ImportSmsConsent `json:"sms,omitempty"`
 }
 
-var subscribedOptions = []ImportFieldOption{
-	{HandleConfirmed, "Subscribed · confirmed, keep opt-in date and IP as evidence"},
-	{HandlePending, "Subscribed · pending, send a re-permission email"},
-	{HandleSkip, "Skip"},
-}
-
 // Consent returns the consent step: counts per source status and the
-// handling of each.
+// handling of each, in the request's language. The statuses keep the
+// source's own words (subscribed, cleaned).
 func (s *Service) Consent(ctx context.Context, ws *store.Workspace, id uuid.UUID) (ImportConsentMapping, error) {
 	imp, err := s.get(ctx, ws, id)
 	if err != nil {
@@ -148,13 +142,13 @@ func (s *Service) Consent(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		if f.Target == TargetEvidence {
 			evidence = f.Source
 			if f.Source == "OPTIN" {
-				evidence = "OPTIN_TIME and OPTIN_IP"
+				evidence = say(ctx, mEvidenceOptin, nil)
 			}
 		}
 	}
 	out.EvidenceSource = evidence
 	statuses := []string{StatusSubscribed, StatusUnsubscribed, StatusCleaned, StatusPending, StatusTransactional, StatusComplained}
-	push := pushText(providers)
+	opt := func(value string, m i18n.Msg) ImportFieldOption { return ImportFieldOption{value, say(ctx, m, nil)} }
 	for _, st := range statuses {
 		n := counts[st]
 		// API importers show every status their tool has; files only what they contain.
@@ -164,47 +158,54 @@ func (s *Service) Consent(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		row := ImportConsentStatus{Status: st, Label: st, Contacts: n, Handling: m.handling(st)}
 		switch st {
 		case StatusSubscribed:
-			row.Tone, row.Options = "ok", subscribedOptions
+			row.Tone = "ok"
+			row.Options = []ImportFieldOption{opt(HandleConfirmed, mConsentConfirmed), opt(HandlePending, mConsentPending), opt(HandleSkip, mSkip)}
 			if out.DoubleOptIn {
 				since := ""
 				for _, l := range conn.Lists {
 					if l.Since != "" {
-						since = " since " + l.Since
+						since = l.Since
 					}
 				}
-				row.Note = "double opt-in was on in this audience" + since
+				row.Note = say(ctx, mNoteDoubleOptIn, nil)
+				if since != "" {
+					row.Note = say(ctx, mNoteDoubleOptInSince, i18n.Args{"year": since})
+				}
 			}
 		case StatusUnsubscribed:
 			row.Tone, row.Locked = "bad", true
-			row.Options = []ImportFieldOption{{HandleSuppressUnsub, "Suppressed · unsubscribed (locked)"}}
-			row.Effect = "Broadcasts and Automations blocked; System mail allowed. Can't be changed by an import."
+			row.Options = []ImportFieldOption{opt(HandleSuppressUnsub, mConsentSuppressUnsub)}
+			row.Effect = say(ctx, mEffectUnsub, nil)
 		case StatusCleaned:
 			row.Tone, row.Locked = "bad", true
-			row.Note = "hard bounced in " + name
-			row.Options = []ImportFieldOption{{HandleSuppressBounce, "Suppressed · hard bounce (locked)"}}
-			row.Effect = "All streams blocked" + push
+			row.Note = say(ctx, mNoteHardBounced, i18n.Args{"source": name})
+			row.Options = []ImportFieldOption{opt(HandleSuppressBounce, mConsentSuppressBounce)}
+			row.Effect = say(ctx, mEffectBlocked, nil)
+			if len(providers) > 0 {
+				row.Effect = say(ctx, mEffectBlockedPushed, i18n.Args{"providers": providers})
+			}
 		case StatusPending:
-			row.Tone, row.Note = "warn", "never confirmed double opt-in"
-			row.Options = []ImportFieldOption{{HandlePending, "Subscribed · pending, send a re-permission email"}, {HandleSkip, "Skip"}}
+			row.Tone, row.Note = "warn", say(ctx, mNotePending, nil)
+			row.Options = []ImportFieldOption{opt(HandlePending, mConsentPending), opt(HandleSkip, mSkip)}
 		case StatusTransactional:
 			row.Tone = "neutral"
-			row.Options = []ImportFieldOption{{HandleSkip, "Skip"}, {HandlePending, "Subscribed · pending"}}
+			row.Options = []ImportFieldOption{opt(HandleSkip, mSkip), opt(HandlePending, mConsentPendingShort)}
 		case StatusComplained:
 			row.Tone, row.Locked = "bad", true
 			if imp.Source == "mailchimp" {
-				row.Label = `archived with "abuse" complaint`
+				row.Label = say(ctx, mLabelAbuse, nil)
 			}
-			row.Options = []ImportFieldOption{{HandleSuppressComplaint, "Suppressed · complaint (locked)"}}
-			row.Effect = "All streams blocked"
+			row.Options = []ImportFieldOption{opt(HandleSuppressComplaint, mConsentSuppressCompl)}
+			row.Effect = say(ctx, mEffectBlocked, nil)
 		}
 		if row.Effect == "" {
 			switch row.Handling {
 			case HandleConfirmed:
-				row.Effect = "Gets Broadcasts and Automations right away"
+				row.Effect = say(ctx, mEffectConfirmed, nil)
 			case HandlePending:
-				row.Effect = "No marketing mail until they confirm"
+				row.Effect = say(ctx, mEffectPending, nil)
 			case HandleSkip:
-				row.Effect = "Not imported"
+				row.Effect = say(ctx, mEffectSkip, nil)
 			}
 		}
 		if row.Locked {
@@ -215,23 +216,6 @@ func (s *Service) Consent(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	out.HistoryExample, err = s.historyExample(ctx, ws, imp, m)
 	out.Sms = smsConsentOf(parseFieldMap(imp.FieldMap))
 	return out, err
-}
-
-func pushText(providers []string) string {
-	if len(providers) == 0 {
-		return ""
-	}
-	return ", pushed to " + joinAnd(providers)
-}
-
-func joinAnd(names []string) string {
-	switch len(names) {
-	case 0:
-		return ""
-	case 1:
-		return names[0]
-	}
-	return strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
 }
 
 // providerNames lists the workspace's providers (short names) and how many
@@ -250,32 +234,33 @@ func (s *Service) providerNames(ctx context.Context, ws *store.Workspace) ([]str
 	return out, pulled, nil
 }
 
-// historyExample is how the consent history entry of the first row reads:
-// "Imported from Mailchimp by Linh Nguyen, 12 Oct 2026, status subscribed,
-// evidence OPTIN_TIME 2025-03-02".
+// historyExample is how the consent history entry of the first row reads,
+// in the request's language: "Imported from Mailchimp by Linh Nguyen, 12
+// Oct 2026, status subscribed, evidence OPTIN_TIME 2025-03-02".
 func (s *Service) historyExample(ctx context.Context, ws *store.Workspace, imp store.Import, m ImportConsentMap) (string, error) {
 	rows, err := s.Q.ImportRowsAfter(ctx, store.ImportRowsAfterParams{ImportID: imp.ID, After: 0, Lim: 50})
 	if err != nil {
 		return "", err
 	}
-	who := ""
+	args := i18n.Args{"source": SourceName(imp.Source), "by": "no", "name": ""}
 	if u := api.UserFrom(ctx); u != nil {
-		who = " by " + u.Name
+		args["by"], args["name"] = "yes", u.Name
 	}
-	day := s.now().In(location(ws)).Format("2 Jan 2006")
+	args["day"] = dayIn(i18n.LangFrom(ctx), s.now().In(location(ws)))
 	for _, r := range rows {
 		if r.Status != StatusSubscribed {
 			continue
 		}
-		ex := fmt.Sprintf("Imported from %s%s, %s, status %s", SourceName(imp.Source), who, day, r.Status)
+		args["status"] = r.Status
 		var e Engagement
 		_ = json.Unmarshal(r.Engagement, &e)
 		if e.OptinAt != nil && m.Subscribed == HandleConfirmed {
-			ex += ", evidence OPTIN_TIME " + e.OptinAt.UTC().Format("2006-01-02")
+			args["evidence"] = e.OptinAt.UTC().Format("2006-01-02")
+			return say(ctx, mHistoryEvidence, args), nil
 		}
-		return ex, nil
+		return say(ctx, mHistory, args), nil
 	}
-	return fmt.Sprintf("Imported from %s%s, %s", SourceName(imp.Source), who, day), nil
+	return say(ctx, mHistoryNoRow, args), nil
 }
 
 // ImportSaveConsentInput is the consent step's choices.
@@ -292,7 +277,7 @@ func (s *Service) SaveConsent(ctx context.Context, ws *store.Workspace, id uuid.
 	if err != nil {
 		return ImportConsentMapping{}, err
 	}
-	if err := editable(imp); err != nil {
+	if err := editable(ctx, imp); err != nil {
 		return ImportConsentMapping{}, err
 	}
 	m := in.Map

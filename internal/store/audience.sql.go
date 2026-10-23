@@ -93,7 +93,7 @@ func (q *Queries) ContactChoseFewer(ctx context.Context, contactID *uuid.UUID) (
 
 const contactConsentEvents = `-- name: ContactConsentEvents :many
 SELECT ce.id, ce.list_id, ce.action, ce.source, ce.ip, ce.user_agent, ce.detail, ce.note, ce.consent_version, ce.language, ce.occurred_at,
-       coalesce(u.name, '')::text AS actor_name, coalesce(ce.consent_text, '')::text AS consent_text
+       coalesce(u.name, '')::text AS actor_name, coalesce(ce.consent_text, '')::text AS consent_text, ce.texts
 FROM consent_events ce
 LEFT JOIN users u ON u.id = ce.actor_id
 WHERE ce.contact_id = $1
@@ -101,19 +101,20 @@ ORDER BY ce.occurred_at, ce.id
 `
 
 type ContactConsentEventsRow struct {
-	ID             uuid.UUID   `json:"id"`
-	ListID         *uuid.UUID  `json:"listId"`
-	Action         string      `json:"action"`
-	Source         string      `json:"source"`
-	Ip             *netip.Addr `json:"ip"`
-	UserAgent      string      `json:"userAgent"`
-	Detail         string      `json:"detail"`
-	Note           string      `json:"note"`
-	ConsentVersion string      `json:"consentVersion"`
-	Language       string      `json:"language"`
-	OccurredAt     time.Time   `json:"occurredAt"`
-	ActorName      string      `json:"actorName"`
-	ConsentText    string      `json:"consentText"`
+	ID             uuid.UUID       `json:"id"`
+	ListID         *uuid.UUID      `json:"listId"`
+	Action         string          `json:"action"`
+	Source         string          `json:"source"`
+	Ip             *netip.Addr     `json:"ip"`
+	UserAgent      string          `json:"userAgent"`
+	Detail         string          `json:"detail"`
+	Note           string          `json:"note"`
+	ConsentVersion string          `json:"consentVersion"`
+	Language       string          `json:"language"`
+	OccurredAt     time.Time       `json:"occurredAt"`
+	ActorName      string          `json:"actorName"`
+	ConsentText    string          `json:"consentText"`
+	Texts          json.RawMessage `json:"texts"`
 }
 
 func (q *Queries) ContactConsentEvents(ctx context.Context, contactID uuid.UUID) ([]ContactConsentEventsRow, error) {
@@ -139,6 +140,7 @@ func (q *Queries) ContactConsentEvents(ctx context.Context, contactID uuid.UUID)
 			&i.OccurredAt,
 			&i.ActorName,
 			&i.ConsentText,
+			&i.Texts,
 		); err != nil {
 			return nil, err
 		}
@@ -768,7 +770,7 @@ func (q *Queries) GetSavedView(ctx context.Context, arg GetSavedViewParams) (Sav
 }
 
 const getSuppression = `-- name: GetSuppression :one
-SELECT id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id FROM suppressions WHERE workspace_id = $1 AND id = $2
+SELECT id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id, texts FROM suppressions WHERE workspace_id = $1 AND id = $2
 `
 
 type GetSuppressionParams struct {
@@ -796,12 +798,13 @@ func (q *Queries) GetSuppression(ctx context.Context, arg GetSuppressionParams) 
 		&i.AutomationStep,
 		&i.Context,
 		&i.ImportID,
+		&i.Texts,
 	)
 	return i, err
 }
 
 const getSuppressionByEmail = `-- name: GetSuppressionByEmail :one
-SELECT id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id FROM suppressions WHERE workspace_id = $1 AND email = $2
+SELECT id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id, texts FROM suppressions WHERE workspace_id = $1 AND email = $2
 `
 
 type GetSuppressionByEmailParams struct {
@@ -829,6 +832,7 @@ func (q *Queries) GetSuppressionByEmail(ctx context.Context, arg GetSuppressionB
 		&i.AutomationStep,
 		&i.Context,
 		&i.ImportID,
+		&i.Texts,
 	)
 	return i, err
 }
@@ -868,24 +872,26 @@ func (q *Queries) HealthViews(ctx context.Context, workspaceID uuid.UUID) ([]Sav
 }
 
 const insertConsentEvent = `-- name: InsertConsentEvent :exec
-INSERT INTO consent_events (id, contact_id, list_id, action, source, ip, user_agent, detail, note, consent_version, actor_id, import_id, occurred_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+INSERT INTO consent_events (id, contact_id, list_id, action, source, ip, user_agent, detail, note, consent_version, actor_id, import_id, occurred_at, texts)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+        coalesce($14::jsonb, '{}'))
 `
 
 type InsertConsentEventParams struct {
-	ID             uuid.UUID   `json:"id"`
-	ContactID      uuid.UUID   `json:"contactId"`
-	ListID         *uuid.UUID  `json:"listId"`
-	Action         string      `json:"action"`
-	Source         string      `json:"source"`
-	Ip             *netip.Addr `json:"ip"`
-	UserAgent      string      `json:"userAgent"`
-	Detail         string      `json:"detail"`
-	Note           string      `json:"note"`
-	ConsentVersion string      `json:"consentVersion"`
-	ActorID        *uuid.UUID  `json:"actorId"`
-	ImportID       *uuid.UUID  `json:"importId"`
-	OccurredAt     time.Time   `json:"occurredAt"`
+	ID             uuid.UUID       `json:"id"`
+	ContactID      uuid.UUID       `json:"contactId"`
+	ListID         *uuid.UUID      `json:"listId"`
+	Action         string          `json:"action"`
+	Source         string          `json:"source"`
+	Ip             *netip.Addr     `json:"ip"`
+	UserAgent      string          `json:"userAgent"`
+	Detail         string          `json:"detail"`
+	Note           string          `json:"note"`
+	ConsentVersion string          `json:"consentVersion"`
+	ActorID        *uuid.UUID      `json:"actorId"`
+	ImportID       *uuid.UUID      `json:"importId"`
+	OccurredAt     time.Time       `json:"occurredAt"`
+	Texts          json.RawMessage `json:"texts"`
 }
 
 func (q *Queries) InsertConsentEvent(ctx context.Context, arg InsertConsentEventParams) error {
@@ -903,36 +909,38 @@ func (q *Queries) InsertConsentEvent(ctx context.Context, arg InsertConsentEvent
 		arg.ActorID,
 		arg.ImportID,
 		arg.OccurredAt,
+		arg.Texts,
 	)
 	return err
 }
 
 const insertSuppression = `-- name: InsertSuppression :one
 INSERT INTO suppressions (id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by,
-                          scope, campaign_id, automation_id, automation_step, context, import_id, created_at)
+                          scope, campaign_id, automation_id, automation_step, context, import_id, created_at, texts)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
-        $10, $11, $12, $13, $14, $15, $16)
+        $10, $11, $12, $13, $14, $15, $16, coalesce($17::jsonb, '{}'))
 ON CONFLICT (workspace_id, email) DO NOTHING
-RETURNING id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id
+RETURNING id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by, created_at, scope, campaign_id, automation_id, automation_step, context, import_id, texts
 `
 
 type InsertSuppressionParams struct {
-	ID               uuid.UUID  `json:"id"`
-	WorkspaceID      uuid.UUID  `json:"workspaceId"`
-	Email            string     `json:"email"`
-	Reason           string     `json:"reason"`
-	Source           string     `json:"source"`
-	SourceProviderID *uuid.UUID `json:"sourceProviderId"`
-	OriginalCode     string     `json:"originalCode"`
-	Detail           string     `json:"detail"`
-	CreatedBy        *uuid.UUID `json:"createdBy"`
-	Scope            string     `json:"scope"`
-	CampaignID       *uuid.UUID `json:"campaignId"`
-	AutomationID     *uuid.UUID `json:"automationId"`
-	AutomationStep   string     `json:"automationStep"`
-	Context          string     `json:"context"`
-	ImportID         *uuid.UUID `json:"importId"`
-	CreatedAt        time.Time  `json:"createdAt"`
+	ID               uuid.UUID       `json:"id"`
+	WorkspaceID      uuid.UUID       `json:"workspaceId"`
+	Email            string          `json:"email"`
+	Reason           string          `json:"reason"`
+	Source           string          `json:"source"`
+	SourceProviderID *uuid.UUID      `json:"sourceProviderId"`
+	OriginalCode     string          `json:"originalCode"`
+	Detail           string          `json:"detail"`
+	CreatedBy        *uuid.UUID      `json:"createdBy"`
+	Scope            string          `json:"scope"`
+	CampaignID       *uuid.UUID      `json:"campaignId"`
+	AutomationID     *uuid.UUID      `json:"automationId"`
+	AutomationStep   string          `json:"automationStep"`
+	Context          string          `json:"context"`
+	ImportID         *uuid.UUID      `json:"importId"`
+	CreatedAt        time.Time       `json:"createdAt"`
+	Texts            json.RawMessage `json:"texts"`
 }
 
 func (q *Queries) InsertSuppression(ctx context.Context, arg InsertSuppressionParams) (Suppression, error) {
@@ -953,6 +961,7 @@ func (q *Queries) InsertSuppression(ctx context.Context, arg InsertSuppressionPa
 		arg.Context,
 		arg.ImportID,
 		arg.CreatedAt,
+		arg.Texts,
 	)
 	var i Suppression
 	err := row.Scan(
@@ -972,6 +981,7 @@ func (q *Queries) InsertSuppression(ctx context.Context, arg InsertSuppressionPa
 		&i.AutomationStep,
 		&i.Context,
 		&i.ImportID,
+		&i.Texts,
 	)
 	return i, err
 }

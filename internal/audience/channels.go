@@ -33,7 +33,7 @@ type ChannelQuery struct {
 func (q ChannelQuery) filter() ChannelFilter { return ChannelFilter(q) }
 
 // channelFilter appends the phone and SMS consent conditions of f.
-func channelFilter(out *filterSQL, f ChannelFilter) error {
+func channelFilter(ctx context.Context, out *filterSQL, f ChannelFilter) error {
 	switch f.Phone {
 	case "yes":
 		out.add("c.phone <> ''")
@@ -52,7 +52,7 @@ func channelFilter(out *filterSQL, f ChannelFilter) error {
 	default:
 		id, err := uuid.Parse(v)
 		if err != nil {
-			return api.Invalid("smsConsent", "Pick any, none or a list of this workspace.")
+			return api.Invalid("smsConsent", say(ctx, mSMSConsentFilter, nil))
 		}
 		out.add("EXISTS (SELECT 1 FROM channel_consents cc WHERE cc.contact_id = c.id AND cc.channel = 'sms' AND cc.status = 'subscribed' AND cc.list_id = ?)", id)
 	}

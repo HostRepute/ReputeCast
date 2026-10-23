@@ -20,5 +20,8 @@
   "error.hotFrom": "Mức Nóng bắt đầu trên mức Ấm ({warm}) và tối đa là 100.",
   "error.conflict": "Có người đã lưu chấm điểm sau khi bạn mở. Hãy tải lại để xem thay đổi của họ, rồi thực hiện lại thay đổi của bạn.",
   "error.nothingToRetry": "Không có lần tính lại nào bị dừng, nên không có gì để thử lại.",
-  "error.notSetUp": "Không gian làm việc này chưa thiết lập chấm điểm."
+  "error.notSetUp": "Không gian làm việc này chưa thiết lập chấm điểm.",
+
+  "notify.recalcTitle": "Đã tính lại điểm xong",
+  "notify.recalcBody": "{changed, plural, other {# liên hệ đã đổi mức}}{flows, select, one { · {flow1} {start, select, yes {đã bắt đầu} other {không bắt đầu}} cho {n1} liên hệ} two { · {flow1} {start, select, yes {đã bắt đầu} other {không bắt đầu}} cho {n1} liên hệ · {flow2} {start, select, yes {đã bắt đầu} other {không bắt đầu}} cho {n2} liên hệ} three { · {flow1} {start, select, yes {đã bắt đầu} other {không bắt đầu}} cho {n1} liên hệ · {flow2} {start, select, yes {đã bắt đầu} other {không bắt đầu}} cho {n2} liên hệ · {flow3} {start, select, yes {đã bắt đầu} other {không bắt đầu}} cho {n3} liên hệ} other {}}"
 }

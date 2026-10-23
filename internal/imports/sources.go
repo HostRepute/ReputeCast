@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/netguard"
 )
 
@@ -96,18 +96,28 @@ type Engagement struct {
 	Rating int `json:"rating,omitempty"`
 }
 
-// SourceError is a failure talking to the source, explained for people.
+// SourceError is a failure talking to the source, explained for people:
+// Message in English, Text the message it came from for readers of other
+// languages.
 type SourceError struct {
 	Status  int
 	Code    string // auth_failed, rate_limited, unavailable, bad_response
 	Message string
+	Text    i18n.Text
 	// Reason is the source's own short words ("API Key Invalid").
 	Reason string
 	// RetryAfter is set for rate limits.
 	RetryAfter time.Duration
 }
 
-func (e *SourceError) Error() string { return e.Message }
+func (e *SourceError) Error() string   { return e.Message }
+func (e *SourceError) kept() i18n.Text { return e.Text }
+
+// newSourceError explains a source failure with a message of the catalog.
+func newSourceError(code string, status int, m i18n.Msg, args i18n.Args) *SourceError {
+	t := m.Keep(args)
+	return &SourceError{Status: status, Code: code, Message: english(t), Text: t}
+}
 
 // Error codes of SourceError.
 const (
@@ -193,7 +203,7 @@ func (c *apiClient) get(ctx context.Context, path string, out any) error {
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
-			lastErr = &SourceError{Code: CodeUnavailable, Message: fmt.Sprintf("Couldn't reach %s: %s.", c.name, netguard.Describe(ctx, err))}
+			lastErr = newSourceError(CodeUnavailable, 0, mUnreachable, i18n.Args{"source": c.name, "reason": netguard.Describe(ctx, err)})
 			if netguard.IsBlocked(err) {
 				return lastErr
 			}
@@ -206,11 +216,14 @@ func (c *apiClient) get(ctx context.Context, path string, out any) error {
 		_ = resp.Body.Close()
 		switch {
 		case resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden:
-			return &SourceError{Status: resp.StatusCode, Code: CodeAuthFailed, Message: fmt.Sprintf("%s rejected the API key (%s).", c.name, describe(body, resp.Status)),
-				Reason: describeFirst(body, resp.Status, "title", "detail", "message", "error")}
+			se := newSourceError(CodeAuthFailed, resp.StatusCode, mRejectedKey, i18n.Args{"source": c.name, "reason": describe(body, resp.Status)})
+			se.Reason = describeFirst(body, resp.Status, "title", "detail", "message", "error")
+			return se
 		case resp.StatusCode == http.StatusTooManyRequests:
 			wait := retryAfter(resp.Header.Get("Retry-After"))
-			lastErr = &SourceError{Status: 429, Code: CodeRateLimited, Message: fmt.Sprintf("%s is rate-limiting requests (429).", c.name), RetryAfter: wait}
+			se := newSourceError(CodeRateLimited, 429, mRateLimited, i18n.Args{"source": c.name})
+			se.RetryAfter = wait
+			lastErr = se
 			if c.OnRetry != nil {
 				c.OnRetry(attempt+1, wait, 429)
 			}
@@ -219,7 +232,7 @@ func (c *apiClient) get(ctx context.Context, path string, out any) error {
 			}
 			continue
 		case resp.StatusCode >= 500:
-			lastErr = &SourceError{Status: resp.StatusCode, Code: CodeUnavailable, Message: fmt.Sprintf("%s answered %s.", c.name, resp.Status)}
+			lastErr = newSourceError(CodeUnavailable, resp.StatusCode, mAnswered, i18n.Args{"source": c.name, "status": resp.Status})
 			if c.OnRetry != nil {
 				c.OnRetry(attempt+1, 0, resp.StatusCode)
 			}
@@ -228,14 +241,14 @@ func (c *apiClient) get(ctx context.Context, path string, out any) error {
 			}
 			continue
 		case resp.StatusCode >= 400:
-			return &SourceError{Status: resp.StatusCode, Code: CodeBadResponse, Message: fmt.Sprintf("%s refused the request: %s.", c.name, describe(body, resp.Status))}
+			return newSourceError(CodeBadResponse, resp.StatusCode, mRefused, i18n.Args{"source": c.name, "reason": describe(body, resp.Status)})
 		case resp.StatusCode >= 300:
 			// Redirects are not followed (the guard checks each address): the
 			// person enters the address the server answers at.
-			return &SourceError{Status: resp.StatusCode, Code: CodeBadResponse, Message: fmt.Sprintf("%s redirects to another address (%s). Enter the address it answers at.", c.name, resp.Status)}
+			return newSourceError(CodeBadResponse, resp.StatusCode, mRedirects, i18n.Args{"source": c.name, "status": resp.Status})
 		}
 		if err := json.Unmarshal(body, out); err != nil {
-			return &SourceError{Code: CodeBadResponse, Message: fmt.Sprintf("%s sent a response ReputeCast can't read: %v.", c.name, err)}
+			return newSourceError(CodeBadResponse, 0, mUnreadable, i18n.Args{"source": c.name, "reason": err.Error()})
 		}
 		return nil
 	}

@@ -205,9 +205,11 @@ UPDATE public_page_settings SET updated_by = @updated_by, updated_at = @at WHERE
 UPDATE public_page_settings SET hosted_form_id = @hosted_form_id, updated_by = @updated_by, updated_at = @at WHERE workspace_id = @workspace_id;
 
 -- name: PublicSettingsSetDomain :exec
+-- texts is the detail's kept message ({"domain_detail": …}), or NULL.
 UPDATE public_page_settings
 SET custom_domain = @custom_domain, domain_status = @domain_status, domain_detail = @domain_detail,
-    domain_checked_at = @domain_checked_at, domain_verified_at = @domain_verified_at, updated_by = @updated_by, updated_at = @at
+    domain_checked_at = @domain_checked_at, domain_verified_at = @domain_verified_at, updated_by = @updated_by, updated_at = @at,
+    texts = (texts - 'domain_detail') || coalesce(sqlc.narg(texts)::jsonb, '{}')
 WHERE workspace_id = @workspace_id;
 
 -- name: PublicSettingsDomainTaken :one
@@ -221,15 +223,18 @@ WHERE custom_domain IS NOT NULL
   AND (domain_status IN ('pending','failed') OR domain_checked_at IS NULL OR domain_checked_at < @before);
 
 -- name: PublicSettingsSetTurnstile :exec
+-- texts is the error's kept message ({"turnstile_error": …}), or NULL.
 UPDATE public_page_settings
 SET turnstile_site_key = @site_key, turnstile_secret_enc = @secret_enc, turnstile_status = @status, turnstile_error = @error,
-    turnstile_checked_at = @checked_at, updated_by = @updated_by, updated_at = @at
+    turnstile_checked_at = @checked_at, updated_by = @updated_by, updated_at = @at,
+    texts = (texts - 'turnstile_error') || coalesce(sqlc.narg(texts)::jsonb, '{}')
 WHERE workspace_id = @workspace_id;
 
 -- name: PublicSettingsTurnstileError :exec
 -- The widget on a challenge page reported an error (wrong site key, domain
 -- not allowed): spam protection falls back until someone fixes the key.
-UPDATE public_page_settings SET turnstile_status = 'error', turnstile_error = @error, turnstile_checked_at = @at
+UPDATE public_page_settings SET turnstile_status = 'error', turnstile_error = @error, turnstile_checked_at = @at,
+    texts = (texts - 'turnstile_error') || coalesce(sqlc.narg(texts)::jsonb, '{}')
 WHERE workspace_id = @workspace_id AND turnstile_site_key <> '';
 
 -- name: PublicSettingsSetLogo :exec

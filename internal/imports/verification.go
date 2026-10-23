@@ -26,7 +26,7 @@ func (s *Service) NewAddresses(ctx context.Context, ws *store.Workspace, id uuid
 		return "", nil, err
 	}
 	if imp.StagedAt == nil {
-		return "", nil, api.Conflict("The rows aren't read from the source yet. Wait for the field mapping to load, then try again.")
+		return "", nil, api.Conflict(say(ctx, mNotStagedWait, nil))
 	}
 	custom, err := s.customFields(ctx, ws.ID)
 	if err != nil {

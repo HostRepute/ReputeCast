@@ -109,11 +109,11 @@ func (c Config) offersTexts() bool {
 
 // smsConsentOf reads a saved form's SMS consent: the box needs the phone
 // field, and the text gets a new version whenever its words change.
-func smsConsentOf(content *contentDoc, in SignupFormContent, fields []fieldDoc, before []byte) error {
+func smsConsentOf(ctx context.Context, content *contentDoc, in SignupFormContent, fields []fieldDoc, before []byte) error {
 	content.SmsConsent = in.SmsConsent
 	content.SmsConsentText = strings.TrimSpace(in.SmsConsentText)
 	if content.SmsConsent && !slices.ContainsFunc(fields, func(f fieldDoc) bool { return f.Key == FieldPhone }) {
-		return api.Invalid("body.content.smsConsent", "Add the Phone field: SMS consent needs a number to text.")
+		return api.Invalid("body.content.smsConsent", say(ctx, mSmsNeedsPhone, nil))
 	}
 	var prev contentDoc
 	_ = json.Unmarshal(before, &prev)

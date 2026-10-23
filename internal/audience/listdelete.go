@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -93,7 +95,7 @@ func listInScope(ctx context.Context, id uuid.UUID) error {
 	if scopeAllowsList(ctx, id) {
 		return nil
 	}
-	return api.Err(http.StatusForbidden, api.CodePermissionDenied, "Your role is limited to other lists.")
+	return api.Err(http.StatusForbidden, api.CodePermissionDenied, say(ctx, mScopeLists, nil))
 }
 
 // ListImpact reports what deleting a list would affect.
@@ -267,7 +269,7 @@ func (s *Service) RestoreList(ctx context.Context, ws *store.Workspace, id uuid.
 		l, err := q.LockDeletedList(ctx, store.LockDeletedListParams{WorkspaceID: ws.ID, ID: id})
 		if errors.Is(err, pgx.ErrNoRows) {
 			if live, err := q.GetList(ctx, store.GetListParams{WorkspaceID: ws.ID, ID: id}); err == nil {
-				return api.Conflict(fmt.Sprintf("%q isn't deleted.", live.Name))
+				return api.Conflict(say(ctx, mNotDeleted, i18n.Args{"name": strconv.Quote(live.Name)}))
 			}
 			return api.NotFound("List")
 		}
@@ -278,14 +280,14 @@ func (s *Service) RestoreList(ctx context.Context, ws *store.Workspace, id uuid.
 			return err
 		}
 		if l.DeletedAt == nil || l.DeletedAt.Before(now.AddDate(0, 0, -RestoreDays)) {
-			return api.Conflict(fmt.Sprintf("Deleted lists can be restored for %d days; %q is past that.", RestoreDays, l.Name))
+			return api.Conflict(say(ctx, mRestoreExpired, i18n.Args{"days": RestoreDays, "name": strconv.Quote(l.Name)}))
 		}
 		taken, err := q.ListNameTaken(ctx, store.ListNameTakenParams{WorkspaceID: ws.ID, Name: l.Name, ExceptID: l.ID})
 		if err != nil {
 			return err
 		}
 		if taken {
-			return api.Conflict(fmt.Sprintf("Another list is called %q now. Rename it, then restore this one.", l.Name))
+			return api.Conflict(say(ctx, mRestoreNameTaken, i18n.Args{"name": strconv.Quote(l.Name)}))
 		}
 		var p deletePaused
 		_ = json.Unmarshal(l.DeletePaused, &p)

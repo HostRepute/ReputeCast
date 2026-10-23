@@ -7,7 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
+
 	"regexp"
 	"slices"
 	"sort"
@@ -20,6 +20,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	provstate "github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/publicurl"
@@ -43,9 +44,11 @@ const HotShare = 20.0
 const BacklogAfter = 5 * time.Minute
 
 // Suppressor adds addresses to the shared suppression list (the audience
-// domain's suppression service), writing its own audit entry.
+// domain's suppression service), writing its own audit entry. The note is
+// stored in English with its message kept, so the list reads it in each
+// reader's language.
 type Suppressor interface {
-	AddSuppressions(ctx context.Context, ws *store.Workspace, emails []string, note string) (added, already int, err error)
+	AddSuppressions(ctx context.Context, ws *store.Workspace, emails []string, note string, text i18n.Text) (added, already int, err error)
 }
 
 type Service struct {
@@ -93,6 +96,7 @@ func (s *Service) build(ctx context.Context, ws *store.Workspace, c store.Report
 func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.ReportCampaignRow, lang string) (CampaignReport, error) {
 	now := s.now()
 	loc := provstate.Location(ws.Timezone)
+	l := i18n.LangFrom(ctx)
 	out := CampaignReport{Mailboxes: []ReportMailboxRow{}}
 	label, err := s.audienceLabel(ctx, ws.ID, c.Audience)
 	if err != nil {
@@ -102,9 +106,10 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 	info := ReportCampaignInfo{ID: c.ID.String(), Name: c.Name, Status: c.Status, Audience: label, ScheduledAt: c.ScheduledAt,
 		StartedAt: c.StartedAt, CompletedAt: c.CompletedAt, Origin: c.Origin, Notes: []string{}, Timezone: scheduleTZ(c.Schedule)}
 	if ab != nil && ab.Kind != "" {
-		n := "A/B " + strings.ReplaceAll(ab.Kind, "_", " ")
+		args := i18n.Args{"kind": ab.Kind, "kindName": strings.ReplaceAll(ab.Kind, "_", " "), "winner": ab.Winner}
+		n := mNoteAB.Text(l, args)
 		if ab.Winner != "" {
-			n += ", winner " + ab.Winner
+			n = mNoteABWinner.Text(l, args)
 		}
 		info.Notes = append(info.Notes, n)
 	}
@@ -173,7 +178,7 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 	if err != nil {
 		return out, err
 	}
-	out.ClickMap = clickMap(c.Html, links)
+	out.ClickMap = clickMap(l, c.Html, links)
 	if s.Languages != nil {
 		if out.Languages, err = s.Languages.CampaignResults(ctx, ws, c.ID, c.Audience); err != nil {
 			return out, err
@@ -188,7 +193,7 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 						mine = append(mine, l)
 					}
 				}
-				out.ClickMap = clickMap(html, mine)
+				out.ClickMap = clickMap(l, html, mine)
 				out.ClickMap.Language = lang
 				if lang == "" && len(out.Languages.ClickMaps) > 0 {
 					out.ClickMap.Language = out.Languages.ClickMaps[0].Language
@@ -201,7 +206,7 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 	if err != nil {
 		return out, err
 	}
-	out.Bounces = bounceTable(codes)
+	out.Bounces = bounceTable(l, codes)
 	reasons, err := s.Q.ReportUnsubscribeReasons(ctx, store.ReportUnsubscribeReasonsParams{CampaignID: &cid, WorkspaceID: ws.ID})
 	if err != nil {
 		return out, err
@@ -211,10 +216,10 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 		// but nobody was asked why: no reasons, not "No reason given".
 		out.Unsubscribes = ReportUnsubscribes{Total: out.Headline.Unsubscribes, Reasons: []ReportUnsubscribeReason{}}
 	} else {
-		out.Unsubscribes = unsubscribes(out.Headline.Unsubscribes, reasons)
+		out.Unsubscribes = unsubscribes(l, out.Headline.Unsubscribes, reasons)
 	}
 	if ab != nil && len(ab.Variants) >= 2 {
-		t := abResult(ab, cells, c, now)
+		t := abResult(l, ab, cells, c, now)
 		out.ABTest = &t
 		if t.State == "decided" && t.RolloutAt != nil && c.StartedAt != nil {
 			out.Engagement.Rollout = &ReportRollout{Variant: t.Winner, At: *t.RolloutAt, Hour: round(t.RolloutAt.Sub(*c.StartedAt).Hours(), 2)}
@@ -261,8 +266,9 @@ func (s *Service) audienceLabel(ctx context.Context, wsID uuid.UUID, raw json.Ra
 			public = append(public, l.ID)
 		}
 	}
+	lang := i18n.LangFrom(ctx)
 	if len(a.Segments) == 0 && len(public) > 1 && !slices.ContainsFunc(public, func(id uuid.UUID) bool { return !slices.Contains(a.Lists, id) }) {
-		return "All subscribers", nil
+		return mAudienceAll.Text(lang, nil), nil
 	}
 	names := make(map[uuid.UUID]string, len(lists))
 	for _, l := range lists {
@@ -275,11 +281,7 @@ func (s *Service) audienceLabel(ctx context.Context, wsID uuid.UUID, raw json.Ra
 		}
 	}
 	if n := len(a.Segments); n > 0 {
-		word := "segments"
-		if n == 1 {
-			word = "segment"
-		}
-		parts = append(parts, fmt.Sprintf("%d %s", n, word))
+		parts = append(parts, mAudienceSegments.Text(lang, i18n.Args{"count": n}))
 	}
 	return strings.Join(parts, " + "), nil
 }
@@ -509,8 +511,8 @@ func engagement(rows []store.ReportHourlyRow, delivered int64, hours int) Report
 }
 
 // clickMap sizes each link against all link clicks and groups the small ones.
-func clickMap(html string, rows []store.ReportLinksRow) ReportClickMap {
-	rows = groupPersonal(rows)
+func clickMap(l i18n.Lang, html string, rows []store.ReportLinksRow) ReportClickMap {
+	rows = groupPersonal(l, rows)
 	out := ReportClickMap{HTML: html, Available: strings.TrimSpace(html) != "", Links: []ReportLink{}, Threshold: LinkThreshold}
 	for _, r := range rows {
 		out.Total += r.Clicks
@@ -553,7 +555,7 @@ var referralLinks = regexp.MustCompile(`\{\{-?\s*referral\.`)
 
 // groupPersonal makes the Referral block's links one entry of the click
 // map, "Referral links (personal)", at the first one's place.
-func groupPersonal(rows []store.ReportLinksRow) []store.ReportLinksRow {
+func groupPersonal(l i18n.Lang, rows []store.ReportLinksRow) []store.ReportLinksRow {
 	out := make([]store.ReportLinksRow, 0, len(rows))
 	at := -1
 	for _, r := range rows {
@@ -563,7 +565,7 @@ func groupPersonal(rows []store.ReportLinksRow) []store.ReportLinksRow {
 		}
 		if at < 0 {
 			at = len(out)
-			r.Label = "Referral links (personal)"
+			r.Label = mReferralLinks.Text(l, nil)
 			out = append(out, r)
 			continue
 		}
@@ -582,20 +584,21 @@ func linkLabel(label, url string) string {
 	return strings.TrimSuffix(u, "/")
 }
 
-// Unsubscribe reasons in display order with their labels and bar tones.
-var reasonDefs = []struct{ key, label, tone string }{
-	{"too_frequent", "Too many emails", "ink"},
-	{"not_relevant", "Content not relevant", "ink"},
-	{"none", "No reason given", "muted"},
-	{"never_signed_up", "Didn't sign up", "bad"},
-	{"spam", "Looks like spam", "bad"},
-	{"other", "Other", "muted"},
+// Unsubscribe reasons in display order with their bar tones; reason.<key>
+// names them.
+var reasonDefs = []struct{ key, tone string }{
+	{"too_frequent", "ink"},
+	{"not_relevant", "ink"},
+	{"none", "muted"},
+	{"never_signed_up", "bad"},
+	{"spam", "bad"},
+	{"other", "muted"},
 }
 
 // unsubscribes reads the answers on the unsubscribe page. People who left
 // without answering (or with one click from their mail app) are "No reason
 // given"; people who chose fewer emails didn't leave and are counted apart.
-func unsubscribes(total int64, rows []store.ReportUnsubscribeReasonsRow) ReportUnsubscribes {
+func unsubscribes(l i18n.Lang, total int64, rows []store.ReportUnsubscribeReasonsRow) ReportUnsubscribes {
 	out := ReportUnsubscribes{Total: total, Reasons: []ReportUnsubscribeReason{}}
 	by := map[string]int64{}
 	var answered int64
@@ -620,7 +623,7 @@ func unsubscribes(total int64, rows []store.ReportUnsubscribeReasonsRow) ReportU
 		if n <= 0 {
 			continue
 		}
-		r := ReportUnsubscribeReason{Key: d.key, Label: d.label, Count: n, Tone: d.tone}
+		r := ReportUnsubscribeReason{Key: d.key, Label: reasonLabel(l, d.key), Count: n, Tone: d.tone}
 		if total > 0 {
 			r.Share = round(float64(n)/float64(total)*100, 1)
 		}
@@ -673,17 +676,15 @@ func parseAB(raw json.RawMessage) *abConfig {
 	return &c
 }
 
-var abLabels = map[string]string{"subject": "subject line", "content": "content", "send_time": "send time"}
-
 // abResult compares the variants: the decision snapshot when there is one,
 // else each test sample's results so far, with a two-proportion z-test on
 // the metric between the leader and the runner-up.
-func abResult(cfg *abConfig, cells []store.ReportCounterCellsRow, c store.ReportCampaignRow, now time.Time) ReportABTest {
+func abResult(l i18n.Lang, cfg *abConfig, cells []store.ReportCounterCellsRow, c store.ReportCampaignRow, now time.Time) ReportABTest {
 	metric := cfg.Metric
 	if metric != "clicks" {
 		metric = "human_opens"
 	}
-	out := ReportABTest{Kind: cfg.Kind, Label: abLabels[cfg.Kind], Metric: metric, WindowHours: cfg.DurationHours, Winner: cfg.Winner, Variants: []ReportABVariant{}}
+	out := ReportABTest{Kind: cfg.Kind, Label: abLabel(l, cfg.Kind), Metric: metric, WindowHours: cfg.DurationHours, Winner: cfg.Winner, Variants: []ReportABVariant{}}
 	if out.Label == "" {
 		out.Label = strings.ReplaceAll(cfg.Kind, "_", " ")
 	}

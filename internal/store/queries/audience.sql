@@ -177,7 +177,7 @@ ORDER BY l.created_at, l.id;
 
 -- name: ContactConsentEvents :many
 SELECT ce.id, ce.list_id, ce.action, ce.source, ce.ip, ce.user_agent, ce.detail, ce.note, ce.consent_version, ce.language, ce.occurred_at,
-       coalesce(u.name, '')::text AS actor_name, coalesce(ce.consent_text, '')::text AS consent_text
+       coalesce(u.name, '')::text AS actor_name, coalesce(ce.consent_text, '')::text AS consent_text, ce.texts
 FROM consent_events ce
 LEFT JOIN users u ON u.id = ce.actor_id
 WHERE ce.contact_id = @contact_id
@@ -203,8 +203,9 @@ SELECT ((SELECT count(*) FROM delivery_events de WHERE de.contact_id = @contact_
       + (SELECT count(*) FROM consent_events ce WHERE ce.contact_id = @contact_id))::bigint;
 
 -- name: InsertConsentEvent :exec
-INSERT INTO consent_events (id, contact_id, list_id, action, source, ip, user_agent, detail, note, consent_version, actor_id, import_id, occurred_at)
-VALUES (@id, @contact_id, @list_id, @action, @source, @ip, @user_agent, @detail, @note, @consent_version, @actor_id, @import_id, @occurred_at);
+INSERT INTO consent_events (id, contact_id, list_id, action, source, ip, user_agent, detail, note, consent_version, actor_id, import_id, occurred_at, texts)
+VALUES (@id, @contact_id, @list_id, @action, @source, @ip, @user_agent, @detail, @note, @consent_version, @actor_id, @import_id, @occurred_at,
+        coalesce(sqlc.narg(texts)::jsonb, '{}'));
 
 -- name: CreateContact :one
 INSERT INTO contacts (id, workspace_id, email, first_name, last_name, company, country, timezone, language,
@@ -267,9 +268,9 @@ SELECT * FROM suppressions WHERE workspace_id = @workspace_id AND email = @email
 
 -- name: InsertSuppression :one
 INSERT INTO suppressions (id, workspace_id, email, reason, source, source_provider_id, original_code, detail, created_by,
-                          scope, campaign_id, automation_id, automation_step, context, import_id, created_at)
+                          scope, campaign_id, automation_id, automation_step, context, import_id, created_at, texts)
 VALUES (@id, @workspace_id, @email, @reason, @source, @source_provider_id, @original_code, @detail, @created_by,
-        @scope, @campaign_id, @automation_id, @automation_step, @context, @import_id, @created_at)
+        @scope, @campaign_id, @automation_id, @automation_step, @context, @import_id, @created_at, coalesce(sqlc.narg(texts)::jsonb, '{}'))
 ON CONFLICT (workspace_id, email) DO NOTHING
 RETURNING *;
 

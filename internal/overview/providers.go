@@ -2,13 +2,13 @@ package overview
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -31,18 +31,19 @@ func (s *Service) ProviderCards(ctx context.Context, ws *store.Workspace) (Overv
 		byID[p.ID] = p
 	}
 	out := OverviewProviders{Connected: po.Summary.Connected, MonthStart: po.Summary.MonthStart, Providers: []OverviewProviderCard{}}
+	l := i18n.LangFrom(ctx)
 	for _, c := range po.Providers {
 		// A paused provider sends nothing; the providers screen still lists it.
 		if c.Status == state.Paused {
 			continue
 		}
-		card := OverviewProviderCard{Card: c, DisplayName: displayName(c), Detail: detail(c)}
+		card := OverviewProviderCard{Card: c, DisplayName: displayName(l, c), Detail: detail(l, c)}
 		if id, err := uuid.Parse(c.ID); err == nil {
 			if p, ok := byID[id]; ok {
 				card.Refresh = refreshFailure(p)
 			}
 		}
-		card.StatusLabel, card.StatusURL = statusPage(c.Adapter)
+		card.StatusLabel, card.StatusURL = statusPage(l, c.Adapter)
 		if card.Refresh != nil {
 			card.Refresh.StatusLabel, card.Refresh.StatusURL = card.StatusLabel, card.StatusURL
 		}
@@ -52,19 +53,17 @@ func (s *Service) ProviderCards(ctx context.Context, ws *store.Workspace) (Overv
 }
 
 // displayName is "Postal (self-hosted)" for servers people run themselves.
-func displayName(c manage.ProviderCard) string {
+func displayName(l i18n.Lang, c manage.ProviderCard) string {
 	if d, ok := providers.Lookup(c.Adapter); ok && (d.Kind == "self_hosted") && !strings.Contains(c.Name, "self-hosted") {
-		return c.Name + " (self-hosted)"
+		return mSelfHosted.Text(l, i18n.Args{"name": c.Name})
 	}
 	return c.Name
 }
 
-var streamTitle = map[string]string{"broadcast": "Broadcasts", "automation": "Automations", "system": "System", "transactional": "Transactional"}
-
 // detail is the line under a provider's name: where it runs, its dedicated
 // IP and what it carries ("mta.acme.io · 203.0.113.25 dedicated · 10% of
 // Broadcasts"). A minority share of a split is written as a share.
-func detail(c manage.ProviderCard) string {
+func detail(l i18n.Lang, c manage.ProviderCard) string {
 	var parts []string
 	// A provider's own stream label ("Transactional stream" at Postmark)
 	// reads as ReputeCast's stream once it carries Transactional: the
@@ -80,16 +79,19 @@ func detail(c manage.ProviderCard) string {
 		parts = append(parts, label)
 	}
 	if c.IPMode == "dedicated" && len(c.IPs) > 0 {
-		parts = append(parts, strings.Join(c.IPs, ", ")+" dedicated")
+		parts = append(parts, mDedicated.Text(l, i18n.Args{"ips": strings.Join(c.IPs, ", ")}))
 	}
 	var streams []string
 	for _, r := range c.Roles {
 		if r.Role != "primary" && r.Role != "split" {
 			continue
 		}
-		name := streamTitle[r.Stream]
+		name := r.Stream
+		if m, ok := mStreamTitles[r.Stream]; ok {
+			name = m.Text(l, nil)
+		}
 		if r.Role == "split" && r.Percent > 0 && r.Percent <= 50 {
-			name = fmt.Sprintf("%d%% of %s", r.Percent, name)
+			name = mStreamShare.Text(l, i18n.Args{"percent": l.Region.Percent(float64(r.Percent), 0), "stream": name})
 		}
 		if !slices.Contains(streams, name) {
 			streams = append(streams, name)
@@ -124,19 +126,23 @@ func refreshFailure(p store.Provider) *OverviewRefreshFailure {
 	return f
 }
 
-// statusPage is a provider's public status page, when it has one.
-func statusPage(adapter string) (string, string) {
+// statusPage is a provider's public status page, when it has one, named
+// in the reader's language: "AWS status page".
+func statusPage(l i18n.Lang, adapter string) (string, string) {
+	name, url := "", ""
 	switch adapter {
 	case "ses":
-		return "AWS status page", "https://health.aws.amazon.com/health/status"
+		name, url = "AWS", "https://health.aws.amazon.com/health/status"
 	case "postmark":
-		return "Postmark status page", "https://status.postmarkapp.com"
+		name, url = "Postmark", "https://status.postmarkapp.com"
 	case "mailgun":
-		return "Mailgun status page", "https://status.mailgun.com"
+		name, url = "Mailgun", "https://status.mailgun.com"
 	case "sendgrid":
-		return "SendGrid status page", "https://status.sendgrid.com"
+		name, url = "SendGrid", "https://status.sendgrid.com"
 	case "resend":
-		return "Resend status page", "https://resend-status.com"
+		name, url = "Resend", "https://resend-status.com"
+	default:
+		return "", ""
 	}
-	return "", ""
+	return mStatusPage.Text(l, i18n.Args{"name": name}), url
 }

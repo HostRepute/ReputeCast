@@ -119,7 +119,7 @@ func (s *Service) WaitingLink(ctx context.Context, ws *store.Workspace, formID, 
 		return SignupFormConfirmLink{}, err
 	}
 	if !sub.DoubleOptIn || sub.ConfirmedAt != nil {
-		return SignupFormConfirmLink{}, api.Conflict("This signup is confirmed already; there's no link to send.")
+		return SignupFormConfirmLink{}, api.Conflict(say(ctx, mConfirmedAlready, nil))
 	}
 	names, err := s.Audience.PublicContactNames(ctx, s.Q, ws, []uuid.UUID{sub.ContactID})
 	if err != nil {

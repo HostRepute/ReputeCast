@@ -267,11 +267,12 @@ func (pc *PagesCopy) PrivacyURL(code, base string) string {
 	return pc.Text(code, "privacyUrl", base)
 }
 
-// Pages are the pages' options with their own text in a language.
+// Pages are the pages' options with their own text in a language;
+// ReputeCast's default text the workspace kept reads in that language too.
 func (pc *PagesCopy) Pages(code string, p Pages) Pages {
 	l := pc.lang(code)
 	if l == nil || l.Source {
-		return p
+		return p.withDefaultsIn(code)
 	}
 	t := func(key, v string) string { return pc.Text(code, key, v) }
 	out := p
@@ -285,7 +286,7 @@ func (pc *PagesCopy) Pages(code string, p Pages) Pages {
 	out.Unsubscribe.FewerTitle = t("unsubscribe.fewerTitle", p.Unsubscribe.FewerTitle)
 	out.Unsubscribe.FewerText = t("unsubscribe.fewerText", p.Unsubscribe.FewerText)
 	out.Unsubscribe.FewerButton = t("unsubscribe.fewerButton", p.Unsubscribe.FewerButton)
-	return out
+	return out.withDefaultsIn(code)
 }
 
 func translateMap(m map[string]string, t func(id, v string) string) map[string]string {

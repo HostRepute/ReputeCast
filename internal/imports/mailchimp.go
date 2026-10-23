@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Mailchimp reads audiences, merge fields, tags and members through the
@@ -33,7 +35,7 @@ func NewMailchimp(apiKey, base string, hc *http.Client) (*Mailchimp, error) {
 	}
 	_, dc, ok := strings.Cut(key, "-")
 	if !ok || !mailchimpDC.MatchString(dc) {
-		return nil, &SourceError{Code: CodeAuthFailed, Message: "Mailchimp keys end with the data center, like xxxxxxxx-us21. Copy the whole key from Account › Extras › API keys."}
+		return nil, newSourceError(CodeAuthFailed, 0, mMailchimpKey, nil)
 	}
 	if base == "" {
 		base = "https://" + dc + ".api.mailchimp.com/3.0"
@@ -54,7 +56,8 @@ func (m *Mailchimp) Connect(ctx context.Context) (ImportConnection, error) {
 			if se.Reason != "" {
 				said = fmt.Sprintf(": %q", se.Reason)
 			}
-			se.Message = fmt.Sprintf(`Mailchimp rejected the API key%s from the %s data center. Keys look like xxxxxxxx-%s; the suffix must match the data center the account lives in.`, said, m.DC, m.DC)
+			se.Text = mMailchimpRejected.Keep(i18n.Args{"said": said, "dc": m.DC})
+			se.Message = english(se.Text)
 		}
 		return ImportConnection{}, err
 	}

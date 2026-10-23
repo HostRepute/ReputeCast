@@ -66,7 +66,8 @@ WHERE id = @id;
 DELETE FROM imports WHERE workspace_id = @workspace_id AND id = @id AND status IN ('draft', 'failed', 'cancelled', 'paused');
 
 -- name: InsertImportLog :exec
-INSERT INTO import_log (id, import_id, occurred_at, kind, message) VALUES (@id, @import_id, @occurred_at, @kind, @message);
+INSERT INTO import_log (id, import_id, occurred_at, kind, message, message_parts)
+VALUES (@id, @import_id, @occurred_at, @kind, @message, coalesce(sqlc.narg(message_parts)::jsonb, '[]'));
 
 -- name: ListImportLog :many
 SELECT * FROM import_log WHERE import_id = @import_id ORDER BY occurred_at DESC, id DESC LIMIT 30;

@@ -8,6 +8,7 @@ package audience
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -15,6 +16,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -39,16 +41,22 @@ const (
 // value clears the language. A value that isn't a language answers 422 at
 // loc, with the closest match when there is one (meta "closest").
 func NormalizeLanguage(raw, loc string) (string, error) {
+	return NormalizeLanguageIn(i18n.Default, raw, loc)
+}
+
+// NormalizeLanguageIn is NormalizeLanguage with its problem in a reader's
+// language.
+func NormalizeLanguageIn(rl i18n.Lang, raw, loc string) (string, error) {
 	if code, ok := languages.Normalize(raw); ok {
 		return code, nil
 	}
 	v := strings.TrimSpace(raw)
 	if code := ClosestLanguage(v); code != "" {
 		l, _ := languages.Lookup(code)
-		return "", api.Invalid(loc, fmt.Sprintf("%q isn't a language. Did you mean %s (%s)?", v, l.Name, l.Code)).
+		return "", api.Invalid(loc, mNotLanguageNear.Text(rl, i18n.Args{"value": strconv.Quote(v), "name": languageNameIn(rl, l.Code), "code": l.Code})).
 			WithMeta("closest", l.Code, "closestName", l.Name)
 	}
-	return "", api.Invalid(loc, fmt.Sprintf("%q isn't a language. Use a code such as es-MX, or a language's name such as Spanish.", v))
+	return "", api.Invalid(loc, mNotLanguage.Text(rl, i18n.Args{"value": strconv.Quote(v)}))
 }
 
 // ClosestLanguage is the catalog language a value that isn't one most
@@ -185,7 +193,8 @@ func (s *Service) contactLanguage(ctx context.Context, c store.Contact) (Contact
 	if code == "" && strings.TrimSpace(c.Language) != "" {
 		code = strings.TrimSpace(c.Language) // kept as stored when it can't be read
 	}
-	out := ContactLanguage{Code: code, Name: languageName(code), Offered: code == "" || st.Offers(code), Gets: st.Fallback,
+	rl := i18n.LangFrom(ctx)
+	out := ContactLanguage{Code: code, Name: languageNameIn(rl, code), Offered: code == "" || st.Offers(code), Gets: st.Fallback,
 		Source: c.LanguageSource, SourceName: c.LanguageSourceName, Browser: c.LanguageBrowser, SetAt: c.LanguageSetAt, Options: []ContactLanguageOption{}}
 	if code != "" && st.Offers(code) {
 		out.Gets = languages.Base(code)
@@ -196,10 +205,14 @@ func (s *Service) contactLanguage(ctx context.Context, c store.Contact) (Contact
 		}
 	}
 	if code != "" && !st.Offers(code) {
-		out.Options = append(out.Options, ContactLanguageOption{Code: code, Name: languageName(code)})
+		out.Options = append(out.Options, ContactLanguageOption{Code: code, Name: languageNameIn(rl, code)})
 	}
 	for _, l := range st.Languages {
-		opt := ContactLanguageOption{Code: l, Name: languages.NameOf(l), Offered: true}
+		name := languageNameIn(rl, l)
+		if name == "" {
+			name = languages.NameOf(l)
+		}
+		opt := ContactLanguageOption{Code: l, Name: name, Offered: true}
 		if code != "" && languages.Base(code) == l {
 			opt.Code = code
 		}
@@ -273,7 +286,7 @@ func (s *Service) languageFilter(ctx context.Context, wsID uuid.UUID, out *filte
 	}
 	code := languages.Base(value)
 	if _, ok := languages.Lookup(code); !ok {
-		return api.Invalid("language", "Pick one of your languages, “none” or “not_offered”.")
+		return api.Invalid("language", say(ctx, mLanguageFilter, nil))
 	}
 	out.add(base+" = ?", code)
 	return nil

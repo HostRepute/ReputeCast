@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -66,10 +68,10 @@ func (s *Service) Start(ctx context.Context, ws *store.Workspace, id uuid.UUID) 
 		return ImportDetail{}, err
 	}
 	if imp.Status != "draft" {
-		return ImportDetail{}, api.Conflict("This import has already started.")
+		return ImportDetail{}, api.Conflict(say(ctx, mStarted, nil))
 	}
 	if imp.StagedAt == nil {
-		return ImportDetail{}, api.Conflict("The rows aren't read from the source yet.")
+		return ImportDetail{}, api.Conflict(say(ctx, mNotStaged, nil))
 	}
 	custom, err := s.customFields(ctx, ws.ID)
 	if err != nil {
@@ -77,7 +79,7 @@ func (s *Service) Start(ctx context.Context, ws *store.Workspace, id uuid.UUID) 
 	}
 	fm := s.effectiveMap(imp, custom)
 	if e, _ := fieldSources(fm); e == "" {
-		return ImportDetail{}, api.Invalid("body.fields", "Map a field to email before importing.")
+		return ImportDetail{}, api.Invalid("body.fields", say(ctx, mMapEmail, nil))
 	}
 	total, err := s.Q.CountImportRows(ctx, imp.ID)
 	if err != nil {
@@ -92,7 +94,7 @@ func (s *Service) Start(ctx context.Context, ws *store.Workspace, id uuid.UUID) 
 		if err := q.StartImport(ctx, store.StartImportParams{ID: imp.ID, Progress: mustJSON(ImportProgress{Total: total, Batches: batches, BatchSize: BatchSize})}); err != nil {
 			return err
 		}
-		if err := s.log(ctx, q, imp.ID, "start", s.startLine(ctx, ws, imp, conn, opts, cm, total)); err != nil {
+		if err := s.log(ctx, q, imp.ID, "start", s.startLine(ctx, ws, imp, conn, opts, cm, total)...); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "import.start", TargetType: "import", TargetID: imp.ID.String(),
@@ -109,9 +111,9 @@ func (s *Service) Start(ctx context.Context, ws *store.Workspace, id uuid.UUID) 
 
 // startLine is the first line of the live log: "Import started · 13,739
 // rows · audience "Acme Customers" → list Product Updates · consent: trust
-// double opt-in".
-func (s *Service) startLine(ctx context.Context, ws *store.Workspace, imp store.Import, conn storedConnection, opts ImportOptions, cm ImportConsentMap, total int64) string {
-	parts := []string{"Import started", thousands(int(total)) + " rows"}
+// double opt-in", one kept message per part.
+func (s *Service) startLine(ctx context.Context, ws *store.Workspace, imp store.Import, conn storedConnection, opts ImportOptions, cm ImportConsentMap, total int64) []i18n.Text {
+	parts := []i18n.Text{mLogStart.Keep(i18n.Args{"rows": total})}
 	noun := map[string]string{"mailchimp": "audience", "mailerlite": "group"}[imp.Source]
 	if noun == "" {
 		noun = "list"
@@ -124,18 +126,18 @@ func (s *Service) startLine(ctx context.Context, ws *store.Workspace, imp store.
 			}
 		}
 		if isFile(imp.Source) {
-			parts = append(parts, fmt.Sprintf("%s → list %s", imp.FileName, target))
+			parts = append(parts, mLogMapping.Keep(i18n.Args{"kind": "file", "source": imp.FileName, "target": target}))
 		} else {
-			parts = append(parts, fmt.Sprintf("%s %q → list %s", noun, listName(conn, l.SourceID), target))
+			parts = append(parts, mLogMapping.Keep(i18n.Args{"kind": noun, "source": strconv.Quote(listName(conn, l.SourceID)), "target": target}))
 		}
 	}
-	consent := "trust double opt-in"
+	consent := "trust"
 	if cm.Subscribed == HandlePending {
-		consent = "re-permission everyone"
+		consent = "repermission"
 	} else if !anyDoubleOptIn(conn) {
-		consent = "keep source opt-in"
+		consent = "source"
 	}
-	return strings.Join(parts, " · ") + " · consent: " + consent
+	return append(parts, mLogConsent.Keep(i18n.Args{"consent": consent}))
 }
 
 func anyDoubleOptIn(conn storedConnection) bool {
@@ -155,14 +157,14 @@ func (s *Service) Cancel(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 	}
 	switch imp.Status {
 	case "done", "cancelled", "failed":
-		return ImportDetail{}, api.Conflict("This import isn't running.")
+		return ImportDetail{}, api.Conflict(say(ctx, mNotRunning, nil))
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.SetImportStatus(ctx, store.SetImportStatusParams{ID: imp.ID, Status: "cancelled"}); err != nil {
 			return err
 		}
-		if err := s.log(ctx, q, imp.ID, "info", "Import stopped; contacts already imported stay"); err != nil {
+		if err := s.logMsg(ctx, q, imp.ID, "info", mLogStopped, nil); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "import.cancel", TargetType: "import", TargetID: imp.ID.String(), TargetName: SourceName(imp.Source)})
@@ -239,7 +241,8 @@ func (s *Service) Run(ctx context.Context, id uuid.UUID) error {
 				}
 			}
 			if len(names) > 0 {
-				_ = s.log(ctx, s.Q, imp.ID, "sync", fmt.Sprintf("Pulled suppressions from %s: %d new", joinAnd(names), res.Added))
+				// The count as the English always wrote it (%d).
+				_ = s.logMsg(ctx, s.Q, imp.ID, "sync", mLogPulled, i18n.Args{"providers": names, "added": fmt.Sprint(res.Added)})
 			}
 		}
 	}
@@ -286,9 +289,9 @@ func (s *Service) Run(ctx context.Context, id uuid.UUID) error {
 		if err := s.Q.SetImportProgress(ctx, store.SetImportProgressParams{ID: imp.ID, Progress: mustJSON(st.progress)}); err != nil {
 			return err
 		}
-		_ = s.log(ctx, s.Q, imp.ID, "done", fmt.Sprintf("Batch %d · %s rows: %s imported, %s merged, %s suppressed, %s skipped", batchNo, thousands(len(b.rows)),
-			thousands(int(st.progress.Imported+st.progress.Pending-before.Imported-before.Pending)), thousands(int(st.progress.Merged-before.Merged)),
-			thousands(int(st.progress.Suppressed-before.Suppressed)), thousands(int(st.progress.Skipped-before.Skipped))))
+		_ = s.logMsg(ctx, s.Q, imp.ID, "done", mLogBatch, i18n.Args{"batch": strconv.Itoa(batchNo), "rows": len(b.rows),
+			"imported": st.progress.Imported + st.progress.Pending - before.Imported - before.Pending, "merged": st.progress.Merged - before.Merged,
+			"suppressed": st.progress.Suppressed - before.Suppressed, "skipped": st.progress.Skipped - before.Skipped})
 	}
 	s.pushSuppressions(ctx, st)
 	s.sendRepermission(ctx, st)
@@ -300,6 +303,8 @@ func (s *Service) Run(ctx context.Context, id uuid.UUID) error {
 func (s *Service) prepareTargets(ctx context.Context, st *runState) error {
 	for _, l := range st.opts.Lists {
 		if name, ok := strings.CutPrefix(l.Target, "new:"); ok {
+			// The description is the list's own content, which the workspace
+			// edits: it's written once, in English.
 			created, err := s.Audience.CreateList(ctx, &st.ws, audience.AudienceListInput{Name: strings.TrimSpace(name), Description: "Imported from " + SourceName(st.imp.Source) + "."})
 			if err != nil {
 				var p *api.Problem
@@ -495,19 +500,24 @@ func (s *Service) applyRow(ctx context.Context, tx pgx.Tx, st *runState, r mappe
 
 func (s *Service) suppressRow(ctx context.Context, tx pgx.Tx, st *runState, r mappedRow, now time.Time) (string, string, error) {
 	q := store.New(tx)
-	reason, contactStatus, code := "unsubscribe", "unsubscribed", "unsubscribed in "+SourceName(st.imp.Source)
+	// The original code is the source's status in words, kept for readers
+	// of other languages with the context (audience.KeptIn reads them).
+	src := i18n.Args{"source": SourceName(st.imp.Source)}
+	reason, contactStatus, code := "unsubscribe", "unsubscribed", mSuppUnsubscribed.Keep(src)
 	switch st.cm.handling(r.Status) {
 	case HandleSuppressBounce:
-		reason, contactStatus, code = "hard_bounce", "bounced", "cleaned in "+SourceName(st.imp.Source)
+		reason, contactStatus, code = "hard_bounce", "bounced", mSuppCleaned.Keep(src)
 	case HandleSuppressComplaint:
-		reason, contactStatus, code = "complaint", "complained", "abuse complaint in "+SourceName(st.imp.Source)
+		reason, contactStatus, code = "complaint", "complained", mSuppAbuse.Keep(src)
 	}
 	if st.imp.Source == "brevo" {
-		code = "blocklisted in Brevo"
+		code = mSuppBlocklisted.Keep(nil)
 	}
+	where := mSuppContext.Keep(nil)
 	impID := st.imp.ID
 	_, err := q.InsertSuppression(ctx, store.InsertSuppressionParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: st.ws.ID, Email: r.Email, Reason: reason,
-		Source: "import:" + st.imp.Source, OriginalCode: code, CreatedBy: st.actor, Scope: suppressionScope(reason), Context: "Migration", ImportID: &impID, CreatedAt: now})
+		Source: "import:" + st.imp.Source, OriginalCode: english(code), CreatedBy: st.actor, Scope: suppressionScope(reason), Context: english(where), ImportID: &impID,
+		CreatedAt: now, Texts: audience.KeptTexts(map[string]i18n.Text{"original_code": code, "context": where})})
 	added := err == nil
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = nil
@@ -717,23 +727,26 @@ func validTZ(tz string) string {
 	return tz
 }
 
-// recordImport writes the consent history entry of an imported row.
+// recordImport writes the consent history entry of an imported row: its
+// detail and note in English, kept for readers of other languages
+// (audience.KeptIn reads them).
 func (s *Service) recordImport(ctx context.Context, tx pgx.Tx, st *runState, contact, list uuid.UUID, r mappedRow, consent string, now time.Time) error {
-	detail := fmt.Sprintf("list %q · status %s", listName(st.conn, r.List), r.Status)
+	detail := mDetailList.Keep(i18n.Args{"list": strconv.Quote(listName(st.conn, r.List)), "status": r.Status})
 	if isFile(st.imp.Source) {
-		detail = fmt.Sprintf("file %s · status %s", st.imp.FileName, r.Status)
+		detail = mDetailFile.Keep(i18n.Args{"file": st.imp.FileName, "status": r.Status})
 	}
-	note := "consent carried over"
+	note := mNoteCarried.Keep(nil)
 	switch {
 	case consent == "pending":
-		note = `consent carried over as "pending" until re-permission`
+		note = mNoteAsPend.Keep(nil)
 	case r.Eng.OptinAt != nil:
-		note = "evidence OPTIN_TIME " + r.Eng.OptinAt.UTC().Format("2006-01-02")
+		note = mNoteEvidence.Keep(i18n.Args{"date": r.Eng.OptinAt.UTC().Format("2006-01-02")})
 	}
 	impID := st.imp.ID
-	_, err := tx.Exec(ctx, `INSERT INTO consent_events (id, contact_id, list_id, action, source, detail, note, actor_id, import_id, occurred_at, ip)
-		VALUES ($1, $2, $3, 'imported', $4, $5, $6, $7, $8, $9, $10)`,
-		uuid.Must(uuid.NewV7()), contact, list, "import:"+st.imp.Source, detail, note, st.actor, &impID, now, optIP(r.Eng.OptinIP))
+	_, err := tx.Exec(ctx, `INSERT INTO consent_events (id, contact_id, list_id, action, source, detail, note, actor_id, import_id, occurred_at, ip, texts)
+		VALUES ($1, $2, $3, 'imported', $4, $5, $6, $7, $8, $9, $10, coalesce($11::jsonb, '{}'))`,
+		uuid.Must(uuid.NewV7()), contact, list, "import:"+st.imp.Source, english(detail), english(note), st.actor, &impID, now, optIP(r.Eng.OptinIP),
+		audience.KeptTexts(map[string]i18n.Text{"detail": detail, "note": note}))
 	return err
 }
 
@@ -885,12 +898,12 @@ func (s *Service) pushSuppressions(ctx context.Context, st *runState) {
 		pushed = append(pushed, p.name)
 	}
 	st.stats.PushedTo = pushed
-	n := thousands(len(st.newSupp))
+	n := len(st.newSupp)
 	if len(pushed) > 0 {
-		_ = s.log(ctx, s.Q, st.imp.ID, "sync", fmt.Sprintf("Pushed %s new suppressions to %s", n, joinAnd(pushed)))
+		_ = s.logMsg(ctx, s.Q, st.imp.ID, "sync", mLogPushed, i18n.Args{"count": n, "providers": pushed})
 	}
 	if len(waiting) > 0 {
-		_ = s.log(ctx, s.Q, st.imp.ID, "sync", fmt.Sprintf("%s new suppressions reach %s with the next provider sync", n, joinAnd(waiting)))
+		_ = s.logMsg(ctx, s.Q, st.imp.ID, "sync", mLogNextSync, i18n.Args{"count": n, "providers": waiting})
 	}
 }
 
@@ -903,11 +916,11 @@ func (s *Service) sendRepermission(ctx context.Context, st *runState) {
 	st.stats.ConfirmsSent = int64(n)
 	switch {
 	case err != nil:
-		_ = s.log(ctx, s.Q, st.imp.ID, "error", "Re-permission emails couldn't be sent: "+err.Error())
+		_ = s.logMsg(ctx, s.Q, st.imp.ID, "error", mLogRepermFailed, i18n.Args{"reason": err.Error()})
 	case n > 0:
-		_ = s.log(ctx, s.Q, st.imp.ID, "sync", fmt.Sprintf("Sent %s re-permission emails through the System stream", thousands(n)))
+		_ = s.logMsg(ctx, s.Q, st.imp.ID, "sync", mLogRepermSent, i18n.Args{"count": n})
 	default:
-		_ = s.log(ctx, s.Q, st.imp.ID, "info", fmt.Sprintf("%s contacts wait for re-permission; connect a System provider to email them", thousands(len(st.pending))))
+		_ = s.logMsg(ctx, s.Q, st.imp.ID, "info", mLogRepermWaiting, i18n.Args{"count": len(st.pending)})
 	}
 }
 
@@ -933,11 +946,11 @@ func (s *Service) finish(ctx context.Context, st *runState, status string, start
 			ReportCsv: st.reportBuf.Bytes(), SkippedCsv: st.skipBuf.Bytes()}); err != nil {
 			return err
 		}
-		msg := fmt.Sprintf("Import finished · %s contacts · %s suppressions", thousands(int(st.stats.Imported+st.stats.Merged+st.stats.Pending)), thousands(int(st.stats.Suppressed)))
+		line := mLogFinished.Keep(i18n.Args{"contacts": st.stats.Imported + st.stats.Merged + st.stats.Pending, "suppressions": st.stats.Suppressed})
 		if status == "cancelled" {
-			msg = fmt.Sprintf("Import stopped after %s rows", thousands(int(st.progress.Processed)))
+			line = mLogStoppedAfter.Keep(i18n.Args{"rows": st.progress.Processed})
 		}
-		if err := s.log(ctx, q, st.imp.ID, "done", msg); err != nil {
+		if err := s.log(ctx, q, st.imp.ID, "done", line); err != nil {
 			return err
 		}
 		if status == "done" {
@@ -955,23 +968,26 @@ func (s *Service) finish(ctx context.Context, st *runState, status string, start
 	// segment counts and List health fast before autovacuum gets there.
 	if st.progress.Processed >= analyzeAfterRows {
 		if _, err := s.Pool.Exec(ctx, `ANALYZE contacts, list_memberships, suppressions`); err != nil {
-			_ = s.log(ctx, s.Q, st.imp.ID, "info", "Couldn't refresh the planner statistics: "+err.Error())
+			_ = s.logMsg(ctx, s.Q, st.imp.ID, "info", mLogAnalyzeFailed, i18n.Args{"reason": err.Error()})
 		}
 	}
 	if st.imp.CreatedBy != nil && status == "done" {
 		wsID := st.ws.ID
+		// Kept messages: the person reads it in their language.
 		_ = notify.ToUser(ctx, s.Pool, *st.imp.CreatedBy, notify.Notification{
 			WorkspaceID: &wsID, Kind: notify.KindJobFinished, Severity: "ok",
-			Title: fmt.Sprintf("%s contacts imported from %s", thousands(int(st.stats.Imported+st.stats.Merged)), SourceName(st.imp.Source)),
-			Body:  fmt.Sprintf("%s suppressed, %s skipped. The report lists every skipped row.", thousands(int(st.stats.Suppressed)), thousands(int(st.stats.Skipped))),
-			Link:  fmt.Sprintf("/w/%s/import/%s/report", st.ws.Slug, st.imp.ID),
+			TitleText: mNotifyTitle.Keep(i18n.Args{"count": st.stats.Imported + st.stats.Merged, "source": SourceName(st.imp.Source)}),
+			BodyText:  mNotifyBody.Keep(i18n.Args{"suppressed": st.stats.Suppressed, "skipped": st.stats.Skipped}),
+			Link:      fmt.Sprintf("/w/%s/import/%s/report", st.ws.Slug, st.imp.ID),
 		})
 	}
 	return nil
 }
 
+// runFailed stops the import; the cause is the system's own words (a
+// database error), stored as the import's error.
 func (s *Service) runFailed(ctx context.Context, st *runState, cause error) error {
-	_ = s.log(ctx, s.Q, st.imp.ID, "error", "Import stopped: "+cause.Error())
+	_ = s.logMsg(ctx, s.Q, st.imp.ID, "error", mLogFailed, i18n.Args{"reason": cause.Error()})
 	_ = s.Q.FinishImport(ctx, store.FinishImportParams{ID: st.imp.ID, Status: "failed", Step: "import", Stats: mustJSON(st.stats),
 		Progress: mustJSON(st.progress), Error: cause.Error()})
 	return cause

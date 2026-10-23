@@ -52,10 +52,10 @@ func (q ScoreGrowthQuery) filter() ScoreGrowthFilter {
 	return ScoreGrowthFilter(q)
 }
 
-func scoreArg(s, loc string) (int, error) {
+func scoreArg(ctx context.Context, s, loc string) (int, error) {
 	n, err := strconv.Atoi(strings.TrimSpace(s))
 	if err != nil || n < 0 || n > 100 {
-		return 0, api.Invalid(loc, "Scores go from 0 to 100.")
+		return 0, api.Invalid(loc, say(ctx, mScore, nil))
 	}
 	return n, nil
 }
@@ -90,14 +90,14 @@ func (s *Service) scoreGrowthFilter(ctx context.Context, wsID uuid.UUID, out *fi
 			out.add(score+" < ?", bands.WarmFrom)
 		}
 		if f.ScoreFrom != "" {
-			n, err := scoreArg(f.ScoreFrom, "scoreFrom")
+			n, err := scoreArg(ctx, f.ScoreFrom, "scoreFrom")
 			if err != nil {
 				return err
 			}
 			out.add(score+" >= ?", n)
 		}
 		if f.ScoreTo != "" {
-			n, err := scoreArg(f.ScoreTo, "scoreTo")
+			n, err := scoreArg(ctx, f.ScoreTo, "scoreTo")
 			if err != nil {
 				return err
 			}
