@@ -29,6 +29,11 @@ How to add or complete a language: [`translating.md`](translating.md).
   "sau 5 ngày".
 - Overlines (table headers, group labels) stay uppercase and keep their
   marks: "NGƯỜI NHẬN", "HOẠT ĐỘNG GẦN NHẤT".
+- Language names start with the common noun "tiếng": "Tiếng Anh" on its own,
+  at the start of a sentence and after a colon or "·", "tiếng Anh" inside a
+  sentence ("Thêm tiếng Anh", "Người đọc tiếng Đức nhận tiếng Anh"). Write
+  `{language}` where the sentence needs it: the app picks the case, for one
+  name or a list of them (`internal/i18n/names.go`, `web/src/i18n/names.ts`).
 
 ## Never translated
 
