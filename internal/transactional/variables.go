@@ -1,12 +1,16 @@
 package transactional
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Variable types (brief §3.1).
@@ -80,50 +84,38 @@ func mustJSON(v any) json.RawMessage {
 }
 
 // validateVariables checks declarations: names, types, unique names, and
-// sample and default values that parse for their type.
-func validateVariables(vars []TransactionalVariable) error {
+// sample and default values that parse for their type. Its problems are in
+// the reader's language.
+func validateVariables(ctx context.Context, vars []TransactionalVariable) error {
 	seen := map[string]bool{}
 	for i, v := range vars {
 		loc := fmt.Sprintf("body.variables[%d]", i)
 		if !nameRe.MatchString(v.Name) {
-			return problemInvalid(loc+".name", fmt.Sprintf("“%s” can't be a variable name: use letters, digits and underscores, starting with a letter.", v.Name))
+			return problemInvalid(loc+".name", say(ctx, "variable.badName", i18n.Args{"name": v.Name}))
 		}
 		if slices.Contains(reserved, v.Name) {
-			return problemInvalid(loc+".name", fmt.Sprintf("%s is filled in by ReputeCast; pick another name.", v.Name))
+			return problemInvalid(loc+".name", say(ctx, "variable.reserved", i18n.Args{"name": v.Name}))
 		}
 		if seen[v.Name] {
-			return problemInvalid(loc+".name", fmt.Sprintf("%s is declared twice.", v.Name))
+			return problemInvalid(loc+".name", say(ctx, "variable.twice", i18n.Args{"name": v.Name}))
 		}
 		seen[v.Name] = true
 		switch v.Type {
 		case TypeText, TypeNumber, TypeBoolean, TypeDate, TypeURL, TypeList, TypeObject:
 		default:
-			return problemInvalid(loc+".type", fmt.Sprintf("%s has an unknown type %q.", v.Name, v.Type))
+			return problemInvalid(loc+".type", say(ctx, "variable.unknownType", i18n.Args{"name": v.Name, "type": strconv.Quote(v.Type)}))
 		}
 		for _, f := range []struct{ field, value string }{{"sample", v.Sample}, {"default", v.Default}} {
 			if f.value == "" {
 				continue
 			}
 			if _, err := typedValue(v.Type, f.value); err != nil {
-				return problemInvalid(loc+"."+f.field, fmt.Sprintf("The %s of %s isn't a valid %s: %s.", f.field, v.Name, typeLabel(v.Type), err))
+				return problemInvalid(loc+"."+f.field, say(ctx, "variable.badValue",
+					i18n.Args{"field": f.field, "name": v.Name, "type": v.Type, "problem": problemText(lang(ctx), err)}))
 			}
 		}
 	}
 	return nil
-}
-
-func typeLabel(t string) string {
-	switch t {
-	case TypeBoolean:
-		return "yes/no value"
-	case TypeURL:
-		return "URL"
-	case TypeList:
-		return "list (a JSON array)"
-	case TypeObject:
-		return "object (a JSON object)"
-	}
-	return t
 }
 
 // typedValue turns a sample or default (always text in the editor) into
@@ -133,7 +125,7 @@ func typedValue(typ, s string) (any, error) {
 	case TypeNumber:
 		var n json.Number
 		if err := json.Unmarshal([]byte(strings.TrimSpace(s)), &n); err != nil {
-			return nil, fmt.Errorf("%q is not a number", s)
+			return nil, &valueError{key: "value.number", value: strconv.Quote(s)}
 		}
 		if f, err := n.Float64(); err == nil {
 			return f, nil
@@ -146,17 +138,17 @@ func typedValue(typ, s string) (any, error) {
 		case "false", "no", "0":
 			return false, nil
 		}
-		return nil, fmt.Errorf("%q is not yes or no", s)
+		return nil, &valueError{key: "value.boolean", value: strconv.Quote(s)}
 	case TypeList:
 		var v []any
 		if err := json.Unmarshal([]byte(s), &v); err != nil {
-			return nil, fmt.Errorf("it isn't a JSON array")
+			return nil, &valueError{key: "value.list"}
 		}
 		return v, nil
 	case TypeObject:
 		var v map[string]any
 		if err := json.Unmarshal([]byte(s), &v); err != nil {
-			return nil, fmt.Errorf("it isn't a JSON object")
+			return nil, &valueError{key: "value.object"}
 		}
 		return v, nil
 	}

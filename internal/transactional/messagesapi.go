@@ -155,7 +155,7 @@ func RegisterMessages(h huma.API, s *Service) {
 		func(ctx context.Context, in *alertPath) (*api.Empty, error) {
 			id, err := uuid.Parse(in.AlertID)
 			if err != nil {
-				return nil, api.NotFound("Alert")
+				return nil, notFound(ctx, "alert")
 			}
 			return api.NoContent, s.MarkAlertSeen(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 		})
@@ -164,7 +164,7 @@ func RegisterMessages(h huma.API, s *Service) {
 		func(ctx context.Context, in *contactActivityInput) (*api.Body[TransactionalContactActivity], error) {
 			id, err := uuid.Parse(in.ContactID)
 			if err != nil {
-				return nil, api.NotFound("Contact")
+				return nil, notFound(ctx, "contact")
 			}
 			out, err := s.ContactActivity(ctx, api.WorkspaceFrom(ctx), id)
 			return api.OK(out), err

@@ -1325,7 +1325,7 @@ func (s *Service) ContactActivity(ctx context.Context, ws *store.Workspace, cont
 	out := TransactionalContactActivity{Messages: []TransactionalContactMessage{}, OptOuts: []TransactionalContactOptOut{}, Categories: []TransactionalContactCategory{}}
 	c, err := s.Q.GetContact(ctx, store.GetContactParams{WorkspaceID: ws.ID, ID: contactID})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return out, api.NotFound("Contact")
+		return out, notFound(ctx, "contact")
 	}
 	if err != nil {
 		return out, err

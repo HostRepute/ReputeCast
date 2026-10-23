@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -64,7 +65,7 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, ref string, 
 	}
 	t, err := s.Q.TxnTemplate(ctx, store.TxnTemplateParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
-		return TransactionalPreview{}, mapTemplateErr(err)
+		return TransactionalPreview{}, mapTemplateErr(ctx, err)
 	}
 	version := strings.ToLower(strings.TrimSpace(in.Version))
 	if version == "" {
@@ -102,17 +103,17 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, ref string, 
 		n := 0
 		if version == "live" {
 			if t.LiveVersion == nil {
-				return TransactionalPreview{}, problem(http.StatusUnprocessableEntity, CodeTemplateNotPublished, fmt.Sprintf("%s has no published version yet.", t.Key))
+				return TransactionalPreview{}, problem(http.StatusUnprocessableEntity, CodeTemplateNotPublished, say(ctx, "preview.notPublished", i18n.Args{"key": t.Key}))
 			}
 			n = int(*t.LiveVersion)
 		} else if v, err := strconv.Atoi(strings.TrimPrefix(version, "v")); err == nil && v > 0 {
 			n = v
 		} else {
-			return TransactionalPreview{}, api.Invalid("body.version", "Pick draft, live or a version number.")
+			return TransactionalPreview{}, api.Invalid("body.version", say(ctx, "preview.pickVersion", nil))
 		}
 		v, err := s.Q.TxnVersion(ctx, store.TxnVersionParams{TemplateID: id, Version: int32(n)})
 		if err != nil {
-			return TransactionalPreview{}, api.MapError(err, "Version")
+			return TransactionalPreview{}, mapErr(ctx, err, "version")
 		}
 		c = content{Subject: v.Subject, Preheader: v.Preheader, EditorMode: v.EditorMode, MJML: v.Mjml, HTML: v.Html, Text: v.PlainText, Variables: parseVariables(v.Variables)}
 		testData = parseTestData(v.TestData)
@@ -131,7 +132,7 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, ref string, 
 				}
 			}
 			if !found {
-				return TransactionalPreview{}, api.Invalid("body.testData", fmt.Sprintf("There is no test data set called “%s”.", in.TestData))
+				return TransactionalPreview{}, api.Invalid("body.testData", say(ctx, "preview.noTestData", i18n.Args{"name": in.TestData}))
 			}
 		case len(testData) > 0:
 			data = testData[0].Data
@@ -162,13 +163,13 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, ref string, 
 	r, rerr := render(c, data, to, map[string]string{"unsubscribe_url": "#unsubscribe", "preferences_url": "#preferences"})
 	if rerr != nil {
 		// A template that doesn't render is the preview's answer, not a failure.
-		out.Problem = rerr.Error()
+		out.Problem = problemText(lang(ctx), rerr)
 		return out, nil //nolint:nilerr // the preview's answer, not a failure
 	}
 	out.Subject, out.Preheader, out.HTML, out.Text, out.SizeBytes = r.Subject, r.Preheader, r.HTML, r.Text, len(r.HTML)
 	out.OK = len(out.Missing) == 0
 	if !out.OK {
-		out.Problem = fmt.Sprintf("%s is required and missing. A real call shaped like this fails with missing_variables.", joinAnd(out.Missing))
+		out.Problem = say(ctx, "preview.missing", i18n.Args{"names": andList(lang(ctx), out.Missing)})
 	}
 	return out, nil
 }
