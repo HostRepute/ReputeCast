@@ -1,0 +1,36 @@
+{
+  "pricing": "0,10 US$ cho mỗi 1.000 email",
+  "dedicatedIps": "không bắt buộc, 24,95 US$ mỗi IP mỗi tháng",
+  "terms.0.note": "Cần quyền gửi chính thức; tài khoản phải luôn ở dưới ngưỡng trả thư và khiếu nại của SES.",
+  "events": "Webhook qua SNS",
+  "domainSetup": "API",
+  "suppressionMode": "Hai chiều",
+  "field.region.label": "Khu vực",
+  "field.access.label": "Quyền truy cập",
+  "field.access.help": "Vai trò CloudFormation (khuyên dùng) hoặc khóa truy cập IAM.",
+  "field.role_arn.label": "Role ARN",
+  "field.role_arn.help": "Do mẫu CloudFormation tạo ra.",
+  "field.access_key_id.label": "Access key ID",
+  "field.secret_access_key.label": "Secret access key",
+  "field.configuration_set.label": "Configuration set",
+  "field.configuration_set.help": "Được tạo trong lúc thiết lập; nó gửi các sự kiện sang SNS.",
+
+  "account": "{mode, select, sandbox {Sandbox} other {Gửi chính thức}} · {enforcement, select, probation {đang bị xem xét (probation)} shutdown {AWS đã tạm dừng gửi} disabled {đã tắt gửi} other {không bị hạn chế}}",
+
+  "tracking.scope": "Configuration set {name}",
+  "tracking.scopeNone": "Không có configuration set",
+  "tracking.none": "Thư được gửi không kèm configuration set: không theo dõi lượt mở hay lượt nhấp.",
+  "tracking.openClick": "Configuration set {name} phát sự kiện mở và nhấp, nên SES thêm pixel và viết lại liên kết.",
+  "tracking.open": "Configuration set {name} phát sự kiện mở, nên SES thêm pixel.",
+  "tracking.click": "Configuration set {name} phát sự kiện nhấp, nên SES viết lại liên kết.",
+  "tracking.off": "Configuration set {name}: đã tắt theo dõi lượt mở và lượt nhấp. Không cần tên miền chuyển hướng riêng.",
+
+  "provision.topic": "Tạo SNS topic `{topic}` và đăng ký `{url}`",
+  "provision.confirm": "Xác nhận đăng ký SNS (bắt tay)",
+  "provision.configSet": "Tạo configuration set `{name}`",
+  "provision.topicDone": "Đã tạo SNS topic `{topic}` và đăng ký `{url}`",
+  "provision.confirmDone": "Đã xác nhận đăng ký SNS (đã nhận bắt tay)",
+  "provision.configSetDone": "Đã tạo configuration set `{name}` có đích sự kiện, tắt theo dõi",
+
+  "status.incident": "AWS báo có sự cố SES ở {region}."
+}

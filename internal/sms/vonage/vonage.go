@@ -41,19 +41,17 @@ func Descriptor() sms.Descriptor {
 	return sms.Descriptor{
 		Manifest: sms.Manifest{
 			Adapter: Adapter, Name: "Vonage",
-			Summary: "Pay as you go · strong sender ID coverage in Europe",
 			Badges: []sms.Badge{
 				{Capability: sms.CapSenderIDs, Support: sms.Yes}, {Capability: sms.CapTollFree, Support: sms.Yes}, {Capability: sms.Cap10DLC, Support: sms.Yes},
 				{Capability: sms.CapReceipts, Support: sms.Yes}, {Capability: sms.CapInbound, Support: sms.Yes},
-				{Capability: sms.CapOptOutSync, Support: sms.Partial, Note: "from replies and refused texts"},
-				{Capability: sms.CapRegistration, Support: sms.Partial, Note: "set by hand"},
+				{Capability: sms.CapOptOutSync, Support: sms.Partial},
+				{Capability: sms.CapRegistration, Support: sms.Partial},
 				{Capability: sms.CapPricing, Support: sms.Yes},
 			},
 			Fields: []sms.Field{
-				{Key: "api_key", Label: "API key", Required: true},
-				{Key: "api_secret", Label: "API secret", Secret: true, Required: true},
-				{Key: "signature_secret", Label: "Signature secret", Secret: true, Required: true,
-					Help: "Settings › API settings › Signed webhooks, with HMAC SHA-256. ReputeCast checks every receipt and reply against it."},
+				{Key: "api_key", Required: true},
+				{Key: "api_secret", Secret: true, Required: true},
+				{Key: "signature_secret", Secret: true, Required: true},
 			},
 			Webhooks: "registered",
 			Console: func(kind, _ string) string {
@@ -66,7 +64,9 @@ func Descriptor() sms.Descriptor {
 				return "https://dashboard.nexmo.com/settings"
 			},
 			Version: "1.0.0", Maintainer: "ReputeCast",
-		},
+			// The summary, the badges' notes and the fields' labels and hints
+			// are in messages/en.json: WithMessages fills them.
+		}.WithMessages(msgs),
 		New: New,
 	}
 }

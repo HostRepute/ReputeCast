@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -122,67 +122,81 @@ func (s *Service) CheckTokens(ctx context.Context, ws *store.Workspace, html str
 	return out, nil
 }
 
-// ReadinessText is the check as Send Readiness words it; ok is false when
-// there's nothing to say.
-func (c TokenCheck) ReadinessText() (title, detail, ack string, ok bool) {
+// ReadinessRow is a Referral row of Send Readiness. Its texts are kept
+// messages: Send Readiness writes them in each reader's language.
+type ReadinessRow struct {
+	Status                           string // pass or warn
+	Title, Detail, Ack, Label, Short i18n.Text
+	Links                            []ReadinessLink
+}
+
+// ReadinessLink is a link of a row: its label and the workspace path it opens.
+type ReadinessLink struct {
+	Label i18n.Text
+	Href  string
+}
+
+func readinessText(key string, args i18n.Args) i18n.Text {
+	return msgs.M("readiness." + key).Keep(args)
+}
+
+func yesNo(b bool) string {
+	if b {
+		return "yes"
+	}
+	return "no"
+}
+
+// ReadinessRow is the token check's row; ok is false when there's nothing
+// to say.
+func (c TokenCheck) ReadinessRow(campaignID string) (row ReadinessRow, ok bool) {
 	if c.Token == "" || c.Empty == 0 {
-		return "", "", "", false
+		return ReadinessRow{}, false
 	}
+	row = ReadinessRow{Status: "warn", Label: readinessText("tokensLabel", nil), Short: readinessText("tokensShort", nil),
+		Detail: readinessText("tokenDetail", i18n.Args{"fallback": "{{ " + c.Token + ` | default: "…" }}`}), Ack: readinessText("tokenAck", nil),
+		Links: []ReadinessLink{{Label: readinessText("openComposer", nil), Href: "/campaigns/" + campaignID + "/edit"}}}
 	switch {
 	case c.None:
-		title = c.Token + " is empty: there is no referral program"
+		row.Title = readinessText("tokenNone", i18n.Args{"token": c.Token})
 	case c.Off:
-		title = c.Token + " is empty while the referral program is off"
+		row.Title = readinessText("tokenOff", i18n.Args{"token": c.Token})
 	default:
-		title = c.Token + " is empty for " + formatCount(c.Empty) + " recipients who aren't on " + c.ListName
+		row.Title = readinessText("tokenEmpty", i18n.Args{"token": c.Token, "count": c.Empty, "list": c.ListName})
 	}
-	detail = "The sentence would end with nothing for them. The Referral block hides itself instead; or add a fallback such as {{ " + c.Token + ` | default: "…" }}.`
-	return title, detail, "I understand some recipients get an empty referral token.", true
+	return row, true
 }
 
-// formatCount is "31,604".
-func formatCount(n int64) string {
-	s := strconv.FormatInt(n, 10)
-	if n < 0 {
-		return s
-	}
-	var b []byte
-	for i := range s {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			b = append(b, ',')
-		}
-		b = append(b, s[i])
-	}
-	return string(b)
-}
-
-// ReadinessText is the block's check as Send Readiness words it.
-func (c BlockCheck) ReadinessText() (status, title, detail, ack string) {
+// ReadinessRow is the block's row: who it shows to, or why it won't.
+// when writes the time the program was turned off in each reader's region
+// ("2 Oct, 14:05": readiness.ArgDayMonthTime).
+func (c BlockCheck) ReadinessRow(campaignID string, when func(time.Time) any) ReadinessRow {
+	row := ReadinessRow{Status: "pass", Label: readinessText("label", nil), Short: readinessText("short", nil)}
 	switch {
 	case c.None:
-		return "warn", "The Referral block has no referral program to show. It will be hidden.", "Set up a referral program in Grow, or remove the block.",
-			"I understand the Referral block won't show."
+		row.Status = "warn"
+		row.Title, row.Detail, row.Ack = readinessText("none", nil), readinessText("noneDetail", nil), readinessText("hiddenAck", nil)
+		row.Links = []ReadinessLink{{Label: readinessText("setUp", nil), Href: "/grow/referrals"}}
 	case c.Off:
-		detail = "Remove the block, or turn the program on before sending."
+		row.Status = "warn"
+		row.Title, row.Ack = readinessText("off", nil), readinessText("hiddenAck", nil)
+		row.Detail = readinessText("offDetail", nil)
 		if c.OffAt != nil {
 			at := c.OffAt.UTC()
 			if loc, err := time.LoadLocation(c.Zone); err == nil && c.Zone != "" {
 				at = c.OffAt.In(loc)
 			}
-			when := at.Format("2 Jan, 15:04")
-			if c.OffBy != "" {
-				detail = "Turned off on " + when + " by " + c.OffBy + ". " + detail
-			} else {
-				detail = "Turned off on " + when + ". " + detail
-			}
+			row.Detail = readinessText("offDetailAt", i18n.Args{"when": when(at), "name": c.OffBy, "named": yesNo(c.OffBy != "")})
 		}
-		return "warn", "The referral program is off. The Referral block will be hidden.", detail, "I understand the Referral block won't show."
+		row.Links = []ReadinessLink{{Label: readinessText("removeBlock", nil), Href: "/campaigns/" + campaignID + "/edit"},
+			{Label: readinessText("settings", nil), Href: "/grow/referrals/settings?program=" + c.ProgramID}}
+	default:
+		row.Title = readinessText("shown", i18n.Args{"shown": c.Shown, "total": c.Total})
+		if c.Shown < c.Total {
+			row.Detail = readinessText("hiddenFor", i18n.Args{"count": c.Total - c.Shown, "list": c.ListName})
+		} else {
+			row.Detail = readinessText("everyone", i18n.Args{"list": c.ListName})
+		}
 	}
-	title = "Referral block: shown to " + formatCount(c.Shown) + " of " + formatCount(c.Total) + " recipients"
-	if c.Shown < c.Total {
-		detail = "Hidden for the " + formatCount(c.Total-c.Shown) + " recipients who aren't on " + c.ListName + ". Each reader on it gets their own link and progress."
-	} else {
-		detail = "Everyone in this audience is on " + c.ListName + ". Each reader gets their own link and progress."
-	}
-	return "pass", title, detail, ""
+	return row
 }

@@ -13,20 +13,15 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers/state"
 )
 
-// Group titles and the prefixes used when checks are listed by severity.
-var (
-	groupTitles = map[string]string{
-		GroupReputation: "Sender reputation", GroupAuthentication: "Authentication", GroupContent: "Content", GroupLinks: "Links",
-		GroupCompliance: "Compliance", GroupAudience: "Audience quality", GroupRouting: "Routing", GroupLanguages: "Languages",
-	}
-	groupPrefixes = map[string]string{
-		GroupReputation: "Sender reputation", GroupAuthentication: "Authentication", GroupContent: "Content", GroupLinks: "Links",
-		GroupCompliance: "Compliance", GroupAudience: "Audience", GroupRouting: "Routing", GroupLanguages: "Languages",
-	}
-)
+// groupTitle is the heading of a check group ("Audience quality").
+func groupTitle(g string) Text { return tx("group."+g+".title", nil) }
+
+// groupPrefix names a group before a check's title when checks are listed
+// by severity ("Links: go.acme-promo.link is listed…").
+func groupPrefix(g string) Text { return tx("group."+g+".prefix", nil) }
 
 // GroupTitle is the heading of a check group ("Audience quality").
-func GroupTitle(g string) string { return groupTitles[g] }
+func GroupTitle(g string) string { return groupTitle(g).en() }
 
 // DefaultMailboxRates are the per-mailbox-provider throttles: Outlook, Yahoo
 // and iCloud accept slower streams more reliably; Gmail and the rest take
@@ -37,18 +32,21 @@ var DefaultMailboxRates = map[string]float64{"gmail": 0, "outlook": 5, "yahoo": 
 var MailboxOrder = []string{"gmail", "outlook", "yahoo", "icloud", "other"}
 
 // MailboxName is the display name of a mailbox provider key.
-func MailboxName(k string) string {
+func MailboxName(k string) string { return mailboxName(k).en() }
+
+// mailboxName names a mailbox provider; "Other" is a word, the rest names.
+func mailboxName(k string) Text {
 	switch k {
 	case "gmail":
-		return "Gmail"
+		return RawText("Gmail")
 	case "outlook":
-		return "Outlook"
+		return RawText("Outlook")
 	case "yahoo":
-		return "Yahoo"
+		return RawText("Yahoo")
 	case "icloud":
-		return "iCloud"
+		return RawText("iCloud")
 	}
-	return "Other"
+	return tx("mailbox.other", nil)
 }
 
 // UnengagedWarnShare and UnengagedWarnCount decide when unengaged contacts
@@ -61,7 +59,7 @@ const (
 type builder struct {
 	f      Facts
 	loc    *time.Location
-	checks []ReadinessCheck
+	checks []check
 }
 
 // Assemble builds the checklist and the estimates from what a run gathered.
@@ -92,21 +90,20 @@ func Assemble(f Facts) ReadinessResult {
 	b.everyVersion()
 	b.stores()
 	for i := range b.checks {
-		if b.checks[i].Fixes == nil {
-			b.checks[i].Fixes = []ReadinessFix{}
+		c := &b.checks[i]
+		if c.FlatTitle.Empty() {
+			c.FlatTitle = tx("check.flat", A{"group": groupPrefix(c.Group), "title": c.Title})
 		}
-		if b.checks[i].FlatTitle == "" {
-			b.checks[i].FlatTitle = groupPrefixes[b.checks[i].Group] + ": " + b.checks[i].Title
-		}
-		if b.checks[i].Evidence == "" {
-			b.checks[i].Evidence = sentence(b.checks[i].Title)
-			if b.checks[i].Detail != "" && !b.checks[i].Mono {
-				b.checks[i].Evidence += " " + sentence(b.checks[i].Detail)
+		if c.Evidence.Empty() {
+			c.Evidence = c.Title
+			if !c.Detail.Empty() && !c.Mono {
+				c.Evidence = sentences(c.Title, c.Detail)
 			}
 		}
 	}
-	out := ReadinessResult{Checks: b.checks, Estimates: b.estimates()}
+	out := ReadinessResult{Checks: make([]ReadinessCheck, 0, len(b.checks)), Estimates: b.estimates()}
 	for _, c := range b.checks {
+		out.Checks = append(out.Checks, c.result())
 		out.Counts.Total++
 		switch c.Status {
 		case Pass:
@@ -129,7 +126,15 @@ func Assemble(f Facts) ReadinessResult {
 	}
 	if out.Counts.Unknown > 0 {
 		out.Incomplete = true
-		out.Problem = firstNonEmpty(f.Reputation.Outage, f.Reputation.Reason, "Some checks couldn't run.")
+		switch {
+		case strings.TrimSpace(f.Reputation.Outage) != "":
+			out.problem = RawText(f.Reputation.Outage)
+		case strings.TrimSpace(f.Reputation.Reason) != "":
+			out.problem = unknownReason(f.Reputation)
+		default:
+			out.problem = tx("problem.someChecks", nil)
+		}
+		out.Problem = out.problem.en()
 	}
 	out.Groups = b.groups()
 	return out
@@ -152,9 +157,14 @@ func firstNonEmpty(vals ...string) string {
 	return ""
 }
 
-func (b *builder) add(c ReadinessCheck) { b.checks = append(b.checks, c) }
+func (b *builder) add(c check) { b.checks = append(b.checks, c) }
 
-func (b *builder) when(t time.Time) string { return Clock(t, b.f.Now, b.loc) }
+// when is a time of the run in the workspace zone: "09:40" today, "Mon 12
+// Oct, 09:40" on another day.
+func (b *builder) when(t time.Time) map[string]any { return clockArg(t, b.f.Now, b.loc) }
+
+// day is a day in the workspace zone: "Mon 12 Oct".
+func (b *builder) day(t time.Time) map[string]any { return ArgDay(t.In(b.loc)) }
 
 // href is an app path inside the workspace.
 func (b *builder) href(path string) string { return "/w/" + b.f.Workspace + path }
@@ -177,14 +187,6 @@ func (b *builder) editor(path []int, panel string) string {
 		return u + "?" + q.Encode()
 	}
 	return u
-}
-
-func link(label, href string) ReadinessFix {
-	return ReadinessFix{Kind: "link", Label: label, Href: href}
-}
-
-func apply(action, label, tone string, params map[string]string) ReadinessFix {
-	return ReadinessFix{Kind: "apply", Action: action, Label: label, Tone: tone, Params: params}
 }
 
 // shares returns the route's providers that carry part of this send.
@@ -240,23 +242,30 @@ func (b *builder) otherAvailable(id string) *ShareFacts {
 	return best
 }
 
+// routeOnlyFix moves the whole send to another provider.
+func routeOnlyFix(o *ShareFacts, label Text, tone string) fix {
+	return apply(FixRouteOnly, label, tone, map[string]string{"providerId": o.ProviderID, "provider": o.Short})
+}
+
 func (b *builder) reputation() {
 	r := b.f.Reputation
 	domain := firstNonEmpty(b.f.Auth.Domain, b.f.Campaign.SenderDomain)
-	viaName := "HostRepute"
+	via := "hostrepute"
 	if r.Via == "builtin" {
-		viaName = "the built-in checks"
+		via = "builtin"
 	}
-	checked := ""
+	var checked any
 	if r.CheckedAt != nil {
-		checked = " · checked " + b.when(*r.CheckedAt)
+		checked = b.when(*r.CheckedAt)
 	}
-	unknownNote := "not checked"
+	unknownNote := tx("note.notChecked", nil)
 	if r.Outage != "" {
-		unknownNote = "timed out"
+		unknownNote = tx("note.timedOut", nil)
 	}
+	deliverability := link(tx("fix.openDeliverability", nil), b.href("/deliverability"))
 	if domain != "" {
 		key := "reputation.domain_blocklists"
+		label := tx("label.domainBlocklists", nil)
 		var listed []ListingFacts
 		for _, l := range r.Listings {
 			if l.Type == "domain" && strings.EqualFold(l.Asset, domain) {
@@ -265,16 +274,16 @@ func (b *builder) reputation() {
 		}
 		switch {
 		case r.Status == Unknown:
-			b.add(ReadinessCheck{Key: key, Group: GroupReputation, Status: Unknown,
-				Title:     fmt.Sprintf("Domain blocklists for %s couldn't be checked", domain),
-				FlatTitle: fmt.Sprintf("Sender reputation · domain blocklists (%d sources via %s)", r.Sources, viaName),
-				Detail:    firstNonEmpty(r.Reason, r.Outage), Note: unknownNote, Label: "Domain blocklists",
-				Fixes: []ReadinessFix{link("Open deliverability", b.href("/deliverability"))}})
+			b.add(check{Key: key, Group: GroupReputation, Status: Unknown,
+				Title:     tx("reputation.domainUnknown", A{"domain": domain}),
+				FlatTitle: tx("reputation.domainUnknownFlat", A{"sources": r.Sources, "via": via}),
+				Detail:    unknownReason(r), Note: unknownNote, Label: label,
+				Fixes: []fix{deliverability}})
 		case len(listed) == 0:
-			b.add(ReadinessCheck{Key: key, Group: GroupReputation, Status: Pass,
-				Title:  fmt.Sprintf("%s is clean on %d of %d domain blocklists", domain, r.Sources, r.Sources),
-				Detail: b.sourcesLine("domain") + checked, Label: "Domain blocklists",
-				Short: fmt.Sprintf("%s clean on %d of %d blocklists", domain, r.Sources, r.Sources)})
+			b.add(check{Key: key, Group: GroupReputation, Status: Pass,
+				Title:  tx("reputation.domainClean", A{"domain": domain, "sources": r.Sources}),
+				Detail: b.sourcesDetail("domain", checked), Label: label,
+				Short: tx("reputation.domainCleanShort", A{"domain": domain, "sources": r.Sources})})
 		default:
 			status := Warn
 			names := []string{}
@@ -284,11 +293,11 @@ func (b *builder) reputation() {
 				}
 				names = append(names, l.Source)
 			}
-			b.add(ReadinessCheck{Key: key, Group: GroupReputation, Status: status,
-				Title:  fmt.Sprintf("%s is listed on %d of %d domain blocklists", domain, len(listed), r.Sources),
-				Detail: listingSentence(listed[0]) + " " + impactSentence(listed[0].Impact, "domain"), Label: "Domain blocklists",
-				Ack:   fmt.Sprintf("I understand %s is listed on %s.", domain, JoinAnd(names)),
-				Fixes: []ReadinessFix{link("Request delisting", b.href("/deliverability"))}})
+			b.add(check{Key: key, Group: GroupReputation, Status: status,
+				Title:  tx("reputation.domainListed", A{"domain": domain, "count": len(listed), "sources": r.Sources}),
+				Detail: sentences(listingText(listed[0]), impactText(listed[0].Impact, "domain")), Label: label,
+				Ack:   tx("reputation.domainListedAck", A{"domain": domain, "lists": ArgAnd(names)}),
+				Fixes: []fix{link(tx("fix.requestDelisting", nil), b.href("/deliverability"))}})
 		}
 	}
 	// Dedicated IPs of the providers carrying the send.
@@ -301,6 +310,7 @@ func (b *builder) reputation() {
 	for _, s := range b.availableShares() {
 		for _, ip := range s.IPs {
 			key := "reputation.ip_blocklists." + ip
+			label := tx("label.ipBlocklists", nil)
 			var listed []ListingFacts
 			for _, l := range r.Listings {
 				if l.Type == "ip" && l.Asset == ip {
@@ -309,15 +319,15 @@ func (b *builder) reputation() {
 			}
 			switch {
 			case r.Status == Unknown:
-				b.add(ReadinessCheck{Key: key, Group: GroupReputation, Status: Unknown,
-					Title:     fmt.Sprintf("IP blocklists for %s couldn't be checked", ip),
-					FlatTitle: "Sender reputation · IP blocklists for " + ip,
-					Detail:    firstNonEmpty(r.Reason, r.Outage), Note: unknownNote, Label: "IP blocklists"})
+				b.add(check{Key: key, Group: GroupReputation, Status: Unknown,
+					Title:     tx("reputation.ipUnknown", A{"ip": ip}),
+					FlatTitle: tx("reputation.ipUnknownFlat", A{"ip": ip}),
+					Detail:    unknownReason(r), Note: unknownNote, Label: label})
 			case len(listed) == 0:
-				b.add(ReadinessCheck{Key: key, Group: GroupReputation, Status: Pass,
-					Title:  fmt.Sprintf("%s IP %s is clean on %d of %d IP blocklists", s.Name, ip, r.Sources, r.Sources),
-					Detail: strings.TrimPrefix(b.sourcesLine("ip")+checked, " · "), Label: "IP blocklists",
-					Short: fmt.Sprintf("%s clean on %d of %d blocklists", ip, r.Sources, r.Sources)})
+				b.add(check{Key: key, Group: GroupReputation, Status: Pass,
+					Title:  tx("reputation.ipClean", A{"provider": s.Name, "ip": ip, "sources": r.Sources}),
+					Detail: b.sourcesDetail("ip", checked), Label: label,
+					Short: tx("reputation.ipCleanShort", A{"ip": ip, "sources": r.Sources})})
 			default:
 				status := Warn
 				for _, l := range listed {
@@ -325,18 +335,18 @@ func (b *builder) reputation() {
 						status = Block
 					}
 				}
-				detail := listingSentence(listed[0]) + " " + impactSentence(listed[0].Impact, "ip")
+				detail := sentences(listingText(listed[0]), impactText(listed[0].Impact, "ip"))
 				if len(shared) > 0 {
-					detail += " " + JoinAnd(shared) + " IPs are a shared pool and are checked at domain level."
+					detail = sentences(detail, tx("reputation.sharedPool", A{"providers": ArgAnd(shared)}))
 				}
-				fixes := []ReadinessFix{link("Request delisting", b.href("/deliverability"))}
+				fixes := []fix{link(tx("fix.requestDelisting", nil), b.href("/deliverability"))}
 				if o := b.otherAvailable(s.ProviderID); o != nil {
-					fixes = append(fixes, apply(FixRouteOnly, "Send via "+o.Short+" only", "", map[string]string{"providerId": o.ProviderID, "provider": o.Short}))
+					fixes = append(fixes, routeOnlyFix(o, tx("fix.sendViaOnly", A{"provider": o.Short}), ""))
 				}
-				b.add(ReadinessCheck{Key: key, Group: GroupReputation, Status: status,
-					Title:  fmt.Sprintf("%s IP %s is listed on %d of %d IP blocklists", s.Name, ip, len(listed), r.Sources),
-					Detail: detail, Label: "IP blocklists",
-					Ack:   fmt.Sprintf("I understand the %s IP is listed on %s, a %s-impact list.", s.Name, shortSource(listed[0].Source), listed[0].Impact),
+				b.add(check{Key: key, Group: GroupReputation, Status: status,
+					Title:  tx("reputation.ipListed", A{"provider": s.Name, "ip": ip, "count": len(listed), "sources": r.Sources}),
+					Detail: detail, Label: label,
+					Ack:   tx("reputation.ipListedAck", A{"provider": s.Name, "list": shortSource(listed[0].Source), "impact": listed[0].Impact}),
 					Fixes: fixes})
 			}
 		}
@@ -347,9 +357,36 @@ func (b *builder) reputation() {
 	}
 }
 
+// unknownReason says why the blocklists couldn't be checked: the reason
+// Deliverability gave, or HostRepute's error.
+func unknownReason(r ReputationFacts) Text {
+	if strings.TrimSpace(r.Reason) != "" {
+		if !r.ReasonText.Empty() {
+			return r.ReasonText
+		}
+		return RawText(r.Reason)
+	}
+	return RawText(r.Outage)
+}
+
+// sourcesDetail is the lists a check looked at and when: "Spamhaus DBL,
+// SURBL, URIBL, Barracuda and 80 more · checked 09:40".
+func (b *builder) sourcesDetail(kind string, checked any) Text {
+	line := b.sourcesLine(kind)
+	switch {
+	case line.Empty() && checked == nil:
+		return nil
+	case line.Empty():
+		return tx("reputation.checkedAt", A{"when": checked})
+	case checked == nil:
+		return line
+	}
+	return tx("reputation.sourcesChecked", A{"sources": line, "when": checked})
+}
+
 // sourcesLine names the first lists of a kind: "Spamhaus DBL, SURBL, URIBL,
 // Barracuda and 80 more".
-func (b *builder) sourcesLine(kind string) string {
+func (b *builder) sourcesLine(kind string) Text {
 	r := b.f.Reputation
 	names := r.DomainSources
 	if kind == "ip" {
@@ -357,16 +394,15 @@ func (b *builder) sourcesLine(kind string) string {
 	}
 	if len(names) == 0 {
 		if r.Sources > 0 {
-			return fmt.Sprintf("%d sources", r.Sources)
+			return tx("reputation.sourcesCount", A{"count": r.Sources})
 		}
-		return ""
+		return nil
 	}
 	n := min(4, len(names))
-	line := strings.Join(names[:n], ", ")
 	if rest := r.Sources - n; rest > 0 {
-		line += fmt.Sprintf(" and %d more", rest)
+		return tx("reputation.sourcesMore", A{"names": argJoin(", ", names[:n]), "more": rest})
 	}
-	return line
+	return tx("reputation.sources", A{"names": argJoin(", ", names[:n])})
 }
 
 var (
@@ -374,100 +410,94 @@ var (
 	cidrRe = regexp.MustCompile(`(/\d{1,2})\b`)
 )
 
-func listingSentence(l ListingFacts) string {
+// listingText says what a blocklist lists.
+func listingText(l ListingFacts) Text {
 	d := strings.TrimSpace(l.Detail)
 	switch {
 	case cidrRe.MatchString(d):
-		return l.Source + " lists the whole " + cidrRe.FindStringSubmatch(d)[1] + " of the hosting network."
+		return tx("listing.range", A{"source": l.Source, "range": cidrRe.FindStringSubmatch(d)[1]})
 	case strings.Contains(strings.ToLower(d), "network-range"):
-		s := l.Source + " lists the whole hosting network"
 		if m := asnRe.FindStringSubmatch(d); m != nil {
-			s += " (" + m[1] + ")"
+			return tx("listing.networkAsn", A{"source": l.Source, "asn": m[1]})
 		}
-		return s + "."
+		return tx("listing.network", A{"source": l.Source})
 	case d != "":
-		return l.Source + ": " + sentence(d)
+		// The list's own words.
+		return tx("listing.detail", A{"source": l.Source, "detail": sentence(d)})
 	}
-	return "Listed on " + l.Source + "."
+	return tx("listing.on", A{"source": l.Source})
 }
 
-func impactSentence(impact, kind string) string {
+func impactText(impact, kind string) Text {
 	switch impact {
 	case "high":
 		if kind == "domain" {
-			return "Major mailbox providers use it; mail from this domain is likely to be filtered."
+			return tx("impact.highDomain", nil)
 		}
-		return "Major mailbox providers use it; mail from this IP is likely to be rejected."
+		return tx("impact.highIp", nil)
 	case "medium":
-		return "Some mailbox providers use it, so expect deferrals."
+		return tx("impact.medium", nil)
 	}
-	return "Few mailbox providers use it, so impact is low."
+	return tx("impact.low", nil)
 }
 
 // shortSource abbreviates "UCEPROTECT Level 3" to "UCEPROTECT L3".
 func shortSource(s string) string { return strings.Replace(s, " Level ", " L", 1) }
 
-func limitPhrase(s ShareFacts) string {
+// limitsText names whose limits a provider's rates are measured against:
+// "SES review thresholds", "the warm-up guard", "Postmark's limits".
+func limitsText(s ShareFacts) Text {
 	l := s.Limits
 	switch {
 	case l.Bounce.Review > 0 && l.Bounce.Label != "":
-		return l.Bounce.Label + " review thresholds"
+		return tx("limits.review", A{"name": l.Bounce.Label})
 	case l.Bounce.Label == "warm-up guard":
-		return "the warm-up guard"
+		return tx("limits.guard", nil)
 	case l.Bounce.Label != "":
-		return l.Bounce.Label + "'s limits"
+		return tx("limits.named", A{"name": l.Bounce.Label})
 	}
-	return "the provider's limits"
+	return tx("limits.provider", nil)
 }
 
-func statusWord(status string) string {
+// statusText is a provider status: "Healthy", "Warming up".
+func statusText(status string) Text {
 	switch status {
-	case state.Healthy:
-		return "Healthy"
+	case state.Healthy, "":
+		return tx("status.healthy", nil)
 	case state.WarmingUp:
-		return "Warming up"
+		return tx("status.warmingUp", nil)
 	case state.Degraded:
-		return "Degraded"
+		return tx("status.degraded", nil)
 	case state.Down:
-		return "Down"
+		return tx("status.down", nil)
 	case state.Sandbox:
-		return "Sandbox"
+		return tx("status.sandbox", nil)
 	case state.Paused:
-		return "Paused"
+		return tx("status.paused", nil)
 	}
-	if status == "" {
-		return "Healthy"
-	}
-	return capitalize(strings.ReplaceAll(status, "_", " "))
+	return RawText(capitalize(strings.ReplaceAll(status, "_", " ")))
 }
 
-func (b *builder) providerRates(s ShareFacts) ReadinessCheck {
+func (b *builder) providerRates(s ShareFacts) check {
 	key := "reputation.provider." + s.ProviderID
-	c := ReadinessCheck{Key: key, Group: GroupReputation, Status: Pass, Label: s.Short + " bounce and complaint rates"}
+	c := check{Key: key, Group: GroupReputation, Status: Pass, Label: tx("rates.label", A{"provider": s.Short})}
 	l := s.Limits
-	detail := ""
+	var detail Text
 	if s.WarmupDays > 0 {
-		capText := "today's cap"
-		if !s.WarmupToday {
-			capText = "the cap on the send day"
-		}
-		detail = fmt.Sprintf("Day %d of %d · %s %s messages, this send uses %s", s.WarmupDay, s.WarmupDays, capText, Count(s.WarmupCap), Count(s.Recipients))
+		detail = tx("rates.warmup", A{"day": s.WarmupDay, "days": s.WarmupDays, "today": yes(s.WarmupToday), "cap": s.WarmupCap, "count": s.Recipients})
 	} else {
-		standing := statusWord(s.Status)
-		if strings.Contains(strings.ToLower(s.Account), "no enforcement") {
-			standing += ", no enforcement"
-		}
-		window := "trailing 7 days"
+		window := tx("rates.windowTrailing", nil)
 		if s.ProviderReported {
-			window = "reported by " + s.Name + ", 7 days"
+			window = tx("rates.windowReported", A{"provider": s.Name})
 		}
-		detail = "Account status: " + standing + " · " + window
+		detail = tx("rates.account", A{"status": statusText(s.Status), "unenforced": yes(strings.Contains(strings.ToLower(s.Account), "no enforcement")), "window": window})
 	}
 	c.Detail = detail
+	deliverability := link(tx("fix.openDeliverability", nil), b.href("/deliverability"))
 	if s.Bounce == nil && s.Complaint == nil {
-		c.Title = "No mail through " + s.Name + " in the last 7 days"
-		c.Detail = "Bounce and complaint rates appear after the first sends. " + detail
-		c.Short = s.Short + ": no recent mail"
+		c.Title = tx("rates.noMail", A{"provider": s.Name})
+		c.Detail = tx("rates.noMailDetail", A{"detail": detail})
+		c.Short = tx("rates.noMailShort", A{"provider": s.Short})
 		return c
 	}
 	bounce, complaint := 0.0, 0.0
@@ -477,152 +507,187 @@ func (b *builder) providerRates(s ShareFacts) ReadinessCheck {
 	if s.Complaint != nil {
 		complaint = *s.Complaint
 	}
-	limits := fmt.Sprintf("(%s and %s)", Pct(l.Bounce.Limit), Pct(l.Complaint.Limit))
-	phrase := "inside " + limitPhrase(s) + " " + limits
+	limits := A{"limits": limitsText(s), "bounce": ArgPercent(l.Bounce.Limit), "complaint": ArgPercent(l.Complaint.Limit)}
+	phrase := tx("rates.inside", limits)
 	switch {
 	case (l.Bounce.Pause > 0 && bounce >= l.Bounce.Pause) || (l.Complaint.Pause > 0 && complaint >= l.Complaint.Pause):
 		c.Status = Block
-		phrase = fmt.Sprintf("at %s pause level (%s and %s)", strings.TrimSuffix(limitPhrase(s), " review thresholds"), Pct(l.Bounce.Pause), Pct(l.Complaint.Pause))
-		c.Fixes = []ReadinessFix{link("Open deliverability", b.href("/deliverability"))}
+		var whose any = limitsText(s)
+		if l.Bounce.Review > 0 && l.Bounce.Label != "" {
+			whose = l.Bounce.Label
+		}
+		phrase = tx("rates.pause", A{"limits": whose, "bounce": ArgPercent(l.Bounce.Pause), "complaint": ArgPercent(l.Complaint.Pause)})
+		c.Fixes = []fix{deliverability}
 	case bounce >= l.Bounce.Limit || complaint >= l.Complaint.Limit:
 		c.Status = Warn
-		phrase = "over " + limitPhrase(s) + " " + limits
-		c.Fixes = []ReadinessFix{link("Open deliverability", b.href("/deliverability"))}
+		phrase = tx("rates.over", limits)
+		c.Fixes = []fix{deliverability}
 	case bounce >= 0.8*l.Bounce.Limit || complaint >= 0.8*l.Complaint.Limit:
 		c.Status = Warn
-		phrase = "close to " + limitPhrase(s) + " " + limits
-		c.Fixes = []ReadinessFix{link("Open deliverability", b.href("/deliverability"))}
+		phrase = tx("rates.close", limits)
+		c.Fixes = []fix{deliverability}
 	}
-	c.Title = fmt.Sprintf("%s bounce %s and complaint %s, %s", s.Name, Pct(bounce), Pct(complaint), phrase)
-	c.Short = fmt.Sprintf("%s bounce %s, complaints %s", s.Short, Pct(bounce), Pct(complaint))
+	c.Title = tx("rates.title", A{"provider": s.Name, "bounce": ArgPercent(bounce), "complaint": ArgPercent(complaint), "phrase": phrase})
+	c.Short = tx("rates.short", A{"provider": s.Short, "bounce": ArgPercent(bounce), "complaint": ArgPercent(complaint)})
 	if c.Status == Warn {
-		c.Ack = fmt.Sprintf("I understand %s's bounce or complaint rate is close to its limit.", s.Name)
+		c.Ack = tx("rates.ack", A{"provider": s.Name})
 	}
 	// A warming provider sends at most its day's cap.
 	if c.Status == Pass && s.WarmupCap > 0 && s.Recipients > s.WarmupCap {
 		c.Status = Warn
-		c.Title = fmt.Sprintf("%s can send %s on the send day; this send routes %s to it", s.Name, Count(s.WarmupCap), Count(s.Recipients))
-		c.Detail = fmt.Sprintf("The rest waits for the next day's cap, so the send takes longer. Day %d of %d of the warm-up.", s.WarmupDay, s.WarmupDays)
-		c.Ack = fmt.Sprintf("I understand part of %s's share waits for the next day's warm-up cap.", s.Name)
+		c.Title = tx("rates.cap", A{"provider": s.Name, "cap": s.WarmupCap, "count": s.Recipients})
+		c.Detail = tx("rates.capDetail", A{"day": s.WarmupDay, "days": s.WarmupDays})
+		c.Ack = tx("rates.capAck", A{"provider": s.Name})
 		if o := b.otherAvailable(s.ProviderID); o != nil {
-			c.Fixes = []ReadinessFix{apply(FixRouteOnly, "Send via "+o.Short+" only", "", map[string]string{"providerId": o.ProviderID, "provider": o.Short})}
+			c.Fixes = []fix{routeOnlyFix(o, tx("fix.sendViaOnly", A{"provider": o.Short}), "")}
 		}
 	}
 	return c
+}
+
+// yes is a select argument: "yes" or "no".
+func yes(b bool) string {
+	if b {
+		return "yes"
+	}
+	return "no"
 }
 
 func (b *builder) authentication() {
 	a := b.f.Auth
 	domain := firstNonEmpty(a.Domain, b.f.Campaign.SenderDomain)
 	if domain == "" {
-		b.add(ReadinessCheck{Key: "auth.sender", Group: GroupAuthentication, Status: Block,
-			Title: "The campaign has no sender", Detail: "Pick a From address on a verified sending domain in the composer.",
-			Fixes: []ReadinessFix{link("Open in editor", b.editor(nil, ""))}})
+		b.add(check{Key: "auth.sender", Group: GroupAuthentication, Status: Block,
+			Title: tx("auth.noSender", nil), Detail: tx("auth.noSenderDetail", nil),
+			Fixes: []fix{link(tx("fix.openInEditor", nil), b.editor(nil, ""))}})
 		return
 	}
 	if !a.Checked {
-		b.add(ReadinessCheck{Key: "auth.unchecked", Group: GroupAuthentication, Status: Warn,
-			Title:  "Authentication for " + domain + " hasn't been checked yet",
-			Detail: "Deliverability checks SPF, DKIM, DMARC and MAIL FROM every few hours. Run the checks to verify the records before sending.",
-			Ack:    "I understand SPF, DKIM and DMARC haven't been verified for " + domain + ".",
-			Fixes:  []ReadinessFix{link("Open deliverability", b.href("/deliverability"))}})
+		b.add(check{Key: "auth.unchecked", Group: GroupAuthentication, Status: Warn,
+			Title:  tx("auth.unchecked", A{"domain": domain}),
+			Detail: tx("auth.uncheckedDetail", nil),
+			Ack:    tx("auth.uncheckedAck", A{"domain": domain}),
+			Fixes:  []fix{link(tx("fix.openDeliverability", nil), b.href("/deliverability"))}})
 		return
 	}
-	senders := b.href("/settings/senders")
+	senders := link(tx("fix.openSenders", nil), b.href("/settings/senders"))
 	if bad := failing(a.SPF); len(bad) == 0 && len(a.SPF) > 0 {
-		b.add(ReadinessCheck{Key: "auth.spf", Group: GroupAuthentication, Status: Pass,
-			Title: "SPF authorizes " + providersPhrase(shorts(a.SPF), "sending providers"), Detail: a.SPFRecord, Mono: a.SPFRecord != "", Label: "SPF", Short: "SPF"})
+		names := shorts(a.SPF)
+		b.add(check{Key: "auth.spf", Group: GroupAuthentication, Status: Pass,
+			Title: tx("auth.spfPass", A{"count": len(names), "provider": first(names)}), Detail: RawText(a.SPFRecord), Mono: a.SPFRecord != "", Label: RawText("SPF"), Short: RawText("SPF")})
 	} else if len(a.SPF) == 0 && a.SPFRecord == "" {
-		b.add(ReadinessCheck{Key: "auth.spf", Group: GroupAuthentication, Status: Block, Title: "No SPF record on " + domain,
-			Detail: "Mailbox providers can't tell which servers may send for the domain. Publish the SPF record shown in Senders & domains.", Label: "SPF",
-			Fixes: []ReadinessFix{link("Open senders & domains", senders)}})
+		b.add(check{Key: "auth.spf", Group: GroupAuthentication, Status: Block, Title: tx("auth.spfMissing", A{"domain": domain}),
+			Detail: tx("auth.spfMissingDetail", nil), Label: RawText("SPF"), Fixes: []fix{senders}})
 	} else {
-		b.add(ReadinessCheck{Key: "auth.spf", Group: GroupAuthentication, Status: Block, Title: "SPF doesn't authorize " + JoinAnd(bad),
-			Detail: strings.TrimSpace(a.SPFRecord + "  " + firstFailDetail(a.SPF)), Label: "SPF",
-			Fixes: []ReadinessFix{link("Open senders & domains", senders)}})
+		var detail Text
+		fail := firstFailText(a.SPF)
+		switch {
+		case a.SPFRecord != "" && !fail.Empty():
+			detail = tx("auth.spfFailDetail", A{"record": a.SPFRecord, "fix": fail})
+		case a.SPFRecord != "":
+			detail = RawText(a.SPFRecord)
+		default:
+			detail = fail
+		}
+		b.add(check{Key: "auth.spf", Group: GroupAuthentication, Status: Block, Title: tx("auth.spfFails", A{"providers": ArgAnd(bad)}),
+			Detail: detail, Label: RawText("SPF"), Fixes: []fix{senders}})
 	}
 	if bad := failing(a.DKIM); len(bad) == 0 && len(a.DKIM) > 0 {
 		bits := 0
-		parts := []string{}
+		parts := []Text{}
 		for _, d := range a.DKIM {
 			if d.KeyBits > 0 && (bits == 0 || d.KeyBits < bits) {
 				bits = d.KeyBits
 			}
-			parts = append(parts, d.Short+": "+d.Detail)
+			parts = append(parts, authDetail(d))
 		}
-		title := "DKIM signing on " + providersPhrase(shorts(a.DKIM), "providers")
+		names := shorts(a.DKIM)
+		title := tx("auth.dkimPass", A{"count": len(names), "provider": first(names), "keys": yes(bits > 0), "bits": fmt.Sprint(bits)})
 		status := Pass
-		if bits > 0 {
-			title += fmt.Sprintf(", %d-bit keys", bits)
-			if bits < 1024 {
-				status = Warn
-				title = fmt.Sprintf("DKIM keys are %d-bit; mailbox providers expect 1024 or more", bits)
-			}
+		if bits > 0 && bits < 1024 {
+			status = Warn
+			title = tx("auth.dkimWeak", A{"bits": fmt.Sprint(bits)})
 		}
-		c := ReadinessCheck{Key: "auth.dkim", Group: GroupAuthentication, Status: status, Title: title, Detail: strings.Join(parts, " · "), Label: "DKIM", Short: "DKIM"}
+		c := check{Key: "auth.dkim", Group: GroupAuthentication, Status: status, Title: title, Detail: joined(" · ", parts), Label: RawText("DKIM"), Short: RawText("DKIM")}
 		if status == Warn {
-			c.Ack = "I understand the DKIM keys are shorter than recommended."
-			c.Fixes = []ReadinessFix{link("Open senders & domains", senders)}
+			c.Ack = tx("auth.dkimWeakAck", nil)
+			c.Fixes = []fix{senders}
 		}
 		b.add(c)
 	} else {
-		b.add(ReadinessCheck{Key: "auth.dkim", Group: GroupAuthentication, Status: Block, Title: "DKIM isn't verified for " + JoinAnd(orAll(bad, shorts(a.DKIM))),
-			Detail: firstNonEmpty(firstFailDetail(a.DKIM), "Without DKIM, Gmail and Yahoo reject bulk mail."), Label: "DKIM",
-			Fixes: []ReadinessFix{link("Open senders & domains", senders)}})
+		var providers any = ArgAnd(bad)
+		switch {
+		case len(bad) > 0:
+		case len(a.DKIM) > 0:
+			providers = ArgAnd(shorts(a.DKIM))
+		default:
+			providers = tx("auth.theSendingProviders", nil)
+		}
+		detail := firstFailText(a.DKIM)
+		if detail.Empty() {
+			detail = tx("auth.dkimMissingDetail", nil)
+		}
+		b.add(check{Key: "auth.dkim", Group: GroupAuthentication, Status: Block, Title: tx("auth.dkimFails", A{"providers": providers}),
+			Detail: detail, Label: RawText("DKIM"), Fixes: []fix{senders}})
 	}
 	switch a.DMARCStatus {
 	case "pass":
-		title := "DMARC p=" + firstNonEmpty(a.DMARCPolicy, "none")
+		policy := firstNonEmpty(a.DMARCPolicy, "none")
+		title := tx("auth.dmarcPass", A{"policy": policy, "measured": "no"})
 		status := Pass
 		if a.DMARCAligned != nil {
-			title += ", " + Pct(math.Round(*a.DMARCAligned*10)/10) + " of mail aligned over the last 7 days"
+			aligned := ArgPercent(math.Round(*a.DMARCAligned*10) / 10)
+			title = tx("auth.dmarcPass", A{"policy": policy, "measured": "yes", "aligned": aligned})
 			if *a.DMARCAligned < 90 {
 				status = Warn
-				title = fmt.Sprintf("Only %s of mail aligned with DMARC over the last 7 days", Pct(math.Round(*a.DMARCAligned*10)/10))
+				title = tx("auth.dmarcLow", A{"aligned": aligned})
 			}
 		}
-		c := ReadinessCheck{Key: "auth.dmarc", Group: GroupAuthentication, Status: status, Title: title, Detail: a.DMARCRecord, Mono: a.DMARCRecord != "", Label: "DMARC",
-			Short: "DMARC p=" + firstNonEmpty(a.DMARCPolicy, "none")}
+		c := check{Key: "auth.dmarc", Group: GroupAuthentication, Status: status, Title: title, Detail: RawText(a.DMARCRecord), Mono: a.DMARCRecord != "", Label: RawText("DMARC"),
+			Short: RawText("DMARC p=" + policy)}
 		if status == Warn {
-			c.Ack = "I understand some mail isn't aligned with DMARC."
-			c.Fixes = []ReadinessFix{link("Open deliverability", b.href("/deliverability"))}
+			c.Ack = tx("auth.dmarcLowAck", nil)
+			c.Fixes = []fix{link(tx("fix.openDeliverability", nil), b.href("/deliverability"))}
 		}
 		b.add(c)
 	case "missing", "":
-		b.add(ReadinessCheck{Key: "auth.dmarc", Group: GroupAuthentication, Status: Block, Title: "No DMARC record for " + domain,
-			Detail: "Gmail and Yahoo require DMARC from bulk senders. Publish at least v=DMARC1; p=none.", Label: "DMARC",
-			Fixes: []ReadinessFix{link("Open senders & domains", senders)}})
+		b.add(check{Key: "auth.dmarc", Group: GroupAuthentication, Status: Block, Title: tx("auth.dmarcMissing", A{"domain": domain}),
+			Detail: tx("auth.dmarcMissingDetail", nil), Label: RawText("DMARC"), Fixes: []fix{senders}})
 	default:
-		b.add(ReadinessCheck{Key: "auth.dmarc", Group: GroupAuthentication, Status: Block, Title: "The DMARC record of " + domain + " is invalid",
-			Detail: a.DMARCRecord, Mono: a.DMARCRecord != "", Label: "DMARC", Fixes: []ReadinessFix{link("Open senders & domains", senders)}})
+		b.add(check{Key: "auth.dmarc", Group: GroupAuthentication, Status: Block, Title: tx("auth.dmarcInvalid", A{"domain": domain}),
+			Detail: RawText(a.DMARCRecord), Mono: a.DMARCRecord != "", Label: RawText("DMARC"), Fixes: []fix{senders}})
 	}
 	if bad := failing(a.MailFrom); len(bad) == 0 && len(a.MailFrom) > 0 {
 		parts := []string{}
 		for _, m := range a.MailFrom {
 			parts = append(parts, m.Domain+" ("+m.Short+")")
 		}
-		title := "Custom MAIL FROM domains verified"
-		if len(a.MailFrom) == 1 {
-			title = "Custom MAIL FROM domain verified"
-		}
-		b.add(ReadinessCheck{Key: "auth.mail_from", Group: GroupAuthentication, Status: Pass, Title: title, Detail: strings.Join(parts, " · "), Label: "MAIL FROM", Short: "custom MAIL FROM"})
+		b.add(check{Key: "auth.mail_from", Group: GroupAuthentication, Status: Pass, Title: tx("auth.mailFromPass", A{"count": len(a.MailFrom)}),
+			Detail: RawText(strings.Join(parts, " · ")), Label: RawText("MAIL FROM"), Short: tx("auth.mailFromShort", nil)})
 	} else if len(a.MailFrom) > 0 {
-		verb := "uses"
-		if len(bad) > 1 {
-			verb = "use"
-		}
-		b.add(ReadinessCheck{Key: "auth.mail_from", Group: GroupAuthentication, Status: Warn,
-			Title:  fmt.Sprintf("%s %s the default MAIL FROM, so SPF doesn't align with %s", JoinAnd(bad), verb, domain),
-			Detail: "DMARC still passes through DKIM. A custom MAIL FROM (return path) on your domain aligns SPF too.", Label: "MAIL FROM",
-			Ack: "I understand SPF doesn't align for " + JoinAnd(bad) + ".", Fixes: []ReadinessFix{link("Open senders & domains", senders)}})
+		b.add(check{Key: "auth.mail_from", Group: GroupAuthentication, Status: Warn,
+			Title:  tx("auth.mailFromDefault", A{"providers": ArgAnd(bad), "count": len(bad), "domain": domain}),
+			Detail: tx("auth.mailFromDefaultDetail", nil), Label: RawText("MAIL FROM"),
+			Ack: tx("auth.mailFromDefaultAck", A{"providers": ArgAnd(bad)}), Fixes: []fix{senders}})
 	}
 	if a.BIMIStatus == "pass" {
-		b.add(ReadinessCheck{Key: "auth.bimi", Group: GroupAuthentication, Status: Pass, Title: "BIMI record found", Detail: firstNonEmpty(a.BIMILogo, "Your logo shows in Gmail, Yahoo and Apple Mail."), Label: "BIMI", Short: "BIMI"})
+		detail := RawText(a.BIMILogo)
+		if detail.Empty() {
+			detail = tx("auth.bimiShows", nil)
+		}
+		b.add(check{Key: "auth.bimi", Group: GroupAuthentication, Status: Pass, Title: tx("auth.bimiFound", nil), Detail: detail, Label: RawText("BIMI"), Short: RawText("BIMI")})
 	} else {
-		b.add(ReadinessCheck{Key: "auth.bimi", Group: GroupAuthentication, Status: Pass, Title: "BIMI not required",
-			Detail: "Optional. No record found; only affects logo display in Gmail, Yahoo and Apple Mail.", Label: "BIMI",
-			Fixes: []ReadinessFix{link("Set up BIMI", b.href("/deliverability"))}})
+		b.add(check{Key: "auth.bimi", Group: GroupAuthentication, Status: Pass, Title: tx("auth.bimiNotRequired", nil),
+			Detail: tx("auth.bimiOptional", nil), Label: RawText("BIMI"),
+			Fixes: []fix{link(tx("fix.setUpBimi", nil), b.href("/deliverability"))}})
 	}
+}
+
+func first(names []string) string {
+	if len(names) == 0 {
+		return ""
+	}
+	return names[0]
 }
 
 func failing(list []ProviderAuthFacts) []string {
@@ -643,75 +708,93 @@ func shorts(list []ProviderAuthFacts) []string {
 	return out
 }
 
-func orAll(bad, all []string) []string {
-	if len(bad) > 0 {
-		return bad
+// authDetail is what a provider's record says: "SES: 3 Easy DKIM CNAMEs
+// verified".
+func authDetail(p ProviderAuthFacts) Text {
+	var d any = p.Detail
+	switch p.DetailKind {
+	case AuthCNAMEs:
+		d = tx("auth.cnames", A{"count": p.CNAMEs})
+	case AuthSelector:
+		d = tx("auth.selector", A{"selector": p.Selector})
+	case AuthUnverified:
+		d = tx("auth.dkimUnverified", nil)
+	case AuthSPFAdd:
+		d = tx("auth.spfAdd", A{"value": p.Value, "name": p.Name})
 	}
-	if len(all) > 0 {
-		return all
-	}
-	return []string{"the sending providers"}
+	return tx("auth.detail", A{"provider": p.Short, "detail": d})
 }
 
-func firstFailDetail(list []ProviderAuthFacts) string {
+// firstFailText is what's wrong with the first failing provider, as a
+// sentence.
+func firstFailText(list []ProviderAuthFacts) Text {
 	for _, p := range list {
-		if !p.OK && p.Detail != "" {
-			return sentence(p.Short + ": " + p.Detail)
+		if !p.OK && (p.Detail != "" || p.DetailKind != "") {
+			return asSentence(authDetail(p))
 		}
 	}
-	return ""
+	return nil
+}
+
+// joined is phrases joined with a separator: "SES: 3 Easy DKIM CNAMEs
+// verified · Postal: selector postal-2026 verified".
+func joined(sep string, parts []Text) Text {
+	if len(parts) == 0 {
+		return nil
+	}
+	return tx("text", A{"text": argJoin(sep, parts)})
+}
+
+// asSentence ends a text with a full stop when it has none.
+func asSentence(t Text) Text {
+	if t.Empty() {
+		return nil
+	}
+	return tx("text", A{"text": argSentence(t)})
 }
 
 func (b *builder) content() {
 	ct := b.f.Content
 	if !ct.Checked {
-		b.add(ReadinessCheck{Key: "content.unchecked", Group: GroupContent, Status: Unknown, Title: "The content couldn't be checked",
-			Detail: "The MJML doesn't compile or the check failed. Open the campaign in the editor and save it again.", Note: "not checked",
-			Fixes: []ReadinessFix{link("Open in editor", b.editor(nil, ""))}})
+		b.add(check{Key: "content.unchecked", Group: GroupContent, Status: Unknown, Title: tx("content.unchecked", nil),
+			Detail: tx("content.uncheckedDetail", nil), Note: tx("note.notChecked", nil),
+			Fixes: []fix{link(tx("fix.openInEditor", nil), b.editor(nil, ""))}})
 		return
 	}
 	r := ct.Report
 	subject := b.f.Campaign.Subject
 	shortened := issuesOf(r, "links.shortener")
+	spamLabel := tx("label.spamTriggers", nil)
 	if strings.TrimSpace(subject) == "" {
-		b.add(ReadinessCheck{Key: "content.spam", Group: GroupContent, Status: Block, Title: "The subject is empty",
-			FlatTitle: "Content: the subject is empty", Detail: "Inbox lists show the subject first; write one before sending.", Label: "Subject",
-			Fixes: []ReadinessFix{link("Open in editor", b.editor(nil, ""))}})
+		b.add(check{Key: "content.spam", Group: GroupContent, Status: Block, Title: tx("content.subjectEmpty", nil),
+			FlatTitle: tx("content.subjectEmptyFlat", nil), Detail: tx("content.subjectEmptyDetail", nil), Label: tx("label.subject", nil),
+			Fixes: []fix{link(tx("fix.openInEditor", nil), b.editor(nil, ""))}})
 	} else if len(r.SubjectHeuristics) > 0 {
-		words := make([]string, 0, len(r.SubjectHeuristics))
-		for _, h := range r.SubjectHeuristics {
-			words = append(words, heuristicWord(h))
-		}
 		n := len(r.SubjectHeuristics)
-		title := fmt.Sprintf("Subject line \"%s\" trips %d spam %s", subject, n, Plural(int64(n), "heuristic", "heuristics"))
-		detail := capitalize(JoinAnd(words)) + "."
-		c := ReadinessCheck{Key: "content.spam", Group: GroupContent, Status: Warn, Title: title, FlatTitle: "Content: " + lowerFirst(title), Label: "Spam triggers",
-			Ack: fmt.Sprintf("I understand the subject trips %d spam %s.", n, Plural(int64(n), "heuristic", "heuristics"))}
+		args := A{"subject": subject, "count": n}
+		c := check{Key: "content.spam", Group: GroupContent, Status: Warn, Title: tx("content.subjectSpam", args), FlatTitle: tx("content.subjectSpamFlat", args), Label: spamLabel,
+			Ack: tx("content.subjectSpamAck", A{"count": n})}
+		c.Detail = heuristicsText(r.SubjectHeuristics)
 		if s := contentcheck.SuggestSubject(subject); s != "" && s != subject {
-			detail += fmt.Sprintf(" Suggested: \"%s\"", s)
-			c.Fixes = []ReadinessFix{apply(FixUseSubject, "Use suggestion", "", map[string]string{"subject": s})}
+			c.Detail = sentences(c.Detail, tx("content.suggested", A{"subject": s}))
+			c.Fixes = []fix{apply(FixUseSubject, tx("fix.useSuggestion", nil), "", map[string]string{"subject": s})}
 		}
-		c.Detail = detail
 		b.add(c)
 	} else {
-		links := "no shortened links"
-		if len(shortened) > 0 {
-			links = fmt.Sprintf("%d shortened %s, see Links", len(shortened), Plural(int64(len(shortened)), "link", "links"))
-		}
-		b.add(ReadinessCheck{Key: "content.spam", Group: GroupContent, Status: Pass, Title: "No spam triggers in subject, preheader or body",
-			Detail: fmt.Sprintf("Subject: \"%s\" · no all-caps, no urgency phrases, %s", subject, links), Label: "Spam triggers"})
+		b.add(check{Key: "content.spam", Group: GroupContent, Status: Pass, Title: tx("content.noSpam", nil),
+			Detail: tx("content.noSpamDetail", A{"subject": subject, "shortened": len(shortened)}), Label: spamLabel})
 	}
 	share := int(math.Round(r.ImageShare * 100))
-	ratio := ReadinessCheck{Key: "content.image_ratio", Group: GroupContent, Status: Pass, Label: "Image-to-text ratio",
-		Title:  fmt.Sprintf("Image-to-text ratio %d%%", share),
-		Detail: fmt.Sprintf("%d %s, %s words · recommended under 60%%", r.Images, Plural(int64(r.Images), "image", "images"), Count(int64(r.Words))),
-		Short:  fmt.Sprintf("image ratio %d%%", share)}
+	ratio := check{Key: "content.image_ratio", Group: GroupContent, Status: Pass, Label: tx("label.imageRatio", nil),
+		Title:  tx("content.imageRatio", A{"share": ArgPercent(float64(share))}),
+		Detail: tx("content.imageRatioDetail", A{"images": r.Images, "words": r.Words, "limit": ArgPercent(60)}),
+		Short:  tx("content.imageRatioShort", A{"share": ArgPercent(float64(share))})}
 	if share >= 60 {
 		ratio.Status = Warn
-		ratio.Title = fmt.Sprintf("Image-to-text ratio %d%%, over the recommended 60%%", share)
-		ratio.Detail = fmt.Sprintf("%d images, %s words. Spam filters score image-heavy mail higher, and most of it disappears when images are off.", r.Images, Count(int64(r.Words)))
-		ratio.Ack = fmt.Sprintf("I understand the email is %d%% image.", share)
-		ratio.Fixes = []ReadinessFix{link("Open in editor", b.editor(nil, "deliverability"))}
+		ratio.Title = tx("content.imageRatioHigh", A{"share": ArgPercent(float64(share)), "limit": ArgPercent(60)})
+		ratio.Detail = tx("content.imageRatioHighDetail", A{"images": r.Images, "words": r.Words})
+		ratio.Ack = tx("content.imageRatioAck", A{"share": ArgPercent(float64(share))})
+		ratio.Fixes = []fix{link(tx("fix.openInEditor", nil), b.editor(nil, "deliverability"))}
 	}
 	b.add(ratio)
 	kb := int(math.Round(float64(r.SizeBytes) / 1024))
@@ -720,26 +803,27 @@ func (b *builder) content() {
 	if r.Links > 0 {
 		trackKB = int(math.Max(1, math.Round(float64(r.Links*200)/1024)))
 	}
-	size := ReadinessCheck{Key: "content.size", Group: GroupContent, Status: Pass, Label: "HTML size",
-		Title:  fmt.Sprintf("HTML size %d KB, under Gmail's 102 KB clipping limit", kb),
-		Detail: fmt.Sprintf("Inlined CSS %d KB · tracking links add about %d KB", cssKB, trackKB),
-		Short:  fmt.Sprintf("%d KB of 102 KB", kb)}
+	sizeArgs := A{"kb": kb, "clip": 102, "css": cssKB, "tracking": trackKB}
+	size := check{Key: "content.size", Group: GroupContent, Status: Pass, Label: tx("label.htmlSize", nil),
+		Title:  tx("content.size", sizeArgs),
+		Detail: tx("content.sizeDetail", sizeArgs),
+		Short:  tx("content.sizeShort", sizeArgs)}
 	if r.SizeBytes >= contentcheck.NearClipBytes {
 		size.Status = Warn
-		size.Title = fmt.Sprintf("HTML size %d KB, close to Gmail's 102 KB clipping limit", kb)
+		size.Title = tx("content.sizeNear", sizeArgs)
 		if r.SizeBytes > contentcheck.ClipBytes {
-			size.Title = fmt.Sprintf("HTML size %d KB, over Gmail's 102 KB clipping limit", kb)
+			size.Title = tx("content.sizeOver", sizeArgs)
 		}
-		size.Detail = fmt.Sprintf("Gmail clips the message and hides the footer, including the unsubscribe link. Inlined CSS %d KB · tracking links add about %d KB.", cssKB, trackKB)
-		size.Ack = fmt.Sprintf("I understand the email is %d KB, near Gmail's clipping limit.", kb)
+		size.Detail = tx("content.sizeWarnDetail", sizeArgs)
+		size.Ack = tx("content.sizeAck", sizeArgs)
 		for _, is := range issuesOf(r, "content.size") {
 			for _, fx := range is.Fixes {
 				if fx.Kind == "minify" {
-					size.Fixes = append(size.Fixes, apply(FixMinify, fx.Label, "", nil))
+					size.Fixes = append(size.Fixes, apply(FixMinify, minifyLabel(fx.Label), "", nil))
 				}
 			}
 		}
-		size.Fixes = append(size.Fixes, link("Open in editor", b.editor(nil, "deliverability")))
+		size.Fixes = append(size.Fixes, link(tx("fix.openInEditor", nil), b.editor(nil, "deliverability")))
 	}
 	// With conditional content no one gets the whole email: Conditional
 	// content checks the size of each version (design expansion, X11).
@@ -748,47 +832,115 @@ func (b *builder) content() {
 	}
 	b.add(size)
 	// Alt text is an accessibility check when the Accessibility group runs.
-	alt := ReadinessCheck{Key: "content.alt_text", Group: GroupContent, Status: Pass, Label: "Alt text"}
+	alt := check{Key: "content.alt_text", Group: GroupContent, Status: Pass, Label: tx("label.altText", nil)}
 	switch {
 	case b.f.Accessibility.Ran:
 	case r.Images == 0:
-		alt.Title, alt.Short = "No images, so no alt text needed", "no images"
+		alt.Title, alt.Short = tx("content.altNoImages", nil), tx("content.altNoImagesShort", nil)
 	case r.ImagesMissingAlt == 0:
-		alt.Title = fmt.Sprintf("All %d images have alt text", r.Images)
-		switch r.Images {
-		case 1:
-			alt.Title = "The image has alt text"
-		case 2:
-			alt.Title = "Both images have alt text"
-		}
-		alt.Short = fmt.Sprintf("%d of %d images have alt text", r.Images, r.Images)
+		alt.Title = tx("content.altAll", A{"count": r.Images})
+		alt.Short = tx("content.altAllShort", A{"count": r.Images})
 	default:
 		alt.Status = Warn
-		alt.Title = fmt.Sprintf("%d of %d images have no alt text", r.ImagesMissingAlt, r.Images)
+		alt.Title = tx("content.altMissing", A{"missing": r.ImagesMissingAlt, "images": r.Images})
 		first := issuesOf(r, "content.alt_text")
-		alt.Detail = "Images are off by default in Outlook and many corporate clients; alt text is what shows."
+		alt.Detail = tx("content.altDetail", nil)
 		var path []int
 		if len(first) > 0 {
-			alt.Detail = sentence(first[0].Title) + " " + alt.Detail
+			alt.Detail = sentences(contentAltTitle(r, first[0]), alt.Detail)
 			path = first[0].Path
 		}
-		alt.Ack = fmt.Sprintf("I understand %d %s no alt text.", r.ImagesMissingAlt, Plural(int64(r.ImagesMissingAlt), "image has", "images have"))
-		alt.Fixes = []ReadinessFix{link("Open in editor", b.editor(path, "deliverability"))}
+		alt.Ack = tx("content.altAck", A{"count": r.ImagesMissingAlt})
+		alt.Fixes = []fix{link(tx("fix.openInEditor", nil), b.editor(path, "deliverability"))}
 	}
 	if !b.f.Accessibility.Ran {
 		b.add(alt)
 	}
 	if strings.TrimSpace(r.PlainText) != "" {
 		ptKB := int(math.Max(1, math.Round(float64(len(r.PlainText))/1024)))
-		b.add(ReadinessCheck{Key: "content.plain_text", Group: GroupContent, Status: Pass, Title: "Plain-text version generated",
-			Detail: fmt.Sprintf("multipart/alternative · %d KB", ptKB), Label: "Plain text", Short: "plain-text generated",
-			Fixes: []ReadinessFix{link("Preview", b.href("/campaigns/"+b.f.Campaign.ID+"/edit?view=preview"))}})
+		b.add(check{Key: "content.plain_text", Group: GroupContent, Status: Pass, Title: tx("content.plainText", nil),
+			Detail: tx("content.plainTextDetail", A{"kb": ptKB}), Label: tx("label.plainText", nil), Short: tx("content.plainTextShort", nil),
+			Fixes: []fix{link(tx("fix.preview", nil), b.href("/campaigns/"+b.f.Campaign.ID+"/edit?view=preview"))}})
 	} else {
-		b.add(ReadinessCheck{Key: "content.plain_text", Group: GroupContent, Status: Warn, Title: "The plain-text version is empty",
-			Detail: "The email has no text, so the text/plain part is blank. Add a sentence that says what the images show.", Label: "Plain text",
-			Ack: "I understand the plain-text version is empty.", Fixes: []ReadinessFix{link("Open in editor", b.editor(nil, ""))}})
+		b.add(check{Key: "content.plain_text", Group: GroupContent, Status: Warn, Title: tx("content.plainTextEmpty", nil),
+			Detail: tx("content.plainTextEmptyDetail", nil), Label: tx("label.plainText", nil),
+			Ack: tx("content.plainTextEmptyAck", nil), Fixes: []fix{link(tx("fix.openInEditor", nil), b.editor(nil, ""))}})
 	}
 	b.grow()
+}
+
+// heuristicsText names the spam heuristics a subject trips: "All caps and
+// urgency phrasing."
+func heuristicsText(hs []string) Text {
+	words := make([]any, 0, len(hs))
+	for _, h := range hs {
+		words = append(words, heuristicWord(h))
+	}
+	return tx("content.heuristics", A{"list": argCapital(ArgAnd(words))})
+}
+
+// heuristicWord names a subject heuristic (contentcheck.SubjectHeuristics).
+func heuristicWord(h string) any {
+	switch h {
+	case "all caps":
+		return tx("heuristic.allCaps", nil)
+	case "repeated punctuation":
+		return tx("heuristic.punctuation", nil)
+	case "urgency":
+		return tx("heuristic.urgency", nil)
+	case "money words":
+		return tx("heuristic.money", nil)
+	case "click-bait":
+		return tx("heuristic.clickbait", nil)
+	}
+	return h
+}
+
+var savesKB = regexp.MustCompile(`saves about (\d+) KB`)
+
+// minifyLabel is the composer's minify fix ("Minify inline CSS · saves
+// about 9 KB") in the reader's language.
+func minifyLabel(label string) Text {
+	if m := savesKB.FindStringSubmatch(label); m != nil {
+		var kb int
+		_, _ = fmt.Sscan(m[1], &kb)
+		if t := tx("fix.minifySaves", A{"kb": kb}); t.en() == label {
+			return t
+		}
+	}
+	if label == tx("fix.minify", nil).en() {
+		return tx("fix.minify", nil)
+	}
+	return RawText(label)
+}
+
+// contentAltTitle names the first image without alt text as the content
+// check does ("Hero image has no alt text").
+func contentAltTitle(r contentcheck.ContentCheckReport, is contentcheck.ContentCheckIssue) Text {
+	var t Text
+	switch {
+	case is.Section >= 0 && is.Section < len(r.Sections):
+		switch l := r.Sections[is.Section].Label; l {
+		case "hero":
+			t = tx("contentAlt.hero", nil)
+		case "header":
+			t = tx("contentAlt.logo", nil)
+		default:
+			t = tx("contentAlt.section", A{"section": argSection(l)})
+		}
+	default:
+		t = tx("contentAlt.image", nil)
+	}
+	return verified(t, is.Title)
+}
+
+// verified keeps a text another package wrote in English when the
+// message meant to say it in each reader's language doesn't say the same.
+func verified(t Text, english string) Text {
+	if t.en() == english {
+		return t
+	}
+	return RawText(english)
 }
 
 func issuesOf(r contentcheck.ContentCheckReport, id string) []contentcheck.ContentCheckIssue {
@@ -799,14 +951,6 @@ func issuesOf(r contentcheck.ContentCheckReport, id string) []contentcheck.Conte
 		}
 	}
 	return out
-}
-
-func heuristicWord(h string) string {
-	switch h {
-	case "urgency":
-		return "urgency phrasing"
-	}
-	return h
 }
 
 func (b *builder) links() {
@@ -836,13 +980,13 @@ func (b *builder) links() {
 			}
 		}
 	}
-	respond := ReadinessCheck{Key: "links.respond", Group: GroupLinks, Status: Pass, Label: "Links respond"}
+	respond := check{Key: "links.respond", Group: GroupLinks, Status: Pass, Label: tx("label.linksRespond", nil)}
 	switch {
 	case total == 0:
-		respond.Title, respond.Short = "The email has no links", "no links"
+		respond.Title, respond.Short = tx("links.none", nil), tx("links.noneShort", nil)
 	case len(probed) == 0:
-		respond.Title = fmt.Sprintf("%d %s found", total, Plural(int64(total), "link", "links"))
-		respond.Detail = "Links weren't requested in this run."
+		respond.Title = tx("links.found", A{"count": total})
+		respond.Detail = tx("links.notRequested", nil)
 		respond.Short = respond.Title
 	case len(broken) == 0:
 		all200 := true
@@ -856,44 +1000,34 @@ func (b *builder) links() {
 			}
 		}
 		if len(blocked) > 0 {
-			n := len(blockIssues)
-			respond.Title = fmt.Sprintf("%d of %d links respond; the blocklisted %s counted above", len(considered), total, Plural(int64(n), "one is", "ones are"))
+			respond.Title = tx("links.respondExceptBlocked", A{"count": len(considered), "total": total, "blocked": len(blockIssues)})
 			respond.Short = respond.Title
 		} else {
-			respond.Title = fmt.Sprintf("All %d links respond", total)
-			if total == 1 {
-				respond.Title = "The link responds"
-			}
-			if all200 {
-				respond.Title += " (HTTP 200)"
-			}
-			respond.Short = fmt.Sprintf("all %d links respond", total)
+			respond.Title = tx("links.allRespond", A{"count": total, "http200": yes(all200)})
+			respond.Short = tx("links.allRespondShort", A{"count": total})
+			respond.every = total > 1
 		}
 		if slow.Millis > 0 {
-			respond.Detail = fmt.Sprintf("Slowest: %s at %d ms", displayURL(slow.URL), slow.Millis)
+			respond.Detail = tx("links.slowest", A{"url": displayURL(slow.URL), "ms": slow.Millis})
 		}
 	default:
 		respond.Status = Warn
-		verb := "don't respond"
-		if len(broken) == 1 {
-			verb = "doesn't respond"
-		}
-		respond.Title = fmt.Sprintf("%d of %d %s %s", len(broken), total, Plural(int64(total), "link", "links"), verb)
-		parts := []string{}
+		respond.Title = tx("links.broken", A{"count": len(broken), "total": total})
+		parts := []Text{}
 		for i, l := range broken {
 			if i == 3 {
-				parts = append(parts, fmt.Sprintf("and %d more", len(broken)-3))
+				parts = append(parts, tx("links.brokenMore", A{"count": len(broken) - 3}))
 				break
 			}
-			what := fmt.Sprintf("returns %d", l.Status)
 			if l.Status == 0 {
-				what = "doesn't respond"
+				parts = append(parts, tx("links.noResponse", A{"url": displayURL(l.URL)}))
+			} else {
+				parts = append(parts, tx("links.returns", A{"url": displayURL(l.URL), "status": fmt.Sprint(l.Status)}))
 			}
-			parts = append(parts, displayURL(l.URL)+" "+what)
 		}
-		respond.Detail = strings.Join(parts, " · ")
-		respond.Ack = fmt.Sprintf("I understand %d %s %s.", len(broken), Plural(int64(len(broken)), "link", "links"), verb)
-		respond.Fixes = []ReadinessFix{link("Open in editor", b.editor(broken[0].Path, "deliverability"))}
+		respond.Detail = joined(" · ", parts)
+		respond.Ack = tx("links.brokenAck", A{"count": len(broken)})
+		respond.Fixes = []fix{link(tx("fix.openInEditor", nil), b.editor(broken[0].Path, "deliverability"))}
 	}
 	b.add(respond)
 	if len(blockIssues) == 0 {
@@ -911,21 +1045,20 @@ func (b *builder) links() {
 			}
 		}
 		slices.Sort(domains)
-		line := strings.Join(ct.URIBlocklists, ", ")
+		var detail Text
 		if len(domains) > 0 {
 			shown := domains
-			more := ""
 			if len(domains) > 4 {
 				shown = domains[:4]
-				more = fmt.Sprintf(" and %d more", len(domains)-4)
+				detail = tx("links.domainsMore", A{"lists": argJoin(", ", ct.URIBlocklists), "hasLists": yes(len(ct.URIBlocklists) > 0), "domains": argJoin(", ", shown), "more": len(domains) - 4})
+			} else {
+				detail = tx("links.domains", A{"lists": argJoin(", ", ct.URIBlocklists), "hasLists": yes(len(ct.URIBlocklists) > 0), "domains": argJoin(", ", shown)})
 			}
-			if line != "" {
-				line += " · "
-			}
-			line += strings.Join(shown, ", ") + more
+		} else if len(ct.URIBlocklists) > 0 {
+			detail = RawText(strings.Join(ct.URIBlocklists, ", "))
 		}
-		b.add(ReadinessCheck{Key: "links.blocklists", Group: GroupLinks, Status: Pass, Title: "No link domains on URI blocklists", Detail: line, Label: "URI blocklists",
-			Short: "no blocklisted link domains"})
+		b.add(check{Key: "links.blocklists", Group: GroupLinks, Status: Pass, Title: tx("links.notListed", nil), Detail: detail, Label: tx("label.uriBlocklists", nil),
+			Short: tx("links.notListedShort", nil)})
 	} else {
 		done := map[string]bool{}
 		for _, is := range blockIssues {
@@ -936,32 +1069,36 @@ func (b *builder) links() {
 			done[host] = true
 			lists := strings.TrimPrefix(is.Tag, "Link domain on ")
 			text, kind := linkTextFor(r, is.URL)
-			used := "Used by a link."
+			used := tx("links.usedByLink", nil)
 			if text != "" {
-				used = fmt.Sprintf("Used by the \"%s\" %s.", text, kind)
+				used = tx("links.usedBy", A{"text": text, "kind": kind})
 			}
-			c := ReadinessCheck{Key: "links.blocklist." + host, Group: GroupLinks, Status: Block,
-				Title:  fmt.Sprintf("%s is listed on %s", host, lists),
-				Detail: used + " Mail that links to a blocklisted domain is filtered by Gmail, Outlook and most corporate gateways regardless of your own reputation.",
-				Label:  "URI blocklists"}
+			title := tx("links.listed", A{"host": host, "lists": lists})
+			if named := tx("links.listed", A{"host": host, "lists": ArgAnd(listNames(lists))}); named.en() == title.en() {
+				title = named
+			}
+			c := check{Key: "links.blocklist." + host, Group: GroupLinks, Status: Block,
+				Title:  title,
+				Detail: sentences(used, tx("links.listedDetail", nil)),
+				Label:  tx("label.uriBlocklists", nil)}
 			for _, fx := range is.Fixes {
 				if fx.Kind == "replace_link" && fx.Value != "" {
-					c.Fixes = append(c.Fixes, apply(FixReplaceLink, fx.Label, "danger", map[string]string{"from": is.URL, "to": fx.Value}))
+					c.Fixes = append(c.Fixes, apply(FixReplaceLink, replaceLabel(fx.Label, fx.Value), "danger", map[string]string{"from": is.URL, "to": fx.Value}))
 				}
 			}
-			c.Fixes = append(c.Fixes, link("Edit link", b.editor(is.Path, "deliverability")))
+			c.Fixes = append(c.Fixes, link(tx("fix.editLink", nil), b.editor(is.Path, "deliverability")))
 			b.add(c)
 		}
 	}
 	if short := issuesOf(r, "links.shortener"); len(short) > 0 {
 		first := short[0]
-		title := fmt.Sprintf("1 link redirects through %s", displayURL(first.URL))
+		title := tx("links.shortenerOne", A{"url": displayURL(first.URL)})
 		if len(short) > 1 {
-			title = fmt.Sprintf("%d links redirect through URL shorteners", len(short))
+			title = tx("links.shortenerMany", A{"count": len(short)})
 		}
-		c := ReadinessCheck{Key: "links.shortener", Group: GroupLinks, Status: Warn, Title: title,
-			Detail: "Shorteners are often on URI blocklists and hide the destination.", Label: "URL shortener",
-			Ack: fmt.Sprintf("I understand %d %s through a URL shortener.", len(short), Plural(int64(len(short)), "link goes", "links go"))}
+		c := check{Key: "links.shortener", Group: GroupLinks, Status: Warn, Title: title,
+			Detail: tx("links.shortenerDetail", nil), Label: tx("label.urlShortener", nil),
+			Ack: tx("links.shortenerAck", A{"count": len(short)})}
 		final := ""
 		for _, l := range r.LinkList {
 			if l.URL == first.URL && l.Final != "" {
@@ -969,15 +1106,61 @@ func (b *builder) links() {
 			}
 		}
 		if final != "" && len(short) == 1 {
-			c.Fixes = []ReadinessFix{apply(FixReplaceLink, "Replace with destination URL", "", map[string]string{"from": first.URL, "to": final})}
+			c.Fixes = []fix{apply(FixReplaceLink, tx("fix.replaceWithDestination", nil), "", map[string]string{"from": first.URL, "to": final})}
 		}
-		c.Fixes = append(c.Fixes, link("Edit link", b.editor(first.Path, "deliverability")))
+		c.Fixes = append(c.Fixes, link(tx("fix.editLink", nil), b.editor(first.Path, "deliverability")))
 		b.add(c)
 	}
 	if empty := issuesOf(r, "links.empty"); len(empty) > 0 {
-		b.add(ReadinessCheck{Key: "links.empty", Group: GroupLinks, Status: Warn, Title: empty[0].Title, Detail: empty[0].Detail, Label: "Empty link",
-			Ack: "I understand a button has no link.", Fixes: []ReadinessFix{link("Edit link", b.editor(empty[0].Path, "deliverability"))}})
+		b.add(check{Key: "links.empty", Group: GroupLinks, Status: Warn, Title: emptyLinkTitle(r, empty[0]), Detail: emptyLinkDetail(empty[0]), Label: tx("label.emptyLink", nil),
+			Ack: tx("links.emptyAck", nil), Fixes: []fix{link(tx("fix.editLink", nil), b.editor(empty[0].Path, "deliverability"))}})
 	}
+}
+
+// replaceLabel is the content check's replace fix ("Replace with
+// acme.io/sale") in the reader's language.
+func replaceLabel(label, to string) Text {
+	return verified(tx("fix.replaceWith", A{"target": strings.TrimPrefix(to, "https://")}), label)
+}
+
+// emptyLinkTitle is the content check's empty button ("Button “Read the
+// docs” has no link") in the reader's language.
+func emptyLinkTitle(r contentcheck.ContentCheckReport, is contentcheck.ContentCheckIssue) Text {
+	for _, l := range r.LinkList {
+		if slices.Equal(l.Path, is.Path) && l.Text != "" {
+			return verified(tx("links.emptyButton", A{"text": truncateText(l.Text, 40)}), is.Title)
+		}
+	}
+	text := strings.TrimSuffix(strings.TrimPrefix(is.Title, "Button “"), "” has no link")
+	return verified(tx("links.emptyButton", A{"text": text}), is.Title)
+}
+
+func emptyLinkDetail(is contentcheck.ContentCheckIssue) Text {
+	return verified(tx("links.emptyDetail", nil), is.Detail)
+}
+
+// truncateText shortens text to n characters with an ellipsis, as the
+// content check does.
+func truncateText(s string, n int) string {
+	r := []rune(s)
+	if len(r) <= n {
+		return s
+	}
+	return string(r[:n-1]) + "…"
+}
+
+// listNames reads the content check's list of blocklists ("SURBL and
+// Spamhaus DBL") back into names.
+func listNames(s string) []string {
+	head, last := "", s
+	if i := strings.LastIndex(s, " and "); i >= 0 {
+		head, last = s[:i], s[i+len(" and "):]
+	}
+	out := []string{}
+	if head != "" {
+		out = append(out, strings.Split(head, ", ")...)
+	}
+	return append(out, last)
 }
 
 func hostOf(raw string) string {
@@ -1001,19 +1184,19 @@ func displayURL(raw string) string {
 	return strings.TrimSuffix(u.Host+u.EscapedPath(), "/")
 }
 
+// linkTextFor is a link's text and what it is: link, button, image, menu
+// link or social link.
 func linkTextFor(r contentcheck.ContentCheckReport, href string) (string, string) {
 	for _, l := range r.LinkList {
 		if l.URL == href {
 			kind := "link"
 			switch l.Kind {
-			case "button":
-				kind = "button"
-			case "image":
-				kind = "image"
+			case "button", "image":
+				kind = l.Kind
 			case "nav":
-				kind = "menu link"
+				kind = "menu"
 			case "social":
-				kind = "social link"
+				kind = "social"
 			}
 			return strings.TrimSpace(l.Text), kind
 		}
@@ -1024,70 +1207,78 @@ func linkTextFor(r contentcheck.ContentCheckReport, href string) (string, string
 func (b *builder) compliance() {
 	cf := b.f.Compliance
 	if cf.HTTPS {
-		b.add(ReadinessCheck{Key: "compliance.list_unsubscribe", Group: GroupCompliance, Status: Pass, Title: "One-click unsubscribe headers present",
-			Detail: fmt.Sprintf("List-Unsubscribe: <%s> · List-Unsubscribe-Post: List-Unsubscribe=One-Click", cf.UnsubscribeURL), Mono: true,
-			Label: "One-click unsubscribe", Short: "one-click unsubscribe headers"})
+		b.add(check{Key: "compliance.list_unsubscribe", Group: GroupCompliance, Status: Pass, Title: tx("compliance.oneClick", nil),
+			Detail: RawText(fmt.Sprintf("List-Unsubscribe: <%s> · List-Unsubscribe-Post: List-Unsubscribe=One-Click", cf.UnsubscribeURL)), Mono: true,
+			Label: tx("label.oneClick", nil), Short: tx("compliance.oneClickShort", nil)})
 	} else {
-		b.add(ReadinessCheck{Key: "compliance.list_unsubscribe", Group: GroupCompliance, Status: Warn, Title: "One-click unsubscribe needs an HTTPS address",
-			Detail: "Unsubscribe links point at " + cf.UnsubscribeURL + ". Gmail and Yahoo only honour one-click unsubscribe over HTTPS; set the instance's public URL to an https:// address.",
-			Label:  "One-click unsubscribe", Ack: "I understand one-click unsubscribe won't work until the public URL uses HTTPS."})
+		b.add(check{Key: "compliance.list_unsubscribe", Group: GroupCompliance, Status: Warn, Title: tx("compliance.oneClickHttps", nil),
+			Detail: tx("compliance.oneClickHttpsDetail", A{"url": cf.UnsubscribeURL}),
+			Label:  tx("label.oneClick", nil), Ack: tx("compliance.oneClickHttpsAck", nil)})
 	}
 	ct := b.f.Content
 	footerBlocked := false
 	if ct.Checked {
 		if f := issuesOf(ct.Report, "compliance.footer"); len(f) > 0 {
 			footerBlocked = true
-			title := "The email body has no unsubscribe link or postal address"
+			missing := "both"
 			switch f[0].Title {
 			case "No postal address in the footer":
-				title = "The footer has no postal address"
+				missing = "address"
 			case "No unsubscribe link in the body":
-				title = "The email body has no unsubscribe link"
+				missing = "unsubscribe"
 			}
-			detail := "ReputeCast adds List-Unsubscribe headers automatically, but Gmail and Yahoo bulk-sender rules and CAN-SPAM also require a visible link and address in the body."
+			detail := tx("compliance.footerDetail", nil)
 			if ct.FooterRemovedAt != nil {
-				detail = "The footer block was deleted in the editor at " + b.when(*ct.FooterRemovedAt) + ". " + detail
+				detail = tx("compliance.footerRemoved", A{"when": b.when(*ct.FooterRemovedAt)})
 			}
-			b.add(ReadinessCheck{Key: "compliance.footer", Group: GroupCompliance, Status: Block, Title: title, FlatTitle: "Compliance: " + lowerFirst(title), Detail: detail,
-				Label: "Footer", Fixes: []ReadinessFix{apply(FixInsertFooter, "Insert footer block", "danger", nil), link("Open in editor", b.editor(nil, "deliverability"))}})
+			b.add(check{Key: "compliance.footer", Group: GroupCompliance, Status: Block, Title: tx("compliance.footer", A{"missing": missing}),
+				FlatTitle: tx("compliance.footerFlat", A{"missing": missing}), Detail: detail, Label: tx("label.footer", nil),
+				Fixes: []fix{apply(FixInsertFooter, tx("fix.insertFooter", nil), "danger", nil), link(tx("fix.openInEditor", nil), b.editor(nil, "deliverability"))}})
 		} else {
-			b.add(ReadinessCheck{Key: "compliance.footer", Group: GroupCompliance, Status: Pass, Title: "Footer has an unsubscribe link and a postal address",
-				Detail: firstNonEmpty(ct.Address, "Found in the footer"), Label: "Footer", Short: "footer address"})
+			detail := RawText(ct.Address)
+			if detail.Empty() {
+				detail = tx("compliance.footerFound", nil)
+			}
+			b.add(check{Key: "compliance.footer", Group: GroupCompliance, Status: Pass, Title: tx("compliance.footerPass", nil),
+				Detail: detail, Label: tx("label.footer", nil), Short: tx("compliance.footerShort", nil)})
 		}
 	}
-	c := ReadinessCheck{Key: "compliance.bulk_sender", Group: GroupCompliance, Status: Pass, Title: "Bulk-sender requirements met", Label: "Bulk-sender rules", Short: "bulk-sender rules"}
-	parts := []string{}
+	c := check{Key: "compliance.bulk_sender", Group: GroupCompliance, Status: Pass, Title: tx("compliance.bulk", nil), Label: tx("label.bulkRules", nil),
+		Short: tx("compliance.bulkShort", nil)}
+	parts := []Text{}
 	if b.f.Auth.DMARCStatus == "pass" {
-		parts = append(parts, "DMARC aligned")
+		parts = append(parts, tx("compliance.partDmarc", nil))
 	} else {
 		c.Status = Warn
-		c.Title = "Gmail and Yahoo bulk-sender rules need DMARC"
-		c.Ack = "I understand the domain doesn't meet Gmail and Yahoo's DMARC rule yet."
+		c.Title = tx("compliance.bulkDmarc", nil)
+		c.Ack = tx("compliance.bulkDmarcAck", nil)
 	}
 	if cf.HTTPS {
-		parts = append(parts, "one-click unsubscribe")
+		parts = append(parts, tx("compliance.partOneClick", nil))
 	}
 	if cf.ComplaintRate != nil {
 		cr := *cf.ComplaintRate
+		rate := ArgPercent(cr)
 		switch {
 		case cr >= 0.3:
 			c.Status = Block
-			c.Title = fmt.Sprintf("Complaint rate %s is over Gmail and Yahoo's 0.3%% limit", Pct(cr))
-			c.Fixes = []ReadinessFix{link("Open deliverability", b.href("/deliverability"))}
+			c.Title = tx("compliance.complaintsOver", A{"rate": rate, "limit": ArgPercent(0.3)})
+			c.Fixes = []fix{link(tx("fix.openDeliverability", nil), b.href("/deliverability"))}
 		case cr >= 0.1 && c.Status == Pass:
 			c.Status = Warn
-			c.Title = fmt.Sprintf("Complaint rate %s, over Gmail's recommended 0.1%%", Pct(cr))
-			c.Ack = "I understand the complaint rate is above Gmail's recommended 0.1%."
+			c.Title = tx("compliance.complaintsHigh", A{"rate": rate, "limit": ArgPercent(0.1)})
+			c.Ack = tx("compliance.complaintsHighAck", A{"limit": ArgPercent(0.1)})
 		}
-		parts = append(parts, fmt.Sprintf("complaint rate %s, under the 0.3%% limit", Pct(cr)))
 		if cr >= 0.3 {
-			parts[len(parts)-1] = fmt.Sprintf("complaint rate %s", Pct(cr))
+			parts = append(parts, tx("compliance.partComplaints", A{"rate": rate}))
+		} else {
+			parts = append(parts, tx("compliance.partComplaintsUnder", A{"rate": rate, "limit": ArgPercent(0.3)}))
 		}
 	} else {
-		parts = append(parts, "complaint rate not measured yet")
+		parts = append(parts, tx("compliance.partNotMeasured", nil))
 	}
-	parts = append(parts, "unsubscribes processed within 2 days")
-	c.Detail = strings.Join(parts, " · ")
+	parts = append(parts, tx("compliance.partUnsubscribes", A{"days": 2}))
+	c.Detail = joined(" · ", parts)
 	if footerBlocked && c.Status == Pass {
 		// The rules also want a visible unsubscribe link and address in the
 		// body: the footer block says they aren't met, and its fix meets them.
@@ -1098,16 +1289,17 @@ func (b *builder) compliance() {
 
 func (b *builder) audience() {
 	a := b.f.Audience
+	choose := link(tx("fix.chooseAudience", nil), b.editor(nil, ""))
 	if a.Empty {
-		b.add(ReadinessCheck{Key: "audience.empty", Group: GroupAudience, Status: Block, Title: "The campaign has no audience",
-			FlatTitle: "Audience: the campaign has no audience", Detail: "Pick the lists or segments that receive it in the composer.", Label: "Audience",
-			Fixes: []ReadinessFix{link("Choose an audience", b.editor(nil, ""))}})
+		b.add(check{Key: "audience.empty", Group: GroupAudience, Status: Block, Title: tx("audience.none", nil),
+			FlatTitle: tx("audience.noneFlat", nil), Detail: tx("audience.noneDetail", nil), Label: tx("label.audience", nil),
+			Fixes: []fix{choose}})
 		return
 	}
 	if a.Final == 0 {
-		b.add(ReadinessCheck{Key: "audience.empty", Group: GroupAudience, Status: Block, Title: "Nobody would receive this campaign",
-			FlatTitle: "Audience: nobody would receive this campaign", Detail: "Every contact of the audience is suppressed, a role address or excluded.", Label: "Audience",
-			Fixes: []ReadinessFix{link("Choose an audience", b.editor(nil, ""))}})
+		b.add(check{Key: "audience.empty", Group: GroupAudience, Status: Block, Title: tx("audience.nobody", nil),
+			FlatTitle: tx("audience.nobodyFlat", nil), Detail: tx("audience.nobodyDetail", nil), Label: tx("label.audience", nil),
+			Fixes: []fix{choose}})
 	}
 	days := a.UnengagedDays
 	if days <= 0 {
@@ -1117,107 +1309,115 @@ func (b *builder) audience() {
 	if a.Final > 0 {
 		share = float64(a.Unengaged) / float64(a.Final) * 100
 	}
-	un := ReadinessCheck{Key: "audience.unengaged", Group: GroupAudience, Status: Pass}
+	un := check{Key: "audience.unengaged", Group: GroupAudience, Status: Pass}
 	switch {
 	case a.Unengaged == 0 && a.UnengagedExcluded:
-		un.Title = fmt.Sprintf("%s unengaged contacts excluded", Count(a.SunsetExcluded))
-		un.Detail = fmt.Sprintf("No open or click in %d days; the sunset tier is excluded from this send", days)
-		un.Short = "unengaged excluded"
+		un.Title = tx("audience.unengagedExcluded", A{"count": a.SunsetExcluded})
+		un.Detail = tx("audience.unengagedExcludedDetail", A{"days": days})
+		un.Short = tx("audience.unengagedExcludedShort", nil)
 	case a.Unengaged > 0 && a.SunsetOverride:
 		// The campaign overrides the sunset policy (SendReadinessBlocked).
 		un.Status = Warn
-		un.Title = fmt.Sprintf("%s Sunset-tier contacts are included", Count(a.Unengaged))
-		un.FlatTitle = fmt.Sprintf("Audience: %s Sunset-tier contacts included", Count(a.Unengaged))
-		un.Detail = fmt.Sprintf("The sunset policy would normally exclude them; this campaign overrides it. Excluding them changes the audience to %s.", Count(a.Final-a.Unengaged))
-		un.Evidence = fmt.Sprintf("%s of the audience (%s contacts) is in the Sunset tier; this campaign overrides the sunset policy.", Pct1(share), Count(a.Unengaged))
-		un.Ack = fmt.Sprintf("I understand %s Sunset-tier contacts are included.", Count(a.Unengaged))
-		un.Fixes = []ReadinessFix{apply(FixExcludeSunset, fmt.Sprintf("Exclude %s", Count(a.Unengaged)), "", map[string]string{"count": fmt.Sprint(a.Unengaged)})}
+		un.Title = tx("audience.sunsetIncluded", A{"count": a.Unengaged})
+		un.FlatTitle = tx("audience.sunsetIncludedFlat", A{"count": a.Unengaged})
+		un.Detail = tx("audience.sunsetIncludedDetail", A{"rest": a.Final - a.Unengaged})
+		un.Evidence = tx("audience.sunsetIncludedEvidence", A{"share": ArgPercent1(share), "count": a.Unengaged})
+		un.Ack = tx("audience.sunsetIncludedAck", A{"count": a.Unengaged})
+		un.Fixes = []fix{apply(FixExcludeSunset, tx("fix.exclude", A{"count": a.Unengaged}), "", map[string]string{"count": fmt.Sprint(a.Unengaged)})}
 	case a.Unengaged > 0 && (share >= UnengagedWarnShare || a.Unengaged >= UnengagedWarnCount):
 		un.Status = Warn
-		un.Title = fmt.Sprintf("%s unengaged contacts (no open in %d days) are in this audience", Count(a.Unengaged), days)
-		un.FlatTitle = fmt.Sprintf("Audience: %s unengaged contacts included", Count(a.Unengaged))
-		un.Detail = fmt.Sprintf("Sending to them raises the chance of spam-trap hits and lowers Gmail engagement signals. Excluding them changes the audience to %s.", Count(a.Final-a.Unengaged))
-		un.Evidence = fmt.Sprintf("%s of the audience (%s contacts) hasn't engaged in more than %d days.", Pct1(share), Count(a.Unengaged), days)
-		un.Ack = fmt.Sprintf("I understand %s unengaged contacts are included.", Count(a.Unengaged))
-		un.Fixes = []ReadinessFix{
-			apply(FixExcludeSunset, fmt.Sprintf("Exclude %s unengaged", Count(a.Unengaged)), "primary", map[string]string{"count": fmt.Sprint(a.Unengaged)}),
-			link("Review them", b.href("/audience?tier=sunset")),
+		un.Title = tx("audience.unengaged", A{"count": a.Unengaged, "days": days})
+		un.FlatTitle = tx("audience.unengagedFlat", A{"count": a.Unengaged})
+		un.Detail = tx("audience.unengagedDetail", A{"rest": a.Final - a.Unengaged})
+		un.Evidence = tx("audience.unengagedEvidence", A{"share": ArgPercent1(share), "count": a.Unengaged, "days": days})
+		un.Ack = tx("audience.unengagedAck", A{"count": a.Unengaged})
+		un.Fixes = []fix{
+			apply(FixExcludeSunset, tx("fix.excludeUnengaged", A{"count": a.Unengaged}), "primary", map[string]string{"count": fmt.Sprint(a.Unengaged)}),
+			link(tx("fix.reviewThem", nil), b.href("/audience?tier=sunset")),
 		}
 	case a.Unengaged > 0:
-		un.Title = fmt.Sprintf("%s unengaged contacts, %s of the audience", Count(a.Unengaged), Pct1(share))
-		un.Detail = fmt.Sprintf("No open in %d days. Under 1%%, and the sunset policy stops Broadcasts to them after 30 days.", days)
-		un.Short = fmt.Sprintf("%s unengaged", Count(a.Unengaged))
+		un.Title = tx("audience.unengagedFew", A{"count": a.Unengaged, "share": ArgPercent1(share)})
+		un.Detail = tx("audience.unengagedFewDetail", A{"days": days, "limit": ArgPercent(1), "after": 30})
+		un.Short = tx("audience.unengagedFewShort", A{"count": a.Unengaged})
 	default:
-		un.Title = "No unengaged contacts in this audience"
-		un.Detail = fmt.Sprintf("Everyone opened or clicked in the last %d days", days)
-		un.Short = "0 unengaged"
+		un.Title = tx("audience.engaged", nil)
+		un.Detail = tx("audience.engagedDetail", A{"days": days})
+		un.Short = tx("audience.engagedShort", nil)
 	}
 	// No label: "Audience quality" names it in compact tables (ApprovalReview).
 	b.add(un)
 	if a.RecentlyBounced == 0 {
-		b.add(ReadinessCheck{Key: "audience.bounced", Group: GroupAudience, Status: Pass, Title: "No contacts that bounced in the last 30 days",
-			Detail: fmt.Sprintf("%s contacts on the shared suppression list are excluded", Count(a.Suppressed)), Label: "Recently bounced"})
+		b.add(check{Key: "audience.bounced", Group: GroupAudience, Status: Pass, Title: tx("audience.notBounced", nil),
+			Detail: tx("audience.notBouncedDetail", A{"count": a.Suppressed}), Label: tx("label.recentlyBounced", nil)})
 	} else {
-		b.add(ReadinessCheck{Key: "audience.bounced", Group: GroupAudience, Status: Warn,
-			Title:  fmt.Sprintf("%s %s bounced in the last 30 days", Count(a.RecentlyBounced), Plural(a.RecentlyBounced, "contact", "contacts")),
-			Detail: "Soft bounces that aren't suppressed yet. Another hard bounce suppresses them; repeated bounces hurt the route's reputation.",
-			Label:  "Recently bounced", Ack: fmt.Sprintf("I understand %s recently bounced contacts are included.", Count(a.RecentlyBounced)),
-			Fixes: []ReadinessFix{link("Review them", b.href("/audience?status=bounced"))}})
+		b.add(check{Key: "audience.bounced", Group: GroupAudience, Status: Warn,
+			Title:  tx("audience.bounced", A{"count": a.RecentlyBounced}),
+			Detail: tx("audience.bouncedDetail", nil),
+			Label:  tx("label.recentlyBounced", nil), Ack: tx("audience.bouncedAck", A{"count": a.RecentlyBounced}),
+			Fixes: []fix{link(tx("fix.reviewThem", nil), b.href("/audience?status=bounced"))}})
 	}
-	role := ReadinessCheck{Key: "audience.role", Group: GroupAudience, Status: Pass, Label: "Role addresses",
-		Title:  fmt.Sprintf("%s role addresses excluded automatically", Count(a.Role)),
-		Detail: "info@, support@, sales@, admin@ and similar"}
-	if a.Role == 0 {
-		role.Title = "No role addresses in this audience"
-	}
-	if a.Role == 1 {
-		role.Title = "1 role address excluded automatically"
-	}
-	b.add(role)
+	b.add(check{Key: "audience.role", Group: GroupAudience, Status: Pass, Label: tx("label.roleAddresses", nil),
+		Title: tx("audience.role", A{"count": a.Role}), Detail: tx("audience.roleDetail", nil)})
 	if a.SegmentsSkipped {
-		b.add(ReadinessCheck{Key: "audience.segments", Group: GroupAudience, Status: Warn, Title: "Segments in the audience couldn't be counted",
-			Detail: "The counts cover the lists only. Open the segment to recount it.", Label: "Segments",
-			Ack: "I understand the segment part of the audience wasn't counted."})
+		b.add(check{Key: "audience.segments", Group: GroupAudience, Status: Warn, Title: tx("audience.segmentsSkipped", nil),
+			Detail: tx("audience.segmentsSkippedDetail", nil), Label: tx("label.segments", nil),
+			Ack: tx("audience.segmentsSkippedAck", nil)})
 	}
 }
 
-func streamLabel(s string) string {
+// streamText names a sending stream: "Broadcasts".
+func streamText(s string) Text {
 	switch s {
 	case "automation":
-		return "Automations"
+		return tx("stream.automations", nil)
 	case "system":
-		return "System"
+		return tx("stream.system", nil)
 	}
-	return "Broadcasts"
+	return tx("stream.broadcasts", nil)
 }
 
-func policyWords(p string) string {
+// policyText says what happens when a provider fails.
+func policyText(p string) Text {
 	switch p {
 	case "automatic":
-		return "automatic"
+		return tx("policy.automatic", nil)
 	case "warm_only":
-		return "automatic to a warmed-up provider"
+		return tx("policy.warmOnly", nil)
 	}
-	return "pause and ask"
+	return tx("policy.pauseAndAsk", nil)
 }
 
-func (b *builder) shareStatusLabel(s ShareFacts) string {
+func (b *builder) shareStatusText(s ShareFacts) Text {
 	switch {
 	case !s.Available && s.Status == state.Down && s.DownSince != nil:
-		return "Down since " + b.when(*s.DownSince)
+		return tx("share.downSince", A{"when": b.when(*s.DownSince)})
 	case s.Status == state.WarmingUp && s.WarmupDays > 0:
-		return fmt.Sprintf("Warming up · day %d of %d", s.WarmupDay, s.WarmupDays)
+		return tx("share.warmingUp", A{"day": s.WarmupDay, "days": s.WarmupDays})
 	}
-	return statusWord(s.Status)
+	return statusText(s.Status)
+}
+
+// downText says why a provider can't take mail: "mta.acme.io has refused
+// connections since 08:52 (ECONNREFUSED)".
+func (b *builder) downText(s ShareFacts) Text {
+	switch {
+	case s.Down != nil && s.Down.Auth:
+		return tx("share.rejectsCredentials", A{"provider": s.Down.Who, "when": b.when(s.Down.Since)})
+	case s.Down != nil && s.Down.Code != "":
+		return tx("share.refusesCode", A{"host": s.Down.Who, "when": b.when(s.Down.Since), "code": s.Down.Code})
+	case s.Down != nil:
+		return tx("share.refuses", A{"host": s.Down.Who, "when": b.when(s.Down.Since)})
+	}
+	return RawText(sentence(s.DownDetail))
 }
 
 func (b *builder) routing() {
 	rt := b.f.Route
-	stream := streamLabel(rt.Stream)
+	stream := streamText(rt.Stream)
 	routes := b.href("/providers/routing")
 	if rt.NoRoute || len(rt.Shares) == 0 {
-		b.add(ReadinessCheck{Key: "routing.health", Group: GroupRouting, Status: Block, Title: stream + " has no sending provider",
-			Detail: "Pick a primary provider for " + stream + " in routing.", Label: "Route", Fixes: []ReadinessFix{link("Set up routing", routes)}})
+		b.add(check{Key: "routing.health", Group: GroupRouting, Status: Block, Title: tx("routing.noProvider", A{"stream": stream}),
+			Detail: tx("routing.noProviderDetail", A{"stream": stream}), Label: tx("label.route", nil), Fixes: []fix{link(tx("fix.setUpRouting", nil), routes)}})
 		return
 	}
 	shares := b.shares()
@@ -1229,12 +1429,12 @@ func (b *builder) routing() {
 	}
 	if len(down) > 0 {
 		d := down[0]
-		word := "Down"
+		word := "down"
 		switch d.Status {
 		case state.Paused:
 			word = "paused"
 		case state.Degraded:
-			word = "not reporting events"
+			word = "silent"
 		}
 		pct := 0.0
 		var held int64
@@ -1242,52 +1442,50 @@ func (b *builder) routing() {
 			pct += s.Percent
 			held += s.Recipients
 		}
-		detail := ""
-		if d.DownDetail != "" {
-			detail = sentence(d.DownDetail) + " "
+		parts := []Text{}
+		if d.DownDetail != "" || d.Down != nil {
+			parts = append(parts, b.downText(d))
 		}
-		detail += fmt.Sprintf("%s of this send has no healthy provider.", trimNumber(math.Round(pct), 0)+"%")
-		c := ReadinessCheck{Key: "routing.health", Group: GroupRouting, Status: Block, Label: "Route health",
-			Title: fmt.Sprintf("%s is %s and %s failover is set to %s", d.Name, word, stream, policyWords(rt.Policy))}
+		parts = append(parts, tx("routing.heldShare", A{"share": ArgPercent(math.Round(pct))}))
+		c := check{Key: "routing.health", Group: GroupRouting, Status: Block, Label: tx("label.routeHealth", nil),
+			Title: tx("routing.down", A{"provider": d.Name, "state": word, "stream": stream, "policy": policyText(rt.Policy)})}
 		if o := b.otherAvailable(d.ProviderID); o != nil {
 			if o.Quota != nil && o.Quota.Max > 0 {
-				detail += fmt.Sprintf(" %s is %s with %s of %s quota free.", o.Short, statusWord(o.Status), Count(o.Quota.Max-o.Quota.Used), Count(o.Quota.Max))
+				parts = append(parts, tx("routing.otherQuota", A{"provider": o.Short, "status": firstNonEmpty(o.Status, state.Healthy), "statusName": statusText(o.Status),
+					"free": o.Quota.Max - o.Quota.Used, "max": o.Quota.Max}))
 			} else {
-				detail += fmt.Sprintf(" %s is %s.", o.Short, statusWord(o.Status))
+				parts = append(parts, tx("routing.other", A{"provider": o.Short, "status": firstNonEmpty(o.Status, state.Healthy), "statusName": statusText(o.Status)}))
 			}
-			c.Fixes = append(c.Fixes, apply(FixRouteOnly, "Send 100% via "+o.Short, "danger", map[string]string{"providerId": o.ProviderID, "provider": o.Short}))
+			c.Fixes = append(c.Fixes, routeOnlyFix(o, tx("fix.sendAllVia", A{"share": ArgPercent(100), "provider": o.Short}), "danger"))
 		}
-		c.Fixes = append(c.Fixes, link("Check "+d.Short, b.href("/providers")))
-		c.Detail = detail
+		c.Fixes = append(c.Fixes, link(tx("fix.check", A{"provider": d.Short}), b.href("/providers")))
+		c.Detail = sentences(parts...)
 		if rt.Policy != "pause_and_ask" && b.otherAvailable(d.ProviderID) != nil {
 			c.Status = Warn
-			c.Title = fmt.Sprintf("%s is %s; its %s share fails over to another provider", d.Name, word, trimNumber(math.Round(pct), 0)+"%")
-			c.Ack = fmt.Sprintf("I understand %s recipients fail over from %s.", Count(held), d.Name)
+			c.Title = tx("routing.failsOver", A{"provider": d.Name, "state": word, "share": ArgPercent(math.Round(pct))})
+			c.Ack = tx("routing.failsOverAck", A{"count": held, "provider": d.Name})
 		}
 		b.add(c)
 	} else {
-		parts := []string{}
+		parts := []Text{}
 		for _, s := range shares {
-			label := statusWord(s.Status)
+			status := statusText(s.Status)
 			if s.Status == state.WarmingUp && s.WarmupDays > 0 {
-				label = fmt.Sprintf("Warming up, day %d", s.WarmupDay)
+				status = tx("share.warmingUpDay", A{"day": s.WarmupDay})
 			}
-			parts = append(parts, fmt.Sprintf("%s (%s) %s", s.Name, label, trimNumber(math.Round(s.Percent), 0)+"%"))
+			parts = append(parts, tx("routing.healthyShare", A{"provider": s.Name, "status": status, "share": ArgPercent(math.Round(s.Percent))}))
 		}
-		c := ReadinessCheck{Key: "routing.health", Group: GroupRouting, Status: Pass, Title: "Every route has a healthy provider", Label: "Route health",
-			Detail: strings.Join(parts, " · ") + " · failover: " + policyWords(rt.Policy), Short: "every route healthy",
-			Fixes: []ReadinessFix{link("Edit route", routes)}}
-		if len(shares) == 1 {
-			c.Title = "The route has a healthy provider"
-		}
+		c := check{Key: "routing.health", Group: GroupRouting, Status: Pass, Title: tx("routing.healthy", A{"count": len(shares)}), Label: tx("label.routeHealth", nil),
+			Detail: tx("routing.healthyDetail", A{"shares": argJoin(" · ", parts), "policy": policyText(rt.Policy)}), Short: tx("routing.healthyShort", nil),
+			Fixes: []fix{link(tx("fix.editRoute", nil), routes)}}
 		// Quota on the provider's own 24-hour allowance.
 		for _, s := range shares {
 			if s.Quota != nil && s.Quota.Kind == "rolling_24h" && s.Quota.Max > 0 && s.Recipients > s.Quota.Max-s.Quota.Used {
 				c.Status = Warn
-				c.Title = fmt.Sprintf("%s has %s of its %s daily quota left; this send needs %s", s.Name, Count(max(s.Quota.Max-s.Quota.Used, 0)), Count(s.Quota.Max), Count(s.Recipients))
-				c.Detail = "Sending pauses at the quota and resumes as it frees up, so the send takes longer."
-				c.Ack = fmt.Sprintf("I understand %s's quota stretches the send.", s.Name)
-				c.Short = ""
+				c.Title = tx("routing.quota", A{"provider": s.Name, "left": max(s.Quota.Max-s.Quota.Used, 0), "max": s.Quota.Max, "count": s.Recipients})
+				c.Detail = tx("routing.quotaDetail", nil)
+				c.Ack = tx("routing.quotaAck", A{"provider": s.Name})
+				c.Short = nil
 			}
 		}
 		b.add(c)
@@ -1305,31 +1503,23 @@ func (b *builder) routing() {
 		}
 	}
 	if len(notAllowed) == 0 {
-		parts := []string{}
+		parts := []Text{}
 		for _, s := range sending {
-			parts = append(parts, s.Short+": "+s.Terms)
+			parts = append(parts, tx("routing.termsOf", A{"provider": s.Short, "terms": termsText(s)}))
 		}
-		title := "Both providers' terms allow bulk marketing"
-		short := "both providers' terms allow bulk marketing"
-		switch {
-		case len(sending) == 1:
-			title = sending[0].Short + "'s terms allow bulk marketing"
-			short = sending[0].Short + " terms allow bulk marketing"
-		case len(sending) > 2:
-			title = fmt.Sprintf("All %d providers' terms allow bulk marketing", len(sending))
-			short = fmt.Sprintf("all %d providers' terms allow bulk marketing", len(sending))
-		}
-		b.add(ReadinessCheck{Key: "routing.terms", Group: GroupRouting, Status: Pass, Title: title, Detail: strings.Join(parts, " · "), Label: "Bulk-marketing terms", Short: short})
+		args := A{"count": len(sending), "provider": sending[0].Short}
+		b.add(check{Key: "routing.terms", Group: GroupRouting, Status: Pass, Title: tx("routing.terms", args), Detail: joined(" · ", parts), Label: tx("label.bulkTerms", nil),
+			Short: tx("routing.termsShort", args)})
 	} else {
 		s := notAllowed[0]
-		c := ReadinessCheck{Key: "routing.terms", Group: GroupRouting, Status: Block, Label: "Bulk-marketing terms",
-			Title:  s.Name + "'s terms don't allow bulk marketing",
-			Detail: sentence(capitalize(s.Terms)) + " Route " + stream + " through a provider whose terms allow them.",
-			Fixes:  []ReadinessFix{link("Edit route", routes)}}
+		c := check{Key: "routing.terms", Group: GroupRouting, Status: Block, Label: tx("label.bulkTerms", nil),
+			Title:  tx("routing.termsNo", A{"provider": s.Name}),
+			Detail: sentences(tx("routing.termsNoWhy", A{"terms": argCapital(termsText(s))}), tx("routing.termsNoFix", A{"stream": stream})),
+			Fixes:  []fix{link(tx("fix.editRoute", nil), routes)}}
 		if s.Sandbox {
-			c.Title = s.Name + " is in the sandbox"
-			c.Detail = "It only delivers to verified addresses. Request production access in Sending providers."
-			c.Fixes = []ReadinessFix{link("Open sending providers", b.href("/providers"))}
+			c.Title = tx("routing.sandbox", A{"provider": s.Name})
+			c.Detail = tx("routing.sandboxDetail", nil)
+			c.Fixes = []fix{link(tx("fix.openProviders", nil), b.href("/providers"))}
 		}
 		b.add(c)
 	}
@@ -1340,93 +1530,113 @@ func (b *builder) routing() {
 		}
 	}
 	if len(double) == 0 {
-		parts := []string{}
+		parts := []Text{}
 		for _, s := range shares {
 			parts = append(parts, trackingNote(s))
 		}
-		b.add(ReadinessCheck{Key: "routing.tracking", Group: GroupRouting, Status: Pass, Title: "Provider-side open and click tracking is off, so nothing is double-tracked",
-			Detail: strings.Join(parts, " · "), Label: "Provider-side tracking", Short: "provider-side tracking is off"})
+		b.add(check{Key: "routing.tracking", Group: GroupRouting, Status: Pass, Title: tx("routing.trackingOff", nil),
+			Detail: joined(" · ", parts), Label: tx("label.providerTracking", nil), Short: tx("routing.trackingOffShort", nil)})
 	} else {
 		s := double[0]
-		what := "adds its own open pixel and rewrites links"
+		what := "both"
 		switch {
 		case s.Tracking.OpenPixel && !s.Tracking.LinkRewrite:
-			what = "adds its own open pixel"
+			what = "pixel"
 		case !s.Tracking.OpenPixel && s.Tracking.LinkRewrite:
-			what = "rewrites links"
+			what = "links"
 		}
-		b.add(ReadinessCheck{Key: "routing.tracking", Group: GroupRouting, Status: Warn, Title: s.Name + " " + what,
-			Detail: firstNonEmpty(s.Tracking.Detail, "Opens and clicks would count twice."), Label: "Provider-side tracking",
-			Ack:   "I understand " + s.Name + "'s own tracking double-counts opens and clicks.",
-			Fixes: []ReadinessFix{link("Turn it off", b.href("/providers"))}})
+		detail := RawText(s.Tracking.Detail)
+		if detail.Empty() {
+			detail = tx("routing.trackingTwice", nil)
+		}
+		b.add(check{Key: "routing.tracking", Group: GroupRouting, Status: Warn, Title: tx("routing.trackingOn", A{"provider": s.Name, "what": what}),
+			Detail: detail, Label: tx("label.providerTracking", nil),
+			Ack:   tx("routing.trackingOnAck", A{"provider": s.Name}),
+			Fixes: []fix{link(tx("fix.turnOff", nil), b.href("/providers"))}})
 	}
 }
 
-func trackingNote(s ShareFacts) string {
+// termsText is what a provider's terms say about bulk marketing ("yes, with
+// production access").
+func termsText(s ShareFacts) Text {
+	if s.TermsKind != "" {
+		return tx("terms."+s.TermsKind, nil)
+	}
+	return RawText(s.Terms)
+}
+
+func trackingNote(s ShareFacts) Text {
 	scope := strings.TrimSpace(s.Tracking.Scope)
 	switch {
 	case s.Tracking.Mode == "provider":
-		return s.Short + ": its own tracking, ReputeCast's off"
+		return tx("tracking.provider", A{"provider": s.Short})
 	case s.Adapter == "postal" || s.Adapter == "smtp":
-		return s.Short + ": link rewriting disabled"
+		return tx("tracking.noRewriting", A{"provider": s.Short})
 	case scope != "":
-		return s.Short + " " + lowerFirst(scope) + ": no tracking"
+		return tx("tracking.scope", A{"provider": s.Short, "scope": lowerFirst(scope)})
 	}
-	return s.Short + ": no tracking"
+	return tx("tracking.none", A{"provider": s.Short})
 }
 
 func (b *builder) estimates() ReadinessEstimates {
 	a := b.f.Audience
 	out := ReadinessEstimates{Throttling: []ReadinessThrottle{}}
+	t := &estimateTexts{}
 	aud := ReadinessAudience{Rows: []ReadinessAudienceRow{}, Final: a.Final, Lists: a.Lists, Suppressed: a.Suppressed, Role: a.Role, Duplicates: a.Duplicates,
 		Unengaged: a.Unengaged, UnengagedExcluded: a.UnengagedExcluded}
 	if aud.Lists == nil {
 		aud.Lists = []string{}
 	}
+	addRow := func(label Text, count int64, kind string) {
+		aud.Rows = append(aud.Rows, ReadinessAudienceRow{Label: label.en(), Count: count, Kind: kind})
+		t.Rows = append(t.Rows, label)
+	}
 	if !a.Empty {
-		aud.Rows = append(aud.Rows, ReadinessAudienceRow{Label: a.BaseLabel, Count: a.Base, Kind: "base"},
-			ReadinessAudienceRow{Label: "Suppression list (shared)", Count: a.Suppressed, Kind: "minus"},
-			ReadinessAudienceRow{Label: "Role addresses", Count: a.Role, Kind: "minus"})
+		addRow(b.baseLabel(), a.Base, "base")
+		addRow(tx("estimate.suppressed", nil), a.Suppressed, "minus")
+		addRow(tx("estimate.role", nil), a.Role, "minus")
 		if a.Duplicates > 0 {
-			aud.Rows = append(aud.Rows, ReadinessAudienceRow{Label: "Duplicates", Count: a.Duplicates, Kind: "minus"})
+			addRow(tx("estimate.duplicates", nil), a.Duplicates, "minus")
 		}
 		switch {
 		case a.SunsetOverride:
-			aud.Rows = append(aud.Rows, ReadinessAudienceRow{Label: "Sunset-tier override", Count: a.StoppedIncluded, Kind: "plus"})
+			addRow(tx("estimate.sunsetOverride", nil), a.StoppedIncluded, "plus")
 		case a.Stopped > 0:
-			aud.Rows = append(aud.Rows, ReadinessAudienceRow{Label: "Sunset policy (Broadcasts stopped)", Count: a.Stopped, Kind: "minus"})
+			addRow(tx("estimate.sunsetStopped", nil), a.Stopped, "minus")
 		}
 		if a.UnengagedExcluded {
-			aud.Rows = append(aud.Rows, ReadinessAudienceRow{Label: "Unengaged (sunset tier)", Count: a.SunsetExcluded, Kind: "minus"})
+			addRow(tx("estimate.unengaged", nil), a.SunsetExcluded, "minus")
 		}
 	}
 	out.Audience = aud
 
 	rt := b.f.Route
-	route := ReadinessRoute{Stream: firstNonEmpty(rt.Stream, "broadcast"), StreamLabel: streamLabel(rt.Stream), Policy: firstNonEmpty(rt.Policy, "pause_and_ask"),
+	t.Stream = streamText(rt.Stream)
+	route := ReadinessRoute{Stream: firstNonEmpty(rt.Stream, "broadcast"), StreamLabel: t.Stream.en(), Policy: firstNonEmpty(rt.Policy, "pause_and_ask"),
 		Override: rt.Override, Shares: []ReadinessRouteShare{}}
 	pcts := []string{}
 	maxMinutes := 0
 	for _, s := range rt.Shares {
+		st := shareTexts{Status: b.shareStatusText(s)}
 		rs := ReadinessRouteShare{ProviderID: s.ProviderID, Name: s.Name, Short: s.Short, Adapter: s.Adapter, Label: s.Label, Color: state.Color(s.Adapter),
-			Percent: math.Round(s.Percent*10) / 10, Recipients: s.Recipients, Status: s.Status, StatusLabel: b.shareStatusLabel(s), Available: s.Available,
+			Percent: math.Round(s.Percent*10) / 10, Recipients: s.Recipients, Status: s.Status, Available: s.Available,
 			WarmupDay: s.WarmupDay, WarmupDays: s.WarmupDays, Rate: s.Rate}
-		switch s.Pricing.Model {
+		rs.Pricing = pricingModel(s.Pricing.Model)
+		switch rs.Pricing {
 		case "self_hosted":
-			rs.PriceLabel = "self-hosted"
+			st.Price = tx("estimate.selfHosted", nil)
 		case "plan":
-			rs.PriceLabel = "plan"
+			st.Price = tx("estimate.plan", nil)
 		default:
-			rs.PriceLabel = Per1000(s.Pricing.Per1000)
+			st.Price = tx("estimate.per1000", A{"price": ArgMoney(s.Pricing.Per1000), "count": 1000})
 			rs.Cost = math.Round(float64(s.Recipients)*s.Pricing.Per1000/1000*100) / 100
 		}
 		if s.Rate > 0 {
-			rs.RateLabel = Rate(s.Rate)
-			if s.RateRamp {
-				rs.RateLabel += " ramp"
-			}
+			st.Rate = tx("estimate.rate", A{"rate": math.Round(s.Rate*10) / 10, "ramp": yes(s.RateRamp)})
 			rs.Minutes = Minutes(float64(s.Recipients) / s.Rate)
 		}
+		rs.StatusLabel, rs.PriceLabel, rs.RateLabel = st.Status.en(), st.Price.en(), st.Rate.en()
+		t.Shares = append(t.Shares, st)
 		if s.Available {
 			route.TotalCost += rs.Cost
 			maxMinutes = max(maxMinutes, rs.Minutes)
@@ -1437,14 +1647,17 @@ func (b *builder) estimates() ReadinessEstimates {
 		pcts = append(pcts, trimNumber(math.Round(s.Percent), 0))
 	}
 	route.TotalCost = math.Round(route.TotalCost*100) / 100
-	route.SplitLabel = route.StreamLabel
+	t.Split = t.Stream
 	if len(pcts) > 0 {
-		route.SplitLabel += " " + strings.Join(pcts, " / ")
+		t.Split = tx("estimate.split", A{"stream": t.Stream, "split": strings.Join(pcts, " / ")})
 	}
+	route.SplitLabel = t.Split.en()
 	for _, k := range MailboxOrder {
 		n := a.Mailboxes[k]
 		rate := b.f.MailboxRates[k]
-		out.Throttling = append(out.Throttling, ReadinessThrottle{Key: k, Name: MailboxName(k), Recipients: n, Rate: rate})
+		name := mailboxName(k)
+		out.Throttling = append(out.Throttling, ReadinessThrottle{Key: k, Name: name.en(), Recipients: n, Rate: rate})
+		t.Throttles = append(t.Throttles, name)
 		if rate > 0 && n > 0 {
 			maxMinutes = max(maxMinutes, Minutes(float64(n)/rate))
 		}
@@ -1468,7 +1681,48 @@ func (b *builder) estimates() ReadinessEstimates {
 		break
 	}
 	out.Route = route
+	out.texts = t
 	return out
+}
+
+// pricingModel is how a provider is paid for: metered, plan or self_hosted.
+func pricingModel(m string) string {
+	switch m {
+	case "plan", "self_hosted":
+		return m
+	}
+	return "metered"
+}
+
+// baseLabel names the audience: "Weekly Digest list", "All subscribers".
+func (b *builder) baseLabel() Text {
+	a := b.f.Audience
+	switch a.BaseKind {
+	case BaseAll:
+		return tx("audience.all", nil)
+	case BaseList:
+		return tx("audience.baseList", A{"name": a.BaseName})
+	case BaseSegment:
+		return tx("audience.baseSegment", A{"name": a.BaseName})
+	case BaseNone:
+		return tx("audience.base", nil)
+	}
+	return RawText(a.BaseLabel)
+}
+
+// groupLabel is the caption of the audience-quality group: "Weekly Digest",
+// "All subscribers".
+func (b *builder) groupLabel() Text {
+	a := b.f.Audience
+	switch a.BaseKind {
+	case BaseAll:
+		return tx("audience.all", nil)
+	case BaseNone:
+		return tx("audience.base", nil)
+	case BaseList, BaseSegment:
+		return RawText(a.BaseName)
+	}
+	return RawText(firstNonEmpty(a.GroupLabel, a.BaseLabel))
 }
 
 func rank(status string) int {
@@ -1486,8 +1740,8 @@ func rank(status string) int {
 func (b *builder) groups() []ReadinessGroup {
 	out := []ReadinessGroup{}
 	for _, g := range Groups {
-		grp := ReadinessGroup{Key: g, Title: groupTitles[g], Status: Pass}
-		var passes []ReadinessCheck
+		grp := ReadinessGroup{Key: g, Status: Pass}
+		var passes []check
 		for _, c := range b.checks {
 			if c.Group != g {
 				continue
@@ -1495,7 +1749,7 @@ func (b *builder) groups() []ReadinessGroup {
 			grp.Total++
 			if c.Status == Pass {
 				grp.Passed++
-				if c.Short != "" {
+				if !c.Short.Empty() {
 					passes = append(passes, c)
 				}
 			}
@@ -1506,72 +1760,69 @@ func (b *builder) groups() []ReadinessGroup {
 		if grp.Total == 0 {
 			continue
 		}
-		grp.Caption = b.caption(g, grp)
-		grp.Summary = b.summary(g, passes)
-		grp.Running = b.running(g)
-		if g == GroupAccessibility {
-			grp.Note = b.accessibilityNote()
+		t := &groupTexts{Title: groupTitle(g), Caption: b.caption(g, grp), Summary: b.summary(g, passes), Running: b.running(g)}
+		switch g {
+		case GroupAccessibility:
+			t.Note = b.accessibilityNote()
+		case GroupConditional:
+			t.Note = b.conditionalNote()
 		}
-		if g == GroupConditional {
-			grp.Note = b.conditionalNote()
-		}
+		grp.Title, grp.Caption, grp.Summary, grp.Running, grp.Note = t.Title.en(), t.Caption.en(), t.Summary.en(), t.Running.en(), t.Note.en()
+		grp.texts = t
 		out = append(out, grp)
 	}
 	return out
 }
 
-func (b *builder) caption(g string, grp ReadinessGroup) string {
+func (b *builder) caption(g string, grp ReadinessGroup) Text {
 	switch g {
 	case GroupReputation:
 		r := b.f.Reputation
-		via := "via HostRepute"
+		via := "hostrepute"
 		if r.Via == "builtin" {
-			via = "via the built-in checks"
+			via = "builtin"
 		}
 		if r.Status == Unknown {
-			return fmt.Sprintf("%s · %d sources · not refreshed", via, r.Sources)
+			return tx("caption.reputationUnknown", A{"via": via, "sources": r.Sources})
 		}
-		return fmt.Sprintf("%s · %d sources · %d of %d passed", via, r.Sources, grp.Passed, grp.Total)
+		return tx("caption.reputation", A{"via": via, "sources": r.Sources, "passed": grp.Passed, "total": grp.Total})
 	case GroupAuthentication:
 		domain := firstNonEmpty(b.f.Auth.Domain, b.f.Campaign.SenderDomain)
 		names := shortsOf(b.availableShares())
 		if len(names) == 0 {
-			return domain
+			return RawText(domain)
 		}
-		return domain + " · records required by " + JoinAnd(names)
+		return tx("caption.authentication", A{"domain": domain, "providers": ArgAnd(names)})
 	case GroupContent:
-		s := b.f.Campaign.Name
+		name := b.f.Campaign.Name
 		if n := len(b.f.Content.Versions); n > 0 && b.f.Campaign.CompiledAt != nil {
-			return fmt.Sprintf("%s · %d versions compiled from MJML %s", s, n+1, b.when(*b.f.Campaign.CompiledAt))
+			return tx("caption.contentVersions", A{"name": name, "count": n + 1, "when": b.when(*b.f.Campaign.CompiledAt)})
 		}
 		if b.f.Campaign.CompiledAt != nil {
-			s += " · compiled from MJML " + b.when(*b.f.Campaign.CompiledAt)
+			return tx("caption.content", A{"name": name, "when": b.when(*b.f.Campaign.CompiledAt)})
 		}
-		return s
+		return RawText(name)
 	case GroupLinks:
 		r := b.f.Content.Report
-		if len(b.f.Content.Versions) > 0 {
-			return fmt.Sprintf("%d %s in each version · checked %s", len(r.LinkList), Plural(int64(len(r.LinkList)), "link", "links"), b.when(r.CheckedAt))
-		}
-		return fmt.Sprintf("%d %s · checked %s", len(r.LinkList), Plural(int64(len(r.LinkList)), "link", "links"), b.when(r.CheckedAt))
+		return tx("caption.links", A{"count": len(r.LinkList), "every": yes(len(b.f.Content.Versions) > 0), "when": b.when(r.CheckedAt)})
 	case GroupLanguages:
 		return b.languagesCaption()
 	case GroupCompliance:
-		return "Gmail and Yahoo bulk-sender rules"
+		return tx("caption.compliance", nil)
 	case GroupAudience:
 		a := b.f.Audience
 		if a.Empty {
-			return "no audience yet"
+			return tx("caption.audienceEmpty", nil)
 		}
-		return fmt.Sprintf("%s · %s contacts", firstNonEmpty(a.GroupLabel, a.BaseLabel), Count(a.Base))
+		return tx("caption.audience", A{"name": b.groupLabel(), "count": a.Base})
 	case GroupRouting:
-		return streamLabel(b.f.Route.Stream) + " stream"
+		return tx("caption.routing", A{"stream": streamText(b.f.Route.Stream)})
 	case GroupAccessibility:
 		return b.accessibilityCaption()
 	case GroupConditional:
 		return b.conditionalCaption()
 	}
-	return ""
+	return nil
 }
 
 // summaryOrder puts a group's passing checks in the order its one-line
@@ -1580,9 +1831,9 @@ func (b *builder) caption(g string, grp ReadinessGroup) string {
 var summaryOrder = map[string]int{"content.size": 1, "content.image_ratio": 2, "content.alt_text": 3, "content.plain_text": 4}
 
 // summary is the line a group shows when its passing checks are collapsed.
-func (b *builder) summary(g string, passes []ReadinessCheck) string {
+func (b *builder) summary(g string, passes []check) Text {
 	passes = slices.Clone(passes)
-	slices.SortStableFunc(passes, func(x, y ReadinessCheck) int {
+	slices.SortStableFunc(passes, func(x, y check) int {
 		rx, ry := summaryOrder[x.Key], summaryOrder[y.Key]
 		if rx == 0 {
 			rx = len(summaryOrder) + 1
@@ -1592,47 +1843,47 @@ func (b *builder) summary(g string, passes []ReadinessCheck) string {
 		}
 		return rx - ry
 	})
-	shorts := make([]string, 0, len(passes))
+	shorts := make([]Text, 0, len(passes))
 	for _, c := range passes {
 		shorts = append(shorts, c.Short)
 	}
 	switch g {
 	case GroupAuthentication:
-		parts := []string{}
-		for _, s := range shorts {
-			if s == "SPF" || s == "DKIM" || s == "custom MAIL FROM" || strings.HasPrefix(s, "DMARC") {
-				parts = append(parts, s)
+		parts := []Text{}
+		for _, c := range passes {
+			switch c.Key {
+			case "auth.spf", "auth.dkim", "auth.dmarc", "auth.mail_from":
+				parts = append(parts, c.Short)
 			}
 		}
 		if len(parts) == 0 {
-			return ""
+			return nil
 		}
-		names := shortsOf(b.availableShares())
-		return JoinAnd(parts) + " verified for " + JoinAnd(names)
+		return tx("summary.authentication", A{"records": ArgAnd(parts), "providers": ArgAnd(shortsOf(b.availableShares()))})
 	case GroupContent, GroupCompliance:
 		if g == GroupCompliance && len(shorts) < 3 {
-			out := []string{}
-			for _, s := range shorts {
-				switch s {
-				case "one-click unsubscribe headers":
-					out = append(out, "List-Unsubscribe and List-Unsubscribe-Post headers present")
-				case "bulk-sender rules":
-					out = append(out, "bulk-sender rules met")
+			out := []Text{}
+			for _, c := range passes {
+				switch c.Key {
+				case "compliance.list_unsubscribe":
+					out = append(out, tx("summary.headers", nil))
+				case "compliance.bulk_sender":
+					out = append(out, tx("summary.bulkMet", nil))
 				default:
-					out = append(out, s)
+					out = append(out, c.Short)
 				}
 			}
-			return strings.Join(out, "; ")
+			return joined("; ", out)
 		}
-		return strings.Join(shorts, ", ")
+		return joined(", ", shorts)
 	case GroupAudience:
 		a := b.f.Audience
-		return fmt.Sprintf("%s recently bounced, %s role addresses excluded, %s suppressed", Count(a.RecentlyBounced), Count(a.Role), Count(a.Suppressed))
+		return tx("summary.audience", A{"bounced": a.RecentlyBounced, "role": a.Role, "suppressed": a.Suppressed})
 	}
-	return strings.Join(shorts, "; ")
+	return joined("; ", shorts)
 }
 
-func (b *builder) running(g string) string {
+func (b *builder) running(g string) Text {
 	switch g {
 	case GroupReputation:
 		assets := []string{}
@@ -1642,52 +1893,22 @@ func (b *builder) running(g string) string {
 		if d := firstNonEmpty(b.f.Auth.Domain, b.f.Campaign.SenderDomain); d != "" {
 			assets = append(assets, d)
 		}
-		return fmt.Sprintf("checking %s on %d sources", JoinAnd(assets), b.f.Reputation.Sources)
+		return tx("running.reputationAssets", A{"assets": ArgAnd(assets), "sources": b.f.Reputation.Sources})
 	case GroupAuthentication:
-		return "SPF, DKIM, DMARC and MAIL FROM for " + JoinAnd(shortsOf(b.availableShares()))
-	case GroupContent:
-		return "spam triggers, size, images, alt text and plain text"
+		return tx("running.authenticationFor", A{"providers": ArgAnd(shortsOf(b.availableShares()))})
 	case GroupLinks:
-		return fmt.Sprintf("fetching %d URLs and checking URI blocklists", len(b.f.Content.Report.LinkList))
-	case GroupCompliance:
-		return "one-click unsubscribe headers, footer address, bulk-sender rules"
-	case GroupAudience:
-		return "unengaged, recently bounced and role addresses"
-	case GroupRouting:
-		return "provider health, terms and tracking settings"
-	case GroupLanguages:
-		return "who gets which version, outdated and draft versions, page copy"
-	case GroupAccessibility:
-		return accessibilityRunning
-	case GroupConditional:
-		return conditionalRunning
+		return tx("running.linksCount", A{"count": len(b.f.Content.Report.LinkList)})
 	}
-	return ""
+	return runningText(g)
 }
 
 // RunningText is what a group shows while its checks run, before facts exist.
-func RunningText(g string) string {
+func RunningText(g string) string { return runningText(g).en() }
+
+func runningText(g string) Text {
 	switch g {
-	case GroupReputation:
-		return "domain and IP blocklists, provider bounce and complaint rates"
-	case GroupAuthentication:
-		return "SPF, DKIM, DMARC and MAIL FROM"
-	case GroupContent:
-		return "spam triggers, size, images, alt text and plain text"
-	case GroupLinks:
-		return "fetching links and checking URI blocklists"
-	case GroupCompliance:
-		return "one-click unsubscribe headers, footer address, bulk-sender rules"
-	case GroupAudience:
-		return "unengaged, recently bounced and role addresses"
-	case GroupRouting:
-		return "provider health, terms and tracking settings"
-	case GroupLanguages:
-		return "who gets which version, outdated and draft versions, page copy"
-	case GroupAccessibility:
-		return accessibilityRunning
-	case GroupConditional:
-		return conditionalRunning
+	case GroupReputation, GroupAuthentication, GroupContent, GroupLinks, GroupCompliance, GroupAudience, GroupRouting, GroupLanguages, GroupAccessibility, GroupConditional:
+		return tx("running."+g, nil)
 	}
-	return ""
+	return nil
 }

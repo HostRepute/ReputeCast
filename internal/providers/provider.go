@@ -18,6 +18,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Stream is the kind of mail.
@@ -64,6 +66,12 @@ type Capabilities struct {
 	// RemovesWebhook is true when the adapter removes the webhook it
 	// registered once the provider is removed (WebhookUnregistrar).
 	RemovesWebhook bool `json:"removesWebhook"`
+	// PricingText and DedicatedIPsText are the messages Pricing and
+	// DedicatedIPs come from (text.go). They are kept with the capability
+	// snapshot of a connected provider, so it reads in each reader's
+	// language later.
+	PricingText      i18n.Text `json:"pricingText,omitzero"`
+	DedicatedIPsText i18n.Text `json:"dedicatedIpsText,omitzero"`
 }
 
 // Message is one email to one recipient, already rendered and personalized.
@@ -194,6 +202,8 @@ type Quota struct {
 	MaxRate float64 // per second, 0 = unknown
 	Sandbox bool
 	Account string // human status: "Production · no enforcement"
+	// AccountText is the message Account comes from (text.go).
+	AccountText i18n.Text
 	// VDM is true when Amazon SES's Virtual Deliverability Manager is on for
 	// the account; other providers leave it false.
 	VDM bool
@@ -259,7 +269,16 @@ type Descriptor struct {
 	Events          string `json:"events,omitempty"`
 	DomainSetup     string `json:"domainSetup,omitempty"`
 	SuppressionMode string `json:"suppressionMode,omitempty"`
-	New             func(Config) (Provider, error)
+	// EventsText, DomainSetupText and SuppressionModeText are the messages
+	// the three words come from (text.go).
+	EventsText          i18n.Text `json:"-"`
+	DomainSetupText     i18n.Text `json:"-"`
+	SuppressionModeText i18n.Text `json:"-"`
+	// Messages is the adapter's own catalog, which its texts come from
+	// (WithMessages). Built-in adapters have one; community adapters write
+	// English only.
+	Messages *i18n.Catalog `json:"-"`
+	New      func(Config) (Provider, error)
 }
 
 // Terms is what one variant of a provider account may be used for.
@@ -270,6 +289,9 @@ type Terms struct {
 	Bulk    BulkPolicy `json:"bulk"`
 	Note    string     `json:"note"`
 	Streams []Stream   `json:"streams"`
+	// VariantText and NoteText are the messages Variant and Note come from.
+	VariantText i18n.Text `json:"-"`
+	NoteText    i18n.Text `json:"-"`
 }
 
 // Field is one input of a provider's connection form.
@@ -280,6 +302,9 @@ type Field struct {
 	Required bool     `json:"required"`
 	Options  []string `json:"options,omitempty"`
 	Help     string   `json:"help,omitempty"`
+	// LabelText and HelpText are the messages Label and Help come from.
+	LabelText i18n.Text `json:"-"`
+	HelpText  i18n.Text `json:"-"`
 }
 
 // The registry holds built-in adapters (registered from init) and runtime

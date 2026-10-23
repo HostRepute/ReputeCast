@@ -164,11 +164,7 @@ func (n verificationNotifier) JobEnded(ctx context.Context, ws *store.Workspace,
 	}
 	l := applang.ForUserID(ctx, n.a.Q, *j.StartedBy)
 	name := verification.ServiceName(j.Service)
-	label := j.Label
-	if j.Kind == "tier" {
-		label = j.Label + " tier"
-	}
-	args := i18n.Args{"label": label, "service": name, "checked": int64(j.Checked), "total": int64(j.Total),
+	args := i18n.Args{"label": verification.JobLabel(l, j), "service": name, "checked": int64(j.Checked), "total": int64(j.Total),
 		"suppressed": int64(j.Suppressed), "risky": int64(j.Risky)}
 	nt := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindVerificationEnded, Severity: "ok",
 		Link: fmt.Sprintf("/w/%s/audience/verification/%s", ws.Slug, j.ID), Data: map[string]any{"job": j.ID.String()}}
@@ -190,7 +186,7 @@ func (n verificationNotifier) JobEnded(ctx context.Context, ws *store.Workspace,
 	}
 }
 
-func (n verificationNotifier) CreditsLow(ctx context.Context, ws *store.Workspace, svc store.VerificationService, needed int64, label string) {
+func (n verificationNotifier) CreditsLow(ctx context.Context, ws *store.Workspace, svc store.VerificationService, needed int64, job *store.VerificationJob) {
 	ids, err := notify.MembersWith(ctx, n.a.Pool, ws.ID, authz.IntegrationsManage)
 	if err != nil {
 		return
@@ -202,6 +198,10 @@ func (n verificationNotifier) CreditsLow(ctx context.Context, ws *store.Workspac
 	}
 	for _, id := range ids {
 		l := applang.ForUserID(ctx, n.a.Q, id)
+		label := ""
+		if job != nil {
+			label = verification.JobLabel(l, *job)
+		}
 		args := i18n.Args{"service": name, "balance": balance, "needed": needed, "label": label}
 		body := verification.MCreditsLowSummary.Text(l, args)
 		if needed > 0 {

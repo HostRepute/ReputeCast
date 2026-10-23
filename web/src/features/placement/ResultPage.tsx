@@ -7,7 +7,7 @@ import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { EmptyState, Loading, Skeleton } from '@/components/ui/Feedback'
 import { toast } from '@/components/ui/Toast'
-import { T, useT } from '@/i18n'
+import { T, useI18n, useT } from '@/i18n'
 import { andList, clock, shortDate, weekdayDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
@@ -271,6 +271,7 @@ function Fact({ label, value, sub }: { label: string; value: ReactNode; sub?: Re
 
 function About({ d }: { d: TestDetail }) {
   const t = useT()
+  const { locale } = useI18n()
   const names = d.providers.map((p) => p.name)
   const contentValue =
     d.contentKind === 'transactional'
@@ -283,7 +284,7 @@ function About({ d }: { d: TestDetail }) {
   const contentSub = [
     d.variant ? t(m.aboutVariant, { variant: d.variant }) : '',
     d.conditionalVersion ? t(m.aboutConditional, { number: d.conditionalVersion, shows: d.conditionalShows || t(m.conditionalNone) }) : '',
-    d.language ? languageName(d.language) : '',
+    d.language ? languageName(d.language, locale) : '',
     d.personalization ? t(m.aboutTestData, { name: d.personalization }) : d.fallbackGreeting ? t(m.aboutFallbacks, { greeting: d.fallbackGreeting }) : t(m.aboutFallbacksPlain),
   ]
     .filter(Boolean)
@@ -335,12 +336,14 @@ function About({ d }: { d: TestDetail }) {
 }
 
 const names = new Map<string, Intl.DisplayNames>()
-function languageName(code: string): string {
+
+/** A content language's name in the app's language ("de" → "German"). */
+function languageName(code: string, locale: string): string {
   try {
-    let n = names.get('en')
+    let n = names.get(locale)
     if (!n) {
-      n = new Intl.DisplayNames(['en'], { type: 'language' })
-      names.set('en', n)
+      n = new Intl.DisplayNames([locale], { type: 'language' })
+      names.set(locale, n)
     }
     return n.of(code) ?? code
   } catch {

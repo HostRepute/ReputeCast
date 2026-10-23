@@ -193,6 +193,48 @@ samples, CLI output, "MCP", "2FA", "TOTP", "IdP", "SSO", "JIT", "A/B",
 | 14 /s | 14/giây |
 | Cost · Time | Chi phí · Thời gian |
 
+### Send Readiness's checks
+
+The findings the server writes for each check (`internal/readiness`).
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| check (a row) · passed · not checked · timed out | mục kiểm tra · đạt · chưa kiểm tra · hết thời gian chờ | |
+| the verdict waits for this one | kết luận đang chờ mục này | |
+| I understand … (a warning's confirmation) | Tôi hiểu … | as the web's "I understand: {title}." |
+| unengaged (contacts) | không tương tác | no open or click in the sunset policy's days |
+| Sunset tier · At risk (names) | nhóm Ngừng gửi dần · Có nguy cơ | tier names keep their capitals |
+| spam trigger · spam heuristic | dấu hiệu spam | "trips 3 spam heuristics": "vướng 3 dấu hiệu spam" |
+| all caps · repeated punctuation · urgency phrasing · money words · click-bait | viết hoa toàn bộ · lặp dấu câu · lời lẽ thúc ép · từ ngữ về tiền · câu nhử nhấp | |
+| image-to-text ratio | tỷ lệ hình ảnh trên chữ | |
+| Gmail's 102 KB clipping limit · clips | ngưỡng cắt thư 102 KB của Gmail · cắt bớt | |
+| inline(d) CSS · minify | CSS nội tuyến · thu gọn | |
+| one-click unsubscribe (headers) | (header) hủy đăng ký một lần nhấp | "header" stays in English |
+| postal address | địa chỉ bưu chính | |
+| bulk-sender rules | quy tắc người gửi hàng loạt | Gmail and Yahoo's |
+| URL shortener · redirects through | dịch vụ rút gọn liên kết · chuyển hướng qua | |
+| responds · doesn't respond | phản hồi · không phản hồi | a link |
+| review thresholds · pause level (SES) | ngưỡng xem xét · mức tạm dừng | |
+| no enforcement | không bị thực thi giới hạn | an account's standing |
+| terms allow bulk marketing | điều khoản cho phép tiếp thị hàng loạt | |
+| production access | quyền gửi chính thức | as in Sending |
+| double-tracked · rewrites links | bị theo dõi hai lần · viết lại liên kết | |
+| aligned (DMARC, SPF) | (được) căn chỉnh | |
+| Easy DKIM CNAME · selector | CNAME Easy DKIM · selector | names and record words stay |
+| custom MAIL FROM | MAIL FROM tùy chỉnh | |
+| Conditional content · conditional block · version | Nội dung có điều kiện · khối có điều kiện · phiên bản | |
+| Visibility rule | quy tắc hiển thị | |
+| poll · survey · answer page | bình chọn · khảo sát · trang trả lời | |
+| risky · catch-all · disposable (addresses) | rủi ro · catch-all · dùng một lần | |
+| inactive (contacts) | không hoạt động | At risk and Sunset together |
+| paid members · trial · complimentary · gift (access) | thành viên trả phí · dùng thử · quyền tặng · quà tặng | |
+| Sponsor block · creative · booking · Sponsored (label) | khối Nhà tài trợ · mẫu quảng cáo · lượt đặt · Được tài trợ | |
+| Upgrade block · offer | khối Nâng cấp · ưu đãi | |
+| page copy · preference center | nội dung trang · trung tâm tùy chọn | |
+| bare URL · skipped heading level | URL trần · cấp đề mục bị bỏ qua | accessibility |
+| linked image | hình có liên kết | |
+| self-hosted (pricing) · plan | tự lưu trữ · theo gói | a provider's price |
+
 ## Sending and deliverability
 
 Sending providers & routing, the connect wizard, Settings › Senders and
@@ -275,6 +317,30 @@ names ("Access key ID", "Secret access key", "RoleArn"), the SES region
 names, a provider's own stream names (Postmark's "Broadcast" stream:
 "luồng Broadcast") and the results in DNS records and reports ("pass",
 "fail", "p=quarantine").
+
+### What adapters and the connect flow write
+
+The server's words about a provider: the catalog's cards and chips, an
+adapter's fields and terms, the account's standing, the stepper and the
+test's timeline.
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| Production · Sandbox (an account's standing) | Gửi chính thức · Sandbox | "Gửi chính thức · không bị hạn chế" |
+| Two-way · Pull only · Push only · Local only (suppression sync) | Hai chiều · Chỉ kéo về · Chỉ đẩy đi · Chỉ cục bộ | the Adapters tab |
+| self-hosted | tự lưu trữ | "Postal (tự lưu trữ)" |
+| Any SMTP server · Generic HTTP adapter | Máy chủ SMTP bất kỳ · Adapter HTTP chung | catalog names |
+| Batch 50 · Quota discovery · Sandbox detection (chips) | Gửi lô 50 · Dò hạn mức · Phát hiện sandbox | |
+| Dedicated IPs, paid · Pro plan | IP riêng, trả phí · gói Pro | the plan's name stays |
+| read-only call | lệnh gọi chỉ đọc | "đã kiểm tra bằng một lệnh gọi chỉ đọc" |
+| Round trip 2.4 s | Trọn vòng 2,4 giây | the test send |
+| Mailpit (development) | Mailpit (môi trường phát triển) | |
+| a price in an adapter's words | 0,10 US$ cho mỗi 1.000 email | decimal comma, dot for thousands, US$ after the amount |
+
+A provider's names for its keys, plans, menus and stream types stay as the
+provider writes them ("Server API token", "Private API key", "Account SID",
+"Auth token", "Full access", "Broadcasts API", "Scale plan"), and so do its
+event names ("Delivery", "SpamComplaint") and its error codes.
 
 ## Transactional templates
 
@@ -996,6 +1062,120 @@ they are.
 | suppressed · opted out | bị chặn gửi · đã tắt nhận | why a message wasn't sent |
 | webhook topic | chủ đề | orders/create stays as it is |
 | write-only · sealed | chỉ ghi · được niêm phong | a secret that's never shown again |
+
+## Recurring digests
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| approval rule · approver | quy tắc phê duyệt · người phê duyệt | as in Approvals |
+| archive (public) | kho lưu trữ công khai | where sent issues are listed |
+| back catalogue | bài cũ | a feed's older posts |
+| category · tag (of a post) | chuyên mục · thẻ | WordPress's own Vietnamese words |
+| Collecting · Draft ready · Not sent (an issue) | Đang thu thập · Bản nháp sẵn sàng · Không được gửi | an issue's own states; the others are the campaign words |
+| Create a draft · Send automatically · draft mode | Tạo bản nháp · Gửi tự động · chế độ bản nháp | the two sending modes |
+| excerpt · featured image | đoạn trích · ảnh đại diện | featured image as WordPress says it |
+| fallback image | ảnh dự phòng | |
+| feed · feed address | nguồn cấp · địa chỉ nguồn cấp | as Integrations; RSS 2.0, Atom 1.0 and JSON Feed 1.1 keep their names |
+| feed item · Feed items (the block) | mục · Mục nguồn cấp | |
+| feed token | biến nguồn cấp | a Liquid token: "biến", as in Grow |
+| held · release (an issue) | tạm giữ · bỏ tạm giữ | "Release issue": "Bỏ tạm giữ số này" |
+| hours before (preparation) | giờ trước giờ gửi | "{count} hours before": "{count} giờ trước giờ gửi"; "trước 3 giờ" would read as 3 o'clock |
+| issue · Next issue · issue #143 | số · Số tiếp theo · số #143 | as a magazine's issue, and as the public pages say it |
+| late limit | giới hạn trễ | how late an issue may still go out |
+| layout: List · Cards · Grid | Danh sách · Thẻ · Lưới | the Feed items block's layouts |
+| left out (by a filter) | bị loại | "Left out by a filter": "Bị bộ lọc loại" |
+| owner (of a digest) | người phụ trách | the member issues send under; not the Owner role |
+| percentage points (pts) | điểm % | "{delta} pts": "{delta} điểm %" |
+| post | bài viết | |
+| prepare · Prepared at 07:00 | chuẩn bị · Chuẩn bị lúc 07:00 | |
+| recurring digest · digest | bản tin định kỳ | as Integrations; the Recurring tab is "Định kỳ" |
+| Regular (campaign) | Thông thường | the other choice in New campaign |
+| sending window | khung giờ gửi | as Automations' send window |
+| skip · skipped | bỏ qua · đã bỏ qua | |
+| SSRF guard | lớp bảo vệ SSRF | |
+| starter (a template to begin from) | mẫu khởi đầu | a starter's name ("Blog digest") stays as it is; what a new digest's starter writes into the email (subject, preheader) follows the workspace's content language |
+| starting point | điểm bắt đầu | |
+| turn on · pause (a digest) | bật · tạm dừng | |
+| weekdays (Monday to Friday) | Thứ Hai đến Thứ Sáu | short: "Th 2–Th 6", the region format's own abbreviations |
+
+## AI assistant
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| accept · edit · reject (a suggestion) | chấp nhận · sửa · từ chối | |
+| Accepted with edits · No decision | Đã chấp nhận, có chỉnh sửa · Chưa quyết định | outcomes in the activity log |
+| activity log (AI) | nhật ký hoạt động AI | the audit log stays "nhật ký kiểm tra" |
+| AI assistant · Assist (the menu) | trợ lý AI · Trợ lý | |
+| AI budget | ngân sách AI | |
+| cap · monthly cap | hạn mức · hạn mức hằng tháng | in dollars or tokens; "No cap": "Không có hạn mức" |
+| condition schema · segment builder | lược đồ điều kiện · trình tạo phân khúc | |
+| deployment (Azure) | bản triển khai | |
+| describe the segment · Draft (its button) | mô tả phân khúc · Soạn nháp | what it drafts is a "bản nháp" |
+| feature (of the assistant) | tính năng | |
+| Image input · Structured output | Đọc hình ảnh · Đầu ra có cấu trúc | what a model can do |
+| input · output (tokens, prices) | đầu vào · đầu ra | |
+| instruction (to rewrite) | chỉ dẫn | "Rewrite with an instruction": "Viết lại theo chỉ dẫn" |
+| keep · discard (a summary) | giữ · bỏ | "kept summaries": "bản tóm tắt đã giữ" |
+| model · connect a model | mô hình · kết nối mô hình | model names stay as they are |
+| private address | địa chỉ nội bộ | a server on a private network |
+| prompt · test prompt | lời nhắc · lời nhắc thử | |
+| refused by the model | mô hình từ chối | |
+| resets (the usage) | đặt lại | "resets {date}": "đặt lại vào {date}" |
+| rewrite · shorten · friendlier · more formal · more direct | viết lại · rút gọn · thân thiện hơn · trang trọng hơn · trực tiếp hơn | |
+| subject ideas | gợi ý tiêu đề | |
+| suggestion | gợi ý | |
+| summary (of results) | bản tóm tắt | "Summarize results": "Tóm tắt kết quả" |
+| token (of a model) | token | what the provider bills; a Liquid token is "biến" |
+| tone | giọng văn | "Rewrite, shorten and tone": "Viết lại, rút gọn và đổi giọng" |
+| usage | mức sử dụng | |
+
+## Placement tests
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| app password · app-specific password | mật khẩu ứng dụng · mật khẩu dành riêng cho ứng dụng | Google's and Apple's own words |
+| arrived late | đến muộn | |
+| copy (of the test email) | bản sao | |
+| deferral | lần hoãn nhận | as Campaigns' "hoãn nhận" |
+| folder · tab | thư mục · tab | a mailbox's own names (Promotions, Junk Email) stay as it gives them |
+| folders: Sent · Draft · Archive · Trash | Thư đã gửi · Thư nháp · Lưu trữ · Thùng rác | the folders a test never reads |
+| hand-off | bàn giao | when the sending provider takes a copy |
+| headers | header | "All headers": "Mọi header"; header names stay |
+| Health (Deliverability › Health) | Tình trạng | as Integrations' Health |
+| Healthy · Warming up · Degraded · Down · Paused · Sandbox (a provider) | Ổn định · Đang khởi động · Suy giảm · Gián đoạn · Đã tạm dừng · Sandbox | |
+| Inbox · Tab · Spam · Not arrived | Hộp thư đến · Tab · Thư rác · Không đến | the four results |
+| median time to arrive | thời gian đến trung vị | a median, as Approvals' median wait |
+| pass · fail · aligned (authentication) | đạt · không đạt · đã căn chỉnh | SPF, DKIM and DMARC keep their names |
+| placement · placement test | vị trí thư · kiểm tra vị trí thư | where a copy lands |
+| Queued (a copy) | Chờ gửi | |
+| remove (a seed) | gỡ | deleting copies stays "xóa" |
+| round (of copies) | đợt | "Round 2": "Đợt 2" |
+| sample (the seeds) | nhóm thử | as an A/B test's sample |
+| seed · seed mailbox | hộp thư thử | mailboxes that exist only for tests |
+| stop waiting | ngừng chờ | |
+| test (one run) | lần kiểm tra | "Tests · 12": "Lần kiểm tra · 12" |
+| test token | mã kiểm tra | what marks a copy as a test's |
+| vs (providers compared) | so với | "SES vs Postal": "SES so với Postal" |
+| warm-up cap | giới hạn khởi động | a warming-up provider's daily cap |
+| warm-up planner · warm-up plan | trình lập kế hoạch khởi động · kế hoạch khởi động | |
+
+## Address verification
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| abuse · catch-all domain · disposable · role address | hay khiếu nại · tên miền nhận mọi thư · dùng một lần · địa chỉ chức danh | why an address is risky; tags such as verify:catch-all stay as written |
+| Add credits · Low credits | Nạp tín dụng · Sắp hết tín dụng | |
+| balance · credits | số dư · tín dụng | the prepaid credits at the service |
+| bulk check · real-time check | kiểm tra hàng loạt · kiểm tra theo thời gian thực | |
+| check (one address) | lượt kiểm tra | "{price} a check": "{price} mỗi lượt kiểm tra" |
+| data region | vùng dữ liệu | |
+| Found by | Phát hiện bởi | which check found a risky address |
+| imports (of contacts) | nhập liên hệ | "Bulk checks and imports": "Kiểm tra hàng loạt và nhập liên hệ" |
+| job · Resume | tác vụ · Tiếp tục | |
+| spam trap | bẫy spam | |
+| Uses (of a service) | Lượt dùng | |
+| Valid · Invalid · Risky · Unknown | Hợp lệ · Không hợp lệ · Rủi ro · Không xác định | the four results |
+| verification service · verify | dịch vụ xác minh · xác minh | |
 
 ## Words used everywhere
 

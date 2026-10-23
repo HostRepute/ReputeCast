@@ -124,7 +124,7 @@ func TestItemsSendAt(t *testing.T) {
 
 func TestScheduleValidate(t *testing.T) {
 	ok := DigestSchedule{Frequency: FreqWeekly, Weekday: 5, Time: "08:00", Timezone: "America/New_York"}
-	if f, _ := ok.Validate(); f != "" {
+	if f, _, _ := ok.Validate(); f != "" {
 		t.Fatalf("valid schedule refused: %s", f)
 	}
 	for _, c := range []struct {
@@ -138,7 +138,7 @@ func TestScheduleValidate(t *testing.T) {
 		{DigestSchedule{Frequency: FreqItems, Count: 3, WindowFrom: "18:00", WindowUntil: "08:00", Timezone: "UTC"}, "windowUntil"},
 		{DigestSchedule{Frequency: FreqMonthly, MonthRule: "day", MonthDay: 0, Time: "08:00", Timezone: "UTC"}, "monthDay"},
 	} {
-		if f, _ := c.s.Validate(); f != c.field {
+		if f, _, _ := c.s.Validate(); f != c.field {
 			t.Fatalf("%+v: field %q, want %q", c.s, f, c.field)
 		}
 	}

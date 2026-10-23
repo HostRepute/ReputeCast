@@ -109,7 +109,7 @@ export function AuthMarks({ spf, dkim, dmarc }: { spf?: string; dkim?: string; d
       <span className={r === 'pass' ? 'pl-am' : 'pl-am f'} key={name}>
         <Check ok={r === 'pass'} />
         {name}
-        <span className="vh"> {r === 'pass' ? t(m.pass) : r}</span>
+        <span className="vh"> {r === 'pass' ? t(m.pass) : r === 'fail' ? t(m.fail) : r}</span>
       </span>
     ) : null
   return (
@@ -389,7 +389,7 @@ export function CopyDetailPanel({ test, copyId, onClose }: { test: TestDetail; c
           {name}
         </span>
         <span>
-          <span className={a.result === 'pass' ? 'font-semibold text-ok-fg' : 'font-semibold text-bad-fg'}>{a.result === 'pass' ? t(m.pass) : a.result}</span>{' '}
+          <span className={a.result === 'pass' ? 'font-semibold text-ok-fg' : 'font-semibold text-bad-fg'}>{a.result === 'pass' ? t(m.pass) : a.result === 'fail' ? t(m.fail) : a.result}</span>{' '}
           <span className="k text-ink-nav!">
             {[
               a.domain,

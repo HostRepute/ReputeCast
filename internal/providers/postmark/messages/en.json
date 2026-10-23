@@ -1,0 +1,28 @@
+{
+  "pricing": { "message": "plan, from $15 per month", "note": "Postmark's pricing model, on a capability chip: Pricing · plan, from $15 per month" },
+  "pricingPlan": { "message": "plan, {n} per month", "note": "the pricing of a connection with its plan's allowance; n: 10000 emails" },
+  "dedicatedIps": { "message": "from 300k per month", "note": "when Postmark offers dedicated IPs: from 300,000 emails a month" },
+  "terms.0.variant": { "message": "Transactional stream", "note": "Postmark's own kind of message stream" },
+  "terms.0.note": "Transactional streams are for one-to-one mail triggered by a user action. Marketing on them breaks Postmark's terms.",
+  "terms.1.variant": { "message": "Broadcast stream", "note": "Postmark's own kind of message stream, for bulk mail" },
+  "terms.1.note": "Requires an unsubscribe link in every message; Postmark adds one if missing.",
+  "events": { "message": "Webhooks", "note": "Sending providers › Adapters: how events come back" },
+  "domainSetup": { "message": "API", "note": "Sending providers › Adapters: how a sending domain is set up" },
+  "suppressionMode": { "message": "Two-way", "note": "Sending providers › Adapters: the suppression sync" },
+  "field.server_token.label": { "message": "Server API token", "note": "Postmark's own name for the credential, as its dashboard shows it" },
+  "field.server_token.help": { "message": "Postmark › Servers › your server › API Tokens.", "note": "where to find it in Postmark's dashboard; the menu names are Postmark's" },
+  "field.account_token.label": { "message": "Account API token", "note": "Postmark's own name for the credential" },
+  "field.account_token.help": "Optional. Lets ReputeCast add your domain and fetch its DNS records.",
+  "field.message_stream.label": "Message stream",
+  "field.message_stream.help": "The transactional stream for System and Automations mail.",
+  "field.broadcast_stream.label": { "message": "Broadcast stream", "note": "the id of the Postmark stream bulk mail goes on" },
+  "field.broadcast_stream.help": "Needed before Broadcasts can use Postmark. ReputeCast can create it.",
+  "field.monthly_limit.label": { "message": "Plan · emails per month", "note": "the plan's monthly allowance" },
+  "field.monthly_limit.help": "Used for the quota bar and cost per 1,000.",
+
+  "account": { "message": "{plan, select, yes {Approved · {n, number} per month plan} other {Approved}}", "note": "the Postmark account's standing on the provider card; n: the plan's emails per month" },
+  "tracking.scope": { "message": "Server {name}", "note": "where Postmark's tracking setting applies; name: the Postmark server's name" },
+  "tracking.detail": { "message": "Server setting TrackOpens is {opens, select, on {on} other {off}}, and TrackLinks is {links}.", "note": "TrackOpens and TrackLinks are Postmark's setting names; links: None, HtmlAndText, HtmlOnly or TextOnly" },
+  "error.streamsTaken": "both stream ids are taken; create a Broadcast stream in Postmark and enter its id",
+  "error.domainMissing": { "message": "{domain} is not set up in Postmark", "note": "domain: news.acme.io" }
+}

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Optional interfaces: core code type-asserts before using one, so adapters
@@ -31,6 +33,10 @@ type CallError struct {
 	Throttled bool
 	Auth      bool
 	Cause     error
+	// Text is the message Message comes from, when the adapter wrote the
+	// sentence itself (a connection test's finding); a provider's own answer
+	// has none.
+	Text i18n.Text
 }
 
 func (e *CallError) Error() string {
@@ -123,6 +129,9 @@ type Tracking struct {
 	// Scope names where it applies ("Configuration set rc-broadcasts",
 	// "Transactional stream").
 	Scope string
+	// DetailText and ScopeText are the messages Detail and Scope come from.
+	DetailText i18n.Text
+	ScopeText  i18n.Text
 }
 
 // TrackingManager reads and turns off provider-side tracking, so opens and
@@ -144,6 +153,8 @@ type ServiceStatus struct {
 	Summary  string
 	URL      string
 	Updated  time.Time
+	// SummaryText is the message Summary comes from.
+	SummaryText i18n.Text
 }
 
 // StatusReporter reads the provider's public status page during an outage.

@@ -23,6 +23,7 @@ import (
 	"github.com/google/uuid"
 	gomail "github.com/wneessen/go-mail"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/bounce"
 	"github.com/hostrepute/reputecast/internal/providers/mimemsg"
@@ -75,27 +76,25 @@ func Descriptor() providers.Descriptor {
 			Bulk:      providers.BulkYourPolicy,
 			Webhooks:  "Bounce mailbox",
 			BatchSize: BatchSize,
-			Pricing:   "your server or relay",
+			// Pricing and every other text people read (the terms' note,
+			// the Adapters tab's words, the fields' labels and hints) are in
+			// messages/en.json: WithMessages fills them.
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",
-		Terms: []providers.Terms{{Bulk: providers.BulkYourPolicy, Note: "Your SMTP server or relay's acceptable-use policy applies.",
-			Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
-		Events:          "Bounce mailbox (IMAP/POP3)",
-		DomainSetup:     "Manual DNS",
-		SuppressionMode: "Local only",
+		Terms:      []providers.Terms{{Bulk: providers.BulkYourPolicy, Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
 		Fields: []providers.Field{
-			{Key: "host", Label: "SMTP host", Required: true},
-			{Key: "port", Label: "Port", Required: true, Options: []string{"587", "465", "25", "2525"}},
-			{Key: "tls", Label: "Encryption", Required: true, Options: []string{"starttls", "tls", "none"}},
-			{Key: "username", Label: "User name"},
-			{Key: "password", Label: "Password", Secret: true},
-			{Key: "return_path", Label: "Bounce address", Help: "The envelope sender; bounces go here, so point it at the bounce mailbox."},
-			{Key: "bounce_mailbox", Label: "Bounce mailbox (IMAP or POP3)", Help: "SMTP has no webhooks. ReputeCast reads bounces and complaints from this mailbox every minute."},
-			{Key: "bounce_password", Label: "Bounce mailbox password", Secret: true},
+			{Key: "host", Required: true},
+			{Key: "port", Required: true, Options: []string{"587", "465", "25", "2525"}},
+			{Key: "tls", Required: true, Options: []string{"starttls", "tls", "none"}},
+			{Key: "username"},
+			{Key: "password", Secret: true},
+			{Key: "return_path"},
+			{Key: "bounce_mailbox"},
+			{Key: "bounce_password", Secret: true},
 		},
 		New: New,
-	}
+	}.WithMessages(msgs)
 }
 
 // Provider sends through one SMTP server.
@@ -293,7 +292,10 @@ func (p *Provider) Verify(ctx context.Context) (providers.Quota, error) {
 		return providers.Quota{}, err
 	}
 	_ = c.Close()
-	return providers.Quota{Account: p.s.Host + " · accepting mail"}, nil
+	// "smtp.acme.io · accepting mail"
+	var q providers.Quota
+	q.Account, q.AccountText = say(mAccount, i18n.Args{"host": p.s.Host})
+	return q, nil
 }
 
 // VerifyWebhook checks the HMAC on reports posted over HTTP.

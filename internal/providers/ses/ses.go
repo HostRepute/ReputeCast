@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/mimemsg"
 	"github.com/hostrepute/reputecast/internal/version"
@@ -83,29 +84,26 @@ func Descriptor() providers.Descriptor {
 			DomainAPI:       "full",
 			SuppressionSync: true,
 			BatchSize:       BatchSize,
-			DedicatedIPs:    "optional, $24.95 per IP per month",
 			Sandbox:         "detection",
 			QuotaDiscovery:  true,
 			RateDiscovery:   true,
-			Pricing:         "$0.10 per 1,000",
+			// Pricing, DedicatedIPs and every other text people read (the
+			// terms' note, the Adapters tab's words, the fields' labels and
+			// hints) are in messages/en.json: WithMessages fills them.
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",
-		Terms: []providers.Terms{{Bulk: providers.BulkAllowed, Note: "Production access required; the account must stay under SES bounce and complaint thresholds.",
-			Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
-		Events:          "SNS webhooks",
-		DomainSetup:     "API",
-		SuppressionMode: "Two-way",
+		Terms:      []providers.Terms{{Bulk: providers.BulkAllowed, Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
 		Fields: []providers.Field{
-			{Key: "region", Label: "Region", Required: true, Options: []string{"us-east-1", "us-east-2", "us-west-1", "us-west-2", "ca-central-1", "eu-west-1", "eu-west-2", "eu-west-3", "eu-central-1", "eu-north-1", "eu-south-1", "ap-south-1", "ap-northeast-1", "ap-northeast-2", "ap-northeast-3", "ap-southeast-1", "ap-southeast-2", "sa-east-1", "me-south-1", "af-south-1", "il-central-1"}},
-			{Key: "access", Label: "Access", Required: true, Options: []string{"role", "keys"}, Help: "A CloudFormation role (recommended) or IAM access keys."},
-			{Key: "role_arn", Label: "Role ARN", Help: "Created by the CloudFormation template."},
-			{Key: "access_key_id", Label: "Access key ID", Secret: true},
-			{Key: "secret_access_key", Label: "Secret access key", Secret: true},
-			{Key: "configuration_set", Label: "Configuration set", Help: "Created during setup; it publishes events to SNS."},
+			{Key: "region", Required: true, Options: []string{"us-east-1", "us-east-2", "us-west-1", "us-west-2", "ca-central-1", "eu-west-1", "eu-west-2", "eu-west-3", "eu-central-1", "eu-north-1", "eu-south-1", "ap-south-1", "ap-northeast-1", "ap-northeast-2", "ap-northeast-3", "ap-southeast-1", "ap-southeast-2", "sa-east-1", "me-south-1", "af-south-1", "il-central-1"}},
+			{Key: "access", Required: true, Options: []string{"role", "keys"}},
+			{Key: "role_arn"},
+			{Key: "access_key_id", Secret: true},
+			{Key: "secret_access_key", Secret: true},
+			{Key: "configuration_set"},
 		},
 		New: New,
-	}
+	}.WithMessages(msgs)
 }
 
 // Provider talks to SES in one region.
@@ -360,21 +358,22 @@ func (p *Provider) Quota(ctx context.Context) (providers.Quota, error) {
 		q.Used = int64(out.SendQuota.SentLast24Hours)
 		q.MaxRate = out.SendQuota.MaxSendRate
 	}
-	mode := "Production"
+	mode := "production"
 	if q.Sandbox {
-		mode = "Sandbox"
+		mode = "sandbox"
 	}
-	enforcement := "no enforcement"
+	enforcement := "none"
 	switch strings.ToUpper(aws.ToString(out.EnforcementStatus)) {
 	case "PROBATION":
-		enforcement = "under review (probation)"
+		enforcement = "probation"
 	case "SHUTDOWN":
-		enforcement = "sending paused by AWS"
+		enforcement = "shutdown"
 	}
 	if !out.SendingEnabled {
-		enforcement = "sending disabled"
+		enforcement = "disabled"
 	}
-	q.Account = mode + " · " + enforcement
+	// "Production · no enforcement"
+	q.Account, q.AccountText = say(mAccount, i18n.Args{"mode": mode, "enforcement": enforcement})
 	if out.VdmAttributes != nil && out.VdmAttributes.VdmEnabled == types.FeatureStatusEnabled {
 		q.VDM = true
 	}
@@ -491,10 +490,12 @@ func optional(s string) *string {
 // Tracking implements providers.TrackingManager: SES rewrites links and adds
 // an open pixel when the configuration set publishes OPEN or CLICK events.
 func (p *Provider) Tracking(ctx context.Context) (providers.Tracking, error) {
-	t := providers.Tracking{Scope: "Configuration set " + p.s.ConfigurationSet}
+	set := i18n.Args{"name": p.s.ConfigurationSet}
+	t := providers.Tracking{}
+	t.Scope, t.ScopeText = say(mScopeSet, set)
 	if p.s.ConfigurationSet == "" {
-		t.Scope = "No configuration set"
-		t.Detail = "Messages are sent without a configuration set: no open or click tracking."
+		t.Scope, t.ScopeText = say(mScopeNone, nil)
+		t.Detail, t.DetailText = say(mTrackingNone, nil)
 		return t, nil
 	}
 	out, err := p.client.GetConfigurationSetEventDestinations(ctx, &sesv2.GetConfigurationSetEventDestinationsInput{ConfigurationSetName: aws.String(p.s.ConfigurationSet)})
@@ -516,13 +517,13 @@ func (p *Provider) Tracking(ctx context.Context) (providers.Tracking, error) {
 	}
 	switch {
 	case t.OpenPixel && t.LinkRewrite:
-		t.Detail = "Configuration set " + p.s.ConfigurationSet + " publishes open and click events, so SES adds a pixel and rewrites links."
+		t.Detail, t.DetailText = say(mTrackingBoth, set)
 	case t.OpenPixel:
-		t.Detail = "Configuration set " + p.s.ConfigurationSet + " publishes open events, so SES adds a pixel."
+		t.Detail, t.DetailText = say(mTrackingOpen, set)
 	case t.LinkRewrite:
-		t.Detail = "Configuration set " + p.s.ConfigurationSet + " publishes click events, so SES rewrites links."
+		t.Detail, t.DetailText = say(mTrackingClick, set)
 	default:
-		t.Detail = "Configuration set " + p.s.ConfigurationSet + ": open and click tracking off. Custom redirect domain not needed."
+		t.Detail, t.DetailText = say(mTrackingOff, set)
 	}
 	return t, nil
 }

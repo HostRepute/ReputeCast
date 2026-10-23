@@ -5,14 +5,16 @@ import { Icon } from '@/components/icons/Icon'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Loading, Skeleton } from '@/components/ui/Feedback'
+import { Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { clock, orList, shortDate } from '@/lib/format'
+import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import { PlacementShell } from './PlacementShell'
 import { AddSeedDialog, inboxNames, ReconnectDialog, RemoveSeedDialog, type AddNote } from './SeedDialogs'
-import { base, dayTime, LoadError, SeedAttention, useRefreshPlacement, useSeeds, type SeedList, type SeedView } from './shared'
+import { base, credentialName, dayTime, LoadError, SeedAttention, useRefreshPlacement, useSeeds, type SeedList, type SeedView } from './shared'
 
 export type SeedsSearch = {
   add?: boolean
@@ -145,7 +147,7 @@ function CantManage({ helpers }: { helpers: string[] }) {
     <div className="note n" role="note">
       <Icon name="info" size={16} className="mt-px flex-none text-ink-3" />
       <div className="flex min-w-0 flex-col gap-1">
-        {me ? <span className="font-bold">{t(m.readOnlyWho, { name: me.user.name, role: ws.workspace.roleName })}</span> : null}
+        {me ? <span className="font-bold">{t(m.readOnlyWho, { name: me.user.name, role: roleName({ key: ws.workspace.roleKey, name: ws.workspace.roleName }) })}</span> : null}
         <span>
           <T msg={helpers.length ? m.cantManage : m.cantManageNobody} values={{ helpers: orList(helpers), code: (c) => <span className="mono">{c}</span> }} />
         </span>
@@ -204,7 +206,7 @@ function SeedsCard({ d, onAdd, onReconnect, onRemove }: { d: SeedList; onAdd: ()
         <span className="k">{s.provider === 'outlook' || s.provider === 'microsoft_365' ? t(m.connMicrosoft) : t(m.connGoogle)}</span>
       </span>
     ) : (
-      <span>{t(m.connImap, { password: s.passwordLabel.toLowerCase() })}</span>
+      <span>{t(m.connImap, { password: credentialName(s.passwordLabel).toLowerCase() })}</span>
     )
   const actions = (s: SeedView) =>
     d.canManage ? (
@@ -246,16 +248,16 @@ function SeedsCard({ d, onAdd, onReconnect, onRemove }: { d: SeedList; onAdd: ()
           <table className="tbl" aria-label={t(m.seedsTableLabel)}>
             <thead>
               <tr>
-                <th scope="col">{t(m.colSeedMailbox)}</th>
-                <th scope="col">{t(m.colProviderFolders)}</th>
-                <th scope="col">{t(m.colConnectedWith)}</th>
-                <th scope="col">{t(m.colStatus)}</th>
-                <th scope="col">{t(m.colLastUsed)}</th>
-                <th scope="col">{t(m.colAddedBy)}</th>
+                <Th>{t(m.colSeedMailbox)}</Th>
+                <Th>{t(m.colProviderFolders)}</Th>
+                <Th>{t(m.colConnectedWith)}</Th>
+                <Th>{t(m.colStatus)}</Th>
+                <Th>{t(m.colLastUsed)}</Th>
+                <Th>{t(m.colAddedBy)}</Th>
                 {d.canManage ? (
-                  <th scope="col">
+                  <Th>
                     <span className="vh">{t(m.colActions)}</span>
-                  </th>
+                  </Th>
                 ) : null}
               </tr>
             </thead>
@@ -280,7 +282,7 @@ function SeedsCard({ d, onAdd, onReconnect, onRemove }: { d: SeedList; onAdd: ()
                   <td>
                     <span className="flex flex-col gap-0.5">
                       <span className="whitespace-nowrap">{s.addedBy}</span>
-                      <span className="k">{shortDate(s.addedAt)}</span>
+                      <span className="k whitespace-nowrap">{shortDate(s.addedAt)}</span>
                     </span>
                   </td>
                   {d.canManage ? <td className="r">{actions(s)}</td> : null}
@@ -293,7 +295,7 @@ function SeedsCard({ d, onAdd, onReconnect, onRemove }: { d: SeedList; onAdd: ()
       <div className="pl-md-down">
         {d.seeds.map((s) => {
           const at = s.statusAt ?? s.checkedAt
-          const auth = s.auth === 'oauth' ? t(m.connOAuth) : t(m.connImap, { password: s.passwordLabel.toLowerCase() })
+          const auth = s.auth === 'oauth' ? t(m.connOAuth) : t(m.connImap, { password: credentialName(s.passwordLabel).toLowerCase() })
           const added = { name: s.addedBy, date: shortDate(s.addedAt) }
           const used = s.lastUsedAt ? t(m.phoneUsedLine, { when: dayTime(s.lastUsedAt), ...added }) : t(m.phoneUsedNever, added)
           const problem =

@@ -35,17 +35,17 @@ type UpgradeOfferChecker interface {
 // upgradeOffers adds a blocking check per Upgrade block whose offer ended.
 func (b *builder) upgradeOffers() {
 	for _, o := range b.f.UpgradeOffers {
-		title := fmt.Sprintf("Upgrade block: %s has ended, and the block still offers it", o.Name)
+		args := A{"offer": o.Name, "dated": yes(o.EndedOn != nil)}
 		if o.EndedOn != nil {
-			title = fmt.Sprintf("Upgrade block: %s ended on %s, and the block still offers it", o.Name, b.day(*o.EndedOn))
+			args["day"] = b.day(*o.EndedOn)
 		}
 		parts := make([]string, len(o.Path))
 		for i, p := range o.Path {
 			parts[i] = fmt.Sprint(p)
 		}
-		b.add(ReadinessCheck{Key: "content.upgrade_offer." + strings.Join(parts, "-"), Group: GroupContent, Status: Block, Label: "Upgrade block",
-			Title:  title,
-			Detail: "Readers would be promised a price the upgrade page no longer gives. Open the email in the composer: the block goes back to the normal price.",
-			Fixes:  []ReadinessFix{link("Open in the composer", b.editor(o.Path, "settings"))}})
+		b.add(check{Key: "content.upgrade_offer." + strings.Join(parts, "-"), Group: GroupContent, Status: Block, Label: tx("label.upgradeBlock", nil),
+			Title:  tx("upgrade.ended", args),
+			Detail: tx("upgrade.endedDetail", nil),
+			Fixes:  []fix{link(tx("fix.openInTheComposer", nil), b.editor(o.Path, "settings"))}})
 	}
 }

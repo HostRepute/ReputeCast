@@ -39,6 +39,8 @@ type ReadResult struct {
 	Items       int
 	New         int
 	Err         error
+	// Address is the address that was read.
+	Address string
 }
 
 // feedAddress is the address a digest reads: its WordPress site's reported
@@ -80,7 +82,7 @@ func (s *Service) read(ctx context.Context, ws *store.Workspace, d store.Digest,
 		log.Hops, log.HttpStatus, log.Bytes, log.Ms = hops, int32(res.Status), int32(len(res.Body)), ms
 		upd.FeedMovedTo = res.Moved
 	}
-	out := ReadResult{}
+	out := ReadResult{Address: address}
 	if err != nil {
 		out.Err = err
 		log.Ok = false
@@ -167,7 +169,9 @@ func clipAll(xs []string) []string {
 	return out
 }
 
-// storedFeedError is digests.feed_error: the failure, as the screen needs it.
+// storedFeedError is digests.feed_error: the failure, as the screen needs
+// it. Detail keeps its English; Text is the same sentence as a message,
+// written in each reader's language (rows from before have none).
 type storedFeedError struct {
 	Kind    string          `json:"kind"`
 	Host    string          `json:"host"`
@@ -177,15 +181,18 @@ type storedFeedError struct {
 	Lines   []string        `json:"lines,omitempty"`
 	Hops    []DigestFeedHop `json:"hops,omitempty"`
 	Seconds int             `json:"seconds,omitempty"`
+	Text    *i18n.Text      `json:"text,omitempty"`
 }
 
 func encodeFeedError(err error, address string) string {
-	out := toFeedError(err, address)
-	b, _ := json.Marshal(storedFeedError(out))
+	out, text := toFeedError(err, address)
+	b, _ := json.Marshal(storedFeedError{Kind: out.Kind, Host: out.Host, URL: out.URL, Status: out.Status, Detail: out.Detail, Lines: out.Lines,
+		Hops: out.Hops, Seconds: out.Seconds, Text: text})
 	return string(b)
 }
 
-func decodeFeedError(raw string) *DigestFeedError {
+// decodeFeedError reads digests.feed_error for a reader.
+func decodeFeedError(raw string, l i18n.Lang) *DigestFeedError {
 	if raw == "" {
 		return nil
 	}
@@ -193,7 +200,7 @@ func decodeFeedError(raw string) *DigestFeedError {
 	if json.Unmarshal([]byte(raw), &e) != nil {
 		return &DigestFeedError{Kind: "unreachable", Detail: raw, Lines: []string{}, Hops: []DigestFeedHop{}}
 	}
-	out := &DigestFeedError{Kind: e.Kind, Host: e.Host, URL: e.URL, Status: e.Status, Detail: e.Detail, Lines: e.Lines, Hops: e.Hops, Seconds: e.Seconds}
+	out := &DigestFeedError{Kind: e.Kind, Host: e.Host, URL: e.URL, Status: e.Status, Detail: textIn(e.Text, l, e.Detail), Lines: e.Lines, Hops: e.Hops, Seconds: e.Seconds}
 	if out.Lines == nil {
 		out.Lines = []string{}
 	}
@@ -203,9 +210,16 @@ func decodeFeedError(raw string) *DigestFeedError {
 	return out
 }
 
-// toFeedError describes a failed read for the screen.
-func toFeedError(err error, address string) DigestFeedError {
+// toFeedError describes a failed read for the screen: Detail in English,
+// and the same sentence as a message for a reader's language (nil when
+// the error has none).
+func toFeedError(err error, address string) (DigestFeedError, *i18n.Text) {
 	out := DigestFeedError{Kind: "unreachable", Host: hostOf(address), URL: address, Detail: err.Error(), Lines: []string{}, Hops: []DigestFeedHop{}}
+	var text *i18n.Text
+	if t := feed.TextOf(err, address); !t.IsZero() {
+		text = &t
+		out.Detail = t.In(i18n.Default)
+	}
 	var nf *feed.NotFeedError
 	var nl *feed.NoFeedLinkError
 	switch {
@@ -215,14 +229,8 @@ func toFeedError(err error, address string) DigestFeedError {
 		if out.Lines == nil {
 			out.Lines = []string{}
 		}
-		if nf.HTML {
-			out.Detail = shortURL(address) + " isn't a feed: it answered with an HTML page"
-		} else {
-			out.Detail = shortURL(address) + " isn't a feed: " + nf.Error()
-		}
 	case errors.As(err, &nl):
 		out.Kind, out.URL = "no_feed_link", nl.Page
-		out.Detail = shortURL(nl.Page) + " is a web page that links to no feed"
 	}
 	if fe, ok := feed.AsFetchError(err); ok {
 		out.Kind, out.Status, out.Detail = fe.Kind, fe.Status, fe.Detail
@@ -236,7 +244,7 @@ func toFeedError(err error, address string) DigestFeedError {
 			out.Seconds = int(feed.Timeout / time.Second)
 		}
 	}
-	return out
+	return out, text
 }
 
 // DigestFindInput is an address typed in the setup.
@@ -268,11 +276,12 @@ func (s *Service) Find(ctx context.Context, ws *store.Workspace, in DigestFindIn
 	l := i18n.LangFrom(ctx)
 	u, err := feed.NormalizeURL(in.Address)
 	if err != nil {
-		return DigestFound{}, api.Invalid("body.address", mFeedAddress.Text(l, i18n.Args{"detail": strings.TrimSuffix(sentence(err.Error()), ".")}))
+		return DigestFound{}, api.Invalid("body.address", addressProblem(l, err, in.Address))
 	}
 	found, err := s.fetcher().Find(ctx, u)
 	if err != nil {
-		fe := toFeedError(err, u)
+		fe, text := toFeedError(err, u)
+		fe.Detail = textIn(text, l, fe.Detail)
 		return DigestFound{Error: &fe, Hops: fe.Hops, Preview: []DigestFeedItem{}}, nil
 	}
 	out := DigestFound{OK: true, URL: found.URL, Page: found.Page, Kind: found.Feed.Kind, Title: found.Feed.Title, Items: len(found.Feed.Items), Bytes: len(found.Body),

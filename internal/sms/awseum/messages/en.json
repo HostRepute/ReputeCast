@@ -1,0 +1,32 @@
+{
+  "summary": {
+    "message": "Pay as you go · in your AWS account, with SES next door",
+    "note": "the catalog card's line"
+  },
+  "field.region.label": "Region",
+  "field.access.label": {
+    "message": "Access",
+    "note": "how ReputeCast gets into the AWS account: a CloudFormation role or access keys"
+  },
+  "field.role_arn.label": {
+    "message": "Role ARN",
+    "note": "AWS's own name for the field"
+  },
+  "field.role_arn.help": "The role the CloudFormation template created. ReputeCast assumes it with the external ID.",
+  "field.external_id.label": {
+    "message": "External ID",
+    "note": "AWS's own name for the field"
+  },
+  "field.access_key_id.label": {
+    "message": "Access key ID",
+    "note": "AWS's own name for the field, as its console shows it"
+  },
+  "field.secret_access_key.label": {
+    "message": "Secret access key",
+    "note": "AWS's own name for the field, as its console shows it"
+  },
+  "field.opt_out_list.label": {
+    "message": "Opt-out list",
+    "note": "the End User Messaging opt-out list texts are checked against"
+  }
+}

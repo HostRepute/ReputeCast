@@ -2,6 +2,9 @@ import { getI18n, t } from '@/i18n'
 import { count, dayMonthYear, decimal, money } from '@/lib/format'
 import { m } from './messages'
 
+/** The width images are resized to before they go to the model for alt text (internal/ai/image.go). */
+export const ALT_TEXT_WIDTH = 1024
+
 /** Millionths of a dollar as money: 7840000 → $7.84. */
 export function dollars(micros: number | null | undefined): string {
   return money((micros ?? 0) / 1e6, 2)
@@ -23,7 +26,7 @@ function trimZeros(s: string): string {
 /** A request's estimated cost for the card footer: "About $0.01." or "Less than $0.01." */
 export function costLine(micros: number | null | undefined): string {
   const v = micros ?? 0
-  if (v < 5_000) return t(m.costLess)
+  if (v < 5_000) return t(m.costLess, { amount: money(0.01, 2) })
   return t(m.costAbout, { amount: money(Math.max(0.01, Math.round(v / 10_000) / 100), 2) })
 }
 

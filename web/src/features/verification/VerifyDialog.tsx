@@ -8,7 +8,7 @@ import { Dialog } from '@/components/ui/Dialog'
 import { Skeleton } from '@/components/ui/Feedback'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
-import { andList, dayMonthDate, orList } from '@/lib/format'
+import { andList, count, dayMonthDate, orList } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import { base, money, Notice, ResultBadge, tagValue, useRefreshVerification, type Estimate, type Origin, type ServiceKey, type Target } from './shared'
@@ -186,7 +186,7 @@ export function VerifyDialog({
             <select id={`${skipId}-svc`} className="in" value={e.service ?? ''} onChange={(ev) => setService(ev.target.value as ServiceKey)}>
               {e.services.map((s) => (
                 <option key={s.key} value={s.key}>
-                  {t(m.serviceOption, { name: s.name, isDefault: s.default ? 'yes' : 'no', credits: s.balance != null ? s.balance.toLocaleString('en-US') : 'none' })}
+                  {t(m.serviceOption, { name: s.name, isDefault: s.default ? 'yes' : 'no', credits: s.balance != null ? count(s.balance) : 'none' })}
                 </option>
               ))}
             </select>

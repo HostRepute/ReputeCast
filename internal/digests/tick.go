@@ -383,7 +383,7 @@ func (s *Service) checkOwner(ctx context.Context, ws *store.Workspace, d store.D
 	if issue, err := s.Q.DigestIssueOpen(ctx, d.ID); err == nil {
 		if issue.Status == "collecting" {
 			_ = s.Q.DigestIssueDelete(ctx, issue.ID)
-		} else if err := s.skip(ctx, ws, d, issue, "person", "the owner lost "+string(need), nil); err != nil {
+		} else if err := s.skip(ctx, ws, d, issue, "person", ownerLostPrefix+string(need), nil); err != nil {
 			return true, err
 		}
 	}

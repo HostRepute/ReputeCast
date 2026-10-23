@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/digests/feed"
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // The Feed items block (brief 3.1): a ReputeCast block of the composer in
@@ -177,8 +178,8 @@ var braces = strings.NewReplacer("{", "&#123;", "}", "&#125;")
 // RenderBlock writes the block for an issue's posts as MJML sections, one
 // per post (two per row in the grid), each marked css-class="rc-feed-item";
 // each post's column is marked css-class="rc-feed-post" (the composer's
-// canvas labels them).
-func RenderBlock(b DigestFeedBlock, items []BlockItem, loc *time.Location) string {
+// canvas labels them). Dates are written in lang, the email's language.
+func RenderBlock(b DigestFeedBlock, items []BlockItem, loc *time.Location, lang i18n.Lang) string {
 	b = b.normalized()
 	if loc == nil {
 		loc = time.UTC
@@ -192,9 +193,9 @@ func RenderBlock(b DigestFeedBlock, items []BlockItem, loc *time.Location) strin
 				pad = "28px 24px 4px"
 			}
 			fmt.Fprintf(&out, `<mj-section background-color="#ffffff" padding="%s" css-class="rc-feed-item">`, pad)
-			fmt.Fprintf(&out, `<mj-column width="50%%" padding="0px 8px 0px 0px" css-class="rc-feed-post">%s</mj-column>`, gridCell(b, b.withImage(items[i]), loc))
+			fmt.Fprintf(&out, `<mj-column width="50%%" padding="0px 8px 0px 0px" css-class="rc-feed-post">%s</mj-column>`, gridCell(b, b.withImage(items[i]), loc, lang))
 			if i+1 < len(items) {
-				fmt.Fprintf(&out, `<mj-column width="50%%" padding="0px 0px 0px 8px" css-class="rc-feed-post">%s</mj-column>`, gridCell(b, b.withImage(items[i+1]), loc))
+				fmt.Fprintf(&out, `<mj-column width="50%%" padding="0px 0px 0px 8px" css-class="rc-feed-post">%s</mj-column>`, gridCell(b, b.withImage(items[i+1]), loc, lang))
 			}
 			out.WriteString(`</mj-section>`)
 		}
@@ -210,9 +211,9 @@ func RenderBlock(b DigestFeedBlock, items []BlockItem, loc *time.Location) strin
 				fmt.Fprintf(&out, `<mj-divider border-width="1px" border-color="%s" padding="14px 0px 18px"></mj-divider>`, divider)
 			}
 			if b.Layout == "list" {
-				out.WriteString(listCell(b, it, loc))
+				out.WriteString(listCell(b, it, loc, lang))
 			} else {
-				out.WriteString(cardCell(b, it, loc))
+				out.WriteString(cardCell(b, it, loc, lang))
 			}
 			out.WriteString(`</mj-column></mj-section>`)
 		}
@@ -224,14 +225,14 @@ func RenderBlock(b DigestFeedBlock, items []BlockItem, loc *time.Location) strin
 	return out.String()
 }
 
-func blockMeta(b DigestFeedBlock, it BlockItem, loc *time.Location, short bool) string {
+func blockMeta(b DigestFeedBlock, it BlockItem, loc *time.Location, lang i18n.Lang, short bool) string {
 	parts := []string{}
 	if b.has(FieldDate) && it.Published != nil {
-		layout := "Monday 2 January 2006"
+		form := datePost
 		if short {
-			layout = "Mon 2 Jan"
+			form = dateCard
 		}
-		parts = append(parts, it.Published.In(loc).Format(layout))
+		parts = append(parts, emailDate(lang, it.Published.In(loc), form))
 	}
 	if b.has(FieldAuthor) && it.Author != "" {
 		parts = append(parts, esc(it.Author))
@@ -295,16 +296,16 @@ func blockImage(b DigestFeedBlock, it BlockItem, width int) string {
 	return fmt.Sprintf(`<mj-image src="%s" alt="%s" width="%dpx"%s padding="0px 0px 12px"></mj-image>`, esc(it.Image), esc(it.ImageAlt), width, href)
 }
 
-func cardCell(b DigestFeedBlock, it BlockItem, loc *time.Location) string {
-	return blockImage(b, it, 552) + blockMeta(b, it, loc, false) + blockTitle(b, it, "17px", inkColor, false) + blockCategories(b, it) + blockExcerpt(b, it, b.ExcerptWords) + blockButton(b, it)
+func cardCell(b DigestFeedBlock, it BlockItem, loc *time.Location, lang i18n.Lang) string {
+	return blockImage(b, it, 552) + blockMeta(b, it, loc, lang, false) + blockTitle(b, it, "17px", inkColor, false) + blockCategories(b, it) + blockExcerpt(b, it, b.ExcerptWords) + blockButton(b, it)
 }
 
-func listCell(b DigestFeedBlock, it BlockItem, loc *time.Location) string {
-	return blockTitle(b, it, "17px", teal, true) + blockMeta(b, it, loc, false) + blockCategories(b, it) + blockExcerpt(b, it, b.ExcerptWords)
+func listCell(b DigestFeedBlock, it BlockItem, loc *time.Location, lang i18n.Lang) string {
+	return blockTitle(b, it, "17px", teal, true) + blockMeta(b, it, loc, lang, false) + blockCategories(b, it) + blockExcerpt(b, it, b.ExcerptWords)
 }
 
-func gridCell(b DigestFeedBlock, it BlockItem, loc *time.Location) string {
-	return blockImage(b, it, 264) + blockMeta(b, it, loc, true) + blockTitle(b, it, "17px", inkColor, false) + blockCategories(b, it) + blockExcerpt(b, it, max(10, b.ExcerptWords/2)) + blockButton(b, it)
+func gridCell(b DigestFeedBlock, it BlockItem, loc *time.Location, lang i18n.Lang) string {
+	return blockImage(b, it, 264) + blockMeta(b, it, loc, lang, true) + blockTitle(b, it, "17px", inkColor, false) + blockCategories(b, it) + blockExcerpt(b, it, max(10, b.ExcerptWords/2)) + blockButton(b, it)
 }
 
 // blockMarker finds the Feed items block of a template.
@@ -344,12 +345,12 @@ func BlockOf(mjml string) (DigestFeedBlock, bool) {
 // ExpandBlock replaces a template's Feed items block with the issue's
 // posts. The block's place is kept with a marker naming its layout, so the
 // composer labels the posts of an issue ("Feed item 1 of 3").
-func ExpandBlock(mjml string, items []BlockItem, loc *time.Location) string {
+func ExpandBlock(mjml string, items []BlockItem, loc *time.Location, lang i18n.Lang) string {
 	b, ok := BlockOf(mjml)
 	if !ok {
 		return mjml
 	}
 	loc0 := blockMarker.FindStringIndex(mjml)
 	marker := fmt.Sprintf(`<mj-raw><!-- rc:feed-issue {"layout":%q,"items":%d} --></mj-raw>`, b.Layout, len(items))
-	return mjml[:loc0[0]] + marker + RenderBlock(b, items, loc) + mjml[loc0[1]:]
+	return mjml[:loc0[0]] + marker + RenderBlock(b, items, loc, lang) + mjml[loc0[1]:]
 }

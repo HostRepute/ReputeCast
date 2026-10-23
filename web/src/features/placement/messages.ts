@@ -316,7 +316,8 @@ export const m = defineMessages('placement', {
   lookWarmupLine: 'Day {day, number} of {days, number}. Most engaged contacts go first while the IP is young.',
   lookWarmupNoHR: 'Day {day, number} of {days, number}. Health shows the built-in checks for {ip}.',
   lookStateHealthy: 'Healthy.',
-  lookStateOther: '{status}.',
+  // A provider state the guidance names (healthy and warming up have their own lines).
+  lookStateOther: '{status, select, degraded {degraded.} down {down.} paused {paused.} sandbox {sandbox.} other {{status}.}}',
   lookEarlier: '{content} reached {inbox, number} of {copies, number} inboxes through {provider} on {date}.',
   openReview: 'Open Review & send',
   editComposer: 'Edit in the composer',
@@ -359,6 +360,12 @@ export const m = defineMessages('placement', {
   connOAuth: 'OAuth',
   connGoogle: 'Google account',
   connMicrosoft: 'Microsoft account',
+  // What each mailbox provider calls the password a seed signs in with
+  // (the server's label, in English, is the key): a field's label, and
+  // lower-cased inside sentences.
+  credentialAppPassword: 'App password',
+  credentialAppSpecific: 'App-specific password',
+  credentialPassword: 'Password',
   seedConnected: 'Connected',
   seedFailed: 'Sign-in failed',
   seedExpired: 'Sign-in expired',

@@ -44,7 +44,6 @@ func Descriptor() sms.Descriptor {
 	return sms.Descriptor{
 		Manifest: sms.Manifest{
 			Adapter: Adapter, Name: "Plivo",
-			Summary: "Pay as you go · numbers in 190 countries",
 			Badges: []sms.Badge{
 				{Capability: sms.CapTollFree, Support: sms.Yes}, {Capability: sms.Cap10DLC, Support: sms.Yes}, {Capability: sms.CapSenderIDs, Support: sms.Yes},
 				{Capability: sms.CapReceipts, Support: sms.Yes}, {Capability: sms.CapInbound, Support: sms.Yes},
@@ -52,8 +51,8 @@ func Descriptor() sms.Descriptor {
 				{Capability: sms.CapRegistration, Support: sms.Yes}, {Capability: sms.CapPricing, Support: sms.Yes},
 			},
 			Fields: []sms.Field{
-				{Key: "auth_id", Label: "Auth ID", Required: true},
-				{Key: "auth_token", Label: "Auth token", Secret: true, Required: true},
+				{Key: "auth_id", Required: true},
+				{Key: "auth_token", Secret: true, Required: true},
 			},
 			Webhooks: "registered",
 			Console: func(kind, _ string) string {
@@ -66,7 +65,9 @@ func Descriptor() sms.Descriptor {
 				return "https://console.plivo.com/dashboard/"
 			},
 			Version: "1.0.0", Maintainer: "ReputeCast",
-		},
+			// The summary, the badges' notes and the fields' labels and hints
+			// are in messages/en.json: WithMessages fills them.
+		}.WithMessages(msgs),
 		New: New,
 	}
 }

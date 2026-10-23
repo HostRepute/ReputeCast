@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/apiclient"
 	"github.com/hostrepute/reputecast/internal/providers/bounce"
@@ -70,7 +71,9 @@ func (p *Provider) Verify(ctx context.Context) (providers.Quota, error) { return
 func (p *Provider) Quota(ctx context.Context) (providers.Quota, error) {
 	domains, header, err := p.listDomains(ctx)
 	if sendingOnly(err) {
-		return providers.Quota{Account: "Sending access key · quota and domains need a Full access key"}, nil
+		var q providers.Quota
+		q.Account, q.AccountText = say(mAccountSending, nil)
+		return q, nil
 	}
 	if err != nil {
 		return providers.Quota{}, err
@@ -82,20 +85,15 @@ func (p *Provider) Quota(ctx context.Context) (providers.Quota, error) {
 		}
 	}
 	q := providers.Quota{Sandbox: verified == 0}
-	switch verified {
-	case 0:
-		q.Account = "No verified domain · test mail to your own address only"
-	case 1:
-		q.Account = "1 verified domain"
-	default:
-		q.Account = strconv.Itoa(verified) + " verified domains"
-	}
+	// "2 verified domains · 50,000 per month plan"
+	account := i18n.Args{"verified": verified, "plan": "no"}
 	if used, err := strconv.ParseInt(strings.TrimSpace(header.Get("X-Resend-Monthly-Quota")), 10, 64); err == nil {
 		q.Kind, q.Used, q.Max = "monthly_plan", used, int64(p.s.MonthlyLimit)
 		if p.s.MonthlyLimit > 0 {
-			q.Account += " · " + count(int64(p.s.MonthlyLimit)) + " per month plan"
+			account["plan"], account["limit"] = "yes", int64(p.s.MonthlyLimit)
 		}
 	}
+	q.Account, q.AccountText = say(mAccount, account)
 	return q, nil
 }
 
@@ -160,7 +158,9 @@ func (p *Provider) DomainStatus(ctx context.Context, domain string) ([]providers
 		}
 		return records(d, domain), nil
 	}
-	return nil, &providers.CallError{Op: "GET /domains", Status: http.StatusNotFound, Message: domain + " is not set up in Resend"}
+	ce := &providers.CallError{Op: "GET /domains", Status: http.StatusNotFound}
+	ce.Message, ce.Text = say(mDomainMissing, i18n.Args{"domain": domain})
+	return nil, ce
 }
 
 func records(d domainInfo, domain string) []providers.DNSRecord {
@@ -405,7 +405,8 @@ func (p *Provider) Tracking(ctx context.Context) (providers.Tracking, error) {
 	if err != nil {
 		return providers.Tracking{}, err
 	}
-	t := providers.Tracking{Scope: "Domains"}
+	t := providers.Tracking{}
+	t.Scope, t.ScopeText = say(mTrackingScope, nil)
 	var opens, clicks []string
 	for _, d := range infos {
 		if d.TrackingSubdomain == "" {
@@ -420,15 +421,16 @@ func (p *Provider) Tracking(ctx context.Context) (providers.Tracking, error) {
 			clicks = append(clicks, d.Name)
 		}
 	}
+	on := i18n.Args{"opens": strings.Join(opens, ", "), "clicks": strings.Join(clicks, ", ")}
 	switch {
 	case len(opens) > 0 && len(clicks) > 0:
-		t.Detail = "Open tracking is on for " + strings.Join(opens, ", ") + " and click tracking for " + strings.Join(clicks, ", ") + "."
+		t.Detail, t.DetailText = say(mTrackingBoth, on)
 	case len(opens) > 0:
-		t.Detail = "Open tracking is on for " + strings.Join(opens, ", ") + "."
+		t.Detail, t.DetailText = say(mTrackingOpen, on)
 	case len(clicks) > 0:
-		t.Detail = "Click tracking is on for " + strings.Join(clicks, ", ") + "."
+		t.Detail, t.DetailText = say(mTrackingClick, on)
 	default:
-		t.Detail = "Open and click tracking are off on every domain."
+		t.Detail, t.DetailText = say(mTrackingOff, nil)
 	}
 	return t, nil
 }

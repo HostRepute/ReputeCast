@@ -68,13 +68,27 @@ type CampaignFacts struct {
 	ScheduleMode string
 }
 
+// Kinds of audience a base label names (AudienceFacts.BaseKind).
+const (
+	BaseAll     = "all"     // every public list: "All subscribers"
+	BaseList    = "list"    // one list: "Weekly Digest list"
+	BaseSegment = "segment" // one segment: "Customers segment"
+	BaseNone    = "none"    // nothing named: "Audience"
+	BaseMany    = "many"    // several: "Weekly Digest + Product Updates"
+)
+
 // AudienceFacts are the audience counts after exclusions.
 type AudienceFacts struct {
 	// BaseLabel names the audience ("Weekly Digest list", "All subscribers").
 	BaseLabel string
 	// GroupLabel is the caption of the audience-quality group ("Weekly Digest").
 	GroupLabel string
-	Lists      []string
+	// BaseKind says what BaseLabel names and BaseName the list or segment,
+	// so the labels read in each reader's language; empty shows the labels
+	// as they are.
+	BaseKind string
+	BaseName string
+	Lists    []string
 	// Base counts the subscribed contacts of the lists and segments (minus
 	// excluded lists and segments).
 	Base       int64
@@ -144,9 +158,11 @@ type ShareFacts struct {
 	Status    string
 	Available bool
 	// DownSince and DownDetail describe an outage ("mta.acme.io has refused
-	// connections since 08:52 (ECONNREFUSED on port 25 and 443)").
+	// connections since 08:52 (ECONNREFUSED on port 25 and 443)"); Down says
+	// it in parts, so it reads in each reader's language.
 	DownSince  *time.Time
 	DownDetail string
+	Down       *DownFacts
 	// Warm-up: day and length of the plan, the cap on the send day and
 	// whether that day is today.
 	WarmupDay   int
@@ -169,13 +185,25 @@ type ShareFacts struct {
 	Sandbox bool
 	Quota   *state.Quota
 	// BulkAllowed says whether the provider's terms allow bulk marketing;
-	// Terms explains it ("yes, with production access").
+	// Terms explains it ("yes, with production access") and TermsKind names
+	// the explanation (terms.<kind> in the messages; empty shows Terms).
 	BulkAllowed bool
 	Terms       string
+	TermsKind   string
 	Tracking    state.Tracking
 	// IPs are the provider's dedicated IPs (empty for shared pools).
 	IPs         []string
 	ConnectedAt time.Time
+}
+
+// DownFacts is why a provider can't take mail: since when, the host or
+// provider it's about, and either rejected credentials (Auth) or refused
+// connections with the error code (Code).
+type DownFacts struct {
+	Since time.Time
+	Who   string
+	Auth  bool
+	Code  string
 }
 
 // ReputationFacts are the blocklist results (HostRepute or the built-in checks).
@@ -187,9 +215,11 @@ type ReputationFacts struct {
 	Sources int
 	// Reason explains an unknown status; Outage is HostRepute's error
 	// ("Couldn't reach api.hostrepute.com (timeout after 30 s, 3 attempts)").
-	Reason    string
-	Outage    string
-	CheckedAt *time.Time
+	// ReasonText is Reason when Send Readiness wrote it itself.
+	Reason     string
+	ReasonText Text
+	Outage     string
+	CheckedAt  *time.Time
 	// DomainSources and IPSources name the lists that check domains and IPs,
 	// most important first.
 	DomainSources []string
@@ -230,16 +260,31 @@ type AuthFacts struct {
 	BIMILogo   string
 }
 
+// What a provider's record detail says (ProviderAuthFacts.DetailKind).
+const (
+	AuthCNAMEs     = "cnames"     // CNAMEs Easy DKIM CNAMEs verified
+	AuthSelector   = "selector"   // selector Selector verified
+	AuthUnverified = "unverified" // DKIM records not verified
+	AuthSPFAdd     = "spf_add"    // add Value to the SPF record of Name
+)
+
 // ProviderAuthFacts is one provider's record of one kind.
 type ProviderAuthFacts struct {
 	Short string
 	// OK is true when the record is verified (and aligned, for MAIL FROM).
 	OK bool
 	// Detail: "3 Easy DKIM CNAMEs verified", "selector postal-2026 verified",
-	// the MAIL FROM domain, or what's wrong.
-	Detail  string
-	KeyBits int
-	Domain  string
+	// the MAIL FROM domain, or what's wrong. DetailKind says which, with
+	// its parts (CNAMEs, Selector, Value and Name), so it reads in each
+	// reader's language; empty shows Detail as it is.
+	Detail     string
+	DetailKind string
+	CNAMEs     int
+	Selector   string
+	Value      string
+	Name       string
+	KeyBits    int
+	Domain     string
 }
 
 // ContentFacts are the composer's content and link checks.

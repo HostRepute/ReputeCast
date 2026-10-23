@@ -7,14 +7,17 @@ import { m } from './messages'
 import { useOverview } from './shared'
 import { tierName, VerifyDialog } from './VerifyDialog'
 
+/** The tiers' English names: how the API labels a tier's verification. */
+const tierLabels: Record<string, string> = { active: m.tierActive.message, cooling: m.tierCooling.message, at_risk: m.tierAtRisk.message, sunset: m.tierSunset.message }
+
 /** " · never checked", " · checked 14 Oct": when a tier's addresses were last verified. */
 export function TierChecked({ tier }: { tier: string }) {
   const t = useT()
   const can = useCan('integrations:view')
   const q = useOverview(can)
   if (!can || !q.data || !q.data.services.some((s) => s.connected)) return null
-  const name = tierName(t, tier)
-  const last = q.data.uses.find((u) => u.kind === 'tier' && u.label === name && u.status === 'finished')
+  const names = [tierLabels[tier] ?? tier, tierName(t, tier)]
+  const last = q.data.uses.find((u) => u.kind === 'tier' && names.includes(u.label) && u.status === 'finished')
   return <>{last?.finishedAt ? ` · ${t(m.tierCheckedOn, { date: dayMonthDate(last.finishedAt) })}` : ` · ${t(m.tierNeverChecked)}`}</>
 }
 

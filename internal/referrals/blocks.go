@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/media"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -34,17 +35,16 @@ func init() {
 	liquid.RegisterBlock("reward", func(raw []byte) string { return ExpandReward(parseRewardBlock(raw)) })
 	// The Referral tokens of the composer's token menu: empty for readers
 	// outside a program (the block hides itself; the checks say so).
-	liquid.RegisterTokens(
-		liquid.PersonalizationToken{Key: "referral.link", Label: "Referral link", Kind: "referral"},
-		liquid.PersonalizationToken{Key: "referral.code", Label: "Referral code", Kind: "referral"},
-		liquid.PersonalizationToken{Key: "referral.hub_url", Label: "Rewards page link", Kind: "referral"},
-		liquid.PersonalizationToken{Key: "referral.count", Label: "Counted referrals", Kind: "referral"},
-		liquid.PersonalizationToken{Key: "referral.pending", Label: "Referrals not counted yet", Kind: "referral"},
-		liquid.PersonalizationToken{Key: "referral.next_milestone.count", Label: "Next milestone", Kind: "referral"},
-		liquid.PersonalizationToken{Key: "referral.next_milestone.reward", Label: "Next reward", Kind: "referral"},
-		liquid.PersonalizationToken{Key: "referral.to_next", Label: "Referrals to the next reward", Kind: "referral"},
-		liquid.PersonalizationToken{Key: "referral.rewards", Label: "Rewards earned", Kind: "referral"},
-	)
+	// Their labels follow the member's language (liquid.InLanguage).
+	tokens := []struct{ key, label string }{
+		{"referral.link", "token.link"}, {"referral.code", "token.code"}, {"referral.hub_url", "token.hubURL"}, {"referral.count", "token.count"},
+		{"referral.pending", "token.pending"}, {"referral.next_milestone.count", "token.nextMilestone"}, {"referral.next_milestone.reward", "token.nextReward"},
+		{"referral.to_next", "token.toNext"}, {"referral.rewards", "token.rewards"},
+	}
+	for _, t := range tokens {
+		m := msgs.M(t.label)
+		liquid.RegisterTokens(liquid.PersonalizationToken{Key: t.key, Label: m.Text(i18n.Default, nil), LabelText: m.Keep(nil), Kind: "referral"})
+	}
 }
 
 // ReferralBlockTexts are the block's headline for 0, 1 and several counted

@@ -85,6 +85,8 @@ export const m = defineMessages('overview', {
   eventsVia:
     '{webhook, select, yes {{unaffected, select, yes {Events via webhook: last received {ago}, so delivery tracking is unaffected.} other {Events via webhook: last received {ago}.}}} other {{unaffected, select, yes {Events via {feed}: last received {ago}, so delivery tracking is unaffected.} other {Events via {feed}: last received {ago}.}}}}',
   noFeed: '{unaffected, select, yes {No event feed, so delivery tracking is unaffected.} other {No event feed.}}',
+  /** The event feed of SMTP providers; SNS and Event Grid are product names. */
+  feedBounceMailbox: 'Bounce mailbox',
 
   // ── A failing account-health refresh (OverviewStates) ────────────────
   refreshTitle: "Couldn't refresh {name} account health",
