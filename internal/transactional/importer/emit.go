@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // scope is the context a Mustache block sets: the root, a loop item or an
@@ -37,11 +39,11 @@ type emitter struct {
 	taken     map[string]bool
 }
 
-func (e *emitter) note(kind NoteKind, line int, construct, msg string) {
+func (e *emitter) note(kind NoteKind, line int, construct string, t i18n.Text) {
 	if e.collect {
 		return
 	}
-	e.notes = append(e.notes, Note{Kind: kind, Field: e.field, Line: line, Construct: construct, Message: msg})
+	e.notes = append(e.notes, noteOf(kind, e.field, line, construct, t))
 }
 
 func (e *emitter) dialectName() string {
@@ -91,7 +93,7 @@ func convertMustacheFields(fields []fieldSrc, d Dialect, u *usage) ([]string, []
 		e := &emitter{d: d, u: u, field: f.name, scopes: []scope{{}}, loopNames: loopNames, taken: taken}
 		e.notes = append(e.notes, ps[i].pre...)
 		for _, p := range ps[i].probs {
-			e.note(NoteManual, p.line, p.construct, p.message)
+			e.note(NoteManual, p.line, p.construct, p.text)
 		}
 		e.nodes(ps[i].nodes)
 		outs[i] = e.b.String()
@@ -161,14 +163,14 @@ func (e *emitter) verbatim(t token) {
 	e.b.WriteString(t.src)
 	switch t.kind {
 	case tPartial:
-		e.note(NoteManual, t.line, t.src, fmt.Sprintf("the %s partial `%s` has no Liquid equivalent. Use a saved section.", e.dialectName(), strings.TrimSpace(t.src)))
+		e.note(NoteManual, t.line, t.src, say("note.partial", i18n.Args{"dialect": e.dialectName(), "src": strings.TrimSpace(t.src)}))
 	case tDelims:
-		e.note(NoteManual, t.line, t.src, fmt.Sprintf("`%s` changes the tag delimiters, which Liquid can't do. Rewrite the tags that follow with `{{ }}`.", t.src))
+		e.note(NoteManual, t.line, t.src, say("note.delimiters", i18n.Args{"src": t.src}))
 	case tRawBlock:
-		e.note(NoteManual, t.line, t.src, fmt.Sprintf("the raw block `%s` has no Liquid equivalent. Use `{%% raw %%}`.", t.src))
+		e.note(NoteManual, t.line, t.src, say("note.rawBlock", i18n.Args{"src": t.src}))
 	case tText:
 		if t.unclosed {
-			e.note(NoteManual, t.line, firstLine(t.src), fmt.Sprintf("`%s` is never closed with `}}`.", firstLine(t.src)))
+			e.note(NoteManual, t.line, firstLine(t.src), say("note.unclosed", i18n.Args{"src": firstLine(t.src)}))
 		}
 	}
 }
@@ -183,23 +185,23 @@ func firstLine(s string) string {
 
 // resolve turns a Mustache path into a Liquid expression and its
 // normalized data path ("" for values with no data path, like forloop).
-func (e *emitter) resolve(path string) (liq, norm string, ok bool, why string) {
+func (e *emitter) resolve(path string) (liq, norm string, ok bool, why i18n.Text) {
 	base := len(e.scopes) - 1
 	p := path
 	switch {
 	case strings.HasPrefix(p, "@root."):
 		base, p = 0, strings.TrimPrefix(p, "@root.")
 	case p == "@root":
-		return "", "", false, "`@root` prints the whole data, which Liquid can't do"
+		return "", "", false, say("why.root", nil)
 	case strings.HasPrefix(p, "@../"):
-		return "", "", false, fmt.Sprintf("`%s` refers to an outer loop, which Liquid can't reach", path)
+		return "", "", false, say("why.outerLoop", i18n.Args{"path": path})
 	}
 	// A block param names a loop's item ("as |row|"): "row.v" is the item's v.
 	if first, rest, _ := strings.Cut(p, "."); !strings.HasPrefix(p, ".") {
 		for k := len(e.scopes) - 1; k > 0; k-- {
 			if s := e.scopes[k]; s.param != "" && s.param == first {
 				if rest == "" {
-					return s.expr, s.norm, true, ""
+					return s.expr, s.norm, true, i18n.Text{}
 				}
 				base, p = k, rest
 				break
@@ -240,29 +242,29 @@ func (e *emitter) resolve(path string) (liq, norm string, ok bool, why string) {
 			}
 		}
 		if target < 0 {
-			return "", "", false, fmt.Sprintf("`%s` is outside a loop", path)
+			return "", "", false, say("why.outsideLoop", i18n.Args{"path": path})
 		}
 		if target != innermost {
-			return "", "", false, fmt.Sprintf("`%s` refers to an outer loop, which Liquid can't reach", path)
+			return "", "", false, say("why.outerLoop", i18n.Args{"path": path})
 		}
 		switch p {
 		case "@index":
-			return "forloop.index0", "", true, ""
+			return "forloop.index0", "", true, i18n.Text{}
 		case "@first":
-			return "forloop.first", "", true, ""
+			return "forloop.first", "", true, i18n.Text{}
 		case "@last":
-			return "forloop.last", "", true, ""
+			return "forloop.last", "", true, i18n.Text{}
 		}
-		return "", "", false, fmt.Sprintf("`%s` has no Liquid equivalent", path)
+		return "", "", false, say("why.noEquivalent", i18n.Args{"path": path})
 	}
 	if sc.index != "" && p == sc.index {
-		return "forloop.index0", "", true, ""
+		return "forloop.index0", "", true, i18n.Text{}
 	}
 	if p == "" {
 		if base == 0 {
-			return "", "", false, "`" + path + "` at the top level prints the whole data, which Liquid can't do"
+			return "", "", false, say("why.topLevel", i18n.Args{"path": path})
 		}
-		return sc.expr, sc.norm, true, ""
+		return sc.expr, sc.norm, true, i18n.Text{}
 	}
 	segs := strings.Split(p, ".")
 	liqSegs := make([]string, 0, len(segs))
@@ -271,15 +273,15 @@ func (e *emitter) resolve(path string) (liq, norm string, ok bool, why string) {
 		s = strings.TrimSuffix(strings.TrimPrefix(s, "["), "]")
 		switch {
 		case s == "":
-			return "", "", false, "`" + path + "` isn't a path Liquid can read"
+			return "", "", false, say("why.notPath", i18n.Args{"path": path})
 		case isNumber(s) && !strings.ContainsAny(s, ".-"):
 			if len(liqSegs) == 0 {
-				return "", "", false, "`" + path + "` isn't a path Liquid can read"
+				return "", "", false, say("why.notPath", i18n.Args{"path": path})
 			}
 			liqSegs[len(liqSegs)-1] += "[" + s + "]"
 			normSegs = append(normSegs, "[]")
 		case !validName(s):
-			return "", "", false, "`" + path + "` isn't a name Liquid can read"
+			return "", "", false, say("why.notName", i18n.Args{"path": path})
 		default:
 			liqSegs = append(liqSegs, s)
 			normSegs = append(normSegs, s)
@@ -300,7 +302,7 @@ func (e *emitter) resolve(path string) (liq, norm string, ok bool, why string) {
 			norm += "." + s
 		}
 	}
-	return liq, norm, true, ""
+	return liq, norm, true, i18n.Text{}
 }
 
 var nameRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_-]*$`)
@@ -329,7 +331,7 @@ func (e *emitter) inURLAttr() bool {
 func (e *emitter) variable(t token) {
 	if t.body == "" {
 		e.b.WriteString(t.src)
-		e.note(NoteManual, t.line, t.src, "`"+t.src+"` is empty.")
+		e.note(NoteManual, t.line, t.src, say("note.empty", i18n.Args{"src": t.src}))
 		return
 	}
 	if mapped, ok := e.placeholder(t); ok {
@@ -338,7 +340,7 @@ func (e *emitter) variable(t token) {
 	}
 	head, args, _, ok := parseCall(t.body)
 	if !ok {
-		e.keep(t, "`"+t.src+"` isn't an expression ReputeCast can read.")
+		e.keep(t, say("note.unreadable", i18n.Args{"src": t.src}))
 		return
 	}
 	if len(args) > 0 {
@@ -358,7 +360,7 @@ func (e *emitter) variable(t token) {
 	}
 	liq, norm, ok, why := e.resolve(head)
 	if !ok {
-		e.keep(t, why+".")
+		e.keep(t, why)
 		return
 	}
 	inURL := e.inURLAttr()
@@ -373,7 +375,7 @@ func (e *emitter) variable(t token) {
 
 // keep writes a construct as it was and asks for a manual fix: the draft
 // shows a Liquid error on that line until someone rewrites it.
-func (e *emitter) keep(t token, msg string) {
+func (e *emitter) keep(t token, msg i18n.Text) {
 	e.b.WriteString(t.src)
 	e.note(NoteManual, t.line, t.src, msg)
 }
@@ -384,13 +386,13 @@ func (e *emitter) placeholder(t token) (string, bool) {
 	b := strings.TrimSpace(t.body)
 	switch {
 	case e.d == DialectPostmark && strings.EqualFold(b, "pm:unsubscribe"):
-		e.note(NoteChange, t.line, t.src, "Postmark's `"+t.src+"` became `{{ unsubscribe_url }}`.")
+		e.note(NoteChange, t.line, t.src, say("note.unsubscribe", i18n.Args{"provider": "Postmark", "src": t.src}))
 		return "unsubscribe_url", true
 	case e.sendgrid() && b == "unsubscribe" && len(e.scopes) == 1:
-		e.note(NoteChange, t.line, t.src, "SendGrid's `"+t.src+"` became `{{ unsubscribe_url }}`.")
+		e.note(NoteChange, t.line, t.src, say("note.unsubscribe", i18n.Args{"provider": "SendGrid", "src": t.src}))
 		return "unsubscribe_url", true
 	case e.sendgrid() && b == "unsubscribe_preferences" && len(e.scopes) == 1:
-		e.note(NoteChange, t.line, t.src, "SendGrid's `"+t.src+"` became `{{ preferences_url }}`.")
+		e.note(NoteChange, t.line, t.src, say("note.preferences", i18n.Args{"src": t.src}))
 		return "preferences_url", true
 	case e.d == DialectPostmark && b == "@content":
 		return "", false
@@ -405,25 +407,25 @@ func (e *emitter) inlineHelper(t token, head string, args []expr) {
 	case e.sendgrid() && head == "formatDate" && (len(args) == 2 || len(args) == 3) && args[0].kind == ePath && args[1].kind == eString:
 		liq, norm, ok, why := e.resolve(args[0].s)
 		if !ok {
-			e.keep(t, why+".")
+			e.keep(t, why)
 			return
 		}
 		f, unknown := momentToStrftime(args[1].s)
 		bare := e.guard == 0
 		e.useAt(norm, t.line, func(p *pathUse) { p.printed, p.date, p.bare = true, true, p.bare || bare })
 		e.b.WriteString(outTag(t, fmt.Sprintf("%s | date: %s", liq, quote(f))))
-		msg := fmt.Sprintf("`%s` became `%s`.", t.src, outTag(token{}, fmt.Sprintf("%s | date: %s", liq, quote(f))))
+		na := i18n.Args{"src": t.src, "out": outTag(token{}, fmt.Sprintf("%s | date: %s", liq, quote(f))), "offset": "none", "unknown": "none"}
 		if len(args) == 3 {
-			msg = fmt.Sprintf("`%s` became `%s`. Liquid prints the time in the zone the value carries, so the offset %s was left out.", t.src, outTag(token{}, fmt.Sprintf("%s | date: %s", liq, quote(f))), quote(args[2].s))
+			na["offset"] = quote(args[2].s)
 		}
 		if len(unknown) > 0 {
-			msg += " These format tokens have no Liquid equivalent and print as written: " + strings.Join(unknown, ", ") + "."
+			na["unknown"] = strings.Join(unknown, ", ")
 		}
-		e.note(NoteChange, t.line, t.src, msg)
+		e.note(NoteChange, t.line, t.src, say("note.date", na))
 	case e.sendgrid() && head == "insert" && len(args) >= 1 && args[0].kind == ePath:
 		liq, norm, ok, why := e.resolve(args[0].s)
 		if !ok {
-			e.keep(t, why+".")
+			e.keep(t, why)
 			return
 		}
 		def, hasDef := "", false
@@ -447,18 +449,18 @@ func (e *emitter) inlineHelper(t token, head string, args []expr) {
 		}
 		e.b.WriteString(outTag(t, out))
 		if hasDef {
-			e.note(NoteChange, t.line, t.src, fmt.Sprintf("`%s` became `%s`.", t.src, outTag(token{}, out)))
+			e.note(NoteChange, t.line, t.src, say("note.became", i18n.Args{"src": t.src, "out": outTag(token{}, out)}))
 		}
 	case e.sendgrid() && head == "length" && len(args) == 1 && args[0].kind == ePath:
 		liq, norm, ok, why := e.resolve(args[0].s)
 		if !ok {
-			e.keep(t, why+".")
+			e.keep(t, why)
 			return
 		}
 		e.useAt(norm, t.line, func(p *pathUse) { p.iterated = true })
 		e.b.WriteString(outTag(t, liq+" | size"))
 	default:
-		e.keep(t, fmt.Sprintf("%s helper `%s` has no Liquid equivalent.", e.dialectName(), head))
+		e.keep(t, say("note.helper", i18n.Args{"dialect": e.dialectName(), "name": head}))
 	}
 }
 
@@ -485,7 +487,7 @@ var comparisons = map[string]string{
 func (e *emitter) block(b *mBlock) {
 	head, args, params, ok := parseCall(b.open.body)
 	if !ok {
-		e.keepBlock(b, "`"+b.open.src+"` isn't an expression ReputeCast can read.")
+		e.keepBlock(b, say("note.unreadable", i18n.Args{"src": b.open.src}))
 		return
 	}
 	if b.inverted {
@@ -499,7 +501,7 @@ func (e *emitter) block(b *mBlock) {
 		e.eachBlock(b, args, params)
 	case head == "with":
 		if len(args) != 1 || args[0].kind != ePath {
-			e.keepBlock(b, "`"+b.open.src+"` needs exactly one value.")
+			e.keepBlock(b, say("note.oneValue", i18n.Args{"src": b.open.src}))
 			return
 		}
 		e.withBlock(b, args[0].s, false)
@@ -510,7 +512,7 @@ func (e *emitter) block(b *mBlock) {
 	case len(args) == 0 && validPath(head):
 		e.section(b, head, nil, false)
 	default:
-		e.keepBlock(b, fmt.Sprintf("%s helper `%s` has no Liquid equivalent.", e.dialectName(), head))
+		e.keepBlock(b, say("note.helper", i18n.Args{"dialect": e.dialectName(), "name": head}))
 	}
 }
 
@@ -523,7 +525,7 @@ func validPath(s string) bool {
 
 // keepBlock writes a block's own tags as they were (a manual fix) and still
 // converts what is inside.
-func (e *emitter) keepBlock(b *mBlock, msg string) {
+func (e *emitter) keepBlock(b *mBlock, msg i18n.Text) {
 	e.note(NoteManual, b.open.line, b.open.src, msg)
 	e.b.WriteString(b.open.src)
 	e.guard++
@@ -558,15 +560,15 @@ func (e *emitter) truthy(liq, norm string) string {
 }
 
 // condition converts one condition operand.
-func (e *emitter) condition(a expr, line int) (string, bool, string) {
+func (e *emitter) condition(a expr, line int) (string, bool, i18n.Text) {
 	switch a.kind {
 	case eString, eNumber, eBool:
 		if a.kind == eString {
-			return quote(a.s), true, ""
+			return quote(a.s), true, i18n.Text{}
 		}
-		return a.s, true, ""
+		return a.s, true, i18n.Text{}
 	case eNull:
-		return "nil", true, ""
+		return "nil", true, i18n.Text{}
 	case eSub:
 		// (length items) is the one subexpression with a Liquid twin.
 		if len(a.sub) == 2 && a.sub[0].kind == ePath && a.sub[0].s == "length" && a.sub[1].kind == ePath && e.sendgrid() {
@@ -575,18 +577,18 @@ func (e *emitter) condition(a expr, line int) (string, bool, string) {
 				return "", false, why
 			}
 			e.useAt(norm, line, func(p *pathUse) { p.iterated = true; p.cond = true })
-			return liq + ".size", true, ""
+			return liq + ".size", true, i18n.Text{}
 		}
-		return "", false, "this subexpression has no Liquid equivalent"
+		return "", false, say("why.subexpression", nil)
 	case ePath:
 		liq, norm, ok, why := e.resolve(a.s)
 		if !ok {
 			return "", false, why
 		}
 		e.useAt(norm, line, func(p *pathUse) { p.cond = true })
-		return liq, true, ""
+		return liq, true, i18n.Text{}
 	}
-	return "", false, "hash arguments have no Liquid equivalent"
+	return "", false, say("why.hash", nil)
 }
 
 func (e *emitter) operandPath(a expr) string {
@@ -602,12 +604,12 @@ func (e *emitter) operandPath(a expr) string {
 
 func (e *emitter) ifBlock(b *mBlock, head string, args []expr) {
 	if len(args) != 1 {
-		e.keepBlock(b, "`"+b.open.src+"` needs exactly one value.")
+		e.keepBlock(b, say("note.oneValue", i18n.Args{"src": b.open.src}))
 		return
 	}
 	cond, ok, why := e.condition(args[0], b.open.line)
 	if !ok {
-		e.keepBlock(b, why+".")
+		e.keepBlock(b, why)
 		return
 	}
 	cond = e.truthy(cond, e.operandPath(args[0]))
@@ -629,17 +631,17 @@ func (e *emitter) branches(b *mBlock, end, kind string) {
 			case kind == "if" && strings.HasPrefix(rest, "if "):
 				_, args, _, ok := parseCall(rest)
 				if !ok || len(args) != 1 {
-					e.keep(t, "`"+t.src+"` needs exactly one value.")
+					e.keep(t, say("note.oneValue", i18n.Args{"src": t.src}))
 					break
 				}
 				cond, ok, why := e.condition(args[0], t.line)
 				if !ok {
-					e.keep(t, why+".")
+					e.keep(t, why)
 					break
 				}
 				e.b.WriteString(stmtTag(t, "elsif "+e.truthy(cond, e.operandPath(args[0]))))
 			default:
-				e.keep(t, "`"+t.src+"` has no Liquid equivalent here.")
+				e.keep(t, say("note.noEquivalentHere", i18n.Args{"src": t.src}))
 			}
 		}
 		e.nodes(br.nodes)
@@ -652,17 +654,17 @@ func (e *emitter) branches(b *mBlock, end, kind string) {
 
 func (e *emitter) compareBlock(b *mBlock, head string, args []expr) {
 	if len(args) != 2 {
-		e.keepBlock(b, "`"+b.open.src+"` needs two values.")
+		e.keepBlock(b, say("note.twoValues", i18n.Args{"src": b.open.src}))
 		return
 	}
 	l, ok, why := e.condition(args[0], b.open.line)
 	if !ok {
-		e.keepBlock(b, why+".")
+		e.keepBlock(b, why)
 		return
 	}
 	r, ok, why := e.condition(args[1], b.open.line)
 	if !ok {
-		e.keepBlock(b, why+".")
+		e.keepBlock(b, why)
 		return
 	}
 	op := comparisons[head]
@@ -675,14 +677,14 @@ func (e *emitter) compareBlock(b *mBlock, head string, args []expr) {
 	}
 	e.b.WriteString(stmtTag(b.open, fmt.Sprintf("if %s %s %s", l, op, r)))
 	if head == "equal" {
-		e.note(NoteChange, b.open.line, b.open.src, fmt.Sprintf("`%s` became `{%% if %s == %s %%}`. Mailgun compares the values as text; Liquid also compares their type, so send both as text.", b.open.src, l, r))
+		e.note(NoteChange, b.open.line, b.open.src, say("note.mailgunEqual", i18n.Args{"src": b.open.src, "left": l, "right": r}))
 	}
 	e.branches(b, "endif", "compare")
 }
 
 func (e *emitter) logicBlock(b *mBlock, head string, args []expr) {
 	if len(args) < 2 {
-		e.keepBlock(b, "`"+b.open.src+"` needs at least two values.")
+		e.keepBlock(b, say("note.atLeastTwo", i18n.Args{"src": b.open.src}))
 		return
 	}
 	parts := make([]string, 0, len(args))
@@ -690,7 +692,7 @@ func (e *emitter) logicBlock(b *mBlock, head string, args []expr) {
 	for _, a := range args {
 		c, ok, why := e.condition(a, b.open.line)
 		if !ok {
-			e.keepBlock(b, why+".")
+			e.keepBlock(b, why)
 			return
 		}
 		t := e.truthy(c, e.operandPath(a))
@@ -709,7 +711,7 @@ func (e *emitter) logicBlock(b *mBlock, head string, args []expr) {
 		}
 		cond := strings.Join(raw, " or ")
 		e.b.WriteString(stmtTag(b.open, "if "+cond))
-		e.note(NoteChange, b.open.line, b.open.src, fmt.Sprintf("`%s` became `{%% if %s %%}`. Liquid counts empty text as a value, so an empty one now passes.", b.open.src, cond))
+		e.note(NoteChange, b.open.line, b.open.src, say("note.emptyPasses", i18n.Args{"src": b.open.src, "cond": cond}))
 		e.branches(b, "endif", "logic")
 		return
 	}
@@ -775,12 +777,12 @@ func (e *emitter) inScope(name string) bool {
 
 func (e *emitter) eachBlock(b *mBlock, args []expr, params []string) {
 	if len(args) != 1 || args[0].kind != ePath {
-		e.keepBlock(b, "`"+b.open.src+"` needs exactly one list.")
+		e.keepBlock(b, say("note.oneList", i18n.Args{"src": b.open.src}))
 		return
 	}
 	coll, norm, ok, why := e.resolve(args[0].s)
 	if !ok {
-		e.keepBlock(b, why+".")
+		e.keepBlock(b, why)
 		return
 	}
 	bare := e.guard == 0
@@ -788,7 +790,7 @@ func (e *emitter) eachBlock(b *mBlock, args []expr, params []string) {
 	name := e.loopName(b, args[0].s, params)
 	open := stmtTag(b.open, fmt.Sprintf("for %s in %s", name, coll))
 	e.b.WriteString(open)
-	e.note(NoteChange, b.open.line, b.open.src, fmt.Sprintf("`%s` became `%s`.", b.open.src, stmtTag(token{}, fmt.Sprintf("for %s in %s", name, coll))))
+	e.note(NoteChange, b.open.line, b.open.src, say("note.became", i18n.Args{"src": b.open.src, "out": stmtTag(token{}, fmt.Sprintf("for %s in %s", name, coll))}))
 	sc := scope{expr: name, norm: norm + "[]", loop: true}
 	if len(params) > 0 {
 		sc.param = params[0]
@@ -803,7 +805,7 @@ func (e *emitter) eachBlock(b *mBlock, args []expr, params []string) {
 	for _, br := range b.branches[1:] {
 		t := *br.elseTok
 		if strings.TrimSpace(t.body) != "" {
-			e.keep(t, "`"+t.src+"` has no Liquid equivalent in a loop.")
+			e.keep(t, say("note.noEquivalentInLoop", i18n.Args{"src": t.src}))
 		} else {
 			e.b.WriteString(stmtTag(t, "else"))
 		}
@@ -820,17 +822,16 @@ func (e *emitter) eachBlock(b *mBlock, args []expr, params []string) {
 func (e *emitter) withBlock(b *mBlock, path string, section bool) {
 	liq, norm, ok, why := e.resolve(path)
 	if !ok {
-		e.keepBlock(b, why+".")
+		e.keepBlock(b, why)
 		return
 	}
 	e.useAt(norm, b.open.line, func(p *pathUse) { p.cond = true })
 	cond := e.truthy(liq, norm)
 	e.b.WriteString(stmtTag(b.open, "if "+cond))
-	kind := "`" + b.open.src + "`"
 	if section {
-		e.note(NoteChange, b.open.line, b.open.src, fmt.Sprintf("the section %s became `{%% if %s %%}`; names inside it now start with `%s.`.", kind, cond, liq))
+		e.note(NoteChange, b.open.line, b.open.src, say("note.section", i18n.Args{"src": b.open.src, "cond": cond, "liq": liq}))
 	} else {
-		e.note(NoteChange, b.open.line, b.open.src, fmt.Sprintf("%s became `{%% if %s %%}`; names inside it now start with `%s.`.", kind, cond, liq))
+		e.note(NoteChange, b.open.line, b.open.src, say("note.with", i18n.Args{"src": b.open.src, "cond": cond, "liq": liq}))
 	}
 	e.scopes = append(e.scopes, scope{expr: liq, norm: norm})
 	e.guard++
@@ -839,7 +840,7 @@ func (e *emitter) withBlock(b *mBlock, path string, section bool) {
 	for _, br := range b.branches[1:] {
 		t := *br.elseTok
 		if strings.TrimSpace(t.body) != "" {
-			e.keep(t, "`"+t.src+"` has no Liquid equivalent here.")
+			e.keep(t, say("note.noEquivalentHere", i18n.Args{"src": t.src}))
 		} else {
 			e.b.WriteString(stmtTag(t, "else"))
 		}
@@ -855,12 +856,12 @@ func (e *emitter) withBlock(b *mBlock, path string, section bool) {
 // "with" that also checks the value) or an inverted section {{^name}}.
 func (e *emitter) section(b *mBlock, head string, args []expr, inverted bool) {
 	if len(args) > 0 || !validPath(head) {
-		e.keepBlock(b, fmt.Sprintf("%s helper `%s` has no Liquid equivalent.", e.dialectName(), head))
+		e.keepBlock(b, say("note.helper", i18n.Args{"dialect": e.dialectName(), "name": head}))
 		return
 	}
 	liq, norm, ok, why := e.resolve(head)
 	if !ok {
-		e.keepBlock(b, why+".")
+		e.keepBlock(b, why)
 		return
 	}
 	if inverted {
@@ -884,11 +885,11 @@ func preprocess(src string, d Dialect, field string) (string, []Note) {
 	type rule struct {
 		re   *regexp.Regexp
 		repl func(m []string) string
-		msg  func(m []string, repl string) (NoteKind, string)
+		msg  func(m []string, repl string) (NoteKind, i18n.Text)
 	}
-	changed := func(provider string) func(m []string, repl string) (NoteKind, string) {
-		return func(m []string, repl string) (NoteKind, string) {
-			return NoteChange, fmt.Sprintf("%s's `%s` became `%s`.", provider, m[0], strings.ReplaceAll(strings.ReplaceAll(repl, "{{", "{{ "), "}}", " }}"))
+	changed := func(provider string) func(m []string, repl string) (NoteKind, i18n.Text) {
+		return func(m []string, repl string) (NoteKind, i18n.Text) {
+			return NoteChange, say("note.providerBecame", i18n.Args{"provider": provider, "src": m[0], "out": strings.ReplaceAll(strings.ReplaceAll(repl, "{{", "{{ "), "}}", " }}")})
 		}
 	}
 	var rules []rule
@@ -903,8 +904,8 @@ func preprocess(src string, d Dialect, field string) (string, []Note) {
 			}, changed("Mailgun")},
 			rule{mailgunRecipient, func(m []string) string { return "{{" + m[1] + "}}" }, changed("Mailgun")},
 			rule{mailgunUnsub, func([]string) string { return "{{unsubscribe_url}}" }, changed("Mailgun")},
-			rule{mailgunOther, func(m []string) string { return m[0] }, func(m []string, _ string) (NoteKind, string) {
-				return NoteManual, fmt.Sprintf("Mailgun's `%s` has no ReputeCast equivalent. Send the value in the call's data and print it with `{{ }}`.", m[0])
+			rule{mailgunOther, func(m []string) string { return m[0] }, func(m []string, _ string) (NoteKind, i18n.Text) {
+				return NoteManual, say("note.mailgunOther", i18n.Args{"src": m[0]})
 			}},
 		)
 	}
@@ -928,7 +929,7 @@ func preprocess(src string, d Dialect, field string) (string, []Note) {
 			}
 			repl := r.repl(m)
 			kind, msg := r.msg(m, repl)
-			notes = append(notes, Note{Kind: kind, Field: field, Line: 1 + strings.Count(src[:loc[0]], "\n"), Construct: m[0], Message: msg})
+			notes = append(notes, noteOf(kind, field, 1+strings.Count(src[:loc[0]], "\n"), m[0], msg))
 			b.WriteString(src[last:loc[0]])
 			b.WriteString(repl)
 			last = loc[1]

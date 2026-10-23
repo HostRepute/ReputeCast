@@ -3,10 +3,12 @@ package importer
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Notifuse reads a self-hosted Notifuse instance's email templates with a
@@ -27,12 +29,12 @@ func NewNotifuse(base, key string, hc *http.Client) (*Notifuse, error) {
 	}
 	base = strings.TrimRight(strings.TrimSpace(base), "/")
 	if base == "" {
-		return nil, &SourceError{Code: CodeBadResponse, Message: "Enter the address of your Notifuse instance, for example https://notifuse.example.com."}
+		return nil, sourceErr(0, CodeBadResponse, "notifuse.address", nil)
 	}
 	base = strings.TrimSuffix(base, "/api")
 	return &Notifuse{c: newClient("Notifuse", base, hc, func(r *http.Request) { r.Header.Set("Authorization", "Bearer "+key) },
-		func(status int, _ []byte) string {
-			return fmt.Sprintf("Notifuse answered %d: the API key was revoked or belongs to another instance.", status)
+		func(status int, _ []byte) i18n.Text {
+			return say("auth.notifuse", i18n.Args{"code": strconv.Itoa(status)})
 		})}, nil
 }
 
@@ -55,7 +57,7 @@ func (n *Notifuse) Workspace(ctx context.Context) (NotifuseWorkspace, error) {
 		return NotifuseWorkspace{}, err
 	}
 	if len(ws) == 0 {
-		return NotifuseWorkspace{}, &SourceError{Code: CodeAuthFailed, Message: "This Notifuse API key isn't attached to a workspace."}
+		return NotifuseWorkspace{}, sourceErr(0, CodeAuthFailed, "notifuse.noWorkspace", nil)
 	}
 	n.workspace, n.name = ws[0].ID, ws[0].Name
 	if n.name == "" {
@@ -154,7 +156,7 @@ func NotifuseSource(t NotifuseTemplate) Source {
 	src := Source{Ref: t.ID, Alias: t.ID, Name: t.Name, Category: t.Category, Sample: t.TestData, Notes: []Note{}, Format: FormatHTML}
 	e := t.Email
 	if e == nil {
-		src.Notes = append(src.Notes, Note{Kind: NoteManual, Field: "template", Message: "this template has no email content in Notifuse."})
+		src.Notes = append(src.Notes, noteOf(NoteManual, "template", 0, "", say("note.notifuseEmpty", nil)))
 		return src
 	}
 	src.Subject = e.Subject
@@ -175,7 +177,7 @@ func NotifuseSource(t NotifuseTemplate) Source {
 			break
 		}
 		src.Body = e.CompiledPreview
-		src.Notes = append(src.Notes, Note{Kind: NoteChange, Field: "template", Message: "its visual editor layout couldn't be read, so it arrives as HTML: " + lowerFirst(err.Error()) + "."})
+		src.Notes = append(src.Notes, noteOf(NoteChange, "template", 0, "", say("note.notifuseLayout", i18n.Args{"detail": lowerFirst(err.Error())})))
 	default:
 		src.Body = e.CompiledPreview
 	}

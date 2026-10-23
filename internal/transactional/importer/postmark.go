@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // PostmarkBase is Postmark's API.
@@ -29,8 +32,8 @@ func NewPostmark(token, base string, hc *http.Client) (*Postmark, error) {
 		base = PostmarkBase
 	}
 	return &Postmark{c: newClient("Postmark", base, hc, func(r *http.Request) { r.Header.Set("X-Postmark-Server-Token", token) },
-		func(status int, _ []byte) string {
-			return fmt.Sprintf("Postmark answered %d: this token is for a different server or was revoked.", status)
+		func(status int, _ []byte) i18n.Text {
+			return say("auth.postmark", i18n.Args{"code": strconv.Itoa(status)})
 		})}, nil
 }
 
@@ -108,11 +111,11 @@ func (p *Postmark) Fetch(ctx context.Context, ref string) (Source, error) {
 		layout, err := p.layout(ctx, t.LayoutTemplate)
 		switch {
 		case err != nil:
-			src.Notes = append(src.Notes, Note{Kind: NoteManual, Field: "template", Message: fmt.Sprintf("its layout `%s` couldn't be read, so the email has no header or footer. Add them with saved sections.", t.LayoutTemplate)})
+			src.Notes = append(src.Notes, noteOf(NoteManual, "template", 0, "", say("note.postmarkLayoutUnread", i18n.Args{"layout": t.LayoutTemplate})))
 		default:
 			src.Body = mergeLayout(layout.HTMLBody, src.Body)
 			src.Text = mergeLayout(layout.TextBody, src.Text)
-			src.Notes = append(src.Notes, Note{Kind: NoteInfo, Field: "template", Message: fmt.Sprintf("its layout “%s” was merged into the email.", layout.Name)})
+			src.Notes = append(src.Notes, noteOf(NoteInfo, "template", 0, "", say("note.postmarkLayoutMerged", i18n.Args{"name": layout.Name})))
 		}
 	}
 	return src, nil
