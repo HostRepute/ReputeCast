@@ -1451,9 +1451,10 @@ func (b *builder) routing() {
 			Title: tx("routing.down", A{"provider": d.Name, "state": word, "stream": stream, "policy": policyText(rt.Policy)})}
 		if o := b.otherAvailable(d.ProviderID); o != nil {
 			if o.Quota != nil && o.Quota.Max > 0 {
-				parts = append(parts, tx("routing.otherQuota", A{"provider": o.Short, "status": statusText(o.Status), "free": o.Quota.Max - o.Quota.Used, "max": o.Quota.Max}))
+				parts = append(parts, tx("routing.otherQuota", A{"provider": o.Short, "status": firstNonEmpty(o.Status, state.Healthy), "statusName": statusText(o.Status),
+					"free": o.Quota.Max - o.Quota.Used, "max": o.Quota.Max}))
 			} else {
-				parts = append(parts, tx("routing.other", A{"provider": o.Short, "status": statusText(o.Status)}))
+				parts = append(parts, tx("routing.other", A{"provider": o.Short, "status": firstNonEmpty(o.Status, state.Healthy), "statusName": statusText(o.Status)}))
 			}
 			c.Fixes = append(c.Fixes, routeOnlyFix(o, tx("fix.sendAllVia", A{"share": ArgPercent(100), "provider": o.Short}), "danger"))
 		}

@@ -130,22 +130,30 @@ func a11yTitle(is accessibility.AccessibilityIssue) Text {
 		}
 		return tx(prefix+".section", A{"section": argSection(e.Section)})
 	}
+	// The checks name an image from its section's marker or, without one,
+	// from what the section looks like: the name that reads as their English
+	// is the one.
+	named := func(prefix string, re *regexp.Regexp) Text {
+		t := section(prefix)
+		if t.en() == is.Title {
+			return t
+		}
+		for _, k := range []string{".hero", ".logo", ".image"} {
+			if c := tx(prefix+k, nil); c.en() == is.Title {
+				return c
+			}
+		}
+		if m := re.FindStringSubmatch(is.Title); m != nil {
+			return tx(prefix+".section", A{"section": argSection(m[1])})
+		}
+		return t
+	}
 	var t Text
 	switch {
 	case is.Kind == accessibility.KindAltText:
-		t = section("a11y.alt")
-		if t.en() != is.Title {
-			if m := altSectionRe.FindStringSubmatch(is.Title); m != nil {
-				t = tx("a11y.alt.section", A{"section": argSection(m[1])})
-			}
-		}
+		t = named("a11y.alt", altSectionRe)
 	case is.Kind == accessibility.KindLinkNoText && e.Role == "linked_image":
-		t = section("a11y.linkedAlt")
-		if t.en() != is.Title {
-			if m := linkedSectionRe.FindStringSubmatch(is.Title); m != nil {
-				t = tx("a11y.linkedAlt.section", A{"section": argSection(m[1])})
-			}
-		}
+		t = named("a11y.linkedAlt", linkedSectionRe)
 	case is.Kind == accessibility.KindLinkNoText:
 		role := "link"
 		if e.Role == "button" {
