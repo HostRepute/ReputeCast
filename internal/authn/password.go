@@ -13,6 +13,8 @@ import (
 	"unicode/utf8"
 
 	"golang.org/x/crypto/argon2"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Argon2id parameters (OWASP: m=46 MiB, t=1, p=1). Stored with each hash, so
@@ -96,16 +98,23 @@ func NeedsRehash(encoded string) bool {
 	return p.memory < argonMemory || p.time < argonTime || len(p.key) < argonKeyLen
 }
 
-// PasswordProblem explains why a password is rejected, or "" when it's fine.
+// PasswordProblem explains why a password is rejected, or "" when it's
+// fine, in English (the CLI's).
 func PasswordProblem(password string, minLength int) string {
+	return PasswordProblemIn(i18n.Default, password, minLength)
+}
+
+// PasswordProblemIn explains why a password is rejected in a language, or
+// "" when it's fine.
+func PasswordProblemIn(l i18n.Lang, password string, minLength int) string {
 	n := utf8.RuneCountInString(password)
 	switch {
 	case n < minLength:
-		return fmt.Sprintf("Use at least %d characters. Passphrases are fine.", minLength)
+		return msgs.M("password.short").Text(l, i18n.Args{"min": minLength})
 	case n > 256:
-		return "Use at most 256 characters."
+		return msgs.M("password.long").Text(l, nil)
 	case strings.TrimSpace(password) == "":
-		return "The password can't be only spaces."
+		return msgs.M("password.spaces").Text(l, nil)
 	}
 	return ""
 }

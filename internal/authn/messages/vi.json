@@ -1,0 +1,5 @@
+{
+  "password.short": "Hãy dùng ít nhất {min} ký tự. Dùng cụm mật khẩu cũng được.",
+  "password.long": "Hãy dùng tối đa 256 ký tự.",
+  "password.spaces": "Mật khẩu không được chỉ gồm khoảng trắng."
+}

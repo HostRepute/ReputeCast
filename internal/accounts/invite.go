@@ -285,7 +285,7 @@ func (s *Service) AcceptInvitation(ctx context.Context, token string, in Invitat
 		}
 		var hashed *string
 		if !in.Passkey {
-			if p := authn.PasswordProblem(in.Password, int(st.PasswordMinLength)); p != "" {
+			if p := authn.PasswordProblemIn(i18n.LangFrom(ctx), in.Password, int(st.PasswordMinLength)); p != "" {
 				return InvitationAccepted{}, nil, api.Invalid("body.password", p)
 			}
 			if st.BreachedCheck {

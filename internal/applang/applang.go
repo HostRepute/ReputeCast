@@ -114,13 +114,13 @@ func (s *Service) Save(ctx context.Context, in MemberLanguage) (MemberLanguage, 
 		l, ok := i18n.ParseLocale(in.Language)
 		if !ok || string(l) != in.Language {
 			if in.Language == string(i18n.Pseudo) {
-				return MemberLanguage{}, api.Invalid("body.language", "The pseudo-locale is only available in development, or when the server runs with i18n.pseudo_locale on.")
+				return MemberLanguage{}, api.Invalid("body.language", say(ctx, "problem.pseudo", nil))
 			}
-			return MemberLanguage{}, api.Invalid("body.language", "ReputeCast isn't translated into that language. Pick English or Tiếng Việt.")
+			return MemberLanguage{}, api.Invalid("body.language", say(ctx, "problem.language", i18n.Args{"languages": languageNames(i18n.LangFrom(ctx))}))
 		}
 	}
 	if in.RegionFormat != Auto && !i18n.Region(in.RegionFormat).Valid() {
-		return MemberLanguage{}, api.Invalid("body.regionFormat", "Pick one of the region formats in the list.")
+		return MemberLanguage{}, api.Invalid("body.regionFormat", say(ctx, "problem.region", nil))
 	}
 	before := Choices(*u)
 	var saved store.User

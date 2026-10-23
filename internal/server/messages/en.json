@@ -1,0 +1,4 @@
+{
+  "rateLimit.signIn": { "message": "Too many sign-in attempts from your network. Wait a minute and try again.", "note": "the 429 problem of the sign-in endpoints" },
+  "rateLimit.api": { "message": "Rate limit reached. Requests resume within a minute; batch endpoints accept up to {max, number} items per call.", "note": "the 429 problem of the API" }
+}

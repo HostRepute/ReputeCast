@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/go-chi/httprate"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // RateLimits protects the API from abuse: sign-in endpoints are limited per
@@ -24,10 +26,10 @@ type RateLimits struct {
 
 func (rl RateLimits) Middleware() func(http.Handler) http.Handler {
 	auth := httprate.LimitBy(rl.AuthPerMinute, time.Minute, keyByIP,
-		httprate.WithLimitHandler(limited("Too many sign-in attempts from your network. Wait a minute and try again.")),
+		httprate.WithLimitHandler(limited("rateLimit.signIn")),
 	)
 	api := httprate.LimitBy(rl.APIPerMinute, time.Minute, keyByCredential,
-		httprate.WithLimitHandler(limited("Rate limit reached. Requests resume within a minute; batch endpoints accept up to 1,000 items per call.")),
+		httprate.WithLimitHandler(limited("rateLimit.api")),
 	)
 	return func(next http.Handler) http.Handler {
 		authed := auth(next)
@@ -80,9 +82,12 @@ func keyByIP(r *http.Request) (string, error) {
 	return httprate.CanonicalizeIP(host), nil
 }
 
-func limited(detail string) http.HandlerFunc {
-	body, _ := json.Marshal(map[string]any{"status": http.StatusTooManyRequests, "title": "Too Many Requests", "detail": detail, "code": "rate_limited"})
+// limited answers 429 with the message key's problem, in the request's
+// language.
+func limited(key string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		detail := msgs.M(key).Text(requestLang(r), i18n.Args{"max": 1000})
+		body, _ := json.Marshal(map[string]any{"status": http.StatusTooManyRequests, "title": "Too Many Requests", "detail": detail, "code": "rate_limited"})
 		if w.Header().Get("Retry-After") == "" {
 			w.Header().Set("Retry-After", strconv.Itoa(60))
 		}

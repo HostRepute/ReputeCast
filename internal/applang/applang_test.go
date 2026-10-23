@@ -102,7 +102,7 @@ func TestMemberLanguage(t *testing.T) {
 
 	// The pseudo-locale is off outside development; unknown values are refused.
 	p := c.Do("PUT", "/me/language", choose("en-XA", "auto")).MustStatus(t, 422).Problem(t)
-	if !strings.Contains(p["detail"].(string), "pseudo-locale") {
+	if !strings.Contains(p["detail"].(string), "i18n.pseudo_locale") {
 		t.Fatalf("pseudo-locale: %v", p)
 	}
 	c.Do("PUT", "/me/language", choose("de", "auto")).MustStatus(t, 422)

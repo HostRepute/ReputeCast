@@ -39,7 +39,7 @@ func (s *Service) ChangePassword(ctx context.Context, current, next string) erro
 			return api.Invalid("body.current", say(ctx, msgs.M("problem.currentPassword")))
 		}
 	}
-	if p := authn.PasswordProblem(next, int(pol.PasswordMinLength)); p != "" {
+	if p := authn.PasswordProblemIn(i18n.LangFrom(ctx), next, int(pol.PasswordMinLength)); p != "" {
 		return api.Invalid("body.password", p)
 	}
 	if current == next {
