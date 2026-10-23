@@ -34,8 +34,26 @@ type page struct {
 	} `json:"recalculation"`
 }
 
+// service runs recalculations and ticks in the test, on the app's clock.
 func service(env *apptest.Env) *scoring.Service {
-	return &scoring.Service{Pool: env.App.Pool, Q: env.App.Q, Audit: env.App.Audit}
+	return &scoring.Service{Pool: env.App.Pool, Q: env.App.Q, Audit: env.App.Audit, Now: env.App.Scoring().Now}
+}
+
+// seeded starts the API on the demo with the scoring clock stopped when
+// the demo was seeded. Decay steps keep falling due after it (about a
+// hundred contacts an hour) and no worker applies them in tests, so a
+// recalculation a minute later can move a contact the preview kept at its
+// stored score: the boards' counts hold at the seed's moment only.
+func seeded(t *testing.T) *apptest.Env {
+	t.Helper()
+	env := apptest.New(t)
+	env.SeedDemo()
+	var at time.Time
+	if err := env.App.Pool.QueryRow(context.Background(), `SELECT max(computed_at) FROM contact_scores`).Scan(&at); err != nil {
+		t.Fatal(err)
+	}
+	env.App.Scoring().Now = func() time.Time { return at }
+	return env
 }
 
 func countOf(t *testing.T, env *apptest.Env, sql string, args ...any) int {
@@ -50,8 +68,7 @@ func countOf(t *testing.T, env *apptest.Env, sql string, args ...any) int {
 // The demo's set-up reads as ScoringRules shows it, for everyone with
 // subscribers:view; only scoring:edit changes it.
 func TestScoringPageAndPermissions(t *testing.T) {
-	env := apptest.New(t)
-	env.SeedDemo()
+	env := seeded(t)
 	for _, email := range []string{"linh@acme.io", "daniel@acme.io", "aisha@acme.io"} {
 		c := env.Client()
 		c.SignInDemo(email)
@@ -87,8 +104,7 @@ func TestScoringPageAndPermissions(t *testing.T) {
 // previous scores until it finishes, and doesn't start "Sales-ready
 // handoff" for the 1,108 who cross 50 only because of the change.
 func TestScoringRuleChange(t *testing.T) {
-	env := apptest.New(t)
-	env.SeedDemo()
+	env := seeded(t)
 	ctx := context.Background()
 	c := env.Client()
 	c.SignInDemo("sofia@acme.io")
@@ -157,8 +173,7 @@ func TestScoringRuleChange(t *testing.T) {
 // "Start it for 1,108 contacts": the recalculation queues the trigger for
 // the contacts who cross because of the change.
 func TestScoringRuleChangeStartsAutomations(t *testing.T) {
-	env := apptest.New(t)
-	env.SeedDemo()
+	env := seeded(t)
 	ctx := context.Background()
 	c := env.Client()
 	c.SignInDemo("marcus@acme.io")
@@ -257,8 +272,7 @@ func TestScoringTickNightlyAndBands(t *testing.T) {
 
 // Sam Rivera's card (ScoringProfile).
 func TestContactScore(t *testing.T) {
-	env := apptest.New(t)
-	env.SeedDemo()
+	env := seeded(t)
 	c := env.Client()
 	c.SignInDemo("daniel@acme.io")
 	var sam uuid.UUID
