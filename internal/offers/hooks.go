@@ -104,7 +104,9 @@ func applies(r store.OfferGetRow, tier, period string) bool {
 }
 
 // dateOf is a day as the pages write it: "15 Oct 2027".
-func dateOf(l i18n.Lang, t time.Time, ws *store.Workspace) string { return earn.DateIn(l, t.In(location(ws))) }
+func dateOf(l i18n.Lang, t time.Time, ws *store.Workspace) string {
+	return earn.DateIn(l, t.In(location(ws)))
+}
 
 // UpgradeOffer implements earn.OfferHook: the offer's lines in the page's
 // language (the view's).

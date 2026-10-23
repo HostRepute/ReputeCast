@@ -182,7 +182,9 @@ func NormalizeCode(code string) string {
 }
 
 // period is a gift's length as readers read it: "a year", "3 months".
-func period(l i18n.Lang, months int) string { return msgs.M("period").Text(l, i18n.Args{"months": months}) }
+func period(l i18n.Lang, months int) string {
+	return msgs.M("period").Text(l, i18n.Args{"months": months})
+}
 
 // periodTitle is the gift card's title: "A year", "3 months".
 func periodTitle(l i18n.Lang, months int) string {
