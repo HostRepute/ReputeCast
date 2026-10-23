@@ -1,0 +1,23 @@
+{
+  "scope.monitorRead": { "message": "blocklist, Postmaster, SNDS and DMARC data", "note": "what the monitor:read scope is used for, after the scope's key in Settings › Integrations" },
+  "scope.alertsRead": { "message": "incidents", "note": "what the alerts:read scope is used for" },
+  "scope.assetsWrite": { "message": "add domains and IPs to monitoring", "note": "what the assets:write scope is used for" },
+
+  "unreachable": { "message": "Couldn't reach {host} ({reason, select, timeout_s {timeout after {n} s} timeout_ms {timeout after {n} ms} timeout {timeout} refused {connection refused} dns {DNS lookup failed} token {token refresh failed} http {HTTP {status}} other {network error}}, {attempts, plural, one {# attempt} other {# attempts}})", "note": "HostRepute couldn't be reached; host: api.hostrepute.com; shown in Deliverability and Settings › Integrations" },
+  "unreachableHostRepute": "Couldn't reach HostRepute",
+  "syncFailed": { "message": "HostRepute sync failed: {error}", "note": "error: what went wrong, in English" },
+
+  "problem.unavailable": { "message": "{reach}. {nothing, select, saved {Nothing was saved; try again in a minute.} changed {Nothing changed; try again in a minute.} other {Nothing was requested; try again in a minute.}}", "note": "reach: why HostRepute couldn't be reached, already written in the reader's language" },
+  "problem.keyFormat": "Paste the whole key, without spaces. It starts with hr_live_.",
+  "problem.answeredError": { "message": "HostRepute answered with an error ({error}). Nothing was saved.", "note": "error: HostRepute's answer, in English" },
+  "problem.keyRejected": { "message": "HostRepute didn't accept this key. Copy it again from HostRepute → Settings → API; it needs the monitor:read, alerts:read and assets:write scopes.", "note": "HostRepute → Settings → API is HostRepute's own menu, in English; the scopes are keys, never translated" },
+  "problem.notConnected": "HostRepute isn't connected. Connect it first in Settings › Integrations.",
+  "problem.reconnect": { "message": "HostRepute rejected the token{when, select, yes { on {date}} other {}}. Reconnect HostRepute, then try again.", "note": "date: the day HostRepute rejected it (Oct 2)" },
+  "problem.noAssetsScope": "This connection doesn't have the assets:write scope, so ReputeCast can't add to monitoring. Reconnect HostRepute and approve it.",
+  "problem.notCandidate": "Only this workspace's sending domains, dedicated IPs and server hostnames can be added to monitoring.",
+  "problem.limit": { "message": "Your HostRepute team “{team}” monitors {used, number} of {limit, number} assets allowed by its plan, so {asset} can't be added right now. This is a HostRepute limit, not a ReputeCast one.", "note": "team: the HostRepute team's name; asset: a domain or IP" },
+  "problem.notMonitored": "{asset} isn't monitored by HostRepute.",
+
+  "notify.reconnectTitle": { "message": "HostRepute needs reconnecting", "note": "a notification to members who manage the HostRepute connection" },
+  "notify.reconnectBody": "HostRepute rejected the token. Blocklist, Postmaster, SNDS and DMARC data is stale until someone reconnects; Send Readiness marks the reputation check as unknown."
+}

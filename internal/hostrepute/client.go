@@ -27,13 +27,6 @@ const (
 // Scopes in the order they are requested and shown.
 var Scopes = []string{ScopeMonitorRead, ScopeAlertsRead, ScopeAssetsWrite}
 
-// ScopeUse explains a scope in the product's words.
-var ScopeUse = map[string]string{
-	ScopeMonitorRead: "blocklist, Postmaster, SNDS and DMARC data",
-	ScopeAlertsRead:  "incidents",
-	ScopeAssetsWrite: "add domains and IPs to monitoring",
-}
-
 // Asset types HostRepute monitors.
 const (
 	AssetDomain   = "domain"
