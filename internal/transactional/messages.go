@@ -433,7 +433,7 @@ func (s *Service) MessageLog(ctx context.Context, ws *store.Workspace, f LogFilt
 		return out, err
 	}
 	for _, r := range rows {
-		out.Items = append(out.Items, logItem(r))
+		out.Items = append(out.Items, itemIn(lang(ctx), logItem(r)))
 	}
 	if len(rows) > 0 {
 		out.Newest = encodeCursor(rows[0].AcceptedAt, rows[0].MessageID)
@@ -686,13 +686,13 @@ func (s *Service) Message(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		return TransactionalMessageDetail{}, err
 	}
 	pr := api.PrincipalFrom(ctx)
-	item := logItem(store.TxnLogRow{MessageID: r.MessageID, AcceptedAt: r.AcceptedAt, Email: r.Email, ContactID: r.ContactID, ToName: r.ToName, Source: r.Source,
+	item := itemIn(lang(ctx), logItem(store.TxnLogRow{MessageID: r.MessageID, AcceptedAt: r.AcceptedAt, Email: r.Email, ContactID: r.ContactID, ToName: r.ToName, Source: r.Source,
 		TemplateKey: r.TemplateKey, TemplateName: r.TemplateName, TemplateVersion: r.TemplateVersion, Subject: r.Subject, ProviderID: r.ProviderID,
 		ProviderName: r.ProviderName, Error: r.Error, SentAt: r.SentAt, DeliveredAt: r.DeliveredAt, OpenedAt: r.OpenedAt, ClickedAt: r.ClickedAt,
 		Test: r.Test, TestDelivered: r.TestDelivered, RejectReason: r.RejectReason, RejectDetail: r.RejectDetail, TrackOpens: r.TrackOpens,
 		TrackClicks: r.TrackClicks, FailedOverFrom: r.FailedOverFrom, FailedOverFromName: r.FailedOverFromName, FailedOverAt: r.FailedOverAt,
 		KeyID: r.KeyID, KeyName: r.KeyName, IdempotencyKey: r.IdempotencyKey, Tags: r.Tags, Metadata: r.Metadata, CategoryName: r.CategoryName,
-		CategoryKind: r.CategoryKind, Status: r.Status, RoleAddress: r.RoleAddress, Language: r.Language})
+		CategoryKind: r.CategoryKind, Status: r.Status, RoleAddress: r.RoleAddress, Language: r.Language}))
 	out := TransactionalMessageDetail{TransactionalLogItem: item, CategoryKind: r.CategoryKind, ProviderMessageID: r.ProviderMessageID,
 		IdempotencyKey: r.IdempotencyKey, Tags: nonNilStrings(r.Tags), Metadata: map[string]string{}, From: addrLine(r.FromName, r.FromEmail), ReplyTo: r.ReplyTo,
 		Cc: nonNilStrings(r.Cc), Bcc: nonNilStrings(r.Bcc), Dropped: []string{}, Attachments: []TransactionalAttachmentMeta{}, SizeBytes: int(r.SizeBytes),

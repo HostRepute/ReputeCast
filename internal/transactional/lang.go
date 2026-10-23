@@ -5,6 +5,8 @@ import (
 	"embed"
 	"errors"
 	"net/http"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -150,4 +152,41 @@ func clockIn(ctx context.Context, t time.Time) string {
 		return t.Format("15:04")
 	}
 	return l.Region.Time(t, "")
+}
+
+// softBounceDetail is the detail the soft-bounce rule stores with the
+// suppression it adds, in English (suppressions.detail): "Soft-bounced 3
+// times in 7 days (last: 4.2.2 Mailbox full)". last is the provider's code
+// and diagnostic, as it wrote them.
+func softBounceDetail(last string) string {
+	return texts.M("suppression.softBounces").Text(i18n.Default, i18n.Args{"count": SoftBounceLimit, "days": int(SoftBounceWindow / (24 * time.Hour)), "last": last})
+}
+
+var reSoftBounces = regexp.MustCompile(`(?s)^Soft-bounced (\d+) times in (\d+) days \(last: (.*)\)$`)
+
+// suppressionDetailIn is a suppression's stored detail in a reader's
+// language: the soft-bounce rule's sentence is ReputeCast's; a provider's
+// diagnostic reads as the provider wrote it.
+func suppressionDetailIn(l i18n.Lang, stored string) string {
+	m := reSoftBounces.FindStringSubmatch(stored)
+	if m == nil || l.Locale == "" || l.Locale == i18n.English {
+		return stored
+	}
+	count, _ := strconv.Atoi(m[1])
+	days, _ := strconv.Atoi(m[2])
+	return texts.M("suppression.softBounces").Text(l, i18n.Args{"count": count, "days": days, "last": m[3]})
+}
+
+// itemIn writes what ReputeCast stored in English with a message in a
+// reader's language: why its address was suppressed. A provider's own words
+// stay as it wrote them.
+func itemIn(l i18n.Lang, it TransactionalLogItem) TransactionalLogItem {
+	if it.Rejection != nil && it.Rejection.Suppression != nil {
+		s := *it.Rejection.Suppression
+		s.Detail = suppressionDetailIn(l, s.Detail)
+		r := *it.Rejection
+		r.Suppression = &s
+		it.Rejection = &r
+	}
+	return it
 }

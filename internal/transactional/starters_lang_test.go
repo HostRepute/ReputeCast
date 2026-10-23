@@ -103,6 +103,32 @@ func TestKeyFromNameFoldsMarks(t *testing.T) {
 	}
 }
 
+// The soft-bounce rule stores its suppression's detail in English, as it
+// always did; the message log reads it in the member's language, with the
+// provider's words as they were.
+func TestSoftBounceDetail(t *testing.T) {
+	stored := softBounceDetail("4.2.2 Mailbox full")
+	if stored != "Soft-bounced 3 times in 7 days (last: 4.2.2 Mailbox full)" {
+		t.Fatalf("stored: %q", stored)
+	}
+	vi := i18n.For(i18n.Vietnamese)
+	if got := suppressionDetailIn(vi, stored); got != "Trả thư tạm thời 3 lần trong 7 ngày (lần gần nhất: 4.2.2 Mailbox full)" {
+		t.Fatalf("vi: %q", got)
+	}
+	for _, s := range []string{"550 5.1.1 User unknown", "", "Soft-bounced twice"} {
+		if got := suppressionDetailIn(vi, s); got != s {
+			t.Errorf("%q reads %q", s, got)
+		}
+	}
+	if got := suppressionDetailIn(i18n.Default, stored); got != stored {
+		t.Fatalf("en: %q", got)
+	}
+	it := TransactionalLogItem{Rejection: &TransactionalRejection{Reason: "suppressed", Suppression: &TransactionalSuppressionInfo{Detail: stored}}}
+	if got := itemIn(vi, it); got.Rejection.Suppression.Detail != "Trả thư tạm thời 3 lần trong 7 ngày (lần gần nhất: 4.2.2 Mailbox full)" || it.Rejection.Suppression.Detail != stored {
+		t.Fatalf("item: %q, the original %q", got.Rejection.Suppression.Detail, it.Rejection.Suppression.Detail)
+	}
+}
+
 // liquidTokens are the {{ }} and {% %} tags of a text.
 func liquidTokens(s string) []string {
 	var out []string
@@ -125,5 +151,19 @@ func liquidTokens(s string) []string {
 		}
 		out = append(out, s[i:i+j+2])
 		s = s[i+j+2:]
+	}
+}
+
+// The default the publish dialog suggests becomes the template's content:
+// a date's is in the workspace's language.
+func TestSuggestedDefaultInWorkspaceLanguage(t *testing.T) {
+	vi := i18n.For(i18n.Vietnamese)
+	for _, c := range []struct{ got, want string }{
+		{suggestedDefault(i18n.Default, TypeDate), "soon"}, {suggestedDefault(vi, TypeDate), "sớm"},
+		{suggestedDefault(vi, TypeNumber), "0"}, {suggestedDefault(vi, TypeList), "[]"}, {suggestedDefault(vi, "text"), ""},
+	} {
+		if c.got != c.want {
+			t.Errorf("%q, want %q", c.got, c.want)
+		}
 	}
 }

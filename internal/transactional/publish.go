@@ -430,11 +430,12 @@ func buildDiff(l i18n.Lang, live *versionContent, draft versionContent) Transact
 }
 
 // suggestedDefault is what an optional variable can fall back to so old
-// calls keep working.
-func suggestedDefault(t string) string {
+// calls keep working. It becomes the template's content, so a date's
+// ("soon") is in the workspace's language, wl.
+func suggestedDefault(wl i18n.Lang, t string) string {
 	switch t {
 	case TypeDate:
-		return "soon"
+		return texts.M("publish.soonDefault").Text(wl, nil)
 	case TypeNumber:
 		return "0"
 	case TypeBoolean:
@@ -448,8 +449,8 @@ func suggestedDefault(t string) string {
 }
 
 // breaking compares the draft's required variables with what the calls of
-// the last 7 days sent.
-func breaking(calls []store.TxnRecentCallKeysRow, live *versionContent, draft []TransactionalVariable) TransactionalBreakingChange {
+// the last 7 days sent; wl is the workspace's language.
+func breaking(wl i18n.Lang, calls []store.TxnRecentCallKeysRow, live *versionContent, draft []TransactionalVariable) TransactionalBreakingChange {
 	out := TransactionalBreakingChange{Calls: len(calls), Breaking: []TransactionalBreakingVariable{}, Unused: []string{}}
 	if len(calls) == 0 {
 		return out
@@ -473,7 +474,7 @@ func breaking(calls []store.TxnRecentCallKeysRow, live *versionContent, draft []
 			}
 		}
 		if without > 0 {
-			out.Breaking = append(out.Breaking, TransactionalBreakingVariable{Name: v.Name, CallsWithout: without, Type: v.Type, SuggestedDefault: suggestedDefault(v.Type)})
+			out.Breaking = append(out.Breaking, TransactionalBreakingVariable{Name: v.Name, CallsWithout: without, Type: v.Type, SuggestedDefault: suggestedDefault(wl, v.Type)})
 		}
 	}
 	now := map[string]bool{}
@@ -581,7 +582,7 @@ func (s *Service) publishPreview(ctx context.Context, q *store.Queries, ws *stor
 	if err != nil {
 		return out, err
 	}
-	out.Breaking = breaking(calls, live, vars)
+	out.Breaking = breaking(workspaceLang(ctx, q, ws.ID), calls, live, vars)
 	out.Breaking.Summary = breakingSummary(lang(ctx), out.Breaking, next)
 	cs := s.draftSubject(ctx, ws, t)
 	cs.Variables = vars

@@ -260,5 +260,9 @@
   "starter.product-delivery.default.site": "chúng tôi",
   "starter.product-delivery.sample.file": "tệp PDF, 4,2 MB",
   "starter.product-delivery.sample.expires_on": "22 thg 10, 2026",
-  "starter.product-delivery.test.1.file": "3 tệp, 38 MB"
+  "starter.product-delivery.test.1.file": "3 tệp, 38 MB",
+
+  "publish.soonDefault": "sớm",
+
+  "suppression.softBounces": "Trả thư tạm thời {count} lần trong {days} ngày (lần gần nhất: {last})"
 }

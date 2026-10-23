@@ -105,7 +105,7 @@ func (s *Service) softBounceRule(ctx context.Context, q *store.Queries, p store.
 	}
 	pid := p.ID
 	_, err = q.TxnSuppressSoftBounces(ctx, store.TxnSuppressSoftBouncesParams{ID: newID(), WorkspaceID: p.WorkspaceID, Email: rcpt, SourceProviderID: &pid,
-		OriginalCode: clip(ev.OriginalCode, 100), Detail: "Soft-bounced 3 times in 7 days (last: " + clip(strings.TrimSpace(ev.OriginalCode+" "+ev.Diagnostic), 200) + ")", CreatedAt: at})
+		OriginalCode: clip(ev.OriginalCode, 100), Detail: softBounceDetail(clip(strings.TrimSpace(ev.OriginalCode+" "+ev.Diagnostic), 200)), CreatedAt: at})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil
 	}
