@@ -67,6 +67,14 @@ var (
 	mIncidentSilent        = msgs.M("incident.silent")
 	mIncidentResumed       = msgs.M("incident.resumed")
 
+	mNotifyDownTitle   = msgs.M("notify.downTitle")
+	mNotifyAuthTitle   = msgs.M("notify.authTitle")
+	mNotifyDownBody    = msgs.M("notify.downBody")
+	mNotifyHeldTitle   = msgs.M("notify.heldTitle")
+	mNotifyHeldBody    = msgs.M("notify.heldBody")
+	mNotifySilentTitle = msgs.M("notify.silentTitle")
+	mNotifySilentBody  = msgs.M("notify.silentBody")
+
 	mErrorSettings = msgs.M("error.settings")
 
 	mAdapterMissing      = msgs.M("problem.adapterMissing")

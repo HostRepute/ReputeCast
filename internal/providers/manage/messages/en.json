@@ -43,6 +43,14 @@
   "incident.silent": { "message": "{name}: no webhook events since {since, time} while mail went out.", "note": "since: the last event's time" },
   "incident.resumed": "{name}: webhook events are arriving again.",
 
+  "notify.downTitle": { "message": "{name} is down", "note": "a notification to the members who manage providers" },
+  "notify.authTitle": "{name} rejected the credentials",
+  "notify.downBody": { "message": "{hasError, select, yes {{error}} other {API errors}}{hasOp, select, yes { on {op}} other {}} since {since, time}.{autoCount, plural, =0 {} other { {auto} failed over automatically.}}{heldCount, plural, =0 {} other { {held} wait for you.}}", "note": "error: the failed call's status and code; auto and held: the streams that moved to another provider and the ones that wait for a decision, joined with and; autoCount and heldCount: how many" },
+  "notify.heldTitle": { "message": "{campaign} is waiting for a decision", "note": "a notification to the members who can send; campaign: its name in quotes" },
+  "notify.heldBody": { "message": "{name} is down. Its share ({count, plural, other {{countText} recipients}}) is held; the rest keeps sending.", "note": "count: the recipients held; countText: the same number as the English writes it" },
+  "notify.silentTitle": "{name} webhooks have been silent for 6 hours",
+  "notify.silentBody": "No delivery, bounce or complaint events since {since, time}. Bounce protection for this route is blind; its share of Broadcasts is held.",
+
   "error.settings": { "message": "The stored settings can't be read: {error}", "note": "a provider whose saved settings no longer open its adapter" },
 
   "problem.adapterMissing": "This provider's adapter is not available in this build.",

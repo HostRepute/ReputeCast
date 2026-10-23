@@ -648,28 +648,28 @@ func (s *Service) onDown(ctx context.Context, tx pgx.Tx, ws store.Workspace, p s
 				mIncidentHeld.Keep(i18n.Args{"campaign": fmt.Sprintf("%q", c.Name), "short": short, "count": heldN}), &p.ID, &cid); err != nil {
 				return err
 			}
+			// Each member reads it in their own language (notify's kept text).
+			title, titleText := keep(mNotifyHeldTitle, i18n.Args{"campaign": fmt.Sprintf("%q", c.Name)})
+			body, bodyText := keep(mNotifyHeldBody, i18n.Args{"name": p.Name, "count": heldN, "countText": strconv.FormatInt(heldN, 10)})
 			if err := notify.ToMembersWith(ctx, tx, ws.ID, authz.CampaignsSend, notify.Notification{
-				Kind: notify.KindSendPaused, Severity: "bad", Title: fmt.Sprintf("%q is waiting for a decision", c.Name),
-				Body: fmt.Sprintf("%s is down. Its share (%d recipients) is held; the rest keeps sending.", p.Name, heldN),
+				Kind: notify.KindSendPaused, Severity: "bad", Title: title, TitleText: titleText, Body: body, BodyText: bodyText,
 				Link: "/w/" + ws.Slug + "/providers", Data: map[string]any{"campaignId": c.ID.String(), "providerId": p.ID.String()},
 			}); err != nil {
 				return err
 			}
 		}
 	}
-	body := fmt.Sprintf("%s since %s.", errText, h.Down.Since.In(state.Location(ws.Timezone)).Format("15:04"))
-	if len(auto) > 0 {
-		body += " " + strings.Join(auto, " and ") + " failed over automatically."
-	}
-	if len(held) > 0 {
-		body += " " + strings.Join(held, " and ") + " wait for you."
-	}
-	ntitle := p.Name + " is down"
+	// "503 ServiceUnavailable on SendEmail since 14:02. Automations failed
+	// over automatically. Broadcasts wait for you."
+	body, bodyText := keep(mNotifyDownBody, i18n.Args{"hasError": failed["hasError"], "error": failed["error"], "hasOp": failed["hasOp"], "op": failed["op"],
+		"since": h.Down.Since.In(state.Location(ws.Timezone)), "auto": strings.Join(auto, " and "), "autoCount": len(auto),
+		"held": strings.Join(held, " and "), "heldCount": len(held)})
+	ntitle, ntitleText := keep(mNotifyDownTitle, i18n.Args{"name": p.Name})
 	if h.Down.Reason == "auth" {
-		ntitle = p.Name + " rejected the credentials"
+		ntitle, ntitleText = keep(mNotifyAuthTitle, i18n.Args{"name": p.Name})
 	}
 	if err := notify.ToMembersWith(ctx, tx, ws.ID, authz.ProvidersManage, notify.Notification{
-		Kind: notify.KindProviderDown, Severity: "bad", Title: ntitle, Body: body, Link: "/w/" + ws.Slug + "/providers",
+		Kind: notify.KindProviderDown, Severity: "bad", Title: ntitle, TitleText: ntitleText, Body: body, BodyText: bodyText, Link: "/w/" + ws.Slug + "/providers",
 		Data: map[string]any{"providerId": p.ID.String(), "reason": h.Down.Reason},
 	}); err != nil {
 		return err
@@ -760,9 +760,10 @@ func (s *Service) onSilent(ctx context.Context, tx pgx.Tx, ws store.Workspace, p
 		mIncidentSilent.Keep(i18n.Args{"name": p.Name, "since": sinceAt}), &p.ID, nil); err != nil {
 		return err
 	}
+	title, titleText := keep(mNotifySilentTitle, i18n.Args{"name": p.Name})
+	body, bodyText := keep(mNotifySilentBody, i18n.Args{"since": sinceAt})
 	if err := notify.ToMembersWith(ctx, tx, ws.ID, authz.ProvidersManage, notify.Notification{
-		Kind: notify.KindWebhooksSilent, Severity: "warn", Title: p.Name + " webhooks have been silent for 6 hours",
-		Body: "No delivery, bounce or complaint events since " + since + ". Bounce protection for this route is blind; its share of Broadcasts is held.",
+		Kind: notify.KindWebhooksSilent, Severity: "warn", Title: title, TitleText: titleText, Body: body, BodyText: bodyText,
 		Link: "/w/" + ws.Slug + "/providers", Data: map[string]any{"providerId": p.ID.String()},
 	}); err != nil {
 		return err
