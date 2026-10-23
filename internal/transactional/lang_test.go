@@ -39,6 +39,22 @@ func TestTransactionalInVietnamese(t *testing.T) {
 	if tpl.Category == nil || tpl.Category.Name != "Tài khoản" || tpl.Category.Kind != "essential" {
 		t.Fatalf("category: %+v", tpl.Category)
 	}
+	// What the starter wrote is the workspace's content, in its language.
+	if !strings.HasPrefix(tpl.Subject, "Đặt lại mật khẩu ") || !strings.Contains(tpl.MJML, "Chào {{ first_name }},") || tpl.Variables[0].Default != "bạn" {
+		t.Fatalf("starter content: %q %+v", tpl.Subject, tpl.Variables)
+	}
+	// The gallery is in the member's language.
+	var starters struct {
+		Items []struct{ Key, Name, Description string }
+	}
+	vi.Do("GET", base+"/starters", nil).MustStatus(t, 200).JSON(t, &starters)
+	if len(starters.Items) == 0 || starters.Items[0].Name != "Đặt lại mật khẩu" || starters.Items[0].Description != "Một liên kết đặt lại có thời hạn" {
+		t.Fatalf("gallery (vi): %+v", starters.Items)
+	}
+	en.Do("GET", base+"/starters", nil).MustStatus(t, 200).JSON(t, &starters)
+	if starters.Items[0].Name != "Password reset" {
+		t.Fatalf("gallery (en): %+v", starters.Items)
+	}
 
 	// Problems.
 	if p := vi.Do("GET", base+"/templates/nope", nil).MustStatus(t, 404).Problem(t); p["detail"] != "Không tìm thấy mẫu." {

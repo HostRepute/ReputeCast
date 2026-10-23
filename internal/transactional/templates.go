@@ -260,8 +260,11 @@ func (s *Service) CreateTemplate(ctx context.Context, ws *store.Workspace, p *au
 		if !ok {
 			return TransactionalTemplate{}, api.Invalid("body.starter", say(ctx, "template.starterUnknown", i18n.Args{"starter": in.Starter}))
 		}
+		// What the starter writes is the workspace's content: its language.
+		wl := workspaceLang(ctx, s.Q, ws.ID)
+		sd = sd.in(wl)
 		product := s.product(ctx, ws)
-		src := sd.mjmlFor(product, s.footer(ctx, ws))
+		src := sd.mjmlFor(wl, product, s.footer(ctx, ws))
 		c = content{Subject: fillProduct(sd.Subject, product), Preheader: fillProduct(sd.Preheader, product), EditorMode: "visual", MJML: src, Variables: sd.Variables}
 		testData = sd.TestData
 		if description == "" {
