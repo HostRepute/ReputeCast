@@ -128,6 +128,11 @@ each other, keep the per-row numbers and let totals be computed.
   and call the real HTTP API. Cover: happy path, validation, permission denied
   (sign in as `aisha@acme.io`, the Viewer, or `daniel@acme.io`, the Content
   Writer), audit entry written, no secret in responses.
+- `SeedDemo` seeds once per test binary and clones the result for each test,
+  so a test can run minutes after the seed. When its numbers move with time
+  (scores decaying, "the last 30 days"), stop the domain's clock at the seed's
+  moment, as the scoring tests do with `App.Scoring().Now` (`seeded` in
+  `internal/scoring/scoring_test.go`).
 - Run with the compose Postgres: `REPUTECAST_TEST_DATABASE_URL=postgres://reputecast:reputecast@localhost:5433/postgres?sslmode=disable go test ./...`.
   When several people (or worktrees) test against the same server, add
   `-p 4`: each package's app keeps a small pool, but many packages at once
