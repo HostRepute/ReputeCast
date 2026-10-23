@@ -23,3 +23,14 @@ func TestFontNameInEachLanguage(t *testing.T) {
 		}
 	}
 }
+
+// An address from a name in another language keeps its letters, without
+// their marks; letters with no Latin form are dropped.
+func TestSlugifyFoldsMarks(t *testing.T) {
+	for in, want := range map[string]string{"Trang của tôi": "trang-cua-toi", "Đăng ký sự kiện": "dang-ky-su-kien", "Straße & Ærø": "strasse-aero",
+		"Warm-up planner": "warm-up-planner", "中文 page": "page"} {
+		if got := Slugify(in); got != want {
+			t.Errorf("Slugify(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
