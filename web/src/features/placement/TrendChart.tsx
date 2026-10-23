@@ -6,6 +6,7 @@ import { dayMonthDate, shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import { FOLDER, plainLine, providerColor, Pv, resultLine, Sw, type Counts, type TestRow } from './shared'
+import { useScrollRegion } from '@/lib/hooks'
 
 type Bar = { test: TestRow; provider: TestRow['providers'][number] }
 
@@ -105,12 +106,13 @@ function Chart({ bars, seeds }: { bars: Bar[]; seeds: number }) {
   const bw = Math.min(39.6, slot * 0.7)
   const every = slot >= 44 ? 1 : Math.ceil(44 / slot)
   const mid = Math.round(max / 2)
+  const [scrollRef, scroll] = useScrollRegion<HTMLDivElement>(t(m.trendTitle))
   const label = t(m.trendChartLabel, {
     list: bars.map((b) => t(m.trendBar, { date: dayMonthDate(b.test.startedAt), provider: b.provider.name, result: plainLine(b.provider.counts) })).join('; '),
   })
   const tip = hover === undefined ? undefined : bars[hover]
   return (
-    <div className="pl-tchart">
+    <div ref={scrollRef} className="pl-tchart" {...scroll}>
       <svg width="100%" viewBox={`0 0 ${W} 290`} role="img" aria-label={label} style={{ maxWidth: '100%' }} onMouseLeave={() => setHover(undefined)}>
         {[
           [0, '#C9CED6', '0'],

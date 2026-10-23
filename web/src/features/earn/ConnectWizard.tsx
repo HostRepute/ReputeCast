@@ -15,7 +15,7 @@ import { toast } from '@/components/ui/Toast'
 import { T as Msg, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { clock, clockSeconds, orList } from '@/lib/format'
-import { useDocumentTitle } from '@/lib/hooks'
+import { useDocumentTitle, useScrollRegion } from '@/lib/hooks'
 import { roleName } from '@/lib/roles'
 import { useCan, useWorkspace } from '@/lib/session'
 import '../connect/connect.css'
@@ -115,6 +115,8 @@ function Layout({ badge, children }: { badge: ReactNode; children: ReactNode }) 
 
 function Steps({ current, conn, pay }: { current: number; conn?: Conn; pay?: Schemas['EarnPayments'] }) {
   const t = useT()
+  // On phones the steps scroll sideways; the nav is reachable from the keyboard then.
+  const [stepsRef, steps] = useScrollRegion<HTMLElement>()
   const perms = pay?.permissions.length ?? 13
   const events = pay?.webhookEvents.length ?? 12
   const defs = [
@@ -126,7 +128,7 @@ function Steps({ current, conn, pay }: { current: number; conn?: Conn; pay?: Sch
     { title: t(mc.sDone), sub: '' },
   ]
   return (
-    <nav className="card cn-steps" aria-label={t(mc.stepsLabel)}>
+    <nav ref={stepsRef} className="card cn-steps" aria-label={t(mc.stepsLabel)} tabIndex={steps.tabIndex}>
       {defs.map((d, i) => {
         const n = i + 1
         const done = n < current

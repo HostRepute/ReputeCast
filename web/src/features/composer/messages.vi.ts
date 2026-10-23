@@ -14,6 +14,7 @@ export default translate(m, {
   newDocumentTitle: 'Chiến dịch mới · ReputeCast',
   errorDocumentTitle: '{status, select, notFound {Không tìm thấy} forbidden {Không có quyền truy cập} other {Đã xảy ra lỗi}} · ReputeCast',
   heading: 'Trình soạn thảo chiến dịch: {name}',
+  canvasRegion: 'Khung thiết kế email',
   previewHeading: 'Bản xem trước của {name}',
   untitled: 'Chiến dịch chưa đặt tên',
   skip: 'Chuyển đến nội dung',

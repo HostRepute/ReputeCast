@@ -15,6 +15,8 @@ export const m = defineMessages('composer', {
   /** The document title of a full-screen error: Not found, No access or Something broke. */
   errorDocumentTitle: '{status, select, notFound {Not found} forbidden {No access} other {Something broke}} · ReputeCast',
   heading: 'Campaign composer: {name}',
+  /** The canvas's name for screen readers while it scrolls (phones). */
+  canvasRegion: 'Email canvas',
   previewHeading: 'Preview of {name}',
   untitled: 'Untitled campaign',
   skip: 'Skip to content',

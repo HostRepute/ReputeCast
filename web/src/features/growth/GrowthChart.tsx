@@ -6,6 +6,7 @@ import { count, dayMonthDate, shortDate } from '@/lib/format'
 import { textWidth } from '@/features/scoring/SpreadChart'
 import { m } from './messages'
 import { dayOf, shortName, signedCount, sourceName } from './sourceText'
+import { useScrollRegion } from '@/lib/hooks'
 
 type Chart = Schemas['GrowthChart']
 type Series = Schemas['GrowthSeries']
@@ -106,9 +107,10 @@ export function GrowthChart({ chart, view, includeImports, from, to }: { chart: 
     left,
     series: chart.series.map((s) => t(m.seriesDesc, { name: seriesName(s, t), joined: s.joined, left: s.left })).join(' '),
   })
+  const [scrollRef, scroll] = useScrollRegion<HTMLDivElement>(t(m.chartTitle))
   if (view === 'table') return <ChartTable chart={chart} bs={bs} includeImports={includeImports} />
   return (
-    <div className="gr-chart">
+    <div ref={scrollRef} className="gr-chart" {...scroll}>
       {variants.map((v) => (
         <div key={v.key} className={`gr-v-${v.key}`}>
           <ChartSvg v={v} chart={chart} bs={bs} includeImports={includeImports} desc={desc} />
