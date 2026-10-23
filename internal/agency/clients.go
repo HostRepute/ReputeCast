@@ -369,7 +369,7 @@ func (s *Service) DeleteClient(ctx context.Context, wsID string, in AgencyClient
 	}
 	d := s.deps()
 	if d.DeleteWorkspace == nil {
-		return AgencyClientDeleted{}, api.Conflict("Deleting workspaces isn't available on this server.")
+		return AgencyClientDeleted{}, api.Conflict(mDeleteUnavailable.Text(i18n.LangFrom(ctx), nil))
 	}
 	ws, err := s.Q.GetWorkspace(ctx, id)
 	if err != nil {

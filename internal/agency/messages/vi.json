@@ -50,6 +50,8 @@
   "ownerManager": "Hãy chọn một quản lý agency làm Chủ sở hữu.",
   "firstPersonRole": "Người đầu tiên của khách hàng là Người duyệt phía khách hàng hoặc Người xem phía khách hàng.",
   "agencyWorkspaceDelete": "Không gian làm việc của chính agency không phải là khách hàng. Hãy xóa nó trong Quản trị hệ thống › Không gian làm việc.",
+  "deleteUnavailable": "Máy chủ này không hỗ trợ xóa không gian làm việc.",
+  "transactionalUnavailable": "Máy chủ này không hỗ trợ mẫu giao dịch.",
   "searchShort": "Hãy nhập ít nhất 2 ký tự.",
   "permissionLevel": "{permission} không thuộc cấp này."
 }

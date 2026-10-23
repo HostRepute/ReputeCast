@@ -50,6 +50,8 @@
   "ownerManager": "Pick an agency manager as the Owner.",
   "firstPersonRole": "The client's first person is a Client approver or a Client viewer.",
   "agencyWorkspaceDelete": "The agency's own workspace isn't a client. Delete it from Instance admin › Workspaces.",
+  "deleteUnavailable": "Deleting workspaces isn't available on this server.",
+  "transactionalUnavailable": "Transactional templates aren't available on this server.",
   "searchShort": "Type at least 2 characters.",
   "permissionLevel": "{permission} isn't part of this level."
 }

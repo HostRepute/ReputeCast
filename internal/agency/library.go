@@ -741,7 +741,7 @@ func (s *Service) copyItem(ctx context.Context, me *Staff, set workspaceSet, w s
 	if item.Kind == KindTransactional {
 		d := s.deps()
 		if d.Transactional == nil {
-			return out, api.Err(http.StatusServiceUnavailable, api.CodeUnavailable, "Transactional templates aren't available on this server.")
+			return out, api.Err(http.StatusServiceUnavailable, api.CodeUnavailable, mTransactionalUnavailable.Text(i18n.LangFrom(ctx), nil))
 		}
 		p := s.principalIn(me, set, w.ID)
 		t, err := d.Transactional.CreateTemplate(ctx, &ws, p, transactional.TransactionalTemplateCreate{Name: item.Name, Subject: c.Subject, Preheader: c.Preheader,
