@@ -14,7 +14,7 @@ export default translate(m, {
   isNot: 'Không phải một trong',
   answers: 'Câu trả lời',
   onChange: 'Bắt đầu lại khi câu trả lời thay đổi',
-  note: 'Câu trả lời thử và câu trả lời từ người không phải liên hệ không bao giờ bắt đầu luồng.',
-  surveyNote: 'Khảo sát bắt đầu luồng khi có người gửi khảo sát.',
+  note: 'Câu trả lời thử và câu trả lời từ người không phải liên hệ không bao giờ bắt đầu quy trình.',
+  surveyNote: 'Khảo sát bắt đầu quy trình khi có người gửi khảo sát.',
   loading: 'Đang tải bình chọn và khảo sát…',
 })

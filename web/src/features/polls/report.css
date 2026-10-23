@@ -241,6 +241,33 @@
   white-space: normal;
   min-width: 220px;
 }
+/* Comments on phones (PollResults' phone list). */
+.pr-clist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.pr-clist > li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 11px 16px;
+  border-top: 1px solid var(--line-2);
+}
+.pr-cq {
+  font-size: 13px;
+  line-height: 1.45;
+}
+@media (max-width: 767px) {
+  .pr-no-phone {
+    display: none;
+  }
+}
+@media (min-width: 768px) {
+  .pr-only-phone {
+    display: none;
+  }
+}
 .pr-note {
   margin: 0;
   padding: 10px 20px 16px;

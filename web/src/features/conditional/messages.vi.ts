@@ -159,7 +159,7 @@ export default translate(m, {
   overClipTitle: 'Phiên bản {number} vượt ngưỡng cắt bớt của Gmail',
   overClipBody:
     'Phiên bản {number} ({shows}) nặng {kb} KB. Gmail cắt bớt thư trên 102 KB và ẩn phần còn lại, kể cả liên kết hủy đăng ký ở chân thư, với {count, plural, =1 {người nhận này} other {# người nhận này}}. Mức độ nghiêm trọng giống kiểm tra kích thước của mọi chiến dịch.',
-  minifyCss: 'Rút gọn CSS nội tuyến',
+  minifyCss: 'Thu gọn CSS nội tuyến',
   previewVersionN: 'Xem trước phiên bản {number}',
   shortenBlock: 'Rút ngắn {name}',
   sampled:

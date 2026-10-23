@@ -326,7 +326,7 @@ function ChoiceResults({ p }: { p: PollResults }) {
                 {c.emoji ? `${c.emoji} ` : ''}
                 {c.label}
               </span>
-              <span className="nowrap">
+              <span className="whitespace-nowrap">
                 <b>{count(c.count)}</b> <span className="k">{pct(c.percent)}</span>
               </span>
             </div>
@@ -591,37 +591,57 @@ function Comments({ p }: { p: PollResults }) {
         <input className="in pr-search" type="search" aria-label={t(m.searchComments)} placeholder={t(m.searchComments)} value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       {items.length ? (
-        <table className="tbl pr-tbl pr-comments" aria-label={t(m.commentsTable)}>
-          <thead>
-            <tr>
-              <th scope="col">{scale ? t(m.colScore) : t(m.colAnswer)}</th>
-              <th scope="col">{t(m.colComment)}</th>
-              <th scope="col">{t(m.colContact)}</th>
-              <th scope="col">{t(m.colTime)}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((c) => (
-              <tr key={c.id}>
-                <td>
-                  {scale ? (
-                    <span className="flex flex-col items-start gap-0.5">
-                      <span className="pr-score">{c.answer}</span>
-                      <span className="k">{c.group === 'promoter' ? t(m.promoter) : c.group === 'passive' ? t(m.passive) : t(m.detractor)}</span>
-                    </span>
-                  ) : (
-                    c.label
-                  )}
-                </td>
-                <td className="wrap">{t(m.quote, { text: c.comment })}</td>
-                <td className={c.nonContact ? 'k' : 'font-semibold'}>{c.nonContact ? t(m.notAContact) : c.contact || t(m.aContact)}</td>
-                <td className="nowrap">
-                  {shortDate(c.at)} {clock(c.at)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <>
+          <div className="pr-no-phone overflow-x-auto">
+            <table className="tbl pr-tbl pr-comments" aria-label={t(m.commentsTable)}>
+              <thead>
+                <tr>
+                  <th scope="col">{scale ? t(m.colScore) : t(m.colAnswer)}</th>
+                  <th scope="col">{t(m.colComment)}</th>
+                  <th scope="col">{t(m.colContact)}</th>
+                  <th scope="col">{t(m.colTime)}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((c) => (
+                  <tr key={c.id}>
+                    <td className="nw">
+                      {scale ? (
+                        <span className="flex flex-col items-start gap-0.5">
+                          <span className="pr-score">{c.answer}</span>
+                          <span className="k">{c.group === 'promoter' ? t(m.promoter) : c.group === 'passive' ? t(m.passive) : t(m.detractor)}</span>
+                        </span>
+                      ) : (
+                        c.label
+                      )}
+                    </td>
+                    <td className="wrap">{t(m.quote, { text: c.comment })}</td>
+                    <td className={c.nonContact ? 'k' : 'font-semibold'}>{c.nonContact ? t(m.notAContact) : c.contact || t(m.aContact)}</td>
+                    <td className="nw k">
+                      {shortDate(c.at)} {clock(c.at)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {/* Phones list the comments as the board does: the quote, who and when, and the score. */}
+          <ul className="pr-only-phone pr-clist" aria-label={t(m.commentsTable)}>
+            {items.map((c) => {
+              const who = c.nonContact ? t(m.notAContact) : c.contact || t(m.aContact)
+              const when = `${shortDate(c.at)} ${clock(c.at)}`
+              return (
+                <li key={c.id}>
+                  <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
+                    <span className="pr-cq">{t(m.quote, { text: c.comment })}</span>
+                    <span className="k">{scale ? t(m.commentBy, { who, when }) : t(m.commentByAnswer, { answer: c.label, who, when })}</span>
+                  </span>
+                  {scale ? <span className="pr-score flex-none">{c.answer}</span> : null}
+                </li>
+              )
+            })}
+          </ul>
+        </>
       ) : (
         <p className="k" style={{ padding: '4px 20px 16px' }}>
           {res.isPending ? '…' : search ? t(m.noMatch, { query: search }) : t(m.noComments)}

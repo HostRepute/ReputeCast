@@ -320,6 +320,16 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
   const [locked, setLocked] = useState(false)
   const editable = canEdit && !conflict && !restoring
   const canvasEditable = editable && !locked
+  // React Flow's own descriptions, in the member's language and for what the canvas allows.
+  const ariaLabels = useMemo(
+    () => ({
+      'node.a11yDescription.default': t(canvasEditable ? mf.a11yStep : mf.a11yStepView),
+      'node.a11yDescription.keyboardDisabled': t(canvasEditable ? mf.a11yStepMove : mf.a11yStepView),
+      'node.a11yDescription.ariaLiveMessage': ({ direction, x, y }: { direction: string; x: number; y: number }) => t(mf.a11yMoved, { direction, x, y }),
+      'edge.a11yDescription.default': t(canvasEditable ? mf.a11yEdge : mf.a11yEdgeView),
+    }),
+    [t, canvasEditable],
+  )
 
   const statsMap = useMemo(() => new Map<string, StepStats>((stats.data?.steps ?? []).map((s) => [s.nodeId, s])), [stats.data])
   const liveIds = useMemo(() => new Set(detail.liveNodeIds), [detail.liveNodeIds])
@@ -700,6 +710,7 @@ function Editor({ detail, search, onSearch, onReload }: { detail: Detail; search
                 multiSelectionKeyCode={null}
                 defaultEdgeOptions={{ type: 'step' }}
                 proOptions={{ hideAttribution: true }}
+                ariaLabelConfig={ariaLabels}
                 className={cn(!(animate && !reduced) && 'fe-still')}
               >
                 <Background variant={BackgroundVariant.Dots} gap={GRID} size={2} offset={1} color="#D4D8DF" />

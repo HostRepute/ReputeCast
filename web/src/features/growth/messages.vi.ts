@@ -84,7 +84,7 @@ export default translate(m, {
   sourcesLead:
     'Cách liên hệ tham gia lần đầu, kèm tỷ lệ trả thư, khiếu nại và lượt mở bởi người đọc trên các lần gửi trong kỳ. Mỗi hàng mở danh sách liên hệ của nguồn đó.',
   sourcesLeadList:
-    'Khi chọn một danh sách, mỗi thành viên được tính theo cách họ tham gia danh sách đó: {count, plural, other {# người đã thêm {list} trong trang tùy chọn.}}',
+    'Khi chọn một danh sách, mỗi thành viên được tính theo cách họ tham gia danh sách đó: {count, plural, other {# người đã thêm {list} trong trung tâm tùy chọn.}}',
   sourcesLeadListNone: 'Khi chọn một danh sách, mỗi thành viên được tính theo cách họ tham gia danh sách đó.',
   sourcesLabel: 'Tăng trưởng theo nguồn',
   colSource: 'Nguồn',
@@ -133,7 +133,7 @@ export default translate(m, {
   srcApiKeyShort: 'Khóa API',
   srcSubscribePage: 'Trang đăng ký',
   srcPerson: 'Thêm thủ công',
-  srcPreferenceCenter: 'Trang tùy chọn',
+  srcPreferenceCenter: 'Trung tâm tùy chọn',
   srcImport: 'Nhập từ {name} ({day})',
   srcCsvImport: 'Nhập CSV ({month})',
   srcOther: 'Khác',
@@ -206,7 +206,7 @@ export default translate(m, {
   // How Growth counts.
   countsTitle: 'Cách Nguồn tăng trưởng đếm',
   counts1: 'Nguồn của một liên hệ là cách họ tham gia lần đầu.',
-  counts1Detail: 'Khi chọn một danh sách, mỗi thành viên được tính theo cách họ tham gia danh sách đó, ví dụ Trang tùy chọn.',
+  counts1Detail: 'Khi chọn một danh sách, mỗi thành viên được tính theo cách họ tham gia danh sách đó, ví dụ Trung tâm tùy chọn.',
   counts2: 'Lượt nhập giữ nguồn đi kèm.',
   counts2Detail: 'Lượt nhập {name} giữ ngày và nguồn gốc của {kept, number} liên hệ. {took, number} liên hệ không kèm nguồn được tính vào lượt nhập.',
   counts2Generic: 'Liên hệ được nhập có kèm ngày và nguồn riêng được tính theo nguồn đó; những liên hệ còn lại được tính vào lượt nhập.',

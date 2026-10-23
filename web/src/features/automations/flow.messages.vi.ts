@@ -89,6 +89,13 @@ export default translate(mf, {
   unlock: 'Mở khóa khung thiết kế',
   minimap: 'Bản đồ thu nhỏ',
 
+  a11yStepMove: 'Nhấn Enter hoặc Space để chọn một bước, rồi dùng các phím mũi tên để di chuyển nó. Nhấn Delete để xóa, hoặc Escape để hủy.',
+  a11yStep: 'Nhấn Enter hoặc Space để chọn một bước. Nhấn Delete để xóa, hoặc Escape để hủy.',
+  a11yStepView: 'Nhấn Enter hoặc Space để chọn một bước, hoặc Escape để hủy.',
+  a11yEdge: 'Nhấn Enter hoặc Space để chọn một đường nối. Nhấn Delete để xóa, hoặc Escape để hủy.',
+  a11yEdgeView: 'Nhấn Enter hoặc Space để chọn một đường nối, hoặc Escape để hủy.',
+  a11yMoved: 'Đã di chuyển bước {direction, select, up {lên trên} down {xuống dưới} left {sang trái} other {sang phải}}. Vị trí mới: x {x}, y {y}.',
+
   triggerHead: 'Kích hoạt',
   newInVersion: 'mới trong v{version}',
   routeOverride: 'tuyến riêng',

@@ -517,7 +517,7 @@ function ConsentCard({ p }: { p: Profile }) {
   const first = p.firstName || p.name
   return (
     <section className="card flex flex-col" aria-labelledby="consent-h">
-      <div className="flex items-center justify-between px-4.5 py-3.5">
+      <div className="pf-consent-h flex items-center justify-between px-4.5 py-3.5">
         <h2 className="h2" id="consent-h">
           {t(m.consentTitle)}
         </h2>
