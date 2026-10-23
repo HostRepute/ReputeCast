@@ -1431,7 +1431,7 @@ func (q *Queries) PublicSettingsEnsure(ctx context.Context, workspaceID uuid.UUI
 }
 
 const publicSettingsGet = `-- name: PublicSettingsGet :one
-SELECT workspace_id, hosted_form_id, pages, custom_domain, domain_status, domain_detail, domain_checked_at, domain_verified_at, turnstile_site_key, turnstile_secret_enc, turnstile_status, turnstile_error, turnstile_checked_at, logo, logo_type, updated_by, updated_at, copy_language FROM public_page_settings WHERE workspace_id = $1
+SELECT workspace_id, hosted_form_id, pages, custom_domain, domain_status, domain_detail, domain_checked_at, domain_verified_at, turnstile_site_key, turnstile_secret_enc, turnstile_status, turnstile_error, turnstile_checked_at, logo, logo_type, updated_by, updated_at, copy_language, texts FROM public_page_settings WHERE workspace_id = $1
 `
 
 func (q *Queries) PublicSettingsGet(ctx context.Context, workspaceID uuid.UUID) (PublicPageSetting, error) {
@@ -1456,6 +1456,7 @@ func (q *Queries) PublicSettingsGet(ctx context.Context, workspaceID uuid.UUID) 
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.CopyLanguage,
+		&i.Texts,
 	)
 	return i, err
 }
@@ -1480,21 +1481,24 @@ func (q *Queries) PublicSettingsLogo(ctx context.Context, workspaceID uuid.UUID)
 const publicSettingsSetDomain = `-- name: PublicSettingsSetDomain :exec
 UPDATE public_page_settings
 SET custom_domain = $1, domain_status = $2, domain_detail = $3,
-    domain_checked_at = $4, domain_verified_at = $5, updated_by = $6, updated_at = $7
-WHERE workspace_id = $8
+    domain_checked_at = $4, domain_verified_at = $5, updated_by = $6, updated_at = $7,
+    texts = (texts - 'domain_detail') || coalesce($8::jsonb, '{}')
+WHERE workspace_id = $9
 `
 
 type PublicSettingsSetDomainParams struct {
-	CustomDomain     *string    `json:"customDomain"`
-	DomainStatus     string     `json:"domainStatus"`
-	DomainDetail     string     `json:"domainDetail"`
-	DomainCheckedAt  *time.Time `json:"domainCheckedAt"`
-	DomainVerifiedAt *time.Time `json:"domainVerifiedAt"`
-	UpdatedBy        *uuid.UUID `json:"updatedBy"`
-	At               time.Time  `json:"at"`
-	WorkspaceID      uuid.UUID  `json:"workspaceId"`
+	CustomDomain     *string         `json:"customDomain"`
+	DomainStatus     string          `json:"domainStatus"`
+	DomainDetail     string          `json:"domainDetail"`
+	DomainCheckedAt  *time.Time      `json:"domainCheckedAt"`
+	DomainVerifiedAt *time.Time      `json:"domainVerifiedAt"`
+	UpdatedBy        *uuid.UUID      `json:"updatedBy"`
+	At               time.Time       `json:"at"`
+	Texts            json.RawMessage `json:"texts"`
+	WorkspaceID      uuid.UUID       `json:"workspaceId"`
 }
 
+// texts is the detail's kept message ({"domain_detail": …}), or NULL.
 func (q *Queries) PublicSettingsSetDomain(ctx context.Context, arg PublicSettingsSetDomainParams) error {
 	_, err := q.db.Exec(ctx, publicSettingsSetDomain,
 		arg.CustomDomain,
@@ -1504,6 +1508,7 @@ func (q *Queries) PublicSettingsSetDomain(ctx context.Context, arg PublicSetting
 		arg.DomainVerifiedAt,
 		arg.UpdatedBy,
 		arg.At,
+		arg.Texts,
 		arg.WorkspaceID,
 	)
 	return err
@@ -1578,21 +1583,24 @@ func (q *Queries) PublicSettingsSetPages(ctx context.Context, arg PublicSettings
 const publicSettingsSetTurnstile = `-- name: PublicSettingsSetTurnstile :exec
 UPDATE public_page_settings
 SET turnstile_site_key = $1, turnstile_secret_enc = $2, turnstile_status = $3, turnstile_error = $4,
-    turnstile_checked_at = $5, updated_by = $6, updated_at = $7
-WHERE workspace_id = $8
+    turnstile_checked_at = $5, updated_by = $6, updated_at = $7,
+    texts = (texts - 'turnstile_error') || coalesce($8::jsonb, '{}')
+WHERE workspace_id = $9
 `
 
 type PublicSettingsSetTurnstileParams struct {
-	SiteKey     string     `json:"siteKey"`
-	SecretEnc   []byte     `json:"secretEnc"`
-	Status      string     `json:"status"`
-	Error       string     `json:"error"`
-	CheckedAt   *time.Time `json:"checkedAt"`
-	UpdatedBy   *uuid.UUID `json:"updatedBy"`
-	At          time.Time  `json:"at"`
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	SiteKey     string          `json:"siteKey"`
+	SecretEnc   []byte          `json:"secretEnc"`
+	Status      string          `json:"status"`
+	Error       string          `json:"error"`
+	CheckedAt   *time.Time      `json:"checkedAt"`
+	UpdatedBy   *uuid.UUID      `json:"updatedBy"`
+	At          time.Time       `json:"at"`
+	Texts       json.RawMessage `json:"texts"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
 }
 
+// texts is the error's kept message ({"turnstile_error": …}), or NULL.
 func (q *Queries) PublicSettingsSetTurnstile(ctx context.Context, arg PublicSettingsSetTurnstileParams) error {
 	_, err := q.db.Exec(ctx, publicSettingsSetTurnstile,
 		arg.SiteKey,
@@ -1602,6 +1610,7 @@ func (q *Queries) PublicSettingsSetTurnstile(ctx context.Context, arg PublicSett
 		arg.CheckedAt,
 		arg.UpdatedBy,
 		arg.At,
+		arg.Texts,
 		arg.WorkspaceID,
 	)
 	return err
@@ -1623,19 +1632,26 @@ func (q *Queries) PublicSettingsTouch(ctx context.Context, arg PublicSettingsTou
 }
 
 const publicSettingsTurnstileError = `-- name: PublicSettingsTurnstileError :exec
-UPDATE public_page_settings SET turnstile_status = 'error', turnstile_error = $1, turnstile_checked_at = $2
-WHERE workspace_id = $3 AND turnstile_site_key <> ''
+UPDATE public_page_settings SET turnstile_status = 'error', turnstile_error = $1, turnstile_checked_at = $2,
+    texts = (texts - 'turnstile_error') || coalesce($3::jsonb, '{}')
+WHERE workspace_id = $4 AND turnstile_site_key <> ''
 `
 
 type PublicSettingsTurnstileErrorParams struct {
-	Error       string     `json:"error"`
-	At          *time.Time `json:"at"`
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Error       string          `json:"error"`
+	At          *time.Time      `json:"at"`
+	Texts       json.RawMessage `json:"texts"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
 }
 
 // The widget on a challenge page reported an error (wrong site key, domain
 // not allowed): spam protection falls back until someone fixes the key.
 func (q *Queries) PublicSettingsTurnstileError(ctx context.Context, arg PublicSettingsTurnstileErrorParams) error {
-	_, err := q.db.Exec(ctx, publicSettingsTurnstileError, arg.Error, arg.At, arg.WorkspaceID)
+	_, err := q.db.Exec(ctx, publicSettingsTurnstileError,
+		arg.Error,
+		arg.At,
+		arg.Texts,
+		arg.WorkspaceID,
+	)
 	return err
 }

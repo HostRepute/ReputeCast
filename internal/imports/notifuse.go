@@ -30,7 +30,7 @@ func NewNotifuse(baseURL, key string, hc *http.Client) (*Notifuse, error) {
 	}
 	base := strings.TrimRight(strings.TrimSpace(baseURL), "/")
 	if base == "" {
-		return nil, &SourceError{Code: CodeBadResponse, Message: "Enter the address of your Notifuse instance, for example https://notifuse.example.com."}
+		return nil, newSourceError(CodeBadResponse, 0, mNotifuseAddress, nil)
 	}
 	base = strings.TrimSuffix(base, "/api")
 	return &Notifuse{c: newAPIClient("Notifuse", base, hc, func(r *http.Request) { r.Header.Set("Authorization", "Bearer "+strings.TrimSpace(key)) })}, nil
@@ -55,7 +55,7 @@ func (n *Notifuse) workspaceID(ctx context.Context) (string, error) {
 		return "", err
 	}
 	if len(ws) == 0 {
-		return "", &SourceError{Status: 403, Code: CodeAuthFailed, Message: "Notifuse rejected the API key: it isn't attached to a workspace."}
+		return "", newSourceError(CodeAuthFailed, 403, mNotifuseNoWS, nil)
 	}
 	n.workspace, n.name, n.labels = ws[0].ID, ws[0].Name, ws[0].Settings.CustomFieldLabels
 	if n.name == "" {

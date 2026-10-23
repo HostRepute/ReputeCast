@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -13,6 +14,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // SQL segments: the person writes a SELECT over the segment views that
@@ -35,13 +38,29 @@ var (
 )
 
 // SQLError explains why user-written SQL was refused or failed, in words
-// the person can act on.
+// the person can act on. Message is the English; Text writes ReputeCast's
+// own explanations in a reader's language (Postgres's own errors stay as
+// Postgres wrote them).
 type SQLError struct {
 	Message  string
 	Position int // 1-based character position in the user's SQL, 0 when unknown
+	problem  error
 }
 
 func (e *SQLError) Error() string { return e.Message }
+
+// Text is the explanation in a reader's language.
+func (e *SQLError) Text(l i18n.Lang) string {
+	if e.problem == nil {
+		return e.Message
+	}
+	return textOf(l, e.problem)
+}
+
+// sqlProblem is a SQLError with one of ReputeCast's explanations.
+func sqlProblem(p error, position int) *SQLError {
+	return &SQLError{Message: p.Error(), Position: position, problem: p}
+}
 
 // CheckSQL validates the shape of user-written SQL before it reaches the
 // database: one statement, starting with SELECT or WITH. It returns the
@@ -49,10 +68,10 @@ func (e *SQLError) Error() string { return e.Message }
 func CheckSQL(src string) (string, error) {
 	s := strings.TrimSpace(src)
 	if s == "" {
-		return "", &SQLError{Message: "Write a SELECT that returns contact ids, for example: SELECT c.id FROM contacts c WHERE c.tier = 'active'"}
+		return "", sqlProblem(says(mSQLEmpty), 0)
 	}
 	if len(s) > MaxSQLLength {
-		return "", &SQLError{Message: fmt.Sprintf("SQL segments are limited to %d characters.", MaxSQLLength)}
+		return "", sqlProblem(sayf(mSQLTooLong, i18n.Args{"max": strconv.Itoa(MaxSQLLength)}), 0)
 	}
 	toks, err := scan(s)
 	if err != nil {
@@ -65,7 +84,7 @@ func CheckSQL(src string) (string, error) {
 	}
 	for _, t := range toks {
 		if t.kind == tokSemicolon {
-			return "", &SQLError{Message: "Only one statement is allowed: remove the semicolon and anything after it.", Position: t.pos + 1}
+			return "", sqlProblem(says(mSQLOne), t.pos+1)
 		}
 	}
 	first := ""
@@ -79,7 +98,7 @@ func CheckSQL(src string) (string, error) {
 		}
 	}
 	if first != "select" && first != "with" {
-		return "", &SQLError{Message: "A SQL segment must be a SELECT (or WITH … SELECT) that returns contact ids."}
+		return "", sqlProblem(says(mSQLSelect), 0)
 	}
 	return s, nil
 }
@@ -131,7 +150,7 @@ func scan(s string) ([]token, error) {
 				i++
 			}
 			if depth != 0 {
-				return nil, &SQLError{Message: "A /* comment */ is never closed.", Position: start + 1}
+				return nil, sqlProblem(says(mSQLComment), start+1)
 			}
 		case c == '\'' || ((c == 'e' || c == 'E') && i+1 < len(s) && s[i+1] == '\''):
 			start := i
@@ -158,7 +177,7 @@ func scan(s string) ([]token, error) {
 				i++
 			}
 			if !closed {
-				return nil, &SQLError{Message: "A quoted string is never closed.", Position: start + 1}
+				return nil, sqlProblem(says(mSQLString), start+1)
 			}
 			out = append(out, token{tokString, s[start:i], start})
 		case c == '"':
@@ -178,7 +197,7 @@ func scan(s string) ([]token, error) {
 				i++
 			}
 			if !closed {
-				return nil, &SQLError{Message: "A quoted identifier is never closed.", Position: start + 1}
+				return nil, sqlProblem(says(mSQLIdent), start+1)
 			}
 			out = append(out, token{tokWord, s[start:i], start})
 		case c == '$':
@@ -191,7 +210,7 @@ func scan(s string) ([]token, error) {
 				tag := s[i : j+1]
 				end := strings.Index(s[j+1:], tag)
 				if end < 0 {
-					return nil, &SQLError{Message: "A dollar-quoted string is never closed.", Position: start + 1}
+					return nil, sqlProblem(says(mSQLDollar), start+1)
 				}
 				i = j + 1 + end + len(tag)
 				out = append(out, token{tokString, s[start:i], start})
@@ -300,20 +319,20 @@ func mapSQLError(err error) error {
 	case "57014":
 		return ErrTimeout
 	case "42501":
-		return &SQLError{Message: "Your SQL can only read the " + strings.Join(ViewNames[:len(ViewNames)-1], ", ") + " and " + ViewNames[len(ViewNames)-1] + " views (" + msg + ")."}
+		return sqlProblem(&viewsProblem{detail: msg}, 0)
 	case "42804":
 		if strings.Contains(msg, "structure of query") {
-			return &SQLError{Message: "The query must return the contact id (a uuid) in a column named id, for example SELECT c.id FROM contacts c."}
+			return sqlProblem(says(mSQLIDUUID), 0)
 		}
 	case "42703":
 		if strings.Contains(msg, `"id"`) {
-			return &SQLError{Message: "The query must return the contact id in a column named id, for example SELECT c.id FROM contacts c."}
+			return sqlProblem(says(mSQLID), 0)
 		}
 	case "25006":
-		return &SQLError{Message: "SQL segments are read-only: they can't change data."}
+		return sqlProblem(says(mSQLReadOnly), 0)
 	}
 	if strings.Contains(msg, "security-definer") {
-		return &SQLError{Message: "SQL segments can't change roles or session settings."}
+		return sqlProblem(says(mSQLRoles), 0)
 	}
 	// Errors inside the runner point into its wrapper query; translate the
 	// position back to the person's own SQL.
@@ -323,6 +342,16 @@ func mapSQLError(err error) error {
 	}
 	return &SQLError{Message: capitalize(msg) + ".", Position: max(pos, 0)}
 }
+
+// viewsProblem says which views SQL segments can read, with Postgres's
+// own words about what was refused.
+type viewsProblem struct{ detail string }
+
+func (p *viewsProblem) text(l i18n.Lang) string {
+	return mSQLViews.Text(l, i18n.Args{"views": i18n.AndList(l.Locale, ViewNames), "detail": p.detail})
+}
+
+func (p *viewsProblem) Error() string { return p.text(i18n.Default) }
 
 // runnerPrefix is how reputecast_sql.segment_ids wraps the person's SQL.
 const runnerPrefix = "SELECT s.id::uuid FROM ("

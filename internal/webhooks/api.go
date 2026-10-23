@@ -8,6 +8,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // WebhookPathInput is a path or query input shared by several operations.
@@ -129,7 +130,7 @@ func Register(h huma.API, s *Service) {
 			if in.WebhookID != "" {
 				id, err := uuid.Parse(in.WebhookID)
 				if err != nil {
-					return nil, api.Invalid("query.webhookId", "Unknown endpoint.")
+					return nil, api.Invalid("query.webhookId", mUnknownEndpoint.Text(i18n.LangFrom(ctx), nil))
 				}
 				hook = &id
 			}
@@ -166,7 +167,7 @@ func Register(h huma.API, s *Service) {
 			if in.Body.WebhookID != "" {
 				id, err := uuid.Parse(in.Body.WebhookID)
 				if err != nil {
-					return nil, api.Invalid("body.webhookId", "Unknown endpoint.")
+					return nil, api.Invalid("body.webhookId", mUnknownEndpoint.Text(i18n.LangFrom(ctx), nil))
 				}
 				hook = &id
 			}

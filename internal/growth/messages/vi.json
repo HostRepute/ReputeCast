@@ -1,5 +1,18 @@
 {
   "period.pickDays": "Hãy chọn ngày đầu và ngày cuối của khoảng thời gian.",
   "period.endsBefore": "Khoảng thời gian kết thúc trước khi bắt đầu. Hãy đổi chỗ hai ngày.",
-  "period.tooLong": "Hãy chọn khoảng thời gian tối đa hai năm."
+  "period.tooLong": "Hãy chọn khoảng thời gian tối đa hai năm.",
+
+  "label.form": "Biểu mẫu đăng ký",
+  "label.subscribePage": "Trang đăng ký",
+  "label.apiKeyNamed": "Khóa API “{name}”",
+  "label.api": "API",
+  "label.integration": "Tích hợp",
+  "label.person": "Thêm thủ công",
+  "label.preferenceCenter": "Trung tâm tùy chọn",
+  "label.importOn": "Nhập từ {name} ({day})",
+  "label.import": "Nhập từ {name}",
+  "label.file": "tệp",
+  "label.other": "Khác",
+  "label.unknown": "Không rõ"
 }

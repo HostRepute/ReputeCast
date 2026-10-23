@@ -426,15 +426,17 @@ func (q *Queries) ImportStatusCounts(ctx context.Context, importID uuid.UUID) ([
 }
 
 const insertImportLog = `-- name: InsertImportLog :exec
-INSERT INTO import_log (id, import_id, occurred_at, kind, message) VALUES ($1, $2, $3, $4, $5)
+INSERT INTO import_log (id, import_id, occurred_at, kind, message, message_parts)
+VALUES ($1, $2, $3, $4, $5, coalesce($6::jsonb, '[]'))
 `
 
 type InsertImportLogParams struct {
-	ID         uuid.UUID `json:"id"`
-	ImportID   uuid.UUID `json:"importId"`
-	OccurredAt time.Time `json:"occurredAt"`
-	Kind       string    `json:"kind"`
-	Message    string    `json:"message"`
+	ID           uuid.UUID       `json:"id"`
+	ImportID     uuid.UUID       `json:"importId"`
+	OccurredAt   time.Time       `json:"occurredAt"`
+	Kind         string          `json:"kind"`
+	Message      string          `json:"message"`
+	MessageParts json.RawMessage `json:"messageParts"`
 }
 
 func (q *Queries) InsertImportLog(ctx context.Context, arg InsertImportLogParams) error {
@@ -444,6 +446,7 @@ func (q *Queries) InsertImportLog(ctx context.Context, arg InsertImportLogParams
 		arg.OccurredAt,
 		arg.Kind,
 		arg.Message,
+		arg.MessageParts,
 	)
 	return err
 }
@@ -486,7 +489,7 @@ func (q *Queries) LatestFinishedImport(ctx context.Context, workspaceID uuid.UUI
 }
 
 const listImportLog = `-- name: ListImportLog :many
-SELECT id, import_id, occurred_at, kind, message FROM import_log WHERE import_id = $1 ORDER BY occurred_at DESC, id DESC LIMIT 30
+SELECT id, import_id, occurred_at, kind, message, message_parts FROM import_log WHERE import_id = $1 ORDER BY occurred_at DESC, id DESC LIMIT 30
 `
 
 func (q *Queries) ListImportLog(ctx context.Context, importID uuid.UUID) ([]ImportLog, error) {
@@ -504,6 +507,7 @@ func (q *Queries) ListImportLog(ctx context.Context, importID uuid.UUID) ([]Impo
 			&i.OccurredAt,
 			&i.Kind,
 			&i.Message,
+			&i.MessageParts,
 		); err != nil {
 			return nil, err
 		}

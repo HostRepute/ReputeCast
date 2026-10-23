@@ -3,8 +3,8 @@ package audience
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -35,7 +36,7 @@ type beginner interface {
 func (s *Service) createList(ctx context.Context, conn beginner, ws *store.Workspace, in AudienceListInput) (AudienceListSummary, error) {
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		return AudienceListSummary{}, api.Invalid("body.name", "Give the list a name.")
+		return AudienceListSummary{}, api.Invalid("body.name", say(ctx, mListName, nil))
 	}
 	double := true
 	if in.DoubleOptIn != nil {
@@ -53,7 +54,7 @@ func (s *Service) createList(ctx context.Context, conn beginner, ws *store.Works
 		return AudienceListSummary{}, err
 	}
 	if taken {
-		return AudienceListSummary{}, api.Conflict(fmt.Sprintf("A list called %q already exists.", name))
+		return AudienceListSummary{}, api.Conflict(say(ctx, mListExists, i18n.Args{"name": strconv.Quote(name)}))
 	}
 	l, err = q.CreateList(ctx, store.CreateListParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, Name: name, Description: strings.TrimSpace(in.Description), DoubleOptIn: double})
 	if err != nil {
@@ -82,14 +83,14 @@ func (s *Service) UpdateList(ctx context.Context, ws *store.Workspace, id uuid.U
 		}
 		name := strings.TrimSpace(in.Name)
 		if name == "" {
-			return api.Invalid("body.name", "Give the list a name.")
+			return api.Invalid("body.name", say(ctx, mListName, nil))
 		}
 		taken, err := q.ListNameTaken(ctx, store.ListNameTakenParams{WorkspaceID: ws.ID, Name: name, ExceptID: id})
 		if err != nil {
 			return err
 		}
 		if taken {
-			return api.Conflict(fmt.Sprintf("A list called %q already exists.", name))
+			return api.Conflict(say(ctx, mListExists, i18n.Args{"name": strconv.Quote(name)}))
 		}
 		double := before.DoubleOptIn
 		if in.DoubleOptIn != nil {
@@ -161,16 +162,16 @@ var reservedKeys = map[string]bool{"email": true, "first_name": true, "last_name
 func (s *Service) CreateField(ctx context.Context, ws *store.Workspace, in CustomFieldInput) (CustomFieldDef, error) {
 	key := strings.TrimSpace(in.Key)
 	if !fieldKeyRe.MatchString(key) {
-		return CustomFieldDef{}, api.Invalid("body.key", "Keys use lowercase letters, digits and _, and start with a letter (for example signup_source).")
+		return CustomFieldDef{}, api.Invalid("body.key", say(ctx, mFieldKey, nil))
 	}
 	if reservedKeys[key] {
-		return CustomFieldDef{}, api.Invalid("body.key", fmt.Sprintf("%s is a built-in field.", key))
+		return CustomFieldDef{}, api.Invalid("body.key", say(ctx, mFieldBuiltin, i18n.Args{"key": key}))
 	}
 	if in.Type == "" {
 		in.Type = "text"
 	}
 	if in.Display == "currency" && in.Type != "number" {
-		return CustomFieldDef{}, api.Invalid("body.display", "Only number fields can show as money.")
+		return CustomFieldDef{}, api.Invalid("body.display", say(ctx, mFieldMoney, nil))
 	}
 	opts, _ := json.Marshal(nonNil(in.Options))
 	var f store.CustomField
@@ -181,7 +182,7 @@ func (s *Service) CreateField(ctx context.Context, ws *store.Workspace, in Custo
 			Type: in.Type, Options: opts, Display: in.Display})
 		if err != nil {
 			if strings.Contains(err.Error(), "custom_fields_key") {
-				return api.Conflict(fmt.Sprintf("A field with the key %s already exists.", key))
+				return api.Conflict(say(ctx, mFieldExists, i18n.Args{"key": key}))
 			}
 			return err
 		}
@@ -201,7 +202,7 @@ func (s *Service) UpdateField(ctx context.Context, ws *store.Workspace, id uuid.
 			return api.MapError(err, "Field")
 		}
 		if in.Display == "currency" && before.Type != "number" {
-			return api.Invalid("body.display", "Only number fields can show as money.")
+			return api.Invalid("body.display", say(ctx, mFieldMoney, nil))
 		}
 		opts, _ := json.Marshal(nonNil(in.Options))
 		f, err = q.UpdateCustomField(ctx, store.UpdateCustomFieldParams{WorkspaceID: ws.ID, ID: id, Label: strings.TrimSpace(in.Label), Options: opts, Display: in.Display})

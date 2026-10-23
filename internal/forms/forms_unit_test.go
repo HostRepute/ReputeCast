@@ -19,6 +19,8 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/audience"
+	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -555,7 +557,7 @@ func embedFixture() (Config, PageLinks, []audience.PublicList, []store.CustomFie
 		ConsentText: `I agree to emails from "Acme & Co" <script>alert(1)</script>. See the privacy policy.`, ConsentVersion: 3,
 		Spam: defaultSpam(),
 	}
-	c.Content = withContentDefaults(contentDoc{Heading: `</script><script>alert("x")</script>`, Description: "line\u2028separator", Button: `Join "now" & <go>`}, true)
+	c.Content = withContentDefaults(contentDoc{Heading: `</script><script>alert("x")</script>`, Description: "line\u2028separator", Button: `Join "now" & <go>`}, pagelabels.English())
 	links := LinksOn("https://rc.example", "acme-newsletter", false)
 	lists := []audience.PublicList{{ID: digest, Name: "Weekly <Digest>", Public: true}, {ID: updates, Name: "Product & Updates", Public: true}}
 	customs := []store.CustomField{{Key: "role", Label: "Role", Type: "select", Options: []byte(`["Engineer","Designer"]`)}}
@@ -706,7 +708,8 @@ func TestEmbedScript(t *testing.T) {
 	}
 	// A failed submit shows the error's sentence (FormsStates: "We couldn't
 	// save your subscription just now…"), never the message object.
-	if en.Messages["error"].Text != msgSaveFailed || strings.Count(js, "t.messages.error.text") != 2 || strings.Contains(js, "t.messages.error)") {
+	if en.Messages["error"].Text != "We couldn't save your subscription just now. Nothing was lost; please try again in a minute." ||
+		strings.Count(js, "t.messages.error.text") != 2 || strings.Contains(js, "t.messages.error)") {
 		t.Errorf("error message: %+v", en.Messages["error"])
 	}
 	if strings.ContainsRune(js, '\u2028') || strings.ContainsRune(js, '\u2029') {
@@ -754,7 +757,7 @@ func TestSniffLogo(t *testing.T) {
 		{"gif", append([]byte("GIF89a"), bytes.Repeat([]byte{0}, 32)...), "image/gif"},
 	}
 	for _, tc := range ok {
-		ctype, problem := sniffLogo(tc.data)
+		ctype, problem := sniffLogo(i18n.Default, tc.data)
 		if ctype != tc.want || problem != "" {
 			t.Errorf("%s: %q %q, want %s", tc.name, ctype, problem, tc.want)
 		}
@@ -776,12 +779,12 @@ func TestSniffLogo(t *testing.T) {
 		{"entity", []byte(`<?xml version="1.0"?><!DOCTYPE svg [<!ENTITY x "y">]><svg xmlns="http://www.w3.org/2000/svg">&x;</svg>`)},
 	}
 	for _, tc := range bad {
-		ctype, problem := sniffLogo(tc.data)
+		ctype, problem := sniffLogo(i18n.Default, tc.data)
 		if problem == "" || ctype != "" {
 			t.Errorf("%s: accepted as %q", tc.name, ctype)
 		}
 	}
-	if _, problem := sniffLogo([]byte(`<svg onload="x()"></svg>`)); !strings.Contains(problem, "scripts") {
+	if _, problem := sniffLogo(i18n.Default, []byte(`<svg onload="x()"></svg>`)); !strings.Contains(problem, "scripts") {
 		t.Errorf("the message explains the problem: %q", problem)
 	}
 }
@@ -795,7 +798,7 @@ func TestSniffLogoRejectsEveryEventHandler(t *testing.T) {
 		"onmouseover":        `<svg xmlns="http://www.w3.org/2000/svg"><rect width="9" height="9" onmouseover="alert(1)"/></svg>`,
 		"animation onbegin":  `<svg xmlns="http://www.w3.org/2000/svg"><animate attributeName="x" dur="1s" onbegin="alert(1)"/></svg>`,
 	} {
-		if ctype, problem := sniffLogo([]byte(svg)); problem == "" {
+		if ctype, problem := sniffLogo(i18n.Default, []byte(svg)); problem == "" {
 			t.Errorf("%s: accepted as %s (settings.go sniffLogo matches literal strings; reject any on*= attribute, e.g. with the regexp (?i)\\son[a-z]+\\s*=)", name, ctype)
 		}
 	}
@@ -821,7 +824,7 @@ func TestApplyPages(t *testing.T) {
 	lists := []audience.PublicList{{ID: digest, Name: "Weekly Digest", Public: true}}
 	before := defaultPages()
 	heading := "  The Acme newsletter  "
-	after, changed, err := applyPages(before, PublicPageInput{Subscribe: &SubscribePage{Heading: heading, ListText: map[string]string{
+	after, changed, err := applyPages(i18n.Default, before, PublicPageInput{Subscribe: &SubscribePage{Heading: heading, ListText: map[string]string{
 		digest.String(): "  Every Tuesday.  ", uuid.NewString(): "a list of another workspace", digest.String() + "x": "junk",
 	}}}, lists)
 	if err != nil {
@@ -833,26 +836,26 @@ func TestApplyPages(t *testing.T) {
 	if len(changed) != 1 || changed[0] != "subscribe" || after.Unsubscribe != before.Unsubscribe {
 		t.Errorf("only the subscribe page changes: %v", changed)
 	}
-	if _, _, err := applyPages(before, PublicPageInput{Archive: &ArchivePage{Lists: []string{uuid.NewString()}}}, lists); err == nil {
+	if _, _, err := applyPages(i18n.Default, before, PublicPageInput{Archive: &ArchivePage{Lists: []string{uuid.NewString()}}}, lists); err == nil {
 		t.Error("archive lists of another workspace are accepted")
 	}
-	if _, _, err := applyPages(before, PublicPageInput{Unsubscribe: &UnsubscribePage{Fewer: true, FewerTitle: " ", FewerButton: "Fewer"}}, lists); err == nil {
+	if _, _, err := applyPages(i18n.Default, before, PublicPageInput{Unsubscribe: &UnsubscribePage{Fewer: true, FewerTitle: " ", FewerButton: "Fewer"}}, lists); err == nil {
 		t.Error("the fewer-emails offer needs a heading")
 	}
-	if _, _, err := applyPages(before, PublicPageInput{Subscribe: &SubscribePage{ListText: map[string]string{digest.String(): strings.Repeat("x", 301)}}}, lists); err == nil {
+	if _, _, err := applyPages(i18n.Default, before, PublicPageInput{Subscribe: &SubscribePage{ListText: map[string]string{digest.String(): strings.Repeat("x", 301)}}}, lists); err == nil {
 		t.Error("list lines over 300 characters are accepted")
 	}
 	bad := "sam <script>"
-	if _, _, err := applyPages(before, PublicPageInput{PreviewEmail: &bad}, lists); err == nil {
+	if _, _, err := applyPages(i18n.Default, before, PublicPageInput{PreviewEmail: &bad}, lists); err == nil {
 		t.Error("a preview address with markup is accepted")
 	}
 	email := "  Sam.Rivera@Outlook.com "
-	after, _, err = applyPages(before, PublicPageInput{PreviewEmail: &email}, lists)
+	after, _, err = applyPages(i18n.Default, before, PublicPageInput{PreviewEmail: &email}, lists)
 	if err != nil || after.PreviewEmail != "sam.rivera@outlook.com" {
 		t.Errorf("preview email %q, %v", after.PreviewEmail, err)
 	}
 	empty := ""
-	after, _, _ = applyPages(after, PublicPageInput{PreviewEmail: &empty}, lists)
+	after, _, _ = applyPages(i18n.Default, after, PublicPageInput{PreviewEmail: &empty}, lists)
 	if after.PreviewEmail != "" {
 		t.Error("an empty preview email goes back to the latest confirmation")
 	}

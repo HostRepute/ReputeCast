@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/url"
 	"slices"
 	"sort"
@@ -16,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -189,12 +189,9 @@ type SignupFormLanguageInput struct {
 	Fixed string `json:"fixed,omitempty" doc:"The language of a form always shown in one (mode fixed)"`
 }
 
-func refusedLanguage(code string) error {
-	name := languages.NameOf(code)
-	if name == "" {
-		name = code
-	}
-	return api.Invalid("path.language", fmt.Sprintf("%s isn't one of your languages. Add it in Settings › General first.", name))
+func refusedLanguage(ctx context.Context, code string) error {
+	l := i18n.LangFrom(ctx)
+	return api.Invalid("path.language", mNotYourLanguage.Text(l, i18n.Args{"language": languageNameIn(l, code, code)}))
 }
 
 // labelsState is the state of a language's built-in labels.
@@ -247,7 +244,7 @@ func (s *Service) PageCopy(ctx context.Context, ws *store.Workspace, language st
 	}
 	code, err := workspaceLanguage(pc.Languages, language)
 	if err != nil && languages.Base(language) != pc.CopyLanguage {
-		return out, refusedLanguage(code)
+		return out, refusedLanguage(ctx, code)
 	}
 	if code == "" {
 		code = languages.Base(language)
@@ -345,10 +342,11 @@ func (s *Service) SavePageCopy(ctx context.Context, ws *store.Workspace, languag
 			return err
 		}
 		if code, err = workspaceLanguage(pc.Languages, language); err != nil {
-			return refusedLanguage(code)
+			return refusedLanguage(ctx, code)
 		}
 		if code == pc.CopyLanguage {
-			return api.Invalid("path.language", "The pages are written in "+languages.NameOf(code)+": change that text on each page's tab.")
+			lang := i18n.LangFrom(ctx)
+			return api.Invalid("path.language", mPagesWrittenIn.Text(lang, i18n.Args{"language": languageNameIn(lang, code, code)}))
 		}
 		known := map[string]pageString{}
 		for _, ps := range pc.strings {
@@ -374,10 +372,10 @@ func (s *Service) SavePageCopy(ctx context.Context, ws *store.Workspace, languag
 		for _, k := range keys {
 			ps, ok := known[k]
 			if !ok {
-				return api.Invalid("body.strings."+k, "The pages have no text to translate there any more. Reload the page.")
+				return api.Invalid("body.strings."+k, say(ctx, mNoPageString, nil))
 			}
 			v := strings.TrimSpace(in.Strings[k])
-			if problem := checkPageString(ps, v); problem != "" {
+			if problem := checkPageString(i18n.LangFrom(ctx), ps, v); problem != "" {
 				return api.Invalid("body.strings."+k, problem)
 			}
 			if after[k] == v {
@@ -421,15 +419,16 @@ func pick(m map[string]string, keys []string) map[string]string {
 }
 
 // checkPageString checks a translation: the privacy link is a web address,
-// the rest fit the page. It returns what to fix, or "".
-func checkPageString(ps pageString, v string) string {
+// the rest fit the page. It returns what to fix in a reader's language, or
+// "".
+func checkPageString(l i18n.Lang, ps pageString, v string) string {
 	if len(v) > 600 {
-		return "Keep it under 600 characters."
+		return mUnder600.Text(l, nil)
 	}
 	if ps.Key == "privacyUrl" && v != "" {
 		u, err := url.Parse(v)
 		if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
-			return "Use a full address like https://acme.io/es/privacidad."
+			return mPrivacyTranslation.Text(l, nil)
 		}
 	}
 	return ""
@@ -447,7 +446,7 @@ func (s *Service) PageLabels(ctx context.Context, ws *store.Workspace, language 
 	}
 	code, err := workspaceLanguage(pc.Languages, language)
 	if err != nil && languages.Base(language) != pc.CopyLanguage {
-		return PublicPageLabels{}, refusedLanguage(code)
+		return PublicPageLabels{}, refusedLanguage(ctx, code)
 	}
 	if code == "" {
 		code = languages.Base(language)
@@ -488,10 +487,11 @@ func (s *Service) SavePageLabels(ctx context.Context, ws *store.Workspace, langu
 		}
 		code, err := workspaceLanguage(pc.Languages, language)
 		if err != nil {
-			return refusedLanguage(code)
+			return refusedLanguage(ctx, code)
 		}
 		if pagelabels.Shipped(code) {
-			return api.Conflict("ReputeCast ships the " + languages.NameOf(code) + " labels, so they're ready and can't be changed here.")
+			lang := i18n.LangFrom(ctx)
+			return api.Conflict(mLabelsShipped.Text(lang, i18n.Args{"language": languageNameIn(lang, code, code)}))
 		}
 		l := pc.langs[code]
 		before := map[string]string{}
@@ -512,15 +512,15 @@ func (s *Service) SavePageLabels(ctx context.Context, ws *store.Workspace, langu
 		var changed []string
 		for _, k := range keys {
 			if !pagelabels.Known(k) {
-				return api.Invalid("body.labels."+k, "That isn't one of the built-in labels. Reload the page.")
+				return api.Invalid("body.labels."+k, say(ctx, mNotLabel, nil))
 			}
 			v := strings.TrimSpace(in.Labels[k])
 			if len(v) > 600 {
-				return api.Invalid("body.labels."+k, "Keep it under 600 characters.")
+				return api.Invalid("body.labels."+k, say(ctx, mUnder600, nil))
 			}
 			if v != "" {
 				if err := pagelabels.Check(k, v); err != nil {
-					return api.Invalid("body.labels."+k, labelProblem(k, err))
+					return api.Invalid("body.labels."+k, labelProblem(i18n.LangFrom(ctx), k, err))
 				}
 			}
 			if after[k] == v {
@@ -561,16 +561,17 @@ func (s *Service) SavePageLabels(ctx context.Context, ws *store.Workspace, langu
 	return out, err
 }
 
-// labelProblem says what's wrong with text written for a label, and how to fix it.
-func labelProblem(key string, err error) string {
+// labelProblem says what's wrong with text written for a label, and how to
+// fix it, in a reader's language.
+func labelProblem(l i18n.Lang, key string, err error) string {
 	var ae *pagelabels.ArgError
 	if errors.As(err, &ae) {
 		if len(ae.Allowed) == 0 {
-			return fmt.Sprintf("“%s” isn't in the English label, which has no placeholders. Write the text without it.", display(ae.Name))
+			return mLabelNoPlaceholders.Text(l, i18n.Args{"name": display(ae.Name)})
 		}
-		return fmt.Sprintf("“%s” isn't in the English label. Use only %s.", display(ae.Name), strings.Join(pagelabels.Arguments(key), ", "))
+		return mLabelPlaceholder.Text(l, i18n.Args{"name": display(ae.Name), "allowed": strings.Join(pagelabels.Arguments(key), ", ")})
 	}
-	return "Check the braces { } and tags < > of this text: one isn't closed."
+	return mLabelUnclosed.Text(l, nil)
 }
 
 func display(name string) string {
@@ -683,7 +684,7 @@ func (s *Service) SaveFormCopy(ctx context.Context, ws *store.Workspace, id, lan
 		}
 		code, err := workspaceLanguage(st, language)
 		if err != nil && languages.Base(language) != c.CopyLanguage {
-			return refusedLanguage(code)
+			return refusedLanguage(ctx, code)
 		}
 		if code == "" {
 			code = languages.Base(language)
@@ -693,17 +694,17 @@ func (s *Service) SaveFormCopy(ctx context.Context, ws *store.Workspace, id, lan
 		for k, v := range in.Fields {
 			fd, ok := c.Field(k)
 			if !ok || !fieldNeedsLabel(fd) {
-				return api.Invalid("body.fields."+k, "The form has no field there that takes a label. Reload the page.")
+				return api.Invalid("body.fields."+k, say(ctx, mNoLabelField, nil))
 			}
 			if v = strings.TrimSpace(v); len(v) > 80 {
-				return api.Invalid("body.fields."+k, "Keep a field's label under 80 characters.")
+				return api.Invalid("body.fields."+k, say(ctx, mFieldLabel80, nil))
 			} else if v != "" {
 				text.Fields[k] = v
 			}
 		}
 		if code == c.CopyLanguage {
 			if text.Button == "" {
-				return api.Invalid("body.button", "Name the button: visitors press it to sign up.")
+				return api.Invalid("body.button", say(ctx, mNameButton, nil))
 			}
 			return s.saveOwnCopy(ctx, q, ws, f, c, code, text, &out)
 		}
@@ -816,14 +817,15 @@ func (s *Service) ConfirmFormConsent(ctx context.Context, ws *store.Workspace, i
 		}
 		code, err := workspaceLanguage(st, language)
 		if err != nil {
-			return refusedLanguage(code)
+			return refusedLanguage(ctx, code)
 		}
 		n, err := q.FormCopyConfirmConsent(ctx, store.FormCopyConfirmConsentParams{FormID: f.ID, Language: code, ConsentFor: f.ConsentVersion, By: actor(ctx), At: s.now()})
 		if err != nil {
 			return err
 		}
 		if n == 0 {
-			return api.Conflict("The " + languages.NameOf(code) + " consent text doesn't need a review: it's up to date with the form's.")
+			lang := i18n.LangFrom(ctx)
+			return api.Conflict(mConsentUpToDate.Text(lang, i18n.Args{"language": languageNameIn(lang, code, code)}))
 		}
 		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "form.consent_reviewed", TargetType: "form", TargetID: f.ID.String(), TargetName: f.Name,
 			Metadata: map[string]any{"language": code, "consentVersion": f.ConsentVersion}}); err != nil {
@@ -855,13 +857,14 @@ func (s *Service) SetFormLanguage(ctx context.Context, ws *store.Workspace, id s
 			code, err := workspaceLanguage(st, in.Fixed)
 			if err != nil {
 				if strings.TrimSpace(in.Fixed) == "" {
-					return api.Invalid("body.fixed", "Pick the language the form always shows.")
+					return api.Invalid("body.fixed", say(ctx, mPickFixed, nil))
 				}
-				return api.Invalid("body.fixed", fmt.Sprintf("%s isn't one of your languages. Add it in Settings › General first.", nzName(code, in.Fixed)))
+				lang := i18n.LangFrom(ctx)
+				return api.Invalid("body.fixed", mNotYourLanguage.Text(lang, i18n.Args{"language": languageNameIn(lang, code, in.Fixed)}))
 			}
 			fixed = code
 		default:
-			return api.Invalid("body.mode", "Pick page, browser or fixed.")
+			return api.Invalid("body.mode", say(ctx, mPickMode, nil))
 		}
 		after, err := q.FormSetLanguage(ctx, store.FormSetLanguageParams{WorkspaceID: ws.ID, ID: before.ID, LanguageMode: in.Mode, FixedLanguage: fixed, By: actor(ctx), At: s.now()})
 		if err != nil {
@@ -875,11 +878,4 @@ func (s *Service) SetFormLanguage(ctx context.Context, ws *store.Workspace, id s
 		return err
 	})
 	return out, err
-}
-
-func nzName(code, raw string) string {
-	if n := languages.NameOf(code); n != "" {
-		return n
-	}
-	return raw
 }

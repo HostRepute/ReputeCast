@@ -53,7 +53,7 @@ func (s *Service) paidFilter(ctx context.Context, wsID uuid.UUID, out *filterSQL
 		return nil
 	}
 	if !canSeePaid(ctx) {
-		return api.Err(403, "forbidden", "Filtering by paid status needs earn:view.")
+		return api.Err(403, "forbidden", say(ctx, mPaidNeedsEarn, nil))
 	}
 	access := func(cond string, vals ...any) {
 		out.add("EXISTS (SELECT 1 FROM paid_subscriptions s LEFT JOIN earn_tiers t ON t.id = s.tier_id WHERE "+accessCond+cond+")", vals...)
@@ -75,7 +75,7 @@ func (s *Service) paidFilter(ctx context.Context, wsID uuid.UUID, out *filterSQL
 		out.add("NOT EXISTS (SELECT 1 FROM paid_subscriptions s WHERE " + accessCond + ")" +
 			" AND EXISTS (SELECT 1 FROM paid_subscriptions s WHERE s.contact_id = c.id AND s.mode = 'live' AND s.ended_at IS NOT NULL)")
 	default:
-		return api.Invalid("paid", "Pick a paid status.")
+		return api.Invalid("paid", say(ctx, mPickPaid, nil))
 	}
 	return nil
 }

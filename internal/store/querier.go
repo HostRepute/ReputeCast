@@ -2469,10 +2469,12 @@ type Querier interface {
 	PublicSettingsEnsure(ctx context.Context, workspaceID uuid.UUID) error
 	PublicSettingsGet(ctx context.Context, workspaceID uuid.UUID) (PublicPageSetting, error)
 	PublicSettingsLogo(ctx context.Context, workspaceID uuid.UUID) (PublicSettingsLogoRow, error)
+	// texts is the detail's kept message ({"domain_detail": …}), or NULL.
 	PublicSettingsSetDomain(ctx context.Context, arg PublicSettingsSetDomainParams) error
 	PublicSettingsSetHostedForm(ctx context.Context, arg PublicSettingsSetHostedFormParams) error
 	PublicSettingsSetLogo(ctx context.Context, arg PublicSettingsSetLogoParams) error
 	PublicSettingsSetPages(ctx context.Context, arg PublicSettingsSetPagesParams) error
+	// texts is the error's kept message ({"turnstile_error": …}), or NULL.
 	PublicSettingsSetTurnstile(ctx context.Context, arg PublicSettingsSetTurnstileParams) error
 	PublicSettingsTouch(ctx context.Context, arg PublicSettingsTouchParams) error
 	// The widget on a challenge page reported an error (wrong site key, domain

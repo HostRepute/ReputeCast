@@ -20553,6 +20553,13 @@
       "ContactBulkFailure": {
         "additionalProperties": false,
         "properties": {
+          "code": {
+            "enum": [
+              "suppressed",
+              "refused"
+            ],
+            "type": "string"
+          },
           "email": {
             "type": "string"
           },
@@ -20562,7 +20569,8 @@
         },
         "required": [
           "email",
-          "reason"
+          "reason",
+          "code"
         ],
         "type": "object"
       },

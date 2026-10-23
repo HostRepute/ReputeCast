@@ -22552,6 +22552,8 @@ export interface components {
             verifyServiceName?: string;
         };
         ContactBulkFailure: {
+            /** @enum {string} */
+            code: "suppressed" | "refused";
             email: string;
             reason: string;
         };

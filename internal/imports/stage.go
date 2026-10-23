@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -53,27 +55,27 @@ func (s *Service) RequestStage(ctx context.Context, ws *store.Workspace, id uuid
 	if err != nil {
 		return ImportDetail{}, err
 	}
-	if err := editable(imp); err != nil {
+	if err := editable(ctx, imp); err != nil {
 		return ImportDetail{}, err
 	}
 	opts := parseOptions(imp.Options)
 	conn := parseConnection(imp.Connection)
 	if len(opts.Lists) == 0 {
-		return ImportDetail{}, api.Invalid("body.options.lists", "Choose at least one list to import.")
+		return ImportDetail{}, api.Invalid("body.options.lists", say(ctx, mChooseList, nil))
 	}
 	for i, l := range opts.Lists {
 		if l.Target == "" {
-			return ImportDetail{}, api.Invalid(fmt.Sprintf("body.options.lists[%d].target", i), "Pick the list each source list goes into.")
+			return ImportDetail{}, api.Invalid(fmt.Sprintf("body.options.lists[%d].target", i), say(ctx, mPickTarget, nil))
 		}
 	}
 	if isFile(imp.Source) && len(imp.FileData) == 0 {
-		return ImportDetail{}, api.Invalid("body", "Upload a file first.")
+		return ImportDetail{}, api.Invalid("body", say(ctx, mUploadFirst, nil))
 	}
 	if !isFile(imp.Source) && len(imp.CredentialsEnc) == 0 {
-		return ImportDetail{}, api.Invalid("body.apiKey", fmt.Sprintf("Connect %s with an API key first.", SourceName(imp.Source)))
+		return ImportDetail{}, api.Invalid("body.apiKey", say(ctx, mConnectFirst, i18n.Args{"source": SourceName(imp.Source)}))
 	}
 	if len(conn.BadRows) > 0 && len(opts.SkipRows) == 0 {
-		return ImportDetail{}, api.Err(422, "file_columns", conn.Error.Message)
+		return ImportDetail{}, api.Err(422, "file_columns", conn.errorIn(i18n.LangFrom(ctx)))
 	}
 	want := sourceIDs(opts.Lists)
 	reuse := imp.StagedAt != nil && sameLists(conn.StagedLists, want)
@@ -191,11 +193,11 @@ func (s *Service) Stage(ctx context.Context, id uuid.UUID) error {
 	name := SourceName(imp.Source)
 	if rs, ok := src.(retrySetter); ok {
 		rs.setOnRetry(func(attempt int, wait time.Duration, status int) {
-			msg := fmt.Sprintf("%s answered %d while reading contacts; retrying (attempt %d)", name, status, attempt)
+			line := mLogRetry.Keep(i18n.Args{"source": name, "status": strconv.Itoa(status), "attempt": strconv.Itoa(attempt)})
 			if status == 429 {
-				msg = fmt.Sprintf("%s returned 429 Too Many Requests; waiting %s before retrying", name, wait.Round(time.Second))
+				line = mLogRetry429.Keep(i18n.Args{"source": name, "wait": wait.Round(time.Second).String()})
 			}
-			_ = s.log(ctx, s.Q, imp.ID, "retry", msg)
+			_ = s.log(ctx, s.Q, imp.ID, "retry", line)
 		})
 	}
 	opts := parseOptions(imp.Options)
@@ -244,19 +246,18 @@ func (s *Service) Stage(ctx context.Context, id uuid.UUID) error {
 	conn := parseConnection(imp.Connection)
 	conn.Fields = fields
 	conn.StagedLists = lists
-	conn.Error = nil
+	conn.setError(nil)
 	if err := s.Q.SetImportStaged(ctx, store.SetImportStagedParams{ID: imp.ID, Connection: mustJSON(conn)}); err != nil {
 		return err
 	}
-	return s.log(ctx, s.Q, imp.ID, "info", fmt.Sprintf("Read %s rows and %d fields from %s", thousands(int(n)), len(fields), name))
+	return s.logMsg(ctx, s.Q, imp.ID, "info", mLogRead, i18n.Args{"rows": n, "fields": strconv.Itoa(len(fields)), "source": name})
 }
 
 // stageFailed records why staging stopped. Rate limits pause and retry in
 // a minute; other errors return the draft to the person with the reason.
 func (s *Service) stageFailed(ctx context.Context, imp store.Import, err error) error {
-	ie := toImportError(err)
 	conn := parseConnection(imp.Connection)
-	conn.Error = ie
+	conn.setError(err)
 	if _, e := s.Pool.Exec(ctx, `UPDATE imports SET connection = $2, updated_at = now() WHERE id = $1`, imp.ID, mustJSON(conn)); e != nil {
 		return e
 	}
@@ -265,7 +266,7 @@ func (s *Service) stageFailed(ctx context.Context, imp store.Import, err error) 
 		if err := s.Q.SetImportStatus(ctx, store.SetImportStatusParams{ID: imp.ID, Status: "paused", ResumeAt: &resume}); err != nil {
 			return err
 		}
-		_ = s.log(ctx, s.Q, imp.ID, "retry", fmt.Sprintf("%s is rate-limiting us (429); paused, resuming at %s", SourceName(imp.Source), resume.UTC().Format("15:04:05 UTC")))
+		_ = s.logMsg(ctx, s.Q, imp.ID, "retry", mLogPaused, i18n.Args{"source": SourceName(imp.Source), "at": resume.UTC().Format("15:04:05 UTC")})
 		if c := s.jobs(); c != nil {
 			_, err := c.Insert(ctx, StageArgs{ImportID: imp.ID}, &river.InsertOpts{ScheduledAt: resume})
 			return err
@@ -275,7 +276,7 @@ func (s *Service) stageFailed(ctx context.Context, imp store.Import, err error) 
 	if errors.Is(err, context.Canceled) {
 		return err
 	}
-	_ = s.log(ctx, s.Q, imp.ID, "error", ie.Message)
+	_ = s.logError(ctx, s.Q, imp.ID, err)
 	return s.Q.SetImportStatus(ctx, store.SetImportStatusParams{ID: imp.ID, Status: "draft"})
 }
 
@@ -288,7 +289,7 @@ func (s *Service) Resume(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 		return ImportDetail{}, err
 	}
 	if imp.Status != "paused" {
-		return ImportDetail{}, api.Conflict("Only a paused import can be resumed.")
+		return ImportDetail{}, api.Conflict(say(ctx, mOnlyPaused, nil))
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -298,7 +299,7 @@ func (s *Service) Resume(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 			if err := q.SetImportOptions(ctx, store.SetImportOptionsParams{ID: imp.ID, Options: mustJSON(opts)}); err != nil {
 				return err
 			}
-			if err := s.log(ctx, q, imp.ID, "info", fmt.Sprintf("Slowed down to %d requests a second to %s", slowPace, SourceName(imp.Source))); err != nil {
+			if err := s.logMsg(ctx, q, imp.ID, "info", mLogSlowed, i18n.Args{"pace": strconv.Itoa(slowPace), "source": SourceName(imp.Source)}); err != nil {
 				return err
 			}
 		}

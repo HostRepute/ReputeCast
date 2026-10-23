@@ -21,6 +21,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -65,9 +66,13 @@ type PublicEvidence struct {
 	// Language is the language the page or form, and so its consent text,
 	// was shown in ("es"); consent evidence keeps it.
 	Language string
-	// Note goes on the consent events.
-	Note string
-	At   time.Time
+	// Note goes on the consent events. NoteText is the message it came from
+	// when the note is ReputeCast's own words, kept so readers in another
+	// language see it in theirs (KeptIn); leave it empty for text people
+	// typed.
+	Note     string
+	NoteText i18n.Text
+	At       time.Time
 }
 
 func (e PublicEvidence) at() time.Time {
@@ -84,10 +89,13 @@ func clip(s string, n int) string {
 	return s[:n]
 }
 
-func consentEvent(ctx context.Context, q *store.Queries, contact uuid.UUID, list *uuid.UUID, action, detail string, ev PublicEvidence, withConsent bool) error {
+// consentEvent records a public consent event; detail is ReputeCast's
+// words, kept for readers in other languages.
+func consentEvent(ctx context.Context, q *store.Queries, contact uuid.UUID, list *uuid.UUID, action string, detail keep, ev PublicEvidence, withConsent bool) error {
 	p := store.SignupInsertConsentParams{
 		ID: uuid.Must(uuid.NewV7()), ContactID: contact, ListID: list, Action: action, Source: ev.Source, Ip: ev.IP,
-		UserAgent: clip(ev.UserAgent, 500), Detail: detail, Note: ev.Note, OccurredAt: ev.at(),
+		UserAgent: clip(ev.UserAgent, 500), Detail: detail.English, Note: ev.Note, OccurredAt: ev.at(),
+		Texts: KeptTexts(map[string]i18n.Text{"note": ev.NoteText, "detail": detail.Text}),
 	}
 	if withConsent {
 		p.ConsentText, p.ConsentVersion, p.Language = ev.ConsentText, ev.ConsentVersion, ev.Language
@@ -249,9 +257,10 @@ func (s *Service) Signup(ctx context.Context, tx pgx.Tx, ws *store.Workspace, in
 			}
 			ev := in.Evidence
 			if ev.Note == "" {
-				ev.Note = "waiting for the confirmation click"
+				waiting := kept(mNoteWaiting, nil)
+				ev.Note, ev.NoteText = waiting.English, waiting.Text
 			}
-			if err := consentEvent(ctx, q, c.ID, &lid, "subscribed", "", ev, true); err != nil {
+			if err := consentEvent(ctx, q, c.ID, &lid, "subscribed", keep{}, ev, true); err != nil {
 				return out, err
 			}
 			out.Pending = append(out.Pending, l)
@@ -264,7 +273,7 @@ func (s *Service) Signup(ctx context.Context, tx pgx.Tx, ws *store.Workspace, in
 		if st == "unsubscribed" {
 			action = "resubscribed"
 		}
-		if err := consentEvent(ctx, q, c.ID, &lid, action, "", in.Evidence, true); err != nil {
+		if err := consentEvent(ctx, q, c.ID, &lid, action, keep{}, in.Evidence, true); err != nil {
 			return out, err
 		}
 		out.Subscribed = append(out.Subscribed, l)
@@ -334,11 +343,11 @@ func publicFieldError(key string, f store.CustomField) *FieldError {
 // again as a reminder) for the contact's pending lists.
 func (s *Service) RecordOptInSent(ctx context.Context, q *store.Queries, contactID uuid.UUID, lists []uuid.UUID, ev PublicEvidence) error {
 	if len(lists) == 0 {
-		return consentEvent(ctx, q, contactID, nil, "optin_sent", "", ev, false)
+		return consentEvent(ctx, q, contactID, nil, "optin_sent", keep{}, ev, false)
 	}
 	for _, l := range lists {
 		lid := l
-		if err := consentEvent(ctx, q, contactID, &lid, "optin_sent", "", ev, false); err != nil {
+		if err := consentEvent(ctx, q, contactID, &lid, "optin_sent", keep{}, ev, false); err != nil {
 			return err
 		}
 	}
@@ -406,7 +415,7 @@ func (s *Service) Confirm(ctx context.Context, tx pgx.Tx, ws *store.Workspace, c
 	}
 	for _, l := range lists {
 		lid := l
-		if err := consentEvent(ctx, q, c.ID, &lid, "confirmed", "", ev, true); err != nil {
+		if err := consentEvent(ctx, q, c.ID, &lid, "confirmed", keep{}, ev, true); err != nil {
 			return out, err
 		}
 	}
@@ -597,7 +606,7 @@ func (s *Service) SavePreferences(ctx context.Context, tx pgx.Tx, ws *store.Work
 			if st == "unsubscribed" || c.Status == "unsubscribed" {
 				action = "resubscribed"
 			}
-			if err := consentEvent(ctx, q, c.ID, &lid, action, "", ev, false); err != nil {
+			if err := consentEvent(ctx, q, c.ID, &lid, action, keep{}, ev, false); err != nil {
 				return out, err
 			}
 			out.Joined = append(out.Joined, l)
@@ -605,7 +614,7 @@ func (s *Service) SavePreferences(ctx context.Context, tx pgx.Tx, ws *store.Work
 			if err := q.SignupSetMembership(ctx, store.SignupSetMembershipParams{ListID: l, ContactID: c.ID, Status: "unsubscribed", Source: ev.Source, At: at}); err != nil {
 				return out, err
 			}
-			if err := consentEvent(ctx, q, c.ID, &lid, "unsubscribed", "", ev, false); err != nil {
+			if err := consentEvent(ctx, q, c.ID, &lid, "unsubscribed", keep{}, ev, false); err != nil {
 				return out, err
 			}
 			out.Left = append(out.Left, l)
@@ -644,13 +653,15 @@ func (s *Service) SavePreferences(ctx context.Context, tx pgx.Tx, ws *store.Work
 		until := at.AddDate(0, 0, in.PauseDays)
 		prefs.PausedUntil = &until
 		prefsChanged = true
-		if err := consentEvent(ctx, q, c.ID, nil, "paused", fmt.Sprintf("for %d days, until %s", in.PauseDays, until.Format("2 Jan 2006")), ev, false); err != nil {
+		pausedFor := keep{English: fmt.Sprintf("for %d days, until %s", in.PauseDays, until.Format("2 Jan 2006")),
+			Text: mDetailPaused.Keep(i18n.Args{"days": in.PauseDays, "until": until.In(workspaceLocation(ws))})}
+		if err := consentEvent(ctx, q, c.ID, nil, "paused", pausedFor, ev, false); err != nil {
 			return out, err
 		}
 	case in.PauseDays == 0 && paused:
 		prefs.PausedUntil = nil
 		prefsChanged = true
-		if err := consentEvent(ctx, q, c.ID, nil, "paused", "pause lifted", ev, false); err != nil {
+		if err := consentEvent(ctx, q, c.ID, nil, "paused", kept(mDetailPauseLifted, nil), ev, false); err != nil {
 			return out, err
 		}
 	}
@@ -697,14 +708,16 @@ func (s *Service) SavePreferences(ctx context.Context, tx pgx.Tx, ws *store.Work
 	return out, nil
 }
 
-func frequencyWords(f string) string {
+// frequencyWords is a frequency the preference center offers, as the
+// consent history records it: "weekly roundup".
+func frequencyWords(f string) keep {
 	switch f {
 	case "weekly":
-		return "weekly roundup"
+		return kept(mDetailWeekly, nil)
 	case "monthly":
-		return "monthly best-of"
+		return kept(mDetailMonthly, nil)
 	}
-	return "every issue"
+	return kept(mDetailEveryIssue, nil)
 }
 
 type UnsubscribeResult struct {
@@ -747,21 +760,22 @@ func (s *Service) Unsubscribe(ctx context.Context, tx pgx.Tx, ws *store.Workspac
 			return out, err
 		}
 	}
-	where := "Unsubscribe page"
+	where := kept(mContextUnsubPage, nil)
 	if ev.Source == SourceOneClick {
-		where = "List-Unsubscribe one-click"
+		where = kept(mContextOneClick, nil)
 	}
 	if err := q.SignupAddUnsubscribe(ctx, store.SignupAddUnsubscribeParams{
-		ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, Email: c.Email, Source: ev.Source, Detail: ev.Note, CampaignID: campaignID, Context: where, At: at,
+		ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, Email: c.Email, Source: ev.Source, Detail: ev.Note, CampaignID: campaignID, Context: where.English,
+		Texts: KeptTexts(map[string]i18n.Text{"context": where.Text}), At: at,
 	}); err != nil {
 		return out, err
 	}
 	if len(lists) == 0 {
-		return out, consentEvent(ctx, q, c.ID, nil, "unsubscribed", "", ev, false)
+		return out, consentEvent(ctx, q, c.ID, nil, "unsubscribed", keep{}, ev, false)
 	}
 	for _, l := range lists {
 		lid := l
-		if err := consentEvent(ctx, q, c.ID, &lid, "unsubscribed", "", ev, false); err != nil {
+		if err := consentEvent(ctx, q, c.ID, &lid, "unsubscribed", keep{}, ev, false); err != nil {
 			return out, err
 		}
 	}
@@ -800,7 +814,7 @@ func (s *Service) Resubscribe(ctx context.Context, tx pgx.Tx, ws *store.Workspac
 			return nil, err
 		}
 		lid := l
-		if err := consentEvent(ctx, q, c.ID, &lid, "resubscribed", "", ev, false); err != nil {
+		if err := consentEvent(ctx, q, c.ID, &lid, "resubscribed", keep{}, ev, false); err != nil {
 			return nil, err
 		}
 		back = append(back, l)

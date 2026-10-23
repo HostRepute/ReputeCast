@@ -7,11 +7,13 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/audience"
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Grow's sources in the Contacts list and on the profile (brief §3.7):
 // "Referral · Sam Rivera" for a reader who joined through a referral link,
-// "Partner · Ops Weekly" for one who asked on a partner's page.
+// "Partner · Ops Weekly" for one who asked on a partner's page, in the
+// reader's language.
 func init() {
 	audienceSourceNames = func(a *App) audience.SourceNamer { return growSourceNames(a) }
 }
@@ -19,6 +21,7 @@ func init() {
 func growSourceNames(a *App) audience.SourceNamer {
 	return func(ctx context.Context, ws uuid.UUID, contacts []uuid.UUID, sources []string) map[uuid.UUID]string {
 		out := map[uuid.UUID]string{}
+		l := i18n.LangFrom(ctx)
 		var referred []uuid.UUID
 		partnerOf := map[uuid.UUID][]uuid.UUID{}
 		var links []uuid.UUID
@@ -51,7 +54,7 @@ func growSourceNames(a *App) audience.SourceNamer {
 						if name == "" {
 							name = email
 						}
-						out[id] = "Referral · " + name
+						out[id] = audience.ReferralSource(l, name)
 					}
 				}
 				rows.Close()
@@ -65,7 +68,7 @@ func growSourceNames(a *App) audience.SourceNamer {
 					var name string
 					if rows.Scan(&id, &name) == nil {
 						for _, c := range partnerOf[id] {
-							out[c] = "Partner · " + name
+							out[c] = audience.PartnerSource(l, name)
 						}
 					}
 				}

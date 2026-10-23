@@ -62,8 +62,9 @@ func TestOverviewCards(t *testing.T) {
 	// drafts from the approval inbox's history, the draft blog.acme.io made
 	// from a post (integrations hub) and the accessibility sample's Weekly
 	// Digest #143. With texts (X21, brief §4), Daniel Park's text draft
-	// "Summit: doors open" is one more.
-	if n.Drafts != 8 {
+	// "Summit: doors open" is one more, and the WhatsApp draft "Summit: see
+	// you tomorrow" (X22) another.
+	if n.Drafts != 9 {
 		t.Fatalf("drafts: %d", n.Drafts)
 	}
 
@@ -156,8 +157,11 @@ func TestOverviewCards(t *testing.T) {
 	// The approval inbox's history adds the Beta Program launch invite (sent
 	// Oct 6), which the Main board doesn't list, and the recurring digest its
 	// issue #2 (sent Oct 10): recent campaigns include sent issues. Texts are
-	// campaigns too (X21, brief §4): "Summit: 8 days to go" went out on Oct 18.
-	if len(r.Items) != 4 || r.Items[0].Name != "Summit: 8 days to go" || r.Items[1].Name != "October Product Update" || r.Items[3].Name != "Engineering blog roundup #2" {
+	// campaigns too (X21, brief §4): "Summit: 8 days to go" went out on Oct 18,
+	// and so are push notifications (X22): "New post: Feature flags at scale"
+	// is the latest.
+	if len(r.Items) != 4 || r.Items[0].Name != "New post: Feature flags at scale" || r.Items[1].Name != "Summit: 8 days to go" ||
+		r.Items[2].Name != "October Product Update" || r.Items[3].Name != "Weekly Digest #141" {
 		t.Fatalf("recent: %+v", r.Items)
 	}
 

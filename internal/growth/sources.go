@@ -3,7 +3,6 @@ package growth
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/segments"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -52,54 +52,58 @@ func (s *Service) Sources(ctx context.Context, ws *store.Workspace) (GrowthSourc
 }
 
 // EnglishLabel names a source in English, for places that have no app
-// text of their own (segment condition values, CSV exports).
-func EnglishLabel(src GrowthSource) string {
+// text of their own (CSV exports, agents).
+func EnglishLabel(src GrowthSource) string { return Label(i18n.Default, src) }
+
+// Label names a source in a reader's language (the segment builder's
+// growth sources): "Added by a person", "Brevo import (18 Sep)".
+func Label(l i18n.Lang, src GrowthSource) string {
 	switch src.Kind {
 	case KindForm:
 		if src.Name != "" {
 			return src.Name
 		}
-		return "Signup form"
+		return mLabelForm.Text(l, nil)
 	case KindSubscribePage:
-		return "Subscribe page"
+		return mLabelSubscribePage.Text(l, nil)
 	case KindAPIKey:
 		if src.Name != "" {
-			return "API key “" + src.Name + "”"
+			return mLabelAPIKeyNamed.Text(l, i18n.Args{"name": src.Name})
 		}
-		return "API"
+		return mLabelAPI.Text(l, nil)
 	case KindIntegration:
 		if src.Name != "" {
 			return src.Name
 		}
-		return "Integration"
+		return mLabelIntegration.Text(l, nil)
 	case KindPerson:
-		return "Added by a person"
+		return mLabelPerson.Text(l, nil)
 	case KindPreferenceCenter:
-		return "Preference center"
+		return mLabelPreferenceCenter.Text(l, nil)
 	case KindImport:
 		name := src.Name
 		if name == "" {
-			name = "File"
+			name = mLabelFile.Text(l, nil)
 		}
 		if src.ImportedAt != nil {
-			return fmt.Sprintf("%s import (%s)", name, src.ImportedAt.Format("2 Jan"))
+			return mLabelImportOn.Text(l, i18n.Args{"name": name, "day": l.Region.DayMonth(*src.ImportedAt)})
 		}
-		return name + " import"
+		return mLabelImport.Text(l, i18n.Args{"name": name})
 	case KindCarried:
 		if strings.HasPrefix(src.Carried, "import:") {
-			return src.Name + " import"
+			return mLabelImport.Text(l, i18n.Args{"name": src.Name})
 		}
 		if src.Name != "" {
 			return src.Name
 		}
 		return src.Carried
 	case "other":
-		return "Other"
+		return mLabelOther.Text(l, nil)
 	}
 	if src.Name != "" && src.Kind != KindUnknown {
 		return src.Name // a registered kind's (Grow's "Referral", "Partner · Ops Weekly")
 	}
-	return "Unknown"
+	return mLabelUnknown.Text(l, nil)
 }
 
 // segmentOptions lists the growth sources for the segment builder.
@@ -113,9 +117,10 @@ func segmentOptions(ctx context.Context, q *store.Queries, wsID uuid.UUID) ([]se
 	if err != nil {
 		return nil, err
 	}
+	l := i18n.LangFrom(ctx)
 	out := make([]segments.SegmentOption, 0, len(list.Items))
 	for _, it := range list.Items {
-		out = append(out, segments.SegmentOption{Value: it.Source.Key, Label: EnglishLabel(it.Source)})
+		out = append(out, segments.SegmentOption{Value: it.Source.Key, Label: Label(l, it.Source)})
 	}
 	return out, nil
 }

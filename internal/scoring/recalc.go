@@ -12,6 +12,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -217,9 +218,11 @@ func (s *Service) applyRecalc(ctx context.Context, ws *store.Workspace, st *setu
 			return err
 		}
 		if rc.StartedBy != nil {
+			// Kept messages: the person reads it in their language. A body
+			// naming more than three automations stays in its English.
 			return notify.ToUser(ctx, tx, *rc.StartedBy, notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindScoreRecalculated, Severity: "ok",
-				Title: "Score recalculation finished", Body: recalcSummaryLine(rc, sum), Link: "/w/" + ws.Slug + "/audience/scoring",
-				Data: map[string]any{"recalc": rc.ID.String(), "changed": sum.Changed}})
+				TitleText: msgs.M("notify.recalcTitle").Keep(nil), Body: recalcSummaryLine(rc, sum), BodyText: recalcSummaryText(rc, sum),
+				Link: "/w/" + ws.Slug + "/audience/scoring", Data: map[string]any{"recalc": rc.ID.String(), "changed": sum.Changed}})
 		}
 		return nil
 	})
@@ -244,6 +247,32 @@ func recalcSummaryLine(rc store.ScoringRecalc, sum ScoringRecalcSummary) string 
 		}
 	}
 	return strings.Join(parts, " · ")
+}
+
+// recalcSummaryText is recalcSummaryLine as a kept message, for up to three
+// automations; zero for more, which keep the English line.
+func recalcSummaryText(rc store.ScoringRecalc, sum ScoringRecalcSummary) i18n.Text {
+	args := i18n.Args{"changed": sum.Changed, "start": "no"}
+	if rc.StartAutomations {
+		args["start"] = "yes"
+	}
+	n := 0
+	for _, f := range sum.Flows {
+		if f.Crossed == 0 {
+			continue
+		}
+		n++
+		if n > 3 {
+			return i18n.Text{}
+		}
+		count := f.Crossed
+		if rc.StartAutomations {
+			count = f.Started
+		}
+		args[fmt.Sprintf("flow%d", n)], args[fmt.Sprintf("n%d", n)] = f.Name, count
+	}
+	args["flows"] = []string{"none", "one", "two", "three"}[n]
+	return msgs.M("notify.recalcBody").Keep(args)
 }
 
 func thousands(n int64) string {

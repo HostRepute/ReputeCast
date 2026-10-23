@@ -3,10 +3,11 @@ package imports
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"strconv"
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -37,7 +38,7 @@ func (s *Service) importTemplates(ctx context.Context, st *runState) {
 	}
 	raw, err := s.Box.Open(st.imp.CredentialsEnc, credentialsAD(st.imp.ID))
 	if err != nil {
-		_ = s.log(ctx, s.Q, st.imp.ID, "error", "Templates weren't imported: the stored API key can't be decrypted.")
+		_ = s.logMsg(ctx, s.Q, st.imp.ID, "error", mLogTemplatesKey, nil)
 		return
 	}
 	var c credentials
@@ -48,13 +49,15 @@ func (s *Service) importTemplates(ctx context.Context, st *runState) {
 	}
 	res, err := s.Templates.ImportNotifuseTemplates(ctx, &st.ws, st.actor, base, c.APIKey)
 	if err != nil {
-		_ = s.log(ctx, s.Q, st.imp.ID, "error", "Templates weren't imported: "+err.Error())
+		_ = s.logMsg(ctx, s.Q, st.imp.ID, "error", mLogTemplatesError, i18n.Args{"reason": err.Error()})
 		return
 	}
 	st.stats.Templates = &res
-	msg := fmt.Sprintf("Imported %d transactional templates as drafts and %d saved templates", res.Transactional, res.Saved)
+	// Counts as the English always wrote them (%d, no grouping).
+	args := i18n.Args{"transactional": strconv.Itoa(res.Transactional), "saved": strconv.Itoa(res.Saved), "manual": strconv.Itoa(res.Manual)}
+	m := mLogTemplates
 	if res.Manual > 0 {
-		msg += fmt.Sprintf("; %d need a manual fix", res.Manual)
+		m = mLogTemplatesFix
 	}
-	_ = s.log(ctx, s.Q, st.imp.ID, "done", msg)
+	_ = s.logMsg(ctx, s.Q, st.imp.ID, "done", m, args)
 }
