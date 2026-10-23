@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/audience"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -67,6 +68,7 @@ func (s *Service) ContactActivity(ctx context.Context, ws *store.Workspace, cont
 	}
 	defer rows.Close()
 	out := []audience.ContactActivityItem{}
+	lang := i18n.LangFrom(ctx)
 	for rows.Next() {
 		var it audience.ContactActivityItem
 		var id uuid.UUID
@@ -83,6 +85,7 @@ func (s *Service) ContactActivity(ctx context.Context, ws *store.Workspace, cont
 			if ip != nil {
 				it.IP = ip.String()
 			}
+			it.Detail, it.Note = evidenceIn(lang, it.Detail), evidenceIn(lang, it.Note)
 		case "click", "inbound":
 			it.Category = "engagement"
 			if src == "inbound" {

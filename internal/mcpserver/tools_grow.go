@@ -10,6 +10,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/recommendations"
 	"github.com/hostrepute/reputecast/internal/referrals"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -92,7 +93,7 @@ func maskIP(raw string) string {
 // addGrowTools registers Grow's tools.
 func (s *Service) addGrowTools(srv *mcp.Server) {
 	tool(s, srv, "get_referral_results", authz.GrowView, func(ctx context.Context, c *agentCall, in growProgramIn) (any, entry, error) {
-		e := entry{action: "referral.results_read", targetType: "referral_program", targetName: "Referral results"}
+		e := entry{action: "referral.results_read", targetType: "referral_program", targetText: keep("target.referralResults", nil)}
 		if s.Grow == nil {
 			return map[string]any{"message": "Grow isn't available on this server."}, e, nil
 		}
@@ -125,7 +126,7 @@ func (s *Service) addGrowTools(srv *mcp.Server) {
 	}, nil)
 
 	tool(s, srv, "list_referrers", authz.GrowView, func(ctx context.Context, c *agentCall, in growReferrersIn) (any, entry, error) {
-		e := entry{action: "referral.referrers_read", targetType: "referral_program", targetName: "Referrers"}
+		e := entry{action: "referral.referrers_read", targetType: "referral_program", targetText: keep("target.referrers", nil)}
 		if s.Grow == nil {
 			return map[string]any{"message": "Grow isn't available on this server."}, e, nil
 		}
@@ -152,7 +153,7 @@ func (s *Service) addGrowTools(srv *mcp.Server) {
 	}, nil)
 
 	tool(s, srv, "list_held_referrals", authz.GrowView, func(ctx context.Context, c *agentCall, in growProgramIn) (any, entry, error) {
-		e := entry{action: "referral.review_read", targetType: "referral_program", targetName: "Review queue"}
+		e := entry{action: "referral.review_read", targetType: "referral_program", targetText: keep("target.reviewQueue", nil)}
 		if s.Grow == nil {
 			return map[string]any{"message": "Grow isn't available on this server."}, e, nil
 		}
@@ -193,17 +194,15 @@ func (s *Service) addGrowTools(srv *mcp.Server) {
 		if verb == "" {
 			return map[string]any{"message": "decision is count, dont or dont_pause"}, e, nil
 		}
-		e.detail = fmt.Sprintf("proposed: %s the held referrals of %s", verb, in.Referrer)
-		if strings.TrimSpace(in.Reason) != "" {
-			e.detail += " · " + strings.TrimSpace(in.Reason)
-		}
-		s.propose(ctx, c, "decide_held_referrals", authz.GrowReview, entry{targetType: "referral_program", targetName: in.Referrer + "'s held referrals", detail: e.detail})
+		reason := strings.TrimSpace(in.Reason)
+		e.detailText = keep("detail.referralDecision", i18n.Args{"decision": in.Decision, "referrer": in.Referrer, "hasReason": yesNo(reason != ""), "reason": reason})
+		s.propose(ctx, c, "decide_held_referrals", authz.GrowReview, entry{targetType: "referral_program", targetName: in.Referrer})
 		return map[string]any{"proposed": true, "referrer": in.Referrer, "decision": in.Decision,
 			"message": fmt.Sprintf("Deciding needs a person with grow:review: the decision to %s %s's held referrals was proposed in ReputeCast.", verb, in.Referrer)}, e, nil
 	}, nil)
 
 	tool(s, srv, "list_recommendations", authz.GrowView, func(ctx context.Context, c *agentCall, _ struct{}) (any, entry, error) {
-		e := entry{action: "recommendation.list_read", targetType: "recommendations", targetName: "Recommendations"}
+		e := entry{action: "recommendation.list_read", targetType: "recommendations", targetText: keep("target.recommendations", nil)}
 		if s.Recommendations == nil {
 			return map[string]any{"message": "Recommendations aren't available on this server."}, e, nil
 		}

@@ -10,6 +10,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/pages"
 	"github.com/hostrepute/reputecast/internal/products"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -79,7 +80,7 @@ func (s *Service) addPagesTools(srv *mcp.Server) {
 			}
 			out = append(out, m)
 		}
-		e.summary = fmt.Sprintf("%d pages", len(out))
+		e.summaryText = keep("outcome.pages", i18n.Args{"count": len(out)})
 		return map[string]any{"pages": out, "shop_on": ov.Shop.On, "note": "Numbers are the last 30 days, counted on the server without cookies. Agents never publish pages."}, e, nil
 	}, nil)
 
@@ -128,7 +129,7 @@ func (s *Service) addPagesTools(srv *mcp.Server) {
 				"files": products.FileText(p.Files), "orders_30d": p.Orders, "gross_cents_30d": p.GrossCents, "refunds_30d": p.Refunds,
 				"refunded_cents_30d": p.RefundedCents})
 		}
-		e.summary = fmt.Sprintf("%d products", len(out))
+		e.summaryText = keep("outcome.products", i18n.Args{"count": len(out)})
 		return map[string]any{"products": out, "note": "Live orders of the last 30 days, before Stripe's fees; test orders are left out. Buyers are never listed."}, e, nil
 	}, nil)
 

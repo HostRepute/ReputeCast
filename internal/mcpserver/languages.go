@@ -7,6 +7,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -69,33 +70,16 @@ func (s *Service) updateLanguage(ctx context.Context, c *agentCall, cp store.Mcp
 	if err != nil {
 		return nil, e, err
 	}
-	var changed []string
-	if in.Subject != nil {
-		changed = append(changed, "subject")
-	}
-	if in.Preheader != nil {
-		changed = append(changed, "preheader")
-	}
-	if in.MJML != nil {
-		changed = append(changed, "content")
-	}
 	e.action = "campaign.language.updated"
-	e.detail = languages.NameOf(saved.Language) + ": " + joinWords(changed)
+	// The language by its English name: a name, as the audit log keeps it.
+	if fields := changedFields(in); len(fields) > 0 {
+		e.detailText = keep("detail.languageChanged", i18n.Args{"language": languages.NameOf(saved.Language), "fields": fields})
+	} else {
+		e.detailText = keep("detail.languageUnchanged", i18n.Args{"language": languages.NameOf(saved.Language)})
+	}
 	e.before = map[string]any{"language": saved.Language, "subject": saved.BeforeSubject, "preheader": saved.BeforePreheader, "version": saved.BeforeVersion}
 	e.after = map[string]any{"language": saved.Language, "subject": saved.Subject, "version": saved.Version}
 	return map[string]any{"id": cp.ID, "name": cp.Name, "language": saved.Language, "version": saved.Version, "subject": saved.Subject}, e, nil
 }
 
-func joinWords(w []string) string {
-	switch len(w) {
-	case 0:
-		return "no change"
-	case 1:
-		return w[0]
-	}
-	out := w[0]
-	for i := 1; i < len(w)-1; i++ {
-		out += ", " + w[i]
-	}
-	return out + " and " + w[len(w)-1]
-}
+

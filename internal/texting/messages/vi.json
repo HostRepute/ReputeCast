@@ -30,5 +30,11 @@
   "prefs.textsNote": "Tin nhắn được gửi đến {phone}. Có thể mất phí tin nhắn và dữ liệu. Trả lời STOP cho bất kỳ tin nhắn nào để dừng tất cả.",
   "prefs.textsStopped": "{phone} đã trả lời STOP, nên tin nhắn đang tắt. Nhắn START đến số đã nhắn cho bạn để nhận lại.",
   "prefs.textsSave": "Lưu lựa chọn tin nhắn",
-  "prefs.textsConsent": "Tin nhắn về {list} từ {brand}. Có thể mất phí tin nhắn và dữ liệu. Trả lời HELP để được trợ giúp, STOP để hủy."
+  "prefs.textsConsent": "Tin nhắn về {list} từ {brand}. Có thể mất phí tin nhắn và dữ liệu. Trả lời HELP để được trợ giúp, STOP để hủy.",
+
+  "evidence.optedOut": "Đã tắt nhận qua tin nhắn",
+  "evidence.optedIn": "Đã bật nhận lại qua tin nhắn",
+  "evidence.confirmed": "Đã xác nhận bằng cách trả lời YES",
+  "evidence.textMessage": "Tin nhắn",
+  "evidence.confirmation": "Tin nhắn xác nhận đăng ký"
 }

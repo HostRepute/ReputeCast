@@ -2,6 +2,7 @@ package audit
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
@@ -17,7 +18,9 @@ import (
 //
 // A kept message's argument may itself be a kept message (a summary's
 // "discovery failed: {error}"): it is written first, in the same language
-// and without its final period, as a part of the sentence (Render).
+// and without its final period, as a part of the sentence. An argument
+// that is a list (names, or kept messages) is written as the language
+// writes a list: "SES and Postal", "SES và Postal" (Render).
 
 // TextsKey is the metadata member that holds an entry's kept lines.
 const TextsKey = "i18n"
@@ -53,6 +56,13 @@ func KeepReason(meta map[string]any, t i18n.Text) (string, map[string]any) {
 // each part is a kept message (i18n.Text) or a plain value (string) that
 // reads the same in every language, such as a name or a permission key.
 func KeepSummary(meta map[string]any, parts ...any) map[string]any {
+	return KeepParts(meta, "summary", parts...)
+}
+
+// KeepParts sets a line of an entry's metadata ("summary", "outcome") made
+// of facts joined with " · ", like KeepSummary: the English under key, the
+// parts under TextsKey as key_parts.
+func KeepParts(meta map[string]any, key string, parts ...any) map[string]any {
 	if meta == nil {
 		meta = map[string]any{}
 	}
@@ -68,8 +78,8 @@ func KeepSummary(meta map[string]any, parts ...any) map[string]any {
 			kept = append(kept, v)
 		}
 	}
-	meta["summary"] = strings.Join(english, " · ")
-	texts(meta)[SummaryPartsKey] = kept
+	meta[key] = strings.Join(english, " · ")
+	texts(meta)[key+"_parts"] = kept
 	return meta
 }
 
@@ -91,6 +101,7 @@ type Kept struct {
 	Target       i18n.Text         `json:"target"`
 	Note         i18n.Text         `json:"note"`
 	Outcome      i18n.Text         `json:"outcome"`
+	OutcomeParts []json.RawMessage `json:"outcome_parts"`
 	Reason       i18n.Text         `json:"reason"`
 }
 
@@ -115,12 +126,21 @@ func In(t i18n.Text, l i18n.Lang, english string) string {
 }
 
 // Render writes a kept message in a language, its kept messages among its
-// arguments first (without their final period). It returns "" when a
-// message isn't known, like i18n.Text.In.
+// arguments first (without their final period) and its lists as the
+// language writes a list. It returns "" when a message isn't known, like
+// i18n.Text.In.
 func Render(t i18n.Text, l i18n.Lang) string {
 	nested := false
 	for _, v := range t.Args {
 		if _, ok := keptText(v); ok {
+			nested = true
+			break
+		}
+		if _, ok := v.([]any); ok {
+			nested = true
+			break
+		}
+		if _, ok := v.([]string); ok {
 			nested = true
 			break
 		}
@@ -136,10 +156,45 @@ func Render(t i18n.Text, l i18n.Lang) string {
 				return ""
 			}
 			v = strings.TrimSuffix(s, ".")
+		} else if items, ok := listArg(v); ok {
+			words := make([]string, 0, len(items))
+			for _, item := range items {
+				if n, ok := keptText(item); ok {
+					s := Render(n, l)
+					if s == "" {
+						return ""
+					}
+					words = append(words, strings.TrimSuffix(s, "."))
+					continue
+				}
+				words = append(words, fmt.Sprint(item))
+			}
+			v = i18n.AndList(l.Locale, words)
 		}
 		args[k] = v
 	}
 	return i18n.Text{ID: t.ID, Args: args}.In(l)
+}
+
+// listArg reads an argument that is a list: names, or kept messages.
+func listArg(v any) ([]any, bool) {
+	switch x := v.(type) {
+	case []string:
+		out := make([]any, len(x))
+		for i, s := range x {
+			out[i] = s
+		}
+		return out, true
+	case []i18n.Text:
+		out := make([]any, len(x))
+		for i, t := range x {
+			out[i] = t
+		}
+		return out, true
+	case []any:
+		return x, true
+	}
+	return nil, false
 }
 
 // keptText reads an argument that is a kept message: an i18n.Text, or one
@@ -172,11 +227,26 @@ func (k Kept) SummaryIn(l i18n.Lang, english string) string {
 	if s := Render(k.Summary, l); s != "" {
 		return s
 	}
-	if len(k.SummaryParts) == 0 {
+	return partsIn(k.SummaryParts, l, english)
+}
+
+// OutcomeIn is what an agent's call did, in a language: the kept message,
+// the kept parts joined with " · ", or english.
+func (k Kept) OutcomeIn(l i18n.Lang, english string) string {
+	if s := Render(k.Outcome, l); s != "" {
+		return s
+	}
+	return partsIn(k.OutcomeParts, l, english)
+}
+
+// partsIn joins kept parts with " · " in a language, or returns english
+// when there are none or one isn't known.
+func partsIn(kept []json.RawMessage, l i18n.Lang, english string) string {
+	if len(kept) == 0 {
 		return english
 	}
-	parts := make([]string, 0, len(k.SummaryParts))
-	for _, raw := range k.SummaryParts {
+	parts := make([]string, 0, len(kept))
+	for _, raw := range kept {
 		var s string
 		if json.Unmarshal(raw, &s) == nil {
 			parts = append(parts, s)

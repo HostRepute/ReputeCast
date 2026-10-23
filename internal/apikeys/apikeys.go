@@ -714,7 +714,7 @@ func (s *Service) AgentActions(ctx context.Context, ws *store.Workspace, limit i
 		}
 		_ = json.Unmarshal(r.Metadata, &meta)
 		kept := audit.KeptIn(r.Metadata)
-		a := MCPAgentAction{ID: r.ID.String(), OccurredAt: r.OccurredAt, Agent: r.ActorName, Tool: meta.Tool, Result: r.Result, Summary: audit.In(kept.Outcome, l, meta.Outcome),
+		a := MCPAgentAction{ID: r.ID.String(), OccurredAt: r.OccurredAt, Agent: r.ActorName, Tool: meta.Tool, Result: r.Result, Summary: kept.OutcomeIn(l, meta.Outcome),
 			// Calls recorded before the flag say it in their note.
 			Proposal: meta.Proposal || strings.Contains(meta.Note, "proposal recorded")}
 		if r.ActorID != nil {
@@ -723,7 +723,7 @@ func (s *Service) AgentActions(ctx context.Context, ws *store.Workspace, limit i
 		if a.Tool == "" {
 			a.Tool = r.Action
 		}
-		a.Target = r.TargetName
+		a.Target = audit.In(kept.Target, l, r.TargetName)
 		if detail := audit.In(kept.Detail, l, meta.Detail); detail != "" {
 			if a.Target != "" {
 				a.Target += " · " + detail

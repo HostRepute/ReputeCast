@@ -32,7 +32,7 @@ func round1(v float64) float64 { return math.Round(v*1000) / 10 }
 // addGrowthTools registers get_growth_sources.
 func (s *Service) addGrowthTools(srv *mcp.Server) {
 	tool(s, srv, "get_growth_sources", authz.SubscribersView, func(ctx context.Context, c *agentCall, in growthIn) (any, entry, error) {
-		e := entry{action: "growth.read", targetType: "growth", targetName: "Audience · Growth"}
+		e := entry{action: "growth.read", targetType: "growth", targetText: keep("target.growth", nil)}
 		if s.Growth == nil {
 			return map[string]any{"message": "Growth isn't available on this server."}, e, nil
 		}

@@ -23,7 +23,7 @@ export default translate(m, {
   clientConfig: 'Cấu hình ứng dụng khách',
 
   agentsTitle: 'Tác tử · {count}',
-  agentsCaption: 'Quyền của từng tác tử. “Approve” nghĩa là một thành viên trong nhóm xác nhận trong ReputeCast trước khi hành động được thực hiện.',
+  agentsCaption: 'Quyền của từng tác tử. “Phê duyệt” nghĩa là một thành viên trong nhóm xác nhận trong ReputeCast trước khi hành động được thực hiện.',
   agentsTable: 'Các tác tử và những gì chúng làm được',
   colAgent: 'Tác tử',
   colLastCall: 'Lần gọi gần nhất',

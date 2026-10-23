@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/readiness"
@@ -133,10 +134,10 @@ func tool[In any](s *Service, srv *mcp.Server, name string, perm authz.Permissio
 			e.action = "mcp." + name
 		}
 		if err != nil {
-			s.record(ctx, c, name, perm, e, audit.Failed, err.Error(), "")
+			s.record(ctx, c, name, perm, e, audit.Failed, err.Error(), i18n.Text{})
 			return nil, nil, err
 		}
-		s.record(ctx, c, name, perm, e, audit.Allowed, "", "")
+		s.record(ctx, c, name, perm, e, audit.Allowed, "", i18n.Text{})
 		return nil, out, nil
 	})
 }
@@ -156,7 +157,7 @@ func (s *Service) campaignTarget(action string) func(ctx context.Context, c *age
 
 func (s *Service) addTools(srv *mcp.Server) {
 	tool(s, srv, "list_campaigns", authz.CampaignsView, func(ctx context.Context, c *agentCall, in listCampaignsIn) (any, entry, error) {
-		e := entry{action: "campaign.listed", targetType: "campaign", targetName: "Campaigns"}
+		e := entry{action: "campaign.listed", targetType: "campaign", targetText: keep("target.campaigns", nil)}
 		status := in.Status
 		if status == "" {
 			status = "all"
@@ -192,7 +193,7 @@ func (s *Service) addTools(srv *mcp.Server) {
 		for _, it := range list.Items {
 			rows = append(rows, row{it.ID, it.Name, it.Status, it.Audience, it.Recipients, it.ScheduledAt, it.StartedAt, it.Delivered, it.HumanOpens, it.Clicks})
 		}
-		e.detail = fmt.Sprintf("%d of %d", len(rows), list.Total)
+		e.detailText = keep("detail.count", i18n.Args{"n": len(rows), "total": list.Total})
 		return map[string]any{"campaigns": rows, "total": list.Total}, e, nil
 	}, nil)
 
@@ -267,7 +268,7 @@ func (s *Service) addTools(srv *mcp.Server) {
 		}
 		e.targetID = row.ID.String()
 		e.after = map[string]any{"name": name, "subject": in.Subject}
-		e.detail = "draft"
+		e.detailText = keep("detail.draft", nil)
 		return map[string]any{"id": row.ID, "name": row.Name, "status": row.Status, "message": "Draft created. A person reviews and sends it from ReputeCast."}, e, nil
 	}, nil)
 
@@ -293,17 +294,7 @@ func (s *Service) addTools(srv *mcp.Server) {
 		if err != nil {
 			return nil, e, err
 		}
-		var changed []string
-		if in.Subject != nil {
-			changed = append(changed, "subject")
-		}
-		if in.Preheader != nil {
-			changed = append(changed, "preheader")
-		}
-		if in.MJML != nil {
-			changed = append(changed, "content")
-		}
-		e.detail = strings.Join(changed, ", ")
+		e.detailText = keep("detail.changed", i18n.Args{"fields": changedFields(in)})
 		e.before = map[string]any{"subject": cp.Subject, "preheader": cp.Preheader, "version": cp.Version}
 		e.after = map[string]any{"subject": row.Subject, "preheader": row.Preheader, "version": row.Version}
 		return map[string]any{"id": row.ID, "name": row.Name, "version": row.Version, "subject": row.Subject}, e, nil
@@ -323,9 +314,9 @@ func (s *Service) addTools(srv *mcp.Server) {
 		if !at.After(s.now()) {
 			return nil, e, errors.New("pick a time in the future")
 		}
-		e.detail = "proposed for " + at.Format("Mon 2 Jan 15:04 MST")
+		e.detailText = keep("detail.proposedFor", i18n.Args{"at": at})
 		helpers := access.Helpers(ctx, s.Q, c.Workspace.ID, authz.CampaignsSend)
-		s.propose(ctx, c, "schedule_campaign", authz.CampaignsSend, entry{targetType: "campaign", targetID: cp.ID.String(), targetName: cp.Name, detail: e.detail})
+		s.propose(ctx, c, "schedule_campaign", authz.CampaignsSend, entry{targetType: "campaign", targetID: cp.ID.String(), targetName: cp.Name})
 		who := "a member with campaigns:send"
 		if len(helpers) > 0 {
 			who = helpers[0]
@@ -403,7 +394,7 @@ func (s *Service) addTools(srv *mcp.Server) {
 
 	tool(s, srv, "search_contacts", authz.SubscribersView, func(ctx context.Context, c *agentCall, in searchIn) (any, entry, error) {
 		q := strings.TrimSpace(in.Query)
-		e := entry{action: "contacts.searched", targetType: "contacts", targetName: "Contacts", detail: "query “" + q + "”"}
+		e := entry{action: "contacts.searched", targetType: "contacts", targetText: keep("target.contacts", nil), detailText: keep("detail.query", i18n.Args{"query": q})}
 		if len(q) < 2 {
 			return nil, e, errors.New("search with at least 2 characters")
 		}
@@ -472,27 +463,29 @@ func (s *Service) addTools(srv *mcp.Server) {
 	}, nil)
 
 	tool(s, srv, "get_provider_health", authz.ProvidersView, func(ctx context.Context, c *agentCall, _ noIn) (any, entry, error) {
-		e := entry{action: "provider.health_read", targetType: "provider", targetName: "All providers"}
+		e := entry{action: "provider.health_read", targetType: "provider", targetText: keep("target.providers", nil)}
 		rows, err := s.Q.McpProviders(ctx, c.Workspace.ID)
 		if err != nil {
 			return nil, e, err
 		}
 		out := []map[string]any{}
-		var healthy, other []string
+		var healthy []string
 		for _, r := range rows {
 			out = append(out, map[string]any{"name": r.Name, "adapter": r.Adapter, "label": r.Label, "status": r.Status, "detail": r.StatusDetail, "health": r.Health, "ips": r.Ips, "last_event_at": r.LastEventAt})
 			if r.Status == "healthy" {
 				healthy = append(healthy, r.Name)
 			} else {
-				other = append(other, r.Name+" "+strings.ReplaceAll(r.Status, "_", " "))
+				e.summaryParts = append(e.summaryParts, keep("outcome.status", i18n.Args{"name": r.Name, "status": r.Status}))
 			}
 		}
-		e.summary = strings.Join(append(other, healthyLine(healthy)...), " · ")
+		if len(healthy) > 0 {
+			e.summaryParts = append(e.summaryParts, keep("outcome.healthy", i18n.Args{"names": healthy}))
+		}
 		return map[string]any{"providers": out, "note": "Credentials are never shown to agents."}, e, nil
 	}, nil)
 
 	tool(s, srv, "get_routing", authz.ProvidersView, func(ctx context.Context, c *agentCall, _ noIn) (any, entry, error) {
-		e := entry{action: "routing.read", targetType: "routing_rule", targetName: "All streams"}
+		e := entry{action: "routing.read", targetType: "routing_rule", targetText: keep("target.streams", nil)}
 		names, err := s.providerNames(ctx, c.Workspace.ID)
 		if err != nil {
 			return nil, e, err
@@ -510,7 +503,7 @@ func (s *Service) addTools(srv *mcp.Server) {
 	}, nil)
 
 	tool(s, srv, "update_routing", authz.ProvidersManage, func(ctx context.Context, c *agentCall, in routingIn) (any, entry, error) {
-		e := entry{action: "routing.updated", targetType: "routing_rule", targetName: streamName(in.Stream)}
+		e := entry{action: "routing.updated", targetType: "routing_rule", targetName: streamName(in.Stream), targetText: keep("target.stream", i18n.Args{"stream": in.Stream})}
 		if in.Stream != "broadcast" && in.Stream != "automation" && in.Stream != "system" {
 			return nil, e, errors.New("stream must be broadcast, automation or system")
 		}
@@ -571,7 +564,7 @@ func (s *Service) addTools(srv *mcp.Server) {
 	}, nil)
 
 	tool(s, srv, "list_automations", authz.AutomationsView, func(ctx context.Context, c *agentCall, _ noIn) (any, entry, error) {
-		e := entry{action: "automation.listed", targetType: "automation", targetName: "Automations"}
+		e := entry{action: "automation.listed", targetType: "automation", targetText: keep("target.automations", nil)}
 		rows, err := s.Q.McpAutomations(ctx, c.Workspace.ID)
 		if err != nil {
 			return nil, e, err
@@ -613,9 +606,9 @@ func (s *Service) addTools(srv *mcp.Server) {
 			post = append(post, map[string]any{"domain": p.Domain, "day": p.Day.Format("2006-01-02"), "domain_reputation": p.DomainReputation, "ip_reputation": p.IpReputation, "spam_rate": p.SpamRate})
 		}
 		if len(lists) == 0 {
-			e.summary = "clear of blocklists"
+			e.summaryText = keep("outcome.clear", nil)
 		} else {
-			e.summary = fmt.Sprintf("%d %s", len(lists), map[bool]string{true: "listing", false: "listings"}[len(lists) == 1])
+			e.summaryText = keep("outcome.listings", i18n.Args{"count": len(lists)})
 		}
 		return map[string]any{"domains": ds, "blocklists": lists, "postmaster": post}, e, nil
 	}, nil)
@@ -633,7 +626,7 @@ func (s *Service) addTools(srv *mcp.Server) {
 		if !member {
 			return nil, e, errors.New("tests go only to members of this workspace")
 		}
-		e.detail = "to " + to
+		e.detailText = keep("detail.to", i18n.Args{"email": to})
 		var html, text string
 		_ = s.Pool.QueryRow(ctx, `SELECT html, plain_text FROM campaigns WHERE id = $1`, cp.ID).Scan(&html, &text)
 		if s.Mail == nil {
@@ -651,13 +644,6 @@ func (s *Service) addTools(srv *mcp.Server) {
 
 	s.addLanguageTools(srv)
 	s.addTransactionalTools(srv)
-}
-
-func healthyLine(names []string) []string {
-	if len(names) == 0 {
-		return nil
-	}
-	return []string{access.AndList(names) + " healthy"}
 }
 
 func streamName(s string) string {
@@ -742,10 +728,6 @@ func (s *Service) propose(ctx context.Context, c *agentCall, tool string, perm a
 	if userID == uuid.Nil {
 		return
 	}
-	target := e.targetName
-	if target == "" {
-		target = "the workspace"
-	}
 	verb := strings.ReplaceAll(strings.TrimSuffix(tool, "_campaign"), "_", " ")
 	if v, ok := proposeVerbs[tool]; ok {
 		verb = v
@@ -758,10 +740,12 @@ func (s *Service) propose(ctx context.Context, c *agentCall, tool string, perm a
 		link = "/w/" + c.Workspace.Slug + "/forms/website/posts/" + e.targetID
 	}
 	expires := s.now().Add(time.Duration(c.Settings.ApprovalExpiryHours) * time.Hour)
+	// Read later by the member, in their own language; the time in the
+	// workspace's timezone.
 	_ = notify.ToUser(ctx, s.Pool, userID, notify.Notification{
 		WorkspaceID: &c.Workspace.ID, Kind: "agent_proposal", Severity: "warn",
-		Title: fmt.Sprintf("%s asked to %s %s", c.Principal.Name, verb, target),
-		Body:  fmt.Sprintf("That needs %s, which the agent doesn't hold. Do it yourself if it's right; the proposal expires at %s.", perm, expires.Format("15:04")),
-		Link:  link, Data: map[string]any{"tool": tool, "agent_id": c.Principal.ID.String(), "expires_at": expires},
+		TitleText: keep("notify.proposalTitle", i18n.Args{"agent": c.Principal.Name, "tool": tool, "verb": verb, "target": e.targetName, "hasTarget": yesNo(e.targetName != "")}),
+		BodyText:  keep("notify.proposalBody", i18n.Args{"permission": string(perm), "at": expires.In(zone(c.Workspace.Timezone))}),
+		Link:      link, Data: map[string]any{"tool": tool, "agent_id": c.Principal.ID.String(), "expires_at": expires},
 	})
 }

@@ -67,7 +67,7 @@ func (s *Service) addSmsTools(srv *mcp.Server) {
 	}, nil)
 	tool(s, srv, "create_sms_draft", authz.CampaignsEdit, func(ctx context.Context, c *agentCall, in smsDraftIn) (any, entry, error) {
 		name := strings.TrimSpace(in.Name)
-		e := entry{action: "campaign.created", targetType: "campaign", targetName: name, detail: "text draft"}
+		e := entry{action: "campaign.created", targetType: "campaign", targetName: name, detailText: keep("detail.textDraft", nil)}
 		if s.Sms == nil {
 			return nil, e, unavailable
 		}

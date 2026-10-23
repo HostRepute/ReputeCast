@@ -8,6 +8,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/transactional"
 )
 
@@ -37,7 +38,7 @@ type listTransactionalIn struct {
 // render_transactional_template and search_transactional_messages.
 func (s *Service) addTransactionalTools(srv *mcp.Server) {
 	tool(s, srv, "list_transactional_templates", authz.TransactionalView, func(ctx context.Context, c *agentCall, in listTransactionalIn) (any, entry, error) {
-		e := entry{action: "transactional.templates_listed", targetType: "transactional_template", targetName: "Transactional templates"}
+		e := entry{action: "transactional.templates_listed", targetType: "transactional_template", targetText: keep("target.templates", nil)}
 		if s.Transactional == nil {
 			return nil, e, errors.New("transactional email isn't available in this process")
 		}
@@ -85,12 +86,12 @@ func (s *Service) addTransactionalTools(srv *mcp.Server) {
 		if out.Problem != "" {
 			res["problem"] = out.Problem
 		}
-		e.detail = "version " + out.Version
+		e.detailText = keep("detail.version", i18n.Args{"version": out.Version})
 		return res, e, nil
 	}, nil)
 
 	tool(s, srv, "search_transactional_messages", authz.TransactionalView, func(ctx context.Context, c *agentCall, in searchTransactionalIn) (any, entry, error) {
-		e := entry{action: "transactional.log_read", targetType: "transactional_log", targetName: "Message log"}
+		e := entry{action: "transactional.log_read", targetType: "transactional_log", targetText: keep("target.messageLog", nil)}
 		if s.Transactional == nil {
 			return nil, e, errors.New("transactional email isn't available in this process")
 		}

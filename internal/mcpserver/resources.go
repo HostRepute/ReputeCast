@@ -13,6 +13,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -56,7 +57,7 @@ func (s *Service) addResources(srv *mcp.Server) {
 			if err != nil {
 				return nil, mcp.ResourceNotFoundError(req.Params.URI)
 			}
-			s.record(ctx, c, "resource campaign MJML", authz.CampaignsView, entry{action: "campaign.content_read", targetType: "campaign", targetID: cp.ID.String(), targetName: cp.Name}, audit.Allowed, "", "")
+			s.record(ctx, c, "resource campaign MJML", authz.CampaignsView, entry{action: "campaign.content_read", targetType: "campaign", targetID: cp.ID.String(), targetName: cp.Name}, audit.Allowed, "", i18n.Text{})
 			return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{{URI: req.Params.URI, MIMEType: "text/mjml", Text: cp.Mjml}}}, nil
 		})
 
@@ -97,7 +98,7 @@ func (s *Service) addResources(srv *mcp.Server) {
 				_ = w.Write(rec)
 			}
 			w.Flush()
-			s.record(ctx, c, "resource report CSV", authz.ReportsView, entry{action: "report.read", targetType: "campaign", targetID: cp.ID.String(), targetName: cp.Name}, audit.Allowed, "", "")
+			s.record(ctx, c, "resource report CSV", authz.ReportsView, entry{action: "report.read", targetType: "campaign", targetID: cp.ID.String(), targetName: cp.Name}, audit.Allowed, "", i18n.Text{})
 			return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{{URI: req.Params.URI, MIMEType: "text/csv", Text: buf.String()}}}, nil
 		})
 
@@ -126,7 +127,7 @@ func (s *Service) addResources(srv *mcp.Server) {
 				out = append(out, item{r.OccurredAt.UTC().Format("2006-01-02T15:04:05Z"), r.ActorName, r.ActorType, r.Action, r.TargetName, r.Result, r.Reason})
 			}
 			b, _ := json.MarshalIndent(out, "", "  ")
-			s.record(ctx, c, "resource audit log", authz.AuditView, entry{action: "audit.read", targetType: "audit_log", targetName: "Audit log"}, audit.Allowed, "", "")
+			s.record(ctx, c, "resource audit log", authz.AuditView, entry{action: "audit.read", targetType: "audit_log", targetText: keep("target.auditLog", nil)}, audit.Allowed, "", i18n.Text{})
 			return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{{URI: req.Params.URI, MIMEType: "application/json", Text: string(b)}}}, nil
 		})
 }

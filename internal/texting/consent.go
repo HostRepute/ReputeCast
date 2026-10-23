@@ -13,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/channels"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/phone"
 	"github.com/hostrepute/reputecast/internal/segments"
 	"github.com/hostrepute/reputecast/internal/sms"
@@ -150,6 +151,7 @@ func (s *Service) ContactChannels(ctx context.Context, ws *store.Workspace, p *a
 	if err != nil {
 		return SmsContactChannels{}, err
 	}
+	lang := i18n.LangFrom(ctx)
 	out := SmsContactChannels{Phone: c.Phone, Country: c.Country, LineType: c.LineType, LineSource: c.LineSource, Lists: []SmsContactList{},
 		Events: []SmsConsentEvent{}, CanEdit: p.Can(authz.SubscribersEdit)}
 	if c.Phone != "" {
@@ -231,8 +233,8 @@ func (s *Service) ContactChannels(ctx context.Context, ws *store.Workspace, p *a
 		if e.Channel != "sms" {
 			continue
 		}
-		ev := SmsConsentEvent{ID: e.ID.String(), At: e.OccurredAt, Action: e.Action, Number: maskPhone(e.Phone), Source: e.Source, Page: e.Page, ConsentText: e.ConsentText,
-			ConsentVersion: e.ConsentVersion, Keyword: e.Keyword, Actor: e.ActorName, Note: e.Note}
+		ev := SmsConsentEvent{ID: e.ID.String(), At: e.OccurredAt, Action: e.Action, Number: maskPhone(e.Phone), Source: e.Source, Page: evidenceIn(lang, e.Page), ConsentText: e.ConsentText,
+			ConsentVersion: e.ConsentVersion, Keyword: e.Keyword, Actor: e.ActorName, Note: evidenceIn(lang, e.Note)}
 		if e.Phone == "" {
 			ev.Number = ""
 		}
@@ -252,7 +254,7 @@ func (s *Service) ContactChannels(ctx context.Context, ws *store.Workspace, p *a
 			switch e.Action {
 			case "subscribed", "pending", "imported", "confirmed", "opted_in":
 				if l.SMSPage == "" && l.SMSVersion == "" {
-					l.SMSPage, l.SMSVersion, l.SMSIP = e.Page, e.ConsentVersion, ev.IP
+					l.SMSPage, l.SMSVersion, l.SMSIP = ev.Page, e.ConsentVersion, ev.IP
 				}
 			}
 		}
@@ -470,14 +472,14 @@ func (s *Service) SendConfirmation(ctx context.Context, ws *store.Workspace, con
 		return
 	}
 	_ = s.Q.ChanConsentEventInsert(ctx, store.ChanConsentEventInsertParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, ContactID: c.ID, ListID: &listID,
-		Channel: "sms", Action: "confirmation_sent", Phone: c.Phone, Source: "reputecast", Page: "Opt-in confirmation", Note: m.Status, OccurredAt: s.now()})
+		Channel: "sms", Action: "confirmation_sent", Phone: c.Phone, Source: "reputecast", Page: evConfirmation.Source(), Note: m.Status, OccurredAt: s.now()})
 }
 
 // confirmationFailed records a confirmation text that failed; the number
 // is suppressed already when the failure says it can't get texts.
 func (s *Service) confirmationFailed(ctx context.Context, ws *store.Workspace, m store.ChannelMessage, reason string) {
 	_ = s.Q.ChanConsentEventInsert(ctx, store.ChanConsentEventInsertParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, ContactID: *m.ContactID, ListID: m.ListID,
-		Channel: "sms", Action: "confirmation_failed", Phone: m.Recipient, Source: "reputecast", Page: "Opt-in confirmation", Note: reason, OccurredAt: s.now()})
+		Channel: "sms", Action: "confirmation_failed", Phone: m.Recipient, Source: "reputecast", Page: evConfirmation.Source(), Note: reason, OccurredAt: s.now()})
 }
 
 // queuedText is a text for one person, queued for their window.
