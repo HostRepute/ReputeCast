@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Every catalog key the package names is in messages/en.json (msgs.M
@@ -78,6 +80,24 @@ func TestReferrerLabels(t *testing.T) {
 	sortByViews(order, map[string]int64{"a": 1, "b": 3, "c": 2})
 	if strings.Join(order, ",") != "b,c,a" {
 		t.Fatalf("order: %v", order)
+	}
+}
+
+// A member event's detail is stored in English and reads in the member's
+// language; a detail ReputeCast didn't write reads as stored.
+func TestMemberEventDetail(t *testing.T) {
+	vi := i18n.For(i18n.Vietnamese)
+	if got := memberEventDetail("memberEvent.suppressed"); got != "the address is suppressed" {
+		t.Fatalf("stored: %q", got)
+	}
+	for stored, want := range map[string]string{"the address is suppressed": "địa chỉ đang bị chặn gửi", "from their account page": "từ trang tài khoản của họ",
+		"/posts/feature-flags": "/posts/feature-flags", "new@example.com": "new@example.com", "": ""} {
+		if got := memberEventDetailIn(vi, stored); got != want {
+			t.Errorf("%q in Vietnamese: %q, want %q", stored, got, want)
+		}
+		if got := memberEventDetailIn(i18n.Default, stored); got != stored {
+			t.Errorf("%q in English: %q", stored, got)
+		}
 	}
 }
 

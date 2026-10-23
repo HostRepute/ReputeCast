@@ -341,5 +341,8 @@
   "paywall.upgrade": "Nâng cấp",
   "paywall.signup": "Đăng ký miễn phí",
   "paywall.free": "Chưa sẵn sàng? Hãy đăng ký miễn phí và đọc 1 bài viết trả phí mỗi tháng.",
-  "signup.consentDefault": "Gửi {list} cho tôi. Hủy đăng ký bất cứ lúc nào."
+  "signup.consentDefault": "Gửi {list} cho tôi. Hủy đăng ký bất cứ lúc nào.",
+
+  "memberEvent.suppressed": "địa chỉ đang bị chặn gửi",
+  "memberEvent.fromAccount": "từ trang tài khoản của họ"
 }

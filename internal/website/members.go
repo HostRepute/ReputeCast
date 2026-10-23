@@ -124,7 +124,7 @@ func (s *Service) ContactCard(ctx context.Context, ws *store.Workspace, p *authz
 	}
 	for _, e := range events {
 		out.Events = append(out.Events, WebsiteMemberEvent{ID: e.ID.String(), Kind: e.Kind, At: e.OccurredAt, Method: e.Method, SameBrowser: e.SameBrowser,
-			Actor: e.ActorName, Detail: e.Detail})
+			Actor: e.ActorName, Detail: memberEventDetailIn(lang(ctx), e.Detail)})
 	}
 	return out, nil
 }

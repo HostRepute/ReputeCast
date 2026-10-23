@@ -216,7 +216,7 @@ func (s *Service) RequestSignin(ctx context.Context, ws *store.Workspace, in Sig
 	if blocked, err := s.blocked(ctx, ws, pc); err != nil || blocked {
 		if blocked {
 			_ = s.Q.WebsiteMemberEventInsert(ctx, store.WebsiteMemberEventInsertParams{ID: newID(), WorkspaceID: ws.ID, ContactID: contact, Kind: "link_refused",
-				Detail: "the address is suppressed", At: s.now()})
+				Detail: memberEventDetail("memberEvent.suppressed"), At: s.now()})
 		}
 		return out, err
 	}

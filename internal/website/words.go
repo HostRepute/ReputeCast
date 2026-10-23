@@ -48,6 +48,26 @@ func (w Words) HTML(key string, args i18n.Args, tags i18n.Tags) string {
 	return msgs.M(key).HTML(w.L, args, tags)
 }
 
+// memberEventDetails are the details ReputeCast writes with a member's
+// website events. They're stored in English (website_member_events.detail)
+// and read in the member's language on a contact's Website card.
+var memberEventDetails = []string{"memberEvent.suppressed", "memberEvent.fromAccount"}
+
+// memberEventDetail is the English detail ReputeCast stores with an event.
+func memberEventDetail(key string) string { return msgs.M(key).Text(i18n.Default, nil) }
+
+// memberEventDetailIn is a stored event detail in a reader's language: the
+// details ReputeCast writes are translated, others (the page a reader
+// joined from, a new address) read as stored.
+func memberEventDetailIn(l i18n.Lang, stored string) string {
+	for _, key := range memberEventDetails {
+		if stored == memberEventDetail(key) {
+			return msgs.M(key).Text(l, nil)
+		}
+	}
+	return stored
+}
+
 // Has reports whether the catalog has a key.
 func Has(key string) bool {
 	_, err := msgs.Lookup(key)
