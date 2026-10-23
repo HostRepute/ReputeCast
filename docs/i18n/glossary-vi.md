@@ -860,12 +860,15 @@ is a name and stays in English.
 | 10DLC · local · mobile · toll-free (number kinds) | 10DLC · địa phương · di động · miễn cước ("số di động", "số miễn cước") |
 | adapter · manifest · contract test suite | adapter · manifest · bộ kiểm thử hợp đồng (developer words, kept) |
 | auto-pause · Auto-paused | tự động tạm dừng · Tự tạm dừng |
+| auto-pause reasons: Too many texts failed · Carriers filtered too many texts · Too many people opted out | Quá nhiều tin nhắn thất bại · Nhà mạng lọc quá nhiều tin nhắn · Quá nhiều người hủy nhận |
 | brand (in a 10DLC registration) · brand prefix | thương hiệu · tiền tố thương hiệu |
 | budget · spend · price per segment | ngân sách · chi tiêu · giá mỗi đoạn tin |
+| budget used up · budget at 80% | đã dùng hết ngân sách · ngân sách đạt 80% ("Ngân sách SMS tháng 10 đã dùng hết") |
 | carrier | nhà mạng |
 | channel · Email · SMS · Push · WhatsApp | kênh · Email · SMS · Thông báo đẩy · WhatsApp |
 | consent · SMS consent · consent text · evidence | sự đồng ý · đồng ý nhận SMS · nội dung đồng ý · bằng chứng |
 | credentials · Live · Test credentials | thông tin xác thực · Chính thức · Thông tin xác thực thử |
+| credentials rejected · isn't answering · is back (a provider) | đã từ chối thông tin xác thực · không phản hồi · đã hoạt động lại |
 | delivery receipt | báo nhận (what a carrier reports back; "Last receipt" is "Báo nhận gần nhất") |
 | fallback (of a route) | dự phòng |
 | filtered by carriers | bị nhà mạng lọc |
@@ -875,13 +878,16 @@ is a name and stays in English.
 | landline · not in service · invalid number · unreachable | số cố định · ngừng hoạt động · số không hợp lệ · không liên lạc được |
 | link preview | bản xem trước liên kết (a messaging app's machine click, never a person) |
 | local time · "Berlin local" (a reply's time) | giờ địa phương · "giờ Berlin" |
+| no answer · invalid credentials (what a provider answered a call) | không có phản hồi · thông tin xác thực không hợp lệ (the HTTP status before them stays: "401 Unauthorized · thông tin xác thực không hợp lệ") |
 | opt in · opt-in confirmation | đăng ký nhận · tin xác nhận đăng ký |
 | opt out · opt-outs · opt-out text · opt-out reply | hủy nhận · lượt hủy nhận · câu hủy nhận · tin trả lời hủy nhận |
 | opt-out sync · Two-way · Read only | đồng bộ hủy nhận · Hai chiều · Chỉ đọc |
+| opt-out list (a provider's own) | danh sách hủy nhận ("Danh sách hủy nhận của Twilio") |
 | outside quiet hours (a text waits or is skipped) | ngoài khung giờ gửi (the window texts may go out in, not "ngoài giờ yên lặng") |
 | provider status: Healthy · Degraded · Down | Ổn định · Suy giảm · Gián đoạn |
 | quiet hours · sending window | giờ yên lặng · khung giờ gửi |
 | raw event · normalized | sự kiện gốc · đã chuẩn hóa |
+| receipts silent (none came back while texts went out) | báo nhận im lặng |
 | registration · registered | đăng ký · đã đăng ký |
 | route · Routing & rules · route tester | tuyến · Định tuyến và quy tắc · kiểm tra tuyến |
 | segment (of a text) | đoạn tin (the billed part of 160 GSM-7 or 70 UCS-2 characters; never "phân khúc", an audience segment) |
@@ -894,6 +900,7 @@ is a name and stays in English.
 | text (a message) · to text | tin nhắn · nhắn tin |
 | Text message terms | Điều khoản tin nhắn |
 | throughput · 14 texts a second | thông lượng · 14 tin nhắn mỗi giây |
+| unschedule · a send (of a campaign) | hủy lịch gửi · lần gửi ("Lần gửi này đã kết thúc") |
 
 "GSM-7", "UCS-2", "Unicode", "VoIP" and "emoji" stay as they are. A
 phone number, a sender ID and a country code are data: never translated.

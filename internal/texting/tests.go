@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/phone"
 	"github.com/hostrepute/reputecast/internal/sms"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -100,7 +101,7 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		return nil, err
 	}
 	if len(numbers) == 0 {
-		return nil, api.Conflict("Add a test number in Routing & rules first.")
+		return nil, api.Conflict(say(ctx, mTestNumberFirst, nil))
 	}
 	text := textOf(c.Body, g.rules)
 	sent := 0
@@ -119,7 +120,7 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		sent++
 	}
 	if sent == 0 {
-		return nil, api.Invalid("body.numbers", "Pick test numbers of this workspace.")
+		return nil, api.Invalid("body.numbers", say(ctx, mPickTestNumbers, nil))
 	}
 	if err := s.Audit.Log(ctx, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.test_sent", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
 		After: map[string]any{"texts": sent}, Metadata: map[string]any{"channel": "sms"}}); err != nil {
@@ -158,7 +159,7 @@ type oneText struct {
 func (s *Service) sendOne(ctx context.Context, ws *store.Workspace, g *graph, t oneText) (store.ChannelMessage, error) {
 	n, err := phone.Parse(t.recipient.Phone, "")
 	if err != nil {
-		return store.ChannelMessage{}, api.Invalid("body.phone", "That isn't a phone number ReputeCast can text.")
+		return store.ChannelMessage{}, api.Invalid("body.phone", say(ctx, mNotTextable, nil))
 	}
 	sender := t.sender
 	var d Decision
@@ -172,7 +173,7 @@ func (s *Service) sendOne(ctx context.Context, ws *store.Workspace, g *graph, t 
 		d.Price = pr.Price
 	}
 	if sender == nil {
-		return store.ChannelMessage{}, api.Err(http.StatusConflict, "no_sender", "No sender can text "+countryName(n.Country)+": add a route for it in Routing & rules.").
+		return store.ChannelMessage{}, api.Err(http.StatusConflict, "no_sender", say(ctx, mNoSender, i18n.Args{"country": countryNameIn(i18n.LangFrom(ctx), n.Country)})).
 			WithMeta("country", n.Country)
 	}
 	if d.Price == 0 {
@@ -224,17 +225,6 @@ func (s *Service) sendOne(ctx context.Context, ws *store.Workspace, g *graph, t 
 	}
 	s.deliver(ctx, ws, prov, row)
 	return s.Q.ChanMessage(ctx, id)
-}
-
-// contextOf names what a number was sent when something happened to it.
-func contextOf(kind string) string {
-	switch kind {
-	case "confirmation":
-		return "Opt-in confirmation"
-	case "test":
-		return "Test text"
-	}
-	return ""
 }
 
 // event logs a message event.
@@ -311,7 +301,7 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	if in.ContactID != "" {
 		cid, err := uuid.Parse(in.ContactID)
 		if err != nil {
-			return SmsPreview{}, api.Invalid("body.contactId", "Pick a contact of this workspace.")
+			return SmsPreview{}, api.Invalid("body.contactId", say(ctx, mPickContact, nil))
 		}
 		row := s.Pool.QueryRow(ctx, `SELECT id, phone, phone_country, timezone, first_name, last_name, email FROM contacts WHERE id = $1 AND workspace_id = $2`, cid, ws.ID)
 		if err := row.Scan(&r.ContactID, &r.Phone, &r.Country, &r.Zone, &r.FirstName, &r.LastName, &r.Email); err != nil {

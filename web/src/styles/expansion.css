@@ -99,6 +99,18 @@
   white-space: nowrap;
 }
 
+/* Rule 1 in the automation editor's dialogs on phones, where badges wrap
+   (automations.css): a badge as long as its row (the publish checks: "Giờ
+   yên lặng: tin nhắn được gửi trong khung 09:00–20:00 …") counts its
+   padding in its 100% width, so it stays inside the dialog instead of
+   running into its edge; a one-line badge keeps its 26 px. */
+@media (max-width: 767px) {
+  :root:not([lang='en']) .fe-dlg .badge {
+    box-sizing: border-box;
+    min-height: 26px;
+  }
+}
+
 /* Rule 7: Vietnamese stacks diacritics, so text keeps a line height of at
    least 1.4, in tables too. */
 :root:lang(vi) .tscroll {

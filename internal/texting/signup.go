@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"golang.org/x/text/collate"
 
 	"github.com/hostrepute/reputecast/internal/forms"
 	"github.com/hostrepute/reputecast/internal/i18n"
@@ -64,30 +65,44 @@ func (t SignupTexts) Offer(ctx context.Context, ws *store.Workspace, code string
 			}
 		}
 	}
+	out.Countries = pickerCountries(lang, routed, g.rules.OtherCountries == "route" || len(routed) == 0)
+	if len(out.Countries) > 0 {
+		out.Default = out.Countries[0].Code
+	}
+	return out, true
+}
+
+// pickerCountries are the phone field's countries: the routed ones first,
+// then, with every other, the rest by name. Names are in the page's
+// language when ReputeCast has it (countryNameIn), sorted as it sorts them.
+func pickerCountries(lang i18n.Lang, routed []string, others bool) []forms.TextCountry {
+	out := []forms.TextCountry{}
 	add := func(c string) {
 		if cc := phone.CallingCode(c); cc > 0 {
-			out.Countries = append(out.Countries, forms.TextCountry{Code: c, Name: countryName(c), Dial: "+" + itoa(cc)})
+			out = append(out, forms.TextCountry{Code: c, Name: countryNameIn(lang, c), Dial: "+" + itoa(cc)})
 		}
 	}
 	for _, c := range routed {
 		add(c)
 	}
-	if g.rules.OtherCountries == "route" || len(routed) == 0 {
-		rest := []string{}
-		for _, c := range phone.Countries() {
-			if !slices.Contains(routed, c) {
-				rest = append(rest, c)
-			}
-		}
-		slices.SortFunc(rest, func(a, b string) int { return strings.Compare(countryName(a), countryName(b)) })
-		for _, c := range rest {
-			add(c)
+	if !others {
+		return out
+	}
+	rest := []string{}
+	for _, c := range phone.Countries() {
+		if !slices.Contains(routed, c) {
+			rest = append(rest, c)
 		}
 	}
-	if len(out.Countries) > 0 {
-		out.Default = out.Countries[0].Code
+	compare := strings.Compare
+	if localNames(lang) {
+		compare = collate.New(lang.Locale.Tag()).CompareString
 	}
-	return out, true
+	slices.SortFunc(rest, func(a, b string) int { return compare(countryNameIn(lang, a), countryNameIn(lang, b)) })
+	for _, c := range rest {
+		add(c)
+	}
+	return out
 }
 
 // Save implements forms.Texts: the number goes on the contact (the latest

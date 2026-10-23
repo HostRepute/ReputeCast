@@ -3,7 +3,6 @@ package texting
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -11,9 +10,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/applang"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/channels"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/sms"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -558,12 +559,18 @@ func (s *Service) checkAutoPause(ctx context.Context, ws *store.Workspace, campa
 	}
 	var held int64
 	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM channel_messages WHERE campaign_id = $1 AND status = 'held'`, campaignID).Scan(&held)
-	headline := map[string]string{MetricFailed: "Too many texts failed", MetricFiltered: "Carriers filtered too many texts", MetricOptOuts: "Too many people opted out"}[metric]
-	summary := fmt.Sprintf("%s: %.1f%% (limit %s%%). %s held.", headline, value, trimFloat(limit), count(held))
+	// The notification and the audit entry keep their lines as messages:
+	// each member reads them in their own language, the rates in their
+	// region's format.
+	args := pauseArgs(metric, value, limit)
+	args["name"], args["held"], args["events"], args["base"] = c.Name, held, events, base
+	reason, meta := audit.KeepReason(map[string]any{"channel": "sms", "metric": metric, "value": value, "limit": limit, "events": events, "base": base, "held": held},
+		mAuditPausedReason.Keep(i18n.Args{"metric": metric}))
+	meta = audit.KeepText(meta, "summary", mAuditPausedSummary.Keep(args))
 	_ = s.tx(ctx, func(q *store.Queries, tx pgx.Tx) error {
 		if err := notify.ToMembersWith(ctx, tx, ws.ID, authz.CampaignsSend, notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindSMSSendPaused, Severity: "bad",
-			Title: fmt.Sprintf("%q auto-paused", c.Name), Summary: summary, Body: summary, Link: "/w/" + ws.Slug + "/campaigns/" + c.ID.String() + "/report",
-			Data: map[string]any{"campaignId": c.ID.String(), "metric": metric}}); err != nil {
+			TitleText: mNotifyPausedTitle.Keep(i18n.Args{"name": c.Name}), SummaryText: mNotifyPausedSummary.Keep(args), BodyText: mNotifyPausedSummary.Keep(args),
+			Link: "/w/" + ws.Slug + "/campaigns/" + c.ID.String() + "/report", Data: map[string]any{"campaignId": c.ID.String(), "metric": metric}}); err != nil {
 			return err
 		}
 		if _, err := webhooks.Emit(ctx, tx, ws.ID, ws.Slug, "campaign.paused", map[string]any{"campaign_id": c.ID.String(), "name": c.Name, "channel": "sms",
@@ -571,16 +578,19 @@ func (s *Service) checkAutoPause(ctx context.Context, ws *store.Workspace, campa
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.auto_paused", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Reason: headline, Actor: systemActor, Metadata: map[string]any{"channel": "sms", "metric": metric, "value": value, "limit": limit, "events": events, "base": base,
-				"held": held, "summary": fmt.Sprintf("%s %.1f%% over limit %s%% · %s of %s · %s held", metric, value, trimFloat(limit), count(events), count(base), count(held))}})
+			Reason: reason, Actor: systemActor, Metadata: meta})
 	})
 }
 
-func trimFloat(v float64) string {
-	if v == math.Trunc(v) {
-		return fmt.Sprintf("%.0f", v)
+// pauseArgs are an auto-pause's rate and limit, in percent, for its
+// messages: the rate with one decimal (6.2%), the limit as it was set (5%,
+// 2.5%), each written by the reader's region format.
+func pauseArgs(metric string, value, limit float64) i18n.Args {
+	whole := "no"
+	if limit == math.Trunc(limit) {
+		whole = "yes"
 	}
-	return fmt.Sprintf("%.1f", v)
+	return i18n.Args{"metric": metric, "value": value / 100, "limit": limit / 100, "limitWhole": whole}
 }
 
 // budgetReached holds a text the month's budget can't cover: a campaign's
@@ -596,8 +606,9 @@ func (s *Service) budgetReached(ctx context.Context, ws *store.Workspace, m stor
 		if err != nil {
 			return
 		}
+		reason, meta := audit.KeepReason(nil, mAuditBudgetReason.Keep(nil))
 		_ = s.setPhase(ctx, ws, c, snd, "paused", "budget", map[string]any{"budget": true}, &audit.Event{Action: "campaign.auto_paused", Actor: systemActor,
-			Reason: "The month's SMS budget is used up"})
+			Reason: reason, Metadata: meta})
 		return
 	}
 	_, _ = s.Pool.Exec(ctx, `UPDATE channel_messages SET status = 'held', reason = 'budget', updated_at = $2 WHERE id = $1 AND status = 'queued'`, m.ID, now)
@@ -626,16 +637,28 @@ func (s *Service) budgetAlerts(ctx context.Context, ws *store.Workspace, r Rules
 	if err != nil || !first {
 		return
 	}
-	var title, summary, sev string
+	sev, title, summary := "warn", mNotifyBudgetAlertTitle, mNotifyBudgetAlertBody
 	if level == 100 {
-		sev, title = "bad", "SMS budget used up"
-		summary = fmt.Sprintf("%s's SMS budget is used up ($%.2f). Campaigns can't start and SMS steps wait until someone raises it.", now.In(location(ws.Timezone)).Format("January"), r.Budget)
-	} else {
-		sev, title = "warn", fmt.Sprintf("SMS budget at %d%%", level)
-		summary = fmt.Sprintf("$%.2f of $%.2f spent on texts this month.", round2(spent), r.Budget)
+		sev, title, summary = "bad", mNotifyBudgetUsedTitle, mNotifyBudgetUsedBody
 	}
-	_ = notify.ToMembersWith(ctx, s.Pool, ws.ID, authz.ProvidersManage, notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindSMSBudget, Severity: sev,
-		Title: title, Summary: summary, Body: summary, Link: "/w/" + ws.Slug + "/providers/sms/rules", Data: map[string]any{"level": level, "spent": round2(spent), "budget": r.Budget}})
+	// The notice keeps its messages, so each member reads it in their own
+	// language; a message can't write money, so the amounts are written in
+	// each member's region format (the row keeps them in English, as before).
+	args := func(l i18n.Lang) i18n.Args {
+		return i18n.Args{"level": float64(level) / 100, "month": int(month.Month()), "spent": l.Region.Money(round2(spent), 2), "budget": l.Region.Money(r.Budget, 2)}
+	}
+	english := args(i18n.Default)
+	ids, err := notify.MembersWith(ctx, s.Pool, ws.ID, authz.ProvidersManage)
+	if err != nil {
+		return
+	}
+	for _, id := range ids {
+		mine := args(applang.ForUserID(ctx, s.Q, id))
+		_ = notify.ToUser(ctx, s.Pool, id, notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindSMSBudget, Severity: sev,
+			Title: title.Text(i18n.Default, english), Summary: summary.Text(i18n.Default, english), Body: summary.Text(i18n.Default, english),
+			TitleText: title.Keep(mine), SummaryText: summary.Keep(mine), BodyText: summary.Keep(mine),
+			Link: "/w/" + ws.Slug + "/providers/sms/rules", Data: map[string]any{"level": level, "spent": round2(spent), "budget": r.Budget}})
+	}
 }
 
 // releaseHeld puts texts held for a reason back in the queue (a provider

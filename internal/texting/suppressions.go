@@ -13,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/phone"
 	"github.com/hostrepute/reputecast/internal/sms"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -71,13 +72,14 @@ const suppressionPage = 25
 
 // Suppressions lists the SMS suppression list.
 func (s *Service) Suppressions(ctx context.Context, ws *store.Workspace, p *authz.Principal, f SmsSuppressionFilter) (SmsSuppressionList, error) {
+	l := i18n.LangFrom(ctx)
 	out := SmsSuppressionList{Items: []SmsSuppression{}, Counts: map[string]int64{}, Providers: []SmsSuppressionProvider{}, Page: max(f.Page, 1),
 		PageSize: suppressionPage, CanEdit: p.Can(authz.SubscribersEdit)}
 	var prov *uuid.UUID
 	if f.Provider != "" {
 		id, err := uuid.Parse(f.Provider)
 		if err != nil {
-			return out, api.Invalid("provider", "Pick an SMS provider of this workspace.")
+			return out, api.Invalid("provider", say(ctx, mPickProvider, nil))
 		}
 		prov = &id
 	}
@@ -93,8 +95,8 @@ func (s *Service) Suppressions(ctx context.Context, ws *store.Workspace, p *auth
 		return out, err
 	}
 	for _, r := range rows {
-		it := SmsSuppression{ID: r.ID.String(), Number: maskPhone(r.Phone), Reason: r.Reason, Code: r.OriginalCode, Source: r.Source, At: r.CreatedAt,
-			Campaign: r.CampaignName, Automation: r.AutomationName, Context: r.Context, Removable: r.Reason != "opted_out"}
+		it := SmsSuppression{ID: r.ID.String(), Number: maskPhone(r.Phone), Reason: r.Reason, Code: suppressionCodeIn(l, r.Reason, r.OriginalCode), Source: r.Source,
+			At: r.CreatedAt, Campaign: r.CampaignName, Automation: r.AutomationName, Context: contextIn(l, r.Context), Removable: r.Reason != "opted_out"}
 		if r.ProviderName != "" && it.Source == "" {
 			it.Source = r.ProviderName
 		}
@@ -123,7 +125,7 @@ func (s *Service) Suppressions(ctx context.Context, ws *store.Workspace, p *auth
 		return out, err
 	}
 	if !out.CanEdit {
-		out.Reason = authz.DeniedMessage(authz.SubscribersEdit, nil)
+		out.Reason = authz.DeniedText(l, authz.SubscribersEdit, nil)
 	}
 	return out, nil
 }
@@ -142,11 +144,11 @@ func (s *Service) RemoveSuppression(ctx context.Context, ws *store.Workspace, p 
 		return api.MapError(err, "Suppressed number")
 	}
 	if sup.Reason == "opted_out" {
-		return api.Err(http.StatusConflict, "opted_out_by_text", "This number opted out by text. Only the person can come back, by texting START.")
+		return api.Err(http.StatusConflict, "opted_out_by_text", say(ctx, mOptedOutByText, nil))
 	}
 	reason := strings.TrimSpace(in.Reason)
 	if len(reason) < 3 {
-		return api.Invalid("body.reason", "Say why the number can get texts again.")
+		return api.Invalid("body.reason", say(ctx, mRemoveReason, nil))
 	}
 	now := s.now()
 	err = s.tx(ctx, func(q *store.Queries, _ pgx.Tx) error {
@@ -175,7 +177,7 @@ func (s *Service) AddSuppressions(ctx context.Context, ws *store.Workspace, p *a
 	for i, raw := range in.Numbers {
 		n, err := phone.Parse(raw, "")
 		if err != nil {
-			return 0, api.Invalid("body.numbers["+itoa(i)+"]", "“"+raw+"” isn't a phone number in international format, like +1 312 555 0123.")
+			return 0, api.Invalid("body.numbers["+itoa(i)+"]", say(ctx, mNotPhoneNumber, i18n.Args{"number": raw}))
 		}
 		phones = append(phones, n.E164)
 	}

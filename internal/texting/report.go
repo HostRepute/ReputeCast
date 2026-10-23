@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/channels"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -632,7 +633,8 @@ func (s *Service) Report(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if downProv != nil {
 		if pr, err := s.Q.SmsProviderAny(ctx, *downProv); err == nil {
 			h := healthOf(pr)
-			o := &SmsOutageView{Provider: pr.Name, ProviderID: pr.ID.String(), Status: pr.Status, Since: pr.StatusSince, Answer: h.Answer, Failures: h.ConsecutiveFailures,
+			o := &SmsOutageView{Provider: pr.Name, ProviderID: pr.ID.String(), Status: pr.Status, Since: pr.StatusSince, Answer: answerIn(i18n.LangFrom(ctx), h.Answer),
+				Failures:  h.ConsecutiveFailures,
 				Countries: []string{}, Told: access.Helpers(ctx, s.Q, ws.ID, authz.ProvidersManage)}
 			_ = s.Pool.QueryRow(ctx, `SELECT count(*), coalesce(array_agg(DISTINCT country), '{}') FROM channel_messages WHERE campaign_id = $1 AND status = 'held'
 				AND reason = 'provider_down'`, c.ID).Scan(&o.Held, &o.Countries)

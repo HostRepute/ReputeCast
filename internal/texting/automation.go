@@ -3,7 +3,6 @@ package texting
 import (
 	"context"
 	"errors"
-	"fmt"
 	"slices"
 	"strings"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/phone"
 	"github.com/hostrepute/reputecast/internal/sms"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -94,18 +94,19 @@ func (st SmsStep) PublishChecks(ctx context.Context, workspaceID uuid.UUID, node
 	if steps == 0 {
 		return out, nil
 	}
-	quiet := "Quiet hours: texts go out " + g.rules.Window.String() + " in each contact’s time zone; "
+	// The badges read in the language of whoever opens the dialog.
+	l := i18n.LangFrom(ctx)
+	quiet, args := mCheckQuietWait, i18n.Args{"window": g.rules.Window.String()}
 	switch skips {
 	case 0:
-		quiet += "outside it they wait"
 	case steps:
-		quiet += "outside it they’re skipped"
+		quiet = mCheckQuietSkip
 	default:
-		quiet += fmt.Sprintf("outside it, %d of %d SMS steps skip the text", skips, steps)
+		quiet, args["skips"], args["steps"] = mCheckQuietSome, skips, steps
 	}
-	out = append(out, automations.AutomationPublishCheck{Status: "ok", Label: quiet})
+	out = append(out, automations.AutomationPublishCheck{Status: "ok", Label: quiet.Text(l, args)})
 	if len(g.senders) == 0 {
-		return append(out, automations.AutomationPublishCheck{Status: "warn", Label: "No SMS sender yet: the steps skip their texts until one is set up"}), nil
+		return append(out, automations.AutomationPublishCheck{Status: "warn", Label: mCheckNoSender.Text(l, nil)}), nil
 	}
 	if len(lists) == 0 {
 		return out, nil
@@ -149,7 +150,7 @@ func (st SmsStep) PublishChecks(ctx context.Context, workspaceID uuid.UUID, node
 			gaps = append(gaps, &gap{sender: sender, hold: d.Hold})
 			i = len(gaps) - 1
 		}
-		gaps[i].countries = append(gaps[i].countries, countryName(country))
+		gaps[i].countries = append(gaps[i].countries, country)
 		gaps[i].n += n
 	}
 	rows.Close()
@@ -157,41 +158,25 @@ func (st SmsStep) PublishChecks(ctx context.Context, workspaceID uuid.UUID, node
 		return nil, err
 	}
 	for _, gp := range gaps {
-		where, who := joinAnd(gp.countries), plural(gp.n, "contact there is skipped", "contacts there are skipped")
-		var label string
-		switch gp.hold {
-		case "no_route":
-			label = "No route covers " + where + ": " + who
-		case "pending":
-			label = gp.sender + " isn’t approved yet in " + where + ": " + who + " until it is"
-		case "rejected":
-			label = gp.sender + "’s registration was rejected in " + where + ": " + who
-		case "not_supported":
-			label = gp.sender + " can’t send in " + where + ": " + who
-		default:
-			label = gp.sender + " isn’t registered in " + where + ": " + who
+		// One sentence per reason: the countries named and listed as the
+		// reader's language does, the contacts counted by its plural rules.
+		label, ok := map[string]i18n.Msg{"no_route": mCheckNoRoute, "pending": mCheckPending, "rejected": mCheckRejected,
+			"not_supported": mCheckNotSupported}[gp.hold]
+		if !ok {
+			label = mCheckNotRegistered
 		}
-		out = append(out, automations.AutomationPublishCheck{Status: "warn", Label: label})
+		args := i18n.Args{"sender": gp.sender, "countries": countriesIn(l, gp.countries), "count": gp.n}
+		out = append(out, automations.AutomationPublishCheck{Status: "warn", Label: label.Text(l, args)})
 	}
 	if len(sending) > 0 && len(gaps) == 0 {
-		out = append(out, automations.AutomationPublishCheck{Status: "ok", Label: "Every country’s sender can text · " + strings.Join(sending, ", ")})
+		out = append(out, automations.AutomationPublishCheck{Status: "ok", Label: mCheckAllSenders.Text(l, i18n.Args{"senders": strings.Join(sending, ", ")})})
 	}
 	return out, nil
 }
 
-// joinAnd lists names in English: "Ireland", "Ireland and Germany",
-// "Ireland, Germany and Spain".
-func joinAnd(xs []string) string {
-	switch len(xs) {
-	case 0:
-		return ""
-	case 1:
-		return xs[0]
-	}
-	return strings.Join(xs[:len(xs)-1], ", ") + " and " + xs[len(xs)-1]
-}
-
-// Validate implements automations.ChannelStep.
+// Validate implements automations.ChannelStep. Its issues read in English:
+// the canvas shows a channel's issue as the channel wrote it, and
+// ChannelStep.Validate has no language (internal/automations).
 func (SmsStep) Validate(n automations.AutomationNode) []automations.ChannelIssue {
 	out := []automations.ChannelIssue{}
 	if n.Data.SMS == nil {
@@ -480,7 +465,7 @@ func (s *Service) StepEstimate(ctx context.Context, ws *store.Workspace, in SmsS
 	}
 	if in.ConsentListID != "" {
 		if _, err := uuid.Parse(in.ConsentListID); err != nil {
-			return out, api.Invalid("body.consentListId", "Pick a list of this workspace.")
+			return out, api.Invalid("body.consentListId", say(ctx, mPickList, nil))
 		}
 		f, err := s.funnel(ctx, ws, Audience{Lists: []string{in.ConsentListID}})
 		if err != nil {

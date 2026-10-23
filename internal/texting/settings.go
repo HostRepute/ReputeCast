@@ -18,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/channels"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/phone"
 	"github.com/hostrepute/reputecast/internal/sms"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -195,7 +196,7 @@ func (s *Service) Rules(ctx context.Context, ws *store.Workspace, p *authz.Princ
 		RetentionDays: r.RetentionDays, BrandPrefix: r.BrandPrefix, OptOutText: r.OptOutText, OptOutInSteps: r.OptOutInSteps, ConfirmationOn: r.ConfirmationOn,
 		Confirmation: SmsReplyView{Text: r.Confirmation, Count: sms.CountText(r.Confirmation)}, RequireYes: r.RequireYes,
 		ShortDomain: SmsShortDomain{Domain: r.ShortDomain, Status: r.ShortStatus, Target: firstNonEmpty(r.ShortTarget, instanceHost(s.URLs.Base())), CheckedAt: r.ShortCheckedAt,
-			VerifiedAt: r.ShortVerifiedAt, Detail: r.ShortDetail},
+			VerifiedAt: r.ShortVerifiedAt, Detail: shortDetailIn(i18n.LangFrom(ctx), r.ShortDetail)},
 		CanManage: p.Can(authz.ProvidersManage), Helpers: []string{}, Timezone: ws.Timezone}
 	if !out.CanManage {
 		out.Helpers = access.Helpers(ctx, s.Q, ws.ID, authz.ProvidersManage)
@@ -375,30 +376,33 @@ func (s *Service) SaveRules(ctx context.Context, ws *store.Workspace, p *authz.P
 	if err := w.Validate(); err != nil {
 		switch {
 		case errors.Is(err, channels.ErrWindowTooEarly):
-			return SmsRules{}, api.Invalid("body.quietFrom", "Texts can't go out before 08:00 local time.")
+			return SmsRules{}, api.Invalid("body.quietFrom", say(ctx, mTooEarly, nil))
 		case errors.Is(err, channels.ErrWindowTooLate):
-			return SmsRules{}, api.Invalid("body.quietTo", "Texts can't go out after 21:00 local time. The window can be narrowed, never widened past 08:00–21:00.")
+			return SmsRules{}, api.Invalid("body.quietTo", say(ctx, mTooLate, nil))
 		}
-		return SmsRules{}, api.Invalid("body.quietTo", "The window ends after it starts.")
+		return SmsRules{}, api.Invalid("body.quietTo", say(ctx, mEmptyWindow, nil))
 	}
 	kw := sms.Keywords{OptOut: in.OptOutKeywords, OptIn: in.OptInKeywords, Help: in.HelpKeywords}
 	if err := kw.Validate(); err != nil {
-		msg := map[error]string{sms.ErrKeywordEmpty: "A keyword can't be empty.", sms.ErrKeywordFormat: "A keyword is one word of letters and digits, up to 20.",
-			sms.ErrKeywordDuplicate: "A keyword can only mean one thing.", sms.ErrKeywordRequired: "STOP and HELP can't be removed: carriers require them."}[err]
-		return SmsRules{}, api.Invalid("body.optOutKeywords", firstNonEmpty(msg, err.Error()))
+		msg := err.Error()
+		if m, ok := map[error]i18n.Msg{sms.ErrKeywordEmpty: mKeywordEmpty, sms.ErrKeywordFormat: mKeywordFormat, sms.ErrKeywordDuplicate: mKeywordDuplicate,
+			sms.ErrKeywordRequired: mKeywordRequired}[err]; ok {
+			msg = say(ctx, m, nil)
+		}
+		return SmsRules{}, api.Invalid("body.optOutKeywords", msg)
 	}
 	kw = kw.Normalized()
 	for field, v := range map[string]string{"helpReply": in.HelpReply, "optOutReply": in.OptOutReply, "optInReply": in.OptInReply} {
 		if strings.TrimSpace(v) == "" {
-			return SmsRules{}, api.Invalid("body."+field, "A reply can't be empty.")
+			return SmsRules{}, api.Invalid("body."+field, say(ctx, mReplyEmpty, nil))
 		}
 	}
 	if in.ConfirmationOn && strings.TrimSpace(in.Confirmation) == "" {
-		return SmsRules{}, api.Invalid("body.confirmation", "Write the confirmation text, or turn it off.")
+		return SmsRules{}, api.Invalid("body.confirmation", say(ctx, mConfirmationText, nil))
 	}
 	for _, th := range []float64{in.Thresholds.Failed, in.Thresholds.Filtered, in.Thresholds.OptOuts} {
 		if th < 0.1 || th > 100 {
-			return SmsRules{}, api.Invalid("body.thresholds", "A threshold is a rate from 0.1% to 100%.")
+			return SmsRules{}, api.Invalid("body.thresholds", say(ctx, mThreshold, i18n.Args{"min": 0.001, "max": 1}))
 		}
 	}
 	if in.KeywordsBy == "provider" {
@@ -410,11 +414,11 @@ func (s *Service) SaveRules(ctx context.Context, ws *store.Workspace, p *authz.P
 			}
 		}
 		if !ok {
-			return SmsRules{}, api.Invalid("body.keywordsBy", "None of your SMS providers answers keywords itself.")
+			return SmsRules{}, api.Invalid("body.keywordsBy", say(ctx, mNoProviderKeywords, nil))
 		}
 	}
 	if in.RequireYes && !in.ConfirmationOn {
-		return SmsRules{}, api.Invalid("body.requireYes", "Asking for YES needs the opt-in confirmation text.")
+		return SmsRules{}, api.Invalid("body.requireYes", say(ctx, mRequireYes, nil))
 	}
 	now := s.now()
 	err = s.tx(ctx, func(q *store.Queries, _ pgx.Tx) error {
@@ -502,22 +506,22 @@ func (s *Service) SaveRoutes(ctx context.Context, ws *store.Workspace, p *authz.
 		field := fmt.Sprintf("body.routes[%d]", i)
 		sid, err := uuid.Parse(r.SenderID)
 		if err != nil {
-			return SmsRules{}, api.Invalid(field+".senderId", "Pick a sender.")
+			return SmsRules{}, api.Invalid(field+".senderId", say(ctx, mPickSender, nil))
 		}
 		sn, ok := g.senders[sid]
 		if !ok {
-			return SmsRules{}, api.Invalid(field+".senderId", "Pick a sender of this workspace.")
+			return SmsRules{}, api.Invalid(field+".senderId", say(ctx, mPickSenderOfWorkspace, nil))
 		}
 		rt := route{id: uuid.Must(uuid.NewV7()), sender: sid}
 		for _, c := range r.Countries {
 			if !validCountry(c) {
-				return SmsRules{}, api.Invalid(field+".countries", "Pick countries by their two-letter code.")
+				return SmsRules{}, api.Invalid(field+".countries", say(ctx, mCountryCodes, nil))
 			}
 			if seen[c] {
-				return SmsRules{}, api.Invalid(field+".countries", countryName(c)+" is in two routes. A country takes one route.")
+				return SmsRules{}, api.Invalid(field+".countries", say(ctx, mCountryTwice, i18n.Args{"country": countryNameIn(i18n.LangFrom(ctx), c)}))
 			}
 			if sn.Kind == "sender_id" && slices.Contains(nanp, c) {
-				return SmsRules{}, api.Invalid(field+".countries", "Sender IDs can't be used in the US or Canada.")
+				return SmsRules{}, api.Invalid(field+".countries", say(ctx, mSenderIDNanp, nil))
 			}
 			seen[c] = true
 			rt.countries = append(rt.countries, c)
@@ -525,15 +529,15 @@ func (s *Service) SaveRoutes(ctx context.Context, ws *store.Workspace, p *authz.
 		if r.FallbackID != "" {
 			fid, err := uuid.Parse(r.FallbackID)
 			if err != nil {
-				return SmsRules{}, api.Invalid(field+".fallbackId", "Pick a fallback sender, or none.")
+				return SmsRules{}, api.Invalid(field+".fallbackId", say(ctx, mPickFallback, nil))
 			}
 			fb, ok := g.senders[fid]
 			if !ok || fid == sid {
-				return SmsRules{}, api.Invalid(field+".fallbackId", "Pick another sender as the fallback.")
+				return SmsRules{}, api.Invalid(field+".fallbackId", say(ctx, mFallbackOther, nil))
 			}
 			for _, c := range rt.countries {
 				if !g.reg(fb, c).CanSend() {
-					return SmsRules{}, api.Invalid(field+".fallbackId", "A fallback must be registered for the same countries: "+senderLabel(fb)+" can't text "+countryName(c)+".")
+					return SmsRules{}, api.Invalid(field+".fallbackId", say(ctx, mFallbackRegistered, i18n.Args{"sender": senderLabel(fb), "country": countryNameIn(i18n.LangFrom(ctx), c)}))
 				}
 			}
 			rt.fallback = &fid
@@ -543,7 +547,7 @@ func (s *Service) SaveRoutes(ctx context.Context, ws *store.Workspace, p *authz.
 	var other *uuid.UUID
 	if in.Other == "route" {
 		if in.OtherRoute >= len(routes) {
-			return SmsRules{}, api.Invalid("body.otherRoute", "Pick the route every other country takes.")
+			return SmsRules{}, api.Invalid("body.otherRoute", say(ctx, mOtherRoute, nil))
 		}
 		other = &routes[in.OtherRoute].id
 	}
@@ -605,18 +609,18 @@ type SmsTestNumberInput struct {
 func (s *Service) AddTestNumber(ctx context.Context, ws *store.Workspace, p *authz.Principal, in SmsTestNumberInput) (SmsRules, error) {
 	n, err := parsePhone(in.Phone)
 	if err != nil {
-		return SmsRules{}, api.Invalid("body.phone", "That isn't a phone number. Use the international format, like +1 312 555 0123.")
+		return SmsRules{}, api.Invalid("body.phone", say(ctx, mPhoneFormat, nil))
 	}
 	var user *uuid.UUID
 	name := ""
 	if in.UserID != "" {
 		uid, err := uuid.Parse(in.UserID)
 		if err != nil {
-			return SmsRules{}, api.Invalid("body.userId", "Pick a member of this workspace.")
+			return SmsRules{}, api.Invalid("body.userId", say(ctx, mPickMember, nil))
 		}
 		if err := s.Pool.QueryRow(ctx, `SELECT u.name FROM workspace_members m JOIN users u ON u.id = m.user_id WHERE m.workspace_id = $1 AND m.user_id = $2`,
 			ws.ID, uid).Scan(&name); err != nil {
-			return SmsRules{}, api.Invalid("body.userId", "Pick a member of this workspace.")
+			return SmsRules{}, api.Invalid("body.userId", say(ctx, mPickMember, nil))
 		}
 		user = &uid
 	}
@@ -625,7 +629,7 @@ func (s *Service) AddTestNumber(ctx context.Context, ws *store.Workspace, p *aut
 		var exists int64
 		_ = tx.QueryRow(ctx, `SELECT count(*) FROM sms_test_numbers WHERE workspace_id = $1 AND phone = $2`, ws.ID, n.E164).Scan(&exists)
 		if exists > 0 {
-			return api.Conflict(displayPhone(n.E164) + " is already a test number.")
+			return api.Conflict(say(ctx, mTestNumberExists, i18n.Args{"number": displayPhone(n.E164)}))
 		}
 		if err := q.SmsTestNumberInsert(ctx, store.SmsTestNumberInsertParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, UserID: user, Phone: n.E164,
 			AddedBy: uuidPtr(p.UserID), At: now}); err != nil {
@@ -709,7 +713,7 @@ type SmsMessageOption struct {
 func (s *Service) RouteTest(ctx context.Context, ws *store.Workspace, in SmsRouteTestInput) (SmsRouteTest, error) {
 	n, err := parsePhone(in.Phone)
 	if err != nil {
-		return SmsRouteTest{}, api.Invalid("body.phone", "That isn't a phone number. Use the international format, like +44 7700 900456.")
+		return SmsRouteTest{}, api.Invalid("body.phone", say(ctx, mPhoneFormatUK, nil))
 	}
 	g, err := s.graph(ctx, s.Q, ws)
 	if err != nil {
@@ -818,7 +822,7 @@ type SmsShortDomainInput struct {
 func (s *Service) SetShortDomain(ctx context.Context, ws *store.Workspace, p *authz.Principal, in SmsShortDomainInput) (SmsRules, error) {
 	domain := strings.ToLower(strings.TrimSuffix(strings.TrimSpace(in.Domain), "."))
 	if domain != "" && (!strings.Contains(domain, ".") || strings.ContainsAny(domain, "/: ")) {
-		return SmsRules{}, api.Invalid("body.domain", "Enter a domain name, like go.acme.io.")
+		return SmsRules{}, api.Invalid("body.domain", say(ctx, mDomain, nil))
 	}
 	r, err := s.rules(ctx, s.Q, ws)
 	if err != nil {
@@ -865,20 +869,22 @@ func (s *Service) checkShortDomain(ctx context.Context, ws *store.Workspace, p *
 		return "none", nil
 	}
 	target := instanceHost(s.URLs.Base())
-	ok, detail := false, "DNS checks aren't available on this server."
+	// The detail is stored in English and read in each reader's language
+	// (shortDetailIn).
+	ok, detail := false, shortDetail(mDomainUnavailable, nil)
 	if s.DNS != nil {
 		cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 		cname, err := s.DNS.CNAME(cctx, r.ShortDomain)
 		cancel()
 		switch {
 		case err == nil && strings.EqualFold(strings.TrimSuffix(cname, "."), target):
-			ok, detail = true, "CNAME points at "+target+"."
+			ok, detail = true, shortDetail(mDomainPoints, i18n.Args{"target": target})
 		case err == nil && cname != "":
-			detail = fmt.Sprintf("%s is a CNAME for %s, not %s.", r.ShortDomain, strings.TrimSuffix(cname, "."), target)
+			detail = shortDetail(mDomainOther, i18n.Args{"domain": r.ShortDomain, "cname": strings.TrimSuffix(cname, "."), "target": target})
 		case err != nil && !dnscheck.IsNotFound(err):
-			detail = "DNS didn't answer for " + r.ShortDomain + "."
+			detail = shortDetail(mDomainNoAnswer, i18n.Args{"domain": r.ShortDomain})
 		default:
-			detail = "No CNAME found. DNS can take up to an hour."
+			detail = shortDetail(mDomainNone, nil)
 		}
 	}
 	now := s.now()
