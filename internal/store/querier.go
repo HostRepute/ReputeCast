@@ -1466,6 +1466,8 @@ type Querier interface {
 	IngestBumpCounters(ctx context.Context, arg IngestBumpCountersParams) error
 	// The provider event log: provider events (not ReputeCast's own opens and
 	// clicks), newest first, retained 90 days.
+	// The message's kind and automation step write its source label in a
+	// reader's language (source keeps the English).
 	IngestEventLog(ctx context.Context, arg IngestEventLogParams) ([]IngestEventLogRow, error)
 	IngestEventLogCount(ctx context.Context, arg IngestEventLogCountParams) (int64, error)
 	IngestGetRaw(ctx context.Context, id uuid.UUID) (ProviderRawEvent, error)
