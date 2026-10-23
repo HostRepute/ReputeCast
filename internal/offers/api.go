@@ -16,10 +16,10 @@ type idPath struct {
 	ID string `path:"id" format:"uuid" doc:"The offer's id"`
 }
 
-func (p idPath) id() (uuid.UUID, error) {
+func (p idPath) id(ctx context.Context) (uuid.UUID, error) {
 	id, err := uuid.Parse(p.ID)
 	if err != nil {
-		return uuid.Nil, notFound()
+		return uuid.Nil, notFound(ctx)
 	}
 	return id, nil
 }
@@ -62,7 +62,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "get-offer", Path: base + "/{id}", Summary: "An offer: its rules, results, codes and its coupon in the provider", Tags: tags, Access: view},
 		func(ctx context.Context, in *idPath) (*api.Body[OfferDetail], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -75,7 +75,7 @@ func Register(h huma.API, s *Service) {
 		func(ctx context.Context, in *idOfferBody) (*api.Body[OfferDetail], error) {
 			id, err := uuid.Parse(in.ID)
 			if err != nil {
-				return nil, notFound()
+				return nil, notFound(ctx)
 			}
 			out, err := s.Update(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Body)
 			return api.OK(out), err
@@ -83,7 +83,7 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "end-offer", Path: base + "/{id}/end", Summary: "End an offer now: its code stops working; paid members who used it keep their discount",
 		Tags: tags, Access: edit},
 		func(ctx context.Context, in *idPath) (*api.Body[OfferDetail], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -93,7 +93,7 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "recreate-offer", Path: base + "/{id}/recreate", Summary: "Create the offer's coupon again after it was deleted in the provider",
 		Tags: tags, Access: edit},
 		func(ctx context.Context, in *idPath) (*api.Body[OfferDetail], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}

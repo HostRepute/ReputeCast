@@ -364,7 +364,7 @@ func (h *Handler) preferencesBody(ctx context.Context, s *site, pc audience.Publ
 		return b, err
 	}
 	if h.Earn != nil {
-		if b.Paid, err = h.Earn.PreferencesPaid(ctx, s.ws, pc.ID, earn.PageLang); err != nil {
+		if b.Paid, err = h.Earn.PreferencesPaid(ctx, s.ws, pc.ID, l.Lang()); err != nil {
 			return b, err
 		}
 	}
@@ -718,7 +718,7 @@ func (h *Handler) unsubscribeBody(ctx context.Context, s *site, pc audience.Publ
 	}
 	if h.Earn != nil {
 		var err error
-		if b.Paid, err = h.Earn.UnsubscribePaid(ctx, s.ws, pc.ID, earn.PageLang); err != nil {
+		if b.Paid, err = h.Earn.UnsubscribePaid(ctx, s.ws, pc.ID, l.Lang()); err != nil {
 			return b, err
 		}
 	}

@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -267,35 +268,39 @@ func (s *Service) UpgradeURL(ctx context.Context, ws *store.Workspace, contact, 
 	return s.pageURL(ctx, ws, "upgrade?r="+tok)
 }
 
-// memberEmailFor builds a member email of a subscription.
+// memberEmailFor builds a member email of a subscription. Its prices,
+// dates and the welcome's plan line are written in the email's language.
 func (s *Service) memberEmailFor(email string, row store.PaidSubscription, ws *store.Workspace, tier string, at time.Time) memberEmail {
-	data := map[string]any{"tier": tier}
+	m := memberEmail{email: email, sub: row.ID, contact: row.ContactID, key: "earn:" + row.ID.String() + ":" + email, data: map[string]any{"tier": tier}}
 	cur := row.Currency
 	amount := row.AmountCents
-	if p := publicPrice(amount, cur, row.Period); amount > 0 {
-		data["price"] = p
-	}
-	if row.TrialEnd != nil {
-		data["trial_end"] = s.dateText(ws, *row.TrialEnd)
-	}
-	if row.CurrentPeriodEnd != nil {
-		data["renews_at"] = s.dateText(ws, *row.CurrentPeriodEnd)
-	}
-	end := firstTime(row.CancelAt, row.EndedAt, row.CurrentPeriodEnd)
-	if end != nil {
-		data["ends_at"] = s.dateText(ws, *end)
-	}
-	if email == EmailWelcome {
-		switch {
-		case row.Status == StatusTrialing && row.TrialEnd != nil && amount > 0:
-			data["plan_line"] = fmt.Sprintf("Your trial is free until %s, then it's %s.", s.dateText(ws, *row.TrialEnd), publicPrice(amount, cur, row.Period))
-		case row.CurrentPeriodEnd != nil && amount > 0:
-			data["plan_line"] = fmt.Sprintf("You pay %s, renewing on %s.", publicPrice(amount, cur, row.Period), longDate(ws, *row.CurrentPeriodEnd))
-		default:
-			data["plan_line"] = ""
+	m.localized(func(l i18n.Lang) map[string]any {
+		data := map[string]any{}
+		if amount > 0 {
+			data["price"] = publicPriceIn(l, amount, cur, row.Period)
 		}
-	}
-	return memberEmail{email: email, sub: row.ID, contact: row.ContactID, key: "earn:" + row.ID.String() + ":" + email, data: data}
+		if row.TrialEnd != nil {
+			data["trial_end"] = s.dateTextIn(l, ws, *row.TrialEnd)
+		}
+		if row.CurrentPeriodEnd != nil {
+			data["renews_at"] = s.dateTextIn(l, ws, *row.CurrentPeriodEnd)
+		}
+		if end := firstTime(row.CancelAt, row.EndedAt, row.CurrentPeriodEnd); end != nil {
+			data["ends_at"] = s.dateTextIn(l, ws, *end)
+		}
+		if email == EmailWelcome {
+			switch {
+			case row.Status == StatusTrialing && row.TrialEnd != nil && amount > 0:
+				data["plan_line"] = msgs.M("email.planTrial").Text(l, i18n.Args{"date": s.dateTextIn(l, ws, *row.TrialEnd), "price": publicPriceIn(l, amount, cur, row.Period)})
+			case row.CurrentPeriodEnd != nil && amount > 0:
+				data["plan_line"] = msgs.M("email.planPaid").Text(l, i18n.Args{"price": publicPriceIn(l, amount, cur, row.Period), "date": longDateIn(l, ws, *row.CurrentPeriodEnd)})
+			default:
+				data["plan_line"] = ""
+			}
+		}
+		return data
+	})
+	return m
 }
 
 // sendMemberEmail sends a member email after the event's changes are in,
@@ -357,7 +362,8 @@ func (s *Service) sendMemberEmail(ctx context.Context, ws *store.Workspace, mode
 	if _, ok := data["next_issue_line"]; !ok && m.email == EmailWelcome {
 		data["next_issue_line"] = ""
 	}
-	res, err := s.Mailer.Send(ctx, ws, MemberMessage{Template: tpl.Key, To: c.Email, ToName: strings.TrimSpace(c.FirstName + " " + c.LastName), Data: data, Key: m.key})
+	res, err := s.Mailer.Send(ctx, ws, MemberMessage{Template: tpl.Key, To: c.Email, ToName: strings.TrimSpace(c.FirstName + " " + c.LastName), Data: data, Key: m.key,
+		Localize: s.localizer(ctx, ws, m.texts)})
 	switch {
 	case errors.Is(err, ErrNotPublished):
 		status, reason = "not_sent", "not_published"

@@ -28423,6 +28423,9 @@
           "failureReason": {
             "type": "string"
           },
+          "failureText": {
+            "type": "string"
+          },
           "giftFrom": {
             "type": "string"
           },

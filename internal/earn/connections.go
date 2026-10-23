@@ -14,7 +14,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/connect"
@@ -254,14 +253,14 @@ func (s *Service) connections(ctx context.Context, wsID uuid.UUID) ([]connRow, e
 func (s *Service) connection(ctx context.Context, wsID uuid.UUID, id string) (connRow, error) {
 	cid, err := uuid.Parse(id)
 	if err != nil {
-		return connRow{}, api.NotFound("Payment connection")
+		return connRow{}, notFound(ctx, "connection")
 	}
 	r, err := s.Q.PayConnection(ctx, store.PayConnectionParams{ID: cid, WorkspaceID: wsID})
 	if err != nil {
-		return connRow{}, api.MapError(err, "Payment connection")
+		return connRow{}, mapErr(ctx, err, "connection")
 	}
 	if r.PaymentConnection.Status == "disconnected" {
-		return connRow{}, api.NotFound("Payment connection")
+		return connRow{}, notFound(ctx, "connection")
 	}
 	return connRow{PaymentConnection: r.PaymentConnection, ConnectedByName: r.ConnectedByName}, nil
 }
@@ -1147,7 +1146,7 @@ func (s *Service) Disconnect(ctx context.Context, ws *store.Workspace, p *authz.
 			return err
 		}
 		if n == 0 {
-			return api.NotFound("Payment connection")
+			return notFound(ctx, "connection")
 		}
 		action := "payments.disconnected"
 		switch {

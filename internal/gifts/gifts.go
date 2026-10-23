@@ -33,17 +33,26 @@ import (
 var messagesFS embed.FS
 
 // msgs holds the gifts' words: problems, the gift and redeem pages, and
-// the lines the gift emails carry (English until the pages are
-// translated).
+// the lines the gift emails carry. Members read the app's in their app
+// language; readers read the pages in the page's language and the emails
+// in the email's.
 var msgs = i18n.MustLoad(messagesFS, "gifts")
 
+// text is a problem or a line of the app, in the member's language.
 func text(ctx context.Context, key string, args i18n.Args) string {
 	return msgs.M(key).Text(i18n.LangFrom(ctx), args)
 }
 
-// page is a public page's (or a gift email's) line, in the Earn pages'
-// language.
-func page(key string, args i18n.Args) string { return msgs.M(key).Text(earn.PageLang, args) }
+// page is a public page's line in the reader's language: the page's own,
+// which internal/publicpages puts in the request's context (English
+// without one).
+func page(ctx context.Context, key string, args i18n.Args) string {
+	return msgs.M(key).Text(i18n.LangFrom(ctx), args)
+}
+
+// english is a line in English: the audit log's names, what goes to the
+// payment provider, and the text stored for later readers.
+func english(key string, args i18n.Args) string { return msgs.M(key).Text(earn.PageLang, args) }
 
 // A gift's status: checkout (not paid yet), paid (waiting for its
 // delivery date), delivered (not redeemed yet), redeemed, expired (the
@@ -173,10 +182,12 @@ func NormalizeCode(code string) string {
 }
 
 // period is a gift's length as readers read it: "a year", "3 months".
-func period(months int) string { return page("period", i18n.Args{"months": months}) }
+func period(l i18n.Lang, months int) string { return msgs.M("period").Text(l, i18n.Args{"months": months}) }
 
 // periodTitle is the gift card's title: "A year", "3 months".
-func periodTitle(months int) string { return page("periodTitle", i18n.Args{"months": months}) }
+func periodTitle(l i18n.Lang, months int) string {
+	return msgs.M("periodTitle").Text(l, i18n.Args{"months": months})
+}
 
 // location is the workspace's time zone.
 func location(ws *store.Workspace) *time.Location {
@@ -269,5 +280,6 @@ func splitName(name string) (string, string) {
 	return first, strings.TrimSpace(last)
 }
 
-// Text is one of the gift pages' words (internal/publicpages).
-func Text(key string, args i18n.Args) string { return page(key, args) }
+// TextIn is one of the gift pages' words in a page's language
+// (internal/publicpages).
+func TextIn(l i18n.Lang, key string, args i18n.Args) string { return msgs.M(key).Text(l, args) }

@@ -50,10 +50,10 @@ type deliveryBody struct {
 	Body GiftDeliveryInput
 }
 
-func parseID(s string, what string) (uuid.UUID, error) {
+func parseID(ctx context.Context, s string, what string) (uuid.UUID, error) {
 	id, err := uuid.Parse(s)
 	if err != nil {
-		return uuid.Nil, api.NotFound(what)
+		return uuid.Nil, notFound(ctx, what)
 	}
 	return id, nil
 }
@@ -87,7 +87,7 @@ func Register(h huma.API, s *Service) {
 	api.Put(h, api.Op{ID: "update-gift-option", Path: base + "/options/{id}", Summary: "Change a gift option; gifts already bought keep what they were sold as",
 		Tags: tags, Access: edit},
 		func(ctx context.Context, in *optionIDBody) (*api.Body[GiftOption], error) {
-			id, err := parseID(in.ID, "Gift option")
+			id, err := parseID(ctx, in.ID, "option")
 			if err != nil {
 				return nil, err
 			}
@@ -97,7 +97,7 @@ func Register(h huma.API, s *Service) {
 	api.Delete(h, api.Op{ID: "delete-gift-option", Path: base + "/options/{id}", Summary: "Take a gift option off the gift page; gifts already bought keep working",
 		Tags: tags, Access: edit},
 		func(ctx context.Context, in *optionPath) (*api.Empty, error) {
-			id, err := parseID(in.ID, "Gift option")
+			id, err := parseID(ctx, in.ID, "option")
 			if err != nil {
 				return nil, err
 			}
@@ -113,7 +113,7 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "change-gift-delivery", Path: base + "/{id}/delivery", Summary: "Move a scheduled gift's delivery to another day and time",
 		Tags: tags, Access: manage},
 		func(ctx context.Context, in *deliveryBody) (*api.Body[GiftRow], error) {
-			id, err := parseID(in.ID, "Gift")
+			id, err := parseID(ctx, in.ID, "gift")
 			if err != nil {
 				return nil, err
 			}
@@ -123,7 +123,7 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "resend-gift", Path: base + "/{id}/resend", Summary: "Send the gift email again to a gift's recipient",
 		Tags: tags, Access: manage},
 		func(ctx context.Context, in *giftPath) (*api.Body[GiftRow], error) {
-			id, err := parseID(in.ID, "Gift")
+			id, err := parseID(ctx, in.ID, "gift")
 			if err != nil {
 				return nil, err
 			}
@@ -133,7 +133,7 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "copy-gift-link", Path: base + "/{id}/link", Summary: "Copy a gift's redeem link (recorded in the audit log: anyone with it can redeem the gift)",
 		Tags: tags, Access: manage},
 		func(ctx context.Context, in *giftPath) (*api.Body[GiftLink], error) {
-			id, err := parseID(in.ID, "Gift")
+			id, err := parseID(ctx, in.ID, "gift")
 			if err != nil {
 				return nil, err
 			}

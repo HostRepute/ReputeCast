@@ -119,6 +119,10 @@ type MemberMessage struct {
 	Data     map[string]any
 	// Key makes a retry send nothing twice.
 	Key string
+	// Localize writes the values that are sentences, dates or prices in the
+	// language of the version the send picks (a content language code, ""
+	// for the workspace's default); Data has them in English.
+	Localize func(language string) map[string]any
 }
 
 // Sent is what sending a member email did.

@@ -13,10 +13,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/payments"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -122,6 +122,9 @@ type EarnMemberRow struct {
 	// with its name ("Insider yearly", but "Founding member").
 	PeriodShown bool   `json:"periodShown"`
 	TierID      string `json:"tierId,omitempty"`
+	// labelText is the source's label kept as a message (gifts), for
+	// readers in other languages.
+	labelText i18n.Text
 }
 
 // EarnMemberCounts are the status chips' numbers (live only).
@@ -309,13 +312,15 @@ func scanMember(rows pgx.Rows, listNames func(*uuid.UUID) []string) (EarnMemberR
 	}
 	r.Source.GrantedBy = grantedBy
 	var d struct {
-		Platform string `json:"platform"`
-		ImportID string `json:"import_id"`
-		From     string `json:"from"`
-		Months   int    `json:"months"`
+		Platform string    `json:"platform"`
+		ImportID string    `json:"import_id"`
+		From     string    `json:"from"`
+		Months   int       `json:"months"`
+		Label    i18n.Text `json:"label_text"`
 	}
 	_ = json.Unmarshal(detail, &d)
 	r.Source.Platform, r.Source.ImportID = d.Platform, d.ImportID
+	r.labelText = d.Label
 	if r.Kind == "gift" {
 		r.GiftFrom, r.GiftMonths = d.From, d.Months
 	}
@@ -443,6 +448,7 @@ func (s *Service) Members(ctx context.Context, ws *store.Workspace, p *authz.Pri
 			return out, err
 		}
 		r.PeriodShown = periods[r.TierID]
+		r.Source.Label = keptOr(r.labelText, lang(ctx), r.Source.Label)
 		if !out.CanSeeNames {
 			r.Name, r.Email, r.Hidden = "", "", true
 		}
@@ -541,13 +547,16 @@ type EarnSyncWarning struct {
 type EarnMember struct {
 	EarnMemberRow
 	// Stripe holds the provider's ids and dashboard links.
-	CustomerID      string             `json:"customerId,omitempty"`
-	SubscriptionID  string             `json:"subscriptionId,omitempty"`
-	CustomerURL     string             `json:"customerUrl,omitempty"`
-	SubscriptionURL string             `json:"subscriptionUrl,omitempty"`
-	BillingEmail    string             `json:"billingEmail,omitempty"`
-	BillingDiffers  bool               `json:"billingDiffers"`
-	FailureReason   string             `json:"failureReason,omitempty"`
+	CustomerID      string `json:"customerId,omitempty"`
+	SubscriptionID  string `json:"subscriptionId,omitempty"`
+	CustomerURL     string `json:"customerUrl,omitempty"`
+	SubscriptionURL string `json:"subscriptionUrl,omitempty"`
+	BillingEmail    string `json:"billingEmail,omitempty"`
+	BillingDiffers  bool   `json:"billingDiffers"`
+	FailureReason   string `json:"failureReason,omitempty"`
+	// FailureText is the failure in a few words in the reader's language
+	// ("insufficient funds"); Stripe's own words when it isn't a usual one.
+	FailureText     string             `json:"failureText,omitempty"`
 	FailedAt        *time.Time         `json:"failedAt,omitempty"`
 	RenewalReminder *time.Time         `json:"renewalReminder,omitempty"`
 	PaidCents       int64              `json:"paidCents"`
@@ -576,7 +585,7 @@ type EarnMember struct {
 func (s *Service) Member(ctx context.Context, ws *store.Workspace, p *authz.Principal, id string) (EarnMember, error) {
 	sid, err := uuid.Parse(id)
 	if err != nil {
-		return EarnMember{}, api.NotFound("Paid member")
+		return EarnMember{}, notFound(ctx, "paidMember")
 	}
 	rows, err := s.Pool.Query(ctx, "SELECT "+memberColumns+" "+memberFrom+" WHERE s.id = $1 AND s.workspace_id = $2", sid, ws.ID)
 	if err != nil {
@@ -595,15 +604,21 @@ func (s *Service) Member(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	row.PeriodShown = s.tierPeriods(ctx, ws.ID)[row.TierID]
 	rows.Close()
 	if !found {
-		return EarnMember{}, api.NotFound("Paid member")
+		return EarnMember{}, notFound(ctx, "paidMember")
 	}
 	sub, err := s.Q.EarnSubscription(ctx, store.EarnSubscriptionParams{ID: sid, WorkspaceID: ws.ID})
 	if err != nil {
-		return EarnMember{}, api.MapError(err, "Paid member")
+		return EarnMember{}, mapErr(ctx, err, "paidMember")
 	}
+	var kept struct {
+		GrantNote i18n.Text `json:"grant_note"`
+	}
+	_ = json.Unmarshal(sub.SourceDetail, &kept)
 	out := EarnMember{EarnMemberRow: row, CanManage: p.Can(authz.EarnManage), Helpers: s.helpers(ctx, ws.ID, authz.EarnManage, p.UserID),
 		Timeline: []EarnTimelineItem{}, Emails: []string{}, PaidCents: sub.PaidCents, FailureReason: sub.FailureReason, FailedAt: sub.FailedAt,
-		GrantUntil: sub.GrantUntil, GrantNote: sub.GrantNote, CanceledAt: sub.CanceledAt}
+		GrantUntil: sub.GrantUntil, GrantNote: keptOr(kept.GrantNote, lang(ctx), sub.GrantNote), CanceledAt: sub.CanceledAt}
+	out.Source.Label = keptOr(row.labelText, lang(ctx), row.Source.Label)
+	out.FailureText = failureShort(lang(ctx), sub.FailureReason)
 	if !p.Can(authz.SubscribersView) {
 		out.Name, out.Email, out.Hidden = "", "", true
 	}
@@ -732,7 +747,7 @@ func (s *Service) timelineOf(ctx context.Context, ws *store.Workspace, contact u
 func (s *Service) ContactPaid(ctx context.Context, ws *store.Workspace, p *authz.Principal, contact string) (*EarnMember, error) {
 	cid, err := uuid.Parse(contact)
 	if err != nil {
-		return nil, api.NotFound("Contact")
+		return nil, notFound(ctx, "contact")
 	}
 	rows, err := s.Q.EarnSubscriptionsOfContact(ctx, store.EarnSubscriptionsOfContactParams{ContactID: cid, WorkspaceID: ws.ID})
 	if err != nil {

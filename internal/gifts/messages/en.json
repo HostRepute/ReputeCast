@@ -124,5 +124,8 @@
   "thanks.to": "To {to}",
   "thanks.toMessage": "To {to} · with your message",
   "thanks.toNamed": "{name}, {email}",
-  "thanks.toPerson": "To give in person · the link went to you"
+  "thanks.toPerson": "To give in person · the link went to you",
+
+  "problem.notFound.gift": "Gift not found.",
+  "problem.notFound.option": "Gift option not found."
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
@@ -189,11 +188,11 @@ type EarnGrantInput struct {
 func (s *Service) grant(ctx context.Context, ws *store.Workspace, id string) (store.PaidSubscription, error) {
 	sid, err := uuid.Parse(id)
 	if err != nil {
-		return store.PaidSubscription{}, api.NotFound("Complimentary access")
+		return store.PaidSubscription{}, notFound(ctx, "complimentary")
 	}
 	sub, err := s.Q.EarnSubscription(ctx, store.EarnSubscriptionParams{ID: sid, WorkspaceID: ws.ID})
 	if err != nil || sub.Kind != "complimentary" || sub.EndedAt != nil {
-		return store.PaidSubscription{}, api.NotFound("Complimentary access")
+		return store.PaidSubscription{}, notFound(ctx, "complimentary")
 	}
 	return sub, nil
 }
@@ -278,11 +277,11 @@ type EarnCancelInput struct {
 func (s *Service) CancelSubscription(ctx context.Context, ws *store.Workspace, p *authz.Principal, id string, in EarnCancelInput) (EarnMember, error) {
 	sid, err := uuid.Parse(id)
 	if err != nil {
-		return EarnMember{}, api.NotFound("Paid member")
+		return EarnMember{}, notFound(ctx, "paidMember")
 	}
 	sub, err := s.Q.EarnSubscription(ctx, store.EarnSubscriptionParams{ID: sid, WorkspaceID: ws.ID})
 	if err != nil {
-		return EarnMember{}, api.MapError(err, "Paid member")
+		return EarnMember{}, mapErr(ctx, err, "paidMember")
 	}
 	if sub.Kind != "stripe" || sub.EndedAt != nil || sub.StripeSubscriptionID == "" {
 		return EarnMember{}, problem(ctx, http.StatusConflict, "not_cancelable", "cancel.notCancelable", nil)
@@ -366,11 +365,11 @@ type EarnResent struct {
 func (s *Service) Resend(ctx context.Context, ws *store.Workspace, p *authz.Principal, id string, in EarnResendInput) (EarnResent, error) {
 	sid, err := uuid.Parse(id)
 	if err != nil {
-		return EarnResent{}, api.NotFound("Paid member")
+		return EarnResent{}, notFound(ctx, "paidMember")
 	}
 	sub, err := s.Q.EarnSubscription(ctx, store.EarnSubscriptionParams{ID: sid, WorkspaceID: ws.ID})
 	if err != nil {
-		return EarnResent{}, api.MapError(err, "Paid member")
+		return EarnResent{}, mapErr(ctx, err, "paidMember")
 	}
 	now := s.now()
 	short := s.tierShortName(ctx, s.Q, ws.ID, sub.TierID)
@@ -378,10 +377,13 @@ func (s *Service) Resend(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	m.key = "earn:resend:" + newID().String()
 	if in.Email == EmailPaymentFailed {
 		m.data["amount"] = money(sub.AmountCents, sub.Currency, false)
-		m.data["reason"] = sub.FailureReason
-		if sub.NextRetryAt != nil {
-			m.data["next_try"] = s.dateText(ws, *sub.NextRetryAt)
-		}
+		m.localized(func(l i18n.Lang) map[string]any {
+			out := map[string]any{"reason": failureSentence(l, sub.FailureReason)}
+			if sub.NextRetryAt != nil {
+				out["next_try"] = s.dateTextIn(l, ws, *sub.NextRetryAt)
+			}
+			return out
+		})
 	}
 	status := s.sendMemberEmail(ctx, ws, sub.Mode, m, nil)
 	out := EarnResent{Status: status}
@@ -649,11 +651,11 @@ func (s *Service) unmapped(ctx context.Context, ws *store.Workspace) ([]EarnUnma
 func (s *Service) MapPrice(ctx context.Context, ws *store.Workspace, p *authz.Principal, id string, in EarnMapPriceInput) error {
 	uid, err := uuid.Parse(id)
 	if err != nil {
-		return api.NotFound("Price")
+		return notFound(ctx, "price")
 	}
 	u, err := s.Q.EarnUnmappedPrice(ctx, store.EarnUnmappedPriceParams{ID: uid, WorkspaceID: ws.ID})
 	if err != nil || u.MappedAt != nil {
-		return api.NotFound("Price")
+		return notFound(ctx, "price")
 	}
 	tid, err := uuid.Parse(in.TierID)
 	if err != nil {

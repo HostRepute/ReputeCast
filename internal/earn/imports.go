@@ -41,8 +41,12 @@ const (
 // Import sources and where their export is (brief 5.10).
 var importSources = []string{"substack", "ghost", "beehiiv", "kit", "csv"}
 
-// platformName names an old platform in consent and labels.
-func platformName(src string) string {
+// platformName names an old platform in consent and labels, in English.
+func platformName(src string) string { return platformNameIn(defaultLang, src) }
+
+// platformNameIn names an old platform in a language: the platforms by
+// their names, a CSV file in the reader's words.
+func platformNameIn(l i18n.Lang, src string) string {
 	switch src {
 	case "substack":
 		return "Substack"
@@ -53,7 +57,16 @@ func platformName(src string) string {
 	case "kit":
 		return "Kit"
 	}
-	return "a CSV file"
+	return msgs.M("import.csvFile").Text(l, nil)
+}
+
+// platformArgs are a message's arguments for an old platform: source picks
+// the words for a CSV file, platform names the others.
+func platformArgs(src string) i18n.Args {
+	if src != "substack" && src != "ghost" && src != "beehiiv" && src != "kit" {
+		src = "csv"
+	}
+	return i18n.Args{"source": src, "platform": platformName(src)}
 }
 
 // columnUses are what a column can be used as, with the headers that mean it.
@@ -328,7 +341,7 @@ func (s *Service) UploadImport(ctx context.Context, ws *store.Workspace, p *auth
 		return EarnImport{}, err
 	}
 	if !slices.Contains(importSources, source) {
-		return EarnImport{}, invalid(ctx, "query.source", "import.source", nil)
+		return EarnImport{}, invalid(ctx, "query.source", "import.sourceInvalid", nil)
 	}
 	conn, ok, err := s.importConn(ctx, ws.ID)
 	if err != nil {
@@ -403,11 +416,11 @@ func (s *Service) stageRows(ctx context.Context, q *store.Queries, id uuid.UUID,
 func (s *Service) loadImport(ctx context.Context, ws *store.Workspace, id string) (store.EarnImportGetRow, error) {
 	iid, err := uuid.Parse(id)
 	if err != nil {
-		return store.EarnImportGetRow{}, api.NotFound("Import")
+		return store.EarnImportGetRow{}, notFound(ctx, "import")
 	}
 	r, err := s.Q.EarnImportGet(ctx, store.EarnImportGetParams{ID: iid, WorkspaceID: ws.ID})
 	if err != nil {
-		return store.EarnImportGetRow{}, api.MapError(err, "Import")
+		return store.EarnImportGetRow{}, mapErr(ctx, err, "import")
 	}
 	return r, nil
 }
@@ -672,7 +685,7 @@ func (s *Service) Import(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if err != nil {
 		return EarnImport{}, err
 	}
-	out := EarnImport{ID: imp.ID.String(), Mode: imp.Mode, Source: imp.Source, Platform: platformName(imp.Source), Status: imp.Status, FileName: imp.FileName,
+	out := EarnImport{ID: imp.ID.String(), Mode: imp.Mode, Source: imp.Source, Platform: platformNameIn(lang(ctx), imp.Source), Status: imp.Status, FileName: imp.FileName,
 		FileSize: imp.FileSize, Rows: int(imp.Total), Columns: []EarnImportColumn{}, Conflicts: []EarnImportConflict{}, Prices: []EarnImportPrice{}, Lists: []EarnListRef{},
 		Done: int(imp.DoneRows), Error: imp.Error, CreatedBy: imp.CreatedByName, CreatedAt: imp.CreatedAt, StartedAt: imp.StartedAt, FinishedAt: imp.FinishedAt, Tiers: []EarnListRef{}}
 	_ = json.Unmarshal(imp.Columns, &out.Columns)
@@ -952,14 +965,14 @@ func (s *Service) StartImport(ctx context.Context, ws *store.Workspace, p *authz
 func (s *Service) CancelImport(ctx context.Context, ws *store.Workspace, id string) error {
 	iid, err := uuid.Parse(id)
 	if err != nil {
-		return api.NotFound("Import")
+		return notFound(ctx, "import")
 	}
 	n, err := s.Q.EarnImportCancel(ctx, store.EarnImportCancelParams{ID: iid, WorkspaceID: ws.ID, At: ptr(s.now())})
 	if err != nil {
 		return err
 	}
 	if n == 0 {
-		return api.NotFound("Import")
+		return notFound(ctx, "import")
 	}
 	return s.Q.EarnImportFileDelete(ctx, iid)
 }
@@ -986,9 +999,8 @@ func (s *Service) RunImport(ctx context.Context, id uuid.UUID) error {
 	now := s.now()
 	stats := EarnImportStats{}
 	_ = json.Unmarshal(imp.Stats, &stats)
-	platform := platformName(imp.Source)
-	consent := msgs.M("import.consent").Text(defaultLang, i18n.Args{"platform": platform})
-	label := msgs.M("import.source").Text(defaultLang, i18n.Args{"platform": platform})
+	consent := msgs.M("import.consent").Text(defaultLang, platformArgs(imp.Source))
+	label := msgs.M("import.source").Text(defaultLang, platformArgs(imp.Source))
 	// Prices first: each provider price found maps to its tier.
 	priceIDs := map[string]uuid.UUID{}
 	tierOf := map[string]uuid.UUID{}
@@ -1154,10 +1166,11 @@ func (s *Service) RunImport(ctx context.Context, id uuid.UUID) error {
 			return err
 		}
 		if imp.CreatedBy != nil {
+			// Kept as messages: the member reads it in their own language.
 			n := notify.Notification{WorkspaceID: &ws.ID, Kind: KindPaidImportDone, Severity: "ok",
-				Title: msgs.M("notify.importTitle").Text(defaultLang, i18n.Args{"platform": platform}),
-				Body:  msgs.M("notify.importBody").Text(defaultLang, i18n.Args{"count": imp.Total, "paid": stats.Paid, "free": stats.Free, "comp": stats.Complimentary}),
-				Link:  "/w/" + ws.Slug + "/earn/members"}
+				TitleText: msgs.M("notify.importTitle").Keep(platformArgs(imp.Source)),
+				BodyText:  msgs.M("notify.importBody").Keep(i18n.Args{"count": imp.Total, "paid": stats.Paid, "free": stats.Free, "comp": stats.Complimentary}),
+				Link:      "/w/" + ws.Slug + "/earn/members"}
 			return notify.ToUser(ctx, tx, *imp.CreatedBy, n)
 		}
 		return nil
@@ -1243,7 +1256,8 @@ func (s *Service) importRow(ctx context.Context, q *store.Queries, ws *store.Wor
 			}
 		}
 	}
-	detail, _ := json.Marshal(map[string]any{"platform": imp.Source, "import_id": imp.ID.String(), "matched_by": r.MatchedBy, "imported_at": now.UTC().Format(time.RFC3339)})
+	detailOf := map[string]any{"platform": imp.Source, "import_id": imp.ID.String(), "matched_by": r.MatchedBy, "imported_at": now.UTC().Format(time.RFC3339)}
+	detail, _ := json.Marshal(detailOf)
 	switch match {
 	case "active":
 		if existing, err := q.EarnSubscriptionByStripeID(ctx, store.EarnSubscriptionByStripeIDParams{WorkspaceID: ws.ID, Mode: imp.Mode, StripeSubscriptionID: subID}); err == nil {
@@ -1319,9 +1333,14 @@ func (s *Service) importRow(ctx context.Context, q *store.Queries, ws *store.Wor
 	if tid != uuid.Nil {
 		tidp = &tid
 	}
+	// The note keeps its English, and its message beside it in the detail
+	// for the members who read it later in their own language.
+	note := msgs.M("import.compNote").Keep(platformArgs(imp.Source))
+	detailOf[detailGrantNote] = note
+	detail, _ = json.Marshal(detailOf)
 	if err := q.EarnSubscriptionInsert(ctx, store.EarnSubscriptionInsertParams{ID: sid, WorkspaceID: ws.ID, ContactID: cid, Mode: imp.Mode, Kind: "complimentary",
 		TierID: tidp, Status: StatusComplimentary, StartedAt: now, SourceKind: "import", SourceLabel: label, SourceDetail: detail, GrantReason: "other",
-		GrantNote: msgs.M("import.compNote").Text(defaultLang, i18n.Args{"platform": platformName(imp.Source)}), GrantedBy: imp.CreatedBy, GrantUntil: &until,
+		GrantNote: note.In(defaultLang), GrantedBy: imp.CreatedBy, GrantUntil: &until,
 		ImportID: &imp.ID, At: now}); err != nil {
 		return "", nil, nil, err
 	}

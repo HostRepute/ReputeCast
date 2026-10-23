@@ -24800,6 +24800,7 @@ export interface components {
             /** Format: date-time */
             failedAt?: string;
             failureReason?: string;
+            failureText?: string;
             giftFrom?: string;
             /** Format: int64 */
             giftMonths?: number;

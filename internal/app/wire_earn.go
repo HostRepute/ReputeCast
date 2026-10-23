@@ -196,7 +196,7 @@ func (m earnMailer) Templates(ctx context.Context, ws *store.Workspace, ids []uu
 
 func (m earnMailer) Send(ctx context.Context, ws *store.Workspace, msg earn.MemberMessage) (earn.Sent, error) {
 	in := transactional.TransactionalSend{Template: msg.Template, To: transactional.TransactionalAddress{Email: msg.To, Name: msg.ToName}, Data: msg.Data,
-		Tags: []string{"earn"}, Metadata: map[string]string{"source": "earn"}}
+		Tags: []string{"earn"}, Metadata: map[string]string{"source": "earn"}, Localize: msg.Localize}
 	idem := ""
 	if msg.Key != "" {
 		idem = msg.Key

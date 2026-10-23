@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/payments"
@@ -234,6 +235,14 @@ func (r MemberEmailResult) Sent() bool { return r.Status == "sent" }
 // to an address that needn't be a contact: a gift's buyer, or its
 // recipient before redeeming. key makes a retry send nothing twice.
 func (s *Service) SendMemberEmailTo(ctx context.Context, ws *store.Workspace, email, to, toName string, data map[string]any, key string) MemberEmailResult {
+	return s.SendMemberEmailIn(ctx, ws, email, to, toName, data, key, nil)
+}
+
+// SendMemberEmailIn is SendMemberEmailTo with values written in the
+// email's language: texts gives them in the language of the version the
+// send picks (data has them in English).
+func (s *Service) SendMemberEmailIn(ctx context.Context, ws *store.Workspace, email, to, toName string, data map[string]any, key string,
+	texts func(l i18n.Lang) map[string]any) MemberEmailResult {
 	if s.Mailer == nil {
 		return MemberEmailResult{Status: "not_sent", Reason: "no_mailer"}
 	}
@@ -242,7 +251,7 @@ func (s *Service) SendMemberEmailTo(ctx context.Context, ws *store.Workspace, em
 		return MemberEmailResult{Status: "not_sent", Reason: "no_template"}
 	}
 	out := MemberEmailResult{Status: "sent", Template: tpl.Key, Version: tpl.LiveVersion}
-	res, err := s.Mailer.Send(ctx, ws, MemberMessage{Template: tpl.Key, To: to, ToName: toName, Data: data, Key: key})
+	res, err := s.Mailer.Send(ctx, ws, MemberMessage{Template: tpl.Key, To: to, ToName: toName, Data: data, Key: key, Localize: s.localizer(ctx, ws, texts)})
 	switch {
 	case errors.Is(err, ErrNotPublished):
 		out.Status, out.Reason = "not_sent", "not_published"
@@ -264,11 +273,44 @@ func (s *Service) SendMemberEmailTo(ctx context.Context, ws *store.Workspace, em
 // year when it isn't this year's), in the workspace's time zone.
 func (s *Service) DateText(ws *store.Workspace, t time.Time) string { return s.dateText(ws, t) }
 
+// DateTextIn is DateText in a language ("24 thg 12").
+func (s *Service) DateTextIn(l i18n.Lang, ws *store.Workspace, t time.Time) string {
+	return s.dateTextIn(l, ws, t)
+}
+
+// DateIn is a day with its year in a language: "7 Oct 2027", "7 thg 10, 2027".
+func DateIn(l i18n.Lang, t time.Time) string { return dateIn(l, t) }
+
+// TimeIn is a time of day in a language's region format: "08:00".
+func TimeIn(l i18n.Lang, t time.Time) string {
+	if standard(l) {
+		return t.Format("15:04")
+	}
+	return l.Region.Time(t, "")
+}
+
+// DayMonthIn is a day without its year in a language: "24 Dec", "24 thg 12".
+func DayMonthIn(l i18n.Lang, t time.Time) string { return dayMonthIn(l, t) }
+
+// WorkspaceLang is the language a workspace writes its emails and pages
+// in by default, as their readers read it.
+func WorkspaceLang(ctx context.Context, q *store.Queries, wsID uuid.UUID) i18n.Lang {
+	return workspaceLang(ctx, q, wsID)
+}
+
+// EnglishText reports whether one of the Earn catalog's messages is
+// written in English for a language (it isn't translated yet).
+func EnglishText(l i18n.Lang, key string) bool { return englishText(l, key) }
+
+// FailureShort is a payment failure in a few words in a language.
+func FailureShort(l i18n.Lang, reason string) string { return failureShort(l, reason) }
+
 // WelcomeLine is the upgrade page's welcome text after its first sentence
 // ("Your first members-only deep dive arrives Tue 21 Oct."), for a new
-// paid member of the tier: the gift's redeem page says it too.
-func (s *Service) WelcomeLine(ctx context.Context, ws *store.Workspace, tier *uuid.UUID, first string) string {
-	page, err := s.upgradePage(ctx, ws)
+// paid member of the tier: the gift's redeem page says it too, in the
+// page's language.
+func (s *Service) WelcomeLine(ctx context.Context, ws *store.Workspace, tier *uuid.UUID, first string, l i18n.Lang) string {
+	page, err := s.upgradePageIn(ctx, ws, l)
 	if err != nil {
 		return ""
 	}
@@ -276,8 +318,8 @@ func (s *Service) WelcomeLine(ctx context.Context, ws *store.Workspace, tier *uu
 	if tier != nil {
 		short = s.tierShortName(ctx, s.Q, ws.ID, tier)
 	}
-	text, err := liquid.Render(page.Welcome, map[string]any{"first_name": firstNonEmpty(first, s.t(PageLang, "welcome.there", nil)),
-		"next_issue": s.nextIssue(ctx, ws, tier, PageLang), "tier": short})
+	text, err := liquid.Render(page.Welcome, map[string]any{"first_name": firstNonEmpty(first, s.t(l, "welcome.there", nil)),
+		"next_issue": s.nextIssue(ctx, ws, tier, l), "tier": short})
 	if err != nil {
 		return ""
 	}

@@ -2,7 +2,6 @@ package earn
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -155,7 +154,7 @@ func (s *Service) Audience(ctx context.Context, ws *store.Workspace, list, tier 
 	_, out.Connected = connected(conns, "live")
 	lid, err := uuid.Parse(list)
 	if err != nil {
-		return out, api.Invalid("list", "Pick a list of this workspace.")
+		return out, invalid(ctx, "list", "audience.list", nil)
 	}
 	n, err := paidaccess.CountLists(ctx, s.Q, ws.ID, []uuid.UUID{lid}, nil, tier)
 	if err != nil {
@@ -224,6 +223,10 @@ func (s *Service) Composer(ctx context.Context, ws *store.Workspace) (EarnCompos
 	for _, t := range all {
 		trial[t.ID] = t.TrialDays
 	}
+	// The price line goes into the email (the Upgrade block's card): it is
+	// written in the workspace's default language, the language its emails
+	// are written in.
+	el := workspaceLang(ctx, s.Q, ws.ID)
 	for _, t := range tiers {
 		ct := EarnComposerTier{ID: t.ID.String(), Name: t.Name, Short: t.Short, Top: t.Top, TrialDays: trial[t.ID], Includes: []string{}, Offers: []EarnComposerOffer{}}
 		if h, ok := s.Offers.(ComposerOfferHook); ok && out.Connected {
@@ -233,13 +236,14 @@ func (s *Service) Composer(ctx context.Context, ws *store.Workspace) (EarnCompos
 		for _, period := range []string{"month", "year"} {
 			for _, p := range prices {
 				if p.TierID == t.ID && p.Status == "current" && p.Period == period {
-					parts = append(parts, priceText(p.AmountCents, p.Currency, p.Period))
+					parts = append(parts, priceTextIn(el, p.AmountCents, p.Currency, p.Period))
 				}
 			}
 		}
-		ct.PriceLine = strings.Join(parts, " or ")
+		ct.PriceLine = i18n.OrList(el.Locale, parts)
 		if ct.PriceLine != "" && ct.TrialDays > 0 {
-			ct.PriceLine += " · " + msgs.M("page.trialDays").Text(defaultLang, i18n.Args{"count": ct.TrialDays})
+			ct.PriceLine = msgs.M("composer.priceTrial").Text(el, i18n.Args{"prices": ct.PriceLine,
+				"trial": msgs.M("page.trialDays").Text(el, i18n.Args{"count": ct.TrialDays})})
 		}
 		for _, lower := range tiers {
 			if lower.Rank < t.Rank {
