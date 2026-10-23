@@ -147,7 +147,13 @@ function RelayForm({ r }: { r: Relay }) {
           <span className="k">{t(mr.help)}</span>
         </div>
         <div className="flex flex-col gap-2.5">
-          <div className="flex flex-col rounded-lg border border-line px-3" style={{ paddingTop: 2, paddingBottom: 2 }} aria-label={t(mr.checks)} role="list">
+          {/* A list only once there are checks: "Not checked yet" isn't a list item. */}
+          <div
+            className="flex flex-col rounded-lg border border-line px-3"
+            style={{ paddingTop: 2, paddingBottom: 2 }}
+            aria-label={checks.length ? t(mr.checks) : undefined}
+            role={checks.length ? 'list' : undefined}
+          >
             {checks.length ? (
               checks.map((c, i) => (
                 <div key={c.key} role="listitem" className="flex items-center gap-2.5 py-2 text-[13px]" style={i ? { borderTop: '1px solid #EEF0F3' } : undefined}>
