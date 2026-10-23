@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/payments"
+	"github.com/hostrepute/reputecast/internal/products"
 )
 
 // Products' server text reads in the request's language: problems, and the
@@ -61,5 +62,15 @@ func TestProductsInVietnamese(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("no dispute notification in Vietnamese: %+v", list.Items)
+	}
+}
+
+// A product's address from a name in another language keeps its letters,
+// without their marks.
+func TestSlugifyFoldsMarks(t *testing.T) {
+	for in, want := range map[string]string{"Sách điện tử": "sach-dien-tu", "The Deliverability Field Guide": "the-deliverability-field-guide", "Crème brûlée": "creme-brulee"} {
+		if got := products.Slugify(in); got != want {
+			t.Errorf("Slugify(%q) = %q, want %q", in, got, want)
+		}
 	}
 }

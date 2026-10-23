@@ -26,6 +26,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/text/unicode/norm"
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audience"
@@ -234,17 +235,42 @@ func kindLabel(kind, name string) string {
 	return strings.ToUpper(kind)
 }
 
+// asciiFold writes a name's letters without their marks, as an address can
+// hold them: "Sách điện tử" → "Sach dien tu", "Straße" → "Strasse".
+func asciiFold(s string) string {
+	var b strings.Builder
+	for _, r := range norm.NFD.String(s) {
+		switch {
+		case unicode.Is(unicode.Mn, r):
+		case r == 'đ', r == 'Đ':
+			b.WriteByte('d')
+		case r == 'ß':
+			b.WriteString("ss")
+		case r == 'æ', r == 'Æ':
+			b.WriteString("ae")
+		case r == 'œ', r == 'Œ':
+			b.WriteString("oe")
+		case r == 'ø', r == 'Ø':
+			b.WriteByte('o')
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
 // Slugify makes an address from a name.
 func Slugify(name string) string {
 	var b strings.Builder
 	dash := false
-	for _, r := range strings.ToLower(name) {
+	for _, r := range strings.ToLower(asciiFold(name)) {
 		switch {
 		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
 			b.WriteRune(r)
 			dash = false
 		case unicode.IsLetter(r) || unicode.IsDigit(r):
-			// Letters outside a–z (é, ü) are dropped rather than guessed.
+			// Letters outside a–z once their marks are gone (中, ж) are
+			// dropped rather than guessed.
 		default:
 			if !dash && b.Len() > 0 {
 				b.WriteByte('-')
