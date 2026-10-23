@@ -1,127 +1,144 @@
 package connect
 
 import (
-	"strconv"
+	"cmp"
 	"strings"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 )
 
 // The connect flow's words for each adapter. Capabilities, terms and fields
 // always come from the adapter itself (its Descriptor); this table only
 // holds how the catalog and the connection step talk about the providers
-// the design names (spec 5.2).
+// the design names (spec 5.2). The words are messages (adapter.<key>.* in
+// messages/<locale>.json), written in the reader's language by copyFor.
 
-type adapterCopy struct {
-	// Display is the catalog name ("Any SMTP server").
-	Display string
+// copySpec is how the flow talks about one adapter. A zero message falls
+// back to the generic wording (copyFor).
+type copySpec struct {
+	// Display is the catalog name ("Any SMTP server"); zero: the adapter's name.
+	Display i18n.Msg
 	// Short is the name in "Connect SES" and the stream cards ("SES").
 	Short string
-	// Step1 is the provider's name in the stepper ("SMTP server").
-	Step1       string
+	// Step1 is the provider's name in the stepper ("SMTP server"), or
+	// Step1Name when it is a name ("Postal"); zero: the adapter's name.
+	Step1       i18n.Msg
+	Step1Name   string
 	Recommended bool
-	// TermsLabel overrides the terms badge ("Bulk via Broadcasts API").
-	TermsLabel string
+	// Terms overrides the terms badge ("Bulk via Broadcasts API").
+	Terms i18n.Msg
 	// Pricing is the catalog's pricing line.
-	Pricing string
-	// Chip label overrides by chip key (webhooks, domain, suppression,
-	// batch, dedicated, sandbox, quota).
-	Chips map[string]string
+	Pricing i18n.Msg
+	// Chips overrides chip labels by chip key (webhooks, domain,
+	// suppression, batch, dedicated, sandbox, quota).
+	Chips map[string]i18n.Msg
 	// Title is the wizard header ("Connect an SMTP server").
-	Title string
+	Title i18n.Msg
 	// Heading and Lead open the connection step.
-	Heading, Lead string
+	Heading, Lead i18n.Msg
 	// ConnectionHint is the stepper's line under "Connection".
-	ConnectionHint string
-	// DomainHint is the stepper's line under "Domain verification".
+	ConnectionHint i18n.Msg
+	// DomainHint is the stepper's line under "Domain verification": the
+	// records, by their names.
 	DomainHint string
 	// KeyHint follows a rejected key ("Check that it's a Private API key…").
-	KeyHint string
+	KeyHint i18n.Msg
 	// KeysURL is where the provider's dashboard lists API keys.
 	KeysURL string
 	// VerifyCall names the read-only call that checks keys ("GET /v3/domains").
 	VerifyCall string
-	// WebhookEvents lists the events ReputeCast registers.
+	// WebhookEvents lists the events ReputeCast registers, by the
+	// provider's own names.
 	WebhookEvents string
 	// EventsAPI is true when the provider has an events API ReputeCast can
 	// poll instead of webhooks.
 	EventsAPI bool
 	// Section is the first card's title ("1. API key").
-	Section string
+	Section i18n.Msg
 }
 
-var copyTable = map[string]adapterCopy{
-	"ses": {Display: "Amazon SES", Short: "SES", Step1: "Amazon SES", Recommended: true, Pricing: "Pay as you go · $0.10 per 1,000 · bulk marketing allowed with production access",
-		Chips: map[string]string{"webhooks": "Webhooks (SNS)", "dedicated": "Dedicated IPs, paid"},
-		Title: "Connect Amazon SES", Heading: "Connect your AWS account",
-		Lead:           "ReputeCast needs permission to send through SES, create SNS topics for events and manage configuration sets. Nothing else.",
-		ConnectionHint: "AWS access, region, provisioning", DomainHint: "DKIM, MAIL FROM, SPF, DMARC"},
-	"postmark": {Display: "Postmark", Short: "Postmark", Step1: "Postmark", TermsLabel: "Bulk on Broadcast streams",
-		Pricing: "Plans from $15 per month for 10,000 · Transactional streams are one-to-one only",
-		Chips:   map[string]string{"dedicated": "Dedicated IPs, 300k+", "sandbox": "Sandbox token"},
-		Title:   "Connect Postmark", Heading: "Paste your Postmark server token",
-		Lead:    "ReputeCast registers webhooks and fetches the DNS records for your domain through the Postmark API.",
-		KeyHint: "Check that it's a Server API token (not the Account token) from the server you send with.", KeysURL: "https://account.postmarkapp.com/servers",
-		VerifyCall: "GET /server", WebhookEvents: "Delivery, Bounce, SpamComplaint, SubscriptionChange", Section: "1. Server token"},
-	"mailgun": {Display: "Mailgun", Short: "Mailgun", Step1: "Mailgun", Pricing: "Plans from $15 per month for 10,000, then per 1,000",
-		Chips: map[string]string{"dedicated": "Dedicated IPs, paid", "sandbox": "Sandbox domain"},
-		Title: "Connect Mailgun", Heading: "Paste your Mailgun API key",
-		Lead:    "ReputeCast registers webhooks and fetches the DNS records for your domain through the Mailgun API.",
-		KeyHint: "Check that it's a Private API key (not a Sending key or the HTTP webhook signing key) and that it belongs to the region selected below.",
-		KeysURL: "https://app.mailgun.com/settings/api_security", VerifyCall: "GET /v3/domains",
-		WebhookEvents: "delivered, permanent_fail, temporary_fail, complained, unsubscribed", EventsAPI: true, Section: "1. API key"},
-	"sendgrid": {Display: "SendGrid", Short: "SendGrid", Step1: "SendGrid", Pricing: "Free tier, then plans from $19.95 per month",
-		Chips: map[string]string{"webhooks": "Event webhook", "dedicated": "Dedicated IPs, Pro plan", "sandbox": "Sandbox mode", "quota": "Quota, plan only"},
-		Title: "Connect SendGrid", Heading: "Paste your SendGrid API key",
-		Lead:    "ReputeCast registers the event webhook and fetches the DNS records for your domain through the SendGrid API.",
-		KeyHint: "Check that the key has Full Access, or at least Mail Send, Sender Authentication and Mail Settings.", KeysURL: "https://app.sendgrid.com/settings/api_keys",
-		VerifyCall: "GET /v3/scopes", WebhookEvents: "delivered, bounce, dropped, deferred, spamreport, unsubscribe", Section: "1. API key"},
-	"resend": {Display: "Resend", Short: "Resend", Step1: "Resend", TermsLabel: "Bulk via Broadcasts API", Pricing: "Free 3,000 per month, then $20 per month for 50,000",
-		Chips: map[string]string{"dedicated": "Dedicated IPs, Scale plan", "quota": "Quota, plan only"},
-		Title: "Connect Resend", Heading: "Paste your Resend API key",
-		Lead:    "ReputeCast registers webhooks and fetches the DNS records for your domain through the Resend API.",
-		KeyHint: "Check that the key has Full access, not Sending access only.", KeysURL: "https://resend.com/api-keys", VerifyCall: "GET /domains",
-		WebhookEvents: "email.delivered, email.bounced, email.complained, email.delivery_delayed", Section: "1. API key"},
-	"sparkpost": {Display: "SparkPost", Short: "SparkPost", Step1: "SparkPost", Pricing: "Plans from $20 per month for 50,000",
-		Chips: map[string]string{"dedicated": "Dedicated IPs, paid", "sandbox": "Sandbox domain"},
-		Title: "Connect SparkPost", Heading: "Paste your SparkPost API key",
-		Lead:    "ReputeCast registers webhooks and fetches the DNS records for your domain through the SparkPost API.",
-		KeyHint: "Check the key's permissions and that it belongs to the region selected below (US or EU).", KeysURL: "https://app.sparkpost.com/account/api-keys",
-		VerifyCall: "GET /api/v1/account", WebhookEvents: "delivery, bounce, out_of_band, spam_complaint, list_unsubscribe", EventsAPI: true, Section: "1. API key"},
-	"mailjet": {Display: "Mailjet", Short: "Mailjet", Step1: "Mailjet", Pricing: "Free 6,000 per month, then plans from $17 per month",
-		Chips: map[string]string{"dedicated": "Dedicated IPs, paid"}, Title: "Connect Mailjet", Heading: "Paste your Mailjet API keys",
-		Lead:    "ReputeCast registers event callbacks and fetches the DNS records for your domain through the Mailjet API.",
-		KeyHint: "Check both the API key and the secret key; they come as a pair.", KeysURL: "https://app.mailjet.com/account/apikeys", VerifyCall: "GET /v3/REST/apikey",
-		WebhookEvents: "sent, bounce, blocked, spam, unsub", Section: "1. API keys"},
-	"brevo": {Display: "Brevo", Short: "Brevo", Step1: "Brevo", Pricing: "Transactional API, plans from $15 per month for 20,000",
-		Chips: map[string]string{"dedicated": "Dedicated IPs, paid"}, Title: "Connect Brevo", Heading: "Paste your Brevo API key",
-		Lead:    "ReputeCast registers webhooks and fetches the DNS records for your domain through the Brevo API.",
-		KeyHint: "Check that it's an API v3 key, not an SMTP key.", KeysURL: "https://app.brevo.com/settings/keys/api", VerifyCall: "GET /v3/account",
-		WebhookEvents: "delivered, hardBounce, softBounce, spam, unsubscribed", Section: "1. API key"},
-	"azureacs": {Display: "Azure Communication Services", Short: "Azure", Step1: "Azure Communication Services",
-		Pricing: "Pay as you go, per email and per MB",
-		Chips:   map[string]string{"webhooks": "Event Grid"}, Title: "Connect Azure Communication Services", Heading: "Paste your Azure connection string",
-		Lead:    "ReputeCast sends through your Email Communication resource and receives delivery reports through Event Grid.",
-		KeyHint: "Copy the connection string from your Communication Services resource › Keys.", KeysURL: "https://portal.azure.com/", VerifyCall: "GET /emails",
-		WebhookEvents: "EmailDeliveryReportReceived", Section: "1. Connection string"},
-	"postal": {Display: "Postal (self-hosted)", Short: "Postal", Step1: "Postal", Pricing: "Free software, your server · needs a warm-up for a new IP",
-		Chips: map[string]string{"dedicated": "Dedicated IP"}, Title: "Connect Postal", Heading: "Connect your Postal server",
-		Lead:    "ReputeCast sends through your mail server's API and receives its webhooks. Add the webhook in Postal once the connection works.",
-		KeyHint: "Check that it's an API credential of the mail server (Credentials › API), not an SMTP one.", VerifyCall: "POST /api/v1/messages/message",
-		WebhookEvents: "MessageSent, MessageDelayed, MessageDeliveryFailed, MessageHeld, MessageBounced", Section: "1. Server and API key"},
-	"smtp": {Display: "Any SMTP server", Short: "SMTP", Step1: "SMTP server", Pricing: "No webhooks, so bounces come from a bounce mailbox you connect over IMAP or POP3",
-		Chips: map[string]string{"dedicated": "Dedicated IP, depends"}, Title: "Connect an SMTP server", Heading: "SMTP server details",
-		Lead:           "Works with any relay or your own mail server. SMTP has no event webhooks, so ReputeCast reads bounces from a mailbox you connect below.",
-		ConnectionHint: "Host, TLS, credentials, bounce mailbox", DomainHint: "DKIM, return-path, SPF, DMARC"},
+func adapterMsg(key string) i18n.Msg { return msgs.M("adapter." + key) }
+
+var copyTable = map[string]copySpec{
+	"ses": {Short: "SES", Recommended: true, Pricing: adapterMsg("ses.pricing"), Heading: adapterMsg("ses.heading"), Lead: adapterMsg("ses.lead"),
+		ConnectionHint: adapterMsg("ses.connectionHint"), DomainHint: "DKIM, MAIL FROM, SPF, DMARC"},
+	"postmark": {Short: "Postmark", Terms: adapterMsg("postmark.terms"), Pricing: adapterMsg("postmark.pricing"),
+		Chips:   map[string]i18n.Msg{"dedicated": mChipDedicated300k},
+		Heading: adapterMsg("postmark.heading"), Lead: mInfoLeadRegisters, KeyHint: adapterMsg("postmark.keyHint"), KeysURL: "https://account.postmarkapp.com/servers",
+		VerifyCall: "GET /server", WebhookEvents: "Delivery, Bounce, SpamComplaint, SubscriptionChange", Section: adapterMsg("postmark.section")},
+	"mailgun": {Short: "Mailgun", Pricing: adapterMsg("mailgun.pricing"), Chips: map[string]i18n.Msg{"sandbox": mChipSandboxDomain},
+		Heading: mInfoHeadingAPIKey, Lead: mInfoLeadRegisters, KeyHint: adapterMsg("mailgun.keyHint"), KeysURL: "https://app.mailgun.com/settings/api_security",
+		VerifyCall: "GET /v3/domains", WebhookEvents: "delivered, permanent_fail, temporary_fail, complained, unsubscribed", EventsAPI: true, Section: mInfoSectionAPIKey},
+	"sendgrid": {Short: "SendGrid", Pricing: adapterMsg("sendgrid.pricing"),
+		Chips:   map[string]i18n.Msg{"webhooks": mChipEventWebhook, "dedicated": mChipDedicatedPro, "quota": mChipQuotaPlan},
+		Heading: mInfoHeadingAPIKey, Lead: adapterMsg("sendgrid.lead"), KeyHint: adapterMsg("sendgrid.keyHint"), KeysURL: "https://app.sendgrid.com/settings/api_keys",
+		VerifyCall: "GET /v3/scopes", WebhookEvents: "delivered, bounce, dropped, deferred, spamreport, unsubscribe", Section: mInfoSectionAPIKey},
+	"resend": {Short: "Resend", Terms: adapterMsg("resend.terms"), Pricing: adapterMsg("resend.pricing"),
+		Chips:   map[string]i18n.Msg{"dedicated": mChipDedicatedScale, "quota": mChipQuotaPlan},
+		Heading: mInfoHeadingAPIKey, Lead: mInfoLeadRegisters, KeyHint: adapterMsg("resend.keyHint"), KeysURL: "https://resend.com/api-keys", VerifyCall: "GET /domains",
+		WebhookEvents: "email.delivered, email.bounced, email.complained, email.delivery_delayed", Section: mInfoSectionAPIKey},
+	"sparkpost": {Short: "SparkPost", Pricing: adapterMsg("sparkpost.pricing"), Chips: map[string]i18n.Msg{"sandbox": mChipSandboxDomain},
+		Heading: mInfoHeadingAPIKey, Lead: mInfoLeadRegisters, KeyHint: adapterMsg("sparkpost.keyHint"), KeysURL: "https://app.sparkpost.com/account/api-keys",
+		VerifyCall: "GET /api/v1/account", WebhookEvents: "delivery, bounce, out_of_band, spam_complaint, list_unsubscribe", EventsAPI: true, Section: mInfoSectionAPIKey},
+	"mailjet": {Short: "Mailjet", Pricing: adapterMsg("mailjet.pricing"), Heading: adapterMsg("mailjet.heading"), Lead: adapterMsg("mailjet.lead"),
+		KeyHint: adapterMsg("mailjet.keyHint"), KeysURL: "https://app.mailjet.com/account/apikeys", VerifyCall: "GET /v3/REST/apikey",
+		WebhookEvents: "sent, bounce, blocked, spam, unsub", Section: adapterMsg("mailjet.section")},
+	"brevo": {Short: "Brevo", Pricing: adapterMsg("brevo.pricing"), Heading: mInfoHeadingAPIKey, Lead: mInfoLeadRegisters,
+		KeyHint: adapterMsg("brevo.keyHint"), KeysURL: "https://app.brevo.com/settings/keys/api", VerifyCall: "GET /v3/account",
+		WebhookEvents: "delivered, hardBounce, softBounce, spam, unsubscribed", Section: mInfoSectionAPIKey},
+	"azureacs": {Short: "Azure", Pricing: adapterMsg("azureacs.pricing"), Chips: map[string]i18n.Msg{"webhooks": mChipEventGrid},
+		Heading: adapterMsg("azureacs.heading"), Lead: adapterMsg("azureacs.lead"), KeyHint: adapterMsg("azureacs.keyHint"), KeysURL: "https://portal.azure.com/",
+		VerifyCall: "GET /emails", WebhookEvents: "EmailDeliveryReportReceived", Section: adapterMsg("azureacs.section")},
+	"postal": {Display: adapterMsg("postal.display"), Short: "Postal", Step1Name: "Postal", Pricing: adapterMsg("postal.pricing"), Title: adapterMsg("postal.title"),
+		Heading: adapterMsg("postal.heading"),
+		Lead:    adapterMsg("postal.lead"), KeyHint: adapterMsg("postal.keyHint"), VerifyCall: "POST /api/v1/messages/message",
+		WebhookEvents: "MessageSent, MessageDelayed, MessageDeliveryFailed, MessageHeld, MessageBounced", Section: adapterMsg("postal.section")},
+	"smtp": {Display: adapterMsg("smtp.display"), Short: "SMTP", Step1: adapterMsg("smtp.step1"), Pricing: adapterMsg("smtp.pricing"),
+		Title: adapterMsg("smtp.title"), Heading: adapterMsg("smtp.heading"), Lead: adapterMsg("smtp.lead"),
+		ConnectionHint: adapterMsg("smtp.connectionHint"), DomainHint: "DKIM, return-path, SPF, DMARC"},
 }
 
-// copyFor returns the wording for an adapter, derived from its Descriptor
-// where the table has nothing.
-func copyFor(d providers.Descriptor) adapterCopy {
-	c, ok := copyTable[d.Adapter]
-	if !ok {
-		c = adapterCopy{}
+// adapterCopy is how the flow talks about an adapter, in one language.
+type adapterCopy struct {
+	Display, Short, Step1 string
+	Recommended           bool
+	// TermsLabel overrides the terms badge.
+	TermsLabel string
+	Pricing    string
+	// Chips are chip label overrides by chip key.
+	Chips          map[string]string
+	Title          string
+	Heading, Lead  string
+	ConnectionHint string
+	DomainHint     string
+	KeyHint        string
+	KeysURL        string
+	VerifyCall     string
+	WebhookEvents  string
+	EventsAPI      bool
+	Section        string
+}
+
+var noMsg i18n.Msg
+
+// copyFor returns the wording for an adapter in a language, derived from
+// its Descriptor where the table has nothing.
+func copyFor(l i18n.Lang, d providers.Descriptor) adapterCopy {
+	spec := copyTable[d.Adapter]
+	args := i18n.Args{"name": d.Name}
+	text := func(m, fallback i18n.Msg) string {
+		if m == noMsg {
+			m = fallback
+		}
+		if m == noMsg {
+			return ""
+		}
+		return m.Text(l, args)
 	}
+	c := adapterCopy{Short: spec.Short, Recommended: spec.Recommended, DomainHint: spec.DomainHint, KeysURL: spec.KeysURL, VerifyCall: spec.VerifyCall,
+		WebhookEvents: spec.WebhookEvents, EventsAPI: spec.EventsAPI, Chips: map[string]string{}}
+	c.Display, c.Step1 = text(spec.Display, noMsg), text(spec.Step1, noMsg)
 	if c.Display == "" {
 		c.Display = d.Name
 	}
@@ -129,36 +146,53 @@ func copyFor(d providers.Descriptor) adapterCopy {
 		c.Short = shortName(d.Name)
 	}
 	if c.Step1 == "" {
-		c.Step1 = d.Name
+		c.Step1 = cmp.Or(spec.Step1Name, d.Name)
 	}
+	c.TermsLabel = text(spec.Terms, noMsg)
+	c.Pricing = text(spec.Pricing, noMsg)
 	if c.Pricing == "" {
-		c.Pricing = d.Capabilities.Pricing
+		c.Pricing = providers.TextIn(d.Capabilities.Pricing, d.Capabilities.PricingText, l)
 	}
-	if c.Title == "" {
-		c.Title = "Connect " + d.Name
+	for k, m := range spec.Chips {
+		c.Chips[k] = m.Text(l, args)
 	}
-	if c.Heading == "" {
-		c.Heading = "Connect " + d.Name
-		if hasSecret(d, "api_key") {
-			c.Heading = "Paste your " + d.Name + " API key"
-		}
+	c.Title = text(spec.Title, mInfoTitle)
+	heading := mInfoHeadingConnect
+	if hasSecret(d, "api_key") {
+		heading = mInfoHeadingAPIKey
 	}
-	if c.Lead == "" {
-		c.Lead = "ReputeCast checks the credentials with a read-only call and stores them encrypted. They are never shown again."
-	}
-	if c.ConnectionHint == "" {
-		c.ConnectionHint = "API key, region, webhooks"
-	}
+	c.Heading = text(spec.Heading, heading)
+	c.Lead = text(spec.Lead, mInfoLeadDefault)
+	c.ConnectionHint = text(spec.ConnectionHint, mInfoConnectionHintDefault)
 	// DomainHint stays empty for API providers: their records come from the
 	// provider's API once the key works (SetupError), so the stepper only
 	// previews the domain step for SES and SMTP.
-	if c.Section == "" {
-		c.Section = "1. Credentials"
-	}
+	c.KeyHint = text(spec.KeyHint, noMsg)
+	c.Section = text(spec.Section, mInfoSectionDefault)
 	if c.WebhookEvents == "" {
-		c.WebhookEvents = "delivery, bounce and complaint events"
+		c.WebhookEvents = mInfoWebhookEventsDefault.Text(l, nil)
 	}
 	return c
+}
+
+// keyHint is the hint that follows a rejected key, kept for the setup's
+// later readers.
+func keyHint(d providers.Descriptor) (string, i18n.Text, bool) {
+	m := copyTable[d.Adapter].KeyHint
+	if m == noMsg {
+		return "", i18n.Text{}, false
+	}
+	s, t := say(m, i18n.Args{"name": d.Name})
+	return s, t, true
+}
+
+// webhookEvents is what a registration registered, kept for the setup's
+// later readers: the provider's event names, or the generic words.
+func webhookEvents(d providers.Descriptor) (string, i18n.Text) {
+	if e := copyTable[d.Adapter].WebhookEvents; e != "" {
+		return e, i18n.Text{}
+	}
+	return say(mInfoWebhookEventsDefault, nil)
 }
 
 func shortName(name string) string {
@@ -199,117 +233,101 @@ type ConnectChip struct {
 // chips turns an adapter's capabilities into the catalog's chips, in the
 // design's order: events, domain setup, suppressions, batching, dedicated
 // IPs, sandbox, quota.
-func chips(d providers.Descriptor, c adapterCopy) []ConnectChip {
+func chips(l i18n.Lang, d providers.Descriptor, c adapterCopy) []ConnectChip {
 	caps := d.Capabilities
 	out := []ConnectChip{}
-	add := func(key, kind, label string) {
-		if l, ok := c.Chips[key]; ok && kind != "no" {
-			label = l
+	add := func(key, kind string, m i18n.Msg, args i18n.Args) {
+		label := m.Text(l, args)
+		if o, ok := c.Chips[key]; ok && kind != "no" {
+			label = o
 		}
 		out = append(out, ConnectChip{Label: label, Kind: kind})
 	}
 	switch caps.Webhooks {
 	case "":
-		add("webhooks", "no", "Webhooks")
+		add("webhooks", "no", mChipWebhooks, nil)
 	case "Bounce mailbox":
-		add("webhooks", "partial", "Bounce mailbox")
+		add("webhooks", "partial", mChipBounceMailbox, nil)
 	case "Registered":
-		add("webhooks", "yes", "Webhooks")
+		add("webhooks", "yes", mChipWebhooks, nil)
 	default:
-		add("webhooks", "yes", "Webhooks ("+caps.Webhooks+")")
+		add("webhooks", "yes", mChipWebhooksVia, i18n.Args{"via": caps.Webhooks})
 	}
 	switch caps.DomainAPI {
 	case "full":
-		add("domain", "yes", "Domain via API")
+		add("domain", "yes", mChipDomainAPI, nil)
 	case "dkim_only":
-		add("domain", "partial", "DKIM via API")
+		add("domain", "partial", mChipDKIMAPI, nil)
 	default:
-		add("domain", "partial", "Domain, manual DNS")
+		add("domain", "partial", mChipDomainManual, nil)
 	}
 	switch {
 	case caps.SuppressionSync && strings.EqualFold(d.SuppressionMode, "Pull only"):
-		add("suppression", "partial", "Suppression, pull only")
+		add("suppression", "partial", mChipSuppressionPull, nil)
 	case caps.SuppressionSync:
-		add("suppression", "yes", "Suppression sync")
+		add("suppression", "yes", mChipSuppressionSync, nil)
 	case strings.EqualFold(d.SuppressionMode, "Pull only"):
-		add("suppression", "partial", "Suppression, pull only")
+		add("suppression", "partial", mChipSuppressionPull, nil)
 	default:
-		add("suppression", "partial", "Suppression, local")
+		add("suppression", "partial", mChipSuppressionLocal, nil)
 	}
 	if caps.BatchSize > 1 && d.Kind != "smtp" {
-		add("batch", "yes", "Batch "+thousands(caps.BatchSize))
+		add("batch", "yes", mChipBatchN, i18n.Args{"n": caps.BatchSize})
 	} else {
-		add("batch", "no", "Batch")
+		add("batch", "no", mChipBatch, nil)
 	}
 	switch {
 	case d.Kind == "self_hosted":
-		add("dedicated", "yes", "Dedicated IP")
+		add("dedicated", "yes", mChipDedicatedIP, nil)
 	case d.Kind == "smtp":
-		add("dedicated", "partial", "Dedicated IP, depends")
+		add("dedicated", "partial", mChipDedicatedDepends, nil)
 	case caps.DedicatedIPs != "":
-		add("dedicated", "partial", "Dedicated IPs, paid")
+		add("dedicated", "partial", mChipDedicatedPaid, nil)
 	default:
-		add("dedicated", "no", "Dedicated IPs")
+		add("dedicated", "no", mChipDedicatedIPs, nil)
 	}
 	switch caps.Sandbox {
 	case "detection":
-		add("sandbox", "yes", "Sandbox detection")
+		add("sandbox", "yes", mChipSandboxDetection, nil)
 	case "test token":
-		add("sandbox", "yes", "Sandbox token")
+		add("sandbox", "yes", mChipSandboxToken, nil)
 	case "mode":
-		add("sandbox", "yes", "Sandbox mode")
+		add("sandbox", "yes", mChipSandboxMode, nil)
 	case "domain":
-		add("sandbox", "yes", "Sandbox domain")
+		add("sandbox", "yes", mChipSandboxDomain, nil)
+	case "test addresses":
+		add("sandbox", "yes", mChipSandboxAddresses, nil)
 	case "":
-		add("sandbox", "no", "Sandbox")
+		add("sandbox", "no", mChipSandbox, nil)
 	default:
-		add("sandbox", "yes", "Sandbox "+caps.Sandbox)
+		add("sandbox", "yes", mChipSandboxKind, i18n.Args{"kind": caps.Sandbox})
 	}
 	if caps.QuotaDiscovery {
-		add("quota", "yes", "Quota discovery")
+		add("quota", "yes", mChipQuotaDiscovery, nil)
 	} else {
-		add("quota", "partial", "Quota, set manually")
+		add("quota", "partial", mChipQuotaManual, nil)
 	}
 	return out
 }
 
-func thousands(n int) string {
-	s := strconv.Itoa(n)
-	if len(s) <= 3 {
-		return s
-	}
-	var b strings.Builder
-	pre := len(s) % 3
-	if pre > 0 {
-		b.WriteString(s[:pre])
-	}
-	for i := pre; i < len(s); i += 3 {
-		if b.Len() > 0 {
-			b.WriteByte(',')
-		}
-		b.WriteString(s[i : i+3])
-	}
-	return b.String()
-}
-
 // termsBadge is the catalog's badge about bulk marketing.
-func termsBadge(d providers.Descriptor, c adapterCopy) (string, string) {
+func termsBadge(l i18n.Lang, d providers.Descriptor, c adapterCopy) (string, string) {
 	if c.Recommended {
-		return "Recommended", "ok"
+		return mTermsRecommended.Text(l, nil), "ok"
 	}
 	if c.TermsLabel != "" {
 		return c.TermsLabel, "ok"
 	}
 	switch d.Capabilities.Bulk {
 	case providers.BulkAllowed:
-		return "Bulk marketing allowed", "ok"
+		return mTermsBulkAllowed.Text(l, nil), "ok"
 	case providers.BulkBroadcastStreams:
-		return "Bulk on Broadcast streams", "ok"
+		return mTermsBroadcastStreams.Text(l, nil), "ok"
 	case providers.BulkForbidden:
-		return "Transactional only", "warn"
+		return mTermsTransactionalOnly.Text(l, nil), "warn"
 	}
 	if d.Kind == "smtp" {
-		return "Depends on the server", "neutral"
+		return mTermsDependsOnServer.Text(l, nil), "neutral"
 	}
-	return "Your own policy", "ok"
+	return mTermsOwnPolicy.Text(l, nil), "ok"
 }
