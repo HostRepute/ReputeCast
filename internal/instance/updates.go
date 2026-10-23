@@ -139,12 +139,12 @@ func (s *Service) SetUpdateCheck(ctx context.Context, in InstanceUpdateCheckInpu
 					}
 				}
 			}
-			summary := "off: ReputeCast makes no outbound call on its own"
+			summary := keep("audit.updateOff", nil)
 			if in.Enabled {
-				summary = "on: fetches the latest version number from github.com once a day"
+				summary = keep("audit.updateOn", nil)
 			}
 			return s.Audit.LogWith(ctx, q, audit.Event{Action: "instance.update_check_changed", TargetType: "instance", TargetName: "Update check",
-				Before: map[string]any{"enabled": st.UpdateCheck}, After: map[string]any{"enabled": in.Enabled}, Metadata: map[string]any{"summary": summary}})
+				Before: map[string]any{"enabled": st.UpdateCheck}, After: map[string]any{"enabled": in.Enabled}, Metadata: audit.KeepText(nil, "summary", summary)})
 		})
 		if err != nil {
 			return InstanceVersion{}, err
@@ -160,7 +160,7 @@ func (s *Service) CheckNow(ctx context.Context) (InstanceVersion, error) {
 		return InstanceVersion{}, err
 	}
 	if !st.UpdateCheck || !s.checkAllowed() {
-		return InstanceVersion{}, api.Conflict("The update check is off. Turn it on to fetch the latest release.")
+		return InstanceVersion{}, api.Conflict(say(ctx, "problem.updateOff", nil))
 	}
 	_ = s.checkRelease(ctx)
 	return s.Version(ctx)

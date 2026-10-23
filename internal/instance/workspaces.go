@@ -2,7 +2,6 @@ package instance
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"regexp"
@@ -19,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -112,17 +112,17 @@ func (s *Service) CreateWorkspace(ctx context.Context, in InstanceWorkspaceInput
 	}
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		return InstanceWorkspace{}, api.Invalid("body.name", "Name the workspace, like Acme Engineering Blog.")
+		return InstanceWorkspace{}, api.Invalid("body.name", say(ctx, "problem.workspaceName", nil))
 	}
 	owner := me.ID
 	if in.OwnerID != "" {
 		id, err := uuid.Parse(in.OwnerID)
 		if err != nil {
-			return InstanceWorkspace{}, api.Invalid("body.ownerId", "Pick an active account as the Owner.")
+			return InstanceWorkspace{}, api.Invalid("body.ownerId", say(ctx, "problem.pickOwner", nil))
 		}
 		u, err := s.Q.GetUser(ctx, id)
 		if err != nil || u.Status != "active" {
-			return InstanceWorkspace{}, api.Invalid("body.ownerId", "Pick an active account as the Owner.")
+			return InstanceWorkspace{}, api.Invalid("body.ownerId", say(ctx, "problem.pickOwner", nil))
 		}
 		owner = id
 	}
@@ -133,7 +133,7 @@ func (s *Service) CreateWorkspace(ctx context.Context, in InstanceWorkspaceInput
 		}
 	}
 	if _, err := time.LoadLocation(tz); err != nil || tz == "" {
-		return InstanceWorkspace{}, api.Invalid("body.timezone", "Use a timezone like America/New_York.")
+		return InstanceWorkspace{}, api.Invalid("body.timezone", say(ctx, "problem.timezone", nil))
 	}
 	var ws store.Workspace
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -172,10 +172,10 @@ func (s *Service) DeleteWorkspace(ctx context.Context, id uuid.UUID, in Instance
 		return InstanceWorkspaceDeleted{}, api.MapError(err, "Workspace")
 	}
 	if ws.DeletedAt != nil {
-		return InstanceWorkspaceDeleted{}, api.Conflict(ws.Name + " is already deleted. Restore it or wait for the purge.")
+		return InstanceWorkspaceDeleted{}, api.Conflict(say(ctx, "problem.alreadyDeleted", i18n.Args{"name": ws.Name}))
 	}
 	if strings.TrimSpace(in.Confirm) != ws.Name {
-		return InstanceWorkspaceDeleted{}, api.Invalid("body.confirm", "Type "+ws.Name+" exactly to confirm.")
+		return InstanceWorkspaceDeleted{}, api.Invalid("body.confirm", say(ctx, "problem.typeName", i18n.Args{"name": ws.Name}))
 	}
 	var out InstanceWorkspaceDeleted
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -193,9 +193,10 @@ func (s *Service) DeleteWorkspace(ctx context.Context, id uuid.UUID, in Instance
 			at = *deleted
 		}
 		out.PurgeAt = at.Add(RestoreHold)
-		if err := notify.ToMembersWith(ctx, tx, id, "", notify.Notification{Kind: "workspace_deleted", Severity: "warn", Title: ws.Name + " was deleted",
-			Summary: ws.Name + " was deleted by an instance admin",
-			Body:    fmt.Sprintf("An instance admin deleted %s. It can be restored until %s; after that it's gone for good.", ws.Name, out.PurgeAt.Format("Jan 2"))}); err != nil {
+		// Read later by each member, in their own language.
+		args := i18n.Args{"name": ws.Name, "at": out.PurgeAt.In(location(ws.Timezone))}
+		if err := notify.ToMembersWith(ctx, tx, id, "", notify.Notification{Kind: "workspace_deleted", Severity: "warn", TitleText: keep("notify.workspaceDeletedTitle", args),
+			SummaryText: keep("notify.workspaceDeletedSummary", args), BodyText: keep("notify.workspaceDeletedBody", args)}); err != nil {
 			return err
 		}
 		if s.Jobs != nil {
@@ -208,8 +209,8 @@ func (s *Service) DeleteWorkspace(ctx context.Context, id uuid.UUID, in Instance
 		wsID := id
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "workspace.deleted", TargetType: "workspace", TargetID: id.String(), TargetName: ws.Name,
 			Before: map[string]any{"slug": ws.Slug}, After: map[string]any{"deleted": true, "purge_at": out.PurgeAt},
-			Metadata: map[string]any{"by": "instance admin", "summary": fmt.Sprintf("restorable until %s · %d scheduled %s stopped", out.PurgeAt.Format("Jan 2"), out.Cancelled, plural(int(out.Cancelled), "send", "sends")),
-				"permission": string(authz.WorkspaceDelete)}})
+			Metadata: audit.KeepSummary(map[string]any{"by": "instance admin", "permission": string(authz.WorkspaceDelete)},
+				keep("audit.restorable", i18n.Args{"at": out.PurgeAt.In(location(ws.Timezone))}), keep("audit.sendsStopped", i18n.Args{"count": out.Cancelled}))})
 	})
 	return out, err
 }
@@ -224,10 +225,10 @@ func (s *Service) RestoreWorkspace(ctx context.Context, id uuid.UUID) (InstanceW
 		return InstanceWorkspace{}, api.MapError(err, "Workspace")
 	}
 	if ws.DeletedAt == nil {
-		return InstanceWorkspace{}, api.Conflict(ws.Name + " isn't deleted.")
+		return InstanceWorkspace{}, api.Conflict(say(ctx, "problem.notDeleted", i18n.Args{"name": ws.Name}))
 	}
 	if s.now().Sub(*ws.DeletedAt) > RestoreHold {
-		return InstanceWorkspace{}, api.Err(http.StatusGone, "restore_expired", ws.Name+" was deleted more than 7 days ago and can't be restored.")
+		return InstanceWorkspace{}, api.Err(http.StatusGone, "restore_expired", say(ctx, "problem.restoreExpired", i18n.Args{"name": ws.Name}))
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -293,6 +294,6 @@ func (w *WorkspacePurgeWorker) Work(ctx context.Context, job *river.Job[Workspac
 		}
 		w.Log.InfoContext(ctx, "purged deleted workspace", "id", row.ID, "name", row.Name)
 		return w.Audit.LogWith(ctx, q, audit.Event{Action: "workspace.purged", TargetType: "workspace", TargetID: row.ID.String(), TargetName: row.Name,
-			Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Metadata: map[string]any{"summary": "deleted for good after the 7-day restore hold"}})
+			Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Metadata: audit.KeepText(nil, "summary", keep("audit.purged", nil))})
 	})
 }
