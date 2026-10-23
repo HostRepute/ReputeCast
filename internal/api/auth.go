@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -129,16 +128,15 @@ func (a *Authenticator) Middleware(hapi huma.API) func(huma.Context, func(huma.C
 			a.write(hapi, hctx, perr)
 		}
 		if c.ik != nil && !c.ik.Allows(operationID(hctx)) {
-			refuse(Err(http.StatusForbidden, CodeNotForThisKey, fmt.Sprintf(
-				"This key belongs to %s and works only for what %s can do. Change what %s can do in Settings › Integrations.", c.ik.Name, c.ik.Name, c.ik.Name)))
+			refuse(Err(http.StatusForbidden, CodeNotForThisKey, mNotForThisKey.Text(i18n.LangFrom(ctx), i18n.Args{"integration": c.ik.Name})))
 			return
 		}
 		if access.Integration != "" && (c.ik == nil || access.Integration != "*" && c.ik.Kind != access.Integration) {
-			who := "an integration's key"
+			only := mIntegrationOnly
 			if access.Integration == "wordpress" {
-				who = "a WordPress site's key"
+				only = mWordPressOnly
 			}
-			refuse(Err(http.StatusForbidden, CodePermissionDenied, "Only "+who+" calls this."))
+			refuse(Err(http.StatusForbidden, CodePermissionDenied, only.Text(i18n.LangFrom(ctx), nil)))
 			return
 		}
 		if access.HumansOnly && p.Type != authz.ActorUser {
@@ -159,7 +157,7 @@ func (a *Authenticator) Middleware(hapi huma.API) func(huma.Context, func(huma.C
 			}
 		case AccessKey:
 			if p.Type == authz.ActorUser {
-				a.write(hapi, hctx, Err(http.StatusForbidden, CodePermissionDenied, "Call this with an API key: it describes the key that calls it."))
+				a.write(hapi, hctx, Err(http.StatusForbidden, CodePermissionDenied, mKeyOnly.Text(i18n.LangFrom(ctx), nil)))
 				return
 			}
 			ws, err := a.Q.GetWorkspace(ctx, p.WorkspaceID)
@@ -307,7 +305,7 @@ func (a *Authenticator) keyPrincipal(ctx context.Context, hctx huma.Context, tok
 	var ik *IntegrationKey
 	if k.IntegrationID != nil {
 		if a.Integrations == nil {
-			return caller{}, Err(http.StatusUnauthorized, CodeUnauthenticated, "This API key belongs to an integration, and integrations aren't available on this server.")
+			return caller{}, Err(http.StatusUnauthorized, CodeUnauthenticated, mIntegrationsOff.Text(i18n.LangFrom(ctx), nil))
 		}
 		if ik, err = a.Integrations.Key(ctx, *k.IntegrationID); err != nil {
 			return caller{}, a.unavailable(ctx, "integration", err)
@@ -322,16 +320,16 @@ func (a *Authenticator) keyPrincipal(ctx context.Context, hctx huma.Context, tok
 	if k.RevokedAt != nil && !inGrace || ik != nil && ik.Disconnected {
 		a.keyRejected(ctx, k.ID, "revoked")
 		if ik != nil {
-			return refuse(Err(http.StatusUnauthorized, CodeKeyRevoked, fmt.Sprintf("This key was revoked. Reconnect %s in Settings › Integrations to get a new key.", ik.Name)))
+			return refuse(Err(http.StatusUnauthorized, CodeKeyRevoked, mIntegrationKeyRevoked.Text(i18n.LangFrom(ctx), i18n.Args{"integration": ik.Name})))
 		}
 		return caller{}, Err(http.StatusUnauthorized, CodeUnauthenticated, "This API key is revoked or unknown.")
 	}
 	if k.ExpiresAt != nil && !k.ExpiresAt.After(a.now()) {
 		a.keyRejected(ctx, k.ID, "expired")
 		if ik != nil {
-			return refuse(Err(http.StatusUnauthorized, CodeKeyExpired, fmt.Sprintf("This key expired on %s. Reconnect %s in Settings › Integrations to get a new key.", k.ExpiresAt.Format("Jan 2, 2006"), ik.Name)))
+			return refuse(Err(http.StatusUnauthorized, CodeKeyExpired, mIntegrationKeyExpired.Text(i18n.LangFrom(ctx), i18n.Args{"date": *k.ExpiresAt, "integration": ik.Name})))
 		}
-		return caller{}, Err(http.StatusUnauthorized, CodeUnauthenticated, "This API key expired on "+k.ExpiresAt.Format("Jan 2, 2006")+". Rotate it in Settings › Keys & MCP.")
+		return caller{}, Err(http.StatusUnauthorized, CodeUnauthenticated, mKeyExpired.Text(i18n.LangFrom(ctx), i18n.Args{"date": *k.ExpiresAt}))
 	}
 	perms := authz.ParseSet(k.Permissions)
 	// A key never exceeds what its creator can do right now: nothing once
@@ -343,8 +341,7 @@ func (a *Authenticator) keyPrincipal(ctx context.Context, hctx huma.Context, tok
 			perms = perms.Intersect(authz.Effective(m.RoleKey, m.RoleBuiltin, m.RolePermissions))
 		case err == nil || errors.Is(err, pgx.ErrNoRows):
 			if ik != nil {
-				return refuse(Err(http.StatusForbidden, CodeOwnerDeactivated, fmt.Sprintf(
-					"The member who owns this key left the workspace, so it has lost its permissions. Someone with integrations:manage can take it over in Settings › Integrations › %s; the key stays the same.", ik.Name)))
+				return refuse(Err(http.StatusForbidden, CodeOwnerDeactivated, mOwnerLeft.Text(i18n.LangFrom(ctx), i18n.Args{"integration": ik.Name})))
 			}
 			perms = authz.Set{}
 		default:

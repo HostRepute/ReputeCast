@@ -101,7 +101,10 @@ func (p *Problem) WithMeta(kv ...any) *Problem {
 	return p
 }
 
-// NotFound returns a 404 for a named thing ("Campaign").
+// NotFound returns a 404 for a named thing ("Campaign"): "Campaign not
+// found." Each kind of thing has its own message in the package's catalog
+// (notFound.campaign), which LocalizeProblem writes in the reader's
+// language; a thing without one reads in English.
 func NotFound(what string) *Problem {
 	return Err(http.StatusNotFound, CodeNotFound, fmt.Sprintf("%s not found.", what))
 }

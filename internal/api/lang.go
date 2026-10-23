@@ -4,7 +4,6 @@ import (
 	"embed"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -30,14 +29,27 @@ var (
 	mEscalation = msgs.M("escalation")
 	mKeyExpired = msgs.M("keyExpired")
 	mActionThis = msgs.M("action.this")
+
+	// Problems the middleware writes in the request's language.
+	mNotForThisKey         = msgs.M("problem.notForThisKey")
+	mIntegrationOnly       = msgs.M("problem.integrationOnly")
+	mWordPressOnly         = msgs.M("problem.wordpressOnly")
+	mKeyOnly               = msgs.M("problem.keyOnly")
+	mIntegrationsOff       = msgs.M("problem.integrationsOff")
+	mIntegrationKeyRevoked = msgs.M("problem.integrationKeyRevoked")
+	mIntegrationKeyExpired = msgs.M("problem.integrationKeyExpired")
+	mOwnerLeft             = msgs.M("problem.ownerLeft")
 )
 
-// fixed maps the English of the problems the middleware writes to their messages.
+// fixed maps the English of problems written without the request's
+// language to their messages: the middleware's own (fixed.*), and every
+// package's "Campaign not found." (notFound.*, one message per kind of
+// thing), which NotFound and MapError write without a context.
 var fixed = map[string]i18n.Msg{}
 
 func init() {
 	for _, k := range msgs.Keys() {
-		if strings.HasPrefix(k, "fixed.") {
+		if strings.HasPrefix(k, "fixed.") || strings.HasPrefix(k, "notFound.") {
 			m := msgs.M(k)
 			fixed[m.Source()] = m
 		}
@@ -106,10 +118,7 @@ func RoleName(l i18n.Lang, key, name string) string {
 	return m.Text(l, nil)
 }
 
-var (
-	escalationRe = regexp.MustCompile(`^You can't grant (.+) because you don't hold it\.$`)
-	keyExpiredRe = regexp.MustCompile(`^This API key expired on (.+)\. Rotate it in Settings › Keys & MCP\.$`)
-)
+var escalationRe = regexp.MustCompile(`^You can't grant (.+) because you don't hold it\.$`)
 
 // localizedDetail writes an access problem's detail in another language.
 func localizedDetail(p *Problem, l i18n.Lang) (string, bool) {
@@ -123,11 +132,6 @@ func localizedDetail(p *Problem, l i18n.Lang) (string, bool) {
 	}
 	if m, ok := fixed[p.Detail]; ok {
 		return m.Text(l, nil), true
-	}
-	if m := keyExpiredRe.FindStringSubmatch(p.Detail); m != nil {
-		if t, err := time.Parse("Jan 2, 2006", m[1]); err == nil {
-			return mKeyExpired.Text(l, i18n.Args{"date": l.Region.Date(t)}), true
-		}
 	}
 	return "", false
 }
