@@ -187,5 +187,7 @@
   "reason.short.cvc": "your card's security code is incorrect",
   "reason.short.number": "your card number is incorrect",
   "reason.short.unsupported": "your card does not support this type of purchase",
-  "reason.short.processing": "an error occurred while processing your card"
+  "reason.short.processing": "an error occurred while processing your card",
+
+  "source.gift": { "message": "Gift from {giver}", "note": "a paid member's source when a gift brought them; giver: the buyer's name (as gifts' sourceLabel)" }
 }

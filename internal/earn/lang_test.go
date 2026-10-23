@@ -77,14 +77,21 @@ func TestEarnInVietnamese(t *testing.T) {
 	if len(comp) != 1 {
 		t.Fatalf("complimentary: %+v", comp)
 	}
-	var m struct{ GrantNote string }
+	var m struct {
+		GrantNote string
+		Source    struct{ Kind, Label string }
+	}
 	vi.Do(http.MethodGet, f.base+"/members/"+comp[0].ID, nil).MustStatus(t, 200).JSON(t, &m)
 	if m.GrantNote != "Đã trả phí đến ngày ghi trong tệp CSV, không có thuê bao trong Stripe" {
 		t.Fatalf("grant note (vi): %q", m.GrantNote)
 	}
+	// So does where the member came from, stored in English.
+	if m.Source.Kind != "import" || m.Source.Label != "Nhập từ tệp CSV" {
+		t.Fatalf("source (vi): %+v", m.Source)
+	}
 	f.c.Do(http.MethodGet, f.base+"/members/"+comp[0].ID, nil).MustStatus(t, 200).JSON(t, &m)
-	if m.GrantNote != "Paid-through date from the CSV file, with no subscription in Stripe" {
-		t.Fatalf("grant note (en): %q", m.GrantNote)
+	if m.GrantNote != "Paid-through date from the CSV file, with no subscription in Stripe" || m.Source.Label != "Imported from a CSV file" {
+		t.Fatalf("grant note and source (en): %q, %+v", m.GrantNote, m.Source)
 	}
 	if _, err := f.env.App.Pool.Exec(context.Background(), `UPDATE paid_subscriptions SET grant_note = 'Moved from our old shop' WHERE id = $1`, comp[0].ID); err != nil {
 		t.Fatal(err)

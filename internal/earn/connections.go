@@ -366,7 +366,7 @@ func (s *Service) view(ctx context.Context, c connRow, activeSubs int64) EarnCon
 	w.Reach.Host = publicHost(s.URLs.Base())
 	var reach Reach
 	if json.Unmarshal(c.WebhookReach, &reach) == nil && !reach.At.IsZero() {
-		w.Reach = EarnReach{OK: reach.OK, Checked: true, At: &reach.At, Code: reach.Code, Reason: reach.Reason, Host: w.Reach.Host}
+		w.Reach = EarnReach{OK: reach.OK, Checked: true, At: &reach.At, Code: reach.Code, Reason: keptOr(reach.ReasonText, lang(ctx), reach.Reason), Host: w.Reach.Host}
 	}
 	_ = json.Unmarshal(c.GapHistory, &w.GapRuns)
 	if w.GapRuns == nil {

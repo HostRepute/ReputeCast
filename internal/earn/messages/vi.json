@@ -187,5 +187,7 @@
   "reason.short.cvc": "mã bảo mật của thẻ không đúng",
   "reason.short.number": "số thẻ không đúng",
   "reason.short.unsupported": "thẻ không hỗ trợ loại giao dịch này",
-  "reason.short.processing": "có lỗi khi xử lý thẻ"
+  "reason.short.processing": "có lỗi khi xử lý thẻ",
+
+  "source.gift": "Quà tặng từ {giver}"
 }

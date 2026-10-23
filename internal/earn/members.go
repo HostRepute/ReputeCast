@@ -321,6 +321,9 @@ func scanMember(rows pgx.Rows, listNames func(*uuid.UUID) []string) (EarnMemberR
 	_ = json.Unmarshal(detail, &d)
 	r.Source.Platform, r.Source.ImportID = d.Platform, d.ImportID
 	r.labelText = d.Label
+	if r.labelText.IsZero() {
+		r.labelText = sourceKept(r.Source.Kind, r.Source.Label, d.From)
+	}
 	if r.Kind == "gift" {
 		r.GiftFrom, r.GiftMonths = d.From, d.Months
 	}

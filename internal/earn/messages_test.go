@@ -127,3 +127,23 @@ func TestFormatsInEachLanguage(t *testing.T) {
 		}
 	}
 }
+
+// A source ReputeCast wrote before sources kept their message reads in the
+// reader's language; one a person wrote stays as stored.
+func TestSourceKept(t *testing.T) {
+	vi := i18n.For(i18n.Vietnamese)
+	if got := sourceKept("gift", "Gift from Priya Natarajan", "Priya Natarajan").In(vi); got != "Quà tặng từ Priya Natarajan" {
+		t.Errorf("gift: %q", got)
+	}
+	if got := sourceKept("import", "Imported from Substack", "").In(vi); got != "Nhập từ Substack" {
+		t.Errorf("import: %q", got)
+	}
+	if got := sourceKept("import", "Imported from a CSV file", "").In(vi); got != "Nhập từ tệp CSV" {
+		t.Errorf("CSV import: %q", got)
+	}
+	for _, c := range [][3]string{{"gift", "A present from Priya", "Priya Natarajan"}, {"gift", "Gift from Priya", ""}, {"page", "Upgrade page", ""}, {"import", "From the old shop", ""}} {
+		if !sourceKept(c[0], c[1], c[2]).IsZero() {
+			t.Errorf("%v: kept a label ReputeCast didn't write", c)
+		}
+	}
+}

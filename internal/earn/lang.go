@@ -68,6 +68,29 @@ func keptOr(t i18n.Text, l i18n.Lang, english string) string {
 	return english
 }
 
+// sourceKept is a paid member's source as ReputeCast wrote it, as a message
+// for its readers' languages, for a row that keeps none beside it (written
+// before sources kept one): an import's "Imported from Substack", a gift's
+// "Gift from Priya Natarajan". A label that isn't ReputeCast's sentence
+// stays as stored (zero Text).
+func sourceKept(kind, label, giver string) i18n.Text {
+	switch kind {
+	case "import":
+		for _, src := range importSources {
+			if t := msgs.M("import.source").Keep(platformArgs(src)); t.In(defaultLang) == label {
+				return t
+			}
+		}
+	case "gift":
+		if giver != "" {
+			if t := msgs.M("source.gift").Keep(i18n.Args{"giver": giver}); t.In(defaultLang) == label {
+				return t
+			}
+		}
+	}
+	return i18n.Text{}
+}
+
 // standard reports whether a language writes ReputeCast's own formats.
 func standard(l i18n.Lang) bool { return l.Region == "" || l.Region == i18n.Standard }
 
