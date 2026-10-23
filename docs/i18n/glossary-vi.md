@@ -332,6 +332,7 @@ stay as they are.
 | title (of an article card, a post) | tựa đề ("tiêu đề" is the email's subject) |
 | Email preferences link · View in browser link | Liên kết tùy chọn email · Liên kết xem trên trình duyệt |
 | starter (template) | mẫu khởi đầu |
+| starters: Blank · Weekly digest · Product update · Plain text · Announcement · Product grid · Blog digest | Trống · Bản tin hằng tuần · Cập nhật sản phẩm · Văn bản thuần · Thông báo · Lưới sản phẩm · Bản tin blog |
 
 MJML tags (mj-section, mj-body) stay as they are. Section names in the
 server's sentences use the composer's words: đầu thư, chân thư, hero,
@@ -408,6 +409,11 @@ fallback "there" is "bạn".
 | readers (of a language) | người đọc |
 | page copy · built-in labels | nội dung trang · nhãn có sẵn |
 | Results per language · click map | Kết quả theo ngôn ngữ · bản đồ lượt nhấp |
+| no language · other languages (results) | không có ngôn ngữ · ngôn ngữ khác |
+| compare view's blocks: Header · Footer · Raw HTML · Social links · Two cards · 3 columns · Hero image · Button · Intro · The email | Đầu thư · Chân thư · HTML thô · Liên kết mạng xã hội · Hai thẻ · 3 cột · Hình ảnh hero · Nút · Phần mở đầu · Toàn bộ email |
+| Headline (a block) · no alt text | Dòng tít ("Đề mục" is a heading) · không có văn bản thay thế |
+| version labels: copied from · layout of · applied from · block copied from · changed by an agent · edited in the flow editor · translated from | chép từ · bố cục của · áp dụng từ · khối chép từ · do tác tử thay đổi · sửa trong trình chỉnh sửa quy trình · dịch từ |
+| a language's changes after approval: added · marked translated · back to draft · sent again · edited | mới thêm · đã đánh dấu là đã dịch · trở lại bản nháp · được gửi lại · đã sửa |
 
 ## Accessibility
 
