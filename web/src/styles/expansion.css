@@ -469,3 +469,14 @@
   flex-wrap: wrap;
   row-gap: 4px;
 }
+
+/* A digest's opens by issue (digests/IssuesCard): an issue's label under
+   its bar ("#1 · Th 7, 10 thg 10") breaks after its number, never inside
+   its date, in a column of up to 120 px instead of the board's 90 px (the
+   labels stay centered under their bars). */
+:root:not([lang='en']) .dg-bar-label {
+  max-width: 120px;
+}
+:root:not([lang='en']) .dg-bar-date {
+  white-space: nowrap;
+}

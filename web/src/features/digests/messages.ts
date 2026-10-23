@@ -324,6 +324,7 @@ export const m = defineMessages('digests', {
   chartTitle: 'Human opens by issue',
   chartSub: 'The last sent issues, one bar each',
   chartBar: '#{number} · {date}',
+  chartBarLabel: '#{number} · <d>{date}</d>',
   chartClicks: '{value} clicks',
   chartNotSent: 'not sent yet',
   chartCollecting: 'collecting',

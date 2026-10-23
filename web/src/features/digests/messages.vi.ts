@@ -338,6 +338,7 @@ export default translate(m, {
   chartTitle: 'Lượt mở bởi người đọc theo từng số',
   chartSub: 'Các số đã gửi gần đây, mỗi số một cột',
   chartBar: '#{number} · {date}',
+  chartBarLabel: '#{number} · <d>{date}</d>',
   chartClicks: '{value} lượt nhấp',
   chartNotSent: 'chưa gửi',
   chartCollecting: 'đang thu thập',

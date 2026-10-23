@@ -5,7 +5,7 @@ import { Button, ButtonLink } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Feedback'
 import { Icon, type IconName } from '@/components/icons/Icon'
 import { Table, Td, Th } from '@/components/ui/Table'
-import { formatList, useT } from '@/i18n'
+import { formatList, T, useT } from '@/i18n'
 import { clock, count, pct, shortDate, zonedParts } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
@@ -39,6 +39,9 @@ function issueNumber(is: DigestIssue, d: Digest): string {
   if (d.next && d.next.id === is.id) return `#${d.next.number}`
   return '–'
 }
+
+/** An issue's date under its bar, kept whole when the label wraps (styles/expansion.css). */
+const barDate = (c: ReactNode[]) => <span className="dg-bar-date">{c}</span>
 
 /** A change under a number ("+1 so với #1", "−0,7 điểm %"): one line, so the unit never goes alone. */
 function Delta({ children }: { children: ReactNode }) {
@@ -333,14 +336,18 @@ export function OpensChart({ d }: { d: Digest }) {
         {sent.length ? (
           <div className="ml-10 flex justify-around gap-4 max-md:hidden" aria-hidden="true">
             {sent.map((x) => (
-              <div key={x.id} className="flex max-w-[90px] flex-1 flex-col items-center text-center">
-                <span className="text-[12px] font-semibold">{t(m.chartBar, { number: x.number!, date: x.sendAt ? shortDate(x.sendAt) : '' })}</span>
+              <div key={x.id} className="dg-bar-label flex max-w-[90px] flex-1 flex-col items-center text-center">
+                <span className="text-[12px] font-semibold">
+                  <T msg={m.chartBarLabel} values={{ number: x.number!, date: x.sendAt ? shortDate(x.sendAt) : '', d: barDate }} />
+                </span>
                 <span className="k text-[11px]">{t(m.chartClicks, { value: pct(x.clicks) })}</span>
               </div>
             ))}
             {next && d.state === 'on' ? (
-              <div className="flex max-w-[90px] flex-1 flex-col items-center text-center">
-                <span className="text-[12px] font-semibold">{t(m.chartBar, { number: next.number, date: next.sendAt ? shortDate(next.sendAt) : '' })}</span>
+              <div className="dg-bar-label flex max-w-[90px] flex-1 flex-col items-center text-center">
+                <span className="text-[12px] font-semibold">
+                  <T msg={m.chartBarLabel} values={{ number: next.number, date: next.sendAt ? shortDate(next.sendAt) : '', d: barDate }} />
+                </span>
                 <span className="k text-[11px]">{t(m.chartNotSent)}</span>
               </div>
             ) : null}
