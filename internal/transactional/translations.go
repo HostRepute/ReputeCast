@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -196,7 +195,7 @@ func (s *Service) SaveDraftIn(ctx context.Context, ws *store.Workspace, p *authz
 func (s *Service) sharedChanges(ctx context.Context, ws *store.Workspace, id uuid.UUID, in TransactionalDraftSave) (*TransactionalDraftSave, error) {
 	cur, err := s.Q.TxnTemplate(ctx, store.TxnTemplateParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
-		return nil, api.MapError(err, "Template")
+		return nil, mapTemplateErr(ctx, err)
 	}
 	out := TransactionalDraftSave{BaseRevision: int(cur.DraftRevision), Label: in.Label, Source: in.Source}
 	changed := false

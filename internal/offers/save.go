@@ -58,7 +58,10 @@ func invalid(ctx context.Context, location, key string, args i18n.Args) *api.Pro
 	return api.Invalid(location, text(ctx, key, args))
 }
 
-func notFound() *api.Problem { return api.NotFound("Offer") }
+// notFound is a 404 in the reader's language.
+func notFound(ctx context.Context) *api.Problem {
+	return api.Err(http.StatusNotFound, api.CodeNotFound, text(ctx, "problem.notFound", nil))
+}
 
 // location is the workspace's time zone.
 func location(ws *store.Workspace) *time.Location {
@@ -273,7 +276,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in OfferInput) (OfferDetail, error) {
 	before, err := s.Q.OfferGet(ctx, store.OfferGetParams{ID: id, WorkspaceID: ws.ID})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return OfferDetail{}, notFound()
+		return OfferDetail{}, notFound(ctx)
 	}
 	if err != nil {
 		return OfferDetail{}, err
@@ -342,7 +345,7 @@ func eqTime(a, b *time.Time) bool {
 func (s *Service) End(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (OfferDetail, error) {
 	r, err := s.Q.OfferGet(ctx, store.OfferGetParams{ID: id, WorkspaceID: ws.ID})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return OfferDetail{}, notFound()
+		return OfferDetail{}, notFound(ctx)
 	}
 	if err != nil {
 		return OfferDetail{}, err
@@ -374,7 +377,7 @@ func (s *Service) End(ctx context.Context, ws *store.Workspace, p *authz.Princip
 func (s *Service) Recreate(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (OfferDetail, error) {
 	r, err := s.Q.OfferGet(ctx, store.OfferGetParams{ID: id, WorkspaceID: ws.ID})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return OfferDetail{}, notFound()
+		return OfferDetail{}, notFound(ctx)
 	}
 	if err != nil {
 		return OfferDetail{}, err
@@ -546,9 +549,21 @@ func syncError(err error) string {
 		return fmt.Sprintf("%d %s", ae.Status, ae.Message)
 	}
 	if errors.Is(err, payments.ErrUnavailable) {
-		return "unreachable"
+		return syncUnreachable
 	}
 	return err.Error()
+}
+
+// syncUnreachable is the stored error of a provider that didn't answer.
+const syncUnreachable = "unreachable"
+
+// syncErrorIn is a stored sync error as a reader reads it: the provider's
+// answer as it came, and an unreachable provider in the reader's language.
+func syncErrorIn(ctx context.Context, stored string) string {
+	if stored == syncUnreachable {
+		return text(ctx, "sync.unreachable", nil)
+	}
+	return stored
 }
 
 // deactivate turns an ended offer's promotion code off in the provider.

@@ -23,6 +23,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -433,7 +434,7 @@ func (s *Service) MessageLog(ctx context.Context, ws *store.Workspace, f LogFilt
 		return out, err
 	}
 	for _, r := range rows {
-		out.Items = append(out.Items, logItem(r))
+		out.Items = append(out.Items, itemIn(lang(ctx), logItem(r)))
 	}
 	if len(rows) > 0 {
 		out.Newest = encodeCursor(rows[0].AcceptedAt, rows[0].MessageID)
@@ -686,13 +687,13 @@ func (s *Service) Message(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		return TransactionalMessageDetail{}, err
 	}
 	pr := api.PrincipalFrom(ctx)
-	item := logItem(store.TxnLogRow{MessageID: r.MessageID, AcceptedAt: r.AcceptedAt, Email: r.Email, ContactID: r.ContactID, ToName: r.ToName, Source: r.Source,
+	item := itemIn(lang(ctx), logItem(store.TxnLogRow{MessageID: r.MessageID, AcceptedAt: r.AcceptedAt, Email: r.Email, ContactID: r.ContactID, ToName: r.ToName, Source: r.Source,
 		TemplateKey: r.TemplateKey, TemplateName: r.TemplateName, TemplateVersion: r.TemplateVersion, Subject: r.Subject, ProviderID: r.ProviderID,
 		ProviderName: r.ProviderName, Error: r.Error, SentAt: r.SentAt, DeliveredAt: r.DeliveredAt, OpenedAt: r.OpenedAt, ClickedAt: r.ClickedAt,
 		Test: r.Test, TestDelivered: r.TestDelivered, RejectReason: r.RejectReason, RejectDetail: r.RejectDetail, TrackOpens: r.TrackOpens,
 		TrackClicks: r.TrackClicks, FailedOverFrom: r.FailedOverFrom, FailedOverFromName: r.FailedOverFromName, FailedOverAt: r.FailedOverAt,
 		KeyID: r.KeyID, KeyName: r.KeyName, IdempotencyKey: r.IdempotencyKey, Tags: r.Tags, Metadata: r.Metadata, CategoryName: r.CategoryName,
-		CategoryKind: r.CategoryKind, Status: r.Status, RoleAddress: r.RoleAddress, Language: r.Language})
+		CategoryKind: r.CategoryKind, Status: r.Status, RoleAddress: r.RoleAddress, Language: r.Language}))
 	out := TransactionalMessageDetail{TransactionalLogItem: item, CategoryKind: r.CategoryKind, ProviderMessageID: r.ProviderMessageID,
 		IdempotencyKey: r.IdempotencyKey, Tags: nonNilStrings(r.Tags), Metadata: map[string]string{}, From: addrLine(r.FromName, r.FromEmail), ReplyTo: r.ReplyTo,
 		Cc: nonNilStrings(r.Cc), Bcc: nonNilStrings(r.Bcc), Dropped: []string{}, Attachments: []TransactionalAttachmentMeta{}, SizeBytes: int(r.SizeBytes),
@@ -754,6 +755,12 @@ func (s *Service) Message(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		PMID      string    `json:"provider_message_id"`
 	}
 	_ = json.Unmarshal(r.Attempts, &tried)
+	// The sending engine's errors read in the reader's language; a
+	// provider's answer as it wrote it.
+	l := lang(ctx)
+	for i := range tried {
+		tried[i].Error = routing.DeliveryErrorIn(l, tried[i].Error)
+	}
 	for _, a := range tried {
 		out.Attempts = append(out.Attempts, TransactionalAttempt{Provider: a.Provider, At: a.At, OK: a.OK, Error: a.Error, Temporary: a.Temporary, GaveUp: a.GaveUp, Down: a.Down})
 	}
@@ -825,7 +832,7 @@ func (s *Service) Message(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		tl = append(tl, e)
 	}
 	if r.RawStatus == "failed" && (len(tried) == 0 || !tried[len(tried)-1].GaveUp) {
-		tl = append(tl, TransactionalTimelineEntry{At: lastAt(tl), Kind: "failed", Detail: r.Error})
+		tl = append(tl, TransactionalTimelineEntry{At: lastAt(tl), Kind: "failed", Detail: routing.DeliveryErrorIn(l, r.Error)})
 	}
 	events, err := s.Q.TxnMessageEvents(ctx, &id)
 	if err != nil {
@@ -1325,7 +1332,7 @@ func (s *Service) ContactActivity(ctx context.Context, ws *store.Workspace, cont
 	out := TransactionalContactActivity{Messages: []TransactionalContactMessage{}, OptOuts: []TransactionalContactOptOut{}, Categories: []TransactionalContactCategory{}}
 	c, err := s.Q.GetContact(ctx, store.GetContactParams{WorkspaceID: ws.ID, ID: contactID})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return out, api.NotFound("Contact")
+		return out, notFound(ctx, "contact")
 	}
 	if err != nil {
 		return out, err

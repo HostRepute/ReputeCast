@@ -35,7 +35,7 @@ type FormDownload struct {
 func (s *Service) FormDownloadOf(ctx context.Context, ws *store.Workspace, formID uuid.UUID) (FormDownload, error) {
 	d, err := s.Q.FormDownloadGet(ctx, store.FormDownloadGetParams{ID: formID, WorkspaceID: ws.ID})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return FormDownload{}, api.NotFound("Form")
+		return FormDownload{}, notFound(ctx, "form")
 	}
 	if err != nil {
 		return FormDownload{}, err
@@ -64,7 +64,7 @@ func (s *Service) FormDownloadDays(ctx context.Context, ws *store.Workspace, p *
 		q := store.New(tx)
 		cur, err := q.FormDownloadGet(ctx, store.FormDownloadGetParams{ID: formID, WorkspaceID: ws.ID})
 		if err != nil {
-			return api.MapError(err, "Form")
+			return mapErr(ctx, err, "form")
 		}
 		if cur.DownloadDays == days {
 			return nil

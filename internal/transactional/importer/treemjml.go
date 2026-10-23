@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Notifuse's visual editor stores an email as a tree of MJML blocks:
@@ -59,7 +61,7 @@ func TreeToMJML(raw json.RawMessage) (string, []Note, error) {
 		if tag == "mj-liquid" {
 			// Liquid code renders at send time inside raw HTML.
 			tag = "mj-raw"
-			notes = append(notes, Note{Kind: NoteChange, Field: "body", Message: "Notifuse's Liquid block became an `mj-raw` block with the same code."})
+			notes = append(notes, noteOf(NoteChange, "body", 0, "", say("note.notifuseLiquidBlock", nil)))
 		}
 		if !mjmlTags[tag] {
 			skipped[n.Type] = true
@@ -96,7 +98,7 @@ func TreeToMJML(raw json.RawMessage) (string, []Note, error) {
 			names = append(names, "`"+k+"`")
 		}
 		sort.Strings(names)
-		notes = append(notes, Note{Kind: NoteManual, Field: "body", Message: "these Notifuse blocks have no MJML equivalent and were left out: " + strings.Join(names, ", ") + "."})
+		notes = append(notes, noteOf(NoteManual, "body", 0, "", say("note.notifuseBlocks", i18n.Args{"names": strings.Join(names, ", ")})))
 	}
 	return b.String(), dedupeNotes(notes), nil
 }

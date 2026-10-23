@@ -11,6 +11,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/payments"
@@ -230,9 +231,11 @@ func (s *Service) healthCheck(ctx context.Context, c store.PaymentConnection) er
 }
 
 func (s *Service) notifyAttention(ctx context.Context, ws *store.Workspace, c store.PaymentConnection, reason string, now time.Time) error {
-	title := msgs.M("notify.attention."+reason+".title").Text(defaultLang, nil)
-	body := msgs.M("notify.attention."+reason+".body").Text(defaultLang, map[string]any{"account": c.AccountName, "date": now.In(location(ws)).Format("2 Jan, 15:04")})
-	n := notify.Notification{WorkspaceID: &ws.ID, Kind: KindPaymentsAttention, Severity: "bad", Title: title, Body: body,
+	// Kept as messages, so each member reads it in their own language; the
+	// time in the workspace's zone.
+	args := i18n.Args{"account": c.AccountName, "at": now.In(location(ws))}
+	n := notify.Notification{WorkspaceID: &ws.ID, Kind: KindPaymentsAttention, Severity: "bad",
+		TitleText: msgs.M("notify.attention." + reason + ".title").Keep(nil), BodyText: msgs.M("notify.attention." + reason + ".body").Keep(args),
 		Link: "/w/" + ws.Slug + "/earn/settings?tab=payments", Data: map[string]any{"reason": reason, "connection": c.ID.String(), "mode": c.Mode}}
 	if reason == "webhook_silent" {
 		n.Severity = "warn"
@@ -322,9 +325,9 @@ func (s *Service) DailyFailed(ctx context.Context) error {
 			return err
 		}
 		n := notify.Notification{WorkspaceID: &w.ws.ID, Kind: KindFailedPayments, Severity: "warn",
-			Title: msgs.M("notify.failedTitle").Text(defaultLang, map[string]any{"count": w.n}),
-			Body:  msgs.M("notify.failedBody").Text(defaultLang, map[string]any{"count": w.n}),
-			Link:  "/w/" + w.ws.Slug + "/earn/members?status=past_due"}
+			TitleText: msgs.M("notify.failedTitle").Keep(i18n.Args{"count": w.n}),
+			BodyText:  msgs.M("notify.failedBody").Keep(i18n.Args{"count": w.n}),
+			Link:      "/w/" + w.ws.Slug + "/earn/members?status=past_due"}
 		for _, uid := range ids {
 			// Off by default: only people who turned it on get it.
 			var on bool

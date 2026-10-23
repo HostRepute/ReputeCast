@@ -6,7 +6,7 @@ import { Icon } from '@/components/icons/Icon'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { Loading, Skeleton } from '@/components/ui/Feedback'
-import { Th } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { clock, count, dayMonthDate, orList, shortDate, weekdayDate } from '@/lib/format'
@@ -342,7 +342,7 @@ function RealtimeCard({ v, rt }: { v: ServiceView; rt: NonNullable<ReturnType<ty
         </div>
       ) : null}
       <section className="card overflow-hidden">
-        <div className="relative overflow-x-auto">
+        <TableScroll label={t(m.formsTableLabel)}>
           <table className="tbl" aria-label={t(m.formsTableLabel)}>
             <thead>
               <tr>
@@ -384,7 +384,7 @@ function RealtimeCard({ v, rt }: { v: ServiceView; rt: NonNullable<ReturnType<ty
               })}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
         <div className="ih-foot border-t border-line-2 px-[18px] py-3">
           <span className="k">{t(m.realtimeFoot)}</span>
         </div>
@@ -672,7 +672,7 @@ function MapCard({ v }: { v: ServiceView }) {
           <span className="k">{t(m.mapLead)}</span>
         </div>
       </div>
-      <div className="relative overflow-x-auto">
+      <TableScroll label={t(m.mapTableLabel, { name: v.name })}>
         <table className="tbl" aria-label={t(m.mapTableLabel, { name: v.name })}>
           <thead>
             <tr>
@@ -703,7 +703,7 @@ function MapCard({ v }: { v: ServiceView }) {
             ))}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
       {first ? (
         <div className="border-t border-line-2 px-[18px] py-3">
           <span className="k">{t(m.mapFoot, { name: v.name, code: first.codes[0] ?? '' })}</span>
@@ -745,7 +745,7 @@ function UsesCard({ v, uses, canManage }: { v: ServiceView; uses: Use[]; canMana
           <span className="k">{t(m.usesNone)}</span>
         </div>
       ) : (
-        <div className="relative overflow-x-auto">
+        <TableScroll label={t(m.usesTableLabel, { name: v.name })}>
           <table className="tbl" aria-label={t(m.usesTableLabel, { name: v.name })}>
             <thead>
               <tr>
@@ -797,7 +797,7 @@ function UsesCard({ v, uses, canManage }: { v: ServiceView; uses: Use[]; canMana
               ))}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
       )}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-2 px-[18px] py-3">
         <span className="k flex-[1_1_320px]">{t(m.usesFoot)}</span>

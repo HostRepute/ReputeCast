@@ -2,20 +2,18 @@ package transactional
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
 
-	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/store"
 )
-
-func mapTemplateErr(err error) error { return api.MapError(err, "Template") }
 
 // Check severities.
 const (
@@ -126,8 +124,11 @@ type checkSubject struct {
 	TemplateID  uuid.UUID
 }
 
-// runChecks runs every check on a template's content.
+// runChecks runs every check on a template's content, its words in the
+// reader's language.
 func (s *Service) runChecks(ctx context.Context, cs checkSubject) TransactionalChecks {
+	l := lang(ctx)
+	t := func(key string, args i18n.Args) string { return texts.M(key).Text(l, args) }
 	out := TransactionalChecks{ClipBytes: contentcheck.ClipBytes, Checks: []TransactionalCheck{}, TestData: []TransactionalTestRender{},
 		Variables: TransactionalVariableReport{Used: []VariableUse{}, Undeclared: []VariableUse{}, Unused: []string{}}}
 	add := func(c TransactionalCheck) {
@@ -146,17 +147,17 @@ func (s *Service) runChecks(ctx context.Context, cs checkSubject) TransactionalC
 
 	// Liquid syntax: a template that doesn't parse can't be published.
 	liquidOK := true
-	for _, part := range []struct{ where, label, src string }{{"subject", "Subject", cs.Subject}, {"preheader", "Preheader", cs.Preheader}, {"body", "Body", body}, {"text", "Plain text", cs.Text}} {
+	for _, part := range []struct{ where, src string }{{"subject", cs.Subject}, {"preheader", cs.Preheader}, {"body", body}, {"text", cs.Text}} {
 		for _, p := range liquid.Validate(part.src) {
 			liquidOK = false
-			title := "Liquid error"
+			title := t("check.liquid", nil)
 			if p.Line > 0 && part.where == "body" {
-				title = fmt.Sprintf("Liquid error on line %d", p.Line)
+				title = t("check.liquidLine", i18n.Args{"line": strconv.Itoa(p.Line)})
 			} else if part.where != "body" {
-				title = "Liquid error in the " + strings.ToLower(part.label)
+				title = t("check.liquidIn", i18n.Args{"part": part.where})
 			}
 			add(TransactionalCheck{ID: "liquid.syntax", Severity: SevBlock, Group: "Variables", Where: part.where, Line: p.Line, Title: title,
-				Detail: liquidMessage(p) + " The template can't render, so it can't be published."})
+				Detail: t("check.liquidDetail", i18n.Args{"problem": liquidMessage(l, p)})})
 		}
 	}
 
@@ -177,17 +178,11 @@ func (s *Service) runChecks(ctx context.Context, cs checkSubject) TransactionalC
 			continue
 		}
 		out.Variables.Undeclared = append(out.Variables.Undeclared, u)
-		where := ""
-		if u.Where == "body" {
-			where = fmt.Sprintf(" on line %d", u.Line)
-		} else {
-			where = " in the " + u.Where
-		}
 		add(TransactionalCheck{ID: "variables.undeclared", Severity: SevWarn, Group: "Variables", Where: u.Where, Line: u.Line, Variable: u.Name,
-			Title:  fmt.Sprintf("%s is used but not declared", u.Name),
-			Detail: fmt.Sprintf("%s is used%s but not declared. Calls won't send it, so it prints nothing.", u.Name, where),
-			Fixes: []TransactionalCheckFix{{Kind: "declare_variable", Label: "Declare it as optional text", Variable: u.Name},
-				{Kind: "remove_variable", Label: "Remove it", Variable: u.Name}}})
+			Title:  t("check.undeclared", i18n.Args{"name": u.Name}),
+			Detail: t("check.undeclaredDetail", i18n.Args{"name": u.Name, "where": u.Where, "line": strconv.Itoa(u.Line)}),
+			Fixes: []TransactionalCheckFix{{Kind: "declare_variable", Label: t("check.fix.declare", nil), Variable: u.Name},
+				{Kind: "remove_variable", Label: t("check.fix.remove", nil), Variable: u.Name}}})
 	}
 	for _, v := range cs.Variables {
 		if usedNames[v.Name] {
@@ -195,18 +190,18 @@ func (s *Service) runChecks(ctx context.Context, cs checkSubject) TransactionalC
 		}
 		out.Variables.Unused = append(out.Variables.Unused, v.Name)
 		add(TransactionalCheck{ID: "variables.unused", Severity: SevInfo, Group: "Variables", Variable: v.Name,
-			Title:  fmt.Sprintf("%s is declared but never used", v.Name),
-			Detail: "It's harmless; remove it to keep the payload honest.",
-			Fixes:  []TransactionalCheckFix{{Kind: "remove_variable", Label: "Remove the declaration", Variable: v.Name}}})
+			Title:  t("check.unused", i18n.Args{"name": v.Name}),
+			Detail: t("check.unusedDetail", nil),
+			Fixes:  []TransactionalCheckFix{{Kind: "remove_variable", Label: t("check.fix.removeDeclaration", nil), Variable: v.Name}}})
 	}
 
 	// A sensitive variable in the subject ends up in the log.
 	for _, u := range usedVariables(cs.Subject, "subject") {
 		if v, ok := declared[u.Name]; ok && v.Sensitive {
 			add(TransactionalCheck{ID: "variables.sensitive_subject", Severity: SevWarn, Group: "Privacy", Where: "subject", Variable: u.Name,
-				Title:  fmt.Sprintf("%s is sensitive but appears in the subject", u.Name),
-				Detail: "Subjects are stored in the message log, so the value would be kept. Move it to the body.",
-				Fixes:  []TransactionalCheckFix{{Kind: "move_to_body", Label: "Remove it from the subject", Variable: u.Name}}})
+				Title:  t("check.sensitive", i18n.Args{"name": u.Name}),
+				Detail: t("check.sensitiveDetail", nil),
+				Fixes:  []TransactionalCheckFix{{Kind: "move_to_body", Label: t("check.fix.moveToBody", nil), Variable: u.Name}}})
 		}
 	}
 
@@ -214,41 +209,41 @@ func (s *Service) runChecks(ctx context.Context, cs checkSubject) TransactionalC
 	// that would fail.
 	if liquidOK {
 		for _, td := range cs.TestData {
-			r := s.testRender(cs.content, td.Name, "test_data", td.Data)
+			r := s.testRender(l, cs.content, td.Name, "test_data", td.Data)
 			out.TestData = append(out.TestData, r)
 			if len(r.Missing) > 0 {
 				v := r.Missing[0]
 				add(TransactionalCheck{ID: "testdata.missing", Severity: SevBlock, Group: "Test data", TestData: td.Name, Variable: v,
-					Title:  fmt.Sprintf("“%s” can't render", td.Name),
-					Detail: fmt.Sprintf("%s is required and missing from “%s”. A real call shaped like this one fails with missing_variables and sends nothing.", joinAnd(r.Missing), td.Name),
-					Fixes:  []TransactionalCheckFix{{Kind: "add_test_value", Label: "Add " + v + " with its sample value", Variable: v, TestData: td.Name}}})
+					Title:  t("check.testData", i18n.Args{"name": td.Name}),
+					Detail: t("check.testDataMissing", i18n.Args{"names": andList(l, r.Missing), "name": td.Name}),
+					Fixes:  []TransactionalCheckFix{{Kind: "add_test_value", Label: t("check.fix.addTestValue", i18n.Args{"name": v}), Variable: v, TestData: td.Name}}})
 				continue
 			}
 			if !r.OK {
-				add(TransactionalCheck{ID: "testdata.render", Severity: SevBlock, Group: "Test data", TestData: td.Name, Title: fmt.Sprintf("“%s” can't render", td.Name), Detail: r.Problem})
+				add(TransactionalCheck{ID: "testdata.render", Severity: SevBlock, Group: "Test data", TestData: td.Name, Title: t("check.testData", i18n.Args{"name": td.Name}), Detail: r.Problem})
 			}
 		}
 	}
 
 	// Tracking on an Essential template: a privacy note, not a block.
 	if cs.Kind == KindEssential && (cs.TrackOpens || cs.TrackClicks) {
-		what := "Open and click tracking are"
+		what := "both"
 		switch {
 		case !cs.TrackClicks:
-			what = "Open tracking is"
+			what = "opens"
 		case !cs.TrackOpens:
-			what = "Click tracking is"
+			what = "clicks"
 		}
-		add(TransactionalCheck{ID: "privacy.tracking", Severity: SevInfo, Group: "Privacy", Title: what + " on for an Essential template",
-			Detail: "Account emails reach everyone, and recipients can't turn them off. Consider leaving them untracked; rewritten links in a password reset look suspicious to recipients and filters.",
-			Fixes:  []TransactionalCheckFix{{Kind: "turn_off_tracking", Label: "Turn tracking off"}}})
+		add(TransactionalCheck{ID: "privacy.tracking", Severity: SevInfo, Group: "Privacy", Title: t("check.tracking", i18n.Args{"what": what}),
+			Detail: t("check.trackingDetail", nil),
+			Fixes:  []TransactionalCheckFix{{Kind: "turn_off_tracking", Label: t("check.fix.trackingOff", nil)}}})
 	}
 
 	// The composer's content checks, adapted: the unsubscribe link and the
 	// footer address are required for Optional categories only.
 	html, err := cs.compiledHTML()
 	if err != nil {
-		add(TransactionalCheck{ID: "content.compile", Severity: SevBlock, Group: "Content", Title: "The MJML doesn't compile", Detail: sentenceCase(err.Error()) + "."})
+		add(TransactionalCheck{ID: "content.compile", Severity: SevBlock, Group: "Content", Title: t("check.compile", nil), Detail: problemText(l, err)})
 	}
 	// Accessibility: alt text, link text, contrast, headings and text size,
 	// listed after the other checks.
@@ -275,18 +270,20 @@ func (s *Service) runChecks(ctx context.Context, cs checkSubject) TransactionalC
 					continue // listed in the Accessibility group
 				}
 			case "compliance.footer":
+				// Which part is missing, from the English title Check writes.
 				hasUnsub = !strings.Contains(is.Title, "unsubscribe link")
 				hasAddress = !strings.Contains(is.Title, "postal address")
 				if cs.Kind != KindOptional {
 					continue
 				}
-				add(TransactionalCheck{ID: is.ID, Severity: SevBlock, Group: "Compliance", Title: is.Title,
-					Detail: "Optional categories need a visible unsubscribe link and the postal address; the List-Unsubscribe header is added for you.",
-					Fixes:  []TransactionalCheckFix{{Kind: "insert_footer", Label: "Insert the unsubscribe footer"}}})
+				add(TransactionalCheck{ID: is.ID, Severity: SevBlock, Group: "Compliance", Title: is.In(l).Title,
+					Detail: t("check.footerDetail", nil),
+					Fixes:  []TransactionalCheckFix{{Kind: "insert_footer", Label: t("check.fix.footer", nil)}}})
 				continue
 			case "subject.spam":
 				is.Severity = contentcheck.Info
 			}
+			is = is.In(l)
 			c := TransactionalCheck{ID: is.ID, Severity: is.Severity, Group: is.Group, Title: is.Title, Detail: is.Detail, Path: is.Path}
 			for _, f := range is.Fixes {
 				switch f.Kind {
@@ -298,30 +295,31 @@ func (s *Service) runChecks(ctx context.Context, cs checkSubject) TransactionalC
 		}
 		// Passing checks, as the publish dialog lists them.
 		if cs.Kind == KindOptional && hasUnsub {
-			add(TransactionalCheck{ID: "compliance.unsubscribe", Severity: SevPass, Group: "Compliance", Title: "Unsubscribe link present"})
+			add(TransactionalCheck{ID: "compliance.unsubscribe", Severity: SevPass, Group: "Compliance", Title: t("check.pass.unsubscribe", nil)})
 		}
 		if hasAddress {
-			add(TransactionalCheck{ID: "compliance.address", Severity: SevPass, Group: "Compliance", Title: "Footer address"})
+			add(TransactionalCheck{ID: "compliance.address", Severity: SevPass, Group: "Compliance", Title: t("check.pass.address", nil)})
 		}
 		if rep.SizeBytes < contentcheck.NearClipBytes {
-			add(TransactionalCheck{ID: "content.size", Severity: SevPass, Group: "Content", Title: fmt.Sprintf("%d KB of 102 KB", int(math.Max(1, math.Round(float64(rep.SizeBytes)/1024))))})
+			add(TransactionalCheck{ID: "content.size", Severity: SevPass, Group: "Content",
+				Title: t("check.pass.size", i18n.Args{"kb": int(math.Max(1, math.Round(float64(rep.SizeBytes)/1024)))})})
 		}
 		if n := len(rep.LinkList); n > 0 && rep.LinksBlocklisted == 0 && rep.LinksBroken == 0 {
-			title := fmt.Sprintf("%d %s", n, plural(n, "link", "links"))
+			probed := "no"
 			if cs.ProbeLinks {
-				title += " resolve"
+				probed = "yes"
 			}
-			add(TransactionalCheck{ID: "links.ok", Severity: SevPass, Group: "Links", Title: title})
+			add(TransactionalCheck{ID: "links.ok", Severity: SevPass, Group: "Links", Title: t("check.pass.links", i18n.Args{"count": n, "probed": probed})})
 		}
 		if strings.TrimSpace(rep.PlainText) != "" {
-			add(TransactionalCheck{ID: "content.plain_text", Severity: SevPass, Group: "Content", Title: "Plain text"})
+			add(TransactionalCheck{ID: "content.plain_text", Severity: SevPass, Group: "Content", Title: t("check.pass.plainText", nil)})
 		}
 	}
 	if liquidOK {
-		add(TransactionalCheck{ID: "liquid.ok", Severity: SevPass, Group: "Variables", Title: "Liquid renders"})
+		add(TransactionalCheck{ID: "liquid.ok", Severity: SevPass, Group: "Variables", Title: t("check.pass.liquid", nil)})
 	}
 	if len(out.Variables.Undeclared) == 0 && len(cs.Variables) > 0 {
-		add(TransactionalCheck{ID: "variables.ok", Severity: SevPass, Group: "Variables", Title: fmt.Sprintf("%d %s declared and used", len(usedNames), plural(len(usedNames), "variable", "variables"))})
+		add(TransactionalCheck{ID: "variables.ok", Severity: SevPass, Group: "Variables", Title: t("check.pass.variables", i18n.Args{"count": len(usedNames)})})
 	}
 	for _, c := range a11yChecks {
 		add(c)
@@ -361,11 +359,12 @@ func sevRank(s string) int {
 	return 3
 }
 
-// testRender renders a template with one data set.
-func (s *Service) testRender(c content, name, source string, data map[string]any) TransactionalTestRender {
+// testRender renders a template with one data set; its problem is in the
+// reader's language (l).
+func (s *Service) testRender(l i18n.Lang, c content, name, source string, data map[string]any) TransactionalTestRender {
 	r := TransactionalTestRender{Name: name, Source: source, Missing: missingRequired(c.Variables, data), Defaults: []string{}}
 	if len(r.Missing) > 0 {
-		r.Problem = fmt.Sprintf("%s is required and missing.", joinAnd(r.Missing))
+		r.Problem = texts.M("check.requiredMissing").Text(l, i18n.Args{"names": andList(l, r.Missing)})
 		return r
 	}
 	for _, v := range c.Variables {
@@ -375,7 +374,7 @@ func (s *Service) testRender(c content, name, source string, data map[string]any
 	}
 	out, err := render(c, data, recipient{Email: "test@example.com", Name: "Test"}, map[string]string{"unsubscribe_url": "#", "preferences_url": "#"})
 	if err != nil {
-		r.Problem = err.Error()
+		r.Problem = problemText(l, err)
 		return r
 	}
 	r.OK, r.Subject = true, out.Subject
@@ -401,7 +400,7 @@ func (s *Service) TemplateChecks(ctx context.Context, ws *store.Workspace, ref s
 	}
 	t, err := s.Q.TxnTemplate(ctx, store.TxnTemplateParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
-		return TransactionalChecks{}, mapTemplateErr(err)
+		return TransactionalChecks{}, mapTemplateErr(ctx, err)
 	}
 	cs := s.draftSubject(ctx, ws, t)
 	if in.Subject != nil {

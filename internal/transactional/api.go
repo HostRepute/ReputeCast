@@ -87,10 +87,10 @@ type CategoryPath struct {
 	CategoryID string `path:"categoryId" format:"uuid"`
 }
 
-func (in CategoryPath) id() (uuid.UUID, error) {
+func (in CategoryPath) id(ctx context.Context) (uuid.UUID, error) {
 	id, err := uuid.Parse(in.CategoryID)
 	if err != nil {
-		return uuid.Nil, api.NotFound("Category")
+		return uuid.Nil, notFound(ctx, "category")
 	}
 	return id, nil
 }
@@ -239,7 +239,7 @@ func RegisterTemplates(h huma.API, s *Service) {
 	api.Put(h, api.Op{ID: "update-transactional-category", Path: Base + "/categories/{categoryId}", Summary: "Change a category (its kind is fixed while it has templates)",
 		Tags: tagSettings, Access: publish},
 		func(ctx context.Context, in *categoryUpdateInput) (*api.Body[TransactionalCategory], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -249,7 +249,7 @@ func RegisterTemplates(h huma.API, s *Service) {
 	api.Delete(h, api.Op{ID: "delete-transactional-category", Path: Base + "/categories/{categoryId}", Summary: "Delete a category without templates",
 		Tags: tagSettings, Access: publish},
 		func(ctx context.Context, in *CategoryPath) (*api.Empty, error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}

@@ -3,8 +3,10 @@ package publicpages
 // The Earn pages (design expansion phase 6, X16): the upgrade page with its
 // tiers and Stripe Checkout, the welcome page after checkout, and the
 // billing portal links of member emails and the preference center. Their
-// words come from internal/earn (English until the pages are translated);
-// the branding is the publisher's.
+// words come from internal/earn, in the page's language like every public
+// page (the menu's pick, then the browser's languages for a page anyone
+// can open, the reader's own for a personal link, then the default); the
+// branding is the publisher's.
 //
 //	/p/{workspace}/upgrade[/{tier}]       the upgrade page (a hidden tier's own link)
 //	/p/{workspace}/upgrade/checkout       POST: opens Stripe Checkout
@@ -24,8 +26,8 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/earn"
 	"github.com/hostrepute/reputecast/internal/forms"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
-	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -69,11 +71,32 @@ type welcomeBody struct {
 	Footer string
 }
 
-// earnView is a view of an Earn page: its words are English.
-func (h *Handler) earnView(s *site, title string, body any) *view {
+// earnView is a view of an Earn page in its language, with the footer's
+// language menu (none without a request: the app's previews).
+func (h *Handler) earnView(r *http.Request, s *site, title string, body any, pl pageLang) *view {
 	v := h.view(s, title, body)
-	v.Lang, v.Dir, v.labels = "en", "ltr", pagelabels.For("en", nil)
+	h.setLang(v, r, s, pl, nil)
 	return v
+}
+
+// earnLang is the language of an Earn page anyone can open (the menu's
+// pick, then the browser's languages, then the default), and the request
+// with it in its context: internal/earn, gifts and offers write the page's
+// words, dates and prices in the reader's language.
+func (h *Handler) earnLang(w http.ResponseWriter, r *http.Request, s *site) (pageLang, *http.Request) {
+	pl := h.visitorLang(w, r, s, nil)
+	return pl, r.WithContext(i18n.WithLang(r.Context(), pl.Labels.Lang()))
+}
+
+// earnLinkLang is the language of an Earn page reached from a personal
+// link in a member email (billing, cancel): the menu's pick, then the
+// reader's language, then the fallback.
+func (h *Handler) earnLinkLang(w http.ResponseWriter, r *http.Request, s *site, token string, kind linktoken.Kind) (pageLang, *http.Request) {
+	pl := h.visitorLang(w, r, s, nil)
+	if c, ok := h.claims(s, token, kind); ok {
+		pl = h.messageLang(w, r, s, c)
+	}
+	return pl, r.WithContext(i18n.WithLang(r.Context(), pl.Labels.Lang()))
 }
 
 func (h *Handler) earnTitle(s *site, heading string) string {
@@ -89,9 +112,10 @@ func (h *Handler) upgradePage(w http.ResponseWriter, r *http.Request) {
 		h.notFound(w, r, s)
 		return
 	}
+	pl, r := h.earnLang(w, r, s)
 	q := r.URL.Query()
 	req := earn.UpgradeRequest{Token: q.Get("r"), Tier: chi.URLParam(r, "tier"), Period: q.Get("period"), Canceled: q.Get("canceled") == "1",
-		TestToken: q.Get("test"), Lang: earn.PageLang, Offer: q.Get("offer")}
+		TestToken: q.Get("test"), Lang: pl.Labels.Lang(), Offer: q.Get("offer")}
 	v, err := h.Earn.Upgrade(r.Context(), s.ws, req)
 	if err != nil {
 		h.serverError(w, r, s, err)
@@ -103,10 +127,10 @@ func (h *Handler) upgradePage(w http.ResponseWriter, r *http.Request) {
 			h.Earn.UpgradeClicked(r.Context(), s.ws, req.Token)
 		}
 	}
-	h.renderUpgrade(w, r, s, v, req, http.StatusOK)
+	h.renderUpgrade(w, r, s, v, req, http.StatusOK, pl)
 }
 
-func (h *Handler) renderUpgrade(w http.ResponseWriter, r *http.Request, s *site, v earn.UpgradeView, req earn.UpgradeRequest, status int) {
+func (h *Handler) renderUpgrade(w http.ResponseWriter, r *http.Request, s *site, v earn.UpgradeView, req earn.UpgradeRequest, status int, pl pageLang) {
 	page := "upgrade"
 	if req.Tier != "" {
 		page += "/" + url.PathEscape(req.Tier)
@@ -123,8 +147,8 @@ func (h *Handler) renderUpgrade(w http.ResponseWriter, r *http.Request, s *site,
 		return earnLink(s.links, page) + "?" + q.Encode()
 	}
 	body := upgradeBody{View: v, Action: earnLink(s.links, "upgrade/checkout"), Token: req.Token, Test: req.TestToken, MonthHref: period("month"),
-		YearHref: period("year"), ArchiveHref: s.links.Archive(), TermsURL: v.TermsURL, Upgrading: earn.Text("page.upgrading", nil), Retry: r.URL.String()}
-	vw := h.earnView(s, h.earnTitle(s, v.Headline), body)
+		YearHref: period("year"), ArchiveHref: s.links.Archive(), TermsURL: v.TermsURL, Upgrading: earn.TextIn(v.Lang, "page.upgrading", nil), Retry: r.URL.String()}
+	vw := h.earnView(r, s, h.earnTitle(s, v.Headline), body, pl)
 	vw.Canonical = earnLink(s.canon, "upgrade")
 	if req.Token == "" && req.TestToken == "" {
 		vw.Robots = "index, follow"
@@ -155,14 +179,16 @@ func (h *Handler) upgradeCheckout(w http.ResponseWriter, r *http.Request) {
 		if !errors.Is(err, earn.ErrUnavailable) {
 			h.log().ErrorContext(r.Context(), "upgrade checkout", "err", err)
 		}
-		up := earn.UpgradeRequest{Token: req.Token, Period: req.Period, TestToken: req.TestToken, Lang: earn.PageLang, Offer: req.Offer}
+		pl, r := h.earnLang(w, r, s)
+		l := pl.Labels.Lang()
+		up := earn.UpgradeRequest{Token: req.Token, Period: req.Period, TestToken: req.TestToken, Lang: l, Offer: req.Offer}
 		v, verr := h.Earn.Upgrade(r.Context(), s.ws, up)
 		if verr != nil {
 			h.serverError(w, r, s, verr)
 			return
 		}
-		v.Notice = &earn.PageNotice{Tone: "bad", Title: earn.Text("page.unavailableTitle", nil), Text: earn.Text("page.unavailableText", nil), Retry: true}
-		h.renderUpgrade(w, r, s, v, up, http.StatusServiceUnavailable)
+		v.Notice = &earn.PageNotice{Tone: "bad", Title: earn.TextIn(l, "page.unavailableTitle", nil), Text: earn.TextIn(l, "page.unavailableText", nil), Retry: true}
+		h.renderUpgrade(w, r, s, v, up, http.StatusServiceUnavailable, pl)
 		return
 	}
 	h.toProvider(w, r, s, to)
@@ -177,7 +203,8 @@ func (h *Handler) upgradeWelcome(w http.ResponseWriter, r *http.Request) {
 		h.notFound(w, r, s)
 		return
 	}
-	v, err := h.Earn.Welcome(r.Context(), s.ws, r.URL.Query().Get("session"), earn.PageLang)
+	pl, r := h.earnLang(w, r, s)
+	v, err := h.Earn.Welcome(r.Context(), s.ws, r.URL.Query().Get("session"), pl.Labels.Lang())
 	if errors.Is(err, earn.ErrUnavailable) {
 		h.notFound(w, r, s)
 		return
@@ -186,7 +213,7 @@ func (h *Handler) upgradeWelcome(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, s, err)
 		return
 	}
-	vw := h.earnView(s, h.earnTitle(s, v.Heading), welcomeBody{WelcomeView: v})
+	vw := h.earnView(r, s, h.earnTitle(s, v.Heading), welcomeBody{WelcomeView: v}, pl)
 	h.render(w, r, s, "welcome", http.StatusOK, vw, csp{}, true)
 }
 
@@ -209,16 +236,19 @@ func (h *Handler) portal(w http.ResponseWriter, r *http.Request, kind linktoken.
 		h.notFound(w, r, s)
 		return
 	}
-	to, err := h.Earn.Portal(r.Context(), s.ws, chi.URLParam(r, "token"), kind)
+	token := chi.URLParam(r, "token")
+	to, err := h.Earn.Portal(r.Context(), s.ws, token, kind)
 	switch {
 	case errors.Is(err, earn.ErrBadLink):
 		h.notFound(w, r, s)
 		return
 	case errors.Is(err, earn.ErrNoSubscription):
-		h.earnMessage(w, r, s, http.StatusOK, earn.Text("portal.noSubTitle", nil), earn.Text("portal.noSubText", nil))
+		pl, r := h.earnLinkLang(w, r, s, token, kind)
+		h.earnMessage(w, r, s, pl, http.StatusOK, "portal.noSubTitle", "portal.noSubText")
 		return
 	case errors.Is(err, earn.ErrUnavailable):
-		h.earnMessage(w, r, s, http.StatusServiceUnavailable, earn.Text("page.unavailableTitle", nil), earn.Text("portal.unavailableText", nil))
+		pl, r := h.earnLinkLang(w, r, s, token, kind)
+		h.earnMessage(w, r, s, pl, http.StatusServiceUnavailable, "page.unavailableTitle", "portal.unavailableText")
 		return
 	case err != nil:
 		h.serverError(w, r, s, err)
@@ -241,10 +271,13 @@ func (h *Handler) toProvider(w http.ResponseWriter, r *http.Request, s *site, to
 	http.Redirect(w, r, u.String(), http.StatusSeeOther) //nolint:gosec // G710: the provider's session address, checked above
 }
 
-func (h *Handler) earnMessage(w http.ResponseWriter, r *http.Request, s *site, status int, heading, text string) {
-	pl := h.fixedLang(r.Context(), s, "en", nil)
-	h.messageIn(w, r, s, pl, status, h.earnTitle(s, heading), messageBody{Heading: heading, Text: text,
-		Actions: []action{{Label: earn.Text("portal.preferences", nil), Href: s.links.PreferencesRequest()}}}, true)
+// earnMessage is a one-message Earn page in its language: heading and text
+// are internal/earn's messages.
+func (h *Handler) earnMessage(w http.ResponseWriter, r *http.Request, s *site, pl pageLang, status int, heading, text string) {
+	l := pl.Labels.Lang()
+	head := earn.TextIn(l, heading, nil)
+	h.messageIn(w, r, s, pl, status, h.earnTitle(s, head), messageBody{Heading: head, Text: earn.TextIn(l, text, nil),
+		Actions: []action{{Label: earn.TextIn(l, "portal.preferences", nil), Href: s.links.PreferencesRequest()}}}, true)
 }
 
 // EarnRender renders an Earn page for the app (the upgrade page editor's
@@ -261,8 +294,12 @@ func (h *Handler) EarnRender(ctx context.Context, ws *store.Workspace, page stri
 	var v *view
 	switch page {
 	case "upgrade":
+		// The page in the language its view was written in (the workspace's
+		// default language).
 		uv, _ := data.(earn.UpgradeView)
-		v = h.earnView(s, h.earnTitle(s, uv.Headline), upgradeBody{View: uv, Action: "#", ArchiveHref: s.links.Archive(), TermsURL: uv.TermsURL, Upgrading: earn.Text("page.upgrading", nil)})
+		pl := h.fixedLang(ctx, s, string(uv.Lang.Locale), func(string) bool { return true })
+		v = h.earnView(nil, s, h.earnTitle(s, uv.Headline), upgradeBody{View: uv, Action: "#", ArchiveHref: s.links.Archive(), TermsURL: uv.TermsURL,
+			Upgrading: earn.TextIn(uv.Lang, "page.upgrading", nil)}, pl)
 	default:
 		return "", errors.New("publicpages: no Earn page " + page)
 	}

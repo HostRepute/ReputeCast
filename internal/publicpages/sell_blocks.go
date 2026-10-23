@@ -308,9 +308,9 @@ func (pr *pageRender) fileLine(f products.ProductFilesSummary) string {
 		return ""
 	}
 	if f.Pages > 0 && f.Count == 1 {
-		return pr.v.S("dl.filePages", "kind", f.Kind, "count", f.Pages, "size", products.HumanSize(f.Bytes))
+		return pr.v.S("dl.filePages", "kind", f.Kind, "count", f.Pages, "size", pr.v.size(f.Bytes))
 	}
-	return pr.v.S("dl.file", "kind", f.Kind, "size", products.HumanSize(f.Bytes))
+	return pr.v.S("dl.file", "kind", f.Kind, "size", pr.v.size(f.Bytes))
 }
 
 // buyAction is where a Buy button posts.
@@ -353,7 +353,7 @@ func (pr *pageRender) product(n *html.Node) template.HTML {
 	}
 	b.WriteString(`<h2 class="sp-h2">` + esc(p.Live.Name) + `</h2>`)
 	b.WriteString(`<span class="fc-d">`)
-	if f := products.FileTextLong(p.Files); f != "" {
+	if f := v.fileText(p.Files, true); f != "" {
 		b.WriteString(esc(f) + `<br>`)
 	}
 	b.WriteString(esc(v.S("buy.downloadAfter")) + `</span></div></div>`)
@@ -435,10 +435,10 @@ func (pr *pageRender) buyBox(n *html.Node, p products.PublicProduct) template.HT
 		note = v.S("buy.noteFinal", "merchant", merchant)
 	case final:
 		note = v.S("buy.noteFinalNoTax", "merchant", merchant)
-	case pwyw && products.FileText(p.Files) != "" && m.Tax:
-		note = v.S("buy.notePwyw", "merchant", merchant, "file", products.FileText(p.Files))
-	case pwyw && products.FileText(p.Files) != "":
-		note = v.S("buy.notePwywNoTax", "merchant", merchant, "file", products.FileText(p.Files))
+	case pwyw && v.fileText(p.Files, false) != "" && m.Tax:
+		note = v.S("buy.notePwyw", "merchant", merchant, "file", v.fileText(p.Files, false))
+	case pwyw && v.fileText(p.Files, false) != "":
+		note = v.S("buy.notePwywNoTax", "merchant", merchant, "file", v.fileText(p.Files, false))
 	case m.Tax:
 		note = v.S("buy.noteBox", "merchant", merchant)
 	default:
@@ -468,7 +468,7 @@ func (pr *pageRender) buyBox(n *html.Node, p products.PublicProduct) template.HT
 		if pwyw {
 			sub = v.S("shop.pwywFrom", "min", money(p.Live.MinCents, p.Currency))
 		}
-		if f := products.FileText(p.Files); f != "" {
+		if f := v.fileText(p.Files, false); f != "" {
 			sub = v.S("buy.bar", "price", sub, "file", f)
 		}
 		pr.buyBar = &buyBarView{Name: p.Live.Name, Sub: sub, Button: label, Href: href}

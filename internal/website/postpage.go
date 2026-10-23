@@ -181,7 +181,7 @@ func (s *Service) ReadPost(ctx context.Context, ws *store.Workspace, p store.Web
 	pp.Label = labelOf(pp.Visibility, tiers, WordsIn(l))
 	loc := location(ws)
 	month := monthOf(s.now(), loc)
-	out := PostView{Post: pp, Rules: rules, Readers: gate.Readers(pp.Visibility, tiers), Paywall: c.Paywall, SignupOn: c.row.SignupOn && c.row.SigninOn,
+	out := PostView{Post: pp, Rules: rules, Readers: gate.Readers(pp.Visibility, tiers), Paywall: c.paywallIn(l), SignupOn: c.row.SignupOn && c.row.SigninOn,
 		Month: month, Next: month.AddDate(0, 1, 0), Minutes: render.ReadingMinutes(pp.Words), SessionDays: int(c.row.SessionDays),
 		SEO: WebsitePostSEO{Title: p.SeoTitle, Description: p.SeoDescription, SocialImage: p.SocialImage, CanonicalURL: p.CanonicalUrl, HideFromSearch: p.HideFromSearch}}
 	for _, sec := range c.Sections {
@@ -237,7 +237,7 @@ func (s *Service) ReadPost(ctx context.Context, ws *store.Workspace, p store.Web
 	}
 	out.Body = s.paidBlocks(ctx, ws, body, paid, reader, rules, tiers, l)
 	if !d.Readable() {
-		offers, err := s.offers(ctx, ws, c)
+		offers, err := s.offers(ctx, ws, c, l)
 		if err != nil {
 			return out, err
 		}
@@ -295,8 +295,10 @@ func (s *Service) paidBlocks(ctx context.Context, ws *store.Workspace, body stri
 	})
 }
 
-// offers are the newsletters the paywall and the sign-up form offer.
-func (s *Service) offers(ctx context.Context, ws *store.Workspace, c *config) ([]SignupOffer, error) {
+// offers are the newsletters the paywall and the sign-up form offer, with
+// ReputeCast's consent text in the page's language where the workspace
+// wrote none.
+func (s *Service) offers(ctx context.Context, ws *store.Workspace, c *config, l i18n.Lang) ([]SignupOffer, error) {
 	out := []SignupOffer{}
 	if !c.row.SignupOn {
 		return out, nil
@@ -320,7 +322,7 @@ func (s *Service) offers(ctx context.Context, ws *store.Workspace, c *config) ([
 		}
 		consent := strings.TrimSpace(sl.Consent)
 		if consent == "" {
-			consent = defaultConsent(name)
+			consent = defaultConsent(l, name)
 		}
 		out = append(out, SignupOffer{ID: id, Name: name, Consent: consent, Checked: sl.Checked})
 	}

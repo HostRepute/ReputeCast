@@ -122,9 +122,8 @@ export function AuthMarks({ spf, dkim, dmarc }: { spf?: string; dkim?: string; d
 }
 
 /** The line under a cell: deferrals, a late arrival, a seed not checked. */
-function CellNote({ c, test, provider }: { c: CopyView; test: TestDetail; provider?: ProviderResult }) {
+function CellNote({ c, provider }: { c: CopyView; provider?: ProviderResult }) {
   const t = useT()
-  const { slug } = useWorkspace()
   const e = c.lastEvent
   if (c.status === 'found' && c.late) {
     const minutes = c.handedAt && c.receivedAt ? Math.round((new Date(c.receivedAt).getTime() - new Date(c.handedAt).getTime()) / 60000) : 0
@@ -143,23 +142,14 @@ function CellNote({ c, test, provider }: { c: CopyView; test: TestDetail; provid
     if (c.reason === 'seed_removed') return <span className="ev2">{t(m.cellSeedRemoved)}</span>
     if (c.reasonAt) {
       const msg = c.reason === 'signin_expired' ? m.cellSigninExpired : m.cellSigninFailed
-      return (
-        <span className="ev2">
-          {t(msg, { date: shortDate(c.reasonAt), time: clock(c.reasonAt) })}{' '}
-          {c.seedId && test.seeds.some((s) => s.id === c.seedId && (s.status === 'failed' || s.status === 'expired')) ? (
-            <Link to="/w/$workspace/deliverability/placement/seeds" params={{ workspace: slug }} search={{ reconnect: c.seedId }} className="font-semibold">
-              {t(m.reconnect)}
-            </Link>
-          ) : null}
-        </span>
-      )
+      return <span className="ev2">{t(msg, { date: shortDate(c.reasonAt), time: clock(c.reasonAt) })}</span>
     }
   }
   if (c.status === 'failed' && c.error) return <span className="ev2">{c.error}</span>
   return null
 }
 
-function CellBody({ c, test, provider }: { c: CopyView; test: TestDetail; provider?: ProviderResult }) {
+function CellBody({ c, provider }: { c: CopyView; provider?: ProviderResult }) {
   return (
     <div className="pl-cl">
       <div className="t1">
@@ -167,8 +157,20 @@ function CellBody({ c, test, provider }: { c: CopyView; test: TestDetail; provid
         <span className="pl-tm">{c.status === 'found' ? arrive(c.arriveMs) : '–'}</span>
       </div>
       {c.status === 'found' ? <AuthMarks spf={c.spf} dkim={c.dkim} dmarc={c.dmarc} /> : null}
-      <CellNote c={c} test={test} provider={provider} />
+      <CellNote c={c} provider={provider} />
     </div>
+  )
+}
+
+/** A seed whose mailbox couldn't be checked offers Reconnect, beside its cell's button rather than in it. */
+function Reconnect({ c, test }: { c: CopyView; test: TestDetail }) {
+  const t = useT()
+  const { slug } = useWorkspace()
+  if (c.status !== 'not_checked' || !c.reasonAt || !c.seedId || !test.seeds.some((s) => s.id === c.seedId && (s.status === 'failed' || s.status === 'expired'))) return null
+  return (
+    <Link to="/w/$workspace/deliverability/placement/seeds" params={{ workspace: slug }} search={{ reconnect: c.seedId }} className="pl-reconnect font-semibold">
+      {t(m.reconnect)}
+    </Link>
   )
 }
 
@@ -213,8 +215,9 @@ export function Matrix({ test, selected, onSelect, live }: { test: TestDetail; s
       <td key={p.id} className={['cell', tone(c), sel ? 'sel' : ''].filter(Boolean).join(' ')}>
         <button type="button" className="pl-cellbtn" aria-pressed={sel} onClick={() => onSelect(c.id)}>
           <span className="vh">{t(m.cellContext, { seed: seed.email, provider: p.name })} </span>
-          <CellBody c={c} test={test} provider={p} />
+          <CellBody c={c} provider={p} />
         </button>
+        <Reconnect c={c} test={test} />
       </td>
     )
   }
@@ -272,7 +275,7 @@ export function Matrix({ test, selected, onSelect, live }: { test: TestDetail; s
                 const c = copyFor(test, s, p.id)
                 if (!c) return null
                 const sel = c.id === selected
-                return (
+                return [
                   <button
                     type="button"
                     key={p.id}
@@ -285,9 +288,10 @@ export function Matrix({ test, selected, onSelect, live }: { test: TestDetail; s
                       <span className="pl-sw" style={{ background: providerColor(p.adapter) }} />
                       {p.short}
                     </span>
-                    <CellBody c={c} test={test} provider={p} />
-                  </button>
-                )
+                    <CellBody c={c} provider={p} />
+                  </button>,
+                  <Reconnect key={`${p.id}-r`} c={c} test={test} />,
+                ]
               })}
             </div>
           )),

@@ -4,8 +4,12 @@ import (
 	"context"
 	"fmt"
 	"html"
+	"maps"
+	"slices"
+	"strconv"
 	"strings"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -185,12 +189,67 @@ func starterByKey(key string) (TransactionalStarter, bool) {
 	return TransactionalStarter{}, false
 }
 
-// Starters lists the starter templates, with the workspace's product name
-// filled in.
+// in is the starter in a language: its words from the catalog
+// (starter.<key>.*), the English above where the catalog has none. A new
+// template's content is the workspace's own from then on, so it is written
+// in the workspace's language (CreateTemplate); the gallery is in the
+// member's.
+func (st TransactionalStarter) in(l i18n.Lang) TransactionalStarter {
+	if l.Locale == i18n.English || l.Locale == "" {
+		return st
+	}
+	word := func(field, english string) string {
+		m, err := texts.Lookup("starter." + st.Key + "." + field)
+		if err != nil {
+			return english
+		}
+		return m.Text(l, nil)
+	}
+	st.Name, st.Description = word("name", st.Name), word("description", st.Description)
+	st.Subject, st.Preheader = word("subject", st.Subject), word("preheader", st.Preheader)
+	st.heading, st.button, st.after, st.why = word("heading", st.heading), word("button", st.button), word("after", st.after), word("why", st.why)
+	body := make([]string, len(st.body))
+	for i, p := range st.body {
+		body[i] = word("body."+strconv.Itoa(i), p)
+	}
+	after := make([]string, len(st.bodyAfter))
+	for i, p := range st.bodyAfter {
+		after[i] = word("bodyAfter."+strconv.Itoa(i), p)
+	}
+	st.body, st.bodyAfter = body, after
+	vars := slices.Clone(st.Variables)
+	samples := map[string][2]string{}
+	for i, v := range vars {
+		vars[i].Sample, vars[i].Default = word("sample."+v.Name, v.Sample), word("default."+v.Name, v.Default)
+		samples[v.Name] = [2]string{v.Sample, vars[i].Sample}
+	}
+	tests := make([]TransactionalTestData, len(st.TestData))
+	for i, td := range st.TestData {
+		data := maps.Clone(td.Data)
+		for k, v := range data {
+			s, ok := v.(string)
+			if !ok {
+				continue
+			}
+			if m, err := texts.Lookup(fmt.Sprintf("starter.%s.test.%d.%s", st.Key, i, k)); err == nil {
+				data[k] = m.Text(l, nil)
+			} else if sm, ok := samples[k]; ok && sm[0] == s {
+				data[k] = sm[1]
+			}
+		}
+		tests[i] = TransactionalTestData{Name: word("test."+strconv.Itoa(i), td.Name), Data: data}
+	}
+	st.Variables, st.TestData = vars, tests
+	return st
+}
+
+// Starters lists the starter templates in the member's language, with the
+// workspace's product name filled in.
 func (s *Service) Starters(ctx context.Context, ws *store.Workspace) (TransactionalStarterList, error) {
 	product := s.product(ctx, ws)
 	out := TransactionalStarterList{Items: make([]TransactionalStarter, 0, len(starterList))}
 	for _, st := range starterList {
+		st = st.in(lang(ctx))
 		st.Subject = fillProduct(st.Subject, product)
 		out.Items = append(out.Items, st)
 	}
@@ -212,8 +271,10 @@ func fillProduct(s, product string) string { return strings.ReplaceAll(s, "{{pro
 // mjmlFor writes the starter's MJML: a header with the product name, the
 // message, its button, and the footer. Essential categories get the
 // transactional footer (company and address, no unsubscribe link);
-// Optional ones the category's unsubscribe link.
-func (st TransactionalStarter) mjmlFor(product, address string) string {
+// Optional ones the category's unsubscribe link. The footer's words are in
+// l, the starter's language (in).
+func (st TransactionalStarter) mjmlFor(l i18n.Lang, product, address string) string {
+	foot := func(key string) string { return texts.M(key).Text(l, i18n.Args{"product": html.EscapeString(product)}) }
 	esc := func(s string) string { return fillProduct(html.EscapeString(s), product) }
 	var b strings.Builder
 	b.WriteString("<mjml>\n  <mj-head>\n    <mj-title>" + esc(st.Subject) + "</mj-title>\n    <mj-preview>" + esc(st.Preheader) + "</mj-preview>\n")
@@ -240,17 +301,18 @@ func (st TransactionalStarter) mjmlFor(product, address string) string {
 	b.WriteString("    <mj-section background-color=\"#F3F4F6\" padding=\"16px 28px\">\n      <mj-column>\n")
 	addr := esc(address)
 	if strings.TrimSpace(address) == "" {
-		addr = "Your company · Street and number · City, postcode"
+		addr = foot("starter.footer.address")
 	}
 	if st.Kind == KindOptional {
 		b.WriteString("        <mj-text font-family=\"'IBM Plex Sans', system-ui, sans-serif\" font-size=\"12px\" color=\"#5B6472\" padding=\"0\">" + addr +
-			"<br />You get this email because you have a " + esc(product) + " account. <a href=\"{{ unsubscribe_url }}\" style=\"color:#5B6472\">Turn these emails off</a> · <a href=\"{{ preferences_url }}\" style=\"color:#5B6472\">Manage notifications</a></mj-text>\n")
+			"<br />" + foot("starter.footer.optional") + " <a href=\"{{ unsubscribe_url }}\" style=\"color:#5B6472\">" + foot("starter.footer.turnOff") +
+			"</a> · <a href=\"{{ preferences_url }}\" style=\"color:#5B6472\">" + foot("starter.footer.manage") + "</a></mj-text>\n")
 	} else if st.why != "" {
 		b.WriteString("        <mj-text font-family=\"'IBM Plex Sans', system-ui, sans-serif\" font-size=\"12px\" color=\"#5B6472\" padding=\"0\">" + addr +
 			"<br />" + esc(st.why) + "</mj-text>\n")
 	} else {
 		b.WriteString("        <mj-text font-family=\"'IBM Plex Sans', system-ui, sans-serif\" font-size=\"12px\" color=\"#5B6472\" padding=\"0\">" + addr +
-			"<br />You get this email because of your " + esc(product) + " account. Account emails can't be turned off.</mj-text>\n")
+			"<br />" + foot("starter.footer.essential") + "</mj-text>\n")
 	}
 	b.WriteString("      </mj-column>\n    </mj-section>\n  </mj-body>\n</mjml>\n")
 	return b.String()

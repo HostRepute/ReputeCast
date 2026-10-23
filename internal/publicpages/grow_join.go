@@ -58,7 +58,7 @@ func (h *Handler) joinBodyWith(ctx context.Context, s *site, iv *referrals.Invit
 	b := joinBody{subscribeBody: sb}
 	name := iv.Name
 	if name == "" {
-		name = gt("join.anon")
+		name = s.gt("join.anon")
 	}
 	b.Heading = strings.ReplaceAll(iv.Headline, "{first_name}", name)
 	if strings.TrimSpace(iv.Text) != "" {
@@ -67,15 +67,15 @@ func (h *Handler) joinBodyWith(ctx context.Context, s *site, iv *referrals.Invit
 	b.Action = s.links.Join(code)
 	b.Lists = nil
 	if iv.Name != "" {
-		b.Credit = gt("join.creditName", "name", iv.Name)
+		b.Credit = s.gt("join.creditName", "name", iv.Name)
 	} else {
-		b.Credit = gt("join.creditAnon")
+		b.Credit = s.gt("join.creditAnon")
 	}
 	if lists, err := h.Audience.PublicLists(ctx, h.Q, s.ws); err == nil {
 		for _, l := range lists {
 			if l.ID == iv.ListID {
 				b.ListName = l.Name
-				b.ListText = strings.TrimSpace(strings.TrimSpace(l.Description) + " " + gt("join.readers", "count", l.Subscribed))
+				b.ListText = strings.TrimSpace(strings.TrimSpace(l.Description) + " " + s.gt("join.readers", "count", l.Subscribed))
 			}
 		}
 	}

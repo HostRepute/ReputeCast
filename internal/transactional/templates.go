@@ -12,9 +12,11 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"golang.org/x/text/unicode/norm"
 
 	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/api"
@@ -137,7 +139,7 @@ func (s *Service) resolveTemplate(ctx context.Context, q *store.Queries, wsID uu
 	}
 	id, err := q.TxnTemplateIDByKey(ctx, store.TxnTemplateIDByKeyParams{WorkspaceID: wsID, Key: strings.ToLower(strings.TrimSpace(ref))})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, api.NotFound("Template")
+		return uuid.Nil, notFound(ctx, "template")
 	}
 	return id, err
 }
@@ -150,7 +152,7 @@ func (s *Service) Template(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	}
 	r, err := s.Q.TxnTemplate(ctx, store.TxnTemplateParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
-		return TransactionalTemplate{}, api.MapError(err, "Template")
+		return TransactionalTemplate{}, mapTemplateErr(ctx, err)
 	}
 	t := TransactionalTemplate{
 		ID: r.ID.String(), Key: r.Key, KeyLocked: r.FirstPublishedAt != nil, Name: r.Name, Description: r.Description,
@@ -182,7 +184,7 @@ var keyRe = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 func KeyFromName(name string) string {
 	var b strings.Builder
 	dash := false
-	for _, r := range strings.ToLower(name) {
+	for _, r := range strings.ToLower(asciiFold(name)) {
 		switch {
 		case (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9'):
 			b.WriteRune(r)
@@ -193,6 +195,30 @@ func KeyFromName(name string) string {
 		}
 	}
 	return clip(strings.Trim(b.String(), "-"), 64)
+}
+
+// asciiFold writes a name's letters without their marks, as an ID can hold
+// them: "Mẫu chưa đặt tên" → "Mau chua dat ten", "Straße" → "Strasse".
+func asciiFold(s string) string {
+	var b strings.Builder
+	for _, r := range norm.NFD.String(s) {
+		switch {
+		case unicode.Is(unicode.Mn, r):
+		case r == 'đ', r == 'Đ':
+			b.WriteByte('d')
+		case r == 'ß':
+			b.WriteString("ss")
+		case r == 'æ', r == 'Æ':
+			b.WriteString("ae")
+		case r == 'œ', r == 'Œ':
+			b.WriteString("oe")
+		case r == 'ø', r == 'Ø':
+			b.WriteByte('o')
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 func validateKey(ctx context.Context, key string) error {
@@ -260,8 +286,11 @@ func (s *Service) CreateTemplate(ctx context.Context, ws *store.Workspace, p *au
 		if !ok {
 			return TransactionalTemplate{}, api.Invalid("body.starter", say(ctx, "template.starterUnknown", i18n.Args{"starter": in.Starter}))
 		}
+		// What the starter writes is the workspace's content: its language.
+		wl := workspaceLang(ctx, s.Q, ws.ID)
+		sd = sd.in(wl)
 		product := s.product(ctx, ws)
-		src := sd.mjmlFor(product, s.footer(ctx, ws))
+		src := sd.mjmlFor(wl, product, s.footer(ctx, ws))
 		c = content{Subject: fillProduct(sd.Subject, product), Preheader: fillProduct(sd.Preheader, product), EditorMode: "visual", MJML: src, Variables: sd.Variables}
 		testData = sd.TestData
 		if description == "" {
@@ -276,7 +305,7 @@ func (s *Service) CreateTemplate(ctx context.Context, ws *store.Workspace, p *au
 		}
 		f, err := s.Q.TxnTemplate(ctx, store.TxnTemplateParams{WorkspaceID: ws.ID, ID: from})
 		if err != nil {
-			return TransactionalTemplate{}, api.MapError(err, "Template")
+			return TransactionalTemplate{}, mapTemplateErr(ctx, err)
 		}
 		c = content{Subject: f.Subject, Preheader: f.Preheader, EditorMode: f.EditorMode, MJML: f.Mjml, HTML: f.Html, Text: f.PlainText, Variables: parseVariables(f.Variables)}
 		testData = parseTestData(f.TestData)
@@ -298,7 +327,7 @@ func (s *Service) CreateTemplate(ctx context.Context, ws *store.Workspace, p *au
 	if testData == nil {
 		testData = []TransactionalTestData{}
 	}
-	if err := validateVariables(c.Variables); err != nil {
+	if err := validateVariables(ctx, c.Variables); err != nil {
 		return TransactionalTemplate{}, err
 	}
 	if err := validateTestData(ctx, testData); err != nil {
@@ -307,7 +336,7 @@ func (s *Service) CreateTemplate(ctx context.Context, ws *store.Workspace, p *au
 	if strings.TrimSpace(c.HTML) == "" && strings.TrimSpace(c.MJML) != "" {
 		html, err := c.compiledHTML()
 		if err != nil {
-			return TransactionalTemplate{}, api.Invalid("body.mjml", sentenceCase(err.Error())+".")
+			return TransactionalTemplate{}, api.Invalid("body.mjml", problemText(lang(ctx), err))
 		}
 		c.HTML = html
 	}
@@ -389,9 +418,13 @@ func (s *Service) pickCategory(ctx context.Context, q *store.Queries, wsID uuid.
 		}
 	}
 	id := newID()
-	name, desc := "Account", "Sign-in, password and account emails"
+	// The category is the workspace's from now on (members rename it, the
+	// SMTP header and the API name it), so it's written once, in the
+	// workspace's default language.
+	l := workspaceLang(ctx, q, wsID)
+	name, desc := texts.M("category.defaultAccount").Text(l, nil), texts.M("category.defaultAccountText").Text(l, nil)
 	if kind == KindOptional {
-		name, desc = "Product updates", "Usage summaries and product news"
+		name, desc = texts.M("category.defaultUpdates").Text(l, nil), texts.M("category.defaultUpdatesText").Text(l, nil)
 	}
 	if err := q.TxnCategoryInsert(ctx, store.TxnCategoryInsertParams{ID: id, WorkspaceID: wsID, Name: name, Kind: kind, Description: desc, CreatedAt: s.now()}); err != nil {
 		return nil, err
@@ -446,7 +479,7 @@ func (s *Service) UpdateTemplate(ctx context.Context, ws *store.Workspace, p *au
 		q := store.New(tx)
 		cur, err := q.TxnTemplateForUpdate(ctx, store.TxnTemplateForUpdateParams{WorkspaceID: ws.ID, ID: id})
 		if err != nil {
-			return api.MapError(err, "Template")
+			return mapTemplateErr(ctx, err)
 		}
 		name, key, desc, category := cur.Name, cur.Key, cur.Description, cur.CategoryID
 		before, after := map[string]any{}, map[string]any{}
@@ -559,7 +592,7 @@ func (s *Service) SaveDraft(ctx context.Context, ws *store.Workspace, p *authz.P
 		q := store.New(tx)
 		cur, err := q.TxnTemplateForUpdate(ctx, store.TxnTemplateForUpdateParams{WorkspaceID: ws.ID, ID: id})
 		if err != nil {
-			return api.MapError(err, "Template")
+			return mapTemplateErr(ctx, err)
 		}
 		if int(cur.DraftRevision) != in.BaseRevision && !in.Force {
 			return s.draftConflict(ctx, q, cur, in)
@@ -597,7 +630,7 @@ func (s *Service) SaveDraft(ctx context.Context, ws *store.Workspace, p *authz.P
 			c.Text = *in.PlainText
 		}
 		if in.Variables != nil {
-			if err := validateVariables(*in.Variables); err != nil {
+			if err := validateVariables(ctx, *in.Variables); err != nil {
 				return err
 			}
 			c.Variables = *in.Variables
@@ -644,7 +677,7 @@ func (s *Service) SaveDraft(ctx context.Context, ws *store.Workspace, p *authz.P
 		if strings.TrimSpace(c.HTML) == "" && strings.TrimSpace(c.MJML) != "" {
 			html, err := c.compiledHTML()
 			if err != nil {
-				return api.Invalid("body.mjml", sentenceCase(err.Error())+".")
+				return api.Invalid("body.mjml", problemText(lang(ctx), err))
 			}
 			c.HTML = html
 		}
@@ -739,7 +772,7 @@ func (s *Service) Archive(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		q := store.New(tx)
 		cur, err := q.TxnTemplateForUpdate(ctx, store.TxnTemplateForUpdateParams{WorkspaceID: ws.ID, ID: id})
 		if err != nil {
-			return api.MapError(err, "Template")
+			return mapTemplateErr(ctx, err)
 		}
 		if (cur.ArchivedAt != nil) == archive {
 			return nil
@@ -774,7 +807,7 @@ func (s *Service) DeleteTemplate(ctx context.Context, ws *store.Workspace, p *au
 		q := store.New(tx)
 		cur, err := q.TxnTemplateForUpdate(ctx, store.TxnTemplateForUpdateParams{WorkspaceID: ws.ID, ID: id})
 		if err != nil {
-			return api.MapError(err, "Template")
+			return mapTemplateErr(ctx, err)
 		}
 		if cur.LiveVersion != nil && cur.ArchivedAt == nil {
 			return api.Err(http.StatusConflict, api.CodeConflict, say(ctx, "template.deleteLive", i18n.Args{"key": cur.Key}))
@@ -785,14 +818,6 @@ func (s *Service) DeleteTemplate(ctx context.Context, ws *store.Workspace, p *au
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "transactional.template_deleted", TargetType: "transactional_template", TargetID: id.String(), TargetName: cur.Key,
 			Before: map[string]any{"name": cur.Name, "key": cur.Key, "live_version": cur.LiveVersion}})
 	})
-}
-
-func sentenceCase(s string) string {
-	s = strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(s), "."))
-	if s == "" {
-		return s
-	}
-	return strings.ToUpper(s[:1]) + s[1:]
 }
 
 // plainText is the text part of an HTML body.

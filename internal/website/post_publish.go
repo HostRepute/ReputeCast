@@ -120,7 +120,7 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		}
 		cur, err := q.WebsitePostLock(ctx, store.WebsitePostLockParams{WorkspaceID: ws.ID, ID: id})
 		if errors.Is(err, pgx.ErrNoRows) {
-			return api.NotFound("Post")
+			return notFound(ctx, "post")
 		}
 		if err != nil {
 			return err
@@ -270,7 +270,7 @@ func (s *Service) Unpublish(ctx context.Context, ws *store.Workspace, p *authz.P
 		q := store.New(tx)
 		cur, err := q.WebsitePostLock(ctx, store.WebsitePostLockParams{WorkspaceID: ws.ID, ID: id})
 		if errors.Is(err, pgx.ErrNoRows) {
-			return api.NotFound("Post")
+			return notFound(ctx, "post")
 		}
 		if err != nil {
 			return err
@@ -317,7 +317,7 @@ func (s *Service) UndoPublish(ctx context.Context, ws *store.Workspace, p *authz
 		q := store.New(tx)
 		cur, err := q.WebsitePostLock(ctx, store.WebsitePostLockParams{WorkspaceID: ws.ID, ID: id})
 		if errors.Is(err, pgx.ErrNoRows) {
-			return api.NotFound("Post")
+			return notFound(ctx, "post")
 		}
 		if err != nil {
 			return err
@@ -352,7 +352,7 @@ func (s *Service) SetRedirect(ctx context.Context, ws *store.Workspace, p *authz
 		q := store.New(tx)
 		cur, err := q.WebsitePostLock(ctx, store.WebsitePostLockParams{WorkspaceID: ws.ID, ID: id})
 		if errors.Is(err, pgx.ErrNoRows) {
-			return api.NotFound("Post")
+			return notFound(ctx, "post")
 		}
 		if err != nil {
 			return err

@@ -2,10 +2,12 @@ package importer
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Mailgun's API, per region.
@@ -37,11 +39,11 @@ func NewMailgun(key, region, domain, base string, hc *http.Client) (*Mailgun, er
 	}
 	domain = strings.ToLower(strings.TrimSpace(domain))
 	if strings.ContainsAny(domain, "/?#@ ") {
-		return nil, &SourceError{Code: CodeBadResponse, Message: "Enter the sending domain only, like mg.acme.io."}
+		return nil, sourceErr(0, CodeBadResponse, "mailgun.domainOnly", nil)
 	}
 	return &Mailgun{domain: domain, c: newClient("Mailgun", base, hc, func(r *http.Request) { r.SetBasicAuth("api", key) },
-		func(status int, _ []byte) string {
-			return fmt.Sprintf("Mailgun answered %d: the API key is wrong, or the account is in the other region.", status)
+		func(status int, _ []byte) i18n.Text {
+			return say("auth.mailgun", i18n.Args{"code": strconv.Itoa(status)})
 		})}, nil
 }
 
@@ -84,7 +86,7 @@ func (m *Mailgun) Connect(ctx context.Context) (Account, error) {
 		}
 	}
 	if len(ds) == 0 {
-		return Account{}, &SourceError{Code: CodeNotFound, Message: "This Mailgun account has no domains, so it has no templates to import."}
+		return Account{}, sourceErr(0, CodeNotFound, "mailgun.noDomains", nil)
 	}
 	return Account{Name: strings.Join(ds, ", "), Kind: "domains"}, nil
 }
@@ -132,7 +134,7 @@ func (m *Mailgun) List(ctx context.Context) ([]Ref, error) {
 func (m *Mailgun) Fetch(ctx context.Context, ref string) (Source, error) {
 	domain, name, ok := strings.Cut(ref, "/")
 	if !ok || domain == "" || name == "" {
-		return Source{}, &SourceError{Code: CodeNotFound, Message: "That template isn't in this Mailgun account."}
+		return Source{}, sourceErr(0, CodeNotFound, "mailgun.noTemplate", nil)
 	}
 	var res struct {
 		Template struct {
@@ -161,10 +163,10 @@ func (m *Mailgun) Fetch(ctx context.Context, ref string) (Source, error) {
 		}
 	}
 	if src.Subject == "" {
-		src.Notes = append(src.Notes, Note{Kind: NoteChange, Field: "subject", Message: "Mailgun keeps the subject in each call, not in the template, so it is empty. Write one before publishing."})
+		src.Notes = append(src.Notes, noteOf(NoteChange, "subject", 0, "", say("note.mailgunSubject", nil)))
 	}
 	if e := strings.ToLower(t.Version.Engine); e != "" && e != "handlebars" {
-		src.Notes = append(src.Notes, Note{Kind: NoteManual, Field: "template", Message: fmt.Sprintf("this version uses Mailgun's %s engine, which ReputeCast can't convert. Rewrite its tags in Liquid.", t.Version.Engine)})
+		src.Notes = append(src.Notes, noteOf(NoteManual, "template", 0, "", say("note.mailgunEngine", i18n.Args{"engine": t.Version.Engine})))
 	}
 	return src, nil
 }

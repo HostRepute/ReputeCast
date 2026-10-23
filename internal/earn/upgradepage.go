@@ -13,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -49,9 +50,19 @@ func (s *Service) upgradePage(ctx context.Context, ws *store.Workspace) (Upgrade
 	return s.upgradePageTx(ctx, s.Q, ws)
 }
 
+// upgradePageIn is the page with what was never set in a language: the
+// page's own, as its readers read it.
+func (s *Service) upgradePageIn(ctx context.Context, ws *store.Workspace, l i18n.Lang) (UpgradePage, error) {
+	return s.upgradePageTxIn(ctx, s.Q, ws, l)
+}
+
 // upgradePageTx reads the page, filling what was never set with the
-// defaults (the headline names the first list).
+// defaults (the headline names the first list), in English.
 func (s *Service) upgradePageTx(ctx context.Context, q *store.Queries, ws *store.Workspace) (UpgradePage, error) {
+	return s.upgradePageTxIn(ctx, q, ws, defaultLang)
+}
+
+func (s *Service) upgradePageTxIn(ctx context.Context, q *store.Queries, ws *store.Workspace, l i18n.Lang) (UpgradePage, error) {
 	st, err := s.settingsRow(ctx, q, ws.ID)
 	if err != nil {
 		return UpgradePage{}, err
@@ -83,18 +94,18 @@ func (s *Service) upgradePageTx(ctx context.Context, q *store.Queries, ws *store
 				p.FreeList = best.ID.String()
 			}
 			if p.Headline == "" {
-				p.Headline = msgs.M("page.defaultHeadline").Text(defaultLang, map[string]any{"name": best.Name})
+				p.Headline = msgs.M("page.defaultHeadline").Text(l, map[string]any{"name": best.Name})
 			}
 			if p.FreeLine == "" {
-				p.FreeLine = msgs.M("page.defaultFreeLine").Text(defaultLang, map[string]any{"name": best.Name})
+				p.FreeLine = msgs.M("page.defaultFreeLine").Text(l, map[string]any{"name": best.Name})
 			}
 		}
 	}
 	if p.Headline == "" {
-		p.Headline = msgs.M("page.defaultHeadline").Text(defaultLang, map[string]any{"name": ws.Name})
+		p.Headline = msgs.M("page.defaultHeadline").Text(l, map[string]any{"name": ws.Name})
 	}
 	if p.Welcome == "" {
-		p.Welcome = msgs.M("page.defaultWelcome").Text(defaultLang, nil)
+		p.Welcome = msgs.M("page.defaultWelcome").Text(l, nil)
 	}
 	return p, nil
 }
@@ -128,7 +139,9 @@ type EarnUpgradeEditor struct {
 
 // UpgradeEditor is the page editor's data.
 func (s *Service) UpgradeEditor(ctx context.Context, ws *store.Workspace, p *authz.Principal) (EarnUpgradeEditor, error) {
-	page, err := s.upgradePage(ctx, ws)
+	// What was never set shows as readers get it: in the workspace's
+	// default language.
+	page, err := s.upgradePageIn(ctx, ws, workspaceLang(ctx, s.Q, ws.ID))
 	if err != nil {
 		return EarnUpgradeEditor{}, err
 	}

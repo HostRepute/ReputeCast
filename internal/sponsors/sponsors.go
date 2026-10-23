@@ -19,10 +19,13 @@ import (
 	"embed"
 	"errors"
 	"log/slog"
+	"net/http"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -30,6 +33,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -88,9 +92,57 @@ func text(ctx context.Context, key string, args i18n.Args) string {
 	return msgs.M(key).Text(lang(ctx), args)
 }
 
-// Text is one of the shared sponsor report's words (internal/publicpages),
-// in English until the public pages are translated.
+// Text is one of the shared sponsor report's words in English.
 func Text(key string, args i18n.Args) string { return msgs.M(key).Text(i18n.Default, args) }
+
+// TextIn is one of the shared sponsor report's words in the page's
+// language (internal/publicpages).
+func TextIn(l i18n.Lang, key string, args i18n.Args) string { return msgs.M(key).Text(l, args) }
+
+// EnglishText reports whether one of the catalog's messages is written in
+// English for a language (it isn't translated yet): English grammar the
+// code applies (a placement's name in lower case) holds only then.
+func EnglishText(l i18n.Lang, key string) bool {
+	if l.Locale == i18n.English || l.Locale == i18n.Pseudo || l.Locale == "" {
+		return true
+	}
+	return slices.Contains(msgs.Missing(l.Locale), key)
+}
+
+// notFound is a 404 whose sentence is in the reader's language: what names
+// a notFound.* message ("slot": "Slot not found.").
+func notFound(ctx context.Context, what string) *api.Problem {
+	return problem(ctx, http.StatusNotFound, api.CodeNotFound, "notFound."+what, nil)
+}
+
+// mapErr is api.MapError with its not-found sentence in the reader's
+// language.
+func mapErr(ctx context.Context, err error, what string) error {
+	if errors.Is(err, pgx.ErrNoRows) {
+		return notFound(ctx, what)
+	}
+	return api.MapError(err, msgs.M("notFound."+what).Source())
+}
+
+// shortDate is a day with its weekday in a language: "Tue 14 Oct" in
+// ReputeCast's own format, "Th 3, 14 thg 10" in Vietnamese.
+func shortDate(l i18n.Lang, t time.Time) string {
+	if l.Region == "" || l.Region == i18n.Standard {
+		return t.Format("Mon 2 Jan")
+	}
+	return l.Region.ShortDate(t)
+}
+
+// emailLang is the language a campaign's email is written in, as its
+// readers read it: its source language when it has language versions,
+// else the workspace's default language.
+func (s *Service) emailLang(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID) i18n.Lang {
+	code := "en"
+	_ = s.Pool.QueryRow(ctx, `SELECT coalesce(
+		(SELECT language FROM content_sources WHERE owner_kind = 'campaign' AND owner_id = $1 AND owner_version = 0),
+		(SELECT code FROM workspace_languages WHERE workspace_id = $2 AND is_default AND removed_at IS NULL), 'en')`, campaignID, ws.ID).Scan(&code)
+	return pagelabels.Lang(code)
+}
 
 // problem is an RFC 9457 answer with its text from the catalog.
 func problem(ctx context.Context, status int, code, key string, args i18n.Args) *api.Problem {

@@ -251,14 +251,14 @@ func (s *Service) webhooksMissing(ctx context.Context, st store.Store, topics []
 			return err
 		}
 	}
-	l := i18n.Default
-	date := at.In(location(ws.Timezone)).Format("2 Jan at 15:04")
+	// Kept as messages, so each member reads it in their own language; the
+	// time in the workspace's zone.
 	return notify.ToMembersWith(ctx, s.Pool, st.WorkspaceID, authz.IntegrationsManage, notify.Notification{
 		Kind: KindStoreProblem, Severity: "warn",
-		Title: mNotifyWebhookTitle.Text(l, i18n.Args{"topic": topics[0], "store": st.Name}),
-		Body:  mNotifyWebhookBody.Text(l, i18n.Args{"platform": platformName(st.Platform), "date": date}),
-		Link:  "/w/" + ws.Slug + "/settings/integrations/stores/" + st.ID.String(),
-		Data:  map[string]any{"store": st.ID.String(), "problem": "webhook_missing", "topics": topics},
+		TitleText: mNotifyWebhookTitle.Keep(i18n.Args{"topic": topics[0], "store": st.Name}),
+		BodyText:  mNotifyWebhookBody.Keep(i18n.Args{"platform": platformName(st.Platform), "at": at.In(location(ws.Timezone))}),
+		Link:      "/w/" + ws.Slug + "/settings/integrations/stores/" + st.ID.String(),
+		Data:      map[string]any{"store": st.ID.String(), "problem": "webhook_missing", "topics": topics},
 	})
 }
 

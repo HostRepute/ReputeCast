@@ -14,9 +14,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -80,6 +80,8 @@ type SponsorBlock struct {
 	// CanSeePrice: the person holds earn:view; Helpers can help when not.
 	CanSeePrice bool     `json:"canSeePrice"`
 	Helpers     []string `json:"helpers"`
+	// emailLang is the language of the email the block is in.
+	emailLang i18n.Lang
 }
 
 // blockBooking finds a campaign's booking: linked to it, or of its list on
@@ -90,13 +92,16 @@ type blockBooking struct {
 	slot    *store.SponsorSlotsRow
 	issue   int
 	issueOn time.Time
+	// email is the language the campaign's email is written in: the
+	// block's label goes into the email in it.
+	email i18n.Lang
 }
 
 func (s *Service) campaignBooking(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID) (blockBooking, error) {
-	var out blockBooking
+	out := blockBooking{email: s.emailLang(ctx, ws, campaignID)}
 	cp, err := s.Q.SponsorCampaignBrief(ctx, store.SponsorCampaignBriefParams{ID: campaignID, WorkspaceID: ws.ID})
 	if err != nil {
-		return out, api.MapError(err, "Campaign")
+		return out, mapErr(ctx, err, "campaign")
 	}
 	slots, err := s.Q.SponsorSlots(ctx, ws.ID)
 	if err != nil {
@@ -208,7 +213,13 @@ func (s *Service) block(ctx context.Context, ws *store.Workspace, bb blockBookin
 	if labelMode != "plain" {
 		labelMode = "name"
 	}
-	out := SponsorBlock{State: BlockNone, Layout: layout, LabelMode: labelMode, Label: text(ctx, "block.label", nil)}
+	// The label goes into the email: in the email's language. The notes
+	// only the composer shows are in the member's.
+	el := bb.email
+	if el.Locale == "" {
+		el = i18n.Default
+	}
+	out := SponsorBlock{State: BlockNone, Layout: layout, LabelMode: labelMode, Label: msgs.M("block.label").Text(el, nil), emailLang: el}
 	if bb.slot != nil {
 		out.SlotID, out.SlotName, out.ListName = bb.slot.ID.String(), bb.slot.Name, bb.slot.ListName
 	}
@@ -229,7 +240,7 @@ func (s *Service) block(ctx context.Context, ws *store.Workspace, bb blockBookin
 			}
 		}
 		if labelMode == "name" && out.Sponsor != "" {
-			out.Label = text(ctx, "block.labelBy", map[string]any{"sponsor": out.Sponsor})
+			out.Label = msgs.M("block.labelBy").Text(el, map[string]any{"sponsor": out.Sponsor})
 		}
 		out.State = BlockWaiting
 		if b.CreativeStatus == "ready" {
@@ -275,7 +286,7 @@ func (s *Service) blockMJML(ctx context.Context, ws *store.Workspace, b SponsorB
 	attrs := fmt.Sprintf(`%s="%s" %s="%s" %s="%s"`, BlockAttr, esc(firstNonEmpty(b.SlotID, "1")), LayoutAttr, b.Layout, LabelAttr, b.LabelMode)
 	label := b.Label
 	if b.LabelMode == "name" && b.Sponsor != "" && b.State != BlockReady {
-		label = text(ctx, "block.placeholderLabel", map[string]any{"sponsor": b.Sponsor})
+		label = msgs.M("block.placeholderLabel").Text(b.emailLang, map[string]any{"sponsor": b.Sponsor})
 	}
 	labelDiv := fmt.Sprintf(`<div style="%spadding-bottom:6px;">%s</div>`, cardLabel, esc(label))
 	section := func(extra, card string) string {
@@ -311,7 +322,7 @@ func (s *Service) blockMJML(ctx context.Context, ws *store.Workspace, b SponsorB
 	case BlockWaiting:
 		due := ""
 		if b.CreativeDue != nil {
-			due = b.CreativeDue.In(location(ws)).Format("Mon 2 Jan")
+			due = shortDate(lang(ctx), b.CreativeDue.In(location(ws)))
 		}
 		main := labelDiv + fmt.Sprintf(`<p style="%s">%s</p>`, cardNote, esc(text(ctx, "block.waiting", map[string]any{"due": due})))
 		return section("", card("1px dashed #C9CED6", "#F9FAFB", square(), main))
@@ -403,8 +414,13 @@ func (s *Service) ReadinessFacts(ctx context.Context, ws *store.Workspace, campa
 		return SponsorFacts{HasBlock: true, State: BlockNone}
 	}
 	b := s.block(ctx, ws, bb, n.Attr(LayoutAttr), n.Attr(LabelAttr))
+	// The label in the email's language, or in English (blocks saved
+	// before the label followed the email's language).
+	inBlock := strings.ToUpper(src[n.Start:n.End])
+	labelled := strings.Contains(inBlock, strings.ToUpper(msgs.M("block.label").Text(b.emailLang, nil))) ||
+		strings.Contains(inBlock, strings.ToUpper(msgs.M("block.label").Text(i18n.Default, nil)))
 	out := SponsorFacts{HasBlock: true, State: b.State, Sponsor: b.Sponsor, Issue: b.Issue, BookingID: b.BookingID, CreativeDue: b.CreativeDue,
-		Stale: n.Attr(HashAttr) != b.Hash, Labelled: strings.Contains(strings.ToUpper(src[n.Start:n.End]), strings.ToUpper(text(ctx, "block.label", nil)))}
+		Stale: n.Attr(HashAttr) != b.Hash, Labelled: labelled}
 	if b.State == BlockNone {
 		out.Labelled = true
 	}
@@ -463,7 +479,7 @@ func (s *Service) ComposerIssues(ctx context.Context, ws *store.Workspace, campa
 	path, section := blockPath(src, n)
 	detail := text(ctx, "check.missingNoDue", nil)
 	if b.CreativeDue != nil {
-		detail = text(ctx, "check.missingDetail", map[string]any{"due": b.CreativeDue.In(location(ws)).Format("Mon 2 Jan")})
+		detail = text(ctx, "check.missingDetail", map[string]any{"due": shortDate(lang(ctx), b.CreativeDue.In(location(ws)))})
 	}
 	fixes := []contentcheck.ContentCheckFix{{Kind: "open", Label: text(ctx, "check.openBooking", nil), Value: "/w/" + ws.Slug + "/earn/sponsors?booking=" + b.BookingID}}
 	if section >= 0 {

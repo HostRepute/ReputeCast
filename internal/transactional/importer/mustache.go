@@ -2,6 +2,8 @@ package importer
 
 import (
 	"strings"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // The Mustache family (Postmark's Mustachio, Handlebars as SendGrid and
@@ -189,7 +191,7 @@ func (*mBlock) isNode()   {}
 type parseProblem struct {
 	line      int
 	construct string
-	message   string
+	text      i18n.Text
 }
 
 // parseTree builds the tree. Structure problems (a close that doesn't match,
@@ -221,7 +223,7 @@ func parseTree(toks []token) ([]mnode, []parseProblem) {
 			stack = append(stack, b)
 		case tElse:
 			if len(stack) == 1 {
-				probs = append(probs, parseProblem{line: t.line, construct: t.src, message: "`" + t.src + "` is outside any block."})
+				probs = append(probs, parseProblem{line: t.line, construct: t.src, text: say("note.elseOutside", i18n.Args{"src": t.src})})
 				cur().nodes = append(cur().nodes, mVerbatim{t: t})
 				continue
 			}
@@ -239,13 +241,13 @@ func parseTree(toks []token) ([]mnode, []parseProblem) {
 				}
 			}
 			if at < 0 {
-				probs = append(probs, parseProblem{line: t.line, construct: t.src, message: "`" + t.src + "` closes a block that was never opened."})
+				probs = append(probs, parseProblem{line: t.line, construct: t.src, text: say("note.closesUnopened", i18n.Args{"src": t.src})})
 				cur().nodes = append(cur().nodes, mVerbatim{t: t})
 				continue
 			}
 			for k := len(stack) - 1; k > at; k-- {
 				o := stack[k].open
-				probs = append(probs, parseProblem{line: o.line, construct: o.src, message: "`" + o.src + "` is never closed."})
+				probs = append(probs, parseProblem{line: o.line, construct: o.src, text: say("note.neverClosed", i18n.Args{"src": o.src})})
 			}
 			tt := t
 			stack[at].close = &tt
@@ -256,7 +258,7 @@ func parseTree(toks []token) ([]mnode, []parseProblem) {
 	}
 	for k := len(stack) - 1; k >= 1; k-- {
 		o := stack[k].open
-		probs = append(probs, parseProblem{line: o.line, construct: o.src, message: "`" + o.src + "` is never closed."})
+		probs = append(probs, parseProblem{line: o.line, construct: o.src, text: say("note.neverClosed", i18n.Args{"src": o.src})})
 	}
 	return root.branches[0].nodes, probs
 }

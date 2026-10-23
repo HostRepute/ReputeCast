@@ -330,7 +330,7 @@ function StatusSentence({ m }: { m: Member }) {
       <>
         {t(mm.stPastDue, {
           date: dayMonthDate(m.failedAt),
-          reason: m.failureReason ? ` (${m.failureReason.replace(/\.$/, '').replace(/^Your card has /, '').toLowerCase()})` : '',
+          reason: m.failureText ? ` (${m.failureText})` : '',
           next: m.nextAt ? t(mm.stNextTry, { date: dayMonthDate(m.nextAt) }) : '',
           name: first,
           tier: m.tier,

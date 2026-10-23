@@ -14,7 +14,7 @@ import { Segmented } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { clock, dayMonthDate } from '@/lib/format'
-import { useDocumentTitle } from '@/lib/hooks'
+import { useDocumentTitle, useScrollRegion } from '@/lib/hooks'
 import { useCan, useMe, useWorkspace } from '@/lib/session'
 import { BlockIcon } from '@/features/composer/icons'
 import { createComposerEditor, type ComposerEditor } from '@/features/composer/editor/grapes'
@@ -85,7 +85,8 @@ function Editor({ d }: { d: Detail }) {
   const [contact, setContact] = useState('')
   const [rev, setRev] = useState(0)
   const revision = useRef(d.revision)
-  const container = useRef<HTMLDivElement>(null)
+  // On phones the canvas scrolls sideways; it takes keyboard focus then.
+  const [container, canvasScroll] = useScrollRegion<HTMLDivElement>(t(me.canvasLabel))
   const geRef = useRef<ComposerEditor | null>(null)
   const [ge, setGe] = useState<ComposerEditor | null>(null)
   const [selected, setSelected] = useState<Component | null>(null)
@@ -331,7 +332,7 @@ function Editor({ d }: { d: Detail }) {
             </Note>
           ) : null}
           <div className="card overflow-hidden" style={{ display: view === 'visual' ? undefined : 'none' }}>
-            <div ref={container} className="cmp-canvas" role="region" aria-label={t(me.canvasLabel)} style={{ minHeight: 520 }} />
+            <div ref={container} className="cmp-canvas" role="region" aria-label={t(me.canvasLabel)} style={{ minHeight: 520 }} {...canvasScroll} />
             {!ge ? <Skeleton h={520} /> : null}
           </div>
           {view === 'code' ? (

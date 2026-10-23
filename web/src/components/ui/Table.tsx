@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type HTMLAttributes, type ReactNode, type TableHTMLAttributes } from 'react'
-import { useOverflowX } from '@/lib/hooks'
+import { useLayoutEffect, useState, type CSSProperties, type HTMLAttributes, type ReactNode, type TableHTMLAttributes } from 'react'
+import { useScrollRegion } from '@/lib/hooks'
 import { cn } from '@/lib/cn'
 
 /**
@@ -46,16 +46,9 @@ export function Table({
  * names it for screen readers.
  */
 export function TableScroll({ label, className, children }: { label?: string; className?: string; children: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const scrolls = useOverflowX(ref)
+  const [ref, scroll] = useScrollRegion<HTMLDivElement>(label)
   return (
-    <div
-      ref={ref}
-      className={cn('tscroll', className)}
-      tabIndex={scrolls ? 0 : undefined}
-      role={scrolls && label ? 'region' : undefined}
-      aria-label={scrolls ? label : undefined}
-    >
+    <div ref={ref} className={cn('tscroll', className)} {...scroll}>
       {children}
     </div>
   )

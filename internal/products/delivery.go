@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/notify"
+	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/transactional"
 )
@@ -138,7 +139,7 @@ func (s *Service) Deliver(ctx context.Context, linkID uuid.UUID) error {
 		}
 	}
 	if key == "" {
-		return s.deliveryFailed(ctx, &ws, o, link, "template_missing", "the product has no delivery template")
+		return s.deliveryFailed(ctx, &ws, o, link, "template_missing", deliveryNoTemplate)
 	}
 	files, err := s.Q.DownloadFilesOf(ctx, store.DownloadFilesOfParams{OwnerKind: OwnerProduct, OwnerID: o.ProductID})
 	if err != nil {
@@ -175,8 +176,18 @@ func (s *Service) Deliver(ctx context.Context, linkID uuid.UUID) error {
 	if first != "" {
 		data["first_name"] = first
 	}
+	// The expiry date and the files' line are written in the language of
+	// the version the buyer gets.
+	sum := summary(fs)
+	localize := func(code string) map[string]any {
+		l := pagelabels.Lang(code)
+		if code == "" {
+			l = pagelabels.Lang(s.defaultLanguage(ctx, ws.ID))
+		}
+		return map[string]any{"expires_on": dayTextIn(l, &ws, link.ExpiresAt), "file": fileTextIn(l, sum)}
+	}
 	in := transactional.TransactionalSend{Template: key, To: transactional.TransactionalAddress{Email: o.BuyerEmail, Name: o.BuyerName}, Data: data,
-		Tags: []string{"products"}, Metadata: map[string]string{"source": "products", "order": fmt.Sprint(o.Number)}}
+		Tags: []string{"products"}, Metadata: map[string]string{"source": "products", "order": fmt.Sprint(o.Number)}, Localize: localize}
 	status, body, err := s.Transactional().Send(ctx, &ws, in, "products:"+link.ID.String(), "api")
 	if err != nil {
 		var detail string
@@ -208,6 +219,19 @@ func (s *Service) Deliver(ctx context.Context, linkID uuid.UUID) error {
 	return s.Q.ProductOrderLinkDelivery(ctx, store.ProductOrderLinkDeliveryParams{ID: link.ID, MessageID: &mid, Delivery: "sent", DeliveryError: ""})
 }
 
+// deliveryNoTemplate is the stored reason of a delivery a product without
+// its template couldn't send; deliveryError writes it in the reader's
+// language. Other reasons are what Transactional answered, in English.
+const deliveryNoTemplate = "the product has no delivery template"
+
+// deliveryError is a stored delivery error as a reader reads it.
+func deliveryError(l i18n.Lang, stored string) string {
+	if stored == deliveryNoTemplate {
+		return word(l, "delivery.noTemplate", nil)
+	}
+	return stored
+}
+
 // deliveryFailed records a delivery email that couldn't go out and tells
 // the people who manage orders.
 func (s *Service) deliveryFailed(ctx context.Context, ws *store.Workspace, o store.ProductOrder, link store.ProductOrderLink, code, detail string) error {
@@ -217,11 +241,16 @@ func (s *Service) deliveryFailed(ctx context.Context, ws *store.Workspace, o sto
 	if detail == "" {
 		detail = code
 	}
-	l := i18n.For(i18n.English)
+	// Kept as messages, so each member reads it in their own language; the
+	// missing template's reason too (Transactional's answers stay English).
+	reason := "other"
+	if detail == deliveryNoTemplate {
+		reason = "template_missing"
+	}
+	args := i18n.Args{"order": orderNo(o.Number), "product": o.ProductName, "email": o.BuyerEmail, "reason": reason, "detail": detail}
 	n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindProductDeliveryFailed, Severity: "bad",
-		Title: word(l, "notify.deliveryFailedTitle", nil),
-		Body:  word(l, "notify.deliveryFailedBody", map[string]any{"order": orderNo(o.Number), "product": o.ProductName, "email": o.BuyerEmail, "reason": detail}),
-		Link:  "/w/" + ws.Slug + "/earn/products?order=" + o.ID.String(), Data: map[string]any{"order_id": o.ID.String(), "code": code}}
+		TitleText: msgs.M("notify.deliveryFailedTitle").Keep(nil), BodyText: msgs.M("notify.deliveryFailedBody").Keep(args),
+		Link: "/w/" + ws.Slug + "/earn/products?order=" + o.ID.String(), Data: map[string]any{"order_id": o.ID.String(), "code": code}}
 	if err := notify.ToMembersWith(ctx, s.Pool, ws.ID, authz.OrdersManage, n); err != nil {
 		s.log().WarnContext(ctx, "products: delivery failed notification", "err", err)
 	}
@@ -248,6 +277,27 @@ func location(ws *store.Workspace) *time.Location {
 // dayText is a date as emails and public pages write it ("22 Oct 2026").
 func dayText(ws *store.Workspace, t time.Time) string {
 	return t.In(location(ws)).Format("2 Jan 2006")
+}
+
+// dayTextIn is dayText in a language's region format ("22 thg 10, 2026").
+func dayTextIn(l i18n.Lang, ws *store.Workspace, t time.Time) string {
+	if standard(l) {
+		return dayText(ws, t)
+	}
+	return l.Region.Date(t.In(location(ws)))
+}
+
+// defaultLanguage is the workspace's default content language ("en" when
+// it never set one): its emails are written in it.
+func (s *Service) defaultLanguage(ctx context.Context, wsID uuid.UUID) string {
+	if rows, err := s.Q.LanguagesList(ctx, wsID); err == nil {
+		for _, r := range rows {
+			if r.IsDefault && r.RemovedAt == nil {
+				return r.Code
+			}
+		}
+	}
+	return "en"
 }
 
 // moneyText is an amount with its currency's symbol ("$29.00").
@@ -298,14 +348,14 @@ func thousands(n int64) string {
 }
 
 // fileText is how the delivery email names the files ("the PDF, 4.2 MB").
-func fileText(f ProductFilesSummary) string {
+func fileText(f ProductFilesSummary) string { return fileTextIn(i18n.For(i18n.English), f) }
+
+// fileTextIn is fileText in a language: the email's.
+func fileTextIn(l i18n.Lang, f ProductFilesSummary) string {
 	if f.Count == 0 {
 		return ""
 	}
-	if f.Count > 1 {
-		return fmt.Sprintf("the %d files, %s", f.Count, humanSize(f.Bytes))
-	}
-	return "the " + f.Kind + ", " + humanSize(f.Bytes)
+	return word(l, "delivery.files", i18n.Args{"count": f.Count, "kind": f.Kind, "size": humanSizeIn(l, f.Bytes)})
 }
 
 // deliverWorker sends delivery emails.

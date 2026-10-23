@@ -19,10 +19,10 @@ type WebsitePostPath struct {
 	Post string `path:"post" format:"uuid" doc:"The post's id"`
 }
 
-func (p WebsitePostPath) id() (uuid.UUID, error) {
+func (p WebsitePostPath) id(ctx context.Context) (uuid.UUID, error) {
 	id, err := uuid.Parse(p.Post)
 	if err != nil {
-		return uuid.Nil, api.NotFound("Post")
+		return uuid.Nil, notFound(ctx, "post")
 	}
 	return id, nil
 }
@@ -49,10 +49,10 @@ type WebsiteCampaignPath struct {
 	CampaignID string `path:"campaignId" format:"uuid" doc:"The campaign's id"`
 }
 
-func (p WebsiteCampaignPath) id() (uuid.UUID, error) {
+func (p WebsiteCampaignPath) id(ctx context.Context) (uuid.UUID, error) {
 	id, err := uuid.Parse(p.CampaignID)
 	if err != nil {
-		return uuid.Nil, api.NotFound("Campaign")
+		return uuid.Nil, notFound(ctx, "campaign")
 	}
 	return id, nil
 }
@@ -95,10 +95,10 @@ type WebsiteCampaignReportView struct {
 	Report *WebsiteCampaignReport `json:"report,omitempty"`
 }
 
-func parseID(s, what string) (uuid.UUID, error) {
+func parseID(ctx context.Context, s, what string) (uuid.UUID, error) {
 	id, err := uuid.Parse(s)
 	if err != nil {
-		return uuid.Nil, api.NotFound(what)
+		return uuid.Nil, notFound(ctx, what)
 	}
 	return id, nil
 }
@@ -150,7 +150,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Get(h, api.Op{ID: "get-website-post", Path: base + "/posts/{post}", Summary: "A post: its settings, content, web checks and whether you can publish it", Tags: tags, Access: view},
 		func(ctx context.Context, in *WebsitePostPath) (*api.Body[WebsitePost], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -160,7 +160,7 @@ func Register(h huma.API, s *Service) {
 	api.Put(h, api.Op{ID: "update-website-post", Path: base + "/posts/{post}", Summary: "Save a post's settings: title, address, excerpt, cover, byline, tags, visibility and SEO",
 		Description: "Changing a published post's address keeps the old one as a redirect.", Tags: tags, Access: edit},
 		func(ctx context.Context, in *postBody[WebsitePostInput]) (*api.Body[WebsitePost], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -170,7 +170,7 @@ func Register(h huma.API, s *Service) {
 	api.Put(h, api.Op{ID: "save-website-post-content", Path: base + "/posts/{post}/content", Summary: "Autosave or save a web-only post's content",
 		Description: "Another save since baseVersion is a conflict (409) unless force is set.", Tags: tags, Access: edit, MaxBodyBytes: 4 << 20},
 		func(ctx context.Context, in *postBody[WebsitePostContent]) (*api.Body[WebsitePostSaved], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -180,7 +180,7 @@ func Register(h huma.API, s *Service) {
 	api.Delete(h, api.Op{ID: "delete-website-post", Path: base + "/posts/{post}", Summary: "Delete a post",
 		Description: "A published post leaves the site too (its address answers 410); that needs website:publish.", Tags: tags, Access: edit},
 		func(ctx context.Context, in *WebsitePostPath) (*api.Empty, error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -190,7 +190,7 @@ func Register(h huma.API, s *Service) {
 		Description: "When publishing needs approval the answer is 409 approval_required with the rule and the approvers: ask for approval instead.",
 		Tags:        tags, Access: publish},
 		func(ctx context.Context, in *postBody[WebsitePublishInput]) (*api.Body[WebsitePost], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -199,7 +199,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Post(h, api.Op{ID: "undo-website-post-publish", Path: base + "/posts/{post}/undo-publish", Summary: "Take back a publish within seconds (the toast's Undo)", Tags: tags, Access: publish},
 		func(ctx context.Context, in *WebsitePostPath) (*api.Body[WebsitePost], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -209,7 +209,7 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "unpublish-website-post", Path: base + "/posts/{post}/unpublish", Summary: "Take a post off the site, or unschedule it",
 		Description: "Its address answers 410, or redirects to redirectTo.", Tags: tags, Access: publish},
 		func(ctx context.Context, in *postBody[WebsiteUnpublishInput]) (*api.Body[WebsitePost], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -218,7 +218,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Put(h, api.Op{ID: "set-website-post-redirect", Path: base + "/posts/{post}/redirect", Summary: "Change where an unpublished post's address leads", Tags: tags, Access: publish},
 		func(ctx context.Context, in *postBody[WebsiteUnpublishInput]) (*api.Body[WebsitePost], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -229,7 +229,7 @@ func Register(h huma.API, s *Service) {
 		Description: "The request covers the content, the address, the visibility and the publish time; a change needs a new one. Once approved, the post goes live by itself.",
 		Tags:        tags, Access: api.WorkspaceHuman(authz.WebsiteEdit), Status: http.StatusCreated},
 		func(ctx context.Context, in *postBody[WebsiteApprovalInput]) (*api.Body[WebsitePost], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -240,7 +240,7 @@ func Register(h huma.API, s *Service) {
 		Description: "Its title becomes the subject, its excerpt the preheader and its blocks the email. Pick the audience in the composer.",
 		Tags:        tags, Access: api.Workspace(authz.CampaignsEdit), Status: http.StatusCreated},
 		func(ctx context.Context, in *WebsitePostPath) (*api.Body[WebsiteSentAsCampaign], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -271,7 +271,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Put(h, api.Op{ID: "update-website-tag", Path: base + "/tags/{tag}", Summary: "Rename a tag, change its address or description", Tags: tags, Access: manage},
 		func(ctx context.Context, in *tagBody) (*api.Body[WebsiteTag], error) {
-			id, err := parseID(in.Tag, "Tag")
+			id, err := parseID(ctx, in.Tag, "tag")
 			if err != nil {
 				return nil, err
 			}
@@ -280,7 +280,7 @@ func Register(h huma.API, s *Service) {
 		})
 	api.Delete(h, api.Op{ID: "delete-website-tag", Path: base + "/tags/{tag}", Summary: "Delete a tag (its posts stay)", Tags: tags, Access: manage},
 		func(ctx context.Context, in *WebsiteTagPath) (*api.Empty, error) {
-			id, err := parseID(in.Tag, "Tag")
+			id, err := parseID(ctx, in.Tag, "tag")
 			if err != nil {
 				return nil, err
 			}
@@ -314,7 +314,7 @@ func Register(h huma.API, s *Service) {
 	api.Get(h, api.Op{ID: "get-campaign-web", Path: "/workspaces/{workspace}/campaigns/{campaignId}/web", Summary: "A campaign's Web tab: whether and how it goes on the website",
 		Tags: ctags, Access: api.Workspace(authz.CampaignsView)},
 		func(ctx context.Context, in *WebsiteCampaignPath) (*api.Body[WebsiteCampaignWeb], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -324,7 +324,7 @@ func Register(h huma.API, s *Service) {
 	api.Put(h, api.Op{ID: "save-campaign-web", Path: "/workspaces/{workspace}/campaigns/{campaignId}/web", Summary: "Save a campaign's Web tab",
 		Description: "A live post's settings need website:edit too.", Tags: ctags, Access: api.Workspace(authz.CampaignsEdit)},
 		func(ctx context.Context, in *campaignBody) (*api.Body[WebsiteCampaignWeb], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -351,7 +351,7 @@ func Register(h huma.API, s *Service) {
 	api.Get(h, api.Op{ID: "get-campaign-web-report", Path: "/workspaces/{workspace}/campaigns/{campaignId}/web-report", Summary: "The Web section of a campaign's report",
 		Tags: []string{"Reports"}, Access: api.Workspace(authz.ReportsView)},
 		func(ctx context.Context, in *WebsiteCampaignPath) (*api.Body[WebsiteCampaignReportView], error) {
-			id, err := in.id()
+			id, err := in.id(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -363,7 +363,7 @@ func Register(h huma.API, s *Service) {
 	api.Get(h, api.Op{ID: "get-contact-website", Path: "/workspaces/{workspace}/contacts/{contactId}/website", Summary: "A contact's Website card: membership, sign-ins, sessions and the meter",
 		Tags: []string{"Contacts"}, Access: api.Workspace(authz.SubscribersView)},
 		func(ctx context.Context, in *WebsiteContactPath) (*api.Body[WebsiteContactCard], error) {
-			id, err := parseID(in.ContactID, "Contact")
+			id, err := parseID(ctx, in.ContactID, "contact")
 			if err != nil {
 				return nil, err
 			}
@@ -373,7 +373,7 @@ func Register(h huma.API, s *Service) {
 	api.Post(h, api.Op{ID: "sign-contact-out-everywhere", Path: "/workspaces/{workspace}/contacts/{contactId}/website/sign-out", Summary: "Sign a member out of the website on every device",
 		Description: "Audited, and on the contact's timeline.", Tags: []string{"Contacts"}, Access: api.WorkspaceHuman(authz.SubscribersEdit)},
 		func(ctx context.Context, in *WebsiteContactPath) (*api.Body[WebsiteSignedOut], error) {
-			id, err := parseID(in.ContactID, "Contact")
+			id, err := parseID(ctx, in.ContactID, "contact")
 			if err != nil {
 				return nil, err
 			}

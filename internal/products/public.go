@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/payments"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -217,6 +218,9 @@ func FileTextLong(f ProductFilesSummary) string {
 
 // HumanSize writes a file size ("4.2 MB", "380 KB").
 func HumanSize(n int64) string { return humanSize(n) }
+
+// HumanSizeIn writes a file size in a language's region format ("4,2 MB").
+func HumanSizeIn(l i18n.Lang, n int64) string { return humanSizeIn(l, n) }
 
 func plural(n int, word string) string {
 	if n == 1 {

@@ -156,5 +156,9 @@
   "gone.textPlain": "It was taken off the site.",
   "confirm.download.pages": { "message": "{count, plural, one {# page} other {# pages}}", "note": "the confirmation page's download: the file's length" },
   "confirm.download.button": { "message": "Download ({kind}, {size})", "note": "the confirmation page's download button; kind: PDF, ZIP…; size: 380 KB" },
-  "confirm.download.note": { "message": "{days, plural, one {The download link on this page works for # day.} other {The download link on this page works for # days.}}", "note": "under the confirmation page's download button" }
+  "confirm.download.note": { "message": "{days, plural, one {The download link on this page works for # day.} other {The download link on this page works for # days.}}", "note": "under the confirmation page's download button" },
+
+  "files.kindSize": { "message": "{kind}, {size}", "note": "a product's files: “ZIP, 38 MB”; kind: the first file's kind in capitals" },
+  "files.kindPages": { "message": "{kind}, {count, plural, one {# page} other {# pages}}", "note": "a product's PDF: “PDF, 86 pages”" },
+  "files.kindPagesSize": { "message": "{kind}, {count, plural, one {# page} other {# pages}}, {size}", "note": "“PDF, 86 pages, 4.2 MB”" }
 }

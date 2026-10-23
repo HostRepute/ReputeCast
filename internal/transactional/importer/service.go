@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/transactional"
@@ -200,10 +201,22 @@ type connection struct {
 	Domain  string `json:"domain,omitempty"`
 }
 
-// storedItem is a report row with what it converted to.
+// storedItem is a report row with what it converted to. Texts are its
+// notes' kept messages (Note.Text), in the notes' order, so the report reads
+// in each reader's language.
 type storedItem struct {
 	TemplateImportItem
-	Converted Converted `json:"converted"`
+	Converted Converted   `json:"converted"`
+	Texts     []i18n.Text `json:"texts,omitempty"`
+}
+
+// textsOf is the notes' kept messages.
+func textsOf(notes []Note) []i18n.Text {
+	out := make([]i18n.Text, len(notes))
+	for i, n := range notes {
+		out[i] = n.Text
+	}
+	return out
 }
 
 func mustJSON(v any) json.RawMessage {
@@ -215,7 +228,7 @@ func mustJSON(v any) json.RawMessage {
 }
 
 // source builds the client of a provider.
-func (s *Service) source(kind string, c credentials) (TemplateSource, error) {
+func (s *Service) source(ctx context.Context, kind string, c credentials) (TemplateSource, error) {
 	switch kind {
 	case SourcePostmark:
 		return NewPostmark(c.APIKey, s.Bases[SourcePostmark], s.HTTP)
@@ -226,28 +239,30 @@ func (s *Service) source(kind string, c credentials) (TemplateSource, error) {
 	case SourceNotifuse:
 		return NewNotifuse(c.BaseURL, c.APIKey, s.HTTP)
 	}
-	return nil, api.Invalid("body.source", "Pick Postmark, SendGrid, Mailgun, Notifuse or files.")
+	return nil, api.Invalid("body.source", sayIn(ctx, "problem.source", nil))
 }
 
 // serverAddress checks a self-hosted instance's address: a full http(s)
-// address, no credentials or query, and not on an internal network.
-func (s *Service) serverAddress(raw string) (string, string) {
+// address, no credentials or query, and not on an internal network. The
+// problem is in the request's language.
+func (s *Service) serverAddress(ctx context.Context, raw string) (string, string) {
 	u, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil || u.Host == "" || (u.Scheme != "https" && u.Scheme != "http") {
-		return "", "Use the full address, like https://notifuse.example.com."
+		return "", sayIn(ctx, "problem.fullAddress", nil)
 	}
 	if u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.ForceQuery {
-		return "", "Use only the instance's address, like https://notifuse.example.com: no credentials, query or fragment."
+		return "", sayIn(ctx, "problem.onlyAddress", nil)
 	}
 	sample := s.Samples && u.Scheme+"://"+u.Host == RecordedNotifuse
 	if _, err := s.Guard.ValidateURL(u.String()); err != nil && !sample {
-		return "", "That address is on a private or internal network. Turn on providers.allow_private_networks to import from a server there."
+		return "", sayIn(ctx, "problem.privateAddress", nil)
 	}
 	return u.Scheme + "://" + u.Host + strings.TrimRight(u.EscapedPath(), "/"), ""
 }
 
-// sourceProblem turns a provider failure into the API's answer.
-func sourceProblem(err error) error {
+// sourceProblem turns a provider failure into the API's answer, in the
+// request's language.
+func sourceProblem(ctx context.Context, err error) error {
 	var se *SourceError
 	if errors.As(err, &se) {
 		status := http.StatusBadGateway
@@ -259,14 +274,14 @@ func sourceProblem(err error) error {
 		case CodeNotFound:
 			status = http.StatusUnprocessableEntity
 		}
-		p := api.Err(status, se.Code, se.Message)
+		p := api.Err(status, se.Code, errorText(i18n.LangFrom(ctx), se))
 		if se.Status > 0 {
 			p = p.WithMeta("sourceStatus", se.Status)
 		}
 		return p
 	}
 	if errors.Is(err, ErrNoKey) {
-		return api.Invalid("body.apiKey", "Paste an API key.")
+		return api.Invalid("body.apiKey", sayIn(ctx, "problem.apiKey", nil))
 	}
 	return err
 }
@@ -292,28 +307,28 @@ func item(c Converted, src Source, taken map[string]bool) storedItem {
 	want := SuggestID(src.Alias, name)
 	key := UniqueID(want, taken)
 	if key != want {
-		c.Notes = append(c.Notes, Note{Kind: NoteInfo, Field: "template", Message: fmt.Sprintf("The ID `%s` exists, so it arrives as `%s`.", want, key)})
+		c.Notes = append(c.Notes, noteOf(NoteInfo, "template", 0, "", say("note.idTaken", i18n.Args{"want": want, "key": key})))
 		c.Notes = dedupeNotes(c.Notes)
 	}
 	it := TemplateImportItem{Ref: src.Ref, Alias: src.Alias, Name: name, Key: key, Status: c.Status, Notes: c.Notes, Variables: len(c.Variables)}
-	it.Summary, it.SummaryKind, it.SummaryLine = summaryOf(c)
-	return storedItem{TemplateImportItem: it, Converted: c}
+	it.Summary, it.SummaryKind, it.SummaryLine = summaryOf(i18n.Default, c)
+	return storedItem{TemplateImportItem: it, Converted: c, Texts: textsOf(c.Notes)}
 }
 
-// summaryOf is the Notes cell: the first manual fix or note, else the ID
-// that changed, else the variables declared.
-func summaryOf(c Converted) (string, NoteKind, int) {
+// summaryOf is the Notes cell in a reader's language: the first manual fix
+// or note, else the ID that changed, else the variables declared.
+func summaryOf(l i18n.Lang, c Converted) (string, NoteKind, int) {
 	for _, n := range c.Notes {
 		if n.Kind == NoteManual || n.Kind == NoteChange {
-			return n.Message, n.Kind, n.Line
+			return n.In(l).Message, n.Kind, n.Line
 		}
 	}
 	for _, n := range c.Notes {
 		if n.Kind == NoteInfo && n.Field == "template" {
-			return n.Message, n.Kind, 0
+			return n.In(l).Message, n.Kind, 0
 		}
 	}
-	return VariablesLine(c.Variables), NoteInfo, 0
+	return VariablesLineIn(l, c.Variables), NoteInfo, 0
 }
 
 // Start connects a provider and lists its templates, or converts uploaded
@@ -325,23 +340,23 @@ func (s *Service) Start(ctx context.Context, ws *store.Workspace, p *authz.Princ
 	}
 	c := credentials{APIKey: strings.TrimSpace(in.APIKey), Region: strings.ToLower(strings.TrimSpace(in.Region)), Domain: strings.TrimSpace(in.Domain)}
 	if kind == SourceNotifuse {
-		base, problem := s.serverAddress(in.BaseURL)
+		base, problem := s.serverAddress(ctx, in.BaseURL)
 		if problem != "" {
 			return TemplateImport{}, api.Invalid("body.baseUrl", problem)
 		}
 		c.BaseURL = base
 	}
-	src, err := s.source(kind, c)
+	src, err := s.source(ctx, kind, c)
 	if err != nil {
-		return TemplateImport{}, sourceProblem(err)
+		return TemplateImport{}, sourceProblem(ctx, err)
 	}
 	acct, err := src.Connect(ctx)
 	if err != nil {
-		return TemplateImport{}, sourceProblem(err)
+		return TemplateImport{}, sourceProblem(ctx, err)
 	}
 	refs, err := src.List(ctx)
 	if err != nil {
-		return TemplateImport{}, sourceProblem(err)
+		return TemplateImport{}, sourceProblem(ctx, err)
 	}
 	id := uuid.Must(uuid.NewV7())
 	sealed, err := s.Box.Seal(mustJSON(c), credentialsAD(id))
@@ -372,10 +387,10 @@ func (s *Service) Start(ctx context.Context, ws *store.Workspace, p *authz.Princ
 
 func (s *Service) startFiles(ctx context.Context, ws *store.Workspace, p *authz.Principal, files []TemplateImportFile) (TemplateImport, error) {
 	if len(files) == 0 {
-		return TemplateImport{}, api.Invalid("body.files", "Add at least one MJML or HTML file.")
+		return TemplateImport{}, api.Invalid("body.files", sayIn(ctx, "problem.noFiles", nil))
 	}
 	if len(files) > MaxFiles {
-		return TemplateImport{}, api.Invalid("body.files", fmt.Sprintf("Upload up to %d files at a time.", MaxFiles))
+		return TemplateImport{}, api.Invalid("body.files", sayIn(ctx, "problem.tooManyFiles", i18n.Args{"max": MaxFiles}))
 	}
 	taken, err := s.keysInUse(ctx, s.Q, ws.ID)
 	if err != nil {
@@ -385,11 +400,18 @@ func (s *Service) startFiles(ctx context.Context, ws *store.Workspace, p *authz.
 	names := make([]map[string]string, 0, len(files))
 	for i, f := range files {
 		if len(f.Content) > MaxFileBytes {
-			return TemplateImport{}, api.Invalid(fmt.Sprintf("body.files[%d]", i), fmt.Sprintf("%s is larger than 2 MB.", f.Name))
+			return TemplateImport{}, api.Invalid(fmt.Sprintf("body.files[%d]", i), sayIn(ctx, "problem.fileTooLarge", i18n.Args{"name": f.Name}))
 		}
 		src, dialect, err := FromFile(f.Name, []byte(f.Content))
 		if err != nil {
-			return TemplateImport{}, api.Invalid(fmt.Sprintf("body.files[%d]", i), err.Error())
+			msg := err.Error()
+			switch {
+			case errors.Is(err, ErrFileType):
+				msg = sayIn(ctx, "problem.fileType", nil)
+			case errors.Is(err, ErrNotText):
+				msg = sayIn(ctx, "problem.notText", nil)
+			}
+			return TemplateImport{}, api.Invalid(fmt.Sprintf("body.files[%d]", i), msg)
 		}
 		c := Convert(src, Options{Dialect: dialect, Transactional: true})
 		items = append(items, item(c, src, taken))
@@ -428,7 +450,7 @@ func userRef(p *authz.Principal) *uuid.UUID {
 func (s *Service) load(ctx context.Context, q *store.Queries, ws *store.Workspace, ref string, lock bool) (store.TransactionalTemplateImport, error) {
 	id, err := uuid.Parse(ref)
 	if err != nil {
-		return store.TransactionalTemplateImport{}, api.NotFound("Import")
+		return store.TransactionalTemplateImport{}, api.Err(http.StatusNotFound, api.CodeNotFound, sayIn(ctx, "notFound.import", nil))
 	}
 	var row store.TransactionalTemplateImport
 	if lock {
@@ -436,22 +458,55 @@ func (s *Service) load(ctx context.Context, q *store.Queries, ws *store.Workspac
 	} else {
 		row, err = q.TxnImportGet(ctx, store.TxnImportGetParams{WorkspaceID: ws.ID, ID: id})
 	}
+	if errors.Is(err, pgx.ErrNoRows) {
+		return row, api.Err(http.StatusNotFound, api.CodeNotFound, sayIn(ctx, "notFound.import", nil))
+	}
 	if err != nil {
 		return row, api.MapError(err, "Import")
 	}
 	return row, nil
 }
 
-// Get returns a run of the dialog.
+// Get returns a run of the dialog, its report in the request's language.
 func (s *Service) Get(ctx context.Context, ws *store.Workspace, ref string) (TemplateImport, error) {
 	row, err := s.load(ctx, s.Q, ws, ref, false)
 	if err != nil {
 		return TemplateImport{}, err
 	}
-	return view(row), nil
+	return view(i18n.LangFrom(ctx), row), nil
 }
 
-func view(row store.TransactionalTemplateImport) TemplateImport {
+// localize writes a stored report row in a reader's language: its notes
+// from their kept messages, and its Notes cell from them.
+func (it storedItem) localize(l i18n.Lang) TemplateImportItem {
+	out := it.TemplateImportItem
+	if l.Locale == i18n.English || len(it.Texts) == 0 {
+		return out
+	}
+	notes := make([]Note, len(out.Notes))
+	for i, n := range out.Notes {
+		if i < len(it.Texts) {
+			n.Text = it.Texts[i]
+		}
+		notes[i] = n
+	}
+	out.Notes = make([]Note, len(notes))
+	for i, n := range notes {
+		out.Notes[i] = n.In(l)
+	}
+	if out.Failed {
+		if len(out.Notes) > 0 {
+			out.Summary = out.Notes[0].Message
+		}
+		return out
+	}
+	c := it.Converted
+	c.Notes = notes
+	out.Summary, out.SummaryKind, out.SummaryLine = summaryOf(l, c)
+	return out
+}
+
+func view(l i18n.Lang, row store.TransactionalTemplateImport) TemplateImport {
 	out := TemplateImport{ID: row.ID.String(), Source: row.Source, Status: row.Status, KeySealed: len(row.CredentialsEnc) > 0,
 		Available: []Ref{}, Picked: row.Picked, Items: []TemplateImportItem{}, Created: []TemplateImportCreated{}, CreatedAt: row.CreatedAt, FinishedAt: row.FinishedAt}
 	if out.Picked == nil {
@@ -467,7 +522,7 @@ func view(row store.TransactionalTemplateImport) TemplateImport {
 	var items []storedItem
 	_ = json.Unmarshal(row.Report, &items)
 	for _, it := range items {
-		out.Items = append(out.Items, it.TemplateImportItem)
+		out.Items = append(out.Items, it.localize(l))
 		switch it.Status {
 		case StatusConverted:
 			out.Converted++
@@ -490,14 +545,14 @@ func view(row store.TransactionalTemplateImport) TemplateImport {
 	return out
 }
 
-func (s *Service) openCredentials(row store.TransactionalTemplateImport) (credentials, error) {
+func (s *Service) openCredentials(ctx context.Context, row store.TransactionalTemplateImport) (credentials, error) {
 	var c credentials
 	if len(row.CredentialsEnc) == 0 {
-		return c, api.Conflict("This import has no API key any more. Start again and paste the key.")
+		return c, api.Conflict(sayIn(ctx, "problem.noKey", nil))
 	}
 	raw, err := s.Box.Open(row.CredentialsEnc, credentialsAD(row.ID))
 	if err != nil {
-		return c, api.Conflict("The stored API key can't be decrypted. Start again and paste the key.")
+		return c, api.Conflict(sayIn(ctx, "problem.sealed", nil))
 	}
 	if err := json.Unmarshal(raw, &c); err != nil {
 		return c, err
@@ -512,18 +567,18 @@ func (s *Service) Convert(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		return TemplateImport{}, err
 	}
 	if row.Status != statusPick && row.Status != statusReview {
-		return TemplateImport{}, api.Conflict("This import is finished. Start a new one to import more templates.")
+		return TemplateImport{}, api.Conflict(sayIn(ctx, "problem.finished", nil))
 	}
 	if row.Source == SourceFiles {
-		return TemplateImport{}, api.Conflict("Uploaded files are converted when they are uploaded.")
+		return TemplateImport{}, api.Conflict(sayIn(ctx, "problem.filesConverted", nil))
 	}
-	c, err := s.openCredentials(row)
+	c, err := s.openCredentials(ctx, row)
 	if err != nil {
 		return TemplateImport{}, err
 	}
-	src, err := s.source(row.Source, c)
+	src, err := s.source(ctx, row.Source, c)
 	if err != nil {
-		return TemplateImport{}, sourceProblem(err)
+		return TemplateImport{}, sourceProblem(ctx, err)
 	}
 	var available []Ref
 	_ = json.Unmarshal(row.Available, &available)
@@ -538,7 +593,7 @@ func (s *Service) Convert(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		}
 	}
 	if len(picked) == 0 {
-		return TemplateImport{}, api.Invalid("body.refs", "Pick at least one template.")
+		return TemplateImport{}, api.Invalid("body.refs", sayIn(ctx, "problem.pickTemplate", nil))
 	}
 	taken, err := s.keysInUse(ctx, s.Q, ws.ID)
 	if err != nil {
@@ -551,16 +606,17 @@ func (s *Service) Convert(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		if err != nil {
 			var se *SourceError
 			if errors.As(err, &se) && (se.Code == CodeAuthFailed || se.Code == CodeRateLimited) {
-				return TemplateImport{}, sourceProblem(err)
+				return TemplateImport{}, sourceProblem(ctx, err)
 			}
 			msg := err.Error()
 			if se != nil {
 				msg = se.Message
 			}
+			note := noteOf(NoteManual, "template", 0, "", say("note.notReturned", i18n.Args{"source": SourceName(row.Source), "reason": lowerFirst(strings.TrimSuffix(msg, "."))}))
 			it := TemplateImportItem{Ref: r, Alias: byRef[r].Alias, Name: byRef[r].Name, Key: UniqueID(SuggestID(byRef[r].Alias, byRef[r].Name), taken), Status: StatusManual,
-				Notes: []Note{{Kind: NoteManual, Field: "template", Message: fmt.Sprintf("%s didn't return it: %s", SourceName(row.Source), lowerFirst(strings.TrimSuffix(msg, "."))+".")}}, Failed: true}
+				Notes: []Note{note}, Failed: true}
 			it.Summary, it.SummaryKind = it.Notes[0].Message, NoteManual
-			items = append(items, storedItem{TemplateImportItem: it})
+			items = append(items, storedItem{TemplateImportItem: it, Texts: textsOf(it.Notes)})
 			manual++
 			continue
 		}
@@ -584,7 +640,7 @@ func (s *Service) Convert(ctx context.Context, ws *store.Workspace, p *authz.Pri
 			return err
 		}
 		if cur.Status != statusPick && cur.Status != statusReview {
-			return api.Conflict("This import is finished. Start a new one to import more templates.")
+			return api.Conflict(sayIn(ctx, "problem.finished", nil))
 		}
 		if err := q.TxnImportSave(ctx, store.TxnImportSaveParams{WorkspaceID: ws.ID, ID: cur.ID, Status: statusReview, Picked: picked, Report: mustJSON(items),
 			Result: json.RawMessage(`[]`), CredentialsEnc: cur.CredentialsEnc, Now: s.now()}); err != nil {
@@ -698,7 +754,7 @@ func (s *Service) Import(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		return TemplateImport{}, err
 	}
 	if row.Status != statusReview {
-		return TemplateImport{}, api.Conflict("Convert the templates first; this import has nothing to bring in yet.")
+		return TemplateImport{}, api.Conflict(sayIn(ctx, "problem.convertFirst", nil))
 	}
 	var items []storedItem
 	_ = json.Unmarshal(row.Report, &items)

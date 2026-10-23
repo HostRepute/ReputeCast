@@ -46,18 +46,20 @@ func (h *Handler) GrowPreview(ctx context.Context, ws *store.Workspace, page, pr
 	}
 	rs := h.referrals()
 	if rs == nil {
-		return PublicPagePreview{}, api.NotFound("Grow page")
+		return PublicPagePreview{}, appNotFound(ctx, "growPage")
 	}
 	set, err := h.Forms.LoadSettings(ctx, ws)
 	if err != nil {
 		return PublicPagePreview{}, err
 	}
 	s := &site{ws: ws, set: set, links: forms.LinksOn(h.URLs.Base(), ws.Slug, false), canon: h.Forms.Links(ws, set), preview: true}
+	// The page as most readers see it: in the default language.
+	h.fixedLang(ctx, s, "", nil)
 	var programID *uuid.UUID
 	if program != "" {
 		id, err := uuid.Parse(program)
 		if err != nil {
-			return PublicPagePreview{}, api.Invalid("program", "Pick a referral program.")
+			return PublicPagePreview{}, appInvalid(ctx, "program", "pickProgram")
 		}
 		programID = &id
 	}
@@ -78,14 +80,14 @@ func (h *Handler) GrowPreview(ctx context.Context, ws *store.Workspace, page, pr
 	switch page {
 	case "invite":
 		if noLink {
-			return out, api.NotFound("Referral link")
+			return out, appNotFound(ctx, "referralLink")
 		}
 		iv, err := rs.Invite(ctx, ws, code)
 		if err != nil {
 			return out, err
 		}
 		if iv == nil {
-			return out, api.NotFound("Referral link")
+			return out, appNotFound(ctx, "referralLink")
 		}
 		c, hosted, err := h.joinForm(ctx, s, iv)
 		if err != nil {
@@ -107,13 +109,13 @@ func (h *Handler) GrowPreview(ctx context.Context, ws *store.Workspace, page, pr
 		out.Contact = code
 	case "hub":
 		if noLink {
-			return out, api.NotFound("Referral link")
+			return out, appNotFound(ctx, "referralLink")
 		}
 		hv, err := rs.Hub(ctx, ws, contactID, previewToken, nil)
 		if err != nil {
 			return out, err
 		}
-		v = h.growView(s, gt("hub.title", "publisher", s.set.Branding.PublisherName), h.hubBody(s, hv, previewToken))
+		v = h.growView(nil, s, s.gt("hub.title", "publisher", s.set.Branding.PublisherName), h.hubBody(s, hv, previewToken))
 		out.Contact = hv.Email
 	case "leaderboard":
 		var list string
@@ -123,7 +125,7 @@ func (h *Handler) GrowPreview(ctx context.Context, ws *store.Workspace, page, pr
 			WHERE p.workspace_id = $1 AND p.deleted_at IS NULL AND ($2::uuid IS NULL OR p.id = $2) ORDER BY p.created_at LIMIT 1`, ws.ID, programID).
 			Scan(&pid, &list, &started); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
-				return out, api.NotFound("Referral program")
+				return out, appNotFound(ctx, "referralProgram")
 			}
 			return out, err
 		}
@@ -135,12 +137,12 @@ func (h *Handler) GrowPreview(ctx context.Context, ws *store.Workspace, page, pr
 		if err != nil {
 			return out, err
 		}
-		v = h.growView(s, gt("board.title")+" · "+s.set.Branding.PublisherName, b)
+		v = h.growView(nil, s, s.gt("board.title")+" · "+s.set.Branding.PublisherName, b)
 		tmpl = "grow-board"
 		out.URL = s.canon.Leaderboard()
 	case "recommends":
 		if h.recommendations() == nil {
-			return out, api.NotFound("Recommendations page")
+			return out, appNotFound(ctx, "recommendsPage")
 		}
 		reader := contactID
 		if noLink {
@@ -150,15 +152,15 @@ func (h *Handler) GrowPreview(ctx context.Context, ws *store.Workspace, page, pr
 		if err != nil {
 			return out, err
 		}
-		b.Items = recViews(pg.Items, pg.Email, "", "")
+		b.Items = recViews(s, pg.Items, pg.Email, "", "")
 		if !b.HasPartner {
 			b.Ask = false
 		}
-		v = h.growView(s, b.Heading, b)
+		v = h.growView(nil, s, b.Heading, b)
 		out.URL = s.canon.Recommends("")
 		out.Contact = pg.Email
 	default:
-		return out, api.NotFound("Grow page")
+		return out, appNotFound(ctx, "growPage")
 	}
 	v.Preview = true
 	html, err := h.html(tmpl, v)

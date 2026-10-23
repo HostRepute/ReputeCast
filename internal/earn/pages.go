@@ -85,7 +85,7 @@ func (s *Service) PreferencesPaid(ctx context.Context, ws *store.Workspace, cont
 	loc := location(ws)
 	switch acc.Kind {
 	case "complimentary":
-		out.Heading = s.t(l, "prefs.compHeading", i18n.Args{"tier": short, "publisher": s.publisher(ctx, ws), "until": dateOrNone(acc.GrantUntil, loc)})
+		out.Heading = s.t(l, "prefs.compHeading", i18n.Args{"tier": short, "publisher": s.publisher(ctx, ws), "until": dateOrNone(l, acc.GrantUntil, loc)})
 		out.Line = s.t(l, "prefs.compLine", i18n.Args{"tier": short})
 	case "gift":
 		var d struct {
@@ -93,7 +93,7 @@ func (s *Service) PreferencesPaid(ctx context.Context, ws *store.Workspace, cont
 			Months int    `json:"months"`
 		}
 		_ = jsonUnmarshal(acc.SourceDetail, &d)
-		out.Heading = s.t(l, "prefs.giftHeading", i18n.Args{"from": firstNonEmpty(d.From, "none"), "until": dateOrNone(acc.CurrentPeriodEnd, loc)})
+		out.Heading = s.t(l, "prefs.giftHeading", i18n.Args{"from": firstNonEmpty(d.From, "none"), "until": dateOrNone(l, acc.CurrentPeriodEnd, loc)})
 		out.Line = s.t(l, "prefs.giftLine", i18n.Args{"tier": acc.TierName, "months": d.Months})
 		out.Upgrade, out.UpgradeLabel = s.UpgradeURL(ctx, ws, contact, uuid.Nil), s.t(l, "prefs.keepAfterGift", i18n.Args{"tier": short})
 	default:
@@ -104,15 +104,15 @@ func (s *Service) PreferencesPaid(ctx context.Context, ws *store.Workspace, cont
 		out.Price = paidPriceLine(l, s, acc.PaidSubscription)
 		switch {
 		case acc.CancelAt != nil:
-			out.Line = s.t(l, "prefs.endsOn", i18n.Args{"date": longDate(ws, *acc.CancelAt)})
+			out.Line = s.t(l, "prefs.endsOn", i18n.Args{"date": longDateIn(l, ws, *acc.CancelAt)})
 		case acc.Status == StatusTrialing && acc.TrialEnd != nil:
-			out.Line = s.t(l, "prefs.trialEnds", i18n.Args{"date": longDate(ws, *acc.TrialEnd)})
+			out.Line = s.t(l, "prefs.trialEnds", i18n.Args{"date": longDateIn(l, ws, *acc.TrialEnd)})
 		case acc.Status == StatusPastDue:
 			out.Line = s.t(l, "prefs.pastDue", nil)
 		case acc.CurrentPeriodEnd != nil && acc.Period == "year":
-			out.Line = s.t(l, "prefs.renewsYearly", i18n.Args{"date": longDate(ws, *acc.CurrentPeriodEnd)})
+			out.Line = s.t(l, "prefs.renewsYearly", i18n.Args{"date": longDateIn(l, ws, *acc.CurrentPeriodEnd)})
 		case acc.CurrentPeriodEnd != nil:
-			out.Line = s.t(l, "page.renewsMonthly", i18n.Args{"date": longDate(ws, *acc.CurrentPeriodEnd)})
+			out.Line = s.t(l, "page.renewsMonthly", i18n.Args{"date": longDateIn(l, ws, *acc.CurrentPeriodEnd)})
 		}
 		out.Manage, out.ManageLabel = s.BillingURL(ctx, ws, contact), s.t(l, "prefs.manageBilling", nil)
 		if acc.CancelAt == nil {
@@ -156,15 +156,15 @@ func (s *Service) freeReaderOffer(ctx context.Context, ws *store.Workspace, cont
 		monthly, cur = t.yearly.AmountCents/12, t.yearly.Currency
 	}
 	return &PreferencesPaid{Kind: "free", Title: s.t(l, "prefs.title", nil),
-		Heading: s.t(l, "prefs.freeHeading", i18n.Args{"tier": t.short, "price": publicPrice(monthly, cur, "month")}),
+		Heading: s.t(l, "prefs.freeHeading", i18n.Args{"tier": t.short, "price": publicPriceIn(l, monthly, cur, "month")}),
 		Line:    t.t.Description, Upgrade: s.UpgradeURL(ctx, ws, contact, uuid.Nil), UpgradeLabel: s.t(l, "prefs.seeTier", i18n.Args{"tier": t.short})}, nil
 }
 
-func dateOrNone(t *time.Time, loc *time.Location) string {
+func dateOrNone(l i18n.Lang, t *time.Time, loc *time.Location) string {
 	if t == nil {
 		return "none"
 	}
-	return t.In(loc).Format("2 Jan 2006")
+	return dateIn(l, t.In(loc))
 }
 
 // UnsubscribePaid is the paid member's note on the unsubscribe page:
@@ -255,7 +255,7 @@ func (s *Service) Checklist(ctx context.Context, ws *store.Workspace, p *authz.P
 		var parts []string
 		for _, pr := range prices {
 			if pr.TierID == t.ID && pr.Status == "current" {
-				parts = append(parts, priceText(pr.AmountCents, pr.Currency, pr.Period))
+				parts = append(parts, priceTextIn(lang(ctx), pr.AmountCents, pr.Currency, pr.Period))
 			}
 		}
 		if len(parts) > 0 {
@@ -366,7 +366,9 @@ func (s *Service) PreviewUpgrade(ctx context.Context, ws *store.Workspace, in Ea
 	if page.DefaultPeriod == "" {
 		page.DefaultPeriod = "year"
 	}
-	v, err := s.Upgrade(ctx, ws, UpgradeRequest{Preview: true, As: as, Page: &page, Lang: defaultLang})
+	// The editor previews the page as its readers get it by default: in the
+	// workspace's default language.
+	v, err := s.Upgrade(ctx, ws, UpgradeRequest{Preview: true, As: as, Page: &page, Lang: workspaceLang(ctx, s.Q, ws.ID)})
 	if err != nil {
 		return EarnPreview{}, err
 	}

@@ -83,9 +83,9 @@ func (h *Handler) serveDownload(w http.ResponseWriter, r *http.Request, notice s
 		v.Title = v.T("site.title", "page", dv.ProductName, "site", v.Frame.Title)
 		b.Badge = v.S("dl.works", "date", v.shortDate(dv.ExpiresAt.In(loc)), "left", dv.Left(), "total", dv.Allowed)
 		for _, f := range dv.Files {
-			meta := v.S("dl.file", "kind", f.KindLabel, "size", products.HumanSize(f.Size))
+			meta := v.S("dl.file", "kind", f.KindLabel, "size", v.size(f.Size))
 			if f.Pages > 0 {
-				meta = v.S("dl.filePages", "kind", f.KindLabel, "count", f.Pages, "size", products.HumanSize(f.Size))
+				meta = v.S("dl.filePages", "kind", f.KindLabel, "count", f.Pages, "size", v.size(f.Size))
 			}
 			b.Files = append(b.Files, downloadFileView{Name: f.Name, Meta: meta, Href: s.path("d", token, f.ID.String())})
 		}

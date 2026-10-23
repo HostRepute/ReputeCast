@@ -331,5 +331,18 @@
   "account.sessionsNote": "Sign out everywhere ends every session, on every device. No passwords: you sign in with a link or a code.",
   "account.billingNote": "Manage billing opens Stripe, where {publisher}'s payments are handled: card, invoices and cancelling.",
   "account.others": { "message": "{tiers} is on the <link>upgrade page</link>.", "note": "tiers: Founding member, $200 a year" },
-  "account.paymentsVia": "Payments go straight to {publisher} through {provider}."
+  "account.paymentsVia": "Payments go straight to {publisher} through {provider}.",
+
+  "notFound.post": "Post not found.",
+  "notFound.campaign": "Campaign not found.",
+  "notFound.contact": "Contact not found.",
+  "notFound.tag": "Tag not found.",
+  "paywall.heading": { "message": "This post is for paid members", "note": "the paywall card's heading until the workspace writes its own" },
+  "paywall.upgrade": { "message": "Upgrade", "note": "the paywall card's button until the workspace writes its own" },
+  "paywall.signup": { "message": "Sign up free", "note": "the paywall card's free sign-up button until the workspace writes its own" },
+  "paywall.free": { "message": "Not ready? Sign up free and read 1 paid post a month.", "note": "the paywall card's line under its buttons until the workspace writes its own" },
+  "signup.consentDefault": { "message": "Send me {list}. Unsubscribe any time.", "note": "a newsletter's consent text on the website's sign-up until the workspace writes its own; list: the newsletter's name" },
+
+  "memberEvent.suppressed": { "message": "the address is suppressed", "note": "a contact's Website card, after a refused sign-in link's date: why no link was sent. Stored in English with the event, read in the member's language" },
+  "memberEvent.fromAccount": { "message": "from their account page", "note": "a contact's Website card, after the date they signed out everywhere: where they did it. Stored in English with the event, read in the member's language" }
 }

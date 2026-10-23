@@ -16,7 +16,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/text/unicode/norm"
 
-	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
@@ -230,6 +229,9 @@ func (s *Service) tierView(ctx context.Context, ws *store.Workspace, t store.Ear
 	if out.SyncSteps == nil {
 		out.SyncSteps = []EarnSyncStep{}
 	}
+	for i := range out.SyncSteps {
+		out.SyncSteps[i].Error = syncErrorIn(lang(ctx), out.SyncSteps[i].Error)
+	}
 	if page.Highlight == t.ID.String() {
 		out.Highlight = page.HighlightLabel
 	}
@@ -388,11 +390,11 @@ func (s *Service) Plans(ctx context.Context, ws *store.Workspace, p *authz.Princ
 func (s *Service) TierDetail(ctx context.Context, ws *store.Workspace, id string) (EarnTier, error) {
 	tid, err := uuid.Parse(id)
 	if err != nil {
-		return EarnTier{}, api.NotFound("Tier")
+		return EarnTier{}, notFound(ctx, "tier")
 	}
 	t, err := s.Q.EarnTier(ctx, store.EarnTierParams{ID: tid, WorkspaceID: ws.ID})
 	if err != nil {
-		return EarnTier{}, api.MapError(err, "Tier")
+		return EarnTier{}, mapErr(ctx, err, "tier")
 	}
 	conns, err := s.connections(ctx, ws.ID)
 	if err != nil {
@@ -451,8 +453,13 @@ var slugRe = regexp.MustCompile(`[^a-z0-9]+`)
 func slugFrom(name string) string {
 	s := strings.ToLower(norm.NFKD.String(name))
 	s = strings.Map(func(r rune) rune {
-		if unicode.Is(unicode.Mn, r) {
+		switch {
+		case unicode.Is(unicode.Mn, r):
 			return -1
+		case r == 'đ':
+			// Vietnamese đ has no mark to drop: "Hội viên Đặc biệt" →
+			// hoi-vien-dac-biet.
+			return 'd'
 		}
 		return r
 	}, s)
@@ -629,7 +636,7 @@ func (s *Service) afterTierSave(ctx context.Context, ws *store.Workspace, id uui
 	if msg, err := s.syncTier(ctx, ws, id); err != nil {
 		return out, err
 	} else {
-		out.SyncError = msg
+		out.SyncError = syncErrorIn(lang(ctx), msg)
 	}
 	t, err := s.TierDetail(ctx, ws, id.String())
 	out.Tier = t
@@ -641,11 +648,11 @@ func (s *Service) afterTierSave(ctx context.Context, ws *store.Workspace, id uui
 func (s *Service) UpdateTier(ctx context.Context, ws *store.Workspace, p *authz.Principal, id string, in EarnTierInput) (EarnTierSaved, error) {
 	tid, err := uuid.Parse(id)
 	if err != nil {
-		return EarnTierSaved{}, api.NotFound("Tier")
+		return EarnTierSaved{}, notFound(ctx, "tier")
 	}
 	t, err := s.Q.EarnTier(ctx, store.EarnTierParams{ID: tid, WorkspaceID: ws.ID})
 	if err != nil {
-		return EarnTierSaved{}, api.MapError(err, "Tier")
+		return EarnTierSaved{}, mapErr(ctx, err, "tier")
 	}
 	lists, err := s.validateTier(ctx, ws, &in, tid)
 	if err != nil {
@@ -762,11 +769,11 @@ func (s *Service) setHighlight(ctx context.Context, q *store.Queries, ws *store.
 func (s *Service) DeleteTier(ctx context.Context, ws *store.Workspace, p *authz.Principal, id string) error {
 	tid, err := uuid.Parse(id)
 	if err != nil {
-		return api.NotFound("Tier")
+		return notFound(ctx, "tier")
 	}
 	t, err := s.Q.EarnTier(ctx, store.EarnTierParams{ID: tid, WorkspaceID: ws.ID})
 	if err != nil {
-		return api.MapError(err, "Tier")
+		return mapErr(ctx, err, "tier")
 	}
 	if n, err := s.Q.EarnTierSubscriptions(ctx, &tid); err != nil {
 		return err
@@ -787,10 +794,10 @@ func (s *Service) DeleteTier(ctx context.Context, ws *store.Workspace, p *authz.
 func (s *Service) SyncTier(ctx context.Context, ws *store.Workspace, id string) (EarnTierSaved, error) {
 	tid, err := uuid.Parse(id)
 	if err != nil {
-		return EarnTierSaved{}, api.NotFound("Tier")
+		return EarnTierSaved{}, notFound(ctx, "tier")
 	}
 	if _, err := s.Q.EarnTier(ctx, store.EarnTierParams{ID: tid, WorkspaceID: ws.ID}); err != nil {
-		return EarnTierSaved{}, api.MapError(err, "Tier")
+		return EarnTierSaved{}, mapErr(ctx, err, "tier")
 	}
 	return s.afterTierSave(ctx, ws, tid)
 }
@@ -916,7 +923,20 @@ func syncError(err error) string {
 		return fmt.Sprintf("%d %s", ae.Status, http.StatusText(ae.Status))
 	}
 	if errors.Is(err, payments.ErrUnavailable) {
-		return "no answer"
+		return syncNoAnswer
 	}
 	return err.Error()
+}
+
+// syncNoAnswer is the stored error of a provider that didn't answer.
+const syncNoAnswer = "no answer"
+
+// syncErrorIn is a stored sync error as a reader reads it: the provider's
+// answer as it came ("402 Payment Required"), and no answer in the
+// reader's language.
+func syncErrorIn(l i18n.Lang, stored string) string {
+	if stored == syncNoAnswer {
+		return msgs.M("sync.noAnswer").Text(l, nil)
+	}
+	return stored
 }

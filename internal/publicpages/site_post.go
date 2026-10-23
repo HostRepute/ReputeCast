@@ -301,7 +301,7 @@ func (h *Handler) postBody(ctx context.Context, s *site, v *siteView, p store.We
 		if text == "" {
 			text = sp.Description
 		}
-		b.Band = &bandView{Heading: v.T("site.nextIssue"), Text: text, Note: sp.Footnote,
+		b.Band = &bandView{Heading: v.T("site.nextIssue"), Text: text, Note: sp.FootnoteIn(v.labels.Code()),
 			Form: subFormView{Class: "", Action: s.links.Subscribe(""), Page: s.canonPath("posts", p.Slug), ID: "band-email", EmailLabel: v.T("site.emailLabel"),
 				Placeholder: v.T("site.emailPlaceholder"), Button: v.T("site.subscribe")}}
 	}

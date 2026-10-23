@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -58,6 +60,10 @@ type TransactionalDiff struct {
 	// Settings lists other changes (sender, reply-to, tracking).
 	Settings []string `json:"settings"`
 	Changed  bool     `json:"changed"`
+	// contentEn and settingsEn are ContentSummary and Settings in English,
+	// for the version's stored change summary.
+	contentEn  string
+	settingsEn []string
 	// Languages are the language versions added, changed or removed.
 	Languages []TransactionalLanguageChange `json:"languages,omitempty"`
 }
@@ -186,52 +192,46 @@ type TransactionalVersionDetail struct {
 }
 
 // applyOptional makes the named variables optional with their defaults.
-func applyOptional(vars []TransactionalVariable, fixes []TransactionalMakeOptional) ([]TransactionalVariable, error) {
+func applyOptional(ctx context.Context, vars []TransactionalVariable, fixes []TransactionalMakeOptional) ([]TransactionalVariable, error) {
 	out := slices.Clone(vars)
 	for _, f := range fixes {
 		i := slices.IndexFunc(out, func(v TransactionalVariable) bool { return v.Name == f.Name })
 		if i < 0 {
-			return nil, api.Invalid("body.makeOptional", fmt.Sprintf("%s isn't declared in the draft.", f.Name))
+			return nil, api.Invalid("body.makeOptional", say(ctx, "publish.notDeclared", i18n.Args{"name": f.Name}))
 		}
 		out[i].Required = false
 		out[i].Default = f.Default
 		if f.Default != "" {
 			if _, err := typedValue(out[i].Type, f.Default); err != nil {
-				return nil, api.Invalid("body.makeOptional", fmt.Sprintf("The default of %s isn't a valid %s: %s.", f.Name, typeLabel(out[i].Type), err))
+				return nil, api.Invalid("body.makeOptional", say(ctx, "variable.badValue",
+					i18n.Args{"field": "default", "name": f.Name, "type": out[i].Type, "problem": problemText(lang(ctx), err)}))
 			}
 		}
 	}
 	return out, nil
 }
 
-func variableSummary(v TransactionalVariable) string {
-	parts := []string{typeName(v.Type)}
+// variableSummary is a declaration in the reader's words: "URL · required
+// · sensitive".
+func variableSummary(l i18n.Lang, v TransactionalVariable) string {
+	t := func(key string, args i18n.Args) string { return texts.M(key).Text(l, args) }
+	parts := []string{t("variable.type", i18n.Args{"type": v.Type})}
 	if v.Required {
-		parts = append(parts, "required")
+		parts = append(parts, t("variable.required", nil))
 	} else {
-		parts = append(parts, "optional")
+		parts = append(parts, t("variable.optional", nil))
 	}
 	if v.Default != "" {
-		parts = append(parts, "default “"+v.Default+"”")
+		parts = append(parts, t("variable.default", i18n.Args{"value": v.Default}))
 	}
 	if v.Sensitive {
-		parts = append(parts, "sensitive")
+		parts = append(parts, t("variable.sensitive", nil))
 	}
 	return strings.Join(parts, " · ")
 }
 
-func typeName(t string) string {
-	switch t {
-	case TypeBoolean:
-		return "yes/no"
-	case TypeURL:
-		return "URL"
-	}
-	return t
-}
-
 // diffVariables lists what changed between two declarations.
-func diffVariables(before, after []TransactionalVariable) []TransactionalVariableChange {
+func diffVariables(l i18n.Lang, before, after []TransactionalVariable) []TransactionalVariableChange {
 	out := []TransactionalVariableChange{}
 	old := map[string]TransactionalVariable{}
 	for _, v := range before {
@@ -244,16 +244,16 @@ func diffVariables(before, after []TransactionalVariable) []TransactionalVariabl
 		a := v
 		switch {
 		case !ok:
-			out = append(out, TransactionalVariableChange{Name: v.Name, Change: "added", After: &a, Summary: variableSummary(v)})
+			out = append(out, TransactionalVariableChange{Name: v.Name, Change: "added", After: &a, Summary: variableSummary(l, v)})
 		case b.Type != v.Type || b.Required != v.Required || b.Sensitive != v.Sensitive || b.Default != v.Default:
 			bb := b
-			out = append(out, TransactionalVariableChange{Name: v.Name, Change: "changed", Before: &bb, After: &a, Summary: variableSummary(b) + " → " + variableSummary(v)})
+			out = append(out, TransactionalVariableChange{Name: v.Name, Change: "changed", Before: &bb, After: &a, Summary: variableSummary(l, b) + " → " + variableSummary(l, v)})
 		}
 	}
 	for _, v := range before {
 		if !now[v.Name] {
 			b := v
-			out = append(out, TransactionalVariableChange{Name: v.Name, Change: "removed", Before: &b, Summary: variableSummary(v)})
+			out = append(out, TransactionalVariableChange{Name: v.Name, Change: "removed", Before: &b, Summary: variableSummary(l, v)})
 		}
 	}
 	return out
@@ -342,16 +342,20 @@ type versionContent struct {
 	TrackClicks bool
 }
 
-func buildDiff(live *versionContent, draft versionContent) TransactionalDiff {
+// buildDiff compares the live version with the draft, its summaries in the
+// reader's language (l), and in English for the version's stored change
+// summary (changeSummary).
+func buildDiff(l i18n.Lang, live *versionContent, draft versionContent) TransactionalDiff {
 	d := TransactionalDiff{Variables: []TransactionalVariableChange{}, Content: []TransactionalDiffLine{}, Settings: []string{}}
 	if live == nil {
 		d.Changed = true
-		d.Variables = diffVariables(nil, draft.Variables)
+		d.Variables = diffVariables(l, nil, draft.Variables)
 		html, _ := draft.compiledHTML()
-		for _, l := range textLines(html) {
-			d.Content = append(d.Content, TransactionalDiffLine{Kind: "add", Text: l})
+		for _, line := range textLines(html) {
+			d.Content = append(d.Content, TransactionalDiffLine{Kind: "add", Text: line})
 		}
-		d.ContentSummary = "First version"
+		d.ContentSummary = texts.M("diff.first").Text(l, nil)
+		d.contentEn = texts.M("diff.first").Text(i18n.Default, nil)
 		return d
 	}
 	if live.Subject != draft.Subject {
@@ -360,7 +364,7 @@ func buildDiff(live *versionContent, draft versionContent) TransactionalDiff {
 	if live.Preheader != draft.Preheader {
 		d.Preheader = &TransactionalTextChange{Before: live.Preheader, After: draft.Preheader}
 	}
-	d.Variables = diffVariables(live.Variables, draft.Variables)
+	d.Variables = diffVariables(l, live.Variables, draft.Variables)
 	lh, _ := live.compiledHTML()
 	dh, _ := draft.compiledHTML()
 	d.Content = lineDiff(textLines(lh), textLines(dh))
@@ -374,58 +378,64 @@ func buildDiff(live *versionContent, draft versionContent) TransactionalDiff {
 			i++
 		}
 	}
-	parts := []string{}
-	lb, db := buttonLabels(live.MJML), buttonLabels(draft.MJML)
-	buttonChanges := 0
-	for i := 0; i < len(lb) && i < len(db); i++ {
-		if lb[i] != db[i] && lb[i] != "" && db[i] != "" {
-			parts = append(parts, fmt.Sprintf("button “%s” is now “%s”", lb[i], db[i]))
-			buttonChanges++
+	// What changed in the content and the settings, in a language.
+	words := func(l i18n.Lang) (string, []string) {
+		t := func(key string, args i18n.Args) string { return texts.M(key).Text(l, args) }
+		parts := []string{}
+		lb, db := buttonLabels(live.MJML), buttonLabels(draft.MJML)
+		buttonChanges := 0
+		for i := 0; i < len(lb) && i < len(db); i++ {
+			if lb[i] != db[i] && lb[i] != "" && db[i] != "" {
+				parts = append(parts, t("diff.button", i18n.Args{"before": lb[i], "after": db[i]}))
+				buttonChanges++
+			}
 		}
+		if blocks := changed - buttonChanges; blocks > 0 {
+			parts = append([]string{t("diff.blocks", i18n.Args{"count": blocks})}, parts...)
+		}
+		if len(parts) == 0 && (lh != dh || live.MJML != draft.MJML) {
+			parts = append(parts, t("diff.layoutOnly", nil))
+		}
+		orNone := func(s string) string {
+			if s == "" {
+				return t("diff.default", nil)
+			}
+			return s
+		}
+		onOff := func(b bool) string {
+			if b {
+				return t("diff.on", nil)
+			}
+			return t("diff.off", nil)
+		}
+		settings := []string{}
+		if idString(live.SenderID) != idString(draft.SenderID) {
+			settings = append(settings, t("diff.sender", i18n.Args{"before": orNone(live.SenderEmail), "after": orNone(draft.SenderEmail)}))
+		}
+		if live.ReplyTo != draft.ReplyTo {
+			settings = append(settings, t("diff.replyTo", i18n.Args{"before": orNone(live.ReplyTo), "after": orNone(draft.ReplyTo)}))
+		}
+		if live.TrackOpens != draft.TrackOpens {
+			settings = append(settings, t("diff.opens", i18n.Args{"before": onOff(live.TrackOpens), "after": onOff(draft.TrackOpens)}))
+		}
+		if live.TrackClicks != draft.TrackClicks {
+			settings = append(settings, t("diff.clicks", i18n.Args{"before": onOff(live.TrackClicks), "after": onOff(draft.TrackClicks)}))
+		}
+		return strings.Join(parts, " · "), settings
 	}
-	if blocks := changed - buttonChanges; blocks > 0 {
-		parts = append([]string{fmt.Sprintf("%d text %s changed", blocks, plural(blocks, "block", "blocks"))}, parts...)
-	}
-	if len(parts) == 0 && (lh != dh || live.MJML != draft.MJML) {
-		parts = append(parts, "layout changes only")
-	}
-	d.ContentSummary = strings.Join(parts, " · ")
-	if idString(live.SenderID) != idString(draft.SenderID) {
-		d.Settings = append(d.Settings, "Sender: "+orNone(live.SenderEmail)+" → "+orNone(draft.SenderEmail))
-	}
-	if live.ReplyTo != draft.ReplyTo {
-		d.Settings = append(d.Settings, "Reply-to: "+orNone(live.ReplyTo)+" → "+orNone(draft.ReplyTo))
-	}
-	if live.TrackOpens != draft.TrackOpens {
-		d.Settings = append(d.Settings, "Open tracking: "+onOff(live.TrackOpens)+" → "+onOff(draft.TrackOpens))
-	}
-	if live.TrackClicks != draft.TrackClicks {
-		d.Settings = append(d.Settings, "Click tracking: "+onOff(live.TrackClicks)+" → "+onOff(draft.TrackClicks))
-	}
+	d.ContentSummary, d.Settings = words(l)
+	d.contentEn, d.settingsEn = words(i18n.Default)
 	d.Changed = d.Subject != nil || d.Preheader != nil || len(d.Variables) > 0 || d.ContentSummary != "" || len(d.Settings) > 0
 	return d
 }
 
-func orNone(s string) string {
-	if s == "" {
-		return "default"
-	}
-	return s
-}
-
-func onOff(b bool) string {
-	if b {
-		return "on"
-	}
-	return "off"
-}
-
 // suggestedDefault is what an optional variable can fall back to so old
-// calls keep working.
-func suggestedDefault(t string) string {
+// calls keep working. It becomes the template's content, so a date's
+// ("soon") is in the workspace's language, wl.
+func suggestedDefault(wl i18n.Lang, t string) string {
 	switch t {
 	case TypeDate:
-		return "soon"
+		return texts.M("publish.soonDefault").Text(wl, nil)
 	case TypeNumber:
 		return "0"
 	case TypeBoolean:
@@ -439,8 +449,8 @@ func suggestedDefault(t string) string {
 }
 
 // breaking compares the draft's required variables with what the calls of
-// the last 7 days sent.
-func breaking(calls []store.TxnRecentCallKeysRow, live *versionContent, draft []TransactionalVariable) TransactionalBreakingChange {
+// the last 7 days sent; wl is the workspace's language.
+func breaking(wl i18n.Lang, calls []store.TxnRecentCallKeysRow, live *versionContent, draft []TransactionalVariable) TransactionalBreakingChange {
 	out := TransactionalBreakingChange{Calls: len(calls), Breaking: []TransactionalBreakingVariable{}, Unused: []string{}}
 	if len(calls) == 0 {
 		return out
@@ -464,7 +474,7 @@ func breaking(calls []store.TxnRecentCallKeysRow, live *versionContent, draft []
 			}
 		}
 		if without > 0 {
-			out.Breaking = append(out.Breaking, TransactionalBreakingVariable{Name: v.Name, CallsWithout: without, Type: v.Type, SuggestedDefault: suggestedDefault(v.Type)})
+			out.Breaking = append(out.Breaking, TransactionalBreakingVariable{Name: v.Name, CallsWithout: without, Type: v.Type, SuggestedDefault: suggestedDefault(wl, v.Type)})
 		}
 	}
 	now := map[string]bool{}
@@ -483,24 +493,28 @@ func breaking(calls []store.TxnRecentCallKeysRow, live *versionContent, draft []
 		}
 	}
 	slices.Sort(out.Unused)
-	if len(out.Breaking) > 0 {
-		b := out.Breaking[0]
-		none := "none"
-		if b.CallsWithout < len(calls) {
-			none = fmt.Sprintf("%d", b.CallsWithout)
-		}
-		calls := fmt.Sprintf("%d %s", len(calls), plural(len(calls), "call", "calls"))
-		if none == "none" {
-			out.Summary = fmt.Sprintf("%s is now required, and none of the %s in the last 7 days sent it.", b.Name, calls)
-		} else {
-			out.Summary = fmt.Sprintf("%s is now required, and %s of the %s in the last 7 days didn't send it.", b.Name, none, calls)
-		}
-		if len(out.Unused) > 0 {
-			out.Summary += fmt.Sprintf(" They send %s, which v-next no longer uses.", joinAnd(out.Unused))
-		}
-		out.Summary += " Those calls would fail with missing_variables and send nothing."
-	}
 	return out
+}
+
+// breakingSummary says what a breaking change does, in the reader's
+// language: "reset_url is now required, and none of the 4 calls in the last
+// 7 days sent it. Those calls would fail with missing_variables and send
+// nothing." next is the version the draft would become.
+func breakingSummary(l i18n.Lang, b TransactionalBreakingChange, next int) string {
+	if len(b.Breaking) == 0 {
+		return ""
+	}
+	t := func(key string, args i18n.Args) string { return texts.M(key).Text(l, args) }
+	first := b.Breaking[0]
+	parts := []string{t("breaking.none", i18n.Args{"name": first.Name, "calls": b.Calls})}
+	if first.CallsWithout < b.Calls {
+		parts[0] = t("breaking.some", i18n.Args{"name": first.Name, "without": first.CallsWithout, "calls": b.Calls})
+	}
+	if len(b.Unused) > 0 {
+		parts = append(parts, t("breaking.unused", i18n.Args{"names": andList(l, b.Unused), "version": strconv.Itoa(next)}))
+	}
+	parts = append(parts, t("breaking.fail", nil))
+	return strings.Join(parts, " ")
 }
 
 // loadLive returns the live version's content, nil before the first publish.
@@ -526,7 +540,7 @@ func (s *Service) PublishPreview(ctx context.Context, ws *store.Workspace, p *au
 	}
 	t, err := s.Q.TxnTemplate(ctx, store.TxnTemplateParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
-		return TransactionalPublishPreview{}, mapTemplateErr(err)
+		return TransactionalPublishPreview{}, mapTemplateErr(ctx, err)
 	}
 	return s.publishPreview(ctx, s.Q, ws, p, t, in.MakeOptional)
 }
@@ -536,7 +550,7 @@ func (s *Service) publishPreview(ctx context.Context, q *store.Queries, ws *stor
 	if err != nil {
 		return TransactionalPublishPreview{}, err
 	}
-	vars, err := applyOptional(parseVariables(t.Variables), fixes)
+	vars, err := applyOptional(ctx, parseVariables(t.Variables), fixes)
 	if err != nil {
 		return TransactionalPublishPreview{}, err
 	}
@@ -546,7 +560,7 @@ func (s *Service) publishPreview(ctx context.Context, q *store.Queries, ws *stor
 	out := TransactionalPublishPreview{
 		TemplateID: t.ID.String(), Key: t.Key, Name: t.Name, Category: categoryRef(t.CategoryID, t.CategoryName, t.CategoryKind), NextVersion: next,
 		LiveSince: t.LiveSince, LiveBy: t.LiveByName, DraftRevision: int(t.DraftRevision), DraftSavedAt: t.DraftSavedAt, DraftSavedBy: t.DraftSavedByName,
-		Diff: buildDiff(live, draft), TestRenders: []TransactionalTestRender{}, Blocking: []string{},
+		Diff: buildDiff(lang(ctx), live, draft), TestRenders: []TransactionalTestRender{}, Blocking: []string{},
 		Approval: TransactionalPublishApproval{Approvers: []string{}}, Languages: []TransactionalPublishLanguage{},
 	}
 	if t.LiveVersion != nil {
@@ -568,8 +582,8 @@ func (s *Service) publishPreview(ctx context.Context, q *store.Queries, ws *stor
 	if err != nil {
 		return out, err
 	}
-	out.Breaking = breaking(calls, live, vars)
-	out.Breaking.Summary = strings.ReplaceAll(out.Breaking.Summary, "v-next", fmt.Sprintf("v%d", next))
+	out.Breaking = breaking(workspaceLang(ctx, q, ws.ID), calls, live, vars)
+	out.Breaking.Summary = breakingSummary(lang(ctx), out.Breaking, next)
 	cs := s.draftSubject(ctx, ws, t)
 	cs.Variables = vars
 	cs.ProbeLinks = true
@@ -579,7 +593,7 @@ func (s *Service) publishPreview(ctx context.Context, q *store.Queries, ws *stor
 		c := calls[0]
 		var data map[string]any
 		_ = json.Unmarshal(c.Data, &data)
-		r := s.testRender(draft.content, "Real call · "+c.AcceptedAt.In(location(ws)).Format("15:04"), "last_call", data)
+		r := s.testRender(lang(ctx), draft.content, say(ctx, "check.realCall", i18n.Args{"time": clockIn(ctx, c.AcceptedAt.In(location(ws)))}), "last_call", data)
 		r.Recipient = c.Email
 		r.At = c.AcceptedAt.Format(time.RFC3339)
 		out.TestRenders = append(out.TestRenders, r)
@@ -590,7 +604,7 @@ func (s *Service) publishPreview(ctx context.Context, q *store.Queries, ws *stor
 		}
 	}
 	if !out.Diff.Changed && live != nil {
-		out.Blocking = append(out.Blocking, fmt.Sprintf("No changes since v%d.", *out.LiveVersion))
+		out.Blocking = append(out.Blocking, say(ctx, "publish.noChanges", i18n.Args{"version": strconv.Itoa(*out.LiveVersion)}))
 	}
 	if s.Gate != nil {
 		dec, err := s.Gate.Check(ctx, q, PublishRequest{WorkspaceID: ws.ID, TemplateID: t.ID, TemplateKey: t.Key, Version: next, DraftHash: t.DraftHash, Principal: p})
@@ -649,11 +663,11 @@ func changeSummary(d TransactionalDiff, fixes []TransactionalMakeOptional, first
 	if d.Subject != nil {
 		parts = append(parts, "new subject")
 	}
-	if len(parts) == 0 && d.ContentSummary != "" {
-		parts = append(parts, d.ContentSummary)
+	if len(parts) == 0 && d.contentEn != "" {
+		parts = append(parts, d.contentEn)
 	}
-	if len(parts) == 0 && len(d.Settings) > 0 {
-		parts = append(parts, strings.ToLower(d.Settings[0][:1])+d.Settings[0][1:])
+	if len(parts) == 0 && len(d.settingsEn) > 0 {
+		parts = append(parts, strings.ToLower(d.settingsEn[0][:1])+d.settingsEn[0][1:])
 	}
 	return strings.Join(parts, " · ")
 }
@@ -668,17 +682,21 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if _, err := q.TxnTemplateForUpdate(ctx, store.TxnTemplateForUpdateParams{WorkspaceID: ws.ID, ID: id}); err != nil {
-			return mapTemplateErr(err)
+			return mapTemplateErr(ctx, err)
 		}
 		t, err := q.TxnTemplate(ctx, store.TxnTemplateParams{WorkspaceID: ws.ID, ID: id})
 		if err != nil {
-			return mapTemplateErr(err)
+			return mapTemplateErr(ctx, err)
 		}
 		if t.ArchivedAt != nil {
-			return api.Conflict(t.Key + " is archived. Restore it before publishing.")
+			return api.Conflict(say(ctx, "publish.archived", i18n.Args{"key": t.Key}))
 		}
 		if in.BaseRevision != int(t.DraftRevision) {
-			return api.Err(http.StatusConflict, CodeVersionConflict, fmt.Sprintf("%s saved the draft again at %s. Review the latest changes before publishing.", orSomeone(t.DraftSavedByName), t.DraftSavedAt.Format("15:04"))).
+			who := t.DraftSavedByName
+			if who == "" {
+				who = say(ctx, "template.someone", nil)
+			}
+			return api.Err(http.StatusConflict, CodeVersionConflict, say(ctx, "publish.conflict", i18n.Args{"who": who, "time": clockIn(ctx, t.DraftSavedAt)})).
 				WithMeta("draftRevision", t.DraftRevision)
 		}
 		pv, err := s.publishPreview(ctx, q, ws, p, t, in.MakeOptional)
@@ -686,10 +704,10 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 			return err
 		}
 		if len(pv.Blocking) > 0 {
-			return api.Err(http.StatusConflict, CodeTemplateDoesntRun, "This draft can't be published yet: "+strings.TrimSuffix(pv.Blocking[0], ".")+".").WithMeta("blocking", pv.Blocking)
+			return api.Err(http.StatusConflict, CodeTemplateDoesntRun, say(ctx, "publish.blocked", i18n.Args{"reason": strings.TrimSuffix(pv.Blocking[0], ".")})).WithMeta("blocking", pv.Blocking)
 		}
 		if len(pv.Breaking.Breaking) > 0 && !in.PublishAnyway {
-			return api.Err(http.StatusConflict, CodeBreakingChange, pv.Breaking.Summary+" Make the variable optional with a default, update your app first, or publish anyway.").
+			return api.Err(http.StatusConflict, CodeBreakingChange, say(ctx, "publish.breaking", i18n.Args{"summary": pv.Breaking.Summary})).
 				WithMeta("breaking", pv.Breaking.Breaking)
 		}
 		req := PublishRequest{WorkspaceID: ws.ID, TemplateID: id, TemplateKey: t.Key, Version: pv.NextVersion, DraftHash: t.DraftHash, Principal: p}
@@ -699,11 +717,11 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 				return err
 			}
 			if !dec.Allowed {
-				return api.Err(http.StatusConflict, CodeApprovalRequired, orDefault(dec.Reason, "Publishing this template needs approval. Request it from the publish dialog.")).
+				return api.Err(http.StatusConflict, CodeApprovalRequired, orDefault(dec.Reason, say(ctx, "publish.needsApproval", nil))).
 					WithMeta("approvers", nonNilStrings(dec.Approvers))
 			}
 		}
-		vars, _ := applyOptional(parseVariables(t.Variables), in.MakeOptional)
+		vars, _ := applyOptional(ctx, parseVariables(t.Variables), in.MakeOptional)
 		now := s.now()
 		version := int32(pv.NextVersion)
 		html := t.Html
@@ -751,7 +769,7 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		}
 		meta := map[string]any{"summary": change, "version": version}
 		if len(pv.Breaking.Breaking) > 0 {
-			meta["breaking"] = pv.Breaking.Summary
+			meta["breaking"] = breakingSummary(i18n.Default, pv.Breaking, pv.NextVersion)
 		}
 		var prev *int
 		if t.LiveVersion != nil {
@@ -767,13 +785,6 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	}
 	out.Template, err = s.Template(ctx, ws, p, id.String())
 	return out, err
-}
-
-func orSomeone(s string) string {
-	if s == "" {
-		return "Someone"
-	}
-	return s
 }
 
 func orDefault(s, d string) string {
@@ -801,14 +812,14 @@ func (s *Service) Rollback(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		q := store.New(tx)
 		cur, err := q.TxnTemplateForUpdate(ctx, store.TxnTemplateForUpdateParams{WorkspaceID: ws.ID, ID: id})
 		if err != nil {
-			return mapTemplateErr(err)
+			return mapTemplateErr(ctx, err)
 		}
 		v, err := q.TxnVersion(ctx, store.TxnVersionParams{TemplateID: id, Version: int32(in.Version)})
 		if err != nil {
-			return api.MapError(err, "Version")
+			return mapErr(ctx, err, "version")
 		}
 		if cur.LiveVersion != nil && *cur.LiveVersion == v.Version {
-			return api.Conflict(fmt.Sprintf("v%d is already live.", v.Version))
+			return api.Conflict(say(ctx, "publish.alreadyLive", i18n.Args{"version": strconv.Itoa(int(v.Version))}))
 		}
 		req := PublishRequest{WorkspaceID: ws.ID, TemplateID: id, TemplateKey: cur.Key, Version: int(v.Version), Rollback: true, DraftHash: v.ContentHash, Principal: p}
 		if s.Gate != nil {
@@ -817,7 +828,7 @@ func (s *Service) Rollback(ctx context.Context, ws *store.Workspace, p *authz.Pr
 				return err
 			}
 			if !dec.Allowed {
-				return api.Err(http.StatusConflict, CodeApprovalRequired, orDefault(dec.Reason, "Publishing this template needs approval.")).WithMeta("approvers", nonNilStrings(dec.Approvers))
+				return api.Err(http.StatusConflict, CodeApprovalRequired, orDefault(dec.Reason, say(ctx, "publish.needsApprovalShort", nil))).WithMeta("approvers", nonNilStrings(dec.Approvers))
 			}
 		}
 		now := s.now()
@@ -860,7 +871,7 @@ func (s *Service) Versions(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	}
 	t, err := s.Q.TxnTemplate(ctx, store.TxnTemplateParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
-		return TransactionalVersionList{}, mapTemplateErr(err)
+		return TransactionalVersionList{}, mapTemplateErr(ctx, err)
 	}
 	rows, err := s.Q.TxnVersions(ctx, id)
 	if err != nil {
@@ -882,11 +893,11 @@ func (s *Service) Version(ctx context.Context, ws *store.Workspace, ref string, 
 	}
 	t, err := s.Q.TxnTemplate(ctx, store.TxnTemplateParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
-		return TransactionalVersionDetail{}, mapTemplateErr(err)
+		return TransactionalVersionDetail{}, mapTemplateErr(ctx, err)
 	}
 	v, err := s.Q.TxnVersion(ctx, store.TxnVersionParams{TemplateID: id, Version: int32(version)})
 	if err != nil {
-		return TransactionalVersionDetail{}, api.MapError(err, "Version")
+		return TransactionalVersionDetail{}, mapErr(ctx, err, "version")
 	}
 	d := TransactionalVersionDetail{
 		TransactionalVersion: TransactionalVersion{Version: int(v.Version), Live: t.LiveVersion != nil && *t.LiveVersion == v.Version, PublishedAt: v.PublishedAt,

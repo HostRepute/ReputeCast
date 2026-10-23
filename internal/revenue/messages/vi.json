@@ -12,5 +12,7 @@
   "problem.valueDecimals": "Giá trị có nhiều chữ số thập phân hơn số mà loại tiền tệ này cho phép.",
   "problem.window": "Hãy chọn khung thời gian từ 1 đến 30 ngày.",
 
-  "test.name": "Chuyển đổi thử nghiệm"
+  "test.name": "Chuyển đổi thử nghiệm",
+
+  "problem.campaignNotFound": "Không tìm thấy chiến dịch."
 }

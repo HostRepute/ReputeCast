@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/liquid"
 )
 
@@ -95,8 +96,8 @@ func convertLiquidField(f fieldSrc, opt Options, u *usage) (string, []Note) {
 	if src == "" {
 		return "", notes
 	}
-	note := func(kind NoteKind, line int, construct, msg string) {
-		notes = append(notes, Note{Kind: kind, Field: f.name, Line: line, Construct: construct, Message: msg})
+	note := func(kind NoteKind, line int, construct string, t i18n.Text) {
+		notes = append(notes, noteOf(kind, f.name, line, construct, t))
 	}
 	var b strings.Builder
 	last := 0
@@ -140,22 +141,22 @@ func convertLiquidField(f fieldSrc, opt Options, u *usage) (string, []Note) {
 			switch {
 			case name == "include" || name == "render":
 				b.WriteString(span)
-				note(NoteManual, line, span, fmt.Sprintf("`{%% %s %%}` has no ReputeCast equivalent: templates can't include other files. Use a saved section.", name))
+				note(NoteManual, line, span, say("note.include", i18n.Args{"name": name}))
 				continue
 			case name != "" && !knownTags[name]:
 				b.WriteString(span)
-				note(NoteManual, line, span, fmt.Sprintf("the Liquid tag `%s` isn't available in ReputeCast.", name))
+				note(NoteManual, line, span, say("note.liquidTag", i18n.Args{"name": name}))
 				continue
 			}
 		}
 		out, changes := rewriteLiquidSpan(span, opt)
 		for _, c := range changes {
-			note(c.kind, line, c.construct, c.message)
+			note(c.kind, line, c.construct, c.text)
 		}
 		// Filters ReputeCast doesn't have.
 		for _, fl := range filtersOf(out) {
 			if !knownFilters[fl] {
-				note(NoteManual, line, span, fmt.Sprintf("the Liquid filter `%s` isn't available in ReputeCast.", fl))
+				note(NoteManual, line, span, say("note.liquidFilter", i18n.Args{"name": fl}))
 			}
 		}
 		b.WriteString(out)
@@ -239,7 +240,7 @@ func convertLiquidField(f fieldSrc, opt Options, u *usage) (string, []Note) {
 		if flagged[p.Line] {
 			continue
 		}
-		note(NoteManual, p.Line, "", LiquidMessage(p))
+		notes = append(notes, Note{Kind: NoteManual, Field: f.name, Line: p.Line, Message: LiquidMessage(p)})
 	}
 	return out, notes
 }
@@ -333,7 +334,7 @@ func filtersOf(span string) []string {
 type liquidChange struct {
 	kind      NoteKind
 	construct string
-	message   string
+	text      i18n.Text
 }
 
 var (
@@ -351,25 +352,25 @@ func rewriteLiquidSpan(span string, opt Options) (string, []liquidChange) {
 	out := span
 	if strings.Contains(out, "notification_center_url") {
 		out = strings.ReplaceAll(out, "notification_center_url", "preferences_url")
-		changes = append(changes, liquidChange{NoteChange, "notification_center_url", "Notifuse's `notification_center_url` became `preferences_url`."})
+		changes = append(changes, liquidChange{NoteChange, "notification_center_url", say("note.notificationCenter", nil)})
 	}
 	if opt.Transactional {
 		// The contact's address is the recipient's.
 		if contactEmail.MatchString(stringLit.ReplaceAllString(out, `""`)) {
 			out = contactEmail.ReplaceAllString(out, "to.email")
-			changes = append(changes, liquidChange{NoteChange, "contact.email", "`contact.email` became `to.email`, the recipient's address."})
+			changes = append(changes, liquidChange{NoteChange, "contact.email", say("note.contactEmail", nil)})
 		}
 		if contactField.MatchString(stringLit.ReplaceAllString(out, `""`)) {
 			for _, m := range contactField.FindAllStringSubmatch(out, -1) {
-				changes = append(changes, liquidChange{NoteChange, m[0], fmt.Sprintf("`%s` became `%s`: transactional mail has no contact profile, so the call sends it in its data.", m[0], m[1])})
+				changes = append(changes, liquidChange{NoteChange, m[0], say("note.contactField", i18n.Args{"field": m[0], "name": m[1]})})
 			}
 			out = contactField.ReplaceAllString(out, "$1")
 		}
 		if strings.Contains(out, "confirm_subscription_url") {
-			changes = append(changes, liquidChange{NoteManual, "confirm_subscription_url", "`confirm_subscription_url` belongs to Notifuse's double opt-in emails. ReputeCast sends its own confirmations."})
+			changes = append(changes, liquidChange{NoteManual, "confirm_subscription_url", say("note.confirmSubscription", nil)})
 		}
 		if m := listField.FindString(out); m != "" {
-			changes = append(changes, liquidChange{NoteManual, m, fmt.Sprintf("`%s` has no value in transactional mail: it isn't sent to a list.", m)})
+			changes = append(changes, liquidChange{NoteManual, m, say("note.listField", i18n.Args{"field": m})})
 		}
 	}
 	return out, changes

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"math"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/payments"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -115,6 +117,27 @@ type memberEmail struct {
 	contact uuid.UUID
 	key     string
 	data    map[string]any
+	// texts writes the values that are sentences, dates or prices in the
+	// email's language: the version the send picks (data has them in
+	// English).
+	texts func(l i18n.Lang) map[string]any
+}
+
+// localized adds values written in the email's language.
+func (m *memberEmail) localized(f func(l i18n.Lang) map[string]any) {
+	prev := m.texts
+	m.texts = func(l i18n.Lang) map[string]any {
+		out := map[string]any{}
+		if prev != nil {
+			maps.Copy(out, prev(l))
+		}
+		maps.Copy(out, f(l))
+		return out
+	}
+	if m.data == nil {
+		m.data = map[string]any{}
+	}
+	maps.Copy(m.data, f(defaultLang))
 }
 
 func applied(key string, detail map[string]any) outcome {
@@ -282,11 +305,10 @@ func (s *Service) resolvePrice(ctx context.Context, tx pgx.Tx, ws *store.Workspa
 		return nil, nil, err
 	}
 	if r.Inserted && mode == "live" {
-		amount := money(sub.AmountCents, sub.Currency, true) + "/" + periodOf(sub.Interval)
+		args := i18n.Args{"amount": money(sub.AmountCents, sub.Currency, true), "period": periodKey(periodOf(sub.Interval)), "id": shortID(sub.PriceID)}
 		n := notify.Notification{WorkspaceID: &ws.ID, Kind: KindUnmappedPrice, Severity: "warn",
-			Title: msgs.M("notify.unmappedTitle").Text(defaultLang, nil),
-			Body:  msgs.M("notify.unmappedBody").Text(defaultLang, map[string]any{"price": amount, "id": shortID(sub.PriceID)}),
-			Link:  "/w/" + ws.Slug + "/earn/settings?tab=payments", Data: map[string]any{"price": sub.PriceID}}
+			TitleText: msgs.M("notify.unmappedTitle").Keep(nil), BodyText: msgs.M("notify.unmappedBody").Keep(args),
+			Link: "/w/" + ws.Slug + "/earn/settings?tab=payments", Data: map[string]any{"price": sub.PriceID}}
 		if err := notify.ToMembersWith(ctx, tx, ws.ID, authz.PaymentsManage, n); err != nil {
 			return nil, nil, err
 		}
@@ -902,10 +924,14 @@ func (s *Service) applyPaymentFailed(ctx context.Context, tx pgx.Tx, ws *store.W
 		m.key = "earn:" + pe.ProviderEventID + ":payment_failed"
 	}
 	m.data["amount"] = money(amount, inv.Currency, false)
-	m.data["reason"] = reason
-	if inv.NextAttempt != nil {
-		m.data["next_try"] = s.dateText(ws, *inv.NextAttempt)
-	}
+	next := inv.NextAttempt
+	m.localized(func(l i18n.Lang) map[string]any {
+		out := map[string]any{"reason": failureSentence(l, reason)}
+		if next != nil {
+			out["next_try"] = s.dateTextIn(l, ws, *next)
+		}
+		return out
+	})
 	o.emails = append(o.emails, m)
 	return o, nil
 }

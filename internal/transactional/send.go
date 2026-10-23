@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"mime"
 	"net/http"
 	"net/mail"
@@ -66,6 +67,11 @@ type TransactionalSend struct {
 	// Language picks a language version (es, pt-BR); without it the linked
 	// contact's language is used, then the workspace's fallback.
 	Language string `json:"language,omitempty" maxLength:"16" example:"es" doc:"The language version to send; the linked contact's language, then the fallback, when omitted"`
+	// Localize writes values that are sentences, dates or prices in the
+	// language of the version the send picks (its content language code,
+	// "" without language versions); Data has them in English. Only
+	// ReputeCast's own senders set it (Earn's member emails), never the API.
+	Localize func(language string) map[string]any `json:"-"`
 }
 
 // TransactionalSendResult answers an accepted message (202).
@@ -515,6 +521,12 @@ func (s *Service) prepare(ctx context.Context, ws *store.Workspace, c caller, in
 		if p.language, err = s.Translations.Choose(ctx, q, ws, lt.ID, lt.Version, in.Language, p.contactID); err != nil {
 			return nil, err
 		}
+	}
+	// Values written in the language of the version the reader gets.
+	if in.Localize != nil {
+		data = maps.Clone(data)
+		maps.Copy(data, in.Localize(p.language.Language))
+		p.data, p.masked = data, maskData(lt.Content.Variables, data)
 	}
 	// Render: what the provider gets, and what the log keeps.
 	links := s.messageLinks(ws, p.id, p.contactID, lt.CategoryKind == KindOptional)

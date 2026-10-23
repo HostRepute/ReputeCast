@@ -53,7 +53,7 @@ func formID(in forms.FormPath) uuid.UUID { return uuid.MustParse(in.Form) }
 func (s *Service) formFile(ctx context.Context, ws *store.Workspace, id uuid.UUID) (store.FormDownloadGetRow, error) {
 	d, err := s.Q.FormDownloadGet(ctx, store.FormDownloadGetParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
-		return d, api.MapError(err, "Form")
+		return d, mapErr(ctx, err, "form")
 	}
 	return d, nil
 }

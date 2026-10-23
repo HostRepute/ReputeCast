@@ -3,6 +3,7 @@ package gifts
 import (
 	"context"
 	"errors"
+	"net/http"
 	"slices"
 
 	"github.com/google/uuid"
@@ -18,7 +19,10 @@ import (
 
 func invalid(location, message string) *api.Problem { return api.Invalid(location, message) }
 
-func notFound() *api.Problem { return api.NotFound("Gift") }
+// notFound is a 404 in the reader's language: what is gift or option.
+func notFound(ctx context.Context, what string) *api.Problem {
+	return api.Err(http.StatusNotFound, api.CodeNotFound, text(ctx, "problem.notFound."+what, nil))
+}
 
 // GiftOptionInput is a gift option as the editor sends it.
 type GiftOptionInput struct {
@@ -82,7 +86,7 @@ func (s *Service) CreateOption(ctx context.Context, ws *store.Workspace, p *auth
 func (s *Service) UpdateOption(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in GiftOptionInput) (GiftOption, error) {
 	before, err := s.Q.GiftOptionGet(ctx, store.GiftOptionGetParams{ID: id, WorkspaceID: ws.ID})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return GiftOption{}, api.NotFound("Gift option")
+		return GiftOption{}, notFound(ctx, "option")
 	}
 	if err != nil {
 		return GiftOption{}, err
@@ -115,7 +119,7 @@ func (s *Service) UpdateOption(ctx context.Context, ws *store.Workspace, p *auth
 func (s *Service) DeleteOption(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) error {
 	before, err := s.Q.GiftOptionGet(ctx, store.GiftOptionGetParams{ID: id, WorkspaceID: ws.ID})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return api.NotFound("Gift option")
+		return notFound(ctx, "option")
 	}
 	if err != nil {
 		return err
@@ -138,7 +142,7 @@ func (s *Service) optionName(ctx context.Context, ws *store.Workspace, tier uuid
 	if t, err := s.Q.EarnTier(ctx, store.EarnTierParams{ID: tier, WorkspaceID: ws.ID}); err == nil {
 		name = t.Name
 	}
-	return page("optionName", i18n.Args{"tier": name, "months": months})
+	return english("optionName", i18n.Args{"tier": name, "months": months})
 }
 
 // option reads one option as the tab lists it.
@@ -153,7 +157,7 @@ func (s *Service) option(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 			return o, nil
 		}
 	}
-	return GiftOption{}, api.NotFound("Gift option")
+	return GiftOption{}, notFound(ctx, "option")
 }
 
 // GiftPageInput turns the gift page on or off and sets how long gift links

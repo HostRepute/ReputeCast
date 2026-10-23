@@ -118,6 +118,18 @@ func TestDeliveryAlerts(t *testing.T) {
 	if len(center.Items) == 0 || center.Items[0].Category != "transactional" || center.Items[0].CategoryLabel != "Transactional" {
 		t.Fatalf("notification center: %+v", center.Items)
 	}
+	// Each member reads it in their own language.
+	vi := s.env.Client()
+	vi.SignInDemo("aisha@acme.io")
+	vi.Header = http.Header{"Accept-Language": {"vi"}}
+	var mine struct {
+		Items []struct{ Kind, Title, Body string }
+	}
+	vi.Do("GET", "/workspaces/acme-newsletter/notifications?filter=transactional", nil).MustStatus(t, 200).JSON(t, &mine)
+	if len(mine.Items) == 0 || mine.Items[0].Title != "Cảnh báo gửi email giao dịch" ||
+		mine.Items[0].Body != "Magic sign-in link: tỷ lệ trả thư 10% trong một giờ (giới hạn 2%). Phần lớn thư trả lại là thư gửi đến gmial.com và yaho.com." {
+		t.Fatalf("notification (vi): %+v", mine.Items)
+	}
 	s.owner.Do("POST", base+"/alerts/"+ov.Alerts[0].ID+"/seen", nil).MustStatus(t, 204)
 
 	// Failed messages and a slow hour raise their own alerts.

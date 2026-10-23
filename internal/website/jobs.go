@@ -128,19 +128,18 @@ func (s *Service) checkDomain(ctx context.Context, ws *store.Workspace) error {
 	case problem == "" || c.row.DomainNotified == problem:
 		return nil
 	}
-	// Notifications are written once for every member, in English, as the
-	// other packages' are; the words are in the catalog.
-	l := i18n.For(i18n.English)
-	title := msgs.M("notify.domainTitle").Text(l, nil)
-	body := msgs.M("notify.domainBody").Text(l, i18n.Args{"domain": addr.Domain, "fallback": addr.Fallback})
+	// Notifications are written once and read by every member: kept as
+	// messages, so each reads it in their own language.
+	title := msgs.M("notify.domainTitle").Keep(nil)
+	body := msgs.M("notify.domainBody").Keep(i18n.Args{"domain": addr.Domain, "fallback": addr.Fallback})
 	if problem == "certificate" {
-		title = msgs.M("notify.certTitle").Text(l, nil)
-		body = msgs.M("notify.certBody").Text(l, i18n.Args{"domain": addr.Domain})
+		title = msgs.M("notify.certTitle").Keep(nil)
+		body = msgs.M("notify.certBody").Keep(i18n.Args{"domain": addr.Domain})
 		if addr.Certificate.Detail != "" {
-			body = msgs.M("notify.certBodyDetail").Text(l, i18n.Args{"domain": addr.Domain, "detail": addr.Certificate.Detail})
+			body = msgs.M("notify.certBodyDetail").Keep(i18n.Args{"domain": addr.Domain, "detail": addr.Certificate.Detail})
 		}
 	}
-	n := notify.Notification{WorkspaceID: &ws.ID, Kind: KindDomainProblem, Severity: "bad", Title: title, Body: body,
+	n := notify.Notification{WorkspaceID: &ws.ID, Kind: KindDomainProblem, Severity: "bad", TitleText: title, BodyText: body,
 		Link: "/w/" + ws.Slug + "/forms/branding", Data: map[string]any{"domain": addr.Domain, "problem": problem}}
 	if err := notify.ToMembersWith(ctx, s.Pool, ws.ID, authz.WebsiteManage, n); err != nil {
 		return err

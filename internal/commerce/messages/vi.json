@@ -24,8 +24,18 @@
   "block.collection": "Hãy chọn một bộ sưu tập.",
   "flow.paused": "{store} đã ngắt kết nối. Hãy kết nối lại để tiếp tục.",
   "notify.disconnectedTitle": "{store} đã ngắt kết nối",
-  "notify.disconnectedBody": "{platform} đã thu hồi quyền truy cập vào {date}{reason, select, uninstalled { (ứng dụng đã bị gỡ cài đặt)} other {}}. {flows, plural, =0 {Đơn hàng được đặt từ lúc đó sẽ được lấy về khi bạn kết nối lại.} other {# tự động hóa đã bị tạm dừng. Đơn hàng được đặt từ lúc đó sẽ được lấy về khi bạn kết nối lại.}}",
+  "notify.disconnectedBody": "{platform} đã thu hồi quyền truy cập lúc {at, time} ngày {at, date}{reason, select, uninstalled { (ứng dụng đã bị gỡ cài đặt)} other {}}. {flows, plural, =0 {Đơn hàng được đặt từ lúc đó sẽ được lấy về khi bạn kết nối lại.} other {# tự động hóa đã bị tạm dừng. Đơn hàng được đặt từ lúc đó sẽ được lấy về khi bạn kết nối lại.}}",
   "notify.webhookTitle": "Thiếu webhook {topic} trong {store}",
-  "notify.webhookBody": "Webhook này đã bị xóa trên {platform} vào {date}. ReputeCast kiểm tra mỗi 15 phút cho đến khi webhook được đăng ký lại, nên không có gì bị bỏ sót.",
-  "consent.label": "{platform}: đã đồng ý nhận tiếp thị khi thanh toán"
+  "notify.webhookBody": "Webhook này đã bị xóa trên {platform} lúc {at, time} ngày {at, date}. ReputeCast kiểm tra mỗi 15 phút cho đến khi webhook được đăng ký lại, nên không có gì bị bỏ sót.",
+  "consent.label": "{platform}: đã đồng ý nhận tiếp thị khi thanh toán",
+
+  "email.shopNow": "Mua ngay",
+  "email.soldOut": "Hết hàng",
+  "email.total": "Tổng cộng",
+  "email.returnToCheckout": "Quay lại thanh toán",
+  "block.removedFlag": "Không còn trong cửa hàng",
+  "list.description": "Khách hàng của {store} đã đồng ý nhận tiếp thị",
+  "check.removedTitle": "{product} không còn trong {store}",
+  "check.removedTag": "Không còn trong cửa hàng",
+  "check.removedDetail": "Đã bị xóa trên {platform} lúc {when}. Các đợt gửi sẽ bỏ qua sản phẩm này. Hãy gỡ khối này hoặc chọn sản phẩm khác."
 }

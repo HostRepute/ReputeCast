@@ -81,5 +81,8 @@
   "problem.name": "Give the offer a name.",
   "problem.oneRetention": "“{name}” is already the retention offer. End it first: the cancel page shows one offer at most.",
   "problem.percent": "Enter a percentage from 1 to 100.",
-  "problem.ways": "Let readers get it by code, by link, or both."
+  "problem.ways": "Let readers get it by code, by link, or both.",
+
+  "problem.notFound": "Offer not found.",
+  "sync.unreachable": { "message": "unreachable", "note": "the payment provider didn't answer when an offer was saved there; shown after “Saving in Stripe failed:”" }
 }

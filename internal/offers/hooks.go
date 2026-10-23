@@ -104,23 +104,28 @@ func applies(r store.OfferGetRow, tier, period string) bool {
 }
 
 // dateOf is a day as the pages write it: "15 Oct 2027".
-func dateOf(t time.Time, ws *store.Workspace) string { return t.In(location(ws)).Format("2 Jan 2006") }
+func dateOf(l i18n.Lang, t time.Time, ws *store.Workspace) string {
+	return earn.DateIn(l, t.In(location(ws)))
+}
 
-// UpgradeOffer implements earn.OfferHook.
+// UpgradeOffer implements earn.OfferHook: the offer's lines in the page's
+// language (the view's).
 func (s *Service) UpgradeOffer(ctx context.Context, ws *store.Workspace, mode, code string, v *earn.UpgradeView) error {
 	r, ok := s.byCode(ctx, ws, code)
 	if !ok {
 		return nil
 	}
+	l := v.Lang
+	pg := func(key string, args i18n.Args) string { return msgs.M(key).Text(l, args) }
 	loc := location(ws)
 	if !s.live(ctx, ws, r, mode) {
 		args := i18n.Args{"offer": r.Name}
 		key := "page.endedText"
 		if r.EndsAt != nil && (r.EndedReason == "date" || (r.EndedAt == nil && !r.EndsAt.After(s.now()))) {
-			args["date"] = r.EndsAt.In(loc).Format("2 Jan")
+			args["date"] = earn.DayMonthIn(l, r.EndsAt.In(loc))
 			key = "page.endedTextOn"
 		}
-		v.Notice = &earn.PageNotice{Tone: "info", Title: page("page.endedTitle", nil), Text: page(key, args)}
+		v.Notice = &earn.PageNotice{Tone: "info", Title: pg("page.endedTitle", nil), Text: pg(key, args)}
 		return nil
 	}
 	now := s.now()
@@ -148,10 +153,10 @@ func (s *Service) UpgradeOffer(ctx context.Context, ws *store.Workspace, mode, c
 			key = "once"
 		}
 		c.Amount = moneyOf(price, cur)
-		c.Unit = page("page.unit."+key, a)
-		c.Sub = page("page.sub."+key, a)
+		c.Unit = pg("page.unit."+key, a)
+		c.Sub = pg("page.sub."+key, a)
 		c.Trial = ""
-		c.Button = page("page.button", a)
+		c.Button = pg("page.button", a)
 		// When the full price starts: a year or a month on, or after the
 		// offer's months.
 		renews := now.AddDate(1, 0, 0)
@@ -161,18 +166,18 @@ func (s *Service) UpgradeOffer(ctx context.Context, ws *store.Workspace, mode, c
 		if r.DurationMonths != nil && key == "months" {
 			renews = now.AddDate(0, int(*r.DurationMonths), 0)
 		}
-		a["date"] = dateOf(renews, ws)
-		c.Note = page("page.note."+key, a)
+		a["date"] = dateOf(l, renews, ws)
+		c.Note = pg("page.note."+key, a)
 		if v.Offer == nil {
 			who := "page.forNew"
 			if !r.NewOnly {
 				who = "page.forAll"
 			}
 			if r.EndsAt != nil {
-				a["until"] = r.EndsAt.In(loc).Format("2 Jan")
+				a["until"] = earn.DayMonthIn(l, r.EndsAt.In(loc))
 				who += "Until"
 			}
-			v.Offer = &earn.OfferBanner{Label: page("page.line."+key, a), Text: page(who, a)}
+			v.Offer = &earn.OfferBanner{Label: pg("page.line."+key, a), Text: pg(who, a)}
 		}
 	}
 	if v.Offer != nil {
@@ -195,6 +200,10 @@ func (s *Service) ComposerOffers(ctx context.Context, ws *store.Workspace, tier 
 		return out
 	}
 	short := s.Earn.TierShortName(ctx, ws.ID, tier)
+	// The line and the button go into the email: in the workspace's default
+	// language, the language its emails are written in. The option is the
+	// settings' own, in the member's.
+	el := earn.WorkspaceLang(ctx, s.Q, ws.ID)
 	for _, row := range rows {
 		r := store.OfferGetRow(row)
 		if r.Kind != KindSignup || !s.live(ctx, ws, r, mode) {
@@ -217,7 +226,7 @@ func (s *Service) ComposerOffers(ctx context.Context, ws *store.Workspace, tier 
 				key = "once"
 			}
 			out = append(out, earn.EarnComposerOffer{Code: r.Code, Name: r.Name, Period: period, Option: text(ctx, "composer.option."+key, a),
-				Line: text(ctx, "composer.line."+key, a), Button: text(ctx, "composer.button", a), EndsAt: r.EndsAt})
+				Line: msgs.M("composer.line."+key).Text(el, a), Button: msgs.M("composer.button").Text(el, a), EndsAt: r.EndsAt})
 			break
 		}
 	}

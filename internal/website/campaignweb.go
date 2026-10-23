@@ -105,7 +105,7 @@ func (s *Service) campaign(ctx context.Context, ws *store.Workspace, id uuid.UUI
 		FROM campaigns WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, id, ws.ID).
 		Scan(&f.ID, &f.Name, &f.Status, &f.Subject, &f.Preheader, &f.MJML, &f.Audience, &f.ScheduledAt, &f.StartedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return f, api.NotFound("Campaign")
+		return f, notFound(ctx, "campaign")
 	}
 	if err != nil {
 		return f, err

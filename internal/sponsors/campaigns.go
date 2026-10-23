@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -52,7 +51,7 @@ func (s *Service) Chips(ctx context.Context, ws *store.Workspace) (CampaignChips
 // CampaignSponsor is the Sponsor section of a campaign's report.
 func (s *Service) CampaignSponsor(ctx context.Context, ws *store.Workspace, p *authz.Principal, campaignID uuid.UUID) (CampaignSponsor, error) {
 	if _, err := s.Q.SponsorCampaignBrief(ctx, store.SponsorCampaignBriefParams{ID: campaignID, WorkspaceID: ws.ID}); err != nil {
-		return CampaignSponsor{}, api.MapError(err, "Campaign")
+		return CampaignSponsor{}, mapErr(ctx, err, "campaign")
 	}
 	b, err := s.Q.SponsorBookingOfCampaign(ctx, &campaignID)
 	if errors.Is(err, pgx.ErrNoRows) || (err == nil && b.WorkspaceID != ws.ID) {

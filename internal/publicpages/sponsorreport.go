@@ -4,12 +4,12 @@ package publicpages
 // link for a sponsor (/r/{token}) with one booking's results, or every
 // booking of a sponsor with the issues to come. No contact data, never
 // indexed. Campaign reports' links share the path: their tokens go on to
-// the web app.
+// the web app. It reads in the page's language, like the workspace's
+// other public pages, with dates and numbers in its region format.
 
 import (
 	"context"
 	"errors"
-	"fmt"
 	"html"
 	"html/template"
 	"net/http"
@@ -102,10 +102,10 @@ func (h *Handler) sharedReport(w http.ResponseWriter, r *http.Request) {
 	}
 	rep, err := h.Sponsors.Shared(ctx, token)
 	status := http.StatusOK
-	var body sponsorReportBody
 	ws := rep.Workspace
+	gone := errors.Is(err, sponsors.ErrShareGone)
 	switch {
-	case errors.Is(err, sponsors.ErrShareGone):
+	case gone:
 		sh, serr := h.Q.SponsorShareByToken(ctx, authn.HashToken(token))
 		if serr != nil {
 			h.spaOr404(w, r)
@@ -116,27 +116,66 @@ func (h *Handler) sharedReport(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		status = http.StatusGone
-		body = sponsorReportBody{State: "gone", Title: sponsors.Text("shared.goneTitle", nil), GoneText: sponsors.Text("shared.goneText", i18n.Args{"publisher": ws.Name})}
 	case err != nil:
 		h.serverError(w, r, nil, err)
 		return
-	default:
-		body = h.sponsorReportView(&ws, rep)
 	}
 	s, err := h.siteFor(ctx, &ws)
 	if err != nil {
 		h.serverError(w, r, nil, err)
 		return
 	}
-	vw := h.earnView(s, h.earnTitle(s, body.Title), body)
+	pl := h.visitorLang(w, r, s, nil)
+	l := pl.Labels.Lang()
+	var body sponsorReportBody
+	if gone {
+		body = sponsorReportBody{State: "gone", Title: sponsors.TextIn(l, "shared.goneTitle", nil), GoneText: sponsors.TextIn(l, "shared.goneText", i18n.Args{"publisher": ws.Name})}
+	} else {
+		body = h.sponsorReportView(&ws, rep, l)
+	}
+	vw := h.earnView(r, s, h.earnTitle(s, body.Title), body, pl)
 	// Private: never cached, never indexed, never sent as a referrer.
 	h.render(w, r, s, "sponsorreport", status, vw, csp{}, true)
 }
 
 // reportDay is "Tue 7 Oct 2026" in the workspace's time zone.
-func reportDay(t time.Time, ws *store.Workspace) string {
-	return t.In(wsLocation(ws)).Format("Mon 2 Jan 2006")
+func reportDay(l i18n.Lang, t time.Time, ws *store.Workspace) string {
+	t = t.In(wsLocation(ws))
+	if standardRegion(l) {
+		return t.Format("Mon 2 Jan 2006")
+	}
+	return l.Region.WeekdayDate(t)
 }
+
+// reportShortDay is "Tue 7 Oct" in the workspace's time zone.
+func reportShortDay(l i18n.Lang, t time.Time, ws *store.Workspace) string {
+	t = t.In(wsLocation(ws))
+	if standardRegion(l) {
+		return t.Format("Mon 2 Jan")
+	}
+	return l.Region.ShortDate(t)
+}
+
+// reportStamp is "Tue 7 Oct, 09:00" in the workspace's time zone.
+func reportStamp(l i18n.Lang, t time.Time, ws *store.Workspace) string {
+	t = t.In(wsLocation(ws))
+	if standardRegion(l) {
+		return t.Format("Mon 2 Jan, 15:04")
+	}
+	return l.Region.ShortDate(t) + ", " + l.Region.Time(t, "")
+}
+
+// reportDate is "7 Oct 2026" in the workspace's time zone.
+func reportDate(l i18n.Lang, t time.Time, ws *store.Workspace) string {
+	t = t.In(wsLocation(ws))
+	if standardRegion(l) {
+		return t.Format("2 Jan 2006")
+	}
+	return l.Region.Date(t)
+}
+
+// standardRegion reports whether a language writes ReputeCast's own formats.
+func standardRegion(l i18n.Lang) bool { return l.Region == "" || l.Region == i18n.Standard }
 
 func wsLocation(ws *store.Workspace) *time.Location {
 	if ws != nil && ws.Timezone != "" {
@@ -160,29 +199,17 @@ func lowerFirst(s string) string {
 	return s
 }
 
-// reportPct is a rate with one decimal ("1.3%", "44.8%").
-func reportPct(v float64) string {
+// reportPct is a rate with one decimal ("1.3%", "44.8%"), in the page's
+// region format ("1,3%").
+func reportPct(l i18n.Lang, v float64) string {
 	if v == 0 {
-		return "0%"
+		return l.Region.Percent(0, 0)
 	}
-	return fmt.Sprintf("%.1f%%", v)
+	return l.Region.Percent(v, 1)
 }
 
-// reportCount is a count with thousands separators ("31,299").
-func reportCount(n int64) string {
-	s := fmt.Sprint(n)
-	if n < 1000 {
-		return s
-	}
-	var b strings.Builder
-	for i, c := range s {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			b.WriteByte(',')
-		}
-		b.WriteRune(c)
-	}
-	return b.String()
-}
+// reportCount is a count with thousands separators ("31,299", "31.299").
+func reportCount(l i18n.Lang, n int64) string { return l.Region.Int(n) }
 
 // monoHTML escapes a sentence and sets the given parts in monospace.
 func monoHTML(text string, parts ...string) template.HTML {
@@ -197,13 +224,14 @@ func monoHTML(text string, parts ...string) template.HTML {
 	return template.HTML(out) //nolint:gosec // escaped above
 }
 
-// sponsorReportView builds the page of a resolved link.
-func (h *Handler) sponsorReportView(ws *store.Workspace, rep sponsors.SharedReport) sponsorReportBody {
-	b := sponsorReportBody{Title: sponsors.Text("shared.title", nil), HowLabel: sponsors.Text("shared.howLabel", nil), HowText: sponsors.Text("shared.howText", nil)}
+// sponsorReportView builds the page of a resolved link in a language.
+func (h *Handler) sponsorReportView(ws *store.Workspace, rep sponsors.SharedReport, l i18n.Lang) sponsorReportBody {
+	t := func(key string, args i18n.Args) string { return sponsors.TextIn(l, key, args) }
+	b := sponsorReportBody{Title: t("shared.title", nil), HowLabel: t("shared.howLabel", nil), HowText: t("shared.howText", nil)}
 	if rep.ExpiresAt != nil {
-		b.Footer = sponsors.Text("shared.shared", i18n.Args{"publisher": ws.Name, "date": rep.ExpiresAt.In(wsLocation(ws)).Format("2 Jan 2006")})
+		b.Footer = t("shared.shared", i18n.Args{"publisher": ws.Name, "date": reportDate(l, *rep.ExpiresAt, ws)})
 	} else {
-		b.Footer = sponsors.Text("shared.sharedNoEnd", i18n.Args{"publisher": ws.Name})
+		b.Footer = t("shared.sharedNoEnd", i18n.Args{"publisher": ws.Name})
 	}
 	if rep.Every {
 		b.State = "every"
@@ -212,71 +240,71 @@ func (h *Handler) sponsorReportView(ws *store.Workspace, rep sponsors.SharedRepo
 			list = rep.Reports[0].ListName
 		}
 		if list != "" {
-			b.Sub = sponsors.Text("shared.everySub", i18n.Args{"sponsor": rep.Sponsor, "list": list})
+			b.Sub = t("shared.everySub", i18n.Args{"sponsor": rep.Sponsor, "list": list})
 		} else {
-			b.Sub = sponsors.Text("shared.everySubNoList", i18n.Args{"sponsor": rep.Sponsor})
+			b.Sub = t("shared.everySubNoList", i18n.Args{"sponsor": rep.Sponsor})
 		}
 		total := len(rep.Reports) + len(rep.Upcoming)
-		b.Tag = sponsors.Text("shared.sentOf", i18n.Args{"sent": len(rep.Reports), "total": total})
+		b.Tag = t("shared.sentOf", i18n.Args{"sent": len(rep.Reports), "total": total})
 		for _, r := range rep.Reports {
-			row := everyRow{Title: sponsors.Text("shared.issueRow", i18n.Args{"issue": r.Issue, "date": r.IssueOn.In(wsLocation(ws)).Format("Mon 2 Jan")}), Final: r.Final}
+			row := everyRow{Title: t("shared.issueRow", i18n.Args{"issue": r.Issue, "date": reportShortDay(l, r.IssueOn, ws)}), Final: r.Final}
 			if r.Final {
-				row.Line = sponsors.Text("shared.finalRow", i18n.Args{"delivered": reportCount(r.Delivered)})
+				row.Line = t("shared.finalRow", i18n.Args{"delivered": reportCount(l, r.Delivered)})
 			} else {
-				row.Line = sponsors.Text("shared.still", nil)
+				row.Line = t("shared.still", nil)
 			}
-			row.Sub = sponsors.Text("shared.rowClicks", i18n.Args{"clickers": r.UniqueClickers, "rate": reportPct(r.ClickRate)})
+			row.Sub = t("shared.rowClicks", i18n.Args{"clickers": r.UniqueClickers, "rate": reportPct(l, r.ClickRate)})
 			b.Rows = append(b.Rows, row)
 		}
 		for _, u := range rep.Upcoming {
-			b.Rows = append(b.Rows, everyRow{Title: sponsors.Text("shared.issueRow", i18n.Args{"issue": u.Number, "date": u.IssueOn.In(wsLocation(ws)).Format("Mon 2 Jan")}),
-				Line: sponsors.Text("shared.comingUp", nil), Sub: sponsors.Text("shared.comingUpSub", nil), Coming: true})
+			b.Rows = append(b.Rows, everyRow{Title: t("shared.issueRow", i18n.Args{"issue": u.Number, "date": reportShortDay(l, u.IssueOn, ws)}),
+				Line: t("shared.comingUp", nil), Sub: t("shared.comingUpSub", nil), Coming: true})
 		}
-		b.EveryNote = sponsors.Text("shared.everyNote", nil)
+		b.EveryNote = t("shared.everyNote", nil)
 		return b
 	}
 	r := rep.Reports[0]
 	b.State = "report"
-	b.Sub = sponsors.Text("shared.sub", i18n.Args{"list": r.ListName, "issue": r.Issue, "date": reportDay(r.IssueOn, ws), "sponsor": r.Sponsor})
-	tiles := []reportTile{{Label: sponsors.Text("shared.delivered", nil), Value: reportCount(r.Delivered), Sub: sponsors.Text("shared.deliveredSub", nil)}}
+	b.Sub = t("shared.sub", i18n.Args{"list": r.ListName, "issue": r.Issue, "date": reportDay(l, r.IssueOn, ws), "sponsor": r.Sponsor})
+	tiles := []reportTile{{Label: t("shared.delivered", nil), Value: reportCount(l, r.Delivered), Sub: t("shared.deliveredSub", nil)}}
 	if r.Final {
-		b.Tag = sponsors.Text("shared.final", nil)
+		b.Tag = t("shared.final", nil)
 		tiles = append(tiles,
-			reportTile{Label: sponsors.Text("shared.opens", nil), Value: reportCount(r.HumanOpens), Sub: sponsors.Text("shared.opensSub", i18n.Args{"rate": reportPct(r.HumanOpenRate)})},
-			reportTile{Label: sponsors.Text("shared.clickers", nil), Value: reportCount(r.UniqueClickers), Sub: sponsors.Text("shared.clickersSub", i18n.Args{"sponsor": r.Sponsor})},
-			reportTile{Label: sponsors.Text("shared.clickRate", nil), Value: reportPct(r.ClickRate), Sub: sponsors.Text("shared.clickRateSub", nil)},
-			reportTile{Label: sponsors.Text("shared.cto", nil), Value: reportPct(r.ClickToOpen), Sub: sponsors.Text("shared.ctoSub", nil)})
+			reportTile{Label: t("shared.opens", nil), Value: reportCount(l, r.HumanOpens), Sub: t("shared.opensSub", i18n.Args{"rate": reportPct(l, r.HumanOpenRate)})},
+			reportTile{Label: t("shared.clickers", nil), Value: reportCount(l, r.UniqueClickers), Sub: t("shared.clickersSub", i18n.Args{"sponsor": r.Sponsor})},
+			reportTile{Label: t("shared.clickRate", nil), Value: reportPct(l, r.ClickRate), Sub: t("shared.clickRateSub", nil)},
+			reportTile{Label: t("shared.cto", nil), Value: reportPct(l, r.ClickToOpen), Sub: t("shared.ctoSub", nil)})
 		parts := make([]string, 0, len(r.Links))
-		for _, l := range r.Links {
-			parts = append(parts, sponsors.Text("shared.linkCount", i18n.Args{"kind": l.Kind, "count": l.Clicks}))
+		for _, k := range r.Links {
+			parts = append(parts, t("shared.linkCount", i18n.Args{"kind": k.Kind, "count": k.Clicks}))
 		}
 		sub := strings.Join(parts, " · ")
 		if sub == "" {
-			sub = sponsors.Text("shared.clicksNone", nil)
+			sub = t("shared.clicksNone", nil)
 		}
-		tiles = append(tiles, reportTile{Label: sponsors.Text("shared.clicks", nil), Value: reportCount(r.Clicks), Sub: sub})
+		tiles = append(tiles, reportTile{Label: t("shared.clicks", nil), Value: reportCount(l, r.Clicks), Sub: sub})
 	} else {
-		b.Tag, b.Coming = sponsors.Text("shared.still", nil), true
+		b.Tag, b.Coming = t("shared.still", nil), true
 		tiles = append(tiles,
-			reportTile{Label: sponsors.Text("shared.opensSoFar", nil), Value: reportCount(r.HumanOpens), Sub: sponsors.Text("shared.opensSub", i18n.Args{"rate": reportPct(r.HumanOpenRate)})},
-			reportTile{Label: sponsors.Text("shared.clickersSoFar", nil), Value: reportCount(r.UniqueClickers), Sub: sponsors.Text("shared.clickersSubSoFar", i18n.Args{"rate": reportPct(r.ClickRate)})})
-		b.NoteTitle = sponsors.Text("shared.comingTitle", nil)
+			reportTile{Label: t("shared.opensSoFar", nil), Value: reportCount(l, r.HumanOpens), Sub: t("shared.opensSub", i18n.Args{"rate": reportPct(l, r.HumanOpenRate)})},
+			reportTile{Label: t("shared.clickersSoFar", nil), Value: reportCount(l, r.UniqueClickers), Sub: t("shared.clickersSubSoFar", i18n.Args{"rate": reportPct(l, r.ClickRate)})})
+		b.NoteTitle = t("shared.comingTitle", nil)
 		if r.FinalAt != nil {
-			b.NoteText = sponsors.Text("shared.comingText", i18n.Args{"date": r.FinalAt.In(wsLocation(ws)).Format("Mon 2 Jan, 15:04")})
+			b.NoteText = t("shared.comingText", i18n.Args{"date": reportStamp(l, *r.FinalAt, ws)})
 		}
 	}
 	b.Tiles = tiles
 	if r.Final && len(r.Links) > 0 {
-		b.ByLink = sponsors.Text("shared.byLink", nil)
-		for _, l := range r.Links {
-			label := sponsors.Text("shared.link.other", i18n.Args{"label": l.Label})
-			switch l.Kind {
+		b.ByLink = t("shared.byLink", nil)
+		for _, k := range r.Links {
+			label := t("shared.link.other", i18n.Args{"label": k.Label})
+			switch k.Kind {
 			case "button":
-				label = sponsors.Text("shared.link.button", i18n.Args{"label": l.Label})
+				label = t("shared.link.button", i18n.Args{"label": k.Label})
 			case "logo":
-				label = sponsors.Text("shared.link.logo", nil)
+				label = t("shared.link.logo", nil)
 			}
-			b.Links = append(b.Links, reportLink{Label: label, Count: reportCount(l.Clicks), Share: fmt.Sprintf("%.0f%%", l.Share), Pct: int(l.Share + 0.5)})
+			b.Links = append(b.Links, reportLink{Label: label, Count: reportCount(l, k.Clicks), Share: l.Region.Percent(k.Share, 0), Pct: int(k.Share + 0.5)})
 		}
 		if r.LinkHost != "" {
 			utm := ""
@@ -285,9 +313,9 @@ func (h *Handler) sponsorReportView(ws *store.Workspace, rep sponsors.SharedRepo
 			}
 			args := i18n.Args{"count": len(r.Links), "host": r.LinkHost, "utm": utm}
 			if utm != "" {
-				b.LinksNote = monoHTML(sponsors.Text("shared.linksGo", args), r.LinkHost, utm)
+				b.LinksNote = monoHTML(t("shared.linksGo", args), r.LinkHost, utm)
 			} else {
-				b.LinksNote = monoHTML(sponsors.Text("shared.linksGoNoUTM", args), r.LinkHost)
+				b.LinksNote = monoHTML(t("shared.linksGoNoUTM", args), r.LinkHost)
 			}
 		}
 	}
@@ -295,9 +323,15 @@ func (h *Handler) sponsorReportView(ws *store.Workspace, rep sponsors.SharedRepo
 	if c.Headline != "" || c.Text != "" || c.Button != "" {
 		when := ""
 		if r.SentAt != nil {
-			when = sponsors.Text("shared.creativeWhen", i18n.Args{"when": r.SentAt.In(wsLocation(ws)).Format("Mon 2 Jan, 15:04"), "placement": lowerFirst(r.Placement)})
+			// English writes the placement in lower case inside the sentence
+			// ("after the first story"); a translation keeps it as it is.
+			placement := r.Placement
+			if sponsors.EnglishText(l, "shared.creativeWhen") {
+				placement = lowerFirst(placement)
+			}
+			when = t("shared.creativeWhen", i18n.Args{"when": reportStamp(l, *r.SentAt, ws), "placement": placement})
 		}
-		b.CreativeH = sponsors.Text("shared.creative", nil)
+		b.CreativeH = t("shared.creative", nil)
 		b.Creative = &reportCreative{Label: r.Label, Initials: r.Initials, Headline: c.Headline, Text: c.Text, Button: c.Button, Logo: c.Logo, When: when}
 	}
 	return b

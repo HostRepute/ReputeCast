@@ -124,5 +124,8 @@
   "thanks.to": "Gửi {to}",
   "thanks.toMessage": "Gửi {to} · kèm lời nhắn của bạn",
   "thanks.toNamed": "{name}, {email}",
-  "thanks.toPerson": "Để trao tận tay · liên kết đã được gửi cho bạn"
+  "thanks.toPerson": "Để trao tận tay · liên kết đã được gửi cho bạn",
+
+  "problem.notFound.gift": "Không tìm thấy quà tặng.",
+  "problem.notFound.option": "Không tìm thấy tùy chọn quà tặng."
 }

@@ -40,8 +40,8 @@ func (h *Handler) cancelBody(ctx context.Context, s *site, v offers.CancelView, 
 	return b
 }
 
-func (h *Handler) renderCancel(w http.ResponseWriter, r *http.Request, s *site, b cancelBody, status int) {
-	vw := h.earnView(s, h.earnTitle(s, b.Heading), b)
+func (h *Handler) renderCancel(w http.ResponseWriter, r *http.Request, s *site, b cancelBody, status int, pl pageLang) {
+	vw := h.earnView(r, s, h.earnTitle(s, b.Heading), b, pl)
 	// Continue to cancel goes to Stripe's portal.
 	h.render(w, r, s, "cancel", status, vw, csp{formAction: []string{"https://billing.stripe.com"}}, true)
 }
@@ -56,6 +56,7 @@ func (h *Handler) cancelPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token := chi.URLParam(r, "token")
+	pl, r := h.earnLinkLang(w, r, s, token, earn.TokenCancel)
 	v, err := h.Offers.CancelPage(r.Context(), s.ws, token, r.URL.Query().Get("done") == "1")
 	switch {
 	case errors.Is(err, earn.ErrLinkInvalid):
@@ -69,7 +70,7 @@ func (h *Handler) cancelPage(w http.ResponseWriter, r *http.Request) {
 	if v.State == "expired" {
 		status = http.StatusGone
 	}
-	h.renderCancel(w, r, s, h.cancelBody(r.Context(), s, v, token), status)
+	h.renderCancel(w, r, s, h.cancelBody(r.Context(), s, v, token), status, pl)
 }
 
 func (h *Handler) cancelPost(w http.ResponseWriter, r *http.Request) {
@@ -82,6 +83,7 @@ func (h *Handler) cancelPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token := chi.URLParam(r, "token")
+	pl, r := h.earnLinkLang(w, r, s, token, earn.TokenCancel)
 	f := r.PostForm
 	back := h.Earn.PageURL(r.Context(), s.ws, "cancel/"+token+"?done=1")
 	res, err := h.Offers.CancelDecide(r.Context(), s.ws, token, f.Get("visit"), f.Get("reason"), f.Get("decision"), back)
@@ -90,7 +92,7 @@ func (h *Handler) cancelPost(w http.ResponseWriter, r *http.Request) {
 		h.notFound(w, r, s)
 		return
 	case errors.Is(err, earn.ErrUnavailable):
-		h.earnMessage(w, r, s, http.StatusServiceUnavailable, earn.Text("page.unavailableTitle", nil), earn.Text("portal.unavailableText", nil))
+		h.earnMessage(w, r, s, pl, http.StatusServiceUnavailable, "page.unavailableTitle", "portal.unavailableText")
 		return
 	case err != nil:
 		h.serverError(w, r, s, err)
@@ -102,5 +104,5 @@ func (h *Handler) cancelPost(w http.ResponseWriter, r *http.Request) {
 		h.toProvider(w, r, s, res.Redirect)
 		return
 	}
-	h.renderCancel(w, r, s, h.cancelBody(r.Context(), s, *res.View, token), http.StatusOK)
+	h.renderCancel(w, r, s, h.cancelBody(r.Context(), s, *res.View, token), http.StatusOK, pl)
 }

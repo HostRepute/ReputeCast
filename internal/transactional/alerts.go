@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -118,10 +119,10 @@ func (s *Service) checkWorkspace(ctx context.Context, wsID uuid.UUID, now time.T
 			d.Domains = append(d.Domains, alertDomain{Domain: dm.Domain, Count: dm.N})
 		}
 		tid := t.TemplateID
-		n := notify.Notification{Kind: notify.KindTransactionalAlert, Severity: "bad", Title: "Transactional delivery alert",
-			Body: fmt.Sprintf("%s: bounce rate %s%% in one hour (limit %s%%).%s", t.TemplateName, oneDecimal(rate), trimFloat(st.AlertBounceRate), domainsText(d.Domains)),
-			Link: "/w/" + ws.Slug + "/transactional/messages?" + url.Values{"template": {t.TemplateKey}, "status": {"bounced"}, "range": {"1h"}}.Encode(),
-			Data: map[string]any{"template": t.TemplateKey, "rate": rate, "limit": st.AlertBounceRate}}
+		n := notify.Notification{Kind: notify.KindTransactionalAlert, Severity: "bad", TitleText: texts.M("alert.title").Keep(nil),
+			BodyText: texts.M("alert.bounceRate").Keep(bounceArgs(t.TemplateName, rate, st.AlertBounceRate, d.Domains)),
+			Link:     "/w/" + ws.Slug + "/transactional/messages?" + url.Values{"template": {t.TemplateKey}, "status": {"bounced"}, "range": {"1h"}}.Encode(),
+			Data:     map[string]any{"template": t.TemplateKey, "rate": rate, "limit": st.AlertBounceRate}}
 		if err := s.raise(ctx, &ws, AlertBounceRate, &tid, nil, rate, st.AlertBounceRate, d, now, &n); err != nil {
 			return err
 		}
@@ -144,9 +145,9 @@ func (s *Service) checkWorkspace(ctx context.Context, wsID uuid.UUID, now time.T
 		return err
 	}
 	if h.Failed >= int64(st.AlertFailed) {
-		n := notify.Notification{Kind: notify.KindTransactionalAlert, Severity: "bad", Title: "Transactional delivery alert",
-			Body: fmt.Sprintf("%d transactional messages failed in the last hour (limit %d): every provider in their route refused them or was down.", h.Failed, st.AlertFailed),
-			Link: "/w/" + ws.Slug + "/transactional/messages?status=failed&range=1h", Data: map[string]any{"failed": h.Failed, "limit": st.AlertFailed}}
+		n := notify.Notification{Kind: notify.KindTransactionalAlert, Severity: "bad", TitleText: texts.M("alert.title").Keep(nil),
+			BodyText: texts.M("alert.failed").Keep(i18n.Args{"count": h.Failed, "limit": st.AlertFailed}),
+			Link:     "/w/" + ws.Slug + "/transactional/messages?status=failed&range=1h", Data: map[string]any{"failed": h.Failed, "limit": st.AlertFailed}}
 		if err := s.raise(ctx, &ws, AlertFailed, nil, nil, float64(h.Failed), float64(st.AlertFailed), alertDetail{Failed: h.Failed}, now, &n); err != nil {
 			return err
 		}
@@ -156,9 +157,9 @@ func (s *Service) checkWorkspace(ctx context.Context, wsID uuid.UUID, now time.T
 	limitMs := int64(st.AlertMedianSeconds) * 1000
 	if h.Delivered >= AlertMinSample && h.MedianMs > limitMs {
 		sec := float64(h.MedianMs) / 1000
-		n := notify.Notification{Kind: notify.KindTransactionalAlert, Severity: "warn", Title: "Transactional delivery alert",
-			Body: fmt.Sprintf("Transactional mail took %s s to arrive in the last hour (median; limit %d s).", oneDecimal(sec), st.AlertMedianSeconds),
-			Link: "/w/" + ws.Slug + "/transactional/messages?range=1h", Data: map[string]any{"median_ms": h.MedianMs, "limit_seconds": st.AlertMedianSeconds}}
+		n := notify.Notification{Kind: notify.KindTransactionalAlert, Severity: "warn", TitleText: texts.M("alert.title").Keep(nil),
+			BodyText: texts.M("alert.median").Keep(i18n.Args{"seconds": oneDecimalNumber(sec), "limit": st.AlertMedianSeconds}),
+			Link:     "/w/" + ws.Slug + "/transactional/messages?range=1h", Data: map[string]any{"median_ms": h.MedianMs, "limit_seconds": st.AlertMedianSeconds}}
 		if err := s.raise(ctx, &ws, AlertMedianDelivery, nil, nil, sec, float64(st.AlertMedianSeconds), alertDetail{MedianMs: h.MedianMs}, now, &n); err != nil {
 			return err
 		}
@@ -228,20 +229,21 @@ func (s *Service) raise(ctx context.Context, ws *store.Workspace, kind string, t
 	})
 }
 
-// oneDecimal is "2.4", "41" or "3.1".
-func oneDecimal(v float64) string {
-	return strings.TrimSuffix(fmt.Sprintf("%.1f", v), ".0")
-}
+// oneDecimalNumber is v rounded to one decimal, for a {n, number} argument
+// each reader's region writes: 2.4, 41.
+func oneDecimalNumber(v float64) float64 { return math.Round(v*10) / 10 }
 
-func domainsText(ds []alertDomain) string {
-	if len(ds) == 0 {
-		return ""
+// bounceArgs are a bounce-rate alert's arguments: the template, its rate
+// and limit, and the two domains most bounces went to.
+func bounceArgs(template string, rate, limit float64, ds []alertDomain) i18n.Args {
+	args := i18n.Args{"template": template, "rate": oneDecimalNumber(rate), "limit": limit, "domains": min(2, len(ds)), "first": "", "second": ""}
+	if len(ds) > 0 {
+		args["first"] = ds[0].Domain
 	}
-	names := make([]string, 0, 2)
-	for _, d := range ds[:min(2, len(ds))] {
-		names = append(names, d.Domain)
+	if len(ds) > 1 {
+		args["second"] = ds[1].Domain
 	}
-	return " Most bounces went to " + strings.Join(names, " and ") + "."
+	return args
 }
 
 // AlertsArgs checks the delivery alerts.
@@ -318,7 +320,7 @@ func (s *Service) MarkAlertSeen(ctx context.Context, ws *store.Workspace, p *aut
 	}
 	n, err := s.Q.TxnAlertSeen(ctx, store.TxnAlertSeenParams{Now: s.now(), UserID: user, ID: id, WorkspaceID: ws.ID})
 	if err == nil && n == 0 {
-		return problem(404, "not_found", "There is no such alert in this workspace.")
+		return problem(404, "not_found", say(ctx, "alert.notFound", nil))
 	}
 	return err
 }

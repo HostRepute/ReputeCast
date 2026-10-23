@@ -30,6 +30,7 @@ import { EmailWebToggle, WebOverlays } from '@/features/website/composer/campaig
 import { GrowPreviewAs } from '@/features/grow/composer/Panel'
 import { mb as growMessages } from '@/features/grow/composer/messages'
 import { mc as earnComposer } from '@/features/earn/composer/composer.messages'
+import { useScrollRegion } from '@/lib/hooks'
 
 interface Box {
   top: number
@@ -736,6 +737,8 @@ export function CanvasArea({
     },
     [containerRef],
   )
+  // When the canvas scrolls (on phones), it's a named tab stop; it stays the skip link's target.
+  const [canvasRef, canvasScroll] = useScrollRegion<HTMLDivElement>(t(m.canvasRegion), true)
 
   if (c.isEmpty) {
     return (
@@ -751,7 +754,7 @@ export function CanvasArea({
   return (
     <>
       {slots?.toolbar ? slots.toolbar(zoom) : <Toolbar zoom={zoom} />}
-      <div className="cmp-canvas" id={c.view === 'visual' ? 'main' : undefined} tabIndex={-1}>
+      <div ref={canvasRef} className="cmp-canvas" id={c.view === 'visual' ? 'main' : undefined} tabIndex={-1} {...canvasScroll}>
         {whole ? <WholeIssue /> : null}
         <div
           className="cmp-stage"

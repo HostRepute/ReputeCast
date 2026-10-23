@@ -506,8 +506,10 @@ func (s *Service) start(ctx context.Context, ws *store.Workspace, p *authz.Princ
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if newList {
+			// The list's description shows on the public pages: in the
+			// workspace's default language.
 			if err := q.CommerceListCreate(ctx, store.CommerceListCreateParams{ID: *listID, WorkspaceID: ws.ID, Name: st.Name,
-				Description: "Customers of " + st.Name + " who accepted marketing", At: now}); err != nil {
+				Description: mListDescription.Text(s.emailLang(ctx, ws.ID), i18n.Args{"store": st.Name}), At: now}); err != nil {
 				return err
 			}
 			if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "list.create", TargetType: "list", TargetID: listID.String(),

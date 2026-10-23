@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -92,10 +93,11 @@ func (s *Service) RemovedProducts(ctx context.Context, in contentcheck.Input) []
 				continue
 			}
 			seen[key] = true
+			l := i18n.LangFrom(ctx)
 			out = append(out, contentcheck.ContentCheckIssue{ID: IssueProductRemoved, Severity: contentcheck.Warn, Group: "Content",
-				Title:  fmt.Sprintf("%s is no longer in %s", r.Title, st.Name),
-				Tag:    "No longer in the store",
-				Detail: fmt.Sprintf("Deleted in %s on %s. Sends leave it out. Remove it or pick another product.", platformName(st.Platform), r.RemovedAt.In(loc).Format("2 Jan, 15:04")),
+				Title:  mCheckRemoved.Text(l, i18n.Args{"product": r.Title, "store": st.Name}),
+				Tag:    mCheckRemovedTag.Text(l, nil),
+				Detail: mCheckRemovedText.Text(l, i18n.Args{"platform": platformName(st.Platform), "when": stampIn(l, r.RemovedAt.In(loc))}),
 				Path:   f.path, Section: f.section})
 		}
 	}

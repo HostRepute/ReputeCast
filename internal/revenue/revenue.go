@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"math"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -29,6 +30,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/growth"
@@ -87,6 +89,12 @@ func newID() uuid.UUID { return uuid.Must(uuid.NewV7()) }
 // text is a message of the catalog in the request's language.
 func text(ctx context.Context, key string, args i18n.Args) string {
 	return msgs.M(key).Text(i18n.LangFrom(ctx), args)
+}
+
+// campaignNotFound is the 404 of a campaign that isn't the workspace's, in
+// the reader's language.
+func campaignNotFound(ctx context.Context) *api.Problem {
+	return api.Err(http.StatusNotFound, api.CodeNotFound, text(ctx, "problem.campaignNotFound", nil))
 }
 
 func userID(p *authz.Principal) *uuid.UUID {

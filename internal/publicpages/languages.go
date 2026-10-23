@@ -59,7 +59,7 @@ func (h *Handler) copyOf(ctx context.Context, s *site) *forms.PagesCopy {
 func (h *Handler) fixedLang(ctx context.Context, s *site, code string, live func(string) bool) pageLang {
 	pc := h.copyOf(ctx, s)
 	if pc == nil {
-		return pageLang{Code: s.set.CopyLanguage(), Labels: pagelabels.For(s.set.CopyLanguage(), nil)}
+		return s.use(pageLang{Code: s.set.CopyLanguage(), Labels: pagelabels.For(s.set.CopyLanguage(), nil)})
 	}
 	if live == nil {
 		live = pc.Live
@@ -68,7 +68,7 @@ func (h *Handler) fixedLang(ctx context.Context, s *site, code string, live func
 	if code == "" || !live(code) {
 		code = pc.CopyLanguage
 	}
-	return pageLang{Code: code, Labels: pc.Labels(code)}
+	return s.use(pageLang{Code: code, Labels: pc.Labels(code)})
 }
 
 // picked is the language the visitor chose in the menu: ?lang=, else the
@@ -90,7 +90,7 @@ func picked(r *http.Request) string {
 func (h *Handler) chooseLang(w http.ResponseWriter, r *http.Request, s *site, live func(string) bool, wants ...string) pageLang {
 	pc := h.copyOf(r.Context(), s)
 	if pc == nil {
-		return pageLang{Code: s.set.CopyLanguage(), Labels: pagelabels.For(s.set.CopyLanguage(), nil)}
+		return s.use(pageLang{Code: s.set.CopyLanguage(), Labels: pagelabels.For(s.set.CopyLanguage(), nil)})
 	}
 	if live == nil {
 		live = pc.Live
@@ -98,10 +98,10 @@ func (h *Handler) chooseLang(w http.ResponseWriter, r *http.Request, s *site, li
 	pick := languages.Base(picked(r))
 	if pick != "" && pc.Languages.Offers(pick) && live(pick) {
 		h.rememberLang(w, r, s, pick)
-		return pageLang{Code: pick, Labels: pc.Labels(pick), picked: true}
+		return s.use(pageLang{Code: pick, Labels: pc.Labels(pick), picked: true})
 	}
 	code := pc.Choose(live, wants...)
-	return pageLang{Code: code, Labels: pc.Labels(code)}
+	return s.use(pageLang{Code: code, Labels: pc.Labels(code)})
 }
 
 // visitorLang is the language of a page anyone can open: the menu's pick,
@@ -122,7 +122,7 @@ func (h *Handler) contactLang(w http.ResponseWriter, r *http.Request, s *site, c
 			// No language on the contact, or one the workspace doesn't
 			// offer: the fallback, as their emails.
 			code = pc.Fallback()
-			return pageLang{Code: code, Labels: pc.Labels(code)}
+			return s.use(pageLang{Code: code, Labels: pc.Labels(code)})
 		}
 	}
 	return pl
@@ -248,6 +248,7 @@ func (h *Handler) setLang(v *view, r *http.Request, s *site, pl pageLang, live f
 }
 
 func (h *Handler) setLangCtx(v *view, ctx context.Context, s *site, pl pageLang) {
+	s.use(pl)
 	v.Lang, v.Dir, v.labels = pl.Code, pagelabels.Dir(pl.Code), pl.Labels
 	if s.copy != nil {
 		v.Privacy = s.copy.PrivacyURL(pl.Code, v.Privacy)
