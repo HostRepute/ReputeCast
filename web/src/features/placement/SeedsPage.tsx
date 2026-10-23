@@ -5,6 +5,7 @@ import { Icon } from '@/components/icons/Icon'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Loading, Skeleton } from '@/components/ui/Feedback'
+import { Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { clock, orList, shortDate } from '@/lib/format'
@@ -247,16 +248,16 @@ function SeedsCard({ d, onAdd, onReconnect, onRemove }: { d: SeedList; onAdd: ()
           <table className="tbl" aria-label={t(m.seedsTableLabel)}>
             <thead>
               <tr>
-                <th scope="col">{t(m.colSeedMailbox)}</th>
-                <th scope="col">{t(m.colProviderFolders)}</th>
-                <th scope="col">{t(m.colConnectedWith)}</th>
-                <th scope="col">{t(m.colStatus)}</th>
-                <th scope="col">{t(m.colLastUsed)}</th>
-                <th scope="col">{t(m.colAddedBy)}</th>
+                <Th>{t(m.colSeedMailbox)}</Th>
+                <Th>{t(m.colProviderFolders)}</Th>
+                <Th>{t(m.colConnectedWith)}</Th>
+                <Th>{t(m.colStatus)}</Th>
+                <Th>{t(m.colLastUsed)}</Th>
+                <Th>{t(m.colAddedBy)}</Th>
                 {d.canManage ? (
-                  <th scope="col">
+                  <Th>
                     <span className="vh">{t(m.colActions)}</span>
-                  </th>
+                  </Th>
                 ) : null}
               </tr>
             </thead>

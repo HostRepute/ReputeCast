@@ -6,6 +6,7 @@ import { Icon } from '@/components/icons/Icon'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { Loading, Skeleton } from '@/components/ui/Feedback'
+import { Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
 import { clock, count, dayMonthDate, orList, shortDate, weekdayDate } from '@/lib/format'
@@ -345,25 +346,25 @@ function RealtimeCard({ v, rt }: { v: ServiceView; rt: NonNullable<ReturnType<ty
           <table className="tbl" aria-label={t(m.formsTableLabel)}>
             <thead>
               <tr>
-                <th scope="col">{t(m.colForm)}</th>
-                <th scope="col" className="r">
+                <Th>{t(m.colForm)}</Th>
+                <Th align="right">
                   {t(m.colChecks)}
-                </th>
-                <th scope="col" className="r">
+                </Th>
+                <Th align="right">
                   {t(m.colValid)}
-                </th>
-                <th scope="col" className="r">
+                </Th>
+                <Th align="right">
                   {t(m.colInvalidFix)}
-                </th>
-                <th scope="col" className="r">
+                </Th>
+                <Th align="right">
                   {t(m.colRisky)}
-                </th>
-                <th scope="col" className="r">
+                </Th>
+                <Th align="right">
                   {t(m.colUnknown)}
-                </th>
-                <th scope="col" className="r">
+                </Th>
+                <Th align="right">
                   {t(m.colNoAnswer)}
-                </th>
+                </Th>
               </tr>
             </thead>
             <tbody>
@@ -675,9 +676,9 @@ function MapCard({ v }: { v: ServiceView }) {
         <table className="tbl" aria-label={t(m.mapTableLabel, { name: v.name })}>
           <thead>
             <tr>
-              <th scope="col">{t(m.mapAnswers, { name: v.name })}</th>
-              <th scope="col">{t(m.mapBecomes)}</th>
-              <th scope="col">{t(m.mapWhat)}</th>
+              <Th>{t(m.mapAnswers, { name: v.name })}</Th>
+              <Th>{t(m.mapBecomes)}</Th>
+              <Th>{t(m.mapWhat)}</Th>
             </tr>
           </thead>
           <tbody>
@@ -748,20 +749,20 @@ function UsesCard({ v, uses, canManage }: { v: ServiceView; uses: Use[]; canMana
           <table className="tbl" aria-label={t(m.usesTableLabel, { name: v.name })}>
             <thead>
               <tr>
-                <th scope="col">{t(m.colWhen)}</th>
-                <th scope="col">{t(m.colWho)}</th>
-                <th scope="col">{t(m.colWhat)}</th>
-                <th scope="col" className="r">
+                <Th>{t(m.colWhen)}</Th>
+                <Th>{t(m.colWho)}</Th>
+                <Th>{t(m.colWhat)}</Th>
+                <Th align="right">
                   {t(m.colAddresses)}
-                </th>
-                <th scope="col" className="r">
+                </Th>
+                <Th align="right">
                   {t(m.colCost)}
-                </th>
-                <th scope="col">{t(m.colResults)}</th>
+                </Th>
+                <Th>{t(m.colResults)}</Th>
                 {canManage ? (
-                  <th scope="col">
+                  <Th>
                     <span className="vh">{t(m.job)}</span>
-                  </th>
+                  </Th>
                 ) : null}
               </tr>
             </thead>

@@ -4,6 +4,7 @@ import { Icon, type IconName } from '@/components/icons/Icon'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { Loading, Skeleton } from '@/components/ui/Feedback'
+import { Th } from '@/components/ui/Table'
 import { T, useT } from '@/i18n'
 import { clock, orList, shortDate } from '@/lib/format'
 import { roleName } from '@/lib/roles'
@@ -139,14 +140,14 @@ function TestsCard({ d }: { d: TestList }) {
               <table className="tbl" aria-label={t(m.testsTableLabel)}>
                 <thead>
                   <tr>
-                    <th scope="col">{t(m.colStarted)}</th>
-                    <th scope="col">{t(m.colContent)}</th>
-                    <th scope="col">{t(m.colThrough)}</th>
-                    <th scope="col">{t(m.colBy)}</th>
-                    <th scope="col">{t(m.colResult)}</th>
-                    <th scope="col">
+                    <Th>{t(m.colStarted)}</Th>
+                    <Th>{t(m.colContent)}</Th>
+                    <Th>{t(m.colThrough)}</Th>
+                    <Th>{t(m.colBy)}</Th>
+                    <Th>{t(m.colResult)}</Th>
+                    <Th>
                       <span className="vh">{t(m.view)}</span>
-                    </th>
+                    </Th>
                   </tr>
                 </thead>
                 <tbody>
