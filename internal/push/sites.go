@@ -3,7 +3,6 @@ package push
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"mime"
 	"net"
@@ -21,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/media"
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/notify"
@@ -145,7 +145,8 @@ func ParseOrigin(raw string) (origin, host string, ok bool) {
 func (s *Service) insertSite(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, origin, kind, label string, now time.Time) (uuid.UUID, error) {
 	_, host, _ := ParseOrigin(origin)
 	if label == "" && kind == KindPublication {
-		label = "Publication site"
+		// Stored in English; read in each member's language (siteLabel).
+		label = mLabelPublicationSite.Text(i18n.Default, nil)
 	}
 	status := WorkerUnchecked
 	if kind == KindPublication {
@@ -159,7 +160,7 @@ func (s *Service) insertSite(ctx context.Context, q *store.Queries, ws *store.Wo
 	if err := q.PushSiteInsert(ctx, store.PushSiteInsertParams{ID: id, WorkspaceID: ws.ID, Origin: origin, Host: host, Kind: kind, Label: label,
 		WorkerPath: "/" + WorkerFile, WorkerMode: "file", CheckStatus: status, AddedBy: by, AddedAt: now}); err != nil {
 		if strings.Contains(err.Error(), "push_sites_origin_idx") {
-			return uuid.Nil, api.Conflict(host + " is already a push site.")
+			return uuid.Nil, api.Conflict(mProblemSiteExists.Text(i18n.LangFrom(ctx), i18n.Args{"host": host}))
 		}
 		return uuid.Nil, err
 	}
@@ -177,12 +178,13 @@ type PushSiteInput struct {
 // AddSite adds a site. The publication website's address becomes a built-in
 // site; any other gets the snippet and the file to host.
 func (s *Service) AddSite(ctx context.Context, ws *store.Workspace, p *authz.Principal, in PushSiteInput) (PushSite, error) {
+	l := i18n.LangFrom(ctx)
 	origin, _, ok := ParseOrigin(in.Address)
 	if !ok {
-		return PushSite{}, api.Invalid("body.address", "Enter the site's address, like help.acme.io. Browsers allow notifications only from https sites.")
+		return PushSite{}, api.Invalid("body.address", mProblemSiteAddress.Text(l, nil))
 	}
 	if _, err := s.liveKey(ctx, s.Q, ws); errors.Is(err, errNoKeys) {
-		return PushSite{}, api.Conflict("Turn push on first: sites use the workspace's keys.")
+		return PushSite{}, api.Conflict(mProblemSiteNoKeys.Text(l, nil))
 	} else if err != nil {
 		return PushSite{}, err
 	}
@@ -225,17 +227,17 @@ func (s *Service) UpdateSite(ctx context.Context, ws *store.Workspace, id uuid.U
 		wp = "/" + WorkerFile
 	}
 	if !strings.HasPrefix(wp, "/") || strings.ContainsAny(wp, "?#\\ ") || strings.Contains(wp, "..") || !strings.HasSuffix(wp, ".js") {
-		return PushSite{}, api.Invalid("body.workerPath", "Enter the worker's path on the site, like /rc-push-sw.js or /sw.js.")
+		return PushSite{}, api.Invalid("body.workerPath", mProblemWorkerPath.Text(i18n.LangFrom(ctx), nil))
 	}
 	var icon *uuid.UUID
 	if in.IconMediaID != "" {
 		mid, err := uuid.Parse(in.IconMediaID)
 		if err != nil {
-			return PushSite{}, api.Invalid("body.iconMediaId", "Pick an image from the media library.")
+			return PushSite{}, api.Invalid("body.iconMediaId", mProblemPickImage.Text(i18n.LangFrom(ctx), nil))
 		}
 		var ok bool
 		if err := s.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM media_assets WHERE id = $1 AND workspace_id = $2)`, mid, ws.ID).Scan(&ok); err != nil || !ok {
-			return PushSite{}, api.Invalid("body.iconMediaId", "Pick an image from the media library.")
+			return PushSite{}, api.Invalid("body.iconMediaId", mProblemPickImage.Text(i18n.LangFrom(ctx), nil))
 		}
 		icon = &mid
 	}
@@ -491,15 +493,13 @@ func (s *Service) check(ctx context.Context, ws *store.Workspace, st store.PushS
 		}
 		var subs int64
 		_ = tx.QueryRow(ctx, `SELECT count(*) FROM push_subscriptions WHERE site_id = $1 AND removed_at IS NULL`, st.ID).Scan(&subs)
-		answer := "didn't answer"
+		// Kept as messages, so each member reads it in their own language.
+		args := i18n.Args{"host": st.Host, "url": workerURL(st), "answer": "none", "status": "", "count": subs, "file": WorkerFile}
 		if res.HTTPStatus != nil {
-			answer = "answered " + strconv.Itoa(*res.HTTPStatus)
+			args["answer"], args["status"] = "status", strconv.Itoa(*res.HTTPStatus)
 		}
 		return notify.ToMembersWith(ctx, tx, ws.ID, authz.ProvidersView, notify.Notification{Kind: notify.KindPushWorkerMissing, Severity: "bad",
-			Title:   "Push service worker missing on " + st.Host,
-			Summary: fmt.Sprintf("%s %s · notifications to %s %s are held", workerURL(st), answer, count(subs), plural(subs, "subscriber", "subscribers")),
-			Body: fmt.Sprintf("%s %s. Notifications to %s's %s %s are held, and new subscriptions there fail, until the file is back. Upload %s to the site's root, then check again in Push setup.",
-				workerURL(st), answer, st.Host, count(subs), plural(subs, "subscriber", "subscribers"), WorkerFile),
+			TitleText: mNotifyWorkerTitle.Keep(args), SummaryText: mNotifyWorkerSummary.Keep(args), BodyText: mNotifyWorkerBody.Keep(args),
 			Link: "/w/" + ws.Slug + "/providers/push", Data: map[string]any{"site_id": st.ID.String(), "status": res.Status}})
 	})
 }
@@ -557,13 +557,14 @@ func (s *Service) sites(ctx context.Context, ws *store.Workspace) ([]PushSite, e
 	if err != nil {
 		return nil, err
 	}
+	l := i18n.LangFrom(ctx)
 	out := make([]PushSite, 0, len(rows))
 	for _, r := range rows {
 		st := store.PushSite{ID: r.ID, WorkspaceID: r.WorkspaceID, Origin: r.Origin, Host: r.Host, Kind: r.Kind, Label: r.Label, WorkerPath: r.WorkerPath,
 			WorkerMode: r.WorkerMode, CheckStatus: r.CheckStatus, CheckVersion: r.CheckVersion, CheckScope: r.CheckScope, CheckHttpStatus: r.CheckHttpStatus,
 			CheckDetail: r.CheckDetail, CheckedAt: r.CheckedAt, MissingSince: r.MissingSince, IconMediaID: r.IconMediaID, SnippetSeenAt: r.SnippetSeenAt,
 			Demo: r.Demo, AddedBy: r.AddedBy, AddedAt: r.AddedAt}
-		v := PushSite{ID: r.ID.String(), Origin: r.Origin, Host: r.Host, Kind: r.Kind, Label: r.Label, Subscribers: bySite[r.ID].N, Linked: bySite[r.ID].Linked,
+		v := PushSite{ID: r.ID.String(), Origin: r.Origin, Host: r.Host, Kind: r.Kind, Label: siteLabel(l, r.Kind, r.Label), Subscribers: bySite[r.ID].N, Linked: bySite[r.ID].Linked,
 			Worker: s.workerView(ctx, ws, st), Prompts: []PushSitePrompt{}, SnippetSeenAt: r.SnippetSeenAt, AddedAt: r.AddedAt, AddedBy: r.AddedByName, Demo: r.Demo}
 		v.IconURL = s.iconURL(ctx, ws, st)
 		for _, p := range prompts {
@@ -581,6 +582,16 @@ func (s *Service) sites(ctx context.Context, ws *store.Workspace) ([]PushSite, e
 		out = append(out, v)
 	}
 	return out, nil
+}
+
+// siteLabel is a site's label in a language: the publication website's
+// default label, which ReputeCast wrote, is translated; a label someone
+// typed stays as it is.
+func siteLabel(l i18n.Lang, kind, label string) string {
+	if kind == KindPublication && label == mLabelPublicationSite.Text(i18n.Default, nil) {
+		return mLabelPublicationSite.Text(l, nil)
+	}
+	return label
 }
 
 // iconURL is a site's notification icon: its own, else the workspace logo.

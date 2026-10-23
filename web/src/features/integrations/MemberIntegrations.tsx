@@ -66,7 +66,7 @@ export function MemberIntegrations({ state, name }: { state: MemberIntegrationsS
         const group = `int-${it.connectionId}`
         return (
           <div key={it.connectionId} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
-            <div className="row min-w-0 flex-nowrap gap-2.5">
+            <div className="int-member-who row min-w-0 flex-nowrap gap-2.5">
               <Tile k={kind} size="sm" />
               <span className="flex min-w-0 flex-col">
                 <span className="font-semibold">{label}</span>

@@ -173,6 +173,9 @@ type SnapshotShare struct {
 	StatusLabel string  `json:"status_label"`
 	WarmupDay   int     `json:"warmup_day,omitempty"`
 	WarmupDays  int     `json:"warmup_days,omitempty"`
+	// StatusText is the status label's message, kept so the request reads
+	// it in each reader's language.
+	StatusText readiness.Text `json:"status_text,omitempty"`
 }
 
 // SnapshotReadiness is the Send Readiness result an approval was given on.

@@ -16,7 +16,6 @@ import { mc } from './messages'
 export function PreviewOnWeb({ post, as, onAs, onBack, asMain = true }: { post: Post; as: 'visitor' | 'free' | 'paid'; onAs: (as: 'visitor' | 'free' | 'paid') => void; onBack: () => void; asMain?: boolean }) {
   const t = useT()
   const preview = usePostPreview(post.id, as)
-  const who = as === 'visitor' ? t(mc.asVisitor) : as === 'free' ? t(mc.asFree) : t(mc.asPaid)
   const Root = asMain ? 'main' : 'section'
   return (
     <Root className="pc-preview" id={asMain ? 'main' : undefined} aria-label={asMain ? undefined : t(mc.previewAs)}>
@@ -38,7 +37,7 @@ export function PreviewOnWeb({ post, as, onAs, onBack, asMain = true }: { post: 
       <div className="stage">
         {preview.data ? (
           <div className="pc-pframe">
-            <SiteFrame html={preview.data.html} title={t(mc.previewFrame, { title: post.title, who: who.toLowerCase() })} minHeight={900} />
+            <SiteFrame html={preview.data.html} title={t(mc.previewFrame, { title: post.title, who: as })} minHeight={900} />
           </div>
         ) : preview.isError ? (
           <Note tone="bad">{t(mc.previewFailed, { error: errorMessage(preview.error) })}</Note>

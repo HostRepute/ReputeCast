@@ -140,7 +140,7 @@ export default translate(m, {
   approverLine: 'người phê duyệt · {presence}',
   away: 'vắng mặt',
   restartsNote:
-    'Sửa nội dung, người nhận, tuyến hoặc lịch gửi sẽ bắt đầu lại yêu cầu. Người phê duyệt đã được thông báo trong ứng dụng và qua email{hasWait, select, yes {; thời gian chờ trung bình là {wait}} other {}}.',
+    'Sửa nội dung, người nhận, tuyến hoặc lịch gửi sẽ bắt đầu lại yêu cầu. Người phê duyệt đã được thông báo trong ứng dụng và qua email{hasWait, select, yes {; thời gian chờ trung vị là {wait}} other {}}.',
   editRestarts: 'Sửa chiến dịch (bắt đầu lại phê duyệt)',
   remind: 'Nhắc người phê duyệt',
   cancelRequest: 'Hủy yêu cầu',
@@ -378,6 +378,7 @@ export default translate(m, {
   rowExcluded: 'Đã loại',
   sameAsFrom: 'giống người gửi',
   noTest: 'Không thử nghiệm',
+  abLabel: '{kind, select, subject {Thử nghiệm tiêu đề} content {Thử nghiệm nội dung} other {Thử nghiệm giờ gửi}} · {variants} biến thể · mẫu {percent}%',
   costValue: '{cost} · khoảng {duration}',
   nobody: 'không ai',
   warningsToConfirm: 'Cảnh báo cần xác nhận',

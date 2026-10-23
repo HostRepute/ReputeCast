@@ -62,6 +62,7 @@ func (s *Service) ContactActivity(ctx context.Context, ws *store.Workspace, cont
 	}
 	defer rows.Close()
 	out := []audience.ContactActivityItem{}
+	l := langOf(ctx)
 	for rows.Next() {
 		var it audience.ContactActivityItem
 		var id uuid.UUID
@@ -79,6 +80,9 @@ func (s *Service) ContactActivity(ctx context.Context, ws *store.Workspace, cont
 			if ip != nil {
 				it.IP = ip.String()
 			}
+			// A keyword's consent change was written in English: it reads in
+			// the reader's language. What a person or a form wrote stays.
+			it.Detail, it.Note = storedIn(l, it.Detail), storedIn(l, it.Note)
 		case "inbound":
 			it.Category = "engagement"
 			it.Answer = clip(body, 300)

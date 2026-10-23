@@ -216,7 +216,7 @@ func (s *Service) Estimate(ctx context.Context, ws *store.Workspace, listID, tem
 	out.Quiet, out.Window = rl.Quiet, rl.Window.String()
 	lid, err := uuid.Parse(listID)
 	if err != nil {
-		return out, api.Invalid("list", "Pick a list of this workspace.")
+		return out, api.Invalid("list", mPickList.Text(langOf(ctx), nil))
 	}
 	aud, err := s.audience(ctx, ws, []uuid.UUID{lid}, nil)
 	if err != nil {
@@ -302,8 +302,9 @@ func (s *Service) StepEstimate(ctx context.Context, ws *store.Workspace, in What
 	if err != nil {
 		return out, err
 	}
+	l := langOf(ctx)
 	for _, t := range ts {
-		out.Templates = append(out.Templates, templateView(t))
+		out.Templates = append(out.Templates, templateView(l, t))
 	}
 	listID, ok := listOf(in.ConsentListID)
 	if !ok {

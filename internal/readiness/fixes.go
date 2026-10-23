@@ -18,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -50,36 +51,45 @@ type AfterChange func(ctx context.Context, ws *store.Workspace, campaignID uuid.
 // footerMarker marks the composer's footer section in the MJML.
 const footerMarker = "<!-- rc:footer -->"
 
-// footerMJML is the composer's footer block (blocks.ts footerBlock).
-func footerMJML(address string) string {
+// footerMJML is the composer's footer block (blocks.ts footerBlock), its
+// words in the language of the person adding it, as the composer writes
+// them.
+func footerMJML(l i18n.Lang, address string) string {
 	addr := address
 	if strings.TrimSpace(addr) == "" {
-		addr = "Your company · Street and number · City, postcode"
+		addr = msgs.M("footer.address").Text(l, nil)
 	}
 	addr = html.EscapeString(addr)
+	word := func(key string) string { return html.EscapeString(msgs.M(key).Text(l, nil)) }
 	const plex = `'IBM Plex Sans', Helvetica, Arial, sans-serif`
 	const teal = "#0F766E"
 	return footerMarker + `<mj-section background-color="#F3F4F6" padding="18px 24px"><mj-column><mj-text align="center" font-family="` + plex +
 		`" font-size="12px" line-height="1.6" color="#5B6472" padding="0px">` + addr + `<br><a href="{{ unsubscribe_url }}" style="color:` + teal +
-		`;text-decoration:none">Unsubscribe</a> · <a href="{{ preferences_url }}" style="color:` + teal + `;text-decoration:none">Email preferences</a> · <a href="{{ view_in_browser_url }}" style="color:` +
-		teal + `;text-decoration:none">View in browser</a></mj-text></mj-column></mj-section>`
+		`;text-decoration:none">` + word("footer.unsubscribe") + `</a> · <a href="{{ preferences_url }}" style="color:` + teal + `;text-decoration:none">` +
+		word("footer.preferences") + `</a> · <a href="{{ view_in_browser_url }}" style="color:` + teal + `;text-decoration:none">` + word("footer.viewInBrowser") +
+		`</a></mj-text></mj-column></mj-section>`
 }
 
 // InsertFooter adds the footer block at the end of the MJML body, or puts
 // the composer's footer block back as new when it lost its address or links.
 func InsertFooter(src, address string) (string, bool) {
+	return InsertFooterIn(i18n.Default, src, address)
+}
+
+// InsertFooterIn is InsertFooter with the block's words in a language.
+func InsertFooterIn(l i18n.Lang, src, address string) (string, bool) {
 	if i := strings.Index(src, footerMarker); i >= 0 {
 		rest := src[i+len(footerMarker):]
 		start, end := strings.Index(rest, "<mj-section"), strings.Index(rest, "</mj-section>")
 		if start >= 0 && end > start && strings.TrimSpace(rest[:start]) == "" {
-			return src[:i] + footerMJML(address) + rest[end+len("</mj-section>"):], true
+			return src[:i] + footerMJML(l, address) + rest[end+len("</mj-section>"):], true
 		}
 	}
 	i := strings.LastIndex(strings.ToLower(src), "</mj-body>")
 	if i < 0 {
 		return src, false
 	}
-	return src[:i] + footerMJML(address) + "\n  " + src[i:], true
+	return src[:i] + footerMJML(l, address) + "\n  " + src[i:], true
 }
 
 // ReplaceLink points every link to from at to.
@@ -110,7 +120,7 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 		return out, err
 	}
 	if !editable(c.Status) {
-		return out, api.Conflict("This campaign already started sending, so it can't change.")
+		return out, api.Conflict(say(ctx, "problem.alreadySending", nil))
 	}
 	// Content fixes are applied together as one new version.
 	src, subject, content := c.Mjml, c.Subject, false
@@ -134,7 +144,7 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 			out.Applied = append(out.Applied, label)
 		case FixVerifyAddresses:
 			// The Verify addresses dialog starts the job (POST …/verification/jobs).
-			return out, api.Invalid(field, "Verifying addresses starts from the Verify addresses dialog on Review & send.")
+			return out, api.Invalid(field, say(ctx, "problem.verifyFromDialog", nil))
 		case FixRouteOnly:
 			label, err := s.routeOnly(ctx, ws, p, c, fx.Params["providerId"], field)
 			if err != nil {
@@ -143,35 +153,35 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 			out.Applied = append(out.Applied, label)
 		case FixInsertFooter:
 			if strings.TrimSpace(src) == "" {
-				return out, api.Invalid(field, "This campaign is written in HTML. Add the footer with the address and unsubscribe link in the editor.")
+				return out, api.Invalid(field, say(ctx, "problem.footerInHtml", nil))
 			}
-			next, ok := InsertFooter(src, templates.WorkspaceAddress(ws))
+			next, ok := InsertFooterIn(i18n.LangFrom(ctx), src, templates.WorkspaceAddress(ws))
 			if !ok {
-				return out, api.Invalid(field, "The MJML has no body to add the footer to. Open the campaign in the editor.")
+				return out, api.Invalid(field, say(ctx, "problem.noBody", nil))
 			}
 			src, content = next, true
-			labels = append(labels, "footer block inserted")
-			out.Applied = append(out.Applied, "Inserted the footer block")
+			labels = append(labels, say(ctx, "version.footer", nil))
+			out.Applied = append(out.Applied, say(ctx, "applied.footer", nil))
 		case FixReplaceLink:
 			from, to := strings.TrimSpace(fx.Params["from"]), strings.TrimSpace(fx.Params["to"])
 			if from == "" || !validLink(to) {
-				return out, api.Invalid(field, "Give the link to replace and an http or https address to point it at.")
+				return out, api.Invalid(field, say(ctx, "problem.replaceLink", nil))
 			}
 			next, n := ReplaceLink(src, from, to)
 			if n == 0 {
-				return out, api.Invalid(field, "That link isn't in the email any more. Run the checks again.")
+				return out, api.Invalid(field, say(ctx, "problem.linkGone", nil))
 			}
 			src, content = next, true
-			labels = append(labels, "link replaced")
-			out.Applied = append(out.Applied, "Replaced "+displayURL(from)+" with "+displayURL(to))
+			labels = append(labels, say(ctx, "version.link", nil))
+			out.Applied = append(out.Applied, say(ctx, "applied.replaced", A{"from": displayURL(from), "to": displayURL(to)}))
 		case FixUseSubject:
 			next := strings.TrimSpace(fx.Params["subject"])
 			if next == "" || len(next) > 998 {
-				return out, api.Invalid(field, "Write a subject of up to 998 characters.")
+				return out, api.Invalid(field, say(ctx, "problem.subjectLength", A{"max": 998}))
 			}
 			subject, content = next, true
-			labels = append(labels, "subject")
-			out.Applied = append(out.Applied, "Changed the subject to “"+next+"”")
+			labels = append(labels, say(ctx, "version.subject", nil))
+			out.Applied = append(out.Applied, say(ctx, "applied.subject", A{"subject": next}))
 		case FixMinify:
 			var settings campaigns.ComposerContentSettings
 			_ = json.Unmarshal(c.ContentSettings, &settings)
@@ -183,8 +193,8 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 				}
 			}
 			content = true
-			labels = append(labels, "minified")
-			out.Applied = append(out.Applied, "Minified the inline CSS")
+			labels = append(labels, say(ctx, "version.minified", nil))
+			out.Applied = append(out.Applied, say(ctx, "applied.minified", nil))
 		case FixMarkLanguageUpToDate, FixMarkLanguageTranslated, FixHoldLanguage, FixReleaseLanguage:
 			label, err := s.languageFix(ctx, ws, p, id, fx.Action, fx.Params["language"], field)
 			if err != nil {
@@ -193,7 +203,7 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 			out.Applied = append(out.Applied, label)
 		case FixAccessibilityDecorative, FixAccessibilityColor, FixAccessibilityOneClick:
 			if s.Accessibility == nil {
-				return out, api.Conflict("Accessibility fixes aren't available in this process.")
+				return out, api.Conflict(say(ctx, "problem.noAccessibility", nil))
 			}
 			next, change, err := s.Accessibility.FixMJML(ctx, ws, src, fx.Action, fx.Params)
 			if err != nil {
@@ -207,7 +217,7 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 		case FixVisibilityShowEveryone, FixVisibilityHideBlock, FixVisibilityRemoveCondition, FixPollCloseDays:
 			// Rules and polls are the source's: language versions follow it.
 			if strings.TrimSpace(src) == "" {
-				return out, api.Invalid(field, "This campaign is written in HTML. Change it in the editor.")
+				return out, api.Invalid(field, say(ctx, "problem.htmlEditor", nil))
 			}
 			next, label, applied, err := conditionalFix(src, fx.Action, fx.Params)
 			if err != nil {
@@ -218,10 +228,10 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 			out.Applied = append(out.Applied, applied)
 		case FixSponsorRemove, FixSponsorRefresh:
 			if s.Sponsor == nil {
-				return out, api.Conflict("Sponsor block fixes aren't available in this process.")
+				return out, api.Conflict(say(ctx, "problem.noSponsor", nil))
 			}
 			if strings.TrimSpace(src) == "" {
-				return out, api.Invalid(field, "This campaign is written in HTML. Change it in the editor.")
+				return out, api.Invalid(field, say(ctx, "problem.htmlEditor", nil))
 			}
 			next, applied, err := s.Sponsor.FixSponsor(ctx, ws, id, src, fx.Action)
 			if err != nil {
@@ -229,26 +239,26 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 			}
 			src, content = next, true
 			if fx.Action == FixSponsorRemove {
-				labels = append(labels, "Sponsor block removed")
+				labels = append(labels, say(ctx, "version.sponsorRemoved", nil))
 			} else {
-				labels = append(labels, "Sponsor block updated")
+				labels = append(labels, say(ctx, "version.sponsorUpdated", nil))
 			}
 			out.Applied = append(out.Applied, applied)
 		default:
-			return out, api.Invalid(field+".action", "Unknown fix.")
+			return out, api.Invalid(field+".action", say(ctx, "problem.unknownFix", nil))
 		}
 	}
 	out.Version = int(c.Version)
 	if content {
 		if s.Campaigns == nil {
-			return out, api.Conflict("Content fixes aren't available in this process.")
+			return out, api.Conflict(say(ctx, "problem.noContentFixes", nil))
 		}
 		var ab *campaigns.ComposerABTest
 		if detail, err := s.Campaigns.Detail(ctx, ws, p, id); err == nil {
 			ab = detail.ABTest
 		}
 		saved, err := s.Campaigns.Save(ctx, ws, p, id, campaigns.ComposerSaveContent{BaseVersion: int(c.Version), Subject: subject, Preheader: c.Preheader, MJML: src,
-			ABTest: ab, Label: strings.Join(labels, ", ") + " from Review & send", Source: "manual"})
+			ABTest: ab, Label: say(ctx, "version.fromReview", A{"changes": strings.Join(labels, ", ")}), Source: "manual"})
 		if err != nil {
 			return out, err
 		}
@@ -259,7 +269,7 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 			for _, ch := range a11y {
 				a11yLabels = append(a11yLabels, ch.Label)
 			}
-			versions, err := s.fixLanguageVersions(ctx, ws, p, id, a11yFixes, strings.Join(a11yLabels, ", ")+" from Review & send")
+			versions, err := s.fixLanguageVersions(ctx, ws, p, id, a11yFixes, say(ctx, "version.fromReview", A{"changes": strings.Join(a11yLabels, ", ")}))
 			if err != nil {
 				return out, err
 			}
@@ -286,10 +296,10 @@ func (s *Service) excludeSunset(ctx context.Context, ws *store.Workspace, p *aut
 	}
 	def := ParseAudience(c.Audience)
 	if def.Empty() {
-		return "", api.Invalid("body.fixes", "Pick an audience first.")
+		return "", api.Invalid("body.fixes", say(ctx, "problem.pickAudience", nil))
 	}
 	if def.ExcludesSunset() {
-		return "Unengaged contacts are already excluded", nil
+		return say(ctx, "applied.alreadyExcluded", nil), nil
 	}
 	tiers := append(slices.Clone(def.ExcludeTiers), "sunset")
 	raw["exclude_tiers"] = tiers
@@ -308,16 +318,16 @@ func (s *Service) excludeSunset(ctx context.Context, ws *store.Workspace, p *aut
 	if err != nil {
 		return "", err
 	}
-	return "Excluded unengaged contacts (no open in 180 days)", nil
+	return say(ctx, "applied.excludedUnengaged", A{"days": 180}), nil
 }
 
 func (s *Service) routeOnly(ctx context.Context, ws *store.Workspace, p *authz.Principal, c store.ReadinessCampaignRow, provider, field string) (string, error) {
 	if !p.Can(authz.CampaignsSend) && !p.Can(authz.ProvidersManage) {
-		return "", api.Forbidden(authz.CampaignsSend, nil).WithMeta("reason", "Changing the route of a send needs campaigns:send.")
+		return "", api.Forbidden(authz.CampaignsSend, nil).WithMeta("reason", say(ctx, "problem.routeNeedsSend", nil))
 	}
 	pid, err := uuid.Parse(provider)
 	if err != nil {
-		return "", api.Invalid(field+".params.providerId", "Pick a sending provider.")
+		return "", api.Invalid(field+".params.providerId", say(ctx, "problem.pickProvider", nil))
 	}
 	provs, err := s.Q.ProvListActive(ctx, ws.ID)
 	if err != nil {
@@ -330,13 +340,13 @@ func (s *Service) routeOnly(ctx context.Context, ws *store.Workspace, p *authz.P
 		}
 	}
 	if target == nil {
-		return "", api.Invalid(field+".params.providerId", "That provider isn't connected to this workspace.")
+		return "", api.Invalid(field+".params.providerId", say(ctx, "problem.providerNotConnected", nil))
 	}
 	if !state.Available(*target) {
-		return "", api.Invalid(field+".params.providerId", target.Name+" can't take mail right now. Pick a healthy provider.")
+		return "", api.Invalid(field+".params.providerId", say(ctx, "problem.providerUnavailable", A{"provider": target.Name}))
 	}
 	if !state.Caps(*target).BulkAllowed() {
-		return "", api.Invalid(field+".params.providerId", target.Name+"'s terms don't allow bulk marketing.")
+		return "", api.Invalid(field+".params.providerId", say(ctx, "problem.providerTerms", A{"provider": target.Name}))
 	}
 	next, _ := json.Marshal(RouteOverride{Splits: []routing.Split{{ProviderID: pid, Weight: 100}}})
 	short := state.Short(target.Name, target.Adapter)
@@ -356,7 +366,7 @@ func (s *Service) routeOnly(ctx context.Context, ws *store.Workspace, p *authz.P
 	if err != nil {
 		return "", err
 	}
-	return "This send goes 100% via " + short, nil
+	return say(ctx, "applied.routeOnly", A{"share": i18n.LangFrom(ctx).Region.Percent(100, 0), "provider": short}), nil
 }
 
 // ClearRouteOverride puts the campaign back on the stream's routing.

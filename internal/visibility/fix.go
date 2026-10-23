@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 )
 
@@ -46,27 +47,34 @@ func findRule(src, id string) (*mjml.Node, VisibilityRule, error) {
 
 // Fix applies a Visibility fix to an email's MJML and returns the new
 // source with the label of the version it saves and the line Review & send
-// shows.
+// shows, in English.
 func Fix(src, action string, params map[string]string) (next, label, applied string, err error) {
+	return FixIn(i18n.Default, src, action, params)
+}
+
+// FixIn is Fix with the line Review & send shows in a reader's language.
+// The version's label stays in English: it joins the other fixes' labels
+// in the version's note.
+func FixIn(l i18n.Lang, src, action string, params map[string]string) (next, label, applied string, err error) {
 	n, rule, err := findRule(src, params["block"])
 	if err != nil {
 		return src, "", "", err
 	}
 	name := n.Attr(mjml.AttrName)
-	if name == "" {
-		name = "the block"
-	} else {
-		name = "“" + name + "”"
+	named := "no"
+	if name != "" {
+		named = "yes"
 	}
+	words := i18n.Args{"name": name, "named": named}
 	var ok bool
 	switch action {
 	case FixShowEveryone:
 		next, ok = mjml.RemoveAttr(src, n, mjml.AttrVisible)
-		label, applied = "shown to everyone", "Showed "+name+" to everyone"
+		label, applied = "shown to everyone", mFixShowed.Text(l, words)
 	case FixHideBlock:
 		rule.Show = ShowNobody
 		next, ok = mjml.SetAttr(src, n, mjml.AttrVisible, rule.Encode())
-		label, applied = "hidden for everyone", "Hid "+name+" for everyone"
+		label, applied = "hidden for everyone", mFixHid.Text(l, words)
 	case FixRemoveCondition:
 		i, perr := strconv.Atoi(params["condition"])
 		if perr != nil || i < 0 || i >= len(rule.Conditions) {
@@ -79,7 +87,7 @@ func Fix(src, action string, params map[string]string) (next, label, applied str
 		} else {
 			next, ok = mjml.SetAttr(src, n, mjml.AttrVisible, rule.Encode())
 		}
-		label, applied = "condition removed", "Removed the condition of "+name
+		label, applied = "condition removed", mFixRemoved.Text(l, words)
 	default:
 		return src, "", "", errors.New("unknown fix")
 	}

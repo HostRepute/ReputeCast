@@ -3,7 +3,10 @@ package notify
 // EventType is one row of the notification preferences: the person chooses
 // in-app and/or email per event type.
 type EventType struct {
-	Key      string
+	Key string
+	// Label and Audience are the row's name and who gets the event, in
+	// English. messages/<locale>.json has them as event.<Key> and
+	// audience.<Key>, with their translations.
 	Label    string
 	Audience string
 	// Short is the plural phrase used in summaries ("Approvals,
@@ -155,7 +158,8 @@ func CategoryOf(kind string) string {
 	return CategoryOther
 }
 
-// CategoryLabel is the tab name of a category.
+// CategoryLabel is the tab name of a category, in English
+// (messages/<locale>.json has it as category.<tab>, with its translations).
 func CategoryLabel(c string) string { return categoryLabels[c] }
 
 // KindsOf returns the kinds of a category tab.

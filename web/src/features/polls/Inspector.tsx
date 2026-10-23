@@ -263,7 +263,16 @@ export function PollSettings({ c: comp }: { c: Component }) {
           label={t(m.kind)}
           value={cfg.kind}
           disabled={disabled}
-          onChange={(kind) => set({ kind, ...(kind === 'scale' ? { nps: true, save: cfg.save === 'tag' ? 'none' : cfg.save } : kind === 'emoji' ? { faces: 5, save: cfg.save === 'tag' ? 'none' : cfg.save } : {}) })}
+          onChange={(kind) =>
+            set({
+              kind,
+              ...(kind === 'scale'
+                ? { nps: true, low: cfg.low || t(m.scaleLow), high: cfg.high || t(m.scaleHigh), save: cfg.save === 'tag' ? 'none' : cfg.save }
+                : kind === 'emoji'
+                  ? { faces: 5, save: cfg.save === 'tag' ? 'none' : cfg.save }
+                  : {}),
+            })
+          }
           options={[
             { value: 'choice', label: t(m.kindChoice) },
             { value: 'scale', label: t(m.kindScale) },
@@ -321,7 +330,7 @@ export function PollSettings({ c: comp }: { c: Component }) {
       ) : cfg.kind === 'scale' ? (
         <Prop title={t(m.wording)} hint={t(m.npsHint)}>
           <label className="tg">
-            <input type="checkbox" checked={!!cfg.nps} disabled={disabled} onChange={(e) => set({ nps: e.target.checked, ...(e.target.checked ? { low: 'Not likely', high: 'Very likely' } : {}) })} />
+            <input type="checkbox" checked={!!cfg.nps} disabled={disabled} onChange={(e) => set({ nps: e.target.checked, ...(e.target.checked ? { low: t(m.scaleLow), high: t(m.scaleHigh) } : {}) })} />
             {t(m.useNps)}
           </label>
           <div className="row2">

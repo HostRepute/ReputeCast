@@ -128,23 +128,24 @@ func ScheduleView(raw json.RawMessage, wsTZ string) ReadinessSchedule {
 	return out
 }
 
-// Resolve validates the schedule and returns its stored shape.
-func (in ReadinessSchedule) Resolve(field string) (Schedule, *time.Time, error) {
+// Resolve validates the schedule and returns its stored shape; its
+// problems are in the request's language.
+func (in ReadinessSchedule) Resolve(ctx context.Context, field string) (Schedule, *time.Time, error) {
 	switch in.Mode {
 	case "now", "":
 		return Schedule{Mode: "now"}, nil, nil
 	case "at", "best_time":
 	default:
-		return Schedule{}, nil, api.Invalid(field+".mode", "Pick when to send.")
+		return Schedule{}, nil, api.Invalid(field+".mode", say(ctx, "problem.pickWhen", nil))
 	}
 	tz := strings.TrimSpace(in.Timezone)
 	loc, err := time.LoadLocation(tz)
 	if tz == "" || err != nil {
-		return Schedule{}, nil, api.Invalid(field+".timezone", "Pick a time zone from the list.")
+		return Schedule{}, nil, api.Invalid(field+".timezone", say(ctx, "problem.pickZone", nil))
 	}
 	at, err := time.ParseInLocation("2006-01-02 15:04", in.Date+" "+in.Time, loc)
 	if err != nil {
-		return Schedule{}, nil, api.Invalid(field+".date", "Pick a date and a time.")
+		return Schedule{}, nil, api.Invalid(field+".date", say(ctx, "problem.pickDateTime", nil))
 	}
 	return Schedule{Mode: in.Mode, At: at.UTC().Format(time.RFC3339), Timezone: tz}, &at, nil
 }
@@ -163,10 +164,10 @@ func (s *Service) UpdateSendSettings(ctx context.Context, ws *store.Workspace, p
 		return err
 	}
 	if !editable(c.Status) {
-		return api.Conflict("This campaign already started sending; its thresholds are on the live monitor.")
+		return api.Conflict(say(ctx, "problem.thresholdsLive", nil))
 	}
 	if c.Status == "scheduled" && in.Schedule != nil {
-		return api.Conflict("The campaign is scheduled. Unschedule it to change when it goes out.")
+		return api.Conflict(say(ctx, "problem.scheduled", nil))
 	}
 	thresholds, schedule := c.Thresholds, c.Schedule
 	before, after := map[string]any{}, map[string]any{}
@@ -176,7 +177,7 @@ func (s *Service) UpdateSendSettings(ctx context.Context, ws *store.Workspace, p
 			t.Scope = "route"
 		}
 		if t.MailboxComplaint > t.Complaint*5 {
-			return api.Invalid("body.thresholds.mailboxComplaint", "Keep the per-mailbox complaint threshold within five times the overall one.")
+			return api.Invalid("body.thresholds.mailboxComplaint", say(ctx, "problem.mailboxThreshold", nil))
 		}
 		// Compared as values: Postgres hands jsonb back reformatted, so the
 		// stored text never equals freshly marshalled JSON.
@@ -186,7 +187,7 @@ func (s *Service) UpdateSendSettings(ctx context.Context, ws *store.Workspace, p
 		}
 	}
 	if in.Schedule != nil {
-		sch, _, err := in.Schedule.Resolve("body.schedule")
+		sch, _, err := in.Schedule.Resolve(ctx, "body.schedule")
 		if err != nil {
 			return err
 		}

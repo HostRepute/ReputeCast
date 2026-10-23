@@ -7,6 +7,7 @@ import (
 	"github.com/riverqueue/river"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -127,14 +128,17 @@ func (s *Service) checkDomain(ctx context.Context, ws *store.Workspace) error {
 	case problem == "" || c.row.DomainNotified == problem:
 		return nil
 	}
-	title, body := "Website domain problem", addr.Domain+" stopped checking out: readers reach the site at "+addr.Fallback+" until it does."
+	// Notifications are written once for every member, in English, as the
+	// other packages' are; the words are in the catalog.
+	l := i18n.For(i18n.English)
+	title := msgs.M("notify.domainTitle").Text(l, nil)
+	body := msgs.M("notify.domainBody").Text(l, i18n.Args{"domain": addr.Domain, "fallback": addr.Fallback})
 	if problem == "certificate" {
-		title = "Website certificate failing"
-		body = addr.Domain + "'s certificate is failing"
+		title = msgs.M("notify.certTitle").Text(l, nil)
+		body = msgs.M("notify.certBody").Text(l, i18n.Args{"domain": addr.Domain})
 		if addr.Certificate.Detail != "" {
-			body += " (" + addr.Certificate.Detail + ")"
+			body = msgs.M("notify.certBodyDetail").Text(l, i18n.Args{"domain": addr.Domain, "detail": addr.Certificate.Detail})
 		}
-		body += ". Readers may see a browser warning until it renews."
 	}
 	n := notify.Notification{WorkspaceID: &ws.ID, Kind: KindDomainProblem, Severity: "bad", Title: title, Body: body,
 		Link: "/w/" + ws.Slug + "/forms/branding", Data: map[string]any{"domain": addr.Domain, "problem": problem}}

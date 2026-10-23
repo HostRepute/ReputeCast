@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/forms"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/referrals"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -568,8 +569,9 @@ func TestReferralTokenCheck(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	title, _, ack, ok := c.ReadinessText()
-	if !ok || title != "referral.link is empty for 16,225 recipients who aren't on Weekly Digest" || ack == "" {
+	row, ok := c.ReadinessRow("c1")
+	title := row.Title.In(i18n.Default)
+	if !ok || title != "referral.link is empty for 16,225 recipients who aren't on Weekly Digest" || row.Ack.IsZero() {
 		t.Fatalf("check: %+v %q", c, title)
 	}
 	// Everyone on the list: nothing to say.

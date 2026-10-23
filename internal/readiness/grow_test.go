@@ -12,10 +12,10 @@ import (
 func TestAssembleGrowRows(t *testing.T) {
 	f := digest()
 	f.Grow = []readiness.GrowRow{
-		{Key: "content.referral_block", Status: readiness.Pass, Title: "Referral block: shown to 31,604 of 31,604 recipients", Label: "Referral block"},
-		{Key: "content.recommendations_block", Status: readiness.Warn, Title: "No recommendation can show right now. The Recommendations block will be hidden.",
-			Label: "Recommendations block", Ack: "I understand the Recommendations block won't show.",
-			Links: []readiness.GrowLink{{Label: "Open recommendations", Href: "/grow/recommendations"}}},
+		{Key: "content.referral_block", Status: readiness.Pass, Title: readiness.RawText("Referral block: shown to 31,604 of 31,604 recipients"), Label: readiness.RawText("Referral block")},
+		{Key: "content.recommendations_block", Status: readiness.Warn, Title: readiness.RawText("No recommendation can show right now. The Recommendations block will be hidden."),
+			Label: readiness.RawText("Recommendations block"), Ack: readiness.RawText("I understand the Recommendations block won't show."),
+			Links: []readiness.GrowLink{{Label: readiness.RawText("Open recommendations"), Href: "/grow/recommendations"}}},
 	}
 	r := readiness.Assemble(f)
 	found := map[string]readiness.ReadinessCheck{}

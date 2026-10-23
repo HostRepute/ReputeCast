@@ -15,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -64,7 +65,8 @@ func stamp(t *time.Time, loc *time.Location) string {
 // ExportPollResults writes a poll's results as CSV: aggregate numbers only,
 // audited like the other report exports.
 func (s *Service) ExportPollResults(ctx context.Context, ws *store.Workspace, p *authz.Principal, pollID uuid.UUID) (Export, error) {
-	r, err := s.PollResultsOf(ctx, ws, p, pollID)
+	// An export's labels are data: in English, whatever the request reads in.
+	r, err := s.PollResultsOf(i18n.WithLang(ctx, i18n.Default), ws, p, pollID)
 	if err != nil {
 		return Export{}, err
 	}

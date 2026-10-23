@@ -32842,6 +32842,7 @@ export interface components {
         };
         ReadinessCheck: {
             ack?: string;
+            ackKey?: string;
             detail?: string;
             evidence?: string;
             fixes: components["schemas"]["ReadinessFix"][];
@@ -32997,6 +32998,8 @@ export interface components {
             /** Format: double */
             percent: number;
             priceLabel: string;
+            /** @enum {string} */
+            pricing: "metered" | "plan" | "self_hosted";
             providerId: string;
             /** Format: double */
             rate: number;

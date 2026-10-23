@@ -56282,6 +56282,9 @@
           "ack": {
             "type": "string"
           },
+          "ackKey": {
+            "type": "string"
+          },
           "detail": {
             "type": "string"
           },
@@ -56889,6 +56892,14 @@
           "priceLabel": {
             "type": "string"
           },
+          "pricing": {
+            "enum": [
+              "metered",
+              "plan",
+              "self_hosted"
+            ],
+            "type": "string"
+          },
           "providerId": {
             "type": "string"
           },
@@ -56934,6 +56945,7 @@
           "available",
           "cost",
           "priceLabel",
+          "pricing",
           "rate",
           "rateLabel",
           "minutes"

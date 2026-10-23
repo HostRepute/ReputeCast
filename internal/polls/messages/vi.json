@@ -1,0 +1,33 @@
+{
+  "problem.pollQuestion": "Hãy viết câu hỏi của cuộc bình chọn.",
+  "problem.pollTwoAnswers": "Cuộc bình chọn cần ít nhất hai câu trả lời.",
+  "problem.pollFiveAnswers": "Cuộc bình chọn có tối đa năm câu trả lời.",
+  "problem.pollTags": "Hãy gắn thẻ cho mọi câu trả lời, hoặc lưu câu trả lời vào một trường.",
+  "problem.pollField": "Hãy chọn trường để lưu câu trả lời.",
+  "problem.pollSurvey": "Hãy chọn khảo sát mà cuộc bình chọn dẫn tới.",
+  "problem.pollClosed": "Cuộc bình chọn này đã đóng rồi.",
+  "problem.pollOpen": "Cuộc bình chọn này đang mở rồi.",
+
+  "problem.surveyFirstQuestion": "Hãy thêm câu hỏi đầu tiên.",
+  "problem.surveyMaxQuestions": "Một khảo sát có tối đa {max, plural, other {# câu hỏi}}.",
+  "problem.surveyQuestion": "Hãy viết câu hỏi.",
+  "problem.surveyTwoAnswers": "Câu hỏi lựa chọn cần ít nhất hai câu trả lời.",
+  "problem.surveyField": "Hãy chọn trường để lưu câu trả lời.",
+  "problem.surveyTags": "Hãy gắn thẻ cho mọi câu trả lời, hoặc không lưu câu trả lời.",
+  "problem.surveySlugTaken": "Một khảo sát khác của không gian làm việc này đã dùng địa chỉ đó. Hãy chọn địa chỉ khác.",
+  "problem.surveyIncomplete": "Khảo sát chỉ xuất bản được khi mọi câu hỏi đã hoàn chỉnh: {problem}",
+  "problem.surveyType": "Hãy chọn loại cho mọi câu hỏi: một lựa chọn, nhiều lựa chọn, thang 0–10, thang emoji, văn bản ngắn hoặc dài.",
+  "problem.surveyClosePassed": "Ngày đóng đã qua. Hãy chọn một ngày sau đó, hoặc đóng khảo sát thủ công.",
+  "problem.surveyNotPublished": "Khảo sát này chưa được xuất bản, nên không có gì để đóng.",
+  "problem.surveyCloseFuture": "Hãy chọn ngày đóng trong tương lai, hoặc đóng khảo sát thủ công.",
+
+  "label.untitledSurvey": "Khảo sát chưa đặt tên",
+  "label.surveyThanks": "Câu trả lời của bạn đã được lưu.",
+  "label.noTier": "Chưa thuộc nhóm nào",
+  "label.languageNotSet": "Chưa đặt",
+
+  "tier.active": "Tích cực",
+  "tier.cooling": "Nguội dần",
+  "tier.at_risk": "Có nguy cơ",
+  "tier.sunset": "Ngừng gửi dần"
+}

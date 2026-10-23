@@ -43,6 +43,9 @@ type PersonalizationToken struct {
 	Kind  string `json:"kind" enum:"contact,custom,system,referral,paid"`
 	// Fallback is the suggested default for contacts without a value.
 	Fallback string `json:"fallback,omitempty"`
+	// LabelText is the label's message when the package that registers the
+	// token keeps one: InLanguage writes it in the member's language.
+	LabelText i18n.Text `json:"-"`
 }
 
 // CustomField is a workspace contact field (custom_fields).
@@ -86,6 +89,20 @@ var (
 	tokensMu    sync.RWMutex
 	extraTokens []PersonalizationToken
 )
+
+// InLanguage writes the labels of tokens that keep their message in a
+// language (the composer's token menu, in the member's language).
+func InLanguage(tokens []PersonalizationToken, l i18n.Lang) []PersonalizationToken {
+	for i := range tokens {
+		if tokens[i].LabelText.IsZero() {
+			continue
+		}
+		if s := tokens[i].LabelText.In(l); s != "" {
+			tokens[i].Label = s
+		}
+	}
+	return tokens
+}
 
 // RegisterTokens adds tokens other packages provide to every email's token
 // catalog (Grow's referral.* tokens).

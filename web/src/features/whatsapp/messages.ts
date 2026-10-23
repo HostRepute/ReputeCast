@@ -149,6 +149,9 @@ export const m = defineMessages('whatsapp', {
   // Waiting for verification
   waitingTitle: "Waiting for Meta's verification request",
   waitingSince: '{time} · nothing is sent until Meta verifies the webhook',
+  // How long it has waited, the {time} of waitingSince.
+  waitedSeconds: '{s} s',
+  waitedMinutes: '{min} min {s} s',
   waitingSteps: 'In Meta for Developers › your app › WhatsApp › Configuration, paste these two values, then click Verify and save.',
   callbackUrl: 'Callback URL',
   verifyToken: 'Verify token',

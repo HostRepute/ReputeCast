@@ -51,6 +51,15 @@
   "check.hidden.kind.block": "A block",
   "check.web.line": { "message": "Also publishes {url}, {visibility}, with the send.", "note": "Review & send's Web line; visibility: public, members-only or paid" },
 
+  "report.direct": { "message": "Email clients and direct", "note": "a campaign report's Web section: views with no referring site" },
+  "report.other": { "message": "Other", "note": "a campaign report's Web section: the referrers after the top four" },
+
+  "notify.domainTitle": { "message": "Website domain problem", "note": "a notification to the members who manage the website" },
+  "notify.domainBody": { "message": "{domain} stopped checking out: readers reach the site at {fallback} until it does.", "note": "domain: news.acme.io; fallback: the site's address on the instance" },
+  "notify.certTitle": "Website certificate failing",
+  "notify.certBody": { "message": "{domain}'s certificate is failing. Readers may see a browser warning until it renews.", "note": "domain: news.acme.io" },
+  "notify.certBodyDetail": { "message": "{domain}'s certificate is failing ({detail}). Readers may see a browser warning until it renews.", "note": "detail: what the certificate authority answered" },
+
   "tag.notFound": "That tag doesn't exist any more.",
   "tag.nameRequired": "Give the tag a name.",
   "tag.slugTaken": { "message": "{path} is used by another tag. Pick another address.", "note": "path: /tag/engineering" },
@@ -116,6 +125,7 @@
   "site.subscribed.noneText": "You don't get any of the newsletters by email right now.",
   "site.upgradeTo": { "message": "Upgrade to {tier}", "note": "tier: Insider" },
   "site.readMin": { "message": "{count} min read", "note": "a post's reading time" },
+  "site.month": { "message": "{month, plural, =1 {January} =2 {February} =3 {March} =4 {April} =5 {May} =6 {June} =7 {July} =8 {August} =9 {September} =10 {October} =11 {November} other {December}}", "note": "a month's name in a sentence, the meter's “for October”; month: 1 to 12" },
   "site.by": { "message": "By {name}", "note": "a post's byline" },
   "site.tags": { "message": "Tags", "note": "names a post's tags for screen readers" },
   "site.share": "Share",

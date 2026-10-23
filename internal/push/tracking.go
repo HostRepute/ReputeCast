@@ -13,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/push/webpush"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/webhooks"
@@ -211,19 +212,20 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	if err != nil {
 		return PushTestResult{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	key, err := s.liveKey(ctx, s.Q, ws)
 	if errors.Is(err, errNoKeys) {
-		return PushTestResult{}, api.Conflict("Turn push on first: the test is signed with the workspace's keys.")
+		return PushTestResult{}, api.Conflict(mProblemTestNoKeys.Text(l, nil))
 	}
 	if err != nil {
 		return PushTestResult{}, err
 	}
 	sub, err := webpush.ParseSubscription(in.Endpoint, in.P256dh, in.Auth)
 	if err != nil || !knownPushService(sub.Endpoint) {
-		return PushTestResult{}, api.Invalid("body.endpoint", "This browser's subscription can't be used: allow notifications for this page and try again.")
+		return PushTestResult{}, api.Invalid("body.endpoint", mProblemTestSubscription.Text(l, nil))
 	}
 	if strings.TrimSpace(c.Title) == "" {
-		return PushTestResult{}, api.Invalid("body", "Write the title first: a notification needs one.")
+		return PushTestResult{}, api.Invalid("body", mProblemTestTitle.Text(l, nil))
 	}
 	browser, platform := BrowserOf(userAgent)
 	now := s.now()

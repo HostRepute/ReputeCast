@@ -28,7 +28,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -213,28 +212,4 @@ func (s *Service) Enabled(ctx context.Context, workspaceID uuid.UUID) (bool, err
 	err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM push_keys k WHERE k.workspace_id = $1 AND k.rotated_at IS NULL
 		AND EXISTS (SELECT 1 FROM push_sites s WHERE s.workspace_id = k.workspace_id AND s.removed_at IS NULL)`, workspaceID).Scan(&n)
 	return n > 0, err
-}
-
-func plural(n int64, one, many string) string {
-	if n == 1 {
-		return one
-	}
-	return many
-}
-
-func count(n int64) string {
-	s := fmt.Sprint(n)
-	neg := strings.HasPrefix(s, "-")
-	s = strings.TrimPrefix(s, "-")
-	var b strings.Builder
-	for i, r := range s {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			b.WriteByte(',')
-		}
-		b.WriteRune(r)
-	}
-	if neg {
-		return "-" + b.String()
-	}
-	return b.String()
 }

@@ -11,7 +11,7 @@ import { toast } from '@/components/ui/Toast'
 import { useT, type MessageDescriptor } from '@/i18n'
 import { clock, dayMonthDate, dayMonthYear, money } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
-import { categoryBadge, fallbackSentence, FilledBody, statusBadge, throwIfForbidden, WhatsAppIcon, type Template } from './common'
+import { categoryBadge, fallbackSentence, FilledBody, statusBadge, testStatusWord, throwIfForbidden, WhatsAppIcon, type Template } from './common'
 import { CheckRow } from './Checks'
 import { m } from './campaign.messages'
 import '@/features/push/push.css'
@@ -539,7 +539,7 @@ function TestDialog({ data, onClose }: { data: Campaign; onClose: () => void }) 
           <label htmlFor="wa-c-test-phone">{t(m.testPhone)}</label>
           <input id="wa-c-test-phone" className="in w-full" type="tel" value={phone} placeholder="+1 312 555 0123" onChange={(e) => setPhone(e.target.value)} />
         </div>
-        {data.test ? <span className="k">{t(m.lastTest, { time: clock(data.test.at), to: data.test.to, status: data.test.status })}</span> : null}
+        {data.test ? <span className="k">{t(m.lastTest, { time: clock(data.test.at), to: data.test.to, status: t(testStatusWord[data.test.status]) })}</span> : null}
         {send.isError ? (
           <span className="err" role="alert">
             {errorMessage(send.error)}
@@ -622,7 +622,7 @@ export function RatesDialog({ onClose }: { onClose: () => void }) {
                       <input
                         className="in w-28 text-right"
                         inputMode="decimal"
-                        aria-label={`${r.country} ${r.category}`}
+                        aria-label={`${r.country} ${t(catWord[r.category])}`}
                         disabled={!data.canManage}
                         value={String(r.price)}
                         onChange={(e) => {

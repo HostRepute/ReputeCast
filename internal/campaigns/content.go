@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -61,18 +62,19 @@ type ComposerSavedContent struct {
 }
 
 // conflict is the 409 sent when someone else saved a newer version.
-func conflict(version int32, by string, at time.Time, theirs, mine []string) error {
-	who := by
-	if who == "" {
-		who = "Someone"
+func conflict(l i18n.Lang, version int32, by string, at time.Time, theirs, mine []string) error {
+	args := i18n.Args{"name": by, "version": strconv.Itoa(int(version)), "at": at}
+	detail := mProblemVersionConflict.Text(l, args)
+	if by == "" {
+		detail = mProblemVersionConflictBy.Text(l, args)
 	}
-	p := api.Err(http.StatusConflict, CodeVersionConflict, fmt.Sprintf("%s saved version %d at %s while you were editing.", who, version, at.Format("15:04")))
+	p := api.Err(http.StatusConflict, CodeVersionConflict, detail)
 	return p.WithMeta("version", version, "savedBy", by, "savedAt", at, "theirChanges", theirs, "yourChanges", mine)
 }
 
-func validateSubject(subject string) error {
+func validateSubject(l i18n.Lang, subject string) error {
 	if strings.ContainsAny(subject, "\r\n") {
-		return api.Invalid("body.subject", "The subject must be one line.")
+		return api.Invalid("body.subject", mProblemSubjectOneLine.Text(l, nil))
 	}
 	return nil
 }
@@ -85,12 +87,13 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, p *authz.Princi
 // SaveIn stores a new version of one language version's content ("" or
 // the source language: the source).
 func (s *Service) SaveIn(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, lang string, in ComposerSaveContent) (ComposerSavedContent, error) {
-	if err := validateSubject(in.Subject); err != nil {
+	l := i18n.LangFrom(ctx)
+	if err := validateSubject(l, in.Subject); err != nil {
 		return ComposerSavedContent{}, err
 	}
 	if s.translated(ctx, ws, id, lang) {
 		if in.ABTest != nil {
-			if err := validateAB(in.ABTest); err != nil {
+			if err := validateAB(l, in.ABTest); err != nil {
 				return ComposerSavedContent{}, err
 			}
 		}
@@ -113,7 +116,7 @@ func (s *Service) SaveIn(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		in.Source = "autosave"
 	}
 	if in.ABTest != nil {
-		if err := validateAB(in.ABTest); err != nil {
+		if err := validateAB(l, in.ABTest); err != nil {
 			return ComposerSavedContent{}, err
 		}
 	}
@@ -143,7 +146,7 @@ func (s *Service) SaveIn(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			if cur.AutosavedAt != nil {
 				at = *cur.AutosavedAt
 			}
-			return conflict(cur.Version, cur.UpdatedByName, at, nonNil(theirs), nonNil(mine))
+			return conflict(l, cur.Version, cur.UpdatedByName, at, nonNil(theirs), nonNil(mine))
 		}
 		var settings ComposerContentSettings
 		_ = json.Unmarshal(cur.ContentSettings, &settings)
@@ -152,7 +155,8 @@ func (s *Service) SaveIn(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			src = mjml.SetHeadMeta(src, in.Subject, in.Preheader)
 			res := mjml.Compile(src)
 			if len(res.Errors) > 0 {
-				return api.Invalid("body.mjml", "The MJML doesn't compile: "+res.Errors[0].Message)
+				// The compiler's own message stays as it wrote it.
+				return api.Invalid("body.mjml", mProblemMJMLCompile.Text(l, i18n.Args{"error": res.Errors[0].Message}))
 			}
 			html = res.HTML
 		}
@@ -207,24 +211,24 @@ func (s *Service) SaveIn(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	return out, err
 }
 
-func validateAB(t *ComposerABTest) error {
+func validateAB(l i18n.Lang, t *ComposerABTest) error {
 	keys := map[string]bool{}
 	for _, v := range t.Variants {
 		if keys[v.Key] {
-			return api.Invalid("body.abTest.variants", "Each variant needs its own letter.")
+			return api.Invalid("body.abTest.variants", mProblemVariantLetter.Text(l, nil))
 		}
 		keys[v.Key] = true
-		if err := validateSubject(v.Subject); err != nil {
+		if err := validateSubject(l, v.Subject); err != nil {
 			return err
 		}
 	}
 	if !keys["A"] || !keys["B"] {
-		return api.Invalid("body.abTest.variants", "An A/B test needs at least variants A and B.")
+		return api.Invalid("body.abTest.variants", mProblemVariantsAB.Text(l, nil))
 	}
 	if t.Kind == "subject" {
 		for _, v := range t.Variants {
 			if v.Key != "A" && strings.TrimSpace(v.Subject) == "" {
-				return api.Invalid("body.abTest.variants", fmt.Sprintf("Write a subject for variant %s.", v.Key))
+				return api.Invalid("body.abTest.variants", mProblemVariantSubject.Text(l, i18n.Args{"variant": v.Key}))
 			}
 		}
 	}
@@ -259,8 +263,9 @@ func (s *Service) Versions(ctx context.Context, ws *store.Workspace, id uuid.UUI
 		return ComposerVersionList{}, err
 	}
 	out := ComposerVersionList{Items: make([]ComposerVersion, 0, len(rows)), Total: int(c.VersionCount)}
+	l := i18n.LangFrom(ctx)
 	for _, r := range rows {
-		out.Items = append(out.Items, ComposerVersion{Version: int(r.Version), SavedAt: r.SavedAt, SavedBy: r.SavedByName, Label: r.Label, Source: r.Source,
+		out.Items = append(out.Items, ComposerVersion{Version: int(r.Version), SavedAt: r.SavedAt, SavedBy: r.SavedByName, Label: versionLabel(l, r.Label), Source: r.Source,
 			SizeBytes: int(r.SizeBytes), Current: r.Version == c.Version})
 	}
 	return out, nil
@@ -289,8 +294,9 @@ func (s *Service) Version(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		return ComposerVersionDetail{}, api.MapError(err, "Version")
 	}
 	d := ComposerVersionDetail{
-		ComposerVersion: ComposerVersion{Version: int(v.Version), SavedAt: v.SavedAt, SavedBy: v.SavedByName, Label: v.Label, Source: v.Source, SizeBytes: int(v.SizeBytes), Current: v.Version == c.Version},
-		Subject:         v.Subject, Preheader: v.Preheader, MJML: v.Mjml, HTML: v.Html, ABTest: abFromDB(v.AbTest), Sections: []string{},
+		ComposerVersion: ComposerVersion{Version: int(v.Version), SavedAt: v.SavedAt, SavedBy: v.SavedByName, Label: versionLabel(i18n.LangFrom(ctx), v.Label), Source: v.Source,
+			SizeBytes: int(v.SizeBytes), Current: v.Version == c.Version},
+		Subject: v.Subject, Preheader: v.Preheader, MJML: v.Mjml, HTML: v.Html, ABTest: abFromDB(v.AbTest), Sections: []string{},
 	}
 	if prev, err := s.Q.GetComposerVersion(ctx, store.GetComposerVersionParams{CampaignID: id, Version: int32(version - 1)}); err == nil {
 		d.Sections = mjml.ChangedSections(prev.Mjml, v.Mjml)
@@ -317,7 +323,7 @@ func (s *Service) Restore(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		return ComposerSavedContent{}, err
 	}
 	return s.Save(ctx, ws, p, id, ComposerSaveContent{BaseVersion: in.BaseVersion, Subject: v.Subject, Preheader: v.Preheader, MJML: v.Mjml, HTML: v.Html,
-		ABTest: abFromDB(v.AbTest), Label: fmt.Sprintf("restored v%d", version), Source: "restore"})
+		ABTest: abFromDB(v.AbTest), Label: mVersionRestored.Text(i18n.Default, i18n.Args{"version": strconv.Itoa(version)}), Source: "restore"})
 }
 
 // Duplicate copies a campaign (any status) into a new draft.

@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math"
 	"strings"
 	"time"
@@ -20,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -324,15 +324,14 @@ func (s *Service) access(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		a.EditHelpers = s.helpers(ctx, ws.ID, authz.CampaignsEdit)
 	}
 	if !a.Editable {
-		switch status {
-		case "sending", "paused":
-			a.ReadOnlyReason = "This campaign is sending. Its content can't change mid-send; duplicate it to reuse the content."
+		l := i18n.LangFrom(ctx)
+		switch {
+		case status == "sending" || status == "paused":
+			a.ReadOnlyReason = mProblemReadOnlySending.Text(l, nil)
+		case started != nil:
+			a.ReadOnlyReason = mProblemReadOnlySentOn.Text(l, i18n.Args{"date": l.Region.ShortDate(*started)})
 		default:
-			when := ""
-			if started != nil {
-				when = " on " + started.Format("Mon 2 Jan")
-			}
-			a.ReadOnlyReason = "This campaign was sent" + when + ". Duplicate it to reuse the content."
+			a.ReadOnlyReason = mProblemReadOnlySent.Text(l, nil)
 		}
 	}
 	if !a.CanSend {
@@ -416,9 +415,11 @@ type ComposerCreateCampaign struct {
 
 // Create makes a draft and returns it.
 func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Principal, in ComposerCreateCampaign) (ComposerCampaign, error) {
+	l := i18n.LangFrom(ctx)
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		name = "Untitled campaign"
+		// A new draft's default name is written in its author's language.
+		name = mLabelUntitled.Text(l, nil)
 	}
 	var subject, preheader, src, html, label string
 	var ab json.RawMessage
@@ -439,17 +440,17 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	switch {
 	case in.TemplateID != "":
 		if s.Templates == nil {
-			return ComposerCampaign{}, api.Invalid("body.templateId", "Templates aren't available.")
+			return ComposerCampaign{}, api.Invalid("body.templateId", mProblemNoTemplates.Text(l, nil))
 		}
 		t, err := s.Templates.Get(ctx, ws, in.TemplateID, templates.WorkspaceAddress(ws))
 		if err != nil {
 			return ComposerCampaign{}, err
 		}
 		if t.Kind != "template" {
-			return ComposerCampaign{}, api.Invalid("body.templateId", "That is a saved section; start from a template.")
+			return ComposerCampaign{}, api.Invalid("body.templateId", mProblemSavedSection.Text(l, nil))
 		}
 		src, html = t.MJML, t.HTML
-		label = fmt.Sprintf("created from template “%s”", t.Name)
+		label = mVersionFromTemplate.Text(i18n.Default, i18n.Args{"name": t.Name})
 		source = "template"
 	case in.FromCampaignID != "":
 		from, err := uuid.Parse(in.FromCampaignID)
@@ -470,9 +471,9 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			sender = c.SenderID
 		}
 		if in.Name == "" {
-			name = "Copy of " + c.Name
+			name = mLabelCopyOf.Text(l, i18n.Args{"name": c.Name})
 		}
-		label = fmt.Sprintf("copied from “%s”", c.Name)
+		label = mVersionCopiedFrom.Text(i18n.Default, i18n.Args{"name": c.Name})
 		source = "duplicate"
 	}
 	if src != "" && html == "" {
@@ -521,6 +522,7 @@ type ComposerUpdateCampaign struct {
 
 // Update applies an UpdateCampaign.
 func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in ComposerUpdateCampaign) (ComposerCampaign, error) {
+	l := i18n.LangFrom(ctx)
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		cur, err := q.GetComposerCampaign(ctx, store.GetComposerCampaignParams{WorkspaceID: ws.ID, ID: id})
@@ -535,7 +537,7 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if in.Name != nil {
 			n := strings.TrimSpace(*in.Name)
 			if n == "" {
-				return api.Invalid("body.name", "Give the campaign a name.")
+				return api.Invalid("body.name", mProblemName.Text(l, nil))
 			}
 			if n != name {
 				before["name"], after["name"] = name, n
@@ -547,14 +549,14 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			if *in.SenderID != "" {
 				sid, err := uuid.Parse(*in.SenderID)
 				if err != nil {
-					return api.Invalid("body.senderId", "Pick a sender from the list.")
+					return api.Invalid("body.senderId", mProblemPickSender.Text(l, nil))
 				}
 				snd, err := q.GetComposerSender(ctx, store.GetComposerSenderParams{WorkspaceID: ws.ID, ID: sid})
 				if err != nil {
-					return api.Invalid("body.senderId", "That sender doesn't exist in this workspace.")
+					return api.Invalid("body.senderId", mProblemUnknownSender.Text(l, nil))
 				}
 				if !p.Scope.AllowsSenderDomain(snd.Domain) {
-					return api.Invalid("body.senderId", "Your access is limited to other sender domains.")
+					return api.Invalid("body.senderId", mProblemSenderScope.Text(l, nil))
 				}
 				next = &sid
 			}
@@ -634,6 +636,7 @@ func normalizeAudience(a ComposerAudience) ComposerAudience {
 // checkAudience verifies the lists and segments exist and that a scoped
 // member only targets lists in their scope.
 func (s *Service) checkAudience(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, a ComposerAudience) error {
+	l := i18n.LangFrom(ctx)
 	lists, err := q.ComposerAudienceLists(ctx, ws.ID)
 	if err != nil {
 		return err
@@ -644,11 +647,11 @@ func (s *Service) checkAudience(ctx context.Context, q *store.Queries, ws *store
 	}
 	for _, id := range append(append([]string{}, a.Lists...), a.ExcludeLists...) {
 		if !known[id] {
-			return api.Invalid("body.audience.lists", "One of the lists no longer exists. Reload and pick again.")
+			return api.Invalid("body.audience.lists", mProblemListGone.Text(l, nil))
 		}
 		u, _ := uuid.Parse(id)
 		if !p.Scope.AllowsList(u) {
-			return api.Invalid("body.audience.lists", "Your access is limited to other lists.")
+			return api.Invalid("body.audience.lists", mProblemListScope.Text(l, nil))
 		}
 	}
 	if len(a.Segments)+len(a.ExcludeSegments) > 0 {
@@ -662,7 +665,7 @@ func (s *Service) checkAudience(ctx context.Context, q *store.Queries, ws *store
 		}
 		for _, id := range append(append([]string{}, a.Segments...), a.ExcludeSegments...) {
 			if !knownSeg[id] {
-				return api.Invalid("body.audience.segments", "One of the segments no longer exists. Reload and pick again.")
+				return api.Invalid("body.audience.segments", mProblemSegmentGone.Text(l, nil))
 			}
 		}
 	}
@@ -676,7 +679,7 @@ func (s *Service) checkAudience(ctx context.Context, q *store.Queries, ws *store
 			found = found || t.ID.String() == a.PaidTier
 		}
 		if !found {
-			return api.Invalid("body.audience.paidTier", "That tier no longer exists. Pick another one, or any paid tier.")
+			return api.Invalid("body.audience.paidTier", mProblemTierGone.Text(l, nil))
 		}
 	}
 	return nil
