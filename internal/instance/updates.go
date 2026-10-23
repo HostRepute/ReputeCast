@@ -3,7 +3,6 @@ package instance
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"regexp"
@@ -17,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/version"
@@ -88,7 +88,7 @@ func (s *Service) Version(ctx context.Context) (InstanceVersion, error) {
 	}
 	v := version.Get()
 	out := InstanceVersion{Installed: v.Version, Commit: v.Commit, Release: semver(v.Version) != nil, CheckEnabled: st.UpdateCheck, CheckAllowed: s.checkAllowed(),
-		CheckedAt: st.UpdateCheckedAt, CheckError: st.UpdateCheckError, UpgradeCommand: UpgradeCommand,
+		CheckedAt: st.UpdateCheckedAt, CheckError: checkErrorIn(i18n.LangFrom(ctx), st.UpdateCheckError), UpgradeCommand: UpgradeCommand,
 		ReleasesURL: "https://github.com/" + s.repo() + "/releases"}
 	if out.CheckedAt == nil {
 		out.CheckedAt = st.LatestReleaseAt
@@ -186,12 +186,12 @@ func (s *Service) checkRelease(ctx context.Context) error {
 	req.Header.Set("User-Agent", "ReputeCast-update-check")
 	resp, err := s.client().Do(req)
 	if err != nil {
-		return s.Q.InstanceAdminRecordReleaseError(ctx, "GitHub didn't answer: "+err.Error())
+		return s.Q.InstanceAdminRecordReleaseError(ctx, mUpdateNoAnswer.Text(i18n.Default, i18n.Args{"error": err.Error()}))
 	}
 	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
 	if resp.StatusCode != http.StatusOK {
-		return s.Q.InstanceAdminRecordReleaseError(ctx, fmt.Sprintf("GitHub answered %d %s.", resp.StatusCode, http.StatusText(resp.StatusCode)))
+		return s.Q.InstanceAdminRecordReleaseError(ctx, mUpdateStatus.Text(i18n.Default, i18n.Args{"status": strconv.Itoa(resp.StatusCode), "statusText": http.StatusText(resp.StatusCode)}))
 	}
 	var gh struct {
 		TagName     string    `json:"tag_name"`
@@ -203,11 +203,36 @@ func (s *Service) checkRelease(ctx context.Context) error {
 		Prerelease  bool      `json:"prerelease"`
 	}
 	if err := json.Unmarshal(body, &gh); err != nil || gh.TagName == "" {
-		return s.Q.InstanceAdminRecordReleaseError(ctx, "GitHub's answer had no release.")
+		return s.Q.InstanceAdminRecordReleaseError(ctx, mUpdateNoRelease.Source())
 	}
 	notes, note := changelog(gh.Body)
 	r := release{Tag: gh.TagName, Name: gh.Name, PublishedAt: gh.PublishedAt, URL: gh.HTMLURL, Notes: notes, Note: note, Source: "github"}
 	return s.Q.InstanceAdminRecordRelease(ctx, mustJSON(r))
+}
+
+var (
+	mUpdateNoAnswer  = msgs.M("update.noAnswer")
+	mUpdateStatus    = msgs.M("update.status")
+	mUpdateNoRelease = msgs.M("update.noRelease")
+	updateStatusRe   = regexp.MustCompile(`^GitHub answered (\d{3}) (.*)\.$`)
+)
+
+// checkErrorIn writes why the last update check failed in a language. The
+// error is stored in English (instance_settings.update_check_error), from
+// the messages above; what GitHub or the network said stays as it was.
+func checkErrorIn(l i18n.Lang, stored string) string {
+	switch {
+	case stored == "" || l.Locale == i18n.English:
+		return stored
+	case stored == mUpdateNoRelease.Source():
+		return mUpdateNoRelease.Text(l, nil)
+	case strings.HasPrefix(stored, "GitHub didn't answer: "):
+		return mUpdateNoAnswer.Text(l, i18n.Args{"error": strings.TrimPrefix(stored, "GitHub didn't answer: ")})
+	}
+	if m := updateStatusRe.FindStringSubmatch(stored); m != nil {
+		return mUpdateStatus.Text(l, i18n.Args{"status": m[1], "statusText": m[2]})
+	}
+	return stored
 }
 
 var mdNoise = regexp.MustCompile("[*_`]+")

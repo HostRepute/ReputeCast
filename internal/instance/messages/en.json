@@ -87,5 +87,9 @@
   "policy.lifetime": "session lifetime {nowUnit, select, day {{nowN, plural, one {# day} other {# days}}} other {{nowN, plural, one {# hour} other {# hours}}}} (was {wasUnit, select, day {{wasN, plural, one {# day} other {# days}}} other {{wasN, plural, one {# hour} other {# hours}}}})",
   "policy.idle": "idle timeout {nowUnit, select, day {{nowN, plural, one {# day} other {# days}}} hour {{nowN, plural, one {# hour} other {# hours}}} other {{nowN, plural, one {# minute} other {# minutes}}}} (was {wasUnit, select, day {{wasN, plural, one {# day} other {# days}}} hour {{wasN, plural, one {# hour} other {# hours}}} other {{wasN, plural, one {# minute} other {# minutes}}}})",
   "policy.lockout": "lock after {attempts} attempts for {nowUnit, select, day {{nowN, plural, one {# day} other {# days}}} hour {{nowN, plural, one {# hour} other {# hours}}} other {{nowN, plural, one {# minute} other {# minutes}}}} (was {wasAttempts} for {wasUnit, select, day {{wasN, plural, one {# day} other {# days}}} hour {{wasN, plural, one {# hour} other {# hours}}} other {{wasN, plural, one {# minute} other {# minutes}}}})",
-  "policy.allowlist": { "message": "allowlist {changes}", "note": "changes: domains added (+) and removed (−)" }
+  "policy.allowlist": { "message": "allowlist {changes}", "note": "changes: domains added (+) and removed (−)" },
+
+  "update.noAnswer": {"message": "GitHub didn't answer: {error}", "note": "why the last update check failed, on Instance & updates; error: what the network library reported, in English"},
+  "update.status": {"message": "GitHub answered {status} {statusText}.", "note": "statusText: HTTP's own words, in English"},
+  "update.noRelease": "GitHub's answer had no release."
 }

@@ -87,5 +87,9 @@
   "policy.lifetime": "thời hạn phiên {nowUnit, select, day {{nowN, plural, other {# ngày}}} other {{nowN, plural, other {# giờ}}}} (trước đây {wasUnit, select, day {{wasN, plural, other {# ngày}}} other {{wasN, plural, other {# giờ}}}})",
   "policy.idle": "thời gian chờ khi không hoạt động {nowUnit, select, day {{nowN, plural, other {# ngày}}} hour {{nowN, plural, other {# giờ}}} other {{nowN, plural, other {# phút}}}} (trước đây {wasUnit, select, day {{wasN, plural, other {# ngày}}} hour {{wasN, plural, other {# giờ}}} other {{wasN, plural, other {# phút}}}})",
   "policy.lockout": "khóa sau {attempts} lần thử trong {nowUnit, select, day {{nowN, plural, other {# ngày}}} hour {{nowN, plural, other {# giờ}}} other {{nowN, plural, other {# phút}}}} (trước đây {wasAttempts} lần trong {wasUnit, select, day {{wasN, plural, other {# ngày}}} hour {{wasN, plural, other {# giờ}}} other {{wasN, plural, other {# phút}}}})",
-  "policy.allowlist": "danh sách được phép {changes}"
+  "policy.allowlist": "danh sách được phép {changes}",
+
+  "update.noAnswer": "GitHub không trả lời: {error}",
+  "update.status": "GitHub trả về {status} {statusText}.",
+  "update.noRelease": "Câu trả lời của GitHub không có bản phát hành nào."
 }
