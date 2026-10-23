@@ -89,6 +89,11 @@ const (
 func (s *Service) draw(ctx context.Context, st store.Store, b CommerceBlock, mode int) (CommerceBlockRender, error) {
 	out := CommerceBlockRender{StoreName: st.Name, Platform: st.Platform, Products: []CommerceProduct{}, Removed: []CommerceRemovedProduct{}, SoldOut: []string{},
 		Disconnected: st.Status == StatusDisconnected}
+	// The block's words go into the email: in the workspace's default
+	// language, the language its emails are written in. The canvas's flag
+	// over a removed product is for the member.
+	el := s.emailLang(ctx, st.WorkspaceID)
+	flagText := mRemovedFlag.Text(i18n.LangFrom(ctx), nil)
 	var rows []store.StoreProduct
 	var err error
 	switch b.Mode {
@@ -165,8 +170,9 @@ func (s *Service) draw(ctx context.Context, st store.Store, b CommerceBlock, mod
 	}
 	button := b.Button
 	if strings.TrimSpace(button) == "" {
-		button = "Shop now"
+		button = mShopNow.Text(el, nil)
 	}
+	words := blockWords{soldOut: mSoldOut.Text(el, nil), removed: flagText}
 	var sb strings.Builder
 	cfg, _ := json.Marshal(b)
 	sb.WriteString(itemsOpen)
@@ -180,7 +186,7 @@ func (s *Service) draw(ctx context.Context, st store.Store, b CommerceBlock, mod
 	}
 	if visible > 0 || mode == drawCanvas {
 		if b.Mode == "card" && len(items) > 0 {
-			sb.WriteString(cardHTML(items[0].p, b, button, items[0].sold, items[0].hidden, items[0].flag))
+			sb.WriteString(cardHTML(items[0].p, b, button, words, items[0].sold, items[0].hidden, items[0].flag))
 		} else {
 			sb.WriteString(`<div style="padding:22px 28px 22px 28px;font-family:'IBM Plex Sans',Helvetica,Arial,sans-serif">`)
 			if h := strings.TrimSpace(b.Heading); h != "" {
@@ -190,7 +196,7 @@ func (s *Service) draw(ctx context.Context, st store.Store, b CommerceBlock, mod
 			}
 			sb.WriteString(`<div style="font-size:0;line-height:0;text-align:left">`)
 			for i, it := range items {
-				sb.WriteString(gridCellHTML(it.p, b, button, it.sold, it.hidden, it.flag, i%3 == 2))
+				sb.WriteString(gridCellHTML(it.p, b, button, words, it.sold, it.hidden, it.flag, i%3 == 2))
 			}
 			sb.WriteString(`</div></div>`)
 		}
@@ -218,10 +224,15 @@ const (
 	sans      = "'IBM Plex Sans',Helvetica,Arial,sans-serif"
 )
 
+// blockWords are a store block's own words: in the email's language, and
+// the canvas's flag in the member's.
+type blockWords struct{ soldOut, removed string }
+
 // priceHTML is "$58", or "$58 $64" with the compare-at price struck.
-func priceHTML(p CommerceProduct, b CommerceBlock, sold bool) string {
+func priceHTML(p CommerceProduct, b CommerceBlock, words blockWords, sold bool) string {
 	if sold {
-		return `<span style="display:inline-block;padding:1px 7px;border-radius:999px;background:#EEF0F3;color:#4B5563;font-size:12px;font-weight:600">Sold out</span>`
+		return `<span style="display:inline-block;padding:1px 7px;border-radius:999px;background:#EEF0F3;color:#4B5563;font-size:12px;font-weight:600">` +
+			html.EscapeString(words.soldOut) + `</span>`
 	}
 	out := html.EscapeString(Money(p.Price, p.Currency, false))
 	if b.CompareAt && p.CompareAt > p.Price {
@@ -241,10 +252,12 @@ func imageHTML(p CommerceProduct, width int) string {
 }
 
 // removedFlag is the canvas's chip over a product the store removed.
-const removedFlag = `<span style="position:absolute;top:-30px;left:-8px;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:6px;` +
-	`background:#B91C1C;color:#ffffff;font-family:` + sans + `;font-size:11px;font-weight:600;line-height:22px;white-space:nowrap">No longer in the store</span>`
+func removedFlag(text string) string {
+	return `<span style="position:absolute;top:-30px;left:-8px;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:6px;` +
+		`background:#B91C1C;color:#ffffff;font-family:` + sans + `;font-size:11px;font-weight:600;line-height:22px;white-space:nowrap">` + html.EscapeString(text) + `</span>`
+}
 
-func gridCellHTML(p CommerceProduct, b CommerceBlock, button string, sold, hidden, flag, last bool) string {
+func gridCellHTML(p CommerceProduct, b CommerceBlock, button string, words blockWords, sold, hidden, flag, last bool) string {
 	margin := "0 14px 18px 0"
 	if last {
 		margin = "0 0 18px 0"
@@ -259,7 +272,7 @@ func gridCellHTML(p CommerceProduct, b CommerceBlock, button string, sold, hidde
 	var sb strings.Builder
 	sb.WriteString(`<div class="rc-product" data-rc-product="` + html.EscapeString(p.ID) + `" style="` + style + `">`)
 	if flag {
-		sb.WriteString(removedFlag)
+		sb.WriteString(removedFlag(words.removed))
 	}
 	link := html.EscapeString(p.URL)
 	if link != "" {
@@ -268,7 +281,7 @@ func gridCellHTML(p CommerceProduct, b CommerceBlock, button string, sold, hidde
 		sb.WriteString(imageHTML(p, 162))
 	}
 	sb.WriteString(`<p style="margin:10px 0 0 0;font-family:` + sans + `;font-size:13px;font-weight:600;line-height:1.3;color:#0B1220">` + html.EscapeString(p.Title) + `</p>`)
-	sb.WriteString(`<p style="margin:6px 0 0 0;font-family:` + sans + `;font-size:13px;line-height:1.3;color:#374151">` + priceHTML(p, b, sold) + `</p>`)
+	sb.WriteString(`<p style="margin:6px 0 0 0;font-family:` + sans + `;font-size:13px;line-height:1.3;color:#374151">` + priceHTML(p, b, words, sold) + `</p>`)
 	if !sold && link != "" {
 		sb.WriteString(`<a href="` + link + `" style="display:inline-block;margin-top:10px;padding:6px 10px;border-radius:5px;background:#4338CA;color:#ffffff;font-family:` + sans +
 			`;font-size:12px;font-weight:600;line-height:1.4;text-decoration:none">` + html.EscapeString(button) + `</a>`)
@@ -279,7 +292,7 @@ func gridCellHTML(p CommerceProduct, b CommerceBlock, button string, sold, hidde
 
 // cardHTML is the Product card's drawing: the image beside the name, the
 // price and the button.
-func cardHTML(p CommerceProduct, b CommerceBlock, button string, sold, hidden, flag bool) string {
+func cardHTML(p CommerceProduct, b CommerceBlock, button string, words blockWords, sold, hidden, flag bool) string {
 	style := "padding:16px 24px;font-family:" + sans + ";"
 	if hidden {
 		style += hideStyle
@@ -291,7 +304,7 @@ func cardHTML(p CommerceProduct, b CommerceBlock, button string, sold, hidden, f
 	var sb strings.Builder
 	sb.WriteString(`<div class="rc-product" data-rc-product="` + html.EscapeString(p.ID) + `" style="` + style + `">`)
 	if flag {
-		sb.WriteString(strings.Replace(removedFlag, "top:-30px;left:-8px", "top:-11px;left:16px", 1))
+		sb.WriteString(strings.Replace(removedFlag(words.removed), "top:-30px;left:-8px", "top:-11px;left:16px", 1))
 	}
 	sb.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>`)
 	sb.WriteString(`<td width="40%" style="vertical-align:top;padding:0 16px 0 0">`)
@@ -302,7 +315,7 @@ func cardHTML(p CommerceProduct, b CommerceBlock, button string, sold, hidden, f
 	}
 	sb.WriteString(`</td><td style="vertical-align:top">`)
 	sb.WriteString(`<p style="margin:0;font-size:17px;font-weight:700;line-height:1.3;color:#0B1220">` + html.EscapeString(p.Title) + `</p>`)
-	sb.WriteString(`<p style="margin:8px 0 0 0;font-size:14px;line-height:1.4;color:#374151">` + priceHTML(p, b, sold) + `</p>`)
+	sb.WriteString(`<p style="margin:8px 0 0 0;font-size:14px;line-height:1.4;color:#374151">` + priceHTML(p, b, words, sold) + `</p>`)
 	if !sold && link != "" {
 		sb.WriteString(`<a href="` + link + `" style="display:inline-block;margin-top:14px;padding:9px 16px;border-radius:6px;background:#0F766E;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none">` +
 			html.EscapeString(button) + `</a>`)
@@ -405,6 +418,7 @@ func (s *Service) Splice(ctx context.Context, msgCtx map[string]string, h string
 	var items []orderItem
 	var total int64
 	currency := ""
+	var wsID uuid.UUID
 	switch {
 	case msgCtx["checkout"] != "":
 		id, err := uuid.Parse(msgCtx["checkout"])
@@ -416,7 +430,7 @@ func (s *Service) Splice(ctx context.Context, msgCtx map[string]string, h string
 			return h
 		}
 		_ = json.Unmarshal(ch.Items, &items)
-		total, currency = ch.TotalCents, ch.Currency
+		total, currency, wsID = ch.TotalCents, ch.Currency, ch.WorkspaceID
 	case msgCtx["order"] != "":
 		id, err := uuid.Parse(msgCtx["order"])
 		if err != nil {
@@ -427,16 +441,22 @@ func (s *Service) Splice(ctx context.Context, msgCtx map[string]string, h string
 			return h
 		}
 		_ = json.Unmarshal(o.Items, &items)
-		total, currency = o.TotalCents, o.Currency
+		total, currency, wsID = o.TotalCents, o.Currency, o.WorkspaceID
 	default:
 		return h
 	}
-	return h[:start] + CheckoutItemsHTML(items, total, currency) + h[end:]
+	return h[:start] + CheckoutItemsHTMLIn(s.emailLang(ctx, wsID), items, total, currency) + h[end:]
 }
 
-// CheckoutItemsHTML draws checkout items: each line with its variant and
-// quantity and price, then the total.
+// CheckoutItemsHTML draws checkout items in English: each line with its
+// variant and quantity and price, then the total.
 func CheckoutItemsHTML(items []orderItem, total int64, currency string) string {
+	return CheckoutItemsHTMLIn(i18n.Default, items, total, currency)
+}
+
+// CheckoutItemsHTMLIn draws checkout items with the total's label in a
+// language: the email's.
+func CheckoutItemsHTMLIn(l i18n.Lang, items []orderItem, total int64, currency string) string {
 	var sb strings.Builder
 	sb.WriteString(checkoutOpen)
 	sb.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border:1px solid #E3E6EB;border-radius:8px;font-family:` + sans + `">`)
@@ -459,7 +479,8 @@ func CheckoutItemsHTML(items []orderItem, total int64, currency string) string {
 		sb.WriteString(`<td align="right" style="padding:10px 12px;vertical-align:middle;font-size:13.5px;font-weight:700;color:#0B1220;white-space:nowrap;` + top + `">` +
 			html.EscapeString(Money(it.Price*int64(max(it.Quantity, 1)), currency, true)) + `</td></tr>`)
 	}
-	sb.WriteString(`<tr><td colspan="2" style="padding:10px 12px;background:#F9FAFB;border-top:1px solid #E3E6EB;font-size:13.5px;font-weight:700;color:#0B1220">Total</td>`)
+	sb.WriteString(`<tr><td colspan="2" style="padding:10px 12px;background:#F9FAFB;border-top:1px solid #E3E6EB;font-size:13.5px;font-weight:700;color:#0B1220">` +
+		html.EscapeString(mTotal.Text(l, nil)) + `</td>`)
 	sb.WriteString(`<td align="right" style="padding:10px 12px;background:#F9FAFB;border-top:1px solid #E3E6EB;font-size:13.5px;font-weight:700;color:#0B1220;white-space:nowrap">` +
 		html.EscapeString(Money(total, currency, true)) + `</td></tr></table>`)
 	sb.WriteString(checkoutClose)
@@ -467,12 +488,19 @@ func CheckoutItemsHTML(items []orderItem, total int64, currency string) string {
 }
 
 // CheckoutBlockHTML is the Checkout items block as an automation email
-// carries it: sample items between the markers, and the button.
+// carries it, in English: sample items between the markers, and the
+// button.
 func CheckoutBlockHTML(sample []orderItem, total int64, currency, button string) string {
+	return CheckoutBlockHTMLIn(i18n.Default, sample, total, currency, button)
+}
+
+// CheckoutBlockHTMLIn is CheckoutBlockHTML with its words in a language:
+// the email's.
+func CheckoutBlockHTMLIn(l i18n.Lang, sample []orderItem, total int64, currency, button string) string {
 	if button == "" {
-		button = "Return to checkout"
+		button = mReturnToCheckout.Text(l, nil)
 	}
-	return CheckoutItemsHTML(sample, total, currency) +
+	return CheckoutItemsHTMLIn(l, sample, total, currency) +
 		`<div style="padding:16px 0 0 0"><a href="{{ checkout_url }}" style="display:inline-block;padding:11px 18px;border-radius:6px;background:#4338CA;color:#ffffff;font-family:` +
 		sans + `;font-size:14px;font-weight:600;text-decoration:none">` + html.EscapeString(button) + `</a></div>`
 }
@@ -500,5 +528,5 @@ func (s *Service) CheckoutBlock(ctx context.Context, ws *store.Workspace, storeI
 		items = append(items, orderItem{ProductID: r.ExternalID, Title: r.Title, Quantity: 1, Price: r.PriceCents, ImageURL: r.ImageUrl})
 		total += r.PriceCents
 	}
-	return CommerceCheckoutBlock{HTML: CheckoutBlockHTML(items, total, st.Currency, "")}, nil
+	return CommerceCheckoutBlock{HTML: CheckoutBlockHTMLIn(s.emailLang(ctx, ws.ID), items, total, st.Currency, "")}, nil
 }

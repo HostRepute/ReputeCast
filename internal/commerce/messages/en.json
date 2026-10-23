@@ -24,8 +24,18 @@
   "block.collection": "Pick a collection.",
   "flow.paused": { "message": "{store} is disconnected. Reconnect it to resume.", "note": "The reason an automation shows when a store's disconnection paused it." },
   "notify.disconnectedTitle": "{store} is disconnected",
-  "notify.disconnectedBody": { "message": "{platform} revoked access on {date}{reason, select, uninstalled { (the app was uninstalled)} other {}}. {flows, plural, =0 {Orders placed since then are fetched when you reconnect.} one {# automation paused. Orders placed since then are fetched when you reconnect.} other {# automations paused. Orders placed since then are fetched when you reconnect.}}", "note": "date: 14 Oct 18:05" },
+  "notify.disconnectedBody": { "message": "{platform} revoked access on {at, date} at {at, time}{reason, select, uninstalled { (the app was uninstalled)} other {}}. {flows, plural, =0 {Orders placed since then are fetched when you reconnect.} one {# automation paused. Orders placed since then are fetched when you reconnect.} other {# automations paused. Orders placed since then are fetched when you reconnect.}}", "note": "at: when, in the workspace's time zone" },
   "notify.webhookTitle": "Webhook {topic} is missing in {store}",
-  "notify.webhookBody": "It was deleted in {platform} on {date}. ReputeCast polls every 15 minutes until it's registered again, so nothing is missed.",
-  "consent.label": { "message": "{platform}: accepted marketing at checkout", "note": "A consent record's source, on the contact profile." }
+  "notify.webhookBody": { "message": "It was deleted in {platform} on {at, date} at {at, time}. ReputeCast polls every 15 minutes until it's registered again, so nothing is missed.", "note": "at: when it was found missing, in the workspace's time zone" },
+  "consent.label": { "message": "{platform}: accepted marketing at checkout", "note": "A consent record's source, on the contact profile." },
+
+  "email.shopNow": { "message": "Shop now", "note": "a product block's button when its author left it empty; written into the email" },
+  "email.soldOut": { "message": "Sold out", "note": "a sold-out product's badge in a product block, in the email" },
+  "email.total": { "message": "Total", "note": "the last line of the Checkout items block, in the email" },
+  "email.returnToCheckout": { "message": "Return to checkout", "note": "the Checkout items block's button, in an abandoned cart email" },
+  "block.removedFlag": { "message": "No longer in the store", "note": "a chip over a product the store removed, on the composer's canvas only" },
+  "list.description": { "message": "Customers of {store} who accepted marketing", "note": "the description of the list a store's customers join; readers may see it on the public pages" },
+  "check.removedTitle": { "message": "{product} is no longer in {store}", "note": "a composer check on a product block" },
+  "check.removedTag": "No longer in the store",
+  "check.removedDetail": { "message": "Deleted in {platform} on {when}. Sends leave it out. Remove it or pick another product.", "note": "when: 14 Oct, 09:05" }
 }
