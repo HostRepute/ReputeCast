@@ -385,30 +385,33 @@ func (q *Queries) InsertDeliverabilityBlocklistResult(ctx context.Context, arg I
 }
 
 const insertDeliverabilityIncident = `-- name: InsertDeliverabilityIncident :one
-INSERT INTO incidents (id, workspace_id, occurred_at, kind, severity, title, detail, campaign_id, provider_id, resolved_at, source, asset, external_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+INSERT INTO incidents (id, workspace_id, occurred_at, kind, severity, title, detail, campaign_id, provider_id, resolved_at, source, asset, external_id, texts)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+        coalesce($14::jsonb, '{}'))
 ON CONFLICT (workspace_id, external_id) WHERE external_id IS NOT NULL DO NOTHING
 RETURNING id
 `
 
 type InsertDeliverabilityIncidentParams struct {
-	ID          uuid.UUID  `json:"id"`
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	OccurredAt  time.Time  `json:"occurredAt"`
-	Kind        string     `json:"kind"`
-	Severity    string     `json:"severity"`
-	Title       string     `json:"title"`
-	Detail      string     `json:"detail"`
-	CampaignID  *uuid.UUID `json:"campaignId"`
-	ProviderID  *uuid.UUID `json:"providerId"`
-	ResolvedAt  *time.Time `json:"resolvedAt"`
-	Source      string     `json:"source"`
-	Asset       string     `json:"asset"`
-	ExternalID  *string    `json:"externalId"`
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	OccurredAt  time.Time       `json:"occurredAt"`
+	Kind        string          `json:"kind"`
+	Severity    string          `json:"severity"`
+	Title       string          `json:"title"`
+	Detail      string          `json:"detail"`
+	CampaignID  *uuid.UUID      `json:"campaignId"`
+	ProviderID  *uuid.UUID      `json:"providerId"`
+	ResolvedAt  *time.Time      `json:"resolvedAt"`
+	Source      string          `json:"source"`
+	Asset       string          `json:"asset"`
+	ExternalID  *string         `json:"externalId"`
+	Texts       json.RawMessage `json:"texts"`
 }
 
 // Incidents with an external id (HostRepute alerts) are stored once; the
 // returned row count says whether this one is new.
+// texts keeps the messages of the title and detail ({} for HostRepute's alerts).
 func (q *Queries) InsertDeliverabilityIncident(ctx context.Context, arg InsertDeliverabilityIncidentParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, insertDeliverabilityIncident,
 		arg.ID,
@@ -424,6 +427,7 @@ func (q *Queries) InsertDeliverabilityIncident(ctx context.Context, arg InsertDe
 		arg.Source,
 		arg.Asset,
 		arg.ExternalID,
+		arg.Texts,
 	)
 	var id uuid.UUID
 	err := row.Scan(&id)

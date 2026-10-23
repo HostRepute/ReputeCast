@@ -1497,6 +1497,7 @@ type Querier interface {
 	InsertDeliverabilityBlocklistResult(ctx context.Context, arg InsertDeliverabilityBlocklistResultParams) error
 	// Incidents with an external id (HostRepute alerts) are stored once; the
 	// returned row count says whether this one is new.
+	// texts keeps the messages of the title and detail ({} for HostRepute's alerts).
 	InsertDeliverabilityIncident(ctx context.Context, arg InsertDeliverabilityIncidentParams) (uuid.UUID, error)
 	InsertEmailTemplate(ctx context.Context, arg InsertEmailTemplateParams) error
 	InsertImportLog(ctx context.Context, arg InsertImportLogParams) error
@@ -1821,6 +1822,7 @@ type Querier interface {
 	ListDeliverabilityDMARCReports(ctx context.Context, arg ListDeliverabilityDMARCReportsParams) ([]DmarcReport, error)
 	// The incident timeline. An incident without an explicit campaign is linked
 	// to the campaign that was sending through its provider when it happened.
+	// texts keeps the messages of the title and detail (migration 02250).
 	ListDeliverabilityIncidents(ctx context.Context, arg ListDeliverabilityIncidentsParams) ([]ListDeliverabilityIncidentsRow, error)
 	ListDeliverabilityPostmasterDays(ctx context.Context, arg ListDeliverabilityPostmasterDaysParams) ([]PostmasterDaily, error)
 	ListDeliverabilitySNDSDays(ctx context.Context, arg ListDeliverabilitySNDSDaysParams) ([]SndsDaily, error)

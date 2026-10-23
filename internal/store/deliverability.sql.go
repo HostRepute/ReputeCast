@@ -478,7 +478,7 @@ func (q *Queries) ListDeliverabilityDMARCReports(ctx context.Context, arg ListDe
 }
 
 const listDeliverabilityIncidents = `-- name: ListDeliverabilityIncidents :many
-SELECT i.id, i.occurred_at, i.kind, i.severity, i.title, i.detail, i.source, i.asset, i.resolved_at,
+SELECT i.id, i.occurred_at, i.kind, i.severity, i.title, i.detail, i.source, i.asset, i.resolved_at, i.texts,
        i.provider_id, coalesce(p.name, '')::text AS provider_name, coalesce(p.adapter, '')::text AS provider_adapter,
        coalesce(i.campaign_id, lc.id, '00000000-0000-0000-0000-000000000000'::uuid) AS campaign_id,
        coalesce(c.name, lc.name, '')::text AS campaign_name,
@@ -508,25 +508,27 @@ type ListDeliverabilityIncidentsParams struct {
 }
 
 type ListDeliverabilityIncidentsRow struct {
-	ID              uuid.UUID  `json:"id"`
-	OccurredAt      time.Time  `json:"occurredAt"`
-	Kind            string     `json:"kind"`
-	Severity        string     `json:"severity"`
-	Title           string     `json:"title"`
-	Detail          string     `json:"detail"`
-	Source          string     `json:"source"`
-	Asset           string     `json:"asset"`
-	ResolvedAt      *time.Time `json:"resolvedAt"`
-	ProviderID      *uuid.UUID `json:"providerId"`
-	ProviderName    string     `json:"providerName"`
-	ProviderAdapter string     `json:"providerAdapter"`
-	CampaignID      uuid.UUID  `json:"campaignId"`
-	CampaignName    string     `json:"campaignName"`
-	CampaignStatus  string     `json:"campaignStatus"`
+	ID              uuid.UUID       `json:"id"`
+	OccurredAt      time.Time       `json:"occurredAt"`
+	Kind            string          `json:"kind"`
+	Severity        string          `json:"severity"`
+	Title           string          `json:"title"`
+	Detail          string          `json:"detail"`
+	Source          string          `json:"source"`
+	Asset           string          `json:"asset"`
+	ResolvedAt      *time.Time      `json:"resolvedAt"`
+	Texts           json.RawMessage `json:"texts"`
+	ProviderID      *uuid.UUID      `json:"providerId"`
+	ProviderName    string          `json:"providerName"`
+	ProviderAdapter string          `json:"providerAdapter"`
+	CampaignID      uuid.UUID       `json:"campaignId"`
+	CampaignName    string          `json:"campaignName"`
+	CampaignStatus  string          `json:"campaignStatus"`
 }
 
 // The incident timeline. An incident without an explicit campaign is linked
 // to the campaign that was sending through its provider when it happened.
+// texts keeps the messages of the title and detail (migration 02250).
 func (q *Queries) ListDeliverabilityIncidents(ctx context.Context, arg ListDeliverabilityIncidentsParams) ([]ListDeliverabilityIncidentsRow, error) {
 	rows, err := q.db.Query(ctx, listDeliverabilityIncidents, arg.WorkspaceID, arg.Since, arg.Lim)
 	if err != nil {
@@ -546,6 +548,7 @@ func (q *Queries) ListDeliverabilityIncidents(ctx context.Context, arg ListDeliv
 			&i.Source,
 			&i.Asset,
 			&i.ResolvedAt,
+			&i.Texts,
 			&i.ProviderID,
 			&i.ProviderName,
 			&i.ProviderAdapter,

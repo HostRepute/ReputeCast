@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/hostrepute"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -31,8 +32,23 @@ type DeliverabilityReputation struct {
 	Sources   int                               `json:"sources"`
 	Listings  []DeliverabilityReputationListing `json:"listings"`
 	CheckedAt *time.Time                        `json:"checkedAt,omitempty"`
-	// Reason explains an unknown status.
+	// Reason explains an unknown status: in English for Send Readiness,
+	// which stores it, and in the reader's language through the API.
 	Reason string `json:"reason,omitempty"`
+	// ReasonText is the message Reason comes from, for readers in other
+	// languages (Send Readiness can keep it beside its English).
+	ReasonText i18n.Text `json:"-"`
+}
+
+// ReasonIn is the reason in a reader's language.
+func (r DeliverabilityReputation) ReasonIn(l i18n.Lang) string {
+	if r.ReasonText.IsZero() || l.Locale == i18n.English || l.Locale == "" {
+		return r.Reason
+	}
+	if s := r.ReasonText.In(l); s != "" {
+		return s
+	}
+	return r.Reason
 }
 
 type DeliverabilityReputationListing struct {
@@ -57,9 +73,14 @@ func (s *Service) Reputation(ctx context.Context, ws *store.Workspace) (Delivera
 			via = "builtin"
 		} else {
 			out.Status, out.Via = "unknown", via
-			out.Reason = "HostRepute data can't be refreshed: reconnect HostRepute or wait for the built-in check."
+			out.ReasonText = msgs.M("reason.stale").Keep(nil)
+			out.Reason = out.ReasonText.In(i18n.Default)
 			if st.conn.TokenRejectedAt != nil {
-				out.Reason = "HostRepute rejected the token on " + st.conn.TokenRejectedAt.In(st.loc()).Format("Jan 2") + "; reconnect to resume blocklist checks."
+				// The English keeps the day as it always wrote it ("Oct 2");
+				// other languages write it in their region format.
+				at := st.conn.TokenRejectedAt.In(st.loc())
+				out.ReasonText = msgs.M("reason.rejected").Keep(i18n.Args{"at": at.Format(time.RFC3339)})
+				out.Reason = "HostRepute rejected the token on " + at.Format("Jan 2") + "; reconnect to resume blocklist checks."
 			}
 			return out, nil
 		}
@@ -67,7 +88,8 @@ func (s *Service) Reputation(ctx context.Context, ws *store.Workspace) (Delivera
 	out.Via = via
 	out.Sources = st.sourcesFor(via, len(s.lists()))
 	if via == "none" {
-		out.Status, out.Reason = "unknown", "No blocklist check has run yet."
+		out.ReasonText = msgs.M("reason.none").Keep(nil)
+		out.Status, out.Reason = "unknown", out.ReasonText.In(i18n.Default)
 		return out, nil
 	}
 	for _, b := range st.blocklists {
@@ -173,12 +195,12 @@ func (s *Service) RequestDelisting(ctx context.Context, ws *store.Workspace, ass
 		}
 	}
 	if len(listed) == 0 {
-		return DeliverabilityDelistingRequest{}, api.Invalid("body.asset", asset+" isn't listed on any blocklist we check.")
+		return DeliverabilityDelistingRequest{}, api.Invalid("body.asset", say(ctx, "problem.notListed", i18n.Args{"asset": asset}))
 	}
 	conn, err := s.Q.GetHostReputeConnection(ctx, ws.ID)
 	if err != nil || (conn.Status != "connected" && conn.Status != "limit_reached") {
 		return DeliverabilityDelistingRequest{}, api.Err(http.StatusConflict, "hostrepute_required",
-			"Delisting requests go through HostRepute. Request it on the list's own page instead: "+listed[0].DelistUrl).WithMeta("delistUrl", listed[0].DelistUrl)
+			say(ctx, "problem.delistViaHostRepute", i18n.Args{"url": listed[0].DelistUrl})).WithMeta("delistUrl", listed[0].DelistUrl)
 	}
 	sort.Slice(listed, func(i, j int) bool { return impactRank(listed[i].Impact) < impactRank(listed[j].Impact) })
 	out := DeliverabilityDelistingRequest{Asset: asset, Requests: []DeliverabilityDelistingOutcome{}}

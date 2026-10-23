@@ -123,8 +123,10 @@ DELETE FROM dmarc_reports WHERE dmarc_reports.workspace_id = @workspace_id AND d
 -- name: InsertDeliverabilityIncident :one
 -- Incidents with an external id (HostRepute alerts) are stored once; the
 -- returned row count says whether this one is new.
-INSERT INTO incidents (id, workspace_id, occurred_at, kind, severity, title, detail, campaign_id, provider_id, resolved_at, source, asset, external_id)
-VALUES (@id, @workspace_id, @occurred_at, @kind, @severity, @title, @detail, @campaign_id, @provider_id, @resolved_at, @source, @asset, @external_id)
+-- texts keeps the messages of the title and detail ({} for HostRepute's alerts).
+INSERT INTO incidents (id, workspace_id, occurred_at, kind, severity, title, detail, campaign_id, provider_id, resolved_at, source, asset, external_id, texts)
+VALUES (@id, @workspace_id, @occurred_at, @kind, @severity, @title, @detail, @campaign_id, @provider_id, @resolved_at, @source, @asset, @external_id,
+        coalesce(sqlc.narg(texts)::jsonb, '{}'))
 ON CONFLICT (workspace_id, external_id) WHERE external_id IS NOT NULL DO NOTHING
 RETURNING id;
 

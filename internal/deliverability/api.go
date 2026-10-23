@@ -10,6 +10,8 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/hostrepute"
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 type overviewInput struct {
@@ -57,12 +59,18 @@ func Register(h huma.API, s *Service) {
 		Summary: "Domain, IP and provider health, blocklists, Postmaster, SNDS, DMARC and incidents", Tags: tags, Access: api.Workspace(authz.DeliverabilityView)},
 		func(ctx context.Context, _ *overviewInput) (*api.Body[DeliverabilityOverview], error) {
 			out, err := s.Overview(ctx, api.WorkspaceFrom(ctx))
+			// Why HostRepute can't be reached is stored in English (Send
+			// Readiness reads it as is); here it reads in the reader's language.
+			if u := out.HostRepute.Unreachable; u != nil {
+				u.Message = hostrepute.SyncErrorIn(i18n.LangFrom(ctx), u.Message)
+			}
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-deliverability-reputation", Path: "/workspaces/{workspace}/deliverability/reputation",
 		Summary: "Blocklist verdict used by Send Readiness (pass, warn, block or unknown)", Tags: tags, Access: api.Workspace(authz.DeliverabilityView)},
 		func(ctx context.Context, _ *overviewInput) (*api.Body[DeliverabilityReputation], error) {
 			out, err := s.Reputation(ctx, api.WorkspaceFrom(ctx))
+			out.Reason = out.ReasonIn(i18n.LangFrom(ctx))
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "run-deliverability-checks", Path: "/workspaces/{workspace}/deliverability/checks",

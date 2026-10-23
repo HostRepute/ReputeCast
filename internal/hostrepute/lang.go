@@ -74,6 +74,13 @@ func (e *UnavailableError) In(l i18n.Lang) string {
 
 var reUnreachable = regexp.MustCompile(`^Couldn't reach (.+) \((.+), (\d+) attempts?\)$`)
 
+// runErrors are the sentences a check run or the connection stores when
+// HostRepute can't be read, by their English.
+var runErrors = []string{"run.notConnected", "run.tokenRejected", "run.tokenRejectedDetail"}
+
+// english is a message in English, for a stored sentence.
+func english(key string) string { return msgs.M(key).Text(i18n.Default, nil) }
+
 // SyncErrorIn writes a stored sync error ("Couldn't reach api.hostrepute.com
 // (timeout after 30 s, 3 attempts)") in a reader's language; an English
 // reader reads it as stored.
@@ -83,6 +90,11 @@ func SyncErrorIn(l i18n.Lang, english string) string {
 	}
 	if english == "Couldn't reach HostRepute" {
 		return msgs.M("unreachableHostRepute").Text(l, nil)
+	}
+	for _, key := range runErrors {
+		if english == msgs.M(key).Text(i18n.Default, nil) {
+			return msgs.M(key).Text(l, nil)
+		}
 	}
 	if m := reUnreachable.FindStringSubmatch(english); m != nil {
 		n, _ := strconv.Atoi(m[3])

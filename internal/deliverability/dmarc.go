@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
-	"fmt"
 	"io"
 	"net/netip"
 	"sort"
@@ -23,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/hostrepute"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	provstate "github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -150,7 +150,7 @@ func (st *state) dmarcSummary() DeliverabilityDMARCSummary {
 						a.row.IP = ""
 					}
 				} else {
-					a.row.Label = "Unknown · " + r.SourceIP
+					a.row.Label = text(st.l, "label.unknownSource", i18n.Args{"ip": r.SourceIP})
 				}
 				aggs[k] = a
 				order = append(order, k)
@@ -293,7 +293,7 @@ type DeliverabilityDMARCSourceDetail struct {
 func (s *Service) DMARCSource(ctx context.Context, ws *store.Workspace, ip string) (DeliverabilityDMARCSourceDetail, error) {
 	addr, err := netip.ParseAddr(ip)
 	if err != nil {
-		return DeliverabilityDMARCSourceDetail{}, api.Invalid("path.ip", "Give an IPv4 or IPv6 address.")
+		return DeliverabilityDMARCSourceDetail{}, api.Invalid("path.ip", say(ctx, "problem.ip", nil))
 	}
 	ip = addr.String()
 	st, err := s.load(ctx, ws)
@@ -464,20 +464,21 @@ func ParseReport(data []byte) (hostrepute.DMARCReport, error) {
 			break
 		}
 		if !found {
-			return hostrepute.DMARCReport{}, errors.New("the zip file has no .xml report")
+			return hostrepute.DMARCReport{}, &reportError{key: "problem.zipNoXML", english: "the zip file has no .xml report"}
 		}
 	}
 	if len(data) > MaxReportBytes {
-		return hostrepute.DMARCReport{}, errors.New("the report is larger than 20 MB")
+		return hostrepute.DMARCReport{}, &reportError{key: "problem.tooLarge", args: i18n.Args{"mb": MaxReportBytes >> 20}, english: "the report is larger than 20 MB"}
 	}
 	var fb feedback
 	dec := xml.NewDecoder(bytes.NewReader(data))
 	dec.Strict = false
 	if err := dec.Decode(&fb); err != nil {
-		return hostrepute.DMARCReport{}, fmt.Errorf("this isn't a DMARC aggregate report: %w", err)
+		return hostrepute.DMARCReport{}, &reportError{key: "problem.notDMARC", args: i18n.Args{"error": err.Error()},
+			english: "this isn't a DMARC aggregate report: " + err.Error(), cause: err}
 	}
 	if fb.Metadata.OrgName == "" || fb.Metadata.ReportID == "" || len(fb.Records) == 0 {
-		return hostrepute.DMARCReport{}, errors.New("this isn't a DMARC aggregate report: no report_metadata or records")
+		return hostrepute.DMARCReport{}, &reportError{key: "problem.notDMARCEmpty", english: "this isn't a DMARC aggregate report: no report_metadata or records"}
 	}
 	out := hostrepute.DMARCReport{
 		Domain: strings.ToLower(fb.Policy.Domain), OrgName: fb.Metadata.OrgName, ReportID: fb.Metadata.ReportID,
@@ -505,6 +506,18 @@ func ParseReport(data []byte) (hostrepute.DMARCReport, error) {
 	return out, nil
 }
 
+// reportError is why a file isn't a report ParseReport can read, in words
+// for the person who uploaded it.
+type reportError struct {
+	key     string
+	args    i18n.Args
+	english string
+	cause   error
+}
+
+func (e *reportError) Error() string { return e.english }
+func (e *reportError) Unwrap() error { return e.cause }
+
 // DeliverabilityDMARCUpload is the result of uploading a report.
 type DeliverabilityDMARCUpload struct {
 	OrgName  string    `json:"orgName"`
@@ -519,10 +532,14 @@ type DeliverabilityDMARCUpload struct {
 // UploadReport stores an aggregate report pasted or uploaded by hand.
 func (s *Service) UploadReport(ctx context.Context, ws *store.Workspace, data []byte) (DeliverabilityDMARCUpload, error) {
 	if len(bytes.TrimSpace(data)) == 0 {
-		return DeliverabilityDMARCUpload{}, api.Invalid("body", "Choose a DMARC aggregate report: an .xml file, or the .xml.gz or .zip a mailbox provider sent.")
+		return DeliverabilityDMARCUpload{}, api.Invalid("body", say(ctx, "problem.chooseReport", nil))
 	}
 	rep, err := ParseReport(data)
-	if err != nil {
+	var re *reportError
+	switch {
+	case errors.As(err, &re):
+		return DeliverabilityDMARCUpload{}, api.Invalid("body", say(ctx, re.key, re.args))
+	case err != nil:
 		return DeliverabilityDMARCUpload{}, api.Invalid("body", strings.ToUpper(err.Error()[:1])+err.Error()[1:]+".")
 	}
 	st, err := s.load(ctx, ws)
@@ -530,7 +547,7 @@ func (s *Service) UploadReport(ctx context.Context, ws *store.Workspace, data []
 		return DeliverabilityDMARCUpload{}, err
 	}
 	if !st.ownedDomain(rep.Domain) {
-		return DeliverabilityDMARCUpload{}, api.Invalid("body", "This report is for "+rep.Domain+", which isn't a sending domain of this workspace.")
+		return DeliverabilityDMARCUpload{}, api.Invalid("body", say(ctx, "problem.notSendingDomain", i18n.Args{"domain": rep.Domain}))
 	}
 	out := DeliverabilityDMARCUpload{OrgName: rep.OrgName, ReportID: rep.ReportID, Domain: rep.Domain, Records: len(rep.Records), From: rep.DateBegin, To: rep.DateEnd}
 	for _, r := range rep.Records {

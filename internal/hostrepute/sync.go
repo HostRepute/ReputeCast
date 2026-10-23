@@ -376,14 +376,14 @@ const recheckTimeout = 3 * time.Minute
 func (s *Service) Sync(ctx context.Context, args SyncArgs, lastAttempt bool) error {
 	conn, err := s.Q.GetHostReputeConnection(ctx, args.WorkspaceID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		s.finishRun(ctx, args.RunID, "failed", 0, 0, 0, "HostRepute isn't connected.")
+		s.finishRun(ctx, args.RunID, "failed", 0, 0, 0, english("run.notConnected"))
 		return nil
 	}
 	if err != nil {
 		return err
 	}
 	if conn.Status != "connected" && conn.Status != "limit_reached" {
-		s.finishRun(ctx, args.RunID, "failed", 0, 0, 0, "HostRepute rejected the token. Reconnect to resume.")
+		s.finishRun(ctx, args.RunID, "failed", 0, 0, 0, english("run.tokenRejected"))
 		return nil
 	}
 	c, watch, err := s.clientFor(ctx, conn)
@@ -482,7 +482,7 @@ func (s *Service) syncFailed(ctx context.Context, conn store.HostreputeConnectio
 		if conn.TokenExpiresAt != nil && conn.TokenExpiresAt.Before(now) {
 			status = "expired"
 		}
-		detail := "HostRepute rejected the token (revoked from the HostRepute side or expired)."
+		detail := english("run.tokenRejectedDetail")
 		txErr := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 			q := store.New(tx)
 			n, err := q.MarkHostReputeTokenRejected(ctx, store.MarkHostReputeTokenRejectedParams{WorkspaceID: conn.WorkspaceID, Status: status, StatusDetail: detail, RejectedAt: &now})

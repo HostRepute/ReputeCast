@@ -19,5 +19,9 @@
   "problem.notMonitored": "{asset} không được HostRepute giám sát.",
 
   "notify.reconnectTitle": "Cần kết nối lại HostRepute",
-  "notify.reconnectBody": "HostRepute đã từ chối token. Dữ liệu danh sách chặn, Postmaster, SNDS và DMARC sẽ cũ cho đến khi có người kết nối lại; Độ sẵn sàng gửi đánh dấu mục kiểm tra uy tín là không xác định."
+  "notify.reconnectBody": "HostRepute đã từ chối token. Dữ liệu danh sách chặn, Postmaster, SNDS và DMARC sẽ cũ cho đến khi có người kết nối lại; Độ sẵn sàng gửi đánh dấu mục kiểm tra uy tín là không xác định.",
+
+  "run.notConnected": "HostRepute chưa được kết nối.",
+  "run.tokenRejected": "HostRepute đã từ chối token. Hãy kết nối lại để tiếp tục.",
+  "run.tokenRejectedDetail": "HostRepute đã từ chối token (bị thu hồi từ phía HostRepute hoặc đã hết hạn)."
 }

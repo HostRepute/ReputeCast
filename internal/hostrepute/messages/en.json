@@ -19,5 +19,9 @@
   "problem.notMonitored": "{asset} isn't monitored by HostRepute.",
 
   "notify.reconnectTitle": { "message": "HostRepute needs reconnecting", "note": "a notification to members who manage the HostRepute connection" },
-  "notify.reconnectBody": "HostRepute rejected the token. Blocklist, Postmaster, SNDS and DMARC data is stale until someone reconnects; Send Readiness marks the reputation check as unknown."
+  "notify.reconnectBody": "HostRepute rejected the token. Blocklist, Postmaster, SNDS and DMARC data is stale until someone reconnects; Send Readiness marks the reputation check as unknown.",
+
+  "run.notConnected": { "message": "HostRepute isn't connected.", "note": "why a Deliverability check run failed" },
+  "run.tokenRejected": "HostRepute rejected the token. Reconnect to resume.",
+  "run.tokenRejectedDetail": "HostRepute rejected the token (revoked from the HostRepute side or expired)."
 }

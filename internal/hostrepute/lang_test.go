@@ -21,6 +21,8 @@ func TestSyncErrorIn(t *testing.T) {
 		"Couldn't reach api.hostrepute.com (HTTP 503, 3 attempts)":           "Không kết nối được api.hostrepute.com (HTTP 503, 3 lần thử)",
 		"Couldn't reach HostRepute":                                          "Không kết nối được HostRepute",
 		"HostRepute sync failed: unexpected answer":                          "Đồng bộ HostRepute thất bại: unexpected answer",
+		"HostRepute rejected the token. Reconnect to resume.":                "HostRepute đã từ chối token. Hãy kết nối lại để tiếp tục.",
+		"HostRepute isn't connected.":                                        "HostRepute chưa được kết nối.",
 		"something else":                                                     "something else",
 	}
 	for en, want := range cases {
