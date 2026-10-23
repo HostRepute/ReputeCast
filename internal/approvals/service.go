@@ -13,11 +13,13 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -141,19 +143,21 @@ func Initials(name string) string {
 	return out
 }
 
-func (s *Service) person(m member) ApprovalPerson {
-	p := ApprovalPerson{ID: m.ID.String(), Name: m.Name, Email: m.Email, Initials: Initials(m.Name), Color: m.Color, Role: m.RoleName}
+// person is a member as the approval screens show them, their role and
+// presence in the reader's language.
+func (s *Service) person(l i18n.Lang, m member) ApprovalPerson {
+	p := ApprovalPerson{ID: m.ID.String(), Name: m.Name, Email: m.Email, Initials: Initials(m.Name), Color: m.Color, Role: api.RoleName(l, m.RoleKey, m.RoleName)}
 	if m.LastActive != nil {
 		ago := s.now().Sub(*m.LastActive)
 		switch {
 		case ago < 15*time.Minute:
-			p.Presence = "online"
+			p.Presence = mPresenceOnline.Text(l, nil)
 		case ago < time.Hour:
-			p.Presence = fmt.Sprintf("active %d min ago", int(ago.Minutes()))
+			p.Presence = mPresenceMinutes.Text(l, i18n.Args{"count": int(ago.Minutes())})
 		case ago < 24*time.Hour:
-			p.Presence = fmt.Sprintf("active %d h ago", int(ago.Hours()))
+			p.Presence = mPresenceHours.Text(l, i18n.Args{"count": int(ago.Hours())})
 		default:
-			p.Presence = fmt.Sprintf("active %d days ago", int(ago.Hours()/24))
+			p.Presence = mPresenceDays.Text(l, i18n.Args{"count": int(ago.Hours() / 24)})
 		}
 	}
 	return p
@@ -225,6 +229,15 @@ func (s *Service) CampaignChanged(ctx context.Context, ws *store.Workspace, id u
 // invalidates it when anything it covers changed or the audience moved more
 // than 10%. It returns the invalidated request's changes (none when valid).
 func (s *Service) Revalidate(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID) ([]ApprovalChange, error) {
+	changes, err := s.revalidate(ctx, ws, campaignID)
+	if len(changes) == 0 {
+		return nil, err
+	}
+	return plainChanges(changes), err
+}
+
+// revalidate is Revalidate with the changes as they are stored.
+func (s *Service) revalidate(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID) ([]storedChange, error) {
 	open, err := s.Q.ApprovalOpenForCampaign(ctx, &campaignID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -246,16 +259,20 @@ func (s *Service) Revalidate(ctx context.Context, ws *store.Workspace, campaignI
 		return nil, err
 	}
 	snap := ParseSnapshot(open.Snapshot)
-	changes := Diff(snap, cur, state.Location(ws.Timezone))
+	changes := diff(snap, cur, state.Location(ws.Timezone))
 	if len(changes) == 0 {
 		return nil, nil
 	}
 	return changes, s.invalidate(ctx, ws, open, c, changes)
 }
 
-func (s *Service) invalidate(ctx context.Context, ws *store.Workspace, r store.ApprovalRequest, c store.ReadinessCampaignRow, changes []ApprovalChange) error {
+// invalidate records that an open request no longer covers the campaign:
+// its changes and reason in English, with their messages kept beside them
+// for readers in other languages.
+func (s *Service) invalidate(ctx context.Context, ws *store.Workspace, r store.ApprovalRequest, c store.ReadinessCampaignRow, changes []storedChange) error {
 	now := s.now()
-	reason := InvalidationReason(changes)
+	reasonText := reasonOf(changes)
+	reason := render(i18n.Default, reasonText)
 	cb, _ := json.Marshal(changes)
 	ms, err := s.members(ctx, s.Q, ws.ID)
 	if err != nil {
@@ -282,7 +299,7 @@ func (s *Service) invalidate(ctx context.Context, ws *store.Workspace, r store.A
 			return err
 		}
 		if err := q.ApprovalInvalidate(ctx, store.ApprovalInvalidateParams{ID: r.ID, InvalidatedAt: &now, InvalidatedReason: reason, Changes: cb, InvalidatedBy: by,
-			InvalidatedFrom: locked.Status}); err != nil {
+			InvalidatedFrom: locked.Status, InvalidatedReasonText: textJSON(reasonText)}); err != nil {
 			return err
 		}
 		// The campaign goes back to draft; a scheduled send keeps its slot but
@@ -292,7 +309,7 @@ func (s *Service) invalidate(ctx context.Context, ws *store.Workspace, r store.A
 		}
 		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "approval.invalidated", TargetType: "approval_request", TargetID: r.ID.String(), TargetName: c.Name,
 			Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Reason: reason,
-			Before: map[string]any{"status": locked.Status}, After: map[string]any{"status": "invalidated", "changes": changes},
+			Before: map[string]any{"status": locked.Status}, After: map[string]any{"status": "invalidated", "changes": plainChanges(changes)},
 			Metadata: map[string]any{"campaign_id": c.ID.String(), "edited_by": byName, "summary": reason}}); err != nil {
 			return err
 		}
@@ -313,11 +330,19 @@ func (s *Service) invalidate(ctx context.Context, ws *store.Workspace, r store.A
 		for _, a := range approversOf(ms) {
 			targets = append(targets, a.ID)
 		}
+		whoseKey := "none"
+		if decider != "" {
+			whoseKey = "approver"
+		}
+		n.TitleText = mNotifyInvalidatedTitle.Keep(nil)
 		for _, id := range targets {
 			if seen[id] || (by != nil && id == *by) {
 				continue
 			}
 			seen[id] = true
+			// The reason is written in the language of the member it goes to.
+			args := i18n.Args{"name": c.Name, "reason": strings.TrimSuffix(render(readerLang(ctx, q, id), reasonText), " after approval"), "whose": whoseKey, "approver": decider}
+			n.SummaryText, n.BodyText = mNotifyInvalidatedSummary.Keep(args), mNotifyInvalidatedBody.Keep(args)
 			if err := notify.ToUser(ctx, tx, id, n); err != nil {
 				return err
 			}

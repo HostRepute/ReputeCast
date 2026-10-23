@@ -708,7 +708,7 @@ func (n *nwSeed) share(wsKey string, id uuid.UUID, recipients int64) readiness.S
 			region = "us-east-1"
 		}
 		out.Name, out.Short, out.Adapter, out.Label = "Amazon SES", "SES", "ses", region
-		out.Pricing, out.Terms = state.Pricing{Model: "metered", Per1000: 0.10}, "yes, with production access"
+		out.Pricing, out.Terms, out.TermsKind = state.Pricing{Model: "metered", Per1000: 0.10}, "yes, with production access", "productionAccess"
 		out.Limits = state.Limits{Bounce: state.Limit{Limit: 5, Review: 5, Pause: 10, Label: "SES"}, Complaint: state.Limit{Limit: 0.1, Review: 0.1, Pause: 0.5, Label: "SES"}}
 		out.Quota = &state.Quota{Kind: "rolling_24h", Max: 200000}
 	}

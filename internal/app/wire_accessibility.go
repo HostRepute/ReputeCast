@@ -9,7 +9,9 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/demo"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -104,11 +106,13 @@ func (c transactionalChecks) TemplateChecks(ctx context.Context, wsID, templateI
 		return nil, err
 	}
 	out := []transactional.TransactionalCheck{}
-	for _, f := range accessibility.Findings(r) {
+	// The template editor reads the findings in its language.
+	l := i18n.LangFrom(ctx)
+	for _, f := range accessibility.FindingsIn(l, r) {
 		tc := transactional.TransactionalCheck{ID: "accessibility." + f.ID, Severity: f.Status, Group: transactional.GroupAccessibility, Title: f.Title, Detail: f.Detail,
 			Path: f.Path, Fixes: []transactional.TransactionalCheckFix{}}
 		if f.AltText && len(f.Path) > 0 {
-			tc.Fixes = append(tc.Fixes, transactional.TransactionalCheckFix{Kind: "set_alt", Label: "Save", Path: f.Path})
+			tc.Fixes = append(tc.Fixes, transactional.TransactionalCheckFix{Kind: "set_alt", Label: contentcheck.SaveAltLabel(l), Path: f.Path})
 		}
 		out = append(out, tc)
 	}

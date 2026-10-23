@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"fmt"
+	"errors"
 	"image"
 	"image/gif"
 	"image/jpeg"
@@ -31,6 +31,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -116,13 +117,22 @@ type ImageError string
 func (e ImageError) Error() string { return string(e) }
 
 // Inspect validates image bytes by their content and returns the type,
-// dimensions and whether the image has transparency.
+// dimensions and whether the image has transparency. Its ImageError reads
+// in English.
 func Inspect(data []byte) (contentType string, width, height int, alpha bool, err error) {
+	return inspect(i18n.Default, data)
+}
+
+// inspect is Inspect with the reason in a reader's language.
+func inspect(l i18n.Lang, data []byte) (contentType string, width, height int, alpha bool, err error) {
+	refuse := func(m i18n.Msg, args i18n.Args) (string, int, int, bool, error) {
+		return "", 0, 0, false, ImageError(m.Text(l, args))
+	}
 	if len(data) == 0 {
-		return "", 0, 0, false, ImageError("The file is empty.")
+		return refuse(mEmpty, nil)
 	}
 	if len(data) > MaxBytes {
-		return "", 0, 0, false, ImageError(fmt.Sprintf("The image is %.1f MB; the limit is 5 MB. Email images work best under 200 KB.", float64(len(data))/(1<<20)))
+		return refuse(mTooLarge, i18n.Args{"size": l.Region.Decimal(float64(len(data))/(1<<20), 1)})
 	}
 	sniffed := http.DetectContentType(data)
 	var cfg image.Config
@@ -134,18 +144,18 @@ func Inspect(data []byte) (contentType string, width, height int, alpha bool, er
 	case "image/gif":
 		cfg, err = gif.DecodeConfig(bytes.NewReader(data))
 	case "image/webp":
-		return "", 0, 0, false, ImageError("WebP images don't display in Outlook and several other email clients. Upload a PNG, JPEG or GIF.")
+		return refuse(mWebP, nil)
 	default:
 		if strings.Contains(string(data[:min(len(data), 512)]), "<svg") {
-			return "", 0, 0, false, ImageError("SVG images don't display in Gmail or Outlook. Upload a PNG, JPEG or GIF.")
+			return refuse(mSVG, nil)
 		}
-		return "", 0, 0, false, ImageError("That file isn't an image ReputeCast can use. Upload a PNG, JPEG or GIF.")
+		return refuse(mNotImage, nil)
 	}
 	if err != nil {
-		return "", 0, 0, false, ImageError("The image is damaged or incomplete and couldn't be read. Export it again and retry.")
+		return refuse(mDamaged, nil)
 	}
 	if cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width*cfg.Height > MaxPixels {
-		return "", 0, 0, false, ImageError("The image dimensions are invalid or too large (100 megapixels at most).")
+		return refuse(mDimensions, nil)
 	}
 	return sniffed, cfg.Width, cfg.Height, hasAlpha(sniffed, data, cfg), nil
 }
@@ -171,7 +181,7 @@ func hasAlpha(contentType string, data []byte, cfg image.Config) bool {
 
 // Upload stores an image (or returns the identical one already stored).
 func (s *Service) Upload(ctx context.Context, ws *store.Workspace, actor *uuid.UUID, fileName string, data []byte) (MediaAsset, error) {
-	ctype, w, h, alpha, err := Inspect(data)
+	ctype, w, h, alpha, err := inspect(i18n.LangFrom(ctx), data)
 	if err != nil {
 		return MediaAsset{}, api.Invalid("body.file", err.Error())
 	}
@@ -215,6 +225,9 @@ func (s *Service) Remove(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		a, err := q.GetMediaAsset(ctx, store.GetMediaAssetParams{WorkspaceID: ws.ID, ID: id})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return notFound(ctx)
+		}
 		if err != nil {
 			return api.MapError(err, "Image")
 		}
@@ -224,7 +237,7 @@ func (s *Service) Remove(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 			return err
 		}
 		if n == 0 {
-			return api.NotFound("Image")
+			return notFound(ctx)
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "media.remove", TargetType: "media", TargetID: id.String(), TargetName: a.FileName,
 			Before: map[string]any{"fileName": a.FileName}})

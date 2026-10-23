@@ -1,0 +1,28 @@
+{
+  "pricing": "theo gói, từ 15 US$ mỗi tháng",
+  "pricingPlan": "theo gói, {n} email mỗi tháng",
+  "dedicatedIps": "từ 300.000 email mỗi tháng",
+  "terms.0.variant": "Luồng Transactional",
+  "terms.0.note": "Luồng Transactional dành cho thư gửi đến từng người do một hành động của người dùng kích hoạt. Gửi tiếp thị trên các luồng này là vi phạm điều khoản của Postmark.",
+  "terms.1.variant": "Luồng Broadcast",
+  "terms.1.note": "Mọi thư đều phải có liên kết hủy đăng ký; Postmark tự thêm nếu thư thiếu.",
+  "events": "Webhook",
+  "domainSetup": "API",
+  "suppressionMode": "Hai chiều",
+  "field.server_token.label": "Server API token",
+  "field.server_token.help": "Postmark › Servers › máy chủ của bạn › API Tokens.",
+  "field.account_token.label": "Account API token",
+  "field.account_token.help": "Không bắt buộc. Cho phép ReputeCast thêm tên miền của bạn và lấy các bản ghi DNS của nó.",
+  "field.message_stream.label": "Luồng thư",
+  "field.message_stream.help": "Luồng Transactional cho thư Hệ thống và Tự động hóa.",
+  "field.broadcast_stream.label": "Luồng Broadcast",
+  "field.broadcast_stream.help": "Cần có trước khi luồng Gửi hàng loạt dùng được Postmark. ReputeCast có thể tạo luồng này.",
+  "field.monthly_limit.label": "Gói · số email mỗi tháng",
+  "field.monthly_limit.help": "Dùng cho thanh hạn mức và chi phí cho mỗi 1.000 email.",
+
+  "account": "{plan, select, yes {Đã duyệt · gói {n, number} email mỗi tháng} other {Đã duyệt}}",
+  "tracking.scope": "Máy chủ {name}",
+  "tracking.detail": "Cài đặt máy chủ TrackOpens đang {opens, select, on {bật} other {tắt}}, và TrackLinks là {links}.",
+  "error.streamsTaken": "cả hai mã luồng đều đã được dùng; hãy tạo một luồng Broadcast trong Postmark rồi nhập mã của nó",
+  "error.domainMissing": "{domain} chưa được thiết lập trong Postmark"
+}

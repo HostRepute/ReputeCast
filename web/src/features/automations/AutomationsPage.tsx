@@ -201,7 +201,7 @@ function AutomationTable({ items }: { items: Item[] }) {
   )
   return (
     <section className="card" aria-label={t(m.tableLabel)}>
-      <Table phoneWrap fit className="[&_td:first-child]:min-w-[150px] [&_td:nth-child(3)]:min-w-[150px] [&_td:nth-child(9)]:min-w-[150px]">
+      <Table phoneWrap fit className="au-list [&_td:first-child]:min-w-[150px] [&_td:nth-child(3)]:min-w-[150px] [&_td:nth-child(9)]:min-w-[150px]">
         <thead>
           <tr>
             <Th>{t(m.colAutomation)}</Th>

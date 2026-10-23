@@ -26,6 +26,8 @@ import (
 	"sync"
 
 	osteele "github.com/osteele/liquid"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // MaxOutput is the largest rendered result, in bytes.
@@ -41,6 +43,9 @@ type PersonalizationToken struct {
 	Kind  string `json:"kind" enum:"contact,custom,system,referral,paid"`
 	// Fallback is the suggested default for contacts without a value.
 	Fallback string `json:"fallback,omitempty"`
+	// LabelText is the label's message when the package that registers the
+	// token keeps one: InLanguage writes it in the member's language.
+	LabelText i18n.Text `json:"-"`
 }
 
 // CustomField is a workspace contact field (custom_fields).
@@ -84,6 +89,20 @@ var (
 	tokensMu    sync.RWMutex
 	extraTokens []PersonalizationToken
 )
+
+// InLanguage writes the labels of tokens that keep their message in a
+// language (the composer's token menu, in the member's language).
+func InLanguage(tokens []PersonalizationToken, l i18n.Lang) []PersonalizationToken {
+	for i := range tokens {
+		if tokens[i].LabelText.IsZero() {
+			continue
+		}
+		if s := tokens[i].LabelText.In(l); s != "" {
+			tokens[i].Label = s
+		}
+	}
+	return tokens
+}
 
 // RegisterTokens adds tokens other packages provide to every email's token
 // catalog (Grow's referral.* tokens).
@@ -226,33 +245,38 @@ func (noTemplates) ReadTemplate(name string) ([]byte, error) {
 
 var engine = NewEngine()
 
-func checkRanges(src string) error {
+// numberRange is a literal range of a for loop: (1..5000).
+type numberRange struct {
+	from, to string
+	n        int
+}
+
+// longRange finds the first literal range longer than MaxRange.
+func longRange(src string) (numberRange, bool) {
 	for _, m := range rangeRe.FindAllStringSubmatch(src, -1) {
 		a, _ := strconv.Atoi(m[1])
 		b, _ := strconv.Atoi(m[2])
 		if b-a+1 > MaxRange {
-			return fmt.Errorf("loops are limited to %d items; (%s..%s) has %d", MaxRange, m[1], m[2], b-a+1)
+			return numberRange{from: m[1], to: m[2], n: b - a + 1}, true
 		}
+	}
+	return numberRange{}, false
+}
+
+func checkRanges(src string) error {
+	if r, ok := longRange(src); ok {
+		return fmt.Errorf("loops are limited to %d items; (%s..%s) has %d", MaxRange, r.from, r.to, r.n)
 	}
 	return nil
 }
 
-// Validate parses a template and returns its problems (empty when it parses).
-func Validate(src string) []LiquidProblem {
-	out := []LiquidProblem{}
-	p := Prepare(src)
-	if err := checkRanges(p); err != nil {
-		out = append(out, LiquidProblem{Message: sentence(err.Error())})
-	}
-	if _, err := engine.ParseString(p); err != nil {
-		out = append(out, problem(err, p))
-	}
-	return out
-}
+// Validate parses a template and returns its problems (empty when it
+// parses), in English. ValidateIn writes them in a reader's language.
+func Validate(src string) []LiquidProblem { return ValidateIn(i18n.Default, src) }
 
 var snippetRe = regexp.MustCompile(`in (\{%[\s\S]*?%\}|\{\{[\s\S]*?\}\})\.?$`)
 
-func problem(err osteele.SourceError, src string) LiquidProblem {
+func problem(l i18n.Lang, err osteele.SourceError, src string) LiquidProblem {
 	msg := err.Error()
 	// "Liquid error (line 3): unterminated …" → "Line 3: unterminated …"
 	if i := strings.Index(msg, "): "); i > 0 && strings.HasPrefix(msg, "Liquid") {
@@ -267,7 +291,7 @@ func problem(err osteele.SourceError, src string) LiquidProblem {
 		}
 	}
 	if line > 0 {
-		return LiquidProblem{Line: line, Message: fmt.Sprintf("Line %d: %s", line, sentence(msg))}
+		return LiquidProblem{Line: line, Message: mProblemLine.Text(l, i18n.Args{"line": strconv.Itoa(line), "message": sentence(msg)})}
 	}
 	return LiquidProblem{Message: sentence(msg)}
 }
@@ -308,14 +332,14 @@ func Render(src string, vars map[string]any) (string, error) {
 	}
 	tpl, err := engine.ParseString(p)
 	if err != nil {
-		return "", errors.New(problem(err, p).Message)
+		return "", errors.New(problem(i18n.Default, err, p).Message)
 	}
 	w := &limitWriter{}
 	if err := tpl.FRender(io.Writer(w), osteele.Bindings(vars)); err != nil {
 		if errors.Is(err, ErrTooLarge) || strings.Contains(err.Error(), ErrTooLarge.Error()) {
 			return "", ErrTooLarge
 		}
-		return "", errors.New(problem(err, p).Message)
+		return "", errors.New(problem(i18n.Default, err, p).Message)
 	}
 	return w.b.String(), nil
 }

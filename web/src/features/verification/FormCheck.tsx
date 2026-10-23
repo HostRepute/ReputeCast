@@ -4,7 +4,7 @@ import { $api, errorMessage, http } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
-import { orList } from '@/lib/format'
+import { count, orList } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import { base, money, useRefreshVerification, type FormSetting } from './shared'
@@ -112,7 +112,7 @@ export function FormAskedToFix({ formKey }: { formKey: string }) {
   return (
     <div>
       <div className="k">{t(m.formStatAsked)}</div>
-      <div className="n text-[18px]">{s.askedToFix.toLocaleString('en-US')}</div>
+      <div className="n text-[18px]">{count(s.askedToFix)}</div>
     </div>
   )
 }

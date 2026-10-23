@@ -11,6 +11,7 @@ import (
 
 	xhtml "golang.org/x/net/html"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 )
 
@@ -48,7 +49,7 @@ type FixRequest struct {
 }
 
 // ErrFixTarget means the element a fix points at isn't in the email any more.
-var ErrFixTarget = errors.New("the element isn't in the email any more")
+var ErrFixTarget = errText(mErrTarget, nil)
 
 // ApplyFix applies one fix to an MJML document.
 func ApplyFix(src string, f FixRequest) (string, error) {
@@ -76,24 +77,24 @@ func ApplyFix(src string, f FixRequest) (string, error) {
 		if f.Kind == FixDecorative {
 			alt = ""
 		} else if alt == "" {
-			return src, errors.New("write the alt text first")
+			return src, errText(mErrWriteAlt, nil)
 		}
 		return fixAlt(d, n, f.Index, alt)
 	case FixLinkText:
 		text := strings.TrimSpace(f.Value)
 		if text == "" {
-			return src, errors.New("write the link text first")
+			return src, errText(mErrWriteLink, nil)
 		}
 		return fixLinkText(d, n, f.Index, text)
 	case FixColor:
 		c, ok := ParseColor(f.Value)
 		if !ok {
-			return src, fmt.Errorf("%q isn't a color", f.Value)
+			return src, errText(mErrNotColor, i18n.Args{"value": strconv.Quote(f.Value)})
 		}
 		return fixColor(d, n, f.Target, f.From, c.Hex())
 	case FixTextSize:
 		if f.ToPx < MinMinTextPx || f.ToPx > MaxMinTextPx {
-			return src, fmt.Errorf("text size must be %d to %d px", MinMinTextPx, MaxMinTextPx)
+			return src, errText(mErrTextSize, i18n.Args{"min": MinMinTextPx, "max": MaxMinTextPx})
 		}
 		return fixTextSize(d, n, f.ToPx)
 	}
@@ -412,13 +413,13 @@ var headingDefaults = map[int][2]string{1: {"2em", "0.67em"}, 2: {"1.5em", "0.83
 // out.
 func fixHeadings(d *doc, changes []AccessibilityHeadingChange) (string, error) {
 	if len(changes) == 0 {
-		return d.src, errors.New("no heading to change")
+		return d.src, errText(mErrNoHeading, nil)
 	}
 	byPath := map[string][]AccessibilityHeadingChange{}
 	var order []string
 	for _, c := range changes {
 		if c.From < 1 || c.From > 6 || c.To < 1 || c.To > 6 {
-			return d.src, fmt.Errorf("heading levels go from 1 to 6")
+			return d.src, errText(mErrHeadingLevels, nil)
 		}
 		k := pathKey(c.Path)
 		if _, ok := byPath[k]; !ok {

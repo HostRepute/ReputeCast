@@ -78,6 +78,10 @@ type NotFeedError struct {
 	Lines []string
 	// Reason describes what was found instead ("an XML document whose root is <urlset>").
 	Reason string
+	// Code names the reason for its message (notFeed.<code>), and Arg is
+	// what the message names: the parser's own words, or the root element.
+	Code string
+	Arg  string
 }
 
 func (e *NotFeedError) Error() string {
@@ -135,7 +139,7 @@ func LooksLikeHTML(data []byte) bool {
 func Parse(data []byte, base *url.URL) (*Feed, error) {
 	trimmed := bytes.TrimSpace(bytes.TrimPrefix(data, []byte("\xef\xbb\xbf")))
 	if len(trimmed) == 0 {
-		return nil, &NotFeedError{Reason: "the document is empty"}
+		return nil, &NotFeedError{Reason: "the document is empty", Code: notFeedEmpty}
 	}
 	var (
 		f   *Feed
@@ -150,7 +154,7 @@ func Parse(data []byte, base *url.URL) (*Feed, error) {
 		}
 		f, err = parseXML(trimmed, base)
 	default:
-		return nil, &NotFeedError{Lines: FirstLines(data, 4), Reason: "the document is neither XML nor JSON"}
+		return nil, &NotFeedError{Lines: FirstLines(data, 4), Reason: "the document is neither XML nor JSON", Code: notFeedNeither}
 	}
 	if err != nil {
 		var nf *NotFeedError
@@ -326,12 +330,12 @@ func readTree(data []byte) (*node, error) {
 			if len(root.Children) > 0 && len(stack) <= 2 {
 				break // trailing garbage after the document
 			}
-			return nil, &NotFeedError{Reason: "the XML doesn't parse: " + err.Error()}
+			return nil, &NotFeedError{Reason: "the XML doesn't parse: " + err.Error(), Code: notFeedXML, Arg: err.Error()}
 		}
 		switch t := tok.(type) {
 		case xml.StartElement:
 			if len(stack) > maxDepth {
-				return nil, &NotFeedError{Reason: "the XML is nested too deeply"}
+				return nil, &NotFeedError{Reason: "the XML is nested too deeply", Code: notFeedDeep}
 			}
 			n := &node{Space: t.Name.Space, Name: t.Name.Local, Attr: t.Attr}
 			name := strings.ToLower(t.Name.Local)
@@ -365,7 +369,7 @@ func readTree(data []byte) (*node, error) {
 		}
 	}
 	if len(root.Children) == 0 {
-		return nil, &NotFeedError{Reason: "the XML has no elements"}
+		return nil, &NotFeedError{Reason: "the XML has no elements", Code: notFeedNoElements}
 	}
 	return root.Children[0], nil
 }
@@ -379,7 +383,7 @@ func parseXML(data []byte, base *url.URL) (*Feed, error) {
 	case "rss":
 		ch := root.child("channel", nsRSS)
 		if ch == nil {
-			return nil, &NotFeedError{Reason: "the RSS document has no channel"}
+			return nil, &NotFeedError{Reason: "the RSS document has no channel", Code: notFeedNoChannel}
 		}
 		return parseRSS(ch, ch.all("item", nsRSS), base), nil
 	case "rdf":
@@ -388,7 +392,7 @@ func parseXML(data []byte, base *url.URL) (*Feed, error) {
 	case "feed":
 		return parseAtom(root, base), nil
 	}
-	return nil, &NotFeedError{Reason: fmt.Sprintf("an XML document whose root is <%s>", root.Name)}
+	return nil, &NotFeedError{Reason: fmt.Sprintf("an XML document whose root is <%s>", root.Name), Code: notFeedRoot, Arg: root.Name}
 }
 
 func parseRSS(ch *node, items []*node, base *url.URL) *Feed {
@@ -662,10 +666,10 @@ type jsonFeed struct {
 func parseJSON(data []byte, base *url.URL) (*Feed, error) {
 	var jf jsonFeed
 	if err := json.Unmarshal(data, &jf); err != nil {
-		return nil, &NotFeedError{Reason: "the JSON doesn't parse: " + err.Error()}
+		return nil, &NotFeedError{Reason: "the JSON doesn't parse: " + err.Error(), Code: notFeedJSON, Arg: err.Error()}
 	}
 	if !strings.Contains(jf.Version, "jsonfeed.org/version/") {
-		return nil, &NotFeedError{Reason: "a JSON document that isn't a JSON Feed (it has no jsonfeed.org version)"}
+		return nil, &NotFeedError{Reason: "a JSON document that isn't a JSON Feed (it has no jsonfeed.org version)", Code: notFeedNotJSONFeed}
 	}
 	f := &Feed{Kind: KindJSON, Title: jf.Title, Link: resolve(base, jf.Home)}
 	feedAuthor := ""

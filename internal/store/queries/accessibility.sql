@@ -22,11 +22,11 @@ VALUES (@url, @title, @lang, @status, @fetched_at)
 ON CONFLICT (url) DO UPDATE SET title = EXCLUDED.title, lang = EXCLUDED.lang, status = EXCLUDED.status, fetched_at = EXCLUDED.fetched_at;
 
 -- name: AccessibilityInsertFix :exec
-INSERT INTO accessibility_fixes (id, workspace_id, campaign_id, content_hash, kinds, summary, languages, fixed_by, fixed_at)
-VALUES (@id, @workspace_id, @campaign_id, @content_hash, @kinds::text[], @summary, @languages::text[], @fixed_by, @fixed_at);
+INSERT INTO accessibility_fixes (id, workspace_id, campaign_id, content_hash, kinds, summary, summary_texts, languages, fixed_by, fixed_at)
+VALUES (@id, @workspace_id, @campaign_id, @content_hash, @kinds::text[], @summary, @summary_texts, @languages::text[], @fixed_by, @fixed_at);
 
 -- name: AccessibilityLatestFix :one
-SELECT f.content_hash, f.kinds, f.summary, f.languages, f.fixed_at, coalesce(u.name, '')::text AS fixed_by_name
+SELECT f.content_hash, f.kinds, f.summary, f.summary_texts, f.languages, f.fixed_at, coalesce(u.name, '')::text AS fixed_by_name
 FROM accessibility_fixes f
 LEFT JOIN users u ON u.id = f.fixed_by
 WHERE f.campaign_id = @campaign_id

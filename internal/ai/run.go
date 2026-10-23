@@ -218,13 +218,13 @@ func errorDetail(err error) string {
 	}
 	switch e.Kind {
 	case llm.ErrRateLimit:
-		return "rate limited"
+		return detailRateLimited
 	case llm.ErrTimeout:
-		return "timed out"
+		return detailTimedOut
 	case llm.ErrNetwork:
-		return "unreachable"
+		return detailUnreachable
 	case llm.ErrAuth:
-		return fmt.Sprintf("%d key rejected", e.Status)
+		return fmt.Sprintf("%d%s", e.Status, detailKeyRejected)
 	}
 	if e.Status > 0 {
 		return clip(fmt.Sprintf("%d %s", e.Status, shortCode(e)), 120)
@@ -299,11 +299,10 @@ func (s *Service) keyRejected(ctx context.Context, ws *store.Workspace, c *conne
 	if err != nil || n == 0 {
 		return
 	}
-	l := i18n.For(i18n.English)
-	err = notify.ToMembersWith(ctx, s.Pool, ws.ID, authz.IntegrationsManage, notify.Notification{
-		Kind: notify.KindAIKeyRejected, Severity: "bad", Title: mNotifyKeyTitle.Text(l, nil),
-		Body: mNotifyKeyBody.Text(l, i18n.Args{"provider": c.providerName(), "status": e.Status}),
-		Link: "/w/" + ws.Slug + "/settings/integrations/ai",
+	err = s.notifyMembers(ctx, ws.ID, authz.IntegrationsManage, func(l i18n.Lang) notify.Notification {
+		return notify.Notification{Kind: notify.KindAIKeyRejected, Severity: "bad", Title: mNotifyKeyTitle.Text(l, nil),
+			Body: mNotifyKeyBody.Text(l, i18n.Args{"provider": c.providerName(), "status": e.Status}),
+			Link: "/w/" + ws.Slug + "/settings/integrations/ai"}
 	})
 	if err != nil {
 		s.log().Warn("ai: notify a rejected key", "err", err)
@@ -321,23 +320,27 @@ func (s *Service) afterUse(ctx context.Context, ws *store.Workspace, c *connecti
 	}
 	start, next := s.month(ws)
 	key := monthKey(start)
-	l := i18n.For(i18n.English)
-	date := l.Region.DayMonth(next)
-	capText, spentText := l.Region.Money(c.CapUsd, 2), l.Region.Money(float64(u.costMicros)/1e6, 2)
-	if c.CapKind == "tokens" {
-		capText, spentText = l.Region.Int(c.CapTokens), l.Region.Int(u.tokens)
+	// Amounts and the date in each recipient's region.
+	args := func(l i18n.Lang) i18n.Args {
+		capText, spentText := l.Region.Money(c.CapUsd, 2), l.Region.Money(float64(u.costMicros)/1e6, 2)
+		if c.CapKind == "tokens" {
+			capText, spentText = l.Region.Int(c.CapTokens), l.Region.Int(u.tokens)
+		}
+		return i18n.Args{"spent": spentText, "cap": capText, "date": l.Region.DayMonth(next)}
 	}
 	link := "/w/" + ws.Slug + "/settings/integrations/ai"
 	if u.reached {
 		if n, err := s.Q.AIConnectionClaimCapNotice(ctx, store.AIConnectionClaimCapNoticeParams{WorkspaceID: ws.ID, Month: key}); err != nil || n == 0 {
 			return
 		}
-		body := mNotifyCapBody.Text(l, i18n.Args{"cap": capText, "date": date})
+		body := mNotifyCapBody
 		if c.CapKind == "tokens" {
-			body = mNotifyTokenCapBody.Text(l, i18n.Args{"cap": capText, "date": date})
+			body = mNotifyTokenCapBody
 		}
-		if err := notify.ToMembersWith(ctx, s.Pool, ws.ID, authz.IntegrationsManage, notify.Notification{Kind: notify.KindAIUsage, Severity: "bad",
-			Title: mNotifyCapTitle.Text(l, nil), Body: body, Link: link, Data: map[string]any{"share": 100}}); err != nil {
+		if err := s.notifyMembers(ctx, ws.ID, authz.IntegrationsManage, func(l i18n.Lang) notify.Notification {
+			return notify.Notification{Kind: notify.KindAIUsage, Severity: "bad", Title: mNotifyCapTitle.Text(l, nil), Body: body.Text(l, args(l)), Link: link,
+				Data: map[string]any{"share": 100}}
+		}); err != nil {
 			s.log().Warn("ai: notify the cap", "err", err)
 		}
 		return
@@ -348,12 +351,14 @@ func (s *Service) afterUse(ctx context.Context, ws *store.Workspace, c *connecti
 	if n, err := s.Q.AIConnectionClaimNotice(ctx, store.AIConnectionClaimNoticeParams{WorkspaceID: ws.ID, Month: key}); err != nil || n == 0 {
 		return
 	}
-	body := mNotifyUsageBody.Text(l, i18n.Args{"spent": spentText, "cap": capText, "date": date})
+	body := mNotifyUsageBody
 	if c.CapKind == "tokens" {
-		body = mNotifyTokenUsageBody.Text(l, i18n.Args{"spent": spentText, "cap": capText, "date": date})
+		body = mNotifyTokenUsageBody
 	}
-	if err := notify.ToMembersWith(ctx, s.Pool, ws.ID, authz.IntegrationsManage, notify.Notification{Kind: notify.KindAIUsage, Severity: "warn",
-		Title: mNotifyUsageTitle.Text(l, nil), Body: body, Link: link, Data: map[string]any{"share": 80}}); err != nil {
+	if err := s.notifyMembers(ctx, ws.ID, authz.IntegrationsManage, func(l i18n.Lang) notify.Notification {
+		return notify.Notification{Kind: notify.KindAIUsage, Severity: "warn", Title: mNotifyUsageTitle.Text(l, nil), Body: body.Text(l, args(l)), Link: link,
+			Data: map[string]any{"share": 80}}
+	}); err != nil {
 		s.log().Warn("ai: notify the usage", "err", err)
 	}
 }

@@ -1,14 +1,17 @@
 package readiness
 
 import (
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 )
 
 // Number formats in the product voice: "31,604", "0.6%", "$2.84", "09:40".
+// They write English only (API clients, approvals' own texts); the texts
+// of a run format their numbers with its messages, in each reader's region.
 
 // Count formats n with thousands separators.
 func Count(n int64) string {
@@ -105,19 +108,6 @@ func Minutes(seconds float64) int {
 	return int(math.Max(1, math.Round(seconds/60)))
 }
 
-// providersPhrase is "both sending providers", "SES" or "all 3 sending providers".
-func providersPhrase(shorts []string, noun string) string {
-	switch len(shorts) {
-	case 0:
-		return "no " + noun
-	case 1:
-		return shorts[0]
-	case 2:
-		return "both " + noun
-	}
-	return fmt.Sprintf("all %d %s", len(shorts), noun)
-}
-
 // lowerFirst lower-cases the first letter unless the first word looks like
 // a name (two capitals, a dot or a digit inside).
 func lowerFirst(s string) string {
@@ -128,24 +118,26 @@ func lowerFirst(s string) string {
 	if i := strings.IndexAny(s, " :"); i > 0 {
 		word = s[:i]
 	}
-	if strings.ContainsAny(word, ".@0123456789\"“") {
+	if strings.ContainsAny(word, ".@0123456789\"“`") {
 		return s
 	}
 	upper := 0
 	for _, r := range word {
-		if r >= 'A' && r <= 'Z' {
+		if unicode.IsUpper(r) {
 			upper++
 		}
 	}
 	if upper > 1 {
 		return s
 	}
-	return strings.ToLower(s[:1]) + s[1:]
+	r, n := utf8.DecodeRuneInString(s)
+	return string(unicode.ToLower(r)) + s[n:]
 }
 
 func capitalize(s string) string {
 	if s == "" {
 		return s
 	}
-	return strings.ToUpper(s[:1]) + s[1:]
+	r, n := utf8.DecodeRuneInString(s)
+	return string(unicode.ToUpper(r)) + s[n:]
 }

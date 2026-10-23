@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -27,8 +28,9 @@ const CommunityKindRemote = "remote"
 // manifests of kind "remote" are refused.
 type CommunityRuntime interface {
 	// ParseManifest validates a manifest of kind "remote" and returns its
-	// registry key ("community:<id>") and the capabilities to list.
-	ParseManifest(raw []byte) (key string, capabilities []string, err error)
+	// registry key ("community:<id>") and the capabilities to list, in the
+	// reader's language.
+	ParseManifest(raw []byte, l i18n.Lang) (key string, capabilities []string, err error)
 	// Installed runs inside the transaction that installs such an adapter.
 	Installed(ctx context.Context, tx pgx.Tx, adapterID uuid.UUID, raw []byte) error
 	// Changed runs after an install, update or removal is committed.
@@ -64,9 +66,9 @@ type AdapterHTTPPreviewHeader struct {
 // communityKey is the registry key of an installed community adapter (see
 // providers.InstalledKey) and, for a remote adapter whose manifest the
 // runtime accepts, the capabilities it declares.
-func (s *Service) communityKey(kind, name string, manifest []byte) (string, []string, bool) {
+func (s *Service) communityKey(l i18n.Lang, kind, name string, manifest []byte) (string, []string, bool) {
 	if kind == CommunityKindRemote && s.Community != nil {
-		if key, caps, err := s.Community.ParseManifest(manifest); err == nil {
+		if key, caps, err := s.Community.ParseManifest(manifest, l); err == nil {
 			return key, caps, true
 		}
 	}
@@ -91,16 +93,30 @@ func (s *Service) communityKeyTaken(ctx context.Context, q *store.Queries, key s
 		if a.ID == except {
 			continue
 		}
-		if k, _, _ := s.communityKey(a.Kind, a.Name, a.Manifest); k == key {
+		if k, _, _ := s.communityKey(i18n.Default, a.Kind, a.Name, a.Manifest); k == key {
 			return a.Name, nil
 		}
 	}
 	return "", nil
 }
 
+// mappingError is a mapping problem as the reader reads it ("url: Enter an
+// https:// URL…"): the field it concerns and the adapter's message in their
+// language when it kept one (MessageIn), else the error as it is.
+func mappingError(l i18n.Lang, err error) string {
+	var fe interface {
+		FieldName() string
+		MessageIn(i18n.Lang) string
+	}
+	if l.Locale != i18n.English && errors.As(err, &fe) {
+		return fe.FieldName() + ": " + fe.MessageIn(l)
+	}
+	return err.Error()
+}
+
 // mappingProblem turns a mapping validation error into a field error of
-// the HTTP adapter form.
-func mappingProblem(err error) error {
+// the HTTP adapter form, in the reader's language.
+func mappingProblem(l i18n.Lang, err error) error {
 	var fe interface{ FieldName() string }
 	field := ""
 	if errors.As(err, &fe) {
@@ -109,6 +125,10 @@ func mappingProblem(err error) error {
 	msg := err.Error()
 	if field != "" {
 		msg = msg[min(len(field)+2, len(msg)):]
+	}
+	var fm interface{ MessageIn(i18n.Lang) string }
+	if errors.As(err, &fm) {
+		msg = fm.MessageIn(l)
 	}
 	loc := "body.endpoint"
 	paths := map[string]string{"webhook.events_path": "events", "webhook.type_path": "type", "webhook.recipient_path": "recipient", "webhook.message_id_path": "messageId"}

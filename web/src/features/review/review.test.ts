@@ -116,14 +116,26 @@ describe('confirmation', () => {
     const both = 'I understand the hero image has no alt text and “Plan your migration” is 2.1:1, below 4.5:1.'
     const run = {
       checks: [
-        check({ key: 'accessibility.alt_text:1-0-0', group: 'accessibility', status: 'warn', ack: both }),
-        check({ key: 'accessibility.contrast:6-0-0', group: 'accessibility', status: 'warn', ack: both }),
-        check({ key: 'accessibility.moderate', group: 'accessibility', status: 'warn', ack: 'I understand 4 moderate accessibility issues remain.' }),
+        check({ key: 'accessibility.alt_text:1-0-0', group: 'accessibility', status: 'warn', ack: both, ackKey: 'a1' }),
+        check({ key: 'accessibility.contrast:6-0-0', group: 'accessibility', status: 'warn', ack: both, ackKey: 'a1' }),
+        check({ key: 'accessibility.moderate', group: 'accessibility', status: 'warn', ack: 'I understand 4 moderate accessibility issues remain.', ackKey: 'a2' }),
       ],
     } as Run
     const acks = acknowledgements(run)
     expect(acks.map((a) => a.keys)).toEqual([['accessibility.alt_text:1-0-0', 'accessibility.contrast:6-0-0'], ['accessibility.moderate']])
     expect(acknowledgedKeys(acks, ['accessibility.alt_text:1-0-0'])).toEqual(['accessibility.alt_text:1-0-0', 'accessibility.contrast:6-0-0'])
+  })
+
+  it('matches confirmations by key, whatever language they read in', () => {
+    // Two warnings that happen to read the same in a translation stay two
+    // confirmations; the server's key decides.
+    const run = {
+      checks: [
+        check({ key: 'links.shortener', status: 'warn', ack: 'Tôi hiểu.', ackKey: 'k1' }),
+        check({ key: 'links.empty', status: 'warn', ack: 'Tôi hiểu.', ackKey: 'k2' }),
+      ],
+    } as Run
+    expect(acknowledgements(run).map((a) => a.keys)).toEqual([['links.shortener'], ['links.empty']])
   })
 
   it('never marks an image decorative in bulk', () => {

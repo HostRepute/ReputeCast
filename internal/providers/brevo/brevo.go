@@ -74,10 +74,11 @@ func Descriptor() providers.Descriptor {
 			DomainAPI:       "full",
 			SuppressionSync: true,
 			BatchSize:       1,
-			DedicatedIPs:    "Professional and Enterprise plans, add-on",
 			Sandbox:         "mode",
 			QuotaDiscovery:  true,
-			Pricing:         "plan, free 300 per day, then from $9 per month for 5,000",
+			// Pricing, DedicatedIPs and every other text people read (the
+			// terms' note, the Adapters tab's words, the fields' labels and
+			// hints) are in messages/en.json: WithMessages fills them.
 			// Brevo tracks opens and clicks in transactional mail and has no
 			// API or per-message switch to stop it (only anonymous tracking
 			// in its settings), so Send Readiness can warn about it.
@@ -86,18 +87,13 @@ func Descriptor() providers.Descriptor {
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",
-		Terms: []providers.Terms{{Bulk: providers.BulkAllowed,
-			Note:    "Active, explicit, provable opt-in only; no bought or scraped lists. Brevo adds its own unsubscribe header, and its unsubscribes reach the shared list through the webhook.",
-			Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
-		Events:          "Webhooks",
-		DomainSetup:     "API",
-		SuppressionMode: "Pull only",
+		Terms:      []providers.Terms{{Bulk: providers.BulkAllowed, Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
 		Fields: []providers.Field{
-			{Key: "api_key", Label: "API key", Secret: true, Required: true, Help: "Brevo › SMTP & API › API keys. Starts with xkeysib-."},
-			{Key: "monthly_limit", Label: "Plan · emails per month", Help: "Used for the quota bar when the plan is a monthly allowance."},
+			{Key: "api_key", Secret: true, Required: true},
+			{Key: "monthly_limit"},
 		},
 		New: New,
-	}
+	}.WithMessages(msgs)
 }
 
 // Provider talks to one Brevo account.

@@ -93,12 +93,18 @@ type ReadinessCheck struct {
 	// Ack is the sentence a person confirms before sending with this warning
 	// ("I understand 412 unengaged contacts are included.").
 	Ack string `json:"ack,omitempty"`
+	// AckKey is the same for warnings confirmed with the same sentence,
+	// whatever language it is read in: they are confirmed together.
+	AckKey string `json:"ackKey,omitempty"`
 	// Note is a short right-aligned note ("timed out").
 	Note  string         `json:"note,omitempty"`
 	Fixes []ReadinessFix `json:"fixes"`
 	// Rows are a small table of the finding ("Recipients per language":
 	// English 26,890 gets English · …).
 	Rows []ReadinessCheckRow `json:"rows,omitempty"`
+
+	// texts are the messages the texts above are written from (stored.go).
+	texts *checkTexts
 }
 
 // ReadinessCheckRow is one line of a check's table.
@@ -131,6 +137,8 @@ type ReadinessGroup struct {
 	// Note is a sentence the verdict adds when the group blocks the send
 	// ("Your workspace blocks sends with serious accessibility issues…").
 	Note string `json:"note,omitempty"`
+
+	texts *groupTexts
 }
 
 // ReadinessCounts adds up the checks.
@@ -184,9 +192,11 @@ type ReadinessRouteShare struct {
 	// Available is false when the provider can't take mail (down, paused,
 	// webhooks silent); its share is held.
 	Available bool `json:"available"`
-	// Cost in US dollars; PriceLabel is "$0.10 per 1,000" or "self-hosted".
+	// Cost in US dollars; PriceLabel is "$0.10 per 1,000" or "self-hosted";
+	// Pricing is how the provider is paid for.
 	Cost       float64 `json:"cost"`
 	PriceLabel string  `json:"priceLabel"`
+	Pricing    string  `json:"pricing" enum:"metered,plan,self_hosted"`
 	// Rate is messages per second; RateLabel "14 /s" or "2 /s ramp".
 	Rate      float64 `json:"rate"`
 	RateLabel string  `json:"rateLabel"`
@@ -233,6 +243,8 @@ type ReadinessEstimates struct {
 	Audience   ReadinessAudience   `json:"audience"`
 	Route      ReadinessRoute      `json:"route"`
 	Throttling []ReadinessThrottle `json:"throttling"`
+
+	texts *estimateTexts
 }
 
 // ReadinessResult is what Assemble produces and a run stores.
@@ -247,6 +259,8 @@ type ReadinessResult struct {
 	// Problem says why checks are unknown ("api.hostrepute.com timed out…").
 	Problem   string             `json:"problem,omitempty"`
 	Estimates ReadinessEstimates `json:"estimates"`
+
+	problem Text
 }
 
 // ReadinessRun is a stored run.
@@ -278,6 +292,8 @@ type ReadinessProgressGroup struct {
 	Done    int    `json:"done"`
 	Total   int    `json:"total"`
 	Checked int    `json:"checked"`
+
+	texts *progressTexts
 }
 
 // ReadinessProgress is a run in progress.

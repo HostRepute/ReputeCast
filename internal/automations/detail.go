@@ -3,11 +3,13 @@ package automations
 import (
 	"context"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/scoring"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -67,7 +69,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, id uuid.UUID) (A
 		PausedAt: a.PausedAt, PausedBy: a.PausedByName, PauseReason: a.PauseReason,
 		Graph: draft, LiveNodeIDs: []string{}, PublishedNodeIDs: []string{}, UpdatedAt: a.UpdatedAt,
 	}
-	out.Issues = Validate(draft, refs)
+	out.Issues = validate(langOf(ctx), draft, refs)
 	published, err := s.Q.ListAutomationPublishedGraphs(ctx, a.ID)
 	if err != nil {
 		return out, err
@@ -198,6 +200,7 @@ func (s *Service) Stats(ctx context.Context, ws *store.Workspace, id uuid.UUID, 
 	for _, p := range provs {
 		names[p.ID.String()] = p
 	}
+	l := langOf(ctx)
 	byNode := map[string]*AutomationStepStats{}
 	get := func(node string) *AutomationStepStats {
 		if st, ok := byNode[node]; ok {
@@ -224,7 +227,7 @@ func (s *Service) Stats(ctx context.Context, ws *store.Workspace, id uuid.UUID, 
 		if pr, ok := names[p.ProviderID]; ok {
 			ps.Provider, ps.Short = pr.Name, shortName(pr.Name, pr.Adapter)
 		} else {
-			ps.Provider, ps.Short = "Removed provider", "Removed"
+			ps.Provider, ps.Short = say(l, txt(mLabelRemovedProvider)), say(l, txt(mLabelRemovedShort))
 		}
 		ps.Fallback = route.Fallback != nil && route.Fallback.ID == p.ProviderID
 		ps.LastDay = p.LastDay.Format(time.DateOnly)
@@ -381,7 +384,7 @@ func (s *Service) Options(ctx context.Context, ws *store.Workspace) (AutomationO
 	}
 	for _, m := range ms {
 		out.Milestones = append(out.Milestones, AutomationMilestoneOption{ID: m.ID.String(), ProgramID: m.ProgramID.String(), ListName: m.ListName,
-			Count: int(m.Count), Reward: m.RewardName, Name: milestoneName(m.Count, m.RewardName)})
+			Count: int(m.Count), Reward: m.RewardName, Name: milestoneName(langOf(ctx), m.Count, m.RewardName)})
 	}
 	return out, nil
 }
@@ -396,7 +399,10 @@ type AutomationVersionItem struct {
 	PublishedBy string     `json:"publishedBy,omitempty"`
 	RetiredAt   *time.Time `json:"retiredAt,omitempty"`
 	Summary     string     `json:"summary"`
-	InFlow      int64      `json:"inFlow"`
+	// FromCreation is true when the summary says how the flow was created
+	// (from a template, a blank canvas or a page) rather than what changed.
+	FromCreation bool  `json:"fromCreation,omitempty"`
+	InFlow       int64 `json:"inFlow"`
 }
 
 // AutomationVersions is the version history of a flow.
@@ -424,11 +430,13 @@ func (s *Service) Versions(ctx context.Context, ws *store.Workspace, id uuid.UUI
 	for _, n := range nodes {
 		inflow[n.Version] += n.N
 	}
+	l := langOf(ctx)
 	for _, r := range rows {
+		text := keptText(r.SummaryText)
 		it := AutomationVersionItem{
 			Version: int(r.Version), CreatedAt: r.CreatedAt, CreatedBy: r.CreatedByName,
 			PublishedAt: r.PublishedAt, PublishedBy: r.PublishedByName, RetiredAt: r.RetiredAt,
-			Summary: r.Summary, InFlow: inflow[r.Version],
+			Summary: keptSummary(l, r.Summary, text), FromCreation: fromCreation(r.Summary, text), InFlow: inflow[r.Version],
 		}
 		switch {
 		case r.PublishedAt == nil:
@@ -443,6 +451,38 @@ func (s *Service) Versions(ctx context.Context, ws *store.Workspace, id uuid.UUI
 		out.Versions = append(out.Versions, it)
 	}
 	return out, nil
+}
+
+var (
+	mSummaryBlank      = msg("summary.blank")
+	mSummaryTemplate   = msg("summary.template")
+	mSummaryWebinar    = msg("summary.webinar")
+	mSummaryDuplicated = msg("summary.duplicated")
+)
+
+// keptSummary is a version's summary for a reader: the English stored with
+// it for English readers and versions written before their text was kept,
+// the summary in the reader's language otherwise.
+func keptSummary(l i18n.Lang, english string, t i18n.Text) string {
+	if l.Locale == i18n.English || emptyText(t) {
+		return english
+	}
+	if s := sayVersionSummary(l, t); s != "" {
+		return s
+	}
+	return english
+}
+
+// fromCreation reports whether a summary says how the flow was created.
+func fromCreation(english string, t i18n.Text) bool {
+	if emptyText(t) {
+		return strings.HasPrefix(english, "created from")
+	}
+	switch t.ID {
+	case mSummaryBlank.ID(), mSummaryTemplate.ID(), mSummaryWebinar.ID():
+		return true
+	}
+	return false
 }
 
 // AutomationVersionGraph is one version's graph (read-only).

@@ -74,6 +74,10 @@ func CallRecordOf(op string, err error, at time.Time) state.CallRecord {
 			rec.Op = ce.Op
 		}
 		rec.Status, rec.Code, rec.Message = ce.Status, ce.Code, ce.Message
+		if ce.Message != "" {
+			// The message, when the adapter worded it, for later readers.
+			rec.Text = ce.Text
+		}
 		if rec.Message == "" && ce.Cause != nil {
 			rec.Message = ce.Cause.Error()
 		}

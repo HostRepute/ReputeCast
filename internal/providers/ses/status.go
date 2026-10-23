@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 )
 
@@ -62,7 +63,7 @@ func (p *Provider) ServiceStatus(ctx context.Context) (providers.ServiceStatus, 
 	title := strings.ToLower(item.Title)
 	if time.Since(t) < 24*time.Hour && !strings.Contains(title, "[resolved]") && !strings.Contains(title, "operating normally") {
 		st.Incident = true
-		st.Summary = "AWS reports an SES incident in " + p.s.Region + "."
+		st.Summary, st.SummaryText = say(mStatusIncident, i18n.Args{"region": p.s.Region})
 	}
 	return st, nil
 }

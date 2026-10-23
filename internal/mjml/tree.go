@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"html"
 	"strings"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Attr is one attribute with its decoded value.
@@ -82,10 +84,12 @@ func (n *Node) Walk(fn func(node *Node, path []int)) {
 	walk(n, nil)
 }
 
-// ParseError is a syntax problem with its line.
+// ParseError is a syntax problem with its line. Message is in English;
+// In writes it in a reader's language.
 type ParseError struct {
 	Line    int
 	Message string
+	text    i18n.Text
 }
 
 func (e *ParseError) Error() string { return fmt.Sprintf("Line %d: %s", e.Line, e.Message) }
@@ -134,7 +138,7 @@ func Parse(src string) (*Node, error) {
 		case strings.HasPrefix(src[lt:], "<!--"):
 			end := strings.Index(src[lt+4:], "-->")
 			if end < 0 {
-				return nil, &ParseError{Line: p.line(lt), Message: "unclosed comment"}
+				return nil, parseError(p.line(lt), mUnclosedComment, nil)
 			}
 			body := strings.TrimSpace(src[lt+4 : lt+4+end])
 			if strings.HasPrefix(body, "rc:") {
@@ -145,7 +149,7 @@ func Parse(src string) (*Node, error) {
 		case strings.HasPrefix(src[lt:], "</"):
 			gt := strings.IndexByte(src[lt:], '>')
 			if gt < 0 {
-				return nil, &ParseError{Line: p.line(lt), Message: "unfinished closing tag"}
+				return nil, parseError(p.line(lt), mUnfinishedClosingTag, nil)
 			}
 			tag := strings.ToLower(strings.TrimSpace(src[lt+2 : lt+gt]))
 			p.pos = lt + gt + 1
@@ -158,9 +162,9 @@ func Parse(src string) (*Node, error) {
 			top := stack[len(stack)-1]
 			if top.Tag != tag {
 				if len(stack) == 1 {
-					return nil, &ParseError{Line: p.line(lt), Message: fmt.Sprintf("</%s> has no opening tag", tag)}
+					return nil, parseError(p.line(lt), mNoOpeningTag, i18n.Args{"tag": tag})
 				}
-				return nil, &ParseError{Line: top.Line, Message: fmt.Sprintf("unclosed <%s>", top.Tag)}
+				return nil, parseError(top.Line, mUnclosedTag, i18n.Args{"tag": top.Tag})
 			}
 			top.End = p.pos
 			stack = stack[:len(stack)-1]
@@ -198,12 +202,12 @@ func Parse(src string) (*Node, error) {
 			closeTag := "</" + node.Tag
 			idx := indexFold(src[p.pos:], closeTag)
 			if idx < 0 {
-				return nil, &ParseError{Line: node.Line, Message: fmt.Sprintf("unclosed <%s>", node.Tag)}
+				return nil, parseError(node.Line, mUnclosedTag, i18n.Args{"tag": node.Tag})
 			}
 			node.Inner = src[p.pos : p.pos+idx]
 			gt := strings.IndexByte(src[p.pos+idx:], '>')
 			if gt < 0 {
-				return nil, &ParseError{Line: node.Line, Message: fmt.Sprintf("unclosed <%s>", node.Tag)}
+				return nil, parseError(node.Line, mUnclosedTag, i18n.Args{"tag": node.Tag})
 			}
 			p.pos = p.pos + idx + gt + 1
 			node.End = p.pos
@@ -214,7 +218,7 @@ func Parse(src string) (*Node, error) {
 	for len(stack) > 1 {
 		top := stack[len(stack)-1]
 		if !voidTags[top.Tag] {
-			return nil, &ParseError{Line: top.Line, Message: fmt.Sprintf("unclosed <%s>", top.Tag)}
+			return nil, parseError(top.Line, mUnclosedTag, i18n.Args{"tag": top.Tag})
 		}
 		top.End = len(src)
 		stack = stack[:len(stack)-1]
@@ -225,9 +229,9 @@ func Parse(src string) (*Node, error) {
 		}
 	}
 	if len(root.Children) == 0 {
-		return nil, &ParseError{Line: 1, Message: "the document is empty"}
+		return nil, parseError(1, mEmpty, nil)
 	}
-	return nil, &ParseError{Line: root.Children[0].Line, Message: "the document must start with <mjml>"}
+	return nil, parseError(root.Children[0].Line, mNoRoot, nil)
 }
 
 // openTag parses the tag starting at lt. It returns nil for text that only
@@ -249,7 +253,7 @@ func (p *parser) openTag(lt int) (*Node, bool, error) {
 			i++
 		}
 		if i >= len(src) {
-			return nil, false, &ParseError{Line: n.Line, Message: fmt.Sprintf("unfinished <%s>", n.Tag)}
+			return nil, false, parseError(n.Line, mUnfinishedTag, i18n.Args{"tag": n.Tag})
 		}
 		if src[i] == '>' {
 			p.pos = i + 1
@@ -277,7 +281,7 @@ func (p *parser) openTag(lt int) (*Node, bool, error) {
 				q := src[i]
 				end := strings.IndexByte(src[i+1:], q)
 				if end < 0 {
-					return nil, false, &ParseError{Line: p.line(i), Message: fmt.Sprintf("unclosed quote in <%s>", n.Tag)}
+					return nil, false, parseError(p.line(i), mUnclosedQuote, i18n.Args{"tag": n.Tag})
 				}
 				val = src[i+1 : i+1+end]
 				i = i + 1 + end + 1

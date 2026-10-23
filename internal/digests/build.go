@@ -15,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -36,13 +37,13 @@ func issueName(digest string, number int) string { return fmt.Sprintf("%s #%d", 
 // build makes an issue's content: the Feed items block expanded with the
 // posts, feed tokens filled in, MJML compiled. Personalization stays for
 // the send.
-func build(d store.Digest, tpl store.DigestCampaignTemplateRow, posts []BlockItem, number int, sendAt *time.Time, loc *time.Location) (built, error) {
+func build(d store.Digest, tpl store.DigestCampaignTemplateRow, posts []BlockItem, number int, sendAt *time.Time, loc *time.Location, el i18n.Lang) (built, error) {
 	block, _ := BlockOf(tpl.Mjml)
 	shown, rest := block.Select(posts)
 	for i := range shown {
 		shown[i] = block.withImage(shown[i])
 	}
-	data := IssueData{FeedTitle: d.FeedTitle, FeedURL: d.FeedUrl, Number: number, Items: shown, Loc: loc}
+	data := IssueData{FeedTitle: d.FeedTitle, FeedURL: d.FeedUrl, Number: number, Items: shown, Loc: loc, Lang: el}
 	if sendAt != nil {
 		data.Date = *sendAt
 	}
@@ -55,7 +56,7 @@ func build(d store.Digest, tpl store.DigestCampaignTemplateRow, posts []BlockIte
 		return out, fmt.Errorf("the preheader: %w", err)
 	}
 	out.Subject, out.Preheader = strings.TrimSpace(out.Subject), strings.TrimSpace(out.Preheader)
-	src := ExpandBlock(tpl.Mjml, shown, loc)
+	src := ExpandBlock(tpl.Mjml, shown, loc, el)
 	if src, err = RenderIssue(src, data, true); err != nil {
 		return out, fmt.Errorf("the email: %w", err)
 	}
@@ -82,7 +83,7 @@ func (s *Service) materialize(ctx context.Context, ws *store.Workspace, d store.
 		return uuid.Nil, built{}, errNoTemplate
 	}
 	loc := location(ParseSchedule(d.Schedule, ws.Timezone).Timezone)
-	b, err := build(d, *tpl, posts, number, issue.SendAt, loc)
+	b, err := build(d, *tpl, posts, number, issue.SendAt, loc, emailLang(ctx, s.Q, ws.ID, &tpl.ID))
 	if err != nil {
 		return uuid.Nil, b, err
 	}
@@ -168,10 +169,10 @@ type IssueContent struct {
 }
 
 // BuildIssue builds an issue from a template and its posts, as a
-// preparation does (the demo seeds its sample issues with it).
+// preparation does (the demo seeds its sample issues with it), in English.
 func BuildIssue(d store.Digest, tpl store.DigestCampaignTemplateRow, posts []BlockItem, number int, sendAt *time.Time, tz string) (IssueContent, error) {
 	loc := location(ParseSchedule(d.Schedule, tz).Timezone)
-	b, err := build(d, tpl, posts, number, sendAt, loc)
+	b, err := build(d, tpl, posts, number, sendAt, loc, i18n.Lang{})
 	if err != nil {
 		return IssueContent{}, err
 	}

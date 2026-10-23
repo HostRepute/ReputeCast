@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -146,11 +147,12 @@ func (s *Service) Policy(ctx context.Context, ws *store.Workspace, p *authz.Prin
 
 // UpdatePolicy saves the policy and records the change.
 func (s *Service) UpdatePolicy(ctx context.Context, ws *store.Workspace, p *authz.Principal, in AccessibilityPolicyInput) (AccessibilityPolicy, error) {
+	l := i18n.LangFrom(ctx)
 	if in.OnSerious != PolicyWarn && in.OnSerious != PolicyBlock {
-		return AccessibilityPolicy{}, api.Invalid("body.onSerious", "Choose Warn or Block.")
+		return AccessibilityPolicy{}, api.Invalid("body.onSerious", mProblemOnSerious.Text(l, nil))
 	}
 	if in.MinTextPx < MinMinTextPx || in.MinTextPx > MaxMinTextPx {
-		return AccessibilityPolicy{}, api.Invalid("body.minTextPx", "Choose a minimum text size from 12 to 16 px.")
+		return AccessibilityPolicy{}, api.Invalid("body.minTextPx", mProblemMinText.Text(l, i18n.Args{"min": MinMinTextPx, "max": MaxMinTextPx}))
 	}
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -371,7 +373,7 @@ func (s *Service) CheckCampaign(ctx context.Context, ws *store.Workspace, id uui
 	}
 	r, err := s.run(ctx, ws.ID, versions)
 	if errors.Is(err, ErrCompile) {
-		return r, api.Err(http.StatusUnprocessableEntity, "accessibility_unchecked", "Couldn't check the email: the MJML doesn't compile. Your edits are saved.")
+		return r, api.Err(http.StatusUnprocessableEntity, "accessibility_unchecked", mProblemUncheckable.Text(i18n.LangFrom(ctx), nil))
 	}
 	return r, err
 }

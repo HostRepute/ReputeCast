@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"slices"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 )
 
@@ -30,17 +31,21 @@ func CommunityDescriptor(key, name, version, maintainer string, raw []byte) (pro
 	p := provider(probe)
 	manifest := slices.Clone(raw)
 	d := Descriptor()
+	// A community adapter writes English: the texts that stay ReputeCast's
+	// (the adapter's own fields, the default terms) keep their messages, the
+	// manifest's read as its author wrote them.
+	d.Messages = nil
 	d.Adapter, d.Name, d.Kind, d.Version, d.Maintainer = key, name, "community", version, maintainer
 	d.Capabilities = probe.Capabilities()
 	if d.Capabilities.Webhooks == "" {
-		d.Events = "None"
+		d.Events, d.EventsText = mEventsNone.Text(i18n.Default, nil), mEventsNone.Keep(nil)
 	}
 	terms := p.Terms()
 	streams := []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}
 	if terms.Bulk == providers.BulkForbidden || terms.Bulk == providers.BulkBroadcastStreams {
 		streams = []providers.Stream{providers.StreamAutomation, providers.StreamSystem}
 	}
-	d.Terms = []providers.Terms{{Bulk: terms.Bulk, Note: terms.Note, Streams: streams}}
+	d.Terms = []providers.Terms{{Bulk: terms.Bulk, Note: terms.Note, NoteText: terms.NoteText, Streams: streams}}
 	for _, f := range m.HTTP.Fields {
 		if !slices.ContainsFunc(d.Fields, func(x providers.Field) bool { return x.Key == f.Key }) {
 			d.Fields = append(d.Fields, f)

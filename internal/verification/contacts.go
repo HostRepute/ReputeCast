@@ -10,6 +10,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/verification/adapter"
 )
@@ -82,7 +83,7 @@ func (s *Service) ContactCheck(ctx context.Context, ws *store.Workspace, contact
 	out.Connected = len(all) > 0
 	if chosen != nil {
 		out.VerifyService, out.VerifyServiceName = chosen.Service, ServiceName(chosen.Service)
-		out.RegionLabel = RegionLabel(chosen.Service, chosen.Region)
+		out.RegionLabel = regionIn(i18n.LangFrom(ctx), chosen.Service, chosen.Region)
 		out.Price = Money(chosen.PriceMicros).Dollars()
 		out.Balance = chosen.Balance
 	}

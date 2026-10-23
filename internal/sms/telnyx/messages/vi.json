@@ -1,0 +1,10 @@
+{
+  "summary": "Trả theo mức dùng · mạng lưới nhà mạng riêng tại Mỹ",
+  "badge.opt_out_sync.note": "chỉ đọc",
+  "badge.pricing.note": "chi phí của từng tin nhắn",
+  "field.api_key.label": "Khóa API",
+  "field.public_key.label": "Khóa công khai",
+  "field.public_key.help": "Portal › Keys & Credentials › Public key. ReputeCast kiểm tra chữ ký của mọi webhook bằng khóa này.",
+  "field.messaging_profile_id.label": "Messaging profile ID",
+  "field.messaging_profile_id.help": "Để trống thì ReputeCast tạo một messaging profile cho các webhook của nó."
+}

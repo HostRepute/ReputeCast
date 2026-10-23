@@ -9,6 +9,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/domains"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -50,7 +51,7 @@ func (s *Service) ChooseDomain(ctx context.Context, ws *store.Workspace, rawID s
 		return s.View(ctx, ws, st)
 	}
 	if strings.TrimSpace(in.Domain) == "" {
-		return ConnectSetup{}, api.Invalid("body.domain", "Enter the domain you send from, like news.acme.io.")
+		return ConnectSetup{}, api.Invalid("body.domain", mProblemDomain.Text(i18n.LangFrom(ctx), nil))
 	}
 	d, err := s.Domains.EnsureDomain(ctx, ws, in.Domain)
 	if err != nil {

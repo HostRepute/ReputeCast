@@ -38,7 +38,7 @@ type campaign struct {
 func (s *Service) campaignFor(ctx context.Context, ws *store.Workspace, p *authz.Principal, raw string) (campaign, error) {
 	id, err := uuid.Parse(raw)
 	if err != nil {
-		return campaign{}, api.Invalid("body.campaignId", "Name the campaign.")
+		return campaign{}, invalid(ctx, "body.campaignId", mCampaignID, nil)
 	}
 	if !p.Can(authz.CampaignsEdit) {
 		return campaign{}, api.Forbidden(authz.CampaignsEdit, nil)

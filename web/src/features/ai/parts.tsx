@@ -61,9 +61,15 @@ export function rowFeature(t: ReturnType<typeof useT>, r: Pick<ActivityRow, 'fea
 /** The outcome's badge: "Accepted 1 of 5", "Refused by the model", "Error · 529 overloaded". */
 export function OutcomeBadge({ outcome, detail }: { outcome: ActivityRow['outcome']; detail?: string }) {
   const t = useT()
+  // Subject ideas store how many were used as "1 of 5": one message, in every language.
+  const of = detail ? /^(\d+) of (\d+)$/.exec(detail) : null
   switch (outcome) {
     case 'accepted':
-      return <Badge tone="ok">{detail ? t(m.badgeAcceptedOf, { detail }) : t(m.badgeAccepted)}</Badge>
+      return (
+        <Badge tone="ok">
+          {of ? t(m.badgeAcceptedCount, { accepted: Number(of[1]), total: Number(of[2]) }) : detail ? t(m.badgeAcceptedOf, { detail }) : t(m.badgeAccepted)}
+        </Badge>
+      )
     case 'accepted_edits':
       return <Badge tone="ok">{t(m.badgeAcceptedEdits)}</Badge>
     case 'kept':

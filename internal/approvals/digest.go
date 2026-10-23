@@ -13,6 +13,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -128,7 +129,15 @@ func (s *Service) RequestForIssue(ctx context.Context, ws *store.Workspace, owne
 		n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalRequested, Severity: "warn", Title: "Approval requested", Body: body,
 			Summary: fmt.Sprintf("%s's digest: %s · %s recipients", author.Name, c.Name, readiness.Count(snap.AudienceCount)),
 			Link:    "/w/" + ws.Slug + "/approvals/" + id.String(), Data: map[string]any{"request_id": id.String(), "campaign_id": campaignID.String(), "digest": in.Digest}}
+		n.TitleText = mNotifyRequestedTitle.Keep(nil)
+		n.SummaryText = mNotifyDigestSummary.Keep(i18n.Args{"owner": author.Name, "name": c.Name, "count": snap.AudienceCount})
+		held := "no"
+		if in.Held {
+			held = "yes"
+		}
 		for _, a := range approvers {
+			n.BodyText = mNotifyDigestBody.Keep(i18n.Args{"owner": author.Name, "name": c.Name, "count": snap.AudienceCount,
+				"rules": ruleList(readerLang(ctx, q, a.ID), rules), "held": held})
 			if err := notify.ToUser(ctx, tx, a.ID, n); err != nil {
 				return err
 			}

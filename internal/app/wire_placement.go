@@ -94,7 +94,7 @@ func (r placementReadiness) Latest(ctx context.Context, _ *store.Workspace, camp
 	}
 	out := placement.ReadinessSummary{Passed: run.Counts.Passed, Warnings: run.Counts.Warnings, Blocks: run.Counts.Blocks,
 		Blocking: []string{}, Evidence: []string{}}
-	for _, c := range run.Checks {
+	for _, c := range readiness.InChecks(run.Checks, i18n.LangFrom(ctx)) {
 		if c.Status != "block" {
 			continue
 		}
@@ -124,7 +124,7 @@ func (n placementNotifier) TestFinished(ctx context.Context, ws *store.Workspace
 	}
 	l := applang.ForUserID(ctx, n.a.Q, *t.StartedBy)
 	nt := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindPlacementFinished, Severity: "ok",
-		Title: placement.MFinishedTitle.Text(l, i18n.Args{"name": t.Name}), Body: summary, Summary: summary,
+		Title: placement.MFinishedTitle.Text(l, i18n.Args{"name": placement.NameIn(l, t.Name, t.ContentName)}), Body: summary, Summary: summary,
 		Link: fmt.Sprintf("/w/%s/deliverability/placement/%s", ws.Slug, t.ID), Data: map[string]any{"test": t.ID.String()}}
 	if err := notify.ToUser(ctx, n.a.Pool, *t.StartedBy, nt); err != nil && n.a.Log != nil {
 		n.a.Log.WarnContext(ctx, "notify placement test", "err", err)

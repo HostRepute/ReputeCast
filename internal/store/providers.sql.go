@@ -620,7 +620,7 @@ func (q *Queries) ProvHeldRoutes(ctx context.Context, arg ProvHeldRoutesParams) 
 }
 
 const provIncidentsSince = `-- name: ProvIncidentsSince :many
-SELECT id, workspace_id, occurred_at, kind, severity, title, detail, campaign_id, provider_id, resolved_at, source, asset, external_id FROM incidents
+SELECT id, workspace_id, occurred_at, kind, severity, title, detail, campaign_id, provider_id, resolved_at, source, asset, external_id, texts FROM incidents
 WHERE workspace_id = $1 AND occurred_at >= $2
   AND (provider_id = ANY($3::uuid[]) OR campaign_id = ANY($4::uuid[]))
 ORDER BY occurred_at DESC, id DESC
@@ -662,6 +662,7 @@ func (q *Queries) ProvIncidentsSince(ctx context.Context, arg ProvIncidentsSince
 			&i.Source,
 			&i.Asset,
 			&i.ExternalID,
+			&i.Texts,
 		); err != nil {
 			return nil, err
 		}
@@ -674,20 +675,21 @@ func (q *Queries) ProvIncidentsSince(ctx context.Context, arg ProvIncidentsSince
 }
 
 const provInsertIncident = `-- name: ProvInsertIncident :exec
-INSERT INTO incidents (id, workspace_id, occurred_at, kind, severity, title, detail, campaign_id, provider_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO incidents (id, workspace_id, occurred_at, kind, severity, title, detail, campaign_id, provider_id, texts)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, coalesce($10::jsonb, '{}'::jsonb))
 `
 
 type ProvInsertIncidentParams struct {
-	ID          uuid.UUID  `json:"id"`
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	OccurredAt  time.Time  `json:"occurredAt"`
-	Kind        string     `json:"kind"`
-	Severity    string     `json:"severity"`
-	Title       string     `json:"title"`
-	Detail      string     `json:"detail"`
-	CampaignID  *uuid.UUID `json:"campaignId"`
-	ProviderID  *uuid.UUID `json:"providerId"`
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	OccurredAt  time.Time       `json:"occurredAt"`
+	Kind        string          `json:"kind"`
+	Severity    string          `json:"severity"`
+	Title       string          `json:"title"`
+	Detail      string          `json:"detail"`
+	CampaignID  *uuid.UUID      `json:"campaignId"`
+	ProviderID  *uuid.UUID      `json:"providerId"`
+	Texts       json.RawMessage `json:"texts"`
 }
 
 func (q *Queries) ProvInsertIncident(ctx context.Context, arg ProvInsertIncidentParams) error {
@@ -701,6 +703,7 @@ func (q *Queries) ProvInsertIncident(ctx context.Context, arg ProvInsertIncident
 		arg.Detail,
 		arg.CampaignID,
 		arg.ProviderID,
+		arg.Texts,
 	)
 	return err
 }

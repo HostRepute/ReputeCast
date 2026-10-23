@@ -3,10 +3,10 @@ package connect
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"html"
 	"net/mail"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/domains"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -122,13 +123,14 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, rawID strin
 	if err != nil {
 		return ConnectTestStatus{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	sid, err := uuid.Parse(in.SenderID)
 	if err != nil {
-		return ConnectTestStatus{}, api.Invalid("body.senderId", "Pick the From address.")
+		return ConnectTestStatus{}, api.Invalid("body.senderId", mProblemPickFrom.Text(l, nil))
 	}
 	sender, err := s.Q.SenderGet(ctx, store.SenderGetParams{WorkspaceID: ws.ID, ID: sid})
 	if err != nil {
-		return ConnectTestStatus{}, api.Invalid("body.senderId", "Pick a sender of this workspace.")
+		return ConnectTestStatus{}, api.Invalid("body.senderId", mProblemPickSender.Text(l, nil))
 	}
 	recipients := []string{}
 	if len(in.Seeds) > 0 {
@@ -136,13 +138,13 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, rawID strin
 			if v := strings.TrimSpace(in.Seeds[mb]); v != "" {
 				a, err := mail.ParseAddress(v)
 				if err != nil {
-					return ConnectTestStatus{}, api.Invalid("body.seeds."+mb, "Enter an address like you@"+mb+".com.")
+					return ConnectTestStatus{}, api.Invalid("body.seeds."+mb, mProblemSeedAddress.Text(l, i18n.Args{"mailbox": mb}))
 				}
 				recipients = append(recipients, strings.ToLower(a.Address))
 			}
 		}
 		if len(recipients) == 0 {
-			return ConnectTestStatus{}, api.Invalid("body.seeds", "Enter at least one seed address.")
+			return ConnectTestStatus{}, api.Invalid("body.seeds", mProblemSeedOne.Text(l, nil))
 		}
 		if err := s.saveSeeds(ctx, ws, in.Seeds); err != nil {
 			return ConnectTestStatus{}, err
@@ -150,16 +152,17 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, rawID strin
 	} else {
 		a, err := mail.ParseAddress(strings.TrimSpace(in.To))
 		if err != nil {
-			return ConnectTestStatus{}, api.Invalid("body.to", "Enter the address to send the test to.")
+			return ConnectTestStatus{}, api.Invalid("body.to", mProblemTestTo.Text(l, nil))
 		}
 		recipients = append(recipients, strings.ToLower(a.Address))
 	}
-	d, err := descriptor(st.Adapter)
+	d, err := descriptor(ctx, st.Adapter)
 	if err != nil {
 		return ConnectTestStatus{}, err
 	}
-	c := copyFor(d)
-	brand := systemmail.Brand{Name: "ReputeCast", Accent: "#0F766E", Footer: "Sent by ReputeCast for " + ws.Name}
+	c := copyFor(l, d)
+	// The test goes to the person who sends it: it reads in their language.
+	brand := systemmail.Brand{Name: "ReputeCast", Accent: "#0F766E", Footer: mEmailFooter.Text(l, i18n.Args{"workspace": ws.Name})}
 	var first uuid.UUID
 	size := 0
 	for _, to := range recipients {
@@ -168,10 +171,10 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, rawID strin
 		if s.Links != nil && s.URLs.Base() != "" {
 			pixel = `<img src="` + html.EscapeString(s.URLs.Open(s.Links.Sign(linkClaims(ws.ID, id)))) + `" width="1" height="1" alt="" style="display:block">`
 		}
-		body := fmt.Sprintf(`<p style="margin:0 0 12px">This is a test from <b>%s</b> through <b>%s</b>.</p><p style="margin:0 0 12px">If it reached your inbox, the provider works. The delivery timeline in ReputeCast shows each step, and opening this message shows up there too.</p>%s`,
-			html.EscapeString(ws.Name), html.EscapeString(p.Name), pixel)
-		text := fmt.Sprintf("This is a test from %s through %s.\n\nIf it reached your inbox, the provider works. The delivery timeline in ReputeCast shows each step.\n", ws.Name, p.Name)
-		rendered, err := systemmail.Render("test", brand, in.Subject, text, body)
+		intro := i18n.Args{"workspace": ws.Name, "provider": p.Name}
+		body := `<p style="margin:0 0 12px">` + mEmailIntro.HTML(l, intro, nil) + `</p><p style="margin:0 0 12px">` + mEmailWorks.HTML(l, nil, nil) + `</p>` + pixel
+		text := mEmailIntro.Text(l, intro) + "\n\n" + mEmailWorksText.Text(l, nil) + "\n"
+		rendered, err := systemmail.RenderIn(l, "test", brand, in.Subject, text, body)
 		if err != nil {
 			return ConnectTestStatus{}, err
 		}
@@ -184,7 +187,7 @@ func (s *Service) SendTest(ctx context.Context, ws *store.Workspace, rawID strin
 			Headers: map[string]string{"X-ReputeCast-Kind": "test"}, Tags: map[string]string{"rc_kind": "test"}}
 		if _, err := s.Deliver.Send(ctx, p, msg, "test"); err != nil {
 			if first == uuid.Nil {
-				return ConnectTestStatus{}, api.Err(422, api.CodeProviderUnavailable, p.Name+" didn't accept the test: "+callMessage(err))
+				return ConnectTestStatus{}, api.Err(422, api.CodeProviderUnavailable, mProblemTestRejected.Text(l, i18n.Args{"name": p.Name, "error": providers.MessageIn(err, l)}))
 			}
 			continue
 		}
@@ -237,14 +240,15 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 	if err != nil {
 		return ConnectTestStatus{}, err
 	}
-	d, err := descriptor(st.Adapter)
+	d, err := descriptor(ctx, st.Adapter)
 	if err != nil {
 		return ConnectTestStatus{}, err
 	}
-	c := copyFor(d)
+	l := i18n.LangFrom(ctx)
+	c := copyFor(l, d)
 	state := decodeState(st.State)
 	out := ConnectTestStatus{Senders: []ConnectSenderOption{}, Timeline: []ConnectTimelineStep{}, Seeds: []string{}, SeedList: map[string]string{},
-		Subject: "ReputeCast test from " + p.Name}
+		Subject: mTestSubject.Text(l, i18n.Args{"name": p.Name})}
 	if row, err := s.Q.SenderWorkspaceDefaults(ctx, ws.ID); err == nil {
 		var sd struct {
 			Seeds map[string]string `json:"seed_list"`
@@ -302,17 +306,18 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 	loc := state2Location(ws.Timezone)
 	clockMs := func(t time.Time) string { return t.In(loc).Format("15:04:05.000") }
 	queued := m.QueuedAt
-	out.Timeline = append(out.Timeline, ConnectTimelineStep{Key: "queued", Title: "Queued by ReputeCast", Status: "done", At: &queued,
-		Detail: clockMs(queued) + " · message rc_" + strings.ReplaceAll(m.ID.String(), "-", "")[:8] + "…"})
-	accepted := ConnectTimelineStep{Key: "accepted", Title: "Accepted by " + p.Name, Status: "waiting", Detail: "Waiting for " + c.Short}
+	out.Timeline = append(out.Timeline, ConnectTimelineStep{Key: "queued", Title: mTimelineQueued.Text(l, nil), Status: "done", At: &queued,
+		Detail: mTimelineQueuedDetail.Text(l, i18n.Args{"clock": clockMs(queued), "id": "rc_" + strings.ReplaceAll(m.ID.String(), "-", "")[:8]})})
+	accepted := ConnectTimelineStep{Key: "accepted", Title: mTimelineAccepted.Text(l, i18n.Args{"name": p.Name}), Status: "waiting",
+		Detail: mTimelineWaitingFor.Text(l, i18n.Args{"short": c.Short})}
 	switch {
 	case m.Status == "failed":
 		accepted.Status, accepted.Detail = "failed", m.Error
 	case m.SentAt != nil:
 		accepted.Status, accepted.At = "done", m.SentAt
-		detail := clockMs(*m.SentAt) + " · " + fmt.Sprint(m.SentAt.Sub(queued).Milliseconds()) + " ms"
+		args := i18n.Args{"clock": clockMs(*m.SentAt), "ms": milliseconds(m.SentAt.Sub(queued)), "hasID": "no", "hasSet": "no"}
 		if m.ProviderMessageID != nil && *m.ProviderMessageID != "" {
-			detail += " · MessageId " + shorten(*m.ProviderMessageID)
+			args["hasID"], args["id"] = "yes", shorten(*m.ProviderMessageID)
 		}
 		var cfg struct {
 			Sets map[string]string `json:"configuration_sets"`
@@ -320,11 +325,11 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 		}
 		_ = json.Unmarshal(p.Config, &cfg)
 		if cs := cfg.Sets[m.Stream]; cs != "" {
-			detail += " · configuration set " + cs
+			args["hasSet"], args["set"] = "yes", cs
 		} else if cfg.Set != "" {
-			detail += " · configuration set " + cfg.Set
+			args["hasSet"], args["set"] = "yes", cfg.Set
 		}
-		accepted.Detail = detail
+		accepted.Detail = mTimelineAcceptedDetail.Text(l, args)
 	}
 	out.Timeline = append(out.Timeline, accepted)
 	mailbox, mx := s.mailboxOf(ctx, t.To)
@@ -347,7 +352,8 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 			}
 		}
 	}
-	sent := ConnectTimelineStep{Key: "sent", Title: "Sent to " + routing.MailboxName(mailbox), Status: "waiting", Detail: "Waiting for the first event from " + c.Short}
+	sent := ConnectTimelineStep{Key: "sent", Title: mTimelineSent.Text(l, i18n.Args{"mailbox": mailbox}), Status: "waiting",
+		Detail: mTimelineWaitingFirst.Text(l, i18n.Args{"short": c.Short})}
 	webhook := state.Connection.Webhook
 	// In development a demo provider's test goes to Mailpit, which records
 	// the delivery itself; the demo's own test message has real events.
@@ -362,24 +368,21 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 		}
 		if first != nil && !inferred {
 			at := first.At
-			event := c.Short + " event"
-			if first.Name != "" {
-				event = c.Short + " \"" + first.Name + "\" event"
-			}
 			sent.Status, sent.At = "done", &at
-			sent.Detail = clockMs(at) + " · " + event + " via " + first.Via + " · " + fmt.Sprint(at.Sub(*m.SentAt).Milliseconds()) + " ms after accept"
+			sent.Detail = mTimelineSentDetail.Text(l, i18n.Args{"clock": clockMs(at), "short": c.Short, "hasName": yesNo(first.Name != ""), "name": first.Name,
+				"via": first.Via, "ms": milliseconds(at.Sub(*m.SentAt))})
 		} else if delivered != nil {
 			at := delivered.OccurredAt
 			sent.Status, sent.At = "done", &at
 			if inferred {
-				sent.Detail = clockMs(at) + " · " + smtpVia(p, mailpit) + " accepted it for delivery"
+				sent.Detail = mTimelineSentInferred.Text(l, i18n.Args{"clock": clockMs(at), "mailpit": yesNo(mailpit), "via": smtpVia(p, mailpit)})
 			} else {
-				sent.Detail = clockMs(at) + " · " + c.Short + " event"
+				sent.Detail = mTimelineSentEvent.Text(l, i18n.Args{"clock": clockMs(at), "short": c.Short})
 			}
 		}
 	}
 	if webhook != nil && webhook.Mode == "polling" && sent.Status == "waiting" {
-		sent.Detail = "Waiting · ReputeCast polls " + c.Short + "'s events API every minute"
+		sent.Detail = mTimelinePolling.Text(l, i18n.Args{"short": c.Short})
 	}
 	out.Timeline = append(out.Timeline, sent)
 	host := mx
@@ -392,25 +395,19 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 	if host == "" {
 		host = t.To[strings.LastIndexByte(t.To, '@')+1:]
 	}
-	del := ConnectTimelineStep{Key: "delivered", Title: "Delivered to " + host, Status: "waiting", Detail: "Waiting for the delivery event"}
+	del := ConnectTimelineStep{Key: "delivered", Title: mTimelineDelivered.Text(l, i18n.Args{"host": host}), Status: "waiting", Detail: mTimelineWaitingDelivery.Text(l, nil)}
 	switch {
 	case delivered != nil:
 		at := delivered.OccurredAt
 		del.Status, del.At = "done", &at
 		code := strings.TrimSpace(delivered.OriginalCode + " " + strings.SplitN(delivered.Diagnostic, " · smtpResponse from ", 2)[0])
-		detail := clockMs(at) + " · " + c.Short + " \"" + strings.SplitN(delivered.OriginalType, " ·", 2)[0] + "\" event"
-		if code != "" {
-			detail += " · `" + code + "`"
-		}
-		del.Detail = detail
+		del.Detail = mTimelineDeliveredDetail.Text(l, i18n.Args{"clock": clockMs(at), "short": c.Short, "event": strings.SplitN(delivered.OriginalType, " ·", 2)[0],
+			"hasCode": yesNo(code != ""), "code": code})
 		if mailpit {
-			del.Title = "Delivered to Mailpit (development)"
-			del.Detail = clockMs(at) + " · SMTP reply"
-			if code != "" {
-				del.Detail += " `" + code + "`"
-			}
+			del.Title = mTimelineDeliveredMailpit.Text(l, nil)
+			del.Detail = mTimelineSMTPReply.Text(l, i18n.Args{"clock": clockMs(at), "hasCode": yesNo(code != ""), "code": code})
 		}
-		out.RoundTrip = roundTrip(at.Sub(queued), d, mailpit)
+		out.RoundTrip = roundTrip(l, at.Sub(queued), d, mailpit)
 		ms := at.Sub(queued).Milliseconds()
 		if t.RoundTripMs != ms {
 			_ = s.setRoundTrip(ctx, st.ID, ms)
@@ -418,21 +415,21 @@ func (s *Service) TestStatus(ctx context.Context, ws *store.Workspace, rawID str
 	case failed != nil:
 		at := failed.OccurredAt
 		del.Status, del.At = "failed", &at
-		del.Title = map[string]string{"hard_bounce": "Bounced", "soft_bounce": "Bounced (temporary)", "rejected": "Rejected", "complaint": "Marked as spam", "deferred": "Deferred"}[failed.Type]
+		del.Title = mTimelineFailed.Text(l, i18n.Args{"type": failed.Type})
 		del.Detail = clockMs(at) + " · `" + strings.TrimSpace(failed.OriginalCode+" "+failed.Diagnostic) + "`"
 	}
 	out.Timeline = append(out.Timeline, del)
-	op := ConnectTimelineStep{Key: "opened", Title: "Opened", Status: "waiting", Detail: "Waiting · open the message in your inbox. Apple Mail prefetches count as machine opens."}
+	op := ConnectTimelineStep{Key: "opened", Title: mTimelineOpened.Text(l, nil), Status: "waiting", Detail: mTimelineWaitingOpen.Text(l, nil)}
 	if m.OpenedAt != nil {
-		op.Status, op.At, op.Detail = "done", m.OpenedAt, clockMs(*m.OpenedAt)+" · counted by ReputeCast's open pixel"
+		op.Status, op.At, op.Detail = "done", m.OpenedAt, mTimelineOpenPixel.Text(l, i18n.Args{"clock": clockMs(*m.OpenedAt)})
 	} else if opened != nil {
 		at := opened.OccurredAt
-		op.Status, op.At, op.Detail = "done", &at, clockMs(at)+" · "+c.Short+" open event"
+		op.Status, op.At, op.Detail = "done", &at, mTimelineOpenEvent.Text(l, i18n.Args{"clock": clockMs(at), "short": c.Short})
 	}
 	out.Timeline = append(out.Timeline, op)
 	out.Listening = m.Status != "failed" && (delivered == nil && failed == nil || op.Status == "waiting") && s.now().Sub(queued) < 30*time.Minute
 	if m.SentAt != nil {
-		out.Auth = s.authResult(ctx, ws, p, t, mailbox, mx)
+		out.Auth = s.authResult(ctx, l, ws, p, t, mailbox, mx)
 	}
 	return out, nil
 }
@@ -470,15 +467,19 @@ func shorten(id string) string {
 	return id[:7] + "…" + id[len(id)-4:]
 }
 
-func roundTrip(d time.Duration, desc providers.Descriptor, mailpit bool) string {
-	secs := fmt.Sprintf("%.1f s", d.Seconds())
+// milliseconds writes a duration in whole milliseconds, as the timeline
+// shows them ("636").
+func milliseconds(d time.Duration) string { return strconv.FormatInt(d.Milliseconds(), 10) }
+
+func roundTrip(l i18n.Lang, d time.Duration, desc providers.Descriptor, mailpit bool) string {
+	kind := "webhook"
 	switch {
 	case mailpit:
-		return "Round trip " + secs + " from queue to Mailpit. In development the demo's providers deliver there."
+		kind = "mailpit"
 	case desc.Capabilities.Webhooks == "Bounce mailbox" || desc.Capabilities.Webhooks == "":
-		return "Round trip " + secs + " from queue to the server's 250 reply. Bounces arrive through the bounce mailbox."
+		kind = "mailbox"
 	}
-	return "Round trip " + secs + " from queue to delivery event. Webhooks work."
+	return mTestRoundTrip.Text(l, i18n.Args{"kind": kind, "seconds": seconds(l, d.Seconds())})
 }
 
 // firstWebhook finds the provider's first webhook about the test message:
@@ -542,7 +543,7 @@ func (s *Service) updateTest(ctx context.Context, setupID uuid.UUID, fn func(t *
 // authResult predicts the receiver's Authentication-Results from the
 // sender domain's records for this provider, the same checks a mailbox
 // provider runs.
-func (s *Service) authResult(ctx context.Context, ws *store.Workspace, p store.Provider, t *TestStep, mailbox, mx string) *ConnectAuthResult {
+func (s *Service) authResult(ctx context.Context, l i18n.Lang, ws *store.Workspace, p store.Provider, t *TestStep, mailbox, mx string) *ConnectAuthResult {
 	from := strings.ToLower(t.From)
 	domain := from[strings.LastIndexByte(from, '@')+1:]
 	size := t.SizeBytes
@@ -553,8 +554,11 @@ func (s *Service) authResult(ctx context.Context, ws *store.Workspace, p store.P
 	authserv := map[string]string{routing.Gmail: "mx.google.com", routing.Outlook: "spf.protection.outlook.com", routing.Yahoo: "atlas.yahoo.com", routing.ICloud: "mx.icloud.com"}[mailbox]
 	if authserv == "" {
 		authserv = mx
-		if out.Receiver == "Other" && mx != "" {
+		switch {
+		case out.Receiver == "Other" && mx != "":
 			out.Receiver = mx
+		case out.Receiver == "Other":
+			out.Receiver = mMailboxOther.Text(l, nil)
 		}
 	}
 	d, err := s.Q.DomGetByName(ctx, store.DomGetByNameParams{WorkspaceID: ws.ID, Domain: domain})

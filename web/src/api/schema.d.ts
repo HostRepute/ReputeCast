@@ -17745,6 +17745,7 @@ export interface components {
             kind: "alt_text" | "link_no_text" | "contrast" | "link_text" | "heading" | "text_size";
             languages: string[];
             location: string[];
+            name?: string;
             path: number[];
             paths: number[][];
             /** @enum {string} */
@@ -19109,6 +19110,7 @@ export interface components {
             /** Format: date-time */
             invalidatedAt?: string;
             invalidatedBy?: string;
+            invalidatedFields?: string;
             invalidatedReason?: string;
             name: string;
             /** Format: int64 */
@@ -19330,6 +19332,7 @@ export interface components {
             /** Format: date-time */
             invalidatedAt?: string;
             invalidatedBy?: string;
+            invalidatedFields?: string;
             invalidatedReason?: string;
             /** Format: int64 */
             needed: number;
@@ -20463,6 +20466,7 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             createdBy: string;
+            fromCreation?: boolean;
             /** Format: int64 */
             inFlow: number;
             /** Format: date-time */
@@ -32839,6 +32843,7 @@ export interface components {
         };
         ReadinessCheck: {
             ack?: string;
+            ackKey?: string;
             detail?: string;
             evidence?: string;
             fixes: components["schemas"]["ReadinessFix"][];
@@ -32994,6 +32999,8 @@ export interface components {
             /** Format: double */
             percent: number;
             priceLabel: string;
+            /** @enum {string} */
+            pricing: "metered" | "plan" | "self_hosted";
             providerId: string;
             /** Format: double */
             rate: number;

@@ -524,7 +524,7 @@ func (q *Queries) ContentTranslationSetLinks(ctx context.Context, arg ContentTra
 }
 
 const contentTranslationVersion = `-- name: ContentTranslationVersion :one
-SELECT v.translation_id, v.version, v.subject, v.preheader, v.mjml, v.html, v.plain_text, v.ab_test, v.links, v.saved_by, v.saved_at, v.label, v.source, v.size_bytes, coalesce(u.name, '')::text AS saved_by_name
+SELECT v.translation_id, v.version, v.subject, v.preheader, v.mjml, v.html, v.plain_text, v.ab_test, v.links, v.saved_by, v.saved_at, v.label, v.source, v.size_bytes, v.label_text, coalesce(u.name, '')::text AS saved_by_name
 FROM content_translation_versions v
 LEFT JOIN users u ON u.id = v.saved_by
 WHERE v.translation_id = $1 AND v.version = $2
@@ -550,6 +550,7 @@ type ContentTranslationVersionRow struct {
 	Label         string          `json:"label"`
 	Source        string          `json:"source"`
 	SizeBytes     int32           `json:"sizeBytes"`
+	LabelText     json.RawMessage `json:"labelText"`
 	SavedByName   string          `json:"savedByName"`
 }
 
@@ -571,14 +572,15 @@ func (q *Queries) ContentTranslationVersion(ctx context.Context, arg ContentTran
 		&i.Label,
 		&i.Source,
 		&i.SizeBytes,
+		&i.LabelText,
 		&i.SavedByName,
 	)
 	return i, err
 }
 
 const contentTranslationVersionInsert = `-- name: ContentTranslationVersionInsert :exec
-INSERT INTO content_translation_versions (translation_id, version, subject, preheader, mjml, html, plain_text, ab_test, links, saved_by, saved_at, label, source, size_bytes)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+INSERT INTO content_translation_versions (translation_id, version, subject, preheader, mjml, html, plain_text, ab_test, links, saved_by, saved_at, label, source, size_bytes, label_text)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 `
 
 type ContentTranslationVersionInsertParams struct {
@@ -596,6 +598,7 @@ type ContentTranslationVersionInsertParams struct {
 	Label         string          `json:"label"`
 	Source        string          `json:"source"`
 	SizeBytes     int32           `json:"sizeBytes"`
+	LabelText     json.RawMessage `json:"labelText"`
 }
 
 func (q *Queries) ContentTranslationVersionInsert(ctx context.Context, arg ContentTranslationVersionInsertParams) error {
@@ -614,12 +617,13 @@ func (q *Queries) ContentTranslationVersionInsert(ctx context.Context, arg Conte
 		arg.Label,
 		arg.Source,
 		arg.SizeBytes,
+		arg.LabelText,
 	)
 	return err
 }
 
 const contentTranslationVersions = `-- name: ContentTranslationVersions :many
-SELECT v.version, v.saved_at, v.label, v.source, v.size_bytes, coalesce(u.name, '')::text AS saved_by_name
+SELECT v.version, v.saved_at, v.label, v.label_text, v.source, v.size_bytes, coalesce(u.name, '')::text AS saved_by_name
 FROM content_translation_versions v
 LEFT JOIN users u ON u.id = v.saved_by
 WHERE v.translation_id = $1
@@ -633,12 +637,13 @@ type ContentTranslationVersionsParams struct {
 }
 
 type ContentTranslationVersionsRow struct {
-	Version     int32     `json:"version"`
-	SavedAt     time.Time `json:"savedAt"`
-	Label       string    `json:"label"`
-	Source      string    `json:"source"`
-	SizeBytes   int32     `json:"sizeBytes"`
-	SavedByName string    `json:"savedByName"`
+	Version     int32           `json:"version"`
+	SavedAt     time.Time       `json:"savedAt"`
+	Label       string          `json:"label"`
+	LabelText   json.RawMessage `json:"labelText"`
+	Source      string          `json:"source"`
+	SizeBytes   int32           `json:"sizeBytes"`
+	SavedByName string          `json:"savedByName"`
 }
 
 func (q *Queries) ContentTranslationVersions(ctx context.Context, arg ContentTranslationVersionsParams) ([]ContentTranslationVersionsRow, error) {
@@ -654,6 +659,7 @@ func (q *Queries) ContentTranslationVersions(ctx context.Context, arg ContentTra
 			&i.Version,
 			&i.SavedAt,
 			&i.Label,
+			&i.LabelText,
 			&i.Source,
 			&i.SizeBytes,
 			&i.SavedByName,

@@ -14,6 +14,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/placement/seedbox"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -294,8 +295,8 @@ type PlacementTestRow struct {
 	Counts          PlacementCounts           `json:"counts"`
 }
 
-func testRow(t store.PlacementTest, startedBy, color string, copies []store.PlacementCopy) PlacementTestRow {
-	r := PlacementTestRow{ID: t.ID.String(), Name: t.Name, ContentKind: t.ContentKind, ContentName: t.ContentName, ContentNote: t.ContentNote,
+func testRow(l i18n.Lang, t store.PlacementTest, startedBy, color string, copies []store.PlacementCopy) PlacementTestRow {
+	r := PlacementTestRow{ID: t.ID.String(), Name: NameIn(l, t.Name, t.ContentName), ContentKind: t.ContentKind, ContentName: t.ContentName, ContentNote: t.ContentNote,
 		ContentKey: t.ContentKey, ContentVersion: int(t.ContentVersion), ContentAt: t.ContentAt, Personalization: t.Personalization, Origin: t.Origin,
 		Through: t.Through, Status: t.Status, StartedAt: t.StartedAt, StartedBy: startedBy, StartedByColor: color, LastSentAt: t.LastSentAt, WaitUntil: t.WaitUntil,
 		LateUntil: t.LateUntil, FinishedAt: t.FinishedAt, Providers: providerResults(t, copies), Counts: countCopies(copies, nil)}
@@ -355,7 +356,7 @@ func (s *Service) Tests(ctx context.Context, ws *store.Workspace) (PlacementTest
 	}
 	seenP, seenS := map[string]bool{}, map[string]bool{}
 	for _, r := range rows {
-		row := testRow(r.PlacementTest, r.StartedByName, r.StartedByColor, byTest[r.PlacementTest.ID])
+		row := testRow(i18n.LangFrom(ctx), r.PlacementTest, r.StartedByName, r.StartedByColor, byTest[r.PlacementTest.ID])
 		out.Tests = append(out.Tests, row)
 		for _, pr := range row.Providers {
 			if !seenP[pr.ID] {
@@ -435,11 +436,11 @@ type PlacementCopyView struct {
 	LateUntil *time.Time `json:"lateUntil,omitempty"`
 }
 
-func copyView(c store.PlacementCopy, t store.PlacementTest, seeds map[uuid.UUID]store.PlacementSeed, events []store.DeliveryEvent) PlacementCopyView {
+func copyView(l i18n.Lang, c store.PlacementCopy, t store.PlacementTest, seeds map[uuid.UUID]store.PlacementSeed, events []store.DeliveryEvent) PlacementCopyView {
 	p, _ := seedbox.ProviderOf(c.SeedProvider)
 	v := PlacementCopyView{ID: c.ID.String(), SeedEmail: c.SeedEmail, SeedProvider: c.SeedProvider, SeedProviderName: p.Name, ProviderName: c.ProviderName,
 		Round: int(c.Round), First: t.Through == "compare" && c.Round == 1, Status: c.Status, Folder: c.Folder, FolderName: c.FolderName, Tab: c.Tab,
-		Late: c.Late, SendAt: c.SendAt, HandedAt: c.HandedAt, ReceivedAt: c.ReceivedAt, ArriveMs: arriveMs(c), Reason: c.NotChecked, Error: c.Error}
+		Late: c.Late, SendAt: c.SendAt, HandedAt: c.HandedAt, ReceivedAt: c.ReceivedAt, ArriveMs: arriveMs(c), Reason: c.NotChecked, Error: copyError(l, c.Error)}
 	if c.SeedID != nil {
 		v.SeedID = c.SeedID.String()
 	}
@@ -641,7 +642,7 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, id uuid.UUID) (
 			byCopy[*e.MessageID] = append(byCopy[*e.MessageID], e)
 		}
 	}
-	out := PlacementTestDetail{PlacementTestRow: testRow(t, row.StartedByName, row.StartedByColor, copies), Variant: t.Variant, Language: t.Language,
+	out := PlacementTestDetail{PlacementTestRow: testRow(i18n.LangFrom(ctx), t, row.StartedByName, row.StartedByColor, copies), Variant: t.Variant, Language: t.Language,
 		ConditionalVersion: int(t.ConditionalVersion), ConditionalShows: t.ConditionalShows,
 		FallbackGreeting: greeting(t.Html), Subject: t.Subject, FromName: t.FromName, FromEmail: t.FromEmail, Stream: t.Stream, Rounds: 1,
 		DeleteAfter: t.DeleteAfter, DeleteAt: t.DeleteAt, CopiesDeletedAt: t.CopiesDeletedAt, CopiesDeletedBy: row.CopiesDeletedByName,
@@ -660,7 +661,7 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, id uuid.UUID) (
 	}
 	seen := map[string]bool{}
 	for _, c := range copies {
-		out.Copies = append(out.Copies, copyView(c, t, seeds, byCopy[c.ID]))
+		out.Copies = append(out.Copies, copyView(i18n.LangFrom(ctx), c, t, seeds, byCopy[c.ID]))
 		if seen[c.SeedEmail] {
 			continue
 		}
@@ -839,7 +840,7 @@ func (s *Service) CopyDetail(ctx context.Context, ws *store.Workspace, testID, c
 	if err != nil {
 		return PlacementCopyDetail{}, err
 	}
-	out := PlacementCopyDetail{Copy: copyView(c, t, seeds, evs), Events: []PlacementEvent{}, ProviderMessageID: c.ProviderMessageID,
+	out := PlacementCopyDetail{Copy: copyView(i18n.LangFrom(ctx), c, t, seeds, evs), Events: []PlacementEvent{}, ProviderMessageID: c.ProviderMessageID,
 		WaitUntil: t.WaitUntil, TestStatus: t.Status, Headers: c.Headers, ReadVia: "imap"}
 	oauth := strings.Contains(string(c.Ref), "graphId")
 	if c.SeedID != nil {

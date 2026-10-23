@@ -6,9 +6,11 @@ import (
 	"math"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -50,10 +52,16 @@ type Snapshot struct {
 
 	Readiness SnapshotReadiness   `json:"readiness"`
 	Rules     []ApprovalRuleMatch `json:"rules"`
+	// RuleTexts keeps the matched rules' messages for later readers, by
+	// rule key (filled from Rules when the snapshot is stored).
+	RuleTexts map[string]ruleTexts `json:"rule_texts,omitempty"`
 	// AuthorRole is the requester's role ("Content Writer").
 	AuthorRole string `json:"author_role"`
 
 	Automation *ApprovalAutomationSnapshot `json:"automation,omitempty"`
+	// AutomationItems keep Automation.Changes' kinds and titles as messages
+	// for later readers (requests made before have none).
+	AutomationItems []automationItem `json:"automation_items,omitempty"`
 	// Languages are the language versions the approval covers.
 	Languages []languages.VersionSnapshot `json:"languages,omitempty"`
 	// DraftHash and Transactional: what a transactional template publish
@@ -165,6 +173,9 @@ type SnapshotShare struct {
 	StatusLabel string  `json:"status_label"`
 	WarmupDay   int     `json:"warmup_day,omitempty"`
 	WarmupDays  int     `json:"warmup_days,omitempty"`
+	// StatusText is the status label's message, kept so the request reads
+	// it in each reader's language.
+	StatusText readiness.Text `json:"status_text,omitempty"`
 }
 
 // SnapshotReadiness is the Send Readiness result an approval was given on.
@@ -205,10 +216,31 @@ func (s Snapshot) Baseline() int64 {
 	return s.AudienceCount
 }
 
-// ParseSnapshot reads a stored snapshot.
+// MarshalJSON stores the snapshot with its rules' messages (RuleTexts).
+func (s Snapshot) MarshalJSON() ([]byte, error) {
+	type plain Snapshot
+	texts := map[string]ruleTexts{}
+	for k, v := range s.RuleTexts {
+		texts[k] = v
+	}
+	for _, r := range s.Rules {
+		if r.texts != nil {
+			texts[r.Key] = *r.texts
+		}
+	}
+	s.RuleTexts = nil
+	if len(texts) > 0 {
+		s.RuleTexts = texts
+	}
+	return json.Marshal(plain(s))
+}
+
+// ParseSnapshot reads a stored snapshot. Its rules carry their kept
+// messages, so they read in each reader's language (localRules).
 func ParseSnapshot(raw json.RawMessage) Snapshot {
 	var s Snapshot
 	_ = json.Unmarshal(raw, &s)
+	s.Rules = withRuleTexts(s.Rules, s.RuleTexts)
 	if s.Links == nil {
 		s.Links = []string{}
 	}
@@ -312,19 +344,86 @@ type ApprovalChange struct {
 	What string `json:"what,omitempty"`
 }
 
+// storedChange is a change as approval_requests.changes keeps it: its
+// English, and what it keeps for readers in other languages. Changes
+// stored before have no Kept and read as stored.
+type storedChange struct {
+	ApprovalChange
+	Kept *keptChange `json:"kept,omitempty"`
+}
+
+// keptChange is a change's label and values as messages (a subject, a link
+// or names stay as written: they have no message), and what it adds to the
+// invalidation reason: a field key ("subject", "link", "language:German")
+// and, for an audience that moved, how far (in percent).
+type keptChange struct {
+	// Language is a language version's change as data, written in each
+	// reader's language (languages.VersionChangeDetail.Texts).
+	Language *languages.VersionChangeDetail `json:"language,omitempty"`
+	Label    i18n.Text                      `json:"label,omitzero"`
+	Before   i18n.Text                      `json:"before,omitzero"`
+	After    i18n.Text                      `json:"after,omitzero"`
+	Field    string                         `json:"field,omitempty"`
+	Moved    float64                        `json:"moved,omitempty"`
+}
+
 // Diff compares a snapshot with the campaign as it stands. loc formats the
 // schedule in the workspace zone.
 func Diff(s Snapshot, c Current, loc *time.Location) []ApprovalChange {
-	out := []ApprovalChange{}
+	return plainChanges(diff(s, c, loc))
+}
+
+func plainChanges(stored []storedChange) []ApprovalChange {
+	out := make([]ApprovalChange, len(stored))
+	for i, c := range stored {
+		out[i] = c.ApprovalChange
+	}
+	return out
+}
+
+// localChanges writes changes for a reader: kept messages in the reader's
+// language, everything else as stored.
+func localChanges(l i18n.Lang, stored []storedChange) []ApprovalChange {
+	out := make([]ApprovalChange, len(stored))
+	for i, c := range stored {
+		ch := c.ApprovalChange
+		if k := c.Kept; k != nil {
+			ch.Label = kept(l, ch.Label, k.Label)
+			ch.Before = kept(l, ch.Before, k.Before)
+			ch.After = kept(l, ch.After, k.After)
+			if d := k.Language; d != nil && l.Locale != i18n.English {
+				ch.Label, ch.Before, ch.After, ch.What = d.Texts(l)
+			}
+		}
+		out[i] = ch
+	}
+	return out
+}
+
+// changesFor reads stored changes for a reader.
+func changesFor(l i18n.Lang, raw json.RawMessage) []ApprovalChange {
+	var stored []storedChange
+	_ = json.Unmarshal(raw, &stored)
+	return localChanges(l, stored)
+}
+
+func diff(s Snapshot, c Current, loc *time.Location) []storedChange {
+	out := []storedChange{}
+	add := func(ch ApprovalChange, k keptChange) {
+		if k.Field == "" {
+			k.Field = ch.Field
+		}
+		out = append(out, storedChange{ApprovalChange: ch, Kept: &k})
+	}
 	if s.Subject != c.Subject {
-		out = append(out, ApprovalChange{Field: "subject", Label: "Subject", Before: s.Subject, After: c.Subject})
+		add(ApprovalChange{Field: "subject", Label: "Subject", Before: s.Subject, After: c.Subject}, keptChange{Label: mChangeSubject.Keep(nil)})
 	}
 	if s.Preheader != c.Preheader {
-		out = append(out, ApprovalChange{Field: "preheader", Label: "Preheader", Before: s.Preheader, After: c.Preheader})
+		add(ApprovalChange{Field: "preheader", Label: "Preheader", Before: s.Preheader, After: c.Preheader}, keptChange{Label: mChangePreheader.Keep(nil)})
 	}
 	if s.Text != "" || c.Text != "" {
 		if s.Text != c.Text {
-			out = append(out, ApprovalChange{Field: "content", Label: "Text", Before: s.Text, After: c.Text})
+			add(ApprovalChange{Field: "content", Label: "Text", Before: s.Text, After: c.Text}, keptChange{Label: mChangeText.Keep(nil)})
 		}
 	} else if s.ContentHash != "" && s.ContentHash != c.ContentHash {
 		links := Links(c.MJML, c.HTML)
@@ -338,7 +437,7 @@ func Diff(s Snapshot, c Current, loc *time.Location) []ApprovalChange {
 				after = links[i]
 			}
 			if before != after {
-				out = append(out, ApprovalChange{Field: "link", Label: fmt.Sprintf("Link %d", i+1), Before: before, After: after})
+				add(ApprovalChange{Field: "link", Label: fmt.Sprintf("Link %d", i+1), Before: before, After: after}, keptChange{Label: mChangeLink.Keep(i18n.Args{"n": i + 1})})
 				linkChanges++
 			}
 		}
@@ -348,50 +447,48 @@ func Diff(s Snapshot, c Current, loc *time.Location) []ApprovalChange {
 			if changed := changedSections(s.Sections, secs); changed != "" {
 				after += " · " + changed
 			}
-			out = append(out, ApprovalChange{Field: "content", Label: "Content", Before: fmt.Sprintf("v%d", s.Version), After: after})
+			add(ApprovalChange{Field: "content", Label: "Content", Before: fmt.Sprintf("v%d", s.Version), After: after},
+				keptChange{Label: mChangeContent.Keep(nil), Before: mChangeVersion.Keep(i18n.Args{"version": s.Version}), After: contentKept(c.Version, s.Sections, secs)})
 		}
 	}
 	for _, vc := range languages.DiffVersions(s.Languages, c.Languages) {
-		out = append(out, ApprovalChange{Field: "language", Label: vc.Name, Before: vc.Before, After: vc.After, What: vc.What})
+		d := vc.Detail
+		add(ApprovalChange{Field: "language", Label: vc.Name, Before: vc.Before, After: vc.After, What: vc.What}, keptChange{Field: "language:" + vc.Name, Language: &d})
 	}
 	if s.SenderID != c.SenderID {
-		out = append(out, ApprovalChange{Field: "sender", Label: "From", Before: s.From, After: c.From})
+		add(ApprovalChange{Field: "sender", Label: "From", Before: s.From, After: c.From}, keptChange{Label: mChangeFrom.Keep(nil)})
 	}
 	if !sameAudience(s.Audience, c.Audience) {
-		out = append(out, ApprovalChange{Field: "audience", Label: "Audience", Before: strings.Join(s.AudienceLabels, ", "), After: strings.Join(c.AudienceNames, ", ")})
+		add(ApprovalChange{Field: "audience", Label: "Audience", Before: strings.Join(s.AudienceLabels, ", "), After: strings.Join(c.AudienceNames, ", ")},
+			keptChange{Label: mChangeAudience.Keep(nil)})
 	} else if base := s.Baseline(); base > 0 && c.AudienceCount > 0 {
 		// (An empty audience can't be sent anyway: Send Readiness blocks it.)
 		moved := float64(c.AudienceCount-base) / float64(base) * 100
 		if math.Abs(moved) > InvalidationShare {
-			out = append(out, ApprovalChange{Field: "audience_count", Label: "Audience",
-				Before: readiness.Count(s.AudienceCount), After: fmt.Sprintf("%s (%s)", readiness.Count(s.AudienceCount+c.AudienceCount-base), signedPct(moved))})
+			now := s.AudienceCount + c.AudienceCount - base
+			add(ApprovalChange{Field: "audience_count", Label: "Audience",
+				Before: readiness.Count(s.AudienceCount), After: fmt.Sprintf("%s (%s)", readiness.Count(now), signedPct(i18n.Default, moved))},
+				keptChange{Label: mChangeAudience.Keep(nil), Before: mChangeCount.Keep(i18n.Args{"count": s.AudienceCount}),
+					After: mChangeCountMoved.Keep(i18n.Args{"count": now, "moved": moved}), Moved: moved})
 		}
 	}
 	if s.RouteKey != "" && c.RouteKey != "" && s.RouteKey != c.RouteKey {
-		out = append(out, ApprovalChange{Field: "route", Label: "Route", Before: s.SplitLabel, After: c.SplitLabel})
+		add(ApprovalChange{Field: "route", Label: "Route", Before: s.SplitLabel, After: c.SplitLabel}, keptChange{Label: mChangeRoute.Keep(nil)})
 	}
 	if s.ScheduleLabel != "" || c.ScheduleLabel != "" {
 		if s.ScheduleLabel != c.ScheduleLabel {
-			out = append(out, ApprovalChange{Field: "schedule", Label: "Schedule", Before: s.ScheduleLabel, After: c.ScheduleLabel})
+			add(ApprovalChange{Field: "schedule", Label: "Schedule", Before: s.ScheduleLabel, After: c.ScheduleLabel}, keptChange{Label: mChangeSchedule.Keep(nil)})
 		}
 	} else if !sameSchedule(s.Schedule, c.Schedule) {
-		out = append(out, ApprovalChange{Field: "schedule", Label: "Schedule", Before: ScheduleText(s.Schedule, loc), After: ScheduleText(c.Schedule, loc)})
+		before, after := scheduleKept(s.Schedule, loc), scheduleKept(c.Schedule, loc)
+		add(ApprovalChange{Field: "schedule", Label: "Schedule", Before: before.text(i18n.Default), After: after.text(i18n.Default)},
+			keptChange{Label: mChangeSchedule.Keep(nil), Before: before.Text, After: after.Text})
 	}
 	return out
 }
 
 func changedSections(before, after []string) string {
-	removed, added := []string{}, []string{}
-	for _, b := range before {
-		if !slices.Contains(after, b) {
-			removed = append(removed, b)
-		}
-	}
-	for _, a := range after {
-		if !slices.Contains(before, a) {
-			added = append(added, a)
-		}
-	}
+	removed, added := sectionsAddedRemoved(before, after)
 	parts := []string{}
 	if len(added) > 0 {
 		parts = append(parts, "added "+strings.Join(added, ", "))
@@ -405,15 +502,36 @@ func changedSections(before, after []string) string {
 	return strings.Join(parts, " · ")
 }
 
-func signedPct(v float64) string {
-	s := fmt.Sprintf("%.0f%%", math.Abs(v))
-	if math.Abs(v) < 10 {
-		s = fmt.Sprintf("%.1f%%", math.Abs(v))
+// sectionsAddedRemoved are the sections only before has and only after has.
+func sectionsAddedRemoved(before, after []string) (removed, added []string) {
+	removed, added = []string{}, []string{}
+	for _, b := range before {
+		if !slices.Contains(after, b) {
+			removed = append(removed, b)
+		}
 	}
-	if v >= 0 {
-		return "+" + s
+	for _, a := range after {
+		if !slices.Contains(before, a) {
+			added = append(added, a)
+		}
 	}
-	return "−" + s
+	return removed, added
+}
+
+// contentKept is a content change's new version and what changed in it, as a
+// message: "v10 · added hero · removed footer".
+func contentKept(version int, before, after []string) i18n.Text {
+	removed, added := sectionsAddedRemoved(before, after)
+	args := i18n.Args{"version": version, "added": added, "removed": removed}
+	switch {
+	case len(added) > 0 && len(removed) > 0:
+		return mChangeAddedRemoved.Keep(args)
+	case len(added) > 0:
+		return mChangeAdded.Keep(args)
+	case len(removed) > 0:
+		return mChangeRemoved.Keep(args)
+	}
+	return mChangeEdited.Keep(args)
 }
 
 func sameAudience(a, b json.RawMessage) bool {
@@ -444,41 +562,67 @@ func sameSchedule(a, b json.RawMessage) bool {
 	return tx.Equal(ty)
 }
 
-// ScheduleText is "Nov 4, 09:00", "Send now" or "Best time within 24 h of Nov 4, 09:00".
+// ScheduleText is "Nov 4, 09:00", "Send now" or "Best time within 24 h of
+// Nov 4, 09:00", in English (as stored and as API clients read it).
 func ScheduleText(raw json.RawMessage, loc *time.Location) string {
+	return scheduleKept(raw, loc).text(i18n.Default)
+}
+
+// scheduleTextIn is ScheduleText in a reader's language and region.
+func scheduleTextIn(l i18n.Lang, raw json.RawMessage, loc *time.Location) string {
+	return scheduleKept(raw, loc).text(l)
+}
+
+// scheduleKept is a schedule as a kept message: send now, or the moment (in
+// the schedule's zone), at best time or not.
+func scheduleKept(raw json.RawMessage, loc *time.Location) keptValue {
 	s := readiness.ParseSchedule(raw)
 	if s.Mode == "now" || s.At == "" {
-		return "Send now"
+		return keptValue{Text: mScheduleNow.Keep(nil)}
 	}
 	t, err := time.Parse(time.RFC3339, s.At)
 	if err != nil {
-		return s.At
+		return keptValue{Raw: s.At}
 	}
 	if s.Timezone != "" {
 		loc = state.Location(s.Timezone)
 	}
-	text := t.In(loc).Format("Jan 2, 15:04")
+	at := i18n.Args{"at": t.In(loc).Format(time.RFC3339)}
 	if s.Mode == "best_time" {
-		return "Best time within 24 h of " + text
+		return keptValue{Text: mScheduleBest.Keep(at)}
 	}
-	return text
+	return keptValue{Text: mScheduleAt.Keep(at)}
 }
 
 // InvalidationReason sums up the changes: "subject changed", "audience
-// moved +14% after approval".
+// moved +14%". The screens add "after approval" when an approval was given.
 func InvalidationReason(changes []ApprovalChange) string {
+	stored := make([]storedChange, len(changes))
+	for i, c := range changes {
+		stored[i] = storedChange{ApprovalChange: c}
+	}
+	return render(i18n.Default, reasonOf(stored))
+}
+
+// reasonOf is why changes invalidate an approval, as a message.
+func reasonOf(changes []storedChange) i18n.Text {
 	fields := []string{}
 	for _, c := range changes {
 		switch c.Field {
 		case "audience_count":
-			after := c.After
-			if i := strings.Index(after, "("); i >= 0 {
-				after = strings.TrimSuffix(after[i+1:], ")")
+			moved := 0.0
+			if c.Kept != nil {
+				moved = c.Kept.Moved
+			} else if i := strings.Index(c.After, "("); i >= 0 {
+				// "54,620 (+14%)"
+				p := strings.TrimSuffix(strings.TrimSuffix(c.After[i+1:], ")"), "%")
+				p = strings.Replace(strings.TrimPrefix(p, "+"), "−", "-", 1)
+				moved, _ = strconv.ParseFloat(p, 64)
 			}
-			return "audience moved " + after + " after approval"
+			return mInvalidMoved.Keep(i18n.Args{"moved": moved})
 		case "link":
-			if !slices.Contains(fields, "a link") {
-				fields = append(fields, "a link")
+			if !slices.Contains(fields, "link") {
+				fields = append(fields, "link")
 			}
 		case "subject", "preheader", "content", "audience", "route", "schedule":
 			if !slices.Contains(fields, c.Field) {
@@ -487,16 +631,81 @@ func InvalidationReason(changes []ApprovalChange) string {
 		case "sender":
 			fields = append(fields, "sender")
 		case "language":
-			// "German: intro changed after approval".
-			if len(changes) == 1 {
-				return c.Label + ": " + c.What + " after approval"
+			// "German: intro changed".
+			if c.Kept != nil && c.Kept.Language != nil {
+				if len(changes) == 1 {
+					return mInvalidLanguage.Keep(i18n.Args{"language": c.Label, "what": c.What, "change": c.Kept.Language})
+				}
+				fields = append(fields, "lang:"+c.Kept.Language.Language)
+				continue
 			}
-			fields = append(fields, c.Label+" version")
+			if len(changes) == 1 {
+				return mInvalidLanguage.Keep(i18n.Args{"language": c.Label, "what": c.What})
+			}
+			fields = append(fields, "language:"+c.Label)
 		}
 	}
 	if len(fields) == 0 {
-		return "the campaign changed"
+		return mInvalidCampaign.Keep(nil)
 	}
-	verb := "changed"
-	return readiness.JoinAnd(fields) + " " + verb
+	return mInvalidFields.Keep(i18n.Args{"fields": fields})
 }
+
+// reasonFor is a request's invalidation reason for a reader: its kept
+// message, else the English stored with it. Requests invalidated before
+// said "after approval" in their reason; the screens add it now.
+func reasonFor(l i18n.Lang, english string, text json.RawMessage) string {
+	english = strings.TrimSuffix(english, " after approval")
+	var t i18n.Text
+	if len(text) > 0 {
+		_ = json.Unmarshal(text, &t)
+	}
+	return kept(l, english, t)
+}
+
+// fieldsFor is what an invalidation reason says changed, for a screen that
+// writes its own sentence around it ("Daniel edited the subject and a
+// link"): empty when the reason isn't about edited fields.
+func fieldsFor(l i18n.Lang, english string, text json.RawMessage) string {
+	var t i18n.Text
+	if len(text) > 0 {
+		_ = json.Unmarshal(text, &t)
+	}
+	if !t.IsZero() {
+		if t.ID == mInvalidFields.ID() {
+			return fieldList(l, strs(t.Args["fields"]))
+		}
+		return ""
+	}
+	english = strings.TrimSuffix(english, " after approval")
+	if f, ok := strings.CutSuffix(english, " changed"); ok && english != "the campaign changed" && !strings.Contains(f, ": ") {
+		return f
+	}
+	return ""
+}
+
+var (
+	mChangeSubject      = msgs.M("change.subject")
+	mChangePreheader    = msgs.M("change.preheader")
+	mChangeText         = msgs.M("change.text")
+	mChangeLink         = msgs.M("change.link")
+	mChangeContent      = msgs.M("change.content")
+	mChangeFrom         = msgs.M("change.from")
+	mChangeAudience     = msgs.M("change.audience")
+	mChangeRoute        = msgs.M("change.route")
+	mChangeSchedule     = msgs.M("change.schedule")
+	mChangeCount        = msgs.M("change.count")
+	mChangeCountMoved   = msgs.M("change.countMoved")
+	mChangeVersion      = msgs.M("change.version")
+	mChangeEdited       = msgs.M("change.edited")
+	mChangeAdded        = msgs.M("change.added")
+	mChangeRemoved      = msgs.M("change.removed")
+	mChangeAddedRemoved = msgs.M("change.addedRemoved")
+	mInvalidFields      = msgs.M("invalid.fields")
+	mInvalidMoved       = msgs.M("invalid.moved")
+	mInvalidLanguage    = msgs.M("invalid.language")
+	mInvalidCampaign    = msgs.M("invalid.campaign")
+	mInvalidAfter       = msgs.M("invalid.afterApproval")
+	mInvalidPage        = msgs.M("invalid.page")
+	mInvalidPost        = msgs.M("invalid.post")
+)

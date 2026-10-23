@@ -300,16 +300,21 @@ export function checksByGroup(run: Run): { group: Group; checks: Check[] }[] {
  */
 export function acknowledgements(run: Run): { key: string; keys: string[]; text: string; fix?: Fix }[] {
   const out: { key: string; keys: string[]; text: string; fix?: Fix }[] = []
+  const groups = new Map<string, { keys: string[] }>()
   for (const c of run.checks.filter((x) => x.status === 'warn')) {
     const text = c.ack || t(m.ackDefault, { title: c.title })
     // Warnings confirmed in the same words (the serious accessibility
-    // issues) are one checkbox that confirms them all.
-    const same = out.find((a) => a.text === text)
+    // issues) are one checkbox that confirms them all. The server says
+    // which (ackKey), so it never depends on the language they're read in.
+    const id = c.ackKey || c.key
+    const same = groups.get(id)
     if (same) {
       same.keys.push(c.key)
       continue
     }
-    out.push({ key: c.key, keys: [c.key], text, fix: c.fixes.find((f) => f.kind === 'apply' && f.action === 'exclude_sunset') })
+    const ack = { key: c.key, keys: [c.key], text, fix: c.fixes.find((f) => f.kind === 'apply' && f.action === 'exclude_sunset') }
+    groups.set(id, ack)
+    out.push(ack)
   }
   return out.sort((a, b) => Number(Boolean(b.fix)) - Number(Boolean(a.fix)))
 }

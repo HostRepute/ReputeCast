@@ -1,0 +1,26 @@
+{
+  "pricing": { "message": "plan, free 100 per day, then from $15 per month for 10,000", "note": "Mailgun's pricing model, on a capability chip: Pricing · …" },
+  "dedicatedIps": { "message": "Scale plan, one included; $59 per extra IP per month", "note": "when Mailgun offers dedicated IPs; Scale is Mailgun's plan name" },
+  "terms.0.note": { "message": "Explicit, provable opt-in only; no bought, rented or scraped lists. Every marketing email needs an unsubscribe link and a privacy-policy link. Mailgun's limits: 5% bounces, 0.08% complaints.", "note": "what Mailgun's terms allow, on Routing" },
+  "events": { "message": "Webhooks", "note": "Sending providers › Adapters: how events come back" },
+  "domainSetup": { "message": "API", "note": "Sending providers › Adapters: how a sending domain is set up" },
+  "suppressionMode": { "message": "Two-way", "note": "Sending providers › Adapters: the suppression sync" },
+  "field.api_key.label": { "message": "Private API key", "note": "Mailgun's own name for the credential, as its dashboard shows it" },
+  "field.api_key.help": { "message": "Mailgun › API Security. Use a Private API key (or a Developer key), not a Domain Sending key or the HTTP webhook signing key.", "note": "Mailgun's menu and key names stay as Mailgun writes them" },
+  "field.region.label": "Region",
+  "field.region.help": "US · api.mailgun.net or EU · api.eu.mailgun.net, where the domain was created.",
+  "field.domain.label": "Sending domain",
+  "field.domain.help": "The Mailgun domain mail is sent from, e.g. mg.acme.io. ReputeCast can add it for you.",
+  "field.monthly_limit.label": { "message": "Plan · emails per month", "note": "the plan's monthly allowance" },
+  "field.monthly_limit.help": "Used for the quota bar when the account has no custom sending limit.",
+  "field.webhook_signing_key.label": { "message": "HTTP webhook signing key", "note": "Mailgun's own name for the key" },
+  "field.webhook_signing_key.help": "Optional. ReputeCast reads it from Mailgun; enter it only if your key can't (API Security › HTTP webhook signing key).",
+
+  "account": { "message": "{sandbox, select, yes {Sandbox domain · authorized recipients only} other {Domain {domain} · {state}}}{limit, select, yes { · custom limit {n, number} per month} other {}}", "note": "the account's standing on the provider card; state: Mailgun's word for the domain (active, unverified); n: the monthly sending limit" },
+  "tracking.scope": { "message": "Domain {domain}", "note": "where Mailgun's tracking settings apply" },
+  "tracking.unsubscribe": { "message": "Unsubscribe tracking is on, so Mailgun adds its own unsubscribe link and footer next to ReputeCast's.{on, select, open { Domain open tracking is on too, but ReputeCast turns it off on every message.} click { Domain click tracking is on too, but ReputeCast turns it off on every message.} both { Domain open and click tracking is on too, but ReputeCast turns it off on every message.} other {}}", "note": "on: the domain's other tracking that is on" },
+  "tracking.on": "{on, select, open {Domain open tracking is on, but ReputeCast turns it off on every message it sends.} click {Domain click tracking is on, but ReputeCast turns it off on every message it sends.} other {Domain open and click tracking is on, but ReputeCast turns it off on every message it sends.}}",
+  "tracking.off": "Open, click and unsubscribe tracking are off for {domain}.",
+  "error.domainUnknown": "Mailgun doesn't know the domain {domain} in this region. Check the domain and the region.",
+  "error.tooManyURLs": { "message": "Mailgun allows three URLs per event and {event} already has three. Remove one in Mailgun, then register again.", "note": "event: Mailgun's event name (delivered, permanent_fail…)" }
+}

@@ -108,6 +108,8 @@ func (s *Service) Context(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if out.Tokens, err = s.tokens(ctx, ws.ID); err != nil {
 		return out, err
 	}
+	// The tokens other packages register (Grow's) in the member's language.
+	out.Tokens = liquid.InLanguage(out.Tokens, i18n.LangFrom(ctx))
 	members, err := s.Q.ComposerTestRecipients(ctx, ws.ID)
 	if err != nil {
 		return out, err
@@ -130,7 +132,7 @@ func (s *Service) tokens(ctx context.Context, wsID uuid.UUID) ([]liquid.Personal
 	for _, f := range fields {
 		custom = append(custom, liquid.CustomField{Key: f.Key, Label: f.Label, Type: f.Type})
 	}
-	return liquid.Catalog(custom), nil
+	return liquid.CatalogIn(i18n.LangFrom(ctx), custom), nil
 }
 
 // ComposerAudienceCount is the live count of an audience definition.

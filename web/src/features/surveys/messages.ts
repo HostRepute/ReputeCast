@@ -173,6 +173,7 @@ export const m = defineMessages('surveys', {
   questionsAll: '{count}, all complete',
   openUntil: 'Open until',
   untilClosed: 'Until someone closes it',
+  openUntilAt: '{date}, {time} {zone}',
   responses: 'Responses',
   oneEditable: 'One per contact, editable until it closes',
   manyResponses: 'Every submission counts',

@@ -11,7 +11,7 @@ import { Icon, type IconName } from '@/components/icons/Icon'
 import { Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
 import { formatList, useT } from '@/i18n'
-import { clock, count, dayMonthDate, rate, shortDate, zonedParts } from '@/lib/format'
+import { clock, count, dayMonthDate, rate, shortDate, timeOfDay, zonedParts } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { useCan, usePermissionReason, useWorkspace } from '@/lib/session'
 import { m as cm } from '@/features/campaigns/messages'
@@ -314,7 +314,7 @@ function FeedCard({ f, set, errors, d, sites }: CardProps & { sites: Schemas['Di
                       set('feedUrl', e.target.value)
                       finder.clear()
                     }}
-                    placeholder="https://blog.example.com/feed/"
+                    placeholder={'https://blog.example.com/feed/'}
                   />
                   <FindButton busy={Boolean(finder.finding)} disabled={!f.feedUrl.trim()} onFind={() => void finder.find(f.feedUrl)} />
                 </span>
@@ -583,10 +583,11 @@ function ScheduleCard({ f, set, setSchedule, errors }: Omit<CardProps, 'd'> & { 
   )
 }
 
+/** The preparation clock: send time minus the lead, on the reader's clock. */
 function prepareClock(sc: DigestSchedule, hours: number): string {
   const [h, min] = sc.time.split(':').map(Number)
   const total = ((((h ?? 8) * 60 + (min ?? 0) - hours * 60) % 1440) + 1440) % 1440
-  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+  return timeOfDay(`${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`)
 }
 
 const routeColors: Record<string, string> = { ses: 'var(--chart-ses)', postal: 'var(--chart-postal)', postmark: 'var(--chart-postmark)' }

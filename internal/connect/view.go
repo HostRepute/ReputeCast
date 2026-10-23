@@ -5,13 +5,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/dnscheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -258,12 +261,13 @@ type ConnectSetup struct {
 
 // View builds the setup for its screens.
 func (s *Service) View(ctx context.Context, ws *store.Workspace, st store.ProviderSetup) (ConnectSetup, error) {
-	d, err := descriptor(st.Adapter)
+	d, err := descriptor(ctx, st.Adapter)
 	if err != nil {
 		return ConnectSetup{}, err
 	}
 	state := decodeState(st.State)
-	c := copyFor(d)
+	l := i18n.LangFrom(ctx)
+	c := copyFor(l, d)
 	out := ConnectSetup{ID: st.ID.String(), Adapter: st.Adapter, Step: st.Step, Status: st.Status, CreatedAt: st.CreatedAt, UpdatedAt: st.UpdatedAt,
 		FinishedAt: st.FinishedAt, CanManage: canManage(ctx), Helpers: s.helpers(ctx, ws.ID)}
 	var prov *store.Provider
@@ -280,29 +284,29 @@ func (s *Service) View(ctx context.Context, ws *store.Workspace, st store.Provid
 			state.Domain.Verified, state.Domain.Total = s.domainCounts(ctx, id, prov.ID)
 		}
 	}
-	out.Info = s.adapterInfo(ctx, d, c, prov, state)
-	out.Connection = s.connectionView(ctx, ws, d, state, prov)
-	out.Summaries = summaries(c, state)
+	out.Info = s.adapterInfo(ctx, l, d, c, prov, state)
+	out.Connection = s.connectionView(ctx, l, ws, d, state, prov)
+	out.Summaries = summaries(l, d, c, state)
 	out.Domain = ConnectDomainChoice{Suggested: s.suggestedDomain(ctx, ws)}
 	if state.Domain != nil {
 		out.Domain.DomainID, out.Domain.Name, out.Domain.Skipped = state.Domain.DomainID, state.Domain.Name, state.Domain.Skipped
 	}
 	if prov != nil {
-		if out.Streams, err = s.streamsView(ctx, ws, d, c, *prov, state); err != nil {
+		if out.Streams, err = s.streamsView(ctx, l, ws, d, c, *prov, state); err != nil {
 			return ConnectSetup{}, err
 		}
 	} else {
 		out.Streams = ConnectStreams{Streams: []ConnectStreamView{}}
 	}
 	if st.Status == "finished" {
-		done := s.doneView(ctx, ws, st, d, c, state, prov)
+		done := s.doneView(ctx, l, ws, st, d, c, state, prov)
 		out.Done = &done
 	}
 	return out, nil
 }
 
 // adapterInfo describes the adapter and its form.
-func (s *Service) adapterInfo(ctx context.Context, d providers.Descriptor, c adapterCopy, prov *store.Provider, state State) ConnectAdapterInfo {
+func (s *Service) adapterInfo(ctx context.Context, l i18n.Lang, d providers.Descriptor, c adapterCopy, prov *store.Provider, state State) ConnectAdapterInfo {
 	info := ConnectAdapterInfo{Adapter: d.Adapter, Name: c.Display, Short: c.Short, Step1: c.Step1, Title: c.Title, Heading: c.Heading, Lead: c.Lead,
 		Section: c.Section, Flow: flowOf(d), ConnectionHint: c.ConnectionHint, DomainHint: c.DomainHint, KeyHint: c.KeyHint, KeysURL: c.KeysURL,
 		VerifyCall: c.VerifyCall, WebhookEvents: c.WebhookEvents, Webhooks: d.Capabilities.Webhooks, BulkAllowed: d.Capabilities.Bulk != providers.BulkForbidden,
@@ -334,7 +338,8 @@ func (s *Service) adapterInfo(ctx context.Context, d providers.Descriptor, c ada
 		}
 	}
 	for _, f := range d.Fields {
-		cf := ConnectField{Key: f.Key, Label: f.Label, Secret: f.Secret, Required: f.Required, Help: f.Help, Options: []ConnectOption{}, Type: fieldType(f)}
+		words := f.In(l)
+		cf := ConnectField{Key: f.Key, Label: words.Label, Secret: f.Secret, Required: f.Required, Help: words.Help, Options: []ConnectOption{}, Type: fieldType(f)}
 		for _, o := range f.Options {
 			cf.Options = append(cf.Options, ConnectOption{Value: o, Label: optionLabel(d.Adapter, f.Key, o)})
 		}
@@ -401,31 +406,32 @@ func (s *Service) probeAdapter(ctx context.Context, d providers.Descriptor, prov
 }
 
 // summaries are the stepper's lines.
-func summaries(c adapterCopy, state State) ConnectSummaries {
-	out := ConnectSummaries{Provider: c.Step1, Connection: state.Connection.Summary}
+func summaries(l i18n.Lang, d providers.Descriptor, c adapterCopy, state State) ConnectSummaries {
+	out := ConnectSummaries{Provider: c.Step1, Connection: connectionSummaryIn(l, flowOf(d), state.Connection)}
 	if state.Domain != nil {
 		out.DomainShort = state.Domain.Name
 		out.Domain = state.Domain.Name
 		if state.Domain.Total > 0 {
-			out.Domain = fmt.Sprintf("%s · %d of %d", state.Domain.Name, state.Domain.Verified, state.Domain.Total)
+			out.Domain = mSummaryDomain.Text(l, i18n.Args{"name": state.Domain.Name, "verified": state.Domain.Verified, "total": state.Domain.Total})
 		}
 		if state.Domain.Skipped {
-			out.Domain, out.DomainShort = "skipped", "skipped"
+			skipped := mSummarySkipped.Text(l, nil)
+			out.Domain, out.DomainShort = skipped, skipped
 		}
 	}
 	if state.Test != nil {
 		switch {
 		case state.Test.RoundTripMs > 0:
-			out.Test = "delivered in " + seconds(state.Test.RoundTripMs)
+			out.Test = mSummaryDelivered.Text(l, i18n.Args{"seconds": seconds(l, float64(state.Test.RoundTripMs)/1000)})
 		default:
-			out.Test = "sent to " + state.Test.To
+			out.Test = mSummarySentTo.Text(l, i18n.Args{"to": state.Test.To})
 		}
 	}
 	if state.Streams != nil && state.Streams.Saved {
 		names := []string{}
 		for _, st := range []string{"broadcast", "automation", "system"} {
 			if state.Streams.Streams[st].Enabled {
-				names = append(names, streamName(st))
+				names = append(names, streamName(l, st))
 			}
 		}
 		out.Streams = strings.Join(names, ", ")
@@ -433,21 +439,63 @@ func summaries(c adapterCopy, state State) ConnectSummaries {
 	return out
 }
 
-// seconds formats a duration in ms as "2.4 s".
-func seconds(ms int64) string {
-	return fmt.Sprintf("%.1f s", float64(ms)/1000)
+// seconds writes a duration in seconds with one decimal ("2.4").
+func seconds(l i18n.Lang, s float64) string {
+	return l.Region.Decimal(s, 1)
 }
 
-func streamName(st string) string {
-	switch st {
-	case "broadcast":
-		return "Broadcasts"
-	case "automation":
-		return "Automations"
-	case "transactional":
-		return "Transactional"
+// connectionSummaryIn is the stepper's line under Connection for a reader:
+// the line written at connect time, written again in the reader's language
+// from what the setup kept. A line that can't be (a row written before the
+// account's message was kept) reads as it was written.
+func connectionSummaryIn(l i18n.Lang, flow string, cn Connection) string {
+	if english(l) || cn.Summary == "" {
+		return cn.Summary
 	}
-	return "System"
+	switch flow {
+	case "ses":
+		region, mode, ok := strings.Cut(cn.Summary, " · ")
+		if !ok || mode != "sandbox" && mode != "production" {
+			return cn.Summary
+		}
+		return mSummarySES.Text(l, i18n.Args{"region": region, "sandbox": yesNo(mode == "sandbox")})
+	case "smtp":
+		return cn.Summary
+	}
+	label := labelOf(func(k string) string { return cn.Settings[k] })
+	if apiSummary(i18n.Default, label, cn.Account) != cn.Summary || cn.Account != "" && cn.AccountText.IsZero() {
+		return cn.Summary
+	}
+	return apiSummary(l, label, textIn(cn.Account, cn.AccountText, l))
+}
+
+// apiSummary is the stepper's line for an API provider: its region or
+// server, and the first words of the account's standing ("us · production").
+func apiSummary(l i18n.Lang, label, account string) string {
+	parts := []string{}
+	if label != "" {
+		parts = append(parts, label)
+	}
+	if account != "" {
+		parts = append(parts, strings.ToLower(strings.SplitN(account, " · ", 2)[0]))
+	}
+	if len(parts) == 0 {
+		return mSummaryConnected.Text(l, nil)
+	}
+	return strings.Join(parts, " · ")
+}
+
+// labelOf names a connection by its region or server, from its settings.
+func labelOf(setting func(key string) string) string {
+	for _, key := range []string{"region", "server", "message_stream", "server_url"} {
+		if v := setting(key); v != "" {
+			if u, err := url.Parse(v); err == nil && u.Host != "" {
+				v = u.Host
+			}
+			return v
+		}
+	}
+	return ""
 }
 
 // suggestedDomain is the domain step's first proposal: the domain of the
@@ -475,28 +523,22 @@ func regionRank(r string) int {
 	return len(regionOrder)
 }
 
-func regionLabel(r RegionState) string {
-	label := r.Region
-	if r.Name != "" {
-		label += " · " + r.Name
-	}
+func regionLabel(l i18n.Lang, r RegionState) string {
+	args := i18n.Args{"region": r.Region, "hasName": yesNo(r.Name != ""), "name": r.Name, "state": "sandbox", "hasQuota": yesNo(r.Max24h > 0), "quota": r.Max24h}
 	switch {
 	case r.Err != "":
-		return label + " · not available"
+		args["state"] = "unavailable"
 	case r.Production:
-		label += " · production access"
-		if r.Max24h > 0 {
-			label += ", quota " + thousands(int(r.Max24h)) + " per day"
-		}
-		return label
+		args["state"] = "production"
 	}
-	return label + " · sandbox"
+	return mRegionLabel.Text(l, args)
 }
 
 // connectionView is step 2.
-func (s *Service) connectionView(ctx context.Context, ws *store.Workspace, d providers.Descriptor, state State, prov *store.Provider) ConnectConnection {
+func (s *Service) connectionView(ctx context.Context, l i18n.Lang, ws *store.Workspace, d providers.Descriptor, state State, prov *store.Provider) ConnectConnection {
 	cn := state.Connection
-	out := ConnectConnection{Status: "none", At: cn.At, Account: cn.Account, AccountID: cn.AccountID, Summary: cn.Summary, Fields: []ConnectField{},
+	out := ConnectConnection{Status: "none", At: cn.At, Account: textIn(cn.Account, cn.AccountText, l), AccountID: cn.AccountID,
+		Summary: connectionSummaryIn(l, flowOf(d), cn), Fields: []ConnectField{},
 		Access: cn.Access, ExternalID: cn.ExternalID, RoleARN: cn.RoleARN, Region: cn.Region, Regions: []ConnectRegion{}, Provisioning: []ConnectProvisionRow{}}
 	if out.Access == "" {
 		out.Access = "role"
@@ -508,7 +550,7 @@ func (s *Service) connectionView(ctx context.Context, ws *store.Workspace, d pro
 		out.Status = "failed"
 	}
 	if cn.Error != nil {
-		out.Error = &ConnectError{Field: cn.Error.Field, Code: cn.Error.Code, Message: cn.Error.Message, Detail: cn.Error.Detail}
+		out.Error = &ConnectError{Field: cn.Error.Field, Code: cn.Error.Code, Message: textsIn(cn.Error.Message, cn.Error.Texts, l), Detail: cn.Error.Detail}
 	}
 	flow := flowOf(d)
 	if flow == "ses" {
@@ -524,17 +566,17 @@ func (s *Service) connectionView(ctx context.Context, ws *store.Workspace, d pro
 			return regionRank(a.Region) - regionRank(b.Region)
 		})
 		for _, r := range regions {
-			out.Regions = append(out.Regions, ConnectRegion{Region: r.Region, Name: r.Name, Production: r.Production, Max24h: r.Max24h, MaxRate: r.MaxRate, Label: regionLabel(r), Err: r.Err})
+			out.Regions = append(out.Regions, ConnectRegion{Region: r.Region, Name: r.Name, Production: r.Production, Max24h: r.Max24h, MaxRate: r.MaxRate, Label: regionLabel(l, r), Err: r.Err})
 		}
 		if t, err := s.accessTemplate(ctx, d, cn); err == nil {
 			out.Template = &t
 		}
 		for _, p := range cn.Provisioning {
-			row := ConnectProvisionRow{Key: p.Key, Text: p.Label, Status: p.Status, At: p.At, Error: p.Error, Hint: p.Hint}
+			row := ConnectProvisionRow{Key: p.Key, Text: p.in(l, "label", p.Label), Status: p.Status, At: p.At, Error: p.errorIn(l), Hint: p.in(l, "hint", p.Hint)}
 			if p.Status == "done" {
 				out.ProvisionDone++
 				if p.Text != "" {
-					row.Text = p.Text
+					row.Text = p.in(l, "text", p.Text)
 				}
 			}
 			if p.Status == "running" || p.Status == "waiting" {
@@ -551,20 +593,21 @@ func (s *Service) connectionView(ctx context.Context, ws *store.Workspace, d pro
 	if flow == "smtp" {
 		out.SMTPForm = smtpForm(prov, cn)
 		if cn.SMTP != nil {
-			out.SMTP = probeView(cn.SMTP)
+			out.SMTP = probeView(l, cn.SMTP)
 		}
 		if cn.Mailbox != nil {
-			out.Mailbox = probeView(cn.Mailbox)
+			out.Mailbox = probeView(l, cn.Mailbox)
 		}
 	}
 	if cn.Webhook != nil {
 		w := cn.Webhook
 		out.Webhook = &ConnectWebhook{Mode: w.Mode, URL: w.URL, PublicURL: w.PublicURL, NeedsSecret: w.NeedsSecret, SecretHeader: w.SecretHeader}
 		if w.SelfTest != nil {
-			out.Webhook.SelfTest = &ConnectSelfTest{OK: w.SelfTest.OK, At: w.SelfTest.At, Code: w.SelfTest.Code, Reason: w.SelfTest.Reason, Private: w.SelfTest.Private}
+			out.Webhook.SelfTest = &ConnectSelfTest{OK: w.SelfTest.OK, At: w.SelfTest.At, Code: w.SelfTest.Code, Reason: textIn(w.SelfTest.Reason, w.SelfTest.ReasonText, l),
+				Private: w.SelfTest.Private}
 		}
 		if w.Registration != nil {
-			out.Webhook.Registration = &ConnectRegistration{Status: w.Registration.Status, Detail: w.Registration.Detail, At: w.Registration.At}
+			out.Webhook.Registration = &ConnectRegistration{Status: w.Registration.Status, Detail: textIn(w.Registration.Detail, w.Registration.DetailText, l), At: w.Registration.At}
 		}
 	}
 	out.CanContinue = canContinue(flow, cn, prov)
@@ -598,8 +641,28 @@ func hasFailed(rows []ProvisionState) bool {
 	return false
 }
 
-func probeView(p *ProbeState) *ConnectProbe {
-	return &ConnectProbe{OK: p.OK, At: p.At, Summary: p.Summary, Transcript: strings.Join(p.Transcript, " · "), Error: p.Error}
+func probeView(l i18n.Lang, p *ProbeState) *ConnectProbe {
+	return &ConnectProbe{OK: p.OK, At: p.At, Summary: textIn(p.Summary, p.SummaryText, l), Transcript: strings.Join(p.Transcript, " · "),
+		Error: textIn(p.Error, p.ErrorText, l)}
+}
+
+// in is one of a provisioning row's texts for a reader.
+func (p ProvisionState) in(l i18n.Lang, field, english string) string {
+	return textIn(english, p.Texts[field], l)
+}
+
+// errorIn is a provisioning row's error for a reader: the provider's own
+// error as it is, ReputeCast's in the reader's language.
+func (p ProvisionState) errorIn(l i18n.Lang) string {
+	if t, ok := p.Texts["reason"]; ok && !english(l) {
+		if code, _, ok := strings.Cut(p.Error, ": "); ok {
+			if s := t.In(l); s != "" {
+				return code + ": " + s
+			}
+		}
+		return p.Error
+	}
+	return p.in(l, "error", p.Error)
 }
 
 // canContinue: connected, and events can come back (webhook reachable and
@@ -690,6 +753,27 @@ func (s *Service) useCase(ctx context.Context, ws *store.Workspace) (string, str
 	}
 	text += ". Bounces and complaints are processed automatically via SNS and suppressed across all sending providers. One-click unsubscribe headers on every message."
 	return website, text
+}
+
+// thousands writes a count with commas ("50,000"): the request to AWS is
+// in English.
+func thousands(n int) string {
+	s := strconv.Itoa(n)
+	if len(s) <= 3 {
+		return s
+	}
+	var b strings.Builder
+	pre := len(s) % 3
+	if pre > 0 {
+		b.WriteString(s[:pre])
+	}
+	for i := pre; i < len(s); i += 3 {
+		if b.Len() > 0 {
+			b.WriteByte(',')
+		}
+		b.WriteString(s[i : i+3])
+	}
+	return b.String()
 }
 
 func joinAnd(xs []string) string {

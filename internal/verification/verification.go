@@ -70,7 +70,7 @@ type Imports interface {
 // Notifier tells members about finished jobs and low credits.
 type Notifier interface {
 	JobEnded(ctx context.Context, ws *store.Workspace, j store.VerificationJob)
-	CreditsLow(ctx context.Context, ws *store.Workspace, svc store.VerificationService, needed int64, label string)
+	CreditsLow(ctx context.Context, ws *store.Workspace, svc store.VerificationService, needed int64, job *store.VerificationJob)
 }
 
 // Service is the verification domain.

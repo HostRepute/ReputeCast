@@ -200,8 +200,9 @@ export function UnknownList({ run }: { run: Run }) {
     const id = c.key.startsWith('reputation.provider.') ? c.key.slice('reputation.provider.'.length) : ''
     const share = id ? shares.find((s) => s.providerId === id) : undefined
     if (c.status === 'pass' && share && c.short) {
-      const from = share.priceLabel === 'self-hosted' ? share.short : t(m.fromApi, { name: share.short })
-      // The short finding is the server's, in English.
+      const from = share.pricing === 'self_hosted' ? share.short : t(m.fromApi, { name: share.short })
+      // The short finding is the server's, in the reader's language; in
+      // English this line joins its two rates with "and".
       return t(m.unaffected, { group: groupTitles[c.group] ?? c.group, short: c.short.replace(', complaints ', ' and complaint '), source: from })
     }
     return (c.flatTitle || c.title).replace(/^([^:]+): /, '$1 · ')

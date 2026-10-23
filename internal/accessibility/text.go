@@ -47,14 +47,6 @@ func count(n int) string {
 	return b.String()
 }
 
-// plural is "1 issue" or "6 issues".
-func plural(n int, one, many string) string {
-	if n == 1 {
-		return "1 " + one
-	}
-	return count(n) + " " + many
-}
-
 // joinAnd is "a", "a and b", "a, b and c".
 func joinAnd(items []string) string {
 	switch len(items) {

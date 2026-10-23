@@ -9,7 +9,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/state"
+	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -49,15 +51,14 @@ func (s *Service) NextCampaign(ctx context.Context, ws *store.Workspace) (Overvi
 	if r, err := s.Q.OverviewLatestReadiness(ctx, c.ID); err == nil {
 		rd := &OverviewReadiness{Verdict: r.Verdict, Issues: []OverviewReadinessIssue{}, RanAt: r.RanAt}
 		var checks struct {
-			Checks []struct {
-				Status string `json:"status"`
-				Title  string `json:"title"`
-			} `json:"checks"`
+			Checks []readiness.ReadinessCheck `json:"checks"`
 		}
 		_ = json.Unmarshal(r.Checks, &checks)
-		// Blocks first, then warnings, as Send Readiness lists them.
+		// Blocks first, then warnings, as Send Readiness lists them, in the
+		// reader's language.
+		read := readiness.InChecks(checks.Checks, i18n.LangFrom(ctx))
 		for _, want := range []string{"block", "warn"} {
-			for _, ch := range checks.Checks {
+			for _, ch := range read {
 				if ch.Status == want {
 					rd.Issues = append(rd.Issues, OverviewReadinessIssue{Status: ch.Status, Title: ch.Title})
 				}

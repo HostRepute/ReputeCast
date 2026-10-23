@@ -1,0 +1,26 @@
+{
+  "pricing": "theo gói, miễn phí 100 email mỗi ngày, sau đó từ 15 US$ mỗi tháng cho 10.000 email",
+  "dedicatedIps": "gói Scale có sẵn một IP; 59 US$ cho mỗi IP thêm mỗi tháng",
+  "terms.0.note": "Chỉ người nhận đã đồng ý rõ ràng và chứng minh được; không dùng danh sách mua, thuê hay thu thập tự động. Mọi email tiếp thị đều cần liên kết hủy đăng ký và liên kết chính sách quyền riêng tư. Giới hạn của Mailgun: 5% thư trả lại, 0,08% khiếu nại.",
+  "events": "Webhook",
+  "domainSetup": "API",
+  "suppressionMode": "Hai chiều",
+  "field.api_key.label": "Private API key",
+  "field.api_key.help": "Mailgun › API Security. Hãy dùng Private API key (hoặc Developer key), không phải Domain Sending key hay HTTP webhook signing key.",
+  "field.region.label": "Khu vực",
+  "field.region.help": "US · api.mailgun.net hoặc EU · api.eu.mailgun.net, nơi tên miền được tạo.",
+  "field.domain.label": "Tên miền gửi thư",
+  "field.domain.help": "Tên miền Mailgun dùng để gửi thư, ví dụ mg.acme.io. ReputeCast có thể thêm nó giúp bạn.",
+  "field.monthly_limit.label": "Gói · số email mỗi tháng",
+  "field.monthly_limit.help": "Dùng cho thanh hạn mức khi tài khoản không có giới hạn gửi tùy chỉnh.",
+  "field.webhook_signing_key.label": "HTTP webhook signing key",
+  "field.webhook_signing_key.help": "Không bắt buộc. ReputeCast đọc khóa này từ Mailgun; chỉ nhập khi khóa API của bạn không đọc được nó (API Security › HTTP webhook signing key).",
+
+  "account": "{sandbox, select, yes {Tên miền sandbox · chỉ gửi đến người nhận được cấp phép} other {Tên miền {domain} · {state}}}{limit, select, yes { · giới hạn tùy chỉnh {n, number} email mỗi tháng} other {}}",
+  "tracking.scope": "Tên miền {domain}",
+  "tracking.unsubscribe": "Theo dõi hủy đăng ký đang bật, nên Mailgun thêm liên kết hủy đăng ký và chân thư của riêng nó bên cạnh của ReputeCast.{on, select, open { Theo dõi lượt mở của tên miền cũng đang bật, nhưng ReputeCast tắt nó trên mọi thư.} click { Theo dõi lượt nhấp của tên miền cũng đang bật, nhưng ReputeCast tắt nó trên mọi thư.} both { Theo dõi lượt mở và lượt nhấp của tên miền cũng đang bật, nhưng ReputeCast tắt chúng trên mọi thư.} other {}}",
+  "tracking.on": "{on, select, open {Theo dõi lượt mở của tên miền đang bật, nhưng ReputeCast tắt nó trên mọi thư mà ReputeCast gửi.} click {Theo dõi lượt nhấp của tên miền đang bật, nhưng ReputeCast tắt nó trên mọi thư mà ReputeCast gửi.} other {Theo dõi lượt mở và lượt nhấp của tên miền đang bật, nhưng ReputeCast tắt chúng trên mọi thư mà ReputeCast gửi.}}",
+  "tracking.off": "Theo dõi lượt mở, lượt nhấp và hủy đăng ký đều đang tắt cho {domain}.",
+  "error.domainUnknown": "Mailgun không biết tên miền {domain} ở khu vực này. Hãy kiểm tra tên miền và khu vực.",
+  "error.tooManyURLs": "Mailgun cho phép ba URL cho mỗi sự kiện và {event} đã có đủ ba. Hãy xóa bớt một URL trong Mailgun rồi đăng ký lại."
+}

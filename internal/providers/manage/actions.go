@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -81,9 +83,10 @@ func (s *Service) ReplaceCredentials(ctx context.Context, ws *store.Workspace, i
 	if err != nil {
 		return ProviderCard{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	d, ok := providers.Lookup(p.Adapter)
 	if !ok {
-		return ProviderCard{}, api.Conflict("This provider's adapter is not available in this build.")
+		return ProviderCard{}, api.Conflict(mAdapterMissing.Text(l, nil))
 	}
 	secret := map[string]bool{}
 	for _, f := range d.Fields {
@@ -92,7 +95,7 @@ func (s *Service) ReplaceCredentials(ctx context.Context, ws *store.Workspace, i
 		}
 	}
 	if len(in.Values) == 0 {
-		return ProviderCard{}, api.Invalid("body.values", "Enter the new value to save.")
+		return ProviderCard{}, api.Invalid("body.values", mEnterValue.Text(l, nil))
 	}
 	cur, err := s.Factory.Credentials(p)
 	if err != nil {
@@ -103,11 +106,11 @@ func (s *Service) ReplaceCredentials(ctx context.Context, ws *store.Workspace, i
 	keys := []string{}
 	for k, v := range in.Values {
 		if !secret[k] {
-			return ProviderCard{}, api.Invalid("body.values."+k, "This is not a credential of "+p.Name+".")
+			return ProviderCard{}, api.Invalid("body.values."+k, mNotCredential.Text(l, i18n.Args{"name": p.Name}))
 		}
 		v = strings.TrimSpace(v)
 		if v == "" {
-			return ProviderCard{}, api.Invalid("body.values."+k, "Enter the new value.")
+			return ProviderCard{}, api.Invalid("body.values."+k, mEnterNewValue.Text(l, nil))
 		}
 		creds[k] = v
 		keys = append(keys, k)
@@ -115,7 +118,7 @@ func (s *Service) ReplaceCredentials(ctx context.Context, ws *store.Workspace, i
 	raw, _ := json.Marshal(creds)
 	adapter, err := s.Factory.OpenWith(p, raw)
 	if err != nil {
-		return ProviderCard{}, api.Err(http.StatusUnprocessableEntity, api.CodeValidation, "These credentials can't be used: "+err.Error())
+		return ProviderCard{}, api.Err(http.StatusUnprocessableEntity, api.CodeValidation, mCredentialsUnusable.Text(l, i18n.Args{"error": err.Error()}))
 	}
 	if !IsDemo(p) {
 		if v, ok := adapter.(providers.Verifier); ok {
@@ -123,9 +126,9 @@ func (s *Service) ReplaceCredentials(ctx context.Context, ws *store.Workspace, i
 			_, verr := v.Verify(cctx)
 			cancel()
 			if verr != nil {
-				msg := p.Name + " didn't accept them: " + verr.Error() + ". Nothing was saved."
+				msg := mCredentialsRefused.Text(l, i18n.Args{"name": p.Name, "error": providers.ErrorIn(verr, l)})
 				if errors.Is(verr, providers.ErrUnauthorized) {
-					msg = p.Name + " rejected these credentials. Nothing was saved; check the value and try again."
+					msg = mCredentialsRejected.Text(l, i18n.Args{"name": p.Name})
 				}
 				return ProviderCard{}, api.Err(http.StatusUnprocessableEntity, api.CodeInvalidCredentials, msg)
 			}
@@ -194,7 +197,7 @@ func (s *Service) UpdateSettings(ctx context.Context, ws *store.Workspace, id st
 			pricing.NextTier = &state.NextTier{Adds: in.Pricing.NextTierAdds, Price: in.Pricing.NextTierPrice}
 		}
 		if pricing.Model == "metered" && pricing.Per1000 <= 0 {
-			return ProviderCard{}, api.Invalid("body.pricing.per1000", "Enter the price per 1,000 emails.")
+			return ProviderCard{}, api.Invalid("body.pricing.per1000", mPrice.Text(i18n.LangFrom(ctx), nil))
 		}
 	}
 	limits := state.LimitsOf(p)
@@ -241,6 +244,7 @@ func (s *Service) Disconnect(ctx context.Context, ws *store.Workspace, id string
 	if err != nil {
 		return ProviderDisconnected{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	var uses []string
 	for _, stream := range routing.Streams {
 		for _, r := range set.StreamRules(stream) {
@@ -251,13 +255,18 @@ func (s *Service) Disconnect(ctx context.Context, ws *store.Workspace, id string
 				}
 			}
 			if used {
-				uses = append(uses, streamLabel(string(stream)))
+				uses = append(uses, streamName(l, string(stream)))
 				break
 			}
 		}
 	}
 	if len(uses) > 0 {
-		return ProviderDisconnected{}, api.Conflict(fmt.Sprintf("%s still carries %s. Change the routing first, then disconnect it.", p.Name, strings.Join(uses, " and ")))
+		// "Postal still carries Broadcasts and System."
+		streams := strings.Join(uses, " and ")
+		if l.Locale != i18n.English {
+			streams = i18n.AndList(l.Locale, uses)
+		}
+		return ProviderDisconnected{}, api.Conflict(mStillCarries.Text(l, i18n.Args{"name": p.Name, "streams": streams}))
 	}
 	out := s.removeWebhook(ctx, p)
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -338,10 +347,11 @@ func (s *Service) ProviderTrackingChecks(ctx context.Context, ws *store.Workspac
 		return nil, err
 	}
 	out := []ProviderTrackingCheck{}
+	l := i18n.LangFrom(ctx)
 	for _, p := range provs {
 		t := state.TrackingOf(p)
 		tc := ProviderTrackingCheck{ProviderID: p.ID.String(), Provider: p.Name, Status: "ok", OpenPixel: t.OpenPixel, LinkRewrite: t.LinkRewrite,
-			Detail: t.Detail, Scope: t.Scope, Mode: t.Mode, CheckedAt: t.CheckedAt}
+			Detail: providers.TextIn(t.Detail, t.DetailText, l), Scope: providers.TextIn(t.Scope, t.ScopeText, l), Mode: t.Mode, CheckedAt: t.CheckedAt}
 		if (t.OpenPixel || t.LinkRewrite) && t.Mode != "provider" {
 			tc.Status = "warn"
 		}
@@ -377,6 +387,8 @@ func (s *Service) TrackingAction(ctx context.Context, ws *store.Workspace, id st
 			t := before
 			t.OpenPixel, t.LinkRewrite, t.Mode = false, false, "reputecast"
 			t.Detail = strings.NewReplacer("is on", "is off", "HtmlAndText", "None", "HtmlOnly", "None", "TextOnly", "None").Replace(t.Detail)
+			// The demo rewrites its English: a message kept for it no longer says it.
+			t.DetailText = i18n.Text{}
 			b, _ := json.Marshal(t)
 			if err := s.Q.ProvUpdateTracking(ctx, store.ProvUpdateTrackingParams{ID: p.ID, Tracking: b}); err != nil {
 				return ProviderTrackingCheck{}, err
@@ -389,13 +401,14 @@ func (s *Service) TrackingAction(ctx context.Context, ws *store.Workspace, id st
 		}
 		tm, ok := adapter.(providers.TrackingManager)
 		if !ok {
-			return ProviderTrackingCheck{}, api.Conflict(p.Name + " can't change tracking over its API. Turn it off in " + p.Name + "'s settings.")
+			return ProviderTrackingCheck{}, api.Conflict(mTrackingNoAPI.Text(i18n.LangFrom(ctx), i18n.Args{"name": p.Name}))
 		}
 		cctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 		err = tm.DisableTracking(cctx)
 		cancel()
 		if err != nil {
-			return ProviderTrackingCheck{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, p.Name+" didn't accept the change: "+err.Error())
+			l := i18n.LangFrom(ctx)
+			return ProviderTrackingCheck{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, mTrackingRefused.Text(l, i18n.Args{"name": p.Name, "error": providers.ErrorIn(err, l)}))
 		}
 		if _, err := s.refreshTracking(ctx, p); err != nil {
 			return ProviderTrackingCheck{}, err
@@ -454,15 +467,16 @@ func (s *Service) TestWebhook(ctx context.Context, ws *store.Workspace, id strin
 		return ProviderWebhookTestResult{}, err
 	}
 	out := ProviderWebhookTestResult{}
+	l := i18n.LangFrom(ctx)
 	code, err := s.selfTest(ctx, p)
 	out.EndpointStatus = code
 	switch {
 	case err != nil:
-		out.EndpointDetail = "Couldn't reach " + WebhookURL(s.URLs, p) + ": " + err.Error()
+		out.EndpointDetail = mTestUnreachable.Text(l, i18n.Args{"url": WebhookURL(s.URLs, p), "error": err.Error()})
 	case code == http.StatusOK:
-		out.EndpointOK, out.EndpointDetail = true, "200 OK on a self-test"
+		out.EndpointOK, out.EndpointDetail = true, mCheckSelfTestOK.Text(l, nil)
 	default:
-		out.EndpointDetail = fmt.Sprintf("%d on a self-test", code)
+		out.EndpointDetail = mCheckSelfTest.Text(l, i18n.Args{"status": strconv.Itoa(code)})
 	}
 	if !IsDemo(p) {
 		if adapter, err := s.Factory.Open(ctx, p); err == nil {
@@ -472,7 +486,7 @@ func (s *Service) TestWebhook(ctx context.Context, ws *store.Workspace, id strin
 				cancel()
 				out.ProviderTest = err == nil
 				if err != nil {
-					out.ProviderTestDetail = err.Error()
+					out.ProviderTestDetail = providers.ErrorIn(err, l)
 				}
 			}
 		}
@@ -491,15 +505,16 @@ func (s *Service) RegisterWebhook(ctx context.Context, ws *store.Workspace, id s
 		if err != nil {
 			return err
 		}
+		l := i18n.LangFrom(ctx)
 		wr, ok := adapter.(providers.WebhookRegistrar)
 		if !ok {
-			return api.Conflict(p.Name + " webhooks are set up in " + p.Name + " itself. Point them at " + WebhookURL(s.URLs, p) + ".")
+			return api.Conflict(mWebhookManual.Text(l, i18n.Args{"name": p.Name, "url": WebhookURL(s.URLs, p)}))
 		}
 		cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		err = wr.RegisterWebhook(cctx, WebhookURL(s.URLs, p))
 		cancel()
 		if err != nil {
-			return api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, p.Name+" didn't accept the webhook: "+err.Error())
+			return api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, mWebhookRefused.Text(l, i18n.Args{"name": p.Name, "error": providers.ErrorIn(err, l)}))
 		}
 	}
 	return s.audit(ctx, s.Q, ws, p, "provider.webhook_register", nil, nil, map[string]any{"url": WebhookURL(s.URLs, p)})
@@ -543,7 +558,7 @@ func (s *Service) Backfill(ctx context.Context, ws *store.Workspace, id string) 
 			return ProviderBackfillResult{}, err
 		}
 		if _, ok := adapter.(providers.EventBackfiller); !ok {
-			return ProviderBackfillResult{}, api.Conflict(p.Name + "'s API can't report message status, so there is nothing to backfill from.")
+			return ProviderBackfillResult{}, api.Conflict(mNoBackfill.Text(i18n.LangFrom(ctx), i18n.Args{"name": p.Name}))
 		}
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -582,15 +597,16 @@ func (s *Service) CreateBroadcastStream(ctx context.Context, ws *store.Workspace
 		if err != nil {
 			return ProviderBroadcastStreamResult{}, err
 		}
+		l := i18n.LangFrom(ctx)
 		bc, ok := adapter.(providers.BroadcastStreamCreator)
 		if !ok {
-			return ProviderBroadcastStreamResult{}, api.Conflict(p.Name + " has no separate stream for bulk mail.")
+			return ProviderBroadcastStreamResult{}, api.Conflict(mNoBroadcastStream.Text(l, i18n.Args{"name": p.Name}))
 		}
 		cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		streamID, err = bc.CreateBroadcastStream(cctx, "ReputeCast Broadcasts")
 		cancel()
 		if err != nil {
-			return ProviderBroadcastStreamResult{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, p.Name+" didn't create the stream: "+err.Error())
+			return ProviderBroadcastStreamResult{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, mStreamRefused.Text(l, i18n.Args{"name": p.Name, "error": providers.ErrorIn(err, l)}))
 		}
 	}
 	cfg := map[string]any{}
@@ -663,8 +679,9 @@ func (s *Service) DecideHeld(ctx context.Context, ws *store.Workspace, providerI
 			route = &held[i]
 		}
 	}
+	l := i18n.LangFrom(ctx)
 	if route == nil {
-		return ProviderHeldDecisionResult{}, api.Conflict("Nothing of this campaign is held on " + p.Name + " any more.")
+		return ProviderHeldDecisionResult{}, api.Conflict(mNothingHeld.Text(l, i18n.Args{"name": p.Name}))
 	}
 	pr := api.PrincipalFrom(ctx)
 	// Waiting and moving resume sending (campaigns:send); cancelling stops
@@ -701,17 +718,17 @@ func (s *Service) DecideHeld(ctx context.Context, ws *store.Workspace, providerI
 		case "move":
 			tid, err := uuid.Parse(in.TargetID)
 			if err != nil {
-				return api.Invalid("body.targetProviderId", "Pick the provider to move the held recipients to.")
+				return api.Invalid("body.targetProviderId", mPickTarget.Text(l, nil))
 			}
 			target, err := q.ProvGet(ctx, store.ProvGetParams{WorkspaceID: ws.ID, ID: tid})
 			if err != nil {
-				return api.Invalid("body.targetProviderId", "That provider is not connected to this workspace.")
+				return api.Invalid("body.targetProviderId", mTargetMissing.Text(l, nil))
 			}
 			if target.ID == p.ID || !state.Available(target) {
-				return api.Conflict(target.Name + " can't take mail right now.")
+				return api.Conflict(mTargetUnavailable.Text(l, i18n.Args{"name": target.Name}))
 			}
 			if !state.Caps(target).BulkAllowed() {
-				return api.Conflict(target.Name + "'s terms don't allow bulk marketing.")
+				return api.Conflict(mTargetNoBulk.Text(l, i18n.Args{"name": target.Name}))
 			}
 			moved := max(route.Planned-route.Sent, 0)
 			if _, err := tx.Exec(ctx, `INSERT INTO campaign_routes (campaign_id, provider_id, planned, status) VALUES ($1, $2, $3, 'pending')

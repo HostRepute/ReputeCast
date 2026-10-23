@@ -10,6 +10,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // DigestPath is the {workspace}/{digestId} of digest operations.
@@ -218,7 +219,8 @@ func Register(h huma.API, s *Service) {
 			}
 			out := DigestReadNow{OK: res.OK, NotModified: res.NotModified, Items: res.Items, New: res.New}
 			if res.Err != nil {
-				fe := toFeedError(res.Err, "")
+				fe, text := toFeedError(res.Err, res.Address)
+				fe.Detail = textIn(text, i18n.LangFrom(ctx), fe.Detail)
 				out.Error = &fe
 			}
 			return api.OK(out), nil

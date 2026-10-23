@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/templates"
 )
@@ -30,7 +31,7 @@ func TestRenderBlockLayouts(t *testing.T) {
 	items := sampleItems()
 	b := DefaultBlock()
 	b.Fallback, b.FallbackName = "/media/0199/blog-fallback.png", "blog-fallback.png"
-	cards := RenderBlock(b, items, ny)
+	cards := RenderBlock(b, items, ny, i18n.Lang{})
 	if n := strings.Count(cards, `css-class="rc-feed-item"`); n != 3 {
 		t.Fatalf("cards: %d items", n)
 	}
@@ -54,18 +55,18 @@ func TestRenderBlockLayouts(t *testing.T) {
 		}
 	}
 	b.Layout = "list"
-	list := RenderBlock(b, items, ny)
+	list := RenderBlock(b, items, ny, i18n.Lang{})
 	if strings.Contains(list, "<mj-image") || strings.Contains(list, "<mj-button") || !strings.Contains(list, "text-decoration:underline") {
 		t.Fatalf("list: %s", list)
 	}
 	b.Layout = "grid"
-	grid := RenderBlock(b, items, ny)
+	grid := RenderBlock(b, items, ny, i18n.Lang{})
 	if strings.Count(grid, `css-class="rc-feed-item"`) != 2 || strings.Count(grid, `width="50%"`) != 3 || !strings.Contains(grid, `width="264px"`) || !strings.Contains(grid, "Wed 14 Oct · Mei Tanaka") {
 		t.Fatalf("grid: %s", grid)
 	}
 	// Fields left out stay out.
 	b.Layout, b.Fields = "cards", []string{FieldTitle}
-	bare := RenderBlock(b, items[:1], ny)
+	bare := RenderBlock(b, items[:1], ny, i18n.Lang{})
 	if strings.Contains(bare, "<mj-image") || strings.Contains(bare, "Joel Weber") || strings.Contains(bare, "mj-button") {
 		t.Fatalf("title only: %s", bare)
 	}
@@ -113,7 +114,7 @@ func TestStarterExpandsAndCompiles(t *testing.T) {
 	if res := mjml.Compile(src); len(res.Errors) > 0 {
 		t.Fatalf("template: %v", res.Errors)
 	}
-	issue := ExpandBlock(src, sampleItems(), time.UTC)
+	issue := ExpandBlock(src, sampleItems(), time.UTC, i18n.Lang{})
 	if strings.Contains(issue, "rc:feed-items") || !strings.Contains(issue, `rc:feed-issue {"layout":"cards","items":3}`) {
 		t.Fatalf("expand: %s", issue)
 	}
