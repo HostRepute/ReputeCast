@@ -1,7 +1,6 @@
 package accessibility
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/hostrepute/reputecast/internal/mjml"
@@ -13,7 +12,7 @@ const FixTextRole = "text_role"
 
 // ErrMixedText means a Text block holds several paragraphs: a heading gets
 // a Text block of its own.
-var ErrMixedText = errors.New("this text has several paragraphs: a heading gets a Text block of its own")
+var ErrMixedText = errText(mErrMixedText, nil)
 
 // roleLook is what an element gets from the browser's defaults: its font
 // size, vertical margin and weight.
@@ -37,7 +36,7 @@ func blockTag(tag string) bool {
 // one would change is written into its style.
 func fixTextRole(d *doc, n *mjml.Node, role string) (string, error) {
 	if _, ok := roleLook[role]; !ok {
-		return d.src, errors.New("choose a paragraph or a heading level")
+		return d.src, errText(mErrChooseRole, nil)
 	}
 	if n.Tag != "mj-text" {
 		return d.src, ErrFixTarget
@@ -63,7 +62,7 @@ func fixTextRole(d *doc, n *mjml.Node, role string) (string, error) {
 	if blocks == 0 {
 		trimmed := strings.TrimSpace(content)
 		if trimmed == "" {
-			return d.src, errors.New("the text is empty")
+			return d.src, errText(mErrEmptyText, nil)
 		}
 		// Written out rather than inherited: Outlook gives headings its own
 		// size and weight.

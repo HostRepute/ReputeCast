@@ -12,6 +12,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/transactional"
 )
@@ -50,7 +51,7 @@ func (s *Service) templateTx(ctx context.Context, ws *store.Workspace, ref strin
 			return err
 		}
 		if write && t.ArchivedAt != nil {
-			return api.Conflict(t.Key + " is archived. Restore it to change its language versions.")
+			return api.Conflict(mArchived.Text(langOf(ctx), i18n.Args{"template": t.Key}))
 		}
 		settings, err := s.Settings(ctx, q, ws.ID)
 		if err != nil {
@@ -70,7 +71,7 @@ func (s *Service) TemplateLanguages(ctx context.Context, ws *store.Workspace, p 
 	var out EmailLanguages
 	err := s.templateTx(ctx, ws, ref, false, func(q *store.Queries, o Owner, _ Source, st sourceState, settings Settings) error {
 		views, err := s.versions(ctx, q, o, st)
-		out = overview(st, views, settings, nil, nil)
+		out = overview(langOf(ctx), st, views, settings, nil, nil)
 		return err
 	})
 	if err != nil {
@@ -88,7 +89,7 @@ func (s *Service) AddTemplateLanguage(ctx context.Context, ws *store.Workspace, 
 		if err != nil {
 			return err
 		}
-		if err := checkNewVersion(settings, st, views, lang); err != nil {
+		if err := checkNewVersion(langOf(ctx), settings, st, views, lang); err != nil {
 			return err
 		}
 		start := in.Start
@@ -168,7 +169,7 @@ func (t Transactional) Draft(ctx context.Context, ws *store.Workspace, id uuid.U
 	}
 	r, err := t.S.Q.ContentTranslation(ctx, store.ContentTranslationParams{OwnerKind: OwnerTransactional, OwnerID: id, OwnerVersion: 0, Language: lang})
 	if err != nil {
-		return transactional.TranslationDraft{}, notFoundVersion(err, lang)
+		return transactional.TranslationDraft{}, notFoundVersion(langOf(ctx), err, lang)
 	}
 	at := r.UpdatedAt
 	if r.AutosavedAt != nil {
@@ -191,7 +192,7 @@ func (t Transactional) SaveDraft(ctx context.Context, ws *store.Workspace, p *au
 		subject, preheader, mj, html := cur.Subject, cur.Preheader, cur.Mjml, cur.Html
 		if in.Subject != nil {
 			if strings.ContainsAny(*in.Subject, "\r\n") {
-				return api.Invalid("body.subject", "The subject must be one line.")
+				return api.Invalid("body.subject", mSubjectOneLine.Text(langOf(ctx), nil))
 			}
 			subject = *in.Subject
 		}
@@ -254,13 +255,14 @@ func (t Transactional) Publishing(ctx context.Context, q *store.Queries, ws *sto
 		states = append(states, VersionState{Language: v.row.Language, Status: v.row.Status, Held: v.row.Held})
 	}
 	ch := NewChooser(st.Language, settings, states)
-	out = append(out, transactional.TransactionalPublishLanguage{Language: st.Language, Name: NameOf(st.Language), Status: "source", Gets: st.Language, GetsName: NameOf(st.Language)})
+	rl := langOf(ctx)
+	out = append(out, transactional.TransactionalPublishLanguage{Language: st.Language, Name: NameIn(rl, st.Language), Status: "source", Gets: st.Language, GetsName: NameIn(rl, st.Language)})
 	for _, lang := range settings.Languages {
 		for _, v := range views {
 			if v.row.Language == lang {
 				gets := ch.Pick(lang).Language
-				out = append(out, transactional.TransactionalPublishLanguage{Language: lang, Name: NameOf(lang), Status: v.progress.Status, Attention: v.progress.Attention,
-					Gets: gets, GetsName: NameOf(gets)})
+				out = append(out, transactional.TransactionalPublishLanguage{Language: lang, Name: NameIn(rl, lang), Status: v.progress.Status, Attention: v.progress.Attention,
+					Gets: gets, GetsName: NameIn(rl, gets)})
 			}
 		}
 	}
@@ -288,6 +290,7 @@ func (t Transactional) Publish(ctx context.Context, q *store.Queries, ws *store.
 // Changes lists the language versions the draft adds, changes (its
 // content, or marked translated) or removes since a published version.
 func (t Transactional) Changes(ctx context.Context, q *store.Queries, ws *store.Workspace, id uuid.UUID, version int) ([]transactional.TransactionalLanguageChange, error) {
+	rl := langOf(ctx)
 	draft, err := q.ContentTranslations(ctx, store.ContentTranslationsParams{OwnerKind: OwnerTransactional, OwnerID: id, OwnerVersion: 0})
 	if err != nil {
 		return nil, err
@@ -307,14 +310,14 @@ func (t Transactional) Changes(ctx context.Context, q *store.Queries, ws *store.
 		p, ok := was[r.Language]
 		switch {
 		case !ok:
-			out = append(out, transactional.TransactionalLanguageChange{Language: r.Language, Name: NameOf(r.Language), Change: "added"})
+			out = append(out, transactional.TransactionalLanguageChange{Language: r.Language, Name: NameIn(rl, r.Language), Change: "added"})
 		case p.ContentHash != r.ContentHash || p.Status != r.Status || p.Held != r.Held:
-			out = append(out, transactional.TransactionalLanguageChange{Language: r.Language, Name: NameOf(r.Language), Change: "changed"})
+			out = append(out, transactional.TransactionalLanguageChange{Language: r.Language, Name: NameIn(rl, r.Language), Change: "changed"})
 		}
 	}
 	for _, r := range live {
 		if !seen[r.Language] {
-			out = append(out, transactional.TransactionalLanguageChange{Language: r.Language, Name: NameOf(r.Language), Change: "removed"})
+			out = append(out, transactional.TransactionalLanguageChange{Language: r.Language, Name: NameIn(rl, r.Language), Change: "removed"})
 		}
 	}
 	return out, nil

@@ -17,7 +17,45 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
+)
+
+var (
+	mCheckRouteHealthy   = msg("check.routeHealthy")
+	mCheckRouteFallback  = msg("check.routeFallback")
+	mCheckRouteDown      = msg("check.routeDown")
+	mCheckEmailsFail     = msg("check.emailsFail")
+	mCheckEmailsPass     = msg("check.emailsPass")
+	mCheckNoDeletedRefs  = msg("check.noDeletedRefs")
+	mCheckBranchPaths    = msg("check.branchPaths")
+	mCheckBranchesPaths  = msg("check.branchesPaths")
+	mCheckSplitPaths     = msg("check.splitPaths")
+	mCheckNoEmailPicked  = msg("check.noEmailPicked")
+	mCheckEmailDeleted   = msg("check.emailDeleted")
+	mBlockerNoChanges    = msg("blocker.noChanges")
+	mBlockerOnlyMoves    = msg("blocker.onlyMoves")
+	mEstimateNow         = msg("estimate.now")
+	mEstimateWithinHour  = msg("estimate.withinHour")
+	mEstimateHours       = msg("estimate.hours")
+	mEstimateDays        = msg("estimate.days")
+	mMoveWaiting         = msg("move.waiting")
+	mMoveRemoved         = msg("move.removed")
+	mMoveKindEmail       = msg("move.kindEmail")
+	mMoveKindStep        = msg("move.kindStep")
+	mMoveNextStep        = msg("move.nextStep")
+	mMoveImpact          = msg("move.impact")
+	mMoveNone            = msg("move.none")
+	mProblemDraftMoved   = msg("problem.draftMoved")
+	mProblemAlreadyLive  = msg("problem.alreadyLive")
+	mProblemFixOnCanvas  = msg("problem.fixOnCanvas")
+	mProblemChangedAfter = msg("problem.changedAfterApproval")
+	mProblemPauseReason  = msg("problem.pauseReason")
+	mProblemPauseNotLive = msg("problem.pauseNotLive")
+	mProblemResumeNot    = msg("problem.resumeNotPaused")
+	mSummaryFirst        = msg("summary.first")
+	mSummaryAdded        = msg("summary.added")
+	mSummaryRemoved      = msg("summary.removed")
 )
 
 // Migration choices for contacts already in a flow when a version is published.
@@ -111,7 +149,11 @@ type publishState struct {
 	failures map[string]WebhookFailure
 }
 
-func (s *Service) loadPublish(ctx context.Context, q *store.Queries, ws *store.Workspace, a store.Automation) (*publishState, error) {
+// loadPublish gathers what publishing the draft would do. The diff is in
+// English with its texts (the approval request and the audit log keep the
+// English; the dialog writes it in the reader's language); the problems are
+// in l.
+func (s *Service) loadPublish(ctx context.Context, q *store.Queries, ws *store.Workspace, a store.Automation, l i18n.Lang) (*publishState, error) {
 	st := &publishState{a: a, failures: map[string]WebhookFailure{}}
 	var err error
 	if st.refs, err = s.loadRefs(ctx, q, ws.ID); err != nil {
@@ -148,26 +190,36 @@ func (s *Service) loadPublish(ctx context.Context, q *store.Queries, ws *store.W
 	}
 	st.items = Diff(from, st.draft, DiffContext{
 		FromRefs: st.refs, ToVersion: int(a.DraftVersion), Loc: workspaceLoc(ws), Failures: st.failures,
-		Check: func(emailID string, version int) string { return s.checkEmail(ctx, q, ws.ID, emailID, version) },
+		checkText: func(emailID string, version int) i18n.Text { return s.checkEmail(ctx, q, ws.ID, emailID, version) },
 	})
 	st.items = s.languageDiff(ctx, q, ws, from, st.draft, st.items)
-	st.issues = Validate(st.draft, st.refs)
+	st.issues = validate(l, st.draft, st.refs)
 	if st.inflow, err = q.CountAutomationInFlowByNode(ctx, a.ID); err != nil {
 		return nil, err
 	}
 	return st, nil
 }
 
-func (s *Service) checkEmail(ctx context.Context, q *store.Queries, wsID uuid.UUID, emailID string, version int) string {
+// checkEmail runs the content checks on an email version: nothing when it
+// passes, otherwise its first problem.
+func (s *Service) checkEmail(ctx context.Context, q *store.Queries, wsID uuid.UUID, emailID string, version int) i18n.Text {
 	id, err := uuid.Parse(emailID)
 	if err != nil {
-		return "no email picked"
+		return txt(mCheckNoEmailPicked)
 	}
 	e, err := q.GetAutomationEmailVersion(ctx, store.GetAutomationEmailVersionParams{WorkspaceID: wsID, ID: id, Version: int32(version)})
 	if err != nil {
-		return "the email was deleted"
+		return txt(mCheckEmailDeleted)
 	}
-	return s.checks().Check(EmailContent{Subject: e.Subject, Preheader: e.Preheader, MJML: e.Mjml, HTML: e.Html, Text: e.PlainText})
+	c := EmailContent{Subject: e.Subject, Preheader: e.Preheader, MJML: e.Mjml, HTML: e.Html, Text: e.PlainText}
+	checks := s.checks()
+	if _, basic := checks.(BasicContentChecks); basic {
+		return basicCheck(c)
+	}
+	if p := checks.Check(c); p != "" {
+		return name(p)
+	}
+	return i18n.Text{}
 }
 
 // PublishPreview prepares the publish dialog.
@@ -176,11 +228,12 @@ func (s *Service) PublishPreview(ctx context.Context, ws *store.Workspace, id uu
 	if err != nil {
 		return AutomationPublishPreview{}, api.MapError(err, "Automation")
 	}
-	st, err := s.loadPublish(ctx, s.Q, ws, automationOf(a))
+	l := langOf(ctx)
+	st, err := s.loadPublish(ctx, s.Q, ws, automationOf(a), l)
 	if err != nil {
 		return AutomationPublishPreview{}, err
 	}
-	out := AutomationPublishPreview{Name: a.Name, ToVersion: int(a.DraftVersion), Items: st.items, Changes: Changes(st.items), Checks: []AutomationPublishCheck{},
+	out := AutomationPublishPreview{Name: a.Name, ToVersion: int(a.DraftVersion), Items: diffIn(l, st.items), Changes: Changes(st.items), Checks: []AutomationPublishCheck{},
 		Requires: []string{}, ChannelSteps: map[string]int{}}
 	for _, n := range st.draft.Nodes {
 		if isChannelNode(n.Type) {
@@ -199,14 +252,14 @@ func (s *Service) PublishPreview(ctx context.Context, ws *store.Workspace, id uu
 		out.InFlow += n.N
 	}
 	if st.live != nil {
-		out.FinishEstimate = finishEstimate(*st.live, st.inflow)
-		out.MoveImpact = moveImpact(*st.live, st.draft, st.items, st.inflow, st.refs)
+		out.FinishEstimate = say(l, finishEstimateText(*st.live, st.inflow))
+		out.MoveImpact = say(l, moveImpactText(*st.live, st.draft, st.items, st.inflow, st.refs))
 	}
 	route, err := s.route(ctx, s.Q, ws.ID)
 	if err != nil {
 		return out, err
 	}
-	out.Checks = s.publishChecks(ctx, ws, st, route)
+	out.Checks = s.publishChecks(ctx, ws, st, route, l)
 	a11y, err := s.accessibility(ctx, s.Q, ws, automationOf(a), st.draft)
 	if err != nil {
 		return out, err
@@ -225,10 +278,10 @@ func (s *Service) PublishPreview(ctx context.Context, ws *store.Workspace, id uu
 	}
 	if out.CanPublish && st.live != nil && a.DraftVersion == *a.LiveVersion {
 		out.CanPublish = false
-		out.Blocker = fmt.Sprintf("Nothing to publish: there are no changes since v%d.", *a.LiveVersion)
+		out.Blocker = say(l, txt(mBlockerNoChanges, "version", itoaPlain(int(*a.LiveVersion))))
 	} else if out.CanPublish && st.live != nil && out.Changes == 0 {
 		out.CanPublish = false
-		out.Blocker = fmt.Sprintf("Nothing to publish: the draft only moves steps around v%d.", *a.LiveVersion)
+		out.Blocker = say(l, txt(mBlockerOnlyMoves, "version", itoaPlain(int(*a.LiveVersion))))
 	}
 	return out, nil
 }
@@ -241,8 +294,11 @@ func automationOf(a store.GetAutomationRow) store.Automation {
 }
 
 // publishChecks are the badges at the bottom of the publish dialog.
-func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *publishState, route AutomationRoute) []AutomationPublishCheck {
+func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *publishState, route AutomationRoute, l i18n.Lang) []AutomationPublishCheck {
 	var out []AutomationPublishCheck
+	add := func(status string, t i18n.Text) {
+		out = append(out, AutomationPublishCheck{Status: status, Label: say(l, t)})
+	}
 	primaryOK := false
 	var primary []string
 	for _, p := range route.Primary {
@@ -253,11 +309,11 @@ func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *pu
 	}
 	switch {
 	case primaryOK:
-		out = append(out, AutomationPublishCheck{Status: "ok", Label: "Automations route healthy · " + strings.Join(primary, ", ")})
+		add("ok", txt(mCheckRouteHealthy, "providers", strings.Join(primary, ", ")))
 	case route.Fallback != nil && healthyStatus(route.Fallback.Status):
-		out = append(out, AutomationPublishCheck{Status: "warn", Label: "Automations route on its fallback · " + route.Fallback.Short})
+		add("warn", txt(mCheckRouteFallback, "provider", route.Fallback.Short))
 	default:
-		out = append(out, AutomationPublishCheck{Status: "warn", Label: "No healthy provider on the Automations route: emails wait until one is"})
+		add("warn", txt(mCheckRouteDown))
 	}
 	emails, failing := 0, 0
 	for _, n := range st.draft.Nodes {
@@ -266,18 +322,16 @@ func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *pu
 		}
 		emails++
 		e := n.Data.Email
-		if e == nil || s.checkEmail(ctx, s.Q, ws.ID, e.EmailID, e.EmailVersion) != "" {
+		if e == nil || !emptyText(s.checkEmail(ctx, s.Q, ws.ID, e.EmailID, e.EmailVersion)) {
 			failing++
 		}
 	}
 	switch {
 	case emails == 0:
 	case failing > 0:
-		out = append(out, AutomationPublishCheck{Status: "bad", Label: fmt.Sprintf("%d of %d emails fail content checks", failing, emails)})
-	case emails == 1:
-		out = append(out, AutomationPublishCheck{Status: "ok", Label: "1 email passes content checks"})
+		add("bad", txt(mCheckEmailsFail, "failing", failing, "total", emails))
 	default:
-		out = append(out, AutomationPublishCheck{Status: "ok", Label: fmt.Sprintf("%d emails pass content checks", emails)})
+		add("ok", txt(mCheckEmailsPass, "count", emails))
 	}
 	// References, forks, then anything else structural.
 	var refIssue, pathIssue, other string
@@ -300,7 +354,7 @@ func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *pu
 	if refIssue != "" {
 		out = append(out, AutomationPublishCheck{Status: "bad", Label: refIssue})
 	} else {
-		out = append(out, AutomationPublishCheck{Status: "ok", Label: "No step references a deleted list or tag"})
+		add("ok", txt(mCheckNoDeletedRefs))
 	}
 	forks, branches := 0, 0
 	for _, n := range st.draft.Nodes {
@@ -315,18 +369,18 @@ func (s *Service) publishChecks(ctx context.Context, ws *store.Workspace, st *pu
 	case pathIssue != "":
 		out = append(out, AutomationPublishCheck{Status: "bad", Label: pathIssue})
 	case branches == 1:
-		out = append(out, AutomationPublishCheck{Status: "ok", Label: "Branch has both paths connected"})
+		add("ok", txt(mCheckBranchPaths))
 	case branches > 1:
-		out = append(out, AutomationPublishCheck{Status: "ok", Label: "Branches have both paths connected"})
+		add("ok", txt(mCheckBranchesPaths))
 	case forks > 0:
-		out = append(out, AutomationPublishCheck{Status: "ok", Label: "A/B split has every path connected"})
+		add("ok", txt(mCheckSplitPaths))
 	}
 	if other != "" {
 		out = append(out, AutomationPublishCheck{Status: "bad", Label: other})
 	}
 	// Phase 8: the channels' badges (an SMS step's quiet hours and senders).
 	out = append(out, channelPublishChecks(ctx, ws.ID, st.draft)...)
-	return append(out, s.languageChecks(ctx, ws, st.draft)...)
+	return append(out, s.languageChecks(ctx, ws, st.draft, l)...)
 }
 
 // remaining is the longest time a contact can still spend in the flow from
@@ -361,6 +415,10 @@ func remaining(g AutomationGraph, id string, memo map[string]time.Duration) time
 
 // finishEstimate says how long until the last contact leaves the live version.
 func finishEstimate(g AutomationGraph, inflow []store.CountAutomationInFlowByNodeRow) string {
+	return say(english, finishEstimateText(g, inflow))
+}
+
+func finishEstimateText(g AutomationGraph, inflow []store.CountAutomationInFlowByNodeRow) i18n.Text {
 	memo := map[string]time.Duration{}
 	var longest time.Duration
 	for _, n := range inflow {
@@ -368,38 +426,26 @@ func finishEstimate(g AutomationGraph, inflow []store.CountAutomationInFlowByNod
 	}
 	switch {
 	case longest <= 0:
-		return "right away"
+		return txt(mEstimateNow)
 	case longest < time.Hour:
-		return "within the hour"
+		return txt(mEstimateWithinHour)
 	case longest < 24*time.Hour:
-		h := int(math.Ceil(longest.Hours()))
-		if h == 1 {
-			return "about 1 hour"
-		}
-		return fmt.Sprintf("about %d hours", h)
+		return txt(mEstimateHours, "count", int(math.Ceil(longest.Hours())))
 	}
-	d := int(math.Ceil(longest.Hours() / 24))
-	if d == 1 {
-		return "about 1 day"
-	}
-	return fmt.Sprintf("about %d days", d)
-}
-
-// durationAdjective reads "2-day", "10-minute".
-func durationAdjective(d *AutomationDuration) string {
-	if d == nil {
-		return ""
-	}
-	return fmt.Sprintf("%d-%s", d.Amount, strings.TrimSuffix(d.Unit, "s"))
+	return txt(mEstimateDays, "count", int(math.Ceil(longest.Hours()/24)))
 }
 
 // moveImpact says what moving contacts to the new version would do.
 func moveImpact(live, draft AutomationGraph, items []AutomationDiffItem, inflow []store.CountAutomationInFlowByNodeRow, refs *Refs) string {
+	return say(english, moveImpactText(live, draft, items, inflow, refs))
+}
+
+func moveImpactText(live, draft AutomationGraph, items []AutomationDiffItem, inflow []store.CountAutomationInFlowByNodeRow, refs *Refs) i18n.Text {
 	at := map[string]int64{}
 	for _, n := range inflow {
 		at[n.NodeID] += n.N
 	}
-	var parts []string
+	var parts []i18n.Text
 	for _, it := range items {
 		switch it.Kind {
 		case "changed":
@@ -408,7 +454,7 @@ func moveImpact(live, draft AutomationGraph, items []AutomationDiffItem, inflow 
 				if n == nil || n.Type != NodeDelay {
 					continue
 				}
-				target := "the next step"
+				target := txt(mMoveNextStep)
 				if next := draft.Next(id); next != "" {
 					target = inlineRef(draft, next, refs)
 				}
@@ -418,31 +464,27 @@ func moveImpact(live, draft AutomationGraph, items []AutomationDiffItem, inflow 
 				for node := range upstream(live, id) {
 					waiting += at[node]
 				}
-				parts = append(parts, fmt.Sprintf("%s waiting before %s would get the %s delay", contacts(waiting), target, durationAdjective(n.Data.Delay)))
+				parts = append(parts, txt(mMoveWaiting, "count", waiting, "step", target, "delay", durationAdjective(n.Data.Delay)))
 			}
 		case "removed":
 			var n int64
-			kind := "step"
+			kind := txt(mMoveKindStep)
 			for _, id := range it.NodeIDs {
 				n += at[id]
 				if node := live.Node(id); node != nil {
-					kind = strings.ToLower(TypeName(node.Type))
+					kind = lowercase(typeName(node.Type))
 					if node.Type == NodeEmail {
-						kind = "email"
+						kind = txt(mMoveKindEmail)
 					}
 				}
 			}
-			verb := "are"
-			if n == 1 {
-				verb = "is"
-			}
-			parts = append(parts, fmt.Sprintf("%s %s affected by the removed %s", contacts(n), verb, kind))
+			parts = append(parts, txt(mMoveRemoved, "count", n, "kind", kind))
 		}
 	}
 	if len(parts) == 0 {
-		return "Contacts keep their place; changed steps apply from where each contact is now."
+		return txt(mMoveNone)
 	}
-	return capFirst(strings.Join(parts, "; ")) + "."
+	return txt(mMoveImpact, "clauses", upper(joined("; ", parts)))
 }
 
 // upstream is id and every step that leads to it in g.
@@ -465,13 +507,6 @@ func upstream(g AutomationGraph, id string) map[string]bool {
 	return seen
 }
 
-func contacts(n int64) string {
-	if n == 1 {
-		return "1 contact"
-	}
-	return formatCount(n) + " contacts"
-}
-
 // AutomationPublishResult says whether the version went live or is waiting for approval.
 type AutomationPublishResult struct {
 	Status     string `json:"status" enum:"published,approval_required"`
@@ -486,6 +521,7 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, by uuid.UUID
 		migration = MigrationFinish
 	}
 	var out AutomationPublishResult
+	l := langOf(ctx)
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		a, err := q.LockAutomation(ctx, store.LockAutomationParams{WorkspaceID: ws.ID, ID: id})
@@ -493,17 +529,17 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, by uuid.UUID
 			return api.MapError(err, "Automation")
 		}
 		if int(a.DraftVersion) != version {
-			return api.Err(http.StatusConflict, api.CodeConflict, fmt.Sprintf("The draft is now v%d. Review the changes again before publishing.", a.DraftVersion))
+			return api.Err(http.StatusConflict, api.CodeConflict, say(l, txt(mProblemDraftMoved, "version", itoaPlain(int(a.DraftVersion)))))
 		}
 		if a.LiveVersion != nil && *a.LiveVersion == a.DraftVersion {
-			return api.Conflict(fmt.Sprintf("v%d is already live. Edit the flow to start a new version.", a.DraftVersion))
+			return api.Conflict(say(l, txt(mProblemAlreadyLive, "version", itoaPlain(int(a.DraftVersion)))))
 		}
-		st, err := s.loadPublish(ctx, q, ws, a)
+		st, err := s.loadPublish(ctx, q, ws, a, l)
 		if err != nil {
 			return err
 		}
 		if errs := Errors(st.issues); len(errs) > 0 {
-			return api.Err(http.StatusUnprocessableEntity, api.CodeValidation, errs[0].Message+" Fix it on the canvas, then publish.").
+			return api.Err(http.StatusUnprocessableEntity, api.CodeValidation, say(l, txt(mProblemFixOnCanvas, "problem", errs[0].Message))).
 				WithMeta("issues", errs)
 		}
 		if v, err := s.accessibility(ctx, q, ws, a, st.draft); err != nil {
@@ -549,9 +585,11 @@ func (s *Service) CompletePublish(ctx context.Context, ws *store.Workspace, by u
 			return api.MapError(err, "Automation")
 		}
 		if int(a.DraftVersion) != version {
-			return api.Conflict(fmt.Sprintf("The draft changed after approval (now v%d); request approval again.", a.DraftVersion))
+			return api.Conflict(say(english, txt(mProblemChangedAfter, "version", itoaPlain(int(a.DraftVersion)))))
 		}
-		st, err := s.loadPublish(ctx, q, ws, a)
+		// In English: the approvals domain writes what went wrong into a
+		// notification it stores.
+		st, err := s.loadPublish(ctx, q, ws, a, english)
 		if err != nil {
 			return err
 		}
@@ -575,7 +613,8 @@ func (s *Service) publishTx(ctx context.Context, tx pgx.Tx, ws *store.Workspace,
 	q := store.New(tx)
 	version := a.DraftVersion
 	summary := versionSummary(st.items, a.LiveVersion == nil)
-	if err := q.PublishAutomationVersion(ctx, store.PublishAutomationVersionParams{AutomationID: a.ID, Version: version, PublishedBy: &by, Summary: summary, Migration: migration}); err != nil {
+	if err := q.PublishAutomationVersion(ctx, store.PublishAutomationVersionParams{AutomationID: a.ID, Version: version, PublishedBy: &by, Summary: say(english, summary),
+		SummaryText: keepText(summary), Migration: migration}); err != nil {
 		return err
 	}
 	moved := int64(0)
@@ -630,32 +669,58 @@ func retireEmpty(ctx context.Context, q *store.Queries, automationID uuid.UUID) 
 	return nil
 }
 
-// versionSummary is the version history's line: what this version changed.
-func versionSummary(items []AutomationDiffItem, first bool) string {
+// versionSummary is the version history's line: what this version
+// changed. sayVersionSummary writes it, cut to 160 characters.
+func versionSummary(items []AutomationDiffItem, first bool) i18n.Text {
 	if first {
-		return "first published version"
+		return txt(mSummaryFirst)
 	}
-	var parts []string
+	var parts []i18n.Text
 	for _, it := range items {
 		if it.Kind == "unchanged" {
 			continue
 		}
-		t := it.Title
+		t := lower(it.TitleText)
 		switch it.Kind {
 		case "added":
-			t = "added " + lowerFirst(t)
+			t = txt(mSummaryAdded, "change", t)
 		case "removed":
-			t = "removed " + lowerFirst(t)
-		default:
-			t = lowerFirst(t)
+			t = txt(mSummaryRemoved, "change", t)
 		}
 		parts = append(parts, t)
 	}
-	s := strings.Join(parts, "; ")
+	return joined("; ", parts)
+}
+
+// sayVersionSummary writes a version's summary as the history shows it,
+// cut to 160 characters.
+func sayVersionSummary(l i18n.Lang, t i18n.Text) string {
+	s := say(l, t)
 	if r := []rune(s); len(r) > 160 {
 		s = string(r[:157]) + "…"
 	}
 	return s
+}
+
+// keepText stores a text for later readers (nil when there's none).
+func keepText(t i18n.Text) json.RawMessage {
+	if emptyText(t) {
+		return nil
+	}
+	b, err := json.Marshal(t)
+	if err != nil {
+		return nil
+	}
+	return b
+}
+
+// keptText reads a stored text (empty for rows written before it was kept).
+func keptText(raw json.RawMessage) i18n.Text {
+	var t i18n.Text
+	if len(raw) == 0 || json.Unmarshal(raw, &t) != nil {
+		return i18n.Text{}
+	}
+	return t
 }
 
 // migrateRuns moves contacts on older versions to the new one at their
@@ -736,7 +801,7 @@ func forwardTo(old, g AutomationGraph, from string) string {
 func (s *Service) Pause(ctx context.Context, ws *store.Workspace, by uuid.UUID, id uuid.UUID, reason string) error {
 	reason = strings.TrimSpace(reason)
 	if len([]rune(reason)) > 200 {
-		return api.Invalid("body.reason", "Keep the reason under 200 characters.")
+		return api.Invalid("body.reason", say(langOf(ctx), txt(mProblemPauseReason)))
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -745,7 +810,7 @@ func (s *Service) Pause(ctx context.Context, ws *store.Workspace, by uuid.UUID, 
 			return api.MapError(err, "Automation")
 		}
 		if a.Status != StatusLive {
-			return api.Conflict("Only a live automation can be paused.")
+			return api.Conflict(say(langOf(ctx), txt(mProblemPauseNotLive)))
 		}
 		if err := q.PauseAutomation(ctx, store.PauseAutomationParams{ID: id, PausedBy: &by, PauseReason: reason}); err != nil {
 			return err
@@ -765,7 +830,7 @@ func (s *Service) Resume(ctx context.Context, ws *store.Workspace, by uuid.UUID,
 			return api.MapError(err, "Automation")
 		}
 		if a.Status != StatusPaused {
-			return api.Conflict("Only a paused automation can be resumed.")
+			return api.Conflict(say(langOf(ctx), txt(mProblemResumeNot)))
 		}
 		if err := q.ResumeAutomation(ctx, store.ResumeAutomationParams{ID: id, UpdatedBy: &by}); err != nil {
 			return err

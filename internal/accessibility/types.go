@@ -1,6 +1,10 @@
 package accessibility
 
-import "time"
+import (
+	"time"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
+)
 
 // Issue kinds.
 const (
@@ -132,16 +136,22 @@ type AccessibilityIssue struct {
 	ID       string `json:"id"`
 	Kind     string `json:"kind" enum:"alt_text,link_no_text,contrast,link_text,heading,text_size"`
 	Severity string `json:"severity" enum:"serious,moderate"`
-	// Title and Detail are the finding in English (API clients, MCP agents,
-	// Send Readiness); the app words them from the fields below.
+	// Title and Detail are the finding, in the language the request reads
+	// in (English for API clients, MCP agents and Send Readiness).
 	Title  string `json:"title"`
 	Detail string `json:"detail,omitempty"`
 	// Tag is the short label on the canvas ("No alt text").
 	Tag string `json:"tag"`
 	// Short names the issue inside a sentence: "the hero image's alt text",
 	// "“Click here”", "a bare URL", "11 px footer text".
-	Short     string   `json:"short"`
-	Languages []string `json:"languages"`
+	Short string `json:"short"`
+	// Name is what an image, link or button issue is about, as a sentence
+	// starts: "The hero image", "A linked image in the footer section".
+	Name string `json:"name,omitempty"`
+	// Texts are the words above as messages, to write them in another
+	// language (AccessibilityReport.In, TextIn).
+	Texts     IssueTexts `json:"-"`
+	Languages []string   `json:"languages"`
 	// Path is the element-index path from mj-body of the (first) element;
 	// Paths lists every element the issue covers. Empty for HTML-only emails.
 	Path  []int   `json:"path"`
@@ -194,10 +204,13 @@ type AccessibilityReport struct {
 }
 
 // Summary is "6 issues: 2 serious, 4 moderate" or "No issues".
-func (r AccessibilityReport) Summary() string {
+func (r AccessibilityReport) Summary() string { return r.SummaryIn(i18n.Default) }
+
+// SummaryIn is Summary in a reader's language.
+func (r AccessibilityReport) SummaryIn(l i18n.Lang) string {
 	n := len(r.Issues)
 	if n == 0 {
-		return "No issues"
+		return mSummaryNone.Text(l, nil)
 	}
-	return plural(n, "issue", "issues") + ": " + count(r.Serious) + " serious, " + count(r.Moderate) + " moderate"
+	return mSummaryIssues.Text(l, i18n.Args{"count": n, "serious": r.Serious, "moderate": r.Moderate})
 }

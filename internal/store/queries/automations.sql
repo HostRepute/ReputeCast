@@ -70,8 +70,8 @@ WHERE workspace_id = @workspace_id AND deleted_at IS NULL
 GROUP BY status;
 
 -- name: InsertAutomationVersion :exec
-INSERT INTO automation_versions (automation_id, version, graph, created_by, summary)
-VALUES (@automation_id, @version, @graph, @created_by, @summary);
+INSERT INTO automation_versions (automation_id, version, graph, created_by, summary, summary_text)
+VALUES (@automation_id, @version, @graph, @created_by, @summary, sqlc.narg(summary_text));
 
 -- name: UpdateAutomationDraftGraph :execrows
 UPDATE automation_versions SET graph = @graph
@@ -85,7 +85,7 @@ LEFT JOIN users pu ON pu.id = v.published_by
 WHERE v.automation_id = @automation_id AND v.version = @version;
 
 -- name: ListAutomationVersions :many
-SELECT v.automation_id, v.version, v.created_at, v.published_at, v.retired_at, v.summary, v.migration,
+SELECT v.automation_id, v.version, v.created_at, v.published_at, v.retired_at, v.summary, v.summary_text, v.migration,
        coalesce(cu.name, '')::text AS created_by_name, coalesce(pu.name, '')::text AS published_by_name
 FROM automation_versions v
 LEFT JOIN users cu ON cu.id = v.created_by
@@ -99,7 +99,7 @@ WHERE automation_id = @automation_id AND published_at IS NOT NULL
 ORDER BY version;
 
 -- name: PublishAutomationVersion :exec
-UPDATE automation_versions SET published_at = now(), published_by = @published_by, summary = @summary, migration = @migration
+UPDATE automation_versions SET published_at = now(), published_by = @published_by, summary = @summary, summary_text = sqlc.narg(summary_text), migration = @migration
 WHERE automation_id = @automation_id AND version = @version;
 
 -- name: RetireAutomationVersion :exec

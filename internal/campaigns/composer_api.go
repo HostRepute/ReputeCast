@@ -8,6 +8,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 )
 
@@ -232,6 +233,13 @@ func RegisterComposer(h huma.API, s *Service) {
 				return nil, err
 			}
 			out, err := s.Checks(ctx, api.WorkspaceFrom(ctx), id, in.Body)
+			// Checks writes English (Send Readiness keeps it); the composer
+			// reads the issues and the layout warnings in its language.
+			l := i18n.LangFrom(ctx)
+			out.ContentCheckReport = out.ContentCheckReport.In(l)
+			for i := range out.Lint {
+				out.Lint[i].Message = out.Lint[i].In(l)
+			}
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "composer-context", Path: "/workspaces/{workspace}/composer", Summary: "Senders, lists, segments, personalization tokens, team and route for the composer",
@@ -250,8 +258,9 @@ func RegisterComposer(h huma.API, s *Service) {
 		Description: "The composer compiles in the browser; this endpoint serves API clients and automations, and reports layout warnings.",
 		Tags:        tags, Access: view, MaxBodyBytes: 4 << 20},
 		func(ctx context.Context, in *compileInput) (*api.Body[ComposerCompiled], error) {
-			res := mjml.Compile(in.Body.MJML)
-			return api.OK(ComposerCompiled{HTML: res.HTML, Errors: nonNilProblems(res.Errors), Warnings: mjml.Lint(in.Body.MJML), SizeBytes: len(res.HTML), DurationMs: res.Duration.Milliseconds()}), nil
+			l := i18n.LangFrom(ctx)
+			res := mjml.CompileIn(l, in.Body.MJML)
+			return api.OK(ComposerCompiled{HTML: res.HTML, Errors: nonNilProblems(res.Errors), Warnings: mjml.LintIn(l, in.Body.MJML), SizeBytes: len(res.HTML), DurationMs: res.Duration.Milliseconds()}), nil
 		})
 }
 

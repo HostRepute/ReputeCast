@@ -3253,6 +3253,9 @@
             },
             "type": "array"
           },
+          "name": {
+            "type": "string"
+          },
           "path": {
             "items": {
               "format": "int64",
@@ -8222,6 +8225,9 @@
           "invalidatedBy": {
             "type": "string"
           },
+          "invalidatedFields": {
+            "type": "string"
+          },
           "invalidatedReason": {
             "type": "string"
           },
@@ -9057,6 +9063,9 @@
             "type": "string"
           },
           "invalidatedBy": {
+            "type": "string"
+          },
+          "invalidatedFields": {
             "type": "string"
           },
           "invalidatedReason": {
@@ -12997,6 +13006,9 @@
           },
           "createdBy": {
             "type": "string"
+          },
+          "fromCreation": {
+            "type": "boolean"
           },
           "inFlow": {
             "format": "int64",

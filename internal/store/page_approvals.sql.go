@@ -7,6 +7,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -56,17 +57,18 @@ func (q *Queries) PageApprovalForHash(ctx context.Context, arg PageApprovalForHa
 
 const pageApprovalInvalidate = `-- name: PageApprovalInvalidate :many
 UPDATE approval_requests
-SET status = 'invalidated', invalidated_at = $1, invalidated_reason = $2
-WHERE website_page_id = $3 AND status IN ('pending', 'approved') AND coalesce(snapshot ->> 'draft_hash', '') <> $4::text
+SET status = 'invalidated', invalidated_at = $1, invalidated_reason = $2, invalidated_reason_text = $3
+WHERE website_page_id = $4 AND status IN ('pending', 'approved') AND coalesce(snapshot ->> 'draft_hash', '') <> $5::text
   AND NOT (snapshot ? 'published')
 RETURNING id, requested_by
 `
 
 type PageApprovalInvalidateParams struct {
-	Now       *time.Time `json:"now"`
-	Reason    string     `json:"reason"`
-	PageID    *uuid.UUID `json:"pageId"`
-	DraftHash string     `json:"draftHash"`
+	Now        *time.Time      `json:"now"`
+	Reason     string          `json:"reason"`
+	ReasonText json.RawMessage `json:"reasonText"`
+	PageID     *uuid.UUID      `json:"pageId"`
+	DraftHash  string          `json:"draftHash"`
 }
 
 type PageApprovalInvalidateRow struct {
@@ -80,6 +82,7 @@ func (q *Queries) PageApprovalInvalidate(ctx context.Context, arg PageApprovalIn
 	rows, err := q.db.Query(ctx, pageApprovalInvalidate,
 		arg.Now,
 		arg.Reason,
+		arg.ReasonText,
 		arg.PageID,
 		arg.DraftHash,
 	)

@@ -1,6 +1,10 @@
 package languages
 
-import "time"
+import (
+	"time"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
+)
 
 // LanguageCompare is the compare view: the source and one language version
 // side by side, block by block, with the subject and preheader first.
@@ -59,15 +63,16 @@ type CompareBlock struct {
 	Segments []BlockSegment `json:"segments"`
 }
 
-func compareBlock(b *Block, index int) *CompareBlock {
+func compareBlock(l i18n.Lang, b *Block, index int) *CompareBlock {
 	if b == nil {
 		return nil
 	}
-	return &CompareBlock{Index: index, Name: b.Name, Text: b.Text, Segments: b.Segments}
+	return &CompareBlock{Index: index, Name: b.nameIn(l), Text: summaryIn(l, b.Text), Segments: b.Segments}
 }
 
-// compareView builds the compare view of a language version.
-func compareView(st sourceState, src Source, v view) LanguageCompare {
+// compareView builds the compare view of a language version, for a reader
+// in l.
+func compareView(l i18n.Lang, st sourceState, src Source, v view) LanguageCompare {
 	p := v.progress
 	out := LanguageCompare{Source: st.Language, Language: v.row.Language, SourceVersion: st.Version, TranslatedFrom: int(v.row.TranslatedFrom), TranslatedBy: v.by,
 		TranslatedAt: v.row.TranslatedAt, Status: p.Status, Blocks: p.Blocks, UpToDate: p.UpToDate, Attention: p.Attention, Translated: p.Translated,
@@ -87,12 +92,12 @@ func compareView(st sourceState, src Source, v view) LanguageCompare {
 		out.Preheader.State = RowChanged
 	}
 	for _, r := range v.rows {
-		row := CompareRow{Number: r.Number, Key: r.Key, State: r.State, Before: r.Before, FromVersion: r.FromVersion, Changed: r.Changed}
+		row := CompareRow{Number: r.Number, Key: r.Key, State: r.State, Before: summaryIn(l, r.Before), FromVersion: r.FromVersion, Changed: r.Changed}
 		if r.Source != nil {
-			row.Source = compareBlock(r.Source, r.Number-1)
+			row.Source = compareBlock(l, r.Source, r.Number-1)
 		}
 		if r.Version != nil {
-			row.Version = compareBlock(r.Version, r.VersionIndex)
+			row.Version = compareBlock(l, r.Version, r.VersionIndex)
 		}
 		out.Rows = append(out.Rows, row)
 	}

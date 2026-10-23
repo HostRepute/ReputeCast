@@ -3,12 +3,12 @@ package automations
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -20,17 +20,25 @@ import (
 // changed, unless the person saving the rules chose to start the flows
 // for them. A contact enters a flow at most once in OnceInDays days.
 
+var (
+	mProblemScoreDirection = msg("problem.scoreDirection")
+	mProblemScoreThreshold = msg("problem.scoreThreshold")
+	mProblemScoreOnce      = msg("problem.scoreOnce")
+	mRefScoreRises         = msg("ref.scoreRises")
+	mRefScoreFalls         = msg("ref.scoreFalls")
+)
+
 // checkScoreTrigger checks a "Score crosses…" trigger's settings.
 func checkScoreTrigger(t *AutomationTrigger) []configProblem {
 	var out []configProblem
 	if t.Direction != "" && t.Direction != "rises" && t.Direction != "falls" {
-		out = append(out, configProblem{"invalid_direction", "The score rises to the threshold or falls below it."})
+		out = append(out, configProblem{"invalid_direction", txt(mProblemScoreDirection)})
 	}
 	if t.Threshold < 1 || t.Threshold > 100 {
-		out = append(out, configProblem{"invalid_threshold", "Set the score that starts the flow, from 1 to 100."})
+		out = append(out, configProblem{"invalid_threshold", txt(mProblemScoreThreshold)})
 	}
 	if t.OnceInDays < 0 || t.OnceInDays > 3650 {
-		out = append(out, configProblem{"invalid_once", "Limit re-entry to at most once in 1 to 3,650 days, or leave it off."})
+		out = append(out, configProblem{"invalid_once", txt(mProblemScoreOnce, "max", 3650)})
 	}
 	return out
 }
@@ -63,11 +71,11 @@ func scoreTriggerAllows(ctx context.Context, q *store.Queries, t AutomationTrigg
 }
 
 // scoreTriggerRef reads "Rises to 50 or more", "Falls below 20".
-func scoreTriggerRef(t *AutomationTrigger) string {
+func scoreTriggerRef(t *AutomationTrigger) i18n.Text {
 	if t.Direction == "falls" {
-		return fmt.Sprintf("Falls below %d", t.Threshold)
+		return txt(mRefScoreFalls, "threshold", t.Threshold)
 	}
-	return fmt.Sprintf("Rises to %d or more", t.Threshold)
+	return txt(mRefScoreRises, "threshold", t.Threshold)
 }
 
 // oneOf reports whether v is one of the comma-separated values ("team,
@@ -83,18 +91,14 @@ func oneOf(v, values string) bool {
 }
 
 // orValues reads comma-separated values as "team or business".
-func orValues(values string) string {
-	var vs []string
+func orValues(values string) string { return say(english, orValuesText(values)) }
+
+func orValuesText(values string) i18n.Text {
+	vs := []i18n.Text{}
 	for _, x := range strings.Split(values, ",") {
 		if x = strings.TrimSpace(x); x != "" {
-			vs = append(vs, x)
+			vs = append(vs, name(x))
 		}
 	}
-	switch len(vs) {
-	case 0:
-		return ""
-	case 1:
-		return vs[0]
-	}
-	return strings.Join(vs[:len(vs)-1], ", ") + " or " + vs[len(vs)-1]
+	return orList(vs)
 }

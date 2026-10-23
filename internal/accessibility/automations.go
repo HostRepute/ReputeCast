@@ -2,9 +2,9 @@ package accessibility
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -34,7 +34,8 @@ type DraftCheck struct {
 // CheckDraft checks the emails of an automation version before it is
 // published: a badge per step with serious issues ("Step 3 B: 1 serious
 // issue, button contrast"), which stop publishing when the workspace blocks
-// on them. The live version keeps sending.
+// on them. The live version keeps sending. Its words are in the request's
+// language.
 func (s *Service) CheckDraft(ctx context.Context, ws *store.Workspace, version int, live *int, steps []DraftStep) (DraftCheck, error) {
 	out := DraftCheck{Badges: []DraftBadge{}}
 	if len(steps) == 0 {
@@ -44,6 +45,7 @@ func (s *Service) CheckDraft(ctx context.Context, ws *store.Workspace, version i
 	if err != nil {
 		return out, err
 	}
+	l := i18n.LangFrom(ctx)
 	lang := s.language(ctx, ws)
 	status := "warn"
 	if opts.Policy == PolicyBlock {
@@ -55,22 +57,21 @@ func (s *Service) CheckDraft(ctx context.Context, ws *store.Workspace, version i
 		if err != nil || r.Serious == 0 {
 			continue
 		}
-		out.Badges = append(out.Badges, DraftBadge{Status: status, Label: fmt.Sprintf("%s: %s, %s", st.Step, IssueCount(r.Serious, Serious), SeriousSummary(r.Issues, false))})
-		fixes = append(fixes, SeriousSummary(r.Issues, true)+" in "+LowerStep(st.Step))
+		out.Badges = append(out.Badges, DraftBadge{Status: status,
+			Label: mDraftBadge.Text(l, i18n.Args{"step": st.Step, "count": r.Serious, "summary": SeriousSummaryIn(l, r.Issues, false)})})
+		fixes = append(fixes, mDraftFixIn.Text(l, i18n.Args{"summary": SeriousSummaryIn(l, r.Issues, true), "step": LowerStep(st.Step)}))
 	}
 	if len(out.Badges) == 0 {
-		label := "No serious accessibility issues in " + plural(len(steps), "email", "emails")
-		if len(steps) == 1 {
-			label = "No serious accessibility issues in the email"
-		}
-		out.Badges = append(out.Badges, DraftBadge{Status: "ok", Label: label})
+		out.Badges = append(out.Badges, DraftBadge{Status: "ok", Label: mDraftNone.Text(l, i18n.Args{"count": len(steps)})})
 		return out, nil
 	}
 	if opts.Policy == PolicyBlock {
 		out.Blocked = true
-		out.Blocker = fmt.Sprintf("Your workspace blocks publishing with serious accessibility issues (Settings › General). Fix %s to publish v%d.", joinAnd(fixes), version)
+		args := i18n.Args{"fixes": i18n.AndList(l.Locale, fixes), "version": version}
+		out.Blocker = mDraftBlocker.Text(l, args)
 		if live != nil {
-			out.Blocker += fmt.Sprintf(" The live v%d keeps sending.", *live)
+			args["live"] = *live
+			out.Blocker = mDraftBlockerLive.Text(l, args)
 		}
 	}
 	return out, nil

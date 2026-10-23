@@ -161,11 +161,11 @@ DELETE FROM content_translations
 WHERE owner_kind = @owner_kind AND owner_id = @owner_id AND owner_version = @owner_version AND language = @language;
 
 -- name: ContentTranslationVersionInsert :exec
-INSERT INTO content_translation_versions (translation_id, version, subject, preheader, mjml, html, plain_text, ab_test, links, saved_by, saved_at, label, source, size_bytes)
-VALUES (@translation_id, @version, @subject, @preheader, @mjml, @html, @plain_text, @ab_test, @links, sqlc.narg(saved_by), @saved_at, @label, @source, @size_bytes);
+INSERT INTO content_translation_versions (translation_id, version, subject, preheader, mjml, html, plain_text, ab_test, links, saved_by, saved_at, label, source, size_bytes, label_text)
+VALUES (@translation_id, @version, @subject, @preheader, @mjml, @html, @plain_text, @ab_test, @links, sqlc.narg(saved_by), @saved_at, @label, @source, @size_bytes, sqlc.narg(label_text));
 
 -- name: ContentTranslationVersions :many
-SELECT v.version, v.saved_at, v.label, v.source, v.size_bytes, coalesce(u.name, '')::text AS saved_by_name
+SELECT v.version, v.saved_at, v.label, v.label_text, v.source, v.size_bytes, coalesce(u.name, '')::text AS saved_by_name
 FROM content_translation_versions v
 LEFT JOIN users u ON u.id = v.saved_by
 WHERE v.translation_id = @translation_id
