@@ -40,5 +40,8 @@
   "problem.managed": "Endpoint này do {integration} quản lý. Để thay đổi, hãy sửa quy trình trong {integration}, hoặc ngắt kết nối {integration}.",
   "problem.unknownEndpoint": "Endpoint không xác định.",
   "problem.unknownEvent": "Sự kiện {event} không xác định.",
-  "problem.onlyFailed": "Chỉ lần gửi bị lỗi mới thử lại được."
+  "problem.onlyFailed": "Chỉ lần gửi bị lỗi mới thử lại được.",
+
+  "delivery.demo": "Endpoint mẫu: ReputeCast không bao giờ gửi dữ liệu mẫu. Hãy trỏ endpoint đến URL của bạn để nhận sự kiện.",
+  "delivery.invalidUrl": "URL không hợp lệ"
 }

@@ -40,5 +40,8 @@
   "problem.managed": { "message": "This endpoint is managed by {integration}. To change it, change the workflow in {integration}, or disconnect {integration}.", "note": "integration: Zapier, Make, n8n…" },
   "problem.unknownEndpoint": "Unknown endpoint.",
   "problem.unknownEvent": { "message": "Unknown event {event}.", "note": "event: what was sent, in quotes" },
-  "problem.onlyFailed": "Only failed deliveries can be retried."
+  "problem.onlyFailed": "Only failed deliveries can be retried.",
+
+  "delivery.demo": { "message": "Demo endpoint: ReputeCast never sends demo data. Point it at your own URL to receive events.", "note": "why a demo endpoint's delivery failed, in the delivery log" },
+  "delivery.invalidUrl": { "message": "Invalid URL", "note": "why a delivery failed: its address can't be requested" }
 }

@@ -585,9 +585,9 @@ func endpointLabel(raw string) string {
 	return strings.TrimSuffix(u.Host+u.Path, "/")
 }
 
-func deliveryView(id, webhookID uuid.UUID, hookURL, event, subtype, state string, code, dur *int32, errText string, attempts, maxAttempts int32, created time.Time, last, next *time.Time) WebhookDeliveryView {
+func deliveryView(l i18n.Lang, id, webhookID uuid.UUID, hookURL, event, subtype, state string, code, dur *int32, errText string, attempts, maxAttempts int32, created time.Time, last, next *time.Time) WebhookDeliveryView {
 	v := WebhookDeliveryView{ID: id.String(), WebhookID: webhookID.String(), Endpoint: endpointLabel(hookURL), Event: event, Subtype: subtype, State: state,
-		StatusCode: code, DurationMs: dur, Error: errText, Attempts: attempts, MaxAttempts: maxAttempts, CreatedAt: created, LastAttemptAt: last}
+		StatusCode: code, DurationMs: dur, Error: deliveryErrorIn(l, errText), Attempts: attempts, MaxAttempts: maxAttempts, CreatedAt: created, LastAttemptAt: last}
 	if code != nil {
 		v.StatusText = http.StatusText(int(*code))
 	}
@@ -629,7 +629,7 @@ func (s *Service) Deliveries(ctx context.Context, ws *store.Workspace, webhookID
 				url = m.Endpoint
 			}
 		}
-		out.Items = append(out.Items, deliveryView(r.ID, r.WebhookID, url, r.Event, r.Subtype, r.State, r.StatusCode, r.DurationMs, r.Error, r.Attempt, r.MaxAttempts, r.CreatedAt, r.LastAttemptAt, r.NextAttemptAt))
+		out.Items = append(out.Items, deliveryView(i18n.LangFrom(ctx), r.ID, r.WebhookID, url, r.Event, r.Subtype, r.State, r.StatusCode, r.DurationMs, r.Error, r.Attempt, r.MaxAttempts, r.CreatedAt, r.LastAttemptAt, r.NextAttemptAt))
 	}
 	hooks, err := s.Q.HooksList(ctx, ws.ID)
 	if err != nil {
@@ -675,7 +675,7 @@ func (s *Service) Delivery(ctx context.Context, ws *store.Workspace, id uuid.UUI
 		}
 	}
 	return WebhookDeliveryDetail{
-		Delivery: deliveryView(d.ID, d.WebhookID, url, d.Event, sub.Data.Subtype, d.State, d.StatusCode, d.DurationMs, d.Error, d.Attempt, d.MaxAttempts, d.CreatedAt, d.LastAttemptAt, d.NextAttemptAt),
+		Delivery: deliveryView(i18n.LangFrom(ctx), d.ID, d.WebhookID, url, d.Event, sub.Data.Subtype, d.State, d.StatusCode, d.DurationMs, d.Error, d.Attempt, d.MaxAttempts, d.CreatedAt, d.LastAttemptAt, d.NextAttemptAt),
 		Payload:  d.Payload, Response: d.Response,
 	}, nil
 }
@@ -766,7 +766,7 @@ func (s *Service) Attempt(ctx context.Context, deliveryID uuid.UUID) (*time.Time
 		// Demo endpoints point at fictional addresses: nothing is sent, and
 		// the endpoint's health is left as the demo shows it.
 		return nil, s.Q.HooksFinishDelivery(ctx, store.HooksFinishDeliveryParams{ID: d.ID, State: "dead",
-			Error: "Demo endpoint: ReputeCast never sends demo data. Point it at your own URL to receive events."})
+			Error: mDemoEndpoint.Text(i18n.Default, nil)})
 	}
 	secret, err := s.Box.OpenString(d.SecretEnc, secretAD(d.WebhookID))
 	if err != nil {
@@ -775,7 +775,7 @@ func (s *Service) Attempt(ctx context.Context, deliveryID uuid.UUID) (*time.Time
 	ts := s.now().Unix()
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, d.Url, strings.NewReader(string(d.Payload)))
 	if err != nil {
-		return s.finish(ctx, d, nil, 0, "", "Invalid URL")
+		return s.finish(ctx, d, nil, 0, "", mInvalidURL.Text(i18n.Default, nil))
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "ReputeCast-Webhooks/"+version.Get().Version)
