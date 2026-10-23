@@ -74,7 +74,7 @@ export default translate(m, {
   condConsent: 'Đã đồng ý nhận SMS',
   condClicked: 'Đã nhấp liên kết trong tin nhắn',
   condReplied: 'Đã trả lời tin nhắn',
-  anyText: 'Bất kỳ tin nhắn nào trong luồng này',
+  anyText: 'Bất kỳ tin nhắn nào trong quy trình này',
   anyList: 'Bất kỳ danh sách nào',
   aList: 'một danh sách',
   waitUpTo: 'Chờ tối đa',
