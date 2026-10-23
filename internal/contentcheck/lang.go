@@ -74,6 +74,11 @@ var (
 	mLinkBrokenDetail    = msgs.M("link.brokenDetail")
 )
 
+// SaveAltLabel is the label of the fix that saves an image's alt text
+// ("Save"), in a reader's language, for other checks that offer the same
+// fix (a transactional template's accessibility rows).
+func SaveAltLabel(l i18n.Lang) string { return mAltFix.Text(l, nil) }
+
 // TextIn writes a message this package kept in a reader's language. Its
 // "section" argument is a section label (mjml.SectionLabel), named in that
 // language too, and "lists" a list of names, joined the way the language

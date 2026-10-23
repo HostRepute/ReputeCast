@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/media"
@@ -129,7 +130,7 @@ func (s *Service) tokens(ctx context.Context, wsID uuid.UUID) ([]liquid.Personal
 	for _, f := range fields {
 		custom = append(custom, liquid.CustomField{Key: f.Key, Label: f.Label, Type: f.Type})
 	}
-	return liquid.Catalog(custom), nil
+	return liquid.CatalogIn(i18n.LangFrom(ctx), custom), nil
 }
 
 // ComposerAudienceCount is the live count of an audience definition.
