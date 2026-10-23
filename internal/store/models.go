@@ -1793,11 +1793,12 @@ type Import struct {
 }
 
 type ImportLog struct {
-	ID         uuid.UUID `json:"id"`
-	ImportID   uuid.UUID `json:"importId"`
-	OccurredAt time.Time `json:"occurredAt"`
-	Kind       string    `json:"kind"`
-	Message    string    `json:"message"`
+	ID           uuid.UUID       `json:"id"`
+	ImportID     uuid.UUID       `json:"importId"`
+	OccurredAt   time.Time       `json:"occurredAt"`
+	Kind         string          `json:"kind"`
+	Message      string          `json:"message"`
+	MessageParts json.RawMessage `json:"messageParts"`
 }
 
 type ImportRow struct {

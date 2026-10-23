@@ -14,6 +14,18 @@ import (
 	"time"
 )
 
+// xlsxError is why a workbook can't be read: reason names the problem for
+// file.unreadable, with the part it concerns (sheet) or the row limit
+// (max); its Error is the English it always had, wrapping the cause.
+type xlsxError struct {
+	reason, sheet string
+	max           int
+	err           error
+}
+
+func (e *xlsxError) Error() string { return e.err.Error() }
+func (e *xlsxError) Unwrap() error { return errors.Unwrap(e.err) }
+
 // readXLSX returns the cells of the first worksheet of an .xlsx file as
 // text. It reads the Office Open XML parts directly (archive/zip and
 // encoding/xml) instead of pulling in a spreadsheet library: shared and
@@ -22,7 +34,7 @@ import (
 func readXLSX(data []byte, maxRows int) ([][]string, error) {
 	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
-		return nil, errors.New("this isn't an .xlsx file (it can't be opened as a spreadsheet)")
+		return nil, &xlsxError{reason: "notXlsx", err: errors.New("this isn't an .xlsx file (it can't be opened as a spreadsheet)")}
 	}
 	files := map[string]*zip.File{}
 	for _, f := range zr.File {
@@ -42,7 +54,7 @@ func readXLSX(data []byte, maxRows int) ([][]string, error) {
 	}
 	f, ok := files[sheet]
 	if !ok {
-		return nil, fmt.Errorf("the workbook points to %s, which is missing", sheet)
+		return nil, &xlsxError{reason: "missingSheet", sheet: sheet, err: fmt.Errorf("the workbook points to %s, which is missing", sheet)}
 	}
 	rc, err := f.Open()
 	if err != nil {
@@ -66,7 +78,7 @@ func readZipXML(f *zip.File, v any) error {
 func firstSheetPath(files map[string]*zip.File) (string, error) {
 	wb, ok := files["xl/workbook.xml"]
 	if !ok {
-		return "", errors.New("this .xlsx file has no workbook")
+		return "", &xlsxError{reason: "noWorkbook", err: errors.New("this .xlsx file has no workbook")}
 	}
 	var book struct {
 		Sheets []struct {
@@ -74,10 +86,10 @@ func firstSheetPath(files map[string]*zip.File) (string, error) {
 		} `xml:"sheets>sheet"`
 	}
 	if err := readZipXML(wb, &book); err != nil {
-		return "", fmt.Errorf("the workbook can't be read: %w", err)
+		return "", &xlsxError{reason: "workbook", err: fmt.Errorf("the workbook can't be read: %w", err)}
 	}
 	if len(book.Sheets) == 0 {
-		return "", errors.New("the workbook has no sheets")
+		return "", &xlsxError{reason: "noSheets", err: errors.New("the workbook has no sheets")}
 	}
 	if relsFile, ok := files["xl/_rels/workbook.xml.rels"]; ok {
 		var rels struct {
@@ -114,7 +126,7 @@ func sharedStrings(f *zip.File) ([]string, error) {
 		} `xml:"si"`
 	}
 	if err := readZipXML(f, &sst); err != nil {
-		return nil, fmt.Errorf("the shared strings can't be read: %w", err)
+		return nil, &xlsxError{reason: "sharedStrings", err: fmt.Errorf("the shared strings can't be read: %w", err)}
 	}
 	out := make([]string, len(sst.Items))
 	for i, si := range sst.Items {
@@ -193,7 +205,7 @@ func sheetRows(r io.Reader, shared []string, dateStyles map[int]bool, maxRows in
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("the sheet can't be read: %w", err)
+			return nil, &xlsxError{reason: "sheet", err: fmt.Errorf("the sheet can't be read: %w", err)}
 		}
 		se, ok := tok.(xml.StartElement)
 		if !ok {
@@ -201,7 +213,7 @@ func sheetRows(r io.Reader, shared []string, dateStyles map[int]bool, maxRows in
 				rows = append(rows, cur)
 				cur = nil
 				if maxRows > 0 && len(rows) > maxRows {
-					return nil, fmt.Errorf("the sheet has more than %d rows", maxRows)
+					return nil, &xlsxError{reason: "tooManyRows", max: maxRows, err: fmt.Errorf("the sheet has more than %d rows", maxRows)}
 				}
 			}
 			continue
@@ -231,7 +243,7 @@ func sheetRows(r io.Reader, shared []string, dateStyles map[int]bool, maxRows in
 				} `xml:"is"`
 			}
 			if err := dec.DecodeElement(&c, &se); err != nil {
-				return nil, fmt.Errorf("a cell can't be read: %w", err)
+				return nil, &xlsxError{reason: "cell", err: fmt.Errorf("a cell can't be read: %w", err)}
 			}
 			col := columnIndex(c.R)
 			if col < 0 {

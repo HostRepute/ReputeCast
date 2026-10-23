@@ -21,7 +21,7 @@ func NewListmonk(baseURL, user, token string, hc *http.Client) (*Listmonk, error
 	}
 	base := strings.TrimRight(strings.TrimSpace(baseURL), "/")
 	if base == "" {
-		return nil, &SourceError{Code: CodeBadResponse, Message: "Enter the address of your listmonk server, for example https://lists.example.com."}
+		return nil, newSourceError(CodeBadResponse, 0, mListmonkAddress, nil)
 	}
 	if !strings.HasSuffix(base, "/api") {
 		base += "/api"

@@ -7,6 +7,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -38,7 +39,8 @@ type ImportJobList struct {
 	Items []ImportJob `json:"items"`
 }
 
-// BackgroundJobs lists the imports for the jobs tray.
+// BackgroundJobs lists the imports for the jobs tray, in the request's
+// language.
 func (s *Service) BackgroundJobs(ctx context.Context, ws *store.Workspace) (ImportJobList, error) {
 	now := s.now()
 	rows, err := s.Q.ImportJobs(ctx, store.ImportJobsParams{WorkspaceID: ws.ID, EndedAfter: ptrTime(now.Add(-2 * time.Hour))})
@@ -47,6 +49,7 @@ func (s *Service) BackgroundJobs(ctx context.Context, ws *store.Workspace) (Impo
 	}
 	out := ImportJobList{Items: make([]ImportJob, 0, len(rows))}
 	loc := location(ws)
+	lang := i18n.LangFrom(ctx)
 	for _, r := range rows {
 		name := SourceName(r.Source)
 		var p ImportProgress
@@ -64,33 +67,34 @@ func (s *Service) BackgroundJobs(ctx context.Context, ws *store.Workspace) (Impo
 		}
 		switch r.Status {
 		case "staging":
-			j.Status, j.Title = "running", fmt.Sprintf("Reading contacts from %s", name)
+			j.Status, j.Title = "running", mJobReading.Text(lang, i18n.Args{"source": name})
 		case "running", "paused":
 			j.Status = "running"
-			j.Title = fmt.Sprintf("Importing %s contacts from %s", thousands(int(total)), name)
+			j.Title = mJobImporting.Text(lang, i18n.Args{"total": total, "source": name})
 			if total > 0 {
 				pct := int(math.Min(99, math.Floor(float64(p.Processed)*100/float64(total))))
 				j.Progress = &pct
 			}
 			if r.Status == "paused" {
 				j.Status = "queued"
-				j.Detail = fmt.Sprintf("Paused at row %s", thousands(int(p.Processed)))
+				j.Detail = mJobPaused.Text(lang, i18n.Args{"row": p.Processed})
 				if r.ResumeAt != nil {
-					j.Detail += fmt.Sprintf("; resumes at %s", r.ResumeAt.In(loc).Format("15:04"))
+					j.Detail = mJobPausedResumes.Text(lang, i18n.Args{"row": p.Processed, "time": clockIn(lang, r.ResumeAt.In(loc))})
 				}
 			} else if r.StartedAt != nil && p.Processed > 0 && total > p.Processed {
-				j.Eta = eta(now.Sub(*r.StartedAt), p.Processed, total)
+				j.Eta = eta(lang, now.Sub(*r.StartedAt), p.Processed, total)
 			}
 		case "done":
-			j.Status, j.Title = "done", fmt.Sprintf("Imported from %s", name)
-			j.Detail = fmt.Sprintf("%s contacts imported · %s suppressed", thousands(int(st.Imported+st.Merged)), thousands(int(st.Suppressed)))
+			j.Status, j.Title = "done", mJobDone.Text(lang, i18n.Args{"source": name})
+			j.Detail = mJobDoneDetail.Text(lang, i18n.Args{"imported": st.Imported + st.Merged, "suppressed": st.Suppressed})
 			j.Href = fmt.Sprintf("/w/%s/import/%s/report", ws.Slug, r.ID)
 		case "failed":
-			j.Status, j.Title, j.Detail = "failed", fmt.Sprintf("Import from %s failed", name), r.Error
+			// The failure is the system's own words (a database error).
+			j.Status, j.Title, j.Detail = "failed", mJobFailed.Text(lang, i18n.Args{"source": name}), r.Error
 			j.Href = fmt.Sprintf("/w/%s/import/%s/report", ws.Slug, r.ID)
 		case "cancelled":
-			j.Status, j.Title = "canceled", fmt.Sprintf("Import from %s stopped", name)
-			j.Detail = fmt.Sprintf("%s of %s rows were processed before it stopped", thousands(int(p.Processed)), thousands(int(total)))
+			j.Status, j.Title = "canceled", mJobStopped.Text(lang, i18n.Args{"source": name})
+			j.Detail = mJobStoppedDetail.Text(lang, i18n.Args{"processed": p.Processed, "total": total})
 			j.Href = fmt.Sprintf("/w/%s/import/%s/report", ws.Slug, r.ID)
 		default:
 			continue
@@ -105,17 +109,13 @@ func (s *Service) BackgroundJobs(ctx context.Context, ws *store.Workspace) (Impo
 	return out, nil
 }
 
-// eta estimates the time left from the pace so far: "about 3 min left".
-func eta(elapsed time.Duration, done, total int64) string {
+// eta estimates the time left from the pace so far: "about 3 minutes left".
+func eta(l i18n.Lang, elapsed time.Duration, done, total int64) string {
 	left := time.Duration(float64(elapsed) * float64(total-done) / float64(done))
-	switch m := int(math.Ceil(left.Minutes())); {
-	case left < time.Minute:
-		return "less than a minute left"
-	case m == 1:
-		return "about 1 minute left"
-	default:
-		return fmt.Sprintf("about %d minutes left", m)
+	if left < time.Minute {
+		return mEtaSoon.Text(l, nil)
 	}
+	return mEtaMinutes.Text(l, i18n.Args{"n": int(math.Ceil(left.Minutes()))})
 }
 
 func ptrTime(t time.Time) *time.Time { return &t }

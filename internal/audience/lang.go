@@ -165,6 +165,10 @@ func emailProblem(l i18n.Lang, problem string) string {
 	return problem
 }
 
+// EmailProblemIn is emailaddr.Check's problem in a reader's language, for
+// other packages that show it (the import preview's invalid rows).
+func EmailProblemIn(l i18n.Lang, problem string) string { return emailProblem(l, problem) }
+
 // mailboxLabelIn is MailboxLabel in a reader's language: "Other · Google
 // Workspace" is "Khác · Google Workspace"; names stay.
 func mailboxLabelIn(l i18n.Lang, provider, detail string) string {

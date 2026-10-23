@@ -171,6 +171,10 @@ func SourceLabelIn(l i18n.Lang, src string) string {
 	return src
 }
 
+// ImporterName is the tool or file kind an import came from ("Brevo",
+// "CSV"), as SourceLabel names it; "" for a file of unknown kind.
+func ImporterName(k string) string { return importerName(k) }
+
 // importerName is the tool or file kind an import came from ("Brevo",
 // "CSV"); "" for a file of unknown kind.
 func importerName(k string) string {

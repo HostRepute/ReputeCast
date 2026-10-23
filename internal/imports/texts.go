@@ -28,11 +28,11 @@ const (
 
 func init() {
 	builtinTargets = append(builtinTargets,
-		struct{ key, label, typ string }{TargetPhone, "phone (mobile number)", "phone"},
-		struct{ key, label, typ string }{TargetSmsConsent, "SMS consent (yes or no)", "sms consent"},
-		struct{ key, label, typ string }{TargetSmsConsentAt, "SMS consent evidence: date", "sms consent"},
-		struct{ key, label, typ string }{TargetSmsConsentSource, "SMS consent evidence: source", "sms consent"},
-		struct{ key, label, typ string }{TargetSmsConsentText, "SMS consent evidence: text", "sms consent"},
+		fieldTarget{TargetPhone, &mFieldPhone, "phone"},
+		fieldTarget{TargetSmsConsent, &mFieldSmsConsent, "sms consent"},
+		fieldTarget{TargetSmsConsentAt, &mFieldSmsDate, "sms consent"},
+		fieldTarget{TargetSmsConsentSource, &mFieldSmsSource, "sms consent"},
+		fieldTarget{TargetSmsConsentText, &mFieldSmsText, "sms consent"},
 	)
 	for k, v := range map[string]string{
 		"smsconsent": TargetSmsConsent, "smsoptin": TargetSmsConsent, "textconsent": TargetSmsConsent,
