@@ -1,0 +1,36 @@
+{
+  "problem.name": "Hãy đặt tên cho vai trò.",
+  "problem.builtinName": "Tên vai trò “{name}” đã thuộc về một vai trò có sẵn. Hãy chọn tên khác.",
+  "problem.nameTaken": "Đã có vai trò tên “{name}”. Hãy chọn tên khác.",
+  "problem.unknownPermission": "Không có quyền \"{permission}\".",
+  "problem.ownerOnly": "{permission} chỉ dành cho vai trò Chủ sở hữu.",
+  "problem.builtinEdit": "{role} là vai trò có sẵn nên không sửa được. Hãy nhân bản để tùy chỉnh.",
+  "problem.builtinDelete": "{role} là vai trò có sẵn nên không xóa được.",
+  "problem.assigned": "“{role}” đang được gán cho {count, plural, other {# thành viên}}. Hãy chuyển {names} sang vai trò khác trước, rồi mới xóa.",
+  "problem.pendingInvite": "“{role}” đang được dùng trong một lời mời đang chờ. Hãy thu hồi lời mời trước, rồi mới xóa.",
+
+  "impact.sensitiveNone": "Chưa chọn · không bắt buộc xác thực hai lớp",
+  "impact.sensitive": "{permissions} · bắt buộc xác thực hai lớp",
+  "impact.loses": "{who} sẽ mất {permissions}.",
+  "count.members": "{count, plural, other {# thành viên}}",
+  "count.apiKeys": "{count, plural, other {# khóa API}}",
+  "count.agents": "{count, plural, other {# tác tử MCP}}",
+
+  "effect.stillEdit": "Vẫn sửa được; phải yêu cầu phê duyệt để gửi",
+  "effect.noLonger": "Không còn được {actions}",
+  "effect.twoFactorIdp": "Xác thực hai lớp trở thành bắt buộc; IdP của họ đã áp dụng yêu cầu này",
+  "effect.twoFactorGrace": "Xác thực hai lớp trở thành bắt buộc (gia hạn {days} ngày)",
+  "effect.gains": "Có thêm {permissions}",
+  "effect.same": "Như hiện tại",
+  "effect.keyAutomations": "Các tự động hóa gửi qua khóa này sẽ lỗi 403",
+  "effect.keyCalls": "Các lệnh gọi cần {permissions} sẽ lỗi 403",
+
+  "approvals.sendApprove": "Người giữ vai trò này gửi được và phê duyệt được lần gửi của thành viên khác; họ không thể tự phê duyệt lần gửi của mình",
+  "approvals.approve": "Người giữ vai trò này phê duyệt được lần gửi của thành viên khác",
+  "approvals.send": "Người giữ vai trò này gửi được; chính sách phê duyệt vẫn áp dụng cho lần gửi lớn hoặc có rủi ro",
+  "approvals.request": "Người giữ vai trò này yêu cầu phê duyệt được cho lần gửi vì họ có campaigns:edit mà không có campaigns:send",
+  "approvals.none": "Người giữ vai trò này không gửi được và không yêu cầu phê duyệt được",
+
+  "audit.permissions": "{count, plural, other {# quyền}}",
+  "audit.renamed": "đổi tên từ “{from}”"
+}

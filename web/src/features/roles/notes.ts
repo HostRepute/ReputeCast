@@ -9,9 +9,12 @@ const ownLines: Record<string, { editor: MessageDescriptor; matrix: MessageDescr
   'ai:use': { editor: m.aiUseEditor, matrix: m.aiUseMatrix },
 }
 
-/** Notes under a group's rows in the role editor. */
+/**
+ * Notes under a group's rows in the role editor, by a permission of the
+ * group: the server names groups in the reader's language.
+ */
 const groupNotes: Record<string, MessageDescriptor> = {
-  Earn: m.earnGroupNote,
+  'earn:view': m.earnGroupNote,
 }
 
 /**
@@ -32,6 +35,8 @@ export function matrixNote(p: Permission): { line?: MessageDescriptor; suffix?: 
   return p.peopleOnly ? { suffix: m.peopleOnlyMatrix } : {}
 }
 
-export function groupNote(group: string): MessageDescriptor | undefined {
-  return groupNotes[group]
+/** The note under a group whose rows are these permissions. */
+export function groupNote(rows: Permission[]): MessageDescriptor | undefined {
+  for (const p of rows) if (groupNotes[p.key]) return groupNotes[p.key]
+  return undefined
 }

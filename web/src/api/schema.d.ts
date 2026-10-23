@@ -28598,6 +28598,7 @@ export interface components {
             note?: string;
             /** Format: date-time */
             occurredAt: string;
+            proposal: boolean;
             /** @enum {string} */
             result: "allowed" | "denied" | "error";
             summary?: string;
@@ -35186,6 +35187,8 @@ export interface components {
             id: string;
             loses: string[];
             name: string;
+            /** @enum {string} */
+            twoFactor?: "required" | "idp";
         };
         RoleImpactPending: {
             requester: string;

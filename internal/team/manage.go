@@ -2,7 +2,6 @@ package team
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -131,7 +130,7 @@ func (s *Service) changeRole(ctx context.Context, q *store.Queries, tx pgx.Tx, w
 	scope := access.ParseScope(m.Scope)
 	if in.Scope != nil {
 		if scope, err = in.Scope.Resolve(lists, domains); err != nil {
-			return api.Invalid("body.scope", capitalize(err.Error())+".")
+			return api.Invalid("body.scope", access.ScopeProblem(i18n.LangFrom(ctx), err))
 		}
 	}
 	if !scope.Within(p.Scope) {
@@ -150,15 +149,19 @@ func (s *Service) changeRole(ctx context.Context, q *store.Queries, tx pgx.Tx, w
 			return err
 		}
 	}
-	summary := m.RoleName + " → " + role.Name
+	// "Editor → Viewer · scope all lists → Beta Program list only": the
+	// roles' names, and the scopes kept as words.
+	parts := []any{m.RoleName + " → " + role.Name}
 	if before.Label != after.Label {
-		summary += " · scope " + orAll(before.Label) + " → " + orAll(after.Label)
+		fromKind, from := access.ScopeKind(access.ParseScope(m.Scope), lists)
+		toKind, to := access.ScopeKind(scope, lists)
+		parts = append(parts, msgs.M("audit.scopeChange").Keep(i18n.Args{"fromKind": fromKind, "from": from, "toKind": toKind, "to": to}))
 	}
 	return s.Audit.LogWith(ctx, q, audit.Event{
 		WorkspaceID: &ws.ID, Action: "member.role_changed", TargetType: "member", TargetID: m.ID.String(), TargetName: name,
 		Before:   map[string]any{"role": m.RoleName, "scope": orAll(before.Label)},
 		After:    map[string]any{"role": role.Name, "scope": orAll(after.Label)},
-		Metadata: map[string]any{"summary": summary, "permission": string(authz.TeamManage), "user_id": m.UserID.String()},
+		Metadata: audit.KeepSummary(map[string]any{"permission": string(authz.TeamManage), "user_id": m.UserID.String()}, parts...),
 	})
 }
 
@@ -210,11 +213,12 @@ func (s *Service) deactivate(ctx context.Context, q *store.Queries, ws *store.Wo
 		return res, api.MapError(err, "Member")
 	}
 	name := displayName(m.UserName, m.Email)
+	l := i18n.LangFrom(ctx)
 	if m.Status == "deactivated" {
-		return res, api.Conflict(name + " is already deactivated.")
+		return res, api.Conflict(msgs.M("problem.alreadyDeactivated").Text(l, i18n.Args{"name": name}))
 	}
 	if m.UserID == p.UserID {
-		return res, api.Conflict("You can't deactivate yourself. Ask another member with team:manage, or leave the workspace from Account & security.")
+		return res, api.Conflict(msgs.M("problem.deactivateSelf").Text(l, nil))
 	}
 	if m.RoleBuiltin && m.RoleKey == authz.RoleOwner {
 		owners, err := q.TeamCountActiveOwners(ctx, ws.ID)
@@ -242,8 +246,9 @@ func (s *Service) deactivate(ctx context.Context, q *store.Queries, ws *store.Wo
 		}
 		for _, k := range revoked {
 			res.KeysRevoked = append(res.KeysRevoked, k.Name)
+			why := msgs.M("audit.creatorDeactivated").Keep(i18n.Args{"name": name})
 			if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: keyAction(k.Kind) + ".revoked", TargetType: k.Kind, TargetID: k.ID.String(), TargetName: k.Name,
-				Reason: "creator " + name + " deactivated"}); err != nil {
+				Reason: why.In(i18n.Default), Metadata: audit.KeepText(nil, "summary", why)}); err != nil {
 				return res, err
 			}
 		}
@@ -258,17 +263,18 @@ func (s *Service) deactivate(ctx context.Context, q *store.Queries, ws *store.Wo
 			}
 		}
 	}
-	summary := fmt.Sprintf("signed out of %d %s", res.SessionsRevoked, access.Plural(int(res.SessionsRevoked), "session", "sessions"))
+	// "signed out of 2 sessions · revoked “Zapier” and “CI”"
+	parts := []any{msgs.M("audit.signedOut").Keep(i18n.Args{"count": res.SessionsRevoked})}
 	if len(res.KeysRevoked) > 0 {
-		summary += " · revoked " + access.AndList(quoteAll(res.KeysRevoked))
+		parts = append(parts, msgs.M("audit.keysRevoked").Keep(listArgs(quoteAll(res.KeysRevoked))))
 	} else if len(kept) > 0 {
-		summary += " · kept " + access.AndList(quoteAll(kept))
+		parts = append(parts, msgs.M("audit.keysKept").Keep(listArgs(quoteAll(kept))))
 	}
 	return res, s.Audit.LogWith(ctx, q, audit.Event{
 		WorkspaceID: &ws.ID, Action: "member.deactivated", TargetType: "member", TargetID: m.ID.String(), TargetName: name, Reason: strings.TrimSpace(in.Reason),
 		Before:   map[string]any{"status": "active", "role": m.RoleName},
 		After:    map[string]any{"status": "deactivated", "keys_revoked": res.KeysRevoked, "keys_kept": kept},
-		Metadata: map[string]any{"summary": summary, "permission": string(authz.TeamManage), "user_id": m.UserID.String()},
+		Metadata: audit.KeepSummary(map[string]any{"permission": string(authz.TeamManage), "user_id": m.UserID.String()}, parts...),
 	})
 }
 
@@ -297,15 +303,16 @@ func (s *Service) Reactivate(ctx context.Context, ws *store.Workspace, p *authz.
 			return api.MapError(err, "Member")
 		}
 		name := displayName(m.UserName, m.Email)
+		l := i18n.LangFrom(ctx)
 		if m.Status == "active" && m.UserStatus == "active" {
-			return api.Conflict(name + " is already active.")
+			return api.Conflict(msgs.M("problem.alreadyActive").Text(l, i18n.Args{"name": name}))
 		}
 		if ok, missing := outranks(p, m.RoleKey, m.RoleBuiltin, m.RolePermissions); !ok {
 			return outrankError(ctx, name, missing)
 		}
 		if m.UserStatus != "active" {
 			if !p.IsInstanceAdmin {
-				return api.Conflict(fmt.Sprintf("%s's account is deactivated on this instance. Ask an instance admin to reactivate the account first.", name))
+				return api.Conflict(msgs.M("problem.accountDeactivated").Text(l, i18n.Args{"name": name}))
 			}
 			if err := q.SetUserStatus(ctx, store.SetUserStatusParams{ID: m.UserID, Status: "active"}); err != nil {
 				return err
@@ -334,7 +341,7 @@ func (s *Service) Remove(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 		name := displayName(m.UserName, m.Email)
 		if m.UserID == p.UserID {
-			return api.Conflict("You can't remove yourself. Leave the workspace from Account & security instead.")
+			return api.Conflict(msgs.M("problem.removeSelf").Text(i18n.LangFrom(ctx), nil))
 		}
 		if m.RoleBuiltin && m.RoleKey == authz.RoleOwner && m.Status == "active" {
 			owners, err := q.TeamCountActiveOwners(ctx, ws.ID)
@@ -388,7 +395,7 @@ func (s *Service) SignOut(ctx context.Context, ws *store.Workspace, p *authz.Pri
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "member.signed_out", TargetType: "member", TargetID: m.ID.String(), TargetName: name,
-			Metadata: map[string]any{"summary": fmt.Sprintf("%d %s ended", res.SessionsRevoked, access.Plural(int(res.SessionsRevoked), "session", "sessions")), "permission": string(authz.TeamManage)}})
+			Metadata: audit.KeepText(map[string]any{"permission": string(authz.TeamManage)}, "summary", msgs.M("audit.sessionsEnded").Keep(i18n.Args{"count": res.SessionsRevoked}))})
 	})
 	return res, err
 }
@@ -417,7 +424,7 @@ func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	for _, raw := range in.MemberIDs {
 		id, err := uuid.Parse(raw)
 		if err != nil {
-			return res, api.Invalid("body.memberIds", "Unknown member.")
+			return res, api.Invalid("body.memberIds", msgs.M("problem.unknownMember").Text(i18n.LangFrom(ctx), nil))
 		}
 		ids = append(ids, id)
 	}
@@ -426,7 +433,7 @@ func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		switch in.Action {
 		case "change_role":
 			if in.RoleID == "" {
-				return api.Invalid("body.roleId", "Pick the role to give.")
+				return api.Invalid("body.roleId", msgs.M("problem.pickRole").Text(i18n.LangFrom(ctx), nil))
 			}
 			for _, id := range ids {
 				m, err := q.TeamGetMember(ctx, store.TeamGetMemberParams{ID: id, WorkspaceID: ws.ID})
@@ -461,7 +468,7 @@ func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, p *authz.Princi
 				users = append(users, m.UserID)
 				if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "member.twofa_required", TargetType: "member", TargetID: m.ID.String(), TargetName: name,
 					Before: map[string]any{"grace_until": m.TwofaGraceUntil}, After: map[string]any{"grace_until": "now"},
-					Metadata: map[string]any{"summary": "two-factor required at next sign-in", "permission": string(authz.TeamManage)}}); err != nil {
+					Metadata: audit.KeepText(map[string]any{"permission": string(authz.TeamManage)}, "summary", msgs.M("audit.twoFactorRequired").Keep(nil))}); err != nil {
 					return err
 				}
 			}

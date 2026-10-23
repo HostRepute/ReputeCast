@@ -41439,6 +41439,9 @@
             "format": "date-time",
             "type": "string"
           },
+          "proposal": {
+            "type": "boolean"
+          },
           "result": {
             "enum": [
               "allowed",
@@ -41463,7 +41466,8 @@
           "agent",
           "tool",
           "target",
-          "result"
+          "result",
+          "proposal"
         ],
         "type": "object"
       },
@@ -64351,6 +64355,13 @@
             "type": "array"
           },
           "name": {
+            "type": "string"
+          },
+          "twoFactor": {
+            "enum": [
+              "required",
+              "idp"
+            ],
             "type": "string"
           }
         },

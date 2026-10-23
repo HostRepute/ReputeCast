@@ -80,10 +80,11 @@ func (s *Service) Invitations(ctx context.Context, ws *store.Workspace, p *authz
 		return TeamInvitationList{}, err
 	}
 	out := TeamInvitationList{Items: []TeamInvitation{}, DefaultDays: DefaultInviteDays, CanInvite: p.Can(authz.TeamInvite)}
+	l := i18n.LangFrom(ctx)
 	for _, r := range rows {
 		inv := TeamInvitation{
 			ID: r.ID.String(), Email: r.Email, Role: TeamRoleRef{ID: r.RoleID.String(), Key: r.RoleKey, Name: r.RoleName, Builtin: r.RoleBuiltin},
-			Scope: access.View(access.ParseScope(r.Scope), lists, true), Message: r.Message, InvitedBy: r.InvitedByName,
+			Scope: access.ViewIn(l, access.ParseScope(r.Scope), lists, true), Message: r.Message, InvitedBy: r.InvitedByName,
 			CreatedAt: r.CreatedAt, LastSentAt: r.LastSentAt, ExpiresAt: r.ExpiresAt, Expired: !r.ExpiresAt.After(s.now()),
 		}
 		if r.SentVia != nil {
@@ -338,7 +339,7 @@ func (s *Service) Invite(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	scope, err := in.Scope.Resolve(lists, domains)
 	if err != nil {
-		return TeamInviteResult{}, api.Invalid("body.scope", capitalize(err.Error())+".")
+		return TeamInviteResult{}, api.Invalid("body.scope", access.ScopeProblem(i18n.LangFrom(ctx), err))
 	}
 	if !scope.Within(p.Scope) {
 		return TeamInviteResult{}, api.Err(http.StatusForbidden, api.CodeEscalation, mInviteOwnScope.Text(i18n.LangFrom(ctx), nil))
@@ -372,7 +373,7 @@ func (s *Service) Invite(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		language = s.policy(ctx).DefaultLanguage
 	}
 	if l, ok := i18n.ParseLocale(language); !ok || l == i18n.Pseudo || string(l) != language {
-		return TeamInviteResult{}, api.Invalid("body.language", "Pick a language ReputeCast is translated into.")
+		return TeamInviteResult{}, api.Invalid("body.language", msgs.M("problem.language").Text(i18n.LangFrom(ctx), nil))
 	}
 	sendEmail := in.SendEmail == nil || *in.SendEmail
 	now := s.now()
@@ -405,11 +406,8 @@ func (s *Service) Invite(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			made = append(made, created{id, e, token})
 			if err := s.Audit.LogWith(ctx, q, audit.Event{
 				WorkspaceID: &ws.ID, Action: "team.invited", TargetType: "invitation", TargetID: id.String(), TargetName: e,
-				After: map[string]any{"email": e, "role": role.Name, "scope": access.View(scope, lists, true).Label, "expires_at": expires, "language": language},
-				Metadata: map[string]any{
-					"summary":    inviteSummary(role.Name, access.View(scope, lists, false).Label, expires),
-					"permission": string(authz.TeamInvite),
-				},
+				After:    map[string]any{"email": e, "role": role.Name, "scope": access.View(scope, lists, true).Label, "expires_at": expires, "language": language},
+				Metadata: inviteSummary(role.Name, access.View(scope, lists, false).Label, expires, wsLocation(ws.Timezone)),
 			}); err != nil {
 				return err
 			}
@@ -446,12 +444,22 @@ func (s *Service) Invite(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	return res, nil
 }
 
-func inviteSummary(role, scope string, expires time.Time) string {
+// inviteSummary is an invitation's audit metadata: its summary, "role Editor
+// · scope Beta Program · expires Oct 29", in English as before, and its
+// parts kept for readers of other languages (the expiry with its year, in
+// the workspace's timezone).
+func inviteSummary(role, scope string, expires time.Time, loc *time.Location) map[string]any {
+	parts := []any{msgs.M("audit.inviteRole").Keep(i18n.Args{"role": role})}
 	s := "role " + role
 	if scope != "" {
-		s += " · scope " + strings.TrimSuffix(scope, " only")
+		what := strings.TrimSuffix(scope, " only")
+		parts = append(parts, msgs.M("audit.inviteScope").Keep(i18n.Args{"what": what}))
+		s += " · scope " + what
 	}
-	return s + " · expires " + expires.Format("Jan 2")
+	parts = append(parts, msgs.M("audit.inviteExpires").Keep(i18n.Args{"at": expires.In(loc)}))
+	meta := audit.KeepSummary(map[string]any{"permission": string(authz.TeamInvite)}, parts...)
+	meta["summary"] = s + " · expires " + expires.Format("Jan 2")
+	return meta
 }
 
 // wsLocation is the workspace's timezone, where an invitation's expiry date is read.
@@ -504,7 +512,7 @@ func (s *Service) Link(ctx context.Context, ws *store.Workspace, id uuid.UUID) (
 		return TeamInviteLink{}, api.MapError(err, "Invitation")
 	}
 	if len(inv.TokenEnc) == 0 {
-		return TeamInviteLink{}, api.Conflict("This invitation was created before links could be copied. Resend it to get a new link.")
+		return TeamInviteLink{}, api.Conflict(msgs.M("problem.oldInvite").Text(i18n.LangFrom(ctx), nil))
 	}
 	token, err := s.Box.OpenString(inv.TokenEnc, tokenAD(inv.ID))
 	if err != nil {
@@ -620,7 +628,7 @@ func normalizeEmails(l i18n.Lang, in []string) ([]string, error) {
 		return nil, api.Invalid("body.emails", mInviteNoEmails.Text(l, nil))
 	}
 	if len(out) > 50 {
-		return nil, api.Invalid("body.emails", "Invite up to 50 people at a time.")
+		return nil, api.Invalid("body.emails", msgs.M("problem.tooMany").Text(l, nil))
 	}
 	return out, nil
 }

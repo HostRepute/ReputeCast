@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/access"
+	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/apikeys"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -152,7 +153,7 @@ func (s *Service) toMember(l i18n.Lang, r memberRow, ids []access.Identity, list
 	m := TeamMember{
 		ID: r.ID.String(), UserID: r.UserID.String(), Name: displayName(r.UserName, r.Email), Email: r.Email, AvatarColor: r.AvatarColor,
 		Role:   TeamRoleRef{ID: r.RoleID.String(), Key: r.RoleKey, Name: r.RoleName, Builtin: r.RoleBuiltin},
-		Scope:  access.View(access.ParseScope(r.Scope), lists, true),
+		Scope:  access.ViewIn(l, access.ParseScope(r.Scope), lists, true),
 		Notes:  []string{},
 		SignIn: access.PrimarySignIn(access.SignInMethods(r.HasPassword, r.PasskeyCount, ids)),
 		TwoFA: access.TwoFAStatus(access.TwoFAInput{
@@ -355,25 +356,24 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, p *authz.Princip
 		return TeamMemberDetail{}, err
 	}
 	pol := s.policy(ctx)
-	m := s.toMember(i18n.LangFrom(ctx), memberRow{r}, idents[r.UserID], lists, pol, p.UserID, owners)
+	l := i18n.LangFrom(ctx)
+	m := s.toMember(l, memberRow{r}, idents[r.UserID], lists, pol, p.UserID, owners)
 	perms := authz.Effective(r.RoleKey, r.RoleBuiltin, r.RolePermissions)
-	scope := access.ParseScope(r.Scope)
-	scopeLabel := "all lists"
-	if !scope.IsZero() {
-		scopeLabel = strings.TrimSuffix(access.View(scope, lists, false).Label, " only")
-	}
-	source := "Role · " + r.RoleName
+	scopeLabel := access.ScopeWhat(l, access.ParseScope(r.Scope), lists)
+	role := api.RoleName(l, r.RoleKey, r.RoleName)
+	source := msgs.M("source.role").Text(l, i18n.Args{"role": role})
 	if r.Source == "sso_group" {
-		source = "SSO group mapping · " + r.RoleName
+		source = msgs.M("source.ssoGroup").Text(l, i18n.Args{"role": role})
 	}
+	notGranted := msgs.M("source.none").Text(l, nil)
 	out := TeamMemberDetail{
-		Member: m, Permissions: []TeamEffectivePermission{}, Groups: access.Groups(),
+		Member: m, Permissions: []TeamEffectivePermission{}, Groups: access.Groups(l),
 		APIKeys: []TeamMemberAPIKey{}, ApprovalsGiven: []TeamMemberApproval{}, ApprovalsRequested: []TeamMemberApproval{}, Activity: []TeamMemberActivity{},
 		CanApprove: perms.Has(authz.CampaignsApprove), CanManage: p.Can(authz.TeamManage),
 		Helpers: access.Helpers(ctx, s.Q, ws.ID, authz.TeamManage),
 	}
 	for _, d := range authz.Defs {
-		ep := TeamEffectivePermission{Key: string(d.Key), Group: d.Group, Label: d.Label, Sensitive: d.Sensitive, Source: "not granted"}
+		ep := TeamEffectivePermission{Key: string(d.Key), Group: authz.GroupIn(l, d.Group), Label: authz.LabelIn(l, d.Key), Sensitive: d.Sensitive, Source: notGranted}
 		if perms.Has(d.Key) && m.Status == "active" {
 			ep.Granted = true
 			ep.Source = source
@@ -399,18 +399,14 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, p *authz.Princip
 		if st == "revoked" {
 			continue
 		}
-		ks := "all lists"
-		if sc := access.ParseScope(k.Scope); !sc.IsZero() {
-			ks = strings.TrimSuffix(access.View(sc, lists, false).Label, " only")
-		}
 		out.APIKeys = append(out.APIKeys, TeamMemberAPIKey{ID: k.ID.String(), Kind: k.Kind, Name: k.Name, Masked: k.Prefix, Permissions: apikeys.StoredOrder(k.Permissions),
-			Scope: ks, Status: st, LastUsedAt: k.LastUsedAt})
+			Scope: access.ScopeWhat(l, access.ParseScope(k.Scope), lists), Status: st, LastUsedAt: k.LastUsedAt})
 	}
 	if len(out.APIKeys) == 0 {
 		if !perms.Has(authz.APIKeysManage) {
-			out.KeysNote = "None. Creating API keys needs apikeys:manage, which this role doesn't hold."
+			out.KeysNote = msgs.M("keys.noPermission").Text(l, nil)
 		} else {
-			out.KeysNote = "None yet."
+			out.KeysNote = msgs.M("keys.none").Text(l, nil)
 		}
 	}
 	given, err := s.Q.TeamApprovalsGiven(ctx, store.TeamApprovalsGivenParams{WorkspaceID: ws.ID, UserID: &r.UserID})
@@ -450,27 +446,29 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, p *authz.Princip
 		return TeamMemberDetail{}, err
 	}
 	for _, a := range acts {
-		out.Activity = append(out.Activity, TeamMemberActivity{ID: a.ID.String(), OccurredAt: a.OccurredAt, Action: a.Action, Target: activityTarget(a), Result: a.Result, Reason: a.Reason})
+		out.Activity = append(out.Activity, TeamMemberActivity{ID: a.ID.String(), OccurredAt: a.OccurredAt, Action: a.Action, Target: activityTarget(l, a), Result: a.Result, Reason: a.Reason})
 	}
 	return out, nil
 }
 
 // activityTarget is "November Product Update · 47,912 recipients": the
-// target name plus the entry's short detail when there is one.
-func activityTarget(a store.TeamMemberActivityRow) string {
+// target name plus the entry's short detail when there is one, in the
+// reader's language when the entry kept it.
+func activityTarget(l i18n.Lang, a store.TeamMemberActivityRow) string {
 	var meta struct {
 		Detail string `json:"detail"`
 	}
 	_ = json.Unmarshal(a.Metadata, &meta)
+	detail := audit.In(audit.KeptIn(a.Metadata).Detail, l, meta.Detail)
 	t := a.TargetName
 	if t == "" {
 		t = a.TargetType
 	}
-	if meta.Detail != "" {
+	if detail != "" {
 		if t != "" {
-			return t + " · " + meta.Detail
+			return t + " · " + detail
 		}
-		return meta.Detail
+		return detail
 	}
 	return t
 }

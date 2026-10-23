@@ -304,8 +304,9 @@ function RoleEditor({ list, role, source, saved }: { list: RoleList; role?: Role
             </Note>
           ) : null}
           {groups.map(({ g, rows }) => {
-            const gid = `g-${g.toLowerCase().replace(/[^a-z]+/g, '-')}`
-            const after = groupNote(g)
+            // Group names come in the reader's language: the id and the note go by the group's first permission.
+            const gid = `g-${rows[0]!.key.replace(':', '-')}`
+            const after = groupNote(rows)
             return (
               <div key={g} role="group" aria-labelledby={gid}>
                 <div id={gid} className="border-t border-line-2 px-4.5 pb-1 pt-2.5 text-[12px] font-bold uppercase tracking-[.04em] text-ink-2">

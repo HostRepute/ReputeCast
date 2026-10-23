@@ -1,0 +1,18 @@
+{
+  "scope.list": { "message": "{list} list only", "note": "a member's scope: list is a list's name, as the workspace named it" },
+  "scope.only": { "message": "{name} only", "note": "a key's scope, or a member's with one sender domain: name is a list's name or a domain" },
+  "scope.lists": "{count, plural, one {# list} other {# lists}}",
+  "scope.parts": { "message": "{parts} only", "note": "parts: list names or a count of lists, and sender domains, joined with ' · '" },
+  "scope.all": { "message": "all lists", "note": "the scope of a member or key that isn't limited to some lists (the member page's Scope column)" },
+  "problem.unknownList": { "message": "Unknown list \"{value}\".", "note": "value: the list ID that was sent" },
+  "problem.unknownDomain": { "message": "Unknown sender domain \"{value}\".", "note": "value: the domain that was sent" },
+
+  "cantGrant": { "message": "You can't grant {permission} because you don't hold it.", "note": "permission: a key like segments:sql, never translated" },
+  "cantGrantAsk": { "message": "You can't grant {permission} because you don't hold it. Ask {helpers}.", "note": "helpers: names joined as 'A or B'" },
+  "notHoldable.ai": "AI features are for people. Agents bring their own model.",
+  "notHoldable.peopleOnly": "Only people can hold {permission}: API keys and agents can't.",
+  "notHoldable.verify": "Not offered to agents: it sends addresses out of ReputeCast",
+  "notHoldable.placementRun": "Not offered to agents: it sends copies through your providers",
+  "notHoldable.placementManage": "Not offered to agents: seed passwords and tokens can read whole mailboxes",
+  "notHoldable.agents": "MCP agents can't hold {permission}. Give it to an API key or a person."
+}

@@ -10,7 +10,9 @@ function impact(patch: Partial<Schemas['RoleImpact']> = {}): Schemas['RoleImpact
     removed: [],
     addedSensitive: ['campaigns:send'],
     removedSensitive: [],
-    members: [{ id: 'm-1', name: 'Daniel Park', email: 'daniel@acme.io', avatarColor: 'warn', gains: ['campaigns:send'], loses: [], effect: 'Two-factor becomes required; their IdP already enforces it' }],
+    members: [
+      { id: 'm-1', name: 'Daniel Park', email: 'daniel@acme.io', avatarColor: 'warn', gains: ['campaigns:send'], loses: [], effect: 'Two-factor becomes required; their IdP already enforces it', twoFactor: 'idp' },
+    ],
     membersAffected: 1,
     keys: [],
     apiKeys: 0,

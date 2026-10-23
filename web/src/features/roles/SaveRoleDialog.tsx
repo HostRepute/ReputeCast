@@ -167,9 +167,9 @@ function pendingLine(impact: Schemas['RoleImpact'], affected: Schemas['RoleImpac
 
 /** "Two-factor becomes required for them (7-day grace; Daniel Park signs in through SSO, which already enforces it)." */
 function twoFactorSentence(members: Schemas['RoleImpactMember'][], grace: number): string {
-  const needs = members.filter((x) => x.effect.startsWith('Two-factor becomes required'))
+  const needs = members.filter((x) => x.twoFactor)
   if (needs.length === 0) return t(m.twoFactorNone)
-  const idp = needs.filter((x) => x.effect.includes('IdP'))
+  const idp = needs.filter((x) => x.twoFactor === 'idp')
   if (idp.length === 0) return t(m.twoFactorRequired, { count: needs.length, grace })
   return t(m.twoFactorRequiredIdp, { count: needs.length, grace, names: formatList(idp.map((x) => x.name)), idp: idp.length })
 }

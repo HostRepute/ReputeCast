@@ -1,0 +1,18 @@
+{
+  "scope.list": "chỉ danh sách {list}",
+  "scope.only": "chỉ {name}",
+  "scope.lists": "{count, plural, other {# danh sách}}",
+  "scope.parts": "chỉ {parts}",
+  "scope.all": "mọi danh sách",
+  "problem.unknownList": "Không có danh sách \"{value}\".",
+  "problem.unknownDomain": "Không có tên miền gửi thư \"{value}\".",
+
+  "cantGrant": "Bạn không thể cấp {permission} vì bạn không có quyền này.",
+  "cantGrantAsk": "Bạn không thể cấp {permission} vì bạn không có quyền này. Hãy hỏi {helpers}.",
+  "notHoldable.ai": "Tính năng AI dành cho con người. Tác tử dùng mô hình của riêng chúng.",
+  "notHoldable.peopleOnly": "Chỉ con người mới có thể có {permission}: khóa API và tác tử thì không.",
+  "notHoldable.verify": "Không dành cho tác tử: quyền này gửi địa chỉ ra ngoài ReputeCast",
+  "notHoldable.placementRun": "Không dành cho tác tử: quyền này gửi bản sao qua các nhà cung cấp của bạn",
+  "notHoldable.placementManage": "Không dành cho tác tử: mật khẩu và token của hộp thư mẫu đọc được toàn bộ hộp thư",
+  "notHoldable.agents": "Tác tử MCP không thể có {permission}. Hãy cấp quyền này cho một khóa API hoặc một người."
+}
