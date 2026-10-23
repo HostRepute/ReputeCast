@@ -27,6 +27,7 @@
   "footer.fix": "Chèn khối chân thư",
 
   "liquid.title": "{where, select, subject {Tiêu đề} preheader {Dòng xem trước} other {Nội dung}}: {problem}",
+  "liquid.titleLine": "{where, select, subject {Tiêu đề} preheader {Dòng xem trước} other {Nội dung}}: Dòng {line}: {problem}",
   "liquid.detail": "Hãy sửa thẻ cá nhân hóa; thẻ bị lỗi sẽ hiện ra thành chữ hoặc làm dừng việc gửi.",
   "unknownField.title": "{token} không phải là trường liên hệ; thẻ này sẽ không hiện gì",
   "unknownField.detail": "Hãy kiểm tra chính tả, hoặc thêm giá trị dự phòng như | default: \"…\".",

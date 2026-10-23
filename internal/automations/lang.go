@@ -8,9 +8,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"golang.org/x/text/language"
-	"golang.org/x/text/language/display"
-
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 )
@@ -268,14 +265,9 @@ func sayLanguage(l i18n.Lang, code string) string {
 	if l.Locale == i18n.English || l.Locale == i18n.Pseudo {
 		return languages.NameOf(code)
 	}
-	tag, err := language.Parse(code)
-	if err != nil {
-		return languages.NameOf(code)
+	// The names every screen uses ("tiếng Đức" inside a sentence).
+	if n := languages.NameInSentence(l, code); n != "" && n != code {
+		return n
 	}
-	n := display.Tags(l.Locale.Tag()).Name(tag)
-	if n == "" {
-		return languages.NameOf(code)
-	}
-	// "Tiếng Đức" reads "tiếng Đức" inside a sentence.
-	return lowerFirstIn(l, n)
+	return languages.NameOf(code)
 }

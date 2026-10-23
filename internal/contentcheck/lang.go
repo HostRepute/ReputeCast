@@ -47,6 +47,7 @@ var (
 	mFooterFix            = msgs.M("footer.fix")
 
 	mLiquidTitle         = msgs.M("liquid.title")
+	mLiquidTitleLine     = msgs.M("liquid.titleLine")
 	mLiquidDetail        = msgs.M("liquid.detail")
 	mUnknownFieldTitle   = msgs.M("unknownField.title")
 	mUnknownFieldDetail  = msgs.M("unknownField.detail")

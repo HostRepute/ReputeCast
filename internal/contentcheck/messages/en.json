@@ -27,6 +27,7 @@
   "footer.fix": "Insert footer block",
 
   "liquid.title": {"message": "{where, select, subject {Subject} preheader {Preheader} other {Body}}: {problem}", "note": "problem: the template engine's own words, in English"},
+  "liquid.titleLine": {"message": "{where, select, subject {Subject} preheader {Preheader} other {Body}}: Line {line}: {problem}", "note": "a personalization tag that doesn't parse, at a line of the subject, preheader or body; problem: the template engine's own words, in English"},
   "liquid.detail": "Fix the personalization tag; a broken tag would print as text or stop the send.",
   "unknownField.title": {"message": "{token} isn't a contact field; it prints nothing", "note": "token: a personalization tag, {{ frist_name }}"},
   "unknownField.detail": "Check the spelling, or add a fallback such as | default: \"…\".",

@@ -321,8 +321,14 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 
 	for _, src := range []struct{ where, text string }{{"subject", in.Subject}, {"preheader", in.Preheader}, {"body", bodySource(in.MJML, htmlSrc)}} {
 		for _, p := range liquid.Validate(src.text) {
+			title := mLiquidTitle.Keep(i18n.Args{"where": src.where, "problem": p.Message})
+			// "Line 3: …" names its line in the reader's language; the
+			// template engine's explanation after it stays English.
+			if rest, ok := strings.CutPrefix(p.Message, fmt.Sprintf("Line %d: ", p.Line)); ok && p.Line > 0 {
+				title = mLiquidTitleLine.Keep(i18n.Args{"where": src.where, "line": strconv.Itoa(p.Line), "problem": rest})
+			}
 			add(worded(ContentCheckIssue{ID: "personalization.syntax", Severity: Block, Group: "Personalization", Section: -1},
-				mLiquidTitle.Keep(i18n.Args{"where": src.where, "problem": p.Message}), i18n.Text{}, mLiquidDetail.Keep(nil)))
+				title, i18n.Text{}, mLiquidDetail.Keep(nil)))
 		}
 	}
 	if len(in.Fields) > 0 {
