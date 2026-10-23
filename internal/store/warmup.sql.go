@@ -14,7 +14,7 @@ import (
 )
 
 const warmupActiveForProvider = `-- name: WarmupActiveForProvider :one
-SELECT id, provider_id, ip, start_date, days, schedule, engaged_first, slowdown_bounce, slowdown_complaint, status, status_detail, progress, created_at, guard_action, spread_mailbox, created_by, paused_at, updated_at FROM warmup_plans WHERE provider_id = $1 AND status <> 'done' ORDER BY created_at DESC LIMIT 1
+SELECT id, provider_id, ip, start_date, days, schedule, engaged_first, slowdown_bounce, slowdown_complaint, status, status_detail, progress, created_at, guard_action, spread_mailbox, created_by, paused_at, updated_at, texts FROM warmup_plans WHERE provider_id = $1 AND status <> 'done' ORDER BY created_at DESC LIMIT 1
 `
 
 func (q *Queries) WarmupActiveForProvider(ctx context.Context, providerID uuid.UUID) (WarmupPlan, error) {
@@ -39,12 +39,13 @@ func (q *Queries) WarmupActiveForProvider(ctx context.Context, providerID uuid.U
 		&i.CreatedBy,
 		&i.PausedAt,
 		&i.UpdatedAt,
+		&i.Texts,
 	)
 	return i, err
 }
 
 const warmupActivePlans = `-- name: WarmupActivePlans :many
-SELECT w.id, w.provider_id, w.ip, w.start_date, w.days, w.schedule, w.engaged_first, w.slowdown_bounce, w.slowdown_complaint, w.status, w.status_detail, w.progress, w.created_at, w.guard_action, w.spread_mailbox, w.created_by, w.paused_at, w.updated_at, p.name AS provider_name, p.adapter, p.workspace_id
+SELECT w.id, w.provider_id, w.ip, w.start_date, w.days, w.schedule, w.engaged_first, w.slowdown_bounce, w.slowdown_complaint, w.status, w.status_detail, w.progress, w.created_at, w.guard_action, w.spread_mailbox, w.created_by, w.paused_at, w.updated_at, w.texts, p.name AS provider_name, p.adapter, p.workspace_id
 FROM warmup_plans w JOIN providers p ON p.id = w.provider_id AND p.disconnected_at IS NULL
 WHERE w.status IN ('active', 'slowed')
 `
@@ -68,6 +69,7 @@ type WarmupActivePlansRow struct {
 	CreatedBy         *uuid.UUID      `json:"createdBy"`
 	PausedAt          *time.Time      `json:"pausedAt"`
 	UpdatedAt         time.Time       `json:"updatedAt"`
+	Texts             json.RawMessage `json:"texts"`
 	ProviderName      string          `json:"providerName"`
 	Adapter           string          `json:"adapter"`
 	WorkspaceID       uuid.UUID       `json:"workspaceId"`
@@ -102,6 +104,7 @@ func (q *Queries) WarmupActivePlans(ctx context.Context) ([]WarmupActivePlansRow
 			&i.CreatedBy,
 			&i.PausedAt,
 			&i.UpdatedAt,
+			&i.Texts,
 			&i.ProviderName,
 			&i.Adapter,
 			&i.WorkspaceID,
@@ -117,18 +120,21 @@ func (q *Queries) WarmupActivePlans(ctx context.Context) ([]WarmupActivePlansRow
 }
 
 const warmupAddEvent = `-- name: WarmupAddEvent :exec
-INSERT INTO warmup_events (id, plan_id, occurred_at, kind, title, body) VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO warmup_events (id, plan_id, occurred_at, kind, title, body, texts)
+VALUES ($1, $2, $3, $4, $5, $6, coalesce($7::jsonb, '{}'))
 `
 
 type WarmupAddEventParams struct {
-	ID         uuid.UUID `json:"id"`
-	PlanID     uuid.UUID `json:"planId"`
-	OccurredAt time.Time `json:"occurredAt"`
-	Kind       string    `json:"kind"`
-	Title      string    `json:"title"`
-	Body       string    `json:"body"`
+	ID         uuid.UUID       `json:"id"`
+	PlanID     uuid.UUID       `json:"planId"`
+	OccurredAt time.Time       `json:"occurredAt"`
+	Kind       string          `json:"kind"`
+	Title      string          `json:"title"`
+	Body       string          `json:"body"`
+	Texts      json.RawMessage `json:"texts"`
 }
 
+// texts keeps the title's and body's messages for later readers.
 func (q *Queries) WarmupAddEvent(ctx context.Context, arg WarmupAddEventParams) error {
 	_, err := q.db.Exec(ctx, warmupAddEvent,
 		arg.ID,
@@ -137,6 +143,7 @@ func (q *Queries) WarmupAddEvent(ctx context.Context, arg WarmupAddEventParams) 
 		arg.Kind,
 		arg.Title,
 		arg.Body,
+		arg.Texts,
 	)
 	return err
 }
@@ -188,7 +195,7 @@ func (q *Queries) WarmupDailyStats(ctx context.Context, arg WarmupDailyStatsPara
 }
 
 const warmupGetPlan = `-- name: WarmupGetPlan :one
-SELECT w.id, w.provider_id, w.ip, w.start_date, w.days, w.schedule, w.engaged_first, w.slowdown_bounce, w.slowdown_complaint, w.status, w.status_detail, w.progress, w.created_at, w.guard_action, w.spread_mailbox, w.created_by, w.paused_at, w.updated_at, p.name AS provider_name, p.adapter, p.workspace_id
+SELECT w.id, w.provider_id, w.ip, w.start_date, w.days, w.schedule, w.engaged_first, w.slowdown_bounce, w.slowdown_complaint, w.status, w.status_detail, w.progress, w.created_at, w.guard_action, w.spread_mailbox, w.created_by, w.paused_at, w.updated_at, w.texts, p.name AS provider_name, p.adapter, p.workspace_id
 FROM warmup_plans w JOIN providers p ON p.id = w.provider_id
 WHERE w.id = $1 AND p.workspace_id = $2
 `
@@ -217,6 +224,7 @@ type WarmupGetPlanRow struct {
 	CreatedBy         *uuid.UUID      `json:"createdBy"`
 	PausedAt          *time.Time      `json:"pausedAt"`
 	UpdatedAt         time.Time       `json:"updatedAt"`
+	Texts             json.RawMessage `json:"texts"`
 	ProviderName      string          `json:"providerName"`
 	Adapter           string          `json:"adapter"`
 	WorkspaceID       uuid.UUID       `json:"workspaceId"`
@@ -244,6 +252,7 @@ func (q *Queries) WarmupGetPlan(ctx context.Context, arg WarmupGetPlanParams) (W
 		&i.CreatedBy,
 		&i.PausedAt,
 		&i.UpdatedAt,
+		&i.Texts,
 		&i.ProviderName,
 		&i.Adapter,
 		&i.WorkspaceID,
@@ -295,7 +304,7 @@ func (q *Queries) WarmupInsertPlan(ctx context.Context, arg WarmupInsertPlanPara
 
 const warmupListPlans = `-- name: WarmupListPlans :many
 
-SELECT w.id, w.provider_id, w.ip, w.start_date, w.days, w.schedule, w.engaged_first, w.slowdown_bounce, w.slowdown_complaint, w.status, w.status_detail, w.progress, w.created_at, w.guard_action, w.spread_mailbox, w.created_by, w.paused_at, w.updated_at, p.name AS provider_name, p.adapter, p.workspace_id, p.ips AS provider_ips, p.status AS provider_status,
+SELECT w.id, w.provider_id, w.ip, w.start_date, w.days, w.schedule, w.engaged_first, w.slowdown_bounce, w.slowdown_complaint, w.status, w.status_detail, w.progress, w.created_at, w.guard_action, w.spread_mailbox, w.created_by, w.paused_at, w.updated_at, w.texts, p.name AS provider_name, p.adapter, p.workspace_id, p.ips AS provider_ips, p.status AS provider_status,
        coalesce(u.name, '')::text AS created_by_name
 FROM warmup_plans w
 JOIN providers p ON p.id = w.provider_id AND p.disconnected_at IS NULL
@@ -323,6 +332,7 @@ type WarmupListPlansRow struct {
 	CreatedBy         *uuid.UUID      `json:"createdBy"`
 	PausedAt          *time.Time      `json:"pausedAt"`
 	UpdatedAt         time.Time       `json:"updatedAt"`
+	Texts             json.RawMessage `json:"texts"`
 	ProviderName      string          `json:"providerName"`
 	Adapter           string          `json:"adapter"`
 	WorkspaceID       uuid.UUID       `json:"workspaceId"`
@@ -361,6 +371,7 @@ func (q *Queries) WarmupListPlans(ctx context.Context, workspaceID uuid.UUID) ([
 			&i.CreatedBy,
 			&i.PausedAt,
 			&i.UpdatedAt,
+			&i.Texts,
 			&i.ProviderName,
 			&i.Adapter,
 			&i.WorkspaceID,
@@ -379,7 +390,7 @@ func (q *Queries) WarmupListPlans(ctx context.Context, workspaceID uuid.UUID) ([
 }
 
 const warmupLog = `-- name: WarmupLog :many
-SELECT id, plan_id, occurred_at, kind, title, body FROM warmup_events WHERE plan_id = $1 ORDER BY occurred_at DESC, id DESC LIMIT $2
+SELECT id, plan_id, occurred_at, kind, title, body, texts FROM warmup_events WHERE plan_id = $1 ORDER BY occurred_at DESC, id DESC LIMIT $2
 `
 
 type WarmupLogParams struct {
@@ -403,6 +414,7 @@ func (q *Queries) WarmupLog(ctx context.Context, arg WarmupLogParams) ([]WarmupE
 			&i.Kind,
 			&i.Title,
 			&i.Body,
+			&i.Texts,
 		); err != nil {
 			return nil, err
 		}
@@ -463,42 +475,50 @@ func (q *Queries) WarmupPlannedCampaignUse(ctx context.Context, arg WarmupPlanne
 }
 
 const warmupSetProgress = `-- name: WarmupSetProgress :exec
-UPDATE warmup_plans SET progress = $1, status = $2, status_detail = $3, updated_at = now() WHERE id = $4
+UPDATE warmup_plans SET progress = $1, status = $2, status_detail = $3,
+    texts = coalesce($4::jsonb, '{}'), updated_at = now() WHERE id = $5
 `
 
 type WarmupSetProgressParams struct {
 	Progress     json.RawMessage `json:"progress"`
 	Status       string          `json:"status"`
 	StatusDetail string          `json:"statusDetail"`
+	Texts        json.RawMessage `json:"texts"`
 	ID           uuid.UUID       `json:"id"`
 }
 
+// texts keeps the status detail's message for later readers ({} without one).
 func (q *Queries) WarmupSetProgress(ctx context.Context, arg WarmupSetProgressParams) error {
 	_, err := q.db.Exec(ctx, warmupSetProgress,
 		arg.Progress,
 		arg.Status,
 		arg.StatusDetail,
+		arg.Texts,
 		arg.ID,
 	)
 	return err
 }
 
 const warmupSetStatus = `-- name: WarmupSetStatus :exec
-UPDATE warmup_plans SET status = $1, status_detail = $2, paused_at = $3, updated_at = now() WHERE id = $4
+UPDATE warmup_plans SET status = $1, status_detail = $2, paused_at = $3,
+    texts = coalesce($4::jsonb, '{}'), updated_at = now() WHERE id = $5
 `
 
 type WarmupSetStatusParams struct {
-	Status       string     `json:"status"`
-	StatusDetail string     `json:"statusDetail"`
-	PausedAt     *time.Time `json:"pausedAt"`
-	ID           uuid.UUID  `json:"id"`
+	Status       string          `json:"status"`
+	StatusDetail string          `json:"statusDetail"`
+	PausedAt     *time.Time      `json:"pausedAt"`
+	Texts        json.RawMessage `json:"texts"`
+	ID           uuid.UUID       `json:"id"`
 }
 
+// texts keeps the status detail's message for later readers ({} without one).
 func (q *Queries) WarmupSetStatus(ctx context.Context, arg WarmupSetStatusParams) error {
 	_, err := q.db.Exec(ctx, warmupSetStatus,
 		arg.Status,
 		arg.StatusDetail,
 		arg.PausedAt,
+		arg.Texts,
 		arg.ID,
 	)
 	return err

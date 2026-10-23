@@ -526,6 +526,7 @@ func testAutoPause(t *testing.T, f *fixture) {
 	if len(snap.Incident.Detail.Causes) == 0 || snap.Incident.Detail.Note == "" {
 		t.Fatal("incident has no likely causes or note")
 	}
+	checkAutoPauseLanguages(t, f, snap)
 	if n := f.count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.auto_paused'`, f.campaign.String()); n != 1 {
 		t.Fatalf("%d auto-pause audit entries", n)
 	}
@@ -581,6 +582,7 @@ func testOutage(t *testing.T, f *fixture) {
 	if d.Move == nil || d.Move.TargetShort != "SES" || d.Policy != "pause_and_ask" || len(d.Log) == 0 || d.Remaining == 0 {
 		t.Fatalf("outage detail %+v", d)
 	}
+	checkOutageLanguages(t, f, snap)
 	if f.status() != "paused" {
 		f.dump()
 		t.Fatalf("status %s; with only the held share left the campaign waits for a decision", f.status())

@@ -25,6 +25,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/hostrepute"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	provstate "github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -59,7 +60,9 @@ func (s *Service) lists() []dnscheck.Blocklist {
 
 // state is everything the screen is built from, read once per request.
 type state struct {
-	ws  uuid.UUID
+	ws uuid.UUID
+	// l is the reader's language: the screen's own words are written in it.
+	l   i18n.Lang
 	now time.Time
 	// today is the workspace's current date (at 00:00 UTC, like DATE columns).
 	today       time.Time
@@ -102,7 +105,8 @@ func (st *state) hostReputeStale() bool {
 func (s *Service) load(ctx context.Context, w *store.Workspace) (*state, error) {
 	ws, tz := w.ID, w.Timezone
 	now := s.now()
-	st := &state{ws: ws, now: now, today: dateIn(now, tz), zone: zoneOf(tz), checks: map[string]store.DeliverabilityAssetCheck{}, monitored: map[string]monitored{}}
+	st := &state{ws: ws, l: i18n.LangFrom(ctx), now: now, today: dateIn(now, tz), zone: zoneOf(tz), checks: map[string]store.DeliverabilityAssetCheck{},
+		monitored: map[string]monitored{}}
 	q := s.Q
 	if conn, err := q.GetHostReputeConnection(ctx, ws); err == nil {
 		st.conn = &conn
@@ -186,7 +190,7 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (Deliverabi
 		return out, err
 	}
 	if out.Postmaster != nil && out.Postmaster.Peak != nil {
-		out.Postmaster.Peak.Note = peakNote(out.Incidents.Items, out.Postmaster.Peak.Day, st.loc())
+		out.Postmaster.Peak.Note = peakNote(st.l, out.Incidents.Items, out.Postmaster.Peak.Day, st.loc())
 	}
 	return out, nil
 }
@@ -223,19 +227,19 @@ func (st *state) checkSchedule(builtin int) DeliverabilityChecks {
 		out.LastAt, out.NextAt = &last, &next
 	}
 	if st.running != nil {
-		r := runView(*st.running)
+		r := runView(st.l, *st.running)
 		out.Running = &r
 	}
 	return out
 }
 
-func runView(r store.DeliverabilityCheckRun) DeliverabilityCheckRun {
+func runView(l i18n.Lang, r store.DeliverabilityCheckRun) DeliverabilityCheckRun {
 	assets := r.Assets
 	if assets == nil {
 		assets = []string{}
 	}
 	return DeliverabilityCheckRun{ID: r.ID.String(), Via: r.Via, Trigger: r.Trigger, Status: r.Status, Assets: assets, Total: r.Total, Answered: r.Answered,
-		Listed: r.Listed, Error: r.Error, StartedAt: r.StartedAt, FinishedAt: r.FinishedAt}
+		Listed: r.Listed, Error: runErrorIn(l, r.Error), StartedAt: r.StartedAt, FinishedAt: r.FinishedAt}
 }
 
 // blocklistVia picks the source shown as current: HostRepute when it has
@@ -606,10 +610,10 @@ func (st *state) postmasterPanel() *DeliverabilityPostmaster {
 const dateLayout = "2006-01-02"
 
 // peakNote explains the spam-rate peak with an incident of that day.
-func peakNote(items []DeliverabilityIncident, day string, zone *time.Location) string {
+func peakNote(l i18n.Lang, items []DeliverabilityIncident, day string, zone *time.Location) string {
 	for _, it := range items {
 		if it.OccurredAt.In(zone).Format(dateLayout) == day && (it.Kind == "reputation_change" || it.Kind == KindMigration) {
-			return "first send after migration"
+			return text(l, "peak.migration", nil)
 		}
 	}
 	return ""

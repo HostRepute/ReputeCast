@@ -73,7 +73,7 @@ func TestReportInVietnamese(t *testing.T) {
 		t.Errorf("serious summary: %q", got)
 	}
 	f := FindingsIn(vi, r)
-	if f[0].Title != "Hình hero chưa có văn bản thay thế · Tiếng Anh, Tiếng Tây Ban Nha, Tiếng Đức" ||
+	if f[0].Title != "Hình hero chưa có văn bản thay thế · Tiếng Anh, tiếng Tây Ban Nha, tiếng Đức" ||
 		f[len(f)-1].Title != "role=\"presentation\" trên "+i18n.For(i18n.Vietnamese).Region.Int(int64(r.Counts.LayoutTables))+" bảng bố cục" {
 		t.Errorf("findings: %q · %q", f[0].Title, f[len(f)-1].Title)
 	}

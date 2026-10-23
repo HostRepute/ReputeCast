@@ -14,8 +14,8 @@ export default translate(m, {
   once: 'Một lần cho mỗi liên hệ ở mỗi mốc',
   onceDetail: 'một lần cho mỗi liên hệ ở mỗi mốc',
   explain:
-    'Bắt đầu khi người giới thiệu đạt mốc, dù mốc đó có tự gửi email hay không. Các biến của mốc thưởng và phần thưởng dùng được trong email của luồng này.',
-  noMilestones: 'Chưa có chương trình giới thiệu nào có mốc thưởng, nên chưa có gì kích hoạt luồng này.',
+    'Bắt đầu khi người giới thiệu đạt mốc, dù mốc đó có tự gửi email hay không. Các biến của mốc thưởng và phần thưởng dùng được trong email của quy trình này.',
+  noMilestones: 'Chưa có chương trình giới thiệu nào có mốc thưởng, nên chưa có gì kích hoạt quy trình này.',
   setUp: 'Thiết lập giới thiệu',
   needs: 'Để chọn trình kích hoạt này, bạn cần quyền automations:edit.',
 })

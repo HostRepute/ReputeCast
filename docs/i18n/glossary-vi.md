@@ -29,6 +29,11 @@ How to add or complete a language: [`translating.md`](translating.md).
   "sau 5 ngày".
 - Overlines (table headers, group labels) stay uppercase and keep their
   marks: "NGƯỜI NHẬN", "HOẠT ĐỘNG GẦN NHẤT".
+- Language names start with the common noun "tiếng": "Tiếng Anh" on its own,
+  at the start of a sentence and after a colon or "·", "tiếng Anh" inside a
+  sentence ("Thêm tiếng Anh", "Người đọc tiếng Đức nhận tiếng Anh"). Write
+  `{language}` where the sentence needs it: the app picks the case, for one
+  name or a list of them (`internal/i18n/names.go`, `web/src/i18n/names.ts`).
 
 ## Never translated
 
@@ -341,6 +346,35 @@ A provider's names for its keys, plans, menus and stream types stay as the
 provider writes them ("Server API token", "Private API key", "Account SID",
 "Auth token", "Full access", "Broadcasts API", "Scale plan"), and so do its
 event names ("Delivery", "SpamComplaint") and its error codes.
+
+### What the sending engine, Deliverability and HostRepute write
+
+The live monitor's incident panel (likely causes, recommendations and the
+ways to continue), its notifications and feed, Deliverability's account
+health and check runs, the HostRepute connection, route notes on a
+contact's timeline and why a transactional message failed.
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| "October Product Update" auto-paused · Outlook | “October Product Update” tự tạm dừng · Outlook | a campaign's name between “ ” |
+| built-in daily check (blocklists) | lần kiểm tra hằng ngày có sẵn | without HostRepute |
+| check run · lookups that didn't answer | lần kiểm tra · lượt tra cứu không có phản hồi | |
+| connection errors · throttling errors · API errors | lỗi kết nối · lỗi giới hạn tốc độ · lỗi API | "Postal trả về lỗi kết nối trong 3 phút" |
+| decision requested · waiting for a decision | đang chờ quyết định · đang chờ bạn quyết định | a held share |
+| health check · still failing · answering again | kiểm tra tình trạng · vẫn lỗi · đã phản hồi lại | the outage log's lines |
+| never-engaged · lapsed (contacts) | chưa từng tương tác · đã ngừng tương tác | |
+| placement ("protects placement") | vị trí thư | as in Placement tests |
+| Reputation dashboard (SES) | Bảng điều khiển uy tín | |
+| Resume as is · Resume with changes · Cancel the Outlook share · Retry Postal · Move 1,204 to SES | Tiếp tục như cũ · Tiếp tục với thay đổi · Hủy phần của Outlook · Thử lại Postal · Chuyển 1.204 sang SES | the incident panel's ways to continue; "(khuyên dùng)" after the recommended one |
+| route note: SES share of the 90/10 split · by rule · instead of · failed over to | Phần của SES trong phân bổ 90/10 · theo quy tắc · thay cho · đã chuyển dự phòng sang | |
+| scope (a HostRepute token's) | phạm vi | the scopes' keys stay: monitor:read |
+| Send held (a scheduled send) | Lần gửi bị tạm giữ | |
+| status page (a provider's) | trang trạng thái | |
+| web process (a self-hosted provider's) | tiến trình web | |
+
+The providers' own replies stay as they come: SMTP codes and texts
+("421 4.7.0 TSS04"), API errors, the outage log's error lines
+("ECONNREFUSED mta.acme.io:443") and a bounce's diagnostic.
 
 ## Transactional templates
 

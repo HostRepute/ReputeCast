@@ -23,6 +23,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
@@ -275,21 +276,23 @@ type SuppressionSyncStatus struct {
 	Rows    []SuppressionSyncRow     `json:"rows"`
 }
 
-// scope describes the provider-side list an adapter syncs with.
-func scope(adapter string) string {
+// scope describes the provider-side list an adapter syncs with, in a
+// reader's language.
+func scope(l i18n.Lang, adapter string) string {
 	switch adapter {
 	case "ses":
-		return "account-level list"
+		return text(l, "scope.account", nil)
 	case "postmark":
-		return "per stream"
+		return text(l, "scope.stream", nil)
 	case "smtp", "postal":
-		return "enforced before sending"
+		return text(l, "scope.enforced", nil)
 	}
-	return "suppression list"
+	return text(l, "scope.list", nil)
 }
 
 // Status returns the sync status of every provider.
 func (s *Service) Status(ctx context.Context, ws *store.Workspace) (SuppressionSyncStatus, error) {
+	l := i18n.LangFrom(ctx)
 	out := SuppressionSyncStatus{Reasons: []SuppressionReasonCount{}, Rows: []SuppressionSyncRow{}}
 	var err error
 	if out.Total, err = s.Q.SuppCount(ctx, ws.ID); err != nil {
@@ -327,12 +330,12 @@ func (s *Service) Status(ctx context.Context, ws *store.Workspace) (SuppressionS
 		addedBy[a.ProviderID] = a
 	}
 	for _, p := range provs {
-		row := SuppressionSyncRow{ProviderID: p.ID.String(), Provider: p.Name, Scope: scope(p.Adapter)}
+		row := SuppressionSyncRow{ProviderID: p.ID.String(), Provider: p.Name, Scope: scope(l, p.Adapter)}
 		r, ok := byID[p.ID]
 		if !state.Caps(p).SuppressionSync {
 			// No suppression API: its bounce and complaint events still add
 			// to the shared list, which is enforced before every send.
-			row.Direction, row.Status, row.Detail = "local", "local", "ReputeCast checks the shared list before handing mail to "+p.Name+"."
+			row.Direction, row.Status, row.Detail = "local", "local", text(l, "detail.local", i18n.Args{"provider": p.Name})
 			if a, found := addedBy[p.ID]; found {
 				row.Pulled = a.N
 				at := a.LastAt
@@ -381,7 +384,8 @@ func (s *Service) Status(ctx context.Context, ws *store.Workspace) (SuppressionS
 			name = strings.ToUpper(src)
 		}
 		at := im.FirstAt
-		out.Rows = append(out.Rows, SuppressionSyncRow{Provider: name + " (import)", Scope: at.Format("2 Jan"), Direction: "import", Pulled: im.N, LastSync: &at, Status: "done"})
+		out.Rows = append(out.Rows, SuppressionSyncRow{Provider: text(l, "provider.import", i18n.Args{"name": name}), Scope: l.Region.DayMonth(at), Direction: "import", Pulled: im.N,
+			LastSync: &at, Status: "done"})
 	}
 	return out, nil
 }

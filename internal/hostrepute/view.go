@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -121,6 +122,7 @@ type HostReputeSyncQueued struct {
 // Connection returns the connection view (status not_connected when there
 // is none, with what connecting would share).
 func (s *Service) Connection(ctx context.Context, ws uuid.UUID) (HostReputeConnection, error) {
+	l := i18n.LangFrom(ctx)
 	out := HostReputeConnection{Status: "not_connected", Scopes: []HostReputeScope{}, Assets: []HostReputeAsset{}}
 	cands, err := Candidates(ctx, s.Q, ws)
 	if err != nil {
@@ -140,7 +142,7 @@ func (s *Service) Connection(ctx context.Context, ws uuid.UUID) (HostReputeConne
 	conn, err := s.Q.GetHostReputeConnection(ctx, ws)
 	if errors.Is(err, pgx.ErrNoRows) {
 		for _, k := range Scopes {
-			out.Scopes = append(out.Scopes, HostReputeScope{Key: k, Use: ScopeUse[k]})
+			out.Scopes = append(out.Scopes, HostReputeScope{Key: k, Use: scopeUse(l, k)})
 		}
 		for _, c := range cands {
 			out.Assets = append(out.Assets, HostReputeAsset{Asset: c.Asset, Type: c.Type, Role: c.Role, Provider: c.Provider, Listings: []string{}})
@@ -167,17 +169,17 @@ func (s *Service) Connection(ctx context.Context, ws uuid.UUID) (HostReputeConne
 	}
 	out.TokenRejectedAt, out.LastSyncAt, out.LastCheckAt = conn.TokenRejectedAt, conn.LastSyncAt, conn.LastCheckAt
 	if conn.LastSyncError != "" {
-		out.SyncError, out.SyncErrorAt = conn.LastSyncError, conn.LastSyncAttemptAt
+		out.SyncError, out.SyncErrorAt = SyncErrorIn(l, conn.LastSyncError), conn.LastSyncAttemptAt
 	}
 	if run, err := s.Q.RunningDeliverabilityCheckRun(ctx, store.RunningDeliverabilityCheckRunParams{WorkspaceID: ws, AliveAfter: s.now().Add(-10 * time.Minute)}); err == nil && run.Via == "hostrepute" {
 		out.Syncing = true
 	}
 	for _, k := range Scopes {
-		out.Scopes = append(out.Scopes, HostReputeScope{Key: k, Use: ScopeUse[k], Granted: slices.Contains(conn.Scopes, k)})
+		out.Scopes = append(out.Scopes, HostReputeScope{Key: k, Use: scopeUse(l, k), Granted: slices.Contains(conn.Scopes, k)})
 	}
 	for _, k := range conn.Scopes {
 		if !slices.Contains(Scopes, k) {
-			out.Scopes = append(out.Scopes, HostReputeScope{Key: k, Use: ScopeUse[k], Granted: true})
+			out.Scopes = append(out.Scopes, HostReputeScope{Key: k, Use: scopeUse(l, k), Granted: true})
 		}
 	}
 	out.MonitorLimit, out.Sources, out.CheckIntervalMinutes, out.DMARCRua = conn.MonitorLimit, conn.Sources, conn.CheckIntervalMinutes, conn.DmarcRua

@@ -1468,6 +1468,8 @@ type Querier interface {
 	IngestBumpCounters(ctx context.Context, arg IngestBumpCountersParams) error
 	// The provider event log: provider events (not ReputeCast's own opens and
 	// clicks), newest first, retained 90 days.
+	// The message's kind and automation step write its source label in a
+	// reader's language (source keeps the English).
 	IngestEventLog(ctx context.Context, arg IngestEventLogParams) ([]IngestEventLogRow, error)
 	IngestEventLogCount(ctx context.Context, arg IngestEventLogCountParams) (int64, error)
 	IngestGetRaw(ctx context.Context, id uuid.UUID) (ProviderRawEvent, error)
@@ -1497,6 +1499,7 @@ type Querier interface {
 	InsertDeliverabilityBlocklistResult(ctx context.Context, arg InsertDeliverabilityBlocklistResultParams) error
 	// Incidents with an external id (HostRepute alerts) are stored once; the
 	// returned row count says whether this one is new.
+	// texts keeps the messages of the title and detail ({} for HostRepute's alerts).
 	InsertDeliverabilityIncident(ctx context.Context, arg InsertDeliverabilityIncidentParams) (uuid.UUID, error)
 	InsertEmailTemplate(ctx context.Context, arg InsertEmailTemplateParams) error
 	InsertImportLog(ctx context.Context, arg InsertImportLogParams) error
@@ -1821,6 +1824,7 @@ type Querier interface {
 	ListDeliverabilityDMARCReports(ctx context.Context, arg ListDeliverabilityDMARCReportsParams) ([]DmarcReport, error)
 	// The incident timeline. An incident without an explicit campaign is linked
 	// to the campaign that was sending through its provider when it happened.
+	// texts keeps the messages of the title and detail (migration 02250).
 	ListDeliverabilityIncidents(ctx context.Context, arg ListDeliverabilityIncidentsParams) ([]ListDeliverabilityIncidentsRow, error)
 	ListDeliverabilityPostmasterDays(ctx context.Context, arg ListDeliverabilityPostmasterDaysParams) ([]PostmasterDaily, error)
 	ListDeliverabilitySNDSDays(ctx context.Context, arg ListDeliverabilitySNDSDaysParams) ([]SndsDaily, error)
@@ -4019,6 +4023,7 @@ type Querier interface {
 	WarmupActiveForProvider(ctx context.Context, providerID uuid.UUID) (WarmupPlan, error)
 	// Every plan that is still running (daily warm-up job).
 	WarmupActivePlans(ctx context.Context) ([]WarmupActivePlansRow, error)
+	// texts keeps the title's and body's messages for later readers.
 	WarmupAddEvent(ctx context.Context, arg WarmupAddEventParams) error
 	WarmupDailyStats(ctx context.Context, arg WarmupDailyStatsParams) ([]WarmupDailyStatsRow, error)
 	WarmupGetPlan(ctx context.Context, arg WarmupGetPlanParams) (WarmupGetPlanRow, error)
@@ -4030,7 +4035,9 @@ type Querier interface {
 	// Scheduled campaigns with a share on the provider (the plan table shows
 	// "Weekly Digest #142 uses 3,160").
 	WarmupPlannedCampaignUse(ctx context.Context, arg WarmupPlannedCampaignUseParams) ([]WarmupPlannedCampaignUseRow, error)
+	// texts keeps the status detail's message for later readers ({} without one).
 	WarmupSetProgress(ctx context.Context, arg WarmupSetProgressParams) error
+	// texts keeps the status detail's message for later readers ({} without one).
 	WarmupSetStatus(ctx context.Context, arg WarmupSetStatusParams) error
 	WarmupUpdateSettings(ctx context.Context, arg WarmupUpdateSettingsParams) error
 	// The next contact events to deliver; deleted as they are taken.

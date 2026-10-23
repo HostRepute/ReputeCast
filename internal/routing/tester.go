@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -89,14 +90,14 @@ type RouteTestResult struct {
 func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInput) (RouteTestResult, error) {
 	email := strings.ToLower(strings.TrimSpace(in.Email))
 	if i := strings.LastIndexByte(email, '@'); i < 1 || i == len(email)-1 {
-		return RouteTestResult{}, api.Invalid("body.email", "Enter an email address, like name@example.com.")
+		return RouteTestResult{}, api.Invalid("body.email", say(ctx, "problem.email", nil))
 	}
 	set, err := Load(ctx, s.Q, ws.ID)
 	if err != nil {
 		return RouteTestResult{}, err
 	}
 	if in.Draft != nil {
-		if set, err = toSet(*in.Draft, set); err != nil {
+		if set, err = toSet(ctx, *in.Draft, set); err != nil {
 			return RouteTestResult{}, err
 		}
 	}
@@ -128,7 +129,7 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 	}
 	d, ok := set.Resolve(rcpt)
 	if !ok {
-		return RouteTestResult{}, api.Err(422, "no_route", streamName(stream)+" has no provider yet. Pick a primary provider for it and save.")
+		return RouteTestResult{}, api.Err(422, "no_route", say(ctx, "problem.noRoute", i18n.Args{"stream": streamArg(stream)}))
 	}
 	provs, err := s.Q.ProvListActive(ctx, ws.ID)
 	if err != nil {
@@ -140,7 +141,7 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 	}
 	p, found := byID[d.ProviderID]
 	if !found {
-		return RouteTestResult{}, api.Err(422, "no_route", "The route points at a provider that is no longer connected. Update the routing.")
+		return RouteTestResult{}, api.Err(422, "no_route", say(ctx, "problem.goneProvider", nil))
 	}
 	facts, _, err := s.facts(ctx, ws)
 	if err != nil {
@@ -167,7 +168,7 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 		step := RouteTestStep{Kind: "condition", Field: d.Matched, Value: d.MatchedValue, Provider: p.Name}
 		switch d.Matched {
 		case "mailbox_provider":
-			step.Value = MailboxName(d.MatchedValue)
+			step.Value = MailboxNameIn(i18n.LangFrom(ctx), d.MatchedValue)
 		case "category":
 			if cats, err := s.Q.TxnRouteCategories(ctx, ws.ID); err == nil {
 				for _, c := range cats {

@@ -101,6 +101,15 @@ export const mf = defineMessages('automations.flow', {
   unlock: 'Unlock canvas',
   minimap: 'Minimap',
 
+  // What screen readers say about the canvas's steps and edges (React Flow's descriptions).
+  a11yStepMove: 'Press Enter or Space to select a step, then use the arrow keys to move it. Press Delete to remove it, or Escape to cancel.',
+  a11yStep: 'Press Enter or Space to select a step. Press Delete to remove it, or Escape to cancel.',
+  a11yStepView: 'Press Enter or Space to select a step, or Escape to cancel.',
+  a11yEdge: 'Press Enter or Space to select an edge. Press Delete to remove it, or Escape to cancel.',
+  a11yEdgeView: 'Press Enter or Space to select an edge, or Escape to cancel.',
+  /** Announced after a step moves with an arrow key; x and y are canvas pixels. */
+  a11yMoved: 'Moved the step {direction, select, up {up} down {down} left {left} other {right}}. New position: x {x}, y {y}.',
+
   // The step on the canvas. Its stats words are short: a step is 224 px wide.
   /** A trigger's header before its kind ("Trigger · joined list"), in capitals: one line if it can. */
   triggerHead: 'Trigger',

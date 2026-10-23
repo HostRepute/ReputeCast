@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 	"unicode"
-	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"golang.org/x/text/language"
@@ -113,10 +112,10 @@ var (
 // langOf is the language the request reads in.
 func langOf(ctx context.Context) i18n.Lang { return i18n.LangFrom(ctx) }
 
-// named is a message whose {language} names a language code in l, as a
-// name reads inside a sentence.
+// named is a message whose {language} names a language code in l (the
+// message writes "tiếng" in the case its place needs).
 func named(l i18n.Lang, m i18n.Msg, code string, args i18n.Args) string {
-	a := i18n.Args{"language": nameInSentence(l, code)}
+	a := i18n.Args{"language": NameIn(l, code)}
 	for k, v := range args {
 		a[k] = v
 	}
@@ -161,23 +160,6 @@ func NameIn(l i18n.Lang, code string) string {
 		}
 	}
 	return lang.Name
-}
-
-// NameInSentence is a language's name inside a sentence: Vietnamese names
-// start with the common noun "tiếng", in lower case there ("bằng tiếng
-// Anh"); English names read as NameIn.
-func NameInSentence(l i18n.Lang, code string) string { return nameInSentence(l, code) }
-
-func nameInSentence(l i18n.Lang, code string) string {
-	name := NameIn(l, code)
-	if l.Locale != i18n.Vietnamese {
-		return name
-	}
-	r, n := utf8.DecodeRuneInString(name)
-	if r == utf8.RuneError {
-		return name
-	}
-	return string(unicode.ToLower(r)) + name[n:]
 }
 
 // plainKey lowercases a text and drops its diacritics, to search and sort
@@ -260,7 +242,7 @@ func withLanguage(l i18n.Lang, args i18n.Args) i18n.Args {
 	if !ok {
 		return args
 	}
-	out := i18n.Args{"language": nameInSentence(l, code)}
+	out := i18n.Args{"language": NameIn(l, code)}
 	for k, v := range args {
 		out[k] = v
 	}

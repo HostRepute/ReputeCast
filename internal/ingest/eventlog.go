@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -72,12 +73,12 @@ type LogFilter struct {
 	PageSize int
 }
 
-func (e *EventLog) params(ws *store.Workspace, f LogFilter) (store.IngestEventLogParams, error) {
+func (e *EventLog) params(ctx context.Context, ws *store.Workspace, f LogFilter) (store.IngestEventLogParams, error) {
 	p := store.IngestEventLogParams{WorkspaceID: ws.ID, Since: e.now().AddDate(0, 0, -RetentionDays), Type: f.Type, Query: f.Query}
 	if f.Provider != "" {
 		id, err := uuid.Parse(f.Provider)
 		if err != nil {
-			return p, api.Invalid("query.provider", "Pick a sending provider.")
+			return p, api.Invalid("query.provider", msgs.M("problem.pickProvider").Text(i18n.LangFrom(ctx), nil))
 		}
 		p.ProviderID = &id
 	}
@@ -92,7 +93,7 @@ func (e *EventLog) List(ctx context.Context, ws *store.Workspace, f LogFilter) (
 	if f.Page <= 0 {
 		f.Page = 1
 	}
-	p, err := e.params(ws, f)
+	p, err := e.params(ctx, ws, f)
 	if err != nil {
 		return ProviderEventLog{}, err
 	}
@@ -106,16 +107,19 @@ func (e *EventLog) List(ctx context.Context, ws *store.Workspace, f LogFilter) (
 		return ProviderEventLog{}, err
 	}
 	out := ProviderEventLog{Items: make([]ProviderLogEvent, 0, len(rows)), Total: total, Page: f.Page, PageSize: f.PageSize, RetentionDays: RetentionDays}
+	l := i18n.LangFrom(ctx)
 	for _, r := range rows {
-		out.Items = append(out.Items, eventOf(r, true))
+		out.Items = append(out.Items, eventOf(l, r, true))
 	}
 	return out, nil
 }
 
-func eventOf(r store.IngestEventLogRow, mask bool) ProviderLogEvent {
+// eventOf is one row of the log, in a reader's language (the export's is
+// English: its rows are data).
+func eventOf(l i18n.Lang, r store.IngestEventLogRow, mask bool) ProviderLogEvent {
 	ev := ProviderLogEvent{ID: r.ID.String(), ReceivedAt: r.ReceivedAt, OccurredAt: r.OccurredAt, Provider: r.ProviderName, Channel: r.RawSource,
 		RawType: r.OriginalType, Type: r.Type, Code: r.OriginalCode, Diagnostic: r.Diagnostic, BounceClass: r.BounceClass,
-		Recipient: r.Recipient, ProviderMsgID: r.ProviderMessageID, Source: r.Source}
+		Recipient: r.Recipient, ProviderMsgID: r.ProviderMessageID, Source: sourceIn(l, r)}
 	if mask {
 		ev.Recipient = manage.MaskEmail(r.Recipient)
 	}
@@ -129,7 +133,7 @@ func eventOf(r store.IngestEventLogRow, mask bool) ProviderLogEvent {
 		ev.Channel = "internal"
 	}
 	if ev.Channel == "bounce_mailbox" {
-		ev.Provider = "SMTP · bounce mailbox"
+		ev.Provider = msgs.M("provider.bounceMailbox").Text(l, nil)
 	}
 	if ev.Source == "" {
 		ev.Source = "–"
@@ -140,7 +144,7 @@ func eventOf(r store.IngestEventLogRow, mask bool) ProviderLogEvent {
 // Export returns the filtered log as CSV (up to 50,000 rows). Recipients
 // are shown in full only to members who may export contacts.
 func (e *EventLog) Export(ctx context.Context, ws *store.Workspace, f LogFilter) ([]byte, error) {
-	p, err := e.params(ws, f)
+	p, err := e.params(ctx, ws, f)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +159,7 @@ func (e *EventLog) Export(ctx context.Context, ws *store.Workspace, f LogFilter)
 	w := csv.NewWriter(&buf)
 	_ = w.Write([]string{"received_at", "occurred_at", "sending_provider", "raw_event", "normalized", "original_code", "diagnostic", "bounce_class", "recipient", "provider_message_id", "source"})
 	for _, r := range rows {
-		ev := eventOf(r, !full)
+		ev := eventOf(i18n.Default, r, !full)
 		_ = w.Write([]string{ev.ReceivedAt.UTC().Format(time.RFC3339), ev.OccurredAt.UTC().Format(time.RFC3339), ev.Provider, ev.RawType, ev.Type, ev.Code, ev.Diagnostic,
 			ev.BounceClass, ev.Recipient, ev.ProviderMsgID, ev.Source})
 	}

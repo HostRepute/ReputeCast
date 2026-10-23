@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { $api, ApiError } from '@/api/client'
+import { useI18n } from '@/i18n'
 import type { Snapshot } from './model'
 
 /** Reconnection attempts before the monitor stops and offers "Reconnect now". */
@@ -50,7 +51,7 @@ export function useSnapshotStream(url: string, enabled: boolean, onSnapshot: (s:
     let disposed = false
     let attempt = 0
     const connect = () => {
-      const target = lastId.current ? `${url}?lastEventId=${encodeURIComponent(lastId.current)}` : url
+      const target = lastId.current ? `${url}${url.includes('?') ? '&' : '?'}lastEventId=${encodeURIComponent(lastId.current)}` : url
       es = new EventSource(target, { withCredentials: true })
       es.onopen = () => {
         attempt = 0
@@ -123,8 +124,11 @@ export function useLiveSend(slug: string, campaignId: string) {
   const apply = useCallback((s: Snapshot) => {
     setPushed((cur) => (cur && cur.campaignId === s.campaignId && cur.version > s.version ? cur : s))
   }, [])
+  // An EventSource can't send Accept-Language: the stream is told the app's
+  // language, so its snapshots read like the ones the API returns.
+  const { locale } = useI18n()
   const stream = useSnapshotStream(
-    `/api/v1/workspaces/${encodeURIComponent(slug)}/campaigns/${encodeURIComponent(campaignId)}/live/stream`,
+    `/api/v1/workspaces/${encodeURIComponent(slug)}/campaigns/${encodeURIComponent(campaignId)}/live/stream?lang=${encodeURIComponent(locale)}`,
     query.isSuccess,
     apply,
   )

@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
@@ -55,6 +56,9 @@ type IncidentDetail struct {
 	Recommendations []string         `json:"recommendations,omitempty"`
 	Options         []IncidentOption `json:"options,omitempty"`
 	Changes         *ResumeChanges   `json:"changes,omitempty"`
+
+	// texts are the messages the sentences above come from (live_lang.go).
+	texts *detailTexts
 }
 
 // IncidentRate is a rate against its limit.
@@ -119,17 +123,22 @@ func (e *Engine) analyzeThreshold(ctx context.Context, rs *runState, ts tallies,
 	d := IncidentDetail{Events: tr.events, Base: tr.base}
 	scope := ts.total
 	scopeName := "the campaign"
+	// sc names the scope in the sentences: a mailbox provider by its key
+	// ("Other" is a word), a route by its provider's badge name.
+	sc := i18n.Args{"scope": tr.scope, "who": ""}
 	switch tr.scope {
 	case "mailbox_provider":
 		if m := ts.mailbox[tr.mailbox]; m != nil {
 			scope = *m
 		}
 		scopeName = mailboxName(tr.mailbox)
+		sc["mailbox"] = tr.mailbox
 	case "route":
 		if p := ts.provider[tr.provider]; p != nil {
 			scope = *p
 		}
 		scopeName = rs.routes[tr.provider].shortName()
+		sc["who"] = scopeName
 	}
 	d.Sent, d.Delivered, d.Total = scope.sent, scope.delivered, scope.sent+held
 	all := ts.total
@@ -144,7 +153,9 @@ func (e *Engine) analyzeThreshold(ctx context.Context, rs *runState, ts tallies,
 		d.Campaign = &IncidentRate{Metric: "deferral", Events: all.deferred, Base: all.sent, Value: round2(rate(all.deferred, all.sent)), Limit: rs.thresholds.Deferral}
 		d.Secondary = &IncidentRate{Metric: "bounce", Events: scope.bounced(), Base: scope.sent, Value: round2(rate(scope.bounced(), scope.sent)), Limit: rs.thresholds.Bounce}
 	}
-	d.Note = thresholdNote(tr)
+	if note := thresholdNote(tr); note != "" {
+		d.setNote(keep(note, nil))
+	}
 	if tr.scope == "mailbox_provider" {
 		for _, mbp := range routing.MailboxProviders {
 			if mbp == tr.mailbox {
@@ -185,30 +196,28 @@ func (e *Engine) analyzeThreshold(ctx context.Context, rs *runState, ts tallies,
 		e.complaintCohort(ctx, rs, tr, scope, held, who, &d, changes)
 	}
 	if tr.metric == "bounce" {
-		d.Causes = append(d.Causes, IncidentCause{Lead: "Stale or mistyped addresses.",
-			Body: fmt.Sprintf("%s of %s %s recipients bounced; most hard bounces are unknown mailboxes, which points at an old or unverified list.", countText(tr.events), countText(scope.sent), scopeName)})
+		d.addCause(keep("cause.staleLead", nil), keep("cause.stale", with(sc, "events", tr.events, "sent", scope.sent)))
 	}
 	if tr.metric == "deferral" {
-		d.Causes = append(d.Causes, IncidentCause{Lead: scopeName + " is slowing the send down.",
-			Body: fmt.Sprintf("%s of %s messages were deferred with temporary errors (such as 421 4.7.0); %s accepts mail again at a lower rate.", countText(tr.events), countText(scope.sent), scopeName)})
+		d.addCause(keep("cause.slowingLead", sc), keep("cause.slowing", with(sc, "events", tr.events, "sent", scope.sent)))
 	}
 	defs, _ := e.Q.SendingDeferralsSince(ctx, store.SendingDeferralsSinceParams{CampaignID: &cid, MailboxProvider: mbpFilter})
 	if tr.metric != "deferral" {
 		if defs == 0 {
-			body := fmt.Sprintf("%s sent at the provider's full rate with 0 deferrals.", scopeName)
+			body := keep("cause.fullRate", sc)
 			if d.Throttle > 0 {
-				body = fmt.Sprintf("%s was throttled to %s /s with 0 deferrals.", scopeName, rateText(d.Throttle))
+				body = keep("cause.throttled", with(sc, "throttleRate", d.Throttle))
 			}
 			if tr.scope == "campaign" {
-				body = "There were 0 deferrals."
+				body = keep("cause.noDeferrals", nil)
 			}
-			d.Causes = append(d.Causes, IncidentCause{Lead: "Not a rate issue.", Body: body})
+			d.addCause(keep("cause.notRateLead", nil), body)
 		} else {
-			d.Causes = append(d.Causes, IncidentCause{Lead: "Deferrals too.", Body: fmt.Sprintf("%s messages were deferred, so %s may also be slowing the send down.", countText(defs), scopeName)})
+			d.addCause(keep("cause.deferralsLead", nil), keep("cause.deferrals", with(sc, "deferred", defs)))
 		}
 	}
 	if tr.scope != "campaign" {
-		d.Recommendations = append(d.Recommendations, fmt.Sprintf("Lower the %s rate to %s /s for the rest of this send.", scopeName, rateText(lower)))
+		d.addRecommendation(keep("rec.lower", with(sc, "lowerRate", lower)))
 	}
 	if changes.Exclude > 0 {
 		// Lapsed readers go to the re-engagement flow; imports and people
@@ -220,11 +229,11 @@ func (e *Engine) analyzeThreshold(ctx context.Context, rs *runState, ts tallies,
 		// Only a live flow enrolls the contacts it gets; a draft would keep them waiting.
 		if a, err := e.Q.SendingAutomationByName(ctx, store.SendingAutomationByNameParams{WorkspaceID: rs.campaign.WorkspaceID, Pattern: pattern}); err == nil && a.Status == "live" {
 			changes.Automation, changes.AutomationID = flowName(a.Name), a.ID.String()
-			d.Recommendations = append(d.Recommendations, fmt.Sprintf("Move those %s contacts into the \"%s\" automation instead of this broadcast.", countText(changes.Exclude), changes.Automation))
+			d.addRecommendation(keep("rec.moveToFlow", i18n.Args{"exclude": changes.Exclude, "automation": changes.Automation}))
 		}
 	}
 	d.Changes = changes
-	d.Options = thresholdOptions(tr, scopeName, held, changes)
+	d.setOptions(thresholdOptions(tr, sc, held, changes))
 	return d
 }
 
@@ -236,56 +245,69 @@ func (rs *runState) routesRate() float64 {
 	return total
 }
 
-func thresholdOptions(tr trip, scopeName string, held int64, ch *ResumeChanges) []IncidentOption {
-	metric := map[string]string{"complaint": "complaint", "bounce": "bounce", "deferral": "deferral"}[tr.metric]
+// thresholdOptions are the ways to continue after a threshold trip. sc
+// names the scope (analyzeThreshold).
+func thresholdOptions(tr trip, sc i18n.Args, held int64, ch *ResumeChanges) []option {
+	metric := tr.metric
+	if metric != "complaint" && metric != "bounce" && metric != "deferral" {
+		metric = "none"
+	}
 	if tr.scope == "campaign" {
-		return []IncidentOption{
-			{Key: "resume", Title: "Resume as is", Body: fmt.Sprintf("Send to the %s remaining recipients. The threshold stays armed and will pause again at the next %s.", countText(held), metric), Action: "Resume as is"},
-			{Key: "cancel", Title: "Cancel the campaign", Body: fmt.Sprintf("Skip the %s remaining recipients. They're marked \"not sent\" in the report.", countText(held)), Action: "Cancel the campaign"},
+		return []option{
+			{key: "resume", title: keep("opt.resumeTitle", i18n.Args{"recommended": "no"}), body: keep("opt.resumeAll", i18n.Args{"held": held, "metric": metric}),
+				action: keep("opt.resumeAction", nil)},
+			{key: "cancel", title: keep("opt.cancelCampaign", nil), body: keep("opt.cancelCampaignBody", i18n.Args{"held": held}), action: keep("opt.cancelCampaign", nil)},
 		}
 	}
-	out := []IncidentOption{
-		{Key: "resume", Title: "Resume as is", Body: fmt.Sprintf("Send to all %s remaining %s recipients. The threshold stays armed and will pause again at the next %s.", countText(held), scopeName, metric), Action: "Resume as is"},
+	out := []option{
+		{key: "resume", title: keep("opt.resumeTitle", i18n.Args{"recommended": "no"}), body: keep("opt.resumeScoped", with(sc, "held", held, "metric", metric)),
+			action: keep("opt.resumeAction", nil)},
 	}
 	if ch != nil && (ch.Exclude > 0 || ch.Rate > 0) {
-		parts := []string{}
-		if ch.Exclude > 0 {
-			parts = append(parts, fmt.Sprintf("Exclude %s %s", countText(ch.Exclude), groupWords(ch.group())))
+		// What resuming with changes does: exclude a group, slow down, hand
+		// the excluded contacts to a flow.
+		combo := "rate"
+		switch {
+		case ch.Exclude > 0 && ch.Rate > 0 && ch.Automation != "":
+			combo = "all"
+		case ch.Exclude > 0 && ch.Rate > 0:
+			combo = "excludeRate"
+		case ch.Exclude > 0 && ch.Automation != "":
+			combo = "excludeFlow"
+		case ch.Exclude > 0:
+			combo = "exclude"
 		}
-		rest := held - ch.Exclude
-		if ch.Rate > 0 {
-			parts = append(parts, fmt.Sprintf("send to %s at %s /s", countText(max(rest, 0)), rateText(ch.Rate)))
-		}
-		if ch.Automation != "" && ch.Exclude > 0 {
-			parts = append(parts, "add the excluded contacts to "+ch.Automation)
-		}
-		body := strings.Join(parts, ", ") + "."
-		out = append(out, IncidentOption{Key: "resume_with_changes", Title: "Resume with changes (recommended)", Body: capitalize(body), Recommended: true, Action: "Resume with changes"})
+		args := i18n.Args{"combo": combo, "exclude": ch.Exclude, "group": ch.group(), "rest": max(held-ch.Exclude, 0), "changeRate": ch.Rate, "automation": ch.Automation}
+		out = append(out, option{key: "resume_with_changes", recommended: true, title: keep("opt.changesTitle", nil), body: keep("opt.changes", args),
+			action: keep("opt.changesAction", nil)})
 	}
-	out = append(out, IncidentOption{Key: "cancel_share", Title: "Cancel the " + scopeName + " share", Body: fmt.Sprintf("Skip the remaining %s %s recipients. The rest of the campaign finishes normally.", countText(held), scopeName), Action: "Cancel the " + scopeName + " share"})
+	out = append(out, option{key: "cancel_share", title: keep("opt.cancelShare", sc), body: keep("opt.cancelShareBody", with(sc, "held", held)),
+		action: keep("opt.cancelShare", sc)})
 	if len(out) == 2 {
-		out[0].Recommended = true
-		out[0].Title += " (recommended)"
+		out[0].recommended = true
+		out[0].title = keep("opt.resumeTitle", i18n.Args{"recommended": "yes"})
 	}
 	return out
 }
 
+// thresholdNote is the note under "What tripped": why the threshold
+// matters, by metric and mailbox provider (a message key).
 func thresholdNote(tr trip) string {
 	switch tr.metric {
 	case "complaint":
 		switch tr.mailbox {
 		case "outlook":
-			return "Microsoft's SmartScreen uses complaint rate directly; staying under 0.1% protects placement for every later send."
+			return "note.complaintOutlook"
 		case "gmail":
-			return "Gmail filters bulk mail on the spam rate its users report; staying under 0.1% protects placement for every later send."
+			return "note.complaintGmail"
 		case "yahoo":
-			return "Yahoo filters on the complaints its feedback loop reports; staying under 0.1% protects placement for every later send."
+			return "note.complaintYahoo"
 		}
-		return "Mailbox providers filter on complaint rates; staying under 0.1% protects placement for every later send."
+		return "note.complaint"
 	case "bounce":
-		return "Bounce rates above 2% tell mailbox providers the list is old; providers such as SES review accounts above 5%."
+		return "note.bounce"
 	case "deferral":
-		return "Mailbox providers defer mail they want to slow down; sending slower usually clears it within the hour."
+		return "note.deferral"
 	}
 	return ""
 }
@@ -306,17 +328,6 @@ func (c *ResumeChanges) group() string {
 		return groupImported
 	}
 	return groupNever
-}
-
-// groupWords names a cohort in an option: "Exclude 1,420 never-engaged imports".
-func groupWords(g string) string {
-	switch g {
-	case groupImported:
-		return "never-engaged imports"
-	case groupLapsed:
-		return "lapsed contacts"
-	}
-	return "never-engaged contacts"
 }
 
 // flowName drops a flow name's qualifier: "Re-permission · Mailchimp
@@ -354,8 +365,12 @@ func (e *Engine) complaintCohort(ctx context.Context, rs *runState, tr trip, sco
 		}
 	}
 	stands := func(n int64) bool { return n >= 2 && float64(n) >= 0.5*float64(tr.events) }
-	contacts := strings.TrimSpace(who + " contacts")
-	recipients := strings.TrimSpace(who + " recipients")
+	// sc names the scope's recipients in the sentences: a mailbox
+	// provider's by its key, nothing for a route or the whole campaign.
+	sc := i18n.Args{"scope": "campaign", "who": "", "complaints": tr.events, "held": held}
+	if who != "" {
+		sc["scope"], sc["mailbox"] = "mailbox_provider", tr.mailbox
+	}
 	// expected is the rate on what is left once the group is out.
 	expected := func(size store.SendingGroupSizeRow, events int64) float64 {
 		groupSent := size.Total - size.Remaining
@@ -370,57 +385,52 @@ func (e *Engine) complaintCohort(ctx context.Context, rs *runState, tr trip, sco
 	case imported != nil && stands(importEvents):
 		src := strings.TrimPrefix(imported.Source, "import:")
 		sz := size(groupImported, imported.Source)
-		when := ""
+		// The import's day, as "2 Jan" in the workspace's time zone.
+		day := "none"
 		if imp, err := e.Q.SendingImportOf(ctx, store.SendingImportOfParams{WorkspaceID: rs.campaign.WorkspaceID, Source: src}); err == nil {
-			when = " on " + imp.CreatedAt.In(rs.loc).Format("2 Jan")
+			day = imp.CreatedAt.In(rs.loc).Format(time.RFC3339)
 		}
-		lead := capitalize(fmt.Sprintf("imported %s that never engaged.", contacts))
-		body := fmt.Sprintf("%s %s came from the %s import%s and have never opened. %s of the %s complaints are from this group.",
-			countText(sz.Total), recipients, sourceName(src), when, countText(importEvents), countText(tr.events))
+		source := src
+		if source == "" {
+			source = "none"
+		}
+		args := with(sc, "total", sz.Total, "events", importEvents, "source", source, "sourceName", sourceName(src), "importDay", day)
+		lead, body := keep("cause.importedLead", sc), keep("cause.imported", args)
 		if imported.Consent == "pending" {
-			lead = capitalize(fmt.Sprintf("imported %s with unclear consent.", contacts))
-			body = fmt.Sprintf("%s %s came from the %s import%s with \"pending\" consent and have never opened. %s of the %s complaints are from this group.",
-				countText(sz.Total), recipients, sourceName(src), when, countText(importEvents), countText(tr.events))
+			lead, body = keep("cause.importedPendingLead", sc), keep("cause.importedPending", args)
 		}
-		d.Causes = append(d.Causes, IncidentCause{Lead: lead, Body: body})
+		d.addCause(lead, body)
 		ids, _ := e.Q.SendingCohortContacts(ctx, store.SendingCohortContactsParams{CampaignID: &cid, MailboxProvider: tr.mailbox, Source: imported.Source})
 		if len(ids) > 0 {
 			prior, err := e.Q.SendingPriorSends(ctx, store.SendingPriorSendsParams{WorkspaceID: rs.campaign.WorkspaceID, ContactIds: derefIDs(ids), CampaignID: &cid})
 			if err == nil && prior == 0 {
-				d.Causes = append(d.Causes, IncidentCause{Lead: "First send to these contacts from " + domainOf(rs.content.FromEmail) + ".",
-					Body: fmt.Sprintf("They last heard from you through %s; the new sender domain looks unfamiliar.", sourceName(src))})
+				d.addCause(keep("cause.firstSendLead", i18n.Args{"domain": domainOf(rs.content.FromEmail)}),
+					keep("cause.firstSend", i18n.Args{"source": source, "sourceName": sourceName(src)}))
 			}
 		}
 		changes.Group, changes.Source, changes.ImportedOnly, changes.Exclude = groupImported, imported.Source, true, sz.Remaining
 		if sz.Remaining > 0 {
 			changes.Expected = expected(sz, importEvents)
-			d.Recommendations = append(d.Recommendations, fmt.Sprintf("Exclude the %s never-engaged %s imports from the remaining %s. Expected complaint rate after the change: about %s.",
-				countText(sz.Remaining), who, countText(held), fmtRate(changes.Expected)))
+			d.addRecommendation(keep("rec.excludeImported", with(sc, "exclude", sz.Remaining, "expectedPct", changes.Expected)))
 		}
 	case stands(never):
 		sz := size(groupNever, "")
-		d.Causes = append(d.Causes, IncidentCause{Lead: capitalize(contacts + " who never engaged."),
-			Body: fmt.Sprintf("%s of the %s complaints came from recipients who have never opened an email from you.", countText(never), countText(tr.events))})
+		d.addCause(keep("cause.neverLead", sc), keep("cause.never", with(sc, "never", never)))
 		changes.Group, changes.Exclude = groupNever, sz.Remaining
 		if sz.Remaining > 0 {
 			changes.Expected = expected(sz, never)
-			d.Recommendations = append(d.Recommendations, fmt.Sprintf("Exclude the %s never-engaged %s from the remaining %s. Expected complaint rate after the change: about %s.",
-				countText(sz.Remaining), recipients, countText(held), fmtRate(changes.Expected)))
+			d.addRecommendation(keep("rec.excludeNever", with(sc, "exclude", sz.Remaining, "expectedPct", changes.Expected)))
 		}
 	case stands(lapsed):
 		sz := size(groupLapsed, "")
-		d.Causes = append(d.Causes, IncidentCause{Lead: capitalize(contacts + " who stopped opening."),
-			Body: fmt.Sprintf("%s %s haven't opened in more than 90 days (at risk or sunset). %s of the %s complaints are from this group.",
-				countText(sz.Total), recipients, countText(lapsed), countText(tr.events))})
+		d.addCause(keep("cause.lapsedLead", sc), keep("cause.lapsed", with(sc, "total", sz.Total, "lapsed", lapsed)))
 		changes.Group, changes.Exclude = groupLapsed, sz.Remaining
 		if sz.Remaining > 0 {
 			changes.Expected = expected(sz, lapsed)
-			d.Recommendations = append(d.Recommendations, fmt.Sprintf("Exclude the %s at-risk and sunset %s from the remaining %s. Expected complaint rate after the change: about %s.",
-				countText(sz.Remaining), contacts, countText(held), fmtRate(changes.Expected)))
+			d.addRecommendation(keep("rec.excludeLapsed", with(sc, "exclude", sz.Remaining, "expectedPct", changes.Expected)))
 		}
 	default:
-		d.Causes = append(d.Causes, IncidentCause{Lead: "No single group stands out.",
-			Body: fmt.Sprintf("The %s complaints come from across the %s, not from one import, signup source or engagement tier.", countText(tr.events), strings.TrimSpace(who+" audience"))})
+		d.addCause(keep("cause.noGroupLead", nil), keep("cause.noGroup", sc))
 	}
 }
 
@@ -457,51 +467,61 @@ func (e *Engine) analyzeOutage(ctx context.Context, rs *runState, r *runRoute, r
 		return out
 	}(), " "))
 	name, short := r.provider.Name, r.shortName()
+	p := i18n.Args{"name": name}
+	proxy := strings.Contains(joined, "502") || strings.Contains(joined, "503")
 	switch {
 	case reason == "auth":
 		d.ErrorKind = "rejected credentials"
-		d.Causes = append(d.Causes, IncidentCause{Lead: name + " rejected the credentials.", Body: "They may have been rotated or revoked. Replace them in Sending providers; nothing else will make this share send."})
+		d.addCause(keep("cause.authLead", p), keep("cause.auth", nil))
 	case strings.Contains(joined, "econnrefused") || strings.Contains(joined, "connection refused") || strings.Contains(joined, "timeout") || strings.Contains(joined, "dial "):
 		d.ErrorKind = "connection errors"
 		if isSelfHosted(r.provider) {
-			d.Causes = append(d.Causes, IncidentCause{Lead: name + "'s web process restarted or crashed.", Body: "Connections to " + d.Host + " are refused, which points at the process or the host rather than the API or your account."})
+			d.addCause(keep("cause.crashedLead", p), keep("cause.crashed", i18n.Args{"host": d.Host}))
 		} else {
-			d.Causes = append(d.Causes, IncidentCause{Lead: "The network path to " + name + " is down.", Body: "Connections fail before " + name + " answers; check the server's outbound network and DNS."})
+			d.addCause(keep("cause.networkLead", p), keep("cause.network", p))
 		}
-		if strings.Contains(joined, "502") || strings.Contains(joined, "503") {
-			d.Causes = append(d.Causes, IncidentCause{Lead: "Host or reverse-proxy outage.", Body: "502 from the proxy in front of " + name + " matches an upstream that is down."})
+		if proxy {
+			d.addCause(keep("cause.proxyLead", nil), keep("cause.proxy", p))
 		}
 	case strings.Contains(joined, "429") || strings.Contains(joined, "throttl"):
 		d.ErrorKind = "throttling errors"
-		d.Causes = append(d.Causes, IncidentCause{Lead: name + " is throttling the account.", Body: "It answered 429 Too Many Requests; the account's rate or daily quota may be lower than ReputeCast assumed."})
+		d.addCause(keep("cause.throttlingLead", p), keep("cause.throttling", nil))
 	default:
 		d.ErrorKind = "API errors"
 		if reason == "provider_down" {
-			d.Causes = append(d.Causes, IncidentCause{Lead: name + " is down.", Body: "Its health checks failed; ReputeCast's provider monitor marked it down."})
+			d.addCause(keep("cause.downLead", p), keep("cause.down", nil))
 		} else {
-			d.Causes = append(d.Causes, IncidentCause{Lead: name + " is having an outage.", Body: "Its API failed every call; check " + name + "'s status page."})
+			d.addCause(keep("cause.outageLead", p), keep("cause.outage", p))
 		}
-		if strings.Contains(joined, "502") || strings.Contains(joined, "503") {
-			d.Causes = append(d.Causes, IncidentCause{Lead: "Host or reverse-proxy outage.", Body: "502 from the proxy in front of " + name + " matches an upstream that is down."})
+		if proxy {
+			d.addCause(keep("cause.proxyLead", nil), keep("cause.proxy", p))
 		}
 	}
 	if r.rate.WarmingUp && r.rate.Cap > 0 {
 		// Today's count already has what this send handed to the provider.
-		d.Causes = append(d.Causes, IncidentCause{Body: fmt.Sprintf("Not a quota or rate issue: %s of today's %s warm-up cap used, %s /s.", countText(r.rate.SentToday), countText(r.rate.Cap), rateText(r.rate.PerSecond))})
-		d.WarmupNote = "The " + short + " warm-up schedule shifts by a day so the IP doesn't miss its ramp."
+		d.addCause(i18n.Text{}, keep("cause.warmupCap", i18n.Args{"sentToday": r.rate.SentToday, "cap": r.rate.Cap, "perSecondRate": r.rate.PerSecond}))
+		d.setWarmupNote(keep("note.warmupShift", i18n.Args{"who": short}))
 	} else if h := state.HealthOf(r.provider); h.Quota != nil && h.Quota.Max > 0 {
-		d.Causes = append(d.Causes, IncidentCause{Body: fmt.Sprintf("Not a quota issue: %s of %s used.", countText(h.Quota.Used), countText(h.Quota.Max))})
+		d.addCause(i18n.Text{}, keep("cause.quota", i18n.Args{"used": h.Quota.Used, "max": h.Quota.Max}))
 	}
 	set, _ := routing.Load(ctx, e.Q, rs.campaign.WorkspaceID)
 	target := e.moveTarget(ctx, rs, r, set)
 	if target != nil {
-		d.Move = e.moveEstimate(ctx, rs, *target, remaining, now)
+		var warming bool
+		d.Move, warming = e.moveEstimate(ctx, rs, *target, remaining, now)
+		risk := "low"
+		if warming {
+			risk = "high"
+		}
+		d.setRisk(risk, keep("risk."+risk, i18n.Args{"target": d.Move.TargetShort}))
 	}
-	d.Options = outageOptions(short, remaining, d.SentOnRoute, d.Move)
+	d.setOptions(outageOptions(short, remaining, d.SentOnRoute, d.Move))
 	return d
 }
 
-func (e *Engine) moveEstimate(ctx context.Context, rs *runState, target store.Provider, n int64, now time.Time) *MoveEstimate {
+// moveEstimate is what moving n recipients to target costs, and whether
+// the target is warming up (the reputation risk).
+func (e *Engine) moveEstimate(ctx context.Context, rs *runState, target store.Provider, n int64, now time.Time) (*MoveEstimate, bool) {
 	m := &MoveEstimate{TargetID: target.ID.String(), Target: target.Name, TargetShort: state.Short(target.Name, target.Adapter)}
 	if pr := state.PricingOf(target); pr.Model == "metered" {
 		m.ExtraCost = math.Round(float64(n)*pr.Per1000/1000*100) / 100
@@ -518,30 +538,40 @@ func (e *Engine) moveEstimate(ctx context.Context, rs *runState, target store.Pr
 		mx := h.Quota.Max
 		m.QuotaFree, m.QuotaMax = &free, &mx
 	}
-	if tr.WarmingUp {
-		m.Risk, m.RiskText = "high", "High · "+m.TargetShort+" is warming up"
-	} else {
-		m.Risk, m.RiskText = "low", "Low · "+m.TargetShort+" is warm"
-	}
-	return m
+	return m, tr.WarmingUp
 }
 
-func outageOptions(short string, remaining, sent int64, move *MoveEstimate) []IncidentOption {
-	out := []IncidentOption{{Key: "retry", Title: "Retry " + short,
-		Body:   fmt.Sprintf("Keep the %s recipients on %s and retry every 60 s. If it stays down for 15 more minutes, you'll be asked again.", countText(remaining), short),
-		Action: "Retry " + short}}
+// outageOptions are the ways to continue after an outage held a share.
+func outageOptions(short string, remaining, sent int64, move *MoveEstimate) []option {
+	p := i18n.Args{"who": short, "remaining": remaining}
+	out := []option{{key: "retry", title: keep("opt.retryTitle", with(p, "recommended", "no")), body: keep("opt.retryBody", p), action: keep("opt.retry", p)}}
 	if move != nil {
-		out = append(out, IncidentOption{Key: "move", Title: fmt.Sprintf("Move the remaining %s share to %s (recommended)", short, move.TargetShort),
-			Body:        fmt.Sprintf("%s recipients join the %s queue now. The %s already sent via %s keep their tracking.", countText(remaining), move.TargetShort, countText(sent), short),
-			Recommended: true, Action: fmt.Sprintf("Move %s to %s", countText(remaining), move.TargetShort)})
+		mv := with(p, "target", move.TargetShort, "sent", sent)
+		out = append(out, option{key: "move", recommended: true, title: keep("opt.moveTitle", mv), body: keep("opt.moveBody", mv), action: keep("opt.move", mv)})
 	} else {
-		out[0].Recommended = true
-		out[0].Title += " (recommended)"
+		out[0].recommended = true
+		out[0].title = keep("opt.retryTitle", with(p, "recommended", "yes"))
 	}
-	out = append(out, IncidentOption{Key: "cancel_share", Title: "Cancel the " + short + " share",
-		Body:   fmt.Sprintf("Skip the %s remaining recipients. They're marked \"not sent\" in the report and can be re-sent later.", countText(remaining)),
-		Action: "Cancel the " + short + " share"})
+	out = append(out, option{key: "cancel_share", title: keep("opt.cancelShare", p), body: keep("opt.cancelShareLater", p), action: keep("opt.cancelShare", p)})
 	return out
+}
+
+// outageArgs are an outage's headline for the messages: the provider,
+// whether it rejected the credentials, the kind of errors and for how long.
+func outageArgs(d IncidentDetail, name string) i18n.Args {
+	mins := 3
+	if d.From != nil && d.To != nil {
+		mins = max(int(math.Round(d.To.Sub(*d.From).Minutes())), 1)
+	}
+	kind := map[string]string{"connection errors": "connection", "throttling errors": "throttling"}[d.ErrorKind]
+	if kind == "" {
+		kind = "api"
+	}
+	reason := "errors"
+	if d.Reason == "auth" {
+		reason = "auth"
+	}
+	return i18n.Args{"provider": name, "reason": reason, "errorKind": kind, "mins": mins}
 }
 
 func outageHeadline(d IncidentDetail, name string) string {
@@ -651,16 +681,18 @@ func rateText(v float64) string {
 	return strconv.FormatFloat(v, 'f', 1, 64)
 }
 
-func durationText(d time.Duration) string {
+// durationArgs puts a send's duration the way durationText writes it into
+// args: under a minute, minutes, or hours and minutes.
+func durationArgs(args i18n.Args, d time.Duration) {
 	m := int(math.Round(d.Minutes()))
 	switch {
 	case m < 1:
-		return "under a minute"
+		args["took"] = "under"
 	case m < 120:
-		return strconv.Itoa(m) + " " + plural(int64(m), "minute", "minutes")
+		args["took"], args["mins"] = "minutes", m
+	default:
+		args["took"], args["hours"], args["rest"] = "hours", m/60, m%60
 	}
-	h := m / 60
-	return strconv.Itoa(h) + " h " + strconv.Itoa(m%60) + " min"
 }
 
 func plural(n int64, one, many string) string {

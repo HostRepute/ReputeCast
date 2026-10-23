@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -67,5 +68,23 @@ func TestDecodersHaveDefaults(t *testing.T) {
 	}
 	if Short("Amazon SES", "ses") != "SES" || Short("Postal (self-hosted)", "postal") != "Postal" || Color("mailgun") != "other" {
 		t.Fatal("display helpers")
+	}
+}
+
+func TestDetailInReadsTheHealthChecksWords(t *testing.T) {
+	vi := i18n.For(i18n.Vietnamese)
+	for detail, want := range map[string]string{
+		DetailDown:           "Ngừng hoạt động",
+		DetailDownAuth:       "Ngừng hoạt động · xác thực thất bại",
+		DetailWebhooksSilent: "Webhook im lặng",
+		"Approved":           "Approved", // the provider's own word for the account
+		"":                   "",
+	} {
+		if got := DetailIn(detail, vi); got != want {
+			t.Errorf("%q: got %q, want %q", detail, got, want)
+		}
+	}
+	if got := DetailIn(DetailDownAuth, i18n.For(i18n.English)); got != DetailDownAuth {
+		t.Errorf("English: %q", got)
 	}
 }

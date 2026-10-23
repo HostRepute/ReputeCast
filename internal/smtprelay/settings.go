@@ -21,6 +21,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -33,6 +34,20 @@ type SMTPRelayCheck struct {
 	Detail string `json:"detail" example:"reputecast.acme.io points to 203.0.113.40"`
 	// Port is the port a port check connected to.
 	Port int `json:"port,omitempty"`
+}
+
+// storedCheck is a check as smtp_relay.status keeps it: its English detail
+// and the message it came from, so it reads in each reader's language.
+type storedCheck struct {
+	SMTPRelayCheck
+	Text i18n.Text `json:"text,omitzero"`
+}
+
+// storedStatus is smtp_relay.status: the last checks with their messages.
+type storedStatus struct {
+	CheckedAt *time.Time    `json:"checkedAt,omitempty"`
+	Checks    []storedCheck `json:"checks"`
+	From      string        `json:"from,omitempty"`
 }
 
 // SMTPRelayStatus is the last status check.
@@ -98,9 +113,14 @@ func (r *Relay) Settings(ctx context.Context, publicURL string) (SMTPRelaySettin
 	if row.CertNotAfter != nil {
 		out.Certificate = &SMTPRelayCertificate{NotAfter: *row.CertNotAfter, Issuer: row.CertIssuer}
 	}
-	_ = json.Unmarshal(row.Status, &out.Status)
-	if out.Status.Checks == nil {
-		out.Status.Checks = []SMTPRelayCheck{}
+	var st storedStatus
+	_ = json.Unmarshal(row.Status, &st)
+	out.Status.CheckedAt, out.Status.From = st.CheckedAt, st.From
+	l := i18n.LangFrom(ctx)
+	for _, c := range st.Checks {
+		v := c.SMTPRelayCheck
+		v.Detail = detailIn(l, c)
+		out.Status.Checks = append(out.Status.Checks, v)
 	}
 	if u, err := url.Parse(publicURL); err == nil {
 		out.SuggestedHostname = u.Hostname()
@@ -125,20 +145,20 @@ func (r *Relay) Save(ctx context.Context, in SMTPRelayInput, publicURL string) (
 		in.CertSource = "acme"
 	}
 	if in.Enabled && host == "" {
-		return SMTPRelaySettings{}, api.Invalid("body.hostname", "Enter the hostname apps connect to, such as the instance's own host.")
+		return SMTPRelaySettings{}, api.Invalid("body.hostname", say(ctx, "problem.hostnameNeeded", nil))
 	}
 	if host != "" && !validHostname(host) {
-		return SMTPRelaySettings{}, api.Invalid("body.hostname", "Enter a hostname like reputecast.acme.io.")
+		return SMTPRelaySettings{}, api.Invalid("body.hostname", say(ctx, "problem.hostnameFormat", nil))
 	}
 	if in.StartTLSPort == in.TLSPort {
-		return SMTPRelaySettings{}, api.Invalid("body.tlsPort", "The STARTTLS and TLS ports must differ.")
+		return SMTPRelaySettings{}, api.Invalid("body.tlsPort", say(ctx, "problem.portsDiffer", nil))
 	}
 	if in.CertSource == "files" {
 		if strings.TrimSpace(in.CertFile) == "" || strings.TrimSpace(in.KeyFile) == "" {
-			return SMTPRelaySettings{}, api.Invalid("body.certFile", "Give the paths of the certificate and key files, as this server sees them.")
+			return SMTPRelaySettings{}, api.Invalid("body.certFile", say(ctx, "problem.certFiles", nil))
 		}
 		if _, err := tls.LoadX509KeyPair(in.CertFile, in.KeyFile); err != nil {
-			return SMTPRelaySettings{}, api.Invalid("body.certFile", "The certificate and key couldn't be read: "+err.Error())
+			return SMTPRelaySettings{}, api.Invalid("body.certFile", say(ctx, "problem.certUnreadable", i18n.Args{"error": err.Error()}))
 		}
 	}
 	p := api.PrincipalFrom(ctx)
@@ -223,9 +243,9 @@ func (r *Relay) Check(ctx context.Context, publicURL string) (SMTPRelaySettings,
 	}
 	cfg := configOf(row)
 	now := r.now()
-	st := SMTPRelayStatus{CheckedAt: &now, Checks: []SMTPRelayCheck{}, From: "this server"}
+	st := storedStatus{CheckedAt: &now, Checks: []storedCheck{}, From: "this server"}
 	if cfg.Hostname == "" {
-		st.Checks = append(st.Checks, SMTPRelayCheck{Key: "dns", OK: false, Detail: "No hostname yet"})
+		st.Checks = append(st.Checks, check("dns", false, 0, "check.noHostname", nil))
 	} else {
 		st.Checks = append(st.Checks, r.checks(ctx, cfg)...)
 	}
@@ -256,16 +276,22 @@ func (r *Relay) Check(ctx context.Context, publicURL string) (SMTPRelaySettings,
 		if err != nil {
 			return err
 		}
-		detail := ""
+		// The first port that failed, in the notification's words.
+		body := i18n.Args{"why": "unreachable", "port": "", "host": cfg.Hostname, "error": ""}
 		for _, c := range st.Checks {
 			if (c.Key == "starttls" || c.Key == "tls") && !c.OK {
-				detail = c.Detail
+				for k, v := range c.Text.Args {
+					body[k] = v
+				}
+				if c.Text.ID == msgs.M("check.portUnresolved").ID() {
+					body["why"] = "unresolved"
+				}
 				break
 			}
 		}
 		for _, a := range admins {
-			if err := notify.ToUser(ctx, tx, a.ID, notify.Notification{Kind: notify.KindSMTPRelayUnreachable, Severity: "bad", Title: "SMTP relay unreachable",
-				Body: detail + ". Apps that send by SMTP can't connect; the HTTP API keeps working.", Link: "/admin/instance#smtp-relay",
+			if err := notify.ToUser(ctx, tx, a.ID, notify.Notification{Kind: notify.KindSMTPRelayUnreachable, Severity: "bad",
+				TitleText: msgs.M("notify.title").Keep(nil), BodyText: msgs.M("notify.body").Keep(body), Link: "/admin/instance#smtp-relay",
 				Data: map[string]any{"hostname": cfg.Hostname}}); err != nil {
 				return err
 			}
@@ -278,7 +304,7 @@ func (r *Relay) Check(ctx context.Context, publicURL string) (SMTPRelaySettings,
 	return r.Settings(ctx, publicURL)
 }
 
-func (r *Relay) checks(ctx context.Context, cfg Config) []SMTPRelayCheck {
+func (r *Relay) checks(ctx context.Context, cfg Config) []storedCheck {
 	res := r.Resolver
 	if res == nil {
 		res = net.DefaultResolver
@@ -287,27 +313,28 @@ func (r *Relay) checks(ctx context.Context, cfg Config) []SMTPRelayCheck {
 	if timeout <= 0 {
 		timeout = 5 * time.Second
 	}
-	out := []SMTPRelayCheck{}
+	out := []storedCheck{}
 	lctx, cancel := context.WithTimeout(ctx, timeout)
 	addrs, err := res.LookupHost(lctx, cfg.Hostname)
 	cancel()
+	host := i18n.Args{"host": cfg.Hostname}
 	if err != nil || len(addrs) == 0 {
-		detail := cfg.Hostname + " doesn't resolve"
+		msg := "check.unresolved"
 		var dnsErr *net.DNSError
 		if errors.As(err, &dnsErr) && dnsErr.IsNotFound {
-			detail += ": add an A or AAAA record pointing to this server"
+			msg = "check.unresolvedAdd"
 		}
-		out = append(out, SMTPRelayCheck{Key: "dns", OK: false, Detail: detail})
+		out = append(out, check("dns", false, 0, msg, host))
 		for _, k := range []struct {
 			key  string
 			port int
 		}{{"starttls", cfg.StartTLSPort}, {"tls", cfg.TLSPort}} {
-			out = append(out, SMTPRelayCheck{Key: k.key, OK: false, Port: k.port, Detail: fmt.Sprintf("Port %d can't be checked until %s resolves", k.port, cfg.Hostname)})
+			out = append(out, check(k.key, false, k.port, "check.portUnresolved", i18n.Args{"port": portArg(k.port), "host": cfg.Hostname}))
 		}
-		out = append(out, SMTPRelayCheck{Key: "certificate", OK: false, Detail: "The certificate can't be checked until " + cfg.Hostname + " resolves"})
+		out = append(out, check("certificate", false, 0, "check.certUnresolved", host))
 		return out
 	}
-	out = append(out, SMTPRelayCheck{Key: "dns", OK: true, Detail: fmt.Sprintf("DNS · %s points to %s", cfg.Hostname, strings.Join(addrs, ", "))})
+	out = append(out, check("dns", true, 0, "check.resolves", i18n.Args{"host": cfg.Hostname, "addresses": strings.Join(addrs, ", ")}))
 	// Each port must answer at one of the hostname's addresses.
 	ip := addrs[0]
 	dialAny := func(port int, useTLS bool) error {
@@ -326,10 +353,10 @@ func (r *Relay) checks(ctx context.Context, cfg Config) []SMTPRelayCheck {
 		useTLS bool
 	}{{"starttls", cfg.StartTLSPort, false}, {"tls", cfg.TLSPort, true}} {
 		if err := dialAny(k.port, k.useTLS); err != nil {
-			out = append(out, SMTPRelayCheck{Key: k.key, OK: false, Port: k.port, Detail: fmt.Sprintf("Port %d isn't reachable at %s: %s", k.port, cfg.Hostname, shortNetErr(err))})
+			out = append(out, check(k.key, false, k.port, "check.portUnreachable", i18n.Args{"port": portArg(k.port), "host": cfg.Hostname, "error": shortNetErr(err)}))
 			continue
 		}
-		out = append(out, SMTPRelayCheck{Key: k.key, OK: true, Port: k.port, Detail: fmt.Sprintf("Port %d reachable from the internet", k.port)})
+		out = append(out, check(k.key, true, k.port, "check.portReachable", i18n.Args{"port": portArg(k.port)}))
 	}
 	out = append(out, r.certCheck(ctx, cfg, ip, timeout))
 	return out
@@ -362,7 +389,7 @@ func dialOne(ctx context.Context, ip, hostname string, port int, useTLS bool, ti
 	return nil
 }
 
-func (r *Relay) certCheck(ctx context.Context, cfg Config, ip string, timeout time.Duration) SMTPRelayCheck {
+func (r *Relay) certCheck(ctx context.Context, cfg Config, ip string, timeout time.Duration) storedCheck {
 	tc := &tls.Config{ServerName: cfg.Hostname}
 	if r.RootCAs != nil {
 		tc.RootCAs = r.RootCAs
@@ -370,19 +397,25 @@ func (r *Relay) certCheck(ctx context.Context, cfg Config, ip string, timeout ti
 	td := &tls.Dialer{NetDialer: &net.Dialer{Timeout: timeout}, Config: tc}
 	raw, err := td.DialContext(ctx, "tcp", net.JoinHostPort(ip, strconv.Itoa(cfg.TLSPort)))
 	if err != nil {
-		return SMTPRelayCheck{Key: "certificate", OK: false, Detail: "The certificate couldn't be verified: " + shortNetErr(err)}
+		return check("certificate", false, 0, "check.certUnverified", i18n.Args{"error": shortNetErr(err)})
 	}
 	conn := raw.(*tls.Conn)
 	defer func() { _ = conn.Close() }()
 	certs := conn.ConnectionState().PeerCertificates
 	if len(certs) == 0 {
-		return SMTPRelayCheck{Key: "certificate", OK: false, Detail: "The relay sent no certificate"}
+		return check("certificate", false, 0, "check.noCert", nil)
 	}
 	na := certs[0].NotAfter
+	// The English keeps its day-month-year date; other languages write the
+	// day in the reader's region format.
 	if !na.After(r.now()) {
-		return SMTPRelayCheck{Key: "certificate", OK: false, Detail: "The certificate expired on " + na.UTC().Format("2 Jan 2006")}
+		c := check("certificate", false, 0, "check.certExpired", i18n.Args{"at": dateArg(na)})
+		c.Detail = "The certificate expired on " + na.UTC().Format("2 Jan 2006")
+		return c
 	}
-	return SMTPRelayCheck{Key: "certificate", OK: true, Detail: "Certificate valid until " + na.UTC().Format("2 Jan 2006")}
+	c := check("certificate", true, 0, "check.certValid", i18n.Args{"at": dateArg(na)})
+	c.Detail = "Certificate valid until " + na.UTC().Format("2 Jan 2006")
+	return c
 }
 
 func shortNetErr(err error) string {

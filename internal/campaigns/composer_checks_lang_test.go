@@ -59,7 +59,9 @@ func TestComposerChecksInVietnamese(t *testing.T) {
 
 	// The token menu names the contact fields in the member's language and
 	// suggests the first-name fallback the email's readers read.
-	var ctx struct{ Tokens []struct{ Key, Label, Fallback string } }
+	var ctx struct {
+		Tokens []struct{ Key, Label, Fallback string }
+	}
 	vi.Do("GET", ws+"/composer", nil).MustStatus(t, 200).JSON(t, &ctx)
 	for _, tok := range ctx.Tokens {
 		if tok.Key == "first_name" && (tok.Label != "Tên" || tok.Fallback != "bạn") {

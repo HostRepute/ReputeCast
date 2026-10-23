@@ -30,6 +30,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/providers/state"
@@ -288,6 +289,7 @@ func (s *Service) providerColumns(ctx context.Context, wsID uuid.UUID) ([]store.
 
 // Overview returns Settings › Senders.
 func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (SendersOverview, error) {
+	l := i18n.LangFrom(ctx)
 	provs, cols, err := s.providerColumns(ctx, ws.ID)
 	if err != nil {
 		return SendersOverview{}, err
@@ -316,13 +318,13 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (SendersOve
 	}
 	for _, sn := range senders {
 		perDomain[sn.DomainID]++
-		v := s.senderView(sn.ID, sn.Name, sn.Email, sn.ReplyTo, sn.Note, sn.DomainID, sn.DomainName, sn.Verification, defs, provs, domByID[sn.DomainID])
+		v := s.senderView(l, sn.ID, sn.Name, sn.Email, sn.ReplyTo, sn.Note, sn.DomainID, sn.DomainName, sn.Verification, defs, provs, domByID[sn.DomainID])
 		v.Transactional = domByID[sn.DomainID].Transactional
 		v.SMTPRelay = v.Transactional && slices.Contains(smtpFrom, sn.Email)
 		out.Senders = append(out.Senders, v)
 	}
 	for _, d := range doms {
-		row := domainRow(d, provs)
+		row := domainRow(l, d, provs)
 		row.Senders = perDomain[d.ID]
 		row.Transactional = d.Transactional
 		out.Domains = append(out.Domains, row)
@@ -392,7 +394,7 @@ func defaultsView(defs workspaceDefaults, senders []store.SenderListRow, doms []
 	return out
 }
 
-func (s *Service) senderView(id uuid.UUID, name, email, replyTo, note string, domainID uuid.UUID, domain string, verification json.RawMessage,
+func (s *Service) senderView(l i18n.Lang, id uuid.UUID, name, email, replyTo, note string, domainID uuid.UUID, domain string, verification json.RawMessage,
 	defs workspaceDefaults, provs []store.Provider, d store.SendingDomain) SenderIdentity {
 	v := SenderIdentity{ID: id.String(), Name: name, Email: email, ReplyTo: replyTo, Note: note, DomainID: domainID.String(), Domain: domain,
 		DefaultFor: []string{}, Verification: []SenderVerification{}}
@@ -408,7 +410,7 @@ func (s *Service) senderView(id uuid.UUID, name, email, replyTo, note string, do
 		if st != "not_used" {
 			st = providerVerification(recs, p.ID.String())
 		}
-		sv := SenderVerification{ProviderID: p.ID.String(), Status: st, Text: verificationText(st, domain)}
+		sv := SenderVerification{ProviderID: p.ID.String(), Status: st, Text: verificationText(l, st, domain)}
 		if st == "pending" || st == "failed" {
 			v.Pending = true
 		}
@@ -457,18 +459,18 @@ func providerVerification(recs []Record, providerID string) string {
 	return "pending"
 }
 
-func verificationText(status, domain string) string {
+func verificationText(l i18n.Lang, status, domain string) string {
 	switch status {
 	case "verified":
-		return "Verified"
+		return text(l, "verification.verified", nil)
 	case "pending":
-		return "Pending · " + domain + " DKIM"
+		return text(l, "verification.pending", i18n.Args{"domain": domain})
 	case "failed":
-		return "Failed · " + domain + " DKIM"
+		return text(l, "verification.failed", i18n.Args{"domain": domain})
 	case "not_used":
-		return "Not used"
+		return text(l, "verification.notUsed", nil)
 	}
-	return "Not set up"
+	return text(l, "verification.notSetUp", nil)
 }
 
 // SenderInput creates or changes a sender identity.
@@ -489,10 +491,10 @@ func (s *Service) audit(ctx context.Context, q *store.Queries, ws *store.Workspa
 }
 
 // normalizeEmail validates an address and returns it lowercased with its domain.
-func normalizeEmail(field, raw string) (string, string, error) {
+func normalizeEmail(ctx context.Context, field, raw string) (string, string, error) {
 	a, err := mail.ParseAddress(strings.TrimSpace(raw))
 	if err != nil || a.Name != "" || !strings.Contains(a.Address, "@") {
-		return "", "", api.Invalid(field, "Enter an address like hello@news.acme.io.")
+		return "", "", api.Invalid(field, say(ctx, "problem.emailFormat", nil))
 	}
 	email := strings.ToLower(a.Address)
 	domain := email[strings.LastIndexByte(email, '@')+1:]
@@ -501,24 +503,24 @@ func normalizeEmail(field, raw string) (string, string, error) {
 
 // CreateSender adds a sender identity on a sending domain of the workspace.
 func (s *Service) CreateSender(ctx context.Context, ws *store.Workspace, in SenderInput) (SenderIdentity, error) {
-	email, domain, err := normalizeEmail("body.email", in.Email)
+	email, domain, err := normalizeEmail(ctx, "body.email", in.Email)
 	if err != nil {
 		return SenderIdentity{}, err
 	}
 	replyTo := ""
 	if strings.TrimSpace(in.ReplyTo) != "" {
-		if replyTo, _, err = normalizeEmail("body.replyTo", in.ReplyTo); err != nil {
+		if replyTo, _, err = normalizeEmail(ctx, "body.replyTo", in.ReplyTo); err != nil {
 			return SenderIdentity{}, err
 		}
 	}
 	d, err := s.Q.DomGetByName(ctx, store.DomGetByNameParams{WorkspaceID: ws.ID, Domain: domain})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return SenderIdentity{}, api.Invalid("body.email", domain+" isn't a sending domain of this workspace yet. Add the domain first, then the sender.").WithMeta("domain", domain)
+		return SenderIdentity{}, api.Invalid("body.email", say(ctx, "problem.notSendingDomain", i18n.Args{"domain": domain})).WithMeta("domain", domain)
 	} else if err != nil {
 		return SenderIdentity{}, err
 	}
 	if _, err := s.Q.SenderGetByEmail(ctx, store.SenderGetByEmailParams{WorkspaceID: ws.ID, Email: email}); err == nil {
-		return SenderIdentity{}, api.Conflict(email + " is already a sender.")
+		return SenderIdentity{}, api.Conflict(say(ctx, "problem.alreadySender", i18n.Args{"email": email}))
 	}
 	ver := map[string]string{}
 	for _, pid := range in.NotUsedWith {
@@ -585,7 +587,7 @@ func (s *Service) setDefaults(ctx context.Context, q *store.Queries, wsID, sende
 			return err
 		}
 		if d, err := q.DomGetAny(ctx, sn.DomainID); err != nil || !d.Transactional {
-			return api.Invalid("body.defaultFor", sn.Email+" isn't on a Transactional domain, so it can't be the default From of transactional templates.")
+			return api.Invalid("body.defaultFor", say(ctx, "problem.notTransactionalDefault", i18n.Args{"email": sn.Email}))
 		}
 	}
 	if err := q.TxnSettingsEnsure(ctx, wsID); err != nil {
@@ -611,7 +613,7 @@ func (s *Service) Sender(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 	if err != nil {
 		return SenderIdentity{}, err
 	}
-	return s.senderView(sn.ID, sn.Name, sn.Email, sn.ReplyTo, sn.Note, sn.DomainID, sn.DomainName, sn.Verification, defs, provs, d), nil
+	return s.senderView(i18n.LangFrom(ctx), sn.ID, sn.Name, sn.Email, sn.ReplyTo, sn.Note, sn.DomainID, sn.DomainName, sn.Verification, defs, provs, d), nil
 }
 
 func parseID(raw, what string) (uuid.UUID, error) {
@@ -634,11 +636,11 @@ func (s *Service) UpdateSender(ctx context.Context, ws *store.Workspace, rawID s
 		return SenderIdentity{}, api.MapError(err, "Sender")
 	}
 	if in.Email != "" && !strings.EqualFold(strings.TrimSpace(in.Email), sn.Email) {
-		return SenderIdentity{}, api.Invalid("body.email", "A sender's address can't change. Add a new sender instead.")
+		return SenderIdentity{}, api.Invalid("body.email", say(ctx, "problem.addressFixed", nil))
 	}
 	replyTo := ""
 	if strings.TrimSpace(in.ReplyTo) != "" {
-		if replyTo, _, err = normalizeEmail("body.replyTo", in.ReplyTo); err != nil {
+		if replyTo, _, err = normalizeEmail(ctx, "body.replyTo", in.ReplyTo); err != nil {
 			return SenderIdentity{}, err
 		}
 	}
@@ -736,16 +738,16 @@ func (s *Service) SaveDefaults(ctx context.Context, ws *store.Workspace, in Send
 	if in.DefaultSenderID != "" {
 		id, err := uuid.Parse(in.DefaultSenderID)
 		if err != nil {
-			return SenderDefaults{}, api.Invalid("body.defaultSenderId", "Pick a sender of this workspace.")
+			return SenderDefaults{}, api.Invalid("body.defaultSenderId", say(ctx, "problem.pickSender", nil))
 		}
 		if _, err := s.Q.SenderGet(ctx, store.SenderGetParams{WorkspaceID: ws.ID, ID: id}); err != nil {
-			return SenderDefaults{}, api.Invalid("body.defaultSenderId", "Pick a sender of this workspace.")
+			return SenderDefaults{}, api.Invalid("body.defaultSenderId", say(ctx, "problem.pickSender", nil))
 		}
 		broadcast = &id
 	}
 	replyTo := ""
 	if strings.TrimSpace(in.ReplyTo) != "" {
-		if replyTo, _, err = normalizeEmail("body.replyTo", in.ReplyTo); err != nil {
+		if replyTo, _, err = normalizeEmail(ctx, "body.replyTo", in.ReplyTo); err != nil {
 			return SenderDefaults{}, err
 		}
 	}
@@ -762,7 +764,7 @@ func (s *Service) SaveDefaults(ctx context.Context, ws *store.Workspace, in Send
 			}
 		}
 		if !ok {
-			return SenderDefaults{}, api.Invalid("body.trackingDomain", "Add "+tracking+" as the tracking domain of a sending domain first.")
+			return SenderDefaults{}, api.Invalid("body.trackingDomain", say(ctx, "problem.trackingFirst", i18n.Args{"domain": tracking}))
 		}
 	}
 	txnSender := defs.ids["transactional"]
@@ -771,14 +773,14 @@ func (s *Service) SaveDefaults(ctx context.Context, ws *store.Workspace, in Send
 		if raw := strings.TrimSpace(*in.TransactionalSenderID); raw != "" {
 			id, err := uuid.Parse(raw)
 			if err != nil {
-				return SenderDefaults{}, api.Invalid("body.transactionalSenderId", "Pick a sender of this workspace.")
+				return SenderDefaults{}, api.Invalid("body.transactionalSenderId", say(ctx, "problem.pickSender", nil))
 			}
 			sn, err := s.Q.SenderGet(ctx, store.SenderGetParams{WorkspaceID: ws.ID, ID: id})
 			if err != nil {
-				return SenderDefaults{}, api.Invalid("body.transactionalSenderId", "Pick a sender of this workspace.")
+				return SenderDefaults{}, api.Invalid("body.transactionalSenderId", say(ctx, "problem.pickSender", nil))
 			}
 			if d, err := s.Q.DomGetAny(ctx, sn.DomainID); err != nil || !d.Transactional {
-				return SenderDefaults{}, api.Invalid("body.transactionalSenderId", sn.Email+" isn't on a Transactional domain. Pick a sender on one, such as a notify. subdomain kept for product mail.")
+				return SenderDefaults{}, api.Invalid("body.transactionalSenderId", say(ctx, "problem.notTransactional", i18n.Args{"email": sn.Email}))
 			}
 			txnSender = &id
 		}
@@ -824,8 +826,8 @@ func (s *Service) SaveDefaults(ctx context.Context, ws *store.Workspace, in Send
 }
 
 // NormalizeDomain lowercases a domain name, converts it to ASCII (IDNA) and
-// checks it is a host name.
-func NormalizeDomain(field, raw string) (string, error) {
+// checks it is a host name; its problem reads in the request's language.
+func NormalizeDomain(ctx context.Context, field, raw string) (string, error) {
 	d := strings.ToLower(strings.TrimSuffix(strings.TrimSpace(raw), "."))
 	d = strings.TrimPrefix(strings.TrimPrefix(d, "https://"), "http://")
 	if i := strings.IndexByte(d, '@'); i >= 0 {
@@ -833,15 +835,15 @@ func NormalizeDomain(field, raw string) (string, error) {
 	}
 	ascii, err := idna.Lookup.ToASCII(d)
 	if err != nil || !strings.Contains(ascii, ".") || len(ascii) > 253 {
-		return "", api.Invalid(field, "Enter a domain like news.acme.io.")
+		return "", api.Invalid(field, say(ctx, "problem.domainFormat", nil))
 	}
 	for _, label := range strings.Split(ascii, ".") {
 		if label == "" || len(label) > 63 || strings.HasPrefix(label, "-") || strings.HasSuffix(label, "-") {
-			return "", api.Invalid(field, "Enter a domain like news.acme.io.")
+			return "", api.Invalid(field, say(ctx, "problem.domainFormat", nil))
 		}
 		for _, r := range label {
 			if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' && r != '_' {
-				return "", api.Invalid(field, "Enter a domain like news.acme.io.")
+				return "", api.Invalid(field, say(ctx, "problem.domainFormat", nil))
 			}
 		}
 	}

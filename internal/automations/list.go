@@ -430,7 +430,7 @@ func providerProblem(p AutomationRouteProvider, name i18n.Text, loc *time.Locati
 	}
 	statusName := strings.ReplaceAll(p.Status, "_", " ")
 	if p.Detail != "" {
-		return txt(mAlertStatusDetail, "provider", name, "status", p.Status, "statusName", statusName, "detail", p.Detail)
+		return txt(mAlertStatusDetail, "provider", name, "status", p.Status, "statusName", statusName, "detail", providerDetail(p.Detail))
 	}
 	return txt(mAlertStatus, "provider", name, "status", p.Status, "statusName", statusName)
 }

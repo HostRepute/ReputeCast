@@ -68,6 +68,10 @@ Messages are [ICU MessageFormat](https://unicode-org.github.io/icu/userguide/for
   words that play the same part.
 - A message is a whole sentence or label. Don't split one, and don't count
   on two messages being shown side by side in a certain order.
+- **Language names** (`{language}`, `{languages}`) come in the label form
+  your language uses on its own. Vietnamese writes "tiếng" in lower case
+  inside a sentence: the app does that from the argument's place, so write
+  `{language}`, never "tiếng {language}" (the glossary's Voice section).
 - An apostrophe is fine as is (`isn't`, `l'été`). To show a brace as text,
   quote it: `'{'`.
 

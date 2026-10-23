@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -182,8 +183,9 @@ func (s *Service) view(ctx context.Context, ws *store.Workspace, r store.WarmupL
 	start := time.Date(r.StartDate.Year(), r.StartDate.Month(), r.StartDate.Day(), 0, 0, 0, 0, loc)
 	day := state.WarmupDay(r.StartDate, now, loc)
 	days := int(r.Days)
+	l := i18n.LangFrom(ctx)
 	v := WarmupPlanView{ID: r.ID.String(), ProviderID: r.ProviderID.String(), Provider: r.ProviderName, Short: state.Short(r.ProviderName, r.Adapter), IP: r.Ip,
-		Status: r.Status, StatusDetail: r.StatusDetail, Day: min(max(day, 1), days), Days: days, StartDate: start, EndDate: start.AddDate(0, 0, days-1),
+		Status: r.Status, StatusDetail: textIn(l, r.Texts, "status_detail", r.StatusDetail), Day: min(max(day, 1), days), Days: days, StartDate: start, EndDate: start.AddDate(0, 0, days-1),
 		Schedule: []WarmupDay{}, Log: []WarmupLogEntry{}, CreatedBy: r.CreatedByName,
 		Settings: WarmupSettings{Days: days, EngagedFirst: r.EngagedFirst, GuardBounce: r.SlowdownBounce, GuardComplaint: r.SlowdownComplaint, GuardAction: r.GuardAction, SpreadMailbox: r.SpreadMailbox}}
 	if r.Status == "done" {
@@ -291,7 +293,7 @@ func (s *Service) view(ctx context.Context, ws *store.Workspace, r store.WarmupL
 		return v, err
 	}
 	for _, e := range log {
-		v.Log = append(v.Log, WarmupLogEntry{At: e.OccurredAt, Kind: e.Kind, Title: e.Title, Body: e.Body})
+		v.Log = append(v.Log, WarmupLogEntry{At: e.OccurredAt, Kind: e.Kind, Title: textIn(l, e.Texts, "title", e.Title), Body: textIn(l, e.Texts, "body", e.Body)})
 	}
 	return v, nil
 }
@@ -341,7 +343,7 @@ func (s *Service) UpdateSettings(ctx context.Context, ws *store.Workspace, id st
 		return WarmupPlanView{}, err
 	}
 	if r.Status == "done" {
-		return WarmupPlanView{}, api.Conflict("This warm-up is complete. Start a new plan to warm up again.")
+		return WarmupPlanView{}, api.Conflict(say(ctx, "problem.complete", nil))
 	}
 	plan := ParsePlan(r.Schedule, r.Progress)
 	sched := plan.Schedule
@@ -360,8 +362,9 @@ func (s *Service) UpdateSettings(ctx context.Context, ws *store.Workspace, id st
 			SlowdownBounce: in.GuardBounce, SlowdownComplaint: in.GuardComplaint, GuardAction: in.GuardAction, SpreadMailbox: in.SpreadMailbox}); err != nil {
 			return err
 		}
+		body := keep("log.settings", actor(ctx))
 		if err := q.WarmupAddEvent(ctx, store.WarmupAddEventParams{ID: newID(), PlanID: r.ID, OccurredAt: s.now(), Kind: "settings",
-			Body: "Plan settings changed by " + actorName(ctx) + "."}); err != nil {
+			Body: body.English, Texts: textsJSON(map[string]i18n.Text{"body": body.Text})}); err != nil {
 			return err
 		}
 		wsID := ws.ID
@@ -373,13 +376,6 @@ func (s *Service) UpdateSettings(ctx context.Context, ws *store.Workspace, id st
 	return s.planView(ctx, ws, r.ID)
 }
 
-func actorName(ctx context.Context) string {
-	if p := api.PrincipalFrom(ctx); p != nil && p.Name != "" {
-		return p.Name
-	}
-	return "someone"
-}
-
 func newID() uuid.UUID { return uuid.Must(uuid.NewV7()) }
 
 // SetPaused pauses or resumes a plan.
@@ -389,20 +385,23 @@ func (s *Service) SetPaused(ctx context.Context, ws *store.Workspace, id string,
 		return WarmupPlanView{}, err
 	}
 	if r.Status == "done" {
-		return WarmupPlanView{}, api.Conflict("This warm-up is complete.")
+		return WarmupPlanView{}, api.Conflict(say(ctx, "problem.completeShort", nil))
 	}
-	status, detail, kind, body := "active", "", "resumed", "Warm-up resumed by "+actorName(ctx)+"."
+	who := actor(ctx)
+	status, detail, kind, body := "active", kept{}, "resumed", keep("log.resumed", who)
 	var at *time.Time
 	if paused {
 		now := s.now()
-		status, detail, kind, body, at = "paused", "Paused by "+actorName(ctx), "paused", "Warm-up paused by "+actorName(ctx)+". No mail goes to "+r.ProviderName+" until it resumes.", &now
+		status, detail, kind, body, at = "paused", keep("status.pausedBy", who), "paused", keep("log.paused", with(who, "provider", r.ProviderName)), &now
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if err := q.WarmupSetStatus(ctx, store.WarmupSetStatusParams{ID: r.ID, Status: status, StatusDetail: detail, PausedAt: at}); err != nil {
+		if err := q.WarmupSetStatus(ctx, store.WarmupSetStatusParams{ID: r.ID, Status: status, StatusDetail: detail.English, PausedAt: at,
+			Texts: textsJSON(map[string]i18n.Text{"status_detail": detail.Text})}); err != nil {
 			return err
 		}
-		if err := q.WarmupAddEvent(ctx, store.WarmupAddEventParams{ID: newID(), PlanID: r.ID, OccurredAt: s.now(), Kind: kind, Body: body}); err != nil {
+		if err := q.WarmupAddEvent(ctx, store.WarmupAddEventParams{ID: newID(), PlanID: r.ID, OccurredAt: s.now(), Kind: kind, Body: body.English,
+			Texts: textsJSON(map[string]i18n.Text{"body": body.Text})}); err != nil {
 			return err
 		}
 		wsID := ws.ID
@@ -433,14 +432,14 @@ type NewPlanInput struct {
 func (s *Service) Create(ctx context.Context, ws *store.Workspace, in NewPlanInput) (WarmupPlanView, error) {
 	pid, err := uuid.Parse(in.ProviderID)
 	if err != nil {
-		return WarmupPlanView{}, api.Invalid("body.providerId", "Pick a provider.")
+		return WarmupPlanView{}, api.Invalid("body.providerId", say(ctx, "problem.pickProvider", nil))
 	}
 	p, err := s.Q.ProvGet(ctx, store.ProvGetParams{WorkspaceID: ws.ID, ID: pid})
 	if err != nil {
-		return WarmupPlanView{}, api.Invalid("body.providerId", "That provider is not connected to this workspace.")
+		return WarmupPlanView{}, api.Invalid("body.providerId", say(ctx, "problem.providerNotConnected", nil))
 	}
 	if _, err := s.Q.WarmupActiveForProvider(ctx, p.ID); err == nil {
-		return WarmupPlanView{}, api.Conflict(p.Name + " already has a warm-up plan. Change its settings instead.")
+		return WarmupPlanView{}, api.Conflict(say(ctx, "problem.planExists", i18n.Args{"provider": p.Name}))
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return WarmupPlanView{}, err
 	}
@@ -473,12 +472,13 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, in NewPlanInp
 			SpreadMailbox: in.SpreadMailbox, CreatedBy: by, CreatedAt: s.now()}); err != nil {
 			return err
 		}
-		order := "engaged-first"
+		order := "engaged"
 		if !in.EngagedFirst {
-			order = "random sample"
+			order = "random"
 		}
+		body := keep("log.started", with(actor(ctx), "days", in.Days, "order", order))
 		if err := q.WarmupAddEvent(ctx, store.WarmupAddEventParams{ID: newID(), PlanID: id, OccurredAt: s.now(), Kind: "started",
-			Body: fmt.Sprintf("Plan started by %s: %d days, %s.", actorName(ctx), in.Days, order)}); err != nil {
+			Body: body.English, Texts: textsJSON(map[string]i18n.Text{"body": body.Text})}); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `UPDATE providers SET status = 'warming_up', status_detail = $2 WHERE id = $1 AND status IN ('healthy', 'sandbox')`, p.ID, fmt.Sprintf("Warming up · day 1 of %d", in.Days)); err != nil {

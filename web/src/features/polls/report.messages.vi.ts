@@ -143,6 +143,8 @@ export default translate(m, {
   notAContact: 'Không phải liên hệ',
   aContact: 'Một liên hệ',
   quote: '“{text}”',
+  commentBy: '{who} · {when}',
+  commentByAnswer: '{answer} · {who} · {when}',
   showing: 'Hiển thị {shown} trên {total} · chỉ người có quyền subscribers:view mới thấy tên',
   previous: 'Trước',
   next: 'Sau',

@@ -1,0 +1,16 @@
+{
+  "reason.head": { "message": "HEAD request from a link scanner", "note": "why an open or a click counts as a machine's, shown in the live monitor's feed" },
+  "reason.noAgent": { "message": "No user agent, likely a scanner", "note": "user agent: what a browser says it is" },
+  "reason.apple": { "message": "Apple Mail Privacy Protection prefetch", "note": "Apple Mail Privacy Protection is Apple's feature, never translated" },
+  "reason.google": "Google image proxy prefetch",
+  "reason.yahoo": "Yahoo Mail image proxy prefetch",
+  "reason.fastOpen": "Opened within 2 s of sending, likely a scanner",
+  "reason.fastClick": "Clicked within 10 s of sending, likely a link scanner",
+  "reason.burst": "Every link clicked within seconds, likely a link scanner",
+  "reason.securityScanner": { "message": "Security scanner ({kind, select, headless {a headless browser} script {a script} bot {a bot} preview {a link preview} other {{name}}})", "note": "name: the scanner's product (Barracuda, Microsoft Defender), never translated" },
+  "reason.linkScanner": "Link scanner ({kind, select, headless {a headless browser} script {a script} bot {a bot} preview {a link preview} other {{name}}})",
+  "client.unknown": { "message": "Unknown mail client", "note": "the mail client a person opened or clicked in" },
+  "client.anyOn": { "message": "A mail client on {os}", "note": "os: iOS, Android, Windows, macOS, ChromeOS, Linux" },
+  "client.on": { "message": "{app} on {os}", "note": "app: a mail client or browser (Chrome, Apple Mail); os: its system (macOS)" },
+  "page.gone": { "message": "This link is no longer valid. If you copied it, check that the whole address came along.", "note": "a plain page for someone who opens a broken tracked link from an email" }
+}

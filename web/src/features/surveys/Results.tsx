@@ -35,7 +35,7 @@ function Bars({ r }: { r: QResult }) {
               {c.emoji ? `${c.emoji} ` : ''}
               {c.label}
             </span>
-            <span className="nowrap">
+            <span className="whitespace-nowrap">
               <b>{count(c.count)}</b> <span className="k">{pct(c.percent)}</span>
             </span>
           </div>
@@ -219,8 +219,8 @@ function Responses({ s }: { s: Survey }) {
             <tbody>
               {items.map((r) => (
                 <tr key={r.id}>
-                  <td className="font-semibold nowrap">{r.nonContact ? <span className="k">{t(m.notAContact)}</span> : r.contact || t(m.aContact)}</td>
-                  <td className="nowrap">{r.completedAt ? `${shortDate(r.completedAt)} ${clock(r.completedAt)}` : '—'}</td>
+                  <td className="nw font-semibold">{r.nonContact ? <span className="k">{t(m.notAContact)}</span> : r.contact || t(m.aContact)}</td>
+                  <td className="nw">{r.completedAt ? `${shortDate(r.completedAt)} ${clock(r.completedAt)}` : '—'}</td>
                   <td className="sv-answers">{r.answers.map((a) => a || t(m.noAnswer)).join(' · ')}</td>
                 </tr>
               ))}
