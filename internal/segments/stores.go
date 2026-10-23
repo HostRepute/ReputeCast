@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -17,15 +18,12 @@ import (
 // and cancelled orders don't count.
 
 func init() {
-	opLabels["at_least"] = "is at least"
-	opLabels["at_most"] = "is at most"
-	opLabels["between"] = "is between"
-	builtinFields["store_customer"] = fieldSpec{"Store customer", KindEnum, []string{"is", "is_not"}}
-	builtinFields["store_orders"] = fieldSpec{"Store orders", KindNumber, scoreOps}
-	builtinFields["store_spent"] = fieldSpec{"Total spent", KindNumber, scoreOps}
-	builtinFields["store_last_order"] = fieldSpec{"Last store order", KindPeriod, []string{"in_last", "not_in_last", "never"}}
-	builtinFields["store_bought"] = fieldSpec{"Bought from a store", KindEnum, []string{"is", "is_not"}}
-	builtinFields["store_marketing"] = fieldSpec{"Accepted marketing in a store", KindEnum, []string{"is", "is_not"}}
+	builtinFields["store_customer"] = fieldSpec{KindEnum, []string{"is", "is_not"}}
+	builtinFields["store_orders"] = fieldSpec{KindNumber, scoreOps}
+	builtinFields["store_spent"] = fieldSpec{KindNumber, scoreOps}
+	builtinFields["store_last_order"] = fieldSpec{KindPeriod, []string{"in_last", "not_in_last", "never"}}
+	builtinFields["store_bought"] = fieldSpec{KindEnum, []string{"is", "is_not"}}
+	builtinFields["store_marketing"] = fieldSpec{KindEnum, []string{"is", "is_not"}}
 	builtinOrder = append(builtinOrder, "store_customer", "store_orders", "store_spent", "store_last_order", "store_bought", "store_marketing")
 	extraValidate["store_customer"] = validateStoreRef
 	extraValidate["store_marketing"] = validateStoreRef
@@ -52,7 +50,7 @@ func validateStoreRef(c SegmentCondition) error {
 		return nil
 	}
 	if _, err := uuid.Parse(c.Value); err != nil {
-		return problemf("Pick a store.")
+		return says(mPickStore)
 	}
 	return nil
 }
@@ -61,28 +59,28 @@ func validateCount(c SegmentCondition) error {
 	return validateRange(c, func(s string) bool {
 		n, err := strconv.Atoi(strings.TrimSpace(s))
 		return err == nil && n >= 0 && n <= 1000000
-	}, "The number of orders needs a whole number.")
+	}, mOrders)
 }
 
 func validateAmount(c SegmentCondition) error {
 	return validateRange(c, func(s string) bool {
 		v, err := strconv.ParseFloat(strings.TrimSpace(s), 64)
 		return err == nil && v >= 0 && v <= 1e12
-	}, "The total spent needs an amount, like 100 or 250.50.")
+	}, mSpent)
 }
 
-func validateRange(c SegmentCondition, ok func(string) bool, msg string) error {
+func validateRange(c SegmentCondition, ok func(string) bool, msg i18n.Msg) error {
 	if !ok(c.Value) {
-		return problemf("%s", msg)
+		return says(msg)
 	}
 	if c.Op == "between" {
 		if !ok(c.To) {
-			return problemf("Enter both ends of the range.")
+			return says(mBothEnds)
 		}
 		a, _ := strconv.ParseFloat(strings.TrimSpace(c.Value), 64)
 		b, _ := strconv.ParseFloat(strings.TrimSpace(c.To), 64)
 		if b < a {
-			return problemf("The range ends below where it starts. Swap the two numbers.")
+			return says(mRangeSwap)
 		}
 	}
 	return nil
@@ -93,10 +91,10 @@ func validatePeriod(c SegmentCondition) error {
 		return nil
 	}
 	if c.Amount < 1 || c.Amount > 3650 {
-		return problemf("Last store order needs a number of days or weeks between 1 and 3650.")
+		return says(mLastOrderR)
 	}
 	if c.Unit != "days" && c.Unit != "weeks" {
-		return problemf("Last store order needs days or weeks.")
+		return says(mLastOrderU)
 	}
 	return nil
 }
@@ -117,7 +115,7 @@ func boughtRef(v string) (kind string, storeID uuid.UUID, id string, ok bool) {
 
 func validateStoreBought(c SegmentCondition) error {
 	if _, _, _, ok := boughtRef(c.Value); !ok {
-		return problemf("Pick a product or a collection.")
+		return says(mPickBought)
 	}
 	return nil
 }
@@ -214,7 +212,7 @@ func compileStoreBought(t *sqlText, c SegmentCondition) {
 
 // storeOptions are the stores, and "Any store".
 func storeOptions(ctx context.Context, q *store.Queries, ws uuid.UUID) ([]SegmentOption, error) {
-	out := []SegmentOption{{Value: "any", Label: "Any store"}}
+	out := []SegmentOption{{Value: "any", Label: mAnyStore.Text(i18n.LangFrom(ctx), nil)}}
 	rows, err := q.CommerceStores(ctx, ws)
 	if err != nil {
 		return nil, err
@@ -230,6 +228,7 @@ func storeOptions(ctx context.Context, q *store.Queries, ws uuid.UUID) ([]Segmen
 
 // storeBoughtOptions are each store's collections, then its products.
 func storeBoughtOptions(ctx context.Context, q *store.Queries, ws uuid.UUID) ([]SegmentOption, error) {
+	l := i18n.LangFrom(ctx)
 	out := []SegmentOption{}
 	rows, err := q.CommerceStores(ctx, ws)
 	if err != nil {
@@ -244,14 +243,14 @@ func storeBoughtOptions(ctx context.Context, q *store.Queries, ws uuid.UUID) ([]
 			return nil, err
 		}
 		for _, col := range cols {
-			out = append(out, SegmentOption{Value: "collection:" + st.ID.String() + ":" + col.ExternalID, Label: st.Name + " · " + col.Title + " (collection)"})
+			out = append(out, SegmentOption{Value: "collection:" + st.ID.String() + ":" + col.ExternalID, Label: mCollection.Text(l, i18n.Args{"store": st.Name, "collection": col.Title})})
 		}
 		products, err := q.CommerceProducts(ctx, store.CommerceProductsParams{StoreID: st.ID, Lim: 500})
 		if err != nil {
 			return nil, err
 		}
 		for _, p := range products {
-			out = append(out, SegmentOption{Value: "product:" + st.ID.String() + ":" + p.ExternalID, Label: st.Name + " · " + p.Title})
+			out = append(out, SegmentOption{Value: "product:" + st.ID.String() + ":" + p.ExternalID, Label: mStoreProduct.Text(l, i18n.Args{"store": st.Name, "product": p.Title})})
 		}
 	}
 	return out, nil

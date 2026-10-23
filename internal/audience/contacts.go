@@ -13,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/scoring"
 	"github.com/hostrepute/reputecast/internal/segments"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -85,6 +86,7 @@ func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f Conta
 	}
 	defer rows.Close()
 	ids := []uuid.UUID{}
+	l := i18n.LangFrom(ctx)
 	for rows.Next() {
 		var it ContactListItem
 		var id uuid.UUID
@@ -99,8 +101,8 @@ func (s *Service) ListContacts(ctx context.Context, ws *store.Workspace, f Conta
 		}
 		it.ID = id.String()
 		it.Name = strings.TrimSpace(first + " " + last)
-		it.MailboxLabel = MailboxLabel(it.MailboxProvider, detail)
-		it.SourceLabel = segments.SourceLabel(it.Source)
+		it.MailboxLabel = mailboxLabelIn(l, it.MailboxProvider, detail)
+		it.SourceLabel = segments.SourceLabelIn(l, it.Source)
 		it.Lists = []string{}
 		ids = append(ids, id)
 		out.Items = append(out.Items, it)
@@ -222,7 +224,7 @@ type ContactViewInput struct {
 func (s *Service) CreateView(ctx context.Context, ws *store.Workspace, in ContactViewInput) (ContactSavedView, error) {
 	in.Name = strings.TrimSpace(in.Name)
 	if in.Name == "" {
-		return ContactSavedView{}, api.Invalid("body.name", "Give the view a name.")
+		return ContactSavedView{}, api.Invalid("body.name", say(ctx, mViewName, nil))
 	}
 	if _, err := s.filterSQL(ctx, ws.ID, in.Filters); err != nil {
 		return ContactSavedView{}, err

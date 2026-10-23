@@ -504,3 +504,12 @@
 :root:not([lang='en']) .dg-bar-date {
   white-space: nowrap;
 }
+
+/* Overview › Recent campaigns on phones: a send's date keeps its words
+   together ("Th 4, 21 thg 10" runs to five words); the table scrolls
+   sideways, as it does in English. */
+@media (max-width: 767px) {
+  :root:not([lang='en']) section[aria-labelledby='ov-recent-h'] .tbl td:nth-child(2) {
+    white-space: nowrap;
+  }
+}

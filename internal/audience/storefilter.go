@@ -1,6 +1,7 @@
 package audience
 
 import (
+	"context"
 	"math"
 	"strconv"
 	"strings"
@@ -35,16 +36,16 @@ type StoreQuery struct {
 func (q StoreQuery) filter() StoreFilter { return StoreFilter(q) }
 
 // spentArg reads an amount into minor units.
-func spentArg(s, loc string) (int64, error) {
+func spentArg(ctx context.Context, s, loc string) (int64, error) {
 	v, err := strconv.ParseFloat(strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(s), "$")), 64)
 	if err != nil || v < 0 || v > 1e12 || math.IsNaN(v) {
-		return 0, api.Invalid(loc, "Type an amount, like 100 or 250.50.")
+		return 0, api.Invalid(loc, say(ctx, mAmount, nil))
 	}
 	return int64(math.Round(v * 100)), nil
 }
 
 // storeFilter appends the store conditions of f.
-func (s *Service) storeFilter(out *filterSQL, f StoreFilter) error {
+func (s *Service) storeFilter(ctx context.Context, out *filterSQL, f StoreFilter) error {
 	switch v := strings.TrimSpace(f.StoreCustomer); v {
 	case "":
 	case "any":
@@ -52,20 +53,20 @@ func (s *Service) storeFilter(out *filterSQL, f StoreFilter) error {
 	default:
 		id, err := uuid.Parse(v)
 		if err != nil {
-			return api.Invalid("storeCustomer", "Pick a store from this workspace.")
+			return api.Invalid("storeCustomer", say(ctx, mFilterStore, nil))
 		}
 		out.add("(EXISTS (SELECT 1 FROM store_customers sc WHERE sc.contact_id = c.id AND sc.store_id = ?) OR EXISTS (SELECT 1 FROM store_orders so WHERE so.contact_id = c.id AND so.store_id = ? AND NOT so.test))", id, id)
 	}
 	spent := "coalesce((SELECT sum(so.total_cents - so.refunded_cents) FROM store_orders so WHERE so.contact_id = c.id AND NOT so.test AND NOT so.cancelled), 0)"
 	if f.SpentFrom != "" {
-		n, err := spentArg(f.SpentFrom, "spentFrom")
+		n, err := spentArg(ctx, f.SpentFrom, "spentFrom")
 		if err != nil {
 			return err
 		}
 		out.add(spent+" >= ?", n)
 	}
 	if f.SpentTo != "" {
-		n, err := spentArg(f.SpentTo, "spentTo")
+		n, err := spentArg(ctx, f.SpentTo, "spentTo")
 		if err != nil {
 			return err
 		}

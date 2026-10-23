@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -23,14 +24,14 @@ const (
 )
 
 func init() {
-	builtinFields[FieldPushSite] = fieldSpec{"Push subscribed · site", KindEnum, []string{"is", "is_not"}}
-	builtinFields[FieldPushBrowser] = fieldSpec{"Push subscribed · browser", KindEnum, []string{"is", "is_not"}}
-	builtinFields[FieldWhatsAppConsent] = fieldSpec{"WhatsApp consent", KindEnum, []string{"is", "is_not"}}
-	enumValues[FieldPushBrowser] = [][2]string{{"any", "Any browser"}, {"chrome", "Chrome"}, {"chrome_android", "Chrome on Android"}, {"edge", "Edge"},
-		{"firefox", "Firefox"}, {"safari", "Safari on macOS"}, {"safari_ios", "Safari on iPhone and iPad"}, {"other", "Other"}}
+	builtinFields[FieldPushSite] = fieldSpec{KindEnum, []string{"is", "is_not"}}
+	builtinFields[FieldPushBrowser] = fieldSpec{KindEnum, []string{"is", "is_not"}}
+	builtinFields[FieldWhatsAppConsent] = fieldSpec{KindEnum, []string{"is", "is_not"}}
+	enumValues[FieldPushBrowser] = [][2]string{{"any", ""}, {"chrome", "Chrome"}, {"chrome_android", ""}, {"edge", "Edge"},
+		{"firefox", "Firefox"}, {"safari", ""}, {"safari_ios", ""}, {"other", ""}}
 	builtinOrder = append(builtinOrder, FieldPushSite, FieldPushBrowser, FieldWhatsAppConsent)
-	extraValidate[FieldPushSite] = validateAnyOrID("Pick a push site.")
-	extraValidate[FieldWhatsAppConsent] = validateAnyOrID("Pick a list.")
+	extraValidate[FieldPushSite] = validateAnyOrID(mPickPush)
+	extraValidate[FieldWhatsAppConsent] = validateAnyOrID(mPickListAny)
 	extraCompile[FieldPushSite] = compilePushSite
 	extraCompile[FieldPushBrowser] = compilePushBrowser
 	extraCompile[FieldWhatsAppConsent] = compileWhatsAppConsent
@@ -48,13 +49,13 @@ func init() {
 	ViewNames = append(ViewNames, "push_subscriptions", "whatsapp_consents")
 }
 
-func validateAnyOrID(msg string) func(SegmentCondition) error {
+func validateAnyOrID(msg i18n.Msg) func(SegmentCondition) error {
 	return func(c SegmentCondition) error {
 		if c.Value == "any" {
 			return nil
 		}
 		if _, err := uuid.Parse(c.Value); err != nil {
-			return problemf("%s", msg)
+			return says(msg)
 		}
 		return nil
 	}
@@ -66,7 +67,7 @@ func pushSiteOptions(ctx context.Context, q *store.Queries, wsID uuid.UUID) ([]S
 	if err != nil {
 		return nil, err
 	}
-	out := []SegmentOption{{Value: "any", Label: "Any push site"}}
+	out := []SegmentOption{{Value: "any", Label: mAnyPushSite.Text(i18n.LangFrom(ctx), nil)}}
 	for _, s := range sites {
 		out = append(out, SegmentOption{Value: s.ID.String(), Label: s.Host})
 	}
@@ -79,7 +80,7 @@ func whatsAppListOptions(ctx context.Context, q *store.Queries, wsID uuid.UUID) 
 	if err != nil {
 		return nil, err
 	}
-	out := []SegmentOption{{Value: "any", Label: "Any list"}}
+	out := []SegmentOption{{Value: "any", Label: mAnyList.Text(i18n.LangFrom(ctx), nil)}}
 	for _, l := range lists {
 		out = append(out, SegmentOption{Value: l.ID.String(), Label: l.Name})
 	}

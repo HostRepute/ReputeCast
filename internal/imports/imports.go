@@ -22,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/netguard"
@@ -195,8 +196,27 @@ type storedConnection struct {
 	Header  int            `json:"header,omitempty"`
 	// Staged remembers which lists the staged rows came from.
 	StagedLists []string `json:"stagedLists,omitempty"`
-	// Error is the last failure talking to the source.
-	Error *ImportError `json:"error,omitempty"`
+	// Error is the last failure talking to the source; ErrorText the
+	// message its words came from, for readers of other languages.
+	Error     *ImportError `json:"error,omitempty"`
+	ErrorText *i18n.Text   `json:"errorText,omitempty"`
+}
+
+// setError remembers a failure talking to the source, or clears it (nil).
+func (c *storedConnection) setError(err error) {
+	if err == nil {
+		c.Error, c.ErrorText = nil, nil
+		return
+	}
+	c.Error, c.ErrorText = toImportError(err), keptOf(err)
+}
+
+// errorIn is the stored failure's message for a reader.
+func (c storedConnection) errorIn(l i18n.Lang) string {
+	if c.Error == nil {
+		return ""
+	}
+	return keptIn(l, c.Error.Message, c.ErrorText)
 }
 
 func parseConnection(raw json.RawMessage) storedConnection {
@@ -377,7 +397,11 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, id uuid.UUID) (I
 }
 
 func (s *Service) detail(ctx context.Context, ws *store.Workspace, imp store.Import) (ImportDetail, error) {
+	l := i18n.LangFrom(ctx)
 	conn := parseConnection(imp.Connection)
+	if conn.Error != nil {
+		conn.Error.Message = conn.errorIn(l)
+	}
 	out := ImportDetail{ID: imp.ID.String(), Source: imp.Source, SourceName: SourceName(imp.Source), Status: imp.Status, Step: imp.Step,
 		FileName: imp.FileName, HasCredentials: len(imp.CredentialsEnc) > 0, Options: parseOptions(imp.Options), StagedAt: imp.StagedAt,
 		CreatedAt: imp.CreatedAt, StartedAt: imp.StartedAt, FinishedAt: imp.FinishedAt, Log: []ImportLogEntry{}, ProviderSync: []ImportProviderPulled{},
@@ -407,8 +431,8 @@ func (s *Service) detail(ctx context.Context, ws *store.Workspace, imp store.Imp
 	if err != nil {
 		return out, err
 	}
-	for _, l := range logs {
-		out.Log = append(out.Log, ImportLogEntry{At: l.OccurredAt, Kind: l.Kind, Message: l.Message})
+	for _, e := range logs {
+		out.Log = append(out.Log, ImportLogEntry{At: e.OccurredAt, Kind: e.Kind, Message: lineIn(l, e.Message, e.MessageParts)})
 	}
 	if imp.CreatedBy != nil {
 		if u, err := s.Q.GetUser(ctx, *imp.CreatedBy); err == nil {
@@ -480,7 +504,7 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 			return err
 		}
 		if n == 0 {
-			return api.Conflict("Only drafts and stopped imports can be discarded. Finished imports stay in the history.")
+			return api.Conflict(say(ctx, mDiscard, nil))
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "import.discard", TargetType: "import", TargetID: id.String(), TargetName: SourceName(imp.Source)})
 	})
@@ -500,7 +524,7 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 	if err != nil {
 		return ImportDetail{}, err
 	}
-	if err := editable(imp); err != nil {
+	if err := editable(ctx, imp); err != nil {
 		return ImportDetail{}, err
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -550,12 +574,12 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 	return s.Get(ctx, ws, id)
 }
 
-func editable(imp store.Import) error {
+func editable(ctx context.Context, imp store.Import) error {
 	switch imp.Status {
 	case "running":
-		return api.Conflict("This import is running. Stop it first or wait for the summary.")
+		return api.Conflict(say(ctx, mRunning, nil))
 	case "done":
-		return api.Conflict("This import is finished. Start a new import to bring in more contacts.")
+		return api.Conflict(say(ctx, mFinished, nil))
 	}
 	return nil
 }
@@ -564,21 +588,21 @@ func validateOptions(ctx context.Context, q *store.Queries, ws *store.Workspace,
 	seen := map[string]bool{}
 	for i, l := range o.Lists {
 		if seen[l.SourceID] {
-			return api.Invalid(fmt.Sprintf("body.options.lists[%d]", i), "Each source list can only be imported once.")
+			return api.Invalid(fmt.Sprintf("body.options.lists[%d]", i), say(ctx, mListOnce, nil))
 		}
 		seen[l.SourceID] = true
 		if name, ok := strings.CutPrefix(l.Target, "new:"); ok {
 			if strings.TrimSpace(name) == "" || len(name) > 100 {
-				return api.Invalid(fmt.Sprintf("body.options.lists[%d].target", i), "Name the new list.")
+				return api.Invalid(fmt.Sprintf("body.options.lists[%d].target", i), say(ctx, mNameList, nil))
 			}
 			continue
 		}
 		id, err := uuid.Parse(l.Target)
 		if err != nil {
-			return api.Invalid(fmt.Sprintf("body.options.lists[%d].target", i), "Pick a list to import into.")
+			return api.Invalid(fmt.Sprintf("body.options.lists[%d].target", i), say(ctx, mPickList, nil))
 		}
 		if _, err := q.GetList(ctx, store.GetListParams{WorkspaceID: ws.ID, ID: id}); err != nil {
-			return api.Invalid(fmt.Sprintf("body.options.lists[%d].target", i), "That list doesn't exist in this workspace.")
+			return api.Invalid(fmt.Sprintf("body.options.lists[%d].target", i), say(ctx, mNoList, nil))
 		}
 	}
 	if o.SkipRows == nil {
@@ -595,8 +619,33 @@ func actorID(ctx context.Context) *uuid.UUID {
 	return nil
 }
 
-func (s *Service) log(ctx context.Context, q *store.Queries, id uuid.UUID, kind, msg string) error {
-	return q.InsertImportLog(ctx, store.InsertImportLogParams{ID: uuid.Must(uuid.NewV7()), ImportID: id, OccurredAt: s.now(), Kind: kind, Message: msg})
+// log adds a line to the live log: the English it stores and the messages
+// it came from, joined with " · ".
+func (s *Service) log(ctx context.Context, q *store.Queries, id uuid.UUID, kind string, parts ...i18n.Text) error {
+	words := make([]string, 0, len(parts))
+	for _, p := range parts {
+		words = append(words, english(p))
+	}
+	raw, err := json.Marshal(parts)
+	if err != nil {
+		return err
+	}
+	return q.InsertImportLog(ctx, store.InsertImportLogParams{ID: uuid.Must(uuid.NewV7()), ImportID: id, OccurredAt: s.now(), Kind: kind,
+		Message: strings.Join(words, " · "), MessageParts: raw})
+}
+
+// logMsg adds a line of one message to the live log.
+func (s *Service) logMsg(ctx context.Context, q *store.Queries, id uuid.UUID, kind string, m i18n.Msg, args i18n.Args) error {
+	return s.log(ctx, q, id, kind, m.Keep(args))
+}
+
+// logError adds a failure to the live log: kept when it was explained for
+// people, in its own words otherwise.
+func (s *Service) logError(ctx context.Context, q *store.Queries, id uuid.UUID, err error) error {
+	if t := keptOf(err); t != nil {
+		return s.log(ctx, q, id, "error", *t)
+	}
+	return q.InsertImportLog(ctx, store.InsertImportLogParams{ID: uuid.Must(uuid.NewV7()), ImportID: id, OccurredAt: s.now(), Kind: "error", Message: err.Error()})
 }
 
 // sourceError is errors.As for SourceError.

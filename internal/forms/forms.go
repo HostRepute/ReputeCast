@@ -19,6 +19,7 @@ import (
 	"net/url"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -32,6 +33,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
@@ -258,7 +260,7 @@ func ConfigOf(f store.Form) Config {
 	if len(f.SpamProtection) > 0 {
 		_ = json.Unmarshal(f.SpamProtection, &c.Spam)
 	}
-	c.Content = withContentDefaults(c.Content, c.DoubleOptIn)
+	c.Content = withContentDefaults(c.Content, c.Labels)
 	if c.Spam.MinSeconds <= 0 {
 		c.Spam.MinSeconds = 3
 	}
@@ -268,18 +270,21 @@ func ConfigOf(f store.Form) Config {
 	return c
 }
 
-func withContentDefaults(c contentDoc, double bool) contentDoc {
+// withContentDefaults fills the copy a form hasn't written with the
+// built-in labels of its own language (labels): "Subscribe", "What would
+// you like?", the placeholders.
+func withContentDefaults(c contentDoc, labels pagelabels.Set) contentDoc {
 	if c.Button == "" {
-		c.Button = "Subscribe"
+		c.Button = labels.Text("form.button", nil)
 	}
 	if c.ListsLabel == "" {
-		c.ListsLabel = "What would you like?"
+		c.ListsLabel = labels.Text("form.lists", nil)
 	}
 	if c.EmailPlaceholder == "" {
-		c.EmailPlaceholder = "you@company.com"
+		c.EmailPlaceholder = labels.Text("form.emailPlaceholder", nil)
 	}
 	if c.NamePlaceholder == "" {
-		c.NamePlaceholder = "Sam"
+		c.NamePlaceholder = labels.Text("form.namePlaceholder", nil)
 	}
 	if c.PopupDelay <= 0 && c.PopupScroll <= 0 {
 		c.PopupDelay = 8
@@ -308,13 +313,14 @@ func BuiltinForm(ws *store.Workspace, publisher string, lists []audience.PublicL
 	if len(c.Lists) > 0 {
 		c.DefaultLists = []uuid.UUID{c.Lists[0]}
 	}
-	c.Content = withContentDefaults(contentDoc{Heading: "Subscribe to " + publisher}, true)
+	c.Content = withContentDefaults(contentDoc{Heading: mDefaultBuiltin.Text(i18n.Default, i18n.Args{"publisher": publisher})}, c.Labels)
 	return c
 }
 
-// DefaultConsentText is the consent sentence of a new form.
+// DefaultConsentText is the consent sentence of a new form, in its own
+// language: English.
 func DefaultConsentText(publisher string) string {
-	return "I agree to receive emails from " + publisher + ". Unsubscribe any time with one click. See the privacy policy."
+	return mDefaultConsent.Text(i18n.Default, i18n.Args{"publisher": publisher})
 }
 
 func nonNilIDs(xs []uuid.UUID) []uuid.UUID {
@@ -560,9 +566,10 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace) (SignupForm
 	}
 	out.SystemProvider = s.systemProvider(ctx, ws)
 	out.SystemMail = s.SystemMailAvailable(ctx, ws)
-	out.Turnstile = set.turnstile()
-	out.Branding = s.brandingOut(ws, set)
-	out.Domain = set.domain(s.URLs)
+	l := i18n.LangFrom(ctx)
+	out.Turnstile = set.turnstile(l)
+	out.Branding = s.brandingOut(l, ws, set)
+	out.Domain = set.domain(l, s.URLs)
 	return out, nil
 }
 
@@ -756,7 +763,7 @@ func actor(ctx context.Context) *uuid.UUID {
 func (s *Service) Create(ctx context.Context, ws *store.Workspace, in SignupFormCreateInput) (SignupForm, error) {
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		return SignupForm{}, api.Invalid("body.name", "Name the form.")
+		return SignupForm{}, api.Invalid("body.name", say(ctx, mNameForm, nil))
 	}
 	kind := in.Kind
 	if kind == "" {
@@ -782,7 +789,10 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, in SignupForm
 	}
 	publisher := set.Branding.PublisherName
 	fields, _ := json.Marshal([]fieldDoc{{Key: FieldEmail, Required: true}, {Key: FieldFirstName}})
-	content, _ := json.Marshal(withContentDefaults(contentDoc{Heading: "The " + publisher + " newsletter", Footnote: "We'll send a confirmation link first. No spam, ever."}, true))
+	// A new form is written in English, its copy language.
+	en := pagelabels.English()
+	content, _ := json.Marshal(withContentDefaults(contentDoc{Heading: en.Text("form.heading", i18n.Args{"publisher": publisher}),
+		Footnote: mDefaultFormFootnote.Text(i18n.Default, nil)}, en))
 	spam, _ := json.Marshal(defaultSpam())
 	var f store.Form
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -860,7 +870,7 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, id string, in
 func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Workspace, before store.Form, in SignupFormInput) (store.FormUpdateParams, error) {
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		return store.FormUpdateParams{}, api.Invalid("body.name", "Name the form.")
+		return store.FormUpdateParams{}, api.Invalid("body.name", say(ctx, mNameForm, nil))
 	}
 	// Fields: email first and always required; built-ins or custom fields of the workspace.
 	customs, err := q.ListCustomFields(ctx, ws.ID)
@@ -878,10 +888,10 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 			continue
 		}
 		if _, ok := builtinFields[f.Key]; !ok && !customKeys[f.Key] {
-			return store.FormUpdateParams{}, api.Invalid(fmt.Sprintf("body.fields[%d].key", i), fmt.Sprintf("%s isn't a contact field. Add it under Audience › Fields first.", f.Key))
+			return store.FormUpdateParams{}, api.Invalid(fmt.Sprintf("body.fields[%d].key", i), say(ctx, mNotContactField, i18n.Args{"key": f.Key}))
 		}
 		if !keyPattern.MatchString(f.Key) {
-			return store.FormUpdateParams{}, api.Invalid(fmt.Sprintf("body.fields[%d].key", i), "That isn't a field key.")
+			return store.FormUpdateParams{}, api.Invalid(fmt.Sprintf("body.fields[%d].key", i), say(ctx, mNotFieldKey, nil))
 		}
 		seen[f.Key] = true
 		fields = append(fields, fieldDoc{Key: f.Key, Label: strings.TrimSpace(f.Label), Required: f.Required})
@@ -892,7 +902,7 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 		return store.FormUpdateParams{}, err
 	}
 	if len(lists) == 0 {
-		return store.FormUpdateParams{}, api.Invalid("body.listIds", "Offer at least one list: signups need somewhere to go.")
+		return store.FormUpdateParams{}, api.Invalid("body.listIds", say(ctx, mOfferList, nil))
 	}
 	defaults, err := parseLists(ctx, q, ws, in.DefaultListIDs, "body.defaultListIds")
 	if err != nil {
@@ -912,12 +922,12 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 	if in.AfterSubmit == "redirect" {
 		u, err := url.Parse(redirect)
 		if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" || u.User != nil {
-			return store.FormUpdateParams{}, api.Invalid("body.redirectUrl", "Use a full address like https://acme.io/thanks.")
+			return store.FormUpdateParams{}, api.Invalid("body.redirectUrl", say(ctx, mRedirectURL, nil))
 		}
 	} else {
 		redirect = ""
 	}
-	origins, err := normalizeOrigins(in.AllowedOrigins)
+	origins, err := normalizeOrigins(ctx, in.AllowedOrigins)
 	if err != nil {
 		return store.FormUpdateParams{}, err
 	}
@@ -934,7 +944,7 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 		ListsLabel: strings.TrimSpace(c.ListsLabel), EmailPlaceholder: strings.TrimSpace(c.EmailPlaceholder), NamePlaceholder: strings.TrimSpace(c.NamePlaceholder),
 		PopupDelay: c.PopupDelay, PopupScroll: c.PopupScroll, PopupRepeatDays: c.PopupRepeatDays, AfterSubmitText: strings.TrimSpace(c.AfterSubmitText),
 	}
-	if err := smsConsentOf(&content, c, fields, before.Content); err != nil {
+	if err := smsConsentOf(ctx, &content, c, fields, before.Content); err != nil {
 		return store.FormUpdateParams{}, err
 	}
 	fieldsJSON, _ := json.Marshal(fields)
@@ -965,14 +975,14 @@ func parseLists(ctx context.Context, q *store.Queries, ws *store.Workspace, ids 
 	for _, raw := range ids {
 		id, err := uuid.Parse(raw)
 		if err != nil {
-			return nil, api.Invalid(loc, "Pick lists from this workspace.")
+			return nil, api.Invalid(loc, say(ctx, mWorkspaceLists, nil))
 		}
 		if slices.Contains(out, id) {
 			continue
 		}
 		if _, err := q.GetList(ctx, store.GetListParams{WorkspaceID: ws.ID, ID: id}); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
-				return nil, api.Invalid(loc, "Pick lists from this workspace.")
+				return nil, api.Invalid(loc, say(ctx, mWorkspaceLists, nil))
 			}
 			return nil, err
 		}
@@ -1007,12 +1017,12 @@ func NormalizeOrigin(raw string) (string, bool) {
 	return host, true
 }
 
-func normalizeOrigins(in []string) ([]string, error) {
+func normalizeOrigins(ctx context.Context, in []string) ([]string, error) {
 	out := []string{}
 	for i, raw := range in {
 		h, ok := NormalizeOrigin(raw)
 		if !ok {
-			return nil, api.Invalid(fmt.Sprintf("body.allowedOrigins[%d]", i), fmt.Sprintf("%q isn't a domain. Use a site's address, like docs.acme.io.", raw))
+			return nil, api.Invalid(fmt.Sprintf("body.allowedOrigins[%d]", i), say(ctx, mNotDomainQuoted, i18n.Args{"value": strconv.Quote(raw)}))
 		}
 		if !slices.Contains(out, h) {
 			out = append(out, h)
@@ -1037,7 +1047,7 @@ func (s *Service) Rename(ctx context.Context, ws *store.Workspace, id string, in
 		}
 		name := strings.TrimSpace(in.Name)
 		if name == "" {
-			return api.Invalid("body.name", "Name the form.")
+			return api.Invalid("body.name", say(ctx, mNameForm, nil))
 		}
 		slug := before.Slug
 		if name != before.Name {
@@ -1116,7 +1126,7 @@ type SignupFormOriginInput struct {
 func (s *Service) AllowOrigin(ctx context.Context, ws *store.Workspace, id string, in SignupFormOriginInput) (SignupForm, error) {
 	host, ok := NormalizeOrigin(in.Origin)
 	if !ok {
-		return SignupForm{}, api.Invalid("body.origin", "That isn't a domain. Use a site's address, like docs.acme.io.")
+		return SignupForm{}, api.Invalid("body.origin", say(ctx, mNotDomain, nil))
 	}
 	var after store.Form
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -1148,7 +1158,7 @@ func (s *Service) AllowOrigin(ctx context.Context, ws *store.Workspace, id strin
 func (s *Service) KeepBlocked(ctx context.Context, ws *store.Workspace, id string, in SignupFormOriginInput) (SignupForm, error) {
 	host, ok := NormalizeOrigin(in.Origin)
 	if !ok {
-		return SignupForm{}, api.Invalid("body.origin", "That isn't a domain.")
+		return SignupForm{}, api.Invalid("body.origin", say(ctx, mNotDomainShort, nil))
 	}
 	var f store.Form
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {

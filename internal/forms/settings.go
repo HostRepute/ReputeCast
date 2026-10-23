@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -22,6 +21,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/routing"
@@ -187,20 +187,19 @@ type PublicBranding struct {
 	Notes []string `json:"notes"`
 }
 
-func (b Branding) public() PublicBranding {
+// public is the branding for the app, its contrast notes in a reader's
+// language.
+func (b Branding) public(l i18n.Lang) PublicBranding {
 	out := PublicBranding{PublisherName: b.PublisherName, Accent: b.Palette.Accent, Background: b.Palette.Background, AccentHover: b.Palette.Hover,
 		AccentSoft: b.Palette.Soft, AccentText: b.Palette.Text, OnAccent: b.Palette.OnAccent, Font: b.Font, CustomFontFamily: b.CustomFontFamily,
-		CustomFontURL: b.CustomFontURL, PoweredBy: b.PoweredBy, PrivacyURL: b.PrivacyURL, Initial: b.Initial(), Notes: b.Palette.Notes}
-	if out.Notes == nil {
-		out.Notes = []string{}
-	}
+		CustomFontURL: b.CustomFontURL, PoweredBy: b.PoweredBy, PrivacyURL: b.PrivacyURL, Initial: b.Initial(), Notes: b.Palette.notesIn(l)}
 	return out
 }
 
 // brandingOut is the branding for the app, the logo served by the instance
 // (the custom domain may not resolve where the app runs).
-func (s *Service) brandingOut(ws *store.Workspace, set *Settings) PublicBranding {
-	out := set.Branding.public()
+func (s *Service) brandingOut(l i18n.Lang, ws *store.Workspace, set *Settings) PublicBranding {
+	out := set.Branding.public(l)
 	if l := set.Branding.Logo; l != nil {
 		out.Logo = &PublicBrandingLogo{Name: l.Name, Type: l.Type, URL: LinksOn(s.URLs.Base(), ws.Slug, false).Logo(l.Hash)}
 	}
@@ -271,16 +270,36 @@ type Pages struct {
 	PreviewEmail string `json:"previewEmail"`
 }
 
+// defaultPages are the pages' options until the workspace saves its own.
+// Their text is ReputeCast's English; a page shows it in its own language
+// while the workspace keeps it (withDefaultsIn).
 func defaultPages() Pages {
+	en := i18n.Default
 	return Pages{
-		Subscribe:   SubscribePage{ListText: map[string]string{}, Index: true, Footnote: "We'll send a confirmation link first. No spam, ever. You can change lists or pause emails from any message."},
+		Subscribe:   SubscribePage{ListText: map[string]string{}, Index: true, Footnote: mDefaultFootnote.Text(en, nil)},
 		Confirm:     ConfirmPage{ListText: map[string]string{}, OfferText: map[string]string{}, InboxTip: true},
 		Preferences: PreferencesPage{Lists: []string{}, ListText: map[string]string{}, Frequency: true, Pause: true, FirstName: true},
-		Unsubscribe: UnsubscribePage{Fewer: true, FewerTitle: "Too many emails? Get fewer instead.",
-			FewerText:   "Switch to one monthly best-of and nothing else. Most people who pick this stay subscribed.",
-			FewerButton: "Send me the monthly best-of only", Reasons: true},
+		Unsubscribe: UnsubscribePage{Fewer: true, FewerTitle: mDefaultFewerTitle.Text(en, nil), FewerText: mDefaultFewerText.Text(en, nil),
+			FewerButton: mDefaultFewerButton.Text(en, nil), Reasons: true},
 		Archive: ArchivePage{Enabled: true, Lists: []string{}, SubscribeBox: true, Index: true},
 	}
+}
+
+// withDefaultsIn is the pages with ReputeCast's default text in a page's
+// language (code) wherever the workspace kept it.
+func (p Pages) withDefaultsIn(code string) Pages {
+	p.Subscribe.Footnote = p.Subscribe.FootnoteIn(code)
+	p.Unsubscribe.FewerTitle = pageDefault(code, mDefaultFewerTitle, p.Unsubscribe.FewerTitle)
+	p.Unsubscribe.FewerText = pageDefault(code, mDefaultFewerText, p.Unsubscribe.FewerText)
+	p.Unsubscribe.FewerButton = pageDefault(code, mDefaultFewerButton, p.Unsubscribe.FewerButton)
+	return p
+}
+
+// FootnoteIn is the Subscribe page's footnote on a page in a language
+// (code): the publisher's own text, or ReputeCast's default in that
+// language while the workspace keeps it.
+func (p SubscribePage) FootnoteIn(code string) string {
+	return pageDefault(code, mDefaultFootnote, p.Footnote)
 }
 
 func pagesOf(raw json.RawMessage) Pages {
@@ -333,10 +352,16 @@ func (s *Settings) HostedFormID() *uuid.UUID { return s.row.HostedFormID }
 // DomainState is the custom domain as set, verified or not, with its
 // check's status and finding (polls warn while answer links can't use it).
 func (s *Settings) DomainState() (domain, status, detail string) {
+	return s.DomainStateIn(i18n.Default)
+}
+
+// DomainStateIn is DomainState with the check's finding in a reader's
+// language.
+func (s *Settings) DomainStateIn(l i18n.Lang) (domain, status, detail string) {
 	if s.row.CustomDomain == nil {
 		return "", "", ""
 	}
-	return *s.row.CustomDomain, s.row.DomainStatus, s.row.DomainDetail
+	return *s.row.CustomDomain, s.row.DomainStatus, keptIn(l, s.row.Texts, "domain_detail", s.row.DomainDetail)
 }
 
 // CustomDomain is the verified custom domain, or "".
@@ -536,9 +561,9 @@ type PublicTurnstile struct {
 	CheckedAt *time.Time `json:"checkedAt,omitempty"`
 }
 
-func (s *Settings) turnstile() PublicTurnstile {
+func (s *Settings) turnstile(l i18n.Lang) PublicTurnstile {
 	return PublicTurnstile{SiteKey: s.row.TurnstileSiteKey, HasSecret: len(s.row.TurnstileSecretEnc) > 0, Status: s.row.TurnstileStatus,
-		Error: s.row.TurnstileError, CheckedAt: s.row.TurnstileCheckedAt}
+		Error: keptIn(l, s.row.Texts, "turnstile_error", s.row.TurnstileError), CheckedAt: s.row.TurnstileCheckedAt}
 }
 
 // PublicCustomDomain is the custom domain and its DNS check.
@@ -555,8 +580,9 @@ type PublicCustomDomain struct {
 	TXTValue string `json:"txtValue"`
 }
 
-func (s *Settings) domain(urls publicurl.Builder) PublicCustomDomain {
-	out := PublicCustomDomain{Status: s.row.DomainStatus, Detail: s.row.DomainDetail, CheckedAt: s.row.DomainCheckedAt, VerifiedAt: s.row.DomainVerifiedAt, Target: instanceHost(urls)}
+func (s *Settings) domain(l i18n.Lang, urls publicurl.Builder) PublicCustomDomain {
+	out := PublicCustomDomain{Status: s.row.DomainStatus, Detail: keptIn(l, s.row.Texts, "domain_detail", s.row.DomainDetail), CheckedAt: s.row.DomainCheckedAt,
+		VerifiedAt: s.row.DomainVerifiedAt, Target: instanceHost(urls)}
 	if s.row.CustomDomain != nil {
 		out.Domain = *s.row.CustomDomain
 		out.TXTName = "_reputecast." + out.Domain
@@ -613,14 +639,16 @@ func (s *Service) PublicPages(ctx context.Context, ws *store.Workspace) (PublicP
 		return PublicPagesSettings{}, err
 	}
 	links := s.Links(ws, set)
-	dom := set.domain(s.URLs)
+	l := i18n.LangFrom(ctx)
+	dom := set.domain(l, s.URLs)
 	if dom.Domain != "" {
 		dom.TXTValue = s.domainToken(ws, dom.Domain)
 	}
-	out := PublicPagesSettings{Branding: set.Branding.public(), Domain: dom, Pages: set.Pages, Forms: []SignupFormSummary{}, Lists: []PublicPageList{},
+	// The pages' text is in their own language, defaults included.
+	out := PublicPagesSettings{Domain: dom, Pages: set.Pages.withDefaultsIn(set.CopyLanguage()), Forms: []SignupFormSummary{}, Lists: []PublicPageList{},
 		URLs:      PublicPageURLs{Subscribe: links.Subscribe(""), Preferences: links.PreferencesRequest(), Archive: links.Archive(), Feed: links.Feed(), Sitemap: links.Sitemap()},
-		Turnstile: set.turnstile(), UpdatedAt: set.row.UpdatedAt}
-	out.Branding = s.brandingOut(ws, set)
+		Turnstile: set.turnstile(l), UpdatedAt: set.row.UpdatedAt}
+	out.Branding = s.brandingOut(l, ws, set)
 	if set.row.HostedFormID != nil {
 		out.HostedFormID = set.row.HostedFormID.String()
 	}
@@ -663,31 +691,35 @@ type PublicBrandingInput struct {
 func (s *Service) SaveBranding(ctx context.Context, ws *store.Workspace, in PublicBrandingInput) (PublicPagesSettings, error) {
 	name := strings.TrimSpace(in.PublisherName)
 	if name == "" {
-		return PublicPagesSettings{}, api.Invalid("body.publisherName", "Name the publisher: it heads every public page.")
+		return PublicPagesSettings{}, api.Invalid("body.publisherName", say(ctx, mPublisherName, nil))
 	}
 	pal, err := DerivePalette(in.Accent, in.Background)
 	if err != nil {
-		loc := "body.accent"
-		if strings.Contains(err.Error(), "background") {
-			loc = "body.background"
+		loc, problem := "body.accent", err.Error()
+		var pe *paletteError
+		if errors.As(err, &pe) {
+			if pe.background {
+				loc = "body.background"
+			}
+			problem = textIn(i18n.LangFrom(ctx), pe.text)
 		}
-		return PublicPagesSettings{}, api.Invalid(loc, capitalizeFirst(err.Error())+".")
+		return PublicPagesSettings{}, api.Invalid(loc, capitalizeFirst(problem)+".")
 	}
 	if in.Font == "custom" {
 		u, err := url.Parse(strings.TrimSpace(in.CustomFontURL))
 		if strings.TrimSpace(in.CustomFontFamily) == "" {
-			return PublicPagesSettings{}, api.Invalid("body.customFontFamily", "Name the font family, as in the font's CSS.")
+			return PublicPagesSettings{}, api.Invalid("body.customFontFamily", say(ctx, mFontFamily, nil))
 		}
 		fontFile := err == nil && (strings.HasSuffix(u.Path, ".woff2") || strings.HasSuffix(u.Path, ".woff"))
 		if !fontFile || u.Scheme != "https" || u.Host == "" {
-			return PublicPagesSettings{}, api.Invalid("body.customFontUrl", "Link the font file itself: an https address ending in .woff2 or .woff.")
+			return PublicPagesSettings{}, api.Invalid("body.customFontUrl", say(ctx, mFontURL, nil))
 		}
 	}
 	privacy := strings.TrimSpace(in.PrivacyURL)
 	if privacy != "" {
 		u, err := url.Parse(privacy)
 		if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
-			return PublicPagesSettings{}, api.Invalid("body.privacyUrl", "Use a full address like https://acme.io/privacy.")
+			return PublicPagesSettings{}, api.Invalid("body.privacyUrl", say(ctx, mPrivacyURL, nil))
 		}
 	}
 	powered := in.PoweredBy
@@ -789,7 +821,7 @@ func (s *Service) SavePage(ctx context.Context, ws *store.Workspace, in PublicPa
 		if err != nil {
 			return err
 		}
-		after, changed, err := applyPages(before, in, lists)
+		after, changed, err := applyPages(i18n.LangFrom(ctx), before, in, lists)
 		if err != nil {
 			return err
 		}
@@ -811,7 +843,7 @@ func (s *Service) SavePage(ctx context.Context, ws *store.Workspace, in PublicPa
 			if *in.HostedFormID != "" {
 				f, err := s.form(ctx, q, ws, *in.HostedFormID)
 				if err != nil {
-					return api.Invalid("body.hostedFormId", "Pick a form of this workspace.")
+					return api.Invalid("body.hostedFormId", say(ctx, mPickForm, nil))
 				}
 				id = &f.ID
 				hostedAfter = f.ID.String()
@@ -834,12 +866,13 @@ func (s *Service) SavePage(ctx context.Context, ws *store.Workspace, in PublicPa
 }
 
 // applyPages lays the pages named in in over before, cleaned as they are
-// saved: trimmed text, lists of the workspace only.
-func applyPages(before Pages, in PublicPageInput, lists []audience.PublicList) (Pages, []string, error) {
+// saved: trimmed text, lists of the workspace only. Problems are in the
+// reader's language (l).
+func applyPages(l i18n.Lang, before Pages, in PublicPageInput, lists []audience.PublicList) (Pages, []string, error) {
 	after := before
 	known := map[string]bool{}
-	for _, l := range lists {
-		known[l.ID.String()] = true
+	for _, pl := range lists {
+		known[pl.ID.String()] = true
 	}
 	cleanText := func(m map[string]string, loc string) (map[string]string, error) {
 		out := map[string]string{}
@@ -849,7 +882,7 @@ func applyPages(before Pages, in PublicPageInput, lists []audience.PublicList) (
 			}
 			v = strings.TrimSpace(v)
 			if len(v) > 300 {
-				return nil, api.Invalid(loc, "Keep each list's line under 300 characters.")
+				return nil, api.Invalid(loc, mListLine300.Text(l, nil))
 			}
 			if v != "" {
 				out[k] = v
@@ -861,7 +894,7 @@ func applyPages(before Pages, in PublicPageInput, lists []audience.PublicList) (
 		out := []string{}
 		for _, id := range ids {
 			if !known[id] {
-				return nil, api.Invalid(loc, "Pick lists from this workspace.")
+				return nil, api.Invalid(loc, mWorkspaceLists.Text(l, nil))
 			}
 			if !slices.Contains(out, id) {
 				out = append(out, id)
@@ -906,7 +939,7 @@ func applyPages(before Pages, in PublicPageInput, lists []audience.PublicList) (
 		p := *in.Unsubscribe
 		p.FewerTitle, p.FewerText, p.FewerButton = strings.TrimSpace(p.FewerTitle), strings.TrimSpace(p.FewerText), strings.TrimSpace(p.FewerButton)
 		if p.Fewer && (p.FewerTitle == "" || p.FewerButton == "") {
-			return before, nil, api.Invalid("body.unsubscribe.fewerButton", "Give the offer a heading and a button, or turn it off.")
+			return before, nil, api.Invalid("body.unsubscribe.fewerButton", mFewerOffer.Text(l, nil))
 		}
 		after.Unsubscribe = p
 		changed = append(changed, "unsubscribe")
@@ -922,7 +955,7 @@ func applyPages(before Pages, in PublicPageInput, lists []audience.PublicList) (
 	if in.PreviewEmail != nil {
 		e := strings.ToLower(strings.TrimSpace(*in.PreviewEmail))
 		if e != "" && (!strings.Contains(e, "@") || strings.ContainsAny(e, " <>\"")) {
-			return before, nil, api.Invalid("body.previewEmail", "Enter a subscriber's email address, or leave it empty.")
+			return before, nil, api.Invalid("body.previewEmail", mPreviewEmail.Text(l, nil))
 		}
 		after.PreviewEmail = e
 		changed = append(changed, "preview")
@@ -937,7 +970,7 @@ func (s *Service) WithDraft(ctx context.Context, set *Settings, in PublicPageInp
 	if err != nil {
 		return nil, err
 	}
-	pages, _, err := applyPages(set.Pages, in, lists)
+	pages, _, err := applyPages(i18n.LangFrom(ctx), set.Pages, in, lists)
 	if err != nil {
 		return nil, err
 	}
@@ -980,13 +1013,14 @@ var svgEventHandler = regexp.MustCompile(`(?i)[\s"'/]on[a-z]+\s*=`)
 const MaxLogoBytes = 256 << 10
 
 // sniffLogo checks the bytes of an uploaded logo and returns its type, or
-// what's wrong with the file in words for the person uploading it.
-func sniffLogo(data []byte) (ctype, problem string) {
+// what's wrong with the file in words for the person uploading it (in
+// their language, l).
+func sniffLogo(l i18n.Lang, data []byte) (ctype, problem string) {
 	if len(data) == 0 {
-		return "", "The file is empty."
+		return "", mLogoEmpty.Text(l, nil)
 	}
 	if len(data) > MaxLogoBytes {
-		return "", fmt.Sprintf("The logo is %d KB; the limit is 256 KB. An SVG or a 200 px PNG is plenty.", len(data)>>10)
+		return "", mLogoTooBig.Text(l, i18n.Args{"kb": len(data) >> 10})
 	}
 	head := data[:min(len(data), 512)]
 	switch ct := http.DetectContentType(data); ct {
@@ -1001,16 +1035,16 @@ func sniffLogo(data []byte) (ctype, problem string) {
 			bad = bad || bytes.Contains(all, s)
 		}
 		if bad {
-			return "", "This SVG contains scripts or embedded content. Export it again as a plain SVG or a PNG."
+			return "", mLogoScripts.Text(l, nil)
 		}
 		return "image/svg+xml", ""
 	}
-	return "", "That file isn't an image the pages can show. Upload an SVG, PNG, JPEG, GIF or WebP."
+	return "", mLogoType.Text(l, nil)
 }
 
 // UploadLogo stores the publisher's logo.
 func (s *Service) UploadLogo(ctx context.Context, ws *store.Workspace, name string, data []byte) (PublicPagesSettings, error) {
-	ctype, problem := sniffLogo(data)
+	ctype, problem := sniffLogo(i18n.LangFrom(ctx), data)
 	if problem != "" {
 		return PublicPagesSettings{}, api.Invalid("body.file", problem)
 	}

@@ -1,0 +1,35 @@
+{
+  "audience.all": "Tất cả người đăng ký",
+  "audience.segments": "{count, plural, other {# phân khúc}}",
+  "note.ab": "A/B {kind, select, subject {tiêu đề} content {nội dung} send_time {giờ gửi} other {{kindName}}}",
+  "note.abWinner": "A/B {kind, select, subject {tiêu đề} content {nội dung} send_time {giờ gửi} other {{kindName}}}, {winner} thắng",
+  "note.bounceSuppressed": "{type, select, unknown_user {Trả thư vĩnh viễn · người nhận không tồn tại, trong {campaign}} domain_invalid {Trả thư vĩnh viễn · không tìm thấy tên miền, trong {campaign}} mailbox_full {Trả thư tạm thời · hộp thư đầy, trong {campaign}} deferral_expired {Trả thư tạm thời · hoãn nhận đã hết hạn, trong {campaign}} blocked {Bị chặn · chính sách hoặc uy tín, trong {campaign}} other {Thư trả lại khác, trong {campaign}}}",
+
+  "label.referralLinks": "Liên kết giới thiệu (cá nhân)",
+
+  "bounce.unknown_user": "Vĩnh viễn · người nhận không tồn tại",
+  "bounce.domain_invalid": "Vĩnh viễn · không tìm thấy tên miền",
+  "bounce.mailbox_full": "Tạm thời · hộp thư đầy",
+  "bounce.deferral_expired": "Tạm thời · hoãn nhận đã hết hạn",
+  "bounce.blocked": "Bị chặn · chính sách hoặc uy tín",
+  "bounce.other": "Khác",
+
+  "reason.too_frequent": "Quá nhiều email",
+  "reason.not_relevant": "Nội dung không phù hợp",
+  "reason.none": "Không nêu lý do",
+  "reason.never_signed_up": "Không hề đăng ký",
+  "reason.spam": "Trông như thư rác",
+  "reason.other": "Khác",
+
+  "ab.subject": "tiêu đề",
+  "ab.content": "nội dung",
+  "ab.send_time": "giờ gửi",
+
+  "problem.nothingToShare": "Chưa có gì để chia sẻ: {campaign} chưa được gửi. Hãy chia sẻ báo cáo khi đã có kết quả.",
+  "problem.tooManyLinks": "Báo cáo này đã có 10 liên kết đang hoạt động. Hãy thu hồi một liên kết không còn dùng, rồi tạo liên kết mới.",
+  "problem.sharedRateLimited": "Có quá nhiều yêu cầu xem báo cáo được chia sẻ từ mạng của bạn. Hãy đợi một phút rồi tải lại.",
+  "problem.sharedGone": "Liên kết này không dùng được. Có thể liên kết đã bị thu hồi hoặc đã hết hạn. Hãy nhờ người chia sẻ gửi liên kết mới.",
+  "problem.unknownBounceType": "Loại thư trả lại không xác định.",
+  "problem.softBounces": "Thư trả lại tạm thời không bị chặn gửi: địa chỉ được thử lại ở lần gửi sau, và chỉ bị chặn gửi nếu tiếp tục thất bại.",
+  "problem.allSuppressed": "Mọi địa chỉ bị trả thư theo cách này đều đã có trong danh sách chặn gửi."
+}

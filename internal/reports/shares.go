@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -49,7 +50,7 @@ func (s *Service) CreateShare(ctx context.Context, ws *store.Workspace, campaign
 		return ReportShareLink{}, api.MapError(err, "Campaign")
 	}
 	if unsent[c.Status] {
-		return ReportShareLink{}, api.Conflict("There's nothing to share yet: " + c.Name + " hasn't been sent. Share its report once results come in.")
+		return ReportShareLink{}, api.Conflict(mNothingToShare.Text(i18n.LangFrom(ctx), i18n.Args{"campaign": c.Name}))
 	}
 	now := s.now()
 	active, err := s.Q.ReportShareList(ctx, store.ReportShareListParams{CampaignID: c.ID, Now: &now})
@@ -57,7 +58,7 @@ func (s *Service) CreateShare(ctx context.Context, ws *store.Workspace, campaign
 		return ReportShareLink{}, err
 	}
 	if len(active) >= MaxActiveLinks {
-		return ReportShareLink{}, api.Conflict("This report already has 10 active links. Revoke one you no longer need, then create a new one.")
+		return ReportShareLink{}, api.Conflict(mTooManyLinks.Text(i18n.LangFrom(ctx), nil))
 	}
 	token, err := newShareToken()
 	if err != nil {
@@ -158,10 +159,10 @@ func (s *Service) Shared(ctx context.Context, token, client string) (SharedCampa
 		return SharedCampaignReport{}, errors.New("reports: no limiter configured")
 	}
 	if !lim.Allow(client, now) {
-		return SharedCampaignReport{}, api.Err(http.StatusTooManyRequests, api.CodeRateLimited, "Too many requests for shared reports from your network. Wait a minute and reload.")
+		return SharedCampaignReport{}, api.Err(http.StatusTooManyRequests, api.CodeRateLimited, mSharedLimited.Text(i18n.LangFrom(ctx), nil))
 	}
 	token = strings.TrimSpace(token)
-	gone := api.Err(http.StatusNotFound, api.CodeNotFound, "This link doesn't work. It may have been revoked, or it expired. Ask the person who shared it for a new one.")
+	gone := api.Err(http.StatusNotFound, api.CodeNotFound, mSharedGone.Text(i18n.LangFrom(ctx), nil))
 	if len(token) < 16 || len(token) > 64 {
 		lim.Miss(client, now)
 		return SharedCampaignReport{}, gone

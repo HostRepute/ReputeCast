@@ -164,3 +164,25 @@ func TestWelcomePrompts(t *testing.T) {
 		t.Fatalf("a running import: %+v", ir.Prompt)
 	}
 }
+
+// The prompt's problems read in the app's language; API clients that don't
+// ask for one get English.
+func TestWelcomePromptProblemsInVietnamese(t *testing.T) {
+	env := apptest.New(t)
+	owner := env.CreateUser(apptest.UserOpts{Email: "owner@example.com", Name: "Olive Owner"})
+	ws := env.CreateWorkspace("Prompts", owner.ID)
+	base := "/workspaces/" + ws.Slug
+
+	vi := env.Client()
+	vi.Header = http.Header{"Accept-Language": {"vi"}}
+	vi.SignIn("owner@example.com", "")
+	if p := vi.Do(http.MethodGet, base+"/welcome-prompt?context=form", nil).MustStatus(t, 422).Problem(t); p["detail"] != "Hãy cho biết biểu mẫu hoặc lần nhập." {
+		t.Errorf("form without id: %v", p["detail"])
+	}
+
+	en := env.Client()
+	en.SignIn("owner@example.com", "")
+	if p := en.Do(http.MethodGet, base+"/welcome-prompt?context=import", nil).MustStatus(t, 422).Problem(t); p["detail"] != "Name the form or the import." {
+		t.Errorf("English: %v", p["detail"])
+	}
+}

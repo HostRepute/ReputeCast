@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -30,11 +31,11 @@ func (s *Service) source(imp store.Import) (Source, error) {
 		return &FileSource{Name: imp.FileName, Kind: imp.Source, Data: imp.FileData, SkipRows: skip}, nil
 	}
 	if len(imp.CredentialsEnc) == 0 {
-		return nil, &SourceError{Code: CodeAuthFailed, Message: fmt.Sprintf("Connect %s with an API key first.", SourceName(imp.Source))}
+		return nil, newSourceError(CodeAuthFailed, 0, mConnectFirst, i18n.Args{"source": SourceName(imp.Source)})
 	}
 	raw, err := s.Box.Open(imp.CredentialsEnc, credentialsAD(imp.ID))
 	if err != nil {
-		return nil, errors.New("the stored API key can't be decrypted; paste it again")
+		return nil, newKeptError(mKeyUnreadable, nil)
 	}
 	var c credentials
 	_ = json.Unmarshal(raw, &c)
@@ -83,15 +84,15 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	if err != nil {
 		return ImportDetail{}, err
 	}
-	if err := editable(imp); err != nil {
+	if err := editable(ctx, imp); err != nil {
 		return ImportDetail{}, err
 	}
 	if isFile(imp.Source) {
-		return ImportDetail{}, api.Invalid("body.apiKey", "File imports don't need an API key: upload the file instead.")
+		return ImportDetail{}, api.Invalid("body.apiKey", say(ctx, mFileNoKey, nil))
 	}
 	c := credentials{APIKey: strings.TrimSpace(in.APIKey), User: strings.TrimSpace(in.User)}
 	if strings.TrimSpace(in.BaseURL) != "" {
-		base, problem := s.serverAddress(in.BaseURL)
+		base, problem := s.serverAddress(ctx, in.BaseURL)
 		if problem != "" {
 			return ImportDetail{}, api.Invalid("body.baseUrl", problem)
 		}
@@ -99,13 +100,13 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	}
 	src, err := s.newSource(imp.Source, c)
 	if err != nil {
-		return ImportDetail{}, sourceProblem(err)
+		return ImportDetail{}, sourceProblem(ctx, err)
 	}
 	conn, err := src.Connect(ctx)
 	if err != nil {
 		// Keep the draft usable: remember the failure for the error state.
 		_ = s.storeError(ctx, imp, err)
-		return ImportDetail{}, sourceProblem(err)
+		return ImportDetail{}, sourceProblem(ctx, err)
 	}
 	conn.BaseURL = c.BaseURL
 	sealed, err := s.Box.Seal(mustJSON(c), credentialsAD(imp.ID))
@@ -142,21 +143,21 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, id uuid.UUID
 
 // serverAddress checks the address of a self-hosted server (listmonk,
 // Keila) and returns it as scheme://host/path, or the problem with it in
-// the person's words. Credentials, a query and a fragment are refused, so
-// the API path is appended where the person expects it, and the host may
-// not be a loopback, private, link-local or metadata address unless
-// providers.allow_private_networks is on; the client checks the resolved
-// address again at every connection.
-func (s *Service) serverAddress(raw string) (base, problem string) {
+// the person's words (in the request's language). Credentials, a query and
+// a fragment are refused, so the API path is appended where the person
+// expects it, and the host may not be a loopback, private, link-local or
+// metadata address unless providers.allow_private_networks is on; the
+// client checks the resolved address again at every connection.
+func (s *Service) serverAddress(ctx context.Context, raw string) (base, problem string) {
 	u, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil || u.Host == "" || (u.Scheme != "https" && u.Scheme != "http") {
-		return "", "Use the full address, like https://lists.example.com."
+		return "", say(ctx, mFullAddress, nil)
 	}
 	if u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.ForceQuery {
-		return "", "Use only the server's address, like https://lists.example.com: no credentials, query or fragment."
+		return "", say(ctx, mOnlyAddress, nil)
 	}
 	if _, err := s.Guard.ValidateURL(u.String()); err != nil {
-		return "", "That address is on a private or internal network. Turn on providers.allow_private_networks to import from a server there."
+		return "", say(ctx, mPrivateAddress, nil)
 	}
 	return u.Scheme + "://" + u.Host + strings.TrimRight(u.EscapedPath(), "/"), ""
 }
@@ -164,7 +165,7 @@ func (s *Service) serverAddress(raw string) (base, problem string) {
 // storeError remembers a source failure on the draft.
 func (s *Service) storeError(ctx context.Context, imp store.Import, err error) error {
 	conn := parseConnection(imp.Connection)
-	conn.Error = toImportError(err)
+	conn.setError(err)
 	_, e := s.Pool.Exec(ctx, `UPDATE imports SET connection = $2, updated_at = now() WHERE id = $1`, imp.ID, mustJSON(conn))
 	return e
 }
@@ -184,8 +185,10 @@ func toImportError(err error) *ImportError {
 	return &ImportError{Code: "import_failed", Message: err.Error()}
 }
 
-// sourceProblem maps source errors to API problems.
-func sourceProblem(err error) error {
+// sourceProblem maps source errors to API problems, in the request's
+// language.
+func sourceProblem(ctx context.Context, err error) error {
+	l := i18n.LangFrom(ctx)
 	if se, ok := sourceError(err); ok {
 		status := http.StatusBadGateway
 		switch se.Code {
@@ -194,14 +197,14 @@ func sourceProblem(err error) error {
 		case CodeRateLimited:
 			status = http.StatusTooManyRequests
 		}
-		p := api.Err(status, se.Code, se.Message)
+		p := api.Err(status, se.Code, errorIn(l, se))
 		if se.Status > 0 {
 			p = p.WithMeta("sourceStatus", se.Status)
 		}
 		return p
 	}
 	if errors.Is(err, ErrNoKey) {
-		return api.Invalid("body.apiKey", "Paste an API key.")
+		return api.Invalid("body.apiKey", mPasteKey.Text(l, nil))
 	}
 	var fe *FileError
 	if errors.As(err, &fe) {
@@ -209,7 +212,7 @@ func sourceProblem(err error) error {
 		if len(fe.BadRows) > 0 {
 			code = "file_columns"
 		}
-		return api.Err(http.StatusUnprocessableEntity, code, fe.Message)
+		return api.Err(http.StatusUnprocessableEntity, code, errorIn(l, fe))
 	}
 	return err
 }
@@ -220,11 +223,11 @@ func (s *Service) Upload(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 	if err != nil {
 		return ImportDetail{}, err
 	}
-	if err := editable(imp); err != nil {
+	if err := editable(ctx, imp); err != nil {
 		return ImportDetail{}, err
 	}
 	if len(data) == 0 {
-		return ImportDetail{}, api.Invalid("body", "The file is empty.")
+		return ImportDetail{}, api.Invalid("body", say(ctx, mEmptyFile, nil))
 	}
 	name = filepath.Base(strings.TrimSpace(name))
 	if name == "" || name == "." {
@@ -242,7 +245,7 @@ func (s *Service) Upload(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 		if !errors.As(cerr, &fe) {
 			return ImportDetail{}, cerr
 		}
-		stored.Error = toImportError(cerr)
+		stored.setError(cerr)
 		stored.BadRows, stored.Header = fe.BadRows, fe.Header
 		stored.Account = name
 		if stored.Lists == nil {
@@ -309,7 +312,7 @@ func (s *Service) SkipBadRows(ctx context.Context, ws *store.Workspace, id uuid.
 	}
 	c, err := f.Connect(ctx)
 	if err != nil {
-		return ImportDetail{}, sourceProblem(err)
+		return ImportDetail{}, sourceProblem(ctx, err)
 	}
 	fields, _ := f.Fields(ctx, nil)
 	stored := storedConnection{ImportConnection: c, Fields: fields}

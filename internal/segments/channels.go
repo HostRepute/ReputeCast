@@ -15,12 +15,12 @@ import (
 // tables, so SQL segments see them too.
 
 func init() {
-	builtinFields["phone"] = fieldSpec{"Phone number", KindEnum, []string{"is"}}
-	builtinFields["phone_country"] = fieldSpec{"Phone country", KindText, []string{"is", "is_not"}}
-	builtinFields["sms_consent"] = fieldSpec{"SMS consent", KindList, []string{"includes", "excludes"}}
-	builtinFields["texted"] = fieldSpec{"Got a text", KindPeriod, []string{"in_last", "not_in_last", "never"}}
-	builtinFields["text_clicked"] = fieldSpec{"Clicked a text's link", KindPeriod, []string{"in_last", "not_in_last"}}
-	enumValues["phone"] = [][2]string{{"set", "Has a number"}, {"not_set", "Has no number"}}
+	builtinFields["phone"] = fieldSpec{KindEnum, []string{"is"}}
+	builtinFields["phone_country"] = fieldSpec{KindText, []string{"is", "is_not"}}
+	builtinFields["sms_consent"] = fieldSpec{KindList, []string{"includes", "excludes"}}
+	builtinFields["texted"] = fieldSpec{KindPeriod, []string{"in_last", "not_in_last", "never"}}
+	builtinFields["text_clicked"] = fieldSpec{KindPeriod, []string{"in_last", "not_in_last"}}
+	enumValues["phone"] = [][2]string{{"set", ""}, {"not_set", ""}}
 	builtinOrder = insertAfter(builtinOrder, "language", "phone", "phone_country", "sms_consent", "texted", "text_clicked")
 	extraCompile["phone"] = compilePhone
 	extraCompile["phone_country"] = compilePhoneCountry

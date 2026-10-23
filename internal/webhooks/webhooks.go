@@ -30,6 +30,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/secrets"
@@ -62,44 +63,44 @@ type WebhookEventInfo struct {
 
 // Events is the catalogue of events, in display order.
 var Events = []WebhookEventInfo{
-	{"contact.subscribed", "Contacts", "A contact joined a list (after double opt-in when it's on)."},
-	{"contact.unsubscribed", "Contacts", "A contact left a list or unsubscribed from everything."},
-	{"contact.updated", "Contacts", "Fields, tags or preferences changed."},
-	{"contact.erased", "Contacts", "Personal data was erased."},
-	{"email.sent", "Email", "A sending provider accepted a message."},
-	{"email.delivered", "Email", "The mailbox provider accepted the message."},
-	{"email.deferred", "Email", "Delivery was delayed and will be retried."},
-	{"email.bounced", "Email", "Hard or soft bounce, with the provider's original code."},
-	{"email.complained", "Email", "The recipient marked the message as spam."},
-	{"email.opened", "Email", "A human open (machine opens carry machine: true)."},
-	{"email.clicked", "Email", "A tracked link was clicked."},
-	{"campaign.scheduled", "Campaigns", "A campaign was scheduled."},
-	{"campaign.started", "Campaigns", "A send started."},
-	{"campaign.paused", "Campaigns", "A send paused, by a person or automatically."},
-	{"campaign.resumed", "Campaigns", "A paused send resumed."},
-	{"campaign.completed", "Campaigns", "A send finished."},
-	{"approval.requested", "Approvals", "A send needs approval."},
-	{"approval.decided", "Approvals", "A send was approved, rejected or sent back."},
-	{"provider.down", "Sending providers", "A sending provider is failing or unreachable."},
-	{"provider.recovered", "Sending providers", "A sending provider is healthy again."},
-	{"automation.published", "Automations", "A flow was published."},
-	{"message.sent", "Transactional messages", "A sending provider accepted a transactional message."},
-	{"message.delivered", "Transactional messages", "The mailbox provider accepted the message."},
-	{"message.deferred", "Transactional messages", "Delivery was delayed and will be retried."},
-	{"message.bounced", "Transactional messages", "Hard or soft bounce, with the provider's original code."},
-	{"message.complained", "Transactional messages", "The recipient marked the message as spam."},
-	{"message.rejected", "Transactional messages", "Stopped before sending: suppressed or opted out of its category."},
-	{"message.failed", "Transactional messages", "Every provider in the route failed after the retries."},
-	{"message.opened", "Transactional messages", "The message was opened (templates with open tracking)."},
-	{"message.clicked", "Transactional messages", "A tracked link was clicked (templates with click tracking)."},
-	{"form.submitted", "Forms", "A signup was confirmed (at once for single opt-in), with the form and the answers."},
+	{Name: "contact.subscribed", Group: "Contacts"},
+	{Name: "contact.unsubscribed", Group: "Contacts"},
+	{Name: "contact.updated", Group: "Contacts"},
+	{Name: "contact.erased", Group: "Contacts"},
+	{Name: "email.sent", Group: "Email"},
+	{Name: "email.delivered", Group: "Email"},
+	{Name: "email.deferred", Group: "Email"},
+	{Name: "email.bounced", Group: "Email"},
+	{Name: "email.complained", Group: "Email"},
+	{Name: "email.opened", Group: "Email"},
+	{Name: "email.clicked", Group: "Email"},
+	{Name: "campaign.scheduled", Group: "Campaigns"},
+	{Name: "campaign.started", Group: "Campaigns"},
+	{Name: "campaign.paused", Group: "Campaigns"},
+	{Name: "campaign.resumed", Group: "Campaigns"},
+	{Name: "campaign.completed", Group: "Campaigns"},
+	{Name: "approval.requested", Group: "Approvals"},
+	{Name: "approval.decided", Group: "Approvals"},
+	{Name: "provider.down", Group: "Sending providers"},
+	{Name: "provider.recovered", Group: "Sending providers"},
+	{Name: "automation.published", Group: "Automations"},
+	{Name: "message.sent", Group: "Transactional messages"},
+	{Name: "message.delivered", Group: "Transactional messages"},
+	{Name: "message.deferred", Group: "Transactional messages"},
+	{Name: "message.bounced", Group: "Transactional messages"},
+	{Name: "message.complained", Group: "Transactional messages"},
+	{Name: "message.rejected", Group: "Transactional messages"},
+	{Name: "message.failed", Group: "Transactional messages"},
+	{Name: "message.opened", Group: "Transactional messages"},
+	{Name: "message.clicked", Group: "Transactional messages"},
+	{Name: "form.submitted", Group: "Forms"},
 	// Grow (design expansion phase 5): referral programs.
-	{"referral.counted", "Referrals", "A referral counted: its subscriber confirmed and stayed through the hold."},
-	{"referral.held", "Referrals", "A referral was held for review by a suspicion rule."},
-	{"referral.not_counted", "Referrals", "A referral didn't count, with the reason."},
-	{"referral.milestone_reached", "Referrals", "A referrer reached a milestone."},
-	{"referral.reward_sent", "Referrals", "A reward went to a referrer (a download, a code, a claim link)."},
-	{"referral.reward_failed", "Referrals", "A webhook reward failed after 6 hours of retries."},
+	{Name: "referral.counted", Group: "Referrals"},
+	{Name: "referral.held", Group: "Referrals"},
+	{Name: "referral.not_counted", Group: "Referrals"},
+	{Name: "referral.milestone_reached", Group: "Referrals"},
+	{Name: "referral.reward_sent", Group: "Referrals"},
+	{Name: "referral.reward_failed", Group: "Referrals"},
 }
 
 // ValidEvent reports whether name is a known event or wildcard ("email.*", "*").
@@ -167,7 +168,7 @@ func (s *Service) refuseManaged(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 	if m != nil {
-		return api.Err(http.StatusConflict, "managed_by_integration", fmt.Sprintf("This endpoint is managed by %s. To change it, change the workflow in %s, or disconnect %s.", m.Name, m.Name, m.Name)).
+		return api.Err(http.StatusConflict, "managed_by_integration", mManaged.Text(i18n.LangFrom(ctx), i18n.Args{"integration": m.Name})).
 			WithMeta("integration", m.Kind)
 	}
 	return nil
@@ -337,7 +338,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace) (WebhookList, e
 	if err != nil {
 		return WebhookList{}, err
 	}
-	out := WebhookList{Items: []WebhookView{}, Events: Events, SignatureHeader: HeaderSignature, TimestampHeader: HeaderTimestamp, MaxAttempts: MaxAttempts}
+	out := WebhookList{Items: []WebhookView{}, Events: eventsIn(i18n.LangFrom(ctx)), SignatureHeader: HeaderSignature, TimestampHeader: HeaderTimestamp, MaxAttempts: MaxAttempts}
 	managed, err := s.managed(ctx, ws.ID)
 	if err != nil {
 		return WebhookList{}, err
@@ -376,7 +377,7 @@ type WebhookCreated struct {
 	Secret  string      `json:"secret" doc:"The signing secret. Shown only in this response."`
 }
 
-func (s *Service) validate(in WebhookInput) (string, []string, error) {
+func (s *Service) validate(l i18n.Lang, in WebhookInput) (string, []string, error) {
 	u, err := s.policy().ValidateURL(in.URL)
 	if err != nil {
 		msg := err.Error()
@@ -386,7 +387,7 @@ func (s *Service) validate(in WebhookInput) (string, []string, error) {
 	for _, e := range in.Events {
 		e = strings.TrimSpace(e)
 		if !ValidEvent(e) {
-			return "", nil, api.Invalid("body.events", fmt.Sprintf("Unknown event %q.", e))
+			return "", nil, api.Invalid("body.events", mUnknownEvent.Text(l, i18n.Args{"event": strconv.Quote(e)}))
 		}
 		if !slices.Contains(events, e) {
 			events = append(events, e)
@@ -397,7 +398,7 @@ func (s *Service) validate(in WebhookInput) (string, []string, error) {
 
 // Create registers an endpoint and returns its signing secret once.
 func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Principal, in WebhookInput) (WebhookCreated, error) {
-	u, events, err := s.validate(in)
+	u, events, err := s.validate(i18n.LangFrom(ctx), in)
 	if err != nil {
 		return WebhookCreated{}, err
 	}
@@ -436,7 +437,7 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 	if err := s.refuseManaged(ctx, id); err != nil {
 		return WebhookView{}, err
 	}
-	u, events, err := s.validate(in)
+	u, events, err := s.validate(i18n.LangFrom(ctx), in)
 	if err != nil {
 		return WebhookView{}, err
 	}
@@ -584,9 +585,9 @@ func endpointLabel(raw string) string {
 	return strings.TrimSuffix(u.Host+u.Path, "/")
 }
 
-func deliveryView(id, webhookID uuid.UUID, hookURL, event, subtype, state string, code, dur *int32, errText string, attempts, maxAttempts int32, created time.Time, last, next *time.Time) WebhookDeliveryView {
+func deliveryView(l i18n.Lang, id, webhookID uuid.UUID, hookURL, event, subtype, state string, code, dur *int32, errText string, attempts, maxAttempts int32, created time.Time, last, next *time.Time) WebhookDeliveryView {
 	v := WebhookDeliveryView{ID: id.String(), WebhookID: webhookID.String(), Endpoint: endpointLabel(hookURL), Event: event, Subtype: subtype, State: state,
-		StatusCode: code, DurationMs: dur, Error: errText, Attempts: attempts, MaxAttempts: maxAttempts, CreatedAt: created, LastAttemptAt: last}
+		StatusCode: code, DurationMs: dur, Error: deliveryErrorIn(l, errText), Attempts: attempts, MaxAttempts: maxAttempts, CreatedAt: created, LastAttemptAt: last}
 	if code != nil {
 		v.StatusText = http.StatusText(int(*code))
 	}
@@ -628,7 +629,7 @@ func (s *Service) Deliveries(ctx context.Context, ws *store.Workspace, webhookID
 				url = m.Endpoint
 			}
 		}
-		out.Items = append(out.Items, deliveryView(r.ID, r.WebhookID, url, r.Event, r.Subtype, r.State, r.StatusCode, r.DurationMs, r.Error, r.Attempt, r.MaxAttempts, r.CreatedAt, r.LastAttemptAt, r.NextAttemptAt))
+		out.Items = append(out.Items, deliveryView(i18n.LangFrom(ctx), r.ID, r.WebhookID, url, r.Event, r.Subtype, r.State, r.StatusCode, r.DurationMs, r.Error, r.Attempt, r.MaxAttempts, r.CreatedAt, r.LastAttemptAt, r.NextAttemptAt))
 	}
 	hooks, err := s.Q.HooksList(ctx, ws.ID)
 	if err != nil {
@@ -674,7 +675,7 @@ func (s *Service) Delivery(ctx context.Context, ws *store.Workspace, id uuid.UUI
 		}
 	}
 	return WebhookDeliveryDetail{
-		Delivery: deliveryView(d.ID, d.WebhookID, url, d.Event, sub.Data.Subtype, d.State, d.StatusCode, d.DurationMs, d.Error, d.Attempt, d.MaxAttempts, d.CreatedAt, d.LastAttemptAt, d.NextAttemptAt),
+		Delivery: deliveryView(i18n.LangFrom(ctx), d.ID, d.WebhookID, url, d.Event, sub.Data.Subtype, d.State, d.StatusCode, d.DurationMs, d.Error, d.Attempt, d.MaxAttempts, d.CreatedAt, d.LastAttemptAt, d.NextAttemptAt),
 		Payload:  d.Payload, Response: d.Response,
 	}, nil
 }
@@ -698,7 +699,7 @@ func (s *Service) Retry(ctx context.Context, ws *store.Workspace, deliveryID, we
 		}
 		if len(ids) == 0 {
 			if deliveryID != nil {
-				return api.Conflict("Only failed deliveries can be retried.")
+				return api.Conflict(mOnlyFailed.Text(i18n.LangFrom(ctx), nil))
 			}
 			return nil
 		}
@@ -765,7 +766,7 @@ func (s *Service) Attempt(ctx context.Context, deliveryID uuid.UUID) (*time.Time
 		// Demo endpoints point at fictional addresses: nothing is sent, and
 		// the endpoint's health is left as the demo shows it.
 		return nil, s.Q.HooksFinishDelivery(ctx, store.HooksFinishDeliveryParams{ID: d.ID, State: "dead",
-			Error: "Demo endpoint: ReputeCast never sends demo data. Point it at your own URL to receive events."})
+			Error: mDemoEndpoint.Text(i18n.Default, nil)})
 	}
 	secret, err := s.Box.OpenString(d.SecretEnc, secretAD(d.WebhookID))
 	if err != nil {
@@ -774,7 +775,7 @@ func (s *Service) Attempt(ctx context.Context, deliveryID uuid.UUID) (*time.Time
 	ts := s.now().Unix()
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, d.Url, strings.NewReader(string(d.Payload)))
 	if err != nil {
-		return s.finish(ctx, d, nil, 0, "", "Invalid URL")
+		return s.finish(ctx, d, nil, 0, "", mInvalidURL.Text(i18n.Default, nil))
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "ReputeCast-Webhooks/"+version.Get().Version)

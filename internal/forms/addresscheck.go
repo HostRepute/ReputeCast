@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -29,15 +30,12 @@ type SignupAddress struct {
 	Answer any
 }
 
-// msgAddressInvalid is the English form's answer when the service finds no
-// mailbox (VerificationStates); forms in other languages say their own
-// "error.emailInvalid".
-const msgAddressInvalid = "This address doesn't seem to exist. Check it and try again."
-
-// addressInvalid is the form's message for an address the service rejects.
+// addressInvalid is the form's message for an address the service rejects:
+// an English form's own sentence (VerificationStates); forms in other
+// languages say their own "error.emailInvalid".
 func addressInvalid(c Config) string {
 	if code := c.Labels.Code(); code == "" || code == "en" {
-		return msgAddressInvalid
+		return mAddressInvalid.Text(i18n.Default, nil)
 	}
 	return c.Labels.Text("error.emailInvalid", nil)
 }

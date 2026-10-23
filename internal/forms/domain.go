@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"net/netip"
 	"slices"
 	"strings"
@@ -17,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -39,17 +39,17 @@ func (s *Service) SetDomain(ctx context.Context, ws *store.Workspace, in PublicD
 	if raw != "" {
 		host, ok := NormalizeOrigin(raw)
 		if !ok || strings.Contains(host, ":") || !strings.Contains(host, ".") {
-			return PublicPagesSettings{}, api.Invalid("body.domain", "Use a domain name like news.acme.io, without https:// or a path.")
+			return PublicPagesSettings{}, api.Invalid("body.domain", say(ctx, mDomainName, nil))
 		}
 		if host == instanceHost(s.URLs) {
-			return PublicPagesSettings{}, api.Invalid("body.domain", "That's this ReputeCast's own address. Use a domain of your newsletter, like news.acme.io.")
+			return PublicPagesSettings{}, api.Invalid("body.domain", say(ctx, mDomainOwn, nil))
 		}
 		taken, err := s.Q.PublicSettingsDomainTaken(ctx, store.PublicSettingsDomainTakenParams{Domain: &host, WorkspaceID: ws.ID})
 		if err != nil {
 			return PublicPagesSettings{}, err
 		}
 		if taken {
-			return PublicPagesSettings{}, api.Conflict(host + " already serves another workspace's pages. Remove it there first.")
+			return PublicPagesSettings{}, api.Conflict(say(ctx, mDomainTaken, i18n.Args{"domain": host}))
 		}
 		domain = &host
 	}
@@ -127,9 +127,9 @@ func (s *Service) checkDomain(ctx context.Context, ws *store.Workspace, manual b
 		if set.row.DomainStatus == "pending" || (set.row.DomainStatus == "none") {
 			status = "pending"
 		}
-		if set.row.DomainStatus == "verified" && !strings.HasPrefix(set.row.DomainDetail, "Last check failed") {
+		if set.row.DomainStatus == "verified" && !failedBefore(set.row.DomainDetail) {
 			status = "verified"
-			detail = "Last check failed: " + detail + " Checking again soon."
+			detail = mDomainLastFailed.Keep(i18n.Args{"detail": detail})
 		}
 		if status != "verified" {
 			verifiedAt = nil
@@ -138,7 +138,8 @@ func (s *Service) checkDomain(ctx context.Context, ws *store.Workspace, manual b
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if err := q.PublicSettingsSetDomain(ctx, store.PublicSettingsSetDomainParams{WorkspaceID: ws.ID, CustomDomain: set.row.CustomDomain, DomainStatus: status,
-			DomainDetail: detail, DomainCheckedAt: &now, DomainVerifiedAt: verifiedAt, UpdatedBy: set.row.UpdatedBy, At: set.row.UpdatedAt}); err != nil {
+			DomainDetail: english(detail), DomainCheckedAt: &now, DomainVerifiedAt: verifiedAt, UpdatedBy: set.row.UpdatedBy, At: set.row.UpdatedAt,
+			Texts: keptTexts("domain_detail", detail)}); err != nil {
 			return err
 		}
 		if status == set.row.DomainStatus && !manual {
@@ -157,20 +158,22 @@ func (s *Service) checkDomain(ctx context.Context, ws *store.Workspace, manual b
 	return status, err
 }
 
-func (s *Service) verifyDomainDNS(ctx context.Context, ws *store.Workspace, domain string) (bool, string) {
+// verifyDomainDNS checks the domain's records; the finding is kept as a
+// message, so each member reads it in their language.
+func (s *Service) verifyDomainDNS(ctx context.Context, ws *store.Workspace, domain string) (bool, i18n.Text) {
 	if s.DNS == nil {
-		return false, "DNS checks aren't available on this server."
+		return false, mDomainUnavailable.Keep(nil)
 	}
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	target := instanceHost(s.URLs)
 	cname, err := s.DNS.CNAME(ctx, domain)
 	if err == nil && strings.EqualFold(strings.TrimSuffix(cname, "."), target) {
-		return true, fmt.Sprintf("CNAME points at %s.", target)
+		return true, mDomainCNAME.Keep(i18n.Args{"target": target})
 	}
 	token := s.domainToken(ws, domain)
 	if txts, err := s.DNS.TXT(ctx, "_reputecast."+domain); err == nil && slices.Contains(txts, token) {
-		return true, "TXT record found."
+		return true, mDomainTXT.Keep(nil)
 	}
 	// Apex domains can point A/AAAA records at the instance instead.
 	if target != "" && target != "localhost" {
@@ -178,17 +181,24 @@ func (s *Service) verifyDomainDNS(ctx context.Context, ws *store.Workspace, doma
 		theirs, _ := s.addrs(ctx, domain)
 		for _, a := range theirs {
 			if slices.Contains(mine, a) {
-				return true, fmt.Sprintf("%s resolves to %s like %s.", domain, a, target)
+				return true, mDomainResolves.Keep(i18n.Args{"domain": domain, "address": a.String(), "target": target})
 			}
 		}
 	}
 	switch {
 	case err == nil && cname != "":
-		return false, fmt.Sprintf("%s is a CNAME for %s, not %s. Point it at %s.", domain, strings.TrimSuffix(cname, "."), target, target)
+		return false, mDomainWrongCNAME.Keep(i18n.Args{"domain": domain, "cname": strings.TrimSuffix(cname, "."), "target": target})
 	case err != nil && !dnscheck.IsNotFound(err):
-		return false, "DNS didn't answer for " + domain + ". We'll check again in a few minutes."
+		return false, mDomainNoAnswer.Keep(i18n.Args{"domain": domain})
 	}
-	return false, fmt.Sprintf("No CNAME from %s to %s yet. DNS changes can take up to an hour to show.", domain, target)
+	return false, mDomainNoCNAME.Keep(i18n.Args{"domain": domain, "target": target})
+}
+
+// failedBefore reports whether a stored finding already says that a check
+// failed: its English starts as domain.lastFailed's does.
+func failedBefore(stored string) bool {
+	prefix, _, _ := strings.Cut(english(mDomainLastFailed.Keep(i18n.Args{"detail": ""})), ":")
+	return strings.HasPrefix(stored, prefix)
 }
 
 func (s *Service) addrs(ctx context.Context, host string) ([]netip.Addr, error) {
