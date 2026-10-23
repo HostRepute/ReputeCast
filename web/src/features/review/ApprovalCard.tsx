@@ -329,8 +329,8 @@ export function InvalidatedCard({
   const { data: me } = useMe()
   const req = review.approval.request!
   const who = req.invalidatedBy && req.invalidatedBy === me?.user.name ? t(m.you) : req.invalidatedBy || t(m.someone)
-  // The server says what changed in English ("subject changed").
-  const fields = req.invalidatedReason?.replace(/ changed$/, '') ?? t(m.theCampaign)
+  // The server names the edited fields in the reader's language; empty when the reason isn't about fields.
+  const fields = req.invalidatedFields || t(m.theCampaign)
   const moved = req.changes.some((c) => c.field === 'audience_count')
   const approvedBy = req.decidedBy ? t(m.coveredBy, { name: req.decidedBy, version: req.version }) : t(m.coveredRequest, { version: req.version })
   const edit = moved
