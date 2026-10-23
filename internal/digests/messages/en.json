@@ -73,7 +73,7 @@
   "notify.heldNoApprovers": { "message": "{issue} is held: the approval rules match it and no one other than its owner can approve it. Give campaigns:approve to another role, or skip the issue before {date}, {time}.", "note": "issue: the digest's name and the issue's number (Weekly Digest #143); date, time: the late limit" },
   "notify.heldChanges": "{issue} is held: an approver asked for changes. Edit the issue, then release it before {date}, {time}.",
   "notify.heldRejected": "{issue} is held: an approver rejected it. Edit and release it, or skip it, before {date}, {time}.",
-  "notify.heldBlocked": { "message": "{issue} is held: {block}. Fix it or skip the issue before {date}, {time}.", "note": "block: the Send Readiness check that blocks it, as it names itself" },
+  "notify.heldBlocked": { "message": "{issue} is held: {block}. Fix it or skip the issue before {date}, {time}.", "note": "block: the Send Readiness check that blocks it, as it names itself in the reader's language" },
   "notify.heldReadiness": "{issue} is held: Send Readiness is Blocked. Fix it or skip the issue before {date}, {time}.",
   "notify.heldSummary": "{issue} is held",
   "notify.draftTitle": "Digest draft ready",

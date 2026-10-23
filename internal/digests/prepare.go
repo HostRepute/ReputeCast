@@ -195,11 +195,14 @@ func (s *Service) holdIssue(ctx context.Context, ws *store.Workspace, d store.Di
 				return err
 			}
 		}
+		// The check that blocks the issue: the audit keeps its English, the
+		// notification writes it in each recipient's language.
 		block := ""
+		var blocking *readiness.ReadinessCheck
 		if run != nil {
-			for _, ch := range run.Checks {
+			for i, ch := range run.Checks {
 				if ch.Status == readiness.Block {
-					block = firstNonEmpty(ch.FlatTitle, ch.Title)
+					block, blocking = firstNonEmpty(ch.FlatTitle, ch.Title), &run.Checks[i]
 					break
 				}
 			}
@@ -209,7 +212,7 @@ func (s *Service) holdIssue(ctx context.Context, ws *store.Workspace, d store.Di
 			Metadata: map[string]any{"issue_id": issue.ID.String(), "number": number}}); err != nil {
 			return err
 		}
-		return s.notifyHeld(ctx, tx, q, ws, d, issue, int(number), reason, block, requested)
+		return s.notifyHeld(ctx, tx, q, ws, d, issue, int(number), reason, blocking, requested)
 	})
 }
 
@@ -222,18 +225,25 @@ func (s *Service) countIssueItems(ctx context.Context, q *store.Queries, issueID
 }
 
 // notifyHeld tells the owner, and the approvers when a request is open,
-// that an issue is held ("Digest issue held"), each in their language.
+// that an issue is held ("Digest issue held"), each in their language: the
+// blocking check's title too, from the messages the run kept. (notify's
+// kept form holds plain arguments only, so the check's title, a kept text
+// of its own, is written for each recipient as the notification is.)
 func (s *Service) notifyHeld(ctx context.Context, tx pgx.Tx, q *store.Queries, ws *store.Workspace, d store.Digest, issue store.DigestIssue, number int,
-	reason, block string, requested bool) error {
+	reason string, blocking *readiness.ReadinessCheck, requested bool) error {
 	loc := location(ParseSchedule(d.Schedule, ws.Timezone).Timezone)
 	name := issueName(d.Name, number)
-	// The check's own words follow a colon: first letter lowered, no full stop.
-	what := trimDot(lowerFirst(block))
 	link := "/w/" + ws.Slug + "/campaigns/digests/" + d.ID.String()
 	if issue.CampaignID != nil {
 		link = "/w/" + ws.Slug + "/campaigns/" + issue.CampaignID.String() + "/review"
 	}
 	notification := func(l i18n.Lang) notify.Notification {
+		// The check's own words follow a colon: first letter lowered, no full stop.
+		what := ""
+		if blocking != nil {
+			c := blocking.In(l)
+			what = trimDot(lowerFirst(firstNonEmpty(c.FlatTitle, c.Title)))
+		}
 		date, clock := whenIn(l, issue.Deadline, loc)
 		args := i18n.Args{"issue": name, "date": date, "time": clock, "block": what}
 		body := mHeldReadiness

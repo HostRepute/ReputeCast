@@ -116,3 +116,39 @@ func TestDigestEmailInItsLanguage(t *testing.T) {
 		t.Fatalf("Vietnamese dates: %s", r.MJML)
 	}
 }
+
+// TestDigestHeldInVietnamese checks that a held issue's notification names
+// the Send Readiness check that blocks it in its recipient's language, from
+// the messages the run kept, while the audit keeps the check's English.
+func TestDigestHeldInVietnamese(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	env.App.Sending = &fakeStarter{}
+	n := counter{t, env}
+	ctx := context.Background()
+	feed := newFeedServer(t, basePosts(time.Now())...)
+	sofia := env.Client()
+	sofia.SignInDemo("sofia@acme.io")
+	d := decodeDetail(t, sofia.Do("POST", ws+"/digests", map[string]any{"name": "Held roundup", "source": "url", "feedUrl": feed.srv.URL + "/feed/"}).MustStatus(t, 201))
+	sofia.Do("PUT", ws+"/digests/"+d.ID, settings("Held roundup", feed.srv.URL+"/feed/", n.listID("Product Updates"), 2)).MustStatus(t, 200)
+	d = decodeDetail(t, sofia.Do("POST", ws+"/digests/"+d.ID+"/turn-on", map[string]any{}).MustStatus(t, 200))
+	// The template loses its footer, so Send Readiness blocks the issue;
+	// Sofia, its owner, reads ReputeCast in Vietnamese.
+	n.exec(`UPDATE campaigns SET mjml = regexp_replace(mjml, '<!-- rc:footer -->.*?</mj-section>', '') WHERE id = $1`, uuid.MustParse(d.TemplateID))
+	n.exec(`UPDATE users SET language = 'vi' WHERE email = 'sofia@acme.io'`)
+	if err := env.App.Digests().Prepare(ctx, uuid.MustParse(d.Next.ID)); err != nil {
+		t.Fatal(err)
+	}
+	var body, reason string
+	if err := env.App.Pool.QueryRow(ctx, `SELECT n.body FROM notifications n JOIN users u ON u.id = n.user_id
+		WHERE u.email = 'sofia@acme.io' AND n.kind = 'digest_issue_held' ORDER BY n.created_at DESC LIMIT 1`).Scan(&body); err != nil {
+		t.Fatal(err)
+	}
+	if err := env.App.Pool.QueryRow(ctx, `SELECT reason FROM audit_events WHERE action = 'digest.issue_held' AND target_id = $1`, d.ID).Scan(&reason); err != nil {
+		t.Fatal(err)
+	}
+	english := strings.ToLower(strings.TrimSuffix(reason, "."))
+	if reason == "" || !strings.Contains(body, " bị tạm giữ: ") || strings.Contains(strings.ToLower(body), english) {
+		t.Fatalf("held: %q (the audit's reason: %q)", body, reason)
+	}
+}
