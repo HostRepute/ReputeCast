@@ -346,12 +346,19 @@ func emailSourceLabel(l i18n.Lang, src string) string {
 	return src
 }
 
+// localNames reports whether countries are named in a reader's own
+// language: an app language other than English (a page in a language
+// ReputeCast isn't translated into reads English names, as its labels).
+func localNames(l i18n.Lang) bool {
+	return l.Locale != "" && l.Locale != i18n.English && l.Locale != i18n.Pseudo && l.Locale.Tag() != language.English
+}
+
 // countryNameIn is a country's name in a reader's language, as the app
 // names it (Intl.DisplayNames): "Germany", "Đức"; English keeps
 // countryName's words.
 func countryNameIn(l i18n.Lang, code string) string {
 	english := countryName(code)
-	if l.Locale == "" || l.Locale == i18n.English || l.Locale == i18n.Pseudo || english == code {
+	if !localNames(l) || english == code {
 		return english
 	}
 	r, err := language.ParseRegion(code)

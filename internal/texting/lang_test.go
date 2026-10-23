@@ -2,8 +2,11 @@ package texting
 
 import (
 	"fmt"
+	"slices"
+	"strings"
 	"testing"
 
+	"github.com/hostrepute/reputecast/internal/forms"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/segments"
 	"github.com/hostrepute/reputecast/internal/sms"
@@ -63,6 +66,35 @@ func TestMessagesKeepTheirEnglish(t *testing.T) {
 		if c.got != c.want {
 			t.Errorf("got  %q\nwant %q", c.got, c.want)
 		}
+	}
+}
+
+// The signup form's phone field names its countries in the page's language
+// when ReputeCast has it, and sorts them as that language does; an English
+// page lists them as before.
+func TestPickerCountries(t *testing.T) {
+	en, vi := i18n.Default, i18n.For(i18n.Vietnamese)
+	if got := pickerCountries(en, []string{"US", "CA"}, false); len(got) != 2 || got[0].Name != "United States" || got[0].Dial != "+1" || got[1].Name != "Canada" {
+		t.Fatalf("English: %+v", got)
+	}
+	if got := pickerCountries(vi, []string{"US", "CA"}, false); got[0].Code != "US" || got[0].Name != "Hoa Kỳ" || got[1].Name != "Canada" {
+		t.Fatalf("Vietnamese: %+v", got)
+	}
+	// German pages read English labels, so they keep English names too.
+	if got := pickerCountries(i18n.Lang{Locale: "de", Region: "de-DE"}, []string{"DE"}, false); got[0].Name != "Germany" {
+		t.Fatalf("German page: %+v", got)
+	}
+	at := func(list []forms.TextCountry, code string) int {
+		return slices.IndexFunc(list, func(c forms.TextCountry) bool { return c.Code == code })
+	}
+	all := pickerCountries(en, []string{"US"}, true)
+	if all[0].Code != "US" || !slices.IsSortedFunc(all[1:], func(a, b forms.TextCountry) int { return strings.Compare(a.Name, b.Name) }) {
+		t.Fatalf("English order: %v", all[:5])
+	}
+	// "Đức" sorts with the D's, before "Zimbabwe", as Vietnamese sorts it.
+	viAll := pickerCountries(vi, []string{"US"}, true)
+	if de, zw, dk := at(viAll, "DE"), at(viAll, "ZW"), at(viAll, "DK"); de < 0 || zw < 0 || de > zw || dk > de || viAll[de].Name != "Đức" {
+		t.Fatalf("Vietnamese order: DE %d, DK %d, ZW %d", de, dk, zw)
 	}
 }
 
