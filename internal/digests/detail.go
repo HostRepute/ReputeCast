@@ -262,7 +262,7 @@ func (s *Service) audienceOf(ctx context.Context, ws *store.Workspace, raw json.
 	if err != nil {
 		return out, err
 	}
-	out.Label, out.Base, out.Suppressed, out.Role, out.Duplicates, out.Stopped, out.Final = a.BaseLabel, a.Base, a.Suppressed, a.Role, a.Duplicates, a.Stopped, a.Final
+	out.Label, out.Base, out.Suppressed, out.Role, out.Duplicates, out.Stopped, out.Final = audienceLabel(i18n.LangFrom(ctx), a), a.Base, a.Suppressed, a.Role, a.Duplicates, a.Stopped, a.Final
 	return out, nil
 }
 

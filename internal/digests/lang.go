@@ -15,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/digests/feed"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
+	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -52,6 +53,11 @@ var (
 	mVersionPrepared = msgs.M("version.prepared")
 	mVersionRebuilt  = msgs.M("version.rebuilt")
 	mVersionNext     = msgs.M("version.next")
+
+	mAudienceAll     = msgs.M("audience.all")
+	mAudienceNone    = msgs.M("audience.none")
+	mAudienceList    = msgs.M("audience.list")
+	mAudienceSegment = msgs.M("audience.segment")
 
 	mStarterName          = msgs.M("starter.name")
 	mStarterNameBlog      = msgs.M("starter.nameBlog")
@@ -162,6 +168,23 @@ func emailDate(l i18n.Lang, t time.Time, form int) string {
 		return l.Region.ShortDate(t)
 	}
 	return l.Region.LongDate(t)
+}
+
+// audienceLabel names who the issues go to, in a reader's language, as
+// Send Readiness counts them: "Product Updates list", "All subscribers";
+// several lists and segments keep their names, joined.
+func audienceLabel(l i18n.Lang, a readiness.AudienceFacts) string {
+	switch a.BaseKind {
+	case readiness.BaseAll:
+		return mAudienceAll.Text(l, nil)
+	case readiness.BaseList:
+		return mAudienceList.Text(l, i18n.Args{"name": a.BaseName})
+	case readiness.BaseSegment:
+		return mAudienceSegment.Text(l, i18n.Args{"name": a.BaseName})
+	case readiness.BaseNone:
+		return mAudienceNone.Text(l, nil)
+	}
+	return a.BaseLabel
 }
 
 // memberLang is how a member reads what a digest writes for them.

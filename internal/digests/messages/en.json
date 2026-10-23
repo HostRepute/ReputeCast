@@ -17,6 +17,10 @@
   "late.values": "The late limit is 6, 24 or 48 hours.",
   "audience.required": "Pick who the issues go to: a list or a segment.",
   "audience.unknown": "One of the lists or segments doesn't exist any more. Pick the audience again.",
+  "audience.all": { "message": "All subscribers", "note": "who a digest's issues go to, as Send Readiness names it" },
+  "audience.none": "Audience",
+  "audience.list": { "message": "{name} list", "note": "name: a list's name" },
+  "audience.segment": { "message": "{name} segment", "note": "name: a segment's name" },
   "sender.unknown": "That sender doesn't exist. Pick another From.",
   "start.latest": "Include the latest 1 to 20 items in the first issue.",
 

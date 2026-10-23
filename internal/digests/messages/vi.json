@@ -17,6 +17,10 @@
   "late.values": "Giới hạn trễ là 6, 24 hoặc 48 giờ.",
   "audience.required": "Hãy chọn người nhận các số: một danh sách hoặc một phân khúc.",
   "audience.unknown": "Một trong các danh sách hoặc phân khúc không còn tồn tại. Hãy chọn lại người nhận.",
+  "audience.all": "Tất cả người đăng ký",
+  "audience.none": "Người nhận",
+  "audience.list": "Danh sách {name}",
+  "audience.segment": "Phân khúc {name}",
   "sender.unknown": "Người gửi đó không tồn tại. Hãy chọn người gửi khác.",
   "start.latest": "Hãy đưa từ 1 đến 20 mục mới nhất vào số đầu tiên.",
 

@@ -40,6 +40,14 @@ func TestDigestTextInVietnamese(t *testing.T) {
 		t.Fatalf("English problem: %s", body)
 	}
 
+	// Who the issues go to, named in the reader's words.
+	var enAud, viAud struct{ Audience struct{ Label string } }
+	linh.Do("GET", ws+"/digests/"+d.ID, nil).MustStatus(t, 200).JSON(t, &enAud)
+	vi.Do("GET", ws+"/digests/"+d.ID, nil).MustStatus(t, 200).JSON(t, &viAud)
+	if enAud.Audience.Label != "Product Updates list" || viAud.Audience.Label != "Danh sách Product Updates" {
+		t.Fatalf("audience: %q, %q", enAud.Audience.Label, viAud.Audience.Label)
+	}
+
 	// Why the feed failed, read in an English request, reads in each
 	// reader's language.
 	feed.setFail(true)
