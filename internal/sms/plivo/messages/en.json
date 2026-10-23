@@ -1,0 +1,14 @@
+{
+  "summary": {
+    "message": "Pay as you go · numbers in 190 countries",
+    "note": "the catalog card's line"
+  },
+  "field.auth_id.label": {
+    "message": "Auth ID",
+    "note": "Plivo's own name for the field"
+  },
+  "field.auth_token.label": {
+    "message": "Auth token",
+    "note": "Plivo's own name for the credential"
+  }
+}

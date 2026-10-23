@@ -51,6 +51,8 @@ export default translate(mo, {
   ipsDedicated: '{ips} · riêng',
   ipsShared: 'Nhóm IP dùng chung · kiểm tra ở cấp tên miền',
   webhookLine: '{hasKind, select, yes {{kind} · } other {}}{hasEvent, select, yes {sự kiện gần nhất {ago}} other {chưa có sự kiện}}',
+  webhookRegistered: 'Đã đăng ký',
+  webhookBounceMailbox: 'Hộp thư nhận thư trả lại',
   factIps: 'IP',
   factWebhooks: 'Webhook',
   factErrorRate7d: 'Tỷ lệ lỗi API · 7 ngày',

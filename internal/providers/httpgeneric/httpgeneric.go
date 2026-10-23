@@ -36,6 +36,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/apiclient"
 	"github.com/hostrepute/reputecast/internal/providers/mimemsg"
@@ -98,6 +99,9 @@ type Terms struct {
 	Note string               `json:"note,omitempty"`
 	// URL is the provider's acceptable-use policy.
 	URL string `json:"url,omitempty"`
+	// NoteText is the message of ReputeCast's own note (defaultTerms); a
+	// manifest's note is its author's English.
+	NoteText i18n.Text `json:"-"`
 }
 
 // Manifest is an installed HTTP adapter's manifest.json (the
@@ -132,8 +136,7 @@ var reserved = map[string]bool{"adapter": true, "http": true, "terms": true, "pr
 func init() { providers.Register(Descriptor()) }
 
 // defaultTerms applies when a mapping's manifest says nothing about terms.
-var defaultTerms = Terms{Bulk: providers.BulkYourPolicy,
-	Note: "ReputeCast can't read the terms of a provider connected through an HTTP mapping. Check its acceptable-use policy before routing Broadcasts to it."}
+var defaultTerms = Terms{Bulk: providers.BulkYourPolicy, Note: mTermsNote.Text(i18n.Default, nil), NoteText: mTermsNote.Keep(nil)}
 
 // Descriptor describes the adapter for the catalog.
 func Descriptor() providers.Descriptor {
@@ -145,22 +148,19 @@ func Descriptor() providers.Descriptor {
 			Bulk:      providers.BulkYourPolicy,
 			Webhooks:  "Webhooks",
 			BatchSize: 1,
-			Pricing:   "set by your provider",
+			// Pricing and every other text people read (the terms' note,
+			// the Adapters tab's words, the fields' labels and hints) are in
+			// messages/en.json: WithMessages fills them.
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",
-		Terms: []providers.Terms{{Bulk: defaultTerms.Bulk, Note: defaultTerms.Note,
-			Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
-		Events:          "Mapped webhooks",
-		DomainSetup:     "Manual DNS",
-		SuppressionMode: "Local only",
+		Terms:      []providers.Terms{{Bulk: defaultTerms.Bulk, Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
 		Fields: []providers.Field{
-			{Key: "api_key", Label: "API key", Secret: true, Help: "Read by the mapping's templates as {{ secrets.api_key }}."},
-			{Key: "webhook_signing_key", Label: "Webhook signing secret", Secret: true,
-				Help: "When the provider signs webhooks with a secret of its own. Without it, ReputeCast's webhook secret for this provider is used."},
+			{Key: "api_key", Secret: true},
+			{Key: "webhook_signing_key", Secret: true},
 		},
 		New: New,
-	}
+	}.WithMessages(msgs)
 }
 
 // Provider sends through one mapped HTTP API.
@@ -326,7 +326,7 @@ func (m Mapping) Validate() error {
 			return &FieldError{Field: "body", Message: err.Error()}
 		}
 		if !json.Valid([]byte(out)) {
-			return &FieldError{Field: "body", Message: "The body template isn't valid JSON once its {{ }} fields are filled in."}
+			return fieldError("body", mBodyNotJSON, nil)
 		}
 	}
 	return nil
@@ -336,6 +336,9 @@ func (m Mapping) Validate() error {
 type FieldError struct {
 	Field   string
 	Message string
+	// Text is the message Message comes from, when the adapter wrote the
+	// sentence (MessageIn).
+	Text i18n.Text
 }
 
 func (e *FieldError) Error() string { return e.Field + ": " + e.Message }
@@ -347,11 +350,11 @@ func (m Mapping) compile() (compiled, error) {
 		c.method = http.MethodPost
 	}
 	if !slices.Contains([]string{http.MethodPost, http.MethodPut, http.MethodPatch}, c.method) {
-		return c, &FieldError{Field: "method", Message: "Use POST, PUT or PATCH."}
+		return c, fieldError("method", mMethod, nil)
 	}
 	base, rest, err := splitURL(m.URL)
 	if err != nil {
-		return c, &FieldError{Field: "url", Message: err.Error()}
+		return c, fieldErr("url", err)
 	}
 	c.base = base
 	if c.path, err = parseTemplate(rest, modeURL); err != nil {
@@ -361,13 +364,13 @@ func (m Mapping) compile() (compiled, error) {
 		return c, err
 	}
 	if strings.TrimSpace(m.Body) == "" {
-		return c, &FieldError{Field: "body", Message: "Enter the request body template."}
+		return c, fieldError("body", mNoBody, nil)
 	}
 	if c.body, err = parseTemplate(m.Body, modeJSON); err != nil {
 		return c, &FieldError{Field: "body", Message: err.Error()}
 	}
 	if m.MessageIDPath != "" && m.MessageIDHeader != "" {
-		return c, &FieldError{Field: "message_id_path", Message: "Read the message id from the response body or from a header, not both."}
+		return c, fieldError("message_id_path", mMessageIDTwice, nil)
 	}
 	if c.msgID, err = parsePath(m.MessageIDPath); err != nil {
 		return c, &FieldError{Field: "message_id_path", Message: err.Error()}
@@ -386,7 +389,7 @@ func (m Mapping) compile() (compiled, error) {
 		ck := &checkRequest{headers: c.headers}
 		var rest string
 		if ck.base, rest, err = splitURL(m.Check.URL); err != nil {
-			return c, &FieldError{Field: "check.url", Message: err.Error()}
+			return c, fieldErr("check.url", err)
 		}
 		if ck.path, err = parseTemplate(rest, modeURL); err != nil {
 			return c, &FieldError{Field: "check.url", Message: err.Error()}
@@ -405,11 +408,11 @@ func compileHeaders(hs map[string]string, field string) ([]headerTemplate, error
 	out := []headerTemplate{}
 	for _, name := range slices.Sorted(maps.Keys(hs)) {
 		if !validHeaderName(name) {
-			return nil, &FieldError{Field: field, Message: fmt.Sprintf("%q is not a valid header name.", name)}
+			return nil, fieldError(field, mHeaderName, i18n.Args{"name": fmt.Sprintf("%q", name)})
 		}
 		switch strings.ToLower(name) {
 		case "host", "content-length", "transfer-encoding", "connection":
-			return nil, &FieldError{Field: field, Message: name + " is set by ReputeCast and can't be mapped."}
+			return nil, fieldError(field, mHeaderReserved, i18n.Args{"name": name})
 		}
 		t, err := parseTemplate(hs[name], modeText)
 		if err != nil {
@@ -420,17 +423,12 @@ func compileHeaders(hs map[string]string, field string) ([]headerTemplate, error
 	return out, nil
 }
 
-// sentence is an error whose text is shown to the person as it is.
-type sentence string
-
-func (s sentence) Error() string { return string(s) }
-
 // splitURL separates the literal scheme and host from the path template.
 func splitURL(raw string) (base, rest string, err error) {
 	s := strings.TrimSpace(raw)
 	scheme, after, ok := strings.Cut(s, "://")
 	if !ok || (scheme != "https" && scheme != "http") {
-		return "", "", sentence("Enter an https:// URL, for example https://api.example-esp.com/v1/messages.")
+		return "", "", say(mURL, nil)
 	}
 	end := strings.IndexAny(after, "/?#")
 	if end < 0 {
@@ -438,18 +436,18 @@ func splitURL(raw string) (base, rest string, err error) {
 	}
 	host := after[:end]
 	if strings.Contains(host, "{{") || strings.Contains(host, "}}") {
-		return "", "", sentence("The host must be written out; {{ }} fields may only appear in the path and query.")
+		return "", "", say(mURLHost, nil)
 	}
 	u, perr := url.Parse(scheme + "://" + host)
 	if perr != nil || u.Host == "" || u.User != nil {
-		return "", "", sentence("Enter an https:// URL, for example https://api.example-esp.com/v1/messages.")
+		return "", "", say(mURL, nil)
 	}
 	if scheme == "http" && !loopback(u.Hostname()) {
-		return "", "", sentence("Use https://; plain http:// is only allowed for a local test server.")
+		return "", "", say(mURLPlainHTTP, nil)
 	}
 	rest = after[end:]
 	if strings.Contains(rest, "#") {
-		return "", "", sentence("Remove the #fragment from the URL.")
+		return "", "", say(mURLFragment, nil)
 	}
 	if rest == "" {
 		rest = "/"
@@ -492,7 +490,8 @@ func (p *Provider) Capabilities() providers.Capabilities {
 		c.Webhooks = ""
 	}
 	if p.pricing != "" {
-		c.Pricing = p.pricing
+		// The manifest's own words.
+		c.Pricing, c.PricingText = p.pricing, i18n.Text{}
 	}
 	return c
 }

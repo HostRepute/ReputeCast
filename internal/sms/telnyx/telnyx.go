@@ -42,18 +42,17 @@ func Descriptor() sms.Descriptor {
 	return sms.Descriptor{
 		Manifest: sms.Manifest{
 			Adapter: Adapter, Name: "Telnyx",
-			Summary: "Pay as you go · its own carrier network in the US",
 			Badges: []sms.Badge{
 				{Capability: sms.CapTollFree, Support: sms.Yes}, {Capability: sms.Cap10DLC, Support: sms.Yes}, {Capability: sms.CapSenderIDs, Support: sms.Yes},
 				{Capability: sms.CapReceipts, Support: sms.Yes}, {Capability: sms.CapInbound, Support: sms.Yes},
-				{Capability: sms.CapOptOutSync, Support: sms.Partial, Note: "read only"},
+				{Capability: sms.CapOptOutSync, Support: sms.Partial},
 				{Capability: sms.CapRegistration, Support: sms.Yes},
-				{Capability: sms.CapPricing, Support: sms.Partial, Note: "each text's cost"},
+				{Capability: sms.CapPricing, Support: sms.Partial},
 			},
 			Fields: []sms.Field{
-				{Key: "api_key", Label: "API key", Secret: true, Required: true},
-				{Key: "public_key", Label: "Public key", Required: true, Help: "Portal › Keys & Credentials › Public key. ReputeCast checks every webhook's signature with it."},
-				{Key: "messaging_profile_id", Label: "Messaging profile ID", Help: "Leave empty and ReputeCast creates a messaging profile for its webhooks."},
+				{Key: "api_key", Secret: true, Required: true},
+				{Key: "public_key", Required: true},
+				{Key: "messaging_profile_id"},
 			},
 			Webhooks: "registered",
 			Console: func(kind, _ string) string {
@@ -66,7 +65,9 @@ func Descriptor() sms.Descriptor {
 				return "https://portal.telnyx.com/"
 			},
 			Version: "1.0.0", Maintainer: "ReputeCast",
-		},
+			// The summary, the badges' notes and the fields' labels and hints
+			// are in messages/en.json: WithMessages fills them.
+		}.WithMessages(msgs),
 		New: New,
 	}
 }

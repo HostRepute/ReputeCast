@@ -70,27 +70,22 @@ func Descriptor() providers.Descriptor {
 			DomainAPI:       "full",
 			SuppressionSync: true,
 			BatchSize:       BatchSize,
-			DedicatedIPs:    "Premium plans from 100,000 per month, on request",
 			Sandbox:         "mode",
 			QuotaDiscovery:  true,
-			Pricing:         "plan, free 6,000 per month (200 per day), then from $9 per month",
+			// Pricing, DedicatedIPs and every other text people read (the
+			// terms' note, the Adapters tab's words, the fields' labels and
+			// hints) are in messages/en.json: WithMessages fills them.
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",
-		Terms: []providers.Terms{{Bulk: providers.BulkAllowed,
-			Note:    "Clear, explicit and provable opt-in only; no third-party lists. Every marketing email needs an unsubscribe link and a privacy-policy link. Mailjet's limits: 5% bounces, 0.08% complaints.",
-			Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
-		Events:          "Webhooks",
-		DomainSetup:     "API",
-		SuppressionMode: "Two-way",
+		Terms:      []providers.Terms{{Bulk: providers.BulkAllowed, Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
 		Fields: []providers.Field{
-			{Key: "api_key", Label: "API key", Secret: true, Required: true,
-				Help: "Mailjet › Account settings › API key management. A key used only by ReputeCast keeps its event callbacks separate from other tools."},
-			{Key: "secret_key", Label: "Secret key", Secret: true, Required: true, Help: "Shown next to the API key."},
-			{Key: "monthly_limit", Label: "Plan · emails per month", Help: "Used for the quota bar and cost per 1,000."},
+			{Key: "api_key", Secret: true, Required: true},
+			{Key: "secret_key", Secret: true, Required: true},
+			{Key: "monthly_limit"},
 		},
 		New: New,
-	}
+	}.WithMessages(msgs)
 }
 
 // Provider talks to one Mailjet API key.

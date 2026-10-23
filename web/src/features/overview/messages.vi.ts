@@ -80,6 +80,7 @@ export default translate(m, {
   eventsVia:
     '{webhook, select, yes {{unaffected, select, yes {Sự kiện qua webhook: nhận lần cuối {ago}, nên việc theo dõi gửi thư không bị ảnh hưởng.} other {Sự kiện qua webhook: nhận lần cuối {ago}.}}} other {{unaffected, select, yes {Sự kiện qua {feed}: nhận lần cuối {ago}, nên việc theo dõi gửi thư không bị ảnh hưởng.} other {Sự kiện qua {feed}: nhận lần cuối {ago}.}}}}',
   noFeed: '{unaffected, select, yes {Không có nguồn sự kiện, nên việc theo dõi gửi thư không bị ảnh hưởng.} other {Không có nguồn sự kiện.}}',
+  feedBounceMailbox: 'hộp thư nhận thư trả lại',
 
   // ── A failing account-health refresh (OverviewStates) ────────────────
   refreshTitle: 'Không làm mới được tình trạng tài khoản {name}',

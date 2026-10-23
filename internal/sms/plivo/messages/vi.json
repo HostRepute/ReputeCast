@@ -1,0 +1,5 @@
+{
+  "summary": "Trả theo mức dùng · số điện thoại ở 190 quốc gia",
+  "field.auth_id.label": "Auth ID",
+  "field.auth_token.label": "Auth token"
+}

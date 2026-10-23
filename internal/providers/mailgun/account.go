@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/apiclient"
 )
@@ -72,10 +73,10 @@ func (p *Provider) Quota(ctx context.Context) (providers.Quota, error) {
 		return providers.Quota{}, err
 	}
 	q := providers.Quota{Sandbox: d.Domain.Type == "sandbox"}
-	q.Account = "Domain " + p.s.Domain + " · " + d.Domain.State
-	if q.Sandbox {
-		q.Account = "Sandbox domain · authorized recipients only"
-	}
+	// "Domain mg.acme.io · active", "Sandbox domain · authorized recipients
+	// only", then " · custom limit 100,000 per month".
+	account := i18n.Args{"sandbox": yesNo(q.Sandbox), "domain": p.s.Domain, "state": d.Domain.State, "limit": "no"}
+	q.Account, q.AccountText = say(mAccount, account)
 	var limit struct {
 		Limit   int64 `json:"limit"`
 		Current int64 `json:"current"`
@@ -83,7 +84,8 @@ func (p *Provider) Quota(ctx context.Context) (providers.Quota, error) {
 	err = p.api.Do(ctx, "GET /v5/accounts/limit/custom/monthly", http.MethodGet, "/v5/accounts/limit/custom/monthly", nil, &limit)
 	if err == nil && limit.Limit > 0 {
 		q.Kind, q.Max, q.Used = "monthly_plan", limit.Limit, limit.Current
-		q.Account += " · custom limit " + count(limit.Limit) + " per month"
+		account["limit"], account["n"] = "yes", limit.Limit
+		q.Account, q.AccountText = say(mAccount, account)
 		return q, nil
 	}
 	now := time.Now().UTC()
@@ -259,8 +261,9 @@ func (p *Provider) RegisterWebhook(ctx context.Context, hookURL string) error {
 			continue
 		}
 		if len(urls) >= 3 {
-			return &providers.CallError{Op: "PUT /v3/domains/{domain}/webhooks", Code: "too_many_urls",
-				Message: "Mailgun allows three URLs per event and " + id + " already has three. Remove one in Mailgun, then register again."}
+			ce := &providers.CallError{Op: "PUT /v3/domains/{domain}/webhooks", Code: "too_many_urls"}
+			ce.Message, ce.Text = say(mTooManyURLs, i18n.Args{"event": id})
+			return ce
 		}
 		var fields [][2]string
 		op, method, path := "POST /v3/domains/{domain}/webhooks", http.MethodPost, apiclient.Path("/v3/domains/%s/webhooks", p.s.Domain)
@@ -422,26 +425,27 @@ func (p *Provider) Tracking(ctx context.Context) (providers.Tracking, error) {
 	if err := p.api.Do(ctx, "GET /v3/domains/{domain}/tracking", http.MethodGet, apiclient.Path("/v3/domains/%s/tracking", p.s.Domain), nil, &out); err != nil {
 		return providers.Tracking{}, p.classify(err, p.s.Domain)
 	}
-	t := providers.Tracking{Scope: "Domain " + p.s.Domain}
+	t := providers.Tracking{}
+	t.Scope, t.ScopeText = say(mTrackingScope, i18n.Args{"domain": p.s.Domain})
 	opens, clicks, unsub := active(out.Tracking.Open.Active), active(out.Tracking.Click.Active), active(out.Tracking.Unsubscribe.Active)
 	t.LinkRewrite = unsub
-	var on []string
-	if opens {
-		on = append(on, "open")
-	}
-	if clicks {
-		on = append(on, "click")
+	// The domain's open and click tracking that is on: open, click or both.
+	on := ""
+	switch {
+	case opens && clicks:
+		on = "both"
+	case opens:
+		on = "open"
+	case clicks:
+		on = "click"
 	}
 	switch {
 	case unsub:
-		t.Detail = "Unsubscribe tracking is on, so Mailgun adds its own unsubscribe link and footer next to ReputeCast's."
-		if len(on) > 0 {
-			t.Detail += " Domain " + strings.Join(on, " and ") + " tracking is on too, but ReputeCast turns it off on every message."
-		}
-	case len(on) > 0:
-		t.Detail = "Domain " + strings.Join(on, " and ") + " tracking is on, but ReputeCast turns it off on every message it sends."
+		t.Detail, t.DetailText = say(mTrackingUnsub, i18n.Args{"on": on})
+	case on != "":
+		t.Detail, t.DetailText = say(mTrackingOn, i18n.Args{"on": on})
 	default:
-		t.Detail = "Open, click and unsubscribe tracking are off for " + p.s.Domain + "."
+		t.Detail, t.DetailText = say(mTrackingOff, i18n.Args{"domain": p.s.Domain})
 	}
 	return t, nil
 }
@@ -507,14 +511,9 @@ func (p *Provider) StatusPageURL() (string, string) {
 	return "Mailgun status", "https://status.mailgun.com"
 }
 
-func count(n int64) string {
-	s := strconv.FormatInt(n, 10)
-	var b strings.Builder
-	for i, r := range s {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			b.WriteByte(',')
-		}
-		b.WriteRune(r)
+func yesNo(b bool) string {
+	if b {
+		return "yes"
 	}
-	return b.String()
+	return "no"
 }

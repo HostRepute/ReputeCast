@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
@@ -52,25 +53,19 @@ type ConnectStreams struct {
 	Defaults string   `json:"defaults"`
 }
 
-var streamDescriptions = map[string]string{
-	"broadcast":     "Campaigns and newsletters. Highest volume, most sensitive to reputation.",
-	"automation":    "Emails sent by flows: welcome series, onboarding, re-engagement.",
-	"system":        "Double opt-in confirmations, preference-center links, team invites. Must always go out.",
-	"transactional": "Mail from your product through the API or SMTP relay: password resets, receipts, alerts. Must always go out.",
-}
-
-func policyText(p routing.Policy) string {
+// policyKey names a failover policy for the messages (failover.*).
+func policyKey(p routing.Policy) string {
 	switch p {
 	case routing.PauseAndAsk:
-		return "Pause and ask"
+		return "pause"
 	case routing.WarmOnly:
-		return "Automatic, warmed-up providers only"
+		return "warm"
 	}
-	return "Automatic"
+	return "auto"
 }
 
 // streamsView builds step 5 from the saved routing and the setup's choices.
-func (s *Service) streamsView(ctx context.Context, ws *store.Workspace, d providers.Descriptor, c adapterCopy, p store.Provider, st State) (ConnectStreams, error) {
+func (s *Service) streamsView(ctx context.Context, l i18n.Lang, ws *store.Workspace, d providers.Descriptor, c adapterCopy, p store.Provider, st State) (ConnectStreams, error) {
 	out := ConnectStreams{Streams: []ConnectStreamView{}, Tips: []string{}}
 	set, err := routing.Load(ctx, s.Q, ws.ID)
 	if err != nil {
@@ -95,7 +90,7 @@ func (s *Service) streamsView(ctx context.Context, ws *store.Workspace, d provid
 	}
 	for _, stream := range routing.Streams {
 		key := string(stream)
-		v := ConnectStreamView{Stream: key, Name: streamName(key), Description: streamDescriptions[key], Allowed: true, Current: []string{}}
+		v := ConnectStreamView{Stream: key, Name: streamName(l, key), Description: mStreamDescription.Text(l, i18n.Args{"stream": key}), Allowed: true, Current: []string{}}
 		rule, has := set.Default(stream)
 		mine := false
 		if has {
@@ -114,9 +109,9 @@ func (s *Service) streamsView(ctx context.Context, ws *store.Workspace, d provid
 		}
 		if stream == providers.StreamBroadcast && !caps.BulkAllowed() {
 			v.Allowed = false
-			v.Reason = d.Name + "'s terms don't allow bulk marketing on this connection, so it can carry Automations and System only."
+			v.Reason = mStreamsNoBulk.Text(l, i18n.Args{"name": d.Name})
 			if caps.Bulk == providers.BulkBroadcastStreams {
-				v.Reason = d.Name + "'s terms allow bulk mail only on a Broadcast stream. Create one from Sending providers first."
+				v.Reason = mStreamsBroadcastOnly.Text(l, i18n.Args{"name": d.Name})
 			}
 		}
 		// Defaults: streams nobody carries yet, and the ones it already
@@ -140,26 +135,20 @@ func (s *Service) streamsView(ctx context.Context, ws *store.Workspace, d provid
 				}
 			}
 		}
-		switch v.Role {
-		case "primary":
-			v.RoleLabel = "Primary"
-			if stream == providers.StreamBroadcast {
-				v.RoleLabel = "Primary · 100%"
-			}
-		case "split":
-			v.RoleLabel = "Split · " + strconv.Itoa(v.Weight) + "%"
-		default:
-			v.RoleLabel = "Fallback"
+		role := v.Role
+		if role == "primary" && stream == providers.StreamBroadcast {
+			role = "primaryAll"
 		}
+		v.RoleLabel = mRoleLabel.Text(l, i18n.Args{"role": role, "weight": strconv.Itoa(v.Weight)})
 		v.ConfigurationSet = cfg.Sets[key]
-		policy := set.Policy(stream)
+		policy := policyKey(set.Policy(stream))
 		if stream == providers.StreamBroadcast {
-			v.Failover = policyText(policy)
+			v.Failover = mFailoverPolicy.Text(l, i18n.Args{"policy": policy})
 			switch {
 			case !track.OpenPixel && !track.LinkRewrite:
-				v.Tracking = "ReputeCast only; " + c.Short + " tracking off"
+				v.Tracking = mStreamsTrackingOff.Text(l, i18n.Args{"short": c.Short})
 			default:
-				v.Tracking = c.Short + " tracking is on; turn it off in Sending providers"
+				v.Tracking = mStreamsTrackingOn.Text(l, i18n.Args{"short": c.Short})
 			}
 		} else {
 			fallback := ""
@@ -171,11 +160,11 @@ func (s *Service) streamsView(ctx context.Context, ws *store.Workspace, d provid
 			}
 			switch {
 			case v.Role == "fallback":
-				v.Failover = policyText(policy) + ", takes over when " + strings.Join(v.Current, " and ") + " fails"
+				v.Failover = mFailoverTakesOver.Text(l, i18n.Args{"policy": policy, "current": i18n.AndList(l.Locale, v.Current)})
 			case fallback != "":
-				v.Failover = policyText(policy) + ", falls back to " + fallback
+				v.Failover = mFailoverFallsBack.Text(l, i18n.Args{"policy": policy, "fallback": fallback})
 			default:
-				v.Failover = policyText(policy) + ", no fallback yet"
+				v.Failover = mFailoverNoFallback.Text(l, i18n.Args{"policy": policy})
 			}
 		}
 		out.Streams = append(out.Streams, v)
@@ -184,15 +173,13 @@ func (s *Service) streamsView(ctx context.Context, ws *store.Workspace, d provid
 	if d.Adapter == "postmark" {
 		second = "SES"
 	}
-	out.Tips = append(out.Tips,
-		"Many teams add a second provider for System mail ("+second+" is a common choice) so opt-in confirmations keep flowing if "+c.Short+" is ever under review. You can do that from \"Add another provider\" at the end.",
-		"If you also run a Postal server or a dedicated IP later, a weighted split (for example 90 / 10) warms it up inside real campaigns.")
-	out.Defaults = s.defaultsLine(ctx, ws)
+	out.Tips = append(out.Tips, mTipsSecond.Text(l, i18n.Args{"second": second, "short": c.Short}), mTipsSplit.Text(l, nil))
+	out.Defaults = s.defaultsLine(ctx, l, ws)
 	return out, nil
 }
 
 // defaultsLine is the "Set" tip: throttles and auto-pause thresholds.
-func (s *Service) defaultsLine(ctx context.Context, ws *store.Workspace) string {
+func (s *Service) defaultsLine(ctx context.Context, l i18n.Lang, ws *store.Workspace) string {
 	def, err := s.sendingDefaults(ctx, ws)
 	if err != nil {
 		return ""
@@ -200,20 +187,10 @@ func (s *Service) defaultsLine(ctx context.Context, ws *store.Workspace) string 
 	parts := []string{}
 	for _, mb := range []string{"outlook", "yahoo", "icloud"} {
 		if v := def.Throttles[mb]; v > 0 {
-			parts = append(parts, routing.MailboxName(mb)+" "+trimFloat(v)+" /s")
+			parts = append(parts, mThrottleItem.Text(l, i18n.Args{"mailbox": routing.MailboxName(mb), "rate": v}))
 		}
 	}
-	line := "Per-mailbox-provider throttles"
-	if len(parts) > 0 {
-		line += " (" + strings.Join(parts, ", ") + ")"
-	}
-	line += fmt.Sprintf(" and auto-pause thresholds (bounce %s%%, complaint %s%%) start with safe defaults. Change them in any campaign's Review & send.",
-		trimFloat(def.Bounce), trimFloat(def.Complaint))
-	return line
-}
-
-func trimFloat(v float64) string {
-	return strconv.FormatFloat(v, 'f', -1, 64)
+	return mStreamsDefaults.Text(l, i18n.Args{"hasThrottles": yesNo(len(parts) > 0), "throttles": strings.Join(parts, ", "), "bounce": def.Bounce, "complaint": def.Complaint})
 }
 
 // ConnectStreamChoiceInput is one stream of step 5.
@@ -245,6 +222,7 @@ func (s *Service) SaveStreams(ctx context.Context, ws *store.Workspace, rawID st
 	if err != nil {
 		return ConnectSetup{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	caps := state.Caps(p)
 	choices := map[string]StreamChoice{}
 	save := routing.RoutingSaveInput{}
@@ -254,7 +232,7 @@ func (s *Service) SaveStreams(ctx context.Context, ws *store.Workspace, rawID st
 			continue
 		}
 		if ch.Stream == "broadcast" && !caps.BulkAllowed() {
-			return ConnectSetup{}, api.Invalid(fmt.Sprintf("body.streams[%d].enabled", i), p.Name+"'s terms don't allow bulk marketing, so it can't carry Broadcasts.")
+			return ConnectSetup{}, api.Invalid(fmt.Sprintf("body.streams[%d].enabled", i), mProblemNoBroadcasts.Text(l, i18n.Args{"name": p.Name}))
 		}
 		var view *routing.RoutingStreamView
 		for j := range cfg.Streams {
@@ -291,7 +269,7 @@ func (s *Service) SaveStreams(ctx context.Context, ws *store.Workspace, rawID st
 			}
 		case "split":
 			if ch.Stream != "broadcast" {
-				return ConnectSetup{}, api.Invalid(fmt.Sprintf("body.streams[%d].role", i), "Only Broadcasts are split by weight; pick primary or fallback.")
+				return ConnectSetup{}, api.Invalid(fmt.Sprintf("body.streams[%d].role", i), mProblemSplitBroadcastsOnly.Text(l, nil))
 			}
 			w := ch.Weight
 			if w <= 0 {
@@ -300,7 +278,7 @@ func (s *Service) SaveStreams(ctx context.Context, ws *store.Workspace, rawID st
 			next.Splits = splitWith(next.Splits, pid, w)
 		case "fallback":
 			if len(next.Splits) == 1 && next.Splits[0].ProviderID == pid {
-				return ConnectSetup{}, api.Invalid(fmt.Sprintf("body.streams[%d].role", i), p.Name+" already carries this stream; it can't also be its fallback.")
+				return ConnectSetup{}, api.Invalid(fmt.Sprintf("body.streams[%d].role", i), mProblemAlreadyCarries.Text(l, i18n.Args{"name": p.Name}))
 			}
 			next.Fallback = pid
 		}

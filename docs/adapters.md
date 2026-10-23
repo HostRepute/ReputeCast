@@ -86,6 +86,8 @@ internal/providers/<name>/
   <name>.go        package comment with the terms, Descriptor, Settings, Credentials, New, Send
   webhook.go       VerifyWebhook, ParseWebhook, normalization
   account.go       Verify/Quota, domains, webhook registration, suppressions, tracking, backfill
+  lang.go          the message catalog and its messages (Text for people)
+  messages/        en.json, the English people read, and vi.json, its translation
   <name>_test.go   fake API, contracttest.Run, adapter-specific tests
   testdata/        recorded webhook payloads
 ```
@@ -93,6 +95,11 @@ internal/providers/<name>/
 ### The descriptor
 
 ```go
+//go:embed messages/*.json
+var messagesFS embed.FS
+
+var msgs = i18n.MustLoad(messagesFS, "providers.example")
+
 func init() { providers.Register(Descriptor()) }
 
 func Descriptor() providers.Descriptor {
@@ -108,19 +115,33 @@ func Descriptor() providers.Descriptor {
 			BatchSize:       1,
 			Sandbox:         "mode",
 			QuotaDiscovery:  true,
-			Pricing:         "plan, from $10 per month",
+			// Pricing and DedicatedIPs are in messages/en.json.
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",
-		Terms: []providers.Terms{{Bulk: providers.BulkAllowed, Note: "Opted-in lists only…",
+		Terms: []providers.Terms{{Bulk: providers.BulkAllowed,
 			Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
-		Events: "Webhooks", DomainSetup: "API", SuppressionMode: "Two-way",
 		Fields: []providers.Field{
-			{Key: "api_key", Label: "API key", Secret: true, Required: true, Help: "Example › Settings › API keys."},
-			{Key: "region", Label: "Region", Options: []string{"us", "eu"}},
+			{Key: "api_key", Secret: true, Required: true},
+			{Key: "region", Options: []string{"us", "eu"}},
 		},
 		New: New,
-	}
+	}.WithMessages(msgs)
+}
+```
+
+with its words in `messages/en.json`, a `note` where a translator needs one:
+
+```json
+{
+  "pricing": { "message": "plan, from $10 per month", "note": "on a capability chip: Pricing · …" },
+  "terms.0.note": { "message": "Opted-in lists only…", "note": "what the terms allow, on Routing" },
+  "events": "Webhooks",
+  "domainSetup": "API",
+  "suppressionMode": "Two-way",
+  "field.api_key.label": "API key",
+  "field.api_key.help": { "message": "Example › Settings › API keys.", "note": "Example's own menus" },
+  "field.region.label": "Region"
 }
 ```
 
@@ -139,6 +160,61 @@ The badges must be true for the provider today:
   a price that will go stale.
 - **Tracking:** set `RewritesLinks` / `AddsOpenPixel` when the provider tracks
   by default and the adapter can't turn it off per message.
+
+### Text for people
+
+What an adapter tells people reads in each reader's language: server text
+follows the reader's app language (`i18n.LangFrom(ctx)`), and API clients
+that send no `Accept-Language` read English. An adapter writes its words once,
+in English, in its own catalog (`messages/en.json`, loaded with
+`i18n.MustLoad(messagesFS, "providers.<name>")`), and its translations beside
+it (`messages/vi.json`, with the terms of `docs/i18n/glossary-vi.md`).
+Catalogs are global, so core code reads a kept message without importing the
+adapter.
+
+- **The descriptor's words.** `WithMessages(msgs)` fills the descriptor from
+  well-known keys: `field.<key>.label` and `field.<key>.help`,
+  `terms.<n>.variant` and `terms.<n>.note` (the nth Terms, from 0), `pricing`,
+  `dedicatedIps`, and the Adapters tab's `events`, `domainSetup` and
+  `suppressionMode`. It writes the English where the descriptor leaves a text
+  empty and keeps the message beside it (`LabelText`, `NoteText`…). Readers
+  call `d.In(l)` or `providers.TextIn(english, text, l)`; logic keeps
+  comparing the English.
+- **What the adapter writes at runtime** keeps its message beside the
+  English: `Quota.AccountText` (the account's standing),
+  `ConnectionReport.SummaryText`, `ProvisionStep.LabelText`,
+  `ProvisionResult.DoneText`, `Tracking.DetailText` and `ScopeText`,
+  `ServiceStatus.SummaryText`, and `CallError.Text` for an error the adapter
+  words itself (`providers.ErrorIn` and `MessageIn` read it). Return the
+  English as before and the message with `msg.Keep(args)`; most adapters
+  have a `say(m, args)` helper that returns both. Pass numbers as numbers
+  and times as `time.Time`, so `{n, number}` and `{at, time}` follow the
+  reader's region format.
+- **Names stay as they are:** the provider's name and its own words for its
+  plans, keys, menus and stream types ("Server API token", "luồng
+  Broadcast"), and its answers (error codes, API messages), event names,
+  logs and internal errors.
+- **Stored text.** Code that keeps an adapter's text for later readers (a
+  provider's health, a setup's state, an incident) stores the English and
+  the message. A row written before its message was kept reads in English.
+
+Community adapters (the generic HTTP adapter's mappings and remote adapters)
+have no catalog. Their manifest's words (the name, the terms note, the
+pricing, the connection form) read as their author wrote them, in English
+for everyone. What ReputeCast says about them (the capability labels, the
+Adapters tab's words, the runtime's errors) reads in each reader's language.
+
+The contract suite checks it (its `Texts` subtest): a built-in adapter of
+kind `api`, `smtp`, `self_hosted` or `http` names its catalog, every text it
+declares has a message whose English is that text, and every message is
+translated into each app language. `contracttest.CheckText` checks a text
+the adapter writes at runtime.
+
+SMS adapters (`internal/sms/<name>`) work the same way: their catalog's
+namespace is `sms.<name>`, `Manifest.WithMessages` reads the keys `summary`,
+`badge.<capability>.note`, `field.<key>.label` and `field.<key>.help`, the
+SMS screens show `Manifest.In(l)`, and `internal/sms/contracttest` checks
+the texts.
 
 ### Settings and credentials
 
@@ -236,7 +312,9 @@ Every adapter passes `internal/providers/contracttest`. The suite checks:
 - Send, a permanent rejection, an outage and rejected credentials, all
   against your fake API;
 - each recorded webhook, verified, normalized, re-parsed with a verified
-  context, and refused once tampered with.
+  context, and refused once tampered with;
+- the text people read: its messages, and their translations (Text for
+  people).
 
 ```go
 func TestContract(t *testing.T) {
@@ -356,6 +434,11 @@ The mapping is the manifest's `http` object. The Adapters tab saves it in
 `terms.bulk` is `allowed`, `broadcast_streams_only`, `forbidden` or
 `your_policy`. It defaults to `your_policy`: ReputeCast can't read a mapped
 provider's terms, so the routing screen asks you to check them.
+
+The manifest's words (`name`, `terms.note`, `pricing`, the connection form's
+labels) are shown as you wrote them, in every language. Without a
+`terms.note`, ReputeCast's own note reads in each reader's language, like the
+rest of what it says about the mapping (Text for people).
 
 ### Mapping fields
 
@@ -750,6 +833,12 @@ anything runs, and the catalog badges come from it.
 `suppressionSync` ReputeCast enforces the shared suppression list locally
 before sending (*Local only*); without `webhooks` there is no bounce
 protection on that route, which Send Readiness reports.
+
+The manifest's texts (`name`, `description`, `terms.note`, `pricing`,
+`dedicatedIps`, the `config` labels and help) are shown as written, in
+English for every reader: a community adapter has no message catalog. The
+badges, the Adapters tab's words and the runtime's errors are ReputeCast's
+and read in each reader's language (Text for people).
 
 ### The protocol, version 1
 

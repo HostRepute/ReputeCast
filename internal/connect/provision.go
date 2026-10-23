@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
@@ -70,10 +72,15 @@ const maxConfirmAttempts = 60
 // connection: the credential check and the account read (done), then the
 // adapter's steps.
 func (s *Service) startProvisioning(ctx context.Context, p store.Provider, st *State, quota providers.Quota, now time.Time) {
-	rows := []ProvisionState{
-		{Key: "verify", Label: "Verify credentials and permissions", Text: "Verified credentials and permissions", Status: "done", At: &now},
-		{Key: "account", Label: "Read the account", Text: accountText(quota), Status: "done", At: &now},
-	}
+	verify := ProvisionState{Key: "verify", Status: "done", At: &now}
+	verify.Label = verify.say("label", mProvisionVerify, nil)
+	verify.Text = verify.say("text", mProvisionVerified, nil)
+	account := ProvisionState{Key: "account", Status: "done", At: &now}
+	account.Label = account.say("label", mProvisionAccount, nil)
+	var text i18n.Text
+	account.Text, text = accountText(quota)
+	account.keep("text", text)
+	rows := []ProvisionState{verify, account}
 	adapter, err := s.Factory.Open(ctx, p)
 	if err != nil {
 		st.Connection.Provisioning = rows
@@ -88,15 +95,16 @@ func (s *Service) startProvisioning(ctx context.Context, p store.Provider, st *S
 	st.Connection.ProvisionSuffix = suffix
 	in := providers.ProvisionInput{WebhookURL: s.webhookURL(p, ""), Suffix: suffix}
 	for _, step := range pv.ProvisionSteps(ctx, in) {
-		rows = append(rows, ProvisionState{Key: step.Key, Label: step.Label, Status: "waiting"})
+		row := ProvisionState{Key: step.Key, Label: step.Label, Status: "waiting"}
+		row.keep("label", step.LabelText)
+		rows = append(rows, row)
 	}
 	// No provider can reach a private public URL: say so before creating anything.
 	if reach := s.reachable(ctx, in.WebhookURL, p); !reach.OK && reach.Private {
 		for i := range rows {
 			if rows[i].Status == "waiting" {
 				rows[i].Status, rows[i].At = "failed", &now
-				rows[i].Error = reach.Code + ": " + reach.Reason
-				rows[i].Hint = "AWS has to reach ReputeCast's public URL to deliver events. Set PUBLIC_URL to the HTTPS address your reverse proxy exposes, then retry."
+				rows[i].unreachable(reach)
 				break
 			}
 		}
@@ -120,31 +128,68 @@ func (s *Service) queueProvisioning(ctx context.Context, setupID uuid.UUID) {
 	}
 }
 
-// accountText is the "Read account" row.
-func accountText(q providers.Quota) string {
+// accountText is the "Read account" row once done ("Read account:
+// production access, 50,000 per 24 h, 14 per second"), with its message.
+func accountText(q providers.Quota) (string, i18n.Text) {
 	if q.Kind == "" && q.Account == "" {
-		return "Read the account"
+		return say(mProvisionAccount, nil)
 	}
-	parts := []string{}
+	mode := "none"
 	if q.Sandbox {
-		parts = append(parts, "sandbox")
+		mode = "sandbox"
 	} else if q.Kind != "" {
-		parts = append(parts, "production access")
+		mode = "production"
 	}
-	if q.Max > 0 {
-		per := "per 24 h"
-		if q.Kind == "monthly_plan" {
-			per = "per month"
-		}
-		parts = append(parts, thousands(int(q.Max))+" "+per)
+	hasMax, hasRate := q.Max > 0, q.MaxRate > 0
+	if mode == "none" && !hasMax && !hasRate {
+		return say(mProvisionAccountReadAs, i18n.Args{"account": strings.ToLower(q.Account)})
 	}
-	if q.MaxRate > 0 {
-		parts = append(parts, strings.TrimSuffix(strings.TrimSuffix(fmt.Sprintf("%.1f", q.MaxRate), "0"), ".")+" per second")
+	per := "day"
+	if q.Kind == "monthly_plan" {
+		per = "month"
 	}
-	if len(parts) == 0 {
-		return "Read account: " + strings.ToLower(q.Account)
+	// One decimal at most, as the provider's console shows it.
+	rate, _ := strconv.ParseFloat(fmt.Sprintf("%.1f", q.MaxRate), 64)
+	return say(mProvisionAccountRead, i18n.Args{"mode": mode, "hasMax": yesNo(hasMax), "max": q.Max, "per": per, "maxSep": yesNo(mode != "none" && hasMax),
+		"hasRate": yesNo(hasRate), "rate": rate, "rateSep": yesNo(hasRate && (mode != "none" || hasMax))})
+}
+
+// say sets one of a row's texts from a message (field: label, text, error,
+// hint) and returns its English.
+func (r *ProvisionState) say(field string, m i18n.Msg, args i18n.Args) string {
+	s, t := say(m, args)
+	r.keep(field, t)
+	return s
+}
+
+// keep sets the message of one of a row's texts; a zero message clears it,
+// so the row reads in English (an adapter's own text without a message).
+func (r *ProvisionState) keep(field string, t i18n.Text) {
+	if t.IsZero() {
+		delete(r.Texts, field)
+		return
 	}
-	return "Read account: " + strings.Join(parts, ", ")
+	if r.Texts == nil {
+		r.Texts = map[string]i18n.Text{}
+	}
+	r.Texts[field] = t
+}
+
+// clearProblem forgets a row's error and hint.
+func (r *ProvisionState) clearProblem() {
+	r.Error, r.Hint = "", ""
+	for _, k := range []string{"error", "reason", "hint"} {
+		delete(r.Texts, k)
+	}
+}
+
+// unreachable fails a row on a public URL no provider can reach: the
+// self-test's code and reason, and what to do.
+func (r *ProvisionState) unreachable(reach SelfTestState) {
+	r.clearProblem()
+	r.Error = reach.Code + ": " + reach.Reason
+	r.keep("reason", reach.ReasonText)
+	r.Hint = r.say("hint", mProvisionHintPublicURL, nil)
 }
 
 // provisionSuffix avoids clashing resource names when another connection
@@ -241,6 +286,8 @@ func (s *Service) RunProvisioning(ctx context.Context, setupID uuid.UUID) (bool,
 			now := s.now()
 			if err := s.setRow(ctx, setupID, row.Key, func(r *ProvisionState) {
 				r.Status, r.At, r.Text = "done", &now, strings.Replace(r.Label, "Create", "Created", 1)
+				// Other languages read the step's own words.
+				r.keep("text", r.Texts["label"])
 			}); err != nil {
 				return false, err
 			}
@@ -261,15 +308,18 @@ func (s *Service) RunProvisioning(ctx context.Context, setupID uuid.UUID) (bool,
 		now := s.now()
 		if perr != nil {
 			msg, kind := failureText(perr)
-			hint := ""
-			if kind == "auth" {
-				hint = "the IAM user's policy doesn't allow it"
-				if state.Connection.Access == "role" {
-					hint = "the role policy was edited after the stack ran"
-				}
-			}
 			_ = manage.RecordCall(ctx, s.Pool, p, row.Key, perr, 0, now)
-			return false, s.setRow(ctx, setupID, row.Key, func(r *ProvisionState) { r.Status, r.At, r.Error, r.Hint = "failed", &now, msg, hint })
+			return false, s.setRow(ctx, setupID, row.Key, func(r *ProvisionState) {
+				r.clearProblem()
+				r.Status, r.At, r.Error = "failed", &now, msg
+				if kind == "auth" {
+					hint := mProvisionHintIAMUser
+					if state.Connection.Access == "role" {
+						hint = mProvisionHintRolePolicy
+					}
+					r.Hint = r.say("hint", hint, nil)
+				}
+			})
 		}
 		if len(res.Settings) > 0 {
 			cfg := currentSettings(&p)
@@ -285,14 +335,19 @@ func (s *Service) RunProvisioning(ctx context.Context, setupID uuid.UUID) (bool,
 			attempts := row.Attempts + 1
 			if attempts >= maxConfirmAttempts {
 				return false, s.setRow(ctx, setupID, row.Key, func(r *ProvisionState) {
+					r.clearProblem()
 					r.Status, r.At, r.Attempts = "failed", &now, attempts
-					r.Error = "No confirmation after 5 minutes"
-					r.Hint = "SNS couldn't reach " + in.WebhookURL + ". Check that the public URL is reachable from the internet, then retry."
+					r.Error = r.say("error", mProvisionNoConfirmation, nil)
+					r.Hint = r.say("hint", mProvisionHintSNS, i18n.Args{"url": in.WebhookURL})
 				})
 			}
 			return true, s.setRow(ctx, setupID, row.Key, func(r *ProvisionState) { r.Attempts = attempts })
 		}
-		if err := s.setRow(ctx, setupID, row.Key, func(r *ProvisionState) { r.Status, r.At, r.Text, r.Error, r.Hint = "done", &now, res.Done, "", "" }); err != nil {
+		if err := s.setRow(ctx, setupID, row.Key, func(r *ProvisionState) {
+			r.clearProblem()
+			r.Status, r.At, r.Text = "done", &now, res.Done
+			r.keep("text", res.DoneText)
+		}); err != nil {
 			return false, err
 		}
 	}
@@ -335,7 +390,7 @@ func (s *Service) finishProvisioning(ctx context.Context, st store.ProviderSetup
 	t.OpenPixel, t.LinkRewrite = false, false
 	now := s.now()
 	t.CheckedAt = &now
-	t.Detail = "Configuration sets publish delivery events only: open and click tracking off."
+	t.Detail, t.DetailText = say(mTrackingConfigSets, nil)
 	tb, _ := json.Marshal(t)
 	wsID := p.WorkspaceID
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -363,12 +418,13 @@ func (s *Service) RetryProvisioning(ctx context.Context, ws *store.Workspace, ra
 		for i := range state.Connection.Provisioning {
 			r := &state.Connection.Provisioning[i]
 			if r.Status == "failed" {
-				r.Status, r.Error, r.Hint, r.Attempts = "waiting", "", "", 0
+				r.clearProblem()
+				r.Status, r.Attempts = "waiting", 0
 				n++
 			}
 		}
 		if n == 0 {
-			return api.Conflict("Nothing to retry: no provisioning step failed.")
+			return conflict(ctx, mProblemNothingToRetry, nil)
 		}
 		return nil
 	})
@@ -382,8 +438,8 @@ func (s *Service) RetryProvisioning(ctx context.Context, ws *store.Workspace, ra
 		for i := range state.Connection.Provisioning {
 			if state.Connection.Provisioning[i].Status == "waiting" {
 				r := &state.Connection.Provisioning[i]
-				r.Status, r.At, r.Error = "failed", &now, reach.Code+": "+reach.Reason
-				r.Hint = "AWS has to reach ReputeCast's public URL to deliver events. Set PUBLIC_URL to the HTTPS address your reverse proxy exposes, then retry."
+				r.Status, r.At = "failed", &now
+				r.unreachable(reach)
 				break
 			}
 		}
@@ -416,10 +472,11 @@ func (s *Service) SetRegion(ctx context.Context, ws *store.Workspace, rawID stri
 	if err != nil {
 		return ConnectSetup{}, err
 	}
-	d, err := descriptor(cur.Adapter)
+	d, err := descriptor(ctx, cur.Adapter)
 	if err != nil {
 		return ConnectSetup{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	found := false
 	for _, f := range d.Fields {
 		if f.Key == "region" && contains(f.Options, in.Region) {
@@ -427,7 +484,7 @@ func (s *Service) SetRegion(ctx context.Context, ws *store.Workspace, rawID stri
 		}
 	}
 	if !found {
-		return ConnectSetup{}, api.Invalid("body.region", "Pick an SES region from the list.")
+		return ConnectSetup{}, api.Invalid("body.region", mProblemPickRegion.Text(l, nil))
 	}
 	cfg := currentSettings(&p)
 	before := stringOf(cfg["region"])
@@ -446,7 +503,7 @@ func (s *Service) SetRegion(ctx context.Context, ws *store.Workspace, rawID stri
 			quota, err = v.Verify(cctx)
 			cancel()
 			if err != nil {
-				return ConnectSetup{}, api.Err(422, api.CodeProviderUnavailable, "SES didn't answer in "+in.Region+": "+callMessage(err))
+				return ConnectSetup{}, api.Err(422, api.CodeProviderUnavailable, mProblemSESNoAnswer.Text(l, i18n.Args{"region": in.Region, "error": providers.MessageIn(err, l)}))
 			}
 		}
 	}
@@ -456,7 +513,7 @@ func (s *Service) SetRegion(ctx context.Context, ws *store.Workspace, rawID stri
 		statusWord = state.Sandbox
 	}
 	h := state.HealthOf(p)
-	h.Account, h.Sandbox = quota.Account, quota.Sandbox
+	h.Account, h.AccountText, h.Sandbox = quota.Account, quota.AccountText, quota.Sandbox
 	if quota.Kind != "" {
 		h.Quota = &state.Quota{Kind: quota.Kind, Max: quota.Max, Used: quota.Used}
 	}
@@ -478,9 +535,14 @@ func (s *Service) SetRegion(ctx context.Context, ws *store.Workspace, rawID stri
 			switch r.Key {
 			case "verify":
 			case "account":
-				r.Text, r.At = accountText(quota), &now
+				var text i18n.Text
+				r.Text, text = accountText(quota)
+				r.keep("text", text)
+				r.At = &now
 			default:
-				r.Status, r.Text, r.Error, r.Hint, r.At, r.Attempts = "waiting", "", "", "", nil, 0
+				r.clearProblem()
+				r.Status, r.Text, r.At, r.Attempts = "waiting", "", nil, 0
+				r.keep("text", i18n.Text{})
 			}
 			rows = append(rows, r)
 		}
@@ -525,7 +587,7 @@ func (s *Service) RequestProductionAccess(ctx context.Context, ws *store.Workspa
 		}
 		pr, ok := adapter.(providers.ProductionAccessRequester)
 		if !ok {
-			return ConnectSetup{}, api.Conflict(p.Name + " has no production-access request.")
+			return ConnectSetup{}, conflict(ctx, mProblemNoProductionAccess, i18n.Args{"name": p.Name})
 		}
 		var contacts []string
 		if u := principalUser(ctx); u != nil {
@@ -538,7 +600,7 @@ func (s *Service) RequestProductionAccess(ctx context.Context, ws *store.Workspa
 			Language: in.Language, DailyVolume: in.DailyVolume, ContactEmails: contacts})
 		cancel()
 		if err != nil {
-			return ConnectSetup{}, api.Err(502, api.CodeProviderUnavailable, "AWS didn't take the request: "+callMessage(err)+". Nothing was filed.")
+			return ConnectSetup{}, api.Err(502, api.CodeProviderUnavailable, mProblemAWSRejected.Text(i18n.LangFrom(ctx), i18n.Args{"error": providers.MessageIn(err, i18n.LangFrom(ctx))}))
 		}
 	}
 	now := s.now()

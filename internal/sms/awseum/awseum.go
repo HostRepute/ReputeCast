@@ -47,7 +47,6 @@ func Descriptor() sms.Descriptor {
 	return sms.Descriptor{
 		Manifest: sms.Manifest{
 			Adapter: Adapter, Name: "AWS End User Messaging",
-			Summary: "Pay as you go · in your AWS account, with SES next door",
 			Badges: []sms.Badge{
 				{Capability: sms.CapTollFree, Support: sms.Yes}, {Capability: sms.Cap10DLC, Support: sms.Yes}, {Capability: sms.CapSenderIDs, Support: sms.Yes},
 				{Capability: sms.CapReceipts, Support: sms.Yes}, {Capability: sms.CapInbound, Support: sms.Yes},
@@ -56,13 +55,13 @@ func Descriptor() sms.Descriptor {
 				{Capability: sms.CapPricing, Support: sms.No},
 			},
 			Fields: []sms.Field{
-				{Key: "region", Label: "Region", Required: true, Options: Regions, Default: "us-east-1"},
-				{Key: "access", Label: "Access", Options: []string{"role", "keys"}, Default: "role"},
-				{Key: "role_arn", Label: "Role ARN", Help: "The role the CloudFormation template created. ReputeCast assumes it with the external ID."},
-				{Key: "external_id", Label: "External ID"},
-				{Key: "access_key_id", Label: "Access key ID"},
-				{Key: "secret_access_key", Label: "Secret access key", Secret: true},
-				{Key: "opt_out_list", Label: "Opt-out list", Default: "Default"},
+				{Key: "region", Required: true, Options: Regions, Default: "us-east-1"},
+				{Key: "access", Options: []string{"role", "keys"}, Default: "role"},
+				{Key: "role_arn"},
+				{Key: "external_id"},
+				{Key: "access_key_id"},
+				{Key: "secret_access_key", Secret: true},
+				{Key: "opt_out_list", Default: "Default"},
 			},
 			Webhooks: "registered",
 			Console: func(kind, _ string) string {
@@ -77,7 +76,9 @@ func Descriptor() sms.Descriptor {
 				return "https://console.aws.amazon.com/sms-voice/home"
 			},
 			Version: "1.0.0", Maintainer: "ReputeCast",
-		},
+			// The summary, the badges' notes and the fields' labels and hints
+			// are in messages/en.json: WithMessages fills them.
+		}.WithMessages(msgs),
 		New: New,
 	}
 }

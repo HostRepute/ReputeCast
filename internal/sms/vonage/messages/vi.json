@@ -1,0 +1,9 @@
+{
+  "summary": "Trả theo mức dùng · hỗ trợ ID người gửi rộng khắp châu Âu",
+  "badge.opt_out_sync.note": "từ tin trả lời và tin bị từ chối",
+  "badge.registration.note": "nhập thủ công",
+  "field.api_key.label": "Khóa API",
+  "field.api_secret.label": "API secret",
+  "field.signature_secret.label": "Signature secret",
+  "field.signature_secret.help": "Settings › API settings › Signed webhooks, dùng HMAC SHA-256. ReputeCast kiểm tra mọi báo nhận và tin trả lời bằng khóa này."
+}

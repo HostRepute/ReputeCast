@@ -105,31 +105,26 @@ func Descriptor() providers.Descriptor {
 			Bulk:      providers.BulkAllowed,
 			Webhooks:  "Event Grid",
 			BatchSize: 1,
-			Pricing:   "pay as you go, per email and per MB",
+			// Pricing and every other text people read (the terms' note,
+			// the Adapters tab's words, the fields' labels and hints) are in
+			// messages/en.json: WithMessages fills them.
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",
-		Terms: []providers.Terms{{Bulk: providers.BulkAllowed,
-			Note:    "Bulk and marketing mail allowed with written consent and an unsubscribe link. ACS doesn't DKIM-sign List-Unsubscribe, so Gmail and Yahoo one-click unsubscribe can't be relied on; Microsoft retires ACS as a standalone service on 30 Sep 2028.",
-			Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
-		Events:          "Event Grid",
-		DomainSetup:     "Manual DNS",
-		SuppressionMode: "Local only",
+		Terms:      []providers.Terms{{Bulk: providers.BulkAllowed, Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
 		Fields: []providers.Field{
-			{Key: "connection_string", Label: "Connection string", Secret: true,
-				Help: "Azure portal › your Communication Services resource › Keys. Or use an Entra ID application below."},
-			{Key: "endpoint", Label: "Endpoint", Help: "https://<resource>.communication.azure.com, only with Entra ID."},
-			{Key: "tenant_id", Label: "Entra ID tenant ID", Help: "For Microsoft Entra ID authentication instead of the access key."},
-			{Key: "client_id", Label: "Application (client) ID", Help: "An app registration with the Communication and Email Service Owner role on the resource."},
-			{Key: "client_secret", Label: "Client secret", Secret: true},
-			{Key: "per_minute", Label: "Sending limit · per minute", Help: "30 for a custom domain until Azure raises it."},
-			{Key: "per_hour", Label: "Sending limit · per hour", Help: "100 for a custom domain until Azure raises it."},
-			{Key: "event_grid_audience", Label: "Event Grid · Entra application ID",
-				Help: "Only when the Event Grid subscription uses Microsoft Entra authentication: the webhook application's ID or ID URI. Otherwise the subscription sends the webhook secret as a secret delivery header, Authorization: Bearer <secret>."},
-			{Key: "event_grid_tenant_id", Label: "Event Grid · Entra tenant ID", Help: "The tenant of that application, when it isn't the one above."},
+			{Key: "connection_string", Secret: true},
+			{Key: "endpoint"},
+			{Key: "tenant_id"},
+			{Key: "client_id"},
+			{Key: "client_secret", Secret: true},
+			{Key: "per_minute"},
+			{Key: "per_hour"},
+			{Key: "event_grid_audience"},
+			{Key: "event_grid_tenant_id"},
 		},
 		New: New,
-	}
+	}.WithMessages(msgs)
 }
 
 // Provider talks to one Communication Services resource.
@@ -262,7 +257,9 @@ func decodeError(_ int, body []byte) (string, string) {
 // are sent as they are.
 func (p *Provider) request(ctx context.Context, op, method, path string, body []byte, extra http.Header) (*apiclient.Response, error) {
 	if p.endpoint == "" {
-		return nil, &providers.CallError{Op: op, Auth: true, Message: "no endpoint: enter the connection string or the endpoint"}
+		ce := &providers.CallError{Op: op, Auth: true}
+		ce.Message, ce.Text = say(mNoEndpoint, nil)
+		return nil, ce
 	}
 	header := extra.Clone()
 	if header == nil {
@@ -284,7 +281,9 @@ func (p *Provider) request(ctx context.Context, op, method, path string, body []
 		header.Set("x-ms-content-sha256", hash)
 		header.Set("Authorization", "HMAC-SHA256 SignedHeaders=x-ms-date;host;x-ms-content-sha256&Signature="+Sign(p.key, method, u.RequestURI(), date, u.Host, hash))
 	default:
-		return nil, &providers.CallError{Op: op, Auth: true, Message: "no credentials: enter the connection string or an Entra ID application"}
+		ce := &providers.CallError{Op: op, Auth: true}
+		ce.Message, ce.Text = say(mNoCredentials, nil)
+		return nil, ce
 	}
 	ct := ""
 	if body != nil {
