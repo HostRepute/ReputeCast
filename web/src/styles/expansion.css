@@ -76,6 +76,12 @@
   padding-left: 12px;
 }
 
+/* An unfinished run's rows keep their note ("hết thời gian chờ") on one
+   line; the finding wraps instead. */
+:root:not([lang='en']) .rv-line > .k {
+  white-space: nowrap;
+}
+
 /* Rule 1 on the approval page: on phones the Send Readiness table's
    evidence keeps a readable width when its check names run longer than in
    English; the table scrolls sideways to the fixes, as it does in English. */
