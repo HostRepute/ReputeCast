@@ -11,6 +11,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -32,7 +33,7 @@ func (s *Service) SetPollOpen(ctx context.Context, ws *store.Workspace, p *authz
 		}
 		if !open {
 			if closed {
-				return api.Conflict("This poll is closed already.")
+				return api.Conflict(mPollClosed.Text(i18n.LangFrom(ctx), nil))
 			}
 			if err := q.PollSetClosed(ctx, store.PollSetClosedParams{ID: r.ID, ClosedAt: &now, ClosedBy: userOf(p), ReopenedAt: r.ReopenedAt, Now: now}); err != nil {
 				return err
@@ -41,7 +42,7 @@ func (s *Service) SetPollOpen(ctx context.Context, ws *store.Workspace, p *authz
 				Before: map[string]any{"status": "open"}, After: map[string]any{"status": "closed"}, Metadata: campaignMeta(r.CampaignID)})
 		}
 		if !closed {
-			return api.Conflict("This poll is open already.")
+			return api.Conflict(mPollOpen.Text(i18n.LangFrom(ctx), nil))
 		}
 		// Reopening clears a scheduled close that has passed: the poll stays
 		// open until a person closes it.

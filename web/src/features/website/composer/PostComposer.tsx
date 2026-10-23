@@ -12,7 +12,7 @@ import { Dialog } from '@/components/ui/Dialog'
 import { Note } from '@/components/ui/Note'
 import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
 import { dismissToast, toast } from '@/components/ui/Toast'
-import { T, useT } from '@/i18n'
+import { T, t as tr, useT } from '@/i18n'
 import { clock, dayMonthDate, longDate, orList } from '@/lib/format'
 import { useDocumentTitle } from '@/lib/hooks'
 import { useUnsavedWork } from '@/lib/sessionClock'
@@ -97,7 +97,10 @@ export function webColumn(body: string): string {
 }
 
 /** A new post starts with one text block. */
-const STARTER = '<mjml><mj-body width="680px"><mj-section padding="0px"><mj-column><mj-text font-size="17px" line-height="1.7" color="#1F2937">Start writing.</mj-text></mj-column></mj-section></mj-body></mjml>'
+function starter(): string {
+  const text = tr(mc.starterText).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return `<mjml><mj-body width="680px"><mj-section padding="0px"><mj-column><mj-text font-size="17px" line-height="1.7" color="#1F2937">${text}</mj-text></mj-column></mj-section></mj-body></mjml>`
+}
 
 /**
  * The composer in post mode (ComposerPublishToWeb): the canvas is the post's
@@ -120,7 +123,8 @@ export function PostComposer({ post: initialPost, context, overview, search, onS
   // On a phone the inspector is a sheet: folded to its tabs until a tab, the handle or the visibility chip opens it.
   const [sheetOpen, setSheetOpen] = useState(Boolean(search.panel))
 
-  const source = initialPost.mjml.trim() ? initialPost.mjml : STARTER
+  const [starterMjml] = useState(starter)
+  const source = initialPost.mjml.trim() ? initialPost.mjml : starterMjml
   const initial = useMemo(() => {
     const parts = splitMjml(source)
     return { ...parts, body: webColumn(parts.body) }
@@ -193,7 +197,7 @@ export function PostComposer({ post: initialPost, context, overview, search, onS
         setGe(inst)
         if (pendingSource.current) markDirty()
       })
-      .catch((e: unknown) => toast({ kind: 'error', title: "The editor couldn't start", detail: e instanceof Error ? e.message : String(e) }))
+      .catch((e: unknown) => toast({ kind: 'error', title: tr(mc.editorFailed), detail: e instanceof Error ? e.message : String(e) }))
     return () => {
       cancelled = true
       tracker.current?.dispose()
@@ -312,7 +316,7 @@ export function PostComposer({ post: initialPost, context, overview, search, onS
             } catch {
               /* storage unavailable */
             }
-            setStatus((s) => ({ kind: 'offline', since: s.kind === 'offline' ? s.since : new Date().toISOString(), version: version.current, message: "you're offline" }))
+            setStatus((s) => ({ kind: 'offline', since: s.kind === 'offline' ? s.since : new Date().toISOString(), version: version.current, message: tr(mc.offlineReason) }))
             return false
           }
           setStatus({ kind: 'error', version: version.current, message: errorMessage(e) })
@@ -359,7 +363,7 @@ export function PostComposer({ post: initialPost, context, overview, search, onS
     const { data } = await http.GET(`${WS}/posts/{post}`, { params: { path: { workspace: slug, post: initialPost.id } } })
     if (!data) return
     web.refresh(data)
-    loadContent(data.mjml || STARTER, { source: 'reload' })
+    loadContent(data.mjml || starter(), { source: 'reload' })
     version.current = data.version
     tracker.current?.take()
     pendingSource.current = null
@@ -560,7 +564,7 @@ export function PostComposer({ post: initialPost, context, overview, search, onS
   }, [ge])
 
   const unsaved = status.kind === 'dirty' || status.kind === 'offline' || status.kind === 'error' || status.kind === 'conflict' || web.status === 'dirty' || web.status === 'error'
-  useUnsavedWork(canEdit ? { whileEnding: 'the post autosaves', afterEnded: `The post you were editing is saved and will reopen where you left off.` } : undefined)
+  useUnsavedWork(canEdit ? { whileEnding: t(mc.whileEnding), afterEnded: t(mc.afterEnded) } : undefined)
 
   return (
     <ComposerCtx.Provider value={state}>
@@ -751,7 +755,7 @@ function WriterBanner({ post }: { post: Post }) {
       <span>
         <T
           msg={mc.writerNote}
-          values={{ name: <b>{user?.name ?? ''}</b>, role: <b>{me.workspace.roleName}</b>, perm: <code className="mono">website:publish</code>, rule, approvers: orList(post.publish.approvers) }}
+          values={{ name: <b>{user?.name ?? ''}</b>, role: <b>{me.workspace.roleName}</b>, perm: <code className="mono">{'website:publish'}</code>, rule, approvers: orList(post.publish.approvers) }}
         />
       </span>
     </div>
@@ -812,7 +816,7 @@ function PostHead({ post, title, excerpt, cover, alt, phone }: { post: Post; tit
   const { slug } = useWorkspace()
   const access = $api.useQuery('get', `${WS}/access`, { params: { path: { workspace: slug } } }, { staleTime: 60_000, enabled: post.visibility === 'paid' })
   // The paid label, as the site shows it: the post's tier, else the first tier's.
-  const paid = post.tiers[0]?.label || post.tiers[0]?.name || access.data?.tiers[0]?.label || t(mc.visPaidAll).split(' · ')[0]!
+  const paid = post.tiers[0]?.label || post.tiers[0]?.name || access.data?.tiers[0]?.label || t(mc.visPaid)
   // A tag that only repeats the paid label is left to the label, as on the site.
   const tags = post.tags.filter((x) => !(post.visibility === 'paid' && x.name.trim().toLowerCase() === paid.trim().toLowerCase()))
   return (
@@ -981,7 +985,7 @@ function RequestApprovalDialog({ post, draft, host, onClose, onSent }: { post: P
   void host
   const pub = post.publish
   const code = (x: string) => <code className="mono">{x}</code>
-  const vis = draft.visibility === 'paid' ? t(mc.visPaidAll).split(' · ')[0] : draft.visibility === 'members' ? t(mc.visMembers) : t(mc.visPublic)
+  const vis = draft.visibility === 'paid' ? t(mc.visPaid) : draft.visibility === 'members' ? t(mc.visMembers) : t(mc.visPublic)
   const when = draft.publishMode === 'at' && draft.publishAt ? scheduledLine(draft.publishAt, draft.publishTz) : t(mc.whenApproved)
   const send = async () => {
     setBusy(true)

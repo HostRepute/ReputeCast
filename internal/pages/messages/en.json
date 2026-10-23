@@ -28,5 +28,15 @@
   "reminders.exist": "The reminder automation “{name}” exists already.",
   "reminders.unavailable": "Automations aren't available on this server.",
   "reminders.noTime": "Set the event's date, start time and time zone first.",
-  "reminders.name": { "message": "{title} · reminders", "note": "the reminder automation's name; title: the event's title" }
+  "reminders.name": { "message": "{title} · reminders", "note": "the reminder automation's name; title: the event's title" },
+  "diff.form": { "message": "Signup form", "note": "a live block's name in the publish dialog's list of changes" },
+  "diff.countdown": "Countdown",
+  "diff.event": "Event details",
+  "diff.product": "Product",
+  "diff.products": "Product grid",
+  "diff.store": "Store product",
+  "diff.tiers": "Pricing tiers",
+  "diff.posts": "Recent posts",
+  "diff.video": "Video",
+  "diff.image": { "message": "Image", "note": "an image in the publish dialog's list of changes: Image · cover.png · alt: …" }
 }

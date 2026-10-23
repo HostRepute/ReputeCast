@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -81,17 +82,20 @@ const (
 )
 
 // defaultConfig is a new prompt's: a slide-in bar after 30 seconds or
-// half a post, asking again after 14 days.
-func defaultConfig(site string) PushPromptConfig {
-	return PushPromptConfig{Style: StyleBar, Title: "Get new posts as notifications",
-		Message: "One notification when a new post is out. Never more than one a day.", Allow: "Allow", NotNow: "Not now",
+// half a post, asking again after 14 days. Its words are for the site's
+// readers, in l: the language of the member who creates it, who rewrites
+// them in the designer.
+func defaultConfig(l i18n.Lang) PushPromptConfig {
+	return PushPromptConfig{Style: StyleBar, Title: mPromptTitle.Text(l, nil),
+		Message: mPromptMessage.Text(l, nil), Allow: mPromptAllow.Text(l, nil), NotNow: mPromptNotNow.Text(l, nil),
 		When:  PushPromptWhen{Seconds: PushPromptRule{On: true, N: 30}, Scroll: PushPromptRule{On: true, N: 50}, Posts: PushPromptRule{N: 3}},
 		Pages: "all_except", Paths: []string{"/account", "/subscribe"}, AskAgainDays: 14, IOS: "steps"}
 }
 
-// parseConfig reads a stored prompt, filling what's missing.
+// parseConfig reads a stored prompt, filling what's missing (in English,
+// as it was stored).
 func parseConfig(raw json.RawMessage) PushPromptConfig {
-	c := defaultConfig("")
+	c := defaultConfig(i18n.Default)
 	if len(raw) > 0 {
 		_ = json.Unmarshal(raw, &c)
 	}
@@ -106,21 +110,21 @@ func parseConfig(raw json.RawMessage) PushPromptConfig {
 
 var pathRe = regexp.MustCompile(`^/[A-Za-z0-9._~!$&'()*+,;=:@%/-]*$`)
 
-// check validates a prompt, field by field.
-func (c *PushPromptConfig) check() error {
+// check validates a prompt, field by field; its problems are in l.
+func (c *PushPromptConfig) check(l i18n.Lang) error {
 	c.Title, c.Message = strings.TrimSpace(c.Title), strings.TrimSpace(c.Message)
 	c.Allow, c.NotNow = strings.TrimSpace(c.Allow), strings.TrimSpace(c.NotNow)
 	switch {
 	case !slices.Contains([]string{StyleBar, StyleDialog, StyleBell}, c.Style):
-		return api.Invalid("body.style", "Pick a style: slide-in bar, dialog or bell button.")
+		return api.Invalid("body.style", mProblemPromptStyle.Text(l, nil))
 	case c.Title == "":
-		return api.Invalid("body.title", "Write the prompt's title.")
+		return api.Invalid("body.title", mProblemPromptTitle.Text(l, nil))
 	case utf8.RuneCountInString(c.Title) > PromptTitleMax:
-		return api.Invalid("body.title", fmt.Sprintf("Keep the title to %d characters.", PromptTitleMax))
+		return api.Invalid("body.title", mProblemPromptTitleLen.Text(l, i18n.Args{"max": PromptTitleMax}))
 	case utf8.RuneCountInString(c.Message) > PromptMessageMax:
-		return api.Invalid("body.message", fmt.Sprintf("Keep the message to %d characters.", PromptMessageMax))
+		return api.Invalid("body.message", mProblemPromptMsgLen.Text(l, i18n.Args{"max": PromptMessageMax}))
 	case c.Allow == "" || c.NotNow == "":
-		return api.Invalid("body.allow", "Name both buttons.")
+		return api.Invalid("body.allow", mProblemPromptButtons.Text(l, nil))
 	}
 	if c.Style == StyleBell && c.Corner == "" {
 		c.Corner = "bottom_right"
@@ -129,10 +133,10 @@ func (c *PushPromptConfig) check() error {
 		c.Corner = ""
 		w := c.When
 		if (!w.Seconds.On || w.Seconds.N < 0) && (!w.Scroll.On || w.Scroll.N <= 0) && (!w.Posts.On || w.Posts.N <= 0) && !w.Button {
-			return api.Invalid("body.when", "Check at least one rule for when the prompt shows.")
+			return api.Invalid("body.when", mProblemPromptWhen.Text(l, nil))
 		}
 		if w.Scroll.On && (w.Scroll.N < 1 || w.Scroll.N > 100) {
-			return api.Invalid("body.when.scroll", "Scrolling is a percent of the post, 1 to 100.")
+			return api.Invalid("body.when.scroll", mProblemPromptScroll.Text(l, nil))
 		}
 	}
 	if c.Pages != "only" {
@@ -148,7 +152,7 @@ func (c *PushPromptConfig) check() error {
 			p = "/" + p
 		}
 		if !pathRe.MatchString(p) || len(p) > 200 {
-			return api.Invalid("body.paths", "Paths start with / and are part of the site's addresses, like /account.")
+			return api.Invalid("body.paths", mProblemPromptPath.Text(l, nil))
 		}
 		if !slices.Contains(clean, p) {
 			clean = append(clean, p)
@@ -156,10 +160,10 @@ func (c *PushPromptConfig) check() error {
 	}
 	c.Paths = clean
 	if c.Pages == "only" && len(c.Paths) == 0 {
-		return api.Invalid("body.paths", "Add the pages the prompt shows on.")
+		return api.Invalid("body.paths", mProblemPromptPages.Text(l, nil))
 	}
 	if c.AskAgainDays < 1 || c.AskAgainDays > 365 {
-		return api.Invalid("body.askAgainDays", "Ask again after 1 to 365 days.")
+		return api.Invalid("body.askAgainDays", mProblemPromptAskAgain.Text(l, nil))
 	}
 	if c.IOS != "hidden" {
 		c.IOS = "steps"
@@ -281,24 +285,25 @@ func (s *Service) formSlug(ctx context.Context, q store.DBTX, ws *store.Workspac
 // CreatePrompt makes a push prompt: a form of type "push", a draft until
 // it's published.
 func (s *Service) CreatePrompt(ctx context.Context, ws *store.Workspace, p *authz.Principal, in PushPromptCreate) (PushPrompt, error) {
+	l := i18n.LangFrom(ctx)
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		return PushPrompt{}, api.Invalid("body.name", "Name the prompt.")
+		return PushPrompt{}, api.Invalid("body.name", mProblemPromptName.Text(l, nil))
 	}
 	var site *uuid.UUID
 	if in.SiteID != "" {
 		id, err := uuid.Parse(in.SiteID)
 		if err != nil {
-			return PushPrompt{}, api.Invalid("body.siteId", "Pick one of the workspace's push sites.")
+			return PushPrompt{}, api.Invalid("body.siteId", mProblemPromptSite.Text(l, nil))
 		}
 		if _, err := s.Q.PushSite(ctx, store.PushSiteParams{ID: id, WorkspaceID: ws.ID}); err != nil {
-			return PushPrompt{}, api.Invalid("body.siteId", "Pick one of the workspace's push sites.")
+			return PushPrompt{}, api.Invalid("body.siteId", mProblemPromptSite.Text(l, nil))
 		}
 		site = &id
 	} else if sites, err := s.Q.PushSites(ctx, ws.ID); err == nil && len(sites) > 0 {
 		site = &sites[0].ID
 	}
-	cfg := defaultConfig("")
+	cfg := defaultConfig(l)
 	draft, _ := json.Marshal(cfg)
 	id := uuid.Must(uuid.NewV7())
 	now := s.now()
@@ -488,18 +493,19 @@ func (s *Service) SaveDraft(ctx context.Context, ws *store.Workspace, p *authz.P
 	if _, err := s.promptRow(ctx, ws, id); err != nil {
 		return PushPrompt{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	cfg := in.Config
-	if err := cfg.check(); err != nil {
+	if err := cfg.check(l); err != nil {
 		return PushPrompt{}, err
 	}
 	var site *uuid.UUID
 	if in.SiteID != "" {
 		sid, err := uuid.Parse(in.SiteID)
 		if err != nil {
-			return PushPrompt{}, api.Invalid("body.siteId", "Pick one of the workspace's push sites.")
+			return PushPrompt{}, api.Invalid("body.siteId", mProblemPromptSite.Text(l, nil))
 		}
 		if _, err := s.Q.PushSite(ctx, store.PushSiteParams{ID: sid, WorkspaceID: ws.ID}); err != nil {
-			return PushPrompt{}, api.Invalid("body.siteId", "Pick one of the workspace's push sites.")
+			return PushPrompt{}, api.Invalid("body.siteId", mProblemPromptSite.Text(l, nil))
 		}
 		site = &sid
 	}
@@ -517,20 +523,21 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if err != nil {
 		return PushPrompt{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	if _, err := s.liveKey(ctx, s.Q, ws); errors.Is(err, errNoKeys) {
-		return PushPrompt{}, api.Err(409, "push_off", "Turn push on in Sending providers › Push first: the prompt subscribes readers with the workspace's keys.")
+		return PushPrompt{}, api.Err(409, "push_off", mProblemPromptPushOff.Text(l, nil))
 	} else if err != nil {
 		return PushPrompt{}, err
 	}
 	if r.SiteID == nil {
-		return PushPrompt{}, api.Err(409, "not_a_push_site", "The prompt's site isn't a push site yet. Add it in Push setup; readers can't subscribe until it is.")
+		return PushPrompt{}, api.Err(409, "not_a_push_site", mProblemPromptNoSite.Text(l, nil))
 	}
 	st, err := s.Q.PushSite(ctx, store.PushSiteParams{ID: *r.SiteID, WorkspaceID: ws.ID})
 	if err != nil {
-		return PushPrompt{}, api.Err(409, "not_a_push_site", "The prompt's site isn't a push site yet. Add it in Push setup; readers can't subscribe until it is.")
+		return PushPrompt{}, api.Err(409, "not_a_push_site", mProblemPromptNoSite.Text(l, nil))
 	}
 	cfg := parseConfig(r.Draft)
-	if err := cfg.check(); err != nil {
+	if err := cfg.check(l); err != nil {
 		return PushPrompt{}, err
 	}
 	live, _ := s.liveConfig(ctx, id, r.LiveVersion)
@@ -554,7 +561,7 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 				return err
 			}
 		} else if r.Status == "live" {
-			return api.Conflict("Nothing new to publish: readers see these settings.")
+			return api.Conflict(mProblemPromptUnchanged.Text(l, nil))
 		}
 		if _, err := tx.Exec(ctx, `UPDATE forms SET status = 'live', updated_at = $2 WHERE id = $1`, id, now); err != nil {
 			return err
@@ -593,7 +600,7 @@ func (s *Service) Discard(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		return PushPrompt{}, err
 	}
 	live, _ := s.liveConfig(ctx, id, r.LiveVersion)
-	cfg := defaultConfig("")
+	cfg := defaultConfig(i18n.LangFrom(ctx))
 	if live != nil {
 		cfg = *live
 	}
@@ -618,7 +625,7 @@ func (s *Service) SetStatus(ctx context.Context, ws *store.Workspace, p *authz.P
 		return PushPrompt{}, err
 	}
 	if r.LiveVersion == 0 {
-		return PushPrompt{}, api.Conflict("Publish the prompt first: a draft has nothing to pause.")
+		return PushPrompt{}, api.Conflict(mProblemPromptDraft.Text(i18n.LangFrom(ctx), nil))
 	}
 	if r.Status == in.Status {
 		return s.Prompt(ctx, ws, p, id)

@@ -8,7 +8,7 @@ import { Button, ButtonAnchor, ButtonLink } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Feedback'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
 import { T, useT, type MessageDescriptor } from '@/i18n'
-import { ago } from '@/lib/format'
+import { ago, money } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 import { AIGroupLink, AIGroupNote, AIModelCard, aiGroupLine } from '@/features/ai/catalog'
 import { isAIProvider } from '@/features/ai/entries'
@@ -450,7 +450,7 @@ function Fact({ entry: e }: { entry: Entry }) {
   if (isPayment(e.key)) return <PaymentFact e={e} />
   if (isStore(e.key)) return <StoreFact entry={e} platform={e.key} />
   if (isVerification(e.key)) {
-    const price = `$${(f.price ?? 0).toFixed(3)}`
+    const price = money(f.price ?? 0, 3)
     if (e.status === 'not_connected') return <>{t(m.factPayPerCheck)}</>
     return f.balance != null ? <>{t(m.factCredits, { credits: f.balance, price })}</> : <>{t(m.factCheckPrice, { price })}</>
   }

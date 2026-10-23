@@ -14,7 +14,7 @@ import { T, useT } from '@/i18n'
 import { ago, andList, clock, count, dayMonthDate, dayMonthYear, orList } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useCan, useMe, usePermissionReason, useWorkspace } from '@/lib/session'
-import { DEVELOPERS_URL, QualityBadge, qualityLabel, throwIfForbidden, useInvalidateWhatsApp, WhatsAppIcon, WhatsAppTabs, type Account, type Overview } from './common'
+import { DEVELOPERS_URL, QualityBadge, qualityLabel, testStatusWord, throwIfForbidden, useInvalidateWhatsApp, WhatsAppIcon, WhatsAppTabs, type Account, type Overview } from './common'
 import { m } from './messages'
 
 /** "8 Oct, 09:14". */
@@ -159,7 +159,7 @@ export function ReadOnlyNote({ helpers }: { helpers: string[] }) {
       <div className="flex min-w-0 flex-col gap-1">
         <span className="font-bold">{t(m.readOnlyTitle, { name: user?.name ?? '', role: me.workspace.roleName })}</span>
         <div>
-          <T msg={m.readOnlyText} values={{ perm: <span className="mono">providers:manage</span> }} />
+          <T msg={m.readOnlyText} values={{ perm: <span className="mono">{'providers:manage'}</span> }} />
           {helpers.length ? ` ${t(m.askHelpers, { helpers: orList(helpers) })}` : null}
         </div>
       </div>
@@ -371,7 +371,7 @@ function Waiting({ data, account: a }: { data: Overview; account: Account }) {
       <div className="flex flex-wrap items-center gap-2.5">
         <span className="wa-wait" aria-hidden="true" />
         <b>{t(m.waitingTitle)}</b>
-        <span className="k">{t(m.waitingSince, { time: mins ? `${mins} min ${secs} s` : `${secs} s` })}</span>
+        <span className="k">{t(m.waitingSince, { time: mins ? t(m.waitedMinutes, { min: mins, s: secs }) : t(m.waitedSeconds, { s: secs }) })}</span>
       </div>
       <span className="text-ink-nav">{t(m.waitingSteps)}</span>
       <dl className="kv items-center">
@@ -629,20 +629,7 @@ function TestDialog({ data, onClose }: { data: Overview; onClose: () => void }) 
     { enabled: Boolean(testId), refetchInterval: (q) => (q.state.data && ['delivered', 'failed', 'undelivered', 'cancelled', 'skipped'].includes(q.state.data.status) ? false : 2000) },
   )
   const r = status.data
-  const word = (s: Schemas['WhatsAppTestResult']['status']) =>
-    t(
-      {
-        queued: m.stQueued,
-        sending: m.stSending,
-        sent: m.stSent,
-        delivered: m.stDelivered,
-        failed: m.stFailed,
-        held: m.stHeld,
-        cancelled: m.stCancelled,
-        skipped: m.stSkipped,
-        undelivered: m.stUndelivered,
-      }[s],
-    )
+  const word = (s: Schemas['WhatsAppTestResult']['status']) => t(testStatusWord[s])
   return (
     <Dialog
       open

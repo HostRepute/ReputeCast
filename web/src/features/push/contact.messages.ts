@@ -32,7 +32,8 @@ export const m = defineMessages('channelContact', {
   waNeverText: 'Business-started messages must use an approved template. Free-form replies open for 24 hours after they write.',
   contact: 'Contact',
   phone: 'Phone',
-  phoneLine: '{country} · {type} · {zone}',
+  // type: the number's line type as the API names it; typeText: an unknown one as is.
+  phoneLine: '{country} · {type, select, mobile {mobile} landline {landline} toll_free {toll-free} voip {VoIP} other {{typeText}}} · {zone}',
   phoneNone: 'No phone number',
   consent: 'WhatsApp consent',
   consentNone: 'No WhatsApp consent on any list',
@@ -63,7 +64,9 @@ export const m = defineMessages('channelContact', {
   replied: 'Reply sent',
   replyClosed: 'The window is closed: send an approved template from a campaign or an automation instead.',
   notConnected: "WhatsApp isn't connected in this workspace.",
-  suppressed: 'Suppressed for WhatsApp: {reason}',
+  // reason: the suppression's code; reasonText: an unknown code as is.
+  suppressed: 'Suppressed for WhatsApp: {reason, select, opted_out {opted out} manual {manual} other {{reasonText}}}',
+  suppressedKeyword: 'Suppressed for WhatsApp: {reason, select, opted_out {opted out} manual {manual} other {{reasonText}}} · {keyword}',
   recordConsent: 'Record WhatsApp consent',
   withdrawConsent: 'Withdraw WhatsApp consent',
   recordTitle: 'Record WhatsApp consent · {list}',

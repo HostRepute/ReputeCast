@@ -21,7 +21,7 @@ export function postBlocks(address: string): BlockDef[] {
   const article = all.find((d) => d.id === 'rc-article')
   return [
     ...pick(LAYOUT),
-    ...pick(CONTENT).map((d) => (d.id === 'mj-raw' ? { ...d, label: 'Code' } : d)),
+    ...pick(CONTENT).map((d) => (d.id === 'mj-raw' ? { ...d, label: t(mc.blockCode) } : d)),
     ...(article ? [article] : []),
     { id: 'rc-preview-end', label: t(mc.blockFreePreview), group: 'reputecast', icon: 'divider', kind: 'content', content: PREVIEW_MARKER, keywords: 'paywall marker preview members paid' },
   ]

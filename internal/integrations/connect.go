@@ -23,6 +23,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -83,7 +84,7 @@ type IntegrationPerson struct {
 	AvatarColor string `json:"avatarColor,omitempty"`
 }
 
-func keyView(r store.IntegrationKeysRow, lists map[uuid.UUID]string, now time.Time) IntegrationKeyView {
+func keyView(l i18n.Lang, r store.IntegrationKeysRow, lists map[uuid.UUID]string, now time.Time) IntegrationKeyView {
 	v := IntegrationKeyView{
 		ID: r.ID.String(), Name: r.Name, Masked: r.Prefix, Permissions: shortPermissions(r.Permissions), Sensitive: []string{},
 		Scope: access.View(access.ParseScope(r.Scope), lists, false), Owner: IntegrationPerson{Name: r.OwnerName, AvatarColor: r.OwnerColor},
@@ -94,7 +95,7 @@ func keyView(r store.IntegrationKeysRow, lists map[uuid.UUID]string, now time.Ti
 		v.Owner.ID = r.CreatedBy.String()
 	}
 	if v.Owner.Name == "" {
-		v.Owner.Name = "Former member"
+		v.Owner.Name = msgs.M("label.formerMember").Text(l, nil)
 		v.Owner.AvatarColor = "neutral"
 	}
 	switch r.OwnerStatus {
@@ -169,7 +170,7 @@ func (s *Service) checkItems(ctx context.Context, ws *store.Workspace, p *authz.
 	for _, key := range items {
 		it, ok := ItemByKey(kind, key)
 		if !ok {
-			return nil, api.Invalid("body.items", fmt.Sprintf("%s can't do %q.", Name(kind), key))
+			return nil, api.Invalid("body.items", problem(ctx, "problem.cantDo", i18n.Args{"name": Name(kind), "item": key}))
 		}
 		if slices.Contains(out, key) {
 			continue
@@ -177,7 +178,7 @@ func (s *Service) checkItems(ctx context.Context, ws *store.Workspace, p *authz.
 		if !slices.Contains(before, key) {
 			for _, need := range Needs(it) {
 				if !p.Can(need) {
-					pr := api.Err(http.StatusForbidden, api.CodeEscalation, access.CantGrant(need, access.Helpers(ctx, s.Q, ws.ID, need)))
+					pr := api.Err(http.StatusForbidden, api.CodeEscalation, cantGrant(ctx, need, access.Helpers(ctx, s.Q, ws.ID, need)))
 					pr.Permission = string(need)
 					return nil, pr
 				}
@@ -186,7 +187,7 @@ func (s *Service) checkItems(ctx context.Context, ws *store.Workspace, p *authz.
 		out = append(out, key)
 	}
 	if len(out) == 0 {
-		return nil, api.Invalid("body.items", fmt.Sprintf("Turn on at least one thing %s can do.", Name(kind)))
+		return nil, api.Invalid("body.items", problem(ctx, "problem.turnOnOne", i18n.Args{"name": Name(kind)}))
 	}
 	// Keep the catalog's order.
 	ordered := []string{}
@@ -196,6 +197,16 @@ func (s *Service) checkItems(ctx context.Context, ws *store.Workspace, p *authz.
 		}
 	}
 	return ordered, nil
+}
+
+// cantGrant explains the escalation guard, as access.CantGrant does in
+// English: "You can't grant transactional:send because you don't hold it.
+// Ask Linh Nguyen or Marcus Chen."
+func cantGrant(ctx context.Context, perm authz.Permission, helpers []string) string {
+	if len(helpers) == 0 {
+		return problem(ctx, "problem.cantGrant", i18n.Args{"permission": string(perm)})
+	}
+	return problem(ctx, "problem.cantGrantAsk", i18n.Args{"permission": string(perm), "helpers": i18n.OrList(lang(ctx).Locale, helpers)})
 }
 
 // offItems are the catalog items not turned on.
@@ -270,8 +281,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	}
 	if kind == KindZapier || kind == KindMake {
 		if r := s.Reachability(ctx); !r.Reachable {
-			return IntegrationSecret{}, api.Err(http.StatusConflict, "instance_unreachable", fmt.Sprintf(
-				"%s can't reach %s, your public URL. Give the instance a public address (Instance admin › Instance & updates), or use n8n on your own network.", Name(kind), r.URL))
+			return IntegrationSecret{}, api.Err(http.StatusConflict, "instance_unreachable", text(ctx, "problem.unreachable", i18n.Args{"name": Name(kind), "url": r.URL}))
 		}
 	}
 	items, err := s.checkItems(ctx, ws, p, kind, in.Items, nil)
@@ -282,19 +292,18 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	var label, address string
 	if kind == KindWordPress {
 		if address, err = siteHost(in.Address); err != nil {
-			return IntegrationSecret{}, api.Invalid("body.address", capitalize(err.Error())+".")
+			return IntegrationSecret{}, api.Invalid("body.address", text(ctx, "problem.siteAddress", nil))
 		}
 		label = address
 		in.Name = Name(kind) + " · " + address
 	} else {
 		if existing, err := s.Q.IntegrationActiveByKind(ctx, store.IntegrationActiveByKindParams{WorkspaceID: ws.ID, Kind: kind}); err == nil {
-			return IntegrationSecret{}, api.Err(http.StatusConflict, api.CodeConflict, fmt.Sprintf(
-				"%s is already connected (%s). Change what it can do, rotate its key, or disconnect it first.", Name(kind), existing.Label))
+			return IntegrationSecret{}, api.Err(http.StatusConflict, api.CodeConflict, text(ctx, "problem.alreadyConnected", i18n.Args{"name": Name(kind), "label": existing.Label}))
 		}
 		if kind == KindN8n && strings.TrimSpace(in.Address) != "" {
 			a, err := normalizeAddress(in.Address)
 			if err != nil {
-				return IntegrationSecret{}, api.Invalid("body.address", "Enter n8n's address, like https://n8n.acme.io.")
+				return IntegrationSecret{}, api.Invalid("body.address", text(ctx, "problem.n8nAddress", nil))
 			}
 			settings["address"] = a
 		}
@@ -308,7 +317,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		return IntegrationSecret{}, err
 	}
 	if in.ExpiresAt != nil && !in.ExpiresAt.After(s.now()) {
-		return IntegrationSecret{}, api.Invalid("body.expiresAt", "Pick an expiry date in the future.")
+		return IntegrationSecret{}, api.Invalid("body.expiresAt", text(ctx, "problem.expiryPast", nil))
 	}
 	id := uuid.Must(uuid.NewV7())
 	setJSON, _ := json.Marshal(settings)
@@ -319,7 +328,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		if err := q.IntegrationInsert(ctx, store.IntegrationInsertParams{ID: id, WorkspaceID: ws.ID, Kind: kind, Label: label, Items: items, OffItems: off,
 			Settings: setJSON, ConnectedBy: &p.UserID, ConnectedAt: s.now()}); err != nil {
 			if isUnique(err) {
-				return api.Conflict(fmt.Sprintf("%s is already connected. Open it to change what it can do.", label))
+				return api.Conflict(text(ctx, "problem.alreadyConnectedLabel", i18n.Args{"label": label}))
 			}
 			return err
 		}
@@ -410,7 +419,7 @@ func (s *Service) scope(ctx context.Context, ws *store.Workspace, p *authz.Princ
 		return authz.Scope{}, api.Invalid("body.lists", capitalize(err.Error())+".")
 	}
 	if !scope.Within(p.Scope) {
-		return authz.Scope{}, api.Err(http.StatusForbidden, api.CodeEscalation, "A key can't reach lists outside your own scope.")
+		return authz.Scope{}, api.Err(http.StatusForbidden, api.CodeEscalation, text(ctx, "problem.scopeEscalation", nil))
 	}
 	return scope, nil
 }
@@ -437,7 +446,7 @@ func (s *Service) newKey(ctx context.Context, q *store.Queries, ws *store.Worksp
 	out := IntegrationSecret{IntegrationID: integrationID.String(), Kind: kind, Secret: secret, InstanceURL: s.base()}
 	for _, r := range rows {
 		if r.ID == keyID {
-			out.Key = keyView(r, lists, s.now())
+			out.Key = keyView(lang(ctx), r, lists, s.now())
 		}
 	}
 	return out, nil
@@ -596,7 +605,7 @@ func (s *Service) Rotate(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	cur, _ := current(keys, s.now())
 	if cur == nil || cur.RevokedAt != nil {
-		return IntegrationSecret{}, api.Conflict(fmt.Sprintf("%s's key was revoked. Reconnect to get a new one.", Name(conn.Kind)))
+		return IntegrationSecret{}, api.Conflict(text(ctx, "problem.keyRevoked", i18n.Args{"name": Name(conn.Kind)}))
 	}
 	if err := s.canHandOut(ctx, ws, p, cur.Permissions, "rotate"); err != nil {
 		return IntegrationSecret{}, err
@@ -647,8 +656,12 @@ func (s *Service) canHandOut(ctx context.Context, ws *store.Workspace, p *authz.
 	for _, k := range shortPermissions(perms) {
 		perm := authz.Permission(k)
 		if !p.Can(perm) {
-			pr := api.Err(http.StatusForbidden, api.CodeEscalation, fmt.Sprintf("You can't %s this key: it holds %s, which you don't hold. Ask %s.",
-				verb, perm, access.OrList(access.Helpers(ctx, s.Q, ws.ID, perm))))
+			args := i18n.Args{"verb": verb, "permission": k}
+			key := "problem.cantHandOut"
+			if helpers := access.Helpers(ctx, s.Q, ws.ID, perm); len(helpers) > 0 {
+				key, args["helpers"] = "problem.cantHandOutAsk", i18n.OrList(lang(ctx).Locale, helpers)
+			}
+			pr := api.Err(http.StatusForbidden, api.CodeEscalation, text(ctx, key, args))
 			pr.Permission = k
 			return pr
 		}
@@ -664,7 +677,7 @@ func (s *Service) StopOldKey(ctx context.Context, ws *store.Workspace, id uuid.U
 	}
 	_, old := current(keys, s.now())
 	if old == nil {
-		return api.Conflict("No old key is still working.")
+		return api.Conflict(text(ctx, "problem.noOldKey", nil))
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -686,7 +699,7 @@ func (s *Service) Reconnect(ctx context.Context, ws *store.Workspace, p *authz.P
 	}
 	cur, _ := current(keys, s.now())
 	if cur != nil && cur.RevokedAt == nil && (cur.ExpiresAt == nil || cur.ExpiresAt.After(s.now())) {
-		return IntegrationSecret{}, api.Conflict(fmt.Sprintf("%s's key still works. Rotate it to get a new one.", Name(conn.Kind)))
+		return IntegrationSecret{}, api.Conflict(text(ctx, "problem.keyStillWorks", i18n.Args{"name": Name(conn.Kind)}))
 	}
 	items := conn.Items
 	if len(in.Items) > 0 {
@@ -709,7 +722,7 @@ func (s *Service) Reconnect(ctx context.Context, ws *store.Workspace, p *authz.P
 		}
 	}
 	if in.ExpiresAt != nil && !in.ExpiresAt.After(s.now()) {
-		return IntegrationSecret{}, api.Invalid("body.expiresAt", "Pick an expiry date in the future.")
+		return IntegrationSecret{}, api.Invalid("body.expiresAt", text(ctx, "problem.expiryPast", nil))
 	}
 	var out IntegrationSecret
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -756,13 +769,13 @@ func (s *Service) TakeOverPreview(ctx context.Context, ws *store.Workspace, p *a
 	}
 	cur, _ := current(keys, s.now())
 	if cur == nil || cur.RevokedAt != nil {
-		return IntegrationTakeOverPreview{}, api.Conflict(fmt.Sprintf("%s has no key to take over. Reconnect it instead.", Name(conn.Kind)))
+		return IntegrationTakeOverPreview{}, api.Conflict(text(ctx, "problem.nothingToTakeOver", i18n.Args{"name": Name(conn.Kind)}))
 	}
 	lists, err := access.ListNames(ctx, s.Q, ws.ID)
 	if err != nil {
 		return IntegrationTakeOverPreview{}, err
 	}
-	out := IntegrationTakeOverPreview{Key: keyView(*cur, lists, s.now()), NewOwner: IntegrationPerson{ID: p.UserID.String(), Name: p.Name}, RoleName: p.RoleName,
+	out := IntegrationTakeOverPreview{Key: keyView(lang(ctx), *cur, lists, s.now()), NewOwner: IntegrationPerson{ID: p.UserID.String(), Name: p.Name}, RoleName: api.RoleName(lang(ctx), p.RoleKey, p.RoleName),
 		Held: []string{}, Missing: []string{}, Stops: []string{}}
 	if u, err := s.Q.GetUser(ctx, p.UserID); err == nil {
 		out.NewOwner.AvatarColor = u.AvatarColor
@@ -857,7 +870,7 @@ func (s *Service) DisconnectPreview(ctx context.Context, ws *store.Workspace, id
 	}
 	if cur, _ := current(keys, s.now()); cur != nil {
 		lists, _ := access.ListNames(ctx, s.Q, ws.ID)
-		v := keyView(*cur, lists, s.now())
+		v := keyView(lang(ctx), *cur, lists, s.now())
 		out.Key = &v
 	}
 	hooks, err := s.Q.IntegrationWebhooks(ctx, conn.ID)
@@ -950,7 +963,7 @@ func (s *Service) Reachability(ctx context.Context) IntegrationReachability {
 	}
 	u, err := url.Parse(out.URL)
 	if err != nil || u.Hostname() == "" {
-		out.DNS = accounts.CheckLine{Status: "bad", Detail: "No public URL is set"}
+		out.DNS = accounts.CheckLine{Status: "bad", Detail: text(ctx, "check.noPublicURL", nil)}
 		return out
 	}
 	if st, err := s.Q.GetInstanceSettings(ctx); err == nil && len(st.PublicUrlCheck) > 0 && string(st.PublicUrlCheck) != "null" &&
@@ -964,11 +977,11 @@ func (s *Service) Reachability(ctx context.Context) IntegrationReachability {
 	host := u.Hostname()
 	if addr, private := privateHost(ctx, host); private {
 		out.Private = true
-		out.DNS = accounts.CheckLine{Status: "bad", Detail: fmt.Sprintf("%s is a private address", addr)}
+		out.DNS = accounts.CheckLine{Status: "bad", Detail: text(ctx, "check.privateAddress", i18n.Args{"address": addr})}
 		if u.Scheme == "http" {
-			out.TLS = accounts.CheckLine{Status: "bad", Detail: "no certificate on http"}
+			out.TLS = accounts.CheckLine{Status: "bad", Detail: text(ctx, "check.noCertificate", nil)}
 		}
-		out.Reach = accounts.CheckLine{Status: "bad", Detail: "Not reachable from the internet"}
+		out.Reach = accounts.CheckLine{Status: "bad", Detail: text(ctx, "check.notReachable", nil)}
 		return out
 	}
 	out.Reachable = out.Reach.Status != "bad" && out.DNS.Status != "bad"
@@ -1040,7 +1053,7 @@ type IntegrationAddressCheck struct {
 func (s *Service) CheckAddress(ctx context.Context, raw string) (IntegrationAddressCheck, error) {
 	a, err := normalizeAddress(raw)
 	if err != nil {
-		return IntegrationAddressCheck{}, api.Invalid("body.address", "Enter the address, like https://n8n.acme.io.")
+		return IntegrationAddressCheck{}, api.Invalid("body.address", text(ctx, "problem.address", nil))
 	}
 	u, _ := url.Parse(a)
 	out := IntegrationAddressCheck{Address: a, Host: u.Hostname(), Admins: s.Reachability(ctx).Admins}
@@ -1070,7 +1083,7 @@ func (s *Service) SetAddress(ctx context.Context, ws *store.Workspace, id uuid.U
 		return IntegrationAddressCheck{}, err
 	}
 	if conn.Kind != KindN8n {
-		return IntegrationAddressCheck{}, api.Invalid("body.address", Name(conn.Kind)+" has no address to set.")
+		return IntegrationAddressCheck{}, api.Invalid("body.address", text(ctx, "problem.noAddress", i18n.Args{"name": Name(conn.Kind)}))
 	}
 	var settings map[string]any
 	_ = json.Unmarshal(conn.Settings, &settings)

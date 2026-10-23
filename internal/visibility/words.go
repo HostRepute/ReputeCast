@@ -21,6 +21,10 @@ var (
 	mTierAtRisk  = msgs.M("tier.atRisk")
 	mTierSunset  = msgs.M("tier.sunset")
 
+	mFixShowed  = msgs.M("fix.showed")
+	mFixHid     = msgs.M("fix.hid")
+	mFixRemoved = msgs.M("fix.removedCondition")
+
 	mDescList          = msgs.M("describe.list")
 	mDescNotList       = msgs.M("describe.notList")
 	mDescSegment       = msgs.M("describe.segment")
@@ -102,7 +106,7 @@ func describeField(c VisibilityCondition, n *Names) string {
 }
 
 func describeLanguage(c VisibilityCondition, n *Names) string {
-	name := languageName(c.Value)
+	name := languageName(n.Lang, c.Value)
 	if c.Op == "is_not" {
 		return mDescNotLanguage.Text(n.Lang, i18n.Args{"language": name})
 	}
@@ -152,7 +156,7 @@ func whyLanguage(_ VisibilityCondition, f *Facts, _ bool, n *Names) string {
 	if strings.TrimSpace(f.Language) == "" {
 		return mWhyNoLanguage.Text(n.Lang, i18n.Args{"name": f.Name()})
 	}
-	return mWhyLanguage.Text(n.Lang, i18n.Args{"name": f.Name(), "language": languageName(f.Language)})
+	return mWhyLanguage.Text(n.Lang, i18n.Args{"name": f.Name(), "language": languageName(n.Lang, f.Language)})
 }
 
 func whyTier(c VisibilityCondition, f *Facts, matched bool, n *Names) string {

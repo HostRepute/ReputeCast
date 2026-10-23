@@ -142,8 +142,9 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	if err != nil {
 		return out, err
 	}
+	l := langOf(ctx)
 	for _, t := range ts {
-		v := templateView(t)
+		v := templateView(l, t)
 		out.Templates = append(out.Templates, v)
 		switch t.Status {
 		case "approved":

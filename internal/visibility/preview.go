@@ -178,7 +178,7 @@ func traits(e Email, f *Facts, n *Names) []string {
 					add("tag:"+c.Value, mTraitNoTag.Text(n.Lang, i18n.Args{"tag": c.Value}))
 				}
 			case KindLanguage:
-				add("language", languageName(f.Language))
+				add("language", languageName(n.Lang, f.Language))
 			case KindScore, KindScoreBand:
 				add("score", scoreTrait(f, n))
 			default:
@@ -258,7 +258,7 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, camp
 			continue
 		}
 		picked[num] = true
-		trait := languageName(f.Language)
+		trait := languageName(n.Lang, f.Language)
 		for _, b := range e.Blocks {
 			if !d.Hidden[b.ID] {
 				trait = blockTrait(b, f, n)
@@ -266,7 +266,7 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, camp
 			}
 		}
 		if trait == "" {
-			trait = languageName("en")
+			trait = languageName(n.Lang, "en")
 		}
 		langs[baseLanguage(f.Language)] = true
 		out = append(out, VisibilityPreviewContact{ID: f.ID.String(), Name: f.Name(), Email: f.Email, Language: f.Language, Trait: trait, Version: num})
@@ -280,7 +280,7 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, camp
 		}
 		langs[l] = true
 		d := Decide(e, f, n)
-		out = append(out, VisibilityPreviewContact{ID: f.ID.String(), Name: f.Name(), Email: f.Email, Language: f.Language, Trait: languageName(f.Language), Version: numbers[d.Hidden.String()]})
+		out = append(out, VisibilityPreviewContact{ID: f.ID.String(), Name: f.Name(), Email: f.Email, Language: f.Language, Trait: languageName(n.Lang, f.Language), Version: numbers[d.Hidden.String()]})
 	}
 	return out, nil
 }
@@ -301,7 +301,7 @@ func blockTrait(b Block, f *Facts, n *Names) string {
 	case KindTier:
 		return tierName(n.Lang, c.Value)
 	case KindLanguage:
-		return languageName(c.Value)
+		return languageName(n.Lang, c.Value)
 	case KindTag:
 		return c.Value
 	case KindScore, KindScoreBand:

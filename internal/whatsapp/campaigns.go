@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/phone"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -174,12 +175,14 @@ func audienceOf(raw json.RawMessage) (lists, segments []uuid.UUID) {
 	return lists, segments
 }
 
-func parseIDs(raw []string, field, what string) ([]uuid.UUID, error) {
+// parseIDs reads lists' or segments' ids; bad is the problem's sentence
+// ("Pick lists of this workspace."), in the reader's language.
+func parseIDs(raw []string, field, bad string) ([]uuid.UUID, error) {
 	out := make([]uuid.UUID, 0, len(raw))
 	for _, r := range raw {
 		id, err := uuid.Parse(strings.TrimSpace(r))
 		if err != nil {
-			return nil, api.Invalid(field, "Pick "+what+" of this workspace.")
+			return nil, api.Invalid(field, bad)
 		}
 		if !slices.Contains(out, id) {
 			out = append(out, id)
@@ -288,31 +291,33 @@ func (s *Service) approvedTemplate(ctx context.Context, ws *store.Workspace, raw
 	if strings.TrimSpace(raw) == "" {
 		return nil, nil
 	}
+	l := langOf(ctx)
 	id, err := uuid.Parse(raw)
 	if err != nil {
-		return nil, api.Invalid(field, "Pick one of the account's approved templates.")
+		return nil, api.Invalid(field, mPickApprovedTemplate.Text(l, nil))
 	}
 	t, err := s.Q.WhatsAppTemplate(ctx, store.WhatsAppTemplateParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil || t.RemovedAt != nil {
-		return nil, api.Invalid(field, "Pick one of the account's approved templates.")
+		return nil, api.Invalid(field, mPickApprovedTemplate.Text(l, nil))
 	}
 	if t.Status != "approved" {
-		return nil, api.Invalid(field, "Only approved templates can be picked: "+t.Name+" is "+t.Status+".")
+		return nil, api.Invalid(field, mOnlyApproved.Text(l, i18n.Args{"name": t.Name, "status": t.Status}))
 	}
 	return &t, nil
 }
 
 // CreateCampaign makes a WhatsApp campaign, audited like any campaign.
 func (s *Service) CreateCampaign(ctx context.Context, ws *store.Workspace, p *authz.Principal, in WhatsAppCampaignCreate) (WhatsAppCampaign, error) {
+	l := langOf(ctx)
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		return WhatsAppCampaign{}, api.Invalid("body.name", "Give the campaign a name.")
+		return WhatsAppCampaign{}, api.Invalid("body.name", mNameCampaign.Text(l, nil))
 	}
 	tpl, err := s.approvedTemplate(ctx, ws, in.TemplateID, "body.templateId")
 	if err != nil {
 		return WhatsAppCampaign{}, err
 	}
-	lists, err := parseIDs(in.Lists, "body.lists", "lists")
+	lists, err := parseIDs(in.Lists, "body.lists", mPickLists.Text(l, nil))
 	if err != nil {
 		return WhatsAppCampaign{}, err
 	}
@@ -358,14 +363,19 @@ func (s *Service) checkLists(ctx context.Context, ws *store.Workspace, lists []u
 		return err
 	}
 	if n != len(lists) {
-		return api.Invalid("body.lists", "Pick lists of this workspace.")
+		return api.Invalid("body.lists", mPickLists.Text(langOf(ctx), nil))
 	}
 	return nil
 }
 
-// fields are the contact fields a variable can take.
+// fields are the contact fields a variable can take: the built-in ones in
+// the reader's language, then the workspace's own with their labels.
 func (s *Service) fields(ctx context.Context, ws *store.Workspace) []WhatsAppField {
-	out := []WhatsAppField{{"first_name", "First name"}, {"last_name", "Last name"}, {"full_name", "Full name"}, {"email", "Email"}, {"phone", "Phone"}}
+	l := langOf(ctx)
+	out := make([]WhatsAppField, 0, len(fieldKeys))
+	for _, k := range fieldKeys {
+		out = append(out, WhatsAppField{Key: k, Label: fieldLabel(l, k)})
+	}
 	rows, err := s.Pool.Query(ctx, `SELECT key, label FROM custom_fields WHERE workspace_id = $1 ORDER BY label`, ws.ID)
 	if err != nil {
 		return out
@@ -394,6 +404,7 @@ func (s *Service) Campaign(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	if out.Variables == nil {
 		out.Variables = []WhatsAppVariable{}
 	}
+	l := langOf(ctx)
 	a, aerr := s.account(ctx, s.Q, ws)
 	out.Connected = aerr == nil
 	var tpl *store.WhatsappTemplate
@@ -405,13 +416,13 @@ func (s *Service) Campaign(ctx context.Context, ws *store.Workspace, p *authz.Pr
 			return out, err
 		}
 		for _, t := range ts {
-			out.Templates = append(out.Templates, templateView(t))
+			out.Templates = append(out.Templates, templateView(l, t))
 		}
 	}
 	if c.TemplateID != nil {
 		if t, err := s.Q.WhatsAppTemplate(ctx, store.WhatsAppTemplateParams{ID: *c.TemplateID, WorkspaceID: ws.ID}); err == nil {
 			tpl = &t
-			v := templateView(t)
+			v := templateView(l, t)
 			out.TemplateID, out.Template = t.ID.String(), &v
 		}
 	}
@@ -431,7 +442,7 @@ func (s *Service) Campaign(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	out.Audience = summary(aud, opts, lists)
 	rl := s.rules(ctx, s.Q, ws)
 	out.Quiet, out.Window = rl.Quiet, rl.Window.String()
-	out.Schedule = scheduleOf(c, ws)
+	out.Schedule = scheduleOf(l, c, ws)
 	if tpl != nil {
 		out.Cost = s.rateCard(ctx, s.Q, ws).estimate(tpl.Category, aud.countries)
 		out.Preview = s.preview(ctx, ws, *tpl, out.Variables, aud, preview)
@@ -456,21 +467,23 @@ func summary(aud audienceSet, opts []WhatsAppListConsent, lists []uuid.UUID) Wha
 	return out
 }
 
-// scheduleOf is a campaign's schedule in words: "21 Oct, 09:00 in each
-// recipient's time zone".
-func scheduleOf(c store.WhatsAppCampaignRow, ws *store.Workspace) WhatsAppSchedule {
-	out := WhatsAppSchedule{Mode: c.ScheduleMode, SendAt: c.SendAt, Label: "Now"}
+// scheduleOf is a campaign's schedule in words, in a language: "21 Oct,
+// 09:00 in each recipient's time zone". What approvals keep and compare is
+// in English (i18n.Default), so a language never reads as a change.
+func scheduleOf(l i18n.Lang, c store.WhatsAppCampaignRow, ws *store.Workspace) WhatsAppSchedule {
+	out := WhatsAppSchedule{Mode: c.ScheduleMode, SendAt: c.SendAt, Label: mScheduleNow.Text(l, nil)}
 	switch c.ScheduleMode {
 	case "at":
 		if c.SendAt != nil {
-			loc := wsLocation(ws)
-			out.Label = c.SendAt.In(loc).Format("2 Jan, 15:04") + " " + tzName(ws)
+			at := c.SendAt.In(wsLocation(ws))
+			out.Label = mScheduleAt.Text(l, i18n.Args{"date": dayMonth(l, at), "time": clock(l, at), "zone": tzName(ws)})
 		}
 	case "local":
 		if c.LocalDate != nil && c.LocalMinute != nil {
 			m := int(*c.LocalMinute)
 			out.LocalDate, out.LocalMinute = c.LocalDate.Format("2006-01-02"), &m
-			out.Label = c.LocalDate.Format("2 Jan") + fmt.Sprintf(", %02d:%02d in each recipient's time zone", m/60, m%60)
+			at := time.Date(2000, 1, 1, m/60, m%60, 0, 0, time.UTC)
+			out.Label = mScheduleLocal.Text(l, i18n.Args{"date": dayMonth(l, *c.LocalDate), "time": clock(l, at)})
 		}
 	}
 	return out
@@ -518,7 +531,7 @@ func (s *Service) preview(ctx context.Context, ws *store.Workspace, tpl store.Wh
 	keys := variablesOf(tpl.Body)
 	params := paramsFor(keys, vars, pick)
 	out := &WhatsAppPreview{ContactID: pick.ContactID.String(), Contact: fullName(pick.FirstName, pick.LastName), FirstName: pick.FirstName,
-		Text: render(tpl.Body, params), Buttons: templateView(tpl).Buttons, Fallbacks: []WhatsAppFallback{}}
+		Text: render(tpl.Body, params), Buttons: templateView(langOf(ctx), tpl).Buttons, Fallbacks: []WhatsAppFallback{}}
 	if out.Contact == "" {
 		out.Contact = pick.Email
 	}
@@ -565,17 +578,18 @@ func (s *Service) UpdateCampaign(ctx context.Context, ws *store.Workspace, p *au
 	if err != nil {
 		return WhatsAppCampaign{}, err
 	}
+	l := langOf(ctx)
 	switch c.Status {
 	case "draft", "approval", "approved":
 	default:
-		return WhatsAppCampaign{}, api.Conflict("This campaign is " + c.Status + ": it can't be edited any more.")
+		return WhatsAppCampaign{}, api.Conflict(mNotEditable.Text(l, i18n.Args{"status": c.Status}))
 	}
 	if in.Version > 0 && in.Version != int(c.Version) {
-		return WhatsAppCampaign{}, api.Err(409, "stale_version", fmt.Sprintf("Someone saved a newer version (%d). Reload to see it.", c.Version))
+		return WhatsAppCampaign{}, api.Err(409, "stale_version", mStaleSaved.Text(l, i18n.Args{"version": itoa(int(c.Version))}))
 	}
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		return WhatsAppCampaign{}, api.Invalid("body.name", "Give the campaign a name.")
+		return WhatsAppCampaign{}, api.Invalid("body.name", mNameCampaign.Text(l, nil))
 	}
 	tpl, err := s.approvedTemplate(ctx, ws, in.TemplateID, "body.templateId")
 	if err != nil {
@@ -589,14 +603,14 @@ func (s *Service) UpdateCampaign(ctx context.Context, ws *store.Workspace, p *au
 		}
 		tpl = &t
 	}
-	lists, err := parseIDs(in.Lists, "body.lists", "lists")
+	lists, err := parseIDs(in.Lists, "body.lists", mPickLists.Text(l, nil))
 	if err != nil {
 		return WhatsAppCampaign{}, err
 	}
 	if err := s.checkLists(ctx, ws, lists); err != nil {
 		return WhatsAppCampaign{}, err
 	}
-	segments, err := parseIDs(in.Segments, "body.segments", "segments")
+	segments, err := parseIDs(in.Segments, "body.segments", mPickSegments.Text(l, nil))
 	if err != nil {
 		return WhatsAppCampaign{}, err
 	}
@@ -610,17 +624,17 @@ func (s *Service) UpdateCampaign(ctx context.Context, ws *store.Workspace, p *au
 	switch mode {
 	case "at":
 		if in.SendAt == nil || !in.SendAt.After(s.now()) {
-			return WhatsAppCampaign{}, api.Invalid("body.sendAt", "Pick a time in the future.")
+			return WhatsAppCampaign{}, api.Invalid("body.sendAt", mFutureTime.Text(l, nil))
 		}
 		sendAt = in.SendAt
 	case "local":
 		d, err := time.Parse("2006-01-02", in.LocalDate)
 		if err != nil || in.LocalMinute == nil {
-			return WhatsAppCampaign{}, api.Invalid("body.localDate", "Pick a day and a time.")
+			return WhatsAppCampaign{}, api.Invalid("body.localDate", mDayAndTime.Text(l, nil))
 		}
 		rl := s.rules(ctx, s.Q, ws)
 		if rl.Quiet && (*in.LocalMinute < rl.Window.From || *in.LocalMinute >= rl.Window.To) {
-			return WhatsAppCampaign{}, api.Invalid("body.localMinute", "Pick a time inside the quiet-hours window, "+rl.Window.String()+".")
+			return WhatsAppCampaign{}, api.Invalid("body.localMinute", mInsideWindow.Text(l, i18n.Args{"window": rl.Window.String()}))
 		}
 		localDate, localMinute = &d, ptr(int32(*in.LocalMinute))
 	default:
@@ -717,7 +731,7 @@ func (s *Service) checkVariables(ctx context.Context, ws *store.Workspace, tpl *
 		default:
 			v.Source, v.Text = "field", ""
 			if v.Field != "" && !known[v.Field] {
-				return nil, api.Invalid("body.variables", "{{"+k+"}} takes a contact field this workspace doesn't have: "+v.Field+".")
+				return nil, api.Invalid("body.variables", mUnknownField.Text(langOf(ctx), i18n.Args{"variable": "{{" + k + "}}", "field": v.Field}))
 			}
 		}
 		v.Fallback = strings.TrimSpace(v.Fallback)
@@ -734,7 +748,9 @@ func (s *Service) DuplicateCampaign(ctx context.Context, ws *store.Workspace, p 
 	}
 	nid := uuid.Must(uuid.NewV7())
 	now := s.now()
-	name := clip("Copy of "+c.Name, 200)
+	// The copy is named in the language of whoever made it, as a new
+	// campaign is ("New WhatsApp campaign").
+	name := clip(mCopyOf.Text(langOf(ctx), i18n.Args{"name": c.Name}), 200)
 	err = s.tx(ctx, func(q *store.Queries, _ pgx.Tx) error {
 		if err := q.WhatsAppCampaignInsert(ctx, store.WhatsAppCampaignInsertParams{ID: nid, WorkspaceID: ws.ID, Name: name, Audience: c.Audience,
 			ContentHash: c.ContentHash, By: uuidPtr(p.UserID), At: now}); err != nil {
@@ -765,23 +781,24 @@ func (s *Service) SendCampaignTest(ctx context.Context, ws *store.Workspace, p *
 	if err != nil {
 		return WhatsAppTestResult{}, err
 	}
+	l := langOf(ctx)
 	a, err := s.account(ctx, s.Q, ws)
 	if errors.Is(err, errNoAccount) {
-		return WhatsAppTestResult{}, api.Conflict("Connect WhatsApp first.")
+		return WhatsAppTestResult{}, api.Conflict(mConnectFirst.Text(l, nil))
 	}
 	if err != nil {
 		return WhatsAppTestResult{}, err
 	}
 	if c.TemplateID == nil {
-		return WhatsAppTestResult{}, api.Invalid("body", "Pick a template first.")
+		return WhatsAppTestResult{}, api.Invalid("body", mPickTemplateFirst.Text(l, nil))
 	}
 	tpl, err := s.Q.WhatsAppTemplate(ctx, store.WhatsAppTemplateParams{ID: *c.TemplateID, WorkspaceID: ws.ID})
 	if err != nil || tpl.Status != "approved" {
-		return WhatsAppTestResult{}, api.Conflict("The campaign's template isn't approved: pick an approved one.")
+		return WhatsAppTestResult{}, api.Conflict(mTemplateNotApproved.Text(l, nil))
 	}
 	n, err := phone.Parse(in.Phone, "")
 	if err != nil {
-		return WhatsAppTestResult{}, api.Invalid("body.phone", "Enter the number with its country code, like +1 312 555 0123.")
+		return WhatsAppTestResult{}, api.Invalid("body.phone", mPhoneFormat.Text(l, nil))
 	}
 	var vars []WhatsAppVariable
 	_ = json.Unmarshal(c.Variables, &vars)

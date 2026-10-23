@@ -669,11 +669,16 @@ function AddSite({ data, addRef }: { data: PushSetup; addRef: RefObject<HTMLInpu
       ) : null}
       <div className="flex flex-col">
         <Step n={1} title={t(m.step1Title)} text={t(m.step1Text)}>
+          {/* Code, not text: each piece is an expression so the i18n scan skips it. */}
           <CodeBox lang={t(m.html)} label={t(m.copySnippet)} copy={snippet}>
-            &lt;<span className="c5">script</span>
-            <span className="c1"> async src</span>=<span className="c2">&quot;{s.script}&quot;</span>
-            <span className="c1">{'\n  '}data-workspace</span>=<span className="c2">&quot;{slug}&quot;</span>
-            <span className="c1">{'\n  '}data-site</span>=<span className="c2">&quot;{host}&quot;</span>&gt;&lt;/<span className="c5">script</span>&gt;
+            {'<'}
+            <span className="c5">{'script'}</span>
+            <span className="c1">{' async src'}</span>=<span className="c2">{`"${s.script}"`}</span>
+            <span className="c1">{'\n  data-workspace'}</span>=<span className="c2">{`"${slug}"`}</span>
+            <span className="c1">{'\n  data-site'}</span>=<span className="c2">{`"${host}"`}</span>
+            {'></'}
+            <span className="c5">{'script'}</span>
+            {'>'}
           </CodeBox>
         </Step>
         <Step n={2} title={t(m.step2Title)} text={t(m.step2Text)}>
@@ -700,7 +705,7 @@ function AddSite({ data, addRef }: { data: PushSetup; addRef: RefObject<HTMLInpu
           <CodeBox lang={t(m.javascript)} label={t(m.copyImport)} copy={importLine}>
             <span className="cm">{t(m.importComment)}</span>
             {'\n'}
-            <span className="c5">importScripts</span>(<span className="c2">&quot;{s.importUrl}&quot;</span>);
+            <span className="c5">{'importScripts'}</span>(<span className="c2">{`"${s.importUrl}"`}</span>);
           </CodeBox>
         </Step>
       </div>

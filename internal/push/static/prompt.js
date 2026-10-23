@@ -420,7 +420,9 @@
           var li = el('li', 'st-k');
           var since = new Date(s.since);
           var date = since.toLocaleDateString(document.documentElement.lang || undefined, { day: 'numeric', month: 'short' });
-          li.appendChild(document.createTextNode(s.browser + ' · ' + (box.getAttribute('data-since') || 'on since {date}').replace('{date}', date) + ' · '));
+          // The browser's name in the page's language, else in English.
+          var name = (s.kind && box.getAttribute('data-browser-' + s.kind)) || s.browser;
+          li.appendChild(document.createTextNode(name + ' · ' + (box.getAttribute('data-since') || 'on since {date}').replace('{date}', date) + ' · '));
           var off = el('button', 'st-linkbtn', box.getAttribute('data-turnoff') || 'Turn off');
           off.type = 'button';
           off.addEventListener('click', function () {

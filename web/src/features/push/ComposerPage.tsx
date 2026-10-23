@@ -168,7 +168,7 @@ function Composer({ data }: { data: Campaign }) {
   return (
     <div className="pc">
       <a href="#main" className="skip">
-        Skip to content
+        {t(m.skip)}
       </a>
       <header className="pc-top">
         <ButtonLink iconOnly to="/w/$workspace/campaigns" params={{ workspace: slug }} aria-label={t(m.back)}>

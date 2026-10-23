@@ -122,5 +122,11 @@
     "message": "score {score} · {band}",
     "note": "what a rule reads about a contact: score 52 · Hot"
   },
-  "trait.noScore": "no score"
+  "trait.noScore": "no score",
+  "fix.showed": {
+    "message": "{named, select, yes {Showed “{name}” to everyone} other {Showed the block to everyone}}",
+    "note": "Review & send, after the fix is applied; name: the block's name in the layer tree, Hero"
+  },
+  "fix.hid": "{named, select, yes {Hid “{name}” for everyone} other {Hid the block for everyone}}",
+  "fix.removedCondition": "{named, select, yes {Removed the condition of “{name}”} other {Removed the condition of the block}}"
 }

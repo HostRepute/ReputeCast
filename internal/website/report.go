@@ -47,9 +47,11 @@ var referrerNames = map[string]string{
 	"x.com": "X", "twitter.com": "X", "t.co": "X", "facebook.com": "Facebook", "reddit.com": "Reddit", "bsky.app": "Bluesky",
 }
 
-func referrerLabel(key string) string {
+// referrerLabel names a referrer in the reader's language: its domain, a
+// well-known name, or "Email clients and direct" for none.
+func referrerLabel(ctx context.Context, key string) string {
 	if key == "" {
-		return "Email clients and direct"
+		return tr(ctx, "report.direct", nil)
 	}
 	k := strings.TrimPrefix(key, "www.")
 	if n, ok := referrerNames[k]; ok {
@@ -117,7 +119,7 @@ func (s *Service) CampaignReport(ctx context.Context, ws *store.Workspace, campa
 	for _, r := range src {
 		switch r.Dim {
 		case "referrer":
-			label := referrerLabel(r.Key)
+			label := referrerLabel(ctx, r.Key)
 			if _, ok := refs[label]; !ok {
 				order = append(order, label)
 			}
@@ -137,7 +139,7 @@ func (s *Service) CampaignReport(ctx context.Context, ws *store.Workspace, campa
 		other += refs[label]
 	}
 	if other > 0 {
-		out.Referrers = append(out.Referrers, WebsiteSource{Key: "other", Label: "Other", Views: other})
+		out.Referrers = append(out.Referrers, WebsiteSource{Key: "other", Label: tr(ctx, "report.other", nil), Views: other})
 	}
 	if len(out.UTM) > 5 {
 		out.UTM = out.UTM[:5]

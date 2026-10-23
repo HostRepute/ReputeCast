@@ -139,12 +139,6 @@ function Choice({ type = 'radio', name, checked, disabled, onChange, title, sub,
   )
 }
 
-/** "1st", "2nd", "3rd": a block's place, in words. */
-function nth(n: number): string {
-  const words = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth']
-  return words[n - 1] ?? `${n}th`
-}
-
 export interface WebPanelProps {
   ws: WebSettings
   mode: 'post' | 'campaign'
@@ -349,7 +343,7 @@ export function WebPanel({ ws, mode, host, canEdit, campaign, marker, onShowHidd
               {(['public', 'members', 'paid'] as const).map((v) => (
                 <button key={v} type="button" aria-pressed={d.visibility === v} disabled={ro || (v === 'paid' && !paidOK && d.visibility !== 'paid')} onClick={() => ws.set({ visibility: v })}>
                   <Icon name={visibilityIcon(v)} size={13} />
-                  {v === 'public' ? t(mc.visPublic) : v === 'members' ? t(mc.visMembers) : t(mc.web === mc.web ? mc.visPaidAll : mc.visPaidAll).split(' · ')[0]}
+                  {v === 'public' ? t(mc.visPublic) : v === 'members' ? t(mc.visMembers) : t(mc.visPaid)}
                 </button>
               ))}
             </div>
@@ -395,7 +389,7 @@ export function WebPanel({ ws, mode, host, canEdit, campaign, marker, onShowHidd
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex min-w-0 flex-col">
                     <b>{t(mc.markerAt, { n: marker.at })}</b>
-                    <span className="k">{t(mc.markerAtText, { nth: nth(marker.at) })}</span>
+                    <span className="k">{t(mc.markerAtText, { n: marker.at })}</span>
                   </span>
                   {ro ? null : (
                     <span className="flex flex-none gap-1.5">
@@ -492,7 +486,7 @@ export function WebPanel({ ws, mode, host, canEdit, campaign, marker, onShowHidd
                 </label>
                 <label className="wtab-f">
                   <span>{t(mc.seoCanonical)}</span>
-                  <input className="in mono" value={d.seo.canonicalUrl} placeholder="https://" maxLength={500} disabled={ro} onChange={(e) => ws.set({ seo: { ...d.seo, canonicalUrl: e.target.value } })} />
+                  <input className="in mono" value={d.seo.canonicalUrl} placeholder={'https://'} maxLength={500} disabled={ro} onChange={(e) => ws.set({ seo: { ...d.seo, canonicalUrl: e.target.value } })} />
                   <span className="k">{t(mc.seoCanonicalHint)}</span>
                 </label>
                 <label className="flex items-center gap-2">

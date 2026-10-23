@@ -28,6 +28,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/forms"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/notify"
@@ -160,7 +161,7 @@ func (s *Service) LatestPlugin(ctx context.Context) string {
 func (s *Service) callingSite(ctx context.Context) (*api.IntegrationKey, error) {
 	ik := api.IntegrationFrom(ctx)
 	if ik == nil || ik.Kind != KindWordPress {
-		return nil, api.Err(http.StatusForbidden, api.CodePermissionDenied, "Only a WordPress site's key calls this.")
+		return nil, api.Err(http.StatusForbidden, api.CodePermissionDenied, problem(ctx, "problem.siteOnly", nil))
 	}
 	return ik, nil
 }
@@ -174,13 +175,13 @@ func (s *Service) Report(ctx context.Context, ws *store.Workspace, in WordPressR
 	}
 	u, err := url.Parse(strings.TrimSpace(in.SiteURL))
 	if err != nil || u.Hostname() == "" || (u.Scheme != "http" && u.Scheme != "https") {
-		return WordPressReportResult{}, api.Invalid("body.siteUrl", "Send the site's address, like https://blog.acme.io.")
+		return WordPressReportResult{}, api.Invalid("body.siteUrl", problem(ctx, "problem.siteURL", nil))
 	}
 	siteURL := strings.TrimRight(u.Scheme+"://"+u.Host+u.EscapedPath(), "/")
 	host, _ := siteHost(siteURL)
 	noteTargetJSON(ctx, CallTarget{Kind: "report", Version: in.PluginVersion, Endpoint: host})
 	if other, err := s.Q.WordPressSiteElsewhere(ctx, store.WordPressSiteElsewhereParams{SiteUrl: siteURL, IntegrationID: ik.ID}); err == nil {
-		return WordPressReportResult{}, api.Conflict(fmt.Sprintf("%s is connected to %s. A site connects to one workspace: disconnect it there first.", host, other.WorkspaceName))
+		return WordPressReportResult{}, api.Conflict(problem(ctx, "problem.siteElsewhere", i18n.Args{"site": host, "workspace": other.WorkspaceName}))
 	}
 	site, err := s.Q.WordPressSite(ctx, ik.ID)
 	if err != nil {
@@ -273,6 +274,11 @@ func (s *Service) Forms(ctx context.Context, ws *store.Workspace) (WordPressForm
 	}
 	out := WordPressFormList{Items: []WordPressForm{}}
 	for _, f := range rows {
+		// Push prompts are listed with the forms in the app but can't be
+		// embedded or submitted as signup forms.
+		if f.Kind == forms.KindPush {
+			continue
+		}
 		out.Items = append(out.Items, WordPressForm{ID: f.PublicID, Name: f.Name, Status: f.Status, Kind: f.Kind,
 			SiteAllowed: host != "" && forms.OriginAllowed(host, f.AllowedOrigins, nil),
 			Shortcode:   fmt.Sprintf("[reputecast_form id=%q]", f.PublicID),
@@ -367,7 +373,7 @@ func (s *Service) CreateDraft(ctx context.Context, ws *store.Workspace, p *authz
 	post := in.Post
 	post.ID = strings.TrimSpace(post.ID)
 	if post.ID == "" {
-		return WordPressDraftResult{}, api.Invalid("body.post.id", "Send the post's id.")
+		return WordPressDraftResult{}, api.Invalid("body.post.id", problem(ctx, "problem.postID", nil))
 	}
 	noteTargetJSON(ctx, CallTarget{Kind: "draft", Title: post.Title})
 	site, err := s.Q.WordPressSite(ctx, ik.ID)
@@ -436,17 +442,17 @@ func (s *Service) CreateDraft(ctx context.Context, ws *store.Workspace, p *authz
 		q := store.New(tx)
 		if err := q.IntegrationDraftInsert(ctx, store.IntegrationDraftInsertParams{ID: campaignID, WorkspaceID: ws.ID, Name: clip(post.Title, 200),
 			Subject: clip(post.Title, 250), Preheader: clip(preheader, 250), SenderID: sender, Audience: audience, Mjml: src, Html: htmlOut, PlainText: plain,
-			ContentHash: campaigns.ContentHash(subject, preheader, src, htmlOut, nil), Note: "draft from " + host, CreatedBy: creator, Now: s.now()}); err != nil {
+			ContentHash: campaigns.ContentHash(subject, preheader, src, htmlOut, nil), Note: campaigns.PostDraftNote(host), CreatedBy: creator, Now: s.now()}); err != nil {
 			return err
 		}
 		if err := q.IntegrationDraftVersion(ctx, store.IntegrationDraftVersionParams{CampaignID: campaignID, Subject: clip(post.Title, 250), Preheader: clip(preheader, 250),
-			Mjml: src, Html: htmlOut, PlainText: plain, SavedBy: creator, SavedAt: s.now(), Label: "created from the post on " + host, SizeBytes: int32(len(htmlOut))}); err != nil {
+			Mjml: src, Html: htmlOut, PlainText: plain, SavedBy: creator, SavedAt: s.now(), Label: campaigns.PostDraftLabel(host), SizeBytes: int32(len(htmlOut))}); err != nil {
 			return err
 		}
 		if err := q.WordPressDraftInsert(ctx, store.WordPressDraftInsertParams{ID: uuid.Must(uuid.NewV7()), IntegrationID: ik.ID, WorkspaceID: ws.ID, CampaignID: &campaignID,
 			PostID: post.ID, PostTitle: clip(post.Title, 300), PostUrl: clip(post.URL, 1000), PublishedAt: post.PublishedAt, NotifiedUser: notifyUser, CreatedAt: s.now()}); err != nil {
 			if isUnique(err) {
-				return api.Conflict("This post already has a draft.")
+				return api.Conflict(problem(ctx, "problem.draftExists", nil))
 			}
 			return err
 		}
@@ -454,10 +460,13 @@ func (s *Service) CreateDraft(ctx context.Context, ws *store.Workspace, p *authz
 			if u, err := q.GetUser(ctx, *notifyUser); err == nil {
 				notifiedName = u.Name
 			}
+			// Kept as messages: each member reads it in their own language.
+			body := msgs.M("notify.draftBodyNoList").Keep(i18n.Args{"title": clip(post.Title, 300), "site": host})
+			if listName != "" {
+				body = msgs.M("notify.draftBody").Keep(i18n.Args{"title": clip(post.Title, 300), "site": host, "list": listName})
+			}
 			if err := notify.ToUser(ctx, tx, *notifyUser, notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindPostDraftCreated, Severity: "info",
-				Title: "Post draft created",
-				Body: fmt.Sprintf("“%s” from %s is a draft for %s. Review it, then send it through Send Readiness as usual.",
-					clip(post.Title, 300), host, firstNonEmpty(listName, "its audience")),
+				TitleText: msgs.M("notify.draftTitle").Keep(nil), BodyText: body,
 				Link: fmt.Sprintf("/w/%s/campaigns/%s/edit", ws.Slug, campaignID),
 				Data: map[string]any{"campaignId": campaignID.String(), "site": host, "integrationId": ik.ID.String()}}); err != nil {
 				return err
@@ -663,10 +672,10 @@ func (s *Service) SetRule(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	}
 	if in.Enabled {
 		if len(r.Categories) == 0 {
-			return WordPressRule{}, api.Invalid("body.categories", "Pick at least one category.")
+			return WordPressRule{}, api.Invalid("body.categories", text(ctx, "problem.pickCategory", nil))
 		}
 		if len(r.ListIDs) == 0 {
-			return WordPressRule{}, api.Invalid("body.listIds", "Pick the audience of the drafts.")
+			return WordPressRule{}, api.Invalid("body.listIds", text(ctx, "problem.pickAudience", nil))
 		}
 	}
 	lists, err := s.Q.IntegrationListNames(ctx, ws.ID)
@@ -675,16 +684,16 @@ func (s *Service) SetRule(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	}
 	for _, raw := range r.ListIDs {
 		if !slices.ContainsFunc(lists, func(l store.IntegrationListNamesRow) bool { return l.ID.String() == raw }) {
-			return WordPressRule{}, api.Invalid("body.listIds", "Pick lists of this workspace.")
+			return WordPressRule{}, api.Invalid("body.listIds", text(ctx, "problem.pickLists", nil))
 		}
 	}
 	if r.TemplateID != "" {
 		tid, err := uuid.Parse(r.TemplateID)
 		if err != nil {
-			return WordPressRule{}, api.Invalid("body.templateId", "Pick a saved template.")
+			return WordPressRule{}, api.Invalid("body.templateId", text(ctx, "problem.pickTemplate", nil))
 		}
 		if _, err := s.Q.IntegrationTemplate(ctx, store.IntegrationTemplateParams{ID: tid, WorkspaceID: ws.ID}); err != nil {
-			return WordPressRule{}, api.Invalid("body.templateId", "Pick a saved template.")
+			return WordPressRule{}, api.Invalid("body.templateId", text(ctx, "problem.pickTemplate", nil))
 		}
 	}
 	if r.SenderID != "" {
@@ -693,16 +702,16 @@ func (s *Service) SetRule(ctx context.Context, ws *store.Workspace, p *authz.Pri
 			return WordPressRule{}, err
 		}
 		if !slices.ContainsFunc(senders, func(x store.IntegrationSendersRow) bool { return x.ID.String() == r.SenderID }) {
-			return WordPressRule{}, api.Invalid("body.senderId", "Pick a sender of this workspace.")
+			return WordPressRule{}, api.Invalid("body.senderId", text(ctx, "problem.pickSender", nil))
 		}
 	}
 	if r.NotifyUserID != "" {
 		uid, err := uuid.Parse(r.NotifyUserID)
 		if err != nil {
-			return WordPressRule{}, api.Invalid("body.notifyUserId", "Pick a member of this workspace.")
+			return WordPressRule{}, api.Invalid("body.notifyUserId", text(ctx, "problem.pickMember", nil))
 		}
 		if m, err := s.Q.GetMembership(ctx, store.GetMembershipParams{WorkspaceID: ws.ID, UserID: uid}); err != nil || m.Status != "active" {
-			return WordPressRule{}, api.Invalid("body.notifyUserId", "Pick a member of this workspace.")
+			return WordPressRule{}, api.Invalid("body.notifyUserId", text(ctx, "problem.pickMember", nil))
 		}
 	}
 	raw, _ := json.Marshal(r)
@@ -767,7 +776,30 @@ func (s *Service) CheckSite(ctx context.Context, ws *store.Workspace, id uuid.UU
 	if err := s.Q.WordPressSiteChecked(ctx, store.WordPressSiteCheckedParams{IntegrationID: conn.ID, At: out.CheckedAt, LastCheck: b}); err != nil {
 		return out, err
 	}
-	return out, nil
+	return out.in(lang(ctx)), nil
+}
+
+// checkInvalidAddress is the stored detail of a site whose address can't
+// make a request.
+const checkInvalidAddress = "Invalid address"
+
+// in writes a check's detail in a reader's language, from its outcome: the
+// check is stored with its English. A blocked or unreachable site keeps
+// netguard's own words, which the app shows after "Blocked: …".
+func (c WordPressCheck) in(l i18n.Lang) WordPressCheck {
+	switch c.Outcome {
+	case "timeout":
+		c.Detail = msgs.M("check.timeout").Text(l, i18n.Args{"seconds": c.Seconds})
+	case "status":
+		c.Detail = msgs.M("check.status").Text(l, i18n.Args{"status": strconv.Itoa(c.Status), "statusText": http.StatusText(c.Status)})
+	case "answered":
+		c.Detail = msgs.M("check.answered").Text(l, i18n.Args{"ms": c.Ms})
+	case "unreachable":
+		if c.Detail == checkInvalidAddress {
+			c.Detail = msgs.M("check.invalidAddress").Text(l, nil)
+		}
+	}
+	return c
 }
 
 // StatusSignature signs a "Check now" call with one of a site's keys: the
@@ -807,7 +839,7 @@ func (s *Service) probe(ctx context.Context, target string, headers map[string]s
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
-		return WordPressCheck{Outcome: "unreachable", Detail: "Invalid address"}
+		return WordPressCheck{Outcome: "unreachable", Detail: checkInvalidAddress}
 	}
 	req.Header.Set("User-Agent", "ReputeCast-Check")
 	req.Header.Set("Accept", "application/json")
@@ -818,7 +850,7 @@ func (s *Service) probe(ctx context.Context, target string, headers map[string]s
 	resp, err := s.client(timeout).Do(req)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) || strings.Contains(err.Error(), "Client.Timeout") || strings.Contains(err.Error(), "deadline exceeded") {
-			return WordPressCheck{Outcome: "timeout", Seconds: timeout.Seconds(), Detail: "Timed out after " + seconds(timeout)}
+			return WordPressCheck{Outcome: "timeout", Seconds: timeout.Seconds()}.in(i18n.Default)
 		}
 		return WordPressCheck{Outcome: "unreachable", Detail: netguard.Describe(ctx, err)}
 	}
@@ -826,7 +858,7 @@ func (s *Service) probe(ctx context.Context, target string, headers map[string]s
 	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 64<<10))
 	ms := s.now().Sub(start).Milliseconds()
 	if resp.StatusCode != http.StatusOK {
-		return WordPressCheck{Outcome: "status", Status: resp.StatusCode, Detail: fmt.Sprintf("Answered HTTP %d %s", resp.StatusCode, http.StatusText(resp.StatusCode))}
+		return WordPressCheck{Outcome: "status", Status: resp.StatusCode}.in(i18n.Default)
 	}
-	return WordPressCheck{OK: true, Outcome: "answered", Ms: ms, Detail: fmt.Sprintf("Answered in %d ms", ms)}
+	return WordPressCheck{OK: true, Outcome: "answered", Ms: ms}.in(i18n.Default)
 }

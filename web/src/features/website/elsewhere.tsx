@@ -12,6 +12,7 @@ import { clock, count, dayMonthDate, dayMonthYear, monthName } from '@/lib/forma
 import { useCan, useWorkspace } from '@/lib/session'
 import { bare, useWebsite } from './api'
 import { me } from './elsewhere.messages'
+import { mp } from './posts.messages'
 import { dateTime } from './postFormat'
 import { SiteFrame } from './SiteFrame'
 import './website.css'
@@ -345,7 +346,12 @@ export function PostBadge() {
 
 /** "Post · Members · /posts/q4-roadmap-deep-dive": what a post's request covers, in the inbox. */
 export function postLine(w: PostSnapshot, rules: string): string {
-  return [t(me.inboxPost), w.visibilityLabel || w.visibility, w.path, rules].filter(Boolean).join(' · ')
+  return [t(me.inboxPost), visibilityWord(w.visibility), w.path, rules].filter(Boolean).join(' · ')
+}
+
+/** A request's visibility in words, in the app's language (the snapshot's own label is English). */
+function visibilityWord(v: string): string {
+  return v === 'paid' ? t(mp.paid) : v === 'members' ? t(mp.members) : t(mp.public)
 }
 
 /** The route of a post: the website. */
@@ -384,7 +390,7 @@ export function PostApprovalCard({ approvalId, name, snapshot: w }: { approvalId
           <dt>{tt(me.reviewAddress)}</dt>
           <dd className="mono">{w.path}</dd>
           <dt>{tt(me.reviewVisibility)}</dt>
-          <dd>{w.visibilityLabel || w.visibility}</dd>
+          <dd>{visibilityWord(w.visibility)}</dd>
           <dt>{tt(me.reviewWhen)}</dt>
           <dd>{postWhen(w)}</dd>
           {w.excerpt ? (

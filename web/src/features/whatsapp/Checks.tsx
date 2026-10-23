@@ -25,13 +25,16 @@ const badge: Record<Check['status'], { tone: Tone; msg: MessageDescriptor }> = {
   block: { tone: 'bad', msg: m.block },
 }
 
-/** "tomorrow" when a moment is on the next day, otherwise "later". */
-export function dayWord(t: ReturnType<typeof useT>, at?: string): string {
-  if (!at) return t(m.later)
+/**
+ * The laterDay choice of the split's messages: "tomorrow" when a moment is
+ * on the next day, otherwise "later". Each message words it whole.
+ */
+export function laterDay(at?: string): 'tomorrow' | 'later' {
+  if (!at) return 'later'
   const d = new Date(at)
   const now = new Date()
   const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
-  return d.getFullYear() === tomorrow.getFullYear() && d.getMonth() === tomorrow.getMonth() && d.getDate() === tomorrow.getDate() ? t(m.tomorrow) : t(m.later)
+  return d.getFullYear() === tomorrow.getFullYear() && d.getMonth() === tomorrow.getMonth() && d.getDate() === tomorrow.getDate() ? 'tomorrow' : 'later'
 }
 
 /** One pre-send check of a WhatsApp campaign, worded from what it found. */
@@ -92,10 +95,10 @@ export function CheckRow({ c, business, split }: { c: Check; business?: { displa
                 at: clock(s.usedByAt),
                 now: count(s.now),
                 later: count(s.later),
-                laterDay: dayWord(t, s.laterAt),
+                laterDay: laterDay(s.laterAt),
                 laterAt,
               })
-            : t(m.limitSplitPlain, { left: count(s.left), limit: count(s.limit), now: count(s.now), later: count(s.later), laterDay: dayWord(t, s.laterAt), laterAt })
+            : t(m.limitSplitPlain, { left: count(s.left), limit: count(s.limit), now: count(s.now), later: count(s.later), laterDay: laterDay(s.laterAt), laterAt })
       } else {
         detail = t(m.limitOk, { limit: s.limit, n: count(s.now) })
       }
@@ -107,7 +110,7 @@ export function CheckRow({ c, business, split }: { c: Check; business?: { displa
     case 'approval':
       detail =
         c.status === 'pass' ? (
-          <T msg={m.approvalOk} values={{ name: c.author ?? '', perm: <span className="mono">whatsapp:send</span> }} />
+          <T msg={m.approvalOk} values={{ name: c.author ?? '', perm: <span className="mono">{'whatsapp:send'}</span> }} />
         ) : (
           <T
             msg={m.approvalNeeds}

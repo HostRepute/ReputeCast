@@ -283,7 +283,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p ListParams) (
 		}
 		it.Notes = append(it.Notes, notes[r.ID]...)
 		if r.Note != "" {
-			it.Notes = append(it.Notes, r.Note)
+			it.Notes = append(it.Notes, campaignNote(l, r.Note))
 		}
 		if r.ReadinessVerdict != "" {
 			it.Readiness = &ReadinessSummary{Verdict: r.ReadinessVerdict, Issues: r.ReadinessIssues}

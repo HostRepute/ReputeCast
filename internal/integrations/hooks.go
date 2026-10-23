@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/webhooks"
 )
@@ -60,8 +62,7 @@ func triggerOn(ik *api.IntegrationKey, items []string, event string) (Item, bool
 func (s *Service) callingIntegration(ctx context.Context) (*api.IntegrationKey, store.IntegrationKeyLimitRow, error) {
 	ik := api.IntegrationFrom(ctx)
 	if ik == nil {
-		return nil, store.IntegrationKeyLimitRow{}, api.Err(http.StatusForbidden, api.CodePermissionDenied,
-			"Only an integration's key subscribes to triggers. For your own endpoints, use Settings › Webhooks or the webhooks API.")
+		return nil, store.IntegrationKeyLimitRow{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, text(ctx, "problem.integrationOnly", nil))
 	}
 	row, err := s.Q.IntegrationKeyLimit(ctx, ik.ID)
 	return ik, row, err
@@ -76,11 +77,11 @@ func (s *Service) Subscribe(ctx context.Context, ws *store.Workspace, p *authz.P
 	event := strings.TrimSpace(in.Event)
 	it, on := triggerOn(ik, row.Items, event)
 	if it.Key == "" {
-		return IntegrationHook{}, api.Invalid("body.event", fmt.Sprintf("%s has no trigger %q.", ik.Name, event))
+		return IntegrationHook{}, api.Invalid("body.event", problem(ctx, "problem.noTrigger", i18n.Args{"name": ik.Name, "event": event}))
 	}
 	if !on {
-		return IntegrationHook{}, api.Err(http.StatusForbidden, api.CodeNotForThisKey, fmt.Sprintf(
-			"%s can't use the %s trigger: it was turned off. Change what %s can do in Settings › Integrations.", ik.Name, itemLabel(it.Key), ik.Name))
+		return IntegrationHook{}, api.Err(http.StatusForbidden, api.CodeNotForThisKey, problem(ctx, "problem.triggerOff",
+			i18n.Args{"name": ik.Name, "trigger": itemName(lang(ctx), it.Key)}))
 	}
 	for _, need := range it.Permissions {
 		if !p.Can(need) {
@@ -89,10 +90,10 @@ func (s *Service) Subscribe(ctx context.Context, ws *store.Workspace, p *authz.P
 	}
 	u, err := s.policy().ValidateURL(in.URL)
 	if err != nil {
-		return IntegrationHook{}, s.privateRefusal(ctx, in.URL, err)
+		return IntegrationHook{}, s.refuseURL(ctx, err)
 	}
 	if addr, private := privateHost(ctx, u.Hostname()); private && !s.allowPrivate() {
-		return IntegrationHook{}, s.privateRefusal(ctx, in.URL, fmt.Errorf("%s resolves to %s, a private address", u.Hostname(), addr))
+		return IntegrationHook{}, s.privateRefusal(ctx, i18n.Args{"why": "resolves", "host": capitalize(u.Hostname()), "address": addr})
 	}
 	wf := ParseWorkflow(workflow)
 	noteUse(ctx, WorkflowUse{Item: it.Key})
@@ -133,18 +134,45 @@ func (s *Service) Subscribe(ctx context.Context, ws *store.Workspace, p *authz.P
 }
 
 // privateRefusal explains a webhook address the SSRF guard refuses.
-func (s *Service) privateRefusal(ctx context.Context, raw string, err error) error {
+func (s *Service) privateRefusal(ctx context.Context, args i18n.Args) error {
+	args["ask"] = "no"
+	if admins := s.Reachability(ctx).Admins; len(admins) > 0 {
+		args["ask"], args["admins"] = "yes", i18n.OrList(lang(ctx).Locale, admins)
+	}
+	pr := api.Invalid("body.url", problem(ctx, "problem.privateAddress", args))
+	pr.Code = "private_address"
+	return pr
+}
+
+// What netguard.ValidateURL refuses, as problems: a private or local
+// address explains who can allow it; its other refusals have messages;
+// anything else keeps netguard's words.
+var (
+	blockedPrivate = regexp.MustCompile(`^address not allowed: (\S+) is a private or loopback address$`)
+	blockedLocal   = regexp.MustCompile(`^address not allowed: (\S+) is a local hostname$`)
+	blockedOther   = regexp.MustCompile(`^address not allowed: (\S+) is a link-local, metadata or multicast address$`)
+	urlProblems    = map[string]string{
+		"use a full URL, like https://api.example.com/hooks/reputecast": "problem.fullURL",
+		"use an https:// URL": "problem.httpsURL",
+		"put credentials in the signing secret, not in the URL": "problem.credentialsInURL",
+	}
+)
+
+// refuseURL explains a webhook address the SSRF guard refuses. The host
+// starts its sentence with a capital, as it always has.
+func (s *Service) refuseURL(ctx context.Context, err error) error {
 	msg := err.Error()
-	if strings.Contains(msg, "private") || strings.Contains(msg, "loopback") || strings.Contains(msg, "local hostname") {
-		admins := s.Reachability(ctx).Admins
-		ask := ""
-		if len(admins) > 0 {
-			ask = " Ask " + access.OrList(admins) + "."
-		}
-		pr := api.Invalid("body.url", fmt.Sprintf("%s. Webhooks to private addresses stay blocked until an instance admin allows them (webhooks.allow_private_networks).%s",
-			capitalize(strings.TrimPrefix(msg, "address not allowed: ")), ask))
-		pr.Code = "private_address"
-		return pr
+	if m := blockedPrivate.FindStringSubmatch(msg); m != nil {
+		return s.privateRefusal(ctx, i18n.Args{"why": "private", "address": m[1]})
+	}
+	if m := blockedLocal.FindStringSubmatch(msg); m != nil {
+		return s.privateRefusal(ctx, i18n.Args{"why": "local", "host": capitalize(m[1])})
+	}
+	if m := blockedOther.FindStringSubmatch(msg); m != nil {
+		return api.Invalid("body.url", problem(ctx, "problem.blockedAddress", i18n.Args{"address": m[1]}))
+	}
+	if key, ok := urlProblems[msg]; ok {
+		return api.Invalid("body.url", problem(ctx, key, nil))
 	}
 	return api.Invalid("body.url", capitalize(msg)+".")
 }
@@ -288,7 +316,7 @@ func (s *Service) Sample(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		return IntegrationTriggerSample{}, api.NotFound("Trigger")
 	}
 	if !on {
-		return IntegrationTriggerSample{}, api.Err(http.StatusForbidden, api.CodeNotForThisKey, fmt.Sprintf("%s's %s trigger is turned off.", ik.Name, itemLabel(it.Key)))
+		return IntegrationTriggerSample{}, api.Err(http.StatusForbidden, api.CodeNotForThisKey, problem(ctx, "problem.sampleTriggerOff", i18n.Args{"name": ik.Name, "trigger": itemName(lang(ctx), it.Key)}))
 	}
 	for _, need := range it.Permissions {
 		if !p.Can(need) {
