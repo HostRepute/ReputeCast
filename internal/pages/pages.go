@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/json"
 	"log/slog"
+	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/forms"
@@ -123,6 +125,12 @@ func lang(ctx context.Context) i18n.Lang { return i18n.LangFrom(ctx) }
 // word is one of the package's server words.
 func word(ctx context.Context, key string, args i18n.Args) string {
 	return msgs.M(key).Text(lang(ctx), args)
+}
+
+// notFound is a 404 whose sentence is in the reader's language: what names
+// a notFound.* message ("page": "Page not found.").
+func notFound(ctx context.Context, what string) *api.Problem {
+	return api.Err(http.StatusNotFound, api.CodeNotFound, word(ctx, "notFound."+what, nil))
 }
 
 // Slugify turns a name into an address ("Warm-up planner" → "warm-up-planner").

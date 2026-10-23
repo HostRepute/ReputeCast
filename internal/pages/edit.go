@@ -293,7 +293,7 @@ func (s *Service) snapshot(ctx context.Context, q *store.Queries, pg store.Page,
 func (s *Service) get(ctx context.Context, q *store.Queries, ws *store.Workspace, id uuid.UUID) (store.Page, error) {
 	pg, err := q.PageGet(ctx, store.PageGetParams{WorkspaceID: ws.ID, ID: id})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return pg, api.NotFound("Page")
+		return pg, notFound(ctx, "page")
 	}
 	return pg, err
 }
@@ -301,7 +301,7 @@ func (s *Service) get(ctx context.Context, q *store.Queries, ws *store.Workspace
 func (s *Service) lockPage(ctx context.Context, q *store.Queries, ws *store.Workspace, id uuid.UUID) (store.Page, error) {
 	pg, err := q.PageLock(ctx, store.PageLockParams{WorkspaceID: ws.ID, ID: id})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return pg, api.NotFound("Page")
+		return pg, notFound(ctx, "page")
 	}
 	return pg, err
 }
@@ -630,7 +630,7 @@ func (s *Service) Version(ctx context.Context, ws *store.Workspace, id uuid.UUID
 	}
 	v, err := s.Q.PageVersionGet(ctx, store.PageVersionGetParams{PageID: pg.ID, Version: version})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return PageVersionDetail{}, api.NotFound("Version")
+		return PageVersionDetail{}, notFound(ctx, "version")
 	}
 	if err != nil {
 		return PageVersionDetail{}, err
@@ -657,7 +657,7 @@ func (s *Service) Restore(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		}
 		v, err := q.PageVersionGet(ctx, store.PageVersionGetParams{PageID: cur.ID, Version: version})
 		if errors.Is(err, pgx.ErrNoRows) {
-			return api.NotFound("Version")
+			return notFound(ctx, "version")
 		}
 		if err != nil {
 			return err
