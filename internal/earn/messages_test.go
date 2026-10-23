@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -157,3 +159,72 @@ func TestSourceKept(t *testing.T) {
 		}
 	}
 }
+
+// The member emails' words in the catalog say what the starters say in
+// English, every one is translated, and a starter in Vietnamese keeps its
+// Liquid as it was.
+func TestStarterWords(t *testing.T) {
+	vi := i18n.For(i18n.Vietnamese)
+	missing := msgs.Missing(i18n.Vietnamese)
+	check := func(key, english string) {
+		t.Helper()
+		m, err := msgs.Lookup(key)
+		if err != nil {
+			// Text that is only template code needs no message.
+			if english != "" && strings.TrimSpace(liquidTag.ReplaceAllString(english, "")) != "" {
+				t.Errorf("%s is missing", key)
+			}
+			return
+		}
+		if english == "" {
+			t.Errorf("%s has a message but the starter has no text", key)
+			return
+		}
+		if got := m.Text(defaultLang, nil); got != english {
+			t.Errorf("%s: catalog %q, starter %q", key, got, english)
+		}
+		if slices.Contains(missing, key) {
+			t.Errorf("%s isn't translated", key)
+		}
+	}
+	for _, st := range starters {
+		p := "starter." + st.key + "."
+		check(p+"name", st.name)
+		check(p+"description", st.description)
+		check(p+"subject", st.subject)
+		check(p+"preheader", st.preheader)
+		check(p+"heading", st.heading)
+		check(p+"button", st.button)
+		check(p+"after", st.after)
+		for i, b := range st.body {
+			check(p+"body."+strconv.Itoa(i), b)
+		}
+		vs := st.in(vi)
+		for _, pair := range [][2]string{{st.subject, vs.subject}, {st.preheader, vs.preheader}, {st.heading, vs.heading}, {st.button, vs.button},
+			{strings.Join(st.body, " "), strings.Join(vs.body, " ")}} {
+			for _, tag := range liquidTag.FindAllString(pair[0], -1) {
+				if !strings.Contains(pair[1], tag) {
+					t.Errorf("%s: %q lost %s", st.key, pair[1], tag)
+				}
+			}
+		}
+	}
+	// A starter in English is as it was; in Vietnamese, its footer too.
+	st, _ := starterOf(EmailWelcome)
+	if mj := st.mjmlIn(defaultLang, "Acme & Co", ""); !strings.Contains(mj, "Your company · Street and number · City, postcode<br />You get this email because of your paid subscription to Acme &amp; Co. Membership emails can't be turned off.") {
+		t.Fatalf("footer (en): %s", mj)
+	}
+	if st.in(defaultLang).subject != "Welcome to {{ tier }}, {{ first_name }}" || st.vars[0].Default != "there" {
+		t.Fatal("the English starter changed")
+	}
+	vs := st.in(vi)
+	if vs.name != "Chào mừng đến với gói trả phí" || vs.subject != "Chào mừng {{ first_name }} đến với {{ tier }}" || vs.body[2] != "{{ next_issue_line }}" || vs.vars[0].Default != "bạn" {
+		t.Fatalf("welcome (vi): %+v", vs)
+	}
+	if c := memberCategory(vi); c.Name != "Gói hội viên" || !slices.Equal(c.Known, []string{"Gói hội viên", "Memberships"}) {
+		t.Fatalf("category (vi): %+v", c)
+	}
+}
+
+// liquidTag is a {{ }} or {% %} tag of a template.
+var liquidTag = regexp.MustCompile(`\{\{.*?\}\}|\{%.*?%\}`)

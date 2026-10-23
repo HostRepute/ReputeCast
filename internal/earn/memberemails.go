@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -119,6 +121,45 @@ var starters = []starter{
 		vars: vars(TemplateVariable{Name: "ends_at", Type: "text", Required: true, Sample: "11 Oct 2027"}, TemplateVariable{Name: "upgrade_url", Type: "url", Required: true, Sensitive: true, Sample: "https://news.example/upgrade?r=sample-token"})},
 }
 
+// in is a starter in a language: its words from the catalog
+// (starter.<key>.*), the English above where the catalog has none. The
+// drafts are the workspace's own once created, so they are written in the
+// workspace's language (ensureMemberEmails); the demo publishes them in
+// English (Starters).
+func (st starter) in(l i18n.Lang) starter {
+	if l.Locale == "" || l.Locale == i18n.English {
+		return st
+	}
+	word := func(field, english string) string {
+		m, err := msgs.Lookup("starter." + st.key + "." + field)
+		if err != nil || english == "" {
+			return english
+		}
+		return m.Text(l, nil)
+	}
+	st.name, st.description = word("name", st.name), word("description", st.description)
+	st.subject, st.preheader, st.heading = word("subject", st.subject), word("preheader", st.preheader), word("heading", st.heading)
+	st.button, st.after = word("button", st.button), word("after", st.after)
+	body := make([]string, len(st.body))
+	for i, p := range st.body {
+		body[i] = word("body."+strconv.Itoa(i), p)
+	}
+	st.body = body
+	vars := slices.Clone(st.vars)
+	for i, v := range vars {
+		vars[i].Sample, vars[i].Default = word("sample."+v.Name, v.Sample), word("default."+v.Name, v.Default)
+	}
+	st.vars = vars
+	return st
+}
+
+// memberCategory is the member emails' category in a language.
+func memberCategory(l i18n.Lang) MemberCategory {
+	name := msgs.M("category.memberships").Text(l, nil)
+	return MemberCategory{Name: name, Description: msgs.M("category.membershipsText").Text(l, nil),
+		Known: []string{name, msgs.M("category.memberships").Text(i18n.Default, nil)}}
+}
+
 func starterOf(email string) (starter, bool) {
 	for _, st := range starters {
 		if st.email == email {
@@ -138,12 +179,12 @@ type Starter struct {
 }
 
 // Starters returns the eight member emails' starters for a publication and
-// its postal address, in the settings table's order.
+// its postal address, in the settings table's order, in English.
 func Starters(product, address string) []Starter {
 	out := make([]Starter, 0, len(starters))
 	for _, st := range starters {
 		out = append(out, Starter{Email: st.email, Key: st.key, Name: st.name, Description: st.description, Subject: st.subject, Preheader: st.preheader,
-			MJML: st.mjml(product, address), Variables: st.vars, Sample: sampleData(st)})
+			MJML: st.mjmlIn(i18n.Default, product, address), Variables: st.vars, Sample: sampleData(st)})
 	}
 	return out
 }
@@ -154,10 +195,12 @@ func StarterKey(email string) string {
 	return st.key
 }
 
-// mjml writes a starter's MJML: the publication's name, the message, its
+// mjmlIn writes a starter's MJML: the publication's name, the message, its
 // button and the transactional footer (Essential: no unsubscribe link).
-func (st starter) mjml(product, address string) string {
+// The footer's words are in l, the starter's language (in).
+func (st starter) mjmlIn(l i18n.Lang, product, address string) string {
 	esc := html.EscapeString
+	foot := func(key string) string { return msgs.M(key).Text(l, i18n.Args{"product": esc(product)}) }
 	var b strings.Builder
 	b.WriteString("<mjml>\n  <mj-head>\n    <mj-title>" + esc(st.subject) + "</mj-title>\n    <mj-preview>" + esc(st.preheader) + "</mj-preview>\n")
 	b.WriteString("    <mj-attributes>\n      <mj-all font-family=\"Georgia, 'Times New Roman', serif\" />\n      <mj-text font-size=\"15px\" line-height=\"1.6\" color=\"#1F2937\" padding=\"0 0 14px\" />\n    </mj-attributes>\n  </mj-head>\n")
@@ -180,10 +223,10 @@ func (st starter) mjml(product, address string) string {
 	b.WriteString("    <mj-section background-color=\"#F3F4F6\" padding=\"16px 28px\">\n      <mj-column>\n")
 	addr := esc(address)
 	if strings.TrimSpace(address) == "" {
-		addr = "Your company · Street and number · City, postcode"
+		addr = foot("starter.footer.address")
 	}
 	b.WriteString("        <mj-text font-family=\"'IBM Plex Sans', system-ui, sans-serif\" font-size=\"12px\" color=\"#5B6472\" padding=\"0\">" + addr +
-		"<br />You get this email because of your paid subscription to " + esc(product) + ". Membership emails can't be turned off.</mj-text>\n")
+		"<br />" + foot("starter.footer.membership") + "</mj-text>\n")
 	b.WriteString("      </mj-column>\n    </mj-section>\n  </mj-body>\n</mjml>\n")
 	return b.String()
 }
@@ -205,7 +248,10 @@ func (s *Service) ensureMemberEmails(ctx context.Context, ws *store.Workspace, p
 	if len(done) == len(starters) {
 		return 0, nil
 	}
-	cat, err := s.Mailer.Category(ctx, ws)
+	// The drafts and their category are the workspace's own from now on:
+	// they're written in its language.
+	wl := workspaceLang(ctx, s.Q, ws.ID)
+	cat, err := s.Mailer.Category(ctx, ws, memberCategory(wl))
 	if err != nil {
 		return 0, err
 	}
@@ -216,8 +262,9 @@ func (s *Service) ensureMemberEmails(ctx context.Context, ws *store.Workspace, p
 		if done[st.email] {
 			continue
 		}
+		st = st.in(wl)
 		id, err := s.Mailer.CreateDraft(ctx, ws, p, TemplateDraft{Key: st.key, Name: st.name, Description: st.description, Category: cat,
-			Subject: st.subject, Preheader: st.preheader, MJML: st.mjml(product, address), Variables: st.vars, TestData: sampleData(st)})
+			Subject: st.subject, Preheader: st.preheader, MJML: st.mjmlIn(wl, product, address), Variables: st.vars, TestData: sampleData(st)})
 		if err != nil {
 			return n, fmt.Errorf("%s: %w", st.key, err)
 		}

@@ -117,18 +117,18 @@ func systemPrincipal(ws *store.Workspace, perms ...authz.Permission) *authz.Prin
 	return &authz.Principal{Type: authz.ActorSystem, Name: "ReputeCast", WorkspaceID: ws.ID, Permissions: set}
 }
 
-func (m earnMailer) Category(ctx context.Context, ws *store.Workspace) (uuid.UUID, error) {
+func (m earnMailer) Category(ctx context.Context, ws *store.Workspace, mc earn.MemberCategory) (uuid.UUID, error) {
 	cats, err := m.a.Q.TxnCategories(ctx, ws.ID)
 	if err != nil {
 		return uuid.Nil, err
 	}
 	for _, c := range cats {
-		if c.Name == "Memberships" {
+		if slices.Contains(mc.Known, c.Name) {
 			return c.ID, nil
 		}
 	}
 	c, err := transactionalService(m.a).CreateCategory(ctx, ws, systemPrincipal(ws, authz.TransactionalPublish), transactional.TransactionalCategoryInput{
-		Name: "Memberships", Kind: transactional.KindEssential, Description: "Paid members' emails: welcome, trials, payments, renewals and gifts"})
+		Name: mc.Name, Kind: transactional.KindEssential, Description: mc.Description})
 	if err != nil {
 		return uuid.Nil, err
 	}

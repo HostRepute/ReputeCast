@@ -101,3 +101,46 @@ func TestEarnInVietnamese(t *testing.T) {
 		t.Fatalf("a note a person wrote stays as written: %q", m.GrantNote)
 	}
 }
+
+// The member emails' drafts and their category are the workspace's own once
+// Stripe is connected, so they're written in its default language; the
+// member who connected reads in English.
+func TestMemberEmailDraftsInWorkspaceLanguage(t *testing.T) {
+	f := newFlow(t)
+	ctx := context.Background()
+	for _, q := range []string{
+		`UPDATE workspace_languages SET is_default = false WHERE workspace_id = $1`,
+		`INSERT INTO workspace_languages (workspace_id, code, is_default) VALUES ($1, 'vi', true)
+		 ON CONFLICT (workspace_id, code) DO UPDATE SET is_default = true, removed_at = NULL`,
+	} {
+		if _, err := f.env.App.Pool.Exec(ctx, q, f.ws.ID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	f.connect()
+	var tpl struct {
+		Name, Subject, Preheader, MJML string
+		Category                       *struct{ Name, Kind string }
+		Variables                      []struct{ Name, Default, Sample string }
+	}
+	f.c.Do(http.MethodGet, "/workspaces/"+f.ws.Slug+"/transactional/templates/member-payment-failed", nil).MustStatus(t, 200).JSON(t, &tpl)
+	if tpl.Name != "Thanh toán thất bại" || tpl.Subject != "Chúng tôi chưa thu được khoản thanh toán {{ tier }} của bạn" || tpl.Preheader != "Cập nhật thẻ để giữ gói hội viên của bạn." {
+		t.Fatalf("draft (vi): %q %q %q", tpl.Name, tpl.Subject, tpl.Preheader)
+	}
+	if tpl.Category == nil || tpl.Category.Name != "Gói hội viên" || tpl.Category.Kind != "essential" {
+		t.Fatalf("category (vi): %+v", tpl.Category)
+	}
+	for _, want := range []string{"Chào {{ first_name }},", "Stripe sẽ thử lại vào {{ next_try }}.", ">Cập nhật thẻ</mj-button>",
+		"Tên công ty · Số nhà và tên đường · Thành phố, mã bưu chính<br />Bạn nhận email này vì thuê bao trả phí của bạn với Flow Weekly. Không thể tắt email hội viên."} {
+		if !strings.Contains(tpl.MJML, want) {
+			t.Errorf("MJML (vi) lacks %q", want)
+		}
+	}
+	vars := map[string][2]string{}
+	for _, v := range tpl.Variables {
+		vars[v.Name] = [2]string{v.Sample, v.Default}
+	}
+	if vars["first_name"] != [2]string{"Sam", "bạn"} || vars["reason"] != [2]string{"Thẻ của bạn không đủ số dư.", "thẻ bị từ chối."} || vars["amount"][0] != "$8.00" {
+		t.Fatalf("variables (vi): %v", vars)
+	}
+}

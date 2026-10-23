@@ -63,8 +63,9 @@ const (
 // Mailer sends the member emails through transactional email and keeps
 // their templates (internal/transactional, wired in internal/app).
 type Mailer interface {
-	// Category returns the Essential "Memberships" category, creating it.
-	Category(ctx context.Context, ws *store.Workspace) (uuid.UUID, error)
+	// Category returns the Essential category member emails go in: one of
+	// c.Known when the workspace has it, else a new one named c.Name.
+	Category(ctx context.Context, ws *store.Workspace, c MemberCategory) (uuid.UUID, error)
 	// CreateDraft creates a template draft from a member email's starter.
 	CreateDraft(ctx context.Context, ws *store.Workspace, p *authz.Principal, d TemplateDraft) (uuid.UUID, error)
 	// Templates reads the templates' keys and versions.
@@ -77,6 +78,15 @@ type Mailer interface {
 
 // ErrNotPublished means a member email's template has no published version.
 var ErrNotPublished = errors.New("earn: the template has no published version")
+
+// MemberCategory is the member emails' category in the workspace's
+// language ("Memberships" in English).
+type MemberCategory struct {
+	Name, Description string
+	// Known are the names that find the category ReputeCast made before:
+	// Name, and the English one.
+	Known []string
+}
 
 // TemplateDraft is a member email's starter.
 type TemplateDraft struct {
