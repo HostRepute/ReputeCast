@@ -344,5 +344,7 @@
   "signup.consentDefault": "Gửi {list} cho tôi. Hủy đăng ký bất cứ lúc nào.",
 
   "memberEvent.suppressed": "địa chỉ đang bị chặn gửi",
-  "memberEvent.fromAccount": "từ trang tài khoản của họ"
+  "memberEvent.fromAccount": "từ trang tài khoản của họ",
+  "webhook.post.published": "Một bài viết đã lên website, do một người đăng, đến giờ đã hẹn hoặc cùng lúc gửi chiến dịch.",
+  "webhook.post.unpublished": "Một bài viết đã bị gỡ khỏi website hoặc bị xóa."
 }

@@ -16,18 +16,18 @@ import (
 // gifts and attribution work, which emits them under the same group.
 func init() {
 	webhooks.Events = append(webhooks.Events,
-		webhooks.WebhookEventInfo{Name: "subscription.trial_started", Group: "Paid members", Description: "A paid subscription started with a free trial."},
-		webhooks.WebhookEventInfo{Name: "subscription.started", Group: "Paid members", Description: "A paid subscription started and its first payment was made."},
-		webhooks.WebhookEventInfo{Name: "subscription.renewed", Group: "Paid members", Description: "A subscription renewed and its payment went through."},
-		webhooks.WebhookEventInfo{Name: "subscription.payment_failed", Group: "Paid members", Description: "A payment failed; the provider retries."},
-		webhooks.WebhookEventInfo{Name: "subscription.cancel_scheduled", Group: "Paid members", Description: "A subscription will end at the end of its period."},
-		webhooks.WebhookEventInfo{Name: "subscription.ended", Group: "Paid members", Description: "Paid access ended: canceled, unpaid, or a trial that ended without payment."},
-		webhooks.WebhookEventInfo{Name: "subscription.changed", Group: "Paid members", Description: "A paid member switched tier or between monthly and yearly."},
-		webhooks.WebhookEventInfo{Name: "access.complimentary_granted", Group: "Paid members", Description: "A team member gave complimentary access."},
-		webhooks.WebhookEventInfo{Name: "access.complimentary_ended", Group: "Paid members", Description: "Complimentary access ended or was removed."},
-		webhooks.WebhookEventInfo{Name: "gift.purchased", Group: "Paid members", Description: "A reader bought a gift subscription."},
-		webhooks.WebhookEventInfo{Name: "gift.redeemed", Group: "Paid members", Description: "A gift was redeemed by its recipient."},
-		webhooks.WebhookEventInfo{Name: "conversion.recorded", Group: "Paid members", Description: "An upgrade or a conversion was credited to an email."},
+		webhooks.WebhookEventInfo{Name: "subscription.trial_started", Group: "Paid members", Description: "A paid subscription started with a free trial.", DescriptionText: msgs.M("webhook.subscription.trial_started").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "subscription.started", Group: "Paid members", Description: "A paid subscription started and its first payment was made.", DescriptionText: msgs.M("webhook.subscription.started").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "subscription.renewed", Group: "Paid members", Description: "A subscription renewed and its payment went through.", DescriptionText: msgs.M("webhook.subscription.renewed").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "subscription.payment_failed", Group: "Paid members", Description: "A payment failed; the provider retries.", DescriptionText: msgs.M("webhook.subscription.payment_failed").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "subscription.cancel_scheduled", Group: "Paid members", Description: "A subscription will end at the end of its period.", DescriptionText: msgs.M("webhook.subscription.cancel_scheduled").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "subscription.ended", Group: "Paid members", Description: "Paid access ended: canceled, unpaid, or a trial that ended without payment.", DescriptionText: msgs.M("webhook.subscription.ended").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "subscription.changed", Group: "Paid members", Description: "A paid member switched tier or between monthly and yearly.", DescriptionText: msgs.M("webhook.subscription.changed").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "access.complimentary_granted", Group: "Paid members", Description: "A team member gave complimentary access.", DescriptionText: msgs.M("webhook.access.complimentary_granted").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "access.complimentary_ended", Group: "Paid members", Description: "Complimentary access ended or was removed.", DescriptionText: msgs.M("webhook.access.complimentary_ended").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "gift.purchased", Group: "Paid members", Description: "A reader bought a gift subscription.", DescriptionText: msgs.M("webhook.gift.purchased").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "gift.redeemed", Group: "Paid members", Description: "A gift was redeemed by its recipient.", DescriptionText: msgs.M("webhook.gift.redeemed").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "conversion.recorded", Group: "Paid members", Description: "An upgrade or a conversion was credited to an email.", DescriptionText: msgs.M("webhook.conversion.recorded").Keep(nil)},
 	)
 }
 

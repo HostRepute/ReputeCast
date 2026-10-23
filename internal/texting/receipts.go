@@ -226,11 +226,11 @@ func (s *Service) hookData(m store.ChannelMessage, extra map[string]any) map[str
 
 func init() {
 	webhooks.Events = append(webhooks.Events,
-		webhooks.WebhookEventInfo{Name: "sms.delivered", Group: "SMS", Description: "A carrier delivered a text."},
-		webhooks.WebhookEventInfo{Name: "sms.failed", Group: "SMS", Description: "A text failed, with the reason and the provider's own code."},
-		webhooks.WebhookEventInfo{Name: "sms.clicked", Group: "SMS", Description: "A person clicked a text's short link (link previews carry machine: true)."},
-		webhooks.WebhookEventInfo{Name: "sms.opted_out", Group: "SMS", Description: "A number texted STOP: SMS consent withdrawn on every list."},
-		webhooks.WebhookEventInfo{Name: "sms.opted_in", Group: "SMS", Description: "A number texted START: the consents STOP removed came back."},
-		webhooks.WebhookEventInfo{Name: "sms.replied", Group: "SMS", Description: "A reply that isn't a keyword, with its text."},
+		webhooks.WebhookEventInfo{Name: "sms.delivered", Group: "SMS", Description: "A carrier delivered a text.", DescriptionText: msgs.M("webhook.sms.delivered").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "sms.failed", Group: "SMS", Description: "A text failed, with the reason and the provider's own code.", DescriptionText: msgs.M("webhook.sms.failed").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "sms.clicked", Group: "SMS", Description: "A person clicked a text's short link (link previews carry machine: true).", DescriptionText: msgs.M("webhook.sms.clicked").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "sms.opted_out", Group: "SMS", Description: "A number texted STOP: SMS consent withdrawn on every list.", DescriptionText: msgs.M("webhook.sms.opted_out").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "sms.opted_in", Group: "SMS", Description: "A number texted START: the consents STOP removed came back.", DescriptionText: msgs.M("webhook.sms.opted_in").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "sms.replied", Group: "SMS", Description: "A reply that isn't a keyword, with its text.", DescriptionText: msgs.M("webhook.sms.replied").Keep(nil)},
 	)
 }

@@ -59,6 +59,9 @@ type WebhookEventInfo struct {
 	Name        string `json:"name" example:"email.bounced"`
 	Group       string `json:"group" example:"Email"`
 	Description string `json:"description"`
+	// DescriptionText is the description's message, for the events other
+	// packages add from their own catalogs.
+	DescriptionText i18n.Text `json:"-"`
 }
 
 // Events is the catalogue of events, in display order.

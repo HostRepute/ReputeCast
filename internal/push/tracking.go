@@ -26,7 +26,7 @@ import (
 
 func init() {
 	webhooks.Events = append(webhooks.Events,
-		webhooks.WebhookEventInfo{Name: "push.clicked", Group: "Push", Description: "A reader clicked a notification or one of its buttons (once per notification)."},
+		webhooks.WebhookEventInfo{Name: "push.clicked", Group: "Push", Description: "A reader clicked a notification or one of its buttons (once per notification).", DescriptionText: msgs.M("webhook.push.clicked").Keep(nil)},
 	)
 }
 

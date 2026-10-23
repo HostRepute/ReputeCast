@@ -82,5 +82,8 @@
 
   "template.deliveryName": "Giao sản phẩm",
   "category.purchases": "Mua hàng",
-  "category.purchasesText": "Email gửi người mua: liên kết tải xuống của sản phẩm số"
+  "category.purchasesText": "Email gửi người mua: liên kết tải xuống của sản phẩm số",
+  "webhook.order.paid": "Người mua đã thanh toán cho một sản phẩm số; email giao hàng đang được gửi.",
+  "webhook.order.refunded": "Một đơn hàng đã được hoàn tiền trong Stripe, toàn bộ hoặc một phần.",
+  "webhook.order.disputed": "Người mua đã mở tranh chấp với ngân hàng về khoản thanh toán của một đơn hàng."
 }

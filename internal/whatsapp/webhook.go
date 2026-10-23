@@ -33,13 +33,13 @@ const MaxHookBody = 1 << 20
 
 func init() {
 	webhooks.Events = append(webhooks.Events,
-		webhooks.WebhookEventInfo{Name: "whatsapp.delivered", Group: "WhatsApp", Description: "Meta delivered a WhatsApp message."},
-		webhooks.WebhookEventInfo{Name: "whatsapp.read", Group: "WhatsApp", Description: "A person read a WhatsApp message (only people who share read receipts)."},
-		webhooks.WebhookEventInfo{Name: "whatsapp.failed", Group: "WhatsApp", Description: "A WhatsApp message failed, with the reason and Meta's code."},
-		webhooks.WebhookEventInfo{Name: "whatsapp.replied", Group: "WhatsApp", Description: "A person wrote or tapped a quick reply: the 24-hour window opens."},
-		webhooks.WebhookEventInfo{Name: "whatsapp.opted_out", Group: "WhatsApp", Description: "A number wrote an opt-out keyword: WhatsApp consent withdrawn on every list."},
-		webhooks.WebhookEventInfo{Name: "whatsapp.opted_in", Group: "WhatsApp", Description: "A number wrote an opt-in keyword: the consents the opt-out removed came back."},
-		webhooks.WebhookEventInfo{Name: "whatsapp.template_status", Group: "WhatsApp", Description: "Meta approved, rejected, paused or disabled a template."},
+		webhooks.WebhookEventInfo{Name: "whatsapp.delivered", Group: "WhatsApp", Description: "Meta delivered a WhatsApp message.", DescriptionText: msgs.M("webhook.whatsapp.delivered").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "whatsapp.read", Group: "WhatsApp", Description: "A person read a WhatsApp message (only people who share read receipts).", DescriptionText: msgs.M("webhook.whatsapp.read").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "whatsapp.failed", Group: "WhatsApp", Description: "A WhatsApp message failed, with the reason and Meta's code.", DescriptionText: msgs.M("webhook.whatsapp.failed").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "whatsapp.replied", Group: "WhatsApp", Description: "A person wrote or tapped a quick reply: the 24-hour window opens.", DescriptionText: msgs.M("webhook.whatsapp.replied").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "whatsapp.opted_out", Group: "WhatsApp", Description: "A number wrote an opt-out keyword: WhatsApp consent withdrawn on every list.", DescriptionText: msgs.M("webhook.whatsapp.opted_out").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "whatsapp.opted_in", Group: "WhatsApp", Description: "A number wrote an opt-in keyword: the consents the opt-out removed came back.", DescriptionText: msgs.M("webhook.whatsapp.opted_in").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "whatsapp.template_status", Group: "WhatsApp", Description: "Meta approved, rejected, paused or disabled a template.", DescriptionText: msgs.M("webhook.whatsapp.template_status").Keep(nil)},
 	)
 }
 

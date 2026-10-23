@@ -23,8 +23,8 @@ import (
 // The Website webhook events.
 func init() {
 	webhooks.Events = append(webhooks.Events,
-		webhooks.WebhookEventInfo{Name: "post.published", Group: "Website", Description: "A post went live on the website, by a person, at its time or with its campaign's send."},
-		webhooks.WebhookEventInfo{Name: "post.unpublished", Group: "Website", Description: "A post was taken off the website or deleted."},
+		webhooks.WebhookEventInfo{Name: "post.published", Group: "Website", Description: "A post went live on the website, by a person, at its time or with its campaign's send.", DescriptionText: msgs.M("webhook.post.published").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "post.unpublished", Group: "Website", Description: "A post was taken off the website or deleted.", DescriptionText: msgs.M("webhook.post.unpublished").Keep(nil)},
 	)
 }
 

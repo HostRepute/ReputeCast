@@ -344,5 +344,7 @@
   "signup.consentDefault": { "message": "Send me {list}. Unsubscribe any time.", "note": "a newsletter's consent text on the website's sign-up until the workspace writes its own; list: the newsletter's name" },
 
   "memberEvent.suppressed": { "message": "the address is suppressed", "note": "a contact's Website card, after a refused sign-in link's date: why no link was sent. Stored in English with the event, read in the member's language" },
-  "memberEvent.fromAccount": { "message": "from their account page", "note": "a contact's Website card, after the date they signed out everywhere: where they did it. Stored in English with the event, read in the member's language" }
+  "memberEvent.fromAccount": { "message": "from their account page", "note": "a contact's Website card, after the date they signed out everywhere: where they did it. Stored in English with the event, read in the member's language" },
+  "webhook.post.published": { "message": "A post went live on the website, by a person, at its time or with its campaign's send.", "note": "a webhook event, in Settings › Webhooks" },
+  "webhook.post.unpublished": "A post was taken off the website or deleted."
 }

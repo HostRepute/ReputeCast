@@ -36,5 +36,11 @@
   "evidence.optedIn": "Đã bật nhận lại qua tin nhắn",
   "evidence.confirmed": "Đã xác nhận bằng cách trả lời YES",
   "evidence.textMessage": "Tin nhắn",
-  "evidence.confirmation": "Tin nhắn xác nhận đăng ký"
+  "evidence.confirmation": "Tin nhắn xác nhận đăng ký",
+  "webhook.sms.delivered": "Nhà mạng đã chuyển phát một tin nhắn.",
+  "webhook.sms.failed": "Một tin nhắn gửi thất bại, kèm lý do và mã riêng của nhà cung cấp.",
+  "webhook.sms.clicked": "Một người đã nhấp vào liên kết rút gọn trong tin nhắn (bản xem trước liên kết có machine: true).",
+  "webhook.sms.opted_out": "Một số đã nhắn STOP: sự đồng ý nhận SMS bị rút ở mọi danh sách.",
+  "webhook.sms.opted_in": "Một số đã nhắn START: các sự đồng ý mà STOP đã gỡ được khôi phục.",
+  "webhook.sms.replied": "Một tin trả lời không phải từ khóa, kèm nội dung."
 }

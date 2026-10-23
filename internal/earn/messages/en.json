@@ -288,5 +288,17 @@
   "starter.gift-ending.body.2": "Want to keep '{{ tier }}'? You can continue from the link below.",
   "starter.gift-ending.button": "Keep '{{ tier }}'",
   "starter.gift-ending.default.first_name": "there",
-  "starter.gift-ending.sample.ends_at": "11 Oct 2027"
+  "starter.gift-ending.sample.ends_at": "11 Oct 2027",
+  "webhook.subscription.trial_started": { "message": "A paid subscription started with a free trial.", "note": "a webhook event, in Settings › Webhooks" },
+  "webhook.subscription.started": "A paid subscription started and its first payment was made.",
+  "webhook.subscription.renewed": "A subscription renewed and its payment went through.",
+  "webhook.subscription.payment_failed": "A payment failed; the provider retries.",
+  "webhook.subscription.cancel_scheduled": "A subscription will end at the end of its period.",
+  "webhook.subscription.ended": "Paid access ended: canceled, unpaid, or a trial that ended without payment.",
+  "webhook.subscription.changed": "A paid member switched tier or between monthly and yearly.",
+  "webhook.access.complimentary_granted": "A team member gave complimentary access.",
+  "webhook.access.complimentary_ended": "Complimentary access ended or was removed.",
+  "webhook.gift.purchased": "A reader bought a gift subscription.",
+  "webhook.gift.redeemed": "A gift was redeemed by its recipient.",
+  "webhook.conversion.recorded": "An upgrade or a conversion was credited to an email."
 }

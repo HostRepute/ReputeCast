@@ -288,5 +288,17 @@
   "starter.gift-ending.body.2": "Muốn giữ '{{ tier }}'? Bạn có thể tiếp tục từ liên kết bên dưới.",
   "starter.gift-ending.button": "Giữ '{{ tier }}'",
   "starter.gift-ending.default.first_name": "bạn",
-  "starter.gift-ending.sample.ends_at": "11 thg 10, 2027"
+  "starter.gift-ending.sample.ends_at": "11 thg 10, 2027",
+  "webhook.subscription.trial_started": "Một thuê bao trả phí đã bắt đầu với thời gian dùng thử miễn phí.",
+  "webhook.subscription.started": "Một thuê bao trả phí đã bắt đầu và khoản thanh toán đầu tiên đã được thực hiện.",
+  "webhook.subscription.renewed": "Một thuê bao đã gia hạn và khoản thanh toán đã thành công.",
+  "webhook.subscription.payment_failed": "Một khoản thanh toán thất bại; nhà cung cấp sẽ thử lại.",
+  "webhook.subscription.cancel_scheduled": "Một thuê bao sẽ kết thúc vào cuối kỳ hiện tại.",
+  "webhook.subscription.ended": "Quyền truy cập trả phí đã kết thúc: đã hủy, chưa thanh toán, hoặc thời gian dùng thử kết thúc mà không thanh toán.",
+  "webhook.subscription.changed": "Một hội viên trả phí đã đổi gói hoặc chuyển giữa theo tháng và theo năm.",
+  "webhook.access.complimentary_granted": "Một thành viên trong nhóm đã cấp quyền truy cập miễn phí.",
+  "webhook.access.complimentary_ended": "Quyền truy cập miễn phí đã kết thúc hoặc bị gỡ.",
+  "webhook.gift.purchased": "Một người đọc đã mua thuê bao làm quà tặng.",
+  "webhook.gift.redeemed": "Người nhận đã dùng một quà tặng.",
+  "webhook.conversion.recorded": "Một lượt nâng cấp hoặc chuyển đổi đã được ghi nhận cho một email."
 }

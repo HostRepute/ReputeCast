@@ -31,9 +31,9 @@ import (
 
 func init() {
 	webhooks.Events = append(webhooks.Events,
-		webhooks.WebhookEventInfo{Name: "order.paid", Group: "Products and orders", Description: "A buyer paid for a digital product; the delivery email is on its way."},
-		webhooks.WebhookEventInfo{Name: "order.refunded", Group: "Products and orders", Description: "An order was refunded in Stripe, in full or in part."},
-		webhooks.WebhookEventInfo{Name: "order.disputed", Group: "Products and orders", Description: "A buyer disputed an order's payment with their bank."},
+		webhooks.WebhookEventInfo{Name: "order.paid", Group: "Products and orders", Description: "A buyer paid for a digital product; the delivery email is on its way.", DescriptionText: msgs.M("webhook.order.paid").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "order.refunded", Group: "Products and orders", Description: "An order was refunded in Stripe, in full or in part.", DescriptionText: msgs.M("webhook.order.refunded").Keep(nil)},
+		webhooks.WebhookEventInfo{Name: "order.disputed", Group: "Products and orders", Description: "A buyer disputed an order's payment with their bank.", DescriptionText: msgs.M("webhook.order.disputed").Keep(nil)},
 	)
 }
 

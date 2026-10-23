@@ -36,5 +36,11 @@
   "evidence.optedIn": "Opted back in by text",
   "evidence.confirmed": "Confirmed by replying YES",
   "evidence.textMessage": {"message": "Text message", "note": "where consent was given or withdrawn: by a text message"},
-  "evidence.confirmation": {"message": "Opt-in confirmation", "note": "the text that asks a new number to confirm"}
+  "evidence.confirmation": {"message": "Opt-in confirmation", "note": "the text that asks a new number to confirm"},
+  "webhook.sms.delivered": { "message": "A carrier delivered a text.", "note": "a webhook event, in Settings › Webhooks" },
+  "webhook.sms.failed": "A text failed, with the reason and the provider's own code.",
+  "webhook.sms.clicked": "A person clicked a text's short link (link previews carry machine: true).",
+  "webhook.sms.opted_out": "A number texted STOP: SMS consent withdrawn on every list.",
+  "webhook.sms.opted_in": "A number texted START: the consents STOP removed came back.",
+  "webhook.sms.replied": "A reply that isn't a keyword, with its text."
 }

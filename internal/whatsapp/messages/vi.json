@@ -100,5 +100,12 @@
 
   "stored.page": "Tin nhắn WhatsApp",
   "stored.optedOut": "Đã hủy nhận trên WhatsApp",
-  "stored.optedIn": "Đã đăng ký nhận lại trên WhatsApp"
+  "stored.optedIn": "Đã đăng ký nhận lại trên WhatsApp",
+  "webhook.whatsapp.delivered": "Meta đã chuyển phát một tin nhắn WhatsApp.",
+  "webhook.whatsapp.read": "Một người đã đọc tin nhắn WhatsApp (chỉ với những người chia sẻ thông báo đã đọc).",
+  "webhook.whatsapp.failed": "Một tin nhắn WhatsApp gửi thất bại, kèm lý do và mã của Meta.",
+  "webhook.whatsapp.replied": "Một người đã viết hoặc chạm vào nút trả lời nhanh: khung 24 giờ được mở.",
+  "webhook.whatsapp.opted_out": "Một số đã gửi từ khóa hủy nhận: sự đồng ý nhận WhatsApp bị rút ở mọi danh sách.",
+  "webhook.whatsapp.opted_in": "Một số đã gửi từ khóa đăng ký nhận: các sự đồng ý mà lần hủy nhận đã gỡ được khôi phục.",
+  "webhook.whatsapp.template_status": "Meta đã phê duyệt, từ chối, tạm dừng hoặc vô hiệu hóa một mẫu."
 }

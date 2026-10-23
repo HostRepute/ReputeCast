@@ -100,5 +100,12 @@
 
   "stored.page": {"message": "WhatsApp message", "note": "where consent changed, on the contact's timeline: by writing a WhatsApp message"},
   "stored.optedOut": {"message": "Opted out on WhatsApp", "note": "a consent change on the contact's timeline"},
-  "stored.optedIn": "Opted back in on WhatsApp"
+  "stored.optedIn": "Opted back in on WhatsApp",
+  "webhook.whatsapp.delivered": { "message": "Meta delivered a WhatsApp message.", "note": "a webhook event, in Settings › Webhooks" },
+  "webhook.whatsapp.read": "A person read a WhatsApp message (only people who share read receipts).",
+  "webhook.whatsapp.failed": "A WhatsApp message failed, with the reason and Meta's code.",
+  "webhook.whatsapp.replied": "A person wrote or tapped a quick reply: the 24-hour window opens.",
+  "webhook.whatsapp.opted_out": "A number wrote an opt-out keyword: WhatsApp consent withdrawn on every list.",
+  "webhook.whatsapp.opted_in": "A number wrote an opt-in keyword: the consents the opt-out removed came back.",
+  "webhook.whatsapp.template_status": "Meta approved, rejected, paused or disabled a template."
 }

@@ -75,5 +75,6 @@
   "problem.promptScroll": "Mức cuộn là phần trăm của bài viết, từ 1 đến 100.",
   "problem.promptPath": "Đường dẫn bắt đầu bằng / và là một phần địa chỉ của trang, ví dụ /account.",
   "problem.promptPages": "Hãy thêm các trang mà lời nhắc hiện trên đó.",
-  "problem.promptAskAgain": "Số ngày trước khi hỏi lại phải từ 1 đến 365."
+  "problem.promptAskAgain": "Số ngày trước khi hỏi lại phải từ 1 đến 365.",
+  "webhook.push.clicked": "Một người đọc đã nhấp vào thông báo hoặc một nút của thông báo (mỗi thông báo một lần)."
 }

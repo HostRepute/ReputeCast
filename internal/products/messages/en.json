@@ -82,5 +82,8 @@
 
   "template.deliveryName": { "message": "Product delivery", "note": "the delivery template ReputeCast creates with the first product, in the workspace's language" },
   "category.purchases": { "message": "Purchases", "note": "the Essential transactional category ReputeCast creates for buyers' emails, in the workspace's language" },
-  "category.purchasesText": "Buyers' emails: the download links of digital products"
+  "category.purchasesText": "Buyers' emails: the download links of digital products",
+  "webhook.order.paid": { "message": "A buyer paid for a digital product; the delivery email is on its way.", "note": "a webhook event, in Settings › Webhooks" },
+  "webhook.order.refunded": "An order was refunded in Stripe, in full or in part.",
+  "webhook.order.disputed": "A buyer disputed an order's payment with their bank."
 }

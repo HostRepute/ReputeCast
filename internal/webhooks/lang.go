@@ -45,7 +45,9 @@ func eventsIn(l i18n.Lang) []WebhookEventInfo {
 	out := make([]WebhookEventInfo, len(Events))
 	for i, e := range Events {
 		out[i] = e
-		if m, err := msgs.Lookup("event." + e.Name); err == nil {
+		if d := e.DescriptionText.In(l); d != "" {
+			out[i].Description = d
+		} else if m, err := msgs.Lookup("event." + e.Name); err == nil {
 			out[i].Description = m.Text(l, nil)
 		}
 	}
