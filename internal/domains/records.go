@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Record is one DNS record a sending domain needs, stored in
@@ -271,8 +273,9 @@ func MergeSPF(current string, mechs []string) string {
 
 // recordLabels names each record as the domain step does: "DKIM 1 of 3",
 // "Return-path / MAIL FROM", "SPF for MAIL FROM", "SPF for the sending
-// domain", "DMARC", with a short note under some of them.
-func recordLabels(recs []Record, domain string, dkimNote func(providerID string) string) (labels, notes []string) {
+// domain", "DMARC", with a short note under some of them, in a reader's
+// language.
+func recordLabels(l i18n.Lang, recs []Record, domain string, dkimNote func(providerID string) string) (labels, notes []string) {
 	labels, notes = make([]string, len(recs)), make([]string, len(recs))
 	dkimTotal := map[string]int{}
 	for _, r := range recs {
@@ -289,27 +292,27 @@ func recordLabels(recs []Record, domain string, dkimNote func(providerID string)
 			n, total := dkimSeen[r.ProviderID], dkimTotal[r.ProviderID]
 			labels[i] = "DKIM"
 			if total > 1 {
-				labels[i] = fmt.Sprintf("DKIM %d of %d", n, total)
+				labels[i] = text(l, "record.dkimOf", i18n.Args{"n": n, "total": total})
 			}
 			if n == 1 && dkimNote != nil {
 				notes[i] = dkimNote(r.ProviderID)
 			}
 		case PurposeReturnPath:
-			labels[i] = "Return-path / MAIL FROM"
+			labels[i] = text(l, "record.returnPath", nil)
 			if !returnSeen[r.ProviderID] {
-				notes[i] = "so bounces and SPF align with your domain"
+				notes[i] = text(l, "record.returnPathNote", nil)
 			}
 			returnSeen[r.ProviderID] = true
 		case PurposeSPF:
 			if r.isDomainSPF(domain) {
-				labels[i], notes[i] = "SPF for the sending domain", "merged with your existing record"
+				labels[i], notes[i] = text(l, "record.spfDomain", nil), text(l, "record.spfDomainNote", nil)
 			} else {
-				labels[i] = "SPF for MAIL FROM"
+				labels[i] = text(l, "record.spfMailFrom", nil)
 			}
 		case PurposeDMARC:
-			labels[i], notes[i] = "DMARC", "required by Gmail and Yahoo for bulk senders"
+			labels[i], notes[i] = "DMARC", text(l, "record.dmarcNote", nil)
 		case PurposeVerification:
-			labels[i] = "Domain verification"
+			labels[i] = text(l, "record.verification", nil)
 		default:
 			labels[i] = r.Purpose
 		}

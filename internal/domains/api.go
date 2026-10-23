@@ -13,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -234,10 +235,14 @@ func (s *Service) AddViaCloudflare(ctx context.Context, ws *store.Workspace, raw
 	res, err := s.Cloudflare.Apply(cctx, strings.TrimSpace(token), d.Domain, recs)
 	cancel()
 	if errors.Is(err, ErrCloudflareToken) {
-		return SendingDomainCloudflareResult{}, api.Invalid("body.token", "Cloudflare rejected this token. Use an API token with Zone › DNS › Edit permission on "+d.Domain+"'s zone.")
+		return SendingDomainCloudflareResult{}, api.Invalid("body.token", say(ctx, "problem.cloudflareToken", i18n.Args{"domain": d.Domain}))
+	}
+	var ce *cloudflareError
+	if errors.As(err, &ce) {
+		return SendingDomainCloudflareResult{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, ce.problem(ctx))
 	}
 	if err != nil {
-		return SendingDomainCloudflareResult{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, err.Error()+". Nothing else was changed.")
+		return SendingDomainCloudflareResult{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, say(ctx, "problem.cloudflareFailed", i18n.Args{"error": err.Error()}))
 	}
 	if err := s.Audit.Log(ctx, audit.Event{WorkspaceID: &ws.ID, Action: "domain.dns_cloudflare", TargetType: "sending_domain", TargetID: d.ID.String(), TargetName: d.Domain,
 		After: map[string]any{"zone": res.Zone, "created": res.Created, "updated": res.Updated, "failed": res.Failed}}); err != nil {

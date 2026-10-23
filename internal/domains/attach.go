@@ -8,7 +8,6 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -60,7 +60,7 @@ func (s *Service) providerRecords(ctx context.Context, domain string, p store.Pr
 			case errors.Is(err, providers.ErrNotSupported):
 				ok = false
 			case err != nil:
-				return nil, "", api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, p.Name+" didn't add "+domain+": "+err.Error())
+				return nil, "", api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, say(ctx, "problem.providerAdd", i18n.Args{"provider": p.Name, "domain": domain, "error": err.Error()}))
 			}
 			for _, f := range fresh {
 				recs = append(recs, Record{Purpose: f.Purpose, Type: strings.ToUpper(f.Type), Name: strings.ToLower(strings.TrimSuffix(f.Name, ".")), Value: f.Value,
@@ -68,7 +68,7 @@ func (s *Service) providerRecords(ctx context.Context, domain string, p store.Pr
 			}
 		}
 		if !ok {
-			note = "Add " + domain + " in " + p.Name + " and publish the DKIM record it shows there. ReputeCast checks SPF and DMARC here and the rest on the first send."
+			note = say(ctx, "note.addInDashboard", i18n.Args{"domain": domain, "provider": p.Name})
 		}
 	}
 	// The sending domain's SPF must authorize the provider too (merged into
@@ -220,12 +220,12 @@ type DomainInput struct {
 // CreateDomain adds a sending domain and asks every connected provider for
 // the records it needs.
 func (s *Service) CreateDomain(ctx context.Context, ws *store.Workspace, in DomainInput) (store.SendingDomain, []ProviderSetupNote, error) {
-	name, err := NormalizeDomain("body.domain", in.Domain)
+	name, err := NormalizeDomain(ctx, "body.domain", in.Domain)
 	if err != nil {
 		return store.SendingDomain{}, nil, err
 	}
 	if _, err := s.Q.DomGetByName(ctx, store.DomGetByNameParams{WorkspaceID: ws.ID, Domain: name}); err == nil {
-		return store.SendingDomain{}, nil, api.Conflict(name + " is already a sending domain of this workspace.")
+		return store.SendingDomain{}, nil, api.Conflict(say(ctx, "problem.alreadyDomain", i18n.Args{"domain": name}))
 	}
 	provs, err := s.Q.ProvListActive(ctx, ws.ID)
 	if err != nil {
@@ -281,7 +281,7 @@ func (s *Service) CreateDomain(ctx context.Context, ws *store.Workspace, in Doma
 // EnsureDomain returns the workspace's sending domain with that name,
 // creating it (with domains:manage) when it doesn't exist yet.
 func (s *Service) EnsureDomain(ctx context.Context, ws *store.Workspace, name string) (store.SendingDomain, error) {
-	name, err := NormalizeDomain("body.domain", name)
+	name, err := NormalizeDomain(ctx, "body.domain", name)
 	if err != nil {
 		return store.SendingDomain{}, err
 	}
@@ -332,11 +332,11 @@ func (s *Service) UpdateDomain(ctx context.Context, ws *store.Workspace, rawID s
 	if in.TrackingDomain != nil {
 		tracking = ""
 		if t := strings.TrimSpace(*in.TrackingDomain); t != "" {
-			if tracking, err = NormalizeDomain("body.trackingDomain", t); err != nil {
+			if tracking, err = NormalizeDomain(ctx, "body.trackingDomain", t); err != nil {
 				return store.SendingDomain{}, err
 			}
 			if !strings.HasSuffix(tracking, "."+d.Domain) && tracking != d.Domain {
-				return store.SendingDomain{}, api.Invalid("body.trackingDomain", "Use a subdomain of "+d.Domain+", for example go."+d.Domain+".")
+				return store.SendingDomain{}, api.Invalid("body.trackingDomain", say(ctx, "problem.subdomain", i18n.Args{"domain": d.Domain}))
 			}
 		}
 	}
@@ -392,12 +392,7 @@ func (s *Service) DeleteDomain(ctx context.Context, ws *store.Workspace, rawID s
 		return err
 	}
 	if len(senders) > 0 {
-		n := len(senders)
-		word := "senders use"
-		if n == 1 {
-			word = "sender uses"
-		}
-		return api.Conflict(strconv.Itoa(n) + " " + word + " " + d.Domain + ". Delete them first, so no campaign loses its From address.")
+		return api.Conflict(say(ctx, "problem.sendersUse", i18n.Args{"count": len(senders), "domain": d.Domain}))
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
