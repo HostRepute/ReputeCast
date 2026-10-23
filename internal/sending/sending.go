@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // ErrNotReady is returned when Send Readiness blocks the send at start.
@@ -25,6 +27,13 @@ func (e *NotReadyError) Error() string { return ErrNotReady.Error() + ": " + e.R
 
 // Is makes errors.Is(err, ErrNotReady) hold.
 func (e *NotReadyError) Is(target error) bool { return target == ErrNotReady }
+
+// Explained is an error that says why in a reader's language too, as the
+// engine's state errors do ("Weekly Digest #142 is already sending").
+type Explained interface {
+	error
+	In(l i18n.Lang) string
+}
 
 type recheckKey struct{ campaign uuid.UUID }
 

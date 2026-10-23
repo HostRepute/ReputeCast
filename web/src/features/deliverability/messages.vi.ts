@@ -227,6 +227,6 @@ export default translate(m, {
   incidentsTitle: 'Dòng thời gian sự cố',
   incidentsLinked: 'liên kết với chiến dịch và nhà cung cấp',
   incidentsFromEvents: 'từ sự kiện nhà cung cấp và lịch sử tự động tạm dừng',
-  noIncidents: 'Không có sự cố nào trong 45 ngày qua. Các lần bị liệt kê, tự động tạm dừng, sự cố ngừng hoạt động và giảm tốc khởi động sẽ hiện ở đây.',
+  noIncidents: 'Không có sự cố nào trong 45 ngày qua. Các lần bị liệt kê, tự động tạm dừng, sự cố gián đoạn và giảm tốc khởi động sẽ hiện ở đây.',
   incidentsShowing: 'Hiển thị {shown} sự cố gần nhất trên {total} trong 45 ngày qua',
 })

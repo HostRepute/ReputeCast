@@ -223,7 +223,7 @@ export default translate(m, {
   automationsQuestion: 'Bắt đầu tự động hóa cho họ?',
   automationsLead:
     '{count, plural, other {# liên hệ sẽ vượt ngưỡng {threshold} vì thay đổi này.}} Tự động hóa đang chạy <link>“{name}”</link> bắt đầu khi điểm {direction, select, falls {giảm xuống dưới {threshold}} other {tăng lên {threshold} trở lên}}.',
-  dontStart: 'Không bắt đầu cho họ (khuyến nghị)',
+  dontStart: 'Không bắt đầu cho họ (khuyên dùng)',
   dontStartLead: 'Họ giữ điểm mới. Tự động hóa chỉ bắt đầu cho họ khi hoạt động làm điểm tăng trở lại.',
   dontStartLeadFalls: 'Họ giữ điểm mới. Tự động hóa chỉ bắt đầu cho họ khi hoạt động hoặc giảm dần làm điểm giảm xuống lần nữa.',
   start: 'Bắt đầu cho {count, plural, other {# liên hệ}}',

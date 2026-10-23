@@ -86,7 +86,7 @@ export default translate(mm, {
   mailboxOk: 'Bình thường',
   rateHeld: 'tạm giữ',
   rateFull: 'tối đa',
-  providerDownSince: 'Ngừng hoạt động từ {time}',
+  providerDownSince: 'Gián đoạn từ {time}',
   providerHeld: 'Tạm giữ',
   providerWarmup: 'Khởi động',
   providerWarmupNote: 'khởi động ngày {day} · {sent} trên giới hạn hôm nay {cap}',
@@ -99,7 +99,7 @@ export default translate(mm, {
     '{metric, select, complaint {Tỷ lệ khiếu nại đạt {value} (giới hạn {limit})} bounce {Tỷ lệ trả thư đạt {value} (giới hạn {limit})} deferral {Tỷ lệ hoãn nhận đạt {value} (giới hạn {limit})} other {Tỷ lệ {Metric} đạt {value} (giới hạn {limit})}}',
   outageAuth: '{name} đã từ chối thông tin xác thực',
   outageReturned: '{name} trả về {errorKind}',
-  outageDown: '{name} ngừng hoạt động',
+  outageDown: '{name} gián đoạn',
   outageReturnedFor: '{name} trả về {errorKind} trong {mins, plural, other {# phút}}',
   outageErrorsFor: '{name} trả về lỗi trong {mins, plural, other {# phút}}',
 
@@ -119,7 +119,7 @@ export default translate(mm, {
     'Từ {from}, {provider} từ chối thông tin xác thực ở mọi lần gửi, nên phần của {short} trong chiến dịch này đang bị tạm giữ: đã gửi {sent}, còn {remaining}.',
   outageAuthAlways: '{provider} từ chối thông tin xác thực ở mọi lần gửi, nên phần của {short} trong chiến dịch này đang bị tạm giữ: đã gửi {sent}, còn {remaining}.',
   outageHealth:
-    'Kiểm tra tình trạng của ReputeCast phát hiện {provider} ngừng hoạt động lúc {time}, nên phần của {short} trong chiến dịch này đang bị tạm giữ: đã gửi {sent}, còn {remaining}.',
+    'Kiểm tra tình trạng của ReputeCast phát hiện {provider} gián đoạn lúc {time}, nên phần của {short} trong chiến dịch này đang bị tạm giữ: đã gửi {sent}, còn {remaining}.',
   outageKeepSending: '{count, plural, other {{names} vẫn gửi với tốc độ {rate}, đã hoàn tất {progress} tổng thể.}}',
   outageNoOther: 'Không có nhà cung cấp nào khác đang gửi, đã hoàn tất {progress} tổng thể.',
   policyPauseAsk: 'Không có gì được chuyển tự động vì chuyển dự phòng của luồng Gửi hàng loạt đang đặt là tạm dừng và hỏi.',

@@ -17,7 +17,7 @@
   "log.doneTitle": "Đã khởi động xong.",
   "log.done": "{provider} đủ điều kiện làm nhà cung cấp dự phòng cho Gửi hàng loạt.",
   "log.shiftedTitle": "Lịch lùi lại một ngày.",
-  "log.shifted": "{provider} ngừng hoạt động trong một lần gửi và phần của nó đã chuyển sang nhà cung cấp khác, nên quá trình khởi động lặp lại bước của hôm nay vào ngày mai.",
+  "log.shifted": "{provider} gián đoạn trong một lần gửi và phần của nó đã chuyển sang nhà cung cấp khác, nên quá trình khởi động lặp lại bước của hôm nay vào ngày mai.",
 
   "status.pausedByGuard": "Ngưỡng bảo vệ đã tạm dừng kế hoạch vào ngày {day}",
   "status.steppedBack": "Đã lùi lại sau ngày {day}",

@@ -1,5 +1,5 @@
 {
-  "status": "{status, select, healthy {Ổn định} degraded {Suy giảm} down {Ngừng hoạt động} sandbox {Sandbox} warming_up {Đang khởi động} paused {Đã tạm dừng} other {{raw}}}",
+  "status": "{status, select, healthy {Ổn định} degraded {Suy giảm} down {Gián đoạn} sandbox {Sandbox} warming_up {Đang khởi động} paused {Đã tạm dừng} other {{raw}}}",
   "name.selfHosted": "{name} (tự lưu trữ)",
   "rate.bounce": "Tỷ lệ trả thư",
   "rate.complaint": "Tỷ lệ khiếu nại",

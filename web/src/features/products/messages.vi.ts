@@ -164,7 +164,7 @@ export default translate(pm, {
   testTitle: 'Chế độ thử nghiệm',
   testText:
     'Stripe đang ở chế độ thử nghiệm cho {account}. Trang thanh toán dùng thẻ thử nghiệm của Stripe và không trừ tiền ai. Đơn thử nghiệm được gắn nhãn Thử nghiệm và không được tính vào số liệu nào.',
-  testAction: 'Kết nối khóa thật của bạn',
+  testAction: 'Kết nối khóa chính thức của bạn',
   noStripeTitle: 'Chưa kết nối Stripe',
   noStripeText:
     'Bạn có thể soạn sản phẩm, tải tệp lên và dựng trang cho chúng. Chưa ai mua được gì cho đến khi kết nối Stripe, và nút Mua trên trang sản phẩm hiện “Chưa mua được cho đến khi kết nối Stripe”.',

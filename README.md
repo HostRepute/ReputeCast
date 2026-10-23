@@ -132,6 +132,72 @@ just-in-time accounts, group-to-role mapping and domain enforcement; an
 immutable audit log; an instance admin area. Nobody can grant a permission
 they don't hold — not to a role, a member, an API key or an AI agent.
 
+**Transactional email.** Templates written in the composer's transactional
+mode, with variables, test data, checks and versions; a send, batch and
+render API with idempotency keys; send-only and test API keys; a
+Transactional stream with automatic failover and priority over broadcasts;
+a message log with every message's events; an SMTP relay; categories with a
+category unsubscribe; delivery alerts; and template import from Postmark,
+SendGrid, Mailgun, Notifuse, MJML or HTML.
+
+**Integrations.** A catalog of integrations, each with its own keys,
+activity and webhooks; REST hooks and apps for Zapier, Make and n8n; a
+WordPress plugin; Shopify and WooCommerce stores with synced orders,
+products and customers, store triggers and blocks, revenue and an
+abandoned-cart starter.
+
+**Content in several languages.** Language versions of campaigns,
+automation emails and transactional templates, compared side by side;
+signup forms and public pages per language with a public language menu;
+each contact's language; a Languages check in Send Readiness and results per
+language.
+
+**ReputeCast in your language.** The app, its emails to members and its
+sign-in pages in English and Vietnamese, each member with their own language
+and region format (dates, times, numbers, currencies, first day of the
+week) and instance defaults for everyone else. A pseudo-locale checks
+layouts with longer text, and [`docs/i18n/translating.md`](docs/i18n/translating.md)
+explains how to add a language.
+
+**Accessibility checks.** An accessibility panel in the composer with
+one-click fixes, contrast in the color picker, `lang`, `dir` and `role` added
+when an email compiles, a Send Readiness group with a workspace policy
+(warn or block) and results in the template gallery.
+
+**More ways to engage readers.** Recurring and RSS digests whose issues go
+through approvals and Send Readiness; conditional content (blocks and
+versions shown to some readers, previews as a reader); polls with answer
+pages and NPS results, and surveys; contact scoring with bands and decay;
+growth sources per list; address verification and inbox placement tests
+with seed mailboxes.
+
+**AI assistant, with your own key.** Suggestions shown as diffs in the
+composer, for segments and in reports, through the model provider and
+monthly cap your workspace sets. Report summaries send aggregate numbers
+only and can be switched off.
+
+**Grow and earn.** A referral program with milestones, rewards, a review
+queue and a public hub; recommendations of other newsletters with partner
+links; paid subscriptions through Stripe with a restricted key (tiers and
+prices, upgrade pages, paid-only content, member emails); offers and a
+cancel page, gift subscriptions, sponsors and bookings, and revenue with
+attribution.
+
+**Website, pages and digital products.** A publication website with posts
+from campaigns and web-only posts, tags, navigation, members, a meter and a
+paywall; a page builder for landing, sales and webinar pages; a shop with
+digital products, orders and downloads.
+
+**SMS, web push and WhatsApp.** SMS providers and senders, routing by
+country, consent per list, keywords and quiet hours, and SMS campaigns with
+review and reports; web push with VAPID keys, a prompt designer and push
+campaigns; WhatsApp through Meta's Cloud API with templates, consent and the
+24-hour window. Each channel also works as an automation step.
+
+**Agencies.** Agency mode for running client workspaces from one instance:
+staff assignments, client approvers and client sign-off, a shared template
+library, usage and rebilling per client, and an Agency overview.
+
 ## Quick start
 
 You need Docker with Compose. One command starts Postgres and ReputeCast:
