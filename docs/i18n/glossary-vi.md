@@ -366,8 +366,8 @@ stay as they are.
 | Send Readiness | Độ sẵn sàng gửi (the checks before a send, as a name; "runs again" = "được kiểm tra lại") |
 | spam heuristic | dấu hiệu spam |
 | bare URL · link text · says nothing (a link's text) | URL trần · chữ của liên kết · không nói lên điều gì |
-| broken link · shortened link · URL shortener | liên kết hỏng · liên kết rút gọn · dịch vụ rút gọn URL |
-| Gmail's clipping limit · inline CSS | giới hạn cắt thư của Gmail · CSS nội tuyến |
+| broken link · shortened link | liên kết hỏng · liên kết rút gọn (a URL shortener is Send Readiness's "dịch vụ rút gọn liên kết") |
+| inline CSS | CSS nội tuyến (Gmail's clipping limit is Send Readiness's "ngưỡng cắt thư") |
 | contact field · personalization token's fallback | trường liên hệ · giá trị dự phòng |
 | plain-text version · postal address | phiên bản văn bản thuần · địa chỉ bưu chính |
 | Line 3: (a compile or layout problem) · doesn't compile | Dòng 3: · không biên dịch được |

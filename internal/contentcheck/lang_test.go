@@ -41,11 +41,11 @@ func TestIssuesInVietnamese(t *testing.T) {
 	want := map[string][3]string{
 		"content.alt_text":              {"Hình hero chưa có văn bản thay thế", "Hình chưa có văn bản thay thế", "Lưu"},
 		"links.blocklist":               {"Nút trỏ đến go.acme-promo.link, tên miền bị liệt kê trên SURBL và Spamhaus DBL", "Tên miền liên kết bị liệt kê trên SURBL và Spamhaus DBL", "Thay bằng acme.io/sale"},
-		"links.shortener":               {"Nút chuyển hướng qua bit.ly, một dịch vụ rút gọn URL", "Liên kết rút gọn", "Sửa liên kết"},
+		"links.shortener":               {"Nút chuyển hướng qua bit.ly, một dịch vụ rút gọn liên kết", "Liên kết rút gọn", "Sửa liên kết"},
 		"links.empty":                   {"Nút “Empty” chưa có liên kết", "Nút chưa có liên kết", "Sửa liên kết"},
 		"compliance.footer":             {"Nội dung thư không có liên kết hủy đăng ký hay địa chỉ bưu chính", "Không có liên kết hủy đăng ký hay địa chỉ bưu chính", "Chèn khối chân thư"},
 		"personalization.unknown_field": {"{{ frist_name }} không phải là trường liên hệ; thẻ này sẽ không hiện gì", "", ""},
-		"subject.spam":                  {"Tiêu đề có 3 dấu hiệu spam", "", "Dùng gợi ý"},
+		"subject.spam":                  {"Tiêu đề vướng 3 dấu hiệu spam", "", "Dùng gợi ý"},
 	}
 	for id, w := range want {
 		is := byID(vi, id)
@@ -60,7 +60,7 @@ func TestIssuesInVietnamese(t *testing.T) {
 	if d := byID(vi, "subject.spam").Detail; d != `Gợi ý: "48-hour flash sale"` {
 		t.Errorf("suggestion: %q", d)
 	}
-	if d := byID(vi, "content.size").Detail; !strings.HasPrefix(d, "Gmail sẽ cắt thư và ẩn chân thư, kể cả liên kết hủy đăng ký.") {
+	if d := byID(vi, "content.size").Detail; !strings.HasPrefix(d, "Gmail cắt bớt thư và ẩn chân thư, kể cả liên kết hủy đăng ký.") {
 		t.Errorf("size detail: %q", d)
 	}
 	// The English stays as it was, for Send Readiness and API clients.

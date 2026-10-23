@@ -224,7 +224,7 @@
   "check.noSubject": "chưa có tiêu đề",
   "check.empty": "email đang trống",
   "check.noUnsubscribe": "không có liên kết hủy đăng ký",
-  "check.clipped": "vượt giới hạn cắt thư 102 KB của Gmail",
+  "check.clipped": "vượt ngưỡng cắt thư 102 KB của Gmail",
   "check.noAlt": "một hình ảnh không có văn bản thay thế",
   "check.noEmailPicked": "chưa chọn email",
   "check.emailDeleted": "email đã bị xóa",

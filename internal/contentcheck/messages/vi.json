@@ -4,9 +4,9 @@
   "alt.detail": "Outlook và nhiều ứng dụng email doanh nghiệp tắt hình ảnh theo mặc định; khi đó văn bản thay thế là thứ hiển thị, và bộ lọc spam chấm điểm cao hơn cho thư chỉ có hình.",
   "alt.fix": "Lưu",
 
-  "size.near": "{kb} KB, gần giới hạn cắt thư 102 KB của Gmail",
-  "size.over": "{kb} KB, vượt giới hạn cắt thư 102 KB của Gmail",
-  "size.detail": "Gmail sẽ cắt thư và ẩn chân thư, kể cả liên kết hủy đăng ký.",
+  "size.near": "{kb} KB, gần ngưỡng cắt thư 102 KB của Gmail",
+  "size.over": "{kb} KB, vượt ngưỡng cắt thư 102 KB của Gmail",
+  "size.detail": "Gmail cắt bớt thư và ẩn chân thư, kể cả liên kết hủy đăng ký.",
   "size.minify": "Rút gọn CSS nội tuyến · tiết kiệm khoảng {kb} KB",
   "size.bulkOne": "Phần {section} chiếm phần lớn dung lượng ({share, number, percent}).",
   "size.bulkMany": "{count} phần {section} chiếm phần lớn dung lượng ({share, number, percent}).",
@@ -34,7 +34,7 @@
 
   "subject.missing": "Tiêu đề đang trống",
   "subject.missingDetail": "Hộp thư đến hiển thị tiêu đề trước tiên; hãy viết tiêu đề trước khi gửi.",
-  "subject.spam": "Tiêu đề có {count} dấu hiệu spam",
+  "subject.spam": "Tiêu đề vướng {count} dấu hiệu spam",
   "subject.suggested": "Gợi ý: {suggestion}",
   "subject.useSuggestion": "Dùng gợi ý",
 
@@ -49,7 +49,7 @@
   "link.blocklistTag": "Tên miền liên kết bị liệt kê trên {lists}",
   "link.blocklistDetail": "Thư có liên kết đến tên miền trong danh sách chặn sẽ bị lọc, dù uy tín của bạn thế nào. Hãy dùng tên miền do bạn kiểm soát.",
   "link.replaceWith": "Thay bằng {target}",
-  "link.shortenerTitle": "{kind, select, button {Nút} image {Hình} nav {Liên kết menu} social {Liên kết mạng xã hội} other {Liên kết}} chuyển hướng qua {host}, một dịch vụ rút gọn URL",
+  "link.shortenerTitle": "{kind, select, button {Nút} image {Hình} nav {Liên kết menu} social {Liên kết mạng xã hội} other {Liên kết}} chuyển hướng qua {host}, một dịch vụ rút gọn liên kết",
   "link.shortenerTag": "Liên kết rút gọn",
   "link.shortenerDetail": "Liên kết rút gọn che giấu đích đến; bộ lọc coi chúng là đáng ngờ và nhiều tên miền rút gọn nằm trong danh sách chặn. Hãy liên kết thẳng đến trang.",
   "link.brokenTitle": "{kind, select, button {Nút} image {Hình} nav {Liên kết menu} social {Liên kết mạng xã hội} other {Liên kết}} đến {url} {status, select, 0 {không phản hồi} other {trả về {status}}}",
