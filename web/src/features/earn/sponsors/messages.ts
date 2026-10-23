@@ -69,6 +69,8 @@ export const msp = defineMessages('earn.sponsors', {
   paymentUnpaid: 'Unpaid',
   paymentOverdue: 'Overdue',
   wasDue: 'was due {date}',
+  /** The Payment column's line under its Overdue badge: the day the payment was due. */
+  paymentWasDue: 'was due {date}',
   actReport: 'Report',
   actOpen: 'Open',
   actBook: 'Book',
@@ -128,6 +130,8 @@ export const msp = defineMessages('earn.sponsors', {
   lapseTitle: '{ends, select, s {{sponsor}’} other {{sponsor}’s}} hold on #{issue} ends {date}',
   lapseText: 'If it isn’t booked by then, #{issue} opens again for other sponsors.',
   bookFor: 'Book #{issue} for {sponsor}',
+  /** The toast after the lapse notice's Book button: the issue is booked. */
+  bookedFor: 'Booked #{issue} for {sponsor}',
   extendHold: 'Extend the hold',
   release: 'Release #{issue}',
   noCampaignTitle: '#{issue} has no campaign yet',
