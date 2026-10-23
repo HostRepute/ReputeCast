@@ -149,7 +149,8 @@ label.row input { margin-top: 4px; }
 .tick circle { fill: var(--pub-soft); }
 .tick path { stroke: var(--pub-accent); }
 .got { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
-.got.off { opacity: 0.7; }
+/* The board fades the whole row to 70%, which leaves its line at 3.1:1: only the name and the dot fade. */
+.got.off .nm { color: var(--ink-3); }
 .got .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--pub-accent); margin-top: 6px; flex: none; }
 .got.off .dot { background: var(--line-hover); }
 .btn-ghost.tall { height: 44px; }
@@ -346,7 +347,7 @@ fieldset.qb > legend { display: contents; }
 @media (max-width: 640px) {
   .sitebar-in { padding: 0 16px; gap: 10px; min-height: 58px; }
   .sitebar-nav { display: none; }
-  .sitebar-me span:last-child { display: none; }
+  .sitebar-me .nm { display: none; }
 }
 
 /* Offers, the cancel page, gifts and sponsor reports (X17). */
