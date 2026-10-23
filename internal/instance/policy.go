@@ -3,7 +3,6 @@ package instance
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"slices"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/sso"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -159,18 +159,18 @@ func (s *Service) SavePolicy(ctx context.Context, in InstancePolicyInput) (Insta
 			continue
 		}
 		if !strings.Contains(d, ".") || strings.ContainsAny(d, " /@:") || len(d) > 253 {
-			return InstancePolicy{}, api.Invalid("body.jitDomains", d+" isn't a domain like acme.io.")
+			return InstancePolicy{}, api.Invalid("body.jitDomains", say(ctx, "problem.domain", i18n.Args{"domain": d}))
 		}
 		domains = append(domains, d)
 	}
 	if time.Duration(in.SessionIdleMinutes)*time.Minute > time.Duration(in.SessionLifetimeHours)*time.Hour {
-		return InstancePolicy{}, api.Invalid("body.sessionIdleMinutes", "The idle timeout can't be longer than the session lifetime.")
+		return InstancePolicy{}, api.Invalid("body.sessionIdleMinutes", say(ctx, "problem.idle", nil))
 	}
 	// Social providers can only be on with a client ID and secret.
 	toggles := map[string]bool{"google": in.Social.Google, "microsoft": in.Social.Microsoft, "github": in.Social.GitHub}
 	for _, k := range sso.SocialKinds {
 		if toggles[k] && !socialOn(before.Social, k) {
-			if why := s.SSO.SocialReady(st, k); why != "" {
+			if why := s.SSO.SocialReady(ctx, st, k); why != "" {
 				return InstancePolicy{}, api.Invalid("body.social."+k, why)
 			}
 		}
@@ -180,12 +180,12 @@ func (s *Service) SavePolicy(ctx context.Context, in InstancePolicyInput) (Insta
 	if !in.Methods.SSO {
 		for _, p := range before.SSO {
 			if p.Status == "enabled" && len(p.Enforced) > 0 {
-				return InstancePolicy{}, api.Invalid("body.methods.sso", fmt.Sprintf("%s enforces %s: turn enforcement off first, or %s accounts couldn't sign in at all.", p.Name, strings.Join(p.Enforced, ", "), strings.Join(p.Enforced, ", ")))
+				return InstancePolicy{}, api.Invalid("body.methods.sso", say(ctx, "problem.ssoEnforces", i18n.Args{"provider": p.Name, "domains": strings.Join(p.Enforced, ", ")}))
 			}
 		}
 	}
 	if !in.Methods.Password && !in.Methods.Passkeys && (!in.Methods.SSO || !enabledSSO) && !anySocial {
-		return InstancePolicy{}, api.Invalid("body.methods", "Keep at least one way to sign in turned on.")
+		return InstancePolicy{}, api.Invalid("body.methods", say(ctx, "problem.noMethod", nil))
 	}
 	if err := s.keepsAWayIn(ctx, me, in, enabledSSO); err != nil {
 		return InstancePolicy{}, err
@@ -228,8 +228,8 @@ func (s *Service) SavePolicy(ctx context.Context, in InstancePolicyInput) (Insta
 		if len(changes) == 0 {
 			return nil
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{Action: "policy.updated", TargetType: "instance_policy", TargetName: target,
-			Before: policyAuditView(before), After: policyAuditView(inputView(in, domains)), Metadata: map[string]any{"summary": strings.Join(changes, " · ")}})
+		return s.Audit.LogWith(ctx, q, audit.Event{Action: "policy.updated", TargetType: "instance_policy", TargetName: target.In(i18n.Default),
+			Before: policyAuditView(before), After: policyAuditView(inputView(in, domains)), Metadata: audit.KeepText(audit.KeepSummary(nil, changes...), "target", target)})
 	})
 	if err != nil {
 		return InstancePolicy{}, err
@@ -269,7 +269,7 @@ func (s *Service) keepsAWayIn(ctx context.Context, me *store.User, in InstancePo
 			return nil
 		}
 	}
-	return api.Err(http.StatusConflict, "lockout_risk", "This would leave you no way to sign in. Add a passkey or link a sign-in that stays on, then save again.")
+	return api.Err(http.StatusConflict, "lockout_risk", say(ctx, "problem.lockout", nil))
 }
 
 // policyView is the comparable part of a policy (for the audit log).
@@ -306,66 +306,67 @@ func inputView(in InstancePolicyInput, domains []string) InstancePolicy {
 		LockoutMinutes: in.LockoutMinutes, JITDomains: domains}
 }
 
-var twoFactorWords = map[string]string{"everyone": "required for everyone", "sensitive": "required for sensitive permissions", "off": "off"}
-
 // policyChanges names the section that changed (or "Authentication
-// policy") and describes each change like the audit log does:
-// "required for sensitive permissions · grace 7 days (was 14)".
-func policyChanges(b InstancePolicy, in InstancePolicyInput, domains []string) (string, []string) {
-	var changes []string
+// policy") and describes each change like the audit log does, kept for
+// later readers: "required for sensitive permissions · grace 7 days (was
+// 14)".
+func policyChanges(b InstancePolicy, in InstancePolicyInput, domains []string) (i18n.Text, []any) {
+	var changes []any
 	sections := map[string]bool{}
-	add := func(section, change string) {
+	add := func(section, key string, args i18n.Args) {
 		sections[section] = true
-		changes = append(changes, change)
-	}
-	onOff := func(v bool) string {
-		if v {
-			return "on"
-		}
-		return "off"
+		changes = append(changes, keep(key, args))
 	}
 	if b.Methods.Password != in.Methods.Password {
-		add("Allowed sign-in methods", "password sign-in "+onOff(in.Methods.Password))
+		add("methods", "policy.passwordSignIn", i18n.Args{"on": onOff(in.Methods.Password)})
 	}
 	if b.Methods.Passkeys != in.Methods.Passkeys {
-		add("Allowed sign-in methods", "passkeys "+onOff(in.Methods.Passkeys))
+		add("methods", "policy.passkeys", i18n.Args{"on": onOff(in.Methods.Passkeys)})
 	}
 	if b.Methods.SSO != in.Methods.SSO {
-		add("Allowed sign-in methods", "single sign-on "+onOff(in.Methods.SSO))
+		add("methods", "policy.sso", i18n.Args{"on": onOff(in.Methods.SSO)})
 	}
 	for _, k := range sso.SocialKinds {
 		want := map[string]bool{"google": in.Social.Google, "microsoft": in.Social.Microsoft, "github": in.Social.GitHub}[k]
 		if socialOn(b.Social, k) != want {
-			add("Allowed sign-in methods", map[string]string{"google": "Google", "microsoft": "Microsoft", "github": "GitHub"}[k]+" sign-in "+onOff(want))
+			add("methods", "policy.social", i18n.Args{"provider": map[string]string{"google": "Google", "microsoft": "Microsoft", "github": "GitHub"}[k], "on": onOff(want)})
 		}
 	}
 	if b.PasswordMinLength != in.PasswordMinLength {
-		add("Password policy", fmt.Sprintf("minimum length %d (was %d)", in.PasswordMinLength, b.PasswordMinLength))
+		add("password", "policy.minLength", i18n.Args{"now": in.PasswordMinLength, "was": b.PasswordMinLength})
 	}
 	if b.PasswordReuse != in.PasswordReuse {
-		add("Password policy", fmt.Sprintf("re-use: %s (was %s)", reuseWords(in.PasswordReuse), reuseWords(b.PasswordReuse)))
+		kind := func(n int) string {
+			if n == 0 {
+				return "allowed"
+			}
+			return "blocked"
+		}
+		add("password", "policy.reuse", i18n.Args{"nowKind": kind(in.PasswordReuse), "now": in.PasswordReuse, "wasKind": kind(b.PasswordReuse), "was": b.PasswordReuse})
 	}
 	if b.BreachedCheck != in.BreachedCheck {
-		add("Password policy", "breached-password check "+onOff(in.BreachedCheck))
+		add("password", "policy.breached", i18n.Args{"on": onOff(in.BreachedCheck)})
 	}
 	if b.TwoFactor != in.TwoFactor || b.GraceDays != in.GraceDays {
-		c := twoFactorWords[in.TwoFactor]
+		changed := "no"
 		if b.TwoFactor != in.TwoFactor {
-			c += " (was " + twoFactorWords[b.TwoFactor] + ")"
+			changed = "yes"
 		}
+		add("twoFactor", "policy.twoFactor", i18n.Args{"now": in.TwoFactor, "was": b.TwoFactor, "changed": changed})
 		if b.GraceDays != in.GraceDays {
-			c += fmt.Sprintf(" · grace %d %s (was %d)", in.GraceDays, plural(in.GraceDays, "day", "days"), b.GraceDays)
+			add("twoFactor", "policy.grace", i18n.Args{"now": in.GraceDays, "was": b.GraceDays})
 		}
-		add("Two-factor enforcement", c)
 	}
 	if b.SessionLifetimeHours != in.SessionLifetimeHours {
-		add("Sessions and lockout", "session lifetime "+hoursWords(in.SessionLifetimeHours)+" (was "+hoursWords(b.SessionLifetimeHours)+")")
+		add("sessions", "policy.lifetime", durationArgs(in.SessionLifetimeHours*60, b.SessionLifetimeHours*60))
 	}
 	if b.SessionIdleMinutes != in.SessionIdleMinutes {
-		add("Sessions and lockout", "idle timeout "+minutesWords(in.SessionIdleMinutes)+" (was "+minutesWords(b.SessionIdleMinutes)+")")
+		add("sessions", "policy.idle", durationArgs(in.SessionIdleMinutes, b.SessionIdleMinutes))
 	}
 	if b.LockoutAttempts != in.LockoutAttempts || b.LockoutMinutes != in.LockoutMinutes {
-		add("Sessions and lockout", fmt.Sprintf("lock after %d attempts for %s (was %d for %s)", in.LockoutAttempts, minutesWords(in.LockoutMinutes), b.LockoutAttempts, minutesWords(b.LockoutMinutes)))
+		args := durationArgs(in.LockoutMinutes, b.LockoutMinutes)
+		args["attempts"], args["wasAttempts"] = in.LockoutAttempts, b.LockoutAttempts
+		add("sessions", "policy.lockout", args)
 	}
 	if !slices.Equal(b.JITDomains, domains) {
 		var parts []string
@@ -380,35 +381,13 @@ func policyChanges(b InstancePolicy, in InstancePolicyInput, domains []string) (
 			}
 		}
 		if len(parts) > 0 {
-			add("Email domain allowlist", "allowlist "+strings.Join(parts, ", "))
+			add("allowlist", "policy.allowlist", i18n.Args{"changes": strings.Join(parts, ", ")})
 		}
 	}
 	if len(sections) == 1 {
 		for k := range sections {
-			return k, changes
+			return keep("section."+k, nil), changes
 		}
 	}
-	return "Authentication policy", changes
-}
-
-func reuseWords(n int) string {
-	if n == 0 {
-		return "allowed"
-	}
-	return fmt.Sprintf("last %d blocked", n)
-}
-
-func hoursWords(h int) string {
-	if h%24 == 0 {
-		d := h / 24
-		return fmt.Sprintf("%d %s", d, plural(d, "day", "days"))
-	}
-	return fmt.Sprintf("%d %s", h, plural(h, "hour", "hours"))
-}
-
-func minutesWords(m int) string {
-	if m%60 == 0 {
-		return hoursWords(m / 60)
-	}
-	return fmt.Sprintf("%d %s", m, plural(m, "minute", "minutes"))
+	return keep("section.all", nil), changes
 }

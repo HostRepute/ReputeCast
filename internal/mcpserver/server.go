@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/version"
 )
@@ -170,25 +171,47 @@ func call(ctx context.Context, extra *mcp.RequestExtra) (context.Context, *agent
 	return ctx, c, nil
 }
 
-// entry is one audit entry for a tool call.
+// entry is one audit entry for a tool call. The texts are its target,
+// detail and summary kept for later readers (the English is in the
+// strings); summaryParts is a summary made of facts joined with " · ".
 type entry struct {
 	action, targetType, targetID, targetName, detail, summary string
 	before, after                                             any
+	targetText, detailText, summaryText                       i18n.Text
+	summaryParts                                              []any
+	// proposal: the call was proposed to a person instead.
+	proposal bool
 }
 
 // record writes the audit entry of a call and touches the agent's last use.
-func (s *Service) record(ctx context.Context, c *agentCall, tool string, perm authz.Permission, e entry, result, reason, note string) {
-	meta := map[string]any{"tool": tool, "source": "mcp", "via": c.Masked, "permission": string(perm),
-		"summary": fmt.Sprintf("MCP agent “%s” · tool %s", c.Principal.Name, tool)}
-	if e.detail != "" {
+// Its lines are kept for later readers, in their own language.
+func (s *Service) record(ctx context.Context, c *agentCall, tool string, perm authz.Permission, e entry, result, reason string, note i18n.Text) {
+	meta := audit.KeepText(map[string]any{"tool": tool, "source": "mcp", "via": c.Masked, "permission": string(perm)},
+		"summary", keep("audit.call", i18n.Args{"agent": c.Principal.Name, "tool": tool}))
+	if !e.targetText.IsZero() {
+		e.targetName = audit.Render(e.targetText, i18n.Default)
+		audit.KeepText(meta, "target", e.targetText)
+	}
+	switch {
+	case !e.detailText.IsZero():
+		audit.KeepText(meta, "detail", e.detailText)
+	case e.detail != "":
 		meta["detail"] = e.detail
 	}
 	// outcome is what the call did, shown in the agents' recent actions.
-	if e.summary != "" {
+	switch {
+	case !e.summaryText.IsZero():
+		audit.KeepText(meta, "outcome", e.summaryText)
+	case len(e.summaryParts) > 0:
+		audit.KeepParts(meta, "outcome", e.summaryParts...)
+	case e.summary != "":
 		meta["outcome"] = e.summary
 	}
-	if note != "" {
-		meta["note"] = note
+	if !note.IsZero() {
+		audit.KeepText(meta, "note", note)
+	}
+	if e.proposal {
+		meta["proposal"] = true
 	}
 	wsID := c.Workspace.ID
 	_ = s.Audit.Log(ctx, audit.Event{WorkspaceID: &wsID, Action: e.action, TargetType: e.targetType, TargetID: e.targetID, TargetName: e.targetName,
@@ -200,14 +223,16 @@ func (s *Service) record(ctx context.Context, c *agentCall, tool string, perm au
 // permission and returns the error the agent sees.
 func (s *Service) deny(ctx context.Context, c *agentCall, tool string, perm authz.Permission, e entry) error {
 	helpers := access.Helpers(ctx, s.Q, c.Workspace.ID, perm)
-	note := "needs " + string(perm)
+	// The agent reads its error in English; the note is kept for people.
 	msg := fmt.Sprintf("Denied: %s needs the %s permission, which this agent doesn't hold.", tool, perm)
+	args := i18n.Args{"permission": string(perm), "has": "no", "helper": ""}
 	if len(helpers) > 0 {
-		note += " · proposal recorded for " + access.OrList(helpers[:1])
+		args["has"], args["helper"] = "yes", helpers[0]
 		msg += fmt.Sprintf(" A proposal was recorded for %s to review in ReputeCast.", access.OrList(helpers[:1]))
 		s.propose(ctx, c, tool, perm, e)
+		e.proposal = true
 	}
-	s.record(ctx, c, tool, perm, e, audit.Denied, "missing "+string(perm), note)
+	s.record(ctx, c, tool, perm, e, audit.Denied, "missing "+string(perm), keep("note.needs", args))
 	return errors.New(msg)
 }
 

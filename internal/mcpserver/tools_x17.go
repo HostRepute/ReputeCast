@@ -10,6 +10,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/revenue"
 	"github.com/hostrepute/reputecast/internal/sponsors"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -167,7 +168,7 @@ func (s *Service) addX17Tools(srv *mcp.Server) {
 		}
 		e.targetName = slot + " · #" + itoa(in.Issue)
 		e.detail = sponsor
-		e.summary = "Proposed " + sponsor + " for " + e.targetName + ": a team member confirms it in Earn › Sponsors."
+		e.summaryText = keep("outcome.sponsor", i18n.Args{"sponsor": sponsor, "target": e.targetName})
 		return map[string]any{"status": "proposed", "issue": in.Issue, "issue_on": d.IssueOn.Format(time.DateOnly), "slot": slot, "sponsor": sponsor,
 			"message": "Proposed. A team member with sponsors:manage confirms it in Earn › Sponsors before it's booked."}, e, nil
 	}, func(ctx context.Context, c *agentCall, in proposeIn) entry {

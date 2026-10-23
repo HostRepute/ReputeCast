@@ -7,6 +7,8 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -74,12 +76,12 @@ func TestDescribe(t *testing.T) {
 	p := store.SsoProvider{ID: uuid.New(), Name: "Microsoft Entra ID", Preset: "entra"}
 	u := store.User{ID: uuid.New(), Email: "marcus@acme.io", Name: "Marcus Chen"}
 	id := identity{Email: "marcus@acme.io"}
-	pl := signInPlan{User: &u, MFA: true, MFANote: "amr includes mfa · counts as two-factor via IdP", Changes: []memberChange{
+	pl := signInPlan{User: &u, MFA: true, MFANote: keep("mfa.amr", nil), MFAAmr: true, Changes: []memberChange{
 		{WorkspaceName: "Acme Newsletter", FromKey: "admin", FromName: "Admin", To: store.SSOWorkspaceRolesRow{RoleKey: "editor", RoleName: "Editor"}, Group: "Marketing", MemberID: &u.ID},
 		{WorkspaceName: "Acme Engineering Blog", FromKey: "editor", FromName: "Editor", To: store.SSOWorkspaceRolesRow{RoleKey: "admin", RoleName: "Admin"}, Group: "Eng Leads", MemberID: &u.ID},
 	}}
 	got := []string{}
-	for _, o := range describe(p, id, pl) {
+	for _, o := range describe(i18n.Default, id, pl) {
 		got = append(got, o.Tone+" "+o.Label+": "+o.Detail)
 	}
 	want := []string{
@@ -91,19 +93,19 @@ func TestDescribe(t *testing.T) {
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Fatalf("got\n%s", strings.Join(got, "\n"))
 	}
-	rej := describe(p, identity{Email: "kim@gmail.com"}, signInPlan{Reject: &flowError{Detail: "email domain not allowed for Microsoft Entra ID SSO"}})
+	rej := describe(i18n.Default, identity{Email: "kim@gmail.com"}, signInPlan{Reject: failure("domain_not_allowed", "flow.domain", i18n.Args{"name": p.Name})})
 	if len(rej) != 1 || rej[0].Detail != "kim@gmail.com: email domain not allowed for Microsoft Entra ID SSO" {
 		t.Fatalf("reject: %+v", rej)
 	}
 
 	// Leaving a mapped group: the membership ends, or falls back to the
 	// JIT default role in the JIT workspace.
-	exits := signInPlan{User: &u, MFA: true, MFANote: "amr includes mfa · counts as two-factor via IdP", Changes: []memberChange{
+	exits := signInPlan{User: &u, MFA: true, MFANote: keep("mfa.amr", nil), MFAAmr: true, Changes: []memberChange{
 		{WorkspaceName: "Acme Engineering Blog", FromKey: "admin", FromName: "Admin", LeftGroup: "Eng Leads", Remove: true, MemberID: &u.ID},
 		{WorkspaceName: "Acme Newsletter", FromKey: "editor", FromName: "Editor", To: store.SSOWorkspaceRolesRow{RoleKey: "viewer", RoleName: "Viewer"}, LeftGroup: "Marketing", MemberID: &u.ID},
 	}}
 	got = got[:0]
-	for _, o := range describe(p, id, exits)[1:3] {
+	for _, o := range describe(i18n.Default, id, exits)[1:3] {
 		got = append(got, o.Tone+" "+o.Label+": "+o.Detail+" ["+o.Strong+"]")
 	}
 	want = []string{
@@ -112,5 +114,91 @@ func TestDescribe(t *testing.T) {
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Fatalf("exits:\n%s", strings.Join(got, "\n"))
+	}
+}
+
+// The test sign-in's outcome reads in the admin's language, built-in roles
+// too; a flow error from before its message was kept reads in English.
+func TestDescribeInVietnamese(t *testing.T) {
+	vi := i18n.For(i18n.Vietnamese)
+	u := store.User{ID: uuid.New(), Email: "marcus@acme.io", Name: "Marcus Chen"}
+	pl := signInPlan{User: &u, MFA: true, MFANote: keep("mfa.amr", nil), MFAAmr: true, Changes: []memberChange{
+		{WorkspaceName: "Acme Newsletter", FromKey: "admin", FromName: "Admin", To: store.SSOWorkspaceRolesRow{RoleKey: "editor", RoleName: "Editor"}, Group: "Marketing", MemberID: &u.ID},
+	}, GroupsMissing: true, Mappings: 2}
+	got := []string{}
+	for _, o := range describe(vi, identity{Email: "marcus@acme.io"}, pl) {
+		got = append(got, o.Label+": "+o.Detail+" ["+o.Strong+o.Code+"]")
+	}
+	want := []string{
+		"Tài khoản hiện có: marcus@acme.io khớp với Marcus Chen · không tạo tài khoản mới []",
+		"Đổi vai trò: Acme Newsletter: Quản trị viên → Biên tập viên theo nhóm “Marketing”. Vai trò được gán trực tiếp sẽ bị thay ở lần đăng nhập tiếp theo của họ; hãy xem lại ánh xạ nếu đó không phải điều bạn muốn. [Quản trị viên → Biên tập viên]",
+		"Ánh xạ không hoạt động: Không có claim groups · 2 ánh xạ nhóm không được áp dụng []",
+		"Xác thực hai lớp: amr có mfa · được tính là xác thực hai lớp qua IdP [amr]",
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("got\n%s", strings.Join(got, "\n"))
+	}
+	rej := describe(vi, identity{Email: "kim@gmail.com"}, signInPlan{Reject: failure("domain_not_allowed", "flow.domain", i18n.Args{"name": "Okta"})})
+	if rej[0].Label != "Bị từ chối" || rej[0].Detail != "kim@gmail.com: tên miền email không được phép với SSO Okta" {
+		t.Fatalf("reject: %+v", rej)
+	}
+	old := describe(vi, identity{Email: "kim@gmail.com"}, signInPlan{Reject: &flowError{Detail: "email domain not allowed for Okta SSO"}})
+	if old[0].Detail != "kim@gmail.com: email domain not allowed for Okta SSO" {
+		t.Fatalf("old reject: %+v", old)
+	}
+}
+
+// The presets' English is their messages' English, so English readers read
+// exactly the strings in Presets; every other language has them all.
+func TestPresetsInEveryLanguage(t *testing.T) {
+	for _, p := range Presets {
+		en := p.In(i18n.Default)
+		fields := map[string][2]string{"app": {p.App, en.App}, "discoveryHint": {p.DiscoveryHint, en.DiscoveryHint}, "groupsHint": {p.GroupsHint, en.GroupsHint},
+			"groupsMissingHint": {p.GroupsMissingHint, en.GroupsMissingHint}, "trustedTwoFactor": {p.TrustedTwoFA, en.TrustedTwoFA}, "docsLabel": {p.DocsLabel, en.DocsLabel}}
+		for field, v := range fields {
+			if v[0] == "" {
+				continue
+			}
+			m, err := msgs.Lookup("preset." + p.Key + "." + field)
+			if err != nil {
+				t.Errorf("%s.%s has no message", p.Key, field)
+				continue
+			}
+			if got := m.Text(i18n.Default, nil); got != v[0] {
+				t.Errorf("%s.%s: message %q, preset %q", p.Key, field, got, v[0])
+			}
+		}
+		vi := p.In(i18n.For(i18n.Vietnamese))
+		if vi.DiscoveryHint == p.DiscoveryHint || vi.TrustedTwoFA == p.TrustedTwoFA || vi.Name != p.Name && p.Key != "oidc" {
+			t.Errorf("%s in Vietnamese: %+v", p.Key, vi)
+		}
+	}
+	if g := PresetFor("oidc"); g.In(i18n.Default).Name != "Generic OIDC" || g.In(i18n.For(i18n.Vietnamese)).Name != "OIDC chung" || g.In(i18n.For(i18n.Vietnamese)).ShortName != "IdP" {
+		t.Errorf("generic OIDC: %+v", g.In(i18n.For(i18n.Vietnamese)))
+	}
+	if trustedTwoFA("google").In(i18n.Default) != PresetFor("google").TrustedTwoFA {
+		t.Error("trusted two-factor note")
+	}
+}
+
+// A discovery failure's summary keeps its error as a part of the sentence,
+// in each reader's language, without its final period.
+func TestDiscoverySummary(t *testing.T) {
+	d := discovery{}.failed("discovery.noAnswer", i18n.Args{"why": "refused", "error": "dial tcp: connection refused"})
+	if d.Error != "The issuer didn't answer: the connection was refused." {
+		t.Fatalf("error: %q", d.Error)
+	}
+	meta := audit.KeepSummary(nil, discoverySummary(d, true)...)
+	if meta["summary"] != "issuer changed · discovery failed: The issuer didn't answer: the connection was refused" {
+		t.Fatalf("English: %q", meta["summary"])
+	}
+	raw, _ := json.Marshal(meta)
+	if got := audit.KeptIn(raw).SummaryIn(i18n.For(i18n.Vietnamese), ""); got != "đã đổi nhà phát hành · discovery thất bại: Nhà phát hành không trả lời: kết nối bị từ chối" {
+		t.Fatalf("Vietnamese: %q", got)
+	}
+	ok := discovery{OK: true, AuthURL: "a", TokenURL: "t", JWKSURL: "j", Keys: 1}
+	meta = audit.KeepSummary(nil, discoverySummary(ok, false)...)
+	if meta["summary"] != "discovery OK · 3 endpoints · 1 signing key" {
+		t.Fatalf("OK: %q", meta["summary"])
 	}
 }

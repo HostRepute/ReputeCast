@@ -28,7 +28,7 @@ export const m = defineMessages('keys.mcp', {
   connectFrom: 'Connect from Claude Desktop, Claude Code or any MCP client',
   clientConfig: 'Client configuration',
 
-  // The agents matrix. The capability columns and cells come from the server.
+  // The agents matrix. The capability columns and cells come from the server, in the app language.
   agentsTitle: 'Agents · {count}',
   agentsCaption: 'Permissions per agent. "Approve" means a team member confirms in ReputeCast before the action runs.',
   agentsTable: 'Agents and what they can do',

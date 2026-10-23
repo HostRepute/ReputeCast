@@ -1,0 +1,3 @@
+{
+  "problem.ended": { "message": "Your session ended. Sign in again; unsaved work in this tab is kept.", "note": "the session can't be extended any more" }
+}

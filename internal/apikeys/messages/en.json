@@ -1,0 +1,31 @@
+{
+  "problem.ownScope": "A key can't reach lists outside your own scope.",
+  "problem.expiry": "Pick an expiry date in the future.",
+  "problem.sendOnlyKind": "Only API keys can be send-only keys.",
+  "problem.name": "Give the key a name.",
+  "problem.integrationKey": "This key belongs to an integration. Rotate it in Settings › Integrations, where the old key keeps working for 24 hours.",
+  "problem.rotateScope": "This key reaches lists outside your scope, so you can't rotate it.",
+  "problem.deleteActive": "Only expired or revoked keys can be deleted. Revoke it first.",
+  "problem.unknownPermission": { "message": "Unknown permission \"{permission}\".", "note": "permission: what was sent as a permission key" },
+  "problem.sendOnlyPermission": { "message": "A send-only key holds transactional:send and nothing else.", "note": "transactional:send is a permission key, never translated" },
+  "problem.sendOnlyLists": "Send-only keys aren't limited by list; limit them to templates instead.",
+  "problem.preset": "Pick a send-only key or an SMTP credential.",
+  "problem.template": { "message": "There is no template with the ID {id}.", "note": "id: a transactional template's ID, such as password-reset" },
+  "problem.categories": "Pick categories from this workspace.",
+  "problem.testAddress": "“{address}” isn't an address or a pattern such as qa+*@acme.io.",
+  "problem.testPattern": "“{address}” isn't a valid pattern.",
+  "problem.testLive": "Allowed test addresses belong to test-mode keys; live keys deliver to everyone.",
+
+  "label.formerMember": { "message": "Former member", "note": "who created a key, when that member has left the workspace" },
+  "label.deletedCategory": "deleted category",
+  "agent.needs": { "message": "needs {permission}", "note": "a denied agent call: permission is a key like campaigns:send" },
+
+  "audit.scopeAllTemplates": { "message": "all templates", "note": "audit summary parts of a new key, joined with ' · '" },
+  "audit.scopeCategory": { "message": "category {names}", "note": "names: a transactional category's name" },
+  "audit.scopeCategories": { "message": "categories {names}", "note": "names: transactional categories' names, joined with commas" },
+  "audit.testMode": "test mode",
+  "audit.smtp": "SMTP credential",
+  "audit.expires": "expires {at, date}",
+  "audit.noExpiry": "no expiry",
+  "audit.rotated": { "message": "new secret {masked} · old {old} revoked", "note": "masked, old: keys shown masked, such as rc_live_8f2c…a91d" }
+}

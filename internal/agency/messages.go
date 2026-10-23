@@ -1,5 +1,7 @@
 package agency
 
+import "github.com/hostrepute/reputecast/internal/i18n"
+
 // Server text people read (problems, reasons), in messages/<locale>.json.
 // Audit entries keep their English.
 var (
@@ -67,3 +69,12 @@ var (
 	mSearchShort           = msgs.M("searchShort")
 	mPermissionLevel       = msgs.M("permissionLevel")
 )
+
+// keptIn writes a message another package kept for later readers (an
+// incident's title or detail) in a language, or english when there is none.
+func keptIn(t i18n.Text, l i18n.Lang, english string) string {
+	if s := t.In(l); s != "" {
+		return s
+	}
+	return english
+}

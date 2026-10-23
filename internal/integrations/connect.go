@@ -87,7 +87,7 @@ type IntegrationPerson struct {
 func keyView(l i18n.Lang, r store.IntegrationKeysRow, lists map[uuid.UUID]string, now time.Time) IntegrationKeyView {
 	v := IntegrationKeyView{
 		ID: r.ID.String(), Name: r.Name, Masked: r.Prefix, Permissions: shortPermissions(r.Permissions), Sensitive: []string{},
-		Scope: access.View(access.ParseScope(r.Scope), lists, false), Owner: IntegrationPerson{Name: r.OwnerName, AvatarColor: r.OwnerColor},
+		Scope: access.ViewIn(l, access.ParseScope(r.Scope), lists, false), Owner: IntegrationPerson{Name: r.OwnerName, AvatarColor: r.OwnerColor},
 		OwnerStatus: "active", CreatedAt: r.CreatedAt, ExpiresAt: r.ExpiresAt, LastUsedAt: r.LastUsedAt, LastUsedClient: r.LastUsedClient,
 		RevokedAt: r.RevokedAt, GraceUntil: r.GraceUntil, Status: "active",
 	}
@@ -970,6 +970,7 @@ func (s *Service) Reachability(ctx context.Context) IntegrationReachability {
 		strings.TrimRight(st.PublicUrl, "/") == strings.TrimRight(out.URL, "/") {
 		var c accounts.URLCheck
 		if json.Unmarshal(st.PublicUrlCheck, &c) == nil {
+			c = c.In(lang(ctx))
 			out.DNS, out.TLS, out.Reach = c.DNS, c.TLS, c.Reachable
 			out.CheckedAt = st.PublicUrlCheckedAt
 		}

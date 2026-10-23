@@ -5,7 +5,7 @@ import { defineMessages } from '@/i18n'
  * five steps, saving and enabling. Provider names, claim names, scopes, URLs
  * and redirect URIs stay as they are. The presets' names, apps, hints and
  * docs links, discovery errors, the claims' notes and the test sign-in's
- * outcomes come from the server in English.
+ * outcomes come from the server, in the app language.
  */
 export const m = defineMessages('admin.ssoSetup', {
   // The page and step 1, the preset.
@@ -22,7 +22,7 @@ export const m = defineMessages('admin.ssoSetup', {
   presetSwitchBlocked: 'Disable {name} before switching presets, or add another provider',
   presetHint: 'Presets fill the issuer pattern, scopes and claim names. Everything stays editable.',
 
-  // Saving and enabling, under the steps. {blockers} are the server's sentences, in English.
+  // Saving and enabling, under the steps. {blockers} are the server's sentences, in the app language.
   mappingsRemoved: 'Group mappings removed',
   mappingsRemovedDetail: '{name} saved · JIT default role applies',
   notSaved: 'Not saved',
@@ -38,7 +38,7 @@ export const m = defineMessages('admin.ssoSetup', {
   leaveTitle: 'Leave without saving?',
   leaveBody: "You changed {name}'s settings. Nothing is saved until you save.",
 
-  // Step 2, the connection. {app} is the preset's app ("Entra app registration"), in English.
+  // Step 2, the connection. {app} is the preset's app ("Entra app registration"), from the server in the app language.
   connectionTitle: '2 · Connection',
   discoveryFailedTitle: 'Discovery failed',
   discoveryFailedLive: 'Step 2 · the saved issuer keeps working until a new one passes',
@@ -47,7 +47,7 @@ export const m = defineMessages('admin.ssoSetup', {
   notConfigured: 'Not configured',
   issuerUrl: 'Issuer URL',
   discoveryErrorBadge: 'Error',
-  // What the issuer answered: "…/.well-known/openid-configuration returned 404 Not Found in 212 ms." {error} is the server's, in English.
+  // What the issuer answered: "…/.well-known/openid-configuration returned 404 Not Found in 212 ms." {error} is the server's, in the app language.
   discoveryAnswer: '{hasUrl, select, yes {<mono>{url}</mono>} other {The issuer}} {error}{timed, select, yes { in {ms} ms} other {}}.',
   testDiscoveryAgain: 'Test discovery again',
   redirectLabel: 'Redirect URI <k>· add this to the {app}</k>',
@@ -78,7 +78,7 @@ export const m = defineMessages('admin.ssoSetup', {
   add: 'Add',
   addScope: 'Add scope',
 
-  // Step 3, the claim mapping. {idp} is the preset's short name ("Entra ID"), in English.
+  // Step 3, the claim mapping. {idp} is the preset's short name ("Entra ID", "the IdP"), from the server in the app language.
   claimsTitle: '3 · Claim mapping',
   claimsCaption: 'Which claims fill the account',
   claimsTable: 'Claim mapping',
@@ -146,7 +146,7 @@ export const m = defineMessages('admin.ssoSetup', {
   listsHeading: 'Lists the role applies to',
   listsHint: 'With no list picked, the role covers every list.',
 
-  // Step 5, the test sign-in. The outcome badges and details are the server's, in English.
+  // Step 5, the test sign-in. The outcome badges and details are the server's, in the app language.
   beforeTest: 'Before a test sign-in: {blockers}',
   groupsMissingTitle: 'Groups claim missing',
   groupsMissingCaption: 'Step 5 · test sign-in returned no groups',

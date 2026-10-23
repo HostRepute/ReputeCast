@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/netip"
 	"slices"
@@ -25,6 +24,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -136,12 +136,13 @@ func (s *Service) base(ctx context.Context) string {
 	return ""
 }
 
-func viewWith(r store.KeysListRow, lists, categories map[uuid.UUID]string, now time.Time) APIKeyView {
+// viewWith is a key as listed, its words in a language.
+func viewWith(l i18n.Lang, r store.KeysListRow, lists, categories map[uuid.UUID]string, now time.Time) APIKeyView {
 	perms := authz.ParseSet(r.Permissions)
 	v := APIKeyView{
 		ID: r.ID.String(), Kind: r.Kind, Name: r.Name, Description: r.Description, Masked: r.Prefix,
 		Permissions: StoredOrder(r.Permissions), Sensitive: []string{},
-		Scope:     access.View(access.ParseScope(r.Scope), lists, false),
+		Scope:     access.ViewIn(l, access.ParseScope(r.Scope), lists, false),
 		CreatedBy: APIKeyCreator{Name: r.CreatedByName, AvatarColor: r.CreatedByColor}, CreatedAt: r.CreatedAt,
 		ExpiresAt: r.ExpiresAt, LastUsedAt: r.LastUsedAt, LastUsedClient: r.LastUsedClient, LastCall: r.LastCall, Status: "active",
 	}
@@ -149,7 +150,7 @@ func viewWith(r store.KeysListRow, lists, categories map[uuid.UUID]string, now t
 		v.CreatedBy.ID = r.CreatedBy.String()
 	}
 	if v.CreatedBy.Name == "" {
-		v.CreatedBy.Name = "Former member"
+		v.CreatedBy.Name = msgs.M("label.formerMember").Text(l, nil)
 		v.CreatedBy.AvatarColor = "neutral"
 	}
 	if r.LastUsedIp != nil {
@@ -169,7 +170,7 @@ func viewWith(r store.KeysListRow, lists, categories map[uuid.UUID]string, now t
 		for _, c := range r.Categories {
 			name := categories[c]
 			if name == "" {
-				name = "deleted category"
+				name = msgs.M("label.deletedCategory").Text(l, nil)
 			}
 			t.Categories = append(t.Categories, APIKeyCategoryRef{ID: c.String(), Name: name})
 		}
@@ -252,11 +253,12 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	if err != nil {
 		return APIKeyList{}, err
 	}
-	out := APIKeyList{Items: []APIKeyView{}, Permissions: access.Catalog(), Groups: access.Groups(), Held: p.Permissions.Strings(), Locked: []APIKeyLockedPermission{}, Lists: []access.ScopedList{}}
+	lang := i18n.LangFrom(ctx)
+	out := APIKeyList{Items: []APIKeyView{}, Permissions: access.Catalog(lang), Groups: access.Groups(lang), Held: p.Permissions.Strings(), Locked: []APIKeyLockedPermission{}, Lists: []access.ScopedList{}}
 	now := s.now()
 	cats := s.categoryNames(ctx, ws.ID)
 	for _, r := range rows {
-		v := viewWith(r, lists, cats, now)
+		v := viewWith(lang, r, lists, cats, now)
 		if v.Status == "expired" {
 			if rj, err := s.rejections(ctx, r.ID); err == nil && rj.Calls > 0 {
 				v.Rejections = &rj
@@ -269,13 +271,13 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 			continue
 		}
 		if !authz.HoldableBy(d.Key, actorOf(kind)) {
-			out.Locked = append(out.Locked, APIKeyLockedPermission{Key: string(d.Key), Reason: access.NotHoldable(d.Key, actorOf(kind))})
+			out.Locked = append(out.Locked, APIKeyLockedPermission{Key: string(d.Key), Reason: access.NotHoldable(lang, d.Key, actorOf(kind))})
 			continue
 		}
 		if p.Permissions.Has(d.Key) {
 			continue
 		}
-		out.Locked = append(out.Locked, APIKeyLockedPermission{Key: string(d.Key), Reason: access.CantGrant(d.Key, access.Helpers(ctx, s.Q, ws.ID, d.Key))})
+		out.Locked = append(out.Locked, APIKeyLockedPermission{Key: string(d.Key), Reason: access.CantGrant(lang, d.Key, access.Helpers(ctx, s.Q, ws.ID, d.Key))})
 	}
 	tl, err := s.Q.TeamWorkspaceLists(ctx, ws.ID)
 	if err != nil {
@@ -318,7 +320,7 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, kind string, id 
 	if err != nil {
 		return APIKeyView{}, err
 	}
-	v := viewWith(store.KeysListRow(r), lists, s.categoryNames(ctx, ws.ID), s.now())
+	v := viewWith(i18n.LangFrom(ctx), store.KeysListRow(r), lists, s.categoryNames(ctx, ws.ID), s.now())
 	if rj, err := s.rejections(ctx, r.ID); err == nil && rj.Calls > 0 {
 		v.Rejections = &rj
 	}
@@ -405,18 +407,18 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	scope, err := (&access.ScopeRequest{Lists: in.Lists}).Resolve(lists, nil)
 	if err != nil {
-		return APIKeyCreated{}, api.Invalid("body.lists", strings.ToUpper(err.Error()[:1])+err.Error()[1:]+".")
+		return APIKeyCreated{}, api.Invalid("body.lists", access.ScopeProblem(i18n.LangFrom(ctx), err))
 	}
 	if !scope.Within(p.Scope) {
-		return APIKeyCreated{}, api.Err(http.StatusForbidden, api.CodeEscalation, "A key can't reach lists outside your own scope.")
+		return APIKeyCreated{}, api.Err(http.StatusForbidden, api.CodeEscalation, say(ctx, "problem.ownScope", nil))
 	}
 	if in.ExpiresAt != nil && !in.ExpiresAt.After(s.now()) {
-		return APIKeyCreated{}, api.Invalid("body.expiresAt", "Pick an expiry date in the future.")
+		return APIKeyCreated{}, api.Invalid("body.expiresAt", say(ctx, "problem.expiry", nil))
 	}
 	var tx0 *transactionalKey
 	if in.Transactional != nil {
 		if kind != KindAPIKey {
-			return APIKeyCreated{}, api.Invalid("body.transactional", "Only API keys can be send-only keys.")
+			return APIKeyCreated{}, api.Invalid("body.transactional", say(ctx, "problem.sendOnlyKind", nil))
 		}
 		tk, err := s.transactionalInput(ctx, ws, in)
 		if err != nil {
@@ -434,8 +436,8 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 		return s.Audit.LogWith(ctx, store.New(tx), audit.Event{
 			WorkspaceID: &ws.ID, Action: action(kind, "created"), TargetType: kind, TargetID: out.Key.ID, TargetName: out.Key.Name,
-			After:    map[string]any{"name": out.Key.Name, "permissions": out.Key.Permissions, "scope": scopeLabel(out.Key.Scope), "expires_at": in.ExpiresAt, "masked": out.Key.Masked},
-			Metadata: map[string]any{"summary": keySummary(out.Key), "permission": string(managePerm(kind))},
+			After:    map[string]any{"name": out.Key.Name, "permissions": out.Key.Permissions, "scope": scopeLabel(access.View(scope, lists, false)), "expires_at": in.ExpiresAt, "masked": out.Key.Masked},
+			Metadata: audit.KeepSummary(map[string]any{"permission": string(managePerm(kind))}, keySummary(out.Key, scope, lists)...),
 		})
 	})
 	if err != nil {
@@ -451,6 +453,7 @@ func managePerm(kind string) authz.Permission {
 	return authz.APIKeysManage
 }
 
+// scopeLabel is a scope's English label, as the audit log keeps it.
 func scopeLabel(v access.ScopeSummary) string {
 	if v.All {
 		return "all lists"
@@ -458,23 +461,25 @@ func scopeLabel(v access.ScopeSummary) string {
 	return v.Label
 }
 
-func keySummary(v APIKeyView) string {
-	parts := []string{strings.Join(v.Permissions, ", "), scopeLabel(v.Scope)}
+// keySummary is a new key's audit summary, its parts kept for later
+// readers: "campaigns:view · Weekly Digest only · no expiry".
+func keySummary(v APIKeyView, scope authz.Scope, lists map[uuid.UUID]string) []any {
+	parts := []any{strings.Join(v.Permissions, ", "), access.ScopeText(scope, lists, false)}
 	if t := v.Transactional; t != nil {
 		parts[1] = transactionalScope(t)
 		if t.Mode == "test" {
-			parts = append(parts, "test mode")
+			parts = append(parts, msgs.M("audit.testMode").Keep(nil))
 		}
 		if t.Preset == PresetSMTP {
-			parts = append(parts, "SMTP credential")
+			parts = append(parts, msgs.M("audit.smtp").Keep(nil))
 		}
 	}
 	if v.ExpiresAt != nil {
-		parts = append(parts, "expires "+v.ExpiresAt.Format("Jan 2, 2006"))
+		parts = append(parts, msgs.M("audit.expires").Keep(i18n.Args{"at": *v.ExpiresAt}))
 	} else {
-		parts = append(parts, "no expiry")
+		parts = append(parts, msgs.M("audit.noExpiry").Keep(nil))
 	}
-	return strings.Join(parts, " · ")
+	return parts
 }
 
 func actorOf(kind string) authz.ActorType {
@@ -487,12 +492,13 @@ func actorOf(kind string) authz.ActorType {
 // checkGrant applies "nobody can grant what they don't hold", and keeps
 // people-only permissions off keys and agents.
 func (s *Service) checkGrant(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind string, wanted []authz.Permission) (authz.Set, error) {
+	lang := i18n.LangFrom(ctx)
 	for _, w := range wanted {
 		if !authz.Valid(w) {
-			return nil, api.Invalid("body.permissions", fmt.Sprintf("Unknown permission %q.", w))
+			return nil, api.Invalid("body.permissions", msgs.M("problem.unknownPermission").Text(lang, i18n.Args{"permission": string(w)}))
 		}
 		if !authz.HoldableBy(w, actorOf(kind)) {
-			pr := api.Err(http.StatusForbidden, api.CodeEscalation, access.NotHoldable(w, actorOf(kind)))
+			pr := api.Err(http.StatusForbidden, api.CodeEscalation, access.NotHoldable(lang, w, actorOf(kind)))
 			pr.Permission = string(w)
 			return nil, pr
 		}
@@ -508,7 +514,7 @@ func (s *Service) checkGrant(ctx context.Context, ws *store.Workspace, p *authz.
 					break
 				}
 			}
-			pr := api.Err(http.StatusForbidden, api.CodeEscalation, access.CantGrant(m, access.Helpers(ctx, s.Q, ws.ID, m)))
+			pr := api.Err(http.StatusForbidden, api.CodeEscalation, access.CantGrant(lang, m, access.Helpers(ctx, s.Q, ws.ID, m)))
 			pr.Permission = string(m)
 			return nil, pr
 		}
@@ -519,7 +525,7 @@ func (s *Service) checkGrant(ctx context.Context, ws *store.Workspace, p *authz.
 
 func (s *Service) insertWith(ctx context.Context, q *store.Queries, ws *store.Workspace, p *authz.Principal, kind, name, desc string, perms []string, scope authz.Scope, expires *time.Time, rotatedFrom *uuid.UUID, lists map[uuid.UUID]string, tk *transactionalKey) (APIKeyCreated, error) {
 	if name == "" {
-		return APIKeyCreated{}, api.Invalid("body.name", "Give the key a name.")
+		return APIKeyCreated{}, api.Invalid("body.name", say(ctx, "problem.name", nil))
 	}
 	prefix := prefixFor(kind)
 	if tk != nil {
@@ -547,7 +553,7 @@ func (s *Service) insertWith(ctx context.Context, q *store.Queries, ws *store.Wo
 		}
 		lr.Preset, lr.Mode, lr.Templates, lr.Categories, lr.TestAddresses, lr.RatePerSecond = tk.Preset, tk.Mode, tk.Templates, tk.Categories, tk.TestAddresses, int32(tk.Rate)
 	}
-	v := viewWith(lr, lists, s.categoryNames(ctx, ws.ID), s.now())
+	v := viewWith(i18n.LangFrom(ctx), lr, lists, s.categoryNames(ctx, ws.ID), s.now())
 	ep := s.base(ctx) + api.Version
 	if kind == KindAgent {
 		ep = s.base(ctx) + "/mcp"
@@ -565,8 +571,7 @@ func (s *Service) Rotate(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	// An integration's key rotates in Integrations, where the old one keeps
 	// working for 24 hours (integrations hub, M16).
 	if k, err := s.Q.GetAPIKey(ctx, store.GetAPIKeyParams{ID: id, WorkspaceID: ws.ID}); err == nil && k.IntegrationID != nil {
-		return APIKeyCreated{}, api.Err(http.StatusConflict, "managed_by_integration",
-			"This key belongs to an integration. Rotate it in Settings › Integrations, where the old key keeps working for 24 hours.")
+		return APIKeyCreated{}, api.Err(http.StatusConflict, "managed_by_integration", say(ctx, "problem.integrationKey", nil))
 	}
 	wanted := make([]authz.Permission, 0, len(old.Permissions))
 	for _, k := range old.Permissions {
@@ -579,7 +584,7 @@ func (s *Service) Rotate(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	scope := access.ParseScope(old.Scope)
 	if !scope.Within(p.Scope) {
-		return APIKeyCreated{}, api.Err(http.StatusForbidden, api.CodeEscalation, "This key reaches lists outside your scope, so you can't rotate it.")
+		return APIKeyCreated{}, api.Err(http.StatusForbidden, api.CodeEscalation, say(ctx, "problem.rotateScope", nil))
 	}
 	lists, err := access.ListNames(ctx, s.Q, ws.ID)
 	if err != nil {
@@ -616,9 +621,10 @@ func (s *Service) Rotate(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{
 			WorkspaceID: &ws.ID, Action: action(kind, verb), TargetType: kind, TargetID: out.Key.ID, TargetName: old.Name,
-			Before:   map[string]any{"masked": old.Prefix, "expires_at": old.ExpiresAt},
-			After:    map[string]any{"masked": out.Key.Masked, "expires_at": expires},
-			Metadata: map[string]any{"summary": "new secret " + out.Key.Masked + " · old " + old.Prefix + " revoked", "rotated_from": old.ID.String(), "permission": string(managePerm(kind))},
+			Before: map[string]any{"masked": old.Prefix, "expires_at": old.ExpiresAt},
+			After:  map[string]any{"masked": out.Key.Masked, "expires_at": expires},
+			Metadata: audit.KeepText(map[string]any{"rotated_from": old.ID.String(), "permission": string(managePerm(kind))},
+				"summary", msgs.M("audit.rotated").Keep(i18n.Args{"masked": out.Key.Masked, "old": old.Prefix})),
 		})
 	})
 	return out, err
@@ -657,7 +663,7 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, kind string, 
 			return err
 		}
 		if n == 0 {
-			return api.Conflict("Only expired or revoked keys can be deleted. Revoke it first.")
+			return api.Conflict(say(ctx, "problem.deleteActive", nil))
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: action(kind, "deleted"), TargetType: kind, TargetID: id.String(), TargetName: old.Name,
 			Before: map[string]any{"masked": old.Prefix, "expires_at": old.ExpiresAt}, Metadata: map[string]any{"permission": string(managePerm(kind))}})
@@ -676,6 +682,8 @@ type MCPAgentAction struct {
 	// Note is "campaigns:pause" for an allowed call or "needs campaigns:send ·
 	// proposal recorded for Linh Nguyen" for a denied one.
 	Note string `json:"note,omitempty"`
+	// Proposal tells that a denied call was proposed to a member to review.
+	Proposal bool `json:"proposal"`
 	// Summary is what the tool returned or did ("Paused October Product Update · Outlook route").
 	Summary string `json:"summary,omitempty"`
 }
@@ -685,42 +693,51 @@ type MCPAgentActionList struct {
 	Items []MCPAgentAction `json:"items"`
 }
 
-// AgentActions lists the latest MCP calls from the audit log.
+// AgentActions lists the latest MCP calls from the audit log, their
+// details, notes and outcomes in the reader's language when the agent's
+// call kept them (internal/mcpserver).
 func (s *Service) AgentActions(ctx context.Context, ws *store.Workspace, limit int) (MCPAgentActionList, error) {
 	rows, err := s.Q.KeysAgentActions(ctx, store.KeysAgentActionsParams{WorkspaceID: &ws.ID, Lim: int32(limit)})
 	if err != nil {
 		return MCPAgentActionList{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	out := MCPAgentActionList{Items: []MCPAgentAction{}}
 	for _, r := range rows {
 		var meta struct {
-			Tool    string `json:"tool"`
-			Detail  string `json:"detail"`
-			Note    string `json:"note"`
-			Outcome string `json:"outcome"`
-			Perm    string `json:"permission"`
+			Tool     string `json:"tool"`
+			Detail   string `json:"detail"`
+			Note     string `json:"note"`
+			Outcome  string `json:"outcome"`
+			Perm     string `json:"permission"`
+			Proposal bool   `json:"proposal"`
 		}
 		_ = json.Unmarshal(r.Metadata, &meta)
-		a := MCPAgentAction{ID: r.ID.String(), OccurredAt: r.OccurredAt, Agent: r.ActorName, Tool: meta.Tool, Result: r.Result, Summary: meta.Outcome}
+		kept := audit.KeptIn(r.Metadata)
+		a := MCPAgentAction{ID: r.ID.String(), OccurredAt: r.OccurredAt, Agent: r.ActorName, Tool: meta.Tool, Result: r.Result, Summary: kept.OutcomeIn(l, meta.Outcome),
+			// Calls recorded before the flag say it in their note.
+			Proposal: meta.Proposal || strings.Contains(meta.Note, "proposal recorded")}
 		if r.ActorID != nil {
 			a.AgentID = r.ActorID.String()
 		}
 		if a.Tool == "" {
 			a.Tool = r.Action
 		}
-		a.Target = r.TargetName
-		if meta.Detail != "" {
+		a.Target = audit.In(kept.Target, l, r.TargetName)
+		if detail := audit.In(kept.Detail, l, meta.Detail); detail != "" {
 			if a.Target != "" {
-				a.Target += " · " + meta.Detail
+				a.Target += " · " + detail
 			} else {
-				a.Target = meta.Detail
+				a.Target = detail
 			}
 		}
 		switch {
 		case meta.Note != "":
-			a.Note = meta.Note
+			a.Note = audit.In(kept.Note, l, meta.Note)
+		case r.Result == "denied" && strings.HasPrefix(r.Reason, "missing "):
+			a.Note = msgs.M("agent.needs").Text(l, i18n.Args{"permission": strings.TrimPrefix(r.Reason, "missing ")})
 		case r.Result == "denied" && r.Reason != "":
-			a.Note = strings.Replace(r.Reason, "missing ", "needs ", 1)
+			a.Note = r.Reason
 		}
 		out.Items = append(out.Items, a)
 	}

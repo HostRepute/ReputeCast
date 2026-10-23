@@ -1,0 +1,9 @@
+{
+  "problem.permission": { "message": "\"{permission}\" isn't a permission.", "note": "permission: what was asked for, as sent" },
+  "problem.alreadyHave": "You already have this permission. Reload the page to use it.",
+  "problem.nobody": "Nobody in this workspace can change roles. Ask an instance admin.",
+  "problem.alreadyAsked": { "message": "You already asked for {role, select, owner {Owner} admin {Admin} editor {Editor} other {Viewer}} access in the last day; {names} will see it. Ask them directly if it's urgent.", "note": "role: the built-in role asked for; names: who manages the team, “A, B and C”" },
+
+  "notify.title": { "message": "{name} asks for {role, select, owner {Owner} admin {Admin} editor {Editor} other {Viewer}} access", "note": "a notification to the members who manage the team; role: the built-in role asked for" },
+  "notify.noNote": { "message": "No note.", "note": "the request's body when the person wrote no note" }
+}

@@ -8,8 +8,18 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
+
+// accessibilitySummary is a report's summary kept for later readers: the
+// accessibility package's own messages (AccessibilityReport.SummaryIn).
+func accessibilitySummary(r accessibility.AccessibilityReport) i18n.Text {
+	if len(r.Issues) == 0 {
+		return i18n.Text{ID: "accessibility.summary.none"}
+	}
+	return i18n.Text{ID: "accessibility.summary.issues", Args: i18n.Args{"count": len(r.Issues), "serious": r.Serious, "moderate": r.Moderate}}
+}
 
 // AccessibilityReader returns a campaign's accessibility issues (X06).
 type AccessibilityReader interface {
@@ -62,7 +72,7 @@ func (s *Service) addAccessibilityTools(srv *mcp.Server) {
 			}
 			issues = append(issues, issue{Severity: is.Severity, Issue: is.Title, Detail: is.Detail, Languages: is.Languages, Element: loc, Fix: f})
 		}
-		e.detail = r.Summary()
+		e.detail, e.detailText = r.Summary(), accessibilitySummary(r)
 		return map[string]any{
 			"campaign": cp.Name, "summary": r.Summary(), "serious": r.Serious, "moderate": r.Moderate,
 			"policy": r.Policy, "min_text_px": r.MinTextPx, "languages": r.Counts.Languages, "issues": issues,

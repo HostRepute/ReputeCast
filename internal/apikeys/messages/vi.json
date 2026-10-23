@@ -1,0 +1,31 @@
+{
+  "problem.ownScope": "Khóa không thể truy cập danh sách nằm ngoài phạm vi của chính bạn.",
+  "problem.expiry": "Hãy chọn ngày hết hạn trong tương lai.",
+  "problem.sendOnlyKind": "Chỉ khóa API mới có thể là khóa chỉ gửi.",
+  "problem.name": "Hãy đặt tên cho khóa.",
+  "problem.integrationKey": "Khóa này thuộc về một tích hợp. Hãy xoay vòng khóa trong Cài đặt › Tích hợp, nơi khóa cũ vẫn hoạt động thêm 24 giờ.",
+  "problem.rotateScope": "Khóa này truy cập được danh sách nằm ngoài phạm vi của bạn nên bạn không thể xoay vòng nó.",
+  "problem.deleteActive": "Chỉ xóa được khóa đã hết hạn hoặc đã bị thu hồi. Hãy thu hồi khóa trước.",
+  "problem.unknownPermission": "Không có quyền \"{permission}\".",
+  "problem.sendOnlyPermission": "Khóa chỉ gửi chỉ có quyền transactional:send, không có quyền nào khác.",
+  "problem.sendOnlyLists": "Khóa chỉ gửi không giới hạn theo danh sách; hãy giới hạn theo mẫu.",
+  "problem.preset": "Hãy chọn khóa chỉ gửi hoặc thông tin xác thực SMTP.",
+  "problem.template": "Không có mẫu nào có ID {id}.",
+  "problem.categories": "Hãy chọn danh mục của không gian làm việc này.",
+  "problem.testAddress": "“{address}” không phải là địa chỉ hay mẫu địa chỉ như qa+*@acme.io.",
+  "problem.testPattern": "“{address}” không phải là mẫu địa chỉ hợp lệ.",
+  "problem.testLive": "Địa chỉ thử được phép chỉ dành cho khóa ở chế độ thử nghiệm; khóa chính thức gửi đến mọi người.",
+
+  "label.formerMember": "Thành viên cũ",
+  "label.deletedCategory": "danh mục đã xóa",
+  "agent.needs": "cần {permission}",
+
+  "audit.scopeAllTemplates": "mọi mẫu",
+  "audit.scopeCategory": "danh mục {names}",
+  "audit.scopeCategories": "các danh mục {names}",
+  "audit.testMode": "chế độ thử nghiệm",
+  "audit.smtp": "thông tin xác thực SMTP",
+  "audit.expires": "hết hạn ngày {at, date}",
+  "audit.noExpiry": "không hết hạn",
+  "audit.rotated": "khóa bí mật mới {masked} · khóa cũ {old} đã bị thu hồi"
+}

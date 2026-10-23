@@ -648,13 +648,18 @@ func (s *Service) incidents(ctx context.Context, set workspaceSet, ids []uuid.UU
 			pauses[p.CampaignID] = append(pauses[p.CampaignID], p)
 		}
 	}
+	l := i18n.LangFrom(ctx)
 	for _, r := range rows {
 		w, ok := set.find(r.WorkspaceID)
 		if !ok {
 			continue
 		}
+		// The title and detail in the reader's language, from the messages
+		// the incident kept; incidents written before read in English.
+		var texts map[string]i18n.Text
+		_ = json.Unmarshal(r.Texts, &texts)
 		in := AgencyIncident{ID: r.ID.String(), Workspace: wsRef(w), Kind: r.Kind, State: "ongoing", OccurredAt: r.OccurredAt, ResolvedAt: r.ResolvedAt,
-			Campaign: r.CampaignName, Provider: r.ProviderName, Failovers: []AgencyFailover{}, Title: r.Title, Detail: r.Detail}
+			Campaign: r.CampaignName, Provider: r.ProviderName, Failovers: []AgencyFailover{}, Title: keptIn(texts["title"], l, r.Title), Detail: keptIn(texts["detail"], l, r.Detail)}
 		switch r.Kind {
 		case "auto_pause":
 			if r.CampaignID != nil {

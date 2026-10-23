@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -66,11 +67,12 @@ func (s *Service) socialSecrets(st store.InstanceSetting) map[string]string {
 	return m
 }
 
-// SocialReady reports what's missing before a social provider can be on.
-func (s *Service) SocialReady(st store.InstanceSetting, kind string) string {
+// SocialReady reports what's missing before a social provider can be on,
+// in the request's language.
+func (s *Service) SocialReady(ctx context.Context, st store.InstanceSetting, kind string) string {
 	c := SocialConfigs(st)[kind]
 	if c.ClientID == "" || s.socialSecrets(st)[kind] == "" {
-		return socialName(kind) + " needs a client ID and secret before it can be turned on."
+		return say(ctx, "problem.socialSecret", i18n.Args{"provider": socialName(kind)})
 	}
 	return ""
 }
@@ -143,14 +145,14 @@ func (s *Service) SaveSocial(ctx context.Context, kind string, in SSOSocialInput
 	if kind == "github" {
 		org := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(in.Org), "@"))
 		if org != "" && !validGitHubOrg(org) {
-			return nil, api.Invalid("body.org", "GitHub organization names use letters, digits and single hyphens, like acme-eng.")
+			return nil, api.Invalid("body.org", say(ctx, "problem.githubOrg", nil))
 		}
 		c.Org = org
 	}
 	if kind == "microsoft" {
 		t := strings.TrimSpace(in.Tenant)
 		if t != "" && (len(t) > 100 || strings.ContainsAny(t, "/?#: ")) {
-			return nil, api.Invalid("body.tenant", "Use common, organizations, consumers or a tenant ID.")
+			return nil, api.Invalid("body.tenant", say(ctx, "problem.tenant", nil))
 		}
 		c.Tenant = t
 	}
@@ -162,7 +164,7 @@ func (s *Service) SaveSocial(ctx context.Context, kind string, in SSOSocialInput
 		replaced = true
 	}
 	if c.Enabled && (c.ClientID == "" || secrets[kind] == "") {
-		return nil, api.Invalid("body.clientId", socialName(kind)+" needs a client ID and secret before it can be turned on.")
+		return nil, api.Invalid("body.clientId", say(ctx, "problem.socialSecret", i18n.Args{"provider": socialName(kind)}))
 	}
 	cfgs[kind] = c
 	var enc []byte
@@ -221,7 +223,7 @@ func (s *Service) socialClient(ctx context.Context, kind string, st store.Instan
 	c := SocialConfigs(st)[kind]
 	secret := s.socialSecrets(st)[kind]
 	if c.ClientID == "" || secret == "" {
-		return nil, nil, &flowError{Code: "not_configured", Detail: socialName(kind) + " sign-in has no client ID or secret yet."}
+		return nil, nil, failure("not_configured", "social.notConfigured", i18n.Args{"name": socialName(kind)})
 	}
 	conf := &oauth2.Config{ClientID: c.ClientID, ClientSecret: secret, RedirectURL: s.publicURL(ctx) + SocialRedirectPath(kind)}
 	e := s.social()
@@ -229,7 +231,7 @@ func (s *Service) socialClient(ctx context.Context, kind string, st store.Instan
 	case "google":
 		p, err := s.provider(ctx, e.GoogleIssuer, false)
 		if err != nil {
-			return nil, nil, &flowError{Code: "discovery_failed", Detail: "Google's discovery document couldn't be loaded: " + err.Error()}
+			return nil, nil, failure("discovery_failed", "social.googleDiscovery", i18n.Args{"error": err.Error()})
 		}
 		conf.Endpoint, conf.Scopes = p.Endpoint(), []string{oidc.ScopeOpenID, "email", "profile"}
 		return p, conf, nil
@@ -237,7 +239,7 @@ func (s *Service) socialClient(ctx context.Context, kind string, st store.Instan
 		issuer := s.microsoftIssuer(c.Tenant)
 		p, err := s.provider(ctx, issuer, true)
 		if err != nil {
-			return nil, nil, &flowError{Code: "discovery_failed", Detail: "Microsoft's discovery document couldn't be loaded: " + err.Error()}
+			return nil, nil, failure("discovery_failed", "social.microsoftDiscovery", i18n.Args{"error": err.Error()})
 		}
 		conf.Endpoint, conf.Scopes = p.Endpoint(), []string{oidc.ScopeOpenID, "email", "profile"}
 		return p, conf, nil
@@ -249,7 +251,7 @@ func (s *Service) socialClient(ctx context.Context, kind string, st store.Instan
 		}
 		return nil, conf, nil
 	}
-	return nil, nil, &flowError{Code: "unknown_provider", Detail: "Unknown sign-in provider."}
+	return nil, nil, failure("unknown_provider", "social.unknown", nil)
 }
 
 // StartSocial begins a social sign-in (or links one, or joins with an invitation).
@@ -257,14 +259,14 @@ func (s *Service) StartSocial(ctx context.Context, kind string, req StartRequest
 	name := socialName(kind)
 	fail := func(fe *flowError) Redirect { return s.errorRedirect(ctx, name, nil, kind, fe, req.LoginHint) }
 	if !slices.Contains(SocialKinds, kind) {
-		return fail(&flowError{Code: "unknown_provider", Detail: "Unknown sign-in provider."})
+		return fail(failure("unknown_provider", "social.unknown", nil))
 	}
 	st, err := s.Q.GetInstanceSettings(ctx)
 	if err != nil {
 		return fail(asFlowError(err))
 	}
 	if !SocialConfigs(st)[kind].Enabled || !ssoAllowed(st, "social") {
-		return fail(&flowError{Code: "provider_disabled", Detail: name + " sign-in is turned off on this instance."})
+		return fail(failure("provider_disabled", "social.off", i18n.Args{"name": name}))
 	}
 	_, conf, err := s.socialClient(ctx, kind, st)
 	if err != nil {
@@ -326,10 +328,10 @@ func (s *Service) callbackSocial(ctx context.Context, kind, state string, query 
 		return fail(asFlowError(err), "")
 	}
 	if fs.Social != kind {
-		return fail(&flowError{Code: "state_mismatch", Detail: "This callback belongs to another provider."}, "")
+		return fail(failure("state_mismatch", "flow.otherProvider", nil), "")
 	}
 	if e := query.Get("error"); e != "" {
-		return fail(&flowError{Code: e, Detail: name + " returned " + e + ": " + firstLine(query.Get("error_description"))}, "")
+		return fail(idpError(name, e, query.Get("error_description")), "")
 	}
 	st, err := s.Q.GetInstanceSettings(ctx)
 	if err != nil {
@@ -360,13 +362,13 @@ func (s *Service) callbackSocial(ctx context.Context, kind, state string, query 
 	switch fs.Mode {
 	case modeLink:
 		if ch.UserID == nil {
-			return fail(&flowError{Code: "state_expired", Detail: "Sign in again to link an identity."}, id.Email)
+			return fail(failure("state_expired", "flow.signInToLink", nil), id.Email)
 		}
 		return s.linkIdentity(ctx, *ch.UserID, identityRow{Kind: kind, Name: name, Subject: id.Subject, Email: id.Email, Username: id.Username, Details: id.Details}, fail)
 	case modeInvite:
 		token, err := s.Box.OpenString(fs.InviteEnc, "sso:invite")
 		if err != nil {
-			return fail(&flowError{Code: "state_expired", Detail: "Open the invitation link again."}, id.Email)
+			return fail(failure("state_expired", "flow.openInvitation", nil), id.Email)
 		}
 		res, err := s.Accounts.AcceptInvitationExternal(ctx, token, accounts.ExternalIdentity{Kind: kind, ProviderName: name, Subject: id.Subject,
 			Email: id.Email, Name: id.Name, Username: id.Username, Details: mustJSON(id.Details), Metadata: meta})
@@ -388,11 +390,11 @@ func (s *Service) callbackSocial(ctx context.Context, kind, state string, query 
 		_ = s.Q.SSOTouchIdentity(ctx, store.SSOTouchIdentityParams{ID: ident.ID, Email: id.Email, Username: id.Username, Details: mustJSON(id.Details)})
 	case isNoRows(err):
 		if id.EmailVerified == nil || !*id.EmailVerified {
-			return fail(&flowError{Code: "no_account", Detail: "no account is linked to this " + name + " sign-in", NoAccount: true, Email: id.Email}, id.Email)
+			return fail(failure("no_account", "social.notLinked", i18n.Args{"name": name}).noAccount(id.Email), id.Email)
 		}
 		if u, err = s.Q.GetUserByEmail(ctx, id.Email); err != nil {
 			if isNoRows(err) {
-				return fail(&flowError{Code: "no_account", Detail: "no account for " + id.Email + "; " + name + " sign-in never creates one", NoAccount: true, Email: id.Email}, id.Email)
+				return fail(failure("no_account", "social.noAccount", i18n.Args{"email": id.Email, "name": name}).noAccount(id.Email), id.Email)
 			}
 			return fail(asFlowError(err), id.Email)
 		}
@@ -401,7 +403,7 @@ func (s *Service) callbackSocial(ctx context.Context, kind, state string, query 
 		return fail(asFlowError(err), id.Email)
 	}
 	if u.Status != "active" {
-		return fail(&flowError{Code: "account_deactivated", Detail: u.Email + " is deactivated.", Email: u.Email}, u.Email)
+		return fail(failure("account_deactivated", "flow.deactivated", i18n.Args{"email": u.Email}).about(u.Email), u.Email)
 	}
 	// Domain enforcement turns social sign-in off too: go to the IdP.
 	if enf := s.enforcer(ctx, u.Email); enf != nil && !u.BreakGlass {
@@ -464,7 +466,7 @@ func (s *Service) oidcSocialIdentity(kind string, c map[string]any) (identity, e
 		tid := claimString(c, "tid")
 		base := strings.TrimRight(s.social().MicrosoftBase, "/")
 		if iss := claimString(c, "iss"); tid == "" || iss != base+"/"+tid+"/v2.0" {
-			return id, &flowError{Code: "invalid_issuer", Detail: "The Microsoft token's issuer doesn't match its tenant."}
+			return id, failure("invalid_issuer", "social.tenant", nil)
 		}
 		id.Username = claimString(c, "preferred_username")
 		if id.Email == "" && strings.Contains(id.Username, "@") {
@@ -475,7 +477,7 @@ func (s *Service) oidcSocialIdentity(kind string, c map[string]any) (identity, e
 		id.Details["tid"] = tid
 	}
 	if id.Subject == "" {
-		return id, &flowError{Code: "no_subject", Detail: "The ID token has no sub claim."}
+		return id, failure("no_subject", "flow.noSubject", nil)
 	}
 	return id, nil
 }
@@ -488,7 +490,7 @@ func (s *Service) githubIdentity(ctx context.Context, conf *oauth2.Config, code,
 	cctx := context.WithValue(ctx, oauth2.HTTPClient, s.client())
 	tok, err := conf.Exchange(cctx, code, oauth2.VerifierOption(verifier))
 	if err != nil {
-		return id, &flowError{Code: "token_exchange_failed", Detail: "The GitHub token exchange failed: " + oauthError(err)}
+		return id, failure("token_exchange_failed", "social.githubExchange", i18n.Args{"error": oauthError(err)})
 	}
 	api := strings.TrimRight(s.social().GitHubAPI, "/")
 	var user struct {
@@ -497,7 +499,7 @@ func (s *Service) githubIdentity(ctx context.Context, conf *oauth2.Config, code,
 		Name  string `json:"name"`
 	}
 	if status, err := s.githubGet(ctx, tok, api+"/user", &user); err != nil || status != http.StatusOK || user.ID == 0 {
-		return id, &flowError{Code: "github_api", Detail: fmt.Sprintf("GitHub didn't return the user (HTTP %d).", status)}
+		return id, failure("github_api", "social.githubUser", i18n.Args{"status": status})
 	}
 	var emails []struct {
 		Email    string `json:"email"`
@@ -505,7 +507,7 @@ func (s *Service) githubIdentity(ctx context.Context, conf *oauth2.Config, code,
 		Verified bool   `json:"verified"`
 	}
 	if status, err := s.githubGet(ctx, tok, api+"/user/emails", &emails); err != nil || status != http.StatusOK {
-		return id, &flowError{Code: "github_api", Detail: fmt.Sprintf("GitHub didn't return the email addresses (HTTP %d). The user:email scope is needed.", status)}
+		return id, failure("github_api", "social.githubEmails", i18n.Args{"status": status})
 	}
 	for _, e := range emails {
 		if e.Primary && e.Verified {
@@ -513,7 +515,7 @@ func (s *Service) githubIdentity(ctx context.Context, conf *oauth2.Config, code,
 		}
 	}
 	if id.Email == "" {
-		return id, &flowError{Code: "email_not_verified", Detail: "Your GitHub account has no verified primary email."}
+		return id, failure("email_not_verified", "social.githubNoEmail", nil)
 	}
 	t := true
 	id.EmailVerified = &t
@@ -527,13 +529,13 @@ func (s *Service) githubIdentity(ctx context.Context, conf *oauth2.Config, code,
 		status, err := s.githubGet(ctx, tok, api+"/user/memberships/orgs/"+url.PathEscape(org), &m)
 		switch {
 		case err != nil:
-			return id, &flowError{Code: "github_api", Detail: "GitHub didn't answer the organization check: " + err.Error()}
+			return id, failure("github_api", "social.githubOrgCheck", i18n.Args{"error": err.Error()})
 		case status == http.StatusOK && m.State == "active":
 			id.Details["org"] = org
 		case status == http.StatusForbidden:
-			return id, &flowError{Code: "org_restricted", Detail: "The GitHub organization " + org + " restricts third-party apps. An owner of " + org + " must approve ReputeCast's OAuth app.", Email: id.Email}
+			return id, failure("org_restricted", "social.githubRestricted", i18n.Args{"org": org}).about(id.Email)
 		default:
-			return id, &flowError{Code: "not_in_org", Detail: "GitHub sign-in is limited to members of the organization " + org + ".", Email: id.Email}
+			return id, failure("not_in_org", "social.githubNotInOrg", i18n.Args{"org": org}).about(id.Email)
 		}
 	}
 	return id, nil

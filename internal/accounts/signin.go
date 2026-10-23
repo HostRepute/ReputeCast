@@ -311,7 +311,7 @@ func (s *Service) TwoFactor(ctx context.Context, challenge, method, code string)
 		left, total = &v, &tot
 		_ = s.Audit.Log(ctx, audit.Event{Action: "auth.recovery_code_used", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email, Actor: actorFor(u), Metadata: map[string]any{"remaining": v}})
 	default:
-		return SignInResult{}, nil, api.BadRequest("Unknown method. Use totp or recovery; passkeys use /auth/two-factor/passkey.")
+		return SignInResult{}, nil, api.BadRequest(say(ctx, msgs.M("problem.unknownMethod")))
 	}
 	_ = s.Q.DeleteChallenge(ctx, ch.ID)
 	cookie, err := s.completeSignInWith(ctx, u, data.Method+"+"+method, true, data.Remember, nil, data.Extra)

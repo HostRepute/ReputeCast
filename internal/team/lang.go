@@ -2,13 +2,16 @@ package team
 
 import (
 	"embed"
+	"strings"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
-// The Team list's own words (the notes after a role, why the list is
-// read-only) follow the reader's app language (i18n.LangFrom). They are in
-// messages/<locale>.json. Audit entries keep their English.
+// The Team screens' words from the server (the notes after a role, why the
+// list is read-only, the member page's sources, the problems) follow the
+// reader's app language (i18n.LangFrom). They are in
+// messages/<locale>.json. Audit entries keep their English and, beside it,
+// their summaries' messages for readers of other languages.
 
 //go:embed messages/*.json
 var messagesFS embed.FS
@@ -46,6 +49,16 @@ var (
 	mOwnerTwoFactor = msgs.M("problem.ownerTwoFactor")
 	mScopeWithin    = msgs.M("problem.scopeWithin")
 )
+
+// listArgs are a kept message's arguments for names it lists ("revoked
+// “A”, “B” and “C”"): every name but the last joined with commas, the last
+// one and their count, so each language joins them in its own words.
+func listArgs(names []string) i18n.Args {
+	if len(names) == 0 {
+		return i18n.Args{"names": "", "last": "", "count": 0}
+	}
+	return i18n.Args{"names": strings.Join(names[:len(names)-1], ", "), "last": names[len(names)-1], "count": len(names)}
+}
 
 // readOnlyReason explains what a caller without team:invite or
 // team:manage can do, and who can help.

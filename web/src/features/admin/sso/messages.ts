@@ -6,7 +6,7 @@ import { defineMessages } from '@/i18n'
  * provider's setup is in setup.messages.ts. Provider names, claim names,
  * scopes, URLs and redirect URIs stay as they are; the providers'
  * two-factor line and the enforcement preview's sign-in methods come from
- * the server in English.
+ * the server, in the app language.
  */
 export const m = defineMessages('admin.sso', {
   // The providers list.
@@ -61,7 +61,7 @@ export const m = defineMessages('admin.sso', {
   groupMappingUnavailable:
     "<b>Group mapping is unavailable for {name}.</b> {google, select, yes {Google doesn't send a groups claim over OIDC.} other {This identity provider sends no groups claim.}} Map people by email domain (JIT default role) or assign roles individually in Team.",
 
-  // Turning on domain enforcement (EnforcementDialog). The Today and After cells are the server's, in English.
+  // Turning on domain enforcement (EnforcementDialog). The Today and After cells are the server's, in the app language.
   enforceEyebrow: 'Dialog · turning on domain enforcement',
   enforceTitle: 'Enforce {provider} sign-in for {domains}?',
   enforceBody: 'Password sign-in stops working for {domains} accounts at their next sign-in. Passkeys and social sign-ins for this domain are disabled too.',

@@ -1,0 +1,5 @@
+{
+  "password.short": { "message": "Use at least {min} characters. Passphrases are fine.", "note": "why a new password is refused" },
+  "password.long": "Use at most 256 characters.",
+  "password.spaces": "The password can't be only spaces."
+}

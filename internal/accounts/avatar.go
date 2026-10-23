@@ -38,21 +38,21 @@ func (s *Service) SetAvatar(ctx context.Context, data []byte) (AccountProfile, e
 		return AccountProfile{}, err
 	}
 	if len(data) == 0 {
-		return AccountProfile{}, api.Invalid("body.data", "Choose a PNG or JPG photo.")
+		return AccountProfile{}, api.Invalid("body.data", say(ctx, msgs.M("problem.photoMissing")))
 	}
 	if len(data) > avatarMaxBytes {
-		return AccountProfile{}, api.Invalid("body.data", "The photo is larger than 2 MB. Choose a smaller one.")
+		return AccountProfile{}, api.Invalid("body.data", say(ctx, msgs.M("problem.photoLarge")))
 	}
 	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil || (format != "png" && format != "jpeg") {
-		return AccountProfile{}, api.Invalid("body.data", "Use a PNG or JPG photo.")
+		return AccountProfile{}, api.Invalid("body.data", say(ctx, msgs.M("problem.photoFormat")))
 	}
 	if cfg.Width > avatarMaxSide || cfg.Height > avatarMaxSide || cfg.Width < 16 || cfg.Height < 16 {
-		return AccountProfile{}, api.Invalid("body.data", "Use a photo between 16 and 6,000 pixels on each side.")
+		return AccountProfile{}, api.Invalid("body.data", say(ctx, msgs.M("problem.photoSize"), "min", 16, "max", avatarMaxSide))
 	}
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
-		return AccountProfile{}, api.Invalid("body.data", "The photo couldn't be read. Try another file.")
+		return AccountProfile{}, api.Invalid("body.data", say(ctx, msgs.M("problem.photoUnreadable")))
 	}
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, squareThumbnail(img, avatarSize)); err != nil {

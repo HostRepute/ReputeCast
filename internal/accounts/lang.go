@@ -4,6 +4,9 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/i18n"
@@ -188,3 +191,14 @@ func approvalMinimum(policy []byte) int {
 
 // langOf is the language the request reads in.
 func langOf(ctx context.Context) i18n.Lang { return i18n.LangFrom(ctx) }
+
+// workspaceLocation is a workspace's time zone, where its members read the
+// dates of its notifications.
+func (s *Service) workspaceLocation(ctx context.Context, wsID uuid.UUID) *time.Location {
+	if ws, err := s.Q.GetWorkspace(ctx, wsID); err == nil {
+		if loc, err := time.LoadLocation(ws.Timezone); err == nil {
+			return loc
+		}
+	}
+	return time.UTC
+}

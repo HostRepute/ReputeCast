@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/membermail"
 	"github.com/hostrepute/reputecast/internal/passwordreuse"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -203,7 +204,7 @@ func (s *Service) ResetPassword(ctx context.Context, token, password string) (Pa
 	if err != nil {
 		return PasswordResetDone{}, err
 	}
-	if p := authn.PasswordProblem(password, int(st.PasswordMinLength)); p != "" {
+	if p := authn.PasswordProblemIn(i18n.LangFrom(ctx), password, int(st.PasswordMinLength)); p != "" {
 		return PasswordResetDone{}, api.Invalid("body.password", p)
 	}
 	if st.BreachedCheck {

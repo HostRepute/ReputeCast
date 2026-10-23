@@ -11,6 +11,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/website"
 )
@@ -98,7 +99,7 @@ func (s *Service) addWebsiteTools(srv *mcp.Server) {
 			}
 			posts = append(posts, m)
 		}
-		e.summary = fmt.Sprintf("%d posts", len(posts))
+		e.summaryText = keep("outcome.posts", i18n.Args{"count": len(posts)})
 		return map[string]any{"posts": posts, "total": list.Total, "counts": list.Counts, "note": "Numbers are the last 30 days, counted on the server without cookies."}, e, nil
 	}, nil)
 
@@ -156,7 +157,7 @@ func (s *Service) addWebsiteTools(srv *mcp.Server) {
 		if err != nil {
 			return nil, e, err
 		}
-		e.targetID, e.after, e.detail = p.ID, map[string]any{"title": p.Title, "slug": p.Slug, "visibility": p.Visibility}, "draft"
+		e.targetID, e.after, e.detailText = p.ID, map[string]any{"title": p.Title, "slug": p.Slug, "visibility": p.Visibility}, keep("detail.draft", nil)
 		return map[string]any{"id": p.ID, "title": p.Title, "slug": p.Slug, "status": p.Status, "visibility": p.Visibility,
 			"message": "Draft created. A person publishes it from Website › Posts; propose_post_publish asks one to."}, e, nil
 	}, nil)
@@ -185,7 +186,7 @@ func (s *Service) addWebsiteTools(srv *mcp.Server) {
 			}
 		}
 		e.detail = strings.TrimSpace(in.Note)
-		s.propose(ctx, c, "propose_post_publish", authz.WebsitePublish, entry{targetType: "website_post", targetID: p.ID, targetName: p.Title, detail: e.detail})
+		s.propose(ctx, c, "propose_post_publish", authz.WebsitePublish, entry{targetType: "website_post", targetID: p.ID, targetName: p.Title})
 		who := "a member with website:publish"
 		if helpers := access.Helpers(ctx, s.Q, c.Workspace.ID, authz.WebsitePublish); len(helpers) > 0 {
 			who = helpers[0]

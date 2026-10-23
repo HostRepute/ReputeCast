@@ -4,7 +4,6 @@ import (
 	"embed"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -25,19 +24,29 @@ var messagesFS embed.FS
 var msgs = i18n.MustLoad(messagesFS, "api")
 
 var (
-	mDenied     = msgs.M("denied")
-	mDeniedAsk  = msgs.M("deniedAsk")
 	mEscalation = msgs.M("escalation")
 	mKeyExpired = msgs.M("keyExpired")
-	mActionThis = msgs.M("action.this")
+
+	// Problems the middleware writes in the request's language.
+	mNotForThisKey         = msgs.M("problem.notForThisKey")
+	mIntegrationOnly       = msgs.M("problem.integrationOnly")
+	mWordPressOnly         = msgs.M("problem.wordpressOnly")
+	mKeyOnly               = msgs.M("problem.keyOnly")
+	mIntegrationsOff       = msgs.M("problem.integrationsOff")
+	mIntegrationKeyRevoked = msgs.M("problem.integrationKeyRevoked")
+	mIntegrationKeyExpired = msgs.M("problem.integrationKeyExpired")
+	mOwnerLeft             = msgs.M("problem.ownerLeft")
 )
 
-// fixed maps the English of the problems the middleware writes to their messages.
+// fixed maps the English of problems written without the request's
+// language to their messages: the middleware's own (fixed.*), and every
+// package's "Campaign not found." (notFound.*, one message per kind of
+// thing), which NotFound and MapError write without a context.
 var fixed = map[string]i18n.Msg{}
 
 func init() {
 	for _, k := range msgs.Keys() {
-		if strings.HasPrefix(k, "fixed.") {
+		if strings.HasPrefix(k, "fixed.") || strings.HasPrefix(k, "notFound.") {
 			m := msgs.M(k)
 			fixed[m.Source()] = m
 		}
@@ -77,23 +86,16 @@ func langOf(hctx huma.Context) i18n.Lang {
 }
 
 // DeniedText explains a missing permission in a language: "Sending needs
-// the campaigns:send permission. Ask Marcus Chen or Linh Nguyen."
+// the campaigns:send permission. Ask Marcus Chen or Linh Nguyen." Its
+// words are internal/authz's (authz.DeniedText).
 func DeniedText(l i18n.Lang, perm authz.Permission, helpers []string) string {
-	action := mActionThis
-	if m, err := msgs.Lookup("action." + string(perm)); err == nil {
-		action = m
-	}
-	args := i18n.Args{"action": action.Text(l, nil), "permission": string(perm)}
-	if len(helpers) > 0 {
-		args["helpers"] = i18n.OrList(l.Locale, helpers)
-		return mDeniedAsk.Text(l, args)
-	}
-	return mDenied.Text(l, args)
+	return authz.DeniedText(l, perm, helpers)
 }
 
 // RoleName writes a role's name in a language: the built-in roles (Owner,
-// Admin, Editor, Viewer) are translated; custom roles, and a built-in role
-// stored under another name, keep the name they were given.
+// Admin, Editor, Viewer, and an agency's client roles) are translated;
+// custom roles, and a built-in role stored under another name, keep the
+// name they were given.
 func RoleName(l i18n.Lang, key, name string) string {
 	b, ok := authz.Builtin(key)
 	if !ok || (name != "" && name != b.Name) {
@@ -106,10 +108,23 @@ func RoleName(l i18n.Lang, key, name string) string {
 	return m.Text(l, nil)
 }
 
-var (
-	escalationRe = regexp.MustCompile(`^You can't grant (.+) because you don't hold it\.$`)
-	keyExpiredRe = regexp.MustCompile(`^This API key expired on (.+)\. Rotate it in Settings › Keys & MCP\.$`)
-)
+// RoleArg is a role's name as an argument of an audit entry's kept line
+// (audit.KeepReason, audit.KeepSummary): a built-in role under its own name
+// is its message, which audit.Render writes in each reader's language; any
+// other name stays as it is.
+func RoleArg(key, name string) any {
+	b, ok := authz.Builtin(key)
+	if !ok || (name != "" && name != b.Name) {
+		return name
+	}
+	m, err := msgs.Lookup("role." + key)
+	if err != nil {
+		return b.Name
+	}
+	return m.Keep(nil)
+}
+
+var escalationRe = regexp.MustCompile(`^You can't grant (.+) because you don't hold it\.$`)
 
 // localizedDetail writes an access problem's detail in another language.
 func localizedDetail(p *Problem, l i18n.Lang) (string, bool) {
@@ -123,11 +138,6 @@ func localizedDetail(p *Problem, l i18n.Lang) (string, bool) {
 	}
 	if m, ok := fixed[p.Detail]; ok {
 		return m.Text(l, nil), true
-	}
-	if m := keyExpiredRe.FindStringSubmatch(p.Detail); m != nil {
-		if t, err := time.Parse("Jan 2, 2006", m[1]); err == nil {
-			return mKeyExpired.Text(l, i18n.Args{"date": l.Region.Date(t)}), true
-		}
 	}
 	return "", false
 }

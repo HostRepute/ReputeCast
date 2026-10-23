@@ -6,13 +6,16 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
 // Staff hear about incidents and approvals in their clients through their
 // memberships there, following their own notification preferences. The
-// Agency area's bell gathers them across the agency's workspaces; marking
-// one read goes through its workspace's notification center.
+// Agency area's bell gathers them across the agency's workspaces, in the
+// reader's language (the messages each notification kept, notify.Localize);
+// marking one read goes through its workspace's notification center.
 
 // AgencyNotification is one of a staff member's notifications.
 type AgencyNotification struct {
@@ -54,6 +57,7 @@ func (s *Service) Notifications(ctx context.Context, limit int) (AgencyNotificat
 	if err != nil {
 		return out, err
 	}
+	l := i18n.LangFrom(ctx)
 	for _, r := range rows {
 		if r.WorkspaceID == nil {
 			continue
@@ -62,7 +66,11 @@ func (s *Service) Notifications(ctx context.Context, limit int) (AgencyNotificat
 		if !ok {
 			continue
 		}
-		out.Items = append(out.Items, AgencyNotification{ID: r.ID.String(), Workspace: wsRef(w), Kind: r.Kind, Severity: r.Severity, Title: r.Title, Summary: r.Summary,
+		title, summary, body := notify.Localize(l, r.Title, r.Summary, r.Body, r.Data)
+		if summary == "" {
+			summary = body
+		}
+		out.Items = append(out.Items, AgencyNotification{ID: r.ID.String(), Workspace: wsRef(w), Kind: r.Kind, Severity: r.Severity, Title: title, Summary: summary,
 			Link: r.Link, CreatedAt: r.CreatedAt, Read: r.Read})
 	}
 	out.Unread, err = s.Q.AgencyUnreadNotifications(ctx, store.AgencyUnreadNotificationsParams{UserID: u.ID, WorkspaceIds: ids})

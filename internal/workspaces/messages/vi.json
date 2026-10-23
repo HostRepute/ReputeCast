@@ -1,0 +1,50 @@
+{
+  "problem.name": "Hãy đặt tên cho không gian làm việc.",
+  "problem.timezone": "Múi giờ không xác định.",
+  "problem.sender": "Hãy chọn một người gửi của không gian làm việc này.",
+  "problem.signedInOwner": "Chỉ Chủ sở hữu đã đăng nhập mới có thể chuyển quyền sở hữu.",
+  "problem.password": "Mật khẩu đó không đúng.",
+  "problem.reauth": "Hãy đăng nhập lại bằng nhà cung cấp danh tính của bạn, rồi chuyển quyền sở hữu trong vòng 10 phút.",
+  "problem.pickOwner": "Hãy chọn Chủ sở hữu mới.",
+  "problem.notMember": "Chỉ thành viên đang hoạt động của không gian làm việc này mới có thể trở thành Chủ sở hữu.",
+  "problem.notEligible": "{name} chưa bật xác thực hai lớp. Chỉ thành viên đang hoạt động có xác thực hai lớp mới có thể trở thành Chủ sở hữu.",
+  "problem.confirmName": "Hãy nhập chính xác {name} để xác nhận.",
+  "problem.section": "Hãy chọn Giao dịch, Tăng trưởng hoặc Kiếm tiền.",
+
+  "reason.manage": "Muốn thay đổi cài đặt không gian làm việc, bạn cần quyền workspace:manage.",
+  "reason.manageAsk": "Muốn thay đổi cài đặt không gian làm việc, bạn cần quyền workspace:manage. Hãy nhờ {helpers}.",
+
+  "rule.audience": "người nhận ≥ {n, number}",
+  "rule.warming": "tuyến có một nhà cung cấp đang khởi động",
+  "rule.newProvider": "nhà cung cấp được kết nối trong {days} ngày qua",
+  "rule.warnings": "Độ sẵn sàng gửi có cảnh báo",
+  "rule.lacksSend": "tác giả không có quyền campaigns:send",
+  "rule.lists": "người nhận gồm một danh sách cần phê duyệt",
+  "rule.clientSignoff": "mọi lần gửi, để có phê duyệt của khách hàng",
+
+  "signIn.enforced": "Bắt buộc SSO {name} cho {domains}",
+  "signIn.ownerPassword": "Chủ sở hữu vẫn giữ mật khẩu",
+  "signIn.sso": "SSO {name} cho {domains}",
+  "signIn.alsoPasswords": "vẫn cho phép mật khẩu và khóa truy cập",
+  "signIn.fallback": "Mật khẩu và khóa truy cập",
+  "signIn.password": "mật khẩu",
+  "signIn.passkeys": "khóa truy cập",
+  "signIn.social": "đăng nhập bằng mạng xã hội",
+  "signIn.twoFactorEveryone": "bắt buộc xác thực hai lớp với mọi người",
+  "signIn.twoFactorSensitive": "bắt buộc xác thực hai lớp với các quyền ⚑",
+
+  "note.twoFactor": "{name} dùng {method, select, passkey {khóa truy cập} other {ứng dụng xác thực}}, nên đáp ứng yêu cầu xác thực hai lớp của Chủ sở hữu.",
+  "note.idp": "{name} đăng nhập qua {provider} với xác thực hai lớp do IdP bắt buộc, nên đáp ứng yêu cầu về tài khoản khẩn cấp của Chủ sở hữu.",
+  "note.singleSignOn": "đăng nhập một lần",
+  "reason.noTwoFactor": "{name} chưa bật xác thực hai lớp.",
+
+  "notify.ownerTitle": "{name} đã chuyển cho bạn quyền Chủ sở hữu của {workspace}",
+  "notify.deletedTitle": "{name} đã bị xóa",
+  "notify.deletedBody": "Quản trị viên hệ thống có thể khôi phục không gian làm việc này đến ngày {at, date}.",
+
+  "audit.nowAdmin": "{name} giờ là Quản trị viên",
+  "audit.restorable": "khôi phục được đến ngày {at, date}",
+  "audit.sendsStopped": "{count, plural, other {đã dừng # lần gửi đã lên lịch}}",
+  "audit.exported": "liên hệ kèm sự đồng ý, chiến dịch dạng MJML, báo cáo dạng CSV, nhật ký kiểm tra dạng JSON",
+  "audit.section": "{shown, select, yes {đã hiện} other {đã ẩn}} {section, select, transactional {Giao dịch} grow {Tăng trưởng} other {Kiếm tiền}} {shown, select, yes {trên thanh bên} other {khỏi thanh bên}}"
+}

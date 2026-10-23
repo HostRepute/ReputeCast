@@ -82,7 +82,7 @@ func (s *Service) addChannelTools(srv *mcp.Server) {
 		if err != nil {
 			return nil, e, err
 		}
-		e.targetID, e.targetName, e.detail = cp.ID, cp.Name, "push draft"
+		e.targetID, e.targetName, e.detailText = cp.ID, cp.Name, keep("detail.pushDraft", nil)
 		return map[string]any{"id": cp.ID, "name": cp.Name, "status": cp.Status, "audience": cp.Audience.Final, "sites": len(cp.Sites),
 			"note": "A draft: a person with campaigns:send and push:send sends it from Review & send."}, e, nil
 	}, nil)
@@ -143,7 +143,7 @@ func (s *Service) addChannelTools(srv *mcp.Server) {
 		if err != nil {
 			return nil, e, err
 		}
-		e.targetID, e.targetName, e.detail = cp.ID, cp.Name, "WhatsApp draft"
+		e.targetID, e.targetName, e.detailText = cp.ID, cp.Name, keep("detail.whatsappDraft", nil)
 		return map[string]any{"id": cp.ID, "name": cp.Name, "status": cp.Status, "template": in.Template, "recipients": cp.Audience.Final,
 			"estimated_cost": cp.Cost.Amount, "rates_as_of": cp.Cost.RatesAsOf.Format("2006-01-02"),
 			"note": "A draft: map the template's variables in the composer; a person with campaigns:send and whatsapp:send sends it."}, e, nil

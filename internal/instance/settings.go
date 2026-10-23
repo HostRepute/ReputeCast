@@ -23,6 +23,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/applang"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -81,6 +82,8 @@ func (s *Service) Settings(ctx context.Context) (InstanceSettings, error) {
 			if st.PublicUrlCheckedAt != nil {
 				c.CheckedAt = *st.PublicUrlCheckedAt
 			}
+			// The check was stored in English with its lines' messages.
+			c = c.In(i18n.LangFrom(ctx))
 			out.URLCheck = &c
 		}
 	}
@@ -105,15 +108,15 @@ func (s *Service) SaveSettings(ctx context.Context, in InstanceSettingsInput) (I
 	}
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		return InstanceSettings{}, api.Invalid("body.name", "Name the instance, like Acme ReputeCast.")
+		return InstanceSettings{}, api.Invalid("body.name", say(ctx, "problem.instanceName", nil))
 	}
-	pub, err := normalizePublicURL(in.PublicURL)
+	pub, err := normalizePublicURL(ctx, in.PublicURL)
 	if err != nil {
 		return InstanceSettings{}, err
 	}
 	tz := strings.TrimSpace(in.DefaultTimezone)
 	if _, err := time.LoadLocation(tz); err != nil || tz == "" {
-		return InstanceSettings{}, api.Invalid("body.defaultTimezone", "Use a timezone like America/New_York.")
+		return InstanceSettings{}, api.Invalid("body.defaultTimezone", say(ctx, "problem.timezone", nil))
 	}
 	lang, region := before.DefaultLanguage, before.DefaultRegionFormat
 	if in.DefaultLanguage != "" {
@@ -123,7 +126,7 @@ func (s *Service) SaveSettings(ctx context.Context, in InstanceSettingsInput) (I
 		region = in.DefaultRegionFormat
 	}
 	if err := applang.CheckDefault(lang, region); err != nil {
-		return InstanceSettings{}, api.Invalid("body.defaultLanguage", "Pick a language ReputeCast is translated into, and one of the region formats.")
+		return InstanceSettings{}, api.Invalid("body.defaultLanguage", say(ctx, "problem.language", nil))
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -136,21 +139,21 @@ func (s *Service) SaveSettings(ctx context.Context, in InstanceSettingsInput) (I
 			return err
 		}
 		after.DefaultLanguage, after.DefaultRegionFormat = lang, region
-		var changes []string
+		var changes []any
 		if before.Name != after.Name {
-			changes = append(changes, "name "+after.Name)
+			changes = append(changes, keep("audit.name", i18n.Args{"name": after.Name}))
 		}
 		if before.PublicUrl != after.PublicUrl {
-			changes = append(changes, "public URL "+after.PublicUrl+" (was "+before.PublicUrl+")")
+			changes = append(changes, keep("audit.publicURL", i18n.Args{"url": after.PublicUrl, "was": before.PublicUrl}))
 		}
 		if before.DefaultTimezone != after.DefaultTimezone {
-			changes = append(changes, "timezone "+after.DefaultTimezone)
+			changes = append(changes, keep("audit.timezone", i18n.Args{"timezone": after.DefaultTimezone}))
 		}
 		if before.DefaultLanguage != after.DefaultLanguage {
-			changes = append(changes, "default language "+after.DefaultLanguage)
+			changes = append(changes, keep("audit.language", i18n.Args{"language": after.DefaultLanguage}))
 		}
 		if before.DefaultRegionFormat != after.DefaultRegionFormat {
-			changes = append(changes, "default region format "+after.DefaultRegionFormat)
+			changes = append(changes, keep("audit.region", i18n.Args{"region": after.DefaultRegionFormat}))
 		}
 		if len(changes) == 0 {
 			return nil
@@ -160,7 +163,7 @@ func (s *Service) SaveSettings(ctx context.Context, in InstanceSettingsInput) (I
 				"default_language": before.DefaultLanguage, "default_region_format": before.DefaultRegionFormat},
 			After: map[string]any{"name": after.Name, "public_url": after.PublicUrl, "default_timezone": after.DefaultTimezone,
 				"default_language": after.DefaultLanguage, "default_region_format": after.DefaultRegionFormat},
-			Metadata: map[string]any{"summary": strings.Join(changes, " · ")}})
+			Metadata: audit.KeepSummary(nil, changes...)})
 	})
 	if err != nil {
 		return InstanceSettings{}, err
@@ -178,11 +181,11 @@ func (s *Service) SaveSettings(ctx context.Context, in InstanceSettingsInput) (I
 	return out, nil
 }
 
-func normalizePublicURL(raw string) (string, error) {
+func normalizePublicURL(ctx context.Context, raw string) (string, error) {
 	raw = strings.TrimSpace(raw)
 	u, err := url.Parse(raw)
 	if err != nil || u.Host == "" || (u.Scheme != "https" && u.Scheme != "http") || u.RawQuery != "" || u.Fragment != "" {
-		return "", api.Invalid("body.publicUrl", "Use the full address people open, like https://reputecast.acme.io.")
+		return "", api.Invalid("body.publicUrl", say(ctx, "problem.publicURL", nil))
 	}
 	return strings.TrimRight(u.Scheme+"://"+u.Host+u.EscapedPath(), "/"), nil
 }
@@ -201,12 +204,12 @@ func (s *Service) CheckURL(ctx context.Context, in InstanceURLCheckInput) (Insta
 	}
 	target := s.publicURL(st)
 	if strings.TrimSpace(in.URL) != "" {
-		if target, err = normalizePublicURL(in.URL); err != nil {
-			return InstanceSettings{}, api.Invalid("body.url", "Use the full address people open, like https://reputecast.acme.io.")
+		if target, err = normalizePublicURL(ctx, in.URL); err != nil {
+			return InstanceSettings{}, api.Invalid("body.url", say(ctx, "problem.publicURL", nil))
 		}
 	}
 	if target == "" {
-		return InstanceSettings{}, api.Invalid("body.url", "Enter the public URL first.")
+		return InstanceSettings{}, api.Invalid("body.url", say(ctx, "problem.noPublicURL", nil))
 	}
 	res, err := s.Accounts.CheckPublicURL(ctx, target)
 	if err != nil {
@@ -221,6 +224,7 @@ func (s *Service) CheckURL(ctx context.Context, in InstanceURLCheckInput) (Insta
 			return out, err
 		}
 	}
+	res = res.In(i18n.LangFrom(ctx))
 	out.URLCheck = &res
 	return out, nil
 }
@@ -238,7 +242,7 @@ const (
 
 // SetLogo stores the logo shown on the sign-in page and in team emails.
 func (s *Service) SetLogo(ctx context.Context, in InstanceLogoInput) (InstanceSettings, error) {
-	svg, err := logoSVG(in.Data)
+	svg, err := logoSVG(i18n.LangFrom(ctx), in.Data)
 	if err != nil {
 		return InstanceSettings{}, err
 	}
@@ -262,7 +266,7 @@ func (s *Service) RemoveLogo(ctx context.Context) (InstanceSettings, error) {
 		if err := q.InstanceAdminSetLogo(ctx, nil); err != nil {
 			return err
 		}
-		return s.Audit.LogWith(ctx, q, audit.Event{Action: "instance.logo_removed", TargetType: "instance", TargetName: "Logo", Metadata: map[string]any{"summary": "uses the ReputeCast mark"}})
+		return s.Audit.LogWith(ctx, q, audit.Event{Action: "instance.logo_removed", TargetType: "instance", TargetName: "Logo", Metadata: audit.KeepText(nil, "summary", keep("audit.logoMark", nil))})
 	})
 	if err != nil {
 		return InstanceSettings{}, err
@@ -272,15 +276,15 @@ func (s *Service) RemoveLogo(ctx context.Context) (InstanceSettings, error) {
 
 // logoSVG validates an upload and returns the SVG to store. PNGs are
 // re-encoded (metadata dropped) and wrapped in a square SVG.
-func logoSVG(data string) (string, error) {
-	invalid := func(msg string) error { return api.Invalid("body.data", msg) }
+func logoSVG(l i18n.Lang, data string) (string, error) {
+	invalid := func(key string, args i18n.Args) error { return api.Invalid("body.data", msgs.M(key).Text(l, args)) }
 	data = strings.TrimSpace(data)
 	var raw []byte
 	switch {
 	case strings.HasPrefix(data, "data:image/svg+xml;base64,"), strings.HasPrefix(data, "data:image/png;base64,"):
 		b, err := base64.StdEncoding.DecodeString(data[strings.Index(data, ",")+1:])
 		if err != nil {
-			return "", invalid("The file couldn't be read. Upload an SVG or PNG.")
+			return "", invalid("problem.logoUnreadable", nil)
 		}
 		raw = b
 	case strings.HasPrefix(data, "<"):
@@ -288,21 +292,21 @@ func logoSVG(data string) (string, error) {
 	default:
 		b, err := base64.StdEncoding.DecodeString(data)
 		if err != nil {
-			return "", invalid("The file couldn't be read. Upload an SVG or PNG.")
+			return "", invalid("problem.logoUnreadable", nil)
 		}
 		raw = b
 	}
 	if bytes.HasPrefix(raw, []byte("\x89PNG")) {
 		if len(raw) > maxPNG {
-			return "", invalid("The PNG is larger than 512 KB. Use a smaller, square image.")
+			return "", invalid("problem.pngLarge", nil)
 		}
 		img, err := png.Decode(bytes.NewReader(raw))
 		if err != nil {
-			return "", invalid("That PNG couldn't be decoded.")
+			return "", invalid("problem.pngDecode", nil)
 		}
 		b := img.Bounds()
 		if b.Dx() > 1024 || b.Dy() > 1024 || b.Dx() < 16 || b.Dy() < 16 {
-			return "", invalid("Use a square PNG between 16 and 1024 pixels.")
+			return "", invalid("problem.pngSize", nil)
 		}
 		var buf bytes.Buffer
 		if err := png.Encode(&buf, img); err != nil {
@@ -311,10 +315,10 @@ func logoSVG(data string) (string, error) {
 		return pngInSVG(buf.Bytes(), b), nil
 	}
 	if len(raw) > maxSVG {
-		return "", invalid("The SVG is larger than 100 KB. Simplify it or upload a PNG.")
+		return "", invalid("problem.svgLarge", nil)
 	}
-	if err := checkSVG(raw); err != nil {
-		return "", invalid(err.Error())
+	if p := checkSVG(raw); p != nil {
+		return "", invalid(p.key, p.args)
 	}
 	return string(raw), nil
 }
@@ -331,22 +335,29 @@ var (
 	svgCSSURL  = regexp.MustCompile(`(?i)(?:url\(\s*["']?\s*(?:https?:|//|javascript:)|@import)`)
 )
 
+// svgProblem is why an SVG isn't accepted as a logo: a message and its
+// arguments.
+type svgProblem struct {
+	key  string
+	args i18n.Args
+}
+
 // checkSVG accepts a well-formed SVG without scripts, event handlers,
 // embedded HTML or external references. The logo is shown through <img>,
 // which runs no scripts anyway; this keeps the stored document clean for
 // emails and downloads too.
-func checkSVG(raw []byte) error {
+func checkSVG(raw []byte) *svgProblem {
 	lower := strings.ToLower(string(raw))
 	for _, bad := range []struct{ token, what string }{
-		{"<script", "a script"}, {"<foreignobject", "embedded HTML"}, {"<!entity", "an XML entity"}, {"<iframe", "an iframe"},
-		{"<embed", "embedded content"}, {"<object", "embedded content"}, {"javascript:", "a javascript: link"},
+		{"<script", "script"}, {"<foreignobject", "html"}, {"<!entity", "entity"}, {"<iframe", "iframe"},
+		{"<embed", "embed"}, {"<object", "embed"}, {"javascript:", "js"},
 	} {
 		if strings.Contains(lower, bad.token) {
-			return fmt.Errorf("The SVG contains %s, which isn't allowed in a logo. Export it again as a plain image.", bad.what) //nolint:staticcheck // ST1005: shown to people as a sentence
+			return &svgProblem{"problem.svgBad", i18n.Args{"what": bad.what}}
 		}
 	}
 	if svgEvent.MatchString(string(raw)) || svgBadHref.MatchString(string(raw)) || svgCSSURL.MatchString(string(raw)) {
-		return errors.New("The SVG contains event handlers or external links, which aren't allowed in a logo. Export it again as a plain image.") //nolint:staticcheck // ST1005: shown to people as a sentence
+		return &svgProblem{"problem.svgLinks", nil}
 	}
 	d := xml.NewDecoder(bytes.NewReader(raw))
 	root := ""
@@ -356,14 +367,14 @@ func checkSVG(raw []byte) error {
 			break
 		}
 		if err != nil {
-			return errors.New("The SVG isn't well-formed XML. Export it again from your design tool.") //nolint:staticcheck // ST1005: shown to people as a sentence
+			return &svgProblem{"problem.svgXML", nil}
 		}
 		if se, ok := tok.(xml.StartElement); ok && root == "" {
 			root = se.Name.Local
 		}
 	}
 	if root != "svg" {
-		return errors.New("The file isn't an SVG image. Upload an SVG or a square PNG.") //nolint:staticcheck // ST1005: shown to people as a sentence
+		return &svgProblem{"problem.notSVG", nil}
 	}
 	return nil
 }

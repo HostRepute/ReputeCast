@@ -797,9 +797,12 @@ is a name and stays in English.
 | English | Tiếng Việt | Note |
 |---|---|---|
 | actor (audit) · Any actor type | người thực hiện · Mọi loại người thực hiện | who did it: a member, a key, an agent or the system |
+| agent capability: Allow · Deny · Approve · Pause only (Settings › MCP) | Cho phép · Từ chối · Phê duyệt · Chỉ tạm dừng | the matrix's cells; “Phê duyệt” as the caption quotes it |
 | All retained (date range) | Toàn bộ thời gian lưu giữ | |
+| app registration (Entra) · app integration (Okta) | đăng ký ứng dụng · tích hợp ứng dụng | “the Entra app registration”: “đăng ký ứng dụng Entra” |
 | batch (of streamed entries) | lô | as in "endpoint theo lô" |
 | break-glass Owner | Chủ sở hữu có tài khoản khẩn cấp | never "Chủ sở hữu khẩn cấp" |
+| break-glass password · break-glass passkey | mật khẩu khẩn cấp · khóa truy cập khẩn cấp | what a break-glass Owner keeps while SSO is enforced |
 | claim · Client ID · client secret · Scopes (OIDC) | claim · Client ID · client secret · Scope | named as the identity provider's console names them |
 | danger zone | Vùng nguy hiểm | |
 | delivery (webhook) · Delivery log | lần gửi · Nhật ký gửi | |
@@ -812,6 +815,7 @@ is a name and stays in English.
 | entry (audit) · Entry details | mục · Chi tiết mục nhật ký | |
 | Failing · Paused (an endpoint) | Đang lỗi · Đã tạm dừng | "Healthy" is "Ổn định" |
 | Force sign-out | Buộc đăng xuất | |
+| Generic OIDC (a preset) | OIDC chung | the IdP's short name in sentences is “IdP” |
 | Given (approvals a member gave) | Đã xét duyệt | |
 | group mapping · group object ID | ánh xạ nhóm · object ID của nhóm | |
 | hourly cleanup | lần dọn dẹp hằng giờ | |
@@ -819,9 +823,12 @@ is a name and stays in English.
 | immutable (audit entries) | không thể sửa đổi | |
 | instance-level (entries) · Instance level | cấp hệ thống · Cấp hệ thống | |
 | JIT account creation | tạo tài khoản tự động (JIT) | |
+| just-in-time account · JIT default role | tài khoản JIT · vai trò mặc định của JIT | |
 | Locked (sign-in) · Unlock sign-in | Bị khóa · Mở khóa đăng nhập | a lockout is "khóa đăng nhập" |
 | Make instance admin · Remove instance admin | Đặt làm quản trị viên hệ thống · Gỡ quyền quản trị hệ thống | |
+| overage link (Entra's groups) | liên kết overage | Entra's own word |
 | preset (an SSO provider's, a key's) | cấu hình sẵn | |
+| proposal (an agent asked a person) · proposal recorded | đề xuất · đã ghi đề xuất | “Ops asked to pause …”: “Ops đề xuất tạm dừng …” |
 | provider status: degraded · down | đang suy giảm · đang gián đoạn | as Channels and SMS' Suy giảm · Gián đoạn |
 | re-authentication | xác thực lại | |
 | Redirect URI | URI chuyển hướng | |
@@ -838,6 +845,8 @@ is a name and stays in English.
 | test sign-in | đăng nhập thử | |
 | Then allowed | Sau đó được phép | a sign-in that was rejected, then allowed |
 | token (an agent's) | token | "agent token": "token của tác tử" |
+| tool (MCP) | công cụ | tool names (get_campaign_report) stay as they are |
+| Trusted from Okta (two-factor) | Tin cậy từ Okta | the IdP enforces the second factor |
 | typed confirmation | xác nhận bằng cách nhập tên | |
 | Up to date · Update available (a release) | Đã là bản mới nhất · Có bản cập nhật | language versions keep "Đã cập nhật" |
 | user (an account on the instance) | người dùng | a workspace's people are "thành viên" |

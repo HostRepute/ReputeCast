@@ -342,10 +342,10 @@ func (s *Service) UpdateProfile(ctx context.Context, in AccountProfileInput) (Ac
 	}
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		return AccountProfile{}, api.Invalid("body.name", "Enter your name as the team should see it.")
+		return AccountProfile{}, api.Invalid("body.name", say(ctx, msgs.M("problem.profileName")))
 	}
 	if _, err := time.LoadLocation(in.Timezone); err != nil {
-		return AccountProfile{}, api.Invalid("body.timezone", "Unknown timezone.")
+		return AccountProfile{}, api.Invalid("body.timezone", say(ctx, msgs.M("problem.timezone")))
 	}
 	var nu store.User
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -388,21 +388,21 @@ func (s *Service) RequestEmailChange(ctx context.Context, in AccountEmailChangeI
 	}
 	email := strings.ToLower(strings.TrimSpace(in.Email))
 	if email == u.Email {
-		return AccountEmailChangeStarted{}, api.Invalid("body.email", "That's already your email.")
+		return AccountEmailChangeStarted{}, api.Invalid("body.email", say(ctx, msgs.M("problem.sameEmail")))
 	}
 	if u.PasswordHash != nil {
 		ok, err := authn.VerifyPassword(in.Password, *u.PasswordHash)
 		if err != nil || !ok {
-			return AccountEmailChangeStarted{}, api.Invalid("body.password", "Your current password isn't right.")
+			return AccountEmailChangeStarted{}, api.Invalid("body.password", say(ctx, msgs.M("problem.currentPassword")))
 		}
 	}
 	if taken, err := s.Q.EmailTaken(ctx, store.EmailTakenParams{Email: email, UserID: u.ID}); err != nil {
 		return AccountEmailChangeStarted{}, err
 	} else if taken {
-		return AccountEmailChangeStarted{}, api.Invalid("body.email", "Another account uses this email.")
+		return AccountEmailChangeStarted{}, api.Invalid("body.email", say(ctx, msgs.M("problem.emailTaken")))
 	}
 	unsent := api.Err(http.StatusServiceUnavailable, api.CodeProviderUnavailable,
-		"The verification email for "+email+" couldn't be sent: the System stream has no healthy provider right now. Your current email stays active.").WithMeta("email", email)
+		say(ctx, msgs.M("problem.verificationUnsent"), "email", email)).WithMeta("email", email)
 	if !s.mail().SystemAvailable(ctx, nil) {
 		return AccountEmailChangeStarted{}, unsent
 	}
@@ -475,12 +475,12 @@ func (s *Service) ConfirmEmailChange(ctx context.Context, token string) (Account
 		var err error
 		ch, err = q.ConsumeEmailChange(ctx, store.ConsumeEmailChangeParams{TokenHash: authn.HashToken(token), UserID: u.ID})
 		if err != nil {
-			return api.Err(http.StatusGone, "email_change_expired", "This confirmation link expired, was already used, or belongs to another account. Change your email again from Account & security.")
+			return api.Err(http.StatusGone, "email_change_expired", say(ctx, msgs.M("problem.emailLinkExpired")))
 		}
 		if taken, err := q.EmailTaken(ctx, store.EmailTakenParams{Email: ch.NewEmail, UserID: u.ID}); err != nil {
 			return err
 		} else if taken {
-			return api.Conflict("Another account uses " + ch.NewEmail + " now. Your email wasn't changed.")
+			return api.Conflict(say(ctx, msgs.M("problem.emailTakenNow"), "email", ch.NewEmail))
 		}
 		if err := q.SetUserEmail(ctx, store.SetUserEmailParams{ID: u.ID, Email: ch.NewEmail}); err != nil {
 			return err
@@ -520,10 +520,10 @@ func (s *Service) UnlinkIdentity(ctx context.Context, id uuid.UUID) error {
 		return api.NotFound("Connected sign-in")
 	}
 	if s.methodsOf(ctx, *u).total() <= 1 {
-		return api.Err(http.StatusConflict, "last_method", "This is your only sign-in method. Add a passkey or password before unlinking it.")
+		return api.Err(http.StatusConflict, "last_method", say(ctx, msgs.M("problem.onlyMethod")))
 	}
 	if target.Kind == "sso" && target.ProviderStatus == "enabled" && slices.Contains(target.EnforceDomains, emailDomain(u.Email)) {
-		return api.Err(http.StatusConflict, "identity_managed", "SSO is enforced for "+emailDomain(u.Email)+"; the identity is managed by your organization.")
+		return api.Err(http.StatusConflict, "identity_managed", say(ctx, msgs.M("problem.identityManaged"), "domain", emailDomain(u.Email)))
 	}
 	name := socialNames[target.Kind]
 	if target.Kind == "sso" {
@@ -560,7 +560,7 @@ func (s *Service) LeaveWorkspace(ctx context.Context) error {
 				return err
 			}
 			if n <= 1 {
-				return api.Err(http.StatusConflict, api.CodeLastOwner, "You're the last Owner of "+ws.Name+". Transfer ownership before leaving: the last Owner can't leave.")
+				return api.Err(http.StatusConflict, api.CodeLastOwner, say(ctx, msgs.M("problem.lastOwnerLeave"), "workspace", ws.Name))
 			}
 		}
 		if _, err := q.DeleteMember(ctx, store.DeleteMemberParams{ID: m.ID, WorkspaceID: ws.ID}); err != nil {

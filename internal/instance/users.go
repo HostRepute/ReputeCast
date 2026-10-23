@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/membermail"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -360,7 +361,7 @@ func (s *Service) SignOut(ctx context.Context, id uuid.UUID, in InstanceUserReas
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{Action: "user.signed_out", TargetType: "user", TargetID: id.String(), TargetName: u.Email,
-			Reason: strings.TrimSpace(in.Reason), Metadata: map[string]any{"sessions": n, "summary": fmt.Sprintf("%d %s ended", n, plural(int(n), "session", "sessions"))}})
+			Reason: strings.TrimSpace(in.Reason), Metadata: audit.KeepText(map[string]any{"sessions": n}, "summary", keep("audit.sessionsEnded", i18n.Args{"count": n}))})
 	})
 	return InstanceSignOutResult{Revoked: n}, err
 }
@@ -392,14 +393,14 @@ func (s *Service) Deactivate(ctx context.Context, id uuid.UUID, in InstanceDeact
 		return InstanceDeactivateResult{}, err
 	}
 	if me.ID == id {
-		return InstanceDeactivateResult{}, api.Conflict("You can't deactivate your own account. Ask another instance admin.")
+		return InstanceDeactivateResult{}, api.Conflict(say(ctx, "problem.deactivateSelf", nil))
 	}
 	if u.Status != "active" {
-		return InstanceDeactivateResult{}, api.Conflict(displayName(u.Name, u.Email) + " is already deactivated.")
+		return InstanceDeactivateResult{}, api.Conflict(say(ctx, "problem.alreadyDeactivated", i18n.Args{"name": displayName(u.Name, u.Email)}))
 	}
 	if u.IsInstanceAdmin {
 		if n, err := s.Q.InstanceAdminCountAdmins(ctx); err == nil && n <= 1 {
-			return InstanceDeactivateResult{}, lastAdmin(u)
+			return InstanceDeactivateResult{}, lastAdmin(ctx, u)
 		}
 	}
 	if sole, err := s.Q.InstanceAdminSoleOwnerships(ctx, id); err == nil && len(sole) > 0 {
@@ -407,11 +408,12 @@ func (s *Service) Deactivate(ctx context.Context, id uuid.UUID, in InstanceDeact
 		for i, w := range sole {
 			names[i] = w.Name
 		}
-		return InstanceDeactivateResult{}, api.Err(http.StatusConflict, api.CodeLastOwner, fmt.Sprintf("%s is the only Owner of %s. Transfer ownership first, then deactivate.", displayName(u.Name, u.Email), strings.Join(names, " and ")))
+		l := i18n.LangFrom(ctx)
+		return InstanceDeactivateResult{}, api.Err(http.StatusConflict, api.CodeLastOwner, msgs.M("problem.soleOwner").Text(l, i18n.Args{"name": displayName(u.Name, u.Email), "workspaces": i18n.AndList(l.Locale, names)}))
 	}
 	reason := strings.TrimSpace(in.Reason)
 	if reason == "" {
-		return InstanceDeactivateResult{}, api.Invalid("body.reason", "Say why; the reason is recorded in the audit log.")
+		return InstanceDeactivateResult{}, api.Invalid("body.reason", say(ctx, "problem.reason", nil))
 	}
 	var res InstanceDeactivateResult
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -425,7 +427,7 @@ func (s *Service) Deactivate(ctx context.Context, id uuid.UUID, in InstanceDeact
 		if n, err := q.InstanceAdminDeactivateUser(ctx, store.InstanceAdminDeactivateUserParams{ID: id, At: &at}); err != nil {
 			return err
 		} else if n == 0 {
-			return api.Conflict(displayName(u.Name, u.Email) + " is already deactivated.")
+			return api.Conflict(say(ctx, "problem.alreadyDeactivated", i18n.Args{"name": displayName(u.Name, u.Email)}))
 		}
 		var err error
 		if res.Memberships, err = q.InstanceAdminDeactivateMemberships(ctx, store.InstanceAdminDeactivateMembershipsParams{UserID: id, At: &at}); err != nil {
@@ -439,14 +441,14 @@ func (s *Service) Deactivate(ctx context.Context, id uuid.UUID, in InstanceDeact
 				return err
 			}
 		}
-		parts := []string{"reason: " + reason}
+		parts := []any{keep("audit.reason", i18n.Args{"reason": reason})}
 		if res.Keys > 0 {
-			parts = append(parts, fmt.Sprintf("%d API %s revoked", res.Keys, plural(int(res.Keys), "key", "keys")))
+			parts = append(parts, keep("audit.keysRevoked", i18n.Args{"count": res.Keys}))
 		}
-		parts = append(parts, fmt.Sprintf("%d %s ended", res.Sessions, plural(int(res.Sessions), "session", "sessions")))
+		parts = append(parts, keep("audit.sessionsEnded", i18n.Args{"count": res.Sessions}))
 		return s.Audit.LogWith(ctx, q, audit.Event{Action: "user.deactivated", TargetType: "user", TargetID: id.String(), TargetName: displayName(u.Name, u.Email) + " · " + u.Email,
 			Reason: reason, Before: map[string]any{"status": "active"}, After: map[string]any{"status": "deactivated"},
-			Metadata: map[string]any{"summary": strings.Join(parts, " · "), "sessions": res.Sessions, "keys_revoked": res.Keys, "memberships": res.Memberships}})
+			Metadata: audit.KeepSummary(map[string]any{"sessions": res.Sessions, "keys_revoked": res.Keys, "memberships": res.Memberships}, parts...)})
 	})
 	return res, err
 }
@@ -459,7 +461,7 @@ func (s *Service) Reactivate(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 	if u.Status == "active" {
-		return api.Conflict(displayName(u.Name, u.Email) + " is already active.")
+		return api.Conflict(say(ctx, "problem.alreadyActive", i18n.Args{"name": displayName(u.Name, u.Email)}))
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -514,7 +516,7 @@ func (s *Service) ResetTwoFactor(ctx context.Context, id uuid.UUID, in InstanceT
 	}
 	reason := strings.TrimSpace(in.Reason)
 	if reason == "" {
-		return api.Invalid("body.reason", "A reason is required; it's recorded in the audit log.")
+		return api.Invalid("body.reason", say(ctx, "problem.reasonRequired", nil))
 	}
 	if err := s.reauth(ctx, me, in.Password); err != nil {
 		return err
@@ -524,7 +526,7 @@ func (s *Service) ResetTwoFactor(ctx context.Context, id uuid.UUID, in InstanceT
 		return err
 	}
 	if u.TotpEnabledAt == nil {
-		return api.Conflict(displayName(u.Name, u.Email) + " has no authenticator app to reset.")
+		return api.Conflict(say(ctx, "problem.noTOTP", i18n.Args{"name": displayName(u.Name, u.Email)}))
 	}
 	st, err := s.Q.GetInstanceSettings(ctx)
 	if err != nil {
@@ -544,15 +546,16 @@ func (s *Service) ResetTwoFactor(ctx context.Context, id uuid.UUID, in InstanceT
 		if sessions, err = q.RevokeAllUserSessions(ctx, id); err != nil {
 			return err
 		}
-		if err := notify.ToUser(ctx, tx, id, notify.Notification{Kind: "twofa_reset", Severity: "warn", Title: "Two-factor was reset",
-			Summary: displayName(me.Name, me.Email) + " reset your two-factor",
-			Body:    fmt.Sprintf("%s reset two-factor on your account (reason: %s). Set up an authenticator app again before %s.", displayName(me.Name, me.Email), reason, grace.Format("Jan 2")),
-			Link:    accountLink(ctx, s, id)}); err != nil {
+		// Read later, in the person's own language and timezone.
+		args := i18n.Args{"admin": displayName(me.Name, me.Email), "reason": reason, "at": grace.In(userLocation(ctx, q, id))}
+		if err := notify.ToUser(ctx, tx, id, notify.Notification{Kind: "twofa_reset", Severity: "warn", TitleText: keep("notify.twofaResetTitle", nil),
+			SummaryText: keep("notify.twofaResetSummary", args), BodyText: keep("notify.twofaResetBody", args),
+			Link: accountLink(ctx, s, id)}); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{Action: "user.twofa_reset", TargetType: "user", TargetID: id.String(), TargetName: displayName(u.Name, u.Email) + " · " + u.Email,
 			Reason: reason, Before: map[string]any{"totp": true}, After: map[string]any{"totp": false, "grace_until": grace},
-			Metadata: map[string]any{"summary": "reason: " + reason + fmt.Sprintf(" · grace %d days", st.TwofaGraceDays), "sessions": sessions}})
+			Metadata: audit.KeepSummary(map[string]any{"sessions": sessions}, keep("audit.reason", i18n.Args{"reason": reason}), keep("audit.grace", i18n.Args{"days": st.TwofaGraceDays}))})
 	})
 	if err != nil {
 		return err
@@ -584,15 +587,15 @@ func (s *Service) reauth(ctx context.Context, me *store.User, password string) e
 		if sess := api.SessionFrom(ctx); sess != nil && sess.MfaVerified {
 			return nil
 		}
-		return api.Err(http.StatusForbidden, "reauth_required", "Sign in again with two-factor to reset someone's two-factor.")
+		return api.Err(http.StatusForbidden, "reauth_required", say(ctx, "problem.reauth", nil))
 	}
 	if password == "" {
-		return api.Invalid("body.password", "Confirm with your password.")
+		return api.Invalid("body.password", say(ctx, "problem.confirmPassword", nil))
 	}
 	ok, err := authn.VerifyPassword(password, *me.PasswordHash)
 	if err != nil || !ok {
 		_ = s.Audit.Log(ctx, audit.Event{Action: "user.twofa_reset", Result: audit.Denied, Reason: "wrong admin password", TargetType: "user", TargetName: me.Email})
-		return api.Invalid("body.password", "That isn't your password.")
+		return api.Invalid("body.password", say(ctx, "problem.wrongPassword", nil))
 	}
 	return nil
 }
@@ -635,7 +638,7 @@ func (s *Service) PasswordResetInfo(ctx context.Context, id uuid.UUID) (Instance
 		}
 	}
 	if u.Status != "active" {
-		out.DeactivatedNotice = displayName(u.Name, u.Email) + " is deactivated. Reactivate the account before sending a reset link."
+		out.DeactivatedNotice = say(ctx, "notice.deactivated", i18n.Args{"name": displayName(u.Name, u.Email)})
 	}
 	return out, nil
 }
@@ -657,11 +660,11 @@ func (s *Service) SendPasswordReset(ctx context.Context, id uuid.UUID) (Instance
 		return InstancePasswordResetSent{}, err
 	}
 	if u.Status != "active" {
-		return InstancePasswordResetSent{}, api.Conflict(displayName(u.Name, u.Email) + " is deactivated. Reactivate the account first.")
+		return InstancePasswordResetSent{}, api.Conflict(say(ctx, "problem.deactivatedFirst", i18n.Args{"name": displayName(u.Name, u.Email)}))
 	}
 	if !s.mail().SystemAvailable(ctx, nil) {
 		return InstancePasswordResetSent{}, api.Err(http.StatusConflict, api.CodeProviderUnavailable,
-			"No System-stream provider can send email yet. Run reputecast user reset-password --email "+u.Email+" on the server instead; it prints the same link.")
+			say(ctx, "problem.noSystemProvider", i18n.Args{"command": "reputecast user reset-password --email " + u.Email}))
 	}
 	st, err := s.Q.GetInstanceSettings(ctx)
 	if err != nil {
@@ -678,10 +681,10 @@ func (s *Service) SendPasswordReset(ctx context.Context, id uuid.UUID) (Instance
 	via, err := s.mail().SendSystem(ctx, msg)
 	if err != nil {
 		_ = s.Q.InvalidatePasswordResets(ctx, id)
-		return InstancePasswordResetSent{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, "The reset email couldn't be sent ("+err.Error()+"). Nothing changed; use the CLI command instead.")
+		return InstancePasswordResetSent{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, say(ctx, "problem.resetUnsent", i18n.Args{"error": err.Error()}))
 	}
 	err = s.Audit.Log(ctx, audit.Event{Action: "user.password_reset_sent", TargetType: "user", TargetID: id.String(), TargetName: displayName(u.Name, u.Email) + " · " + u.Email,
-		Metadata: map[string]any{"via": via, "summary": "one-time link sent via " + via + " · expires in 15 minutes"}})
+		Metadata: audit.KeepSummary(map[string]any{"via": via}, keep("audit.resetVia", i18n.Args{"provider": via}), keep("audit.resetExpires", nil))})
 	return InstancePasswordResetSent{Via: via, ExpiresAt: expires}, err
 }
 
@@ -701,7 +704,7 @@ func (s *Service) SetInstanceAdmin(ctx context.Context, id uuid.UUID, in Instanc
 		return nil
 	}
 	if in.Admin && u.Status != "active" {
-		return api.Conflict(displayName(u.Name, u.Email) + " is deactivated. Reactivate the account first.")
+		return api.Conflict(say(ctx, "problem.deactivatedFirst", i18n.Args{"name": displayName(u.Name, u.Email)}))
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -732,11 +735,22 @@ func keepsAnAdmin(ctx context.Context, q *store.Queries, u store.InstanceAdminUs
 		return err
 	}
 	if slices.Contains(admins, u.ID) && len(admins) <= 1 {
-		return lastAdmin(u)
+		return lastAdmin(ctx, u)
 	}
 	return nil
 }
 
-func lastAdmin(u store.InstanceAdminUserRow) error {
-	return api.Err(http.StatusConflict, "last_admin", displayName(u.Name, u.Email)+" is the last instance admin. Make someone else an instance admin first.")
+func lastAdmin(ctx context.Context, u store.InstanceAdminUserRow) error {
+	return api.Err(http.StatusConflict, "last_admin", say(ctx, "problem.lastAdmin", i18n.Args{"name": displayName(u.Name, u.Email)}))
+}
+
+// userLocation is a person's own timezone, where they read the dates of
+// their notifications.
+func userLocation(ctx context.Context, q *store.Queries, id uuid.UUID) *time.Location {
+	if u, err := q.GetUser(ctx, id); err == nil {
+		if loc, err := time.LoadLocation(u.Timezone); err == nil {
+			return loc
+		}
+	}
+	return time.UTC
 }

@@ -1,0 +1,5 @@
+{
+  "problem.pseudo": "The pseudo-locale is only available in development, or when the server runs with i18n.pseudo_locale on.",
+  "problem.language": { "message": "ReputeCast isn't translated into that language. Pick {languages}.", "note": "languages: each language's name in itself, “English or Tiếng Việt”" },
+  "problem.region": "Pick one of the region formats in the list."
+}

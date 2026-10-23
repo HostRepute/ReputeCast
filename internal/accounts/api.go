@@ -398,7 +398,7 @@ func Register(h huma.API, s *Service) {
 			}
 		}) (*api.Body[URLCheck], error) {
 			r, err := s.CheckPublicURL(ctx, in.Body.URL)
-			return api.OK(r), err
+			return api.OK(r.In(langOf(ctx))), err
 		})
 
 	api.Post(h, api.Op{ID: "create-workspace", Path: "/workspaces", Summary: "Create a workspace; you become its Owner", Tags: []string{"Workspaces"}, Access: api.Access{Kind: api.AccessUser, AllowPending: true, HumansOnly: true}, Status: http.StatusCreated},

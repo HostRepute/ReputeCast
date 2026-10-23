@@ -21,6 +21,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/workspaces"
 )
@@ -83,10 +84,16 @@ func (s *Service) members(ctx context.Context, wsID uuid.UUID) (map[uuid.UUID][]
 	return out, nil
 }
 
-func summary(r store.RolesListRow, members []store.RolesMembersRow, invited int64) RoleSummary {
+// summary is a role for the roles screens; a built-in role's name and
+// description read in the reader's language.
+func summary(l i18n.Lang, r store.RolesListRow, members []store.RolesMembersRow, invited int64) RoleSummary {
 	perms := authz.Effective(r.Key, r.Builtin, r.Permissions)
+	title, about := r.Name, r.Description
+	if r.Builtin {
+		title, about = roleName(l, r.Key, r.Name), builtinDescription(l, r.Key, true, r.Description)
+	}
 	rs := RoleSummary{
-		ID: r.ID.String(), Key: r.Key, Name: r.Name, Description: r.Description, Builtin: r.Builtin, Permissions: perms.Strings(),
+		ID: r.ID.String(), Key: r.Key, Name: title, Description: about, Builtin: r.Builtin, Permissions: perms.Strings(),
 		Sensitive: perms.HasSensitive(), Members: []RoleMemberRef{}, Invited: int(invited), CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
 	}
 	if !r.Builtin {
@@ -128,10 +135,11 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	for _, i := range inv {
 		invited[i.RoleID] = i.N
 	}
-	out := RoleList{Roles: []RoleSummary{}, Permissions: access.Catalog(), Groups: access.Groups(), Held: p.Permissions.Strings(), CanManage: p.Can(authz.TeamManage),
+	l := i18n.LangFrom(ctx)
+	out := RoleList{Roles: []RoleSummary{}, Permissions: access.Catalog(l), Groups: access.Groups(l), Held: p.Permissions.Strings(), CanManage: p.Can(authz.TeamManage),
 		Helpers: access.Helpers(ctx, s.Q, ws.ID, authz.TeamManage)}
 	for _, r := range rows {
-		out.Roles = append(out.Roles, summary(r, members[r.ID], invited[r.ID]))
+		out.Roles = append(out.Roles, summary(l, r, members[r.ID], invited[r.ID]))
 	}
 	return out, nil
 }
@@ -166,8 +174,9 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, p *authz.Princip
 			invited = i.N
 		}
 	}
+	l := i18n.LangFrom(ctx)
 	return RoleDetail{
-		Role: summary(store.RolesListRow(r), members[r.ID], invited), Permissions: access.Catalog(), Groups: access.Groups(),
+		Role: summary(l, store.RolesListRow(r), members[r.ID], invited), Permissions: access.Catalog(l), Groups: access.Groups(l),
 		Held: p.Permissions.Strings(), CanManage: p.Can(authz.TeamManage), Helpers: access.Helpers(ctx, s.Q, ws.ID, authz.TeamManage),
 	}, nil
 }
@@ -199,13 +208,14 @@ func slug(name string) string {
 
 // validate checks the name and permission keys. It returns the expanded set.
 func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Workspace, in RoleInput, exclude uuid.UUID) (authz.Set, string, error) {
+	l := i18n.LangFrom(ctx)
 	n := strings.TrimSpace(in.Name)
 	if n == "" {
-		return nil, "", api.Invalid("body.name", "Give the role a name.")
+		return nil, "", api.Invalid("body.name", msgs.M("problem.name").Text(l, nil))
 	}
 	for _, b := range authz.BuiltinRoles {
 		if strings.EqualFold(b.Name, n) {
-			return nil, "", api.Invalid("body.name", fmt.Sprintf("The role name “%s” is taken by a built-in role. Choose another name.", b.Name))
+			return nil, "", api.Invalid("body.name", msgs.M("problem.builtinName").Text(l, i18n.Args{"name": b.Name}))
 		}
 	}
 	taken, err := q.RolesNameTaken(ctx, store.RolesNameTakenParams{WorkspaceID: ws.ID, Name: n, ExcludeID: exclude})
@@ -213,20 +223,20 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 		return nil, "", err
 	}
 	if taken {
-		return nil, "", api.Invalid("body.name", fmt.Sprintf("A role named “%s” already exists. Choose another name.", n))
+		return nil, "", api.Invalid("body.name", msgs.M("problem.nameTaken").Text(l, i18n.Args{"name": n}))
 	}
-	keys := make([]authz.Permission, 0, len(in.Permissions))
+	perms := make([]authz.Permission, 0, len(in.Permissions))
 	for _, k := range in.Permissions {
 		pk := authz.Permission(k)
 		if !authz.Valid(pk) {
-			return nil, "", api.Invalid("body.permissions", fmt.Sprintf("Unknown permission %q.", k))
+			return nil, "", api.Invalid("body.permissions", msgs.M("problem.unknownPermission").Text(l, i18n.Args{"permission": k}))
 		}
 		if !authz.Grantable(pk) {
-			return nil, "", api.Invalid("body.permissions", fmt.Sprintf("%s belongs to the Owner role only.", k))
+			return nil, "", api.Invalid("body.permissions", msgs.M("problem.ownerOnly").Text(l, i18n.Args{"permission": k}))
 		}
-		keys = append(keys, pk)
+		perms = append(perms, pk)
 	}
-	return authz.NewSet(keys...), n, nil
+	return authz.NewSet(perms...), n, nil
 }
 
 // escalation rejects permissions the caller adds without holding them. The
@@ -248,13 +258,9 @@ func escalation(ctx context.Context, q *store.Queries, ws *store.Workspace, p *a
 	if len(missing) == 0 {
 		return nil
 	}
-	pr := api.Err(http.StatusForbidden, api.CodeEscalation, access.CantGrant(missing[0], access.Helpers(ctx, q, ws.ID, missing[0])))
+	pr := api.Err(http.StatusForbidden, api.CodeEscalation, access.CantGrant(i18n.LangFrom(ctx), missing[0], access.Helpers(ctx, q, ws.ID, missing[0])))
 	pr.Permission = string(missing[0])
-	keys := make([]string, len(missing))
-	for i, m := range missing {
-		keys[i] = string(m)
-	}
-	return pr.WithMeta("missing", keys)
+	return pr.WithMeta("missing", strs(missing))
 }
 
 // Create adds a custom role.
@@ -289,7 +295,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		out.ID = id.String()
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "role.created", TargetType: "role", TargetID: id.String(), TargetName: n,
 			After:    map[string]any{"name": n, "description": strings.TrimSpace(in.Description), "permissions": set.Strings()},
-			Metadata: map[string]any{"summary": fmt.Sprintf("%d %s", len(set), access.Plural(len(set), "permission", "permissions")), "permission": string(authz.TeamManage)}})
+			Metadata: audit.KeepText(map[string]any{"permission": string(authz.TeamManage)}, "summary", msgs.M("audit.permissions").Keep(i18n.Args{"count": len(set)}))})
 	})
 	return out, err
 }
@@ -303,7 +309,8 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			return api.MapError(err, "Role")
 		}
 		if r.Builtin {
-			return api.Conflict(fmt.Sprintf("%s is a built-in role and can't be edited. Duplicate it to customize.", r.Name))
+			l := i18n.LangFrom(ctx)
+			return api.Conflict(msgs.M("problem.builtinEdit").Text(l, i18n.Args{"role": roleName(l, r.Key, r.Name)}))
 		}
 		set, n, err := s.validate(ctx, q, ws, in, r.ID)
 		if err != nil {
@@ -331,20 +338,23 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 				}
 			}
 		}
-		var parts []string
+		// "renamed from “Writers” · +campaigns:send · −segments:sql": the
+		// rename is words, the permission changes are keys.
+		var parts []any
+		if r.Name != n {
+			parts = append(parts, msgs.M("audit.renamed").Keep(i18n.Args{"from": r.Name}))
+		}
 		for _, a := range added {
 			parts = append(parts, "+"+string(a))
 		}
 		for _, rm := range removed {
 			parts = append(parts, "−"+string(rm))
 		}
-		if r.Name != n {
-			parts = append([]string{"renamed from “" + r.Name + "”"}, parts...)
-		}
+		meta := audit.KeepSummary(map[string]any{"permission": string(authz.TeamManage)}, parts...)
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "role.updated", TargetType: "role", TargetID: r.ID.String(), TargetName: n,
 			Before:   map[string]any{"name": r.Name, "description": r.Description, "permissions": before.Strings()},
 			After:    map[string]any{"name": n, "description": strings.TrimSpace(in.Description), "permissions": set.Strings()},
-			Metadata: map[string]any{"summary": strings.Join(parts, " · "), "permission": string(authz.TeamManage)}})
+			Metadata: meta})
 	})
 }
 
@@ -356,8 +366,9 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 		if err != nil {
 			return api.MapError(err, "Role")
 		}
+		l := i18n.LangFrom(ctx)
 		if r.Builtin {
-			return api.Conflict(fmt.Sprintf("%s is a built-in role and can't be deleted.", r.Name))
+			return api.Conflict(msgs.M("problem.builtinDelete").Text(l, i18n.Args{"role": roleName(l, r.Key, r.Name)}))
 		}
 		ms, err := q.RolesMembers(ctx, ws.ID)
 		if err != nil {
@@ -370,14 +381,14 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 			}
 		}
 		if len(holders) > 0 {
-			return api.Conflict(fmt.Sprintf("“%s” is assigned to %d %s. Move %s to another role first, then delete.", r.Name, len(holders), access.Plural(len(holders), "member", "members"), access.AndList(holders)))
+			return api.Conflict(msgs.M("problem.assigned").Text(l, i18n.Args{"role": r.Name, "count": len(holders), "names": i18n.AndList(l.Locale, holders)}))
 		}
 		n, err := q.RolesDelete(ctx, store.RolesDeleteParams{ID: r.ID, WorkspaceID: ws.ID})
 		if err != nil {
 			return err
 		}
 		if n == 0 {
-			return api.Conflict(fmt.Sprintf("“%s” is used by a pending invitation. Revoke the invitation first, then delete.", r.Name))
+			return api.Conflict(msgs.M("problem.pendingInvite").Text(l, i18n.Args{"role": r.Name}))
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "role.deleted", TargetType: "role", TargetID: r.ID.String(), TargetName: r.Name,
 			Before: map[string]any{"name": r.Name, "permissions": authz.ParseSet(r.Permissions).Strings()}, Metadata: map[string]any{"permission": string(authz.TeamManage)}})
@@ -399,6 +410,9 @@ type RoleImpactMember struct {
 	Gains       []string `json:"gains"`
 	Loses       []string `json:"loses"`
 	Effect      string   `json:"effect"`
+	// TwoFactor tells that the change makes two-factor required for them:
+	// with a grace period, or already enforced by their IdP.
+	TwoFactor string `json:"twoFactor,omitempty" enum:"required,idp"`
 }
 
 // RoleImpactKey is an API key or agent whose access changes.
@@ -445,14 +459,16 @@ type RoleImpact struct {
 }
 
 // Impact computes who gains or loses what if the role had these permissions.
+// Its sentences read in the request's language.
 func (s *Service) Impact(ctx context.Context, ws *store.Workspace, p *authz.Principal, in RoleImpactInput) (RoleImpact, error) {
-	keys := make([]authz.Permission, 0, len(in.Permissions))
+	l := i18n.LangFrom(ctx)
+	perms := make([]authz.Permission, 0, len(in.Permissions))
 	for _, k := range in.Permissions {
 		if pk := authz.Permission(k); authz.Valid(pk) && authz.Grantable(pk) {
-			keys = append(keys, pk)
+			perms = append(perms, pk)
 		}
 	}
-	next := authz.NewSet(keys...)
+	next := authz.NewSet(perms...)
 	out := RoleImpact{Added: []string{}, Removed: []string{}, AddedSensitive: []string{}, RemovedSensitive: []string{}, Members: []RoleImpactMember{}, Keys: []RoleImpactKey{}, Locked: []RoleLockedPermission{}, PendingRequests: []RoleImpactPending{}}
 	if st, err := s.Q.GetInstanceSettings(ctx); err == nil {
 		out.GraceDays = int(st.TwofaGraceDays)
@@ -499,7 +515,7 @@ func (s *Service) Impact(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			}
 			holders = append(holders, m.UserID)
 			im := RoleImpactMember{ID: m.MemberID.String(), Name: name(m.Name, m.Email), Email: m.Email, AvatarColor: m.AvatarColor, Gains: strs(added), Loses: strs(removed)}
-			im.Effect = memberEffect(next, added, removed, m.TotpEnabledAt != nil || m.PasskeyCount > 0, m.SsoIdentities > 0, out.GraceDays)
+			im.Effect, im.TwoFactor = memberEffect(l, next, added, removed, m.TotpEnabledAt != nil || m.PasskeyCount > 0, m.SsoIdentities > 0, out.GraceDays)
 			if len(added)+len(removed) > 0 {
 				out.MembersAffected++
 			}
@@ -521,7 +537,7 @@ func (s *Service) Impact(ctx context.Context, ws *store.Workspace, p *authz.Prin
 				if len(loses) == 0 {
 					continue
 				}
-				out.Keys = append(out.Keys, RoleImpactKey{ID: k.ID.String(), Name: k.Name, Kind: k.Kind, Loses: strs(loses), Effect: keyEffect(loses)})
+				out.Keys = append(out.Keys, RoleImpactKey{ID: k.ID.String(), Name: k.Name, Kind: k.Kind, Loses: strs(loses), Effect: keyEffect(l, loses)})
 				if k.Kind == "mcp_agent" {
 					out.Agents++
 				} else {
@@ -537,40 +553,36 @@ func (s *Service) Impact(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			out.PendingRequests, out.PendingApprovals = pending, len(pending)
 		}
 	}
-	if len(next) == 0 {
-		out.Sensitive = "None selected · two-factor not required"
-	} else {
-		var flagged []string
-		for _, k := range next.Keys() {
-			if authz.IsSensitive(k) {
-				flagged = append(flagged, string(k))
-			}
-		}
-		if len(flagged) == 0 {
-			out.Sensitive = "None selected · two-factor not required"
-		} else {
-			out.Sensitive = strings.Join(flagged, ", ") + " · two-factor required"
+	var flagged []string
+	for _, k := range next.Keys() {
+		if authz.IsSensitive(k) {
+			flagged = append(flagged, string(k))
 		}
 	}
-	out.Approvals = approvalsText(next)
+	if len(flagged) == 0 {
+		out.Sensitive = msgs.M("impact.sensitiveNone").Text(l, nil)
+	} else {
+		out.Sensitive = msgs.M("impact.sensitive").Text(l, i18n.Args{"permissions": joinKeys(flagged)})
+	}
+	out.Approvals = approvalsText(l, next)
 	if len(removed) > 0 && (len(out.Members) > 0 || len(out.Keys) > 0) {
 		var who []string
 		if n := len(out.Members); n > 0 {
-			who = append(who, fmt.Sprintf("%d %s", n, access.Plural(n, "member", "members")))
+			who = append(who, msgs.M("count.members").Text(l, i18n.Args{"count": n}))
 		}
 		if out.APIKeys > 0 {
-			who = append(who, fmt.Sprintf("%d API %s", out.APIKeys, access.Plural(out.APIKeys, "key", "keys")))
+			who = append(who, msgs.M("count.apiKeys").Text(l, i18n.Args{"count": out.APIKeys}))
 		}
 		if out.Agents > 0 {
-			who = append(who, fmt.Sprintf("%d MCP %s", out.Agents, access.Plural(out.Agents, "agent", "agents")))
+			who = append(who, msgs.M("count.agents").Text(l, i18n.Args{"count": out.Agents}))
 		}
-		out.Summary = fmt.Sprintf("%s will lose %s.", access.AndList(who), strings.Join(out.Removed, ", "))
+		out.Summary = msgs.M("impact.loses").Text(l, i18n.Args{"who": i18n.AndList(l.Locale, who), "permissions": joinKeys(out.Removed)})
 	}
 	for _, d := range authz.Defs {
 		if d.OwnerOnly || p.Permissions.Has(d.Key) {
 			continue
 		}
-		out.Locked = append(out.Locked, RoleLockedPermission{Key: string(d.Key), Reason: access.CantGrant(d.Key, access.Helpers(ctx, s.Q, ws.ID, d.Key))})
+		out.Locked = append(out.Locked, RoleLockedPermission{Key: string(d.Key), Reason: access.CantGrant(l, d.Key, access.Helpers(ctx, s.Q, ws.ID, d.Key))})
 	}
 	return out, nil
 }
@@ -583,19 +595,23 @@ func strs(ps []authz.Permission) []string {
 	return out
 }
 
-// memberEffect describes what changes for one holder.
-func memberEffect(next authz.Set, added, removed []authz.Permission, has2FA, sso bool, grace int) string {
+// memberEffect describes what changes for one holder, and whether
+// two-factor becomes required for them ("required", or "idp" when their IdP
+// already enforces it). Each part is a clause of its own; they are listed
+// with semicolons.
+func memberEffect(l i18n.Lang, next authz.Set, added, removed []authz.Permission, has2FA, sso bool, grace int) (string, string) {
 	var parts []string
+	twoFactor := ""
 	if slices.Contains(removed, authz.CampaignsSend) && next.Has(authz.CampaignsEdit) {
-		parts = append(parts, "Can still edit; must request approval to send")
+		parts = append(parts, msgs.M("effect.stillEdit").Text(l, nil))
 	} else if len(removed) > 0 {
 		var labels []string
 		for _, r := range removed {
-			if d, ok := authz.Lookup(r); ok {
-				labels = append(labels, strings.ToLower(d.Label[:1])+d.Label[1:])
+			if _, ok := authz.Lookup(r); ok {
+				labels = append(labels, lowerFirst(authz.LabelIn(l, r)))
 			}
 		}
-		parts = append(parts, "Can no longer "+strings.Join(labels, ", "))
+		parts = append(parts, msgs.M("effect.noLonger").Text(l, i18n.Args{"actions": strings.Join(labels, ", ")}))
 	}
 	sensitiveAdded := false
 	for _, a := range added {
@@ -606,37 +622,40 @@ func memberEffect(next authz.Set, added, removed []authz.Permission, has2FA, sso
 	if len(added) > 0 {
 		if sensitiveAdded && !has2FA {
 			if sso {
-				parts = append(parts, "Two-factor becomes required; their IdP already enforces it")
+				twoFactor = "idp"
+				parts = append(parts, msgs.M("effect.twoFactorIdp").Text(l, nil))
 			} else {
-				parts = append(parts, fmt.Sprintf("Two-factor becomes required (%d-day grace)", grace))
+				twoFactor = "required"
+				parts = append(parts, msgs.M("effect.twoFactorGrace").Text(l, i18n.Args{"days": grace}))
 			}
 		} else {
-			parts = append(parts, "Gains "+strings.Join(strs(added), ", "))
+			parts = append(parts, msgs.M("effect.gains").Text(l, i18n.Args{"permissions": joinKeys(strs(added))}))
 		}
 	}
 	if len(parts) == 0 {
-		return "Same as today"
+		return msgs.M("effect.same").Text(l, nil), ""
 	}
-	return strings.Join(parts, "; ")
+	return strings.Join(parts, "; "), twoFactor
 }
 
-func keyEffect(loses []authz.Permission) string {
+func keyEffect(l i18n.Lang, loses []authz.Permission) string {
 	if slices.Contains(loses, authz.CampaignsSend) {
-		return "Automations that send through it will fail with 403"
+		return msgs.M("effect.keyAutomations").Text(l, nil)
 	}
-	return "Calls that need " + strings.Join(strs(loses), ", ") + " will fail with 403"
+	return msgs.M("effect.keyCalls").Text(l, i18n.Args{"permissions": joinKeys(strs(loses))})
 }
 
-func approvalsText(p authz.Set) string {
+func approvalsText(l i18n.Lang, p authz.Set) string {
+	key := "approvals.none"
 	switch {
 	case p.Has(authz.CampaignsApprove) && p.Has(authz.CampaignsSend):
-		return "Holders can send and approve other members' sends; they can't approve their own"
+		key = "approvals.sendApprove"
 	case p.Has(authz.CampaignsApprove):
-		return "Holders can approve other members' sends"
+		key = "approvals.approve"
 	case p.Has(authz.CampaignsSend):
-		return "Holders can send; the approval policy still applies to large or risky sends"
+		key = "approvals.send"
 	case p.Has(authz.CampaignsEdit):
-		return "Holders can request approval for sends because they have campaigns:edit without campaigns:send"
+		key = "approvals.request"
 	}
-	return "Holders can't send or request approval"
+	return msgs.M(key).Text(l, nil)
 }

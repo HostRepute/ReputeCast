@@ -1,0 +1,36 @@
+{
+  "problem.name": "Give the role a name.",
+  "problem.builtinName": { "message": "The role name “{name}” is taken by a built-in role. Choose another name.", "note": "name: the built-in role's name as the person typed it" },
+  "problem.nameTaken": "A role named “{name}” already exists. Choose another name.",
+  "problem.unknownPermission": { "message": "Unknown permission \"{permission}\".", "note": "permission: what was sent as a permission key" },
+  "problem.ownerOnly": { "message": "{permission} belongs to the Owner role only.", "note": "permission: a key like workspace:delete, never translated" },
+  "problem.builtinEdit": "{role} is a built-in role and can't be edited. Duplicate it to customize.",
+  "problem.builtinDelete": "{role} is a built-in role and can't be deleted.",
+  "problem.assigned": { "message": "“{role}” is assigned to {count, plural, one {# member} other {# members}}. Move {names} to another role first, then delete.", "note": "names: the members' names joined as 'A, B and C'" },
+  "problem.pendingInvite": "“{role}” is used by a pending invitation. Revoke the invitation first, then delete.",
+
+  "impact.sensitiveNone": "None selected · two-factor not required",
+  "impact.sensitive": { "message": "{permissions} · two-factor required", "note": "permissions: the sensitive keys, joined with commas" },
+  "impact.loses": { "message": "{who} will lose {permissions}.", "note": "who: counts of members, API keys and MCP agents (count.*) joined as 'A, B and C'; permissions: keys joined with commas" },
+  "count.members": "{count, plural, one {# member} other {# members}}",
+  "count.apiKeys": "{count, plural, one {# API key} other {# API keys}}",
+  "count.agents": "{count, plural, one {# MCP agent} other {# MCP agents}}",
+
+  "effect.stillEdit": "Can still edit; must request approval to send",
+  "effect.noLonger": { "message": "Can no longer {actions}", "note": "actions: the permissions' labels, starting lower-case, joined with commas" },
+  "effect.twoFactorIdp": "Two-factor becomes required; their IdP already enforces it",
+  "effect.twoFactorGrace": "Two-factor becomes required ({days}-day grace)",
+  "effect.gains": { "message": "Gains {permissions}", "note": "permissions: keys joined with commas" },
+  "effect.same": "Same as today",
+  "effect.keyAutomations": "Automations that send through it will fail with 403",
+  "effect.keyCalls": { "message": "Calls that need {permissions} will fail with 403", "note": "permissions: keys joined with commas" },
+
+  "approvals.sendApprove": "Holders can send and approve other members' sends; they can't approve their own",
+  "approvals.approve": "Holders can approve other members' sends",
+  "approvals.send": "Holders can send; the approval policy still applies to large or risky sends",
+  "approvals.request": "Holders can request approval for sends because they have campaigns:edit without campaigns:send",
+  "approvals.none": "Holders can't send or request approval",
+
+  "audit.permissions": { "message": "{count, plural, one {# permission} other {# permissions}}", "note": "the audit log's summary of a new role" },
+  "audit.renamed": { "message": "renamed from “{from}”", "note": "a changed role's audit summary, before the permission keys added (+) and removed (−)" }
+}

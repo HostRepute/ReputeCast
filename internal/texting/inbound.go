@@ -215,8 +215,8 @@ func (s *Service) optOutNumber(ctx context.Context, q *store.Queries, tx pgx.Tx,
 				lists = append(lists, x.name)
 			}
 			if err := q.ChanConsentEventInsert(ctx, store.ChanConsentEventInsertParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, ContactID: cid, ListID: &x.id,
-				Channel: "sms", Action: "opted_out", Phone: ph, Source: "keyword", Page: "Text message", Keyword: strings.ToUpper(typed),
-				Note: "Opted out by text", OccurredAt: now}); err != nil {
+				Channel: "sms", Action: "opted_out", Phone: ph, Source: "keyword", Page: evTextMessage.Source(), Keyword: strings.ToUpper(typed),
+				Note: evOptedOut.Source(), OccurredAt: now}); err != nil {
 				return nil, err
 			}
 		}
@@ -265,7 +265,7 @@ func (s *Service) optInNumber(ctx context.Context, q *store.Queries, tx pgx.Tx, 
 				lists = append(lists, x.name)
 			}
 			if err := q.ChanConsentEventInsert(ctx, store.ChanConsentEventInsertParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, ContactID: cid, ListID: &x.id,
-				Channel: "sms", Action: "opted_in", Phone: ph, Source: "keyword", Page: "Text message", Keyword: word, Note: "Opted back in by text",
+				Channel: "sms", Action: "opted_in", Phone: ph, Source: "keyword", Page: evTextMessage.Source(), Keyword: word, Note: evOptedIn.Source(),
 				OccurredAt: now}); err != nil {
 				return nil, false, err
 			}
@@ -309,7 +309,7 @@ func (s *Service) confirmNumber(ctx context.Context, q *store.Queries, tx pgx.Tx
 				lists = append(lists, x.name)
 			}
 			if err := q.ChanConsentEventInsert(ctx, store.ChanConsentEventInsertParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, ContactID: cid, ListID: &x.id,
-				Channel: "sms", Action: "confirmed", Phone: ph, Source: "keyword", Page: "Text message", Keyword: "YES", Note: "Confirmed by replying YES",
+				Channel: "sms", Action: "confirmed", Phone: ph, Source: "keyword", Page: evTextMessage.Source(), Keyword: "YES", Note: evConfirmed.Source(),
 				OccurredAt: now}); err != nil {
 				return nil, err
 			}

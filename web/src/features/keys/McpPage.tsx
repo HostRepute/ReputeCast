@@ -321,7 +321,7 @@ function ActionsCard() {
                     ) : (
                       <span className="inline-flex items-center gap-2">
                         <Badge tone="bad">{a.result === 'denied' ? t(m.denied) : t(m.error)}</Badge>
-                        {a.note?.includes('proposal') ? (
+                        {a.proposal ? (
                           <ButtonLink size="sm" to="/w/$workspace/approvals" params={{ workspace: slug }}>
                             {t(m.review)}
                           </ButtonLink>

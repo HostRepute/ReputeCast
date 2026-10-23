@@ -19,6 +19,7 @@ import (
 	"github.com/riverqueue/river"
 
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -68,7 +69,7 @@ func toExport(e store.AuditEvent) exportRow {
 // so large logs stream without being held in memory. The export itself is
 // recorded in the log.
 func (s *Service) Export(ctx context.Context, ws *store.Workspace, f Filter, format string, w io.Writer) error {
-	p, err := f.params(ws.ID, s.now())
+	p, err := f.params(i18n.LangFrom(ctx), ws.ID, s.now())
 	if err != nil {
 		return err
 	}
@@ -126,7 +127,7 @@ func (s *Service) Export(ctx context.Context, ws *store.Workspace, f Filter, for
 		return err
 	}
 	return s.Audit.Log(ctx, audit.Event{WorkspaceID: &ws.ID, Action: "audit.exported", TargetType: "audit_log", TargetID: ws.ID.String(), TargetName: ws.Name,
-		Metadata: map[string]any{"summary": fmt.Sprintf("%d entries as %s", n, map[string]string{"csv": "CSV", "json": "JSON"}[format]), "permission": "audit:view"}})
+		Metadata: audit.KeepText(map[string]any{"permission": "audit:view"}, "summary", exportedText(n, format))})
 }
 
 func compactOr(v json.RawMessage) []byte {
@@ -249,3 +250,9 @@ func RegisterJobs(reg *jobs.Registry, s *Service, log *slog.Logger) {
 }
 
 var _ = uuid.Nil
+
+// exportedText is an export's audit summary, kept for later readers:
+// "1,204 entries as CSV".
+func exportedText(n int, format string) i18n.Text {
+	return msgs.M("audit.exported").Keep(i18n.Args{"count": n, "format": map[string]string{"csv": "CSV", "json": "JSON"}[format]})
+}

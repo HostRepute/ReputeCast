@@ -6,7 +6,9 @@ package access
 
 import (
 	"context"
+	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -15,7 +17,27 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
+)
+
+// What these screens read from the server follows the reader's language:
+// the permission catalogue's words come from internal/authz, and scopes and
+// why a permission can't be granted from messages/<locale>.json.
+
+//go:embed messages/*.json
+var messagesFS embed.FS
+
+var msgs = i18n.MustLoad(messagesFS, "access")
+
+var (
+	mScopeList    = msgs.M("scope.list")
+	mScopeOnly    = msgs.M("scope.only")
+	mScopeLists   = msgs.M("scope.lists")
+	mScopeParts   = msgs.M("scope.parts")
+	mScopeAll     = msgs.M("scope.all")
+	mCantGrant    = msgs.M("cantGrant")
+	mCantGrantAsk = msgs.M("cantGrantAsk")
 )
 
 // PermissionInfo describes one permission key for the role editor, API key
@@ -34,21 +56,30 @@ type PermissionInfo struct {
 	NoAgents bool `json:"noAgents"`
 }
 
-// Catalog returns every permission in display order.
-func Catalog() []PermissionInfo {
+// Catalog returns every permission in display order, its group, label and
+// description in a language.
+func Catalog(l i18n.Lang) []PermissionInfo {
 	out := make([]PermissionInfo, 0, len(authz.Defs))
 	for _, d := range authz.Defs {
 		imp := make([]string, 0, len(d.Implies))
 		for _, p := range d.Implies {
 			imp = append(imp, string(p))
 		}
-		out = append(out, PermissionInfo{Key: string(d.Key), Group: d.Group, Label: d.Label, Description: d.Description, Sensitive: d.Sensitive, Implies: imp, OwnerOnly: d.OwnerOnly, PeopleOnly: d.PeopleOnly, NoAgents: d.NoAgents})
+		out = append(out, PermissionInfo{Key: string(d.Key), Group: authz.GroupIn(l, d.Group), Label: authz.LabelIn(l, d.Key), Description: authz.DescriptionIn(l, d.Key),
+			Sensitive: d.Sensitive, Implies: imp, OwnerOnly: d.OwnerOnly, PeopleOnly: d.PeopleOnly, NoAgents: d.NoAgents})
 	}
 	return out
 }
 
-// Groups returns the permission groups in display order.
-func Groups() []string { return slices.Clone(authz.Groups) }
+// Groups returns the permission groups in display order, named in a
+// language as Catalog names them.
+func Groups(l i18n.Lang) []string {
+	out := make([]string, len(authz.Groups))
+	for i, g := range authz.Groups {
+		out[i] = authz.GroupIn(l, g)
+	}
+	return out
+}
 
 // ImpliedBy returns the permission in set that implies p ("campaigns:edit"
 // implies "campaigns:view"), or "" when p stands on its own.
@@ -123,10 +154,16 @@ func ListNames(ctx context.Context, q *store.Queries, wsID uuid.UUID) (map[uuid.
 	return out, nil
 }
 
-// View describes a scope with list names. listWord adds " list" after a single
-// list name ("Beta Program list only", used for members) or not ("Weekly
-// Digest only", used for keys).
+// View describes a scope with list names, its label in English (as audit
+// entries keep it). listWord adds " list" after a single list name ("Beta
+// Program list only", used for members) or not ("Weekly Digest only", used
+// for keys).
 func View(s authz.Scope, names map[uuid.UUID]string, listWord bool) ScopeSummary {
+	return ViewIn(i18n.Default, s, names, listWord)
+}
+
+// ViewIn is View with the label in a language: "chỉ danh sách Beta Program".
+func ViewIn(l i18n.Lang, s authz.Scope, names map[uuid.UUID]string, listWord bool) ScopeSummary {
 	v := ScopeSummary{Lists: []ScopedList{}, SenderDomains: []string{}, All: s.IsZero()}
 	for _, id := range s.Lists {
 		v.Lists = append(v.Lists, ScopedList{ID: id.String(), Name: names[id]})
@@ -136,29 +173,79 @@ func View(s authz.Scope, names map[uuid.UUID]string, listWord bool) ScopeSummary
 	case v.All:
 	case len(v.Lists) == 1 && len(v.SenderDomains) == 0:
 		if listWord {
-			v.Label = v.Lists[0].Name + " list only"
+			v.Label = mScopeList.Text(l, i18n.Args{"list": v.Lists[0].Name})
 		} else {
-			v.Label = v.Lists[0].Name + " only"
+			v.Label = mScopeOnly.Text(l, i18n.Args{"name": v.Lists[0].Name})
 		}
 	case len(v.Lists) == 0 && len(v.SenderDomains) == 1:
-		v.Label = v.SenderDomains[0] + " only"
+		v.Label = mScopeOnly.Text(l, i18n.Args{"name": v.SenderDomains[0]})
 	default:
-		var parts []string
-		if n := len(v.Lists); n > 0 {
-			if n <= 2 {
-				names := make([]string, n)
-				for i, l := range v.Lists {
-					names[i] = l.Name
-				}
-				parts = append(parts, strings.Join(names, " and "))
-			} else {
-				parts = append(parts, fmt.Sprintf("%d lists", n))
-			}
-		}
-		parts = append(parts, v.SenderDomains...)
-		v.Label = strings.Join(parts, " · ") + " only"
+		v.Label = mScopeParts.Text(l, i18n.Args{"parts": scopeParts(l, v)})
 	}
 	return v
+}
+
+// scopeParts are a scope's lists and sender domains: "Beta Program and
+// Weekly Digest · news.acme.io", "3 lists".
+func scopeParts(l i18n.Lang, v ScopeSummary) string {
+	var parts []string
+	if n := len(v.Lists); n > 0 {
+		if n <= 2 {
+			names := make([]string, n)
+			for i, x := range v.Lists {
+				names[i] = x.Name
+			}
+			parts = append(parts, i18n.AndList(l.Locale, names))
+		} else {
+			parts = append(parts, mScopeLists.Text(l, i18n.Args{"count": n}))
+		}
+	}
+	parts = append(parts, v.SenderDomains...)
+	return strings.Join(parts, " · ")
+}
+
+// ScopeText keeps a scope's label for later readers (an audit entry's
+// summary): "Beta Program list only", or "all lists" when it places no
+// restriction.
+func ScopeText(s authz.Scope, names map[uuid.UUID]string, listWord bool) i18n.Text {
+	v := ViewIn(i18n.Default, s, names, listWord)
+	switch {
+	case v.All:
+		return mScopeAll.Keep(nil)
+	case len(v.Lists) == 1 && len(v.SenderDomains) == 0 && listWord:
+		return mScopeList.Keep(i18n.Args{"list": v.Lists[0].Name})
+	case len(v.Lists) == 1 && len(v.SenderDomains) == 0:
+		return mScopeOnly.Keep(i18n.Args{"name": v.Lists[0].Name})
+	case len(v.Lists) == 0 && len(v.SenderDomains) == 1:
+		return mScopeOnly.Keep(i18n.Args{"name": v.SenderDomains[0]})
+	}
+	// Several lists: their count, or names joined in English.
+	return mScopeParts.Keep(i18n.Args{"parts": scopeParts(i18n.Default, v)})
+}
+
+// ScopeKind describes a scope for a kept message's select: "all", "list"
+// (one list: value is its name), "only" (one sender domain: the domain) or
+// "other" (value is the lists and domains written in English).
+func ScopeKind(s authz.Scope, names map[uuid.UUID]string) (kind, value string) {
+	v := ViewIn(i18n.Default, s, names, false)
+	switch {
+	case v.All:
+		return "all", ""
+	case len(v.Lists) == 1 && len(v.SenderDomains) == 0:
+		return "list", v.Lists[0].Name
+	case len(v.Lists) == 0 && len(v.SenderDomains) == 1:
+		return "only", v.SenderDomains[0]
+	}
+	return "other", v.Label
+}
+
+// ScopeWhat says what a scope covers, without "only", for a table's Scope
+// column: "Beta Program", "2 lists · news.acme.io", or "all lists".
+func ScopeWhat(l i18n.Lang, s authz.Scope, names map[uuid.UUID]string) string {
+	if s.IsZero() {
+		return mScopeAll.Text(l, nil)
+	}
+	return scopeParts(l, ViewIn(l, s, names, false))
 }
 
 // ScopeRequest is the request shape of a scope.
@@ -167,8 +254,37 @@ type ScopeRequest struct {
 	SenderDomains []string `json:"senderDomains,omitempty" maxItems:"20"`
 }
 
+// ScopeError is a requested list or sender domain the workspace doesn't have.
+type ScopeError struct {
+	// Domain is true for a sender domain, false for a list.
+	Domain bool
+	Value  string
+}
+
+func (e *ScopeError) Error() string {
+	if e.Domain {
+		return fmt.Sprintf("unknown sender domain %q", e.Value)
+	}
+	return fmt.Sprintf("unknown list %q", e.Value)
+}
+
+// ScopeProblem is the field problem's sentence for a scope that doesn't
+// resolve, in a language: "Unknown list "…"."
+func ScopeProblem(l i18n.Lang, err error) string {
+	var se *ScopeError
+	if errors.As(err, &se) {
+		key := "problem.unknownList"
+		if se.Domain {
+			key = "problem.unknownDomain"
+		}
+		return msgs.M(key).Text(l, i18n.Args{"value": se.Value})
+	}
+	msg := err.Error()
+	return strings.ToUpper(msg[:1]) + msg[1:] + "."
+}
+
 // Resolve validates a requested scope against the workspace's lists and
-// sender domains.
+// sender domains. A list or domain it doesn't know is a *ScopeError.
 func (in *ScopeRequest) Resolve(lists map[uuid.UUID]string, domains []string) (authz.Scope, error) {
 	var s authz.Scope
 	if in == nil {
@@ -178,10 +294,10 @@ func (in *ScopeRequest) Resolve(lists map[uuid.UUID]string, domains []string) (a
 	for _, raw := range in.Lists {
 		id, err := uuid.Parse(raw)
 		if err != nil {
-			return s, fmt.Errorf("unknown list %q", raw)
+			return s, &ScopeError{Value: raw}
 		}
 		if _, ok := lists[id]; !ok {
-			return s, fmt.Errorf("unknown list %q", raw)
+			return s, &ScopeError{Value: raw}
 		}
 		if !seen[id] {
 			seen[id] = true
@@ -191,7 +307,7 @@ func (in *ScopeRequest) Resolve(lists map[uuid.UUID]string, domains []string) (a
 	for _, d := range in.SenderDomains {
 		d = strings.ToLower(strings.TrimSpace(d))
 		if !slices.Contains(domains, d) {
-			return s, fmt.Errorf("unknown sender domain %q", d)
+			return s, &ScopeError{Domain: true, Value: d}
 		}
 		if !slices.Contains(s.SenderDomains, d) {
 			s.SenderDomains = append(s.SenderDomains, d)
@@ -364,34 +480,33 @@ func AndList(names []string) string {
 	return strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
 }
 
-// CantGrant explains an escalation: "You can't grant segments:sql because you
-// don't hold it. Ask Linh Nguyen."
-func CantGrant(p authz.Permission, helpers []string) string {
-	msg := fmt.Sprintf("You can't grant %s because you don't hold it.", p)
+// CantGrant explains an escalation in a language: "You can't grant
+// segments:sql because you don't hold it. Ask Linh Nguyen."
+func CantGrant(l i18n.Lang, p authz.Permission, helpers []string) string {
 	if len(helpers) > 0 {
-		msg += " Ask " + OrList(helpers) + "."
+		return mCantGrantAsk.Text(l, i18n.Args{"permission": string(p), "helpers": i18n.OrList(l.Locale, helpers)})
 	}
-	return msg
+	return mCantGrant.Text(l, i18n.Args{"permission": string(p)})
 }
 
-// NotHoldable explains why a key or agent can't hold p (authz.HoldableBy).
-func NotHoldable(p authz.Permission, t authz.ActorType) string {
-	if p == authz.AIUse {
-		return "AI features are for people. Agents bring their own model."
-	}
-	if d, _ := authz.Lookup(p); d.PeopleOnly {
-		return fmt.Sprintf("Only people can hold %s: API keys and agents can't.", p)
-	}
+// NotHoldable explains in a language why a key or agent can't hold p
+// (authz.HoldableBy).
+func NotHoldable(l i18n.Lang, p authz.Permission, t authz.ActorType) string {
+	key := "notHoldable.agents"
+	switch d, _ := authz.Lookup(p); {
+	case p == authz.AIUse:
+		key = "notHoldable.ai"
+	case d.PeopleOnly:
+		key = "notHoldable.peopleOnly"
 	// Address verification and placement tests (X14) say why agents can't.
-	switch p {
-	case authz.SubscribersVerify:
-		return "Not offered to agents: it sends addresses out of ReputeCast"
-	case authz.PlacementRun:
-		return "Not offered to agents: it sends copies through your providers"
-	case authz.PlacementManage:
-		return "Not offered to agents: seed passwords and tokens can read whole mailboxes"
+	case p == authz.SubscribersVerify:
+		key = "notHoldable.verify"
+	case p == authz.PlacementRun:
+		key = "notHoldable.placementRun"
+	case p == authz.PlacementManage:
+		key = "notHoldable.placementManage"
 	}
-	return fmt.Sprintf("MCP agents can't hold %s. Give it to an API key or a person.", p)
+	return msgs.M(key).Text(l, i18n.Args{"permission": string(p)})
 }
 
 // Plural returns "member" or "members".

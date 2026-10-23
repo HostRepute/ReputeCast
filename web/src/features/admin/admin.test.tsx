@@ -37,6 +37,14 @@ describe('SSO preset hints', () => {
     )
     expect(html).toBe('In the Entra app registration open <b>Token configuration → Add groups claim</b> and include security groups in the ID token.')
   })
+  it('puts the IdP menu path in bold in Vietnamese', () => {
+    const html = renderToStaticMarkup(
+      <>{richHint('Trong Okta, hãy mở Security → API → authorization server của bạn → Claims và thêm claim groups vào ID token, rồi yêu cầu scope groups.')}</>,
+    )
+    expect(html).toBe(
+      'Trong Okta, hãy mở <b>Security → API → authorization server của bạn → Claims</b> và thêm claim groups vào ID token, rồi yêu cầu scope groups.',
+    )
+  })
   it('puts URLs in mono without the sentence dot', () => {
     const html = renderToStaticMarkup(<>{richHint('Use the tenant, for example https://login.microsoftonline.com/7c1a2b3d-…/v2.0. Find it under Overview.')}</>)
     expect(html).toBe('Use the tenant, for example <span class="mono">https://login.microsoftonline.com/7c1a2b3d-…/v2.0</span>. Find it under Overview.')

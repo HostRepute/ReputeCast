@@ -1,0 +1,5 @@
+{
+  "problem.pseudo": "Ngôn ngữ giả chỉ có trong môi trường phát triển, hoặc khi máy chủ chạy với i18n.pseudo_locale bật.",
+  "problem.language": "ReputeCast chưa được dịch sang ngôn ngữ đó. Hãy chọn {languages}.",
+  "problem.region": "Hãy chọn một trong các định dạng khu vực trong danh sách."
+}

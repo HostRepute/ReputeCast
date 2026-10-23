@@ -2,7 +2,6 @@ package apikeys
 
 import (
 	"context"
-	"fmt"
 	"path"
 	"slices"
 	"strings"
@@ -12,6 +11,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -43,14 +43,14 @@ func (t transactionalKey) prefix() string {
 func (s *Service) transactionalInput(ctx context.Context, ws *store.Workspace, in APIKeyCreateInput) (transactionalKey, error) {
 	t := in.Transactional
 	if len(in.Permissions) != 1 || in.Permissions[0] != string(authz.TransactionalSend) {
-		return transactionalKey{}, api.Invalid("body.permissions", "A send-only key holds transactional:send and nothing else.")
+		return transactionalKey{}, api.Invalid("body.permissions", say(ctx, "problem.sendOnlyPermission", nil))
 	}
 	if len(in.Lists) > 0 {
-		return transactionalKey{}, api.Invalid("body.lists", "Send-only keys aren't limited by list; limit them to templates instead.")
+		return transactionalKey{}, api.Invalid("body.lists", say(ctx, "problem.sendOnlyLists", nil))
 	}
 	out := transactionalKey{Preset: t.Preset, Mode: t.Mode, Templates: []string{}, Categories: []uuid.UUID{}, TestAddresses: []string{}, Rate: t.RatePerSecond}
 	if out.Preset != PresetSendOnly && out.Preset != PresetSMTP {
-		return transactionalKey{}, api.Invalid("body.transactional.preset", "Pick a send-only key or an SMTP credential.")
+		return transactionalKey{}, api.Invalid("body.transactional.preset", say(ctx, "problem.preset", nil))
 	}
 	if out.Mode == "" {
 		out.Mode = "live"
@@ -70,7 +70,7 @@ func (s *Service) transactionalInput(ctx context.Context, ws *store.Workspace, i
 		for _, k := range t.Templates {
 			k = strings.ToLower(strings.TrimSpace(k))
 			if !known[k] {
-				return transactionalKey{}, api.Invalid("body.transactional.templates", fmt.Sprintf("There is no template with the ID %s.", k))
+				return transactionalKey{}, api.Invalid("body.transactional.templates", say(ctx, "problem.template", i18n.Args{"id": k}))
 			}
 			if !slices.Contains(out.Templates, k) {
 				out.Templates = append(out.Templates, k)
@@ -82,7 +82,7 @@ func (s *Service) transactionalInput(ctx context.Context, ws *store.Workspace, i
 		for _, c := range t.Categories {
 			id, err := uuid.Parse(c)
 			if err != nil || cats[id] == "" {
-				return transactionalKey{}, api.Invalid("body.transactional.categories", "Pick categories from this workspace.")
+				return transactionalKey{}, api.Invalid("body.transactional.categories", say(ctx, "problem.categories", nil))
 			}
 			if !slices.Contains(out.Categories, id) {
 				out.Categories = append(out.Categories, id)
@@ -96,24 +96,25 @@ func (s *Service) transactionalInput(ctx context.Context, ws *store.Workspace, i
 		}
 		at := strings.LastIndexByte(a, '@')
 		if at < 1 || at == len(a)-1 || strings.ContainsAny(a, " <>") {
-			return transactionalKey{}, api.Invalid("body.transactional.testAddresses", fmt.Sprintf("“%s” isn't an address or a pattern such as qa+*@acme.io.", a))
+			return transactionalKey{}, api.Invalid("body.transactional.testAddresses", say(ctx, "problem.testAddress", i18n.Args{"address": a}))
 		}
 		if _, err := path.Match(a, "x@example.com"); err != nil {
-			return transactionalKey{}, api.Invalid("body.transactional.testAddresses", fmt.Sprintf("“%s” isn't a valid pattern.", a))
+			return transactionalKey{}, api.Invalid("body.transactional.testAddresses", say(ctx, "problem.testPattern", i18n.Args{"address": a}))
 		}
 		if !slices.Contains(out.TestAddresses, a) {
 			out.TestAddresses = append(out.TestAddresses, a)
 		}
 	}
 	if out.Mode == "live" && len(out.TestAddresses) > 0 {
-		return transactionalKey{}, api.Invalid("body.transactional.testAddresses", "Allowed test addresses belong to test-mode keys; live keys deliver to everyone.")
+		return transactionalKey{}, api.Invalid("body.transactional.testAddresses", say(ctx, "problem.testLive", nil))
 	}
 	return out, nil
 }
 
-// transactionalScope says what a send-only key can send: "all templates",
-// "password-reset, magic-link" or "category Billing".
-func transactionalScope(t *APIKeyTransactional) string {
+// transactionalScope says what a send-only key can send, kept for the
+// audit log: "all templates", "password-reset, magic-link" (template IDs)
+// or "category Billing".
+func transactionalScope(t *APIKeyTransactional) any {
 	switch {
 	case len(t.Categories) > 0:
 		names := make([]string, 0, len(t.Categories))
@@ -121,11 +122,11 @@ func transactionalScope(t *APIKeyTransactional) string {
 			names = append(names, c.Name)
 		}
 		if len(names) == 1 {
-			return "category " + names[0]
+			return msgs.M("audit.scopeCategory").Keep(i18n.Args{"names": names[0]})
 		}
-		return "categories " + strings.Join(names, ", ")
+		return msgs.M("audit.scopeCategories").Keep(i18n.Args{"names": strings.Join(names, ", ")})
 	case len(t.Templates) > 0:
 		return strings.Join(t.Templates, ", ")
 	}
-	return "all templates"
+	return msgs.M("audit.scopeAllTemplates").Keep(nil)
 }

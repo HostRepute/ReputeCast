@@ -11,6 +11,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/digests"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -29,7 +30,7 @@ type DigestRef struct {
 // agents can't turn a digest on, release or skip an issue, and never send.
 func (s *Service) addDigestTools(srv *mcp.Server) {
 	tool(s, srv, "list_digests", authz.CampaignsView, func(ctx context.Context, c *agentCall, _ struct{}) (any, entry, error) {
-		e := entry{action: "digest.listed", targetType: "digest", targetName: "Recurring digests"}
+		e := entry{action: "digest.listed", targetType: "digest", targetText: keep("target.digests", nil)}
 		if s.Digests == nil {
 			return map[string]any{"digests": []any{}, "message": "Recurring digests aren't available on this server."}, e, nil
 		}
@@ -73,7 +74,7 @@ func (s *Service) addDigestTools(srv *mcp.Server) {
 			}
 			rows = append(rows, r)
 		}
-		e.detail = fmt.Sprintf("%d digests", len(rows))
+		e.detailText = keep("detail.digests", i18n.Args{"count": len(rows)})
 		return map[string]any{"digests": rows,
 			"note": "Issues go out on their owner's authority after Send Readiness and the approval rules. Agents can read digests but can't turn one on, release or skip an issue."}, e, nil
 	}, nil)
@@ -126,7 +127,7 @@ func (s *Service) addDigestTools(srv *mcp.Server) {
 			}
 			rows = append(rows, r)
 		}
-		e.detail = fmt.Sprintf("%d issues", len(rows))
+		e.detailText = keep("detail.issues", i18n.Args{"count": len(rows)})
 		return map[string]any{"digest": found.Name, "issues": rows}, e, nil
 	}, nil)
 }

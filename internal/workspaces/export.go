@@ -95,7 +95,7 @@ func (s *Service) Export(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		return err
 	}
 	return s.Audit.Log(ctx, audit.Event{WorkspaceID: &ws.ID, Action: "workspace.exported", TargetType: "workspace", TargetID: ws.ID.String(), TargetName: ws.Name,
-		Metadata: map[string]any{"summary": "contacts with consent, campaigns as MJML, reports as CSV, audit log as JSON", "permission": string(authz.SubscribersExport)}})
+		Metadata: audit.KeepSummary(map[string]any{"permission": string(authz.SubscribersExport)}, keep("audit.exported", nil))})
 }
 
 func writeFile(zw *zip.Writer, name, content string) error {

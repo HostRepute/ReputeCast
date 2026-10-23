@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/sending"
@@ -154,8 +155,20 @@ func ParseSettings(raw json.RawMessage) Settings {
 	return st
 }
 
-// Capabilities are the columns of the agents matrix.
-var Capabilities = []string{"Read reports and contacts", "Draft campaigns", "Edit audience", "Schedule or send", "Change routing"}
+// Capabilities are the columns of the agents matrix, in English.
+var Capabilities = CapabilitiesIn(i18n.Default)
+
+// capabilityKeys name the matrix's columns' messages, in order.
+var capabilityKeys = []string{"capability.read", "capability.draft", "capability.audience", "capability.send", "capability.routing"}
+
+// CapabilitiesIn are the columns of the agents matrix in a language.
+func CapabilitiesIn(l i18n.Lang) []string {
+	out := make([]string, len(capabilityKeys))
+	for i, k := range capabilityKeys {
+		out[i] = text(l, k, nil)
+	}
+	return out
+}
 
 // MCPCapabilityCell is one cell of the matrix.
 type MCPCapabilityCell struct {
@@ -164,44 +177,49 @@ type MCPCapabilityCell struct {
 	Label      string `json:"label" example:"Pause only · never start"`
 }
 
-// Cells derives what an agent can do from its permission keys.
-func Cells(perms authz.Set) []MCPCapabilityCell {
+// Cells derives what an agent can do from its permission keys, in English.
+func Cells(perms authz.Set) []MCPCapabilityCell { return CellsIn(i18n.Default, perms) }
+
+// CellsIn derives what an agent can do from its permission keys, its
+// columns and labels in a language.
+func CellsIn(l i18n.Lang, perms authz.Set) []MCPCapabilityCell {
+	caps := CapabilitiesIn(l)
 	cell := func(i int, level, label string) MCPCapabilityCell {
-		return MCPCapabilityCell{Capability: Capabilities[i], Level: level, Label: label}
+		return MCPCapabilityCell{Capability: caps[i], Level: level, Label: text(l, label, nil)}
 	}
-	out := make([]MCPCapabilityCell, 0, len(Capabilities))
+	out := make([]MCPCapabilityCell, 0, len(caps))
 	switch {
 	case perms.Has(authz.ReportsView) || perms.Has(authz.SubscribersView):
-		out = append(out, cell(0, "allow", "Allow"))
+		out = append(out, cell(0, "allow", "level.allow"))
 	case perms.Has(authz.ProvidersView):
-		out = append(out, cell(0, "allow", "Allow · provider health"))
+		out = append(out, cell(0, "allow", "level.allowProviders"))
 	case perms.Has(authz.DeliverabilityView):
-		out = append(out, cell(0, "allow", "Allow · deliverability"))
+		out = append(out, cell(0, "allow", "level.allowDeliverability"))
 	default:
-		out = append(out, cell(0, "deny", "Deny"))
+		out = append(out, cell(0, "deny", "level.deny"))
 	}
 	if perms.Has(authz.CampaignsEdit) {
-		out = append(out, cell(1, "allow", "Allow"))
+		out = append(out, cell(1, "allow", "level.allow"))
 	} else {
-		out = append(out, cell(1, "deny", "Deny"))
+		out = append(out, cell(1, "deny", "level.deny"))
 	}
 	if perms.Has(authz.SubscribersEdit) || perms.Has(authz.SegmentsEdit) || perms.Has(authz.ListsManage) {
-		out = append(out, cell(2, "allow", "Allow"))
+		out = append(out, cell(2, "allow", "level.allow"))
 	} else {
-		out = append(out, cell(2, "deny", "Deny"))
+		out = append(out, cell(2, "deny", "level.deny"))
 	}
 	switch {
 	case perms.Has(authz.CampaignsSend):
-		out = append(out, cell(3, "approve", "Approve"))
+		out = append(out, cell(3, "approve", "level.approve"))
 	case perms.Has(authz.CampaignsPause):
-		out = append(out, cell(3, "partial", "Pause only · never start"))
+		out = append(out, cell(3, "partial", "level.pauseOnly"))
 	default:
-		out = append(out, cell(3, "deny", "Deny"))
+		out = append(out, cell(3, "deny", "level.deny"))
 	}
 	if perms.Has(authz.ProvidersManage) {
-		out = append(out, cell(4, "allow", "Allow"))
+		out = append(out, cell(4, "allow", "level.allow"))
 	} else {
-		out = append(out, cell(4, "deny", "Deny"))
+		out = append(out, cell(4, "deny", "level.deny"))
 	}
 	return out
 }
@@ -242,11 +260,14 @@ func (s *Service) base(ctx context.Context) string {
 // Overview returns the MCP settings of the workspace.
 func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Principal) (MCPOverview, error) {
 	st := ParseSettings(ws.McpSettings)
+	l := i18n.LangFrom(ctx)
+	// The tools' descriptions and the prompts are what agents read: they
+	// stay in English.
 	out := MCPOverview{
 		Enabled: st.Enabled, Endpoint: s.base(ctx) + "/mcp", Transport: "streamable_http",
 		RateLimitPerMinute: st.RateLimitPerMinute, ApprovalExpiryHours: st.ApprovalExpiryHours,
-		Capabilities: Capabilities, Agents: []MCPAgentRow{}, Tools: Tools,
-		Resources: []string{"campaign MJML", "reports as CSV", "the audit log"},
+		Capabilities: CapabilitiesIn(l), Agents: []MCPAgentRow{}, Tools: Tools,
+		Resources: []string{text(l, "resource.mjml", nil), text(l, "resource.reports", nil), text(l, "resource.audit", nil)},
 		Prompts:   []string{"draft the weekly digest", "explain this auto-pause"},
 		CanManage: p.Can(authz.MCPManage),
 	}
@@ -256,7 +277,7 @@ func (s *Service) Overview(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	}
 	for _, r := range rows {
 		perms := authz.ParseSet(r.Permissions)
-		row := MCPAgentRow{ID: r.ID.String(), Name: r.Name, Masked: r.Prefix, CreatedBy: r.CreatedByName, Permissions: apikeys.StoredOrder(r.Permissions), Cells: Cells(perms), Status: "active"}
+		row := MCPAgentRow{ID: r.ID.String(), Name: r.Name, Masked: r.Prefix, CreatedBy: r.CreatedByName, Permissions: apikeys.StoredOrder(r.Permissions), Cells: CellsIn(l, perms), Status: "active"}
 		if r.ExpiresAt != nil && !r.ExpiresAt.After(s.now()) {
 			row.Status = "expired"
 		}

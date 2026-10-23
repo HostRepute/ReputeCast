@@ -22,8 +22,12 @@ describe('role notes', () => {
     expect(matrixNote({ key: 'campaigns:send', peopleOnly: false })).toEqual({})
   })
 
-  it("adds Earn's note about the Sponsor and Upgrade blocks", () => {
-    expect(t(groupNote('Earn')!)).toBe('Adding Sponsor and Upgrade blocks and paid-only sections to drafts needs only campaigns:edit; prices stay hidden without earn:view.')
-    expect(groupNote('Grow')).toBeUndefined()
+  it("adds Earn's note about the Sponsor and Upgrade blocks, whatever the group is called", () => {
+    const earn = [
+      { key: 'earn:view', peopleOnly: false },
+      { key: 'earn:edit', peopleOnly: false },
+    ]
+    expect(t(groupNote(earn)!)).toBe('Adding Sponsor and Upgrade blocks and paid-only sections to drafts needs only campaigns:edit; prices stay hidden without earn:view.')
+    expect(groupNote([{ key: 'grow:view', peopleOnly: false }])).toBeUndefined()
   })
 })

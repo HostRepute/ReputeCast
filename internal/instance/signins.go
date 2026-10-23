@@ -3,11 +3,11 @@ package instance
 import (
 	"context"
 	"encoding/json"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/auditlog"
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // InstanceSignInEvent is one row of Users › Recent sign-in events.
@@ -38,9 +38,10 @@ type signInMeta struct {
 	FailedBefore int `json:"failed_before"`
 }
 
-// SignIns returns the latest sign-in attempts. Failed password attempts
-// followed by a successful sign-in of the same account within an hour are
-// folded into that row ("Password · 3 failed · Then allowed").
+// SignIns returns the latest sign-in attempts, in the reader's language.
+// Failed password attempts followed by a successful sign-in of the same
+// account within an hour are folded into that row ("Password · 3 failed ·
+// Then allowed").
 func (s *Service) SignIns(ctx context.Context, limit int) (InstanceSignInList, error) {
 	if limit <= 0 || limit > 50 {
 		limit = 8
@@ -49,11 +50,16 @@ func (s *Service) SignIns(ctx context.Context, limit int) (InstanceSignInList, e
 	if err != nil {
 		return InstanceSignInList{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	out := InstanceSignInList{Items: []InstanceSignInEvent{}}
 	type folded struct {
 		idx int
 		at  time.Time
 	}
+	// method and failed name each row's method and the failed attempts
+	// folded into it, written into its Event at the end.
+	var method []string
+	var failed []int
 	lastAllowed := map[string]folded{}
 	for _, r := range rows {
 		var m signInMeta
@@ -65,40 +71,33 @@ func (s *Service) SignIns(ctx context.Context, limit int) (InstanceSignInList, e
 		}
 		if !allowed && strings.HasPrefix(m.Method, "password") && m.Code == "" {
 			if f, ok := lastAllowed[account]; ok && f.at.Sub(r.OccurredAt) < time.Hour {
-				it := &out.Items[f.idx]
-				it.Result = "recovered"
-				it.Event = foldFailures(it.Event)
+				out.Items[f.idx].Result = "recovered"
+				failed[f.idx]++
 				continue
 			}
 		}
 		if len(out.Items) >= limit {
 			continue
 		}
-		ev := InstanceSignInEvent{ID: r.ID.String(), At: r.OccurredAt, Event: auditlog.SignInMethod(m.Method, m.Provider), Account: account, Result: "denied"}
+		ev := InstanceSignInEvent{ID: r.ID.String(), At: r.OccurredAt, Event: auditlog.SignInMethod(l, m.Method, m.Provider), Account: account, Result: "denied"}
+		n := 0
 		if allowed {
 			ev.Result = "allowed"
 			if m.FailedBefore > 0 {
 				ev.Result = "recovered"
-				ev.Event = "Password · " + strconv.Itoa(m.FailedBefore) + " failed"
+				ev.Event, n = auditlog.SignInMethod(l, "password", ""), m.FailedBefore
 			}
 			lastAllowed[account] = folded{idx: len(out.Items), at: r.OccurredAt}
 		} else {
-			ev.Detail = auditlog.SignInRejection(m.Code, r.Reason)
+			ev.Detail = auditlog.SignInRejection(l, m.Code, r.Reason)
 		}
 		out.Items = append(out.Items, ev)
+		method, failed = append(method, ev.Event), append(failed, n)
+	}
+	for i := range out.Items {
+		if failed[i] > 0 {
+			out.Items[i].Event = auditlog.SignInFailed(l, method[i], failed[i])
+		}
 	}
 	return out, nil
-}
-
-// foldFailures turns "Password" into "Password · 1 failed" and counts up.
-func foldFailures(event string) string {
-	base, rest, ok := strings.Cut(event, " · ")
-	if !ok {
-		return event + " · 1 failed"
-	}
-	n, err := strconv.Atoi(strings.TrimSuffix(rest, " failed"))
-	if err != nil {
-		return event
-	}
-	return base + " · " + strconv.Itoa(n+1) + " failed"
 }

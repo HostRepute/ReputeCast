@@ -3,7 +3,6 @@ package accounts
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -286,7 +285,7 @@ func (s *Service) AcceptInvitation(ctx context.Context, token string, in Invitat
 		}
 		var hashed *string
 		if !in.Passkey {
-			if p := authn.PasswordProblem(in.Password, int(st.PasswordMinLength)); p != "" {
+			if p := authn.PasswordProblemIn(i18n.LangFrom(ctx), in.Password, int(st.PasswordMinLength)); p != "" {
 				return InvitationAccepted{}, nil, api.Invalid("body.password", p)
 			}
 			if st.BreachedCheck {
@@ -388,10 +387,15 @@ func (s *Service) joinWorkspace(ctx context.Context, tx pgx.Tx, inv store.GetInv
 		After: map[string]any{"role": inv.RoleKey, "scope": inv.Scope}, Metadata: map[string]any{"new_account": newAccount}}); err != nil {
 		return err
 	}
-	note := notify.Notification{WorkspaceID: &wsID, Kind: notify.KindInviteAccepted, Severity: "ok", Title: "Invite accepted",
-		Summary: fmt.Sprintf("%s joined %s as %s", displayName(user), inv.WorkspaceName, inv.RoleName),
-		Body:    fmt.Sprintf("%s joined %s as %s.", displayName(user), inv.WorkspaceName, inv.RoleName),
-		Link:    "/w/" + inv.WorkspaceSlug + "/settings/team"}
+	// Each member reads it in their own language: a built-in role is named
+	// by its key, a custom one as the workspace named it.
+	args := i18n.Args{"name": displayName(user), "workspace": inv.WorkspaceName, "roleKey": "", "role": inv.RoleName}
+	if b, ok := authz.Builtin(inv.RoleKey); ok && b.Name == inv.RoleName {
+		args["roleKey"] = inv.RoleKey
+	}
+	note := notify.Notification{WorkspaceID: &wsID, Kind: notify.KindInviteAccepted, Severity: "ok",
+		TitleText: msgs.M("notify.inviteAccepted").Keep(nil), SummaryText: msgs.M("notify.joined").Keep(args), BodyText: msgs.M("notify.joinedBody").Keep(args),
+		Link: "/w/" + inv.WorkspaceSlug + "/settings/team"}
 	if inv.InvitedBy != nil && inv.InvitedByStatus == "active" {
 		return notify.ToUser(ctx, tx, *inv.InvitedBy, note)
 	}
@@ -430,16 +434,16 @@ func (s *Service) RequestNewInvite(ctx context.Context, token string) (Invitatio
 			res.Status = "already_sent"
 			return nil
 		}
-		note := notify.Notification{WorkspaceID: &wsID, Kind: notify.KindInviteRequested, Severity: "info", Title: "New invite requested",
+		note := notify.Notification{WorkspaceID: &wsID, Kind: notify.KindInviteRequested, Severity: "info", TitleText: msgs.M("notify.inviteRequested").Keep(nil),
 			Link: "/w/" + inv.WorkspaceSlug + "/settings/team"}
 		requester := inv.Email
 		if other {
 			requester = signedIn.Email
-			note.Summary = fmt.Sprintf("%s asked to be invited to %s instead of %s", signedIn.Email, inv.WorkspaceName, inv.Email)
-			note.Body = fmt.Sprintf("%s opened the invitation for %s while signed in and asked for an invitation to %s for their own email.", signedIn.Email, inv.Email, inv.WorkspaceName)
+			args := i18n.Args{"requester": signedIn.Email, "workspace": inv.WorkspaceName, "invited": inv.Email}
+			note.SummaryText, note.BodyText = msgs.M("notify.requestedOther").Keep(args), msgs.M("notify.requestedOtherBody").Keep(args)
 		} else {
-			note.Summary = fmt.Sprintf("%s asked for a new invitation to %s", inv.Email, inv.WorkspaceName)
-			note.Body = fmt.Sprintf("%s asked for a new invitation to %s; the last one expired on %s.", inv.Email, inv.WorkspaceName, inv.ExpiresAt.Format("Jan 2"))
+			args := i18n.Args{"email": inv.Email, "workspace": inv.WorkspaceName, "at": inv.ExpiresAt.In(s.workspaceLocation(ctx, inv.WorkspaceID))}
+			note.SummaryText, note.BodyText = msgs.M("notify.requestedNew").Keep(args), msgs.M("notify.requestedNewBody").Keep(args)
 		}
 		if inv.InvitedBy != nil && inv.InvitedByStatus == "active" {
 			if err := notify.ToUser(ctx, tx, *inv.InvitedBy, note); err != nil {

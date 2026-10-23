@@ -160,6 +160,8 @@ type Querier interface {
 	// ---------------------------------------------------------------------------
 	// Staff notifications: incidents and approvals in their clients, in the
 	// Agency area's bell.
+	// The title, summary, body and data: the bell writes them in the reader's
+	// language from the messages the notification kept (notify.Localize).
 	AgencyNotifications(ctx context.Context, arg AgencyNotificationsParams) ([]AgencyNotificationsRow, error)
 	AgencyPendingApprovals(ctx context.Context, workspaceIds []uuid.UUID) ([]AgencyPendingApprovalsRow, error)
 	// ---------------------------------------------------------------------------

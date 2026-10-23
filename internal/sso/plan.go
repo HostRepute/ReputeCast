@@ -11,8 +11,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/workspaces"
 )
@@ -178,7 +180,10 @@ type signInPlan struct {
 	Reject  *flowError
 	Changes []memberChange
 	MFA     bool
-	MFANote string
+	// MFANote says how two-factor is satisfied; MFAAmr: it is about the
+	// amr claim (shown in code type).
+	MFANote i18n.Text
+	MFAAmr  bool
 	// GroupsMissing: the provider has mappings but the IdP sent no groups.
 	GroupsMissing bool
 	Mappings      int
@@ -193,32 +198,32 @@ func (s *Service) plan(ctx context.Context, q *store.Queries, p store.SsoProvide
 	mode := twoFAMode(p)
 	switch {
 	case mode == "trusted":
-		pl.MFA, pl.MFANote = true, PresetFor(p.Preset).TrustedTwoFA
+		pl.MFA, pl.MFANote = true, trustedTwoFA(p.Preset)
 	case id.amrMFA():
-		pl.MFA, pl.MFANote = true, "amr includes mfa · counts as two-factor via IdP"
+		pl.MFA, pl.MFANote, pl.MFAAmr = true, keep("mfa.amr", nil), true
 	case len(id.AMR) > 0:
-		pl.MFANote = "amr is " + strings.Join(id.AMR, "+") + " · no second factor, so the person's own is asked for"
+		pl.MFANote, pl.MFAAmr = keep("mfa.amrWithout", i18n.Args{"amr": strings.Join(id.AMR, "+")}), true
 	default:
-		pl.MFANote = "No amr claim · the person's own second factor is asked for"
+		pl.MFANote = keep("mfa.noAmr", nil)
 	}
 	if id.Subject == "" {
-		pl.Reject = &flowError{Code: "no_subject", Detail: "The ID token has no sub claim."}
+		pl.Reject = failure("no_subject", "flow.noSubject", nil)
 		return pl, nil
 	}
 	if id.Email == "" {
-		pl.Reject = &flowError{Code: "no_email", Detail: fmt.Sprintf("%s sent no email claim (%q). Check the claim mapping.", p.Name, claimsOf(p).Email)}
+		pl.Reject = failure("no_email", "flow.noEmail", i18n.Args{"name": p.Name, "claim": claimsOf(p).Email})
 		return pl, nil
 	}
 	domain := emailDomain(id.Email)
 	if len(p.AllowedDomains) > 0 && !slices.Contains(p.AllowedDomains, domain) {
-		pl.Reject = &flowError{Code: "domain_not_allowed", Detail: "email domain not allowed for " + p.Name + " SSO", NoAccount: true, Email: id.Email}
+		pl.Reject = failure("domain_not_allowed", "flow.domain", i18n.Args{"name": p.Name}).noAccount(id.Email)
 		return pl, nil
 	}
 	verified := false
 	if id.EmailVerified != nil {
 		verified = *id.EmailVerified
 		if !verified {
-			pl.Reject = &flowError{Code: "email_not_verified", Detail: p.Name + " says " + id.Email + " isn't verified.", Email: id.Email}
+			pl.Reject = failure("email_not_verified", "flow.notVerified", i18n.Args{"name": p.Name, "email": id.Email}).about(id.Email)
 			return pl, nil
 		}
 	} else {
@@ -247,7 +252,7 @@ func (s *Service) plan(ctx context.Context, q *store.Queries, p store.SsoProvide
 		return pl, err
 	}
 	if pl.User != nil && pl.User.Status != "active" {
-		pl.Reject = &flowError{Code: "account_deactivated", Detail: id.Email + " is deactivated.", Email: id.Email}
+		pl.Reject = failure("account_deactivated", "flow.deactivated", i18n.Args{"email": id.Email}).about(id.Email)
 		return pl, nil
 	}
 	if pl.User == nil {
@@ -257,11 +262,11 @@ func (s *Service) plan(ctx context.Context, q *store.Queries, p store.SsoProvide
 		}
 		switch {
 		case !p.JitEnabled:
-			pl.Reject = &flowError{Code: "no_account", Detail: "no account for " + id.Email + " and automatic accounts (JIT) are off", NoAccount: true, Email: id.Email}
+			pl.Reject = failure("no_account", "flow.noAccount", i18n.Args{"email": id.Email}).noAccount(id.Email)
 		case !verified:
-			pl.Reject = &flowError{Code: "email_not_verified", Detail: p.Name + " didn't confirm that " + id.Email + " is verified, so no account is created.", NoAccount: true, Email: id.Email}
+			pl.Reject = failure("email_not_verified", "flow.unconfirmed", i18n.Args{"name": p.Name, "email": id.Email}).noAccount(id.Email)
 		case len(st.JitDomainAllowlist) > 0 && !slices.Contains(st.JitDomainAllowlist, domain):
-			pl.Reject = &flowError{Code: "domain_not_allowed", Detail: "email domain not on the allowlist for automatic accounts", NoAccount: true, Email: id.Email}
+			pl.Reject = failure("domain_not_allowed", "flow.allowlist", nil).noAccount(id.Email)
 		default:
 			pl.Create = true
 		}
@@ -414,74 +419,73 @@ type SSOTestOutcome struct {
 	Code string `json:"code,omitempty"`
 }
 
-// describe turns a plan into the lines of the test sign-in view.
-func describe(p store.SsoProvider, id identity, pl signInPlan) []SSOTestOutcome {
+// describe turns a plan into the lines of the test sign-in view, in a
+// language. Built-in roles read in it too.
+func describe(l i18n.Lang, id identity, pl signInPlan) []SSOTestOutcome {
+	text := func(key string, args i18n.Args) string { return msgs.M(key).Text(l, args) }
 	out := []SSOTestOutcome{}
 	if pl.Reject != nil {
-		out = append(out, SSOTestOutcome{Tone: "bad", Label: "Rejected", Detail: rejectSentence(id, pl.Reject)})
+		out = append(out, SSOTestOutcome{Tone: "bad", Label: text("outcome.rejected", nil), Detail: rejectSentence(l, id, pl.Reject)})
 		return out
 	}
 	switch {
 	case pl.Create:
-		out = append(out, SSOTestOutcome{Tone: "info", Label: "New account", Detail: "No account for " + id.Email + " yet · a just-in-time account is created at the first sign-in"})
+		out = append(out, SSOTestOutcome{Tone: "info", Label: text("outcome.newAccount", nil), Detail: text("detail.newAccount", i18n.Args{"email": id.Email})})
 	default:
-		out = append(out, SSOTestOutcome{Tone: "ok", Label: "Existing account", Detail: id.Email + " matches " + displayName(*pl.User) + " · no account created"})
+		out = append(out, SSOTestOutcome{Tone: "ok", Label: text("outcome.existingAccount", nil),
+			Detail: text("detail.existingAccount", i18n.Args{"email": id.Email, "name": displayName(*pl.User)})})
 	}
 	for _, c := range pl.Changes {
-		from := ""
-		if c.Group != "" {
-			from = " from group “" + c.Group + "”"
-		} else {
-			from = " (JIT default)"
-		}
+		from, to := api.RoleName(l, c.FromKey, c.FromName), api.RoleName(l, c.To.RoleKey, c.To.RoleName)
+		change := from + " → " + to
+		args := i18n.Args{"workspace": c.WorkspaceName, "group": c.Group, "source": via(c.Group), "role": to, "change": change}
 		switch {
 		case c.Remove:
-			out = append(out, SSOTestOutcome{Tone: "warn", Label: "Removed", Strong: c.FromName,
-				Detail: c.WorkspaceName + ": leaves the workspace · no longer in group “" + c.LeftGroup + "”, which granted " + c.FromName})
+			out = append(out, SSOTestOutcome{Tone: "warn", Label: text("outcome.removed", nil), Strong: from,
+				Detail: text("detail.removed", i18n.Args{"workspace": c.WorkspaceName, "group": c.LeftGroup, "role": from})})
 		case c.LeftGroup != "":
-			change := c.FromName + " → " + c.To.RoleName
-			out = append(out, SSOTestOutcome{Tone: "warn", Label: "Role change", Strong: change,
-				Detail: c.WorkspaceName + ": " + change + " (JIT default) · no longer in group “" + c.LeftGroup + "”"})
+			out = append(out, SSOTestOutcome{Tone: "warn", Label: text("outcome.roleChange", nil), Strong: change,
+				Detail: text("detail.leftGroup", i18n.Args{"workspace": c.WorkspaceName, "change": change, "group": c.LeftGroup})})
 		case c.Kept == "owner":
-			out = append(out, SSOTestOutcome{Tone: "neutral", Label: "Role", Detail: c.WorkspaceName + ": stays Owner · mappings never change an Owner"})
+			out = append(out, SSOTestOutcome{Tone: "neutral", Label: text("outcome.role", nil), Detail: text("detail.staysOwner", args)})
 		case c.Kept == "deactivated":
-			out = append(out, SSOTestOutcome{Tone: "neutral", Label: "Role", Detail: c.WorkspaceName + ": membership is deactivated · the mapping doesn't reactivate it"})
+			out = append(out, SSOTestOutcome{Tone: "neutral", Label: text("outcome.role", nil), Detail: text("detail.deactivated", args)})
 		case c.Kept == "same":
-			out = append(out, SSOTestOutcome{Tone: "ok", Label: "Role", Detail: c.WorkspaceName + ": stays " + c.To.RoleName + from})
+			out = append(out, SSOTestOutcome{Tone: "ok", Label: text("outcome.role", nil), Detail: text("detail.stays", args)})
 		case c.FromKey == "":
-			out = append(out, SSOTestOutcome{Tone: "ok", Label: "Joins", Detail: c.WorkspaceName + ": joins as " + c.To.RoleName + from, Strong: c.To.RoleName})
+			out = append(out, SSOTestOutcome{Tone: "ok", Label: text("outcome.joins", nil), Detail: text("detail.joins", args), Strong: to})
 		default:
-			change := c.FromName + " → " + c.To.RoleName
 			// A demotion is worth a second look: the mapping wins over the
 			// role someone was given by hand.
 			if roleRank(c.To.RoleKey) > roleRank(c.FromKey) {
-				out = append(out, SSOTestOutcome{Tone: "warn", Label: "Role change", Strong: change,
-					Detail: c.WorkspaceName + ": " + change + from + ". The direct assignment is replaced at their next sign-in; review the mapping if that's not intended."})
+				out = append(out, SSOTestOutcome{Tone: "warn", Label: text("outcome.roleChange", nil), Strong: change, Detail: text("detail.demoted", args)})
 			} else {
-				out = append(out, SSOTestOutcome{Tone: "ok", Label: "Role", Strong: change, Detail: c.WorkspaceName + ": " + change + from})
+				out = append(out, SSOTestOutcome{Tone: "ok", Label: text("outcome.role", nil), Strong: change, Detail: text("detail.changed", args)})
 			}
 		}
 	}
 	if pl.GroupsMissing {
-		n := pl.Mappings
-		out = append(out, SSOTestOutcome{Tone: "warn", Label: "Mappings inactive", Detail: "No groups claim · " + plural(n, "the group mapping doesn't apply", fmt.Sprintf("the %d group mappings don't apply", n))})
+		out = append(out, SSOTestOutcome{Tone: "warn", Label: text("outcome.mappingsInactive", nil), Detail: text("detail.mappingsInactive", i18n.Args{"count": pl.Mappings})})
 	}
-	mfa := SSOTestOutcome{Tone: "ok", Label: "Two-factor", Detail: pl.MFANote}
+	mfa := SSOTestOutcome{Tone: "ok", Label: text("outcome.twoFactor", nil), Detail: pl.MFANote.In(l)}
 	if !pl.MFA {
 		mfa.Tone = "warn"
 	}
-	if strings.HasPrefix(pl.MFANote, "amr") {
+	if pl.MFAAmr {
 		mfa.Code = "amr"
 	}
 	out = append(out, mfa)
 	return out
 }
 
-func rejectSentence(id identity, r *flowError) string {
-	if strings.HasPrefix(r.Detail, id.Email) || id.Email == "" {
-		return r.Detail
+// rejectSentence is why the sign-in would be turned away, in a language,
+// led by the email when the reason doesn't start with it.
+func rejectSentence(l i18n.Lang, id identity, r *flowError) string {
+	why := r.in(l)
+	if strings.HasPrefix(why, id.Email) || id.Email == "" {
+		return why
 	}
-	return id.Email + ": " + r.Detail
+	return id.Email + ": " + why
 }
 
 // roleRank orders built-in roles from most to least powerful.
@@ -497,13 +501,6 @@ func roleRank(key string) int {
 		return 4
 	}
 	return 3
-}
-
-func plural(n int, one, many string) string {
-	if n == 1 {
-		return one
-	}
-	return many
 }
 
 // apply carries out a sign-in plan inside tx and returns the account.
@@ -534,9 +531,10 @@ func (s *Service) apply(ctx context.Context, tx pgx.Tx, p store.SsoProvider, id 
 			Subject: id.Subject, Email: id.Email, Username: id.Username, Details: details}); err != nil {
 			return u, err
 		}
+		reason, meta := audit.KeepReason(map[string]any{"provider": p.Name, "provider_id": p.ID.String(), "source": "sso_jit"}, keep("reason.jit", i18n.Args{"name": p.Name}))
 		if err := s.Audit.LogWith(ctx, q, audit.Event{Action: "user.created", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email,
-			Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Reason: "just-in-time account from " + p.Name + " SSO",
-			After: map[string]any{"email": u.Email, "name": u.Name}, Metadata: map[string]any{"provider": p.Name, "provider_id": p.ID.String(), "source": "sso_jit"}}); err != nil {
+			Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Reason: reason,
+			After: map[string]any{"email": u.Email, "name": u.Name}, Metadata: meta}); err != nil {
 			return u, err
 		}
 	case pl.Link:
@@ -587,8 +585,9 @@ func (s *Service) apply(ctx context.Context, tx pgx.Tx, p store.SsoProvider, id 
 		if c.LeftGroup != "" {
 			meta["left_group"] = c.LeftGroup
 		}
+		reason, meta := audit.KeepReason(meta, sourceReason(p, c))
 		if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws, Action: action, TargetType: "member", TargetID: u.ID.String(), TargetName: displayName(u),
-			Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Reason: sourceReason(p, c),
+			Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Reason: reason,
 			Before: before, After: map[string]any{"role": c.To.RoleKey, "scope": c.Scope}, Metadata: meta}); err != nil {
 			return u, err
 		}
@@ -596,14 +595,16 @@ func (s *Service) apply(ctx context.Context, tx pgx.Tx, p store.SsoProvider, id 
 	return u, nil
 }
 
-func sourceReason(p store.SsoProvider, c memberChange) string {
+// sourceReason is the audit reason of a membership a sign-in set, kept for
+// later readers (a built-in role reads in each reader's language).
+func sourceReason(p store.SsoProvider, c memberChange) i18n.Text {
 	switch {
 	case c.LeftGroup != "":
-		return "no longer in " + p.Name + " group “" + c.LeftGroup + "” · just-in-time default role of " + p.Name + " SSO"
+		return keep("reason.leftGroupDefault", i18n.Args{"name": p.Name, "group": c.LeftGroup})
 	case c.Group != "":
-		return p.Name + " group “" + c.Group + "” maps to " + c.To.RoleName
+		return keep("reason.groupMaps", i18n.Args{"name": p.Name, "group": c.Group, "role": api.RoleArg(c.To.RoleKey, c.To.RoleName)})
 	}
-	return "just-in-time default role of " + p.Name + " SSO"
+	return keep("reason.jitDefault", i18n.Args{"name": p.Name})
 }
 
 // removeMember ends a membership whose group mapping no longer matches,
@@ -622,11 +623,13 @@ func (s *Service) removeMember(ctx context.Context, q *store.Queries, p store.Ss
 	if _, err := q.DeleteMember(ctx, store.DeleteMemberParams{ID: *c.MemberID, WorkspaceID: ws}); err != nil {
 		return err
 	}
+	reason, meta := audit.KeepReason(map[string]any{"source": "sso_group", "group": c.LeftGroup, "provider": p.Name, "provider_id": p.ID.String(), "user_id": u.ID.String()},
+		keep("reason.leftGroup", i18n.Args{"name": p.Name, "group": c.LeftGroup, "role": api.RoleArg(c.FromKey, c.FromName)}))
 	return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws, Action: "member.removed", TargetType: "member", TargetID: c.MemberID.String(), TargetName: displayName(u),
-		Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Reason: "no longer in " + p.Name + " group “" + c.LeftGroup + "”, which granted " + c.FromName,
+		Actor: &audit.Actor{Type: authz.ActorSystem, Name: "System"}, Reason: reason,
 		Before:   map[string]any{"email": u.Email, "role": c.FromName, "status": "active"},
 		After:    map[string]any{"keys_revoked": names},
-		Metadata: map[string]any{"source": "sso_group", "group": c.LeftGroup, "provider": p.Name, "provider_id": p.ID.String(), "user_id": u.ID.String()}})
+		Metadata: meta})
 }
 
 func actorOf(u store.User) *audit.Actor {

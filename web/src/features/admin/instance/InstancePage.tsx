@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useMemo, useRef, useState, type ReactNode } from 'react'
-import { $api, errorMessage, type Schemas } from '@/api/client'
+import { $api, ApiError, errorMessage, type Schemas } from '@/api/client'
 import { LogoMark } from '@/components/icons/Icon'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -99,7 +99,11 @@ function InstanceForm({
   const checkUrl = $api.useMutation('post', '/api/v1/admin/instance/check-url')
   const refresh = () =>
     Promise.all([qc.invalidateQueries({ queryKey: ['get', '/api/v1/admin/instance'] }), qc.invalidateQueries({ queryKey: ['meta'] }), qc.invalidateQueries({ queryKey: ['me'] })])
-  const fieldOf = (msg: string): 'name' | 'url' | 'tz' | undefined => (/url|address/i.test(msg) ? 'url' : /timezone/i.test(msg) ? 'tz' : /name/i.test(msg) ? 'name' : undefined)
+  // The problem names its field; its sentence reads in the app language.
+  const fieldOf = (e: unknown): 'name' | 'url' | 'tz' | undefined => {
+    const loc = e instanceof ApiError ? e.problem.errors?.[0]?.location : undefined
+    return loc === 'body.publicUrl' || loc === 'body.url' ? 'url' : loc === 'body.defaultTimezone' ? 'tz' : loc === 'body.name' ? 'name' : undefined
+  }
   return (
     <div className="pad col gap-3.5">
       <div className="grid grid-cols-2 gap-3.5 max-md:grid-cols-1">
@@ -194,8 +198,7 @@ function InstanceForm({
               await refresh()
               toast({ kind: 'success', title: t(m.saved) })
             } catch (e) {
-              const msg = errorMessage(e)
-              setError({ field: fieldOf(msg), message: msg })
+              setError({ field: fieldOf(e), message: errorMessage(e) })
             }
           }}
         >

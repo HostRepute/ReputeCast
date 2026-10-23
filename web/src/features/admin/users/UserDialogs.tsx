@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { $api, errorMessage, type Schemas } from '@/api/client'
+import { $api, ApiError, errorMessage, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog, DialogOption, DialogRow } from '@/components/ui/ConfirmDialog'
@@ -49,8 +49,9 @@ export function ResetTwoFactorDialog({ user, onClose }: { user: User; onClose: (
       toast({ kind: 'success', title: tt(m.twoFactorReset, { name: user.name }), detail: tt(m.twoFactorResetDetail, { name }) })
       onClose()
     } catch (e) {
-      const msg = errorMessage(e)
-      setError({ field: /password/i.test(msg) ? 'password' : /reason/i.test(msg) ? 'reason' : undefined, message: msg })
+      // The problem names its field; its sentence reads in the app language.
+      const loc = e instanceof ApiError ? e.problem.errors?.[0]?.location : undefined
+      setError({ field: loc === 'body.password' ? 'password' : loc === 'body.reason' ? 'reason' : undefined, message: errorMessage(e) })
     }
   }
   return (

@@ -114,14 +114,14 @@ func (s *Service) Setup(ctx context.Context) (SetupState, error) {
 
 	if u.IsInstanceAdmin && st.SetupCompletedAt == nil {
 		out.Mode = "instance"
-		out.SecondFactor.Required, out.SecondFactor.Reason = true, "Two-factor is required for the first Owner; it can't be skipped."
+		out.SecondFactor.Required, out.SecondFactor.Reason = true, say(ctx, msgs.M("setup.firstOwner"))
 		out.Steps = []SetupStep{
-			{Key: "password", Label: "Replace the temporary password", Done: !u.MustChangePassword},
-			{Key: "second_factor", Label: "Add a passkey or authenticator", Done: hasSecond},
-			{Key: "recovery_codes", Label: "Save your recovery codes", Done: hasSecond && codesSaved},
-			{Key: "instance", Label: "Instance basics", Done: st.BasicsConfirmedAt != nil},
-			{Key: "workspace", Label: "Create the first workspace", Done: out.Workspace != nil},
-			{Key: "provider", Label: "Connect a sending provider"},
+			step(ctx, "password", !u.MustChangePassword),
+			step(ctx, "second_factor", hasSecond),
+			step(ctx, "recovery_codes", hasSecond && codesSaved),
+			step(ctx, "instance", st.BasicsConfirmedAt != nil),
+			step(ctx, "workspace", out.Workspace != nil),
+			step(ctx, "provider", false),
 		}
 	} else {
 		required, reason := s.twoFactorRequired(ctx, u, st)
@@ -135,12 +135,12 @@ func (s *Service) Setup(ctx context.Context) (SetupState, error) {
 			out.SecondFactor.GraceUntil = u.TwofaGraceUntil
 		}
 		if u.MustChangePassword {
-			out.Steps = append(out.Steps, SetupStep{Key: "password", Label: "Replace the temporary password"})
+			out.Steps = append(out.Steps, step(ctx, "password", false))
 		}
 		if needsSecond {
 			out.Steps = append(out.Steps,
-				SetupStep{Key: "second_factor", Label: "Add a passkey or authenticator"},
-				SetupStep{Key: "recovery_codes", Label: "Save your recovery codes"})
+				step(ctx, "second_factor", false),
+				step(ctx, "recovery_codes", false))
 		}
 		out.Mode = "account"
 		if len(out.Steps) == 0 {
@@ -168,7 +168,7 @@ func (s *Service) MarkRecoveryCodesSaved(ctx context.Context) error {
 		return err
 	}
 	if n == 0 {
-		return api.Conflict("There are no recovery codes to save. Generate them first.")
+		return api.Conflict(say(ctx, msgs.M("problem.noCodes")))
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -178,4 +178,9 @@ func (s *Service) MarkRecoveryCodesSaved(ctx context.Context) error {
 		return s.Audit.LogWith(ctx, q, audit.Event{Action: "account.recovery_codes_saved", TargetType: "user", TargetID: u.ID.String(), TargetName: u.Email,
 			Metadata: map[string]any{"codes": n}})
 	})
+}
+
+// step is a step of the first sign-in, its label in the reader's language.
+func step(ctx context.Context, key string, done bool) SetupStep {
+	return SetupStep{Key: key, Label: say(ctx, msgs.M("step."+key)), Done: done}
 }

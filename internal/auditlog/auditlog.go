@@ -25,6 +25,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -175,7 +176,7 @@ type Filter struct {
 	Limit     int
 }
 
-func (f Filter) params(wsID uuid.UUID, now time.Time) (store.AuditLogListParams, error) {
+func (f Filter) params(l i18n.Lang, wsID uuid.UUID, now time.Time) (store.AuditLogListParams, error) {
 	p := store.AuditLogListParams{WorkspaceID: &wsID, Lim: int32(f.Limit)}
 	if p.Lim <= 0 {
 		p.Lim = 50
@@ -189,7 +190,7 @@ func (f Filter) params(wsID uuid.UUID, now time.Time) (store.AuditLogListParams,
 	if f.ActorID != "" {
 		id, err := uuid.Parse(f.ActorID)
 		if err != nil {
-			return p, api.Invalid("query.actor", "Unknown actor.")
+			return p, api.Invalid("query.actor", say(l, "problem.actor", nil))
 		}
 		p.ActorID = &id
 	}
@@ -228,7 +229,7 @@ func (f Filter) params(wsID uuid.UUID, now time.Time) (store.AuditLogListParams,
 	if f.Cursor != "" {
 		at, id, err := decodeCursor(f.Cursor)
 		if err != nil {
-			return p, api.Invalid("query.cursor", "This page link expired. Reload the log.")
+			return p, api.Invalid("query.cursor", say(l, "problem.cursor", nil))
 		}
 		p.CursorAt, p.CursorID = &at, &id
 	}
@@ -280,25 +281,6 @@ func parseMeta(raw json.RawMessage) meta {
 	return m
 }
 
-func firstLabel(label, fallback string) string {
-	if label != "" {
-		return label
-	}
-	return fallback
-}
-
-func actorLabel(t string) string {
-	switch t {
-	case "user":
-		return "member"
-	case "api_key":
-		return "API key"
-	case "mcp_agent":
-		return "MCP agent"
-	}
-	return "automatic"
-}
-
 func source(actorType string, ip string, m meta) AuditSource {
 	if m.Source != "" {
 		return AuditSource{Channel: m.Source, Detail: m.Via}
@@ -317,37 +299,45 @@ func source(actorType string, ip string, m meta) AuditSource {
 	return AuditSource{Channel: "system", Detail: m.Via}
 }
 
-func targetLine(targetType, targetName string, m meta) string {
+// targetLine is the line under the action: the target the entry kept, its
+// name, or what it is ("audit log", in the reader's language).
+func targetLine(l i18n.Lang, targetType, targetName string, m meta, kept audit.Kept) string {
 	if m.Target != "" {
-		return m.Target
+		return audit.In(kept.Target, l, m.Target)
 	}
 	if targetName != "" {
 		return targetName
 	}
-	return strings.ReplaceAll(targetType, "_", " ")
+	if l.Locale == i18n.English {
+		return strings.ReplaceAll(targetType, "_", " ")
+	}
+	return typeIn(l, targetType)
 }
 
-func item(id uuid.UUID, at time.Time, actorType string, actorID *uuid.UUID, actorName, color, role, action, targetType, targetID, targetName, result, reason string, ip string, requestID string, rawMeta json.RawMessage, before, after json.RawMessage) AuditEventItem {
+// item is an entry of the list, its words in a language.
+func item(l i18n.Lang, id uuid.UUID, at time.Time, actorType string, actorID *uuid.UUID, actorName, color, role, action, targetType, targetID, targetName, result, reason string, ip string, requestID string, rawMeta json.RawMessage, before, after json.RawMessage) AuditEventItem {
 	m := parseMeta(rawMeta)
+	kept := audit.KeptIn(rawMeta)
 	it := AuditEventItem{
 		ID: id.String(), OccurredAt: at, Action: action, TargetType: targetType, TargetID: targetID, TargetName: targetName,
-		Target: targetLine(targetType, targetName, m), Result: result, Reason: reason, RequestID: requestID,
-		Actor:  AuditActor{Type: actorType, Name: actorName, AvatarColor: color, Label: firstLabel(m.ActorLabel, actorLabel(actorType)), Role: role},
+		Target: targetLine(l, targetType, targetName, m, kept), Result: result, Reason: audit.In(kept.Reason, l, reasonIn(l, reason)), RequestID: requestID,
+		Actor:  AuditActor{Type: actorType, Name: actorName, AvatarColor: color, Label: actorLabelIn(l, m.ActorLabel, actorType), Role: role},
 		Source: source(actorType, ip, m),
 	}
 	if actorID != nil {
 		it.Actor.ID = actorID.String()
 	}
-	if it.Actor.Name == "" {
-		it.Actor.Name = "System"
+	// Automatic entries are ReputeCast's own: "System", stored or not.
+	if it.Actor.Name == "" || actorType == "system" && it.Actor.Name == "System" {
+		it.Actor.Name = say(l, "actor.system", nil)
 	}
 	switch {
 	case m.Summary != "":
-		it.Summary = m.Summary
+		it.Summary = kept.SummaryIn(l, m.Summary)
 	case m.Detail != "":
-		it.Summary = m.Detail
+		it.Summary = audit.In(kept.Detail, l, m.Detail)
 	case reason != "":
-		it.Summary = reason
+		it.Summary = audit.In(kept.Reason, l, reasonIn(l, reason))
 	default:
 		it.Summary = diffSummary(before, after)
 	}
@@ -356,7 +346,8 @@ func item(id uuid.UUID, at time.Time, actorType string, actorID *uuid.UUID, acto
 
 // List returns one page of the workspace log.
 func (s *Service) List(ctx context.Context, ws *store.Workspace, f Filter) (AuditEventList, error) {
-	p, err := f.params(ws.ID, s.now())
+	l := i18n.LangFrom(ctx)
+	p, err := f.params(l, ws.ID, s.now())
 	if err != nil {
 		return AuditEventList{}, err
 	}
@@ -365,7 +356,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, f Filter) (Audi
 	if err != nil {
 		return AuditEventList{}, err
 	}
-	out := AuditEventList{Items: []AuditEventItem{}, RetentionDays: ws.AuditRetentionDays, Actors: []AuditActorRef{}, ActionGroups: []string{}, Categories: Categories}
+	out := AuditEventList{Items: []AuditEventItem{}, RetentionDays: ws.AuditRetentionDays, Actors: []AuditActorRef{}, ActionGroups: []string{}, Categories: categoriesIn(l)}
 	limit := int(p.Lim) - 1
 	for i, r := range rows {
 		if i == limit {
@@ -373,7 +364,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, f Filter) (Audi
 			out.NextCursor = encodeCursor(last.OccurredAt, last.ID)
 			break
 		}
-		it := item(r.ID, r.OccurredAt, r.ActorType, r.ActorID, r.ActorName, r.ActorColor, r.ActorRole, r.Action, r.TargetType, r.TargetID, r.TargetName, r.Result, r.Reason, ipString(r.Ip), r.RequestID, r.Metadata, nil, nil)
+		it := item(l, r.ID, r.OccurredAt, r.ActorType, r.ActorID, r.ActorName, r.ActorColor, r.ActorRole, r.Action, r.TargetType, r.TargetID, r.TargetName, r.Result, r.Reason, ipString(r.Ip), r.RequestID, r.Metadata, nil, nil)
 		it.Changes = r.HasChanges
 		out.Items = append(out.Items, it)
 	}
@@ -455,18 +446,20 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, id uuid.UUID) (A
 	if err != nil {
 		return AuditEventDetail{}, api.MapError(err, "Audit entry")
 	}
+	l := i18n.LangFrom(ctx)
 	m := parseMeta(e.Metadata)
-	it := item(e.ID, e.OccurredAt, e.ActorType, e.ActorID, e.ActorName, e.ActorColor, e.ActorRole, e.Action, e.TargetType, e.TargetID, e.TargetName, e.Result, e.Reason, ipString(e.Ip), e.RequestID, e.Metadata, e.Before, e.After)
+	kept := audit.KeptIn(e.Metadata)
+	it := item(l, e.ID, e.OccurredAt, e.ActorType, e.ActorID, e.ActorName, e.ActorColor, e.ActorRole, e.Action, e.TargetType, e.TargetID, e.TargetName, e.Result, e.Reason, ipString(e.Ip), e.RequestID, e.Metadata, e.Before, e.After)
 	out := AuditEventDetail{
-		Event: it, Workspace: e.WorkspaceName, IP: ipString(e.Ip), UserAgent: e.UserAgent, Client: Client(e.UserAgent),
+		Event: it, Workspace: e.WorkspaceName, IP: ipString(e.Ip), UserAgent: e.UserAgent, Client: ClientIn(l, e.UserAgent),
 		Permission: m.Perm, Before: nonEmpty(e.Before), After: nonEmpty(e.After), Diff: Diff(e.Before, e.After), Related: []string{},
 	}
 	if out.Diff == nil {
 		out.Diff = []AuditDiffLine{}
 	}
-	out.What = m.What
+	out.What = audit.In(kept.What, l, m.What)
 	if out.What == "" {
-		out.What = Describe(e.Action, e.TargetType, e.TargetName)
+		out.What = DescribeIn(l, e.Action, e.TargetType, e.TargetName)
 	}
 	if m.Related != "" {
 		out.Related = append(out.Related, m.Related)
@@ -475,16 +468,11 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, id uuid.UUID) (A
 			Since: e.OccurredAt.Add(-24 * time.Hour), Until: e.OccurredAt.Add(24 * time.Hour)})
 		if err == nil {
 			for _, r := range rel {
-				rm := parseMeta(r.Metadata)
-				line := r.Action + " by " + r.ActorName + " at " + r.OccurredAt.In(loc(ws.Timezone)).Format("15:04")
-				if rm.Summary != "" {
-					line = rm.Summary + " (" + line + ")"
-				}
-				out.Related = append(out.Related, line)
+				out.Related = append(out.Related, relatedLine(l, r.Action, r.ActorName, r.OccurredAt.In(loc(ws.Timezone)), r.Metadata))
 			}
 		}
 	}
-	out.Link, out.LinkLabel = link(ws.Slug, e.TargetType, e.TargetID, m.LinkPath)
+	out.Link, out.LinkLabel = link(l, ws.Slug, e.TargetType, e.TargetID, m.LinkPath)
 	if e.Action == "list.delete" {
 		out.Restore = s.listRestore(ctx, ws.ID, e.TargetID, e.TargetName)
 	}
@@ -530,116 +518,145 @@ func loc(tz string) *time.Location {
 	return time.UTC
 }
 
-// link maps a target to the screen that shows it.
-func link(ws, targetType, targetID, override string) (string, string) {
+// link maps a target to the screen that shows it, with its button's label
+// in a language.
+func link(l i18n.Lang, ws, targetType, targetID, override string) (string, string) {
 	base := "/w/" + ws
 	if override != "" {
-		return base + override, "Open"
+		return base + override, say(l, "link.open", nil)
 	}
+	path, key := "", ""
 	switch targetType {
 	case "routing_rule", "routing":
-		return base + "/providers/routing", "Open routing"
+		path, key = "/providers/routing", "link.routing"
 	case "provider":
-		return base + "/providers", "Open providers"
+		path, key = "/providers", "link.providers"
 	case "campaign":
 		if targetID != "" {
-			return base + "/campaigns/" + targetID + "/report", "Open campaign"
+			path, key = "/campaigns/"+targetID+"/report", "link.campaign"
 		}
 	case "member":
 		if targetID != "" {
-			return base + "/settings/team/" + targetID, "Open member"
+			path, key = "/settings/team/"+targetID, "link.member"
 		}
 	case "invitation":
-		return base + "/settings/team", "Open team"
+		path, key = "/settings/team", "link.team"
 	case "role":
 		if targetID != "" {
-			return base + "/settings/roles/" + targetID, "Open role"
+			path, key = "/settings/roles/"+targetID, "link.role"
 		}
 	case "api_key", "mcp_agent":
-		return base + "/settings/keys", "Open keys"
+		path, key = "/settings/keys", "link.keys"
 	case "webhook", "webhook_delivery":
-		return base + "/settings/webhooks", "Open webhooks"
+		path, key = "/settings/webhooks", "link.webhooks"
 	case "workspace":
-		return base + "/settings", "Open settings"
+		path, key = "/settings", "link.settings"
 	case "approval_request":
 		if targetID != "" {
-			return base + "/approvals/" + targetID, "Open approval"
+			path, key = "/approvals/"+targetID, "link.approval"
 		}
 	case "contacts", "contact":
-		return base + "/audience", "Open audience"
+		path, key = "/audience", "link.audience"
 	case "transactional_template":
 		if targetID != "" {
-			return base + "/transactional/templates/" + targetID, "Open template"
+			path, key = "/transactional/templates/"+targetID, "link.template"
 		}
 	case "transactional_message":
 		if targetID != "" {
-			return base + "/transactional/messages/" + targetID, "Open message"
+			path, key = "/transactional/messages/"+targetID, "link.message"
 		}
 	case "transactional_log":
-		return base + "/transactional/messages", "Open messages"
+		path, key = "/transactional/messages", "link.messages"
 	case "transactional_category", "transactional_settings":
-		return base + "/transactional/settings", "Open settings"
+		path, key = "/transactional/settings", "link.settings"
 	case "ai_assistant":
-		return base + "/settings/integrations/ai", "Open AI assistant"
+		path, key = "/settings/integrations/ai", "link.ai"
 	case "store":
 		if targetID != "" {
-			return base + "/settings/integrations/stores/" + targetID, "Open store"
+			path, key = "/settings/integrations/stores/"+targetID, "link.store"
 		}
 	}
-	return "", ""
+	if key == "" {
+		return "", ""
+	}
+	return base + path, say(l, key, nil)
 }
 
-// verbs turn the last part of an action into a past-tense phrase.
+// verbs map the last part of an action to its past-tense phrase, the
+// message of the What line (what.<key>).
 var verbs = map[string]string{
-	"created": "Created", "updated": "Changed", "deleted": "Deleted", "revoked": "Revoked", "rotated": "Rotated", "replaced": "Replaced",
-	"invited": "Invited", "requested": "Requested approval for", "approved": "Approved", "rejected": "Rejected", "read": "Read",
-	"export": "Exported", "exported": "Exported", "paused": "Paused", "resumed": "Resumed", "auto_paused": "Automatically paused",
-	"completed": "Finished sending", "scheduled": "Scheduled", "role_changed": "Changed the role of", "deactivated": "Deactivated",
-	"reactivated": "Reactivated", "removed": "Removed", "signed_out": "Signed out", "invite_revoked": "Revoked the invitation of",
-	"invite_resent": "Resent the invitation of", "transferred": "Transferred ownership of", "sign_in": "Signed in to", "tested": "Tested",
-	"retried": "Retried deliveries of", "secret_rotated": "Rotated the signing secret of", "settings_updated": "Changed the settings of",
+	"created": "created", "updated": "changed", "deleted": "deleted", "revoked": "revoked", "rotated": "rotated", "replaced": "replaced",
+	"invited": "invited", "requested": "requestedApproval", "approved": "approved", "rejected": "rejected", "read": "read",
+	"export": "exported", "exported": "exported", "paused": "paused", "resumed": "resumed", "auto_paused": "autoPaused",
+	"completed": "finishedSending", "scheduled": "scheduled", "role_changed": "changedRole", "deactivated": "deactivated",
+	"reactivated": "reactivated", "removed": "removed", "signed_out": "signedOut", "invite_revoked": "revokedInvitation",
+	"invite_resent": "resentInvitation", "transferred": "transferredOwnership", "sign_in": "signedInTo", "tested": "tested",
+	"retried": "retriedDeliveries", "secret_rotated": "rotatedSecret", "settings_updated": "changedSettings",
 	// Actions named in the present tense.
-	"create": "Created", "update": "Changed", "delete": "Deleted", "remove": "Removed", "rename": "Renamed", "pause": "Paused",
-	"resume": "Resumed", "restore": "Restored", "restored": "Restored", "unscheduled": "Unscheduled", "cancel": "Cancelled",
-	"cancelled": "Cancelled", "revoke": "Revoked", "publish": "Published", "upload": "Uploaded", "connect": "Connected",
-	"disconnect": "Disconnected", "duplicate": "Duplicated", "erase": "Erased", "add": "Added",
+	"create": "created", "update": "changed", "delete": "deleted", "remove": "removed", "rename": "renamed", "pause": "paused",
+	"resume": "resumed", "restore": "restored", "restored": "restored", "unscheduled": "unscheduled", "cancel": "cancelled",
+	"cancelled": "cancelled", "revoke": "revoked", "publish": "published", "upload": "uploaded", "connect": "connected",
+	"disconnect": "disconnected", "duplicate": "duplicated", "erase": "erased", "add": "added",
 	// Transactional email.
-	"template_created": "Created", "template_updated": "Changed", "template_saved": "Saved the draft of", "template_published": "Published",
-	"template_rolled_back": "Rolled back", "template_archived": "Archived", "template_restored": "Restored", "template_deleted": "Deleted",
-	"category_created": "Created", "category_updated": "Changed", "category_deleted": "Deleted", "content_viewed": "Viewed the content of",
-	"message_resent": "Resent", "log_exported": "Exported", "enabled": "Turned on", "disabled": "Turned off",
+	"template_created": "created", "template_updated": "changed", "template_saved": "savedDraft", "template_published": "published",
+	"template_rolled_back": "rolledBack", "template_archived": "archived", "template_restored": "restored", "template_deleted": "deleted",
+	"category_created": "created", "category_updated": "changed", "category_deleted": "deleted", "content_viewed": "viewedContent",
+	"message_resent": "resent", "log_exported": "exported", "enabled": "turnedOn", "disabled": "turnedOff",
 	// The AI assistant.
-	"connection_created": "Connected", "connection_updated": "Changed", "connection_removed": "Disconnected", "key_replaced": "Replaced the key of",
-	"model_changed": "Changed the model of", "cap_updated": "Changed the monthly cap of", "prices_updated": "Changed the prices of",
-	"feature_enabled": "Turned on a feature of", "feature_disabled": "Turned off a feature of",
+	"connection_created": "connected", "connection_updated": "changed", "connection_removed": "disconnected", "key_replaced": "replacedKey",
+	"model_changed": "changedModel", "cap_updated": "changedCap", "prices_updated": "changedPrices",
+	"feature_enabled": "featureOn", "feature_disabled": "featureOff",
 	// Stores (phase 7).
-	"connect_started": "Started connecting", "keys_saved": "Saved the app keys of", "installed": "Installed the app on", "connected": "Connected",
-	"reconnected": "Reconnected", "disconnected": "Disconnected", "data_deleted": "Deleted the store data of", "list_updated": "Changed the list of",
-	"writeback_updated": "Changed the consent write-back of", "attribution_updated": "Changed the attribution window of",
-	"sync_updated": "Changed what syncs from", "sync_started": "Started a sync of", "webhooks_registered": "Registered the webhooks of",
+	"connect_started": "startedConnecting", "keys_saved": "savedAppKeys", "installed": "installedApp", "connected": "connected",
+	"reconnected": "reconnected", "disconnected": "disconnected", "data_deleted": "deletedStoreData", "list_updated": "changedList",
+	"writeback_updated": "changedWriteback", "attribution_updated": "changedAttribution",
+	"sync_updated": "changedSync", "sync_started": "startedSync", "webhooks_registered": "registeredWebhooks",
 }
 
-// Describe writes "Changed the Broadcasts routing rule" style sentences from an action.
+// Describe writes "Changed the Broadcasts routing rule" style sentences
+// from an action, in English.
 func Describe(action, targetType, targetName string) string {
+	return DescribeIn(i18n.Default, action, targetType, targetName)
+}
+
+// DescribeIn writes an entry's What line in a language: a whole sentence
+// per action's verb (what.<key>), with what was acted on (type.<type>) and
+// its name. An action whose verb has no sentence reads as its words, in
+// English, as audit action names do.
+func DescribeIn(l i18n.Lang, action, targetType, targetName string) string {
 	noun, verb, ok := strings.Cut(action, ".")
 	if !ok {
 		return strings.ReplaceAll(action, "-", " ")
 	}
-	v := verbs[verb]
-	if v == "" {
-		v = strings.ToUpper(verb[:1]) + strings.ReplaceAll(verb[1:], "_", " ")
-	}
-	obj := TypeLabel(targetType, false)
+	obj := typeIn(l, targetType)
 	if obj == "" {
-		obj = TypeLabel(noun, false)
+		obj = typeIn(l, noun)
 	}
-	if targetName != "" {
-		if targetType == "routing_rule" {
-			return fmt.Sprintf("%s the %s routing rule", v, targetName)
+	key, known := verbs[verb]
+	if !known {
+		v := strings.ToUpper(verb[:1]) + strings.ReplaceAll(verb[1:], "_", " ")
+		en := TypeLabel(targetType, false)
+		if en == "" {
+			en = TypeLabel(noun, false)
 		}
-		return fmt.Sprintf("%s %s %s", v, obj, quoteName(targetName))
+		if targetName != "" {
+			return fmt.Sprintf("%s %s %s", v, en, quoteName(targetName))
+		}
+		return fmt.Sprintf("%s %s", v, en)
 	}
-	return fmt.Sprintf("%s %s", v, obj)
+	if targetName != "" && targetType == "routing_rule" {
+		if key == "changed" {
+			return say(l, "what.routingRuleChanged", i18n.Args{"name": targetName})
+		}
+		// No other verb names a routing rule today: as before, in English.
+		v := strings.TrimSpace(say(i18n.Default, "what."+key, i18n.Args{"hasName": "no", "type": ""}))
+		return fmt.Sprintf("%s the %s routing rule", v, targetName)
+	}
+	args := i18n.Args{"hasName": "no", "type": obj, "name": ""}
+	if targetName != "" {
+		args["hasName"], args["name"] = "yes", quoteName(targetName)
+	}
+	return say(l, "what."+key, args)
 }
 
 // acronyms keep their case in type names: api_key → "API key".
@@ -678,7 +695,10 @@ var (
 )
 
 // Client turns a User-Agent into "Chrome 141 on macOS 26".
-func Client(ua string) string {
+func Client(ua string) string { return ClientIn(i18n.Default, ua) }
+
+// ClientIn is Client in a language: "Chrome 141 trên macOS 26".
+func ClientIn(l i18n.Lang, ua string) string {
 	if ua == "" {
 		return ""
 	}
@@ -712,7 +732,7 @@ func Client(ua string) string {
 	}
 	switch {
 	case browser != "" && osName != "":
-		return browser + " on " + osName
+		return say(l, "client.on", i18n.Args{"browser": browser, "os": osName})
 	case browser != "":
 		return browser
 	case osName != "":
@@ -978,7 +998,7 @@ func (s *Service) UpdateSettings(ctx context.Context, ws *store.Workspace, p *au
 			u = *ws.AuditStreamUrl
 		}
 		if in.Stream.Enabled && u == "" {
-			return res, api.Invalid("body.stream.url", "Add the URL that receives the audit stream.")
+			return res, api.Invalid("body.stream.url", say(i18n.LangFrom(ctx), "problem.streamURL", nil))
 		}
 		if u != "" {
 			pu, err := s.policy().ValidateURL(u)
@@ -1028,4 +1048,15 @@ func streamAD(wsID uuid.UUID) string { return "workspace:" + wsID.String() + ":a
 
 func (s *Service) policy() netguard.Policy {
 	return netguard.Policy{AllowPrivate: s.AllowPrivate != nil && s.AllowPrivate()}
+}
+
+// relatedLine is a related entry in a language: "routing.updated by
+// Marcus Chen at 17:20", after its summary when it has one.
+func relatedLine(l i18n.Lang, action, actor string, at time.Time, metadata json.RawMessage) string {
+	args := i18n.Args{"action": action, "name": actor, "at": at}
+	if rm := parseMeta(metadata); rm.Summary != "" {
+		args["summary"] = audit.KeptIn(metadata).SummaryIn(l, rm.Summary)
+		return say(l, "related.withSummary", args)
+	}
+	return say(l, "related.entry", args)
 }

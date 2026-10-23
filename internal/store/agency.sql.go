@@ -1806,7 +1806,7 @@ func (q *Queries) AgencyMemberships(ctx context.Context, userIds []uuid.UUID) ([
 
 const agencyNotifications = `-- name: AgencyNotifications :many
 
-SELECT n.id, n.workspace_id, n.kind, n.severity, n.title, coalesce(nullif(n.summary, ''), n.body, '')::text AS summary, coalesce(n.link, '')::text AS link,
+SELECT n.id, n.workspace_id, n.kind, n.severity, n.title, n.summary, n.body, n.data, coalesce(n.link, '')::text AS link,
        n.created_at, (n.read_at IS NOT NULL)::boolean AS read
 FROM notifications n
 WHERE n.user_id = $1 AND n.workspace_id = ANY($2::uuid[]) AND n.in_app
@@ -1821,20 +1821,24 @@ type AgencyNotificationsParams struct {
 }
 
 type AgencyNotificationsRow struct {
-	ID          uuid.UUID  `json:"id"`
-	WorkspaceID *uuid.UUID `json:"workspaceId"`
-	Kind        string     `json:"kind"`
-	Severity    string     `json:"severity"`
-	Title       string     `json:"title"`
-	Summary     string     `json:"summary"`
-	Link        string     `json:"link"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	Read        bool       `json:"read"`
+	ID          uuid.UUID       `json:"id"`
+	WorkspaceID *uuid.UUID      `json:"workspaceId"`
+	Kind        string          `json:"kind"`
+	Severity    string          `json:"severity"`
+	Title       string          `json:"title"`
+	Summary     string          `json:"summary"`
+	Body        string          `json:"body"`
+	Data        json.RawMessage `json:"data"`
+	Link        string          `json:"link"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	Read        bool            `json:"read"`
 }
 
 // ---------------------------------------------------------------------------
 // Staff notifications: incidents and approvals in their clients, in the
 // Agency area's bell.
+// The title, summary, body and data: the bell writes them in the reader's
+// language from the messages the notification kept (notify.Localize).
 func (q *Queries) AgencyNotifications(ctx context.Context, arg AgencyNotificationsParams) ([]AgencyNotificationsRow, error) {
 	rows, err := q.db.Query(ctx, agencyNotifications, arg.UserID, arg.WorkspaceIds, arg.Lim)
 	if err != nil {
@@ -1851,6 +1855,8 @@ func (q *Queries) AgencyNotifications(ctx context.Context, arg AgencyNotificatio
 			&i.Severity,
 			&i.Title,
 			&i.Summary,
+			&i.Body,
+			&i.Data,
 			&i.Link,
 			&i.CreatedAt,
 			&i.Read,
@@ -2061,7 +2067,7 @@ func (q *Queries) AgencyRates(ctx context.Context, workspaceIds []uuid.UUID) ([]
 }
 
 const agencyRecentIncidents = `-- name: AgencyRecentIncidents :many
-SELECT i.workspace_id, i.id, i.kind, i.severity, i.title, i.detail, i.occurred_at, i.resolved_at, i.campaign_id, i.provider_id,
+SELECT i.workspace_id, i.id, i.kind, i.severity, i.title, i.detail, i.texts, i.occurred_at, i.resolved_at, i.campaign_id, i.provider_id,
        coalesce(c.name, '')::text AS campaign_name, coalesce(p.name, '')::text AS provider_name
 FROM incidents i
 LEFT JOIN campaigns c ON c.id = i.campaign_id
@@ -2078,18 +2084,19 @@ type AgencyRecentIncidentsParams struct {
 }
 
 type AgencyRecentIncidentsRow struct {
-	WorkspaceID  uuid.UUID  `json:"workspaceId"`
-	ID           uuid.UUID  `json:"id"`
-	Kind         string     `json:"kind"`
-	Severity     string     `json:"severity"`
-	Title        string     `json:"title"`
-	Detail       string     `json:"detail"`
-	OccurredAt   time.Time  `json:"occurredAt"`
-	ResolvedAt   *time.Time `json:"resolvedAt"`
-	CampaignID   *uuid.UUID `json:"campaignId"`
-	ProviderID   *uuid.UUID `json:"providerId"`
-	CampaignName string     `json:"campaignName"`
-	ProviderName string     `json:"providerName"`
+	WorkspaceID  uuid.UUID       `json:"workspaceId"`
+	ID           uuid.UUID       `json:"id"`
+	Kind         string          `json:"kind"`
+	Severity     string          `json:"severity"`
+	Title        string          `json:"title"`
+	Detail       string          `json:"detail"`
+	Texts        json.RawMessage `json:"texts"`
+	OccurredAt   time.Time       `json:"occurredAt"`
+	ResolvedAt   *time.Time      `json:"resolvedAt"`
+	CampaignID   *uuid.UUID      `json:"campaignId"`
+	ProviderID   *uuid.UUID      `json:"providerId"`
+	CampaignName string          `json:"campaignName"`
+	ProviderName string          `json:"providerName"`
 }
 
 func (q *Queries) AgencyRecentIncidents(ctx context.Context, arg AgencyRecentIncidentsParams) ([]AgencyRecentIncidentsRow, error) {
@@ -2108,6 +2115,7 @@ func (q *Queries) AgencyRecentIncidents(ctx context.Context, arg AgencyRecentInc
 			&i.Severity,
 			&i.Title,
 			&i.Detail,
+			&i.Texts,
 			&i.OccurredAt,
 			&i.ResolvedAt,
 			&i.CampaignID,

@@ -22,12 +22,12 @@ const (
 
 // AgencyDefs describes the agency permissions in display order (Instance
 // admin and the agency's Staff screen). Group is "Agency".
-var AgencyDefs = []Def{
-	{Key: AgencyView, Group: "Agency", Label: "View the agency overview and search across your clients", Description: "See every assigned client's health, next send, approvals waiting and incidents, and search across them.", PeopleOnly: true},
-	{Key: AgencyUsage, Group: "Agency", Label: "See usage and costs per client, set rebill rates and export usage", Description: "Emails, texts, notifications and provider costs per client and month, with what to rebill.", PeopleOnly: true},
-	{Key: AgencyLibrary, Group: "Agency", Label: "Manage the shared library and workspace templates", Description: "Add, change and remove library items and workspace templates, and copy them into clients.", PeopleOnly: true},
-	{Key: AgencyManage, Group: "Agency", Label: "Create and delete client workspaces, and manage staff and assignments", Description: "Create and delete clients, add and remove staff, and assign them to clients.", Sensitive: true, PeopleOnly: true},
-}
+var AgencyDefs = described([]Def{
+	{Key: AgencyView, Group: g("agency"), PeopleOnly: true},
+	{Key: AgencyUsage, Group: g("agency"), PeopleOnly: true},
+	{Key: AgencyLibrary, Group: g("agency"), PeopleOnly: true},
+	{Key: AgencyManage, Group: g("agency"), Sensitive: true, PeopleOnly: true},
+})
 
 // IsAgencyPermission reports whether p is one of the agency permissions.
 func IsAgencyPermission(p Permission) bool {
@@ -80,9 +80,9 @@ type AgencyRole struct {
 
 // AgencyRoles in display order. Instance admins are agency managers.
 var AgencyRoles = []AgencyRole{
-	{Key: AgencyManagerLevel, Name: "Agency manager", Description: "Every client, staff, templates, usage and rates",
+	{Key: AgencyManagerLevel, Name: "Agency manager", Description: roleAbout(AgencyManagerLevel),
 		Permissions: AgencySet(AgencyView, AgencyUsage, AgencyLibrary, AgencyManage)},
-	{Key: AccountManagerLevel, Name: "Account manager", Description: "The clients they're assigned to: overview, search, usage and the library",
+	{Key: AccountManagerLevel, Name: "Account manager", Description: roleAbout(AccountManagerLevel),
 		Permissions: AgencySet(AgencyView, AgencyUsage, AgencyLibrary)},
 }
 
@@ -106,9 +106,9 @@ const (
 // ClientRoles in display order. Their permissions come from here, never
 // from the database, like the other built-in roles.
 var ClientRoles = []BuiltinRole{
-	{Key: RoleClientApprover, Name: "Client approver", Description: "Sees campaigns, templates, automations, reports, deliverability and contacts (no export); approves sends",
+	{Key: RoleClientApprover, Name: "Client approver", Description: roleAbout(RoleClientApprover),
 		Permissions: NewSet(CampaignsView, CampaignsApprove, TemplatesView, AutomationsView, ReportsView, DeliverabilityView, SubscribersView)},
-	{Key: RoleClientViewer, Name: "Client viewer", Description: "Sees campaigns, templates, automations, reports and deliverability; no contacts",
+	{Key: RoleClientViewer, Name: "Client viewer", Description: roleAbout(RoleClientViewer),
 		Permissions: NewSet(CampaignsView, TemplatesView, AutomationsView, ReportsView, DeliverabilityView)},
 }
 
