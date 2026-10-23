@@ -139,6 +139,9 @@ export const m = defineMessages('pollReport', {
   notAContact: 'Not a contact',
   aContact: 'A contact',
   quote: '“{text}”',
+  /** A comment's line on phones, under the quote. */
+  commentBy: '{who} · {when}',
+  commentByAnswer: '{answer} · {who} · {when}',
   showing: 'Showing {shown} of {total} · names are shown to people with subscribers:view',
   previous: 'Previous',
   next: 'Next',
