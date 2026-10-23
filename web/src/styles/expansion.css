@@ -161,6 +161,17 @@
   text-align: right;
 }
 
+/* Automations list (rule 1): the longer headers and statuses ("TRONG QUY
+   TRÌNH", "LƯỢT MỞ BỞI NGƯỜI ĐỌC", "Đã tạm dừng") made the table wider than
+   its card at 1440, hiding each row's Open button behind a scroll. The
+   name, trigger and goal columns, which wrap, keep 130 px instead of 150,
+   so every column fits as it does in English. */
+:root:not([lang='en']) .au-list td:first-child,
+:root:not([lang='en']) .au-list td:nth-child(3),
+:root:not([lang='en']) .au-list td:nth-child(9) {
+  min-width: 130px;
+}
+
 /* ── Sending and deliverability ──────────────────────────────────────── */
 
 /* Sending providers: a meter's number never breaks (rule 1). On phones the

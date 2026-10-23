@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/readiness"
@@ -96,7 +97,7 @@ func (s *Service) freshRun(ctx context.Context, ws *store.Workspace, c store.Rea
 	}
 	fresh, err := s.Readiness.Run(ctx, ws, c.ID, readiness.RunOptions{Trigger: trigger, By: by})
 	if errors.Is(err, readiness.ErrRunning) {
-		return nil, api.Err(http.StatusConflict, "readiness_running", "Send Readiness is running for this campaign. Try again when it finishes.")
+		return nil, api.Err(http.StatusConflict, "readiness_running", say(ctx, mReadinessRunning, nil))
 	}
 	if err != nil {
 		return nil, err
@@ -166,21 +167,21 @@ func (s *Service) RequestApproval(ctx context.Context, ws *store.Workspace, p *a
 		// The time stays reserved while approval is asked for again; the
 		// send-time recheck keeps it from starting until it is approved.
 	default:
-		return uuid.Nil, api.Conflict("This campaign already started sending.")
+		return uuid.Nil, api.Conflict(say(ctx, mAlreadySending, nil))
 	}
 	if open, err := s.open(ctx, campaignID); err != nil {
 		return uuid.Nil, err
 	} else if open != nil {
 		if open.Status == "pending" {
-			return uuid.Nil, api.Conflict("Approval is already requested and waiting for an approver.")
+			return uuid.Nil, api.Conflict(say(ctx, mPendingRequest, nil))
 		}
 		if changes, err := s.Revalidate(ctx, ws, campaignID); err != nil {
 			return uuid.Nil, err
 		} else if len(changes) == 0 {
 			if c.Status == "scheduled" {
-				return uuid.Nil, api.Conflict("This version is approved and scheduled.")
+				return uuid.Nil, api.Conflict(say(ctx, mApprovedScheduled, nil))
 			}
-			return uuid.Nil, api.Conflict("This version is already approved. Schedule it from Review & send.")
+			return uuid.Nil, api.Conflict(say(ctx, mAlreadyApproved, nil))
 		}
 	}
 	run, err := s.freshRun(ctx, ws, c, readiness.TriggerApproval, &p.UserID)
@@ -188,8 +189,7 @@ func (s *Service) RequestApproval(ctx context.Context, ws *store.Workspace, p *a
 		return uuid.Nil, err
 	}
 	if run.Verdict == readiness.VerdictBlocked {
-		return uuid.Nil, api.Err(http.StatusConflict, "readiness_blocked", fmt.Sprintf("Send Readiness is Blocked (%d %s). Fix the blocking issues before asking for approval.",
-			run.Counts.Blocks, readiness.Plural(int64(run.Counts.Blocks), "block", "blocks")))
+		return uuid.Nil, api.Err(http.StatusConflict, "readiness_blocked", say(ctx, mReadinessBlocked, i18n.Args{"count": run.Counts.Blocks}))
 	}
 	ms, err := s.members(ctx, s.Q, ws.ID)
 	if err != nil {
@@ -209,7 +209,7 @@ func (s *Service) RequestApproval(ctx context.Context, ws *store.Workspace, p *a
 		if !author.Perms.Has(authz.CampaignsSend) {
 			return uuid.Nil, api.Forbidden(authz.CampaignsSend, approverNames(ms, nil, authz.CampaignsSend))
 		}
-		return uuid.Nil, api.Err(http.StatusConflict, "approval_not_required", "No approval rule matches this send, so you can schedule it yourself.")
+		return uuid.Nil, api.Err(http.StatusConflict, "approval_not_required", say(ctx, mNotRequired, nil))
 	}
 	approvers := []member{}
 	for _, a := range approversOf(ms) {
@@ -218,8 +218,7 @@ func (s *Service) RequestApproval(ctx context.Context, ws *store.Workspace, p *a
 		}
 	}
 	if len(approvers) < requiredFor(policy, rules) {
-		return uuid.Nil, api.Err(http.StatusConflict, "no_approvers", fmt.Sprintf("This send needs %d %s from someone other than you, and the workspace has %d. An Owner can give campaigns:approve to another role.",
-			policy.ApprovalsRequired, readiness.Plural(int64(policy.ApprovalsRequired), "approval", "approvals"), len(approvers)))
+		return uuid.Nil, api.Err(http.StatusConflict, "no_approvers", say(ctx, mNoApprovers, i18n.Args{"needed": policy.ApprovalsRequired, "have": len(approvers)}))
 	}
 	if err := s.needClientApprover(ctx, ws, rules, approvers); err != nil {
 		return uuid.Nil, err
@@ -244,7 +243,7 @@ func (s *Service) RequestApproval(ctx context.Context, ws *store.Workspace, p *a
 			RequestedBy: &p.UserID, RequestedAt: now, Note: note, Status: "pending", MatchedRules: ruleKeys(rules), ApprovalsRequired: int32(requiredFor(policy, rules)),
 			Snapshot: sb, CampaignVersion: &version, ReadinessRunID: &runID, PreviousID: previous}); err != nil {
 			if strings.Contains(err.Error(), "approval_requests_open_campaign") {
-				return api.Conflict("Approval is already requested for this campaign.")
+				return api.Conflict(say(ctx, mRequestedForCampaign, nil))
 			}
 			return err
 		}
@@ -265,7 +264,11 @@ func (s *Service) RequestApproval(ctx context.Context, ws *store.Workspace, p *a
 			Body: fmt.Sprintf("%s asked for approval: “%s” · %s recipients · rules: %s", author.Name, c.Name, readiness.Count(snap.AudienceCount),
 				strings.ReplaceAll(strings.TrimPrefix(strings.TrimPrefix(rulesLine(rules), "rules: "), "rule: "), " · ", ", ")),
 			Link: "/w/" + ws.Slug + "/approvals/" + id.String(), Data: map[string]any{"request_id": id.String(), "campaign_id": campaignID.String()}}
+		n.TitleText = mNotifyRequestedTitle.Keep(nil)
+		n.SummaryText = mNotifyRequestedSummary.Keep(i18n.Args{"author": author.Name, "name": c.Name, "count": snap.AudienceCount})
 		for _, a := range approvers {
+			n.BodyText = mNotifyRequestedBody.Keep(i18n.Args{"author": author.Name, "name": c.Name, "count": snap.AudienceCount,
+				"rules": ruleList(readerLang(ctx, q, a.ID), rules)})
 			if err := notify.ToUser(ctx, tx, a.ID, n); err != nil {
 				return err
 			}
@@ -293,10 +296,10 @@ func approverNames(ms []member, except *uuid.UUID, perm authz.Permission) []stri
 func (s *Service) Decide(ctx context.Context, ws *store.Workspace, p *authz.Principal, requestID uuid.UUID, in ApprovalDecisionInput) (uuid.UUID, error) {
 	r, err := s.Q.ApprovalGet(ctx, store.ApprovalGetParams{WorkspaceID: ws.ID, ID: requestID})
 	if err != nil {
-		return uuid.Nil, api.MapError(err, "Approval request")
+		return uuid.Nil, mapErr(ctx, err)
 	}
 	if r.RequestedBy != nil && *r.RequestedBy == p.UserID {
-		return uuid.Nil, api.Err(http.StatusForbidden, api.CodePermissionDenied, "You can't approve your own campaign. Another approver has to decide.")
+		return uuid.Nil, api.Err(http.StatusForbidden, api.CodePermissionDenied, say(ctx, mOwnCampaign, nil))
 	}
 	if r.SubjectType == "campaign" && r.CampaignID != nil {
 		if r.Status == "pending" || r.Status == "approved" {
@@ -321,10 +324,10 @@ func (s *Service) Decide(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		q := store.New(tx)
 		locked, err := q.ApprovalLock(ctx, store.ApprovalLockParams{WorkspaceID: ws.ID, ID: requestID})
 		if err != nil {
-			return api.MapError(err, "Approval request")
+			return mapErr(ctx, err)
 		}
 		if locked.Status != "pending" {
-			return api.Conflict(fmt.Sprintf("This request is already %s.", statusWord(locked.Status)))
+			return api.Conflict(say(ctx, mRequestIsAlready, i18n.Args{"status": statusSelect(locked.Status)}))
 		}
 		decisions, err := q.ApprovalDecisions(ctx, []uuid.UUID{requestID})
 		if err != nil {
@@ -334,7 +337,7 @@ func (s *Service) Decide(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		approved := []uuid.UUID{p.UserID}
 		for _, d := range decisions {
 			if d.ApproverID != nil && *d.ApproverID == p.UserID {
-				return api.Conflict("You already decided on this request.")
+				return api.Conflict(say(ctx, mAlreadyDecided, nil))
 			}
 			if d.Decision == DecisionApprove {
 				given++
@@ -443,8 +446,10 @@ func (s *Service) Decide(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if locked.WebsitePageID != nil {
 			link, summary, body = pageDecisionNote(ws, *locked.WebsitePageID, ParseSnapshot(locked.Snapshot), status, summary, body)
 		}
+		kept := decisionNoteArgs(ctx, q, ws, locked, status, approver.Name, name, comment)
 		if err := notify.ToUser(ctx, tx, *locked.RequestedBy, notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalDecided, Severity: sev, Title: title,
-			Summary: summary, Body: body, Link: link, Data: map[string]any{"request_id": requestID.String(), "decision": in.Decision}}); err != nil {
+			Summary: summary, Body: body, Link: link, Data: map[string]any{"request_id": requestID.String(), "decision": in.Decision},
+			TitleText: mNotifyDecidedTitle.Keep(i18n.Args{"status": status}), SummaryText: mNotifyDecidedSummary.Keep(kept), BodyText: mNotifyDecidedBody.Keep(kept)}); err != nil {
 			return err
 		}
 		if status == "approved" && locked.SubjectType == "website_post" && locked.WebsitePostID != nil && s.Website != nil {
@@ -482,23 +487,11 @@ func (s *Service) Decide(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	return requestID, err
 }
 
-func statusWord(status string) string {
-	switch status {
-	case "changes_requested":
-		return "back with the author for changes"
-	case "invalidated":
-		return "invalidated"
-	case "cancelled":
-		return "cancelled"
-	}
-	return status
-}
-
 // rerequest opens a new request for the campaign as it stands, following an
 // invalidated one (approvers then decide on the new version with the diff).
 func (s *Service) rerequest(ctx context.Context, ws *store.Workspace, prev store.ApprovalGetRow) (uuid.UUID, error) {
 	if prev.CampaignID == nil || prev.RequestedBy == nil {
-		return uuid.Nil, api.Conflict("This request can't be renewed.")
+		return uuid.Nil, api.Conflict(say(ctx, mCantRenew, nil))
 	}
 	if hook := s.channelHook(ctx, *prev.CampaignID); hook != nil {
 		return s.rerequestChannel(ctx, ws, prev, hook)
@@ -518,14 +511,14 @@ func (s *Service) rerequest(ctx context.Context, ws *store.Workspace, prev store
 	}
 	author := memberByID(ms, prev.RequestedBy)
 	if author == nil {
-		return uuid.Nil, api.Conflict("The author is no longer a member; ask someone to request approval again.")
+		return uuid.Nil, api.Conflict(say(ctx, mAuthorGone, nil))
 	}
 	run, err := s.freshRun(ctx, ws, c, readiness.TriggerApproval, nil)
 	if err != nil {
 		return uuid.Nil, err
 	}
 	if run.Verdict == readiness.VerdictBlocked {
-		return uuid.Nil, api.Err(http.StatusConflict, "readiness_blocked", "Send Readiness is Blocked for the new version. The author has to fix the blocking issues first.")
+		return uuid.Nil, api.Err(http.StatusConflict, "readiness_blocked", say(ctx, mReadinessBlockedNew, nil))
 	}
 	facts, err := s.ruleFacts(ctx, ws, c, run, *author)
 	if err != nil {
@@ -570,14 +563,14 @@ func (s *Service) rerequest(ctx context.Context, ws *store.Workspace, prev store
 func (s *Service) Comment(ctx context.Context, ws *store.Workspace, p *authz.Principal, requestID uuid.UUID, in ApprovalCommentInput) error {
 	r, err := s.Q.ApprovalGet(ctx, store.ApprovalGetParams{WorkspaceID: ws.ID, ID: requestID})
 	if err != nil {
-		return api.MapError(err, "Approval request")
+		return mapErr(ctx, err)
 	}
 	if !canSee(p, r.RequestedBy) {
 		return api.Forbidden(authz.CampaignsApprove, nil)
 	}
 	body := strings.TrimSpace(in.Body)
 	if body == "" {
-		return api.Invalid("body.body", "Write a comment.")
+		return api.Invalid("body.body", say(ctx, mWriteComment, nil))
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -598,13 +591,13 @@ func canSee(p *authz.Principal, requester *uuid.UUID) bool {
 func (s *Service) Cancel(ctx context.Context, ws *store.Workspace, p *authz.Principal, requestID uuid.UUID) error {
 	r, err := s.Q.ApprovalGet(ctx, store.ApprovalGetParams{WorkspaceID: ws.ID, ID: requestID})
 	if err != nil {
-		return api.MapError(err, "Approval request")
+		return mapErr(ctx, err)
 	}
 	if (r.RequestedBy == nil || *r.RequestedBy != p.UserID) && p.RoleKey != authz.RoleOwner {
-		return api.Err(http.StatusForbidden, api.CodePermissionDenied, "Only the author or an Owner can cancel this request.")
+		return api.Err(http.StatusForbidden, api.CodePermissionDenied, say(ctx, mCancelNotAllowed, nil))
 	}
 	if r.Status != "pending" && r.Status != "approved" {
-		return api.Conflict(fmt.Sprintf("This request is already %s.", statusWord(r.Status)))
+		return api.Conflict(say(ctx, mRequestIsAlready, i18n.Args{"status": statusSelect(r.Status)}))
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -629,18 +622,18 @@ const RemindEvery = time.Hour
 func (s *Service) Remind(ctx context.Context, ws *store.Workspace, p *authz.Principal, requestID uuid.UUID) error {
 	r, err := s.Q.ApprovalGet(ctx, store.ApprovalGetParams{WorkspaceID: ws.ID, ID: requestID})
 	if err != nil {
-		return api.MapError(err, "Approval request")
+		return mapErr(ctx, err)
 	}
 	if r.RequestedBy == nil || *r.RequestedBy != p.UserID {
-		return api.Err(http.StatusForbidden, api.CodePermissionDenied, "Only the author can remind the approvers.")
+		return api.Err(http.StatusForbidden, api.CodePermissionDenied, say(ctx, mRemindNotAllowed, nil))
 	}
 	if r.Status != "pending" {
-		return api.Conflict("Only a pending request can be reminded.")
+		return api.Conflict(say(ctx, mRemindPendingOnly, nil))
 	}
 	now := s.now()
 	if r.RemindedAt != nil && now.Sub(*r.RemindedAt) < RemindEvery {
-		next := r.RemindedAt.Add(RemindEvery).In(state.Location(ws.Timezone)).Format("15:04")
-		return api.Err(http.StatusTooManyRequests, api.CodeRateLimited, "Approvers were reminded less than an hour ago. You can remind them again at "+next+".")
+		next := clock(langOf(ctx), r.RemindedAt.Add(RemindEvery).In(state.Location(ws.Timezone)))
+		return api.Err(http.StatusTooManyRequests, api.CodeRateLimited, say(ctx, mRemindedRecently, i18n.Args{"time": next}))
 	}
 	ms, err := s.members(ctx, s.Q, ws.ID)
 	if err != nil {
@@ -655,7 +648,10 @@ func (s *Service) Remind(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalRequested, Severity: "warn", Title: "Approval requested · reminder",
 			Summary: fmt.Sprintf("%s is waiting for your approval of “%s” · %s recipients", r.RequestedByName, r.SubjectName, readiness.Count(snap.AudienceCount)),
 			Body:    fmt.Sprintf("%s is still waiting for approval of “%s” · %s recipients.", r.RequestedByName, r.SubjectName, readiness.Count(snap.AudienceCount)),
-			Link:    "/w/" + ws.Slug + "/approvals/" + requestID.String(), Data: map[string]any{"request_id": requestID.String()}}
+			Link:    "/w/" + ws.Slug + "/approvals/" + requestID.String(), Data: map[string]any{"request_id": requestID.String()},
+			TitleText:   mNotifyReminderTitle.Keep(nil),
+			SummaryText: mNotifyReminderSummary.Keep(i18n.Args{"author": r.RequestedByName, "name": r.SubjectName, "count": snap.AudienceCount}),
+			BodyText:    mNotifyReminderBody.Keep(i18n.Args{"author": r.RequestedByName, "name": r.SubjectName, "count": snap.AudienceCount})}
 		for _, a := range approversOf(ms) {
 			if a.ID == p.UserID {
 				continue
@@ -673,10 +669,10 @@ func (s *Service) Remind(ctx context.Context, ws *store.Workspace, p *authz.Prin
 func (s *Service) Restore(ctx context.Context, ws *store.Workspace, p *authz.Principal, requestID uuid.UUID) error {
 	r, err := s.Q.ApprovalGet(ctx, store.ApprovalGetParams{WorkspaceID: ws.ID, ID: requestID})
 	if err != nil {
-		return api.MapError(err, "Approval request")
+		return mapErr(ctx, err)
 	}
 	if r.Status != "invalidated" || r.CampaignID == nil {
-		return api.Conflict("Only an invalidated approval can be restored.")
+		return api.Conflict(say(ctx, mRestoreInvalidatedOnly, nil))
 	}
 	if !canSee(p, r.RequestedBy) {
 		return api.Forbidden(authz.CampaignsApprove, nil)
@@ -684,7 +680,7 @@ func (s *Service) Restore(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if open, err := s.open(ctx, *r.CampaignID); err != nil {
 		return err
 	} else if open != nil {
-		return api.Conflict("A newer request is open for this campaign.")
+		return api.Conflict(say(ctx, mNewerRequest, nil))
 	}
 	snap := ParseSnapshot(r.Snapshot)
 	c, err := s.Readiness.Campaign(ctx, ws, *r.CampaignID)
@@ -693,7 +689,7 @@ func (s *Service) Restore(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	}
 	if c.ContentHash != snap.ContentHash {
 		if s.Campaigns == nil {
-			return api.Conflict("Restoring content isn't available in this process.")
+			return api.Conflict(say(ctx, mRestoreUnavailable, nil))
 		}
 		if _, err := s.Campaigns.Restore(ctx, ws, p, c.ID, snap.Version, campaigns.ComposerRestoreVersion{BaseVersion: int(c.Version)}); err != nil {
 			return err
@@ -725,8 +721,8 @@ func (s *Service) Restore(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if err != nil {
 		return err
 	}
-	if changes := Diff(snap, cur, state.Location(ws.Timezone)); len(changes) > 0 {
-		return api.Err(http.StatusConflict, "restore_incomplete", "The campaign still differs from the approved version ("+InvalidationReason(changes)+"). Ask for approval again.")
+	if changes := diff(snap, cur, state.Location(ws.Timezone)); len(changes) > 0 {
+		return api.Err(http.StatusConflict, "restore_incomplete", say(ctx, mRestoreIncomplete, i18n.Args{"reason": render(langOf(ctx), reasonOf(changes))}))
 	}
 	status := r.InvalidatedFrom
 	if status != "pending" && status != "approved" {

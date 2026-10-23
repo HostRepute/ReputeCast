@@ -3,15 +3,39 @@ package automations
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
+)
+
+var (
+	mAlertWebhookFails     = msg("alert.webhookFails")
+	mAlertWebhookReturns   = msg("alert.webhookReturns")
+	mAlertWebhookFailsWith = msg("alert.webhookFailsWith")
+	mAlertWebhookDetail    = msg("alert.webhookDetail")
+	mAlertOpenStep         = msg("alert.openStep")
+	mAlertWebhookLog       = msg("alert.webhookLog")
+	mAlertHeldTitle        = msg("alert.heldTitle")
+	mAlertHeldDetail       = msg("alert.heldDetail")
+	mAlertNoProvider       = msg("alert.noProvider")
+	mAlertFallback         = msg("alert.fallback")
+	mAlertAuthStatus       = msg("alert.authStatus")
+	mAlertAuth             = msg("alert.auth")
+	mAlertDownSince        = msg("alert.downSince")
+	mAlertStatus           = msg("alert.status")
+	mAlertStatusDetail     = msg("alert.statusDetail")
+	mAlertFixToken         = msg("alert.fixToken")
+	mAlertFixProvider      = msg("alert.fixProvider")
+	mAlertAddFallback      = msg("alert.addFallback")
+	mLabelRemovedProvider  = msg("label.removedProvider")
+	mLabelRemovedShort     = msg("label.removedProviderShort")
 )
 
 // AutomationGoal is the list's goal column: "Clicked docs · 24%".
@@ -118,6 +142,7 @@ func pct(n, d int64) *float64 {
 
 // List returns every flow with its 30-day performance, filtered by status.
 func (s *Service) List(ctx context.Context, ws *store.Workspace, status string) (AutomationList, error) {
+	l := langOf(ctx)
 	out := AutomationList{Items: []AutomationListItem{}, Alerts: []AutomationAlert{}, Days: ListDays}
 	rows, err := s.Q.ListAutomations(ctx, ws.ID)
 	if err != nil {
@@ -176,12 +201,12 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, status string) 
 		if t := shown.Trigger(); t != nil {
 			trig = t.Data.Trigger
 		}
-		it.Trigger = TriggerLabel(trig, refs)
+		it.Trigger = say(l, triggerLabel(trig, refs))
 		if r.LiveVersion != nil && r.DraftVersion != *r.LiveVersion {
 			it.UnpublishedChanges = Changes(Diff(live, draft, DiffContext{FromRefs: refs})) > 0
 		}
 		if goal := firstGoal(shown); goal != nil {
-			it.Goal = &AutomationGoal{Label: GoalLabel(*goal, refs)}
+			it.Goal = &AutomationGoal{Label: say(l, goalLabel(*goal, refs))}
 		}
 		if r.LiveVersion != nil {
 			st := stats[r.ID]
@@ -208,7 +233,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, status string) 
 	if err != nil {
 		return out, err
 	}
-	out.Alerts, err = s.alerts(ctx, ws, refs, out.Route)
+	out.Alerts, err = s.alerts(ctx, ws, refs, out.Route, l)
 	return out, err
 }
 
@@ -290,9 +315,9 @@ func (s *Service) statsByAutomation(ctx context.Context, ids []uuid.UUID, days i
 	return out, nil
 }
 
-// alerts lists open problems. A failing step that the draft already removes
-// isn't shown: the fix is waiting to be published.
-func (s *Service) alerts(ctx context.Context, ws *store.Workspace, refs *Refs, route AutomationRoute) ([]AutomationAlert, error) {
+// alerts lists open problems, in l. A failing step that the draft already
+// removes isn't shown: the fix is waiting to be published.
+func (s *Service) alerts(ctx context.Context, ws *store.Workspace, refs *Refs, route AutomationRoute, l i18n.Lang) ([]AutomationAlert, error) {
 	out := []AutomationAlert{}
 	rows, err := s.Q.ListAutomationAlerts(ctx, ws.ID)
 	if err != nil {
@@ -320,30 +345,31 @@ func (s *Service) alerts(ctx context.Context, ws *store.Workspace, refs *Refs, r
 					continue
 				}
 			}
-			name := d.Name
-			if name == "" {
-				name = hostOf(d.URL)
+			hook := d.Name
+			if hook == "" {
+				hook = hostOf(d.URL)
 			}
-			what := "fails"
-			if d.Status > 0 {
-				what = fmt.Sprintf("returns %d", d.Status)
-			} else if d.Error != "" {
-				what = "fails: " + d.Error
+			flow := alertFlowName(a.AutomationName)
+			switch {
+			case d.Status > 0:
+				al.Title = say(l, txt(mAlertWebhookReturns, "flow", flow, "name", hook, "status", strconv.Itoa(d.Status)))
+			case d.Error != "":
+				al.Title = say(l, txt(mAlertWebhookFailsWith, "flow", flow, "name", hook, "error", d.Error))
+			default:
+				al.Title = say(l, txt(mAlertWebhookFails, "flow", flow, "name", hook))
 			}
-			al.Title = fmt.Sprintf(`"%s" webhook %s %s`, alertFlowName(a.AutomationName), name, what)
-			al.Detail = fmt.Sprintf("%s calls failed since %s. Contacts continue past the step; the flow isn't blocked. Remove the step or fix the URL, then publish.",
-				formatCount(a.Failures), dayMonth(a.FirstAt, loc))
+			al.Detail = say(l, txt(mAlertWebhookDetail, "count", a.Failures, "date", dayMonth(a.FirstAt, loc)))
 			al.Actions = append(al.Actions,
-				AutomationAlertAction{Label: "Open the step", Kind: "open_step", NodeID: a.NodeID},
-				AutomationAlertAction{Label: "Webhook delivery log", Kind: "step_log", NodeID: a.NodeID})
+				AutomationAlertAction{Label: say(l, txt(mAlertOpenStep)), Kind: "open_step", NodeID: a.NodeID},
+				AutomationAlertAction{Label: say(l, txt(mAlertWebhookLog)), Kind: "step_log", NodeID: a.NodeID})
 		case "sending_held":
-			al.Title = fmt.Sprintf(`"%s" paused: no healthy provider on the Automations route`, alertFlowName(a.AutomationName))
-			al.Detail = heldDetail(route, d.Queued, loc, s.now())
-			if fix := fixAction(route); fix != "" {
-				al.Actions = append(al.Actions, AutomationAlertAction{Label: fix, Kind: "providers"})
+			al.Title = say(l, txt(mAlertHeldTitle, "flow", alertFlowName(a.AutomationName)))
+			al.Detail = say(l, heldDetailText(route, d.Queued, loc, s.now()))
+			if fix := fixAction(route); !emptyText(fix) {
+				al.Actions = append(al.Actions, AutomationAlertAction{Label: say(l, fix), Kind: "providers"})
 			}
 			if extra := spareProvider(ctx, s, ws, route); extra != "" {
-				al.Actions = append(al.Actions, AutomationAlertAction{Label: "Add " + extra + " as second fallback", Kind: "routing"})
+				al.Actions = append(al.Actions, AutomationAlertAction{Label: say(l, txt(mAlertAddFallback, "provider", extra)), Kind: "routing"})
 			}
 		}
 		out = append(out, al)
@@ -363,19 +389,19 @@ func alertFlowName(name string) string {
 
 // fixAction is the first thing the team can fix on the route: a rejected
 // token ("Fix Postmark token") before a provider that is down on its side.
-func fixAction(route AutomationRoute) string {
+func fixAction(route AutomationRoute) i18n.Text {
 	all := append(append([]AutomationRouteProvider{}, route.Primary...), derefRoute(route.Fallback)...)
 	for _, p := range all {
 		if !healthyStatus(p.Status) && p.DownReason == "auth" {
-			return "Fix " + p.Short + " token"
+			return txt(mAlertFixToken, "provider", p.Short)
 		}
 	}
 	for _, p := range all {
 		if !healthyStatus(p.Status) {
-			return "Fix " + p.Short
+			return txt(mAlertFixProvider, "provider", p.Short)
 		}
 	}
-	return ""
+	return i18n.Text{}
 }
 
 func derefRoute(p *AutomationRouteProvider) []AutomationRouteProvider {
@@ -388,45 +414,45 @@ func derefRoute(p *AutomationRouteProvider) []AutomationRouteProvider {
 // providerProblem says what is wrong with a provider on the route: "SES has
 // been Down since 09:02", "Postmark, the fallback, returned 401: its API key
 // or token was rejected".
-func providerProblem(p AutomationRouteProvider, name string, loc *time.Location, now time.Time) string {
+func providerProblem(p AutomationRouteProvider, name i18n.Text, loc *time.Location, now time.Time) i18n.Text {
 	switch {
 	case p.DownReason == "auth" && p.LastErrorStatus > 0:
-		return fmt.Sprintf("%s returned %d: its API key or token was rejected", name, p.LastErrorStatus)
+		return txt(mAlertAuthStatus, "provider", name, "status", strconv.Itoa(p.LastErrorStatus))
 	case p.DownReason == "auth":
-		return name + " rejected its API key or token"
+		return txt(mAlertAuth, "provider", name)
 	case p.DownSince != nil:
 		since := p.DownSince.In(loc)
-		when := since.Format("15:04")
+		when := clock(since, loc)
 		if y, m, d := since.Date(); y != now.In(loc).Year() || m != now.In(loc).Month() || d != now.In(loc).Day() {
-			when = since.Format("2 Jan")
+			when = dayMonth(since, loc)
 		}
-		return fmt.Sprintf("%s has been Down since %s", name, when)
+		return txt(mAlertDownSince, "provider", name, "when", when)
 	}
-	s := fmt.Sprintf("%s is %s", name, strings.ReplaceAll(p.Status, "_", " "))
+	statusName := strings.ReplaceAll(p.Status, "_", " ")
 	if p.Detail != "" {
-		s += " (" + p.Detail + ")"
+		return txt(mAlertStatusDetail, "provider", name, "status", p.Status, "statusName", statusName, "detail", p.Detail)
 	}
-	return s
+	return txt(mAlertStatus, "provider", name, "status", p.Status, "statusName", statusName)
 }
 
 // heldDetail explains why automation email is held and what happens next.
 func heldDetail(route AutomationRoute, queued int64, loc *time.Location, now time.Time) string {
-	var parts []string
+	return say(english, heldDetailText(route, queued, loc, now))
+}
+
+func heldDetailText(route AutomationRoute, queued int64, loc *time.Location, now time.Time) i18n.Text {
+	var parts []i18n.Text
 	for _, p := range route.Primary {
-		parts = append(parts, providerProblem(p, p.Short, loc, now))
+		parts = append(parts, providerProblem(p, name(p.Short), loc, now))
 	}
 	if f := route.Fallback; f != nil {
-		parts = append(parts, providerProblem(*f, f.Short+", the fallback,", loc, now))
+		parts = append(parts, providerProblem(*f, txt(mAlertFallback, "provider", f.Short), loc, now))
 	}
-	sentence := andJoin(parts)
-	if sentence == "" {
-		sentence = "No sending provider is set up for automations"
+	problems := andList(parts)
+	if len(parts) == 0 {
+		problems = txt(mAlertNoProvider)
 	}
-	noun := "emails are"
-	if queued == 1 {
-		noun = "email is"
-	}
-	return fmt.Sprintf("%s. %s %s queued and will send the moment a provider is healthy; delays in the flow keep counting.", sentence, formatCount(queued), noun)
+	return txt(mAlertHeldDetail, "problems", problems, "count", queued)
 }
 
 // spareProvider names a healthy provider that isn't on the Automations route.
@@ -492,6 +518,7 @@ type AutomationSummary struct {
 
 // Summary returns the KPI row: contacts in flows now and the last N days.
 func (s *Service) Summary(ctx context.Context, ws *store.Workspace, days int) (AutomationSummary, error) {
+	l := langOf(ctx)
 	out := AutomationSummary{Days: days, SentBy: []AutomationProviderSends{}, GoalsBy: []AutomationGoalCount{}}
 	rows, err := s.Q.ListAutomations(ctx, ws.ID)
 	if err != nil {
@@ -552,7 +579,7 @@ func (s *Service) Summary(ctx context.Context, ws *store.Workspace, days int) (A
 		if p, ok := byID[sd.ProviderID]; ok {
 			ps.Provider, ps.Short = p.Name, shortName(p.Name, p.Adapter)
 		} else {
-			ps.Provider, ps.Short = "Removed provider", "Removed"
+			ps.Provider, ps.Short = say(l, txt(mLabelRemovedProvider)), say(l, txt(mLabelRemovedShort))
 		}
 		ps.Fallback = route.Fallback != nil && route.Fallback.ID == sd.ProviderID
 		ps.LastDay = sd.LastDay.Format(time.DateOnly)

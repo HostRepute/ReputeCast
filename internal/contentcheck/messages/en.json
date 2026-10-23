@@ -1,0 +1,58 @@
+{
+  "alt.title": {"message": "{image, select, logo {Logo} hero {Hero image} section {Image in the {section} section} other {An image}} has no alt text", "note": "the composer's checks panel; section is the name of an email's section in lower case (footer, 2 columns)"},
+  "alt.tag": {"message": "Image has no alt text", "note": "a short label on the canvas, next to the image"},
+  "alt.detail": "Images are off by default in Outlook and many corporate clients; alt text is what shows, and spam filters score image-only mail higher.",
+  "alt.fix": {"message": "Save", "note": "the button that saves the alt text written in the field beside it"},
+
+  "size.near": {"message": "{kb} KB of Gmail's 102 KB clipping limit", "note": "the email's HTML size, near the size where Gmail cuts it"},
+  "size.over": "{kb} KB is over Gmail's 102 KB clipping limit",
+  "size.detail": "Gmail clips the message and hides the footer, including the unsubscribe link.",
+  "size.minify": {"message": "Minify inline CSS · saves about {kb} KB", "note": "a button"},
+  "size.bulkOne": {"message": "The {section} section is the bulk of it ({share, number, percent}).", "note": "after size.detail: which section makes up most of the size; share: 46%"},
+  "size.bulkMany": {"message": "The {count, plural, =2 {two} =3 {three} =4 {four} =5 {five} =6 {six} =7 {seven} =8 {eight} =9 {nine} =10 {ten} other {#}} {section} sections are the bulk of it ({share, number, percent}).", "note": "several sections of the same kind: The three text sections"},
+  "size.bulkCards": {"message": "{count, plural, =2 {Two} =3 {Three} =4 {Four} =5 {Five} =6 {Six} =7 {Seven} =8 {Eight} =9 {Nine} =10 {Ten} other {#}} {section}{css, select, yes { with inline CSS} other {}} are the bulk of it.", "note": "rows of cards: Four product cards with inline CSS are the bulk of it"},
+  "size.removeSection": {"message": "Remove the {section} section", "note": "a button"},
+  "size.removeRow": {"message": "Remove the {n, plural, =1 {first} =2 {second} =3 {third} =4 {fourth} =5 {fifth} =6 {sixth} =7 {seventh} =8 {eighth} =9 {ninth} =10 {tenth} other {#th}} row", "note": "a button: the last row of cards"},
+
+  "ratio.title": {"message": "The email is {share, number, percent} image", "note": "share: 92% of the email is images"},
+  "ratio.detail": "Spam filters score image-heavy mail higher, and most of it disappears when images are off. Add text or use fewer images.",
+
+  "footer.both": "No unsubscribe link or postal address in the body",
+  "footer.bothTag": "No unsubscribe link or postal address",
+  "footer.address": "No postal address in the footer",
+  "footer.addressTag": "No postal address",
+  "footer.unsubscribe": "No unsubscribe link in the body",
+  "footer.unsubscribeTag": "No unsubscribe link",
+  "footer.detail": "Headers are added automatically, but the visible link and address are required too.",
+  "footer.fix": "Insert footer block",
+
+  "liquid.title": {"message": "{where, select, subject {Subject} preheader {Preheader} other {Body}}: {problem}", "note": "problem: the template engine's own words, in English"},
+  "liquid.titleLine": {"message": "{where, select, subject {Subject} preheader {Preheader} other {Body}}: Line {line}: {problem}", "note": "a personalization tag that doesn't parse, at a line of the subject, preheader or body; problem: the template engine's own words, in English"},
+  "liquid.detail": "Fix the personalization tag; a broken tag would print as text or stop the send.",
+  "unknownField.title": {"message": "{token} isn't a contact field; it prints nothing", "note": "token: a personalization tag, {{ frist_name }}"},
+  "unknownField.detail": "Check the spelling, or add a fallback such as | default: \"…\".",
+
+  "subject.missing": "The subject is empty",
+  "subject.missingDetail": "Inbox lists show the subject first; write one before sending.",
+  "subject.spam": "Subject trips {count, plural, one {# spam heuristic} other {# spam heuristics}}",
+  "subject.suggested": {"message": "Suggested: {suggestion}", "note": "suggestion: a subject in quotes"},
+  "subject.useSuggestion": "Use suggestion",
+
+  "plainText.title": "The plain-text version is empty",
+  "plainText.detail": "The email has no text, so the text/plain part is blank. Add a sentence that says what the images show.",
+
+  "link.emptyTitle": {"message": "Button “{text}” has no link", "note": "text: the button's label"},
+  "link.emptyTag": "Button has no link",
+  "link.emptyDetail": "People will click it; point it at the page it promises.",
+  "link.edit": {"message": "Edit link", "note": "a button"},
+  "link.blocklistTitle": {"message": "{kind, select, button {Button} image {Image} nav {Menu link} social {Social link} other {Link}} links to {host}, listed on {lists}", "note": "kind: what the link is; host: a domain; lists: blocklist names, SURBL and Spamhaus DBL"},
+  "link.blocklistTag": "Link domain on {lists}",
+  "link.blocklistDetail": "Mail linking to a blocklisted domain gets filtered regardless of your reputation. Use a domain you control.",
+  "link.replaceWith": {"message": "Replace with {target}", "note": "a button; target: an address on your own domain, acme.io/sale"},
+  "link.shortenerTitle": {"message": "{kind, select, button {Button} image {Image} nav {Menu link} social {Social link} other {Link}} redirects through {host}, a URL shortener", "note": "host: bit.ly"},
+  "link.shortenerTag": "Shortened link",
+  "link.shortenerDetail": "Shortened links hide where they go; filters treat them as suspicious and many shortener domains are blocklisted. Link to the page directly.",
+  "link.brokenTitle": {"message": "{kind, select, button {Button} image {Image} nav {Menu link} social {Social link} other {Link}} to {url} {status, select, 0 {doesn't respond} other {returns {status}}}", "note": "status: the HTTP status the page answered with, 404"},
+  "link.brokenTag": "Broken link",
+  "link.brokenDetail": "People who click get an error page. Fix the address or remove the link."
+}

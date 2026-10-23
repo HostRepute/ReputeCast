@@ -65,13 +65,13 @@ UPDATE approval_requests SET status = @status, decided_at = sqlc.narg(decided_at
 -- name: ApprovalInvalidate :exec
 UPDATE approval_requests
 SET status = 'invalidated', invalidated_at = @invalidated_at, invalidated_reason = @invalidated_reason, changes = @changes,
-    invalidated_by = sqlc.narg(invalidated_by), invalidated_from = @invalidated_from
+    invalidated_by = sqlc.narg(invalidated_by), invalidated_from = @invalidated_from, invalidated_reason_text = sqlc.narg(invalidated_reason_text)
 WHERE id = @id;
 
 -- name: ApprovalReopen :exec
 -- "Restore … (keeps approval)": the campaign matches the snapshot again.
 UPDATE approval_requests
-SET status = @status, invalidated_at = NULL, invalidated_reason = '', changes = '[]', invalidated_by = NULL, invalidated_from = ''
+SET status = @status, invalidated_at = NULL, invalidated_reason = '', changes = '[]', invalidated_by = NULL, invalidated_from = '', invalidated_reason_text = NULL
 WHERE id = @id;
 
 -- name: ApprovalSetReminded :exec
@@ -116,11 +116,12 @@ SELECT id FROM chain ORDER BY depth;
 -- name: ApprovalList :many
 -- The approval inbox. Approvers see every request; others only their own.
 SELECT r.id, r.subject_type, r.campaign_id, r.automation_id, r.transactional_template_id, r.website_post_id, r.website_page_id, r.requested_by, r.requested_at, r.status, r.matched_rules, r.approvals_required,
-       r.decided_at, r.invalidated_at, r.invalidated_reason, r.changes, r.bypass_reason,
+       r.decided_at, r.invalidated_at, r.invalidated_reason, r.changes, r.bypass_reason, r.invalidated_reason_text, r.invalidated_from,
        coalesce((r.snapshot ->> 'audience_count')::bigint, 0)::bigint AS audience_count,
        coalesce(r.snapshot -> 'route', '[]'::jsonb)::jsonb AS route,
        coalesce(r.snapshot -> 'schedule', '{}'::jsonb)::jsonb AS schedule,
        coalesce(r.snapshot -> 'rules', '[]'::jsonb)::jsonb AS rules,
+       coalesce(r.snapshot -> 'rule_texts', '{}'::jsonb)::jsonb AS rule_texts,
        coalesce(r.snapshot ->> 'subject', '')::text AS subject,
        coalesce(r.snapshot -> 'website', 'null'::jsonb)::jsonb AS website,
        coalesce(r.snapshot -> 'page', 'null'::jsonb)::jsonb AS page,

@@ -9,6 +9,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -58,7 +59,7 @@ func (s *Service) AgentSaveCampaign(ctx context.Context, ws *store.Workspace, p 
 			html = "" // the head's title and preview follow the subject and preheader
 		}
 		saved, _, err := s.saveVersion(ctx, q, o, p, lang, SaveInput{BaseVersion: int(t.Version), Subject: subject, Preheader: preheader, MJML: mj, HTML: html,
-			ABTest: t.AbTest, Label: "changed by an agent", Source: "api", Audited: true})
+			ABTest: t.AbTest, Label: mLabelAgent.Text(i18n.Default, nil), LabelText: mLabelAgent.Keep(nil), Source: "api", Audited: true})
 		out.Version, out.Subject = saved.Version, subject
 		return err
 	})

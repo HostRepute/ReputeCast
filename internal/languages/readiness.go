@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -49,8 +50,11 @@ type ReadinessLanguage struct {
 	Gets    string
 	// Attention counts outdated blocks; Changed names the source blocks
 	// that changed since translation.
-	Attention      int
-	Changed        []string
+	Attention int
+	Changed   []string
+	// ChangedRefs say what the Changed blocks are, to name them in any
+	// language (BlockRef.Name).
+	ChangedRefs    []BlockRef
 	SubjectChanged bool
 	TranslatedFrom int
 	Blocks         int
@@ -100,7 +104,7 @@ func readinessFacts(st sourceState, views []view, settings Settings, recipients 
 	for _, n := range recipients {
 		total += n
 	}
-	ov := overview(st, views, settings, recipients, &total)
+	ov := overview(i18n.Default, st, views, settings, recipients, &total)
 	out := ReadinessFacts{Source: st.Language, SourceVersion: st.Version, Fallback: settings.Fallback, Recipients: total, NotOfferedCodes: []string{},
 		Applies: len(settings.Languages) > 1 || len(views) > 0}
 	byLang := map[string]view{}
@@ -137,7 +141,7 @@ func readinessFacts(st sourceState, views []view, settings Settings, recipients 
 	})
 	for _, e := range ov.Versions {
 		l := ReadinessLanguage{Language: e.Language, Name: e.Name, Status: e.Status, Held: e.Held, Offered: e.Offered, Gets: e.Gets, Attention: e.Attention,
-			Changed: e.ChangedBlocks, SubjectChanged: e.SubjectChanged, TranslatedFrom: e.TranslatedFrom, Blocks: e.Blocks, Translated: e.Translated,
+			Changed: e.ChangedBlocks, ChangedRefs: e.changedRefs, SubjectChanged: e.SubjectChanged, TranslatedFrom: e.TranslatedFrom, Blocks: e.Blocks, Translated: e.Translated,
 			PageCopy: pageCopy[e.Language]}
 		if e.Readers != nil {
 			l.Readers = *e.Readers - e.NoLanguage - e.NotOffered

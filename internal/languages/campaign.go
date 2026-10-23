@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -16,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -37,14 +37,14 @@ func campaignSource(ctx context.Context, q *store.Queries, ws *store.Workspace, 
 	return o, Source{Subject: c.Subject, Preheader: c.Preheader, MJML: c.Mjml, HTML: c.Html, Version: int(c.Version), By: c.UpdatedByName, At: at}, c, nil
 }
 
-func readOnly(c store.LanguagesCampaignSourceRow) error {
+func readOnly(l i18n.Lang, c store.LanguagesCampaignSourceRow) error {
 	if editableCampaign[c.Status] {
 		return nil
 	}
 	if c.Status == "sending" || c.Status == "paused" {
-		return api.Conflict("This campaign is sending. Its language versions can't change mid-send; duplicate it to reuse the content.")
+		return api.Conflict(mSending.Text(l, nil))
 	}
-	return api.Conflict("This campaign was sent. Duplicate it to reuse its content and language versions.")
+	return api.Conflict(mSent.Text(l, nil))
 }
 
 // campaignTx runs fn on a campaign's synced source in a transaction, then
@@ -58,7 +58,7 @@ func (s *Service) campaignTx(ctx context.Context, ws *store.Workspace, id uuid.U
 			return err
 		}
 		if write {
-			if err := readOnly(c); err != nil {
+			if err := readOnly(langOf(ctx), c); err != nil {
 				return err
 			}
 		}
@@ -95,7 +95,7 @@ func (s *Service) CampaignLanguages(ctx context.Context, ws *store.Workspace, p 
 		return out, err
 	}
 	readers, total := s.readers(ctx, ws, audience)
-	out = overview(st, views, settings, readers, total)
+	out = overview(langOf(ctx), st, views, settings, readers, total)
 	s.accessOf(ctx, ws, p, &out, authz.CampaignsEdit)
 	return out, nil
 }
@@ -135,21 +135,21 @@ type AddLanguageInput struct {
 	Start string `json:"start,omitempty" enum:"copy,layout" default:"copy"`
 }
 
-func checkNewVersion(settings Settings, st sourceState, views []view, lang string) error {
+func checkNewVersion(rl i18n.Lang, settings Settings, st sourceState, views []view, lang string) error {
 	l, ok := Lookup(lang)
 	switch {
 	case !ok:
-		return api.Invalid("body.language", "Pick one of your workspace languages.")
+		return api.Invalid("body.language", mPickWorkspaceLanguage.Text(rl, nil))
 	case l.RTL:
-		return rtlRefusal(l, settings.Fallback)
+		return rtlRefusal(rl, l, settings.Fallback)
 	case !settings.Offers(lang):
-		return api.Invalid("body.language", fmt.Sprintf("%s isn't one of your workspace languages. Add it in Settings › General first.", l.Name))
+		return api.Invalid("body.language", named(rl, mNotWorkspaceLanguage, l.Code, nil))
 	case lang == st.Language:
-		return api.Conflict(fmt.Sprintf("The email is written in %s.", l.Name))
+		return api.Conflict(named(rl, mWrittenIn, l.Code, nil))
 	}
 	for _, v := range views {
 		if v.row.Language == lang {
-			return api.Conflict(fmt.Sprintf("The email already has a %s version.", l.Name))
+			return api.Conflict(named(rl, mHasVersion, l.Code, nil))
 		}
 	}
 	return nil
@@ -163,7 +163,7 @@ func (s *Service) AddCampaignLanguage(ctx context.Context, ws *store.Workspace, 
 		if err != nil {
 			return err
 		}
-		if err := checkNewVersion(settings, st, views, lang); err != nil {
+		if err := checkNewVersion(langOf(ctx), settings, st, views, lang); err != nil {
 			return err
 		}
 		start := in.Start
@@ -303,12 +303,13 @@ func (s *Service) ApplyCampaignChange(ctx context.Context, ws *store.Workspace, 
 			if strings.TrimSpace(mj) != "" {
 				res := mjml.Compile(mjml.SetHeadMeta(mj, v.row.Subject, v.row.Preheader))
 				if len(res.Errors) > 0 {
-					return api.Invalid("body.to", "The "+NameOf(v.row.Language)+" version doesn't compile with that change: "+res.Errors[0].Message)
+					return api.Invalid("body.to", named(langOf(ctx), mApplyDoesntCompile, v.row.Language, i18n.Args{"error": res.Errors[0].In(langOf(ctx))}))
 				}
 				html = res.HTML
 			}
+			lab := newLabel(mLabelAppliedFrom, st.Language, i18n.Args{"kind": in.Kind})
 			if _, _, err := s.saveVersion(ctx, q, o, p, v.row.Language, SaveInput{BaseVersion: int(v.row.Version), Subject: v.row.Subject, Preheader: v.row.Preheader,
-				MJML: mj, HTML: html, ABTest: v.row.AbTest, Label: in.Kind + " applied from " + NameOf(st.Language), Source: "manual"}); err != nil {
+				MJML: mj, HTML: html, ABTest: v.row.AbTest, Label: lab.English, LabelText: lab.Text, Source: "manual"}); err != nil {
 				return err
 			}
 			out.Languages = append(out.Languages, v.row.Language)
@@ -333,11 +334,11 @@ func (s *Service) SetCampaignSource(ctx context.Context, ws *store.Workspace, p 
 			return err
 		}
 		if len(views) > 0 {
-			return api.Conflict("The source language can only change while the email has one version. Remove its language versions first.")
+			return api.Conflict(mSourceOneVersion.Text(langOf(ctx), nil))
 		}
 		lang := Base(in.Language)
 		if !settings.Offers(lang) {
-			return api.Invalid("body.language", "Pick one of your workspace languages.")
+			return api.Invalid("body.language", mPickWorkspaceLanguage.Text(langOf(ctx), nil))
 		}
 		if lang == st.Language {
 			return nil
@@ -364,11 +365,11 @@ func (s *Service) CompareCampaign(ctx context.Context, ws *store.Workspace, id u
 		}
 		for _, v := range views {
 			if v.row.Language == Base(lang) {
-				out = compareView(st, src, v)
+				out = compareView(langOf(ctx), st, src, v)
 				return nil
 			}
 		}
-		return api.NotFound(NameOf(lang) + " version")
+		return versionNotFound(langOf(ctx), lang)
 	})
 	return out, err
 }
@@ -397,7 +398,7 @@ func (s *Service) CopyBlockToCampaignLanguage(ctx context.Context, ws *store.Wor
 			}
 		}
 		if si < 0 {
-			return api.NotFound("Block")
+			return notFound(ctx, mBlockNotFound)
 		}
 		// Insert after the version block linked to the closest earlier source block.
 		insertAt := -1
@@ -412,7 +413,7 @@ func (s *Service) CopyBlockToCampaignLanguage(ctx context.Context, ws *store.Wor
 		block := src.MJML[st.Blocks[si].Start:st.Blocks[si].End]
 		mj, ok := insertBlock(v.row.Mjml, v.blocks, insertAt, block)
 		if !ok {
-			return api.Conflict("The " + NameOf(lang) + " version has no MJML to copy the block into. Edit it in the composer.")
+			return api.Conflict(named(langOf(ctx), mNoMJML, lang, nil))
 		}
 		return s.saveWithLinks(ctx, q, o, p, v, st, mj, func(l Links, blocks []Block) Links {
 			// The copied block points at its source block, as it is now.
@@ -421,7 +422,7 @@ func (s *Service) CopyBlockToCampaignLanguage(ctx context.Context, ws *store.Wor
 				l.Blocks[pos].Src, l.Blocks[pos].Hash, l.Blocks[pos].Text, l.Blocks[pos].Version = st.Keys[si].Key, st.Blocks[si].Hash, st.Blocks[si].Text, st.Version
 			}
 			return l
-		}, "block copied from "+NameOf(st.Language))
+		}, newLabel(mLabelBlockCopied, st.Language, nil))
 	})
 	if err != nil {
 		return LanguageCompare{}, err
@@ -434,7 +435,7 @@ func (s *Service) CopyBlockToCampaignLanguage(ctx context.Context, ws *store.Wor
 func (s *Service) RemoveBlockFromCampaignLanguage(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, lang string, in BlockInput) (LanguageCompare, error) {
 	lang = Base(lang)
 	if in.Index == nil {
-		return LanguageCompare{}, api.Invalid("body.index", "Say which block to remove.")
+		return LanguageCompare{}, api.Invalid("body.index", mWhichBlock.Text(langOf(ctx), nil))
 	}
 	err := s.campaignTx(ctx, ws, id, true, func(q *store.Queries, o Owner, _ Source, _ store.LanguagesCampaignSourceRow, st sourceState, _ Settings) error {
 		v, err := s.loadView(ctx, q, o, st, lang)
@@ -443,11 +444,11 @@ func (s *Service) RemoveBlockFromCampaignLanguage(ctx context.Context, ws *store
 		}
 		i := *in.Index
 		if i < 0 || i >= len(v.blocks) {
-			return api.NotFound("Block")
+			return notFound(ctx, mBlockNotFound)
 		}
 		b := v.blocks[i]
 		mj := v.row.Mjml[:b.Start] + v.row.Mjml[b.End:]
-		return s.saveWithLinks(ctx, q, o, p, v, st, mj, nil, "block removed, as in "+NameOf(st.Language))
+		return s.saveWithLinks(ctx, q, o, p, v, st, mj, nil, newLabel(mLabelBlockRemoved, st.Language, nil))
 	})
 	if err != nil {
 		return LanguageCompare{}, err
@@ -465,13 +466,13 @@ func (s *Service) loadView(ctx context.Context, q *store.Queries, o Owner, st so
 
 // saveWithLinks saves new MJML for a version (compiled on the server) and
 // lets fix adjust the links of its blocks.
-func (s *Service) saveWithLinks(ctx context.Context, q *store.Queries, o Owner, p *authz.Principal, v view, st sourceState, mj string, fix func(Links, []Block) Links, label string) error {
+func (s *Service) saveWithLinks(ctx context.Context, q *store.Queries, o Owner, p *authz.Principal, v view, st sourceState, mj string, fix func(Links, []Block) Links, lab label) error {
 	res := mjml.Compile(mjml.SetHeadMeta(mj, v.row.Subject, v.row.Preheader))
 	if len(res.Errors) > 0 {
-		return api.Invalid("body", "The "+NameOf(v.row.Language)+" version doesn't compile: "+res.Errors[0].Message)
+		return api.Invalid("body", named(langOf(ctx), mDoesntCompile, v.row.Language, i18n.Args{"error": res.Errors[0].In(langOf(ctx))}))
 	}
 	_, t, err := s.saveVersion(ctx, q, o, p, v.row.Language, SaveInput{BaseVersion: int(v.row.Version), Subject: v.row.Subject, Preheader: v.row.Preheader,
-		MJML: mj, HTML: res.HTML, ABTest: v.row.AbTest, Label: label, Source: "manual"})
+		MJML: mj, HTML: res.HTML, ABTest: v.row.AbTest, Label: lab.English, LabelText: lab.Text, Source: "manual"})
 	if err != nil || fix == nil {
 		return err
 	}
@@ -519,7 +520,7 @@ func (s *Service) CampaignHistory(ctx context.Context, ws *store.Workspace, id u
 	}
 	t, err := s.Q.ContentTranslation(ctx, store.ContentTranslationParams{OwnerKind: OwnerCampaign, OwnerID: id, OwnerVersion: 0, Language: Base(lang)})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return out, api.NotFound(NameOf(lang) + " version")
+		return out, versionNotFound(langOf(ctx), lang)
 	}
 	if err != nil {
 		return out, err
@@ -534,7 +535,7 @@ func (s *Service) CampaignHistory(ctx context.Context, ws *store.Workspace, id u
 		if src == "fix" {
 			src = "manual"
 		}
-		out.Items = append(out.Items, campaigns.ComposerVersion{Version: int(r.Version), SavedAt: r.SavedAt, SavedBy: r.SavedByName, Label: r.Label, Source: src,
+		out.Items = append(out.Items, campaigns.ComposerVersion{Version: int(r.Version), SavedAt: r.SavedAt, SavedBy: r.SavedByName, Label: labelIn(langOf(ctx), r.Label, r.LabelText), Source: src,
 			SizeBytes: int(r.SizeBytes), Current: r.Version == t.Version})
 	}
 	return out, nil
@@ -572,7 +573,7 @@ func (c Campaigns) Content(ctx context.Context, ws *store.Workspace, id uuid.UUI
 	}
 	t, err := c.S.Q.ContentTranslation(ctx, store.ContentTranslationParams{OwnerKind: OwnerCampaign, OwnerID: id, OwnerVersion: 0, Language: lang})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return campaigns.TranslationContent{}, api.NotFound(NameOf(lang) + " version")
+		return campaigns.TranslationContent{}, versionNotFound(langOf(ctx), lang)
 	}
 	if err != nil {
 		return campaigns.TranslationContent{}, err
@@ -589,7 +590,7 @@ func (c Campaigns) Save(ctx context.Context, ws *store.Workspace, p *authz.Princ
 		ab, _ = json.Marshal(abForStore(in.ABTest))
 	}
 	err := c.S.campaignTx(ctx, ws, id, false, func(q *store.Queries, o Owner, _ Source, row store.LanguagesCampaignSourceRow, _ sourceState, _ Settings) error {
-		if err := readOnly(row); err != nil {
+		if err := readOnly(langOf(ctx), row); err != nil {
 			return err
 		}
 		saved, _, err := c.S.saveVersion(ctx, q, o, p, Base(lang), SaveInput{BaseVersion: in.BaseVersion, Subject: in.Subject, Preheader: in.Preheader, MJML: in.MJML,

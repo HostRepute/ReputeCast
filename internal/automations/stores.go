@@ -49,19 +49,25 @@ func isStoreTrigger(kind string) bool {
 // IsStoreTrigger reports whether a trigger kind is a store's.
 func IsStoreTrigger(kind string) bool { return isStoreTrigger(kind) }
 
+var (
+	mProblemPickStore    = msg("problem.pickStore")
+	mProblemStoreGone    = msg("problem.storeGone")
+	mProblemCheckoutWait = msg("problem.checkoutWait")
+)
+
 // checkStoreTrigger checks a store trigger's settings.
 func checkStoreTrigger(t *AutomationTrigger, refs *Refs) []configProblem {
 	var out []configProblem
 	if t.Store == "" {
-		return append(out, configProblem{"missing_ref", "Pick the store."})
+		return append(out, configProblem{"missing_ref", txt(mProblemPickStore)})
 	}
 	if refs != nil && refs.Stores != nil {
 		if _, ok := refs.Stores[t.Store]; !ok {
-			out = append(out, configProblem{"missing_ref", "The trigger's store isn't connected any more. Reconnect it or pick another store."})
+			out = append(out, configProblem{"missing_ref", txt(mProblemStoreGone)})
 		}
 	}
 	if t.Kind == TriggerAbandonedCheckout && t.AfterHours != 0 && (t.AfterHours < 1 || t.AfterHours > 24) {
-		out = append(out, configProblem{"invalid_delay", "An abandoned checkout waits 1 to 24 hours for an order."})
+		out = append(out, configProblem{"invalid_delay", txt(mProblemCheckoutWait)})
 	}
 	return out
 }

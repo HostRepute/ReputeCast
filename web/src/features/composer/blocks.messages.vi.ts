@@ -58,7 +58,7 @@ export default translate(mb, {
   productLine: '$29 · một dòng về công dụng của sản phẩm',
   viewProduct: 'Xem sản phẩm',
   sponsorFill: 'Tự điền từ đơn đặt tài trợ của số này.',
-  upgradeHeadline: 'Nhận nhiều hơn với gói thành viên trả phí',
-  upgradeLine: 'Thành viên trả phí nhận trọn vẹn mọi số, kho lưu trữ và các nội dung thêm.',
+  upgradeHeadline: 'Nhận nhiều hơn với gói hội viên trả phí',
+  upgradeLine: 'Hội viên trả phí nhận trọn vẹn mọi số, kho lưu trữ và các nội dung thêm.',
   upgradeButton: 'Nâng cấp',
 })

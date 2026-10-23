@@ -13,6 +13,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // Channel steps (design expansion phase 8): "Send SMS" now, "Send push" and
@@ -242,47 +243,60 @@ func missingPermissions(ctx context.Context, g AutomationGraph) []authz.Permissi
 	return out
 }
 
-// checkChannelNode validates a channel step on the canvas.
-func checkChannelNode(n AutomationNode, listExists func(string) bool) []ChannelIssue {
-	out := []ChannelIssue{}
-	bad := func(code, msg string) { out = append(out, ChannelIssue{Code: code, Message: msg}) }
+var (
+	mProblemWriteText           = msg("problem.writeText")
+	mProblemSMSConsentList      = msg("problem.smsConsentList")
+	mProblemConsentListDeleted  = msg("problem.consentListDeleted")
+	mProblemPushTitle           = msg("problem.pushTitle")
+	mProblemPushLink            = msg("problem.pushLink")
+	mProblemWhatsAppTemplate    = msg("problem.whatsappTemplate")
+	mProblemWhatsAppConsentList = msg("problem.whatsappConsentList")
+)
+
+// checkChannelNode validates a channel step on the canvas. What the
+// channel's own package finds reads as it wrote it.
+func checkChannelNode(n AutomationNode, listExists func(string) bool) []configProblem {
+	out := []configProblem{}
+	bad := func(code string, m i18n.Msg) { out = append(out, configProblem{code, txt(m)}) }
 	if n.Type == NodeSMS {
 		st := n.Data.SMS
 		switch {
 		case st == nil || strings.TrimSpace(st.Body) == "":
-			bad("missing_text", "Write the text.")
+			bad("missing_text", mProblemWriteText)
 		case st.ConsentListID == "":
-			bad("missing_ref", "Pick the list whose SMS consent the step needs.")
+			bad("missing_ref", mProblemSMSConsentList)
 		case !listExists(st.ConsentListID):
-			bad("missing_ref", "The step's consent list was deleted. Pick another list.")
+			bad("missing_ref", mProblemConsentListDeleted)
 		}
 	}
 	if n.Type == NodePush {
 		st := n.Data.Push
 		switch {
 		case st == nil || strings.TrimSpace(st.Title) == "":
-			bad("missing_text", "Write the notification's title.")
+			bad("missing_text", mProblemPushTitle)
 		case strings.TrimSpace(st.Link) == "":
-			bad("missing_link", "Add the address the notification opens.")
+			bad("missing_link", mProblemPushLink)
 		}
 	}
 	if n.Type == NodeWhatsApp {
 		st := n.Data.WhatsApp
 		switch {
 		case st == nil:
-			bad("missing_template", "Pick an approved template.")
+			bad("missing_template", mProblemWhatsAppTemplate)
 		case st.Mode == "text" && strings.TrimSpace(st.Text) == "":
-			bad("missing_text", "Write the text.")
+			bad("missing_text", mProblemWriteText)
 		case st.Mode != "text" && strings.TrimSpace(st.Template) == "":
-			bad("missing_template", "Pick an approved template.")
+			bad("missing_template", mProblemWhatsAppTemplate)
 		case st.ConsentListID == "":
-			bad("missing_ref", "Pick the list whose WhatsApp consent the step needs.")
+			bad("missing_ref", mProblemWhatsAppConsentList)
 		case !listExists(st.ConsentListID):
-			bad("missing_ref", "The step's consent list was deleted. Pick another list.")
+			bad("missing_ref", mProblemConsentListDeleted)
 		}
 	}
 	if c, ok := channelStep(n.Type); ok {
-		out = append(out, c.Validate(n)...)
+		for _, is := range c.Validate(n) {
+			out = append(out, configProblem{is.Code, name(is.Message)})
+		}
 	}
 	return out
 }

@@ -265,7 +265,7 @@ order of the English.
 | event log · raw event · normalized event | nhật ký sự kiện · sự kiện gốc · sự kiện chuẩn hóa | |
 | failover · fallback · primary | chuyển dự phòng · dự phòng · chính | "nhà cung cấp dự phòng", "nhà cung cấp chính" |
 | feedback loop | vòng phản hồi | |
-| flow (an automation's, in sending text) | quy trình tự động | there "luồng" is a stream: "email do các quy trình tự động gửi"; the Automations section names the flow editor's flows |
+| flow (an automation's, in sending text) | quy trình tự động | "luồng" is a stream: "email do các quy trình tự động gửi"; on the Automations screens a flow is "quy trình" |
 | guard (Warm-up page) | ngưỡng bảo vệ | "Tỷ lệ trả thư · ngưỡng bảo vệ 2%" |
 | held (recipients) | tạm giữ | |
 | incident · outage | sự cố · sự cố ngừng hoạt động | |
@@ -389,8 +389,20 @@ stay as they are.
 | section (of an email) · saved section | phần · phần đã lưu |
 | Send Readiness | Độ sẵn sàng gửi (the checks before a send, as a name; "runs again" = "được kiểm tra lại") |
 | spam heuristic | dấu hiệu spam |
+| bare URL · link text · says nothing (a link's text) | URL trần · chữ của liên kết · không nói lên điều gì |
+| broken link · shortened link | liên kết hỏng · liên kết rút gọn (a URL shortener is Send Readiness's "dịch vụ rút gọn liên kết") |
+| inline CSS | CSS nội tuyến (Gmail's clipping limit is Send Readiness's "ngưỡng cắt thư") |
+| contact field · personalization token's fallback | trường liên hệ · giá trị dự phòng |
+| plain-text version · postal address | phiên bản văn bản thuần · địa chỉ bưu chính |
+| Line 3: (a compile or layout problem) · doesn't compile | Dòng 3: · không biên dịch được |
+| title (of an article card, a post) | tựa đề ("tiêu đề" is the email's subject) |
+| Email preferences link · View in browser link | Liên kết tùy chọn email · Liên kết xem trên trình duyệt |
+| starter (template) | mẫu khởi đầu |
+| starters: Blank · Weekly digest · Product update · Plain text · Announcement · Product grid · Blog digest | Trống · Bản tin hằng tuần · Cập nhật sản phẩm · Văn bản thuần · Thông báo · Lưới sản phẩm · Bản tin blog |
 
-MJML tags (mj-section, mj-body) stay as they are. A block's sample content
+MJML tags (mj-section, mj-body) stay as they are. Section names in the
+server's sentences use the composer's words: đầu thư, chân thư, hero,
+2 cột, văn bản, hình ảnh, nút. A block's sample content
 is written for the email's readers, in the app language: the first-name
 fallback "there" is "bạn".
 
@@ -402,12 +414,12 @@ fallback "there" is "bạn".
 | automation (one, or the section) | tự động hóa ("Tự động hóa mới") |
 | Branch · Yes · No | Rẽ nhánh · Có · Không |
 | Delay (step) · Wait 10 minutes | Trì hoãn · Chờ 10 phút |
-| double opt-in | đăng ký kép |
+| double opt-in · double opt-in confirmed only | xác nhận hai bước · chỉ người đã hoàn tất xác nhận hai bước |
 | edge (a connection on the canvas) | đường nối |
 | exit · goal · goal rate | thoát · mục tiêu · tỷ lệ đạt mục tiêu |
 | fail over · failover | chuyển dự phòng |
 | Filter (step) | Lọc |
-| flow | luồng (a named stream keeps its capital: "Luồng Tự động hóa") |
+| flow · in the flow · leave the flow | quy trình · trong quy trình · rời quy trình ("quy trình tự động" where the kind needs saying; "luồng" is only a stream: "Luồng Tự động hóa") |
 | List action | Thao tác danh sách |
 | method (HTTP) | phương thức |
 | override (a route) | ghi đè; "route override" on a step is "tuyến riêng" |
@@ -418,6 +430,14 @@ fallback "there" is "bạn".
 | stats · Live stats | số liệu · Số liệu trực tiếp |
 | step · trigger · action · condition | bước · trình kích hoạt · hành động · điều kiện |
 | web push | thông báo đẩy (trên web) |
+| path (of a branch or split) · connection | nhánh · đường nối |
+| starters: Welcome series · Re-engagement · Onboarding · Abandoned cart | Chuỗi chào mừng · Tái tương tác · Hướng dẫn bắt đầu · Giỏ hàng bị bỏ dở |
+| Send Readiness content checks | kiểm tra nội dung của Độ sẵn sàng gửi |
+| webhook delivery log · failed calls | nhật ký gửi webhook · lệnh gọi thất bại |
+| route label: SES, failover Postmark | SES, dự phòng Postmark |
+| Removed provider | Nhà cung cấp đã xóa |
+| webinar | hội thảo trực tuyến |
+| version summary: created from a blank canvas · created from the X template · copied from X · first published version | tạo từ khung trống · tạo từ mẫu X · nhân bản từ X · phiên bản xuất bản đầu tiên |
 
 ## Approvals
 
@@ -429,13 +449,20 @@ fallback "there" is "bạn".
 | Approve · Reject · Request changes | Phê duyệt · Từ chối · Yêu cầu thay đổi |
 | Bypassed · emergency bypass | Đã bỏ qua · bỏ qua khẩn cấp |
 | comment · Discussion · evidence | nhận xét · Thảo luận · bằng chứng |
-| Contacts in flight | Liên hệ đang trong luồng |
+| Contacts in flight | Liên hệ đang trong quy trình |
 | Invalidated · Approval invalidated | Mất hiệu lực · Phê duyệt không còn hiệu lực |
 | median wait | thời gian chờ trung vị (a median, not an average: not "trung bình") |
 | Pending · Rejected | Đang chờ · Bị từ chối |
 | policy · rule · Rules matched | chính sách · quy tắc · Quy tắc khớp |
 | Recheck | Kiểm tra lại |
 | snapshot | bản chụp |
+| after approval (a change) | sau khi được phê duyệt ("số người nhận đã thay đổi +14% sau khi được phê duyệt"; said once) |
+| rules: audience ≥ 10,000 · warming-up provider · new provider · author lacks send · list requires approval · client sign-off | người nhận ≥ 10.000 · nhà cung cấp đang khởi động · nhà cung cấp mới · tác giả không có quyền gửi · danh sách cần phê duyệt · phê duyệt của khách hàng |
+| automation publish · post publish · page publish · template publish (rules) | xuất bản tự động hóa · xuất bản bài viết · xuất bản trang · xuất bản mẫu |
+| a send held · suppressed | lần gửi bị tạm giữ · bị chặn gửi |
+| online · active 2 h ago (an approver) | đang trực tuyến · hoạt động 2 giờ trước |
+| Best time within 24 h of | Giờ tốt nhất trong vòng 24 giờ từ |
+| Only people can… (not agents or keys) | Chỉ con người mới… |
 
 ## Content languages
 
@@ -448,6 +475,11 @@ fallback "there" is "bạn".
 | readers (of a language) | người đọc |
 | page copy · built-in labels | nội dung trang · nhãn có sẵn |
 | Results per language · click map | Kết quả theo ngôn ngữ · bản đồ lượt nhấp |
+| no language · other languages (results) | không có ngôn ngữ · ngôn ngữ khác |
+| compare view's blocks: Header · Footer · Raw HTML · Social links · Two cards · 3 columns · Hero image · Button · Intro · The email | Đầu thư · Chân thư · HTML thô · Liên kết mạng xã hội · Hai thẻ · 3 cột · Hình ảnh hero · Nút · Phần mở đầu · Toàn bộ email |
+| Headline (a block) · no alt text | Dòng tít ("Đề mục" is a heading) · không có văn bản thay thế |
+| version labels: copied from · layout of · applied from · block copied from · changed by an agent · edited in the flow editor · translated from | chép từ · bố cục của · áp dụng từ · khối chép từ · do tác tử thay đổi · sửa trong trình chỉnh sửa quy trình · dịch từ |
+| a language's changes after approval: added · marked translated · back to draft · sent again · edited | mới thêm · đã đánh dấu là đã dịch · trở lại bản nháp · được gửi lại · đã sửa |
 | copy (a form's or page's own text) · Copy in | nội dung · Nội dung bằng |
 | Live · Incomplete · Not set up (copy) | Đang dùng · Chưa đủ · Chưa thiết lập |
 | string (text to write) | chuỗi |
@@ -486,8 +518,11 @@ app's own picker names each language in itself.
 | layout table | bảng bố cục |
 | screen reader | trình đọc màn hình |
 | Warn · Block (the policy) | Cảnh báo · Chặn |
+| skipped heading level · card titles | cấp đề mục bị bỏ qua · tựa đề thẻ |
 
 "Heading" is "Đề mục", never "Tiêu đề", which is an email's subject.
+Content languages in a sentence use their standard Vietnamese names, with
+"tiếng" in lower case: "tiếng Đức", "tiếng Tây Ban Nha".
 
 ## Earn
 

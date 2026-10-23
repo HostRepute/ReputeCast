@@ -114,6 +114,8 @@ export default translate(m, {
   subject: 'Tiêu đề',
   subjectVariant: 'Tiêu đề · Biến thể {variant}',
   subjectSpam: 'Tiêu đề · {count} dấu hiệu spam: {list}',
+  subjectHeuristic:
+    '{h, select, all_caps {viết hoa toàn bộ} repeated_punctuation {lặp dấu câu} urgency {lời lẽ thúc ép} money_words {từ ngữ về tiền} click_bait {câu nhử nhấp} other {{name}}}',
   subjectPlaceholder: 'Email này nói về điều gì?',
   preheader: 'Dòng xem trước',
   preheaderPlaceholder: 'Hiển thị sau tiêu đề trong hầu hết hộp thư',
@@ -213,7 +215,7 @@ export default translate(m, {
   linkReplaced: 'Đã thay liên kết bằng {url}',
   sectionRemoved: 'Đã xóa phần',
   sectionRemovedDetail: 'Nhấn ⌘Z để hoàn tác nếu bạn cần lấy lại.',
-  minified: 'CSS nội tuyến được rút gọn khi lưu và khi gửi',
+  minified: 'CSS nội tuyến được thu gọn khi lưu và khi gửi',
   minifiedDetail: 'Khung thiết kế và MJML vẫn giữ nguyên.',
-  minifyFailed: 'Không bật được tính năng rút gọn',
+  minifyFailed: 'Không bật được tính năng thu gọn',
 })
