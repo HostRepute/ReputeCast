@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/bounce"
 	"github.com/hostrepute/reputecast/internal/providers/webhookauth"
@@ -132,7 +133,7 @@ func (m Mapping) compileWebhook() (*hookSpec, error) {
 		}
 	}
 	if mode != "status" && mode != "jsonpath" {
-		return nil, &FieldError{Field: "webhook_mapping", Message: "Use status or jsonpath."}
+		return nil, fieldError("webhook_mapping", mWebhookMapping, nil)
 	}
 	h := &hookSpec{auth: strings.ToLower(strings.TrimSpace(w.Auth)), header: w.SignatureHeader, encoding: w.Encoding, prefix: w.SignaturePrefix,
 		tsHeader: w.TimestampHeader, payload: w.SignedPayload, token: w.TokenHeader, user: w.Username, types: map[string]string{}}
@@ -151,7 +152,7 @@ func (m Mapping) compileWebhook() (*hookSpec, error) {
 		switch strings.ToLower(h.encoding) {
 		case "", "hex", "base64":
 		default:
-			return nil, &FieldError{Field: "webhook.encoding", Message: "Use hex or base64."}
+			return nil, fieldError("webhook.encoding", mEncoding, nil)
 		}
 		if h.payload == "" {
 			h.payload = "{body}"
@@ -160,10 +161,10 @@ func (m Mapping) compileWebhook() (*hookSpec, error) {
 			}
 		}
 		if !strings.Contains(h.payload, "{body}") {
-			return nil, &FieldError{Field: "webhook.signed_payload", Message: "The signed payload must include {body}."}
+			return nil, fieldError("webhook.signed_payload", mPayloadBody, nil)
 		}
 		if strings.Contains(h.payload, "{timestamp}") && h.tsHeader == "" {
-			return nil, &FieldError{Field: "webhook.signed_payload", Message: "Name the timestamp header the {timestamp} comes from."}
+			return nil, fieldError("webhook.signed_payload", mPayloadTime, nil)
 		}
 	case "standard", "none":
 	case "basic":
@@ -172,10 +173,10 @@ func (m Mapping) compileWebhook() (*hookSpec, error) {
 		}
 	case "header":
 		if !validHeaderName(h.token) {
-			return nil, &FieldError{Field: "webhook.token_header", Message: "Name the header that carries the secret."}
+			return nil, fieldError("webhook.token_header", mTokenHeader, nil)
 		}
 	default:
-		return nil, &FieldError{Field: "webhook.auth", Message: "Use hmac, standard, basic, header or none."}
+		return nil, fieldError("webhook.auth", mAuth, nil)
 	}
 	if strings.TrimSpace(w.Secret) != "" {
 		t, err := parseTemplate(w.Secret, modeText)
@@ -211,7 +212,7 @@ func (m Mapping) compileWebhook() (*hookSpec, error) {
 		*p.dst = jp
 	}
 	if h.typ == nil {
-		return nil, &FieldError{Field: "webhook.type_path", Message: "Enter the JSONPath of the event type, for example $.event."}
+		return nil, fieldError("webhook.type_path", mTypePath, nil)
 	}
 	recipients := []string{w.RecipientPath}
 	if w.RecipientPath == "" && mode == "status" {
@@ -229,7 +230,7 @@ func (m Mapping) compileWebhook() (*hookSpec, error) {
 	for k, v := range w.Types {
 		v = strings.ToLower(strings.TrimSpace(v))
 		if !normalizedTypes[v] {
-			return nil, &FieldError{Field: "webhook.types", Message: fmt.Sprintf("%q maps to %q; use delivered, deferred, hard_bounce, soft_bounce, bounce, complaint, rejected, open, click, unsubscribe or ignore.", k, v)}
+			return nil, fieldError("webhook.types", mTypeMapsTo, i18n.Args{"from": fmt.Sprintf("%q", k), "to": fmt.Sprintf("%q", v)})
 		}
 		h.types[strings.ToLower(strings.TrimSpace(k))] = v
 	}

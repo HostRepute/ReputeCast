@@ -20,6 +20,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -309,13 +310,13 @@ func (rt *Runtime) build(r store.RemoteAdapterGetRow, now time.Time, allow bool,
 
 // ParseManifest implements manage.CommunityRuntime: it validates a manifest
 // of kind "remote" and returns its registry key and the capabilities the
-// Adapters tab lists.
-func (rt *Runtime) ParseManifest(raw []byte) (string, []string, error) {
+// Adapters tab lists, in the reader's language.
+func (rt *Runtime) ParseManifest(raw []byte, l i18n.Lang) (string, []string, error) {
 	m, err := ParseManifest(raw)
 	if err != nil {
 		return "", nil, err
 	}
-	return m.Key(), m.Labels(), nil
+	return m.Key(), m.LabelsIn(l), nil
 }
 
 // Installed implements manage.CommunityRuntime: inside the transaction that
@@ -325,7 +326,7 @@ func (rt *Runtime) ParseManifest(raw []byte) (string, []string, error) {
 func (rt *Runtime) Installed(ctx context.Context, tx pgx.Tx, adapterID uuid.UUID, raw []byte) error {
 	m, err := ParseManifest(raw)
 	if err != nil {
-		return api.Invalid("body.manifestUrl", "This manifest can't be used: "+err.Error()+".")
+		return api.Invalid("body.manifestUrl", mProblemManifest.Text(i18n.LangFrom(ctx), i18n.Args{"error": err.Error()}))
 	}
 	_, err = createRuntime(ctx, store.New(tx), rt.Box, adapterID, m, "")
 	return err
@@ -360,7 +361,7 @@ func createRuntime(ctx context.Context, q *store.Queries, box *secrets.Box, adap
 	if other, err := keyTaken(ctx, q, m.Key(), adapterID); err != nil {
 		return "", err
 	} else if other != "" {
-		return "", api.Conflict(other + " is already registered as " + m.Key() + ". Update or remove it, or install the adapter under another id.")
+		return "", api.Conflict(mProblemKeyTaken.Text(i18n.LangFrom(ctx), i18n.Args{"other": other, "key": m.Key()}))
 	}
 	secret := NewSecret()
 	sealed, err := box.SealString(secret, SecretAD(adapterID))

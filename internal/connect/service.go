@@ -32,6 +32,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/domains"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/providers"
@@ -137,22 +138,40 @@ func (s *Service) helpers(ctx context.Context, wsID uuid.UUID) []string {
 }
 
 // descriptor returns a registered adapter or a 404 problem.
-func descriptor(adapter string) (providers.Descriptor, error) {
+func descriptor(ctx context.Context, adapter string) (providers.Descriptor, error) {
 	d, ok := providers.Lookup(adapter)
 	if !ok || d.New == nil {
-		return providers.Descriptor{}, api.Err(http.StatusNotFound, api.CodeNotFound, "This build has no "+adapter+" adapter. Pick a provider from the catalog.")
+		return providers.Descriptor{}, api.Err(http.StatusNotFound, api.CodeNotFound, mProblemNoAdapter.Text(i18n.LangFrom(ctx), i18n.Args{"adapter": adapter}))
 	}
 	return d, nil
+}
+
+// setupNotFound is the 404 of a setup that isn't there.
+func setupNotFound(ctx context.Context) *api.Problem {
+	return api.Err(http.StatusNotFound, api.CodeNotFound, mProblemSetupNotFound.Text(i18n.LangFrom(ctx), nil))
+}
+
+// setupError maps a setup's load error: a missing row is a 404.
+func setupError(ctx context.Context, err error) error {
+	if errors.Is(err, pgx.ErrNoRows) {
+		return setupNotFound(ctx)
+	}
+	return api.MapError(err, "Setup")
+}
+
+// conflict is a 409 in the reader's language.
+func conflict(ctx context.Context, m i18n.Msg, args i18n.Args) *api.Problem {
+	return api.Conflict(m.Text(i18n.LangFrom(ctx), args))
 }
 
 // setup loads a setup of the workspace.
 func (s *Service) setup(ctx context.Context, ws *store.Workspace, rawID string) (store.ProviderSetup, error) {
 	id, err := uuid.Parse(rawID)
 	if err != nil {
-		return store.ProviderSetup{}, api.NotFound("Setup")
+		return store.ProviderSetup{}, setupNotFound(ctx)
 	}
 	st, err := s.Q.SetupGet(ctx, store.SetupGetParams{WorkspaceID: ws.ID, ID: id})
-	return st, api.MapError(err, "Setup")
+	return st, setupError(ctx, err)
 }
 
 // save writes a setup's step, status and state.
@@ -169,10 +188,10 @@ func (s *Service) update(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 		q := store.New(tx)
 		st, err := q.SetupLock(ctx, id)
 		if err != nil {
-			return api.MapError(err, "Setup")
+			return setupError(ctx, err)
 		}
 		if st.WorkspaceID != ws.ID {
-			return api.NotFound("Setup")
+			return setupNotFound(ctx)
 		}
 		state := decodeState(st.State)
 		if err := fn(&st, &state); err != nil {
@@ -196,7 +215,7 @@ type ConnectSetupInput struct {
 
 // Create starts a setup for an adapter, or returns the open one to resume.
 func (s *Service) Create(ctx context.Context, ws *store.Workspace, in ConnectSetupInput) (ConnectSetup, error) {
-	d, err := descriptor(in.Adapter)
+	d, err := descriptor(ctx, in.Adapter)
 	if err != nil {
 		return ConnectSetup{}, err
 	}
@@ -263,7 +282,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, adapter, status
 		it := ConnectSetupSummary{ID: st.ID.String(), Adapter: st.Adapter, Name: st.Adapter, Step: st.Step, Status: st.Status, CreatedAt: st.CreatedAt,
 			UpdatedAt: st.UpdatedAt, FinishedAt: st.FinishedAt}
 		if d, ok := providers.Lookup(st.Adapter); ok {
-			it.Name = copyFor(d).Display
+			it.Name = copyFor(i18n.LangFrom(ctx), d).Display
 		}
 		if st.ProviderID != nil {
 			if p, err := s.Q.ProvGetAny(ctx, *st.ProviderID); err == nil {
@@ -297,10 +316,10 @@ func (s *Service) SetStep(ctx context.Context, ws *store.Workspace, rawID string
 	}
 	st, err := s.update(ctx, ws, cur.ID, "", nil, func(st *store.ProviderSetup, state *State) error {
 		if st.Status == "abandoned" {
-			return api.Conflict("This setup was cancelled. Start again from the catalog.")
+			return conflict(ctx, mProblemCancelled, nil)
 		}
 		if in.Step != "connection" && st.ProviderID == nil {
-			return api.Conflict("Connect the provider first: the next steps need it.")
+			return conflict(ctx, mProblemConnectFirstSteps, nil)
 		}
 		if st.Status == "open" {
 			st.Step = in.Step
@@ -321,7 +340,7 @@ func (s *Service) Abandon(ctx context.Context, ws *store.Workspace, rawID string
 		return err
 	}
 	if cur.Status != "open" {
-		return api.Conflict("Only an unfinished setup can be cancelled.")
+		return conflict(ctx, mProblemOnlyOpen, nil)
 	}
 	disconnect := false
 	if cur.ProviderID != nil {
@@ -353,11 +372,11 @@ func (s *Service) Abandon(ctx context.Context, ws *store.Workspace, rawID string
 
 func (s *Service) provider(ctx context.Context, ws *store.Workspace, st store.ProviderSetup) (store.Provider, error) {
 	if st.ProviderID == nil {
-		return store.Provider{}, api.Conflict("Connect the provider first.")
+		return store.Provider{}, conflict(ctx, mProblemConnectFirst, nil)
 	}
 	p, err := s.Q.ProvGet(ctx, store.ProvGetParams{WorkspaceID: ws.ID, ID: *st.ProviderID})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return store.Provider{}, api.Conflict("The provider of this setup was disconnected. Start again from the catalog.")
+		return store.Provider{}, conflict(ctx, mProblemDisconnected, nil)
 	}
 	return p, err
 }

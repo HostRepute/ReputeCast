@@ -11,6 +11,7 @@ import (
 	"net/netip"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -21,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/version"
@@ -83,6 +85,7 @@ type AdaptersOverview struct {
 
 // Adapters returns the Adapters tab.
 func (s *Service) Adapters(ctx context.Context, ws *store.Workspace) (AdaptersOverview, error) {
+	l := i18n.LangFrom(ctx)
 	cur := strings.TrimPrefix(version.Get().Version, "v")
 	out := AdaptersOverview{Version: cur, Builtin: []AdapterBuiltin{}, Community: []AdapterCommunity{}, SDKURL: SDKURL, TemplateURL: TemplateURL, RegistryURL: RegistryURL}
 	if st, err := s.Q.GetInstanceSettings(ctx); err == nil && len(st.LatestRelease) > 0 {
@@ -124,8 +127,9 @@ func (s *Service) Adapters(ctx context.Context, ws *store.Workspace) (AdaptersOv
 			continue
 		}
 		v := strings.TrimPrefix(d.Version, "v")
+		words := d.In(l)
 		out.Builtin = append(out.Builtin, AdapterBuiltin{Adapter: d.Adapter, Name: d.Name, Version: v, Maintainer: d.Maintainer,
-			Events: d.Events, DomainSetup: d.DomainSetup, SuppressionSync: d.SuppressionMode, Connected: connected[d.Adapter]})
+			Events: words.Events, DomainSetup: words.DomainSetup, SuppressionSync: words.SuppressionMode, Connected: connected[d.Adapter]})
 	}
 	rows, err := s.Pool.Query(ctx, `SELECT id, name, kind, version, maintainer, source_url, manifest, latest_version, installed_at FROM installed_adapters ORDER BY installed_at, name`)
 	if err != nil {
@@ -146,7 +150,7 @@ func (s *Service) Adapters(ctx context.Context, ws *store.Workspace) (AdaptersOv
 			LastRelease  time.Time       `json:"last_release"`
 		}
 		_ = json.Unmarshal(manifest, &m)
-		key, labels, remote := s.communityKey(c.Kind, c.Name, manifest)
+		key, labels, remote := s.communityKey(l, c.Kind, c.Name, manifest)
 		if remote {
 			c.Capabilities = labels
 		} else {
@@ -179,7 +183,7 @@ func (s *Service) Adapters(ctx context.Context, ws *store.Workspace) (AdaptersOv
 
 func instanceAdmin(ctx context.Context) error {
 	if p := api.PrincipalFrom(ctx); p == nil || !p.IsInstanceAdmin {
-		return api.Err(http.StatusForbidden, api.CodePermissionDenied, "Adapters apply to every workspace on this instance, so only instance admins can install, update or remove them.")
+		return api.Err(http.StatusForbidden, api.CodePermissionDenied, mAdminOnly.Text(i18n.LangFrom(ctx), nil))
 	}
 	return nil
 }
@@ -210,37 +214,38 @@ func (s *Service) InstallAdapter(ctx context.Context, ws *store.Workspace, in Ad
 	if err := instanceAdmin(ctx); err != nil {
 		return AdapterCommunity{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	m, raw, err := fetchManifest(ctx, in.ManifestURL)
 	if err != nil {
-		return AdapterCommunity{}, api.Invalid("body.manifestUrl", err.Error())
+		return AdapterCommunity{}, api.Invalid("body.manifestUrl", problemIn(l, err))
 	}
 	switch {
 	case m.Kind == CommunityKindRemote && s.Community == nil:
-		return AdapterCommunity{}, api.Invalid("body.manifestUrl", "This build can't run community adapters of kind remote.")
+		return AdapterCommunity{}, api.Invalid("body.manifestUrl", mNoRemote.Text(l, nil))
 	case m.Kind == CommunityKindRemote:
-		if _, _, err := s.Community.ParseManifest(raw); err != nil {
-			return AdapterCommunity{}, api.Invalid("body.manifestUrl", "This manifest can't be used: "+err.Error()+".")
+		if _, _, err := s.Community.ParseManifest(raw, l); err != nil {
+			return AdapterCommunity{}, api.Invalid("body.manifestUrl", mManifestUnusable.Text(l, i18n.Args{"error": err.Error()}))
 		}
 	case m.Kind == "http" && s.HTTPMappings != nil:
 		if err := s.HTTPMappings.Check(raw); err != nil {
-			return AdapterCommunity{}, api.Invalid("body.manifestUrl", "This HTTP adapter's mapping can't be used: "+err.Error())
+			return AdapterCommunity{}, api.Invalid("body.manifestUrl", mMappingUnusable.Text(l, i18n.Args{"error": mappingError(l, err)}))
 		}
 	}
 	if m.SourceURL == "" {
 		m.SourceURL = in.ManifestURL
 	}
-	key, _, _ := s.communityKey(m.Kind, m.Name, raw)
+	key, _, _ := s.communityKey(l, m.Kind, m.Name, raw)
 	id := newID()
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		if other, err := s.communityKeyTaken(ctx, store.New(tx), key, uuid.Nil); err != nil {
 			return err
 		} else if other != "" {
-			return api.Conflict(other + " is already registered as " + key + ". Update or remove it first.")
+			return api.Conflict(mKeyTaken.Text(l, i18n.Args{"other": other, "key": key}))
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO installed_adapters (id, name, kind, version, maintainer, source_url, manifest, latest_version)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, id, m.Name, m.Kind, m.Version, m.Maintainer, in.ManifestURL, raw, nullable(m.Latest)); err != nil {
 			if strings.Contains(err.Error(), "installed_adapters_name_key") {
-				return api.Conflict(m.Name + " is already installed. Update it instead.")
+				return api.Conflict(mInstalled.Text(l, i18n.Args{"name": m.Name}))
 			}
 			return err
 		}
@@ -285,6 +290,7 @@ func (s *Service) UpdateAdapter(ctx context.Context, ws *store.Workspace, id str
 	if err := instanceAdmin(ctx); err != nil {
 		return AdapterCommunity{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	aid, err := uuid.Parse(id)
 	if err != nil {
 		return AdapterCommunity{}, api.NotFound("Adapter")
@@ -301,7 +307,7 @@ func (s *Service) UpdateAdapter(ctx context.Context, ws *store.Workspace, id str
 		// The demo's sample adapters have no manifest to download: move to
 		// the advertised version.
 		if latest == nil || *latest == "" {
-			return AdapterCommunity{}, api.Conflict(name + " is up to date.")
+			return AdapterCommunity{}, api.Conflict(mUpToDate.Text(l, i18n.Args{"name": name}))
 		}
 		_ = json.Unmarshal(current, &m)
 		m.Name, m.Version = name, *latest
@@ -309,30 +315,30 @@ func (s *Service) UpdateAdapter(ctx context.Context, ws *store.Workspace, id str
 	} else {
 		m, raw, err = fetchManifest(ctx, src)
 		if err != nil {
-			return AdapterCommunity{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, "Couldn't read the manifest at "+src+": "+err.Error())
+			return AdapterCommunity{}, api.Err(http.StatusBadGateway, api.CodeProviderUnavailable, mUnreadable.Text(l, i18n.Args{"url": src, "error": problemIn(l, err)}))
 		}
 	}
 	if m.Name != name {
-		return AdapterCommunity{}, api.Conflict("The manifest at " + src + " now describes " + m.Name + ", not " + name + ". Nothing was changed.")
+		return AdapterCommunity{}, api.Conflict(mRenamed.Text(l, i18n.Args{"url": src, "name": m.Name, "old": name}))
 	}
 	if kind == CommunityKindRemote || m.Kind == CommunityKindRemote {
 		if m.Kind != kind {
-			return AdapterCommunity{}, api.Conflict("The manifest at " + src + " now describes a " + m.Kind + " adapter, not a " + kind + " one. Nothing was changed.")
+			return AdapterCommunity{}, api.Conflict(mKindChanged.Text(l, i18n.Args{"url": src, "kind": m.Kind, "old": kind}))
 		}
 		if s.Community == nil {
-			return AdapterCommunity{}, api.Conflict("This build can't run community adapters of kind remote.")
+			return AdapterCommunity{}, api.Conflict(mNoRemote.Text(l, nil))
 		}
-		newKey, _, err := s.Community.ParseManifest(raw)
+		newKey, _, err := s.Community.ParseManifest(raw, l)
 		if err != nil {
-			return AdapterCommunity{}, api.Err(http.StatusUnprocessableEntity, api.CodeValidation, "The new manifest at "+src+" can't be used: "+err.Error()+". Nothing was changed.")
+			return AdapterCommunity{}, api.Err(http.StatusUnprocessableEntity, api.CodeValidation, mNewUnusable.Text(l, i18n.Args{"url": src, "error": err.Error()}))
 		}
-		if oldKey, _, _ := s.communityKey(kind, name, current); newKey != oldKey {
-			return AdapterCommunity{}, api.Conflict("The manifest at " + src + " now registers " + newKey + ", not " + oldKey + ". Nothing was changed.")
+		if oldKey, _, _ := s.communityKey(l, kind, name, current); newKey != oldKey {
+			return AdapterCommunity{}, api.Conflict(mKeyChanged.Text(l, i18n.Args{"url": src, "key": newKey, "old": oldKey}))
 		}
 	}
 	if kind == "http" && s.HTTPMappings != nil && !isDemoManifest(current) {
 		if err := s.HTTPMappings.Check(raw); err != nil {
-			return AdapterCommunity{}, api.Err(http.StatusUnprocessableEntity, api.CodeValidation, "The new manifest at "+src+" has a mapping that can't be used: "+err.Error()+". Nothing was changed.")
+			return AdapterCommunity{}, api.Err(http.StatusUnprocessableEntity, api.CodeValidation, mNewMappingUnusable.Text(l, i18n.Args{"url": src, "error": mappingError(l, err)}))
 		}
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -355,6 +361,7 @@ func (s *Service) RemoveAdapter(ctx context.Context, ws *store.Workspace, id str
 	if err := instanceAdmin(ctx); err != nil {
 		return err
 	}
+	l := i18n.LangFrom(ctx)
 	aid, err := uuid.Parse(id)
 	if err != nil {
 		return api.NotFound("Adapter")
@@ -364,13 +371,13 @@ func (s *Service) RemoveAdapter(ctx context.Context, ws *store.Workspace, id str
 	if err := s.Pool.QueryRow(ctx, `SELECT name, kind, manifest FROM installed_adapters WHERE id = $1`, aid).Scan(&name, &kind, &manifest); err != nil {
 		return api.MapError(err, "Adapter")
 	}
-	key, _, _ := s.communityKey(kind, name, manifest)
+	key, _, _ := s.communityKey(l, kind, name, manifest)
 	var used int
 	if err := s.Pool.QueryRow(ctx, `SELECT count(*) FROM providers WHERE adapter = $1 AND disconnected_at IS NULL`, key).Scan(&used); err != nil {
 		return err
 	}
 	if used > 0 {
-		return api.Conflict(fmt.Sprintf("%d connected provider(s) use %s. Disconnect them first.", used, name))
+		return api.Conflict(mInUse.Text(l, i18n.Args{"count": used, "name": name}))
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `DELETE FROM installed_adapters WHERE id = $1`, aid); err != nil {
@@ -429,10 +436,10 @@ type AdapterHTTPInput struct {
 }
 
 // httpManifest builds the manifest (kind "http") of a mapping.
-func httpManifest(name string, in AdapterHTTPMapping) ([]byte, error) {
+func httpManifest(l i18n.Lang, name string, in AdapterHTTPMapping) ([]byte, error) {
 	method, target, err := parseEndpoint(in.Endpoint)
 	if err != nil {
-		return nil, api.Invalid("body.endpoint", err.Error())
+		return nil, api.Invalid("body.endpoint", problemIn(l, err))
 	}
 	mapping := map[string]any{"method": method, "url": target, "body": in.BodyTemplate, "message_id_path": in.MessageIDPath, "webhook_mapping": in.WebhookMapping}
 	if len(in.Headers) > 0 {
@@ -440,7 +447,7 @@ func httpManifest(name string, in AdapterHTTPMapping) ([]byte, error) {
 		for _, h := range in.Headers {
 			n := strings.TrimSpace(h.Name)
 			if _, dup := headers[n]; dup {
-				return nil, api.Invalid("body.headers", "The header "+n+" is listed twice.")
+				return nil, api.Invalid("body.headers", mHeaderTwice.Text(l, i18n.Args{"name": n}))
 			}
 			headers[n] = strings.TrimSpace(h.Value)
 		}
@@ -477,15 +484,15 @@ func httpManifest(name string, in AdapterHTTPMapping) ([]byte, error) {
 
 // checkMapping validates a mapping with the generic HTTP adapter when the
 // build has it, else checks that the body template is JSON.
-func (s *Service) checkMapping(in AdapterHTTPMapping, manifest []byte) error {
+func (s *Service) checkMapping(l i18n.Lang, in AdapterHTTPMapping, manifest []byte) error {
 	if s.HTTPMappings == nil {
 		if in.BodyTemplate != "" && !json.Valid([]byte(placeholderSafe(in.BodyTemplate))) {
-			return api.Invalid("body.bodyTemplate", "The body template isn't valid JSON once the {{ }} placeholders are filled in.")
+			return api.Invalid("body.bodyTemplate", mBodyNotJSON.Text(l, nil))
 		}
 		return nil
 	}
 	if err := s.HTTPMappings.Check(manifest); err != nil {
-		return mappingProblem(err)
+		return mappingProblem(l, err)
 	}
 	return nil
 }
@@ -496,12 +503,13 @@ func (s *Service) SaveHTTPAdapter(ctx context.Context, ws *store.Workspace, in A
 	if err := instanceAdmin(ctx); err != nil {
 		return AdapterCommunity{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	in.Name = strings.TrimSpace(in.Name)
-	manifest, err := httpManifest(in.Name, in.AdapterHTTPMapping)
+	manifest, err := httpManifest(l, in.Name, in.AdapterHTTPMapping)
 	if err != nil {
 		return AdapterCommunity{}, err
 	}
-	if err := s.checkMapping(in.AdapterHTTPMapping, manifest); err != nil {
+	if err := s.checkMapping(l, in.AdapterHTTPMapping, manifest); err != nil {
 		return AdapterCommunity{}, err
 	}
 	method, target, _ := parseEndpoint(in.Endpoint)
@@ -515,12 +523,12 @@ func (s *Service) SaveHTTPAdapter(ctx context.Context, ws *store.Workspace, in A
 		if other, err := s.communityKeyTaken(ctx, store.New(tx), key, uuid.Nil); err != nil {
 			return err
 		} else if other != "" {
-			return api.Invalid("body.name", other+" is already registered as "+key+". Choose another name.")
+			return api.Invalid("body.name", mNameTaken.Text(l, i18n.Args{"other": other, "key": key}))
 		}
 		if _, err := tx.Exec(ctx, `INSERT INTO installed_adapters (id, name, kind, version, maintainer, source_url, manifest)
 			VALUES ($1, $2, 'http', '0.1.0', $3, '', $4)`, id, in.Name, "local · "+principalName(ctx), manifest); err != nil {
 			if strings.Contains(err.Error(), "installed_adapters_name_key") {
-				return api.Conflict("An adapter named " + in.Name + " is already installed.")
+				return api.Conflict(mNameInstalled.Text(l, i18n.Args{"name": in.Name}))
 			}
 			return err
 		}
@@ -543,19 +551,20 @@ func (s *Service) PreviewHTTPAdapter(ctx context.Context, in AdapterHTTPMapping)
 	if err := instanceAdmin(ctx); err != nil {
 		return AdapterHTTPPreview{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	if s.HTTPMappings == nil {
-		return AdapterHTTPPreview{}, api.Err(http.StatusNotImplemented, api.CodeUnavailable, "This build has no generic HTTP adapter.")
+		return AdapterHTTPPreview{}, api.Err(http.StatusNotImplemented, api.CodeUnavailable, mNoHTTP.Text(l, nil))
 	}
-	manifest, err := httpManifest("", in)
+	manifest, err := httpManifest(l, "", in)
 	if err != nil {
 		return AdapterHTTPPreview{}, err
 	}
-	if err := s.checkMapping(in, manifest); err != nil {
+	if err := s.checkMapping(l, in, manifest); err != nil {
 		return AdapterHTTPPreview{}, err
 	}
 	p, err := s.HTTPMappings.Preview(manifest)
 	if err != nil {
-		return AdapterHTTPPreview{}, mappingProblem(err)
+		return AdapterHTTPPreview{}, mappingProblem(l, err)
 	}
 	return p, nil
 }
@@ -609,11 +618,6 @@ func isDemoManifest(raw json.RawMessage) bool {
 	return m.Demo
 }
 
-// problem is an error whose text is shown to the person as it is.
-type problem string
-
-func (p problem) Error() string { return string(p) }
-
 func parseEndpoint(s string) (string, string, error) {
 	method, rest, ok := strings.Cut(strings.TrimSpace(s), " ")
 	if !ok {
@@ -621,11 +625,11 @@ func parseEndpoint(s string) (string, string, error) {
 	}
 	method = strings.ToUpper(method)
 	if !slices.Contains([]string{"POST", "PUT", "PATCH"}, method) {
-		return "", "", problem("Use POST, PUT or PATCH followed by the URL.")
+		return "", "", problem{m: mEndpointMethod}
 	}
 	u, err := url.Parse(strings.TrimSpace(rest))
 	if err != nil || u.Scheme != "https" || u.Host == "" {
-		return "", "", problem("Enter an https:// URL, for example POST https://api.example-esp.com/v1/messages.")
+		return "", "", problem{m: mEndpointURL}
 	}
 	return method, u.String(), nil
 }
@@ -634,7 +638,7 @@ func parseEndpoint(s string) (string, string, error) {
 func fetchManifest(ctx context.Context, raw string) (AdapterManifest, json.RawMessage, error) {
 	u, err := url.Parse(raw)
 	if err != nil || u.Scheme != "https" || u.Host == "" {
-		return AdapterManifest{}, nil, problem("Enter the https:// URL of the adapter's manifest.json.")
+		return AdapterManifest{}, nil, problem{m: mManifestURL}
 	}
 	client := &http.Client{Timeout: 10 * time.Second, Transport: &http.Transport{DialContext: publicDialer(), TLSHandshakeTimeout: 5 * time.Second},
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -649,11 +653,11 @@ func fetchManifest(ctx context.Context, raw string) (AdapterManifest, json.RawMe
 	req.Header.Set("Accept", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {
-		return AdapterManifest{}, nil, problem("Couldn't download the manifest: " + err.Error())
+		return AdapterManifest{}, nil, problem{m: mDownload, args: i18n.Args{"error": err.Error()}}
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		return AdapterManifest{}, nil, problem(fmt.Sprintf("The manifest URL answered %d.", resp.StatusCode))
+		return AdapterManifest{}, nil, problem{m: mStatus, args: i18n.Args{"status": strconv.Itoa(resp.StatusCode)}}
 	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 256<<10))
 	if err != nil {
@@ -661,10 +665,10 @@ func fetchManifest(ctx context.Context, raw string) (AdapterManifest, json.RawMe
 	}
 	var m AdapterManifest
 	if err := json.Unmarshal(body, &m); err != nil {
-		return AdapterManifest{}, nil, problem("The file is not a valid adapter manifest (JSON expected).")
+		return AdapterManifest{}, nil, problem{m: mNotJSON}
 	}
 	if m.Name == "" || m.Version == "" || (m.Kind != "http" && m.Kind != "wasm" && m.Kind != CommunityKindRemote) {
-		return AdapterManifest{}, nil, problem("The manifest needs a name, a version and a kind (remote, http or wasm).")
+		return AdapterManifest{}, nil, problem{m: mIncomplete}
 	}
 	// The Adapters tab shows "community · <maintainer>".
 	m.Maintainer = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(m.Maintainer), "community · "))

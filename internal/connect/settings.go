@@ -13,8 +13,10 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
+	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/workspaces"
 )
@@ -135,6 +137,7 @@ type SettingsProviders struct {
 
 // SettingsPage returns Settings › Providers.
 func (s *Service) SettingsPage(ctx context.Context, ws *store.Workspace) (SettingsProviders, error) {
+	l := i18n.LangFrom(ctx)
 	out := SettingsProviders{Providers: []SettingsProviderCard{}, CanManage: canManage(ctx), Helpers: s.helpers(ctx, ws.ID)}
 	def, err := s.sendingDefaults(ctx, ws)
 	if err != nil {
@@ -156,38 +159,38 @@ func (s *Service) SettingsPage(ctx context.Context, ws *store.Workspace) (Settin
 	}
 	for _, c := range ov.Providers {
 		p := byID[c.ID]
-		card := SettingsProviderCard{ID: c.ID, Name: c.Name, Status: c.Status, ConnectedAt: c.ConnectedAt, Streams: streamsText(c.Roles),
+		card := SettingsProviderCard{ID: c.ID, Name: c.Name, Status: c.Status, ConnectedAt: c.ConnectedAt, Streams: streamsText(l, c.Roles),
 			Cost: SettingsProviderCost{Basis: c.Cost.Basis, ToDate: c.Cost.ToDate, Monthly: c.Cost.Monthly}}
-		card.StatusLabel, card.StatusTone = statusLabel(c)
-		card.IdentityLabel, card.Identity, card.ConnectedVia = identity(p)
+		card.StatusLabel, card.StatusTone = statusLabel(l, c)
+		card.IdentityLabel, card.Identity, card.ConnectedVia = identity(l, p)
 		out.Providers = append(out.Providers, card)
 	}
 	return out, nil
 }
 
-func statusLabel(c manage.ProviderCard) (string, string) {
+func statusLabel(l i18n.Lang, c manage.ProviderCard) (string, string) {
+	args := i18n.Args{"status": c.Status, "hasDay": "no"}
+	tone := "neutral"
 	switch c.Status {
 	case "healthy":
-		return "Healthy", "ok"
+		tone = "ok"
 	case "warming_up":
+		tone = "info"
 		if c.Warmup != nil {
-			return "Warming up · day " + strconv.Itoa(c.Warmup.Day), "info"
+			args["hasDay"], args["day"] = "yes", strconv.Itoa(c.Warmup.Day)
 		}
-		return "Warming up", "info"
-	case "degraded":
-		return "Degraded", "warn"
+	case "degraded", "sandbox":
+		tone = "warn"
 	case "down":
-		return "Outage", "bad"
-	case "sandbox":
-		return "Sandbox", "warn"
+		tone = "bad"
 	}
-	return "Paused", "neutral"
+	return mStatusLabel.Text(l, args), tone
 }
 
 // streamsText says what a provider carries: the streams it sends first
 // ("Broadcasts 90% · Automations"), then the ones it backs up ("System ·
 // Automations fallback"), then streams it gets only through rules.
-func streamsText(roles []manage.ProviderStreamRole) string {
+func streamsText(l i18n.Lang, roles []manage.ProviderStreamRole) string {
 	parts := []string{}
 	seen := map[string]bool{}
 	for _, pass := range []string{"carries", "fallback", "condition"} {
@@ -195,16 +198,16 @@ func streamsText(roles []manage.ProviderStreamRole) string {
 			if seen[r.Stream] {
 				continue
 			}
-			name := streamName(r.Stream)
+			name := streamName(l, r.Stream)
 			switch {
 			case pass == "carries" && r.Role == "split":
 				parts = append(parts, name+" "+strconv.Itoa(r.Percent)+"%")
 			case pass == "carries" && r.Role == "primary":
 				parts = append(parts, name)
 			case pass == "fallback" && r.Role == "fallback":
-				parts = append(parts, name+" fallback")
+				parts = append(parts, mSettingsStreamFallback.Text(l, i18n.Args{"stream": name}))
 			case pass == "condition" && r.Role == "condition":
-				parts = append(parts, name+" (rules)")
+				parts = append(parts, mSettingsStreamRules.Text(l, i18n.Args{"stream": name}))
 			default:
 				continue
 			}
@@ -212,14 +215,16 @@ func streamsText(roles []manage.ProviderStreamRole) string {
 		}
 	}
 	if len(parts) == 0 {
-		return "Not routed yet"
+		return mSettingsNotRouted.Text(l, nil)
 	}
 	return strings.Join(parts, " · ")
 }
 
 // identity names the account or server of a connection and how it was
 // connected.
-func identity(p store.Provider) (string, string, string) {
+func identity(l i18n.Lang, p store.Provider) (string, string, string) {
+	label := func(kind string) string { return mIdentityLabel.Text(l, i18n.Args{"kind": kind}) }
+	via := func(v string) string { return mIdentityVia.Text(l, i18n.Args{"via": v}) }
 	var c struct {
 		Region        string `json:"region"`
 		AccountID     string `json:"account_id"`
@@ -240,13 +245,13 @@ func identity(p store.Provider) (string, string, string) {
 				account = parts[4]
 			}
 		}
-		via := "IAM keys"
+		access := "keys"
 		if c.Access == "role" {
-			via = "CloudFormation role"
+			access = "role"
 		}
-		return "Region · account", strings.Trim(c.Region+" · "+account, " ·"), via
+		return label("ses"), strings.Trim(c.Region+" · "+account, " ·"), via(access)
 	case "postmark":
-		stream := "Transactional"
+		stream := streamName(l, "transactional")
 		if c.MessageStream != "" && c.MessageStream != "outbound" {
 			stream = c.MessageStream
 		}
@@ -254,7 +259,7 @@ func identity(p store.Provider) (string, string, string) {
 		if server == "" {
 			server = p.Label
 		}
-		return "Server · stream", strings.Trim(server+" · "+stream, " ·"), "server token"
+		return label("postmark"), strings.Trim(server+" · "+stream, " ·"), via("token")
 	case "postal":
 		host := c.ServerURL
 		if u, err := url.Parse(c.ServerURL); err == nil && u.Host != "" {
@@ -264,19 +269,23 @@ func identity(p store.Provider) (string, string, string) {
 		if len(p.Ips) > 0 {
 			ip = p.Ips[0]
 		}
-		return "Server · IP", strings.Trim(host+" · "+ip, " ·"), "API key"
+		return label("postal"), strings.Trim(host+" · "+ip, " ·"), via("key")
 	case "smtp":
 		server := c.Host
 		if c.Port != 0 {
 			server += ":" + strconv.Itoa(c.Port)
 		}
-		return "Server", server, "SMTP login"
+		return label("smtp"), server, via("smtp")
 	}
-	label := p.Label
-	if label == "" {
-		label = p.StatusDetail
+	account := p.Label
+	if account == "" {
+		// The account standing, as the provider's health keeps it.
+		account = p.StatusDetail
+		if h := state.HealthOf(p); h.Account == p.StatusDetail {
+			account = textIn(h.Account, h.AccountText, l)
+		}
 	}
-	return "Account", label, "API key"
+	return label("account"), account, via("key")
 }
 
 // SettingsProvidersInput saves the defaults cards.
@@ -295,10 +304,10 @@ type SettingsProvidersInput struct {
 func (s *Service) SaveSettings(ctx context.Context, ws *store.Workspace, in SettingsProvidersInput) (SettingsProviders, error) {
 	for k, v := range in.Throttles {
 		if _, ok := defaultThrottles[k]; !ok {
-			return SettingsProviders{}, api.Invalid("body.throttles."+k, "Throttles are set for gmail, outlook, yahoo and icloud.")
+			return SettingsProviders{}, api.Invalid("body.throttles."+k, mProblemThrottleKeys.Text(i18n.LangFrom(ctx), nil))
 		}
 		if v < 0 || v > 10000 {
-			return SettingsProviders{}, api.Invalid("body.throttles."+k, "Enter messages per second, or 0 for no limit.")
+			return SettingsProviders{}, api.Invalid("body.throttles."+k, mProblemThrottleValue.Text(i18n.LangFrom(ctx), nil))
 		}
 	}
 	before, err := s.sendingDefaults(ctx, ws)

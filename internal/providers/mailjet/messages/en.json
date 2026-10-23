@@ -1,0 +1,20 @@
+{
+  "pricing": { "message": "plan, free 6,000 per month (200 per day), then from $9 per month", "note": "Mailjet's pricing model, on a capability chip: Pricing · …" },
+  "dedicatedIps": { "message": "Premium plans from 100,000 per month, on request", "note": "when Mailjet offers dedicated IPs; Premium is Mailjet's plan name" },
+  "terms.0.note": { "message": "Clear, explicit and provable opt-in only; no third-party lists. Every marketing email needs an unsubscribe link and a privacy-policy link. Mailjet's limits: 5% bounces, 0.08% complaints.", "note": "what Mailjet's terms allow, on Routing" },
+  "events": { "message": "Webhooks", "note": "Sending providers › Adapters: how events come back" },
+  "domainSetup": { "message": "API", "note": "Sending providers › Adapters: how a sending domain is set up" },
+  "suppressionMode": { "message": "Two-way", "note": "Sending providers › Adapters: the suppression sync" },
+  "field.api_key.label": "API key",
+  "field.api_key.help": { "message": "Mailjet › Account settings › API key management. A key used only by ReputeCast keeps its event callbacks separate from other tools.", "note": "Mailjet's menu names stay as Mailjet writes them" },
+  "field.secret_key.label": { "message": "Secret key", "note": "Mailjet's own name for the second half of the key pair" },
+  "field.secret_key.help": "Shown next to the API key.",
+  "field.monthly_limit.label": { "message": "Plan · emails per month", "note": "the plan's monthly allowance" },
+  "field.monthly_limit.help": "Used for the quota bar and cost per 1,000.",
+
+  "account": { "message": "{state, select, inactive {API key inactive} quarantine {API key in quarantine · {n} per hour} runlevel {API key {runlevel}} other {API key active}}", "note": "the API key's standing on the provider card; n: messages an hour while in quarantine; runlevel: Mailjet's word for the key's level, in lower case" },
+  "tracking.scope": "Every message ReputeCast sends",
+  "tracking.detail": { "message": "ReputeCast sends every message with Mailjet's TrackOpens and TrackClicks disabled, whatever the account setting.", "note": "TrackOpens and TrackClicks are Mailjet's setting names" },
+  "error.domainMissing": { "message": "{domain} is not set up in Mailjet", "note": "domain: news.acme.io" },
+  "error.callbackTaken": { "message": "Mailjet allows one callback URL per event and API key, and {events} already post to another URL. Use an API key only ReputeCast uses, or remove those callbacks in Mailjet, then register again.", "note": "events: Mailjet's event names, separated by commas" }
+}

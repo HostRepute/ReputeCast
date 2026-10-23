@@ -1,0 +1,20 @@
+{
+  "pricing": "theo gói, miễn phí 6.000 email mỗi tháng (200 email mỗi ngày), sau đó từ 9 US$ mỗi tháng",
+  "dedicatedIps": "các gói Premium từ 100.000 email mỗi tháng, theo yêu cầu",
+  "terms.0.note": "Chỉ người nhận đã đồng ý rõ ràng, minh bạch và chứng minh được; không dùng danh sách của bên thứ ba. Mọi email tiếp thị đều cần liên kết hủy đăng ký và liên kết chính sách quyền riêng tư. Giới hạn của Mailjet: 5% thư trả lại, 0,08% khiếu nại.",
+  "events": "Webhook",
+  "domainSetup": "API",
+  "suppressionMode": "Hai chiều",
+  "field.api_key.label": "Khóa API",
+  "field.api_key.help": "Mailjet › Account settings › API key management. Một khóa chỉ ReputeCast dùng sẽ giữ callback sự kiện của nó tách biệt với các công cụ khác.",
+  "field.secret_key.label": "Secret key",
+  "field.secret_key.help": "Hiển thị bên cạnh khóa API.",
+  "field.monthly_limit.label": "Gói · số email mỗi tháng",
+  "field.monthly_limit.help": "Dùng cho thanh hạn mức và chi phí cho mỗi 1.000 email.",
+
+  "account": "{state, select, inactive {Khóa API không hoạt động} quarantine {Khóa API đang bị cách ly · {n} thư mỗi giờ} runlevel {Khóa API {runlevel}} other {Khóa API đang hoạt động}}",
+  "tracking.scope": "Mọi thư ReputeCast gửi",
+  "tracking.detail": "ReputeCast gửi mọi thư với TrackOpens và TrackClicks của Mailjet bị tắt, bất kể cài đặt của tài khoản.",
+  "error.domainMissing": "{domain} chưa được thiết lập trong Mailjet",
+  "error.callbackTaken": "Mailjet cho phép một URL callback cho mỗi sự kiện và mỗi khóa API, và {events} đã gửi đến một URL khác. Hãy dùng một khóa API chỉ ReputeCast dùng, hoặc xóa các callback đó trong Mailjet, rồi đăng ký lại."
+}

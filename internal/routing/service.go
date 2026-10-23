@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -363,7 +364,8 @@ func (s *Service) facts(ctx context.Context, ws *store.Workspace) (map[uuid.UUID
 			Bulk: string(caps.Bulk), BulkAllowed: f.BulkAllowed, ShareSteps: []RoutingShareStep{}, Terms: []RoutingTerms{}}
 		if d, ok := providers.Lookup(p.Adapter); ok {
 			rp.RemovesWebhook = d.Capabilities.RemovesWebhook
-			for _, t := range d.Terms {
+			// The adapter's terms in the reader's language (providers, text.go).
+			for _, t := range d.In(i18n.LangFrom(ctx)).Terms {
 				rt := RoutingTerms{Variant: t.Variant, Bulk: string(t.Bulk), Note: t.Note, Streams: []string{}, Available: true}
 				for _, st := range t.Streams {
 					rt.Streams = append(rt.Streams, string(st))

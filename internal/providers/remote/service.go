@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -187,7 +188,7 @@ func (s *Service) sync(ctx context.Context) {
 func (s *Service) SetEndpoint(ctx context.Context, wsID *uuid.UUID, r store.RemoteAdapterGetRow, endpoint string, actor *audit.Actor) (store.RemoteAdapterGetRow, error) {
 	u, err := CheckEndpoint(endpoint, s.allowPrivate())
 	if err != nil {
-		return r, api.Invalid("body.endpointUrl", "This address can't be used: "+err.Error()+".")
+		return r, api.Invalid("body.endpointUrl", mProblemAddress.Text(i18n.LangFrom(ctx), i18n.Args{"error": err.Error()}))
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -365,7 +366,7 @@ func (s *Service) Remove(ctx context.Context, r store.RemoteAdapterGetRow, actor
 		return err
 	}
 	if n > 0 {
-		return api.Conflict(fmt.Sprintf("%d connected provider(s) use %s. Disconnect them first.", n, r.Name))
+		return api.Conflict(mProblemInUse.Text(i18n.LangFrom(ctx), i18n.Args{"count": n, "name": r.Name}))
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -385,7 +386,7 @@ func (s *Service) Remove(ctx context.Context, r store.RemoteAdapterGetRow, actor
 // to every workspace on the instance.
 func instanceAdmin(ctx context.Context) error {
 	if p := api.PrincipalFrom(ctx); p == nil || !p.IsInstanceAdmin {
-		return api.Err(http.StatusForbidden, api.CodePermissionDenied, "Community adapters run for every workspace on this instance, so only instance admins can see or change where they run.")
+		return api.Err(http.StatusForbidden, api.CodePermissionDenied, mProblemAdminOnly.Text(i18n.LangFrom(ctx), nil))
 	}
 	return nil
 }

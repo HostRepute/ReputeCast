@@ -1,0 +1,28 @@
+{
+  "pricing": "máy chủ hoặc relay của bạn",
+  "terms.0.note": "Chính sách sử dụng của máy chủ SMTP hoặc relay của bạn sẽ được áp dụng.",
+  "events": "Hộp thư nhận thư trả lại (IMAP/POP3)",
+  "domainSetup": "DNS thủ công",
+  "suppressionMode": "Chỉ cục bộ",
+  "field.host.label": "Máy chủ SMTP",
+  "field.port.label": "Cổng",
+  "field.tls.label": "Mã hóa",
+  "field.username.label": "Tên người dùng",
+  "field.password.label": "Mật khẩu",
+  "field.return_path.label": "Địa chỉ nhận thư trả lại",
+  "field.return_path.help": "Người gửi trên phong bì thư; thư trả lại sẽ về địa chỉ này, nên hãy trỏ nó đến hộp thư nhận thư trả lại.",
+  "field.bounce_mailbox.label": "Hộp thư nhận thư trả lại (IMAP hoặc POP3)",
+  "field.bounce_mailbox.help": "SMTP không có webhook. ReputeCast đọc thư trả lại và khiếu nại từ hộp thư này mỗi phút.",
+  "field.bounce_password.label": "Mật khẩu hộp thư nhận thư trả lại",
+
+  "account": "{host} · đang nhận thư",
+  "test.summary": "{tls, select, starttls {STARTTLS, {version}} implicit {TLS ngầm định, {version}} other {Không TLS}} · {auth, select, none {không xác thực} other {đã chấp nhận AUTH {mechanism}}}",
+  "test.noHost": "Hãy nhập máy chủ SMTP.",
+  "test.noStartTLS": "{host} không hỗ trợ STARTTLS ở cổng {port}. Hãy dùng TLS ngầm định ở cổng 465, hoặc chỉ tắt mã hóa trong mạng nội bộ.",
+  "test.noLoginMethod": "{host} không hỗ trợ phương thức đăng nhập nào mà ReputeCast dùng được (đang có: {offered}).",
+  "test.refused": "ECONNREFUSED · không có gì lắng nghe ở cổng đó",
+  "test.notFound": "ENOTFOUND · tên máy chủ không phân giải được",
+  "test.timedOut": "ETIMEDOUT · không có phản hồi trong 15 giây (có thể tường lửa đang chặn cổng)",
+  "mailbox.rejected": "Hộp thư đã từ chối tên người dùng hoặc mật khẩu.",
+  "mailbox.missing": "chưa thiết lập hộp thư nhận thư trả lại: hãy nhập máy chủ và thông tin đăng nhập của nó"
+}
