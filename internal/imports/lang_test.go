@@ -94,7 +94,7 @@ func TestImportInVietnamese(t *testing.T) {
 		rows[s.Status] = s
 	}
 	if s := rows["subscribed"]; s.Label != "subscribed" || s.Note != "audience này đã bật xác nhận hai bước từ năm 2024" ||
-		s.Options[0].Label != "Đã đăng ký · đã xác nhận, giữ ngày và IP đăng ký làm bằng chứng" || s.Effect != "Nhận Gửi hàng loạt và Tự động hóa ngay" {
+		s.Options[0].Label != "Đã đăng ký · đã xác nhận, ngày và IP làm bằng chứng" || s.Effect != "Nhận Gửi hàng loạt và Tự động hóa ngay" {
 		t.Errorf("subscribed, in Vietnamese: %+v", s)
 	}
 	if s := rows["unsubscribed"]; s.Effect != "Chặn Gửi hàng loạt và Tự động hóa; vẫn nhận thư Hệ thống. Lần nhập không thay đổi được điều này." {

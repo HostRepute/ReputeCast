@@ -86,7 +86,7 @@
   "job.etaSoon": "còn chưa đến một phút",
   "job.etaMinutes": "{n, plural, other {còn khoảng # phút}}",
 
-  "consent.confirmed": "Đã đăng ký · đã xác nhận, giữ ngày và IP đăng ký làm bằng chứng",
+  "consent.confirmed": "Đã đăng ký · đã xác nhận, ngày và IP làm bằng chứng",
   "consent.pending": "Đã đăng ký · chờ xác nhận, gửi email xin phép lại",
   "consent.pendingShort": "Đã đăng ký · chờ xác nhận",
   "consent.suppressUnsub": "Bị chặn gửi · đã hủy đăng ký (cố định)",
@@ -153,7 +153,7 @@
   "action.importNormally": "Nhập bình thường",
   "action.fixTypo": "Sửa tên miền rồi nhập, đánh dấu để xem lại",
   "action.importAsIs": "Nhập nguyên trạng",
-  "action.pending": "Nhập ở trạng thái chờ xác nhận, gửi email xin phép lại",
+  "action.pending": "Nhập dạng chờ xác nhận, gửi xin phép lại",
   "action.skipRecommended": "Bỏ qua (nên chọn)",
   "action.tagged": "Nhập, gắn thẻ {tag}",
   "example.rating": "member rating {rating}",
