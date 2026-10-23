@@ -3,6 +3,7 @@ package sso
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -19,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -287,7 +289,7 @@ func (s *Service) List(ctx context.Context) (SSOProviderList, error) {
 	if err != nil {
 		return SSOProviderList{}, err
 	}
-	out := SSOProviderList{Items: make([]SSOProviderItem, 0, len(ps)), Presets: Presets}
+	out := SSOProviderList{Items: make([]SSOProviderItem, 0, len(ps)), Presets: presetsIn(i18n.LangFrom(ctx))}
 	for _, p := range ps {
 		out.Items = append(out.Items, s.item(ctx, p, refs))
 	}
@@ -356,29 +358,31 @@ func (r refs) workspaceName(ws uuid.UUID) string {
 	return ""
 }
 
-// breakGlass lists the Owners at the domains who keep their own sign-in.
-func (r refs) breakGlass(domains []string) []SSOBreakGlassOwner {
+// breakGlass lists the Owners at the domains who keep their own sign-in,
+// what they keep written in a language.
+func (r refs) breakGlass(l i18n.Lang, domains []string) []SSOBreakGlassOwner {
 	out := []SSOBreakGlassOwner{}
 	for _, o := range r.owners {
 		if len(domains) > 0 && !slices.Contains(domains, emailDomain(o.Email)) {
 			continue
 		}
-		keeps := "password + two-factor"
+		keeps := "keeps.passwordTwoFactor"
 		switch {
 		case o.HasPassword && !o.HasSecondFactor:
-			keeps = "password (no second factor yet)"
+			keeps = "keeps.password"
 		case !o.HasPassword && o.HasSecondFactor:
-			keeps = "passkey"
+			keeps = "keeps.passkey"
 		case !o.HasPassword:
-			keeps = "nothing but SSO (no password or passkey)"
+			keeps = "keeps.nothing"
 		}
-		out = append(out, SSOBreakGlassOwner{Name: o.Name, Email: o.Email, Workspace: o.WorkspaceName, Keeps: keeps})
+		out = append(out, SSOBreakGlassOwner{Name: o.Name, Email: o.Email, Workspace: o.WorkspaceName, Keeps: msgs.M(keeps).Text(l, nil)})
 	}
 	return out
 }
 
-func (s *Service) item(_ context.Context, p store.SsoProvider, r refs) SSOProviderItem {
-	pre := PresetFor(p.Preset)
+func (s *Service) item(ctx context.Context, p store.SsoProvider, r refs) SSOProviderItem {
+	l := i18n.LangFrom(ctx)
+	pre := PresetFor(p.Preset).In(l)
 	it := SSOProviderItem{ID: p.ID.String(), Slug: p.Slug, Preset: p.Preset, Name: p.Name, Status: p.Status, Issuer: p.IssuerUrl,
 		Domains: nonNil(p.AllowedDomains), GroupsClaim: pre.GroupsClaim, Mappings: len(mappingsOf(p)), Enforced: nonNil(p.EnforceDomains),
 		EnabledAt: p.EnabledAt, BreakGlass: []string{}, Members: r.users[p.ID]}
@@ -396,7 +400,7 @@ func (s *Service) item(_ context.Context, p store.SsoProvider, r refs) SSOProvid
 	if twoFAMode(p) == "trusted" {
 		it.TwoFactor = pre.TrustedTwoFA
 	} else {
-		it.TwoFactor = "Counted when the ID token's amr claim includes mfa; otherwise the person's own second factor is asked for"
+		it.TwoFactor = msgs.M("twoFactor.amr").Text(l, nil)
 	}
 	if d := discoveryOf(p); d != nil {
 		ok := d.OK
@@ -406,7 +410,7 @@ func (s *Service) item(_ context.Context, p store.SsoProvider, r refs) SSOProvid
 	if len(domains) == 0 {
 		domains = p.AllowedDomains
 	}
-	for _, o := range r.breakGlass(domains) {
+	for _, o := range r.breakGlass(l, domains) {
 		it.BreakGlass = append(it.BreakGlass, o.Name)
 	}
 	return it
@@ -433,7 +437,8 @@ func (s *Service) detail(ctx context.Context, p store.SsoProvider) (SSOProviderD
 	if err != nil {
 		return SSOProviderDetail{}, err
 	}
-	pre := PresetFor(p.Preset)
+	l := i18n.LangFrom(ctx)
+	pre := PresetFor(p.Preset).In(l)
 	d := SSOProviderDetail{SSOProviderItem: s.item(ctx, p, r), PresetInfo: pre, RedirectURI: s.publicURL(ctx) + RedirectPath(p.Slug),
 		ClientID: p.ClientID, Scopes: nonNil(p.Scopes), Claims: claimsOf(p), TwoFactorMode: twoFAMode(p),
 		GroupMappings: []SSOGroupMapping{}, Workspaces: []SSOWorkspaceChoice{}, EnableBlockers: []string{}, Rejections: []SSORejection{}}
@@ -444,7 +449,8 @@ func (s *Service) detail(ctx context.Context, p store.SsoProvider) (SSOProviderD
 		}
 	}
 	if disc := discoveryOf(p); disc != nil {
-		res := &SSODiscoveryResult{OK: disc.OK, CheckedAt: disc.CheckedAt, URL: disc.URL, Status: disc.Status, Millis: disc.Millis, Error: disc.Error, Endpoints: []string{}, Keys: disc.Keys}
+		res := &SSODiscoveryResult{OK: disc.OK, CheckedAt: disc.CheckedAt, URL: disc.URL, Status: disc.Status, Millis: disc.Millis,
+			Error: textIn(disc.ErrorText, l, disc.Error), Endpoints: []string{}, Keys: disc.Keys}
 		for _, e := range []struct{ name, url string }{{"authorization", disc.AuthURL}, {"token", disc.TokenURL}, {"userinfo", disc.UserInfo}, {"JWKS", disc.JWKSURL}} {
 			if e.url != "" {
 				res.Endpoints = append(res.Endpoints, e.name)
@@ -458,8 +464,8 @@ func (s *Service) detail(ctx context.Context, p store.SsoProvider) (SSOProviderD
 	}
 	for _, m := range mappingsOf(p) {
 		lists := []string{}
-		for _, l := range m.Scope.Lists {
-			lists = append(lists, l.String())
+		for _, list := range m.Scope.Lists {
+			lists = append(lists, list.String())
 		}
 		d.GroupMappings = append(d.GroupMappings, SSOGroupMapping{Group: m.Group, Label: m.Label, WorkspaceID: m.WorkspaceID.String(), RoleKey: m.RoleKey, Lists: lists})
 	}
@@ -472,14 +478,14 @@ func (s *Service) detail(ctx context.Context, p store.SsoProvider) (SSOProviderD
 	if len(domains) == 0 {
 		domains = p.AllowedDomains
 	}
-	d.BreakGlassList = r.breakGlass(domains)
+	d.BreakGlassList = r.breakGlass(l, domains)
 	if t := lastTestOf(p); t != nil {
 		d.Test, err = s.testView(ctx, p, t)
 		if err != nil {
 			return SSOProviderDetail{}, err
 		}
 	}
-	d.EnableBlockers = blockers(p)
+	d.EnableBlockers = blockers(l, p)
 	rej, err := s.Q.SSOSignInFailures(ctx, p.ID.String())
 	if err != nil {
 		return SSOProviderDetail{}, err
@@ -489,22 +495,23 @@ func (s *Service) detail(ctx context.Context, p store.SsoProvider) (SSOProviderD
 			Reference string `json:"reference"`
 		}
 		_ = json.Unmarshal(e.Metadata, &meta)
-		d.Rejections = append(d.Rejections, SSORejection{At: e.OccurredAt, Email: e.TargetName, Reason: e.Reason, Reference: meta.Reference})
+		d.Rejections = append(d.Rejections, SSORejection{At: e.OccurredAt, Email: e.TargetName, Reason: audit.In(audit.KeptIn(e.Metadata).Reason, l, e.Reason), Reference: meta.Reference})
 	}
 	return d, nil
 }
 
-// blockers lists what's missing before a provider can be enabled.
-func blockers(p store.SsoProvider) []string {
+// blockers lists what's missing before a provider can be enabled, in a
+// language.
+func blockers(l i18n.Lang, p store.SsoProvider) []string {
 	out := []string{}
 	if d := discoveryOf(p); d == nil || !d.OK {
-		out = append(out, "Run a successful discovery test of the issuer URL.")
+		out = append(out, msgs.M("blocker.discovery").Text(l, nil))
 	}
 	if p.ClientID == "" {
-		out = append(out, "Enter the client ID.")
+		out = append(out, msgs.M("blocker.clientId").Text(l, nil))
 	}
 	if len(p.ClientSecretEnc) == 0 {
-		out = append(out, "Save the client secret.")
+		out = append(out, msgs.M("blocker.secret").Text(l, nil))
 	}
 	return out
 }
@@ -523,10 +530,10 @@ func (s *Service) choices(ctx context.Context, r refs, admin *store.User) ([]SSO
 		}
 		c := SSORoleChoice{Key: row.RoleKey, Name: row.RoleName, Grantable: true}
 		if row.RoleKey == authz.RoleOwner && row.Builtin {
-			c.Grantable, c.Reason = false, "Owner can't be granted by SSO; transfer ownership in workspace settings."
+			c.Grantable, c.Reason = false, say(ctx, "grant.ownerSSO", nil)
 		} else if admin != nil {
 			if err := s.canGrant(ctx, admin.ID, row); err != nil {
-				c.Grantable, c.Reason = false, err.Error()
+				c.Grantable, c.Reason = false, reasonIn(i18n.LangFrom(ctx), err)
 			}
 		}
 		out[i].Roles = append(out[i].Roles, c)
@@ -549,30 +556,70 @@ func (s *Service) canGrant(ctx context.Context, adminID uuid.UUID, role store.SS
 	want := authz.Effective(role.RoleKey, role.Builtin, role.Permissions)
 	if missing := held.Missing(want); len(missing) > 0 {
 		if len(held) == 0 {
-			return fmt.Errorf("you aren't a member of %s, so you can't grant its roles", role.WorkspaceName)
+			return &grantError{workspace: role.WorkspaceName}
 		}
-		return fmt.Errorf("you can't grant %s in %s: you don't hold %s there", role.RoleName, role.WorkspaceName, missing[0])
+		return &grantError{workspace: role.WorkspaceName, roleKey: role.RoleKey, role: role.RoleName, missing: string(missing[0])}
 	}
 	return nil
+}
+
+// grantError says why the admin can't grant a role: they aren't a member
+// of its workspace (missing is empty), or they don't hold one of its
+// permissions there.
+type grantError struct {
+	workspace, roleKey, role, missing string
+}
+
+func (e *grantError) Error() string { return e.reason(i18n.Default) }
+
+// reason is the short form, for the role's option and the field, in a
+// language.
+func (e *grantError) reason(l i18n.Lang) string {
+	if e.missing == "" {
+		return msgs.M("grant.notMember").Text(l, i18n.Args{"workspace": e.workspace})
+	}
+	return msgs.M("grant.missing").Text(l, e.args(l))
+}
+
+// problem is the whole problem, with what to do, in a language.
+func (e *grantError) problem(l i18n.Lang) string {
+	if e.missing == "" {
+		return msgs.M("problem.notMember").Text(l, i18n.Args{"workspace": e.workspace})
+	}
+	return msgs.M("problem.cantGrant").Text(l, e.args(l))
+}
+
+func (e *grantError) args(l i18n.Lang) i18n.Args {
+	return i18n.Args{"role": api.RoleName(l, e.roleKey, e.role), "workspace": e.workspace, "permission": e.missing}
+}
+
+// reasonIn is why a role can't be granted, in a language.
+func reasonIn(l i18n.Lang, err error) string {
+	var ge *grantError
+	if errors.As(err, &ge) {
+		return ge.reason(l)
+	}
+	return err.Error()
 }
 
 // testView renders the last test sign-in: claims, samples per field and
 // what a real sign-in would do now (a dry run against current data).
 func (s *Service) testView(ctx context.Context, p store.SsoProvider, t *testRun) (*SSOTestView, error) {
-	v := &SSOTestView{At: t.At, By: t.By, Error: t.Error, Samples: []SSOClaimSample{}, Outcome: []SSOTestOutcome{}}
+	l := i18n.LangFrom(ctx)
+	v := &SSOTestView{At: t.At, By: t.By, Error: textIn(t.ErrorText, l, t.Error), Samples: []SSOClaimSample{}, Outcome: []SSOTestOutcome{}}
 	if t.Error != "" || t.Claims == nil {
 		return v, nil
 	}
 	v.Claims = formatClaims(t.Claims)
 	id := extract(p, t.Claims)
 	cm := claimsOf(p)
-	pre := PresetFor(p.Preset)
+	pre := PresetFor(p.Preset).In(l)
 	sample := func(field, claim string) SSOClaimSample {
 		smp := SSOClaimSample{Field: field, Claim: claim}
 		val, ok := t.Claims[claim]
 		smp.Found = ok && claim != ""
 		if !smp.Found {
-			smp.Missing = "not sent by " + pre.ShortName
+			smp.Missing = msgs.M("sample.notSentBy").Text(l, i18n.Args{"idp": pre.ShortName})
 			return smp
 		}
 		switch x := val.(type) {
@@ -597,15 +644,15 @@ func (s *Service) testView(ctx context.Context, p store.SsoProvider, t *testRun)
 	verS := sample("email_verified", cm.EmailVerified)
 	if !verS.Found {
 		if len(p.AllowedDomains) > 0 {
-			verS.Note = "treated as verified for allowed domains"
+			verS.Note = msgs.M("sample.verifiedForDomains").Text(l, nil)
 		} else {
-			verS.Note = "treated as unverified: add an allowed domain to trust it"
+			verS.Note = msgs.M("sample.unverified").Text(l, nil)
 		}
 	}
 	nameS := sample("name", cm.Name)
 	groupsS := sample("groups", cm.Groups)
 	if id.GroupsOverage {
-		groupsS.Note = "too many groups: " + pre.Name + " sent an overage link instead"
+		groupsS.Note = msgs.M("sample.overage").Text(l, i18n.Args{"name": pre.Name})
 	}
 	v.Samples = []SSOClaimSample{emailS, verS, nameS}
 	if pre.GroupsClaim || groupsS.Found {
@@ -617,7 +664,7 @@ func (s *Service) testView(ctx context.Context, p store.SsoProvider, t *testRun)
 		return nil, err
 	}
 	v.GroupsMissing = pl.GroupsMissing && pre.GroupsClaim
-	v.Outcome = describe(p, id, pl)
+	v.Outcome = describe(l, id, pl)
 	return v, nil
 }
 
@@ -715,7 +762,7 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, in SSOProviderInput)
 	}
 	switchPreset := in.Preset != "" && in.Preset != before.Preset
 	if switchPreset && before.Status == "enabled" {
-		return SSOProviderDetail{}, api.Conflict("Disable " + before.Name + " before switching it to another preset, or add a new provider.")
+		return SSOProviderDetail{}, api.Conflict(say(ctx, "problem.disableBeforeSwitch", i18n.Args{"name": before.Name}))
 	}
 	if switchPreset && strings.TrimSpace(in.Name) == before.Name && before.Name == PresetFor(before.Preset).Name {
 		in.Name = PresetFor(in.Preset).Name
@@ -725,7 +772,8 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, in SSOProviderInput)
 		return SSOProviderDetail{}, err
 	}
 	if switchPreset {
-		changes = append(changes, "preset "+PresetFor(in.Preset).Name)
+		pre := PresetFor(in.Preset)
+		changes = append(changes, keep("audit.preset", i18n.Args{"preset": pre.Key, "name": pre.Name}))
 	}
 	var secret []byte
 	var expires *time.Time
@@ -737,11 +785,11 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, in SSOProviderInput)
 		if in.SecretExpiresOn != "" {
 			t, err := time.Parse("2006-01-02", in.SecretExpiresOn)
 			if err != nil {
-				return SSOProviderDetail{}, api.Invalid("body.secretExpiresOn", "Use a date like 2027-04-10.")
+				return SSOProviderDetail{}, api.Invalid("body.secretExpiresOn", say(ctx, "problem.secretDate", nil))
 			}
 			expires = &t
 		}
-		changes = append(changes, "client secret replaced")
+		changes = append(changes, keep("audit.secretReplaced", nil))
 	}
 	var after store.SsoProvider
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -761,15 +809,13 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, in SSOProviderInput)
 				return err
 			}
 		}
-		summary := "saved"
+		saved := keep("audit.saved", nil)
 		if before.Status != "enabled" {
-			summary = "draft saved"
+			saved = keep("audit.draftSaved", nil)
 		}
-		if len(changes) > 0 {
-			summary += " · " + strings.Join(changes, " · ")
-		}
+		meta := audit.KeepSummary(map[string]any{"secret_replaced": secret != nil}, append([]any{saved}, changes...)...)
 		return s.Audit.LogWith(ctx, q, audit.Event{Action: "sso.provider.updated", TargetType: "sso_provider", TargetID: id.String(), TargetName: after.Name,
-			Before: providerAuditView(before), After: providerAuditView(after), Metadata: map[string]any{"summary": summary, "secret_replaced": secret != nil}})
+			Before: providerAuditView(before), After: providerAuditView(after), Metadata: meta})
 	})
 	if err != nil {
 		return SSOProviderDetail{}, err
@@ -792,18 +838,18 @@ func providerAuditView(p store.SsoProvider) map[string]any {
 		"group_mappings": p.GroupMappings, "enforced": p.EnforceDomains, "status": p.Status}
 }
 
-// validate checks a provider input and returns the update and a summary of
-// what changed.
-func (s *Service) validate(ctx context.Context, admin *store.User, before store.SsoProvider, in SSOProviderInput) (store.SSOUpdateProviderParams, []string, error) {
-	var changes []string
+// validate checks a provider input and returns the update and the facts of
+// what changed, kept for the audit log's summary.
+func (s *Service) validate(ctx context.Context, admin *store.User, before store.SsoProvider, in SSOProviderInput) (store.SSOUpdateProviderParams, []any, error) {
+	var changes []any
 	p := store.SSOUpdateProviderParams{ID: before.ID, Name: strings.TrimSpace(in.Name), IssuerUrl: strings.TrimSpace(in.IssuerURL), ClientID: strings.TrimSpace(in.ClientID)}
 	if p.Name == "" {
-		return p, nil, api.Invalid("body.name", "Give the provider a name people recognise on the sign-in page.")
+		return p, nil, api.Invalid("body.name", say(ctx, "problem.name", nil))
 	}
 	if p.IssuerUrl != "" {
 		u, err := url.Parse(p.IssuerUrl)
 		if err != nil || u.Host == "" || (u.Scheme != "https" && (u.Scheme != "http" || !isLocalHost(u.Hostname()))) {
-			return p, nil, api.Invalid("body.issuerUrl", "Enter the issuer as an https URL, like "+PresetFor(before.Preset).IssuerPattern+".")
+			return p, nil, api.Invalid("body.issuerUrl", say(ctx, "problem.issuerURL", i18n.Args{"pattern": PresetFor(before.Preset).IssuerPattern}))
 		}
 	}
 	scopes := []string{}
@@ -813,7 +859,7 @@ func (s *Service) validate(ctx context.Context, admin *store.User, before store.
 			continue
 		}
 		if strings.ContainsAny(sc, " \t,") || len(sc) > 100 {
-			return p, nil, api.Invalid("body.scopes", "Scopes are single words like openid, profile or groups.")
+			return p, nil, api.Invalid("body.scopes", say(ctx, "problem.scopes", nil))
 		}
 		scopes = append(scopes, sc)
 	}
@@ -838,7 +884,7 @@ func (s *Service) validate(ctx context.Context, admin *store.User, before store.
 	p.ClaimMap = storeClaims(SSOClaimMap{Email: strings.TrimSpace(claims.Email), EmailVerified: strings.TrimSpace(claims.EmailVerified), Name: strings.TrimSpace(claims.Name), Groups: strings.TrimSpace(claims.Groups)})
 	domains, err := normalizeDomains(in.AllowedDomains)
 	if err != nil {
-		return p, nil, api.Invalid("body.allowedDomains", err.Error())
+		return p, nil, domainProblem(ctx, "body.allowedDomains", err)
 	}
 	p.AllowedDomains = domains
 	if in.TwoFactorMode != "" {
@@ -852,7 +898,7 @@ func (s *Service) validate(ctx context.Context, admin *store.User, before store.
 	if in.JIT.WorkspaceID != "" || in.JIT.Enabled {
 		ws, err := uuid.Parse(in.JIT.WorkspaceID)
 		if err != nil {
-			return p, nil, api.Invalid("body.jit.workspaceId", "Pick the workspace new people join.")
+			return p, nil, api.Invalid("body.jit.workspaceId", say(ctx, "problem.jitWorkspace", nil))
 		}
 		key := in.JIT.RoleKey
 		if key == "" {
@@ -860,15 +906,15 @@ func (s *Service) validate(ctx context.Context, admin *store.User, before store.
 		}
 		role, ok := r.role(ws, key)
 		if !ok {
-			return p, nil, api.Invalid("body.jit.roleKey", "Pick a role of that workspace.")
+			return p, nil, api.Invalid("body.jit.roleKey", say(ctx, "problem.role", nil))
 		}
 		if role.RoleKey == authz.RoleOwner {
-			return p, nil, api.Invalid("body.jit.roleKey", "New accounts can't become Owner automatically.")
+			return p, nil, api.Invalid("body.jit.roleKey", say(ctx, "problem.jitOwner", nil))
 		}
 		changed := before.JitWorkspaceID == nil || *before.JitWorkspaceID != ws || before.JitRoleKey == nil || *before.JitRoleKey != key
 		if changed {
 			if err := s.canGrant(ctx, admin.ID, role); err != nil {
-				return p, nil, escalation(err, "body.jit.roleKey")
+				return p, nil, escalation(ctx, err, "body.jit.roleKey")
 			}
 		}
 		p.JitWorkspaceID, p.JitRoleKey = &ws, &key
@@ -880,28 +926,28 @@ func (s *Service) validate(ctx context.Context, admin *store.User, before store.
 		loc := fmt.Sprintf("body.groupMappings[%d]", i)
 		group := strings.TrimSpace(m.Group)
 		if group == "" {
-			return p, nil, api.Invalid(loc+".group", "Enter the IdP group (an object ID for Entra ID).")
+			return p, nil, api.Invalid(loc+".group", say(ctx, "problem.group", nil))
 		}
 		ws, err := uuid.Parse(m.WorkspaceID)
 		if err != nil {
-			return p, nil, api.Invalid(loc+".workspaceId", "Pick a workspace.")
+			return p, nil, api.Invalid(loc+".workspaceId", say(ctx, "problem.workspace", nil))
 		}
 		if seen[group+"|"+ws.String()] {
-			return p, nil, api.Invalid(loc+".group", "Group "+group+" is already mapped in that workspace.")
+			return p, nil, api.Invalid(loc+".group", say(ctx, "problem.groupMapped", i18n.Args{"group": group}))
 		}
 		seen[group+"|"+ws.String()] = true
 		role, ok := r.role(ws, m.RoleKey)
 		if !ok {
-			return p, nil, api.Invalid(loc+".roleKey", "Pick a role of that workspace.")
+			return p, nil, api.Invalid(loc+".roleKey", say(ctx, "problem.role", nil))
 		}
 		if role.RoleKey == authz.RoleOwner && role.Builtin {
-			return p, nil, api.Err(http.StatusForbidden, api.CodeEscalation, "Owner can't be granted by a group mapping. Transfer ownership in the workspace's settings instead.")
+			return p, nil, api.Err(http.StatusForbidden, api.CodeEscalation, say(ctx, "problem.mappingOwner", nil))
 		}
 		var scope authz.Scope
 		for _, l := range m.Lists {
 			lid, err := uuid.Parse(l)
 			if err != nil || !r.listIn(ws, lid) {
-				return p, nil, api.Invalid(loc+".lists", "Pick lists of "+role.WorkspaceName+".")
+				return p, nil, api.Invalid(loc+".lists", say(ctx, "problem.lists", i18n.Args{"workspace": role.WorkspaceName}))
 			}
 			if !slices.Contains(scope.Lists, lid) {
 				scope.Lists = append(scope.Lists, lid)
@@ -913,30 +959,31 @@ func (s *Service) validate(ctx context.Context, admin *store.User, before store.
 		})
 		if !unchanged {
 			if err := s.canGrant(ctx, admin.ID, role); err != nil {
-				return p, nil, escalation(err, loc+".roleKey")
+				return p, nil, escalation(ctx, err, loc+".roleKey")
 			}
 		}
 		maps = append(maps, nm)
 	}
 	p.GroupMappings = mustJSON(maps)
 	if len(maps) != len(old) {
-		changes = append(changes, fmt.Sprintf("%d group %s", len(maps), plural(len(maps), "mapping", "mappings")))
+		changes = append(changes, keep("audit.mappings", i18n.Args{"count": len(maps)}))
 	}
 	if p.IssuerUrl != before.IssuerUrl {
-		changes = append(changes, "issuer changed")
+		changes = append(changes, keep("audit.issuerChanged", nil))
 	}
 	return p, changes, nil
 }
 
-func escalation(err error, loc string) error {
-	p := api.Err(http.StatusForbidden, api.CodeEscalation, capitalize(err.Error())+". Ask an Owner of that workspace to add the mapping.")
-	p.Errors = append(p.Errors, &huma.ErrorDetail{Location: loc, Message: err.Error()})
-	return p
-}
-
-func capitalize(s string) string {
-	if s == "" {
-		return s
+// escalation is the problem of a role the admin can't grant, at the field
+// loc, in the request's language.
+func escalation(ctx context.Context, err error, loc string) error {
+	l := i18n.LangFrom(ctx)
+	detail, short := err.Error(), err.Error()
+	var ge *grantError
+	if errors.As(err, &ge) {
+		detail, short = ge.problem(l), ge.reason(l)
 	}
-	return strings.ToUpper(s[:1]) + s[1:]
+	p := api.Err(http.StatusForbidden, api.CodeEscalation, detail)
+	p.Errors = append(p.Errors, &huma.ErrorDetail{Location: loc, Message: short})
+	return p
 }

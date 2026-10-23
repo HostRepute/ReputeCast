@@ -23,6 +23,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -115,7 +116,7 @@ func (s *Service) beginFlow(ctx context.Context, fs flowState, userID *uuid.UUID
 // the state is unknown, expired, used, or wasn't started in this browser.
 func (s *Service) takeFlow(ctx context.Context, state string, cookies []*http.Cookie) (store.AuthChallenge, flowState, error) {
 	var fs flowState
-	expired := &flowError{Code: "state_expired", Detail: "This sign-in link expired or was already used. Start again."}
+	expired := failure("state_expired", "flow.expired", nil)
 	if len(state) < 10 || len(state) > 200 {
 		return store.AuthChallenge{}, fs, expired
 	}
@@ -132,7 +133,7 @@ func (s *Service) takeFlow(ctx context.Context, state string, cookies []*http.Co
 		}
 	}
 	if !bound {
-		return store.AuthChallenge{}, fs, &flowError{Code: "state_mismatch", Detail: "This sign-in was started in another browser. Start again here."}
+		return store.AuthChallenge{}, fs, failure("state_mismatch", "flow.otherBrowser", nil)
 	}
 	if err := json.Unmarshal(ch.Data, &fs); err != nil {
 		return store.AuthChallenge{}, fs, expired
@@ -160,11 +161,17 @@ func safeNext(next string) string {
 }
 
 // errorRedirect sends the browser to the sign-in page's error state and
-// records the failure with the reference the page shows.
+// records the failure with the reference the page shows. Without a
+// provider's name (an unknown provider) the page names single sign-on, in
+// the person's language.
 func (s *Service) errorRedirect(ctx context.Context, providerName string, providerID *uuid.UUID, method string, fe *flowError, email string) Redirect {
 	ref := reference()
 	if email == "" {
 		email = fe.Email
+	}
+	shown := providerName
+	if providerName == "" {
+		providerName, shown = "Single sign-on", say(ctx, "flow.singleSignOn", nil)
 	}
 	meta := map[string]any{"method": method, "provider": providerName, "reference": ref, "code": fe.Code}
 	if providerID != nil {
@@ -174,7 +181,11 @@ func (s *Service) errorRedirect(ctx context.Context, providerName string, provid
 	if target == "" {
 		target = "unknown account"
 	}
-	_ = s.Audit.Log(ctx, audit.Event{Action: "signin.rejected", Result: audit.Denied, Reason: fe.Detail, TargetType: "user", TargetName: target,
+	reason := fe.Detail
+	if !fe.Text.IsZero() {
+		reason, meta = audit.KeepReason(meta, fe.Text)
+	}
+	_ = s.Audit.Log(ctx, audit.Event{Action: "signin.rejected", Result: audit.Denied, Reason: reason, TargetType: "user", TargetName: target,
 		Actor: &audit.Actor{Type: "system", Name: "System"}, Metadata: meta})
 	q := url.Values{}
 	if fe.NoAccount && email != "" {
@@ -188,7 +199,7 @@ func (s *Service) errorRedirect(ctx context.Context, providerName string, provid
 		return Redirect{Location: "/sign-in?" + q.Encode()}
 	}
 	q.Set("error", "idp")
-	q.Set("provider", providerName)
+	q.Set("provider", shown)
 	q.Set("code", fe.Code)
 	q.Set("ref", ref)
 	if email != "" {
@@ -206,7 +217,13 @@ func asFlowError(err error) *flowError {
 	if errors.As(err, &p) {
 		return &flowError{Code: p.Code, Detail: p.Detail}
 	}
-	return &flowError{Code: "server_error", Detail: "Something broke on our side while finishing the sign-in."}
+	return failure("server_error", "flow.broke", nil)
+}
+
+// idpError is the error an identity provider sent back to the callback,
+// with the first line of its description: "Okta returned access_denied: …".
+func idpError(name, code, description string) *flowError {
+	return failure(code, "flow.idpError", i18n.Args{"name": name, "error": code, "has": "yes", "description": firstLine(description)})
 }
 
 func secretAD(id uuid.UUID) string { return "sso:" + id.String() + ":client_secret" }
@@ -214,15 +231,15 @@ func secretAD(id uuid.UUID) string { return "sso:" + id.String() + ":client_secr
 // oauthConfig builds the OAuth client of an SSO provider.
 func (s *Service) oauthConfig(ctx context.Context, p store.SsoProvider) (*oidc.Provider, *oauth2.Config, error) {
 	if p.ClientID == "" || len(p.ClientSecretEnc) == 0 {
-		return nil, nil, &flowError{Code: "not_configured", Detail: p.Name + " has no client ID or secret yet."}
+		return nil, nil, failure("not_configured", "flow.notConfigured", i18n.Args{"name": p.Name})
 	}
 	secret, err := s.Box.OpenString(p.ClientSecretEnc, secretAD(p.ID))
 	if err != nil {
-		return nil, nil, &flowError{Code: "secret_unreadable", Detail: "The client secret can't be decrypted with this server's key. Replace it in Instance admin › SSO."}
+		return nil, nil, failure("secret_unreadable", "flow.secretUnreadable", nil)
 	}
 	prov, err := s.provider(ctx, p.IssuerUrl, false)
 	if err != nil {
-		return nil, nil, &flowError{Code: "discovery_failed", Detail: "Discovery of " + p.IssuerUrl + " failed: " + err.Error()}
+		return nil, nil, failure("discovery_failed", "flow.discoveryFailed", i18n.Args{"issuer": p.IssuerUrl, "error": err.Error()})
 	}
 	scopes := slices.Clone(p.Scopes)
 	if !slices.Contains(scopes, oidc.ScopeOpenID) {
@@ -241,7 +258,7 @@ func ssoAllowed(st store.InstanceSetting, method string) bool {
 func (s *Service) StartSSO(ctx context.Context, id uuid.UUID, req StartRequest) Redirect {
 	p, err := s.Q.SSOProvider(ctx, id)
 	if err != nil {
-		return s.errorRedirect(ctx, "Single sign-on", nil, "sso", &flowError{Code: "unknown_provider", Detail: "No such SSO provider."}, req.LoginHint)
+		return s.errorRedirect(ctx, "", nil, "sso", failure("unknown_provider", "flow.noProvider", nil), req.LoginHint)
 	}
 	fail := func(fe *flowError) Redirect { return s.errorRedirect(ctx, p.Name, &p.ID, "sso", fe, req.LoginHint) }
 	st, err := s.Q.GetInstanceSettings(ctx)
@@ -249,10 +266,10 @@ func (s *Service) StartSSO(ctx context.Context, id uuid.UUID, req StartRequest) 
 		return fail(asFlowError(err))
 	}
 	if p.Status != "enabled" {
-		return fail(&flowError{Code: "provider_disabled", Detail: p.Name + " isn't enabled on this instance."})
+		return fail(failure("provider_disabled", "flow.notEnabled", i18n.Args{"name": p.Name}))
 	}
 	if !ssoAllowed(st, "sso") {
-		return fail(&flowError{Code: "method_disabled", Detail: "Single sign-on is turned off on this instance."})
+		return fail(failure("method_disabled", "flow.ssoOff", nil))
 	}
 	fs := flowState{ProviderID: p.ID.String(), Mode: modeSignIn, Next: safeNext(req.Next), LoginHint: req.LoginHint}
 	var userID *uuid.UUID
@@ -306,14 +323,14 @@ func (s *Service) CallbackSSO(ctx context.Context, slug string, query url.Values
 func (s *Service) callbackSSO(ctx context.Context, slug, state string, query url.Values, cookies []*http.Cookie) Redirect {
 	p, err := s.Q.SSOProviderBySlug(ctx, slug)
 	if err != nil {
-		return s.errorRedirect(ctx, "Single sign-on", nil, "sso", &flowError{Code: "unknown_provider", Detail: "No SSO provider answers at /auth/oidc/" + slug + "/callback."}, "")
+		return s.errorRedirect(ctx, "", nil, "sso", failure("unknown_provider", "flow.noCallback", i18n.Args{"path": RedirectPath(slug)}), "")
 	}
 	ch, fs, err := s.takeFlow(ctx, state, cookies)
 	if err != nil {
 		return s.errorRedirect(ctx, p.Name, &p.ID, "sso", asFlowError(err), "")
 	}
 	if fs.ProviderID != p.ID.String() {
-		return s.errorRedirect(ctx, p.Name, &p.ID, "sso", &flowError{Code: "state_mismatch", Detail: "This callback belongs to another provider."}, fs.LoginHint)
+		return s.errorRedirect(ctx, p.Name, &p.ID, "sso", failure("state_mismatch", "flow.otherProvider", nil), fs.LoginHint)
 	}
 	if fs.Mode == modeTest {
 		return s.finishTest(ctx, p, ch, fs, query)
@@ -325,10 +342,10 @@ func (s *Service) callbackSSO(ctx context.Context, slug, state string, query url
 		return s.errorRedirect(ctx, p.Name, &p.ID, "sso", fe, email)
 	}
 	if e := query.Get("error"); e != "" {
-		return fail(&flowError{Code: e, Detail: p.Name + " returned " + e + ": " + firstLine(query.Get("error_description"))}, "")
+		return fail(idpError(p.Name, e, query.Get("error_description")), "")
 	}
 	if p.Status != "enabled" && fs.Mode != modeLink {
-		return fail(&flowError{Code: "provider_disabled", Detail: p.Name + " was turned off during the sign-in."}, "")
+		return fail(failure("provider_disabled", "flow.turnedOff", i18n.Args{"name": p.Name}), "")
 	}
 	prov, conf, err := s.oauthConfig(ctx, p)
 	if err != nil {
@@ -347,16 +364,16 @@ func (s *Service) callbackSSO(ctx context.Context, slug, state string, query url
 	switch fs.Mode {
 	case modeLink:
 		if ch.UserID == nil {
-			return fail(&flowError{Code: "state_expired", Detail: "Sign in again to link an identity."}, id.Email)
+			return fail(failure("state_expired", "flow.signInToLink", nil), id.Email)
 		}
 		return s.linkIdentity(ctx, *ch.UserID, identityRow{Kind: "sso", ProviderID: &p.ID, Name: p.Name, Subject: id.Subject, Email: id.Email, Username: id.Username}, fail)
 	case modeInvite:
 		token, err := s.Box.OpenString(fs.InviteEnc, "sso:invite")
 		if err != nil {
-			return fail(&flowError{Code: "state_expired", Detail: "Open the invitation link again."}, id.Email)
+			return fail(failure("state_expired", "flow.openInvitation", nil), id.Email)
 		}
 		if id.EmailVerified != nil && !*id.EmailVerified {
-			return fail(&flowError{Code: "email_not_verified", Detail: p.Name + " says " + id.Email + " isn't verified."}, id.Email)
+			return fail(failure("email_not_verified", "flow.notVerified", i18n.Args{"name": p.Name, "email": id.Email}), id.Email)
 		}
 		res, err := s.Accounts.AcceptInvitationExternal(ctx, token, accounts.ExternalIdentity{Kind: "sso", ProviderID: &p.ID, ProviderName: p.Name,
 			Subject: id.Subject, Email: id.Email, Name: id.Name, Username: id.Username, MFA: mfaNote, Metadata: meta})
@@ -434,7 +451,7 @@ type identityRow struct {
 func (s *Service) linkIdentity(ctx context.Context, userID uuid.UUID, row identityRow, fail func(*flowError, string) Redirect) Redirect {
 	u, err := s.Q.GetUser(ctx, userID)
 	if err != nil || u.Status != "active" {
-		return fail(&flowError{Code: "account_deactivated", Detail: "This account can't link identities."}, row.Email)
+		return fail(failure("account_deactivated", "flow.cantLink", nil), row.Email)
 	}
 	back := s.Accounts.NextPath(ctx, u)
 	if strings.HasPrefix(back, "/w/") {
@@ -445,12 +462,12 @@ func (s *Service) linkIdentity(ctx context.Context, userID uuid.UUID, row identi
 	case err == nil && existing.UserID == u.ID:
 		return Redirect{Location: back}
 	case err == nil:
-		return fail(&flowError{Code: "identity_in_use", Detail: "This " + row.Name + " account is already linked to another ReputeCast account."}, row.Email)
+		return fail(failure("identity_in_use", "flow.identityInUse", i18n.Args{"name": row.Name}), row.Email)
 	case !isNoRows(err):
 		return fail(asFlowError(err), row.Email)
 	}
 	if _, err := s.Q.SSOUserIdentityOfKind(ctx, store.SSOUserIdentityOfKindParams{UserID: u.ID, Kind: row.Kind, SsoProviderID: row.ProviderID}); err == nil {
-		return fail(&flowError{Code: "already_linked", Detail: "Your account already has a " + row.Name + " sign-in. Unlink it first to link another."}, row.Email)
+		return fail(failure("already_linked", "flow.alreadyLinked", i18n.Args{"name": row.Name}), row.Email)
 	}
 	details := row.Details
 	if details == nil {

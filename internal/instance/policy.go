@@ -170,7 +170,7 @@ func (s *Service) SavePolicy(ctx context.Context, in InstancePolicyInput) (Insta
 	toggles := map[string]bool{"google": in.Social.Google, "microsoft": in.Social.Microsoft, "github": in.Social.GitHub}
 	for _, k := range sso.SocialKinds {
 		if toggles[k] && !socialOn(before.Social, k) {
-			if why := s.SSO.SocialReady(st, k); why != "" {
+			if why := s.SSO.SocialReady(ctx, st, k); why != "" {
 				return InstancePolicy{}, api.Invalid("body.social."+k, why)
 			}
 		}

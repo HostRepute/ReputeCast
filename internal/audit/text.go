@@ -14,6 +14,10 @@ import (
 // under "i18n", beside the English: KeepText and KeepSummary do both.
 // internal/auditlog writes kept lines in the reader's language; entries
 // written before, and lines that weren't kept, read in English.
+//
+// A kept message's argument may itself be a kept message (a summary's
+// "discovery failed: {error}"): it is written first, in the same language
+// and without its final period, as a part of the sentence (Render).
 
 // TextsKey is the metadata member that holds an entry's kept lines.
 const TextsKey = "i18n"
@@ -28,9 +32,21 @@ func KeepText(meta map[string]any, key string, t i18n.Text) map[string]any {
 	if meta == nil {
 		meta = map[string]any{}
 	}
-	meta[key] = t.In(i18n.Default)
+	meta[key] = Render(t, i18n.Default)
 	texts(meta)[key] = t
 	return meta
+}
+
+// KeepReason keeps the reason of an entry that ReputeCast wrote itself (a
+// group mapping's "no longer in Okta group “Marketing”") and returns its
+// English, for Event.Reason; the message goes to the metadata under
+// TextsKey. Reasons people type are kept as they typed them.
+func KeepReason(meta map[string]any, t i18n.Text) (string, map[string]any) {
+	if meta == nil {
+		meta = map[string]any{}
+	}
+	texts(meta)["reason"] = t
+	return Render(t, i18n.Default), meta
 }
 
 // KeepSummary sets an entry's summary made of facts joined with " · ":
@@ -45,7 +61,7 @@ func KeepSummary(meta map[string]any, parts ...any) map[string]any {
 	for _, p := range parts {
 		switch v := p.(type) {
 		case i18n.Text:
-			english = append(english, v.In(i18n.Default))
+			english = append(english, Render(v, i18n.Default))
 			kept = append(kept, v)
 		case string:
 			english = append(english, v)
@@ -75,6 +91,7 @@ type Kept struct {
 	Target       i18n.Text         `json:"target"`
 	Note         i18n.Text         `json:"note"`
 	Outcome      i18n.Text         `json:"outcome"`
+	Reason       i18n.Text         `json:"reason"`
 }
 
 // KeptIn reads the kept lines of an entry's metadata.
@@ -91,16 +108,68 @@ func KeptIn(metadata []byte) Kept {
 // In writes a kept line in a language, or returns english when it wasn't
 // kept (or its message is gone).
 func In(t i18n.Text, l i18n.Lang, english string) string {
-	if s := t.In(l); s != "" {
+	if s := Render(t, l); s != "" {
 		return s
 	}
 	return english
 }
 
+// Render writes a kept message in a language, its kept messages among its
+// arguments first (without their final period). It returns "" when a
+// message isn't known, like i18n.Text.In.
+func Render(t i18n.Text, l i18n.Lang) string {
+	nested := false
+	for _, v := range t.Args {
+		if _, ok := keptText(v); ok {
+			nested = true
+			break
+		}
+	}
+	if !nested {
+		return t.In(l)
+	}
+	args := make(i18n.Args, len(t.Args))
+	for k, v := range t.Args {
+		if n, ok := keptText(v); ok {
+			s := Render(n, l)
+			if s == "" {
+				return ""
+			}
+			v = strings.TrimSuffix(s, ".")
+		}
+		args[k] = v
+	}
+	return i18n.Text{ID: t.ID, Args: args}.In(l)
+}
+
+// keptText reads an argument that is a kept message: an i18n.Text, or one
+// read back from JSON ({"id": …, "args": {…}}).
+func keptText(v any) (i18n.Text, bool) {
+	switch x := v.(type) {
+	case i18n.Text:
+		return x, x.ID != ""
+	case map[string]any:
+		id, _ := x["id"].(string)
+		if id == "" || len(x) > 2 {
+			return i18n.Text{}, false
+		}
+		raw, has := x["args"]
+		args, _ := raw.(map[string]any)
+		if has && args == nil {
+			return i18n.Text{}, false
+		}
+		if !has && len(x) > 1 {
+			return i18n.Text{}, false
+		}
+		return i18n.Text{ID: id, Args: args}, true
+	}
+	return i18n.Text{}, false
+}
+
 // SummaryIn is the entry's summary in a language: the kept message, the
 // kept parts joined with " · ", or english.
 func (k Kept) SummaryIn(l i18n.Lang, english string) string {
-	if s := k.Summary.In(l); s != "" {
+	if s := Render(k.Summary, l); s != "" {
 		return s
 	}
 	if len(k.SummaryParts) == 0 {
@@ -117,7 +186,7 @@ func (k Kept) SummaryIn(l i18n.Lang, english string) string {
 		if json.Unmarshal(raw, &t) != nil {
 			return english
 		}
-		x := t.In(l)
+		x := Render(t, l)
 		if x == "" {
 			return english
 		}

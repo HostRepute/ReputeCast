@@ -2,7 +2,6 @@ package sso
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"slices"
@@ -14,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -34,7 +34,7 @@ func (s *Service) TestDiscovery(ctx context.Context, id uuid.UUID, in SSODiscove
 		issuer = p.IssuerUrl
 	}
 	if issuer == "" {
-		return SSOProviderDetail{}, api.Invalid("body.issuerUrl", "Enter the issuer URL first, like "+PresetFor(p.Preset).IssuerPattern+".")
+		return SSOProviderDetail{}, api.Invalid("body.issuerUrl", say(ctx, "problem.issuerFirst", i18n.Args{"pattern": PresetFor(p.Preset).IssuerPattern}))
 	}
 	d := s.discover(ctx, issuer)
 	if p.Status == "enabled" && !d.OK {
@@ -47,7 +47,7 @@ func (s *Service) TestDiscovery(ctx context.Context, id uuid.UUID, in SSODiscove
 			return err
 		}
 		ev := audit.Event{Action: "sso.provider.discovery_tested", TargetType: "sso_provider", TargetID: id.String(), TargetName: p.Name,
-			Metadata: map[string]any{"url": d.URL, "status": d.Status, "ms": d.Millis, "ok": d.OK, "summary": discoverySummary(d, issuer != p.IssuerUrl)}}
+			Metadata: audit.KeepSummary(map[string]any{"url": d.URL, "status": d.Status, "ms": d.Millis, "ok": d.OK}, discoverySummary(d, issuer != p.IssuerUrl)...)}
 		if issuer != p.IssuerUrl {
 			ev.Before, ev.After = map[string]any{"issuer": p.IssuerUrl}, map[string]any{"issuer": issuer}
 		}
@@ -72,12 +72,12 @@ func (s *Service) TestDiscovery(ctx context.Context, id uuid.UUID, in SSODiscove
 	return out, nil
 }
 
-// discoverySummary describes a discovery test for the audit log:
-// "discovery OK · 4 endpoints · 3 signing keys", or why it failed.
-func discoverySummary(d discovery, issuerChanged bool) string {
-	parts := []string{}
+// discoverySummary describes a discovery test for the audit log, as kept
+// facts: "discovery OK · 4 endpoints · 3 signing keys", or why it failed.
+func discoverySummary(d discovery, issuerChanged bool) []any {
+	parts := []any{}
 	if issuerChanged {
-		parts = append(parts, "issuer changed")
+		parts = append(parts, keep("audit.issuerChanged", nil))
 	}
 	if d.OK {
 		n := 0
@@ -86,11 +86,14 @@ func discoverySummary(d discovery, issuerChanged bool) string {
 				n++
 			}
 		}
-		parts = append(parts, "discovery OK", fmt.Sprintf("%d endpoints", n), fmt.Sprintf("%d signing %s", d.Keys, plural(d.Keys, "key", "keys")))
-	} else {
-		parts = append(parts, "discovery failed: "+strings.TrimSuffix(d.Error, "."))
+		return append(parts, keep("audit.discoveryOK", nil), keep("audit.endpoints", i18n.Args{"count": n}), keep("audit.keys", i18n.Args{"count": d.Keys}))
 	}
-	return strings.Join(parts, " · ")
+	// The failure's own message is written without its final period.
+	why := any(strings.TrimSuffix(d.Error, "."))
+	if !d.ErrorText.IsZero() {
+		why = d.ErrorText
+	}
+	return append(parts, keep("audit.discoveryFailed", i18n.Args{"error": why}))
 }
 
 // SSOTestStart is where the test sign-in popup goes.
@@ -114,8 +117,8 @@ func (s *Service) StartTest(ctx context.Context, id uuid.UUID, in SSOTestInput) 
 	if err != nil {
 		return SSOTestStart{}, nil, api.MapError(err, "SSO provider")
 	}
-	if b := blockers(p); len(b) > 0 {
-		return SSOTestStart{}, nil, api.Err(http.StatusConflict, "sso_incomplete", "Before a test sign-in: "+strings.Join(b, " "))
+	if b := blockers(i18n.LangFrom(ctx), p); len(b) > 0 {
+		return SSOTestStart{}, nil, api.Err(http.StatusConflict, "sso_incomplete", say(ctx, "problem.beforeTest", i18n.Args{"blockers": strings.Join(b, " ")}))
 	}
 	var out SSOTestStart
 	var cookie *http.Cookie
@@ -125,7 +128,7 @@ func (s *Service) StartTest(ctx context.Context, id uuid.UUID, in SSOTestInput) 
 		return Redirect{}
 	})
 	if ferr != nil {
-		return SSOTestStart{}, nil, api.Err(http.StatusBadGateway, "sso_unreachable", ferr.Detail)
+		return SSOTestStart{}, nil, api.Err(http.StatusBadGateway, "sso_unreachable", ferr.in(i18n.LangFrom(ctx)))
 	}
 	out.AuthorizeURL = r.Location
 	if len(r.Cookies) > 0 {
@@ -149,15 +152,14 @@ func (s *Service) finishTest(ctx context.Context, p store.SsoProvider, ch store.
 		}
 	}
 	run := testRun{At: s.now(), By: by}
+	failed := func(fe *flowError) { run.Error, run.ErrorText = fe.Detail, fe.Text }
 	if e := query.Get("error"); e != "" {
-		run.Error = p.Name + " returned " + e
-		if d := query.Get("error_description"); d != "" {
-			run.Error += ": " + firstLine(d)
-		}
+		desc := firstLine(query.Get("error_description"))
+		failed(failure(e, "flow.idpError", i18n.Args{"name": p.Name, "error": e, "has": yesNo(desc != ""), "description": desc}))
 	} else if prov, conf, err := s.oauthConfig(ctx, p); err != nil {
-		run.Error = asFlowError(err).Detail
+		failed(asFlowError(err))
 	} else if claims, err := s.exchange(ctx, prov, conf, query.Get("code"), fs.Verifier, fs.Nonce, false); err != nil {
-		run.Error = asFlowError(err).Detail
+		failed(asFlowError(err))
 	} else {
 		run.Claims = claims
 	}
@@ -206,8 +208,8 @@ func (s *Service) setStatus(ctx context.Context, id uuid.UUID, status string) (S
 		return SSOProviderDetail{}, api.MapError(err, "SSO provider")
 	}
 	if status == "enabled" {
-		if b := blockers(before); len(b) > 0 {
-			return SSOProviderDetail{}, api.Err(http.StatusConflict, "sso_incomplete", "Before enabling "+before.Name+": "+strings.Join(b, " "))
+		if b := blockers(i18n.LangFrom(ctx), before); len(b) > 0 {
+			return SSOProviderDetail{}, api.Err(http.StatusConflict, "sso_incomplete", say(ctx, "problem.beforeEnabling", i18n.Args{"name": before.Name, "blockers": strings.Join(b, " ")}))
 		}
 	}
 	if before.Status == status {
@@ -249,7 +251,7 @@ func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
 		return api.MapError(err, "SSO provider")
 	}
 	if p.Status == "enabled" {
-		return api.Conflict("Disable " + p.Name + " before deleting it.")
+		return api.Conflict(say(ctx, "problem.disableBeforeDelete", i18n.Args{"name": p.Name}))
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -294,7 +296,7 @@ func (s *Service) EnforcementPreview(ctx context.Context, id uuid.UUID, domains 
 	}
 	ds, err := normalizeDomains(domains)
 	if err != nil {
-		return SSOEnforcementPreview{}, api.Invalid("query.domain", err.Error())
+		return SSOEnforcementPreview{}, domainProblem(ctx, "query.domain", err)
 	}
 	if len(ds) == 0 {
 		ds = nonNil(p.AllowedDomains)
@@ -310,7 +312,8 @@ func (s *Service) EnforcementPreview(ctx context.Context, id uuid.UUID, domains 
 	if err != nil {
 		return out, err
 	}
-	out.BreakGlass = r.breakGlass(ds)
+	l := i18n.LangFrom(ctx)
+	out.BreakGlass = r.breakGlass(l, ds)
 	owners := map[string]bool{}
 	for _, o := range out.BreakGlass {
 		owners[o.Email] = true
@@ -320,16 +323,18 @@ func (s *Service) EnforcementPreview(ctx context.Context, id uuid.UUID, domains 
 		return out, err
 	}
 	sso := p.Name + " SSO"
+	text := func(key string) string { return msgs.M(key).Text(l, i18n.Args{"name": p.Name}) }
+	unchanged := map[string]bool{}
 	for _, u := range rows {
 		today := []string{}
 		if u.Linked {
 			today = append(today, sso)
 		}
 		if u.HasPassword {
-			today = append(today, "Password")
+			today = append(today, text("enforce.password"))
 		}
 		if u.Passkeys > 0 {
-			today = append(today, "passkey")
+			today = append(today, text("enforce.passkey"))
 		}
 		for _, k := range u.Social {
 			today = append(today, socialName(k))
@@ -342,13 +347,14 @@ func (s *Service) EnforcementPreview(ctx context.Context, id uuid.UUID, domains 
 		onlySSO := u.Linked && !u.HasPassword && u.Passkeys == 0 && len(u.Social) == 0
 		switch {
 		case m.BreakGlass && u.HasPassword:
-			m.After = p.Name + ", plus break-glass password"
+			m.After = text("enforce.plusPassword")
 		case m.BreakGlass && u.Passkeys > 0:
-			m.After = p.Name + ", plus break-glass passkey"
+			m.After = text("enforce.plusPasskey")
 		case onlySSO:
-			m.After = "Unchanged"
+			m.After = text("enforce.unchanged")
+			unchanged[m.ID] = true
 		default:
-			m.After = p.Name + " only"
+			m.After = text("enforce.only")
 		}
 		out.Members = append(out.Members, m)
 	}
@@ -359,7 +365,7 @@ func (s *Service) EnforcementPreview(ctx context.Context, id uuid.UUID, domains 
 			switch {
 			case m.BreakGlass:
 				return 2
-			case m.After == "Unchanged":
+			case unchanged[m.ID]:
 				return 0
 			}
 			return 1
@@ -400,33 +406,33 @@ func (s *Service) SetEnforcement(ctx context.Context, id uuid.UUID, in SSOEnforc
 	}
 	ds, err := normalizeDomains(in.Domains)
 	if err != nil {
-		return SSOProviderDetail{}, api.Invalid("body.domains", err.Error())
+		return SSOProviderDetail{}, domainProblem(ctx, "body.domains", err)
 	}
 	if len(ds) > 0 {
 		if p.Status != "enabled" {
-			return SSOProviderDetail{}, api.Conflict("Enable " + p.Name + " before enforcing it for a domain.")
+			return SSOProviderDetail{}, api.Conflict(say(ctx, "problem.enableBeforeEnforcing", i18n.Args{"name": p.Name}))
 		}
 		if !in.Confirm {
-			return SSOProviderDetail{}, api.Invalid("body.confirm", "Confirm who keeps password access before turning enforcement on.")
+			return SSOProviderDetail{}, api.Invalid("body.confirm", say(ctx, "problem.confirmEnforcement", nil))
 		}
 		for _, d := range ds {
 			if len(p.AllowedDomains) > 0 && !slices.Contains(p.AllowedDomains, d) {
-				return SSOProviderDetail{}, api.Invalid("body.domains", d+" isn't one of "+p.Name+"'s allowed domains.")
+				return SSOProviderDetail{}, api.Invalid("body.domains", say(ctx, "problem.domainNotAllowed", i18n.Args{"domain": d, "name": p.Name}))
 			}
 		}
 		if other, err := s.Q.SSODomainEnforcedElsewhere(ctx, store.SSODomainEnforcedElsewhereParams{ID: id, Domains: ds}); err == nil && other != "" {
-			return SSOProviderDetail{}, api.Conflict(other + " already enforces one of these domains. Turn it off there first.")
+			return SSOProviderDetail{}, api.Conflict(say(ctx, "problem.enforcedElsewhere", i18n.Args{"name": other}))
 		}
 	}
 	r, err := s.loadRefs(ctx)
 	if err != nil {
 		return SSOProviderDetail{}, err
 	}
-	keep := r.breakGlass(ds)
+	glass := r.breakGlass(i18n.Default, ds)
 	var ids []uuid.UUID
 	names := []string{}
 	for _, o := range r.owners {
-		if slices.ContainsFunc(keep, func(k SSOBreakGlassOwner) bool { return k.Email == o.Email }) {
+		if slices.ContainsFunc(glass, func(k SSOBreakGlassOwner) bool { return k.Email == o.Email }) {
 			ids = append(ids, o.ID)
 			names = append(names, o.Name)
 		}
@@ -442,13 +448,13 @@ func (s *Service) SetEnforcement(ctx context.Context, id uuid.UUID, in SSOEnforc
 			}
 		}
 		action := "sso.enforcement.enabled"
-		summary := "password sign-in off for " + strings.Join(ds, ", ") + " · break-glass: " + strings.Join(names, ", ")
+		summary := []any{keep("audit.enforced", i18n.Args{"domains": strings.Join(ds, ", ")}), keep("audit.breakGlass", i18n.Args{"names": strings.Join(names, ", ")})}
 		if len(ds) == 0 {
-			action, summary = "sso.enforcement.disabled", "password sign-in allowed again for "+strings.Join(p.EnforceDomains, ", ")
+			action, summary = "sso.enforcement.disabled", []any{keep("audit.unenforced", i18n.Args{"domains": strings.Join(p.EnforceDomains, ", ")})}
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{Action: action, TargetType: "sso_provider", TargetID: id.String(), TargetName: p.Name,
 			Before: map[string]any{"enforced": p.EnforceDomains}, After: map[string]any{"enforced": ds},
-			Metadata: map[string]any{"summary": summary, "break_glass": names}})
+			Metadata: audit.KeepSummary(map[string]any{"break_glass": names}, summary...)})
 	})
 	if err != nil {
 		return SSOProviderDetail{}, err

@@ -14,6 +14,8 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // cachedProvider is a discovered issuer kept for an hour; go-oidc caches
@@ -39,12 +41,10 @@ func (s *Service) discover(ctx context.Context, issuer string) discovery {
 	issuer = strings.TrimSpace(issuer)
 	u, err := url.Parse(issuer)
 	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
-		d.Error = "Enter the issuer as a full URL, like https://login.microsoftonline.com/<tenant-id>/v2.0."
-		return d
+		return d.failed("discovery.url", i18n.Args{"example": "https://login.microsoftonline.com/<tenant-id>/v2.0"})
 	}
 	if u.Scheme == "http" && !isLocalHost(u.Hostname()) {
-		d.Error = "The issuer must use https. Plain http is only accepted for localhost."
-		return d
+		return d.failed("discovery.https", nil)
 	}
 	d.URL = strings.TrimRight(issuer, "/") + "/.well-known/openid-configuration"
 	start := time.Now()
@@ -55,39 +55,32 @@ func (s *Service) discover(ctx context.Context, issuer string) discovery {
 	resp, err := s.client().Do(req)
 	d.Millis = time.Since(start).Milliseconds()
 	if err != nil {
-		d.Error = "The issuer didn't answer: " + networkError(err)
-		return d
+		return d.failed("discovery.noAnswer", networkError(err))
 	}
 	defer func() { _ = resp.Body.Close() }()
 	d.Status = resp.StatusCode
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if resp.StatusCode != http.StatusOK {
-		d.Error = fmt.Sprintf("returned %d %s", resp.StatusCode, http.StatusText(resp.StatusCode))
-		return d
+		return d.failed("discovery.status", i18n.Args{"status": resp.StatusCode, "statusText": http.StatusText(resp.StatusCode)})
 	}
 	var doc discovery
 	if err := json.Unmarshal(body, &doc); err != nil {
-		d.Error = "returned something that isn't a discovery document (invalid JSON)."
-		return d
+		return d.failed("discovery.json", nil)
 	}
 	d.Issuer, d.AuthURL, d.TokenURL, d.UserInfo, d.JWKSURL, d.Algs = doc.Issuer, doc.AuthURL, doc.TokenURL, doc.UserInfo, doc.JWKSURL, doc.Algs
 	switch {
 	case d.Issuer == "":
-		d.Error = "The discovery document has no issuer."
-		return d
+		return d.failed("discovery.noIssuer", nil)
 	case !sameIssuer(d.Issuer, issuer) && !strings.Contains(d.Issuer, "{tenantid}"):
-		d.Error = fmt.Sprintf("The document's issuer is %s, not %s. Use exactly the issuer it reports.", d.Issuer, issuer)
-		return d
+		return d.failed("discovery.issuerMismatch", i18n.Args{"reported": d.Issuer, "entered": issuer})
 	case d.AuthURL == "" || d.TokenURL == "" || d.JWKSURL == "":
-		d.Error = "The discovery document is missing the authorization, token or JWKS endpoint."
-		return d
+		return d.failed("discovery.endpoints", nil)
 	}
 	// The signing keys must be reachable too, or no token can be verified.
 	kreq, _ := http.NewRequestWithContext(ctx, http.MethodGet, d.JWKSURL, nil)
 	kresp, err := s.client().Do(kreq)
 	if err != nil {
-		d.Error = "The JWKS endpoint didn't answer: " + networkError(err)
-		return d
+		return d.failed("discovery.jwksNoAnswer", networkError(err))
 	}
 	defer func() { _ = kresp.Body.Close() }()
 	var keys struct {
@@ -95,8 +88,7 @@ func (s *Service) discover(ctx context.Context, issuer string) discovery {
 	}
 	kb, _ := io.ReadAll(io.LimitReader(kresp.Body, 1<<20))
 	if kresp.StatusCode != http.StatusOK || json.Unmarshal(kb, &keys) != nil || len(keys.Keys) == 0 {
-		d.Error = fmt.Sprintf("The JWKS endpoint returned %d without signing keys.", kresp.StatusCode)
-		return d
+		return d.failed("discovery.jwksKeys", i18n.Args{"status": kresp.StatusCode})
 	}
 	d.Keys = len(keys.Keys)
 	d.OK = true
@@ -111,24 +103,36 @@ func isLocalHost(h string) bool {
 	return h == "localhost" || h == "127.0.0.1" || h == "::1" || strings.HasSuffix(h, ".localhost")
 }
 
-func networkError(err error) string {
+// failed records why a discovery test failed: the English, and the
+// message kept for later readers.
+func (d discovery) failed(key string, args i18n.Args) discovery {
+	d.ErrorText = keep(key, args)
+	d.Error = d.ErrorText.In(i18n.Default)
+	return d
+}
+
+// networkError is why a request got no answer, as the arguments of
+// discovery.noAnswer: why (timeout, dns, refused, tls or other) and the
+// library's error.
+func networkError(err error) i18n.Args {
 	var ue *url.Error
 	if errors.As(err, &ue) {
 		err = ue.Err
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
-		return "no answer within 8 seconds."
+		return i18n.Args{"why": "timeout", "error": ""}
 	}
 	msg := err.Error()
+	why := "other"
 	switch {
 	case strings.Contains(msg, "no such host"):
-		return "the host name doesn't resolve (DNS)."
+		why = "dns"
 	case strings.Contains(msg, "connection refused"):
-		return "the connection was refused."
+		why = "refused"
 	case strings.Contains(msg, "certificate"):
-		return "its TLS certificate isn't valid (" + msg + ")."
+		why = "tls"
 	}
-	return msg + "."
+	return i18n.Args{"why": why, "error": msg}
 }
 
 // provider returns a go-oidc provider for the issuer, discovering it when
@@ -192,24 +196,24 @@ func (s *Service) exchange(ctx context.Context, p *oidc.Provider, conf *oauth2.C
 	cctx := oidc.ClientContext(ctx, s.client())
 	tok, err := conf.Exchange(cctx, code, oauth2.VerifierOption(verifier))
 	if err != nil {
-		return nil, &flowError{Code: "token_exchange_failed", Detail: "The token exchange failed: " + oauthError(err)}
+		return nil, failure("token_exchange_failed", "flow.tokenExchange", i18n.Args{"error": oauthError(err)})
 	}
 	raw, ok := tok.Extra("id_token").(string)
 	if !ok || raw == "" {
-		return nil, &flowError{Code: "no_id_token", Detail: "The identity provider returned no ID token. Check that the openid scope is requested."}
+		return nil, failure("no_id_token", "flow.noIDToken", nil)
 	}
 	// The provider's shared key set caches the signing keys between sign-ins.
 	v := p.Verifier(&oidc.Config{ClientID: conf.ClientID, SkipIssuerCheck: skipIssuer, Now: s.now})
 	idt, err := v.Verify(cctx, raw)
 	if err != nil {
-		return nil, &flowError{Code: "invalid_id_token", Detail: "The ID token didn't verify: " + err.Error()}
+		return nil, failure("invalid_id_token", "flow.idTokenInvalid", i18n.Args{"error": err.Error()})
 	}
 	if idt.Nonce != nonce {
-		return nil, &flowError{Code: "nonce_mismatch", Detail: "The ID token's nonce doesn't match this sign-in. Start again."}
+		return nil, failure("nonce_mismatch", "flow.nonce", nil)
 	}
 	claims := map[string]any{}
 	if err := idt.Claims(&claims); err != nil {
-		return nil, &flowError{Code: "invalid_id_token", Detail: "The ID token's claims couldn't be read."}
+		return nil, failure("invalid_id_token", "flow.claims", nil)
 	}
 	// Some IdPs (Entra ID without optional claims, Keycloak with lean
 	// tokens) keep email or groups in userinfo only.
@@ -251,10 +255,13 @@ func firstLine(s string) string {
 }
 
 // flowError is a sign-in failure with a stable code (shown on the error
-// page with a reference id) and an explanation for the audit log.
+// page with a reference id) and an explanation for the audit log: Detail
+// in English, Text the message kept for later readers (none when the
+// explanation came from elsewhere, like another package's problem).
 type flowError struct {
 	Code   string
 	Detail string
+	Text   i18n.Text
 	// NoAccount sends the browser to "No account for this email" instead
 	// of the IdP error page.
 	NoAccount bool
@@ -262,6 +269,27 @@ type flowError struct {
 }
 
 func (e *flowError) Error() string { return e.Detail }
+
+// failure is a flowError explained by one of the package's messages.
+func failure(code, key string, args i18n.Args) *flowError {
+	t := keep(key, args)
+	return &flowError{Code: code, Detail: t.In(i18n.Default), Text: t}
+}
+
+// about names the email the failure is about.
+func (e *flowError) about(email string) *flowError {
+	e.Email = email
+	return e
+}
+
+// noAccount sends the browser to "No account for this email".
+func (e *flowError) noAccount(email string) *flowError {
+	e.NoAccount, e.Email = true, email
+	return e
+}
+
+// in is the explanation in a language.
+func (e *flowError) in(l i18n.Lang) string { return textIn(e.Text, l, e.Detail) }
 
 func firstNonEmpty(vals ...string) string {
 	for _, v := range vals {

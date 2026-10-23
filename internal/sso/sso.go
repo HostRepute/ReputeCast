@@ -9,6 +9,7 @@ package sso
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -19,9 +20,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/hostrepute/reputecast/internal/accounts"
+	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/config"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -115,7 +118,8 @@ func (s *Service) publicURL(ctx context.Context) string {
 }
 
 // SSOPreset describes an identity provider family: the issuer pattern, scopes,
-// claim names and the hints the setup screen shows.
+// claim names and the hints the setup screen shows. Presets holds them in
+// English; In writes one in a reader's language (messages preset.*).
 type SSOPreset struct {
 	Key  string `json:"key" enum:"google,entra,okta,keycloak,authentik,oidc"`
 	Name string `json:"name" example:"Microsoft Entra ID"`
@@ -272,6 +276,8 @@ type discovery struct {
 	Status    int       `json:"status,omitempty"`
 	Millis    int64     `json:"ms,omitempty"`
 	Error     string    `json:"error,omitempty"`
+	// ErrorText is Error's message, kept for later readers.
+	ErrorText i18n.Text `json:"error_text,omitzero"`
 	// From the document.
 	Issuer   string   `json:"issuer,omitempty"`
 	AuthURL  string   `json:"authorization_endpoint,omitempty"`
@@ -298,8 +304,10 @@ type testRun struct {
 	At     time.Time      `json:"at"`
 	By     string         `json:"by,omitempty"`
 	Claims map[string]any `json:"claims,omitempty"`
-	// Error is set when the IdP or the token exchange failed.
-	Error string `json:"error,omitempty"`
+	// Error is set when the IdP or the token exchange failed; ErrorText is
+	// its message, kept for later readers.
+	Error     string    `json:"error,omitempty"`
+	ErrorText i18n.Text `json:"error_text,omitzero"`
 }
 
 func lastTestOf(p store.SsoProvider) *testRun {
@@ -344,7 +352,21 @@ func normalizeDomains(in []string) ([]string, error) {
 
 type domainError struct{ d string }
 
-func (e *domainError) Error() string { return e.d + " isn't a domain like acme.io." }
+func (e *domainError) Error() string { return e.in(i18n.Default) }
+
+// in is the problem in a language.
+func (e *domainError) in(l i18n.Lang) string {
+	return msgs.M("problem.domain").Text(l, i18n.Args{"domain": e.d})
+}
+
+// domainProblem is a domain problem at loc, in the request's language.
+func domainProblem(ctx context.Context, loc string, err error) error {
+	var de *domainError
+	if errors.As(err, &de) {
+		return api.Invalid(loc, de.in(i18n.LangFrom(ctx)))
+	}
+	return api.Invalid(loc, err.Error())
+}
 
 func validDomain(d string) bool {
 	if len(d) > 253 || !strings.Contains(d, ".") || strings.HasPrefix(d, ".") || strings.HasSuffix(d, ".") {

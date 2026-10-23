@@ -320,7 +320,7 @@ func item(l i18n.Lang, id uuid.UUID, at time.Time, actorType string, actorID *uu
 	kept := audit.KeptIn(rawMeta)
 	it := AuditEventItem{
 		ID: id.String(), OccurredAt: at, Action: action, TargetType: targetType, TargetID: targetID, TargetName: targetName,
-		Target: targetLine(l, targetType, targetName, m, kept), Result: result, Reason: reasonIn(l, reason), RequestID: requestID,
+		Target: targetLine(l, targetType, targetName, m, kept), Result: result, Reason: audit.In(kept.Reason, l, reasonIn(l, reason)), RequestID: requestID,
 		Actor:  AuditActor{Type: actorType, Name: actorName, AvatarColor: color, Label: actorLabelIn(l, m.ActorLabel, actorType), Role: role},
 		Source: source(actorType, ip, m),
 	}
@@ -337,7 +337,7 @@ func item(l i18n.Lang, id uuid.UUID, at time.Time, actorType string, actorID *uu
 	case m.Detail != "":
 		it.Summary = audit.In(kept.Detail, l, m.Detail)
 	case reason != "":
-		it.Summary = reasonIn(l, reason)
+		it.Summary = audit.In(kept.Reason, l, reasonIn(l, reason))
 	default:
 		it.Summary = diffSummary(before, after)
 	}

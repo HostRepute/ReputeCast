@@ -108,6 +108,22 @@ func RoleName(l i18n.Lang, key, name string) string {
 	return m.Text(l, nil)
 }
 
+// RoleArg is a role's name as an argument of an audit entry's kept line
+// (audit.KeepReason, audit.KeepSummary): a built-in role under its own name
+// is its message, which audit.Render writes in each reader's language; any
+// other name stays as it is.
+func RoleArg(key, name string) any {
+	b, ok := authz.Builtin(key)
+	if !ok || (name != "" && name != b.Name) {
+		return name
+	}
+	m, err := msgs.Lookup("role." + key)
+	if err != nil {
+		return b.Name
+	}
+	return m.Keep(nil)
+}
+
 var escalationRe = regexp.MustCompile(`^You can't grant (.+) because you don't hold it\.$`)
 
 // localizedDetail writes an access problem's detail in another language.
