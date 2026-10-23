@@ -69,14 +69,11 @@ export const m = defineMessages('pushPrompt', {
   iconChanged: 'Icon changed for {host}',
   iconFailed: "Couldn't change the icon",
 
-  // When
+  // When: each rule is one sentence with its number field as {n}.
   when: 'When',
-  after: 'After',
-  secondsOnPage: 'seconds on a page',
-  afterScrolling: 'After scrolling',
-  percentOfPost: '% of a post',
-  afterReading: 'After reading',
-  posts: 'posts',
+  ruleSeconds: 'After {n} seconds on a page',
+  ruleScroll: 'After scrolling {n} % of a post',
+  rulePosts: 'After reading {n} posts',
   secondsLabel: 'Seconds',
   percentLabel: 'Percent of a post',
   postsLabel: 'Posts read',
@@ -107,8 +104,8 @@ export const m = defineMessages('pushPrompt', {
 
   // Frequency
   frequency: 'Frequency',
-  askAgain: 'After “Not now”, ask again in',
-  days: 'days',
+  // {n} is the number field; <text> takes the row's free space, <unit> follows the field.
+  askAgain: '<text>After “Not now”, ask again in</text> {n} <unit>days</unit>',
   daysLabel: 'Days before asking again',
   frequencyHint: "Never shown in a browser that blocked notifications. “Not now” never uses up the browser's one chance to ask.",
 
@@ -217,12 +214,9 @@ export const m = defineMessages('pushPrompt', {
   consentAllowed: 'Allowed',
   consentPage: 'Page',
   consentText: 'Prompt text',
-  consentLinked: '{browser} · {site} · linked to <link>{name}</link>, {how}',
+  consentLinked:
+    '{browser} · {site} · linked to <link>{name}</link>, {how, select, member {a signed-in member} preferences {from the preference center} account {from the account page} other {from a link that carried a token}}',
   consentAnon: '{browser} · {site} · anonymous',
-  linkedMember: 'a signed-in member',
-  linkedLink: 'from a link that carried a token',
-  linkedPreferences: 'from the preference center',
-  linkedAccount: 'from the account page',
   consentAt: '{date} · {zone}, from the browser · {ip}',
   consentAtNoIp: '{date} · {zone}, from the browser',
   consentVersion: 'v{version}, published {date} by {name}: {text}',

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/phone"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -46,21 +46,22 @@ type WhatsAppCredentialsInput struct {
 
 var idRe = regexp.MustCompile(`^[0-9]{5,30}$`)
 
-// metaProblem words a Graph API failure for the person connecting.
-func metaProblem(err error, field string) error {
+// metaProblem words a Graph API failure for the person connecting, in
+// their language; Meta's own explanation stays as Meta wrote it.
+func metaProblem(l i18n.Lang, err error, field string) error {
 	var me *meta.Error
 	if errors.As(err, &me) {
 		switch {
 		case me.TokenRejected():
-			return api.Invalid("body.accessToken", "Meta rejected the access token: "+clip(me.Message, 160))
+			return api.Invalid("body.accessToken", mTokenRejected.Text(l, i18n.Args{"message": clip(me.Message, 160)}))
 		case me.Code == 100 || me.Status == 404:
-			return api.Invalid(field, "Meta doesn't know this ID, or the token can't reach it: "+clip(me.Message, 160))
+			return api.Invalid(field, mUnknownID.Text(l, i18n.Args{"message": clip(me.Message, 160)}))
 		case me.Unavailable():
-			return api.Err(502, "meta_unavailable", "Meta's Graph API didn't answer. Try again in a moment.")
+			return api.Err(502, "meta_unavailable", mMetaUnavailable.Text(l, nil))
 		}
-		return api.Err(502, "meta_error", "Meta answered: "+clip(me.Message, 200))
+		return api.Err(502, "meta_error", mMetaAnswered.Text(l, i18n.Args{"message": clip(me.Message, 200)}))
 	}
-	return api.Err(502, "meta_unavailable", "Meta's Graph API didn't answer. Try again in a moment.")
+	return api.Err(502, "meta_unavailable", mMetaUnavailable.Text(l, nil))
 }
 
 // info is what Meta reports for an account.
@@ -108,23 +109,24 @@ func setInfo(ctx context.Context, q *store.Queries, id uuid.UUID, in info, at ti
 // webhook to paste in Meta's app settings. Nothing is sent until Meta
 // verifies the webhook.
 func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Principal, in WhatsAppConnectInput) error {
+	l := langOf(ctx)
 	if _, err := s.account(ctx, s.Q, ws); err == nil {
-		return api.Conflict("WhatsApp is already connected. Disconnect it first to use another account.")
+		return api.Conflict(mAlreadyConnectedSwitch.Text(l, nil))
 	} else if !errors.Is(err, errNoAccount) {
 		return err
 	}
 	creds := meta.Credentials{BusinessAccountID: strings.TrimSpace(in.BusinessAccountID), PhoneNumberID: strings.TrimSpace(in.PhoneNumberID),
 		AccessToken: strings.TrimSpace(in.AccessToken), AppSecret: strings.TrimSpace(in.AppSecret)}
 	if !idRe.MatchString(creds.BusinessAccountID) {
-		return api.Invalid("body.businessAccountId", "The WhatsApp Business Account ID is a number, from WhatsApp Manager › Account tools.")
+		return api.Invalid("body.businessAccountId", mBusinessIDNumber.Text(l, nil))
 	}
 	if !idRe.MatchString(creds.PhoneNumberID) {
-		return api.Invalid("body.phoneNumberId", "The phone number ID is a number, from your app's WhatsApp › API setup page.")
+		return api.Invalid("body.phoneNumberId", mPhoneIDNumber.Text(l, nil))
 	}
 	c := s.clientFor(creds, false)
 	got, err := s.fetch(ctx, c)
 	if err != nil {
-		return metaProblem(err, "body.phoneNumberId")
+		return metaProblem(l, err, "body.phoneNumberId")
 	}
 	// Meta posts webhooks for the account only to subscribed apps.
 	if err := c.SubscribeApp(ctx); err != nil {
@@ -141,7 +143,7 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		if err := q.WhatsAppAccountInsert(ctx, store.WhatsAppAccountInsertParams{ID: id, WorkspaceID: ws.ID, CredentialsEnc: sealed,
 			BusinessHint: hint(creds.BusinessAccountID), VerifyToken: randomToken(), ConnectedAt: &now, ConnectedBy: uuidPtr(p.UserID)}); err != nil {
 			if strings.Contains(err.Error(), "whatsapp_accounts_live_idx") {
-				return api.Conflict("WhatsApp is already connected.")
+				return api.Conflict(mAlreadyConnected.Text(l, nil))
 			}
 			return err
 		}
@@ -168,9 +170,10 @@ func (s *Service) Connect(ctx context.Context, ws *store.Workspace, p *authz.Pri
 // ReplaceCredentials seals new credentials after Meta accepts them. A
 // rejected token's held messages go again (Reconnect).
 func (s *Service) ReplaceCredentials(ctx context.Context, ws *store.Workspace, p *authz.Principal, in WhatsAppCredentialsInput) error {
+	l := langOf(ctx)
 	a, err := s.account(ctx, s.Q, ws)
 	if errors.Is(err, errNoAccount) {
-		return api.Conflict("Connect WhatsApp first.")
+		return api.Conflict(mConnectFirst.Text(l, nil))
 	}
 	if err != nil {
 		return err
@@ -182,13 +185,13 @@ func (s *Service) ReplaceCredentials(ctx context.Context, ws *store.Workspace, p
 	changed := []string{}
 	if v := strings.TrimSpace(in.BusinessAccountID); v != "" {
 		if !idRe.MatchString(v) {
-			return api.Invalid("body.businessAccountId", "The WhatsApp Business Account ID is a number, from WhatsApp Manager › Account tools.")
+			return api.Invalid("body.businessAccountId", mBusinessIDNumber.Text(l, nil))
 		}
 		creds.BusinessAccountID, changed = v, append(changed, "business_account_id")
 	}
 	if v := strings.TrimSpace(in.PhoneNumberID); v != "" {
 		if !idRe.MatchString(v) {
-			return api.Invalid("body.phoneNumberId", "The phone number ID is a number, from your app's WhatsApp › API setup page.")
+			return api.Invalid("body.phoneNumberId", mPhoneIDNumber.Text(l, nil))
 		}
 		creds.PhoneNumberID, changed = v, append(changed, "phone_number_id")
 	}
@@ -199,12 +202,12 @@ func (s *Service) ReplaceCredentials(ctx context.Context, ws *store.Workspace, p
 		creds.AppSecret, changed = v, append(changed, "app_secret")
 	}
 	if len(changed) == 0 {
-		return api.Invalid("body", "Enter the value to replace: the access token, the app secret or an ID.")
+		return api.Invalid("body", mReplaceWhat.Text(l, nil))
 	}
 	c := s.clientFor(creds, a.Demo)
 	got, err := s.fetch(ctx, c)
 	if err != nil {
-		return metaProblem(err, "body.phoneNumberId")
+		return metaProblem(l, err, "body.phoneNumberId")
 	}
 	raw, _ := json.Marshal(creds) //nolint:gosec // G117: sealed with internal/secrets at once, never stored or returned as is
 	sealed, err := s.Box.Seal(raw, credAD(a.ID))
@@ -293,7 +296,7 @@ func (s *Service) Verify(ctx context.Context, slug, mode, token, challenge strin
 func (s *Service) Check(ctx context.Context, ws *store.Workspace, p *authz.Principal) error {
 	a, err := s.account(ctx, s.Q, ws)
 	if errors.Is(err, errNoAccount) {
-		return api.Conflict("Connect WhatsApp first.")
+		return api.Conflict(mConnectFirst.Text(langOf(ctx), nil))
 	}
 	if err != nil {
 		return err
@@ -363,21 +366,8 @@ func qualityRank(q string) int {
 	return 0
 }
 
-// qualityLabel is "High", "Medium", "Low".
-func qualityLabel(q string) string {
-	switch q {
-	case "high":
-		return "High"
-	case "medium":
-		return "Medium"
-	case "low":
-		return "Low"
-	}
-	return "Unknown"
-}
-
 // tokenRejected marks the account, holds what waits to go and tells the
-// providers' managers, once.
+// providers' managers, once, each in their own language.
 func (s *Service) tokenRejected(ctx context.Context, ws *store.Workspace, a store.WhatsappAccount, me *meta.Error) error {
 	now := s.now()
 	detail := "rejected"
@@ -396,15 +386,14 @@ func (s *Service) tokenRejected(ctx context.Context, ws *store.Workspace, a stor
 			return err
 		}
 		held := s.heldNames(ctx, tx, ws)
-		summary := "WhatsApp sends are held until the token is replaced"
+		summary := mNotifyTokenSummary.Keep(nil)
 		if len(held) > 0 {
-			summary = "Held: " + strings.Join(held, ", ")
+			// Campaign and automation names, as a list of names in any language.
+			summary = mNotifyTokenSummaryHeld.Keep(i18n.Args{"names": strings.Join(held, ", ")})
 		}
 		return notify.ToMembersWith(ctx, tx, ws.ID, authz.ProvidersManage, notify.Notification{Kind: notify.KindWhatsAppTokenFails, Severity: "bad",
-			Title:   fmt.Sprintf("Meta rejected the WhatsApp access token: it %s", map[bool]string{true: "expired", false: "was refused"}[me.Expired()]),
-			Summary: summary,
-			Body:    "WhatsApp sends are held until the token is replaced. Nothing has been lost yet. Enter a new permanent access token in Sending providers › WhatsApp to reconnect.",
-			Link:    "/w/" + ws.Slug + "/providers/whatsapp", Data: map[string]any{"code": me.Code, "subcode": me.Subcode}})
+			TitleText: mNotifyTokenTitle.Keep(i18n.Args{"reason": detail}), SummaryText: summary, BodyText: mNotifyTokenBody.Keep(nil),
+			Link: "/w/" + ws.Slug + "/providers/whatsapp", Data: map[string]any{"code": me.Code, "subcode": me.Subcode}})
 	})
 }
 
@@ -428,15 +417,16 @@ func (s *Service) heldNames(ctx context.Context, q store.DBTX, ws *store.Workspa
 	return out
 }
 
-// notifyQuality tells the providers' managers the quality rating dropped.
+// notifyQuality tells the providers' managers the quality rating dropped,
+// each in their own language.
 func (s *Service) notifyQuality(ctx context.Context, ws *store.Workspace, before, after string, limit, prevLimit int) {
-	summary := "Quality rating " + qualityLabel(after) + ", was " + qualityLabel(before)
+	args := i18n.Args{"quality": after, "previous": before}
+	summary := mNotifyQualitySummary.Keep(args)
 	if limit > 0 && limit < prevLimit {
-		summary += fmt.Sprintf(" · messaging limit %s a day, was %s", count(int64(limit)), count(int64(prevLimit)))
+		summary = mNotifyQualityLimit.Keep(i18n.Args{"quality": after, "previous": before, "limit": limit, "previousLimit": prevLimit})
 	}
 	if err := notify.ToMembersWith(ctx, s.Pool, ws.ID, authz.ProvidersView, notify.Notification{Kind: notify.KindWhatsAppAttention, Severity: "warn",
-		Title: "WhatsApp quality dropped to " + qualityLabel(after), Summary: summary,
-		Body: "More people blocked or reported recent messages. At Low, Meta can limit the number of people you can message further.",
+		TitleText: mNotifyQualityTitle.Keep(i18n.Args{"quality": after}), SummaryText: summary, BodyText: mNotifyQualityBody.Keep(nil),
 		Link: "/w/" + ws.Slug + "/providers/whatsapp", Data: map[string]any{"quality": after, "previous": before, "limit": limit}}); err != nil {
 		s.log().WarnContext(ctx, "whatsapp quality notification", "err", err)
 	}
@@ -466,14 +456,14 @@ type WhatsAppTestResult struct {
 func (s *Service) SendAccountTest(ctx context.Context, ws *store.Workspace, p *authz.Principal, in WhatsAppTestInput) (WhatsAppTestResult, error) {
 	a, err := s.account(ctx, s.Q, ws)
 	if errors.Is(err, errNoAccount) {
-		return WhatsAppTestResult{}, api.Conflict("Connect WhatsApp first.")
+		return WhatsAppTestResult{}, api.Conflict(mConnectFirst.Text(langOf(ctx), nil))
 	}
 	if err != nil {
 		return WhatsAppTestResult{}, err
 	}
 	n, err := phone.Parse(in.Phone, "")
 	if err != nil {
-		return WhatsAppTestResult{}, api.Invalid("body.phone", "Enter the number with its country code, like +1 312 555 0123.")
+		return WhatsAppTestResult{}, api.Invalid("body.phone", mPhoneFormat.Text(langOf(ctx), nil))
 	}
 	tpl, err := s.testTemplate(ctx, a.ID, ws, in.TemplateID)
 	if err != nil {
@@ -490,14 +480,15 @@ func (s *Service) SendAccountTest(ctx context.Context, ws *store.Workspace, p *a
 // testTemplate is a test's template: the one asked for, or the first
 // approved one.
 func (s *Service) testTemplate(ctx context.Context, accountID uuid.UUID, ws *store.Workspace, id string) (store.WhatsappTemplate, error) {
+	l := langOf(ctx)
 	if id != "" {
 		tid, err := uuid.Parse(id)
 		if err != nil {
-			return store.WhatsappTemplate{}, api.Invalid("body.templateId", "Pick one of the account's approved templates.")
+			return store.WhatsappTemplate{}, api.Invalid("body.templateId", mPickApprovedTemplate.Text(l, nil))
 		}
 		t, err := s.Q.WhatsAppTemplate(ctx, store.WhatsAppTemplateParams{ID: tid, WorkspaceID: ws.ID})
 		if err != nil || t.Status != "approved" || t.RemovedAt != nil {
-			return store.WhatsappTemplate{}, api.Invalid("body.templateId", "Pick one of the account's approved templates.")
+			return store.WhatsappTemplate{}, api.Invalid("body.templateId", mPickApprovedTemplate.Text(l, nil))
 		}
 		return t, nil
 	}
@@ -510,7 +501,7 @@ func (s *Service) testTemplate(ctx context.Context, accountID uuid.UUID, ws *sto
 			return t, nil
 		}
 	}
-	return store.WhatsappTemplate{}, api.Conflict("The account has no approved template yet: a test is a template message. Create one in WhatsApp Manager.")
+	return store.WhatsappTemplate{}, api.Conflict(mNoApprovedTemplate.Text(l, nil))
 }
 
 // queueTest writes a test message, remembers the member's number and

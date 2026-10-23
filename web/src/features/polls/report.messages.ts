@@ -115,6 +115,8 @@ export const m = defineMessages('pollReport', {
   overTimeAria: 'Cumulative answers by hour: {count} by {hours} hours',
   bySix: '{percent} by +6 h',
   sentAt: 'Sent {time}',
+  // An hour tick on the chart: +24 h.
+  plusHours: '+{n} h',
   now: 'now',
 
   // Comments.

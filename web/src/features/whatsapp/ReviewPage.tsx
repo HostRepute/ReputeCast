@@ -13,7 +13,7 @@ import { useT } from '@/i18n'
 import { andList, clock, count, dayMonthDate, money } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { throwIfForbidden } from './common'
-import { CheckRow, dayWord } from './Checks'
+import { CheckRow, laterDay } from './Checks'
 import { m } from './campaign.messages'
 import '@/features/push/push.css'
 import './whatsapp.css'
@@ -90,7 +90,7 @@ function ReviewCard({ d }: { d: Review }) {
               r.status === 'scheduled'
                 ? t(m.scheduledToast, { date: dayMonthDate(r.scheduledAt), time: clock(r.scheduledAt) })
                 : r.later
-                  ? t(m.sentSplitToast, { now: count(r.now), later: count(r.later), laterDay: dayWord(t, split?.laterAt) })
+                  ? t(m.sentSplitToast, { now: count(r.now), later: count(r.later), laterDay: laterDay(split?.laterAt) })
                   : t(m.sentToast, { n: r.recipients }),
           })
           void qc.invalidateQueries({ predicate: (x) => typeof x.queryKey[1] === 'string' && x.queryKey[1].includes('whatsapp') })
@@ -152,7 +152,7 @@ function ReviewCard({ d }: { d: Review }) {
         ) : pending ? null : split && split.later > 0 ? (
           <div className="flex flex-wrap gap-2">
             <Button variant="primary" onClick={() => setConfirming('next_day')} disabledReason={blockedReason}>
-              {t(m.sendSplit, { now: count(split.now), later: count(split.later), laterDay: dayWord(t, split.laterAt) })}
+              {t(m.sendSplit, { now: count(split.now), later: count(split.later), laterDay: laterDay(split.laterAt) })}
             </Button>
             <Button onClick={() => setConfirming('skip')} disabledReason={blockedReason}>
               {t(m.sendSkip, { now: count(split.now), later: count(split.later) })}

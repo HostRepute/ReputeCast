@@ -7,7 +7,7 @@ import { toast } from '@/components/ui/Toast'
 import { formatList, T, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { useNow } from '@/lib/hooks'
-import { ago, clock, count, duration, shortDate } from '@/lib/format'
+import { ago, clock, count, duration, pct, shortDate } from '@/lib/format'
 import { deniedReason, useWorkspace } from '@/lib/session'
 import { saveBlob } from '@/features/audience/download'
 import type { MapPoll } from '@/features/reports/ClickMap'
@@ -16,10 +16,6 @@ import { m } from './report.messages'
 import './report.css'
 
 export type PollResults = Schemas['PollResults']
-
-function pct(v: number): string {
-  return `${v.toFixed(1)}%`
-}
 
 const b = (chunks: ReactNode[]) => <b>{chunks}</b>
 
@@ -482,7 +478,7 @@ function OverTime({ p }: { p: PollResults }) {
         ))}
         {ticks.map((h) => (
           <text key={h} x={x(h)} y={BASE + 18} textAnchor={h === 0 ? 'start' : 'middle'} className="pr-ax">
-            {h === 0 ? (since ? t(m.sentAt, { time: clock(since) }) : '0') : `+${h} h`}
+            {h === 0 ? (since ? t(m.sentAt, { time: clock(since) }) : '0') : t(m.plusHours, { n: h })}
           </text>
         ))}
         {area ? <path d={area} fill="var(--accent-tint)" /> : null}
@@ -491,7 +487,7 @@ function OverTime({ p }: { p: PollResults }) {
           <g>
             <circle cx={x(6)} cy={y(six)} r="3.5" fill="var(--accent)" />
             <text x={x(6) + 8} y={y(six) + 14} className="pr-ax b">
-              {t(m.bySix, { percent: `${Math.round(p.overTime.firstSixPercent)}%` })}
+              {t(m.bySix, { percent: pct(p.overTime.firstSixPercent, 0) })}
             </text>
           </g>
         ) : null}
@@ -509,7 +505,7 @@ function OverTime({ p }: { p: PollResults }) {
           </g>
         ) : null}
       </svg>
-      {live ? null : <span className="k">{t(m.overTimeNote, { percent: `${Math.round(p.overTime.firstSixPercent)}%`, after: p.overTime.after })}</span>}
+      {live ? null : <span className="k">{t(m.overTimeNote, { percent: pct(p.overTime.firstSixPercent, 0), after: p.overTime.after })}</span>}
     </div>
   )
 }

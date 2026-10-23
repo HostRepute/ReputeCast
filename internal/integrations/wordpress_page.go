@@ -208,7 +208,7 @@ func (s *Service) siteView(ctx context.Context, ws *store.Workspace, l loaded, p
 			v.WooCommerce.StoreID, v.WooCommerce.StoreName, v.WooCommerce.StoreStatus = r.ID.String(), r.Name, r.Status
 		}
 	}
-	if c := lastCheck(st); c != nil {
+	if c := lastCheck(lang(ctx), st); c != nil {
 		v.LastCheck = c
 	}
 	_ = json.Unmarshal(st.Categories, &v.Categories)
@@ -284,11 +284,11 @@ func (s *Service) siteView(ctx context.Context, ws *store.Workspace, l loaded, p
 	lists, _ := access.ListNames(ctx, s.Q, ws.ID)
 	cur, old := current(l.keys, s.now())
 	if cur != nil {
-		k := keyView(*cur, lists, s.now())
+		k := keyView(lang(ctx), *cur, lists, s.now())
 		v.Key = &k
 	}
 	if old != nil {
-		k := keyView(*old, lists, s.now())
+		k := keyView(lang(ctx), *old, lists, s.now())
 		v.OldKey = &k
 	}
 	return v

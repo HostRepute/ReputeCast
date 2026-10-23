@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/webhooks"
 )
@@ -555,15 +557,16 @@ func (s *Service) SaveSendSettings(ctx context.Context, ws *store.Workspace, p *
 	if err != nil {
 		return PushReview{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	switch c.Status {
 	case "draft", "approval", "approved":
 	default:
-		return PushReview{}, api.Conflict("This campaign is " + c.Status + ": its schedule can't change.")
+		return PushReview{}, api.Conflict(mProblemScheduleLocked.Text(l, i18n.Args{"status": c.Status}))
 	}
 	var at *time.Time
 	if in.Mode == "at" {
 		if in.SendAt == nil || !in.SendAt.After(s.now()) {
-			return PushReview{}, api.Invalid("body.sendAt", "Pick a time in the future.")
+			return PushReview{}, api.Invalid("body.sendAt", mProblemFutureTime.Text(l, nil))
 		}
 		at = in.SendAt
 	}
@@ -698,20 +701,21 @@ func (s *Service) Send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	if err != nil {
 		return PushSendResult{}, err
 	}
+	l := i18n.LangFrom(ctx)
 	switch c.Status {
 	case "draft", "approval", "approved":
 	default:
-		return PushSendResult{}, api.Conflict("This campaign is already " + c.Status + ".")
+		return PushSendResult{}, api.Conflict(mProblemAlreadySent.Text(l, i18n.Args{"status": c.Status}))
 	}
 	if in.Version != int(c.Version) {
-		return PushSendResult{}, api.Err(409, "stale_version", fmt.Sprintf("The campaign changed since you reviewed it (now version %d). Review it again.", c.Version))
+		return PushSendResult{}, api.Err(409, "stale_version", mProblemChanged.Text(l, i18n.Args{"version": strconv.Itoa(int(c.Version))}))
 	}
 	rv, err := s.buildReview(ctx, ws, p, c, false)
 	if err != nil {
 		return PushSendResult{}, err
 	}
 	if _, blocks := rv.counts(); blocks > 0 {
-		return PushSendResult{}, api.Err(409, "readiness_blocked", "Fix the blocking checks before sending.")
+		return PushSendResult{}, api.Err(409, "readiness_blocked", mProblemBlocked.Text(l, nil))
 	}
 	var approval *store.ApprovalRequest
 	if s.Approvals != nil {
@@ -766,7 +770,7 @@ func (s *Service) Unschedule(ctx context.Context, ws *store.Workspace, id uuid.U
 	}
 	snd, err := s.Q.PushSend(ctx, id)
 	if c.Status != "scheduled" || err != nil || snd.Phase != "scheduled" {
-		return api.Conflict("Only a scheduled campaign that hasn't started can go back to a draft.")
+		return api.Conflict(mProblemUnschedule.Text(i18n.LangFrom(ctx), nil))
 	}
 	return s.tx(ctx, func(q *store.Queries, tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `DELETE FROM push_sends WHERE campaign_id = $1 AND phase = 'scheduled'`, id); err != nil {
@@ -788,7 +792,7 @@ func (s *Service) Cancel(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 		return err
 	}
 	if c.Status != "sending" && c.Status != "scheduled" {
-		return api.Conflict("Only a scheduled or sending campaign can be cancelled.")
+		return api.Conflict(mProblemCancel.Text(i18n.LangFrom(ctx), nil))
 	}
 	now := s.now()
 	return s.tx(ctx, func(q *store.Queries, tx pgx.Tx) error {

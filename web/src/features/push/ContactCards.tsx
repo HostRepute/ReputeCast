@@ -131,7 +131,7 @@ function WhatsAppCard({ contactId }: { contactId: string }) {
             <>
               <span className="mono">{d.display}</span> ·{' '}
               {d.lineType && d.lineType !== 'unknown'
-                ? t(m.phoneLine, { country, type: d.lineType, zone: d.timeZone })
+                ? t(m.phoneLine, { country, type: d.lineType, typeText: d.lineType.replace(/_/g, ' '), zone: d.timeZone })
                 : t(m.phoneLineNoType, { country, zone: d.timeZone })}
             </>
           ) : (
@@ -166,7 +166,13 @@ function WhatsAppCard({ contactId }: { contactId: string }) {
           </>
         ) : null}
       </dl>
-      {d.suppressed ? <span className="err">{t(m.suppressed, { reason: d.suppressed.keyword ? `${d.suppressed.reason} · ${d.suppressed.keyword}` : d.suppressed.reason })}</span> : null}
+      {d.suppressed ? (
+        <span className="err">
+          {d.suppressed.keyword
+            ? t(m.suppressedKeyword, { reason: d.suppressed.reason, reasonText: d.suppressed.reason.replace(/_/g, ' '), keyword: d.suppressed.keyword })
+            : t(m.suppressed, { reason: d.suppressed.reason, reasonText: d.suppressed.reason.replace(/_/g, ' ') })}
+        </span>
+      ) : null}
       {d.thread.length ? (
         <div className="wa-thread">
           <div className="hd">

@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -183,18 +184,19 @@ func surveyClosesAt(st SurveySettings, wsTZ string) *time.Time {
 	return &t
 }
 
-// Problems lists what keeps a survey from being published.
-func SurveyProblems(qs []SurveyQuestion) []SurveyProblem {
+// SurveyProblems lists what keeps a survey from being published, in a
+// reader's language.
+func SurveyProblems(l i18n.Lang, qs []SurveyQuestion) []SurveyProblem {
 	out := []SurveyProblem{}
 	if len(qs) == 0 {
-		out = append(out, SurveyProblem{Field: "questions", Message: "Add the first question."})
+		out = append(out, SurveyProblem{Field: "questions", Message: mSurveyFirst.Text(l, nil)})
 	}
 	if len(qs) > MaxQuestions {
-		out = append(out, SurveyProblem{Field: "questions", Message: fmt.Sprintf("A survey takes up to %d questions.", MaxQuestions)})
+		out = append(out, SurveyProblem{Field: "questions", Message: mSurveyMax.Text(l, i18n.Args{"max": MaxQuestions})})
 	}
 	for _, q := range qs {
 		if strings.TrimSpace(q.Text) == "" {
-			out = append(out, SurveyProblem{Question: q.Key, Field: "text", Message: "Write the question."})
+			out = append(out, SurveyProblem{Question: q.Key, Field: "text", Message: mSurveyQuestion.Text(l, nil)})
 		}
 		if q.Type == QuestionSingle || q.Type == QuestionMulti {
 			n := 0
@@ -204,19 +206,19 @@ func SurveyProblems(qs []SurveyQuestion) []SurveyProblem {
 				}
 			}
 			if n < 2 {
-				out = append(out, SurveyProblem{Question: q.Key, Field: "answers", Message: "A choice question needs at least two answers."})
+				out = append(out, SurveyProblem{Question: q.Key, Field: "answers", Message: mSurveyTwoAnswers.Text(l, nil)})
 			}
 		}
 		switch q.Save.To {
 		case "field":
 			if strings.TrimSpace(q.Save.Field) == "" {
-				out = append(out, SurveyProblem{Question: q.Key, Field: "save", Message: "Pick the field the answer is saved to."})
+				out = append(out, SurveyProblem{Question: q.Key, Field: "save", Message: mSurveyField.Text(l, nil)})
 			}
 		case "tags":
 			if q.Type == QuestionSingle || q.Type == QuestionMulti {
 				for _, a := range q.Answers {
 					if strings.TrimSpace(a.Label) != "" && strings.TrimSpace(a.Tag) == "" {
-						out = append(out, SurveyProblem{Question: q.Key, Field: "save", Message: "Give every answer a tag, or don't save the answer."})
+						out = append(out, SurveyProblem{Question: q.Key, Field: "save", Message: mSurveyTags.Text(l, nil)})
 						break
 					}
 				}
@@ -255,7 +257,7 @@ func (s *Service) surveyOf(ctx context.Context, ws *store.Workspace, r store.Sur
 	out := Survey{ID: r.ID.String(), Number: r.Number, Slug: r.Slug, Name: r.Name, Description: r.Description, Status: r.Status, Questions: qs, Settings: st,
 		ClosesAt: r.ClosesAt, PublishedAt: r.PublishedAt, PublishedBy: r.PublishedByName, ClosedAt: r.ClosedAt, ClosedBy: r.ClosedByName, CreatedBy: r.CreatedByName,
 		CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt, Started: r.Started, Completed: r.Completed, Variable: "{{ " + SurveyVar(r.Number) + " }}",
-		Linked: []SurveyLink{}, Problems: SurveyProblems(qs), EditHelpers: []string{}}
+		Linked: []SurveyLink{}, Problems: SurveyProblems(i18n.LangFrom(ctx), qs), EditHelpers: []string{}}
 	out.URL = s.pageLinks(ctx, ws).Survey(r.Slug)
 	if out.Status == SurveyOpen && out.ClosesAt != nil && !s.now().Before(*out.ClosesAt) {
 		out.Status = SurveyClosed
@@ -321,14 +323,17 @@ type SurveyCreate struct {
 
 // CreateSurvey makes a draft survey with no questions yet.
 func (s *Service) CreateSurvey(ctx context.Context, ws *store.Workspace, p *authz.Principal, in SurveyCreate) (Survey, error) {
+	// A new survey's name and thank-you text are its author's, in their
+	// language, until they rewrite them.
+	l := i18n.LangFrom(ctx)
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		name = "Untitled survey"
+		name = mLabelUntitled.Text(l, nil)
 	}
 	id := uuid.Must(uuid.NewV7())
 	now := s.now()
 	st := SurveySettings{Close: SurveyClose{Mode: "manual"}, Timezone: ws.Timezone, OneResponse: true, AcceptNonContacts: false,
-		Thanks: "Your answers are saved."}
+		Thanks: mLabelThanks.Text(l, nil)}
 	sb, _ := json.Marshal(st)
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -378,6 +383,7 @@ type SurveyUpdate struct {
 // UpdateSurvey saves a survey's changes. Settings changes are audited with
 // before and after; editing an open survey applies to new responses.
 func (s *Service) UpdateSurvey(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in SurveyUpdate) (Survey, error) {
+	l := i18n.LangFrom(ctx)
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		cur, err := q.SurveyGet(ctx, store.SurveyGetParams{WorkspaceID: ws.ID, ID: id})
@@ -395,7 +401,7 @@ func (s *Service) UpdateSurvey(ctx context.Context, ws *store.Workspace, p *auth
 			if taken, err := q.SurveySlugTaken(ctx, store.SurveySlugTakenParams{WorkspaceID: ws.ID, Slug: *in.Slug, ID: id}); err != nil {
 				return err
 			} else if taken {
-				return api.Invalid("body.slug", "Another survey of this workspace has that address. Pick another.")
+				return api.Invalid("body.slug", mSurveySlugTaken.Text(l, nil))
 			}
 			before["slug"], after["slug"] = slug, *in.Slug
 			slug = *in.Slug
@@ -405,7 +411,7 @@ func (s *Service) UpdateSurvey(ctx context.Context, ws *store.Workspace, p *auth
 			desc = *in.Description
 		}
 		if in.Questions != nil {
-			next, err := normalizeQuestions(in.Questions)
+			next, err := normalizeQuestions(l, in.Questions)
 			if err != nil {
 				return err
 			}
@@ -430,8 +436,8 @@ func (s *Service) UpdateSurvey(ctx context.Context, ws *store.Workspace, p *auth
 		// An open survey's page takes answers: it keeps every question
 		// complete, as publishing does.
 		if cur.Status == SurveyOpen {
-			if probs := SurveyProblems(qs); len(probs) > 0 {
-				return api.Err(422, "survey_incomplete", "Publishing waits until every question is complete: "+probs[0].Message).WithMeta("problems", probs)
+			if probs := SurveyProblems(l, qs); len(probs) > 0 {
+				return api.Err(422, "survey_incomplete", mSurveyIncomplete.Text(l, i18n.Args{"problem": probs[0].Message})).WithMeta("problems", probs)
 			}
 		}
 		qb, _ := json.Marshal(qs)
@@ -466,9 +472,9 @@ func sameJSON(a, b any) bool {
 }
 
 // normalizeQuestions numbers questions and answers and checks their types.
-func normalizeQuestions(in []SurveyQuestion) ([]SurveyQuestion, error) {
+func normalizeQuestions(l i18n.Lang, in []SurveyQuestion) ([]SurveyQuestion, error) {
 	if len(in) > MaxQuestions {
-		return nil, api.Invalid("body.questions", fmt.Sprintf("A survey takes up to %d questions.", MaxQuestions))
+		return nil, api.Invalid("body.questions", mSurveyMax.Text(l, i18n.Args{"max": MaxQuestions}))
 	}
 	out := make([]SurveyQuestion, 0, len(in))
 	keys := map[string]bool{}
@@ -484,7 +490,7 @@ func normalizeQuestions(in []SurveyQuestion) ([]SurveyQuestion, error) {
 		switch q.Type {
 		case QuestionSingle, QuestionMulti, QuestionScale, QuestionEmoji, QuestionShort, QuestionLong:
 		default:
-			return nil, api.Invalid("body.questions", "Pick a type for every question: single choice, multiple choice, 0–10 scale, emoji scale, short or long text.")
+			return nil, api.Invalid("body.questions", mSurveyType.Text(l, nil))
 		}
 		if q.Type == QuestionSingle || q.Type == QuestionMulti {
 			used := map[int]bool{}
@@ -519,6 +525,7 @@ func normalizeQuestions(in []SurveyQuestion) ([]SurveyQuestion, error) {
 
 // PublishSurvey opens a survey's page. Every question must be complete.
 func (s *Service) PublishSurvey(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (Survey, error) {
+	l := i18n.LangFrom(ctx)
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		cur, err := q.SurveyGet(ctx, store.SurveyGetParams{WorkspaceID: ws.ID, ID: id})
@@ -526,13 +533,13 @@ func (s *Service) PublishSurvey(ctx context.Context, ws *store.Workspace, p *aut
 			return api.MapError(err, "Survey")
 		}
 		qs, st := decodeSurvey(cur.Questions, cur.Settings)
-		if probs := SurveyProblems(qs); len(probs) > 0 {
-			return api.Err(422, "survey_incomplete", "Publishing waits until every question is complete: "+probs[0].Message).WithMeta("problems", probs)
+		if probs := SurveyProblems(l, qs); len(probs) > 0 {
+			return api.Err(422, "survey_incomplete", mSurveyIncomplete.Text(l, i18n.Args{"problem": probs[0].Message})).WithMeta("problems", probs)
 		}
 		now := s.now()
 		closes := surveyClosesAt(st, ws.Timezone)
 		if closes != nil && !now.Before(*closes) {
-			return api.Invalid("body.settings.close", "The closing date has passed. Pick a later date, or close the survey by hand.")
+			return api.Invalid("body.settings.close", mSurveyClosePassed.Text(l, nil))
 		}
 		by := userOf(p)
 		if err := q.SurveySetStatus(ctx, store.SurveySetStatusParams{ID: id, Status: SurveyOpen, PublishedAt: &now, PublishedBy: by, ClosesAt: closes, At: now}); err != nil {
@@ -558,6 +565,7 @@ type SurveyReopen struct {
 
 // SetSurveyOpen closes or reopens a survey.
 func (s *Service) SetSurveyOpen(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, open bool, in SurveyReopen) (Survey, error) {
+	l := i18n.LangFrom(ctx)
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		cur, err := q.SurveyGet(ctx, store.SurveyGetParams{WorkspaceID: ws.ID, ID: id})
@@ -569,7 +577,7 @@ func (s *Service) SetSurveyOpen(ctx context.Context, ws *store.Workspace, p *aut
 		_, st := decodeSurvey(cur.Questions, cur.Settings)
 		if !open {
 			if cur.Status == SurveyDraft {
-				return api.Conflict("This survey isn't published yet, so there's nothing to close.")
+				return api.Conflict(mSurveyNotOpen.Text(l, nil))
 			}
 			if err := q.SurveySetStatus(ctx, store.SurveySetStatusParams{ID: id, Status: SurveyClosed, ClosedAt: &now, ClosedBy: by, ClosesAt: cur.ClosesAt, At: now}); err != nil {
 				return err
@@ -584,7 +592,7 @@ func (s *Service) SetSurveyOpen(ctx context.Context, ws *store.Workspace, p *aut
 		}
 		closes := surveyClosesAt(st, ws.Timezone)
 		if closes != nil && !now.Before(*closes) {
-			return api.Invalid("body.close", "Pick a closing date in the future, or close the survey by hand.")
+			return api.Invalid("body.close", mSurveyCloseFuture.Text(l, nil))
 		}
 		qb, _ := json.Marshal(st)
 		if err := q.SurveyUpdate(ctx, store.SurveyUpdateParams{ID: id, Slug: cur.Slug, Name: cur.Name, Description: cur.Description, Questions: cur.Questions, Settings: qb,

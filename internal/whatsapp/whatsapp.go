@@ -32,7 +32,6 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -241,24 +240,6 @@ func clip(s string, n int) string {
 		return s
 	}
 	return string(r[:n])
-}
-
-// count writes 1240 as "1,240".
-func count(n int64) string {
-	s := fmt.Sprint(n)
-	neg := strings.HasPrefix(s, "-")
-	s = strings.TrimPrefix(s, "-")
-	var b strings.Builder
-	for i, r := range s {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			b.WriteByte(',')
-		}
-		b.WriteRune(r)
-	}
-	if neg {
-		return "-" + b.String()
-	}
-	return b.String()
 }
 
 func round4(v float64) float64 { return float64(int64(v*10000+0.5)) / 10000 }

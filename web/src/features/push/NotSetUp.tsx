@@ -64,7 +64,7 @@ export function NotSetUp({ data }: { data: PushSetup }) {
         </ButtonLink>
       </div>
       <span className="k">
-        <T msg={m.turnOnNote} values={{ perm: <span className="mono">providers:manage</span> }} />
+        <T msg={m.turnOnNote} values={{ perm: <span className="mono">{'providers:manage'}</span> }} />
       </span>
     </section>
   )

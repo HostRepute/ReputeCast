@@ -3,14 +3,15 @@ package integrations
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -59,8 +60,8 @@ type IntegrationReason struct {
 	Check *WordPressCheck `json:"check,omitempty"`
 }
 
-// lastCheck reads a site's last "Check now".
-func lastCheck(site *store.WordpressSite) *WordPressCheck {
+// lastCheck reads a site's last "Check now", in a reader's language.
+func lastCheck(l i18n.Lang, site *store.WordpressSite) *WordPressCheck {
 	if site == nil || site.LastCheckAt == nil || len(site.LastCheck) == 0 {
 		return nil
 	}
@@ -68,6 +69,7 @@ func lastCheck(site *store.WordpressSite) *WordPressCheck {
 	if json.Unmarshal(site.LastCheck, &c) != nil {
 		return nil
 	}
+	c = c.in(l)
 	c.CheckedAt = *site.LastCheckAt
 	return &c
 }
@@ -121,7 +123,7 @@ func (s *Service) reasons(ctx context.Context, wsID uuid.UUID, conn store.Integr
 	}
 	if site != nil && site.LastReportAt != nil && now.Sub(*site.LastReportAt) >= SiteSilentAfter {
 		out = append(out, IntegrationReason{Code: ReasonSiteSilent, Since: site.LastReportAt, Host: siteBareHost(firstNonEmpty(site.SiteUrl, site.Address)),
-			ConnectionID: conn.ID.String(), Check: lastCheck(site)})
+			ConnectionID: conn.ID.String(), Check: lastCheck(lang(ctx), site)})
 	}
 	return out
 }
@@ -199,8 +201,9 @@ func (s *Service) noteAttention(ctx context.Context, h healthReport) error {
 	}
 	for _, r := range fresh {
 		if err := notify.ToMembersWith(ctx, s.Pool, h.conn.WorkspaceID, authz.IntegrationsManage, notify.Notification{
-			Kind: notify.KindIntegrationAttention, Severity: "warn", Title: "Integration needs attention",
-			Body: attentionSentence(h.conn, r, wsLocation(&ws)), Link: integrationLink(ws.Slug, h.conn),
+			Kind: notify.KindIntegrationAttention, Severity: "warn",
+			TitleText: msgs.M("notify.attentionTitle").Keep(nil), BodyText: attentionText(h.conn, r, wsLocation(&ws)),
+			Link: integrationLink(ws.Slug, h.conn),
 			Data: map[string]any{"integrationId": h.conn.ID.String(), "kind": h.conn.Kind, "reason": r.Code},
 		}); err != nil {
 			return err
@@ -216,31 +219,30 @@ func integrationLink(slug string, c store.Integration) string {
 	return "/w/" + slug + "/settings/integrations/" + c.Kind
 }
 
-// attentionSentence is the notification's sentence (English, like every
-// server-side notification until member languages arrive).
-func attentionSentence(c store.Integration, r IntegrationReason, loc *time.Location) string {
-	name := Name(c.Kind)
-	when := func(t *time.Time) string {
-		if t == nil {
-			return ""
-		}
-		return t.In(loc).Format("2 Jan 15:04")
+// attentionText is the notification's sentence about a reason, kept as a
+// message so each member reads it in their own language, with its times in
+// the workspace's zone.
+func attentionText(c store.Integration, r IntegrationReason, loc *time.Location) i18n.Text {
+	args := i18n.Args{"name": Name(c.Kind)}
+	if r.Since != nil {
+		args["at"] = r.Since.In(loc)
 	}
+	key := "notify.attention"
 	switch r.Code {
 	case ReasonKeyRevoked:
-		return fmt.Sprintf("%s: its key was revoked, so its calls are rejected. Reconnect to give it a new key.", name)
+		key = "notify.keyRevoked"
 	case ReasonKeyExpired:
-		return fmt.Sprintf("%s: its key expired on %s, so its calls are rejected. Reconnect to give it a new key.", name, when(r.Since))
+		key = "notify.keyExpired"
 	case ReasonOwnerLeft:
-		return fmt.Sprintf("%s: %s, who owns its key, left the workspace. Take it over to keep %s running; the key stays the same.", name, r.By, name)
+		key, args["owner"] = "notify.ownerLeft", r.By
 	case ReasonKeyExpiring:
-		return fmt.Sprintf("%s: its key expires on %s. Reconnect before then, or calls will be rejected.", name, when(r.Since))
+		key = "notify.keyExpiring"
 	case ReasonDeliveriesFailing:
-		return fmt.Sprintf("%s: deliveries to %s have failed since %s (%d %s). They're retried for 6 hours.", name, r.Host, when(r.Since), r.Status, r.StatusText)
+		key, args["host"], args["status"], args["statusText"] = "notify.deliveriesFailing", r.Host, strconv.Itoa(int(r.Status)), r.StatusText
 	case ReasonCallsFailing:
-		return fmt.Sprintf("%s: %d of its %d calls in the last hour failed. Open it to see the errors and what to change.", name, r.Failed, r.Calls)
+		key, args["failed"], args["calls"] = "notify.callsFailing", r.Failed, r.Calls
 	case ReasonSiteSilent:
-		return fmt.Sprintf("WordPress: %s hasn't reported in since %s. Check the site, or disconnect it if it's gone.", r.Host, when(r.Since))
+		key, args["host"] = "notify.siteSilent", r.Host
 	}
-	return name + " needs attention."
+	return msgs.M(key).Keep(args)
 }

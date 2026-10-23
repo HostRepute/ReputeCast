@@ -385,7 +385,7 @@ func (h *Handler) renderSite(w http.ResponseWriter, r *http.Request, s *site, pa
 	out, err := h.siteHTML(page, v)
 	if err != nil {
 		h.log().ErrorContext(r.Context(), "render site page", "page", page, "err", err)
-		http.Error(w, "This page couldn't be shown. Try again in a minute.", http.StatusInternalServerError)
+		http.Error(w, v.labels.Text("page.renderFailed", nil), http.StatusInternalServerError)
 		return
 	}
 	policy := csp{fonts: h.fontOrigins(s), scripts: v.cspScripts, frames: v.cspFrames}

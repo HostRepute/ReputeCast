@@ -13,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/phone"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -229,13 +230,14 @@ func (s *Service) SetConsentByTeam(ctx context.Context, ws *store.Workspace, p *
 	if err != nil {
 		return WhatsAppContactCard{}, err
 	}
+	l := langOf(ctx)
 	listID, err := uuid.Parse(in.ListID)
 	if err != nil {
-		return WhatsAppContactCard{}, api.Invalid("body.listId", "Pick a list of this workspace.")
+		return WhatsAppContactCard{}, api.Invalid("body.listId", mPickList.Text(l, nil))
 	}
 	var listName string
 	if err := s.Pool.QueryRow(ctx, `SELECT name FROM lists WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL`, listID, ws.ID).Scan(&listName); err != nil {
-		return WhatsAppContactCard{}, api.Invalid("body.listId", "Pick a list of this workspace.")
+		return WhatsAppContactCard{}, api.Invalid("body.listId", mPickList.Text(l, nil))
 	}
 	now := s.now()
 	ev := store.ChanConsentEventInsertParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, ContactID: c.ID, ListID: &listID, Channel: "whatsapp", Phone: c.Phone,
@@ -247,18 +249,18 @@ func (s *Service) SetConsentByTeam(ctx context.Context, ws *store.Workspace, p *
 	switch status {
 	case "subscribed":
 		if c.Phone == "" {
-			return WhatsAppContactCard{}, api.Invalid("body.status", "Add a phone number first.")
+			return WhatsAppContactCard{}, api.Invalid("body.status", mPhoneFirst.Text(l, nil))
 		}
 		e := in.Evidence
 		if e == nil || strings.TrimSpace(e.ConsentText) == "" || strings.TrimSpace(e.Source) == "" || e.At.IsZero() {
-			return WhatsAppContactCard{}, api.Invalid("body.evidence", "WhatsApp consent needs its evidence: the exact consent text, where it was given and when.")
+			return WhatsAppContactCard{}, api.Invalid("body.evidence", mEvidence.Text(l, nil))
 		}
 		if e.At.After(now.Add(time.Minute)) {
-			return WhatsAppContactCard{}, api.Invalid("body.evidence.at", "Consent can't be given in the future.")
+			return WhatsAppContactCard{}, api.Invalid("body.evidence.at", mFutureConsent.Text(l, nil))
 		}
 		if sup, err := s.Q.ChanSuppressionByPhone(ctx, store.ChanSuppressionByPhoneParams{WorkspaceID: ws.ID, Channel: "whatsapp", Phone: c.Phone}); err == nil &&
 			sup.Reason == "opted_out" {
-			return WhatsAppContactCard{}, api.Conflict("This number opted out on WhatsApp. Only the person can come back, by writing START.")
+			return WhatsAppContactCard{}, api.Conflict(mOptedOutStart.Text(l, nil))
 		}
 		ev.Action, ev.Source, ev.Page, ev.ConsentText, ev.ConsentVersion, ev.OccurredAt = "subscribed", strings.TrimSpace(e.Source), e.Page, e.ConsentText,
 			e.ConsentVersion, e.At
@@ -303,31 +305,33 @@ func (s *Service) Reply(ctx context.Context, ws *store.Workspace, p *authz.Princ
 	if err != nil {
 		return WhatsAppThreadItem{}, err
 	}
+	l := langOf(ctx)
 	a, err := s.account(ctx, s.Q, ws)
 	if errors.Is(err, errNoAccount) {
-		return WhatsAppThreadItem{}, api.Conflict("Connect WhatsApp first.")
+		return WhatsAppThreadItem{}, api.Conflict(mConnectFirst.Text(l, nil))
 	}
 	if err != nil {
 		return WhatsAppThreadItem{}, err
 	}
 	if a.Status == "token_rejected" {
-		return WhatsAppThreadItem{}, api.Conflict("Meta rejected the access token: replace it in Sending providers › WhatsApp first.")
+		return WhatsAppThreadItem{}, api.Conflict(mTokenReplaceFirst.Text(l, nil))
 	}
 	text := strings.TrimSpace(in.Text)
 	if text == "" || c.Phone == "" {
-		return WhatsAppThreadItem{}, api.Invalid("body.text", "Write the reply.")
+		return WhatsAppThreadItem{}, api.Invalid("body.text", mWriteReply.Text(l, nil))
 	}
 	now := s.now()
 	open, until, _ := s.windowOpen(ctx, s.Q, ws, c.Phone, now)
 	if !open {
-		msg := "The customer service window is closed: free-form replies go only to people who wrote in the last 24 hours. Send an approved template instead."
+		msg := mWindowClosed.Text(l, nil)
 		if until != nil {
-			msg = "The customer service window closed at " + until.In(wsLocation(ws)).Format("2 Jan 15:04") + ". Send an approved template instead."
+			at := until.In(wsLocation(ws))
+			msg = mWindowClosedAt.Text(l, i18n.Args{"date": dayMonth(l, at), "time": clock(l, at)})
 		}
 		return WhatsAppThreadItem{}, api.Err(409, "window_closed", msg)
 	}
 	if _, err := s.Q.ChanSuppressionByPhone(ctx, store.ChanSuppressionByPhoneParams{WorkspaceID: ws.ID, Channel: "whatsapp", Phone: c.Phone}); err == nil {
-		return WhatsAppThreadItem{}, api.Conflict("This number opted out on WhatsApp.")
+		return WhatsAppThreadItem{}, api.Conflict(mOptedOut.Text(l, nil))
 	}
 	mid := uuid.Must(uuid.NewV7())
 	err = s.tx(ctx, func(q *store.Queries, _ pgx.Tx) error {

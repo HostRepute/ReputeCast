@@ -186,28 +186,10 @@ func TestSummarize(t *testing.T) {
 		s.QuietHours != "22:00–07:00 America/New_York, email only" {
 		t.Fatalf("summary: %+v", s)
 	}
-	// (The AI assistant's events aren't translated yet: they're off here.)
-	for i := range p.Events {
-		switch p.Events[i].Type {
-		case notify.KindAIUsage, notify.KindAIKeyRejected:
-			p.Events[i].Email = false
-		}
-	}
-
 	// In the member's app language, starting with a capital in any script.
-	// (The recurring digests', verification, placement, website, products, Grow's and store events aren't translated yet: they're off here.)
-	for i := range p.Events {
-		switch p.Events[i].Type {
-		case notify.KindDigestIssueHeld, notify.KindDigestPaused, notify.KindDigestFeedFailing, notify.KindDigestDraftReady,
-			notify.KindVerificationEnded, notify.KindVerificationCreditsLow, notify.KindPlacementFinished, notify.KindSeedSignInFailed,
-			notify.KindWebsiteDomain, notify.KindProductDeliveryFailed, notify.KindOrderDisputed, notify.KindReferralsHeld, notify.KindRewardCodesLow,
-			notify.KindRewardWebhookFailing, notify.KindPartnerLinkProblem, notify.KindStoreProblem:
-			p.Events[i].Email = false
-		}
-	}
 	vi := i18n.For(i18n.Vietnamese)
 	s = notify.SummarizeIn(vi, p)
-	if s.InApp != "Tất cả sự kiện" || s.Email != "Phê duyệt, tự tạm dừng, nhà cung cấp gặp sự cố, sự cố tích hợp, bản nháp bài viết, cảnh báo gửi email giao dịch, sự cố SMTP relay, payment problems, sponsor creatives, SMS budget alerts, sender registrations, SMS provider problems, SMS auto-pauses, WhatsApp templates and quality" ||
+	if s.InApp != "Tất cả sự kiện" || s.Email != "Phê duyệt, tự tạm dừng, nhà cung cấp gặp sự cố, sự cố tích hợp, bản nháp bài viết, cảnh báo gửi email giao dịch, sự cố SMTP relay, kỳ bản tin bị tạm giữ, bản tin định kỳ tạm dừng, nguồn bản tin định kỳ bị lỗi, bản nháp kỳ bản tin, thông báo mức dùng AI, khóa AI bị từ chối, sự cố thanh toán, nội dung quảng cáo của nhà tài trợ, lượt xác minh, credit xác minh sắp hết, lỗi đăng nhập hộp thư mẫu, sự cố tên miền trang web, giao sản phẩm thất bại, tranh chấp đơn hàng, lượt giới thiệu bị tạm giữ, mã phần thưởng sắp hết, webhook phần thưởng bị lỗi, sự cố liên kết đối tác, cảnh báo ngân sách SMS, đăng ký người gửi, sự cố nhà cung cấp SMS, SMS tự tạm dừng, sự cố cửa hàng, mẫu và chất lượng WhatsApp" ||
 		s.QuietHours != "22:00–07:00 America/New_York, chỉ email" {
 		t.Fatalf("Vietnamese summary: %+v", s)
 	}

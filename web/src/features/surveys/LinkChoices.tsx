@@ -1,18 +1,12 @@
-import { defineMessages, useT } from '@/i18n'
+import { useT } from '@/i18n'
 import { useSurveys } from './api'
+import { m } from './link.messages'
 
 /**
  * The composer's link editor offers the workspace's surveys (design
  * expansion, X11; SurveyBuilder · publishing): the link carries each
  * contact's token, so their answers are linked to them.
  */
-const m = defineMessages('surveyLink', {
-  title: 'Or link to a survey',
-  survey: 'Survey: {name}',
-  draft: 'not published yet',
-  hint: 'Adds the contact’s token, so answers are linked to them.',
-})
-
 export function SurveyLinkChoices({ value, onPick }: { value: string; onPick: (link: string) => void }) {
   const t = useT()
   const surveys = useSurveys()

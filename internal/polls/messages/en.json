@@ -1,0 +1,33 @@
+{
+  "problem.pollQuestion": { "message": "Write the poll's question.", "note": "what keeps a Poll block from working; Send Readiness lists them too" },
+  "problem.pollTwoAnswers": "A poll needs at least two answers.",
+  "problem.pollFiveAnswers": "A poll takes at most five answers.",
+  "problem.pollTags": { "message": "Give every answer a tag, or save the answer to a field.", "note": "the poll saves each answer as a tag on the contact" },
+  "problem.pollField": { "message": "Pick the field the answer is saved to.", "note": "a contact field" },
+  "problem.pollSurvey": { "message": "Pick the survey the poll continues to.", "note": "after answering, the poll can open a survey" },
+  "problem.pollClosed": "This poll is closed already.",
+  "problem.pollOpen": "This poll is open already.",
+
+  "problem.surveyFirstQuestion": "Add the first question.",
+  "problem.surveyMaxQuestions": { "message": "A survey takes up to {max, plural, one {# question} other {# questions}}.", "note": "max: 20" },
+  "problem.surveyQuestion": "Write the question.",
+  "problem.surveyTwoAnswers": "A choice question needs at least two answers.",
+  "problem.surveyField": { "message": "Pick the field the answer is saved to.", "note": "a contact field" },
+  "problem.surveyTags": { "message": "Give every answer a tag, or don't save the answer.", "note": "the question saves each answer as a tag on the contact" },
+  "problem.surveySlugTaken": { "message": "Another survey of this workspace has that address. Pick another.", "note": "the survey page's address (its slug)" },
+  "problem.surveyIncomplete": { "message": "Publishing waits until every question is complete: {problem}", "note": "problem: the first thing to fix, one of the survey problems above (Write the question.)" },
+  "problem.surveyType": { "message": "Pick a type for every question: single choice, multiple choice, 0–10 scale, emoji scale, short or long text.", "note": "the question types as the survey builder names them" },
+  "problem.surveyClosePassed": "The closing date has passed. Pick a later date, or close the survey by hand.",
+  "problem.surveyNotPublished": "This survey isn't published yet, so there's nothing to close.",
+  "problem.surveyCloseFuture": "Pick a closing date in the future, or close the survey by hand.",
+
+  "label.untitledSurvey": { "message": "Untitled survey", "note": "a new survey's name until its author gives one; it stays in the language it was created in" },
+  "label.surveyThanks": { "message": "Your answers are saved.", "note": "a new survey's thank-you text, which its author can rewrite: the survey's page shows it to the people who answer" },
+  "label.noTier": { "message": "No tier yet", "note": "the poll report's breakdown by engagement tier: contacts not in a tier yet" },
+  "label.languageNotSet": { "message": "Not set", "note": "the poll report's breakdown by language: contacts without a language" },
+
+  "tier.active": { "message": "Active", "note": "an engagement tier, in the poll report's breakdown" },
+  "tier.cooling": "Cooling",
+  "tier.at_risk": "At risk",
+  "tier.sunset": "Sunset"
+}
