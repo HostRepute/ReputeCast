@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
@@ -74,7 +73,7 @@ func (s *Service) ContactCard(ctx context.Context, ws *store.Workspace, p *authz
 		return out, err
 	}
 	if !exists {
-		return out, api.NotFound("Contact")
+		return out, notFound(ctx, "contact")
 	}
 	c, err := s.load(ctx, s.Q, ws)
 	if err != nil {
@@ -141,7 +140,7 @@ func (s *Service) SignOutEverywhere(ctx context.Context, ws *store.Workspace, p 
 	var email string
 	err := s.Pool.QueryRow(ctx, `SELECT email FROM contacts WHERE id = $1 AND workspace_id = $2 AND erased_at IS NULL`, contactID, ws.ID).Scan(&email)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return WebsiteSignedOut{}, api.NotFound("Contact")
+		return WebsiteSignedOut{}, notFound(ctx, "contact")
 	}
 	if err != nil {
 		return WebsiteSignedOut{}, err

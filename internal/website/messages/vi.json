@@ -331,5 +331,15 @@
   "account.sessionsNote": "Đăng xuất trên mọi thiết bị sẽ kết thúc mọi phiên, trên mọi thiết bị. Không cần mật khẩu: bạn đăng nhập bằng liên kết hoặc mã.",
   "account.billingNote": "Quản lý thanh toán sẽ mở Stripe, nơi xử lý các khoản thanh toán của {publisher}: thẻ, hóa đơn và hủy gói.",
   "account.others": "{tiers} có trên <link>trang nâng cấp</link>.",
-  "account.paymentsVia": "Khoản thanh toán được chuyển thẳng đến {publisher} qua {provider}."
+  "account.paymentsVia": "Khoản thanh toán được chuyển thẳng đến {publisher} qua {provider}.",
+
+  "notFound.post": "Không tìm thấy bài viết.",
+  "notFound.campaign": "Không tìm thấy chiến dịch.",
+  "notFound.contact": "Không tìm thấy liên hệ.",
+  "notFound.tag": "Không tìm thấy thẻ.",
+  "paywall.heading": "Bài viết này dành cho hội viên trả phí",
+  "paywall.upgrade": "Nâng cấp",
+  "paywall.signup": "Đăng ký miễn phí",
+  "paywall.free": "Chưa sẵn sàng? Hãy đăng ký miễn phí và đọc 1 bài viết trả phí mỗi tháng.",
+  "signup.consentDefault": "Gửi {list} cho tôi. Hủy đăng ký bất cứ lúc nào."
 }

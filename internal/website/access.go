@@ -15,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/website/gate"
 )
@@ -129,16 +130,18 @@ func (s *Service) accessLists(ctx context.Context, ws *store.Workspace, c *confi
 			}
 		}
 		if v.Consent == "" {
-			v.Consent = defaultConsent(l.Name)
+			// As readers get it by default: in the workspace's default language.
+			v.Consent = defaultConsent(s.defaultLanguage(ctx, ws.ID), l.Name)
 		}
 		out = append(out, v)
 	}
 	return out, nil
 }
 
-// defaultConsent is a list's consent text until someone writes one.
-func defaultConsent(list string) string {
-	return "Send me " + list + ". Unsubscribe any time."
+// defaultConsent is a list's consent text until someone writes one, in
+// the reader's language.
+func defaultConsent(l i18n.Lang, list string) string {
+	return WordsIn(l).Text("signup.consentDefault", i18n.Args{"list": list})
 }
 
 // tierOptions are the paid tiers with their current prices.
@@ -200,7 +203,7 @@ func (s *Service) Access(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	}
 	out := WebsiteAccess{SigninOn: c.row.SigninOn, LinkMinutes: int(c.row.LinkMinutes), SessionDays: int(c.row.SessionDays), SignupOn: c.row.SignupOn,
 		DefaultVisibility: c.row.DefaultVisibility, CampaignVisibility: c.row.CampaignVisibility, MeterVisitorsOn: c.row.MeterVisitorsOn,
-		MeterVisitors: int(c.row.MeterVisitors), MeterMembersOn: c.row.MeterMembersOn, MeterMembers: int(c.row.MeterMembers), Paywall: c.Paywall,
+		MeterVisitors: int(c.row.MeterVisitors), MeterMembersOn: c.row.MeterMembersOn, MeterMembers: int(c.row.MeterMembers), Paywall: c.paywallIn(s.defaultLanguage(ctx, ws.ID)),
 		NeverFree: []WebsiteNeverFreePost{}, UpdatedAt: c.row.UpdatedAt}
 	if by, err := s.Q.WebsiteSettingsUpdatedBy(ctx, ws.ID); err == nil {
 		out.UpdatedBy = by
