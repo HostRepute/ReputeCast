@@ -2,6 +2,7 @@ import { isPluralElement, isSelectElement, isTagElement, type MessageFormatEleme
 import { IntlMessageFormat, type Formatters, type PrimitiveType } from 'intl-messageformat'
 import { Fragment, cloneElement, isValidElement, type ReactNode } from 'react'
 import type { MessageDescriptor } from './define'
+import { markInSentence, namedValues } from './names'
 import { PSEUDO_LOCALE, pseudoSource, pseudoWrap } from './pseudo'
 import type { I18nState } from './store'
 
@@ -44,6 +45,8 @@ interface Compiled {
   readonly mf: IntlMessageFormat
   /** Tags in the message, rendered as their text when no function is given. */
   readonly tags: Readonly<Record<string, (chunks: unknown[]) => unknown>>
+  /** A Vietnamese message's arguments inside a sentence (names.ts); undefined in other languages. */
+  readonly inside?: ReadonlySet<string>
 }
 
 const compiled = new Map<string, Compiled | null>()
@@ -64,12 +67,18 @@ function compile(text: string, locale: string, region: string): Compiled | null 
   let c = compiled.get(key)
   if (c === undefined) {
     try {
-      const mf = new IntlMessageFormat(text, locale, undefined, { formatters: formatters(region) })
+      let mf = new IntlMessageFormat(text, locale, undefined, { formatters: formatters(region) })
       const names = new Set<string>()
       collectTags(mf.getAst(), names)
       const tags: Record<string, (chunks: unknown[]) => unknown> = {}
       for (const n of names) tags[n] = (chunks) => chunks
-      c = { mf, tags }
+      let inside: Set<string> | undefined
+      if (locale === 'vi') {
+        const marked = markInSentence(mf.getAst())
+        if (marked.inside.size) mf = new IntlMessageFormat(marked.ast, locale, undefined, { formatters: formatters(region) })
+        inside = marked.inside
+      }
+      c = { mf, tags, inside }
     } catch (err) {
       if (import.meta.env.DEV) console.error(`i18n: can't parse "${text}"`, err)
       c = null
@@ -90,7 +99,7 @@ function plain(state: I18nState, d: MessageDescriptor, text: string, locale: str
   const c = compile(text, locale, state.region)
   if (!c) return text
   try {
-    const out = c.mf.format<unknown>({ ...c.tags, ...values } as Record<string, PrimitiveType>)
+    const out = c.mf.format<unknown>({ ...c.tags, ...(c.inside ? namedValues(values, c.inside) : values) } as Record<string, PrimitiveType>)
     return Array.isArray(out) ? out.flat(Infinity).join('') : String(out)
   } catch (err) {
     if (import.meta.env.DEV) console.error(`i18n: can't format ${d.id}`, err)
@@ -127,7 +136,7 @@ export function formatRich(state: I18nState, d: MessageDescriptor, values?: Rich
   const c = compile(text, locale, state.region)
   if (!c) return text
   const vals: Record<string, unknown> = { ...c.tags }
-  for (const [k, v] of Object.entries(values ?? {})) {
+  for (const [k, v] of Object.entries((c.inside ? namedValues(values, c.inside) : values) ?? {})) {
     vals[k] = typeof v === 'function' ? (chunks: ReactNode[]) => (v as (chunks: ReactNode[]) => ReactNode)(keyed(chunks)) : v
   }
   try {

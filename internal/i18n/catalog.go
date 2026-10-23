@@ -109,6 +109,9 @@ func Load(fsys fs.FS, namespace string) (*Catalog, error) {
 					return nil, fmt.Errorf("i18n %s.%s (%s): uses %s, which the English doesn't", namespace, k, code, name)
 				}
 			}
+			if l == Vietnamese {
+				nodes = markInSentence(nodes)
+			}
 			c.trans[l][k] = &compiled{raw: e.Message, nodes: nodes}
 		}
 	}
@@ -210,7 +213,7 @@ func (m Msg) format(l Lang, args Args, tags Tags, md mode) string {
 	if pseudo {
 		l.Region = Standard
 	}
-	f := &formatter{lang: l, text: text, args: args, tags: tags, mode: md, pseudo: pseudo}
+	f := &formatter{lang: l, text: text, args: args, tags: tags, mode: md, pseudo: pseudo, names: text == Vietnamese}
 	out := f.nodes(c.nodes, nil)
 	if !pseudo {
 		return out

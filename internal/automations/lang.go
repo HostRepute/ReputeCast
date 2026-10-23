@@ -10,6 +10,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
+	provstate "github.com/hostrepute/reputecast/internal/providers/state"
 )
 
 // What people read from this package (step names, conditions, the
@@ -82,6 +83,10 @@ func lowercase(t i18n.Text) i18n.Text { return i18n.Text{Args: i18n.Args{"lowerc
 // upper starts the text with a capital letter.
 func upper(t i18n.Text) i18n.Text { return i18n.Text{Args: i18n.Args{"upper": t}} }
 
+// providerDetail is a provider's stored status detail, in the reader's
+// words ("Down" → "Ngừng hoạt động").
+func providerDetail(d string) i18n.Text { return i18n.Text{Args: i18n.Args{"providerDetail": d}} }
+
 // emptyText reports whether t holds nothing (rows written before their
 // text was kept).
 func emptyText(t i18n.Text) bool { return t.ID == "" && len(t.Args) == 0 }
@@ -136,6 +141,9 @@ func sayNode(l i18n.Lang, args map[string]any) string {
 	case args["language"] != nil:
 		code, _ := args["language"].(string)
 		return sayLanguage(l, code)
+	case args["providerDetail"] != nil:
+		d, _ := args["providerDetail"].(string)
+		return provstate.DetailIn(d, l)
 	case args["dayMonth"] != nil:
 		if t, ok := timeArg(args["dayMonth"]); ok {
 			return l.Region.DayMonth(t)
@@ -265,8 +273,8 @@ func sayLanguage(l i18n.Lang, code string) string {
 	if l.Locale == i18n.English || l.Locale == i18n.Pseudo {
 		return languages.NameOf(code)
 	}
-	// The names every screen uses ("tiếng Đức" inside a sentence).
-	if n := languages.NameInSentence(l, code); n != "" && n != code {
+	// The names every screen uses; messages write "tiếng" in the case its place needs.
+	if n := languages.NameIn(l, code); n != "" && n != code {
 		return n
 	}
 	return languages.NameOf(code)
