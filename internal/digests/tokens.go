@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/liquid"
 )
 
@@ -29,6 +30,9 @@ type IssueData struct {
 	Date  time.Time
 	Items []BlockItem
 	Loc   *time.Location
+	// Lang is the email's language, which writes the dates (emailLang);
+	// the zero value writes English.
+	Lang i18n.Lang
 }
 
 // vars are the bindings of the feed tokens. In email HTML the values are
@@ -52,7 +56,7 @@ func (d IssueData) vars(escape bool) map[string]any {
 	for _, it := range d.Items {
 		date := ""
 		if it.Published != nil {
-			date = it.Published.In(loc).Format("Monday 2 January 2006")
+			date = emailDate(d.Lang, it.Published.In(loc), datePost)
 		}
 		cats := make([]string, 0, len(it.Categories))
 		for _, c := range it.Categories {
@@ -65,7 +69,7 @@ func (d IssueData) vars(escape bool) map[string]any {
 	}
 	issueDate := ""
 	if !d.Date.IsZero() {
-		issueDate = d.Date.In(loc).Format("Monday 2 January")
+		issueDate = emailDate(d.Lang, d.Date.In(loc), dateIssue)
 	}
 	return map[string]any{
 		"feed":  map[string]any{"title": esc(d.FeedTitle), "url": d.FeedURL},

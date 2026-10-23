@@ -578,7 +578,7 @@ func (s *Service) providerOption(ctx context.Context, ws *store.Workspace, p sto
 	o.Detail = providerDetail(p)
 	if h := state.HealthOf(p); h.Down != nil {
 		since := h.Down.Since
-		o.DownSince, o.DownReason = &since, firstNonEmpty(p.StatusDetail, h.Down.Reason)
+		o.DownSince, o.DownReason = &since, downReason(i18n.LangFrom(ctx), h.Down.Reason, p.StatusDetail)
 	}
 	pr := state.PricingOf(p)
 	o.Pricing = pr.Model
@@ -721,7 +721,7 @@ func (s *Service) plan(ctx context.Context, ws *store.Workspace, in PlacementRun
 		for _, sd := range res.seeds {
 			pid, d, reason, ok := pick(sd)
 			if !ok {
-				out.Problems = append(out.Problems, mTestNoRoute.Text(l, i18n.Args{"stream": streamName(c.stream)}))
+				out.Problems = append(out.Problems, mTestNoRoute.Text(l, i18n.Args{"stream": string(c.stream)}))
 				break
 			}
 			if shares[pid] == nil {
@@ -834,18 +834,6 @@ func (s *Service) plan(ctx context.Context, ws *store.Workspace, in PlacementRun
 	out.CanStart = len(out.Problems) == 0 && out.SenderProblem == "" && out.Copies > 0 && out.Sender != ""
 	res.plan = out
 	return res, nil
-}
-
-func streamName(st providers.Stream) string {
-	switch st {
-	case routing.StreamTransactional:
-		return "Transactional"
-	case providers.StreamAutomation:
-		return "Automations"
-	case providers.StreamSystem:
-		return "System"
-	}
-	return "Broadcasts"
 }
 
 // routeReason says why the route picked a provider for a seed.
@@ -973,7 +961,7 @@ func (s *Service) senders(ctx context.Context, ws *store.Workspace, c content, w
 			out.SenderAlternatives = append(out.SenderAlternatives, o.Name)
 		}
 	}
-	out.SenderProblem = mTestNoSender.Text(l, i18n.Args{"stream": streamName(c.stream)})
+	out.SenderProblem = mTestNoSender.Text(l, i18n.Args{"stream": string(c.stream)})
 	return nil
 }
 
@@ -1036,7 +1024,7 @@ func (s *Service) Start(ctx context.Context, ws *store.Workspace, in PlacementRu
 	name := c.view.Name
 	switch {
 	case in.Through == "compare" || len(shorts) > 1:
-		name += " · " + strings.Join(shorts, " vs ")
+		name += " · " + strings.Join(shorts, versus)
 	case len(shorts) == 1:
 		name += " · " + shorts[0]
 	}
@@ -1234,7 +1222,7 @@ func (s *Service) SendDue(ctx context.Context, id uuid.UUID) (*time.Time, error)
 		if !ok {
 			p, err = s.Q.ProvGet(ctx, store.ProvGetParams{WorkspaceID: ws.ID, ID: *c.ProviderID})
 			if err != nil {
-				_ = s.Q.PlacementCopySent(ctx, store.PlacementCopySentParams{ID: c.ID, Status: "failed", Error: "the provider was removed"})
+				_ = s.Q.PlacementCopySent(ctx, store.PlacementCopySentParams{ID: c.ID, Status: "failed", Error: errProviderRemoved})
 				continue
 			}
 			provs[p.ID] = p

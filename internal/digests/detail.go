@@ -144,7 +144,7 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	out.EditHelpers = helpers(ms, authz.CampaignsEdit, d.OwnerID)
 	out.PauseHelpers = helpers(ms, authz.CampaignsPause, d.OwnerID)
 	if d.State == "paused" {
-		out.Pause = pauseOf(r)
+		out.Pause = pauseOf(r, i18n.LangFrom(ctx))
 	}
 	// The template: audience, sender, limits.
 	tpl, err := s.template(ctx, d)
@@ -220,7 +220,8 @@ func (s *Service) firstSent(ctx context.Context, id uuid.UUID) (*time.Time, erro
 	return r.SendAt, nil
 }
 
-func pauseOf(r store.DigestGetRow) *DigestPause {
+// pauseOf says why a digest is paused, with role names in the reader's language.
+func pauseOf(r store.DigestGetRow, l i18n.Lang) *DigestPause {
 	p := &DigestPause{At: r.Digest.PausedAt, By: r.PausedByName, Reason: firstNonEmpty(r.Digest.PauseReason, "person"), Note: r.Digest.PauseNote, Notified: []string{}, Skips: []DigestFeedSkip{}}
 	var detail struct {
 		From     string   `json:"from"`
@@ -233,7 +234,7 @@ func pauseOf(r store.DigestGetRow) *DigestPause {
 		} `json:"skips"`
 	}
 	_ = json.Unmarshal(r.Digest.PauseDetail, &detail)
-	p.From, p.To, p.Left = detail.From, detail.To, detail.Left
+	p.From, p.To, p.Left = roleIn(l, detail.From), roleIn(l, detail.To), detail.Left
 	if detail.Notified != nil {
 		p.Notified = detail.Notified
 	}
@@ -261,7 +262,7 @@ func (s *Service) audienceOf(ctx context.Context, ws *store.Workspace, raw json.
 	if err != nil {
 		return out, err
 	}
-	out.Label, out.Base, out.Suppressed, out.Role, out.Duplicates, out.Stopped, out.Final = a.BaseLabel, a.Base, a.Suppressed, a.Role, a.Duplicates, a.Stopped, a.Final
+	out.Label, out.Base, out.Suppressed, out.Role, out.Duplicates, out.Stopped, out.Final = audienceLabel(i18n.LangFrom(ctx), a), a.Base, a.Suppressed, a.Role, a.Duplicates, a.Stopped, a.Final
 	return out, nil
 }
 
@@ -392,7 +393,7 @@ func (s *Service) feedStatus(ctx context.Context, ws *store.Workspace, d store.D
 	out := DigestFeedStatus{Status: d.FeedStatus, URL: s.feedAddress(ctx, d), Kind: d.FeedKind, Title: d.FeedTitle, Items: int(d.FeedItems), Bytes: int(d.FeedBytes),
 		LastReadAt: d.LastReadAt, LastReadVia: d.LastReadVia, LastOkAt: d.LastOkAt, MovedTo: d.FeedMovedTo}
 	if d.FeedStatus == "unreachable" || d.FeedStatus == "invalid" {
-		out.Error = decodeFeedError(d.FeedError)
+		out.Error = decodeFeedError(d.FeedError, i18n.LangFrom(ctx))
 	}
 	since := time.Time{}
 	if d.FirstOnAt != nil {
@@ -455,7 +456,7 @@ func (s *Service) nextIssue(ctx context.Context, ws *store.Workspace, d store.Di
 		return nil, err
 	}
 	out := &DigestNextIssue{ID: issue.ID.String(), Number: int(number), Status: issue.Status, SendAt: issue.SendAt, PrepareAt: issue.PrepareAt, Deadline: issue.Deadline,
-		Fit: block.Max, Recipients: aud.Final, Items: []DigestFeedItem{}, Subjects: []DigestSubject{}, FeedTries: feedTries(issue.FeedTries),
+		Fit: block.Max, Recipients: aud.Final, Items: []DigestFeedItem{}, Subjects: []DigestSubject{}, FeedTries: feedTriesIn(issue.FeedTries, i18n.LangFrom(ctx)),
 		HoldReason: issue.HoldReason, HeldAt: issue.HeldAt, PreparedAt: issue.PreparedAt}
 	if issue.CampaignID != nil {
 		out.CampaignID = issue.CampaignID.String()
@@ -523,7 +524,8 @@ func (s *Service) nextIssue(ctx context.Context, ws *store.Workspace, d store.Di
 		return out, err
 	}
 	loc := location(ParseSchedule(d.Schedule, ws.Timezone).Timezone)
-	data := IssueData{FeedTitle: d.FeedTitle, FeedURL: d.FeedUrl, Number: int(number), Items: posts, Loc: loc}
+	el := emailLang(ctx, s.Q, ws.ID, &tpl.ID)
+	data := IssueData{FeedTitle: d.FeedTitle, FeedURL: d.FeedUrl, Number: int(number), Items: posts, Loc: loc, Lang: el}
 	if issue.SendAt != nil {
 		data.Date = *issue.SendAt
 	}
@@ -534,13 +536,13 @@ func (s *Service) nextIssue(ctx context.Context, ws *store.Workspace, d store.Di
 			out.Subject, out.Preheader = c.Subject, c.Preheader
 		}
 	}
-	out.Subjects = subjects(tpl.Subject, d, all, block, int(number), loc)
+	out.Subjects = subjects(tpl.Subject, d, all, block, int(number), loc, el)
 	return out, nil
 }
 
 // subjects renders a subject with 1, 3 and 6 of the newest posts that pass
 // the filters (sent or not), so "…and 0 more" is caught early.
-func subjects(subject string, d store.Digest, all []item, block DigestFeedBlock, number int, loc *time.Location) []DigestSubject {
+func subjects(subject string, d store.Digest, all []item, block DigestFeedBlock, number int, loc *time.Location, el i18n.Lang) []DigestSubject {
 	pool := []BlockItem{}
 	for _, it := range all {
 		if it.Status == "new" || it.Status == "sent" {
@@ -556,7 +558,7 @@ func subjects(subject string, d store.Digest, all []item, block DigestFeedBlock,
 		for len(items) < n && len(items) > 0 {
 			items = append(items, items[len(items)-1])
 		}
-		text, err := RenderIssue(subject, IssueData{FeedTitle: d.FeedTitle, Number: number, Items: items, Loc: loc}, false)
+		text, err := RenderIssue(subject, IssueData{FeedTitle: d.FeedTitle, Number: number, Items: items, Loc: loc, Lang: el}, false)
 		if err != nil {
 			text = subject
 		}

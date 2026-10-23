@@ -9,7 +9,7 @@ import { T, useT } from '@/i18n'
 import { andList, clock, shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { m } from './messages'
-import { base, useRefreshPlacement, type SeedList, type SeedProvider, type SeedView } from './shared'
+import { base, credentialName, useRefreshPlacement, type SeedList, type SeedProvider, type SeedView } from './shared'
 
 type Folder = SeedView['folders'][number]
 
@@ -292,7 +292,7 @@ export function AddSeedDialog({ d, open, onOpenChange, preset, note }: { d: Seed
             <input id={ids.email} className="in" type="email" value={done ? done.email : email} onChange={(e) => setEmail(e.target.value)} disabled={Boolean(done)} autoComplete="off" spellCheck={false} />
           </Field>
           {done ? null : (
-            <Field label={provider.password} id={ids.password} hint={t(m.passwordHint)}>
+            <Field label={credentialName(provider.password)} id={ids.password} hint={t(m.passwordHint)}>
               <input
                 id={ids.password}
                 className={error ? 'in border-bad-strong!' : 'in'}
@@ -306,7 +306,7 @@ export function AddSeedDialog({ d, open, onOpenChange, preset, note }: { d: Seed
           )}
           {provider.passwordHelp && !done && !error ? (
             <a href={provider.passwordHelp} target="_blank" rel="noopener noreferrer" className="pl-lnk w-fit">
-              {t(m.passwordHelp, { password: provider.password.toLowerCase(), company: provider.company })}
+              {t(m.passwordHelp, { password: credentialName(provider.password).toLowerCase(), company: provider.company })}
               <ExternalIcon />
             </a>
           ) : null}
@@ -404,11 +404,11 @@ export function ReconnectDialog({ d, seed, open, onOpenChange }: { d: SeedList; 
           <span>
             {seed.status === 'expired'
               ? t(m.reconnectExpiredBody, { company: seed.company, date: shortDate(at), time: clock(at) })
-              : t(m.reconnectFailedBody, { company: seed.company, password: seed.passwordLabel.toLowerCase(), date: shortDate(at), time: clock(at), usernameLabel: who })}
+              : t(m.reconnectFailedBody, { company: seed.company, password: credentialName(seed.passwordLabel).toLowerCase(), date: shortDate(at), time: clock(at), usernameLabel: who })}
           </span>
         </div>
       ) : (
-        <span className="text-ink-2">{t(m.reconnectBody, { password: seed.passwordLabel.toLowerCase(), usernameLabel: who })}</span>
+        <span className="text-ink-2">{t(m.reconnectBody, { password: credentialName(seed.passwordLabel).toLowerCase(), usernameLabel: who })}</span>
       )}
       {oauth ? null : (
         <>
@@ -423,12 +423,12 @@ export function ReconnectDialog({ d, seed, open, onOpenChange }: { d: SeedList; 
           <Field label={label} id={ids.user}>
             <input id={ids.user} className="in" value={seed.username || seed.email} readOnly />
           </Field>
-          <Field label={t(m.newPassword, { password: seed.passwordLabel.toLowerCase() })} id={ids.password}>
+          <Field label={t(m.newPassword, { password: credentialName(seed.passwordLabel).toLowerCase() })} id={ids.password}>
             <input
               id={ids.password}
               className={error ? 'in border-bad-strong!' : 'in'}
               type="password"
-              placeholder="xxxx-xxxx-xxxx-xxxx"
+              placeholder={'xxxx-xxxx-xxxx-xxxx'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"
@@ -437,7 +437,7 @@ export function ReconnectDialog({ d, seed, open, onOpenChange }: { d: SeedList; 
           </Field>
           {p?.passwordHelp ? (
             <a href={p.passwordHelp} target="_blank" rel="noopener noreferrer" className="pl-lnk w-fit">
-              {t(m.passwordHelp, { password: seed.passwordLabel.toLowerCase(), company: seed.company })}
+              {t(m.passwordHelp, { password: credentialName(seed.passwordLabel).toLowerCase(), company: seed.company })}
               <ExternalIcon />
             </a>
           ) : null}
@@ -473,7 +473,7 @@ export function RemoveSeedDialog({ seed, open, onOpenChange }: { seed: SeedView;
     onOpenChange(false)
     toast({ kind: 'deleted', title: t(m.removed, { email: seed.email }) })
   }
-  const auth = seed.auth === 'oauth' ? t(m.connOAuth) : t(m.connImap, { password: seed.passwordLabel.toLowerCase() })
+  const auth = seed.auth === 'oauth' ? t(m.connOAuth) : t(m.connImap, { password: credentialName(seed.passwordLabel).toLowerCase() })
   return (
     <Dialog
       open={open}
@@ -482,7 +482,7 @@ export function RemoveSeedDialog({ seed, open, onOpenChange }: { seed: SeedView;
       dismissible={false}
       eyebrow={<span className="k">{t(m.removeEyebrow, { provider: seed.providerName, auth })}</span>}
       title={t(m.removeTitle, { email: seed.email })}
-      description={seed.auth === 'oauth' ? t(m.removeBodyOAuth) : t(m.removeBodyPassword, { password: seed.passwordLabel.toLowerCase() })}
+      description={seed.auth === 'oauth' ? t(m.removeBodyOAuth) : t(m.removeBodyPassword, { password: credentialName(seed.passwordLabel).toLowerCase() })}
       footer={
         <>
           <Button onClick={() => onOpenChange(false)} disabled={busy}>

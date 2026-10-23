@@ -13,6 +13,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -135,14 +136,15 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, f AIActivit
 		return AIActivityList{}, err
 	}
 	out := AIActivityList{Items: []AIActivityRow{}, Members: []AIActivityMember{}, RetentionDays: int(Retention.Hours() / 24)}
+	l := i18n.LangFrom(ctx)
 	for i, r := range rows {
 		if i == limit {
 			out.Next = cursorOf(rows[i-1].CreatedAt, rows[i-1].ID)
 			break
 		}
 		row := AIActivityRow{ID: r.ID.String(), At: r.CreatedAt, Member: r.UserName, MemberColor: r.UserColor, Feature: r.Feature, Action: r.Action, TargetKind: r.TargetKind,
-			On: r.TargetLabel, Provider: r.Provider, Model: r.Model, InputTokens: int64(r.InputTokens), OutputTokens: int64(r.OutputTokens),
-			Tokens: int64(r.InputTokens) + int64(r.OutputTokens), CostMicros: r.CostMicros, Outcome: r.Outcome, Detail: r.OutcomeDetail}
+			On: onIn(l, r.Feature, r.TargetKind, r.TargetID, r.TargetLabel), Provider: r.Provider, Model: r.Model, InputTokens: int64(r.InputTokens), OutputTokens: int64(r.OutputTokens),
+			Tokens: int64(r.InputTokens) + int64(r.OutputTokens), CostMicros: r.CostMicros, Outcome: r.Outcome, Detail: detailIn(l, r.OutcomeDetail)}
 		if row.Member == "" {
 			row.Member = r.UserEmail
 		}

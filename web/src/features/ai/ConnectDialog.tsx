@@ -11,6 +11,7 @@ import { Ev } from '@/features/integrations/ConnectDialog'
 import '@/features/integrations/integrations.css'
 import { T, formatList, useT } from '@/i18n'
 import { clock, clockSeconds, count } from '@/lib/format'
+import { roleName } from '@/lib/roles'
 import { useMe, useWorkspace } from '@/lib/session'
 import { aiBase, AI_FEATURES, problemCode, problemMeta, useRefreshAI, type AIConnection, type AIFeature, type AIModelOption, type AISettings, type AITest } from './api'
 import { AITile } from './catalog'
@@ -432,7 +433,7 @@ export function ConnectDialog({ s, initial, open, onOpenChange }: { s: AISetting
           <h3 id="ai-when-h">{t(m.whenTitle)}</h3>
           <ol>
             <li>{t(m.whenKey)}</li>
-            <li>{t(m.whenFeatures, { roles: formatList(s.aiUseRoles) })}</li>
+            <li>{t(m.whenFeatures, { roles: formatList(s.aiUseRoles.map((name) => roleName({ name }))) })}</li>
             <li>{t(m.whenLog)}</li>
             <li>{t(m.whenNothing, { provider: name })}</li>
           </ol>

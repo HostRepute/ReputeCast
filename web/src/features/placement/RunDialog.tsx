@@ -9,7 +9,7 @@ import { Dialog } from '@/components/ui/Dialog'
 import { Skeleton } from '@/components/ui/Feedback'
 import { toast } from '@/components/ui/Toast'
 import { T, useI18n, useT } from '@/i18n'
-import { andList, clock, dayMonthDate, orList, shortDate } from '@/lib/format'
+import { andList, clock, dayMonthDate, money, orList, shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import { base, dayTime, providerColor, useRefreshPlacement, useTests, type Plan, type PlanProvider, type RunInput } from './shared'
@@ -44,9 +44,11 @@ function languageName(code: string, locale: string): string {
   }
 }
 
-/** "$0", "$0.001". */
+/** "$0", "$0.001": two significant digits, in the region's money format. */
 function cost(v: number): string {
-  return v === 0 ? '$0' : `$${Number(v.toPrecision(2))}`
+  const r = v === 0 ? 0 : Number(v.toPrecision(2))
+  const [, frac = ''] = String(r).split('.')
+  return money(r, frac.length)
 }
 
 const statusTone: Record<PlanProvider['status'], Tone> = { healthy: 'ok', warming_up: 'info', degraded: 'warn', down: 'bad', sandbox: 'warn', paused: 'neutral' }

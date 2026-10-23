@@ -1,0 +1,158 @@
+import { translate } from '@/i18n'
+import { dc } from './messages'
+
+/**
+ * Vietnamese for the composer's digest mode and the Feed items block
+ * ("Mục nguồn cấp"). Liquid code, the item's fields (title, url, date…) and
+ * the starter subject's English (“and 0 more”) stay as written.
+ */
+export default translate(dc, {
+  template: 'Mẫu',
+  recurringDigest: 'Bản tin định kỳ',
+  backToDigest: 'Quay lại {name}',
+  status: 'Mẫu · {state, select, saving {đang lưu…} editing {đang chỉnh sửa} other {tự lưu lúc {time}}} · v{version}',
+  checkNext: 'Kiểm tra số tiếp theo',
+  checking: 'Đang kiểm tra…',
+  checked: 'Đã kiểm tra Độ sẵn sàng gửi của số tiếp theo: {verdict, select, blocked {Bị chặn} warnings {Cảnh báo} other {Sẵn sàng}}.',
+  openChecks: 'Mở kết quả kiểm tra',
+  sendTest: 'Gửi thử',
+
+  subjectLabel: 'Tiêu đề · Liquid với biến nguồn cấp',
+  feedTokens: 'Biến nguồn cấp',
+  feedTokensLabel: 'Chèn biến nguồn cấp vào tiêu đề',
+  tokenValue: '{token} · {value}',
+  inboxNext: 'Xem trước hộp thư · số tiếp theo #{number} · {client}',
+  inboxLast: 'Xem trước hộp thư · số gần nhất #{number} · {client}',
+  inboxItems: 'Xem trước hộp thư · {count, plural, other {# mục}} · {client}',
+  subjectWith: 'Tiêu đề với',
+  subjectItems: '{count, plural, other {# mục}}',
+  zeroMore: 'hiện “and 0 more”',
+  subjectOk: 'đọc ổn',
+
+  previewWith: 'Xem trước với',
+  previewNext: 'Số tiếp theo · #{number}, {count, plural, other {# bài viết}}',
+  previewLast: 'Số gần nhất · #{number}, {count, plural, other {# bài viết}}',
+  previewOne: '1 mục',
+  previewSix: '6 mục',
+
+  blockTitle: 'Mục nguồn cấp',
+  selectionLabel: 'Mục nguồn cấp · {layout, select, list {Danh sách} grid {Lưới} other {Thẻ}}',
+  feedItemOf: 'Mục nguồn cấp {number} trên {total}',
+  blockSub: 'Khối ReputeCast · lặp lại cho mỗi bài viết trong số',
+  blockNote: 'Mục nguồn cấp chỉ có ở chế độ bản tin định kỳ. Khối này lặp lại cho mỗi bài viết trong số, tối đa theo giới hạn đã đặt.',
+  styleNote: 'Khối Mục nguồn cấp lấy giao diện từ mẫu; bài viết, bố cục và các trường của khối nằm trong Cài đặt.',
+  layout: 'Bố cục',
+  layoutList: 'Danh sách',
+  layoutCards: 'Thẻ',
+  layoutGrid: 'Lưới',
+  layoutHintList: 'Tiêu đề và đoạn trích, mỗi hàng một bài viết, không có hình.',
+  layoutHintCards: 'Hình ở trên chữ, mỗi hàng một bài viết.',
+  layoutHintGrid: 'Hai bài viết mỗi hàng, xếp chồng trên điện thoại.',
+  fields: 'Các trường hiển thị',
+  fieldImage: 'Hình ảnh',
+  fieldTitle: 'Tiêu đề, có liên kết',
+  fieldDate: 'Ngày',
+  fieldAuthor: 'Tác giả',
+  fieldCategories: 'Chuyên mục',
+  fieldExcerpt: 'Đoạn trích',
+  excerptWords: 'Độ dài đoạn trích (số từ)',
+  words: 'từ',
+  fieldButton: 'Nút',
+  buttonText: 'Chữ trên nút',
+  excerptNote: 'Đoạn trích là văn bản thuần: HTML, script và style từ nguồn cấp đều bị loại bỏ.',
+  posts: 'Bài viết',
+  maximum: 'Tối đa',
+  maximumHint: 'Từ 1 đến 20 bài viết.',
+  order: 'Thứ tự',
+  orderNewest: 'Mới nhất trước',
+  orderOldest: 'Cũ nhất trước',
+  overflow: 'Khi có nhiều bài viết mới hơn mức tối đa',
+  overflowDrop: 'Gửi {count} bài mới nhất, bỏ phần còn lại',
+  overflowDropHint: 'Mặc định',
+  overflowKeep: 'Giữ phần còn lại cho số tiếp theo',
+  overflowKeepHint: 'Chúng vẫn được tính là mới cho đến khi được gửi',
+  fallback: 'Ảnh dự phòng',
+  fallbackHint: 'Cho bài viết không có hình',
+  fallbackNone: 'Không có: bài viết không có hình sẽ không hiện hình',
+  replace: 'Thay',
+  choose: 'Chọn',
+  images: 'Hình ảnh',
+  imagesNote:
+    'Được sao chép vào thư viện phương tiện và thu nhỏ còn 552 px, nên hình tải từ tên miền gửi thư của bạn, không phải từ blog. Văn bản thay thế lấy từ hình, nếu không có thì lấy từ tiêu đề bài viết.',
+  checksTitle: 'Kiểm tra trên khối này',
+  checkSize: 'Với {count, plural, other {# mục}}: {size} trên {limit}',
+  checkSizeOver: 'Với {count, plural, other {# mục}}: {size}, vượt mức {limit} mà Gmail bắt đầu cắt bớt',
+  checkImages: '{count, plural, =0 {Không có hình} other {# hình}} · {alt, select, title {văn bản thay thế từ tiêu đề} other {văn bản thay thế từ nguồn cấp}}',
+  checkLinks: '{count, plural, other {# liên kết}}, được theo dõi như mọi liên kết',
+  footerSummary:
+    '{preview, select, next {Số tiếp theo} last {Số gần nhất} other {Bản xem trước này}} {size} · với {count, plural, other {# mục}}: {max} trên {limit} · {images} · {links}',
+  footerImages: '{count, plural, =0 {không có hình} other {# hình}}{fromTitle, plural, =0 {, văn bản thay thế từ nguồn cấp} other {, # hình có văn bản thay thế từ tiêu đề}}',
+  footerLinks: '{count, plural, other {# liên kết}}',
+  prepared: 'Số #{number} của {name} · chuẩn bị lúc {time}',
+  preparedReadOnly:
+    'Đây là số #{number} như đã chuẩn bị: số này sẽ được gửi đúng như vậy. Hãy sửa mẫu cho các số tiếp theo, hoặc tạo lại số này từ trang bản tin định kỳ.',
+
+  // The subject previews catch "…and 0 more".
+  zeroMoreTitle: 'Bản xem trước tiêu đề phát hiện “…and 0 more”',
+  zeroMoreBody: 'Với {count, plural, other {# mục}}, tiêu đề hiện thành “{text}”. Hãy bọc số đếm để nó chỉ hiện khi có từ 2 mục trở lên.',
+  wrapIt: "Bọc trong '{% if issue.items.size > 1 %}'",
+  useStarter: 'Dùng tiêu đề của mẫu khởi đầu',
+
+  // The token menu.
+  tokensHead: 'Biến nguồn cấp · giá trị cho số tiếp theo',
+  tokensItems: 'Dùng cho vòng lặp. Mỗi mục có title, url, date, author, image, excerpt và categories.',
+  tokensContact: 'Liên hệ',
+  tokensContactValue: 'Tên của từng người đọc',
+
+  // Preview with 6 items: the whole issue and its checks.
+  zoomWhole: 'Thu phóng {pct}% · toàn bộ số',
+  wholeIssue: 'Toàn bộ số với {count, plural, other {# bài viết}}',
+  checksWith: 'Kiểm tra với {count, plural, other {# bài viết}}',
+  sizeHint: 'Đo với số bài viết nhiều nhất mà khối này gửi, để Gmail không bao giờ cắt bớt một số đầy đủ.',
+  subjectCheck: 'Tiêu đề với {count, plural, other {# mục}}',
+  subjectChars: '{text} · {count, plural, other {# ký tự}}',
+  noImage: '{count, plural, other {# bài viết không có hình}}',
+  noImageFallback: '{titles} {count, plural, other {dùng}} ảnh dự phòng, với văn bản thay thế lấy từ tiêu đề.',
+  noImageNone: '{titles} {count, plural, other {không hiện hình}}: khối này không có ảnh dự phòng.',
+  fromTitle: 'Từ tiêu đề',
+  noFallback: 'Không có hình',
+  linksCheck: '{count, plural, other {# liên kết, được theo dõi như mọi liên kết}}',
+  linksHint: 'Tiêu đề và nút của từng bài viết',
+  pass: 'Đạt',
+  over: 'Vượt',
+  sizes: 'Kích thước theo số bài viết',
+  sizesPosts: '{count, plural, other {# bài}}',
+  sizesRoom: 'Gmail cắt bớt thư lớn hơn {limit}. Chứa được tối đa {fit, plural, other {# bài viết}}, nên mức tối đa {max} vẫn còn chỗ cho đoạn trích dài.',
+  sizesExact: 'Gmail cắt bớt thư lớn hơn {limit}. Chứa được tối đa {fit, plural, other {# bài viết}}: mức tối đa {max} vừa khít.',
+  sizesOver: 'Gmail cắt bớt thư lớn hơn {limit}. Chỉ chứa được {fit, plural, other {# bài viết}}: hãy giảm mức tối đa xuống {fit} hoặc rút ngắn đoạn trích.',
+  sizesNone: 'Gmail cắt bớt thư lớn hơn {limit}, và ngay cả một bài viết cũng vượt mức đó: hãy rút ngắn mẫu hoặc đoạn trích.',
+  postsTitle: 'Bài viết trong bản xem trước này',
+  postsSub:
+    '{count, plural, other {# bài viết mới nhất qua được bộ lọc, đã gửi hay chưa.}} {next, plural, =0 {Số tiếp theo chưa có bài viết nào.} other {Bản thân số tiếp theo có # bài viết.}}',
+
+  // A post without an image.
+  altTitle: 'Văn bản thay thế từ tiêu đề',
+  altBody:
+    '{titles} {count, plural, other {không có ảnh đại diện, nên khối dùng {file}. Văn bản thay thế là tiêu đề bài viết}}, được đánh dấu “từ tiêu đề” trong phần kiểm tra. {source, select, wordpress {Hãy thêm ảnh đại diện trong WordPress để thay cả hình lẫn văn bản thay thế.} other {Hãy thêm ảnh đại diện cho bài viết để thay cả hình lẫn văn bản thay thế.}}',
+  altFeed: '{count, plural, other {Mục {items}: văn bản thay thế từ nguồn cấp}}',
+  altFromTitleItems: '{count, plural, other {Mục {items}: văn bản thay thế từ tiêu đề}}',
+
+  // A prepared issue in the composer.
+  issueLabel: 'Số · {date}',
+  checkThis: 'Kiểm tra số này',
+  preparedTitle: 'Một số đã chuẩn bị',
+  preparedBody: 'Bạn đang sửa số #{number}, đã chuẩn bị lúc {time}. Thay đổi chỉ áp dụng cho số này.',
+  rebuild: 'Tạo lại với mẫu hiện tại',
+  rebuilding: 'Đang tạo lại…',
+  rebuilt: 'Số #{number} đã được tạo lại từ mẫu hiện tại.',
+  editTemplate: 'Sửa mẫu thay vì số này',
+  templateChanged: 'Mẫu đã thay đổi lúc {time} (phiên bản {version}). Số đã chuẩn bị vẫn giữ nội dung lúc {prepared} cho đến khi bạn tạo lại.',
+
+  // The template, read-only.
+  readOnly: 'Chỉ xem',
+  previewNextIssue: 'Xem trước số tiếp theo',
+  viewerTitle: '{name} · {role}',
+  viewerBody: 'Bạn có thể xem trước các số và đọc cài đặt của mẫu. Để sửa mẫu, bạn cần quyền campaigns:edit. Hãy hỏi {names}.',
+  viewerBodyNoOne: 'Bạn có thể xem trước các số và đọc cài đặt của mẫu. Để sửa mẫu, bạn cần quyền campaigns:edit.',
+  viewerNote: 'Khung thiết kế và các bản xem trước vẫn hoạt động. Khối, tiêu đề và bảng thuộc tính bị tắt.',
+})
