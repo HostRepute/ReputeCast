@@ -3,7 +3,6 @@ package automations
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -35,27 +34,45 @@ type CreateParams struct {
 	StoreID string
 }
 
-// Create makes a draft flow. Templates also create their emails.
+var (
+	mProblemTemplate       = msg("problem.template")
+	mProblemListNotInWS    = msg("problem.listNotInWorkspace")
+	mProblemName           = msg("problem.name")
+	mProblemGraphSize      = msg("problem.graphSize")
+	mProblemRevision       = msg("problem.revision")
+	mProblemNeverPublished = msg("problem.neverPublished")
+	mProblemSecretLength   = msg("problem.secretLength")
+	mProblemEmailName      = msg("problem.emailName")
+	mProblemEmailEmpty     = msg("problem.emailEmpty")
+	mProblemEmailSize      = msg("problem.emailSize")
+	mNameUntitled          = msg("name.untitled")
+	mNameCopy              = msg("name.copy")
+	mNameWithList          = msg("name.withList")
+)
+
+// Create makes a draft flow. Templates also create their emails, in their
+// creator's language (they're written for the emails' readers).
 func (s *Service) Create(ctx context.Context, ws *store.Workspace, by *uuid.UUID, p CreateParams) (uuid.UUID, error) {
+	l := langOf(ctx)
 	id := uuid.Must(uuid.NewV7())
 	name := strings.TrimSpace(p.Name)
 	graph := AutomationGraph{Nodes: []AutomationNode{}, Edges: []AutomationEdge{}}
-	description, summary := "", "created from a blank canvas"
+	description, summary := "", txt(mSummaryBlank)
 	var tpl templateDef
 	if p.Template != "" {
 		t, ok := templateByKey(p.Template)
 		if !ok {
-			return uuid.Nil, api.Invalid("body.template", "There's no starter template with that name. Pick welcome-series, re-engagement, onboarding or abandoned-cart.")
+			return uuid.Nil, api.Invalid("body.template", say(l, txt(mProblemTemplate)))
 		}
 		tpl = t
 		if name == "" {
-			name = t.Name
+			name = t.text(l, "name")
 		}
-		description = t.description
-		summary = fmt.Sprintf("created from the %s template", t.Name)
+		description = t.text(l, "description")
+		summary = txt(mSummaryTemplate, "template", txt(msg("template."+t.msg+".name")))
 	}
 	if name == "" {
-		name = "Untitled automation"
+		name = say(l, txt(mNameUntitled))
 	}
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -65,8 +82,8 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, by *uuid.UUID
 			if storeID, err = templateStore(ctx, q, ws.ID, p.StoreID); err != nil {
 				return err
 			}
-			graph = tpl.build(storeID)
-		} else if tpl.Key != "" {
+			graph = tpl.graph(storeID, l)
+		} else if tpl.key != "" {
 			lists, err := q.AutomationLists(ctx, ws.ID)
 			if err != nil {
 				return err
@@ -77,32 +94,33 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, by *uuid.UUID
 			}
 			if p.ListID != "" {
 				found := false
-				for _, l := range lists {
-					if l.ID.String() == p.ListID {
+				for _, list := range lists {
+					if list.ID.String() == p.ListID {
 						listID, found = p.ListID, true
 						// "Welcome series · Product Updates", unless named.
 						if strings.TrimSpace(p.Name) == "" {
-							name = tpl.Name + " · " + l.Name
+							name = say(l, txt(mNameWithList, "template", tpl.text(l, "name"), "list", list.Name))
 						}
 					}
 				}
 				if !found {
-					return api.Invalid("body.list", "That list isn't in this workspace.")
+					return api.Invalid("body.list", say(l, txt(mProblemListNotInWS)))
 				}
 			}
-			graph = tpl.build(listID)
+			graph = tpl.graph(listID, l)
 		}
 		if _, err := q.CreateAutomation(ctx, store.CreateAutomationParams{
-			ID: id, WorkspaceID: ws.ID, Name: name, Description: description, TemplateKey: tpl.Key, Trigger: triggerOf(graph), CreatedBy: by,
+			ID: id, WorkspaceID: ws.ID, Name: name, Description: description, TemplateKey: tpl.key, Trigger: triggerOf(graph), CreatedBy: by,
 		}); err != nil {
 			return err
 		}
-		if tpl.Key != "" {
+		if tpl.key != "" {
 			emailIDs := map[string]uuid.UUID{}
-			for _, e := range tpl.emails {
+			for _, def := range tpl.emails {
+				e := tpl.email(l, def)
 				eid := uuid.Must(uuid.NewV7())
 				emailIDs["tpl:"+e.key] = eid
-				c := starterEmail(e)
+				c := starterEmail(l, e)
 				if tpl.store && s.StoreEmail != nil {
 					if sc, ok := s.StoreEmail(ctx, ws.ID, uuid.MustParse(storeID), e.key); ok {
 						c = sc
@@ -124,12 +142,13 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, by *uuid.UUID
 			}
 			graph = Layout(graph)
 		}
-		if err := q.InsertAutomationVersion(ctx, store.InsertAutomationVersionParams{AutomationID: id, Version: 1, Graph: graph.MustJSON(), CreatedBy: by, Summary: summary}); err != nil {
+		if err := q.InsertAutomationVersion(ctx, store.InsertAutomationVersionParams{AutomationID: id, Version: 1, Graph: graph.MustJSON(), CreatedBy: by,
+			Summary: say(english, summary), SummaryText: keepText(summary)}); err != nil {
 			return err
 		}
 		wsID := ws.ID
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Action: "automation.create", TargetType: "automation", TargetID: id.String(), TargetName: name,
-			After: map[string]any{"name": name, "template": tpl.Key, "steps": len(graph.Nodes)}})
+			After: map[string]any{"name": name, "template": tpl.key, "steps": len(graph.Nodes)}})
 	})
 	return id, err
 }
@@ -138,7 +157,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, by *uuid.UUID
 func (s *Service) UpdateMeta(ctx context.Context, ws *store.Workspace, by *uuid.UUID, id uuid.UUID, name, description string) error {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return api.Invalid("body.name", "Give the automation a name.")
+		return api.Invalid("body.name", say(langOf(ctx), txt(mProblemName)))
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -174,8 +193,9 @@ var ErrRevisionConflict = errors.New("revision conflict")
 // change for the audit log.
 func (s *Service) SaveDraft(ctx context.Context, ws *store.Workspace, by *uuid.UUID, id uuid.UUID, g AutomationGraph, revision int64) (AutomationDraftSaved, error) {
 	var out AutomationDraftSaved
+	l := langOf(ctx)
 	if len(g.Nodes) > maxNodes || len(g.Edges) > maxEdges {
-		return out, api.Invalid("body.graph", fmt.Sprintf("A flow can have up to %d steps and %d connections.", maxNodes, maxEdges))
+		return out, api.Invalid("body.graph", say(l, txt(mProblemGraphSize, "steps", maxNodes, "connections", maxEdges)))
 	}
 	g = normalizeGraph(g)
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -185,7 +205,7 @@ func (s *Service) SaveDraft(ctx context.Context, ws *store.Workspace, by *uuid.U
 			return api.MapError(err, "Automation")
 		}
 		if revision != 0 && a.DraftRevision != revision {
-			return api.Err(http.StatusConflict, api.CodeConflict, "Someone else saved this automation since you opened it. Reload to get their changes; yours stay in this tab until you do.").
+			return api.Err(http.StatusConflict, api.CodeConflict, say(l, txt(mProblemRevision))).
 				WithMeta("revision", a.DraftRevision)
 		}
 		refs, err := s.loadRefs(ctx, q, ws.ID)
@@ -215,7 +235,7 @@ func (s *Service) SaveDraft(ctx context.Context, ws *store.Workspace, by *uuid.U
 		}
 		out.DraftVersion = int(version)
 		out.Revision = a.DraftRevision + 1
-		out.Issues = Validate(g, refs)
+		out.Issues = validate(l, g, refs)
 		if a.LiveVersion != nil {
 			lv, err := q.GetAutomationVersion(ctx, store.GetAutomationVersionParams{AutomationID: id, Version: *a.LiveVersion})
 			if err != nil {
@@ -285,7 +305,7 @@ func (s *Service) DiscardDraft(ctx context.Context, ws *store.Workspace, by *uui
 			return api.MapError(err, "Automation")
 		}
 		if a.LiveVersion == nil {
-			return api.Conflict("This automation was never published, so there's no live version to go back to. Delete it instead.")
+			return api.Conflict(say(langOf(ctx), txt(mProblemNeverPublished)))
 		}
 		if a.DraftVersion == *a.LiveVersion {
 			return nil
@@ -335,13 +355,15 @@ func (s *Service) Duplicate(ctx context.Context, ws *store.Workspace, by *uuid.U
 	}
 	g := normalizeGraph(s.graphOf(v.Graph))
 	nid := uuid.Must(uuid.NewV7())
-	name := "Copy of " + a.Name
+	name := say(langOf(ctx), txt(mNameCopy, "name", a.Name))
+	summary := txt(mSummaryDuplicated, "name", a.Name)
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if _, err := q.CreateAutomation(ctx, store.CreateAutomationParams{ID: nid, WorkspaceID: ws.ID, Name: name, Description: a.Description, TemplateKey: a.TemplateKey, Trigger: triggerOf(g), CreatedBy: by}); err != nil {
 			return err
 		}
-		if err := q.InsertAutomationVersion(ctx, store.InsertAutomationVersionParams{AutomationID: nid, Version: 1, Graph: g.MustJSON(), CreatedBy: by, Summary: "duplicated from " + a.Name}); err != nil {
+		if err := q.InsertAutomationVersion(ctx, store.InsertAutomationVersionParams{AutomationID: nid, Version: 1, Graph: g.MustJSON(), CreatedBy: by,
+			Summary: say(english, summary), SummaryText: keepText(summary)}); err != nil {
 			return err
 		}
 		wsID := ws.ID
@@ -380,7 +402,7 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, by *uuid.UUID
 func (s *Service) SetStepSecret(ctx context.Context, ws *store.Workspace, by *uuid.UUID, id uuid.UUID, node, secret string) error {
 	secret = strings.TrimSpace(secret)
 	if len(secret) > 0 && len(secret) < 16 {
-		return api.Invalid("body.secret", "Use a signing secret of at least 16 characters.")
+		return api.Invalid("body.secret", say(langOf(ctx), txt(mProblemSecretLength)))
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -425,10 +447,10 @@ func secretAD(automation uuid.UUID, node string) string {
 func (s *Service) CreateEmail(ctx context.Context, ws *store.Workspace, by *uuid.UUID, automation *uuid.UUID, name, subject string) (AutomationEmailOption, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return AutomationEmailOption{}, api.Invalid("body.name", "Name the email.")
+		return AutomationEmailOption{}, api.Invalid("body.name", say(langOf(ctx), txt(mProblemEmailName)))
 	}
 	id := uuid.Must(uuid.NewV7())
-	c := BlankEmail(name, subject)
+	c := blankEmail(langOf(ctx), name, subject)
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if automation != nil {
@@ -461,14 +483,15 @@ type EmailUpdate struct {
 // never changes what it sends without a publish. Content edited as HTML
 // drops the MJML source (the composer reopens it in HTML mode).
 func (s *Service) UpdateEmail(ctx context.Context, ws *store.Workspace, by *uuid.UUID, id uuid.UUID, u EmailUpdate) (AutomationEmailContent, error) {
+	l := langOf(ctx)
 	if strings.TrimSpace(u.Subject) == "" {
-		return AutomationEmailContent{}, api.Invalid("body.subject", "Write a subject line.")
+		return AutomationEmailContent{}, api.Invalid("body.subject", say(l, txt(mProblemSubject)))
 	}
 	if strings.TrimSpace(u.HTML) == "" {
-		return AutomationEmailContent{}, api.Invalid("body.html", "The email is empty. Write its HTML.")
+		return AutomationEmailContent{}, api.Invalid("body.html", say(l, txt(mProblemEmailEmpty)))
 	}
 	if len(u.HTML) > 512<<10 {
-		return AutomationEmailContent{}, api.Invalid("body.html", "Keep the email under 512 KB; Gmail clips anything over 102 KB anyway.")
+		return AutomationEmailContent{}, api.Invalid("body.html", say(l, txt(mProblemEmailSize)))
 	}
 	var version int32
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {

@@ -127,7 +127,7 @@ export function NewCampaignDialog({ open, onOpenChange }: { open: boolean; onOpe
                     ) : undefined
                   }
                 >
-                  <Input type="url" inputMode="url" placeholder="https://blog.example.com" value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="url" />
+                  <Input type="url" inputMode="url" placeholder={'https://blog.example.com'} value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="url" />
                 </Field>
               ) : null}
               {!canSend ? <Note tone="info">{t(m.draftModeHint)}</Note> : null}

@@ -1,0 +1,39 @@
+{
+  "address.empty": "hãy nhập địa chỉ nguồn cấp hoặc trang, ví dụ blog.acme.io/feed/",
+  "address.invalid": "đây không phải là địa chỉ: hãy nhập địa chỉ dạng blog.acme.io/feed/",
+  "address.scheme": "nguồn cấp được đọc qua https:// hoặc http://",
+  "address.redirect": "đích chuyển hướng không phải là địa chỉ",
+
+  "status.noLocation": "{host} trả về {status} nhưng không cho biết cần chuyển đến đâu",
+  "status.notFound": "{host} trả về {status} {statusText}: không có nguồn cấp nào tại {address}",
+  "status.signIn": "{host} trả về {status} {statusText}: nguồn cấp yêu cầu đăng nhập, mà bản tin định kỳ không hỗ trợ việc này",
+  "status.tooMany": "{host} trả về 429 Too Many Requests: trang này giới hạn tần suất được đọc",
+  "status.other": "{host} trả về {status} {statusText}",
+  "redirects": "{host} chuyển hướng quá {max} lần",
+  "tooLarge": "{host} gửi quá {mb} MB, mức giới hạn cho một nguồn cấp",
+
+  "blocked.private": "{host} không đọc được: {ip} là địa chỉ nội bộ hoặc loopback. Quản trị viên hệ thống có thể cho phép địa chỉ nội bộ cho các nguồn cấp tự lưu trữ",
+  "blocked.special": "{host} không đọc được: {ip} là địa chỉ link-local, metadata hoặc multicast. Quản trị viên hệ thống có thể cho phép địa chỉ nội bộ cho các nguồn cấp tự lưu trữ",
+  "blocked.localName": "{host} không đọc được: {name} là tên máy chủ cục bộ. Quản trị viên hệ thống có thể cho phép địa chỉ nội bộ cho các nguồn cấp tự lưu trữ",
+  "blocked.other": "{host} không đọc được: {reason}. Quản trị viên hệ thống có thể cho phép địa chỉ nội bộ cho các nguồn cấp tự lưu trữ",
+
+  "unreachable.timeout": "{host} không phản hồi: kết nối hết thời gian chờ sau {seconds} giây",
+  "unreachable.dns": "{host} không phản hồi: không phân giải được tên (tra cứu DNS thất bại)",
+  "unreachable.tls": "{host} không phản hồi an toàn: chứng chỉ TLS của trang không hợp lệ",
+  "unreachable.refused": "{host} không phản hồi: kết nối bị từ chối",
+  "unreachable.reset": "{host} không phản hồi: kết nối bị đặt lại",
+  "unreachable.other": "{host} không phản hồi: {detail}",
+
+  "notFeed.html": "{address} không phải là nguồn cấp: địa chỉ này trả về một trang HTML",
+  "notFeed.plain": "{address} không phải là nguồn cấp",
+  "notFeed.empty": "{address} không phải là nguồn cấp: tài liệu trống",
+  "notFeed.neither": "{address} không phải là nguồn cấp: tài liệu không phải XML cũng không phải JSON",
+  "notFeed.xml": "{address} không phải là nguồn cấp: không phân tích được XML: {detail}",
+  "notFeed.deep": "{address} không phải là nguồn cấp: XML lồng nhau quá sâu",
+  "notFeed.noElements": "{address} không phải là nguồn cấp: XML không có phần tử nào",
+  "notFeed.noChannel": "{address} không phải là nguồn cấp: tài liệu RSS không có channel",
+  "notFeed.root": "{address} không phải là nguồn cấp: đây là tài liệu XML có phần tử gốc <{root}>",
+  "notFeed.json": "{address} không phải là nguồn cấp: không phân tích được JSON: {detail}",
+  "notFeed.notJSONFeed": "{address} không phải là nguồn cấp: đây là tài liệu JSON nhưng không phải JSON Feed (không có phiên bản jsonfeed.org)",
+  "noFeedLink": "{address} là trang web không liên kết đến nguồn cấp nào"
+}

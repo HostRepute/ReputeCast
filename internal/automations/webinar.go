@@ -2,7 +2,6 @@ package automations
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -12,7 +11,25 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
+)
+
+var (
+	mProblemEventSession = msg("problem.eventSession")
+	mWebinarDescription  = msg("webinar.description")
+	mWebinarJoinLink     = msg("webinar.joinLink")
+	mWebinarJoinInEmail  = msg("webinar.joinLinkInEmail")
+	mWebinarDayName      = msg("webinar.dayBefore.name")
+	mWebinarDaySubject   = msg("webinar.dayBefore.subject")
+	mWebinarDayPre       = msg("webinar.dayBefore.preheader")
+	mWebinarDayHeading   = msg("webinar.dayBefore.heading")
+	mWebinarDayBody      = msg("webinar.dayBefore.body")
+	mWebinarHourName     = msg("webinar.hourBefore.name")
+	mWebinarHourSubject  = msg("webinar.hourBefore.subject")
+	mWebinarHourPre      = msg("webinar.hourBefore.preheader")
+	mWebinarHourHeading  = msg("webinar.hourBefore.heading")
+	mWebinarHourBody     = msg("webinar.hourBefore.body")
 )
 
 // A webinar page's reminder automation (the page builder's "Create the
@@ -37,28 +54,32 @@ type EventReminders struct {
 	When string
 }
 
-// CreateEventReminders makes the draft flow and its two emails.
+// CreateEventReminders makes the draft flow and its two emails, in their
+// creator's language (they're written for the event's registrants).
 func (s *Service) CreateEventReminders(ctx context.Context, ws *store.Workspace, by *uuid.UUID, in EventReminders) (uuid.UUID, error) {
+	l := langOf(ctx)
 	if !reHHMM.MatchString(in.At) || strings.TrimSpace(in.Field) == "" {
-		return uuid.Nil, api.Invalid("body", "The event needs a start time and a date field.")
+		return uuid.Nil, api.Invalid("body", say(l, txt(mProblemEventSession)))
 	}
 	id := uuid.Must(uuid.NewV7())
 	dayBefore, hourBefore := uuid.Must(uuid.NewV7()), uuid.Must(uuid.NewV7())
 	link := strings.TrimSpace(in.Link)
-	joinLine := "The joining link: " + link
+	joinLine := mWebinarJoinLink.Text(l, i18n.Args{"link": link})
 	if link == "" {
-		joinLine = "The joining link is in your registration email."
+		joinLine = mWebinarJoinInEmail.Text(l, nil)
 	}
+	title := i18n.Args{"title": in.Title}
 	emails := []struct {
 		id                         uuid.UUID
 		name, subject, pre, header string
 		body                       []string
 	}{
-		{dayBefore, in.Title + " · tomorrow", "Tomorrow: " + in.Title, "Your joining link, and when it starts.", "See you tomorrow",
-			[]string{"Hi {{ first_name }}, " + in.Title + " starts " + in.When + ".", joinLine}},
-		{hourBefore, in.Title + " · in an hour", "Starting in an hour: " + in.Title, "Join from the link below.", "Starting in an hour",
-			[]string{in.Title + " starts in an hour.", joinLine}},
+		{dayBefore, mWebinarDayName.Text(l, title), mWebinarDaySubject.Text(l, title), mWebinarDayPre.Text(l, nil), mWebinarDayHeading.Text(l, nil),
+			[]string{mWebinarDayBody.Text(l, i18n.Args{"firstName": "{{ first_name }}", "title": in.Title, "when": in.When}), joinLine}},
+		{hourBefore, mWebinarHourName.Text(l, title), mWebinarHourSubject.Text(l, title), mWebinarHourPre.Text(l, nil), mWebinarHourHeading.Text(l, nil),
+			[]string{mWebinarHourBody.Text(l, title), joinLine}},
 	}
+	summary := txt(mSummaryWebinar)
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		graph := AutomationGraph{
@@ -76,11 +97,11 @@ func (s *Service) CreateEventReminders(ctx context.Context, ws *store.Workspace,
 				{ID: "e-n4-n5", Source: "n4", Target: "n5"}},
 		}
 		if _, err := q.CreateAutomation(ctx, store.CreateAutomationParams{ID: id, WorkspaceID: ws.ID, Name: in.Name,
-			Description: fmt.Sprintf("Reminders for %s: the day before and an hour before.", in.Title), Trigger: triggerOf(graph), CreatedBy: by}); err != nil {
+			Description: mWebinarDescription.Text(l, title), Trigger: triggerOf(graph), CreatedBy: by}); err != nil {
 			return err
 		}
 		for _, e := range emails {
-			c := DemoEmail(e.subject, e.pre, e.header, "", e.body...)
+			c := starterEmail(l, templateEmail{subject: e.subject, preheader: e.pre, heading: e.header, body: e.body})
 			if err := q.CreateAutomationEmail(ctx, store.CreateAutomationEmailParams{ID: e.id, WorkspaceID: ws.ID, AutomationID: &id, Name: e.name, CreatedBy: by}); err != nil {
 				return err
 			}
@@ -90,7 +111,7 @@ func (s *Service) CreateEventReminders(ctx context.Context, ws *store.Workspace,
 			}
 		}
 		if err := q.InsertAutomationVersion(ctx, store.InsertAutomationVersionParams{AutomationID: id, Version: 1, Graph: graph.MustJSON(), CreatedBy: by,
-			Summary: "created from a webinar page"}); err != nil {
+			Summary: say(english, summary), SummaryText: keepText(summary)}); err != nil {
 			return err
 		}
 		wsID := ws.ID

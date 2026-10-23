@@ -355,7 +355,7 @@ func signInProblem(ctx context.Context, p seedbox.Provider, host string, port in
 	case netguard.IsBlocked(err):
 		return api.Invalid("body.host", mSeedBlocked.Text(l, i18n.Args{"host": host}))
 	case errors.Is(err, seedbox.ErrAuthFailed):
-		msg := mSeedRefused.Text(l, i18n.Args{"provider": p.Name, "password": strings.ToLower(p.Password)})
+		msg := mSeedRefused.Text(l, i18n.Args{"provider": p.Name, "password": credentialIn(l, p.Password)})
 		switch {
 		case p.Key == seedbox.GMX || p.Key == seedbox.WebDE:
 			msg = mSeedRefusedIMAP.Text(l, i18n.Args{"provider": p.Name})
@@ -413,7 +413,7 @@ func (s *Service) AddSeed(ctx context.Context, ws *store.Workspace, in Placement
 		return PlacementSeedCheck{}, api.Conflict(mSeedDuplicate.Text(l, i18n.Args{"email": email}))
 	}
 	if strings.TrimSpace(in.Password) == "" {
-		return PlacementSeedCheck{}, api.Invalid("body.password", mSeedPasswordNeeded.Text(l, i18n.Args{"password": strings.ToLower(p.Password)}))
+		return PlacementSeedCheck{}, api.Invalid("body.password", mSeedPasswordNeeded.Text(l, i18n.Args{"password": credentialIn(l, p.Password)}))
 	}
 	host, port := strings.TrimSpace(in.Host), in.Port
 	if host == "" {
@@ -603,7 +603,7 @@ func (s *Service) StartOAuth(ctx context.Context, ws *store.Workspace, in Placem
 	}
 	u := actor(ctx)
 	if u == nil {
-		return PlacementOAuthStart{}, api.Err(http.StatusForbidden, api.CodeHumansOnly, "Only people connect seed mailboxes.")
+		return PlacementOAuthStart{}, api.Err(http.StatusForbidden, api.CodeHumansOnly, mSeedHumansOnly.Text(i18n.LangFrom(ctx), nil))
 	}
 	now := s.now()
 	_ = s.Q.PlacementOAuthStatesExpire(ctx, now)
@@ -664,6 +664,12 @@ func (s *Service) OAuthCallback(ctx context.Context, user *store.User, self, sta
 		return "/"
 	}
 	perms := authz.Effective(m.RoleKey, m.RoleBuiltin, m.RolePermissions)
+	// The browser comes back with its own Accept-Language: what this
+	// writes for the page follows the member's own language.
+	l := i18n.LangFrom(ctx)
+	if s.LangOf != nil {
+		l = s.LangOf(ctx, user.ID)
+	}
 	page := "/w/" + ws.Slug + "/deliverability/placement/seeds"
 	back := func(kv ...string) string {
 		q := url.Values{}
@@ -684,11 +690,11 @@ func (s *Service) OAuthCallback(ctx context.Context, user *store.User, self, sta
 	}
 	vb, err := s.Box.Open(st.VerifierEnc, "placement:oauth:"+hex.EncodeToString(sum[:]))
 	if err != nil {
-		return back("oauth", "failed", "reason", "the sign-in state couldn't be read")
+		return back("oauth", "failed", "reason", mOAuthState.Text(l, nil))
 	}
 	app, ready, err := s.app(ctx, st.Kind)
 	if err != nil || !ready {
-		return back("oauth", "failed", "reason", "the sign-in app isn't set up")
+		return back("oauth", "failed", "reason", mOAuthApp.Text(l, nil))
 	}
 	conf := s.oauthConfig(app, s.redirectURI())
 	tok, err := conf.Exchange(s.oauthCtx(ctx), code, oauth2.VerifierOption(string(vb)))
@@ -698,6 +704,7 @@ func (s *Service) OAuthCallback(ctx context.Context, user *store.User, self, sta
 	email := idTokenEmail(tok)
 	pctx := api.WithPrincipal(ctx, &authz.Principal{Type: authz.ActorUser, ID: user.ID, Name: user.Name, UserID: user.ID, Email: user.Email,
 		WorkspaceID: ws.ID, RoleKey: m.RoleKey, RoleName: m.RoleName, Permissions: perms})
+	pctx = i18n.WithLang(pctx, l)
 	view, perr := s.saveOAuthSeed(pctx, &ws, st, email, tok)
 	if perr != nil {
 		return back("oauth", "failed", "reason", perr.Error())
@@ -739,7 +746,7 @@ func (s *Service) saveOAuthSeed(ctx context.Context, ws *store.Workspace, st sto
 		}
 	}
 	if email == "" {
-		return PlacementSeedView{}, errors.New(mSeedOAuthFailed.Text(l, i18n.Args{"app": appName(st.Kind), "reason": "no email address came with the sign-in"}))
+		return PlacementSeedView{}, errors.New(mOAuthNoEmail.Text(l, nil))
 	}
 	if existing == nil {
 		if _, err := s.Q.PlacementSeedByEmail(ctx, store.PlacementSeedByEmailParams{WorkspaceID: ws.ID, Email: email}); err == nil {

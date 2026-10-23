@@ -14,6 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/pages"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -77,15 +78,9 @@ func pageRule(policy ApprovalPolicy, p *authz.Principal) string {
 	return ""
 }
 
-// pageVisibilityLabel says who can read a page.
-func pageVisibilityLabel(v string) string {
-	switch v {
-	case "members":
-		return "Members"
-	case "paid":
-		return "Paid"
-	}
-	return "Public"
+// pageVisibilityLabel says who can read a page: Members, Paid, Public.
+func pageVisibilityLabel(l i18n.Lang, v string) string {
+	return mVisibility.Text(l, i18n.Args{"visibility": v})
 }
 
 // PageDecision implements pages.Approvals.
@@ -109,25 +104,25 @@ func (g PagesGate) PageDecision(ctx context.Context, ws *store.Workspace, p *aut
 		return out, err
 	}
 	out.NeedsApproval = true
-	who := orNames(approvers)
+	who := i18n.Args{"approvers": i18n.OrList(langOf(ctx).Locale, approvers)}
 	switch rule {
 	case RuleAuthorLacksSend:
-		out.Reason = fmt.Sprintf("Publishing needs website:publish, so the rule “The author lacks the send permission” applies. %s can approve.", who)
+		out.Reason = say(ctx, mPublishLacksPublish, who)
 	default:
-		out.Reason = fmt.Sprintf("The workspace rule “Publishing a post or page needs approval” is on. %s can approve; you can't approve your own page.", who)
+		out.Reason = say(ctx, mPublishPageRule, who)
 	}
 	if pend, err := g.S.Q.PageApprovalPending(ctx, &req.PageID); err == nil {
 		out.Pending, out.RequestedBy = pend.ID.String(), pend.RequestedByName
 		at := pend.RequestedAt
 		out.RequestedAt = &at
 		if pend.DraftHash == req.Hash {
-			out.Reason = fmt.Sprintf("Approval is requested. Waiting for %s.", who)
+			out.Reason = say(ctx, mPublishWaiting, who)
 		}
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return out, err
 	}
 	if len(approvers) == 0 {
-		out.Reason = "Publishing this page needs approval, and nobody else holds campaigns:approve. Ask an Owner to change Settings › Approvals."
+		out.Reason = say(ctx, mPublishPageNoApprovers, nil)
 	}
 	return out, nil
 }
@@ -138,12 +133,12 @@ func (g PagesGate) PageDecision(ctx context.Context, ws *store.Workspace, p *aut
 func (g PagesGate) RequestPage(ctx context.Context, ws *store.Workspace, p *authz.Principal, req pages.ApprovalRequest, note string) (uuid.UUID, error) {
 	s := g.S
 	if !p.IsHuman() {
-		return uuid.Nil, api.Err(403, api.CodePermissionDenied, "Only people can ask for approval to publish a page.")
+		return uuid.Nil, api.Err(403, api.CodePermissionDenied, say(ctx, mPagePeopleOnly, nil))
 	}
 	policy := ParsePolicy(ws.ApprovalPolicy)
 	rule := pageRule(policy, p)
 	if rule == "" {
-		return uuid.Nil, api.Conflict("Publishing this page doesn't need approval: publish it directly.")
+		return uuid.Nil, api.Conflict(say(ctx, mPageNoNeed, nil))
 	}
 	ms, err := s.members(ctx, s.Q, ws.ID)
 	if err != nil {
@@ -156,19 +151,19 @@ func (g PagesGate) RequestPage(ctx context.Context, ws *store.Workspace, p *auth
 		}
 	}
 	if len(approvers) == 0 {
-		return uuid.Nil, api.Conflict("Nobody else holds campaigns:approve, so nobody can approve this page. Ask an Owner to change Settings › Approvals.")
+		return uuid.Nil, api.Conflict(say(ctx, mPageNoApprovers, nil))
 	}
 	role := ""
 	if m := memberByID(ms, &p.UserID); m != nil {
 		role = m.RoleName
 	}
-	match := postRuleMatch(rule, p, role)
+	rm := postRuleMatch(rule, p, role)
 	if rule == RulePostPublish {
-		match.Short, match.Badge = "page publish", "Page publish"
+		rm = match(RulePostPublish, mRulePost, mRulePageShort, mRulePageBadge, nil)
 	}
-	snap := Snapshot{DraftHash: req.Hash, Subject: req.Name, Rules: []ApprovalRuleMatch{match}, AuthorRole: role,
+	snap := Snapshot{DraftHash: req.Hash, Subject: req.Name, Rules: []ApprovalRuleMatch{rm}, AuthorRole: role,
 		Page: &ApprovalPageSnapshot{PageID: req.PageID.String(), Name: req.Name, Template: req.Template, Slug: req.Slug, Path: req.Path,
-			Visibility: req.Visibility, VisibilityLabel: pageVisibilityLabel(req.Visibility), When: req.When, PublishAt: req.PublishAt}}
+			Visibility: req.Visibility, VisibilityLabel: pageVisibilityLabel(i18n.Default, req.Visibility), When: req.When, PublishAt: req.PublishAt}}
 	note = strings.TrimSpace(note)
 	id := uuid.Must(uuid.NewV7())
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -188,7 +183,10 @@ func (g PagesGate) RequestPage(ctx context.Context, ws *store.Workspace, p *auth
 		n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalRequested, Severity: "warn", Title: "Approval requested",
 			Summary: fmt.Sprintf("%s asked you to approve publishing “%s”", p.Name, req.Name),
 			Body:    fmt.Sprintf("%s asked to publish the page “%s” at %s%s", p.Name, req.Name, req.Path, noteSuffix(note)),
-			Link:    "/w/" + ws.Slug + "/approvals/" + id.String(), Data: map[string]any{"request_id": id.String(), "website_page_id": req.PageID.String()}}
+			Link:    "/w/" + ws.Slug + "/approvals/" + id.String(), Data: map[string]any{"request_id": id.String(), "website_page_id": req.PageID.String()},
+			TitleText:   mNotifyRequestedTitle.Keep(nil),
+			SummaryText: mNotifyPublishSummary.Keep(i18n.Args{"author": p.Name, "name": req.Name}),
+			BodyText:    mNotifyPageBody.Keep(i18n.Args{"author": p.Name, "name": req.Name, "path": req.Path, "hasNote": yesNo(note != ""), "note": note})}
 		for _, a := range approvers {
 			if err := notify.ToUser(ctx, tx, a.ID, n); err != nil {
 				return err
@@ -200,7 +198,7 @@ func (g PagesGate) RequestPage(ctx context.Context, ws *store.Workspace, p *auth
 	})
 	if err != nil {
 		if isUniqueViolation(err) {
-			return uuid.Nil, api.Conflict("Someone asked for approval of this page a moment ago. Reload it.")
+			return uuid.Nil, api.Conflict(say(ctx, mPageRace, nil))
 		}
 		return uuid.Nil, err
 	}
@@ -219,7 +217,7 @@ func (g PagesGate) PageChanged(ctx context.Context, ws *store.Workspace, p *auth
 	s := g.S
 	now := s.now()
 	rows, err := s.Q.PageApprovalInvalidate(ctx, store.PageApprovalInvalidateParams{PageID: &pageID, Now: &now, DraftHash: hash,
-		Reason: "The page changed after the request: its content, address, settings or publish time."})
+		Reason: english(mInvalidPage, nil), ReasonText: textJSON(mInvalidPage.Keep(nil))})
 	if err != nil || len(rows) == 0 {
 		return err
 	}
@@ -230,7 +228,10 @@ func (g PagesGate) PageChanged(ctx context.Context, ws *store.Workspace, p *auth
 		n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalInvalidated, Severity: "warn", Title: "Approval invalidated",
 			Summary: fmt.Sprintf("“%s” changed after the request", name),
 			Body:    fmt.Sprintf("The page “%s” changed after its approval request, so the request no longer covers it. Ask for approval again.", name),
-			Link:    "/w/" + ws.Slug + "/approvals/" + r.ID.String(), Data: map[string]any{"request_id": r.ID.String(), "website_page_id": pageID.String()}}
+			Link:    "/w/" + ws.Slug + "/approvals/" + r.ID.String(), Data: map[string]any{"request_id": r.ID.String(), "website_page_id": pageID.String()},
+			TitleText:   mNotifyInvalidatedTitle.Keep(nil),
+			SummaryText: mNotifyChangedSummary.Keep(i18n.Args{"name": name}),
+			BodyText:    mNotifyPageChangedBody.Keep(i18n.Args{"name": name})}
 		if err := notify.ToUser(ctx, s.Pool, *r.RequestedBy, n); err != nil {
 			return err
 		}

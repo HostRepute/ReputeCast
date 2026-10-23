@@ -149,6 +149,9 @@ export const mr = defineMessages('approvals.review', {
   automationTitle: 'Automation',
   automationCaption: 'The version the approval publishes',
   contactsInFlight: 'Contacts in flight',
+  /** What happens to contacts already in the flow when this version goes live, as the publish dialog offered it. */
+  migration:
+    "{migration, select, move {Move them to v{version} at their current step} other {Let them finish on the version they're on}}",
 
   // ── Discussion ────────────────────────────────────────────────────────
   discussionTitle: 'Discussion',

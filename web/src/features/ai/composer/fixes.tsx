@@ -8,7 +8,7 @@ import { useComposer } from '@/features/composer/context'
 import { sectionOf } from '@/features/composer/editor/labels'
 import { versionLanguage } from '@/features/languages/composerParts'
 import { aiBase } from '../api'
-import { estimateMicros } from '../format'
+import { ALT_TEXT_WIDTH, estimateMicros } from '../format'
 import { m, ms } from '../messages'
 import { sendingText, sentText, Sparkle, SuggestFlow, useOutcome, useSuggest } from '../suggest'
 import { useComposerAssist } from './state'
@@ -122,7 +122,7 @@ export function AltTextAssist({
           title={t(ms.altTitle)}
           assist={a}
           s={s.state}
-          sending={sendingText(t, ms.sentAlt, a.status, estimateMicros(1500, 60, prices) + 1600 * prices.input, { file })}
+          sending={sendingText(t, ms.sentAlt, a.status, estimateMicros(1500, 60, prices) + 1600 * prices.input, { file, width: ALT_TEXT_WIDTH })}
           onClose={() => close(s.state.phase === 'done' ? 'rejected' : undefined)}
           onRetry={s.retry}
           done={(r) => ({
@@ -171,7 +171,7 @@ export function AltTextAssist({
                 </Button>
               </>
             ),
-            sent: sentText(t, ms.sentAlt, r.sent, { file: r.fileName || file }),
+            sent: sentText(t, ms.sentAlt, r.sent, { file: r.fileName || file, width: ALT_TEXT_WIDTH }),
           })}
         />
       ) : null}

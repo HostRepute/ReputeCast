@@ -4,7 +4,7 @@ import { $api, ApiError, type Schemas } from '@/api/client'
 import { Icon } from '@/components/icons/Icon'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { T, t as tr, useT } from '@/i18n'
-import { clock, orList, shortDate } from '@/lib/format'
+import { clock, count, money as formatMoney, orList, shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import '@/features/integrations/integrations.css'
 import { m } from './messages'
@@ -61,10 +61,9 @@ export function useJob(id: string, enabled = true) {
   )
 }
 
-/** "$0.008", "$28.92". */
+/** "$0.008" a check, "$28.92", in the reader's region format. */
 export function money(v: number, perCheck = false): string {
-  if (perCheck) return `$${v.toFixed(3)}`
-  return `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return perCheck ? formatMoney(v, 3) : formatMoney(v)
 }
 
 /** "today at 10:12", "Tue 14 Oct at 15:09" — never seconds. */
@@ -123,7 +122,7 @@ export function ResultLegend({ valid, invalid, risky, unknown }: { valid: number
         <span key={l}>
           <i style={{ background: c }} />
           {l}
-          <b>{n.toLocaleString('en-US')}</b>
+          <b>{count(n)}</b>
         </span>
       ))}
     </div>

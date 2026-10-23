@@ -82,7 +82,6 @@ var (
 	mFeedSite       = msgs.M("feed.site")
 	mFeedAddress    = msgs.M("feed.address")
 	mCategoriesNone = msgs.M("categories.none")
-	mSchedule       = msgs.M("schedule.invalid")
 	mPrepare        = msgs.M("prepare.range")
 	mLate           = msgs.M("late.values")
 	mAudience       = msgs.M("audience.required")
@@ -98,10 +97,6 @@ var (
 	mDeleteOn       = msgs.M("delete.on")
 )
 
-// StarterSubject is the Blog digest starter's subject: the count only shows
-// with 2 or more posts, so one post never reads "and 0 more".
-const StarterSubject = `{{ issue.items.first.title }}{% if issue.items.size > 1 %} and {{ issue.items.size | minus: 1 }} more{% endif %} from {{ feed.title }}`
-
 // Create makes a digest from the type picker: off, in draft mode for a
 // member without campaigns:send, with the Blog digest template, the
 // workspace's default sender and its time zone.
@@ -111,16 +106,18 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if err != nil {
 		return DigestDetail{}, err
 	}
+	// The name, subject and preheader are the email's words, in its language.
+	el := emailLang(ctx, s.Q, ws.ID, nil)
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		name = "Blog digest"
+		host := hostOf(feedURL)
 		if siteID != nil {
+			host = ""
 			if site, err := s.site(ctx, ws, *siteID); err == nil && site != nil {
-				name = site.Host + " digest"
+				host = site.Host
 			}
-		} else if h := hostOf(feedURL); h != "" {
-			name = h + " digest"
 		}
+		name = starterNameIn(el, host)
 	}
 	name = s.freeName(ctx, ws.ID, name)
 	mode := "auto"
@@ -133,8 +130,8 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	by := actorID(p)
 	sched, _ := json.Marshal(DefaultSchedule(ws.Timezone))
 	mjmlSrc, _ := templates.StarterMJML(templates.BlogDigestStarter, templates.WorkspaceAddress(ws))
-	subject := StarterSubject
-	preheader := "New on " + firstNonEmpty(hostOf(feedURL), "the blog") + " · issue {{ issue.number }}"
+	subject := starterSubjectIn(el)
+	preheader := starterPreheaderIn(el, hostOf(feedURL))
 	html := mjml.Compile(mjmlSrc).HTML
 	html = accessibility.FinalizeStored(ctx, s.Q, ws.ID, accessibility.OwnerCampaign, uuid.Nil, 0, html)
 	var sender *uuid.UUID
@@ -163,7 +160,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			return err
 		}
 		if err := q.DigestCampaignVersionInsert(ctx, store.DigestCampaignVersionInsertParams{CampaignID: templateID, Version: 1, Subject: subject, Preheader: preheader,
-			Mjml: mjmlSrc, Html: html, PlainText: contentcheck.PlainText(html), SavedBy: by, SavedAt: now, Label: "created from the Blog digest starter",
+			Mjml: mjmlSrc, Html: html, PlainText: contentcheck.PlainText(html), SavedBy: by, SavedAt: now, Label: mVersionStarter.Text(l, nil),
 			Source: "template", SizeBytes: int32(len(html))}); err != nil {
 			return err
 		}
@@ -230,21 +227,13 @@ func (s *Service) resolveSource(ctx context.Context, ws *store.Workspace, l i18n
 		}
 		u, err := feed.NormalizeURL(feedRaw)
 		if err != nil {
-			return "", nil, "", api.Invalid("body.feedUrl", mFeedAddress.Text(l, i18n.Args{"detail": strings.TrimSuffix(sentence(err.Error()), ".")}))
+			return "", nil, "", api.Invalid("body.feedUrl", addressProblem(l, err, feedRaw))
 		}
 		if _, err := s.fetcher().Policy.ValidateURL(u); err != nil {
-			return "", nil, "", api.Invalid("body.feedUrl", mFeedAddress.Text(l, i18n.Args{"detail": strings.TrimSuffix(sentence(err.Error()), ".")}))
+			return "", nil, "", api.Invalid("body.feedUrl", addressProblem(l, err, u))
 		}
 		return "url", nil, u, nil
 	}
-}
-
-func sentence(s string) string {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return s
-	}
-	return strings.ToUpper(s[:1]) + s[1:]
 }
 
 // Update saves the settings page. Template, feed and schedule changes apply
@@ -283,8 +272,8 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if sched.Timezone == "" {
 		sched.Timezone = ws.Timezone
 	}
-	if field, msg := sched.Validate(); field != "" {
-		return DigestDetail{}, api.Invalid("body.schedule."+field, mSchedule.Text(l, i18n.Args{"detail": msg}))
+	if field, msg, args := sched.Validate(); field != "" {
+		return DigestDetail{}, api.Invalid("body.schedule."+field, msg.Text(l, args))
 	}
 	if in.PrepareHours < 1 || in.PrepareHours > 24 {
 		return DigestDetail{}, api.Invalid("body.prepareHours", mPrepare.Text(l, nil))
@@ -616,7 +605,7 @@ func (s *Service) Pause(ctx context.Context, ws *store.Workspace, p *authz.Princ
 		return DigestDetail{}, err
 	}
 	if sending, err := s.sendingIssue(ctx, id); err == nil && sending != nil && sending.CampaignID != nil && s.starter() != nil {
-		if err := s.starter().Pause(ctx, *sending.CampaignID, p.ID, "The digest was paused"); err != nil {
+		if err := s.starter().Pause(ctx, *sending.CampaignID, p.ID, mPauseReason.Text(l, nil)); err != nil {
 			s.log().WarnContext(ctx, "pause a digest issue's send", "digest", id, "err", err)
 		}
 	}
@@ -675,13 +664,19 @@ func (s *Service) pause(ctx context.Context, ws *store.Workspace, d store.Digest
 			Actor: actor, Reason: note, Before: map[string]any{"state": d.State}, After: map[string]any{"state": "paused"}, Metadata: meta}); err != nil {
 			return err
 		}
-		n := pausedNotification(ws, d, reason, note, by, q, ctx, detail)
+		who := ""
+		if by != nil {
+			if u, err := q.GetUser(ctx, *by); err == nil {
+				who = u.Name
+			}
+		}
 		told := map[uuid.UUID]bool{}
 		for _, u := range targets {
 			if told[u] {
 				continue
 			}
 			told[u] = true
+			n := pausedNotification(memberLang(ctx, q, u), ws, d, reason, note, who, detail)
 			if err := notify.ToUser(ctx, tx, u, n); err != nil {
 				return err
 			}
@@ -747,39 +742,42 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	})
 }
 
-// pausedNotification is the "Digest paused" notification.
-func pausedNotification(ws *store.Workspace, d store.Digest, reason, note string, by *uuid.UUID, q *store.Queries, ctx context.Context, detail map[string]any) notify.Notification {
+// pausedNotification is the "Digest paused" notification, in its
+// recipient's language. who is the member who paused it ("" when nobody
+// did, or they're gone).
+func pausedNotification(l i18n.Lang, ws *store.Workspace, d store.Digest, reason, note, who string, detail map[string]any) notify.Notification {
 	link := "/w/" + ws.Slug + "/campaigns/digests/" + d.ID.String()
-	n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindDigestPaused, Severity: "warn", Title: "Digest paused", Link: link,
+	n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindDigestPaused, Severity: "warn", Title: mPausedTitle.Text(l, nil), Link: link,
 		Data: map[string]any{"digest_id": d.ID.String(), "reason": reason}}
+	args := i18n.Args{"digest": d.Name, "name": who, "note": note}
 	switch reason {
 	case "owner":
 		owner, _ := detail["owner"].(string)
 		from, _ := detail["from"].(string)
 		to, _ := detail["to"].(string)
-		switch {
-		case from != "" && to != "":
-			n.Body = fmt.Sprintf("%s paused: %s's role changed from %s to %s, so issues can't send on their authority. Anyone with campaigns:send can turn it back on and becomes its owner.", d.Name, owner, from, to)
-		default:
-			n.Body = fmt.Sprintf("%s paused: %s no longer has campaigns:send in this workspace. Anyone with campaigns:send can turn it back on and becomes its owner.", d.Name, owner)
+		args["owner"], args["from"], args["to"] = owner, roleIn(l, from), roleIn(l, to)
+		if from != "" && to != "" {
+			n.Body = mPausedRole.Text(l, args)
+		} else {
+			n.Body = mPausedLost.Text(l, args)
 		}
-		n.Summary = fmt.Sprintf("%s paused: its owner can't send any more", d.Name)
+		n.Summary = mPausedOwnerSummary.Text(l, args)
 	case "feed":
 		n.Severity = "bad"
-		n.Body = fmt.Sprintf("%s paused after three issues in a row were skipped because the feed failed. Check the feed, then turn it back on.", d.Name)
-		n.Summary = fmt.Sprintf("%s paused after three feed failures", d.Name)
+		n.Body = mPausedFeed.Text(l, args)
+		n.Summary = mPausedFeedSummary.Text(l, args)
 	default:
-		who := "Someone"
-		if by != nil {
-			if u, err := q.GetUser(ctx, *by); err == nil {
-				who = u.Name
+		body, summary := mPausedBy, mPausedBySummary
+		if note != "" {
+			body = mPausedByNote
+		}
+		if who == "" {
+			body, summary = mPausedAnon, mPausedAnonSummary
+			if note != "" {
+				body = mPausedAnonNote
 			}
 		}
-		n.Body = fmt.Sprintf("%s paused %s. No new issues are prepared until it is turned back on.", who, d.Name)
-		if note != "" {
-			n.Body += fmt.Sprintf(" “%s”", note)
-		}
-		n.Summary = fmt.Sprintf("%s paused %s", who, d.Name)
+		n.Body, n.Summary = body.Text(l, args), summary.Text(l, args)
 	}
 	return n
 }

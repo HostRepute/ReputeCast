@@ -40,21 +40,30 @@ type AutomationEventResult struct {
 	Flows     int    `json:"flows" doc:"Live automations triggered by this event"`
 }
 
+var (
+	mProblemEventName = msg("problem.eventName")
+	mProblemEventSize = msg("problem.eventSize")
+	mProblemContactID = msg("problem.contactId")
+	mProblemNoContact = msg("problem.noContact")
+	mProblemEventWho  = msg("problem.eventWho")
+)
+
 // SendEvent records an API event ("workspace.created") for a contact. Flows
 // triggered by it enroll the contact on the next engine tick (seconds), and
 // goals and branches waiting for it see it.
 func (s *Service) SendEvent(ctx context.Context, ws *store.Workspace, ev APIEvent) (AutomationEventResult, error) {
 	var out AutomationEventResult
+	l := langOf(ctx)
 	name := strings.TrimSpace(ev.Event)
 	if !reEvent.MatchString(name) {
-		return out, api.Invalid("body.event", "Name the event with letters, numbers and . _ : -, like workspace.created.")
+		return out, api.Invalid("body.event", say(l, txt(mProblemEventName)))
 	}
 	props, _ := json.Marshal(ev.Properties)
 	if ev.Properties == nil {
 		props = []byte(`{}`)
 	}
 	if len(props) > 16<<10 {
-		return out, api.Invalid("body.properties", "Keep event properties under 16 KB.")
+		return out, api.Invalid("body.properties", say(l, txt(mProblemEventSize)))
 	}
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -64,7 +73,7 @@ func (s *Service) SendEvent(ctx context.Context, ws *store.Workspace, ev APIEven
 		case ev.ContactID != "":
 			id, err := uuid.Parse(ev.ContactID)
 			if err != nil {
-				return api.Invalid("body.contactId", "That isn't a contact id.")
+				return api.Invalid("body.contactId", say(l, txt(mProblemContactID)))
 			}
 			c, err := q.AutomationContactInWorkspace(ctx, store.AutomationContactInWorkspaceParams{WorkspaceID: ws.ID, ID: id})
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -77,14 +86,14 @@ func (s *Service) SendEvent(ctx context.Context, ws *store.Workspace, ev APIEven
 		case ev.Email != "":
 			c, err := q.AutomationContactByEmail(ctx, store.AutomationContactByEmailParams{WorkspaceID: ws.ID, Email: strings.ToLower(strings.TrimSpace(ev.Email))})
 			if errors.Is(err, pgx.ErrNoRows) {
-				return api.Err(404, api.CodeNotFound, "No contact with that email in this workspace. Add the contact first, then send the event.")
+				return api.Err(404, api.CodeNotFound, say(l, txt(mProblemNoContact)))
 			}
 			if err != nil {
 				return err
 			}
 			contactID, status = c.ID, c.Status
 		default:
-			return api.Invalid("body.email", "Say who the event is about: email or contactId.")
+			return api.Invalid("body.email", say(l, txt(mProblemEventWho)))
 		}
 		if err := q.InsertAutomationEvent(ctx, store.InsertAutomationEventParams{
 			WorkspaceID: ws.ID, Kind: TriggerAPIEvent, ContactID: contactID, Ref: name, Payload: props, OccurredAt: s.now(),

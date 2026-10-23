@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	"golang.org/x/net/html/atom"
 	"golang.org/x/net/publicsuffix"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/mjml"
 )
@@ -49,6 +51,9 @@ type ContentCheckFix struct {
 	Label string `json:"label"`
 	Value string `json:"value,omitempty"`
 	Path  []int  `json:"path,omitempty"`
+	// LabelText is Label as a message, to write it in a reader's language
+	// (ContentCheckReport.In).
+	LabelText i18n.Text `json:"-"`
 }
 
 // ContentCheckIssue is one finding.
@@ -68,6 +73,13 @@ type ContentCheckIssue struct {
 	Fixes   []ContentCheckFix `json:"fixes"`
 	// URL is the link a link issue is about (to find it inside text).
 	URL string `json:"url,omitempty"`
+	// TitleText, DetailText (one message a sentence) and TagText are the
+	// issue's words as messages, to write them in a reader's language
+	// (ContentCheckReport.In, TextIn). Title, Detail and Tag are English.
+	// Issues another domain adds without them keep their English.
+	TitleText  i18n.Text   `json:"-"`
+	DetailText []i18n.Text `json:"-"`
+	TagText    i18n.Text   `json:"-"`
 }
 
 // ContentCheckSection is what the inspector shows for the selected section.
@@ -251,35 +263,35 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 			continue
 		}
 		r.ImagesMissingAlt++
-		name := imageName(im, s.sections)
-		add(ContentCheckIssue{ID: "content.alt_text", Severity: Warn, Group: "Content", Title: name + " has no alt text", Tag: "Image has no alt text",
-			Detail: "Images are off by default in Outlook and many corporate clients; alt text is what shows, and spam filters score image-only mail higher.",
-			Path:   im.path, Section: im.section, Fixes: []ContentCheckFix{{Kind: "set_alt", Label: "Save", Path: im.path}}})
+		add(worded(ContentCheckIssue{ID: "content.alt_text", Severity: Warn, Group: "Content", Path: im.path, Section: im.section,
+			Fixes: []ContentCheckFix{fixOf("set_alt", mAltFix.Keep(nil), im.path)}},
+			mAltTitle.Keep(imageArgs(im, s.sections)), mAltTag.Keep(nil), mAltDetail.Keep(nil)))
 	}
 
 	if r.SizeBytes >= NearClipBytes {
-		kb := int(math.Round(float64(r.SizeBytes) / 1024))
-		title := fmt.Sprintf("%d KB of Gmail's 102 KB clipping limit", kb)
+		kb := i18n.Args{"kb": fmt.Sprint(int(math.Round(float64(r.SizeBytes) / 1024)))}
+		title := mSizeNear.Keep(kb)
 		if r.SizeBytes > ClipBytes {
-			title = fmt.Sprintf("%d KB is over Gmail's 102 KB clipping limit", kb)
+			title = mSizeOver.Keep(kb)
 		}
-		detail := "Gmail clips the message and hides the footer, including the unsubscribe link."
+		detail := []i18n.Text{mSizeDetail.Keep(nil)}
 		fixes := []ContentCheckFix{}
 		if saved := r.SizeBytes - len(Minify(htmlSrc)); saved >= 1024 {
-			fixes = append(fixes, ContentCheckFix{Kind: "minify", Label: fmt.Sprintf("Minify inline CSS · saves about %d KB", int(math.Round(float64(saved)/1024)))})
+			fixes = append(fixes, fixOf("minify", mSizeMinify.Keep(i18n.Args{"kb": fmt.Sprint(int(math.Round(float64(saved) / 1024)))}), nil))
 		}
-		if bulk, fix := bulkOf(s, r.SizeBytes); bulk != "" {
-			detail += " " + bulk
+		if bulk, fix := bulkOf(s, r.SizeBytes); !bulk.IsZero() {
+			detail = append(detail, bulk)
 			if fix != nil {
 				fixes = append(fixes, *fix)
 			}
 		}
-		add(ContentCheckIssue{ID: "content.size", Severity: Warn, Group: "Content", Title: title, Detail: detail, Section: -1, Fixes: fixes})
+		add(worded(ContentCheckIssue{ID: "content.size", Severity: Warn, Group: "Content", Section: -1, Fixes: fixes}, title, i18n.Text{}, detail...))
 	}
 
 	if share, ok := imageShare(s.images, r.PlainText); ok && share > 0.85 {
-		add(ContentCheckIssue{ID: "content.image_ratio", Severity: Warn, Group: "Content", Title: fmt.Sprintf("The email is %d%% image", int(math.Round(share*100))),
-			Detail: "Spam filters score image-heavy mail higher, and most of it disappears when images are off. Add text or use fewer images.", Section: -1})
+		pct := math.Round(share * 100)
+		add(worded(ContentCheckIssue{ID: "content.image_ratio", Severity: Warn, Group: "Content", Section: -1},
+			mRatioTitle.Keep(i18n.Args{"share": percentArg(pct)}), i18n.Text{}, mRatioDetail.Keep(nil)))
 	}
 
 	// Links: blocklists, shorteners, empty links, broken links.
@@ -295,22 +307,28 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 	text := r.PlainText
 	hasAddress := hasPostalAddress(text, in.Address)
 	if (!hasUnsub || !hasAddress) && (len(s.sections) > 0 || strings.TrimSpace(text) != "") {
-		title, tag := "No unsubscribe link or postal address in the body", "No unsubscribe link or postal address"
+		title, tag := mFooterBoth, mFooterBothTag
 		switch {
 		case hasUnsub:
-			title, tag = "No postal address in the footer", "No postal address"
+			title, tag = mFooterAddress, mFooterAddressTag
 		case hasAddress:
-			title, tag = "No unsubscribe link in the body", "No unsubscribe link"
+			title, tag = mFooterUnsubscribe, mFooterUnsubscribeTag
 		}
-		add(ContentCheckIssue{ID: "compliance.footer", Severity: Block, Group: "Compliance", Title: title, Tag: tag,
-			Detail:  "Headers are added automatically, but the visible link and address are required too.",
-			Section: -1, Fixes: []ContentCheckFix{{Kind: "insert_footer", Label: "Insert footer block"}}})
+		add(worded(ContentCheckIssue{ID: "compliance.footer", Severity: Block, Group: "Compliance", Section: -1,
+			Fixes: []ContentCheckFix{fixOf("insert_footer", mFooterFix.Keep(nil), nil)}},
+			title.Keep(nil), tag.Keep(nil), mFooterDetail.Keep(nil)))
 	}
 
-	for _, src := range []struct{ where, text string }{{"Subject", in.Subject}, {"Preheader", in.Preheader}, {"Body", bodySource(in.MJML, htmlSrc)}} {
+	for _, src := range []struct{ where, text string }{{"subject", in.Subject}, {"preheader", in.Preheader}, {"body", bodySource(in.MJML, htmlSrc)}} {
 		for _, p := range liquid.Validate(src.text) {
-			add(ContentCheckIssue{ID: "personalization.syntax", Severity: Block, Group: "Personalization", Title: src.where + ": " + p.Message,
-				Detail: "Fix the personalization tag; a broken tag would print as text or stop the send.", Section: -1})
+			title := mLiquidTitle.Keep(i18n.Args{"where": src.where, "problem": p.Message})
+			// "Line 3: …" names its line in the reader's language; the
+			// template engine's explanation after it stays English.
+			if rest, ok := strings.CutPrefix(p.Message, fmt.Sprintf("Line %d: ", p.Line)); ok && p.Line > 0 {
+				title = mLiquidTitleLine.Keep(i18n.Args{"where": src.where, "line": strconv.Itoa(p.Line), "problem": rest})
+			}
+			add(worded(ContentCheckIssue{ID: "personalization.syntax", Severity: Block, Group: "Personalization", Section: -1},
+				title, i18n.Text{}, mLiquidDetail.Keep(nil)))
 		}
 	}
 	if len(in.Fields) > 0 {
@@ -328,27 +346,29 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 			if strings.HasPrefix(root, "rc_poll_") || strings.HasPrefix(root, "rc_survey_") {
 				continue
 			}
-			add(ContentCheckIssue{ID: "personalization.unknown_field", Severity: Warn, Group: "Personalization",
-				Title:  fmt.Sprintf("{{ %s }} isn't a contact field; it prints nothing", u.Key),
-				Detail: "Check the spelling, or add a fallback such as | default: \"…\".", Section: -1})
+			add(worded(ContentCheckIssue{ID: "personalization.unknown_field", Severity: Warn, Group: "Personalization", Section: -1},
+				mUnknownFieldTitle.Keep(i18n.Args{"token": "{{ " + u.Key + " }}"}), i18n.Text{}, mUnknownFieldDetail.Keep(nil)))
 		}
 	}
 
 	if strings.TrimSpace(in.Subject) == "" {
-		add(ContentCheckIssue{ID: "subject.missing", Severity: Block, Group: "Subject", Title: "The subject is empty", Detail: "Inbox lists show the subject first; write one before sending.", Section: -1})
+		add(worded(ContentCheckIssue{ID: "subject.missing", Severity: Block, Group: "Subject", Section: -1}, mSubjectMissing.Keep(nil), i18n.Text{}, mSubjectMissingDet.Keep(nil)))
 	} else if h := SubjectHeuristicsIn(in.Subject, in.Language); len(h) > 0 {
 		r.SubjectHeuristics = h
 		suggestion := SuggestSubject(in.Subject)
-		is := ContentCheckIssue{ID: "subject.spam", Severity: Warn, Group: "Subject", Title: fmt.Sprintf("Subject trips %d spam %s", len(h), plural(len(h), "heuristic", "heuristics")), Section: -1}
+		is := ContentCheckIssue{ID: "subject.spam", Severity: Warn, Group: "Subject", Section: -1}
+		var detail []i18n.Text
 		if suggestion != "" && suggestion != in.Subject {
-			is.Detail = fmt.Sprintf("Suggested: %q", suggestion)
-			is.Fixes = []ContentCheckFix{{Kind: "use_subject", Label: "Use suggestion", Value: suggestion}}
+			detail = append(detail, mSubjectSuggested.Keep(i18n.Args{"suggestion": strconv.Quote(suggestion)}))
+			fix := fixOf("use_subject", mSubjectUseSuggested.Keep(nil), nil)
+			fix.Value = suggestion
+			is.Fixes = []ContentCheckFix{fix}
 		}
-		add(is)
+		add(worded(is, mSubjectSpam.Keep(i18n.Args{"count": len(h)}), i18n.Text{}, detail...))
 	}
 
 	if strings.TrimSpace(r.PlainText) == "" && r.Images > 0 {
-		add(ContentCheckIssue{ID: "content.plain_text", Severity: Warn, Group: "Content", Title: "The plain-text version is empty", Detail: "The email has no text, so the text/plain part is blank. Add a sentence that says what the images show.", Section: -1})
+		add(worded(ContentCheckIssue{ID: "content.plain_text", Severity: Warn, Group: "Content", Section: -1}, mPlainTextTitle.Keep(nil), i18n.Text{}, mPlainTextDetail.Keep(nil)))
 	}
 
 	for _, x := range c.Extra {
@@ -462,13 +482,6 @@ func rank(is ContentCheckIssue) int {
 		r += 5
 	}
 	return r
-}
-
-func plural(n int, one, many string) string {
-	if n == 1 {
-		return one
-	}
-	return many
 }
 
 func bodySource(mjmlSrc, htmlSrc string) string {
@@ -585,35 +598,37 @@ func px(v string) int {
 	return int(f)
 }
 
-func imageName(im image, sections []mjml.Section) string {
+// imageArgs name an image for alt.title: the logo, the hero image, an
+// image in a section, or an image.
+func imageArgs(im image, sections []mjml.Section) i18n.Args {
 	if im.inHeader {
-		return "Logo"
+		return i18n.Args{"image": "logo"}
 	}
 	if im.section >= 0 && im.section < len(sections) {
 		switch l := sections[im.section].Label; l {
 		case "hero":
-			return "Hero image"
+			return i18n.Args{"image": "hero"}
 		case "header":
-			return "Logo"
+			return i18n.Args{"image": "logo"}
 		default:
-			return "Image in the " + l + " section"
+			return i18n.Args{"image": "section", "section": l}
 		}
 	}
-	return "An image"
+	return i18n.Args{"image": "other"}
 }
 
 // bulkOf explains which sections make up most of the size and offers to
 // remove the largest one.
-func bulkOf(s scan, size int) (string, *ContentCheckFix) {
+func bulkOf(s scan, size int) (i18n.Text, *ContentCheckFix) {
 	if len(s.sections) < 3 || len(s.sectionBytes) != len(s.sections) {
-		return "", nil
+		return i18n.Text{}, nil
 	}
 	total := 0
 	for _, b := range s.sectionBytes {
 		total += b
 	}
 	if total == 0 {
-		return "", nil
+		return i18n.Text{}, nil
 	}
 	// Group sections by label (repeated rows of the same kind).
 	type group struct {
@@ -638,18 +653,19 @@ func bulkOf(s scan, size int) (string, *ContentCheckFix) {
 	}
 	sort.SliceStable(groups, func(i, j int) bool { return groups[i].bytes > groups[j].bytes })
 	if len(groups) == 0 {
-		return "", nil
+		return i18n.Text{}, nil
 	}
 	g := groups[0]
 	share := float64(g.bytes) / float64(total)
 	if share < 0.35 {
-		return "", nil
+		return i18n.Text{}, nil
 	}
-	what := "The " + g.label + " section is"
+	args := i18n.Args{"section": g.label, "share": percentArg(math.Round(share * 100))}
+	sentence := mSizeBulkOne.Keep(args)
 	if len(g.indexes) > 1 {
-		what = fmt.Sprintf("The %s %s sections are", numberWord(len(g.indexes)), g.label)
+		args["count"] = len(g.indexes)
+		sentence = mSizeBulkMany.Keep(args)
 	}
-	sentence := fmt.Sprintf("%s the bulk of it (%d%%).", what, int(math.Round(share*100)))
 	// Rows of cards: count the cards themselves ("Four product cards with inline CSS…").
 	if strings.HasSuffix(g.label, "cards") && len(s.sectionCols) == len(s.sections) {
 		cards, styles := 0, 0
@@ -658,36 +674,20 @@ func bulkOf(s scan, size int) (string, *ContentCheckFix) {
 			styles += s.sectionStyles[i]
 		}
 		if cards > 1 {
-			w := numberWord(cards)
-			what = strings.ToUpper(w[:1]) + w[1:] + " " + g.label
+			css := "no"
 			if styles >= cards*4 {
-				what += " with inline CSS"
+				css = "yes"
 			}
-			sentence = what + " are the bulk of it."
+			sentence = mSizeBulkCards.Keep(i18n.Args{"count": cards, "section": g.label, "css": css})
 		}
 	}
 	last := g.indexes[len(g.indexes)-1]
-	label := "Remove the " + g.label + " section"
+	label := mSizeRemoveSection.Keep(i18n.Args{"section": g.label})
 	if len(g.indexes) > 1 {
-		label = "Remove the " + ordinal(len(g.indexes)) + " row"
+		label = mSizeRemoveRow.Keep(i18n.Args{"n": len(g.indexes)})
 	}
-	return sentence, &ContentCheckFix{Kind: "remove_section", Label: label, Path: []int{last}}
-}
-
-func numberWord(n int) string {
-	words := []string{"zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"}
-	if n >= 0 && n < len(words) {
-		return words[n]
-	}
-	return fmt.Sprint(n)
-}
-
-func ordinal(n int) string {
-	words := []string{"", "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"}
-	if n > 0 && n < len(words) {
-		return words[n]
-	}
-	return fmt.Sprintf("%dth", n)
+	fix := fixOf("remove_section", label, []int{last})
+	return sentence, &fix
 }
 
 // imageShare estimates the share of the email's area covered by images,
@@ -807,12 +807,13 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentCh
 		}
 		probe = c.Prober.Probe(ctx, urls)
 	}
+	editLink := func(path []int) ContentCheckFix { return fixOf("edit_link", mLinkEdit.Keep(nil), path) }
 	for _, l := range s.links {
 		kind := linkKind(l.kind)
 		if strings.TrimSpace(l.href) == "" || l.href == "#" {
 			if l.kind == "button" {
-				add(ContentCheckIssue{ID: "links.empty", Severity: Warn, Group: "Links", Title: fmt.Sprintf("Button “%s” has no link", truncate(l.text, 40)), Tag: "Button has no link",
-					Detail: "People will click it; point it at the page it promises.", Path: l.path, Section: l.section, Fixes: []ContentCheckFix{{Kind: "edit_link", Label: "Edit link", Path: l.path}}})
+				add(worded(ContentCheckIssue{ID: "links.empty", Severity: Warn, Group: "Links", Path: l.path, Section: l.section, Fixes: []ContentCheckFix{editLink(l.path)}},
+					mLinkEmptyTitle.Keep(i18n.Args{"text": truncate(l.text, 40)}), mLinkEmptyTag.Keep(nil), mLinkEmptyDetail.Keep(nil)))
 			}
 			continue
 		}
@@ -837,59 +838,39 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentCh
 			fixes := []ContentCheckFix{}
 			if own != "" && RegistrableDomain(host) != own {
 				target := own + u.EscapedPath()
-				fixes = append(fixes, ContentCheckFix{Kind: "replace_link", Label: "Replace with " + target, Value: "https://" + target, Path: l.path})
+				fix := fixOf("replace_link", mLinkReplaceWith.Keep(i18n.Args{"target": target}), l.path)
+				fix.Value = "https://" + target
+				fixes = append(fixes, fix)
 			}
-			fixes = append(fixes, ContentCheckFix{Kind: "edit_link", Label: "Edit link", Path: l.path})
-			add(ContentCheckIssue{ID: "links.blocklist", Severity: Block, Group: "Links",
-				Title:  fmt.Sprintf("%s links to %s, listed on %s", kind, host, joinAnd(lists)),
-				Tag:    "Link domain on " + joinAnd(lists),
-				Detail: "Mail linking to a blocklisted domain gets filtered regardless of your reputation. Use a domain you control.",
-				Path:   l.path, Section: l.section, Fixes: fixes, URL: l.href})
+			fixes = append(fixes, editLink(l.path))
+			on := i18n.Args{"lists": append([]string(nil), lists...)}
+			add(worded(ContentCheckIssue{ID: "links.blocklist", Severity: Block, Group: "Links", Path: l.path, Section: l.section, Fixes: fixes, URL: l.href},
+				mLinkBlocklistTitle.Keep(i18n.Args{"kind": kind, "host": host, "lists": on["lists"]}), mLinkBlocklistTag.Keep(on), mLinkBlocklistDetail.Keep(nil)))
 			continue
 		}
 		if shorteners[host] {
-			add(ContentCheckIssue{ID: "links.shortener", Severity: Warn, Group: "Links", Title: fmt.Sprintf("%s redirects through %s, a URL shortener", kind, host), Tag: "Shortened link",
-				Detail: "Shortened links hide where they go; filters treat them as suspicious and many shortener domains are blocklisted. Link to the page directly.",
-				Path:   l.path, Section: l.section, Fixes: []ContentCheckFix{{Kind: "edit_link", Label: "Edit link", Path: l.path}}, URL: l.href})
+			add(worded(ContentCheckIssue{ID: "links.shortener", Severity: Warn, Group: "Links", Path: l.path, Section: l.section, Fixes: []ContentCheckFix{editLink(l.path)}, URL: l.href},
+				mLinkShortenerTitle.Keep(i18n.Args{"kind": kind, "host": host}), mLinkShortenerTag.Keep(nil), mLinkShortenerDetail.Keep(nil)))
 			continue
 		}
 		if probe != nil {
 			if pr, ok := probe[u.String()]; ok && pr.Broken {
 				r.LinksBroken++
-				what := fmt.Sprintf("returns %d", pr.Status)
-				if pr.Status == 0 {
-					what = "doesn't respond"
-				}
-				add(ContentCheckIssue{ID: "links.broken", Severity: Warn, Group: "Links", Title: fmt.Sprintf("%s to %s %s", kind, truncate(u.String(), 60), what), Tag: "Broken link",
-					Detail: "People who click get an error page. Fix the address or remove the link.", Path: l.path, Section: l.section,
-					Fixes: []ContentCheckFix{{Kind: "edit_link", Label: "Edit link", Path: l.path}}, URL: l.href})
+				add(worded(ContentCheckIssue{ID: "links.broken", Severity: Warn, Group: "Links", Path: l.path, Section: l.section, Fixes: []ContentCheckFix{editLink(l.path)}, URL: l.href},
+					mLinkBrokenTitle.Keep(i18n.Args{"kind": kind, "url": truncate(u.String(), 60), "status": pr.Status}), mLinkBrokenTag.Keep(nil), mLinkBrokenDetail.Keep(nil)))
 			}
 		}
 	}
 }
 
+// linkKind is what a link is, for link.*Title's kind: button, image, nav,
+// social or link.
 func linkKind(k string) string {
 	switch k {
-	case "button":
-		return "Button"
-	case "image":
-		return "Image"
-	case "nav":
-		return "Menu link"
-	case "social":
-		return "Social link"
+	case "button", "image", "nav", "social":
+		return k
 	}
-	return "Link"
-}
-
-func joinAnd(items []string) string {
-	switch len(items) {
-	case 0:
-		return ""
-	case 1:
-		return items[0]
-	}
-	return strings.Join(items[:len(items)-1], ", ") + " and " + items[len(items)-1]
+	return "link"
 }
 
 func truncate(s string, n int) string {

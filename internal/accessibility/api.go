@@ -9,6 +9,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/templates"
 )
 
@@ -68,10 +69,15 @@ type fixInput struct {
 // FixContent applies one fix to an email's MJML: the composer's buttons
 // change the email the way Review & send's fixes do. Nothing is saved.
 func FixContent(in AccessibilityFixInput) (AccessibilityFixed, error) {
+	return FixContentIn(i18n.Default, in)
+}
+
+// FixContentIn is FixContent with its problem in a reader's language.
+func FixContentIn(l i18n.Lang, in AccessibilityFixInput) (AccessibilityFixed, error) {
 	out, err := ApplyFix(in.MJML, FixRequest{Kind: in.Kind, Path: in.Path, Index: in.Index, Value: in.Value, Target: in.Target, From: in.From,
 		Headings: in.Headings, ToPx: in.ToPx, Role: in.Role})
 	if err != nil {
-		return AccessibilityFixed{}, api.Invalid("body", sentenceOf(fixError(err).Error()))
+		return AccessibilityFixed{}, api.Invalid("body", sentenceOf(ErrorIn(l, fixError(err))))
 	}
 	return AccessibilityFixed{MJML: out}, nil
 }
@@ -116,7 +122,7 @@ func Register(h huma.API, s *Service) {
 				return nil, err
 			}
 			out, err := s.CampaignReport(ctx, api.WorkspaceFrom(ctx), id)
-			return api.OK(out), err
+			return api.OK(out.In(i18n.LangFrom(ctx))), err
 		})
 	api.Post(h, api.Op{ID: "check-campaign-accessibility", Path: "/workspaces/{workspace}/campaigns/{campaignId}/accessibility", Summary: "Check the composer's current content for accessibility issues",
 		Description: "The composer calls it as you edit. The version being edited is checked with your unsaved changes, the others as saved. Nothing is saved.",
@@ -127,13 +133,13 @@ func Register(h huma.API, s *Service) {
 				return nil, err
 			}
 			out, err := s.CheckCampaign(ctx, api.WorkspaceFrom(ctx), id, in.Body)
-			return api.OK(out), err
+			return api.OK(out.In(i18n.LangFrom(ctx))), err
 		})
 	api.Post(h, api.Op{ID: "apply-accessibility-fix", Path: "/workspaces/{workspace}/accessibility/fix", Summary: "Apply an accessibility fix to MJML",
 		Description: "The composer's fixes: alt text, decorative images, link text, a color, heading levels, a text size, and a Text block's role. Returns the changed MJML; nothing is saved, the composer's autosave stores it.",
 		Tags:        tags, Access: api.Workspace(authz.CampaignsEdit), MaxBodyBytes: 3 << 20},
-		func(_ context.Context, in *fixInput) (*api.Body[AccessibilityFixed], error) {
-			out, err := FixContent(in.Body)
+		func(ctx context.Context, in *fixInput) (*api.Body[AccessibilityFixed], error) {
+			out, err := FixContentIn(i18n.LangFrom(ctx), in.Body)
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "template-gallery-accessibility", Path: "/workspaces/{workspace}/accessibility/templates", Summary: "Accessibility results of the template gallery",

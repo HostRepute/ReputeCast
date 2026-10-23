@@ -58,7 +58,7 @@ export default translate(mg, {
   condFieldContains: '{field} chứa {value}',
   condFieldIs: '{field} là {value}',
 
-  goalEnd: 'Đi hết luồng',
+  goalEnd: 'Đi hết quy trình',
   goalClickedUrl: 'Đã nhấp một liên kết {url}',
   goalClickedAny: 'Đã nhấp bất kỳ liên kết nào',
   goalOpened: 'Đã mở một email',
@@ -90,9 +90,9 @@ export default translate(mg, {
   addTag: 'Gắn thẻ {tag}',
   removeTag: 'Gỡ thẻ {tag}',
   unsubscribeAll: 'Hủy đăng ký mọi danh sách',
-  exitDefault: 'Rời luồng · vẫn ở trong danh sách',
+  exitDefault: 'Rời quy trình · vẫn ở trong danh sách',
 
-  confirmedOnly: 'chỉ người đã xác nhận đăng ký kép',
+  confirmedOnly: 'chỉ người đã hoàn tất xác nhận hai bước',
   sentThroughApi: 'gửi qua API',
   dateDetail: '{when, select, before {{days} ngày trước} after {{days} ngày sau} other {đúng ngày}}{yearly, select, yes {, hằng năm} other {}} lúc {time}',
   humanOnly: 'chỉ tính lượt mở bởi người đọc',

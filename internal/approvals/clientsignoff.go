@@ -3,13 +3,13 @@ package approvals
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"slices"
 
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -60,8 +60,7 @@ func EnableClientSignoff(raw json.RawMessage, on bool) (json.RawMessage, error) 
 }
 
 func clientSignoffMatch() ApprovalRuleMatch {
-	return ApprovalRuleMatch{Key: RuleClientSignoff, Short: "client sign-off", Badge: "Client sign-off",
-		Label: "Client sign-off: one approval from a Client approver"}
+	return match(RuleClientSignoff, mRuleSignoff, mRuleSignoffShort, mRuleSignoffBadge, nil)
 }
 
 // requiredFor is how many approvals a request needs: the policy's number,
@@ -208,7 +207,7 @@ func (s *Service) needClientApprover(ctx context.Context, ws *store.Workspace, r
 	if len(clients) > 0 {
 		return nil
 	}
-	return api.Err(http.StatusConflict, "no_client_approver", fmt.Sprintf("This send needs client sign-off, and nobody at %s can give it yet. Invite the client's approver in Settings › Team with the Client approver role.", ws.Name))
+	return api.Err(http.StatusConflict, "no_client_approver", say(ctx, mNoClientApprover, i18n.Args{"workspace": ws.Name}))
 }
 
 // ApprovalClientSignoffInfo is the client sign-off rule on Settings ›
@@ -269,7 +268,7 @@ func (s *Service) checkSignoff(ctx context.Context, ws *store.Workspace, in Appr
 		return err
 	}
 	if !client {
-		return api.Invalid("body.clientSignoff", "Client sign-off is for the client workspaces of an agency. Turn agency mode on in Instance admin › Instance & updates first.")
+		return api.Invalid("body.clientSignoff", say(ctx, mSignoffNotClient, nil))
 	}
 	return nil
 }

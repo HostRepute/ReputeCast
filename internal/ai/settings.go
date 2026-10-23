@@ -377,7 +377,7 @@ func (s *Service) checkAddress(ctx context.Context, kind, raw string) (string, *
 
 func (s *Service) validCandidate(ctx context.Context, c *candidate) error {
 	if !llm.Valid(c.provider) {
-		return api.Invalid("body.provider", "Pick one of the providers.")
+		return invalid(ctx, "body.provider", mPickProvider, nil)
 	}
 	info := llm.Info(c.provider)
 	switch c.provider {
@@ -703,11 +703,12 @@ func validCap(ctx context.Context, kind string, usd float64, tokens int64) error
 	switch kind {
 	case "usd":
 		if usd < 1 || usd > 100000 {
-			return invalid(ctx, "body.capUsd", mCapRange, nil)
+			r := i18n.LangFrom(ctx).Region
+			return invalid(ctx, "body.capUsd", mCapRange, i18n.Args{"min": r.Money(1, 2), "max": r.Money(100000, 2)})
 		}
 	case "tokens":
 		if tokens < 10000 {
-			return invalid(ctx, "body.capTokens", mTokenCapRange, nil)
+			return invalid(ctx, "body.capTokens", mTokenCapRange, i18n.Args{"min": i18n.LangFrom(ctx).Region.Int(10000)})
 		}
 	}
 	return nil
@@ -715,7 +716,8 @@ func validCap(ctx context.Context, kind string, usd float64, tokens int64) error
 
 func validPrices(ctx context.Context, in, out float64) error {
 	if in < 0 || in > 1000 || out < 0 || out > 1000 {
-		return invalid(ctx, "body.inputPrice", mPriceRange, nil)
+		r := i18n.LangFrom(ctx).Region
+		return invalid(ctx, "body.inputPrice", mPriceRange, i18n.Args{"min": r.Money(0, 0), "max": r.Money(1000, 0)})
 	}
 	return nil
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/digests/feed"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -102,7 +103,8 @@ func (s *Service) Prepare(ctx context.Context, issueID uuid.UUID) error {
 	if err != nil {
 		return err
 	}
-	campaignID, b, err := s.materialize(ctx, ws, d, issue, posts, int(number), "issue", d.OwnerID, fmt.Sprintf("Issue #%d, prepared from %d new posts", number, len(posts)))
+	label := mVersionPrepared.Text(versionLang(ctx, s.Q, d.OwnerID), i18n.Args{"number": fmt.Sprint(number), "count": len(posts)})
+	campaignID, b, err := s.materialize(ctx, ws, d, issue, posts, int(number), "issue", d.OwnerID, label)
 	if err != nil {
 		// The template doesn't render: the issue is held for a person.
 		s.log().WarnContext(ctx, "build a digest issue", "digest", d.ID, "err", err)
@@ -193,11 +195,14 @@ func (s *Service) holdIssue(ctx context.Context, ws *store.Workspace, d store.Di
 				return err
 			}
 		}
+		// The check that blocks the issue: the audit keeps its English, the
+		// notification writes it in each recipient's language.
 		block := ""
+		var blocking *readiness.ReadinessCheck
 		if run != nil {
-			for _, ch := range run.Checks {
+			for i, ch := range run.Checks {
 				if ch.Status == readiness.Block {
-					block = firstNonEmpty(ch.FlatTitle, ch.Title)
+					block, blocking = firstNonEmpty(ch.FlatTitle, ch.Title), &run.Checks[i]
 					break
 				}
 			}
@@ -207,7 +212,7 @@ func (s *Service) holdIssue(ctx context.Context, ws *store.Workspace, d store.Di
 			Metadata: map[string]any{"issue_id": issue.ID.String(), "number": number}}); err != nil {
 			return err
 		}
-		return s.notifyHeld(ctx, tx, q, ws, d, issue, int(number), reason, block, requested)
+		return s.notifyHeld(ctx, tx, q, ws, d, issue, int(number), reason, blocking, requested)
 	})
 }
 
@@ -220,32 +225,40 @@ func (s *Service) countIssueItems(ctx context.Context, q *store.Queries, issueID
 }
 
 // notifyHeld tells the owner, and the approvers when a request is open,
-// that an issue is held ("Digest issue held").
+// that an issue is held ("Digest issue held"), each in their language: the
+// blocking check's title too, from the messages the run kept. (notify's
+// kept form holds plain arguments only, so the check's title, a kept text
+// of its own, is written for each recipient as the notification is.)
 func (s *Service) notifyHeld(ctx context.Context, tx pgx.Tx, q *store.Queries, ws *store.Workspace, d store.Digest, issue store.DigestIssue, number int,
-	reason, block string, requested bool) error {
+	reason string, blocking *readiness.ReadinessCheck, requested bool) error {
 	loc := location(ParseSchedule(d.Schedule, ws.Timezone).Timezone)
 	name := issueName(d.Name, number)
-	deadline := ""
-	if issue.Deadline != nil {
-		deadline = issue.Deadline.In(loc).Format("Mon 2 Jan, 15:04")
-	}
-	var body string
-	switch reason {
-	case "no_approvers":
-		body = fmt.Sprintf("%s is held: the approval rules match it and no one other than its owner can approve it. Give campaigns:approve to another role, or skip the issue before %s.", name, deadline)
-	case "changes":
-		body = fmt.Sprintf("%s is held: an approver asked for changes. Edit the issue, then release it before %s.", name, deadline)
-	case "rejected":
-		body = fmt.Sprintf("%s is held: an approver rejected it. Edit and release it, or skip it, before %s.", name, deadline)
-	default:
-		what := firstNonEmpty(block, "Send Readiness is Blocked")
-		body = fmt.Sprintf("%s is held: %s. Fix it or skip the issue before %s.", name, trimDot(lowerFirst(what)), deadline)
-	}
-	n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindDigestIssueHeld, Severity: "bad", Title: "Digest issue held", Body: body,
-		Summary: fmt.Sprintf("%s is held", name), Link: "/w/" + ws.Slug + "/campaigns/digests/" + d.ID.String(),
-		Data: map[string]any{"digest_id": d.ID.String(), "issue_id": issue.ID.String(), "reason": reason}}
+	link := "/w/" + ws.Slug + "/campaigns/digests/" + d.ID.String()
 	if issue.CampaignID != nil {
-		n.Link = "/w/" + ws.Slug + "/campaigns/" + issue.CampaignID.String() + "/review"
+		link = "/w/" + ws.Slug + "/campaigns/" + issue.CampaignID.String() + "/review"
+	}
+	notification := func(l i18n.Lang) notify.Notification {
+		// The check's own words follow a colon: first letter lowered, no full stop.
+		what := ""
+		if blocking != nil {
+			c := blocking.In(l)
+			what = trimDot(lowerFirst(firstNonEmpty(c.FlatTitle, c.Title)))
+		}
+		date, clock := whenIn(l, issue.Deadline, loc)
+		args := i18n.Args{"issue": name, "date": date, "time": clock, "block": what}
+		body := mHeldReadiness
+		switch {
+		case reason == "no_approvers":
+			body = mHeldNoApprovers
+		case reason == "changes":
+			body = mHeldChanges
+		case reason == "rejected":
+			body = mHeldRejected
+		case what != "":
+			body = mHeldBlocked
+		}
+		return notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindDigestIssueHeld, Severity: "bad", Title: mHeldTitle.Text(l, nil), Body: body.Text(l, args),
+			Summary: mHeldSummary.Text(l, args), Link: link, Data: map[string]any{"digest_id": d.ID.String(), "issue_id": issue.ID.String(), "reason": reason}}
 	}
 	targets := []uuid.UUID{}
 	if d.OwnerID != nil {
@@ -264,7 +277,7 @@ func (s *Service) notifyHeld(ctx context.Context, tx pgx.Tx, q *store.Queries, w
 			continue
 		}
 		told[u] = true
-		if err := notify.ToUser(ctx, tx, u, n); err != nil {
+		if err := notify.ToUser(ctx, tx, u, notification(memberLang(ctx, q, u))); err != nil {
 			return err
 		}
 	}
@@ -302,15 +315,14 @@ func (s *Service) draftReady(ctx context.Context, ws *store.Workspace, d store.D
 		if err := s.auditPrepared(ctx, q, ws, d, issue, number, posts, false, "draft"); err != nil {
 			return err
 		}
-		deadline := ""
-		if issue.Deadline != nil {
-			deadline = issue.Deadline.In(loc).Format("Mon 2 Jan, 15:04")
-		}
 		name := issueName(d.Name, number)
-		n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindDigestDraftReady, Severity: "info", Title: "Digest draft ready",
-			Body:    fmt.Sprintf("%s is a draft with %d %s. Send it through Review & send by %s.", name, posts, map[bool]string{true: "post", false: "posts"}[posts == 1], deadline),
-			Summary: fmt.Sprintf("%s is a draft to send", name), Link: "/w/" + ws.Slug + "/campaigns/" + issue.CampaignID.String() + "/review",
-			Data: map[string]any{"digest_id": d.ID.String(), "issue_id": issue.ID.String()}}
+		notification := func(l i18n.Lang) notify.Notification {
+			date, clock := whenIn(l, issue.Deadline, loc)
+			args := i18n.Args{"issue": name, "count": posts, "date": date, "time": clock}
+			return notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindDigestDraftReady, Severity: "info", Title: mDraftTitle.Text(l, nil),
+				Body: mDraftBody.Text(l, args), Summary: mDraftSummary.Text(l, args), Link: "/w/" + ws.Slug + "/campaigns/" + issue.CampaignID.String() + "/review",
+				Data: map[string]any{"digest_id": d.ID.String(), "issue_id": issue.ID.String()}}
+		}
 		ids, err := notify.MembersWith(ctx, tx, ws.ID, authz.CampaignsSend)
 		if err != nil {
 			return err
@@ -324,7 +336,7 @@ func (s *Service) draftReady(ctx context.Context, ws *store.Workspace, d store.D
 				continue
 			}
 			told[u] = true
-			if err := notify.ToUser(ctx, tx, u, n); err != nil {
+			if err := notify.ToUser(ctx, tx, u, notification(memberLang(ctx, q, u))); err != nil {
 				return err
 			}
 		}
@@ -336,22 +348,26 @@ func (s *Service) draftReady(ctx context.Context, ws *store.Workspace, d store.D
 // every 15 minutes until its send time, then skipped. The owner hears at
 // the first failure and when the issue is skipped.
 func (s *Service) feedFailed(ctx context.Context, ws *store.Workspace, d store.Digest, issue store.DigestIssue, readErr error, now time.Time) error {
-	tries := feedTries(issue.FeedTries)
+	tries := storedFeedTries(issue.FeedTries)
 	kind := "unreachable"
-	detail := "the feed couldn't be read"
+	detail, text := mTryFailed.Text(i18n.Default, nil), mTryFailed.Keep(nil)
 	if readErr != nil {
-		detail = readErr.Error()
+		detail, text = readErr.Error(), feed.TextOf(readErr, s.feedAddress(ctx, d))
 		if feed.IsNotFeed(readErr) {
 			kind = "invalid"
 		}
 		if fe, ok := feed.AsFetchError(readErr); ok {
 			detail = fe.Detail
 			if fe.Kind == feed.ErrTimeout {
-				detail = "timed out"
+				kind, detail, text = "timeout", mTryTimedOut.Text(i18n.Default, nil), mTryTimedOut.Keep(nil)
 			}
 		}
 	}
-	tries = append(tries, DigestFeedTry{At: now, Error: detail, Kind: kind})
+	try := storedFeedTry{DigestFeedTry: DigestFeedTry{At: now, Error: detail, Kind: kind}}
+	if !text.IsZero() {
+		try.Text = &text
+	}
+	tries = append(tries, try)
 	tb, _ := json.Marshal(tries)
 	if err := s.Q.DigestIssuePreparing(ctx, store.DigestIssuePreparingParams{ID: issue.ID, FeedTries: tb, Now: now}); err != nil {
 		return err
@@ -369,21 +385,19 @@ func (s *Service) notifyFeed(ctx context.Context, ws *store.Workspace, d store.D
 		return nil
 	}
 	loc := location(ParseSchedule(d.Schedule, ws.Timezone).Timezone)
-	address := shortURL(s.feedAddress(ctx, d))
-	why := "it couldn't be read"
-	if readErr != nil {
-		why = trimDot(readErr.Error())
+	feedURL := s.feedAddress(ctx, d)
+	l := memberLang(ctx, s.Q, *d.OwnerID)
+	_, send := whenIn(l, issue.SendAt, loc)
+	args := i18n.Args{"digest": d.Name, "time": send, "address": shortURL(feedURL)}
+	body := mFeedFailingUnknown
+	switch {
+	case skipped:
+		body = mFeedSkipped
+	case readErr != nil:
+		body, args["why"] = mFeedFailing, trimDot(feedText(l, readErr, feedURL))
 	}
-	send := ""
-	if issue.SendAt != nil {
-		send = issue.SendAt.In(loc).Format("15:04")
-	}
-	body := fmt.Sprintf("%s's feed failed at preparation: %s. ReputeCast tries again every 15 minutes; if it still fails at %s, the issue is skipped.", d.Name, why, send)
-	if skipped {
-		body = fmt.Sprintf("%s's issue was skipped: its feed, %s, couldn't be read by the send time. Its posts stay new for the next issue.", d.Name, address)
-	}
-	n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindDigestFeedFailing, Severity: "warn", Title: "Digest feed failing", Body: body,
-		Summary: fmt.Sprintf("%s's feed is failing", d.Name), Link: "/w/" + ws.Slug + "/campaigns/digests/" + d.ID.String(),
+	n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindDigestFeedFailing, Severity: "warn", Title: mFeedTitle.Text(l, nil), Body: body.Text(l, args),
+		Summary: mFeedFailingSummary.Text(l, args), Link: "/w/" + ws.Slug + "/campaigns/digests/" + d.ID.String(),
 		Data: map[string]any{"digest_id": d.ID.String(), "issue_id": issue.ID.String(), "skipped": skipped}}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		return notify.ToUser(ctx, tx, *d.OwnerID, n)

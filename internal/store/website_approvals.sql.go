@@ -51,17 +51,18 @@ func (q *Queries) PostApprovalForHash(ctx context.Context, arg PostApprovalForHa
 
 const postApprovalInvalidate = `-- name: PostApprovalInvalidate :many
 UPDATE approval_requests
-SET status = 'invalidated', invalidated_at = $1, invalidated_reason = $2
-WHERE website_post_id = $3 AND status IN ('pending', 'approved') AND coalesce(snapshot ->> 'draft_hash', '') <> $4::text
+SET status = 'invalidated', invalidated_at = $1, invalidated_reason = $2, invalidated_reason_text = $3
+WHERE website_post_id = $4 AND status IN ('pending', 'approved') AND coalesce(snapshot ->> 'draft_hash', '') <> $5::text
   AND NOT (snapshot ? 'published')
 RETURNING id, requested_by
 `
 
 type PostApprovalInvalidateParams struct {
-	Now       *time.Time `json:"now"`
-	Reason    string     `json:"reason"`
-	PostID    *uuid.UUID `json:"postId"`
-	DraftHash string     `json:"draftHash"`
+	Now        *time.Time      `json:"now"`
+	Reason     string          `json:"reason"`
+	ReasonText json.RawMessage `json:"reasonText"`
+	PostID     *uuid.UUID      `json:"postId"`
+	DraftHash  string          `json:"draftHash"`
 }
 
 type PostApprovalInvalidateRow struct {
@@ -75,6 +76,7 @@ func (q *Queries) PostApprovalInvalidate(ctx context.Context, arg PostApprovalIn
 	rows, err := q.db.Query(ctx, postApprovalInvalidate,
 		arg.Now,
 		arg.Reason,
+		arg.ReasonText,
 		arg.PostID,
 		arg.DraftHash,
 	)
@@ -98,7 +100,7 @@ func (q *Queries) PostApprovalInvalidate(ctx context.Context, arg PostApprovalIn
 
 const postApprovalLatest = `-- name: PostApprovalLatest :one
 
-SELECT r.id, r.workspace_id, r.subject_type, r.campaign_id, r.automation_id, r.requested_by, r.requested_at, r.note, r.status, r.matched_rules, r.approvals_required, r.snapshot, r.invalidated_at, r.invalidated_reason, r.changes, r.bypass_reason, r.decided_at, r.campaign_version, r.readiness_run_id, r.decided_by, r.invalidated_by, r.reminded_at, r.previous_id, r.invalidated_from, r.transactional_template_id, r.website_post_id, r.website_page_id,
+SELECT r.id, r.workspace_id, r.subject_type, r.campaign_id, r.automation_id, r.requested_by, r.requested_at, r.note, r.status, r.matched_rules, r.approvals_required, r.snapshot, r.invalidated_at, r.invalidated_reason, r.changes, r.bypass_reason, r.decided_at, r.campaign_version, r.readiness_run_id, r.decided_by, r.invalidated_by, r.reminded_at, r.previous_id, r.invalidated_from, r.transactional_template_id, r.website_post_id, r.website_page_id, r.invalidated_reason_text,
        coalesce(u.name, '')::text AS requested_by_name,
        coalesce(d.name, '')::text AS decided_by_name,
        coalesce(r.snapshot ->> 'draft_hash', '')::text AS draft_hash,
@@ -139,6 +141,7 @@ type PostApprovalLatestRow struct {
 	TransactionalTemplateID *uuid.UUID      `json:"transactionalTemplateId"`
 	WebsitePostID           *uuid.UUID      `json:"websitePostId"`
 	WebsitePageID           *uuid.UUID      `json:"websitePageId"`
+	InvalidatedReasonText   json.RawMessage `json:"invalidatedReasonText"`
 	RequestedByName         string          `json:"requestedByName"`
 	DecidedByName           string          `json:"decidedByName"`
 	DraftHash               string          `json:"draftHash"`
@@ -180,6 +183,7 @@ func (q *Queries) PostApprovalLatest(ctx context.Context, postID *uuid.UUID) (Po
 		&i.TransactionalTemplateID,
 		&i.WebsitePostID,
 		&i.WebsitePageID,
+		&i.InvalidatedReasonText,
 		&i.RequestedByName,
 		&i.DecidedByName,
 		&i.DraftHash,

@@ -47,11 +47,11 @@ func Register(h huma.API, s *Service) {
 		func(ctx context.Context, in *uploadInput) (*api.Body[MediaAsset], error) {
 			f := in.RawBody.Data().File
 			if !f.IsSet {
-				return nil, api.Invalid("body.file", "Choose an image to upload.")
+				return nil, api.Invalid("body.file", say(ctx, mChooseImage))
 			}
 			data, err := io.ReadAll(io.LimitReader(f, MaxBytes+1))
 			if err != nil {
-				return nil, api.Invalid("body.file", "The upload was interrupted. Try again.")
+				return nil, api.Invalid("body.file", say(ctx, mInterrupted))
 			}
 			var actor *uuid.UUID
 			if p := api.PrincipalFrom(ctx); p != nil && p.UserID != uuid.Nil {
@@ -70,7 +70,7 @@ func Register(h huma.API, s *Service) {
 		func(ctx context.Context, in *assetInput) (*api.Empty, error) {
 			id, err := uuid.Parse(in.ID)
 			if err != nil {
-				return nil, api.NotFound("Image")
+				return nil, notFound(ctx)
 			}
 			return api.NoContent, s.Remove(ctx, api.WorkspaceFrom(ctx), id)
 		})

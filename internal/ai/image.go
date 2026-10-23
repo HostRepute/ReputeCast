@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"image"
 	"image/color"
 	"image/gif"
@@ -20,6 +19,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/ai/llm"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/media"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -46,19 +46,39 @@ func (i *imageData) part() *llm.Image {
 func (s *Service) loadImage(ctx context.Context, ws *store.Workspace, src string) (*imageData, error) {
 	raw, ctype, err := s.fetchImage(ctx, ws, src)
 	if err != nil {
-		return nil, invalid(ctx, "body.src", mImageUnreadable, map[string]any{"detail": err.Error()})
+		return nil, invalid(ctx, "body.src", mImageUnreadable, map[string]any{"detail": imageReason(ctx, err)})
 	}
 	out, err := resize(raw, ctype, MaxImageWidth)
 	if err != nil {
-		return nil, invalid(ctx, "body.src", mImageUnreadable, map[string]any{"detail": err.Error()})
+		return nil, invalid(ctx, "body.src", mImageUnreadable, map[string]any{"detail": imageReason(ctx, err)})
 	}
 	return out, nil
+}
+
+// imageError is why an image can't be read, as a message of the catalog
+// ("it is over 5 MB"); Error is its English.
+type imageError struct {
+	m    i18n.Msg
+	args i18n.Args
+}
+
+func (e *imageError) Error() string { return e.m.Text(i18n.Default, e.args) }
+
+func imageErr(m i18n.Msg, args i18n.Args) error { return &imageError{m: m, args: args} }
+
+// imageReason is why an image can't be read, in the request's language.
+func imageReason(ctx context.Context, err error) string {
+	var ie *imageError
+	if errors.As(err, &ie) {
+		return text(ctx, ie.m, ie.args)
+	}
+	return err.Error()
 }
 
 func (s *Service) fetchImage(ctx context.Context, ws *store.Workspace, src string) ([]byte, string, error) {
 	u, err := url.Parse(strings.TrimSpace(src))
 	if err != nil {
-		return nil, "", errors.New("its address isn't valid")
+		return nil, "", imageErr(mImageAddress, nil)
 	}
 	if strings.HasPrefix(u.Path, media.PathPrefix) {
 		rest := strings.TrimPrefix(u.Path, media.PathPrefix)
@@ -74,12 +94,12 @@ func (s *Service) fetchImage(ctx context.Context, ws *store.Workspace, src strin
 				return nil, "", err
 			}
 			if u.Host == "" {
-				return nil, "", errors.New("it isn't in this workspace's media library")
+				return nil, "", imageErr(mImageNotInLibrary, nil)
 			}
 		}
 	}
 	if u.Scheme != "https" && u.Scheme != "http" {
-		return nil, "", errors.New("only images on the web or in the media library can be described")
+		return nil, "", imageErr(mImageWhere, nil)
 	}
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -93,18 +113,18 @@ func (s *Service) fetchImage(ctx context.Context, ws *store.Workspace, src strin
 	}
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, "", fmt.Errorf("%s didn't answer", u.Hostname())
+		return nil, "", imageErr(mImageNoAnswer, i18n.Args{"host": u.Hostname()})
 	}
 	defer res.Body.Close() //nolint:errcheck
 	if res.StatusCode != http.StatusOK {
-		return nil, "", fmt.Errorf("%s answered %d", u.Hostname(), res.StatusCode)
+		return nil, "", imageErr(mImageStatus, i18n.Args{"host": u.Hostname(), "status": res.StatusCode})
 	}
 	data, err := io.ReadAll(io.LimitReader(res.Body, media.MaxBytes+1))
 	if err != nil {
 		return nil, "", err
 	}
 	if len(data) > media.MaxBytes {
-		return nil, "", errors.New("it is over 5 MB")
+		return nil, "", imageErr(mImageTooLarge, i18n.Args{"mb": media.MaxBytes >> 20})
 	}
 	return data, http.DetectContentType(data), nil
 }
@@ -122,10 +142,10 @@ func resize(data []byte, ctype string, width int) (*imageData, error) {
 	case strings.HasPrefix(ctype, "image/gif"):
 		img, err = gif.Decode(bytes.NewReader(data))
 	default:
-		return nil, errors.New("it isn't a PNG, JPEG or GIF image")
+		return nil, imageErr(mImageFormat, nil)
 	}
 	if err != nil {
-		return nil, errors.New("it couldn't be decoded")
+		return nil, imageErr(mImageDecode, nil)
 	}
 	b := img.Bounds()
 	if b.Dx() > width {

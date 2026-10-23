@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/readiness"
 )
 
@@ -192,31 +193,34 @@ func (p ApprovalPolicy) toDB(prev json.RawMessage) json.RawMessage {
 }
 
 // RuleLabels are the short phrases of the enabled rules ("audience ≥ 10,000").
-func (p ApprovalPolicy) RuleLabels() []string {
+func (p ApprovalPolicy) RuleLabels() []string { return p.RuleLabelsIn(i18n.Default) }
+
+// RuleLabelsIn are the short phrases of the enabled rules in a language.
+func (p ApprovalPolicy) RuleLabelsIn(l i18n.Lang) []string {
 	out := []string{}
 	if p.AudienceMin.Enabled {
-		out = append(out, "audience ≥ "+readiness.Count(p.AudienceMin.N))
+		out = append(out, render(l, mRuleAudienceShort.Keep(i18n.Args{"min": p.AudienceMin.N})))
 	}
 	if p.WarmingProvider {
-		out = append(out, "warming-up provider")
+		out = append(out, mRuleWarmingShort.Text(l, nil))
 	}
 	if p.ReadyWithWarnings {
-		out = append(out, "Ready with warnings")
+		out = append(out, mRuleWarningsShort.Text(l, nil))
 	}
 	if p.AuthorLacksSend {
-		out = append(out, "author lacks send")
+		out = append(out, mRuleLacksSendShort.Text(l, nil))
 	}
 	if p.ApprovalLists {
-		out = append(out, "list requires approval")
+		out = append(out, mRuleListsShort.Text(l, nil))
 	}
 	if p.PostPublish {
-		out = append(out, "post or page publish")
+		out = append(out, mRulePolicyPostPublish.Text(l, nil))
 	}
 	if p.ChannelCost.Enabled {
-		out = append(out, "SMS or WhatsApp cost ≥ "+costLabel(p.ChannelCost.Amount))
+		out = append(out, render(l, mRuleCostPolicy.Keep(i18n.Args{"moneyMin": p.ChannelCost.Amount})))
 	}
 	if p.ClientSignoff.Enabled {
-		out = append(out, "client sign-off")
+		out = append(out, mRuleSignoffShort.Text(l, nil))
 	}
 	return out
 }
@@ -241,6 +245,40 @@ type ApprovalRuleMatch struct {
 	// is written by the screen when the author reads it).
 	Author string `json:"author,omitempty"`
 	Role   string `json:"role,omitempty"`
+
+	// texts are the label, short phrase and badge as messages, for readers
+	// in other languages; a request keeps them in its snapshot (RuleTexts).
+	texts *ruleTexts
+}
+
+// ruleTexts are a matched rule's label, short phrase and badge as messages.
+type ruleTexts struct {
+	Label i18n.Text `json:"label,omitzero"`
+	Short i18n.Text `json:"short,omitzero"`
+	Badge i18n.Text `json:"badge,omitzero"`
+}
+
+// match builds a matched rule: its English, as stored and as API clients
+// read it, and its messages.
+func match(key string, label, short, badge i18n.Msg, args i18n.Args) ApprovalRuleMatch {
+	t := &ruleTexts{Label: label.Keep(args), Short: short.Keep(args), Badge: badge.Keep(args)}
+	return ApprovalRuleMatch{Key: key, Label: render(i18n.Default, t.Label), Short: render(i18n.Default, t.Short), Badge: render(i18n.Default, t.Badge), texts: t}
+}
+
+// localRules writes matched rules in a reader's language. Rules kept
+// without their messages (requests made before they were kept) read as
+// stored.
+func localRules(l i18n.Lang, rules []ApprovalRuleMatch) []ApprovalRuleMatch {
+	out := make([]ApprovalRuleMatch, len(rules))
+	for i, r := range rules {
+		if r.texts != nil && l.Locale != i18n.English {
+			r.Label = kept(l, r.Label, r.texts.Label)
+			r.Short = kept(l, r.Short, r.texts.Short)
+			r.Badge = kept(l, r.Badge, r.texts.Badge)
+		}
+		out[i] = r
+	}
+	return out
 }
 
 // RuleFacts are what the rules look at.
@@ -279,9 +317,7 @@ type RuleShare struct {
 func (p ApprovalPolicy) Evaluate(f RuleFacts) []ApprovalRuleMatch {
 	out := []ApprovalRuleMatch{}
 	if p.AudienceMin.Enabled && f.Recipients >= p.AudienceMin.N {
-		short := "audience ≥ " + readiness.Count(p.AudienceMin.N)
-		out = append(out, ApprovalRuleMatch{Key: RuleAudienceMin, Short: short, Badge: short,
-			Label: fmt.Sprintf("Audience of %s is at least %s", readiness.Count(f.Recipients), readiness.Count(p.AudienceMin.N))})
+		out = append(out, match(RuleAudienceMin, mRuleAudience, mRuleAudienceShort, mRuleAudienceShort, i18n.Args{"count": f.Recipients, "min": p.AudienceMin.N}))
 	}
 	if p.WarmingProvider {
 		for _, s := range f.Shares {
@@ -294,20 +330,14 @@ func (p ApprovalPolicy) Evaluate(f RuleFacts) []ApprovalRuleMatch {
 			}
 			switch {
 			case s.WarmingUp:
-				label := fmt.Sprintf("Route includes %s, which is warming up", s.Short)
+				label, args := mRuleWarming, i18n.Args{"provider": s.Short}
 				if s.WarmupDays > 0 {
-					label += fmt.Sprintf(" (day %d of %d)", s.WarmupDay, s.WarmupDays)
+					label, args["day"], args["days"] = mRuleWarmingDay, s.WarmupDay, s.WarmupDays
 				}
-				out = append(out, ApprovalRuleMatch{Key: RuleWarmingProvider, Label: label, Short: "warming-up provider", Badge: "Warming-up provider"})
+				out = append(out, match(RuleWarmingProvider, label, mRuleWarmingShort, mRuleWarmingBadge, args))
 			case !s.ConnectedAt.IsZero() && f.Now.Sub(s.ConnectedAt) < time.Duration(days)*24*time.Hour:
 				ago := int(f.Now.Sub(s.ConnectedAt).Hours() / 24)
-				when := fmt.Sprintf("%d days ago", ago)
-				if ago < 1 {
-					when = "today"
-				} else if ago == 1 {
-					when = "yesterday"
-				}
-				out = append(out, ApprovalRuleMatch{Key: RuleNewProvider, Label: fmt.Sprintf("Route includes %s, connected %s", s.Short, when), Short: "new provider", Badge: "New provider"})
+				out = append(out, match(RuleNewProvider, mRuleNewProvider, mRuleNewProviderShort, mRuleNewProviderBadge, i18n.Args{"provider": s.Short, "days": max(ago, 0)}))
 			default:
 				continue
 			}
@@ -315,28 +345,26 @@ func (p ApprovalPolicy) Evaluate(f RuleFacts) []ApprovalRuleMatch {
 		}
 	}
 	if p.ReadyWithWarnings && f.Verdict == readiness.VerdictWarnings {
-		out = append(out, ApprovalRuleMatch{Key: RuleReadyWithWarnings, Short: "Ready with warnings", Badge: "Ready with warnings",
-			Label: fmt.Sprintf("Send Readiness is Ready with warnings (%d %s)", f.Warnings, readiness.Plural(int64(f.Warnings), "warning", "warnings"))})
+		out = append(out, match(RuleReadyWithWarnings, mRuleWarnings, mRuleWarningsShort, mRuleWarningsShort, i18n.Args{"count": f.Warnings}))
 	}
 	if p.ChannelCost.Enabled && (f.Channel == "sms" || f.Channel == "whatsapp") && f.Cost >= p.ChannelCost.Amount {
-		short := "cost ≥ " + costLabel(p.ChannelCost.Amount)
-		out = append(out, ApprovalRuleMatch{Key: RuleChannelCost, Short: short, Badge: short,
-			Label: fmt.Sprintf("Estimated cost of %s is at least %s", costLabel(f.Cost), costLabel(p.ChannelCost.Amount))})
+		out = append(out, match(RuleChannelCost, mRuleCost, mRuleCostShort, mRuleCostShort, i18n.Args{"moneyCost": f.Cost, "moneyMin": p.ChannelCost.Amount}))
 	}
 	if p.AuthorLacksSend && !f.AuthorCanSend {
 		perm := "campaigns:send"
 		if f.SendPermission != "" {
 			perm = f.SendPermission
 		}
-		label := f.AuthorName + " doesn't hold " + perm
+		label, args := mRuleLacksSend, i18n.Args{"author": f.AuthorName, "permission": perm}
 		if f.AuthorRole != "" {
-			label += " · " + f.AuthorRole
+			label, args["role"] = mRuleLacksSendRole, f.AuthorRole
 		}
-		out = append(out, ApprovalRuleMatch{Key: RuleAuthorLacksSend, Label: label, Short: "author lacks send", Badge: "author lacks send", Author: f.AuthorName, Role: f.AuthorRole})
+		m := match(RuleAuthorLacksSend, label, mRuleLacksSendShort, mRuleLacksSendShort, args)
+		m.Author, m.Role = f.AuthorName, f.AuthorRole
+		out = append(out, m)
 	}
 	if p.ApprovalLists && len(f.ApprovalLists) > 0 {
-		out = append(out, ApprovalRuleMatch{Key: RuleApprovalLists, Short: "list requires approval", Badge: "List requires approval",
-			Label: fmt.Sprintf("The audience includes %s, which %s approval", readiness.JoinAnd(f.ApprovalLists), readiness.Plural(int64(len(f.ApprovalLists)), "requires", "require"))})
+		out = append(out, match(RuleApprovalLists, mRuleLists, mRuleListsShort, mRuleListsBadge, i18n.Args{"lists": f.ApprovalLists, "count": len(f.ApprovalLists)}))
 	}
 	if p.ClientSignoff.Enabled {
 		out = append(out, clientSignoffMatch())
@@ -345,19 +373,23 @@ func (p ApprovalPolicy) Evaluate(f RuleFacts) []ApprovalRuleMatch {
 }
 
 // rulesLine is "rules: audience ≥ 10,000 · warming-up provider".
-func rulesLine(rules []ApprovalRuleMatch) string {
+func rulesLine(rules []ApprovalRuleMatch) string { return rulesLineIn(i18n.Default, rules) }
+
+// rulesLineIn is rulesLine in a reader's language.
+func rulesLineIn(l i18n.Lang, rules []ApprovalRuleMatch) string {
 	if len(rules) == 0 {
 		return ""
 	}
+	return mRulesLine.Text(l, i18n.Args{"count": len(rules), "rules": shortsOf(localRules(l, rules))})
+}
+
+// shortsOf joins the rules' short phrases: "audience ≥ 10,000 · warming-up provider".
+func shortsOf(rules []ApprovalRuleMatch) string {
 	parts := make([]string, len(rules))
 	for i, r := range rules {
 		parts[i] = r.Short
 	}
-	word := "rules"
-	if len(rules) == 1 {
-		word = "rule"
-	}
-	return word + ": " + strings.Join(parts, " · ")
+	return strings.Join(parts, " · ")
 }
 
 func ruleKeys(rules []ApprovalRuleMatch) []string {
@@ -367,3 +399,46 @@ func ruleKeys(rules []ApprovalRuleMatch) []string {
 	}
 	return out
 }
+
+var (
+	mRuleAudience          = msgs.M("rule.audience")
+	mRuleAudienceShort     = msgs.M("rule.audienceShort")
+	mRuleWarming           = msgs.M("rule.warming")
+	mRuleWarmingDay        = msgs.M("rule.warmingDay")
+	mRuleWarmingShort      = msgs.M("rule.warmingShort")
+	mRuleWarmingBadge      = msgs.M("rule.warmingBadge")
+	mRuleNewProvider       = msgs.M("rule.newProvider")
+	mRuleNewProviderShort  = msgs.M("rule.newProviderShort")
+	mRuleNewProviderBadge  = msgs.M("rule.newProviderBadge")
+	mRuleWarnings          = msgs.M("rule.warnings")
+	mRuleWarningsShort     = msgs.M("rule.warningsShort")
+	mRuleCost              = msgs.M("rule.cost")
+	mRuleCostShort         = msgs.M("rule.costShort")
+	mRuleCostPolicy        = msgs.M("rule.costPolicy")
+	mRuleLacksSend         = msgs.M("rule.lacksSend")
+	mRuleLacksSendRole     = msgs.M("rule.lacksSendRole")
+	mRuleLacksSendShort    = msgs.M("rule.lacksSendShort")
+	mRuleLists             = msgs.M("rule.lists")
+	mRuleListsShort        = msgs.M("rule.listsShort")
+	mRuleListsBadge        = msgs.M("rule.listsBadge")
+	mRuleSignoff           = msgs.M("rule.signoff")
+	mRuleSignoffShort      = msgs.M("rule.signoffShort")
+	mRuleSignoffBadge      = msgs.M("rule.signoffBadge")
+	mRuleAutomation        = msgs.M("rule.automation")
+	mRuleAutomationShort   = msgs.M("rule.automationShort")
+	mRuleAutomationBadge   = msgs.M("rule.automationBadge")
+	mRuleAutomationLacks   = msgs.M("rule.automationLacks")
+	mRulePost              = msgs.M("rule.post")
+	mRulePostShort         = msgs.M("rule.postShort")
+	mRulePostBadge         = msgs.M("rule.postBadge")
+	mRulePageShort         = msgs.M("rule.pageShort")
+	mRulePageBadge         = msgs.M("rule.pageBadge")
+	mRulePostLacks         = msgs.M("rule.postLacks")
+	mRulePostLacksShort    = msgs.M("rule.postLacksShort")
+	mRulePostLacksBadge    = msgs.M("rule.postLacksBadge")
+	mRuleTemplate          = msgs.M("rule.template")
+	mRuleTemplateShort     = msgs.M("rule.templateShort")
+	mRuleTemplateBadge     = msgs.M("rule.templateBadge")
+	mRulePolicyPostPublish = msgs.M("rule.policyPostPublish")
+	mRulesLine             = msgs.M("rules.line")
+)

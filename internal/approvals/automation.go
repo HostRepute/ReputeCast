@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -61,40 +61,38 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 			return automations.GateDecision{}, fmt.Errorf("publishing needs client sign-off and nobody at %s can give it yet: invite the client's approver with the Client approver role", ws.Name)
 		}
 	}
-	who := strings.Join(names, " or ")
-	if len(names) > 2 {
-		who = strings.Join(names[:len(names)-1], ", ") + " or " + names[len(names)-1]
-	}
+	who := i18n.Args{"approvers": i18n.OrList(langOf(ctx).Locale, names)}
 	auto := req.AutomationID
 	var existing uuid.UUID
 	if err := tx.QueryRow(ctx, `SELECT id FROM approval_requests WHERE automation_id = $1 AND status = 'pending' LIMIT 1`, auto).Scan(&existing); err == nil {
-		return automations.GateDecision{Required: true, ApprovalID: existing, Message: "Approval is already requested. Waiting for " + who + "."}, nil
+		return automations.GateDecision{Required: true, ApprovalID: existing, Message: say(ctx, mPublishAutomationAlready, who)}, nil
 	}
-	changes := []string{}
+	changes, items := []string{}, []automationItem{}
 	for _, it := range req.Changes {
 		if it.Kind != "unchanged" {
 			changes = append(changes, it.Kind+": "+it.Title)
+			items = append(items, automationItem{Kind: it.Kind, Title: it.TitleText})
 		}
 	}
 	rules := []ApprovalRuleMatch{}
 	if policy.AutomationPublish {
-		rules = append(rules, ApprovalRuleMatch{Key: RuleAutomationPublish, Label: "Publishing an automation requires approval", Short: "automation publish", Badge: "Automation publish"})
+		rules = append(rules, match(RuleAutomationPublish, mRuleAutomation, mRuleAutomationShort, mRuleAutomationBadge, nil))
 	}
 	if len(req.Missing) > 0 {
 		perm := req.Missing[0]
 		m := memberByID(ms, &req.By)
-		match := ApprovalRuleMatch{Key: RuleAuthorLacksSend, Label: "The flow has a step that needs " + string(perm) + ", which the author doesn't hold",
-			Short: "author lacks send", Badge: "author lacks send"}
+		rm := match(RuleAuthorLacksSend, mRuleAutomationLacks, mRuleLacksSendShort, mRuleLacksSendShort, i18n.Args{"permission": string(perm)})
 		if m != nil {
-			match.Author, match.Role = m.Name, m.RoleName
+			rm.Author, rm.Role = m.Name, m.RoleName
 		}
-		rules = append(rules, match)
+		rules = append(rules, rm)
 	}
 	if signoff {
 		rules = append(rules, clientSignoffMatch())
 	}
 	keys := ruleKeys(rules)
-	snap := Snapshot{Version: req.Version, Rules: rules, Automation: &ApprovalAutomationSnapshot{Version: req.Version, Migration: req.Migration, Changes: changes}}
+	snap := Snapshot{Version: req.Version, Rules: rules, Automation: &ApprovalAutomationSnapshot{Version: req.Version, Migration: req.Migration, Changes: changes},
+		AutomationItems: items}
 	if m := memberByID(ms, &req.By); m != nil {
 		snap.AuthorRole = m.RoleName
 	}
@@ -115,13 +113,16 @@ func (g AutomationGate) Check(ctx context.Context, tx pgx.Tx, req automations.Pu
 	n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalRequested, Severity: "warn", Title: "Approval requested",
 		Summary: fmt.Sprintf("%s asked you to approve publishing “%s” v%d", author, req.Name, req.Version),
 		Body:    fmt.Sprintf("%s asked to publish “%s” v%d · %d %s", author, req.Name, req.Version, len(changes), pluralWord(len(changes), "change", "changes")),
-		Link:    "/w/" + ws.Slug + "/approvals/" + id.String(), Data: map[string]any{"request_id": id.String(), "automation_id": auto.String()}}
+		Link:    "/w/" + ws.Slug + "/approvals/" + id.String(), Data: map[string]any{"request_id": id.String(), "automation_id": auto.String()},
+		TitleText:   mNotifyRequestedTitle.Keep(nil),
+		SummaryText: mNotifyAutomationSummary.Keep(i18n.Args{"author": author, "name": req.Name, "version": req.Version}),
+		BodyText:    mNotifyAutomationBody.Keep(i18n.Args{"author": author, "name": req.Name, "version": req.Version, "count": len(changes)})}
 	for _, a := range approvers {
 		if err := notify.ToUser(ctx, tx, a.ID, n); err != nil {
 			return automations.GateDecision{}, err
 		}
 	}
-	return automations.GateDecision{Required: true, ApprovalID: id, Message: "Waiting for approval from " + who + "."}, nil
+	return automations.GateDecision{Required: true, ApprovalID: id, Message: say(ctx, mPublishAutomationWaiting, who)}, nil
 }
 
 func pluralWord(n int, one, many string) string {
@@ -146,6 +147,10 @@ func (s *Service) completePublish(ctx context.Context, ws *store.Workspace, by, 
 		_ = notify.ToUser(ctx, s.Pool, by, notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalDecided, Severity: "warn", Title: "Approved, but not published",
 			Summary: "The automation was approved but couldn't be published: " + err.Error(),
 			Body:    "The automation was approved but couldn't be published: " + err.Error() + " Publish it again to request a new approval.",
-			Link:    "/w/" + ws.Slug + "/automations/" + id.String()})
+			Link:    "/w/" + ws.Slug + "/automations/" + id.String(),
+			// The publish's own error stays English inside the sentence.
+			TitleText:   mNotifyPublishFailedTitle.Keep(nil),
+			SummaryText: mNotifyPublishFailedSumary.Keep(i18n.Args{"error": err.Error()}),
+			BodyText:    mNotifyPublishFailedBody.Keep(i18n.Args{"error": err.Error()})})
 	}
 }

@@ -7,6 +7,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -100,20 +101,21 @@ func (q *Queries) AccessibilityDraftAutomations(ctx context.Context, workspaceID
 }
 
 const accessibilityInsertFix = `-- name: AccessibilityInsertFix :exec
-INSERT INTO accessibility_fixes (id, workspace_id, campaign_id, content_hash, kinds, summary, languages, fixed_by, fixed_at)
-VALUES ($1, $2, $3, $4, $5::text[], $6, $7::text[], $8, $9)
+INSERT INTO accessibility_fixes (id, workspace_id, campaign_id, content_hash, kinds, summary, summary_texts, languages, fixed_by, fixed_at)
+VALUES ($1, $2, $3, $4, $5::text[], $6, $7, $8::text[], $9, $10)
 `
 
 type AccessibilityInsertFixParams struct {
-	ID          uuid.UUID  `json:"id"`
-	WorkspaceID uuid.UUID  `json:"workspaceId"`
-	CampaignID  uuid.UUID  `json:"campaignId"`
-	ContentHash string     `json:"contentHash"`
-	Kinds       []string   `json:"kinds"`
-	Summary     string     `json:"summary"`
-	Languages   []string   `json:"languages"`
-	FixedBy     *uuid.UUID `json:"fixedBy"`
-	FixedAt     time.Time  `json:"fixedAt"`
+	ID           uuid.UUID       `json:"id"`
+	WorkspaceID  uuid.UUID       `json:"workspaceId"`
+	CampaignID   uuid.UUID       `json:"campaignId"`
+	ContentHash  string          `json:"contentHash"`
+	Kinds        []string        `json:"kinds"`
+	Summary      string          `json:"summary"`
+	SummaryTexts json.RawMessage `json:"summaryTexts"`
+	Languages    []string        `json:"languages"`
+	FixedBy      *uuid.UUID      `json:"fixedBy"`
+	FixedAt      time.Time       `json:"fixedAt"`
 }
 
 func (q *Queries) AccessibilityInsertFix(ctx context.Context, arg AccessibilityInsertFixParams) error {
@@ -124,6 +126,7 @@ func (q *Queries) AccessibilityInsertFix(ctx context.Context, arg AccessibilityI
 		arg.ContentHash,
 		arg.Kinds,
 		arg.Summary,
+		arg.SummaryTexts,
 		arg.Languages,
 		arg.FixedBy,
 		arg.FixedAt,
@@ -132,7 +135,7 @@ func (q *Queries) AccessibilityInsertFix(ctx context.Context, arg AccessibilityI
 }
 
 const accessibilityLatestFix = `-- name: AccessibilityLatestFix :one
-SELECT f.content_hash, f.kinds, f.summary, f.languages, f.fixed_at, coalesce(u.name, '')::text AS fixed_by_name
+SELECT f.content_hash, f.kinds, f.summary, f.summary_texts, f.languages, f.fixed_at, coalesce(u.name, '')::text AS fixed_by_name
 FROM accessibility_fixes f
 LEFT JOIN users u ON u.id = f.fixed_by
 WHERE f.campaign_id = $1
@@ -141,12 +144,13 @@ LIMIT 1
 `
 
 type AccessibilityLatestFixRow struct {
-	ContentHash string    `json:"contentHash"`
-	Kinds       []string  `json:"kinds"`
-	Summary     string    `json:"summary"`
-	Languages   []string  `json:"languages"`
-	FixedAt     time.Time `json:"fixedAt"`
-	FixedByName string    `json:"fixedByName"`
+	ContentHash  string          `json:"contentHash"`
+	Kinds        []string        `json:"kinds"`
+	Summary      string          `json:"summary"`
+	SummaryTexts json.RawMessage `json:"summaryTexts"`
+	Languages    []string        `json:"languages"`
+	FixedAt      time.Time       `json:"fixedAt"`
+	FixedByName  string          `json:"fixedByName"`
 }
 
 func (q *Queries) AccessibilityLatestFix(ctx context.Context, campaignID uuid.UUID) (AccessibilityLatestFixRow, error) {
@@ -156,6 +160,7 @@ func (q *Queries) AccessibilityLatestFix(ctx context.Context, campaignID uuid.UU
 		&i.ContentHash,
 		&i.Kinds,
 		&i.Summary,
+		&i.SummaryTexts,
 		&i.Languages,
 		&i.FixedAt,
 		&i.FixedByName,

@@ -118,8 +118,11 @@ export const m = defineMessages('composer', {
   senderFallback: 'Your name',
   subject: 'Subject',
   subjectVariant: 'Subject · Variant {variant}',
-  /** {list}: the heuristics, such as "ALL CAPS, !!!". */
+  /** {list}: the heuristics, each a `subjectHeuristic`, joined with commas: "all caps, urgency". */
   subjectSpam: 'Subject · {count, plural, one {# spam heuristic} other {# spam heuristics}}: {list}',
+  /** One spam heuristic the subject trips, as the content checks name it; {name} is the check's own name. */
+  subjectHeuristic:
+    '{h, select, all_caps {all caps} repeated_punctuation {repeated punctuation} urgency {urgency} money_words {money words} click_bait {click-bait} other {{name}}}',
   subjectPlaceholder: 'What is this email about?',
   preheader: 'Preheader',
   preheaderPlaceholder: 'Shown after the subject in most inboxes',

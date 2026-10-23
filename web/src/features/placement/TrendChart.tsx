@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
+import { Th } from '@/components/ui/Table'
 import { useT } from '@/i18n'
 import { dayMonthDate, shortDate } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
@@ -213,10 +214,10 @@ function TrendTable({ bars }: { bars: Bar[] }) {
       <table className="tbl" aria-label={t(m.trendTableLabel)}>
         <thead>
           <tr>
-            <th scope="col">{t(m.colDate)}</th>
-            <th scope="col">{t(m.colTest)}</th>
-            <th scope="col">{t(m.colProvider)}</th>
-            <th scope="col">{t(m.colResult)}</th>
+            <Th>{t(m.colDate)}</Th>
+            <Th>{t(m.colTest)}</Th>
+            <Th>{t(m.colProvider)}</Th>
+            <Th>{t(m.colResult)}</Th>
           </tr>
         </thead>
         <tbody>

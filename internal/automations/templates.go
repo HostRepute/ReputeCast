@@ -2,7 +2,10 @@ package automations
 
 import (
 	"html"
+	"strconv"
 	"strings"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // AutomationStarterTemplate is one of the starter flows offered on the automations
@@ -26,14 +29,55 @@ type templateEmail struct {
 	body                                        []string
 }
 
+// starterEmail is a starter's email: its messages are
+// template.<starter>.<key>.{name,subject,preheader,heading,cta,body1…}.
+type starterEmailDef struct {
+	key   string
+	paras int
+}
+
+// templateDef is a starter template. What it says and what it creates
+// (the flow's labels, its emails) are in messages/<locale>.json under
+// template.<msg>.*: the cards read in the reader's language, and a flow is
+// created in its creator's, for its emails' readers.
 type templateDef struct {
-	AutomationStarterTemplate
-	description string
-	emails      []templateEmail
+	key     string
+	msg     string
+	steps   int
+	preview []string
+	emails  []starterEmailDef
 	// build makes the graph on a list, or on a store when store is set
-	// (templates_store.go): its id is what build gets.
-	build func(ref string) AutomationGraph
+	// (templates_store.go): its id is what build gets. say writes the
+	// template's own words (template.<msg>.<part>).
+	build func(ref string, say func(part string) string) AutomationGraph
 	store bool
+}
+
+// text is one of the template's own words in a language.
+func (t templateDef) text(l i18n.Lang, part string) string {
+	return msg("template."+t.msg+"."+part).Text(l, nil)
+}
+
+// card is the template as the list offers it, in a language.
+func (t templateDef) card(l i18n.Lang) AutomationStarterTemplate {
+	return AutomationStarterTemplate{Key: t.key, Name: t.text(l, "name"), Summary: t.text(l, "summary"), Outline: t.text(l, "outline"),
+		Steps: t.steps, Preview: t.preview}
+}
+
+// graph is the flow the template creates, in its creator's language.
+func (t templateDef) graph(ref string, l i18n.Lang) AutomationGraph {
+	return t.build(ref, func(part string) string { return t.text(l, part) })
+}
+
+// email is one of the template's emails, in its creator's language.
+func (t templateDef) email(l i18n.Lang, e starterEmailDef) templateEmail {
+	p := e.key + "."
+	out := templateEmail{key: e.key, name: t.text(l, p+"name"), subject: t.text(l, p+"subject"), preheader: t.text(l, p+"preheader"),
+		heading: t.text(l, p+"heading"), cta: t.text(l, p+"cta")}
+	for i := 1; i <= e.paras; i++ {
+		out.body = append(out.body, t.text(l, p+"body"+strconv.Itoa(i)))
+	}
+	return out
 }
 
 func fork(id, typ string, d AutomationNodeData) AutomationNode {
@@ -53,31 +97,18 @@ func emailNode(id, emailKey, subject string) AutomationNode {
 
 var templates = []templateDef{
 	{
-		AutomationStarterTemplate: AutomationStarterTemplate{
-			Key: "welcome-series", Name: "Welcome series",
-			Summary: "Trigger on list join, 3 emails over a week, branch on first open, goal on first click.",
-			Outline: "Joined list → wait 10 min → email 1 → branch on open → emails 2 and 3 → goal: first click",
-			Steps:   7, Preview: []string{NodeTrigger, NodeEmail, NodeEmail, NodeGoal},
-		},
-		description: "3 emails over a week",
-		emails: []templateEmail{
-			{key: "w1", name: `Welcome · step 1 "You're in"`, subject: "You're in. Here's what to expect", preheader: "One email a week, and how to make the most of it.",
-				heading: "You're in", cta: "Read the getting-started guide", body: []string{"Thanks for subscribing. Every week we send one email with what's new, a guide worth your time and the changelog.", "Start with the guide most people find useful first."}},
-			{key: "w2", name: `Step 2 "Three things to try first"`, subject: "Three things to try first", preheader: "Small wins for your first week.",
-				heading: "Three things to try first", cta: "Try the first one", body: []string{"Here are three things people get the most out of in their first week."}},
-			{key: "w3", name: `Step 3 "Did you get our welcome?"`, subject: "Did you get our welcome?", preheader: "A plain-text note in case the first one got buried.",
-				heading: "Did you get our welcome?", cta: "Open the guide", body: []string{"Our first email may have landed in another tab. Here's the short version."}},
-		},
-		build: func(listID string) AutomationGraph {
+		key: "welcome-series", msg: "welcome", steps: 7, preview: []string{NodeTrigger, NodeEmail, NodeEmail, NodeGoal},
+		emails: []starterEmailDef{{"w1", 2}, {"w2", 1}, {"w3", 1}},
+		build: func(listID string, say func(string) string) AutomationGraph {
 			return AutomationGraph{
 				Nodes: []AutomationNode{
 					fork("n1", NodeTrigger, AutomationNodeData{Trigger: &AutomationTrigger{Kind: TriggerJoinedList, ListID: listID, ConfirmedOnly: true, Reentry: "once"}}),
 					fork("n2", NodeDelay, AutomationNodeData{Delay: &AutomationDuration{Amount: 10, Unit: "minutes"}}),
-					emailNode("n3", "w1", "You're in. Here's what to expect"),
+					emailNode("n3", "w1", say("w1.subject")),
 					fork("n4", NodeBranch, AutomationNodeData{Condition: &AutomationCondition{Kind: "opened", Step: "n3", Within: &AutomationDuration{Amount: 2, Unit: "days"}, HumanOnly: true}}),
-					emailNode("n5", "w2", "Three things to try first"),
-					emailNode("n6", "w3", "Did you get our welcome?"),
-					fork("n7", NodeGoal, AutomationNodeData{Label: "First click", Condition: &AutomationCondition{Kind: "clicked"}}),
+					emailNode("n5", "w2", say("w2.subject")),
+					emailNode("n6", "w3", say("w3.subject")),
+					fork("n7", NodeGoal, AutomationNodeData{Label: say("goal"), Condition: &AutomationCondition{Kind: "clicked"}}),
 				},
 				Edges: []AutomationEdge{
 					link("n1", "n2", ""), link("n2", "n3", ""), link("n3", "n4", ""),
@@ -88,25 +119,16 @@ var templates = []templateDef{
 		},
 	},
 	{
-		AutomationStarterTemplate: AutomationStarterTemplate{
-			Key: "re-engagement", Name: "Re-engagement",
-			Summary: `Trigger when a contact enters the Sunset tier, one "still want these?" email, exit or stop broadcasts.`,
-			Outline: `Tag "sunset-entered" → "still want these?" email → wait 14 d → branch on open → exit or stop broadcasts`,
-			Steps:   5, Preview: []string{NodeTrigger, NodeEmail, NodeBranch, NodeExit},
-		},
-		description: "1 email, then sunset",
-		emails: []templateEmail{
-			{key: "r1", name: `Re-engagement "Still want these?"`, subject: "Still want these?", preheader: "One click keeps you on the list.",
-				heading: "Still want these?", cta: "Yes, keep me subscribed", body: []string{"We haven't seen you open our emails in a while. If you'd like to keep getting them, tell us with one click.", "If not, we'll stop sending; you can come back any time."}},
-		},
-		build: func(string) AutomationGraph {
+		key: "re-engagement", msg: "reengagement", steps: 5, preview: []string{NodeTrigger, NodeEmail, NodeBranch, NodeExit},
+		emails: []starterEmailDef{{"r1", 2}},
+		build: func(_ string, say func(string) string) AutomationGraph {
 			return AutomationGraph{
 				Nodes: []AutomationNode{
 					fork("n1", NodeTrigger, AutomationNodeData{Trigger: &AutomationTrigger{Kind: TriggerTagAdded, Tag: "sunset-entered", Reentry: "once"}}),
-					emailNode("n2", "r1", "Still want these?"),
+					emailNode("n2", "r1", say("r1.subject")),
 					fork("n3", NodeBranch, AutomationNodeData{Condition: &AutomationCondition{Kind: "opened", Step: "n2", Within: &AutomationDuration{Amount: 14, Unit: "days"}, HumanOnly: true}}),
-					fork("n4", NodeExit, AutomationNodeData{Label: "Stays subscribed"}),
-					fork("n5", NodeList, AutomationNodeData{Label: "Stop broadcasts", Action: &AutomationListAction{Kind: "unsubscribe_all"}}),
+					fork("n4", NodeExit, AutomationNodeData{Label: say("exit")}),
+					fork("n5", NodeList, AutomationNodeData{Label: say("stop"), Action: &AutomationListAction{Kind: "unsubscribe_all"}}),
 				},
 				Edges: []AutomationEdge{
 					link("n1", "n2", ""), link("n2", "n3", ""),
@@ -116,35 +138,23 @@ var templates = []templateDef{
 		},
 	},
 	{
-		AutomationStarterTemplate: AutomationStarterTemplate{
-			Key: "onboarding", Name: "Onboarding",
-			Summary: "Trigger on an API event, 5 emails tied to product milestones, webhook to your CRM, goal on activation.",
-			Outline: "API event → 5 milestone emails → webhook to your CRM → goal: activated",
-			Steps:   12, Preview: []string{NodeTrigger, NodeEmail, NodeWebhook, NodeEmail, NodeGoal},
-		},
-		description: "5 emails, 1 webhook",
-		emails: []templateEmail{
-			{key: "o1", name: `Onboarding · step 1 "Welcome aboard"`, subject: "Welcome aboard", preheader: "Your account is ready.", heading: "Welcome aboard", cta: "Open your account", body: []string{"Your account is ready. Here's the one thing to do first."}},
-			{key: "o2", name: `Step 2 "Create your first project"`, subject: "Create your first project", preheader: "It takes about two minutes.", heading: "Create your first project", cta: "Create a project", body: []string{"Projects hold everything else. Create one to see how it fits together."}},
-			{key: "o3", name: `Step 3 "Invite your team"`, subject: "Invite your team", preheader: "Work is better together.", heading: "Invite your team", cta: "Invite a teammate", body: []string{"Teams that invite a second person in the first week stay three times longer."}},
-			{key: "o4", name: `Step 4 "Connect your tools"`, subject: "Connect your tools", preheader: "Bring in the data you already have.", heading: "Connect your tools", cta: "See integrations", body: []string{"Connect the tools you already use so nothing lives in two places."}},
-			{key: "o5", name: `Step 5 "Your first month"`, subject: "Your first month", preheader: "What people do next.", heading: "Your first month", cta: "Read the guide", body: []string{"A month in, here's what teams like yours do next."}},
-		},
-		build: func(string) AutomationGraph {
+		key: "onboarding", msg: "onboarding", steps: 12, preview: []string{NodeTrigger, NodeEmail, NodeWebhook, NodeEmail, NodeGoal},
+		emails: []starterEmailDef{{"o1", 1}, {"o2", 1}, {"o3", 1}, {"o4", 1}, {"o5", 1}},
+		build: func(_ string, say func(string) string) AutomationGraph {
 			return AutomationGraph{
 				Nodes: []AutomationNode{
 					fork("n1", NodeTrigger, AutomationNodeData{Trigger: &AutomationTrigger{Kind: TriggerAPIEvent, Event: "user.signed_up", Reentry: "once"}}),
-					emailNode("n2", "o1", "Welcome aboard"),
+					emailNode("n2", "o1", say("o1.subject")),
 					fork("n3", NodeDelay, AutomationNodeData{Delay: &AutomationDuration{Amount: 1, Unit: "days"}}),
-					emailNode("n4", "o2", "Create your first project"),
+					emailNode("n4", "o2", say("o2.subject")),
 					fork("n5", NodeDelay, AutomationNodeData{Delay: &AutomationDuration{Amount: 2, Unit: "days"}}),
-					emailNode("n6", "o3", "Invite your team"),
-					fork("n7", NodeWebhook, AutomationNodeData{Webhook: &AutomationWebhook{Name: "Sync to CRM", Method: "POST"}}),
+					emailNode("n6", "o3", say("o3.subject")),
+					fork("n7", NodeWebhook, AutomationNodeData{Webhook: &AutomationWebhook{Name: say("webhook"), Method: "POST"}}),
 					fork("n8", NodeDelay, AutomationNodeData{Delay: &AutomationDuration{Amount: 3, Unit: "days"}}),
-					emailNode("n9", "o4", "Connect your tools"),
+					emailNode("n9", "o4", say("o4.subject")),
 					fork("n10", NodeDelay, AutomationNodeData{Delay: &AutomationDuration{Amount: 7, Unit: "days"}}),
-					emailNode("n11", "o5", "Your first month"),
-					fork("n12", NodeGoal, AutomationNodeData{Label: "Activated", Condition: &AutomationCondition{Kind: "event", Event: "account.activated"}}),
+					emailNode("n11", "o5", say("o5.subject")),
+					fork("n12", NodeGoal, AutomationNodeData{Label: say("goal"), Condition: &AutomationCondition{Kind: "event", Event: "account.activated"}}),
 				},
 				Edges: []AutomationEdge{
 					link("n1", "n2", ""), link("n2", "n3", ""), link("n3", "n4", ""), link("n4", "n5", ""),
@@ -156,31 +166,31 @@ var templates = []templateDef{
 	},
 }
 
-// Templates lists the starter templates.
+// Templates lists the starter templates, in English.
 func Templates() []AutomationStarterTemplate {
 	out := make([]AutomationStarterTemplate, len(templates))
 	for i, t := range templates {
-		out[i] = t.AutomationStarterTemplate
+		out[i] = t.card(english)
 	}
 	return out
 }
 
-// templatesFor lists the starter templates a workspace can use: the ones
-// that start on a store's events need a connected store.
-func templatesFor(hasStore bool) []AutomationStarterTemplate {
+// templatesFor lists the starter templates a workspace can use, in a
+// language: the ones that start on a store's events need a connected store.
+func templatesFor(l i18n.Lang, hasStore bool) []AutomationStarterTemplate {
 	out := make([]AutomationStarterTemplate, 0, len(templates))
 	for _, t := range templates {
 		if t.store && !hasStore {
 			continue
 		}
-		out = append(out, t.AutomationStarterTemplate)
+		out = append(out, t.card(l))
 	}
 	return out
 }
 
 func templateByKey(key string) (templateDef, bool) {
 	for _, t := range templates {
-		if t.Key == key {
+		if t.key == key {
 			return t, true
 		}
 	}
@@ -192,9 +202,16 @@ type EmailContent struct {
 	Subject, Preheader, MJML, HTML, Text string
 }
 
-// starterEmail renders a template email as MJML, matching HTML and plain text.
-// Liquid tags ({{ unsubscribe_url }}) are filled in at send time.
-func starterEmail(e templateEmail) EmailContent {
+var (
+	mEmailFooter     = msg("email.footer")
+	mEmailFooterText = msg("email.footerText")
+	mEmailBlankBody  = msg("email.blankBody")
+)
+
+// starterEmail renders a template email as MJML, matching HTML and plain
+// text, with the footer in l. Liquid tags ({{ unsubscribe_url }}) are filled
+// in at send time.
+func starterEmail(l i18n.Lang, e templateEmail) EmailContent {
 	var mj, hb, tx strings.Builder
 	mj.WriteString(`<mjml><mj-head><mj-attributes><mj-all font-family="IBM Plex Sans, Arial, sans-serif" /></mj-attributes><mj-preview>` + html.EscapeString(e.preheader) + `</mj-preview></mj-head>`)
 	mj.WriteString(`<mj-body background-color="#F3F4F6"><mj-section background-color="#FFFFFF" padding="32px 24px"><mj-column>`)
@@ -216,23 +233,27 @@ func starterEmail(e templateEmail) EmailContent {
 		hb.WriteString(`<p style="margin:20px 0"><a href="{{ cta_url }}" style="display:inline-block;padding:12px 18px;background:#0F766E;color:#FFFFFF;border-radius:8px;text-decoration:none;font-weight:600">` + html.EscapeString(e.cta) + `</a></p>`)
 		tx.WriteString(e.cta + ": {{ cta_url }}\n\n")
 	}
-	footer := `You get this because you subscribed to {{ workspace_name }}. <a href="{{ unsubscribe_url }}">Unsubscribe</a> · {{ footer_address }}`
+	footer := mEmailFooter.HTML(l, i18n.Args{"workspace": i18n.HTML("{{ workspace_name }}"), "address": i18n.HTML("{{ footer_address }}")},
+		i18n.Tags{"link": func(inner string) string { return `<a href="{{ unsubscribe_url }}">` + inner + `</a>` }})
 	mj.WriteString(`<mj-text font-size="12px" color="#5B6472">` + footer + `</mj-text></mj-column></mj-section></mj-body></mjml>`)
 	hb.WriteString(`<p style="margin:24px 0 0;font-size:12px;color:#5B6472">` + footer + `</p></td></tr></table></td></tr></table></body></html>`)
-	tx.WriteString("Unsubscribe: {{ unsubscribe_url }}\n{{ footer_address }}\n")
+	tx.WriteString(mEmailFooterText.Text(l, i18n.Args{"url": "{{ unsubscribe_url }}"}) + "\n{{ footer_address }}\n")
 	return EmailContent{Subject: e.subject, Preheader: e.preheader, MJML: mj.String(), HTML: hb.String(), Text: tx.String()}
 }
 
 // BlankEmail is the content of a new email made from the step panel.
-func BlankEmail(name, subject string) EmailContent {
+func BlankEmail(name, subject string) EmailContent { return blankEmail(english, name, subject) }
+
+// blankEmail is a new email in its creator's language.
+func blankEmail(l i18n.Lang, name, subject string) EmailContent {
 	heading := emailQuoted(name)
 	if heading == "" {
 		heading = name
 	}
-	return starterEmail(templateEmail{name: name, subject: subject, heading: heading, body: []string{"Write your email here."}})
+	return starterEmail(l, templateEmail{name: name, subject: subject, heading: heading, body: []string{mEmailBlankBody.Text(l, nil)}})
 }
 
 // DemoEmail renders seeded demo emails with the starter layout.
 func DemoEmail(subject, preheader, heading, cta string, body ...string) EmailContent {
-	return starterEmail(templateEmail{subject: subject, preheader: preheader, heading: heading, cta: cta, body: body})
+	return starterEmail(english, templateEmail{subject: subject, preheader: preheader, heading: heading, cta: cta, body: body})
 }
