@@ -28,7 +28,7 @@ func TestReportInVietnamese(t *testing.T) {
 		{"“Plan your migration”: chữ trắng trên nền #5EBFB0 có độ tương phản 2,1:1. Cần tối thiểu 4,5:1.", "Độ tương phản 2,1:1", "độ tương phản của nút"},
 		{"“Click here” không cho biết liên kết dẫn đến đâu", "“Click here” không nói lên điều gì", "“Click here”"},
 		{"Chữ của liên kết là một URL trần: https://docs.acme.io/migrate-v2", "URL trần làm chữ liên kết", "một URL trần"},
-		{"Cả hai tiêu đề thẻ đều là Đề mục 3, ngay sau Đề mục 1", "Đề mục 3 sau Đề mục 1", "một cấp đề mục bị bỏ qua"},
+		{"Cả hai tựa đề thẻ đều là Đề mục 3, ngay sau Đề mục 1", "Đề mục 3 sau Đề mục 1", "một cấp đề mục bị bỏ qua"},
 		{"Chữ ở phần chân thư cỡ 11 px. Cỡ tối thiểu là 12 px.", "Chữ 11 px", "chữ 11 px ở phần chân thư"},
 	}
 	for i, w := range want {
@@ -43,7 +43,7 @@ func TestReportInVietnamese(t *testing.T) {
 	if d := v.Issues[2].Detail; d != "Cả “Haz clic aquí” và “Hier klicken” cũng vậy. Trang được liên kết viết bằng tiếng Anh, nên tiếng Tây Ban Nha và tiếng Đức có ô để tự viết chữ." {
 		t.Errorf("link text: %q", d)
 	}
-	if s := v.Issues[4].Fix.Subject; s != "Các tiêu đề thẻ" {
+	if s := v.Issues[4].Fix.Subject; s != "Các tựa đề thẻ" {
 		t.Errorf("heading subject: %q", s)
 	}
 	if s := v.Issues[5].Fix.Subject; s != "Chữ ở phần chân thư" {
@@ -108,7 +108,7 @@ func TestFixesInVietnamese(t *testing.T) {
 	if got := change.AppliedIn(vi); got != "Đã đổi 2 đề mục thành Đề mục 2 và đã đặt cỡ chữ ở phần chân thư thành 12 px" {
 		t.Errorf("applied: %q", got)
 	}
-	if got := change.SummaryIn(vi); got != "Các tiêu đề thẻ là Đề mục 2 và chữ ở phần chân thư cỡ 12 px" {
+	if got := change.SummaryIn(vi); got != "Các tựa đề thẻ là Đề mục 2 và chữ ở phần chân thư cỡ 12 px" {
 		t.Errorf("summary: %q", got)
 	}
 	if got := change.LabelIn(vi); got != "đề mục và cỡ chữ" {
@@ -120,7 +120,7 @@ func TestFixesInVietnamese(t *testing.T) {
 	if err := json.Unmarshal(b, &rec.SummaryTexts); err != nil {
 		t.Fatal(err)
 	}
-	if got := rec.SummaryIn(vi); got != "Các tiêu đề thẻ là Đề mục 2 và chữ ở phần chân thư cỡ 12 px" {
+	if got := rec.SummaryIn(vi); got != "Các tựa đề thẻ là Đề mục 2 và chữ ở phần chân thư cỡ 12 px" {
 		t.Errorf("stored summary: %q", got)
 	}
 	if got := rec.SummaryIn(i18n.For(i18n.English)); got != change.Summary {

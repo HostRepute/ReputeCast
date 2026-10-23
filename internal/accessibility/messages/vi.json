@@ -31,10 +31,10 @@
   "size.subject": "Chữ",
   "size.subjectIn": "Chữ ở phần {section}",
 
-  "heading.title": "{count, plural, =1 {“{text}” là Đề mục {from}, ngay sau một Đề mục {prev}} =2 {Cả hai {cards, select, yes {tiêu đề thẻ} other {đề mục}} đều là Đề mục {from}, ngay sau Đề mục {prev}} other {# {cards, select, yes {tiêu đề thẻ} other {đề mục}} là Đề mục {from}, ngay sau Đề mục {prev}}}",
+  "heading.title": "{count, plural, =1 {“{text}” là Đề mục {from}, ngay sau một Đề mục {prev}} =2 {Cả hai {cards, select, yes {tựa đề thẻ} other {đề mục}} đều là Đề mục {from}, ngay sau Đề mục {prev}} other {# {cards, select, yes {tựa đề thẻ} other {đề mục}} là Đề mục {from}, ngay sau Đề mục {prev}}}",
   "heading.detail": "{count, plural, =1 {Đổi thành Đề mục {to}} =2 {Đổi cả hai thành Đề mục {to}} other {Đổi cả # thành Đề mục {to}}}. Chữ vẫn giữ nguyên giao diện.",
   "heading.tag": "Đề mục {from} sau Đề mục {prev}",
-  "heading.subject": "{cards, select, yes {Các tiêu đề thẻ} other {Các đề mục}}",
+  "heading.subject": "{cards, select, yes {Các tựa đề thẻ} other {Các đề mục}}",
   "heading.subjectOne": "“{text}”",
 
   "phrase.serious": "{what, select, heroAlt {văn bản thay thế của hình hero} logoAlt {văn bản thay thế của logo} imageAlt {văn bản thay thế của một hình} linkedLogo {văn bản thay thế của logo có liên kết} linkedImage {văn bản thay thế của hình có liên kết} buttonNoText {nút không có chữ} linkNoText {liên kết không có chữ} buttonContrast {độ tương phản của nút} other {độ tương phản của chữ}}",
@@ -91,7 +91,7 @@
   "fix.sizeApplied": "đã đặt cỡ chữ thành {px} px",
   "fix.sizeAppliedIn": "đã đặt cỡ chữ ở phần {section} thành {px} px",
   "fix.headingOneSummary": "“{text}” là Đề mục {to}",
-  "fix.headingsSummary": "{cards, select, yes {các tiêu đề thẻ} other {các đề mục}} là Đề mục {to}",
+  "fix.headingsSummary": "{cards, select, yes {các tựa đề thẻ} other {các đề mục}} là Đề mục {to}",
   "fix.sizeSummary": "chữ cỡ {px} px",
   "fix.sizeSummaryIn": "chữ ở phần {section} cỡ {px} px",
 

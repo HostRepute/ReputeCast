@@ -31,7 +31,7 @@
   "sample.weekly.headline": "Một đề mục cho biết số tuần này có gì",
   "sample.weekly.intro": "Chào {firstName}, hai hoặc ba câu về nội dung của số này và vì sao nó quan trọng với người đọc.",
   "sample.weekly.articleAlt": "Mô tả hình ảnh của {n, select, 1 {bài viết thứ nhất} 2 {bài viết thứ hai} other {bài viết tiếp theo}}",
-  "sample.weekly.articleTitle": "{n, select, 1 {Tiêu đề bài viết thứ nhất} 2 {Tiêu đề bài viết thứ hai} other {Tiêu đề bài viết tiếp theo}}",
+  "sample.weekly.articleTitle": "{n, select, 1 {Tựa đề bài viết thứ nhất} 2 {Tựa đề bài viết thứ hai} other {Tựa đề bài viết tiếp theo}}",
   "sample.weekly.articleLine": "Một hoặc hai câu khiến người đọc muốn đọc tiếp.",
   "sample.weekly.readArticle": "Đọc bài viết",
   "sample.update.imageAlt": "Mô tả nội dung của hình ảnh",

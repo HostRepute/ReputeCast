@@ -65,7 +65,7 @@ func TestAccessibilityInVietnamese(t *testing.T) {
 	}
 	f := facts()
 	if f.Fixed == nil || f.Fixed.Summary != "Card titles are Heading 2, and footer text is 12 px" ||
-		f.Fixed.SummaryIn(i18n.For(i18n.Vietnamese)) != "Các tiêu đề thẻ là Đề mục 2 và chữ ở phần chân thư cỡ 12 px" {
+		f.Fixed.SummaryIn(i18n.For(i18n.Vietnamese)) != "Các tựa đề thẻ là Đề mục 2 và chữ ở phần chân thư cỡ 12 px" {
 		t.Fatalf("fixed: %+v", f.Fixed)
 	}
 	// A fix recorded before its messages were kept reads in English.

@@ -323,8 +323,19 @@ stay as they are.
 | section (of an email) · saved section | phần · phần đã lưu |
 | Send Readiness | Độ sẵn sàng gửi (the checks before a send, as a name; "runs again" = "được kiểm tra lại") |
 | spam heuristic | dấu hiệu spam |
+| bare URL · link text · says nothing (a link's text) | URL trần · chữ của liên kết · không nói lên điều gì |
+| broken link · shortened link · URL shortener | liên kết hỏng · liên kết rút gọn · dịch vụ rút gọn URL |
+| Gmail's clipping limit · inline CSS | giới hạn cắt thư của Gmail · CSS nội tuyến |
+| contact field · personalization token's fallback | trường liên hệ · giá trị dự phòng |
+| plain-text version · postal address | phiên bản văn bản thuần · địa chỉ bưu chính |
+| Line 3: (a compile or layout problem) · doesn't compile | Dòng 3: · không biên dịch được |
+| title (of an article card, a post) | tựa đề ("tiêu đề" is the email's subject) |
+| Email preferences link · View in browser link | Liên kết tùy chọn email · Liên kết xem trên trình duyệt |
+| starter (template) | mẫu khởi đầu |
 
-MJML tags (mj-section, mj-body) stay as they are. A block's sample content
+MJML tags (mj-section, mj-body) stay as they are. Section names in the
+server's sentences use the composer's words: đầu thư, chân thư, hero,
+2 cột, văn bản, hình ảnh, nút. A block's sample content
 is written for the email's readers, in the app language: the first-name
 fallback "there" is "bạn".
 
@@ -352,6 +363,14 @@ fallback "there" is "bạn".
 | stats · Live stats | số liệu · Số liệu trực tiếp |
 | step · trigger · action · condition | bước · trình kích hoạt · hành động · điều kiện |
 | web push | thông báo đẩy (trên web) |
+| path (of a branch or split) · connection | nhánh · đường nối |
+| starters: Welcome series · Re-engagement · Onboarding · Abandoned cart | Chuỗi chào mừng · Tái tương tác · Hướng dẫn bắt đầu · Giỏ hàng bị bỏ dở |
+| Send Readiness content checks | kiểm tra nội dung của Độ sẵn sàng gửi |
+| webhook delivery log · failed calls | nhật ký gửi webhook · lệnh gọi thất bại |
+| route label: SES, failover Postmark | SES, dự phòng Postmark |
+| Removed provider | Nhà cung cấp đã xóa |
+| webinar | hội thảo trực tuyến |
+| version summary: created from a blank canvas · created from the X template · copied from X · first published version | tạo từ khung trống · tạo từ mẫu X · nhân bản từ X · phiên bản xuất bản đầu tiên |
 
 ## Approvals
 
@@ -370,6 +389,13 @@ fallback "there" is "bạn".
 | policy · rule · Rules matched | chính sách · quy tắc · Quy tắc khớp |
 | Recheck | Kiểm tra lại |
 | snapshot | bản chụp |
+| after approval (a change) | sau khi được phê duyệt ("số người nhận đã thay đổi +14% sau khi được phê duyệt"; said once) |
+| rules: audience ≥ 10,000 · warming-up provider · new provider · author lacks send · list requires approval · client sign-off | người nhận ≥ 10.000 · nhà cung cấp đang khởi động · nhà cung cấp mới · tác giả không có quyền gửi · danh sách cần phê duyệt · phê duyệt của khách hàng |
+| automation publish · post publish · page publish · template publish (rules) | xuất bản tự động hóa · xuất bản bài viết · xuất bản trang · xuất bản mẫu |
+| a send held · suppressed | lần gửi bị tạm giữ · bị chặn gửi |
+| online · active 2 h ago (an approver) | đang trực tuyến · hoạt động 2 giờ trước |
+| Best time within 24 h of | Giờ tốt nhất trong vòng 24 giờ từ |
+| Only people can… (not agents or keys) | Chỉ con người mới… |
 
 ## Content languages
 
@@ -395,8 +421,11 @@ fallback "there" is "bạn".
 | layout table | bảng bố cục |
 | screen reader | trình đọc màn hình |
 | Warn · Block (the policy) | Cảnh báo · Chặn |
+| skipped heading level · card titles | cấp đề mục bị bỏ qua · tựa đề thẻ |
 
 "Heading" is "Đề mục", never "Tiêu đề", which is an email's subject.
+Content languages in a sentence use their standard Vietnamese names, with
+"tiếng" in lower case: "tiếng Đức", "tiếng Tây Ban Nha".
 
 ## Earn
 
