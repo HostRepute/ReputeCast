@@ -215,7 +215,7 @@ export default translate(m, {
   linkReplaced: 'Đã thay liên kết bằng {url}',
   sectionRemoved: 'Đã xóa phần',
   sectionRemovedDetail: 'Nhấn ⌘Z để hoàn tác nếu bạn cần lấy lại.',
-  minified: 'CSS nội tuyến được rút gọn khi lưu và khi gửi',
+  minified: 'CSS nội tuyến được thu gọn khi lưu và khi gửi',
   minifiedDetail: 'Khung thiết kế và MJML vẫn giữ nguyên.',
-  minifyFailed: 'Không bật được tính năng rút gọn',
+  minifyFailed: 'Không bật được tính năng thu gọn',
 })

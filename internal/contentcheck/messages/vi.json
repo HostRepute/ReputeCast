@@ -7,7 +7,7 @@
   "size.near": "{kb} KB, gần ngưỡng cắt thư 102 KB của Gmail",
   "size.over": "{kb} KB, vượt ngưỡng cắt thư 102 KB của Gmail",
   "size.detail": "Gmail cắt bớt thư và ẩn chân thư, kể cả liên kết hủy đăng ký.",
-  "size.minify": "Rút gọn CSS nội tuyến · tiết kiệm khoảng {kb} KB",
+  "size.minify": "Thu gọn CSS nội tuyến · tiết kiệm khoảng {kb} KB",
   "size.bulkOne": "Phần {section} chiếm phần lớn dung lượng ({share, number, percent}).",
   "size.bulkMany": "{count} phần {section} chiếm phần lớn dung lượng ({share, number, percent}).",
   "size.bulkCards": "{count} {section}{css, select, yes { có CSS nội tuyến} other {}} chiếm phần lớn dung lượng.",
