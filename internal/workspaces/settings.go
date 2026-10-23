@@ -3,7 +3,6 @@ package workspaces
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -20,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/notify"
 	provstate "github.com/hostrepute/reputecast/internal/providers/state"
@@ -160,48 +160,38 @@ type policy struct {
 	} `json:"client_signoff,omitempty"`
 }
 
-func approvalRules(raw json.RawMessage) ([]string, policy) {
+// approvalRules are the policy's enabled rules in words, in a language.
+func approvalRules(l i18n.Lang, raw json.RawMessage) ([]string, policy) {
 	var p policy
 	_ = json.Unmarshal(raw, &p)
 	rules := []string{}
+	rule := func(key string, args i18n.Args) { rules = append(rules, msgs.M(key).Text(l, args)) }
 	if p.Rules.AudienceMin.Enabled {
-		rules = append(rules, "audience ≥ "+thousands(p.Rules.AudienceMin.N))
+		rule("rule.audience", i18n.Args{"n": p.Rules.AudienceMin.N})
 	}
 	if p.Rules.Warming.Enabled {
-		rules = append(rules, "route includes a Warming-up provider")
+		rule("rule.warming", nil)
 	}
 	if p.Rules.NewProvider.Enabled {
 		d := p.Rules.NewProvider.Days
 		if d == 0 {
 			d = 14
 		}
-		rules = append(rules, fmt.Sprintf("provider connected in the last %d days", d))
+		rule("rule.newProvider", i18n.Args{"days": d})
 	}
 	if p.Rules.Warnings.Enabled {
-		rules = append(rules, "Send Readiness has warnings")
+		rule("rule.warnings", nil)
 	}
 	if p.Rules.LacksSend.Enabled {
-		rules = append(rules, "author lacks campaigns:send")
+		rule("rule.lacksSend", nil)
 	}
 	if p.Rules.Lists.Enabled {
-		rules = append(rules, "audience includes a list that requires approval")
+		rule("rule.lists", nil)
 	}
 	if p.ClientSignoff != nil && p.ClientSignoff.Enabled {
-		rules = append(rules, "every send, for client sign-off")
+		rule("rule.clientSignoff", nil)
 	}
 	return rules, p
-}
-
-func thousands(n int64) string {
-	s := fmt.Sprint(n)
-	var out []byte
-	for i, c := range []byte(s) {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			out = append(out, ',')
-		}
-		out = append(out, c)
-	}
-	return string(out)
 }
 
 // Settings returns the general settings with the summaries of the page.
@@ -215,10 +205,11 @@ func (s *Service) Settings(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	if ws.DefaultSenderID != nil {
 		out.DefaultSenderID = ws.DefaultSenderID.String()
 	}
+	l := i18n.LangFrom(ctx)
 	if !out.CanManage {
-		out.Reason = "Changing workspace settings needs the workspace:manage permission."
+		out.Reason = say(ctx, "reason.manage", nil)
 		if len(out.Helpers) > 0 {
-			out.Reason += " Ask " + access.OrList(out.Helpers) + "."
+			out.Reason = say(ctx, "reason.manageAsk", i18n.Args{"helpers": i18n.OrList(l.Locale, out.Helpers)})
 		}
 	}
 	active, err := s.Q.ProvListActive(ctx, ws.ID)
@@ -262,7 +253,7 @@ func (s *Service) Settings(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	}
 	out.Danger = WorkspaceDanger{Contacts: counts.Contacts, Lists: counts.Lists, Segments: counts.Segments, Campaigns: counts.Campaigns, Automations: counts.Automations,
 		Templates: counts.Templates, Providers: counts.Providers, Scheduled: counts.Scheduled, APIKeys: keys.ApiKeys, Agents: keys.Agents, RestoreDays: RestoreDays}
-	rules, pol := approvalRules(ws.ApprovalPolicy)
+	rules, pol := approvalRules(l, ws.ApprovalPolicy)
 	out.Approvals = WorkspaceApprovals{Rules: rules, Approvers: access.Helpers(ctx, s.Q, ws.ID, authz.CampaignsApprove), ApprovalsRequired: max(pol.ApprovalsRequired, 1),
 		Automations: pol.Automation, Bypass: pol.Bypass == nil || *pol.Bypass, Pending: counts.PendingApprovals}
 	// Every approver (members holding campaigns:approve), Owners first.
@@ -318,19 +309,20 @@ func shortProvider(name, adapter string) string {
 	return name
 }
 
-// signIn summarizes how members sign in.
+// signIn summarizes how members sign in, in the request's language.
 func (s *Service) signIn(ctx context.Context, ws *store.Workspace) string {
+	text := func(key string, args i18n.Args) string { return say(ctx, key, args) }
 	sso, _ := s.Q.TeamEnforcedSSO(ctx)
 	var parts []string
 	for _, p := range sso {
-		parts = append(parts, fmt.Sprintf("%s SSO enforced for %s", p.Name, strings.Join(p.EnforceDomains, ", ")))
+		parts = append(parts, text("signIn.enforced", i18n.Args{"name": p.Name, "domains": strings.Join(p.EnforceDomains, ", ")}))
 	}
 	if len(parts) > 0 {
 		var breakGlass int
 		_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM workspace_members m JOIN users u ON u.id = m.user_id JOIN roles r ON r.id = m.role_id
 			WHERE m.workspace_id = $1 AND m.status = 'active' AND u.break_glass AND r.key = 'owner'`, ws.ID).Scan(&breakGlass)
 		if breakGlass > 0 {
-			parts = append(parts, "password kept for the Owner")
+			parts = append(parts, text("signIn.ownerPassword", nil))
 		}
 		return strings.Join(parts, " · ")
 	}
@@ -338,36 +330,33 @@ func (s *Service) signIn(ctx context.Context, ws *store.Workspace) string {
 	// demo keeps enforcement off so password members can still sign in).
 	if jit, err := s.Q.TeamJITProviders(ctx, &ws.ID); err == nil && len(jit) > 0 {
 		for _, p := range jit {
-			parts = append(parts, fmt.Sprintf("%s SSO for %s", p.Name, strings.Join(p.AllowedDomains, ", ")))
+			parts = append(parts, text("signIn.sso", i18n.Args{"name": p.Name, "domains": strings.Join(p.AllowedDomains, ", ")}))
 		}
-		return strings.Join(parts, " · ") + " · passwords and passkeys also allowed"
+		return strings.Join(append(parts, text("signIn.alsoPasswords", nil)), " · ")
 	}
 	st, err := s.Q.GetInstanceSettings(ctx)
 	if err != nil {
-		return "Password and passkeys"
+		return text("signIn.fallback", nil)
 	}
 	var methods []string
 	for _, m := range st.AllowedMethods {
 		switch m {
 		case "password":
-			methods = append(methods, "password")
+			methods = append(methods, text("signIn.password", nil))
 		case "passkey":
-			methods = append(methods, "passkeys")
+			methods = append(methods, text("signIn.passkeys", nil))
 		case "social":
-			methods = append(methods, "social sign-in")
+			methods = append(methods, text("signIn.social", nil))
 		case "sso":
 			methods = append(methods, "SSO")
 		}
 	}
-	out := strings.Join(methods, ", ")
-	if out != "" {
-		out = strings.ToUpper(out[:1]) + out[1:]
-	}
+	out := capitalize(strings.Join(methods, ", "))
 	switch st.TwofaEnforcement {
 	case "everyone":
-		out += " · two-factor required for everyone"
+		out += " · " + text("signIn.twoFactorEveryone", nil)
 	case "sensitive":
-		out += " · two-factor required for ⚑ permissions"
+		out += " · " + text("signIn.twoFactorSensitive", nil)
 	}
 	return out
 }
@@ -403,16 +392,16 @@ func (s *Service) candidates(ctx context.Context, ws *store.Workspace, p *authz.
 		switch t.State {
 		case "on":
 			c.Eligible = true
-			c.Note = fmt.Sprintf("%s uses %s, so the Owner's two-factor requirement is met.", c.Name, map[string]string{"TOTP": "an authenticator app", "passkey": "a passkey"}[t.Method])
+			c.Note = say(ctx, "note.twoFactor", i18n.Args{"name": c.Name, "method": t.Method})
 		case "idp":
 			c.Eligible = true
 			name := sso[r.UserID]
 			if name == "" {
-				name = "single sign-on"
+				name = say(ctx, "note.singleSignOn", nil)
 			}
-			c.Note = fmt.Sprintf("%s signs in through %s with two-factor enforced by the IdP, so the Owner break-glass requirement is met.", c.Name, name)
+			c.Note = say(ctx, "note.idp", i18n.Args{"name": c.Name, "provider": name})
 		default:
-			c.Reason = c.Name + " has no two-factor yet."
+			c.Reason = say(ctx, "reason.noTwoFactor", i18n.Args{"name": c.Name})
 		}
 		out = append(out, c)
 	}
@@ -437,23 +426,23 @@ type WorkspaceGeneralInput struct {
 func (s *Service) UpdateGeneral(ctx context.Context, ws *store.Workspace, in WorkspaceGeneralInput) error {
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
-		return api.Invalid("body.name", "Give the workspace a name.")
+		return api.Invalid("body.name", say(ctx, "problem.name", nil))
 	}
 	if _, err := time.LoadLocation(in.Timezone); err != nil {
-		return api.Invalid("body.timezone", "Unknown timezone.")
+		return api.Invalid("body.timezone", say(ctx, "problem.timezone", nil))
 	}
 	var sender *uuid.UUID
 	if in.DefaultSenderID != "" {
 		id, err := uuid.Parse(in.DefaultSenderID)
 		if err != nil {
-			return api.Invalid("body.defaultSenderId", "Pick a sender of this workspace.")
+			return api.Invalid("body.defaultSenderId", say(ctx, "problem.sender", nil))
 		}
 		ok, err := s.Q.WsSenderExists(ctx, store.WsSenderExistsParams{ID: id, WorkspaceID: ws.ID})
 		if err != nil {
 			return err
 		}
 		if !ok {
-			return api.Invalid("body.defaultSenderId", "Pick a sender of this workspace.")
+			return api.Invalid("body.defaultSenderId", say(ctx, "problem.sender", nil))
 		}
 		sender = &id
 	}
@@ -479,19 +468,19 @@ type WorkspaceTransferInput struct {
 func (s *Service) Transfer(ctx context.Context, ws *store.Workspace, p *authz.Principal, in WorkspaceTransferInput) error {
 	u := api.UserFrom(ctx)
 	if u == nil {
-		return api.Err(http.StatusForbidden, api.CodeHumansOnly, "Only a signed-in Owner can transfer ownership.")
+		return api.Err(http.StatusForbidden, api.CodeHumansOnly, say(ctx, "problem.signedInOwner", nil))
 	}
 	if u.PasswordHash != nil {
 		ok, err := authn.VerifyPassword(in.Password, *u.PasswordHash)
 		if err != nil || !ok {
-			return api.Invalid("body.password", "That password isn't right.")
+			return api.Invalid("body.password", say(ctx, "problem.password", nil))
 		}
 	} else if sess := api.SessionFrom(ctx); sess != nil && s.now().Sub(sess.CreatedAt) > 10*time.Minute {
-		return api.Err(http.StatusForbidden, "reauth_required", "Sign in again with your identity provider, then transfer within 10 minutes.")
+		return api.Err(http.StatusForbidden, "reauth_required", say(ctx, "problem.reauth", nil))
 	}
 	memberID, err := uuid.Parse(in.MemberID)
 	if err != nil {
-		return api.Invalid("body.memberId", "Pick the new Owner.")
+		return api.Invalid("body.memberId", say(ctx, "problem.pickOwner", nil))
 	}
 	cands, err := s.candidates(ctx, ws, p)
 	if err != nil {
@@ -504,10 +493,10 @@ func (s *Service) Transfer(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		}
 	}
 	if target == nil {
-		return api.Invalid("body.memberId", "Only active members of this workspace can become the Owner.")
+		return api.Invalid("body.memberId", say(ctx, "problem.notMember", nil))
 	}
 	if !target.Eligible {
-		return api.Conflict(target.Reason + " Only active members with two-factor can become Owner.")
+		return api.Conflict(say(ctx, "problem.notEligible", i18n.Args{"name": target.Name}))
 	}
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
@@ -533,14 +522,16 @@ func (s *Service) Transfer(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		if err := q.TeamSetMemberRole(ctx, store.TeamSetMemberRoleParams{ID: me.ID, WorkspaceID: ws.ID, RoleID: admin.ID, Scope: me.Scope}); err != nil {
 			return err
 		}
+		// Read later by the new Owner, in their own language.
 		if err := notify.ToUser(ctx, tx, m.UserID, notify.Notification{WorkspaceID: &ws.ID, Kind: "ownership_transferred", Severity: "info",
-			Title: fmt.Sprintf("%s made you the Owner of %s", p.Name, ws.Name), Link: "/w/" + ws.Slug + "/settings"}); err != nil {
+			TitleText: keep("notify.ownerTitle", i18n.Args{"name": p.Name, "workspace": ws.Name}), Link: "/w/" + ws.Slug + "/settings"}); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "workspace.transferred", TargetType: "workspace", TargetID: ws.ID.String(), TargetName: ws.Name,
-			Before:   map[string]any{"owner": p.Name},
-			After:    map[string]any{"owner": target.Name, "previous_owner_role": "Admin"},
-			Metadata: map[string]any{"summary": p.Name + " → " + target.Name + " · " + p.Name + " is now an Admin", "permission": string(authz.WorkspaceTransfer)}})
+			Before: map[string]any{"owner": p.Name},
+			After:  map[string]any{"owner": target.Name, "previous_owner_role": "Admin"},
+			Metadata: audit.KeepSummary(map[string]any{"permission": string(authz.WorkspaceTransfer)},
+				p.Name+" → "+target.Name, keep("audit.nowAdmin", i18n.Args{"name": p.Name}))})
 	})
 }
 
@@ -560,7 +551,7 @@ type WorkspaceDeleteResult struct {
 // agents stop working, and the data is purged after the restore hold.
 func (s *Service) Delete(ctx context.Context, ws *store.Workspace, in WorkspaceDeleteInput) (WorkspaceDeleteResult, error) {
 	if in.Confirm != ws.Name {
-		return WorkspaceDeleteResult{}, api.Invalid("body.confirm", fmt.Sprintf("Type %s exactly to confirm.", ws.Name))
+		return WorkspaceDeleteResult{}, api.Invalid("body.confirm", say(ctx, "problem.confirmName", i18n.Args{"name": ws.Name}))
 	}
 	res := WorkspaceDeleteResult{RestoreUntil: s.now().Add(RestoreDays * 24 * time.Hour)}
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -572,22 +563,19 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, in WorkspaceD
 		if err := q.WsSoftDelete(ctx, ws.ID); err != nil {
 			return err
 		}
+		// Read later by each member, in their own language, the date in the
+		// workspace's timezone.
+		until := res.RestoreUntil.In(location(ws.Timezone))
 		if err := notify.ToMembersWith(ctx, tx, ws.ID, "", notify.Notification{WorkspaceID: nil, Kind: "workspace_deleted", Severity: "warn",
-			Title: ws.Name + " was deleted", Body: fmt.Sprintf("An instance admin can restore it until %s.", res.RestoreUntil.Format("Jan 2"))}); err != nil {
+			TitleText: keep("notify.deletedTitle", i18n.Args{"name": ws.Name}), BodyText: keep("notify.deletedBody", i18n.Args{"at": until})}); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "workspace.deleted", TargetType: "workspace", TargetID: ws.ID.String(), TargetName: ws.Name,
-			Before:   map[string]any{"name": ws.Name, "slug": ws.Slug},
-			Metadata: map[string]any{"summary": fmt.Sprintf("restorable until %s · %d scheduled %s stopped", res.RestoreUntil.Format("Jan 2"), res.Cancelled, plural(res.Cancelled, "send", "sends")), "permission": string(authz.WorkspaceDelete)}})
+			Before: map[string]any{"name": ws.Name, "slug": ws.Slug},
+			Metadata: audit.KeepSummary(map[string]any{"permission": string(authz.WorkspaceDelete)},
+				keep("audit.restorable", i18n.Args{"at": until}), keep("audit.sendsStopped", i18n.Args{"count": res.Cancelled}))})
 	})
 	return res, err
-}
-
-func plural(n int64, one, many string) string {
-	if n == 1 {
-		return one
-	}
-	return many
 }
 
 // PurgeArgs deletes workspaces past their restore hold.

@@ -1,0 +1,50 @@
+{
+  "problem.name": "Give the workspace a name.",
+  "problem.timezone": "Unknown timezone.",
+  "problem.sender": "Pick a sender of this workspace.",
+  "problem.signedInOwner": "Only a signed-in Owner can transfer ownership.",
+  "problem.password": "That password isn't right.",
+  "problem.reauth": "Sign in again with your identity provider, then transfer within 10 minutes.",
+  "problem.pickOwner": "Pick the new Owner.",
+  "problem.notMember": "Only active members of this workspace can become the Owner.",
+  "problem.notEligible": "{name} has no two-factor yet. Only active members with two-factor can become Owner.",
+  "problem.confirmName": { "message": "Type {name} exactly to confirm.", "note": "name: the workspace's name, typed to delete it" },
+  "problem.section": "Pick Transactional, Grow or Earn.",
+
+  "reason.manage": { "message": "Changing workspace settings needs the workspace:manage permission.", "note": "why Settings › General is read-only; workspace:manage is a permission key, never translated" },
+  "reason.manageAsk": { "message": "Changing workspace settings needs the workspace:manage permission. Ask {helpers}.", "note": "helpers: who can help, “Marcus Chen or Linh Nguyen”" },
+
+  "rule.audience": { "message": "audience ≥ {n, number}", "note": "Settings › General: when a send needs approval; the rules are joined with ·" },
+  "rule.warming": "route includes a Warming-up provider",
+  "rule.newProvider": "provider connected in the last {days} days",
+  "rule.warnings": "Send Readiness has warnings",
+  "rule.lacksSend": { "message": "author lacks campaigns:send", "note": "campaigns:send is a permission key, never translated" },
+  "rule.lists": "audience includes a list that requires approval",
+  "rule.clientSignoff": "every send, for client sign-off",
+
+  "signIn.enforced": { "message": "{name} SSO enforced for {domains}", "note": "Settings › General: how members sign in, facts joined with ·; name: the SSO provider's" },
+  "signIn.ownerPassword": "password kept for the Owner",
+  "signIn.sso": "{name} SSO for {domains}",
+  "signIn.alsoPasswords": "passwords and passkeys also allowed",
+  "signIn.fallback": "Password and passkeys",
+  "signIn.password": { "message": "password", "note": "a sign-in method in a list: “Password, passkeys, social sign-in, SSO”; the list's first word is capitalised" },
+  "signIn.passkeys": "passkeys",
+  "signIn.social": "social sign-in",
+  "signIn.twoFactorEveryone": "two-factor required for everyone",
+  "signIn.twoFactorSensitive": { "message": "two-factor required for ⚑ permissions", "note": "⚑ marks the sensitive permissions" },
+
+  "note.twoFactor": "{name} uses {method, select, passkey {a passkey} other {an authenticator app}}, so the Owner's two-factor requirement is met.",
+  "note.idp": { "message": "{name} signs in through {provider} with two-factor enforced by the IdP, so the Owner break-glass requirement is met.", "note": "provider: the SSO provider's name, or note.singleSignOn" },
+  "note.singleSignOn": "single sign-on",
+  "reason.noTwoFactor": "{name} has no two-factor yet.",
+
+  "notify.ownerTitle": { "message": "{name} made you the Owner of {workspace}", "note": "a notification to the member who became the Owner" },
+  "notify.deletedTitle": { "message": "{name} was deleted", "note": "a notification to the members of a workspace its Owner deleted" },
+  "notify.deletedBody": "An instance admin can restore it until {at, date}.",
+
+  "audit.nowAdmin": { "message": "{name} is now an Admin", "note": "the audit log's summary of a transfer: “Linh Nguyen → Marcus Chen · Linh Nguyen is now an Admin”" },
+  "audit.restorable": "restorable until {at, date}",
+  "audit.sendsStopped": "{count, plural, one {# scheduled send stopped} other {# scheduled sends stopped}}",
+  "audit.exported": "contacts with consent, campaigns as MJML, reports as CSV, audit log as JSON",
+  "audit.section": "{section, select, transactional {Transactional} grow {Grow} other {Earn}} {shown, select, yes {shown in the sidebar} other {hidden from the sidebar}}"
+}

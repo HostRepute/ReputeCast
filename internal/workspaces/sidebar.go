@@ -11,6 +11,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -70,7 +71,7 @@ func (s *Service) SetSidebarSection(ctx context.Context, ws *store.Workspace, se
 		}
 	}
 	if name == "" {
-		return WorkspaceSidebar{}, api.Invalid("path.section", "Pick Transactional, Grow or Earn.")
+		return WorkspaceSidebar{}, api.Invalid("path.section", say(ctx, "problem.section", nil))
 	}
 	var out WorkspaceSidebar
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -97,13 +98,10 @@ func (s *Service) SetSidebarSection(ctx context.Context, ws *store.Workspace, se
 		if err := q.SidebarSetHiddenSections(ctx, store.SidebarSetHiddenSectionsParams{ID: ws.ID, HiddenSections: next}); err != nil {
 			return err
 		}
-		summary := name + " hidden from the sidebar"
-		if shown {
-			summary = name + " shown in the sidebar"
-		}
+		summary := keep("audit.section", i18n.Args{"section": section, "shown": yesNo(shown)})
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "workspace.sidebar_updated", TargetType: "workspace", TargetID: ws.ID.String(), TargetName: ws.Name,
 			Before: map[string]any{"hidden_sections": before}, After: map[string]any{"hidden_sections": next},
-			Metadata: map[string]any{"summary": summary, "section": section, "permission": string(authz.WorkspaceManage)}})
+			Metadata: audit.KeepSummary(map[string]any{"section": section, "permission": string(authz.WorkspaceManage)}, summary)})
 	})
 	return out, err
 }
