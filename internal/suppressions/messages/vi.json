@@ -1,0 +1,8 @@
+{
+  "scope.account": "danh sách cấp tài khoản",
+  "scope.stream": "theo từng luồng",
+  "scope.enforced": "áp dụng trước khi gửi",
+  "scope.list": "danh sách chặn gửi",
+  "detail.local": "ReputeCast kiểm tra danh sách dùng chung trước khi chuyển thư cho {provider}.",
+  "provider.import": "{name} (đã nhập)"
+}
