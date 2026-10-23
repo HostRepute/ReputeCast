@@ -85,17 +85,23 @@ func RoleDescriptionIn(l i18n.Lang, key string) string {
 	return ""
 }
 
-// DeniedText explains a missing permission in a language: "Sending needs
-// the campaigns:send permission. Ask Marcus Chen or Linh Nguyen." Helpers
-// are the names of members who hold it.
-func DeniedText(l i18n.Lang, perm Permission, helpers []string) string {
+// ActionIn is what a permission allows, as a sentence subject ("View
+// campaigns"), in a language; "This" for a permission it doesn't know.
+func ActionIn(l i18n.Lang, perm Permission) string {
 	action := mActionThis
 	if _, ok := Lookup(perm); ok {
 		if m, err := msgs.Lookup("action." + string(perm)); err == nil {
 			action = m
 		}
 	}
-	args := i18n.Args{"action": action.Text(l, nil), "permission": string(perm)}
+	return action.Text(l, nil)
+}
+
+// DeniedText explains a missing permission in a language: "Sending needs
+// the campaigns:send permission. Ask Marcus Chen or Linh Nguyen." Helpers
+// are the names of members who hold it.
+func DeniedText(l i18n.Lang, perm Permission, helpers []string) string {
+	args := i18n.Args{"action": ActionIn(l, perm), "permission": string(perm)}
 	if len(helpers) > 0 {
 		args["helpers"] = i18n.OrList(l.Locale, helpers)
 		return mDeniedAsk.Text(l, args)

@@ -1,0 +1,9 @@
+{
+  "problem.permission": "\"{permission}\" không phải là một quyền.",
+  "problem.alreadyHave": "Bạn đã có quyền này. Hãy tải lại trang để dùng.",
+  "problem.nobody": "Không ai trong không gian làm việc này có thể thay đổi vai trò. Hãy nhờ quản trị viên hệ thống.",
+  "problem.alreadyAsked": "Bạn đã xin quyền truy cập {role, select, owner {Chủ sở hữu} admin {Quản trị viên} editor {Biên tập viên} other {Người xem}} trong ngày qua; {names} sẽ thấy yêu cầu này. Hãy hỏi trực tiếp họ nếu việc gấp.",
+
+  "notify.title": "{name} xin quyền truy cập {role, select, owner {Chủ sở hữu} admin {Quản trị viên} editor {Biên tập viên} other {Người xem}}",
+  "notify.noNote": "Không có ghi chú."
+}

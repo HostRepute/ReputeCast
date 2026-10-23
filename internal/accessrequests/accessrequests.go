@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -64,18 +65,16 @@ func SmallestRole(perm authz.Permission) authz.BuiltinRole {
 	return owner
 }
 
-func actionFor(perm authz.Permission) string {
-	msg := authz.DeniedMessage(perm, nil) // "Managing providers needs the providers:manage permission."
-	if i := strings.Index(msg, " needs the "); i > 0 {
-		return msg[:i]
-	}
-	return string(perm)
+// actionFor is what the permission allows, as a sentence subject
+// ("Manage providers"), in a language: authz's words.
+func actionFor(l i18n.Lang, perm authz.Permission) string {
+	return capitalize(authz.ActionIn(l, perm))
 }
 
-func parsePermission(p string) (authz.Permission, error) {
+func parsePermission(ctx context.Context, p string) (authz.Permission, error) {
 	perm := authz.Permission(strings.TrimSpace(p))
 	if !authz.Valid(perm) {
-		return "", api.Invalid("permission", fmt.Sprintf("%q isn't a permission.", p))
+		return "", api.Invalid("permission", say(ctx, "problem.permission", i18n.Args{"permission": p}))
 	}
 	return perm, nil
 }
@@ -112,7 +111,7 @@ func (s *Service) lastRequest(ctx context.Context, q *store.Queries, p *authz.Pr
 
 // Suggest describes the role that would grant perm and who can grant it.
 func (s *Service) Suggest(ctx context.Context, permission string) (AccessSuggestion, error) {
-	perm, err := parsePermission(permission)
+	perm, err := parsePermission(ctx, permission)
 	if err != nil {
 		return AccessSuggestion{}, err
 	}
@@ -127,20 +126,20 @@ func (s *Service) Suggest(ctx context.Context, permission string) (AccessSuggest
 		return AccessSuggestion{}, err
 	}
 	return AccessSuggestion{
-		Permission: string(perm), Action: actionFor(perm), RoleKey: role.Key, RoleName: role.Name, YourRole: p.RoleName,
+		Permission: string(perm), Action: actionFor(i18n.LangFrom(ctx), perm), RoleKey: role.Key, RoleName: role.Name, YourRole: p.RoleName,
 		Owners: ppl.owners, Managers: ppl.managers, RequestedAt: last,
 	}, nil
 }
 
 // Request asks the team's managers for the role that grants permission.
 func (s *Service) Request(ctx context.Context, permission, note string) (AccessRequestResult, error) {
-	perm, err := parsePermission(permission)
+	perm, err := parsePermission(ctx, permission)
 	if err != nil {
 		return AccessRequestResult{}, err
 	}
 	p, ws := api.PrincipalFrom(ctx), api.WorkspaceFrom(ctx)
 	if p.Can(perm) {
-		return AccessRequestResult{}, api.Conflict("You already have this permission. Reload the page to use it.")
+		return AccessRequestResult{}, api.Conflict(say(ctx, "problem.alreadyHave", nil))
 	}
 	role := SmallestRole(perm)
 	ppl, err := s.people(ctx, ws)
@@ -148,7 +147,7 @@ func (s *Service) Request(ctx context.Context, permission, note string) (AccessR
 		return AccessRequestResult{}, err
 	}
 	if len(ppl.managers) == 0 {
-		return AccessRequestResult{}, api.Conflict("Nobody in this workspace can change roles. Ask an instance admin.")
+		return AccessRequestResult{}, api.Conflict(say(ctx, "problem.nobody", nil))
 	}
 	member, err := s.Q.GetMembership(ctx, store.GetMembershipParams{WorkspaceID: ws.ID, UserID: p.UserID})
 	if err != nil {
@@ -162,21 +161,24 @@ func (s *Service) Request(ctx context.Context, permission, note string) (AccessR
 			return err
 		}
 		if last != nil {
-			return api.Conflict(fmt.Sprintf("You already asked for %s access in the last day; %s will see it. Ask them directly if it's urgent.", role.Name, joinNames(ppl.managers))).
+			names := i18n.AndList(i18n.LangFrom(ctx).Locale, ppl.managers)
+			return api.Conflict(say(ctx, "problem.alreadyAsked", i18n.Args{"role": role.Key, "names": names})).
 				WithMeta("requestedAt", last.UTC().Format(time.RFC3339))
 		}
-		body := note
-		if body == "" {
-			body = "No note."
+		// Read later by each manager, in their own language; the note is
+		// the member's own words.
+		n := notify.Notification{
+			Kind:      KindAccessRequested,
+			Severity:  "info",
+			TitleText: keep("notify.title", i18n.Args{"name": p.Name, "role": role.Key}),
+			Body:      note,
+			Link:      fmt.Sprintf("/w/%s/settings/team/%s", ws.Slug, member.ID),
+			Data:      map[string]any{"permission": string(perm), "roleKey": role.Key, "userId": p.UserID.String()},
 		}
-		if err := notify.ToMembersWith(ctx, tx, ws.ID, authz.TeamManage, notify.Notification{
-			Kind:     KindAccessRequested,
-			Severity: "info",
-			Title:    fmt.Sprintf("%s asks for %s access", p.Name, role.Name),
-			Body:     body,
-			Link:     fmt.Sprintf("/w/%s/settings/team/%s", ws.Slug, member.ID),
-			Data:     map[string]any{"permission": string(perm), "roleKey": role.Key, "userId": p.UserID.String()},
-		}); err != nil {
+		if note == "" {
+			n.Body, n.BodyText = "", keep("notify.noNote", nil)
+		}
+		if err := notify.ToMembersWith(ctx, tx, ws.ID, authz.TeamManage, n); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{
@@ -192,17 +194,6 @@ func (s *Service) Request(ctx context.Context, permission, note string) (AccessR
 		return AccessRequestResult{}, err
 	}
 	return AccessRequestResult{RoleName: role.Name, Notified: ppl.managers}, nil
-}
-
-func joinNames(names []string) string {
-	switch len(names) {
-	case 0:
-		return "the team's admins"
-	case 1:
-		return names[0]
-	default:
-		return strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
-	}
 }
 
 // statusAccepted is returned by Request (the request waits for a manager).
