@@ -64,7 +64,7 @@
   "alert.notFound": "Không gian làm việc này không có cảnh báo đó.",
   "alert.title": "Cảnh báo gửi email giao dịch",
   "alert.bounceRate": "{template}: tỷ lệ trả thư {rate, number}% trong một giờ (giới hạn {limit, number}%).{domains, plural, =0 {} =1 { Phần lớn thư trả lại là thư gửi đến {first}.} other { Phần lớn thư trả lại là thư gửi đến {first} và {second}.}}",
-  "alert.failed": "{count, plural, other {# thư giao dịch gửi thất bại}} trong giờ qua (giới hạn {limit, number}): mọi nhà cung cấp trong tuyến của chúng đều từ chối hoặc ngừng hoạt động.",
+  "alert.failed": "{count, plural, other {# thư giao dịch gửi thất bại}} trong giờ qua (giới hạn {limit, number}): mọi nhà cung cấp trong tuyến của chúng đều từ chối hoặc gián đoạn.",
   "alert.median": "Email giao dịch mất {seconds, number} giây để đến nơi trong giờ qua (trung vị; giới hạn {limit, number} giây).",
   "render.part": "{part, select, subject {Tiêu đề} preheader {Dòng xem trước} body {Nội dung} other {Văn bản}}: {message}",
   "render.tooLarge": "Email sau khi kết xuất lớn hơn 4 MB.",
@@ -262,7 +262,5 @@
   "starter.product-delivery.sample.expires_on": "22 thg 10, 2026",
   "starter.product-delivery.test.1.file": "3 tệp, 38 MB",
 
-  "publish.soonDefault": "sớm",
-
-  "suppression.softBounces": "Trả thư tạm thời {count} lần trong {days} ngày (lần gần nhất: {last})"
+  "publish.soonDefault": "sớm"
 }

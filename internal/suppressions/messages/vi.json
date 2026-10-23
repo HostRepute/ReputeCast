@@ -4,5 +4,6 @@
   "scope.enforced": "áp dụng trước khi gửi",
   "scope.list": "danh sách chặn gửi",
   "detail.local": "ReputeCast kiểm tra danh sách dùng chung trước khi chuyển thư cho {provider}.",
-  "provider.import": "{name} (đã nhập)"
+  "provider.import": "{name} (đã nhập)",
+  "detail.softBounces": "Trả thư tạm thời {count} lần trong {days} ngày (lần gần nhất: {last})"
 }

@@ -5,8 +5,6 @@ import (
 	"embed"
 	"errors"
 	"net/http"
-	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/suppressions"
 )
 
 // What a member reads in Transactional's own screens (a viewer's read-only
@@ -156,26 +155,9 @@ func clockIn(ctx context.Context, t time.Time) string {
 }
 
 // softBounceDetail is the detail the soft-bounce rule stores with the
-// suppression it adds, in English (suppressions.detail): "Soft-bounced 3
-// times in 7 days (last: 4.2.2 Mailbox full)". last is the provider's code
-// and diagnostic, as it wrote them.
+// suppression it adds (suppressions.SoftBounceDetail).
 func softBounceDetail(last string) string {
-	return texts.M("suppression.softBounces").Text(i18n.Default, i18n.Args{"count": SoftBounceLimit, "days": int(SoftBounceWindow / (24 * time.Hour)), "last": last})
-}
-
-var reSoftBounces = regexp.MustCompile(`(?s)^Soft-bounced (\d+) times in (\d+) days \(last: (.*)\)$`)
-
-// suppressionDetailIn is a suppression's stored detail in a reader's
-// language: the soft-bounce rule's sentence is ReputeCast's; a provider's
-// diagnostic reads as the provider wrote it.
-func suppressionDetailIn(l i18n.Lang, stored string) string {
-	m := reSoftBounces.FindStringSubmatch(stored)
-	if m == nil || l.Locale == "" || l.Locale == i18n.English {
-		return stored
-	}
-	count, _ := strconv.Atoi(m[1])
-	days, _ := strconv.Atoi(m[2])
-	return texts.M("suppression.softBounces").Text(l, i18n.Args{"count": count, "days": days, "last": m[3]})
+	return suppressions.SoftBounceDetail(SoftBounceLimit, int(SoftBounceWindow/(24*time.Hour)), last)
 }
 
 // itemIn writes what ReputeCast stored in English with a message in a
@@ -190,7 +172,7 @@ func itemIn(l i18n.Lang, it TransactionalLogItem) TransactionalLogItem {
 		r.Error = routing.DeliveryErrorIn(l, r.Error)
 		if r.Suppression != nil {
 			s := *r.Suppression
-			s.Detail = suppressionDetailIn(l, s.Detail)
+			s.Detail = suppressions.DetailIn(l, s.Detail)
 			r.Suppression = &s
 		}
 		it.Rejection = &r

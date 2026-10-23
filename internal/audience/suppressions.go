@@ -22,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/suppressions"
 )
 
 // Suppression reasons shown in the UI, in the order groups list them.
@@ -253,7 +254,7 @@ func (s *Service) ListSuppressions(ctx context.Context, ws *store.Workspace, f S
 			&it.Context, &it.Scope, &importID, &it.Rows, &texts, &provName, &adapter, &userName, &impSource, &fileName, &campaign, &automation); err != nil {
 			return out, err
 		}
-		it.OriginalCode, it.Context = KeptIn(l, texts, "original_code", it.OriginalCode), KeptIn(l, texts, "context", it.Context)
+		it.OriginalCode, it.Context = KeptIn(l, texts, "original_code", it.OriginalCode), suppressions.DetailIn(l, KeptIn(l, texts, "context", it.Context))
 		it.ID = id.String()
 		it.Reasons = sortReasons(it.Reasons)
 		if importID != nil {

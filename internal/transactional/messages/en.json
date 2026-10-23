@@ -262,7 +262,5 @@
   "starter.product-delivery.sample.expires_on": "22 Oct 2026",
   "starter.product-delivery.test.1.file": "the 3 files, 38 MB",
 
-  "publish.soonDefault": { "message": "soon", "note": "the default the publish dialog suggests for a date variable that recent calls didn't send, as in “Your trial ends …”. It becomes the template's content, so it's written in the workspace's language" },
-
-  "suppression.softBounces": { "message": "Soft-bounced {count, plural, one {# time} other {# times}} in {days, plural, one {# day} other {# days}} (last: {last})", "note": "why the soft-bounce rule suppressed an address, shown in the message log; stored in English with the suppression and read in each member's language. last: the provider's code and diagnostic, as it wrote them (4.2.2 Mailbox full)" }
+  "publish.soonDefault": { "message": "soon", "note": "the default the publish dialog suggests for a date variable that recent calls didn't send, as in “Your trial ends …”. It becomes the template's content, so it's written in the workspace's language" }
 }

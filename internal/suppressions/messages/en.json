@@ -4,5 +4,6 @@
   "scope.enforced": { "message": "enforced before sending", "note": "a provider without a suppression list: ReputeCast checks the shared list itself" },
   "scope.list": "suppression list",
   "detail.local": "ReputeCast checks the shared list before handing mail to {provider}.",
-  "provider.import": { "message": "{name} (import)", "note": "a one-time import of suppressions from a migration; name: Brevo, Mailchimp, CSV" }
+  "provider.import": { "message": "{name} (import)", "note": "a one-time import of suppressions from a migration; name: Brevo, Mailchimp, CSV" },
+  "detail.softBounces": { "message": "Soft-bounced {count, plural, one {# time} other {# times}} in {days, plural, one {# day} other {# days}} (last: {last})", "note": "why the soft-bounce rule suppressed an address (Audience › Suppressions, the message log); stored in English with the suppression and read in each member's language. last: the provider's code and diagnostic, as it wrote them (4.2.2 Mailbox full)"}
 }

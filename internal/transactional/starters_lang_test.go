@@ -9,6 +9,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/routing"
+	"github.com/hostrepute/reputecast/internal/suppressions"
 )
 
 // The starters' words in the catalog say what the starters above say in
@@ -113,15 +114,15 @@ func TestSoftBounceDetail(t *testing.T) {
 		t.Fatalf("stored: %q", stored)
 	}
 	vi := i18n.For(i18n.Vietnamese)
-	if got := suppressionDetailIn(vi, stored); got != "Trả thư tạm thời 3 lần trong 7 ngày (lần gần nhất: 4.2.2 Mailbox full)" {
+	if got := suppressions.DetailIn(vi, stored); got != "Trả thư tạm thời 3 lần trong 7 ngày (lần gần nhất: 4.2.2 Mailbox full)" {
 		t.Fatalf("vi: %q", got)
 	}
 	for _, s := range []string{"550 5.1.1 User unknown", "", "Soft-bounced twice"} {
-		if got := suppressionDetailIn(vi, s); got != s {
+		if got := suppressions.DetailIn(vi, s); got != s {
 			t.Errorf("%q reads %q", s, got)
 		}
 	}
-	if got := suppressionDetailIn(i18n.Default, stored); got != stored {
+	if got := suppressions.DetailIn(i18n.Default, stored); got != stored {
 		t.Fatalf("en: %q", got)
 	}
 	it := TransactionalLogItem{Rejection: &TransactionalRejection{Reason: "suppressed", Suppression: &TransactionalSuppressionInfo{Detail: stored}}}
