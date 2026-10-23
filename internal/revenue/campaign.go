@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -92,8 +91,11 @@ func (s *Service) Campaign(ctx context.Context, ws *store.Workspace, p *authz.Pr
 	out := CampaignRevenue{Helpers: []string{}, Collected: []CampaignPayment{}, PaidLines: []CampaignUpgradeLine{}, TrialLines: []CampaignUpgradeLine{},
 		Currency: "usd", Window: 7, Conversions: CampaignConversions{Domains: []string{}, Currency: "usd"}}
 	c, err := s.Q.RevenueCampaignInfo(ctx, store.RevenueCampaignInfoParams{ID: id, WorkspaceID: ws.ID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return out, campaignNotFound(ctx)
+	}
 	if err != nil {
-		return out, api.MapError(err, "Campaign")
+		return out, err
 	}
 	out.Name = c.Name
 	out.SentAt = c.StartedAt

@@ -12,5 +12,7 @@
   "problem.valueDecimals": "The value has more decimals than its currency.",
   "problem.window": "Pick a window from 1 to 30 days.",
 
-  "test.name": { "message": "Test conversion", "note": "the name of a test conversion sent from Earn › Settings › Attribution" }
+  "test.name": { "message": "Test conversion", "note": "the name of a test conversion sent from Earn › Settings › Attribution" },
+
+  "problem.campaignNotFound": "Campaign not found."
 }

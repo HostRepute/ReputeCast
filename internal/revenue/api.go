@@ -63,7 +63,7 @@ func Register(h huma.API, s *Service) {
 		func(ctx context.Context, in *campaignInput) (*api.Body[CampaignRevenue], error) {
 			id, err := uuid.Parse(in.ID)
 			if err != nil {
-				return nil, api.NotFound("Campaign")
+				return nil, campaignNotFound(ctx)
 			}
 			out, err := s.Campaign(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 			return api.OK(out), err
