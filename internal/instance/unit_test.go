@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/hostrepute/reputecast/internal/auditlog"
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 func TestVersions(t *testing.T) {
@@ -91,11 +92,14 @@ func TestSignInLabels(t *testing.T) {
 		{"password+passkey", "", "Password + passkey"},
 		{"github", "", "GitHub"},
 	} {
-		if got := auditlog.SignInMethod(c.method, c.provider); got != c.want {
+		if got := auditlog.SignInMethod(i18n.Default, c.method, c.provider); got != c.want {
 			t.Errorf("methodLabel(%s) = %s", c.method, got)
 		}
 	}
-	if got := foldFailures(foldFailures("wrong password")); got != "wrong password · 2 failed" {
-		t.Errorf("fold: %s", got)
+	if got := auditlog.SignInFailed(i18n.Default, "Password", 2); got != "Password · 2 failed" {
+		t.Errorf("failed: %s", got)
+	}
+	if got := auditlog.SignInFailed(i18n.For(i18n.Vietnamese), auditlog.SignInMethod(i18n.For(i18n.Vietnamese), "password+totp", ""), 3); got != "Mật khẩu + TOTP · 3 lần thất bại" {
+		t.Errorf("Vietnamese: %s", got)
 	}
 }

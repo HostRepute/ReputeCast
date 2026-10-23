@@ -10,6 +10,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // AuditFilterInput is a path or query input shared by several operations.
@@ -79,7 +80,7 @@ func Register(h huma.API, s *Service) {
 	api.Get(h, api.Op{ID: "export-audit-events", Path: base + "/export", Summary: "Export matching entries as CSV or JSON (streamed)", Tags: tags, Access: api.Workspace(authz.AuditView)},
 		func(ctx context.Context, in *exportInput) (*huma.StreamResponse, error) {
 			ws := api.WorkspaceFrom(ctx)
-			if _, err := in.filter().params(ws.ID, time.Now()); err != nil {
+			if _, err := in.filter().params(i18n.LangFrom(ctx), ws.ID, time.Now()); err != nil {
 				return nil, err
 			}
 			f := in.filter()

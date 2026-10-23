@@ -26,6 +26,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -45,7 +46,8 @@ type InstanceFilter struct {
 }
 
 func (s *Service) instanceParams(ctx context.Context, f InstanceFilter) (store.InstanceAuditListParams, error) {
-	base, err := f.params(uuid.Nil, s.now())
+	l := i18n.LangFrom(ctx)
+	base, err := f.params(l, uuid.Nil, s.now())
 	if err != nil {
 		return store.InstanceAuditListParams{}, err
 	}
@@ -58,7 +60,7 @@ func (s *Service) instanceParams(ctx context.Context, f InstanceFilter) (store.I
 	default:
 		ws, err := s.Q.GetWorkspaceBySlug(ctx, f.Workspace)
 		if err != nil {
-			return p, api.Invalid("query.workspace", "Unknown workspace.")
+			return p, api.Invalid("query.workspace", say(l, "problem.workspace", nil))
 		}
 		p.WorkspaceID = &ws.ID
 	}
@@ -100,6 +102,7 @@ func (s *Service) InstanceList(ctx context.Context, f InstanceFilter) (InstanceA
 		return InstanceAuditList{}, err
 	}
 	out := InstanceAuditList{Items: []InstanceAuditItem{}, Workspaces: []AuditWorkspaceRef{}}
+	l := i18n.LangFrom(ctx)
 	limit := int(p.Lim) - 1
 	for i, r := range rows {
 		if i == limit {
@@ -107,8 +110,8 @@ func (s *Service) InstanceList(ctx context.Context, f InstanceFilter) (InstanceA
 			out.NextCursor = encodeCursor(last.OccurredAt, last.ID)
 			break
 		}
-		it := instanceItem(item(r.ID, r.OccurredAt, r.ActorType, r.ActorID, r.ActorName, r.ActorColor, "", r.Action, r.TargetType, r.TargetID, r.TargetName,
-			r.Result, r.Reason, ipString(r.Ip), r.RequestID, r.Metadata, nil, nil), r.Metadata, ipString(r.Ip))
+		it := instanceItem(l, item(l, r.ID, r.OccurredAt, r.ActorType, r.ActorID, r.ActorName, r.ActorColor, "", r.Action, r.TargetType, r.TargetID, r.TargetName,
+			r.Result, r.Reason, ipString(r.Ip), r.RequestID, r.Metadata, nil, nil), r.Reason, r.Metadata, ipString(r.Ip))
 		it.Changes = r.HasChanges
 		out.Items = append(out.Items, InstanceAuditItem{AuditEventItem: it, Workspace: r.WorkspaceName, WorkspaceSlug: r.WorkspaceSlug})
 	}
@@ -144,7 +147,8 @@ type SignInMeta struct {
 
 // instanceItem fills what instance-level sign-ins don't store: their
 // summary ("Google Workspace SSO · amr pwd+mfa") and the auth channel.
-func instanceItem(it AuditEventItem, raw json.RawMessage, ip string) AuditEventItem {
+// reason is the entry's reason as stored.
+func instanceItem(l i18n.Lang, it AuditEventItem, reason string, raw json.RawMessage, ip string) AuditEventItem {
 	if !strings.HasPrefix(it.Action, "signin.") {
 		return it
 	}
@@ -156,84 +160,94 @@ func instanceItem(it AuditEventItem, raw json.RawMessage, ip string) AuditEventI
 	}
 	var m SignInMeta
 	_ = json.Unmarshal(raw, &m)
-	it.Summary = SignInSummary(it.Action, it.Reason, m)
+	it.Summary = SignInSummary(l, it.Action, reason, m)
 	return it
 }
 
 // SignInSummary is the details line of a sign-in entry, as on the boards:
 // "Password + TOTP · break-glass Owner", "wrong password · attempt 3 of
-// 10", "Google Workspace SSO · email domain not allowed · reference auth_…".
-func SignInSummary(action, reason string, m SignInMeta) string {
+// 10", "Google Workspace SSO · email domain not allowed · reference auth_…",
+// in a language. A refusal's own reason, as the identity provider or the
+// policy gave it, stays as it was written unless ReputeCast knows its code.
+func SignInSummary(l i18n.Lang, action, reason string, m SignInMeta) string {
 	parts := []string{}
 	switch action {
 	case "signin.succeeded":
-		parts = append(parts, SignInMethod(m.Method, m.Provider))
+		parts = append(parts, SignInMethod(l, m.Method, m.Provider))
 		if m.AMR != "" {
-			parts = append(parts, "amr "+m.AMR)
+			parts = append(parts, say(l, "signin.amr", i18n.Args{"amr": m.AMR}))
 		}
 		if m.BreakGlass {
-			parts = append(parts, "break-glass Owner")
+			parts = append(parts, say(l, "signin.breakGlass", nil))
 		}
 		if m.Workspace != "" {
-			parts = append(parts, "workspace "+m.Workspace)
+			parts = append(parts, say(l, "signin.workspace", i18n.Args{"name": m.Workspace}))
 		}
 		if m.FailedBefore > 0 {
-			parts = append(parts, fmt.Sprintf("after %d failed %s", m.FailedBefore, map[bool]string{true: "attempt", false: "attempts"}[m.FailedBefore == 1]))
+			parts = append(parts, say(l, "signin.failedBefore", i18n.Args{"count": m.FailedBefore}))
 		}
 	case "signin.failed":
 		why := reason
 		if strings.HasPrefix(why, "wrong password") {
-			why = "wrong password"
+			why = say(l, "signin.wrongPassword", nil)
+		} else if l.Locale != i18n.English {
+			why = reasonIn(l, why)
 		}
 		parts = append(parts, why)
 		switch {
 		case m.Failures > 0 && m.MaxAttempts > 0:
-			parts = append(parts, fmt.Sprintf("attempt %d of %d", m.Failures, m.MaxAttempts))
+			parts = append(parts, say(l, "signin.attemptOf", i18n.Args{"n": m.Failures, "max": m.MaxAttempts}))
 		case m.Failures > 0:
-			parts = append(parts, fmt.Sprintf("attempt %d", m.Failures))
+			parts = append(parts, say(l, "signin.attempt", i18n.Args{"n": m.Failures}))
 		}
 	default:
 		if m.Method != "" {
-			parts = append(parts, SignInMethod(m.Method, m.Provider))
+			parts = append(parts, SignInMethod(l, m.Method, m.Provider))
 		}
 		why := reason
 		if m.Provider != "" {
 			why = strings.TrimSuffix(why, " for "+m.Provider+" SSO")
 		}
+		if l.Locale != i18n.English {
+			if c, err := msgs.Lookup("reject." + m.Code); err == nil && m.Code != "" {
+				why = c.Text(l, nil)
+			}
+		}
 		if why != "" {
 			parts = append(parts, why)
 		}
 		if m.Reference != "" {
-			parts = append(parts, "reference "+m.Reference)
+			parts = append(parts, say(l, "signin.reference", i18n.Args{"ref": m.Reference}))
 		}
 	}
 	return strings.Join(parts, " · ")
 }
 
 // SignInMethod names a sign-in method like the boards: "Password + TOTP",
-// "Google Workspace SSO", "Passkey".
-func SignInMethod(method, provider string) string {
+// "Google Workspace SSO", "Passkey", in a language.
+func SignInMethod(l i18n.Lang, method, provider string) string {
 	parts := strings.Split(method, "+")
 	names := make([]string, 0, len(parts))
 	for i, p := range parts {
 		switch p {
 		case "password":
-			names = append(names, "Password")
+			names = append(names, say(l, "method.password", nil))
 		case "totp":
 			names = append(names, "TOTP")
 		case "passkey":
 			if i == 0 {
-				names = append(names, "Passkey")
+				names = append(names, say(l, "method.passkey", nil))
 			} else {
-				names = append(names, "passkey")
+				names = append(names, say(l, "method.passkeyLater", nil))
 			}
 		case "recovery":
-			names = append(names, "recovery code")
+			names = append(names, say(l, "method.recovery", nil))
 		case "sso":
 			if provider == "" {
-				provider = "Single sign-on"
+				names = append(names, say(l, "method.ssoUnnamed", nil))
+			} else {
+				names = append(names, say(l, "method.sso", i18n.Args{"provider": provider}))
 			}
-			names = append(names, provider+" SSO")
 		case "google":
 			names = append(names, "Google")
 		case "microsoft":
@@ -246,35 +260,33 @@ func SignInMethod(method, provider string) string {
 		}
 	}
 	if len(names) == 0 {
-		return "Sign-in"
+		return say(l, "method.signIn", nil)
 	}
 	return strings.Join(names, " + ")
 }
 
-// SignInRejection says in a few words why a sign-in was refused.
-func SignInRejection(code, reason string) string {
+// SignInFailed is a sign-in after failed attempts: "Password · 3 failed".
+func SignInFailed(l i18n.Lang, method string, failed int) string {
+	return say(l, "method.failed", i18n.Args{"method": method, "count": failed})
+}
+
+// SignInRejection says in a few words why a sign-in was refused, in a
+// language. A reason ReputeCast doesn't know stays as it was written.
+func SignInRejection(l i18n.Lang, code, reason string) string {
 	switch code {
-	case "domain_not_allowed":
-		return "domain not allowed"
-	case "no_account":
-		return "no account"
-	case "account_deactivated":
-		return "deactivated"
-	case "not_in_org":
-		return "not in the organization"
-	case "email_not_verified":
-		return "email not verified"
+	case "domain_not_allowed", "no_account", "account_deactivated", "not_in_org", "email_not_verified":
+		return say(l, "reject."+code, nil)
 	case "":
 	default:
 		return strings.ReplaceAll(code, "_", " ")
 	}
 	switch {
 	case strings.Contains(reason, "wrong password"):
-		return "wrong password"
+		return say(l, "signin.wrongPassword", nil)
 	case strings.Contains(reason, "domain not allowed"):
-		return "domain not allowed"
+		return say(l, "reject.domain_not_allowed", nil)
 	case strings.Contains(reason, "passkey"):
-		return "passkey failed"
+		return say(l, "reject.passkey", nil)
 	}
 	if len(reason) > 40 {
 		return reason[:40] + "…"
@@ -297,22 +309,24 @@ func (s *Service) InstanceGet(ctx context.Context, id uuid.UUID) (InstanceAuditD
 	if err != nil {
 		return InstanceAuditDetail{}, api.MapError(err, "Audit entry")
 	}
+	l := i18n.LangFrom(ctx)
 	m := parseMeta(e.Metadata)
-	it := instanceItem(item(e.ID, e.OccurredAt, e.ActorType, e.ActorID, e.ActorName, e.ActorColor, "", e.Action, e.TargetType, e.TargetID, e.TargetName,
-		e.Result, e.Reason, ipString(e.Ip), e.RequestID, e.Metadata, e.Before, e.After), e.Metadata, ipString(e.Ip))
+	kept := audit.KeptIn(e.Metadata)
+	it := instanceItem(l, item(l, e.ID, e.OccurredAt, e.ActorType, e.ActorID, e.ActorName, e.ActorColor, "", e.Action, e.TargetType, e.TargetID, e.TargetName,
+		e.Result, e.Reason, ipString(e.Ip), e.RequestID, e.Metadata, e.Before, e.After), e.Reason, e.Metadata, ipString(e.Ip))
 	out := InstanceAuditDetail{AuditEventDetail: AuditEventDetail{
-		Event: it, Workspace: e.WorkspaceName, IP: ipString(e.Ip), UserAgent: e.UserAgent, Client: Client(e.UserAgent),
+		Event: it, Workspace: e.WorkspaceName, IP: ipString(e.Ip), UserAgent: e.UserAgent, Client: ClientIn(l, e.UserAgent),
 		Permission: m.Perm, Before: nonEmpty(e.Before), After: nonEmpty(e.After), Diff: Diff(e.Before, e.After), Related: []string{},
 	}, WorkspaceSlug: e.WorkspaceSlug}
 	if out.Diff == nil {
 		out.Diff = []AuditDiffLine{}
 	}
 	if out.Workspace == "" {
-		out.Workspace = "Instance level"
+		out.Workspace = say(l, "workspace.instance", nil)
 	}
-	out.What = m.What
+	out.What = audit.In(kept.What, l, m.What)
 	if out.What == "" {
-		out.What = instanceWhat(e.Action, e.TargetType, e.TargetName)
+		out.What = instanceWhat(l, e.Action, e.TargetType, e.TargetName)
 	}
 	tz := e.WorkspaceTimezone
 	if m.Related != "" {
@@ -320,18 +334,13 @@ func (s *Service) InstanceGet(ctx context.Context, id uuid.UUID) (InstanceAuditD
 	} else if rel, err := s.Q.InstanceAuditRelated(ctx, store.InstanceAuditRelatedParams{ID: e.ID, WorkspaceID: e.WorkspaceID, TargetID: e.TargetID,
 		TargetType: e.TargetType, TargetName: e.TargetName, Since: e.OccurredAt.Add(-24 * time.Hour), Until: e.OccurredAt.Add(24 * time.Hour)}); err == nil {
 		for _, r := range rel {
-			rm := parseMeta(r.Metadata)
-			line := r.Action + " by " + r.ActorName + " at " + r.OccurredAt.In(loc(tz)).Format("15:04")
-			if rm.Summary != "" {
-				line = rm.Summary + " (" + line + ")"
-			}
-			out.Related = append(out.Related, line)
+			out.Related = append(out.Related, relatedLine(l, r.Action, r.ActorName, r.OccurredAt.In(loc(tz)), r.Metadata))
 		}
 	}
 	if e.WorkspaceSlug != "" {
-		out.Link, out.LinkLabel = link(e.WorkspaceSlug, e.TargetType, e.TargetID, m.LinkPath)
+		out.Link, out.LinkLabel = link(l, e.WorkspaceSlug, e.TargetType, e.TargetID, m.LinkPath)
 	} else {
-		out.AdminPath, out.LinkLabel = adminPath(e.TargetType, e.TargetID, e.TargetName)
+		out.AdminPath, out.LinkLabel = adminPath(l, e.TargetType, e.TargetID, e.TargetName)
 	}
 	full, _ := json.Marshal(map[string]any{
 		"id": e.ID, "occurred_at": e.OccurredAt, "workspace": nilIfEmpty(e.WorkspaceSlug), "actor": map[string]any{"type": e.ActorType, "id": e.ActorID, "name": e.ActorName},
@@ -350,43 +359,44 @@ func nilIfEmpty(s string) any {
 	return s
 }
 
-// instanceWhat is the detail panel's sentence for an entry.
-func instanceWhat(action, targetType, targetName string) string {
+// instanceWhat is the detail panel's sentence for an entry, in a language.
+func instanceWhat(l i18n.Lang, action, targetType, targetName string) string {
 	switch action {
 	case "signin.succeeded":
-		return "Signed in as " + targetName
+		return say(l, "what.signedInAs", i18n.Args{"name": targetName})
 	case "signin.failed":
-		return "Sign-in failed for " + targetName
+		return say(l, "what.signInFailed", i18n.Args{"name": targetName})
 	case "signin.rejected":
-		return "Sign-in rejected for " + targetName
+		return say(l, "what.signInRejected", i18n.Args{"name": targetName})
 	}
 	// "sso.provider.updated" reads as "sso_provider.updated".
 	if n := strings.Count(action, "."); n > 1 {
 		action = strings.Replace(action, ".", "_", n-1)
 	}
-	return Describe(action, targetType, targetName)
+	return DescribeIn(l, action, targetType, targetName)
 }
 
-// adminPath maps an instance-level target to its Instance admin screen.
-func adminPath(targetType, targetID, targetName string) (string, string) {
+// adminPath maps an instance-level target to its Instance admin screen,
+// with its button's label in a language.
+func adminPath(l i18n.Lang, targetType, targetID, targetName string) (string, string) {
 	switch targetType {
 	case "user":
 		email := targetName
 		if i := strings.LastIndex(email, " · "); i >= 0 {
 			email = email[i+len(" · "):]
 		}
-		return "users?q=" + url.QueryEscape(email), "Open user"
+		return "users?q=" + url.QueryEscape(email), say(l, "link.user", nil)
 	case "sso_provider":
 		if targetID != "" {
-			return "sso/" + targetID, "Open provider"
+			return "sso/" + targetID, say(l, "link.provider", nil)
 		}
-		return "sso", "Open SSO providers"
+		return "sso", say(l, "link.ssoProviders", nil)
 	case "social_provider", "instance_policy":
-		return "authentication", "Open authentication"
+		return "authentication", say(l, "link.authentication", nil)
 	case "workspace":
-		return "workspaces", "Open workspaces"
+		return "workspaces", say(l, "link.workspaces", nil)
 	case "instance":
-		return "instance", "Open instance settings"
+		return "instance", say(l, "link.instance", nil)
 	}
 	return "", ""
 }
@@ -418,7 +428,8 @@ func (s *Service) InstanceExport(ctx context.Context, f InstanceFilter, format s
 				Action: e.Action, TargetType: e.TargetType, TargetID: e.TargetID, TargetName: e.TargetName, Result: e.Result, Reason: e.Reason, Ip: e.Ip,
 				UserAgent: e.UserAgent, RequestID: e.RequestID, Before: e.Before, After: e.After, Metadata: e.Metadata})
 			if cw != nil {
-				it := instanceItem(AuditEventItem{Action: e.Action, Reason: e.Reason, Summary: parseMeta(e.Metadata).Summary}, e.Metadata, row.IP)
+				// The export is data: its summaries are in English.
+				it := instanceItem(i18n.Default, AuditEventItem{Action: e.Action, Reason: e.Reason, Summary: parseMeta(e.Metadata).Summary}, e.Reason, e.Metadata, row.IP)
 				_ = cw.Write([]string{row.OccurredAt.UTC().Format(time.RFC3339), e.WorkspaceSlug, row.ActorType, row.ActorName, row.ActorID, row.Action, row.TargetType, row.TargetID,
 					row.TargetName, row.Result, row.Reason, it.Summary, row.IP, row.UserAgent, row.RequestID, string(compactOr(row.Before)), string(compactOr(row.After))})
 			} else {
@@ -453,16 +464,16 @@ func (s *Service) InstanceExport(ctx context.Context, f InstanceFilter, format s
 	if err := bw.Flush(); err != nil {
 		return err
 	}
-	scope := "all workspaces and the instance"
+	scope := msgs.M("audit.scopeAll").Keep(nil)
 	switch f.Workspace {
 	case "":
 	case InstanceScope:
-		scope = "instance-level entries"
+		scope = msgs.M("audit.scopeInstance").Keep(nil)
 	default:
-		scope = "workspace " + f.Workspace
+		scope = msgs.M("audit.scopeWorkspace").Keep(i18n.Args{"slug": f.Workspace})
 	}
 	return s.Audit.Log(ctx, audit.Event{Action: "audit.exported", TargetType: "audit_log", TargetName: "Instance audit log",
-		Metadata: map[string]any{"summary": fmt.Sprintf("%d entries as %s · %s", n, map[string]string{"csv": "CSV", "json": "JSON"}[format], scope)}})
+		Metadata: audit.KeepSummary(nil, exportedText(n, format), scope)})
 }
 
 // InstanceWorkspaceStream is a workspace that streams its own log.
@@ -536,7 +547,7 @@ func (s *Service) UpdateInstanceSettings(ctx context.Context, in AuditSettingsIn
 	}
 	before := map[string]any{"retention_days": st.AuditRetentionDays, "stream_enabled": st.AuditStreamEnabled, "stream_url": st.AuditStreamUrl}
 	after := map[string]any{}
-	changes := []string{}
+	changes := []any{}
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return res, err
@@ -548,7 +559,7 @@ func (s *Service) UpdateInstanceSettings(ctx context.Context, in AuditSettingsIn
 			return res, err
 		}
 		after["retention_days"] = *in.RetentionDays
-		changes = append(changes, fmt.Sprintf("retention %d days (was %d)", *in.RetentionDays, st.AuditRetentionDays))
+		changes = append(changes, msgs.M("audit.retention").Keep(i18n.Args{"days": *in.RetentionDays, "was": st.AuditRetentionDays}))
 	}
 	if in.Stream != nil {
 		u := strings.TrimSpace(in.Stream.URL)
@@ -556,7 +567,7 @@ func (s *Service) UpdateInstanceSettings(ctx context.Context, in AuditSettingsIn
 			u = *st.AuditStreamUrl
 		}
 		if in.Stream.Enabled && u == "" {
-			return res, api.Invalid("body.stream.url", "Add the URL that receives the audit stream.")
+			return res, api.Invalid("body.stream.url", say(i18n.LangFrom(ctx), "problem.streamURL", nil))
 		}
 		if u != "" {
 			pu, err := s.policy().ValidateURL(u)
@@ -585,20 +596,20 @@ func (s *Service) UpdateInstanceSettings(ctx context.Context, in AuditSettingsIn
 		after["stream_url"] = u
 		switch {
 		case in.Stream.Enabled && !st.AuditStreamEnabled:
-			changes = append(changes, "instance events streamed to "+hostOf(u))
+			changes = append(changes, msgs.M("audit.streamOn").Keep(i18n.Args{"host": hostOf(u)}))
 		case !in.Stream.Enabled && st.AuditStreamEnabled:
-			changes = append(changes, "instance events no longer streamed")
+			changes = append(changes, msgs.M("audit.streamOff").Keep(nil))
 		case in.Stream.Enabled && reset:
-			changes = append(changes, "stream moved to "+hostOf(u))
+			changes = append(changes, msgs.M("audit.streamMoved").Keep(i18n.Args{"host": hostOf(u)}))
 		}
 		if res.Secret != "" {
 			after["stream_secret"] = "rotated"
-			changes = append(changes, "signing secret rotated")
+			changes = append(changes, msgs.M("audit.secretRotated").Keep(nil))
 		}
 	}
 	if len(changes) > 0 {
 		if err := s.Audit.LogWith(ctx, q, audit.Event{Action: "audit.settings_updated", TargetType: "audit_log", TargetName: "Instance audit log",
-			Before: before, After: after, Metadata: map[string]any{"summary": strings.Join(changes, " · ")}}); err != nil {
+			Before: before, After: after, Metadata: audit.KeepSummary(nil, changes...)}); err != nil {
 			return res, err
 		}
 	}
