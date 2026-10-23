@@ -11,10 +11,7 @@ import (
 // ever or never. The contacts view reads it from website_members.
 
 func init() {
-	opLabels["since"] = "since"
-	opLabels["not_since"] = "not since"
-	opLabels["ever"] = "ever"
-	builtinFields["signed_in"] = fieldSpec{"Signed in to the website", KindDate, []string{"since", "not_since", "ever", "never"}}
+	builtinFields["signed_in"] = fieldSpec{KindDate, []string{"since", "not_since", "ever", "never"}}
 	builtinOrder = insertAfter(builtinOrder, "joined", "signed_in")
 	extraValidate["signed_in"] = validateSignedIn
 	extraCompile["signed_in"] = compileSignedIn
@@ -40,10 +37,10 @@ func validateSignedIn(c SegmentCondition) error {
 		if n, _ := strconv.Atoi(m[1]); n >= 1 && n <= 3650 {
 			return nil
 		}
-		return problemf("Pick between 1 and 3650 days ago.")
+		return says(mDaysAgo)
 	}
 	if !dateRe.MatchString(v) {
-		return problemf("Pick a date like 2026-09-29, or a number of days ago.")
+		return says(mSignedIn)
 	}
 	return nil
 }

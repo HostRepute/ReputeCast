@@ -7,21 +7,23 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
 // BounceReview returns what the providers said for one bounce type, without
 // any address, so a person can decide whether to suppress them.
 func (s *Service) BounceReview(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID, typeKey string) (ReportBounceReview, error) {
+	l := i18n.LangFrom(ctx)
 	t, ok := bounceTypeByKey(typeKey)
 	if !ok {
-		return ReportBounceReview{}, api.Invalid("path.type", "Unknown bounce type.")
+		return ReportBounceReview{}, api.Invalid("path.type", mUnknownBounce.Text(l, nil))
 	}
 	rep, err := s.Report(ctx, ws, campaignID)
 	if err != nil {
 		return ReportBounceReview{}, err
 	}
-	out := ReportBounceReview{Type: t.Key, Label: t.Label, Diagnostics: []ReportBounceDiagnostic{}}
+	out := ReportBounceReview{Type: t.Key, Label: bounceLabel(l, t.Key), Diagnostics: []ReportBounceDiagnostic{}}
 	for _, r := range rep.Bounces.Rows {
 		if r.Type == t.Key {
 			out.Count, out.Unsuppressed = r.Count, r.Unsuppressed
@@ -43,12 +45,13 @@ func (s *Service) BounceReview(ctx context.Context, ws *store.Workspace, campaig
 // shared suppression list yet, through the suppression service (which
 // writes the audit entry and tells every provider).
 func (s *Service) SuppressBounces(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID, typeKey string) (ReportSuppressResult, error) {
+	l := i18n.LangFrom(ctx)
 	t, ok := bounceTypeByKey(typeKey)
 	if !ok {
-		return ReportSuppressResult{}, api.Invalid("path.type", "Unknown bounce type.")
+		return ReportSuppressResult{}, api.Invalid("path.type", mUnknownBounce.Text(l, nil))
 	}
 	if t.Suppress == "retry" {
-		return ReportSuppressResult{}, api.Conflict("Soft bounces aren't suppressed: the address is retried on the next send, and suppressed only if it keeps failing.")
+		return ReportSuppressResult{}, api.Conflict(mSoftBounces.Text(l, nil))
 	}
 	c, err := s.Q.ReportCampaign(ctx, store.ReportCampaignParams{WorkspaceID: ws.ID, ID: campaignID})
 	if err != nil {
@@ -60,11 +63,12 @@ func (s *Service) SuppressBounces(ctx context.Context, ws *store.Workspace, camp
 		return ReportSuppressResult{}, err
 	}
 	if len(emails) == 0 {
-		return ReportSuppressResult{}, api.Conflict("Every address that bounced this way is already on the suppression list.")
+		return ReportSuppressResult{}, api.Conflict(mAllSuppressed.Text(l, nil))
 	}
 	if s.Suppress == nil {
 		return ReportSuppressResult{}, errors.New("reports: no suppression service configured")
 	}
-	added, already, err := s.Suppress.AddSuppressions(ctx, ws, emails, t.Label+" bounces on "+c.Name)
+	args := i18n.Args{"type": t.Key, "campaign": c.Name}
+	added, already, err := s.Suppress.AddSuppressions(ctx, ws, emails, mBounceNote.Text(i18n.Default, args), mBounceNote.Keep(args))
 	return ReportSuppressResult{Added: added, Already: already}, err
 }

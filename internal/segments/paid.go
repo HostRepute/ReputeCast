@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -31,15 +32,15 @@ const (
 )
 
 func init() {
-	builtinFields[FieldPaidStatus] = fieldSpec{"Paid subscription · status", KindEnum, []string{"is", "is_not"}}
-	builtinFields[FieldPaidTier] = fieldSpec{"Paid subscription · tier", KindEnum, []string{"is", "is_not"}}
-	builtinFields[FieldPaidPeriod] = fieldSpec{"Paid subscription · period", KindEnum, []string{"is", "is_not"}}
-	builtinFields[FieldPaidSince] = fieldSpec{"Paid subscription · member since", KindDate, []string{"before", "after"}}
-	builtinFields[FieldPaidEnded] = fieldSpec{"Paid subscription · ended", KindPeriod, []string{"in_last"}}
-	builtinFields[FieldPaidLTV] = fieldSpec{"Paid subscription · lifetime value", KindNumber, scoreOps}
-	enumValues[FieldPaidStatus] = [][2]string{{"active", "Active"}, {"trialing", "Trialing"}, {"past_due", "Past due"}, {"complimentary", "Complimentary"},
-		{"gift", "Gift"}, {"ended", "Ended"}, {"none", "No paid access"}}
-	enumValues[FieldPaidPeriod] = [][2]string{{"month", "Monthly"}, {"year", "Yearly"}}
+	builtinFields[FieldPaidStatus] = fieldSpec{KindEnum, []string{"is", "is_not"}}
+	builtinFields[FieldPaidTier] = fieldSpec{KindEnum, []string{"is", "is_not"}}
+	builtinFields[FieldPaidPeriod] = fieldSpec{KindEnum, []string{"is", "is_not"}}
+	builtinFields[FieldPaidSince] = fieldSpec{KindDate, []string{"before", "after"}}
+	builtinFields[FieldPaidEnded] = fieldSpec{KindPeriod, []string{"in_last"}}
+	builtinFields[FieldPaidLTV] = fieldSpec{KindNumber, scoreOps}
+	enumValues[FieldPaidStatus] = [][2]string{{"active", ""}, {"trialing", ""}, {"past_due", ""}, {"complimentary", ""},
+		{"gift", ""}, {"ended", ""}, {"none", ""}}
+	enumValues[FieldPaidPeriod] = [][2]string{{"month", ""}, {"year", ""}}
 	builtinOrder = append(builtinOrder, FieldPaidTier, FieldPaidStatus, FieldPaidPeriod, FieldPaidSince, FieldPaidEnded, FieldPaidLTV)
 	extraValidate[FieldPaidTier] = validatePaidTier
 	extraValidate[FieldPaidLTV] = validatePaidLTV
@@ -59,9 +60,10 @@ func paidTierOptions(ctx context.Context, q *store.Queries, wsID uuid.UUID) ([]S
 	if err != nil {
 		return nil, err
 	}
+	l := i18n.LangFrom(ctx)
 	out := make([]SegmentOption, 0, len(tiers))
 	for _, t := range tiers {
-		label := t.Short + " and above"
+		label := mTierAndAbove.Text(l, i18n.Args{"tier": t.Short})
 		if t.Top {
 			label = t.Short
 		}
@@ -72,7 +74,7 @@ func paidTierOptions(ctx context.Context, q *store.Queries, wsID uuid.UUID) ([]S
 
 func validatePaidTier(c SegmentCondition) error {
 	if _, err := uuid.Parse(c.Value); err != nil {
-		return problemf("Pick a tier.")
+		return says(mPickTier)
 	}
 	return nil
 }
@@ -85,15 +87,15 @@ func ltvValue(s string) (float64, bool) {
 func validatePaidLTV(c SegmentCondition) error {
 	a, ok := ltvValue(c.Value)
 	if !ok {
-		return problemf("The lifetime value needs an amount, like 50.")
+		return says(mLTV)
 	}
 	if c.Op == "between" {
 		b, ok := ltvValue(c.To)
 		if !ok {
-			return problemf("Enter both ends of the range.")
+			return says(mBothEnds)
 		}
 		if b < a {
-			return problemf("The range ends below where it starts. Swap the two amounts.")
+			return says(mRangeSwapAm)
 		}
 	}
 	return nil

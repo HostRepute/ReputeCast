@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -390,12 +391,21 @@ func (s *Service) insight(ctx context.Context, ws *store.Workspace, rows []ListH
 			}
 		}
 	}
-	subject := "the"
-	if mailbox != "" {
-		subject = "the " + emailaddr.MailboxName(mailbox)
-	}
+	l := i18n.LangFrom(ctx)
 	if worst.Health == "Re-permission needed" {
-		return &ListHealthInsight{Text: fmt.Sprintf("The %s drives most of %s complaints. Sending them a re-permission email, then suppressing non-responders, usually fixes it within two sends.", name, subject)}, nil
+		if mailbox != "" {
+			return &ListHealthInsight{Text: mInsightRepermit.Text(l, i18n.Args{"name": name, "mailbox": mailboxNameIn(l, mailbox)})}, nil
+		}
+		return &ListHealthInsight{Text: mInsightRepAll.Text(l, i18n.Args{"name": name})}, nil
 	}
-	return &ListHealthInsight{Text: fmt.Sprintf("%s needs attention: check its bounce and complaint rates and what changed in recent sends to it.", name)}, nil
+	return &ListHealthInsight{Text: mInsightAttend.Text(l, i18n.Args{"name": name})}, nil
+}
+
+// mailboxNameIn is a mailbox provider's name, with "Other" in the reader's
+// language.
+func mailboxNameIn(l i18n.Lang, provider string) string {
+	if provider == emailaddr.Other {
+		return mMailboxOther.Text(l, nil)
+	}
+	return emailaddr.MailboxName(provider)
 }

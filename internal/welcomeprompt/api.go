@@ -8,6 +8,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 type promptInput struct {
@@ -39,7 +40,7 @@ func Register(h huma.API, s *Service) {
 			if in.Context != ContextHealth {
 				parsed, err := uuid.Parse(in.ID)
 				if err != nil {
-					return nil, api.Invalid("query.id", "Name the form or the import.")
+					return nil, api.Invalid("query.id", mNameFormOrImport.Text(i18n.LangFrom(ctx), nil))
 				}
 				id = parsed
 			}
@@ -51,7 +52,7 @@ func Register(h huma.API, s *Service) {
 		func(ctx context.Context, in *dismissInput) (*api.Empty, error) {
 			listID, err := uuid.Parse(in.Body.ListID)
 			if err != nil {
-				return nil, api.Invalid("body.listId", "Name the list.")
+				return nil, api.Invalid("body.listId", mNameList.Text(i18n.LangFrom(ctx), nil))
 			}
 			var by *uuid.UUID
 			if u := api.UserFrom(ctx); u != nil {

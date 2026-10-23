@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
-	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/segments"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -42,6 +43,9 @@ type ContactBulkInput struct {
 type ContactBulkFailure struct {
 	Email  string `json:"email"`
 	Reason string `json:"reason"`
+	// Code says why for screens that word it themselves: suppressed (on the
+	// suppression list) or refused (the System provider refused the email).
+	Code string `json:"code" enum:"suppressed,refused"`
 }
 
 // ContactBulkResult reports a bulk action ("Added 2,116 of 2,118 contacts to
@@ -65,13 +69,13 @@ func (s *Service) selectIDs(ctx context.Context, ws *store.Workspace, sel Select
 	}
 	if !sel.AllMatching {
 		if len(sel.IDs) == 0 {
-			return nil, api.Invalid("body.ids", "Select at least one contact.")
+			return nil, api.Invalid("body.ids", say(ctx, mSelectContacts, nil))
 		}
 		ids := make([]uuid.UUID, 0, len(sel.IDs))
 		for _, raw := range sel.IDs {
 			id, err := uuid.Parse(raw)
 			if err != nil {
-				return nil, api.Invalid("body.ids", "Some selected contacts aren't valid ids.")
+				return nil, api.Invalid("body.ids", say(ctx, mBadIDs, nil))
 			}
 			ids = append(ids, id)
 		}
@@ -97,18 +101,19 @@ func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, in ContactBulkI
 	}
 	out.Matched = int64(len(ids))
 	actor := actorID(ctx)
+	lang := i18n.LangFrom(ctx)
 	switch in.Action {
 	case "add_to_list":
 		listID, perr := uuid.Parse(in.ListID)
 		if perr != nil {
-			return out, api.Invalid("body.listId", "Pick a list.")
+			return out, api.Invalid("body.listId", mPickList.Text(lang, nil))
 		}
 		l, lerr := s.Q.GetList(ctx, store.GetListParams{WorkspaceID: ws.ID, ID: listID})
 		if lerr != nil {
-			return out, api.Invalid("body.listId", "That list doesn't exist in this workspace.")
+			return out, api.Invalid("body.listId", mListGone.Text(lang, nil))
 		}
 		if !scopeAllowsList(ctx, listID) {
-			return out, api.Invalid("body.listId", "Your role is limited to other lists.")
+			return out, api.Invalid("body.listId", mScopeLists.Text(lang, nil))
 		}
 		out.Target = l.Name
 		err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -119,7 +124,7 @@ func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, in ContactBulkI
 				return err
 			}
 			for _, b := range blocked {
-				out.Failures = appendFailure(out.Failures, b.Email, fmt.Sprintf("on the suppression list (%s); needs a new opt-in", strings.ToLower(reasonName(b.Reason))))
+				out.Failures = appendFailure(out.Failures, b.Email, "suppressed", mFailSuppressed.Text(lang, i18n.Args{"reason": strings.ToLower(reasonNameIn(lang, b.Reason))}))
 			}
 			out.Failed = int64(len(blocked))
 			tag, err := tx.Exec(ctx, `INSERT INTO list_memberships (list_id, contact_id, status, source, subscribed_at)
@@ -135,7 +140,7 @@ func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, in ContactBulkI
 			if err != nil {
 				return err
 			}
-			if err := insertConsentEvents(ctx, tx, added, &listID, "subscribed", "team", "added by the team", actor, s.now()); err != nil {
+			if err := insertConsentEvents(ctx, tx, added, &listID, "subscribed", "team", kept(mNoteAddedByTeam, nil), actor, s.now()); err != nil {
 				return err
 			}
 			out.Done = out.Matched - out.Failed
@@ -146,7 +151,7 @@ func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, in ContactBulkI
 	case "add_tag":
 		tag := cleanTags([]string{in.Tag})
 		if len(tag) == 0 {
-			return out, api.Invalid("body.tag", "Enter a tag.")
+			return out, api.Invalid("body.tag", mEnterTag.Text(lang, nil))
 		}
 		out.Target = tag[0]
 		err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -160,20 +165,20 @@ func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, in ContactBulkI
 	case "suppress":
 		reason := strings.TrimSpace(in.Reason)
 		if reason == "" {
-			return out, api.Invalid("body.reason", "Say why these contacts are suppressed; it goes to the audit log.")
+			return out, api.Invalid("body.reason", mSuppressReason.Text(lang, nil))
 		}
 		var emails []string
 		if err := pgxSelect(ctx, s.Pool, &emails, `SELECT email FROM contacts WHERE id = ANY ($1)`, ids); err != nil {
 			return out, err
 		}
-		res, err := s.addSuppressions(ctx, ws, emails, "manual", reason)
+		res, err := s.addSuppressions(ctx, ws, emails, "manual", keep{English: reason})
 		if err != nil {
 			return out, err
 		}
 		out.Done = int64(res.Added)
 		out.Failed = int64(res.Already)
 		if res.Already > 0 {
-			out.Note = fmt.Sprintf("%d were already on the suppression list.", res.Already)
+			out.Note = mAlreadyNote.Text(lang, i18n.Args{"count": res.Already})
 		}
 	case "resend_optin":
 		rows, qerr := s.Pool.Query(ctx, `SELECT * FROM contacts WHERE id = ANY ($1) LIMIT 5000`, ids)
@@ -185,22 +190,23 @@ func (s *Service) Bulk(ctx context.Context, ws *store.Workspace, in ContactBulkI
 			return out, cerr
 		}
 		if s.Mail == nil || !s.Mail.SystemAvailable(ctx, &ws.ID) {
-			return out, api.Err(409, "no_system_provider", "No sending provider is connected to the System stream, so opt-in emails can't go out yet. Connect one in Sending providers.")
+			return out, api.Err(409, "no_system_provider", mNoSystemProvider.Text(lang, nil))
 		}
+		note := kept(mNoteConfirmSent, nil)
 		for _, c := range contacts {
 			if sent, _ := s.sendConfirmation(ctx, ws, c); sent {
 				out.Done++
 				_ = s.Q.InsertConsentEvent(ctx, store.InsertConsentEventParams{ID: uuid.Must(uuid.NewV7()), ContactID: c.ID, Action: "optin_sent", Source: "team",
-					Note: "confirmation sent via the System stream", ActorID: actor, OccurredAt: s.now()})
+					Note: note.English, Texts: KeptTexts(map[string]i18n.Text{"note": note.Text}), ActorID: actor, OccurredAt: s.now()})
 			} else {
 				out.Failed++
-				out.Failures = appendFailure(out.Failures, c.Email, "the System provider refused the email")
+				out.Failures = appendFailure(out.Failures, c.Email, "refused", mFailRefused.Text(lang, nil))
 			}
 		}
 		err = s.Audit.Log(ctx, audit.Event{WorkspaceID: &ws.ID, Action: "contacts.resend_optin", TargetType: "contact",
 			Metadata: map[string]any{"matched": out.Matched, "sent": out.Done, "failed": out.Failed}})
 	default:
-		return out, api.Invalid("body.action", "Pick an action.")
+		return out, api.Invalid("body.action", mPickAction.Text(lang, nil))
 	}
 	return out, err
 }
@@ -222,7 +228,7 @@ func (s *Service) Erase(ctx context.Context, ws *store.Workspace, in ContactEras
 	}
 	out.Matched = int64(len(ids))
 	if in.Confirm != out.Matched {
-		return out, api.Invalid("body.confirm", fmt.Sprintf("Type %d to confirm erasing %d contacts.", out.Matched, out.Matched))
+		return out, api.Invalid("body.confirm", say(ctx, mEraseConfirm, i18n.Args{"n": strconv.FormatInt(out.Matched, 10)}))
 	}
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		if err := eraseContacts(ctx, tx, ids); err != nil {
@@ -301,15 +307,16 @@ func (s *Service) idsWithout(ctx context.Context, tx pgx.Tx, ids []uuid.UUID, bl
 	return pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
 }
 
-func appendFailure(fs []ContactBulkFailure, email, reason string) []ContactBulkFailure {
+func appendFailure(fs []ContactBulkFailure, email, code, reason string) []ContactBulkFailure {
 	if len(fs) >= 20 {
 		return fs
 	}
-	return append(fs, ContactBulkFailure{Email: email, Reason: reason})
+	return append(fs, ContactBulkFailure{Email: email, Reason: reason, Code: code})
 }
 
-// insertConsentEvents records one consent event per contact.
-func insertConsentEvents(ctx context.Context, tx pgx.Tx, contacts []uuid.UUID, list *uuid.UUID, action, source, note string, actor *uuid.UUID, at time.Time) error {
+// insertConsentEvents records one consent event per contact. The note is
+// a person's own words, or ReputeCast's with its message kept.
+func insertConsentEvents(ctx context.Context, tx pgx.Tx, contacts []uuid.UUID, list *uuid.UUID, action, source string, note keep, actor *uuid.UUID, at time.Time) error {
 	if len(contacts) == 0 {
 		return nil
 	}
@@ -317,9 +324,13 @@ func insertConsentEvents(ctx context.Context, tx pgx.Tx, contacts []uuid.UUID, l
 	for i := range ids {
 		ids[i] = uuid.Must(uuid.NewV7())
 	}
-	_, err := tx.Exec(ctx, `INSERT INTO consent_events (id, contact_id, list_id, action, source, note, actor_id, occurred_at)
-		SELECT x.id, x.contact_id, $3, $4, $5, $6, $7, $8 FROM unnest($1::uuid[], $2::uuid[]) AS x(id, contact_id)`,
-		ids, contacts, list, action, source, note, actor, at)
+	texts := KeptTexts(map[string]i18n.Text{"note": note.Text})
+	if texts == nil {
+		texts = json.RawMessage(`{}`)
+	}
+	_, err := tx.Exec(ctx, `INSERT INTO consent_events (id, contact_id, list_id, action, source, note, actor_id, occurred_at, texts)
+		SELECT x.id, x.contact_id, $3, $4, $5, $6, $7, $8, $9 FROM unnest($1::uuid[], $2::uuid[]) AS x(id, contact_id)`,
+		ids, contacts, list, action, source, note.English, actor, at, texts)
 	return err
 }
 

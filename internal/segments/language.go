@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -24,11 +25,12 @@ func languageOptions(ctx context.Context, q *store.Queries, wsID uuid.UUID) ([]S
 	if err != nil {
 		return nil, err
 	}
+	l := i18n.LangFrom(ctx)
 	out := make([]SegmentOption, 0, len(st.Languages)+1)
 	for _, code := range st.Languages {
-		out = append(out, SegmentOption{Value: code, Label: languages.NameOf(code)})
+		out = append(out, SegmentOption{Value: code, Label: languageName(l, code)})
 	}
-	return append(out, SegmentOption{Value: LanguageNone, Label: "No language"}), nil
+	return append(out, SegmentOption{Value: LanguageNone, Label: mNoLanguage.Text(l, nil)}), nil
 }
 
 // validLanguage reports whether a condition's value is a language or "none".

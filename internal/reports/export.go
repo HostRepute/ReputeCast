@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/audit"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	provstate "github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -33,7 +34,8 @@ type ReportExport struct {
 // Export writes the report as CSV (one section per table) or records a PDF
 // export. Every export is in the audit log.
 func (s *Service) Export(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID, format string) (ReportExport, error) {
-	rep, err := s.Report(ctx, ws, campaignID)
+	// The CSV is data: its labels stay English whatever the app language.
+	rep, err := s.Report(i18n.WithLang(ctx, i18n.Default), ws, campaignID)
 	if err != nil {
 		return ReportExport{}, err
 	}

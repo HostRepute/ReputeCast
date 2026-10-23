@@ -11,7 +11,9 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/segments"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -75,26 +77,39 @@ type ImportPreview struct {
 	Verification *ImportVerification `json:"verification,omitempty"`
 }
 
+// riskyChoice is an action of a risky group: its value and its words
+// (action.tagged names the tag the rows are imported with).
+type riskyChoice struct {
+	value string
+	msg   *i18n.Msg
+	tag   string
+}
+
+// riskyMeta are the risky groups in the preview's order, with their
+// actions. A group's name and why are messages risky.<key>.label and
+// risky.<key>.why.
 var riskyMeta = []struct {
-	key, label, why string
-	actions         []ImportFieldOption
+	key     string
+	actions []riskyChoice
 }{
-	{classRole, "Role addresses", "info@, sales@, support@ are shared inboxes; high complaint rates", []ImportFieldOption{
-		{"exclude_broadcasts", "Import, excluded from Broadcasts automatically"}, {"skip", "Skip"}, {"import", "Import normally"}}},
-	{classDisposable, "Disposable domains", "temporary inboxes that expire and bounce", []ImportFieldOption{{"skip", "Skip"}, {"import", "Import normally"}}},
-	{classTypo, "Likely typos", "domain within one character of a major provider", []ImportFieldOption{
-		{"fix", "Fix the domain and import, flagged for review"}, {"skip", "Skip"}, {"import", "Import as is"}}},
-	{classStale, "Never engaged, 2+ years old", "", []ImportFieldOption{
-		{"pending", "Import as pending, send re-permission"}, {"skip", "Skip"}, {"import", "Import normally"}}},
-	{classTrap, "Known spam-trap patterns", "domains and local parts HostRepute associates with trap networks", []ImportFieldOption{
-		{"skip", "Skip (recommended)"}, {"import", "Import normally"}}},
+	{classRole, []riskyChoice{{"exclude_broadcasts", &mExcludeBroadcasts, ""}, {"skip", &mSkip, ""}, {"import", &mImportNormally, ""}}},
+	{classDisposable, []riskyChoice{{"skip", &mSkip, ""}, {"import", &mImportNormally, ""}}},
+	{classTypo, []riskyChoice{{"fix", &mFixTypo, ""}, {"skip", &mSkip, ""}, {"import", &mImportAsIs, ""}}},
+	{classStale, []riskyChoice{{"pending", &mImportPending, ""}, {"skip", &mSkip, ""}, {"import", &mImportNormally, ""}}},
+	{classTrap, []riskyChoice{{"skip", &mSkipRecommended, ""}, {"import", &mImportNormally, ""}}},
 	// A verification service's groups (X14).
-	{classCatchAll, "Catch-all domains", "the domain accepts every address, so the mailbox can't be confirmed", []ImportFieldOption{
-		{"import", "Import, tagged verify:catch-all"}, {"skip", "Skip"}}},
-	{classAbuse, "Known complainers", "the service lists these addresses for abuse reports", []ImportFieldOption{
-		{"import", "Import, tagged verify:abuse"}, {"skip", "Skip"}}},
-	{classUnknown, "Unknown", "the mail server didn't answer the service", []ImportFieldOption{
-		{"import", "Import, tagged verify:unknown"}, {"skip", "Skip"}}},
+	{classCatchAll, []riskyChoice{{"import", &mImportTagged, "verify:catch-all"}, {"skip", &mSkip, ""}}},
+	{classAbuse, []riskyChoice{{"import", &mImportTagged, "verify:abuse"}, {"skip", &mSkip, ""}}},
+	{classUnknown, []riskyChoice{{"import", &mImportTagged, "verify:unknown"}, {"skip", &mSkip, ""}}},
+}
+
+// riskyActions are a group's actions in a reader's language.
+func riskyActions(l i18n.Lang, choices []riskyChoice) []ImportFieldOption {
+	out := make([]ImportFieldOption, 0, len(choices))
+	for _, c := range choices {
+		out = append(out, ImportFieldOption{c.value, c.msg.Text(l, i18n.Args{"tag": c.tag})})
+	}
+	return out
 }
 
 // mergeChange describes what merging a row into an existing contact does.
@@ -176,102 +191,99 @@ func valueOr(v any, def any) any {
 	return v
 }
 
-func plural(n int, one, many string) string {
-	if n == 1 {
-		return one
-	}
-	return many
+// fillNames name the contact fields a merge fills, by the label
+// analyzeMerge notes them with; a custom field is named by its key.
+var fillNames = map[string]i18n.Msg{
+	"first name": msgs.M("fill.first_name"),
+	"last name":  msgs.M("fill.last_name"),
+	"company":    msgs.M("fill.company"),
+	"country":    msgs.M("fill.country"),
+	"timezone":   msgs.M("fill.timezone"),
+	"language":   msgs.M("fill.language"),
 }
 
-func (ch mergeChange) result() string {
+func fillLabel(l i18n.Lang, label string) string {
+	if m, ok := fillNames[label]; ok {
+		return m.Text(l, nil)
+	}
+	return label
+}
+
+// result is what the merge does, in a reader's language.
+func (ch mergeChange) result(l i18n.Lang) string {
 	switch ch.kind {
 	case "fills":
-		return "Merge · fills " + joinAnd(ch.fills)
+		names := make([]string, len(ch.fills))
+		for i, f := range ch.fills {
+			names[i] = fillLabel(l, f)
+		}
+		return mMergeFills.Text(l, i18n.Args{"fields": i18n.AndList(l.Locale, names)})
 	case "tags":
-		n := len(ch.addTags)
-		return fmt.Sprintf("Merge · adds %d %s, keeps consent", n, plural(n, "tag", "tags"))
+		return mMergeTags.Text(l, i18n.Args{"n": len(ch.addTags)})
 	case "tier":
-		return "Merge · tier unchanged"
+		return mMergeTier.Text(l, nil)
 	}
-	return "Merge · nothing to change"
+	return mMergeSame.Text(l, nil)
 }
 
-func listSummary(lists []string) string {
+func listSummary(l i18n.Lang, lists []string) string {
 	switch {
 	case len(lists) == 0:
-		return "no lists"
+		return mDupNoLists.Text(l, nil)
 	case len(lists) <= 2:
 		return strings.Join(lists, ", ")
 	}
-	return fmt.Sprintf("%d lists", len(lists))
+	return mDupLists.Text(l, i18n.Args{"n": len(lists)})
 }
 
-func tierName(t string) string {
-	switch t {
-	case "active":
-		return "Active"
-	case "cooling":
-		return "Cooling"
-	case "at_risk":
-		return "At risk"
-	case "sunset":
-		return "Sunset"
+// sourceShortIn names where a contact came from: the importer's name
+// (Mailchimp), or the source's label (Signup form · docs).
+func sourceShortIn(l i18n.Lang, src string) string {
+	if detail, ok := strings.CutPrefix(src, "import:"); ok {
+		if name := segments.ImporterName(detail); name != "" {
+			return name
+		}
+		return mDupFile.Text(l, nil)
 	}
-	return t
+	return segments.SourceLabelIn(l, src)
 }
 
-func reasonWord(r string) string {
-	switch r {
-	case "unsubscribe":
-		return "unsubscribed"
-	case "hard_bounce":
-		return "hard bounced"
-	case "complaint":
-		return "complained"
-	}
-	return "suppressed"
-}
-
-func sourceShort(src string) string {
-	l := segments.SourceLabel(src)
-	return strings.TrimSuffix(l, " import")
-}
-
-// duplicateExample explains one duplicate in words.
-func (s *Service) duplicateExample(r mappedRow, v verdict, ch mergeChange, fm FieldMap, conn storedConnection, loc *time.Location) ImportDuplicateExample {
-	day := func(t time.Time) string { return t.In(loc).Format("2 Jan") }
+// duplicateExample explains one duplicate in words, in a reader's language.
+func (s *Service) duplicateExample(l i18n.Lang, r mappedRow, v verdict, ch mergeChange, fm FieldMap, conn storedConnection, loc *time.Location) ImportDuplicateExample {
+	day := func(t time.Time) string { return dayMonthIn(l, t.In(loc)) }
 	if v.Supp != nil {
 		return ImportDuplicateExample{Email: emailaddr.Mask(r.Email), Suppressed: true,
-			InReputeCast: fmt.Sprintf("On suppression list · %s %s", reasonWord(v.Supp.Reason), day(v.Supp.At)),
-			InSource:     r.Status, Result: "Stays suppressed", ResultTone: "bad"}
+			InReputeCast: mDupOnList.Text(l, i18n.Args{"reason": v.Supp.Reason, "day": day(v.Supp.At)}),
+			InSource:     r.Status, Result: mDupStays.Text(l, nil), ResultTone: "bad"}
 	}
 	c := v.Contact
-	ex := ImportDuplicateExample{Email: r.Email, Result: ch.result(), ResultTone: "ok"}
-	parts := []string{listSummary(c.Lists)}
+	ex := ImportDuplicateExample{Email: r.Email, Result: ch.result(l), ResultTone: "ok"}
+	parts := []string{listSummary(l, c.Lists)}
 	srcParts := []string{}
 	switch ch.kind {
 	case "fills":
-		parts = append(parts, ch.fills[0]+" empty")
-		srcParts = append(srcParts, fmt.Sprintf("%s %q", ch.fills[0], fieldValue(r, fm, ch.fills[0])))
+		parts = append(parts, mDupEmpty.Text(l, i18n.Args{"field": fillLabel(l, ch.fills[0])}))
+		srcParts = append(srcParts, fmt.Sprintf("%s %q", fillLabel(l, ch.fills[0]), fieldValue(r, fm, ch.fills[0])))
 	case "tags":
+		// plan is the custom field's key, as the contact shows it.
 		if plan := fmt.Sprint(valueOr(c.Attributes["plan"], "")); plan != "" {
 			parts = append(parts, "plan "+plan)
 		}
-		parts = append(parts, fmt.Sprintf("joined %s via %s", day(c.CreatedAt), sourceShort(c.Source)))
+		parts = append(parts, mDupJoined.Text(l, i18n.Args{"day": day(c.CreatedAt), "source": sourceShortIn(l, c.Source)}))
 		srcParts = append(srcParts, listName(conn, r.List))
 		if plan := fieldValue(r, fm, "plan"); plan != "" {
 			srcParts = append(srcParts, "plan "+plan)
 		}
 		if len(r.Tags) > 0 {
-			srcParts = append(srcParts, "tags "+strings.Join(r.Tags, ", "))
+			srcParts = append(srcParts, mDupTags.Text(l, i18n.Args{"tags": strings.Join(r.Tags, ", ")}))
 		}
 	case "tier":
-		parts = append(parts, tierName(c.Tier)+" tier")
+		parts = append(parts, mDupTier.Text(l, i18n.Args{"tier": audience.TierNameIn(l, c.Tier)}))
 		srcParts = append(srcParts, r.Status)
 		if r.Eng.LastOpen != nil {
-			srcParts = append(srcParts, "last open "+strconv.Itoa(r.Eng.LastOpen.Year()))
+			srcParts = append(srcParts, mDupLastOpen.Text(l, i18n.Args{"year": strconv.Itoa(r.Eng.LastOpen.Year())}))
 		} else if r.Eng.Changed != nil {
-			srcParts = append(srcParts, "last open "+strconv.Itoa(r.Eng.Changed.Year()))
+			srcParts = append(srcParts, mDupLastOpen.Text(l, i18n.Args{"year": strconv.Itoa(r.Eng.Changed.Year())}))
 		}
 	default:
 		srcParts = append(srcParts, r.Status)
@@ -304,16 +316,17 @@ func listName(conn storedConnection, id string) string {
 	return id
 }
 
-// Preview runs the dry run over every staged row. Nothing is written
-// except the stored preview.
+// Preview runs the dry run over every staged row, its words in the
+// request's language. Nothing is written except the stored preview.
 func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID) (ImportPreview, error) {
 	imp, err := s.get(ctx, ws, id)
 	if err != nil {
 		return ImportPreview{}, err
 	}
 	if imp.StagedAt == nil {
-		return ImportPreview{}, api.Conflict("The rows aren't read from the source yet. Wait for the field mapping to load, then try again.")
+		return ImportPreview{}, api.Conflict(say(ctx, mNotStagedWait, nil))
 	}
+	l := i18n.LangFrom(ctx)
 	custom, err := s.customFields(ctx, ws.ID)
 	if err != nil {
 		return ImportPreview{}, err
@@ -376,7 +389,7 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID
 					}
 					if !seenKinds[kind] {
 						seenKinds[kind] = true
-						p.Duplicates = append(p.Duplicates, s.duplicateExample(r, v, ch, fm, conn, loc))
+						p.Duplicates = append(p.Duplicates, s.duplicateExample(l, r, v, ch, fm, conn, loc))
 					}
 				}
 			default:
@@ -407,9 +420,9 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID
 					}
 				case classStale:
 					if staleExample == "" {
-						staleExample = fmt.Sprintf("member rating %d", r.Eng.Rating)
+						staleExample = mExampleRating.Text(l, i18n.Args{"rating": r.Eng.Rating})
 						if r.Eng.Changed != nil {
-							staleExample += fmt.Sprintf(", last changed %d", r.Eng.Changed.Year())
+							staleExample = mExampleChanged.Text(l, i18n.Args{"rating": r.Eng.Rating, "year": strconv.Itoa(r.Eng.Changed.Year())})
 						}
 					}
 				}
@@ -422,22 +435,24 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		if n == 0 {
 			continue
 		}
-		g := ImportRiskyGroup{Key: m.key, Label: m.label, Rows: n, Why: m.why, Actions: m.actions, Action: riskyAction(opts.Risky, m.key),
-			Own: n - riskyMore[m.key], More: riskyMore[m.key], Agree: riskyAgree[m.key]}
+		g := ImportRiskyGroup{Key: m.key, Label: msgs.M("risky."+m.key+".label").Text(l, nil), Rows: n, Actions: riskyActions(l, m.actions),
+			Action: riskyAction(opts.Risky, m.key), Own: n - riskyMore[m.key], More: riskyMore[m.key], Agree: riskyAgree[m.key]}
 		switch m.key {
 		case classStale:
-			g.Why = fmt.Sprintf("no open or click since %d in %s; most likely to be stale or recycled into spam traps", now.AddDate(-2, 0, 0).Year(), SourceName(imp.Source))
+			g.Why = mStaleWhy.Text(l, i18n.Args{"year": strconv.Itoa(now.AddDate(-2, 0, 0).Year()), "source": SourceName(imp.Source)})
 			g.Examples = staleExample
 		case classTrap:
-			g.Examples = fmt.Sprintf("redacted · %d rows", n)
+			g.Why = msgs.M("risky."+m.key+".why").Text(l, nil)
+			g.Examples = mExampleRedacted.Text(l, i18n.Args{"rows": strconv.FormatInt(n, 10)})
 		default:
+			g.Why = msgs.M("risky."+m.key+".why").Text(l, nil)
 			g.Examples = strings.Join(riskyExamples[m.key], " · ")
 		}
 		p.RiskyGroups = append(p.RiskyGroups, g)
 	}
 	for _, prob := range []string{emailaddr.ProblemNoDomain, emailaddr.ProblemDoubleDot, emailaddr.ProblemNotAnAddress, emailaddr.ProblemTooLong, ProblemNoMX} {
 		if n := invalidCount[prob]; n > 0 {
-			p.InvalidGroups = append(p.InvalidGroups, ImportInvalidGroup{Problem: prob, Example: invalidExample[prob], Rows: n})
+			p.InvalidGroups = append(p.InvalidGroups, ImportInvalidGroup{Problem: invalidProblemIn(l, prob), Example: invalidExample[prob], Rows: n})
 		}
 	}
 	if checks != nil {
@@ -446,7 +461,7 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID
 			more += n
 		}
 		if n := invalidCount[ProblemService]; n > 0 {
-			p.InvalidGroups = append(p.InvalidGroups, ImportInvalidGroup{Problem: ProblemService, Rows: n, Service: checks.ServiceName})
+			p.InvalidGroups = append(p.InvalidGroups, ImportInvalidGroup{Problem: invalidProblemIn(l, ProblemService), Rows: n, Service: checks.ServiceName})
 		}
 		p.Verification = &ImportVerification{JobID: checks.JobID.String(), Service: checks.Service, ServiceName: checks.ServiceName, Status: checks.Status,
 			CheckedAt: checks.CheckedAt, Checked: checks.Checked, Cost: checks.Cost, Invalid: invalidCount[ProblemService], Risky: more,
@@ -465,6 +480,17 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		return nil
 	})
 	return p, err
+}
+
+// invalidProblemIn is why an address is invalid, in a reader's language.
+func invalidProblemIn(l i18n.Lang, problem string) string {
+	switch problem {
+	case ProblemNoMX:
+		return mInvalidNoMX.Text(l, nil)
+	case ProblemService:
+		return mInvalidService.Text(l, nil)
+	}
+	return audience.EmailProblemIn(l, problem)
 }
 
 func containsStr(xs []string, x string) bool {

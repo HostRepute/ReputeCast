@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -14,9 +15,7 @@ import (
 // doesn't count as bought.
 
 func init() {
-	opLabels["bought"] = "bought"
-	opLabels["not_bought"] = "didn't buy"
-	builtinFields["bought_product"] = fieldSpec{"Bought a product", KindEnum, []string{"bought", "not_bought"}}
+	builtinFields["bought_product"] = fieldSpec{KindEnum, []string{"bought", "not_bought"}}
 	builtinOrder = insertAfter(builtinOrder, "joined", "bought_product")
 	extraValidate["bought_product"] = validateBought
 	extraCompile["bought_product"] = compileBought
@@ -39,7 +38,7 @@ func validateBought(c SegmentCondition) error {
 		return nil
 	}
 	if _, err := uuid.Parse(c.Value); err != nil {
-		return problemf("Pick a product, or any product.")
+		return says(mPickProduct)
 	}
 	return nil
 }
@@ -64,7 +63,7 @@ func boughtOptions(ctx context.Context, q *store.Queries, wsID uuid.UUID) ([]Seg
 	if err != nil {
 		return nil, err
 	}
-	out := []SegmentOption{{Value: AnyProduct, Label: "Any product"}}
+	out := []SegmentOption{{Value: AnyProduct, Label: mAnyProduct.Text(i18n.LangFrom(ctx), nil)}}
 	for _, r := range rows {
 		out = append(out, SegmentOption{Value: r.ID.String(), Label: r.Name})
 	}

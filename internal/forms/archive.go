@@ -309,7 +309,7 @@ func (s *Service) ArchiveIssues(ctx context.Context, ws *store.Workspace, search
 	if list != "" {
 		id, err := uuid.Parse(list)
 		if err != nil {
-			return ArchiveIssuePage{}, api.Invalid("list", "Pick a list of this workspace.")
+			return ArchiveIssuePage{}, api.Invalid("list", say(ctx, mArchiveList, nil))
 		}
 		aq.List = &id
 	}
@@ -374,7 +374,7 @@ func (s *Service) UpdateArchiveIssue(ctx context.Context, ws *store.Workspace, c
 	}
 	list, err := uuid.Parse(in.ListID)
 	if err != nil || !slices.Contains(lists, list) {
-		return ArchiveIssueItem{}, api.Invalid("body.listId", "File the issue under one of the archived lists.")
+		return ArchiveIssueItem{}, api.Invalid("body.listId", say(ctx, mArchiveFile, nil))
 	}
 	var after store.ArchiveIssue
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {

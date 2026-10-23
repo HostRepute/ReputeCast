@@ -2,12 +2,12 @@ package segments
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -21,11 +21,9 @@ import (
 // growth fields in the builder.
 
 func init() {
-	opLabels["reached"] = "reached"
-	opLabels["not_reached"] = "not reached"
-	builtinFields["joined_through"] = fieldSpec{"Joined through", KindEnum, []string{"is", "is_not"}}
-	builtinFields["referrals_counted"] = fieldSpec{"Referrals counted", KindNumber, scoreOps}
-	builtinFields["referral_milestone"] = fieldSpec{"Referral milestone", KindEnum, []string{"reached", "not_reached"}}
+	builtinFields["joined_through"] = fieldSpec{KindEnum, []string{"is", "is_not"}}
+	builtinFields["referrals_counted"] = fieldSpec{KindNumber, scoreOps}
+	builtinFields["referral_milestone"] = fieldSpec{KindEnum, []string{"reached", "not_reached"}}
 	builtinOrder = insertAfter(builtinOrder, "referring_domain", "joined_through", "referrals_counted", "referral_milestone")
 	extraValidate["joined_through"] = validateJoinedThrough
 	extraValidate["referrals_counted"] = validateReferralsCounted
@@ -52,15 +50,15 @@ func referralCount(s string) (int, bool) {
 func validateReferralsCounted(c SegmentCondition) error {
 	a, ok := referralCount(c.Value)
 	if !ok {
-		return problemf("Enter a number of referrals, 0 or more.")
+		return says(mReferrals)
 	}
 	if c.Op == "between" {
 		b, ok := referralCount(c.To)
 		if !ok {
-			return problemf("Enter both ends of the range.")
+			return says(mBothEnds)
 		}
 		if b < a {
-			return problemf("The range ends below where it starts. Swap the two numbers.")
+			return says(mRangeSwap)
 		}
 	}
 	return nil
@@ -86,7 +84,7 @@ func compileReferralsCounted(t *sqlText, c SegmentCondition) {
 
 func validateMilestone(c SegmentCondition) error {
 	if _, err := uuid.Parse(strings.TrimSpace(c.Value)); err != nil {
-		return problemf("Pick a milestone.")
+		return says(mPickMile)
 	}
 	return nil
 }
@@ -112,7 +110,7 @@ func validateJoinedThrough(c SegmentCondition) error {
 			return nil
 		}
 	}
-	return problemf("Pick a referral or a partner.")
+	return says(mPickJoined)
 }
 
 func compileJoinedThrough(t *sqlText, c SegmentCondition) {
@@ -136,13 +134,14 @@ func compileJoinedThrough(t *sqlText, c SegmentCondition) {
 }
 
 func joinedThroughOptions(ctx context.Context, q *store.Queries, ws uuid.UUID) ([]SegmentOption, error) {
-	out := []SegmentOption{{Value: "referral", Label: "A referral"}, {Value: "partner", Label: "A partner (any)"}}
+	l := i18n.LangFrom(ctx)
+	out := []SegmentOption{{Value: "referral", Label: mJoinReferral.Text(l, nil)}, {Value: "partner", Label: mJoinPartner.Text(l, nil)}}
 	partners, err := q.PartnerLinkNames(ctx, ws)
 	if err != nil {
 		return nil, err
 	}
 	for _, p := range partners {
-		out = append(out, SegmentOption{Value: "partner:" + p.ID.String(), Label: "Partner · " + p.RemoteName})
+		out = append(out, SegmentOption{Value: "partner:" + p.ID.String(), Label: mJoinPartnerOf.Text(l, i18n.Args{"name": p.RemoteName})})
 	}
 	return out, nil
 }
@@ -152,13 +151,10 @@ func milestoneOptions(ctx context.Context, q *store.Queries, ws uuid.UUID) ([]Se
 	if err != nil {
 		return nil, err
 	}
+	l := i18n.LangFrom(ctx)
 	out := []SegmentOption{}
 	for _, m := range rows {
-		unit := "referrals"
-		if m.Count == 1 {
-			unit = "referral"
-		}
-		out = append(out, SegmentOption{Value: m.ID.String(), Label: fmt.Sprintf("%s · %d %s · %s", m.ListName, m.Count, unit, m.RewardName)})
+		out = append(out, SegmentOption{Value: m.ID.String(), Label: mMilestone.Text(l, i18n.Args{"list": m.ListName, "count": m.Count, "reward": m.RewardName})})
 	}
 	return out, nil
 }

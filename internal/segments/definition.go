@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // SegmentDefinition is a builder segment: groups combine with AND; inside a group
@@ -37,15 +39,8 @@ type SegmentCondition struct {
 	To string `json:"to,omitempty" maxLength:"20"`
 }
 
-// Operator keys and their labels in the builder.
-var opLabels = map[string]string{
-	"is": "is", "is_not": "is not", "includes": "includes", "excludes": "excludes",
-	"in_last": "in the last", "not_in_last": "not in the last", "never": "never",
-	"equals": "equals", "not_equals": "not equals", "contains": "contains", "ends_with": "ends with",
-	"is_empty": "is empty", "is_not_empty": "is not empty", "gt": "greater than", "lt": "less than",
-	"before": "before", "after": "after", "has": "has", "has_not": "doesn't have",
-	"is_true": "is true", "is_false": "is false", "opened": "opened", "not_opened": "didn't open",
-}
+// A field's name, an operator and a fixed value read as messages/<locale>.json
+// says: field.<key>, op.<key> and option.<field>.<value> (lang.go).
 
 // FieldKind says how a field's value is entered.
 type FieldKind string
@@ -71,28 +66,27 @@ type CustomField struct {
 
 var fieldKeyRe = regexp.MustCompile(`^[a-z][a-z0-9_]{0,62}$`)
 
-// fieldSpec describes a built-in field.
+// fieldSpec describes a built-in field; its name is field.<key>.
 type fieldSpec struct {
-	Label string
-	Kind  FieldKind
-	Ops   []string
+	Kind FieldKind
+	Ops  []string
 }
 
 var builtinFields = map[string]fieldSpec{
-	"mailbox_provider": {"Mailbox provider", KindEnum, []string{"is", "is_not"}},
-	"email_domain":     {"Email domain", KindText, []string{"is", "is_not", "ends_with"}},
-	"list":             {"List membership", KindList, []string{"includes", "excludes"}},
-	"tier":             {"Tier", KindEnum, []string{"is", "is_not"}},
-	"consent":          {"Consent", KindEnum, []string{"is", "is_not"}},
-	"source":           {"Source", KindEnum, []string{"is", "is_not"}},
-	"tag":              {"Tag", KindText, []string{"has", "has_not"}},
-	"country":          {"Country", KindText, []string{"is", "is_not"}},
-	"language":         {"Language", KindEnum, []string{"is", "is_not"}},
-	"last_open":        {"Last open", KindPeriod, []string{"in_last", "not_in_last", "never"}},
-	"opened":           {"Opened any email", KindPeriod, []string{"in_last", "not_in_last"}},
-	"clicked":          {"Clicked any email", KindPeriod, []string{"in_last", "not_in_last"}},
-	"opened_campaign":  {"Opened campaign", KindCampaign, []string{"opened", "not_opened"}},
-	"joined":           {"Joined", KindPeriod, []string{"in_last", "not_in_last"}},
+	"mailbox_provider": {KindEnum, []string{"is", "is_not"}},
+	"email_domain":     {KindText, []string{"is", "is_not", "ends_with"}},
+	"list":             {KindList, []string{"includes", "excludes"}},
+	"tier":             {KindEnum, []string{"is", "is_not"}},
+	"consent":          {KindEnum, []string{"is", "is_not"}},
+	"source":           {KindEnum, []string{"is", "is_not"}},
+	"tag":              {KindText, []string{"has", "has_not"}},
+	"country":          {KindText, []string{"is", "is_not"}},
+	"language":         {KindEnum, []string{"is", "is_not"}},
+	"last_open":        {KindPeriod, []string{"in_last", "not_in_last", "never"}},
+	"opened":           {KindPeriod, []string{"in_last", "not_in_last"}},
+	"clicked":          {KindPeriod, []string{"in_last", "not_in_last"}},
+	"opened_campaign":  {KindCampaign, []string{"opened", "not_opened"}},
+	"joined":           {KindPeriod, []string{"in_last", "not_in_last"}},
 }
 
 // builtinOrder is the order of fields in the builder's select.
@@ -101,11 +95,13 @@ var builtinOrder = []string{
 	"opened_campaign", "consent", "source", "tag", "country", "language", "joined",
 }
 
-// Enum values of the built-in enum fields.
+// Enum values of the built-in enum fields: the value and, for a name that
+// reads the same in every language, the name; the others read as
+// option.<field>.<value> says.
 var enumValues = map[string][][2]string{
-	"mailbox_provider": {{"gmail", "Gmail"}, {"outlook", "Outlook"}, {"yahoo", "Yahoo"}, {"icloud", "iCloud"}, {"other", "Other"}},
-	"tier":             {{"active", "Active"}, {"cooling", "Cooling"}, {"at_risk", "At risk"}, {"sunset", "Sunset"}},
-	"consent":          {{"double", "Double opt-in"}, {"single", "Single opt-in"}, {"pending", "Imported, pending"}},
+	"mailbox_provider": {{"gmail", "Gmail"}, {"outlook", "Outlook"}, {"yahoo", "Yahoo"}, {"icloud", "iCloud"}, {"other", ""}},
+	"tier":             {{"active", ""}, {"cooling", ""}, {"at_risk", ""}, {"sunset", ""}},
+	"consent":          {{"double", ""}, {"single", ""}, {"pending", ""}},
 }
 
 func customOps(typ string) []string {
@@ -122,43 +118,50 @@ func customOps(typ string) []string {
 	return []string{"equals", "not_equals", "is_one_of", "contains", "is_empty", "is_not_empty"}
 }
 
-// ValidationError explains which condition is wrong, for a 422.
+// ValidationError explains which condition is wrong, for a 422. Message
+// is the English; Text writes it in a reader's language.
 type ValidationError struct {
 	Location string
 	Message  string
+	problem  error
 }
 
 func (e *ValidationError) Error() string { return e.Message }
 
-// condProblem is a sentence saying what's wrong with one condition; the
-// caller wraps it in a ValidationError with the condition's location.
-type condProblem string
+// Text is the problem in a reader's language.
+func (e *ValidationError) Text(l i18n.Lang) string {
+	if e.problem == nil {
+		return e.Message
+	}
+	return textOf(l, e.problem)
+}
 
-func (p condProblem) Error() string { return string(p) }
-
-func problemf(format string, a ...any) error { return condProblem(fmt.Sprintf(format, a...)) }
+// invalid is a ValidationError at a location.
+func invalid(location string, p error) *ValidationError {
+	return &ValidationError{Location: location, Message: p.Error(), problem: p}
+}
 
 // Validate checks every condition against the catalog. custom maps custom
 // field keys to their definition; lists holds the workspace's list ids.
 func (d SegmentDefinition) Validate(custom map[string]CustomField, lists map[uuid.UUID]string) error {
 	if len(d.Groups) > 20 {
-		return &ValidationError{"body.definition.groups", "A segment can have at most 20 groups."}
+		return invalid("body.definition.groups", says(mTooManyGrps))
 	}
 	for gi, g := range d.Groups {
 		loc := fmt.Sprintf("body.definition.groups[%d]", gi)
 		if g.Match != "all" && g.Match != "any" {
-			return &ValidationError{loc + ".match", "Pick ALL or ANY for each group."}
+			return invalid(loc+".match", says(mMatch))
 		}
 		if len(g.Conditions) == 0 {
-			return &ValidationError{loc, fmt.Sprintf("Group %d has no conditions. Add one or remove the group.", gi+1)}
+			return invalid(loc, sayf(mEmptyGroup, i18n.Args{"n": strconv.Itoa(gi + 1)}))
 		}
 		if len(g.Conditions) > 50 {
-			return &ValidationError{loc, "A group can have at most 50 conditions."}
+			return invalid(loc, says(mTooManyCond))
 		}
 		for ci, c := range g.Conditions {
 			cloc := fmt.Sprintf("%s.conditions[%d]", loc, ci)
 			if err := c.validate(custom, lists); err != nil {
-				return &ValidationError{cloc, err.Error()}
+				return invalid(cloc, err)
 			}
 		}
 	}
@@ -166,12 +169,12 @@ func (d SegmentDefinition) Validate(custom map[string]CustomField, lists map[uui
 }
 
 func (c SegmentCondition) validate(custom map[string]CustomField, lists map[uuid.UUID]string) error {
-	ops, kind, label := c.spec(custom)
+	ops, kind := c.spec(custom)
 	if ops == nil {
-		return problemf("%q is not a field you can filter on.", c.Field)
+		return sayf(mUnknownFld, i18n.Args{"field": strconv.Quote(c.Field)})
 	}
 	if !contains(ops, c.Op) {
-		return problemf("%s can't use the operator %q.", label, c.Op)
+		return sayField(mUnknownOp, c.Field, false, i18n.Args{"op": strconv.Quote(c.Op)})
 	}
 	if v, ok := extraValidate[c.Field]; ok {
 		return v(c)
@@ -181,26 +184,26 @@ func (c SegmentCondition) validate(custom map[string]CustomField, lists map[uuid
 		return nil
 	case kind == KindPeriod:
 		if c.Amount < 1 || c.Amount > 3650 {
-			return problemf("%s needs a number of days or weeks between 1 and 3650.", label)
+			return sayField(mPeriodRange, c.Field, false, nil)
 		}
 		if c.Unit != "days" && c.Unit != "weeks" {
-			return problemf("%s needs days or weeks.", label)
+			return sayField(mPeriodUnit, c.Field, false, nil)
 		}
 	case kind == KindList:
 		id, err := uuid.Parse(c.Value)
 		if err != nil {
-			return problemf("Pick a list for %s.", strings.ToLower(label))
+			return sayField(mPickList, c.Field, true, nil)
 		}
 		if _, ok := lists[id]; !ok {
-			return problemf("That list doesn't exist in this workspace any more.")
+			return says(mListGone)
 		}
 	case kind == KindCampaign:
 		if _, err := uuid.Parse(c.Value); err != nil {
-			return problemf("Pick a campaign.")
+			return says(mPickCamp)
 		}
 	case c.Field == "language":
 		if !validLanguage(c.Value) {
-			return problemf("Pick a language for %s.", strings.ToLower(label))
+			return sayField(mPickLang, c.Field, true, nil)
 		}
 	case kind == KindEnum && c.Field != "source":
 		ok := false
@@ -210,19 +213,19 @@ func (c SegmentCondition) validate(custom map[string]CustomField, lists map[uuid
 			}
 		}
 		if !ok {
-			return problemf("Pick a value for %s.", strings.ToLower(label))
+			return sayField(mPickValue, c.Field, true, nil)
 		}
 	case kind == KindNumber:
 		if _, err := strconv.ParseFloat(strings.TrimSpace(c.Value), 64); err != nil {
-			return problemf("%s needs a number.", label)
+			return sayField(mNumber, c.Field, false, nil)
 		}
 	case kind == KindDate:
 		if !dateRe.MatchString(strings.TrimSpace(c.Value)) {
-			return problemf("%s needs a date like 2026-10-30.", label)
+			return sayField(mDate, c.Field, false, nil)
 		}
 	default:
 		if strings.TrimSpace(c.Value) == "" {
-			return problemf("Enter a value for %s.", strings.ToLower(label))
+			return sayField(mEnterValue, c.Field, true, nil)
 		}
 	}
 	return nil
@@ -230,12 +233,12 @@ func (c SegmentCondition) validate(custom map[string]CustomField, lists map[uuid
 
 var dateRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
 
-// spec returns the operators, kind and label of the condition's field.
-func (c SegmentCondition) spec(custom map[string]CustomField) ([]string, FieldKind, string) {
+// spec returns the operators and kind of the condition's field.
+func (c SegmentCondition) spec(custom map[string]CustomField) ([]string, FieldKind) {
 	if key, ok := strings.CutPrefix(c.Field, "custom:"); ok {
 		f, found := custom[key]
 		if !found || !fieldKeyRe.MatchString(key) {
-			return nil, "", ""
+			return nil, ""
 		}
 		kind := KindText
 		switch f.Type {
@@ -246,13 +249,13 @@ func (c SegmentCondition) spec(custom map[string]CustomField) ([]string, FieldKi
 		case "boolean":
 			kind = KindBoolean
 		}
-		return customOps(f.Type), kind, "Custom field · " + key
+		return customOps(f.Type), kind
 	}
 	s, ok := builtinFields[c.Field]
 	if !ok {
-		return nil, "", ""
+		return nil, ""
 	}
-	return s.Ops, s.Kind, s.Label
+	return s.Ops, s.Kind
 }
 
 func contains(xs []string, x string) bool {

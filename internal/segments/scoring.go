@@ -25,18 +25,14 @@ import (
 var scoreOps = []string{"at_least", "at_most", "between"}
 
 func init() {
-	opLabels["at_least"] = "is at least"
-	opLabels["at_most"] = "is at most"
-	opLabels["between"] = "is between"
-	opLabels["is_one_of"] = "is one of"
-	builtinFields["score"] = fieldSpec{"Score", KindNumber, scoreOps}
-	builtinFields["score_band"] = fieldSpec{"Score band", KindEnum, []string{"is", "is_not"}}
-	builtinFields["growth_source"] = fieldSpec{"Growth source", KindEnum, []string{"is", "is_not"}}
-	builtinFields["utm_source"] = fieldSpec{"UTM source", KindText, []string{"is", "is_not", "contains"}}
-	builtinFields["utm_medium"] = fieldSpec{"UTM medium", KindText, []string{"is", "is_not", "contains"}}
-	builtinFields["utm_campaign"] = fieldSpec{"UTM campaign", KindText, []string{"is", "is_not", "contains"}}
-	builtinFields["referring_domain"] = fieldSpec{"Referring domain", KindText, []string{"is", "is_not", "ends_with"}}
-	enumValues["score_band"] = [][2]string{{"cold", "Cold"}, {"warm", "Warm"}, {"hot", "Hot"}}
+	builtinFields["score"] = fieldSpec{KindNumber, scoreOps}
+	builtinFields["score_band"] = fieldSpec{KindEnum, []string{"is", "is_not"}}
+	builtinFields["growth_source"] = fieldSpec{KindEnum, []string{"is", "is_not"}}
+	builtinFields["utm_source"] = fieldSpec{KindText, []string{"is", "is_not", "contains"}}
+	builtinFields["utm_medium"] = fieldSpec{KindText, []string{"is", "is_not", "contains"}}
+	builtinFields["utm_campaign"] = fieldSpec{KindText, []string{"is", "is_not", "contains"}}
+	builtinFields["referring_domain"] = fieldSpec{KindText, []string{"is", "is_not", "ends_with"}}
+	enumValues["score_band"] = [][2]string{{"cold", ""}, {"warm", ""}, {"hot", ""}}
 	// Score and band read like engagement, after "Clicked any email"; the
 	// growth fields follow the source.
 	builtinOrder = insertAfter(builtinOrder, "clicked", "score", "score_band")
@@ -83,15 +79,15 @@ func scoreValue(s string) (int, bool) {
 func validateScore(c SegmentCondition) error {
 	a, ok := scoreValue(c.Value)
 	if !ok {
-		return problemf("The score needs a number from 0 to 100.")
+		return says(mScore)
 	}
 	if c.Op == "between" {
 		b, ok := scoreValue(c.To)
 		if !ok {
-			return problemf("Enter both ends of the range, from 0 to 100.")
+			return says(mScoreEnds)
 		}
 		if b < a {
-			return problemf("The range ends below where it starts. Swap the two numbers.")
+			return says(mRangeSwap)
 		}
 	}
 	return nil
@@ -100,7 +96,7 @@ func validateScore(c SegmentCondition) error {
 func validateGrowthSource(c SegmentCondition) error {
 	kind, _, _ := strings.Cut(c.Value, ":")
 	if kind == "" || len(c.Value) > 200 {
-		return problemf("Pick a growth source.")
+		return says(mPickGrowth)
 	}
 	return nil
 }

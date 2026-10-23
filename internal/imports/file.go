@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // MaxFileRows bounds an uploaded file ("Up to 500,000 rows").
@@ -48,16 +50,51 @@ type ImportBadRow struct {
 	Raw     string `json:"raw"`
 }
 
-// FileError explains a file that can't be imported as is.
+// FileError explains a file that can't be imported as is: Message in
+// English, Text the message it came from for readers of other languages.
 type FileError struct {
 	Message string
+	Text    i18n.Text
 	// BadRows are rows with the wrong number of columns ("row 1,204 has 9
 	// columns, the header has 8"); they can be skipped.
 	BadRows []ImportBadRow
 	Header  int
 }
 
-func (e *FileError) Error() string { return e.Message }
+func (e *FileError) Error() string   { return e.Message }
+func (e *FileError) kept() i18n.Text { return e.Text }
+
+// fileError explains a file with a message of the catalog.
+func fileError(m i18n.Msg, args i18n.Args) *FileError {
+	t := m.Keep(args)
+	return &FileError{Message: english(t), Text: t}
+}
+
+// unreadable explains a file the reader stopped at: the workbook's problem
+// (xlsxError) or the reader's own words.
+func unreadable(name string, err error) *FileError {
+	args := i18n.Args{"file": name, "reason": "other", "detail": err.Error()}
+	var xe *xlsxError
+	if errors.As(err, &xe) {
+		args["reason"], args["sheet"], args["max"] = xe.reason, xe.sheet, strconv.Itoa(xe.max)
+		if cause := errors.Unwrap(xe.err); cause != nil {
+			args["detail"] = cause.Error()
+		}
+	}
+	return fileError(mFileUnreadable, args)
+}
+
+// rowUnreadable explains a CSV row the reader stopped at.
+func rowUnreadable(name string, pe *csv.ParseError) *FileError {
+	reason := "other"
+	switch {
+	case errors.Is(pe.Err, csv.ErrBareQuote):
+		reason = "bareQuote"
+	case errors.Is(pe.Err, csv.ErrQuote):
+		reason = "quote"
+	}
+	return fileError(mRowUnreadable, i18n.Args{"file": name, "row": strconv.Itoa(pe.Line), "reason": reason, "detail": pe.Err.Error()})
+}
 
 func (f *FileSource) parse() error {
 	if f.parsed {
@@ -70,7 +107,7 @@ func (f *FileSource) parse() error {
 	case "xlsx":
 		rows, err := readXLSX(f.Data, MaxFileRows+1)
 		if err != nil {
-			return &FileError{Message: fmt.Sprintf("%s can't be read: %v.", f.Name, err)}
+			return unreadable(f.Name, err)
 		}
 		for i, r := range rows {
 			table = append(table, r)
@@ -93,15 +130,15 @@ func (f *FileSource) parse() error {
 			if err != nil {
 				var pe *csv.ParseError
 				if errors.As(err, &pe) {
-					return &FileError{Message: fmt.Sprintf("%s: row %d can't be read (%v). Fix the file and upload it again.", f.Name, pe.Line, pe.Err)}
+					return rowUnreadable(f.Name, pe)
 				}
-				return &FileError{Message: fmt.Sprintf("%s can't be read: %v.", f.Name, err)}
+				return unreadable(f.Name, err)
 			}
 			line, _ := r.FieldPos(0)
 			table = append(table, rec)
 			lines = append(lines, line)
 			if len(table) > MaxFileRows+1 {
-				return &FileError{Message: fmt.Sprintf("%s has more than %d rows. Split it into smaller files.", f.Name, MaxFileRows)}
+				return fileError(mTooManyRows, i18n.Args{"file": f.Name, "max": strconv.Itoa(MaxFileRows)})
 			}
 		}
 	}
@@ -114,7 +151,7 @@ func (f *FileSource) parse() error {
 		}
 	}
 	if start < 0 {
-		return &FileError{Message: fmt.Sprintf("%s is empty.", f.Name)}
+		return fileError(mFileEmpty, i18n.Args{"file": f.Name})
 	}
 	f.header = make([]string, len(table[start]))
 	for i, h := range table[start] {
@@ -141,8 +178,9 @@ func (f *FileSource) parse() error {
 	}
 	if len(f.bad) > 0 {
 		first := f.bad[0]
-		msg := fmt.Sprintf("%s: row %s has %d columns, the header has %d", f.Name, thousands(first.Line), first.Columns, len(f.header))
-		return &FileError{Message: msg, BadRows: f.bad, Header: len(f.header)}
+		fe := fileError(mBadColumns, i18n.Args{"file": f.Name, "row": first.Line, "columns": strconv.Itoa(first.Columns), "header": strconv.Itoa(len(f.header))})
+		fe.BadRows, fe.Header = f.bad, len(f.header)
+		return fe
 	}
 	return nil
 }
@@ -176,18 +214,6 @@ func latin1ToUTF8(b []byte) []byte {
 		out[i] = rune(c)
 	}
 	return []byte(string(out))
-}
-
-func thousands(n int) string {
-	s := fmt.Sprint(n)
-	var out []byte
-	for i := range s {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			out = append(out, ',')
-		}
-		out = append(out, s[i])
-	}
-	return string(out)
 }
 
 // Header returns the column names.

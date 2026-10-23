@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -173,7 +174,7 @@ func (s *Service) Prompt(ctx context.Context, ws *store.Workspace, kind string, 
 			}
 		}
 	default:
-		return out, api.Invalid("query.context", "Use health, form or import.")
+		return out, api.Invalid("query.context", mContext.Text(i18n.LangFrom(ctx), nil))
 	}
 	dismissedIDs, err := s.Q.WelcomeDismissedLists(ctx, ws.ID)
 	if err != nil {
