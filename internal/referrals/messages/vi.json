@@ -95,5 +95,15 @@
   "readiness.tokenEmpty": "{token} trống với {count, number} người nhận không có trong {list}",
   "readiness.tokenDetail": "Câu văn sẽ kết thúc bằng khoảng trống với họ. Khối Giới thiệu thì tự ẩn; hoặc hãy thêm giá trị dự phòng như {fallback}.",
   "readiness.tokenAck": "Tôi hiểu một số người nhận sẽ thấy biến giới thiệu trống.",
-  "readiness.openComposer": "Mở trong trình soạn thảo"
+  "readiness.openComposer": "Mở trong trình soạn thảo",
+
+  "token.link": "Liên kết giới thiệu",
+  "token.code": "Mã giới thiệu",
+  "token.hubURL": "Liên kết trang phần thưởng",
+  "token.count": "Lượt giới thiệu đã tính",
+  "token.pending": "Lượt giới thiệu chưa tính",
+  "token.nextMilestone": "Mốc thưởng tiếp theo",
+  "token.nextReward": "Phần thưởng tiếp theo",
+  "token.toNext": "Số lượt giới thiệu đến phần thưởng tiếp theo",
+  "token.rewards": "Phần thưởng đã nhận"
 }

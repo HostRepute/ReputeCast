@@ -95,5 +95,15 @@
   "readiness.tokenEmpty": "{token} is empty for {count, number} recipients who aren't on {list}",
   "readiness.tokenDetail": {"message": "The sentence would end with nothing for them. The Referral block hides itself instead; or add a fallback such as {fallback}.", "note": "fallback: Liquid code, kept as it is"},
   "readiness.tokenAck": "I understand some recipients get an empty referral token.",
-  "readiness.openComposer": "Open in the composer"
+  "readiness.openComposer": "Open in the composer",
+
+  "token.link": {"message": "Referral link", "note": "a personalization token in the composer's token menu"},
+  "token.code": "Referral code",
+  "token.hubURL": "Rewards page link",
+  "token.count": "Counted referrals",
+  "token.pending": "Referrals not counted yet",
+  "token.nextMilestone": "Next milestone",
+  "token.nextReward": "Next reward",
+  "token.toNext": "Referrals to the next reward",
+  "token.rewards": "Rewards earned"
 }

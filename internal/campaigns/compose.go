@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/media"
@@ -107,6 +108,8 @@ func (s *Service) Context(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	if out.Tokens, err = s.tokens(ctx, ws.ID); err != nil {
 		return out, err
 	}
+	// The tokens other packages register (Grow's) in the member's language.
+	out.Tokens = liquid.InLanguage(out.Tokens, i18n.LangFrom(ctx))
 	members, err := s.Q.ComposerTestRecipients(ctx, ws.ID)
 	if err != nil {
 		return out, err
