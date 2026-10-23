@@ -49,8 +49,6 @@ func RegisterJobs(reg *jobs.Registry, s *Service) {
 	reg.Every(5*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return TickArgs{}, nil }, true)
 }
 
-var englishLang = i18n.Lang{Locale: i18n.English, Region: i18n.Standard}
-
 // Tick runs the periodic work.
 func (s *Service) Tick(ctx context.Context) error {
 	if err := s.markSent(ctx); err != nil {

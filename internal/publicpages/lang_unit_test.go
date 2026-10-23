@@ -4,6 +4,7 @@ package publicpages
 // (unit tests: no database). English stays as it was.
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -174,7 +175,7 @@ func TestGrowWords(t *testing.T) {
 }
 
 func TestAnswersWithoutWorkspace(t *testing.T) {
-	r := httptest.NewRequest("GET", "/p/nobody/x", nil)
+	r := httptest.NewRequest(http.MethodGet, "/p/nobody/x", nil)
 	r.Header.Set("Accept-Language", "vi-VN,vi;q=0.9,en;q=0.8")
 	if got := growMsgs.M("page.missing").Text(browserLabels(r).Lang(), nil); got != "Trang này không tồn tại." {
 		t.Errorf("Vietnamese: %q", got)

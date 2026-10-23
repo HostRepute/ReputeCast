@@ -20,8 +20,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-
 	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/recommendations"

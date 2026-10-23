@@ -627,7 +627,7 @@ func (h *Handler) notFound(w http.ResponseWriter, r *http.Request, s *site) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Header().Set("X-Robots-Tag", "noindex")
 		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(growMsgs.M("page.missing").Text(browserLabels(r).Lang(), nil) + "\n"))
+		_, _ = w.Write([]byte(growMsgs.M("page.missing").Text(browserLabels(r).Lang(), nil) + "\n")) //nolint:gosec // G705: a catalog sentence, picked by the browser's language, served as text/plain
 		return
 	}
 	pl := h.visitorLang(w, r, s, nil)

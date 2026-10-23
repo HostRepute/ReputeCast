@@ -1,13 +1,14 @@
 package website
 
 import (
+	"context"
+	"net/http"
+
 	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
-
-	"context"
-	"net/http"
 )
 
 // Words are the site's built-in words (header, footer, paywall, sign-in,

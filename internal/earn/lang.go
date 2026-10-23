@@ -13,7 +13,6 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/i18n"
-	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -256,34 +255,4 @@ func failureShort(l i18n.Lang, reason string) string {
 		return msgs.M("reason.short."+k).Text(l, nil)
 	}
 	return strings.ToLower(strings.TrimPrefix(strings.TrimSuffix(reason, "."), "Your card has "))
-}
-
-// readerLang is the language a contact reads the workspace's emails in:
-// theirs when the workspace writes in it, else the fallback language, else
-// the default (as a send picks a version when every version is ready).
-func readerLang(ctx context.Context, q *store.Queries, wsID uuid.UUID, contactLanguage string) i18n.Lang {
-	rows, err := q.LanguagesList(ctx, wsID)
-	if err != nil {
-		return pagelabels.Lang("en")
-	}
-	base := languages.Base(contactLanguage)
-	def, fallback := "en", ""
-	for _, r := range rows {
-		if r.RemovedAt != nil {
-			continue
-		}
-		if r.Code == base && base != "" {
-			return pagelabels.Lang(base)
-		}
-		if r.IsDefault {
-			def = r.Code
-		}
-		if r.IsFallback {
-			fallback = r.Code
-		}
-	}
-	if fallback != "" {
-		return pagelabels.Lang(fallback)
-	}
-	return pagelabels.Lang(def)
 }
