@@ -578,7 +578,7 @@ func (s *Service) providerOption(ctx context.Context, ws *store.Workspace, p sto
 	o.Detail = providerDetail(p)
 	if h := state.HealthOf(p); h.Down != nil {
 		since := h.Down.Since
-		o.DownSince, o.DownReason = &since, firstNonEmpty(p.StatusDetail, h.Down.Reason)
+		o.DownSince, o.DownReason = &since, downReason(i18n.LangFrom(ctx), h.Down.Reason, p.StatusDetail)
 	}
 	pr := state.PricingOf(p)
 	o.Pricing = pr.Model

@@ -62,8 +62,22 @@ var (
 	MSeedFailedBody  = msgs.M("notify.seedFailedBody")
 	MSeedExpiredBody = msgs.M("notify.seedExpiredBody")
 
-	mVersus = msgs.M("test.versus")
+	mVersus     = msgs.M("test.versus")
+	mDownOutage = msgs.M("provider.downOutage")
+	mDownAuth   = msgs.M("provider.downAuth")
 )
+
+// downReason says why a provider is down, for a reader: an outage or
+// refused credentials in their words, else the status the provider has.
+func downReason(l i18n.Lang, reason, status string) string {
+	switch reason {
+	case "outage":
+		return mDownOutage.Text(l, nil)
+	case "auth":
+		return mDownAuth.Text(l, nil)
+	}
+	return status
+}
 
 // versus joins the providers a test compares in its stored name
 // ("Weekly Digest #142 · SES vs Postal").
