@@ -172,6 +172,22 @@
   min-width: 130px;
 }
 
+/* Composer (rule 6): with five tabs ("Khả năng vào hộp thư · 3", "Khả năng
+   tiếp cận · 1") the right panel's tab bar ran past the panel and the page
+   scrolled sideways at 1440. The tabs keep one line each and the bar
+   scrolls sideways inside the panel, as tabs do elsewhere. */
+:root:not([lang='en']) .cpanel.right {
+  min-width: 0;
+}
+:root:not([lang='en']) .cpanel.right > div > .ptab {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+:root:not([lang='en']) .cpanel.right > div > .ptab button {
+  flex: 1 0 auto;
+  white-space: nowrap;
+}
+
 /* ── Sending and deliverability ──────────────────────────────────────── */
 
 /* Sending providers: a meter's number never breaks (rule 1). On phones the
