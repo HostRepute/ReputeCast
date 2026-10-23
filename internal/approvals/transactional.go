@@ -288,7 +288,10 @@ func (s *Service) RequestTemplateApproval(ctx context.Context, ws *store.Workspa
 		n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalRequested, Severity: "warn", Title: "Approval requested",
 			Summary: fmt.Sprintf("%s asked you to approve publishing %s", p.Name, name),
 			Body:    fmt.Sprintf("%s asked to publish %s (“%s”)%s", p.Name, name, t.Name, noteSuffix(note)),
-			Link:    "/w/" + ws.Slug + "/approvals/" + id.String(), Data: map[string]any{"request_id": id.String(), "transactional_template_id": templateID.String()}}
+			Link:    "/w/" + ws.Slug + "/approvals/" + id.String(), Data: map[string]any{"request_id": id.String(), "transactional_template_id": templateID.String()},
+			TitleText:   mNotifyRequestedTitle.Keep(nil),
+			SummaryText: mNotifyTemplateSummary.Keep(i18n.Args{"author": p.Name, "template": name}),
+			BodyText:    mNotifyTemplateBody.Keep(i18n.Args{"author": p.Name, "template": name, "name": t.Name, "hasNote": yesNo(note != ""), "note": note})}
 		for _, a := range approvers {
 			if err := notify.ToUser(ctx, tx, a.ID, n); err != nil {
 				return err

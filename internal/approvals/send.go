@@ -390,7 +390,10 @@ func (s *Service) recordBypass(ctx context.Context, tx pgx.Tx, ws *store.Workspa
 	n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalDecided, Severity: "warn", Title: "Sent without approval",
 		Summary: fmt.Sprintf("%s used the emergency bypass for “%s” · %s recipients", author.Name, c.Name, readiness.Count(snap.AudienceCount)),
 		Body:    fmt.Sprintf("%s used the emergency bypass for “%s” · %s recipients. Reason: %s", author.Name, c.Name, readiness.Count(snap.AudienceCount), reason),
-		Link:    "/w/" + ws.Slug + "/campaigns/" + c.ID.String() + "/review", Data: map[string]any{"request_id": id.String(), "campaign_id": c.ID.String()}}
+		Link:    "/w/" + ws.Slug + "/campaigns/" + c.ID.String() + "/review", Data: map[string]any{"request_id": id.String(), "campaign_id": c.ID.String()},
+		TitleText:   mNotifyBypassTitle.Keep(nil),
+		SummaryText: mNotifyBypassSummary.Keep(i18n.Args{"author": author.Name, "name": c.Name, "count": snap.AudienceCount}),
+		BodyText:    mNotifyBypassBody.Keep(i18n.Args{"author": author.Name, "name": c.Name, "count": snap.AudienceCount, "reason": reason})}
 	for _, a := range approversOf(ms) {
 		if a.ID == p.UserID {
 			continue
@@ -720,11 +723,16 @@ func (s *Service) hold(ctx context.Context, ws *store.Workspace, c store.Readine
 			Body:    fmt.Sprintf("“%s” didn't start at %s: %s. It stays held until a recheck passes.", c.Name, at, reason),
 			Link:    "/w/" + ws.Slug + "/campaigns/" + c.ID.String() + "/review", Data: map[string]any{"campaign_id": c.ID.String()}}
 		seen := map[uuid.UUID]bool{}
+		n.TitleText = mNotifyHeldTitle.Keep(nil)
 		for _, id := range targets {
 			if seen[id] {
 				continue
 			}
 			seen[id] = true
+			// The time and the reason are written in the language of the member it goes to.
+			rl := readerLang(ctx, q, id)
+			args := i18n.Args{"name": c.Name, "time": rl.Region.Time(now.In(state.Location(ws.Timezone)), ""), "reason": gapIn(rl, reason)}
+			n.SummaryText, n.BodyText = mNotifyHeldSummary.Keep(args), mNotifyHeldBody.Keep(args)
 			if err := notify.ToUser(ctx, tx, id, n); err != nil {
 				return err
 			}

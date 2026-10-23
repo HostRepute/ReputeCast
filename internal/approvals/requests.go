@@ -264,7 +264,11 @@ func (s *Service) RequestApproval(ctx context.Context, ws *store.Workspace, p *a
 			Body: fmt.Sprintf("%s asked for approval: “%s” · %s recipients · rules: %s", author.Name, c.Name, readiness.Count(snap.AudienceCount),
 				strings.ReplaceAll(strings.TrimPrefix(strings.TrimPrefix(rulesLine(rules), "rules: "), "rule: "), " · ", ", ")),
 			Link: "/w/" + ws.Slug + "/approvals/" + id.String(), Data: map[string]any{"request_id": id.String(), "campaign_id": campaignID.String()}}
+		n.TitleText = mNotifyRequestedTitle.Keep(nil)
+		n.SummaryText = mNotifyRequestedSummary.Keep(i18n.Args{"author": author.Name, "name": c.Name, "count": snap.AudienceCount})
 		for _, a := range approvers {
+			n.BodyText = mNotifyRequestedBody.Keep(i18n.Args{"author": author.Name, "name": c.Name, "count": snap.AudienceCount,
+				"rules": ruleList(readerLang(ctx, q, a.ID), rules)})
 			if err := notify.ToUser(ctx, tx, a.ID, n); err != nil {
 				return err
 			}
@@ -442,8 +446,10 @@ func (s *Service) Decide(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if locked.WebsitePageID != nil {
 			link, summary, body = pageDecisionNote(ws, *locked.WebsitePageID, ParseSnapshot(locked.Snapshot), status, summary, body)
 		}
+		kept := decisionNoteArgs(ctx, q, ws, locked, status, approver.Name, name, comment)
 		if err := notify.ToUser(ctx, tx, *locked.RequestedBy, notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalDecided, Severity: sev, Title: title,
-			Summary: summary, Body: body, Link: link, Data: map[string]any{"request_id": requestID.String(), "decision": in.Decision}}); err != nil {
+			Summary: summary, Body: body, Link: link, Data: map[string]any{"request_id": requestID.String(), "decision": in.Decision},
+			TitleText: mNotifyDecidedTitle.Keep(i18n.Args{"status": status}), SummaryText: mNotifyDecidedSummary.Keep(kept), BodyText: mNotifyDecidedBody.Keep(kept)}); err != nil {
 			return err
 		}
 		if status == "approved" && locked.SubjectType == "website_post" && locked.WebsitePostID != nil && s.Website != nil {
@@ -642,7 +648,10 @@ func (s *Service) Remind(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalRequested, Severity: "warn", Title: "Approval requested · reminder",
 			Summary: fmt.Sprintf("%s is waiting for your approval of “%s” · %s recipients", r.RequestedByName, r.SubjectName, readiness.Count(snap.AudienceCount)),
 			Body:    fmt.Sprintf("%s is still waiting for approval of “%s” · %s recipients.", r.RequestedByName, r.SubjectName, readiness.Count(snap.AudienceCount)),
-			Link:    "/w/" + ws.Slug + "/approvals/" + requestID.String(), Data: map[string]any{"request_id": requestID.String()}}
+			Link:    "/w/" + ws.Slug + "/approvals/" + requestID.String(), Data: map[string]any{"request_id": requestID.String()},
+			TitleText:   mNotifyReminderTitle.Keep(nil),
+			SummaryText: mNotifyReminderSummary.Keep(i18n.Args{"author": r.RequestedByName, "name": r.SubjectName, "count": snap.AudienceCount}),
+			BodyText:    mNotifyReminderBody.Keep(i18n.Args{"author": r.RequestedByName, "name": r.SubjectName, "count": snap.AudienceCount})}
 		for _, a := range approversOf(ms) {
 			if a.ID == p.UserID {
 				continue

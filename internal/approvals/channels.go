@@ -181,7 +181,11 @@ func (s *Service) insertChannelRequest(ctx context.Context, ws *store.Workspace,
 			Body: fmt.Sprintf("%s asked for approval: “%s” · %s recipients · rules: %s", authorName, d.Name, readiness.Count(snap.AudienceCount),
 				strings.ReplaceAll(strings.TrimPrefix(strings.TrimPrefix(rulesLine(rules), "rules: "), "rule: "), " · ", ", ")),
 			Link: "/w/" + ws.Slug + "/approvals/" + id.String(), Data: map[string]any{"request_id": id.String(), "campaign_id": campaignID.String()}}
+		n.TitleText = mNotifyRequestedTitle.Keep(nil)
+		n.SummaryText = mNotifyRequestedSummary.Keep(i18n.Args{"author": authorName, "name": d.Name, "count": snap.AudienceCount})
 		for _, a := range approvers {
+			n.BodyText = mNotifyRequestedBody.Keep(i18n.Args{"author": authorName, "name": d.Name, "count": snap.AudienceCount,
+				"rules": ruleList(readerLang(ctx, store.New(tx), a.ID), rules)})
 			if err := notify.ToUser(ctx, tx, a.ID, n); err != nil {
 				return err
 			}

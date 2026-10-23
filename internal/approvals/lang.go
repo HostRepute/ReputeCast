@@ -35,8 +35,8 @@ import (
 // (approval_requests.invalidated_reason_text). Rows written before have no
 // kept messages and read as stored.
 //
-// Notifications stay in English until internal/notify keeps messages for
-// its readers; their texts are already in the catalog (notify.*).
+// Notifications keep their messages too (notify_text.go): each member reads
+// them in their own language, and their stored English is unchanged.
 
 //go:embed messages/*.json
 var messagesFS embed.FS

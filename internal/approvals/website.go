@@ -206,7 +206,10 @@ func (g WebsiteGate) RequestPost(ctx context.Context, ws *store.Workspace, p *au
 		n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalRequested, Severity: "warn", Title: "Approval requested",
 			Summary: fmt.Sprintf("%s asked you to approve publishing “%s”", p.Name, req.Title),
 			Body:    fmt.Sprintf("%s asked to publish the post “%s” at %s%s", p.Name, req.Title, req.Path, noteSuffix(note)),
-			Link:    "/w/" + ws.Slug + "/approvals/" + id.String(), Data: map[string]any{"request_id": id.String(), "website_post_id": req.PostID.String()}}
+			Link:    "/w/" + ws.Slug + "/approvals/" + id.String(), Data: map[string]any{"request_id": id.String(), "website_post_id": req.PostID.String()},
+			TitleText:   mNotifyRequestedTitle.Keep(nil),
+			SummaryText: mNotifyPublishSummary.Keep(i18n.Args{"author": p.Name, "name": req.Title}),
+			BodyText:    mNotifyPostBody.Keep(i18n.Args{"author": p.Name, "name": req.Title, "path": req.Path, "hasNote": yesNo(note != ""), "note": note})}
 		for _, a := range approvers {
 			if err := notify.ToUser(ctx, tx, a.ID, n); err != nil {
 				return err
@@ -248,7 +251,10 @@ func (g WebsiteGate) PostChanged(ctx context.Context, ws *store.Workspace, p *au
 		n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindApprovalInvalidated, Severity: "warn", Title: "Approval invalidated",
 			Summary: fmt.Sprintf("“%s” changed after the request", title),
 			Body:    fmt.Sprintf("The post “%s” changed after its approval request, so the request no longer covers it. Ask for approval again.", title),
-			Link:    "/w/" + ws.Slug + "/approvals/" + r.ID.String(), Data: map[string]any{"request_id": r.ID.String(), "website_post_id": postID.String()}}
+			Link:    "/w/" + ws.Slug + "/approvals/" + r.ID.String(), Data: map[string]any{"request_id": r.ID.String(), "website_post_id": postID.String()},
+			TitleText:   mNotifyInvalidatedTitle.Keep(nil),
+			SummaryText: mNotifyChangedSummary.Keep(i18n.Args{"name": title}),
+			BodyText:    mNotifyPostChangedBody.Keep(i18n.Args{"name": title})}
 		if err := notify.ToUser(ctx, s.Pool, *r.RequestedBy, n); err != nil {
 			return err
 		}

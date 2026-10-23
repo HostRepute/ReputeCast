@@ -330,11 +330,19 @@ func (s *Service) invalidate(ctx context.Context, ws *store.Workspace, r store.A
 		for _, a := range approversOf(ms) {
 			targets = append(targets, a.ID)
 		}
+		whoseKey := "none"
+		if decider != "" {
+			whoseKey = "approver"
+		}
+		n.TitleText = mNotifyInvalidatedTitle.Keep(nil)
 		for _, id := range targets {
 			if seen[id] || (by != nil && id == *by) {
 				continue
 			}
 			seen[id] = true
+			// The reason is written in the language of the member it goes to.
+			args := i18n.Args{"name": c.Name, "reason": strings.TrimSuffix(render(readerLang(ctx, q, id), reasonText), " after approval"), "whose": whoseKey, "approver": decider}
+			n.SummaryText, n.BodyText = mNotifyInvalidatedSummary.Keep(args), mNotifyInvalidatedBody.Keep(args)
 			if err := notify.ToUser(ctx, tx, id, n); err != nil {
 				return err
 			}
