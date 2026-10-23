@@ -111,10 +111,10 @@ func digits(v float64) string {
 // mailboxArg names the mailbox provider most bounces came from: a name, or
 // "rest" for the other mailbox providers ("none" when there is none).
 func mailboxArg(key, name string) string {
-	switch {
-	case key == "":
+	switch key {
+	case "":
 		return "none"
-	case key == "other":
+	case "other":
 		return "rest"
 	}
 	return name
