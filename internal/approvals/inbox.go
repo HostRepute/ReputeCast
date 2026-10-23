@@ -442,6 +442,17 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		Push: snap.Push, WhatsApp: snap.WhatsApp}
 	l := langOf(ctx)
 	out.Automation = localAutomation(l, snap)
+	// A channel campaign's schedule, in the reader's words.
+	if snap.SMS != nil {
+		sms := *snap.SMS
+		sms.Schedule = kept(l, sms.Schedule, snap.ScheduleText)
+		out.SMS = &sms
+	}
+	if snap.WhatsApp != nil {
+		wa := *snap.WhatsApp
+		wa.Schedule = kept(l, wa.Schedule, snap.ScheduleText)
+		out.WhatsApp = &wa
+	}
 	if snap.Page != nil {
 		pg := *snap.Page
 		pg.VisibilityLabel = pageVisibilityLabel(l, pg.Visibility)
@@ -572,7 +583,7 @@ func (s *Service) nextOf(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
 func currentFromSnapshot(s Snapshot) Current {
 	return Current{Version: s.Version, ContentHash: s.ContentHash, Subject: s.Subject, Preheader: s.Preheader, SenderID: s.SenderID, From: s.From, Audience: s.Audience,
 		AudienceNames: s.AudienceLabels, AudienceCount: s.AudienceCount, RouteKey: s.RouteKey, SplitLabel: s.SplitLabel, Schedule: s.Schedule,
-		Text: s.Text, ScheduleLabel: s.ScheduleLabel}
+		Text: s.Text, ScheduleLabel: s.ScheduleLabel, ScheduleText: s.ScheduleText}
 }
 
 func firstNonEmptyStr(vals ...string) string {

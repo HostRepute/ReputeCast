@@ -107,5 +107,10 @@
   "webhook.whatsapp.replied": "Một người đã viết hoặc chạm vào nút trả lời nhanh: khung 24 giờ được mở.",
   "webhook.whatsapp.opted_out": "Một số đã gửi từ khóa hủy nhận: sự đồng ý nhận WhatsApp bị rút ở mọi danh sách.",
   "webhook.whatsapp.opted_in": "Một số đã gửi từ khóa đăng ký nhận: các sự đồng ý mà lần hủy nhận đã gỡ được khôi phục.",
-  "webhook.whatsapp.template_status": "Meta đã phê duyệt, từ chối, tạm dừng hoặc vô hiệu hóa một mẫu."
+  "webhook.whatsapp.template_status": "Meta đã phê duyệt, từ chối, tạm dừng hoặc vô hiệu hóa một mẫu.",
+  "approval.at": "{at, date}, {at, time} {zone}",
+  "approval.local": "{at, date}, {at, time} theo múi giờ của từng người nhận",
+  "issue.missingText": "Hãy viết tin nhắn, hoặc chọn một mẫu đã được duyệt.",
+  "issue.missingFallback": "Hãy chọn mẫu được gửi ngoài khung 24 giờ.",
+  "issue.missingTemplate": "Hãy chọn một mẫu đã được duyệt."
 }

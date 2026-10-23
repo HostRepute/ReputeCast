@@ -180,5 +180,10 @@
   "domain.other": "{domain} là CNAME đến {cname}, không phải {target}.",
   "domain.noAnswer": "DNS không phản hồi cho {domain}.",
   "domain.none": "Không tìm thấy CNAME. DNS có thể mất đến một giờ.",
-  "code.providerList": "Danh sách hủy nhận của {provider}"
+  "code.providerList": "Danh sách hủy nhận của {provider}",
+  "approval.scheduleNow": "Ngay bây giờ, giữ lại những người đang ngoài khung giờ gửi",
+  "approval.scheduleAt": "{at, date} {at, time} cho mọi người",
+  "approval.scheduleLocal": "{at, date} lúc {at, time} theo múi giờ của từng người nhận",
+  "approval.scheduleNone": "Chưa lên lịch",
+  "issue.publicShortener": "{host} là dịch vụ rút gọn liên kết công khai: nhà mạng lọc tin nhắn có những liên kết này. Hãy dán địa chỉ đầy đủ; liên kết sẽ được rút gọn trên tên miền của bạn."
 }

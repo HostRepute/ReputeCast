@@ -107,5 +107,10 @@
   "webhook.whatsapp.replied": "A person wrote or tapped a quick reply: the 24-hour window opens.",
   "webhook.whatsapp.opted_out": "A number wrote an opt-out keyword: WhatsApp consent withdrawn on every list.",
   "webhook.whatsapp.opted_in": "A number wrote an opt-in keyword: the consents the opt-out removed came back.",
-  "webhook.whatsapp.template_status": "Meta approved, rejected, paused or disabled a template."
+  "webhook.whatsapp.template_status": "Meta approved, rejected, paused or disabled a template.",
+  "approval.at": { "message": "{at, date}, {at, time} {zone}", "note": "a campaign's schedule on its approval, kept with the request and read in each approver's language: 21 Oct 2026, 09:00 Europe/Berlin" },
+  "approval.local": "{at, date}, {at, time} in each recipient's time zone",
+  "issue.missingText": { "message": "Write the message, or pick an approved template.", "note": "a Send WhatsApp step's issues on the automation canvas" },
+  "issue.missingFallback": "Pick the template sent outside the 24-hour window.",
+  "issue.missingTemplate": "Pick an approved template."
 }

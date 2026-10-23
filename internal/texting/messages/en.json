@@ -180,5 +180,10 @@
   "domain.other": {"message": "{domain} is a CNAME for {cname}, not {target}.", "note": "domain: the short-link domain; cname: where its CNAME points; target: where it should point"},
   "domain.noAnswer": {"message": "DNS didn't answer for {domain}.", "note": "domain: the short-link domain, go.acme.io"},
   "domain.none": "No CNAME found. DNS can take up to an hour.",
-  "code.providerList": {"message": "{provider} opt-out list", "note": "why a number is on the SMS suppression list: the provider's own opt-out list; provider: an SMS provider's name"}
+  "code.providerList": {"message": "{provider} opt-out list", "note": "why a number is on the SMS suppression list: the provider's own opt-out list; provider: an SMS provider's name"},
+  "approval.scheduleNow": { "message": "Now, holding whoever is outside their window", "note": "an SMS campaign's schedule on its approval: kept with the request, read in each approver's language" },
+  "approval.scheduleAt": "{at, date} {at, time} for everyone",
+  "approval.scheduleLocal": "{at, date} at {at, time} in each recipient's time zone",
+  "approval.scheduleNone": "Not scheduled",
+  "issue.publicShortener": { "message": "{host} is a public link shortener: carriers filter texts with them. Paste the full address; it's shortened on your own domain.", "note": "a Send SMS step's issue on the automation canvas; host: bit.ly" }
 }

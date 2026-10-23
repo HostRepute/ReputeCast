@@ -76,6 +76,9 @@ type Snapshot struct {
 	Channel       string `json:"channel,omitempty"`
 	Text          string `json:"text,omitempty"`
 	ScheduleLabel string `json:"schedule_label,omitempty"`
+	// ScheduleText is the label's message, read in each reader's language;
+	// requests compare the English label.
+	ScheduleText i18n.Text `json:"schedule_text,omitzero"`
 	// SMS is what an SMS campaign's approval shows: the text as sent, its
 	// segments, the senders and the cost per country.
 	SMS *ApprovalSMSSnapshot `json:"sms,omitempty"`
@@ -281,9 +284,10 @@ type Current struct {
 	Timezone      string
 	UpdatedBy     string
 	Languages     []languages.VersionSnapshot
-	// Text and ScheduleLabel are a channel campaign's (see Snapshot).
+	// Text, ScheduleLabel and ScheduleText are a channel campaign's (see Snapshot).
 	Text          string
 	ScheduleLabel string
+	ScheduleText  i18n.Text
 }
 
 var hrefRe = regexp.MustCompile(`(?i)href\s*=\s*["']([^"']+)["']`)
@@ -477,7 +481,8 @@ func diff(s Snapshot, c Current, loc *time.Location) []storedChange {
 	}
 	if s.ScheduleLabel != "" || c.ScheduleLabel != "" {
 		if s.ScheduleLabel != c.ScheduleLabel {
-			add(ApprovalChange{Field: "schedule", Label: "Schedule", Before: s.ScheduleLabel, After: c.ScheduleLabel}, keptChange{Label: mChangeSchedule.Keep(nil)})
+			add(ApprovalChange{Field: "schedule", Label: "Schedule", Before: s.ScheduleLabel, After: c.ScheduleLabel},
+				keptChange{Label: mChangeSchedule.Keep(nil), Before: s.ScheduleText, After: c.ScheduleText})
 		}
 	} else if !sameSchedule(s.Schedule, c.Schedule) {
 		before, after := scheduleKept(s.Schedule, loc), scheduleKept(c.Schedule, loc)

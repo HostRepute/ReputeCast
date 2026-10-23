@@ -17,6 +17,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/channels"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/sms"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -444,6 +445,26 @@ func scheduleLabel(c store.SmsCampaignRow, loc *time.Location) string {
 	return "Not scheduled"
 }
 
+// scheduleText is scheduleLabel's message, for approvers who read another
+// language.
+func scheduleText(c store.SmsCampaignRow, loc *time.Location) i18n.Text {
+	switch c.ScheduleMode {
+	case "now":
+		return msgs.M("approval.scheduleNow").Keep(nil)
+	case "at":
+		if c.SendAt != nil {
+			return msgs.M("approval.scheduleAt").Keep(i18n.Args{"at": c.SendAt.In(loc)})
+		}
+	case "local":
+		if c.LocalDate != nil && c.LocalMinute != nil {
+			m := int(*c.LocalMinute)
+			at := time.Date(c.LocalDate.Year(), c.LocalDate.Month(), c.LocalDate.Day(), m/60, m%60, 0, 0, time.UTC)
+			return msgs.M("approval.scheduleLocal").Keep(i18n.Args{"at": at})
+		}
+	}
+	return msgs.M("approval.scheduleNone").Keep(nil)
+}
+
 // DescribeForApproval implements approvals.ChannelCampaigns.
 func (s *Service) DescribeForApproval(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID) (approvals.ChannelCampaign, error) {
 	c, err := s.Q.SmsCampaign(ctx, store.SmsCampaignParams{ID: campaignID, WorkspaceID: ws.ID})
@@ -457,9 +478,9 @@ func (s *Service) DescribeForApproval(ctx context.Context, ws *store.Workspace, 
 	_, warns, blocks := rv.counts()
 	full := rv.text.Full()
 	loc := location(ws.Timezone)
-	label := scheduleLabel(c, loc)
+	label, labelText := scheduleLabel(c, loc), scheduleText(c, loc)
 	snap := approvals.Snapshot{Version: int(c.Version), ContentHash: contentHash(full), Audience: c.Audience, AudienceLabels: rv.lists, AudienceCount: rv.sent,
-		AudienceBaseline: rv.sent, Suppressed: rv.funnel.Suppressed, Route: []approvals.SnapshotShare{}, Cost: rv.cost, Channel: "sms", Text: full, ScheduleLabel: label,
+		AudienceBaseline: rv.sent, Suppressed: rv.funnel.Suppressed, Route: []approvals.SnapshotShare{}, Cost: rv.cost, Channel: "sms", Text: full, ScheduleLabel: label, ScheduleText: labelText,
 		Readiness: approvals.SnapshotReadiness{Verdict: rv.verdict, Passed: len(rv.checks) - warns - blocks, Warnings: warns, Blocks: blocks, Total: len(rv.checks), RanAt: rv.at}}
 	smsSnap := &approvals.ApprovalSMSSnapshot{Text: full, Prefix: rv.text.Prefix, OptOut: rv.text.OptOut, Body: rv.text.Body, Chars: rv.measured.Count.Characters,
 		Segments: rv.measured.Count.Segments, Encoding: string(rv.measured.Count.Encoding), Recipients: rv.sent, Cost: rv.cost, Schedule: label,
@@ -495,7 +516,7 @@ func (s *Service) DescribeForApproval(ctx context.Context, ws *store.Workspace, 
 	}
 	snap.SMS = smsSnap
 	cur := approvals.Current{Version: int(c.Version), ContentHash: snap.ContentHash, Audience: c.Audience, AudienceNames: rv.lists, AudienceCount: rv.sent,
-		Text: full, ScheduleLabel: label}
+		Text: full, ScheduleLabel: label, ScheduleText: labelText}
 	return approvals.ChannelCampaign{Name: c.Name, Status: c.Status, Version: int(c.Version), Snapshot: snap, Current: cur, Blocks: blocks,
 		SendPermission: authz.SMSSend, Facts: approvals.RuleFacts{Recipients: rv.sent, Verdict: verdictForRules(rv.verdict), Warnings: warns, Channel: "sms", Cost: rv.cost}}, nil
 }

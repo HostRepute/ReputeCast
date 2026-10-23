@@ -509,7 +509,7 @@ func (s *Service) DescribeForApproval(ctx context.Context, ws *store.Workspace, 
 	}
 	warns, blocks := rv.counts()
 	// The snapshot is kept and compared: in English, whoever asks.
-	sched := scheduleOf(i18n.Default, c, ws).Label
+	sched, schedText := scheduleOf(i18n.Default, c, ws).Label, approvalSchedule(c, ws)
 	opts, _, _ := s.listConsent(ctx, ws)
 	lists, _ := audienceOf(c.Audience)
 	labels := []string{}
@@ -547,13 +547,29 @@ func (s *Service) DescribeForApproval(ctx context.Context, ws *store.Workspace, 
 		snapWA.Business, snapWA.Number = a.DisplayName, phone.Display(a.PhoneNumber)
 	}
 	snap := approvals.Snapshot{Version: int(c.Version), ContentHash: c.ContentHash, Audience: c.Audience, AudienceLabels: labels, AudienceCount: final,
-		AudienceBaseline: final, Route: []approvals.SnapshotShare{}, Channel: "whatsapp", Text: text, ScheduleLabel: sched, Cost: rv.cost.Amount,
+		AudienceBaseline: final, Route: []approvals.SnapshotShare{}, Channel: "whatsapp", Text: text, ScheduleLabel: sched, ScheduleText: schedText, Cost: rv.cost.Amount,
 		Readiness: approvals.SnapshotReadiness{Verdict: rv.verdict, Passed: len(rv.checks) - warns - blocks, Warnings: warns, Blocks: blocks, Total: len(rv.checks),
 			RanAt: rv.at},
 		WhatsApp: snapWA}
 	cur := approvals.Current{Version: int(c.Version), ContentHash: c.ContentHash, Audience: c.Audience, AudienceNames: labels, AudienceCount: final, Text: text,
-		ScheduleLabel: sched}
+		ScheduleLabel: sched, ScheduleText: schedText}
 	return approvals.ChannelCampaign{Name: c.Name, Status: c.Status, Version: int(c.Version), Snapshot: snap, Current: cur, Blocks: blocks,
 		SendPermission: authz.WhatsAppSend, Facts: approvals.RuleFacts{Recipients: final, Verdict: rv.verdict, Warnings: warns, Channel: "whatsapp",
 			Cost: rv.cost.Amount}}, nil
+} // approvalSchedule is the schedule's message for approvers, with its times
+// kept so each approver reads them in their own region format.
+func approvalSchedule(c store.WhatsAppCampaignRow, ws *store.Workspace) i18n.Text {
+	switch c.ScheduleMode {
+	case "at":
+		if c.SendAt != nil {
+			return msgs.M("approval.at").Keep(i18n.Args{"at": c.SendAt.In(wsLocation(ws)), "zone": tzName(ws)})
+		}
+	case "local":
+		if c.LocalDate != nil && c.LocalMinute != nil {
+			m := int(*c.LocalMinute)
+			d := *c.LocalDate
+			return msgs.M("approval.local").Keep(i18n.Args{"at": time.Date(d.Year(), d.Month(), d.Day(), m/60, m%60, 0, 0, time.UTC)})
+		}
+	}
+	return mScheduleNow.Keep(nil)
 }
