@@ -178,6 +178,7 @@ export default translate(m, {
   questionsAll: '{count}, tất cả đã hoàn chỉnh',
   openUntil: 'Mở đến',
   untilClosed: 'Đến khi có người đóng',
+  openUntilAt: '{date}, {time} {zone}',
   responses: 'Lượt trả lời',
   oneEditable: 'Một lượt cho mỗi liên hệ, sửa được đến khi khảo sát đóng',
   manyResponses: 'Mọi lượt gửi đều được tính',

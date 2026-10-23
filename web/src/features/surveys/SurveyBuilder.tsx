@@ -10,7 +10,7 @@ import { OptionCard } from '@/components/ui/Field'
 import { toast } from '@/components/ui/Toast'
 import { formatList, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { clock, count, shortDate } from '@/lib/format'
+import { clock, count, shortDate, timeOfDay } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useMe, useWorkspace } from '@/lib/session'
 import { FormsTabs, copyText, hostPath, throwIfForbidden, useFormsOverview } from '@/features/forms/common'
@@ -878,7 +878,11 @@ function PublishDialog({ s, draft, onClose, onPublish }: { s: Survey; draft: Dra
         <dt>{t(m.tabQuestions)}</dt>
         <dd>{t(m.questionsAll, { count: draft.questions.length })}</dd>
         <dt>{t(m.openUntil)}</dt>
-        <dd>{c.mode === 'date' && c.date ? `${c.date}${c.time ? `, ${c.time}` : ''} ${draft.settings.timezone ?? ''}`.trim() : t(m.untilClosed)}</dd>
+        <dd>
+          {c.mode === 'date' && c.date
+            ? t(m.openUntilAt, { date: shortDate(`${c.date}T12:00:00Z`), time: timeOfDay(c.time || '23:59'), zone: draft.settings.timezone ?? '' }).trim()
+            : t(m.untilClosed)}
+        </dd>
         <dt>{t(m.responses)}</dt>
         <dd>{draft.settings.oneResponse ? t(m.oneEditable) : t(m.manyResponses)}</dd>
         <dt>{t(m.nonContacts)}</dt>
@@ -976,7 +980,7 @@ function SettingsTab({ s, draft, readOnly, onChange }: { s: Survey; draft: Draft
               value={st.close.mode}
               onChange={(e) => set({ close: e.target.value === 'date' ? { mode: 'date', date: st.close.date || twoWeeksOut(), time: st.close.time || '23:59' } : { mode: 'manual' } })}
             >
-              <option value="date">{st.close.mode === 'date' && st.close.date ? t(m.untilDate, { date: `${st.close.date}, ${st.close.time || '23:59'}` }) : t(m.untilDatePick)}</option>
+              <option value="date">{st.close.mode === 'date' && st.close.date ? t(m.untilDate, { date: `${shortDate(`${st.close.date}T12:00:00Z`)}, ${timeOfDay(st.close.time || '23:59')}` }) : t(m.untilDatePick)}</option>
               <option value="manual">{t(m.untilManual)}</option>
             </select>
           </Field>
