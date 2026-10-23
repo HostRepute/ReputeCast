@@ -283,4 +283,3 @@ func campaignOn(ctx context.Context, tx pgx.Tx, providerID uuid.UUID, day time.T
 	}
 	return ""
 }
-
