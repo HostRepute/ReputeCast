@@ -1,6 +1,7 @@
 package liquid
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -35,7 +36,7 @@ func TestCatalogInVietnamese(t *testing.T) {
 	}
 	// English reads as it always has.
 	for i, tok := range CatalogIn(i18n.Default, custom) {
-		if tok != en[i] {
+		if !reflect.DeepEqual(tok, en[i]) {
 			t.Errorf("English %d: %+v, want %+v", i, tok, en[i])
 		}
 	}
