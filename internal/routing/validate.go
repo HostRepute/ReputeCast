@@ -153,4 +153,3 @@ func Blocking(issues []RoutingIssue) bool {
 	}
 	return false
 }
-
