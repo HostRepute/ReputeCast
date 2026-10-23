@@ -326,7 +326,7 @@ function ChoiceResults({ p }: { p: PollResults }) {
                 {c.emoji ? `${c.emoji} ` : ''}
                 {c.label}
               </span>
-              <span className="nowrap">
+              <span className="whitespace-nowrap">
                 <b>{count(c.count)}</b> <span className="k">{pct(c.percent)}</span>
               </span>
             </div>
