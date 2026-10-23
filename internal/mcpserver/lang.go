@@ -4,7 +4,9 @@ import (
 	"embed"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/languages"
 )
 
 // What people read of the MCP server is in their language: Settings ›
@@ -19,6 +21,14 @@ import (
 var messagesFS embed.FS
 
 var msgs = i18n.MustLoad(messagesFS, "mcpserver")
+
+// The agents' activity keeps a language version's language as its code
+// (audit.LanguageArg); the app's names read it in each reader's language.
+func init() {
+	if audit.LanguageName == nil {
+		audit.LanguageName = languages.NameIn
+	}
+}
 
 // keep is one of the package's messages kept for later readers.
 func keep(key string, args i18n.Args) i18n.Text { return msgs.M(key).Keep(args) }

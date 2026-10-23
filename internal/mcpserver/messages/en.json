@@ -40,7 +40,7 @@
   "field.preheader": "preheader",
   "field.content": "content",
   "detail.changed": { "message": "{fields}", "note": "fields: the parts an agent changed, as a list" },
-  "detail.languageChanged": { "message": "{language}: {fields}", "note": "language: the version's language, by its English name" },
+  "detail.languageChanged": { "message": "{language}: {fields}", "note": "language: the version's language, named in the reader's language (its label form)" },
   "detail.languageUnchanged": "{language}: no change",
   "detail.count": { "message": "{n} of {total}", "note": "how many of all the campaigns an agent listed" },
   "detail.draft": "draft",

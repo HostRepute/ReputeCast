@@ -1,6 +1,7 @@
 package mcpserver
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/hostrepute/reputecast/internal/accessibility"
@@ -54,5 +55,24 @@ func TestReferralDecisionDetail(t *testing.T) {
 	d = keep("detail.referralDecision", i18n.Args{"decision": "count", "referrer": "Bob", "hasReason": "no", "reason": ""})
 	if got := d.In(i18n.For(i18n.Vietnamese)); got != "đã đề xuất: tính các lượt giới thiệu bị giữ của Bob" {
 		t.Errorf("Vietnamese: %q", got)
+	}
+}
+
+// A language version's language is kept as its code and named in each
+// reader's language, as stored and as read back.
+func TestLanguageKeptAsItsCode(t *testing.T) {
+	d := keep("detail.languageChanged", i18n.Args{"language": audit.LanguageArg("es"), "fields": []any{keep("field.subject", nil)}})
+	raw, _ := json.Marshal(d)
+	var back i18n.Text
+	if err := json.Unmarshal(raw, &back); err != nil {
+		t.Fatal(err)
+	}
+	for _, kept := range []i18n.Text{d, back} {
+		if got := audit.Render(kept, i18n.Default); got != "Spanish: subject" {
+			t.Errorf("English: %q", got)
+		}
+		if got := audit.Render(kept, i18n.For(i18n.Vietnamese)); got != "Tiếng Tây Ban Nha: tiêu đề" {
+			t.Errorf("Vietnamese: %q", got)
+		}
 	}
 }

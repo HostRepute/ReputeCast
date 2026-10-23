@@ -20,7 +20,9 @@ import (
 // "discovery failed: {error}"): it is written first, in the same language
 // and without its final period, as a part of the sentence. An argument
 // that is a list (names, or kept messages) is written as the language
-// writes a list: "SES and Postal", "SES và Postal" (Render).
+// writes a list: "SES and Postal", "SES và Postal". A content language
+// kept as its code (LanguageArg) is named in the reader's language, in the
+// label form a Vietnamese sentence then puts in its place's case (Render).
 
 // TextsKey is the metadata member that holds an entry's kept lines.
 const TextsKey = "i18n"
@@ -126,21 +128,16 @@ func In(t i18n.Text, l i18n.Lang, english string) string {
 }
 
 // Render writes a kept message in a language, its kept messages among its
-// arguments first (without their final period) and its lists as the
-// language writes a list. It returns "" when a message isn't known, like
-// i18n.Text.In.
+// arguments first (without their final period), its lists as the language
+// writes a list and its languages by their names. It returns "" when a
+// message isn't known, like i18n.Text.In.
 func Render(t i18n.Text, l i18n.Lang) string {
 	nested := false
 	for _, v := range t.Args {
-		if _, ok := keptText(v); ok {
-			nested = true
-			break
-		}
-		if _, ok := v.([]any); ok {
-			nested = true
-			break
-		}
-		if _, ok := v.([]string); ok {
+		_, text := keptText(v)
+		_, list := listArg(v)
+		_, language := languageArg(v)
+		if text || list || language {
 			nested = true
 			break
 		}
@@ -156,6 +153,11 @@ func Render(t i18n.Text, l i18n.Lang) string {
 				return ""
 			}
 			v = strings.TrimSuffix(s, ".")
+		} else if code, ok := languageArg(v); ok {
+			v = code
+			if LanguageName != nil {
+				v = LanguageName(l, code)
+			}
 		} else if items, ok := listArg(v); ok {
 			words := make([]string, 0, len(items))
 			for _, item := range items {
@@ -174,6 +176,28 @@ func Render(t i18n.Text, l i18n.Lang) string {
 		args[k] = v
 	}
 	return i18n.Text{ID: t.ID, Args: args}.In(l)
+}
+
+// LanguageName names a content language's code in a reader's language, as
+// a label ("Spanish", "Tiếng Tây Ban Nha"): internal/languages' NameIn,
+// set by the packages that keep languages (LanguageArg). Without it a
+// language reads as its code.
+var LanguageName func(l i18n.Lang, code string) string
+
+// LanguageArg is a content language as an argument of a kept line: kept as
+// its code and named when the line is read, in the reader's language.
+func LanguageArg(code string) map[string]any { return map[string]any{languageKey: code} }
+
+const languageKey = "language_code"
+
+// languageArg reads an argument that is a language kept as its code.
+func languageArg(v any) (string, bool) {
+	m, ok := v.(map[string]any)
+	if !ok || len(m) != 1 {
+		return "", false
+	}
+	code, ok := m[languageKey].(string)
+	return code, ok && code != ""
 }
 
 // listArg reads an argument that is a list: names, or kept messages.

@@ -6,6 +6,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
@@ -71,11 +72,11 @@ func (s *Service) updateLanguage(ctx context.Context, c *agentCall, cp store.Mcp
 		return nil, e, err
 	}
 	e.action = "campaign.language.updated"
-	// The language by its English name: a name, as the audit log keeps it.
+	// The language is kept as its code and named in each reader's language.
 	if fields := changedFields(in); len(fields) > 0 {
-		e.detailText = keep("detail.languageChanged", i18n.Args{"language": languages.NameOf(saved.Language), "fields": fields})
+		e.detailText = keep("detail.languageChanged", i18n.Args{"language": audit.LanguageArg(saved.Language), "fields": fields})
 	} else {
-		e.detailText = keep("detail.languageUnchanged", i18n.Args{"language": languages.NameOf(saved.Language)})
+		e.detailText = keep("detail.languageUnchanged", i18n.Args{"language": audit.LanguageArg(saved.Language)})
 	}
 	e.before = map[string]any{"language": saved.Language, "subject": saved.BeforeSubject, "preheader": saved.BeforePreheader, "version": saved.BeforeVersion}
 	e.after = map[string]any{"language": saved.Language, "subject": saved.Subject, "version": saved.Version}
