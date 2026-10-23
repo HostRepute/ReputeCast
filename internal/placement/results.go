@@ -295,8 +295,8 @@ type PlacementTestRow struct {
 	Counts          PlacementCounts           `json:"counts"`
 }
 
-func testRow(t store.PlacementTest, startedBy, color string, copies []store.PlacementCopy) PlacementTestRow {
-	r := PlacementTestRow{ID: t.ID.String(), Name: t.Name, ContentKind: t.ContentKind, ContentName: t.ContentName, ContentNote: t.ContentNote,
+func testRow(l i18n.Lang, t store.PlacementTest, startedBy, color string, copies []store.PlacementCopy) PlacementTestRow {
+	r := PlacementTestRow{ID: t.ID.String(), Name: NameIn(l, t.Name, t.ContentName), ContentKind: t.ContentKind, ContentName: t.ContentName, ContentNote: t.ContentNote,
 		ContentKey: t.ContentKey, ContentVersion: int(t.ContentVersion), ContentAt: t.ContentAt, Personalization: t.Personalization, Origin: t.Origin,
 		Through: t.Through, Status: t.Status, StartedAt: t.StartedAt, StartedBy: startedBy, StartedByColor: color, LastSentAt: t.LastSentAt, WaitUntil: t.WaitUntil,
 		LateUntil: t.LateUntil, FinishedAt: t.FinishedAt, Providers: providerResults(t, copies), Counts: countCopies(copies, nil)}
@@ -356,7 +356,7 @@ func (s *Service) Tests(ctx context.Context, ws *store.Workspace) (PlacementTest
 	}
 	seenP, seenS := map[string]bool{}, map[string]bool{}
 	for _, r := range rows {
-		row := testRow(r.PlacementTest, r.StartedByName, r.StartedByColor, byTest[r.PlacementTest.ID])
+		row := testRow(i18n.LangFrom(ctx), r.PlacementTest, r.StartedByName, r.StartedByColor, byTest[r.PlacementTest.ID])
 		out.Tests = append(out.Tests, row)
 		for _, pr := range row.Providers {
 			if !seenP[pr.ID] {
@@ -642,7 +642,7 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, id uuid.UUID) (
 			byCopy[*e.MessageID] = append(byCopy[*e.MessageID], e)
 		}
 	}
-	out := PlacementTestDetail{PlacementTestRow: testRow(t, row.StartedByName, row.StartedByColor, copies), Variant: t.Variant, Language: t.Language,
+	out := PlacementTestDetail{PlacementTestRow: testRow(i18n.LangFrom(ctx), t, row.StartedByName, row.StartedByColor, copies), Variant: t.Variant, Language: t.Language,
 		ConditionalVersion: int(t.ConditionalVersion), ConditionalShows: t.ConditionalShows,
 		FallbackGreeting: greeting(t.Html), Subject: t.Subject, FromName: t.FromName, FromEmail: t.FromEmail, Stream: t.Stream, Rounds: 1,
 		DeleteAfter: t.DeleteAfter, DeleteAt: t.DeleteAt, CopiesDeletedAt: t.CopiesDeletedAt, CopiesDeletedBy: row.CopiesDeletedByName,

@@ -61,7 +61,24 @@ var (
 	MSeedFailedTitle = msgs.M("notify.seedFailedTitle")
 	MSeedFailedBody  = msgs.M("notify.seedFailedBody")
 	MSeedExpiredBody = msgs.M("notify.seedExpiredBody")
+
+	mVersus = msgs.M("test.versus")
 )
+
+// versus joins the providers a test compares in its stored name
+// ("Weekly Digest #142 · SES vs Postal").
+const versus = " vs "
+
+// NameIn is a test's name for a reader: its content's name, then the
+// providers it went through, compared in the reader's words ("Weekly
+// Digest #142 · SES so với Postal"). The stored name keeps its English.
+func NameIn(l i18n.Lang, name, content string) string {
+	prefix := content + " · "
+	if !strings.HasPrefix(name, prefix) {
+		return name
+	}
+	return prefix + strings.ReplaceAll(name[len(prefix):], versus, " "+mVersus.Text(l, nil)+" ")
+}
 
 // credentials name what each mailbox provider calls the password a seed
 // signs in with (seedbox.Provider.Password), as a sentence writes it.

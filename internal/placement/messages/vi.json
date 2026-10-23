@@ -26,6 +26,7 @@
   "test.notPublished": "{name} chưa có phiên bản nào được xuất bản, nên chưa có gì để kiểm tra.",
   "test.noProviders": "Hãy chọn một nhà cung cấp gửi được email này.",
   "test.noRoute": "Tuyến {stream, select, transactional {Giao dịch} automation {Tự động hóa} system {Hệ thống} other {Gửi hàng loạt}} chưa có nhà cung cấp nào. Hãy thiết lập trong Định tuyến, hoặc kiểm tra qua một nhà cung cấp.",
+  "test.versus": "so với",
   "test.providerDown": "{provider} đang gián đoạn nên chưa kiểm tra được. Có thể kiểm tra khi nhà cung cấp ổn định trở lại.",
   "test.wrongStream": "{provider} chỉ gửi luồng Giao dịch của nó, nên không gửi được chiến dịch này.",
   "test.compareNeedsTwo": "Để so sánh cần hai nhà cung cấp gửi được email này.",

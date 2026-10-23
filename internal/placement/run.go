@@ -1024,7 +1024,7 @@ func (s *Service) Start(ctx context.Context, ws *store.Workspace, in PlacementRu
 	name := c.view.Name
 	switch {
 	case in.Through == "compare" || len(shorts) > 1:
-		name += " · " + strings.Join(shorts, " vs ")
+		name += " · " + strings.Join(shorts, versus)
 	case len(shorts) == 1:
 		name += " · " + shorts[0]
 	}

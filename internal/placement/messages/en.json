@@ -26,6 +26,7 @@
   "test.notPublished": "{name} has no published version yet, so there's nothing to test.",
   "test.noProviders": "Pick a provider that can send this email.",
   "test.noRoute": { "message": "The {stream, select, transactional {Transactional} automation {Automations} system {System} other {Broadcasts}} route has no provider yet. Set one up in Routing, or test through one provider.", "note": "stream: the email's stream; its name is a route's" },
+  "test.versus": { "message": "vs", "note": "between the providers a test compares, in its name: Weekly Digest #142 · SES vs Postal" },
   "test.providerDown": { "message": "{provider} is down, so it can't be tested now. It can be tested once it's healthy.", "note": "provider: a sending provider's name" },
   "test.wrongStream": "{provider} carries only its Transactional stream, so it can't send this campaign.",
   "test.compareNeedsTwo": "Comparing needs two providers that can send this email.",
