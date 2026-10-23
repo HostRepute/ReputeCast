@@ -69,12 +69,12 @@ func TestAuditLogsInVietnamese(t *testing.T) {
 	en.SignInDemo("linh@acme.io")
 	en.Do("PUT", "/admin/audit/settings", map[string]any{"retentionDays": 180}).MustStatus(t, 200)
 	vi.Do("GET", "/admin/audit?workspace=instance&limit=5", nil).MustStatus(t, 200).JSON(t, &il)
-	if s := il.Items[0]; s.Action != "audit.settings_updated" || s.Summary != "thời gian lưu giữ 180 ngày (trước đây 365)" {
-		t.Errorf("kept summary: %s %q", s.Action, s.Summary)
+	if s := il.Items[0]; s.Action != "audit.settings_updated" || s.Summary != "thời gian lưu giữ 180 ngày (trước đây 365)" || s.Target != "Nhật ký kiểm tra cấp hệ thống" {
+		t.Errorf("kept summary: %s %q %q", s.Action, s.Summary, s.Target)
 	}
 	en.Do("GET", "/admin/audit?workspace=instance&limit=5", nil).MustStatus(t, 200).JSON(t, &il)
-	if s := il.Items[0]; s.Summary != "retention 180 days (was 365)" {
-		t.Errorf("English summary: %q", s.Summary)
+	if s := il.Items[0]; s.Summary != "retention 180 days (was 365)" || s.Target != "Instance audit log" {
+		t.Errorf("English summary: %q %q", s.Summary, s.Target)
 	}
 }
 

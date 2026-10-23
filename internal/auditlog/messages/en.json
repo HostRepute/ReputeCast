@@ -98,6 +98,7 @@
   "audit.exported": { "message": "{count, plural, one {# entry as {format}} other {# entries as {format}}}", "note": "an export's audit summary; format: CSV or JSON" },
   "audit.scopeAll": "all workspaces and the instance",
   "audit.scopeInstance": "instance-level entries",
+  "audit.instanceLog": { "message": "Instance audit log", "note": "what an export or a settings change of the instance's own log was about" },
   "audit.scopeWorkspace": "workspace {slug}",
   "audit.retention": "retention {days} days (was {was})",
   "audit.streamOn": "instance events streamed to {host}",

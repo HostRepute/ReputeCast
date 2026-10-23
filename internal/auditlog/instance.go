@@ -473,7 +473,7 @@ func (s *Service) InstanceExport(ctx context.Context, f InstanceFilter, format s
 		scope = msgs.M("audit.scopeWorkspace").Keep(i18n.Args{"slug": f.Workspace})
 	}
 	return s.Audit.Log(ctx, audit.Event{Action: "audit.exported", TargetType: "audit_log", TargetName: "Instance audit log",
-		Metadata: audit.KeepSummary(nil, exportedText(n, format), scope)})
+		Metadata: audit.KeepText(audit.KeepSummary(nil, exportedText(n, format), scope), "target", msgs.M("audit.instanceLog").Keep(nil))})
 }
 
 // InstanceWorkspaceStream is a workspace that streams its own log.
@@ -609,7 +609,7 @@ func (s *Service) UpdateInstanceSettings(ctx context.Context, in AuditSettingsIn
 	}
 	if len(changes) > 0 {
 		if err := s.Audit.LogWith(ctx, q, audit.Event{Action: "audit.settings_updated", TargetType: "audit_log", TargetName: "Instance audit log",
-			Before: before, After: after, Metadata: audit.KeepSummary(nil, changes...)}); err != nil {
+			Before: before, After: after, Metadata: audit.KeepText(audit.KeepSummary(nil, changes...), "target", msgs.M("audit.instanceLog").Keep(nil))}); err != nil {
 			return res, err
 		}
 	}

@@ -98,6 +98,7 @@
   "audit.exported": "{count, plural, other {# mục dạng {format}}}",
   "audit.scopeAll": "mọi không gian làm việc và hệ thống",
   "audit.scopeInstance": "các mục cấp hệ thống",
+  "audit.instanceLog": "Nhật ký kiểm tra cấp hệ thống",
   "audit.scopeWorkspace": "không gian làm việc {slug}",
   "audit.retention": "thời gian lưu giữ {days} ngày (trước đây {was})",
   "audit.streamOn": "sự kiện cấp hệ thống được truyền đến {host}",
