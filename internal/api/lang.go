@@ -24,11 +24,8 @@ var messagesFS embed.FS
 var msgs = i18n.MustLoad(messagesFS, "api")
 
 var (
-	mDenied     = msgs.M("denied")
-	mDeniedAsk  = msgs.M("deniedAsk")
 	mEscalation = msgs.M("escalation")
 	mKeyExpired = msgs.M("keyExpired")
-	mActionThis = msgs.M("action.this")
 
 	// Problems the middleware writes in the request's language.
 	mNotForThisKey         = msgs.M("problem.notForThisKey")
@@ -89,23 +86,16 @@ func langOf(hctx huma.Context) i18n.Lang {
 }
 
 // DeniedText explains a missing permission in a language: "Sending needs
-// the campaigns:send permission. Ask Marcus Chen or Linh Nguyen."
+// the campaigns:send permission. Ask Marcus Chen or Linh Nguyen." Its
+// words are internal/authz's (authz.DeniedText).
 func DeniedText(l i18n.Lang, perm authz.Permission, helpers []string) string {
-	action := mActionThis
-	if m, err := msgs.Lookup("action." + string(perm)); err == nil {
-		action = m
-	}
-	args := i18n.Args{"action": action.Text(l, nil), "permission": string(perm)}
-	if len(helpers) > 0 {
-		args["helpers"] = i18n.OrList(l.Locale, helpers)
-		return mDeniedAsk.Text(l, args)
-	}
-	return mDenied.Text(l, args)
+	return authz.DeniedText(l, perm, helpers)
 }
 
 // RoleName writes a role's name in a language: the built-in roles (Owner,
-// Admin, Editor, Viewer) are translated; custom roles, and a built-in role
-// stored under another name, keep the name they were given.
+// Admin, Editor, Viewer, and an agency's client roles) are translated;
+// custom roles, and a built-in role stored under another name, keep the
+// name they were given.
 func RoleName(l i18n.Lang, key, name string) string {
 	b, ok := authz.Builtin(key)
 	if !ok || (name != "" && name != b.Name) {

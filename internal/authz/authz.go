@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // ActorType identifies who is acting. The same values are written to the
@@ -131,132 +133,10 @@ func Require(p *Principal, perm Permission) error {
 	return &DeniedError{Permission: perm, Message: DeniedMessage(perm, nil)}
 }
 
-// DeniedMessage builds "Sending needs the campaigns:send permission. Ask Marcus Chen or Linh Nguyen."
+// DeniedMessage builds "Sending needs the campaigns:send permission. Ask Marcus
+// Chen or Linh Nguyen." in English; DeniedText writes it in a language.
 func DeniedMessage(perm Permission, helpers []string) string {
-	action := "This"
-	if d, ok := Lookup(perm); ok {
-		action = actionNoun(d)
-	}
-	msg := fmt.Sprintf("%s needs the %s permission.", action, perm)
-	if len(helpers) > 0 {
-		msg += " Ask " + joinNames(helpers) + "."
-	}
-	return msg
-}
-
-// actionNoun turns "Send or schedule campaigns" into "Sending" style phrases
-// for the most common permissions and falls back to the label.
-func actionNoun(d Def) string {
-	switch d.Key {
-	case CampaignsSend:
-		return "Sending"
-	case CampaignsPause:
-		return "Pausing a send"
-	case CampaignsApprove:
-		return "Approving"
-	case SubscribersExport:
-		return "Exporting contacts"
-	case SubscribersDelete:
-		return "Erasing personal data"
-	case ProvidersManage:
-		return "Managing providers"
-	case DomainsManage:
-		return "Managing domains"
-	case TeamInvite:
-		return "Inviting members"
-	case TeamManage:
-		return "Managing the team"
-	case SegmentsSQL:
-		return "Writing SQL segments"
-	case APIKeysManage:
-		return "Managing API keys"
-	case MCPManage:
-		return "Managing MCP agents"
-	case AutomationsPublish:
-		return "Publishing automations"
-	case WorkspaceManage:
-		return "Changing workspace settings"
-	case TransactionalView:
-		return "Viewing transactional mail"
-	case TransactionalEdit:
-		return "Editing transactional templates"
-	case TransactionalPublish:
-		return "Publishing transactional templates"
-	case TransactionalSend:
-		return "Sending transactional mail"
-	case TransactionalContent:
-		return "Viewing message content"
-	case SubscribersVerify:
-		return "Verifying addresses"
-	case IntegrationsView:
-		return "Viewing integrations"
-	case IntegrationsManage:
-		return "Managing integrations"
-	case AIUse:
-		return "Using the AI assistant"
-	case ScoringEdit:
-		return "Editing scoring rules"
-	case PlacementRun:
-		return "Running a placement test"
-	case PlacementManage:
-		return "Managing seed mailboxes"
-	case GrowView:
-		return "Viewing Grow"
-	case GrowEdit:
-		return "Editing the referral program"
-	case GrowReview:
-		return "Reviewing referrals"
-	case GrowConnect:
-		return "Managing partner links"
-	case EarnView:
-		return "Viewing Earn"
-	case EarnEdit:
-		return "Changing tiers and offers"
-	case EarnManage:
-		return "Managing paid members"
-	case PaymentsManage:
-		return "Managing payment providers"
-	case SponsorsManage:
-		return "Managing sponsors"
-	case ConversionsCreate:
-		return "Recording conversions"
-	case WebsiteView:
-		return "Viewing the website"
-	case WebsiteEdit:
-		return "Editing posts and pages"
-	case WebsitePublish:
-		return "Publishing posts and pages"
-	case WebsiteManage:
-		return "Managing the website"
-	case ProductsView:
-		return "Viewing products"
-	case ProductsEdit:
-		return "Editing products"
-	case ProductsPublish:
-		return "Publishing products"
-	case OrdersManage:
-		return "Managing orders"
-	case SMSSend:
-		return "Sending text messages"
-	case PushSend:
-		return "Sending push notifications"
-	case WhatsAppSend:
-		return "Sending WhatsApp messages"
-	}
-	return d.Label
-}
-
-func joinNames(names []string) string {
-	switch len(names) {
-	case 0:
-		return ""
-	case 1:
-		return names[0]
-	case 2:
-		return names[0] + " or " + names[1]
-	default:
-		return strings.Join(names[:len(names)-1], ", ") + " or " + names[len(names)-1]
-	}
+	return DeniedText(i18n.Default, perm, helpers)
 }
 
 // EscalationError lists permissions a granter tried to give away without holding them.

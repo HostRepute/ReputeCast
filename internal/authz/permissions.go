@@ -132,109 +132,109 @@ type Def struct {
 
 // Groups in display order.
 var Groups = []string{
-	"Campaigns", "Templates", "Transactional", "Automations", "Contacts",
-	"Lists and segments", "Forms and pages", "Reports", "Deliverability",
-	"Sending", "Team", "Developer", "Integrations", "AI", "Audience scoring",
-	"Placement tests", "Grow", "Earn", "Website and pages",
-	"Products and orders", "SMS", "Push", "WhatsApp", "Audit", "Workspace",
+	g("campaigns"), g("templates"), g("transactional"), g("automations"), g("contacts"), g("lists"), g("forms"),
+	g("reports"), g("deliverability"), g("sending"), g("team"), g("developer"), g("integrations"), g("ai"),
+	g("scoring"), g("placement"), g("grow"), g("earn"), g("website"), g("products"), g("sms"), g("push"),
+	g("whatsapp"), g("audit"), g("workspace"),
 }
 
-// Defs is the catalogue of permissions in display order.
-var Defs = []Def{
-	{Key: CampaignsView, Group: "Campaigns", Label: "View campaigns", Description: "See campaigns, their content, audience and status."},
-	{Key: CampaignsEdit, Group: "Campaigns", Label: "Edit campaigns", Description: "Create and edit drafts, request approval.", Implies: []Permission{CampaignsView}},
-	{Key: CampaignsSend, Group: "Campaigns", Label: "Send or schedule campaigns", Description: "Start or schedule a send, and resume a paused one.", Sensitive: true, Implies: []Permission{CampaignsView}},
-	{Key: CampaignsPause, Group: "Campaigns", Label: "Pause or cancel a live send", Description: "Stop a send that is running. Resuming needs campaigns:send.", Implies: []Permission{CampaignsView}},
-	{Key: CampaignsApprove, Group: "Campaigns", Label: "Approve campaigns", Description: "Approve, reject or request changes on sends that need approval.", Sensitive: true, Implies: []Permission{CampaignsView}},
+// Defs is the catalogue of permissions in display order. Their labels and
+// descriptions are in messages/<locale>.json (perm.<key>, perm.<key>.about).
+var Defs = described([]Def{
+	{Key: CampaignsView, Group: g("campaigns")},
+	{Key: CampaignsEdit, Group: g("campaigns"), Implies: []Permission{CampaignsView}},
+	{Key: CampaignsSend, Group: g("campaigns"), Sensitive: true, Implies: []Permission{CampaignsView}},
+	{Key: CampaignsPause, Group: g("campaigns"), Implies: []Permission{CampaignsView}},
+	{Key: CampaignsApprove, Group: g("campaigns"), Sensitive: true, Implies: []Permission{CampaignsView}},
 
-	{Key: TemplatesView, Group: "Templates", Label: "View templates", Description: "See saved templates and sections."},
-	{Key: TemplatesEdit, Group: "Templates", Label: "Edit templates", Description: "Create, edit and delete templates and saved sections.", Implies: []Permission{TemplatesView}},
+	{Key: TemplatesView, Group: g("templates")},
+	{Key: TemplatesEdit, Group: g("templates"), Implies: []Permission{TemplatesView}},
 
-	{Key: TransactionalView, Group: "Transactional", Label: "View templates, messages and reports", Description: "See transactional templates, the message log and its numbers. Never message content."},
-	{Key: TransactionalEdit, Group: "Transactional", Label: "Edit transactional templates", Description: "Create and edit template drafts, import templates.", Implies: []Permission{TransactionalView}},
-	{Key: TransactionalPublish, Group: "Transactional", Label: "Publish transactional templates", Description: "Make a draft the live version, or roll back to an earlier one.", Sensitive: true, Implies: []Permission{TransactionalView}},
-	{Key: TransactionalSend, Group: "Transactional", Label: "Send through the API or SMTP", Description: "Send transactional messages from your product. Send-only keys hold this alone.", Sensitive: true},
-	{Key: TransactionalContent, Group: "Transactional", Label: "View the content of sent messages", Description: "Open the rendered content of a sent message. Every view is logged.", Sensitive: true, Implies: []Permission{TransactionalView}},
+	{Key: TransactionalView, Group: g("transactional")},
+	{Key: TransactionalEdit, Group: g("transactional"), Implies: []Permission{TransactionalView}},
+	{Key: TransactionalPublish, Group: g("transactional"), Sensitive: true, Implies: []Permission{TransactionalView}},
+	{Key: TransactionalSend, Group: g("transactional"), Sensitive: true},
+	{Key: TransactionalContent, Group: g("transactional"), Sensitive: true, Implies: []Permission{TransactionalView}},
 
-	{Key: AutomationsView, Group: "Automations", Label: "View automations", Description: "See flows and their live stats."},
-	{Key: AutomationsEdit, Group: "Automations", Label: "Edit automations", Description: "Change drafts of flows.", Implies: []Permission{AutomationsView}},
-	{Key: AutomationsPublish, Group: "Automations", Label: "Publish automations", Description: "Publish, pause and resume flows.", Sensitive: true, Implies: []Permission{AutomationsView}},
+	{Key: AutomationsView, Group: g("automations")},
+	{Key: AutomationsEdit, Group: g("automations"), Implies: []Permission{AutomationsView}},
+	{Key: AutomationsPublish, Group: g("automations"), Sensitive: true, Implies: []Permission{AutomationsView}},
 
-	{Key: SubscribersView, Group: "Contacts", Label: "View contacts", Description: "See contacts, profiles and activity."},
-	{Key: SubscribersCreate, Group: "Contacts", Label: "Create contacts (forms and API)", Description: "Add contacts through signup forms and the API.", Implies: []Permission{SubscribersView}},
-	{Key: SubscribersEdit, Group: "Contacts", Label: "Edit contacts", Description: "Change fields, tags and list membership.", Implies: []Permission{SubscribersView}},
-	{Key: SubscribersImport, Group: "Contacts", Label: "Import contacts", Description: "Run the importer. Consent is always kept.", Implies: []Permission{SubscribersView}},
-	{Key: SubscribersExport, Group: "Contacts", Label: "Export contacts", Description: "Download contacts. Every export is logged.", Sensitive: true, Implies: []Permission{SubscribersView}},
-	{Key: SubscribersDelete, Group: "Contacts", Label: "Erase personal data", Description: "Permanently erase a contact's personal data.", Sensitive: true, Implies: []Permission{SubscribersView}},
-	{Key: SubscribersVerify, Group: "Contacts", Label: "Verify addresses with a service", Description: "Send contacts' addresses to a verification service. It spends credits; every use is logged.", Sensitive: true, NoAgents: true, Implies: []Permission{SubscribersView}},
+	{Key: SubscribersView, Group: g("contacts")},
+	{Key: SubscribersCreate, Group: g("contacts"), Implies: []Permission{SubscribersView}},
+	{Key: SubscribersEdit, Group: g("contacts"), Implies: []Permission{SubscribersView}},
+	{Key: SubscribersImport, Group: g("contacts"), Implies: []Permission{SubscribersView}},
+	{Key: SubscribersExport, Group: g("contacts"), Sensitive: true, Implies: []Permission{SubscribersView}},
+	{Key: SubscribersDelete, Group: g("contacts"), Sensitive: true, Implies: []Permission{SubscribersView}},
+	{Key: SubscribersVerify, Group: g("contacts"), Sensitive: true, NoAgents: true, Implies: []Permission{SubscribersView}},
 
-	{Key: ListsManage, Group: "Lists and segments", Label: "Manage lists", Description: "Create, rename and delete lists.", Implies: []Permission{SubscribersView}},
-	{Key: SegmentsEdit, Group: "Lists and segments", Label: "Edit segments", Description: "Build segments with the condition builder.", Implies: []Permission{SubscribersView}},
-	{Key: SegmentsSQL, Group: "Lists and segments", Label: "Write SQL segments", Description: "Write read-only SQL against a contacts view.", Sensitive: true, Implies: []Permission{SegmentsEdit, SubscribersView}},
+	{Key: ListsManage, Group: g("lists"), Implies: []Permission{SubscribersView}},
+	{Key: SegmentsEdit, Group: g("lists"), Implies: []Permission{SubscribersView}},
+	{Key: SegmentsSQL, Group: g("lists"), Sensitive: true, Implies: []Permission{SegmentsEdit, SubscribersView}},
 
-	{Key: FormsEdit, Group: "Forms and pages", Label: "Edit forms and public pages", Description: "Change signup forms, the preference center and the archive."},
+	{Key: FormsEdit, Group: g("forms")},
 
-	{Key: ReportsView, Group: "Reports", Label: "View reports", Description: "See campaign and automation reports."},
-	{Key: ReportsShare, Group: "Reports", Label: "Create public read-only report links", Description: "Share a report with people outside the workspace.", Implies: []Permission{ReportsView}},
+	{Key: ReportsView, Group: g("reports")},
+	{Key: ReportsShare, Group: g("reports"), Implies: []Permission{ReportsView}},
 
-	{Key: DeliverabilityView, Group: "Deliverability", Label: "View deliverability", Description: "See domain, IP and provider health."},
-	{Key: IntegrationsHostRepute, Group: "Deliverability", Label: "Connect HostRepute", Description: "Connect, reconnect or disconnect HostRepute.", Implies: []Permission{DeliverabilityView}},
+	{Key: DeliverabilityView, Group: g("deliverability")},
+	{Key: IntegrationsHostRepute, Group: g("deliverability"), Implies: []Permission{DeliverabilityView}},
 
-	{Key: ProvidersView, Group: "Sending", Label: "View sending providers", Description: "See provider status and routing. Never credentials."},
-	{Key: ProvidersManage, Group: "Sending", Label: "Manage providers, credentials, routing and failover", Description: "Connect providers, replace credentials, change routing.", Sensitive: true, Implies: []Permission{ProvidersView}},
-	{Key: DomainsManage, Group: "Sending", Label: "Manage domains and senders", Description: "Add sending domains and sender identities.", Sensitive: true, Implies: []Permission{ProvidersView}},
+	{Key: ProvidersView, Group: g("sending")},
+	{Key: ProvidersManage, Group: g("sending"), Sensitive: true, Implies: []Permission{ProvidersView}},
+	{Key: DomainsManage, Group: g("sending"), Sensitive: true, Implies: []Permission{ProvidersView}},
 
-	{Key: TeamView, Group: "Team", Label: "View the team", Description: "See members, roles and invitations."},
-	{Key: TeamInvite, Group: "Team", Label: "Invite members", Description: "Invite people with roles you hold.", Implies: []Permission{TeamView}},
-	{Key: TeamManage, Group: "Team", Label: "Manage roles and remove members", Description: "Change roles, deactivate and remove members.", Sensitive: true, Implies: []Permission{TeamView, TeamInvite}},
+	{Key: TeamView, Group: g("team")},
+	{Key: TeamInvite, Group: g("team"), Implies: []Permission{TeamView}},
+	{Key: TeamManage, Group: g("team"), Sensitive: true, Implies: []Permission{TeamView, TeamInvite}},
 
-	{Key: APIKeysManage, Group: "Developer", Label: "Manage API keys", Description: "Create, rotate and revoke API keys.", Sensitive: true},
-	{Key: WebhooksManage, Group: "Developer", Label: "Manage webhooks", Description: "Add webhook endpoints and see delivery logs."},
-	{Key: MCPManage, Group: "Developer", Label: "Manage MCP agents", Description: "Create and revoke AI agents and see their actions.", Sensitive: true},
+	{Key: APIKeysManage, Group: g("developer"), Sensitive: true},
+	{Key: WebhooksManage, Group: g("developer")},
+	{Key: MCPManage, Group: g("developer"), Sensitive: true},
 
-	{Key: IntegrationsView, Group: "Integrations", Label: "See integrations, their activity and webhooks", Description: "See the integrations hub, each integration's health, activity and managed webhooks."},
-	{Key: IntegrationsManage, Group: "Integrations", Label: "Connect, change, take over and disconnect integrations", Description: "Creates, changes and revokes the integrations' keys and webhooks.", Sensitive: true, PeopleOnly: true, Implies: []Permission{IntegrationsView}},
+	{Key: IntegrationsView, Group: g("integrations")},
+	{Key: IntegrationsManage, Group: g("integrations"), Sensitive: true, PeopleOnly: true, Implies: []Permission{IntegrationsView}},
 
-	{Key: AIUse, Group: "AI", Label: "Use the AI assistant", Description: "Subject ideas, rewrites, translations and alt text with the workspace's own model.", PeopleOnly: true},
+	{Key: AIUse, Group: g("ai"), PeopleOnly: true},
 
-	{Key: ScoringEdit, Group: "Audience scoring", Label: "Edit scoring rules, decay and bands", Description: "Change how contacts are scored.", Implies: []Permission{SubscribersView}},
+	{Key: ScoringEdit, Group: g("scoring"), Implies: []Permission{SubscribersView}},
 
-	{Key: PlacementRun, Group: "Placement tests", Label: "Run a placement test", Description: "Send copies through the workspace's providers to its own seed mailboxes.", NoAgents: true, Implies: []Permission{DeliverabilityView}},
-	{Key: PlacementManage, Group: "Placement tests", Label: "Add, reconnect and remove seed mailboxes", Description: "Their passwords and tokens can read whole mailboxes.", Sensitive: true, NoAgents: true, Implies: []Permission{DeliverabilityView}},
+	{Key: PlacementRun, Group: g("placement"), NoAgents: true, Implies: []Permission{DeliverabilityView}},
+	{Key: PlacementManage, Group: g("placement"), Sensitive: true, NoAgents: true, Implies: []Permission{DeliverabilityView}},
 
-	{Key: GrowView, Group: "Grow", Label: "View referral and recommendation results", Description: "See referrals, referrers, rewards and recommendations."},
-	{Key: GrowEdit, Group: "Grow", Label: "Edit the referral program, its rewards and recommendations", Description: "Change the program, its milestones and rewards, and the newsletters you recommend.", Implies: []Permission{GrowView}},
-	{Key: GrowReview, Group: "Grow", Label: "Review held referrals, pause links, resend and fulfill rewards", Description: "Decide on held referrals and handle rewards.", Implies: []Permission{GrowView}},
-	{Key: GrowConnect, Group: "Grow", Label: "Connect, pause and end partner links", Description: "Exchange signed subscribe links with other ReputeCast instances.", Sensitive: true, Implies: []Permission{GrowView}},
+	{Key: GrowView, Group: g("grow")},
+	{Key: GrowEdit, Group: g("grow"), Implies: []Permission{GrowView}},
+	{Key: GrowReview, Group: g("grow"), Implies: []Permission{GrowView}},
+	{Key: GrowConnect, Group: g("grow"), Sensitive: true, Implies: []Permission{GrowView}},
 
-	{Key: EarnView, Group: "Earn", Label: "View revenue, paid members, gifts and sponsors", Description: "See Earn's numbers, paid members, gifts and sponsor bookings."},
-	{Key: EarnEdit, Group: "Earn", Label: "Edit tiers, prices, offers, gift options and the Earn pages", Description: "Change what readers pay and the upgrade, cancel and gift pages.", Sensitive: true, Implies: []Permission{EarnView}},
-	{Key: EarnManage, Group: "Earn", Label: "Manage paid members: complimentary access, imports, cancellations", Description: "Grant complimentary access, import paid members, cancel subscriptions and change gifts.", Sensitive: true, Implies: []Permission{EarnView}},
-	{Key: PaymentsManage, Group: "Earn", Label: "Connect and manage payment providers, their keys and webhooks", Description: "Connect Stripe and change its keys and webhook.", Sensitive: true, Implies: []Permission{EarnView}},
-	{Key: SponsorsManage, Group: "Earn", Label: "Manage sponsors, bookings and sponsor payment status", Description: "Keep the sponsor library and book sponsors into issues.", Implies: []Permission{EarnView}},
-	{Key: ConversionsCreate, Group: "Earn", Label: "Record conversions through the API", Description: "Report a conversion with its value. The Conversions key preset holds this alone."},
+	{Key: EarnView, Group: g("earn")},
+	{Key: EarnEdit, Group: g("earn"), Sensitive: true, Implies: []Permission{EarnView}},
+	{Key: EarnManage, Group: g("earn"), Sensitive: true, Implies: []Permission{EarnView}},
+	{Key: PaymentsManage, Group: g("earn"), Sensitive: true, Implies: []Permission{EarnView}},
+	{Key: SponsorsManage, Group: g("earn"), Implies: []Permission{EarnView}},
+	{Key: ConversionsCreate, Group: g("earn")},
 
-	{Key: WebsiteView, Group: "Website and pages", Label: "View posts, pages and website numbers", Description: "See the website's posts, pages, members and numbers."},
-	{Key: WebsiteEdit, Group: "Website and pages", Label: "Edit posts and pages", Description: "Write and change drafts of posts and pages.", Implies: []Permission{WebsiteView}},
-	{Key: WebsitePublish, Group: "Website and pages", Label: "Publish, schedule and unpublish posts and pages", Description: "Put posts and pages on the website, or take them down.", Sensitive: true, Implies: []Permission{WebsiteView}},
-	{Key: WebsiteManage, Group: "Website and pages", Label: "Manage the website: turn it on or off, home, navigation, tags, members, meter and paywall", Description: "Change how the website works and who can read what.", Sensitive: true, Implies: []Permission{WebsiteView}},
+	{Key: WebsiteView, Group: g("website")},
+	{Key: WebsiteEdit, Group: g("website"), Implies: []Permission{WebsiteView}},
+	{Key: WebsitePublish, Group: g("website"), Sensitive: true, Implies: []Permission{WebsiteView}},
+	{Key: WebsiteManage, Group: g("website"), Sensitive: true, Implies: []Permission{WebsiteView}},
 
-	{Key: ProductsView, Group: "Products and orders", Label: "View products and orders", Description: "See digital products, their sales and orders."},
-	{Key: ProductsEdit, Group: "Products and orders", Label: "Edit products", Description: "Change products' files, descriptions and drafts.", Implies: []Permission{ProductsView}},
-	{Key: ProductsPublish, Group: "Products and orders", Label: "Publish, archive and change the price of products", Description: "Put products on sale, take them off and change what they cost.", Sensitive: true, Implies: []Permission{ProductsView}},
-	{Key: OrdersManage, Group: "Products and orders", Label: "Manage orders: new links, revoking and restoring access", Description: "Send new download links and change buyers' access.", Implies: []Permission{ProductsView}},
+	{Key: ProductsView, Group: g("products")},
+	{Key: ProductsEdit, Group: g("products"), Implies: []Permission{ProductsView}},
+	{Key: ProductsPublish, Group: g("products"), Sensitive: true, Implies: []Permission{ProductsView}},
+	{Key: OrdersManage, Group: g("products"), Implies: []Permission{ProductsView}},
 
-	{Key: SMSSend, Group: "SMS", Label: "Send or schedule SMS campaigns, and publish automations with SMS steps", Description: "Needed with campaigns:send to send text messages.", Sensitive: true},
-	{Key: PushSend, Group: "Push", Label: "Send or schedule push campaigns, and publish automations with push steps", Description: "Needed with campaigns:send to send push notifications.", Sensitive: true},
-	{Key: WhatsAppSend, Group: "WhatsApp", Label: "Send or schedule WhatsApp campaigns, and publish automations with WhatsApp steps", Description: "Needed with campaigns:send to send WhatsApp messages.", Sensitive: true},
+	{Key: SMSSend, Group: g("sms"), Sensitive: true},
+	{Key: PushSend, Group: g("push"), Sensitive: true},
+	{Key: WhatsAppSend, Group: g("whatsapp"), Sensitive: true},
 
-	{Key: AuditView, Group: "Audit", Label: "View the audit log", Description: "See who did what, when and from where."},
+	{Key: AuditView, Group: g("audit")},
 
-	{Key: WorkspaceManage, Group: "Workspace", Label: "Manage workspace settings", Description: "Name, default sender, timezone and the approval policy."},
+	{Key: WorkspaceManage, Group: g("workspace")},
 
-	{Key: WorkspaceTransfer, Group: "Workspace", Label: "Transfer ownership", Description: "Make another member the Owner.", Sensitive: true, OwnerOnly: true},
-	{Key: WorkspaceDelete, Group: "Workspace", Label: "Delete the workspace", Description: "Delete the workspace and everything in it.", Sensitive: true, OwnerOnly: true},
-}
+	{Key: WorkspaceTransfer, Group: g("workspace"), Sensitive: true, OwnerOnly: true},
+	{Key: WorkspaceDelete, Group: g("workspace"), Sensitive: true, OwnerOnly: true},
+})
 
 var defByKey = func() map[Permission]Def {
 	m := make(map[Permission]Def, len(Defs))
@@ -436,15 +436,15 @@ var viewAll = []Permission{
 // BuiltinRoles in display order. Their permissions always come from here,
 // never from the database, so upgrades can add permissions to them.
 var BuiltinRoles = []BuiltinRole{
-	{Key: RoleOwner, Name: "Owner", Description: "Everything, including transferring ownership and deleting the workspace", Permissions: All()},
-	{Key: RoleAdmin, Name: "Admin", Description: "Everything except transferring ownership and deleting the workspace", Permissions: AllGrantable()},
-	{Key: RoleEditor, Name: "Editor", Description: "View everything; edit campaigns, templates, automations, segments (no SQL) and forms; send, pause and publish; import contacts", Permissions: NewSet(append(slices.Clone(viewAll),
+	{Key: RoleOwner, Name: "Owner", Description: roleAbout(RoleOwner), Permissions: All()},
+	{Key: RoleAdmin, Name: "Admin", Description: roleAbout(RoleAdmin), Permissions: AllGrantable()},
+	{Key: RoleEditor, Name: "Editor", Description: roleAbout(RoleEditor), Permissions: NewSet(append(slices.Clone(viewAll),
 		CampaignsEdit, CampaignsSend, CampaignsPause, TemplatesEdit, AutomationsEdit, AutomationsPublish,
 		SubscribersCreate, SubscribersEdit, SubscribersImport, ListsManage, SegmentsEdit, FormsEdit, ReportsShare,
 		TransactionalEdit, TransactionalPublish, AIUse, ScoringEdit, PlacementRun, GrowEdit, GrowReview,
 		SponsorsManage, WebsiteEdit, WebsitePublish, WebsiteManage, ProductsEdit, ProductsPublish, OrdersManage,
 		SMSSend, PushSend, WhatsAppSend)...)},
-	{Key: RoleViewer, Name: "Viewer", Description: "Read-only. Never sees secrets", Permissions: NewSet(viewAll...)},
+	{Key: RoleViewer, Name: "Viewer", Description: roleAbout(RoleViewer), Permissions: NewSet(viewAll...)},
 }
 
 // Builtin returns the built-in role with the given key: one of the four, or
