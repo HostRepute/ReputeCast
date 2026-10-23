@@ -9,9 +9,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"golang.org/x/text/unicode/norm"
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
@@ -69,7 +71,23 @@ type ProposeInput struct {
 var slugRe = regexp.MustCompile(`[^a-z0-9]+`)
 
 func slugify(s string) string {
-	return strings.Trim(slugRe.ReplaceAllString(strings.ToLower(s), "-"), "-")
+	return strings.Trim(slugRe.ReplaceAllString(strings.ToLower(asciiFold(s)), "-"), "-")
+}
+
+// asciiFold writes a name's letters without their marks, as a UTM value
+// reads best: "Bản tin Acme" → "Ban tin Acme".
+func asciiFold(s string) string {
+	var b strings.Builder
+	for _, r := range norm.NFD.String(s) {
+		switch {
+		case unicode.Is(unicode.Mn, r):
+		case r == 'đ', r == 'Đ':
+			b.WriteByte('d')
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // defaultUTM are the UTM parameters a new booking's link gets:
