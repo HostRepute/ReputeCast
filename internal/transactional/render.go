@@ -2,12 +2,13 @@ package transactional
 
 import (
 	"errors"
-	"fmt"
 	"html"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/mjml"
 )
@@ -49,7 +50,7 @@ func (c content) compiledHTML() (string, error) {
 	}
 	res := mjml.Compile(mjml.SetHeadMeta(c.MJML, c.Subject, c.Preheader))
 	if len(res.Errors) > 0 {
-		return "", fmt.Errorf("the MJML doesn't compile: %s", res.Errors[0].Message)
+		return "", &mjmlError{detail: res.Errors[0].Message}
 	}
 	return res.HTML, nil
 }
@@ -81,10 +82,15 @@ func bindings(vars []TransactionalVariable, data map[string]any, to recipient, l
 	return b
 }
 
-// renderError is a template that can't render: the part and the message.
+// renderError is a template that can't render: the part and the message,
+// in English for the API (Error). key names the message's sentence when
+// it is ReputeCast's own (render.*), for the editor's reader (problemText);
+// the Liquid engine's findings stay as it wrote them.
 type renderError struct {
 	Part    string
 	Message string
+	key     string
+	args    i18n.Args
 }
 
 func (e *renderError) Error() string { return e.Part + ": " + e.Message }
@@ -104,7 +110,12 @@ func render(c content, data map[string]any, to recipient, links map[string]strin
 	}
 	body, err := c.compiledHTML()
 	if err != nil {
-		return out, &renderError{Part: "Body", Message: err.Error()}
+		re := &renderError{Part: "Body", Message: err.Error()}
+		var me *mjmlError
+		if errors.As(err, &me) {
+			re.key, re.args = "render.mjmlInline", i18n.Args{"detail": me.detail}
+		}
+		return out, re
 	}
 	if out.HTML, err = renderPart("Body", body, vars); err != nil {
 		return out, err
@@ -126,7 +137,7 @@ func renderPart(part, src string, vars map[string]any) (string, error) {
 	out, err := liquid.Render(src, vars)
 	if err != nil {
 		if errors.Is(err, liquid.ErrTooLarge) {
-			return "", &renderError{Part: part, Message: "The rendered email is larger than 4 MB."}
+			return "", &renderError{Part: part, Message: texts.M("render.tooLarge").Text(i18n.Default, nil), key: "render.tooLarge"}
 		}
 		return "", &renderError{Part: part, Message: err.Error()}
 	}
@@ -144,16 +155,17 @@ func withPreheader(doc, preheader string) string {
 	return div + doc
 }
 
-// liquidMessage turns a parse error into the editor's sentence: "The
-// {% if %} on line 14 has no {% endif %}."
-func liquidMessage(p liquid.LiquidProblem) string {
+// liquidMessage turns a parse error into the editor's sentence in the
+// reader's language: "The {% if %} on line 14 has no {% endif %}." Other
+// findings are the Liquid engine's, as it wrote them.
+func liquidMessage(l i18n.Lang, p liquid.LiquidProblem) string {
 	msg := p.Message
 	if m := unterminatedRe.FindStringSubmatch(msg); m != nil {
 		tag := m[1]
 		if p.Line > 0 {
-			return fmt.Sprintf("The {%% %s %%} on line %d has no {%% end%s %%}.", tag, p.Line, tag)
+			return texts.M("liquid.unterminatedLine").Text(l, i18n.Args{"tag": tag, "line": strconv.Itoa(p.Line)})
 		}
-		return fmt.Sprintf("A {%% %s %%} has no {%% end%s %%}.", tag, tag)
+		return texts.M("liquid.unterminated").Text(l, i18n.Args{"tag": tag})
 	}
 	return msg
 }

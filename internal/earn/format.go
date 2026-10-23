@@ -64,28 +64,16 @@ func thousands(n int64) string {
 	return b.String()
 }
 
-// priceText is a price with its period, as the app writes it: "$8/month".
+// priceText is a price with its period in English, as audit entries
+// keep it: "$8/month".
 func priceText(cents int64, currency, period string) string {
-	p := money(cents, currency, true)
-	switch period {
-	case "month":
-		return p + "/month"
-	case "year":
-		return p + "/year"
-	}
-	return p
+	return priceTextIn(defaultLang, cents, currency, period)
 }
 
-// publicPrice is a price as public pages and emails write it: "$8 a month".
+// publicPrice is a price in English, as public pages and emails write it:
+// "$8 a month".
 func publicPrice(cents int64, currency, period string) string {
-	p := money(cents, currency, true)
-	switch period {
-	case "month":
-		return p + " a month"
-	case "year":
-		return p + " a year"
-	}
-	return p
+	return publicPriceIn(defaultLang, cents, currency, period)
 }
 
 // location is the workspace's time zone.
@@ -98,21 +86,14 @@ func location(ws *store.Workspace) *time.Location {
 	return time.UTC
 }
 
-// dateText writes a date in the workspace's time zone ("7 Oct 2027"),
-// without the year when it's this year ("16 Oct").
+// dateText writes a date in English in the workspace's time zone ("7 Oct
+// 2027"), without the year when it's this year ("16 Oct").
 func (s *Service) dateText(ws *store.Workspace, t time.Time) string {
-	loc := location(ws)
-	t = t.In(loc)
-	if t.Year() == s.now().In(loc).Year() {
-		return t.Format("2 Jan")
-	}
-	return t.Format("2 Jan 2006")
+	return s.dateTextIn(defaultLang, ws, t)
 }
 
 // longDate always has the year ("7 Oct 2027").
-func longDate(ws *store.Workspace, t time.Time) string {
-	return t.In(location(ws)).Format("2 Jan 2006")
-}
+func longDate(ws *store.Workspace, t time.Time) string { return longDateIn(defaultLang, ws, t) }
 
 // pageURL is an Earn page's address: on the workspace's own domain when it
 // has one (news.acme.io/upgrade), else under /p/{workspace}.
@@ -140,8 +121,13 @@ func article(word string) string {
 	return "a"
 }
 
-// PageLang is the Earn pages' language (English until they're translated).
+// PageLang is the Earn pages' language when nothing picks one: English,
+// in ReputeCast's own formats.
 var PageLang = defaultLang
 
-// Text is one of the Earn pages' built-in words (internal/publicpages).
+// Text is one of the Earn pages' built-in words in English.
 func Text(key string, args i18n.Args) string { return msgs.M(key).Text(PageLang, args) }
+
+// TextIn is one of the Earn pages' built-in words in a page's language
+// (internal/publicpages).
+func TextIn(l i18n.Lang, key string, args i18n.Args) string { return msgs.M(key).Text(l, args) }

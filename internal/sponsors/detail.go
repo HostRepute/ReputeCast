@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -100,10 +99,10 @@ func (s *Service) Booking(ctx context.Context, ws *store.Workspace, p *authz.Pri
 func (s *Service) Issue(ctx context.Context, ws *store.Workspace, p *authz.Principal, slotID uuid.UUID, number int) (SponsorIssueDetail, error) {
 	slot, err := s.Q.SponsorSlotGet(ctx, store.SponsorSlotGetParams{ID: slotID, WorkspaceID: ws.ID})
 	if err != nil {
-		return SponsorIssueDetail{}, api.MapError(err, "Slot")
+		return SponsorIssueDetail{}, mapErr(ctx, err, "slot")
 	}
 	if number < 1 {
-		return SponsorIssueDetail{}, api.NotFound("Issue")
+		return SponsorIssueDetail{}, notFound(ctx, "issue")
 	}
 	sl := store.SponsorSlot{ID: slot.ID, FirstNumber: slot.FirstNumber, FirstOn: slot.FirstOn, EveryDays: slot.EveryDays}
 	on := IssueOn(sl, number)

@@ -17,6 +17,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mjml"
 )
 
@@ -128,6 +129,10 @@ type Note struct {
 	Construct string `json:"construct,omitempty"`
 	// Message is a sentence; code is in backticks.
 	Message string `json:"message"`
+	// Text is Message's catalog message with its arguments, for the
+	// report's readers in other languages (In); the stored report keeps it
+	// beside the notes.
+	Text i18n.Text `json:"-"`
 }
 
 // Variable types, as the editor's Variables panel offers them.
@@ -207,14 +212,13 @@ func Convert(src Source, opt Options) Converted {
 		out.HTML = res.HTML
 		for _, p := range res.Errors {
 			msg := strings.TrimPrefix(p.Message, fmt.Sprintf("Line %d: ", p.Line))
-			out.Notes = append(out.Notes, Note{Kind: NoteManual, Field: "body", Line: p.Line, Message: "the MJML doesn't compile: " + lowerFirst(strings.TrimSuffix(msg, ".")) + "."})
+			out.Notes = append(out.Notes, noteOf(NoteManual, "body", p.Line, "", say("note.mjml", i18n.Args{"detail": lowerFirst(strings.TrimSuffix(msg, "."))})))
 		}
 	}
 	out.Variables = uses.declare(src.Sample)
 	out.TestData = sampleData(out.Variables, src.Sample)
 	if uses.has("view_in_browser_url") {
-		out.Notes = append(out.Notes, Note{Kind: NoteManual, Field: "body", Line: uses.get("view_in_browser_url").firstLine, Construct: "view_in_browser_url",
-			Message: "transactional mail has no web version, so `view_in_browser_url` prints nothing. Remove the link."})
+		out.Notes = append(out.Notes, noteOf(NoteManual, "body", uses.get("view_in_browser_url").firstLine, "view_in_browser_url", say("note.viewInBrowser", nil)))
 	}
 	out.Notes = append(out.Notes, out.renameInvalid()...)
 	out.Notes = dedupeNotes(out.Notes)
@@ -252,8 +256,7 @@ func (c *Converted) renameInvalid() []Note {
 			c.TestData[name] = val
 		}
 		c.Variables[i].Name = name
-		notes = append(notes, Note{Kind: NoteChange, Field: "template", Construct: v.Name,
-			Message: fmt.Sprintf("`%s` became `%s`: variable names use letters, digits and underscores, so your app sends `%s` in data.", v.Name, name, name)})
+		notes = append(notes, noteOf(NoteChange, "template", 0, v.Name, say("note.renamed", i18n.Args{"from": v.Name, "to": name})))
 	}
 	return notes
 }
@@ -350,32 +353,37 @@ func dedupeNotes(in []Note) []Note {
 
 // Summary is the report's Notes cell: the first manual fix or note, or the
 // declared variables ("2 variables declared: name, action_url").
-func (c Converted) Summary() string {
+func (c Converted) Summary() string { return c.SummaryIn(i18n.Default) }
+
+// SummaryIn is Summary in a reader's language.
+func (c Converted) SummaryIn(l i18n.Lang) string {
 	for _, n := range c.Notes {
 		if n.Kind == NoteManual || n.Kind == NoteChange {
-			return n.Message
+			return n.In(l).Message
 		}
 	}
 	for _, n := range c.Notes {
 		if n.Kind == NoteInfo && n.Field == "template" {
-			return n.Message
+			return n.In(l).Message
 		}
 	}
-	return VariablesLine(c.Variables)
+	return VariablesLineIn(l, c.Variables)
 }
 
 // VariablesLine is "2 variables declared: name, action_url", or
 // "4 variables declared" when listing them would be long.
-func VariablesLine(vs []Variable) string {
-	switch {
-	case len(vs) == 0:
-		return "No variables"
-	case len(vs) == 1:
-		return fmt.Sprintf("1 variable declared: %s", vs[0].Name)
-	case len(vs) == 2:
-		return fmt.Sprintf("2 variables declared: %s, %s", vs[0].Name, vs[1].Name)
+func VariablesLine(vs []Variable) string { return VariablesLineIn(i18n.Default, vs) }
+
+// VariablesLineIn is VariablesLine in a reader's language.
+func VariablesLineIn(l i18n.Lang, vs []Variable) string {
+	args := i18n.Args{"count": len(vs), "first": "", "second": ""}
+	if len(vs) > 0 {
+		args["first"] = vs[0].Name
 	}
-	return fmt.Sprintf("%d variables declared", len(vs))
+	if len(vs) > 1 {
+		args["second"] = vs[1].Name
+	}
+	return msgs.M("summary.variables").Text(l, args)
 }
 
 var (

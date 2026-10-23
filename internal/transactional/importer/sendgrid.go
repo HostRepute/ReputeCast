@@ -3,10 +3,12 @@ package importer
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // SendGridBase is SendGrid's API.
@@ -27,11 +29,11 @@ func NewSendGrid(key, base string, hc *http.Client) (*SendGrid, error) {
 		base = SendGridBase
 	}
 	return &SendGrid{c: newClient("SendGrid", base, hc, func(r *http.Request) { r.Header.Set("Authorization", "Bearer "+key) },
-		func(status int, _ []byte) string {
+		func(status int, _ []byte) i18n.Text {
 			if status == http.StatusForbidden {
-				return "SendGrid answered 403: this key can't read templates. Give it Template Engine read access."
+				return say("auth.sendgridTemplates", nil)
 			}
-			return fmt.Sprintf("SendGrid answered %d: the API key was revoked or is mistyped.", status)
+			return say("auth.sendgrid", i18n.Args{"code": strconv.Itoa(status)})
 		})}, nil
 }
 
@@ -134,10 +136,10 @@ func (s *SendGrid) Fetch(ctx context.Context, ref string) (Source, error) {
 	}
 	if v == nil && len(t.Versions) > 0 {
 		v = &t.Versions[0]
-		src.Notes = append(src.Notes, Note{Kind: NoteInfo, Field: "template", Message: fmt.Sprintf("no version is active in SendGrid, so “%s” was imported.", v.Name)})
+		src.Notes = append(src.Notes, noteOf(NoteInfo, "template", 0, "", say("note.sendgridVersion", i18n.Args{"name": v.Name})))
 	}
 	if v == nil {
-		return Source{}, &SourceError{Code: CodeNotFound, Message: fmt.Sprintf("“%s” has no versions in SendGrid.", t.Name)}
+		return Source{}, sourceErr(0, CodeNotFound, "sendgrid.noVersions", i18n.Args{"name": t.Name})
 	}
 	src.Subject, src.Body, src.Text = v.Subject, v.HTMLContent, v.PlainContent
 	if strings.TrimSpace(v.TestData) != "" {

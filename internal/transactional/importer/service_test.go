@@ -2,8 +2,11 @@ package importer_test
 
 import (
 	"context"
+	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
 	"github.com/hostrepute/reputecast/internal/transactional/importer"
@@ -141,6 +144,18 @@ func TestImportFiles(t *testing.T) {
 	}
 	if imp.Items[1].Status != "manual" || !strings.Contains(imp.Items[1].Summary, "`formatCurrency`") {
 		t.Fatalf("invoice: %+v", imp.Items[1])
+	}
+	// The stored report reads in each member's language.
+	vi := env.Client()
+	vi.SignInDemo("linh@acme.io")
+	vi.Header = http.Header{"Accept-Language": {"vi"}}
+	var mine importView
+	vi.Do("GET", ws+"/transactional/imports/"+imp.ID, nil).MustStatus(t, 200).JSON(t, &mine)
+	if len(mine.Items) != 2 || mine.Items[1].Summary != "helper `formatCurrency` của Handlebars không có cách viết tương ứng trong Liquid." {
+		t.Fatalf("report (vi): %+v", mine.Items)
+	}
+	if p := vi.Do("GET", ws+"/transactional/imports/"+uuid.NewString(), nil).MustStatus(t, 404).Problem(t); p["detail"] != "Không tìm thấy lượt nhập." {
+		t.Fatalf("not found (vi): %v", p)
 	}
 	linh.Do("POST", ws+"/transactional/imports/"+imp.ID+"/import", nil).MustStatus(t, 200).JSON(t, &imp)
 	if imp.Status != "done" || len(imp.Created) != 2 || imp.Created[0].Error != "" || imp.Created[1].Error != "" {

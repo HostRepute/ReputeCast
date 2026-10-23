@@ -17,8 +17,12 @@ const (
 	MaxFileBytes = 2 << 20
 )
 
-// ErrFileType is returned for files that are neither MJML nor HTML.
-var ErrFileType = errors.New("only .mjml, .html and .htm files can be imported")
+// ErrFileType is returned for files that are neither MJML nor HTML;
+// ErrNotText for files that aren't UTF-8 text.
+var (
+	ErrFileType = errors.New("only .mjml, .html and .htm files can be imported")
+	ErrNotText  = errors.New("the file isn't UTF-8 text")
+)
 
 var (
 	titleRe   = regexp.MustCompile(`(?is)<title[^>]*>(.*?)</title>`)
@@ -34,7 +38,7 @@ func FromFile(name string, data []byte) (Source, Dialect, error) {
 	base := path.Base(strings.ReplaceAll(name, `\`, "/"))
 	ext := strings.ToLower(path.Ext(base))
 	if !utf8.Valid(data) {
-		return Source{}, "", errors.New("the file isn't UTF-8 text")
+		return Source{}, "", ErrNotText
 	}
 	text := strings.TrimPrefix(string(data), string(rune(0xFEFF)))
 	src := Source{Ref: base, Alias: strings.TrimSuffix(base, path.Ext(base)), Notes: []Note{}}
@@ -53,7 +57,7 @@ func FromFile(name string, data []byte) (Source, Dialect, error) {
 	}
 	src.Body = text
 	if src.Subject == "" {
-		src.Notes = append(src.Notes, Note{Kind: NoteChange, Field: "subject", Message: "the file has no title, so the subject is empty. Write one before publishing."})
+		src.Notes = append(src.Notes, noteOf(NoteChange, "subject", 0, "", say("note.fileNoTitle", nil)))
 	}
 	d := DialectFile
 	if hbBlockRe.MatchString(text) && !liquidTag.MatchString(text) {

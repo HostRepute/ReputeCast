@@ -26,6 +26,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/products"
 )
 
 //go:embed sell/messages/*.json
@@ -73,6 +74,25 @@ func (h *Handler) sellRoutes(r chi.Router) {
 func (v *siteView) S(key string, kv ...any) string {
 	args, _ := labelArgs(kv)
 	return sellMsgs.M(key).Text(v.words.L, args)
+}
+
+// size is a file's size as the page's region writes it ("4.2 MB", "4,2
+// MB").
+func (v *siteView) size(n int64) string { return products.HumanSizeIn(v.words.L, n) }
+
+// fileText is a product's files in the page's words: "PDF, 86 pages", "ZIP,
+// 38 MB" (products.FileText's); long adds a PDF's size ("PDF, 86 pages, 4.2
+// MB", products.FileTextLong's).
+func (v *siteView) fileText(f products.ProductFilesSummary, long bool) string {
+	switch {
+	case f.Count == 0:
+		return ""
+	case f.Count == 1 && f.Pages > 0 && long:
+		return v.S("files.kindPagesSize", "kind", f.Kind, "count", f.Pages, "size", v.size(f.Bytes))
+	case f.Count == 1 && f.Pages > 0:
+		return v.S("files.kindPages", "kind", f.Kind, "count", f.Pages)
+	}
+	return v.S("files.kindSize", "kind", f.Kind, "size", v.size(f.Bytes))
 }
 
 // SH is one of the pages' sentences with markup (<b>).

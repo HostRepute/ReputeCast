@@ -21,7 +21,7 @@
   "notify.creativeDueTitle": "Nội dung tài trợ đến hạn vào ngày mai",
   "notify.creativeLateBody": "Chưa nhận được nội dung tài trợ của {sponsor} cho số #{issue}. Cho đến khi nội dung được đánh dấu sẵn sàng, bước Kiểm tra và gửi sẽ không cho số #{issue} gửi đi kèm khối Tài trợ.",
   "notify.creativeLateTitle": "Nội dung tài trợ bị trễ",
-  "notify.paymentBody": "{sponsor}: khoản {amount} cho số #{issue} đã đến hạn vào {date}. Hãy ghi nhận thanh toán khi nhận được; ReputeCast không gửi hóa đơn hay lời nhắc cho nhà tài trợ.",
+  "notify.paymentBody": "{sponsor}: khoản {amount} cho số #{issue} đã đến hạn vào ngày {at, date}. Hãy ghi nhận thanh toán khi nhận được; ReputeCast không gửi hóa đơn hay lời nhắc cho nhà tài trợ.",
   "notify.paymentTitle": "Thanh toán tài trợ quá hạn",
 
   "problem.bookingClosed": "Lượt đặt chỗ này đã bị hủy hoặc vẫn chỉ là đề xuất. Hãy đặt chỗ lại cho số này.",
@@ -98,5 +98,12 @@
   "shared.sharedNoEnd": "{publisher} chia sẻ",
   "shared.still": "Vẫn đang cập nhật",
   "shared.sub": "{list} số #{issue} · {date} · do {sponsor} tài trợ",
-  "shared.title": "Báo cáo tài trợ"
+  "shared.title": "Báo cáo tài trợ",
+
+  "notFound.booking": "Không tìm thấy lượt đặt chỗ.",
+  "notFound.sponsor": "Không tìm thấy nhà tài trợ.",
+  "notFound.slot": "Không tìm thấy vị trí.",
+  "notFound.link": "Không tìm thấy liên kết.",
+  "notFound.campaign": "Không tìm thấy chiến dịch.",
+  "notFound.issue": "Không tìm thấy số."
 }

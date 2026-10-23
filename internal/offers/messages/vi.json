@@ -81,5 +81,8 @@
   "problem.name": "Hãy đặt tên cho ưu đãi.",
   "problem.oneRetention": "“{name}” đã là ưu đãi giữ chân. Hãy kết thúc ưu đãi đó trước: trang hủy chỉ hiển thị tối đa một ưu đãi.",
   "problem.percent": "Hãy nhập phần trăm từ 1 đến 100.",
-  "problem.ways": "Hãy cho phép người đọc nhận ưu đãi bằng mã, bằng liên kết, hoặc cả hai."
+  "problem.ways": "Hãy cho phép người đọc nhận ưu đãi bằng mã, bằng liên kết, hoặc cả hai.",
+
+  "problem.notFound": "Không tìm thấy ưu đãi.",
+  "sync.unreachable": "không kết nối được"
 }

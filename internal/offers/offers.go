@@ -30,15 +30,21 @@ import (
 var messagesFS embed.FS
 
 // msgs holds the offers' words: problems, and the upgrade and cancel
-// pages' lines (English until the pages are translated).
+// pages' lines. Members read the app's in their app language, readers the
+// pages in the page's language and the Upgrade block in the email's.
 var msgs = i18n.MustLoad(messagesFS, "offers")
 
+// text is a problem or a line of the app, in the member's language.
 func text(ctx context.Context, key string, args i18n.Args) string {
 	return msgs.M(key).Text(i18n.LangFrom(ctx), args)
 }
 
-// page is a public page's line, in the Earn pages' language.
-func page(key string, args i18n.Args) string { return msgs.M(key).Text(earn.PageLang, args) }
+// page is a public page's line in the reader's language: the page's own,
+// which internal/publicpages puts in the request's context (English
+// without one).
+func page(ctx context.Context, key string, args i18n.Args) string {
+	return msgs.M(key).Text(i18n.LangFrom(ctx), args)
+}
 
 // Kinds of offer.
 const (
@@ -257,7 +263,7 @@ func (s *Service) view(ctx context.Context, ws *store.Workspace, r store.OfferGe
 	o := Offer{ID: r.ID.String(), Name: r.Name, Kind: r.Kind, DiscountType: r.DiscountType, Currency: r.Currency, Duration: r.Duration, Applies: []OfferApplies{},
 		ByCode: r.ByCode, Code: r.Code, ByLink: r.ByLink, EndsAt: r.EndsAt, NewOnly: r.NewOnly, MinPaidMonths: int(r.MinPaidMonths), CodeDays: int(r.CodeDays),
 		Status: r.Status, EndedAt: r.EndedAt, EndedReason: r.EndedReason, EndedBy: r.EndedByName, StartedAt: r.StartedAt, StartedBy: r.CreatedByName,
-		Sync: r.SyncStatus, SyncError: r.SyncError}
+		Sync: r.SyncStatus, SyncError: syncErrorIn(ctx, r.SyncError)}
 	if r.PercentOff != nil {
 		o.PercentOff = int(*r.PercentOff)
 	}
@@ -411,7 +417,7 @@ func (s *Service) List(ctx context.Context, ws *store.Workspace, p *authz.Princi
 func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (OfferDetail, error) {
 	r, err := s.Q.OfferGet(ctx, store.OfferGetParams{ID: id, WorkspaceID: ws.ID})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return OfferDetail{}, notFound()
+		return OfferDetail{}, notFound(ctx)
 	}
 	if err != nil {
 		return OfferDetail{}, err

@@ -22,6 +22,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/mailer"
+	"github.com/hostrepute/reputecast/internal/pagelabels"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -215,7 +216,7 @@ func (s *Service) RequestSignin(ctx context.Context, ws *store.Workspace, in Sig
 	if blocked, err := s.blocked(ctx, ws, pc); err != nil || blocked {
 		if blocked {
 			_ = s.Q.WebsiteMemberEventInsert(ctx, store.WebsiteMemberEventInsertParams{ID: newID(), WorkspaceID: ws.ID, ContactID: contact, Kind: "link_refused",
-				Detail: "the address is suppressed", At: s.now()})
+				Detail: memberEventDetail("memberEvent.suppressed"), At: s.now()})
 		}
 		return out, err
 	}
@@ -635,7 +636,7 @@ func (s *Service) Join(ctx context.Context, ws *store.Workspace, in JoinInput) (
 		return out, nil
 	}
 	out.Status = SigninSent
-	offers, err := s.offers(ctx, ws, c)
+	offers, err := s.offers(ctx, ws, c, pagelabels.Lang(in.Language))
 	if err != nil {
 		return out, err
 	}

@@ -59,11 +59,9 @@
   "order.test": "Đơn thử nghiệm không bao giờ chuyển tiền. Hãy dùng bảng điều khiển thử nghiệm của Stripe để hoàn tiền.",
   "order.exportPeople": "Xuất đơn hàng cần quyền subscribers:export, vì đơn hàng chứa địa chỉ email của người mua.",
   "notify.deliveryFailedTitle": "Giao sản phẩm thất bại",
-  "notify.deliveryFailedBody": "Email giao hàng của đơn hàng {order} ({product}) đến {email} chưa được gửi: {reason}. Người mua có thể tải xuống trên trang cảm ơn; hãy gửi liên kết mới khi lỗi đã được khắc phục.",
+  "notify.deliveryFailedBody": "Email giao hàng của đơn hàng {order} ({product}) đến {email} chưa được gửi: {reason, select, template_missing {sản phẩm chưa có mẫu email giao hàng} other {{detail}}}. Người mua có thể tải xuống trên trang cảm ơn; hãy gửi liên kết mới khi lỗi đã được khắc phục.",
   "notify.disputeTitle": "Tranh chấp được mở",
-  "notify.disputeBody": "{email} đã mở tranh chấp cho đơn hàng {order} ({product}, {amount}) với lý do “{reason}”. Hãy phản hồi trên Stripe trước {due}.",
-  "notify.disputeBodyNoDue": "{email} đã mở tranh chấp cho đơn hàng {order} ({product}, {amount}) với lý do “{reason}”. Hãy phản hồi trên Stripe.",
-  "notify.disputeRevoked": "Quyền tải xuống đã bị thu hồi, theo cài đặt của sản phẩm.",
+  "notify.disputeBody": "{email} đã mở tranh chấp cho đơn hàng {order} ({product}, {amount}) với lý do “{reason}”. {due, select, yes {Hãy phản hồi trên Stripe trước ngày {at, date}.} other {Hãy phản hồi trên Stripe.}}{revoked, select, yes { Quyền tải xuống đã bị thu hồi, theo cài đặt của sản phẩm.} other {}}",
   "checkout.archived": "Sản phẩm này không còn được bán.",
   "checkout.unavailable": "Chưa mua được cho đến khi kết nối Stripe.",
   "checkout.pwywBelow": "Số tiền phải từ {minimum} trở lên.",
@@ -71,5 +69,18 @@
   "consent.source": "Thanh toán sản phẩm",
   "consent.note": "đã đánh dấu “{text}” khi thanh toán",
   "activity.bought": "{amount} · đơn hàng #{number}",
-  "activity.refunded": "Đã hoàn {amount} · đơn hàng #{number}"
+  "activity.refunded": "Đã hoàn {amount} · đơn hàng #{number}",
+
+  "notFound.product": "Không tìm thấy sản phẩm.",
+  "notFound.contact": "Không tìm thấy liên hệ.",
+  "notFound.campaign": "Không tìm thấy chiến dịch.",
+  "notFound.form": "Không tìm thấy biểu mẫu.",
+  "notFound.order": "Không tìm thấy đơn hàng.",
+  "delivery.noTemplate": "sản phẩm chưa có mẫu email giao hàng",
+  "delivery.files": "{count, plural, =1 {tệp {kind}, {size}} other {# tệp, {size}}}",
+  "size.bytes": "{n} byte",
+
+  "template.deliveryName": "Giao sản phẩm",
+  "category.purchases": "Mua hàng",
+  "category.purchasesText": "Email gửi người mua: liên kết tải xuống của sản phẩm số"
 }

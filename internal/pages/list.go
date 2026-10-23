@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -400,20 +401,20 @@ func (s *Service) theme(ctx context.Context, ws *store.Workspace) PagesTheme {
 	}
 	b := set.Branding
 	out.Publisher, out.Logo, out.Accent, out.Ground = b.PublisherName, b.Logo != nil, b.Palette.Accent, b.Palette.Background
-	out.Font = fontName(b.Font, b.CustomFontFamily)
+	out.Font = fontName(lang(ctx), b.Font, b.CustomFontFamily)
 	return out
 }
 
-func fontName(key, custom string) string {
+// fontName names the theme's font in a sentence: fonts by their names,
+// the system font and a serif in the reader's words.
+func fontName(l i18n.Lang, key, custom string) string {
 	switch key {
 	case "plex":
 		return "IBM Plex Sans"
 	case "inter":
 		return "Inter"
-	case "system":
-		return "the system font"
-	case "serif":
-		return "a serif"
+	case "system", "serif":
+		return msgs.M("theme.font").Text(l, i18n.Args{"kind": key})
 	case "custom":
 		if custom != "" {
 			return custom

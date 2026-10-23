@@ -50,6 +50,8 @@ type UpgradeRequest struct {
 
 // UpgradeView is the upgrade page.
 type UpgradeView struct {
+	// Lang is the language the page is written in.
+	Lang     i18n.Lang
 	Headline string
 	Intro    string
 	TestMode bool
@@ -264,7 +266,7 @@ func (s *Service) Upgrade(ctx context.Context, ws *store.Workspace, r UpgradeReq
 	}
 	page := r.Page
 	if page == nil {
-		p, err := s.upgradePage(ctx, ws)
+		p, err := s.upgradePageIn(ctx, ws, l)
 		if err != nil {
 			return UpgradeView{}, err
 		}
@@ -274,7 +276,7 @@ func (s *Service) Upgrade(ctx context.Context, ws *store.Workspace, r UpgradeReq
 	if err != nil {
 		return UpgradeView{}, err
 	}
-	v := UpgradeView{Headline: page.Headline, Intro: page.Intro, TestMode: mode == "test", FAQ: page.FAQ, FAQTitle: s.t(l, "page.questions", nil),
+	v := UpgradeView{Lang: l, Headline: page.Headline, Intro: page.Intro, TestMode: mode == "test", FAQ: page.FAQ, FAQTitle: s.t(l, "page.questions", nil),
 		Trust: s.t(l, "page.trust", i18n.Args{"publisher": s.publisher(ctx, ws)}), TermsURL: st.TermsUrl, Support: st.SupportEmail,
 		Monthly: s.t(l, "page.monthly", nil), Yearly: s.t(l, "page.yearly", nil), Token: r.Token,
 		Words: map[string]string{"testRibbon": s.t(l, "page.testRibbon", nil), "testNote": s.t(l, "page.testNote", nil), "terms": s.t(l, "page.terms", nil),
@@ -377,7 +379,7 @@ func (s *Service) Upgrade(ctx context.Context, ws *store.Workspace, r UpgradeReq
 		if st.PricesIncludeTax {
 			key = "page.taxInclusive"
 		}
-		v.TaxNote = s.t(l, key, i18n.Args{"currency": currencyName(cn)})
+		v.TaxNote = s.t(l, key, i18n.Args{"currency": currencyNameIn(l, cn)})
 	}
 	if r.Offer != "" && s.Offers != nil && len(v.Cards) > 0 {
 		if err := s.Offers.UpgradeOffer(ctx, ws, mode, r.Offer, &v); err != nil {
@@ -385,22 +387,6 @@ func (s *Service) Upgrade(ctx context.Context, ws *store.Workspace, r UpgradeReq
 		}
 	}
 	return v, nil
-}
-
-func currencyName(code string) string {
-	switch strings.ToLower(code) {
-	case "usd":
-		return "US dollars"
-	case "eur":
-		return "euros"
-	case "gbp":
-		return "pounds sterling"
-	case "cad":
-		return "Canadian dollars"
-	case "aud":
-		return "Australian dollars"
-	}
-	return strings.ToUpper(code)
 }
 
 // card words one tier's card for a period: the price before checkout
@@ -430,7 +416,7 @@ func (s *Service) card(ctx context.Context, ws *store.Workspace, l i18n.Lang, t 
 		c.Unit = s.t(l, "page.aMonth", nil)
 		c.Sub = s.t(l, "page.billedMonthly", nil)
 	}
-	price := publicPrice(p.AmountCents, p.Currency, period)
+	price := publicPriceIn(l, p.AmountCents, p.Currency, period)
 	loc := location(ws)
 	trial := int(t.t.TrialDays)
 	if hadTrial {
@@ -440,28 +426,36 @@ func (s *Service) card(ctx context.Context, ws *store.Workspace, l i18n.Lang, t 
 		ends := now.In(loc).AddDate(0, 0, trial)
 		c.Trial = s.t(l, "page.trialDays", i18n.Args{"count": trial})
 		c.Button = s.t(l, "page.startTrial", nil)
-		c.Note = s.t(l, "page.trialNote", i18n.Args{"date": dayMonth(ends, now, loc), "price": price})
+		c.Note = s.t(l, "page.trialNote", i18n.Args{"date": dayMonth(l, ends, now, loc), "price": price})
 	} else {
 		c.Button = page.Buttons[t.t.ID.String()]
 		if c.Button == "" {
-			c.Button = s.t(l, "page.become", i18n.Args{"tier": strings.ToLower(t.short[:1]) + t.short[1:], "article": article(t.short)})
+			// English writes the tier's name in lower case here ("Become an
+			// insider"); a translation keeps the name as it is.
+			tier := t.short
+			if englishText(l, "page.become") {
+				tier = lowerFirst(tier)
+			}
+			c.Button = s.t(l, "page.become", i18n.Args{"tier": tier, "article": article(t.short)})
 		}
 		renews := now.In(loc).AddDate(1, 0, 0)
 		if period == "month" {
 			renews = now.In(loc).AddDate(0, 1, 0)
-			c.Note = s.t(l, "page.chargedMonthly", i18n.Args{"amount": money(p.AmountCents, p.Currency, true), "date": dayMonth(renews, now, loc)})
+			c.Note = s.t(l, "page.chargedMonthly", i18n.Args{"amount": money(p.AmountCents, p.Currency, true), "date": dayMonth(l, renews, now, loc)})
 		} else {
-			c.Note = s.t(l, "page.chargedYearly", i18n.Args{"amount": money(p.AmountCents, p.Currency, true), "date": renews.Format("2 Jan 2006")})
+			c.Note = s.t(l, "page.chargedYearly", i18n.Args{"amount": money(p.AmountCents, p.Currency, true), "date": dateIn(l, renews)})
 		}
 	}
 	return c
 }
 
-func dayMonth(t, now time.Time, loc *time.Location) string {
+// dayMonth is a day without its year when it's this year ("16 Oct"), with
+// it otherwise.
+func dayMonth(l i18n.Lang, t, now time.Time, loc *time.Location) string {
 	if t.In(loc).Year() == now.In(loc).Year() {
-		return t.In(loc).Format("2 Jan")
+		return dayMonthIn(l, t.In(loc))
 	}
-	return t.In(loc).Format("2 Jan 2006")
+	return dateIn(l, t.In(loc))
 }
 
 // previewReader is the sample reader the editor previews as: a free
@@ -507,9 +501,9 @@ func (s *Service) paidView(ctx context.Context, ws *store.Workspace, l i18n.Lang
 		if acc.Period == "year" {
 			key = "page.renewsYearly"
 		}
-		v.Renews = s.t(l, key, i18n.Args{"date": longDate(ws, *acc.CurrentPeriodEnd)})
+		v.Renews = s.t(l, key, i18n.Args{"date": longDateIn(l, ws, *acc.CurrentPeriodEnd)})
 	} else if end := firstTime(acc.CancelAt, acc.GrantUntil); end != nil {
-		v.Renews = s.t(l, "page.endsOn", i18n.Args{"date": longDate(ws, *end)})
+		v.Renews = s.t(l, "page.endsOn", i18n.Args{"date": longDateIn(l, ws, *end)})
 	}
 	if acc.Kind != "stripe" {
 		v.Button, v.Manage = "", ""
@@ -522,7 +516,7 @@ func paidPriceLine(l i18n.Lang, s *Service, sub store.PaidSubscription) string {
 	if sub.Kind != "stripe" || sub.AmountCents == 0 {
 		return ""
 	}
-	full := publicPrice(sub.AmountCents, sub.Currency, sub.Period)
+	full := publicPriceIn(l, sub.AmountCents, sub.Currency, sub.Period)
 	if len(sub.Discount) > 0 {
 		var d struct {
 			Label    string `json:"label"`
@@ -767,7 +761,7 @@ func (s *Service) Welcome(ctx context.Context, ws *store.Workspace, session stri
 		}
 		chk, _ = s.Q.EarnCheckoutBySession(ctx, session)
 	}
-	page, err := s.upgradePage(ctx, ws)
+	page, err := s.upgradePageIn(ctx, ws, l)
 	if err != nil {
 		return WelcomeView{}, err
 	}
@@ -823,7 +817,7 @@ func (s *Service) nextIssue(ctx context.Context, ws *store.Workspace, tier *uuid
 	if at == nil {
 		return s.t(l, "welcome.soon", nil)
 	}
-	return at.In(location(ws)).Format("Mon 2 Jan")
+	return shortDateIn(l, at.In(location(ws)))
 }
 
 // completeFromReturn applies a checkout the reader came back from before

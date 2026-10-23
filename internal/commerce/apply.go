@@ -540,14 +540,14 @@ func (s *Service) notifyRevoked(ctx context.Context, tx pgx.Tx, st store.Store, 
 	if err != nil {
 		return err
 	}
-	l := i18n.Default
-	date := at.In(location(ws.Timezone)).Format("2 Jan 15:04")
+	// Kept as messages, so each member reads it in their own language; the
+	// time in the workspace's zone.
 	return notify.ToMembersWith(ctx, tx, st.WorkspaceID, authz.IntegrationsManage, notify.Notification{
 		Kind: KindStoreProblem, Severity: "bad",
-		Title: mNotifyDiscTitle.Text(l, i18n.Args{"store": st.Name}),
-		Body:  mNotifyDiscBody.Text(l, i18n.Args{"platform": platformName(st.Platform), "date": date, "reason": reason, "flows": flows}),
-		Link:  "/w/" + ws.Slug + "/settings/integrations/stores/" + st.ID.String(),
-		Data:  map[string]any{"store": st.ID.String(), "problem": "disconnected"},
+		TitleText: mNotifyDiscTitle.Keep(i18n.Args{"store": st.Name}),
+		BodyText:  mNotifyDiscBody.Keep(i18n.Args{"platform": platformName(st.Platform), "at": at.In(location(ws.Timezone)), "reason": reason, "flows": flows}),
+		Link:      "/w/" + ws.Slug + "/settings/integrations/stores/" + st.ID.String(),
+		Data:      map[string]any{"store": st.ID.String(), "problem": "disconnected"},
 	})
 }
 

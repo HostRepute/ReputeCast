@@ -36,7 +36,7 @@ type GiftDeliveryInput struct {
 func (s *Service) giftOf(ctx context.Context, ws *store.Workspace, id uuid.UUID) (store.GiftGetRow, error) {
 	row, err := s.Q.GiftGet(ctx, store.GiftGetParams{ID: id, WorkspaceID: ws.ID})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return row, notFound()
+		return row, notFound(ctx, "gift")
 	}
 	return row, err
 }
@@ -94,31 +94,34 @@ func (s *Service) ChangeDelivery(ctx context.Context, ws *store.Workspace, p *au
 	}
 	if in.NotifyBuyer {
 		g.DeliverAt, g.Timezone = &at, tz
-		r := s.Earn.SendMemberEmailTo(ctx, ws, earn.EmailGiftPurchased, g.BuyerEmail, g.BuyerName, s.receiptData(ctx, ws, g),
-			"gift:"+id.String()+":moved:"+at.UTC().Format(time.RFC3339))
+		texts := func(l i18n.Lang) map[string]any { return s.receiptData(ctx, ws, g, l) }
+		r := s.Earn.SendMemberEmailIn(ctx, ws, earn.EmailGiftPurchased, g.BuyerEmail, g.BuyerName, texts(earn.PageLang),
+			"gift:"+id.String()+":moved:"+at.UTC().Format(time.RFC3339), texts)
 		_ = event(ctx, s.Q, id, "receipt", now, userID(p), r.MessageID, emailData(earn.EmailGiftPurchased, r))
 	}
 	return s.Row(ctx, ws, id)
 }
 
 // receiptData is the receipt's variables (sendReceipt's, for a resend).
-func (s *Service) receiptData(ctx context.Context, ws *store.Workspace, g store.EarnGift) map[string]any {
+// receiptData is the receipt's data, its lines in a language: the
+// email's.
+func (s *Service) receiptData(ctx context.Context, ws *store.Workspace, g store.EarnGift, l i18n.Lang) map[string]any {
 	now := s.now()
 	_, short, _ := s.tierOf(ctx, ws, g)
-	data := map[string]any{"tier": short, "gift": period(int(g.Months)), "amount": earn.MoneyCents(g.AmountCents, g.Currency)}
+	data := map[string]any{"tier": short, "gift": period(l, int(g.Months)), "amount": earn.MoneyCents(g.AmountCents, g.Currency)}
 	if f := firstName(g.BuyerName); f != "" {
 		data["first_name"] = f
 	}
 	data["recipient"] = firstNonEmpty(firstName(g.RecipientName), g.RecipientEmail)
 	switch {
 	case g.InPerson:
-		data["recipient"] = page("receipt.someone", nil)
-		data["delivery_line"] = page("receipt.inPerson", nil)
+		data["recipient"] = msgs.M("receipt.someone").Text(l, nil)
+		data["delivery_line"] = msgs.M("receipt.inPerson").Text(l, nil)
 	case g.DeliverAt != nil && g.DeliverAt.After(now):
-		date, clock := deliveryText(*g.DeliverAt, g.Timezone, ws, now)
-		data["delivery_line"] = page("receipt.scheduled", i18n.Args{"date": date, "time": clock})
+		date, clock := deliveryText(l, *g.DeliverAt, g.Timezone, ws, now)
+		data["delivery_line"] = msgs.M("receipt.scheduled").Text(l, i18n.Args{"date": date, "time": clock})
 	default:
-		data["delivery_line"] = page("receipt.now", nil)
+		data["delivery_line"] = msgs.M("receipt.now").Text(l, nil)
 	}
 	return data
 }
@@ -198,7 +201,7 @@ func (s *Service) giftName(_ context.Context, row store.GiftGetRow) string {
 	g := row.EarnGift
 	to := firstNonEmpty(g.RecipientName, g.RecipientEmail)
 	if g.InPerson || to == "" {
-		return page("giftNamePerson", i18n.Args{"buyer": firstNonEmpty(g.BuyerName, g.BuyerEmail), "tier": row.TierName, "months": g.Months})
+		return english("giftNamePerson", i18n.Args{"buyer": firstNonEmpty(g.BuyerName, g.BuyerEmail), "tier": row.TierName, "months": g.Months})
 	}
-	return page("giftName", i18n.Args{"to": to, "tier": row.TierName, "months": g.Months})
+	return english("giftName", i18n.Args{"to": to, "tier": row.TierName, "months": g.Months})
 }

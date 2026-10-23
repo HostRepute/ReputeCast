@@ -151,7 +151,7 @@ func (s *Service) UpdateCategory(ctx context.Context, ws *store.Workspace, p *au
 		q := store.New(tx)
 		cur, err := q.TxnCategory(ctx, store.TxnCategoryParams{WorkspaceID: ws.ID, ID: id})
 		if err != nil {
-			return api.MapError(err, "Category")
+			return mapErr(ctx, err, "category")
 		}
 		n, err := q.TxnCategoryTemplateCount(ctx, &id)
 		if err != nil {
@@ -183,7 +183,7 @@ func (s *Service) DeleteCategory(ctx context.Context, ws *store.Workspace, p *au
 		q := store.New(tx)
 		cur, err := q.TxnCategory(ctx, store.TxnCategoryParams{WorkspaceID: ws.ID, ID: id})
 		if err != nil {
-			return api.MapError(err, "Category")
+			return mapErr(ctx, err, "category")
 		}
 		n, err := q.TxnCategoryTemplateCount(ctx, &id)
 		if err != nil {

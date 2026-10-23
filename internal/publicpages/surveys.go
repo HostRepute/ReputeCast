@@ -2,7 +2,6 @@ package publicpages
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/polls"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 )
@@ -39,7 +39,9 @@ type surveyQuestionView struct {
 	Text1   string
 	Max     int
 	Count   string
-	Error   string
+	// CountTpl is Count for the script, "{n}" standing for the count.
+	CountTpl string
+	Error    string
 	// FromPoll marks question 1 when the email's poll answered it.
 	FromPoll bool
 }
@@ -78,15 +80,40 @@ type surveyBody struct {
 	Footer  pollFooter
 }
 
-// zoneCity is "New York time" for America/New_York.
-func zoneCity(tz string) string {
+// zoneCity is "New York time" for America/New_York, in the page's
+// language ("giờ New York").
+func (s *site) zoneCity(tz string) string {
 	if i := strings.LastIndexByte(tz, '/'); i >= 0 {
-		return strings.ReplaceAll(tz[i+1:], "_", " ") + " time"
+		return s.gt("survey.zone", "city", strings.ReplaceAll(tz[i+1:], "_", " "))
 	}
 	if tz == "" || tz == "UTC" {
 		return "UTC"
 	}
-	return tz + " time"
+	return s.gt("survey.zone", "city", tz)
+}
+
+// requiredText is what a question left empty says: the publisher's own
+// words, else polls' sentence for its type in the page's language.
+func (s *site) requiredText(q polls.SurveyQuestion) string {
+	if strings.TrimSpace(q.RequiredText) != "" {
+		return q.RequiredText
+	}
+	switch q.Type {
+	case polls.QuestionSingle, polls.QuestionMulti, polls.QuestionScale, polls.QuestionEmoji:
+		return s.gt("survey.required." + q.Type)
+	}
+	return s.gt("survey.required.text")
+}
+
+// surveyLang picks a survey page's language: the email's the link came
+// from (the contact's, for a link without one), else the visitor's.
+func (h *Handler) surveyLang(w http.ResponseWriter, r *http.Request, s *site, token string) pageLang {
+	for _, kind := range []linktoken.Kind{linktoken.Survey, linktoken.SurveyTest} {
+		if c, ok := h.claims(s, token, kind); ok {
+			return h.linkLang(w, r, s, c)
+		}
+	}
+	return h.visitorLang(w, r, s, nil)
 }
 
 func (h *Handler) surveyView(s *site, p *polls.SurveyPage, token string) surveyBody {
@@ -95,7 +122,8 @@ func (h *Handler) surveyView(s *site, p *polls.SurveyPage, token string) surveyB
 		tz = s.ws.Timezone
 	}
 	loc := state.Location(tz)
-	b := surveyBody{Kicker: "Survey · " + s.set.Branding.PublisherName, Name: p.Name, Description: p.Description, Back: s.links.Archive(),
+	reg := s.lang().Region
+	b := surveyBody{Kicker: s.gt("survey.kicker", "publisher", s.set.Branding.PublisherName), Name: p.Name, Description: p.Description, Back: s.links.Archive(),
 		Footer: pollFooter{Privacy: s.set.Branding.PrivacyURL, Preferences: s.links.PreferencesRequest()}, Test: p.Answerer == polls.AnswererTest}
 	action := s.links.Survey(p.Slug)
 	if token != "" {
@@ -104,56 +132,54 @@ func (h *Handler) surveyView(s *site, p *polls.SurveyPage, token string) surveyB
 	b.Action, b.ChangeURL = action, action
 	until, untilClock := "", ""
 	if p.ClosesAt != nil {
-		until = p.ClosesAt.In(loc).Format("Mon 2 Jan")
-		untilClock = p.ClosesAt.In(loc).Format("15:04")
+		until = reg.ShortDate(p.ClosesAt.In(loc))
+		untilClock = reg.Time(p.ClosesAt.In(loc), "")
 	}
 	switch {
 	case p.Closed:
 		b.State = "closed"
 		b.Heading = p.Name
-		when := ""
+		b.Text = s.gt("survey.closed")
 		if p.ClosedAt != nil {
-			when = " on " + p.ClosedAt.In(loc).Format("Mon 2 Jan") + " at " + p.ClosedAt.In(loc).Format("15:04")
+			b.Text = s.gt("survey.closedOn", "date", reg.ShortDate(p.ClosedAt.In(loc)), "time", reg.Time(p.ClosedAt.In(loc), ""))
 		}
-		b.Text = "This survey closed" + when + ". It doesn't take answers anymore. Answers you sent before it closed are kept."
 		return b
 	case p.Refused:
 		b.State = "refused"
-		b.Heading = "This survey is for " + s.set.Branding.PublisherName + "'s subscribers"
-		b.Text = "Open it from the email we sent you, so your answers are linked to you. A copied or shared link can't take answers."
+		b.Heading = s.gt("survey.refusedHeading", "publisher", s.set.Branding.PublisherName)
+		b.Text = s.gt("survey.refusedText")
 		b.Join = s.links.Subscribe("")
 		return b
 	}
 	b.State = "open"
+	var answering []string
 	switch p.Answerer {
 	case polls.AnswererContact:
-		b.Answering = "Answering as " + p.Email
+		answering = append(answering, s.gt("survey.answeringAs", "email", p.Email))
 	case polls.AnswererTest:
-		b.Answering = "Test answers of " + p.Email + " · never counted"
+		answering = append(answering, s.gt("survey.testAnswers", "email", p.Email))
 	}
 	if until != "" {
-		if b.Answering != "" {
-			b.Answering += " · "
-		}
-		b.Answering += fmt.Sprintf("open until %s, %s %s", until, untilClock, zoneCity(tz))
+		answering = append(answering, s.gt("survey.openUntil", "date", until, "time", untilClock, "zone", s.zoneCity(tz)))
 	}
-	b.Submit = "Send my answers"
+	b.Answering = strings.Join(answering, " · ")
+	b.Submit = s.gt("survey.submit")
 	if p.Settings.OneResponse && until != "" {
-		b.Until = "You can change them until " + until + "."
+		b.Until = s.gt("survey.until", "date", until)
 	}
 	switch {
 	case p.Saved:
 		b.State = "done"
-		b.DoneTitle = "Your answers are saved"
-		thanks := "Thanks."
+		b.DoneTitle = s.gt("survey.doneTitle")
+		thanks := s.gt("survey.thanks")
 		if p.FirstName != "" {
-			thanks = "Thanks, " + p.FirstName + "."
+			thanks = s.gt("survey.thanksNamed", "name", p.FirstName)
 		}
 		switch {
 		case p.Answerer == polls.AnswererTest:
-			b.DoneText = "They're saved as a test response, which is never counted."
+			b.DoneText = s.gt("survey.doneTest")
 		case p.Settings.OneResponse && until != "":
-			b.DoneText = thanks + " You can change them until " + until + " at " + untilClock + "; your newest answers count."
+			b.DoneText = thanks + " " + s.gt("survey.doneChange", "date", until, "time", untilClock)
 		default:
 			b.DoneText = thanks + " " + strings.TrimSpace(p.Settings.Thanks)
 		}
@@ -163,9 +189,9 @@ func (h *Handler) surveyView(s *site, p *polls.SurveyPage, token string) surveyB
 		return b
 	case p.CompletedAt != nil && p.Answerer == polls.AnswererContact:
 		at := p.CompletedAt.In(loc)
-		b.Intro = fmt.Sprintf("You answered on %s at %s. Change anything and save again. Your newest answers replace the old ones.", at.Format("Mon 2 Jan"), at.Format("15:04"))
+		b.Intro = s.gt("survey.answeredOn", "date", reg.ShortDate(at), "time", reg.Time(at, ""))
 		b.IntroTone = "neutral"
-		b.Submit = "Save changes"
+		b.Submit = s.gt("survey.saveChanges")
 		b.Keep = action
 		if strings.Contains(b.Keep, "?") {
 			b.Keep += "&view=done"
@@ -173,19 +199,23 @@ func (h *Handler) surveyView(s *site, p *polls.SurveyPage, token string) surveyB
 			b.Keep += "?view=done"
 		}
 	case p.FromPoll:
-		b.Intro = "We kept your answer to question 1 from the email. Change it if you like."
+		b.Intro = s.gt("survey.fromPoll")
 		b.IntroTone = "ok"
 	}
 	for i, q := range p.Questions {
-		qv := surveyQuestionView{Key: q.Key, Number: i + 1, Type: q.Type, Text: q.Text, Description: q.Description, Required: q.Required, Error: p.Error(q.Key),
+		qv := surveyQuestionView{Key: q.Key, Number: i + 1, Type: q.Type, Text: q.Text, Description: q.Description, Required: q.Required,
 			FromPoll: i == 0 && p.FromPoll}
-		qv.Label = "Question " + strconv.Itoa(i+1)
+		if p.Error(q.Key) != "" {
+			qv.Error = s.requiredText(q)
+		}
+		mark := "none"
 		switch {
 		case !q.Required:
-			qv.Label += " · optional"
+			mark = "optional"
 		case q.Type == polls.QuestionMulti:
-			qv.Label += " · pick any"
+			mark = "multi"
 		}
+		qv.Label = s.gt("survey.question", "n", strconv.Itoa(i+1), "mark", mark)
 		given := p.Answers[q.Key]
 		picked := map[int]bool{}
 		for _, k := range pickedOf(given) {
@@ -198,32 +228,35 @@ func (h *Handler) surveyView(s *site, p *polls.SurveyPage, token string) surveyB
 			if q.Type == polls.QuestionLong {
 				qv.Max = polls.MaxLongAnswer
 			}
-			qv.Count = fmt.Sprintf("%d of %s characters", len([]rune(qv.Text1)), countWord(int64(qv.Max)))
+			qv.Count = s.gt("survey.count", "count", len([]rune(qv.Text1)), "max", qv.Max)
+			qv.CountTpl = s.gt("survey.count", "count", "{n}", "max", qv.Max)
 		default:
 			for _, o := range polls.QuestionOptions(q) {
 				ov := surveyOptionView{Value: strconv.Itoa(o.Key), Label: o.Label, Aria: o.Label, Checked: picked[o.Key]}
 				switch q.Type {
 				case polls.QuestionScale:
-					ov.Aria = fmt.Sprintf("%d out of 10", o.Key)
+					ov.Aria = s.gt("poll.outOf10", "n", strconv.Itoa(o.Key))
 				case polls.QuestionEmoji:
 					faces := q.Faces
 					if faces != 3 {
 						faces = 5
 					}
+					ov.Label = s.faceLabel(faces, o.Key)
+					ov.Aria = ov.Label
 					ov.Face = s.links.Static(FacePath(faces, o.Key, accentHex(s)))
 				}
 				qv.Options = append(qv.Options, ov)
 			}
 			if q.Type == polls.QuestionScale {
-				qv.Low, qv.High = firstOf(q.Low, "Not likely"), firstOf(q.High, "Very likely")
+				qv.Low, qv.High = firstOf(q.Low, s.gt("survey.notLikely")), firstOf(q.High, s.gt("survey.veryLikely"))
 			}
 		}
 		b.Questions = append(b.Questions, qv)
 	}
 	if len(p.Errors) > 0 {
-		b.ErrorTitle = fmt.Sprintf("%d %s an answer", len(p.Errors), plural(int64(len(p.Errors)), "question needs", "questions need"))
+		b.ErrorTitle = s.gt("survey.errorsTitle", "count", len(p.Errors))
 		for _, e := range p.Errors {
-			b.Errors = append(b.Errors, surveyErrorView{Href: "#" + e.Key, Text: fmt.Sprintf("Question %d: %s", e.Number, e.Text)})
+			b.Errors = append(b.Errors, surveyErrorView{Href: "#" + e.Key, Text: s.gt("survey.errorItem", "n", strconv.Itoa(e.Number), "text", e.Text)})
 		}
 	}
 	return b
@@ -263,17 +296,13 @@ func (h *Handler) renderSurvey(w http.ResponseWriter, r *http.Request, s *site, 
 		title = b.Heading
 	}
 	v := h.view(s, title+" · "+s.set.Branding.PublisherName, b)
+	h.setLang(v, r, s, s.page(), nil)
 	v.Scripts = []string{s.links.Static("poll.js?v=" + h.version)}
 	h.render(w, r, s, "survey", status, v, csp{}, true)
 }
 
 func (h *Handler) badSurveyLink(w http.ResponseWriter, r *http.Request, s *site) {
-	h.pollMessage(w, r, s, http.StatusNotFound, "Link not valid · "+s.set.Branding.PublisherName, messageBody{
-		Kicker:  "Survey",
-		Heading: "This link doesn't work anymore",
-		Text:    "It may have been cut short, or changed after it was sent, or the survey was removed. Open it again from your email. Nothing was recorded.",
-		Actions: []action{{Label: "Back to the newsletter", Href: s.links.Archive()}},
-	}, true)
+	h.badLink(w, r, s, "survey.kickerShort", "survey.badLink", func(pageLang) string { return s.gt("survey.back") })
 }
 
 func (h *Handler) surveyPage(w http.ResponseWriter, r *http.Request) {
@@ -298,6 +327,7 @@ func (h *Handler) surveyPage(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("view") == "done" && p.CompletedAt != nil && !p.Closed {
 		p.Saved = true
 	}
+	h.surveyLang(w, r, s, token)
 	h.renderSurvey(w, r, s, http.StatusOK, h.surveyView(s, p, token))
 }
 
@@ -311,7 +341,7 @@ func (h *Handler) surveyPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !h.parseForm(w, r, 128<<10) {
-		http.Error(w, "Those answers couldn't be read. Go back and send them again.", http.StatusBadRequest)
+		http.Error(w, growText(h.visitorLang(nil, r, s, nil).Labels.Lang(), "survey.unreadable"), http.StatusBadRequest)
 		return
 	}
 	token := r.URL.Query().Get("t")
@@ -328,5 +358,6 @@ func (h *Handler) surveyPost(w http.ResponseWriter, r *http.Request) {
 	if len(p.Errors) > 0 {
 		status = http.StatusUnprocessableEntity
 	}
+	h.surveyLang(w, r, s, token)
 	h.renderSurvey(w, r, s, status, h.surveyView(s, p, token))
 }

@@ -144,7 +144,7 @@ func (s *Service) UpdatePost(ctx context.Context, ws *store.Workspace, p *authz.
 		q := store.New(tx)
 		cur, err := q.WebsitePostLock(ctx, store.WebsitePostLockParams{WorkspaceID: ws.ID, ID: id})
 		if errors.Is(err, pgx.ErrNoRows) {
-			return api.NotFound("Post")
+			return notFound(ctx, "post")
 		}
 		if err != nil {
 			return err
@@ -421,7 +421,7 @@ func (s *Service) SavePostContent(ctx context.Context, ws *store.Workspace, p *a
 		q := store.New(tx)
 		cur, err := q.WebsitePostLock(ctx, store.WebsitePostLockParams{WorkspaceID: ws.ID, ID: id})
 		if errors.Is(err, pgx.ErrNoRows) {
-			return api.NotFound("Post")
+			return notFound(ctx, "post")
 		}
 		if err != nil {
 			return err
@@ -464,7 +464,7 @@ func (s *Service) DeletePost(ctx context.Context, ws *store.Workspace, p *authz.
 		q := store.New(tx)
 		cur, err := q.WebsitePostLock(ctx, store.WebsitePostLockParams{WorkspaceID: ws.ID, ID: id})
 		if errors.Is(err, pgx.ErrNoRows) {
-			return api.NotFound("Post")
+			return notFound(ctx, "post")
 		}
 		if err != nil {
 			return err

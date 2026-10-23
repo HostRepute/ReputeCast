@@ -66,3 +66,13 @@ func TestBlockRule(t *testing.T) {
 		t.Errorf("a block shown to everyone has no rule: %q", got)
 	}
 }
+
+// A UTM value from a name in another language keeps its letters, without
+// their marks.
+func TestSlugifyFoldsMarks(t *testing.T) {
+	for in, want := range map[string]string{"Bản tin Đặc biệt": "ban-tin-dac-biet", "Acme Weekly Digest": "acme-weekly-digest", "Café Crème": "cafe-creme"} {
+		if got := slugify(in); got != want {
+			t.Errorf("slugify(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

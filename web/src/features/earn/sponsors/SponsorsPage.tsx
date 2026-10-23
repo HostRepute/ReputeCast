@@ -349,7 +349,7 @@ function NoticeItem({ n, currency, openBooking, setDialog }: { n: Notice; curren
           {
             onSuccess: () => {
               for (const k of sponsorKeys) void qc.invalidateQueries({ queryKey: k })
-              toast({ kind: 'success', title: t(msp.bookFor, { issue: n.issue, sponsor: n.sponsor }) })
+              toast({ kind: 'success', title: t(msp.bookedFor, { issue: n.issue, sponsor: n.sponsor }) })
             },
             onError: (e) => toast({ kind: 'error', title: errorMessage(e) }),
           },

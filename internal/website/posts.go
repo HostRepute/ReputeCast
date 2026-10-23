@@ -296,7 +296,7 @@ type postRow struct {
 func (s *Service) getPost(ctx context.Context, q *store.Queries, ws *store.Workspace, id uuid.UUID) (postRow, error) {
 	r, err := q.WebsitePostGet(ctx, store.WebsitePostGetParams{WorkspaceID: ws.ID, ID: id})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return postRow{}, api.NotFound("Post")
+		return postRow{}, notFound(ctx, "post")
 	}
 	if err != nil {
 		return postRow{}, err

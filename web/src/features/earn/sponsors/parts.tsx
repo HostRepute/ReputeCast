@@ -136,7 +136,7 @@ export function PaymentCell({ b }: { b?: BookingBrief }) {
 export function PaymentBadge({ p }: { p: SponsorPayment }) {
   const t = useT()
   if (p.status === 'paid') return <Two badge={<Badge tone="ok">{t(msp.paymentPaid)}</Badge>} detail={p.paidOn ? dayMonthDate(p.paidOn) : undefined} />
-  if (p.status === 'overdue') return <Two badge={<Badge tone="warn">{t(msp.paymentOverdue)}</Badge>} detail={p.due ? t(msp.wasDue, { date: dayMonthDate(p.due) }) : undefined} />
+  if (p.status === 'overdue') return <Two badge={<Badge tone="warn">{t(msp.paymentOverdue)}</Badge>} detail={p.due ? t(msp.paymentWasDue, { date: dayMonthDate(p.due) }) : undefined} />
   return <Two badge={<Badge tone="neutral">{t(msp.paymentUnpaid)}</Badge>} detail={p.due ? t(msp.dueOn, { date: dayMonthDate(p.due) }) : undefined} />
 }
 

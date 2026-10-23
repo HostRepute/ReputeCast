@@ -25,25 +25,25 @@ type growRecView struct {
 	Outcome template.HTML
 }
 
-func recViews(items []recommendations.PublicRec, email, picked, outcome string) []growRecView {
+func recViews(s *site, items []recommendations.PublicRec, email, picked, outcome string) []growRecView {
 	out := make([]growRecView, 0, len(items))
 	for _, it := range items {
 		v := growRecView{ID: it.ID, Kind: it.Kind, Name: it.Name, Description: it.Description, Initials: it.Initials, LogoURL: it.LogoURL, VisitURL: it.VisitURL}
 		if it.Kind == recommendations.KindLink {
-			v.VisitNote, v.Button = gt("rec.visitNote", "host", it.Host), gt("rec.visit")
+			v.VisitNote, v.Button = s.gt("rec.visitNote", "host", it.Host), s.gt("rec.visit")
 		} else {
-			v.Consent, v.Button = gt("rec.consent", "partner", it.Name), gt("rec.subscribe")
+			v.Consent, v.Button = s.gt("rec.consent", "partner", it.Name), s.gt("rec.subscribe")
 		}
 		if it.ID == picked && outcome != "" {
 			switch outcome {
 			case recommendations.OutcomeAccepted:
-				v.Outcome = gh("rec.accepted", "partner", it.Name, "email", email)
+				v.Outcome = s.gh("rec.accepted", "partner", it.Name, "email", email)
 			case recommendations.OutcomePassed:
-				v.Outcome = gh("rec.passed", "partner", it.Name)
+				v.Outcome = s.gh("rec.passed", "partner", it.Name)
 			case recommendations.OutcomeLimit:
-				v.Outcome = gh("rec.limit", "partner", it.Name)
+				v.Outcome = s.gh("rec.limit", "partner", it.Name)
 			default:
-				v.Outcome = gh("rec.unavailable", "partner", it.Name)
+				v.Outcome = s.gh("rec.unavailable", "partner", it.Name)
 			}
 		}
 		out = append(out, v)
@@ -75,9 +75,9 @@ func (h *Handler) growConfirmSection(ctx context.Context, s *site, contactID uui
 		return nil
 	}
 	pub := s.set.Branding.PublisherName
-	g := &growConfirm{Heading: gt("rec.confirmHeading", "publisher", pub), Action: s.links.Confirm(token), Items: recViews(sec.Items, sec.Email, picked, outcome)}
+	g := &growConfirm{Heading: s.gt("rec.confirmHeading", "publisher", pub), Action: s.links.Confirm(token), Items: recViews(s, sec.Items, sec.Email, picked, outcome)}
 	if sec.ListName != "" {
-		g.Lead = gt("rec.confirmLead", "publisher", pub, "list", sec.ListName)
+		g.Lead = s.gt("rec.confirmLead", "publisher", pub, "list", sec.ListName)
 	}
 	return g
 }
@@ -152,15 +152,15 @@ func (h *Handler) recommendsBody(ctx context.Context, s *site, contactID uuid.UU
 		return recommendsBody{}, nil, err
 	}
 	pub := s.set.Branding.PublisherName
-	b := recommendsBody{Heading: gt("rec.title", "publisher", pub), Footer: gt("rec.footer", "publisher", pub), EmailFieldID: "rec-email"}
+	b := recommendsBody{Heading: s.gt("rec.title", "publisher", pub), Footer: s.gt("rec.footer", "publisher", pub), EmailFieldID: "rec-email"}
 	if page.ListName != "" {
-		b.Lead = gt("rec.lead", "publisher", pub, "list", page.ListName)
+		b.Lead = s.gt("rec.lead", "publisher", pub, "list", page.ListName)
 	} else {
-		b.Lead = gt("rec.leadNoList", "publisher", pub)
+		b.Lead = s.gt("rec.leadNoList", "publisher", pub)
 	}
 	if contactID != uuid.Nil {
 		b.Action = s.links.Recommends(token)
-		b.For = gh("rec.for", "email", page.Email, "href", s.links.Recommends(""))
+		b.For = s.gh("rec.for", "email", page.Email, "href", s.links.Recommends(""))
 		b.PrefsHref = s.links.Preferences(h.sign(s, linktoken.Preferences, contactID, uuid.Nil))
 	} else {
 		b.Action = s.links.Recommends("")
@@ -168,9 +168,9 @@ func (h *Handler) recommendsBody(ctx context.Context, s *site, contactID uuid.UU
 	}
 	if len(page.Items) == 0 {
 		b.None = true
-		b.NoneText = gt("rec.none", "publisher", pub)
+		b.NoneText = s.gt("rec.none", "publisher", pub)
 		if page.ListName != "" {
-			b.NoneList = gt("rec.noneList", "list", page.ListName)
+			b.NoneList = s.gt("rec.noneList", "list", page.ListName)
 		}
 		if s.set.Pages.Archive.Enabled {
 			if slug, err := h.Q.PublicLatestIssueSlug(ctx, store.PublicLatestIssueSlugParams{WorkspaceID: s.ws.ID, Lists: h.archiveLists(ctx, s)}); err == nil {
@@ -211,15 +211,16 @@ func (h *Handler) recommendsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	token := chi.URLParam(r, "token")
 	reader := h.recommendsReader(s, rs, token)
+	h.linkLang(w, r, s, linktoken.Claims{ContactID: reader})
 	b, page, err := h.recommendsBody(r.Context(), s, reader, token)
 	if err != nil {
 		h.serverError(w, r, s, err)
 		return
 	}
 	if reader != uuid.Nil {
-		b.Items = recViews(page.Items, page.Email, "", "")
+		b.Items = recViews(s, page.Items, page.Email, "", "")
 	} else {
-		b.Items = recViews(page.Items, "", "", "")
+		b.Items = recViews(s, page.Items, "", "", "")
 		if token != "" {
 			// An expired personal link asks for the address first.
 			b.Ask = true
@@ -245,6 +246,7 @@ func (h *Handler) recommendsPost(w http.ResponseWriter, r *http.Request) {
 	}
 	token := chi.URLParam(r, "token")
 	reader := h.recommendsReader(s, rs, token)
+	h.linkLang(w, r, s, linktoken.Claims{ContactID: reader})
 	b, page, err := h.recommendsBody(r.Context(), s, reader, token)
 	if err != nil {
 		h.serverError(w, r, s, err)
@@ -259,8 +261,8 @@ func (h *Handler) recommendsPost(w http.ResponseWriter, r *http.Request) {
 		b.AskEmail = r.PostForm.Get("email")
 		addr, problem := emailaddr.Check(b.AskEmail)
 		if problem != "" {
-			b.AskError = gt("rec.emailInvalid")
-			b.Items = recViews(page.Items, "", "", "")
+			b.AskError = s.gt("rec.emailInvalid")
+			b.Items = recViews(s, page.Items, "", "", "")
 			h.growPage(w, r, s, "grow-recommends", http.StatusUnprocessableEntity, b.Heading, b, true)
 			return
 		}
@@ -277,7 +279,7 @@ func (h *Handler) recommendsPost(w http.ResponseWriter, r *http.Request) {
 			outcome = recommendations.OutcomeUnavailable
 		}
 	}
-	b.Items = recViews(page.Items, email, picked, outcome)
+	b.Items = recViews(s, page.Items, email, picked, outcome)
 	h.growPage(w, r, s, "grow-recommends", status, b.Heading, b, true)
 }
 
@@ -324,11 +326,11 @@ func (h *Handler) growInvite(ctx context.Context, s *site, contactID uuid.UUID) 
 	g := &growInvite{Href: card.HubURL}
 	switch {
 	case card.NextCount == 0:
-		g.Text = gt("prefs.inviteAll", "counted", card.Counted)
+		g.Text = s.gt("prefs.inviteAll", "counted", card.Counted)
 	case card.Counted == 0:
-		g.Text = gt("prefs.inviteNone", "list", card.ListName, "count", card.NextCount, "reward", articled(card.NextReward))
+		g.Text = s.gt("prefs.inviteNone", "list", card.ListName, "count", card.NextCount, "reward", s.articled(card.NextReward, "prefs.inviteNone"))
 	default:
-		g.Text = gt("prefs.inviteSome", "counted", card.Counted, "count", int64(card.NextCount)-card.Counted, "reward", articled(card.NextReward))
+		g.Text = s.gt("prefs.inviteSome", "counted", card.Counted, "count", int64(card.NextCount)-card.Counted, "reward", s.articled(card.NextReward, "prefs.inviteSome"))
 	}
 	return g
 }

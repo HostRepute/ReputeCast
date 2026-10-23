@@ -543,3 +543,12 @@
     white-space: nowrap;
   }
 }
+
+/* A store's stats on phones (commerce/StorePage, S07): "94 · 5.072 US$"
+   keeps to one line in its half-width card, as "94 · $5,072" does in
+   English. */
+@media (max-width: 767px) {
+  :root:not([lang='en']) .ih-stat .ih-v {
+    font-size: 19px;
+  }
+}

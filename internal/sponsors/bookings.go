@@ -9,9 +9,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"golang.org/x/text/unicode/norm"
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
@@ -69,7 +71,23 @@ type ProposeInput struct {
 var slugRe = regexp.MustCompile(`[^a-z0-9]+`)
 
 func slugify(s string) string {
-	return strings.Trim(slugRe.ReplaceAllString(strings.ToLower(s), "-"), "-")
+	return strings.Trim(slugRe.ReplaceAllString(strings.ToLower(asciiFold(s)), "-"), "-")
+}
+
+// asciiFold writes a name's letters without their marks, as a UTM value
+// reads best: "Bản tin Acme" → "Ban tin Acme".
+func asciiFold(s string) string {
+	var b strings.Builder
+	for _, r := range norm.NFD.String(s) {
+		switch {
+		case unicode.Is(unicode.Mn, r):
+		case r == 'đ', r == 'Đ':
+			b.WriteByte('d')
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // defaultUTM are the UTM parameters a new booking's link gets:
@@ -140,7 +158,7 @@ func (s *Service) event(ctx context.Context, q *store.Queries, booking uuid.UUID
 func (s *Service) Book(ctx context.Context, ws *store.Workspace, p *authz.Principal, slotID uuid.UUID, issue int, in BookInput) (SponsorBookingDetail, error) {
 	slot, err := s.Q.SponsorSlotGet(ctx, store.SponsorSlotGetParams{ID: slotID, WorkspaceID: ws.ID})
 	if err != nil {
-		return SponsorBookingDetail{}, api.MapError(err, "Slot")
+		return SponsorBookingDetail{}, mapErr(ctx, err, "slot")
 	}
 	sid, err := uuid.Parse(in.SponsorID)
 	if err != nil {
@@ -248,11 +266,11 @@ func (s *Service) campaignOn(ctx context.Context, ws *store.Workspace, list uuid
 func (s *Service) mustBooking(ctx context.Context, ws *store.Workspace, id uuid.UUID) (store.SponsorBookingGetRow, store.SponsorSlotGetRow, error) {
 	b, err := s.Q.SponsorBookingGet(ctx, store.SponsorBookingGetParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
-		return b, store.SponsorSlotGetRow{}, api.MapError(err, "Booking")
+		return b, store.SponsorSlotGetRow{}, mapErr(ctx, err, "booking")
 	}
 	slot, err := s.Q.SponsorSlotGet(ctx, store.SponsorSlotGetParams{ID: b.SlotID, WorkspaceID: ws.ID})
 	if err != nil {
-		return b, slot, api.MapError(err, "Slot")
+		return b, slot, mapErr(ctx, err, "slot")
 	}
 	return b, slot, nil
 }
@@ -607,11 +625,11 @@ func (s *Service) CancelBooking(ctx context.Context, ws *store.Workspace, p *aut
 func (s *Service) Propose(ctx context.Context, ws *store.Workspace, p *authz.Principal, in ProposeInput) (SponsorIssueDetail, error) {
 	slot, err := s.Q.SponsorSlotGet(ctx, store.SponsorSlotGetParams{ID: in.SlotID, WorkspaceID: ws.ID})
 	if err != nil {
-		return SponsorIssueDetail{}, api.MapError(err, "Slot")
+		return SponsorIssueDetail{}, mapErr(ctx, err, "slot")
 	}
 	sp, err := s.Q.SponsorGet(ctx, store.SponsorGetParams{ID: in.SponsorID, WorkspaceID: ws.ID})
 	if err != nil {
-		return SponsorIssueDetail{}, api.MapError(err, "Sponsor")
+		return SponsorIssueDetail{}, mapErr(ctx, err, "sponsor")
 	}
 	slotRow := store.SponsorSlot{ID: slot.ID, FirstNumber: slot.FirstNumber, FirstOn: slot.FirstOn, EveryDays: slot.EveryDays}
 	on := IssueOn(slotRow, in.Issue)

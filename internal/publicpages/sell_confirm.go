@@ -41,7 +41,7 @@ func (h *Handler) confirmDownloadFor(ctx context.Context, s *site, pc audience.P
 		l = i18n.For(loc)
 	}
 	text := func(key string, args i18n.Args) string { return sellMsgs.M(key).Text(l, args) }
-	size := products.HumanSize(offer.Size)
+	size := products.HumanSizeIn(l, offer.Size)
 	meta := []string{offer.Kind}
 	if offer.Pages > 0 {
 		meta = append(meta, text("confirm.download.pages", i18n.Args{"count": offer.Pages}))

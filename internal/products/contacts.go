@@ -50,7 +50,7 @@ type ContactPath struct {
 func (s *Service) Purchases(ctx context.Context, ws *store.Workspace, p *authz.Principal, contactID uuid.UUID) (ContactPurchases, error) {
 	out := ContactPurchases{Items: []ContactPurchase{}, Currency: "usd", CanManage: p.Can(authz.OrdersManage)}
 	if _, err := s.Q.ProductBuyerContact(ctx, store.ProductBuyerContactParams{WorkspaceID: ws.ID, ID: contactID}); err != nil {
-		return out, api.MapError(err, "Contact")
+		return out, mapErr(ctx, err, "contact")
 	}
 	cid := contactID
 	rows, err := s.Q.ProductOrdersOfContact(ctx, store.ProductOrdersOfContactParams{WorkspaceID: ws.ID, ContactID: &cid, Email: ""})

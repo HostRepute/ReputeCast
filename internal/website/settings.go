@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/forms"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/website/gate"
 )
@@ -118,6 +119,20 @@ type config struct {
 	Footer      WebsiteFooter
 	SignupLists []WebsiteSignupList
 	Paywall     WebsitePaywall
+	// paywallDefault: nobody wrote the paywall card yet; its words are
+	// ReputeCast's, in the reader's language.
+	paywallDefault bool
+}
+
+// paywallIn is the paywall card as a reader of a language reads it: what
+// the workspace wrote, else ReputeCast's words in that language.
+func (c *config) paywallIn(l i18n.Lang) WebsitePaywall {
+	if !c.paywallDefault {
+		return c.Paywall
+	}
+	p := DefaultPaywallIn(l)
+	p.Tiers = c.Paywall.Tiers
+	return p
 }
 
 // On reports whether the website is on (turning on counts as off until it finishes).
@@ -133,10 +148,15 @@ func defaultSections() []WebsiteHomeSection {
 	}
 }
 
-// DefaultPaywall is the paywall card before anyone edits it.
-func DefaultPaywall() WebsitePaywall {
-	return WebsitePaywall{Heading: "This post is for paid members", Text: "", Tiers: []string{}, Upgrade: "Upgrade", Signup: "Sign up free",
-		Free: "Not ready? Sign up free and read 1 paid post a month."}
+// DefaultPaywall is the paywall card before anyone edits it, in English.
+func DefaultPaywall() WebsitePaywall { return DefaultPaywallIn(i18n.For(i18n.English)) }
+
+// DefaultPaywallIn is the paywall card before anyone edits it, in a
+// language.
+func DefaultPaywallIn(l i18n.Lang) WebsitePaywall {
+	w := WordsIn(l)
+	return WebsitePaywall{Heading: w.Text("paywall.heading", nil), Text: "", Tiers: []string{}, Upgrade: w.Text("paywall.upgrade", nil),
+		Signup: w.Text("paywall.signup", nil), Free: w.Text("paywall.free", nil)}
 }
 
 func decodeConfig(row store.WebsiteSetting) *config {
@@ -153,9 +173,10 @@ func decodeConfig(row store.WebsiteSetting) *config {
 	if err := json.Unmarshal(row.SignupLists, &c.SignupLists); err != nil || c.SignupLists == nil {
 		c.SignupLists = []WebsiteSignupList{}
 	}
-	c.Paywall = DefaultPaywall()
+	c.Paywall, c.paywallDefault = DefaultPaywall(), true
 	if len(row.Paywall) > 2 {
 		_ = json.Unmarshal(row.Paywall, &c.Paywall)
+		c.paywallDefault = false
 	}
 	if c.Paywall.Tiers == nil {
 		c.Paywall.Tiers = []string{}

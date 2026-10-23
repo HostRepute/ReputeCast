@@ -288,6 +288,6 @@ func (s *Service) SignOutEverywhereSelf(ctx context.Context, ws *store.Workspace
 			return err
 		}
 		return q.WebsiteMemberEventInsert(ctx, store.WebsiteMemberEventInsertParams{ID: newID(), WorkspaceID: ws.ID, ContactID: sess.ContactID,
-			Kind: "signed_out_everywhere", Detail: "from their account page", At: now})
+			Kind: "signed_out_everywhere", Detail: memberEventDetail("memberEvent.fromAccount"), At: now})
 	})
 }

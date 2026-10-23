@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -179,12 +180,22 @@ func (s *Service) relayInfo(ctx context.Context) (TransactionalRelay, error) {
 		UnreachableSince: row.UnreachableSince, CertNotAfter: row.CertNotAfter, Checks: []TransactionalRelayCheck{}, EnabledBy: row.EnabledByName, EnabledAt: row.EnabledAt,
 		Admins: []string{}}
 	var st struct {
-		CheckedAt *time.Time                `json:"checkedAt"`
-		Checks    []TransactionalRelayCheck `json:"checks"`
+		CheckedAt *time.Time `json:"checkedAt"`
+		Checks    []struct {
+			TransactionalRelayCheck
+			// Text is the check's detail as a message (internal/smtprelay),
+			// beside its English; checks stored before have none.
+			Text i18n.Text `json:"text"`
+		} `json:"checks"`
 	}
 	_ = json.Unmarshal(row.Status, &st)
-	if st.Checks != nil {
-		out.Checks = st.Checks
+	l := lang(ctx)
+	for _, c := range st.Checks {
+		chk := c.TransactionalRelayCheck
+		if s := c.Text.In(l); s != "" && l.Locale != "" && l.Locale != i18n.English {
+			chk.Detail = s
+		}
+		out.Checks = append(out.Checks, chk)
 	}
 	if row.Enabled {
 		out.State = "unchecked"

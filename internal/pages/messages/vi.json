@@ -38,5 +38,9 @@
   "diff.tiers": "Bảng giá",
   "diff.posts": "Bài viết mới",
   "diff.video": "Video",
-  "diff.image": "Hình ảnh"
+  "diff.image": "Hình ảnh",
+
+  "notFound.page": "Không tìm thấy trang.",
+  "notFound.version": "Không tìm thấy phiên bản.",
+  "theme.font": "{kind, select, system {phông chữ của hệ thống} other {một phông chữ có chân}}"
 }

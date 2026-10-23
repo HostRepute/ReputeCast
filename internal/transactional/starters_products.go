@@ -1,6 +1,10 @@
 package transactional
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
+)
 
 // StarterDemo is a starter's content for the demo data: subject, preheader
 // and MJML with the product name and the address filled in, compiled.
@@ -9,7 +13,7 @@ func StarterDemo(key, product, address string) (DemoTemplate, []TransactionalTes
 	if !ok {
 		return DemoTemplate{}, nil, errors.New("transactional: no starter " + key)
 	}
-	d := DemoTemplate{Subject: fillProduct(st.Subject, product), Preheader: fillProduct(st.Preheader, product), MJML: st.mjmlFor(product, address),
+	d := DemoTemplate{Subject: fillProduct(st.Subject, product), Preheader: fillProduct(st.Preheader, product), MJML: st.mjmlFor(i18n.Default, product, address),
 		Variables: st.Variables}
 	return d, st.TestData, d.Compile()
 }

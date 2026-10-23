@@ -82,13 +82,13 @@ type BuyInput struct {
 	BuyerEmail     string
 }
 
-func pageWords() map[string]string {
+func pageWords(ctx context.Context) map[string]string {
 	keys := []string{"choose", "who", "toEmail", "toPerson", "theirName", "theirEmail", "personNote", "when", "now", "onDate", "date", "time", "message",
 		"optional", "messagePlaceholder", "from", "yourName", "yourEmail", "fromNote", "continue", "namePlaceholder", "emailPlaceholder", "yourEmailPlaceholder",
 		"messageLeft", "terms", "canceledTitle", "canceledText", "testTitle", "testText", "copy", "copied"}
 	out := map[string]string{}
 	for _, k := range keys {
-		out[k] = page("page."+k, nil)
+		out[k] = page(ctx, "page."+k, nil)
 	}
 	return out
 }
@@ -143,13 +143,13 @@ func (s *Service) sellable(ctx context.Context, ws *store.Workspace) (*giftable,
 // Page builds the gift page; in carries what was typed (a correction).
 func (s *Service) Page(ctx context.Context, ws *store.Workspace, in BuyInput, canceled bool) (PageView, error) {
 	ps := s.Earn.PageSettingsOf(ctx, ws.ID)
-	v := PageView{Words: pageWords(), Errors: map[string]string{}, Canceled: canceled, Support: ps.Support}
+	v := PageView{Words: pageWords(ctx), Errors: map[string]string{}, Canceled: canceled, Support: ps.Support}
 	gt, err := s.sellable(ctx, ws)
 	if errors.Is(err, ErrUnavailable) {
-		v.State, v.Heading = "off", page("off.title", nil)
-		v.Text = page("off.text", nil)
+		v.State, v.Heading = "off", page(ctx, "off.title", nil)
+		v.Text = page(ctx, "off.text", nil)
 		if ps.Support != "" {
-			v.Text = page("off.textSupport", i18n.Args{"email": ps.Support})
+			v.Text = page(ctx, "off.textSupport", i18n.Args{"email": ps.Support})
 		}
 		return v, nil
 	}
@@ -175,21 +175,21 @@ func (s *Service) Page(ctx context.Context, ws *store.Workspace, in BuyInput, ca
 	v.Heading, v.Intro = custom.Headline, custom.Intro
 	if v.Heading == "" {
 		if len(tiers) == 1 {
-			v.Heading = page("page.heading", i18n.Args{"tier": first.TierName})
+			v.Heading = page(ctx, "page.heading", i18n.Args{"tier": first.TierName})
 		} else {
-			v.Heading = page("page.headingMany", nil)
+			v.Heading = page(ctx, "page.headingMany", nil)
 		}
 	}
 	if v.Intro == "" {
 		if len(tiers) == 1 && strings.TrimSpace(first.TierDescription) != "" {
-			v.Intro = page("page.introTier", i18n.Args{"description": strings.TrimSpace(first.TierDescription)})
+			v.Intro = page(ctx, "page.introTier", i18n.Args{"description": strings.TrimSpace(first.TierDescription)})
 		} else {
-			v.Intro = page("page.intro", nil)
+			v.Intro = page(ctx, "page.intro", nil)
 		}
 	}
 	best := gt.options[0]
 	for _, o := range gt.options {
-		po := PageOption{ID: o.ID.String(), Title: periodTitle(int(o.Months)), Price: earn.Money(o.AmountCents, o.Currency), Sub: page("page.paidOnce", nil)}
+		po := PageOption{ID: o.ID.String(), Title: periodTitle(i18n.LangFrom(ctx), int(o.Months)), Price: earn.Money(o.AmountCents, o.Currency), Sub: page(ctx, "page.paidOnce", nil)}
 		if len(tiers) > 1 {
 			po.Tier = s.tierShort(ctx, o.TierName, o.ListIds)
 		}
@@ -213,12 +213,12 @@ func (s *Service) Page(ctx context.Context, ws *store.Workspace, in BuyInput, ca
 		zone = location(ws).String()
 	}
 	v.Zone = zone
-	v.ZoneNote = page("page.whenNote", i18n.Args{"zone": zone})
+	v.ZoneNote = page(ctx, "page.whenNote", i18n.Args{"zone": zone})
 	v.MinDate = s.now().In(zoneOr(zone, ws)).Format("2006-01-02")
-	v.MessageLeft = page("page.messageLeft", i18n.Args{"n": MessageMax - utf8.RuneCountInString(v.In.Message)})
-	v.Words["leftOne"] = strings.Replace(page("page.messageLeft", i18n.Args{"n": 1}), "1", "{n}", 1)
-	v.Words["leftOther"] = strings.Replace(page("page.messageLeft", i18n.Args{"n": 7}), "7", "{n}", 1)
-	v.Footer = page("page.footer", i18n.Args{"provider": "Stripe", "months": gt.months})
+	v.MessageLeft = page(ctx, "page.messageLeft", i18n.Args{"n": MessageMax - utf8.RuneCountInString(v.In.Message)})
+	v.Words["leftOne"] = strings.Replace(page(ctx, "page.messageLeft", i18n.Args{"n": 1}), "1", "{n}", 1)
+	v.Words["leftOther"] = strings.Replace(page(ctx, "page.messageLeft", i18n.Args{"n": 7}), "7", "{n}", 1)
+	v.Footer = page(ctx, "page.footer", i18n.Args{"provider": "Stripe", "months": gt.months})
 	return v, nil
 }
 
@@ -237,7 +237,7 @@ func (s *Service) Buy(ctx context.Context, ws *store.Workspace, in BuyInput) (st
 	gt, err := s.sellable(ctx, ws)
 	if errors.Is(err, ErrUnavailable) {
 		// Turned off (or disconnected) while the form was open.
-		v.State, v.Heading, v.Text = "off", page("off.title", nil), page("off.text", nil)
+		v.State, v.Heading, v.Text = "off", page(ctx, "off.title", nil), page(ctx, "off.text", nil)
 		return "", &v, nil
 	}
 	if err != nil {
@@ -250,15 +250,15 @@ func (s *Service) Buy(ctx context.Context, ws *store.Workspace, in BuyInput) (st
 		}
 	}
 	if opt == nil {
-		v.Errors["option"] = page("error.option", nil)
+		v.Errors["option"] = page(ctx, "error.option", nil)
 	}
 	person := in.To == "person"
 	if !person {
 		switch {
 		case in.RecipientEmail == "":
-			v.Errors["recipientEmail"] = page("error.recipientEmail", nil)
+			v.Errors["recipientEmail"] = page(ctx, "error.recipientEmail", nil)
 		case !emailaddr.Valid(in.RecipientEmail):
-			v.Errors["recipientEmail"] = page("error.emailInvalid", nil)
+			v.Errors["recipientEmail"] = page(ctx, "error.emailInvalid", nil)
 		}
 	}
 	now := s.now()
@@ -268,29 +268,29 @@ func (s *Service) Buy(ctx context.Context, ws *store.Workspace, in BuyInput) (st
 		at, err := time.ParseInLocation("2006-01-02 15:04", in.Date+" "+in.Time, zoneOr(tz, ws))
 		switch {
 		case err != nil:
-			v.Errors["date"] = page("error.date", nil)
+			v.Errors["date"] = page(ctx, "error.date", nil)
 		case !at.After(now.Add(5 * time.Minute)):
-			v.Errors["date"] = page("error.datePast", nil)
+			v.Errors["date"] = page(ctx, "error.datePast", nil)
 		case at.After(now.Add(MaxDeliverOut)):
-			v.Errors["date"] = page("error.dateFar", nil)
+			v.Errors["date"] = page(ctx, "error.dateFar", nil)
 		default:
 			deliverAt = &at
 		}
 	}
 	if utf8.RuneCountInString(in.Message) > MessageMax {
-		v.Errors["message"] = page("error.message", i18n.Args{"max": MessageMax})
+		v.Errors["message"] = page(ctx, "error.message", i18n.Args{"max": MessageMax})
 	}
 	if in.BuyerName == "" {
-		v.Errors["buyerName"] = page("error.buyerName", nil)
+		v.Errors["buyerName"] = page(ctx, "error.buyerName", nil)
 	}
 	switch {
 	case in.BuyerEmail == "":
-		v.Errors["buyerEmail"] = page("error.buyerEmail", nil)
+		v.Errors["buyerEmail"] = page(ctx, "error.buyerEmail", nil)
 	case !emailaddr.Valid(in.BuyerEmail):
-		v.Errors["buyerEmail"] = page("error.emailInvalid", nil)
+		v.Errors["buyerEmail"] = page(ctx, "error.emailInvalid", nil)
 	}
 	if len(v.Errors) > 0 {
-		v.Alert = page("error.alert", i18n.Args{"count": len(v.Errors)})
+		v.Alert = page(ctx, "error.alert", i18n.Args{"count": len(v.Errors)})
 		return "", &v, nil
 	}
 	ps := s.Earn.PageSettingsOf(ctx, ws.ID)
@@ -315,12 +315,12 @@ func (s *Service) Buy(ctx context.Context, ws *store.Workspace, in BuyInput) (st
 	}
 	pay := gt.client.(payments.OneTimePayments)
 	cs, err := pay.CreatePaymentCheckout(ctx, payments.PaymentCheckoutRequest{AmountCents: opt.AmountCents, Currency: opt.Currency,
-		Name: page("checkout.name", i18n.Args{"tier": opt.TierName, "months": opt.Months}), Description: page("checkout.description", nil),
+		Name: english("checkout.name", i18n.Args{"tier": opt.TierName, "months": opt.Months}), Description: english("checkout.description", nil),
 		CustomerEmail: emailaddr.Normalize(in.BuyerEmail), Tax: ps.Tax, SuccessURL: s.Earn.PageURL(ctx, ws, "gift/thanks?session={CHECKOUT_SESSION_ID}"),
 		CancelURL: s.Earn.PageURL(ctx, ws, "gift?canceled=1"), ClientRef: id.String(), Metadata: map[string]string{"reputecast_gift": id.String()}})
 	if err != nil {
 		s.log().WarnContext(ctx, "gift checkout", "err", err)
-		v.Alert = page("error.unavailable", nil)
+		v.Alert = page(ctx, "error.unavailable", nil)
 		return "", &v, nil
 	}
 	if err := s.Q.GiftSetSession(ctx, store.GiftSetSessionParams{Session: cs.ID, At: now, ID: id}); err != nil {
@@ -418,33 +418,33 @@ func (s *Service) Thanks(ctx context.Context, ws *store.Workspace, session strin
 		}
 	}
 	now := s.now()
-	v := ThanksView{Gift: page("thanks.gift", i18n.Args{"tier": row.TierName, "months": g.Months}),
-		Paid: page("thanks.paid", i18n.Args{"amount": earn.MoneyCents(g.AmountCents, g.Currency)})}
+	v := ThanksView{Gift: page(ctx, "thanks.gift", i18n.Args{"tier": row.TierName, "months": g.Months}),
+		Paid: page(ctx, "thanks.paid", i18n.Args{"amount": earn.MoneyCents(g.AmountCents, g.Currency)})}
 	who := firstNonEmpty(firstName(g.RecipientName), g.RecipientEmail)
 	switch {
 	case g.Status == StatusCheckout || g.Status == StatusAbandoned:
-		v.State, v.Heading, v.Text = "pending", page("thanks.pendingTitle", nil), page("thanks.pendingText", nil)
+		v.State, v.Heading, v.Text = "pending", page(ctx, "thanks.pendingTitle", nil), page(ctx, "thanks.pendingText", nil)
 	case g.InPerson:
-		v.State, v.Heading, v.Text = "person", page("thanks.personTitle", nil), page("thanks.personText", nil)
-		v.To = page("thanks.toPerson", nil)
+		v.State, v.Heading, v.Text = "person", page(ctx, "thanks.personTitle", nil), page(ctx, "thanks.personText", nil)
+		v.To = page(ctx, "thanks.toPerson", nil)
 	case g.DeliverAt != nil && g.DeliverAt.After(now) && g.Status == StatusPaid:
-		date, clock := deliveryText(*g.DeliverAt, g.Timezone, ws, now)
-		v.State, v.Heading = "scheduled", page("thanks.scheduledTitle", i18n.Args{"name": who, "date": date, "time": clock})
-		v.Text = page("thanks.receipt", nil)
-		v.Note = page("thanks.moveNote", i18n.Args{"publisher": ws.Name})
+		date, clock := deliveryText(i18n.LangFrom(ctx), *g.DeliverAt, g.Timezone, ws, now)
+		v.State, v.Heading = "scheduled", page(ctx, "thanks.scheduledTitle", i18n.Args{"name": who, "date": date, "time": clock})
+		v.Text = page(ctx, "thanks.receipt", nil)
+		v.Note = page(ctx, "thanks.moveNote", i18n.Args{"publisher": ws.Name})
 	default:
-		v.State, v.Heading, v.Text = "sent", page("thanks.sentTitle", i18n.Args{"name": who}), page("thanks.receipt", nil)
+		v.State, v.Heading, v.Text = "sent", page(ctx, "thanks.sentTitle", i18n.Args{"name": who}), page(ctx, "thanks.receipt", nil)
 	}
 	if !g.InPerson {
 		to := g.RecipientEmail
 		if g.RecipientName != "" {
-			to = page("thanks.toNamed", i18n.Args{"name": g.RecipientName, "email": g.RecipientEmail})
+			to = page(ctx, "thanks.toNamed", i18n.Args{"name": g.RecipientName, "email": g.RecipientEmail})
 		}
 		key := "thanks.to"
 		if g.Message != "" {
 			key = "thanks.toMessage"
 		}
-		v.To = page(key, i18n.Args{"to": to})
+		v.To = page(ctx, key, i18n.Args{"to": to})
 	}
 	return v, nil
 }

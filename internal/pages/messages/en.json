@@ -38,5 +38,9 @@
   "diff.tiers": "Pricing tiers",
   "diff.posts": "Recent posts",
   "diff.video": "Video",
-  "diff.image": { "message": "Image", "note": "an image in the publish dialog's list of changes: Image · cover.png · alt: …" }
+  "diff.image": { "message": "Image", "note": "an image in the publish dialog's list of changes: Image · cover.png · alt: …" },
+
+  "notFound.page": "Page not found.",
+  "notFound.version": "Version not found.",
+  "theme.font": { "message": "{kind, select, system {the system font} other {a serif}}", "note": "the theme's font in the Pages tab's theme note: “… #0F766E on #F0FDFA, the system font.”" }
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -206,7 +207,7 @@ func (s *Service) address(ctx context.Context, ws *store.Workspace, force bool) 
 	if err != nil {
 		return out
 	}
-	domain, status, detail := set.DomainState()
+	domain, status, detail := set.DomainStateIn(i18n.LangFrom(ctx))
 	out.Domain, out.DomainDetail = domain, detail
 	if status != "" {
 		out.DomainStatus = status

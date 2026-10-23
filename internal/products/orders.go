@@ -203,6 +203,7 @@ func (s *Service) downloadStates(ctx context.Context, ws *store.Workspace, order
 			}
 		}
 		out[i] = s.downloadState(o, link, m, revokers)
+		out[i].Error = deliveryError(lang(ctx), out[i].Error)
 	}
 	return out, nil
 }
@@ -407,7 +408,7 @@ type ProductOrderDetail struct {
 func (s *Service) Order(ctx context.Context, ws *store.Workspace, id uuid.UUID) (ProductOrderDetail, error) {
 	o, err := s.Q.ProductOrderGet(ctx, store.ProductOrderGetParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
-		return ProductOrderDetail{}, api.MapError(err, "Order")
+		return ProductOrderDetail{}, mapErr(ctx, err, "order")
 	}
 	return s.order(ctx, ws, o)
 }
@@ -559,7 +560,7 @@ func (s *Service) order(ctx context.Context, ws *store.Workspace, o store.Produc
 		l := links[i].ProductOrderLink
 		if l.MessageID == nil {
 			if l.Delivery == "failed" {
-				out.Activity = append(out.Activity, ProductOrderEvent{Kind: "delivery_failed", At: l.CreatedAt, Note: l.DeliveryError})
+				out.Activity = append(out.Activity, ProductOrderEvent{Kind: "delivery_failed", At: l.CreatedAt, Note: deliveryError(lang(ctx), l.DeliveryError)})
 			}
 			continue
 		}
@@ -649,7 +650,7 @@ func (s *Service) SendNewLink(ctx context.Context, ws *store.Workspace, p *authz
 		q := store.New(tx)
 		o, err := q.ProductOrderLock(ctx, store.ProductOrderLockParams{WorkspaceID: ws.ID, ID: id})
 		if err != nil {
-			return api.MapError(err, "Order")
+			return mapErr(ctx, err, "order")
 		}
 		if o.AccessRevokedAt != nil {
 			return api.Conflict(word(l, "order.revoked", nil))
@@ -681,7 +682,7 @@ func (s *Service) Revoke(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		q := store.New(tx)
 		o, err := q.ProductOrderLock(ctx, store.ProductOrderLockParams{WorkspaceID: ws.ID, ID: id})
 		if err != nil {
-			return api.MapError(err, "Order")
+			return mapErr(ctx, err, "order")
 		}
 		now := s.now()
 		if revoke {

@@ -49,8 +49,6 @@ func RegisterJobs(reg *jobs.Registry, s *Service) {
 	reg.Every(5*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return TickArgs{}, nil }, true)
 }
 
-var englishLang = i18n.Lang{Locale: i18n.English, Region: i18n.Standard}
-
 // Tick runs the periodic work.
 func (s *Service) Tick(ctx context.Context) error {
 	if err := s.markSent(ctx); err != nil {
@@ -165,14 +163,15 @@ func (s *Service) remind(ctx context.Context) error {
 		today := s.today(ws)
 		issue := map[string]any{"issue": b.IssueNumber, "sponsor": b.SponsorName}
 		link := "/w/" + b.WorkspaceSlug + "/earn/sponsors?booking=" + b.ID.String()
-		send := func(what, kind, severity, title, body string) error {
+		// Kept as messages, so each member reads them in their own language.
+		send := func(what, kind, severity string, title, body i18n.Text) error {
 			if containsStr(b.Notified, what) {
 				return nil
 			}
 			return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 				q := store.New(tx)
 				if err := notify.ToMembersWith(ctx, tx, b.WorkspaceID, authz.SponsorsManage, notify.Notification{WorkspaceID: &b.WorkspaceID, Kind: kind, Severity: severity,
-					Title: title, Body: body, Link: link, Data: map[string]any{"booking": b.ID.String()}}); err != nil {
+					TitleText: title, BodyText: body, Link: link, Data: map[string]any{"booking": b.ID.String()}}); err != nil {
 					return err
 				}
 				return q.SponsorBookingNotified(ctx, store.SponsorBookingNotifiedParams{ID: b.ID, What: what})
@@ -182,22 +181,25 @@ func (s *Service) remind(ctx context.Context) error {
 			due := civil(*b.CreativeDue)
 			switch {
 			case due.Equal(today.AddDate(0, 0, 1)):
-				if err := send("creative_due", notify.KindSponsorCreative, "warn", msgs.M("notify.creativeDueTitle").Text(englishLang, issue),
-					msgs.M("notify.creativeDueBody").Text(englishLang, issue)); err != nil {
+				if err := send("creative_due", notify.KindSponsorCreative, "warn", msgs.M("notify.creativeDueTitle").Keep(issue),
+					msgs.M("notify.creativeDueBody").Keep(issue)); err != nil {
 					return err
 				}
 			case !due.After(today):
-				if err := send("creative_late", notify.KindSponsorCreative, "warn", msgs.M("notify.creativeLateTitle").Text(englishLang, issue),
-					msgs.M("notify.creativeLateBody").Text(englishLang, issue)); err != nil {
+				if err := send("creative_late", notify.KindSponsorCreative, "warn", msgs.M("notify.creativeLateTitle").Keep(issue),
+					msgs.M("notify.creativeLateBody").Keep(issue)); err != nil {
 					return err
 				}
 			}
 		}
 		if (b.Status == "booked" || b.Status == "sent") && b.PaymentStatus == "unpaid" && b.PaymentDue != nil && civil(*b.PaymentDue).Before(today) {
-			args := map[string]any{"issue": b.IssueNumber, "sponsor": b.SponsorName, "amount": money(b.PriceCents, b.Currency),
-				"date": civil(*b.PaymentDue).Format("2 Jan")}
-			if err := send("payment_overdue", notify.KindSponsorPayment, "warn", msgs.M("notify.paymentTitle").Text(englishLang, args),
-				msgs.M("notify.paymentBody").Text(englishLang, args)); err != nil {
+			// The due day at noon in the workspace's zone: the date reads
+			// the same wherever the reader is.
+			due := civil(*b.PaymentDue)
+			args := i18n.Args{"issue": b.IssueNumber, "sponsor": b.SponsorName, "amount": money(b.PriceCents, b.Currency),
+				"at": time.Date(due.Year(), due.Month(), due.Day(), 12, 0, 0, 0, location(ws))}
+			if err := send("payment_overdue", notify.KindSponsorPayment, "warn", msgs.M("notify.paymentTitle").Keep(args),
+				msgs.M("notify.paymentBody").Keep(args)); err != nil {
 				return err
 			}
 		}

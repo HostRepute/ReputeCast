@@ -52,6 +52,9 @@ type paidFact struct {
 	Short  string
 	Status string
 	ranks  map[string]int
+	// needs are the short names of the tiers the conditions name, by
+	// condition value ("Founding member").
+	needs map[string]string
 	// live: a live payment provider is connected (the Upgrade block shows).
 	live bool
 }
@@ -108,14 +111,20 @@ func loadPaid(ctx context.Context, q *store.Queries, wsID uuid.UUID, conds []vis
 	for _, t := range tiers {
 		short[t.ID] = t.Short
 	}
+	needs := map[string]string{}
+	for v := range ranks {
+		if id, err := uuid.Parse(v); err == nil && short[id] != "" {
+			needs[v] = short[id]
+		}
+	}
 	for _, id := range ids {
 		f := facts[id]
 		if f.Extra == nil {
 			f.Extra = map[string]any{}
 		}
-		p := paidFact{ranks: ranks, live: live}
+		p := paidFact{ranks: ranks, needs: needs, live: live}
 		if a, ok := access[id]; ok {
-			p = paidFact{Has: true, Rank: a.Rank, Tier: a.Tier, Short: short[a.TierID], Status: a.Status, ranks: ranks, live: live}
+			p = paidFact{Has: true, Rank: a.Rank, Tier: a.Tier, Short: short[a.TierID], Status: a.Status, ranks: ranks, needs: needs, live: live}
 			if p.Short == "" {
 				p.Short = a.Tier
 			}
@@ -172,8 +181,12 @@ func tierLabel(c visibility.VisibilityCondition, l i18n.Lang) string {
 	return mPaidATier.Text(l, nil)
 }
 
-// tierNeeded is the tier a condition needs, without "and above".
-func tierNeeded(c visibility.VisibilityCondition, l i18n.Lang) string {
+// tierNeeded is the tier a condition needs, without "and above": its
+// name, else the choice as it was picked.
+func tierNeeded(c visibility.VisibilityCondition, p paidFact, l i18n.Lang) string {
+	if n := p.needs[c.Value]; n != "" {
+		return n
+	}
 	return strings.TrimSuffix(tierLabel(c, l), " and above")
 }
 
@@ -195,7 +208,7 @@ func whyPaid(c visibility.VisibilityCondition, f *visibility.Facts, matched bool
 	case !p.Has:
 		return mWhyNoAccess.Text(n.Lang, i18n.Args{"name": f.Name()})
 	case c.Op == OpPaidTier && !matched:
-		return mWhyBelow.Text(n.Lang, i18n.Args{"name": f.Name(), "tier": p.Short, "needed": tierNeeded(c, n.Lang)})
+		return mWhyBelow.Text(n.Lang, i18n.Args{"name": f.Name(), "tier": p.Short, "needed": tierNeeded(c, p, n.Lang)})
 	}
 	return mWhyPaid.Text(n.Lang, i18n.Args{"name": f.Name(), "tier": p.Short})
 }

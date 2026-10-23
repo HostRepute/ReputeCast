@@ -410,7 +410,7 @@ func pageFileLine(v *siteView, f products.ProductFilesSummary) string {
 		return ""
 	}
 	if f.Pages > 0 && f.Count == 1 {
-		return v.S("dl.filePages", "kind", f.Kind, "count", f.Pages, "size", products.HumanSize(f.Bytes))
+		return v.S("dl.filePages", "kind", f.Kind, "count", f.Pages, "size", v.size(f.Bytes))
 	}
-	return v.S("dl.file", "kind", f.Kind, "size", products.HumanSize(f.Bytes))
+	return v.S("dl.file", "kind", f.Kind, "size", v.size(f.Bytes))
 }

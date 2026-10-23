@@ -79,6 +79,7 @@ func (h *Handler) giftPage(w http.ResponseWriter, r *http.Request) {
 		h.notFound(w, r, s)
 		return
 	}
+	pl, r := h.earnLang(w, r, s)
 	v, err := h.Gifts.Page(r.Context(), s.ws, gifts.BuyInput{}, r.URL.Query().Get("canceled") == "1")
 	if err != nil {
 		h.serverError(w, r, s, err)
@@ -87,15 +88,15 @@ func (h *Handler) giftPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet && h.Earn != nil && v.State == "form" {
 		h.Earn.Visit(r.Context(), s.ws, "gift")
 	}
-	h.renderGift(w, r, s, v, http.StatusOK)
+	h.renderGift(w, r, s, v, http.StatusOK, pl)
 }
 
-func (h *Handler) renderGift(w http.ResponseWriter, r *http.Request, s *site, v gifts.PageView, status int) {
+func (h *Handler) renderGift(w http.ResponseWriter, r *http.Request, s *site, v gifts.PageView, status int, pl pageLang) {
 	b := giftBody{PageView: v, Action: earnLink(s.links, "gift"), TermsURL: h.giftTerms(r, s)}
 	if v.State == "off" {
 		b.TextHTML = mailtoHTML(v.Text, v.Support)
 	}
-	vw := h.earnView(s, h.earnTitle(s, v.Heading), b)
+	vw := h.earnView(r, s, h.earnTitle(s, v.Heading), b, pl)
 	vw.Canonical = earnLink(s.canon, "gift")
 	vw.Scripts = []string{s.links.Static("gift.js?v=" + h.version)}
 	// Paying is Stripe's page: the form's redirect goes there.
@@ -119,6 +120,7 @@ func (h *Handler) giftBuy(w http.ResponseWriter, r *http.Request) {
 		h.notFound(w, r, s)
 		return
 	}
+	pl, r := h.earnLang(w, r, s)
 	f := r.PostForm
 	in := gifts.BuyInput{Option: f.Get("option"), To: f.Get("to"), RecipientName: f.Get("recipient_name"), RecipientEmail: f.Get("recipient_email"),
 		When: f.Get("when"), Date: f.Get("date"), Time: f.Get("time"), Timezone: f.Get("tz"), Message: f.Get("message"), BuyerName: f.Get("buyer_name"),
@@ -135,8 +137,8 @@ func (h *Handler) giftBuy(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Header().Set("Retry-After", "60")
-		v.Alert = earn.Text("page.unavailableText", nil)
-		h.renderGift(w, r, s, v, http.StatusTooManyRequests)
+		v.Alert = earn.TextIn(pl.Labels.Lang(), "page.unavailableText", nil)
+		h.renderGift(w, r, s, v, http.StatusTooManyRequests, pl)
 		return
 	}
 	to, v, err := h.Gifts.Buy(r.Context(), s.ws, in)
@@ -149,7 +151,7 @@ func (h *Handler) giftBuy(w http.ResponseWriter, r *http.Request) {
 		if v.State == "off" {
 			status = http.StatusOK
 		}
-		h.renderGift(w, r, s, *v, status)
+		h.renderGift(w, r, s, *v, status, pl)
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")
@@ -165,6 +167,7 @@ func (h *Handler) giftThanks(w http.ResponseWriter, r *http.Request) {
 		h.notFound(w, r, s)
 		return
 	}
+	pl, r := h.earnLang(w, r, s)
 	v, err := h.Gifts.Thanks(r.Context(), s.ws, r.URL.Query().Get("session"))
 	if errors.Is(err, gifts.ErrUnavailable) {
 		h.notFound(w, r, s)
@@ -174,7 +177,7 @@ func (h *Handler) giftThanks(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, s, err)
 		return
 	}
-	vw := h.earnView(s, h.earnTitle(s, v.Heading), giftDoneBody{ThanksView: v, TermsURL: h.giftTerms(r, s), TermsLabel: gifts.Text("page.terms", nil)})
+	vw := h.earnView(r, s, h.earnTitle(s, v.Heading), giftDoneBody{ThanksView: v, TermsURL: h.giftTerms(r, s), TermsLabel: gifts.TextIn(pl.Labels.Lang(), "page.terms", nil)}, pl)
 	h.render(w, r, s, "giftdone", http.StatusOK, vw, csp{}, true)
 }
 
@@ -187,6 +190,7 @@ func (h *Handler) redeemPage(w http.ResponseWriter, r *http.Request) {
 		h.notFound(w, r, s)
 		return
 	}
+	pl, r := h.earnLang(w, r, s)
 	code := chi.URLParam(r, "code")
 	v, err := h.Gifts.RedeemPage(r.Context(), s.ws, code)
 	if errors.Is(err, gifts.ErrNoGift) {
@@ -197,17 +201,17 @@ func (h *Handler) redeemPage(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, s, err)
 		return
 	}
-	h.renderRedeem(w, r, s, v, code, http.StatusOK)
+	h.renderRedeem(w, r, s, v, code, http.StatusOK, pl)
 }
 
-func (h *Handler) renderRedeem(w http.ResponseWriter, r *http.Request, s *site, v gifts.RedeemView, code string, status int) {
+func (h *Handler) renderRedeem(w http.ResponseWriter, r *http.Request, s *site, v gifts.RedeemView, code string, status int, pl pageLang) {
 	b := redeemBody{RedeemView: v, Action: earnLink(s.links, "gift/redeem/"+gifts.NormalizeCode(code)), Preferences: s.links.PreferencesRequest(),
-		TermsURL: h.giftTerms(r, s), TermsLabel: gifts.Text("page.terms", nil)}
+		TermsURL: h.giftTerms(r, s), TermsLabel: gifts.TextIn(pl.Labels.Lang(), "page.terms", nil)}
 	switch v.State {
 	case "used", "expired", "refunded":
 		b.TextHTML = mailtoHTML(v.Text, v.Support)
 	}
-	vw := h.earnView(s, h.earnTitle(s, v.Heading), b)
+	vw := h.earnView(r, s, h.earnTitle(s, v.Heading), b, pl)
 	if v.State == "have" {
 		vw.Scripts = []string{s.links.Static("gift.js?v=" + h.version)}
 	}
@@ -225,6 +229,7 @@ func (h *Handler) redeemPost(w http.ResponseWriter, r *http.Request) {
 		h.notFound(w, r, s)
 		return
 	}
+	pl, r := h.earnLang(w, r, s)
 	code := chi.URLParam(r, "code")
 	ip := "unknown"
 	if a := clientIP(r); a != nil {
@@ -237,8 +242,8 @@ func (h *Handler) redeemPost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Header().Set("Retry-After", "60")
-		v.Error = earn.Text("page.unavailableText", nil)
-		h.renderRedeem(w, r, s, v, code, http.StatusTooManyRequests)
+		v.Error = earn.TextIn(pl.Labels.Lang(), "page.unavailableText", nil)
+		h.renderRedeem(w, r, s, v, code, http.StatusTooManyRequests, pl)
 		return
 	}
 	v, err := h.Gifts.Redeem(r.Context(), s.ws, code, gifts.RedeemInput{Email: r.PostForm.Get("email"), IP: clientIP(r), UserAgent: r.UserAgent()})
@@ -254,5 +259,5 @@ func (h *Handler) redeemPost(w http.ResponseWriter, r *http.Request) {
 	if v.Error != "" {
 		status = http.StatusUnprocessableEntity
 	}
-	h.renderRedeem(w, r, s, v, code, status)
+	h.renderRedeem(w, r, s, v, code, status, pl)
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/earn"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -30,15 +31,16 @@ func (s *Service) RedeemHost(ctx context.Context, ws *store.Workspace, code stri
 	return s.Earn.PageHost(ctx, ws, "gift/redeem/"+code)
 }
 
-// deliveryText is "24 Dec at 08:00" in the buyer's time zone.
-func deliveryText(at time.Time, tz string, ws *store.Workspace, now time.Time) (string, string) {
+// deliveryText is "24 Dec" and "08:00" in the buyer's time zone, in a
+// language.
+func deliveryText(l i18n.Lang, at time.Time, tz string, ws *store.Workspace, now time.Time) (string, string) {
 	loc := zoneOr(tz, ws)
-	l := at.In(loc)
-	date := l.Format("2 Jan")
-	if l.Year() != now.In(loc).Year() {
-		date = l.Format("2 Jan 2006")
+	t := at.In(loc)
+	date := earn.DayMonthIn(l, t)
+	if t.Year() != now.In(loc).Year() {
+		date = earn.DateIn(l, t)
 	}
-	return date, l.Format("15:04")
+	return date, earn.TimeIn(l, t)
 }
 
 // tierOf is a gift's tier's full and short names, and its lists.
@@ -55,15 +57,17 @@ func (s *Service) tierOf(ctx context.Context, ws *store.Workspace, g store.EarnG
 
 // sendReceipt sends the buyer their receipt.
 func (s *Service) sendReceipt(ctx context.Context, ws *store.Workspace, g store.EarnGift) earn.MemberEmailResult {
-	return s.Earn.SendMemberEmailTo(ctx, ws, earn.EmailGiftPurchased, g.BuyerEmail, g.BuyerName, s.receiptData(ctx, ws, g), "gift:"+g.ID.String()+":receipt")
+	texts := func(l i18n.Lang) map[string]any { return s.receiptData(ctx, ws, g, l) }
+	return s.Earn.SendMemberEmailIn(ctx, ws, earn.EmailGiftPurchased, g.BuyerEmail, g.BuyerName, texts(earn.PageLang), "gift:"+g.ID.String()+":receipt", texts)
 }
 
 // sendGift sends "Your gift" with the redeem link: to the recipient, or
 // to the buyer for an in-person gift. key tells the sends apart (the
-// delivery, the reminder, a resend).
+// delivery, the reminder, a resend). The gift's length is in the email's
+// language.
 func (s *Service) sendGift(ctx context.Context, ws *store.Workspace, g store.EarnGift, key string) earn.MemberEmailResult {
 	_, short, _ := s.tierOf(ctx, ws, g)
-	data := map[string]any{"tier": short, "giver": firstNonEmpty(g.BuyerName, g.BuyerEmail), "gift": period(int(g.Months)), "message": g.Message,
+	data := map[string]any{"tier": short, "giver": firstNonEmpty(g.BuyerName, g.BuyerEmail), "gift": period(earn.PageLang, int(g.Months)), "message": g.Message,
 		"redeem_url": s.RedeemURL(ctx, ws, g.Code)}
 	to, name := g.RecipientEmail, g.RecipientName
 	if g.InPerson || to == "" {
@@ -71,7 +75,8 @@ func (s *Service) sendGift(ctx context.Context, ws *store.Workspace, g store.Ear
 	} else if f := firstName(g.RecipientName); f != "" {
 		data["first_name"] = f
 	}
-	return s.Earn.SendMemberEmailTo(ctx, ws, earn.EmailGiftReceived, to, name, data, "gift:"+g.ID.String()+":"+key)
+	texts := func(l i18n.Lang) map[string]any { return map[string]any{"gift": period(l, int(g.Months))} }
+	return s.Earn.SendMemberEmailIn(ctx, ws, earn.EmailGiftReceived, to, name, data, "gift:"+g.ID.String()+":"+key, texts)
 }
 
 // emailData is what a gift event says about an email.
@@ -264,7 +269,9 @@ func (s *Service) endings(ctx context.Context, now time.Time, wsOf func(uuid.UUI
 		if c.FirstName != "" {
 			data["first_name"] = c.FirstName
 		}
-		r := s.Earn.SendMemberEmailTo(ctx, ws, earn.EmailGiftEnding, c.Email, c.FirstName+" "+c.LastName, data, "gift:"+g.ID.String()+":ending")
+		ends := *row.AccessEnds
+		texts := func(l i18n.Lang) map[string]any { return map[string]any{"ends_at": s.Earn.DateTextIn(l, ws, ends)} }
+		r := s.Earn.SendMemberEmailIn(ctx, ws, earn.EmailGiftEnding, c.Email, c.FirstName+" "+c.LastName, data, "gift:"+g.ID.String()+":ending", texts)
 		switch r.Reason {
 		case "not_published", "no_route", "no_template", "no_mailer":
 			// Not now: tried again while the gift lasts.

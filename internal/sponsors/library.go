@@ -121,7 +121,7 @@ func (s *Service) CreateSponsor(ctx context.Context, ws *store.Workspace, p *aut
 func (s *Service) UpdateSponsor(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in SponsorInput) (SponsorItem, error) {
 	old, err := s.Q.SponsorGet(ctx, store.SponsorGetParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
-		return SponsorItem{}, api.MapError(err, "Sponsor")
+		return SponsorItem{}, mapErr(ctx, err, "sponsor")
 	}
 	in, terms, err := cleanSponsor(ctx, in)
 	if err != nil {
@@ -152,7 +152,7 @@ func (s *Service) UpdateSponsor(ctx context.Context, ws *store.Workspace, p *aut
 func (s *Service) DeleteSponsor(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) error {
 	old, err := s.Q.SponsorGet(ctx, store.SponsorGetParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
-		return api.MapError(err, "Sponsor")
+		return mapErr(ctx, err, "sponsor")
 	}
 	var upcoming int
 	_ = s.Pool.QueryRow(ctx, `SELECT count(*) FROM sponsor_bookings WHERE sponsor_id = $1 AND status IN ('hold','booked') AND issue_on >= $2`, id, s.today(ws)).Scan(&upcoming)
@@ -179,7 +179,7 @@ func (s *Service) sponsorItem(ctx context.Context, ws *store.Workspace, id uuid.
 			return it, nil
 		}
 	}
-	return SponsorItem{}, api.NotFound("Sponsor")
+	return SponsorItem{}, notFound(ctx, "sponsor")
 }
 
 // library lists the sponsors with their bookings, amounts and latest

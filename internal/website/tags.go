@@ -128,7 +128,7 @@ func (s *Service) UpdateTag(ctx context.Context, ws *store.Workspace, p *authz.P
 		q := store.New(tx)
 		cur, err := q.WebsiteTagGet(ctx, store.WebsiteTagGetParams{WorkspaceID: ws.ID, ID: id})
 		if errors.Is(err, pgx.ErrNoRows) {
-			return api.NotFound("Tag")
+			return notFound(ctx, "tag")
 		}
 		if err != nil {
 			return err
@@ -169,7 +169,7 @@ func (s *Service) DeleteTag(ctx context.Context, ws *store.Workspace, p *authz.P
 		q := store.New(tx)
 		cur, err := q.WebsiteTagGet(ctx, store.WebsiteTagGetParams{WorkspaceID: ws.ID, ID: id})
 		if errors.Is(err, pgx.ErrNoRows) {
-			return api.NotFound("Tag")
+			return notFound(ctx, "tag")
 		}
 		if err != nil {
 			return err
@@ -211,7 +211,7 @@ func (s *Service) tag(ctx context.Context, ws *store.Workspace, id uuid.UUID) (W
 			return t, nil
 		}
 	}
-	return WebsiteTag{}, api.NotFound("Tag")
+	return WebsiteTag{}, notFound(ctx, "tag")
 }
 
 // tagFields validates a tag's name, address and description.

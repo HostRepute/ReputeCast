@@ -11,10 +11,13 @@ package publicpages
 // presses "Confirm my answer". Link scanners don't run scripts or submit
 // forms; the ones that do are caught by the tracking classifier and counted
 // as automated visits.
+//
+// The pages read in the language of the email the link came from (the
+// contact's, for a link that names no email), else the visitor's; their
+// words are in the package's catalog (poll.*, survey.*, face.*).
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -94,8 +97,51 @@ type pollFooter struct {
 	Preferences string
 }
 
+// dayIn is a day in the workspace's time zone, in the page's region
+// format: "Mon 2 Jan", "Th 2, 2 thg 1".
 func (h *Handler) dayIn(s *site, t time.Time) string {
-	return t.In(state.Location(s.ws.Timezone)).Format("Mon 2 Jan")
+	return s.lang().Region.ShortDate(t.In(state.Location(s.ws.Timezone)))
+}
+
+// faceWordKeys are the emoji scale's words, from unhappy to happy
+// (polls.FaceWord's), as messages.
+var faceWordKeys = map[int][]string{
+	3: {"face.unhappy", "face.neutral", "face.happy"},
+	5: {"face.veryUnhappy", "face.unhappy", "face.neutral", "face.happy", "face.veryHappy"},
+}
+
+// faceWord is the words of an emoji answer in the page's language ("very
+// unhappy").
+func (s *site) faceWord(faces, key int) string {
+	w := faceWordKeys[faces]
+	if key < 1 || key > len(w) {
+		return ""
+	}
+	return s.gt(w[key-1])
+}
+
+// faceLabel is an emoji answer as screen readers and plain text say it:
+// "1 of 5, very unhappy".
+func (s *site) faceLabel(faces, key int) string {
+	return s.gt("face.label", "key", key, "faces", faces, "word", s.faceWord(faces, key))
+}
+
+// answerKind is how a sentence names a poll's answers: a number on a 0–10
+// scale, a face, or an answer.
+func answerKind(kind string) string {
+	switch kind {
+	case polls.KindScale:
+		return "scale"
+	case polls.KindEmoji:
+		return "emoji"
+	}
+	return "other"
+}
+
+// pollLang picks an answer page's language: the email's the link came
+// from, else the visitor's.
+func (h *Handler) pollLang(w http.ResponseWriter, r *http.Request, s *site, p *polls.AnswerPage) pageLang {
+	return h.linkLang(w, r, s, linktoken.Claims{ContactID: p.ContactID, MessageID: p.MessageID})
 }
 
 // accentHex is the publisher's accent without "#", for the faces.
@@ -103,11 +149,11 @@ func accentHex(s *site) string {
 	return strings.TrimPrefix(strings.ToLower(s.set.Branding.Palette.Accent), "#")
 }
 
-func answerLabel(p *polls.AnswerPage, key int) string {
+func answerLabel(s *site, p *polls.AnswerPage, key int) string {
 	for _, a := range p.Answers {
 		if a.Key == key {
 			if p.Config.Kind == polls.KindEmoji {
-				return polls.FaceWord(p.Config.Faces, key)
+				return s.faceWord(p.Config.Faces, key)
 			}
 			return a.Label
 		}
@@ -124,32 +170,28 @@ func (h *Handler) pollView(s *site, token string, p *polls.AnswerPage, posted bo
 	if p.Answerer == polls.AnswererContact && p.ContactID != uuid.Nil {
 		b.Footer.Preferences = s.links.Preferences(h.sign(s, linktoken.Preferences, p.ContactID, p.MessageID))
 	}
-	b.Kicker = p.CampaignName + " · poll"
+	b.Kicker = s.gt("poll.kicker", "campaign", p.CampaignName)
 	switch p.Answerer {
 	case polls.AnswererNonContact:
-		b.Kicker = p.CampaignName + " · from the web archive"
+		b.Kicker = s.gt("poll.kickerArchive", "campaign", p.CampaignName)
 	case polls.AnswererTest:
 		b.Test = true
-		b.Kicker = p.CampaignName + " · test email"
+		b.Kicker = s.gt("poll.kickerTest", "campaign", p.CampaignName)
 	}
 	selected := p.Picked
 	if p.Answer != nil && (posted || p.Closed || p.Refused) {
 		selected = *p.Answer
 	}
-	unit := "answer"
-	switch c.Kind {
-	case polls.KindScale:
-		unit = "number"
-	case polls.KindEmoji:
-		unit = "face"
-	}
+	kind := answerKind(c.Kind)
 	for _, a := range p.Answers {
 		v := pollAnswerView{Key: a.Key, Value: strconv.Itoa(a.Key), Label: a.Label, Aria: a.Label, Emoji: a.Emoji, Checked: a.Key == selected,
 			Mine: p.Answer != nil && *p.Answer == a.Key}
 		switch c.Kind {
 		case polls.KindScale:
-			v.Aria = fmt.Sprintf("%d out of 10", a.Key)
+			v.Aria = s.gt("poll.outOf10", "n", strconv.Itoa(a.Key))
 		case polls.KindEmoji:
+			v.Label = s.faceLabel(c.Faces, a.Key)
+			v.Aria = v.Label
 			v.Face = s.links.Static(FacePath(c.Faces, a.Key, accentHex(s)))
 		}
 		b.Answers = append(b.Answers, v)
@@ -165,25 +207,25 @@ func (h *Handler) pollView(s *site, token string, p *polls.AnswerPage, posted bo
 		if p.ClosedAt != nil {
 			when = h.dayIn(s, *p.ClosedAt)
 		}
-		b.Status = "This poll closed on " + when + ". It doesn't record answers anymore, and this visit changed nothing."
+		b.Status = s.gt("poll.closed", "date", when)
 	case p.Refused:
 		b.State, b.Tone = "refused", "neutral"
-		b.Status = "This poll is for subscribers. Answers count only from the link in your own email. Subscribe, and you'll get the next poll."
+		b.Status = s.gt("poll.refused")
 		b.Subscribe = s.links.Subscribe("")
 	case posted && p.Saved && p.Previous != nil:
 		b.State = "changed"
-		b.Status = fmt.Sprintf("Changed from %s to %s. Your new answer is saved; the latest one counts.", answerLabel(p, *p.Previous), answerLabel(p, *p.Answer))
+		b.Status = s.gt("poll.changed", "from", answerLabel(s, p, *p.Previous), "to", answerLabel(s, p, *p.Answer))
 	case posted && p.Saved:
 		b.State = "saved"
 		switch p.Answerer {
 		case polls.AnswererNonContact:
-			b.Status = "Thanks. Your answer is counted, but it isn't linked to you. Links on the web archive carry no name, so this answer is counted with the ones from people who aren't subscribers."
+			b.Status = s.gt("poll.savedArchive")
 		case polls.AnswererTest:
-			b.Status = "Saved as a test answer. Test answers aren't counted."
+			b.Status = s.gt("poll.savedTest")
 		default:
-			b.Status = "Thanks. Your answer is saved."
+			b.Status = s.gt("poll.saved")
 			if name := strings.TrimSpace(p.Name); name != "" {
-				b.Status = "Thanks, " + name + ". Your answer is saved."
+				b.Status = s.gt("poll.savedNamed", "name", name)
 			}
 		}
 		b.Thanks = strings.TrimSpace(c.Thanks)
@@ -191,82 +233,66 @@ func (h *Handler) pollView(s *site, token string, p *polls.AnswerPage, posted bo
 		b.State = "same"
 	default:
 		b.State, b.Tone = "pending", "neutral"
-		b.Status = fmt.Sprintf("You picked %s in the email. Nothing is saved until you confirm it.", answerLabel(p, p.Picked))
+		b.Status = s.gt("poll.pending", "picked", answerLabel(s, p, p.Picked))
 		if p.Answer != nil {
-			b.Status = fmt.Sprintf("You picked %s in the email. Your answer stays %s until you confirm the change.", answerLabel(p, p.Picked), answerLabel(p, *p.Answer))
+			b.Status = s.gt("poll.pendingChange", "picked", answerLabel(s, p, p.Picked), "answer", answerLabel(s, p, *p.Answer))
 		}
 	}
 	b.CanAnswer = !p.Closed && !p.Refused
 	if b.CanAnswer {
-		b.Confirm = "Confirm my answer"
-		b.ConfirmNote = "Pick another " + unit + " first if you meant a different one."
+		b.Confirm = s.gt("poll.confirm")
+		b.ConfirmNote = s.gt("poll.confirmNote", "kind", kind)
 		if p.Answer != nil {
-			b.Confirm = "Change my answer"
-			b.ConfirmNote = "Pick another " + unit + ", then change your answer."
+			b.Confirm = s.gt("poll.change")
+			b.ConfirmNote = s.gt("poll.changeNote", "kind", kind)
 		}
 	}
 	if p.Answer != nil && !p.Refused {
-		b.Yours = "Your answer: " + answerLabel(p, *p.Answer) + "."
+		b.Yours = s.gt("poll.yours", "answer", answerLabel(s, p, *p.Answer))
 		if b.CanAnswer {
-			b.Yours += " To change it, pick another " + unit + "."
+			b.Yours = s.gt("poll.yoursChangeable", "answer", answerLabel(s, p, *p.Answer), "kind", kind)
 		}
 	}
 	b.ShowComment = p.Answer != nil && !p.Closed && (p.Answerer == polls.AnswererContact || p.Answerer == polls.AnswererTest)
 	b.CommentSaved = p.Comment != ""
 	if p.Results != nil {
-		rv := &pollResultsView{Line: fmt.Sprintf("%s %s", countWord(p.Results.Total), plural(p.Results.Total, "answer", "answers"))}
+		state := "open"
 		switch {
 		case p.Closed:
-			rv.Line += " · closed"
+			state = "closed"
 		case closes != "":
-			rv.Line += " · closes " + closes
+			state = "closes"
 		}
+		rv := &pollResultsView{Line: s.gt("poll.resultsLine", "count", p.Results.Total, "state", state, "date", closes)}
 		for _, r := range p.Results.Rows {
-			rv.Rows = append(rv.Rows, pollResultRow{Label: r.Label, Percent: r.Percent, Mine: p.Answer != nil && *p.Answer == r.Key})
+			label := r.Label
+			if c.Kind == polls.KindEmoji {
+				label = s.faceLabel(c.Faces, r.Key)
+			}
+			rv.Rows = append(rv.Rows, pollResultRow{Label: label, Percent: r.Percent, Mine: p.Answer != nil && *p.Answer == r.Key})
 		}
 		b.Results = rv
 	}
 	switch p.Answerer {
 	case polls.AnswererContact:
 		if p.Email != "" && b.CanAnswer {
-			b.Note = "This link is yours: it answers as " + p.Email + ", even from a forwarded email. The latest answer counts"
+			b.Note = s.gt("poll.noteYours", "email", p.Email)
 			if closes != "" {
-				b.Note += ", until the poll closes on " + closes + "."
-			} else {
-				b.Note += " until the poll closes."
+				b.Note = s.gt("poll.noteYoursUntil", "email", p.Email, "date", closes)
 			}
 		}
 	case polls.AnswererTest:
-		b.Note = "This is a test email: answers are saved as test answers of " + p.Email + " and never counted."
+		b.Note = s.gt("poll.noteTest", "email", p.Email)
 	case polls.AnswererNonContact:
 		if !p.Refused {
 			b.Subscribe = s.links.Subscribe("")
-			b.SubscribeText = "Want " + s.set.Branding.PublisherName + " in your inbox?"
+			b.SubscribeText = s.gt("poll.subscribeText", "publisher", s.set.Branding.PublisherName)
 		}
 	}
 	if p.SurveyURL != "" {
 		b.Next = p.SurveyURL
 	}
 	return b
-}
-
-func countWord(n int64) string {
-	s := strconv.FormatInt(n, 10)
-	var b strings.Builder
-	for i, c := range s {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			b.WriteByte(',')
-		}
-		b.WriteRune(c)
-	}
-	return b.String()
-}
-
-func plural(n int64, one, many string) string {
-	if n == 1 {
-		return one
-	}
-	return many
 }
 
 func (h *Handler) visit(r *http.Request) polls.Visit {
@@ -277,28 +303,26 @@ func (h *Handler) visit(r *http.Request) polls.Visit {
 	return v
 }
 
-// pollMessage is a message page of the poll and survey pages, in the
-// pages' own language (their words are English).
-func (h *Handler) pollMessage(w http.ResponseWriter, r *http.Request, s *site, status int, title string, body messageBody, private bool) {
-	v := h.view(s, title, body)
-	if !private && status == http.StatusOK {
-		v.Robots = "noindex, follow"
-	}
-	h.render(w, r, s, "message", status, v, csp{}, private)
+// badLink is a broken or altered poll or survey link, in the visitor's
+// language: nothing is recorded.
+func (h *Handler) badLink(w http.ResponseWriter, r *http.Request, s *site, kickerKey, textKey string, button func(pageLang) string) {
+	pl := h.visitorLang(w, r, s, nil)
+	h.messageIn(w, r, s, pl, http.StatusNotFound, pageTitle(pl, s, "page.notFound.title"), messageBody{
+		Kicker:  s.gt(kickerKey),
+		Heading: s.gt("badLink.heading"),
+		Text:    s.gt(textKey),
+		Actions: []action{{Label: button(pl), Href: s.links.Archive()}},
+	}, true)
 }
 
-// badPollLink is a broken or altered link: nothing is recorded.
+// badPollLink is a broken or altered poll link: nothing is recorded.
 func (h *Handler) badPollLink(w http.ResponseWriter, r *http.Request, s *site) {
-	h.pollMessage(w, r, s, http.StatusNotFound, "Link not valid · "+s.set.Branding.PublisherName, messageBody{
-		Kicker:  "Poll",
-		Heading: "This link doesn't work anymore",
-		Text:    "It may have been cut short, or changed after it was sent. Open the poll again from your email. Nothing was recorded.",
-		Actions: []action{{Label: "Read the latest issue", Href: s.links.Archive()}},
-	}, true)
+	h.badLink(w, r, s, "poll.kickerShort", "poll.badLink", func(pl pageLang) string { return pl.Labels.Text("confirm.latest", nil) })
 }
 
 func (h *Handler) renderPoll(w http.ResponseWriter, r *http.Request, s *site, status int, b pollBody) {
 	v := h.view(s, b.Question+" · "+s.set.Branding.PublisherName, b)
+	h.setLang(v, r, s, s.page(), nil)
 	v.Scripts = []string{s.links.Static("poll.js?v=" + h.version)}
 	h.render(w, r, s, "poll", status, v, csp{}, true)
 }
@@ -328,6 +352,7 @@ func (h *Handler) pollPage(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, s, err)
 		return
 	}
+	h.pollLang(w, r, s, p)
 	b := h.pollView(s, token, p, false)
 	b.EditComment = r.URL.Query().Get("edit") == "comment"
 	h.renderPoll(w, r, s, http.StatusOK, b)
@@ -345,7 +370,7 @@ func (h *Handler) pollPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !h.parseForm(w, r, 8<<10) {
-		http.Error(w, "That answer couldn't be read. Go back and pick it again.", http.StatusBadRequest)
+		http.Error(w, growText(h.visitorLang(nil, r, s, nil).Labels.Lang(), "poll.answerUnreadable"), http.StatusBadRequest)
 		return
 	}
 	answer := picked
@@ -371,10 +396,11 @@ func (h *Handler) pollPost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		pg.Picked = answer
+		h.pollLang(w, r, s, pg)
 		b := h.pollView(s, token, pg, false)
 		b.State, b.Tone = "error", "error"
-		b.Status = "We couldn't save your answer. Nothing was recorded. Check your connection and try again."
-		b.Confirm = "Try again"
+		b.Status = s.gt("poll.saveFailed")
+		b.Confirm = s.gt("poll.tryAgain")
 		h.renderPoll(w, r, s, http.StatusServiceUnavailable, b)
 		return
 	}
@@ -385,6 +411,7 @@ func (h *Handler) pollPost(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, p.SurveyURL, http.StatusSeeOther) //nolint:gosec // G710: built from the workspace's page links, checked above
 		return
 	}
+	h.pollLang(w, r, s, p)
 	if p.Automated {
 		// A machine's post records nothing; the page looks as before.
 		h.renderPoll(w, r, s, http.StatusOK, h.pollView(s, token, p, false))
@@ -405,7 +432,7 @@ func (h *Handler) pollComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !h.parseForm(w, r, 16<<10) {
-		http.Error(w, "That comment couldn't be read. Go back and send it again.", http.StatusBadRequest)
+		http.Error(w, growText(h.visitorLang(nil, r, s, nil).Labels.Lang(), "poll.commentUnreadable"), http.StatusBadRequest)
 		return
 	}
 	text := r.PostForm.Get("comment")
@@ -425,12 +452,13 @@ func (h *Handler) pollComment(w http.ResponseWriter, r *http.Request) {
 	if p.Answer != nil {
 		p.Picked = *p.Answer
 	}
+	h.pollLang(w, r, s, p)
 	b := h.pollView(s, token, p, false)
 	if p.Saved {
 		b.State, b.Tone = "commented", "ok"
 		b.Status = ""
 		if p.Comment == "" {
-			b.Status = "Your comment is removed."
+			b.Status = s.gt("poll.commentRemoved")
 		}
 	}
 	h.renderPoll(w, r, s, http.StatusOK, b)

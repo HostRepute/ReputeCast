@@ -66,17 +66,17 @@ type CancelResult struct {
 	Redirect string
 }
 
-func words() map[string]string {
-	return map[string]string{"for": page("cancel.for", nil), "notYou": page("cancel.notYou", nil), "why": page("cancel.why", nil),
-		"optional": page("cancel.optional", nil), "changed": page("cancel.changed", nil), "back": page("cancel.back", nil),
-		"updateCard": page("cancel.updateCard", nil), "yourEmail": page("cancel.yourEmail", nil), "emailMe": page("cancel.emailMe", nil),
-		"offerLabel": page("cancel.offerLabel", nil), "terms": page("cancel.terms", nil)}
+func words(ctx context.Context) map[string]string {
+	return map[string]string{"for": page(ctx, "cancel.for", nil), "notYou": page(ctx, "cancel.notYou", nil), "why": page(ctx, "cancel.why", nil),
+		"optional": page(ctx, "cancel.optional", nil), "changed": page(ctx, "cancel.changed", nil), "back": page(ctx, "cancel.back", nil),
+		"updateCard": page(ctx, "cancel.updateCard", nil), "yourEmail": page(ctx, "cancel.yourEmail", nil), "emailMe": page(ctx, "cancel.emailMe", nil),
+		"offerLabel": page(ctx, "cancel.offerLabel", nil), "terms": page(ctx, "cancel.terms", nil)}
 }
 
-func reasons() []CancelReason {
+func reasons(ctx context.Context) []CancelReason {
 	out := make([]CancelReason, 0, len(Reasons))
 	for _, r := range Reasons {
-		out = append(out, CancelReason{Value: r, Label: page("cancel.reason."+r, nil)})
+		out = append(out, CancelReason{Value: r, Label: page(ctx, "cancel.reason."+r, nil)})
 	}
 	return out
 }
@@ -92,16 +92,16 @@ func freeName(t *earn.CancelTarget) string {
 // CancelPage is the page for a cancel link. done is the return from the
 // provider's portal. Each visit is counted once per half hour.
 func (s *Service) CancelPage(ctx context.Context, ws *store.Workspace, token string, done bool) (CancelView, error) {
-	v := CancelView{Words: words()}
+	v := CancelView{Words: words(ctx)}
 	t, err := s.Earn.CancelTargetOf(ctx, ws, token)
 	switch {
 	case errors.Is(err, earn.ErrLinkInvalid):
 		return v, err
 	case errors.Is(err, earn.ErrLinkExpired):
-		v.State, v.Heading, v.Text = "expired", page("cancel.expiredTitle", nil), page("cancel.expiredText", nil)
+		v.State, v.Heading, v.Text = "expired", page(ctx, "cancel.expiredTitle", nil), page(ctx, "cancel.expiredText", nil)
 		return v, nil
 	case errors.Is(err, earn.ErrNoSubscription):
-		v.State, v.Heading, v.Text = "none", page("cancel.noneTitle", nil), page("cancel.noneText", nil)
+		v.State, v.Heading, v.Text = "none", page(ctx, "cancel.noneTitle", nil), page(ctx, "cancel.noneText", nil)
 		return v, nil
 	case err != nil:
 		return v, err
@@ -131,28 +131,28 @@ func (s *Service) CancelPage(ctx context.Context, ws *store.Workspace, token str
 	}
 	a := i18n.Args{"tier": t.Short, "free": freeName(t), "period": t.Sub.Period}
 	if end != nil {
-		a["date"] = dayOf(*end, loc, s.now())
+		a["date"] = dayOf(i18n.LangFrom(ctx), *end, loc, s.now())
 	}
 	if done {
-		v.State, v.Heading = "done", page("cancel.doneTitle", a)
-		v.Text = page("cancel.doneText", a)
+		v.State, v.Heading = "done", page(ctx, "cancel.doneTitle", a)
+		v.Text = page(ctx, "cancel.doneText", a)
 		if freeName(t) == "" {
-			v.Text = page("cancel.doneTextNoList", a)
+			v.Text = page(ctx, "cancel.doneTextNoList", a)
 		}
 		return v, nil
 	}
 	v.State, v.Email = "ask", t.Contact.Email
-	v.Heading = page("cancel.title", a)
-	v.Reasons = reasons()
-	v.Continue, v.Note = page("cancel.continue", nil), page("cancel.note", nil)
+	v.Heading = page(ctx, "cancel.title", a)
+	v.Reasons = reasons(ctx)
+	v.Continue, v.Note = page(ctx, "cancel.continue", nil), page(ctx, "cancel.note", nil)
 	switch {
 	case t.Sub.Status == "past_due":
 		v.PastDue, v.BillingURL = true, s.Earn.BillingURL(ctx, ws, t.Contact.ID)
-		v.Lead = page("cancel.leadPastDue", a)
+		v.Lead = page(ctx, "cancel.leadPastDue", a)
 	case end != nil && freeName(t) != "":
-		v.Lead = page("cancel.lead", a)
+		v.Lead = page(ctx, "cancel.lead", a)
 	case end != nil:
-		v.Lead = page("cancel.leadNoList", a)
+		v.Lead = page(ctx, "cancel.leadNoList", a)
 	}
 	mode := t.Sub.Mode
 	ret, err := s.RetentionFor(ctx, ws, mode, t.Sub)
@@ -161,7 +161,7 @@ func (s *Service) CancelPage(ctx context.Context, ws *store.Workspace, token str
 	}
 	var offerID *uuid.UUID
 	if ret != nil {
-		v.Offer = s.cancelOffer(ret, t.Short)
+		v.Offer = s.cancelOffer(ctx, ret, t.Short)
 		id := ret.ID
 		offerID = &id
 	}
@@ -174,15 +174,15 @@ func (s *Service) CancelPage(ctx context.Context, ws *store.Workspace, token str
 }
 
 // dayOf is "2 Nov", with the year when it isn't this year's.
-func dayOf(t time.Time, loc *time.Location, now time.Time) string {
+func dayOf(lang i18n.Lang, t time.Time, loc *time.Location, now time.Time) string {
 	l := t.In(loc)
 	if l.Year() == now.In(loc).Year() {
-		return l.Format("2 Jan")
+		return earn.DayMonthIn(lang, l)
 	}
-	return l.Format("2 Jan 2006")
+	return earn.DateIn(lang, l)
 }
 
-func (s *Service) cancelOffer(r *Retention, short string) *CancelOffer {
+func (s *Service) cancelOffer(ctx context.Context, r *Retention, short string) *CancelOffer {
 	a := i18n.Args{"price": moneyOf(r.PriceCents, r.Currency), "full": moneyOf(r.FullCents, r.Currency), "months": r.Months, "period": r.Period, "tier": short}
 	key := "months"
 	switch {
@@ -191,7 +191,7 @@ func (s *Service) cancelOffer(r *Retention, short string) *CancelOffer {
 	case r.Months == 0:
 		key = "once"
 	}
-	return &CancelOffer{Name: r.Name, Line: page("cancel.offer."+key, a), Button: page("cancel.keep."+key, a)}
+	return &CancelOffer{Name: r.Name, Line: page(ctx, "cancel.offer."+key, a), Button: page(ctx, "cancel.keep."+key, a)}
 }
 
 // visit counts a view of the page, once per half hour.
@@ -270,7 +270,7 @@ func (s *Service) CancelDecide(ctx context.Context, ws *store.Workspace, token, 
 		}); err != nil {
 			return CancelResult{}, err
 		}
-		v := s.keptView(ws, t, ret, sub)
+		v := s.keptView(ctx, ws, t, ret, sub)
 		return CancelResult{View: &v}, nil
 	}
 	if err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
@@ -307,7 +307,7 @@ func (s *Service) applyRetention(ctx context.Context, ws *store.Workspace, t *ea
 
 // keptView is the page after taking the offer: the new price, until when,
 // and the next payment.
-func (s *Service) keptView(ws *store.Workspace, t *earn.CancelTarget, r *Retention, sub payments.Subscription) CancelView {
+func (s *Service) keptView(ctx context.Context, ws *store.Workspace, t *earn.CancelTarget, r *Retention, sub payments.Subscription) CancelView {
 	loc := location(ws)
 	now := s.now()
 	a := i18n.Args{"price": moneyOf(r.PriceCents, r.Currency), "full": moneyOf(r.FullCents, r.Currency), "tier": t.Short, "period": r.Period,
@@ -316,7 +316,7 @@ func (s *Service) keptView(ws *store.Workspace, t *earn.CancelTarget, r *Retenti
 	if sub.Discount != nil && sub.Discount.End != nil {
 		until = *sub.Discount.End
 	}
-	a["until"] = dayOf(until, loc, now)
+	a["until"] = dayOf(i18n.LangFrom(ctx), until, loc, now)
 	// A coupon doesn't move the period: the next payment is when it ends,
 	// as the last webhook told us, else as the provider has it now.
 	nextAt := t.Sub.CurrentPeriodEnd
@@ -324,7 +324,7 @@ func (s *Service) keptView(ws *store.Workspace, t *earn.CancelTarget, r *Retenti
 		nextAt = sub.CurrentPeriodEnd
 	}
 	if nextAt != nil {
-		a["date"] = dayOf(*nextAt, loc, now)
+		a["date"] = dayOf(i18n.LangFrom(ctx), *nextAt, loc, now)
 	}
 	key := "months"
 	switch {
@@ -333,11 +333,11 @@ func (s *Service) keptView(ws *store.Workspace, t *earn.CancelTarget, r *Retenti
 	case r.Months == 0:
 		key = "once"
 	}
-	v := CancelView{State: "kept", Words: words(), Heading: page("cancel.kept."+key, a)}
+	v := CancelView{State: "kept", Words: words(ctx), Heading: page(ctx, "cancel.kept."+key, a)}
 	if nextAt != nil {
-		v.Text = page("cancel.keptText", a)
+		v.Text = page(ctx, "cancel.keptText", a)
 	} else {
-		v.Text = page("cancel.keptTextNoDate", a)
+		v.Text = page(ctx, "cancel.keptTextNoDate", a)
 	}
 	return v
 }

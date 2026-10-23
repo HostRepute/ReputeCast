@@ -4,8 +4,10 @@ package publicpages
 // a referrer's hub, a referral link's invite page, the leaderboard, reward
 // downloads and the recommendations page, plus the confirmation page's
 // "While you're here" and the preference center's "Invite friends". They
-// work without JavaScript (a script only adds Copy). Their words are
-// English: Grow's labels aren't in the page languages yet.
+// work without JavaScript (a script only adds Copy). They read in the
+// page's language like the other public pages: the menu's pick, then the
+// reader's own language on a page reached from their email (the hub), else
+// the browser's, then the default.
 
 import (
 	"embed"
@@ -13,13 +15,15 @@ import (
 	"html/template"
 	"math"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
-	"github.com/hostrepute/reputecast/internal/pagelabels"
+	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/recommendations"
 	"github.com/hostrepute/reputecast/internal/referrals"
 )
@@ -29,16 +33,15 @@ var growFS embed.FS
 
 var growMsgs = i18n.MustLoad(growFS, "publicgrow")
 
-var growLang = i18n.For(i18n.English)
-
-// gt is a Grow label as text.
-func gt(key string, kv ...any) string {
+// growText is a Grow label as text in a language.
+func growText(l i18n.Lang, key string, kv ...any) string {
 	args, _ := labelArgs(kv)
-	return growMsgs.M(key).Text(growLang, args)
+	return growMsgs.M(key).Text(l, args)
 }
 
-// gh is a Grow label as HTML: <b> bold, <link> linked to "href".
-func gh(key string, kv ...any) template.HTML {
+// growHTML is a Grow label as HTML in a language: <b> bold, <link> linked
+// to "href".
+func growHTML(l i18n.Lang, key string, kv ...any) template.HTML {
 	args, href := labelArgs(kv)
 	tags := i18n.Tags{
 		"b": func(inner string) string { return "<strong>" + inner + "</strong>" },
@@ -49,20 +52,48 @@ func gh(key string, kv ...any) template.HTML {
 			return `<a href="` + template.HTMLEscapeString(href) + `">` + inner + `</a>`
 		},
 	}
-	return template.HTML(growMsgs.M(key).HTML(growLang, args, tags)) //nolint:gosec // the formatter escapes the label and its values
+	return template.HTML(growMsgs.M(key).HTML(l, args, tags)) //nolint:gosec // the formatter escapes the label and its values
 }
 
+// gt is a Grow label as text in the page's language.
+func (s *site) gt(key string, kv ...any) string { return growText(s.lang(), key, kv...) }
+
+// gh is a Grow label as HTML in the page's language.
+func (s *site) gh(key string, kv ...any) template.HTML { return growHTML(s.lang(), key, kv...) }
+
 // G is a Grow label for the templates: {{$.G "hub.heading"}}.
-func (v *view) G(key string, kv ...any) string { return gt(key, kv...) }
+func (v *view) G(key string, kv ...any) string { return growText(v.labels.Lang(), key, kv...) }
 
 // GH is a Grow label as HTML for the templates.
-func (v *view) GH(key string, kv ...any) template.HTML { return gh(key, kv...) }
+func (v *view) GH(key string, kv ...any) template.HTML { return growHTML(v.labels.Lang(), key, kv...) }
 
-// growView is a Grow page: in English, without a language menu.
-func (h *Handler) growView(s *site, title string, body any) *view {
+// growEnglish reports whether a Grow label is written in English for the
+// page's language (it isn't translated): English grammar the code applies
+// (ordinals, "the" before a reward's name) holds only then.
+func (s *site) growEnglish(key string) bool {
+	l := s.lang().Locale
+	if l == i18n.English || l == i18n.Pseudo || l == "" {
+		return true
+	}
+	return slices.Contains(growMsgs.Missing(l), key)
+}
+
+// growView is a Grow page in the page's language, with the footer's
+// language menu (none without a request: the app's previews).
+func (h *Handler) growView(r *http.Request, s *site, title string, body any) *view {
 	v := h.view(s, title, body)
-	v.Lang, v.Dir, v.labels = "en", "ltr", pagelabels.English()
+	h.setLang(v, r, s, s.page(), nil)
 	return v
+}
+
+// linkLang picks the language of a page reached from a signed link (Grow's,
+// a poll's or a survey's): the email's or the reader's own when the link
+// names them, else the visitor's.
+func (h *Handler) linkLang(w http.ResponseWriter, r *http.Request, s *site, c linktoken.Claims) pageLang {
+	if c.ContactID != uuid.Nil || c.MessageID != uuid.Nil {
+		return h.messageLang(w, r, s, c)
+	}
+	return h.visitorLang(w, r, s, nil)
 }
 
 // growRoutes are the Grow pages, on the instance (/p/{ws}/…) and on a
@@ -111,7 +142,7 @@ func (h *Handler) recommendations() *recommendations.Service {
 // growPage renders a Grow page (private: signed links, never cached or
 // indexed).
 func (h *Handler) growPage(w http.ResponseWriter, r *http.Request, s *site, page string, status int, title string, body any, private bool) {
-	v := h.growView(s, title, body)
+	v := h.growView(r, s, title, body)
 	if page == "grow-hub" {
 		// Copy for the link; the page works without it.
 		v.Scripts = append(v.Scripts, s.links.Static("grow.js?v="+h.version))
@@ -124,20 +155,28 @@ func (h *Handler) growPage(w http.ResponseWriter, r *http.Request, s *site, page
 
 // growMessage is a one-message Grow page.
 func (h *Handler) growMessage(w http.ResponseWriter, r *http.Request, s *site, status int, heading, text string, actions []action) {
-	v := h.growView(s, heading+" · "+s.set.Branding.PublisherName, messageBody{Heading: heading, Text: text, Actions: actions})
+	v := h.growView(r, s, heading+" · "+s.set.Branding.PublisherName, messageBody{Heading: heading, Text: text, Actions: actions})
 	h.render(w, r, s, "message", status, v, csp{}, true)
 }
 
-// shortDate is "19 Oct" (and "19 Oct 2025" for another year).
-func shortDate(t time.Time, now time.Time) string {
+// shortDate is "19 Oct" (and "19 Oct 2025" for another year), in the
+// page's region format ("19 thg 10").
+func (s *site) shortDate(t time.Time, now time.Time) string {
+	l := s.lang()
+	if l.Region != "" && l.Region != i18n.Standard {
+		if t.Year() != now.Year() {
+			return l.Region.Date(t)
+		}
+		return l.Region.DayMonth(t)
+	}
 	if t.Year() != now.Year() {
 		return t.Format("2 Jan 2006")
 	}
 	return t.Format("2 Jan")
 }
 
-// fileDesc is "PDF, 18 MB".
-func fileDesc(contentType string, size int64) string {
+// fileDesc is "PDF, 18 MB", its size in the page's region format.
+func (s *site) fileDesc(contentType string, size int64) string {
 	kind := strings.ToUpper(strings.TrimPrefix(strings.TrimPrefix(contentType, "application/"), "image/"))
 	if kind == "JPEG" {
 		kind = "JPG"
@@ -145,18 +184,23 @@ func fileDesc(contentType string, size int64) string {
 	if size <= 0 {
 		return kind
 	}
+	r := s.lang().Region
 	mb := float64(size) / (1 << 20)
 	switch {
 	case mb >= 10:
-		return fmt.Sprintf("%s, %d MB", kind, int(math.Round(mb)))
+		return kind + ", " + r.Int(int64(math.Round(mb))) + " MB"
 	case mb >= 1:
-		return fmt.Sprintf("%s, %.1f MB", kind, mb)
+		return kind + ", " + r.Decimal(mb, 1) + " MB"
 	}
-	return fmt.Sprintf("%s, %d KB", kind, max(int(math.Round(float64(size)/1024)), 1))
+	return kind + ", " + r.Int(int64(max(int(math.Round(float64(size)/1024)), 1))) + " KB"
 }
 
-// ordinal is "15th".
-func ordinal(n int) string {
+// ordinal is a rank: "15th" in English, the number where a translation
+// says the rest ("Hạng 15").
+func (s *site) ordinal(n int, key string) string {
+	if !s.growEnglish(key) {
+		return s.lang().Region.Int(int64(n))
+	}
 	suffix := "th"
 	switch {
 	case n%100 >= 11 && n%100 <= 13:
@@ -170,9 +214,10 @@ func ordinal(n int) string {
 	return fmt.Sprintf("%d%s", n, suffix)
 }
 
-// articled is "the Acme Field Guide" for "The Acme Field Guide".
-func articled(name string) string {
-	if strings.HasPrefix(name, "The ") {
+// articled is "the Acme Field Guide" for "The Acme Field Guide" inside an
+// English sentence; a translation keeps the name as it is.
+func (s *site) articled(name, key string) string {
+	if strings.HasPrefix(name, "The ") && s.growEnglish(key) {
 		return "the " + name[4:]
 	}
 	return name

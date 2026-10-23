@@ -105,7 +105,7 @@ func RegisterSellAPI(h huma.API, p *Handler) {
 		func(ctx context.Context, in *ProductPreviewPath) (*api.Body[PublicPagePreview], error) {
 			id, err := uuid.Parse(in.Product)
 			if err != nil {
-				return nil, api.NotFound("Product")
+				return nil, appNotFound(ctx, "product")
 			}
 			out, err := p.ProductPreview(ctx, api.WorkspaceFrom(ctx), id)
 			return api.OK(out), err
@@ -115,7 +115,7 @@ func RegisterSellAPI(h huma.API, p *Handler) {
 // previewView is the site's frame for a preview, in the default language.
 func (h *Handler) previewView(ctx context.Context, ws *store.Workspace) (*site, *siteView, error) {
 	if h.Website == nil {
-		return nil, nil, api.Err(http.StatusServiceUnavailable, "unavailable", "The public site isn't available on this server.")
+		return nil, nil, appUnavailable(ctx, "siteUnavailable")
 	}
 	s, err := h.previewSite(ctx, ws)
 	if err != nil {
@@ -204,7 +204,7 @@ func (h *Handler) RenderBlocks(ctx context.Context, ws *store.Workspace, pageID 
 // PagePreview renders a whole page in the site's frame, inert.
 func (h *Handler) PagePreview(ctx context.Context, ws *store.Workspace, pageID uuid.UUID, in PagePreviewInput) (PublicPagePreview, error) {
 	if h.Pages == nil {
-		return PublicPagePreview{}, api.NotFound("Page")
+		return PublicPagePreview{}, appNotFound(ctx, "page")
 	}
 	lp, err := h.Pages.Draft(ctx, ws, pageID)
 	if err != nil {
@@ -249,7 +249,7 @@ func (h *Handler) PagePreview(ctx context.Context, ws *store.Workspace, pageID u
 // ProductPreview renders a product's default page, its draft included.
 func (h *Handler) ProductPreview(ctx context.Context, ws *store.Workspace, id uuid.UUID) (PublicPagePreview, error) {
 	if h.Products == nil {
-		return PublicPagePreview{}, api.NotFound("Product")
+		return PublicPagePreview{}, appNotFound(ctx, "product")
 	}
 	m, err := h.Products.PublicProducts(ctx, ws, []uuid.UUID{id}, true)
 	if err != nil {
@@ -257,7 +257,7 @@ func (h *Handler) ProductPreview(ctx context.Context, ws *store.Workspace, id uu
 	}
 	p, ok := m[id]
 	if !ok {
-		return PublicPagePreview{}, api.NotFound("Product")
+		return PublicPagePreview{}, appNotFound(ctx, "product")
 	}
 	s, v, err := h.previewView(ctx, ws)
 	if err != nil {
