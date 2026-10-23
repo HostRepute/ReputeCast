@@ -648,9 +648,9 @@ func (s *Service) PreviewIn(ctx context.Context, ws *store.Workspace, p *authz.P
 			return out, err
 		}
 		out.Language = src
-		out.Languages = append(out.Languages, ApprovalPreviewLanguage{Language: src, Name: languages.NameOf(src), Status: "source"})
+		out.Languages = append(out.Languages, ApprovalPreviewLanguage{Language: src, Name: languages.NameIn(i18n.LangFrom(ctx), src), Status: "source"})
 		for _, v := range snap.Languages {
-			out.Languages = append(out.Languages, ApprovalPreviewLanguage{Language: v.Language, Name: languages.NameOf(v.Language), Status: v.Status})
+			out.Languages = append(out.Languages, ApprovalPreviewLanguage{Language: v.Language, Name: languages.NameIn(i18n.LangFrom(ctx), v.Language), Status: v.Status})
 		}
 		if lang != "" && lang != src {
 			c, err := s.Languages.CampaignVersionAt(ctx, *r.CampaignID, lang, snapshotVersion(snap, lang))
