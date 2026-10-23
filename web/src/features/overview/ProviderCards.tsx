@@ -55,7 +55,7 @@ export function ProviderOverviewCard({ p, monthStart }: { p: Schemas['OverviewPr
           {c.webhook.kind
             ? t(m.eventsVia, {
                 webhook: c.webhook.kind === 'Registered' ? 'yes' : 'no',
-                feed: c.webhook.kind,
+                feed: c.webhook.kind === 'Bounce mailbox' ? t(m.feedBounceMailbox) : c.webhook.kind,
                 ago: webhookAgo(c.webhook.lastEventAt, now),
                 unaffected: c.webhook.lastEventAt && !c.webhook.silentSince ? 'yes' : 'no',
               })
