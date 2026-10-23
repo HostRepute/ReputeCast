@@ -42,8 +42,8 @@ export default translate(po, {
   consentNotTicked: 'Không đánh dấu lời mời vào danh sách',
   consentNone: 'Không có lời mời vào danh sách khi thanh toán',
   // The payment.
-  payPaid: '{amount} · thuế {tax} từ Stripe Tax · {account}, chế độ {mode, select, test {thử nghiệm} other {thật}}',
-  payPaidNoTax: '{amount} · {account}, chế độ {mode, select, test {thử nghiệm} other {thật}}',
+  payPaid: '{amount} · thuế {tax} từ Stripe Tax · {account}, chế độ {mode, select, test {thử nghiệm} other {chính thức}}',
+  payPaidNoTax: '{amount} · {account}, chế độ {mode, select, test {thử nghiệm} other {chính thức}}',
   payRefunded: 'Đã hoàn toàn bộ {amount} · Stripe: {event} lúc {time}',
   payRefundedPlain: 'Đã hoàn toàn bộ {amount} lúc {time}',
   payPartial: 'Đã hoàn {refunded} trên {amount} · Stripe: {event} lúc {time}',

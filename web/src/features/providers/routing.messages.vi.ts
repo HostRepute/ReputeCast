@@ -139,7 +139,7 @@ export default translate(mr, {
   stepSuppressed: 'Đã kiểm tra danh sách chặn gửi: {email} bị chặn gửi, nên không có gì được gửi đến địa chỉ này.',
   stepNotSuppressed: 'Đã kiểm tra danh sách chặn gửi: {email} không bị chặn gửi.',
   stepSilent: 'Webhook của {provider} đang im lặng, nên phần của nhà cung cấp này phải chờ đến khi có sự kiện trở lại.',
-  stepDown: '{provider} hiện đang ngừng hoạt động, nên email này sẽ chờ nhà cung cấp đó hoặc nhà cung cấp dự phòng.',
+  stepDown: '{provider} hiện đang gián đoạn, nên email này sẽ chờ nhà cung cấp đó hoặc nhà cung cấp dự phòng.',
 
   fallbackPauseBroadcast: 'tạm dừng và hỏi. Thư Gửi hàng loạt không bao giờ tự động chuyển dự phòng sang một nhà cung cấp chưa khởi động.',
   fallbackPause: 'tạm dừng và hỏi: lần gửi được giữ lại cho đến khi bạn quyết định.',

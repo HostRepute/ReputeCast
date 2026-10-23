@@ -55,7 +55,7 @@ export default translate(mp, {
   savedDetail: 'Chiến dịch mới sẽ bắt đầu từ các cài đặt này.',
 
   rotateSecrets: 'Xoay vòng khóa bí mật',
-  rotateTitle: 'Xoay vòng khóa bí mật ký webhook của mọi nhà cung cấp?',
+  rotateTitle: 'Xoay vòng khóa bí mật để ký webhook của mọi nhà cung cấp?',
   rotateBody:
     'ReputeCast tạo khóa bí mật mới cho từng nhà cung cấp và đăng ký khóa đó ở những nơi API của nhà cung cấp cho phép. Với nhà cung cấp có webhook bạn thiết lập thủ công, bạn cũng cần nhập khóa mới ở đó; trước khi làm vậy, sự kiện của họ sẽ bị từ chối.',
   rotating: 'Đang xoay vòng…',

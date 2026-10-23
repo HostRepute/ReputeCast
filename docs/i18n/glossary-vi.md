@@ -265,7 +265,7 @@ order of the English.
 | credentials (a provider's) | thông tin xác thực | |
 | dedicated IP · shared pool | IP riêng · nhóm IP dùng chung | |
 | defer · deferral | hoãn nhận | "Yahoo hoãn nhận" |
-| degraded · down | suy giảm · ngừng hoạt động | provider statuses |
+| degraded · down | suy giảm · gián đoạn | provider statuses |
 | delisting | gỡ khỏi danh sách | "Yêu cầu gỡ khỏi danh sách" |
 | event log · raw event · normalized event | nhật ký sự kiện · sự kiện gốc · sự kiện chuẩn hóa | |
 | failover · fallback · primary | chuyển dự phòng · dự phòng · chính | "nhà cung cấp dự phòng", "nhà cung cấp chính" |
@@ -273,7 +273,7 @@ order of the English.
 | flow (an automation's, in sending text) | quy trình tự động | "luồng" is a stream: "email do các quy trình tự động gửi"; on the Automations screens a flow is "quy trình" |
 | guard (Warm-up page) | ngưỡng bảo vệ | "Tỷ lệ trả thư · ngưỡng bảo vệ 2%" |
 | held (recipients) | tạm giữ | |
-| incident · outage | sự cố · sự cố ngừng hoạt động | |
+| incident · outage | sự cố · sự cố gián đoạn | |
 | live sending monitor | theo dõi gửi trực tiếp | "Live monitor" is "Theo dõi trực tiếp" |
 | maintainer · unmaintained (adapter) | người duy trì · ngừng duy trì | |
 | mapping (webhook, JSONPath) | ánh xạ | |
@@ -1111,7 +1111,7 @@ they are.
 | Gross · Net | Tổng thu · Thực thu | product revenue before and after refunds |
 | idempotency key | khóa idempotency | |
 | list offer | lời mời vào danh sách | the checkbox next to a product's Buy button |
-| live · test (payments, keys, modes) | thật · thử nghiệm | the message log's live updates are "Trực tiếp" |
+| live · test (payments, keys, modes) | chính thức · thử nghiệm (as Earn has it) | the message log's live updates are "Trực tiếp" |
 | median delivery | thời gian gửi trung vị | |
 | message (transactional) · Messages (tab) | thư · Thư | |
 | order | đơn hàng | |

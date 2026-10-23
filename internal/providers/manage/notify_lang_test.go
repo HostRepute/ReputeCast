@@ -31,7 +31,7 @@ func TestNotificationsReadInEachMembersLanguage(t *testing.T) {
 	title, _ := keep(mNotifyHeldTitle, i18n.Args{"campaign": `"Weekly Digest"`})
 	body, text := keep(mNotifyHeldBody, i18n.Args{"name": "Mailgun", "count": int64(12000), "countText": "12000"})
 	if title != `"Weekly Digest" is waiting for a decision` || body != "Mailgun is down. Its share (12000 recipients) is held; the rest keeps sending." ||
-		text.In(vi) != "Mailgun đang ngừng hoạt động. Phần của nó (12.000 người nhận) đang bị tạm giữ; phần còn lại vẫn tiếp tục gửi." {
+		text.In(vi) != "Mailgun đang gián đoạn. Phần của nó (12.000 người nhận) đang bị tạm giữ; phần còn lại vẫn tiếp tục gửi." {
 		t.Errorf("held: %q / %q / %q", title, body, text.In(vi))
 	}
 	body, text = keep(mNotifySilentBody, i18n.Args{"since": since})

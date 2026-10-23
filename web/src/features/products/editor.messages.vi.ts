@@ -252,7 +252,7 @@ export default translate(pe, {
   checksAllPassNoRight: 'Cả {count} mục đều đạt · chỉ còn thiếu quyền xuất bản',
   checksSome: '{passed}/{count} mục đạt',
   ckStripe: 'Đã kết nối Stripe',
-  ckStripeDetail: '{account} · {mode, select, test {chế độ thử nghiệm} other {chế độ thật}}',
+  ckStripeDetail: '{account} · {mode, select, test {chế độ thử nghiệm} other {chế độ chính thức}}',
   ckStripeBad: 'Chưa kết nối Stripe',
   ckStripeBadDetail: 'Chưa ai mua được gì cho đến khi kết nối.',
   ckFile: 'Đã tải lên xong một tệp',

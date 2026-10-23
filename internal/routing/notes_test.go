@@ -28,7 +28,7 @@ func TestNotesAndErrorsIn(t *testing.T) {
 		{"instead", i18n.Args{"alt": "SES", "provider": "Postal", "why": "paused", "tier": "active", "day": 9}, "SES instead of Postal: warm-up paused",
 			"SES thay cho Postal: khởi động đang tạm dừng"},
 		{"failover", i18n.Args{"provider": "Postal", "fallback": "SES"}, "Postal was down; Broadcasts failed over to SES",
-			"Postal ngừng hoạt động; luồng Gửi hàng loạt đã chuyển dự phòng sang SES"},
+			"Postal gián đoạn; luồng Gửi hàng loạt đã chuyển dự phòng sang SES"},
 	}
 	for _, n := range notes {
 		en := routing.RouteNote(n.key, n.args)
@@ -47,9 +47,9 @@ func TestNotesAndErrorsIn(t *testing.T) {
 		args  i18n.Args
 		en, v string
 	}{
-		{"down", i18n.Args{"provider": "Postmark"}, "Postmark is down", "Postmark đang ngừng hoạt động"},
+		{"down", i18n.Args{"provider": "Postmark"}, "Postmark is down", "Postmark đang gián đoạn"},
 		{"downNoOther", i18n.Args{"provider": "Postmark"}, "Postmark was down and no other provider in the route could take the message.",
-			"Postmark ngừng hoạt động và không nhà cung cấp nào khác trong tuyến nhận được thư này."},
+			"Postmark gián đoạn và không nhà cung cấp nào khác trong tuyến nhận được thư này."},
 		{"providersRemoved", nil, "The route's providers were removed.", "Các nhà cung cấp của tuyến đã bị gỡ."},
 		{"contentGone", nil, "The message's content is no longer available, so it can't be sent.", "Nội dung của thư không còn nữa, nên không thể gửi."},
 		{"unreadable", i18n.Args{"error": "cipher: message authentication failed"}, "The message couldn't be opened: cipher: message authentication failed",

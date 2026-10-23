@@ -6,7 +6,7 @@ export default translate(mo, {
   // ── Page ─────────────────────────────────────────────────────────────
   loadFailed: 'Không tải được nhà cung cấp gửi thư của bạn',
   loadFailedBody: 'Việc gửi không bị ảnh hưởng: tình trạng nhà cung cấp được kiểm tra ở chế độ nền.',
-  providersDown: '{count} nhà cung cấp ngừng hoạt động',
+  providersDown: '{count} nhà cung cấp gián đoạn',
   providersDegraded: '{count} nhà cung cấp suy giảm',
   checkedOne: 'Đã kiểm tra {ago}',
   checkedAll: 'Đã kiểm tra cả {count} nhà cung cấp {ago}',
@@ -16,7 +16,7 @@ export default translate(mo, {
   tileProviders: 'Nhà cung cấp',
   tileConnected: '{count} đã kết nối',
   statusCount:
-    '{count} {status, select, healthy {Ổn định} warming_up {Đang khởi động} degraded {Suy giảm} down {Ngừng hoạt động} sandbox {Sandbox} other {Đã tạm dừng}}',
+    '{count} {status, select, healthy {Ổn định} warming_up {Đang khởi động} degraded {Suy giảm} down {Gián đoạn} sandbox {Sandbox} other {Đã tạm dừng}}',
   tileSent: 'Đã gửi tháng này, mọi nhà cung cấp',
   tileCost: 'Chi phí đến nay, {month}',
   costBlended: '{amount} mỗi {thousand} thư, tính bình quân',
@@ -98,7 +98,7 @@ export default translate(mo, {
   per1000FromPricing: 'Mỗi {thousand} thư · theo bảng giá của nhà cung cấp',
 
   takingFailover: 'Đang nhận chuyển dự phòng cho {streams}',
-  forecastTitle: 'Dự báo hạn mức khi {provider} ngừng hoạt động',
+  forecastTitle: 'Dự báo hạn mức khi {provider} gián đoạn',
   forecastBody:
     '{stream} gửi khoảng {perDay} thư mỗi ngày. {runsOut, select, yes {Với tốc độ này, gói {provider} sẽ hết vào {date}} other {Gói {provider} hiện vẫn còn đủ}}{nextTier, select, yes {; bậc gói tiếp theo thêm {adds} thư với giá {price}.} other {.}}',
   whyNotTitle: 'Vì sao không chuyển lần gửi hàng loạt sang {provider}',

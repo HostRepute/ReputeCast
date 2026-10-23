@@ -43,11 +43,11 @@
   "incident.silent": "{name}: không có sự kiện webhook nào từ {since, time} trong khi thư vẫn được gửi đi.",
   "incident.resumed": "{name}: sự kiện webhook đã về trở lại.",
 
-  "notify.downTitle": "{name} đang ngừng hoạt động",
+  "notify.downTitle": "{name} đang gián đoạn",
   "notify.authTitle": "{name} đã từ chối thông tin xác thực",
   "notify.downBody": "{hasError, select, yes {{error}} other {Lỗi API}}{hasOp, select, yes { ở {op}} other {}} từ {since, time}.{autoCount, plural, =0 {} other { # luồng đã tự động chuyển dự phòng.}}{heldCount, plural, =0 {} other { # luồng đang chờ bạn quyết định.}}",
   "notify.heldTitle": "{campaign} đang chờ bạn quyết định",
-  "notify.heldBody": "{name} đang ngừng hoạt động. Phần của nó ({count, number} người nhận) đang bị tạm giữ; phần còn lại vẫn tiếp tục gửi.",
+  "notify.heldBody": "{name} đang gián đoạn. Phần của nó ({count, number} người nhận) đang bị tạm giữ; phần còn lại vẫn tiếp tục gửi.",
   "notify.silentTitle": "Webhook của {name} đã im lặng 6 giờ",
   "notify.silentBody": "Không có sự kiện gửi thành công, thư trả lại hay khiếu nại nào từ {since, time}. Tuyến này đang không được bảo vệ khỏi thư trả lại; phần Gửi hàng loạt của nó đang bị tạm giữ.",
 
