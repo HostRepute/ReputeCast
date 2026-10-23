@@ -232,7 +232,7 @@ The findings the server writes for each check (`internal/readiness`).
 | poll · survey · answer page | bình chọn · khảo sát · trang trả lời | |
 | risky · catch-all · disposable (addresses) | rủi ro · catch-all · dùng một lần | |
 | inactive (contacts) | không hoạt động | At risk and Sunset together |
-| paid members · trial · complimentary · gift (access) | thành viên trả phí · dùng thử · quyền tặng · quà tặng | |
+| paid members · trial · complimentary · gift (access) | hội viên trả phí · dùng thử · quyền truy cập miễn phí · quà tặng | as Earn has it |
 | Sponsor block · creative · booking · Sponsored (label) | khối Nhà tài trợ · mẫu quảng cáo · lượt đặt · Được tài trợ | |
 | Upgrade block · offer | khối Nâng cấp · ưu đãi | |
 | page copy · preference center | nội dung trang · trung tâm tùy chọn | |

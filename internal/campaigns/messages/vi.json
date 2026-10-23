@@ -8,7 +8,7 @@
   "note.autoPaused": "tự tạm dừng {count, plural, =1 {một lần} other {# lần}}",
   "note.autoPausedOn": "tự tạm dừng {count, plural, =1 {một lần} other {# lần}} vì {mailbox} {metric, select, deferral {hoãn nhận} complaint {khiếu nại} bounce {trả lại thư} other {{metricName}}}",
   "mailbox.other": "Khác",
-  "audience.paid": "{who, select, paid {Chỉ thành viên trả phí} other {Chỉ người đăng ký miễn phí}}",
+  "audience.paid": "{who, select, paid {Chỉ hội viên trả phí} other {Chỉ người đăng ký miễn phí}}",
 
   "problem.readOnlySending": "Chiến dịch này đang gửi. Nội dung không thể thay đổi giữa chừng; hãy nhân bản chiến dịch để dùng lại nội dung.",
   "problem.readOnlySent": "Chiến dịch này đã được gửi. Hãy nhân bản để dùng lại nội dung.",
