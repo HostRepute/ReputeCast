@@ -1011,6 +1011,7 @@ they are.
 | sending window | khung giờ gửi | as Automations' send window |
 | skip · skipped | bỏ qua · đã bỏ qua | |
 | SSRF guard | lớp bảo vệ SSRF | |
+| starter (a template to begin from) | mẫu khởi đầu | a starter's name ("Blog digest") stays as it is; what a new digest's starter writes into the email (subject, preheader) follows the workspace's content language |
 | starting point | điểm bắt đầu | |
 | turn on · pause (a digest) | bật · tạm dừng | |
 | weekdays (Monday to Friday) | Thứ Hai đến Thứ Sáu | short: "Th 2–Th 6", the region format's own abbreviations |
@@ -1072,6 +1073,7 @@ they are.
 | stop waiting | ngừng chờ | |
 | test (one run) | lần kiểm tra | "Tests · 12": "Lần kiểm tra · 12" |
 | test token | mã kiểm tra | what marks a copy as a test's |
+| vs (providers compared) | so với | "SES vs Postal": "SES so với Postal" |
 | warm-up cap | giới hạn khởi động | a warming-up provider's daily cap |
 | warm-up planner · warm-up plan | trình lập kế hoạch khởi động · kế hoạch khởi động | |
 
