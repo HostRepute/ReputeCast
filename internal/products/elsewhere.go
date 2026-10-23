@@ -53,7 +53,7 @@ func (s *Service) CampaignSales(ctx context.Context, ws *store.Workspace, campai
 	var one int
 	if err := s.Pool.QueryRow(ctx, `SELECT 1 FROM campaigns WHERE id = $1 AND workspace_id = $2`, campaignID, ws.ID).Scan(&one); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return out, api.NotFound("Campaign")
+			return out, notFound(ctx, "campaign")
 		}
 		return out, err
 	}

@@ -470,17 +470,18 @@ func (s *Service) consumeDispute(ctx context.Context, tx pgx.Tx, e earn.PaymentE
 				return earn.Consumed{}, true, err
 			}
 		}
-		lang := i18n.For(i18n.English)
-		body := word(lang, "notify.disputeBodyNoDue", map[string]any{"email": o.BuyerEmail, "order": orderNo(o.Number), "product": o.ProductName,
-			"amount": moneyText(o.AmountCents, o.Currency), "reason": reason})
+		// Kept as a message, so each member reads it in their own language,
+		// the due day in the workspace's zone.
+		args := i18n.Args{"email": o.BuyerEmail, "order": orderNo(o.Number), "product": o.ProductName, "amount": moneyText(o.AmountCents, o.Currency),
+			"reason": reason, "due": "none", "revoked": "no"}
 		if e.Payment.DisputeDueBy != nil {
-			body = word(lang, "notify.disputeBody", map[string]any{"email": o.BuyerEmail, "order": orderNo(o.Number), "product": o.ProductName,
-				"amount": moneyText(o.AmountCents, o.Currency), "reason": reason, "due": dayText(ws, *e.Payment.DisputeDueBy)})
+			args["due"], args["at"] = "yes", e.Payment.DisputeDueBy.In(location(ws))
 		}
 		if revoked {
-			body += " " + word(lang, "notify.disputeRevoked", nil)
+			args["revoked"] = "yes"
 		}
-		n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindOrderDisputed, Severity: "bad", Title: word(lang, "notify.disputeTitle", nil), Body: body,
+		n := notify.Notification{WorkspaceID: &ws.ID, Kind: notify.KindOrderDisputed, Severity: "bad",
+			TitleText: msgs.M("notify.disputeTitle").Keep(nil), BodyText: msgs.M("notify.disputeBody").Keep(args),
 			Link: "/w/" + ws.Slug + "/earn/products?order=" + o.ID.String(), Data: map[string]any{"order_id": o.ID.String(), "dispute": e.Payment.DisputeID}}
 		if err := notify.ToMembersWith(ctx, tx, ws.ID, authz.OrdersManage, n); err != nil {
 			return earn.Consumed{}, true, err

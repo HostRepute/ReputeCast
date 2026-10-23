@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"strings"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -53,6 +55,30 @@ func humanSize(n int64) string {
 	return fmt.Sprintf("%d bytes", n)
 }
 
+// humanSizeIn writes a file size in a language's region format: "4.2 MB"
+// in ReputeCast's own, "4,2 MB" in Vietnamese.
+func humanSizeIn(l i18n.Lang, n int64) string {
+	if standard(l) {
+		return humanSize(n)
+	}
+	one := func(v float64, unit string) string {
+		r := math.Round(v*10) / 10
+		if r == math.Trunc(r) {
+			return l.Region.Decimal(r, 0) + " " + unit
+		}
+		return l.Region.Decimal(r, 1) + " " + unit
+	}
+	switch {
+	case n >= 1<<30:
+		return one(float64(n)/(1<<30), "GB")
+	case n >= 1<<20:
+		return one(float64(n)/(1<<20), "MB")
+	case n >= 1<<10:
+		return l.Region.Int(n/(1<<10)) + " KB"
+	}
+	return word(l, "size.bytes", i18n.Args{"n": n})
+}
+
 // ownerCheck is the owner's file budget: the bytes its files hold now
 // (minus a file being replaced).
 func (s *Service) ownerBytes(ctx context.Context, wsID uuid.UUID, kind string, owner uuid.UUID, replaces string) (int64, error) {
@@ -72,14 +98,14 @@ func (s *Service) ownerBytes(ctx context.Context, wsID uuid.UUID, kind string, o
 func (s *Service) StartUpload(ctx context.Context, ws *store.Workspace, p *authz.Principal, kind string, owner uuid.UUID, in UploadStart) (UploadState, error) {
 	l := lang(ctx)
 	if in.Size > MaxFileBytes {
-		return UploadState{}, api.Invalid("body.size", word(l, "file.tooBig", map[string]any{"size": humanSize(in.Size)}))
+		return UploadState{}, api.Invalid("body.size", word(l, "file.tooBig", map[string]any{"size": humanSizeIn(l, in.Size)}))
 	}
 	have, err := s.ownerBytes(ctx, ws.ID, kind, owner, in.Replaces)
 	if err != nil {
 		return UploadState{}, err
 	}
 	if have+in.Size > MaxProductBytes {
-		return UploadState{}, api.Invalid("body.size", word(l, "file.productFull", map[string]any{"size": humanSize(have + in.Size)}))
+		return UploadState{}, api.Invalid("body.size", word(l, "file.productFull", map[string]any{"size": humanSizeIn(l, have+in.Size)}))
 	}
 	var uid uuid.UUID
 	if p != nil {
@@ -114,7 +140,7 @@ func (s *Service) WriteChunk(ctx context.Context, ws *store.Workspace, kind stri
 		return UploadState{}, api.Err(409, "upload_offset", word(lang(ctx), "file.offset", map[string]any{"offset": got})).WithMeta("received", got)
 	case errors.Is(err, errTooBig):
 		s.Files.abort(id)
-		return UploadState{}, api.Invalid("body", word(lang(ctx), "file.tooBig", map[string]any{"size": humanSize(offset + int64(len(data)))}))
+		return UploadState{}, api.Invalid("body", word(lang(ctx), "file.tooBig", map[string]any{"size": humanSizeIn(lang(ctx), offset+int64(len(data)))}))
 	case err != nil:
 		return UploadState{}, err
 	}
@@ -195,7 +221,7 @@ func (s *Service) FinishUpload(ctx context.Context, ws *store.Workspace, p *auth
 			}
 		}
 		if total+u.Size > MaxProductBytes {
-			return api.Invalid("body.size", word(l, "file.productFull", map[string]any{"size": humanSize(total + u.Size)}))
+			return api.Invalid("body.size", word(l, "file.productFull", map[string]any{"size": humanSizeIn(l, total+u.Size)}))
 		}
 		pos, err := q.DownloadFilesNextPosition(ctx, store.DownloadFilesNextPositionParams{OwnerKind: kind, OwnerID: owner})
 		if err != nil {
@@ -263,13 +289,13 @@ func ownerName(ctx context.Context, q *store.Queries, ws *store.Workspace, kind 
 	if kind == OwnerForm {
 		d, err := q.FormDownloadGet(ctx, store.FormDownloadGetParams{ID: owner, WorkspaceID: ws.ID})
 		if err != nil {
-			return "", api.MapError(err, "Form")
+			return "", mapErr(ctx, err, "form")
 		}
 		return d.Name, nil
 	}
 	pr, err := q.ProductLock(ctx, store.ProductLockParams{WorkspaceID: ws.ID, ID: owner})
 	if err != nil {
-		return "", api.MapError(err, "Product")
+		return "", mapErr(ctx, err, "product")
 	}
 	return pr.Name, nil
 }

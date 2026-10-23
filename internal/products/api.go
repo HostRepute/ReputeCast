@@ -220,7 +220,7 @@ func Register(h huma.API, s *Service) {
 			}
 			ws := api.WorkspaceFrom(ctx)
 			if _, err := s.Q.ProductGet(ctx, store.ProductGetParams{WorkspaceID: ws.ID, ID: pid(in.ProductPath)}); err != nil {
-				return nil, api.MapError(err, "Product")
+				return nil, mapErr(ctx, err, "product")
 			}
 			a, err := s.Media.Upload(ctx, ws, actor(api.PrincipalFrom(ctx)), f.Filename, data)
 			if err != nil {

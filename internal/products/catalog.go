@@ -604,7 +604,7 @@ type ProductDetail struct {
 func (s *Service) Detail(ctx context.Context, ws *store.Workspace, id uuid.UUID) (ProductDetail, error) {
 	p, err := s.Q.ProductGet(ctx, store.ProductGetParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
-		return ProductDetail{}, api.MapError(err, "Product")
+		return ProductDetail{}, mapErr(ctx, err, "product")
 	}
 	return s.detail(ctx, ws, p)
 }
@@ -1067,7 +1067,7 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		q := store.New(tx)
 		cur, err := q.ProductLock(ctx, store.ProductLockParams{WorkspaceID: ws.ID, ID: id})
 		if err != nil {
-			return api.MapError(err, "Product")
+			return mapErr(ctx, err, "product")
 		}
 		taken, err := q.ProductSlugTaken(ctx, store.ProductSlugTakenParams{WorkspaceID: ws.ID, ID: id, Slug: in.Slug})
 		if err != nil {
@@ -1115,7 +1115,7 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	l := lang(ctx)
 	cur, err := s.Q.ProductGet(ctx, store.ProductGetParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
-		return ProductDetail{}, api.MapError(err, "Product")
+		return ProductDetail{}, mapErr(ctx, err, "product")
 	}
 	det, err := s.detail(ctx, ws, cur)
 	if err != nil {
@@ -1153,7 +1153,7 @@ func (s *Service) Publish(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if _, err := q.ProductLock(ctx, store.ProductLockParams{WorkspaceID: ws.ID, ID: id}); err != nil {
-			return api.MapError(err, "Product")
+			return mapErr(ctx, err, "product")
 		}
 		if err := q.ProductPublish(ctx, store.ProductPublishParams{ID: id, Live: snap, LiveSlug: &draft.Slug, Currency: currency, Stripe: stripeJSON,
 			At: now, Actor: actor(p)}); err != nil {
@@ -1263,7 +1263,7 @@ func (s *Service) Archive(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		q := store.New(tx)
 		cur, err := q.ProductLock(ctx, store.ProductLockParams{WorkspaceID: ws.ID, ID: id})
 		if err != nil {
-			return api.MapError(err, "Product")
+			return mapErr(ctx, err, "product")
 		}
 		now := s.now()
 		switch {
@@ -1298,7 +1298,7 @@ func (s *Service) Delete(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		q := store.New(tx)
 		cur, err := q.ProductLock(ctx, store.ProductLockParams{WorkspaceID: ws.ID, ID: id})
 		if err != nil {
-			return api.MapError(err, "Product")
+			return mapErr(ctx, err, "product")
 		}
 		if cur.FirstPublishedAt != nil {
 			return api.Conflict(word(l, "product.deletePublished", nil))

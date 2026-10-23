@@ -15,7 +15,9 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"log/slog"
+	"net/http"
 	"regexp"
 	"strings"
 	"time"
@@ -24,6 +26,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audience"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -36,6 +39,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/transactional"
+	"github.com/jackc/pgx/v5"
 )
 
 //go:embed messages/*.json
@@ -272,6 +276,24 @@ func lang(ctx context.Context) i18n.Lang { return i18n.LangFrom(ctx) }
 
 // word is one of the package's server words in a language.
 func word(l i18n.Lang, key string, args i18n.Args) string { return msgs.M(key).Text(l, args) }
+
+// notFound is a 404 whose sentence is in the reader's language: what names
+// a notFound.* message ("product": "Product not found.").
+func notFound(ctx context.Context, what string) *api.Problem {
+	return api.Err(http.StatusNotFound, api.CodeNotFound, word(lang(ctx), "notFound."+what, nil))
+}
+
+// mapErr is api.MapError with its not-found sentence in the reader's
+// language.
+func mapErr(ctx context.Context, err error, what string) error {
+	if errors.Is(err, pgx.ErrNoRows) {
+		return notFound(ctx, what)
+	}
+	return api.MapError(err, msgs.M("notFound."+what).Source())
+}
+
+// standard reports whether a language writes ReputeCast's own formats.
+func standard(l i18n.Lang) bool { return l.Region == "" || l.Region == i18n.Standard }
 
 // slugRe is an address's shape: lowercase letters, digits and single hyphens.
 var slugRe = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
