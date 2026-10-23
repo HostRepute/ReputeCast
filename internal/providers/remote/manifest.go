@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 )
 
@@ -371,35 +372,39 @@ func (m Manifest) ProviderCapabilities() providers.Capabilities {
 }
 
 // Labels are the declared capabilities as the Adapters tab lists them
-// ("webhooks · suppression pull · batch 50").
-func (m Manifest) Labels() []string {
+// ("webhooks · suppression pull · batch 50"), in English.
+func (m Manifest) Labels() []string { return m.LabelsIn(i18n.Default) }
+
+// LabelsIn are the declared capabilities in the reader's language.
+func (m Manifest) LabelsIn(l i18n.Lang) []string {
 	c := m.Capabilities
 	out := []string{}
+	add := func(msg i18n.Msg, args i18n.Args) { out = append(out, msg.Text(l, args)) }
 	if c.Webhooks {
-		out = append(out, "webhooks")
+		add(mLabelWebhooks, nil)
 	}
 	switch c.SuppressionSync {
 	case "pull":
-		out = append(out, "suppression pull")
+		add(mLabelSuppressionPull, nil)
 	case "push":
-		out = append(out, "suppression push")
+		add(mLabelSuppressionPush, nil)
 	case "two-way":
-		out = append(out, "suppression sync")
+		add(mLabelSuppressionSync, nil)
 	}
 	if c.Batch > 1 {
-		out = append(out, "batch "+strconv.Itoa(c.Batch))
+		add(mLabelBatch, i18n.Args{"n": strconv.Itoa(c.Batch)})
 	}
 	switch c.DomainSetup {
 	case "full":
-		out = append(out, "domain setup via API")
+		add(mLabelDomainAPI, nil)
 	case "dkim_only":
-		out = append(out, "DKIM via API")
+		add(mLabelDomainDKIM, nil)
 	}
 	switch c.QuotaDiscovery {
 	case "quota":
-		out = append(out, "quota discovery")
+		add(mLabelQuota, nil)
 	case "rate":
-		out = append(out, "quota & rate discovery")
+		add(mLabelQuotaRate, nil)
 	}
 	return out
 }
@@ -419,18 +424,20 @@ func (m Manifest) ProviderTerms() []providers.Terms {
 	if m.Terms.BulkMarketing == providers.BulkForbidden {
 		streams = []providers.Stream{providers.StreamAutomation, providers.StreamSystem}
 	}
-	note := m.Terms.Note
-	if note == "" {
+	// The manifest's own note is its author's English; ReputeCast's words
+	// when it has none carry their message.
+	t := providers.Terms{Bulk: m.Terms.BulkMarketing, Note: m.Terms.Note, Streams: streams}
+	if t.Note == "" {
 		switch m.Terms.BulkMarketing {
 		case providers.BulkAllowed:
-			note = "The adapter's manifest says the provider's terms allow bulk marketing to opted-in lists."
+			t.Note, t.NoteText = say(mTermsAllowed, nil)
 		case providers.BulkForbidden:
-			note = "The adapter's manifest says the provider's terms forbid bulk marketing: use it for Automations and System mail."
+			t.Note, t.NoteText = say(mTermsForbidden, nil)
 		default:
-			note = "Self-hosted: your own policy applies."
+			t.Note, t.NoteText = say(mTermsYourPolicy, nil)
 		}
 	}
-	return []providers.Terms{{Bulk: m.Terms.BulkMarketing, Note: note, Streams: streams}}
+	return []providers.Terms{t}
 }
 
 // Descriptor describes the adapter for the catalog; newFn builds a provider.
@@ -444,28 +451,29 @@ func (m Manifest) Descriptor(newFn func(providers.Config) (providers.Provider, e
 		Maintainer:   m.Maintainer,
 		Fields:       m.Fields(),
 		Terms:        m.ProviderTerms(),
-		Events:       "None",
-		DomainSetup:  "Manual DNS",
 		New:          newFn,
 	}
+	// The Adapters tab's words are ReputeCast's: they carry their messages.
+	d.Events, d.EventsText = say(mEventsNone, nil)
 	if m.Capabilities.Webhooks {
-		d.Events = "Webhooks"
+		d.Events, d.EventsText = say(mEventsWebhooks, nil)
 	}
+	d.DomainSetup, d.DomainSetupText = say(mDomainManual, nil)
 	switch m.Capabilities.DomainSetup {
 	case "full":
-		d.DomainSetup = "API"
+		d.DomainSetup, d.DomainSetupText = say(mDomainAPI, nil)
 	case "dkim_only":
-		d.DomainSetup = "DKIM via API"
+		d.DomainSetup, d.DomainSetupText = say(mDomainDKIM, nil)
 	}
 	switch m.Capabilities.SuppressionSync {
 	case "pull":
-		d.SuppressionMode = "Pull only"
+		d.SuppressionMode, d.SuppressionModeText = say(mSuppressionPull, nil)
 	case "push":
-		d.SuppressionMode = "Push only"
+		d.SuppressionMode, d.SuppressionModeText = say(mSuppressionPush, nil)
 	case "two-way":
-		d.SuppressionMode = "Two-way"
+		d.SuppressionMode, d.SuppressionModeText = say(mSuppressionTwoWay, nil)
 	default:
-		d.SuppressionMode = "Local only"
+		d.SuppressionMode, d.SuppressionModeText = say(mSuppressionLocal, nil)
 	}
 	return d
 }

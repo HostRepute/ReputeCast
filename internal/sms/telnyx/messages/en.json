@@ -1,0 +1,25 @@
+{
+  "summary": {
+    "message": "Pay as you go · its own carrier network in the US",
+    "note": "the catalog card's line"
+  },
+  "badge.opt_out_sync.note": {
+    "message": "read only",
+    "note": "Opt-out sync · read only"
+  },
+  "badge.pricing.note": {
+    "message": "each text's cost",
+    "note": "Telnyx reports what each text cost: Pricing · each text's cost"
+  },
+  "field.api_key.label": "API key",
+  "field.public_key.label": "Public key",
+  "field.public_key.help": {
+    "message": "Portal › Keys & Credentials › Public key. ReputeCast checks every webhook's signature with it.",
+    "note": "Telnyx's menu names stay as Telnyx writes them"
+  },
+  "field.messaging_profile_id.label": {
+    "message": "Messaging profile ID",
+    "note": "Telnyx's own name for the field"
+  },
+  "field.messaging_profile_id.help": "Leave empty and ReputeCast creates a messaging profile for its webhooks."
+}

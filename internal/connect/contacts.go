@@ -3,7 +3,6 @@ package connect
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"time"
 
@@ -12,10 +11,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/domains"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
@@ -54,23 +53,45 @@ type ConnectContacts struct {
 	Pull      bool     `json:"pull"`
 }
 
-var importSources = []ConnectImportSource{
-	{Key: "brevo", Name: "Brevo", Detail: "API key · lists, attributes, blocklist", Badge: "Keeps consent", Tone: "ok"},
-	{Key: "mailchimp", Name: "Mailchimp", Detail: "API key · audiences, tags, merge fields", Badge: "Keeps consent", Tone: "ok"},
-	{Key: "mailerlite", Name: "MailerLite", Detail: "API key · groups, fields", Badge: "Keeps consent", Tone: "ok"},
-	{Key: "listmonk", Name: "listmonk", Detail: "API or database · lists, attribs", Badge: "Keeps consent", Tone: "ok"},
-	{Key: "keila", Name: "Keila", Detail: "API key · segments, data", Badge: "Keeps consent", Tone: "ok"},
-	{Key: "csv", Name: "CSV or XLSX", Detail: "Map columns, choose a consent column", Badge: "You confirm consent", Tone: "neutral"},
+// importSource is an importer source of step 6: its name (empty: a
+// message), what an import brings, and whether it keeps consent.
+type importSource struct {
+	Key, Name string
+	Detail    i18n.Msg
+	Consent   bool
+}
+
+var importSources = []importSource{
+	{Key: "brevo", Name: "Brevo", Detail: msgs.M("source.brevo"), Consent: true},
+	{Key: "mailchimp", Name: "Mailchimp", Detail: msgs.M("source.mailchimp"), Consent: true},
+	{Key: "mailerlite", Name: "MailerLite", Detail: msgs.M("source.mailerlite"), Consent: true},
+	{Key: "listmonk", Name: "listmonk", Detail: msgs.M("source.listmonk"), Consent: true},
+	{Key: "keila", Name: "Keila", Detail: msgs.M("source.keila"), Consent: true},
+	{Key: "csv", Detail: msgs.M("source.csv")},
+}
+
+// importSourcesIn lists the importer sources for a reader.
+func importSourcesIn(l i18n.Lang) []ConnectImportSource {
+	out := make([]ConnectImportSource, 0, len(importSources))
+	for _, src := range importSources {
+		s := ConnectImportSource{Key: src.Key, Name: sourceName(l, src.Key), Detail: src.Detail.Text(l, nil), Badge: mSourceYouConfirm.Text(l, nil), Tone: "neutral"}
+		if src.Consent {
+			s.Badge, s.Tone = mSourceKeepsConsent.Text(l, nil), "ok"
+		}
+		out = append(out, s)
+	}
+	return out
 }
 
 // suggestedLists are the lists "Start empty" proposes from the workspace
-// name: its newsletter, product updates and a beta program.
-func suggestedLists(wsName string) []string {
-	first := "Weekly Digest"
+// name: its newsletter, product updates and a beta program, named in the
+// language of whoever creates them.
+func suggestedLists(l i18n.Lang, wsName string) []string {
+	first := mListsWeeklyDigest.Text(l, nil)
 	if !strings.Contains(strings.ToLower(wsName), "newsletter") {
-		first = strings.TrimSpace(wsName) + " Newsletter"
+		first = mListsNewsletter.Text(l, i18n.Args{"workspace": strings.TrimSpace(wsName)})
 	}
-	return []string{first, "Product Updates", "Beta Program"}
+	return []string{first, mListsProductUpdates.Text(l, nil), mListsBeta.Text(l, nil)}
 }
 
 // Contacts returns step 6: importer sources, the provider's suppression
@@ -84,13 +105,14 @@ func (s *Service) Contacts(ctx context.Context, ws *store.Workspace, rawID strin
 	if err != nil {
 		return ConnectContacts{}, err
 	}
-	d, err := descriptor(st.Adapter)
+	d, err := descriptor(ctx, st.Adapter)
 	if err != nil {
 		return ConnectContacts{}, err
 	}
-	c := copyFor(d)
+	l := i18n.LangFrom(ctx)
+	c := copyFor(l, d)
 	state := decodeState(st.State)
-	out := ConnectContacts{Sources: importSources, Lists: []string{}, Suggested: suggestedLists(ws.Name), Pull: true}
+	out := ConnectContacts{Sources: importSourcesIn(l), Lists: []string{}, Suggested: suggestedLists(l, ws.Name), Pull: true}
 	if lists, err := s.Q.ConnectListNames(ctx, ws.ID); err == nil {
 		out.Lists = lists
 	}
@@ -112,7 +134,8 @@ func (s *Service) Contacts(ctx context.Context, ws *store.Workspace, rawID strin
 			return nil
 		})
 	}
-	out.Suppressions = ConnectSuppressions{Available: prev.Available, Provider: p.Name, Short: c.Short, Total: prev.Total, Bounces: prev.Bounces, Complaints: prev.Complaints, Error: prev.Error}
+	out.Suppressions = ConnectSuppressions{Available: prev.Available, Provider: p.Name, Short: c.Short, Total: prev.Total, Bounces: prev.Bounces, Complaints: prev.Complaints,
+		Error: textIn(prev.Error, prev.ErrorText, l)}
 	return out, nil
 }
 
@@ -142,7 +165,7 @@ func (s *Service) previewSuppressions(ctx context.Context, p store.Provider) Sup
 	list, err := syncer.ListSuppressions(cctx, time.Time{})
 	cancel()
 	if err != nil {
-		out.Error = callMessage(err)
+		out.Error, out.ErrorText = callMessage(err), callText(err)
 		return out
 	}
 	for _, sp := range list {
@@ -180,7 +203,7 @@ func (s *Service) Finish(ctx context.Context, ws *store.Workspace, rawID string,
 		return ConnectSetup{}, err
 	}
 	if cur.Status == "abandoned" {
-		return ConnectSetup{}, api.Conflict("This setup was cancelled.")
+		return ConnectSetup{}, conflict(ctx, mProblemCancelledShort, nil)
 	}
 	lists, err := s.Q.ConnectListNames(ctx, ws.ID)
 	if err != nil {
@@ -192,7 +215,7 @@ func (s *Service) Finish(ctx context.Context, ws *store.Workspace, rawID string,
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		if in.StartEmpty && len(lists) == 0 {
-			for _, name := range suggestedLists(ws.Name) {
+			for _, name := range suggestedLists(i18n.LangFrom(ctx), ws.Name) {
 				id := newID()
 				if err := q.ConnectCreateList(ctx, store.ConnectCreateListParams{ID: id, WorkspaceID: ws.ID, Name: name, CreatedAt: now}); err != nil {
 					return err
@@ -333,8 +356,13 @@ type ConnectDone struct {
 }
 
 // doneView builds the summary from the setup's state.
-func (s *Service) doneView(ctx context.Context, ws *store.Workspace, st store.ProviderSetup, d providers.Descriptor, c adapterCopy, stt State, prov *store.Provider) ConnectDone {
-	out := ConnectDone{Title: c.Display + " is connected", Rows: []ConnectDoneRow{}}
+func (s *Service) doneView(ctx context.Context, l i18n.Lang, ws *store.Workspace, st store.ProviderSetup, d providers.Descriptor, c adapterCopy, stt State,
+	prov *store.Provider) ConnectDone {
+	out := ConnectDone{Title: mDoneTitle.Text(l, i18n.Args{"name": c.Display}), Rows: []ConnectDoneRow{}}
+	// A row is its bold lead, then its text after a separator (": " or " ").
+	row := func(status string, lead i18n.Msg, leadArgs i18n.Args, sep string, text i18n.Msg, args i18n.Args) ConnectDoneRow {
+		return ConnectDoneRow{Status: status, Lead: lead.Text(l, leadArgs), Text: sep + text.Text(l, args)}
+	}
 	if st.FinishedAt != nil {
 		out.Minutes = max(1, int(st.FinishedAt.Sub(st.CreatedAt).Round(time.Minute).Minutes()))
 	}
@@ -349,30 +377,24 @@ func (s *Service) doneView(ctx context.Context, ws *store.Workspace, st store.Pr
 	loc := state.Location(ws.Timezone)
 	switch flowOf(d) {
 	case "ses":
-		via := "IAM access keys"
+		args := i18n.Args{"via": "keys", "region": cn.Region, "hasAccount": yesNo(cn.AccountID != ""), "account": cn.AccountID, "quota": "none"}
 		if cn.Access == "role" {
 			role := cn.RoleARN
 			if i := strings.LastIndex(role, "/"); i >= 0 {
 				role = role[i+1:]
 			}
-			via = "CloudFormation role `" + role + "`"
+			args["via"], args["role"] = "role", role
 		}
-		region := cn.Region
-		quota := ""
 		for _, r := range cn.Regions {
-			if r.Region == region && r.Production {
-				quota = fmt.Sprintf(" (production, %s per day, %s per second)", thousands(int(r.Max24h)), trimFloat(r.MaxRate))
+			if r.Region == cn.Region && r.Production {
+				args["quota"], args["max"], args["rate"] = "production", r.Max24h, r.MaxRate
 			}
 		}
-		if quota == "" && strings.Contains(cn.Summary, "sandbox") {
-			quota = " (sandbox)"
+		if args["quota"] == "none" && strings.Contains(cn.Summary, "sandbox") {
+			args["quota"] = "sandbox"
 		}
-		acct := ""
-		if cn.AccountID != "" {
-			acct = ", account " + cn.AccountID
-		}
-		out.Rows = append(out.Rows, ConnectDoneRow{Status: "done", Lead: "AWS access", Text: " via " + via + acct + ", region " + region + quota})
-		events := ConnectDoneRow{Status: "pending", Lead: "Events"}
+		out.Rows = append(out.Rows, row("done", mDoneAWSAccess, nil, " ", mDoneAWSAccessText, args))
+		events := ConnectDoneRow{Status: "pending", Lead: mDoneEvents.Text(l, nil)}
 		topic := stringOf(cfg["topic_arn"])
 		if arns, ok := cfg["topic_arns"].([]any); ok && topic == "" && len(arns) > 0 {
 			topic = stringOf(arns[len(arns)-1])
@@ -382,15 +404,16 @@ func (s *Service) doneView(ctx context.Context, ws *store.Workspace, st store.Pr
 		}
 		if topic != "" && prov != nil {
 			events.Status = "done"
-			events.Text = ": SNS topic `" + topic + "` subscribed to `" + s.webhookURL(*prov, "") + "`"
+			args := i18n.Args{"topic": topic, "url": s.webhookURL(*prov, ""), "hasFirst": "no"}
 			if prov.LastEventAt != nil {
-				events.Text += "; first delivery event received at " + prov.LastEventAt.In(loc).Format("15:04")
+				args["hasFirst"], args["at"] = "yes", prov.LastEventAt.In(loc)
 			}
 			if t := s.firstDelivery(ctx, stt); t != nil {
-				events.Text = ": SNS topic `" + topic + "` subscribed to `" + s.webhookURL(*prov, "") + "`; first delivery event received at " + t.In(loc).Format("15:04")
+				args["hasFirst"], args["at"] = "yes", t.In(loc)
 			}
+			events.Text = ": " + mDoneEventsSNS.Text(l, args)
 		} else {
-			events.Text = ": provisioning didn't finish; retry it from the connection step"
+			events.Text = ": " + mDoneEventsUnfinished.Text(l, nil)
 		}
 		out.Rows = append(out.Rows, events)
 		sets := []string{}
@@ -404,55 +427,52 @@ func (s *Service) doneView(ctx context.Context, ws *store.Workspace, st store.Pr
 			sets = append(sets, "`"+v+"`")
 		}
 		if len(sets) > 0 {
-			out.Rows = append(out.Rows, ConnectDoneRow{Status: "done", Lead: "Configuration sets", Text: " " + strings.Join(sets, ", ") + ", provider-side tracking off"})
+			out.Rows = append(out.Rows, row("done", mDoneConfigSets, nil, " ", mDoneConfigSetsText, i18n.Args{"sets": strings.Join(sets, ", ")}))
 		}
 	case "smtp":
-		text := "`" + stringOf(cfg["host"]) + "`"
+		args := i18n.Args{"host": stringOf(cfg["host"]), "hasPort": "no", "tls": stringOf(cfg["tls"]), "hasRate": "no", "hasCap": "no"}
 		if port := stringOf(cfg["port"]); port != "" {
-			text += ":" + port
-		}
-		tls := map[string]string{"starttls": "STARTTLS", "tls": "implicit TLS", "none": "no TLS"}[stringOf(cfg["tls"])]
-		if tls != "" {
-			text += " with " + tls
+			args["hasPort"], args["port"] = "yes", port
 		}
 		if r := stringOf(cfg["max_rate"]); r != "" {
-			text += ", " + r
+			args["hasRate"], args["rate"] = "yes", r
 		}
 		if dc := stringOf(cfg["daily_cap"]); dc != "" {
-			text += ", " + dc + " per day"
+			args["hasCap"], args["cap"] = "yes", dc
 		}
-		out.Rows = append(out.Rows, ConnectDoneRow{Status: "done", Lead: "SMTP server", Text: " " + text})
-		mb := ConnectDoneRow{Status: "pending", Lead: "Bounces"}
+		out.Rows = append(out.Rows, row("done", mDoneSMTP, nil, " ", mDoneSMTPText, args))
+		mb := row("pending", mDoneBounces, nil, ": ", mDoneNoBounceMailbox, nil)
 		if m, ok := cfg["bounce_mailbox"].(map[string]any); ok && cn.Mailbox != nil && cn.Mailbox.OK {
-			mb.Status = "done"
-			mb.Text = ": bounce mailbox `" + stringOf(m["address"]) + "` over " + strings.ToUpper(stringOf(m["protocol"]))
-		} else {
-			mb.Text = ": no bounce mailbox yet"
+			mb = row("done", mDoneBounces, nil, ": ", mDoneBouncesText, i18n.Args{"address": stringOf(m["address"]), "protocol": strings.ToUpper(stringOf(m["protocol"]))})
 		}
 		out.Rows = append(out.Rows, mb)
 	default:
-		out.Rows = append(out.Rows, ConnectDoneRow{Status: "done", Lead: d.Name + " access", Text: " checked with a read-only call" + accountSuffix(cn)})
-		ev := ConnectDoneRow{Status: "pending", Lead: "Events"}
+		args := i18n.Args{"hasAccount": "no"}
+		if a := accountWords(l, cn); a != "" {
+			args["hasAccount"], args["account"] = "yes", a
+		}
+		out.Rows = append(out.Rows, row("done", mDoneAccess, i18n.Args{"name": d.Name}, " ", mDoneAccessText, args))
+		ev := ConnectDoneRow{Status: "pending", Lead: mDoneEvents.Text(l, nil)}
 		if w := cn.Webhook; w != nil {
 			switch {
 			case w.Mode == "polling":
-				ev.Status, ev.Text = "done", ": polling "+d.Name+"'s events API every minute"
+				ev.Status, ev.Text = "done", ": "+mDoneEventsPolling.Text(l, i18n.Args{"name": d.Name})
 			case w.Registration != nil && w.Registration.Status == "done":
-				ev.Status, ev.Text = "done", ": webhooks registered at `"+w.URL+"`"
+				ev.Status, ev.Text = "done", ": "+mDoneEventsRegistered.Text(l, i18n.Args{"url": w.URL})
 			case w.Registration != nil && w.Registration.Status == "manual":
-				ev.Text = ": add `" + w.URL + "` as a webhook in " + d.Name
+				ev.Text = ": " + mDoneEventsManual.Text(l, i18n.Args{"url": w.URL, "name": d.Name})
 			default:
-				ev.Text = ": the webhook endpoint wasn't reachable yet"
+				ev.Text = ": " + mDoneEventsUnreachable.Text(l, nil)
 			}
 		}
 		out.Rows = append(out.Rows, ev)
 	}
-	dom := ConnectDoneRow{Status: "skipped", Lead: "Domain", Text: ": skipped; verify it later in Settings › Senders"}
+	dom := row("skipped", mDoneDomain, nil, ": ", mDoneDomainSkipped, nil)
 	if stt.Domain != nil && !stt.Domain.Skipped && stt.Domain.DomainID != "" && prov != nil {
-		dom = s.domainRow(ctx, stt.Domain, *prov)
+		dom = s.domainRow(ctx, l, stt.Domain, *prov)
 	}
 	out.Rows = append(out.Rows, dom)
-	str := ConnectDoneRow{Status: "skipped", Lead: "Streams", Text: ": not routed yet; " + c.Short + " carries nothing until a route uses it"}
+	str := row("skipped", mDoneStreams, nil, ": ", mDoneStreamsNone, i18n.Args{"short": c.Short})
 	if stt.Streams != nil && stt.Streams.Saved {
 		groups := map[string][]string{}
 		order := []string{}
@@ -468,15 +488,14 @@ func (s *Service) doneView(ctx context.Context, ws *store.Workspace, st store.Pr
 			if _, ok := groups[role]; !ok {
 				order = append(order, role)
 			}
-			groups[role] = append(groups[role], streamName(k))
+			groups[role] = append(groups[role], streamName(l, k))
 		}
 		if len(order) > 0 {
 			parts := []string{}
 			for _, r := range order {
-				word := map[string]string{"primary": "primary for", "split": "a weighted share of", "fallback": "the fallback for"}[r]
-				parts = append(parts, word+" "+joinAnd(groups[r]))
+				parts = append(parts, mDoneStreamsRole.Text(l, i18n.Args{"role": r, "streams": i18n.AndList(l.Locale, groups[r])}))
 			}
-			str = ConnectDoneRow{Status: "done", Lead: "Streams", Text: ": " + c.Short + " is " + strings.Join(parts, "; ")}
+			str = row("done", mDoneStreams, nil, ": ", mDoneStreamsText, i18n.Args{"short": c.Short, "roles": strings.Join(parts, "; ")})
 		}
 	}
 	out.Rows = append(out.Rows, str)
@@ -486,21 +505,24 @@ func (s *Service) doneView(ctx context.Context, ws *store.Workspace, st store.Pr
 			if cs.Imported != nil && int(*cs.Imported) > 0 {
 				n = int(*cs.Imported)
 			}
-			out.Rows = append(out.Rows, ConnectDoneRow{Status: "done", Lead: "Suppressions",
-				Text: fmt.Sprintf(": %s addresses imported from the %s account-level list into the shared suppression list", thousands(n), c.Short)})
+			out.Rows = append(out.Rows, row("done", mDoneSuppressions, nil, ": ", mDoneSuppressionsImported, i18n.Args{"count": n, "short": c.Short}))
 		} else {
-			out.Rows = append(out.Rows, ConnectDoneRow{Status: "skipped", Lead: "Suppressions", Text: ": not imported; the shared list is pushed to " + c.Short})
+			out.Rows = append(out.Rows, row("skipped", mDoneSuppressions, nil, ": ", mDoneSuppressionsPushed, i18n.Args{"short": c.Short}))
 		}
 	}
 	if cs := stt.Contacts; cs != nil {
+		var r ConnectDoneRow
 		switch {
 		case cs.Choice == "import":
-			out.Rows = append(out.Rows, ConnectDoneRow{Status: "done", Lead: "Contacts", Text: ": import from " + sourceName(cs.Source) + " started."})
+			r = row("done", mDoneContacts, nil, ": ", mDoneContactsImport, i18n.Args{"source": sourceName(l, cs.Source)})
 		case len(cs.ListsCreated) > 0:
-			out.Rows = append(out.Rows, ConnectDoneRow{Status: "skipped", Lead: "Contacts", Text: fmt.Sprintf(": started empty with %s lists.", numberWord(len(cs.ListsCreated))), ImportLink: true})
+			r = row("skipped", mDoneContacts, nil, ": ", mDoneContactsEmpty, i18n.Args{"count": len(cs.ListsCreated)})
+			r.ImportLink = true
 		default:
-			out.Rows = append(out.Rows, ConnectDoneRow{Status: "skipped", Lead: "Contacts", Text: ": kept the workspace's lists; nothing imported.", ImportLink: true})
+			r = row("skipped", mDoneContacts, nil, ": ", mDoneContactsKept, nil)
+			r.ImportLink = true
 		}
+		out.Rows = append(out.Rows, r)
 	}
 	var connected bool
 	_ = s.Pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM hostrepute_connections WHERE workspace_id = $1 AND status = 'connected')`, ws.ID).Scan(&connected)
@@ -508,28 +530,29 @@ func (s *Service) doneView(ctx context.Context, ws *store.Workspace, st store.Pr
 	return out
 }
 
-func accountSuffix(cn Connection) string {
-	if cn.Account == "" {
+// accountWords is the account's standing inside a sentence ("production ·
+// no enforcement").
+func accountWords(l i18n.Lang, cn Connection) string {
+	a := textIn(cn.Account, cn.AccountText, l)
+	switch {
+	case a == "":
 		return ""
+	case english(l):
+		return strings.ToLower(a[:1]) + a[1:]
 	}
-	return "; " + strings.ToLower(cn.Account[:1]) + cn.Account[1:]
+	return lowerFirst(a)
 }
 
-func sourceName(key string) string {
+func sourceName(l i18n.Lang, key string) string {
 	for _, s := range importSources {
 		if s.Key == key {
+			if s.Name == "" {
+				return mSourceCSVName.Text(l, nil)
+			}
 			return s.Name
 		}
 	}
 	return key
-}
-
-func numberWord(n int) string {
-	words := []string{"no", "one", "two", "three", "four", "five", "six"}
-	if n < len(words) {
-		return words[n]
-	}
-	return fmt.Sprint(n)
 }
 
 // firstDelivery is when the test message's delivery event arrived.
@@ -555,14 +578,15 @@ func (s *Service) firstDelivery(ctx context.Context, stt State) *time.Time {
 }
 
 // domainRow summarizes the domain records of the provider.
-func (s *Service) domainRow(ctx context.Context, ds *DomainStep, p store.Provider) ConnectDoneRow {
+func (s *Service) domainRow(ctx context.Context, l i18n.Lang, ds *DomainStep, p store.Provider) ConnectDoneRow {
+	lead := mDoneDomain.Text(l, nil)
 	id, err := uuid.Parse(ds.DomainID)
 	if err != nil {
-		return ConnectDoneRow{Status: "skipped", Lead: "Domain", Text: " " + ds.Name}
+		return ConnectDoneRow{Status: "skipped", Lead: lead, Text: " " + ds.Name}
 	}
 	d, err := s.Q.DomGetAny(ctx, id)
 	if err != nil {
-		return ConnectDoneRow{Status: "skipped", Lead: "Domain", Text: " " + ds.Name}
+		return ConnectDoneRow{Status: "skipped", Lead: lead, Text: " " + ds.Name}
 	}
 	recs := domains.DecodeRecords(d.DnsRecords)
 	var det domains.AuthDetail
@@ -586,30 +610,13 @@ func (s *Service) domainRow(ctx context.Context, ds *DomainStep, p store.Provide
 			mailFrom = r.Name
 		}
 	}
-	parts := []string{}
-	if dkimN > 0 {
-		word := map[string]string{"CNAME": "CNAMEs", "TXT": "TXT records"}[dkimType]
-		if dkimN == 1 {
-			word = map[string]string{"CNAME": "CNAME", "TXT": "TXT record"}[dkimType]
-		}
-		parts = append(parts, fmt.Sprintf("DKIM (%d %s)", dkimN, word))
-	}
-	if mailFrom != "" {
-		parts = append(parts, "MAIL FROM "+mailFrom)
-	}
-	policy := det.DMARCPolicy
-	tail := "SPF and DMARC"
-	if policy != "" {
-		tail += " p=" + policy
-	}
-	parts = append(parts, tail)
-	text := " " + d.Domain + ": " + strings.Join(parts, ", ")
+	// "news.acme.io: DKIM (3 CNAMEs), MAIL FROM bounce.news.acme.io, SPF and
+	// DMARC p=quarantine all verified"
+	args := i18n.Args{"domain": d.Domain, "hasDKIM": yesNo(dkimN > 0), "dkim": dkimN, "type": dkimType, "hasMailFrom": yesNo(mailFrom != ""), "mailFrom": mailFrom,
+		"hasPolicy": yesNo(det.DMARCPolicy != ""), "policy": det.DMARCPolicy, "verifiedAll": yesNo(verified == total), "verified": verified, "total": total}
 	status := "done"
-	if verified == total {
-		text += " all verified"
-	} else {
+	if verified != total {
 		status = "pending"
-		text += fmt.Sprintf(", %d of %d records verified so far", verified, total)
 	}
-	return ConnectDoneRow{Status: status, Lead: "Domain", Text: text}
+	return ConnectDoneRow{Status: status, Lead: lead, Text: " " + mDoneDomainText.Text(l, args)}
 }

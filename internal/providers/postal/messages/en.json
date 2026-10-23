@@ -1,0 +1,16 @@
+{
+  "pricing": { "message": "self-hosted", "note": "Postal's pricing model, on a capability chip: Pricing · self-hosted (you pay for your own server)" },
+  "terms.0.variant": { "message": "self-hosted", "note": "the kind of account the terms are for: a server you run" },
+  "terms.0.note": { "message": "You run the server, so your hosting provider's acceptable-use policy applies instead.", "note": "what the terms allow, on Routing" },
+  "events": { "message": "Webhooks", "note": "Sending providers › Adapters: how events come back" },
+  "domainSetup": { "message": "Manual DNS", "note": "Sending providers › Adapters: the domain's DNS records are added by hand" },
+  "suppressionMode": { "message": "Local only", "note": "Sending providers › Adapters: suppressions are kept in ReputeCast only" },
+  "field.server_url.label": "Server URL",
+  "field.server_url.help": "The address of your Postal web interface, e.g. https://mta.acme.io.",
+  "field.api_key.label": "API key",
+  "field.api_key.help": { "message": "Postal › your mail server › Credentials › API.", "note": "where to find it in Postal; the menu names are Postal's" },
+
+  "account": { "message": "Postal{hasVersion, select, yes { {version}} other {}} · reachable", "note": "the server's standing on the provider card; version: Postal's version (3.3.4)" },
+  "error.badKey": "The API key was not accepted.",
+  "error.suspended": "The Postal mail server is suspended."
+}

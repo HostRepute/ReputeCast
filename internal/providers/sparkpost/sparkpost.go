@@ -85,28 +85,23 @@ func Descriptor() providers.Descriptor {
 			DomainAPI:       "full",
 			SuppressionSync: true,
 			BatchSize:       1,
-			DedicatedIPs:    "paid plans above Starter, per IP per month",
 			Sandbox:         "mode",
 			QuotaDiscovery:  true,
-			Pricing:         "plan, set by your SparkPost contract",
 			RemovesWebhook:  true,
+			// Pricing, DedicatedIPs and every other text people read (the
+			// terms' note, the Adapters tab's words, the fields' labels and
+			// hints) are in messages/en.json: WithMessages fills them.
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",
-		Terms: []providers.Terms{{Bulk: providers.BulkAllowed,
-			Note:    "Permission-based lists only, with a working unsubscribe; no purchased or rented lists. Existing SparkPost accounts; new Bird accounts use Bird Email, a different API.",
-			Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
-		Events:          "Webhooks",
-		DomainSetup:     "API",
-		SuppressionMode: "Two-way",
+		Terms:      []providers.Terms{{Bulk: providers.BulkAllowed, Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
 		Fields: []providers.Field{
-			{Key: "api_key", Label: "API key", Secret: true, Required: true,
-				Help: "SparkPost › Configuration › API Keys, with Transmissions, Webhooks, Sending Domains, Suppression Lists, Account, Metrics and Message Events permissions."},
-			{Key: "region", Label: "Region", Required: true, Options: []string{"us", "eu"}, Help: "US (app.sparkpost.com) or EU (app.eu.sparkpost.com) account."},
-			{Key: "ip_pool", Label: "IP pool", Help: "Optional. Sends through this pool of dedicated IPs."},
+			{Key: "api_key", Secret: true, Required: true},
+			{Key: "region", Required: true, Options: []string{"us", "eu"}},
+			{Key: "ip_pool"},
 		},
 		New: New,
-	}
+	}.WithMessages(msgs)
 }
 
 // Provider talks to one SparkPost account.

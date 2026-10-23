@@ -1,0 +1,26 @@
+{
+  "pricing": { "message": "plan, free up to 3,000 per month, then from $20 per month", "note": "Resend's pricing model, on a capability chip: Pricing · …" },
+  "pricingPlan": { "message": "plan, {n, number} per month", "note": "the pricing of a connection with its plan's allowance; n: emails per month" },
+  "dedicatedIps": { "message": "Scale plan, $30 per month", "note": "when Resend offers dedicated IPs; Scale is Resend's plan name" },
+  "terms.0.note": { "message": "Opted-in recipients only. Bulk mail needs a visible unsubscribe link and one-click List-Unsubscribe headers, which ReputeCast adds; Resend may close accounts above 0.08% complaints or 4% bounces.", "note": "what Resend's terms allow, on Routing" },
+  "events": { "message": "Webhooks", "note": "Sending providers › Adapters: how events come back" },
+  "domainSetup": { "message": "API", "note": "Sending providers › Adapters: how a sending domain is set up" },
+  "suppressionMode": { "message": "Two-way", "note": "Sending providers › Adapters: the suppression sync" },
+  "field.api_key.label": "API key",
+  "field.api_key.help": { "message": "Resend › API Keys. A Full access key lets ReputeCast register webhooks, set up domains and sync suppressions; a Sending access key can only send.", "note": "Full access and Sending access are Resend's names for its kinds of key" },
+  "field.region.label": "Region",
+  "field.region.help": "Where sending domains ReputeCast adds are hosted.",
+  "field.monthly_limit.label": { "message": "Plan · emails per month", "note": "the plan's monthly allowance" },
+  "field.monthly_limit.help": "Used for the quota bar and cost per 1,000.",
+  "field.webhook_signing_secret.label": "Webhook signing secret",
+  "field.webhook_signing_secret.help": "Only for a webhook you created yourself (Resend › Webhooks › Signing secret). ReputeCast reads it for the webhooks it registers.",
+
+  "account": { "message": "{verified, plural, =0 {No verified domain · test mail to your own address only} one {# verified domain} other {# verified domains}}{plan, select, yes { · {limit, number} per month plan} other {}}", "note": "the account's standing on the provider card; limit: the plan's emails per month" },
+  "account.sendingKey": "Sending access key · quota and domains need a Full access key",
+  "tracking.scope": { "message": "Domains", "note": "where Resend's tracking settings apply: each sending domain" },
+  "tracking.openClick": { "message": "Open tracking is on for {opens} and click tracking for {clicks}.", "note": "opens, clicks: domain names, separated by commas" },
+  "tracking.open": "Open tracking is on for {opens}.",
+  "tracking.click": "Click tracking is on for {clicks}.",
+  "tracking.off": "Open and click tracking are off on every domain.",
+  "error.domainMissing": { "message": "{domain} is not set up in Resend", "note": "domain: news.acme.io" }
+}

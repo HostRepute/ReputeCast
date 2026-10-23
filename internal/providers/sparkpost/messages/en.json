@@ -1,0 +1,21 @@
+{
+  "pricing": { "message": "plan, set by your SparkPost contract", "note": "SparkPost's pricing model, on a capability chip: Pricing · …" },
+  "dedicatedIps": { "message": "paid plans above Starter, per IP per month", "note": "when SparkPost offers dedicated IPs; Starter is SparkPost's plan name" },
+  "terms.0.note": { "message": "Permission-based lists only, with a working unsubscribe; no purchased or rented lists. Existing SparkPost accounts; new Bird accounts use Bird Email, a different API.", "note": "what SparkPost's terms allow, on Routing; Bird and Bird Email are names" },
+  "events": { "message": "Webhooks", "note": "Sending providers › Adapters: how events come back" },
+  "domainSetup": { "message": "API", "note": "Sending providers › Adapters: how a sending domain is set up" },
+  "suppressionMode": { "message": "Two-way", "note": "Sending providers › Adapters: the suppression sync" },
+  "field.api_key.label": "API key",
+  "field.api_key.help": { "message": "SparkPost › Configuration › API Keys, with Transmissions, Webhooks, Sending Domains, Suppression Lists, Account, Metrics and Message Events permissions.", "note": "SparkPost's menu and permission names stay as SparkPost writes them" },
+  "field.region.label": "Region",
+  "field.region.help": "US (app.sparkpost.com) or EU (app.eu.sparkpost.com) account.",
+  "field.ip_pool.label": "IP pool",
+  "field.ip_pool.help": "Optional. Sends through this pool of dedicated IPs.",
+
+  "account": { "message": "Account {id} · {status}{hasPlan, select, yes { · {plan}} other {}}", "note": "the account's standing on the provider card; status: SparkPost's word for it (active); plan: SparkPost's plan name" },
+  "tracking.scope": "Every transmission ReputeCast sends",
+  "tracking.on": "The account tracks opens and clicks by default, but ReputeCast turns tracking off on every transmission it sends.",
+  "tracking.off": "Open and click tracking are off by default and on every transmission ReputeCast sends.",
+  "error.notRegistered": "No SparkPost webhook points at {url}. Register it first.",
+  "error.endpointStatus": { "message": "the endpoint answered {status} to SparkPost's test batch", "note": "status: an HTTP status code" }
+}

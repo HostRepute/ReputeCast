@@ -1,0 +1,26 @@
+{
+  "pricing": "theo gói, miễn phí tới 3.000 email mỗi tháng, sau đó từ 20 US$ mỗi tháng",
+  "pricingPlan": "theo gói, {n, number} email mỗi tháng",
+  "dedicatedIps": "gói Scale, 30 US$ mỗi tháng",
+  "terms.0.note": "Chỉ người nhận đã đồng ý nhận. Thư hàng loạt cần liên kết hủy đăng ký hiển thị rõ và header List-Unsubscribe một chạm, những thứ ReputeCast tự thêm; Resend có thể đóng tài khoản vượt quá 0,08% khiếu nại hoặc 4% thư trả lại.",
+  "events": "Webhook",
+  "domainSetup": "API",
+  "suppressionMode": "Hai chiều",
+  "field.api_key.label": "Khóa API",
+  "field.api_key.help": "Resend › API Keys. Khóa Full access cho phép ReputeCast đăng ký webhook, thiết lập tên miền và đồng bộ danh sách chặn gửi; khóa Sending access chỉ gửi được thư.",
+  "field.region.label": "Khu vực",
+  "field.region.help": "Nơi lưu trữ các tên miền gửi thư mà ReputeCast thêm vào.",
+  "field.monthly_limit.label": "Gói · số email mỗi tháng",
+  "field.monthly_limit.help": "Dùng cho thanh hạn mức và chi phí cho mỗi 1.000 email.",
+  "field.webhook_signing_secret.label": "Khóa bí mật ký webhook",
+  "field.webhook_signing_secret.help": "Chỉ dành cho webhook bạn tự tạo (Resend › Webhooks › Signing secret). ReputeCast tự đọc khóa này cho các webhook mà nó đăng ký.",
+
+  "account": "{verified, plural, =0 {Chưa có tên miền đã xác minh · chỉ gửi thư thử đến địa chỉ của chính bạn} other {# tên miền đã xác minh}}{plan, select, yes { · gói {limit, number} email mỗi tháng} other {}}",
+  "account.sendingKey": "Khóa Sending access · cần khóa Full access để đọc hạn mức và tên miền",
+  "tracking.scope": "Các tên miền",
+  "tracking.openClick": "Theo dõi lượt mở đang bật cho {opens} và theo dõi lượt nhấp đang bật cho {clicks}.",
+  "tracking.open": "Theo dõi lượt mở đang bật cho {opens}.",
+  "tracking.click": "Theo dõi lượt nhấp đang bật cho {clicks}.",
+  "tracking.off": "Theo dõi lượt mở và lượt nhấp đều tắt trên mọi tên miền.",
+  "error.domainMissing": "{domain} chưa được thiết lập trong Resend"
+}

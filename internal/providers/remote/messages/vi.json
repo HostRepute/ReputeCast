@@ -1,0 +1,42 @@
+{
+  "label.webhooks": "webhook",
+  "label.suppressionPull": "kéo danh sách chặn gửi",
+  "label.suppressionPush": "đẩy danh sách chặn gửi",
+  "label.suppressionSync": "đồng bộ danh sách chặn gửi",
+  "label.batch": "lô {n}",
+  "label.domainAPI": "thiết lập tên miền qua API",
+  "label.domainDKIM": "DKIM qua API",
+  "label.quota": "dò hạn mức",
+  "label.quotaRate": "dò hạn mức và tốc độ",
+
+  "terms.allowed": "Manifest của adapter cho biết điều khoản của nhà cung cấp cho phép tiếp thị hàng loạt đến danh sách đã đồng ý nhận.",
+  "terms.forbidden": "Manifest của adapter cho biết điều khoản của nhà cung cấp cấm tiếp thị hàng loạt: hãy dùng nó cho thư Tự động hóa và thư Hệ thống.",
+  "terms.yourPolicy": "Tự lưu trữ: chính sách của riêng bạn được áp dụng.",
+
+  "events.webhooks": "Webhook",
+  "events.none": "Không có",
+  "domain.api": "API",
+  "domain.dkim": "DKIM qua API",
+  "domain.manual": "DNS thủ công",
+  "suppression.pull": "Chỉ kéo về",
+  "suppression.push": "Chỉ đẩy đi",
+  "suppression.twoWay": "Hai chiều",
+  "suppression.local": "Chỉ cục bộ",
+
+  "call.endpointRefused": "Địa chỉ đặt cho adapter {name} bị từ chối: {error}.",
+  "call.noAddress": "Adapter {name} chưa có địa chỉ. Quản trị viên hệ thống đặt địa chỉ bằng `reputecast adapter set-url {id} '<url>'`.",
+  "call.paused": "Adapter {name} không phản hồi, nên ReputeCast tạm dừng gọi đến nó cho đến {until}.",
+  "call.busy": "Đã có {count} lệnh gọi đến adapter {name} đang chờ.",
+  "call.unreachable": "Không truy cập được adapter {name}: {error}.",
+  "call.cutOff": "Câu trả lời của adapter {name} bị cắt ngang: {error}.",
+  "call.invalid": "Adapter {name} trả lời {op} không đúng giao thức: {error}.",
+  "call.signature": "Adapter {name} đã từ chối chữ ký của ReputeCast. Hãy cấp khóa bí mật mới bằng `reputecast adapter secret {id}`, đặt nó cho tiến trình adapter, rồi kiểm tra đồng hồ của cả hai bên.",
+  "call.refused": "Adapter {name} đã từ chối yêu cầu: {error}",
+  "call.failed": "Adapter {name} gặp lỗi: {error}",
+
+  "problem.manifestUnusable": "Không dùng được manifest này: {error}.",
+  "problem.keyTaken": "{other} đã được đăng ký với khóa {key}. Hãy cập nhật hoặc gỡ nó, hoặc cài adapter với một id khác.",
+  "problem.address": "Không dùng được địa chỉ này: {error}.",
+  "problem.inUse": "{count} nhà cung cấp đang kết nối dùng {name}. Hãy ngắt kết nối chúng trước.",
+  "problem.adminOnly": "Adapter cộng đồng chạy cho mọi không gian làm việc trên hệ thống này, nên chỉ quản trị viên hệ thống mới xem hoặc đổi được nơi chúng chạy."
+}

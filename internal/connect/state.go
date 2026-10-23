@@ -3,11 +3,15 @@ package connect
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // State is provider_setups.state: what each step of the setup found and
 // chose, so a reload (or a teammate) resumes exactly where it was. Secrets
-// never go here; they are sealed on the provider row once accepted.
+// never go here; they are sealed on the provider row once accepted. Text
+// for people keeps its English and, beside it, its message for readers in
+// other languages (the *Text fields, lang.go).
 type State struct {
 	Connection Connection    `json:"connection"`
 	Domain     *DomainStep   `json:"domain,omitempty"`
@@ -24,8 +28,9 @@ type Connection struct {
 	// Settings are the non-secret values entered (to refill the form).
 	Settings map[string]string `json:"settings,omitempty"`
 	// Account is the provider's account standing ("Production · no enforcement").
-	Account   string `json:"account,omitempty"`
-	AccountID string `json:"account_id,omitempty"`
+	Account     string    `json:"account,omitempty"`
+	AccountText i18n.Text `json:"account_text,omitzero"`
+	AccountID   string    `json:"account_id,omitempty"`
 	// Summary is the stepper's line once connected ("us-east-1 · production").
 	Summary string     `json:"summary,omitempty"`
 	Error   *StepError `json:"error,omitempty"`
@@ -58,6 +63,8 @@ type StepError struct {
 	Field   string `json:"field,omitempty"`
 	Code    string `json:"code,omitempty"`
 	Message string `json:"message"`
+	// Texts are Message's sentences as messages, in order.
+	Texts []i18n.Text `json:"texts,omitempty"`
 	// Detail is the provider's own answer ("401 Unauthorized · Forbidden").
 	Detail string `json:"detail,omitempty"`
 }
@@ -86,6 +93,10 @@ type ProvisionState struct {
 	Hint  string `json:"hint,omitempty"`
 	// Attempts counts runs of a step that waits (SNS confirmation).
 	Attempts int `json:"attempts,omitempty"`
+	// Texts are the messages of Label, Text, Error and Hint, by those names
+	// in lower case; "reason" is the message of an Error that is a code and
+	// a reason ("ECONNREFUSED: localhost only works on this machine").
+	Texts map[string]i18n.Text `json:"texts,omitempty"`
 }
 
 // ProductionAccess is a filed request to leave the sandbox.
@@ -106,6 +117,9 @@ type ProbeState struct {
 	Summary    string    `json:"summary,omitempty"`
 	Transcript []string  `json:"transcript,omitempty"`
 	Error      string    `json:"error,omitempty"`
+	// SummaryText and ErrorText are the messages of Summary and Error.
+	SummaryText i18n.Text `json:"summary_text,omitzero"`
+	ErrorText   i18n.Text `json:"error_text,omitzero"`
 }
 
 // WebhookState is how events come back.
@@ -135,8 +149,9 @@ type SelfTestState struct {
 	At time.Time `json:"at"`
 	// Code is the error class ("ECONNREFUSED", "HTTP 404"); Reason explains
 	// it ("DNS resolves to 10.0.4.18, a private address").
-	Code   string `json:"code,omitempty"`
-	Reason string `json:"reason,omitempty"`
+	Code       string    `json:"code,omitempty"`
+	Reason     string    `json:"reason,omitempty"`
+	ReasonText i18n.Text `json:"reason_text,omitzero"`
 	// Private is true when the public URL can't be reached from the
 	// internet at all (localhost, a private address).
 	Private bool `json:"private,omitempty"`
@@ -145,9 +160,10 @@ type SelfTestState struct {
 // Registration is the webhook registration at the provider.
 type Registration struct {
 	// Status: done, skipped, failed, manual (set up in the provider's dashboard).
-	Status string    `json:"status"`
-	At     time.Time `json:"at"`
-	Detail string    `json:"detail,omitempty"`
+	Status     string    `json:"status"`
+	At         time.Time `json:"at"`
+	Detail     string    `json:"detail,omitempty"`
+	DetailText i18n.Text `json:"detail_text,omitzero"`
 }
 
 // DomainStep is step 3.
@@ -235,6 +251,7 @@ type SuppressionPreview struct {
 	Bounces    int       `json:"bounces"`
 	Complaints int       `json:"complaints"`
 	Error      string    `json:"error,omitempty"`
+	ErrorText  i18n.Text `json:"error_text,omitzero"`
 	At         time.Time `json:"at"`
 }
 

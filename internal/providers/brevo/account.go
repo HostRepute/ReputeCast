@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/apiclient"
 	"github.com/hostrepute/reputecast/internal/providers/bounce"
@@ -53,6 +54,13 @@ func (p *Provider) Quota(ctx context.Context) (providers.Quota, error) {
 	if acct.CompanyName != "" {
 		q.Account = acct.CompanyName
 	}
+	// "Acme · free plan · 212 emails left today": the account's name and its
+	// email plan, kept as a message when there is one plan to tell.
+	account := i18n.Args{"company": "none", "name": acct.CompanyName, "plan": "none"}
+	if acct.CompanyName != "" {
+		account["company"] = "yes"
+	}
+	plans := 0
 	for _, pl := range acct.Plan {
 		if pl.Type == "sms" {
 			continue
@@ -62,22 +70,31 @@ func (p *Provider) Quota(ctx context.Context) (providers.Quota, error) {
 			continue
 		}
 		left := int64(credits)
+		plans++
+		account["n"] = strconv.FormatInt(left, 10)
 		switch pl.Type {
 		case "free":
 			// 300 a day on the free plan.
 			q.Account += " · free plan · " + strconv.FormatInt(left, 10) + " emails left"
+			account["plan"], account["today"] = "free", "no"
 			if left <= 300 {
 				q.Kind, q.Max, q.Used = "rolling_24h", 300, 300-left
 				q.Account += " today"
+				account["today"] = "yes"
 			}
 		case "subscription":
 			if p.s.MonthlyLimit > 0 {
 				q.Kind, q.Max, q.Used = "monthly_plan", int64(p.s.MonthlyLimit), max(0, int64(p.s.MonthlyLimit)-left)
 			}
 			q.Account += " · subscription · " + strconv.FormatInt(left, 10) + " emails left"
+			account["plan"] = "subscription"
 		default: // payAsYouGo
 			q.Account += " · " + strconv.FormatInt(left, 10) + " prepaid credits left"
+			account["plan"] = "credits"
 		}
+	}
+	if plans <= 1 {
+		q.Account, q.AccountText = say(mAccount, account)
 	}
 	return q, nil
 }

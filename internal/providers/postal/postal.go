@@ -30,6 +30,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/apiclient"
 	"github.com/hostrepute/reputecast/internal/providers/bounce"
@@ -72,21 +73,19 @@ func Descriptor() providers.Descriptor {
 			Bulk:      providers.BulkYourPolicy,
 			Webhooks:  "Registered",
 			BatchSize: 1,
-			Pricing:   "self-hosted",
+			// Pricing and every other text people read (the terms' variant
+			// and note, the Adapters tab's words, the fields' labels and
+			// hints) are in messages/en.json: WithMessages fills them.
 		},
 		Version:    version.Version,
 		Maintainer: "HostRepute",
-		Terms: []providers.Terms{{Variant: "self-hosted", Bulk: providers.BulkYourPolicy, Note: "You run the server, so your hosting provider's acceptable-use policy applies instead.",
-			Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
-		Events:          "Webhooks",
-		DomainSetup:     "Manual DNS",
-		SuppressionMode: "Local only",
+		Terms:      []providers.Terms{{Bulk: providers.BulkYourPolicy, Streams: []providers.Stream{providers.StreamBroadcast, providers.StreamAutomation, providers.StreamSystem}}},
 		Fields: []providers.Field{
-			{Key: "server_url", Label: "Server URL", Required: true, Help: "The address of your Postal web interface, e.g. https://mta.acme.io."},
-			{Key: "api_key", Label: "API key", Secret: true, Required: true, Help: "Postal › your mail server › Credentials › API."},
+			{Key: "server_url", Required: true},
+			{Key: "api_key", Secret: true, Required: true},
 		},
 		New: New,
-	}
+	}.WithMessages(msgs)
 }
 
 // Provider talks to one Postal mail server.
@@ -161,12 +160,12 @@ func (p *Provider) call(ctx context.Context, op, path string, in, out any) error
 	case "AccessDenied", "InvalidServerAPIKey":
 		ce.Auth = true
 		if ce.Message == "" {
-			ce.Message = "The API key was not accepted."
+			ce.Message, ce.Text = say(mBadKey, nil)
 		}
 	case "ServerSuspended":
 		ce.Temporary = true
 		if ce.Message == "" {
-			ce.Message = "The Postal mail server is suspended."
+			ce.Message, ce.Text = say(mSuspended, nil)
 		}
 	}
 	return ce
@@ -246,11 +245,10 @@ func (p *Provider) Verify(ctx context.Context) (providers.Quota, error) {
 	if err != nil && (!errors.As(err, &ce) || ce.Code != "MessageNotFound") {
 		return providers.Quota{}, err
 	}
-	acct := "Postal"
-	if p.s.Version != "" {
-		acct += " " + p.s.Version
-	}
-	return providers.Quota{Account: acct + " · reachable"}, nil
+	// "Postal 3.3.4 · reachable"
+	var q providers.Quota
+	q.Account, q.AccountText = say(mAccount, i18n.Args{"hasVersion": map[bool]string{true: "yes", false: "no"}[p.s.Version != ""], "version": p.s.Version})
+	return q, nil
 }
 
 // VerifyWebhook checks X-Postal-Signature-256 (or the legacy SHA-1
