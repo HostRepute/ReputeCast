@@ -288,5 +288,6 @@
   "settings.streamRules": "{stream} (theo quy tắc)",
   "settings.notRouted": "Chưa định tuyến",
   "identity.label": "{kind, select, ses {Khu vực · tài khoản} postmark {Server · luồng} postal {Máy chủ · IP} smtp {Máy chủ} other {Tài khoản}}",
+  "pricing.source": "bảng giá của {name}",
   "identity.via": "{via, select, keys {Khóa IAM} role {Vai trò CloudFormation} token {server token} smtp {Đăng nhập SMTP} other {Khóa API}}"
 }

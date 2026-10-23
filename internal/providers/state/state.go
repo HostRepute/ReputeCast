@@ -231,8 +231,10 @@ type Pricing struct {
 	Per1000 float64 `json:"per1000,omitempty"`
 	// Monthly is the plan or server price per month.
 	Monthly float64 `json:"monthly,omitempty"`
-	// Source explains the per-1,000 figure for metered pricing ("AWS pricing").
-	Source string `json:"source,omitempty"`
+	// Source explains the per-1,000 figure for metered pricing ("AWS
+	// pricing"); SourceText is its message, for readers in other languages.
+	Source     string    `json:"source,omitempty"`
+	SourceText i18n.Text `json:"sourceText,omitzero"`
 	// NextTier is the next plan step ("adds 50,000 for $115").
 	NextTier *NextTier `json:"nextTier,omitempty"`
 }

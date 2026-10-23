@@ -288,5 +288,6 @@
   "settings.streamRules": { "message": "{stream} (rules)", "note": "a stream the provider gets only through routing rules" },
   "settings.notRouted": "Not routed yet",
   "identity.label": { "message": "{kind, select, ses {Region · account} postmark {Server · stream} postal {Server · IP} smtp {Server} other {Account}}", "note": "names the account or server of a connection; Server is Postmark's own word for Postmark" },
+  "pricing.source": { "message": "{name} pricing", "note": "where a provider's price per 1,000 comes from, after Per 1,000 · from; name: the provider" },
   "identity.via": { "message": "{via, select, keys {IAM keys} role {CloudFormation role} token {server token} smtp {SMTP login} other {API key}}", "note": "how a provider was connected, after the date: 14 Oct 2026 · CloudFormation role" }
 }

@@ -327,7 +327,7 @@ func (s *Service) card(sn *snapshot, p store.Provider) ProviderCard {
 	}
 	pr := state.PricingOf(p)
 	m := sn.month[p.ID]
-	c.Cost = ProviderCostToDate{Basis: pr.Model, ToDate: round2(costToDate(p, m)), Monthly: pr.Monthly, Source: pr.Source}
+	c.Cost = ProviderCostToDate{Basis: pr.Model, ToDate: round2(costToDate(p, m)), Monthly: pr.Monthly, Source: providers.TextIn(pr.Source, pr.SourceText, sn.lang)}
 	switch pr.Model {
 	case "metered":
 		if pr.Per1000 > 0 {

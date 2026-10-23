@@ -694,7 +694,8 @@ func pricingOf(d providers.Descriptor) state.Pricing {
 	}
 	if m := regexp.MustCompile(`\$([0-9.]+) per 1,000`).FindStringSubmatch(p); m != nil {
 		v, _ := strconv.ParseFloat(m[1], 64)
-		return state.Pricing{Model: "metered", Per1000: v, Source: d.Name + " pricing"}
+		source, text := say(mPricingSource, i18n.Args{"name": d.Name})
+		return state.Pricing{Model: "metered", Per1000: v, Source: source, SourceText: text}
 	}
 	return state.Pricing{Model: "metered"}
 }

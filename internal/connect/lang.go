@@ -254,6 +254,7 @@ var (
 	mSettingsNotRouted           = msgs.M("settings.notRouted")
 	mIdentityLabel               = msgs.M("identity.label")
 	mIdentityVia                 = msgs.M("identity.via")
+	mPricingSource               = msgs.M("pricing.source")
 )
 
 // say returns a message's English and the message, kept for whoever reads

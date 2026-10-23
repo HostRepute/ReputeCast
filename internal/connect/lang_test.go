@@ -153,6 +153,10 @@ func TestStoredTextReadsInTheReadersLanguage(t *testing.T) {
 	if got := strings.Join(labels, ","); got != "Webhook (Event Grid),Tên miền, DNS thủ công,Chặn gửi, chỉ cục bộ,Gửi lô 1.000,IP riêng,Sandbox với địa chỉ thử,Dò hạn mức" {
 		t.Errorf("chips: %s", got)
 	}
+	pr := pricingOf(providers.Descriptor{Name: "Amazon SES", Kind: "api", Capabilities: providers.Capabilities{Pricing: "$0.10 per 1,000 emails"}})
+	if pr.Source != "Amazon SES pricing" || textIn(pr.Source, pr.SourceText, vi) != "bảng giá của Amazon SES" || pr.Per1000 != 0.10 {
+		t.Errorf("pricing: %+v", pr)
+	}
 	for in, want := range map[string]string{"Khóa API": "khóa API", "SMTP host": "SMTP host", "Đã duyệt": "đã duyệt", "": ""} {
 		if got := lowerFirst(in); got != want {
 			t.Errorf("lowerFirst(%q) = %q", in, got)
