@@ -16,6 +16,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -178,14 +179,20 @@ func suppressionDetailIn(l i18n.Lang, stored string) string {
 }
 
 // itemIn writes what ReputeCast stored in English with a message in a
-// reader's language: why its address was suppressed. A provider's own words
-// stay as it wrote them.
+// reader's language: why it couldn't be delivered (the sending engine's
+// errors, routing.DeliveryErrorIn) and why its address was suppressed. A
+// provider's own words stay as it wrote them. The CSV export keeps the
+// English.
 func itemIn(l i18n.Lang, it TransactionalLogItem) TransactionalLogItem {
-	if it.Rejection != nil && it.Rejection.Suppression != nil {
-		s := *it.Rejection.Suppression
-		s.Detail = suppressionDetailIn(l, s.Detail)
+	it.Error = routing.DeliveryErrorIn(l, it.Error)
+	if it.Rejection != nil {
 		r := *it.Rejection
-		r.Suppression = &s
+		r.Error = routing.DeliveryErrorIn(l, r.Error)
+		if r.Suppression != nil {
+			s := *r.Suppression
+			s.Detail = suppressionDetailIn(l, s.Detail)
+			r.Suppression = &s
+		}
 		it.Rejection = &r
 	}
 	return it

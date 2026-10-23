@@ -23,6 +23,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -754,6 +755,12 @@ func (s *Service) Message(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		PMID      string    `json:"provider_message_id"`
 	}
 	_ = json.Unmarshal(r.Attempts, &tried)
+	// The sending engine's errors read in the reader's language; a
+	// provider's answer as it wrote it.
+	l := lang(ctx)
+	for i := range tried {
+		tried[i].Error = routing.DeliveryErrorIn(l, tried[i].Error)
+	}
 	for _, a := range tried {
 		out.Attempts = append(out.Attempts, TransactionalAttempt{Provider: a.Provider, At: a.At, OK: a.OK, Error: a.Error, Temporary: a.Temporary, GaveUp: a.GaveUp, Down: a.Down})
 	}
@@ -825,7 +832,7 @@ func (s *Service) Message(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		tl = append(tl, e)
 	}
 	if r.RawStatus == "failed" && (len(tried) == 0 || !tried[len(tried)-1].GaveUp) {
-		tl = append(tl, TransactionalTimelineEntry{At: lastAt(tl), Kind: "failed", Detail: r.Error})
+		tl = append(tl, TransactionalTimelineEntry{At: lastAt(tl), Kind: "failed", Detail: routing.DeliveryErrorIn(l, r.Error)})
 	}
 	events, err := s.Q.TxnMessageEvents(ctx, &id)
 	if err != nil {

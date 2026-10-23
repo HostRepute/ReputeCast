@@ -136,3 +136,50 @@ func TestTransactionalInVietnamese(t *testing.T) {
 		t.Fatalf("publish dialog (en): %+v", pv.Diff)
 	}
 }
+
+// Setup's SMTP relay checks keep their English and their message
+// (internal/smtprelay's check job): each reads in the reader's language, and
+// a check stored before, with only its English, reads as stored.
+func TestRelayChecksInReaderLanguage(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	status := `{"checkedAt": "2026-10-23T09:00:00Z", "checks": [
+		{"key": "dns", "ok": true, "detail": "DNS · relay.acme.io points to 203.0.113.40",
+		 "text": {"id": "smtprelay.check.resolves", "args": {"host": "relay.acme.io", "addresses": "203.0.113.40"}}},
+		{"key": "starttls", "ok": true, "port": 587, "detail": "Port 587 reachable from the internet",
+		 "text": {"id": "smtprelay.check.portReachable", "args": {"port": "587"}}},
+		{"key": "tls", "ok": true, "port": 465, "detail": "Port 465 reachable from the internet"}]}`
+	if _, err := env.App.Pool.Exec(context.Background(), `UPDATE smtp_relay SET enabled = true, hostname = 'relay.acme.io', status = $1`, status); err != nil {
+		t.Fatal(err)
+	}
+	type setup struct {
+		Relay struct {
+			State  string
+			Checks []struct{ Key, Detail string }
+		}
+	}
+	read := func(c *apptest.Client) []string {
+		t.Helper()
+		var s setup
+		c.Do("GET", base+"/setup", nil).MustStatus(t, 200).JSON(t, &s)
+		if s.Relay.State != "ok" || len(s.Relay.Checks) != 3 {
+			t.Fatalf("relay: %+v", s.Relay)
+		}
+		out := []string{}
+		for _, ch := range s.Relay.Checks {
+			out = append(out, ch.Detail)
+		}
+		return out
+	}
+	vi := env.Client()
+	vi.SignInDemo("sofia@acme.io")
+	vi.Header = http.Header{"Accept-Language": {"vi"}}
+	en := env.Client()
+	en.SignInDemo("sofia@acme.io")
+	if got := read(vi); got[0] != "DNS · relay.acme.io trỏ về 203.0.113.40" || got[1] != "Truy cập được cổng 587 từ internet" || got[2] != "Port 465 reachable from the internet" {
+		t.Fatalf("checks (vi): %q", got)
+	}
+	if got := read(en); got[0] != "DNS · relay.acme.io points to 203.0.113.40" || got[1] != "Port 587 reachable from the internet" {
+		t.Fatalf("checks (en): %q", got)
+	}
+}

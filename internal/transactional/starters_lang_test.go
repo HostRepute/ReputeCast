@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/routing"
 )
 
 // The starters' words in the catalog say what the starters above say in
@@ -126,6 +127,28 @@ func TestSoftBounceDetail(t *testing.T) {
 	it := TransactionalLogItem{Rejection: &TransactionalRejection{Reason: "suppressed", Suppression: &TransactionalSuppressionInfo{Detail: stored}}}
 	if got := itemIn(vi, it); got.Rejection.Suppression.Detail != "Trả thư tạm thời 3 lần trong 7 ngày (lần gần nhất: 4.2.2 Mailbox full)" || it.Rejection.Suppression.Detail != stored {
 		t.Fatalf("item: %q, the original %q", got.Rejection.Suppression.Detail, it.Rejection.Suppression.Detail)
+	}
+}
+
+// Why a message failed, as the sending engine stored it in English, reads
+// in the reader's language in the log; a provider's answer as it wrote it.
+func TestItemInReadsDeliveryErrors(t *testing.T) {
+	vi := i18n.For(i18n.Vietnamese)
+	stored := routing.DeliveryError("downNoOther", i18n.Args{"provider": "Postmark"})
+	want := routing.DeliveryErrorIn(vi, stored)
+	if want == stored || !strings.Contains(want, "Postmark") {
+		t.Fatalf("routing reads %q as %q", stored, want)
+	}
+	it := itemIn(vi, TransactionalLogItem{Status: "failed", Error: stored})
+	if it.Error != want {
+		t.Fatalf("failed (vi): %q, want %q", it.Error, want)
+	}
+	if it := itemIn(i18n.Default, TransactionalLogItem{Status: "failed", Error: stored}); it.Error != stored {
+		t.Fatalf("failed (en): %q", it.Error)
+	}
+	provider := "550 5.7.1 Message rejected by the recipient's server"
+	if it := itemIn(vi, TransactionalLogItem{Status: "rejected", Rejection: &TransactionalRejection{Reason: "provider", Error: provider}}); it.Rejection.Error != provider {
+		t.Fatalf("a provider's answer: %q", it.Rejection.Error)
 	}
 }
 
