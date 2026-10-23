@@ -909,20 +909,31 @@ they are.
 | English | Tiếng Việt | Note |
 |---|---|---|
 | accent color · page background | màu nhấn · nền trang | public page branding |
+| Added by the team (a contact's source) | Do nhóm thêm vào | a suppression added by hand is "Thủ công" |
 | allowed domains | tên miền được phép | the sites a form may be embedded on |
 | archive (public page) · issue | trang lưu trữ · số | as subscribers read them: "Lưu trữ bản tin", "Số tiếp theo" |
 | audience · merge field · cleaned (Mailchimp) | audience · merge field · cleaned | Mailchimp's own words, as its screens show them |
+| batch (an import's) | lô | the live log: "Lô 3 · 500 hàng" |
+| bounce types (a report's) | Vĩnh viễn · Tạm thời · Bị chặn | "Vĩnh viễn · người nhận không tồn tại", "Tạm thời · hộp thư đầy" |
 | branding | thương hiệu | Forms & pages › "Thương hiệu và tên miền" |
+| catch-all domain · known complainers | tên miền catch-all · người hay khiếu nại | a verification service's risky groups |
 | column · map fields | cột · ghép trường | an import's step: "Ghép trường" |
 | confirmation link | liên kết xác nhận | |
 | consent · consent text · consent evidence | sự đồng ý · nội dung đồng ý · bằng chứng đồng ý | |
+| custom domain | tên miền tùy chỉnh | Branding & domain |
+| data center (Mailchimp) | trung tâm dữ liệu | the API key's suffix, like us21 |
 | deferral (provider) | hoãn nhận | "deferrals expired": "thư hoãn nhận đã hết hạn" |
+| disposable domain · role address · likely typo | tên miền dùng một lần · địa chỉ chức danh · có thể đánh máy sai | an import's risky groups |
 | embed code · script embed · embedded (form) | mã nhúng · mã nhúng tập lệnh · nhúng | |
 | erase (a contact) | xóa vĩnh viễn | a GDPR erasure; a plain delete stays "xóa" |
 | excerpt | đoạn trích | an archived issue's |
 | export data (GDPR) | xuất dữ liệu | |
 | Forms & public pages | Biểu mẫu và trang công khai | |
 | hosted page (a form type) | trang trên ReputeCast | as "hosted" above |
+| Import from {tool} (a source) | Nhập từ {tool} | a contact's or suppression's source: "Nhập từ Mailchimp" |
+| live log (an import's) | nhật ký trực tiếp | |
+| merge (a duplicate) | gộp | "Merge · fills first name": "Gộp · điền tên" |
+| Migration (where a suppression came from) | Chuyển từ công cụ khác | an import from another email tool |
 | offer a download | tặng một tệp tải xuống | the file a form gives after confirmation |
 | popup (form) | bật lên | |
 | preference center | trung tâm tùy chọn | in the app; subscribers read "trang tùy chọn" |
@@ -930,14 +941,19 @@ they are.
 | re-permission | xin phép lại | "re-permission flow": "quy trình xin phép lại" |
 | read-only link | liên kết chỉ xem | a shared report's |
 | RSS feed | nguồn cấp RSS | |
+| self-hosted (a provider) | tự lưu trữ | "Postal (tự lưu trữ)" |
 | sender health | sức khỏe người gửi | the Overview's score; reputation is "uy tín" |
 | signup · submission (form) | lượt đăng ký · lượt gửi | "Views · Submissions": "Lượt xem · Lượt gửi" |
 | single opt-in | xác nhận một bước | double opt-in is "xác nhận hai bước" |
+| site key · secret key (Turnstile) | khóa site · khóa bí mật | "Turnstile" stays |
+| source status (an import's: subscribed, cleaned…) | as the source writes it | the consent table and the consent history keep the tool's own word |
+| spam trap (audience, imports) | bẫy thư rác | the suppression list's and the importer's word, as their screens say it |
 | subscribe page · confirmation page · unsubscribe page | trang đăng ký · trang xác nhận · trang hủy đăng ký | |
 | suppressed | bị chặn gửi | the list is "danh sách chặn gửi" |
 | System stream · System mail | luồng Hệ thống · thư Hệ thống | the stream's name keeps its capital |
 | tag | thẻ | |
 | title (archived issue) | tựa đề | "tiêu đề" is an email's subject, "đề mục" a heading |
+| workbook · sheet (XLSX) | sổ làm việc · trang tính | as Excel's Vietnamese names them |
 
 ## Products, stores and transactional email
 
