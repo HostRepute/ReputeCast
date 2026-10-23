@@ -361,6 +361,17 @@
     color: var(--ink-2);
     line-height: 1.35;
   }
+  /* Reconnect sits under its cell's note, outside the cell's button. */
+  .pl-reconnect {
+    display: block;
+    margin-top: -4px;
+    padding: 0 12px 10px;
+    font-size: 12px;
+  }
+  .pl-seedc .pl-reconnect {
+    margin-top: -6px;
+    padding: 0 8px 4px 112px;
+  }
 
   /* The matrix on phones: one card per seed. */
   .pl-seedc {
