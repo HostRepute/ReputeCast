@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/emailaddr"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/referrals"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -106,6 +107,7 @@ func (h *Handler) hubClaims(w http.ResponseWriter, r *http.Request) (*site, link
 		h.notFound(w, r, s)
 		return nil, linktoken.Claims{}, nil, false
 	}
+	h.linkLang(w, r, s, c)
 	return s, c, rs, true
 }
 
@@ -136,7 +138,7 @@ func (h *Handler) hubPage(w http.ResponseWriter, r *http.Request) {
 	}
 	b := h.hubBody(s, hv, token)
 	b.Saved = r.URL.Query().Get("saved") == "1"
-	h.growPage(w, r, s, "grow-hub", http.StatusOK, gt("hub.title", "publisher", s.set.Branding.PublisherName), b, true)
+	h.growPage(w, r, s, "grow-hub", http.StatusOK, s.gt("hub.title", "publisher", s.set.Branding.PublisherName), b, true)
 }
 
 func (h *Handler) hubBody(s *site, hv *referrals.HubView, token string) hubBody {
@@ -146,28 +148,28 @@ func (h *Handler) hubBody(s *site, hv *referrals.HubView, token string) hubBody 
 	b := hubBody{Email: hv.Email, NotYouHref: s.links.ReferralsRequest(), ListName: hv.ListName, LinkURL: hv.LinkURL, LinkDisplay: hv.Link,
 		ProgramOn: hv.ProgramOn, LinkActive: hv.LinkActive, HoldDays: hv.HoldDays, ShowName: hv.ShowName, ShowBoard: hv.ShowBoard, BoardOn: hv.BoardOn,
 		PrivacyAction: s.links.Referrals(token) + "/privacy", Publisher: pub,
-		VisitsLine: gt("hub.visits", "visits", hv.Visits, "signups", hv.Signups),
+		VisitsLine: s.gt("hub.visits", "visits", hv.Visits, "signups", hv.Signups),
 		PrefsURL:   s.links.Preferences(h.sign(s, linktoken.Preferences, hv.ContactID, uuid.Nil)),
 	}
 	for _, sl := range hv.Share {
-		b.Share = append(b.Share, shareView{Channel: sl.Channel, Label: gt("hub.channel." + sl.Channel), URL: sl.URL})
+		b.Share = append(b.Share, shareView{Channel: sl.Channel, Label: s.gt("hub.channel." + sl.Channel), URL: sl.URL})
 	}
 	if hv.BoardOn {
 		b.BoardURL = s.links.Referrals(token) + "/leaderboard"
 		if hv.Rank > 0 {
-			b.Rank = gt("hub.rank", "rank", ordinal(hv.Rank))
+			b.Rank = s.gt("hub.rank", "rank", s.ordinal(hv.Rank, "hub.rank"))
 		}
 	}
 	if !hv.ProgramOn {
-		b.PausedRecord = gt("hub.pausedRecord", "count", t.Counted, "publisher", pub)
+		b.PausedRecord = s.gt("hub.pausedRecord", "count", t.Counted, "publisher", pub)
 	}
 	// The next reward and when it comes.
 	if t.NextCount > 0 {
-		b.NextLine = gt("hub.toNext", "count", t.ToNext, "reward", articled(t.NextName))
+		b.NextLine = s.gt("hub.toNext", "count", t.ToNext, "reward", s.articled(t.NextName, "hub.toNext"))
 		if t.NextBySeq > 0 {
 			for _, ref := range hv.Referrals {
 				if ref.Number == t.NextBySeq && ref.CountsOn != nil {
-					b.BringsIt = gt("hub.bringsIt", "number", ref.Number, "date", shortDate(*ref.CountsOn, now))
+					b.BringsIt = s.gt("hub.bringsIt", "number", ref.Number, "date", s.shortDate(*ref.CountsOn, now))
 				}
 			}
 		}
@@ -187,97 +189,101 @@ func (h *Handler) hubBody(s *site, hv *referrals.HubView, token string) hubBody 
 	} else if len(t.Points) > 0 {
 		b.AllEarned = true
 	}
-	b.You = gt("hub.you", "count", t.Counted)
+	b.You = s.gt("hub.you", "count", t.Counted)
 	var labels []string
 	for _, p := range t.Points {
-		mv := milestoneView{Count: p.Count, Name: p.Reward, Label: gt("hub.milestone", "count", p.Count), Reached: int64(p.Count) <= t.Counted,
+		mv := milestoneView{Count: p.Count, Name: p.Reward, Label: s.gt("hub.milestone", "count", p.Count), Reached: int64(p.Count) <= t.Counted,
 			Next: p.Count == t.NextCount}
 		b.Milestones = append(b.Milestones, mv)
-		l := p.Reward
+		reached := "no"
 		if mv.Reached {
-			l += " (reached)"
+			reached = "yes"
 		}
-		labels = append(labels, mv.Label+" "+l)
+		labels = append(labels, s.gt("hub.trackMilestone", "label", mv.Label, "reward", p.Reward, "reached", reached))
 	}
-	b.TrackLabel = gt("hub.trackLabel", "counted", t.Counted, "milestones", strings.Join(labels, ", "))
-	b.Legend = append(b.Legend, legendView{Kind: "done", Text: gt("hub.legendCounted", "count", t.Counted)})
+	b.TrackLabel = s.gt("hub.trackLabel", "counted", t.Counted, "milestones", strings.Join(labels, ", "))
+	b.Legend = append(b.Legend, legendView{Kind: "done", Text: s.gt("hub.legendCounted", "count", t.Counted)})
 	if t.InHold > 0 {
 		date := ""
 		if t.NextHold != nil {
-			date = shortDate(*t.NextHold, now)
+			date = s.shortDate(*t.NextHold, now)
 		}
-		b.Legend = append(b.Legend, legendView{Kind: "soon", Text: gt("hub.legendSoon", "count", t.InHold, "date", date)})
+		b.Legend = append(b.Legend, legendView{Kind: "soon", Text: s.gt("hub.legendSoon", "count", t.InHold, "date", date)})
 	}
 	if t.Awaiting > 0 {
-		b.Legend = append(b.Legend, legendView{Kind: "todo", Text: gt("hub.legendAwaiting", "count", t.Awaiting)})
+		b.Legend = append(b.Legend, legendView{Kind: "todo", Text: s.gt("hub.legendAwaiting", "count", t.Awaiting)})
 	}
 	if t.Held > 0 {
-		b.Legend = append(b.Legend, legendView{Kind: "todo", Text: gt("hub.legendHeld", "count", t.Held)})
+		b.Legend = append(b.Legend, legendView{Kind: "todo", Text: s.gt("hub.legendHeld", "count", t.Held)})
 	}
 	for _, rw := range hv.Rewards {
 		b.Rewards = append(b.Rewards, h.rewardView(s, rw, hv, token, now))
 	}
 	// Referrals, newest first.
-	b.ReferralsTitle = gt("hub.referrals", "count", len(hv.Referrals))
+	b.ReferralsTitle = s.gt("hub.referrals", "count", len(hv.Referrals))
 	for i := len(hv.Referrals) - 1; i >= 0; i-- {
 		ref := hv.Referrals[i]
-		v := referralView{Number: ref.Number, Title: gt("hub.referral", "number", ref.Number)}
+		v := referralView{Number: ref.Number, Title: s.gt("hub.referral", "number", ref.Number)}
 		confirmed := ""
 		if ref.ConfirmedAt != nil {
-			confirmed = shortDate(*ref.ConfirmedAt, now)
+			confirmed = s.shortDate(*ref.ConfirmedAt, now)
 		}
 		switch ref.Status {
 		case referrals.StatusCounted:
-			v.Badge, v.BadgeK = gt("hub.rCounted"), "ok"
+			v.Badge, v.BadgeK = s.gt("hub.rCounted"), "ok"
 			counted := ""
 			if ref.CountedAt != nil {
-				counted = shortDate(*ref.CountedAt, now)
+				counted = s.shortDate(*ref.CountedAt, now)
 			}
-			v.Line = gt("hub.rlCounted", "confirmed", confirmed, "counted", counted)
+			v.Line = s.gt("hub.rlCounted", "confirmed", confirmed, "counted", counted)
 		case referrals.StatusHold:
 			date := ""
 			if ref.CountsOn != nil {
-				date = shortDate(*ref.CountsOn, now)
+				date = s.shortDate(*ref.CountsOn, now)
 			}
-			v.Badge, v.BadgeK = gt("hub.rCountsOn", "date", date), "info"
-			v.Line = gt("hub.rlHold", "confirmed", confirmed, "date", date)
+			v.Badge, v.BadgeK = s.gt("hub.rCountsOn", "date", date), "info"
+			v.Line = s.gt("hub.rlHold", "confirmed", confirmed, "date", date)
 		case referrals.StatusReview:
-			v.Badge, v.BadgeK = gt("hub.rHeld"), "warn"
-			v.Line = gt("hub.rlHeld", "confirmed", confirmed)
+			v.Badge, v.BadgeK = s.gt("hub.rHeld"), "warn"
+			v.Line = s.gt("hub.rlHeld", "confirmed", confirmed)
 		case referrals.StatusAwaiting:
-			v.Badge, v.BadgeK = gt("hub.rAwaiting"), "mut"
-			v.Line = gt("hub.rlAwaiting", "date", shortDate(ref.SignedUpAt, now))
+			v.Badge, v.BadgeK = s.gt("hub.rAwaiting"), "mut"
+			v.Line = s.gt("hub.rlAwaiting", "date", s.shortDate(ref.SignedUpAt, now))
 		default:
-			v.Badge, v.BadgeK = gt("hub.rNotCounted"), "mut"
-			v.Line = gt("hub.reason." + ref.Reason)
+			v.Badge, v.BadgeK = s.gt("hub.rNotCounted"), "mut"
+			v.Line = s.gt("hub.reason." + ref.Reason)
 		}
 		b.Referrals = append(b.Referrals, v)
 	}
 	// How counting works, from the program's rules.
-	b.Step3 = gt("hub.step3", "days", hv.HoldDays)
-	excluded := []string{gt("hub.excludedOwn")}
+	b.Step3 = s.gt("hub.step3", "days", hv.HoldDays)
+	excluded := []string{s.gt("hub.excludedOwn")}
 	if hv.SameIP {
-		excluded = append(excluded, gt("hub.excludedNetwork"))
+		excluded = append(excluded, s.gt("hub.excludedNetwork"))
 	}
 	if hv.Disposable {
-		excluded = append(excluded, gt("hub.excludedThrowaway"))
+		excluded = append(excluded, s.gt("hub.excludedThrowaway"))
 	}
-	b.Rules = gt("hub.rules", "days", hv.HoldDays) + " " + gt("hub.rulesExcluded", "excluded", orList(excluded))
+	b.Rules = s.gt("hub.rules", "days", hv.HoldDays) + " " + s.gt("hub.rulesExcluded", "excluded", s.orList(excluded, "hub.rulesExcluded"))
 	if hv.FirstName != "" {
-		b.NameText = gt("hub.showNameText", "name", hv.FirstName)
+		b.NameText = s.gt("hub.showNameText", "name", hv.FirstName)
 	} else {
-		b.NameText = gt("hub.showNameNoName")
+		b.NameText = s.gt("hub.showNameNoName")
 	}
 	if hv.ShortName != "" {
-		b.BoardLabel = gt("hub.showBoard", "name", hv.ShortName)
+		b.BoardLabel = s.gt("hub.showBoard", "name", hv.ShortName)
 	} else {
-		b.BoardLabel = gt("hub.showBoardAnon")
+		b.BoardLabel = s.gt("hub.showBoardAnon")
 	}
 	return b
 }
 
-// orList is "a, b, or c" (English).
-func orList(items []string) string {
+// orList is "a, b, or c" in an English sentence, the language's own list
+// in a translation ("a, b hoặc c").
+func (s *site) orList(items []string, key string) string {
+	if !s.growEnglish(key) {
+		return i18n.OrList(s.lang().Locale, items)
+	}
 	switch len(items) {
 	case 0:
 		return ""
@@ -294,25 +300,25 @@ func (h *Handler) rewardView(s *site, rw referrals.HubReward, hv *referrals.HubV
 	v := rewardView{ID: rw.ID.String(), Name: rw.Name}
 	file := ""
 	if rw.FileName != "" {
-		file = fileDesc(rw.FileType, rw.FileSize)
+		file = s.fileDesc(rw.FileType, rw.FileSize)
 	}
 	if !rw.Reached {
 		if file != "" {
-			v.Line = gt("hub.rewardAtFile", "count", rw.Count, "file", file)
+			v.Line = s.gt("hub.rewardAtFile", "count", rw.Count, "file", file)
 		} else {
-			v.Line = gt("hub.rewardAt", "count", rw.Count)
+			v.Line = s.gt("hub.rewardAt", "count", rw.Count)
 		}
 		if !hv.ProgramOn {
-			v.Line = gt("hub.rewardAt", "count", rw.Count) + " · " + gt("hub.pausedReward")
-			v.Badge, v.BadgeK = gt("hub.statusPaused"), "mut"
+			v.Line = s.gt("hub.rewardAt", "count", rw.Count) + " · " + s.gt("hub.pausedReward")
+			v.Badge, v.BadgeK = s.gt("hub.statusPaused"), "mut"
 			return v
 		}
-		v.Badge, v.BadgeK = gt("hub.rewardToGo", "count", max(rw.ToGo, 1)), "mut"
+		v.Badge, v.BadgeK = s.gt("hub.rewardToGo", "count", max(rw.ToGo, 1)), "mut"
 		return v
 	}
 	sent := ""
 	if rw.SentAt != nil {
-		sent = shortDate(*rw.SentAt, now)
+		sent = s.shortDate(*rw.SentAt, now)
 	}
 	switch rw.Status {
 	case referrals.RewardSent, referrals.RewardFulfilled:
@@ -320,52 +326,52 @@ func (h *Handler) rewardView(s *site, rw referrals.HubReward, hv *referrals.HubV
 		switch rw.Type {
 		case referrals.RewardDownload:
 			if file != "" {
-				v.Line = gt("hub.rewardSentFile", "date", sent, "file", file)
+				v.Line = s.gt("hub.rewardSentFile", "date", sent, "file", file)
 			} else {
-				v.Line = gt("hub.rewardSent", "date", sent)
+				v.Line = s.gt("hub.rewardSent", "date", sent)
 			}
-			v.ActionLabel, v.ActionHref = gt("hub.download"), rw.DownloadURL
+			v.ActionLabel, v.ActionHref = s.gt("hub.download"), rw.DownloadURL
 		case referrals.RewardCoupon:
 			if rw.ExpiresAt != nil {
-				v.Line = gt("hub.claimBy", "date", shortDate(*rw.ExpiresAt, now))
+				v.Line = s.gt("hub.claimBy", "date", s.shortDate(*rw.ExpiresAt, now))
 			} else {
-				v.Line = gt("hub.claimNoDate")
+				v.Line = s.gt("hub.claimNoDate")
 			}
-			v.ActionLabel, v.ActionHref, v.Code = gt("hub.claim"), rw.ClaimURL, rw.Code
+			v.ActionLabel, v.ActionHref, v.Code = s.gt("hub.claim"), rw.ClaimURL, rw.Code
 		case referrals.RewardManual:
-			v.Badge, v.BadgeK = gt("hub.statusSent"), "ok"
+			v.Badge, v.BadgeK = s.gt("hub.statusSent"), "ok"
 			if rw.Address != nil && rw.Address.Name != "" {
-				v.Line = gt("hub.sentTo", "date", sent, "name", rw.Address.Name, "city", rw.Address.City, "country", rw.Address.Country)
+				v.Line = s.gt("hub.sentTo", "date", sent, "name", rw.Address.Name, "city", rw.Address.City, "country", rw.Address.Country)
 			} else {
-				v.Line = gt("hub.sentPlain", "date", sent)
+				v.Line = s.gt("hub.sentPlain", "date", sent)
 			}
 			v.Note = rw.Note
 		default:
-			v.Line = gt("hub.rewardSent", "date", sent)
+			v.Line = s.gt("hub.rewardSent", "date", sent)
 			v.Code = rw.Code
 			if rw.AnswerURL != "" {
-				v.ActionLabel, v.ActionHref = gt("hub.open"), rw.AnswerURL
+				v.ActionLabel, v.ActionHref = s.gt("hub.open"), rw.AnswerURL
 			}
 		}
 	case referrals.RewardWaitingCodes:
-		v.Badge, v.BadgeK, v.Text = gt("hub.onItsWay"), "info", gt("hub.waitingCodes", "publisher", pub)
+		v.Badge, v.BadgeK, v.Text = s.gt("hub.onItsWay"), "info", s.gt("hub.waitingCodes", "publisher", pub)
 	case referrals.RewardToFulfill:
-		v.Badge, v.BadgeK = gt("hub.onItsWay"), "info"
+		v.Badge, v.BadgeK = s.gt("hub.onItsWay"), "info"
 		if rw.AskAddress && rw.Address == nil {
-			v.Text = gt("hub.addressAsk", "publisher", pub)
+			v.Text = s.gt("hub.addressAsk", "publisher", pub)
 			v.AddressAction = s.links.Referrals(token) + "/address/" + rw.ID.String()
 		} else {
-			v.Text = gt("hub.toFulfill", "publisher", pub)
+			v.Text = s.gt("hub.toFulfill", "publisher", pub)
 			if rw.Address != nil {
-				v.Saved = gt("hub.addressSaved", "name", rw.Address.Name, "city", rw.Address.City, "country", rw.Address.Country)
+				v.Saved = s.gt("hub.addressSaved", "name", rw.Address.Name, "city", rw.Address.City, "country", rw.Address.Country)
 			}
 		}
 	case referrals.RewardPending:
-		v.Badge, v.BadgeK, v.Text = gt("hub.onItsWay"), "info", gt("hub.pending")
+		v.Badge, v.BadgeK, v.Text = s.gt("hub.onItsWay"), "info", s.gt("hub.pending")
 	case referrals.RewardFailed:
-		v.Badge, v.BadgeK, v.Text = gt("hub.onItsWay"), "warn", gt("hub.failed", "publisher", pub)
+		v.Badge, v.BadgeK, v.Text = s.gt("hub.onItsWay"), "warn", s.gt("hub.failed", "publisher", pub)
 	case referrals.RewardExpired:
-		v.Text = gt("hub.expired")
+		v.Text = s.gt("hub.expired")
 	}
 	return v
 }
@@ -387,10 +393,10 @@ func (h *Handler) hubExpired(w http.ResponseWriter, r *http.Request, s *site, rs
 	if hv, err := rs.Hub(r.Context(), s.ws, c.ContactID, "", nil); err == nil {
 		list = hv.ListName
 	}
-	b := hubRequestBody{Heading: gt("expired.title"), Text: gt("expired.text"), Masked: gt("expired.to", "email", rs.MaskedEmail(r.Context(), c.ContactID)),
-		Action: s.links.Referrals(token) + "/send", Button: gt("expired.button")}
+	b := hubRequestBody{Heading: s.gt("expired.title"), Text: s.gt("expired.text"), Masked: s.gt("expired.to", "email", rs.MaskedEmail(r.Context(), c.ContactID)),
+		Action: s.links.Referrals(token) + "/send", Button: s.gt("expired.button")}
 	if list != "" {
-		b.Tip = gt("expired.tip", "list", list)
+		b.Tip = s.gt("expired.tip", "list", list)
 	}
 	h.growPage(w, r, s, "grow-request", http.StatusOK, b.Heading+" · "+s.set.Branding.PublisherName, b, true)
 }
@@ -402,14 +408,14 @@ func (h *Handler) hubSend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	masked := rs.MaskedEmail(r.Context(), c.ContactID)
-	b := hubRequestBody{Heading: gt("sent.title"), Sent: true, Text: gt("sent.text", "email", masked)}
+	b := hubRequestBody{Heading: s.gt("sent.title"), Sent: true, Text: s.gt("sent.text", "email", masked)}
 	if !h.Forms.Allow("hub-link:"+c.ContactID.String(), time.Minute) {
 		h.growPage(w, r, s, "grow-request", http.StatusOK, b.Heading+" · "+s.set.Branding.PublisherName, b, true)
 		return
 	}
 	if err := rs.SendHubLink(r.Context(), s.ws, s.set, c.ContactID); err != nil {
 		h.log().WarnContext(r.Context(), "send a hub link", "err", err)
-		b.Text = gt("sent.unavailable")
+		b.Text = s.gt("sent.unavailable")
 	}
 	h.growPage(w, r, s, "grow-request", http.StatusOK, b.Heading+" · "+s.set.Branding.PublisherName, b, true)
 }
@@ -423,7 +429,8 @@ func (h *Handler) hubRequestPage(w http.ResponseWriter, r *http.Request) {
 		h.notFound(w, r, s)
 		return
 	}
-	b := hubRequestBody{Heading: gt("request.title"), Text: gt("request.text"), Ask: true, Action: s.links.ReferralsRequest(), Button: gt("request.button")}
+	h.linkLang(w, r, s, linktoken.Claims{})
+	b := hubRequestBody{Heading: s.gt("request.title"), Text: s.gt("request.text"), Ask: true, Action: s.links.ReferralsRequest(), Button: s.gt("request.button")}
 	h.growPage(w, r, s, "grow-request", http.StatusOK, b.Heading+" · "+s.set.Branding.PublisherName, b, false)
 }
 
@@ -440,17 +447,18 @@ func (h *Handler) hubRequestPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !h.parseForm(w, r, 8<<10) {
-		http.Error(w, "The form couldn't be read.", http.StatusBadRequest)
+		http.Error(w, h.formUnreadable(r, s), http.StatusBadRequest)
 		return
 	}
+	h.linkLang(w, r, s, linktoken.Claims{})
 	email, problem := emailaddr.Check(r.PostForm.Get("email"))
 	if problem != "" {
-		b := hubRequestBody{Heading: gt("request.title"), Text: gt("request.text"), Ask: true, Action: s.links.ReferralsRequest(), Button: gt("request.button"),
-			Error: gt("request.invalid"), Email: r.PostForm.Get("email")}
+		b := hubRequestBody{Heading: s.gt("request.title"), Text: s.gt("request.text"), Ask: true, Action: s.links.ReferralsRequest(), Button: s.gt("request.button"),
+			Error: s.gt("request.invalid"), Email: r.PostForm.Get("email")}
 		h.growPage(w, r, s, "grow-request", http.StatusUnprocessableEntity, b.Heading+" · "+s.set.Branding.PublisherName, b, true)
 		return
 	}
-	b := hubRequestBody{Heading: gt("sent.title"), Sent: true, Text: gt("sent.text", "email", email)}
+	b := hubRequestBody{Heading: s.gt("sent.title"), Sent: true, Text: s.gt("sent.text", "email", email)}
 	ip := ""
 	if a := clientIP(r); a != nil {
 		ip = a.String()
@@ -537,10 +545,11 @@ func (h *Handler) rewardDownload(w http.ResponseWriter, r *http.Request) {
 		h.notFound(w, r, s)
 		return
 	}
+	h.linkLang(w, r, s, c)
 	d, err := rs.Download(r.Context(), c)
 	if errors.Is(err, referrals.ErrLinkExpired) {
-		h.growMessage(w, r, s, http.StatusGone, gt("download.title"), gt("download.text"),
-			[]action{{Label: gt("download.button"), Href: s.links.Referrals(rs.HubToken(s.ws.ID, c.ContactID, h.now()))}})
+		h.growMessage(w, r, s, http.StatusGone, s.gt("download.title"), s.gt("download.text"),
+			[]action{{Label: s.gt("download.button"), Href: s.links.Referrals(rs.HubToken(s.ws.ID, c.ContactID, h.now()))}})
 		return
 	}
 	if err != nil {
@@ -620,12 +629,15 @@ func (h *Handler) boardPage(w http.ResponseWriter, r *http.Request) {
 	var me *uuid.UUID
 	var meName string
 	token := chi.URLParam(r, "token")
-	if token != "" {
+	if token == "" {
+		h.linkLang(w, r, s, linktoken.Claims{})
+	} else {
 		c, ok := h.claims(s, token, linktoken.ReferralHub)
 		if !ok || rs.HubExpired(c) {
 			h.notFound(w, r, s)
 			return
 		}
+		h.linkLang(w, r, s, c)
 		hv, err := rs.Hub(ctx, s.ws, c.ContactID, token, nil)
 		if err != nil {
 			h.notFound(w, r, s)
@@ -657,7 +669,7 @@ func (h *Handler) boardPage(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, s, err)
 		return
 	}
-	h.growPage(w, r, s, "grow-board", http.StatusOK, gt("board.title")+" · "+s.set.Branding.PublisherName, b, token != "")
+	h.growPage(w, r, s, "grow-board", http.StatusOK, s.gt("board.title")+" · "+s.set.Branding.PublisherName, b, token != "")
 }
 
 // boardBody is the leaderboard of a program; me is the referrer whose hub
@@ -679,30 +691,30 @@ func (h *Handler) boardBody(ctx context.Context, s *site, rs *referrals.Service,
 	b := boardBody{ListName: list, Month: month, MonthHref: base + "?period=month", AllHref: base, Empty: len(lb.Rows) == 0}
 	now := h.now()
 	if started != nil && lb.ComputedAt != nil {
-		b.Since = gt("board.since", "date", shortDate(*started, now), "time", lb.ComputedAt.In(location(s.ws)).Format("15:04"))
+		b.Since = s.gt("board.since", "date", s.shortDate(*started, now), "time", lb.ComputedAt.In(location(s.ws)).Format("15:04"))
 	}
 	for _, row := range lb.Rows {
 		name := row.Name
 		if name == "" {
-			name = gt("board.anon")
+			name = s.gt("board.anon")
 		}
 		b.Rows = append(b.Rows, boardRow{Rank: row.Rank, Name: name, Counted: row.Counted, Me: row.Me})
 	}
-	b.ListLabel = gt("board.listLabel", "count", len(b.Rows))
+	b.ListLabel = s.gt("board.listLabel", "count", len(b.Rows))
 	if lb.More > 0 {
-		b.More = gt("board.more", "count", lb.More, "referrals", lb.MoreCount)
+		b.More = s.gt("board.more", "count", lb.More, "referrals", lb.MoreCount)
 	}
 	if me != nil {
 		b.HubURL = s.links.Referrals(token)
 		if lb.Me != nil {
-			b.Me = &boardRow{Rank: lb.Me.Rank, Name: gt("board.you"), Counted: lb.Me.Counted, Me: true}
+			b.Me = &boardRow{Rank: lb.Me.Rank, Name: s.gt("board.you"), Counted: lb.Me.Counted, Me: true}
 			if meName != "" {
-				b.MeText = gt("board.youNamed", "name", meName)
+				b.MeText = s.gt("board.youNamed", "name", meName)
 			} else {
-				b.MeText = gt("board.youAnon")
+				b.MeText = s.gt("board.youAnon")
 			}
 		} else {
-			b.MeText = gt("board.youNone")
+			b.MeText = s.gt("board.youNone")
 		}
 	}
 	return b, nil

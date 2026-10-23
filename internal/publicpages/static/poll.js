@@ -6,16 +6,36 @@
 (function () {
   'use strict';
 
+  // Numbers as the page's language writes them ("1,234", "1.234").
+  var numbers = null;
+  try {
+    numbers = new Intl.NumberFormat(document.documentElement.lang || 'en');
+  } catch (e) {
+    numbers = null;
+  }
+  function fmt(n) {
+    return numbers ? numbers.format(n) : String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  // A counter's words come with the page ("{n} of 500"), in its language.
   function counters(root) {
     root.querySelectorAll('[data-count]').forEach(function (out) {
       var id = out.id;
       var box = root.querySelector('[aria-describedby~="' + id + '"]');
       if (!box) return;
       var max = Number(out.getAttribute('data-count'));
-      var fmt = function (n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); };
-      var update = function () { out.textContent = fmt(Array.from(box.value).length) + ' of ' + fmt(max) + (max > 500 ? ' characters' : ''); };
+      var tpl = out.getAttribute('data-tpl');
+      var update = function () {
+        var n = fmt(Array.from(box.value).length);
+        out.textContent = tpl ? tpl.replace('{n}', n) : n + ' of ' + fmt(max) + (max > 500 ? ' characters' : '');
+      };
       box.addEventListener('input', update);
     });
+  }
+
+  // The page's own words for what the script says, in its language.
+  function words(main, name, english) {
+    return main.getAttribute('data-' + name) || english;
   }
 
   function whenVisible(fn) {
@@ -69,11 +89,11 @@
       .catch(function () {
         buttons.forEach(function (b) { b.disabled = false; });
         main.setAttribute('data-state', 'error');
-        status(main, "We couldn't save your answer. Nothing was recorded. Check your connection and try again.", 'error');
+        status(main, words(main, 'failed', "We couldn't save your answer. Nothing was recorded. Check your connection and try again."), 'error');
         if (confirm) {
           confirm.hidden = false;
           var btn = confirm.querySelector('button');
-          if (btn) btn.textContent = 'Try again';
+          if (btn) btn.textContent = words(main, 'retry', 'Try again');
         }
       });
   }
@@ -92,7 +112,7 @@
         send(form, main);
       });
       if (state === 'pending') {
-        status(main, 'Saving your answer…', 'neutral');
+        status(main, words(main, 'saving', 'Saving your answer…'), 'neutral');
         whenVisible(function () { setTimeout(function () { send(form, main); }, 900); });
       }
     }

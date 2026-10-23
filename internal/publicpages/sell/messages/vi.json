@@ -156,5 +156,9 @@
   "gone.textPlain": "Trang đã bị gỡ khỏi trang web.",
   "confirm.download.pages": "{count, plural, other {# trang}}",
   "confirm.download.button": "Tải xuống ({kind}, {size})",
-  "confirm.download.note": "{days, plural, other {Liên kết tải xuống trên trang này có hiệu lực trong # ngày.}}"
+  "confirm.download.note": "{days, plural, other {Liên kết tải xuống trên trang này có hiệu lực trong # ngày.}}",
+
+  "files.kindSize": "{kind}, {size}",
+  "files.kindPages": "{kind}, {count, plural, other {# trang}}",
+  "files.kindPagesSize": "{kind}, {count, plural, other {# trang}}, {size}"
 }

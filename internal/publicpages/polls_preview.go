@@ -76,12 +76,14 @@ func (h *Handler) previewSite(ctx context.Context, ws *store.Workspace) (*site, 
 func (h *Handler) PollPreview(ctx context.Context, ws *store.Workspace, in PollPagePreviewInput) (PublicPagePreview, error) {
 	cfg, err := polls.ParseConfig(in.Config)
 	if err != nil {
-		return PublicPagePreview{}, api.Invalid("body.config", "The poll's settings couldn't be read. Reload the composer.")
+		return PublicPagePreview{}, appInvalid(ctx, "body.config", "pollSettings")
 	}
 	s, err := h.previewSite(ctx, ws)
 	if err != nil {
 		return PublicPagePreview{}, err
 	}
+	// The page as most readers see it: in the default language.
+	h.fixedLang(ctx, s, "", nil)
 	answers := cfg.AnswerList()
 	first := 0
 	if len(answers) > 0 {
@@ -109,6 +111,7 @@ func (h *Handler) PollPreview(ctx context.Context, ws *store.Workspace, in PollP
 	}
 	b := h.pollView(s, "preview", page, true)
 	v := h.view(s, cfg.Question+" · "+s.set.Branding.PublisherName, b)
+	h.setLangCtx(v, ctx, s, s.page())
 	v.Preview = true
 	out, err := h.html("poll", v)
 	if err != nil {
@@ -123,6 +126,7 @@ func (h *Handler) SurveyPreview(ctx context.Context, ws *store.Workspace, in Sur
 	if err != nil {
 		return PublicPagePreview{}, err
 	}
+	h.fixedLang(ctx, s, "", nil)
 	qs := in.Questions
 	if qs == nil {
 		qs = []polls.SurveyQuestion{}
@@ -134,6 +138,7 @@ func (h *Handler) SurveyPreview(ctx context.Context, ws *store.Workspace, in Sur
 		FirstName: "Priya", Email: "priya@example.com", Answers: map[string]any{}}
 	b := h.surveyView(s, page, "")
 	v := h.view(s, in.Name+" · "+s.set.Branding.PublisherName, b)
+	h.setLangCtx(v, ctx, s, s.page())
 	v.Preview = true
 	out, err := h.html("survey", v)
 	if err != nil {

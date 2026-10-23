@@ -50,7 +50,7 @@ func purchasesSection(ctx context.Context, ws *store.Workspace, contactID uuid.U
 			f := fs[0].DownloadFile
 			file = products.KindLabel(f.Kind, f.Name)
 			if f.Pages != nil && len(fs) == 1 {
-				file = v.S("dl.filePages", "kind", file, "count", int(*f.Pages), "size", products.HumanSize(f.SizeBytes))
+				file = v.S("dl.filePages", "kind", file, "count", int(*f.Pages), "size", v.size(f.SizeBytes))
 			}
 		}
 		amount := products.MoneyShort(o.AmountCents, o.Currency)

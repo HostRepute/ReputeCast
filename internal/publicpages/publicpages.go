@@ -284,6 +284,50 @@ type site struct {
 	preview bool
 	// copy is the pages' copy in every language (copyOf).
 	copy *forms.PagesCopy
+	// pl is the page's language once it is picked (languages.go): the
+	// words outside the built-in labels (Grow's, the answer pages') follow
+	// it.
+	pl *pageLang
+}
+
+// formUnreadable is the plain-text answer to a form that arrived broken, in
+// the page's language.
+func (h *Handler) formUnreadable(r *http.Request, s *site) string {
+	return sellMsgs.M("shop.formUnreadable").Text(h.visitorLang(nil, r, s, nil).Labels.Lang(), nil)
+}
+
+// browserLabels are the built-in labels in the browser's language, for an
+// answer without a workspace (so without page languages to pick from).
+func browserLabels(r *http.Request) pagelabels.Set {
+	for _, code := range audience.BrowserLanguages(r.Header.Get("Accept-Language")) {
+		if pagelabels.Shipped(code) {
+			return pagelabels.For(code, nil)
+		}
+	}
+	return pagelabels.English()
+}
+
+// lang is how the page's language writes, for the words outside the
+// built-in labels: English with ReputeCast's formats until one is picked.
+func (s *site) lang() i18n.Lang {
+	if s.pl == nil {
+		return pagelabels.English().Lang()
+	}
+	return s.pl.Labels.Lang()
+}
+
+// page is the page's language, English until one is picked.
+func (s *site) page() pageLang {
+	if s.pl == nil {
+		return pageLang{Code: "en", Labels: pagelabels.English()}
+	}
+	return *s.pl
+}
+
+// use remembers the language picked for the page.
+func (s *site) use(pl pageLang) pageLang {
+	s.pl = &pl
+	return pl
 }
 
 var errNoSite = errors.New("publicpages: no such workspace")
@@ -583,7 +627,7 @@ func (h *Handler) notFound(w http.ResponseWriter, r *http.Request, s *site) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Header().Set("X-Robots-Tag", "noindex")
 		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte("This page doesn't exist.\n"))
+		_, _ = w.Write([]byte(growMsgs.M("page.missing").Text(browserLabels(r).Lang(), nil) + "\n"))
 		return
 	}
 	pl := h.visitorLang(w, r, s, nil)
@@ -598,7 +642,7 @@ func (h *Handler) notFound(w http.ResponseWriter, r *http.Request, s *site) {
 func (h *Handler) serverError(w http.ResponseWriter, r *http.Request, s *site, err error) {
 	h.log().ErrorContext(r.Context(), "public page", "path", r.URL.Path, "err", err)
 	if s == nil {
-		http.Error(w, "Something went wrong on our side. Nothing was changed; try again in a minute.", http.StatusInternalServerError)
+		http.Error(w, browserLabels(r).Text("page.error.text", nil), http.StatusInternalServerError)
 		return
 	}
 	pl := h.visitorLang(w, r, s, nil)

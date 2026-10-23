@@ -2,7 +2,6 @@ package publicpages
 
 import (
 	"context"
-	"net/http"
 	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -50,7 +49,7 @@ func registerSitePreviews(h huma.API, p *Handler) {
 		func(ctx context.Context, in *postPreviewInput) (*api.Body[PublicPagePreview], error) {
 			id, err := uuid.Parse(in.Post)
 			if err != nil {
-				return nil, api.NotFound("Post")
+				return nil, appNotFound(ctx, "post")
 			}
 			out, err := p.PostPreview(ctx, api.WorkspaceFrom(ctx), id, in.Body.As, in.Body.Tier)
 			return api.OK(out), err
@@ -67,7 +66,7 @@ func registerSitePreviews(h huma.API, p *Handler) {
 // Home & navigation settings (the tab's live preview). Nothing is saved.
 func (h *Handler) HomePreview(ctx context.Context, ws *store.Workspace, in website.WebsiteHomeNavInput) (PublicPagePreview, error) {
 	if h.Website == nil {
-		return PublicPagePreview{}, api.Err(http.StatusServiceUnavailable, "unavailable", "The website isn't available on this server.")
+		return PublicPagePreview{}, appUnavailable(ctx, "websiteUnavailable")
 	}
 	ctx, err := h.Website.WithHomeNavDraft(ctx, ws, in)
 	if err != nil {
@@ -104,7 +103,7 @@ func (h *Handler) HomePreview(ctx context.Context, ws *store.Workspace, in websi
 // workspace's default language.
 func (h *Handler) PostPreview(ctx context.Context, ws *store.Workspace, id uuid.UUID, as, tier string) (PublicPagePreview, error) {
 	if h.Website == nil {
-		return PublicPagePreview{}, api.Err(http.StatusServiceUnavailable, "unavailable", "The website isn't available on this server.")
+		return PublicPagePreview{}, appUnavailable(ctx, "websiteUnavailable")
 	}
 	s, err := h.previewSite(ctx, ws)
 	if err != nil {

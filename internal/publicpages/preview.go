@@ -72,7 +72,7 @@ func (h *Handler) Preview(ctx context.Context, ws *store.Workspace, page, form, 
 	if draft != "" {
 		var d forms.PublicPageInput
 		if err := json.Unmarshal([]byte(draft), &d); err != nil {
-			return PublicPagePreview{}, api.Invalid("draft", "The unsaved options couldn't be read. Reload the page.")
+			return PublicPagePreview{}, appInvalid(ctx, "draft", "draftUnreadable")
 		}
 		if set, err = h.Forms.WithDraft(ctx, set, d); err != nil {
 			return PublicPagePreview{}, err
@@ -140,7 +140,7 @@ func (h *Handler) Preview(ctx context.Context, ws *store.Workspace, page, form, 
 			}
 			v = h.view(s, pageTitle(pl, s, "unsub.title"), body)
 		default:
-			return out, api.NotFound("Public page")
+			return out, appNotFound(ctx, "publicPage")
 		}
 		h.setLangCtx(v, ctx, s, pl)
 	}
@@ -161,11 +161,11 @@ func (h *Handler) previewForm(ctx context.Context, s *site, form string) (forms.
 	}
 	id, err := uuid.Parse(form)
 	if err != nil {
-		return forms.Config{}, false, api.NotFound("Form")
+		return forms.Config{}, false, appNotFound(ctx, "form")
 	}
 	f, err := h.Q.FormGet(ctx, store.FormGetParams{WorkspaceID: s.ws.ID, ID: id})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return forms.Config{}, false, api.NotFound("Form")
+		return forms.Config{}, false, appNotFound(ctx, "form")
 	}
 	if err != nil {
 		return forms.Config{}, false, err
@@ -182,7 +182,7 @@ func (h *Handler) previewContact(ctx context.Context, s *site, email string) (au
 		return audience.PublicContact{}, err
 	}
 	if !ok && email != "" {
-		return audience.PublicContact{}, api.Invalid("contact", "No contact has that address. Leave it empty to preview with the latest subscriber.")
+		return audience.PublicContact{}, appInvalid(ctx, "contact", "noContact")
 	}
 	if email == "" && s.set.Pages.PreviewEmail != "" {
 		if pid, found, err := h.Audience.FindPublicContact(ctx, h.Q, s.ws, s.set.Pages.PreviewEmail); err == nil && found {

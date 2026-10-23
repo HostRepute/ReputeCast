@@ -92,6 +92,15 @@ func (h *Handler) messageLang(w http.ResponseWriter, r *http.Request, s *site, c
 	return h.contactLang(w, r, s, code)
 }
 
+// oneClickDone answers a mail app's one-click unsubscribe (RFC 8058) that
+// worked: "Unsubscribed.", in the page's language.
+func oneClickDone(w http.ResponseWriter, pl pageLang) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(pl.Labels.Text("unsub.done.title", nil) + ".\n"))
+}
+
 // productTitle is the browser tab's title of a product's page: "Email
 // preferences · Acme Cloud".
 func productTitle(l pagelabels.Set, heading, product string) string {
@@ -267,7 +276,7 @@ func (h *Handler) categoryPost(w http.ResponseWriter, r *http.Request, s *site, 
 	m, ok, err := h.transactionalMessage(r.Context(), s, c)
 	if err != nil {
 		h.log().ErrorContext(r.Context(), "category unsubscribe", "err", err)
-		http.Error(w, "Couldn't change it right now; try again in a minute.", http.StatusInternalServerError)
+		http.Error(w, growText(h.visitorLang(nil, r, s, nil).Labels.Lang(), "oneClick.changeFailed"), http.StatusInternalServerError)
 		return true
 	}
 	if !ok {
@@ -279,7 +288,7 @@ func (h *Handler) categoryPost(w http.ResponseWriter, r *http.Request, s *site, 
 		if oneClick {
 			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("Account emails can't be turned off.\n"))
+			_, _ = w.Write([]byte(growText(h.visitorLang(nil, r, s, nil).Labels.Lang(), "oneClick.locked") + "\n"))
 			return true
 		}
 		h.notFound(w, r, s)
@@ -293,13 +302,10 @@ func (h *Handler) categoryPost(w http.ResponseWriter, r *http.Request, s *site, 
 		})
 		if err != nil {
 			h.log().ErrorContext(r.Context(), "one-click category unsubscribe", "err", err)
-			http.Error(w, "Couldn't unsubscribe right now; try again in a minute.", http.StatusInternalServerError)
+			http.Error(w, h.visitorLang(nil, r, s, nil).Labels.Text("unsub.failed", nil), http.StatusInternalServerError)
 			return true
 		}
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.Header().Set("Cache-Control", "no-store")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("Unsubscribed.\n"))
+		oneClickDone(w, h.visitorLang(nil, r, s, nil))
 		return true
 	}
 	switch f.Get("action") {

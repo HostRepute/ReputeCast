@@ -2,20 +2,20 @@
   {{template "brand" $}}
   {{if eq .State "closed"}}<div class="col6"><span class="pkick">{{.Kicker}}</span><h1 class="ph1">{{.Heading}}</h1></div>
   <div class="pstat neutral" role="status"><div>{{.Text}}</div></div>
-  <div class="btns"><a class="btn-sm" href="{{.Back}}">Back to the newsletter</a></div>
+  <div class="btns"><a class="btn-sm" href="{{.Back}}">{{$.G "survey.back"}}</a></div>
   {{else if eq .State "refused"}}<div class="col6"><span class="pkick">{{.Kicker}}</span><h1 class="ph1">{{.Heading}}</h1></div>
   <p class="lead">{{.Text}}</p>
-  <div class="btns"><a class="btn-sm" href="{{.Join}}">Join the newsletter</a></div>
+  <div class="btns"><a class="btn-sm" href="{{.Join}}">{{$.G "survey.join"}}</a></div>
   {{else if eq .State "done"}}<div class="headrow">
     <svg class="tick" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19"></circle><path d="m12 20.5 5.5 5.5L28 15" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg>
     <h1 class="h26">{{.DoneTitle}}</h1>
   </div>
   <p class="lead" role="status">{{.DoneText}}</p>
-  <div class="btns">{{with .ChangeURL}}<a class="btn-sm" href="{{.}}">Change my answers</a>{{end}}<a class="btn-ghost" href="{{.Back}}">Back to the newsletter</a></div>
-  {{else}}<div class="col6"><span class="pkick">{{.Kicker}}{{if .Test}} <span class="tag">Test email</span>{{end}}</span><h1 class="ph1">{{.Name}}</h1>{{with .Description}}<p class="lead">{{.}}</p>{{end}}{{with .Answering}}<span class="t13">{{.}}</span>{{end}}</div>
+  <div class="btns">{{with .ChangeURL}}<a class="btn-sm" href="{{.}}">{{$.G "survey.changeAnswers"}}</a>{{end}}<a class="btn-ghost" href="{{.Back}}">{{$.G "survey.back"}}</a></div>
+  {{else}}<div class="col6"><span class="pkick">{{.Kicker}}{{if .Test}} <span class="tag">{{$.G "poll.testTag"}}</span>{{end}}</span><h1 class="ph1">{{.Name}}</h1>{{with .Description}}<p class="lead">{{.}}</p>{{end}}{{with .Answering}}<span class="t13">{{.}}</span>{{end}}</div>
   {{with .Errors}}<div class="perr" role="alert" id="errors" tabindex="-1"><div><b>{{$.Body.ErrorTitle}}</b><ul class="elist">{{range .}}<li><a href="{{.Href}}">{{.Text}}</a></li>{{end}}</ul></div></div>{{end}}
   {{with .Intro}}<div class="pstat {{$.Body.IntroTone}}" role="status"><div>{{.}}</div></div>{{end}}
-  <form class="qs" method="post" action="{{.Action}}" novalidate aria-label="Survey questions">
+  <form class="qs" method="post" action="{{.Action}}" novalidate aria-label="{{$.G "survey.questionsLabel"}}">
     {{range $q := .Questions}}{{if or (eq $q.Type "short") (eq $q.Type "long")}}<div class="qb{{if $q.Error}} bad{{end}}" id="{{$q.Key}}">
       <span class="qn">{{$q.Label}}</span>
       <label class="qt" for="{{$q.Key}}-in">{{$q.Text}}</label>
@@ -23,9 +23,9 @@
       {{with $q.Error}}<span class="err" id="{{$q.Key}}-err">{{.}}</span>{{end}}
       {{if eq $q.Type "short"}}<input class="in h44" type="text" id="{{$q.Key}}-in" name="{{$q.Key}}" value="{{$q.Text1}}" maxlength="{{$q.Max}}"{{if $q.Required}} aria-required="true"{{end}}{{if $q.Error}} aria-invalid="true" aria-describedby="{{$q.Key}}-err"{{end}}>
       {{else}}<textarea class="pta" id="{{$q.Key}}-in" name="{{$q.Key}}" maxlength="{{$q.Max}}" aria-describedby="{{$q.Key}}-n{{if $q.Error}} {{$q.Key}}-err{{end}}"{{if $q.Required}} aria-required="true"{{end}}{{if $q.Error}} aria-invalid="true"{{end}}>{{$q.Text1}}</textarea>
-      <span class="t13" id="{{$q.Key}}-n" data-count="{{$q.Max}}">{{$q.Count}}</span>{{end}}
+      <span class="t13" id="{{$q.Key}}-n" data-count="{{$q.Max}}" data-tpl="{{$q.CountTpl}}">{{$q.Count}}</span>{{end}}
     </div>{{else}}<fieldset class="qb{{if $q.Error}} bad{{end}}" id="{{$q.Key}}"{{if $q.Error}} aria-describedby="{{$q.Key}}-err"{{end}}>
-      <legend><span class="qn">{{$q.Label}}</span><span class="qt">{{$q.Text}}</span>{{if $q.FromPoll}} <span class="from">From your answer in the email</span>{{end}}</legend>
+      <legend><span class="qn">{{$q.Label}}</span><span class="qt">{{$q.Text}}</span>{{if $q.FromPoll}} <span class="from">{{$.G "survey.fromYourAnswer"}}</span>{{end}}</legend>
       {{with $q.Description}}<span class="t13">{{.}}</span>{{end}}
       {{with $q.Error}}<span class="err" id="{{$q.Key}}-err">{{.}}</span>{{end}}
       {{if eq $q.Type "scale"}}<div class="scale">{{range $q.Options}}<label class="cell"><input class="vh" type="radio" name="{{$q.Key}}" value="{{.Value}}"{{if .Checked}} checked{{end}} aria-label="{{.Aria}}"><span aria-hidden="true">{{.Label}}</span></label>{{end}}</div>
@@ -34,11 +34,11 @@
       {{else if eq $q.Type "multi"}}<div class="col8">{{range $q.Options}}<label class="chk"><input type="checkbox" name="{{$q.Key}}" value="{{.Value}}"{{if .Checked}} checked{{end}}><span>{{.Label}}</span></label>{{end}}</div>
       {{else}}<div class="opts">{{range $q.Options}}<label class="popt"><input class="vh" type="radio" name="{{$q.Key}}" value="{{.Value}}"{{if .Checked}} checked{{end}}><span class="ol">{{.Label}}</span></label>{{end}}</div>{{end}}
     </fieldset>{{end}}{{end}}
-    <div class="col8 send"><div class="btns"><button class="btn-sm" type="submit"{{if $.Preview}} disabled{{end}}>{{.Submit}}</button>{{with .Keep}}<a class="btn-ghost" href="{{.}}">Keep my earlier answers</a>{{end}}</div>{{with .Until}}<span class="t13">{{.}}</span>{{end}}</div>
+    <div class="col8 send"><div class="btns"><button class="btn-sm" type="submit"{{if $.Preview}} disabled{{end}}>{{.Submit}}</button>{{with .Keep}}<a class="btn-ghost" href="{{.}}">{{$.G "survey.keep"}}</a>{{end}}</div>{{with .Until}}<span class="t13">{{.}}</span>{{end}}</div>
   </form>{{end}}
 </main>{{end}}{{end}}
 {{define "foot"}}<footer class="foot">
-  {{- with .Privacy}}<a href="{{.}}">Privacy</a>{{template "sep"}}{{end}}
-  {{- with .Body.Footer.Preferences}}<a href="{{.}}">Email preferences</a>{{end}}
+  {{- with .Privacy}}<a href="{{.}}">{{$.T "page.privacy"}}</a>{{template "sep"}}{{end}}
+  {{- with .Body.Footer.Preferences}}<a href="{{.}}">{{$.T "page.preferences"}}</a>{{end}}
   {{- if .PoweredBy}}{{template "sep"}}{{end}}
   {{- template "rcplain" .}}</footer>{{end}}

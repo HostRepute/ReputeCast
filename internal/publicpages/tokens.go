@@ -752,7 +752,7 @@ func (h *Handler) unsubscribePost(w http.ResponseWriter, r *http.Request) {
 	token := chi.URLParam(r, "token")
 	if h.placementCopy(r, s, token, linktoken.Unsubscribe) {
 		if h.parseForm(w, r, 16<<10) && r.PostForm.Get("List-Unsubscribe") == "One-Click" {
-			placementOneClick(w)
+			h.placementOneClick(w, r, s)
 			return
 		}
 		h.placementNotice(w, r, s)
@@ -775,13 +775,10 @@ func (h *Handler) unsubscribePost(w http.ResponseWriter, r *http.Request) {
 		_, err := h.unsubscribe(r.Context(), s, c, h.evidence(r, audience.SourceOneClick), "one_click", "")
 		if err != nil && !errors.Is(err, audience.ErrContactGone) {
 			h.log().ErrorContext(r.Context(), "one-click unsubscribe", "err", err)
-			http.Error(w, "Couldn't unsubscribe right now; try again in a minute.", http.StatusInternalServerError)
+			http.Error(w, h.visitorLang(nil, r, s, nil).Labels.Text("unsub.failed", nil), http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.Header().Set("Cache-Control", "no-store")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("Unsubscribed.\n"))
+		oneClickDone(w, h.visitorLang(nil, r, s, nil))
 		return
 	}
 	pc, err := h.Audience.LoadPublicContact(r.Context(), h.Q, s.ws, c.ContactID)
