@@ -89,6 +89,7 @@ var (
 	mImageDecode       = msgs.M("image.decode")
 
 	mNewSegment       = msgs.M("activity.newSegment")
+	mOnField          = msgs.M("activity.onField")
 	mDetailRateLimit  = msgs.M("activity.rateLimited")
 	mDetailTimedOut   = msgs.M("activity.timedOut")
 	mDetailUnreach    = msgs.M("activity.unreachable")
@@ -188,10 +189,18 @@ const (
 )
 
 // onIn is what a request was on, for a reader: a campaign's or segment's
-// name stays as it is; a segment without one yet is named in their words.
-func onIn(l i18n.Lang, kind string, target *uuid.UUID, label string) string {
+// name stays as it is; a segment without one yet is named in their words,
+// and so is the field a rewrite was on ("Weekly Digest #143 subject").
+func onIn(l i18n.Lang, feature, kind string, target *uuid.UUID, label string) string {
 	if kind == "segment" && target == nil && label == newSegmentLabel {
 		return mNewSegment.Text(l, nil)
+	}
+	if feature == FeatureRewrite && kind == "campaign" {
+		for _, field := range []string{"subject", "preheader"} {
+			if name, ok := strings.CutSuffix(label, " "+field); ok && name != "" {
+				return mOnField.Text(l, i18n.Args{"name": name, "field": field})
+			}
+		}
 	}
 	return label
 }

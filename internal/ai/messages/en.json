@@ -59,6 +59,7 @@
   "problem.campaignId": { "message": "Name the campaign.", "note": "a request without the campaign it is about" },
   "problem.suggestionId": { "message": "Name the suggestion.", "note": "a request without the suggestion it keeps or accepts" },
   "activity.newSegment": { "message": "New segment", "note": "the AI activity log's “On” column, for a segment not saved yet" },
+  "activity.onField": { "message": "{name} {field, select, subject {subject} other {preheader}}", "note": "the AI activity log's “On” column for a rewrite of a campaign's subject or preheader; name: the campaign's name" },
   "activity.rateLimited": { "message": "rate limited", "note": "why a request failed, after “Error ·” in the AI activity log" },
   "activity.timedOut": "timed out",
   "activity.unreachable": "unreachable",

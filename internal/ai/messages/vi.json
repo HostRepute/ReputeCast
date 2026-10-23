@@ -59,6 +59,7 @@
   "problem.campaignId": "Hãy cho biết chiến dịch.",
   "problem.suggestionId": "Hãy cho biết gợi ý.",
   "activity.newSegment": "Phân khúc mới",
+  "activity.onField": "{field, select, subject {Tiêu đề} other {Dòng xem trước}} của {name}",
   "activity.rateLimited": "bị giới hạn tần suất",
   "activity.timedOut": "hết thời gian chờ",
   "activity.unreachable": "không kết nối được",

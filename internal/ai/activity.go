@@ -143,7 +143,7 @@ func (s *Service) Activity(ctx context.Context, ws *store.Workspace, f AIActivit
 			break
 		}
 		row := AIActivityRow{ID: r.ID.String(), At: r.CreatedAt, Member: r.UserName, MemberColor: r.UserColor, Feature: r.Feature, Action: r.Action, TargetKind: r.TargetKind,
-			On: onIn(l, r.TargetKind, r.TargetID, r.TargetLabel), Provider: r.Provider, Model: r.Model, InputTokens: int64(r.InputTokens), OutputTokens: int64(r.OutputTokens),
+			On: onIn(l, r.Feature, r.TargetKind, r.TargetID, r.TargetLabel), Provider: r.Provider, Model: r.Model, InputTokens: int64(r.InputTokens), OutputTokens: int64(r.OutputTokens),
 			Tokens: int64(r.InputTokens) + int64(r.OutputTokens), CostMicros: r.CostMicros, Outcome: r.Outcome, Detail: detailIn(l, r.OutcomeDetail)}
 		if row.Member == "" {
 			row.Member = r.UserEmail
