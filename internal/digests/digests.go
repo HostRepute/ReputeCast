@@ -106,7 +106,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if err != nil {
 		return DigestDetail{}, err
 	}
-	// The name, subject and preheader are the email's words, in its language.
+	// The name, subject, preheader and starter content are the email's words, in its language.
 	el := emailLang(ctx, s.Q, ws.ID, nil)
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
@@ -129,7 +129,7 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	now := s.now()
 	by := actorID(p)
 	sched, _ := json.Marshal(DefaultSchedule(ws.Timezone))
-	mjmlSrc, _ := templates.StarterMJML(templates.BlogDigestStarter, templates.WorkspaceAddress(ws))
+	mjmlSrc, _ := templates.StarterMJMLIn(el, templates.BlogDigestStarter, templates.WorkspaceAddress(ws))
 	subject := starterSubjectIn(el)
 	preheader := starterPreheaderIn(el, hostOf(feedURL))
 	html := mjml.Compile(mjmlSrc).HTML

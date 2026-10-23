@@ -1,10 +1,12 @@
 package digests
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/templates"
 )
 
 // What the starter writes in English stays exactly as it always was, and
@@ -32,5 +34,14 @@ func TestStarterTextByLanguage(t *testing.T) {
 		if c.got != c.want {
 			t.Errorf("%s: %q, want %q", c.name, c.got, c.want)
 		}
+	}
+}
+
+// A new digest's starter email is written in the email's language, its
+// Feed items button included.
+func TestStarterContentInTheEmailsLanguage(t *testing.T) {
+	src, ok := templates.StarterMJMLIn(i18n.For(i18n.Vietnamese), templates.BlogDigestStarter, "")
+	if !ok || strings.Contains(src, "%%") || !strings.Contains(src, `"buttonText":"Đọc bài viết"`) {
+		t.Fatalf("Vietnamese starter: %v %s", ok, src)
 	}
 }
