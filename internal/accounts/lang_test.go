@@ -111,7 +111,7 @@ func TestAccountOverviewInVietnamese(t *testing.T) {
 		t.Errorf("leave reason: %v", w["leaveReason"])
 	}
 	n := a["notifications"].(map[string]any)
-	if n["inApp"] != "Tất cả sự kiện" || n["email"] != "Phê duyệt, tự tạm dừng, nhà cung cấp gặp sự cố, cảnh báo HostRepute, sự cố tích hợp, bản nháp bài viết, cảnh báo gửi email giao dịch, sự cố SMTP relay, held digest issues, paused digests, failing digest feeds, digest drafts, AI usage notices, rejected AI keys, payment problems, sponsor creatives, verification jobs, low verification credits, seed sign-in failures, website domain problems, failed product deliveries, order disputes, held referrals, reward codes running low, failing reward webhooks, partner link problems, SMS budget alerts, sender registrations, SMS provider problems, SMS auto-pauses, store problems, WhatsApp templates and quality" ||
+	if n["inApp"] != "Tất cả sự kiện" || n["email"] != "Phê duyệt, tự tạm dừng, nhà cung cấp gặp sự cố, cảnh báo HostRepute, sự cố tích hợp, bản nháp bài viết, cảnh báo gửi email giao dịch, sự cố SMTP relay, kỳ bản tin bị tạm giữ, bản tin định kỳ tạm dừng, nguồn bản tin định kỳ bị lỗi, bản nháp kỳ bản tin, thông báo mức dùng AI, khóa AI bị từ chối, sự cố thanh toán, nội dung quảng cáo của nhà tài trợ, lượt xác minh, credit xác minh sắp hết, lỗi đăng nhập hộp thư mẫu, sự cố tên miền trang web, giao sản phẩm thất bại, tranh chấp đơn hàng, lượt giới thiệu bị tạm giữ, mã phần thưởng sắp hết, webhook phần thưởng bị lỗi, sự cố liên kết đối tác, cảnh báo ngân sách SMS, đăng ký người gửi, sự cố nhà cung cấp SMS, SMS tự tạm dừng, sự cố cửa hàng, mẫu và chất lượng WhatsApp" ||
 		n["quietHours"] != "22:00–07:00 America/New_York, chỉ email" {
 		t.Errorf("notifications: %v", n)
 	}

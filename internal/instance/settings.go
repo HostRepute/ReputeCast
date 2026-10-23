@@ -23,6 +23,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/applang"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -81,6 +82,8 @@ func (s *Service) Settings(ctx context.Context) (InstanceSettings, error) {
 			if st.PublicUrlCheckedAt != nil {
 				c.CheckedAt = *st.PublicUrlCheckedAt
 			}
+			// The check was stored in English with its lines' messages.
+			c = c.In(i18n.LangFrom(ctx))
 			out.URLCheck = &c
 		}
 	}
@@ -221,6 +224,7 @@ func (s *Service) CheckURL(ctx context.Context, in InstanceURLCheckInput) (Insta
 			return out, err
 		}
 	}
+	res = res.In(i18n.LangFrom(ctx))
 	out.URLCheck = &res
 	return out, nil
 }

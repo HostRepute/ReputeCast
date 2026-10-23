@@ -3,11 +3,12 @@ package accounts
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,14 +36,14 @@ func (s *Service) ChangePassword(ctx context.Context, current, next string) erro
 	if u.PasswordHash != nil {
 		ok, err := authn.VerifyPassword(current, *u.PasswordHash)
 		if err != nil || !ok {
-			return api.Invalid("body.current", "Your current password isn't right.")
+			return api.Invalid("body.current", say(ctx, msgs.M("problem.currentPassword")))
 		}
 	}
 	if p := authn.PasswordProblem(next, int(pol.PasswordMinLength)); p != "" {
 		return api.Invalid("body.password", p)
 	}
 	if current == next {
-		return api.Invalid("body.password", "Choose a password different from the current one.")
+		return api.Invalid("body.password", say(ctx, msgs.M("problem.samePassword")))
 	}
 	if used, err := passwordreuse.Used(ctx, s.Q, u.ID, u.PasswordHash, next, pol.PasswordReuse); err != nil {
 		return err
@@ -51,7 +52,7 @@ func (s *Service) ChangePassword(ctx context.Context, current, next string) erro
 	}
 	if pol.BreachedCheck {
 		if hit, err := s.Breach.Breached(ctx, next); err == nil && hit {
-			return api.Invalid("body.password", "This password appears in known data breaches. Choose another one.")
+			return api.Invalid("body.password", say(ctx, mBreached))
 		}
 	}
 	hash, err := authn.HashPassword(next)
@@ -120,7 +121,7 @@ func (s *Service) ConfirmTOTP(ctx context.Context, challenge, code string) (Reco
 	u := api.UserFrom(ctx)
 	ch, err := s.Q.GetChallenge(ctx, store.GetChallengeParams{TokenHash: authn.HashToken(challenge), Kind: "totp_setup"})
 	if err != nil || ch.UserID == nil || *ch.UserID != u.ID {
-		return RecoveryCodes{}, api.Err(http.StatusBadRequest, "challenge_expired", "This setup expired. Start again.")
+		return RecoveryCodes{}, api.Err(http.StatusBadRequest, "challenge_expired", say(ctx, msgs.M("problem.setupExpired")))
 	}
 	var data struct {
 		Secret []byte `json:"secret"`
@@ -133,7 +134,7 @@ func (s *Service) ConfirmTOTP(ctx context.Context, challenge, code string) (Reco
 		return RecoveryCodes{}, err
 	}
 	if !authn.VerifyTOTP(secret, code, s.now()) {
-		return RecoveryCodes{}, api.Invalid("body.code", "That code didn't work. Codes change every 30 seconds; check that your phone's clock is set automatically.")
+		return RecoveryCodes{}, api.Invalid("body.code", say(ctx, msgs.M("problem.wrongSetupCode")))
 	}
 	enc, err := s.Box.SealString(secret, totpAD(u.ID))
 	if err != nil {
@@ -162,7 +163,7 @@ func (s *Service) RegenerateRecoveryCodes(ctx context.Context) (RecoveryCodes, e
 	u := api.UserFrom(ctx)
 	if u.TotpEnabledAt == nil {
 		if pk, _ := s.Q.ListPasskeys(ctx, u.ID); len(pk) == 0 {
-			return RecoveryCodes{}, api.Conflict("Set up an authenticator app or a passkey first; recovery codes back up a second factor.")
+			return RecoveryCodes{}, api.Conflict(say(ctx, msgs.M("problem.noSecondFactor")))
 		}
 	}
 	codes := authn.NewRecoveryCodes(10)
@@ -204,20 +205,20 @@ type InstanceBasics struct {
 func (s *Service) SaveInstanceBasics(ctx context.Context, in InstanceBasics) error {
 	u, err := url.Parse(strings.TrimRight(in.PublicURL, "/"))
 	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
-		return api.Invalid("body.publicUrl", "Use the full address people open, like https://reputecast.acme.io.")
+		return api.Invalid("body.publicUrl", say(ctx, msgs.M("problem.instanceURL")))
 	}
 	if strings.TrimSpace(in.Name) == "" {
-		return api.Invalid("body.name", "Give the instance a name, like Acme ReputeCast.")
+		return api.Invalid("body.name", say(ctx, msgs.M("problem.instanceName")))
 	}
 	if _, err := time.LoadLocation(in.Timezone); err != nil {
-		return api.Invalid("body.timezone", "Unknown timezone.")
+		return api.Invalid("body.timezone", say(ctx, msgs.M("problem.timezone")))
 	}
 	before, _ := s.policy(ctx)
 	lang, region := before.DefaultLanguage, before.DefaultRegionFormat
 	if in.DefaultLanguage != "" && in.DefaultLanguage != lang {
 		l, ok := i18n.ParseLocale(in.DefaultLanguage)
 		if !ok || l == i18n.Pseudo {
-			return api.Invalid("body.defaultLanguage", "Pick a language ReputeCast is translated into.")
+			return api.Invalid("body.defaultLanguage", say(ctx, msgs.M("problem.language")))
 		}
 		lang, region = string(l), string(l.DefaultRegion())
 	}
@@ -257,27 +258,84 @@ type URLCheck struct {
 	Reachable CheckLine `json:"reachable"`
 }
 
-// CheckLine is one row of the public URL check.
+// In writes the check's lines in a reader's language, for the API: Instance
+// admin and the integrations hub store the check and read it later.
+func (c URLCheck) In(l i18n.Lang) URLCheck {
+	c.DNS, c.TLS, c.Reachable = c.DNS.In(l), c.TLS.In(l), c.Reachable.In(l)
+	return c
+}
+
+// CheckLine is one row of the public URL check. Its detail is kept as a
+// message too, stored with the check as "i18n" (not part of the API).
 type CheckLine struct {
 	Status string `json:"status" enum:"ok,warn,bad,skipped"`
 	Detail string `json:"detail"`
+	text   i18n.Text
 }
 
-// CheckPublicURL resolves the host, checks the certificate and fetches /healthz.
+// checkLine is a line in English, with its message kept.
+func checkLine(status, key string, args i18n.Args) CheckLine {
+	t := msgs.M(key).Keep(args)
+	return CheckLine{Status: status, Detail: t.In(i18n.Default), text: t}
+}
+
+// In writes the line in a reader's language (lines stored before, without
+// a message, keep their English) and drops the kept message.
+func (c CheckLine) In(l i18n.Lang) CheckLine {
+	if s := c.text.In(l); s != "" {
+		c.Detail = s
+	}
+	c.text = i18n.Text{}
+	return c
+}
+
+// MarshalJSON adds the kept message ("i18n") to the line.
+func (c CheckLine) MarshalJSON() ([]byte, error) {
+	type plain CheckLine
+	var t *i18n.Text
+	if !c.text.IsZero() {
+		t = &c.text
+	}
+	return json.Marshal(struct {
+		plain
+		I18n *i18n.Text `json:"i18n,omitempty"`
+	}{plain(c), t})
+}
+
+// UnmarshalJSON reads a line and its kept message.
+func (c *CheckLine) UnmarshalJSON(b []byte) error {
+	type plain CheckLine
+	var v struct {
+		plain
+		I18n *i18n.Text `json:"i18n"`
+	}
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	*c = CheckLine(v.plain)
+	if v.I18n != nil {
+		c.text = *v.I18n
+	}
+	return nil
+}
+
+// CheckPublicURL resolves the host, checks the certificate and fetches
+// /healthz. The lines are in English with their messages kept; callers
+// answer with URLCheck.In.
 func (s *Service) CheckPublicURL(ctx context.Context, raw string) (URLCheck, error) {
 	res := URLCheck{CheckedAt: s.now()}
 	u, err := url.Parse(raw)
 	if err != nil || u.Host == "" {
-		return res, api.Invalid("body.url", "Use the full address, like https://reputecast.acme.io.")
+		return res, api.Invalid("body.url", say(ctx, msgs.M("problem.checkURL")))
 	}
 	host := u.Hostname()
 	ctx, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
 	addrs, err := net.DefaultResolver.LookupHost(ctx, host)
 	if err != nil || len(addrs) == 0 {
-		res.DNS = CheckLine{Status: "bad", Detail: host + " doesn't resolve. Add an A or AAAA record pointing at this server."}
+		res.DNS = checkLine("bad", "check.dnsBad", i18n.Args{"host": host})
 	} else {
-		res.DNS = CheckLine{Status: "ok", Detail: fmt.Sprintf("%s resolves to %s", host, strings.Join(addrs, ", "))}
+		res.DNS = checkLine("ok", "check.dnsOk", i18n.Args{"host": host, "addresses": strings.Join(addrs, ", ")})
 	}
 	if u.Scheme == "https" {
 		d := &tls.Dialer{Config: &tls.Config{ServerName: host, MinVersion: tls.VersionTLS12}}
@@ -287,47 +345,48 @@ func (s *Service) CheckPublicURL(ctx context.Context, raw string) (URLCheck, err
 		}
 		conn, err := d.DialContext(ctx, "tcp", net.JoinHostPort(host, port))
 		if err != nil {
-			res.TLS = CheckLine{Status: "bad", Detail: "TLS failed: " + err.Error()}
+			res.TLS = checkLine("bad", "check.tlsBad", i18n.Args{"error": err.Error()})
 		} else {
 			cs := conn.(*tls.Conn).ConnectionState()
 			_ = conn.Close()
 			if len(cs.PeerCertificates) > 0 {
 				c := cs.PeerCertificates[0]
-				issuer := c.Issuer.Organization
-				org := "an unknown issuer"
-				if len(issuer) > 0 {
-					org = issuer[0]
+				args := i18n.Args{"known": "no", "issuer": "", "at": c.NotAfter}
+				if issuer := c.Issuer.Organization; len(issuer) > 0 {
+					args["known"], args["issuer"] = "yes", issuer[0]
 				}
-				res.TLS = CheckLine{Status: "ok", Detail: fmt.Sprintf("Valid certificate from %s, expires %s", org, c.NotAfter.Format("Jan 2, 2006"))}
+				res.TLS = checkLine("ok", "check.tlsOk", args)
 				if time.Until(c.NotAfter) < 14*24*time.Hour {
 					res.TLS.Status = "warn"
 				}
 			}
 		}
 	} else {
-		res.TLS = CheckLine{Status: "warn", Detail: "Plain http: passkeys, secure cookies and most providers' webhooks need https."}
+		res.TLS = checkLine("warn", "check.plainHTTP", nil)
 	}
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(u.String(), "/")+"/healthz", nil)
 	start := time.Now()
 	resp, err := (&http.Client{Timeout: 6 * time.Second}).Do(req)
 	if err != nil {
-		res.Reachable = CheckLine{Status: "bad", Detail: "No answer from " + u.Host + ": " + shortErr(err)}
+		var dnsErr *net.DNSError
+		if errors.As(err, &dnsErr) {
+			res.Reachable = checkLine("bad", "check.noAnswerDNS", i18n.Args{"host": u.Host})
+		} else {
+			res.Reachable = checkLine("bad", "check.noAnswer", i18n.Args{"host": u.Host, "error": shortErr(err)})
+		}
 	} else {
 		_ = resp.Body.Close()
 		if resp.StatusCode == http.StatusOK {
-			res.Reachable = CheckLine{Status: "ok", Detail: fmt.Sprintf("Answered in %d ms · webhooks from providers will arrive", time.Since(start).Milliseconds())}
+			res.Reachable = checkLine("ok", "check.answered", i18n.Args{"ms": time.Since(start).Milliseconds()})
 		} else {
-			res.Reachable = CheckLine{Status: "warn", Detail: fmt.Sprintf("Answered with HTTP %d; check your reverse proxy forwards to ReputeCast", resp.StatusCode)}
+			res.Reachable = checkLine("warn", "check.answeredStatus", i18n.Args{"status": strconv.Itoa(resp.StatusCode)})
 		}
 	}
 	return res, nil
 }
 
+// shortErr is a request's error, as Go writes it, cut to 120 characters.
 func shortErr(err error) string {
-	var dnsErr *net.DNSError
-	if errors.As(err, &dnsErr) {
-		return "DNS lookup failed"
-	}
 	msg := err.Error()
 	if len(msg) > 120 {
 		msg = msg[:120] + "…"
@@ -360,14 +419,14 @@ func (s *Service) CreateWorkspace(ctx context.Context, name, timezone string) (C
 	u := api.UserFrom(ctx)
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return CreatedWorkspace{}, api.Invalid("body.name", "Give the workspace a name.")
+		return CreatedWorkspace{}, api.Invalid("body.name", say(ctx, msgs.M("problem.workspaceName")))
 	}
 	// The first Owner finishes the earlier setup steps before creating the
 	// first workspace: two-factor can't be skipped (A5 §5.5).
 	if st, err := s.policy(ctx); err == nil && u.IsInstanceAdmin && st.SetupCompletedAt == nil {
 		m := s.methodsOf(ctx, *u)
 		if u.MustChangePassword || (!m.totp && m.passkeys == 0) || st.BasicsConfirmedAt == nil {
-			return CreatedWorkspace{}, api.Err(http.StatusConflict, "setup_incomplete", "Finish the earlier setup steps first: replace the temporary password, add a passkey or authenticator app and confirm the instance basics.")
+			return CreatedWorkspace{}, api.Err(http.StatusConflict, "setup_incomplete", say(ctx, msgs.M("problem.setupIncomplete")))
 		}
 	}
 	if timezone == "" {
@@ -375,7 +434,7 @@ func (s *Service) CreateWorkspace(ctx context.Context, name, timezone string) (C
 		timezone = st.DefaultTimezone
 	}
 	if _, err := time.LoadLocation(timezone); err != nil {
-		return CreatedWorkspace{}, api.Invalid("body.timezone", "Unknown timezone.")
+		return CreatedWorkspace{}, api.Invalid("body.timezone", say(ctx, msgs.M("problem.timezone")))
 	}
 	var ws store.Workspace
 	err := db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {

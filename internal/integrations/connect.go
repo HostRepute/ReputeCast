@@ -970,6 +970,7 @@ func (s *Service) Reachability(ctx context.Context) IntegrationReachability {
 		strings.TrimRight(st.PublicUrl, "/") == strings.TrimRight(out.URL, "/") {
 		var c accounts.URLCheck
 		if json.Unmarshal(st.PublicUrlCheck, &c) == nil {
+			c = c.In(lang(ctx))
 			out.DNS, out.TLS, out.Reach = c.DNS, c.TLS, c.Reachable
 			out.CheckedAt = st.PublicUrlCheckedAt
 		}

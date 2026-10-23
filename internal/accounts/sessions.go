@@ -98,7 +98,7 @@ func (s *Service) RevokeSession(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 	if sess := api.SessionFrom(ctx); sess != nil && sess.ID == id {
-		return api.Err(http.StatusConflict, api.CodeConflict, "That's this session. Use Sign out in the account menu instead.")
+		return api.Err(http.StatusConflict, api.CodeConflict, say(ctx, msgs.M("problem.thisSession")))
 	}
 	r, err := s.Q.GetUserSession(ctx, store.GetUserSessionParams{ID: id, UserID: u.ID})
 	if err != nil {
