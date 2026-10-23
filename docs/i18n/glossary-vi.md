@@ -276,6 +276,30 @@ names, a provider's own stream names (Postmark's "Broadcast" stream:
 "luồng Broadcast") and the results in DNS records and reports ("pass",
 "fail", "p=quarantine").
 
+### What adapters and the connect flow write
+
+The server's words about a provider: the catalog's cards and chips, an
+adapter's fields and terms, the account's standing, the stepper and the
+test's timeline.
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| Production · Sandbox (an account's standing) | Gửi chính thức · Sandbox | "Gửi chính thức · không bị hạn chế" |
+| Two-way · Pull only · Push only · Local only (suppression sync) | Hai chiều · Chỉ kéo về · Chỉ đẩy đi · Chỉ cục bộ | the Adapters tab |
+| self-hosted | tự lưu trữ | "Postal (tự lưu trữ)" |
+| Any SMTP server · Generic HTTP adapter | Máy chủ SMTP bất kỳ · Adapter HTTP chung | catalog names |
+| Batch 50 · Quota discovery · Sandbox detection (chips) | Gửi lô 50 · Dò hạn mức · Phát hiện sandbox | |
+| Dedicated IPs, paid · Pro plan | IP riêng, trả phí · gói Pro | the plan's name stays |
+| read-only call | lệnh gọi chỉ đọc | "đã kiểm tra bằng một lệnh gọi chỉ đọc" |
+| Round trip 2.4 s | Trọn vòng 2,4 giây | the test send |
+| Mailpit (development) | Mailpit (môi trường phát triển) | |
+| a price in an adapter's words | 0,10 US$ cho mỗi 1.000 email | decimal comma, dot for thousands, US$ after the amount |
+
+A provider's names for its keys, plans, menus and stream types stay as the
+provider writes them ("Server API token", "Private API key", "Account SID",
+"Auth token", "Full access", "Broadcasts API", "Scale plan"), and so do its
+event names ("Delivery", "SpamComplaint") and its error codes.
+
 ## Transactional templates
 
 | English | Tiếng Việt |
