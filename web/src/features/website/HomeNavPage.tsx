@@ -12,7 +12,7 @@ import { Field, Input, Select, Textarea } from '@/components/ui/Field'
 import { Note } from '@/components/ui/Note'
 import { Segmented } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
-import { useT } from '@/i18n'
+import { T, useT } from '@/i18n'
 import { andList, count, dayMonthDate } from '@/lib/format'
 import { useCan, useWorkspace } from '@/lib/session'
 import { bare, useInvalidateWebsite, WS, type HomeNav, type HomeNavInput, type HomeSection, type NavLink, type Overview, type PostRow, type Tag } from './api'
@@ -651,7 +651,7 @@ function NavigationCard({ draft, set, ro, data, host }: { draft: HomeNavInput; s
             {kind === 'url' ? (
               <>
                 <Input className="w-[140px]" aria-label={t(mh.linkLabel)} placeholder={t(mh.linkLabel)} value={label} maxLength={40} onChange={(e) => setLabel(e.target.value)} />
-                <Input className="mono w-[220px]" aria-label={t(mh.linkUrl)} placeholder="https://" value={url} onChange={(e) => setUrl(e.target.value)} />
+                <Input className="mono w-[220px]" aria-label={t(mh.linkUrl)} placeholder={'https://'} value={url} onChange={(e) => setUrl(e.target.value)} />
               </>
             ) : null}
             <Button size="sm" icon="plus" disabled={!candidate()} onClick={add}>
@@ -787,7 +787,7 @@ function SeoCard({ draft, set, ro, data }: { draft: HomeNavInput; set: Setter; r
         <dd className="mono">{u.tagFeed}</dd>
         <dt>{t(mh.archiveFeed)}</dt>
         <dd>
-          <span className="mono">{u.archiveFeed}</span> {t(mh.stillWorks)}
+          <T msg={mh.archiveFeedWorks} values={{ url: u.archiveFeed, mono: (c) => <span className="mono">{c}</span> }} />
         </dd>
       </dl>
     </section>
@@ -950,6 +950,8 @@ function slugify(s: string): string {
     .toLowerCase()
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
+    // "đ" has no decomposition: "Đời sống" → "doi-song", as page addresses do.
+    .replace(/đ/g, 'd')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 60)
@@ -1008,7 +1010,7 @@ function TagDialog({ tag, host, onClose }: { tag: Tag | null; host: string; onCl
         <Field label={t(mh.tagName)} error={error}>
           <Input value={name} maxLength={60} onChange={(e) => setName(e.target.value)} autoFocus />
         </Field>
-        <Field label={t(mh.tagSlug)} hint={t(mh.tagSlugHint, { slug: effSlug || '…' }).replace('news.acme.io', host)}>
+        <Field label={t(mh.tagSlug)} hint={t(mh.tagSlugHint, { host, slug: effSlug || '…' })}>
           <Input
             className="mono"
             value={effSlug}

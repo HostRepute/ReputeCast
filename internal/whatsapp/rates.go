@@ -176,16 +176,17 @@ type WhatsAppRatesInput struct {
 
 // SaveRates replaces the rate card (logged).
 func (s *Service) SaveRates(ctx context.Context, ws *store.Workspace, p *authz.Principal, in WhatsAppRatesInput) (WhatsAppRates, error) {
+	l := langOf(ctx)
 	asOf, err := time.Parse("2006-01-02", in.AsOf)
 	if err != nil || asOf.After(s.now().Add(48*time.Hour)) {
-		return WhatsAppRates{}, api.Invalid("body.asOf", "Enter the rate card's date, like 2026-10-01.")
+		return WhatsAppRates{}, api.Invalid("body.asOf", mRatesDate.Text(l, nil))
 	}
 	seen := map[string]bool{}
 	hasDefault := false
 	for i, r := range in.Rates {
 		k := r.Country + "/" + r.Category
 		if seen[k] {
-			return WhatsAppRates{}, api.Invalid("body.rates["+itoa(i)+"]", "Each country and category has one price.")
+			return WhatsAppRates{}, api.Invalid("body.rates["+itoa(i)+"]", mRatesDuplicate.Text(l, nil))
 		}
 		seen[k] = true
 		if r.Country == "*" {
@@ -193,7 +194,7 @@ func (s *Service) SaveRates(ctx context.Context, ws *store.Workspace, p *authz.P
 		}
 	}
 	if !hasDefault {
-		return WhatsAppRates{}, api.Invalid("body.rates", "Keep a price for every other country (*) in each category you send.")
+		return WhatsAppRates{}, api.Invalid("body.rates", mRatesDefault.Text(l, nil))
 	}
 	now := s.now()
 	before := s.rateCard(ctx, s.Q, ws)

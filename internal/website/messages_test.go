@@ -15,7 +15,7 @@ import (
 // error or page is first shown).
 func TestMessageKeysExist(t *testing.T) {
 	keys := msgs.Keys()
-	re := regexp.MustCompile(`(?:tr\(ctx, |\.Text\(|T\(|\.T |words\.Text\()"((?:post|tag|nav|identity|home|meter|access|paywall|site|check|gate|signin|mail|join|account)\.[A-Za-z_.]+)"`)
+	re := regexp.MustCompile(`(?:tr\(ctx, |\.Text\(|T\(|\.T |words\.Text\()"((?:post|tag|nav|identity|home|meter|access|paywall|site|check|gate|signin|mail|join|account|report|notify)\.[A-Za-z_.]+)"`)
 	seen := 0
 	files, _ := filepath.Glob("*.go")
 	tmpl, _ := filepath.Glob("../publicpages/templates/site/*.html")
@@ -70,7 +70,7 @@ func TestCheckText(t *testing.T) {
 func TestReferrerLabels(t *testing.T) {
 	for in, want := range map[string]string{"": "Email clients and direct", "www.google.com": "Google", "news.google.com": "Google", "lnkd.in": "LinkedIn",
 		"news.ycombinator.com": "news.ycombinator.com"} {
-		if got := referrerLabel(in); got != want {
+		if got := referrerLabel(context.Background(), in); got != want {
 			t.Errorf("%q: %q, want %q", in, got, want)
 		}
 	}

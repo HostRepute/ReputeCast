@@ -33,7 +33,7 @@ export function ImagePickerDialog({ open, onClose, onPick, title, description }:
       fd.append('file', file)
       const r = await fetch(`/api/v1/workspaces/${encodeURIComponent(slug)}/media`, { method: 'POST', body: fd, credentials: 'same-origin', headers: { Accept: 'application/json' } })
       const body = (await r.json().catch(() => ({}))) as Schemas['MediaAsset'] & { detail?: string; title?: string; errors?: { message?: string }[] }
-      if (!r.ok) throw new Error(body.errors?.[0]?.message || body.detail || body.title || `Upload failed (${r.status})`)
+      if (!r.ok) throw new Error(body.errors?.[0]?.message || body.detail || body.title || t(mh.imageUploadStatus, { status: String(r.status) }))
       void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/media'] })
       toast({ kind: 'success', title: t(mh.imageUploaded, { name: body.fileName }) })
       choose(body.url)

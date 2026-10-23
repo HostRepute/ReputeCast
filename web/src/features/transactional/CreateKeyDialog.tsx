@@ -125,7 +125,7 @@ export function CreateTransactionalKeyDialog({ preset, setup, onClose }: { prese
       ) : null}
       {!smtp && mode === 'test' ? (
         <Field label={t(ms.testAddresses)} hint={t(ms.testAddressesHint)}>
-          <Input value={tests} onChange={(e) => setTests(e.target.value)} placeholder="qa+*@acme.io" />
+          <Input value={tests} onChange={(e) => setTests(e.target.value)} placeholder={'qa+*@acme.io'} />
         </Field>
       ) : null}
       <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
@@ -169,7 +169,7 @@ export function CreateTransactionalKeyDialog({ preset, setup, onClose }: { prese
         {expiry === 'date' ? <input className="in" type="date" aria-label={t(ms.expDate)} value={date} onChange={(e) => setDate(e.target.value)} /> : null}
       </div>
       <Note tone="neutral">
-        <T msg={ms.onlyPermission} values={{ permission: <span className="mono">transactional:send</span> }} />
+        <T msg={ms.onlyPermission} values={{ permission: <span className="mono">{'transactional:send'}</span> }} />
       </Note>
     </Dialog>
   )
@@ -181,7 +181,7 @@ function ShownOnce({ created, smtp, setup, onClose }: { created: Created; smtp: 
   const [lang, setLang] = useState<CodeLang>('node')
   const k = created.key
   const tx = k.transactional
-  const scope = tx?.templates.length ? tx.templates.join(', ') : tx?.categories.length ? tx.categories.map((c) => c.name).join(', ') : t(ms.scopeAll).toLowerCase()
+  const scope = tx?.templates.length ? tx.templates.join(', ') : tx?.categories.length ? tx.categories.map((c) => c.name).join(', ') : t(ms.scopeAllInline)
   const vars = useTemplateVariables(tx?.templates[0] ?? 'password-reset')
   const code = codeSample(lang, { endpoint: `${setup.baseUrl}/messages`, template: tx?.templates[0] ?? 'password-reset', variables: vars, compact: true })
   const copy = (text: string) =>
@@ -261,7 +261,7 @@ function ShownOnce({ created, smtp, setup, onClose }: { created: Created; smtp: 
         {smtp ? (
           t(ms.smtpSettings, { host: setup.relay.hostname ?? '', starttls: setup.relay.starttlsPort, tls: setup.relay.tlsPort })
         ) : (
-          <T msg={ms.storeIt} values={{ name: <span className="mono">REPUTECAST_KEY</span> }} />
+          <T msg={ms.storeIt} values={{ name: <span className="mono">{'REPUTECAST_KEY'}</span> }} />
         )}
       </Note>
       {!smtp ? (

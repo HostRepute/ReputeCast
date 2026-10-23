@@ -7,7 +7,7 @@ import { toast } from '@/components/ui/Toast'
 import { formatList, T, useT } from '@/i18n'
 import { cn } from '@/lib/cn'
 import { useNow } from '@/lib/hooks'
-import { ago, clock, count, duration, shortDate } from '@/lib/format'
+import { ago, clock, count, duration, pct, shortDate } from '@/lib/format'
 import { deniedReason, useWorkspace } from '@/lib/session'
 import { saveBlob } from '@/features/audience/download'
 import type { MapPoll } from '@/features/reports/ClickMap'
@@ -16,10 +16,6 @@ import { m } from './report.messages'
 import './report.css'
 
 export type PollResults = Schemas['PollResults']
-
-function pct(v: number): string {
-  return `${v.toFixed(1)}%`
-}
 
 const b = (chunks: ReactNode[]) => <b>{chunks}</b>
 
@@ -465,6 +461,7 @@ function OverTime({ p }: { p: PollResults }) {
   const ticks = live ? [0, 1, 2, 3, 4, 5, 6] : [0, 24, 48, 72]
   const six = !live && pts.length > 6 ? pts[6]! : undefined
   const since = p.overTime.since ?? p.startedAt
+  const atEdge = pts.length > 0 && x(pts.length - 1) >= W - R - 1
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <div className="pr-sub">
@@ -482,7 +479,7 @@ function OverTime({ p }: { p: PollResults }) {
         ))}
         {ticks.map((h) => (
           <text key={h} x={x(h)} y={BASE + 18} textAnchor={h === 0 ? 'start' : 'middle'} className="pr-ax">
-            {h === 0 ? (since ? t(m.sentAt, { time: clock(since) }) : '0') : `+${h} h`}
+            {h === 0 ? (since ? t(m.sentAt, { time: clock(since) }) : '0') : t(m.plusHours, { n: h })}
           </text>
         ))}
         {area ? <path d={area} fill="var(--accent-tint)" /> : null}
@@ -491,25 +488,38 @@ function OverTime({ p }: { p: PollResults }) {
           <g>
             <circle cx={x(6)} cy={y(six)} r="3.5" fill="var(--accent)" />
             <text x={x(6) + 8} y={y(six) + 14} className="pr-ax b">
-              {t(m.bySix, { percent: `${Math.round(p.overTime.firstSixPercent)}%` })}
+              {t(m.bySix, { percent: pct(p.overTime.firstSixPercent, 0) })}
             </text>
           </g>
         ) : null}
         {pts.length ? (
           <g>
             <circle cx={x(pts.length - 1)} cy={y(last)} r="3.5" fill="var(--accent)" />
-            <text x={x(pts.length - 1) + 7} y={y(last) + 4} className="pr-ax b">
+            {/* The total sits right of the line's end, or left of it when the
+                line ends at the chart's edge, where a long number would be
+                cut off: below the end, as the line comes up to it. */}
+            <text
+              x={atEdge ? x(pts.length - 1) - 7 : x(pts.length - 1) + 7}
+              y={atEdge ? y(last) + 16 : y(last) + 4}
+              textAnchor={atEdge ? 'end' : 'start'}
+              className="pr-ax b"
+            >
               {count(last)}
             </text>
             {live ? (
-              <text x={x(pts.length - 1) + 7} y={y(last) + 16} className="pr-ax">
+              <text
+                x={atEdge ? x(pts.length - 1) - 7 : x(pts.length - 1) + 7}
+                y={atEdge ? y(last) + 28 : y(last) + 16}
+                textAnchor={atEdge ? 'end' : 'start'}
+                className="pr-ax"
+              >
                 {t(m.now)}
               </text>
             ) : null}
           </g>
         ) : null}
       </svg>
-      {live ? null : <span className="k">{t(m.overTimeNote, { percent: `${Math.round(p.overTime.firstSixPercent)}%`, after: p.overTime.after })}</span>}
+      {live ? null : <span className="k">{t(m.overTimeNote, { percent: pct(p.overTime.firstSixPercent, 0), after: p.overTime.after })}</span>}
     </div>
   )
 }

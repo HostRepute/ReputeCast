@@ -97,6 +97,14 @@ export const m = defineMessages('polls', {
   readOnly: 'You can open the poll’s settings and preview the answer page. Editing needs campaigns:edit.',
   problems: 'This poll isn’t complete: {problems}',
 
+  // What a new Poll block and a new 0–10 scale say until the author
+  // rewrites it. It goes into the email, so it's in the app language.
+  sampleQuestion: 'What should we write about next?',
+  sampleAnswer1: 'Option one',
+  sampleAnswer2: 'Option two',
+  scaleLow: 'Not likely',
+  scaleHigh: 'Very likely',
+
   // Test answers.
   testAnswers: '{count, plural, one {# test answer} other {# test answers}}',
   testAnswersHint: 'Test answers aren’t counted. They’re marked Test, never set a field or tag, and never reach the report.',

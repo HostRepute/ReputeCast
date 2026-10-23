@@ -90,14 +90,14 @@ func (s *Service) List(ctx context.Context, filter, cursor string, limit int) (N
 	default:
 		kinds = KindsOf(filter)
 		if kinds == nil {
-			return NotificationList{}, api.Invalid("query.filter", "Unknown filter.")
+			return NotificationList{}, api.Invalid("query.filter", mProblemUnknownFilter.Text(i18n.LangFrom(ctx), nil))
 		}
 	}
 	off := 0
 	if cursor != "" {
 		n, err := strconv.Atoi(cursor)
 		if err != nil || n < 0 {
-			return NotificationList{}, api.Invalid("query.cursor", "Invalid cursor.")
+			return NotificationList{}, api.Invalid("query.cursor", mProblemBadCursor.Text(i18n.LangFrom(ctx), nil))
 		}
 		off = n
 	}
@@ -119,8 +119,9 @@ func (s *Service) List(ctx context.Context, filter, cursor string, limit int) (N
 		return NotificationList{}, err
 	}
 	out := NotificationList{Items: make([]NotificationItem, 0, len(rows)), Unread: unread, Total: counts.Total, RetentionDays: RetentionDays}
+	l := i18n.LangFrom(ctx)
 	for _, n := range rows {
-		out.Items = append(out.Items, item(n))
+		out.Items = append(out.Items, item(l, n))
 	}
 	if int64(off+len(rows)) < counts.Total {
 		out.NextCursor = strconv.Itoa(off + len(rows))
@@ -128,15 +129,16 @@ func (s *Service) List(ctx context.Context, filter, cursor string, limit int) (N
 	return out, nil
 }
 
-func item(n store.Notification) NotificationItem {
+// item is a stored notification as the reader reads it, in their language.
+func item(l i18n.Lang, n store.Notification) NotificationItem {
 	c := CategoryOf(n.Kind)
-	summary := n.Summary
+	title, summary, body := Localize(l, n.Title, n.Summary, n.Body, n.Data)
 	if summary == "" {
-		summary = n.Body
+		summary = body
 	}
 	return NotificationItem{
-		ID: n.ID.String(), Kind: n.Kind, Category: c, CategoryLabel: CategoryLabel(c), Severity: n.Severity,
-		Title: n.Title, Summary: summary, Body: n.Body, Link: n.Link, CreatedAt: n.CreatedAt, Read: n.ReadAt != nil,
+		ID: n.ID.String(), Kind: n.Kind, Category: c, CategoryLabel: categoryLabelIn(l, c), Severity: n.Severity,
+		Title: title, Summary: summary, Body: body, Link: n.Link, CreatedAt: n.CreatedAt, Read: n.ReadAt != nil,
 	}
 }
 
@@ -218,8 +220,9 @@ func (s *Service) Preferences(ctx context.Context, user store.User, workspaceID 
 		saved[r.EventType] = r
 	}
 	out := NotificationPreferences{Events: make([]NotificationEventPreference, 0, len(Events)), Digest: "immediate", Timezone: user.Timezone}
+	l := i18n.LangFrom(ctx)
 	for _, e := range Events {
-		p := NotificationEventPreference{Type: e.Key, Label: e.Label, Audience: e.Audience, InApp: !e.OffByDefault, Email: e.DefaultEmail && !e.OffByDefault}
+		p := NotificationEventPreference{Type: e.Key, Label: eventLabel(l, e), Audience: eventAudience(l, e), InApp: !e.OffByDefault, Email: e.DefaultEmail && !e.OffByDefault}
 		if r, ok := saved[e.Key]; ok {
 			p.InApp, p.Email = r.InApp, r.Email
 		}
@@ -255,9 +258,10 @@ func (s *Service) SavePreferences(ctx context.Context, user store.User, in Notif
 	for _, e := range Events {
 		known[e.Key] = true
 	}
+	l := i18n.LangFrom(ctx)
 	for i, e := range in.Events {
 		if !known[e.Type] {
-			return api.Invalid(fmt.Sprintf("body.events[%d].type", i), "Unknown event type "+e.Type+".")
+			return api.Invalid(fmt.Sprintf("body.events[%d].type", i), mProblemUnknownEvent.Text(l, i18n.Args{"type": e.Type}))
 		}
 	}
 	var qs, qe *int16
@@ -265,14 +269,15 @@ func (s *Service) SavePreferences(ctx context.Context, user store.User, in Notif
 		a, err1 := minutes(in.QuietHours.Start)
 		b, err2 := minutes(in.QuietHours.End)
 		if err1 != nil || err2 != nil {
-			return api.Invalid("body.quietHours", "Use times like 22:00 and 07:00.")
+			return api.Invalid("body.quietHours", mProblemQuietFormat.Text(l, nil))
 		}
 		if a == b {
-			return api.Invalid("body.quietHours.end", "Quiet hours need a different start and end time.")
+			return api.Invalid("body.quietHours.end", mProblemQuietSame.Text(l, nil))
 		}
 		qs, qe = &a, &b
 	}
-	before, _ := s.Preferences(ctx, user, nil)
+	// The audit entry keeps the event types in English, whatever the request reads in.
+	before, _ := s.Preferences(i18n.WithLang(ctx, i18n.Default), user, nil)
 	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		for _, e := range in.Events {

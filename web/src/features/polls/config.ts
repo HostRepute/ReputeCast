@@ -3,6 +3,8 @@
  * with internal/polls/config.go: the server reads the settings from the
  * section's rc-poll attribute, and both sides write the same MJML.
  */
+import { t } from '@/i18n'
+import { m } from './messages'
 
 export type PollKind = 'choice' | 'scale' | 'emoji'
 
@@ -219,12 +221,12 @@ export function pollSection(cfg: PollConfig, faceUrl?: (faces: number, key: numb
   return b
 }
 
-/** A new Poll block's settings: a Choice poll with two answers. */
+/** A new Poll block's settings: a Choice poll with two answers, in the app language. */
 export function newPoll(): PollConfig {
   return normalizePoll({
     kind: 'choice',
-    question: 'What should we write about next?',
-    answers: [{ label: 'Option one' }, { label: 'Option two' }],
+    question: t(m.sampleQuestion),
+    answers: [{ label: t(m.sampleAnswer1) }, { label: t(m.sampleAnswer2) }],
     save: 'none',
     close: { mode: 'days', days: 7 },
     after: 'thanks',

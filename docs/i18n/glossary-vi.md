@@ -406,6 +406,31 @@ fallback "there" is "bạn".
 | readers (of a language) | người đọc |
 | page copy · built-in labels | nội dung trang · nhãn có sẵn |
 | Results per language · click map | Kết quả theo ngôn ngữ · bản đồ lượt nhấp |
+| copy (a form's or page's own text) · Copy in | nội dung · Nội dung bằng |
+| Live · Incomplete · Not set up (copy) | Đang dùng · Chưa đủ · Chưa thiết lập |
+| string (text to write) | chuỗi |
+| visitors | khách truy cập ("Khách truy cập dùng {language}") |
+
+A content language's name comes from the browser's or CLDR's names in
+the app language ("Tiếng Tây Ban Nha"), capitalized as they write it; the
+app's own picker names each language in itself.
+
+## Conditional content
+
+| English | Tiếng Việt |
+|---|---|
+| combination (of blocks) · version | tổ hợp · phiên bản |
+| conditional block | khối có điều kiện |
+| Gmail clips · clipping size | Gmail cắt bớt · ngưỡng cắt bớt |
+| includes · excludes | bao gồm · không bao gồm |
+| is · isn't · contains · is set · is empty | là · khác · chứa · đã có giá trị · đang trống (as automations' conditions) |
+| is at least · is at most · is between … and … | tối thiểu là · tối đa là · nằm trong khoảng … đến … |
+| is greater than · is less than · is before · is after | lớn hơn · nhỏ hơn · trước · sau |
+| is in · is not in | thuộc · không thuộc |
+| Match ALL / ANY of these | Khớp TẤT CẢ / BẤT KỲ điều kiện sau (the uppercase words stay uppercase) |
+| operator | toán tử |
+| Preview as · Show why | Xem trước dưới dạng · Hiện lý do |
+| Visibility (who sees a block) | Hiển thị |
 
 ## Accessibility
 
@@ -519,6 +544,66 @@ argument and puts the name in its `other` branch: `{ends, select, other
 `{count, plural, other {# …}}` rather than a bare `{count}`, so the number
 is grouped by the region format (48.213).
 
+## Website and pages
+
+The publication website, its posts, the page builder and the public pages'
+own words. Words a reader sees follow the built-in labels of the public
+pages (`internal/pagelabels`): "bản tin", "số", "Lưu trữ", "Tùy chọn email".
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| About (page, template) | Giới thiệu | |
+| Access (Website › Access) | Quyền truy cập | |
+| archive · Archive (the page, the link) | kho lưu trữ · Lưu trữ | the archive as a whole; "trang lưu trữ" when the page itself is meant |
+| band (subscribe band) | dải | a full-width strip of the home page |
+| block · layers | khối · lớp | the page builder's |
+| built-in page | trang có sẵn | like "nhãn có sẵn" |
+| byline · By {name} | tác giả · Tác giả: {name} | |
+| canonical URL | URL chính tắc | as Google's tools say it |
+| card (paywall card, a post's card) | khung | "thẻ" is a tag |
+| certificate | chứng chỉ | |
+| countdown | đếm ngược | |
+| cover (image) | ảnh bìa | |
+| excerpt | đoạn trích | |
+| FAQ (block) | Hỏi đáp | |
+| featured · Feature on home | nổi bật · Nổi bật trên trang chủ | |
+| feed · RSS feed | nguồn cấp · nguồn cấp RSS | |
+| free preview · Free preview ends here (the post's block) | phần xem trước miễn phí · Hết phần miễn phí | |
+| Hero (block) | Hero | the block's name, as in the composer |
+| home page | trang chủ | |
+| issue (of a newsletter) | số | "48 số", "Đọc số mới nhất" |
+| lead magnet | quà tặng đăng ký | a free file for confirmed subscribers |
+| live (the website) · live (a page, a form, a version) | đang hoạt động · đang chạy | as Earn and the signup forms have it |
+| member · free member · paid member (of the site) · membership | hội viên · hội viên miễn phí · hội viên trả phí · gói hội viên | a reader who signs in, as Earn has it; "thành viên" is a team member |
+| meter | hạn mức đọc miễn phí | "Hạn mức đọc" as a heading |
+| navigation · header · footer | điều hướng · đầu trang · chân trang | |
+| page · Pages | trang · Trang | |
+| page builder | trình dựng trang | |
+| Pay what you want | Trả tùy ý | |
+| paywall | tường phí | |
+| post · web-only post | bài viết · bài viết chỉ trên web | |
+| publish · unpublish · unschedule | xuất bản · gỡ xuất bản · hủy lên lịch | Unpublished: Đã gỡ xuất bản |
+| redirect | chuyển hướng | |
+| referrer (where views come from) | nguồn truy cập | a person who refers is "người giới thiệu" |
+| registration (event) | ghi danh | "đăng ký" is a signup |
+| sales page | trang bán hàng | |
+| signups · upgrades · views · visitors | lượt đăng ký · lượt nâng cấp · lượt xem · khách truy cập | |
+| site · website | trang web | |
+| sitemap | sơ đồ trang web | |
+| slug | đường dẫn | the page's or tag's part of the address |
+| social image | ảnh chia sẻ | the image a shared link shows |
+| store product (block) | sản phẩm cửa hàng | |
+| tab (a panel's: the Web tab) | tab | "thẻ" is a tag |
+| tag | thẻ | |
+| tagline | khẩu hiệu | |
+| testimonial | lời nhận xét | |
+| theme | giao diện | |
+| tier · paid tier | gói · gói trả phí | as Earn has it; a tier's name, such as "Insider", stays as it is |
+| title (a post's, a page's, the site's) · SEO title | tựa đề · tựa đề SEO | as an archived issue's; "tiêu đề" is an email's subject ("tiêu đề thư" beside a title) |
+| visibility · Public · Members · Paid | chế độ hiển thị · Công khai · Hội viên · Trả phí | |
+| visitor | khách truy cập | someone who isn't signed in |
+| webinar | hội thảo trực tuyến | |
+
 ## Team
 
 | English | Tiếng Việt |
@@ -596,6 +681,58 @@ is a name and stays in English.
 | In-app · All events | Trong ứng dụng · Tất cả sự kiện |
 | MCP agent | tác tử MCP |
 
+## Instance admin, keys, webhooks and the audit log
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| actor (audit) · Any actor type | người thực hiện · Mọi loại người thực hiện | who did it: a member, a key, an agent or the system |
+| All retained (date range) | Toàn bộ thời gian lưu giữ | |
+| batch (of streamed entries) | lô | as in "endpoint theo lô" |
+| break-glass Owner | Chủ sở hữu có tài khoản khẩn cấp | never "Chủ sở hữu khẩn cấp" |
+| claim · Client ID · client secret · Scopes (OIDC) | claim · Client ID · client secret · Scope | named as the identity provider's console names them |
+| danger zone | Vùng nguy hiểm | |
+| delivery (webhook) · Delivery log | lần gửi · Nhật ký gửi | |
+| Development build | Bản dựng phát triển | |
+| digest (email) · Hourly digest · Daily digest | email tổng hợp · Tổng hợp mỗi giờ · Tổng hợp hằng ngày | notification preferences |
+| discovery · issuer · Issuer URL (OIDC) | discovery · nhà phát hành · URL nhà phát hành (issuer) | |
+| Effective permissions | Quyền thực tế | a member's page; the column is "Thực tế" |
+| endpoint · payload | endpoint · payload | not translated |
+| enforce (SSO, two-factor) · enforcement | bắt buộc · chế độ bắt buộc | "Enforce SSO for acme.io": "Bắt buộc SSO cho acme.io" |
+| entry (audit) · Entry details | mục · Chi tiết mục nhật ký | |
+| Failing · Paused (an endpoint) | Đang lỗi · Đã tạm dừng | "Healthy" is "Ổn định" |
+| Force sign-out | Buộc đăng xuất | |
+| Given (approvals a member gave) | Đã xét duyệt | |
+| group mapping · group object ID | ánh xạ nhóm · object ID của nhóm | |
+| hourly cleanup | lần dọn dẹp hằng giờ | |
+| identity provider | nhà cung cấp danh tính | "IdP" stays |
+| immutable (audit entries) | không thể sửa đổi | |
+| instance-level (entries) · Instance level | cấp hệ thống · Cấp hệ thống | |
+| JIT account creation | tạo tài khoản tự động (JIT) | |
+| Locked (sign-in) · Unlock sign-in | Bị khóa · Mở khóa đăng nhập | a lockout is "khóa đăng nhập" |
+| Make instance admin · Remove instance admin | Đặt làm quản trị viên hệ thống · Gỡ quyền quản trị hệ thống | |
+| preset (an SSO provider's, a key's) | cấu hình sẵn | |
+| provider status: degraded · down | đang suy giảm · đang gián đoạn | as Channels and SMS' Suy giảm · Gián đoạn |
+| re-authentication | xác thực lại | |
+| Redirect URI | URI chuyển hướng | |
+| reference ID · request ID | mã tham chiếu · mã yêu cầu | |
+| result: Allowed · Denied · Error | Được phép · Bị từ chối · Lỗi | |
+| retention | thời gian lưu giữ | |
+| revoke · rotate · replace (a key or secret) | thu hồi · xoay vòng · thay | |
+| secret · signing secret | khóa bí mật · khóa bí mật để ký | "secrets" in general: thông tin bí mật |
+| Send approvals (Settings › General) | Phê duyệt trước khi gửi | |
+| Sending (notification category) | Gửi thư | so it isn't read as the status "Đang gửi" |
+| SIEM or warehouse | SIEM hoặc kho dữ liệu | |
+| single sign-on | đăng nhập một lần | "SSO" stays |
+| stream (audit entries, noun) · stream (verb) · streaming endpoint | luồng · truyền · endpoint truyền luồng | the System stream is "luồng Hệ thống" |
+| test sign-in | đăng nhập thử | |
+| Then allowed | Sau đó được phép | a sign-in that was rejected, then allowed |
+| token (an agent's) | token | "agent token": "token của tác tử" |
+| typed confirmation | xác nhận bằng cách nhập tên | |
+| Up to date · Update available (a release) | Đã là bản mới nhất · Có bản cập nhật | language versions keep "Đã cập nhật" |
+| user (an account on the instance) | người dùng | a workspace's people are "thành viên" |
+| Workspace ID | Mã không gian làm việc | |
+| workspace switcher | bộ chuyển không gian làm việc | |
+
 ## Channels and SMS
 
 | English | Tiếng Việt |
@@ -640,6 +777,84 @@ is a name and stays in English.
 
 "GSM-7", "UCS-2", "Unicode", "VoIP" and "emoji" stay as they are. A
 phone number, a sender ID and a country code are data: never translated.
+
+## Web push and WhatsApp
+
+| English | Tiếng Việt |
+|---|---|
+| access token · permanent access token · system user | mã truy cập · mã truy cập vĩnh viễn · người dùng hệ thống |
+| Allow · Not now · Granted (a prompt's numbers) | Cho phép · Để sau · Đã cấp quyền |
+| anonymous · linked (a subscription) | ẩn danh · đã liên kết (với liên hệ) |
+| app secret · verify token · callback URL · phone number ID | khóa bí mật ứng dụng · mã xác minh · URL callback · ID số điện thoại |
+| banner (a notification's style on a desktop) | biểu ngữ |
+| Bell button · Dialog · Slide-in bar (prompt styles) | Nút chuông · Hộp thoại · Thanh trượt vào |
+| business account · display name | tài khoản doanh nghiệp · tên hiển thị ("WhatsApp Business Account" is a name) |
+| category (of a template): Marketing · Utility · Authentication | danh mục: Tiếp thị · Tiện ích · Xác thực |
+| conversation · customer service window | cuộc hội thoại · khung chăm sóc khách hàng (short: "khung 24 giờ", never the quiet-hours "khung giờ gửi") |
+| expiry · Expires after | thời hạn · Hết hạn sau |
+| free-form reply · quick reply | tin trả lời tự do · trả lời nhanh |
+| frequency cap | giới hạn tần suất |
+| header · body · footer · buttons (of a template) | phần đầu · phần thân · phần chân · nút |
+| Home Screen (iPhone, iPad) | Màn hình chính |
+| icon · badge · image (of a notification) | biểu tượng · huy hiệu · hình ảnh |
+| In review · In appeal · submit (a template) | Đang xét duyệt · Đang kháng nghị · gửi duyệt |
+| messaging limit · rolling 24 hours | giới hạn nhắn tin · 24 giờ gần nhất |
+| notification (one push message) | thông báo |
+| permission prompt (the browser's own) | hộp xin quyền (của trình duyệt) |
+| prompt · prompt designer | lời nhắc · trình thiết kế lời nhắc |
+| publication site | trang web của ấn phẩm |
+| push (in a sentence) · Push (the channel) | thông báo đẩy · Thông báo đẩy |
+| push service (the browser maker's) | dịch vụ đẩy |
+| quality rating · High · Medium · Low | xếp hạng chất lượng · Cao · Trung bình · Thấp |
+| rate card · Edit rates | bảng giá · Sửa bảng giá |
+| read receipts | thông báo đã xem (WhatsApp's own Vietnamese) |
+| Rotate keys · public key · private key | Xoay vòng khóa · khóa công khai · khóa riêng tư |
+| Sealed | Đã niêm phong |
+| Shown (a count) · Shown (an event) · Gone · removed | Lượt hiển thị · Đã hiển thị · Hết hạn · đã xóa |
+| site (where readers subscribe) · scope (of a service worker) | trang · phạm vi |
+| snippet | đoạn mã |
+| subscriber · subscription | người đăng ký · lượt đăng ký |
+| Sync now | Đồng bộ ngay |
+| Tapped (a WhatsApp button) | Đã nhấn |
+| template (WhatsApp) | mẫu (mẫu tin nhắn where it must be explicit) |
+| token (that a link carries to know the reader) | mã nhận diện (never "mã thông báo") |
+
+"service worker", "VAPID", "Meta", "Graph API" and Meta's own screens and
+paths (WhatsApp Manager, Meta for Developers › … › Configuration) stay as
+they are.
+
+## Surveys and polls
+
+| English | Tiếng Việt |
+|---|---|
+| 0–10 scale · Emoji scale · faces | thang 0–10 · thang emoji · khuôn mặt |
+| answer · answer page | câu trả lời · trang trả lời |
+| Breakdown · Break down by | Phân tích · Phân tích theo |
+| completion rate · drop-off · started · completed | tỷ lệ hoàn thành · bỏ dở · đã bắt đầu · đã hoàn thành |
+| Embedded · Popup · Hosted page (form kinds) | Nhúng · Bật lên · Trang trên ReputeCast |
+| link scanner · security gateway · prefetching proxy | trình quét liên kết · cổng bảo mật · proxy tải trước (machine visits, never a person) |
+| Not likely · Very likely (an NPS scale's ends) | Không có khả năng · Rất có khả năng |
+| Open · Closed (a survey or a poll) | Đang mở · Đã đóng |
+| Owner (the forms list's column) | Người phụ trách (not the role "Chủ sở hữu") |
+| poll (the block) · a poll | Bình chọn · cuộc bình chọn |
+| promoters · passives · detractors | người ủng hộ · người trung lập · người phản đối ("NPS" and "Net Promoter Score" stay) |
+| question · respondent · response | câu hỏi · người trả lời · lượt trả lời |
+| submission | lượt gửi |
+| survey | khảo sát |
+| Top answer | Được chọn nhiều nhất |
+| vote · voter | lượt bình chọn · người bình chọn |
+
+## Notifications
+
+| English | Tiếng Việt |
+|---|---|
+| digest (recurring) · issue (of a digest) | bản tin định kỳ · kỳ bản tin |
+| event type (a row of Notification preferences) | loại sự kiện |
+| Everyone with campaigns:pause | Mọi người có quyền campaigns:pause |
+| paid tier (Earn) | hạng thành viên |
+| placement test · seed mailbox | kiểm tra vị trí hộp thư · hộp thư mẫu |
+| Sending (the notification center's tab) | Gửi thư |
+| verification credits | credit xác minh |
 
 ## Agency accounts
 
@@ -747,6 +962,48 @@ phone number, a sender ID and a country code are data: never translated.
 | System stream · System mail | luồng Hệ thống · thư Hệ thống | the stream's name keeps its capital |
 | tag | thẻ | |
 | title (archived issue) | tựa đề | "tiêu đề" is an email's subject, "đề mục" a heading |
+
+## Products, stores and transactional email
+
+| English | Tiếng Việt | Note |
+|---|---|---|
+| abandoned checkout · abandoned cart | thanh toán bị bỏ dở · giỏ hàng bị bỏ dở | as Shopify's Vietnamese admin says it |
+| accepted marketing · didn't accept | đã đồng ý nhận tiếp thị · không đồng ý | a store customer's consent |
+| attribution · credited to | ghi nhận doanh thu · ghi nhận cho | "Attribution window": "Khoảng thời gian ghi nhận" |
+| Bought a product (trigger · condition) | Mua sản phẩm · Đã mua sản phẩm | |
+| buyer · customer | người mua · khách hàng | a product's buyer; a store's customer |
+| checkout · at checkout | thanh toán · khi thanh toán | "Stripe Checkout" keeps its name |
+| click token | mã lượt nhấp | |
+| collection (store) | bộ sưu tập | |
+| compare-at price | giá so sánh | |
+| cover (product) | ảnh bìa | |
+| delivery · delivery email · delivery template | giao hàng · email giao hàng · mẫu email giao hàng | a digital product's download link; a delivered email is still "Gửi thành công" |
+| dispute | tranh chấp | never "khiếu nại", which is a spam complaint |
+| download link · downloads | liên kết tải xuống · lượt tải | "4 of 5 downloads left": "còn 4/5 lượt tải" |
+| failover · primary · fallback | chuyển dự phòng · chính · dự phòng | a route's providers |
+| Gross · Net | Tổng thu · Thực thu | product revenue before and after refunds |
+| idempotency key | khóa idempotency | |
+| list offer | lời mời vào danh sách | the checkbox next to a product's Buy button |
+| live · test (payments, keys, modes) | thật · thử nghiệm | the message log's live updates are "Trực tiếp" |
+| median delivery | thời gian gửi trung vị | |
+| message (transactional) · Messages (tab) | thư · Thư | |
+| order | đơn hàng | |
+| Order placed · First order · Placed an order | Đơn hàng được đặt · Đơn hàng đầu tiên · Đã đặt hàng | store triggers and the goal |
+| Pay what you want · One-time | Trả tùy ý · Một lần | a product's price |
+| product · digital product | sản phẩm · sản phẩm số | |
+| Queued · Deferred · Bounced · Complained · Rejected | Đang chờ gửi · Bị hoãn · Bị trả lại · Bị khiếu nại · Bị từ chối | a message's status; Delivered is "Gửi thành công" |
+| Raw (SMTP) | Thư thô (SMTP) | mail an app sends already rendered |
+| reconciliation | đối soát | a store's nightly check |
+| refund · refunded | hoàn tiền · đã hoàn tiền | |
+| revoke access · restore access | thu hồi quyền truy cập · khôi phục quyền truy cập | a product order's download |
+| route · Transactional route | tuyến · tuyến Giao dịch | as "Tuyến Gửi hàng loạt" |
+| sales page · default product page · shop | trang bán hàng · trang sản phẩm mặc định · cửa hàng | |
+| send-only key · SMTP credential | khóa chỉ gửi · thông tin xác thực SMTP | "SMTP relay" keeps its name |
+| single opt-in | đăng ký một bước | double opt-in is "xác nhận hai bước" |
+| store · connect · disconnect · sync | cửa hàng · kết nối · ngắt kết nối · đồng bộ | Shopify and WooCommerce; their menu paths and field names stay in English |
+| suppressed · opted out | bị chặn gửi · đã tắt nhận | why a message wasn't sent |
+| webhook topic | chủ đề | orders/create stays as it is |
+| write-only · sealed | chỉ ghi · được niêm phong | a secret that's never shown again |
 
 ## Words used everywhere
 

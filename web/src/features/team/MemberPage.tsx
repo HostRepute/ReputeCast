@@ -14,28 +14,34 @@ import { EmptyRow, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { MemberIntegrations, useMemberIntegrations } from '@/features/integrations/MemberIntegrations'
 import { FullPageState } from '@/components/shell/SystemScreens'
-import { ago, monthDay, usDate } from '@/lib/format'
+import { T, t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { ago, count, monthDay, orList, usDate } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
+import { m as am } from '../access/messages'
 import { AccessTable, GroupRow, RoleBadge, SignInText } from '../access/parts'
 import { ChangeRoleDialog } from './ChangeRoleDialog'
 import { DeactivateDialog } from './DeactivateDialog'
 import { LastOwnerDialog } from './LastOwnerDialog'
+import { m as mm } from './member.messages'
+import { m as tm } from './messages'
 import { AgencyMemberNote } from '@/features/agency/WorkspaceParts'
 
 type Detail = Schemas['TeamMemberDetail']
 
 /** A5 §5.8 member detail (TeamMember board). */
 export function MemberPage({ memberId }: { memberId: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/members/{memberId}', { params: { path: { workspace: slug, memberId } } })
-  const name = q.data?.member.name ?? 'Member'
+  const name = q.data?.member.name ?? t(mm.member)
   return (
     <Page
       title={name}
       breadcrumb={[
-        { label: 'Settings', to: '/w/$workspace/settings', params: { workspace: slug } },
-        { label: 'Team', to: '/w/$workspace/settings/team', params: { workspace: slug } },
+        { label: t(mm.crumbSettings), to: '/w/$workspace/settings', params: { workspace: slug } },
+        { label: t(mm.crumbTeam), to: '/w/$workspace/settings/team', params: { workspace: slug } },
         { label: name },
       ]}
     >
@@ -43,18 +49,18 @@ export function MemberPage({ memberId }: { memberId: string }) {
         q.error instanceof ApiError && q.error.status === 404 ? (
           <FullPageState
             icon="searchLarge"
-            badge="Not found"
-            title="This member isn't in the workspace"
+            badge={t(mm.notFoundBadge)}
+            title={t(mm.notFoundTitle)}
             actions={
               <ButtonLink to="/w/$workspace/settings/team" params={{ workspace: slug }}>
-                Back to Team
+                {t(mm.backToTeam)}
               </ButtonLink>
             }
           >
-            They may have been removed. The audit log still has their history.
+            {t(mm.notFoundBody)}
           </FullPageState>
         ) : (
-          <ErrorPanel title="Couldn't load this member" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
+          <ErrorPanel title={t(mm.loadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
             {errorMessage(q.error)}
           </ErrorPanel>
         )
@@ -68,12 +74,13 @@ export function MemberPage({ memberId }: { memberId: string }) {
 }
 
 function Member({ d }: { d: Detail }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const m = d.member
   const now = useNow()
-  const first = m.name.split(' ')[0]
+  const first = m.name.split(' ')[0] ?? m.name
   const [dialog, setDialog] = useState<'role' | 'deactivate' | 'remove' | 'lastOwner'>()
-  const manageReason = d.canManage ? undefined : `Managing the team needs the team:manage permission.${d.helpers.length ? ` Ask ${d.helpers.join(' or ')}.` : ''}`
+  const manageReason = d.canManage ? undefined : d.helpers.length ? t(mm.manageNeedsAsk, { helpers: orList(d.helpers) }) : t(mm.manageNeeds)
   const groups = d.groups
     .map((g) => ({ group: g, rows: d.permissions.filter((p) => p.group === g && !(p.key === 'workspace:transfer' || p.key === 'workspace:delete')) }))
     .filter((g) => g.rows.length > 0)
@@ -85,9 +92,9 @@ function Member({ d }: { d: Detail }) {
           <div className="row gap-2">
             <span className="text-[18px] font-bold">{m.name}</span>
             <RoleBadge role={m.role} />
-            {!m.role.builtin ? <span className="k">custom role</span> : null}
+            {!m.role.builtin ? <span className="k">{t(mm.customRole)}</span> : null}
             {m.notes.length ? <span className="k">{m.notes.join(' · ')}</span> : null}
-            {m.status !== 'active' ? <Badge tone="neutral">Deactivated</Badge> : null}
+            {m.status !== 'active' ? <Badge tone="neutral">{t(tm.deactivatedBadge)}</Badge> : null}
           </div>
           <div className="row gap-3.5 text-[13px] text-ink-2">
             <span className="mono">{m.email}</span>
@@ -97,51 +104,52 @@ function Member({ d }: { d: Detail }) {
               </span>
             ) : null}
             <span>
-              2FA{' '}
+              {'2FA'}{' '}
               {m.twoFA.state === 'idp' ? (
-                <Badge tone="ok">via IdP</Badge>
+                <Badge tone="ok">{t(mm.twoFAIdp)}</Badge>
               ) : m.twoFA.state === 'on' ? (
-                <Badge tone="ok">{m.twoFA.method === 'passkey' ? 'passkey' : 'TOTP'}</Badge>
+                <Badge tone="ok">{t(mm.twoFAOn, { method: m.twoFA.method === 'passkey' ? 'passkey' : 'totp' })}</Badge>
               ) : m.twoFA.state === 'required' ? (
-                <Badge tone="warn">required · off</Badge>
+                <Badge tone="warn">{t(mm.twoFARequired)}</Badge>
               ) : (
-                <Badge tone="neutral">off</Badge>
+                <Badge tone="neutral">{t(mm.twoFAOff)}</Badge>
               )}
             </span>
-            {m.status === 'active' ? <span>Last active {ago(m.lastActiveAt, now)}</span> : m.deactivatedAt ? <span>Deactivated {usDate(m.deactivatedAt)}</span> : null}
-            <span>Joined {usDate(m.joinedAt)}</span>
+            {m.status === 'active' ? (
+              <span>{t(mm.lastActive, { ago: ago(m.lastActiveAt, now) })}</span>
+            ) : m.deactivatedAt ? (
+              <span>{t(mm.deactivatedOn, { date: usDate(m.deactivatedAt) })}</span>
+            ) : null}
+            <span>{t(mm.joined, { date: usDate(m.joinedAt) })}</span>
           </div>
           {/* Assignments from an agency say where they come from (agency accounts). */}
           <AgencyMemberNote userId={m.userId} source={m.source} />
         </div>
         <div className="row gap-2">
           <Button size="sm" disabledReason={manageReason} onClick={() => setDialog(m.lastOwner ? 'lastOwner' : 'role')}>
-            Change role or scope
+            {t(mm.changeRole)}
           </Button>
           {m.status === 'active' ? (
-            <Button size="sm" disabledReason={manageReason ?? (m.you ? 'You can’t deactivate yourself.' : undefined)} onClick={() => setDialog(m.lastOwner ? 'lastOwner' : 'deactivate')}>
-              Deactivate
+            <Button size="sm" disabledReason={manageReason ?? (m.you ? t(mm.cantDeactivateSelf) : undefined)} onClick={() => setDialog(m.lastOwner ? 'lastOwner' : 'deactivate')}>
+              {t(tm.deactivate)}
             </Button>
           ) : null}
-          <Button size="sm" variant="danger" disabledReason={manageReason ?? (m.you ? 'Leave the workspace from Account & security instead.' : undefined)} onClick={() => setDialog(m.lastOwner ? 'lastOwner' : 'remove')}>
-            Remove
+          <Button size="sm" variant="danger" disabledReason={manageReason ?? (m.you ? t(mm.leaveInstead) : undefined)} onClick={() => setDialog(m.lastOwner ? 'lastOwner' : 'remove')}>
+            {t(mm.remove)}
           </Button>
         </div>
       </section>
       <div className="grid grid-cols-[minmax(0,2fr)_minmax(300px,1fr)] items-start gap-5 max-md:grid-cols-1">
         <div className="col gap-5">
           <section className="card" aria-labelledby="perm-h">
-            <CardSection
-              title={<span id="perm-h">Effective permissions</span>}
-              caption={`What ${first} can do and where it comes from: role, SSO group mapping or scope`}
-            />
-            <AccessTable caption="Effective permissions">
+            <CardSection title={<span id="perm-h">{t(mm.permissionsTitle)}</span>} caption={t(mm.permissionsCaption, { name: first })} />
+            <AccessTable caption={t(mm.permissionsTitle)}>
               <thead>
                 <tr>
-                  <Th>Permission</Th>
-                  <Th align="center">Effective</Th>
-                  <Th>Source</Th>
-                  <Th>Scope</Th>
+                  <Th>{t(mm.colPermission)}</Th>
+                  <Th align="center">{t(mm.colEffective)}</Th>
+                  <Th>{t(mm.colSource)}</Th>
+                  <Th>{t(mm.colScope)}</Th>
                 </tr>
               </thead>
               <tbody>
@@ -155,18 +163,23 @@ function Member({ d }: { d: Detail }) {
                           {p.sensitive ? (
                             <>
                               {' '}
-                              <span title="Sensitive permission">
-                                <SensitiveFlag />
+                              <span title={t(mm.sensitive)}>
+                                <SensitiveFlag>{t(mm.sensitiveFlag)}</SensitiveFlag>
                               </span>
                             </>
                           ) : null}
                         </Td>
-                        <Td align="center">{p.granted ? <Badge tone="ok">Granted</Badge> : <Badge tone="neutral">–</Badge>}</Td>
+                        <Td align="center">{p.granted ? <Badge tone="ok">{t(mm.granted)}</Badge> : <Badge tone="neutral">–</Badge>}</Td>
                         <Td>
                           {p.granted ? (
                             <>
                               {p.source}
-                              {p.includedBy ? <span className="k"> (included by {p.includedBy.split(':')[1]})</span> : null}
+                              {p.includedBy ? (
+                                <span className="k">
+                                  {' '}
+                                  {t(mm.includedBy, { action: p.includedBy.split(':')[1] ?? '' })}
+                                </span>
+                              ) : null}
                             </>
                           ) : (
                             <span className="k">{p.source}</span>
@@ -184,26 +197,26 @@ function Member({ d }: { d: Detail }) {
           </section>
           <section className="card" aria-labelledby="act-h">
             <CardSection
-              title={<span id="act-h">Recent activity</span>}
-              caption="From the audit log"
+              title={<span id="act-h">{t(mm.activityTitle)}</span>}
+              caption={t(mm.activityCaption)}
               actions={
                 <ButtonLink size="sm" to="/w/$workspace/settings/audit" params={{ workspace: slug }} search={{ actor: m.userId, range: 'all' }}>
-                  Full audit log
+                  {t(mm.fullAuditLog)}
                 </ButtonLink>
               }
             />
-            <AccessTable caption="Recent activity">
+            <AccessTable caption={t(mm.activityTitle)}>
               <thead>
                 <tr>
-                  <Th>When</Th>
-                  <Th>Action</Th>
-                  <Th>Target</Th>
-                  <Th>Result</Th>
+                  <Th>{t(mm.colWhen)}</Th>
+                  <Th>{t(mm.colAction)}</Th>
+                  <Th>{t(mm.colTarget)}</Th>
+                  <Th>{t(mm.colResult)}</Th>
                 </tr>
               </thead>
               <tbody>
                 {d.activity.length === 0 ? (
-                  <EmptyRow colSpan={4}>No activity in this workspace yet.</EmptyRow>
+                  <EmptyRow colSpan={4}>{t(mm.noActivity)}</EmptyRow>
                 ) : (
                   d.activity.map((a) => (
                     <tr key={a.id}>
@@ -214,11 +227,11 @@ function Member({ d }: { d: Detail }) {
                       <Td>{a.target}</Td>
                       <Td>
                         {a.result === 'allowed' ? (
-                          <Badge tone="ok">Allowed</Badge>
+                          <Badge tone="ok">{t(mm.result, { result: a.result })}</Badge>
                         ) : (
                           <span className="row flex-nowrap gap-1.5">
-                            <Badge tone="bad">{a.result === 'denied' ? 'Denied' : 'Error'}</Badge>
-                            {a.reason ? <span className="k">{a.reason.replace(/^missing /, 'needs ')}</span> : null}
+                            <Badge tone="bad">{t(mm.result, { result: a.result })}</Badge>
+                            {a.reason ? <span className="k">{reasonText(a.reason)}</span> : null}
                           </span>
                         )}
                       </Td>
@@ -250,21 +263,40 @@ function activityTime(at: string, now: Date) {
   return monthDay(at)
 }
 
+/** Why an entry was denied: the server's "missing campaigns:send" reads "needs campaigns:send". */
+function reasonText(reason: string) {
+  const missing = 'missing '
+  return reason.startsWith(missing) ? tt(mm.needs, { permission: reason.slice(missing.length) }) : reason
+}
+
+/**
+ * A sign-in method in the member's list, linked identities included:
+ * "Password · passkey · Acme SSO (acme.io)". Password and passkey read in
+ * the app language, as in the team list; the others are names.
+ */
+function methodLabel(s: Schemas['MemberSignInMethod'], i: number, ssoDomain?: string) {
+  if (s.kind === 'password') return tt(am.signInPassword)
+  if (s.kind === 'passkey') return tt(i === 0 ? am.signInPasskeyFirst : am.signInPasskey)
+  return s.kind === 'sso' && ssoDomain ? `${s.label} (${ssoDomain})` : s.label
+}
+
 function KeysCard({ d }: { d: Detail }) {
+  const t = useT()
   const { slug } = useWorkspace()
   return (
     <section className="card" aria-labelledby="keys-h">
-      <CardSection title={<span id="keys-h">API keys they created</span>} />
+      <CardSection title={<span id="keys-h">{t(mm.keysTitle)}</span>} />
       <div className="pad">
         {d.apiKeys.length === 0 ? (
           <div className="note n">
             <span>
+              {/* The server's two notes read in the app language; any other shows as it comes. */}
               {d.keysNote?.includes('apikeys:manage') ? (
-                <>
-                  None. Creating API keys needs <span className="mono">apikeys:manage</span>, which this role doesn&apos;t hold.
-                </>
+                <T msg={mm.keysNoPermission} values={{ mono: (c) => <span className="mono">{c}</span> }} />
+              ) : d.keysNote === undefined || d.keysNote === 'None yet.' ? (
+                t(mm.keysNoneYet)
               ) : (
-                (d.keysNote ?? 'None yet.')
+                d.keysNote
               )}
             </span>
           </div>
@@ -276,8 +308,8 @@ function KeysCard({ d }: { d: Detail }) {
                   <Link to="/w/$workspace/settings/keys" params={{ workspace: slug }} className="font-semibold text-ink no-underline hover:text-accent">
                     {k.name}
                   </Link>
-                  {k.kind === 'mcp_agent' ? <Badge tone="purple">MCP agent</Badge> : null}
-                  {k.status === 'expired' ? <Badge tone="bad">Expired</Badge> : null}
+                  {k.kind === 'mcp_agent' ? <Badge tone="purple">{t(mm.mcpAgent)}</Badge> : null}
+                  {k.status === 'expired' ? <Badge tone="bad">{t(mm.expired)}</Badge> : null}
                 </span>
                 <span className="k mono">
                   {k.masked} · {k.permissions.join(', ')} · {k.scope}
@@ -292,40 +324,50 @@ function KeysCard({ d }: { d: Detail }) {
 }
 
 function ApprovalsCard({ d }: { d: Detail }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const pending = d.approvalsRequested.filter((a) => a.status === 'pending')
   const given = d.approvalsGiven
+  const last = given[0]
+  const next = pending[0]
   return (
     <section className="card" aria-labelledby="ap-h">
-      <CardSection title={<span id="ap-h">Approvals</span>} />
+      <CardSection title={<span id="ap-h">{t(mm.approvalsTitle)}</span>} />
       <div className="pad col gap-2">
         <KeyValues
           items={[
             [
-              'Given',
-              given.length > 0
-                ? `${given.length} · last ${given[0]!.campaign || 'campaign'} ${monthDay(given[0]!.at)}`
+              t(mm.given),
+              last
+                ? last.campaign
+                  ? t(mm.givenLast, { count: count(given.length), campaign: last.campaign, date: monthDay(last.at) })
+                  : t(mm.givenLastUnnamed, { count: count(given.length), date: monthDay(last.at) })
                 : d.canApprove
-                  ? 'None yet'
-                  : "None · can't approve (no campaigns:approve)",
+                  ? t(mm.givenNone)
+                  : t(mm.givenCantApprove),
             ],
             [
-              'Requested',
-              pending.length > 0 ? (
-                <>
-                  {pending.length} pending ·{' '}
-                  {pending[0]!.campaignId ? (
-                    <Link to="/w/$workspace/approvals" params={{ workspace: slug }}>
-                      {pending[0]!.campaign}
-                    </Link>
-                  ) : (
-                    pending[0]!.campaign
-                  )}
-                </>
+              t(mm.requested),
+              next ? (
+                <T
+                  msg={mm.requestedPending}
+                  values={{
+                    count: count(pending.length),
+                    campaign: next.campaign,
+                    link: (c) =>
+                      next.campaignId ? (
+                        <Link to="/w/$workspace/approvals" params={{ workspace: slug }}>
+                          {c}
+                        </Link>
+                      ) : (
+                        c
+                      ),
+                  }}
+                />
               ) : d.approvalsRequested.length > 0 ? (
-                `${d.approvalsRequested.length} · none pending`
+                t(mm.requestedNonePending, { count: count(d.approvalsRequested.length) })
               ) : (
-                'None'
+                t(common.none)
               ),
             ],
           ]}
@@ -336,45 +378,44 @@ function ApprovalsCard({ d }: { d: Detail }) {
 }
 
 function SessionsCard({ d, manageReason }: { d: Detail; manageReason?: string }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const m = d.member
   const signOut = $api.useMutation('post', '/api/v1/workspaces/{workspace}/members/{memberId}/sign-out')
   // Every method, linked identities included (the team list shows the primary ones).
-  const methods = d.signInMethods.length
-    ? d.signInMethods.map((s) => (s.kind === 'sso' && d.ssoDomain ? `${s.label} (${d.ssoDomain})` : s.label)).join(' · ')
-    : 'None (deactivated)'
-  const twoFA = { on: m.twoFA.method === 'passkey' ? 'Passkey' : 'Authenticator app (TOTP)', idp: 'Enforced by the IdP', required: 'Required, not set up yet', off: 'Off' }[m.twoFA.state]
+  const methods = d.signInMethods.length ? d.signInMethods.map((s, i) => methodLabel(s, i, d.ssoDomain)).join(' · ') : t(mm.methodsNone)
+  const twoFA = t(mm.twoFactorState, { state: m.twoFA.state === 'on' ? (m.twoFA.method === 'passkey' ? 'passkey' : 'totp') : m.twoFA.state })
   return (
     <section className="card" aria-labelledby="ss-h">
-      <CardSection title={<span id="ss-h">Sign-in and sessions</span>} />
+      <CardSection title={<span id="ss-h">{t(mm.sessionsTitle)}</span>} />
       <div className="pad col gap-2">
         <KeyValues
           items={[
-            ['Methods', methods],
-            ['Two-factor', twoFA],
+            [t(mm.methods), methods],
+            [t(mm.twoFactor), twoFA],
             [
-              'Sessions',
+              t(mm.sessions),
               <>
-                {d.sessions} active ·{' '}
+                {t(mm.sessionsActive, { count: count(d.sessions) })} ·{' '}
                 <Button
                   size="sm"
-                  disabledReason={manageReason ?? (d.sessions === 0 ? 'No active sessions.' : undefined)}
+                  disabledReason={manageReason ?? (d.sessions === 0 ? t(mm.noActiveSessions) : undefined)}
                   loading={signOut.isPending}
                   onClick={() =>
                     signOut.mutate(
                       { params: { path: { workspace: slug, memberId: m.id } } },
                       {
                         onSuccess: (r) => {
-                          toast({ title: `${m.name} signed out`, detail: `${r.sessionsRevoked} ${r.sessionsRevoked === 1 ? 'session' : 'sessions'} ended` })
+                          toast({ title: t(mm.signedOut, { name: m.name }), detail: t(mm.sessionsEnded, { count: r.sessionsRevoked }) })
                           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/members/{memberId}'] })
                         },
-                        onError: (e) => toast({ kind: 'error', title: "Couldn't sign out", detail: errorMessage(e) }),
+                        onError: (e) => toast({ kind: 'error', title: t(mm.signOutFailed), detail: errorMessage(e) }),
                       },
                     )
                   }
                 >
-                  Force sign-out
+                  {t(mm.forceSignOut)}
                 </Button>
               </>,
             ],
@@ -386,49 +427,52 @@ function SessionsCard({ d, manageReason }: { d: Detail; manageReason?: string })
 }
 
 function RemoveDialog({ member, keys, open, onOpenChange }: { member: Schemas['TeamMember']; keys: number; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const t = useT()
   const { slug, me } = useWorkspace()
   const navigate = useNavigate()
   const qc = useQueryClient()
   const integrations = useMemberIntegrations([member.userId])
+  const first = member.name.split(' ')[0] ?? member.name
   return (
     <ConfirmDialog
       open={open}
       onOpenChange={onOpenChange}
       tone="bad"
-      badge="Remove member"
-      title={`Remove ${member.name} from ${me.workspace.name}?`}
-      description="The membership is deleted; the audit log still names them. Deactivating instead keeps the membership so they can come back."
-      confirmLabel={`Remove ${member.name.split(' ')[0]}`}
-      busyLabel="Removing…"
+      badge={t(mm.removeBadge)}
+      title={t(mm.removeTitle, { name: member.name, workspace: me.workspace.name })}
+      description={t(mm.removeDescription)}
+      confirmLabel={t(mm.removeConfirm, { name: first })}
+      busyLabel={t(mm.removing)}
       onConfirm={async () => {
         await integrations.apply('')
         await http.DELETE('/api/v1/workspaces/{workspace}/members/{memberId}', { params: { path: { workspace: slug, memberId: member.id } } })
-        toast({ kind: 'deleted', title: `${member.name} removed`, detail: 'logged as member.removed' })
+        toast({ kind: 'deleted', title: t(mm.removed, { name: member.name }), detail: t(mm.loggedAs, { action: 'member.removed' }) })
         void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/members'] })
         void navigate({ to: '/w/$workspace/settings/team', params: { workspace: slug } })
       }}
     >
-      <DialogRow tone="bad" label="Access" first>
-        Loses access to {me.workspace.name} at once; other workspaces are unaffected
+      <DialogRow tone="bad" label={t(mm.rowAccess)} first>
+        {t(mm.removeAccess, { workspace: me.workspace.name })}
       </DialogRow>
       {keys > 0 ? (
-        <DialogRow tone="bad" label="Keys">
-          {keys} API {keys === 1 ? 'key or agent they created is' : 'keys or agents they created are'} revoked
+        <DialogRow tone="bad" label={t(mm.rowKeys)}>
+          {t(mm.removeKeys, { count: keys })}
         </DialogRow>
       ) : null}
-      <DialogRow tone="ok" label="Keeps">
-        Campaigns, templates and approvals they made stay in the workspace
+      <DialogRow tone="ok" label={t(mm.rowKeeps)}>
+        {t(mm.removeKeeps)}
       </DialogRow>
-      <MemberIntegrations state={integrations} name={member.name.split(' ')[0]} />
+      <MemberIntegrations state={integrations} name={first} />
     </ConfirmDialog>
   )
 }
 
 function MemberSkeleton() {
+  const t = useT()
   return (
     <div className="flex flex-col gap-5" aria-busy="true">
       <span className="vh" role="status">
-        Loading the member
+        {t(mm.loading)}
       </span>
       <section className="card pad flex items-center gap-4.5">
         <Skeleton w={48} h={48} r={24} />
@@ -452,4 +496,3 @@ function MemberSkeleton() {
     </div>
   )
 }
-

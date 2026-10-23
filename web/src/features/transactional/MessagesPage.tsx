@@ -8,7 +8,7 @@ import { ForbiddenState } from '@/components/shell/SystemScreens'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
 import { ErrorPanel, Skeleton } from '@/components/ui/Feedback'
-import { TableScroll } from '@/components/ui/Table'
+import { TableScroll, Th } from '@/components/ui/Table'
 import { useI18n, useT } from '@/i18n'
 import { languageLabel } from '@/features/languages/composerParts'
 import { clock, clockSeconds, count, dayMonthYear } from '@/lib/format'
@@ -89,20 +89,9 @@ export function useLog(s: LogSearch, live: boolean, first = 25) {
   })
 }
 
-/** "in the last 24 hours", for the log's footer. */
-function useRangeIn(s: LogSearch): string {
-  const t = useT()
-  switch (s.range ?? '24h') {
-    case '1h':
-      return t(ml.in1h)
-    case '7d':
-      return t(ml.in7d)
-    case '30d':
-      return t(ml.in30d)
-    case 'custom':
-      return t(ml.inCustom, { from: s.from ?? '…', to: s.to ?? '…' })
-  }
-  return t(ml.in24h)
+/** The range the log's footer words: "in the last 24 hours", "from 2026-10-01 to 2026-10-15". */
+function rangeValues(s: LogSearch) {
+  return { range: s.range ?? '24h', fromDate: s.from ?? '…', toDate: s.to ?? '…' }
 }
 
 export function useRangeLabel() {
@@ -199,14 +188,11 @@ function explain(t: ReturnType<typeof useT>, it: Pick<LogItem, 'rejection' | 'er
   const r = it.rejection
   if (r?.reason === 'suppressed' && r.suppression) {
     const s = r.suppression
+    const values = { reason: suppressionReason(t, s.reason), date: dayMonthYear(s.since), source: s.source || '—' }
     return {
       title: t(ml.suppressedTitle),
-      detail: t(ml.suppressedDetail, {
-        reason: suppressionReason(t, s.reason),
-        date: dayMonthYear(s.since),
-        code: s.code ? ` · ${s.code}${s.detail ? ` ${s.detail}` : ''}` : '',
-        source: s.source || '—',
-      }),
+      // The provider's code and diagnostic stay as the provider wrote them.
+      detail: s.code ? t(ml.suppressedDetailCode, { ...values, code: `${s.code}${s.detail ? ` ${s.detail}` : ''}` }) : t(ml.suppressedDetail, values),
     }
   }
   if (r?.reason === 'opted_out' && r.optOut)
@@ -259,7 +245,7 @@ export function TransactionalMessagesPage({ search, onSearch }: { search: LogSea
   const first = q.data
   const items = useMemo(() => q.data?.items ?? [], [q.data])
   const newCount = useNewCount(page === 0 ? items : [], live, search)
-  const rangeIn = useRangeIn(search)
+  const rangeIn = rangeValues(search)
   const exportHref = useMemo(() => {
     const qs = new URLSearchParams()
     const p = logQuery(slug, search).params.query
@@ -316,8 +302,8 @@ export function TransactionalMessagesPage({ search, onSearch }: { search: LogSea
               <div className="tx-foot">
                 <span className="k">
                   {page === 0
-                    ? t(ml.showing, { shown: count(items.length), total: count(first.counts.all), range: rangeIn })
-                    : t(ml.showingPage, { from: count(page * PAGE + 1), to: count(page * PAGE + items.length), total: count(first.counts.all), range: rangeIn })}{' '}
+                    ? t(ml.showing, { shown: count(items.length), total: count(first.counts.all), ...rangeIn })
+                    : t(ml.showingPage, { from: count(page * PAGE + 1), to: count(page * PAGE + items.length), total: count(first.counts.all), ...rangeIn })}{' '}
                   · {t(ml.retention, { metadata: first.metadataDays, content: first.contentDays })}
                 </span>
                 <div className="flex gap-2">
@@ -491,13 +477,13 @@ function LogTable({ items }: { items: LogItem[] }) {
         <table className="tbl" aria-label={t(ml.tableLabel)}>
           <thead>
             <tr>
-              <th scope="col">{t(ml.colTime)}</th>
-              <th scope="col">{t(ml.colRecipient)}</th>
-              <th scope="col">{t(ml.colTemplate)}</th>
-              <th scope="col">{t(ml.colProvider)}</th>
-              {showLanguage ? <th scope="col">{t(ml.colLanguage)}</th> : null}
-              <th scope="col">{t(ml.colStatus)}</th>
-              <th scope="col">{t(ml.colEngagement)}</th>
+              <Th>{t(ml.colTime)}</Th>
+              <Th>{t(ml.colRecipient)}</Th>
+              <Th>{t(ml.colTemplate)}</Th>
+              <Th>{t(ml.colProvider)}</Th>
+              {showLanguage ? <Th>{t(ml.colLanguage)}</Th> : null}
+              <Th>{t(ml.colStatus)}</Th>
+              <Th>{t(ml.colEngagement)}</Th>
             </tr>
           </thead>
           <tbody>

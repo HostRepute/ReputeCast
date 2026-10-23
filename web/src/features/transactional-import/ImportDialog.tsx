@@ -8,6 +8,7 @@ import { Dialog } from '@/components/ui/Dialog'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { T, useT } from '@/i18n'
+import { count } from '@/lib/format'
 import { useWorkspace } from '@/lib/session'
 import { m } from './messages'
 import './import.css'
@@ -346,7 +347,7 @@ export function ImportDialog({ initial, onClose, onSession }: { initial?: Import
                 className={urlError ? 'in err' : 'in'}
                 type="url"
                 value={baseUrl}
-                placeholder="https://notifuse.example.com"
+                placeholder={'https://notifuse.example.com'}
                 aria-invalid={urlError ? true : undefined}
                 aria-describedby={urlError ? `${ids}-urlerr` : undefined}
                 onChange={(e) => setBaseUrl(e.target.value)}
@@ -457,7 +458,7 @@ export function ImportDialog({ initial, onClose, onSession }: { initial?: Import
             {files.map((f) => (
               <div key={f.name} className="txi-row">
                 <span className="mono flex-1">{f.name}</span>
-                <span className="k">{Math.max(1, Math.round(f.size / 1024))} KB</span>
+                <span className="k">{t(m.fileSize, { size: count(Math.max(1, Math.round(f.size / 1024))) })}</span>
                 <button type="button" className="btn sm ic" aria-label={t(m.removeFile, { name: f.name })} onClick={() => setFiles((x) => x.filter((y) => y.name !== f.name))}>
                   <Icon name="close" size={12} />
                 </button>

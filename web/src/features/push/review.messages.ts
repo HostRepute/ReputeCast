@@ -120,6 +120,8 @@ export const m = defineMessages('pushReview', {
   // Test card
   testTitle: 'Test',
   testLine: '{browser} · {time}',
+  // status: the test's result, as the API names it.
+  testStatus: '{status, select, shown {Shown} clicked {Clicked} sent {Sent} queued {Queued} failed {Failed} other {{status}}}',
   testNone: 'No test yet. Send one to see it as a reader does.',
 
   // Send

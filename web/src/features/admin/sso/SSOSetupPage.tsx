@@ -12,12 +12,17 @@ import { Note } from '@/components/ui/Note'
 import { Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { AccessTable, copyText, ProviderMark } from '@/features/access/parts'
-import { ago, andList, usDate } from '@/lib/format'
+import { T, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { ago, andList, calendarDate, count, monthDay } from '@/lib/format'
+import { roleName } from '@/lib/roles'
 import { useWorkspace } from '@/lib/session'
 import { AdminPage } from '../AdminPage'
 import { useInvalidateSSO } from '../queries'
 import { EnforcementDialog } from './EnforcementDialog'
 import { richHint, shortURL } from './hints'
+import { m as sm } from './messages'
+import { m as ss } from './setup.messages'
 import { finishTestPopup, onTestDone, openTestPopup } from './testSignIn'
 
 type Detail = Schemas['SSOProviderDetail']
@@ -77,19 +82,8 @@ export function SSOSetupPage({ providerId, test }: { providerId: string; test?: 
   return <ExistingProvider providerId={providerId} test={test} />
 }
 
-function statusWords(d: Detail) {
-  switch (d.status) {
-    case 'enabled':
-      return 'enabled'
-    case 'draft':
-      return 'setup in progress'
-    case 'disabled':
-      return 'disabled'
-  }
-  return 'needs attention'
-}
-
 function ExistingProvider({ providerId, test }: { providerId: string; test?: 'done' }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const q = $api.useQuery('get', '/api/v1/admin/sso/{providerId}', { params: { path: { providerId } } })
@@ -101,9 +95,9 @@ function ExistingProvider({ providerId, test }: { providerId: string; test?: 'do
   }, [test, providerId, navigate, slug])
   useEffect(() => onTestDone(providerId, () => void q.refetch()), [providerId, q])
   return (
-    <AdminPage documentTitle={q.data?.name ?? 'SSO provider'} subtitle={q.data ? `${q.data.name} · ${statusWords(q.data)}` : undefined}>
+    <AdminPage documentTitle={q.data?.name ?? t(ss.docTitle)} subtitle={q.data ? t(ss.subtitle, { name: q.data.name, status: q.data.status }) : undefined}>
       {q.isError ? (
-        <ErrorPanel title="Couldn't load this SSO provider" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
+        <ErrorPanel title={t(ss.loadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
           {errorMessage(q.error)}
         </ErrorPanel>
       ) : q.isPending ? (
@@ -117,15 +111,16 @@ function ExistingProvider({ providerId, test }: { providerId: string; test?: 'do
 
 /** Step 1 for a new provider: picking a preset creates a draft. */
 function NewProvider() {
+  const t = useT()
   const { slug } = useWorkspace()
   const navigate = useNavigate()
   const list = $api.useQuery('get', '/api/v1/admin/sso')
   const create = $api.useMutation('post', '/api/v1/admin/sso')
   const invalidate = useInvalidateSSO()
   return (
-    <AdminPage documentTitle="Add SSO provider" subtitle="New SSO provider">
+    <AdminPage documentTitle={t(ss.newDocTitle)} subtitle={t(ss.newSubtitle)}>
       <section className="card" aria-labelledby="preset-h">
-        <CardSection title={<span id="preset-h">1 · Preset</span>} caption="Pick your identity provider" />
+        <CardSection title={<span id="preset-h">{t(ss.presetTitle)}</span>} caption={t(ss.presetPick)} />
         <div className="pad col gap-2.5">
           {list.isPending ? (
             <Skeleton w="80%" h={30} r={8} />
@@ -143,7 +138,7 @@ function NewProvider() {
                       await invalidate()
                       void navigate({ to: '/w/$workspace/admin/sso/$providerId', params: { workspace: slug, providerId: d.id }, replace: true })
                     } catch (e) {
-                      toast({ kind: 'error', title: "Couldn't add the provider", detail: errorMessage(e) })
+                      toast({ kind: 'error', title: t(ss.addFailed), detail: errorMessage(e) })
                     }
                   }}
                 >
@@ -153,7 +148,7 @@ function NewProvider() {
               ))}
             </div>
           )}
-          <span className="k">Presets fill the issuer pattern, scopes and claim names. Everything stays editable, and nothing is live until you enable the provider.</span>
+          <span className="k">{t(ss.presetNewHint)}</span>
         </div>
       </section>
     </AdminPage>
@@ -161,6 +156,7 @@ function NewProvider() {
 }
 
 function SetupForm({ d }: { d: Detail }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const invalidate = useInvalidateSSO()
   const [f, setF] = useState<Form>(() => toForm(d))
@@ -218,19 +214,17 @@ function SetupForm({ d }: { d: Detail }) {
         onDropMappings={() =>
           void run(async () => {
             const r = await persist({ ...f, groupMappings: [] })
-            toast({ kind: 'success', title: 'Group mappings removed', detail: `${r.name} saved · JIT default role applies` })
+            toast({ kind: 'success', title: t(ss.mappingsRemoved), detail: t(ss.mappingsRemovedDetail, { name: r.name }) })
           })
         }
       />
       {error ? (
-        <ErrorPanel title="Not saved" actions={<Button onClick={() => setError(undefined)}>Dismiss</Button>}>
+        <ErrorPanel title={t(ss.notSaved)} actions={<Button onClick={() => setError(undefined)}>{t(ss.dismiss)}</Button>}>
           {error}
         </ErrorPanel>
       ) : null}
       <div className="row justify-between gap-2.5">
-        <span className="k">
-          {current.status === 'enabled' ? 'Changes apply at the next sign-in. People already signed in stay signed in.' : 'Nothing is live until you enable the provider. Users keep their current sign-in until then.'}
-        </span>
+        <span className="k">{current.status === 'enabled' ? t(ss.changesApply) : t(ss.nothingLive)}</span>
         <div className="row gap-2">
           {current.status === 'enabled' ? (
             <Button
@@ -239,11 +233,11 @@ function SetupForm({ d }: { d: Detail }) {
               onClick={() =>
                 void run(async () => {
                   await persist()
-                  toast({ kind: 'success', title: `${current.name} saved` })
+                  toast({ kind: 'success', title: t(ss.savedToast, { name: current.name }) })
                 })
               }
             >
-              Save changes
+              {t(common.saveChanges)}
             </Button>
           ) : (
             <>
@@ -252,11 +246,11 @@ function SetupForm({ d }: { d: Detail }) {
                 onClick={() =>
                   void run(async () => {
                     await persist()
-                    toast({ kind: 'success', title: 'Draft saved', detail: 'nothing is live yet' })
+                    toast({ kind: 'success', title: t(ss.draftSaved), detail: t(ss.draftSavedDetail) })
                   })
                 }
               >
-                Save as draft
+                {t(ss.saveDraft)}
               </Button>
               <Button
                 variant="primary"
@@ -264,16 +258,16 @@ function SetupForm({ d }: { d: Detail }) {
                 onClick={() =>
                   void run(async () => {
                     const r = dirty ? await persist() : current
-                    if (r.enableBlockers.length) throw new Error(`Before enabling: ${r.enableBlockers.join(' ')}`)
+                    if (r.enableBlockers.length) throw new Error(t(ss.beforeEnabling, { blockers: r.enableBlockers.join(' ') }))
                     const e = await enable.mutateAsync(path)
                     setSaved(e)
                     setF(toForm(e))
                     await invalidate()
-                    toast({ kind: 'success', title: `${e.name} enabled`, detail: 'its button is on the sign-in page' })
+                    toast({ kind: 'success', title: t(sm.enabledToast, { name: e.name }), detail: t(sm.enabledDetail) })
                   })
                 }
               >
-                Enable {current.name}
+                {t(ss.enableName, { name: current.name })}
               </Button>
             </>
           )}
@@ -283,7 +277,7 @@ function SetupForm({ d }: { d: Detail }) {
       {unenforcing ? (
         <TurnOffEnforcement d={current} onClose={() => setUnenforcing(false)} onDone={(r) => { setSaved(r); setF(toForm(r)) }} />
       ) : null}
-      <UnsavedChangesGuard dirty={dirty} title="Leave without saving?" description={`You changed ${current.name}'s settings. Nothing is saved until you save.`} onSave={() => persist()} />
+      <UnsavedChangesGuard dirty={dirty} title={t(ss.leaveTitle)} description={t(ss.leaveBody, { name: current.name })} onSave={() => persist()} />
     </>
   )
 }
@@ -295,12 +289,13 @@ function useList() {
 type CardProps = { d: Detail; f: Form; set: (p: Partial<Form>) => void }
 
 function PresetCard({ d, f, set }: CardProps) {
+  const t = useT()
   const presets = useList().data?.presets ?? []
   const live = d.status === 'enabled'
   const name = presets.find((p) => p.key === f.preset)?.name ?? d.presetInfo.name
   return (
     <section className="card" aria-labelledby="preset-h">
-      <CardSection title={<span id="preset-h">1 · Preset</span>} caption={`${name} selected`} />
+      <CardSection title={<span id="preset-h">{t(ss.presetTitle)}</span>} caption={t(ss.presetSelected, { name })} />
       <div className="pad col gap-2.5">
         <div className="row gap-2">
           {presets.map((p) => {
@@ -311,7 +306,7 @@ function PresetCard({ d, f, set }: CardProps) {
                 size="sm"
                 aria-pressed={on}
                 className={on ? 'border-accent! bg-accent-soft!' : undefined}
-                disabledReason={!on && live ? `Disable ${d.name} before switching presets, or add another provider` : undefined}
+                disabledReason={!on && live ? t(ss.presetSwitchBlocked, { name: d.name }) : undefined}
                 onClick={() => {
                   if (on) return
                   set({ preset: p.key, scopes: [...p.scopes], issuerUrl: p.issuer || (f.issuerUrl === presetIssuer(presets, f.preset) ? '' : f.issuerUrl) })
@@ -323,7 +318,7 @@ function PresetCard({ d, f, set }: CardProps) {
             )
           })}
         </div>
-        <span className="k">Presets fill the issuer pattern, scopes and claim names. Everything stays editable.</span>
+        <span className="k">{t(ss.presetHint)}</span>
       </div>
     </section>
   )
@@ -335,15 +330,18 @@ function presetIssuer(presets: Preset[], key: string) {
 
 /** A date without a time ("Apr 10, 2027"), the same in every timezone. */
 function dateOnly(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' })
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? iso : calendarDate(d.toISOString().slice(0, 10), 'date')
 }
 
 function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { preset: Preset; onDiscovered: (d: Detail) => void }) {
+  const t = useT()
   const id = useId()
   const discover = $api.useMutation('post', '/api/v1/admin/sso/{providerId}/discovery')
   const [error, setError] = useState<string>()
   const disc = d.discovery
   const failed = disc && !disc.ok
+  const k = (c: ReactNode) => <span className="k font-medium">{c}</span>
   const test = async () => {
     setError(undefined)
     try {
@@ -359,13 +357,13 @@ function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { prese
     return (
       <section className="card" aria-labelledby="conn-h">
         <CardSection
-          title={<span id="conn-h">Discovery failed</span>}
-          caption={d.status === 'enabled' ? 'Step 2 · the saved issuer keeps working until a new one passes' : 'Step 2 · issuer unreachable or wrong URL'}
-          actions={d.status === 'enabled' ? <Badge tone="warn">Still live</Badge> : <Badge tone="bad">Not configured</Badge>}
+          title={<span id="conn-h">{t(ss.discoveryFailedTitle)}</span>}
+          caption={d.status === 'enabled' ? t(ss.discoveryFailedLive) : t(ss.discoveryFailedDraft)}
+          actions={d.status === 'enabled' ? <Badge tone="warn">{t(ss.stillLive)}</Badge> : <Badge tone="bad">{t(ss.notConfigured)}</Badge>}
         />
         <div className="pad col gap-3">
           <label className="lbl">
-            Issuer URL
+            {t(ss.issuerUrl)}
             <input
               className="in mono"
               value={f.issuerUrl}
@@ -378,11 +376,20 @@ function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { prese
             />
           </label>
           <div className="note b" role="alert" id={`${id}-disc-err`}>
-            <Badge tone="bad">{disc.status ? String(disc.status) : 'Error'}</Badge>
+            <Badge tone="bad">{disc.status ? String(disc.status) : t(ss.discoveryErrorBadge)}</Badge>
             <span className="col gap-1">
               <span>
-                {disc.url ? <span className="mono">{shortURL(disc.url)}</span> : 'The issuer'} {disc.error}
-                {disc.ms && disc.status ? ` in ${disc.ms} ms` : ''}.
+                <T
+                  msg={ss.discoveryAnswer}
+                  values={{
+                    hasUrl: disc.url ? 'yes' : 'no',
+                    url: shortURL(disc.url),
+                    error: disc.error ?? '',
+                    timed: disc.ms && disc.status ? 'yes' : 'no',
+                    ms: count(disc.ms),
+                    mono: (c) => <span className="mono">{c}</span>,
+                  }}
+                />
               </span>
               <span>{richHint(preset.discoveryHint)}</span>
             </span>
@@ -394,7 +401,7 @@ function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { prese
           ) : null}
           <div className="row gap-2">
             <Button size="sm" variant="primary" loading={discover.isPending} onClick={() => void test()}>
-              Test discovery again
+              {t(ss.testDiscoveryAgain)}
             </Button>
             <ButtonAnchor size="sm" href={preset.docsUrl}>
               {preset.docsLabel}
@@ -404,38 +411,40 @@ function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { prese
       </section>
     )
   const secretHint = d.secret.set
-    ? [
-        d.secret.setAt ? `Saved ${usDate(d.secret.setAt).replace(/, \d{4}$/, '')}${d.secret.setBy ? ` by ${d.secret.setBy}` : ''}` : 'Saved',
-        d.secret.expiresOn ? `expires in ${preset.key === 'entra' ? 'Entra' : preset.shortName} on ${dateOnly(d.secret.expiresOn)}` : '',
-      ]
-        .filter(Boolean)
-        .join(' · ') + '. Secrets can be replaced but never read back.'
-    : 'Paste the secret from the ' + preset.app + '. It is encrypted and never shown again.'
+    ? t(ss.secretSet, {
+        saved: d.secret.setAt ? (d.secret.setBy ? 'byName' : 'date') : 'plain',
+        date: d.secret.setAt ? monthDay(d.secret.setAt) : '',
+        name: d.secret.setBy ?? '',
+        expires: d.secret.expiresOn ? 'yes' : 'no',
+        idp: preset.key === 'entra' ? 'Entra' : preset.shortName,
+        expiresOn: d.secret.expiresOn ? dateOnly(d.secret.expiresOn) : '',
+      })
+    : t(ss.secretPaste, { app: preset.app })
   return (
     <section className="card" aria-labelledby="conn-h">
-      <CardSection title={<span id="conn-h">2 · Connection</span>} />
+      <CardSection title={<span id="conn-h">{t(ss.connectionTitle)}</span>} />
       <div className="pad col gap-3.5">
         <div className="lbl">
           <span>
-            Redirect URI <span className="k font-medium">· add this to the {preset.app}</span>
+            <T msg={ss.redirectLabel} values={{ app: preset.app, k }} />
           </span>
           <div className="row flex-nowrap gap-2">
-            <input className="in mono flex-1 bg-ground" value={d.redirectUri} readOnly aria-label="Redirect URI" aria-describedby={`${id}-redir`} />
+            <input className="in mono flex-1 bg-ground" value={d.redirectUri} readOnly aria-label={t(ss.redirectUri)} aria-describedby={`${id}-redir`} />
             <Button
               onClick={async () => {
                 const ok = await copyText(d.redirectUri)
-                toast(ok ? { kind: 'success', title: 'Redirect URI copied' } : { kind: 'error', title: "Couldn't copy", detail: 'select it and copy' })
+                toast(ok ? { kind: 'success', title: t(ss.redirectCopied) } : { kind: 'error', title: t(ss.copyFailed), detail: t(ss.copyFailedDetail) })
               }}
             >
-              Copy
+              {t(common.copy)}
             </Button>
           </div>
           <span className="k font-medium" id={`${id}-redir`}>
-            Built from the public URL. If the URL changes, update the app registration.
+            {t(ss.redirectHint)}
           </span>
         </div>
         <div className="lbl">
-          <label htmlFor={`${id}-issuer`}>Issuer URL</label>
+          <label htmlFor={`${id}-issuer`}>{t(ss.issuerUrl)}</label>
           <div className="row flex-nowrap gap-2">
             <input
               id={`${id}-issuer`}
@@ -449,16 +458,16 @@ function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { prese
               aria-describedby={error ? `${id}-disc ${id}-disc-err` : `${id}-disc`}
             />
             <Button loading={discover.isPending} onClick={() => void test()}>
-              Test discovery
+              {t(ss.testDiscovery)}
             </Button>
           </div>
           <span className="k font-medium" id={`${id}-disc`}>
             {disc?.ok ? (
               <span className="row gap-1.5">
-                <Badge tone="ok">OK</Badge> Discovery document found {ago(disc.checkedAt)} · {andList(disc.endpoints)} endpoints · signing keys cached
+                <Badge tone="ok">{t(ss.discoveryOk)}</Badge> {t(ss.discoveryFound, { ago: ago(disc.checkedAt), endpoints: andList(disc.endpoints) })}
               </span>
             ) : !disc ? (
-              `Enter the issuer, like ${preset.issuerPattern}, then test discovery.`
+              t(ss.issuerPrompt, { pattern: preset.issuerPattern })
             ) : null}
           </span>
         </div>
@@ -469,12 +478,12 @@ function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { prese
         ) : null}
         <div className="grid grid-cols-2 gap-3.5 max-md:grid-cols-1">
           <label className="lbl">
-            Client ID
+            {t(ss.clientId)}
             <input className="in mono" value={f.clientId} onChange={(e) => set({ clientId: e.target.value })} spellCheck={false} autoComplete="off" />
           </label>
           <div className="lbl">
             <label htmlFor={`${id}-secret`}>
-              Client secret <span className="k font-medium">· write-only</span>
+              <T msg={ss.clientSecretLabel} values={{ k }} />
             </label>
             {f.replacing ? (
               <div className="row flex-nowrap gap-2">
@@ -483,22 +492,22 @@ function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { prese
                   className="in mono flex-1"
                   type="password"
                   value={f.clientSecret}
-                  placeholder={d.secret.set ? 'New secret' : 'Paste the client secret'}
+                  placeholder={d.secret.set ? t(ss.newSecret) : t(ss.pasteSecret)}
                   autoComplete="new-password"
                   onChange={(e) => set({ clientSecret: e.target.value })}
                 />
-                {d.secret.set ? <Button onClick={() => set({ replacing: false, clientSecret: '' })}>Keep</Button> : null}
+                {d.secret.set ? <Button onClick={() => set({ replacing: false, clientSecret: '' })}>{t(ss.keepSecret)}</Button> : null}
               </div>
             ) : (
               <div className="row flex-nowrap gap-2">
                 <input id={`${id}-secret`} className="in flex-1 bg-ground" type="password" value="••••••••••••••••••••" readOnly aria-describedby={`${id}-sec-hint`} />
-                <Button onClick={() => set({ replacing: true })}>Replace</Button>
+                <Button onClick={() => set({ replacing: true })}>{t(ss.replaceSecret)}</Button>
               </div>
             )}
             {f.replacing && f.clientSecret ? (
               <span className="row flex-nowrap gap-2">
                 <label className="k font-medium" htmlFor={`${id}-exp`}>
-                  Expires at the IdP on
+                  {t(ss.secretExpiresLabel)}
                 </label>
                 <input id={`${id}-exp`} className="in h-[30px]" type="date" value={f.secretExpiresOn} onChange={(e) => set({ secretExpiresOn: e.target.value })} />
               </span>
@@ -515,6 +524,7 @@ function ConnectionCard({ d, f, set, preset, onDiscovered }: CardProps & { prese
 }
 
 function ScopesField({ f, set, preset }: { f: Form; set: (p: Partial<Form>) => void; preset: Preset }) {
+  const t = useT()
   const [adding, setAdding] = useState(false)
   const [value, setValue] = useState('')
   const fixed = ['openid', 'profile', 'email']
@@ -526,13 +536,13 @@ function ScopesField({ f, set, preset }: { f: Form; set: (p: Partial<Form>) => v
   }
   return (
     <div className="lbl">
-      <span id="scopes-l">Scopes</span>
+      <span id="scopes-l">{t(ss.scopes)}</span>
       <div className="row gap-1.5" role="group" aria-labelledby="scopes-l">
         {f.scopes.map((s) => (
           <span key={s} className="chip">
             {s}
             {fixed.includes(s) ? null : (
-              <button type="button" aria-label={`Remove scope ${s}`} onClick={() => set({ scopes: f.scopes.filter((x) => x !== s) })}>
+              <button type="button" aria-label={t(ss.removeScope, { scope: s })} onClick={() => set({ scopes: f.scopes.filter((x) => x !== s) })}>
                 ×
               </button>
             )}
@@ -544,8 +554,8 @@ function ScopesField({ f, set, preset }: { f: Form; set: (p: Partial<Form>) => v
               className="in h-[30px] w-[140px]"
               value={value}
               autoFocus
-              aria-label="Scope to add"
-              placeholder="groups"
+              aria-label={t(ss.scopeToAdd)}
+              placeholder={'groups'}
               onChange={(e) => setValue(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -556,12 +566,12 @@ function ScopesField({ f, set, preset }: { f: Form; set: (p: Partial<Form>) => v
               }}
             />
             <Button size="sm" onClick={add}>
-              Add
+              {t(ss.add)}
             </Button>
           </span>
         ) : (
           <Button size="sm" onClick={() => setAdding(true)}>
-            Add scope
+            {t(ss.addScope)}
           </Button>
         )}
       </div>
@@ -571,6 +581,7 @@ function ScopesField({ f, set, preset }: { f: Form; set: (p: Partial<Form>) => v
 }
 
 function ClaimsCard({ d, f, set, preset }: CardProps & { preset: Preset }) {
+  const t = useT()
   const samples = d.test?.samples ?? []
   const rows: { field: keyof Schemas['SSOClaimMap']; label: string }[] = [
     { field: 'email', label: 'email' },
@@ -581,15 +592,15 @@ function ClaimsCard({ d, f, set, preset }: CardProps & { preset: Preset }) {
   const sampleOf = (label: string) => samples.find((s) => s.field === label)
   return (
     <section className="card" aria-labelledby="claims-h">
-      <CardSection title={<span id="claims-h">3 · Claim mapping</span>} caption="Which claims fill the account" />
-      <AccessTable caption="Claim mapping">
+      <CardSection title={<span id="claims-h">{t(ss.claimsTitle)}</span>} caption={t(ss.claimsCaption)} />
+      <AccessTable caption={t(ss.claimsTable)}>
         <thead>
           <tr>
-            <Th>ReputeCast field</Th>
-            <Th>Claim name</Th>
-            <Th>Sample from last test</Th>
+            <Th>{t(ss.colField)}</Th>
+            <Th>{t(ss.colClaim)}</Th>
+            <Th>{t(ss.colSample)}</Th>
             <Th>
-              <span className="vh">Result</span>
+              <span className="vh">{t(ss.colResult)}</span>
             </Th>
           </tr>
         </thead>
@@ -603,28 +614,28 @@ function ClaimsCard({ d, f, set, preset }: CardProps & { preset: Preset }) {
                   <input
                     className="in mono w-[180px]"
                     value={f.claims[r.field]}
-                    aria-label={`Claim for ${r.label.replace('_', ' ')}`}
+                    aria-label={t(ss.claimFor, { field: r.label.replace('_', ' ') })}
                     onChange={(e) => set({ claims: { ...f.claims, [r.field]: e.target.value } })}
                   />
                 </Td>
                 <Td>
                   {!s ? (
-                    <span className="k">Run a test sign-in</span>
+                    <span className="k">{t(ss.runTestFirst)}</span>
                   ) : s.found ? (
                     <>
                       <span className="mono">{s.value}</span>
-                      {r.field === 'groups' && preset.groupIds ? <span className="k"> object IDs</span> : null}
+                      {r.field === 'groups' && preset.groupIds ? <span className="k"> {t(ss.objectIds)}</span> : null}
                     </>
                   ) : (
-                    <span className="k">{s.missing ?? `not sent by ${preset.shortName}`}</span>
+                    <span className="k">{s.missing ?? t(ss.notSentBy, { idp: preset.shortName })}</span>
                   )}
                 </Td>
                 <Td>
                   {!s ? null : s.found ? (
-                    <Badge tone="ok">{r.field === 'groups' && s.count ? `Found · ${s.count}` : 'Found'}</Badge>
+                    <Badge tone="ok">{r.field === 'groups' && s.count ? t(ss.foundCount, { count: count(s.count) }) : t(ss.found)}</Badge>
                   ) : (
                     <span className="row flex-nowrap gap-1.5">
-                      <Badge tone="warn">Missing</Badge>
+                      <Badge tone="warn">{t(ss.missing)}</Badge>
                       {s.note ? <span className="k">{s.note}</span> : null}
                     </span>
                   )}
@@ -639,7 +650,7 @@ function ClaimsCard({ d, f, set, preset }: CardProps & { preset: Preset }) {
           <div className="note i">
             <ProviderMark preset={preset.key} />
             <span>
-              {preset.shortName} sends group <b>object IDs</b>, not names. Paste the ID in a mapping and give it a readable label.
+              <T msg={ss.groupIdsNote} values={{ idp: preset.shortName, b: (c) => <b>{c}</b> }} />
             </span>
           </div>
         </div>
@@ -654,16 +665,14 @@ export function GroupMappingNote({ preset, name }: { preset: string; name: strin
     <div className="note i">
       <ProviderMark preset={preset} />
       <span>
-        <b>Group mapping is unavailable for {name}.</b>{' '}
-        {preset === 'google'
-          ? "Google doesn't send a groups claim over OIDC. Map people by email domain (JIT default role) or assign roles individually in Team."
-          : 'This identity provider sends no groups claim. Map people by email domain (JIT default role) or assign roles individually in Team.'}
+        <T msg={sm.groupMappingUnavailable} values={{ name, google: preset === 'google' ? 'yes' : 'no', b: (c) => <b>{c}</b> }} />
       </span>
     </div>
   )
 }
 
 function AccessCard({ d, f, set, preset, onEnforce, onUnenforce }: CardProps & { preset: Preset; onEnforce: () => void; onUnenforce: () => void }) {
+  const t = useT()
   const [adding, setAdding] = useState(false)
   const [domain, setDomain] = useState('')
   const [domainError, setDomainError] = useState<string>()
@@ -671,7 +680,7 @@ function AccessCard({ d, f, set, preset, onEnforce, onUnenforce }: CardProps & {
   const addDomain = () => {
     const v = domain.trim().toLowerCase().replace(/^@/, '')
     if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(v)) {
-      setDomainError('Enter a domain like acme.io.')
+      setDomainError(t(ss.domainInvalid))
       return
     }
     if (!f.allowedDomains.includes(v)) set({ allowedDomains: [...f.allowedDomains, v] })
@@ -684,15 +693,15 @@ function AccessCard({ d, f, set, preset, onEnforce, onUnenforce }: CardProps & {
   const owners = d.breakGlassOwners
   return (
     <section className="card" aria-labelledby="access-h">
-      <CardSection title={<span id="access-h">4 · Access</span>} caption="Domains, just-in-time accounts, group mapping, enforcement" />
+      <CardSection title={<span id="access-h">{t(ss.accessTitle)}</span>} caption={t(ss.accessCaption)} />
       <div className="pad col gap-3.5">
         <div className="lbl">
-          <span id="domains-l">Allowed email domains</span>
+          <span id="domains-l">{t(ss.allowedEmailDomains)}</span>
           <div className="row gap-1.5" role="group" aria-labelledby="domains-l">
             {f.allowedDomains.map((x) => (
               <span key={x} className="chip">
                 {x}
-                <button type="button" aria-label={`Remove ${x}`} onClick={() => set({ allowedDomains: f.allowedDomains.filter((y) => y !== x) })}>
+                <button type="button" aria-label={t(ss.removeDomain, { domain: x })} onClick={() => set({ allowedDomains: f.allowedDomains.filter((y) => y !== x) })}>
                   ×
                 </button>
               </span>
@@ -703,8 +712,8 @@ function AccessCard({ d, f, set, preset, onEnforce, onUnenforce }: CardProps & {
                   className="in h-[30px] w-[160px]"
                   value={domain}
                   autoFocus
-                  aria-label="Domain to allow"
-                  placeholder="acme.io"
+                  aria-label={t(ss.domainToAdd)}
+                  placeholder={'acme.io'}
                   onChange={(e) => setDomain(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -716,12 +725,12 @@ function AccessCard({ d, f, set, preset, onEnforce, onUnenforce }: CardProps & {
                   aria-invalid={domainError ? true : undefined}
                 />
                 <Button size="sm" onClick={addDomain}>
-                  Add
+                  {t(ss.add)}
                 </Button>
               </span>
             ) : (
               <Button size="sm" onClick={() => setAdding(true)}>
-                Add domain
+                {t(ss.addDomain)}
               </Button>
             )}
           </div>
@@ -730,15 +739,15 @@ function AccessCard({ d, f, set, preset, onEnforce, onUnenforce }: CardProps & {
               {domainError}
             </span>
           ) : null}
-          <span className="k font-medium">{f.allowedDomains.length ? 'Sign-ins from other domains are rejected and logged.' : 'Any domain can sign in; add one to limit sign-ins to your organization.'}</span>
+          <span className="k font-medium">{f.allowedDomains.length ? t(ss.domainsRejected) : t(ss.domainsAny)}</span>
         </div>
         <div className="grid grid-cols-[auto_1fr_1fr] items-end gap-3.5 max-md:grid-cols-1">
           <label className="row flex-nowrap gap-3 pb-2">
             <input type="checkbox" className="tg" role="switch" checked={f.jit.enabled} onChange={(e) => set({ jit: { ...f.jit, enabled: e.target.checked } })} />
-            <span className="font-semibold">Create accounts automatically (JIT)</span>
+            <span className="font-semibold">{t(ss.jitToggle)}</span>
           </label>
           <label className="lbl">
-            Default workspace
+            {t(ss.jitWorkspace)}
             <select className="in" value={f.jit.workspaceId} onChange={(e) => set({ jit: { ...f.jit, workspaceId: e.target.value } })}>
               {d.workspaces.map((w) => (
                 <option key={w.id} value={w.id}>
@@ -748,14 +757,13 @@ function AccessCard({ d, f, set, preset, onEnforce, onUnenforce }: CardProps & {
             </select>
           </label>
           <label className="lbl">
-            Default role
+            {t(ss.jitRole)}
             <select className="in" value={f.jit.roleKey} onChange={(e) => set({ jit: { ...f.jit, roleKey: e.target.value } })}>
               {(ws?.roles ?? [])
                 .filter((r) => r.key !== 'owner')
                 .map((r) => (
                   <option key={r.key} value={r.key} disabled={!r.grantable && r.key !== f.jit.roleKey}>
-                    {r.name}
-                    {!r.grantable ? ' (you can’t grant it)' : ''}
+                    {r.grantable ? roleName(r) : t(ss.roleNotGrantable, { role: roleName(r) })}
                   </option>
                 ))}
             </select>
@@ -766,8 +774,8 @@ function AccessCard({ d, f, set, preset, onEnforce, onUnenforce }: CardProps & {
         <>
           <div className="sec border-t border-line-2">
             <div className="col gap-0.5">
-              <h3 className="h2 text-[14px]">Group → workspace → role</h3>
-              <span className="k">Re-applied at every sign-in. Direct role assignments are overridden by a matching mapping.</span>
+              <h3 className="h2 text-[14px]">{t(ss.mappingsTitle)}</h3>
+              <span className="k">{t(ss.mappingsCaption)}</span>
             </div>
             <Button
               size="sm"
@@ -777,14 +785,12 @@ function AccessCard({ d, f, set, preset, onEnforce, onUnenforce }: CardProps & {
                 })
               }
             >
-              Add mapping
+              {t(ss.addMapping)}
             </Button>
           </div>
           {f.groupMappings.length === 0 ? (
             <div className="pad">
-              <span className="k">
-                No mappings yet. Add one per {preset.groupIds ? 'group object ID' : 'group'}: everyone in the group gets the role in that workspace at each sign-in.
-              </span>
+              <span className="k">{t(ss.mappingsEmpty, { ids: preset.groupIds ? 'yes' : 'no' })}</span>
             </div>
           ) : (
             <MappingsTable d={d} f={f} set={set} preset={preset} />
@@ -807,8 +813,8 @@ function AccessCard({ d, f, set, preset, onEnforce, onUnenforce }: CardProps & {
               if (d.status !== 'enabled' || domains.length === 0) {
                 toast({
                   kind: 'info',
-                  title: domains.length === 0 ? 'Add an allowed domain first' : `Enable ${d.name} first`,
-                  detail: domains.length === 0 ? 'enforcement applies to the provider’s domains' : 'enforcement needs a live provider',
+                  title: domains.length === 0 ? t(ss.enforceNeedsDomain) : t(ss.enforceNeedsEnable, { name: d.name }),
+                  detail: domains.length === 0 ? t(ss.enforceNeedsDomainDetail) : t(ss.enforceNeedsEnableDetail),
                 })
                 return
               }
@@ -818,22 +824,27 @@ function AccessCard({ d, f, set, preset, onEnforce, onUnenforce }: CardProps & {
             aria-describedby="enforce-hint"
           />
           <span className="col gap-px">
-            <span className="font-semibold">Enforce SSO for {domains.length ? domains.join(', ') : 'your domain'}</span>
+            <span className="font-semibold">{t(ss.enforceToggle, { has: domains.length ? 'yes' : 'no', domains: domains.join(', ') })}</span>
             <span className="k" id="enforce-hint">
-              {enforcedOn ? `Password sign-in is off for ${d.enforced.join(', ')}. ` : 'Turns off password sign-in for these users. '}
+              {enforcedOn ? t(ss.enforcedFor, { domains: d.enforced.join(', ') }) : t(ss.enforceTurnsOff)}{' '}
               {owners.length ? (
-                <>
-                  Break-glass Owners keep password + two-factor:{' '}
-                  {owners.map((o, i) => (
-                    <span key={o.email}>
-                      {i > 0 ? ', ' : null}
-                      <b>{o.name}</b>
-                    </span>
-                  ))}
-                  .
-                </>
+                <T
+                  msg={ss.breakGlassOwners}
+                  values={{
+                    names: (
+                      <>
+                        {owners.map((o, i) => (
+                          <span key={o.email}>
+                            {i > 0 ? ', ' : null}
+                            <b>{o.name}</b>
+                          </span>
+                        ))}
+                      </>
+                    ),
+                  }}
+                />
               ) : (
-                'No Owner at these domains keeps a break-glass sign-in.'
+                t(ss.breakGlassNone)
               )}
             </span>
           </span>
@@ -848,19 +859,20 @@ function shortGroup(g: string) {
 }
 
 function MappingsTable({ d, f, set, preset }: CardProps & { preset: Preset }) {
+  const t = useT()
   const update = (i: number, patch: Partial<Mapping>) => set({ groupMappings: f.groupMappings.map((m, j) => (j === i ? { ...m, ...patch } : m)) })
   const known = new Set(d.groupMappings.map((m) => `${m.group}|${m.workspaceId}`))
   return (
-    <AccessTable caption="Group mappings">
+    <AccessTable caption={t(ss.mappingsTable)}>
       <thead>
         <tr>
-          <Th>IdP group</Th>
-          <Th>Label</Th>
-          <Th>Workspace</Th>
-          <Th>Role</Th>
-          <Th>Scope</Th>
+          <Th>{t(ss.colGroup)}</Th>
+          <Th>{t(ss.colLabel)}</Th>
+          <Th>{t(ss.colWorkspace)}</Th>
+          <Th>{t(ss.colRole)}</Th>
+          <Th>{t(ss.colScope)}</Th>
           <Th>
-            <span className="vh">Remove</span>
+            <span className="vh">{t(ss.colRemove)}</span>
           </Th>
         </tr>
       </thead>
@@ -868,7 +880,7 @@ function MappingsTable({ d, f, set, preset }: CardProps & { preset: Preset }) {
         {f.groupMappings.map((m, i) => {
           const ws = d.workspaces.find((w) => w.id === m.workspaceId)
           const saved = known.has(`${m.group}|${m.workspaceId}`)
-          const label = m.label || shortGroup(m.group) || 'new mapping'
+          const label = m.label || shortGroup(m.group) || t(ss.newMapping)
           return (
             <tr key={i}>
               <Td>
@@ -880,17 +892,17 @@ function MappingsTable({ d, f, set, preset }: CardProps & { preset: Preset }) {
                   <input
                     className="in mono w-[220px]"
                     value={m.group}
-                    placeholder={preset.groupIds ? 'Group object ID' : 'Group name'}
-                    aria-label="IdP group"
+                    placeholder={preset.groupIds ? t(ss.groupIdPlaceholder) : t(ss.groupNamePlaceholder)}
+                    aria-label={t(ss.colGroup)}
                     onChange={(e) => update(i, { group: e.target.value.trim() })}
                   />
                 )}
               </Td>
               <Td>
-                <input className="in w-[150px]" value={m.label ?? ''} aria-label={`Label for group ${shortGroup(m.group)}`} onChange={(e) => update(i, { label: e.target.value })} />
+                <input className="in w-[150px]" value={m.label ?? ''} aria-label={t(ss.labelFor, { group: shortGroup(m.group) })} onChange={(e) => update(i, { label: e.target.value })} />
               </Td>
               <Td>
-                <select className="in w-[190px]" value={m.workspaceId} aria-label={`Workspace for group ${label}`} onChange={(e) => update(i, { workspaceId: e.target.value, lists: [] })}>
+                <select className="in w-[190px]" value={m.workspaceId} aria-label={t(ss.workspaceFor, { group: label })} onChange={(e) => update(i, { workspaceId: e.target.value, lists: [] })}>
                   {d.workspaces.map((w) => (
                     <option key={w.id} value={w.id}>
                       {w.name}
@@ -899,12 +911,12 @@ function MappingsTable({ d, f, set, preset }: CardProps & { preset: Preset }) {
                 </select>
               </Td>
               <Td>
-                <select className="in w-[150px]" value={m.roleKey} aria-label={`Role for group ${label}`} onChange={(e) => update(i, { roleKey: e.target.value })}>
+                <select className="in w-[150px]" value={m.roleKey} aria-label={t(ss.roleFor, { group: label })} onChange={(e) => update(i, { roleKey: e.target.value })}>
                   {(ws?.roles ?? [])
                     .filter((r) => r.key !== 'owner')
                     .map((r) => (
                       <option key={r.key} value={r.key} disabled={!r.grantable && r.key !== m.roleKey} title={r.reason}>
-                        {r.name}
+                        {roleName(r)}
                       </option>
                     ))}
                 </select>
@@ -914,7 +926,7 @@ function MappingsTable({ d, f, set, preset }: CardProps & { preset: Preset }) {
               </Td>
               <Td>
                 <Button size="sm" variant="danger" onClick={() => set({ groupMappings: f.groupMappings.filter((_, j) => j !== i) })}>
-                  Remove
+                  {t(ss.removeMapping)}
                 </Button>
               </Td>
             </tr>
@@ -931,34 +943,35 @@ function MappingsTable({ d, f, set, preset }: CardProps & { preset: Preset }) {
  * no list picked means every list.
  */
 function ScopePicker({ lists, value, group, onChange }: { lists: Schemas['SSOListChoice'][]; value: string[]; group: string; onChange: (lists: string[]) => void }) {
+  const t = useT()
   const picked = lists.filter((l) => value.includes(l.id))
-  const text = picked.length === 0 ? 'all lists' : picked.length === 1 ? `${picked[0]!.name} only` : `${picked.length} lists`
+  const text = t(ss.mappingScope, { count: picked.length, name: picked[0]?.name ?? '' })
   if (lists.length === 0) return <span className="k">{text}</span>
   const toggle = (id: string) => onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id])
   return (
     <Popover
       align="start"
-      label={`Lists for group ${group}`}
+      label={t(ss.listsFor, { group })}
       className="w-[280px] max-w-[calc(100vw-24px)]"
       trigger={
         <button
           type="button"
           className="k inline-flex min-h-6 cursor-pointer items-center border-0 bg-transparent p-0 text-left hover:text-ink hover:underline"
-          aria-label={`Scope for group ${group}: ${text}`}
+          aria-label={t(ss.scopeFor, { group, scope: text })}
         >
           {text}
         </button>
       }
     >
       <div className="flex flex-col gap-1 p-1">
-        <span className="mh">Lists the role applies to</span>
+        <span className="mh">{t(ss.listsHeading)}</span>
         {lists.map((l) => (
           <label key={l.id} className="chk items-center rounded-lg px-2.5 py-1.5 hover:bg-ground">
             <input type="checkbox" checked={value.includes(l.id)} onChange={() => toggle(l.id)} />
             <span className="flex-1">{l.name}</span>
           </label>
         ))}
-        <span className="k border-t border-line-2 px-2.5 pt-2 pb-1">With no list picked, the role covers every list.</span>
+        <span className="k border-t border-line-2 px-2.5 pt-2 pb-1">{t(ss.listsHint)}</span>
       </div>
     </Popover>
   )
@@ -1004,30 +1017,32 @@ function TestCard({
   onRun: () => void
   onDropMappings: () => void
 }) {
-  const t = d.test
-  const blocked = d.enableBlockers.length ? `Before a test sign-in: ${d.enableBlockers.join(' ')}` : undefined
-  const missing = t && !t.error && t.groupsMissing
-  const claims = t?.claims && missing ? t.claims.replace(/\n}$/, '\n  // no "groups" claim\n}') : t?.claims
+  const t = useT()
+  const test = d.test
+  const blocked = d.enableBlockers.length ? t(ss.beforeTest, { blockers: d.enableBlockers.join(' ') }) : undefined
+  const missing = test && !test.error && test.groupsMissing
+  const claims = test?.claims && missing ? test.claims.replace(/\n}$/, '\n  // no "groups" claim\n}') : test?.claims
+  // The default role in the app language (built-in roles are translated).
+  const defaultRole = d.jit.roleName ? roleName({ key: d.jit.roleKey, name: d.jit.roleName }) : roleName({ key: 'viewer', name: 'Viewer' })
   if (missing)
     // SSOStates "Groups claim missing": the claims, why the mappings don't
     // apply and how to send the claim.
     return (
       <section className="card" aria-labelledby="test-h">
-        <CardSection title={<span id="test-h">Groups claim missing</span>} caption="Step 5 · test sign-in returned no groups" actions={<Badge tone="warn">Check IdP</Badge>} />
+        <CardSection title={<span id="test-h">{t(ss.groupsMissingTitle)}</span>} caption={t(ss.groupsMissingCaption)} actions={<Badge tone="warn">{t(ss.checkIdp)}</Badge>} />
         <div className="pad col gap-3">
-          <pre className="code" aria-label={`Claims returned ${ago(t.at)}`}>
+          <pre className="code" aria-label={t(ss.claimsReturnedLabel, { ago: ago(test.at) })}>
             {claims}
           </pre>
-          <Note tone="warn" label="Mappings inactive">
-            Your {d.groupMappings.length} group {d.groupMappings.length === 1 ? 'mapping' : 'mappings'} won&apos;t apply, so JIT users get the default role (
-            {d.jit.roleName || 'Viewer'}) and existing roles stay as they are. {richHint(preset.groupsMissingHint)}
+          <Note tone="warn" label={t(ss.mappingsInactive)}>
+            {t(ss.mappingsInactiveBody, { count: d.groupMappings.length, role: defaultRole })} {richHint(preset.groupsMissingHint)}
           </Note>
           <div className="row gap-2">
             <Button size="sm" variant="primary" loading={running} disabledReason={blocked} onClick={onRun}>
-              Run test sign-in again
+              {t(ss.runTestAgain)}
             </Button>
             <Button size="sm" loading={dropping} onClick={onDropMappings}>
-              Save without group mapping
+              {t(ss.saveWithoutMappings)}
             </Button>
           </div>
         </div>
@@ -1035,36 +1050,36 @@ function TestCard({
     )
   return (
     <section className="card" aria-labelledby="test-h">
-      <CardSection title={<span id="test-h">5 · Test sign-in</span>} caption="Debug view of the returned claims and the resulting accounts and roles" />
+      <CardSection title={<span id="test-h">{t(ss.testTitle)}</span>} caption={t(ss.testCaption)} />
       <div className="pad col gap-3.5">
         <div className="row gap-2">
           <Button variant="primary" loading={running} disabledReason={blocked} onClick={onRun}>
-            Run test sign-in
+            {t(ss.runTest)}
           </Button>
-          <span className="k">Opens {preset.shortName} in a popup, shows the claims, signs nobody in and changes nothing.</span>
+          <span className="k">{t(ss.testHint, { idp: preset.shortName })}</span>
         </div>
-        {t?.error ? (
-          <Note tone="bad" label="Test failed">
-            {t.error} ({ago(t.at)})
+        {test?.error ? (
+          <Note tone="bad" label={t(ss.testFailed)}>
+            {test.error} ({ago(test.at)})
           </Note>
         ) : null}
-        {t && !t.error ? (
+        {test && !test.error ? (
           <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
             <div className="col gap-1.5">
-              <span className="text-[12px] font-semibold text-ink-2">Claims returned · {ago(t.at)}</span>
+              <span className="text-[12px] font-semibold text-ink-2">{t(ss.claimsReturned, { ago: ago(test.at) })}</span>
               <pre className="code">{claims}</pre>
             </div>
             <div className="col gap-2">
-              <span className="text-[12px] font-semibold text-ink-2">What this sign-in would do</span>
-              <AccessTable caption="What this sign-in would do">
+              <span className="text-[12px] font-semibold text-ink-2">{t(ss.wouldDo)}</span>
+              <AccessTable caption={t(ss.wouldDo)}>
                 <thead>
                   <tr>
-                    <Th>Result</Th>
-                    <Th>Detail</Th>
+                    <Th>{t(ss.colOutcome)}</Th>
+                    <Th>{t(ss.colDetail)}</Th>
                   </tr>
                 </thead>
                 <tbody>
-                  {t.outcome.map((o, i) => (
+                  {test.outcome.map((o, i) => (
                     <tr key={i}>
                       <Td>
                         <Badge tone={toneOf(o.tone)}>{o.label}</Badge>
@@ -1079,10 +1094,10 @@ function TestCard({
             </div>
           </div>
         ) : null}
-        {!t ? (
+        {!test ? (
           <span className="k row flex-nowrap items-start gap-1.5">
             <Icon name="info" size={14} className="mt-px shrink-0" />
-            <span>The test shows what {preset.name} returns for the account you sign in with and what a real sign-in would create or change.</span>
+            <span>{t(ss.testIntro, { name: preset.name })}</span>
           </span>
         ) : null}
       </div>
@@ -1091,6 +1106,7 @@ function TestCard({
 }
 
 function TurnOffEnforcement({ d, onClose, onDone }: { d: Detail; onClose: () => void; onDone: (d: Detail) => void }) {
+  const t = useT()
   const set = $api.useMutation('put', '/api/v1/admin/sso/{providerId}/enforcement')
   const invalidate = useInvalidateSSO()
   return (
@@ -1098,25 +1114,26 @@ function TurnOffEnforcement({ d, onClose, onDone }: { d: Detail; onClose: () => 
       open
       onOpenChange={(o) => !o && onClose()}
       tone="warn"
-      badge="Domain enforcement"
-      title={`Turn off enforcement for ${d.enforced.join(', ')}?`}
-      description={`Password, passkey and social sign-in work again for ${d.enforced.join(', ')} accounts. ${d.name} keeps working for everyone who uses it.`}
-      confirmLabel="Turn off enforcement"
+      badge={t(ss.turnOffBadge)}
+      title={t(ss.turnOffTitle, { domains: d.enforced.join(', ') })}
+      description={t(ss.turnOffBody, { domains: d.enforced.join(', '), name: d.name })}
+      confirmLabel={t(ss.turnOffConfirm)}
       onConfirm={async () => {
         const r = await set.mutateAsync({ params: { path: { providerId: d.id } }, body: { domains: [], confirm: true } })
         onDone(r)
         await invalidate()
-        toast({ kind: 'success', title: 'Enforcement turned off', detail: `password sign-in works again for ${d.enforced.join(', ')}` })
+        toast({ kind: 'success', title: t(ss.turnedOff), detail: t(ss.turnedOffDetail, { domains: d.enforced.join(', ') }) })
       }}
     />
   )
 }
 
 function SetupSkeleton() {
+  const t = useT()
   return (
     <div className="col gap-5" aria-busy="true">
       <span className="vh" role="status">
-        Loading the provider
+        {t(ss.loading)}
       </span>
       {[110, 300, 220].map((h, i) => (
         <section key={i} className="card">

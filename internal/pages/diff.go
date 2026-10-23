@@ -71,7 +71,7 @@ func (s *Service) Diff(ctx context.Context, ws *store.Workspace, id uuid.UUID) (
 		return out, err
 	}
 	out.Since, out.PublishedAt, out.PublishedBy = v.PageVersion.Version, v.PageVersion.PublishedAt, v.PublishedByName
-	out.Blocks = DiffBlocks(v.PageVersion.Html, pg.Html)
+	out.Blocks = DiffBlocks(ctx, v.PageVersion.Html, pg.Html)
 	before, after := parseSettings(v.PageVersion.Settings), settingsOf(pg)
 	add := func(key, a, b string) {
 		if a != b {
@@ -97,7 +97,7 @@ type blockOf struct {
 	lines    []string
 }
 
-func blocksOf(src string) []blockOf {
+func blocksOf(ctx context.Context, src string) []blockOf {
 	var out []blockOf
 	for i, n := range parse(src) {
 		if n.Type != html.ElementNode {
@@ -110,7 +110,7 @@ func blocksOf(src string) []blockOf {
 		if b.name == "" {
 			b.name = n.Data
 		}
-		b.lines = linesOf(n)
+		b.lines = linesOf(ctx, n)
 		out = append(out, b)
 	}
 	return out
@@ -120,8 +120,9 @@ func blocksOf(src string) []blockOf {
 var textBlocks = map[string]bool{"h1": true, "h2": true, "h3": true, "h4": true, "p": true, "li": true, "summary": true, "blockquote": true,
 	"figcaption": true, "dt": true, "dd": true}
 
-// linesOf are a block's lines: its texts, then what its live blocks say.
-func linesOf(root *html.Node) []string {
+// linesOf are a block's lines: its texts, then what its live blocks say,
+// named in the member's language.
+func linesOf(ctx context.Context, root *html.Node) []string {
 	var out []string
 	var visit func(n *html.Node)
 	visit = func(n *html.Node) {
@@ -143,11 +144,11 @@ func linesOf(root *html.Node) []string {
 						parts = append(parts, a.Key+": "+a.Val)
 					}
 				}
-				out = append(out, blockLabel(n.Data)+" · "+strings.Join(parts, " · "))
+				out = append(out, blockLabel(ctx, n.Data)+" · "+strings.Join(parts, " · "))
 				return
 			}
 			if n.Data == "img" {
-				out = append(out, "Image · "+fileName(attr(n, "src"))+" · alt: "+attr(n, "alt"))
+				out = append(out, word(ctx, "diff.image", nil)+" · "+fileName(attr(n, "src"))+" · alt: "+attr(n, "alt"))
 				return
 			}
 		}
@@ -187,33 +188,20 @@ func lineText(n *html.Node) string {
 	return strings.Join(parts, sep)
 }
 
-func blockLabel(el string) string {
-	switch el {
-	case ElForm:
-		return "Signup form"
-	case ElCountdown:
-		return "Countdown"
-	case ElEvent:
-		return "Event details"
-	case ElProduct:
-		return "Product"
-	case ElProducts:
-		return "Product grid"
-	case ElStoreProduct:
-		return "Store product"
-	case ElTiers:
-		return "Pricing tiers"
-	case ElPosts:
-		return "Recent posts"
-	case ElVideo:
-		return "Video"
+// blockLabels name the live blocks in a diff's lines.
+var blockLabels = map[string]string{ElForm: "diff.form", ElCountdown: "diff.countdown", ElEvent: "diff.event", ElProduct: "diff.product",
+	ElProducts: "diff.products", ElStoreProduct: "diff.store", ElTiers: "diff.tiers", ElPosts: "diff.posts", ElVideo: "diff.video"}
+
+func blockLabel(ctx context.Context, el string) string {
+	if key, ok := blockLabels[el]; ok {
+		return word(ctx, key, nil)
 	}
 	return el
 }
 
 // DiffBlocks compares two versions of a page's blocks.
-func DiffBlocks(before, after string) []PageDiffBlock {
-	a, b := blocksOf(before), blocksOf(after)
+func DiffBlocks(ctx context.Context, before, after string) []PageDiffBlock {
+	a, b := blocksOf(ctx, before), blocksOf(ctx, after)
 	byID := map[string]blockOf{}
 	for _, x := range a {
 		byID[x.id] = x

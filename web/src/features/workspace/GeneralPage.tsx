@@ -14,9 +14,13 @@ import { PolicyCard as AccessibilityCard } from '@/features/accessibility/Policy
 import { AgencyGeneralCard } from '@/features/agency/GeneralCard'
 import { LanguagesCard } from '@/features/languages/LanguagesCard'
 import { settingsTabs } from '@/features/settings/SettingsTabs'
+import { T, useT } from '@/i18n'
+import { common } from '@/i18n/common'
 import { andList, count } from '@/lib/format'
+import { roleName } from '@/lib/roles'
 import { useWorkspace, workspaceMeKey } from '@/lib/session'
 import { DeleteWorkspaceDialog } from './DeleteWorkspaceDialog'
+import { m } from './messages'
 import { TransferDialog } from './TransferDialog'
 import { timezoneOptions } from './timezones'
 
@@ -28,13 +32,14 @@ const cardGrid = 'grid items-start gap-5 [&>*]:min-w-0 grid-cols-[repeat(auto-fi
 
 /** Settings › General (WorkspaceSettings, WorkspaceDialogs). */
 export function GeneralPage() {
+  const t = useT()
   const { slug, me } = useWorkspace()
   const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/settings', { params: { path: { workspace: slug } } })
   return (
-    <Page title="Settings" subtitle={me.workspace.name} tabs={settingsTabs(slug)}>
+    <Page title={t(m.title)} subtitle={me.workspace.name} tabs={settingsTabs(slug)}>
       {q.isError ? (
-        <ErrorPanel title="Couldn't load the workspace settings" actions={<Button onClick={() => q.refetch()}>Retry</Button>}>
-          {errorMessage(q.error)} Nothing was changed.
+        <ErrorPanel title={t(m.loadFailed)} actions={<Button onClick={() => q.refetch()}>{t(common.retry)}</Button>}>
+          {errorMessage(q.error)} {t(m.nothingChanged)}
         </ErrorPanel>
       ) : q.isPending ? (
         <GeneralSkeleton />
@@ -46,9 +51,10 @@ export function GeneralPage() {
 }
 
 function General({ s }: { s: Schemas['WorkspaceSettings'] }) {
+  const t = useT()
   const [transfer, setTransfer] = useState(false)
   const [del, setDel] = useState(false)
-  const ownerOnly = 'Only the Owner can do this.'
+  const ownerOnly = t(m.ownerOnly)
   return (
     <div className={cardGrid}>
       {/* An agency's client: who manages it, and the client details for its staff (agency accounts). */}
@@ -61,27 +67,32 @@ function General({ s }: { s: Schemas['WorkspaceSettings'] }) {
       <ApprovalsCard s={s} />
       <MembersCard s={s} />
       <section className="card" style={{ borderColor: '#FCA5A5' }} aria-labelledby="danger-h">
-        <CardSection title={<span id="danger-h">Danger zone</span>} caption="Owner only · both actions are logged" />
+        <CardSection title={<span id="danger-h">{t(m.dangerTitle)}</span>} caption={t(m.dangerCaption)} />
         <div className="pad col gap-3.5">
           <div className="row justify-between rounded-lg border border-line px-3.5 py-3">
             <div className="col gap-0.5">
-              <span className="font-semibold">Transfer ownership</span>
-              <span className="k">Make another member the Owner. You become an Admin. Only the Owner can do this.</span>
+              <span className="font-semibold">{t(m.transferTitle)}</span>
+              <span className="k">{t(m.transferBody)}</span>
             </div>
             <Button size="sm" disabledReason={s.canTransfer ? undefined : ownerOnly} onClick={() => setTransfer(true)}>
-              Transfer ownership
+              {t(m.transferButton)}
             </Button>
           </div>
           <div className="row justify-between rounded-lg border border-bad-line bg-bad-tint px-3.5 py-3">
             <div className="col gap-0.5">
-              <span className="font-semibold text-bad-fg">Delete this workspace</span>
+              <span className="font-semibold text-bad-fg">{t(m.deleteTitle)}</span>
               <span className="k">
-                Deletes {count(s.danger.contacts)} contacts, {count(s.danger.campaigns)} campaigns, {count(s.danger.automations)} automations, providers and routing.
-                Suppressions are kept at instance level. You&apos;ll be asked to type the name and offered an export first.
+                {t(m.deleteBody, {
+                  contacts: s.danger.contacts,
+                  contactsText: count(s.danger.contacts),
+                  campaigns: s.danger.campaigns,
+                  campaignsText: count(s.danger.campaigns),
+                  automations: s.danger.automations,
+                })}
               </span>
             </div>
             <Button size="sm" variant="danger" disabledReason={s.canDelete ? undefined : ownerOnly} onClick={() => setDel(true)}>
-              Delete workspace
+              {t(m.deleteButton)}
             </Button>
           </div>
         </div>
@@ -93,6 +104,7 @@ function General({ s }: { s: Schemas['WorkspaceSettings'] }) {
 }
 
 function WorkspaceCard({ s }: { s: Schemas['WorkspaceSettings'] }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const [name, setName] = useState(s.name)
@@ -107,14 +119,14 @@ function WorkspaceCard({ s }: { s: Schemas['WorkspaceSettings'] }) {
   const submit = () => {
     setError(undefined)
     if (!name.trim()) {
-      setError({ field: 'name', message: 'Give the workspace a name.' })
+      setError({ field: 'name', message: t(m.nameRequired) })
       return
     }
     save.mutate(
       { params: { path: { workspace: slug } }, body: { name: name.trim(), timezone: tz, defaultSenderId: sender || undefined } },
       {
         onSuccess: () => {
-          toast({ title: 'Workspace settings saved' })
+          toast({ title: t(m.saved) })
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/settings'] })
           void qc.invalidateQueries({ queryKey: workspaceMeKey(slug) })
           void qc.invalidateQueries({ queryKey: ['me'] })
@@ -125,11 +137,11 @@ function WorkspaceCard({ s }: { s: Schemas['WorkspaceSettings'] }) {
   }
   return (
     <section className="card" aria-labelledby="ws-h">
-      <CardSection title={<span id="ws-h">Workspace</span>} caption="Name, default sender and timezone" />
+      <CardSection title={<span id="ws-h">{t(m.workspaceTitle)}</span>} caption={t(m.workspaceCaption)} />
       <div className="pad col gap-3.5">
         <div className="grid grid-cols-2 gap-3.5 max-md:grid-cols-1">
           <label className="lbl">
-            Workspace name
+            {t(m.nameLabel)}
             <input
               className="in"
               type="text"
@@ -147,7 +159,7 @@ function WorkspaceCard({ s }: { s: Schemas['WorkspaceSettings'] }) {
             ) : null}
           </label>
           <label className="lbl">
-            Timezone
+            {t(m.timezoneLabel)}
             <select className="in" value={tz} onChange={(e) => setTz(e.target.value)} disabled={!s.canManage}>
               {zones.map((z) => (
                 <option key={z.value} value={z.value}>
@@ -155,32 +167,37 @@ function WorkspaceCard({ s }: { s: Schemas['WorkspaceSettings'] }) {
                 </option>
               ))}
             </select>
-            <span className="k font-medium">Schedules and reports use this timezone.</span>
+            <span className="k font-medium">{t(m.timezoneHint)}</span>
           </label>
         </div>
         <label className="lbl">
-          Default sender
+          {t(m.senderLabel)}
           <select className="in" value={sender} onChange={(e) => setSender(e.target.value)} disabled={!s.canManage || s.senders.length === 0}>
-            {s.senders.length === 0 ? <option value="">No senders yet</option> : null}
+            {s.senders.length === 0 ? <option value="">{t(m.noSenders)}</option> : null}
             {s.senders.map((x) => (
               <option key={x.id} value={x.id}>
-                {x.name} &lt;{x.email}&gt;
+                {`${x.name} <${x.email}>`}
               </option>
             ))}
           </select>
           <span className="k font-medium">
-            {s.senders.length === 0 ? 'Add a sending domain and sender in ' : 'New campaigns start with this sender. '}
-            {current && current.verifiedOn.length > 0 ? `Verified on ${andList(current.verifiedOn)}; ` : ''}
-            <Link to="/w/$workspace/settings/senders" params={{ workspace: slug }}>
-              senders &amp; domains
-            </Link>
-            .
+            <T
+              msg={s.senders.length === 0 ? m.senderHintEmpty : current && current.verifiedOn.length > 0 ? m.senderHintVerified : m.senderHint}
+              values={{
+                providers: current ? andList(current.verifiedOn) : '',
+                link: (c) => (
+                  <Link to="/w/$workspace/settings/senders" params={{ workspace: slug }}>
+                    {c}
+                  </Link>
+                ),
+              }}
+            />
           </span>
         </label>
         <label className="lbl">
-          Workspace ID
+          {t(m.idLabel)}
           <input className="in mono max-w-[320px] bg-ground" value={s.slug} readOnly />
-          <span className="k font-medium">Used in API URLs and the audit log.</span>
+          <span className="k font-medium">{t(m.idHint)}</span>
         </label>
         {error && !error.field ? (
           <div className="note b" role="alert">
@@ -189,39 +206,41 @@ function WorkspaceCard({ s }: { s: Schemas['WorkspaceSettings'] }) {
         ) : null}
         <div className="row justify-end">
           <Button variant="primary" size="sm" loading={save.isPending} disabledReason={reason} onClick={submit}>
-            Save
+            {t(common.save)}
           </Button>
         </div>
-        <UnsavedChangesGuard dirty={s.canManage && dirty && !save.isPending} description="Your changes to the workspace name, timezone or default sender aren't saved." />
+        <UnsavedChangesGuard dirty={s.canManage && dirty && !save.isPending} description={t(m.unsaved)} />
       </div>
     </section>
   )
 }
 
 function ApprovalsCard({ s }: { s: Schemas['WorkspaceSettings'] }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const a = s.approvals
   return (
     <section className="card" aria-labelledby="appr-h">
-      <CardSection title={<span id="appr-h">Send approvals</span>} caption="Who must sign off before a risky send" />
+      <CardSection title={<span id="appr-h">{t(m.approvalsTitle)}</span>} caption={t(m.approvalsCaption)} />
       <div className="pad col gap-3">
         <KeyValues
           items={[
-            ['Approval needed when', a.rules.length ? a.rules.join(' · ') : 'Never: no rule is on'],
+            // The rules come from the server in words ("audience ≥ 10,000").
+            [t(m.approvalNeeded), a.rules.length ? a.rules.join(' · ') : t(m.noRule)],
             [
-              'Approvers',
-              `Members with campaigns:approve: ${a.approvers.join(', ') || 'nobody yet'} · ${a.approvalsRequired} ${a.approvalsRequired === 1 ? 'approval' : 'approvals'} required`,
+              t(m.approvers),
+              t(m.approversValue, { hasApprovers: a.approvers.length ? 'yes' : 'no', names: a.approvers.join(', '), count: a.approvalsRequired }),
             ],
-            ['Automations', a.automations ? 'Publishing needs approval' : 'Publishing does not need approval'],
-            ['Emergency bypass', a.bypass ? 'Owners, with a reason · logged, approvers notified' : 'Off'],
+            [t(m.automations), a.automations ? t(m.automationsOn) : t(m.automationsOff)],
+            [t(m.bypass), a.bypass ? t(m.bypassOn) : t(common.off)],
           ]}
         />
         <div className="row">
           <ButtonLink size="sm" to="/w/$workspace/settings/approvals" params={{ workspace: slug }}>
-            Edit approval policy
+            {t(m.editPolicy)}
           </ButtonLink>
           <ButtonLink size="sm" to="/w/$workspace/approvals" params={{ workspace: slug }}>
-            Approval inbox · {a.pending} pending
+            {t(m.inbox, { count: count(a.pending) })}
           </ButtonLink>
         </div>
       </div>
@@ -230,26 +249,30 @@ function ApprovalsCard({ s }: { s: Schemas['WorkspaceSettings'] }) {
 }
 
 function MembersCard({ s }: { s: Schemas['WorkspaceSettings'] }) {
+  const t = useT()
   const { slug } = useWorkspace()
-  const m = s.members
-  const roles = m.builtin.join(', ') + (m.custom.length ? ` + custom ${m.custom.map((c) => `“${c}”`).join(', ')}` : '')
+  const mb = s.members
+  // The built-in roles' names read in the app language; custom roles keep theirs.
+  const builtin = mb.builtin.map((name) => roleName({ name, builtin: true })).join(', ')
+  const roles = mb.custom.length ? t(m.rolesCustom, { builtin, custom: mb.custom.map((c) => `“${c}”`).join(', ') }) : builtin
   return (
     <section className="card" aria-labelledby="mem-h">
-      <CardSection title={<span id="mem-h">Members and access</span>} caption="Summary · managed in Team and Roles" />
+      <CardSection title={<span id="mem-h">{t(m.membersTitle)}</span>} caption={t(m.membersCaption)} />
       <div className="pad col gap-3">
         <KeyValues
           items={[
-            ['Members', `${m.active} active · ${m.invited} invited · ${m.deactivated} deactivated`],
-            ['Roles', roles],
-            ['Sign-in', m.signIn],
+            [t(m.members), t(m.membersValue, { active: count(mb.active), invited: count(mb.invited), deactivated: count(mb.deactivated) })],
+            [t(m.roles), roles],
+            // The sign-in summary comes from the server ("Google Workspace SSO enforced for acme.io").
+            [t(m.signIn), mb.signIn],
           ]}
         />
         <div className="row">
           <ButtonLink size="sm" to="/w/$workspace/settings/team" params={{ workspace: slug }}>
-            Team
+            {t(m.teamButton)}
           </ButtonLink>
           <ButtonLink size="sm" to="/w/$workspace/settings/roles" params={{ workspace: slug }}>
-            Roles &amp; permissions
+            {t(m.rolesButton)}
           </ButtonLink>
         </div>
       </div>
@@ -258,10 +281,11 @@ function MembersCard({ s }: { s: Schemas['WorkspaceSettings'] }) {
 }
 
 function GeneralSkeleton() {
+  const t = useT()
   return (
     <div className={cardGrid} aria-busy="true">
       <span className="vh" role="status">
-        Loading the workspace settings
+        {t(m.loading)}
       </span>
       {[5, 3, 4, 3, 2].map((rows, i) => (
         <section key={i} className="card">

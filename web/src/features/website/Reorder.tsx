@@ -96,7 +96,7 @@ export function ReorderList<T>({
               <button
                 type="button"
                 className="gr"
-                aria-label={`${t(mh.dragKeys)}: ${nameOf(it)}`}
+                aria-label={t(mh.dragKeysFor, { name: nameOf(it) })}
                 disabled={disabled}
                 ref={(el) => {
                   if (el) grips.current.set(key, el)

@@ -95,7 +95,7 @@ function ReadOnlyNote({ helpers }: { helpers: string[] }) {
       <div className="flex min-w-0 flex-col gap-1">
         <span className="font-bold">{t(m.readOnlyTitle, { name: user?.name ?? '', role: me.workspace.roleName })}</span>
         <div>
-          <T msg={m.readOnlyText} values={{ perm: <span className="mono">providers:manage</span> }} />
+          <T msg={m.readOnlyText} values={{ perm: <span className="mono">{'providers:manage'}</span> }} />
           {helpers.length ? ` ${t(m.askHelpers, { helpers: orList(helpers) })}` : null}
         </div>
       </div>

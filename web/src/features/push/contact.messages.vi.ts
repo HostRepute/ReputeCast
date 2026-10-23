@@ -1,0 +1,98 @@
+import { translate } from '@/i18n'
+import { m } from './contact.messages'
+
+/**
+ * Vietnamese for a contact's notifications and WhatsApp on their profile
+ * (docs/i18n/glossary-vi.md › Channels and SMS). A link that carried a
+ * token is "đường dẫn có mã nhận diện"; the customer service window is
+ * "khung chăm sóc khách hàng", the badge's window "khung".
+ */
+export default translate(m, {
+  // Push
+  pushTitle: 'Thông báo đẩy',
+  pushIntro: 'Các trình duyệt mà {name} đã cho phép thông báo.',
+  pushNone: 'Chưa có trình duyệt nào đăng ký. Người đọc cho phép thông báo khi đang đăng nhập, hoặc từ một đường dẫn có mã nhận diện, sẽ hiện ở đây.',
+  pushSince: 'Từ {date}',
+  pushLastSeen: 'hoạt động gần nhất {ago}',
+  pushLinked: '{how}',
+  linkedMember: 'thành viên đã đăng nhập',
+  linkedLink: 'từ đường dẫn có mã nhận diện',
+  linkedAccount: 'từ trang tài khoản',
+  linkedPreferences: 'từ trung tâm tùy chọn',
+  remove: 'Xóa',
+  removeTitle: 'Xóa lượt đăng ký này?',
+  removeText: '{browser} trên {site} sẽ ngừng nhận thông báo. Người đọc có thể cho phép lại từ trang đó.',
+  removed: 'Đã xóa lượt đăng ký',
+  colBrowser: 'Trình duyệt',
+  colSite: 'Trang',
+  colSince: 'Từ',
+  colZone: 'Múi giờ',
+
+  // WhatsApp
+  waTitle: 'WhatsApp',
+  waOpen: 'Có thể nhận tin trả lời tự do đến {until}',
+  waOpenText: 'Tin trả lời tự do được phép trong 24 giờ sau tin nhắn gần nhất của {name}. Sau {time}, chỉ gửi được mẫu đã được phê duyệt.',
+  waClosed: 'Chỉ gửi được mẫu đã được phê duyệt cho đến khi {name} nhắn lại',
+  waClosedText: 'Khung chăm sóc khách hàng mở trong 24 giờ mỗi khi {name} nhắn tin.',
+  waNever: '{name} chưa nhắn tin trên WhatsApp',
+  waNeverText: 'Tin nhắn do doanh nghiệp bắt đầu phải dùng mẫu đã được phê duyệt. Tin trả lời tự do được mở trong 24 giờ sau khi họ nhắn tin.',
+  contact: 'Liên hệ',
+  phone: 'Số điện thoại',
+  phoneLine: '{country} · {type, select, mobile {di động} landline {cố định} toll_free {miễn cước} voip {VoIP} other {{typeText}}} · {zone}',
+  phoneNone: 'Chưa có số điện thoại',
+  consent: 'Đồng ý nhận WhatsApp',
+  consentNone: 'Chưa đồng ý nhận WhatsApp trên danh sách nào',
+  subscribed: 'Đã đăng ký',
+  optedOut: 'Đã hủy nhận',
+  pending: 'Đang chờ',
+  notSubscribed: 'Chưa đăng ký',
+  consentLine: '{list} · từ {date}, {source}',
+  srcForm: 'từ biểu mẫu {name}',
+  srcTeam: 'do nhóm thêm',
+  srcKeyword: 'bằng từ khóa',
+  srcImport: 'từ một lần nhập',
+  srcApi: 'qua API',
+  phoneLineNoType: '{country} · {zone}',
+  consentLineNoDate: '{list} · {source}',
+  optedOutLine: '{list} · {how}',
+  optedOutKeyword: 'đã nhắn {keyword} ngày {date}',
+  lastMessage: 'Tin nhắn gần nhất',
+  lastWrote: '{name} đã nhắn ngày {date} lúc {time}',
+  timelineNote: 'Tin trả lời hiện trên dòng thời gian của liên hệ. Bản phát hành này chưa có hộp thư chung.',
+  windowBadge: 'Khung mở đến {until}',
+  windowClosedBadge: 'Khung đã đóng',
+  template: 'mẫu',
+  replyLabel: 'Trả lời bằng văn bản tự do',
+  replyTo: 'Trả lời {name}',
+  sendReply: 'Gửi trả lời',
+  sending: 'Đang gửi…',
+  replied: 'Đã gửi tin trả lời',
+  replyClosed: 'Khung đã đóng: hãy gửi một mẫu đã được phê duyệt từ chiến dịch hoặc tự động hóa.',
+  notConnected: 'WhatsApp chưa được kết nối trong không gian làm việc này.',
+  suppressed: 'Bị chặn gửi WhatsApp: {reason, select, opted_out {đã hủy nhận} manual {thêm thủ công} other {{reasonText}}}',
+  suppressedKeyword: 'Bị chặn gửi WhatsApp: {reason, select, opted_out {đã hủy nhận} manual {thêm thủ công} other {{reasonText}}} · {keyword}',
+  recordConsent: 'Ghi nhận đồng ý nhận WhatsApp',
+  withdrawConsent: 'Rút lại đồng ý nhận WhatsApp',
+  recordTitle: 'Ghi nhận đồng ý nhận WhatsApp · {list}',
+  consentText: 'Ghi nhận sự đồng ý mà liên hệ đã cho bạn ở nơi khác, kèm bằng chứng. Việc hủy nhận bằng từ khóa chỉ có thể do chính liên hệ hoàn tác.',
+  consentSource: 'Nơi họ đồng ý',
+  consentSourcePh: 'ví dụ: Phiếu đã ký tại quầy Summit',
+  consentWording: 'Nội dung đồng ý mà họ đã chấp thuận',
+  consentAt: 'Thời điểm',
+  consentNote: 'Ghi chú',
+  consentSave: 'Lưu sự đồng ý',
+  consentSavedOn: 'Đã lưu đồng ý nhận WhatsApp trên {list}',
+  cancel: 'Hủy',
+  loadFailed: 'Không tải được {what}',
+
+  // The WhatsApp column of the profile's consent per list (SmsStates › Contact profile)
+  tableLead: 'Email, SMS và WhatsApp được tính riêng. Mỗi thay đổi đều giữ bằng chứng của nó.',
+  samePage: 'cùng trang',
+  waConsentVersion: 'nội dung đồng ý nhận WhatsApp v{version}',
+  bySending: 'bằng cách nhắn {keyword}',
+
+  // The contacts table's channel filters
+  filterLabel: 'Kênh',
+  filterPush: 'Đã đăng ký thông báo đẩy',
+  filterWhatsApp: 'Đồng ý nhận WhatsApp',
+})

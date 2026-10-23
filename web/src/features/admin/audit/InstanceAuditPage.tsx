@@ -12,13 +12,17 @@ import { Note } from '@/components/ui/Note'
 import { EmptyRow, Td, Th } from '@/components/ui/Table'
 import { toast } from '@/components/ui/Toast'
 import { AccessTable, copyText } from '@/features/access/parts'
+import { m as ma } from '@/features/audit/messages'
 import { zonedDayStart } from '@/features/audit/zoned'
-import { instanceAuditTime, monthDayTimeSeconds } from '@/lib/format'
+import { T, t as tt, useT } from '@/i18n'
+import { common } from '@/i18n/common'
+import { count, instanceAuditTime, monthDayTimeSeconds } from '@/lib/format'
 import { useNow } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { AdminPage } from '../AdminPage'
 import { AgencyAuditFilter } from '@/features/agency/AdminParts'
 import { RetentionDialog, StreamDialog } from './AuditSettingsDialogs'
+import { m as mi } from './messages'
 
 type Item = Schemas['InstanceAuditItem']
 type List = Schemas['InstanceAuditList']
@@ -58,14 +62,16 @@ function apiFilters(s: InstanceAuditSearch, tz: string) {
 
 /** Instance admin › Audit log (AuditInstance): sign-ins, SSO, policies, users and every workspace's events. */
 export function InstanceAuditPage({ search }: { search: InstanceAuditSearch }) {
+  const t = useT()
   return (
-    <AdminPage documentTitle="Audit log" back="audit">
+    <AdminPage documentTitle={t(mi.documentTitle)} back="audit">
       <InstanceAudit search={search} />
     </AdminPage>
   )
 }
 
 function InstanceAudit({ search }: { search: InstanceAuditSearch }) {
+  const t = useT()
   const { me } = useWorkspace()
   const filters = apiFilters(search, me.timezone)
   const q = useInfiniteQuery({
@@ -86,15 +92,15 @@ function InstanceAudit({ search }: { search: InstanceAuditSearch }) {
         <div className="sec">
           <div className="flex min-w-0 flex-col gap-0.5">
             <h2 className="h2" id="iev-h">
-              Events
+              {t(ma.eventsTitle)}
             </h2>
-            <span className="k">Denied events are highlighted. Sign-in rejections carry the reference ID users see on the error page.</span>
+            <span className="k">{t(mi.eventsCaption)}</span>
           </div>
           <Filters search={search} list={first} />
         </div>
         {q.isError ? (
           <div className="pad">
-            <ErrorPanel title="Couldn't load the audit log" actions={<Button onClick={() => void q.refetch()}>Retry</Button>}>
+            <ErrorPanel title={t(ma.loadFailed)} actions={<Button onClick={() => void q.refetch()}>{t(common.retry)}</Button>}>
               {errorMessage(q.error)}
             </ErrorPanel>
           </div>
@@ -102,15 +108,15 @@ function InstanceAudit({ search }: { search: InstanceAuditSearch }) {
           <ListSkeleton />
         ) : (
           <>
-            <AccessTable caption="Instance audit entries" aria-busy={q.isFetching && !q.isFetchingNextPage ? true : undefined}>
+            <AccessTable caption={t(mi.tableCaption)} aria-busy={q.isFetching && !q.isFetchingNextPage ? true : undefined}>
               <thead>
                 <tr>
-                  <Th>Time</Th>
-                  <Th>Actor</Th>
-                  <Th>Event · target · details · source</Th>
-                  <Th>Result</Th>
+                  <Th>{t(ma.colTime)}</Th>
+                  <Th>{t(ma.colActor)}</Th>
+                  <Th>{t(ma.colEvent)}</Th>
+                  <Th>{t(ma.colResult)}</Th>
                   <Th>
-                    <span className="vh">Details</span>
+                    <span className="vh">{t(ma.colDetails)}</span>
                   </Th>
                 </tr>
               </thead>
@@ -118,7 +124,7 @@ function InstanceAudit({ search }: { search: InstanceAuditSearch }) {
                 {items.length === 0 ? (
                   <EmptyRow colSpan={5}>
                     <span className="col items-center gap-2">
-                      No events match these filters. Widen the date range or clear the actor filter.
+                      {t(mi.noMatch)}
                       <ClearFilters />
                     </span>
                   </EmptyRow>
@@ -130,7 +136,7 @@ function InstanceAudit({ search }: { search: InstanceAuditSearch }) {
             {q.hasNextPage ? (
               <div className="row justify-center border-t border-line-2 px-4.5 py-3">
                 <Button size="sm" loading={q.isFetchingNextPage} onClick={() => void q.fetchNextPage()}>
-                  Show older entries
+                  {t(ma.showOlder)}
                 </Button>
               </div>
             ) : null}
@@ -148,6 +154,7 @@ function InstanceAudit({ search }: { search: InstanceAuditSearch }) {
 }
 
 function TopBar({ list, loading, filters, onRetention }: { list?: List; loading: boolean; filters: ReturnType<typeof apiFilters>; onRetention: () => void }) {
+  const t = useT()
   const [busy, setBusy] = useState<'csv' | 'json'>()
   const [failed, setFailed] = useState<string>()
   const download = async (format: 'csv' | 'json') => {
@@ -172,12 +179,12 @@ function TopBar({ list, loading, filters, onRetention }: { list?: List; loading:
       a.download = name
       a.click()
       window.setTimeout(() => URL.revokeObjectURL(a.href), 1000)
-      toast({ kind: 'success', title: `${label} export downloaded`, detail: 'logged as audit.exported' })
+      toast({ kind: 'success', title: tt(mi.exportDownloaded, { format: label }), detail: tt(ma.loggedAs, { action: 'audit.exported' }) })
     } catch (e) {
       setFailed(
         e instanceof DOMException && e.name === 'AbortError'
-          ? `The ${label} export timed out after 60 s. Narrow the range or use the streaming endpoint for bulk access.`
-          : `The ${label} export failed: ${errorMessage(e)} Narrow the range or try again.`,
+          ? tt(mi.exportTimedOut, { format: label, seconds: count(60) })
+          : tt(mi.exportError, { format: label, error: errorMessage(e) }),
       )
     } finally {
       window.clearTimeout(timer)
@@ -188,24 +195,24 @@ function TopBar({ list, loading, filters, onRetention }: { list?: List; loading:
     <>
       <div className="row justify-between">
         <div className="row gap-2">
-          <Badge tone="purple">Instance level</Badge>
-          <span className="k">Sign-ins, SSO, policies, users and every workspace&apos;s events</span>
+          <Badge tone="purple">{t(mi.instanceLevel)}</Badge>
+          <span className="k">{t(mi.instanceLevelCaption)}</span>
         </div>
         <div className="row gap-2">
-          {list ? <span className="k">Retained {list.retentionDays} days · immutable</span> : loading ? <Skeleton w={160} h={12} /> : null}
+          {list ? <span className="k">{t(mi.retained, { days: list.retentionDays })}</span> : loading ? <Skeleton w={160} h={12} /> : null}
           <Button size="sm" loading={busy === 'csv'} onClick={() => void download('csv')}>
-            Export CSV
+            {t(ma.exportCsv)}
           </Button>
           <Button size="sm" loading={busy === 'json'} onClick={() => void download('json')}>
-            Export JSON
+            {t(ma.exportJson)}
           </Button>
           <Button size="sm" onClick={onRetention}>
-            Retention
+            {t(mi.retention)}
           </Button>
         </div>
       </div>
       {failed ? (
-        <Note tone="bad" label="Export failed" role="alert">
+        <Note tone="bad" label={t(mi.exportFailed)} role="alert">
           {failed}
         </Note>
       ) : null}
@@ -213,11 +220,12 @@ function TopBar({ list, loading, filters, onRetention }: { list?: List; loading:
   )
 }
 
-const RANGES: { value: string; label: string }[] = [
-  { value: '', label: 'Last 30 days' },
-  { value: '7d', label: 'Last 7 days' },
-  { value: '90d', label: 'Last 90 days' },
-  { value: 'custom', label: 'Custom' },
+/** The date ranges; unset is the last 30 days. */
+const RANGES: { value: '' | NonNullable<InstanceAuditSearch['range']>; range: string }[] = [
+  { value: '', range: '30d' },
+  { value: '7d', range: '7d' },
+  { value: '90d', range: '90d' },
+  { value: 'custom', range: 'custom' },
 ]
 
 function useSetSearch(search: InstanceAuditSearch) {
@@ -232,15 +240,17 @@ function clean(s: InstanceAuditSearch): InstanceAuditSearch {
 }
 
 function ClearFilters() {
+  const t = useT()
   const { slug } = useWorkspace()
   return (
     <ButtonLink size="sm" to="/w/$workspace/admin/audit" params={{ workspace: slug }} search={{}}>
-      Clear filters
+      {t(ma.clearFilters)}
     </ButtonLink>
   )
 }
 
 function Filters({ search, list }: { search: InstanceAuditSearch; list?: List }) {
+  const t = useT()
   const set = useSetSearch(search)
   const [q, setQ] = useState(search.q ?? '')
   // Search as you type, a beat after the last key.
@@ -251,70 +261,70 @@ function Filters({ search, list }: { search: InstanceAuditSearch; list?: List })
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `set` changes every render; the search value is what matters
   }, [q])
   return (
-    <div className="row gap-2 max-md:basis-full">
+    <div className="filters-grow row gap-2 max-md:basis-full">
       <label className="vh" htmlFor="iq">
-        Search
+        {t(common.search)}
       </label>
       <input
         id="iq"
         className="in w-[240px] max-md:w-full"
-        placeholder="Search account, target or reference"
+        placeholder={t(mi.searchPlaceholder)}
         value={q}
         onChange={(e) => setQ(e.target.value)}
         type="search"
       />
-      <select className="in w-[160px] max-md:w-full" aria-label="Filter by workspace" value={search.workspace ?? ''} onChange={(e) => set({ workspace: e.target.value || undefined })}>
-        <option value="">All workspaces</option>
+      <select className="in w-[160px] min-w-[160px] max-md:w-full" aria-label={t(mi.filterWorkspace)} value={search.workspace ?? ''} onChange={(e) => set({ workspace: e.target.value || undefined })}>
+        <option value="">{t(mi.allWorkspaces)}</option>
         {(list?.workspaces ?? []).map((w) => (
           <option key={w.slug} value={w.slug}>
             {w.name}
           </option>
         ))}
-        <option value="instance">Instance only</option>
+        <option value="instance">{t(mi.instanceOnly)}</option>
       </select>
       <select
-        className="in w-[150px] max-md:w-full"
-        aria-label="Filter by actor type"
+        className="in w-[150px] min-w-[150px] max-md:w-full"
+        aria-label={t(ma.filterActorType)}
         value={search.actorType ?? ''}
         onChange={(e) => set({ actorType: (e.target.value || undefined) as InstanceAuditSearch['actorType'] })}
       >
-        <option value="">Any actor type</option>
-        <option value="user">Members</option>
-        <option value="api_key">API keys</option>
-        <option value="mcp_agent">MCP agents</option>
-        <option value="system">System</option>
+        <option value="">{t(ma.anyActorType)}</option>
+        <option value="user">{t(ma.actorType, { type: 'user' })}</option>
+        <option value="api_key">{t(ma.actorType, { type: 'api_key' })}</option>
+        <option value="mcp_agent">{t(ma.actorType, { type: 'mcp_agent' })}</option>
+        <option value="system">{t(ma.actorType, { type: 'system' })}</option>
       </select>
       <select
-        className="in w-[120px] max-md:w-full"
-        aria-label="Filter by result"
+        className="in w-[120px] min-w-[120px] max-md:w-full"
+        aria-label={t(ma.filterResult)}
         value={search.result ?? ''}
         onChange={(e) => set({ result: (e.target.value || undefined) as InstanceAuditSearch['result'] })}
       >
-        <option value="">Any result</option>
-        <option value="allowed">Allowed</option>
-        <option value="denied">Denied</option>
+        <option value="">{t(ma.anyResult)}</option>
+        <option value="allowed">{t(ma.result, { result: 'allowed' })}</option>
+        <option value="denied">{t(ma.result, { result: 'denied' })}</option>
       </select>
       <AgencyAuditFilter value={search.category} onChange={(category) => set({ category })} />
       <select
-        className="in w-[130px] max-md:w-full"
-        aria-label="Date range"
+        className="in w-[130px] min-w-[130px] max-md:w-full"
+        aria-label={t(ma.dateRange)}
         value={search.range ?? ''}
         onChange={(e) => set({ range: (e.target.value || undefined) as InstanceAuditSearch['range'] })}
       >
         {RANGES.map((r) => (
           <option key={r.value} value={r.value}>
-            {r.label}
+            {t(ma.range, { range: r.range })}
           </option>
         ))}
       </select>
       {search.range === 'custom' ? (
         <>
           <label className="row gap-1.5 text-[12.5px]">
-            From
+            {t(ma.rangeFrom)}
             <input className="in w-[150px] max-md:w-full" type="date" value={search.since ?? ''} onChange={(e) => set({ since: e.target.value || undefined })} />
           </label>
           <label className="row gap-1.5 text-[12.5px]">
-            To
+            {t(ma.rangeTo)}
             <input className="in w-[150px] max-md:w-full" type="date" value={search.until ?? ''} onChange={(e) => set({ until: e.target.value || undefined })} />
           </label>
         </>
@@ -352,6 +362,7 @@ function ActorCell({ a }: { a: Item['actor'] }) {
 }
 
 function EventRow({ it, search }: { it: Item; search: InstanceAuditSearch }) {
+  const t = useT()
   const { slug } = useWorkspace()
   const now = useNow()
   const when = instanceAuditTime(it.occurredAt, now)
@@ -373,17 +384,19 @@ function EventRow({ it, search }: { it: Item; search: InstanceAuditSearch }) {
           <span className="k mono text-[11px]!">{sourceText(it.source)}</span>
         </div>
       </Td>
-      <Td>{it.result === 'allowed' ? <Badge tone="ok">Allowed</Badge> : <Badge tone="bad">{it.result === 'denied' ? 'Denied' : 'Error'}</Badge>}</Td>
+      <Td>
+        {it.result === 'allowed' ? <Badge tone="ok">{t(ma.result, { result: it.result })}</Badge> : <Badge tone="bad">{t(ma.result, { result: it.result })}</Badge>}
+      </Td>
       <Td>
         <ButtonLink
           size="sm"
           to="/w/$workspace/admin/audit"
           params={{ workspace: slug }}
           search={{ ...search, event: it.id }}
-          aria-label={`Details of ${it.action} at ${when}`}
+          aria-label={t(ma.detailsOf, { action: it.action, time: when })}
           resetScroll={false}
         >
-          Details
+          {t(ma.details)}
         </ButtonLink>
       </Td>
     </tr>
@@ -391,6 +404,7 @@ function EventRow({ it, search }: { it: Item; search: InstanceAuditSearch }) {
 }
 
 function RetentionCard({ settings, error, onRetention, onStream }: { settings?: Schemas['InstanceAuditSettings']; error?: string; onRetention: () => void; onStream: () => void }) {
+  const t = useT()
   const ws = settings?.workspaceStreams ?? []
   const hosts = [...new Set(ws.map((w) => w.host))]
   const st = settings?.stream
@@ -399,13 +413,13 @@ function RetentionCard({ settings, error, onRetention, onStream }: { settings?: 
       <div className="sec">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h2 className="h2" id="ret-h">
-            Retention and streaming
+            {t(mi.cardTitle)}
           </h2>
         </div>
       </div>
       <div className="pad col gap-2.5">
         {error ? (
-          <Note tone="bad" label="Not loaded">
+          <Note tone="bad" label={t(ma.notLoaded)}>
             {error}
           </Note>
         ) : !settings ? (
@@ -418,27 +432,26 @@ function RetentionCard({ settings, error, onRetention, onStream }: { settings?: 
           <KeyValues
             className="text-[12.5px]"
             items={[
+              [t(mi.kvRetention), t(mi.retentionValue, { days: settings.retentionDays, isDefault: settings.retentionDays === 365 ? 'yes' : 'no' })],
               [
-                'Retention',
-                `${settings.retentionDays} days${settings.retentionDays === 365 ? ' (default)' : ''} · older instance-level entries are removed by the hourly cleanup; each workspace keeps its own`,
+                t(mi.kvStreaming),
+                t(mi.streamingValue, {
+                  workspace: hosts.length ? 'yes' : 'no',
+                  hosts: hosts.join(', '),
+                  instance: st?.enabled ? (st.failingSince ? 'failing' : 'on') : 'off',
+                  host: st?.host ?? '',
+                }),
               ],
-              [
-                'Streaming',
-                <>
-                  Workspace events → {hosts.length ? `${hosts.join(', ')} (HMAC-signed)` : 'not streamed'} · instance events →{' '}
-                  {st?.enabled ? `${st.host} (HMAC-signed)${st.failingSince ? ', failing' : ''}` : 'not streamed'}
-                </>,
-              ],
-              ['Export', 'CSV or JSON, filtered or full'],
+              [t(mi.kvExport), t(mi.exportValue)],
             ]}
           />
         )}
         <div className="row gap-2">
           <Button size="sm" onClick={onRetention}>
-            Change retention
+            {t(mi.changeRetention)}
           </Button>
           <Button size="sm" onClick={onStream}>
-            {st?.enabled ? 'Instance event stream' : 'Stream instance events'}
+            {st?.enabled ? t(mi.streamButtonOn) : t(mi.streamButtonOff)}
           </Button>
         </div>
       </div>
@@ -458,6 +471,7 @@ function typeLabel(t: string) {
 }
 
 function DetailDialog({ id, search }: { id: string; search: InstanceAuditSearch }) {
+  const t = useT()
   const { slug, me } = useWorkspace()
   const router = useRouter()
   const navigate = useNavigate()
@@ -465,7 +479,7 @@ function DetailDialog({ id, search }: { id: string; search: InstanceAuditSearch 
   const q = $api.useQuery('get', '/api/v1/admin/audit/events/{eventId}', { params: { path: { eventId: id } } })
   const d = q.data
   const e = d?.event
-  const result = e ? (e.result === 'allowed' ? 'Allowed' : e.result === 'denied' ? 'Denied' : 'Error') : ''
+  const result = e ? t(ma.result, { result: e.result }) : ''
   const open = d?.adminPath ? `/w/${slug}/admin/${d.adminPath}` : d?.link
   return (
     <Dialog
@@ -473,17 +487,20 @@ function DetailDialog({ id, search }: { id: string; search: InstanceAuditSearch 
       onOpenChange={(o) => !o && close()}
       size="lg"
       eyebrow={e ? <Badge tone={e.result === 'allowed' ? 'ok' : 'bad'}>{result}</Badge> : undefined}
-      title={e ? <span className="mono">{e.action}</span> : 'Entry details'}
+      title={e ? <span className="mono">{e.action}</span> : t(ma.entryDetails)}
       description={
         e ? (
           <span className="text-[13px]">
-            {monthDayTimeSeconds(e.occurredAt)} {me.timezone}
-            {e.requestId ? (
-              <>
-                {' '}
-                · request <span className="mono">{e.requestId}</span>
-              </>
-            ) : null}
+            <T
+              msg={ma.entryTime}
+              values={{
+                time: monthDayTimeSeconds(e.occurredAt),
+                timezone: me.timezone,
+                hasRequest: e.requestId ? 'yes' : 'no',
+                requestId: e.requestId ?? '',
+                mono: (c) => <span className="mono">{c}</span>,
+              }}
+            />
           </span>
         ) : undefined
       }
@@ -493,29 +510,29 @@ function DetailDialog({ id, search }: { id: string; search: InstanceAuditSearch 
             <Button
               onClick={async () => {
                 const ok = await copyText(JSON.stringify(d.json, null, 2))
-                toast({ kind: ok ? 'success' : 'error', title: ok ? 'Entry copied as JSON' : 'Copy failed' })
+                toast({ kind: ok ? 'success' : 'error', title: ok ? tt(ma.jsonCopied) : tt(ma.copyFailed) })
               }}
             >
-              Copy JSON
+              {t(ma.copyJson)}
             </Button>
           ) : null}
           {open ? (
-            <Button onClick={() => router.history.push(open)}>{d?.linkLabel || 'Open'}</Button>
+            <Button onClick={() => router.history.push(open)}>{d?.linkLabel || t(ma.open)}</Button>
           ) : null}
           <Button variant="primary" onClick={close}>
-            Done
+            {t(common.done)}
           </Button>
         </>
       }
     >
       {q.isError ? (
-        <Note tone="bad" label="Not loaded">
+        <Note tone="bad" label={t(ma.notLoaded)}>
           {errorMessage(q.error)}
         </Note>
       ) : !d || !e ? (
         <div className="col gap-2" aria-busy="true">
           <span className="vh" role="status">
-            Loading the entry
+            {t(ma.loadingEntry)}
           </span>
           {Array.from({ length: 6 }, (_, i) => (
             <Skeleton key={i} w={`${85 - i * 7}%`} />
@@ -526,17 +543,17 @@ function DetailDialog({ id, search }: { id: string; search: InstanceAuditSearch 
           <KeyValues
             className="text-[12.5px]"
             items={[
-              ['Who', [e.actor.name, e.actor.label].filter(Boolean).join(' · ')],
-              ['What', d.what],
+              [t(ma.kvWho), [e.actor.name, e.actor.label].filter(Boolean).join(' · ')],
+              [t(ma.kvWhat), d.what],
               [
-                'Target',
+                t(ma.kvTarget),
                 <>
                   {typeLabel(e.targetType)} {e.targetId && e.targetType !== 'user' ? <span className="mono">{e.targetId}</span> : e.targetName}
                 </>,
               ],
-              ['Workspace', d.workspace],
+              [t(ma.kvWorkspace), d.workspace],
               [
-                'From',
+                t(ma.kvFrom),
                 d.ip ? (
                   <>
                     <span className="mono">{d.ip}</span>
@@ -546,12 +563,12 @@ function DetailDialog({ id, search }: { id: string; search: InstanceAuditSearch 
                   sourceText(e.source)
                 ),
               ],
-              ['Result', [result, d.permission, e.result !== 'allowed' ? e.reason : undefined].filter(Boolean).join(' · ')],
+              [t(ma.kvResult), [result, d.permission, e.result !== 'allowed' ? e.reason : undefined].filter(Boolean).join(' · ')],
             ]}
           />
           {d.diff.length > 0 ? (
             <>
-              <span className="text-[12px] font-semibold text-ink-2">Before → after</span>
+              <span className="text-[12px] font-semibold text-ink-2">{t(ma.beforeAfter)}</span>
               <div className="diff">
                 {d.diff.map((l, i) => (
                   <div key={i} className={l.kind === 'same' ? undefined : l.kind}>
@@ -563,7 +580,7 @@ function DetailDialog({ id, search }: { id: string; search: InstanceAuditSearch 
             </>
           ) : null}
           <Note tone="neutral" className="text-[12.5px]">
-            Entries can&apos;t be edited or deleted from the UI.{d.related.length ? ` Related: ${d.related.join('; ')}.` : ''}
+            {t(ma.immutable, { hasRelated: d.related.length ? 'yes' : 'no', related: d.related.join('; ') })}
           </Note>
         </>
       )}
@@ -572,10 +589,11 @@ function DetailDialog({ id, search }: { id: string; search: InstanceAuditSearch 
 }
 
 function ListSkeleton() {
+  const t = useT()
   return (
     <div className="flex flex-col" aria-busy="true">
       <span className="vh" role="status">
-        Loading the audit log
+        {t(ma.loading)}
       </span>
       {Array.from({ length: 6 }, (_, i) => (
         <div key={i} className="row flex-nowrap gap-4 border-t border-line-2 px-3 py-3.5">

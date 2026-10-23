@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,6 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/phone"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/webhooks"
@@ -329,7 +329,7 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	opts, _, _ := s.listConsent(ctx, ws)
 	lists, _ := audienceOf(c.Audience)
 	out := WhatsAppReview{ID: c.ID.String(), Name: c.Name, Status: c.Status, Version: int(c.Version), Verdict: rv.verdict, CheckedAt: rv.at, Checks: rv.checks,
-		Audience: summary(rv.aud, opts, lists), Schedule: scheduleOf(c, ws), OverLimit: c.OverLimit, Cost: rv.cost, Access: s.accessFor(ctx, ws, p)}
+		Audience: summary(rv.aud, opts, lists), Schedule: scheduleOf(langOf(ctx), c, ws), OverLimit: c.OverLimit, Cost: rv.cost, Access: s.accessFor(ctx, ws, p)}
 	if s.Approvals != nil {
 		if ap, err := s.Approvals.ChannelReview(ctx, ws, p, id); err == nil {
 			out.Approval = ap
@@ -370,20 +370,21 @@ func (s *Service) Send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	if err != nil {
 		return WhatsAppSendResult{}, err
 	}
+	l := langOf(ctx)
 	switch c.Status {
 	case "draft", "approval", "approved":
 	default:
-		return WhatsAppSendResult{}, api.Conflict("This campaign is already " + c.Status + ".")
+		return WhatsAppSendResult{}, api.Conflict(mAlreadyStatus.Text(l, i18n.Args{"status": c.Status}))
 	}
 	if in.Version != int(c.Version) {
-		return WhatsAppSendResult{}, api.Err(409, "stale_version", fmt.Sprintf("The campaign changed since you reviewed it (now version %d). Review it again.", c.Version))
+		return WhatsAppSendResult{}, api.Err(409, "stale_version", mStaleReviewed.Text(l, i18n.Args{"version": itoa(int(c.Version))}))
 	}
 	rv, err := s.buildReview(ctx, ws, p, c)
 	if err != nil {
 		return WhatsAppSendResult{}, err
 	}
 	if _, blocks := rv.counts(); blocks > 0 {
-		return WhatsAppSendResult{}, api.Err(409, "readiness_blocked", "Fix the blocking checks before sending.")
+		return WhatsAppSendResult{}, api.Err(409, "readiness_blocked", mBlocking.Text(l, nil))
 	}
 	var approval *store.ApprovalRequest
 	if s.Approvals != nil {
@@ -453,7 +454,7 @@ func (s *Service) Unschedule(ctx context.Context, ws *store.Workspace, id uuid.U
 	}
 	snd, err := s.Q.WhatsAppSend(ctx, id)
 	if c.Status != "scheduled" || err != nil || snd.Phase != "scheduled" {
-		return api.Conflict("Only a scheduled campaign that hasn't started can go back to a draft.")
+		return api.Conflict(mUnscheduleOnly.Text(langOf(ctx), nil))
 	}
 	return s.tx(ctx, func(q *store.Queries, tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `DELETE FROM whatsapp_sends WHERE campaign_id = $1 AND phase = 'scheduled'`, id); err != nil {
@@ -474,7 +475,7 @@ func (s *Service) Cancel(ctx context.Context, ws *store.Workspace, id uuid.UUID)
 		return err
 	}
 	if c.Status != "sending" && c.Status != "scheduled" {
-		return api.Conflict("Only a scheduled or sending campaign can be cancelled.")
+		return api.Conflict(mCancelOnly.Text(langOf(ctx), nil))
 	}
 	now := s.now()
 	return s.tx(ctx, func(q *store.Queries, tx pgx.Tx) error {
@@ -507,7 +508,8 @@ func (s *Service) DescribeForApproval(ctx context.Context, ws *store.Workspace, 
 		return approvals.ChannelCampaign{}, err
 	}
 	warns, blocks := rv.counts()
-	sched := scheduleOf(c, ws).Label
+	// The snapshot is kept and compared: in English, whoever asks.
+	sched := scheduleOf(i18n.Default, c, ws).Label
 	opts, _, _ := s.listConsent(ctx, ws)
 	lists, _ := audienceOf(c.Audience)
 	labels := []string{}
@@ -524,7 +526,7 @@ func (s *Service) DescribeForApproval(ctx context.Context, ws *store.Workspace, 
 	text := c.TemplateName
 	if rv.tpl != nil {
 		snapWA.Category, snapWA.Body = rv.tpl.Category, rv.tpl.Body
-		for _, b := range templateView(*rv.tpl).Buttons {
+		for _, b := range templateView(i18n.Default, *rv.tpl).Buttons {
 			snapWA.Buttons = append(snapWA.Buttons, b.Text)
 		}
 		var vars []WhatsAppVariable

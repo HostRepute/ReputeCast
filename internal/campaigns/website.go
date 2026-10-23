@@ -50,7 +50,7 @@ func (s *Service) DraftFromPost(ctx context.Context, ws *store.Workspace, p *aut
 			return err
 		}
 		if err := q.InsertComposerVersion(ctx, store.InsertComposerVersionParams{CampaignID: id, Version: 1, Subject: subject, Preheader: preheader, Mjml: src, Html: html,
-			PlainText: plain, SavedBy: &actor, SavedAt: now, Label: "made from the web post", Source: "create", SizeBytes: int32(len(html))}); err != nil {
+			PlainText: plain, SavedBy: &actor, SavedAt: now, Label: mVersionFromWebPost.Source(), Source: "create", SizeBytes: int32(len(html))}); err != nil {
 			return err
 		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.create", TargetType: "campaign", TargetID: id.String(), TargetName: name,

@@ -517,8 +517,8 @@ func optOut(ctx context.Context, q *store.Queries, tx pgx.Tx, ws *store.Workspac
 				lists = append(lists, x.name)
 			}
 			if err := q.ChanConsentEventInsert(ctx, store.ChanConsentEventInsertParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, ContactID: cid, ListID: &x.id,
-				Channel: "whatsapp", Action: "opted_out", Phone: ph, Source: "keyword", Page: "WhatsApp message", Keyword: word,
-				Note: "Opted out on WhatsApp", OccurredAt: now}); err != nil {
+				Channel: "whatsapp", Action: "opted_out", Phone: ph, Source: "keyword", Page: mStoredPage.Source(), Keyword: word,
+				Note: mStoredOptedOut.Source(), OccurredAt: now}); err != nil {
 				return nil, err
 			}
 		}
@@ -564,14 +564,15 @@ func optIn(ctx context.Context, q *store.Queries, tx pgx.Tx, ws *store.Workspace
 				lists = append(lists, x.name)
 			}
 			if err := q.ChanConsentEventInsert(ctx, store.ChanConsentEventInsertParams{ID: uuid.Must(uuid.NewV7()), WorkspaceID: ws.ID, ContactID: cid, ListID: &x.id,
-				Channel: "whatsapp", Action: "opted_in", Phone: ph, Source: "keyword", Page: "WhatsApp message", Keyword: word, Note: "Opted back in on WhatsApp",
+				Channel: "whatsapp", Action: "opted_in", Phone: ph, Source: "keyword", Page: mStoredPage.Source(), Keyword: word, Note: mStoredOptedIn.Source(),
 				OccurredAt: now}); err != nil {
 				return nil, false, err
 			}
 		}
 	}
-	tag, err := tx.Exec(ctx, `UPDATE channel_suppressions SET removed_at = $3, removed_reason = 'Opted back in on WhatsApp'
-		WHERE workspace_id = $1 AND channel = 'whatsapp' AND phone = $2 AND removed_at IS NULL AND reason = 'opted_out'`, ws.ID, ph, now)
+	// Stored in the catalog's English, as the consent records' notes are.
+	tag, err := tx.Exec(ctx, `UPDATE channel_suppressions SET removed_at = $3, removed_reason = $4
+		WHERE workspace_id = $1 AND channel = 'whatsapp' AND phone = $2 AND removed_at IS NULL AND reason = 'opted_out'`, ws.ID, ph, now, mStoredOptedIn.Source())
 	if err != nil {
 		return nil, false, err
 	}

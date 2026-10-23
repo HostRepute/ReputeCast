@@ -326,7 +326,7 @@ function Builder({ segmentId, detail, catalog }: { segmentId: string; detail?: S
             <span className="k">{t(m.name)}</span>
             <input className="in segname" value={draft.name} placeholder={t(m.namePlaceholder)} onChange={(e) => set({ name: e.target.value })} maxLength={120} />
           </label>
-          <label className="flex flex-col gap-1">
+          <label className="flex flex-col gap-1 max-md:w-full">
             <span className="k">{t(m.refresh)}</span>
             <select className="in" value={draft.refresh} onChange={(e) => set({ refresh: e.target.value as Draft['refresh'] })}>
               <option value="dynamic">{t(m.dynamic)}</option>

@@ -1,14 +1,16 @@
 import type { Schemas } from '@/api/client'
 import type { Tone } from '@/components/ui/Badge'
-import { clock, count } from '@/lib/format'
+import { t } from '@/i18n'
+import { clock, count, pct } from '@/lib/format'
+import { m } from './messages'
 
 export type Webhook = Schemas['WebhookView']
 export type Delivery = Schemas['WebhookDeliveryView']
 
 /** "99.8%", "100%", "61%": one decimal where it matters (90% and up). */
 export function successPct(v: number): string {
-  if (v >= 99.95) return '100%'
-  return v >= 90 ? `${v.toFixed(1)}%` : `${Math.round(v)}%`
+  if (v >= 99.95) return pct(100, 0)
+  return v >= 90 ? pct(v, 1) : pct(Math.round(v), 0)
 }
 
 /** "99.8% · 2,114", or "–" before the first delivery. */
@@ -20,13 +22,15 @@ export function successText(w: Webhook): string {
 export function statusBadge(w: Webhook): { tone: Tone; label: string } {
   switch (w.status) {
     case 'healthy':
-      return { tone: 'ok', label: 'Healthy' }
-    case 'failing':
-      return { tone: 'bad', label: `Failing · ${w.lastStatus ? w.lastStatus : 'no response'}${w.failingSince ? ` since ${clock(w.failingSince)}` : ''}` }
+      return { tone: 'ok', label: t(m.statusHealthy) }
+    case 'failing': {
+      const values = { hasStatus: w.lastStatus ? 'yes' : 'no', status: String(w.lastStatus ?? '') }
+      return { tone: 'bad', label: w.failingSince ? t(m.statusFailingSince, { ...values, time: clock(w.failingSince) }) : t(m.statusFailing, values) }
+    }
     case 'paused':
-      return { tone: 'neutral', label: 'Paused' }
+      return { tone: 'neutral', label: t(m.statusPaused) }
   }
-  return { tone: 'info', label: 'New' }
+  return { tone: 'info', label: t(m.statusNew) }
 }
 
 /** The host and path of a delivery's endpoint; masked paths (Slack) show the host only. */
@@ -40,19 +44,22 @@ export function endpointText(d: Pick<Delivery, 'endpoint'>): string {
   return s.includes('…') ? s.split('/')[0]! : s
 }
 
-/** "200 · 84 ms", "502 · Bad Gateway", "DNS lookup failed". */
+/** "200 · 84 ms", "502 · Bad Gateway", "DNS lookup failed" (the endpoint's own words). */
 export function responseBadge(d: Delivery): { tone: Tone; label: string } | undefined {
-  if (d.state === 'delivered') return { tone: 'ok', label: `${d.statusCode ?? 200}${d.durationMs !== undefined ? ` · ${d.durationMs} ms` : ''}` }
-  if (d.statusCode) return { tone: 'bad', label: `${d.statusCode} · ${d.statusText || 'Error'}` }
+  if (d.state === 'delivered') {
+    const code = String(d.statusCode ?? 200)
+    return { tone: 'ok', label: d.durationMs !== undefined ? t(m.responseTime, { code, ms: count(d.durationMs) }) : code }
+  }
+  if (d.statusCode) return { tone: 'bad', label: `${d.statusCode} · ${d.statusText || t(m.responseError)}` }
   if (d.error) return { tone: 'bad', label: d.error.replace(/ for [^ ]+$/, '') }
   return undefined
 }
 
 /** "1", "4 of 8". */
 export function attemptsText(d: Delivery): string {
-  if (d.state === 'delivered' && d.attempts <= 1) return String(Math.max(1, d.attempts))
+  if (d.state === 'delivered' && d.attempts <= 1) return count(Math.max(1, d.attempts))
   if (d.attempts === 0) return '–'
-  return `${d.attempts} of ${d.maxAttempts}`
+  return t(m.attemptsOf, { attempts: count(d.attempts), max: count(d.maxAttempts) })
 }
 
 /** "event · subtype" as on the delivery log. */

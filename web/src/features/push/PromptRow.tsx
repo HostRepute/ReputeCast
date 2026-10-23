@@ -26,7 +26,7 @@ export function PushPromptRow({ f, slug, status }: { f: Schemas['SignupFormSumma
       <td>
         <span className={`badge ${f.status === 'live' ? 'ok' : 'mut'}`}>{status}</span>
       </td>
-      <td className="nowrap">{d ? t(m.listGranted, { count: d.stats.granted }) : <span className="k">…</span>}</td>
+      <td className="nowrap sv-activity">{d ? t(m.listGranted, { count: d.stats.granted }) : <span className="k">…</span>}</td>
       <td className="k">—</td>
     </tr>
   )
