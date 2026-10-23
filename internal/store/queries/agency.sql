@@ -461,7 +461,7 @@ WHERE m.workspace_id = ANY(@workspace_ids::uuid[]) AND m.status = 'active'
 ORDER BY m.joined_at;
 
 -- name: AgencyRecentIncidents :many
-SELECT i.workspace_id, i.id, i.kind, i.severity, i.title, i.detail, i.occurred_at, i.resolved_at, i.campaign_id, i.provider_id,
+SELECT i.workspace_id, i.id, i.kind, i.severity, i.title, i.detail, i.texts, i.occurred_at, i.resolved_at, i.campaign_id, i.provider_id,
        coalesce(c.name, '')::text AS campaign_name, coalesce(p.name, '')::text AS provider_name
 FROM incidents i
 LEFT JOIN campaigns c ON c.id = i.campaign_id
@@ -669,7 +669,9 @@ WHERE c.workspace_id = @workspace_id;
 -- Agency area's bell.
 
 -- name: AgencyNotifications :many
-SELECT n.id, n.workspace_id, n.kind, n.severity, n.title, coalesce(nullif(n.summary, ''), n.body, '')::text AS summary, coalesce(n.link, '')::text AS link,
+-- The title, summary, body and data: the bell writes them in the reader's
+-- language from the messages the notification kept (notify.Localize).
+SELECT n.id, n.workspace_id, n.kind, n.severity, n.title, n.summary, n.body, n.data, coalesce(n.link, '')::text AS link,
        n.created_at, (n.read_at IS NOT NULL)::boolean AS read
 FROM notifications n
 WHERE n.user_id = @user_id AND n.workspace_id = ANY(@workspace_ids::uuid[]) AND n.in_app
