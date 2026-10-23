@@ -10,15 +10,16 @@ import "strconv"
 // issueProductRemoved is internal/commerce's content check.
 const issueProductRemoved = "store.product_removed"
 
-// stores adds the removed-product checks.
+// stores adds the removed-product checks. Their title, detail and short
+// label are the store's content check's own (English).
 func (b *builder) stores() {
 	if !b.f.Content.Checked {
 		return
 	}
 	for i, is := range issuesOf(b.f.Content.Report, issueProductRemoved) {
-		b.add(ReadinessCheck{Key: "content.store_product." + strconv.Itoa(i), Group: GroupContent, Status: Warn, Label: "Store products",
-			Title: is.Title, Detail: is.Detail, Short: is.Tag,
-			Ack:   "I understand the email names a product the store removed.",
-			Fixes: []ReadinessFix{link("Open in editor", b.editor(is.Path, ""))}})
+		b.add(check{Key: "content.store_product." + strconv.Itoa(i), Group: GroupContent, Status: Warn, Label: tx("label.storeProducts", nil),
+			Title: RawText(is.Title), Detail: RawText(is.Detail), Short: RawText(is.Tag),
+			Ack:   tx("stores.ack", nil),
+			Fixes: []fix{link(tx("fix.openInEditor", nil), b.editor(is.Path, ""))}})
 	}
 }

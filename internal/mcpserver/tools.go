@@ -21,6 +21,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/notify"
+	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -245,7 +246,8 @@ func (s *Service) addTools(srv *mcp.Server) {
 			return nil, e, err
 		}
 		e.detail = r.Verdict
-		return map[string]any{"campaign": cp.Name, "verdict": r.Verdict, "checks": r.Checks, "estimates": r.Estimates, "ran_at": r.RanAt}, e, nil
+		return map[string]any{"campaign": cp.Name, "verdict": r.Verdict, "checks": readiness.WithoutTexts(r.Checks), "estimates": readiness.WithoutTexts(r.Estimates),
+			"ran_at": r.RanAt}, e, nil
 	}, nil)
 
 	tool(s, srv, "create_campaign_draft", authz.CampaignsEdit, func(ctx context.Context, c *agentCall, in draftIn) (any, entry, error) {

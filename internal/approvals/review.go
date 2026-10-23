@@ -218,6 +218,9 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		out.Access.HasPassword = me.HasPassword
 	}
 	out.Approval, err = s.reviewApproval(ctx, ws, p, c, out.Run, ms)
+	// The checks read in the reader's language.
+	out.Run = readiness.ForReader(ctx, out.Run)
+	out.Running = readiness.ProgressForReader(ctx, out.Running)
 	return out, err
 }
 

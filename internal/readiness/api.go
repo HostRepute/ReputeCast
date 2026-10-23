@@ -9,6 +9,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 // ReadinessCampaignPath is the {workspace}/{campaignId} of readiness operations.
@@ -66,9 +67,9 @@ func Register(h huma.API, s *Service) {
 			p := api.PrincipalFrom(ctx)
 			run, err := s.Run(ctx, api.WorkspaceFrom(ctx), id, RunOptions{Trigger: TriggerManual, By: &p.UserID})
 			if errors.Is(err, ErrRunning) {
-				return nil, runningProblem()
+				return nil, runningProblem(ctx)
 			}
-			return api.OK(run), err
+			return api.OK(run.In(i18n.LangFrom(ctx))), err
 		})
 	api.Get(h, api.Op{ID: "get-send-readiness-progress", Path: "/workspaces/{workspace}/campaigns/{campaignId}/readiness/progress", Summary: "The Send Readiness run in progress",
 		Tags: tags, Access: api.Workspace(authz.CampaignsView)},
@@ -81,7 +82,7 @@ func Register(h huma.API, s *Service) {
 				return nil, err
 			}
 			pr, err := s.Progress(ctx, id)
-			return api.OK(ReadinessProgressView{Running: pr}), err
+			return api.OK(ReadinessProgressView{Running: ProgressForReader(ctx, pr)}), err
 		})
 	api.Post(h, api.Op{ID: "accept-unknown-readiness", Path: "/workspaces/{workspace}/campaigns/{campaignId}/readiness/{runId}/accept-unknown",
 		Summary:     "Continue with provider data only",
@@ -97,7 +98,7 @@ func Register(h huma.API, s *Service) {
 				return nil, api.NotFound("Readiness run")
 			}
 			run, err := s.AcceptUnknown(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, runID)
-			return api.OK(run), err
+			return api.OK(run.In(i18n.LangFrom(ctx))), err
 		})
 	api.Post(h, api.Op{ID: "apply-readiness-fixes", Path: "/workspaces/{workspace}/campaigns/{campaignId}/readiness/fixes", Summary: "Apply one-click fixes, then run the checks again",
 		Description: "Content fixes save a new version; audience and route fixes change the campaign. Changing route needs campaigns:send. Changes invalidate an approval.",
@@ -116,7 +117,7 @@ func Register(h huma.API, s *Service) {
 			run, err := s.Run(ctx, ws, id, RunOptions{Trigger: TriggerManual, By: &p.UserID})
 			switch {
 			case err == nil:
-				out.Run = &run
+				out.Run = ForReader(ctx, &run)
 			case !errors.Is(err, ErrRunning):
 				return nil, err
 			}

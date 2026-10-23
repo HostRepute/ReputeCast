@@ -274,6 +274,11 @@ func (s *Service) Forms(ctx context.Context, ws *store.Workspace) (WordPressForm
 	}
 	out := WordPressFormList{Items: []WordPressForm{}}
 	for _, f := range rows {
+		// Push prompts are listed with the forms in the app but can't be
+		// embedded or submitted as signup forms.
+		if f.Kind == forms.KindPush {
+			continue
+		}
 		out.Items = append(out.Items, WordPressForm{ID: f.PublicID, Name: f.Name, Status: f.Status, Kind: f.Kind,
 			SiteAllowed: host != "" && forms.OriginAllowed(host, f.AllowedOrigins, nil),
 			Shortcode:   fmt.Sprintf("[reputecast_form id=%q]", f.PublicID),

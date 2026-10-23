@@ -24,11 +24,6 @@ import (
 // GroupConditional is the Conditional content group's key.
 const GroupConditional = "conditional"
 
-func init() {
-	groupTitles[GroupConditional] = "Conditional content"
-	groupPrefixes[GroupConditional] = "Conditional content"
-}
-
 // Fix actions of conditional content and polls.
 const (
 	FixVisibilityShowEveryone    = visibility.FixShowEveryone
@@ -66,11 +61,7 @@ func conditionalFix(src, action string, params map[string]string) (next, label, 
 	return visibility.Fix(src, action, params)
 }
 
-const conditionalRunning = "every version: content, size and the conditions' segments, lists and fields"
-
 func kbOf(n int) int { return int(math.Round(float64(n) / 1024)) }
-
-func (b *builder) day(t time.Time) string { return t.In(b.loc).Format("Mon 2 Jan") }
 
 // conditionalVersions reports whether the email has versions to check.
 func (b *builder) conditionalVersions() bool {
@@ -80,25 +71,25 @@ func (b *builder) conditionalVersions() bool {
 
 // conditionalSize is the Content group's size check of an email with
 // versions: each version is checked in Conditional content.
-func (b *builder) conditionalSize(size ReadinessCheck) ReadinessCheck {
+func (b *builder) conditionalSize(size check) check {
 	r := b.f.Conditional.Report
 	lo, hi := kbOf(r.MinSize), kbOf(r.MaxSize)
-	size.Status, size.Ack, size.Fixes = Pass, "", nil
-	size.Title = fmt.Sprintf("HTML size %d to %d KB across %d versions", lo, hi, len(r.Versions))
+	size.Status, size.Ack, size.Fixes = Pass, nil, nil
+	size.Title = tx("conditional.sizeAcross", A{"min": lo, "max": hi, "count": len(r.Versions)})
 	largest := 0
 	for _, v := range r.Versions {
 		if v.Largest {
 			largest = v.Number
 		}
 	}
-	size.Detail = fmt.Sprintf("Conditional content checks each version against Gmail's 102 KB clipping limit; version %d is the largest.", largest)
-	size.Short = fmt.Sprintf("%d to %d KB of 102 KB", lo, hi)
+	size.Detail = tx("conditional.sizeAcrossDetail", A{"clip": 102, "largest": largest})
+	size.Short = tx("conditional.sizeAcrossShort", A{"min": lo, "max": hi, "clip": 102})
 	return size
 }
 
-// blockNames joins the names of a version's blocks: "Beta corner and
-// Start a free trial", "none of the conditional blocks".
-func (b *builder) blockNames(v visibility.VisibilityVersion) string {
+// blockNames names the blocks a version shows: "Beta corner and Start a
+// free trial", "none of the conditional blocks".
+func (b *builder) blockNames(v visibility.VisibilityVersion) Text {
 	names := []string{}
 	for _, id := range v.Shown {
 		for _, blk := range b.f.Conditional.Report.Blocks {
@@ -107,10 +98,7 @@ func (b *builder) blockNames(v visibility.VisibilityVersion) string {
 			}
 		}
 	}
-	if len(names) == 0 {
-		return "none of the conditional blocks"
-	}
-	return JoinAnd(names)
+	return tx("conditional.shows", A{"count": len(names), "blocks": argCapital(ArgAnd(names))})
 }
 
 func (b *builder) conditional() {
@@ -120,8 +108,12 @@ func (b *builder) conditional() {
 	}
 	r := cf.Report
 	if !cf.Checked {
-		b.add(ReadinessCheck{Key: "conditional.unchecked", Group: GroupConditional, Status: Unknown, Title: "Couldn't count the versions",
-			Detail: firstNonEmpty(cf.Problem, "The other checks finished; the verdict waits for this one."), Label: "Versions", Note: "not checked"})
+		detail := RawText(cf.Problem)
+		if detail.Empty() {
+			detail = tx("check.waits", nil)
+		}
+		b.add(check{Key: "conditional.unchecked", Group: GroupConditional, Status: Unknown, Title: tx("conditional.unchecked", nil),
+			Detail: detail, Label: tx("label.versions", nil), Note: tx("note.notChecked", nil)})
 		return
 	}
 	if len(r.Blocks) == 0 && len(r.Invalid) == 0 {
@@ -130,28 +122,25 @@ func (b *builder) conditional() {
 	// Conditions that refer to something deleted.
 	for _, blk := range r.Blocks {
 		for _, br := range blk.Broken {
-			what := map[string]string{"segment": "segment", "list": "list", "field": "field"}[br.Kind]
-			detail := fmt.Sprintf("“%s” was deleted", br.Name)
-			if br.DeletedBy != "" {
-				detail += " by " + br.DeletedBy
-			}
+			kind := br.Kind
+			deleted := A{"name": br.Name, "by": br.DeletedBy, "named": yes(br.DeletedBy != ""), "dated": yes(br.DeletedAt != nil)}
 			if br.DeletedAt != nil {
-				detail += " on " + b.day(*br.DeletedAt)
+				deleted["day"] = b.day(*br.DeletedAt)
 			}
-			detail += ". A condition that refers to a deleted segment, field, list or tag blocks the send."
 			params := map[string]string{"block": blk.ID}
 			remove := map[string]string{"block": blk.ID, "condition": fmt.Sprint(br.Condition)}
-			b.add(ReadinessCheck{Key: "conditional.broken." + blk.ID + "." + fmt.Sprint(br.Condition), Group: GroupConditional, Status: Block,
-				Title: fmt.Sprintf("“%s” uses a deleted %s", blk.Name, what), Detail: detail, Label: "Broken condition",
-				Fixes: []ReadinessFix{link("Pick another "+what, b.editor(blk.Path, "settings")), apply(FixVisibilityHideBlock, "Hide this block for everyone", "", params),
-					apply(FixVisibilityRemoveCondition, "Remove the condition", "", remove)}})
+			b.add(check{Key: "conditional.broken." + blk.ID + "." + fmt.Sprint(br.Condition), Group: GroupConditional, Status: Block,
+				Title:  tx("conditional.broken", A{"block": blk.Name, "kind": kind}),
+				Detail: sentences(tx("conditional.deleted", deleted), tx("conditional.deletedBlocks", nil)), Label: tx("label.brokenCondition", nil),
+				Fixes: []fix{link(tx("fix.pickAnother", A{"kind": kind}), b.editor(blk.Path, "settings")), apply(FixVisibilityHideBlock, tx("fix.hideBlock", nil), "", params),
+					apply(FixVisibilityRemoveCondition, tx("fix.removeCondition", nil), "", remove)}})
 		}
 	}
 	if len(r.Invalid) > 0 {
-		b.add(ReadinessCheck{Key: "conditional.invalid", Group: GroupConditional, Status: Warn, Label: "Visibility rules",
-			Title:  fmt.Sprintf("%d Visibility %s couldn't be read", len(r.Invalid), Plural(int64(len(r.Invalid)), "rule", "rules")),
-			Detail: "Those blocks are shown to everyone. Open the email in the composer and set their visibility again.",
-			Ack:    "I understand some blocks are shown to everyone.", Fixes: []ReadinessFix{link("Open in editor", b.editor(nil, ""))}})
+		b.add(check{Key: "conditional.invalid", Group: GroupConditional, Status: Warn, Label: tx("label.visibilityRules", nil),
+			Title:  tx("conditional.invalid", A{"count": len(r.Invalid)}),
+			Detail: tx("conditional.invalidDetail", nil),
+			Ack:    tx("conditional.invalidAck", nil), Fixes: []fix{link(tx("fix.openInEditor", nil), b.editor(nil, ""))}})
 	}
 	if !r.Counted || len(r.Versions) == 0 {
 		return
@@ -163,18 +152,18 @@ func (b *builder) conditional() {
 			continue
 		}
 		empty = true
-		c := ReadinessCheck{Key: fmt.Sprintf("conditional.empty.%d", v.Number), Group: GroupConditional, Status: Block, Label: "Empty version",
-			Title:  fmt.Sprintf("Version %d has nothing between the header and the footer", v.Number),
-			Detail: fmt.Sprintf("%s %s would get only the header and the footer. Send Readiness blocks the send until every version has content.", Count(v.Recipients), Plural(v.Recipients, "recipient", "recipients")),
-			Fixes:  []ReadinessFix{}}
+		c := check{Key: fmt.Sprintf("conditional.empty.%d", v.Number), Group: GroupConditional, Status: Block, Label: tx("label.emptyVersion", nil),
+			Title:  tx("conditional.empty", A{"number": v.Number}),
+			Detail: tx("conditional.emptyDetail", A{"count": v.Recipients}),
+			Fixes:  []fix{}}
 		for _, id := range v.Hidden {
 			for _, blk := range r.Blocks {
 				if blk.ID == id && blk.Section && len(c.Fixes) < 2 {
-					c.Fixes = append(c.Fixes, apply(FixVisibilityShowEveryone, fmt.Sprintf("Show “%s” to everyone", blk.Name), "", map[string]string{"block": blk.ID}))
+					c.Fixes = append(c.Fixes, apply(FixVisibilityShowEveryone, tx("fix.showEveryone", A{"block": blk.Name}), "", map[string]string{"block": blk.ID}))
 				}
 			}
 		}
-		c.Fixes = append(c.Fixes, link(fmt.Sprintf("Preview version %d", v.Number), b.versionHref(v.Number)))
+		c.Fixes = append(c.Fixes, link(tx("fix.previewVersion", A{"number": v.Number}), b.versionHref(v.Number)))
 		b.add(c)
 	}
 	// Versions over Gmail's clipping size: as severe as the size check.
@@ -191,29 +180,29 @@ func (b *builder) conditional() {
 				others = append(others, kbOf(o.SizeBytes))
 			}
 		}
-		detail := fmt.Sprintf("%s · %s %s", capitalize(b.blockNames(v)), Count(v.Recipients), Plural(v.Recipients, "recipient", "recipients"))
+		args := A{"shows": b.blockNames(v), "count": v.Recipients, "others": yes(len(others) > 0)}
 		if len(others) > 0 {
 			lo, hi := others[0], others[0]
 			for _, k := range others {
 				lo, hi = min(lo, k), max(hi, k)
 			}
-			detail += fmt.Sprintf(" · the other versions are %d to %d KB", lo, hi)
+			args["min"], args["max"] = lo, hi
 		}
-		c := ReadinessCheck{Key: fmt.Sprintf("conditional.size.%d", v.Number), Group: GroupConditional, Status: Warn, Label: "Version size",
-			Title:  fmt.Sprintf("Version %d is %d KB, over Gmail's 102 KB clipping size", v.Number, kbOf(v.SizeBytes)),
-			Detail: detail + ". Gmail clips it and hides the rest, the footer's unsubscribe link included.",
-			Ack:    fmt.Sprintf("I understand version %d is %d KB, over Gmail's clipping size.", v.Number, kbOf(v.SizeBytes))}
+		c := check{Key: fmt.Sprintf("conditional.size.%d", v.Number), Group: GroupConditional, Status: Warn, Label: tx("label.versionSize", nil),
+			Title:  tx("conditional.over", A{"number": v.Number, "kb": kbOf(v.SizeBytes), "clip": 102}),
+			Detail: tx("conditional.overDetail", args),
+			Ack:    tx("conditional.overAck", A{"number": v.Number, "kb": kbOf(v.SizeBytes)})}
 		for _, is := range issuesOf(b.f.Content.Report, "content.size") {
 			for _, fx := range is.Fixes {
 				if fx.Kind == "minify" {
-					c.Fixes = append(c.Fixes, apply(FixMinify, fx.Label, "", nil))
+					c.Fixes = append(c.Fixes, apply(FixMinify, minifyLabel(fx.Label), "", nil))
 				}
 			}
 		}
 		if len(c.Fixes) == 0 && b.f.Content.InlineCSSBytes > 0 {
-			c.Fixes = append(c.Fixes, apply(FixMinify, "Minify inline CSS", "", nil))
+			c.Fixes = append(c.Fixes, apply(FixMinify, tx("fix.minify", nil), "", nil))
 		}
-		c.Fixes = append(c.Fixes, link(fmt.Sprintf("Preview version %d", v.Number), b.versionHref(v.Number)))
+		c.Fixes = append(c.Fixes, link(tx("fix.previewVersion", A{"number": v.Number}), b.versionHref(v.Number)))
 		b.add(c)
 	}
 	if !empty {
@@ -223,15 +212,16 @@ func (b *builder) conditional() {
 				smallest = v
 			}
 		}
-		b.add(ReadinessCheck{Key: "conditional.content", Group: GroupConditional, Status: Pass, Label: "Every version has content",
-			Title:  "Every version has content between the header and the footer",
-			Detail: fmt.Sprintf("%d %s · the smallest is version %d, %d KB", len(r.Versions), Plural(int64(len(r.Versions)), "version", "versions"), smallest.Number, kbOf(smallest.SizeBytes)),
-			Short:  "every version has content"})
+		b.add(check{Key: "conditional.content", Group: GroupConditional, Status: Pass, Label: tx("label.everyVersionContent", nil),
+			Title:  tx("conditional.content", nil),
+			Detail: tx("conditional.contentDetail", A{"count": len(r.Versions), "number": smallest.Number, "kb": kbOf(smallest.SizeBytes)}),
+			Short:  tx("conditional.contentShort", nil)})
 	}
 	if len(over) == 0 {
-		b.add(ReadinessCheck{Key: "conditional.size", Group: GroupConditional, Status: Pass, Label: "Version size",
-			Title:  "Every version is under Gmail's 102 KB clipping size",
-			Detail: fmt.Sprintf("%d to %d KB", kbOf(r.MinSize), kbOf(r.MaxSize)), Short: fmt.Sprintf("%d to %d KB", kbOf(r.MinSize), kbOf(r.MaxSize))})
+		sizes := A{"min": kbOf(r.MinSize), "max": kbOf(r.MaxSize), "clip": 102}
+		b.add(check{Key: "conditional.size", Group: GroupConditional, Status: Pass, Label: tx("label.versionSize", nil),
+			Title:  tx("conditional.under", sizes),
+			Detail: tx("conditional.sizes", sizes), Short: tx("conditional.sizes", sizes)})
 	}
 	// Links are checked once each over the union of every version's links,
 	// in the Links group; this row says so when they all respond.
@@ -242,9 +232,9 @@ func (b *builder) conditional() {
 		}
 	}
 	if n := len(b.f.Content.Report.LinkList); b.f.Content.Checked && linksOK && n > 0 {
-		b.add(ReadinessCheck{Key: "conditional.links", Group: GroupConditional, Status: Pass, Label: "Links",
-			Title:  fmt.Sprintf("%d %s across all the versions", n, Plural(int64(n), "link responds", "links respond")),
-			Detail: "Checked once each over the union of every version's links", Short: "links checked across the versions"})
+		b.add(check{Key: "conditional.links", Group: GroupConditional, Status: Pass, Label: tx("label.links", nil),
+			Title:  tx("conditional.links", A{"count": n}),
+			Detail: tx("conditional.linksDetail", nil), Short: tx("conditional.linksShort", nil)})
 	}
 	if len(r.Versions) > visibility.MaxChecked {
 		var covered int64
@@ -253,10 +243,10 @@ func (b *builder) conditional() {
 				covered += v.Recipients
 			}
 		}
-		b.add(ReadinessCheck{Key: "conditional.sampled", Group: GroupConditional, Status: Pass, Label: "Versions checked",
-			Title:  fmt.Sprintf("%d of %d versions checked: the %d with the most recipients, plus the largest and the smallest email", r.Checked, len(r.Versions), visibility.MaxChecked),
-			Detail: fmt.Sprintf("Together they cover %s of %s recipients (%s).", Count(covered), Count(r.Total), Pct1(float64(covered)/float64(max(r.Total, 1))*100)),
-			Short:  fmt.Sprintf("%d of %d versions checked", r.Checked, len(r.Versions))})
+		b.add(check{Key: "conditional.sampled", Group: GroupConditional, Status: Pass, Label: tx("label.versionsChecked", nil),
+			Title:  tx("conditional.sampled", A{"checked": r.Checked, "count": len(r.Versions), "top": visibility.MaxChecked}),
+			Detail: tx("conditional.sampledDetail", A{"covered": covered, "total": r.Total, "share": ArgPercent1(float64(covered) / float64(max(r.Total, 1)) * 100)}),
+			Short:  tx("conditional.sampledShort", A{"checked": r.Checked, "count": len(r.Versions)})})
 	}
 }
 
@@ -265,32 +255,26 @@ func (b *builder) versionHref(n int) string {
 	return b.href(fmt.Sprintf("/campaigns/%s/edit?view=preview&version=%d", b.f.Campaign.ID, n))
 }
 
-func (b *builder) conditionalCaption() string {
+func (b *builder) conditionalCaption() Text {
 	r := b.f.Conditional.Report
-	s := fmt.Sprintf("%d conditional %s", len(r.Blocks), Plural(int64(len(r.Blocks)), "block", "blocks"))
-	if r.Counted {
-		s += fmt.Sprintf(" · %d %s", len(r.Versions), Plural(int64(len(r.Versions)), "version", "versions"))
-		if r.CountedAt != nil {
-			s += " · rendered " + b.when(*r.CountedAt)
-		}
+	args := A{"blocks": len(r.Blocks), "counted": yes(r.Counted), "versions": len(r.Versions), "rendered": yes(r.Counted && r.CountedAt != nil)}
+	if r.CountedAt != nil {
+		args["when"] = b.when(*r.CountedAt)
 	}
-	return s
+	return tx("conditional.caption", args)
 }
 
 // conditionalNote is what the verdict says about the versions: all were
 // checked, or which ones beyond 50.
-func (b *builder) conditionalNote() string {
+func (b *builder) conditionalNote() Text {
 	r := b.f.Conditional.Report
 	if !r.Counted || len(r.Versions) == 0 {
-		return ""
+		return nil
 	}
 	if len(r.Versions) > visibility.MaxChecked {
-		return fmt.Sprintf("%d of the %d versions were rendered and checked: the %d with the most recipients, plus the largest and the smallest email.", r.Checked, len(r.Versions), visibility.MaxChecked)
+		return tx("conditional.noteSampled", A{"checked": r.Checked, "count": len(r.Versions), "top": visibility.MaxChecked})
 	}
-	if len(r.Versions) == 1 {
-		return "The one version was rendered and checked."
-	}
-	return fmt.Sprintf("Every one of the %d versions was rendered and checked.", len(r.Versions))
+	return tx("conditional.noteAll", A{"count": len(r.Versions)})
 }
 
 // polls adds the poll checks to the Content group.
@@ -303,49 +287,56 @@ func (b *builder) polls() {
 	for _, p := range pf.Polls {
 		q := strings.TrimSpace(p.Question)
 		if len(p.Problems) > 0 {
-			title := "A poll isn't complete"
-			if q != "" {
-				title = fmt.Sprintf("The poll “%s” isn't complete", q)
+			parts := make([]Text, 0, len(p.Problems))
+			for _, pr := range p.Problems {
+				// The poll's own words for what's missing.
+				parts = append(parts, RawText(pr))
 			}
-			b.add(ReadinessCheck{Key: "content.poll." + p.ID + ".incomplete", Group: GroupContent, Status: Block, Label: "Poll",
-				Title: title, Detail: strings.Join(p.Problems, " "), Fixes: []ReadinessFix{link("Show the poll", b.editor(p.Path, "settings"))}})
+			b.add(check{Key: "content.poll." + p.ID + ".incomplete", Group: GroupContent, Status: Block, Label: tx("label.poll", nil),
+				Title: tx("polls.incomplete", A{"question": q, "asked": yes(q != "")}), Detail: joined(" ", parts),
+				Fixes: []fix{link(tx("fix.showPoll", nil), b.editor(p.Path, "settings"))}})
 		}
 		if p.Close.Mode == polls.CloseDate && p.ClosesAt != nil && !p.ClosesAt.After(start) {
-			b.add(ReadinessCheck{Key: "content.poll." + p.ID + ".closes", Group: GroupContent, Status: Warn, Label: "Poll closing",
-				Title:  fmt.Sprintf("The poll closes %s, before this campaign sends on %s", b.day(*p.ClosesAt), b.day(start)),
-				Detail: fmt.Sprintf("Every answer would arrive after it closed, so the page would record none of them. Closing 7 days after sending keeps it open until %s.", b.day(start.Add(7*24*time.Hour))),
-				Ack:    "I understand the poll closes before the campaign sends.",
-				Fixes: []ReadinessFix{apply(FixPollCloseDays, "Close 7 days after sending", "", map[string]string{"poll": p.ID, "days": "7"}),
-					link("Show the poll", b.editor(p.Path, "settings"))}})
+			b.add(check{Key: "content.poll." + p.ID + ".closes", Group: GroupContent, Status: Warn, Label: tx("label.pollClosing", nil),
+				Title:  tx("polls.closes", A{"closes": b.day(*p.ClosesAt), "sends": b.day(start)}),
+				Detail: tx("polls.closesDetail", A{"days": 7, "until": b.day(start.Add(7 * 24 * time.Hour))}),
+				Ack:    tx("polls.closesAck", nil),
+				Fixes: []fix{apply(FixPollCloseDays, tx("fix.closeAfter", A{"days": 7}), "", map[string]string{"poll": p.ID, "days": "7"}),
+					link(tx("fix.showPoll", nil), b.editor(p.Path, "settings"))}})
 		}
 	}
 	for _, sv := range pf.Surveys {
+		open := link(tx("fix.openSurvey", nil), b.href("/forms/surveys/"+sv.ID))
 		switch {
 		case sv.Status == polls.SurveyDraft:
-			b.add(ReadinessCheck{Key: "content.survey." + sv.ID, Group: GroupContent, Status: Warn, Label: "Survey",
-				Title: fmt.Sprintf("The survey “%s” isn't published", sv.Name), Detail: "Its link opens a page that doesn't take answers until the survey is published.",
-				Ack: fmt.Sprintf("I understand the survey “%s” isn't published.", sv.Name), Fixes: []ReadinessFix{link("Open the survey", b.href("/forms/surveys/"+sv.ID))}})
+			b.add(check{Key: "content.survey." + sv.ID, Group: GroupContent, Status: Warn, Label: tx("label.survey", nil),
+				Title: tx("polls.surveyDraft", A{"name": sv.Name}), Detail: tx("polls.surveyDraftDetail", nil),
+				Ack: tx("polls.surveyDraftAck", A{"name": sv.Name}), Fixes: []fix{open}})
 		case sv.Status == polls.SurveyClosed || (sv.ClosesAt != nil && !sv.ClosesAt.After(start)):
-			b.add(ReadinessCheck{Key: "content.survey." + sv.ID, Group: GroupContent, Status: Warn, Label: "Survey",
-				Title: fmt.Sprintf("The survey “%s” closes before this campaign sends", sv.Name), Detail: "Its page would take no answers. Reopen it with a later closing date.",
-				Ack: fmt.Sprintf("I understand the survey “%s” takes no answers.", sv.Name), Fixes: []ReadinessFix{link("Open the survey", b.href("/forms/surveys/"+sv.ID))}})
+			b.add(check{Key: "content.survey." + sv.ID, Group: GroupContent, Status: Warn, Label: tx("label.survey", nil),
+				Title: tx("polls.surveyCloses", A{"name": sv.Name}), Detail: tx("polls.surveyClosesDetail", nil),
+				Ack: tx("polls.surveyClosesAck", A{"name": sv.Name}), Fixes: []fix{open}})
 		}
 	}
 	if pf.Domain != "" && pf.DomainStatus != "verified" && len(pf.Polls)+len(pf.Surveys) > 0 {
-		detail := pf.Domain + " isn't verified yet."
+		detail := tx("polls.domainUnverified", A{"domain": pf.Domain})
 		if d := strings.TrimSpace(pf.DomainDetail); d != "" {
-			detail = pf.Domain + ": " + strings.TrimSuffix(d, ".") + "."
+			// The domain check's own words.
+			detail = tx("polls.domainDetail", A{"domain": pf.Domain, "detail": strings.TrimSuffix(d, ".")})
 		}
-		instance := firstNonEmpty(pf.Instance, "the instance's address")
-		b.add(ReadinessCheck{Key: "content.poll.domain", Group: GroupContent, Status: Warn, Label: "Answer page domain",
-			Title:  "The publisher domain isn't verified, so answer links use " + instance,
-			Detail: detail + " Answers still work, but the links point at the instance's own address, which readers may not recognise.",
-			Ack:    "I understand answer links use " + instance + ".",
-			Fixes:  []ReadinessFix{link("Verify "+pf.Domain, b.href("/forms/branding"))}})
+		var instance any = pf.Instance
+		if pf.Instance == "" {
+			instance = tx("polls.instanceAddress", nil)
+		}
+		b.add(check{Key: "content.poll.domain", Group: GroupContent, Status: Warn, Label: tx("label.answerDomain", nil),
+			Title:  tx("polls.domain", A{"instance": instance}),
+			Detail: sentences(detail, tx("polls.domainStillWorks", nil)),
+			Ack:    tx("polls.domainAck", A{"instance": instance}),
+			Fixes:  []fix{link(tx("fix.verify", A{"domain": pf.Domain}), b.href("/forms/branding"))}})
 	}
 	if len(pf.Polls) > 0 {
-		b.add(ReadinessCheck{Key: "content.poll.tracking", Group: GroupContent, Status: Pass, Label: "Poll links",
-			Title:  "Poll links aren't tracked as clicks",
-			Detail: "The report counts answers from the answer page, and shows the poll as one region of the click map.", Short: "poll links untracked"})
+		b.add(check{Key: "content.poll.tracking", Group: GroupContent, Status: Pass, Label: tx("label.pollLinks", nil),
+			Title:  tx("polls.untracked", nil),
+			Detail: tx("polls.untrackedDetail", nil), Short: tx("polls.untrackedShort", nil)})
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/publicurl"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -154,7 +156,8 @@ func (s *Service) Run(ctx context.Context, ws *store.Workspace, id uuid.UUID, o 
 		if g == GroupConditional && s.Conditional == nil {
 			continue
 		}
-		groups = append(groups, ReadinessProgressGroup{Key: g, Title: groupTitles[g], Status: "queued", Text: RunningText(g)})
+		t := &progressTexts{Title: groupTitle(g), Text: runningText(g)}
+		groups = append(groups, ReadinessProgressGroup{Key: g, Title: t.Title.en(), Status: "queued", Text: t.Text.en(), texts: t})
 	}
 	groups[0].Status = "running"
 	gb, _ := json.Marshal(groups)
@@ -171,7 +174,9 @@ func (s *Service) Run(ctx context.Context, ws *store.Workspace, id uuid.UUID, o 
 		_ = s.Q.ReadinessEndProgress(context.WithoutCancel(ctx), store.ReadinessEndProgressParams{CampaignID: id, RunID: runID})
 	}()
 	fingerprint := s.CurrentFingerprint(ctx, ws, c)
-	facts, err := s.gather(ctx, ws, c, func(st stage, f Facts) { s.progress(ctx, id, runID, groups, st, f) })
+	// A run is stored for everyone: what other domains tell it is in
+	// English, whoever started it; its texts keep their messages.
+	facts, err := s.gather(i18n.WithLang(ctx, i18n.Default), ws, c, func(st stage, f Facts) { s.progress(ctx, id, runID, groups, st, f) })
 	if err != nil {
 		return ReadinessRun{}, err
 	}
@@ -218,7 +223,15 @@ func (s *Service) progress(ctx context.Context, id, runID uuid.UUID, groups []Re
 		}
 		switch {
 		case doneGroups[g.Key] && ok:
-			g.Status, g.Text, g.Done = rg.Status, firstNonEmpty(rg.Summary, rg.Caption), rg.Total
+			g.Status, g.Done = rg.Status, rg.Total
+			gt := rg.texts
+			if gt == nil {
+				gt = &groupTexts{}
+			}
+			g.setText(rg.Summary, gt.Summary)
+			if strings.TrimSpace(rg.Summary) == "" {
+				g.setText(rg.Caption, gt.Caption)
+			}
 			done += rg.Total
 		case doneGroups[g.Key] && st != stagePrepare:
 			// A group with nothing to check (Languages for an email in one
@@ -227,12 +240,12 @@ func (s *Service) progress(ctx context.Context, id, runID uuid.UUID, groups []Re
 		case !running:
 			g.Status, running = "running", true
 			if ok {
-				g.Text = rg.Running
+				g.setText(rg.Running, runningOf(rg))
 			}
 		default:
 			g.Status = "queued"
 			if ok {
-				g.Text = rg.Running
+				g.setText(rg.Running, runningOf(rg))
 			}
 		}
 		shown = append(shown, *g)
@@ -296,9 +309,19 @@ func (s *Service) store(ctx context.Context, ws *store.Workspace, c store.Readin
 	})
 }
 
+// resultTexts are the messages of a result's own texts.
+type resultTexts struct {
+	Problem Text `json:"problem,omitempty"`
+}
+
 // EncodeResult is the stored form of a result: readiness_runs.checks
-// (verdict, counts, groups and checks) and readiness_runs.estimates.
+// (verdict, counts, groups and checks) and readiness_runs.estimates, with
+// the messages their texts are written from.
 func EncodeResult(res ReadinessResult) (checks, estimates json.RawMessage, err error) {
+	var texts *resultTexts
+	if !res.problem.Empty() {
+		texts = &resultTexts{Problem: res.problem}
+	}
 	checks, err = json.Marshal(struct {
 		Verdict    string           `json:"verdict"`
 		Counts     ReadinessCounts  `json:"counts"`
@@ -306,7 +329,8 @@ func EncodeResult(res ReadinessResult) (checks, estimates json.RawMessage, err e
 		Checks     []ReadinessCheck `json:"checks"`
 		Incomplete bool             `json:"incomplete"`
 		Problem    string           `json:"problem,omitempty"`
-	}{res.Verdict, res.Counts, res.Groups, res.Checks, res.Incomplete, res.Problem})
+		I18n       *resultTexts     `json:"i18n,omitempty"`
+	}{res.Verdict, res.Counts, res.Groups, res.Checks, res.Incomplete, res.Problem, texts})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -352,6 +376,12 @@ func decodeRun(id, campaign uuid.UUID, trigger, verdict string, checks, estimate
 	run := ReadinessRun{ID: id.String(), CampaignID: campaign.String(), Trigger: trigger, RanAt: ranAt, DurationMs: int(ms), Version: int(version),
 		Fingerprint: fingerprint, UnknownAcceptedAt: accepted, RanBy: ranBy, UnknownAcceptedBy: acceptedBy}
 	_ = json.Unmarshal(checks, &run.ReadinessResult)
+	var texts struct {
+		I18n *resultTexts `json:"i18n"`
+	}
+	if json.Unmarshal(checks, &texts) == nil && texts.I18n != nil {
+		run.problem = texts.I18n.Problem
+	}
 	_ = json.Unmarshal(estimates, &run.Estimates)
 	run.Verdict = verdict
 	if run.Checks == nil {
@@ -378,6 +408,20 @@ func normalizeEstimates(e *ReadinessEstimates) {
 	}
 	if e.Route.Shares == nil {
 		e.Route.Shares = []ReadinessRouteShare{}
+	}
+	for i, sh := range e.Route.Shares {
+		if sh.Pricing == "" {
+			// Runs stored before the model was: their price label says it,
+			// in English.
+			switch sh.PriceLabel {
+			case "self-hosted":
+				e.Route.Shares[i].Pricing = "self_hosted"
+			case "plan":
+				e.Route.Shares[i].Pricing = "plan"
+			default:
+				e.Route.Shares[i].Pricing = "metered"
+			}
+		}
 	}
 	if e.Throttling == nil {
 		e.Throttling = []ReadinessThrottle{}
@@ -419,7 +463,7 @@ func (s *Service) AcceptUnknown(ctx context.Context, ws *store.Workspace, p *aut
 		return ReadinessRun{}, err
 	}
 	if latest == nil || latest.ID != runID.String() {
-		return ReadinessRun{}, api.Conflict("The checks ran again since you looked. Review the new results.")
+		return ReadinessRun{}, api.Conflict(say(ctx, "problem.ranAgain", nil))
 	}
 	if !latest.Incomplete {
 		return *latest, nil
@@ -457,6 +501,23 @@ func (s *Service) mustLatest(ctx context.Context, id uuid.UUID) (ReadinessRun, e
 }
 
 // runningProblem is the 409 for a second run while one is in progress.
-func runningProblem() error {
-	return api.Err(http.StatusConflict, "readiness_running", "Send Readiness is already running for this campaign. The results appear here when it finishes.")
+func runningProblem(ctx context.Context) error {
+	return api.Err(http.StatusConflict, "readiness_running", say(ctx, "problem.running", nil))
+}
+
+// runningOf is the message of what a group shows while it runs.
+func runningOf(g ReadinessGroup) Text {
+	if g.texts == nil {
+		return nil
+	}
+	return g.texts.Running
+}
+
+// setText sets a group in progress's text and the message it's written from.
+func (g *ReadinessProgressGroup) setText(s string, t Text) {
+	g.Text = s
+	if g.texts == nil {
+		g.texts = &progressTexts{}
+	}
+	g.texts.Text = t
 }

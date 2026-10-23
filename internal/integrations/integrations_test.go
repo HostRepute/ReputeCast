@@ -847,13 +847,19 @@ func TestWordPressSiteAPI(t *testing.T) {
 	}
 	var forms struct {
 		Items []struct {
-			ID, Shortcode string
-			SiteAllowed   bool
+			ID, Shortcode, Kind string
+			SiteAllowed         bool
 		}
 	}
 	call(t, env, site.Secret, "GET", ws+"/wordpress/forms", nil, nil).MustStatus(t, 200).JSON(t, &forms)
 	// The demo's three signup forms and the three its pages use: the lead
 	// magnet, the webinar and the Launch Kit waitlist (seed_pages_products.go).
+	// Its push prompts aren't signup forms a site can embed.
+	for _, f := range forms.Items {
+		if f.Kind == "push" {
+			t.Errorf("WordPress lists the push prompt %s", f.ID)
+		}
+	}
 	if len(forms.Items) != 6 || forms.Items[0].ID != "frm_8c2e1a" || forms.Items[0].SiteAllowed || forms.Items[0].Shortcode != `[reputecast_form id="frm_8c2e1a"]` {
 		t.Errorf("forms: %+v", forms.Items)
 	}

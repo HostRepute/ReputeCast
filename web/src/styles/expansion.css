@@ -60,6 +60,38 @@
   flex-basis: 320px;
 }
 
+/* A Send Readiness group's caption ("14 liên kết trong mỗi phiên bản ·
+   kiểm tra lúc 09:40") moves under its title instead of squeezing it onto
+   two lines on phones, as StressReviewVi and StressReviewPseudo draw it. */
+:root:not([lang='en']) .rv-grp {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
+/* Rule 1: the route breakdown's costs and durations ("2,84 US$", "34
+   phút") keep to one line on phones, apart from each other; the provider's
+   price and rate wrap instead. */
+:root:not([lang='en']) .rv-tbl td.n {
+  white-space: nowrap;
+  padding-left: 12px;
+}
+
+/* An unfinished run's rows keep their note ("hết thời gian chờ") on one
+   line; the finding wraps instead. */
+:root:not([lang='en']) .rv-line > .k {
+  white-space: nowrap;
+}
+
+/* Rule 1 on the approval page: on phones the Send Readiness table's
+   evidence keeps a readable width when its check names run longer than in
+   English; the table scrolls sideways to the fixes, as it does in English. */
+@media (max-width: 767px) {
+  :root:not([lang='en']) section[aria-labelledby='ap-readiness'] td:nth-child(2) {
+    width: 104px;
+    min-width: 104px;
+  }
+}
+
 /* Rule 5: badges don't wrap, on phones too (where English lets a phone-wrap
    table's badges wrap); the cell wraps around them. */
 :root:not([lang='en']) .tbl td .badge,

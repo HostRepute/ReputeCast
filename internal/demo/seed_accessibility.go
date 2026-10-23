@@ -234,7 +234,7 @@ func seedDigest143(ctx context.Context, s *Seeder) error {
 	f := r.baseFacts(checked)
 	f.Campaign = readiness.CampaignFacts{ID: id.String(), Name: "Weekly Digest #143", Subject: digest143Subject, Preheader: digest143Preheader, Version: int(version),
 		CompiledAt: &compiled, SenderName: "Acme Newsletter", SenderEmail: "digest@news.acme.io", SenderDomain: "news.acme.io", StartAt: sched, ScheduleMode: "at"}
-	f.Audience = readiness.AudienceFacts{BaseLabel: "Weekly Digest list", GroupLabel: "Weekly Digest", Lists: []string{"Weekly Digest"}, Base: 31988, Suppressed: 331,
+	f.Audience = readiness.AudienceFacts{BaseLabel: "Weekly Digest list", GroupLabel: "Weekly Digest", BaseKind: readiness.BaseList, BaseName: "Weekly Digest", Lists: []string{"Weekly Digest"}, Base: 31988, Suppressed: 331,
 		Role: 27, Duplicates: 26, Final: 31604, Unengaged: 412, UnengagedDays: 180,
 		Mailboxes: map[string]int64{"gmail": 14538, "outlook": 6637, "yahoo": 2844, "icloud": 2528, "other": 5057}}
 	f.Route = readiness.RouteFacts{Stream: "broadcast", Policy: "pause_and_ask", Shares: []readiness.ShareFacts{r.ses(28444, 90), r.postal(3160, 10)}}

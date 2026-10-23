@@ -94,7 +94,7 @@ func (r placementReadiness) Latest(ctx context.Context, _ *store.Workspace, camp
 	}
 	out := placement.ReadinessSummary{Passed: run.Counts.Passed, Warnings: run.Counts.Warnings, Blocks: run.Counts.Blocks,
 		Blocking: []string{}, Evidence: []string{}}
-	for _, c := range run.Checks {
+	for _, c := range readiness.InChecks(run.Checks, i18n.LangFrom(ctx)) {
 		if c.Status != "block" {
 			continue
 		}

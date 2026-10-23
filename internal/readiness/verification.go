@@ -77,35 +77,37 @@ type VerificationFacts struct {
 }
 
 // checkedDay is a check's day as the board writes it ("14 Oct").
-func (b *builder) checkedDay(t *time.Time) string {
+func (b *builder) checkedDay(t *time.Time) map[string]any {
 	if t == nil {
-		return ""
+		return nil
 	}
-	return t.In(b.loc).Format("2 Jan")
+	return ArgDayMonth(t.In(b.loc))
 }
 
-// reasonWords names risky reasons the way the board lists them.
-func reasonWords(reasons map[string]int64) string {
+// reasonWords names risky reasons the way the board lists them: "600
+// catch-all, 200 disposable and 50 role addresses".
+func reasonWords(reasons map[string]int64) Text {
 	order := []string{"catch_all", "disposable", "role"}
-	words := map[string]string{"catch_all": "catch-all", "disposable": "disposable", "role": "role"}
-	parts := []string{}
+	parts := []any{}
 	for _, k := range order {
 		if n := reasons[k]; n > 0 {
-			parts = append(parts, fmt.Sprintf("%s %s", Count(n), words[k]))
+			parts = append(parts, tx("verification.reason."+k, A{"count": n}))
 		}
 	}
 	other := []string{}
 	for k, n := range reasons {
 		if !slices.Contains(order, k) && n > 0 {
-			other = append(other, fmt.Sprintf("%s %s", Count(n), strings.ReplaceAll(k, "_", " ")))
+			other = append(other, k)
 		}
 	}
 	slices.Sort(other)
-	parts = append(parts, other...)
-	if len(parts) == 0 {
-		return ""
+	for _, k := range other {
+		parts = append(parts, tx("verification.reasonOther", A{"count": reasons[k], "reason": strings.ReplaceAll(k, "_", " ")}))
 	}
-	return JoinAnd(parts) + " addresses"
+	if len(parts) == 0 {
+		return nil
+	}
+	return tx("verification.reasons", A{"reasons": argCapital(ArgAnd(parts))})
 }
 
 func (b *builder) verification() {
@@ -117,25 +119,25 @@ func (b *builder) verification() {
 	final := float64(a.Final)
 	unchecked := v.AtRiskUnchecked + v.SunsetUnchecked
 	if unchecked > 0 && float64(unchecked)/final*100 >= VerifyInactiveShare {
-		c := ReadinessCheck{Key: "audience.verify_inactive", Group: GroupAudience, Status: Warn, Label: "Address checks"}
+		c := check{Key: "audience.verify_inactive", Group: GroupAudience, Status: Warn, Label: tx("label.addressChecks", nil)}
 		switch {
 		case v.AtRiskUnchecked > 0 && v.SunsetUnchecked > 0:
-			c.Title = fmt.Sprintf("%s At risk and Sunset contacts haven't been checked in the last 90 days", Count(unchecked))
+			c.Title = tx("verification.inactiveBoth", A{"count": unchecked})
 		case v.AtRiskUnchecked > 0:
-			c.Title = fmt.Sprintf("%s At risk contacts haven't been checked in the last 90 days", Count(v.AtRiskUnchecked))
+			c.Title = tx("verification.inactiveAtRisk", A{"count": v.AtRiskUnchecked})
 		default:
-			c.Title = fmt.Sprintf("%s Sunset contacts haven't been checked in the last 90 days", Count(v.SunsetUnchecked))
+			c.Title = tx("verification.inactiveSunset", A{"count": v.SunsetUnchecked})
 		}
-		c.FlatTitle = fmt.Sprintf("Audience: %s inactive contacts not checked in 90 days", Count(unchecked))
-		detail := "Old, quiet addresses are where spam traps and dead mailboxes hide."
+		c.FlatTitle = tx("verification.inactiveFlat", A{"count": unchecked})
+		detail := tx("verification.inactiveDetail", nil)
 		switch {
 		case v.SunsetUnchecked == 0 && v.Sunset > 0 && v.SunsetCheckedOn != nil:
-			detail = fmt.Sprintf("The %s Sunset contacts were checked on %s. %s", Count(v.Sunset), b.checkedDay(v.SunsetCheckedOn), detail)
+			detail = sentences(tx("verification.sunsetChecked", A{"count": v.Sunset, "day": b.checkedDay(v.SunsetCheckedOn)}), detail)
 		case v.AtRiskUnchecked == 0 && v.AtRisk > 0 && v.AtRiskCheckedOn != nil:
-			detail = fmt.Sprintf("The %s At risk contacts were checked on %s. %s", Count(v.AtRisk), b.checkedDay(v.AtRiskCheckedOn), detail)
+			detail = sentences(tx("verification.atRiskChecked", A{"count": v.AtRisk, "day": b.checkedDay(v.AtRiskCheckedOn)}), detail)
 		}
 		c.Detail = detail
-		c.Ack = fmt.Sprintf("I understand %s inactive contacts haven't been checked.", Count(unchecked))
+		c.Ack = tx("verification.inactiveAck", A{"count": unchecked})
 		if v.Connected && v.Service != "" {
 			params := map[string]string{"count": fmt.Sprint(unchecked), "service": v.Service, "serviceName": v.ServiceName,
 				"cost": fmt.Sprintf("%.2f", float64(unchecked)*v.Price)}
@@ -145,58 +147,49 @@ func (b *builder) verification() {
 				note += fmt.Sprintf(" · balance %s credits", Count(*v.Balance))
 			}
 			params["note"] = note
-			c.Fixes = []ReadinessFix{apply(FixVerifyAddresses, fmt.Sprintf("Verify %s addresses first", Count(unchecked)), "primary", params)}
+			c.Fixes = []fix{apply(FixVerifyAddresses, tx("fix.verifyFirst", A{"count": unchecked}), "primary", params)}
 		} else {
-			c.Fixes = []ReadinessFix{link("Connect a verification service", b.href("/settings/integrations/verification"))}
+			c.Fixes = []fix{link(tx("fix.connectVerification", nil), b.href("/settings/integrations/verification"))}
 		}
 		b.add(c)
 	}
 	if v.Risky > 0 {
 		share := float64(v.Risky) / final * 100
-		c := ReadinessCheck{Key: "audience.risky", Group: GroupAudience, Status: Pass, Label: "Risky addresses"}
+		c := check{Key: "audience.risky", Group: GroupAudience, Status: Pass, Label: tx("label.riskyAddresses", nil)}
 		words := reasonWords(v.RiskyReasons)
-		on := ""
+		var on any = ""
 		if v.RiskyCheckedOn != nil {
-			on = " by the " + b.checkedDay(v.RiskyCheckedOn) + " check"
+			on = tx("verification.byCheck", A{"day": b.checkedDay(v.RiskyCheckedOn)})
 		}
+		args := A{"reasons": words, "listed": yes(!words.Empty()), "on": on, "dated": yes(v.RiskyCheckedOn != nil)}
+		c.Title = tx("verification.risky", A{"count": v.Risky, "share": ArgPercent1(share)})
 		if share >= VerifyRiskyShare {
 			c.Status = Warn
-			c.Title = fmt.Sprintf("%s risky addresses, %s of the audience", Count(v.Risky), Pct1(share))
-			c.FlatTitle = fmt.Sprintf("Audience: %s risky addresses", Count(v.Risky))
-			if words != "" {
-				c.Detail = fmt.Sprintf("%s, tagged%s. Sending to them is your call.", upperFirst(words), on)
-			} else {
-				c.Detail = fmt.Sprintf("Tagged%s. Sending to them is your call.", on)
-			}
-			c.Ack = fmt.Sprintf("I understand %s risky addresses are included.", Count(v.Risky))
-			c.Fixes = []ReadinessFix{
-				apply(FixExcludeRisky, fmt.Sprintf("Exclude %s risky addresses", Count(v.Risky)), "", map[string]string{"count": fmt.Sprint(v.Risky)}),
-				link("See them", b.href("/audience?check=risky")),
+			c.FlatTitle = tx("verification.riskyFlat", A{"count": v.Risky})
+			c.Detail = tx("verification.riskyDetail", args)
+			c.Ack = tx("verification.riskyAck", A{"count": v.Risky})
+			c.Fixes = []fix{
+				apply(FixExcludeRisky, tx("fix.excludeRisky", A{"count": v.Risky}), "", map[string]string{"count": fmt.Sprint(v.Risky)}),
+				link(tx("fix.seeThem", nil), b.href("/audience?check=risky")),
 			}
 		} else {
-			c.Title = fmt.Sprintf("%s risky addresses, %s of the audience", Count(v.Risky), Pct1(share))
-			c.Detail = fmt.Sprintf("Under 2%%, tagged%s.", on)
-			c.Short = fmt.Sprintf("%s risky", Count(v.Risky))
+			c.Detail = tx("verification.riskyFew", A{"limit": ArgPercent(2), "on": on, "dated": yes(v.RiskyCheckedOn != nil)})
+			c.Short = tx("verification.riskyShort", A{"count": v.Risky})
 		}
 		b.add(c)
 	}
 	if v.InvalidSuppressed > 0 {
-		on := "after a check"
+		var on Text
 		if v.InvalidCheckedOn != nil {
-			on = "after the " + b.checkedDay(v.InvalidCheckedOn) + " check"
+			on = tx("verification.afterTheCheck", A{"day": b.checkedDay(v.InvalidCheckedOn)})
+		} else {
+			on = tx("verification.afterACheck", nil)
 		}
-		b.add(ReadinessCheck{Key: "audience.invalid", Group: GroupAudience, Status: Pass, Label: "Invalid addresses",
-			Title:  fmt.Sprintf("%s invalid %s already suppressed", Count(v.InvalidSuppressed), Plural(v.InvalidSuppressed, "address is", "addresses are")),
-			Detail: fmt.Sprintf("Suppressed for all mail %s; they are left out of the %s at send time", on, Count(a.Base)),
-			Short:  fmt.Sprintf("%s invalid suppressed", Count(v.InvalidSuppressed))})
+		b.add(check{Key: "audience.invalid", Group: GroupAudience, Status: Pass, Label: tx("label.invalidAddresses", nil),
+			Title:  tx("verification.invalid", A{"count": v.InvalidSuppressed}),
+			Detail: tx("verification.invalidDetail", A{"after": on, "base": a.Base}),
+			Short:  tx("verification.invalidShort", A{"count": v.InvalidSuppressed})})
 	}
-}
-
-func upperFirst(s string) string {
-	if s == "" {
-		return s
-	}
-	return strings.ToUpper(s[:1]) + s[1:]
 }
 
 // money2 writes dollars with cents ("$42.42").
@@ -209,7 +202,7 @@ func money2(v float64) string {
 // of them joins the campaign's excluded segments.
 func (s *Service) excludeRisky(ctx context.Context, ws *store.Workspace, p *authz.Principal, c store.ReadinessCampaignRow) (string, error) {
 	if s.Verification == nil {
-		return "", api.Conflict("Address checks aren't available.")
+		return "", api.Conflict(say(ctx, "problem.noAddressChecks", nil))
 	}
 	aud, recipients, err := s.computeAudience(ctx, s.Q, ws.ID, ParseAudience(c.Audience), sunsetDays(ws.SunsetPolicy), s.now())
 	if err != nil {
@@ -217,7 +210,7 @@ func (s *Service) excludeRisky(ctx context.Context, ws *store.Workspace, p *auth
 	}
 	vf := s.Verification.ReadinessFacts(ctx, ws, c.ID, recipients, aud.SuppressedEmails)
 	if len(vf.RiskyEmails) == 0 {
-		return "No risky addresses to exclude", nil
+		return say(ctx, "applied.noRisky", nil), nil
 	}
 	seg, err := s.Verification.RiskySegment(ctx, ws, c.Name, vf.RiskyEmails)
 	if err != nil {
@@ -229,7 +222,7 @@ func (s *Service) excludeRisky(ctx context.Context, ws *store.Workspace, p *auth
 	}
 	def := ParseAudience(c.Audience)
 	if def.Empty() {
-		return "", api.Invalid("body.fixes", "Pick an audience first.")
+		return "", api.Invalid("body.fixes", say(ctx, "problem.pickAudience", nil))
 	}
 	if !slices.Contains(def.ExcludeSegments, seg.String()) {
 		raw["exclude_segments"] = append(slices.Clone(def.ExcludeSegments), seg.String())
@@ -248,5 +241,5 @@ func (s *Service) excludeRisky(ctx context.Context, ws *store.Workspace, p *auth
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("Excluded %s risky addresses", Count(int64(n))), nil
+	return say(ctx, "applied.excludedRisky", A{"count": n}), nil
 }

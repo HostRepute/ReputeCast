@@ -13,22 +13,26 @@ import (
 // when the referral program is off; "Recommendations block: 2
 // recommendations show", with what is hidden and why.
 
-// GrowRow is one of Grow's Content rows.
+// GrowRow is one of Grow's Content rows. Its texts are kept messages of
+// Grow's catalogs (Kept), so the row reads in each reader's language.
 type GrowRow struct {
 	Key    string
 	Status string // pass or warn
-	Title  string
-	Detail string
-	Label  string
-	Short  string
-	Ack    string
+	Title  Text
+	Detail Text
+	Label  Text
+	Short  Text
+	Ack    Text
 	// Links open the campaign or Grow ("Remove the block", "Referral
 	// settings", "Open recommendations"), as workspace paths.
 	Links []GrowLink
 }
 
 // GrowLink is one of a row's links.
-type GrowLink struct{ Label, Href string }
+type GrowLink struct {
+	Label Text
+	Href  string
+}
 
 // GrowChecker reads what Grow's blocks do in a campaign: the campaign's
 // HTML, its recipients per list and how many there are.
@@ -39,8 +43,8 @@ type GrowChecker interface {
 // grow adds Grow's rows to the Content group.
 func (b *builder) grow() {
 	for _, r := range b.f.Grow {
-		c := ReadinessCheck{Key: r.Key, Group: GroupContent, Status: r.Status, Title: r.Title, Detail: r.Detail, Label: r.Label, Short: r.Short, Ack: r.Ack,
-			Fixes: []ReadinessFix{}}
+		c := check{Key: r.Key, Group: GroupContent, Status: r.Status, Title: r.Title, Detail: r.Detail, Label: r.Label, Short: r.Short, Ack: r.Ack,
+			Fixes: []fix{}}
 		for _, l := range r.Links {
 			c.Fixes = append(c.Fixes, link(l.Label, b.href(l.Href)))
 		}

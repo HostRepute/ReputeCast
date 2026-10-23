@@ -53,15 +53,6 @@ type SponsorChecker interface {
 	FixSponsor(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID, src, action string) (next, applied string, err error)
 }
 
-// possessive is a sponsor's name as an owner: "Northwind Analytics’",
-// "Contoso Cloud’s".
-func possessive(name string) string {
-	if strings.HasSuffix(strings.ToLower(strings.TrimSpace(name)), "s") {
-		return name + "’"
-	}
-	return name + "’s"
-}
-
 // sponsor adds the Sponsor block's checks to the Content group.
 func (b *builder) sponsor() {
 	sf := b.f.Sponsor
@@ -72,48 +63,42 @@ func (b *builder) sponsor() {
 	if sf.BookingID != "" {
 		booking += "?booking=" + sf.BookingID
 	}
-	open := link("Open booking", booking)
-	issue := fmt.Sprintf("#%d", sf.Issue)
+	open := link(tx("fix.openBooking", nil), booking)
+	label := tx("label.sponsorBlock", nil)
+	issue := A{"issue": fmt.Sprint(sf.Issue), "numbered": yes(sf.Issue > 0)}
+	sponsor := A{"sponsor": sf.Sponsor, "endsInS": yes(strings.HasSuffix(strings.ToLower(strings.TrimSpace(sf.Sponsor)), "s"))}
 	switch {
 	case sf.State == sponsorWaiting:
-		detail := "Review & send blocks the issue until it’s ready."
+		detail := tx("sponsor.blocksIssue", nil)
 		if sf.CreativeDue != nil {
-			detail = fmt.Sprintf("Due %s. %s", b.day(*sf.CreativeDue), detail)
+			detail = sentences(tx("sponsor.due", A{"day": b.day(*sf.CreativeDue)}), detail)
 		}
-		b.add(ReadinessCheck{Key: "content.sponsor.creative", Group: GroupContent, Status: Block, Label: "Sponsor block",
-			Title: fmt.Sprintf("Sponsor block: %s creative is missing", possessive(sf.Sponsor)), Detail: detail,
-			Fixes: []ReadinessFix{open, apply(FixSponsorRemove, "Remove the block", "danger", nil)}})
+		b.add(check{Key: "content.sponsor.creative", Group: GroupContent, Status: Block, Label: label,
+			Title: tx("sponsor.missing", sponsor), Detail: detail,
+			Fixes: []fix{open, apply(FixSponsorRemove, tx("fix.removeBlock", nil), "danger", nil)}})
 	case sf.Stale && sf.State == sponsorReady:
-		b.add(ReadinessCheck{Key: "content.sponsor.stale", Group: GroupContent, Status: Block, Label: "Sponsor block",
-			Title:  fmt.Sprintf("Sponsor block: %s creative changed since this email was saved", possessive(sf.Sponsor)),
-			Detail: "Update the block so the issue goes out with the creative as the booking has it now.",
-			Fixes:  []ReadinessFix{apply(FixSponsorRefresh, "Update the block", "primary", nil), open}})
+		b.add(check{Key: "content.sponsor.stale", Group: GroupContent, Status: Block, Label: label,
+			Title:  tx("sponsor.changed", sponsor),
+			Detail: tx("sponsor.changedDetail", nil),
+			Fixes:  []fix{apply(FixSponsorRefresh, tx("fix.updateBlock", nil), "primary", nil), open}})
 	case sf.Stale:
-		title := "Sponsor block: no sponsor is booked for this email any more"
-		if sf.Issue > 0 {
-			title = fmt.Sprintf("Sponsor block: no sponsor is booked for %s any more", issue)
-		}
-		b.add(ReadinessCheck{Key: "content.sponsor.stale", Group: GroupContent, Status: Block, Label: "Sponsor block",
-			Title:  title,
-			Detail: "The block still holds an earlier booking's creative. Update it and the email leaves the block out.",
-			Fixes:  []ReadinessFix{apply(FixSponsorRefresh, "Update the block", "primary", nil), apply(FixSponsorRemove, "Remove the block", "danger", nil)}})
+		b.add(check{Key: "content.sponsor.stale", Group: GroupContent, Status: Block, Label: label,
+			Title:  tx("sponsor.noLonger", issue),
+			Detail: tx("sponsor.noLongerDetail", nil),
+			Fixes:  []fix{apply(FixSponsorRefresh, tx("fix.updateBlock", nil), "primary", nil), apply(FixSponsorRemove, tx("fix.removeBlock", nil), "danger", nil)}})
 	case sf.State == sponsorNone:
-		title := "Sponsor block: no sponsor is booked for this email, so the block is left out"
-		if sf.Issue > 0 {
-			title = fmt.Sprintf("Sponsor block: no sponsor is booked for %s, so the block is left out", issue)
-		}
-		b.add(ReadinessCheck{Key: "content.sponsor.none", Group: GroupContent, Status: Pass, Label: "Sponsor block", Title: title, Short: "Sponsor block left out"})
+		b.add(check{Key: "content.sponsor.none", Group: GroupContent, Status: Pass, Label: label, Title: tx("sponsor.leftOut", issue), Short: tx("sponsor.leftOutShort", nil)})
 	}
 	if sf.State == sponsorNone {
 		return
 	}
 	if sf.Labelled {
-		b.add(ReadinessCheck{Key: "content.sponsor.label", Group: GroupContent, Status: Pass, Label: "Sponsored label",
-			Title: "Sponsored content is labelled", Short: "sponsored content labelled"})
+		b.add(check{Key: "content.sponsor.label", Group: GroupContent, Status: Pass, Label: tx("label.sponsoredLabel", nil),
+			Title: tx("sponsor.labelled", nil), Short: tx("sponsor.labelledShort", nil)})
 		return
 	}
-	b.add(ReadinessCheck{Key: "content.sponsor.label", Group: GroupContent, Status: Block, Label: "Sponsored label",
-		Title:  "Sponsored content isn’t labelled",
-		Detail: "The Sponsor block always says “Sponsored”. Update the block to put the label back.",
-		Fixes:  []ReadinessFix{apply(FixSponsorRefresh, "Update the block", "primary", nil)}})
+	b.add(check{Key: "content.sponsor.label", Group: GroupContent, Status: Block, Label: tx("label.sponsoredLabel", nil),
+		Title:  tx("sponsor.unlabelled", nil),
+		Detail: tx("sponsor.unlabelledDetail", nil),
+		Fixes:  []fix{apply(FixSponsorRefresh, tx("fix.updateBlock", nil), "primary", nil)}})
 }

@@ -1,9 +1,6 @@
 package readiness
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/hostrepute/reputecast/internal/paidaccess"
 )
 
@@ -53,36 +50,33 @@ func (b *builder) paidAudience() {
 	if p == nil || a.Empty {
 		return
 	}
-	c := ReadinessCheck{Key: "audience.paid", Group: GroupAudience, Status: Pass, Label: "Paid access"}
-	recipients := Count(a.Final) + " " + Plural(a.Final, "recipient", "recipients")
+	c := check{Key: "audience.paid", Group: GroupAudience, Status: Pass, Label: tx("label.paidAccess", nil)}
+	group := b.groupLabel()
 	if p.Who == paidaccess.Free {
-		c.Title = fmt.Sprintf("%s · free subscribers only: %s", a.GroupLabel, recipients)
-		c.Detail = "Paid members are left out, with trials, complimentary and gift access. Test paid members never count."
-		c.Short = "free subscribers only"
+		c.Title = tx("paid.title", A{"group": group, "who": tx("paid.free", nil), "count": a.Final})
+		c.Detail = tx("paid.freeDetail", nil)
+		c.Short = tx("paid.free", nil)
 		b.add(c)
 		return
 	}
-	who := "paid members only"
+	who := tx("paid.members", nil)
 	switch {
 	case p.Tier != "" && p.TierTop:
-		who = p.Tier + " members only"
+		who = tx("paid.tierOnly", A{"tier": p.Tier})
 	case p.Tier != "":
-		who = p.Tier + " and above"
+		who = tx("paid.tierAndAbove", A{"tier": p.Tier})
 	}
-	c.Title = fmt.Sprintf("%s · %s: %s", a.GroupLabel, who, recipients)
+	c.Title = tx("paid.title", A{"group": group, "who": who, "count": a.Final})
 	c.Short = who
-	var parts []string
-	if p.Trialing+p.Complimentary+p.Gift > 0 || p.PastDue == 0 {
-		parts = append(parts, "Trials, complimentary and gift access are included")
+	access := p.Trialing+p.Complimentary+p.Gift > 0 || p.PastDue == 0
+	switch {
+	case access && p.PastDue > 0:
+		c.Detail = tx("paid.includedPastDue", A{"count": p.PastDue})
+	case access:
+		c.Detail = tx("paid.included", nil)
+	default:
+		c.Detail = tx("paid.pastDue", A{"count": p.PastDue})
 	}
-	if p.PastDue > 0 {
-		pd := fmt.Sprintf("%s paid %s whose payment failed while Stripe retries", Count(p.PastDue), Plural(p.PastDue, "member", "members"))
-		if len(parts) > 0 {
-			parts[0] += ", and " + pd
-		} else {
-			parts = append(parts, strings.ToUpper(pd[:1])+pd[1:]+" are included")
-		}
-	}
-	c.Detail = strings.Join(parts, "") + ". Test paid members never count."
+	c.Detail = sentences(c.Detail, tx("paid.testMembers", nil))
 	b.add(c)
 }
