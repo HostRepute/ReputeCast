@@ -104,6 +104,53 @@ func TestRunsReadInEachReadersLanguage(t *testing.T) {
 		t.Errorf("run in Vietnamese: %+v", viRun.Groups)
 	}
 
+	// The approval page reads the request's checks and its providers'
+	// status in the reader's language, from the snapshot's English.
+	var inbox struct{ Items []struct{ ID, Name string } }
+	en.Do("GET", ws+"/approvals?status=pending", nil).MustStatus(t, 200).JSON(t, &inbox)
+	var reqID string
+	for _, it := range inbox.Items {
+		if it.Name == "November Product Update" {
+			reqID = it.ID
+		}
+	}
+	if reqID == "" {
+		t.Fatalf("no request for November: %+v", inbox.Items)
+	}
+	type approval struct {
+		Readiness struct{ Issues []readiness.ReadinessCheck }
+		Route     struct {
+			SplitLabel string
+			Shares     []struct{ Status, StatusLabel string }
+		}
+	}
+	var viReq, enReq approval
+	vi.Do("GET", ws+"/approvals/"+reqID, nil).MustStatus(t, 200).JSON(t, &viReq)
+	en.Do("GET", ws+"/approvals/"+reqID, nil).MustStatus(t, 200).JSON(t, &enReq)
+	if len(viReq.Readiness.Issues) == 0 || len(viReq.Readiness.Issues) != len(enReq.Readiness.Issues) {
+		t.Fatalf("issues: %+v %+v", viReq.Readiness.Issues, enReq.Readiness.Issues)
+	}
+	for i, c := range enReq.Readiness.Issues {
+		if v := viReq.Readiness.Issues[i]; v.Key != c.Key || v.Title == c.Title {
+			t.Errorf("issue %s in Vietnamese: %q, in English %q", c.Key, v.Title, c.Title)
+		}
+	}
+	if enReq.Route.SplitLabel != "Broadcasts 90 / 10" || viReq.Route.SplitLabel != "Gửi hàng loạt 90 / 10" {
+		t.Errorf("split: %q, in Vietnamese %q", enReq.Route.SplitLabel, viReq.Route.SplitLabel)
+	}
+	warming := 0
+	for i, s := range enReq.Route.Shares {
+		if s.Status == "warming_up" {
+			warming++
+			if v := viReq.Route.Shares[i].StatusLabel; !strings.HasPrefix(s.StatusLabel, "Warming up · day ") || !strings.HasPrefix(v, "Đang khởi động · ngày ") {
+				t.Errorf("warming up: %q, in Vietnamese %q", s.StatusLabel, v)
+			}
+		}
+	}
+	if warming == 0 {
+		t.Errorf("no warming-up provider: %+v", enReq.Route.Shares)
+	}
+
 	// MCP agents read the stored run in English, without kept messages.
 	var agent struct{ Secret string }
 	en.Do("POST", ws+"/mcp-agents", map[string]any{"name": "Reader", "permissions": []string{"campaigns:view"}}).MustStatus(t, 201).JSON(t, &agent)

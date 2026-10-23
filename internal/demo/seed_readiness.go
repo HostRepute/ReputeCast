@@ -512,9 +512,10 @@ func (r *readinessSeed) november(ctx context.Context) error {
 func (r *readinessSeed) snapshotRun(snap *approvals.Snapshot, res readiness.ReadinessResult, runID uuid.UUID, ranAt time.Time) {
 	e := res.Estimates
 	snap.Minutes, snap.Cost = e.Route.TotalMinutes, e.Route.TotalCost
-	for _, sh := range e.Route.Shares {
+	for i, sh := range e.Route.Shares {
 		snap.Route = append(snap.Route, approvals.SnapshotShare{ProviderID: sh.ProviderID, Name: sh.Name, Short: sh.Short, Label: sh.Label, Adapter: sh.Adapter, Percent: sh.Percent,
-			Recipients: sh.Recipients, Cost: sh.Cost, PriceLabel: sh.PriceLabel, Status: sh.Status, StatusLabel: sh.StatusLabel, WarmupDay: sh.WarmupDay, WarmupDays: sh.WarmupDays})
+			Recipients: sh.Recipients, Cost: sh.Cost, PriceLabel: sh.PriceLabel, Status: sh.Status, StatusLabel: sh.StatusLabel, WarmupDay: sh.WarmupDay, WarmupDays: sh.WarmupDays,
+			StatusText: e.ShareStatus(i)})
 	}
 	snap.Readiness = approvals.SnapshotReadiness{RunID: runID.String(), Verdict: res.Verdict, Passed: res.Counts.Passed, Warnings: res.Counts.Warnings, Blocks: res.Counts.Blocks,
 		Total: res.Counts.Total, RanAt: ranAt, Issues: []readiness.ReadinessCheck{}}
@@ -584,7 +585,9 @@ func (r *readinessSeed) history(ctx context.Context) error {
 		return share(ses, "Amazon SES", "SES", "ses", n, pct, float64(n)/10000, "$0.10 per 1,000", "healthy", "Healthy")
 	}
 	postalShare := func(n int64, pct float64, day int) approvals.SnapshotShare {
-		return share(postal, "Postal", "Postal", "postal", n, pct, 0, "self-hosted", "warming_up", fmt.Sprintf("Warming up · day %d of 21", day))
+		sh := share(postal, "Postal", "Postal", "postal", n, pct, 0, "self-hosted", "warming_up", fmt.Sprintf("Warming up · day %d of 21", day))
+		sh.WarmupDay, sh.WarmupDays = day, 21
+		return sh
 	}
 	audienceRule := approvals.ApprovalRuleMatch{Key: approvals.RuleAudienceMin, Short: "audience ≥ 10,000", Badge: "audience ≥ 10,000"}
 	warmingRule := approvals.ApprovalRuleMatch{Key: approvals.RuleWarmingProvider, Short: "warming-up provider", Badge: "Warming-up provider"}

@@ -107,6 +107,50 @@ func TestOldRunsReadInEnglish(t *testing.T) {
 	}
 }
 
+// An approval's snapshot copies a provider's status label and the route's
+// split: they read in each reader's language from the message the run kept,
+// or from what the snapshot copied when it says the same in English.
+func TestCopiedRouteLabels(t *testing.T) {
+	back := stored(t, readiness.Assemble(digest()))
+	vi := i18n.For(i18n.Vietnamese)
+	i := len(back.Estimates.Route.Shares) - 1
+	s := back.Estimates.Route.Shares[i]
+	if s.Status != "warming_up" || s.StatusLabel != "Warming up · day 9 of 21" {
+		t.Fatalf("share: %+v", s)
+	}
+	kept := back.Estimates.ShareStatus(i)
+	if got := readiness.ShareStatusIn(s.StatusLabel, kept, s.Status, 0, 0, vi); got != "Đang khởi động · ngày 9/21" {
+		t.Errorf("kept, in Vietnamese: %q", got)
+	}
+	if got := readiness.ShareStatusIn(s.StatusLabel, kept, s.Status, 0, 0, i18n.Default); got != s.StatusLabel {
+		t.Errorf("kept, in English: %q", got)
+	}
+	for _, c := range []struct {
+		english, status string
+		day, days       int
+		want            string
+	}{
+		{"Warming up · day 9 of 21", "warming_up", 9, 21, "Đang khởi động · ngày 9/21"},
+		{"Warming up", "warming_up", 0, 0, "Đang khởi động"},
+		{"Healthy", "healthy", 0, 0, "Ổn định"},
+		// Nothing says when it went down: the copy stays as it is.
+		{"Down since 08:52", "down", 0, 0, "Down since 08:52"},
+		{"Warming up · day 3 of 21", "warming_up", 9, 21, "Warming up · day 3 of 21"},
+	} {
+		if got := readiness.ShareStatusIn(c.english, nil, c.status, c.day, c.days, vi); got != c.want {
+			t.Errorf("%q: %q, want %q", c.english, got, c.want)
+		}
+	}
+	for english, want := range map[string]string{"Broadcasts 90 / 10": "Gửi hàng loạt 90 / 10", "Broadcasts": "Gửi hàng loạt", "SES 100": "SES 100"} {
+		if got := readiness.SplitLabelIn(english, vi); got != want {
+			t.Errorf("split %q: %q, want %q", english, got, want)
+		}
+		if got := readiness.SplitLabelIn(english, i18n.Default); got != english {
+			t.Errorf("split %q in English: %q", english, got)
+		}
+	}
+}
+
 // MCP agents read the stored run without the kept messages, everything
 // else as it was.
 func TestWithoutTexts(t *testing.T) {

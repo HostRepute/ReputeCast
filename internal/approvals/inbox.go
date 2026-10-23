@@ -441,7 +441,7 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		}
 		rd := snap.Readiness
 		out.Readiness = &ApprovalReadinessView{Verdict: firstNonEmptyStr(rd.Verdict, readiness.VerdictReady), Passed: rd.Passed, Warnings: rd.Warnings, Blocks: rd.Blocks,
-			Total: rd.Total, CheckedAt: rd.RanAt, Issues: readiness.InChecks(rd.Issues, i18n.LangFrom(ctx))}
+			Total: rd.Total, CheckedAt: rd.RanAt, Issues: rd.Issues}
 		excluded := []string{readiness.Count(snap.Suppressed) + " suppressed"}
 		excluded = append(excluded, "0 bounced in 30 days")
 		if snap.Bounced > 0 {
@@ -459,14 +459,17 @@ func (s *Service) Detail(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			}
 		}
 		out.Audience = aud
-		rv := &ApprovalRouteView{SplitLabel: snap.SplitLabel, Shares: []ApprovalShare{}}
+		rv := &ApprovalRouteView{SplitLabel: readiness.SplitLabelIn(snap.SplitLabel, i18n.LangFrom(ctx)), Shares: []ApprovalShare{}}
 		for _, sh := range snap.Route {
 			if sh.Recipients == 0 && len(snap.Route) > 1 {
 				continue
 			}
 			rv.Shares = append(rv.Shares, ApprovalShare{ProviderID: sh.ProviderID, Name: sh.Name, Short: sh.Short, Label: sh.Label, Color: state.Color(sh.Adapter),
-				Recipients: sh.Recipients, Cost: sh.Cost, PriceLabel: sh.PriceLabel, Status: sh.Status, StatusLabel: sh.StatusLabel})
+				Recipients: sh.Recipients, Cost: sh.Cost, PriceLabel: sh.PriceLabel, Status: sh.Status,
+				StatusLabel: readiness.ShareStatusIn(sh.StatusLabel, sh.StatusText, sh.Status, sh.WarmupDay, sh.WarmupDays, i18n.LangFrom(ctx))})
 		}
+		// The checks the request was made on read in the reader's language.
+		out.Readiness.Issues = readiness.InChecks(out.Readiness.Issues, i18n.LangFrom(ctx))
 		out.Route = rv
 		sv := readiness.ScheduleView(snap.Schedule, ws.Timezone)
 		out.Schedule = &ApprovalScheduleView{Mode: sv.Mode, At: sv.At, Timezone: sv.Timezone, Minutes: snap.Minutes,

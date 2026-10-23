@@ -6,8 +6,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"strings"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/providers/state"
 )
 
 // A run keeps its texts' messages in "i18n" members next to the English it
@@ -346,6 +348,52 @@ func (p ReadinessProgress) In(l i18n.Lang) ReadinessProgress {
 		}
 	}
 	return out
+}
+
+// ShareStatus is the kept message of the status label of the route's i-th
+// provider, for a reader that copies the label (an approval's snapshot);
+// nothing when the run kept none.
+func (e ReadinessEstimates) ShareStatus(i int) Text {
+	if e.texts == nil || i < 0 || i >= len(e.texts.Shares) {
+		return nil
+	}
+	return e.texts.Shares[i].Status
+}
+
+// ShareStatusIn is a copied status label of a route's provider in a
+// reader's language: from its kept message, or from its status and warm-up
+// day when they say what the copied English says. Any other label stays as
+// it was copied.
+func ShareStatusIn(english string, kept Text, status string, day, days int, l i18n.Lang) string {
+	if asStored(l) {
+		return english
+	}
+	if !kept.Empty() {
+		return pick(english, kept, l)
+	}
+	said := []Text{statusText(status)}
+	if status == state.WarmingUp && days > 0 {
+		said = append(said, tx("share.warmingUp", A{"day": day, "days": days}))
+	}
+	for _, t := range said {
+		if t.en() == english {
+			return t.In(l)
+		}
+	}
+	return english
+}
+
+// SplitLabelIn is a copied split label of the Broadcasts route ("Broadcasts
+// 90 / 10", as Route writes it for an approval's snapshot) in a reader's
+// language. Any other label stays as it was copied.
+func SplitLabelIn(english string, l i18n.Lang) string {
+	if asStored(l) {
+		return english
+	}
+	if t := broadcastSplit(strings.TrimSpace(strings.TrimPrefix(english, "Broadcasts"))); t.en() == english {
+		return t.In(l)
+	}
+	return english
 }
 
 // ForReader is a run in the request's language (nil stays nil).
