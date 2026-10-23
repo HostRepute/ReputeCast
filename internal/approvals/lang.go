@@ -250,7 +250,7 @@ func fieldList(l i18n.Lang, keys []string) string {
 	out := make([]string, 0, len(keys))
 	for _, k := range keys {
 		if code, ok := strings.CutPrefix(k, "lang:"); ok {
-			out = append(out, mFieldLanguage.Text(l, i18n.Args{"language": languages.NameInSentence(l, code)}))
+			out = append(out, mFieldLanguage.Text(l, i18n.Args{"language": languages.NameIn(l, code)}))
 			continue
 		}
 		if name, ok := strings.CutPrefix(k, "language:"); ok {

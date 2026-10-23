@@ -265,8 +265,8 @@ func sayLanguage(l i18n.Lang, code string) string {
 	if l.Locale == i18n.English || l.Locale == i18n.Pseudo {
 		return languages.NameOf(code)
 	}
-	// The names every screen uses ("tiếng Đức" inside a sentence).
-	if n := languages.NameInSentence(l, code); n != "" && n != code {
+	// The names every screen uses; messages write "tiếng" in the case its place needs.
+	if n := languages.NameIn(l, code); n != "" && n != code {
 		return n
 	}
 	return languages.NameOf(code)

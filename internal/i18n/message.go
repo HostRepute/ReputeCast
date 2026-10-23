@@ -17,6 +17,9 @@ type argNode struct {
 	name  string
 	kind  string // "", "number", "date", "time"
 	style string
+	// inSentence is a plain argument that follows other words of its
+	// sentence, in a Vietnamese translation (names.go).
+	inSentence bool
 }
 
 // pluralNode is {name, plural|selectordinal, [offset:n] =0 {…} one {…} other {…}}.
