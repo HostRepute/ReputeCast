@@ -2,7 +2,6 @@ package texting
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"strings"
 	"time"
@@ -164,23 +163,4 @@ func pct(n, d int64) float64 {
 		return 0
 	}
 	return math.Round(float64(n)*1000/float64(d)) / 10
-}
-
-func plural(n int64, one, many string) string {
-	if n == 1 {
-		return fmt.Sprintf("%d %s", n, one)
-	}
-	return fmt.Sprintf("%s %s", count(n), many)
-}
-
-// count writes a count with thousands separators: 48213 → "48,213".
-func count(n int64) string {
-	s := fmt.Sprint(n)
-	if n < 0 {
-		return "-" + count(-n)
-	}
-	for i := len(s) - 3; i > 0; i -= 3 {
-		s = s[:i] + "," + s[i:]
-	}
-	return s
 }
