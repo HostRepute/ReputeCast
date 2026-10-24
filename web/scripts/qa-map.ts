@@ -63,7 +63,7 @@ export const entries: Entry[] = [
   { board: 'LiveMonitorPaused', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live`, widths: [1440, 834] },
   { board: 'LiveMonitorPausedPhone', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live`, widths: [390] },
   { board: 'LiveMonitorOutage', path: `${ws}/campaigns/{campaign:Weekly Digest #142}/live` },
-  // Connecting, stream lost and complete: reproduce by hand (see the README).
+  // Connecting, stream lost and complete: reproduce by hand (see CONTRIBUTING.md).
   { board: 'LiveMonitorStates', manual: true },
   // Marcus Chen signs in with SSO only; Linh is an approver too and sees the same list.
   { board: 'ApprovalInbox', path: `${ws}/approvals` },

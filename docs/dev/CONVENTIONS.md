@@ -288,7 +288,7 @@ node scripts/shot.ts --app http://localhost:52NN --path /w/acme-newsletter/campa
 
 It signs in as the demo Owner, captures the app at each width and the design
 board at the same widths (design server: `http://localhost:8765`, started with
-`python3 -m http.server 8765 -d design/boards`; README › Development says
+`python3 -m http.server 8765 -d design/boards`; CONTRIBUTING.md › Everyday tasks says
 which boards also need the canvas runtime). Open the
 PNGs (Read tool) side by side and fix every difference in layout, spacing,
 type, colour, wrapping, alignment and copy that isn't caused by data. Then
