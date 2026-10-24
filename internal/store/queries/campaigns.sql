@@ -238,23 +238,27 @@ WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS 
 
 -- name: ComposerPreviewContacts :many
 -- Contacts to preview as: the campaign's audience first, people with a first name first.
+-- A member limited to some lists (scope_lists) only finds contacts on them.
 SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier, c.language
 FROM contacts c
 WHERE c.workspace_id = @workspace_id AND c.erased_at IS NULL AND c.status = 'active'
   AND (@query::text = '' OR c.email ILIKE '%' || @query::text || '%' OR (c.first_name || ' ' || c.last_name) ILIKE '%' || @query::text || '%')
   AND (cardinality(@lists::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY(@lists::uuid[]) AND ll.deleted_at IS NULL))))
+  AND (cardinality(@scope_lists::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships sm WHERE sm.contact_id = c.id AND sm.list_id = ANY(@scope_lists::uuid[])))
 ORDER BY (c.first_name = '') ASC, c.last_open_at DESC NULLS LAST, c.email
 LIMIT @lim;
 
 -- name: ComposerPreviewContactByID :one
 SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier, c.language
 FROM contacts c
-WHERE c.workspace_id = @workspace_id AND c.id = @id AND c.erased_at IS NULL;
+WHERE c.workspace_id = @workspace_id AND c.id = @id AND c.erased_at IS NULL
+  AND (cardinality(@scope_lists::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships sm WHERE sm.contact_id = c.id AND sm.list_id = ANY(@scope_lists::uuid[])));
 
 -- name: ComposerRandomContact :one
 SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier, c.language
 FROM contacts c
 WHERE c.workspace_id = @workspace_id AND c.erased_at IS NULL AND c.status = 'active' AND c.tier = 'active'
+  AND (cardinality(@scope_lists::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships sm WHERE sm.contact_id = c.id AND sm.list_id = ANY(@scope_lists::uuid[])))
 ORDER BY random()
 LIMIT 1;
 

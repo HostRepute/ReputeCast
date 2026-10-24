@@ -413,8 +413,18 @@ func audienceLists(raw json.RawMessage) []uuid.UUID {
 	return out
 }
 
-// previewContact picks the contact to personalize for. Without
-// subscribers:view only the synthetic samples are available.
+// scopeLists are the lists a member limited to some is limited to (none:
+// every contact), for the preview queries' scope_lists.
+func scopeLists(p *authz.Principal) []uuid.UUID {
+	if p == nil || len(p.Scope.Lists) == 0 {
+		return []uuid.UUID{}
+	}
+	return p.Scope.Lists
+}
+
+// previewContact picks the contact to personalize for, within the caller's
+// list scope. Without subscribers:view only the synthetic samples are
+// available.
 func (s *Service) previewContact(ctx context.Context, ws *store.Workspace, p *authz.Principal, audience json.RawMessage, in ComposerPreviewRequest) (*ComposerPreviewContact, map[string]any, error) {
 	l := i18n.LangFrom(ctx)
 	if in.Sample == "no_first_name" {
@@ -434,14 +444,14 @@ func (s *Service) previewContact(ctx context.Context, ws *store.Workspace, p *au
 		if perr != nil {
 			return nil, nil, api.NotFound("Contact")
 		}
-		row, err = s.Q.ComposerPreviewContactByID(ctx, store.ComposerPreviewContactByIDParams{WorkspaceID: ws.ID, ID: cid})
+		row, err = s.Q.ComposerPreviewContactByID(ctx, store.ComposerPreviewContactByIDParams{WorkspaceID: ws.ID, ID: cid, ScopeLists: scopeLists(p)})
 	case in.Sample == "random":
 		var r store.ComposerRandomContactRow
-		r, err = s.Q.ComposerRandomContact(ctx, ws.ID)
+		r, err = s.Q.ComposerRandomContact(ctx, store.ComposerRandomContactParams{WorkspaceID: ws.ID, ScopeLists: scopeLists(p)})
 		row = store.ComposerPreviewContactByIDRow(r)
 	default:
 		var rows []store.ComposerPreviewContactsRow
-		rows, err = s.Q.ComposerPreviewContacts(ctx, store.ComposerPreviewContactsParams{WorkspaceID: ws.ID, Query: "", Lists: audienceLists(audience), Lim: 1})
+		rows, err = s.Q.ComposerPreviewContacts(ctx, store.ComposerPreviewContactsParams{WorkspaceID: ws.ID, Query: "", Lists: audienceLists(audience), ScopeLists: scopeLists(p), Lim: 1})
 		if err == nil && len(rows) == 0 {
 			err = pgx.ErrNoRows
 		}
@@ -473,13 +483,14 @@ type ComposerPreviewContactList struct {
 	Items []ComposerPreviewContact `json:"items"`
 }
 
-// PreviewContacts searches contacts of the audience.
-func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, id uuid.UUID, query string) (ComposerPreviewContactList, error) {
+// PreviewContacts searches contacts of the audience, within the caller's
+// list scope.
+func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, query string) (ComposerPreviewContactList, error) {
 	c, err := s.Q.GetComposerCampaign(ctx, store.GetComposerCampaignParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {
 		return ComposerPreviewContactList{}, api.MapError(err, "Campaign")
 	}
-	rows, err := s.Q.ComposerPreviewContacts(ctx, store.ComposerPreviewContactsParams{WorkspaceID: ws.ID, Query: strings.TrimSpace(query), Lists: audienceLists(c.Audience), Lim: 20})
+	rows, err := s.Q.ComposerPreviewContacts(ctx, store.ComposerPreviewContactsParams{WorkspaceID: ws.ID, Query: strings.TrimSpace(query), Lists: audienceLists(c.Audience), ScopeLists: scopeLists(p), Lim: 20})
 	if err != nil {
 		return ComposerPreviewContactList{}, err
 	}

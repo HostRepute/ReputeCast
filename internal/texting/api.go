@@ -533,7 +533,7 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.Preview(ctx, api.WorkspaceFrom(ctx), id, in.Body)
+			out, err := s.Preview(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Body)
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "list-sms-preview-contacts", Path: "/workspaces/{workspace}/sms-campaigns/{campaignId}/preview-contacts", Summary: "Recipients to preview as",
@@ -543,7 +543,7 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.PreviewContacts(ctx, api.WorkspaceFrom(ctx), id)
+			out, err := s.PreviewContacts(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 			return api.OK(SmsPreviewContactList{Items: out}), err
 		})
 	api.Post(h, api.Op{ID: "send-sms-campaign-test", Path: "/workspaces/{workspace}/sms-campaigns/{campaignId}/test", Summary: "Text the campaign to test numbers (logged)",

@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -33,8 +34,9 @@ type PreviewContactList struct {
 
 // CampaignPreviewContacts picks the contacts to preview a campaign as: one
 // per workspace language among its audience's lists (people with a first
-// name first), then one whose language isn't offered.
-func (s *Service) CampaignPreviewContacts(ctx context.Context, ws *store.Workspace, id uuid.UUID) (PreviewContactList, error) {
+// name first), then one whose language isn't offered. A member limited to
+// some lists only gets contacts on them.
+func (s *Service) CampaignPreviewContacts(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (PreviewContactList, error) {
 	out := PreviewContactList{Items: []PreviewContact{}}
 	var audience json.RawMessage
 	var settings Settings
@@ -48,7 +50,11 @@ func (s *Service) CampaignPreviewContacts(ctx context.Context, ws *store.Workspa
 	if err != nil {
 		return out, err
 	}
-	rows, err := s.Q.LanguagesPreviewContacts(ctx, store.LanguagesPreviewContactsParams{WorkspaceID: ws.ID, Lists: audienceLists(audience)})
+	scope := []uuid.UUID{}
+	if p != nil && len(p.Scope.Lists) > 0 {
+		scope = p.Scope.Lists
+	}
+	rows, err := s.Q.LanguagesPreviewContacts(ctx, store.LanguagesPreviewContactsParams{WorkspaceID: ws.ID, Lists: audienceLists(audience), ScopeLists: scope})
 	if err != nil {
 		return out, err
 	}

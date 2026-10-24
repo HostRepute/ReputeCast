@@ -1314,6 +1314,7 @@ WHERE c.workspace_id = $1 AND c.erased_at IS NULL AND c.status = 'active' AND c.
     SELECT 1 FROM list_memberships m
     WHERE m.contact_id = c.id AND m.status = 'subscribed'
       AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($2::uuid[]) AND ll.deleted_at IS NULL))))
+  AND (cardinality($3::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships sm WHERE sm.contact_id = c.id AND sm.list_id = ANY($3::uuid[])))
 ORDER BY lower(split_part(replace(c.language, '_', '-'), '-', 1)), (c.first_name = '') ASC, c.last_open_at DESC NULLS LAST, c.email
 LIMIT 200
 `
@@ -1321,6 +1322,7 @@ LIMIT 200
 type LanguagesPreviewContactsParams struct {
 	WorkspaceID uuid.UUID   `json:"workspaceId"`
 	Lists       []uuid.UUID `json:"lists"`
+	ScopeLists  []uuid.UUID `json:"scopeLists"`
 }
 
 type LanguagesPreviewContactsRow struct {
@@ -1333,9 +1335,10 @@ type LanguagesPreviewContactsRow struct {
 
 // "Preview as" in the composer: one active contact per contact language
 // (its base code), from the given lists when there are any, people with a
-// first name first.
+// first name first. A member limited to some lists (scope_lists) only gets
+// contacts on them.
 func (q *Queries) LanguagesPreviewContacts(ctx context.Context, arg LanguagesPreviewContactsParams) ([]LanguagesPreviewContactsRow, error) {
-	rows, err := q.db.Query(ctx, languagesPreviewContacts, arg.WorkspaceID, arg.Lists)
+	rows, err := q.db.Query(ctx, languagesPreviewContacts, arg.WorkspaceID, arg.Lists, arg.ScopeLists)
 	if err != nil {
 		return nil, err
 	}

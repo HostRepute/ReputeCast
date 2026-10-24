@@ -368,7 +368,7 @@ func registerCampaign(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.CampaignPreviewContacts(ctx, api.WorkspaceFrom(ctx), id)
+			out, err := s.CampaignPreviewContacts(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "add-campaign-language", Path: base, Summary: "Add a language version (a Draft) to a campaign",

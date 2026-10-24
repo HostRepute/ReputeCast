@@ -82,7 +82,7 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			items, err := s.PreviewContacts(ctx, api.WorkspaceFrom(ctx), id)
+			items, err := s.PreviewContacts(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 			return api.OK(VisibilityPreviewContactList{Items: items}), err
 		})
 	api.Get(h, api.Op{ID: "visibility-usage", Path: "/workspaces/{workspace}/visibility/usage",

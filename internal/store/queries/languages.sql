@@ -281,7 +281,8 @@ UPDATE automation_emails SET latest_version = @version, updated_at = now() WHERE
 -- name: LanguagesPreviewContacts :many
 -- "Preview as" in the composer: one active contact per contact language
 -- (its base code), from the given lists when there are any, people with a
--- first name first.
+-- first name first. A member limited to some lists (scope_lists) only gets
+-- contacts on them.
 SELECT DISTINCT ON (lower(split_part(replace(c.language, '_', '-'), '-', 1)))
        c.id, c.email, c.first_name, c.last_name, c.language
 FROM contacts c
@@ -290,6 +291,7 @@ WHERE c.workspace_id = @workspace_id AND c.erased_at IS NULL AND c.status = 'act
     SELECT 1 FROM list_memberships m
     WHERE m.contact_id = c.id AND m.status = 'subscribed'
       AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY(@lists::uuid[]) AND ll.deleted_at IS NULL))))
+  AND (cardinality(@scope_lists::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships sm WHERE sm.contact_id = c.id AND sm.list_id = ANY(@scope_lists::uuid[])))
 ORDER BY lower(split_part(replace(c.language, '_', '-'), '-', 1)), (c.first_name = '') ASC, c.last_open_at DESC NULLS LAST, c.email
 LIMIT 200;
 

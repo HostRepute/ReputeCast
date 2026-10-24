@@ -2,12 +2,14 @@ package visibility
 
 import (
 	"context"
+	"slices"
 	"sort"
 	"strings"
 
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/api"
+	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -205,8 +207,9 @@ type VisibilityPreviewContact struct {
 }
 
 // PreviewContacts picks contacts who get each version, so a person can
-// preview them all from the canvas.
-func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID) ([]VisibilityPreviewContact, error) {
+// preview them all from the canvas. A member limited to some lists only
+// gets contacts on them.
+func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, p *authz.Principal, campaignID uuid.UUID) ([]VisibilityPreviewContact, error) {
 	out := []VisibilityPreviewContact{}
 	c, err := s.Q.VisibilityCampaign(ctx, store.VisibilityCampaignParams{WorkspaceID: ws.ID, ID: campaignID})
 	if err != nil {
@@ -228,6 +231,11 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, camp
 	recipients, err := FinalRecipients(ctx, s.Q, s.Segments, ws.ID, a, segs)
 	if err != nil {
 		return out, err
+	}
+	if p != nil && len(p.Scope.Lists) > 0 {
+		recipients = slices.DeleteFunc(recipients, func(f *Facts) bool {
+			return !slices.ContainsFunc(p.Scope.Lists, func(id uuid.UUID) bool { return f.Lists[id.String()] })
+		})
 	}
 	byID := make(map[uuid.UUID]*Facts, len(recipients))
 	for _, f := range recipients {

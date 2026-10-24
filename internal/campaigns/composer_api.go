@@ -221,7 +221,7 @@ func RegisterComposer(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.PreviewContacts(ctx, api.WorkspaceFrom(ctx), id, in.Query)
+			out, err := s.PreviewContacts(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Query)
 			return api.OK(out), err
 		})
 	api.Post(h, api.Op{ID: "check-campaign-content", Path: "/workspaces/{workspace}/campaigns/{campaignId}/checks", Summary: "Run the content checks on the composer's current content",

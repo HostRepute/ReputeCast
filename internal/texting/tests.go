@@ -287,8 +287,9 @@ type SmsPreviewContact struct {
 	Country string `json:"country"`
 }
 
-// Preview renders the text for a recipient and a country.
-func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID, in SmsPreviewInput) (SmsPreview, error) {
+// Preview renders the text for a recipient and a country. A member limited
+// to some lists previews as contacts on them only.
+func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in SmsPreviewInput) (SmsPreview, error) {
 	c, err := s.campaign(ctx, ws, id)
 	if err != nil {
 		return SmsPreview{}, err
@@ -303,7 +304,8 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, id uuid.UUID
 		if err != nil {
 			return SmsPreview{}, api.Invalid("body.contactId", say(ctx, mPickContact, nil))
 		}
-		row := s.Pool.QueryRow(ctx, `SELECT id, phone, phone_country, timezone, first_name, last_name, email FROM contacts WHERE id = $1 AND workspace_id = $2`, cid, ws.ID)
+		row := s.Pool.QueryRow(ctx, `SELECT id, phone, phone_country, timezone, first_name, last_name, email FROM contacts c WHERE id = $1 AND workspace_id = $2
+			AND (cardinality($3::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships sm WHERE sm.contact_id = c.id AND sm.list_id = ANY($3)))`, cid, ws.ID, scopeLists(p))
 		if err := row.Scan(&r.ContactID, &r.Phone, &r.Country, &r.Zone, &r.FirstName, &r.LastName, &r.Email); err != nil {
 			return SmsPreview{}, api.MapError(err, "Contact")
 		}
@@ -426,14 +428,18 @@ func countryProbe(country string) string {
 }
 
 // PreviewContacts lists people to preview as: the first recipients, one
-// per country first, the country with the most recipients leading.
-func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, id uuid.UUID) ([]SmsPreviewContact, error) {
+// per country first, the country with the most recipients leading. A
+// member limited to some lists only gets recipients on them.
+func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) ([]SmsPreviewContact, error) {
 	c, err := s.campaign(ctx, ws, id)
 	if err != nil {
 		return nil, err
 	}
 	f, err := s.funnel(ctx, ws, parseAudience(c.Audience))
 	if err != nil {
+		return nil, err
+	}
+	if f.Recipients, err = s.inScope(ctx, p, f.Recipients); err != nil {
 		return nil, err
 	}
 	out := []SmsPreviewContact{}
@@ -468,6 +474,47 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, id u
 		}
 		if !dup {
 			add(r)
+		}
+	}
+	return out, nil
+}
+
+// scopeLists are the lists a member limited to some is limited to (none:
+// every contact).
+func scopeLists(p *authz.Principal) []uuid.UUID {
+	if p == nil || len(p.Scope.Lists) == 0 {
+		return []uuid.UUID{}
+	}
+	return p.Scope.Lists
+}
+
+// inScope keeps the recipients a member limited to some lists may see,
+// those on one of the lists.
+func (s *Service) inScope(ctx context.Context, p *authz.Principal, rs []Recipient) ([]Recipient, error) {
+	lists := scopeLists(p)
+	if len(lists) == 0 || len(rs) == 0 {
+		return rs, nil
+	}
+	ids := make([]uuid.UUID, len(rs))
+	for i, r := range rs {
+		ids[i] = r.ContactID
+	}
+	rows, err := s.Pool.Query(ctx, `SELECT DISTINCT contact_id FROM list_memberships WHERE contact_id = ANY($1) AND list_id = ANY($2)`, ids, lists)
+	if err != nil {
+		return nil, err
+	}
+	on, err := pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
+	if err != nil {
+		return nil, err
+	}
+	keep := make(map[uuid.UUID]bool, len(on))
+	for _, id := range on {
+		keep[id] = true
+	}
+	out := make([]Recipient, 0, len(on))
+	for _, r := range rs {
+		if keep[r.ContactID] {
+			out = append(out, r)
 		}
 	}
 	return out, nil

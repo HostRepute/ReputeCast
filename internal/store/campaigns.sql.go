@@ -374,11 +374,13 @@ const composerPreviewContactByID = `-- name: ComposerPreviewContactByID :one
 SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier, c.language
 FROM contacts c
 WHERE c.workspace_id = $1 AND c.id = $2 AND c.erased_at IS NULL
+  AND (cardinality($3::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships sm WHERE sm.contact_id = c.id AND sm.list_id = ANY($3::uuid[])))
 `
 
 type ComposerPreviewContactByIDParams struct {
-	WorkspaceID uuid.UUID `json:"workspaceId"`
-	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+	ID          uuid.UUID   `json:"id"`
+	ScopeLists  []uuid.UUID `json:"scopeLists"`
 }
 
 type ComposerPreviewContactByIDRow struct {
@@ -392,7 +394,7 @@ type ComposerPreviewContactByIDRow struct {
 }
 
 func (q *Queries) ComposerPreviewContactByID(ctx context.Context, arg ComposerPreviewContactByIDParams) (ComposerPreviewContactByIDRow, error) {
-	row := q.db.QueryRow(ctx, composerPreviewContactByID, arg.WorkspaceID, arg.ID)
+	row := q.db.QueryRow(ctx, composerPreviewContactByID, arg.WorkspaceID, arg.ID, arg.ScopeLists)
 	var i ComposerPreviewContactByIDRow
 	err := row.Scan(
 		&i.ID,
@@ -412,14 +414,16 @@ FROM contacts c
 WHERE c.workspace_id = $1 AND c.erased_at IS NULL AND c.status = 'active'
   AND ($2::text = '' OR c.email ILIKE '%' || $2::text || '%' OR (c.first_name || ' ' || c.last_name) ILIKE '%' || $2::text || '%')
   AND (cardinality($3::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($3::uuid[]) AND ll.deleted_at IS NULL))))
+  AND (cardinality($4::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships sm WHERE sm.contact_id = c.id AND sm.list_id = ANY($4::uuid[])))
 ORDER BY (c.first_name = '') ASC, c.last_open_at DESC NULLS LAST, c.email
-LIMIT $4
+LIMIT $5
 `
 
 type ComposerPreviewContactsParams struct {
 	WorkspaceID uuid.UUID   `json:"workspaceId"`
 	Query       string      `json:"query"`
 	Lists       []uuid.UUID `json:"lists"`
+	ScopeLists  []uuid.UUID `json:"scopeLists"`
 	Lim         int32       `json:"lim"`
 }
 
@@ -434,11 +438,13 @@ type ComposerPreviewContactsRow struct {
 }
 
 // Contacts to preview as: the campaign's audience first, people with a first name first.
+// A member limited to some lists (scope_lists) only finds contacts on them.
 func (q *Queries) ComposerPreviewContacts(ctx context.Context, arg ComposerPreviewContactsParams) ([]ComposerPreviewContactsRow, error) {
 	rows, err := q.db.Query(ctx, composerPreviewContacts,
 		arg.WorkspaceID,
 		arg.Query,
 		arg.Lists,
+		arg.ScopeLists,
 		arg.Lim,
 	)
 	if err != nil {
@@ -471,9 +477,15 @@ const composerRandomContact = `-- name: ComposerRandomContact :one
 SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier, c.language
 FROM contacts c
 WHERE c.workspace_id = $1 AND c.erased_at IS NULL AND c.status = 'active' AND c.tier = 'active'
+  AND (cardinality($2::uuid[]) = 0 OR EXISTS (SELECT 1 FROM list_memberships sm WHERE sm.contact_id = c.id AND sm.list_id = ANY($2::uuid[])))
 ORDER BY random()
 LIMIT 1
 `
+
+type ComposerRandomContactParams struct {
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+	ScopeLists  []uuid.UUID `json:"scopeLists"`
+}
 
 type ComposerRandomContactRow struct {
 	ID         uuid.UUID       `json:"id"`
@@ -485,8 +497,8 @@ type ComposerRandomContactRow struct {
 	Language   string          `json:"language"`
 }
 
-func (q *Queries) ComposerRandomContact(ctx context.Context, workspaceID uuid.UUID) (ComposerRandomContactRow, error) {
-	row := q.db.QueryRow(ctx, composerRandomContact, workspaceID)
+func (q *Queries) ComposerRandomContact(ctx context.Context, arg ComposerRandomContactParams) (ComposerRandomContactRow, error) {
+	row := q.db.QueryRow(ctx, composerRandomContact, arg.WorkspaceID, arg.ScopeLists)
 	var i ComposerRandomContactRow
 	err := row.Scan(
 		&i.ID,

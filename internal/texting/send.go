@@ -260,7 +260,7 @@ func (s *Service) reviewView(ctx context.Context, ws *store.Workspace, p *authz.
 			break
 		}
 	}
-	if pv, err := s.Preview(ctx, ws, c.ID, SmsPreviewInput{Country: first}); err == nil {
+	if pv, err := s.Preview(ctx, ws, nil, c.ID, SmsPreviewInput{Country: first}); err == nil {
 		out.Preview = pv
 	}
 	return out, nil
