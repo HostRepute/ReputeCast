@@ -73,6 +73,11 @@ describe("ctx.http", () => {
     expect(e.data).toEqual({ body: { to: "x" }, type: "application/json" });
   });
 
+  it("joins a base URL that ends in slashes", async () => {
+    const r = await client({ baseUrl: base + "///" }).get<{ id: string }>("/ok");
+    expect(r.data.id).toBe("msg_1");
+  });
+
   it("maps provider failures to protocol errors", async () => {
     const auth = await failure(client().get("/401"));
     expect([auth.code, auth.status, auth.providerCode]).toEqual(["provider_auth", 401, "invalid_api_key"]);
