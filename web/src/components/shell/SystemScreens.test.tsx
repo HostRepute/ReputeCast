@@ -5,7 +5,7 @@ import { dismissToast } from '@/components/ui/Toast'
 import { meQueryKey } from '@/lib/session'
 import { json, mockApi } from '@/test/api'
 import { renderInWorkspace, workspaceMe } from '@/test/app'
-import { ForbiddenState, WorkspaceNotFound, WorkspaceRouteError } from './SystemScreens'
+import { ForbiddenState, WorkspaceNotFound, WorkspaceRouteError, problemReference } from './SystemScreens'
 
 const seedMe = (qc: QueryClient) => qc.setQueryData(meQueryKey, { user: { email: 'aisha@acme.io', name: 'Aisha Rahman' }, workspaces: [], instance: {} } as never)
 
@@ -112,5 +112,10 @@ describe('500 inside the shell', () => {
     expect(screen.getByRole('link', { name: 'Back to overview' })).toHaveAttribute('href', '/w/acme-newsletter')
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Retry' })))
     expect(reset).toHaveBeenCalledOnce()
+  })
+
+  it('shows the reference the server logged the error under', () => {
+    const error = new ApiError(500, { status: 500, title: 'Internal Server Error', detail: 'unexpected error occurred', code: 'internal_error', meta: { reference: 'err_7KQ2M4XA' } } as never)
+    expect(problemReference(error)).toBe('err_7KQ2M4XA')
   })
 })

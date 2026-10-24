@@ -95,11 +95,11 @@ func (s *Service) List(ctx context.Context, filter, cursor string, limit int) (N
 	}
 	off := 0
 	if cursor != "" {
-		n, err := strconv.Atoi(cursor)
+		n, err := strconv.ParseInt(cursor, 10, 32)
 		if err != nil || n < 0 {
 			return NotificationList{}, api.Invalid("query.cursor", mProblemBadCursor.Text(i18n.LangFrom(ctx), nil))
 		}
-		off = n
+		off = int(n)
 	}
 	if limit <= 0 || limit > 100 {
 		limit = 50

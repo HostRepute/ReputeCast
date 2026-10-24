@@ -73,6 +73,7 @@ samples, CLI output, "MCP", "2FA", "TOTP", "IdP", "SSO", "JIT", "A/B",
 | admins only | chỉ quản trị viên |
 | Sign out | Đăng xuất |
 | Language: English | Ngôn ngữ: Tiếng Việt (the item names the current language in its own name) |
+| unexpected error · server log | lỗi không mong muốn · nhật ký máy chủ |
 
 ## Settings tabs
 

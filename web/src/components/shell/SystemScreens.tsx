@@ -131,8 +131,8 @@ export function ErrorScreen({ error, reset }: ErrorComponentProps) {
 /** Request id or error reference from a problem, when the server gave one. */
 export function problemReference(error: unknown): string | undefined {
   if (!(error instanceof ApiError)) return undefined
-  const p = error.problem as { instance?: string; meta?: { requestId?: string; errorId?: string } }
-  return p.meta?.errorId ?? p.meta?.requestId ?? p.instance
+  const p = error.problem as { instance?: string; meta?: { reference?: string; requestId?: string; errorId?: string } }
+  return p.meta?.reference ?? p.meta?.errorId ?? p.meta?.requestId ?? p.instance
 }
 
 /** 404 for a path or a thing that doesn't exist (any more). */

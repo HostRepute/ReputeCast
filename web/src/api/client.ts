@@ -1,5 +1,9 @@
 import createFetchClient, { type Middleware } from 'openapi-fetch'
 import createClient from 'openapi-react-query'
+// Not '@/i18n': its language sync imports this client.
+import { formatText } from '@/i18n/format'
+import { getI18n } from '@/i18n/store'
+import { m } from './messages'
 import type { components, paths } from './schema'
 
 export type Schemas = components['schemas']
@@ -10,9 +14,12 @@ export type Problem = Schemas['Problem']
  * changed." after it. The router's fallback for an unhandled error gets the
  * product voice.
  */
-export function problemSentence(status: number, problem: Pick<Problem, 'detail' | 'title'>): string {
+export function problemSentence(status: number, problem: Pick<Problem, 'detail' | 'title' | 'meta'>): string {
   const raw = (problem.detail || problem.title || `The server answered ${status}`).trim()
-  if (status >= 500 && raw === 'unexpected error occurred') return 'ReputeCast hit an unexpected error; the details are in the server log.'
+  if (status >= 500 && raw === 'unexpected error occurred') {
+    const ref = problem.meta?.reference
+    return typeof ref === 'string' ? formatText(getI18n(), m.unexpectedRef, { ref }) : formatText(getI18n(), m.unexpected)
+  }
   const text = raw.charAt(0).toUpperCase() + raw.slice(1)
   return /[.!?…:)"”]$/.test(text) ? text : `${text}.`
 }

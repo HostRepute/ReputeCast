@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question
+    url: https://github.com/hostrepute/reputecast/discussions
+    about: Questions about installing, configuring or using ReputeCast.
+  - name: Report a security vulnerability
+    url: https://github.com/hostrepute/reputecast/security/advisories/new
+    about: Report it privately; please don't open a public issue.

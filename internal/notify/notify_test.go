@@ -62,6 +62,15 @@ func TestDemoNotificationCenter(t *testing.T) {
 	if n := len(list["items"].([]any)); n != 2 || list["nextCursor"] != "2" {
 		t.Fatalf("unread page: %d %v", n, list["nextCursor"])
 	}
+	var next map[string]any
+	c.Do("GET", "/workspaces/acme-newsletter/notifications?filter=unread&limit=2&cursor=2", nil).MustStatus(t, 200).JSON(t, &next)
+	if n := len(next["items"].([]any)); n != 1 || next["nextCursor"] != nil {
+		t.Fatalf("second unread page: %d %v", n, next["nextCursor"])
+	}
+	// A cursor the query can't take, beyond int32, is refused like any bad cursor.
+	for _, bad := range []string{"-1", "x", "3000000000"} {
+		c.Do("GET", "/workspaces/acme-newsletter/notifications?cursor="+bad, nil).MustStatus(t, 422)
+	}
 
 	// Opening one marks it read; Mark all as read clears the rest.
 	c.Do("POST", "/workspaces/acme-newsletter/notifications/"+first["id"].(string)+"/read", nil).MustStatus(t, 204)
