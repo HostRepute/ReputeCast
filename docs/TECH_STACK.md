@@ -37,6 +37,10 @@ Versions are minimums to start from. Upgrade within the same major version freel
 | Bounce mailbox (IMAP) | github.com/emersion/go-imap/v2 | v2.0.0-beta.8 (beta; isolated in one package) |
 | DNS checks | github.com/miekg/dns | v1.1.73 (behind `internal/dnscheck`; see notes) |
 | DKIM/DMARC parsing | github.com/emersion/go-msgauth | v0.7.0 |
+| SMTP relay for transactional email (server, AUTH, MIME) | github.com/emersion/go-smtp + go-sasl + go-message | v0.25.0 / v0.0.0-20241020182733-b788ff22d5a6 (no tagged release) / v0.18.2 |
+| SMS through AWS End User Messaging | github.com/aws/aws-sdk-go-v2/service/pinpointsmsvoicev2 | v1.42.0 |
+| Phone numbers (E.164, country, type) | github.com/nyaruka/phonenumbers | v1.8.1 |
+| App languages: language names, plural rules, collation, currencies, Unicode normalization | golang.org/x/text | v0.43.0 |
 | Password hashing | golang.org/x/crypto/argon2 (argon2id) | v0.58.0 |
 | TOTP 2FA | github.com/pquerna/otp | v1.5.0 |
 | Passkeys | github.com/go-webauthn/webauthn | v0.18.2 |
@@ -81,6 +85,7 @@ Dev tools:
 | Automation canvas | @xyflow/react | 12.12.0 |
 | API types | openapi-typescript (generated from the Huma OpenAPI spec) | 7.13.0 |
 | API client | openapi-fetch + openapi-react-query | 0.17.0 / 0.5.4 |
+| App languages: ICU messages (plurals, selects, numbers, dates) | intl-messageformat + @formatjs/icu-messageformat-parser | 12.1.2 / 3.5.20 |
 | Lint | eslint + typescript-eslint + eslint-plugin-react-hooks | 10.12 / 8.71 / 7.1 |
 | Unit tests | vitest | 5.0.4 |
 | E2E tests | @playwright/test | 1.64.0 |
@@ -108,3 +113,4 @@ Dev tools:
 8. **hostrepute-go must be public** (with a version tag) before ReputeCast imports it; otherwise public builds and contributors can't fetch it.
 9. **Single binary.** `go:embed` bundles the built SPA and the goose migrations. GoReleaser builds linux/darwin/windows for amd64/arm64, plus a multi-arch Docker image.
 10. **Every provider adapter** must pass the shared contract-test suite: Send, ParseWebhook (signature verification and event normalization), and Capabilities. These tests run against recorded fixtures, plus Mailpit for SMTP.
+11. **Integration apps** (`integrations/`) are JavaScript and PHP projects with their own package managers. The n8n nodes are MIT and the WordPress plugin GPL-2.0-or-later, because each platform's directory requires it; the Zapier and Make apps are AGPL-3.0 like the rest. `integrations/go.mod` makes the folder a module of its own, so the server module's `./...` never reaches their installed dependencies.
