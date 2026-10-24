@@ -1,0 +1,5 @@
+# GitHub's language statistics and diffs (Linguist). sqlc's Go output is
+# recognised by its "Code generated" header.
+design/** linguist-documentation
+web/openapi.json linguist-generated
+web/src/api/schema.d.ts linguist-generated
