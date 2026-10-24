@@ -140,7 +140,9 @@ func (s *Service) tally(ctx context.Context, ws *store.Workspace, campaignID uui
 		return countResult{}, err
 	}
 	t := Count(e, recipients, n)
-	res := countResult{Tally: t, At: s.now(), DurationMs: int(time.Since(start).Milliseconds())}
+	// Postgres keeps microseconds: the first answer shows the time a later
+	// one reads back.
+	res := countResult{Tally: t, At: s.now().Truncate(time.Microsecond), DurationMs: int(time.Since(start).Milliseconds())}
 	vs := make([]storedVersion, 0, len(t.ByHidden))
 	for k, v := range t.ByHidden {
 		vs = append(vs, storedVersion{Hidden: k, Recipients: v})
