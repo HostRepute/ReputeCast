@@ -41,11 +41,39 @@ function precompress(): Plugin {
   }
 }
 
+const LAYER_ORDER = '@layer properties, theme, base, components, utilities;'
+
+/**
+ * Names Tailwind's cascade layers, in order, before any stylesheet. The build
+ * links the CSS of chunks the entry imports before index.css, and a chunk that
+ * opened @layer components first would rank it under base: base's resets
+ * would then undo every component style. The build fails if the order isn't
+ * first in dist/index.html.
+ */
+function layerOrder(): Plugin {
+  let build = false
+  return {
+    name: 'reputecast-layer-order',
+    configResolved(c) {
+      build = c.command === 'build'
+    },
+    transformIndexHtml: () => [{ tag: 'style', children: LAYER_ORDER, injectTo: 'head-prepend' }],
+    closeBundle() {
+      if (!build) return
+      const html = readFileSync(fileURLToPath(new URL('./dist/index.html', import.meta.url)), 'utf8')
+      const order = html.indexOf(LAYER_ORDER)
+      const sheet = html.search(/<link rel="stylesheet"/)
+      if (order < 0 || (sheet >= 0 && order > sheet)) throw new Error('dist/index.html must name the cascade layers before its first stylesheet')
+    },
+  }
+}
+
 export default defineConfig({
   plugins: [
     tanstackRouter({ target: 'react', autoCodeSplitting: true, routesDirectory: './src/routes', generatedRouteTree: './src/routeTree.gen.ts' }),
     react(),
     tailwindcss(),
+    layerOrder(),
     precompress(),
   ],
   resolve: {
