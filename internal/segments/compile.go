@@ -120,9 +120,11 @@ func (c Compiled) Query(first int) (string, []any) {
 const indent = "\n               "
 
 func interval(c SegmentCondition) string {
-	unit := c.Unit
-	if unit == "" {
-		unit = "days"
+	// The unit is inlined, so only the two known words ever reach the SQL,
+	// whatever a stored definition holds.
+	unit := "days"
+	if c.Unit == "weeks" {
+		unit = "weeks"
 	}
 	n := c.Amount
 	if n < 1 {
@@ -131,8 +133,9 @@ func interval(c SegmentCondition) string {
 	return fmt.Sprintf("now() - interval '%d %s'", n, unit)
 }
 
-// condition renders one condition. Field keys of custom fields are checked
-// against ^[a-z][a-z0-9_]*$ by Validate, so they're safe to inline.
+// condition renders one condition. Custom field keys are inlined, so the
+// compiler checks them against ^[a-z][a-z0-9_]*$ itself rather than trust
+// that Validate ran: a field it doesn't know matches nobody.
 func condition(t *sqlText, c SegmentCondition, custom map[string]CustomField) {
 	if f, ok := extraCompile[c.Field]; ok {
 		f(t, c)
@@ -209,7 +212,11 @@ func condition(t *sqlText, c SegmentCondition, custom map[string]CustomField) {
 			t.raw("c.created_at >= " + interval(c))
 		}
 	default:
-		key := strings.TrimPrefix(c.Field, "custom:")
+		key, ok := strings.CutPrefix(c.Field, "custom:")
+		if !ok || !fieldKeyRe.MatchString(key) {
+			t.raw("false")
+			return
+		}
 		customCondition(t, key, custom[key], c)
 	}
 }

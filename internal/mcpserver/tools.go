@@ -1,6 +1,7 @@
 package mcpserver
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -23,6 +24,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/readiness"
+	"github.com/hostrepute/reputecast/internal/segments"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -71,7 +73,7 @@ type searchIn struct {
 type segmentIn struct {
 	Name        string         `json:"name"`
 	Description string         `json:"description,omitempty"`
-	Definition  map[string]any `json:"definition" jsonschema:"condition-builder JSON: {\"match\":\"all\",\"conditions\":[…]}"`
+	Definition  map[string]any `json:"definition" jsonschema:"condition-builder JSON: {\"groups\":[{\"match\":\"all\",\"conditions\":[{\"field\":…,\"op\":…,\"value\":…}]}]}"`
 }
 
 type suppressIn struct {
@@ -423,10 +425,26 @@ func (s *Service) addTools(srv *mcp.Server) {
 		if name == "" {
 			return nil, e, errors.New("give the segment a name")
 		}
-		def, _ := json.Marshal(in.Definition)
+		// The definition is checked as the builder checks it before it's
+		// stored: the compiler inlines field keys and period units.
+		raw, _ := json.Marshal(in.Definition)
 		if len(in.Definition) == 0 {
-			def = []byte(`{}`)
+			raw = []byte(`{}`)
 		}
+		dec := json.NewDecoder(bytes.NewReader(raw))
+		dec.DisallowUnknownFields()
+		var d segments.SegmentDefinition
+		if err := dec.Decode(&d); err != nil {
+			return nil, e, fmt.Errorf("the definition isn't condition-builder JSON: %w", err)
+		}
+		if _, err := (&segments.Service{Pool: s.Pool, Q: s.Q}).CheckDefinition(ctx, c.Workspace.ID, &d); err != nil {
+			var ve *segments.ValidationError
+			if errors.As(err, &ve) {
+				return nil, e, fmt.Errorf("%s: %s", ve.Location, ve.Message)
+			}
+			return nil, e, err
+		}
+		def, _ := json.Marshal(d)
 		creator := c.Principal.UserID
 		var by *uuid.UUID
 		if creator != uuid.Nil {

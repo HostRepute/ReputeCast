@@ -197,22 +197,34 @@ func (s *Service) validate(ctx context.Context, ws *store.Workspace, in *Segment
 		in.SQL = q
 		return nil, q, nil
 	}
-	custom, err := s.customFields(ctx, ws.ID)
+	custom, err := s.CheckDefinition(ctx, ws.ID, &in.Definition)
 	if err != nil {
-		return nil, "", err
-	}
-	lists, err := s.lists(ctx, ws.ID)
-	if err != nil {
-		return nil, "", err
-	}
-	if in.Definition.Groups == nil {
-		in.Definition.Groups = []SegmentGroup{}
-	}
-	if err := in.Definition.Validate(custom, lists); err != nil {
 		return nil, "", err
 	}
 	c := Compile(in.Definition, ws.ID, custom)
 	return &c, "", nil
+}
+
+// CheckDefinition validates a builder definition against the workspace's
+// custom fields and lists, as saving one in the builder does, and returns
+// the custom fields Compile needs. Every path that stores a definition
+// calls it (the API and MCP agents alike).
+func (s *Service) CheckDefinition(ctx context.Context, workspaceID uuid.UUID, d *SegmentDefinition) (map[string]CustomField, error) {
+	custom, err := s.customFields(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	lists, err := s.lists(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	if d.Groups == nil {
+		d.Groups = []SegmentGroup{}
+	}
+	if err := d.Validate(custom, lists); err != nil {
+		return nil, err
+	}
+	return custom, nil
 }
 
 // SegmentCountResult is a live count.

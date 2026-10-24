@@ -225,3 +225,64 @@ func TestAgentOfDeactivatedCreator(t *testing.T) {
 		t.Fatalf("report after Linh was deactivated: %v %s", err, text(res))
 	}
 }
+
+// create_segment checks the definition as the builder does before storing
+// it: the compiler inlines period units and custom field keys, so a
+// definition that skipped the check could run SQL of the agent's choosing.
+func TestCreateSegmentValidatesDefinition(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	var agent struct{ Secret string }
+	c.Do("POST", ws+"/mcp-agents", map[string]any{"name": "Segmenter", "permissions": []string{"segments:edit"}}).MustStatus(t, 201).JSON(t, &agent)
+	cs, err := connect(t, env, agent.Secret)
+	if err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	defer func() { _ = cs.Close() }()
+	ctx := context.Background()
+	create := func(name string, def map[string]any) *mcp.CallToolResult {
+		t.Helper()
+		res, err := cs.CallTool(ctx, &mcp.CallToolParams{Name: "create_segment", Arguments: map[string]any{"name": name, "definition": def}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return res
+	}
+	group := func(cond map[string]any) map[string]any {
+		return map[string]any{"groups": []any{map[string]any{"match": "all", "conditions": []any{cond}}}}
+	}
+	bad := map[string]map[string]any{
+		"unit": group(map[string]any{"field": "joined", "op": "in_last", "amount": 1,
+			"unit": "days' OR c.id IN (SELECT id FROM public.contacts) OR 'x' = 'x"}),
+		"custom key":    group(map[string]any{"field": "custom:x' OR '1'='1", "op": "equals", "value": "y"}),
+		"unknown field": group(map[string]any{"field": "x' OR '1'='1", "op": "equals", "value": "y"}),
+		// The shape the tool used to describe has no groups; it's refused
+		// rather than stored as a segment of everyone.
+		"no groups": {"match": "all", "conditions": []any{map[string]any{"field": "joined", "op": "in_last", "amount": 1, "unit": "days"}}},
+	}
+	for name, def := range bad {
+		if res := create("Injected "+name, def); !res.IsError {
+			t.Errorf("%s: stored %s", name, text(res))
+		}
+	}
+	var n int
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM segments WHERE name LIKE 'Injected %'`).Scan(&n); err != nil || n != 0 {
+		t.Fatalf("refused definitions stored: %d %v", n, err)
+	}
+
+	res := create("Joined this month", group(map[string]any{"field": "joined", "op": "in_last", "amount": 30, "unit": "days"}))
+	if res.IsError {
+		t.Fatalf("valid definition: %s", text(res))
+	}
+	var seg struct{ ID string }
+	if err := json.Unmarshal([]byte(text(res)), &seg); err != nil || seg.ID == "" {
+		t.Fatalf("created: %v %s", err, text(res))
+	}
+	var stored string
+	if err := env.App.Pool.QueryRow(ctx, `SELECT definition::text FROM segments WHERE id = $1`, seg.ID).Scan(&stored); err != nil || !strings.Contains(stored, `"unit": "days"`) {
+		t.Fatalf("stored definition: %s %v", stored, err)
+	}
+	c.Do("GET", ws+"/contacts?segment="+seg.ID, nil).MustStatus(t, 200)
+}

@@ -86,6 +86,31 @@ func TestCompileQueryBindsValues(t *testing.T) {
 	}
 }
 
+// Compile never inlines a stored definition's period unit or field key, even
+// when the definition skipped Validate: those are the two places it writes
+// condition text into the SQL rather than binding it.
+func TestCompileUnvalidatedDefinition(t *testing.T) {
+	const payload = "days' OR c.id IN (SELECT id FROM public.contacts) OR 'x' = 'x"
+	d := SegmentDefinition{Groups: []SegmentGroup{{Match: "any", Conditions: []SegmentCondition{
+		{Field: "joined", Op: "in_last", Amount: 1, Unit: payload},
+		{Field: "opened", Op: "not_in_last", Amount: 2, Unit: "weeks"},
+		{Field: "custom:x' OR '1'='1", Op: "equals", Value: "y"},
+		{Field: "x' OR '1'='1", Op: "equals", Value: "y"},
+		{Field: "custom:plan", Op: "equals", Value: "team"},
+	}}}}
+	q, _ := Compile(d, wsID, custom).Query(2)
+	for _, bad := range []string{"public.contacts", "'1'='1", "OR 'x'"} {
+		if strings.Contains(q, bad) {
+			t.Fatalf("inlined %q:\n%s", bad, q)
+		}
+	}
+	for _, want := range []string{"c.created_at >= now() - interval '1 days'", "interval '2 weeks'", " OR false OR false OR ", "c.fields->>'plan' = $"} {
+		if !strings.Contains(q, want) {
+			t.Fatalf("missing %q:\n%s", want, q)
+		}
+	}
+}
+
 func TestValidate(t *testing.T) {
 	bad := []SegmentDefinition{
 		{Groups: []SegmentGroup{{Match: "some", Conditions: []SegmentCondition{{Field: "tier", Op: "is", Value: "active"}}}}},
