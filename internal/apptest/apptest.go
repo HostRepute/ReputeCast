@@ -5,6 +5,8 @@ package apptest
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -27,7 +29,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/demo"
-	"github.com/hostrepute/reputecast/internal/secrets"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/testdb"
 	"github.com/hostrepute/reputecast/internal/workspaces"
@@ -40,11 +41,15 @@ type Env struct {
 	Server *httptest.Server
 }
 
-// testKey seals secrets in every test app of this binary, so a database
-// cloned from the seeded demo template can open what the seed sealed.
-var testKey = secrets.GenerateKey()
+// testKey seals secrets in every test app, the same in every test binary: a
+// run's binaries share the seeded demo template (testdb.Shared), and each one
+// opens what the seed sealed. It only ever seals test data.
+var testKey = func() string {
+	sum := sha256.Sum256([]byte("reputecast test secrets"))
+	return base64.StdEncoding.EncodeToString(sum[:])
+}()
 
-// demoTemplate is the demo data, seeded once per test binary.
+// demoTemplate is the demo data, seeded once per `go test` run.
 var demoTemplate struct {
 	once sync.Once
 	name string
@@ -271,15 +276,15 @@ func (e *Env) SeedDemo() {
 	e.T.Helper()
 	ctx := context.Background()
 	demoTemplate.once.Do(func() {
-		dir, err := os.MkdirTemp("", "reputecast-demo-files-")
-		if err != nil {
-			demoTemplate.err = err
-			return
+		// Seeded once per `go test` run and shared by its test binaries; the
+		// key tells the demo without transactional mail apart.
+		key := "demo"
+		if demo.SkipTransactional {
+			key = "demonotx"
 		}
-		cfg := *e.App.Cfg
-		cfg.Files.Dir = dir
-		demoTemplate.files = dir
-		demoTemplate.name, demoTemplate.err = testdb.Template(ctx, "demo", func(pool *pgxpool.Pool) error {
+		demoTemplate.name, demoTemplate.files, demoTemplate.err = testdb.Shared(ctx, key, func(pool *pgxpool.Pool, dir string) error {
+			cfg := *e.App.Cfg
+			cfg.Files.Dir = dir
 			_, err := demo.Seed(ctx, pool, &cfg, e.App.Secrets, slog.New(slog.NewTextHandler(io.Discard, nil)))
 			return err
 		})
@@ -299,11 +304,12 @@ func (e *Env) SeedDemo() {
 	}
 }
 
-// northwindTemplate is the agency sample, seeded once per test binary.
+// northwindTemplate is the agency sample, seeded once per `go test` run.
 var northwindTemplate struct {
-	once sync.Once
-	name string
-	err  error
+	once  sync.Once
+	name  string
+	files string
+	err   error
 }
 
 // SeedNorthwind loads the agency sample (Northwind Studio and its seven
@@ -312,9 +318,11 @@ func (e *Env) SeedNorthwind() {
 	e.T.Helper()
 	ctx := context.Background()
 	northwindTemplate.once.Do(func() {
-		northwindTemplate.name, northwindTemplate.err = testdb.Template(ctx, "northwind", func(pool *pgxpool.Pool) error {
+		northwindTemplate.name, northwindTemplate.files, northwindTemplate.err = testdb.Shared(ctx, "northwind", func(pool *pgxpool.Pool, dir string) error {
+			cfg := *e.App.Cfg
+			cfg.Files.Dir = dir
 			// A fortieth of the contacts: the same sample, cloned in moments.
-			_, err := demo.SeedNorthwindWith(ctx, pool, e.App.Cfg, e.App.Secrets, slog.New(slog.NewTextHandler(io.Discard, nil)), demo.NorthwindOptions{ContactsDivisor: 40})
+			_, err := demo.SeedNorthwindWith(ctx, pool, &cfg, e.App.Secrets, slog.New(slog.NewTextHandler(io.Discard, nil)), demo.NorthwindOptions{ContactsDivisor: 40})
 			return err
 		})
 	})
@@ -323,6 +331,9 @@ func (e *Env) SeedNorthwind() {
 	}
 	e.stop()
 	e.start(testdb.NewFrom(e.T, northwindTemplate.name))
+	if err := os.CopyFS(e.App.Cfg.FilesDir(), os.DirFS(northwindTemplate.files)); err != nil {
+		e.T.Fatalf("northwind files: %v", err)
+	}
 }
 
 // SignInDemo signs in as a demo user. Demo users with an authenticator get

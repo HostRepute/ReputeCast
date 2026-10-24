@@ -13,9 +13,9 @@ import (
 )
 
 // Clones and demo templates carry their owner in their name: a tag for the
-// host, the test binary's PID and when it made them. A later run drops what
-// a finished binary left behind on this host, and anything of another host
-// past cloneMaxAge. Migration templates of other migration sets go once no
+// host, the PID of the test binary (of the `go test` run, for a Shared
+// template) and when it made them. A later run drops what a finished owner
+// left behind on this host, and anything of another host past cloneMaxAge. Migration templates of other migration sets go once no
 // run has used them for templateMaxAge.
 const (
 	cloneMaxAge    = 2 * time.Hour
@@ -128,11 +128,18 @@ func sweep(ctx context.Context, admin *pgx.Conn, now time.Time) {
 		default:
 			v = judgeClone(d.name, now, processAlive)
 		}
+		var err error
 		switch v {
+		case keep:
+			continue
 		case drop:
-			_, _ = admin.Exec(ctx, `DROP DATABASE IF EXISTS `+pgx.Identifier{d.name}.Sanitize()+` WITH (FORCE)`)
+			_, err = admin.Exec(ctx, `DROP DATABASE IF EXISTS `+pgx.Identifier{d.name}.Sanitize()+` WITH (FORCE)`)
 		case dropIdle:
-			_, _ = admin.Exec(ctx, `DROP DATABASE IF EXISTS `+pgx.Identifier{d.name}.Sanitize())
+			_, err = admin.Exec(ctx, `DROP DATABASE IF EXISTS `+pgx.Identifier{d.name}.Sanitize())
+		}
+		// A shared template's files (Shared) go with it.
+		if err == nil && strings.HasPrefix(d.name, "rc_fill_") {
+			_ = os.RemoveAll(sharedDir(d.name))
 		}
 	}
 }
