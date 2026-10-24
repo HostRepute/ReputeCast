@@ -1,4 +1,5 @@
 import { AdapterError, HttpError, ProviderError, cleanText } from "./errors.ts";
+import { trimTrailingSlashes } from "./url.ts";
 
 export interface HttpResponse<T = any> {
   status: number;
@@ -102,7 +103,7 @@ export function createHttpClient(o: HttpClientOptions): HttpClient {
   async function request<T>(method: string, path: string, opts: RequestOptions = {}): Promise<HttpResponse<T>> {
     let url: URL;
     try {
-      url = /^https?:\/\//i.test(path) ? new URL(path) : new URL(o.baseUrl.replace(/\/+$/, "") + (path.startsWith("/") ? path : "/" + path));
+      url = /^https?:\/\//i.test(path) ? new URL(path) : new URL(trimTrailingSlashes(o.baseUrl) + (path.startsWith("/") ? path : "/" + path));
     } catch {
       throw new AdapterError("internal", `ctx.http can't build a URL from ${JSON.stringify(path)}`);
     }

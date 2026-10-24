@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { Connection, Envelope, Operation, ResponseEnvelope } from "../protocol.ts";
 import { HEADERS, PROTOCOL_VERSION, TIMEOUTS } from "../protocol.ts";
 import { signatureHeader, verifySignature } from "../signing.ts";
+import { trimTrailingSlashes } from "../url.ts";
 
 export interface CallOptions {
   connection?: Connection;
@@ -34,7 +35,7 @@ export class ProtocolClient {
   readonly adapter: string;
 
   constructor(o: { url: string; secret: string | string[]; adapter: string }) {
-    this.url = o.url.replace(/\/+$/, "");
+    this.url = trimTrailingSlashes(o.url);
     this.secrets = typeof o.secret === "string" ? [o.secret] : o.secret;
     this.adapter = o.adapter;
   }
