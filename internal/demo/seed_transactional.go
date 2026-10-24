@@ -675,10 +675,13 @@ func (t *txnSeed) week(ctx context.Context) error {
 			} else if hard24 > 0 || soft24 > 0 {
 				// The day's bounces are two hours old or more: the last hour
 				// stays under the alert's limit (no alert is active).
-				m.accepted = s.Ago(2*time.Hour + time.Duration(t.rng.Int64N(int64(21*time.Hour+50*time.Minute))))
+				m.accepted = s.Ago(2*time.Hour + time.Duration(t.rng.Int64N(int64(21*time.Hour+30*time.Minute))))
 			} else {
-				m.accepted = s.Ago(15*time.Minute + time.Duration(t.rng.Int64N(int64(23*time.Hour+40*time.Minute))))
+				m.accepted = s.Ago(15*time.Minute + time.Duration(t.rng.Int64N(int64(23*time.Hour+15*time.Minute))))
 			}
+			// Both stay half an hour inside the last 24 hours, so the day's
+			// counts hold while the data ages (tests share one seed for
+			// minutes).
 			m.data = t.dataFor(p.key, first, m.accepted)
 			m.subject = subjectFor(p.key, m.data)
 			m.name = first
@@ -778,7 +781,7 @@ func (t *txnSeed) weekExtras(context.Context) error {
 	// a few a day before.
 	for i := 0; i < 24+90; i++ {
 		key := []string{"welcome", "password-reset", "magic-link", "invoice-paid"}[i%4]
-		at := s.Ago(16*time.Minute + time.Duration(t.rng.Int64N(int64(23*time.Hour+30*time.Minute))))
+		at := s.Ago(16*time.Minute + time.Duration(t.rng.Int64N(int64(23*time.Hour+14*time.Minute))))
 		if i >= 24 {
 			at = s.Ago(25*time.Hour + time.Duration(t.rng.Int64N(int64(5*24*time.Hour))))
 		}
