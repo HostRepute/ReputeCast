@@ -174,7 +174,7 @@ func Register(h huma.API, s *Service) {
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.Link(ctx, api.WorkspaceFrom(ctx), id)
+			out, err := s.Link(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id)
 			return api.OK(out), err
 		})
 

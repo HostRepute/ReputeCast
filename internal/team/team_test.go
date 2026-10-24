@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/apptest"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -394,4 +396,69 @@ func TestSecondWorkspaceMembers(t *testing.T) {
 	if signInLabels(kenji.SignIn) != "Passkey" || kenji.TwoFA.State != "on" || !kenji.LastOwner {
 		t.Fatalf("kenji: %+v", kenji)
 	}
+}
+
+// Whoever holds an invitation's link joins with its role and scope, so a
+// member with team:invite only gets the link of an invitation they could
+// have sent: copying it and resending it check what Invite checks.
+func TestInvitationLinkNeedsWhatInviteNeeds(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	var l memberList
+	c.Do("GET", ws+"/members", nil).MustStatus(t, 200).JSON(t, &l)
+	var opts struct{ Lists []struct{ ID, Name string } }
+	c.Do("GET", ws+"/invitations/options", nil).MustStatus(t, 200).JSON(t, &opts)
+	var beta string
+	for _, li := range opts.Lists {
+		if li.Name == "Beta Program" {
+			beta = li.ID
+		}
+	}
+	var recruiter, watcher struct{ ID string }
+	c.Do("POST", ws+"/roles", map[string]any{"name": "Recruiter", "permissions": []string{"team:invite"}}).MustStatus(t, 201).JSON(t, &recruiter)
+	c.Do("POST", ws+"/roles", map[string]any{"name": "Watcher", "permissions": []string{"team:view"}}).MustStatus(t, 201).JSON(t, &watcher)
+
+	invite := func(email, roleID string, scope map[string]any) string {
+		t.Helper()
+		var res struct{ Invitations []struct{ ID string } }
+		c.Do("POST", ws+"/invitations", map[string]any{"emails": []string{email}, "roleId": roleID, "scope": scope}).MustStatus(t, 201).JSON(t, &res)
+		return res.Invitations[0].ID
+	}
+	admin := invite("new-admin@example.com", roleID(t, l, "admin"), map[string]any{})
+	open := invite("watcher@example.com", watcher.ID, map[string]any{})
+	scoped := invite("beta-watcher@example.com", watcher.ID, map[string]any{"lists": []string{beta}})
+
+	wsRow, err := env.App.Q.GetWorkspaceBySlug(ctx, "acme-newsletter")
+	if err != nil {
+		t.Fatal(err)
+	}
+	u := env.CreateUser(apptest.UserOpts{Email: "recruiter@acme.io", Name: "Rae Recruiter"})
+	addMember(t, env, wsRow.ID, u.ID, uuid.MustParse(recruiter.ID))
+	rc := env.Client()
+	rc.SignInDemo("recruiter@acme.io")
+
+	// The Admin role holds what the Recruiter doesn't: no link, no resend.
+	for _, path := range []string{"/link", "/resend"} {
+		p := rc.Do("POST", ws+"/invitations/"+admin+path, nil).MustStatus(t, 403).Problem(t)
+		if p["code"] != "escalation_denied" {
+			t.Fatalf("%s of an Admin invitation: %v", path, p)
+		}
+	}
+	rc.Do("POST", ws+"/invitations/"+open+"/link", nil).MustStatus(t, 200)
+
+	// Scoped to Beta Program, the Recruiter only gets links within it.
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE workspace_members SET scope = jsonb_build_object('lists', jsonb_build_array($1::text)) WHERE user_id = $2`, beta, u.ID); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"/link", "/resend"} {
+		p := rc.Do("POST", ws+"/invitations/"+open+path, nil).MustStatus(t, 403).Problem(t)
+		if p["code"] != "escalation_denied" {
+			t.Fatalf("%s of an unscoped invitation: %v", path, p)
+		}
+	}
+	rc.Do("POST", ws+"/invitations/"+scoped+"/link", nil).MustStatus(t, 200)
+	rc.Do("POST", ws+"/invitations/"+scoped+"/resend", nil).MustStatus(t, 200)
 }

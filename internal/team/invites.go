@@ -505,11 +505,33 @@ type TeamInviteLink struct {
 	ExpiresAt time.Time `json:"expiresAt"`
 }
 
+// canHandOut applies Invite's checks to an existing invitation before its
+// link is handed out: whoever holds the link joins with the invitation's
+// role and scope, so a member only gets the links of invitations they
+// could have sent.
+func canHandOut(l i18n.Lang, p *authz.Principal, inv store.TeamGetInvitationRow) error {
+	perms := authz.Effective(inv.RoleKey, inv.RoleBuiltin, inv.RolePermissions)
+	if ok, reason := canGrantRole(l, p.Permissions, inv.RoleKey, inv.RoleBuiltin, perms); !ok {
+		pr := api.Err(http.StatusForbidden, api.CodeEscalation, reason)
+		if m := p.Permissions.Missing(perms); len(m) > 0 {
+			pr.Permission = string(m[0])
+		}
+		return pr
+	}
+	if !access.ParseScope(inv.Scope).Within(p.Scope) {
+		return api.Err(http.StatusForbidden, api.CodeEscalation, mInviteOwnScope.Text(l, nil))
+	}
+	return nil
+}
+
 // Link returns the link of a pending invitation (the emailed link stays valid).
-func (s *Service) Link(ctx context.Context, ws *store.Workspace, id uuid.UUID) (TeamInviteLink, error) {
+func (s *Service) Link(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (TeamInviteLink, error) {
 	inv, err := s.Q.TeamGetInvitation(ctx, store.TeamGetInvitationParams{ID: id, WorkspaceID: ws.ID})
 	if err != nil {
 		return TeamInviteLink{}, api.MapError(err, "Invitation")
+	}
+	if err := canHandOut(i18n.LangFrom(ctx), p, inv); err != nil {
+		return TeamInviteLink{}, err
 	}
 	if len(inv.TokenEnc) == 0 {
 		return TeamInviteLink{}, api.Conflict(msgs.M("problem.oldInvite").Text(i18n.LangFrom(ctx), nil))
@@ -539,9 +561,8 @@ func (s *Service) Resend(ctx context.Context, ws *store.Workspace, p *authz.Prin
 	if err != nil {
 		return TeamResendResult{}, api.MapError(err, "Invitation")
 	}
-	perms := authz.Effective(inv.RoleKey, inv.RoleBuiltin, inv.RolePermissions)
-	if ok, reason := canGrantRole(i18n.LangFrom(ctx), p.Permissions, inv.RoleKey, inv.RoleBuiltin, perms); !ok {
-		return TeamResendResult{}, api.Err(http.StatusForbidden, api.CodeEscalation, reason)
+	if err := canHandOut(i18n.LangFrom(ctx), p, inv); err != nil {
+		return TeamResendResult{}, err
 	}
 	var token string
 	if len(inv.TokenEnc) > 0 {
