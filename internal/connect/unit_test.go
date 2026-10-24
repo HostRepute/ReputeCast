@@ -2,8 +2,13 @@ package connect
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/netguard"
@@ -76,5 +81,38 @@ func TestCheckHost(t *testing.T) {
 	e := hostBlocked("host", closed.checkHost(ctx, "localhost"))
 	if e.Field != "host" || e.Code != "address_blocked" || !strings.Contains(e.Message, "providers.allow_private_networks") {
 		t.Errorf("explanation: %+v", e)
+	}
+}
+
+// The self-test posts to an address a member typed, so it goes through
+// the SSRF guard: a redirect fails the test instead of being followed,
+// and an address that turns private by the time it's dialed (DNS
+// rebinding: the name looked public a moment before) is refused.
+func TestSelfTestGuardsTheAddress(t *testing.T) {
+	var inside atomic.Int32
+	internal := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		inside.Add(1)
+	}))
+	defer internal.Close()
+	redirect := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, internal.URL+"/admin/stop", http.StatusTemporaryRedirect)
+	}))
+	defer redirect.Close()
+	now := time.Now()
+
+	st := SelfTest(context.Background(), redirect.URL+"/hooks/postal/tok", "tok", now, true)
+	if st.OK || st.Code != "HTTP 307" || inside.Load() != 0 {
+		t.Fatalf("redirect followed: %+v, internal hit %d times", st, inside.Load())
+	}
+
+	u, _ := url.Parse(internal.URL + "/hooks/postal/tok")
+	st = selfTestPost(context.Background(), SelfTestState{At: now}, u, u.String(), "tok", now, false)
+	if st.OK || !st.Private || st.Code != "ECONNREFUSED" || !strings.Contains(st.Reason, "127.0.0.1 is a private address") || inside.Load() != 0 {
+		t.Fatalf("private address dialed: %+v, internal hit %d times", st, inside.Load())
+	}
+
+	// A test instance that allows private receivers still reaches them.
+	if st = SelfTest(context.Background(), internal.URL+"/hooks/postal/tok", "tok", now, true); !st.OK {
+		t.Fatalf("allowed private receiver: %+v", st)
 	}
 }
