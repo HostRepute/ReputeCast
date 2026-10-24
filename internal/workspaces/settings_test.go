@@ -170,3 +170,28 @@ func TestTransferDeleteExport(t *testing.T) {
 		t.Fatalf("audit: %d", n)
 	}
 }
+
+// The whole-workspace export holds every contact, so a member limited to
+// some lists can't take it, even holding subscribers:export: Audience's
+// export gives them the contacts they can see.
+func TestExportNeedsAnUnscopedMember(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	scope := func(sql string) {
+		t.Helper()
+		if _, err := env.App.Pool.Exec(ctx, `UPDATE workspace_members m SET scope = `+sql+` FROM users u
+			WHERE u.id = m.user_id AND u.email = 'marcus@acme.io'`); err != nil {
+			t.Fatal(err)
+		}
+	}
+	marcus := env.Client()
+	marcus.SignInDemo("marcus@acme.io") // an Admin: subscribers:export
+	scope(`jsonb_build_object('lists', jsonb_build_array((SELECT l.id FROM lists l JOIN workspaces w ON w.id = l.workspace_id WHERE w.slug = 'acme-newsletter' AND l.name = 'Beta Program')))`)
+	p := marcus.Do("GET", ws+"/export", nil).MustStatus(t, 403).Problem(t)
+	if !strings.HasPrefix(p["detail"].(string), "A full export holds every contact in the workspace") {
+		t.Fatalf("scoped export: %v", p)
+	}
+	scope(`'{}'::jsonb`)
+	marcus.Do("GET", ws+"/export", nil).MustStatus(t, 200)
+}

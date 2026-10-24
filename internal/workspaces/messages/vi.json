@@ -46,5 +46,6 @@
   "audit.restorable": "khôi phục được đến ngày {at, date}",
   "audit.sendsStopped": "{count, plural, other {đã dừng # lần gửi đã lên lịch}}",
   "audit.exported": "liên hệ kèm sự đồng ý, chiến dịch dạng MJML, báo cáo dạng CSV, nhật ký kiểm tra dạng JSON",
-  "audit.section": "{shown, select, yes {đã hiện} other {đã ẩn}} {section, select, transactional {Giao dịch} grow {Tăng trưởng} other {Kiếm tiền}} {shown, select, yes {trên thanh bên} other {khỏi thanh bên}}"
+  "audit.section": "{shown, select, yes {đã hiện} other {đã ẩn}} {section, select, transactional {Giao dịch} grow {Tăng trưởng} other {Kiếm tiền}} {shown, select, yes {trên thanh bên} other {khỏi thanh bên}}",
+  "problem.exportScope": "Bản xuất đầy đủ chứa mọi liên hệ trong không gian làm việc, còn quyền truy cập của bạn chỉ áp dụng cho một số danh sách hoặc tên miền người gửi. Hãy xuất các liên hệ bạn thấy được trong mục Người đăng ký."
 }

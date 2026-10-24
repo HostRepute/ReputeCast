@@ -3,6 +3,7 @@ package workspaces
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -54,6 +55,11 @@ func Register(h huma.API, s *Service) {
 	api.Get(h, api.Op{ID: "export-workspace", Path: base + "/export", Summary: "Export everything: contacts with consent, campaigns as MJML, reports as CSV, audit log as JSON (ZIP, streamed)", Tags: tags, Access: api.WorkspaceHuman(authz.SubscribersExport)},
 		func(ctx context.Context, _ *api.WorkspaceInput) (*huma.StreamResponse, error) {
 			ws, p := api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx)
+			// The archive holds every contact and campaign, so a member
+			// limited to some lists or sender domains can't take it.
+			if !p.Scope.IsZero() {
+				return nil, api.Err(http.StatusForbidden, api.CodePermissionDenied, say(ctx, "problem.exportScope", nil))
+			}
 			return &huma.StreamResponse{Body: func(hctx huma.Context) {
 				name := strings.Trim(strings.ToLower(ws.Slug), "-")
 				hctx.SetHeader("Content-Type", "application/zip")

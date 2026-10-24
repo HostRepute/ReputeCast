@@ -46,5 +46,6 @@
   "audit.restorable": "restorable until {at, date}",
   "audit.sendsStopped": "{count, plural, one {# scheduled send stopped} other {# scheduled sends stopped}}",
   "audit.exported": "contacts with consent, campaigns as MJML, reports as CSV, audit log as JSON",
-  "audit.section": "{section, select, transactional {Transactional} grow {Grow} other {Earn}} {shown, select, yes {shown in the sidebar} other {hidden from the sidebar}}"
+  "audit.section": "{section, select, transactional {Transactional} grow {Grow} other {Earn}} {shown, select, yes {shown in the sidebar} other {hidden from the sidebar}}",
+  "problem.exportScope": { "message": "A full export holds every contact in the workspace, and your access is limited to some lists or sender domains. Export the contacts you can see from Audience instead.", "note": "a member whose role is scoped to some lists or sender domains asked for the whole-workspace export" }
 }
