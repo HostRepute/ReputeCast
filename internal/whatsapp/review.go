@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/audit"
@@ -375,6 +376,11 @@ func (s *Service) Send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	case "draft", "approval", "approved":
 	default:
 		return WhatsAppSendResult{}, api.Conflict(mAlreadyStatus.Text(l, i18n.Args{"status": c.Status}))
+	}
+	// A member limited to some lists messages only them, whoever built
+	// the audience.
+	if lists, segments := audienceOf(c.Audience); !access.AudienceInScope(p.Scope, lists, len(segments)) {
+		return WhatsAppSendResult{}, api.Err(403, api.CodePermissionDenied, access.AudienceScopeProblem(l))
 	}
 	if in.Version != int(c.Version) {
 		return WhatsAppSendResult{}, api.Err(409, "stale_version", mStaleReviewed.Text(l, i18n.Args{"version": itoa(int(c.Version))}))

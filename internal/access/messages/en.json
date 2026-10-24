@@ -14,5 +14,7 @@
   "notHoldable.verify": "Not offered to agents: it sends addresses out of ReputeCast",
   "notHoldable.placementRun": "Not offered to agents: it sends copies through your providers",
   "notHoldable.placementManage": "Not offered to agents: seed passwords and tokens can read whole mailboxes",
-  "notHoldable.agents": "MCP agents can't hold {permission}. Give it to an API key or a person."
+  "notHoldable.agents": "MCP agents can't hold {permission}. Give it to an API key or a person.",
+
+  "problem.audienceScope": { "message": "Your access is limited to some lists: send only to those lists, not to other lists or a segment.", "note": "a member whose role is scoped to some lists tried to send to an audience reaching other contacts" }
 }

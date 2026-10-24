@@ -3,6 +3,11 @@ package access
 import (
 	"strings"
 	"testing"
+
+	"github.com/google/uuid"
+
+	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/i18n"
 )
 
 func labels(ms []MemberSignInMethod) string {
@@ -43,5 +48,35 @@ func TestPrimarySignIn(t *testing.T) {
 				t.Errorf("list = %q, want %q", got, c.list)
 			}
 		})
+	}
+}
+
+// A member limited to some lists sends to those lists only: never to a
+// segment, which can reach anyone in the workspace.
+func TestAudienceInScope(t *testing.T) {
+	beta, weekly := uuid.New(), uuid.New()
+	scoped := authz.Scope{Lists: []uuid.UUID{beta}}
+	for _, c := range []struct {
+		scope    authz.Scope
+		lists    []uuid.UUID
+		segments int
+		want     bool
+	}{
+		{authz.Scope{}, []uuid.UUID{weekly}, 2, true},
+		{scoped, []uuid.UUID{beta}, 0, true},
+		{scoped, nil, 0, true},
+		{scoped, []uuid.UUID{beta, weekly}, 0, false},
+		{scoped, []uuid.UUID{beta}, 1, false},
+		{scoped, nil, 1, false},
+	} {
+		if got := AudienceInScope(c.scope, c.lists, c.segments); got != c.want {
+			t.Errorf("AudienceInScope(%v, %v, %d) = %v", c.scope, c.lists, c.segments, got)
+		}
+	}
+	if got := ParseLists([]string{beta.String(), "not-an-id"}); len(got) != 1 || got[0] != beta {
+		t.Fatalf("ParseLists: %v", got)
+	}
+	if AudienceScopeProblem(i18n.For(i18n.Vietnamese)) == AudienceScopeProblem(i18n.Default) {
+		t.Fatal("the reason reads in the member's language")
 	}
 }

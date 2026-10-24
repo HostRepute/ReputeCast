@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/audit"
@@ -706,6 +707,11 @@ func (s *Service) Send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	case "draft", "approval", "approved":
 	default:
 		return PushSendResult{}, api.Conflict(mProblemAlreadySent.Text(l, i18n.Args{"status": c.Status}))
+	}
+	// A member limited to some lists notifies only people on them: the
+	// sites' subscribers narrowed to those lists, whoever built it.
+	if len(p.Scope.Lists) > 0 && (len(c.Lists) == 0 || !access.AudienceInScope(p.Scope, c.Lists, len(c.Segments))) {
+		return PushSendResult{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, access.AudienceScopeProblem(l))
 	}
 	if in.Version != int(c.Version) {
 		return PushSendResult{}, api.Err(409, "stale_version", mProblemChanged.Text(l, i18n.Args{"version": strconv.Itoa(int(c.Version))}))

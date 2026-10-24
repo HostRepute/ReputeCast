@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/accessibility"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
@@ -467,6 +468,11 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			ab = abt.toDB()
 		}
 		audience, count = c.Audience, c.AudienceCount
+		// A member limited to some lists keeps the copy's audience only
+		// when they could have picked it themselves.
+		if len(p.Scope.Lists) > 0 && s.checkAudience(ctx, s.Q, ws, p, audienceFromDB(c.Audience)) != nil {
+			audience, count = []byte(`{}`), nil
+		}
 		if c.SenderID != nil {
 			sender = c.SenderID
 		}
@@ -667,6 +673,11 @@ func (s *Service) checkAudience(ctx context.Context, q *store.Queries, ws *store
 			if !knownSeg[id] {
 				return api.Invalid("body.audience.segments", mProblemSegmentGone.Text(l, nil))
 			}
+		}
+		// A segment can reach anyone in the workspace; excluding one only
+		// narrows the audience.
+		if !access.AudienceInScope(p.Scope, nil, len(a.Segments)) {
+			return api.Invalid("body.audience.segments", access.AudienceScopeProblem(l))
 		}
 	}
 	if a.PaidTier != "" {

@@ -14,5 +14,7 @@
   "notHoldable.verify": "Không dành cho tác tử: quyền này gửi địa chỉ ra ngoài ReputeCast",
   "notHoldable.placementRun": "Không dành cho tác tử: quyền này gửi bản sao qua các nhà cung cấp của bạn",
   "notHoldable.placementManage": "Không dành cho tác tử: mật khẩu và token của hộp thư mẫu đọc được toàn bộ hộp thư",
-  "notHoldable.agents": "Tác tử MCP không thể có {permission}. Hãy cấp quyền này cho một khóa API hoặc một người."
+  "notHoldable.agents": "Tác tử MCP không thể có {permission}. Hãy cấp quyền này cho một khóa API hoặc một người.",
+
+  "problem.audienceScope": "Quyền truy cập của bạn chỉ áp dụng cho một số danh sách: chỉ gửi tới các danh sách đó, không gửi tới danh sách khác hay một phân khúc."
 }

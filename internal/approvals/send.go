@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/access"
 	"github.com/hostrepute/reputecast/internal/api"
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authn"
@@ -153,6 +154,11 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		return ReviewSendResult{}, api.Conflict(say(ctx, mAlreadyScheduled, nil))
 	default:
 		return ReviewSendResult{}, api.Conflict(say(ctx, mAlreadySending, nil))
+	}
+	// A member limited to some lists sends only to them, whoever built the
+	// audience.
+	if a := readiness.ParseAudience(c.Audience); !access.AudienceInScope(p.Scope, access.ParseLists(a.Lists), len(a.Segments)) {
+		return ReviewSendResult{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, access.AudienceScopeProblem(i18n.LangFrom(ctx)))
 	}
 	// The campaign as the person reviewed it, before a new schedule.
 	reviewed := c

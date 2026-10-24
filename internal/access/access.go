@@ -38,6 +38,7 @@ var (
 	mScopeAll     = msgs.M("scope.all")
 	mCantGrant    = msgs.M("cantGrant")
 	mCantGrantAsk = msgs.M("cantGrantAsk")
+	mAudience     = msgs.M("problem.audienceScope")
 )
 
 // PermissionInfo describes one permission key for the role editor, API key
@@ -515,4 +516,31 @@ func Plural(n int, one, many string) string {
 		return one
 	}
 	return many
+}
+
+// AudienceInScope reports whether a member's list scope lets them send to
+// an audience of these lists and segments: every list is in the scope and
+// there's no segment, which can reach anyone in the workspace. Exclusions
+// only narrow an audience, so callers leave them out.
+func AudienceInScope(scope authz.Scope, lists []uuid.UUID, segments int) bool {
+	if len(scope.Lists) == 0 {
+		return true
+	}
+	return segments == 0 && scope.AllowsLists(lists)
+}
+
+// AudienceScopeProblem says why a member limited to some lists can't send
+// to an audience, in a language.
+func AudienceScopeProblem(l i18n.Lang) string { return mAudience.Text(l, nil) }
+
+// ParseLists reads list ids as stored in an audience; an id that doesn't
+// parse names no list, so it's left out.
+func ParseLists(ids []string) []uuid.UUID {
+	out := make([]uuid.UUID, 0, len(ids))
+	for _, raw := range ids {
+		if id, err := uuid.Parse(raw); err == nil {
+			out = append(out, id)
+		}
+	}
+	return out
 }

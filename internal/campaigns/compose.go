@@ -103,6 +103,10 @@ func (s *Service) Context(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		return out, err
 	}
 	for _, sg := range segs {
+		// A member limited to some lists sends to lists only.
+		if len(p.Scope.Lists) > 0 {
+			break
+		}
 		out.Segments = append(out.Segments, ComposerAudienceOption{ID: sg.ID.String(), Name: sg.Name, Count: sg.CachedCount})
 	}
 	if out.Tokens, err = s.tokens(ctx, ws.ID); err != nil {

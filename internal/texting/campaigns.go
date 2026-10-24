@@ -15,6 +15,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/channels"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/sms"
 	"github.com/hostrepute/reputecast/internal/store"
 )
@@ -255,6 +256,9 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if _, err := uuid.Parse(id); err != nil {
 			return SmsCampaign{}, api.Invalid("body.lists", say(ctx, mPickLists, nil))
 		}
+	}
+	if !access.AudienceInScope(p.Scope, access.ParseLists(in.Lists), 0) {
+		return SmsCampaign{}, api.Invalid("body.lists", access.AudienceScopeProblem(i18n.LangFrom(ctx)))
 	}
 	return s.create(ctx, ws, p, name, Audience{Lists: in.Lists}, strings.TrimSpace(in.Body), nil)
 }
@@ -513,6 +517,9 @@ func (s *Service) Update(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			}
 		}
 		aud.Segments = *in.Segments
+	}
+	if (in.Lists != nil || in.Segments != nil) && !access.AudienceInScope(p.Scope, access.ParseLists(aud.Lists), len(aud.Segments)) {
+		return SmsCampaign{}, api.Invalid("body.lists", access.AudienceScopeProblem(i18n.LangFrom(ctx)))
 	}
 	r, err := s.rules(ctx, s.Q, ws)
 	if err != nil {
