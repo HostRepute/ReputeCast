@@ -53643,7 +53643,7 @@
           }
         ],
         "responses": {
-          "204": {
+          "200": {
             "content": {
               "application/json": {
                 "schema": {
@@ -53651,7 +53651,7 @@
                 }
               }
             },
-            "description": "No Content"
+            "description": "OK"
           },
           "default": {
             "content": {
