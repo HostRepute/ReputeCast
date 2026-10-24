@@ -1,0 +1,51 @@
+# Monthly dependency updates, one grouped pull request per ecosystem for minor
+# and patch versions. The pins below follow docs/TECH_STACK.md (Notes and
+# decisions); read it before taking a major version.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      go:
+        update-types: [minor, patch]
+    ignore:
+      # River is pre-1.0: a minor version can break; upgrade it by hand.
+      - dependency-name: github.com/riverqueue/river*
+        update-types: [version-update:semver-minor]
+      # gomjml must compile what grapesjs-mjml's MJML 4 compiles.
+      - dependency-name: github.com/preslavrachev/gomjml
+        update-types: [version-update:semver-minor]
+
+  - package-ecosystem: npm
+    directories: [/web, /site, /sdk]
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      npm:
+        update-types: [minor, patch]
+    ignore:
+      # TypeScript 7 breaks openapi-typescript and typescript-eslint.
+      - dependency-name: typescript
+        versions: [">=7"]
+      # grapesjs-mjml 1.x bundles MJML 4, which the server compiles too.
+      - dependency-name: grapesjs-mjml
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      actions:
+        update-types: [minor, patch]
