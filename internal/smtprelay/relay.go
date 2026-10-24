@@ -360,7 +360,7 @@ func authError(err error) error {
 	switch {
 	case errors.Is(err, transactional.ErrSMTPAuthFailed), errors.Is(err, transactional.ErrSMTPNotSMTPKey), errors.Is(err, transactional.ErrSMTPKeyRevoked),
 		errors.Is(err, transactional.ErrSMTPKeyExpired), errors.Is(err, transactional.ErrSMTPCannotSend), errors.Is(err, transactional.ErrSMTPWorkspaceGone),
-		errors.Is(err, transactional.ErrSMTPIntegrationKey):
+		errors.Is(err, transactional.ErrSMTPIntegrationKey), errors.Is(err, transactional.ErrSMTPCreatorLeft), errors.Is(err, transactional.ErrSMTPCreatorCantSend):
 		return &smtp.SMTPError{Code: 535, EnhancedCode: smtp.EnhancedCode{5, 7, 8}, Message: "Authentication failed: " + err.Error()}
 	}
 	return &smtp.SMTPError{Code: 454, EnhancedCode: smtp.EnhancedCode{4, 7, 0}, Message: "Temporary authentication failure, try again"}

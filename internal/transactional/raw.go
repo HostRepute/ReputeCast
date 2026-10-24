@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/authn"
+	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -75,6 +76,10 @@ var (
 	ErrSMTPKeyExpired    = errors.New("this SMTP credential has expired; create a new one in Transactional › Setup")
 	ErrSMTPCannotSend    = errors.New("this credential doesn't hold transactional:send")
 	ErrSMTPWorkspaceGone = errors.New("the credential's workspace was deleted")
+	// ErrSMTPCreatorLeft: a credential never does more than the person who
+	// created it can do now, as with API keys and MCP agents.
+	ErrSMTPCreatorLeft     = errors.New("the person who created this credential is no longer an active member of the workspace; create a new one in Transactional › Setup")
+	ErrSMTPCreatorCantSend = errors.New("the person who created this credential no longer holds transactional:send; create a new one in Transactional › Setup")
 	// ErrSMTPIntegrationKey: an integration's key (Zapier, Make, n8n,
 	// WordPress) only calls its own integration's operations.
 	ErrSMTPIntegrationKey = errors.New("this key belongs to an integration, which can only call its own operations; create an SMTP credential in Transactional › Setup")
@@ -139,8 +144,25 @@ func (s *Service) AuthenticateSMTP(ctx context.Context, username, password strin
 		}
 		return SMTPCredential{}, ErrSMTPIntegrationKey
 	}
-	if !slices.Contains(k.Permissions, "transactional:send") {
+	if !slices.Contains(k.Permissions, string(authz.TransactionalSend)) {
 		return SMTPCredential{}, ErrSMTPCannotSend
+	}
+	// The credential holds what its creator holds now, as API keys do in
+	// api.Authenticator: nothing once they are deactivated or have left, and
+	// not transactional:send once their role no longer has it.
+	if k.CreatedBy == nil {
+		return SMTPCredential{}, ErrSMTPCreatorLeft
+	}
+	m, err := s.Q.GetMembership(ctx, store.GetMembershipParams{WorkspaceID: k.WorkspaceID, UserID: *k.CreatedBy})
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return SMTPCredential{}, ErrSMTPCreatorLeft
+	case err != nil:
+		return SMTPCredential{}, err
+	case m.Status != "active":
+		return SMTPCredential{}, ErrSMTPCreatorLeft
+	case !authz.Effective(m.RoleKey, m.RoleBuiltin, m.RolePermissions).Has(authz.TransactionalSend):
+		return SMTPCredential{}, ErrSMTPCreatorCantSend
 	}
 	if tk.Preset != "smtp" {
 		return SMTPCredential{}, ErrSMTPNotSMTPKey

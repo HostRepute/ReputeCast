@@ -391,3 +391,57 @@ func TestSMTPRelayUnreachable(t *testing.T) {
 		t.Fatalf("instance admins told %d times", n)
 	}
 }
+
+// An SMTP credential never does more than the person who created it can do
+// now, as API keys and agents: demoted or deactivated (keeping their keys),
+// its creator's credential stops authenticating.
+func TestSMTPCredentialFollowsItsCreator(t *testing.T) {
+	e := newRelayEnv(t)
+	marcus := e.env.Client()
+	marcus.SignInDemo("marcus@acme.io") // an Admin
+	var cred struct {
+		Key    struct{ ID string }
+		Secret string
+	}
+	marcus.Do("POST", ws+"/api-keys", map[string]any{"name": "Marcus's SMTP", "permissions": []string{"transactional:send"},
+		"transactional": map[string]any{"preset": "smtp", "categories": []string{e.billing.String()}}}).MustStatus(t, 201).JSON(t, &cred)
+	var members struct {
+		Items []struct{ ID, Email string }
+		Roles []struct{ ID, Key string }
+	}
+	e.owner.Do("GET", ws+"/members", nil).MustStatus(t, 200).JSON(t, &members)
+	var marcusID string
+	for _, m := range members.Items {
+		if m.Email == "marcus@acme.io" {
+			marcusID = m.ID
+		}
+	}
+	role := map[string]string{}
+	for _, r := range members.Roles {
+		role[r.Key] = r.ID
+	}
+	auth := func() error {
+		t.Helper()
+		return e.client(false).Auth(sasl.NewPlainClient("", cred.Key.ID, cred.Secret))
+	}
+	if err := auth(); err != nil {
+		t.Fatalf("Admin's credential: %v", err)
+	}
+
+	e.owner.Do("PATCH", ws+"/members/"+marcusID, map[string]any{"roleId": role["viewer"]}).MustStatus(t, 204)
+	if err := auth(); err == nil || !strings.Contains(err.Error(), "535") || !strings.Contains(err.Error(), "no longer holds transactional:send") {
+		t.Fatalf("after Marcus became a Viewer: %v", err)
+	}
+	e.owner.Do("PATCH", ws+"/members/"+marcusID, map[string]any{"roleId": role["admin"]}).MustStatus(t, 204)
+	if err := auth(); err != nil {
+		t.Fatalf("Admin again: %v", err)
+	}
+
+	e.owner.Do("POST", ws+"/members/"+marcusID+"/deactivate", map[string]any{"revokeKeys": false}).MustStatus(t, 200)
+	if n := e.count(`SELECT count(*) FROM api_keys WHERE id = $1 AND revoked_at IS NULL`, cred.Key.ID); n != 1 {
+		t.Fatal("deactivating with keys kept revoked the credential")
+	}
+	if err := auth(); err == nil || !strings.Contains(err.Error(), "535") || !strings.Contains(err.Error(), "no longer an active member") {
+		t.Fatalf("after Marcus was deactivated: %v", err)
+	}
+}
