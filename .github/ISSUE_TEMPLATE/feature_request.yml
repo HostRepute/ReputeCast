@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest something ReputeCast should do.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For open-ended ideas, a [discussion](https://github.com/hostrepute/reputecast/discussions) is a good place to start.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The problem or the job to be done, not the solution yet.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would help?
+      description: How you imagine it working. Mockups or examples from other tools are welcome.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What do you do today?
+      description: Workarounds or alternatives you've tried.
