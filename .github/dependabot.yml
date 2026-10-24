@@ -38,6 +38,9 @@ updates:
       # grapesjs-mjml 1.x bundles MJML 4, which the server compiles too.
       - dependency-name: grapesjs-mjml
         update-types: [version-update:semver-major]
+      # Node is 24 LTS (.nvmrc): its types follow the runtime's major.
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
     directory: /
