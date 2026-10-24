@@ -184,6 +184,18 @@ func (n *Normalizer) Apply(ctx context.Context, tx pgx.Tx, p store.Provider, raw
 	if recipient == "" && msg != nil {
 		recipient = msg.Email
 	}
+	// Reports read from the bounce mailbox carry no signature: anyone can
+	// email the return path every newsletter shows. Such a report counts
+	// only for a message ReputeCast sent, to that message's recipient (an
+	// address someone else's report names isn't theirs to suppress); the
+	// others are kept as events and change nothing else.
+	trusted := true
+	if source == "bounce_mailbox" {
+		if msg != nil && !strings.EqualFold(recipient, msg.Email) {
+			msg = nil
+		}
+		trusted = msg != nil
+	}
 	mailbox := routing.MailboxProvider(recipient)
 	label := ""
 	var messageID, campaignID, contactID *uuid.UUID
@@ -262,7 +274,7 @@ func (n *Normalizer) Apply(ctx context.Context, tx pgx.Tx, p store.Provider, raw
 	case providers.EventComplaint:
 		out.Complained = 1
 	}
-	if out.Delivered+out.Bounced+out.Complained > 0 {
+	if trusted && out.Delivered+out.Bounced+out.Complained > 0 {
 		if err := q.ProvRecordOutcome(ctx, out); err != nil {
 			return 0, err
 		}
@@ -281,7 +293,7 @@ func (n *Normalizer) Apply(ctx context.Context, tx pgx.Tx, p store.Provider, raw
 	case providers.EventUnsubscribe:
 		reason = "unsubscribe"
 	}
-	if reason == "" || recipient == "" {
+	if !trusted || reason == "" || recipient == "" {
 		return 0, nil
 	}
 	src := "webhook"
