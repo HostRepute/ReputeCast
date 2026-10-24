@@ -26,6 +26,7 @@ const (
 	workspaceKey
 	userKey
 	sessionKey
+	logKey
 )
 
 // PrincipalFrom returns the authenticated caller, or nil on public operations.
@@ -83,6 +84,9 @@ func (a *Authenticator) Middleware(hapi huma.API) func(huma.Context, func(huma.C
 	return func(hctx huma.Context, next func(huma.Context)) {
 		access := accessOf(hctx.Operation())
 		ctx := hctx.Context()
+		if a.Log != nil {
+			ctx = context.WithValue(ctx, logKey, a.Log)
+		}
 		if access.Kind == AccessPublic {
 			// Public operations still see a signed-in user when there is one
 			// (accepting an invite while signed in as someone else).

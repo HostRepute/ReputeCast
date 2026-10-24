@@ -1,11 +1,16 @@
 package api
 
 import (
+	"context"
+	"crypto/rand"
+	"encoding/base32"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/hostrepute/reputecast/internal/authz"
@@ -43,6 +48,7 @@ const (
 	CodeInvalidCredentials  = "invalid_credentials" //nolint:gosec // an error code, not a credential
 	CodeProviderUnavailable = "provider_unavailable"
 	CodeUnavailable         = "unavailable"
+	CodeInternal            = "internal_error"
 )
 
 func init() {
@@ -68,7 +74,11 @@ func init() {
 				details = append(details, d)
 				continue
 			}
-			details = append(details, &huma.ErrorDetail{Message: e.Error()})
+			// An unexpected error's own text can hold SQL, hosts or paths: it
+			// goes to the log (NewErrorWithContext), not to the client.
+			if status < http.StatusInternalServerError {
+				details = append(details, &huma.ErrorDetail{Message: e.Error()})
+			}
 		}
 		p := &Problem{ErrorModel: huma.ErrorModel{
 			Status: status,
@@ -81,6 +91,54 @@ func init() {
 		}
 		return p
 	}
+
+	// A 5xx from an unexpected error answers with a reference, and the error
+	// is logged under that reference with the request id.
+	huma.NewErrorWithContext = func(hctx huma.Context, status int, msg string, errs ...error) huma.StatusError {
+		se := huma.NewError(status, msg, errs...)
+		p, ok := se.(*Problem)
+		if !ok || status < http.StatusInternalServerError || chosen(errs) {
+			return se
+		}
+		p.Code = CodeInternal
+		ref := reference()
+		logUnexpected(hctx, ref, status, msg, errs)
+		return p.WithMeta("reference", ref)
+	}
+}
+
+// chosen reports whether errs carry a problem a handler or middleware wrote
+// on purpose.
+func chosen(errs []error) bool {
+	for _, e := range errs {
+		var m problemMarker
+		if errors.As(e, &m) {
+			return true
+		}
+	}
+	return false
+}
+
+// reference names one unexpected error in the log, e.g. err_7KQ2M4XA.
+func reference() string {
+	b := make([]byte, 5)
+	_, _ = rand.Read(b)
+	return "err_" + base32.StdEncoding.EncodeToString(b)
+}
+
+func logUnexpected(hctx huma.Context, ref string, status int, msg string, errs []error) {
+	ctx, log, op := context.Background(), slog.Default(), ""
+	if hctx != nil {
+		ctx = hctx.Context()
+		if l, ok := ctx.Value(logKey).(*slog.Logger); ok {
+			log = l
+		}
+		if o := hctx.Operation(); o != nil {
+			op = o.OperationID
+		}
+	}
+	log.ErrorContext(ctx, msg, "reference", ref, "status", status, "operation", op,
+		"request_id", middleware.GetReqID(ctx), "error", errors.Join(errs...))
 }
 
 // Err builds a problem with a code.

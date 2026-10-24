@@ -10,9 +10,14 @@ export type Problem = Schemas['Problem']
  * changed." after it. The router's fallback for an unhandled error gets the
  * product voice.
  */
-export function problemSentence(status: number, problem: Pick<Problem, 'detail' | 'title'>): string {
+export function problemSentence(status: number, problem: Pick<Problem, 'detail' | 'title' | 'meta'>): string {
   const raw = (problem.detail || problem.title || `The server answered ${status}`).trim()
-  if (status >= 500 && raw === 'unexpected error occurred') return 'ReputeCast hit an unexpected error; the details are in the server log.'
+  if (status >= 500 && raw === 'unexpected error occurred') {
+    const ref = problem.meta?.reference
+    return typeof ref === 'string'
+      ? `ReputeCast hit an unexpected error; the server log has the details under ${ref}.`
+      : 'ReputeCast hit an unexpected error; the details are in the server log.'
+  }
   const text = raw.charAt(0).toUpperCase() + raw.slice(1)
   return /[.!?…:)"”]$/.test(text) ? text : `${text}.`
 }
