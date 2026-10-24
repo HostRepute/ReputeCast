@@ -1,10 +1,14 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { act } from 'react'
-import { getI18n, setLocale } from '@/i18n'
+import { getI18n, setCatalogLoader, setLocale } from '@/i18n'
 import { renderInWorkspace } from '@/test/app'
 import { AuthLanguageMenu } from './AuthLanguageMenu'
+import vi from './messages.vi'
 
 describe('AuthLanguageMenu', () => {
+  // This feature's translations only: loading every catalog can take longer
+  // than waitFor's second on a slow runner.
+  beforeAll(() => setCatalogLoader('vi', async () => vi))
   afterEach(async () => {
     window.localStorage.clear()
     await act(() => setLocale('en'))
