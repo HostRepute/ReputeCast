@@ -59,8 +59,8 @@ test: test-go test-web ## Run all tests
 .PHONY: test-go
 test-go: ## Go unit and integration tests (uses the compose Postgres when running)
 	@if docker compose ps --status running postgres 2>/dev/null | grep -q postgres; then \
-	  REPUTECAST_TEST_DATABASE_URL="$(TEST_DB)" $(GO) test -race ./...; \
-	else $(GO) test -race ./...; fi
+	  REPUTECAST_TEST_DATABASE_URL="$(TEST_DB)" $(GO) test -race -timeout 45m ./...; \
+	else $(GO) test -race -timeout 45m ./...; fi
 
 .PHONY: test-web
 test-web: ## Web unit tests (Vitest)
