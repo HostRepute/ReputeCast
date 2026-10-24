@@ -505,10 +505,7 @@ type TeamInviteLink struct {
 	ExpiresAt time.Time `json:"expiresAt"`
 }
 
-// canHandOut applies Invite's checks to an existing invitation before its
-// link is handed out: whoever holds the link joins with the invitation's
-// role and scope, so a member only gets the links of invitations they
-// could have sent.
+// canHandOut applies Invite's role and scope checks before a link is handed out.
 func canHandOut(l i18n.Lang, p *authz.Principal, inv store.TeamGetInvitationRow) error {
 	perms := authz.Effective(inv.RoleKey, inv.RoleBuiltin, inv.RolePermissions)
 	if ok, reason := canGrantRole(l, p.Permissions, inv.RoleKey, inv.RoleBuiltin, perms); !ok {

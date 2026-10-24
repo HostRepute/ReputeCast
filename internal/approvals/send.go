@@ -155,8 +155,7 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	default:
 		return ReviewSendResult{}, api.Conflict(say(ctx, mAlreadySending, nil))
 	}
-	// A member limited to some lists sends only to them, whoever built the
-	// audience.
+	// A scoped member sends only within their lists, whoever built the audience.
 	if a := readiness.ParseAudience(c.Audience); !access.AudienceInScope(p.Scope, access.ParseLists(a.Lists), len(a.Segments)) {
 		return ReviewSendResult{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, access.AudienceScopeProblem(i18n.LangFrom(ctx)))
 	}

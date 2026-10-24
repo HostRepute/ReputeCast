@@ -551,8 +551,7 @@ func (s *Service) Send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	default:
 		return SmsSendResult{}, api.Conflict(say(ctx, mAlreadyWentOut, nil))
 	}
-	// A member limited to some lists texts only them, whoever built the
-	// audience.
+	// A scoped member sends only within their lists, whoever built the audience.
 	if a := parseAudience(c.Audience); !access.AudienceInScope(p.Scope, access.ParseLists(a.Lists), len(a.Segments)) {
 		return SmsSendResult{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, access.AudienceScopeProblem(i18n.LangFrom(ctx)))
 	}

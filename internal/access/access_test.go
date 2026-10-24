@@ -51,8 +51,6 @@ func TestPrimarySignIn(t *testing.T) {
 	}
 }
 
-// A member limited to some lists sends to those lists only: never to a
-// segment, which can reach anyone in the workspace.
 func TestAudienceInScope(t *testing.T) {
 	beta, weekly := uuid.New(), uuid.New()
 	scoped := authz.Scope{Lists: []uuid.UUID{beta}}

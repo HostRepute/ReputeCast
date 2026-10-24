@@ -171,9 +171,7 @@ func TestTransferDeleteExport(t *testing.T) {
 	}
 }
 
-// The whole-workspace export holds every contact, so a member limited to
-// some lists can't take it, even holding subscribers:export: Audience's
-// export gives them the contacts they can see.
+// A member limited to some lists can't take the whole-workspace export.
 func TestExportNeedsAnUnscopedMember(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()

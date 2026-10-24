@@ -14,11 +14,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers"
 )
 
-// Reports read from the bounce mailbox carry no signature, and anyone who
-// got a newsletter can email its return path. A hard bounce or complaint
-// from there only suppresses the recipient of a message ReputeCast sent;
-// one naming other addresses is kept as an event and changes nothing.
-// Signed webhooks are unchanged.
+// An unsigned mailbox report only suppresses the recipient of a message we sent.
 func TestMailboxReportsOnlyCountForSentMessages(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
@@ -72,8 +68,6 @@ func TestMailboxReportsOnlyCountForSentMessages(t *testing.T) {
 		return providers.Event{Type: providers.EventHardBounce, MessageID: msg, Recipient: to, OriginalType: "DSN · 5.1.1", OriginalCode: "5.1.1"}
 	}
 
-	// A report about no message ReputeCast sent, and one citing a real
-	// message but naming someone else: kept, nothing suppressed.
 	forged, cited := others[0], others[1]
 	if added := apply("bounce_mailbox", bounce(forged, nil)); added != 0 {
 		t.Fatalf("forged bounce suppressed %d", added)
@@ -88,7 +82,6 @@ func TestMailboxReportsOnlyCountForSentMessages(t *testing.T) {
 		}
 	}
 
-	// The message's own recipient bouncing is a real report.
 	if added := apply("bounce_mailbox", bounce(sentTo, &msgID)); added != 1 {
 		t.Fatalf("matched bounce suppressed %d", added)
 	}
@@ -96,7 +89,6 @@ func TestMailboxReportsOnlyCountForSentMessages(t *testing.T) {
 		t.Fatalf("%s: suppressed %v, status %s", sentTo, suppressed, status)
 	}
 
-	// A signed webhook needs no matched message.
 	if added := apply("api", bounce(others[2], nil)); added != 1 {
 		t.Fatalf("webhook bounce suppressed %d", added)
 	}

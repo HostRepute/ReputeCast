@@ -86,9 +86,7 @@ func TestCompileQueryBindsValues(t *testing.T) {
 	}
 }
 
-// Compile never inlines a stored definition's period unit or field key, even
-// when the definition skipped Validate: those are the two places it writes
-// condition text into the SQL rather than binding it.
+// Compile never inlines an unvalidated unit or field key.
 func TestCompileUnvalidatedDefinition(t *testing.T) {
 	const payload = "days' OR c.id IN (SELECT id FROM public.contacts) OR 'x' = 'x"
 	d := SegmentDefinition{Groups: []SegmentGroup{{Match: "any", Conditions: []SegmentCondition{

@@ -281,8 +281,7 @@ UPDATE automation_emails SET latest_version = @version, updated_at = now() WHERE
 -- name: LanguagesPreviewContacts :many
 -- "Preview as" in the composer: one active contact per contact language
 -- (its base code), from the given lists when there are any, people with a
--- first name first. A member limited to some lists (scope_lists) only gets
--- contacts on them.
+-- first name first.
 SELECT DISTINCT ON (lower(split_part(replace(c.language, '_', '-'), '-', 1)))
        c.id, c.email, c.first_name, c.last_name, c.language
 FROM contacts c

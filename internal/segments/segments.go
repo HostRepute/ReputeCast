@@ -205,10 +205,7 @@ func (s *Service) validate(ctx context.Context, ws *store.Workspace, in *Segment
 	return &c, "", nil
 }
 
-// CheckDefinition validates a builder definition against the workspace's
-// custom fields and lists, as saving one in the builder does, and returns
-// the custom fields Compile needs. Every path that stores a definition
-// calls it (the API and MCP agents alike).
+// CheckDefinition validates a builder definition and returns the custom fields Compile needs.
 func (s *Service) CheckDefinition(ctx context.Context, workspaceID uuid.UUID, d *SegmentDefinition) (map[string]CustomField, error) {
 	custom, err := s.customFields(ctx, workspaceID)
 	if err != nil {

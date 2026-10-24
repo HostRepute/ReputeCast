@@ -207,8 +207,7 @@ type VisibilityPreviewContact struct {
 }
 
 // PreviewContacts picks contacts who get each version, so a person can
-// preview them all from the canvas. A member limited to some lists only
-// gets contacts on them.
+// preview them all from the canvas.
 func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, p *authz.Principal, campaignID uuid.UUID) ([]VisibilityPreviewContact, error) {
 	out := []VisibilityPreviewContact{}
 	c, err := s.Q.VisibilityCampaign(ctx, store.VisibilityCampaignParams{WorkspaceID: ws.ID, ID: campaignID})

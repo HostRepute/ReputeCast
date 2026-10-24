@@ -70,14 +70,12 @@ type SMTPCredential struct {
 
 // Errors of SMTP authentication; their text is the SMTP reply's.
 var (
-	ErrSMTPAuthFailed    = errors.New("the username or password is wrong: the username is the credential's ID and the password its secret, both shown once when it was created")
-	ErrSMTPNotSMTPKey    = errors.New("this key is an API key; create an SMTP credential in Transactional › Setup")
-	ErrSMTPKeyRevoked    = errors.New("this SMTP credential was revoked; create a new one in Transactional › Setup")
-	ErrSMTPKeyExpired    = errors.New("this SMTP credential has expired; create a new one in Transactional › Setup")
-	ErrSMTPCannotSend    = errors.New("this credential doesn't hold transactional:send")
-	ErrSMTPWorkspaceGone = errors.New("the credential's workspace was deleted")
-	// ErrSMTPCreatorLeft: a credential never does more than the person who
-	// created it can do now, as with API keys and MCP agents.
+	ErrSMTPAuthFailed      = errors.New("the username or password is wrong: the username is the credential's ID and the password its secret, both shown once when it was created")
+	ErrSMTPNotSMTPKey      = errors.New("this key is an API key; create an SMTP credential in Transactional › Setup")
+	ErrSMTPKeyRevoked      = errors.New("this SMTP credential was revoked; create a new one in Transactional › Setup")
+	ErrSMTPKeyExpired      = errors.New("this SMTP credential has expired; create a new one in Transactional › Setup")
+	ErrSMTPCannotSend      = errors.New("this credential doesn't hold transactional:send")
+	ErrSMTPWorkspaceGone   = errors.New("the credential's workspace was deleted")
 	ErrSMTPCreatorLeft     = errors.New("the person who created this credential is no longer an active member of the workspace; create a new one in Transactional › Setup")
 	ErrSMTPCreatorCantSend = errors.New("the person who created this credential no longer holds transactional:send; create a new one in Transactional › Setup")
 	// ErrSMTPIntegrationKey: an integration's key (Zapier, Make, n8n,
@@ -147,9 +145,7 @@ func (s *Service) AuthenticateSMTP(ctx context.Context, username, password strin
 	if !slices.Contains(k.Permissions, string(authz.TransactionalSend)) {
 		return SMTPCredential{}, ErrSMTPCannotSend
 	}
-	// The credential holds what its creator holds now, as API keys do in
-	// api.Authenticator: nothing once they are deactivated or have left, and
-	// not transactional:send once their role no longer has it.
+	// As for API keys, the creator must still be active and hold transactional:send.
 	if k.CreatedBy == nil {
 		return SMTPCredential{}, ErrSMTPCreatorLeft
 	}

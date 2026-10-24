@@ -377,8 +377,7 @@ func (s *Service) Send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	default:
 		return WhatsAppSendResult{}, api.Conflict(mAlreadyStatus.Text(l, i18n.Args{"status": c.Status}))
 	}
-	// A member limited to some lists messages only them, whoever built
-	// the audience.
+	// A scoped member sends only within their lists, whoever built the audience.
 	if lists, segments := audienceOf(c.Audience); !access.AudienceInScope(p.Scope, lists, len(segments)) {
 		return WhatsAppSendResult{}, api.Err(403, api.CodePermissionDenied, access.AudienceScopeProblem(l))
 	}

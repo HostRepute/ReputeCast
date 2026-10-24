@@ -13,8 +13,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/visibility"
 )
 
-// A member limited to some lists only previews a campaign's versions as
-// contacts on those lists, even when the campaign goes to others too.
+// A member limited to some lists only previews versions as contacts on them.
 func TestPreviewContactsStayInScope(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
@@ -22,7 +21,6 @@ func TestPreviewContactsStayInScope(t *testing.T) {
 	linh := env.Client()
 	linh.SignInDemo("linh@acme.io")
 
-	// Four readers on a list of the test's own; two of them on a second.
 	var all, two struct{ ID string }
 	linh.Do("POST", ws+"/lists", map[string]any{"name": "Scope test"}).MustStatus(t, 201).JSON(t, &all)
 	linh.Do("POST", ws+"/lists", map[string]any{"name": "Scope test, two"}).MustStatus(t, 201).JSON(t, &two)

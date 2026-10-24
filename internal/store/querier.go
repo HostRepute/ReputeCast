@@ -743,7 +743,6 @@ type Querier interface {
 	ComposerLockCampaign(ctx context.Context, arg ComposerLockCampaignParams) (ComposerLockCampaignRow, error)
 	ComposerPreviewContactByID(ctx context.Context, arg ComposerPreviewContactByIDParams) (ComposerPreviewContactByIDRow, error)
 	// Contacts to preview as: the campaign's audience first, people with a first name first.
-	// A member limited to some lists (scope_lists) only finds contacts on them.
 	ComposerPreviewContacts(ctx context.Context, arg ComposerPreviewContactsParams) ([]ComposerPreviewContactsRow, error)
 	ComposerRandomContact(ctx context.Context, arg ComposerRandomContactParams) (ComposerRandomContactRow, error)
 	// Active members of the workspace, for "Send test" (name and email).
@@ -1761,8 +1760,7 @@ type Querier interface {
 	LanguagesMessageResults(ctx context.Context, campaignID *uuid.UUID) ([]LanguagesMessageResultsRow, error)
 	// "Preview as" in the composer: one active contact per contact language
 	// (its base code), from the given lists when there are any, people with a
-	// first name first. A member limited to some lists (scope_lists) only gets
-	// contacts on them.
+	// first name first.
 	LanguagesPreviewContacts(ctx context.Context, arg LanguagesPreviewContactsParams) ([]LanguagesPreviewContactsRow, error)
 	LanguagesRemove(ctx context.Context, arg LanguagesRemoveParams) (int64, error)
 	LanguagesSetDefault(ctx context.Context, arg LanguagesSetDefaultParams) (int64, error)

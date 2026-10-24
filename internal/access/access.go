@@ -518,10 +518,7 @@ func Plural(n int, one, many string) string {
 	return many
 }
 
-// AudienceInScope reports whether a member's list scope lets them send to
-// an audience of these lists and segments: every list is in the scope and
-// there's no segment, which can reach anyone in the workspace. Exclusions
-// only narrow an audience, so callers leave them out.
+// AudienceInScope reports whether a list scope allows an audience: its lists only, no segment.
 func AudienceInScope(scope authz.Scope, lists []uuid.UUID, segments int) bool {
 	if len(scope.Lists) == 0 {
 		return true
@@ -529,12 +526,10 @@ func AudienceInScope(scope authz.Scope, lists []uuid.UUID, segments int) bool {
 	return segments == 0 && scope.AllowsLists(lists)
 }
 
-// AudienceScopeProblem says why a member limited to some lists can't send
-// to an audience, in a language.
+// AudienceScopeProblem says why AudienceInScope refused, in a language.
 func AudienceScopeProblem(l i18n.Lang) string { return mAudience.Text(l, nil) }
 
-// ParseLists reads list ids as stored in an audience; an id that doesn't
-// parse names no list, so it's left out.
+// ParseLists parses stored list ids, skipping invalid ones.
 func ParseLists(ids []string) []uuid.UUID {
 	out := make([]uuid.UUID, 0, len(ids))
 	for _, raw := range ids {

@@ -12,10 +12,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-// A member limited to some lists ("Editor, Beta Program list only") only
-// previews as contacts on them: the composer's contact search, its random
-// sample and a contact picked by id, the per-language contacts and the SMS
-// recipients. An unscoped member finds the others the same way.
+// A member limited to some lists only previews as contacts on them.
 func TestPreviewContactsStayInScope(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
@@ -46,8 +43,6 @@ func TestPreviewContactsStayInScope(t *testing.T) {
 		return ok
 	}
 	type items struct{ Items []struct{ ID, Email string } }
-	// check reads a list of contacts as Kim (all on Beta Program) and as
-	// Linh (at least one who isn't).
 	check := func(what, path string) {
 		t.Helper()
 		var mine, all items
@@ -69,7 +64,6 @@ func TestPreviewContactsStayInScope(t *testing.T) {
 		}
 	}
 
-	// A new draft has no audience: the search used to cover the workspace.
 	var draft struct{ ID string }
 	kim.Do("POST", ws+"/campaigns", map[string]any{}).MustStatus(t, 201).JSON(t, &draft)
 	for _, q := range []string{"", "a", "%40"} {
@@ -105,10 +99,7 @@ func TestPreviewContactsStayInScope(t *testing.T) {
 	kim.Do("POST", ws+"/sms-campaigns/"+summit+"/preview", map[string]any{"contactId": off}).MustStatus(t, 404)
 }
 
-// A member limited to some lists sends only to those lists, by every
-// channel: no segment (which can reach anyone), no other list, whoever
-// built the audience; a copy of a campaign they couldn't target starts
-// with no audience.
+// A member limited to some lists sends only to those lists, by every channel.
 func TestScopedMemberSendsToTheirListsOnly(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
@@ -130,14 +121,12 @@ func TestScopedMemberSendsToTheirListsOnly(t *testing.T) {
 	kim.SignInDemo("kim@contractor.dev")
 	refused := func(what string, r *apptest.Response, status int) {
 		t.Helper()
-		// The reason is the problem's detail (403) or its field error (422).
 		b, _ := json.Marshal(r.MustStatus(t, status).Problem(t))
 		if !strings.Contains(string(b), "Your access is limited to some lists: send only to those lists, not to other lists or a segment.") {
 			t.Fatalf("%s: %s", what, b)
 		}
 	}
 
-	// The composer offers no segment, and refuses one.
 	var cx struct{ Segments []struct{ ID string } }
 	kim.Do("GET", ws+"/composer", nil).MustStatus(t, 200).JSON(t, &cx)
 	if len(cx.Segments) != 0 {
@@ -148,8 +137,6 @@ func TestScopedMemberSendsToTheirListsOnly(t *testing.T) {
 	refused("segment audience", kim.Do("PATCH", ws+"/campaigns/"+draft.ID, map[string]any{"audience": map[string]any{"lists": []string{beta.String()}, "segments": []string{seg.String()}}}), 422)
 	kim.Do("PATCH", ws+"/campaigns/"+draft.ID, map[string]any{"audience": map[string]any{"lists": []string{beta.String()}, "excludeSegments": []string{seg.String()}}}).MustStatus(t, 200)
 
-	// A campaign Linh built for Weekly Digest: Kim can't send it, and a copy
-	// starts with no audience.
 	weekly := campaignID(t, env, "Weekly Digest #143")
 	refused("send", kim.Do("POST", ws+"/campaigns/"+weekly+"/send", map[string]any{"runId": uuid.NewString()}), 403)
 	var cp detail
@@ -165,7 +152,6 @@ func TestScopedMemberSendsToTheirListsOnly(t *testing.T) {
 		t.Fatalf("Linh's copy keeps its audience: %+v", mine.Audience)
 	}
 
-	// SMS: no segment, no other list, and no send of the Summit list's text.
 	summit := campaignID(t, env, "Summit: doors open")
 	var sms struct{ Version int }
 	kim.Do("GET", ws+"/sms-campaigns/"+summit, nil).MustStatus(t, 200).JSON(t, &sms)
@@ -173,7 +159,6 @@ func TestScopedMemberSendsToTheirListsOnly(t *testing.T) {
 	refused("SMS create", kim.Do("POST", ws+"/sms-campaigns", map[string]any{"name": "Beta texts", "lists": []string{uuid.NewString()}}), 422)
 	refused("SMS send", kim.Do("POST", ws+"/sms-campaigns/"+summit+"/send", map[string]any{"fingerprint": "reviewed"}), 403)
 
-	// WhatsApp and push.
 	refused("WhatsApp send", kim.Do("POST", ws+"/whatsapp-campaigns/"+campaignID(t, env, "Summit: see you tomorrow")+"/send", map[string]any{"version": 1}), 403)
 	var push struct{ ID string }
 	linh.Do("POST", ws+"/push-campaigns", map[string]any{"name": "Every subscriber"}).MustStatus(t, 201).JSON(t, &push)

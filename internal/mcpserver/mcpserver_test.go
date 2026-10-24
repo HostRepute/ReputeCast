@@ -226,9 +226,7 @@ func TestAgentOfDeactivatedCreator(t *testing.T) {
 	}
 }
 
-// create_segment checks the definition as the builder does before storing
-// it: the compiler inlines period units and custom field keys, so a
-// definition that skipped the check could run SQL of the agent's choosing.
+// create_segment validates the definition before storing it.
 func TestCreateSegmentValidatesDefinition(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
@@ -258,9 +256,7 @@ func TestCreateSegmentValidatesDefinition(t *testing.T) {
 			"unit": "days' OR c.id IN (SELECT id FROM public.contacts) OR 'x' = 'x"}),
 		"custom key":    group(map[string]any{"field": "custom:x' OR '1'='1", "op": "equals", "value": "y"}),
 		"unknown field": group(map[string]any{"field": "x' OR '1'='1", "op": "equals", "value": "y"}),
-		// The shape the tool used to describe has no groups; it's refused
-		// rather than stored as a segment of everyone.
-		"no groups": {"match": "all", "conditions": []any{map[string]any{"field": "joined", "op": "in_last", "amount": 1, "unit": "days"}}},
+		"no groups":     {"match": "all", "conditions": []any{map[string]any{"field": "joined", "op": "in_last", "amount": 1, "unit": "days"}}},
 	}
 	for name, def := range bad {
 		if res := create("Injected "+name, def); !res.IsError {

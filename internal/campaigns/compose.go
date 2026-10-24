@@ -103,7 +103,6 @@ func (s *Service) Context(ctx context.Context, ws *store.Workspace, p *authz.Pri
 		return out, err
 	}
 	for _, sg := range segs {
-		// A member limited to some lists sends to lists only.
 		if len(p.Scope.Lists) > 0 {
 			break
 		}
@@ -417,8 +416,7 @@ func audienceLists(raw json.RawMessage) []uuid.UUID {
 	return out
 }
 
-// scopeLists are the lists a member limited to some is limited to (none:
-// every contact), for the preview queries' scope_lists.
+// scopeLists is the caller's list scope; empty means every contact.
 func scopeLists(p *authz.Principal) []uuid.UUID {
 	if p == nil || len(p.Scope.Lists) == 0 {
 		return []uuid.UUID{}
@@ -426,9 +424,8 @@ func scopeLists(p *authz.Principal) []uuid.UUID {
 	return p.Scope.Lists
 }
 
-// previewContact picks the contact to personalize for, within the caller's
-// list scope. Without subscribers:view only the synthetic samples are
-// available.
+// previewContact picks the contact to personalize for. Without
+// subscribers:view only the synthetic samples are available.
 func (s *Service) previewContact(ctx context.Context, ws *store.Workspace, p *authz.Principal, audience json.RawMessage, in ComposerPreviewRequest) (*ComposerPreviewContact, map[string]any, error) {
 	l := i18n.LangFrom(ctx)
 	if in.Sample == "no_first_name" {
@@ -487,8 +484,7 @@ type ComposerPreviewContactList struct {
 	Items []ComposerPreviewContact `json:"items"`
 }
 
-// PreviewContacts searches contacts of the audience, within the caller's
-// list scope.
+// PreviewContacts searches contacts of the audience.
 func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, query string) (ComposerPreviewContactList, error) {
 	c, err := s.Q.GetComposerCampaign(ctx, store.GetComposerCampaignParams{WorkspaceID: ws.ID, ID: id})
 	if err != nil {

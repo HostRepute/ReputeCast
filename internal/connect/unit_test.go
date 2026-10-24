@@ -84,10 +84,7 @@ func TestCheckHost(t *testing.T) {
 	}
 }
 
-// The self-test posts to an address a member typed, so it goes through
-// the SSRF guard: a redirect fails the test instead of being followed,
-// and an address that turns private by the time it's dialed (DNS
-// rebinding: the name looked public a moment before) is refused.
+// The self-test follows no redirect and dials no private address.
 func TestSelfTestGuardsTheAddress(t *testing.T) {
 	var inside atomic.Int32
 	internal := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -111,7 +108,6 @@ func TestSelfTestGuardsTheAddress(t *testing.T) {
 		t.Fatalf("private address dialed: %+v, internal hit %d times", st, inside.Load())
 	}
 
-	// A test instance that allows private receivers still reaches them.
 	if st = SelfTest(context.Background(), internal.URL+"/hooks/postal/tok", "tok", now, true); !st.OK {
 		t.Fatalf("allowed private receiver: %+v", st)
 	}

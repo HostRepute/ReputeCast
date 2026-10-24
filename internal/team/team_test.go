@@ -398,9 +398,7 @@ func TestSecondWorkspaceMembers(t *testing.T) {
 	}
 }
 
-// Whoever holds an invitation's link joins with its role and scope, so a
-// member with team:invite only gets the link of an invitation they could
-// have sent: copying it and resending it check what Invite checks.
+// Copying or resending an invitation's link checks what Invite checks.
 func TestInvitationLinkNeedsWhatInviteNeeds(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
@@ -440,7 +438,6 @@ func TestInvitationLinkNeedsWhatInviteNeeds(t *testing.T) {
 	rc := env.Client()
 	rc.SignInDemo("recruiter@acme.io")
 
-	// The Admin role holds what the Recruiter doesn't: no link, no resend.
 	for _, path := range []string{"/link", "/resend"} {
 		p := rc.Do("POST", ws+"/invitations/"+admin+path, nil).MustStatus(t, 403).Problem(t)
 		if p["code"] != "escalation_denied" {
@@ -449,7 +446,6 @@ func TestInvitationLinkNeedsWhatInviteNeeds(t *testing.T) {
 	}
 	rc.Do("POST", ws+"/invitations/"+open+"/link", nil).MustStatus(t, 200)
 
-	// Scoped to Beta Program, the Recruiter only gets links within it.
 	if _, err := env.App.Pool.Exec(ctx, `UPDATE workspace_members SET scope = jsonb_build_object('lists', jsonb_build_array($1::text)) WHERE user_id = $2`, beta, u.ID); err != nil {
 		t.Fatal(err)
 	}

@@ -1335,8 +1335,7 @@ type LanguagesPreviewContactsRow struct {
 
 // "Preview as" in the composer: one active contact per contact language
 // (its base code), from the given lists when there are any, people with a
-// first name first. A member limited to some lists (scope_lists) only gets
-// contacts on them.
+// first name first.
 func (q *Queries) LanguagesPreviewContacts(ctx context.Context, arg LanguagesPreviewContactsParams) ([]LanguagesPreviewContactsRow, error) {
 	rows, err := q.db.Query(ctx, languagesPreviewContacts, arg.WorkspaceID, arg.Lists, arg.ScopeLists)
 	if err != nil {

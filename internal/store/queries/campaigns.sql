@@ -238,7 +238,6 @@ WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS 
 
 -- name: ComposerPreviewContacts :many
 -- Contacts to preview as: the campaign's audience first, people with a first name first.
--- A member limited to some lists (scope_lists) only finds contacts on them.
 SELECT c.id, c.email, c.first_name, c.last_name, c.attributes, c.tier, c.language
 FROM contacts c
 WHERE c.workspace_id = @workspace_id AND c.erased_at IS NULL AND c.status = 'active'

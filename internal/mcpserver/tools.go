@@ -425,8 +425,7 @@ func (s *Service) addTools(srv *mcp.Server) {
 		if name == "" {
 			return nil, e, errors.New("give the segment a name")
 		}
-		// The definition is checked as the builder checks it before it's
-		// stored: the compiler inlines field keys and period units.
+		// Validate as the builder does: the compiler inlines keys and units.
 		raw, _ := json.Marshal(in.Definition)
 		if len(in.Definition) == 0 {
 			raw = []byte(`{}`)

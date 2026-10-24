@@ -1032,11 +1032,7 @@ func unreachable(ctx context.Context, u *url.URL, now time.Time) (SelfTestState,
 	return out, true
 }
 
-// selfTestPost posts a signed self-test to the endpoint and expects 200.
-// The URL is the caller's, so the post goes through the SSRF guard, as
-// provider calls do: the address is checked when connecting (unreachable
-// looked the name up once, before; DNS may answer differently now) and a
-// redirect is a failure, never followed.
+// selfTestPost posts a signed self-test through the SSRF guard and expects 200.
 func selfTestPost(ctx context.Context, out SelfTestState, u *url.URL, rawURL, token string, now time.Time, allowPrivate bool) SelfTestState {
 	cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -1052,7 +1048,6 @@ func selfTestPost(ctx context.Context, out SelfTestState, u *url.URL, rawURL, to
 		low := strings.ToLower(err.Error())
 		switch {
 		case netguard.IsBlocked(err):
-			// "…: address not allowed: 10.0.0.5 is a private or loopback address"
 			addr := err.Error()
 			if i := strings.LastIndex(addr, netguard.ErrBlocked.Error()+": "); i >= 0 {
 				addr, _, _ = strings.Cut(addr[i+len(netguard.ErrBlocked.Error())+2:], " ")

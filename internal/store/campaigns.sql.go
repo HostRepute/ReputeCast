@@ -438,7 +438,6 @@ type ComposerPreviewContactsRow struct {
 }
 
 // Contacts to preview as: the campaign's audience first, people with a first name first.
-// A member limited to some lists (scope_lists) only finds contacts on them.
 func (q *Queries) ComposerPreviewContacts(ctx context.Context, arg ComposerPreviewContactsParams) ([]ComposerPreviewContactsRow, error) {
 	rows, err := q.db.Query(ctx, composerPreviewContacts,
 		arg.WorkspaceID,

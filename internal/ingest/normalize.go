@@ -184,11 +184,7 @@ func (n *Normalizer) Apply(ctx context.Context, tx pgx.Tx, p store.Provider, raw
 	if recipient == "" && msg != nil {
 		recipient = msg.Email
 	}
-	// Reports read from the bounce mailbox carry no signature: anyone can
-	// email the return path every newsletter shows. Such a report counts
-	// only for a message ReputeCast sent, to that message's recipient (an
-	// address someone else's report names isn't theirs to suppress); the
-	// others are kept as events and change nothing else.
+	// Unsigned mailbox reports only count for a message we sent, to its recipient.
 	trusted := true
 	if source == "bounce_mailbox" {
 		if msg != nil && !strings.EqualFold(recipient, msg.Email) {

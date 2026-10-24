@@ -392,9 +392,7 @@ func TestSMTPRelayUnreachable(t *testing.T) {
 	}
 }
 
-// An SMTP credential never does more than the person who created it can do
-// now, as API keys and agents: demoted or deactivated (keeping their keys),
-// its creator's credential stops authenticating.
+// An SMTP credential stops working once its creator is demoted or deactivated.
 func TestSMTPCredentialFollowsItsCreator(t *testing.T) {
 	e := newRelayEnv(t)
 	marcus := e.env.Client()

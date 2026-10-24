@@ -34,8 +34,7 @@ type PreviewContactList struct {
 
 // CampaignPreviewContacts picks the contacts to preview a campaign as: one
 // per workspace language among its audience's lists (people with a first
-// name first), then one whose language isn't offered. A member limited to
-// some lists only gets contacts on them.
+// name first), then one whose language isn't offered.
 func (s *Service) CampaignPreviewContacts(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) (PreviewContactList, error) {
 	out := PreviewContactList{Items: []PreviewContact{}}
 	var audience json.RawMessage

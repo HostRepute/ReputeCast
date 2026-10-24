@@ -287,8 +287,7 @@ type SmsPreviewContact struct {
 	Country string `json:"country"`
 }
 
-// Preview renders the text for a recipient and a country. A member limited
-// to some lists previews as contacts on them only.
+// Preview renders the text for a recipient and a country.
 func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID, in SmsPreviewInput) (SmsPreview, error) {
 	c, err := s.campaign(ctx, ws, id)
 	if err != nil {
@@ -428,8 +427,7 @@ func countryProbe(country string) string {
 }
 
 // PreviewContacts lists people to preview as: the first recipients, one
-// per country first, the country with the most recipients leading. A
-// member limited to some lists only gets recipients on them.
+// per country first, the country with the most recipients leading.
 func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, p *authz.Principal, id uuid.UUID) ([]SmsPreviewContact, error) {
 	c, err := s.campaign(ctx, ws, id)
 	if err != nil {
@@ -479,8 +477,7 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, p *a
 	return out, nil
 }
 
-// scopeLists are the lists a member limited to some is limited to (none:
-// every contact).
+// scopeLists is the caller's list scope; empty means every contact.
 func scopeLists(p *authz.Principal) []uuid.UUID {
 	if p == nil || len(p.Scope.Lists) == 0 {
 		return []uuid.UUID{}
@@ -488,8 +485,7 @@ func scopeLists(p *authz.Principal) []uuid.UUID {
 	return p.Scope.Lists
 }
 
-// inScope keeps the recipients a member limited to some lists may see,
-// those on one of the lists.
+// inScope keeps the recipients on the caller's scope lists.
 func (s *Service) inScope(ctx context.Context, p *authz.Principal, rs []Recipient) ([]Recipient, error) {
 	lists := scopeLists(p)
 	if len(lists) == 0 || len(rs) == 0 {

@@ -708,8 +708,7 @@ func (s *Service) Send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	default:
 		return PushSendResult{}, api.Conflict(mProblemAlreadySent.Text(l, i18n.Args{"status": c.Status}))
 	}
-	// A member limited to some lists notifies only people on them: the
-	// sites' subscribers narrowed to those lists, whoever built it.
+	// A scoped member must narrow the sites' subscribers to their lists.
 	if len(p.Scope.Lists) > 0 && (len(c.Lists) == 0 || !access.AudienceInScope(p.Scope, c.Lists, len(c.Segments))) {
 		return PushSendResult{}, api.Err(http.StatusForbidden, api.CodePermissionDenied, access.AudienceScopeProblem(l))
 	}
