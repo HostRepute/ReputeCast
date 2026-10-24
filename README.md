@@ -102,7 +102,7 @@ seat or workspace limit.
 <table>
   <tr>
     <td width="50%" valign="top">
-      <img src="docs/assets/screenshots/send-readiness.png" alt="Review and send: Send Readiness checks for sender reputation and authentication, with the audience and the route split between Amazon SES and Postal">
+      <img src="docs/assets/screenshots/send-readiness.png" alt="Review and send: Send Readiness says the campaign is ready with warnings and needs approval, with the audience, the route split and each check">
       <b>Send Readiness</b> checks reputation, authentication, content and routing before you send.
     </td>
     <td width="50%" valign="top">
@@ -116,18 +116,28 @@ seat or workspace limit.
       <b>Composer</b> that flags deliverability problems while you write.
     </td>
     <td width="50%" valign="top">
-      <img src="docs/assets/screenshots/report.png" alt="Campaign report: human and machine opens, engagement over 72 hours and a click map">
+      <img src="docs/assets/screenshots/report.png" alt="Campaign report: an AI summary, human and machine opens, engagement over 72 hours and a click map">
       <b>Reports</b> that count human and machine opens apart.
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
-      <img src="docs/assets/screenshots/routing.png" alt="Routing: a weighted 90/10 split between Amazon SES and Postal, conditions per mailbox provider, the failover policy and the route tester">
-      <b>Routing</b> across providers, with weighted splits, failover and a route tester.
-    </td>
-    <td width="50%" valign="top">
       <img src="docs/assets/screenshots/automation.png" alt="Automation editor: a welcome series flow with live stats on each step">
       <b>Automations</b> as visual flows with live stats on every step.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshots/transactional.png" alt="Transactional: templates with their category, live version and seven days of delivery, on a Postmark route with Amazon SES as fallback">
+      <b>Transactional email</b> with templates, a send API and delivery per template.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshots/earn.png" alt="Earn: monthly recurring revenue over twelve months, paid members, churn and the payments that need attention">
+      <b>Earn</b> with paid subscriptions, revenue and what needs you.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshots/sms-report.png" alt="SMS campaign report: deliveries as each time zone reaches 10:00, results per sender and per country, and the cost">
+      <b>SMS campaigns</b> that send at local time, with results per country.
     </td>
   </tr>
 </table>
@@ -135,6 +145,9 @@ seat or workspace limit.
 <details>
 <summary>More screenshots</summary>
 <br>
+
+<img src="docs/assets/screenshots/routing.png" alt="Routing: a weighted 90/10 split between Amazon SES and Postal, conditions per mailbox provider, the failover policy and the route tester">
+<p><b>Routing</b> across providers, with weighted splits, failover and a route tester.</p>
 
 <img src="docs/assets/screenshots/deliverability.png" alt="Deliverability: health per sending domain and IP, account health per provider and blocklist status">
 <p><b>Deliverability:</b> health per sending domain and IP, and each provider's account health.</p>
