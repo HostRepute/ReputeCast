@@ -70,7 +70,7 @@ export const dayStatus: Record<WarmupDay['status'], { tone: 'ok' | 'warn' | 'inf
  * shows the region's decimal mark); undefined when it isn't a number.
  */
 export function guardIn(s: string): number | undefined {
-  const v = s.replace('%', '').replace(',', '.').trim()
+  const v = s.replaceAll('%', '').replace(',', '.').trim()
   if (!/^\d*\.?\d+$/.test(v)) return undefined
   const n = Number(v)
   return Number.isFinite(n) ? n : undefined

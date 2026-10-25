@@ -155,11 +155,11 @@ export const verificationKeys = ['zerobounce', 'neverbounce', 'kickbox', 'bounce
 export type VerificationKey = (typeof verificationKeys)[number]
 export const isVerification = (k: string): k is VerificationKey => (verificationKeys as readonly string[]).includes(k)
 
-/** Where "Open Zapier" goes: the platform's own app (n8n: the address it was connected with). */
+/** Where "Open Zapier" goes: the platform's own app (n8n: the address it was connected with, once it is a web address). */
 export function platformUrl(kind: PlatformKind, address?: string): string | undefined {
   if (kind === 'zapier') return 'https://zapier.com/app/zaps'
   if (kind === 'make') return 'https://www.make.com/en/login'
-  return address || undefined
+  return address && /^https?:\/\//i.test(address) ? address : undefined
 }
 
 /** The board's logo tiles: letters for the apps, icons for the built-in ones. */

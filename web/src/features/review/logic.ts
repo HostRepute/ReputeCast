@@ -163,7 +163,7 @@ export function percentText(v: number, digits: number): string {
 
 /** Reads "2.5", "2,5 %" or "2.5%"; null when it isn't a number. */
 export function parsePercent(s: string): number | null {
-  const t = s.replace('%', '').replace(',', '.').trim()
+  const t = s.replaceAll('%', '').replace(',', '.').trim()
   if (!/^\d*\.?\d+$/.test(t)) return null
   const v = Number(t)
   return Number.isFinite(v) ? v : null
