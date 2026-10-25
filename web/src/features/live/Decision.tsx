@@ -87,7 +87,7 @@ function IncidentPanel({ s, incident, actions, can, onCancelAll }: { s: Snapshot
         </div>
       </div>
       <Grid min={300} gap={0}>
-        {outage ? <ProviderLog incident={incident} /> : <Tripped s={s} incident={incident} />}
+        {outage ? <ProviderLog s={s} incident={incident} /> : <Tripped s={s} incident={incident} />}
         <Causes incident={incident} border />
         {outage && incident.detail.move ? <MoveEstimate incident={incident} /> : <Recommended incident={incident} />}
       </Grid>
@@ -165,10 +165,12 @@ function Tripped({ s, incident }: { s: Snapshot; incident: Incident }) {
   )
 }
 
-/** "What Postal returned": the failed calls, then how retries worked. */
-function ProviderLog({ incident }: { incident: Incident }) {
+/** "What Postal returned": the failed calls, then how retries worked (what the provider's idempotency really guarantees, review GS-1). */
+function ProviderLog({ s, incident }: { s: Snapshot; incident: Incident }) {
   const t = useT()
   const lines = logLines(incident)
+  const provider = incident.providerShort || incident.provider
+  const keyed = s.providers.find((p) => p.id === incident.providerId)?.idempotent ?? false
   return (
     <Column title={t(m.whatReturned, { provider: incident.providerShort || incident.provider })}>
       {lines.length ? (
@@ -182,7 +184,7 @@ function ProviderLog({ incident }: { incident: Incident }) {
       ) : (
         <span className="text-[13px]">{t(m.healthDown)}</span>
       )}
-      <span className="k">{t(m.retries)}</span>
+      <span className="k">{t(keyed ? m.retriesKeyed : m.retriesUnkeyed, { provider })}</span>
     </Column>
   )
 }

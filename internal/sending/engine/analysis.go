@@ -52,6 +52,9 @@ type IncidentDetail struct {
 	Move        *MoveEstimate     `json:"move,omitempty"`
 	WarmupNote  string            `json:"warmupNote,omitempty"`
 
+	// Messages in doubt (doubt.go), per sending provider.
+	InDoubt []InDoubtShare `json:"inDoubt,omitempty"`
+
 	Causes          []IncidentCause  `json:"causes,omitempty"`
 	Recommendations []string         `json:"recommendations,omitempty"`
 	Options         []IncidentOption `json:"options,omitempty"`

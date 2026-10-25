@@ -35188,6 +35188,40 @@
         ],
         "type": "object"
       },
+      "InDoubtShare": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "idempotent": {
+            "type": "boolean"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "short": {
+            "type": "string"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerId",
+          "provider",
+          "short",
+          "count",
+          "since",
+          "idempotent"
+        ],
+        "type": "object"
+      },
       "IncidentCause": {
         "additionalProperties": false,
         "properties": {
@@ -35254,6 +35288,12 @@
           },
           "host": {
             "type": "string"
+          },
+          "inDoubt": {
+            "items": {
+              "$ref": "#/components/schemas/InDoubtShare"
+            },
+            "type": "array"
           },
           "log": {
             "items": {
@@ -40323,6 +40363,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "decided": {
+            "format": "int64",
+            "type": "integer"
+          },
           "excluded": {
             "format": "int64",
             "type": "integer"
@@ -40339,6 +40383,7 @@
           "moved",
           "cancelled",
           "excluded",
+          "decided",
           "snapshot"
         ],
         "type": "object"
@@ -40561,6 +40606,55 @@
         "required": [
           "pause",
           "send"
+        ],
+        "type": "object"
+      },
+      "LiveInDoubt": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/InDoubtShare"
+            },
+            "type": "array"
+          },
+          "safe": {
+            "type": "boolean"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "count",
+          "since",
+          "providers",
+          "safe"
+        ],
+        "type": "object"
+      },
+      "LiveInDoubtRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "resend",
+              "leave_out"
+            ],
+            "type": "string"
+          },
+          "providerId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action"
         ],
         "type": "object"
       },
@@ -40834,6 +40928,9 @@
           "id": {
             "type": "string"
           },
+          "idempotent": {
+            "type": "boolean"
+          },
           "ip": {
             "type": "string"
           },
@@ -40930,7 +41027,8 @@
           "ip",
           "cost",
           "plannedCost",
-          "retrying"
+          "retrying",
+          "idempotent"
         ],
         "type": "object"
       },
@@ -41089,6 +41187,9 @@
           },
           "helpers": {
             "$ref": "#/components/schemas/LiveHelpers"
+          },
+          "inDoubt": {
+            "$ref": "#/components/schemas/LiveInDoubt"
           },
           "incident": {
             "$ref": "#/components/schemas/LiveIncident"
@@ -111154,6 +111255,84 @@
           }
         ],
         "summary": "Cancel a send, or one mailbox provider's or sending provider's share",
+        "tags": [
+          "Live sending"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:send"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/in-doubt": {
+      "post": {
+        "operationId": "resolve-live-in-doubt",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Campaign id",
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "description": "Campaign id",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiveInDoubtRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveActionResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send the messages in doubt again, or leave them out",
         "tags": [
           "Live sending"
         ],

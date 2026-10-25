@@ -128,5 +128,18 @@
   "notify.finishedBody": "Đã gửi {sent, number} trong {took, select, under {chưa đến một phút} minutes {{mins, plural, other {# phút}}} other {{hours} giờ {rest} phút}}: {delivered, number} gửi thành công ({rate, number, ::percent .0}), {bounced, number} bị trả lại, {complaints, plural, other {# khiếu nại}}.",
   "notify.heldTitle": "Lần gửi bị tạm giữ",
   "notify.heldSummary": "“{name}” không bắt đầu lúc {at, time}: {reason}",
-  "notify.heldBody": "“{name}” không bắt đầu lúc {at, time}: {reason}. Lần gửi được tạm giữ cho đến khi một lần kiểm tra lại đạt."
+  "notify.heldBody": "“{name}” không bắt đầu lúc {at, time}: {reason}. Lần gửi được tạm giữ cho đến khi một lần kiểm tra lại đạt.",
+
+  "state.nothingInDoubt": "“{name}” không có thư nào đang chưa rõ trạng thái.",
+  "notify.inDoubtTitle": "“{name}”: {count, plural, other {# thư}} chưa rõ đã gửi hay chưa",
+  "notify.inDoubtBody": "ReputeCast không biết nhà cung cấp đã nhận {count, plural, other {# thư này}} hay chưa: lần gọi bàn giao thư đã kết thúc mà không có phản hồi. Thư sẽ không được gửi lại trừ khi có người quyết định, để không ai nhận email hai lần.",
+  "audit.inDoubt": "{count, plural, other {# thư}} chưa rõ trạng thái, không gửi lại",
+  "audit.inDoubtResent": "Đã gửi lại {count, plural, other {# thư}} chưa rõ trạng thái",
+  "audit.inDoubtLeftOut": "Đã bỏ qua {count, plural, other {# thư}} chưa rõ trạng thái",
+  "opt.resendTitle": "Gửi lại",
+  "opt.resendBody": "{safe, select, yes {Nhà cung cấp nhận ra thư đã nhận rồi, nên không ai nhận email hai lần.} other {Người nào mà nhà cung cấp đã nhận thư của họ sẽ nhận email hai lần.}}",
+  "opt.resendAction": "Gửi lại {count, plural, other {# thư}}",
+  "opt.leaveOutTitle": "Bỏ qua{safe, select, no { (khuyến nghị)} other {}}",
+  "opt.leaveOutBody": "Thư được đánh dấu “chưa gửi” trong báo cáo. Nếu nhà cung cấp báo một sự kiện cho thư nào, thư đó vẫn được tính là đã gửi.",
+  "opt.leaveOutAction": "Bỏ qua {count, plural, other {# thư}}"
 }

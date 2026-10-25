@@ -4060,6 +4060,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/in-doubt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send the messages in doubt again, or leave them out */
+        post: operations["resolve-live-in-doubt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/live/move": {
         parameters: {
             query?: never;
@@ -26777,6 +26794,16 @@ export interface components {
             serviceName: string;
             status: string;
         };
+        InDoubtShare: {
+            /** Format: int64 */
+            count: number;
+            idempotent: boolean;
+            provider: string;
+            providerId: string;
+            short: string;
+            /** Format: date-time */
+            since: string;
+        };
         IncidentCause: {
             body: string;
             lead: string;
@@ -26800,6 +26827,7 @@ export interface components {
             /** Format: date-time */
             from?: string;
             host?: string;
+            inDoubt?: components["schemas"]["InDoubtShare"][];
             log?: components["schemas"]["IncidentLogLine"][];
             move?: components["schemas"]["MoveEstimate"];
             note?: string;
@@ -28249,6 +28277,8 @@ export interface components {
             /** Format: int64 */
             cancelled: number;
             /** Format: int64 */
+            decided: number;
+            /** Format: int64 */
             excluded: number;
             /** Format: int64 */
             moved: number;
@@ -28319,6 +28349,20 @@ export interface components {
         LiveHelpers: {
             pause: string[];
             send: string[];
+        };
+        LiveInDoubt: {
+            /** Format: int64 */
+            count: number;
+            providers: components["schemas"]["InDoubtShare"][];
+            safe: boolean;
+            /** Format: date-time */
+            since: string;
+        };
+        LiveInDoubtRequest: {
+            /** @enum {string} */
+            action: "resend" | "leave_out";
+            /** Format: uuid */
+            providerId?: string;
         };
         LiveIncident: {
             detail: components["schemas"]["IncidentDetail"];
@@ -28412,6 +28456,7 @@ export interface components {
             downSince?: string;
             host: string;
             id: string;
+            idempotent: boolean;
             ip: string;
             name: string;
             /** Format: int64 */
@@ -28496,6 +28541,7 @@ export interface components {
             /** Format: int64 */
             held: number;
             helpers?: components["schemas"]["LiveHelpers"];
+            inDoubt?: components["schemas"]["LiveInDoubt"];
             incident?: components["schemas"]["LiveIncident"];
             incidents: components["schemas"]["LiveIncident"][];
             /** Format: date-time */
@@ -52799,6 +52845,44 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["LiveCancelRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveActionResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "resolve-live-in-doubt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                /** @description Campaign id */
+                campaignId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LiveInDoubtRequest"];
             };
         };
         responses: {

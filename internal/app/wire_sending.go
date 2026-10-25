@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/automations"
+	"github.com/hostrepute/reputecast/internal/ingest"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/liquid"
@@ -135,6 +137,11 @@ func init() {
 	})
 	jobRegistrars = append(jobRegistrars, func(a *App) {
 		engine.RegisterJobs(a.JobReg, sendingEngine(a))
+	})
+	// A provider event about a message in doubt settles it: the provider
+	// took it after all (review GS-1).
+	normalizerHooks = append(normalizerHooks, func(a *App) ingest.MessageHook {
+		return (&engine.Engine{Q: a.Q, Now: time.Now}).InDoubtHook()
 	})
 	// The automations engine's "Send email" step goes through the sending
 	// engine (routing, failover, rendering, tracking, delivery).

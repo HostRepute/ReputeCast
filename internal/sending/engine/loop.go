@@ -22,7 +22,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers/simulator"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
-	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -104,7 +103,10 @@ type queueKey struct {
 
 type queueCell struct {
 	queued, held, waiting int64
-	nextAt                *time.Time
+	// canary is what is held until the canary passes (also in held); doubt
+	// is in doubt (doubt.go).
+	canary, doubt int64
+	nextAt        *time.Time
 }
 
 // runState is a campaign during one run of the send loop.
@@ -127,6 +129,8 @@ type runState struct {
 	loc        *time.Location
 	ab         abState
 	started    time.Time
+	// settledAt is when stale claims were last settled (doubt.go).
+	settledAt time.Time
 	// links are the per-recipient links of the email's polls and surveys.
 	links []RecipientLink
 }
@@ -295,21 +299,36 @@ func (e *Engine) refreshQueue(ctx context.Context, rs *runState, now time.Time) 
 		}
 		k := queueKey{*r.ProviderID, r.MailboxProvider}
 		c := q[k]
-		if r.Status == "held" {
-			c.held += r.N
-		} else {
-			c.queued += r.N
-			c.waiting += r.Waiting
-			if r.NextAt.Year() > 2000 && (c.nextAt == nil || r.NextAt.Before(*c.nextAt)) {
-				t := r.NextAt
-				c.nextAt = &t
-			}
-		}
+		c.add(r)
 		q[k] = c
 	}
 	rs.queue, rs.queueAt = q, now
 	return nil
 }
+
+// add counts one row of SendingQueueState.
+func (c *queueCell) add(r store.SendingQueueStateRow) {
+	switch r.Status {
+	case "held":
+		c.held += r.N
+		if r.HoldReason == holdCanary {
+			c.canary += r.N
+		}
+	case "in_doubt":
+		c.doubt += r.N
+	default:
+		c.queued += r.N
+		c.waiting += r.Waiting
+		if r.NextAt.Year() > 2000 && (c.nextAt == nil || r.NextAt.Before(*c.nextAt)) {
+			t := r.NextAt
+			c.nextAt = &t
+		}
+	}
+}
+
+// holdCanary is messages.hold_reason of the recipients held until the
+// canary passes (canary.go).
+const holdCanary = "canary"
 
 // Run sends a campaign for up to budget, then returns how soon it should
 // run again (done when there is nothing left to do now).
@@ -461,8 +480,11 @@ func (e *Engine) tick(ctx context.Context, rs *runState, r *runRoute, now time.T
 		if n <= 0 {
 			continue
 		}
-		rows, err := e.Q.SendingClaim(ctx, store.SendingClaimParams{CampaignID: &cid, ProviderID: &pid, MailboxProvider: mbp, Stale: now.Add(-staleClaim), Now: now, Lim: int32(n)})
+		rows, err := e.Q.SendingClaim(ctx, store.SendingClaimParams{CampaignID: &cid, ProviderID: &pid, MailboxProvider: mbp, Now: now, Lim: int32(n)})
 		if err != nil {
+			// What this second claimed already was never handed to the
+			// provider: it goes back to the queue, not into doubt.
+			e.releaseClaims(ctx, claimed)
 			return 0, err
 		}
 		claimed = append(claimed, rows...)
@@ -644,6 +666,14 @@ func (o *outcome) retry(id uuid.UUID, attempts int, now time.Time, msg string) {
 	o.retryErr = append(o.retryErr, clip(msg, 500))
 }
 
+// doubt puts a message whose call may have reached the provider in doubt
+// (doubt.go): never retried on a guess.
+func (o *outcome) doubt(id uuid.UUID) {
+	o.unsentID = append(o.unsentID, id)
+	o.unsentSt = append(o.unsentSt, "in_doubt")
+	o.unsentEr = append(o.unsentEr, inDoubtReason)
+}
+
 func (o *outcome) drop(id uuid.UUID, status, msg string) {
 	o.unsentID = append(o.unsentID, id)
 	o.unsentSt = append(o.unsentSt, status)
@@ -651,8 +681,11 @@ func (o *outcome) drop(id uuid.UUID, status, msg string) {
 }
 
 // deliver renders claimed messages, hands them to the provider in batches
-// and records every outcome in one transaction.
+// and records every outcome in one transaction. Once messages are claimed
+// it runs to the end even when the job is told to stop: rendering, the
+// provider calls and the record all happen, so nothing is left claimed.
 func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed []store.SendingClaimRow, now time.Time) error {
+	ctx = context.WithoutCancel(ctx)
 	var out outcome
 	type pending struct {
 		row store.SendingClaimRow
@@ -685,14 +718,14 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 		for i, p := range chunk {
 			msgs[i] = p.msg
 		}
-		cctx, cancel := context.WithTimeout(simulator.WithNow(ctx, now), 30*time.Second)
+		cctx, cancel := e.callContext(ctx, now)
 		res, callErr := r.transport.Send(cctx, msgs)
 		cancel()
 		if callErr == nil && len(res) != len(msgs) {
 			callErr = &providers.CallError{Op: "Send", Message: fmt.Sprintf("the provider answered for %d of %d messages", len(res), len(msgs)), Temporary: true}
 		}
 		e.recordCall(key, now, callErr)
-		if err := manage.RecordSend(ctx, e.Pool, r.provider, res, callErr, now); err != nil {
+		if err := manage.RecordSend(context.WithoutCancel(ctx), e.Pool, r.provider, res, callErr, now); err != nil {
 			e.log().WarnContext(ctx, "record provider call", "provider", r.provider.ID, "err", err)
 		}
 		if callErr != nil {
@@ -709,7 +742,16 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 				}
 				break
 			}
+			// A call that may have reached the provider (a timeout, a cut
+			// connection) leaves its messages in doubt, unless the provider
+			// dedupes them by message id; one the provider answered or never
+			// got is retried.
+			doubt := outcomeUnknown(callErr) && idempotency(r.transport) == 0
 			for _, p := range chunk {
+				if doubt {
+					out.doubt(p.row.ID)
+					continue
+				}
 				out.retry(p.row.ID, int(p.row.Attempts), now, callText(callErr))
 			}
 			// Back off the whole route briefly; the rest of this second's
@@ -733,6 +775,10 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 				}
 				continue
 			}
+			if sendErrUnknown(res.Err) && idempotency(r.transport) == 0 {
+				out.doubt(p.row.ID)
+				continue
+			}
 			if res.Err.Temporary {
 				out.retry(p.row.ID, int(p.row.Attempts), now, res.Err.Error())
 				continue
@@ -741,11 +787,11 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 			out.cell(p.row.MailboxProvider, p.row.Variant).rejected++
 		}
 	}
-	// The provider has the batch now: the outcome must be recorded, or the
-	// messages would be claimed again later.
-	err := sending.Tx(ctx, e.Pool, func(tx pgx.Tx) error {
-		q := store.New(tx)
-		return e.record(ctx, q, tx, rs.campaign.ID, r.provider.ID, &out, now)
+	// The provider has the batch now: the outcome is recorded even when the
+	// job is told to stop. Messages it couldn't record stay claimed and end
+	// in doubt (doubt.go), never sent again on a guess.
+	err := e.recordOutcome(ctx, func(ctx context.Context, tx pgx.Tx) error {
+		return e.record(ctx, store.New(tx), tx, rs.campaign.ID, r.provider.ID, &out, now)
 	})
 	if err != nil {
 		return err

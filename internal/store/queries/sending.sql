@@ -274,12 +274,14 @@ WHERE cr.campaign_id = @campaign_id AND cr.provider_id = d.provider_id;
 -- name: SendingClaim :many
 -- Claims up to lim queued messages of one sending provider and mailbox
 -- provider in the send's shuffled order, skipping rows another worker
--- holds. A claim older than the stale time belonged to a worker that died.
+-- holds. A claim is never taken over: one that stayed claimed past the
+-- stale time belonged to a call whose answer was lost, and the guard
+-- settles it (SendingRequeueStale, SendingMarkInDoubt).
 WITH picked AS (
     SELECT m.id FROM messages m
     WHERE m.campaign_id = @campaign_id AND m.provider_id = @provider_id AND m.mailbox_provider = @mailbox_provider
       AND m.status = 'queued'
-      AND (m.claimed_at IS NULL OR m.claimed_at < @stale::timestamptz)
+      AND m.claimed_at IS NULL
       AND (m.next_attempt_at IS NULL OR m.next_attempt_at <= @now::timestamptz)
     ORDER BY m.send_order, m.id
     LIMIT @lim
@@ -352,15 +354,16 @@ DELETE FROM sending_rate_windows WHERE provider_id = ANY(@provider_ids::uuid[]) 
 
 -- name: SendingQueueState :many
 -- What is left of a campaign per sending and mailbox provider: queued (and
--- when the next retry is due) and held for the A/B winner.
-SELECT provider_id, mailbox_provider, status,
+-- when the next retry is due), held for the A/B winner or the canary
+-- (hold_reason), and in doubt.
+SELECT provider_id, mailbox_provider, status, hold_reason,
        count(*)::bigint AS n,
        count(*) FILTER (WHERE next_attempt_at IS NOT NULL AND next_attempt_at > @now::timestamptz)::bigint AS waiting,
        coalesce(min(next_attempt_at), 'epoch'::timestamptz)::timestamptz AS next_at,
        coalesce(max(next_attempt_at), 'epoch'::timestamptz)::timestamptz AS last_at
 FROM messages
-WHERE campaign_id = @campaign_id AND status IN ('queued', 'held')
-GROUP BY provider_id, mailbox_provider, status;
+WHERE campaign_id = @campaign_id AND status IN ('queued', 'held', 'in_doubt')
+GROUP BY provider_id, mailbox_provider, status, hold_reason;
 
 -- name: SendingCounters :many
 SELECT provider_id, mailbox_provider, variant, sent, delivered, deferred, hard_bounced, soft_bounced, complained, rejected,
@@ -392,9 +395,12 @@ WHERE campaign_id = @campaign_id AND status IN ('queued', 'held')
   AND (sqlc.narg(mailbox_provider)::text IS NULL OR mailbox_provider = sqlc.narg(mailbox_provider)::text);
 
 -- name: SendingMoveRemaining :execrows
--- Moves what is left of one provider's share to another provider.
-UPDATE messages SET provider_id = @to_provider, claimed_at = NULL, next_attempt_at = NULL
-WHERE campaign_id = @campaign_id AND provider_id = @from_provider AND status IN ('queued', 'held');
+-- Moves what is left of one provider's share to another provider. Messages
+-- keep their status, so A/B holdouts stay held for the winner and canary
+-- holdouts for the canary; a batch in flight on the old provider stays
+-- there (its answer is recorded, or it ends in doubt).
+UPDATE messages SET provider_id = @to_provider, next_attempt_at = NULL
+WHERE campaign_id = @campaign_id AND provider_id = @from_provider AND status IN ('queued', 'held') AND claimed_at IS NULL;
 
 -- name: SendingRemainingOn :one
 SELECT count(*)::bigint FROM messages WHERE campaign_id = @campaign_id AND provider_id = @provider_id AND status IN ('queued', 'held');
@@ -566,10 +572,12 @@ SELECT DISTINCT provider_id::uuid AS provider_id FROM messages
 WHERE status = 'queued' AND campaign_id IS NULL AND stream = 'automation' AND provider_id IS NOT NULL;
 
 -- name: SendingOutboxClaim :many
+-- Claims queued automation emails of one provider; a stale claim is never
+-- taken over (SendingOutboxRequeueStale, SendingOutboxMarkInDoubt).
 WITH picked AS (
     SELECT m.id FROM messages m
     WHERE m.provider_id = @provider_id AND m.status = 'queued' AND m.campaign_id IS NULL AND m.stream = 'automation'
-      AND (m.claimed_at IS NULL OR m.claimed_at < @stale::timestamptz)
+      AND m.claimed_at IS NULL
       AND (m.next_attempt_at IS NULL OR m.next_attempt_at <= @now::timestamptz)
     ORDER BY m.id
     LIMIT @lim

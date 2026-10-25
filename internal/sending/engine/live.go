@@ -90,12 +90,25 @@ type LiveSnapshot struct {
 	Throttles      []LiveThrottle   `json:"throttles"`
 	Options        LiveOptions      `json:"options"`
 	Routes         []LiveRouteShare `json:"routes"`
+	// InDoubt are the messages nobody knows whether their provider took
+	// (review GS-1): they wait for a person, never sent again on a guess.
+	InDoubt *LiveInDoubt `json:"inDoubt,omitempty"`
 	// Helpers names who can pause and who can resume, for the reason on a
 	// disabled button. Only the GET fills it; the stream leaves it out.
 	Helpers *LiveHelpers `json:"helpers,omitempty"`
 
 	// text is what In needs to write the snapshot in another language.
 	text *liveText
+}
+
+// LiveInDoubt is what is in doubt, per sending provider.
+type LiveInDoubt struct {
+	Count     int64          `json:"count"`
+	Since     time.Time      `json:"since"`
+	Providers []InDoubtShare `json:"providers"`
+	// Safe: every provider involved dedupes by message, so sending them
+	// again can't deliver anything twice.
+	Safe bool `json:"safe"`
 }
 
 // LiveHelpers are up to two members who hold each action's permission.
@@ -171,6 +184,9 @@ type LiveProvider struct {
 	PlannedCost   float64    `json:"plannedCost"`
 	Retrying      bool       `json:"retrying"`
 	RetryUntil    *time.Time `json:"retryUntil,omitempty"`
+	// Idempotent: the provider recognizes a message it already took, so a
+	// retry after a lost answer never delivers it twice (review GS-1).
+	Idempotent bool `json:"idempotent"`
 }
 
 // LiveThreshold is a rate against its auto-pause limit.
@@ -422,11 +438,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 			}
 			k := queueKey{*r.ProviderID, r.MailboxProvider}
 			c := queue[k]
-			if r.Status == "held" {
-				c.held += r.N
-			} else {
-				c.queued += r.N
-			}
+			c.add(r)
 			queue[k] = c
 		}
 		urows, err := e.Q.SendingUnsentCounts(ctx, &cid)
@@ -483,7 +495,7 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		lp := LiveProvider{ID: p.ID.String(), Name: p.Name, Short: short, Adapter: p.Adapter, Color: state.Color(p.Adapter), Sent: pt.sent, Planned: r.Planned,
 			Rate: math.Round(rateBy[p.ID]*10) / 10, DeliveredRate: ptrRate(pt.delivered, pt.sent), BounceRate: ptrRate(pt.bounced(), pt.sent),
 			ComplaintRate: ptrRate(pt.complained, pt.delivered), APIErrorRate: apiErr[p.ID], Status: p.Status, RouteStatus: r.Status,
-			Host: hostOf(p), Cost: float64(r.CostMicros) / 1e6}
+			Host: hostOf(p), Cost: float64(r.CostMicros) / 1e6, Idempotent: dedupes(p)}
 		if len(p.Ips) > 0 {
 			lp.IP = p.Ips[0]
 		}
@@ -689,6 +701,22 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 				la.Leader = ab.Winner
 			}
 			s.AB = la
+		}
+	}
+	if hasSend {
+		shares, total, err := e.inDoubtShares(ctx, e.Q, campaignID)
+		if err != nil {
+			return s, err
+		}
+		if total > 0 {
+			d := &LiveInDoubt{Count: total, Providers: shares, Safe: true}
+			for _, sh := range shares {
+				if d.Since.IsZero() || sh.Since.Before(d.Since) {
+					d.Since = sh.Since
+				}
+				d.Safe = d.Safe && sh.Idempotent
+			}
+			s.InDoubt = d
 		}
 	}
 	incs, err := e.Q.SendingIncidents(ctx, campaignID)

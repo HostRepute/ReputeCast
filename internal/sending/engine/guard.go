@@ -98,6 +98,9 @@ func rate(n, d int64) float64 {
 // guard checks thresholds, outages, the A/B test and completion. It returns
 // how long nothing can be sent, or errStopped when the loop should end.
 func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.Duration, error) {
+	if err := e.settleStale(ctx, rs, now); err != nil {
+		return 0, err
+	}
 	if now.Sub(rs.queueAt) >= time.Second {
 		if err := e.refreshQueue(ctx, rs, now); err != nil {
 			return 0, err
@@ -121,12 +124,13 @@ func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.D
 	if err := e.checkAB(ctx, rs, ts, now); err != nil {
 		return 0, err
 	}
-	var queued, held, waiting, blocked int64
+	var queued, held, waiting, blocked, doubt int64
 	var next *time.Time
 	for k, c := range rs.queue {
 		queued += c.queued
 		held += c.held
 		waiting += c.waiting
+		doubt += c.doubt
 		r := rs.routes[k.provider]
 		h, onHold := rs.holds[k.mailbox]
 		if r == nil || (onHold && !h.Resumed) || !r.open() {
@@ -138,8 +142,12 @@ func (e *Engine) guard(ctx context.Context, rs *runState, now time.Time) (time.D
 		}
 	}
 	switch {
-	case queued == 0 && held == 0:
+	case queued == 0 && held == 0 && doubt == 0:
 		return 0, e.finish(ctx, rs, ts, now)
+	case queued == 0 && held == 0:
+		// Only messages in doubt are left: the send waits for someone to
+		// send them again or leave them out (doubt.go).
+		return 0, e.waitForDecision(ctx, rs, now)
 	case held == 0 && queued > 0 && queued == blocked:
 		// Only held shares are left: nothing sends until someone decides.
 		return 0, e.waitForDecision(ctx, rs, now)

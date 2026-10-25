@@ -128,5 +128,18 @@
   "notify.finishedBody": "{sent, number} sent in {took, select, under {under a minute} minutes {{mins, plural, one {# minute} other {# minutes}}} other {{hours} h {rest} min}}: {delivered, number} delivered ({rate, number, ::percent .0}), {bounced, number} bounced, {complaints, plural, one {# complaint} other {# complaints}}.",
   "notify.heldTitle": { "message": "Send held", "note": "a scheduled send the send-time recheck held" },
   "notify.heldSummary": { "message": "“{name}” didn't start at {at, time}: {reason}", "note": "reason: the blocking check's title, in Send Readiness's words" },
-  "notify.heldBody": "“{name}” didn't start at {at, time}: {reason}. It stays held until a recheck passes."
+  "notify.heldBody": "“{name}” didn't start at {at, time}: {reason}. It stays held until a recheck passes.",
+
+  "state.nothingInDoubt": {"message": "\"{name}\" has no messages in doubt.", "note": "a decision on messages in doubt when none is left; status: as in state.notSending"},
+  "notify.inDoubtTitle": {"message": "\"{name}\": {count, plural, one {# message} other {# messages}} in doubt", "note": "a message is in doubt when ReputeCast can't tell whether the sending provider took it"},
+  "notify.inDoubtBody": "ReputeCast can't tell whether the provider took {count, plural, one {this message} other {these # messages}}: the call that handed {count, plural, one {it} other {them}} over ended without an answer. {count, plural, one {It isn't} other {They aren't}} sent again unless someone decides to, so nobody gets the email twice.",
+  "audit.inDoubt": "{count, plural, one {# message} other {# messages}} in doubt, not sent again",
+  "audit.inDoubtResent": "{count, plural, one {# message} other {# messages}} in doubt sent again",
+  "audit.inDoubtLeftOut": "{count, plural, one {# message} other {# messages}} in doubt left out",
+  "opt.resendTitle": {"message": "Send {count, plural, one {it} other {them}} again", "note": "a way to continue with messages in doubt, a radio card's title"},
+  "opt.resendBody": {"message": "{safe, select, yes {The provider recognizes a message it already took, so nobody gets the email twice.} other {Anyone whose copy the provider did take gets the email twice.}}", "note": "safe: yes when every provider involved dedupes by message"},
+  "opt.resendAction": "Send {count, plural, one {# message} other {# messages}} again",
+  "opt.leaveOutTitle": "Leave {count, plural, one {it} other {them}} out{safe, select, no { (recommended)} other {}}",
+  "opt.leaveOutBody": "{count, plural, one {It's} other {They're}} marked \"not sent\" in the report. If the provider reports an event for one, it counts as sent after all.",
+  "opt.leaveOutAction": "Leave {count, plural, one {# message} other {# messages}} out"
 }

@@ -84,6 +84,8 @@ type Engine struct {
 	// audience is built, and automation recipients without a contact
 	// (internal/mailbox); nil keeps the providers contacts already carry.
 	Mailbox MailboxClassifier
+	// CallTimeout bounds one provider call (30 s when zero).
+	CallTimeout time.Duration
 
 	mu       sync.Mutex
 	calls    map[routeKey]*callLog
@@ -271,13 +273,31 @@ func over(events, base int64, limit float64, minEv int64) bool {
 }
 
 // Retry back-off for temporary errors: 5 s doubling to 60 s, at most
-// maxAttempts provider calls per message.
+// maxAttempts provider calls per message. A claim still open after
+// staleClaim belonged to a call whose answer was lost (doubt.go). A
+// provider call gets sendTimeout, even when the job is told to stop: what
+// the provider took must be recorded.
 const (
 	backoffMin  = 5 * time.Second
 	backoffMax  = 60 * time.Second
 	maxAttempts = 10
 	staleClaim  = 5 * time.Minute
+	sendTimeout = 30 * time.Second
 )
+
+// callContext is a provider call's context: it outlives the job's
+// cancellation (River stopping the worker, the job's timeout), since a call
+// cut in the middle leaves its messages in doubt, but never runs past
+// sendTimeout. The send loops stop between steps once the job's context
+// ends, so a stopping worker drains: the batch in flight is sent and
+// recorded, nothing new is claimed.
+func (e *Engine) callContext(ctx context.Context, now time.Time) (context.Context, context.CancelFunc) {
+	d := e.CallTimeout
+	if d <= 0 {
+		d = sendTimeout
+	}
+	return context.WithTimeout(simulator.WithNow(context.WithoutCancel(ctx), now), d)
+}
 
 func backoff(attempts int) time.Duration {
 	d := backoffMin << max(attempts-1, 0)

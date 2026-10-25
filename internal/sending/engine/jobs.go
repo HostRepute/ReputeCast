@@ -269,7 +269,18 @@ func (e *Engine) Watch(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	// Sending jobs whose worker died first, so the kicks below aren't
+	// swallowed by their unique keys (review GS-1).
+	if _, err := e.rescueStuck(ctx); err != nil {
+		e.log().WarnContext(ctx, "rescue stuck send jobs", "err", err)
+	}
 	for _, a := range active {
+		if a.Phase == "sending" && a.Status == "paused" && a.OpenIncident {
+			// Waiting only for messages in doubt that events settled since.
+			if err := e.syncPausedInDoubt(ctx, a.CampaignID, now); err != nil {
+				e.log().WarnContext(ctx, "settle messages in doubt", "campaign", a.CampaignID, "err", err)
+			}
+		}
 		switch {
 		case a.Phase == "preparing" && (a.Status == "sending" || a.Status == "paused"):
 			e.insert(ctx, PrepareArgs{CampaignID: a.CampaignID}, nil)

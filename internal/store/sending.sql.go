@@ -823,13 +823,13 @@ WITH picked AS (
     SELECT m.id FROM messages m
     WHERE m.campaign_id = $1 AND m.provider_id = $2 AND m.mailbox_provider = $3
       AND m.status = 'queued'
-      AND (m.claimed_at IS NULL OR m.claimed_at < $4::timestamptz)
-      AND (m.next_attempt_at IS NULL OR m.next_attempt_at <= $5::timestamptz)
+      AND m.claimed_at IS NULL
+      AND (m.next_attempt_at IS NULL OR m.next_attempt_at <= $4::timestamptz)
     ORDER BY m.send_order, m.id
-    LIMIT $6
+    LIMIT $5
     FOR UPDATE SKIP LOCKED
 ), upd AS (
-    UPDATE messages m SET claimed_at = $5::timestamptz, attempts = m.attempts + 1
+    UPDATE messages m SET claimed_at = $4::timestamptz, attempts = m.attempts + 1
     FROM picked WHERE m.id = picked.id
     RETURNING m.id, m.workspace_id, m.contact_id, m.email, m.variant, m.mailbox_provider, m.attempts, m.language, m.hidden_blocks
 )
@@ -848,7 +848,6 @@ type SendingClaimParams struct {
 	CampaignID      *uuid.UUID `json:"campaignId"`
 	ProviderID      *uuid.UUID `json:"providerId"`
 	MailboxProvider string     `json:"mailboxProvider"`
-	Stale           time.Time  `json:"stale"`
 	Now             time.Time  `json:"now"`
 	Lim             int32      `json:"lim"`
 }
@@ -874,13 +873,14 @@ type SendingClaimRow struct {
 
 // Claims up to lim queued messages of one sending provider and mailbox
 // provider in the send's shuffled order, skipping rows another worker
-// holds. A claim older than the stale time belonged to a worker that died.
+// holds. A claim is never taken over: one that stayed claimed past the
+// stale time belonged to a call whose answer was lost, and the guard
+// settles it (SendingRequeueStale, SendingMarkInDoubt).
 func (q *Queries) SendingClaim(ctx context.Context, arg SendingClaimParams) ([]SendingClaimRow, error) {
 	rows, err := q.db.Query(ctx, sendingClaim,
 		arg.CampaignID,
 		arg.ProviderID,
 		arg.MailboxProvider,
-		arg.Stale,
 		arg.Now,
 		arg.Lim,
 	)
@@ -1390,7 +1390,7 @@ func (q *Queries) SendingFinishRoutes(ctx context.Context, arg SendingFinishRout
 }
 
 const sendingGetSend = `-- name: SendingGetSend :one
-SELECT campaign_id, workspace_id, phase, prepare_cursor, prepared_at, recipients, excluded, started_by, started_by_name, approved_by, approved_at, scheduled_by, throttles, thresholds, holds, changes, ab, content, scenario, paused_at, paused_by_name, pause_reason, error, finished_at, created_at, updated_at FROM campaign_sends WHERE campaign_id = $1
+SELECT campaign_id, workspace_id, phase, prepare_cursor, prepared_at, recipients, excluded, started_by, started_by_name, approved_by, approved_at, scheduled_by, throttles, thresholds, holds, changes, ab, content, scenario, paused_at, paused_by_name, pause_reason, error, finished_at, created_at, updated_at, guard, canary, watch_until FROM campaign_sends WHERE campaign_id = $1
 `
 
 func (q *Queries) SendingGetSend(ctx context.Context, campaignID uuid.UUID) (CampaignSend, error) {
@@ -1423,12 +1423,15 @@ func (q *Queries) SendingGetSend(ctx context.Context, campaignID uuid.UUID) (Cam
 		&i.FinishedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Guard,
+		&i.Canary,
+		&i.WatchUntil,
 	)
 	return i, err
 }
 
 const sendingGetSendForUpdate = `-- name: SendingGetSendForUpdate :one
-SELECT campaign_id, workspace_id, phase, prepare_cursor, prepared_at, recipients, excluded, started_by, started_by_name, approved_by, approved_at, scheduled_by, throttles, thresholds, holds, changes, ab, content, scenario, paused_at, paused_by_name, pause_reason, error, finished_at, created_at, updated_at FROM campaign_sends WHERE campaign_id = $1 FOR UPDATE
+SELECT campaign_id, workspace_id, phase, prepare_cursor, prepared_at, recipients, excluded, started_by, started_by_name, approved_by, approved_at, scheduled_by, throttles, thresholds, holds, changes, ab, content, scenario, paused_at, paused_by_name, pause_reason, error, finished_at, created_at, updated_at, guard, canary, watch_until FROM campaign_sends WHERE campaign_id = $1 FOR UPDATE
 `
 
 func (q *Queries) SendingGetSendForUpdate(ctx context.Context, campaignID uuid.UUID) (CampaignSend, error) {
@@ -1461,6 +1464,9 @@ func (q *Queries) SendingGetSendForUpdate(ctx context.Context, campaignID uuid.U
 		&i.FinishedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Guard,
+		&i.Canary,
+		&i.WatchUntil,
 	)
 	return i, err
 }
@@ -1884,8 +1890,8 @@ func (q *Queries) SendingMessageToSource(ctx context.Context, arg SendingMessage
 }
 
 const sendingMoveRemaining = `-- name: SendingMoveRemaining :execrows
-UPDATE messages SET provider_id = $1, claimed_at = NULL, next_attempt_at = NULL
-WHERE campaign_id = $2 AND provider_id = $3 AND status IN ('queued', 'held')
+UPDATE messages SET provider_id = $1, next_attempt_at = NULL
+WHERE campaign_id = $2 AND provider_id = $3 AND status IN ('queued', 'held') AND claimed_at IS NULL
 `
 
 type SendingMoveRemainingParams struct {
@@ -1894,7 +1900,10 @@ type SendingMoveRemainingParams struct {
 	FromProvider *uuid.UUID `json:"fromProvider"`
 }
 
-// Moves what is left of one provider's share to another provider.
+// Moves what is left of one provider's share to another provider. Messages
+// keep their status, so A/B holdouts stay held for the winner and canary
+// holdouts for the canary; a batch in flight on the old provider stays
+// there (its answer is recorded, or it ends in doubt).
 func (q *Queries) SendingMoveRemaining(ctx context.Context, arg SendingMoveRemainingParams) (int64, error) {
 	result, err := q.db.Exec(ctx, sendingMoveRemaining, arg.ToProvider, arg.CampaignID, arg.FromProvider)
 	if err != nil {
@@ -1973,13 +1982,13 @@ const sendingOutboxClaim = `-- name: SendingOutboxClaim :many
 WITH picked AS (
     SELECT m.id FROM messages m
     WHERE m.provider_id = $1 AND m.status = 'queued' AND m.campaign_id IS NULL AND m.stream = 'automation'
-      AND (m.claimed_at IS NULL OR m.claimed_at < $2::timestamptz)
-      AND (m.next_attempt_at IS NULL OR m.next_attempt_at <= $3::timestamptz)
+      AND m.claimed_at IS NULL
+      AND (m.next_attempt_at IS NULL OR m.next_attempt_at <= $2::timestamptz)
     ORDER BY m.id
-    LIMIT $4
+    LIMIT $3
     FOR UPDATE SKIP LOCKED
 ), upd AS (
-    UPDATE messages m SET claimed_at = $3::timestamptz, attempts = m.attempts + 1
+    UPDATE messages m SET claimed_at = $2::timestamptz, attempts = m.attempts + 1
     FROM picked WHERE m.id = picked.id
     RETURNING m.id, m.workspace_id, m.automation_id, m.automation_node, m.contact_id, m.email, m.mailbox_provider, m.attempts, m.content_ref
 )
@@ -1997,7 +2006,6 @@ ORDER BY upd.id
 
 type SendingOutboxClaimParams struct {
 	ProviderID *uuid.UUID `json:"providerId"`
-	Stale      time.Time  `json:"stale"`
 	Now        time.Time  `json:"now"`
 	Lim        int32      `json:"lim"`
 }
@@ -2022,13 +2030,10 @@ type SendingOutboxClaimRow struct {
 	Suppressed      bool            `json:"suppressed"`
 }
 
+// Claims queued automation emails of one provider; a stale claim is never
+// taken over (SendingOutboxRequeueStale, SendingOutboxMarkInDoubt).
 func (q *Queries) SendingOutboxClaim(ctx context.Context, arg SendingOutboxClaimParams) ([]SendingOutboxClaimRow, error) {
-	rows, err := q.db.Query(ctx, sendingOutboxClaim,
-		arg.ProviderID,
-		arg.Stale,
-		arg.Now,
-		arg.Lim,
-	)
+	rows, err := q.db.Query(ctx, sendingOutboxClaim, arg.ProviderID, arg.Now, arg.Lim)
 	if err != nil {
 		return nil, err
 	}
@@ -2122,14 +2127,14 @@ func (q *Queries) SendingPurgeWindows(ctx context.Context, before int64) error {
 }
 
 const sendingQueueState = `-- name: SendingQueueState :many
-SELECT provider_id, mailbox_provider, status,
+SELECT provider_id, mailbox_provider, status, hold_reason,
        count(*)::bigint AS n,
        count(*) FILTER (WHERE next_attempt_at IS NOT NULL AND next_attempt_at > $1::timestamptz)::bigint AS waiting,
        coalesce(min(next_attempt_at), 'epoch'::timestamptz)::timestamptz AS next_at,
        coalesce(max(next_attempt_at), 'epoch'::timestamptz)::timestamptz AS last_at
 FROM messages
-WHERE campaign_id = $2 AND status IN ('queued', 'held')
-GROUP BY provider_id, mailbox_provider, status
+WHERE campaign_id = $2 AND status IN ('queued', 'held', 'in_doubt')
+GROUP BY provider_id, mailbox_provider, status, hold_reason
 `
 
 type SendingQueueStateParams struct {
@@ -2141,6 +2146,7 @@ type SendingQueueStateRow struct {
 	ProviderID      *uuid.UUID `json:"providerId"`
 	MailboxProvider string     `json:"mailboxProvider"`
 	Status          string     `json:"status"`
+	HoldReason      string     `json:"holdReason"`
 	N               int64      `json:"n"`
 	Waiting         int64      `json:"waiting"`
 	NextAt          time.Time  `json:"nextAt"`
@@ -2148,7 +2154,8 @@ type SendingQueueStateRow struct {
 }
 
 // What is left of a campaign per sending and mailbox provider: queued (and
-// when the next retry is due) and held for the A/B winner.
+// when the next retry is due), held for the A/B winner or the canary
+// (hold_reason), and in doubt.
 func (q *Queries) SendingQueueState(ctx context.Context, arg SendingQueueStateParams) ([]SendingQueueStateRow, error) {
 	rows, err := q.db.Query(ctx, sendingQueueState, arg.Now, arg.CampaignID)
 	if err != nil {
@@ -2162,6 +2169,7 @@ func (q *Queries) SendingQueueState(ctx context.Context, arg SendingQueueStatePa
 			&i.ProviderID,
 			&i.MailboxProvider,
 			&i.Status,
+			&i.HoldReason,
 			&i.N,
 			&i.Waiting,
 			&i.NextAt,

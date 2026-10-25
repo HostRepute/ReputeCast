@@ -71,7 +71,11 @@ export const m = defineMessages('live', {
   /** {provider} is the sending provider ("Postal"). */
   whatReturned: 'What {provider} returned',
   healthDown: "ReputeCast's health checks marked the provider down; no send call to it has succeeded since.",
-  retries: 'Retries used exponential back-off (5 s to 60 s). No message was sent twice: each attempt carries an idempotency key.',
+  /** {provider} is the sending provider ("Brevo"); it recognizes a message it already took (idempotency key). */
+  retriesKeyed: 'Retries used exponential back-off (5 s to 60 s). Each attempt carries an idempotency key, so {provider} never takes a message twice.',
+  /** {provider} is the sending provider ("Postal"); it takes no idempotency key. */
+  retriesUnkeyed:
+    "Retries used exponential back-off (5 s to 60 s). {provider} takes no idempotency key, so a message goes again only after {provider} refused it; one whose answer was lost is held as in doubt, not sent twice.",
   likelyCauses: 'Likely causes',
   noCauses: 'Nothing in this send explains it yet; the evidence is on the left.',
   recommended: 'Recommended',

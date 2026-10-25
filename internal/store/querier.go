@@ -3181,7 +3181,9 @@ type Querier interface {
 	SendingCancelRemaining(ctx context.Context, arg SendingCancelRemainingParams) (int64, error)
 	// Claims up to lim queued messages of one sending provider and mailbox
 	// provider in the send's shuffled order, skipping rows another worker
-	// holds. A claim older than the stale time belonged to a worker that died.
+	// holds. A claim is never taken over: one that stayed claimed past the
+	// stale time belonged to a call whose answer was lost, and the guard
+	// settles it (SendingRequeueStale, SendingMarkInDoubt).
 	SendingClaim(ctx context.Context, arg SendingClaimParams) ([]SendingClaimRow, error)
 	SendingClearLinks(ctx context.Context, campaignID uuid.UUID) error
 	// A send that is prepared again (after a failed preparation) starts clean.
@@ -3224,6 +3226,8 @@ type Querier interface {
 	SendingGroupSize(ctx context.Context, arg SendingGroupSizeParams) (SendingGroupSizeRow, error)
 	// The most recent import from a source ("the Mailchimp import on 18 Sep").
 	SendingImportOf(ctx context.Context, arg SendingImportOfParams) (SendingImportOfRow, error)
+	// A campaign's messages in doubt per sending provider, with the oldest.
+	SendingInDoubtByProvider(ctx context.Context, campaignID *uuid.UUID) ([]SendingInDoubtByProviderRow, error)
 	SendingIncidents(ctx context.Context, campaignID uuid.UUID) ([]CampaignIncident, error)
 	SendingInsertAutomationLink(ctx context.Context, arg SendingInsertAutomationLinkParams) error
 	SendingInsertAutomationMessage(ctx context.Context, arg SendingInsertAutomationMessageParams) error
@@ -3232,6 +3236,10 @@ type Querier interface {
 	SendingInsertSend(ctx context.Context, arg SendingInsertSendParams) error
 	SendingListNames(ctx context.Context, workspaceID uuid.UUID) ([]SendingListNamesRow, error)
 	SendingMarkCompleted(ctx context.Context, arg SendingMarkCompletedParams) error
+	// The other stale claims: the call that took them ended without a recorded
+	// answer, so nobody knows whether the provider has them. They are in doubt
+	// and never sent again on a guess.
+	SendingMarkInDoubt(ctx context.Context, arg SendingMarkInDoubtParams) ([]SendingMarkInDoubtRow, error)
 	SendingMarkScheduled(ctx context.Context, arg SendingMarkScheduledParams) error
 	SendingMarkSent(ctx context.Context, arg SendingMarkSentParams) error
 	SendingMarkStarted(ctx context.Context, arg SendingMarkStartedParams) error
@@ -3241,27 +3249,49 @@ type Querier interface {
 	// A queued automation email whose language version stopped being sent (its
 	// language was removed) goes out in the source instead.
 	SendingMessageToSource(ctx context.Context, arg SendingMessageToSourceParams) error
-	// Moves what is left of one provider's share to another provider.
+	// Moves what is left of one provider's share to another provider. Messages
+	// keep their status, so A/B holdouts stay held for the winner and canary
+	// holdouts for the canary; a batch in flight on the old provider stays
+	// there (its answer is recorded, or it ends in doubt).
 	SendingMoveRemaining(ctx context.Context, arg SendingMoveRemainingParams) (int64, error)
 	SendingNextSimEvent(ctx context.Context) (time.Time, error)
 	SendingOpenIncidents(ctx context.Context, campaignID uuid.UUID) ([]CampaignIncident, error)
 	SendingOpenWindow(ctx context.Context, arg SendingOpenWindowParams) error
+	// Claims queued automation emails of one provider; a stale claim is never
+	// taken over (SendingOutboxRequeueStale, SendingOutboxMarkInDoubt).
 	SendingOutboxClaim(ctx context.Context, arg SendingOutboxClaimParams) ([]SendingOutboxClaimRow, error)
+	// The automation outbox's other stale claims become in doubt.
+	SendingOutboxMarkInDoubt(ctx context.Context, arg SendingOutboxMarkInDoubtParams) (int64, error)
 	SendingOutboxProviders(ctx context.Context) ([]uuid.UUID, error)
+	// The automation outbox's stale claims of providers that dedupe (as
+	// SendingRequeueStale).
+	SendingOutboxRequeueStale(ctx context.Context, arg SendingOutboxRequeueStaleParams) (int64, error)
+	// Providers with automation emails claimed before the stale time.
+	SendingOutboxStaleProviders(ctx context.Context, stale time.Time) ([]uuid.UUID, error)
 	// How many of a cohort's contacts received anything from this workspace
 	// before this campaign.
 	SendingPriorSends(ctx context.Context, arg SendingPriorSendsParams) (int64, error)
 	SendingPurgeWindows(ctx context.Context, before int64) error
 	// What is left of a campaign per sending and mailbox provider: queued (and
-	// when the next retry is due) and held for the A/B winner.
+	// when the next retry is due), held for the A/B winner or the canary
+	// (hold_reason), and in doubt.
 	SendingQueueState(ctx context.Context, arg SendingQueueStateParams) ([]SendingQueueStateRow, error)
 	SendingRelease(ctx context.Context, ids []uuid.UUID) error
 	// The A/B winner goes to everyone who waited for it.
 	SendingReleaseHeld(ctx context.Context, arg SendingReleaseHeldParams) (int64, error)
 	SendingRemainingOn(ctx context.Context, arg SendingRemainingOnParams) (int64, error)
+	// Guarded sending and the live monitor (review 2026-10, M34).
+	// GS-1: messages in doubt -------------------------------------------------
+	// Stale claims of providers that dedupe by message id, still inside the
+	// provider's idempotency window: back in the queue, sent again with the
+	// same key, so the provider drops the copy if it took the first one.
+	SendingRequeueStale(ctx context.Context, arg SendingRequeueStaleParams) (int64, error)
 	// Reserves up to want sends in a provider's one-second window of cap (open
 	// it first). No row comes back when the window is full.
 	SendingReserve(ctx context.Context, arg SendingReserveParams) (int32, error)
+	// A person's decision on a campaign's messages in doubt: send them again
+	// (back in the queue) or leave them out (cancelled, with why).
+	SendingResolveInDoubt(ctx context.Context, arg SendingResolveInDoubtParams) (int64, error)
 	SendingResolveIncident(ctx context.Context, arg SendingResolveIncidentParams) error
 	SendingRetryLater(ctx context.Context, arg SendingRetryLaterParams) error
 	SendingRetryNow(ctx context.Context, arg SendingRetryNowParams) error
@@ -3283,6 +3313,9 @@ type Querier interface {
 	SendingSetPhase(ctx context.Context, arg SendingSetPhaseParams) error
 	SendingSetRouteStatus(ctx context.Context, arg SendingSetRouteStatusParams) error
 	SendingSetThrottles(ctx context.Context, arg SendingSetThrottlesParams) error
+	// A provider reported an event for a message in doubt: it took the message
+	// after all. The message counts as sent from the event on.
+	SendingSettleInDoubt(ctx context.Context, arg SendingSettleInDoubtParams) (SendingSettleInDoubtRow, error)
 	SendingSimMessages(ctx context.Context, ids []uuid.UUID) ([]SendingSimMessagesRow, error)
 	SendingStageAdd(ctx context.Context, arg SendingStageAddParams) error
 	SendingStageClear(ctx context.Context, campaignID uuid.UUID) error

@@ -74,12 +74,21 @@ type LiveWinnerRequest struct {
 	Variant string `json:"variant" enum:"A,B,C"`
 }
 
+// LiveInDoubtRequest decides on the messages in doubt: send them again or
+// leave them out, all of them or one sending provider's.
+type LiveInDoubtRequest struct {
+	Action     string `json:"action" enum:"resend,leave_out"`
+	ProviderID string `json:"providerId,omitempty" format:"uuid"`
+}
+
 // LiveActionResult is what an action changed, with the new snapshot.
 type LiveActionResult struct {
-	Moved     int64        `json:"moved"`
-	Cancelled int64        `json:"cancelled"`
-	Excluded  int64        `json:"excluded"`
-	Snapshot  LiveSnapshot `json:"snapshot"`
+	Moved     int64 `json:"moved"`
+	Cancelled int64 `json:"cancelled"`
+	Excluded  int64 `json:"excluded"`
+	// Decided is how many messages in doubt were sent again or left out.
+	Decided  int64        `json:"decided"`
+	Snapshot LiveSnapshot `json:"snapshot"`
 }
 
 // body is an action's input: the campaign's path and a JSON body. Huma reads
@@ -245,6 +254,27 @@ func Register(h huma.API, e *Engine) {
 				return nil, mapErr(ctx, err)
 			}
 			return e.result(ctx, id, LiveActionResult{})
+		})
+	api.Post(h, api.Op{ID: "resolve-live-in-doubt", Path: base + "/in-doubt", Summary: "Send the messages in doubt again, or leave them out", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
+		func(ctx context.Context, in *body[LiveInDoubtRequest]) (*api.Body[LiveActionResult], error) {
+			ctx = ownAPI(ctx)
+			id, by, err := e.actionIDs(ctx, in.CampaignID)
+			if err != nil {
+				return nil, err
+			}
+			var pid *uuid.UUID
+			if in.Body.ProviderID != "" {
+				p, err := uuid.Parse(in.Body.ProviderID)
+				if err != nil {
+					return nil, api.Invalid("body.providerId", say(ctx, "problem.providerId", nil))
+				}
+				pid = &p
+			}
+			n, err := e.ResolveInDoubt(ctx, id, by, in.Body.Action == "resend", pid)
+			if err != nil {
+				return nil, mapErr(ctx, err)
+			}
+			return e.result(ctx, id, LiveActionResult{Decided: n})
 		})
 	api.Post(h, api.Op{ID: "pick-live-ab-winner", Path: base + "/ab-winner", Summary: "End the A/B test with a chosen winner", Tags: tags, Access: api.Workspace(authz.CampaignsSend)},
 		func(ctx context.Context, in *body[LiveWinnerRequest]) (*api.Body[LiveActionResult], error) {

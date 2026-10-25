@@ -63,8 +63,10 @@ export default translate(m, {
   whatTripped: 'Điều gì vượt ngưỡng',
   whatReturned: '{provider} trả về gì',
   healthDown: 'Kiểm tra tình trạng của ReputeCast đã đánh dấu nhà cung cấp gián đoạn; từ đó chưa có lệnh gửi nào đến nhà cung cấp này thành công.',
-  retries:
-    'Các lần thử lại dùng giãn cách tăng dần theo cấp số nhân (5 giây đến 60 giây). Không thư nào bị gửi hai lần: mỗi lần thử đều mang một khóa idempotency.',
+  retriesKeyed:
+    'Các lần thử lại dùng giãn cách tăng dần theo cấp số nhân (5 giây đến 60 giây). Mỗi lần thử mang một khóa idempotency, nên {provider} không bao giờ nhận một thư hai lần.',
+  retriesUnkeyed:
+    '{provider} không nhận khóa idempotency nên các lần thử lại (giãn cách 5 giây đến 60 giây) chỉ gửi lại thư mà {provider} đã từ chối; thư bị mất phản hồi được giữ ở trạng thái chưa rõ, không gửi hai lần.',
   likelyCauses: 'Nguyên nhân có thể',
   noCauses: 'Chưa có gì trong lần gửi này giải thích được điều đó; bằng chứng nằm ở bên trái.',
   recommended: 'Đề xuất',

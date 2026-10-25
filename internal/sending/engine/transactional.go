@@ -548,14 +548,14 @@ func (o *TransactionalOutbox) tick(ctx context.Context, pid uuid.UUID, routes ma
 		for i, p := range chunk {
 			msgs[i], xs[i] = p.msg, p.x
 		}
-		cctx, cancel := context.WithTimeout(simulator.WithNow(ctx, now), 30*time.Second)
+		cctx, cancel := o.E.callContext(ctx, now)
 		res, callErr := providers.SendWithExtras(cctx, r.transport, msgs, xs)
 		cancel()
 		if callErr == nil && len(res) != len(msgs) {
 			callErr = &providers.CallError{Op: "Send", Message: "the provider didn't answer for every message", Temporary: true}
 		}
 		o.E.recordCall(key, now, callErr)
-		if err := manage.RecordSend(ctx, o.E.Pool, r.provider, res, callErr, now); err != nil {
+		if err := manage.RecordSend(context.WithoutCancel(ctx), o.E.Pool, r.provider, res, callErr, now); err != nil {
 			o.E.log().WarnContext(ctx, "record provider call", "provider", pid, "err", err)
 		}
 		if callErr != nil {
@@ -593,6 +593,9 @@ func (o *TransactionalOutbox) tick(ctx context.Context, pid uuid.UUID, routes ma
 	}
 	sent := 0
 	outcomes := map[uuid.UUID]*TransactionalOutcome{}
+	// Recorded even when the job is told to stop: the providers have these
+	// messages now (review GS-1).
+	ctx = context.WithoutCancel(ctx)
 	err = sending.Tx(ctx, o.E.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
 		for k := range outcomes {
