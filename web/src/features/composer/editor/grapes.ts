@@ -4,6 +4,7 @@ import { loadFeedItems } from '@/features/digests/composer/feedComponent'
 import { loadGrowBlocks } from '@/features/grow/composer/blocks'
 import { canvasCss } from './canvasCss'
 import { encodeTables, loadTable } from './components'
+import { withLiveText } from './live'
 import { installMjmlHooks, type MjmlCompile } from './mjmlHooks'
 
 /**
@@ -31,6 +32,12 @@ export interface ComposerEditor {
   compile: MjmlCompile
   /** The canvas as MJML: <mjml><mj-body>…</mj-body></mjml>. */
   getBody(): string
+  /**
+   * The canvas as MJML with the words of a text being typed, without ending
+   * its editing: autosave and the browser journal take them while the
+   * person is still typing (getBody has them only once the editing ends).
+   */
+  getLiveBody(): string
   /** Replaces the canvas content (undoable). */
   setBody(body: string): void
   /** True while a text is being edited on the canvas (its latest words aren't in the model yet). */
@@ -126,6 +133,7 @@ export async function createComposerEditor(container: HTMLElement, opts: CreateO
     editor,
     compile,
     getBody: () => editor.getHtml().trim(),
+    getLiveBody: () => withLiveText(editor, () => editor.getHtml().trim()),
     setBody: (body: string) => {
       editor.setComponents(encodeTables(body))
     },

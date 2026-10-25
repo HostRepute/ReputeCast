@@ -70,6 +70,8 @@ var (
 	mVersionCopiedFrom   = msgs.M("version.copiedFrom")
 	mVersionFromPost     = msgs.M("version.fromPost")
 	mNoteDraftFrom       = msgs.M("note.draftFrom")
+	mVersionKeptYours    = msgs.M("version.keptYours")
+	mVersionLoadedTheirs = msgs.M("version.loadedTheirs")
 )
 
 // PostDraftLabel is the first version's label of a draft made from a
@@ -108,6 +110,8 @@ var (
 	reVersionRestored     = regexp.MustCompile(`^restored v([0-9]+)$`)
 	reVersionCopiedFrom   = regexp.MustCompile(`^copied from “(.*)”$`)
 	reVersionFromPost     = regexp.MustCompile(`^created from the post on ([^\s]+)$`)
+	reVersionKeptYours    = regexp.MustCompile(`^your edits, kept when (.*)'s v([0-9]+) was loaded$`)
+	reVersionLoadedTheirs = regexp.MustCompile(`^loaded (.*)'s v([0-9]+)$`)
 )
 
 // versionLabel is a version's label in a reader's language.
@@ -129,6 +133,12 @@ func versionLabel(l i18n.Lang, label string) string {
 	}
 	if m := reVersionFromPost.FindStringSubmatch(label); m != nil {
 		return mVersionFromPost.Text(l, i18n.Args{"site": m[1]})
+	}
+	if m := reVersionKeptYours.FindStringSubmatch(label); m != nil {
+		return mVersionKeptYours.Text(l, i18n.Args{"name": m[1], "version": m[2]})
+	}
+	if m := reVersionLoadedTheirs.FindStringSubmatch(label); m != nil {
+		return mVersionLoadedTheirs.Text(l, i18n.Args{"name": m[1], "version": m[2]})
 	}
 	return label
 }

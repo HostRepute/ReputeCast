@@ -1,0 +1,82 @@
+/*
+ * The composer's chrome after the October 2026 review (Composer,
+ * ComposerStates, ComposerWarnings, ComposerWrite): banners under the top
+ * bar, with values copied from the boards. Scoped to .cmp like composer.css.
+ */
+
+/* Banners under the top bar (ComposerStates: recovered edits, conflict) */
+.cmp .bnr {
+  display: flex;
+  gap: 10px 14px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.cmp .bnr.w {
+  background: #fffbeb;
+  border-bottom-color: #fcd34d;
+  color: #78350f;
+}
+.cmp .bnr.b {
+  background: var(--bad-tint);
+  border-bottom-color: var(--bad-line);
+  color: #7f1d1d;
+}
+.cmp .bnr .bi {
+  flex: none;
+  margin-top: 2px;
+}
+.cmp .bnr .bt {
+  flex: 1 1 420px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cmp .bnr .bt b {
+  font-weight: 600;
+  color: var(--ink);
+}
+.cmp .bnr .ba {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.cmp .choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+.cmp .choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink-nav);
+  font-size: 12.5px;
+}
+/* A version's name in the history. */
+.cmp .ver .vname,
+.ver .vname {
+  font-weight: 600;
+}
+@media (max-width: 767px) {
+  .cmp .choices {
+    grid-template-columns: 1fr;
+  }
+  .cmp .bnr {
+    padding: 12px;
+  }
+  .cmp .bnr .ba .btn,
+  .cmp .choice .btn {
+    min-height: 44px;
+  }
+}

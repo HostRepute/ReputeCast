@@ -17613,6 +17613,20 @@
         },
         "type": "object"
       },
+      "ComposerNameVersion": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "The version's name; empty removes it",
+            "maxLength": 120,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
       "ComposerPreview": {
         "additionalProperties": false,
         "properties": {
@@ -17842,9 +17856,13 @@
               "autosave",
               "manual",
               "import",
-              "template"
+              "template",
+              "recovered"
             ],
             "type": "string"
+          },
+          "stash": {
+            "type": "boolean"
           },
           "subject": {
             "maxLength": 998,
@@ -17875,6 +17893,13 @@
           "sizeBytes": {
             "format": "int64",
             "type": "integer"
+          },
+          "stashedVersion": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "unchanged": {
+            "type": "boolean"
           },
           "version": {
             "format": "int64",
@@ -18084,6 +18109,9 @@
           "label": {
             "type": "string"
           },
+          "name": {
+            "type": "string"
+          },
           "savedAt": {
             "format": "date-time",
             "type": "string"
@@ -18104,7 +18132,11 @@
               "template",
               "import",
               "duplicate",
-              "api"
+              "api",
+              "conflict",
+              "merge",
+              "recovered",
+              "synced"
             ],
             "type": "string"
           },
@@ -18120,7 +18152,8 @@
           "label",
           "source",
           "sizeBytes",
-          "current"
+          "current",
+          "name"
         ],
         "type": "object"
       },
@@ -18140,6 +18173,9 @@
             "type": "string"
           },
           "mjml": {
+            "type": "string"
+          },
+          "name": {
             "type": "string"
           },
           "preheader": {
@@ -18171,7 +18207,11 @@
               "template",
               "import",
               "duplicate",
-              "api"
+              "api",
+              "conflict",
+              "merge",
+              "recovered",
+              "synced"
             ],
             "type": "string"
           },
@@ -18195,7 +18235,8 @@
           "label",
           "source",
           "sizeBytes",
-          "current"
+          "current",
+          "name"
         ],
         "type": "object"
       },
@@ -18208,6 +18249,14 @@
             },
             "type": "array"
           },
+          "named": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "nextBefore": {
+            "format": "int64",
+            "type": "integer"
+          },
           "total": {
             "format": "int64",
             "type": "integer"
@@ -18215,7 +18264,8 @@
         },
         "required": [
           "items",
-          "total"
+          "total",
+          "named"
         ],
         "type": "object"
       },
@@ -109548,7 +109598,7 @@
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/content": {
       "put": {
-        "description": "Fails with 409 version_conflict when someone saved a newer version since baseVersion; the problem's meta says who, when and which sections each side changed. Send force: true to keep yours on top.",
+        "description": "Fails with 409 version_conflict when someone saved a newer version since baseVersion; the problem's meta says who, when and which sections each side changed. Send force: true to keep yours on top, or stash: true to keep yours in the history under the current version (Load theirs). Saving content that is already the current version stores nothing (unchanged: true).",
         "operationId": "save-campaign-content",
         "parameters": [
           {
@@ -113199,6 +113249,7 @@
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions": {
       "get": {
+        "description": "nextBefore, when present, is the before= of the next (older) page. named=true lists the versions people named.",
         "operationId": "list-campaign-versions",
         "parameters": [
           {
@@ -113235,6 +113286,28 @@
               "minimum": 1,
               "type": "integer"
             }
+          },
+          {
+            "description": "List versions older than this version number (the next page)",
+            "explode": false,
+            "in": "query",
+            "name": "before",
+            "schema": {
+              "description": "List versions older than this version number (the next page)",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Named versions only",
+            "explode": false,
+            "in": "query",
+            "name": "named",
+            "schema": {
+              "description": "Named versions only",
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -113267,7 +113340,7 @@
             "bearer": []
           }
         ],
-        "summary": "Version history, newest first",
+        "summary": "Version history, newest first, one page at a time",
         "tags": [
           "Campaigns"
         ],
@@ -113349,6 +113422,93 @@
         ],
         "x-access": "workspace",
         "x-permission": "campaigns:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}/name": {
+      "put": {
+        "description": "Named versions are never pruned from the history.",
+        "operationId": "name-campaign-version",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComposerNameVersion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComposerVersion"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Name a version (or remove its name)",
+        "tags": [
+          "Campaigns"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
       }
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}/restore": {

@@ -28,23 +28,141 @@ function when(at: string) {
   return sameDay(d, new Date()) ? clock(d) : shortDate(d)
 }
 
+type VersionPage = Schemas['ComposerVersionList']
+
+/** One version of the history: what it is, and restore or name it. */
+function VersionRow({ v, pick, onPick, busy, onRestore, onNamed }: { v: Version; pick: boolean; onPick: () => void; busy: number | null; onRestore: (v: Version) => void; onNamed: () => void }) {
+  const c = useComposer()
+  const t = useT()
+  const [naming, setNaming] = useState(false)
+  const [name, setName] = useState(v.name)
+  const [saving, setSaving] = useState(false)
+  const label = v.source === 'create' && v.label.startsWith('created') ? v.label : v.label || t(md.source, { source: v.source })
+  const submit = async () => {
+    setSaving(true)
+    try {
+      await http.PUT('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}/name', {
+        params: { path: { workspace: c.slug, campaignId: c.campaign.id, version: v.version } },
+        body: { name: name.trim() },
+      })
+      setNaming(false)
+      onNamed()
+    } catch (e) {
+      toast({ kind: 'error', title: t(md.nameFailed), detail: errorMessage(e) })
+    } finally {
+      setSaving(false)
+    }
+  }
+  return (
+    <div className={`ver${v.current ? ' cur' : ''}`}>
+      <input type="checkbox" aria-label={t(md.compareVersion, { version: v.version })} checked={pick} onChange={onPick} />
+      <span className="mono k" style={{ width: 38 }}>
+        v{v.version}
+      </span>
+      {naming ? (
+        <form
+          className="flex min-w-0 flex-[1_1_220px] items-center gap-1.5"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void submit()
+          }}
+        >
+          <input className="in min-w-0 flex-1" aria-label={t(md.versionName, { version: v.version })} value={name} maxLength={120} placeholder={t(md.namePlaceholder)} onChange={(e) => setName(e.target.value)} autoFocus />
+          <button type="submit" className="btn sm pri" aria-busy={saving || undefined} disabled={saving}>
+            {t(md.saveName)}
+          </button>
+          <button type="button" className="btn sm" onClick={() => setNaming(false)}>
+            {t(common.cancel)}
+          </button>
+        </form>
+      ) : (
+        <span className="min-w-0 flex-[1_1_220px]">
+          {v.current ? <b>{t(md.current)}</b> : null}
+          {v.current ? ' · ' : ''}
+          {v.name ? <b className="vname">{v.name}</b> : null}
+          {v.name ? ' · ' : ''}
+          {when(v.savedAt)}
+          {v.savedBy ? ` · ${v.savedBy}` : ''} · {label}
+          <span className="k"> · {kb(v.sizeBytes)}</span>
+        </span>
+      )}
+      {naming ? null : (
+        <span className="flex flex-wrap items-center gap-1.5">
+          {c.canEdit ? (
+            <button
+              type="button"
+              className="btn sm"
+              aria-label={v.name ? t(md.renameVersion, { version: v.version }) : t(md.nameVersion, { version: v.version })}
+              onClick={() => {
+                setName(v.name)
+                setNaming(true)
+              }}
+            >
+              {v.name ? t(md.rename) : t(md.nameButton)}
+            </button>
+          ) : null}
+          {v.current ? (
+            <Badge tone="ok">{t(md.liveDraft)}</Badge>
+          ) : c.canEdit ? (
+            <button type="button" className="btn sm" aria-label={t(md.restoreVersion, { version: v.version })} aria-busy={busy === v.version || undefined} disabled={busy !== null} onClick={() => onRestore(v)}>
+              {t(md.restore)}
+            </button>
+          ) : null}
+        </span>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Version history (ComposerStates · Saved): every version, newest first, a
+ * page at a time, or only the named ones; restore one (unsaved edits are
+ * saved as a version first), name one, or tick two to compare them.
+ */
 function VersionsDialog({ open, onClose, onCompare }: { open: boolean; onClose: () => void; onCompare: (a: number, b: number) => void }) {
   const c = useComposer()
   const t = useT()
   const qc = useQueryClient()
-  const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions', { params: { path: { workspace: c.slug, campaignId: c.campaign.id } } }, { enabled: open })
+  const [named, setNamed] = useState(false)
+  const query = { workspace: c.slug, campaignId: c.campaign.id }
+  const q = $api.useQuery('get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions', { params: { path: query, query: named ? { named: true } : {} } }, { enabled: open })
+  // Older pages, fetched with "Show older versions" (the first comes from the query).
+  const [older, setOlder] = useState<{ key: string; pages: VersionPage[] }>({ key: '', pages: [] })
+  const key = `${named}:${q.dataUpdatedAt}`
+  const pages = older.key === key ? older.pages : []
+  const [loadingOlder, setLoadingOlder] = useState(false)
   const [busy, setBusy] = useState<number | null>(null)
   const [pick, setPick] = useState<number[]>([])
+  const last = pages.length ? pages[pages.length - 1] : q.data
+  const items = q.data ? [...q.data.items, ...pages.flatMap((p) => p.items)] : []
+  const refresh = () => void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions'] })
+  const loadOlder = async () => {
+    if (!last?.nextBefore) return
+    setLoadingOlder(true)
+    try {
+      const { data } = await http.GET('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions', { params: { path: query, query: { before: last.nextBefore, ...(named ? { named: true } : {}) } } })
+      if (data) setOlder({ key, pages: [...pages, data] })
+    } catch (e) {
+      toast({ kind: 'error', title: t(md.loadVersionsFailed), detail: errorMessage(e) })
+    } finally {
+      setLoadingOlder(false)
+    }
+  }
   const restore = async (v: Version) => {
     setBusy(v.version)
     try {
-      if (c.status.kind === 'dirty') await c.save()
+      // Unsaved edits become a version of their own first, so a restore never drops them.
+      if (c.hasUnsaved?.() && !(await c.save({ manual: true, quiet: true, label: t(md.beforeRestore, { version: v.version }) }))) {
+        toast({ kind: 'error', title: t(md.restoreFailed), detail: t(md.restoreNeedsSave, { version: v.version }) })
+        return
+      }
+      const base = c.currentVersion?.() ?? (c.status.kind === 'new' ? 1 : c.status.version)
       await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}/restore', {
         params: { path: { workspace: c.slug, campaignId: c.campaign.id, version: v.version } },
-        body: { baseVersion: c.status.kind === 'new' ? 0 : c.status.version },
+        body: { baseVersion: base },
       })
       await c.reloadFromServer()
-      void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions'] })
+      refresh()
       toast({ kind: 'success', title: t(md.restored, { version: v.version }), detail: t(md.restoredDetail) })
       onClose()
     } catch (e) {
@@ -52,10 +170,6 @@ function VersionsDialog({ open, onClose, onCompare }: { open: boolean; onClose: 
     } finally {
       setBusy(null)
     }
-  }
-  const label = (v: Version) => {
-    if (v.source === 'create' && v.label.startsWith('created')) return v.label
-    return v.label || t(md.source, { source: v.source })
   }
   const toggle = (n: number) => setPick((p) => (p.includes(n) ? p.filter((x) => x !== n) : [...p.slice(-1), n]))
   return (
@@ -73,35 +187,42 @@ function VersionsDialog({ open, onClose, onCompare }: { open: boolean; onClose: 
         </>
       }
     >
+      <div className="seg mb-2 self-start" role="group" aria-label={t(md.filterLabel)}>
+        <button type="button" aria-pressed={!named} onClick={() => setNamed(false)}>
+          {q.data && !named ? t(md.allVersions, { count: q.data.total }) : t(md.allVersionsBare)}
+        </button>
+        <button type="button" aria-pressed={named} onClick={() => setNamed(true)}>
+          {q.data ? t(md.namedVersions, { count: q.data.named }) : t(md.namedVersionsBare)}
+        </button>
+      </div>
       {q.isPending ? (
-        <p className="k">{t(md.loadingVersions)}</p>
+        <div className="flex flex-col gap-2" aria-busy="true">
+          <span className="vh" role="status">
+            {t(md.loadingVersions)}
+          </span>
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="sk" style={{ height: 36 }} />
+          ))}
+        </div>
       ) : q.isError ? (
-        <p className="k">{t(md.historyFailed, { error: errorMessage(q.error) })}</p>
+        <p className="k" role="alert">
+          {t(md.historyFailed, { error: errorMessage(q.error) })}
+        </p>
+      ) : !items.length ? (
+        <p className="k">{named ? t(md.noNamed) : t(md.noVersions)}</p>
       ) : (
         <div className="-mx-1 flex flex-col">
-          {q.data.items.map((v) => (
-            <div key={v.version} className={`ver${v.current ? ' cur' : ''}`}>
-              <input type="checkbox" aria-label={t(md.compareVersion, { version: v.version })} checked={pick.includes(v.version)} onChange={() => toggle(v.version)} />
-              <span className="mono k" style={{ width: 38 }}>
-                v{v.version}
-              </span>
-              <span className="min-w-0 flex-1">
-                {v.current ? <b>{t(md.current)}</b> : null}
-                {v.current ? ' · ' : ''}
-                {when(v.savedAt)}
-                {v.savedBy ? ` · ${v.savedBy}` : ''} · {label(v)}
-                <span className="k"> · {kb(v.sizeBytes)}</span>
-              </span>
-              {v.current ? (
-                <Badge tone="ok">{t(md.liveDraft)}</Badge>
-              ) : c.canEdit ? (
-                <button type="button" className="btn sm" aria-busy={busy === v.version || undefined} disabled={busy !== null} onClick={() => void restore(v)}>
-                  {t(md.restore)}
-                </button>
-              ) : null}
-            </div>
+          {items.map((v) => (
+            <VersionRow key={v.version} v={v} pick={pick.includes(v.version)} onPick={() => toggle(v.version)} busy={busy} onRestore={(x) => void restore(x)} onNamed={refresh} />
           ))}
-          {q.data.total > q.data.items.length ? <p className="k px-3.5 pt-2">{t(md.showingLatest, { count: q.data.items.length, total: q.data.total })}</p> : null}
+          {last?.nextBefore ? (
+            <div className="flex items-center gap-3 px-3.5 pt-3">
+              <button type="button" className="btn sm" aria-busy={loadingOlder || undefined} disabled={loadingOlder} onClick={() => void loadOlder()}>
+                {t(md.showOlder)}
+              </button>
+              <span className="k">{t(md.showing, { count: items.length, total: named ? q.data.named : q.data.total })}</span>
+            </div>
+          ) : null}
         </div>
       )}
     </Dialog>

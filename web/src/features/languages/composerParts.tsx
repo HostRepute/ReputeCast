@@ -62,14 +62,18 @@ export function useLanguageNav() {
   const navigate = useNavigate()
   return useCallback(
     async (language: string | undefined, view?: 'compare', select?: string) => {
-      if (c.canEdit && c.status.kind === 'dirty') await c.save()
+      // Unsaved edits are saved first (CO-2). When that fails (a conflict, no
+      // connection), the leave guard asks what to do instead of the switch
+      // dropping them.
+      const unsaved = c.hasUnsaved ? c.hasUnsaved() : c.status.kind === 'dirty'
+      const saved = !c.canEdit || !unsaved || (await c.save({ manual: true, quiet: true }))
       const lang = language && language !== c.campaign.sourceLanguage ? language : undefined
       if (owner.kind === 'template') {
         void navigate({
           to: '/w/$workspace/transactional/templates/$templateId',
           params: { workspace: c.slug, templateId: owner.id },
           search: ((s: Record<string, unknown>) => ({ ...s, language: lang })) as never,
-          ignoreBlocker: true,
+          ignoreBlocker: saved,
         })
         return
       }
@@ -77,7 +81,7 @@ export function useLanguageNav() {
         to: '/w/$workspace/campaigns/$campaignId/edit',
         params: { workspace: c.slug, campaignId: c.campaign.id },
         search: { language: lang, view, select } as never,
-        ignoreBlocker: true,
+        ignoreBlocker: saved,
       })
     },
     [c, navigate, owner.kind, owner.id],

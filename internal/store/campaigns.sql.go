@@ -316,7 +316,7 @@ func (q *Queries) ComposerLatestReadiness(ctx context.Context, campaignID uuid.U
 }
 
 const composerLockCampaign = `-- name: ComposerLockCampaign :one
-SELECT c.id, c.status, c.version, c.subject, c.preheader, c.mjml, c.html, c.ab_test, c.content_hash, c.content_settings,
+SELECT c.id, c.status, c.version, c.subject, c.preheader, c.mjml, c.html, c.plain_text, c.ab_test, c.content_hash, c.content_settings,
        c.updated_by, c.autosaved_at, c.updated_at,
        coalesce(u.name, '')::text AS updated_by_name
 FROM campaigns c
@@ -338,6 +338,7 @@ type ComposerLockCampaignRow struct {
 	Preheader       string          `json:"preheader"`
 	Mjml            string          `json:"mjml"`
 	Html            string          `json:"html"`
+	PlainText       string          `json:"plainText"`
 	AbTest          json.RawMessage `json:"abTest"`
 	ContentHash     string          `json:"contentHash"`
 	ContentSettings json.RawMessage `json:"contentSettings"`
@@ -359,6 +360,7 @@ func (q *Queries) ComposerLockCampaign(ctx context.Context, arg ComposerLockCamp
 		&i.Preheader,
 		&i.Mjml,
 		&i.Html,
+		&i.PlainText,
 		&i.AbTest,
 		&i.ContentHash,
 		&i.ContentSettings,
@@ -825,7 +827,7 @@ func (q *Queries) GetComposerSender(ctx context.Context, arg GetComposerSenderPa
 
 const getComposerVersion = `-- name: GetComposerVersion :one
 SELECT v.campaign_id, v.version, v.subject, v.preheader, v.mjml, v.html, v.plain_text, v.ab_test, v.saved_by, v.saved_at, v.label, v.source, v.size_bytes,
-       coalesce(u.name, '')::text AS saved_by_name
+       v.name, coalesce(u.name, '')::text AS saved_by_name
 FROM campaign_versions v
 LEFT JOIN users u ON u.id = v.saved_by
 WHERE v.campaign_id = $1 AND v.version = $2
@@ -850,6 +852,7 @@ type GetComposerVersionRow struct {
 	Label       string          `json:"label"`
 	Source      string          `json:"source"`
 	SizeBytes   int32           `json:"sizeBytes"`
+	Name        string          `json:"name"`
 	SavedByName string          `json:"savedByName"`
 }
 
@@ -870,6 +873,7 @@ func (q *Queries) GetComposerVersion(ctx context.Context, arg GetComposerVersion
 		&i.Label,
 		&i.Source,
 		&i.SizeBytes,
+		&i.Name,
 		&i.SavedByName,
 	)
 	return i, err
@@ -1368,7 +1372,7 @@ func (q *Queries) ProviderNames(ctx context.Context, workspaceID uuid.UUID) ([]P
 
 const pruneComposerVersions = `-- name: PruneComposerVersions :execrows
 DELETE FROM campaign_versions v
-WHERE v.campaign_id = $1 AND v.source = 'autosave' AND v.version <> 1
+WHERE v.campaign_id = $1 AND v.source = 'autosave' AND v.version <> 1 AND v.name = ''
   AND v.version <= (SELECT max(x.version) FROM campaign_versions x WHERE x.campaign_id = $1) - $2::int
 `
 
@@ -1377,8 +1381,8 @@ type PruneComposerVersionsParams struct {
 	Keep       int32     `json:"keep"`
 }
 
-// Keeps the newest @keep versions; the first version and anything that is
-// not an autosave (restores, imports, ⌘S) are always kept.
+// Keeps the newest @keep versions; the first version, named versions and
+// anything that is not an autosave (restores, imports, ⌘S) are always kept.
 func (q *Queries) PruneComposerVersions(ctx context.Context, arg PruneComposerVersionsParams) (int64, error) {
 	result, err := q.db.Exec(ctx, pruneComposerVersions, arg.CampaignID, arg.Keep)
 	if err != nil {

@@ -3714,7 +3714,7 @@ export interface paths {
         get?: never;
         /**
          * Save the content as a new version (autosave)
-         * @description Fails with 409 version_conflict when someone saved a newer version since baseVersion; the problem's meta says who, when and which sections each side changed. Send force: true to keep yours on top.
+         * @description Fails with 409 version_conflict when someone saved a newer version since baseVersion; the problem's meta says who, when and which sections each side changed. Send force: true to keep yours on top, or stash: true to keep yours in the history under the current version (Load theirs). Saving content that is already the current version stores nothing (unchanged: true).
          */
         put: operations["save-campaign-content"];
         post?: never;
@@ -4527,7 +4527,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Version history, newest first */
+        /**
+         * Version history, newest first, one page at a time
+         * @description nextBefore, when present, is the before= of the next (older) page. named=true lists the versions people named.
+         */
         get: operations["list-campaign-versions"];
         put?: never;
         post?: never;
@@ -4547,6 +4550,26 @@ export interface paths {
         /** One version with its content */
         get: operations["get-campaign-version"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}/name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Name a version (or remove its name)
+         * @description Named versions are never pruned from the history.
+         */
+        put: operations["name-campaign-version"];
         post?: never;
         delete?: never;
         options?: never;
@@ -21771,6 +21794,10 @@ export interface components {
             /** @description Start from a template (starter:<key> or a saved template id) */
             templateId?: string;
         };
+        ComposerNameVersion: {
+            /** @description The version's name; empty removes it */
+            name: string;
+        };
         ComposerPreview: {
             contact?: components["schemas"]["ComposerPreviewContact"];
             fromEmail: string;
@@ -21836,7 +21863,8 @@ export interface components {
              * @default autosave
              * @enum {string}
              */
-            source: "autosave" | "manual" | "import" | "template";
+            source: "autosave" | "manual" | "import" | "template" | "recovered";
+            stash?: boolean;
             subject?: string;
         };
         ComposerSavedContent: {
@@ -21847,6 +21875,9 @@ export interface components {
             savedAt: string;
             /** Format: int64 */
             sizeBytes: number;
+            /** Format: int64 */
+            stashedVersion?: number;
+            unchanged?: boolean;
             /** Format: int64 */
             version: number;
         };
@@ -21903,13 +21934,14 @@ export interface components {
         ComposerVersion: {
             current: boolean;
             label: string;
+            name: string;
             /** Format: date-time */
             savedAt: string;
             savedBy: string;
             /** Format: int64 */
             sizeBytes: number;
             /** @enum {string} */
-            source: "create" | "autosave" | "manual" | "restore" | "template" | "import" | "duplicate" | "api";
+            source: "create" | "autosave" | "manual" | "restore" | "template" | "import" | "duplicate" | "api" | "conflict" | "merge" | "recovered" | "synced";
             /** Format: int64 */
             version: number;
         };
@@ -21919,6 +21951,7 @@ export interface components {
             html: string;
             label: string;
             mjml: string;
+            name: string;
             preheader: string;
             /** Format: date-time */
             savedAt: string;
@@ -21927,13 +21960,17 @@ export interface components {
             /** Format: int64 */
             sizeBytes: number;
             /** @enum {string} */
-            source: "create" | "autosave" | "manual" | "restore" | "template" | "import" | "duplicate" | "api";
+            source: "create" | "autosave" | "manual" | "restore" | "template" | "import" | "duplicate" | "api" | "conflict" | "merge" | "recovered" | "synced";
             subject: string;
             /** Format: int64 */
             version: number;
         };
         ComposerVersionList: {
             items: components["schemas"]["ComposerVersion"][];
+            /** Format: int64 */
+            named: number;
+            /** Format: int64 */
+            nextBefore?: number;
             /** Format: int64 */
             total: number;
         };
@@ -53799,6 +53836,10 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
+                /** @description List versions older than this version number (the next page) */
+                before?: number;
+                /** @description Named versions only */
+                named?: boolean;
             };
             header?: never;
             path: {
@@ -53851,6 +53892,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ComposerVersionDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "name-campaign-version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                campaignId: string;
+                version: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComposerNameVersion"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComposerVersion"];
                 };
             };
             /** @description Error */

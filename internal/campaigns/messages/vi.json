@@ -50,5 +50,7 @@
   "version.restored": "khôi phục v{version}",
   "version.copiedFrom": "sao chép từ “{name}”",
   "version.fromPost": "tạo từ bài viết trên {site}",
-  "note.draftFrom": "bản nháp từ {site}"
+  "note.draftFrom": "bản nháp từ {site}",
+  "version.keptYours": "nội dung bạn sửa, được giữ lại khi mở v{version} của {name}",
+  "version.loadedTheirs": "đã mở v{version} của {name}"
 }

@@ -750,6 +750,7 @@ type CampaignVersion struct {
 	AbTest     json.RawMessage `json:"abTest"`
 	Source     string          `json:"source"`
 	SizeBytes  int32           `json:"sizeBytes"`
+	Name       string          `json:"name"`
 }
 
 type ChannelConsent struct {

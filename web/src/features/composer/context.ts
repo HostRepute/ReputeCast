@@ -57,8 +57,25 @@ export interface ComposerState {
   setHead(h: string): void
 
   status: SaveStatus
-  /** Saves a version now. `manual` shows the saved card unless `quiet`; `force` overrides a conflict. */
-  save(opts?: { manual?: boolean; quiet?: boolean; force?: boolean; background?: boolean; source?: 'autosave' | 'manual' | 'import' | 'template'; label?: string }): Promise<boolean>
+  /**
+   * Saves a version now. `manual` shows the saved card unless `quiet`; `force` overrides a conflict;
+   * `stash` keeps the edits in the history under the current version (Load theirs); `background`
+   * (timed autosaves) saves the words of a text being typed without ending its editing.
+   * Resolves false when nothing could be saved (conflict, offline, error).
+   */
+  save(opts?: {
+    manual?: boolean
+    quiet?: boolean
+    force?: boolean
+    stash?: boolean
+    background?: boolean
+    source?: 'autosave' | 'manual' | 'import' | 'template' | 'recovered'
+    label?: string
+  }): Promise<boolean>
+  /** Edits not saved yet (typed, waiting, or a save that failed). */
+  hasUnsaved?(): boolean
+  /** The version the editor is on (the last one it saved or loaded). */
+  currentVersion?(): number
   /** Full MJML of the current content (head with title and preview + canvas). */
   currentMjml(): string
   compileCurrent(): { html: string; errors: { line: number; message: string; tagName: string }[] } | null

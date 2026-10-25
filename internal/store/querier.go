@@ -730,6 +730,9 @@ type Querier interface {
 	// Lists with their subscribed, active contacts (suppressed addresses excluded).
 	ComposerAudienceLists(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceListsRow, error)
 	ComposerAudienceSegments(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceSegmentsRow, error)
+	// The current version number moves on without the content changing
+	// ("Load theirs" keeps your edits in the history underneath).
+	ComposerBumpVersion(ctx context.Context, arg ComposerBumpVersionParams) error
 	// Recipients of lists minus excluded lists and suppressions. A deleted list
 	// (restorable for 30 days) adds nobody; as an exclusion it still excludes.
 	ComposerCountListAudience(ctx context.Context, arg ComposerCountListAudienceParams) (int64, error)
@@ -741,6 +744,9 @@ type Querier interface {
 	ComposerLatestReadiness(ctx context.Context, campaignID uuid.UUID) (ComposerLatestReadinessRow, error)
 	// Row lock for autosave: the version check and the new version are atomic.
 	ComposerLockCampaign(ctx context.Context, arg ComposerLockCampaignParams) (ComposerLockCampaignRow, error)
+	// Names (or unnames, with '') one version; returns the name it had.
+	ComposerNameVersion(ctx context.Context, arg ComposerNameVersionParams) (string, error)
+	ComposerNamedVersionCount(ctx context.Context, campaignID uuid.UUID) (int64, error)
 	ComposerPreviewContactByID(ctx context.Context, arg ComposerPreviewContactByIDParams) (ComposerPreviewContactByIDRow, error)
 	// Contacts to preview as: the campaign's audience first, people with a first name first.
 	ComposerPreviewContacts(ctx context.Context, arg ComposerPreviewContactsParams) ([]ComposerPreviewContactsRow, error)
@@ -750,6 +756,9 @@ type Querier interface {
 	ComposerUpdateCampaignMeta(ctx context.Context, arg ComposerUpdateCampaignMetaParams) error
 	// The MJML of recent versions, newest first (to find when a section was removed).
 	ComposerVersionSources(ctx context.Context, arg ComposerVersionSourcesParams) ([]ComposerVersionSourcesRow, error)
+	// One page of the version history, newest first: versions older than
+	// @before (none: from the newest), only named ones when @named_only.
+	ComposerVersionsPage(ctx context.Context, arg ComposerVersionsPageParams) ([]ComposerVersionsPageRow, error)
 	ConfirmInstanceBasics(ctx context.Context) error
 	ConnectActiveContacts(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	ConnectCreateList(ctx context.Context, arg ConnectCreateListParams) error
@@ -2459,8 +2468,8 @@ type Querier interface {
 	ProvUpdateSettings(ctx context.Context, arg ProvUpdateSettingsParams) error
 	ProvUpdateTracking(ctx context.Context, arg ProvUpdateTrackingParams) error
 	ProviderNames(ctx context.Context, workspaceID uuid.UUID) ([]ProviderNamesRow, error)
-	// Keeps the newest @keep versions; the first version and anything that is
-	// not an autosave (restores, imports, ⌘S) are always kept.
+	// Keeps the newest @keep versions; the first version, named versions and
+	// anything that is not an autosave (restores, imports, ⌘S) are always kept.
 	PruneComposerVersions(ctx context.Context, arg PruneComposerVersionsParams) (int64, error)
 	PublicBumpUnsubscribed(ctx context.Context, arg PublicBumpUnsubscribedParams) error
 	PublicCampaign(ctx context.Context, arg PublicCampaignParams) (PublicCampaignRow, error)

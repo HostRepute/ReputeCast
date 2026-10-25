@@ -10,6 +10,7 @@ import { useDocumentTitle } from '@/lib/hooks'
 import { useUnsavedWork } from '@/lib/sessionClock'
 import { runShortcutHandler, useShortcutHandler } from '@/lib/shortcuts'
 import { useCan, useWorkspace } from '@/lib/session'
+import { ComposerBanners } from './Banners'
 import { CanvasArea } from './CanvasArea'
 import { ComposerCtx, type ABTest, type Campaign, type Checks, type ComposerCtxData, type ComposerDialog, type ComposerState, type SaveStatus, type View } from './context'
 import { Dialogs } from './Dialogs'
@@ -22,6 +23,7 @@ import { Header, PermissionBanner } from './Header'
 import { LeftPanel } from './LeftPanel'
 import { PreviewView } from './PreviewView'
 import { RightPanel } from './RightPanel'
+import { serialQueue } from './saveQueue'
 import { SubjectBar } from './SubjectBar'
 import { AccessibilityProvider } from '@/features/accessibility/composer/state'
 import { ConditionalProvider } from '@/features/conditional/state'
@@ -38,6 +40,7 @@ import { WebCanvasView, WebModeProvider } from '@/features/website/composer/camp
 import { t as tt, useT } from '@/i18n'
 import { m } from './messages'
 import './composer.css'
+import './chrome.css'
 
 // CodeMirror loads with the code view only.
 const CodeView = lazy(() => import('./CodeView').then((m) => ({ default: m.CodeView })))
@@ -54,13 +57,13 @@ export interface ComposerSearch {
   left?: 'blocks' | 'layers' | 'templates'
 }
 
-const BACKUP_KEY = (id: string) => `rc-composer-backup:${id}`
-
 function offlineError(e: unknown) {
   return e instanceof TypeError || (e instanceof ApiError && (e.status === 502 || e.status === 503 || e.status === 504))
 }
 
 type PendingSource = { source: 'template' | 'import' | 'code' | 'restore'; label?: string }
+
+type SaveOptions = Parameters<ComposerState['save']>[0] & {}
 
 /**
  * The campaign composer: GrapesJS + MJML on a canvas with ReputeCast's own UI
@@ -108,6 +111,10 @@ export function Composer({
   const [subject, setSubjectState] = useState(campaign.subject)
   const [preheader, setPreheaderState] = useState(campaign.preheader)
   const [abTest, setABTestState] = useState<ABTest | null>(campaign.abTest ?? null)
+  // Saves read what is typed from these refs, not from a render's closure:
+  // a subject typed while a slow save is on its way belongs to the next save.
+  const subjectRef = useRef(campaign.subject)
+  const preheaderRef = useRef(campaign.preheader)
   const abRef = useRef(abTest)
   const [empty, setEmpty] = useState(() => isEmptyBody(campaign.mjml))
   const bodyRef = useRef(initial.body)
@@ -118,6 +125,10 @@ export function Composer({
   const [status, setStatus] = useState<SaveStatus>(() =>
     campaign.autosavedAt ? { kind: 'saved', at: campaign.autosavedAt, version: campaign.version } : { kind: 'new' },
   )
+  const statusRef = useRef(status)
+  useLayoutEffect(() => {
+    statusRef.current = status
+  }, [status])
   const [checks, setChecks] = useState<Checks>()
   const [checksPending, setChecksPending] = useState(false)
   const [checksNonce, setChecksNonce] = useState(0)
@@ -136,8 +147,9 @@ export function Composer({
   const revision = useRef(0)
   const savedRevision = useRef(0)
   const tracker = useRef<ChangeTracker | null>(null)
-  const saving = useRef<Promise<boolean> | null>(null)
   const pendingSource = useRef<PendingSource | null>(null)
+  /** Told the revision a save stored (the browser journal forgets what is saved). */
+  const afterSaved = useRef<((rev: number) => void) | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const geRef = useRef<ComposerEditor | null>(null)
   const leaveCheck = useRef<(() => boolean) | null>(null)
@@ -226,15 +238,16 @@ export function Composer({
     for (const t of ['mj-section', 'mj-hero', 'mj-wrapper', 'mj-raw']) body?.findType(t).forEach((c: Component) => (c.view as unknown as { rerender?: () => void })?.rerender?.())
   }, [ge, head])
 
-  const canvasBody = useCallback(() => (geRef.current ? geRef.current.getBody() : bodyRef.current), [])
+  /** The canvas as MJML, with the words of a text being typed (they reach the model only when its editing ends). */
+  const canvasBody = useCallback(() => (geRef.current ? geRef.current.getLiveBody() : bodyRef.current), [])
 
   /** Body of variant A: the canvas, unless it shows another variant of a content test. */
   const bodyA = useCallback(() => (shownVariant.current === 'A' ? canvasBody() : (variantBodies.current.A ?? canvasBody())), [canvasBody])
 
   const currentMjml = useCallback(() => {
     if (empty && !geRef.current) return ''
-    return joinMjml(withHeadMeta(headRef.current, { title: subject, preview: preheader }), bodyA())
-  }, [empty, subject, preheader, bodyA])
+    return joinMjml(withHeadMeta(headRef.current, { title: subjectRef.current, preview: preheaderRef.current }), bodyA())
+  }, [empty, bodyA])
 
   const compileCurrent = useCallback(() => {
     const inst = geRef.current
@@ -249,7 +262,7 @@ export function Composer({
     if (!t) return undefined
     if (t.kind !== 'content' || !geRef.current) return t
     const inst = geRef.current
-    const h = withHeadMeta(headRef.current, { title: subject, preview: preheader })
+    const h = withHeadMeta(headRef.current, { title: subjectRef.current, preview: preheaderRef.current })
     return {
       ...t,
       variants: t.variants.map((v) => {
@@ -259,7 +272,7 @@ export function Composer({
         return { ...v, mjml, html: inst.compile(mjml).html }
       }),
     }
-  }, [subject, preheader, canvasBody, bodyA])
+  }, [canvasBody, bodyA])
 
   const loadContent = useCallback(
     (mjml: string, how: { source: 'template' | 'import' | 'code' | 'restore' | 'reload'; label?: string }) => {
@@ -286,45 +299,49 @@ export function Composer({
     [markDirty, setHead, onSearch, search],
   )
 
+  /** Saves run one after another: each reads what is on screen when its turn comes. */
+  const [enqueueSave] = useState(serialQueue)
   const save = useCallback(
-    async (opts: { manual?: boolean; quiet?: boolean; force?: boolean; background?: boolean; source?: 'autosave' | 'manual' | 'import' | 'template'; label?: string } = {}): Promise<boolean> => {
-      if (!canEdit) return false
-      // Text being typed reaches the model when its editing ends: timed autosaves
-      // wait for that; anything the person asked for ends the editing first.
-      if (geRef.current?.isEditingText()) {
-        if (opts.background) return false
-        await geRef.current.flushEditing()
-      }
-      if (saving.current) {
-        await saving.current
-        if (revision.current === savedRevision.current && !opts.force) return true
-      }
+    (opts: SaveOptions = {}): Promise<boolean> => {
+      if (!canEdit) return Promise.resolve(false)
       const run = async (): Promise<boolean> => {
+        // A save the person asked for ends the text editing first (the model gets
+        // the words, the canvas compiles them); a timed autosave saves the words
+        // as they are typed, without interrupting the typing.
+        if (!opts.background && geRef.current?.isEditingText()) await geRef.current.flushEditing()
+        const pending = pendingSource.current
+        if (!opts.force && !opts.stash && !opts.manual && !pending && revision.current === savedRevision.current) return true
         const rev0 = revision.current
         const mjml = currentMjml()
-        const compiled = compileCurrent()
-        const pending = pendingSource.current
-        const label = opts.label ?? pending?.label ?? tracker.current?.take() ?? ''
+        const compiled = mjml && geRef.current ? geRef.current.compile(mjml) : null
+        const label = opts.label ?? pending?.label ?? (opts.stash ? '' : (tracker.current?.take() ?? ''))
         const source = opts.source ?? (pending ? (pending.source === 'restore' || pending.source === 'code' ? 'manual' : pending.source) : opts.manual ? 'manual' : 'autosave')
         setStatus({ kind: 'saving', version: version.current })
         try {
           const { data } = await http.PUT('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/content', {
             params: { path: { workspace: slug, campaignId: campaign.id }, query: language ? { language } : {} },
-            body: { baseVersion: version.current, subject, preheader, mjml, html: compiled?.html ?? '', abTest: abForSave(), label, source, force: opts.force || undefined },
+            body: {
+              baseVersion: version.current,
+              subject: subjectRef.current,
+              preheader: preheaderRef.current,
+              mjml,
+              html: compiled?.html ?? '',
+              abTest: abForSave(),
+              label,
+              source,
+              force: opts.force || undefined,
+              stash: opts.stash || undefined,
+            },
           })
           version.current = data!.version
           savedRevision.current = rev0
           pendingSource.current = null
-          try {
-            window.localStorage.removeItem(BACKUP_KEY(campaign.id))
-          } catch {
-            /* storage unavailable */
-          }
+          afterSaved.current?.(rev0)
           setStatus(revision.current === rev0 ? { kind: 'saved', at: data!.savedAt, version: data!.version } : { kind: 'dirty', at: data!.savedAt, version: data!.version })
           if (opts.manual && !opts.quiet) setSavedCard({ version: data!.version, at: data!.savedAt })
           // The source's versions: offer to keep them in step (LanguageStates).
-          if (!language) void afterSourceSave(savedMjml.current, mjml, data!.version)
-          savedMjml.current = mjml
+          if (!language && !opts.stash && !data!.unchanged) void afterSourceSave(savedMjml.current, mjml, data!.version)
+          if (!opts.stash) savedMjml.current = mjml
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns'] })
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions'] })
           return true
@@ -339,11 +356,6 @@ export function Composer({
             return false
           }
           if (offlineError(e)) {
-            try {
-              window.localStorage.setItem(BACKUP_KEY(campaign.id), JSON.stringify({ at: new Date().toISOString(), baseVersion: version.current, subject, preheader, mjml }))
-            } catch {
-              /* storage unavailable */
-            }
             setStatus((s) => ({ kind: 'offline', since: s.kind === 'offline' ? s.since : new Date().toISOString(), version: version.current, message: tt(m.offlineReason) }))
             return false
           }
@@ -351,32 +363,26 @@ export function Composer({
           return false
         }
       }
-      const p = run()
-      saving.current = p
-      try {
-        return await p
-      } finally {
-        saving.current = null
-      }
+      return enqueueSave(run)
     },
-    [canEdit, currentMjml, compileCurrent, abForSave, slug, campaign.id, subject, preheader, qc, language, afterSourceSave],
+    [canEdit, currentMjml, abForSave, slug, campaign.id, qc, language, afterSourceSave, enqueueSave],
   )
 
-
-  // Autosave every 30 s while there are changes, and 2 s after a structural change.
   const saveRef = useRef(save)
   useLayoutEffect(() => {
     saveRef.current = save
   })
+  // Autosave every 30 s while there are changes, the words of a text being typed
+  // included, and 2 s after a structural change. A conflict waits for the person.
   useEffect(() => {
     if (!canEdit) return
     const h = window.setInterval(() => {
-      if (revision.current !== savedRevision.current) void saveRef.current({ background: true })
+      if (revision.current !== savedRevision.current && statusRef.current.kind !== 'conflict') void saveRef.current({ background: true })
     }, 30_000)
     return () => window.clearInterval(h)
   }, [canEdit])
   useEffect(() => {
-    if (!canEdit || revision.current === savedRevision.current) return
+    if (!canEdit || revision.current === savedRevision.current || statusRef.current.kind === 'conflict') return
     if (pendingSource.current || tracker.current?.structural()) {
       const h = window.setTimeout(() => void saveRef.current({ background: true }), pendingSource.current ? 300 : 2000)
       return () => window.clearTimeout(h)
@@ -394,6 +400,8 @@ export function Composer({
     if (!data) return
     qc.setQueryData(['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}', { params: { path: { workspace: slug, campaignId: campaign.id }, query: language ? { language } : undefined } }], data)
     setName(data.name)
+    subjectRef.current = data.subject
+    preheaderRef.current = data.preheader
     setSubjectState(data.subject)
     setPreheaderState(data.preheader)
     setABTestState(data.abTest ?? null)
@@ -413,6 +421,7 @@ export function Composer({
 
   const setSubject = useCallback(
     (v: string) => {
+      subjectRef.current = v
       setSubjectState(v)
       tracker.current?.note(variant === 'A' ? tt(m.noteSubject) : tt(m.noteSubjectVariant, { variant }))
       markDirty()
@@ -421,6 +430,7 @@ export function Composer({
   )
   const setPreheader = useCallback(
     (v: string) => {
+      preheaderRef.current = v
       setPreheaderState(v)
       tracker.current?.note(tt(m.notePreheader))
       markDirty()
@@ -596,6 +606,8 @@ export function Composer({
     },
     status,
     save,
+    hasUnsaved: () => revision.current !== savedRevision.current || pendingSource.current !== null || statusRef.current.kind === 'offline' || statusRef.current.kind === 'error' || statusRef.current.kind === 'conflict',
+    currentVersion: () => version.current,
     currentMjml,
     compileCurrent,
     loadContent,
@@ -675,6 +687,7 @@ export function Composer({
         {/* Sponsor blocks fill themselves from the issue's booking (Earn, X17). */}
         <SponsorSync />
         {!campaign.access.canSend && canEditPerm ? <PermissionBanner /> : null}
+        {view === 'preview' ? null : <ComposerBanners />}
         {view === 'preview' ? <PreviewView onReview={goReview} /> : null}
         {/* The canvas stays mounted off screen in the other views: GrapesJS keeps its state and compiles. */}
         <div className={`flex flex-1 flex-col${view === 'preview' ? ' cmp-offstage' : ''}`} inert={view === 'preview' || undefined} aria-hidden={view === 'preview' || undefined}>

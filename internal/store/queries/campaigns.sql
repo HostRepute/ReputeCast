@@ -133,7 +133,7 @@ WHERE c.workspace_id = @workspace_id AND c.id = @id AND c.deleted_at IS NULL;
 
 -- name: ComposerLockCampaign :one
 -- Row lock for autosave: the version check and the new version are atomic.
-SELECT c.id, c.status, c.version, c.subject, c.preheader, c.mjml, c.html, c.ab_test, c.content_hash, c.content_settings,
+SELECT c.id, c.status, c.version, c.subject, c.preheader, c.mjml, c.html, c.plain_text, c.ab_test, c.content_hash, c.content_settings,
        c.updated_by, c.autosaved_at, c.updated_at,
        coalesce(u.name, '')::text AS updated_by_name
 FROM campaigns c
@@ -175,16 +175,16 @@ LIMIT @lim;
 
 -- name: GetComposerVersion :one
 SELECT v.campaign_id, v.version, v.subject, v.preheader, v.mjml, v.html, v.plain_text, v.ab_test, v.saved_by, v.saved_at, v.label, v.source, v.size_bytes,
-       coalesce(u.name, '')::text AS saved_by_name
+       v.name, coalesce(u.name, '')::text AS saved_by_name
 FROM campaign_versions v
 LEFT JOIN users u ON u.id = v.saved_by
 WHERE v.campaign_id = @campaign_id AND v.version = @version;
 
 -- name: PruneComposerVersions :execrows
--- Keeps the newest @keep versions; the first version and anything that is
--- not an autosave (restores, imports, ⌘S) are always kept.
+-- Keeps the newest @keep versions; the first version, named versions and
+-- anything that is not an autosave (restores, imports, ⌘S) are always kept.
 DELETE FROM campaign_versions v
-WHERE v.campaign_id = @campaign_id AND v.source = 'autosave' AND v.version <> 1
+WHERE v.campaign_id = @campaign_id AND v.source = 'autosave' AND v.version <> 1 AND v.name = ''
   AND v.version <= (SELECT max(x.version) FROM campaign_versions x WHERE x.campaign_id = @campaign_id) - @keep::int;
 
 -- name: ListComposerSenders :many

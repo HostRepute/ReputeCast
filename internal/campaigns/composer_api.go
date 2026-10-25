@@ -50,6 +50,9 @@ type getCampaignInput struct {
 type versionsInput struct {
 	CampaignPath
 	Limit int `query:"limit" minimum:"1" maximum:"300" default:"50"`
+	// Before lists the versions older than this one (the next page).
+	Before int  `query:"before" minimum:"0" doc:"List versions older than this version number (the next page)"`
+	Named  bool `query:"named" doc:"Named versions only"`
 }
 
 // VersionPath adds a {version}.
@@ -61,6 +64,11 @@ type VersionPath struct {
 type restoreInput struct {
 	VersionPath
 	Body ComposerRestoreVersion
+}
+
+type nameVersionInput struct {
+	VersionPath
+	Body ComposerNameVersion
 }
 
 type testSendInput struct {
@@ -143,7 +151,7 @@ func RegisterComposer(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Put(h, api.Op{ID: "save-campaign-content", Path: "/workspaces/{workspace}/campaigns/{campaignId}/content", Summary: "Save the content as a new version (autosave)",
-		Description: "Fails with 409 version_conflict when someone saved a newer version since baseVersion; the problem's meta says who, when and which sections each side changed. Send force: true to keep yours on top.",
+		Description: "Fails with 409 version_conflict when someone saved a newer version since baseVersion; the problem's meta says who, when and which sections each side changed. Send force: true to keep yours on top, or stash: true to keep yours in the history under the current version (Load theirs). Saving content that is already the current version stores nothing (unchanged: true).",
 		Tags:        tags, Access: edit, MaxBodyBytes: 16 << 20},
 		func(ctx context.Context, in *saveContentInput) (*api.Body[ComposerSavedContent], error) {
 			id, err := in.id()
@@ -153,14 +161,26 @@ func RegisterComposer(h huma.API, s *Service) {
 			out, err := s.SaveIn(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Language, in.Body)
 			return api.OK(out), err
 		})
-	api.Get(h, api.Op{ID: "list-campaign-versions", Path: "/workspaces/{workspace}/campaigns/{campaignId}/versions", Summary: "Version history, newest first",
-		Tags: tags, Access: view},
+	api.Get(h, api.Op{ID: "list-campaign-versions", Path: "/workspaces/{workspace}/campaigns/{campaignId}/versions", Summary: "Version history, newest first, one page at a time",
+		Description: "nextBefore, when present, is the before= of the next (older) page. named=true lists the versions people named.",
+		Tags:        tags, Access: view},
 		func(ctx context.Context, in *versionsInput) (*api.Body[ComposerVersionList], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
 			}
-			out, err := s.Versions(ctx, api.WorkspaceFrom(ctx), id, in.Limit)
+			out, err := s.Versions(ctx, api.WorkspaceFrom(ctx), id, VersionsPage{Limit: in.Limit, Before: in.Before, Named: in.Named})
+			return api.OK(out), err
+		})
+	api.Put(h, api.Op{ID: "name-campaign-version", Path: "/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}/name", Summary: "Name a version (or remove its name)",
+		Description: "Named versions are never pruned from the history.",
+		Tags:        tags, Access: edit},
+		func(ctx context.Context, in *nameVersionInput) (*api.Body[ComposerVersion], error) {
+			id, err := in.id()
+			if err != nil {
+				return nil, err
+			}
+			out, err := s.NameVersion(ctx, api.WorkspaceFrom(ctx), id, in.Version, in.Body)
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "get-campaign-version", Path: "/workspaces/{workspace}/campaigns/{campaignId}/versions/{version}", Summary: "One version with its content",

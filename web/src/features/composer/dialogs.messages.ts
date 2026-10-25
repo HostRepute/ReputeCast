@@ -11,7 +11,8 @@ export const md = defineMessages('composer.dialogs', {
   restoredDetail: 'It is saved as a new version; nothing was deleted.',
   restoreFailed: "Couldn't restore the version",
   /** A version saved without a description of its changes: how it was saved. */
-  source: '{source, select, autosave {autosave} manual {manual} import {import} template {template} create {create} restore {restore} other {{source}}}',
+  source:
+    '{source, select, autosave {autosave} manual {manual} import {import} template {template} create {create} restore {restore} conflict {kept after a conflict} merge {merged} recovered {recovered from this browser} synced {synced block updated} other {{source}}}',
   compareWith: 'Compare v{a} with v{b}',
   tickTwo: 'Tick two versions to compare them.',
   compareTwo: 'Compare two versions',
@@ -21,7 +22,28 @@ export const md = defineMessages('composer.dialogs', {
   current: 'Current',
   liveDraft: 'Live draft',
   restore: 'Restore',
-  showingLatest: 'Showing the latest {count} of {total} versions.',
+  restoreVersion: 'Restore version {version}',
+  /** The label of the version unsaved edits are saved as before a restore. */
+  beforeRestore: 'edits before restoring v{version}',
+  restoreNeedsSave: "Your unsaved edits couldn't be saved, so v{version} wasn't restored. Check the connection and try again.",
+  filterLabel: 'Which versions',
+  allVersions: 'All · {count}',
+  allVersionsBare: 'All',
+  namedVersions: 'Named · {count}',
+  namedVersionsBare: 'Named',
+  noNamed: 'No named versions yet. Name a version to find it here; named versions are never cleaned up.',
+  noVersions: 'No versions yet.',
+  showOlder: 'Show older versions',
+  showing: 'Showing {count} of {total}',
+  /** The button that names a version ("Sent to legal"). */
+  nameButton: 'Name',
+  rename: 'Rename',
+  nameVersion: 'Name version {version}',
+  renameVersion: 'Rename version {version}',
+  versionName: 'Name of version {version}',
+  namePlaceholder: 'Sent to legal, final copy…',
+  saveName: 'Save',
+  nameFailed: "Couldn't name the version",
 
   // Compare.
   compareTitle: 'Compare versions',

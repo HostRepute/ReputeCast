@@ -50,5 +50,7 @@
   "version.restored": { "message": "restored v{version}", "note": "version: the version number restored, 12" },
   "version.copiedFrom": { "message": "copied from “{name}”", "note": "the first version of a duplicate; name: the original campaign's name, never translated" },
   "version.fromPost": { "message": "created from the post on {site}", "note": "the first version of a draft made from a WordPress post; site: blog.acme.io" },
-  "note.draftFrom": { "message": "draft from {site}", "note": "the campaign list's note of a draft made from a WordPress post; site: blog.acme.io" }
+  "note.draftFrom": { "message": "draft from {site}", "note": "the campaign list's note of a draft made from a WordPress post; site: blog.acme.io" },
+  "version.keptYours": { "message": "your edits, kept when {name}'s v{version} was loaded", "note": "a version's label: after a conflict, Load theirs keeps your edits in the history; name: a member's name; version: 15" },
+  "version.loadedTheirs": { "message": "loaded {name}'s v{version}", "note": "a version's label: the other person's version, put back on top after Load theirs" }
 }
