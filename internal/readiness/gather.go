@@ -708,6 +708,7 @@ func (s *Service) reputation(ctx context.Context, g *gathered, f Facts) (Reputat
 			}
 		}
 	}
+	out.Domains = s.reputationDomains(ctx, g, f, checkedAssets(ov))
 	for _, l := range rep.Listings {
 		typ := "domain"
 		if net4(l.Asset) != "" || strings.Contains(l.Asset, ":") {
@@ -722,6 +723,94 @@ func (s *Service) reputation(ctx context.Context, g *gathered, f Facts) (Reputat
 		out.Listings = append(out.Listings, lf)
 	}
 	return out, nil
+}
+
+// checkedAssets are the assets Deliverability's blocklist checks cover.
+func checkedAssets(ov deliverability.DeliverabilityOverview) map[string]bool {
+	out := map[string]bool{}
+	for _, src := range ov.Blocklists.Results {
+		for _, a := range src.Assets {
+			out[strings.ToLower(a)] = true
+		}
+	}
+	return out
+}
+
+// reputationDomains are the domains the send's reputation rides on (SR-2):
+// the sending domain, its parent (organizational) domain, the return-path
+// domains of the providers carrying the send and the tracking domain.
+// Deliverability watches the sending and parent domains; the others are
+// looked up live on the URI blocklists, as link domains are.
+func (s *Service) reputationDomains(ctx context.Context, g *gathered, f Facts, watched map[string]bool) []DomainAssetFacts {
+	sending := strings.ToLower(firstNonEmpty(f.Auth.Domain, g.c.SenderDomain))
+	if sending == "" {
+		return nil
+	}
+	out := []DomainAssetFacts{}
+	index := map[string]int{}
+	add := func(d DomainAssetFacts) {
+		if i, ok := index[d.Domain]; ok {
+			for _, p := range d.Providers {
+				if !slices.Contains(out[i].Providers, p) {
+					out[i].Providers = append(out[i].Providers, p)
+				}
+			}
+			return
+		}
+		index[d.Domain] = len(out)
+		out = append(out, d)
+	}
+	add(DomainAssetFacts{Domain: sending, Role: DomainSending})
+	if org := dnscheck.OrgDomain(sending); org != sending {
+		add(DomainAssetFacts{Domain: org, Role: DomainParent})
+	}
+	for _, mf := range f.Auth.MailFrom {
+		if d := strings.ToLower(mf.Domain); d != "" {
+			add(DomainAssetFacts{Domain: d, Role: DomainReturnPath, Providers: []string{mf.Short}})
+		}
+	}
+	if host := trackingHost(s.URLs.Base()); host != "" {
+		add(DomainAssetFacts{Domain: host, Role: DomainTracking})
+	}
+	live := []string{}
+	for i, d := range out {
+		if (d.Role == DomainReturnPath || d.Role == DomainTracking) && !watched[d.Domain] && s.Links != nil {
+			out[i].Live = true
+			live = append(live, d.Domain)
+		}
+	}
+	if len(live) == 0 {
+		return out
+	}
+	rep, err := s.Links.Check(ctx, live)
+	for i, d := range out {
+		if !d.Live {
+			continue
+		}
+		switch {
+		case err != nil:
+			out[i].Unknown = contentcheck.TroubleOther
+		case len(rep.Listed[d.Domain]) > 0:
+			out[i].Lists = rep.Listed[d.Domain]
+		case rep.Unknown[d.Domain] != "":
+			out[i].Unknown = rep.Unknown[d.Domain]
+		}
+	}
+	return out
+}
+
+// trackingHost is the domain of the open pixel and the tracked links: the
+// public URL's host, unless it's an address or a local name (development).
+func trackingHost(base string) string {
+	u, err := url.Parse(strings.TrimSpace(base))
+	if err != nil {
+		return ""
+	}
+	h := strings.ToLower(u.Hostname())
+	if h == "" || h == "localhost" || strings.HasSuffix(h, ".localhost") || !strings.Contains(h, ".") || net4(h) != "" || strings.Contains(h, ":") {
+		return ""
+	}
+	return h
 }
 
 var ipv4 = regexp.MustCompile(`^\d{1,3}(\.\d{1,3}){3}$`)

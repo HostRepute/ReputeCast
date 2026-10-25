@@ -270,41 +270,7 @@ func (b *builder) reputation() {
 	}
 	deliverability := link(tx("fix.openDeliverability", nil), b.href("/deliverability"))
 	if domain != "" {
-		key := "reputation.domain_blocklists"
-		label := tx("label.domainBlocklists", nil)
-		var listed []ListingFacts
-		for _, l := range r.Listings {
-			if l.Type == "domain" && strings.EqualFold(l.Asset, domain) {
-				listed = append(listed, l)
-			}
-		}
-		switch {
-		case r.Status == Unknown:
-			b.add(check{Key: key, Group: GroupReputation, Status: Unknown,
-				Title:     tx("reputation.domainUnknown", A{"domain": domain}),
-				FlatTitle: tx("reputation.domainUnknownFlat", A{"sources": r.Sources, "via": via}),
-				Detail:    unknownReason(r), Note: unknownNote, Label: label,
-				Fixes: []fix{deliverability}})
-		case len(listed) == 0:
-			b.add(check{Key: key, Group: GroupReputation, Status: Pass,
-				Title:  tx("reputation.domainClean", A{"domain": domain, "sources": r.Sources}),
-				Detail: b.sourcesDetail("domain", checked), Label: label,
-				Short: tx("reputation.domainCleanShort", A{"domain": domain, "sources": r.Sources})})
-		default:
-			status := Warn
-			names := []string{}
-			for _, l := range listed {
-				if l.Impact == "high" {
-					status = Block
-				}
-				names = append(names, l.Source)
-			}
-			b.add(check{Key: key, Group: GroupReputation, Status: status,
-				Title:  tx("reputation.domainListed", A{"domain": domain, "count": len(listed), "sources": r.Sources}),
-				Detail: sentences(listingText(listed[0]), impactText(listed[0].Impact, "domain")), Label: label,
-				Ack:   tx("reputation.domainListedAck", A{"domain": domain, "lists": ArgAnd(names)}),
-				Fixes: []fix{link(tx("fix.requestDelisting", nil), b.href("/deliverability"))}})
-		}
+		b.add(b.domainReputation(domain, via, checked, unknownNote, deliverability))
 	}
 	// Dedicated IPs of the providers carrying the send.
 	shared := []string{}
@@ -361,6 +327,144 @@ func (b *builder) reputation() {
 	for _, s := range b.availableShares() {
 		b.add(b.providerRates(s))
 	}
+}
+
+// uriLists are the URI blocklists domains were looked up on.
+func (b *builder) uriLists() []string {
+	if len(b.f.Content.URIBlocklists) > 0 {
+		return b.f.Content.URIBlocklists
+	}
+	return URIBlocklists
+}
+
+// domainHit is a domain of the send's reputation and the lists it is on.
+type domainHit struct {
+	asset    DomainAssetFacts
+	listings []ListingFacts
+}
+
+// domainReputation is the domain blocklists check (SR-2): the sending
+// domain, its parent domain, the return-path domains and the tracking
+// domain, each on Deliverability's lists or, for the domains it doesn't
+// watch, looked up live on the URI blocklists. A listing of any of them
+// counts: acme.io listed is news.acme.io's problem too.
+func (b *builder) domainReputation(domain, via string, checked any, unknownNote Text, deliverability fix) check {
+	r := b.f.Reputation
+	key, label := "reputation.domain_blocklists", tx("label.domainBlocklists", nil)
+	assets := r.Domains
+	if len(assets) == 0 {
+		assets = []DomainAssetFacts{{Domain: domain, Role: DomainSending}}
+	}
+	var hits []domainHit
+	var unknown []DomainAssetFacts
+	watched := []string{}
+	var live []DomainAssetFacts
+	for _, a := range assets {
+		var ls []ListingFacts
+		for _, l := range r.Listings {
+			if l.Type == "domain" && strings.EqualFold(l.Asset, a.Domain) {
+				ls = append(ls, l)
+			}
+		}
+		for _, name := range a.Lists {
+			if !slices.ContainsFunc(ls, func(l ListingFacts) bool { return l.Source == name }) {
+				ls = append(ls, ListingFacts{Asset: a.Domain, Type: "domain", Source: name, Impact: "high"})
+			}
+		}
+		if len(ls) > 0 {
+			hits = append(hits, domainHit{asset: a, listings: ls})
+		}
+		switch {
+		case a.Live && a.Unknown != "":
+			unknown = append(unknown, a)
+		case a.Live:
+			live = append(live, a)
+		default:
+			watched = append(watched, a.Domain)
+		}
+	}
+	if len(hits) > 0 {
+		status := Warn
+		names := []string{}
+		for _, h := range hits {
+			for _, l := range h.listings {
+				if l.Impact == "high" {
+					status = Block
+				}
+				if !slices.Contains(names, l.Source) {
+					names = append(names, l.Source)
+				}
+			}
+		}
+		first := hits[0]
+		lists := []string{}
+		for _, l := range first.listings {
+			lists = append(lists, l.Source)
+		}
+		args := A{"domain": first.asset.Domain, "sending": domain, "lists": ArgAnd(lists), "providers": ArgAnd(first.asset.Providers),
+			"count": len(first.listings), "sources": r.Sources}
+		var title, why Text
+		switch first.asset.Role {
+		case DomainParent:
+			title, why = tx("reputation.parentListed", args), tx("reputation.parentDetail", args)
+		case DomainReturnPath:
+			title, why = tx("reputation.returnPathListed", args), tx("reputation.returnPathDetail", args)
+		case DomainTracking:
+			title, why = tx("reputation.trackingListed", args), tx("reputation.trackingDetail", nil)
+		default:
+			title = tx("reputation.domainListed", args)
+		}
+		detail := sentences(why, listingText(first.listings[0]), impactText(first.listings[0].Impact, "domain"))
+		if len(hits) > 1 {
+			more := []string{}
+			for _, h := range hits[1:] {
+				more = append(more, h.asset.Domain)
+			}
+			detail = sentences(detail, tx("reputation.moreListed", A{"count": len(more), "domains": ArgAnd(more)}))
+		}
+		listed := []string{}
+		for _, h := range hits {
+			listed = append(listed, h.asset.Domain)
+		}
+		return check{Key: key, Group: GroupReputation, Status: status, Title: title, Detail: detail, Label: label,
+			Ack:   tx("reputation.domainsListedAck", A{"domains": ArgAnd(listed), "count": len(listed), "lists": ArgAnd(names)}),
+			Fixes: []fix{link(tx("fix.requestDelisting", nil), b.href("/deliverability"))}}
+	}
+	if r.Status == Unknown {
+		return check{Key: key, Group: GroupReputation, Status: Unknown,
+			Title:     tx("reputation.domainUnknown", A{"domain": domain}),
+			FlatTitle: tx("reputation.domainUnknownFlat", A{"sources": r.Sources, "via": via}),
+			Detail:    unknownReason(r), Note: unknownNote, Label: label,
+			Fixes: []fix{deliverability}}
+	}
+	if len(unknown) > 0 {
+		names := []string{}
+		for _, a := range unknown {
+			names = append(names, a.Domain)
+		}
+		note := tx("note.notChecked", nil)
+		if unknown[0].Unknown == "timeout" {
+			note = tx("note.timedOut", nil)
+		}
+		return check{Key: key, Group: GroupReputation, Status: Unknown, Label: label, Note: note,
+			Title:  tx("reputation.liveUnknown", A{"domains": ArgAnd(names), "lists": ArgAnd(b.uriLists())}),
+			Detail: tx("reputation.liveUnknownDetail", A{"trouble": unknown[0].Unknown}), Fixes: []fix{deliverability}}
+	}
+	args := A{"domains": ArgAnd(watched), "count": len(watched), "sources": r.Sources}
+	detail := b.sourcesDetail("domain", checked)
+	if len(live) > 0 {
+		parts := []Text{}
+		for _, a := range live {
+			if a.Role == DomainTracking {
+				parts = append(parts, tx("reputation.roleTracking", A{"domain": a.Domain}))
+			} else {
+				parts = append(parts, tx("reputation.roleReturnPath", A{"domain": a.Domain, "providers": ArgAnd(a.Providers)}))
+			}
+		}
+		detail = sentences(detail, tx("reputation.liveClean", A{"domains": ArgAnd(parts), "lists": ArgAnd(b.uriLists())}))
+	}
+	return check{Key: key, Group: GroupReputation, Status: Pass, Title: tx("reputation.domainsClean", args), Detail: detail, Label: label,
+		Short: tx("reputation.domainsCleanShort", args)}
 }
 
 // unknownReason says why the blocklists couldn't be checked: the reason

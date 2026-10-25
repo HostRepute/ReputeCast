@@ -19,6 +19,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
+	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/i18n"
@@ -76,6 +77,10 @@ type Service struct {
 	// DNS looks up again what Deliverability couldn't (a DNS error is
 	// Unknown, never a wrong record); nil keeps the stored results.
 	DNS dnscheck.Resolver
+	// Links looks domains up live on the URI blocklists (the link domains'
+	// lookups, shared with the composer): the return-path and tracking
+	// domains Deliverability doesn't watch; nil leaves them out.
+	Links contentcheck.BlocklistChecker
 }
 
 func (s *Service) now() time.Time {

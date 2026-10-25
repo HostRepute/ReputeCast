@@ -75,3 +75,23 @@ func TestLinkDomainsLookedUpLive(t *testing.T) {
 		t.Errorf("verdict %s", run.Verdict)
 	}
 }
+
+// SR-2: acme.io listed (Deliverability watches the parent domain) shows on
+// the review of a news.acme.io campaign.
+func TestParentDomainListingShows(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	tag, err := env.App.Pool.Exec(ctx, `UPDATE blocklist_results SET listed = true, impact = 'high', listed_since = now()
+		WHERE asset = 'acme.io' AND source = 'SURBL' AND workspace_id = (SELECT id FROM workspaces WHERE slug = 'acme-newsletter')`)
+	if err != nil || tag.RowsAffected() == 0 {
+		t.Fatalf("listing acme.io: %v (%d rows)", err, tag.RowsAffected())
+	}
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	run := runChecks(t, c, campaignID(t, c, "Weekly Digest #143"))
+	ch, _ := checkOf(run, "reputation.domain_blocklists")
+	if ch.Status != readiness.Block || !strings.Contains(ch.Title, "acme.io, the parent domain of news.acme.io") {
+		t.Fatalf("parent listing: %s %q", ch.Status, ch.Title)
+	}
+}

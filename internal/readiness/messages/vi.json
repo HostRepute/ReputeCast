@@ -780,5 +780,21 @@
   "auth.bimiInvalidAck": "Tôi hiểu bản ghi BIMI không hợp lệ và logo sẽ không hiển thị.",
 
   "links.domainsUnknown": "Không kiểm tra được {count, number} trên {total, plural, other {# tên miền liên kết}} trên {lists}",
-  "links.domainsUnknownDetail": "{domains}{more, plural, =0 {} other { và # tên miền khác}}: {trouble, select, timeout {DNS không trả lời kịp} refused {các danh sách từ chối trình phân giải DNS của máy chủ này (việc tra cứu danh sách chặn cần trình phân giải đệ quy của riêng bạn)} other {DNS không trả về câu trả lời dùng được}}. Chưa biết không có nghĩa là sạch; lần kiểm tra lại lúc gửi sẽ tra cứu lại."
+  "links.domainsUnknownDetail": "{domains}{more, plural, =0 {} other { và # tên miền khác}}: {trouble, select, timeout {DNS không trả lời kịp} refused {các danh sách từ chối trình phân giải DNS của máy chủ này (việc tra cứu danh sách chặn cần trình phân giải đệ quy của riêng bạn)} other {DNS không trả về câu trả lời dùng được}}. Chưa biết không có nghĩa là sạch; lần kiểm tra lại lúc gửi sẽ tra cứu lại.",
+
+  "reputation.domainsClean": "{domains} sạch trên {sources, number}/{sources, number} danh sách chặn tên miền",
+  "reputation.domainsCleanShort": "{domains} sạch trên {sources, number}/{sources, number} danh sách chặn",
+  "reputation.liveClean": "{domains}: sạch trên {lists}, tra cứu trực tiếp.",
+  "reputation.roleReturnPath": "{domain} (đường dẫn trả về của {providers})",
+  "reputation.roleTracking": "{domain} (tên miền theo dõi)",
+  "reputation.parentListed": "{domain}, tên miền cha của {sending}, bị liệt kê trên {lists}",
+  "reputation.parentDetail": "Các nhà cung cấp hộp thư cũng đánh giá {sending} theo uy tín của tên miền cha.",
+  "reputation.returnPathListed": "Tên miền đường dẫn trả về {domain} của {providers} bị liệt kê trên {lists}",
+  "reputation.returnPathDetail": "Thư trả về đi về tên miền này và SPF được kiểm tra trên nó, nên các nhà cung cấp hộp thư thấy việc bị liệt kê trên mọi thư {providers} gửi.",
+  "reputation.trackingListed": "Tên miền theo dõi {domain} bị liệt kê trên {lists}",
+  "reputation.trackingDetail": "Mọi liên kết được theo dõi và pixel mở thư đều trỏ tới tên miền này.",
+  "reputation.moreListed": "{count, plural, other {Còn # tên miền khác cũng bị liệt kê}}: {domains}.",
+  "reputation.domainsListedAck": "Tôi hiểu {domains} đang bị liệt kê trên {lists}.",
+  "reputation.liveUnknown": "Không kiểm tra được {domains} trên {lists}",
+  "reputation.liveUnknownDetail": "{trouble, select, timeout {DNS không trả lời kịp} refused {Các danh sách từ chối trình phân giải DNS của máy chủ này} other {DNS không trả về câu trả lời dùng được}}. Chưa biết không có nghĩa là sạch; lần kiểm tra lại lúc gửi sẽ tra cứu lại."
 }

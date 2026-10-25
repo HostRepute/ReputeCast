@@ -29,20 +29,22 @@ import (
 // audience.
 func readinessService(a *App) *readiness.Service {
 	prober := linkProber(a)
+	links := linkBlocklist(a, 30*time.Second)
 	cs := &campaigns.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit,
 		Templates: &templates.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
 		Mail:      func() mailer.Sender { return a.Mail },
 		URLs:      a.URLs,
-		Checker:   &contentcheck.Checker{Blocklist: linkBlocklist(a, 30*time.Second), Prober: prober, Extra: contentExtras(a)},
+		Checker:   &contentcheck.Checker{Blocklist: links, Prober: prober, Extra: contentExtras(a)},
 		// Send Readiness checks and fixes every language version.
 		Translations: campaignTranslations(a),
 	}
 	_, dl := deliverabilityServices(a)
 	rs := &readiness.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log, Campaigns: cs, Deliverability: dl, URLs: a.URLs, Segments: a.segments(),
 		Languages: languagesService(a), Mailbox: a.mailboxClassifier(),
-		// Lookups Deliverability couldn't make are made again during a run.
-		DNS: dl.DNS}
+		// Lookups Deliverability couldn't make are made again during a run;
+		// the return-path and tracking domains are looked up as link domains are.
+		DNS: dl.DNS, Links: links}
 	if acc := readinessAccessibility(a); acc != nil {
 		rs.Accessibility = acc
 	}
@@ -71,7 +73,7 @@ func readinessService(a *App) *readiness.Service {
 // (a short budget: it checks as people type) and Send Readiness (a longer
 // one: it runs in the background). The demo and the tests answer from the
 // demo's zone, so nothing reaches the real lists.
-func linkBlocklist(a *App, budget time.Duration) contentcheck.Blocklist {
+func linkBlocklist(a *App, budget time.Duration) *contentcheck.LiveBlocklist {
 	cfg := a.Cfg
 	if cfg == nil {
 		d := config.Defaults()

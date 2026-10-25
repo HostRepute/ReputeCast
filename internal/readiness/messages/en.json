@@ -780,5 +780,21 @@
   "auth.bimiInvalidAck": "I understand the BIMI record is invalid and no logo shows.",
 
   "links.domainsUnknown": { "message": "Couldn't check {count, number} of {total, plural, one {# link domain} other {# link domains}} on {lists}", "note": "lists: Spamhaus DBL and SURBL" },
-  "links.domainsUnknownDetail": "{domains}{more, plural, =0 {} other { and # more}}: {trouble, select, timeout {DNS didn't answer in time} refused {the lists refused this server's DNS resolver (blocklist lookups need your own recursive resolver)} other {DNS gave no usable answer}}. Not knowing isn't the same as clean; the send-time recheck looks them up again."
+  "links.domainsUnknownDetail": "{domains}{more, plural, =0 {} other { and # more}}: {trouble, select, timeout {DNS didn't answer in time} refused {the lists refused this server's DNS resolver (blocklist lookups need your own recursive resolver)} other {DNS gave no usable answer}}. Not knowing isn't the same as clean; the send-time recheck looks them up again.",
+
+  "reputation.domainsClean": { "message": "{count, plural, one {{domains} is clean} other {{domains} are clean}} on {sources, number} of {sources, number} domain blocklists", "note": "domains: the sending domain and its parent domain (news.acme.io and acme.io)" },
+  "reputation.domainsCleanShort": "{domains} clean on {sources, number} of {sources, number} blocklists",
+  "reputation.liveClean": { "message": "{domains}: clean on {lists}, looked up live.", "note": "domains: return-path and tracking domains with their role" },
+  "reputation.roleReturnPath": "{domain} ({providers} return path)",
+  "reputation.roleTracking": "{domain} (tracking domain)",
+  "reputation.parentListed": "{domain}, the parent domain of {sending}, is listed on {lists}",
+  "reputation.parentDetail": "Mailbox providers judge {sending} by its parent domain's reputation too.",
+  "reputation.returnPathListed": "{providers} return-path domain {domain} is listed on {lists}",
+  "reputation.returnPathDetail": "Bounces come back to it and SPF is checked on it, so mailbox providers see the listing on every message {providers} sends.",
+  "reputation.trackingListed": "The tracking domain {domain} is listed on {lists}",
+  "reputation.trackingDetail": "Every tracked link and the open pixel point at it.",
+  "reputation.moreListed": "{count, plural, one {# more domain is listed too} other {# more domains are listed too}}: {domains}.",
+  "reputation.domainsListedAck": "I understand {domains} {count, plural, one {is} other {are}} listed on {lists}.",
+  "reputation.liveUnknown": "Couldn't check {domains} on {lists}",
+  "reputation.liveUnknownDetail": "{trouble, select, timeout {DNS didn't answer in time} refused {The lists refused this server's DNS resolver} other {DNS gave no usable answer}}. Not knowing isn't the same as clean; the send-time recheck looks again."
 }

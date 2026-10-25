@@ -226,6 +226,32 @@ type ReputationFacts struct {
 	IPSources     []string
 	// Listings of the campaign's assets.
 	Listings []ListingFacts
+	// Domains are the domains the send's reputation rides on: the sending
+	// domain, its parent (organizational) domain, the providers' return-path
+	// domains and the tracking domain (SR-2). Empty: the sending domain only.
+	Domains []DomainAssetFacts
+}
+
+// Roles of the domains a send's reputation rides on (DomainAssetFacts.Role).
+const (
+	DomainSending    = "sending"     // news.acme.io, the From address's domain
+	DomainParent     = "parent"      // acme.io, its organizational domain
+	DomainReturnPath = "return_path" // bounce.news.acme.io, a provider's custom MAIL FROM
+	DomainTracking   = "tracking"    // the domain of the open pixel and the tracked links
+)
+
+// DomainAssetFacts is one domain of a send's reputation.
+type DomainAssetFacts struct {
+	Domain string
+	Role   string
+	// Providers are the providers whose return path the domain is.
+	Providers []string
+	// Live is true when Send Readiness looked the domain up itself on the
+	// URI blocklists (Deliverability doesn't watch it): Lists are the lists
+	// it is on, Unknown why the lookup failed (a contentcheck.Trouble* kind).
+	Live    bool
+	Lists   []string
+	Unknown string
 }
 
 // ListingFacts is one asset on one blocklist.
