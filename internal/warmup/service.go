@@ -508,6 +508,16 @@ type Allowance struct {
 	Days   int
 }
 
+// Today is a provider's warm-up allowance today for vetting it as a
+// failover or move target (state.Vet), nil when no plan is running.
+func Today(ctx context.Context, q *store.Queries, providerID uuid.UUID, now time.Time, loc *time.Location) *state.WarmupToday {
+	a, ok, err := AllowanceFor(ctx, q, providerID, now, loc)
+	if err != nil || !ok {
+		return nil
+	}
+	return &state.WarmupToday{Cap: a.Cap, Sent: a.Sent, Paused: a.Paused}
+}
+
 // AllowanceFor returns a provider's warm-up allowance; ok is false when the
 // provider has no running plan.
 func AllowanceFor(ctx context.Context, q *store.Queries, providerID uuid.UUID, now time.Time, loc *time.Location) (Allowance, bool, error) {

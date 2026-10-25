@@ -73,7 +73,6 @@
   "problem.pickTarget": "Hãy chọn nhà cung cấp sẽ nhận những người nhận đang bị tạm giữ.",
   "problem.targetMissing": "Nhà cung cấp đó chưa kết nối với không gian làm việc này.",
   "problem.targetUnavailable": "{name} hiện không nhận được thư.",
-  "problem.targetNoBulk": "Điều khoản của {name} không cho phép tiếp thị hàng loạt.",
 
   "adapters.adminOnly": "Adapter áp dụng cho mọi không gian làm việc trên hệ thống này, nên chỉ quản trị viên hệ thống mới cài đặt, cập nhật hoặc gỡ được.",
   "adapters.noRemote": "Bản dựng này không chạy được adapter cộng đồng loại remote.",

@@ -25,6 +25,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/warmup"
 )
 
 func (s *Service) provider(ctx context.Context, ws *store.Workspace, id string) (store.Provider, error) {
@@ -724,13 +725,15 @@ func (s *Service) DecideHeld(ctx context.Context, ws *store.Workspace, providerI
 			if err != nil {
 				return api.Invalid("body.targetProviderId", mTargetMissing.Text(l, nil))
 			}
-			if target.ID == p.ID || !state.Available(target) {
+			if target.ID == p.ID {
 				return api.Conflict(mTargetUnavailable.Text(l, i18n.Args{"name": target.Name}))
 			}
-			if !state.Caps(target).BulkAllowed() {
-				return api.Conflict(mTargetNoBulk.Text(l, i18n.Args{"name": target.Name}))
-			}
 			moved := max(route.Planned-route.Sent, 0)
+			vet := state.Vet(target, state.Load{Broadcast: true, Messages: moved, Sender: campaignSender(ctx, q, ws.ID, cid),
+				Warmup: warmup.Today(ctx, q, target.ID, now, state.Location(ws.Timezone))})
+			if failed, ok := vet.Failed(); ok {
+				return api.Conflict(failed.In(l, target.Name))
+			}
 			if _, err := tx.Exec(ctx, `INSERT INTO campaign_routes (campaign_id, provider_id, planned, status) VALUES ($1, $2, $3, 'pending')
 				ON CONFLICT (campaign_id, provider_id) DO UPDATE SET planned = campaign_routes.planned + EXCLUDED.planned,
 				status = CASE WHEN campaign_routes.status = 'done' THEN 'pending' ELSE campaign_routes.status END`, cid, target.ID, moved); err != nil {

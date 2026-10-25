@@ -51472,6 +51472,15 @@
       "ProviderFailoverAlternative": {
         "additionalProperties": false,
         "properties": {
+          "allowed": {
+            "type": "boolean"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/VetCheck"
+            },
+            "type": "array"
+          },
           "exceedsCap": {
             "type": "boolean"
           },
@@ -51497,7 +51506,9 @@
           "short",
           "warmingUp",
           "exceedsCap",
-          "recommended"
+          "allowed",
+          "recommended",
+          "checks"
         ],
         "type": "object"
       },
@@ -64775,6 +64786,9 @@
           },
           "held": {
             "type": "boolean"
+          },
+          "mailboxDetail": {
+            "type": "string"
           },
           "mailboxProvider": {
             "type": "string"
@@ -86512,6 +86526,36 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "VetCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "left": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "need": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "result": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "result"
+        ],
         "type": "object"
       },
       "VisibilityBlockInfo": {

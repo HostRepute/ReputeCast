@@ -234,16 +234,28 @@ func (s *Service) outageStream(ctx context.Context, sn *snapshot, p store.Provid
 				Percent: int(math.Round(float64(r.Planned) / float64(total) * 100))})
 		}
 		st.Campaign = hc
+		sender := campaignSender(ctx, s.Q, sn.ws.ID, h.CampaignID)
 		for _, other := range sn.provs {
-			if other.ID == p.ID || !state.Available(other) || !state.Caps(other).BulkAllowed() {
+			if other.ID == p.ID {
 				continue
 			}
-			alt := ProviderFailoverAlternative{ProviderID: other.ID.String(), Name: other.Name, Short: state.Short(other.Name, other.Adapter)}
-			if wu := warmupBrief(sn, other); wu != nil {
+			load := state.Load{Broadcast: true, Messages: hc.Held, Sender: sender}
+			wu := warmupBrief(sn, other)
+			if wu != nil {
+				load.Warmup = &state.WarmupToday{Cap: wu.TodayCap, Sent: wu.SentToday, Paused: wu.Status == "paused"}
+			}
+			vet := state.Vet(other, load)
+			// Providers that can't take mail at all aren't alternatives.
+			if failed, ok := vet.Failed(); ok && (failed.Key == state.VetAvailable || failed.Key == state.VetBulkTerms) {
+				continue
+			}
+			short := state.Short(other.Name, other.Adapter)
+			alt := ProviderFailoverAlternative{ProviderID: other.ID.String(), Name: other.Name, Short: short,
+				Allowed: vet.Allowed(), Recommended: vet.Automatic(false), Checks: vet.In(sn.lang, short).Checks}
+			if wu != nil {
 				alt.WarmingUp = true
 				alt.ExceedsCap = hc.Held > wu.TodayCap-wu.SentToday
 			}
-			alt.Recommended = !alt.WarmingUp
 			st.Alternatives = append(st.Alternatives, alt)
 		}
 	}

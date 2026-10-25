@@ -31495,6 +31495,8 @@ export interface components {
             total: number;
         };
         ProviderFailoverAlternative: {
+            allowed: boolean;
+            checks: components["schemas"]["VetCheck"][];
             exceedsCap: boolean;
             name: string;
             providerId: string;
@@ -35294,6 +35296,7 @@ export interface components {
             dkimSelector: string;
             fallback: components["schemas"]["RouteTestFallback"];
             held: boolean;
+            mailboxDetail?: string;
             mailboxProvider: string;
             provider: string;
             providerId: string;
@@ -41445,6 +41448,16 @@ export interface components {
         VerifyContactInput: {
             /** @enum {string} */
             service?: "zerobounce" | "kickbox" | "neverbounce" | "bouncer" | "emailable" | "";
+        };
+        VetCheck: {
+            detail?: string;
+            key: string;
+            /** Format: int64 */
+            left?: number;
+            /** Format: int64 */
+            need?: number;
+            result: string;
+            text?: string;
         };
         VisibilityBlockInfo: {
             broken: components["schemas"]["VisibilityBroken"][];

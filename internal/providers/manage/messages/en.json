@@ -73,7 +73,6 @@
   "problem.pickTarget": "Pick the provider to move the held recipients to.",
   "problem.targetMissing": "That provider is not connected to this workspace.",
   "problem.targetUnavailable": "{name} can't take mail right now.",
-  "problem.targetNoBulk": "{name}'s terms don't allow bulk marketing.",
 
   "adapters.adminOnly": "Adapters apply to every workspace on this instance, so only instance admins can install, update or remove them.",
   "adapters.noRemote": { "message": "This build can't run community adapters of kind remote.", "note": "remote is a kind of community adapter, as manifests name it" },

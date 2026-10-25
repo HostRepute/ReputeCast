@@ -256,7 +256,8 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 		}
 	}
 	r := &router{e: e, set: set, byID: byID, loc: loc, now: now, override: routeOverride(cc.RouteOverride),
-		senderDomain: domainOf(cc.SenderEmail), rates: map[uuid.UUID]providerRate{}, planned: map[uuid.UUID]int64{}}
+		senderDomain: domainOf(cc.SenderEmail), sender: senderVerification(ctx, e.Q, cc.WorkspaceID, cc.SenderID),
+		rates: map[uuid.UUID]providerRate{}, planned: map[uuid.UUID]int64{}}
 	excluded := Excluded{}
 	_ = json.Unmarshal(snd.Excluded, &excluded)
 	cursor := uuid.Nil
@@ -835,8 +836,10 @@ type router struct {
 	now          time.Time
 	override     *uuid.UUID
 	senderDomain string
-	rates        map[uuid.UUID]providerRate
-	planned      map[uuid.UUID]int64
+	// sender is the campaign sender's verification per provider.
+	sender  map[string]string
+	rates   map[uuid.UUID]providerRate
+	planned map[uuid.UUID]int64
 }
 
 func (r *router) rate(ctx context.Context, p store.Provider) providerRate {
@@ -846,6 +849,16 @@ func (r *router) rate(ctx context.Context, p store.Provider) providerRate {
 	pr := r.e.rateOf(ctx, r.e.Q, p, r.loc, r.now)
 	r.rates[p.ID] = pr
 	return pr
+}
+
+// vet checks whether a fallback can take one more recipient on top of what
+// this build already gave it.
+func (r *router) vet(ctx context.Context, p store.Provider) state.Vetting {
+	load := state.Load{Broadcast: true, Messages: r.planned[p.ID] + 1, Sender: r.sender}
+	if pr := r.rate(ctx, p); pr.WarmingUp {
+		load.Warmup = &state.WarmupToday{Cap: pr.Cap, Sent: pr.SentToday, Paused: pr.Paused}
+	}
+	return state.Vet(p, load)
 }
 
 // routed is where one recipient goes and why (messages.route_note, shown on
@@ -916,10 +929,11 @@ func (r *router) route(ctx context.Context, c store.SendingAudiencePageRow, mbp 
 	if cur := r.byID[out.provider]; !state.Available(cur) {
 		target, hold := routing.Failover(r.set.Policy(providers.StreamBroadcast), d.Fallback, func(id uuid.UUID) routing.ProviderState {
 			fp, ok := r.byID[id]
-			if !ok {
+			if !ok || id == cur.ID {
 				return routing.ProviderState{}
 			}
-			return routing.ProviderState{Available: state.Available(fp), WarmingUp: r.rate(ctx, fp).WarmingUp}
+			v := r.vet(ctx, fp)
+			return routing.ProviderState{Available: v.Automatic(true), WarmingUp: v.Warming()}
 		})
 		if !hold && target != nil && r.set.Policy(providers.StreamBroadcast) != routing.PauseAndAsk {
 			fb := r.byID[*target]

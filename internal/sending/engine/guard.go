@@ -494,23 +494,26 @@ func (e *Engine) outage(ctx context.Context, rs *runState, r *runRoute, reason s
 }
 
 // moveTarget is where a held share would go: the stream's fallback, else
-// the largest share of the Broadcast split that is available, allows bulk
-// mail and isn't warming up.
+// the largest share of the Broadcast split, among the providers whose
+// vetting passes for what is left of the share (never one warming up).
 func (e *Engine) moveTarget(ctx context.Context, rs *runState, r *runRoute, set routing.Set) *store.Provider {
 	provs, err := e.Q.SendingWorkspaceProviders(ctx, rs.campaign.WorkspaceID)
 	if err != nil {
 		return nil
 	}
+	cid := rs.campaign.ID
+	left, err := e.Q.SendingRemainingOn(ctx, store.SendingRemainingOnParams{CampaignID: &cid, ProviderID: &r.provider.ID})
+	if err != nil {
+		return nil
+	}
+	sender := senderVerification(ctx, e.Q, rs.campaign.WorkspaceID, rs.campaign.SenderID)
 	byID := map[uuid.UUID]store.Provider{}
 	for _, p := range provs {
 		byID[p.ID] = p
 	}
 	ok := func(id uuid.UUID) bool {
 		p, found := byID[id]
-		if !found || id == r.provider.ID || !state.Available(p) || !state.Caps(p).BulkAllowed() {
-			return false
-		}
-		return !e.rateOf(ctx, e.Q, p, rs.loc, e.now()).WarmingUp
+		return found && id != r.provider.ID && e.vetTarget(ctx, e.Q, sender, p, left, rs.loc).Automatic(false)
 	}
 	def, found := set.Default(providers.StreamBroadcast)
 	if found && def.Fallback != nil && ok(*def.Fallback) {

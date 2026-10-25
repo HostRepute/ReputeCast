@@ -346,11 +346,20 @@ func (e *Engine) MoveShare(ctx context.Context, campaignID, by, from, to uuid.UU
 		if err != nil {
 			return stateErr("state.providerNotConnected", nil)
 		}
-		if to == from || !state.Available(target) {
+		if to == from {
 			return stateErr("state.providerUnavailable", i18n.Args{"provider": target.Name})
 		}
-		if !state.Caps(target).BulkAllowed() {
-			return stateErr("state.noBulk", i18n.Args{"provider": target.Name})
+		cc, err := q.SendingCampaignContext(ctx, campaignID)
+		if err != nil {
+			return err
+		}
+		left, err := q.SendingRemainingOn(ctx, store.SendingRemainingOnParams{CampaignID: &campaignID, ProviderID: &from})
+		if err != nil {
+			return err
+		}
+		vet := e.vetTarget(ctx, q, senderVerification(ctx, q, c.WorkspaceID, cc.SenderID), target, left, state.Location(cc.WorkspaceTimezone))
+		if failed, ok := vet.Failed(); ok {
+			return vetErr(failed, target.Name)
 		}
 		fromP, err := q.ProvGetAny(ctx, from)
 		if err != nil {

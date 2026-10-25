@@ -1,6 +1,10 @@
 package manage
 
-import "time"
+import (
+	"time"
+
+	"github.com/hostrepute/reputecast/internal/providers/state"
+)
 
 // ProviderStatusCount is one entry of "2 Healthy · 1 Warming up".
 type ProviderStatusCount struct {
@@ -222,8 +226,14 @@ type ProviderFailoverAlternative struct {
 	Short      string `json:"short"`
 	WarmingUp  bool   `json:"warmingUp"`
 	// ExceedsCap: the held recipients don't fit in today's warm-up cap.
-	ExceedsCap  bool `json:"exceedsCap"`
+	ExceedsCap bool `json:"exceedsCap"`
+	// Allowed is false when one of the target checks failed: moving there
+	// is refused. Recommended: every check passed.
+	Allowed     bool `json:"allowed"`
 	Recommended bool `json:"recommended"`
+	// Checks are what was checked about the target for the held share
+	// (available, bulk terms, sandbox, sender domain, quota, warm-up).
+	Checks []state.VetCheck `json:"checks"`
 }
 
 // ProviderOutageStream is how one stream is handling an outage.
