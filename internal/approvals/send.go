@@ -256,20 +256,20 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 			approval = open
 		}
 	}
-	// Sending now: Send Readiness runs again as the send starts.
+	// Sending now: the run the person just confirmed is the send-time
+	// check, so it must be recent. Nothing runs inside the request (SR-8):
+	// an older run is run again in the background, and the person sends
+	// when it finishes.
 	if sched.Mode == "now" {
-		fresh, err := s.Readiness.Run(ctx, ws, c.ID, readiness.RunOptions{Trigger: readiness.TriggerSendTime, By: &p.UserID})
-		if err != nil && !errors.Is(err, readiness.ErrRunning) {
-			return ReviewSendResult{}, err
+		if age := now.Sub(run.RanAt); age > SendNowWithin {
+			if _, err := s.Readiness.Start(ctx, ws, c.ID, readiness.RunOptions{Trigger: readiness.TriggerManual, By: &p.UserID}); err != nil && !errors.Is(err, readiness.ErrRunning) {
+				return ReviewSendResult{}, err
+			}
+			return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_old", say(ctx, mReadinessOld, i18n.Args{"minutes": int(age.Minutes())}))
 		}
-		if err == nil && fresh.Verdict == readiness.VerdictBlocked {
-			return ReviewSendResult{}, api.Err(http.StatusConflict, "readiness_blocked", say(ctx, mBlockedAtStart, i18n.Args{"reason": firstBlockIn(langOf(ctx), fresh)}))
-		}
-		if err == nil {
-			// The engine starts on this run instead of running the checks again.
-			ctx = sending.WithRecheck(ctx, c.ID, sending.Recheck{Verdict: fresh.Verdict, Throttles: throttlesOf(fresh),
-				Audience: fresh.Estimates.Audience.Final, RunID: fresh.ID})
-		}
+		// The engine starts on this run instead of running the checks again.
+		ctx = sending.WithRecheck(ctx, c.ID, sending.Recheck{Verdict: run.Verdict, Throttles: throttlesOf(*run),
+			Audience: run.Estimates.Audience.Final, RunID: run.ID})
 	}
 	if err := s.Q.ApprovalScheduleCampaign(ctx, store.ApprovalScheduleCampaignParams{Schedule: c.Schedule, ScheduledAt: at, UpdatedBy: &p.UserID, Now: now, WorkspaceID: ws.ID, ID: c.ID}); err != nil {
 		return ReviewSendResult{}, err
@@ -330,6 +330,10 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	})
 	return out, err
 }
+
+// SendNowWithin is how recent the run a person confirms must be for a send
+// that starts now: it is that send's send-time check.
+const SendNowWithin = 15 * time.Minute
 
 func firstBlock(run readiness.ReadinessRun) string { return firstBlockIn(i18n.Default, run) }
 

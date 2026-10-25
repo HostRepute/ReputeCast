@@ -13,6 +13,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/app"
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/readiness/readinesstest"
 	"github.com/hostrepute/reputecast/internal/sending"
 )
 
@@ -248,6 +249,12 @@ func TestReviewAndApprovals(t *testing.T) {
 		ID, Status, FollowsID string
 		ChangesSince          []struct{ Field string }
 	}
+	// The campaign changed since the checks ran: they run again first (in
+	// the background), and Marcus approves once they finish.
+	if p := marcus.Do("POST", ws+"/approvals/"+reqID+"/decision", map[string]any{"decision": "approve"}).MustStatus(t, 409).Problem(t); p["code"] != "readiness_running" {
+		t.Fatalf("approve before the checks ran again: %v", p)
+	}
+	readinesstest.Work(t, env)
 	marcus.Do("POST", ws+"/approvals/"+reqID+"/decision", map[string]any{"decision": "approve"}).MustStatus(t, 200).JSON(t, &dec)
 	if dec.Status != "approved" || dec.ID == reqID || dec.FollowsID != reqID || len(dec.ChangesSince) != 1 || dec.ChangesSince[0].Field != "subject" {
 		t.Fatalf("approve the new version: %+v", dec)
@@ -340,7 +347,7 @@ func TestReadinessRunAndFixes(t *testing.T) {
 		Groups      []struct{ Key string }
 	}
 	runs := n.audit("readiness.run", digest)
-	linh.Do("POST", ws+"/campaigns/"+digest+"/readiness", nil).MustStatus(t, 200).JSON(t, &run)
+	readinesstest.Post(t, env, linh, ws+"/campaigns/"+digest+"/readiness").MustStatus(t, 200).JSON(t, &run)
 	// Seven groups of 1.0, Accessibility, and Languages when an email goes
 	// out in several languages (the sample's #142 does).
 	if run.ID == "" || run.Counts.Total < 20 || len(run.Groups) < 8 {
@@ -369,7 +376,7 @@ func TestReadinessRunAndFixes(t *testing.T) {
 		{"action": "replace_link", "params": map[string]string{"from": "https://nowhere.example/x", "to": "https://acme.io/sale"}},
 	}}).MustStatus(t, 422)
 	saves, updates := n.audit("campaign.content.save", flash), n.audit("campaign.update", flash)
-	linh.Do("POST", ws+"/campaigns/"+flash+"/readiness/fixes", map[string]any{"fixes": []map[string]any{{"action": "insert_footer"}, {"action": "exclude_sunset"}}}).MustStatus(t, 200).JSON(t, &out)
+	readinesstest.Fix(t, env, linh, ws+"/campaigns/"+flash+"/readiness/fixes", map[string]any{"fixes": []map[string]any{{"action": "insert_footer"}, {"action": "exclude_sunset"}}}).MustStatus(t, 200).JSON(t, &out)
 	if len(out.Applied) != 2 || out.Run == nil {
 		t.Fatalf("fixes: %+v", out)
 	}
@@ -485,8 +492,9 @@ func TestSendRecheck(t *testing.T) {
 	}
 }
 
-// Sending now runs Send Readiness once: the run the send starts with is
-// handed to the sending engine, which doesn't run the checks again.
+// Sending now starts on the run the person just confirmed (it must be
+// recent): it is handed to the sending engine, which doesn't run the checks
+// again, and nothing runs inside the request (SR-8).
 func TestSendNowRunsReadinessOnce(t *testing.T) {
 	env := apptest.New(t)
 	env.SeedDemo()
@@ -508,25 +516,45 @@ func TestSendNowRunsReadinessOnce(t *testing.T) {
 		}
 		return n, latest
 	}
+	send := func(run string, want int) *apptest.Response {
+		return linh.Do("POST", ws+"/campaigns/"+digest+"/bypass", map[string]any{"runId": run, "acknowledged": warnings(r),
+			"confirm": fmt.Sprint(r.Run.Estimates.Audience.Final), "schedule": map[string]any{"mode": "now"},
+			"reason": "Customer-facing outage notice, approved verbally by Marcus.", "password": "reputecast-demo"}).MustStatus(t, want)
+	}
+	// The seeded run is hours old: for a send that starts now the checks
+	// run again first, in the background (SR-8), and nothing is sent.
+	if p := send(r.Run.ID, 409).Problem(t); p["code"] != "readiness_old" {
+		t.Fatalf("an old run: %v", p)
+	}
+	if len(starter.rechecks) != 0 {
+		t.Fatal("the send started on an old run")
+	}
+	readinesstest.Work(t, env)
+	r = getReview(t, linh, digest)
 	before, _ := sendTimeRuns()
+	var runs int
+	countRuns := func() int {
+		if err := env.App.Pool.QueryRow(context.Background(), `SELECT count(*) FROM readiness_runs WHERE campaign_id = $1`, digest).Scan(&runs); err != nil {
+			t.Fatal(err)
+		}
+		return runs
+	}
+	stored := countRuns()
 	var sent struct {
 		Status     string
 		Recipients int64
 	}
-	linh.Do("POST", ws+"/campaigns/"+digest+"/bypass", map[string]any{"runId": r.Run.ID, "acknowledged": warnings(r),
-		"confirm": fmt.Sprint(r.Run.Estimates.Audience.Final), "schedule": map[string]any{"mode": "now"},
-		"reason": "Customer-facing outage notice, approved verbally by Marcus.", "password": "reputecast-demo"}).MustStatus(t, 200).JSON(t, &sent)
+	send(r.Run.ID, 200).JSON(t, &sent)
 	if sent.Status != "sending" {
 		t.Fatalf("sent: %+v", sent)
 	}
-	after, latest := sendTimeRuns()
-	if after != before+1 {
-		t.Fatalf("send-time runs: %d, then %d; want one more", before, after)
+	// The run the person confirmed is the send's check: nothing runs
+	// inside the request, and the engine starts on that run.
+	if after, _ := sendTimeRuns(); after != before || countRuns() != stored {
+		t.Fatalf("a run inside the request: %d runs, then %d", stored, runs)
 	}
-	// The fresh run counts the demo's contacts, so its audience can differ
-	// from the seeded run's (DESIGN_INVENTORY row 94).
-	if len(starter.rechecks) != 1 || starter.rechecks[0].RunID != latest || starter.rechecks[0].Verdict == "blocked" || starter.rechecks[0].Audience == 0 {
-		t.Fatalf("the engine should start on the send-time run %s: %+v", latest, starter.rechecks)
+	if len(starter.rechecks) != 1 || starter.rechecks[0].RunID != r.Run.ID || starter.rechecks[0].Verdict == "blocked" || starter.rechecks[0].Audience == 0 {
+		t.Fatalf("the engine should start on the confirmed run %s: %+v", r.Run.ID, starter.rechecks)
 	}
 }
 
@@ -718,7 +746,7 @@ func TestApprovalWebhookEvents(t *testing.T) {
 	if _, err := env.App.Pool.Exec(ctx, `DELETE FROM link_domain_listings WHERE domain = 'acme.io'`); err != nil {
 		t.Fatal(err)
 	}
-	daniel.Do("POST", ws+"/campaigns/"+nov+"/readiness", nil).MustStatus(t, 200)
+	readinesstest.Post(t, env, daniel, ws+"/campaigns/"+nov+"/readiness").MustStatus(t, 200)
 	daniel.Do("POST", ws+"/campaigns/"+nov+"/approval", map[string]any{}).MustStatus(t, 201)
 	if queued("approval.requested") != 1 {
 		t.Fatal("approval.requested is queued")

@@ -3070,6 +3070,8 @@ type ReadinessProgress struct {
 	Groups     json.RawMessage `json:"groups"`
 	Done       int32           `json:"done"`
 	Total      int32           `json:"total"`
+	FailedAt   *time.Time      `json:"failedAt"`
+	Error      string          `json:"error"`
 }
 
 type ReadinessRun struct {

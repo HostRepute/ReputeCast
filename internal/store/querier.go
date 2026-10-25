@@ -2587,12 +2587,19 @@ type Querier interface {
 	ReadinessCampaign(ctx context.Context, arg ReadinessCampaignParams) (ReadinessCampaignRow, error)
 	// The workspace of a campaign (the sending engine asks by campaign id).
 	ReadinessCampaignWorkspace(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
+	// A worker takes up a queued run: it still owns the campaign's row.
+	ReadinessClaimProgress(ctx context.Context, arg ReadinessClaimProgressParams) (uuid.UUID, error)
 	ReadinessEndProgress(ctx context.Context, arg ReadinessEndProgressParams) error
+	// A run stopped on an error: the row says why until the next run.
+	ReadinessFailProgress(ctx context.Context, arg ReadinessFailProgressParams) error
 	ReadinessGetProgress(ctx context.Context, campaignID uuid.UUID) (ReadinessGetProgressRow, error)
 	ReadinessGetRun(ctx context.Context, arg ReadinessGetRunParams) (ReadinessGetRunRow, error)
 	ReadinessInsertRoute(ctx context.Context, arg ReadinessInsertRouteParams) error
 	ReadinessInsertRun(ctx context.Context, arg ReadinessInsertRunParams) error
 	ReadinessLatestRun(ctx context.Context, campaignID uuid.UUID) (ReadinessLatestRunRow, error)
+	// The latest run's id, time and verdict: what the review screen's poll
+	// compares with what it shows.
+	ReadinessLatestRunRef(ctx context.Context, campaignID uuid.UUID) (ReadinessLatestRunRefRow, error)
 	// Lists of the workspace, to tell "All subscribers" from a few lists.
 	ReadinessListCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	ReadinessListNames(ctx context.Context, workspaceID uuid.UUID) ([]ReadinessListNamesRow, error)
@@ -2616,8 +2623,8 @@ type Querier interface {
 	ReadinessSetFingerprint(ctx context.Context, arg ReadinessSetFingerprintParams) error
 	ReadinessSetRouteOverride(ctx context.Context, arg ReadinessSetRouteOverrideParams) error
 	ReadinessSetSendSettings(ctx context.Context, arg ReadinessSetSendSettingsParams) error
-	// Starts a run unless one is already running (a run that stopped updating
-	// for two minutes is taken over).
+	// Starts a run unless one is already waiting or running (a run that stopped
+	// updating for two minutes, or failed, is taken over).
 	ReadinessStartProgress(ctx context.Context, arg ReadinessStartProgressParams) (uuid.UUID, error)
 	// The latest test emails of a campaign, from the audit log.
 	ReadinessTestSends(ctx context.Context, arg ReadinessTestSendsParams) ([]ReadinessTestSendsRow, error)

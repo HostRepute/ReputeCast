@@ -36,19 +36,15 @@ import './review.css'
 import { ReviewWebLine } from '@/features/website/elsewhere'
 
 const reviewPath = '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/review' as const
+const progressPath = '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/progress' as const
 
 /** 7.5 Review & send: Send Readiness, estimates, settings, approvals and the send. */
 export function ReviewPage({ campaignId }: { campaignId: string }) {
   const t = useT()
   const { slug } = useWorkspace()
   const qc = useQueryClient()
-  const [running, setRunning] = useState(false)
-  const review = $api.useQuery(
-    'get',
-    reviewPath,
-    { params: { path: { workspace: slug, campaignId } } },
-    { refetchInterval: (q) => (q.state.data?.running || running ? 800 : false) },
-  )
+  const path = { workspace: slug, campaignId }
+  const review = $api.useQuery('get', reviewPath, { params: { path } })
   const refresh = useCallback(
     () =>
       Promise.all([
@@ -58,19 +54,36 @@ export function ReviewPage({ campaignId }: { campaignId: string }) {
       ]),
     [qc],
   )
+  // Runs are background jobs: asking for one answers at once, and the
+  // page polls the cheap progress endpoint (not the review) until the run
+  // lands or fails, then reads the review again.
+  const [awaiting, setAwaiting] = useState<{ since: number }>()
+  // Waiting since a run was asked for here, or since the review showed one.
+  const since = awaiting?.since ?? (review.data?.running ? review.dataUpdatedAt : undefined)
+  const poll = $api.useQuery('get', progressPath, { params: { path } }, { enabled: since !== undefined, refetchInterval: 1000 })
+  const landed = since !== undefined && poll.data !== undefined && !poll.data.running && poll.dataUpdatedAt >= since
+  const running = since !== undefined && !landed
+  // Once the run lands (or fails), the review is read again, once.
+  const handled = useRef<number>(undefined)
+  useEffect(() => {
+    if (!landed || since === undefined || handled.current === since) return
+    handled.current = since
+    if (poll.data?.failed) toast({ kind: 'error', title: tx(m.runFailed), detail: poll.data.failed.error })
+    void refresh()
+  }, [landed, since, poll.data, refresh])
   const runChecks = useCallback(async () => {
-    setRunning(true)
+    const since = Date.now()
+    setAwaiting({ since })
     try {
       await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness', { params: { path: { workspace: slug, campaignId } } })
     } catch (e) {
       if (!(e instanceof ApiError && e.code === 'readiness_running')) {
+        setAwaiting(undefined)
         toast({ kind: 'error', title: tx(m.runFailed), detail: errorMessage(e) })
       }
-    } finally {
-      setRunning(false)
-      await refresh()
     }
-  }, [slug, campaignId, refresh])
+  }, [slug, campaignId])
+  const progress = poll.data?.running ?? review.data?.running
   const d = review.data
   const name = d?.campaign.name ?? t(m.campaignFallback)
   return (
@@ -82,7 +95,7 @@ export function ReviewPage({ campaignId }: { campaignId: string }) {
         { label: name, to: '/w/$workspace/campaigns/$campaignId/edit', params: { workspace: slug, campaignId } },
         { label: t(m.pageTitle) },
       ]}
-      actions={d ? <HeaderActions review={d} running={running || Boolean(d.running)} onRun={() => void runChecks()} /> : null}
+      actions={d ? <HeaderActions review={d} running={running} onRun={() => void runChecks()} /> : null}
     >
       {review.isPending ? (
         <ReviewSkeleton />
@@ -104,7 +117,7 @@ export function ReviewPage({ campaignId }: { campaignId: string }) {
           </ErrorPanel>
         )
       ) : (
-        <ReviewBody review={review.data} running={running} runChecks={runChecks} refresh={refresh} />
+        <ReviewBody review={review.data} running={running} progress={progress} runChecks={runChecks} awaitRun={() => setAwaiting({ since: Date.now() })} refresh={refresh} />
       )}
     </Page>
   )
@@ -144,15 +157,28 @@ function relative(d: string, now: Date): string {
 
 type Busy = string | undefined
 
+/**
+ * A send that starts now goes out on the run the person confirms, so the
+ * run must be recent (the server says how recent); an older one runs again.
+ */
+function tooOldToSendNow(d: Review): boolean {
+  return Boolean(d.run && d.schedule.mode === 'now' && Date.now() - new Date(d.run.ranAt).getTime() > d.sendNowWithin * 60_000)
+}
+
 function ReviewBody({
   review: d,
   running,
+  progress,
   runChecks,
+  awaitRun,
   refresh,
 }: {
   review: Review
   running: boolean
+  progress?: Schemas['ReadinessProgress']
   runChecks: () => Promise<void>
+  /** A fix or a send queued a run: the page waits for it. */
+  awaitRun: () => void
   refresh: () => Promise<unknown>
 }) {
   const { slug } = useWorkspace()
@@ -178,8 +204,8 @@ function ReviewBody({
   // run (or never ran): once per visit, for people who may run them.
   const auto = useRef(false)
   useEffect(() => {
-    if (auto.current || running || d.running || !d.access.canEdit || !d.campaign.editable) return
-    if (!d.run || d.stale) {
+    if (auto.current || running || d.running || d.failed || !d.access.canEdit || !d.campaign.editable) return
+    if (!d.run || d.stale || tooOldToSendNow(d)) {
       auto.current = true
       void runChecks()
     }
@@ -201,8 +227,10 @@ function ReviewBody({
         kind: 'success',
         // The applied fixes are named by the server.
         title: applied.length === 1 ? applied[0]! : t(m.fixesApplied, { count: applied.length }),
-        detail: applied.length > 1 ? applied.join(' · ') : t(m.readinessRanAgain),
+        detail: applied.length > 1 ? applied.join(' · ') : t(m.readinessRunsAgain),
       })
+      // The checks run again in the background; sending stays locked until they finish.
+      if (data?.running) awaitRun()
     } catch (e) {
       fail(items.length === 1 ? t(m.fixFailed) : t(m.fixesFailed))(e)
     } finally {
@@ -239,11 +267,23 @@ function ReviewBody({
   const sendOrSchedule = async (intent: SendIntent) => {
     if (!run) return
     const body = { runId: run.id, acknowledged: intent.acknowledged, confirm: intent.confirm }
-    const res =
-      confirm === 'approved' && d.approval.request
-        ? await http.POST('/api/v1/workspaces/{workspace}/approvals/{approvalId}/schedule', { params: { path: { workspace: slug, approvalId: d.approval.request.id } }, body })
-        : await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/send', { params: { path }, body })
-    await afterSend(res.data)
+    try {
+      const res =
+        confirm === 'approved' && d.approval.request
+          ? await http.POST('/api/v1/workspaces/{workspace}/approvals/{approvalId}/schedule', { params: { path: { workspace: slug, approvalId: d.approval.request.id } }, body })
+          : await http.POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/send', { params: { path }, body })
+      await afterSend(res.data)
+    } catch (e) {
+      // The checks are too old for a send that starts now, or are running:
+      // the server queued a run; the page shows it and the person sends after.
+      if (e instanceof ApiError && (e.code === 'readiness_old' || e.code === 'readiness_running')) {
+        setConfirm(null)
+        awaitRun()
+        toast({ kind: 'info', title: errorMessage(e) })
+        return
+      }
+      throw e
+    }
   }
 
   const afterSend = async (r?: Schemas['ReviewSendResult']) => {
@@ -332,7 +372,6 @@ function ReviewBody({
     await refresh()
   }
 
-  const progress = d.running
   if (running || progress) {
     return (
       <div className="flex flex-col gap-3.5">
@@ -598,6 +637,20 @@ function ReviewBody({
   return (
     <>
       {issue ? <IssueReviewCard issue={issue} recipients={recipients} needsApproval={d.approval.required && !d.approval.valid} /> : null}
+      {d.failed ? (
+        <Banner
+          tone="bad"
+          title={t(m.runStoppedTitle)}
+          actions={
+            <Button disabledReason={a.canEdit ? undefined : deniedReason('campaigns:edit', helpers)} onClick={() => void runChecks()}>
+              {t(m.retryChecks)}
+            </Button>
+          }
+        >
+          {/* The error is the server's, as the run recorded it. */}
+          {t(m.runStoppedBody, { error: d.failed.error })}
+        </Banner>
+      ) : null}
       {top}
       <div className="flex flex-wrap items-start gap-5">
         <div className="flex min-w-0 flex-[1_1_560px] flex-col gap-5">

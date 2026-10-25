@@ -105,17 +105,22 @@ type ReviewApproval struct {
 
 // CampaignReview is the Review & send screen.
 type CampaignReview struct {
-	Campaign   ReviewCampaign                `json:"campaign"`
-	Run        *readiness.ReadinessRun       `json:"run,omitempty"`
-	Stale      bool                          `json:"stale"`
-	Running    *readiness.ReadinessProgress  `json:"running,omitempty"`
-	Thresholds readiness.ReadinessThresholds `json:"thresholds"`
-	Schedule   readiness.ReadinessSchedule   `json:"schedule"`
-	TestSends  []ReviewTestSend              `json:"testSends"`
-	Approval   ReviewApproval                `json:"approval"`
-	Held       *ReviewHeld                   `json:"held,omitempty"`
-	Scheduled  *ReviewScheduled              `json:"scheduled,omitempty"`
-	Access     ReviewAccess                  `json:"access"`
+	Campaign ReviewCampaign               `json:"campaign"`
+	Run      *readiness.ReadinessRun      `json:"run,omitempty"`
+	Stale    bool                         `json:"stale"`
+	Running  *readiness.ReadinessProgress `json:"running,omitempty"`
+	// Failed is the last run when it stopped on an error.
+	Failed *readiness.ReadinessRunFailure `json:"failed,omitempty"`
+	// SendNowWithin is how many minutes old the run may be for a send that
+	// starts now (it is that send's check); older, the checks run again.
+	SendNowWithin int                           `json:"sendNowWithin"`
+	Thresholds    readiness.ReadinessThresholds `json:"thresholds"`
+	Schedule      readiness.ReadinessSchedule   `json:"schedule"`
+	TestSends     []ReviewTestSend              `json:"testSends"`
+	Approval      ReviewApproval                `json:"approval"`
+	Held          *ReviewHeld                   `json:"held,omitempty"`
+	Scheduled     *ReviewScheduled              `json:"scheduled,omitempty"`
+	Access        ReviewAccess                  `json:"access"`
 	// LargeSend is the audience size from which sending asks to type the count.
 	LargeSend int64 `json:"largeSend"`
 	// PauseSlack is true when a webhook posts campaign.paused to Slack, so a
@@ -168,9 +173,10 @@ func (s *Service) Review(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			out.Campaign.AudienceLabel = strings.Join(out.Run.Estimates.Audience.Lists, " + ")
 		}
 	}
-	if out.Running, err = s.Readiness.Progress(ctx, c.ID); err != nil {
+	if out.Running, out.Failed, err = s.Readiness.State(ctx, c.ID); err != nil {
 		return out, err
 	}
+	out.SendNowWithin = int(SendNowWithin / time.Minute)
 	// Test sends from the audit log.
 	if rows, err := s.Q.ReadinessTestSends(ctx, store.ReadinessTestSendsParams{WorkspaceID: &ws.ID, CampaignID: c.ID.String()}); err == nil {
 		for _, r := range rows {

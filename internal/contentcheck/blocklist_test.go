@@ -31,7 +31,7 @@ func (c *cache) ContentCheckLinkListings(_ context.Context, domains []string) ([
 
 func (c *cache) ContentCheckUpsertLinkListing(_ context.Context, p store.ContentCheckUpsertLinkListingParams) error {
 	c.writes++
-	c.rows[p.Domain] = store.LinkDomainListing{Domain: p.Domain, Lists: p.Lists, Source: p.Source, CheckedAt: p.CheckedAt}
+	c.rows[p.Domain] = store.LinkDomainListing(p)
 	return nil
 }
 

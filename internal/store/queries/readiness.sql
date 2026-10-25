@@ -81,15 +81,26 @@ WHERE r.campaign_id = @campaign_id
   AND NOT EXISTS (SELECT 1 FROM approval_requests a WHERE a.readiness_run_id = r.id);
 
 -- name: ReadinessStartProgress :one
--- Starts a run unless one is already running (a run that stopped updating
--- for two minutes is taken over).
+-- Starts a run unless one is already waiting or running (a run that stopped
+-- updating for two minutes, or failed, is taken over).
 INSERT INTO readiness_progress (campaign_id, run_id, trigger, started_by, started_at, updated_at, groups, done, total)
 VALUES (@campaign_id, @run_id, @trigger, sqlc.narg(started_by), @now, @now, @groups, 0, @total)
 ON CONFLICT (campaign_id) DO UPDATE
 SET run_id = EXCLUDED.run_id, trigger = EXCLUDED.trigger, started_by = EXCLUDED.started_by, started_at = EXCLUDED.started_at,
-    updated_at = EXCLUDED.updated_at, groups = EXCLUDED.groups, done = 0, total = EXCLUDED.total
-WHERE readiness_progress.updated_at < @stale_before::timestamptz
+    updated_at = EXCLUDED.updated_at, groups = EXCLUDED.groups, done = 0, total = EXCLUDED.total, failed_at = NULL, error = ''
+WHERE readiness_progress.updated_at < @stale_before::timestamptz OR readiness_progress.failed_at IS NOT NULL
 RETURNING run_id;
+
+-- name: ReadinessClaimProgress :one
+-- A worker takes up a queued run: it still owns the campaign's row.
+UPDATE readiness_progress SET updated_at = @now
+WHERE campaign_id = @campaign_id AND run_id = @run_id AND failed_at IS NULL
+RETURNING run_id;
+
+-- name: ReadinessFailProgress :exec
+-- A run stopped on an error: the row says why until the next run.
+UPDATE readiness_progress SET failed_at = @now, error = @error, updated_at = @now
+WHERE campaign_id = @campaign_id AND run_id = @run_id;
 
 -- name: ReadinessUpdateProgress :exec
 UPDATE readiness_progress SET groups = @groups, done = @done, total = @total, updated_at = @now
@@ -100,6 +111,7 @@ DELETE FROM readiness_progress WHERE campaign_id = @campaign_id AND run_id = @ru
 
 -- name: ReadinessGetProgress :one
 SELECT p.campaign_id, p.run_id, p.trigger, p.started_by, p.started_at, p.updated_at, p.groups, p.done, p.total,
+       p.failed_at, p.error,
        coalesce(u.name, '')::text AS started_by_name
 FROM readiness_progress p
 LEFT JOIN users u ON u.id = p.started_by
@@ -158,3 +170,8 @@ ORDER BY c.scheduled_at;
 -- name: ReadinessCampaignWorkspace :one
 -- The workspace of a campaign (the sending engine asks by campaign id).
 SELECT workspace_id FROM campaigns WHERE id = @id AND deleted_at IS NULL;
+
+-- name: ReadinessLatestRunRef :one
+-- The latest run's id, time and verdict: what the review screen's poll
+-- compares with what it shows.
+SELECT id, ran_at, verdict FROM readiness_runs WHERE campaign_id = @campaign_id ORDER BY ran_at DESC LIMIT 1;

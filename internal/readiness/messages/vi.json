@@ -796,5 +796,9 @@
   "reputation.moreListed": "{count, plural, other {Còn # tên miền khác cũng bị liệt kê}}: {domains}.",
   "reputation.domainsListedAck": "Tôi hiểu {domains} đang bị liệt kê trên {lists}.",
   "reputation.liveUnknown": "Không kiểm tra được {domains} trên {lists}",
-  "reputation.liveUnknownDetail": "{trouble, select, timeout {DNS không trả lời kịp} refused {Các danh sách từ chối trình phân giải DNS của máy chủ này} other {DNS không trả về câu trả lời dùng được}}. Chưa biết không có nghĩa là sạch; lần kiểm tra lại lúc gửi sẽ tra cứu lại."
+  "reputation.liveUnknownDetail": "{trouble, select, timeout {DNS không trả lời kịp} refused {Các danh sách từ chối trình phân giải DNS của máy chủ này} other {DNS không trả về câu trả lời dùng được}}. Chưa biết không có nghĩa là sạch; lần kiểm tra lại lúc gửi sẽ tra cứu lại.",
+
+  "running.linksFetching": "đang tải từng URL",
+  "running.linkDomains": "tra cứu trực tiếp trên {lists}",
+  "running.audienceCounting": "đang đếm sau khi loại danh sách chặn gửi và chính sách ngừng gửi"
 }

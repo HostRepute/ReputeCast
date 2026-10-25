@@ -2,11 +2,13 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
 	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/rivertype"
 
 	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/automations"
@@ -44,7 +46,9 @@ func readinessService(a *App) *readiness.Service {
 		Languages: languagesService(a), Mailbox: a.mailboxClassifier(),
 		// Lookups Deliverability couldn't make are made again during a run;
 		// the return-path and tracking domains are looked up as link domains are.
-		DNS: dl.DNS, Links: links}
+		DNS: dl.DNS, Links: links,
+		// Runs wait in the job queue; a worker runs them (SR-8).
+		Jobs: func() readiness.JobInserter { return lazyJobs{a} }}
 	if acc := readinessAccessibility(a); acc != nil {
 		rs.Accessibility = acc
 	}
@@ -180,7 +184,34 @@ func init() {
 		approvals.Register(h, s)
 	})
 	jobRegistrars = append(jobRegistrars, func(a *App) {
+		river.AddWorker(a.JobReg.Workers, &readiness.RunWorker{S: newApprovals(a).Readiness})
 		river.AddWorker(a.JobReg.Workers, &approvals.TickWorker{S: newApprovals(a)})
 		a.JobReg.Every(time.Minute, func() (river.JobArgs, *river.InsertOpts) { return approvals.TickArgs{}, nil }, false)
 	})
+}
+
+// ReadinessQueue works the Send Readiness runs waiting in the job queue, in
+// this process: tests (whose app runs no workers) call it after asking for
+// a run. It returns how many it worked.
+func ReadinessQueue(ctx context.Context, a *App) (int, error) {
+	res, err := a.Jobs.JobList(ctx, river.NewJobListParams().Kinds(readiness.RunArgs{}.Kind()).States(rivertype.JobStateAvailable).First(100))
+	if err != nil {
+		return 0, err
+	}
+	rs := newApprovals(a).Readiness
+	n := 0
+	for _, job := range res.Jobs {
+		var args readiness.RunArgs
+		if err := json.Unmarshal(job.EncodedArgs, &args); err != nil {
+			return n, err
+		}
+		if _, err := a.Jobs.JobDelete(ctx, job.ID); err != nil {
+			return n, err
+		}
+		if err := rs.Work(ctx, args); err != nil {
+			return n, err
+		}
+		n++
+	}
+	return n, nil
 }

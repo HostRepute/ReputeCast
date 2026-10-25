@@ -222,7 +222,11 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 	seen := make(map[string]bool, len(rows))
 	recipients := make([]Recipient, 0, len(rows))
 	sunset := out.UnengagedExcluded
-	for _, r := range rows {
+	counted := countingFrom(ctx)
+	for i, r := range rows {
+		if i%5000 == 0 {
+			counted(int64(i), int64(len(rows)))
+		}
 		if !keep.Keeps(r.ID) {
 			continue
 		}
@@ -277,7 +281,23 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 		}
 		recipients = append(recipients, Recipient{Email: r.Email, MailboxProvider: mbp, Lists: lists, Tier: r.Tier, Language: r.Language})
 	}
+	counted(int64(len(rows)), int64(len(rows)))
 	return out, recipients, nil
+}
+
+type countingKey struct{}
+
+// withCounting has the audience count of a run report how many contacts it
+// went through (the progress of a run).
+func withCounting(ctx context.Context, fn func(done, total int64)) context.Context {
+	return context.WithValue(ctx, countingKey{}, fn)
+}
+
+func countingFrom(ctx context.Context) func(done, total int64) {
+	if fn, ok := ctx.Value(countingKey{}).(func(done, total int64)); ok && fn != nil {
+		return fn
+	}
+	return func(int64, int64) {}
 }
 
 // RouteOverride is campaigns.route_override: a split that replaces the

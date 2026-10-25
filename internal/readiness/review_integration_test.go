@@ -8,14 +8,13 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/apptest"
 	"github.com/hostrepute/reputecast/internal/readiness"
+	"github.com/hostrepute/reputecast/internal/readiness/readinesstest"
 )
 
 // runChecks runs Send Readiness on a campaign and returns the stored run.
-func runChecks(t *testing.T, c *apptest.Client, id string) readiness.ReadinessRun {
+func runChecks(t *testing.T, env *apptest.Env, c *apptest.Client, id string) readiness.ReadinessRun {
 	t.Helper()
-	var run readiness.ReadinessRun
-	c.Do("POST", ws+"/campaigns/"+id+"/readiness", nil).MustStatus(t, 200).JSON(t, &run)
-	return run
+	return readinesstest.Run(t, env, c, "acme-newsletter", id)
 }
 
 func checkOf(run readiness.ReadinessRun, key string) (readiness.ReadinessCheck, bool) {
@@ -67,7 +66,7 @@ func TestLinkDomainsLookedUpLive(t *testing.T) {
 	}
 
 	// Review & send blocks.
-	run := runChecks(t, c, id)
+	run := runChecks(t, env, c, id)
 	ch, ok := checkOf(run, "links.blocklist.go.acme-promo.link")
 	if !ok || ch.Status != readiness.Block || !strings.Contains(ch.Title, "Spamhaus DBL") {
 		t.Fatalf("Review: %+v", ch)
@@ -90,7 +89,7 @@ func TestParentDomainListingShows(t *testing.T) {
 	}
 	c := env.Client()
 	c.SignInDemo("linh@acme.io")
-	run := runChecks(t, c, campaignID(t, c, "Weekly Digest #143"))
+	run := runChecks(t, env, c, campaignID(t, c, "Weekly Digest #143"))
 	ch, _ := checkOf(run, "reputation.domain_blocklists")
 	if ch.Status != readiness.Block || !strings.Contains(ch.Title, "acme.io, the parent domain of news.acme.io") {
 		t.Fatalf("parent listing: %s %q", ch.Status, ch.Title)
@@ -158,5 +157,77 @@ func TestFixesKeepHTMLOnlyCampaigns(t *testing.T) {
 	}
 	if got := get(); got.HTML != after.HTML || got.Version != after.Version {
 		t.Errorf("an empty save changed the campaign: v%d", got.Version)
+	}
+}
+
+// SR-8: asking for a run queues it and answers at once (no checks run
+// inside the request); one run at a time per campaign; the poll is cheap
+// and says when the new run landed, or why it failed.
+func TestRunsAreBackgroundJobs(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	id := campaignID(t, c, "Weekly Digest #143")
+	before := runChecks(t, env, c, id)
+
+	var poll readiness.ReadinessPoll
+	c.Do("POST", ws+"/campaigns/"+id+"/readiness", nil).MustStatus(t, 202).JSON(t, &poll)
+	if poll.Running == nil || !poll.Running.Queued || poll.Latest == nil || poll.Latest.ID != before.ID {
+		t.Fatalf("queued: %+v", poll)
+	}
+	var runs int
+	if err := env.App.Pool.QueryRow(ctx, `SELECT count(*) FROM readiness_runs WHERE campaign_id = $1 AND ran_at > $2`, id, before.RanAt).Scan(&runs); err != nil || runs != 0 {
+		t.Fatalf("a run was stored inside the request: %d %v", runs, err)
+	}
+	// One run at a time: a second request waits for the first.
+	if p := c.Do("POST", ws+"/campaigns/"+id+"/readiness", nil).MustStatus(t, 409).Problem(t); p["code"] != "readiness_running" {
+		t.Errorf("second run: %v", p)
+	}
+	// Viewers poll too; the queued run shows its groups.
+	aisha := env.Client()
+	aisha.SignInDemo("aisha@acme.io")
+	poll = readiness.ReadinessPoll{}
+	aisha.Do("GET", ws+"/campaigns/"+id+"/readiness/progress", nil).MustStatus(t, 200).JSON(t, &poll)
+	if poll.Running == nil || len(poll.Running.Groups) < 8 || poll.Running.Groups[0].Status != "queued" {
+		t.Fatalf("poll while queued: %+v", poll.Running)
+	}
+	aisha.Do("POST", ws+"/campaigns/"+id+"/readiness", nil).MustStatus(t, 403)
+
+	if n := readinesstest.Work(t, env); n != 1 {
+		t.Fatalf("worked %d runs", n)
+	}
+	poll = readiness.ReadinessPoll{}
+	c.Do("GET", ws+"/campaigns/"+id+"/readiness/progress", nil).MustStatus(t, 200).JSON(t, &poll)
+	if poll.Running != nil || poll.Failed != nil || poll.Latest == nil || poll.Latest.ID == before.ID {
+		t.Fatalf("after the run: %+v", poll)
+	}
+	if after := readinesstest.Latest(t, c, "acme-newsletter", id); after.ID != poll.Latest.ID || after.Trigger != "manual" {
+		t.Errorf("latest run: %s %s", after.ID, after.Trigger)
+	}
+	var actor string
+	if err := env.App.Pool.QueryRow(ctx, `SELECT actor_name FROM audit_events WHERE action = 'readiness.run' AND target_id = $1 ORDER BY occurred_at DESC LIMIT 1`, id).Scan(&actor); err != nil || actor != "Linh Nguyen" {
+		t.Errorf("the run is audited as who asked for it: %q %v", actor, err)
+	}
+
+	// A run that stopped on an error says so until the next run.
+	c.Do("POST", ws+"/campaigns/"+id+"/readiness", nil).MustStatus(t, 202).JSON(t, &poll)
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE readiness_progress SET failed_at = now(), error = 'Audience: connection reset.' WHERE campaign_id = $1`, id); err != nil {
+		t.Fatal(err)
+	}
+	poll = readiness.ReadinessPoll{}
+	c.Do("GET", ws+"/campaigns/"+id+"/readiness/progress", nil).MustStatus(t, 200).JSON(t, &poll)
+	if poll.Running != nil || poll.Failed == nil || poll.Failed.Error != "Audience: connection reset." {
+		t.Fatalf("failed run: %+v", poll)
+	}
+	// The failed run's job finds the row isn't its own any more and stops.
+	readinesstest.Work(t, env)
+	c.Do("POST", ws+"/campaigns/"+id+"/readiness", nil).MustStatus(t, 202)
+	readinesstest.Work(t, env)
+	poll = readiness.ReadinessPoll{}
+	c.Do("GET", ws+"/campaigns/"+id+"/readiness/progress", nil).MustStatus(t, 200).JSON(t, &poll)
+	if poll.Running != nil || poll.Failed != nil {
+		t.Fatalf("a new run clears the failure: %+v", poll)
 	}
 }

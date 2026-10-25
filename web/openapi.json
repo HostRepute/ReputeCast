@@ -14188,6 +14188,9 @@
           "campaign": {
             "$ref": "#/components/schemas/ReviewCampaign"
           },
+          "failed": {
+            "$ref": "#/components/schemas/ReadinessRunFailure"
+          },
           "held": {
             "$ref": "#/components/schemas/ReviewHeld"
           },
@@ -14210,6 +14213,10 @@
           "scheduled": {
             "$ref": "#/components/schemas/ReviewScheduled"
           },
+          "sendNowWithin": {
+            "format": "int64",
+            "type": "integer"
+          },
           "stale": {
             "type": "boolean"
           },
@@ -14229,6 +14236,7 @@
         "required": [
           "campaign",
           "stale",
+          "sendNowWithin",
           "thresholds",
           "schedule",
           "testSends",
@@ -17353,6 +17361,16 @@
             },
             "type": "array"
           },
+          "linkDomains": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "linkDomainsUnknown": {
+            "items": {
+              "$ref": "#/components/schemas/ContentCheckUnknownDomain"
+            },
+            "type": "array"
+          },
           "linkList": {
             "items": {
               "$ref": "#/components/schemas/ContentCheckLink"
@@ -17396,6 +17414,12 @@
             },
             "type": "array"
           },
+          "uriLists": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "verdict": {
             "enum": [
               "ready",
@@ -17432,7 +17456,10 @@
           "checkedAt",
           "imageShare",
           "words",
-          "linkList"
+          "linkList",
+          "linkDomains",
+          "uriLists",
+          "linkDomainsUnknown"
         ],
         "type": "object"
       },
@@ -22433,6 +22460,27 @@
           "links",
           "linksOk",
           "issues"
+        ],
+        "type": "object"
+      },
+      "ContentCheckUnknownDomain": {
+        "additionalProperties": false,
+        "properties": {
+          "domain": {
+            "type": "string"
+          },
+          "trouble": {
+            "enum": [
+              "timeout",
+              "refused",
+              "other"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "domain",
+          "trouble"
         ],
         "type": "object"
       },
@@ -56542,8 +56590,8 @@
             },
             "type": "array"
           },
-          "run": {
-            "$ref": "#/components/schemas/ReadinessRun"
+          "running": {
+            "$ref": "#/components/schemas/ReadinessProgress"
           },
           "version": {
             "format": "int64",
@@ -56707,6 +56755,21 @@
         ],
         "type": "object"
       },
+      "ReadinessPoll": {
+        "additionalProperties": false,
+        "properties": {
+          "failed": {
+            "$ref": "#/components/schemas/ReadinessRunFailure"
+          },
+          "latest": {
+            "$ref": "#/components/schemas/ReadinessRunRef"
+          },
+          "running": {
+            "$ref": "#/components/schemas/ReadinessProgress"
+          }
+        },
+        "type": "object"
+      },
       "ReadinessProgress": {
         "additionalProperties": false,
         "properties": {
@@ -56719,6 +56782,9 @@
               "$ref": "#/components/schemas/ReadinessProgressGroup"
             },
             "type": "array"
+          },
+          "queued": {
+            "type": "boolean"
           },
           "runId": {
             "type": "string"
@@ -56742,6 +56808,7 @@
           "runId",
           "trigger",
           "startedAt",
+          "queued",
           "done",
           "total",
           "groups"
@@ -56752,6 +56819,10 @@
         "additionalProperties": false,
         "properties": {
           "checked": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "count": {
             "format": "int64",
             "type": "integer"
           },
@@ -56770,9 +56841,14 @@
               "audience",
               "routing",
               "accessibility",
-              "conditional"
+              "conditional",
+              "rules"
             ],
             "type": "string"
+          },
+          "of": {
+            "format": "int64",
+            "type": "integer"
           },
           "status": {
             "enum": [
@@ -56794,6 +56870,14 @@
           "total": {
             "format": "int64",
             "type": "integer"
+          },
+          "unit": {
+            "enum": [
+              "links",
+              "domains",
+              "contacts"
+            ],
+            "type": "string"
           }
         },
         "required": [
@@ -56803,17 +56887,10 @@
           "text",
           "done",
           "total",
-          "checked"
+          "checked",
+          "count",
+          "of"
         ],
-        "type": "object"
-      },
-      "ReadinessProgressView": {
-        "additionalProperties": false,
-        "properties": {
-          "running": {
-            "$ref": "#/components/schemas/ReadinessProgress"
-          }
-        },
         "type": "object"
       },
       "ReadinessRoute": {
@@ -57065,6 +57142,53 @@
           "checks",
           "incomplete",
           "estimates"
+        ],
+        "type": "object"
+      },
+      "ReadinessRunFailure": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "runId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "runId",
+          "at",
+          "error"
+        ],
+        "type": "object"
+      },
+      "ReadinessRunRef": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ranAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "verdict": {
+            "enum": [
+              "ready",
+              "warnings",
+              "blocked"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "ranAt",
+          "verdict"
         ],
         "type": "object"
       },
@@ -111959,7 +112083,7 @@
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness": {
       "post": {
-        "description": "Runs every check and stores the result. Fails with 409 readiness_running while a run is in progress; poll …/readiness/progress.",
+        "description": "Queues a run of every check; a worker runs it in the background and stores the result. Answers 202 with the run waiting or in progress; poll …/readiness/progress until running is gone and latest is the new run. Fails with 409 readiness_running while a run waits or runs.",
         "operationId": "run-send-readiness",
         "parameters": [
           {
@@ -111987,15 +112111,15 @@
           }
         ],
         "responses": {
-          "200": {
+          "202": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReadinessRun"
+                  "$ref": "#/components/schemas/ReadinessPoll"
                 }
               }
             },
-            "description": "OK"
+            "description": "Accepted"
           },
           "default": {
             "content": {
@@ -112016,7 +112140,7 @@
             "bearer": []
           }
         ],
-        "summary": "Run Send Readiness on a campaign now",
+        "summary": "Run Send Readiness on a campaign",
         "tags": [
           "Review \u0026 send"
         ],
@@ -112100,6 +112224,7 @@
     },
     "/api/v1/workspaces/{workspace}/campaigns/{campaignId}/readiness/progress": {
       "get": {
+        "description": "Cheap to poll: the run waiting or in progress with each group's progress, the latest stored run's id and verdict, and a run that failed.",
         "operationId": "get-send-readiness-progress",
         "parameters": [
           {
@@ -112131,7 +112256,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReadinessProgressView"
+                  "$ref": "#/components/schemas/ReadinessPoll"
                 }
               }
             },
@@ -112156,7 +112281,7 @@
             "bearer": []
           }
         ],
-        "summary": "The Send Readiness run in progress",
+        "summary": "The Send Readiness run waiting or in progress",
         "tags": [
           "Review \u0026 send"
         ],

@@ -285,24 +285,49 @@ type ReadinessRun struct {
 
 // ReadinessProgressGroup is one group of a run in progress.
 type ReadinessProgressGroup struct {
-	Key     string `json:"key" enum:"reputation,authentication,content,languages,links,compliance,audience,routing,accessibility,conditional"`
-	Title   string `json:"title"`
-	Status  string `json:"status" enum:"queued,running,pass,warn,block,unknown"`
-	Text    string `json:"text"`
-	Done    int    `json:"done"`
-	Total   int    `json:"total"`
-	Checked int    `json:"checked"`
+	Key    string `json:"key" enum:"reputation,authentication,content,languages,links,compliance,audience,routing,accessibility,conditional,rules"`
+	Title  string `json:"title"`
+	Status string `json:"status" enum:"queued,running,pass,warn,block,unknown"`
+	Text   string `json:"text"`
+	// Done of Total are the group's checks that finished.
+	Done    int `json:"done"`
+	Total   int `json:"total"`
+	Checked int `json:"checked"`
+	// Count of Of Unit is how far the group's long step got: "9 of 14
+	// links", "5 of 8 domains", "24,310 of 31,988 contacts".
+	Unit  string `json:"unit,omitempty" enum:"links,domains,contacts"`
+	Count int64  `json:"count"`
+	Of    int64  `json:"of"`
 
-	texts *progressTexts
+	texts  *progressTexts
+	hidden bool
 }
 
-// ReadinessProgress is a run in progress.
+// ReadinessProgress is a run waiting for a worker or in progress.
 type ReadinessProgress struct {
-	RunID     string                   `json:"runId"`
-	Trigger   string                   `json:"trigger"`
-	StartedAt time.Time                `json:"startedAt"`
-	StartedBy string                   `json:"startedBy,omitempty"`
-	Done      int                      `json:"done"`
-	Total     int                      `json:"total"`
-	Groups    []ReadinessProgressGroup `json:"groups"`
+	RunID     string    `json:"runId"`
+	Trigger   string    `json:"trigger"`
+	StartedAt time.Time `json:"startedAt"`
+	StartedBy string    `json:"startedBy,omitempty"`
+	// Queued is true until a worker takes the run up.
+	Queued bool                     `json:"queued"`
+	Done   int                      `json:"done"`
+	Total  int                      `json:"total"`
+	Groups []ReadinessProgressGroup `json:"groups"`
+}
+
+// ReadinessRunFailure is a run that stopped on an error.
+type ReadinessRunFailure struct {
+	RunID string    `json:"runId"`
+	At    time.Time `json:"at"`
+	// Error is what went wrong, as the code said it (English).
+	Error string `json:"error"`
+}
+
+// ReadinessRunRef names a stored run: what a poll compares with what the
+// screen shows.
+type ReadinessRunRef struct {
+	ID      string    `json:"id"`
+	RanAt   time.Time `json:"ranAt"`
+	Verdict string    `json:"verdict" enum:"ready,warnings,blocked"`
 }

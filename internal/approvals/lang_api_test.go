@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hostrepute/reputecast/internal/apptest"
+	"github.com/hostrepute/reputecast/internal/readiness/readinesstest"
 )
 
 // A member who reads Vietnamese gets approvals' texts in Vietnamese:
@@ -70,6 +71,9 @@ func TestApprovalsInVietnamese(t *testing.T) {
 
 	// Daniel asks again (in English); Marcus reads the request's rules in Vietnamese.
 	var asked struct{ ID string }
+	// The checks run again first (the campaign changed since they ran).
+	daniel.Do("POST", ws+"/campaigns/"+nov+"/approval", map[string]any{}).MustStatus(t, 409)
+	readinesstest.Work(t, env)
 	daniel.Do("POST", ws+"/campaigns/"+nov+"/approval", map[string]any{}).MustStatus(t, 201).JSON(t, &asked)
 	var d struct {
 		Rules             []struct{ Key, Label, Short, Badge string }

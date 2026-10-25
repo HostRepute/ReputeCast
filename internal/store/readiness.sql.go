@@ -132,6 +132,26 @@ func (q *Queries) ReadinessCampaignWorkspace(ctx context.Context, id uuid.UUID) 
 	return workspace_id, err
 }
 
+const readinessClaimProgress = `-- name: ReadinessClaimProgress :one
+UPDATE readiness_progress SET updated_at = $1
+WHERE campaign_id = $2 AND run_id = $3 AND failed_at IS NULL
+RETURNING run_id
+`
+
+type ReadinessClaimProgressParams struct {
+	Now        time.Time `json:"now"`
+	CampaignID uuid.UUID `json:"campaignId"`
+	RunID      uuid.UUID `json:"runId"`
+}
+
+// A worker takes up a queued run: it still owns the campaign's row.
+func (q *Queries) ReadinessClaimProgress(ctx context.Context, arg ReadinessClaimProgressParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, readinessClaimProgress, arg.Now, arg.CampaignID, arg.RunID)
+	var run_id uuid.UUID
+	err := row.Scan(&run_id)
+	return run_id, err
+}
+
 const readinessEndProgress = `-- name: ReadinessEndProgress :exec
 DELETE FROM readiness_progress WHERE campaign_id = $1 AND run_id = $2
 `
@@ -146,8 +166,32 @@ func (q *Queries) ReadinessEndProgress(ctx context.Context, arg ReadinessEndProg
 	return err
 }
 
+const readinessFailProgress = `-- name: ReadinessFailProgress :exec
+UPDATE readiness_progress SET failed_at = $1, error = $2, updated_at = $1
+WHERE campaign_id = $3 AND run_id = $4
+`
+
+type ReadinessFailProgressParams struct {
+	Now        *time.Time `json:"now"`
+	Error      string     `json:"error"`
+	CampaignID uuid.UUID  `json:"campaignId"`
+	RunID      uuid.UUID  `json:"runId"`
+}
+
+// A run stopped on an error: the row says why until the next run.
+func (q *Queries) ReadinessFailProgress(ctx context.Context, arg ReadinessFailProgressParams) error {
+	_, err := q.db.Exec(ctx, readinessFailProgress,
+		arg.Now,
+		arg.Error,
+		arg.CampaignID,
+		arg.RunID,
+	)
+	return err
+}
+
 const readinessGetProgress = `-- name: ReadinessGetProgress :one
 SELECT p.campaign_id, p.run_id, p.trigger, p.started_by, p.started_at, p.updated_at, p.groups, p.done, p.total,
+       p.failed_at, p.error,
        coalesce(u.name, '')::text AS started_by_name
 FROM readiness_progress p
 LEFT JOIN users u ON u.id = p.started_by
@@ -164,6 +208,8 @@ type ReadinessGetProgressRow struct {
 	Groups        json.RawMessage `json:"groups"`
 	Done          int32           `json:"done"`
 	Total         int32           `json:"total"`
+	FailedAt      *time.Time      `json:"failedAt"`
+	Error         string          `json:"error"`
 	StartedByName string          `json:"startedByName"`
 }
 
@@ -180,6 +226,8 @@ func (q *Queries) ReadinessGetProgress(ctx context.Context, campaignID uuid.UUID
 		&i.Groups,
 		&i.Done,
 		&i.Total,
+		&i.FailedAt,
+		&i.Error,
 		&i.StartedByName,
 	)
 	return i, err
@@ -353,6 +401,25 @@ func (q *Queries) ReadinessLatestRun(ctx context.Context, campaignID uuid.UUID) 
 		&i.RanByName,
 		&i.AcceptedByName,
 	)
+	return i, err
+}
+
+const readinessLatestRunRef = `-- name: ReadinessLatestRunRef :one
+SELECT id, ran_at, verdict FROM readiness_runs WHERE campaign_id = $1 ORDER BY ran_at DESC LIMIT 1
+`
+
+type ReadinessLatestRunRefRow struct {
+	ID      uuid.UUID `json:"id"`
+	RanAt   time.Time `json:"ranAt"`
+	Verdict string    `json:"verdict"`
+}
+
+// The latest run's id, time and verdict: what the review screen's poll
+// compares with what it shows.
+func (q *Queries) ReadinessLatestRunRef(ctx context.Context, campaignID uuid.UUID) (ReadinessLatestRunRefRow, error) {
+	row := q.db.QueryRow(ctx, readinessLatestRunRef, campaignID)
+	var i ReadinessLatestRunRefRow
+	err := row.Scan(&i.ID, &i.RanAt, &i.Verdict)
 	return i, err
 }
 
@@ -707,8 +774,8 @@ INSERT INTO readiness_progress (campaign_id, run_id, trigger, started_by, starte
 VALUES ($1, $2, $3, $4, $5, $5, $6, 0, $7)
 ON CONFLICT (campaign_id) DO UPDATE
 SET run_id = EXCLUDED.run_id, trigger = EXCLUDED.trigger, started_by = EXCLUDED.started_by, started_at = EXCLUDED.started_at,
-    updated_at = EXCLUDED.updated_at, groups = EXCLUDED.groups, done = 0, total = EXCLUDED.total
-WHERE readiness_progress.updated_at < $8::timestamptz
+    updated_at = EXCLUDED.updated_at, groups = EXCLUDED.groups, done = 0, total = EXCLUDED.total, failed_at = NULL, error = ''
+WHERE readiness_progress.updated_at < $8::timestamptz OR readiness_progress.failed_at IS NOT NULL
 RETURNING run_id
 `
 
@@ -723,8 +790,8 @@ type ReadinessStartProgressParams struct {
 	StaleBefore time.Time       `json:"staleBefore"`
 }
 
-// Starts a run unless one is already running (a run that stopped updating
-// for two minutes is taken over).
+// Starts a run unless one is already waiting or running (a run that stopped
+// updating for two minutes, or failed, is taken over).
 func (q *Queries) ReadinessStartProgress(ctx context.Context, arg ReadinessStartProgressParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, readinessStartProgress,
 		arg.CampaignID,

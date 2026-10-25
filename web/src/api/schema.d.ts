@@ -4230,8 +4230,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Run Send Readiness on a campaign now
-         * @description Runs every check and stores the result. Fails with 409 readiness_running while a run is in progress; poll …/readiness/progress.
+         * Run Send Readiness on a campaign
+         * @description Queues a run of every check; a worker runs it in the background and stores the result. Answers 202 with the run waiting or in progress; poll …/readiness/progress until running is gone and latest is the new run. Fails with 409 readiness_running while a run waits or runs.
          */
         post: operations["run-send-readiness"];
         delete?: never;
@@ -4267,7 +4267,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The Send Readiness run in progress */
+        /**
+         * The Send Readiness run waiting or in progress
+         * @description Cheap to poll: the run waiting or in progress with each group's progress, the latest stored run's id and verdict, and a run that failed.
+         */
         get: operations["get-send-readiness-progress"];
         put?: never;
         post?: never;
@@ -20813,6 +20816,7 @@ export interface components {
             access: components["schemas"]["ReviewAccess"];
             approval: components["schemas"]["ReviewApproval"];
             campaign: components["schemas"]["ReviewCampaign"];
+            failed?: components["schemas"]["ReadinessRunFailure"];
             held?: components["schemas"]["ReviewHeld"];
             /** Format: int64 */
             largeSend: number;
@@ -20821,6 +20825,8 @@ export interface components {
             running?: components["schemas"]["ReadinessProgress"];
             schedule: components["schemas"]["ReadinessSchedule"];
             scheduled?: components["schemas"]["ReviewScheduled"];
+            /** Format: int64 */
+            sendNowWithin: number;
             stale: boolean;
             testSends: components["schemas"]["ReviewTestSend"][];
             thresholds: components["schemas"]["ReadinessThresholds"];
@@ -21705,6 +21711,9 @@ export interface components {
             /** Format: int64 */
             imagesMissingAlt: number;
             issues: components["schemas"]["ContentCheckIssue"][];
+            /** Format: int64 */
+            linkDomains: number;
+            linkDomainsUnknown: components["schemas"]["ContentCheckUnknownDomain"][];
             linkList: components["schemas"]["ContentCheckLink"][];
             /** Format: int64 */
             links: number;
@@ -21718,6 +21727,7 @@ export interface components {
             /** Format: int64 */
             sizeBytes: number;
             subjectHeuristics: string[];
+            uriLists: string[];
             /** @enum {string} */
             verdict: "ready" | "warnings" | "blocked";
             /** Format: int64 */
@@ -23077,6 +23087,11 @@ export interface components {
             links: number;
             /** Format: int64 */
             linksOk: number;
+        };
+        ContentCheckUnknownDomain: {
+            domain: string;
+            /** @enum {string} */
+            trouble: "timeout" | "refused" | "other";
         };
         ConversionCredit: {
             id: string;
@@ -32906,7 +32921,7 @@ export interface components {
         };
         ReadinessFixOutcome: {
             applied: string[];
-            run?: components["schemas"]["ReadinessRun"];
+            running?: components["schemas"]["ReadinessProgress"];
             /** Format: int64 */
             version: number;
         };
@@ -32944,10 +32959,16 @@ export interface components {
             to: string;
             toId: string;
         };
+        ReadinessPoll: {
+            failed?: components["schemas"]["ReadinessRunFailure"];
+            latest?: components["schemas"]["ReadinessRunRef"];
+            running?: components["schemas"]["ReadinessProgress"];
+        };
         ReadinessProgress: {
             /** Format: int64 */
             done: number;
             groups: components["schemas"]["ReadinessProgressGroup"][];
+            queued: boolean;
             runId: string;
             /** Format: date-time */
             startedAt: string;
@@ -32960,18 +32981,21 @@ export interface components {
             /** Format: int64 */
             checked: number;
             /** Format: int64 */
+            count: number;
+            /** Format: int64 */
             done: number;
             /** @enum {string} */
-            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional";
+            key: "reputation" | "authentication" | "content" | "languages" | "links" | "compliance" | "audience" | "routing" | "accessibility" | "conditional" | "rules";
+            /** Format: int64 */
+            of: number;
             /** @enum {string} */
             status: "queued" | "running" | "pass" | "warn" | "block" | "unknown";
             text: string;
             title: string;
             /** Format: int64 */
             total: number;
-        };
-        ReadinessProgressView: {
-            running?: components["schemas"]["ReadinessProgress"];
+            /** @enum {string} */
+            unit?: "links" | "domains" | "contacts";
         };
         ReadinessRoute: {
             /** Format: int64 */
@@ -33043,6 +33067,19 @@ export interface components {
             verdict: "ready" | "warnings" | "blocked";
             /** Format: int64 */
             version: number;
+        };
+        ReadinessRunFailure: {
+            /** Format: date-time */
+            at: string;
+            error: string;
+            runId: string;
+        };
+        ReadinessRunRef: {
+            id: string;
+            /** Format: date-time */
+            ranAt: string;
+            /** @enum {string} */
+            verdict: "ready" | "warnings" | "blocked";
         };
         ReadinessSchedule: {
             /** Format: date-time */
@@ -53214,13 +53251,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Accepted */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ReadinessRun"];
+                    "application/json": components["schemas"]["ReadinessPoll"];
                 };
             };
             /** @description Error */
@@ -53290,7 +53327,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ReadinessProgressView"];
+                    "application/json": components["schemas"]["ReadinessPoll"];
                 };
             };
             /** @description Error */
