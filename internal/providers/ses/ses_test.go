@@ -295,3 +295,21 @@ func TestQuota(t *testing.T) {
 		t.Fatalf("quota: %+v", q)
 	}
 }
+
+// A custom CA bundle (AWS_CA_BUNDLE, as behind a TLS-inspecting proxy)
+// doesn't stop the role path from loading: the SDK gets a client it can add
+// the bundle to.
+func TestRoleWithCABundle(t *testing.T) {
+	_, cert := signer(t)
+	bundle := t.TempDir() + "/ca.pem"
+	if err := os.WriteFile(bundle, cert, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("AWS_CA_BUNDLE", bundle)
+	t.Setenv("AWS_ACCESS_KEY_ID", "AKIDEXAMPLE")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "secret")
+	settings, _ := json.Marshal(map[string]string{"region": "us-east-1", "access": "role", "role_arn": "arn:aws:iam::123456789012:role/ReputeCastSES"})
+	if _, err := ses.New(providers.Config{Settings: settings, HTTPClient: &http.Client{Timeout: time.Second}}); err != nil {
+		t.Fatal(err)
+	}
+}

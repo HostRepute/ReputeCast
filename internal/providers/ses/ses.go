@@ -142,7 +142,7 @@ func New(cfg providers.Config) (providers.Provider, error) {
 	awsCfg := aws.Config{Region: p.s.Region, HTTPClient: p.http, Retryer: func() aws.Retryer { return aws.NopRetryer{} }}
 	switch {
 	case p.s.Access == "role" && p.s.RoleARN != "":
-		base, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(p.s.Region), config.WithHTTPClient(p.http))
+		base, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(p.s.Region), config.WithHTTPClient(sdkHTTP(p.http)))
 		if err != nil {
 			return nil, fmt.Errorf("ses: load AWS credentials to assume %s: %w", p.s.RoleARN, err)
 		}
@@ -165,6 +165,28 @@ func New(cfg providers.Config) (providers.Provider, error) {
 		}
 	})
 	return p, nil
+}
+
+// sdkHTTP is the client the AWS SDK's config loader calls through: the
+// adapter's own transport (netguard's dialer, proxy, TLS settings) in a
+// client the loader can add a custom CA bundle to (AWS_CA_BUNDLE or the
+// shared config's ca_bundle). Given a plain *http.Client, the loader fails
+// whenever a bundle is set.
+func sdkHTTP(c *http.Client) config.HTTPClient {
+	tr, ok := c.Transport.(*http.Transport)
+	if c.Transport != nil && !ok {
+		return c
+	}
+	b := awshttp.NewBuildableClient().WithTimeout(c.Timeout)
+	if tr == nil {
+		return b
+	}
+	return b.WithTransportOptions(func(t *http.Transport) {
+		t.Proxy, t.DialContext, t.DialTLSContext = tr.Proxy, tr.DialContext, tr.DialTLSContext
+		if tr.TLSClientConfig != nil {
+			t.TLSClientConfig = tr.TLSClientConfig.Clone()
+		}
+	})
 }
 
 // Adapter implements providers.Provider.
