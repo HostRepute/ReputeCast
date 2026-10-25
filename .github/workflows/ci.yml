@@ -17,7 +17,7 @@ jobs:
     name: Web · lint, typecheck, test, build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
         with:
           package_json_file: web/package.json
@@ -63,7 +63,7 @@ jobs:
     env:
       REPUTECAST_TEST_DATABASE_URL: postgres://reputecast:reputecast@localhost:5432/postgres?sslmode=disable
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go }}
@@ -82,7 +82,7 @@ jobs:
     name: golangci-lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
         with:
           go-version: "1.27.x"
@@ -94,7 +94,7 @@ jobs:
     name: Adapter SDK · typecheck, test, build, end to end
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
         with:
           package_json_file: sdk/package.json
@@ -129,7 +129,7 @@ jobs:
     name: Site · lint, typecheck, test, build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
         with:
           package_json_file: site/package.json
@@ -169,7 +169,7 @@ jobs:
     name: Zapier app · lint, test, build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
@@ -189,7 +189,7 @@ jobs:
     name: Make app · validate, test, build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
@@ -205,7 +205,7 @@ jobs:
     name: n8n nodes · lint, typecheck, test, build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
@@ -231,7 +231,7 @@ jobs:
       matrix:
         php: ["8.1", "8.4"]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
@@ -257,7 +257,7 @@ jobs:
     name: GoReleaser · check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
