@@ -7,6 +7,15 @@ const { workflowHeader, zapOf } = require('./workflow');
 /** How ReputeCast's call log names this app: "Zapier, ReputeCast app 1.2.0". */
 const USER_AGENT = `ReputeCast-Zapier/${version}`;
 
+/** s without its trailing slashes, in one pass: a /\/+$/ replace backtracks on long runs of slashes. */
+const trimSlashes = (s) => {
+  let end = s.length;
+  while (end > 0 && s.charCodeAt(end - 1) === 47) {
+    end--;
+  }
+  return s.slice(0, end);
+};
+
 /**
  * The instance's address as typed in the connection: a scheme is added when
  * missing, and a pasted API path or trailing slash is dropped.
@@ -19,7 +28,7 @@ const instanceBase = (raw) => {
   if (!/^https?:\/\//i.test(url)) {
     url = `https://${url}`;
   }
-  return url.replace(/\/+$/, '').replace(/\/api\/v1$/i, '').replace(/\/+$/, '');
+  return trimSlashes(trimSlashes(url).replace(/\/api\/v1$/i, ''));
 };
 
 /** An API URL: path starts with "/", and {workspace} is the key's workspace. */

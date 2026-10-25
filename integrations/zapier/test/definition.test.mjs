@@ -84,6 +84,7 @@ describe('helpers', () => {
     assert.equal(instanceBase(' https://reputecast.acme.io/api/v1/ '), 'https://reputecast.acme.io');
     assert.equal(instanceBase('http://10.0.4.12:8080/'), 'http://10.0.4.12:8080');
     assert.equal(instanceBase('https://acme.io/reputecast/'), 'https://acme.io/reputecast');
+    assert.equal(instanceBase(`https://acme.io${'/'.repeat(100000)}x/`), `https://acme.io${'/'.repeat(100000)}x`);
   });
 
   it('drops what was left blank', () => {
