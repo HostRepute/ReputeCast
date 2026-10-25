@@ -37,7 +37,7 @@ func readinessService(a *App) *readiness.Service {
 	}
 	_, dl := deliverabilityServices(a)
 	rs := &readiness.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Log: a.Log, Campaigns: cs, Deliverability: dl, URLs: a.URLs, Segments: a.segments(),
-		Languages: languagesService(a)}
+		Languages: languagesService(a), Mailbox: a.mailboxClassifier()}
 	if acc := readinessAccessibility(a); acc != nil {
 		rs.Accessibility = acc
 	}

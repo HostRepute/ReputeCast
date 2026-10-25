@@ -121,7 +121,13 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	f.Campaign.CompiledAt = &compiled
 	g := &gathered{ws: ws, c: c, byID: map[uuid.UUID]store.Provider{}}
 
-	// Prepare: the audience and the route every group refers to.
+	// Prepare: the audience and the route every group refers to. Company
+	// domains are classified first (bounded), as the send will do.
+	if s.Mailbox != nil {
+		if _, err := s.Mailbox.ClassifyPending(ctx, ws.ID, 5*time.Second); err != nil && s.Log != nil {
+			s.Log.WarnContext(ctx, "mailbox classification before Send Readiness", "campaign", c.ID, "err", err)
+		}
+	}
 	def := ParseAudience(c.Audience)
 	aud, recipients, err := s.computeAudience(ctx, s.Q, ws.ID, def, sunsetDays(ws.SunsetPolicy), now)
 	if err != nil {

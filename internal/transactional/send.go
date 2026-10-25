@@ -506,7 +506,7 @@ func (s *Service) prepare(ctx context.Context, ws *store.Workspace, c caller, in
 	}
 	// Contact linking: a recipient who matches a contact shows in its
 	// timeline; nobody is ever added as a contact.
-	p.mailbox = routing.MailboxProvider(email)
+	p.mailbox = s.mailboxFor(ctx, email)
 	if st, err := s.settingsRow(ctx, q, ws.ID); err == nil && st.LinkContacts {
 		if ct, err := q.TxnContactByEmail(ctx, store.TxnContactByEmailParams{WorkspaceID: ws.ID, Email: email}); err == nil {
 			id := ct.ID

@@ -26,6 +26,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/liquid"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/providers/simulator"
@@ -79,6 +80,10 @@ type Engine struct {
 	// availability at send time, and fills automation emails' Checkout
 	// items (internal/commerce); nil sends them as written.
 	Store StoreContent
+	// Mailbox classifies company domains from their MX records before an
+	// audience is built, and automation recipients without a contact
+	// (internal/mailbox); nil keeps the providers contacts already carry.
+	Mailbox MailboxClassifier
 
 	mu       sync.Mutex
 	calls    map[routeKey]*callLog
@@ -476,4 +481,30 @@ func callText(err error) string {
 		return ce.Error()
 	}
 	return err.Error()
+}
+
+// MailboxClassifier is the part of mailbox.Classifier the engine uses.
+type MailboxClassifier interface {
+	ClassifyPending(ctx context.Context, workspaceID uuid.UUID, budget time.Duration) (int64, error)
+	ForEmail(ctx context.Context, email string) mailbox.Class
+}
+
+// classifyBudget bounds how long a send waits for MX lookups before its
+// audience is built; contacts still waiting go as Other.
+const classifyBudget = 15 * time.Second
+
+// mailboxFor classifies an address that has no contact provider.
+func (e *Engine) mailboxFor(ctx context.Context, email string) string {
+	if e.Mailbox == nil {
+		return mailbox.Static(emailDomain(email)).Provider
+	}
+	return e.Mailbox.ForEmail(ctx, email).Provider
+}
+
+// emailDomain is the part after the last @.
+func emailDomain(email string) string {
+	if i := strings.LastIndexByte(email, '@'); i >= 0 {
+		return strings.ToLower(email[i+1:])
+	}
+	return ""
 }

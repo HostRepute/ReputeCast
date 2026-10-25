@@ -45,7 +45,7 @@ func (m AutomationMailer) QueueAutomationEmail(ctx context.Context, tx pgx.Tx, o
 		contactLanguage = c.Language
 	}
 	if mbp == "" {
-		mbp = routing.MailboxProvider(o.To)
+		mbp = m.E.mailboxFor(ctx, o.To)
 	}
 	pid, err := m.E.automationRoute(ctx, q, o.WorkspaceID, o.Route, o.To, mbp)
 	if err != nil {

@@ -39,7 +39,7 @@ SELECT id, domain, dns_records FROM sending_domains WHERE workspace_id = @worksp
 SELECT EXISTS (SELECT 1 FROM suppressions WHERE workspace_id = @workspace_id AND email = @email)::boolean;
 
 -- name: RoutingContact :one
-SELECT c.id, c.mailbox_provider,
+SELECT c.id, c.mailbox_provider, c.mailbox_detail,
        coalesce(array_agg(lm.list_id) FILTER (WHERE lm.status = 'subscribed'), '{}')::uuid[] AS list_ids
 FROM contacts c
 LEFT JOIN list_memberships lm ON lm.contact_id = c.id

@@ -39,14 +39,21 @@ func TestClassify(t *testing.T) {
 	for domain, want := range map[string]string{
 		"gmail.com": Gmail, "googlemail.com": Gmail, "hotmail.com": Outlook, "hotmail.co.uk": Outlook, "live.com.au": Outlook,
 		"outlook.fr": Outlook, "yahoo.co.jp": Yahoo, "aol.com": Yahoo, "icloud.com": ICloud, "me.com": ICloud,
-		"bergconsulting.de": Other, "live.example.com": Other, "fastmail.com": Other,
+		"bergconsulting.de": Other, "live.example.com": Other, "fastmail.com": Other, "aol.de": Yahoo, "outlook.acme.com": Other,
 	} {
 		if got := MailboxProvider(domain); got != want {
 			t.Errorf("MailboxProvider(%s) = %s, want %s", domain, got, want)
 		}
 	}
-	if HostingFromMX("aspmx.l.google.com.") != "Google Workspace" || HostingFromMX("in1-smtp.messagingengine.com") != "Fastmail" || HostingFromMX("mx.example.net") != "" {
-		t.Fatal("hosting from MX")
+	for host, want := range map[string]string{
+		"aspmx.l.google.com.": HostGoogleWorkspace, "smtp.google.com": HostGoogleWorkspace,
+		"acme-io.mail.protection.outlook.com": HostMicrosoft365, "acme-io.olc.protection.outlook.com": HostOutlookCom,
+		"mx-biz.mail.am0.yahoodns.net": HostYahoo, "mx01.mail.icloud.com": HostICloud,
+		"in1-smtp.messagingengine.com": "Fastmail", "mx.example.net": "",
+	} {
+		if got := HostingFromMX(host); got != want {
+			t.Errorf("HostingFromMX(%s) = %q, want %q", host, got, want)
+		}
 	}
 	if !IsDisposable("Mailinator.com") || IsDisposable("gmail.com") {
 		t.Fatal("disposable")

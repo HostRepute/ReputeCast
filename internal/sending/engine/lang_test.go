@@ -9,6 +9,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
+	"github.com/hostrepute/reputecast/internal/sending/sendtest"
 )
 
 var vi = i18n.For(i18n.Vietnamese)
@@ -16,7 +17,7 @@ var vi = i18n.For(i18n.Vietnamese)
 // checkAutoPauseLanguages: an auto-pause's analysis, notification and
 // timeline entry keep the English they always had, and read in Vietnamese
 // for a Vietnamese reader.
-func checkAutoPauseLanguages(t *testing.T, f *fixture, snap engine.LiveSnapshot) {
+func checkAutoPauseLanguages(t *testing.T, f *sendtest.Fixture, snap engine.LiveSnapshot) {
 	t.Helper()
 	d := snap.Incident.Detail
 	if d.Options[0].Title != "Resume as is" || d.Options[1].Title != "Resume with changes (recommended)" || d.Options[2].Title != "Cancel the Outlook share" ||
@@ -47,8 +48,8 @@ func checkAutoPauseLanguages(t *testing.T, f *fixture, snap engine.LiveSnapshot)
 
 	var title, summary, body string
 	var data []byte
-	if err := f.env.App.Pool.QueryRow(f.ctx, `SELECT title, summary, body, data FROM notifications WHERE kind = 'send_paused' AND data->>'campaignId' = $1 LIMIT 1`,
-		f.campaign.String()).Scan(&title, &summary, &body, &data); err != nil {
+	if err := f.Env.App.Pool.QueryRow(f.Ctx, `SELECT title, summary, body, data FROM notifications WHERE kind = 'send_paused' AND data->>'campaignId' = $1 LIMIT 1`,
+		f.Campaign.String()).Scan(&title, &summary, &body, &data); err != nil {
 		t.Fatal(err)
 	}
 	if title != `"Auto-pause" auto-paused · Outlook` ||
@@ -63,7 +64,7 @@ func checkAutoPauseLanguages(t *testing.T, f *fixture, snap engine.LiveSnapshot)
 
 	var incident string
 	var texts []byte
-	if err := f.env.App.Pool.QueryRow(f.ctx, `SELECT title, texts FROM incidents WHERE kind = 'auto_pause' AND campaign_id = $1`, f.campaign).Scan(&incident, &texts); err != nil {
+	if err := f.Env.App.Pool.QueryRow(f.Ctx, `SELECT title, texts FROM incidents WHERE kind = 'auto_pause' AND campaign_id = $1`, f.Campaign).Scan(&incident, &texts); err != nil {
 		t.Fatal(err)
 	}
 	var kept map[string]i18n.Text
@@ -75,7 +76,7 @@ func checkAutoPauseLanguages(t *testing.T, f *fixture, snap engine.LiveSnapshot)
 }
 
 // checkOutageLanguages: a held share's analysis and the decision request.
-func checkOutageLanguages(t *testing.T, f *fixture, snap engine.LiveSnapshot) {
+func checkOutageLanguages(t *testing.T, f *sendtest.Fixture, snap engine.LiveSnapshot) {
 	t.Helper()
 	d := snap.Incident.Detail
 	if d.Options[0].Title != "Retry Postal" || d.Options[0].Action != "Retry Postal" || d.Options[1].Title != "Move the remaining Postal share to SES (recommended)" ||
@@ -95,8 +96,8 @@ func checkOutageLanguages(t *testing.T, f *fixture, snap engine.LiveSnapshot) {
 
 	var title, summary, body string
 	var data []byte
-	if err := f.env.App.Pool.QueryRow(f.ctx, `SELECT title, summary, body, data FROM notifications WHERE kind = 'send_paused' AND data->>'campaignId' = $1 AND data ? 'providerId' LIMIT 1`,
-		f.campaign.String()).Scan(&title, &summary, &body, &data); err != nil {
+	if err := f.Env.App.Pool.QueryRow(f.Ctx, `SELECT title, summary, body, data FROM notifications WHERE kind = 'send_paused' AND data->>'campaignId' = $1 AND data ? 'providerId' LIMIT 1`,
+		f.Campaign.String()).Scan(&title, &summary, &body, &data); err != nil {
 		t.Fatal(err)
 	}
 	if title != `"Outage" is waiting for a decision` ||

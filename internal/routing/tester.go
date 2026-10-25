@@ -72,16 +72,19 @@ type RouteTestFallback struct {
 
 // RouteTestResult answers "Which provider would send this email?".
 type RouteTestResult struct {
-	ProviderID      string            `json:"providerId"`
-	Provider        string            `json:"provider"`
-	Short           string            `json:"short"`
-	Color           string            `json:"color" enum:"ses,postal,postmark,other"`
-	MailboxProvider string            `json:"mailboxProvider"`
-	DKIMSelector    string            `json:"dkimSelector"`
-	Cost            RouteTestCost     `json:"cost"`
-	Steps           []RouteTestStep   `json:"steps"`
-	Fallback        RouteTestFallback `json:"fallback"`
-	Suppressed      bool              `json:"suppressed"`
+	ProviderID      string `json:"providerId"`
+	Provider        string `json:"provider"`
+	Short           string `json:"short"`
+	Color           string `json:"color" enum:"ses,postal,postmark,other"`
+	MailboxProvider string `json:"mailboxProvider"`
+	// MailboxDetail names the hosting behind a company domain ("Google
+	// Workspace"), found from its MX records; empty for consumer domains.
+	MailboxDetail string            `json:"mailboxDetail,omitempty"`
+	DKIMSelector  string            `json:"dkimSelector"`
+	Cost          RouteTestCost     `json:"cost"`
+	Steps         []RouteTestStep   `json:"steps"`
+	Fallback      RouteTestFallback `json:"fallback"`
+	Suppressed    bool              `json:"suppressed"`
 	// Held is true when the provider can't take mail right now.
 	Held bool `json:"held"`
 }
@@ -112,9 +115,11 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 		}
 	}
 	// A known contact carries its mailbox provider (from MX) and lists.
+	detail := ""
 	if c, err := s.Q.RoutingContact(ctx, store.RoutingContactParams{WorkspaceID: ws.ID, Email: email}); err == nil {
 		if c.MailboxProvider != "" && c.MailboxProvider != Other {
 			rcpt.MailboxProvider = c.MailboxProvider
+			detail = c.MailboxDetail
 		}
 		if in.ListID == "" {
 			for _, l := range c.ListIds {
@@ -125,7 +130,12 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 		return RouteTestResult{}, err
 	}
 	if rcpt.MailboxProvider == "" {
-		rcpt.MailboxProvider = MailboxProvider(email)
+		if s.Mailbox != nil {
+			cl := s.Mailbox.ForEmail(ctx, email)
+			rcpt.MailboxProvider, detail = cl.Provider, cl.Detail
+		} else {
+			rcpt.MailboxProvider = MailboxProvider(email)
+		}
 	}
 	d, ok := set.Resolve(rcpt)
 	if !ok {
@@ -148,7 +158,7 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 		return RouteTestResult{}, err
 	}
 	out := RouteTestResult{ProviderID: p.ID.String(), Provider: p.Name, Short: state.Short(p.Name, p.Adapter), Color: state.Color(p.Adapter),
-		MailboxProvider: rcpt.MailboxProvider, Steps: []RouteTestStep{}}
+		MailboxProvider: rcpt.MailboxProvider, MailboxDetail: detail, Steps: []RouteTestStep{}}
 	conditions := 0
 	for _, r := range set.StreamRules(stream) {
 		if !r.Conditions.Empty() {

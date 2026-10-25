@@ -115,6 +115,8 @@ func sendingEngine(a *App) *engine.Engine {
 		Recipients: func() []liquid.RecipientData { return recipientData(a) },
 		// Store blocks read prices and availability when the email goes out.
 		Store: sendingStore(a),
+		// Company domains go out as their mailbox provider (MX records).
+		Mailbox: a.mailboxClassifier(),
 	}
 	v, _ := sendingEngines.LoadOrStore(a, e)
 	return v.(*engine.Engine)

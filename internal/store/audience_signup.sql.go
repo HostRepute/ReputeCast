@@ -83,7 +83,7 @@ func (q *Queries) SignupConfirmPending(ctx context.Context, arg SignupConfirmPen
 
 const signupContactByEmail = `-- name: SignupContactByEmail :one
 
-SELECT id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by, phone, phone_country, phone_line_type, phone_line_source, phone_set_at FROM contacts
+SELECT id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by, phone, phone_country, phone_line_type, phone_line_source, phone_set_at, mailbox_checked_at FROM contacts
 WHERE workspace_id = $1 AND email = $2 AND erased_at IS NULL
 FOR UPDATE
 `
@@ -143,12 +143,13 @@ func (q *Queries) SignupContactByEmail(ctx context.Context, arg SignupContactByE
 		&i.PhoneLineType,
 		&i.PhoneLineSource,
 		&i.PhoneSetAt,
+		&i.MailboxCheckedAt,
 	)
 	return i, err
 }
 
 const signupContactByID = `-- name: SignupContactByID :one
-SELECT id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by, phone, phone_country, phone_line_type, phone_line_source, phone_set_at FROM contacts
+SELECT id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by, phone, phone_country, phone_line_type, phone_line_source, phone_set_at, mailbox_checked_at FROM contacts
 WHERE workspace_id = $1 AND id = $2 AND erased_at IS NULL
 FOR UPDATE
 `
@@ -204,6 +205,7 @@ func (q *Queries) SignupContactByID(ctx context.Context, arg SignupContactByIDPa
 		&i.PhoneLineType,
 		&i.PhoneLineSource,
 		&i.PhoneSetAt,
+		&i.MailboxCheckedAt,
 	)
 	return i, err
 }
@@ -328,7 +330,7 @@ INSERT INTO contacts (id, workspace_id, email, first_name, last_name, company, m
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
         '{}', $10, $11, $12::timestamptz, $12::timestamptz, $12::timestamptz)
 ON CONFLICT (workspace_id, email) DO NOTHING
-RETURNING id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by, phone, phone_country, phone_line_type, phone_line_source, phone_set_at
+RETURNING id, workspace_id, email, first_name, last_name, status, tier, source, timezone, country, mailbox_provider, tags, attributes, last_sent_at, last_open_at, last_click_at, created_at, updated_at, erased_at, company, language, mailbox_detail, consent, consent_evidence, import_id, role_address, last_human_open_at, last_open_machine, last_activity_at, tier_changed_at, sunset_at, broadcasts_stopped_at, language_source, language_source_name, language_browser, language_set_at, language_set_by, phone, phone_country, phone_line_type, phone_line_source, phone_set_at, mailbox_checked_at
 `
 
 type SignupInsertContactParams struct {
@@ -407,6 +409,7 @@ func (q *Queries) SignupInsertContact(ctx context.Context, arg SignupInsertConta
 		&i.PhoneLineType,
 		&i.PhoneLineSource,
 		&i.PhoneSetAt,
+		&i.MailboxCheckedAt,
 	)
 	return i, err
 }

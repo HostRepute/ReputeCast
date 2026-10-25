@@ -67,7 +67,7 @@ func (a *App) normalizer() *ingest.Normalizer {
 func init() {
 	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
 		manage.Register(h, a.providersService())
-		routing.Register(h, &routing.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit})
+		routing.Register(h, &routing.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Mailbox: a.mailboxClassifier()})
 		warmup.Register(h, &warmup.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit})
 		suppressions.Register(h, a.suppressionSync())
 		ingest.RegisterLog(h, &ingest.EventLog{Pool: a.Pool, Q: a.Q, Audit: a.Audit})

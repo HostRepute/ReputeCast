@@ -68,6 +68,10 @@ type Service struct {
 	// Grow checks the Referral and Recommendations blocks (Content rows);
 	// nil leaves them out.
 	Grow GrowChecker
+	// Mailbox classifies company domains from their MX records before the
+	// audience is counted, so throttles and estimates use the mailbox
+	// provider the send will use (internal/mailbox); nil skips it.
+	Mailbox MailboxClassifier
 }
 
 func (s *Service) now() time.Time {
@@ -520,4 +524,9 @@ func (g *ReadinessProgressGroup) setText(s string, t Text) {
 		g.texts = &progressTexts{}
 	}
 	g.texts.Text = t
+}
+
+// MailboxClassifier is the part of mailbox.Classifier Send Readiness uses.
+type MailboxClassifier interface {
+	ClassifyPending(ctx context.Context, workspaceID uuid.UUID, budget time.Duration) (int64, error)
 }

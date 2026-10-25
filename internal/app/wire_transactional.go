@@ -49,7 +49,8 @@ func transactionalService(a *App) *transactional.Service {
 	}
 	s := &transactional.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit, Box: a.Secrets, Links: a.Links, URLs: a.URLs, Log: a.Log,
-		Jobs: func() *jobs.Client { return a.Jobs },
+		Jobs:    func() *jobs.Client { return a.Jobs },
+		Mailbox: a.mailboxClassifier(),
 		Checker: &contentcheck.Checker{
 			Blocklist: contentcheck.StoreBlocklist{Q: a.Q},
 			Prober:    linkProber(a),

@@ -923,6 +923,7 @@ type Contact struct {
 	PhoneLineType       string          `json:"phoneLineType"`
 	PhoneLineSource     string          `json:"phoneLineSource"`
 	PhoneSetAt          *time.Time      `json:"phoneSetAt"`
+	MailboxCheckedAt    *time.Time      `json:"mailboxCheckedAt"`
 }
 
 type ContactAddressCheck struct {

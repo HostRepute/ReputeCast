@@ -39,7 +39,7 @@ func (q *Queries) RoutingBroadcastSizes(ctx context.Context, arg RoutingBroadcas
 }
 
 const routingContact = `-- name: RoutingContact :one
-SELECT c.id, c.mailbox_provider,
+SELECT c.id, c.mailbox_provider, c.mailbox_detail,
        coalesce(array_agg(lm.list_id) FILTER (WHERE lm.status = 'subscribed'), '{}')::uuid[] AS list_ids
 FROM contacts c
 LEFT JOIN list_memberships lm ON lm.contact_id = c.id
@@ -55,13 +55,19 @@ type RoutingContactParams struct {
 type RoutingContactRow struct {
 	ID              uuid.UUID   `json:"id"`
 	MailboxProvider string      `json:"mailboxProvider"`
+	MailboxDetail   string      `json:"mailboxDetail"`
 	ListIds         []uuid.UUID `json:"listIds"`
 }
 
 func (q *Queries) RoutingContact(ctx context.Context, arg RoutingContactParams) (RoutingContactRow, error) {
 	row := q.db.QueryRow(ctx, routingContact, arg.WorkspaceID, arg.Email)
 	var i RoutingContactRow
-	err := row.Scan(&i.ID, &i.MailboxProvider, &i.ListIds)
+	err := row.Scan(
+		&i.ID,
+		&i.MailboxProvider,
+		&i.MailboxDetail,
+		&i.ListIds,
+	)
 	return i, err
 }
 

@@ -1887,6 +1887,11 @@ type Querier interface {
 	LockAutomation(ctx context.Context, arg LockAutomationParams) (Automation, error)
 	LockDeletedList(ctx context.Context, arg LockDeletedListParams) (List, error)
 	LockList(ctx context.Context, arg LockListParams) (List, error)
+	// Applies a domain's classification to every contact still waiting for it.
+	MailboxClassifyContacts(ctx context.Context, arg MailboxClassifyContactsParams) (int64, error)
+	// Company domains of contacts that were never classified from their MX
+	// records, skipping domains whose last lookup failed a moment ago.
+	MailboxPendingDomains(ctx context.Context, arg MailboxPendingDomainsParams) ([]string, error)
 	MarkAllNotificationsRead(ctx context.Context, arg MarkAllNotificationsReadParams) (int64, error)
 	MarkAutomationEventProcessed(ctx context.Context, arg MarkAutomationEventProcessedParams) error
 	// A sync finished: account, team, scopes and monitored assets as HostRepute

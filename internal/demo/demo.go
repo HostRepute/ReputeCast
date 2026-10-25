@@ -165,8 +165,22 @@ func Seed(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, box *secr
 			return nil, fmt.Errorf("seed deferred step %d: %w", i+1, err)
 		}
 	}
+	if err := sampleClassified(ctx, tx, s.Workspaces); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 	return res, nil
+}
+
+// sampleClassified makes the sample contacts' mailbox providers final:
+// their made-up domains are never looked up in DNS (mailbox.Classifier).
+func sampleClassified(ctx context.Context, tx pgx.Tx, workspaces map[string]store.Workspace) error {
+	ids := make([]uuid.UUID, 0, len(workspaces))
+	for _, w := range workspaces {
+		ids = append(ids, w.ID)
+	}
+	_, err := tx.Exec(ctx, `UPDATE contacts SET mailbox_checked_at = created_at WHERE workspace_id = ANY($1) AND mailbox_checked_at IS NULL`, ids)
+	return err
 }

@@ -180,9 +180,10 @@ func MailboxName(key string) string {
 	return "Other"
 }
 
-// MailboxProvider classifies a domain into the mailbox provider that
-// filters its mail. Hosted domains (Google Workspace, Microsoft 365) stay
-// "other"; their hosting is found from MX records (see HostingFromMX).
+// MailboxProvider classifies a consumer domain into the mailbox provider that
+// filters its mail. Company domains hosted by a mailbox provider (Google
+// Workspace, Microsoft 365) stay "other" here; internal/mailbox classifies
+// them from their MX records (see HostingFromMX).
 func MailboxProvider(domain string) string {
 	d := strings.ToLower(strings.TrimSpace(domain))
 	switch d {
@@ -200,7 +201,7 @@ func MailboxProvider(domain string) string {
 		switch d[:i] {
 		case "hotmail", "outlook", "live":
 			return Outlook
-		case "yahoo":
+		case "yahoo", "aol":
 			return Yahoo
 		}
 	}
@@ -221,23 +222,38 @@ func countryTLD(s string) bool {
 	return true
 }
 
+// Hosting names of company domains whose mail a mailbox provider filters.
+const (
+	HostGoogleWorkspace = "Google Workspace"
+	HostMicrosoft365    = "Microsoft 365"
+	HostOutlookCom      = "Outlook.com"
+	HostYahoo           = "Yahoo Mail"
+	HostICloud          = "iCloud Mail"
+)
+
 // HostingFromMX names the hosting of a domain from one of its MX hosts:
 // "Google Workspace", "Microsoft 365", "Fastmail", "Proton", "Zoho Mail".
 func HostingFromMX(host string) string {
 	h := strings.TrimSuffix(strings.ToLower(host), ".")
 	switch {
 	case strings.HasSuffix(h, "google.com"), strings.HasSuffix(h, "googlemail.com"):
-		return "Google Workspace"
+		return HostGoogleWorkspace
+	case strings.HasSuffix(h, "olc.protection.outlook.com"):
+		// Outlook.com's consumer filters for a custom domain.
+		return HostOutlookCom
 	case strings.HasSuffix(h, "mail.protection.outlook.com"), strings.HasSuffix(h, "outlook.com"):
-		return "Microsoft 365"
+		return HostMicrosoft365
+	case strings.HasSuffix(h, "yahoodns.net"):
+		return HostYahoo
 	case strings.HasSuffix(h, "messagingengine.com"), strings.HasSuffix(h, "fastmail.com"):
 		return "Fastmail"
 	case strings.HasSuffix(h, "protonmail.ch"), strings.HasSuffix(h, "proton.me"):
 		return "Proton"
 	case strings.HasSuffix(h, "zoho.com"), strings.HasSuffix(h, "zoho.eu"):
 		return "Zoho Mail"
-	case strings.HasSuffix(h, "mx.icloud.com"):
-		return "iCloud Mail"
+	case strings.HasSuffix(h, "mail.icloud.com"), strings.HasSuffix(h, "mx.icloud.com"):
+		// mx01.mail.icloud.com: iCloud+ custom email domains.
+		return HostICloud
 	}
 	return ""
 }

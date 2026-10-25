@@ -230,7 +230,7 @@ func (s *Service) SendRaw(ctx context.Context, cred SMTPCredential, m RawMessage
 		}
 		p := &prepared{id: newID(), accepted: accepted, rendered: accepted, lt: lt, raw: true, to: mail.Address{Address: email}, from: from, replyTo: replyTo,
 			data: map[string]any{}, masked: map[string]any{}, tags: tags, metadata: map[string]string{}, files: files, fileMeta: fileMeta, size: size}
-		p.mailbox = routing.MailboxProvider(email)
+		p.mailbox = s.mailboxFor(ctx, email)
 		if st.LinkContacts {
 			if ct, err := q.TxnContactByEmail(ctx, store.TxnContactByEmailParams{WorkspaceID: ws.ID, Email: email}); err == nil {
 				id := ct.ID

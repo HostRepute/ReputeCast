@@ -14,19 +14,20 @@ import (
 	"github.com/hostrepute/reputecast/internal/authn"
 	"github.com/hostrepute/reputecast/internal/linktoken"
 	"github.com/hostrepute/reputecast/internal/sending/engine"
+	"github.com/hostrepute/reputecast/internal/sending/sendtest"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
-func testAPI(t *testing.T, f *fixture) {
-	f.exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.campaign)
-	f.addContacts(contactSpec{n: 200, mailbox: "gmail", domain: "gmail.com", engaged: true})
-	f.startSend(engine.StartOptions{})
-	if _, _, err := f.e.Drive(f.ctx, f.campaign, f.start, 5*time.Second); err != nil {
+func testAPI(t *testing.T, f *sendtest.Fixture) {
+	f.Exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.Campaign)
+	f.AddContacts(sendtest.ContactSpec{N: 200, Mailbox: "gmail", Domain: "gmail.com", Engaged: true})
+	f.StartSend(engine.StartOptions{})
+	if _, _, err := f.E.Drive(f.Ctx, f.Campaign, f.Start, 5*time.Second); err != nil {
 		t.Fatal(err)
 	}
-	base := "/workspaces/acme-newsletter/campaigns/" + f.campaign.String() + "/live"
+	base := "/workspaces/acme-newsletter/campaigns/" + f.Campaign.String() + "/live"
 
-	viewer := f.env.Client()
+	viewer := f.Env.Client()
 	viewer.SignInDemo("aisha@acme.io")
 	var snap engine.LiveSnapshot
 	viewer.Do("GET", base, nil).MustStatus(t, 200).JSON(t, &snap)
@@ -35,11 +36,11 @@ func testAPI(t *testing.T, f *fixture) {
 	}
 	// Viewers watch but can't pause; Content Writers can't resume or cancel.
 	viewer.Do("POST", base+"/pause", map[string]any{}).MustStatus(t, 403)
-	writer := f.env.Client()
+	writer := f.Env.Client()
 	writer.SignInDemo("daniel@acme.io")
 	writer.Do("POST", base+"/cancel", map[string]any{}).MustStatus(t, 403)
 
-	owner := f.env.Client()
+	owner := f.Env.Client()
 	owner.SignInDemo("linh@acme.io")
 	var res engine.LiveActionResult
 	owner.Do("POST", base+"/pause", map[string]any{"reason": "Wrong link in the footer"}).MustStatus(t, 200).JSON(t, &res)
@@ -47,7 +48,7 @@ func testAPI(t *testing.T, f *fixture) {
 		t.Fatalf("after pause: %s by %q", res.Snapshot.State, res.Snapshot.PausedBy)
 	}
 	writer.Do("POST", base+"/resume", map[string]any{}).MustStatus(t, 403)
-	if n := f.count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.paused' AND actor_name = 'Linh Nguyen'`, f.campaign.String()); n != 1 {
+	if n := f.Count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.paused' AND actor_name = 'Linh Nguyen'`, f.Campaign.String()); n != 1 {
 		t.Fatalf("%d pause audit entries by Linh", n)
 	}
 
@@ -57,27 +58,27 @@ func testAPI(t *testing.T, f *fixture) {
 	token = "rc_agent_" + token
 	hash := authn.HashToken(token)
 	var linh uuid.UUID
-	_ = f.env.App.Pool.QueryRow(f.ctx, `SELECT id FROM users WHERE email = 'linh@acme.io'`).Scan(&linh)
-	f.exec(`INSERT INTO api_keys (id, workspace_id, kind, name, prefix, token_hash, permissions, scope, created_by)
-		VALUES ($1, $2, 'mcp_agent', 'Ops test agent', 'rc_agent_test', $3, ARRAY['campaigns:pause','providers:view'], '{}', $4)`, uuid.Must(uuid.NewV7()), f.ws, hash, linh)
-	agent := f.env.Client()
+	_ = f.Env.App.Pool.QueryRow(f.Ctx, `SELECT id FROM users WHERE email = 'linh@acme.io'`).Scan(&linh)
+	f.Exec(`INSERT INTO api_keys (id, workspace_id, kind, name, prefix, token_hash, permissions, scope, created_by)
+		VALUES ($1, $2, 'mcp_agent', 'Ops test agent', 'rc_agent_test', $3, ARRAY['campaigns:pause','providers:view'], '{}', $4)`, uuid.Must(uuid.NewV7()), f.WS, hash, linh)
+	agent := f.Env.Client()
 	agent.Bearer = token
 	agent.Do("POST", base+"/resume", map[string]any{}).MustStatus(t, 403)
 	owner.Do("POST", base+"/resume", map[string]any{}).MustStatus(t, 200)
 	agent.Do("POST", base+"/pause", map[string]any{"reason": "Spike in complaints"}).MustStatus(t, 200)
-	if n := f.count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.paused' AND actor_type = 'mcp_agent'`, f.campaign.String()); n != 1 {
+	if n := f.Count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.paused' AND actor_type = 'mcp_agent'`, f.Campaign.String()); n != 1 {
 		t.Fatalf("%d pause audit entries by the agent", n)
 	}
 
 	// Other workspaces' campaigns are invisible.
 	var other uuid.UUID
-	if err := f.env.App.Pool.QueryRow(f.ctx, `SELECT c.id FROM campaigns c JOIN workspaces w ON w.id = c.workspace_id WHERE w.slug <> 'acme-newsletter' LIMIT 1`).Scan(&other); err == nil {
+	if err := f.Env.App.Pool.QueryRow(f.Ctx, `SELECT c.id FROM campaigns c JOIN workspaces w ON w.id = c.workspace_id WHERE w.slug <> 'acme-newsletter' LIMIT 1`).Scan(&other); err == nil {
 		owner.Do("GET", "/workspaces/acme-newsletter/campaigns/"+other.String()+"/live", nil).MustStatus(t, 404)
 		owner.Do("POST", "/workspaces/acme-newsletter/campaigns/"+other.String()+"/live/pause", map[string]any{}).MustStatus(t, 404)
 	}
 
 	// Problems read in the reader's language.
-	viOwner := f.env.Client()
+	viOwner := f.Env.Client()
 	viOwner.SignInDemo("linh@acme.io")
 	viOwner.Header = http.Header{"Accept-Language": {"vi"}}
 	random := uuid.Must(uuid.NewV7()).String()
@@ -90,8 +91,8 @@ func testAPI(t *testing.T, f *fixture) {
 
 	// The event stream sends a snapshot at once, in the language the app
 	// asks for (an EventSource can't set Accept-Language).
-	f.exec(`UPDATE campaign_sends SET paused_by_name = 'System' WHERE campaign_id = $1`, f.campaign)
-	if s := streamSnapshot(t, f, base+"/stream", "en"); s.CampaignID != f.campaign.String() || s.PausedBy != "System" {
+	f.Exec(`UPDATE campaign_sends SET paused_by_name = 'System' WHERE campaign_id = $1`, f.Campaign)
+	if s := streamSnapshot(t, f, base+"/stream", "en"); s.CampaignID != f.Campaign.String() || s.PausedBy != "System" {
 		t.Fatalf("stream snapshot campaign %s paused by %q", s.CampaignID, s.PausedBy)
 	}
 	if s := streamSnapshot(t, f, base+"/stream?lang=vi", "en"); s.PausedBy != "Hệ thống" {
@@ -105,11 +106,11 @@ func testAPI(t *testing.T, f *fixture) {
 }
 
 // streamSnapshot opens the live stream as Linh and returns its first snapshot.
-func streamSnapshot(t *testing.T, f *fixture, path, acceptLanguage string) engine.LiveSnapshot {
+func streamSnapshot(t *testing.T, f *sendtest.Fixture, path, acceptLanguage string) engine.LiveSnapshot {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(f.ctx, 10*time.Second)
+	ctx, cancel := context.WithTimeout(f.Ctx, 10*time.Second)
 	defer cancel()
-	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, f.env.Server.URL+"/api/v1"+path, nil)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, f.Env.Server.URL+"/api/v1"+path, nil)
 	req.Header.Set("Accept", "text/event-stream")
 	req.Header.Set("Accept-Language", acceptLanguage)
 	req.AddCookie(sessionCookie(t, f, "linh@acme.io"))
@@ -146,22 +147,22 @@ func streamSnapshot(t *testing.T, f *fixture, path, acceptLanguage string) engin
 	return engine.LiveSnapshot{}
 }
 
-func testTracking(t *testing.T, f *fixture) {
-	f.exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.campaign)
-	f.addContacts(contactSpec{n: 3, mailbox: "gmail", domain: "gmail.com", engaged: true})
-	f.startSend(engine.StartOptions{})
-	if _, _, err := f.e.Drive(f.ctx, f.campaign, f.start, 3*time.Second); err != nil {
+func testTracking(t *testing.T, f *sendtest.Fixture) {
+	f.Exec(`UPDATE campaigns SET ab_test = NULL WHERE id = $1`, f.Campaign)
+	f.AddContacts(sendtest.ContactSpec{N: 3, Mailbox: "gmail", Domain: "gmail.com", Engaged: true})
+	f.StartSend(engine.StartOptions{})
+	if _, _, err := f.E.Drive(f.Ctx, f.Campaign, f.Start, 3*time.Second); err != nil {
 		t.Fatal(err)
 	}
 	var msg, contact uuid.UUID
-	if err := f.env.App.Pool.QueryRow(f.ctx, `SELECT id, contact_id FROM messages WHERE campaign_id = $1 AND sent_at IS NOT NULL ORDER BY id LIMIT 1`, f.campaign).Scan(&msg, &contact); err != nil {
+	if err := f.Env.App.Pool.QueryRow(f.Ctx, `SELECT id, contact_id FROM messages WHERE campaign_id = $1 AND sent_at IS NOT NULL ORDER BY id LIMIT 1`, f.Campaign).Scan(&msg, &contact); err != nil {
 		t.Fatal(err)
 	}
 	// Back-date the send so the open isn't "too fast to be a person".
-	f.exec(`UPDATE messages SET sent_at = now() - interval '20 minutes' WHERE id = $1`, msg)
-	links := f.env.App.Links
-	open := links.Sign(linktoken.Claims{Kind: linktoken.Open, WorkspaceID: f.ws, MessageID: msg, ContactID: contact})
-	click := links.Sign(linktoken.Claims{Kind: linktoken.Click, WorkspaceID: f.ws, MessageID: msg, ContactID: contact, Link: 0})
+	f.Exec(`UPDATE messages SET sent_at = now() - interval '20 minutes' WHERE id = $1`, msg)
+	links := f.Env.App.Links
+	open := links.Sign(linktoken.Claims{Kind: linktoken.Open, WorkspaceID: f.WS, MessageID: msg, ContactID: contact})
+	click := links.Sign(linktoken.Claims{Kind: linktoken.Click, WorkspaceID: f.WS, MessageID: msg, ContactID: contact, Link: 0})
 	noFollow := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }, Timeout: 10 * time.Second}
 	// answer is what a tracking request got back.
 	type answer struct {
@@ -170,7 +171,7 @@ func testTracking(t *testing.T, f *fixture) {
 	}
 	get := func(path, ua string) answer {
 		t.Helper()
-		req, _ := http.NewRequest(http.MethodGet, f.env.Server.URL+path, nil)
+		req, _ := http.NewRequest(http.MethodGet, f.Env.Server.URL+path, nil)
 		if ua != "" {
 			req.Header.Set("User-Agent", ua)
 		}
@@ -186,35 +187,35 @@ func testTracking(t *testing.T, f *fixture) {
 		t.Fatalf("pixel %d %s %s", r.StatusCode, r.Header.Get("Content-Type"), r.Header.Get("Cache-Control"))
 	}
 	waitFor(t, func() bool {
-		return f.count(`SELECT coalesce(sum(opened_machine), 0) FROM campaign_counters WHERE campaign_id = $1`, f.campaign) == 1
+		return f.Count(`SELECT coalesce(sum(opened_machine), 0) FROM campaign_counters WHERE campaign_id = $1`, f.Campaign) == 1
 	})
 	// Then the person opens: the open moves from machine to human.
 	get("/t/o/"+open, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36")
 	waitFor(t, func() bool {
-		return f.count(`SELECT coalesce(sum(opened_human), 0) FROM campaign_counters WHERE campaign_id = $1`, f.campaign) == 1 &&
-			f.count(`SELECT coalesce(sum(opened_machine), 0) FROM campaign_counters WHERE campaign_id = $1`, f.campaign) == 0
+		return f.Count(`SELECT coalesce(sum(opened_human), 0) FROM campaign_counters WHERE campaign_id = $1`, f.Campaign) == 1 &&
+			f.Count(`SELECT coalesce(sum(opened_machine), 0) FROM campaign_counters WHERE campaign_id = $1`, f.Campaign) == 0
 	})
 	// The engagement chart moves it too: it adds up to the counters.
-	if h, m := f.count(`SELECT coalesce(sum(opened_human), 0) FROM campaign_hourly WHERE campaign_id = $1`, f.campaign),
-		f.count(`SELECT coalesce(sum(opened_machine), 0) FROM campaign_hourly WHERE campaign_id = $1`, f.campaign); h != 1 || m != 0 {
+	if h, m := f.Count(`SELECT coalesce(sum(opened_human), 0) FROM campaign_hourly WHERE campaign_id = $1`, f.Campaign),
+		f.Count(`SELECT coalesce(sum(opened_machine), 0) FROM campaign_hourly WHERE campaign_id = $1`, f.Campaign); h != 1 || m != 0 {
 		t.Fatalf("hourly opens: %d human, %d machine; want 1 and 0", h, m)
 	}
 	var want string
-	_ = f.env.App.Pool.QueryRow(f.ctx, `SELECT url FROM campaign_links WHERE campaign_id = $1 AND position = 0`, f.campaign).Scan(&want)
+	_ = f.Env.App.Pool.QueryRow(f.Ctx, `SELECT url FROM campaign_links WHERE campaign_id = $1 AND position = 0`, f.Campaign).Scan(&want)
 	r := get("/t/c/"+click, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36")
 	if r.StatusCode != http.StatusFound || r.Header.Get("Location") != want {
 		t.Fatalf("click %d to %q, want 302 to %q", r.StatusCode, r.Header.Get("Location"), want)
 	}
 	waitFor(t, func() bool {
-		return f.count(`SELECT coalesce(sum(clicks), 0) FROM campaign_links WHERE campaign_id = $1`, f.campaign) == 1 &&
-			f.count(`SELECT coalesce(sum(clicked), 0) FROM campaign_counters WHERE campaign_id = $1`, f.campaign) == 1
+		return f.Count(`SELECT coalesce(sum(clicks), 0) FROM campaign_links WHERE campaign_id = $1`, f.Campaign) == 1 &&
+			f.Count(`SELECT coalesce(sum(clicked), 0) FROM campaign_counters WHERE campaign_id = $1`, f.Campaign) == 1
 	})
 	// A scanner clicking is redirected but never counted.
 	get("/t/c/"+click, "Mozilla/5.0 Barracuda Sentinel")
 	waitFor(t, func() bool {
-		return f.count(`SELECT count(*) FROM delivery_events WHERE message_id = $1 AND type = 'click' AND machine`, msg) == 1
+		return f.Count(`SELECT count(*) FROM delivery_events WHERE message_id = $1 AND type = 'click' AND machine`, msg) == 1
 	})
-	if n := f.count(`SELECT coalesce(sum(clicks), 0) FROM campaign_links WHERE campaign_id = $1`, f.campaign); n != 1 {
+	if n := f.Count(`SELECT coalesce(sum(clicks), 0) FROM campaign_links WHERE campaign_id = $1`, f.Campaign); n != 1 {
 		t.Fatalf("scanner click counted: %d clicks", n)
 	}
 	// Never an open redirect: forged tokens, other kinds and unknown links fail.
@@ -224,7 +225,7 @@ func testTracking(t *testing.T, f *fixture) {
 	if r := get("/t/c/not-a-token", ""); r.StatusCode != http.StatusNotFound {
 		t.Fatalf("forged click token: %d", r.StatusCode)
 	}
-	unknown := links.Sign(linktoken.Claims{Kind: linktoken.Click, WorkspaceID: f.ws, MessageID: msg, ContactID: contact, Link: 9999})
+	unknown := links.Sign(linktoken.Claims{Kind: linktoken.Click, WorkspaceID: f.WS, MessageID: msg, ContactID: contact, Link: 9999})
 	if r := get("/t/c/"+unknown, ""); r.StatusCode != http.StatusNotFound || r.Header.Get("Location") != "" {
 		t.Fatalf("unknown link: %d %q", r.StatusCode, r.Header.Get("Location"))
 	}
@@ -235,24 +236,24 @@ func testTracking(t *testing.T, f *fixture) {
 	if r := get("/t/o/garbage", ""); r.StatusCode != http.StatusOK || r.Header.Get("Content-Type") != "image/gif" {
 		t.Fatalf("a bad pixel token still gets the GIF: %d", r.StatusCode)
 	}
-	if n := f.count(`SELECT count(*) FROM delivery_events WHERE message_id = $1 AND type = 'open' AND NOT machine AND diagnostic = 'Chrome on macOS'`, msg); n != 1 {
+	if n := f.Count(`SELECT count(*) FROM delivery_events WHERE message_id = $1 AND type = 'open' AND NOT machine AND diagnostic = 'Chrome on macOS'`, msg); n != 1 {
 		t.Fatalf("%d human opens described as Chrome on macOS", n)
 	}
 }
 
 // sessionCookie signs a demo user in for a raw HTTP request (the stream).
-func sessionCookie(t *testing.T, f *fixture, email string) *http.Cookie {
+func sessionCookie(t *testing.T, f *sendtest.Fixture, email string) *http.Cookie {
 	t.Helper()
-	u, err := f.env.App.Q.GetUserByEmail(f.ctx, email)
+	u, err := f.Env.App.Q.GetUserByEmail(f.Ctx, email)
 	if err != nil {
 		t.Fatal(err)
 	}
 	token, hash := authn.NewToken()
-	if _, err := f.env.App.Q.CreateSession(f.ctx, store.CreateSessionParams{ID: uuid.Must(uuid.NewV7()), UserID: u.ID, TokenHash: hash, AuthMethod: "test",
+	if _, err := f.Env.App.Q.CreateSession(f.Ctx, store.CreateSessionParams{ID: uuid.Must(uuid.NewV7()), UserID: u.ID, TokenHash: hash, AuthMethod: "test",
 		MfaVerified: true, ExpiresAt: time.Now().Add(time.Hour)}); err != nil {
 		t.Fatal(err)
 	}
-	return &http.Cookie{Name: f.env.App.Cfg.Auth.CookieName, Value: token}
+	return &http.Cookie{Name: f.Env.App.Cfg.Auth.CookieName, Value: token}
 }
 
 func waitFor(t *testing.T, ok func() bool) {

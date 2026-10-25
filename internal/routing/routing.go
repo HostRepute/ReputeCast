@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/emailaddr"
 	"github.com/hostrepute/reputecast/internal/providers"
 )
 
@@ -276,26 +277,15 @@ const (
 // MailboxProviders in display order.
 var MailboxProviders = []string{Gmail, Outlook, Yahoo, ICloud, Other}
 
-// MailboxProvider guesses the mailbox provider from an address's domain.
-// Contacts carry a better answer (MX-based) when they exist.
+// MailboxProvider guesses the mailbox provider from an address's domain
+// name. Contacts carry a better answer (internal/mailbox classifies company
+// domains from their MX records); use it when there is one.
 func MailboxProvider(email string) string {
 	d := strings.ToLower(email)
 	if i := strings.LastIndexByte(d, '@'); i >= 0 {
 		d = d[i+1:]
 	}
-	switch {
-	case d == "gmail.com" || d == "googlemail.com":
-		return Gmail
-	case d == "outlook.com" || d == "hotmail.com" || d == "live.com" || d == "msn.com" ||
-		strings.HasPrefix(d, "outlook.") || strings.HasPrefix(d, "hotmail.") || strings.HasPrefix(d, "live."):
-		return Outlook
-	case d == "yahoo.com" || d == "ymail.com" || d == "aol.com" || d == "rocketmail.com" ||
-		strings.HasPrefix(d, "yahoo.") || strings.HasPrefix(d, "aol."):
-		return Yahoo
-	case d == "icloud.com" || d == "me.com" || d == "mac.com":
-		return ICloud
-	}
-	return Other
+	return emailaddr.MailboxProvider(d)
 }
 
 // MailboxName is the display name of a mailbox provider.

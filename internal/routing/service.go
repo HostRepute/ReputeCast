@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
+	"github.com/hostrepute/reputecast/internal/mailbox"
 	"github.com/hostrepute/reputecast/internal/providers"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -31,6 +32,14 @@ type Service struct {
 	Q     *store.Queries
 	Audit *audit.Logger
 	Now   func() time.Time
+	// Mailbox classifies an address that isn't a contact from its domain's
+	// MX records (internal/mailbox); nil uses the domain name only.
+	Mailbox MailboxClassifier
+}
+
+// MailboxClassifier is the part of mailbox.Classifier the route tester uses.
+type MailboxClassifier interface {
+	ForEmail(ctx context.Context, email string) mailbox.Class
 }
 
 func (s *Service) now() time.Time {

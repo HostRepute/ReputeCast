@@ -204,6 +204,13 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 	if cc.SenderEmail == "" {
 		return e.fail(ctx, cc, english("fail.noSender", nil), now)
 	}
+	// Company domains go out as their mailbox provider (Google Workspace
+	// as Gmail…), so routing, throttles and the guard see them right.
+	if e.Mailbox != nil {
+		if _, err := e.Mailbox.ClassifyPending(ctx, cc.WorkspaceID, classifyBudget); err != nil && e.Log != nil {
+			e.Log.WarnContext(ctx, "mailbox classification before the send", "campaign", campaignID, "err", err)
+		}
+	}
 	set, err := routing.Load(ctx, e.Q, cc.WorkspaceID)
 	if err != nil {
 		return err
@@ -317,7 +324,7 @@ func (e *Engine) prepare(ctx context.Context, campaignID uuid.UUID, now time.Tim
 			}
 			mbp := c.MailboxProvider
 			if mbp == "" {
-				mbp = routing.MailboxProvider(c.Email)
+				mbp = e.mailboxFor(ctx, c.Email)
 			}
 			rt, err := r.route(ctx, c, mbp)
 			if err != nil {
