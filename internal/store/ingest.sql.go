@@ -49,47 +49,6 @@ func (q *Queries) IngestAddSuppression(ctx context.Context, arg IngestAddSuppres
 	return id, err
 }
 
-const ingestBumpCounters = `-- name: IngestBumpCounters :exec
-INSERT INTO campaign_counters (campaign_id, provider_id, mailbox_provider, variant, delivered, deferred, hard_bounced, soft_bounced, complained, rejected)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-ON CONFLICT (campaign_id, provider_id, mailbox_provider, variant) DO UPDATE
-SET delivered = campaign_counters.delivered + EXCLUDED.delivered,
-    deferred = campaign_counters.deferred + EXCLUDED.deferred,
-    hard_bounced = campaign_counters.hard_bounced + EXCLUDED.hard_bounced,
-    soft_bounced = campaign_counters.soft_bounced + EXCLUDED.soft_bounced,
-    complained = campaign_counters.complained + EXCLUDED.complained,
-    rejected = campaign_counters.rejected + EXCLUDED.rejected
-`
-
-type IngestBumpCountersParams struct {
-	CampaignID      uuid.UUID `json:"campaignId"`
-	ProviderID      uuid.UUID `json:"providerId"`
-	MailboxProvider string    `json:"mailboxProvider"`
-	Variant         string    `json:"variant"`
-	Delivered       int64     `json:"delivered"`
-	Deferred        int64     `json:"deferred"`
-	HardBounced     int64     `json:"hardBounced"`
-	SoftBounced     int64     `json:"softBounced"`
-	Complained      int64     `json:"complained"`
-	Rejected        int64     `json:"rejected"`
-}
-
-func (q *Queries) IngestBumpCounters(ctx context.Context, arg IngestBumpCountersParams) error {
-	_, err := q.db.Exec(ctx, ingestBumpCounters,
-		arg.CampaignID,
-		arg.ProviderID,
-		arg.MailboxProvider,
-		arg.Variant,
-		arg.Delivered,
-		arg.Deferred,
-		arg.HardBounced,
-		arg.SoftBounced,
-		arg.Complained,
-		arg.Rejected,
-	)
-	return err
-}
-
 const ingestEventLog = `-- name: IngestEventLog :many
 SELECT e.id, e.received_at, e.occurred_at, e.type, e.original_type, e.original_code, e.diagnostic, e.bounce_class,
        e.recipient, e.provider_message_id, e.source, e.provider_id, e.campaign_id,
@@ -372,7 +331,7 @@ func (q *Queries) IngestMarkNormalized(ctx context.Context, arg IngestMarkNormal
 }
 
 const ingestMessageByID = `-- name: IngestMessageByID :one
-SELECT m.id, m.workspace_id, m.stream, m.campaign_id, m.automation_id, m.automation_node, m.contact_id, m.email, m.variant, m.provider_id, m.provider_message_id, m.mailbox_provider, m.status, m.queued_at, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at, m.error, m.kind, m.failover, m.route_note, m.attempts, m.next_attempt_at, m.claimed_at, m.content_ref, m.human_opened_at, m.send_order, m.language, m.contact_language, m.language_reason, m.hidden_blocks, coalesce(c.name, '')::text AS campaign_name, coalesce(a.name, '')::text AS automation_name
+SELECT m.id, m.workspace_id, m.stream, m.campaign_id, m.automation_id, m.automation_node, m.contact_id, m.email, m.variant, m.provider_id, m.provider_message_id, m.mailbox_provider, m.status, m.queued_at, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at, m.error, m.kind, m.failover, m.route_note, m.attempts, m.next_attempt_at, m.claimed_at, m.content_ref, m.human_opened_at, m.send_order, m.language, m.contact_language, m.language_reason, m.hidden_blocks, m.deferred_at, m.soft_bounced_at, m.unsubscribed_at, m.privacy_opened_at, coalesce(c.name, '')::text AS campaign_name, coalesce(a.name, '')::text AS automation_name
 FROM messages m
 LEFT JOIN campaigns c ON c.id = m.campaign_id
 LEFT JOIN automations a ON a.id = m.automation_id
@@ -417,6 +376,10 @@ type IngestMessageByIDRow struct {
 	ContactLanguage   string          `json:"contactLanguage"`
 	LanguageReason    string          `json:"languageReason"`
 	HiddenBlocks      string          `json:"hiddenBlocks"`
+	DeferredAt        *time.Time      `json:"deferredAt"`
+	SoftBouncedAt     *time.Time      `json:"softBouncedAt"`
+	UnsubscribedAt    *time.Time      `json:"unsubscribedAt"`
+	PrivacyOpenedAt   *time.Time      `json:"privacyOpenedAt"`
 	CampaignName      string          `json:"campaignName"`
 	AutomationName    string          `json:"automationName"`
 }
@@ -457,6 +420,10 @@ func (q *Queries) IngestMessageByID(ctx context.Context, arg IngestMessageByIDPa
 		&i.ContactLanguage,
 		&i.LanguageReason,
 		&i.HiddenBlocks,
+		&i.DeferredAt,
+		&i.SoftBouncedAt,
+		&i.UnsubscribedAt,
+		&i.PrivacyOpenedAt,
 		&i.CampaignName,
 		&i.AutomationName,
 	)
@@ -464,7 +431,7 @@ func (q *Queries) IngestMessageByID(ctx context.Context, arg IngestMessageByIDPa
 }
 
 const ingestMessageByProviderID = `-- name: IngestMessageByProviderID :one
-SELECT m.id, m.workspace_id, m.stream, m.campaign_id, m.automation_id, m.automation_node, m.contact_id, m.email, m.variant, m.provider_id, m.provider_message_id, m.mailbox_provider, m.status, m.queued_at, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at, m.error, m.kind, m.failover, m.route_note, m.attempts, m.next_attempt_at, m.claimed_at, m.content_ref, m.human_opened_at, m.send_order, m.language, m.contact_language, m.language_reason, m.hidden_blocks, coalesce(c.name, '')::text AS campaign_name, coalesce(a.name, '')::text AS automation_name
+SELECT m.id, m.workspace_id, m.stream, m.campaign_id, m.automation_id, m.automation_node, m.contact_id, m.email, m.variant, m.provider_id, m.provider_message_id, m.mailbox_provider, m.status, m.queued_at, m.sent_at, m.delivered_at, m.opened_at, m.clicked_at, m.error, m.kind, m.failover, m.route_note, m.attempts, m.next_attempt_at, m.claimed_at, m.content_ref, m.human_opened_at, m.send_order, m.language, m.contact_language, m.language_reason, m.hidden_blocks, m.deferred_at, m.soft_bounced_at, m.unsubscribed_at, m.privacy_opened_at, coalesce(c.name, '')::text AS campaign_name, coalesce(a.name, '')::text AS automation_name
 FROM messages m
 LEFT JOIN campaigns c ON c.id = m.campaign_id
 LEFT JOIN automations a ON a.id = m.automation_id
@@ -509,6 +476,10 @@ type IngestMessageByProviderIDRow struct {
 	ContactLanguage   string          `json:"contactLanguage"`
 	LanguageReason    string          `json:"languageReason"`
 	HiddenBlocks      string          `json:"hiddenBlocks"`
+	DeferredAt        *time.Time      `json:"deferredAt"`
+	SoftBouncedAt     *time.Time      `json:"softBouncedAt"`
+	UnsubscribedAt    *time.Time      `json:"unsubscribedAt"`
+	PrivacyOpenedAt   *time.Time      `json:"privacyOpenedAt"`
 	CampaignName      string          `json:"campaignName"`
 	AutomationName    string          `json:"automationName"`
 }
@@ -549,6 +520,10 @@ func (q *Queries) IngestMessageByProviderID(ctx context.Context, arg IngestMessa
 		&i.ContactLanguage,
 		&i.LanguageReason,
 		&i.HiddenBlocks,
+		&i.DeferredAt,
+		&i.SoftBouncedAt,
+		&i.UnsubscribedAt,
+		&i.PrivacyOpenedAt,
 		&i.CampaignName,
 		&i.AutomationName,
 	)
@@ -614,37 +589,4 @@ func (q *Queries) IngestStaleRaw(ctx context.Context, arg IngestStaleRawParams) 
 		return nil, err
 	}
 	return items, nil
-}
-
-const ingestUpdateMessage = `-- name: IngestUpdateMessage :exec
-UPDATE messages
-SET status = CASE
-        WHEN $1::text = 'complained' THEN 'complained'
-        WHEN $1::text = 'bounced' AND status <> 'complained' THEN 'bounced'
-        WHEN $1::text = 'rejected' AND status IN ('queued', 'sent', 'deferred', 'held') THEN 'rejected'
-        WHEN $1::text = 'delivered' AND status IN ('queued', 'sent', 'deferred', 'held') THEN 'delivered'
-        WHEN $1::text = 'deferred' AND status IN ('queued', 'sent', 'held') THEN 'deferred'
-        ELSE status END,
-    delivered_at = CASE WHEN $1::text = 'delivered' THEN coalesce(delivered_at, $2::timestamptz) ELSE delivered_at END,
-    error = CASE WHEN $1::text IN ('bounced', 'rejected', 'deferred') AND $3::text <> '' THEN $3::text ELSE error END
-WHERE id = $4
-`
-
-type IngestUpdateMessageParams struct {
-	Status string    `json:"status"`
-	At     time.Time `json:"at"`
-	Error  string    `json:"error"`
-	ID     uuid.UUID `json:"id"`
-}
-
-// Moves a message forward: delivered/deferred are replaced by bounces and
-// complaints, never the other way round.
-func (q *Queries) IngestUpdateMessage(ctx context.Context, arg IngestUpdateMessageParams) error {
-	_, err := q.db.Exec(ctx, ingestUpdateMessage,
-		arg.Status,
-		arg.At,
-		arg.Error,
-		arg.ID,
-	)
-	return err
 }

@@ -186,7 +186,7 @@ func (q *Queries) ConnectListNames(ctx context.Context, workspaceID uuid.UUID) (
 }
 
 const connectMessage = `-- name: ConnectMessage :one
-SELECT id, workspace_id, stream, campaign_id, automation_id, automation_node, contact_id, email, variant, provider_id, provider_message_id, mailbox_provider, status, queued_at, sent_at, delivered_at, opened_at, clicked_at, error, kind, failover, route_note, attempts, next_attempt_at, claimed_at, content_ref, human_opened_at, send_order, language, contact_language, language_reason, hidden_blocks FROM messages WHERE workspace_id = $1 AND id = $2
+SELECT id, workspace_id, stream, campaign_id, automation_id, automation_node, contact_id, email, variant, provider_id, provider_message_id, mailbox_provider, status, queued_at, sent_at, delivered_at, opened_at, clicked_at, error, kind, failover, route_note, attempts, next_attempt_at, claimed_at, content_ref, human_opened_at, send_order, language, contact_language, language_reason, hidden_blocks, deferred_at, soft_bounced_at, unsubscribed_at, privacy_opened_at FROM messages WHERE workspace_id = $1 AND id = $2
 `
 
 type ConnectMessageParams struct {
@@ -230,12 +230,16 @@ func (q *Queries) ConnectMessage(ctx context.Context, arg ConnectMessageParams) 
 		&i.ContactLanguage,
 		&i.LanguageReason,
 		&i.HiddenBlocks,
+		&i.DeferredAt,
+		&i.SoftBouncedAt,
+		&i.UnsubscribedAt,
+		&i.PrivacyOpenedAt,
 	)
 	return i, err
 }
 
 const connectMessageEvents = `-- name: ConnectMessageEvents :many
-SELECT id, workspace_id, message_id, campaign_id, contact_id, provider_id, raw_event_id, type, occurred_at, mailbox_provider, original_type, original_code, diagnostic, bounce_class, machine, url, user_agent, ip, recipient, provider_message_id, source, received_at, dedupe_key FROM delivery_events WHERE message_id = $1 ORDER BY occurred_at, received_at
+SELECT id, workspace_id, message_id, campaign_id, contact_id, provider_id, raw_event_id, type, occurred_at, mailbox_provider, original_type, original_code, diagnostic, bounce_class, machine, url, user_agent, ip, recipient, provider_message_id, source, received_at, dedupe_key, class, link FROM delivery_events WHERE message_id = $1 ORDER BY occurred_at, received_at
 `
 
 func (q *Queries) ConnectMessageEvents(ctx context.Context, messageID *uuid.UUID) ([]DeliveryEvent, error) {
@@ -271,6 +275,8 @@ func (q *Queries) ConnectMessageEvents(ctx context.Context, messageID *uuid.UUID
 			&i.Source,
 			&i.ReceivedAt,
 			&i.DedupeKey,
+			&i.Class,
+			&i.Link,
 		); err != nil {
 			return nil, err
 		}

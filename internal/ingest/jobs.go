@@ -18,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers/smtp"
 	"github.com/hostrepute/reputecast/internal/providers/smtp/bouncebox"
 	"github.com/hostrepute/reputecast/internal/providers/state"
+	"github.com/hostrepute/reputecast/internal/sending"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -207,9 +208,11 @@ func (n *Normalizer) Backfill(ctx context.Context, providerID uuid.UUID) (int, e
 			break
 		}
 		suppressed := 0
-		err = db.Tx(ctx, n.Pool, func(tx pgx.Tx) error {
+		err = sending.Tx(ctx, n.Pool, func(tx pgx.Tx) error {
 			q := store.New(tx)
 			now := n.now()
+			suppressed = 0
+			items := make([]rawItem, 0, len(events))
 			for _, ev := range events {
 				rawID := newID()
 				body := []byte(ev.Raw)
@@ -220,12 +223,15 @@ func (n *Normalizer) Backfill(ctx context.Context, providerID uuid.UUID) (int, e
 					ContentType: "application/json", Body: body, Headers: json.RawMessage(`{}`), SignatureOk: true, Source: "backfill"}); err != nil {
 					return err
 				}
-				added, err := n.Apply(ctx, tx, p, &rawID, "backfill", now, ev)
-				if err != nil {
-					return err
-				}
-				suppressed += added
-				if err := q.IngestMarkNormalized(ctx, store.IngestMarkNormalizedParams{ID: rawID, NormalizedAt: &now, Events: 1}); err != nil {
+				items = append(items, rawItem{raw: rawID, ev: ev})
+			}
+			added, err := n.applyItems(ctx, tx, p, "backfill", now, items)
+			if err != nil {
+				return err
+			}
+			suppressed = added
+			for _, it := range items {
+				if err := q.IngestMarkNormalized(ctx, store.IngestMarkNormalizedParams{ID: it.raw, NormalizedAt: &now, Events: 1}); err != nil {
 					return err
 				}
 			}

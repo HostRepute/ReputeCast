@@ -489,7 +489,7 @@ func (q *Queries) PlacementCopyByID(ctx context.Context, id uuid.UUID) (Placemen
 }
 
 const placementCopyEvents = `-- name: PlacementCopyEvents :many
-SELECT e.id, e.workspace_id, e.message_id, e.campaign_id, e.contact_id, e.provider_id, e.raw_event_id, e.type, e.occurred_at, e.mailbox_provider, e.original_type, e.original_code, e.diagnostic, e.bounce_class, e.machine, e.url, e.user_agent, e.ip, e.recipient, e.provider_message_id, e.source, e.received_at, e.dedupe_key FROM delivery_events e WHERE e.message_id = $1 ORDER BY e.occurred_at, e.id
+SELECT e.id, e.workspace_id, e.message_id, e.campaign_id, e.contact_id, e.provider_id, e.raw_event_id, e.type, e.occurred_at, e.mailbox_provider, e.original_type, e.original_code, e.diagnostic, e.bounce_class, e.machine, e.url, e.user_agent, e.ip, e.recipient, e.provider_message_id, e.source, e.received_at, e.dedupe_key, e.class, e.link FROM delivery_events e WHERE e.message_id = $1 ORDER BY e.occurred_at, e.id
 `
 
 // The provider's events for a copy.
@@ -526,6 +526,8 @@ func (q *Queries) PlacementCopyEvents(ctx context.Context, messageID *uuid.UUID)
 			&i.Source,
 			&i.ReceivedAt,
 			&i.DedupeKey,
+			&i.Class,
+			&i.Link,
 		); err != nil {
 			return nil, err
 		}
@@ -1339,7 +1341,7 @@ func (q *Queries) PlacementTestCopiesDeleted(ctx context.Context, arg PlacementT
 }
 
 const placementTestEvents = `-- name: PlacementTestEvents :many
-SELECT e.id, e.workspace_id, e.message_id, e.campaign_id, e.contact_id, e.provider_id, e.raw_event_id, e.type, e.occurred_at, e.mailbox_provider, e.original_type, e.original_code, e.diagnostic, e.bounce_class, e.machine, e.url, e.user_agent, e.ip, e.recipient, e.provider_message_id, e.source, e.received_at, e.dedupe_key FROM delivery_events e WHERE e.message_id = ANY($1::uuid[]) ORDER BY e.message_id, e.occurred_at, e.id
+SELECT e.id, e.workspace_id, e.message_id, e.campaign_id, e.contact_id, e.provider_id, e.raw_event_id, e.type, e.occurred_at, e.mailbox_provider, e.original_type, e.original_code, e.diagnostic, e.bounce_class, e.machine, e.url, e.user_agent, e.ip, e.recipient, e.provider_message_id, e.source, e.received_at, e.dedupe_key, e.class, e.link FROM delivery_events e WHERE e.message_id = ANY($1::uuid[]) ORDER BY e.message_id, e.occurred_at, e.id
 `
 
 // The provider's events for a test's copies.
@@ -1376,6 +1378,8 @@ func (q *Queries) PlacementTestEvents(ctx context.Context, ids []uuid.UUID) ([]D
 			&i.Source,
 			&i.ReceivedAt,
 			&i.DedupeKey,
+			&i.Class,
+			&i.Link,
 		); err != nil {
 			return nil, err
 		}

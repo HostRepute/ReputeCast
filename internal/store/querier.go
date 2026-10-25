@@ -844,6 +844,66 @@ type Querier interface {
 	CountUsers(ctx context.Context) (int64, error)
 	CountWorkspaceSegments(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	CountWorkspaceSuppressions(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	CountersBuildSave(ctx context.Context, arg CountersBuildSaveParams) error
+	// Adds counter deltas, one row per cell, locking the rows in key order.
+	CountersBump(ctx context.Context, arg CountersBumpParams) error
+	// Adds hourly engagement deltas, locking the rows in key order.
+	CountersBumpHourly(ctx context.Context, arg CountersBumpHourlyParams) error
+	// Adds clicks per link (people's clicks, people's first click per link,
+	// bot clicks), locking the links in key order.
+	CountersBumpLinks(ctx context.Context, arg CountersBumpLinksParams) error
+	// Whether a campaign's per-message history is stored, so its counters can
+	// be rebuilt from it: imported history and sample data have counters but
+	// no message per recipient.
+	CountersCampaignHistory(ctx context.Context, id uuid.UUID) (CountersCampaignHistoryRow, error)
+	// Campaigns to rebuild: sent from ReputeCast, their results final (72 h
+	// after the send ended), and not rebuilt with the current rules yet.
+	CountersDueRebuilds(ctx context.Context, arg CountersDueRebuildsParams) ([]uuid.UUID, error)
+	// A rebuild takes the campaign's counter rows first, so writers wait for
+	// it (they take the rows after the messages; the rebuild reads messages
+	// without locking them).
+	CountersLockCampaign(ctx context.Context, campaignID uuid.UUID) error
+	// A writer locks the message before anything that refers to it (a
+	// delivery event's foreign key takes a shared lock on it; two writers
+	// holding that shared lock would both wait to move the message).
+	CountersLockMessage(ctx context.Context, id uuid.UUID) error
+	// The counter cell of each message (rebuilds and tests).
+	CountersMessageKeys(ctx context.Context, ids []uuid.UUID) ([]CountersMessageKeysRow, error)
+	// Campaign counters kept in step with message states (review AN-3,
+	// internal/counters). A writer moves a message (the statement returns its
+	// state before and after), collects the counter changes in a ledger and
+	// applies them at the end of its transaction, in key order: message rows
+	// first (each writer locks them in id order), then campaign_counters, then
+	// campaign_hourly, then campaign_links. Every writer takes its locks in
+	// that one order, so concurrent writers wait for each other instead of
+	// deadlocking.
+	// Moves a message on a delivery event: delivered and deferred are replaced
+	// by bounces and complaints, never the other way round; a soft bounce is
+	// remembered so a later delivery takes it back. kind is the event type
+	// (delivered, deferred, hard_bounce, soft_bounce, complaint, rejected,
+	// unsubscribe).
+	CountersMoveDelivery(ctx context.Context, arg CountersMoveDeliveryParams) (CountersMoveDeliveryRow, error)
+	// Records an open or a person's click on a message. class is how tracking
+	// classified it: human, privacy (Apple Mail Privacy Protection fetched the
+	// images) or machine (a scanner). A click is always a person's (bot clicks
+	// never get here) and is a human open too.
+	CountersMoveEngagement(ctx context.Context, arg CountersMoveEngagementParams) (CountersMoveEngagementRow, error)
+	// Replaces a campaign's counters with what its messages' states add up to
+	// (the same rules as internal/counters State.Flags).
+	CountersRebuildCells(ctx context.Context, campaignID uuid.UUID) error
+	// Replaces a campaign's hourly engagement with its messages' states: a
+	// person's first open, a privacy prefetch or a scanner's first open, and
+	// the first click, in the hour after the send started they happened in.
+	CountersRebuildHourly(ctx context.Context, arg CountersRebuildHourlyParams) error
+	// Replaces clicks per link with the stored clicks: people's clicks and
+	// bot clicks (click events with the link's position and their class;
+	// clicks still waiting to settle count as neither), people's first click
+	// per link (tracking_link_clicks).
+	CountersRebuildLinks(ctx context.Context, campaignID uuid.UUID) error
+	// Rebuilds the states the status can't tell apart from the stored events:
+	// the first deferral, the first soft bounce, an unsubscribe, a privacy
+	// prefetch. Only fills what is missing.
+	CountersRefreshStates(ctx context.Context, campaignID *uuid.UUID) error
 	CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (ApiKey, error)
 	CreateAutomation(ctx context.Context, arg CreateAutomationParams) (Automation, error)
 	CreateAutomationEmail(ctx context.Context, arg CreateAutomationEmailParams) error
@@ -1465,7 +1525,6 @@ type Querier interface {
 	ImportRowsAfter(ctx context.Context, arg ImportRowsAfterParams) ([]ImportRow, error)
 	ImportStatusCounts(ctx context.Context, importID uuid.UUID) ([]ImportStatusCountsRow, error)
 	IngestAddSuppression(ctx context.Context, arg IngestAddSuppressionParams) (uuid.UUID, error)
-	IngestBumpCounters(ctx context.Context, arg IngestBumpCountersParams) error
 	// The provider event log: provider events (not ReputeCast's own opens and
 	// clicks), newest first, retained 90 days.
 	// The message's kind and automation step write its source label in a
@@ -1483,9 +1542,6 @@ type Querier interface {
 	IngestSetContactStatus(ctx context.Context, arg IngestSetContactStatusParams) error
 	// Verified payloads the normalization job never finished (recovery sweep).
 	IngestStaleRaw(ctx context.Context, arg IngestStaleRawParams) ([]uuid.UUID, error)
-	// Moves a message forward: delivered/deferred are replaced by bounces and
-	// complaints, never the other way round.
-	IngestUpdateMessage(ctx context.Context, arg IngestUpdateMessageParams) error
 	InsertAuditEvent(ctx context.Context, arg InsertAuditEventParams) error
 	InsertAutomationEmailVersion(ctx context.Context, arg InsertAutomationEmailVersionParams) error
 	InsertAutomationEvent(ctx context.Context, arg InsertAutomationEventParams) error
@@ -2462,7 +2518,6 @@ type Querier interface {
 	// Keeps the newest @keep versions; the first version and anything that is
 	// not an autosave (restores, imports, ⌘S) are always kept.
 	PruneComposerVersions(ctx context.Context, arg PruneComposerVersionsParams) (int64, error)
-	PublicBumpUnsubscribed(ctx context.Context, arg PublicBumpUnsubscribedParams) error
 	PublicCampaign(ctx context.Context, arg PublicCampaignParams) (PublicCampaignRow, error)
 	PublicInsertFeedback(ctx context.Context, arg PublicInsertFeedbackParams) error
 	PublicInsertUnsubscribeEvent(ctx context.Context, arg PublicInsertUnsubscribeEventParams) error
@@ -3652,26 +3707,31 @@ type Querier interface {
 	TouchUserActive(ctx context.Context, id uuid.UUID) error
 	TrackingAutomationLinks(ctx context.Context, arg TrackingAutomationLinksParams) ([]TrackingAutomationLinksRow, error)
 	TrackingBumpAutomationLink(ctx context.Context, arg TrackingBumpAutomationLinkParams) error
-	TrackingBumpCounters(ctx context.Context, arg TrackingBumpCountersParams) error
-	TrackingBumpHourly(ctx context.Context, arg TrackingBumpHourlyParams) error
-	TrackingBumpLink(ctx context.Context, arg TrackingBumpLinkParams) error
 	TrackingCampaignLinks(ctx context.Context, campaignID uuid.UUID) ([]TrackingCampaignLinksRow, error)
 	TrackingContactVars(ctx context.Context, id uuid.UUID) (TrackingContactVarsRow, error)
 	TrackingFirstLinkClick(ctx context.Context, arg TrackingFirstLinkClickParams) (int32, error)
+	// class is how tracking classified the open or click (human, privacy,
+	// machine; human, bot); link the clicked link's position.
 	TrackingInsertEvent(ctx context.Context, arg TrackingInsertEventParams) error
-	// A click counts as a human open too.
-	TrackingMarkClick(ctx context.Context, arg TrackingMarkClickParams) (TrackingMarkClickRow, error)
-	// Records an open on a message and says what changed, so counters move
-	// once per message: the first open, or the first human open after a
-	// machine prefetch (prev_opened_at is when that prefetch was).
-	TrackingMarkOpen(ctx context.Context, arg TrackingMarkOpenParams) (TrackingMarkOpenRow, error)
 	// Open and click tracking (spec 5.5, 7.6).
 	TrackingMessage(ctx context.Context, id uuid.UUID) (TrackingMessageRow, error)
+	// Takes due events for one retry: they are put off by the backoff first,
+	// so a worker that dies leaves them for a later run.
+	TrackingRetryClaim(ctx context.Context, arg TrackingRetryClaimParams) ([]TrackingRetryClaimRow, error)
+	TrackingRetryDone(ctx context.Context, ids []int64) error
+	TrackingRetryFailed(ctx context.Context, arg TrackingRetryFailedParams) error
+	// Opens and clicks a batch couldn't record, kept for the tracking.retry job.
+	TrackingRetryPark(ctx context.Context, arg TrackingRetryParkParams) error
+	TrackingRetryPending(ctx context.Context, maxAttempts int32) (int64, error)
+	// Events that kept failing for 30 days are dropped (the error stays in the
+	// log of each attempt).
+	TrackingRetryPurge(ctx context.Context, before time.Time) (int64, error)
 	TrackingSourceLabel(ctx context.Context, id uuid.UUID) (string, error)
-	TrackingTouchContactClick(ctx context.Context, arg TrackingTouchContactClickParams) error
-	// last_open_at counts every open, last_human_open_at only people's (tiers
-	// and the sunset policy use it); last_open_machine says what the latest was.
-	TrackingTouchContactOpen(ctx context.Context, arg TrackingTouchContactOpenParams) error
+	// A batch's opens and clicks on contacts, one row per contact in id order
+	// (the last lock a tracking batch takes). opened is the latest open, human
+	// the latest person's open or click, clicked the latest click; machine says
+	// the latest open was a machine's.
+	TrackingTouchContacts(ctx context.Context, arg TrackingTouchContactsParams) error
 	// The domains a template's bounces of the window went to, most first.
 	TxnAlertBounceDomains(ctx context.Context, arg TxnAlertBounceDomainsParams) ([]TxnAlertBounceDomainsRow, error)
 	TxnAlertEnd(ctx context.Context, arg TxnAlertEndParams) (int64, error)

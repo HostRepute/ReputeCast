@@ -659,6 +659,14 @@ type CampaignCounter struct {
 	OpenedMachine   int64     `json:"openedMachine"`
 	Clicked         int64     `json:"clicked"`
 	Unsubscribed    int64     `json:"unsubscribed"`
+	OpenedPrivacy   int64     `json:"openedPrivacy"`
+}
+
+type CampaignCounterBuild struct {
+	CampaignID uuid.UUID `json:"campaignId"`
+	Version    int32     `json:"version"`
+	BuiltAt    time.Time `json:"builtAt"`
+	Skipped    string    `json:"skipped"`
 }
 
 type CampaignHourly struct {
@@ -667,6 +675,7 @@ type CampaignHourly struct {
 	OpenedHuman   int64     `json:"openedHuman"`
 	OpenedMachine int64     `json:"openedMachine"`
 	Clicked       int64     `json:"clicked"`
+	OpenedPrivacy int64     `json:"openedPrivacy"`
 }
 
 type CampaignIncident struct {
@@ -695,6 +704,7 @@ type CampaignLink struct {
 	Position     int32     `json:"position"`
 	Clicks       int64     `json:"clicks"`
 	UniqueClicks int64     `json:"uniqueClicks"`
+	BotClicks    int64     `json:"botClicks"`
 }
 
 type CampaignRoute struct {
@@ -1124,6 +1134,8 @@ type DeliveryEvent struct {
 	Source            string      `json:"source"`
 	ReceivedAt        time.Time   `json:"receivedAt"`
 	DedupeKey         string      `json:"dedupeKey"`
+	Class             string      `json:"class"`
+	Link              *int32      `json:"link"`
 }
 
 type Digest struct {
@@ -2071,6 +2083,10 @@ type Message struct {
 	ContactLanguage   string          `json:"contactLanguage"`
 	LanguageReason    string          `json:"languageReason"`
 	HiddenBlocks      string          `json:"hiddenBlocks"`
+	DeferredAt        *time.Time      `json:"deferredAt"`
+	SoftBouncedAt     *time.Time      `json:"softBouncedAt"`
+	UnsubscribedAt    *time.Time      `json:"unsubscribedAt"`
+	PrivacyOpenedAt   *time.Time      `json:"privacyOpenedAt"`
 }
 
 type MxCache struct {
@@ -4396,6 +4412,16 @@ type TrackingLinkClick struct {
 	MessageID uuid.UUID `json:"messageId"`
 	Link      int32     `json:"link"`
 	ClickedAt time.Time `json:"clickedAt"`
+}
+
+type TrackingRetry struct {
+	ID        int64           `json:"id"`
+	MessageID uuid.UUID       `json:"messageId"`
+	Event     json.RawMessage `json:"event"`
+	Attempts  int32           `json:"attempts"`
+	NextAt    time.Time       `json:"nextAt"`
+	Error     string          `json:"error"`
+	CreatedAt time.Time       `json:"createdAt"`
 }
 
 type TransactionalAlert struct {

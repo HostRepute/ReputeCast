@@ -561,30 +561,6 @@ func (q *Queries) ArchiveUpdateIssue(ctx context.Context, arg ArchiveUpdateIssue
 	return i, err
 }
 
-const publicBumpUnsubscribed = `-- name: PublicBumpUnsubscribed :exec
-INSERT INTO campaign_counters (campaign_id, provider_id, mailbox_provider, variant, unsubscribed)
-VALUES ($1, $2, $3, $4, 1)
-ON CONFLICT (campaign_id, provider_id, mailbox_provider, variant) DO UPDATE
-SET unsubscribed = campaign_counters.unsubscribed + 1
-`
-
-type PublicBumpUnsubscribedParams struct {
-	CampaignID      uuid.UUID `json:"campaignId"`
-	ProviderID      uuid.UUID `json:"providerId"`
-	MailboxProvider string    `json:"mailboxProvider"`
-	Variant         string    `json:"variant"`
-}
-
-func (q *Queries) PublicBumpUnsubscribed(ctx context.Context, arg PublicBumpUnsubscribedParams) error {
-	_, err := q.db.Exec(ctx, publicBumpUnsubscribed,
-		arg.CampaignID,
-		arg.ProviderID,
-		arg.MailboxProvider,
-		arg.Variant,
-	)
-	return err
-}
-
 const publicCampaign = `-- name: PublicCampaign :one
 SELECT c.id, c.workspace_id, c.name, c.subject, c.preheader, c.html, c.plain_text, c.ab_test, c.audience,
        coalesce(c.started_at, c.completed_at, c.created_at)::timestamptz AS sent_at

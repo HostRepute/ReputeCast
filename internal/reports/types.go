@@ -80,9 +80,12 @@ type ReportHeadline struct {
 	HardBounces     int64                 `json:"hardBounces"`
 	SoftBounces     int64                 `json:"softBounces"`
 	BounceRate      *float64              `json:"bounceRate,omitempty"`
-	Rejected        int64                 `json:"rejected"`
-	// Undelivered were neither delivered nor bounced: deferrals that expired
-	// once the send is final, mail still in flight before that.
+	// Rejected: the providers refused them, when they were handed over or
+	// afterwards; they were never sent.
+	Rejected int64 `json:"rejected"`
+	// Undelivered were sent and neither delivered nor bounced: deferrals
+	// that expired once the send is final, mail still in flight before
+	// that.
 	Undelivered int64 `json:"undelivered"`
 }
 

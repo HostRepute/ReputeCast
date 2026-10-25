@@ -355,7 +355,10 @@ func headline(cells []store.ReportCounterCellsRow, origin string) (ReportHeadlin
 		Unsubscribes: all.unsub, UnsubscribeRate: rate(all.unsub, all.delivered), Complaints: all.complained, ComplaintRate: rate(all.complained, all.delivered),
 		Bounces: all.hard + all.soft, HardBounces: all.hard, SoftBounces: all.soft, BounceRate: rate(all.hard+all.soft, all.sent), Rejected: all.rejected,
 	}
-	h.Undelivered = max(all.sent-all.delivered-all.hard-all.soft-all.rejected, 0)
+	// Undelivered: sent, and neither delivered nor bounced (yet). Rejected
+	// messages were never sent: a provider that drops a message it took
+	// takes it back out of sent (internal/counters).
+	h.Undelivered = max(all.sent-all.delivered-all.hard-all.soft, 0)
 	for _, id := range order {
 		h.SentBy = append(h.SentBy, *byProvider[id])
 	}
