@@ -124,9 +124,12 @@ func (p *HTTPProber) Probe(ctx context.Context, urls []string) map[string]ProbeR
 	var mu sync.Mutex
 	sem := make(chan struct{}, conc)
 	var wg sync.WaitGroup
+	report, done := ProgressFrom(ctx), 0
 	for _, u := range urls {
 		if r, ok := p.cached(u); ok {
 			out[u] = r
+			done++
+			report(StageLinks, done, len(urls))
 			continue
 		}
 		wg.Add(1)
@@ -138,6 +141,8 @@ func (p *HTTPProber) Probe(ctx context.Context, urls []string) map[string]ProbeR
 			p.store(u, r)
 			mu.Lock()
 			out[u] = r
+			done++
+			report(StageLinks, done, len(urls))
 			mu.Unlock()
 		}(u)
 	}

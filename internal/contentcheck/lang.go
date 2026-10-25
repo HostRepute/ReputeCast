@@ -73,6 +73,9 @@ var (
 	mLinkBrokenTitle     = msgs.M("link.brokenTitle")
 	mLinkBrokenTag       = msgs.M("link.brokenTag")
 	mLinkBrokenDetail    = msgs.M("link.brokenDetail")
+	mLinkUnknownTitle    = msgs.M("link.unknownTitle")
+	mLinkUnknownTag      = msgs.M("link.unknownTag")
+	mLinkUnknownDetail   = msgs.M("link.unknownDetail")
 )
 
 // SaveAltLabel is the label of the fix that saves an image's alt text

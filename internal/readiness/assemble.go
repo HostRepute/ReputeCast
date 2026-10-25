@@ -1094,7 +1094,25 @@ func (b *builder) links() {
 		respond.Fixes = []fix{link(tx("fix.openInEditor", nil), b.editor(broken[0].Path, "deliverability"))}
 	}
 	b.add(respond)
-	if len(blockIssues) == 0 {
+	if unknown := r.LinkDomainsUnknown; len(unknown) > 0 {
+		// A lookup that failed is unknown, not clean (SR-1).
+		names := make([]string, 0, len(unknown))
+		for _, u := range unknown {
+			names = append(names, u.Domain)
+		}
+		shown := names
+		if len(shown) > 4 {
+			shown = shown[:4]
+		}
+		note := tx("note.notChecked", nil)
+		if unknown[0].Trouble == contentcheck.TroubleTimeout {
+			note = tx("note.timedOut", nil)
+		}
+		b.add(check{Key: "links.blocklists", Group: GroupLinks, Status: Unknown, Label: tx("label.uriBlocklists", nil), Note: note,
+			Title:  tx("links.domainsUnknown", A{"count": len(unknown), "total": max(r.LinkDomains, len(unknown)), "lists": ArgAnd(ct.URIBlocklists)}),
+			Detail: tx("links.domainsUnknownDetail", A{"domains": argJoin(", ", shown), "more": len(names) - len(shown), "trouble": unknown[0].Trouble})})
+	}
+	if len(blockIssues) == 0 && len(r.LinkDomainsUnknown) == 0 {
 		domains := []string{}
 		seen := map[string]bool{}
 		for _, l := range r.LinkList {

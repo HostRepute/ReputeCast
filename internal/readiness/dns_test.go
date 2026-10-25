@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/readiness"
 )
@@ -138,5 +139,27 @@ func TestInvalidBIMIWarns(t *testing.T) {
 	c := byKey(readiness.Assemble(f))["auth.bimi"]
 	if c.Status != readiness.Warn || c.Title != "The BIMI record of news.acme.io is invalid" || !strings.Contains(c.Detail, "https") || c.Ack == "" {
 		t.Errorf("invalid BIMI: %s %q %q ack %q", c.Status, c.Title, c.Detail, c.Ack)
+	}
+}
+
+// SR-1: link domains whose live lookup failed are Unknown, never "No link
+// domains on URI blocklists".
+func TestUnknownLinkDomains(t *testing.T) {
+	f := digest()
+	f.Content.URIBlocklists = []string{"Spamhaus DBL", "SURBL"}
+	f.Content.Report.LinkDomains = 4
+	f.Content.Report.LinkDomainsUnknown = []contentcheck.ContentCheckUnknownDomain{{Domain: "docs.acme.io", Trouble: contentcheck.TroubleTimeout}, {Domain: "github.com", Trouble: contentcheck.TroubleTimeout}}
+	res := readiness.Assemble(f)
+	c := byKey(res)["links.blocklists"]
+	if c.Status != readiness.Unknown || c.Title != "Couldn't check 2 of 4 link domains on Spamhaus DBL and SURBL" || c.Note != "timed out" ||
+		!strings.HasPrefix(c.Detail, "docs.acme.io, github.com: DNS didn't answer in time") {
+		t.Errorf("unknown link domains: %s %q %q %q", c.Status, c.Title, c.Detail, c.Note)
+	}
+	if !res.Incomplete || res.Verdict == readiness.VerdictReady {
+		t.Errorf("verdict %s incomplete %v", res.Verdict, res.Incomplete)
+	}
+	f.Content.Report.LinkDomainsUnknown = nil
+	if c := byKey(readiness.Assemble(f))["links.blocklists"]; c.Status != readiness.Pass {
+		t.Errorf("all answered: %s %q", c.Status, c.Title)
 	}
 }

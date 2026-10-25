@@ -777,5 +777,8 @@
   "note.dnsError": "lỗi DNS",
   "auth.bimiInvalid": "Bản ghi BIMI của {domain} không hợp lệ",
   "auth.bimiInvalidDetail": "Các nhà cung cấp hộp thư sẽ không hiển thị logo cho đến khi bản ghi được sửa.",
-  "auth.bimiInvalidAck": "Tôi hiểu bản ghi BIMI không hợp lệ và logo sẽ không hiển thị."
+  "auth.bimiInvalidAck": "Tôi hiểu bản ghi BIMI không hợp lệ và logo sẽ không hiển thị.",
+
+  "links.domainsUnknown": "Không kiểm tra được {count, number} trên {total, plural, other {# tên miền liên kết}} trên {lists}",
+  "links.domainsUnknownDetail": "{domains}{more, plural, =0 {} other { và # tên miền khác}}: {trouble, select, timeout {DNS không trả lời kịp} refused {các danh sách từ chối trình phân giải DNS của máy chủ này (việc tra cứu danh sách chặn cần trình phân giải đệ quy của riêng bạn)} other {DNS không trả về câu trả lời dùng được}}. Chưa biết không có nghĩa là sạch; lần kiểm tra lại lúc gửi sẽ tra cứu lại."
 }

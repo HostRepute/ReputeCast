@@ -1,6 +1,8 @@
 package app
 
 import (
+	"time"
+
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/hostrepute/reputecast/internal/campaigns"
@@ -19,7 +21,7 @@ func init() {
 			Mail:      func() mailer.Sender { return a.Mail },
 			URLs:      a.URLs,
 			Checker: &contentcheck.Checker{
-				Blocklist: contentcheck.StoreBlocklist{Q: a.Q},
+				Blocklist: linkBlocklist(a, 2*time.Second),
 				Prober:    linkProber(a),
 				Extra:     contentExtras(a),
 			},

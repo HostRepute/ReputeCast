@@ -11,7 +11,10 @@ import (
 	"github.com/hostrepute/reputecast/internal/approvals"
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/campaigns"
+	"github.com/hostrepute/reputecast/internal/config"
 	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/demo"
+	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/sending"
@@ -31,7 +34,7 @@ func readinessService(a *App) *readiness.Service {
 		Templates: &templates.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
 		Mail:      func() mailer.Sender { return a.Mail },
 		URLs:      a.URLs,
-		Checker:   &contentcheck.Checker{Blocklist: contentcheck.StoreBlocklist{Q: a.Q}, Prober: prober, Extra: contentExtras(a)},
+		Checker:   &contentcheck.Checker{Blocklist: linkBlocklist(a, 30*time.Second), Prober: prober, Extra: contentExtras(a)},
 		// Send Readiness checks and fixes every language version.
 		Translations: campaignTranslations(a),
 	}
@@ -61,6 +64,24 @@ func readinessService(a *App) *readiness.Service {
 		rs.UpgradeOffers = uo
 	}
 	return rs
+}
+
+// linkBlocklist looks link domains up live on Spamhaus DBL and SURBL and
+// keeps the answers for an hour (SR-1), for the composer's inline checks
+// (a short budget: it checks as people type) and Send Readiness (a longer
+// one: it runs in the background). The demo and the tests answer from the
+// demo's zone, so nothing reaches the real lists.
+func linkBlocklist(a *App, budget time.Duration) contentcheck.Blocklist {
+	cfg := a.Cfg
+	if cfg == nil {
+		d := config.Defaults()
+		cfg = &d
+	}
+	resolver := dnscheck.NewResolver(dnscheck.Options{Servers: cfg.DNS.Servers, Timeout: cfg.DNS.Timeout})
+	if cfg.IsDevelopment() || cfg.Env == "test" {
+		resolver = demo.ReadinessLinkDNS(resolver)
+	}
+	return &contentcheck.LiveBlocklist{Q: a.Q, DNS: resolver, Budget: budget}
 }
 
 // readinessUpgradeOffers finds Upgrade blocks whose offer ended; set from

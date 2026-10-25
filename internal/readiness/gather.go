@@ -36,8 +36,8 @@ type Deliverability interface {
 	Reputation(ctx context.Context, ws *store.Workspace) (deliverability.DeliverabilityReputation, error)
 }
 
-// URIBlocklists are the URI blocklists link domains are checked on.
-var URIBlocklists = []string{"SURBL", "URIBL", "Spamhaus DBL"}
+// URIBlocklists are the URI blocklists link domains are looked up on.
+var URIBlocklists = contentcheck.URIListNames
 
 // stage names the step a run is in; groups tick in as their stage finishes.
 type stage string
@@ -157,6 +157,9 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 		if err == nil {
 			f.Content.Report, f.Content.Checked, f.Content.FooterRemovedAt = chk.ContentCheckReport, true, chk.FooterRemovedAt
 			f.Content.InlineCSSBytes = inlineCSS(c.Html)
+			if len(chk.URILists) > 0 {
+				f.Content.URIBlocklists = chk.URILists
+			}
 		} else if s.Log != nil {
 			s.Log.WarnContext(ctx, "readiness content check failed", "campaign", c.ID, "err", err)
 		}

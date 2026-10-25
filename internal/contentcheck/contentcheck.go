@@ -118,6 +118,19 @@ type ContentCheckReport struct {
 	// LinkList is every link with its text and, when links were probed, the
 	// response (Send Readiness shows the slowest and the link domains).
 	LinkList []ContentCheckLink `json:"linkList"`
+	// LinkDomains counts the link domains looked up on the URI blocklists
+	// (URILists names them); LinkDomainsUnknown are those whose lookup
+	// failed: unknown, not clean.
+	LinkDomains        int                         `json:"linkDomains"`
+	URILists           []string                    `json:"uriLists"`
+	LinkDomainsUnknown []ContentCheckUnknownDomain `json:"linkDomainsUnknown"`
+}
+
+// ContentCheckUnknownDomain is a link domain that couldn't be looked up.
+type ContentCheckUnknownDomain struct {
+	Domain string `json:"domain"`
+	// Trouble is why: timeout, refused (the list refused the resolver) or other.
+	Trouble string `json:"trouble" enum:"timeout,refused,other"`
 }
 
 // ContentCheckLink is one link of the email.
@@ -229,7 +242,8 @@ func (c *Checker) Check(ctx context.Context, in Input) (ContentCheckReport, erro
 	if c.Now != nil {
 		now = c.Now
 	}
-	r := ContentCheckReport{ClipBytes: ClipBytes, Issues: []ContentCheckIssue{}, Sections: []ContentCheckSection{}, SubjectHeuristics: []string{}, LinkList: []ContentCheckLink{}, CheckedAt: now()}
+	r := ContentCheckReport{ClipBytes: ClipBytes, Issues: []ContentCheckIssue{}, Sections: []ContentCheckSection{}, SubjectHeuristics: []string{}, LinkList: []ContentCheckLink{}, CheckedAt: now(),
+		URILists: []string{}, LinkDomainsUnknown: []ContentCheckUnknownDomain{}}
 	htmlSrc := in.HTML
 	if htmlSrc == "" && strings.TrimSpace(in.MJML) != "" {
 		htmlSrc = mjml.Compile(in.MJML).HTML
@@ -787,7 +801,22 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentCh
 			domains = append(domains, h)
 		}
 		sort.Strings(domains)
-		if l, err := c.Blocklist.Listings(ctx, domains); err == nil {
+		if live, ok := c.Blocklist.(BlocklistChecker); ok {
+			// Looked up live: a domain whose lookup failed is unknown.
+			if rep, err := live.Check(ctx, domains); err == nil {
+				listings, r.LinkDomains, r.URILists = rep.Listed, rep.Domains, rep.Lists
+				for _, d := range domains {
+					if why, ok := rep.Unknown[d]; ok {
+						r.LinkDomainsUnknown = append(r.LinkDomainsUnknown, ContentCheckUnknownDomain{Domain: d, Trouble: why})
+					}
+				}
+			} else {
+				for _, d := range domains {
+					r.LinkDomainsUnknown = append(r.LinkDomainsUnknown, ContentCheckUnknownDomain{Domain: d, Trouble: TroubleOther})
+				}
+				r.LinkDomains = len(domains)
+			}
+		} else if l, err := c.Blocklist.Listings(ctx, domains); err == nil {
 			listings = l
 		}
 	}
@@ -806,6 +835,14 @@ func (c *Checker) checkLinks(ctx context.Context, in Input, s scan, r *ContentCh
 			}
 		}
 		probe = c.Prober.Probe(ctx, urls)
+	}
+	if n := len(r.LinkDomainsUnknown); n > 0 {
+		// Not knowing isn't clean: say which lookups failed (Send Readiness
+		// turns this into an Unknown check).
+		trouble := r.LinkDomainsUnknown[0].Trouble
+		lists := append([]string(nil), r.URILists...)
+		add(worded(ContentCheckIssue{ID: "links.blocklist_unknown", Severity: Info, Group: "Links", Section: -1},
+			mLinkUnknownTitle.Keep(i18n.Args{"count": n, "lists": lists}), mLinkUnknownTag.Keep(nil), mLinkUnknownDetail.Keep(i18n.Args{"trouble": trouble})))
 	}
 	editLink := func(path []int) ContentCheckFix { return fixOf("edit_link", mLinkEdit.Keep(nil), path) }
 	for _, l := range s.links {

@@ -777,5 +777,8 @@
   "note.dnsError": { "message": "DNS error", "note": "a short note on a check whose DNS lookup failed" },
   "auth.bimiInvalid": "The BIMI record of {domain} is invalid",
   "auth.bimiInvalidDetail": "Mailbox providers show no logo until it's fixed.",
-  "auth.bimiInvalidAck": "I understand the BIMI record is invalid and no logo shows."
+  "auth.bimiInvalidAck": "I understand the BIMI record is invalid and no logo shows.",
+
+  "links.domainsUnknown": { "message": "Couldn't check {count, number} of {total, plural, one {# link domain} other {# link domains}} on {lists}", "note": "lists: Spamhaus DBL and SURBL" },
+  "links.domainsUnknownDetail": "{domains}{more, plural, =0 {} other { and # more}}: {trouble, select, timeout {DNS didn't answer in time} refused {the lists refused this server's DNS resolver (blocklist lookups need your own recursive resolver)} other {DNS gave no usable answer}}. Not knowing isn't the same as clean; the send-time recheck looks them up again."
 }
