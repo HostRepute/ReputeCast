@@ -442,7 +442,7 @@ func (q *Queries) ReportLatestSent(ctx context.Context, arg ReportLatestSentPara
 }
 
 const reportLinks = `-- name: ReportLinks :many
-SELECT id, url, label, position, clicks, unique_clicks
+SELECT id, url, label, position, clicks, unique_clicks, bot_clicks
 FROM campaign_links
 WHERE campaign_id = $1
 ORDER BY position, url
@@ -455,8 +455,11 @@ type ReportLinksRow struct {
 	Position     int32     `json:"position"`
 	Clicks       int64     `json:"clicks"`
 	UniqueClicks int64     `json:"uniqueClicks"`
+	BotClicks    int64     `json:"botClicks"`
 }
 
+// Clicks per link: people's clicks, people's first click per link, and
+// the clicks the bot filter left out.
 func (q *Queries) ReportLinks(ctx context.Context, campaignID uuid.UUID) ([]ReportLinksRow, error) {
 	rows, err := q.db.Query(ctx, reportLinks, campaignID)
 	if err != nil {
@@ -473,6 +476,7 @@ func (q *Queries) ReportLinks(ctx context.Context, campaignID uuid.UUID) ([]Repo
 			&i.Position,
 			&i.Clicks,
 			&i.UniqueClicks,
+			&i.BotClicks,
 		); err != nil {
 			return nil, err
 		}

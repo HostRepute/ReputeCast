@@ -3,6 +3,7 @@ package app
 import (
 	"time"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/riverqueue/river"
 
 	"github.com/hostrepute/reputecast/internal/jobs"
@@ -10,16 +11,25 @@ import (
 	"github.com/hostrepute/reputecast/internal/tracking"
 )
 
-// Honest counters (review AN-3): campaigns' counters are rebuilt from
-// their messages and events once their results are final, and opens and
-// clicks the tracking writer couldn't record are applied again.
+// Honest counters and bot clicks (review AN-3, AN-2): campaigns' counters
+// are rebuilt from their messages and events once their results are
+// final; opens and clicks the tracking writer couldn't record are applied
+// again; clicks settle before they count; instance admins keep the list
+// of scanner and privacy-proxy networks.
 func init() {
+	trackingHooks = append(trackingHooks, func(a *App, t *tracking.Service) { t.Audit = a.Audit })
+	apiRegistrars = append(apiRegistrars, func(a *App, h huma.API) {
+		tracking.RegisterNetworks(h, sendingTracker(a))
+	})
 	jobRegistrars = append(jobRegistrars, func(a *App) {
 		jobsFn := func() *jobs.Client { return a.Jobs }
+		t := sendingTracker(a)
 		river.AddWorker(a.JobReg.Workers, &reports.RebuildWorker{Pool: a.Pool})
 		river.AddWorker(a.JobReg.Workers, &reports.RebuildSweepWorker{Q: a.Q, Jobs: jobsFn})
-		river.AddWorker(a.JobReg.Workers, &tracking.RetryWorker{S: sendingTracker(a)})
+		river.AddWorker(a.JobReg.Workers, &tracking.RetryWorker{S: t})
+		river.AddWorker(a.JobReg.Workers, &tracking.SettleWorker{S: t})
 		a.JobReg.Every(10*time.Minute, func() (river.JobArgs, *river.InsertOpts) { return reports.RebuildSweepArgs{}, nil }, false)
 		a.JobReg.Every(time.Minute, func() (river.JobArgs, *river.InsertOpts) { return tracking.RetryArgs{}, nil }, false)
+		a.JobReg.Every(15*time.Second, func() (river.JobArgs, *river.InsertOpts) { return tracking.SettleArgs{}, nil }, false)
 	})
 }

@@ -133,7 +133,9 @@ func (t touches) flush(ctx context.Context, q *store.Queries) error {
 	return q.TrackingTouchContacts(ctx, p)
 }
 
-// apply records one open or click.
+// apply records one open or click. An open counts at once; a click that
+// looks like a person's waits to settle (settle.go), one that doesn't is
+// filed with the bot clicks.
 func (s *Service) apply(ctx context.Context, tx pgx.Tx, q *store.Queries, b *batch, ev sending.Engagement) error {
 	m, err := q.TrackingMessage(ctx, ev.MessageID)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -149,20 +151,23 @@ func (s *Service) apply(ctx context.Context, tx pgx.Tx, q *store.Queries, b *bat
 	if err := q.CountersLockMessage(ctx, m.ID); err != nil {
 		return err
 	}
-	since := time.Duration(-1)
-	if m.SentAt != nil {
-		since = ev.At.Sub(*m.SentAt)
-	}
 	ip, _ := netip.ParseAddr(ev.IP)
-	sig := Signal{UserAgent: ev.UserAgent, IP: ip, Method: ev.Method, SinceSend: since}
+	var ipPtr *netip.Addr
+	if ip.IsValid() {
+		ipPtr = &ip
+	}
+	sig := s.signal(ctx, m, ev.UserAgent, ipPtr, ev.Method, ev.At)
 	var v Verdict
 	link := ""
-	if ev.Click {
-		v = ClassifyClick(sig, s.isBurst(ev))
+	switch {
+	case ev.Click && ev.Link == HoneypotLink:
+		v = ClassifyHoneypot()
+	case ev.Click:
+		v = ClassifyClick(sig, false)
 		if urls, err := s.linksOf(ctx, q, m); err == nil {
 			link = urls[ev.Link]
 		}
-	} else {
+	default:
 		v = ClassifyOpen(sig)
 	}
 	typ, class := "open", v.Class
@@ -171,85 +176,66 @@ func (s *Service) apply(ctx context.Context, tx pgx.Tx, q *store.Queries, b *bat
 		typ = "click"
 		p := int32(ev.Link)
 		linkPos = &p
+		if !v.Machine {
+			class = classPending // counted once it settles
+		}
 	}
 	diag := v.Client
 	if v.Machine {
 		diag = v.Reason
 	}
-	var ipPtr *netip.Addr
-	if ip.IsValid() {
-		ipPtr = &ip
-	}
 	label, _ := q.TrackingSourceLabel(ctx, m.ID)
 	mid := m.ID
+	eventID := uuid.Must(uuid.NewV7())
 	if err := q.TrackingInsertEvent(ctx, store.TrackingInsertEventParams{
-		ID: uuid.Must(uuid.NewV7()), WorkspaceID: m.WorkspaceID, MessageID: &mid, CampaignID: m.CampaignID, ContactID: m.ContactID, ProviderID: m.ProviderID,
+		ID: eventID, WorkspaceID: m.WorkspaceID, MessageID: &mid, CampaignID: m.CampaignID, ContactID: m.ContactID, ProviderID: m.ProviderID,
 		Type: typ, OccurredAt: ev.At, ReceivedAt: ev.At, MailboxProvider: m.MailboxProvider, OriginalType: "ReputeCast tracking", Diagnostic: clip(diag, 1000),
 		Machine: v.Machine, Url: clip(link, 2048), UserAgent: clip(ev.UserAgent, 500), Ip: ipPtr, Recipient: m.Email, Source: label, Class: class, Link: linkPos,
 	}); err != nil {
 		return err
 	}
-	if v.Machine && ev.Click {
-		// Bot clicks are logged and shown apart (the click map's Bot clicks),
-		// never counted as clicks.
-		if m.CampaignID != nil {
-			b.ledger.Click(*m.CampaignID, ev.Link, true, false)
+	if ev.Click {
+		switch {
+		case ev.Link == HoneypotLink:
+			// The hidden link isn't one of the email's: nothing to count on
+			// the map; the clicks around it settle as the scanner's.
+		case v.Machine:
+			// Bot clicks are logged and shown apart (the click map's Bot
+			// clicks), never counted as clicks.
+			if m.CampaignID != nil {
+				b.ledger.Click(*m.CampaignID, ev.Link, true, false)
+			}
+		default:
+			return q.TrackingPendingClick(ctx, store.TrackingPendingClickParams{EventID: eventID, MessageID: m.ID, Link: int32(ev.Link), Url: clip(link, 2048),
+				ClickedAt: ev.At, SettleAt: ev.At.Add(settleAfter)})
 		}
 		return nil
 	}
-	mv, err := q.CountersMoveEngagement(ctx, store.CountersMoveEngagementParams{ID: m.ID, At: ev.At, Click: ev.Click, Class: class})
+	mv, err := q.CountersMoveEngagement(ctx, store.CountersMoveEngagementParams{ID: m.ID, At: ev.At, Click: false, Class: class})
 	if err != nil {
 		return err
 	}
 	moved := counters.FromEngagement(mv)
 	b.ledger.Add(moved)
 	firstOpen := moved.Before.OpenedAt == nil
-	firstClick := ev.Click && moved.Before.ClickedAt == nil
-	if ev.Click {
-		if m.CampaignID != nil {
-			unique := false
-			if _, err := q.TrackingFirstLinkClick(ctx, store.TrackingFirstLinkClickParams{MessageID: m.ID, Link: int32(ev.Link), At: ev.At}); err == nil {
-				unique = true
-			} else if !errors.Is(err, pgx.ErrNoRows) {
-				return err
-			}
-			b.ledger.Click(*m.CampaignID, ev.Link, false, unique)
-		} else if ref := refOf(m.ContentRef); ref.Email != uuid.Nil {
-			if err := q.TrackingBumpAutomationLink(ctx, store.TrackingBumpAutomationLinkParams{EmailID: ref.Email, Version: int32(ref.Version), Language: ref.Language, Position: int32(ev.Link)}); err != nil {
-				return err
-			}
-		}
-		if m.ContactID != nil {
-			b.touches.add(*m.ContactID, ev.At, true, true, true)
-		}
-		if s.Clicked != nil {
-			if err := s.Clicked(ctx, q, HumanClick{WorkspaceID: m.WorkspaceID, MessageID: m.ID, CampaignID: m.CampaignID, ContactID: m.ContactID, Stream: m.Stream,
-				URL: link, At: ev.At}); err != nil {
-				return err
-			}
-		}
-	} else if m.ContactID != nil {
-		b.touches.add(*m.ContactID, ev.At, true, !v.Machine, false)
+	if m.ContactID != nil {
+		b.touches.add(*m.ContactID, ev.At, true, v.Class == ClassHuman, false)
 	}
-	if m.Stream == "transactional" && s.Transactional != nil && (firstOpen || firstClick) {
-		if err := s.Transactional.Engagement(ctx, tx, m.ID, ev.Click && firstClick, ev.At); err != nil {
+	if m.Stream == "transactional" && s.Transactional != nil && firstOpen {
+		if err := s.Transactional.Engagement(ctx, tx, m.ID, false, ev.At); err != nil {
 			return err
 		}
 	}
-	if m.Stream == "automation" && s.Automations != nil {
-		if firstOpen {
-			if err := s.Automations.RecordMessageEvent(ctx, q, automations.MessageEvent{MessageID: m.ID, Type: "opened", Machine: v.Machine && !ev.Click, At: ev.At}); err != nil {
-				return err
-			}
-		}
-		if firstClick {
-			if err := s.Automations.RecordMessageEvent(ctx, q, automations.MessageEvent{MessageID: m.ID, Type: "clicked", At: ev.At}); err != nil {
-				return err
-			}
+	if m.Stream == "automation" && s.Automations != nil && firstOpen {
+		if err := s.Automations.RecordMessageEvent(ctx, q, automations.MessageEvent{MessageID: m.ID, Type: "opened", Machine: v.Machine, At: ev.At}); err != nil {
+			return err
 		}
 	}
 	return nil
 }
+
+// classPending marks a click event waiting to settle.
+const classPending = "pending"
 
 // Retries of opens and clicks that couldn't be recorded.
 const (

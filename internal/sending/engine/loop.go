@@ -874,6 +874,7 @@ func (e *Engine) compose(rs *runState, r *runRoute, m store.SendingClaimRow, ext
 		for _, l := range tpl.Links {
 			links[LinkVar(l.Position)] = e.URLs.Click(sign(linktoken.Click, uint32(off+l.Position)))
 		}
+		links[HoneypotVar] = e.URLs.Honeypot(sign(linktoken.Honeypot, 0))
 	}
 	var attrs map[string]any
 	if len(m.Attributes) > 0 {

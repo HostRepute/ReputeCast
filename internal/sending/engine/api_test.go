@@ -158,8 +158,9 @@ func testTracking(t *testing.T, f *sendtest.Fixture) {
 	if err := f.Env.App.Pool.QueryRow(f.Ctx, `SELECT id, contact_id FROM messages WHERE campaign_id = $1 AND sent_at IS NOT NULL ORDER BY id LIMIT 1`, f.Campaign).Scan(&msg, &contact); err != nil {
 		t.Fatal(err)
 	}
-	// Back-date the send so the open isn't "too fast to be a person".
-	f.Exec(`UPDATE messages SET sent_at = now() - interval '20 minutes' WHERE id = $1`, msg)
+	// Back-date the send and the delivery so the open isn't "too fast to be
+	// a person".
+	f.Exec(`UPDATE messages SET sent_at = now() - interval '20 minutes', delivered_at = now() - interval '19 minutes' WHERE id = $1`, msg)
 	links := f.Env.App.Links
 	open := links.Sign(linktoken.Claims{Kind: linktoken.Open, WorkspaceID: f.WS, MessageID: msg, ContactID: contact})
 	click := links.Sign(linktoken.Claims{Kind: linktoken.Click, WorkspaceID: f.WS, MessageID: msg, ContactID: contact, Link: 0})
@@ -206,6 +207,17 @@ func testTracking(t *testing.T, f *sendtest.Fixture) {
 	r := get("/t/c/"+click, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36")
 	if r.StatusCode != http.StatusFound || r.Header.Get("Location") != want {
 		t.Fatalf("click %d to %q, want 302 to %q", r.StatusCode, r.Header.Get("Location"), want)
+	}
+	// A click counts once it settles (bot clicks, review AN-2).
+	waitFor(t, func() bool {
+		return f.Count(`SELECT count(*) FROM delivery_events WHERE message_id = $1 AND type = 'click'`, msg) == 1
+	})
+	if st, ok := f.E.Recorder.(interface {
+		SettleEngagement(context.Context, time.Time) (*time.Time, error)
+	}); ok {
+		if _, err := st.SettleEngagement(f.Ctx, time.Now().Add(2*time.Minute)); err != nil {
+			t.Fatal(err)
+		}
 	}
 	waitFor(t, func() bool {
 		return f.Count(`SELECT coalesce(sum(clicks), 0) FROM campaign_links WHERE campaign_id = $1`, f.Campaign) == 1 &&

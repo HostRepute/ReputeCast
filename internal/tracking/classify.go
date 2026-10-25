@@ -17,6 +17,31 @@ type Signal struct {
 	// SinceSend is how long after the message was handed to the provider
 	// the request came (negative when unknown).
 	SinceSend time.Duration
+	// SinceDelivery is how long after the message was delivered, when
+	// Delivered says that is known. Scanners act when mail arrives, which
+	// can be minutes after it was sent, so the windows below are measured
+	// from delivery when it is known (review AN-2).
+	SinceDelivery time.Duration
+	Delivered     bool
+	// Net is the machine network the address belongs to, from the
+	// instance's list (tracking_networks); nil checks the built-in ranges.
+	Net *Network
+}
+
+// Network is a network of machines that open and click email.
+type Network struct {
+	// Class is "privacy" (a privacy proxy) or "scanner".
+	Class string
+	Name  string
+}
+
+// since is the time the windows are measured from: delivery when known,
+// else the hand-over to the provider.
+func (s Signal) since() time.Duration {
+	if s.Delivered {
+		return max(s.SinceDelivery, 0)
+	}
+	return s.SinceSend
 }
 
 // Classes of opens and clicks.
@@ -73,12 +98,13 @@ var (
 	}
 )
 
-// Timing thresholds.
+// Timing thresholds, measured from delivery when it is known (else from
+// the hand-over to the provider).
 const (
 	// openPrefetchWindow: image fetches through a mail provider's proxy
-	// this soon after sending are caching on arrival, not someone reading.
+	// this soon after arrival are caching, not someone reading.
 	openPrefetchWindow = 30 * time.Second
-	// tooFastOpen: nobody opens an email within two seconds of it leaving.
+	// tooFastOpen: nobody opens an email within two seconds of its arrival.
 	tooFastOpen = 2 * time.Second
 	// tooFastClick: scanners follow links within seconds of arrival.
 	tooFastClick = 10 * time.Second
@@ -110,17 +136,26 @@ func ClassifyOpen(s Signal) Verdict {
 		return machine(reasonHead)
 	case ua == "":
 		return machine(reasonNoAgent)
-	case s.IP.IsValid() && appleNet.Contains(s.IP.Unmap()), ua == "Mozilla/5.0":
+	case ua == "Mozilla/5.0":
 		// Apple Mail Privacy Protection: whether anyone read it can't be
 		// told, so it's neither a person's open nor a scanner's.
 		return Verdict{Machine: true, Class: ClassPrivacy, Reason: reasonApple}
+	}
+	if class, name := netOf(s); class == netPrivacy {
+		reason := reasonApple
+		if name != appleName {
+			reason = "Privacy proxy prefetch (" + name + ")"
+		}
+		return Verdict{Machine: true, Class: ClassPrivacy, Reason: reason}
+	}
+	switch {
 	case strings.Contains(low, "googleimageproxy"):
-		if known(s) && s.SinceSend < openPrefetchWindow {
+		if known(s) && s.since() < openPrefetchWindow {
 			return machine(reasonGoogle)
 		}
 		return person("Gmail")
 	case strings.Contains(low, "yahoomailproxy"):
-		if known(s) && s.SinceSend < openPrefetchWindow {
+		if known(s) && s.since() < openPrefetchWindow {
 			return machine(reasonYahoo)
 		}
 		return person("Yahoo Mail")
@@ -128,10 +163,10 @@ func ClassifyOpen(s Signal) Verdict {
 	if name := scannerAgent(ua); name != "" {
 		return machine("Security scanner (" + name + ")")
 	}
-	if name := scannerNet(s.IP); name != "" && known(s) && s.SinceSend < scannerWindow {
+	if name := scannerNet(s); name != "" && known(s) && s.since() < scannerWindow {
 		return machine("Security scanner (" + name + ")")
 	}
-	if known(s) && s.SinceSend < tooFastOpen {
+	if known(s) && s.since() < tooFastOpen {
 		return machine(reasonFastOpen)
 	}
 	return person(ClientName(ua))
@@ -157,10 +192,10 @@ func ClassifyClick(s Signal, burst bool) Verdict {
 	if name := scannerAgent(ua); name != "" {
 		return bot("Link scanner (" + name + ")")
 	}
-	if name := scannerNet(s.IP); name != "" && known(s) && s.SinceSend < scannerWindow {
+	if name := scannerNet(s); name != "" && known(s) && s.since() < scannerWindow {
 		return bot("Link scanner (" + name + ")")
 	}
-	if known(s) && s.SinceSend < tooFastClick {
+	if known(s) && s.since() < tooFastClick {
 		return bot(reasonFastClick)
 	}
 	if burst {
@@ -169,21 +204,48 @@ func ClassifyClick(s Signal, burst bool) Verdict {
 	return Verdict{Class: ClassHuman, Client: ClientName(ua)}
 }
 
-func known(s Signal) bool { return s.SinceSend >= 0 }
+// ClassifyHoneypot is a click on the hidden link: no person can see it.
+func ClassifyHoneypot() Verdict {
+	return Verdict{Machine: true, Class: ClassBot, Reason: reasonHoneypot}
+}
+
+func known(s Signal) bool { return s.since() >= 0 }
+
+// netOf is the machine network of the request's address: the instance's
+// list when the caller looked it up, else the built-in ranges.
+func netOf(s Signal) (class, name string) {
+	if s.Net != nil {
+		return s.Net.Class, s.Net.Name
+	}
+	if !s.IP.IsValid() {
+		return "", ""
+	}
+	ip := s.IP.Unmap()
+	if appleNet.Contains(ip) {
+		return netPrivacy, appleName
+	}
+	for _, n := range scannerNets {
+		if n.net.Contains(ip) {
+			return netScanner, n.name
+		}
+	}
+	return "", ""
+}
+
+// Network classes (tracking_networks.class).
+const (
+	netPrivacy = "privacy"
+	netScanner = "scanner"
+	appleName  = "Apple Mail Privacy Protection"
+)
 
 // scannerAgent names the machine a user agent belongs to (whole product
 // tokens, so "CUBOT" phones aren't bots), or "".
 func scannerAgent(ua string) string { return useragent.Bot(ua) }
 
-func scannerNet(ip netip.Addr) string {
-	if !ip.IsValid() {
-		return ""
-	}
-	ip = ip.Unmap()
-	for _, n := range scannerNets {
-		if n.net.Contains(ip) {
-			return n.name
-		}
+func scannerNet(s Signal) string {
+	if class, name := netOf(s); class == netScanner {
+		return name
 	}
 	return ""
 }

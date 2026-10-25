@@ -86,3 +86,55 @@ DELETE FROM tracking_retry WHERE created_at < @before;
 
 -- name: TrackingRetryPending :one
 SELECT count(*)::bigint FROM tracking_retry WHERE attempts < @max_attempts;
+
+-- name: TrackingPendingClick :exec
+-- A click that looks like a person's waits to settle (review AN-2).
+INSERT INTO tracking_pending_clicks (event_id, message_id, link, url, clicked_at, settle_at)
+VALUES (@event_id, @message_id, @link, @url, @clicked_at, @settle_at);
+
+-- name: TrackingDueClicks :many
+-- Pending clicks due to settle, each message's together and in message
+-- order (the order writers lock messages in), with what the click sent.
+SELECT p.event_id, p.message_id, p.link, p.url, p.clicked_at,
+       coalesce(e.user_agent, '')::text AS user_agent, e.ip
+FROM tracking_pending_clicks p
+LEFT JOIN delivery_events e ON e.id = p.event_id
+WHERE p.settle_at <= @now
+ORDER BY p.message_id, p.clicked_at, p.event_id
+LIMIT @lim
+FOR UPDATE OF p SKIP LOCKED;
+
+-- name: TrackingNextSettle :one
+SELECT coalesce(min(settle_at), 'epoch'::timestamptz)::timestamptz FROM tracking_pending_clicks;
+
+-- name: TrackingMessageClicks :many
+-- A message's clicks between two times (bursts, the hidden link); link -1
+-- is the hidden link.
+SELECT occurred_at, coalesce(link, -2)::integer AS link, class
+FROM delivery_events
+WHERE message_id = @message_id AND type = 'click' AND occurred_at BETWEEN @from_at AND @until_at
+ORDER BY occurred_at;
+
+-- name: TrackingSettleEvent :exec
+UPDATE delivery_events SET class = @class, machine = @machine, diagnostic = @diagnostic WHERE id = @id;
+
+-- name: TrackingSettled :exec
+DELETE FROM tracking_pending_clicks WHERE event_id = ANY(@ids::uuid[]);
+
+-- name: TrackingNetworkList :many
+-- Networks of privacy proxies and mail scanners.
+SELECT cidr::text AS cidr, name, class, source, note, created_at
+FROM tracking_networks
+ORDER BY class, name, cidr;
+
+-- name: TrackingNetworkAdd :one
+INSERT INTO tracking_networks (cidr, name, class, source, note, created_by)
+VALUES (@cidr::cidr, @name, @class, 'admin', @note, sqlc.narg(created_by))
+ON CONFLICT (cidr) DO NOTHING
+RETURNING cidr::text AS cidr;
+
+-- name: TrackingNetworkDelete :one
+-- Only networks an admin added can be removed; the built-in ones come with
+-- releases.
+DELETE FROM tracking_networks WHERE cidr = @cidr::cidr AND source = 'admin'
+RETURNING cidr::text AS cidr, name, class, note;

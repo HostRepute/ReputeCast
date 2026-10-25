@@ -40,7 +40,9 @@ WHERE campaign_id = @campaign_id AND hour <= @max_hour
 ORDER BY hour;
 
 -- name: ReportLinks :many
-SELECT id, url, label, position, clicks, unique_clicks
+-- Clicks per link: people's clicks, people's first click per link, and
+-- the clicks the bot filter left out.
+SELECT id, url, label, position, clicks, unique_clicks, bot_clicks
 FROM campaign_links
 WHERE campaign_id = @campaign_id
 ORDER BY position, url;

@@ -72,14 +72,17 @@ type ReportHeadline struct {
 	Clicks          int64                 `json:"clicks"`
 	ClickRate       *float64              `json:"clickRate,omitempty"`
 	ClickToOpen     *float64              `json:"clickToOpen,omitempty"`
-	Unsubscribes    int64                 `json:"unsubscribes"`
-	UnsubscribeRate *float64              `json:"unsubscribeRate,omitempty"`
-	Complaints      int64                 `json:"complaints"`
-	ComplaintRate   *float64              `json:"complaintRate,omitempty"`
-	Bounces         int64                 `json:"bounces"`
-	HardBounces     int64                 `json:"hardBounces"`
-	SoftBounces     int64                 `json:"softBounces"`
-	BounceRate      *float64              `json:"bounceRate,omitempty"`
+	// BotClicks are the clicks on the email's links the bot filter left
+	// out (scanners following every link, the hidden link's scanners).
+	BotClicks       int64    `json:"botClicks"`
+	Unsubscribes    int64    `json:"unsubscribes"`
+	UnsubscribeRate *float64 `json:"unsubscribeRate,omitempty"`
+	Complaints      int64    `json:"complaints"`
+	ComplaintRate   *float64 `json:"complaintRate,omitempty"`
+	Bounces         int64    `json:"bounces"`
+	HardBounces     int64    `json:"hardBounces"`
+	SoftBounces     int64    `json:"softBounces"`
+	BounceRate      *float64 `json:"bounceRate,omitempty"`
 	// Rejected: the providers refused them, when they were handed over or
 	// afterwards; they were never sent.
 	Rejected int64 `json:"rejected"`
@@ -129,6 +132,8 @@ type ReportLink struct {
 	Position     int    `json:"position"`
 	Clicks       int64  `json:"clicks"`
 	UniqueClicks int64  `json:"uniqueClicks"`
+	// BotClicks landed on this link and were left out of its clicks.
+	BotClicks int64 `json:"botClicks"`
 	// Share of all link clicks, percent.
 	Share float64 `json:"share"`
 	// Grouped links fall under "Other" on the map (under the threshold).
@@ -152,7 +157,8 @@ type ReportClickMap struct {
 	// Available is false when the stored content is missing; the links
 	// are still listed.
 	Available bool             `json:"available"`
-	Total     int64            `json:"total" doc:"All link clicks"`
+	Total     int64            `json:"total" doc:"All people's link clicks"`
+	BotTotal  int64            `json:"botTotal" doc:"Clicks the bot filter left out"`
 	Links     []ReportLink     `json:"links"`
 	Threshold float64          `json:"threshold" doc:"Links under this share (percent) are grouped as Other"`
 	Other     *ReportLinkGroup `json:"other,omitempty"`

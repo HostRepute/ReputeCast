@@ -36,7 +36,15 @@ func TestClassifyOpen(t *testing.T) {
 		{"script", Signal{UserAgent: "python-requests/2.32", SinceSend: time.Hour}, true, "Security scanner (a script)"},
 		{"scanner network on arrival", Signal{UserAgent: chromeMac, IP: ip("40.107.22.10"), SinceSend: 30 * time.Second}, true, "Security scanner (Microsoft Defender)"},
 		{"scanner network later is a person", Signal{UserAgent: chromeMac, IP: ip("40.107.22.10"), SinceSend: 3 * time.Hour}, false, "Chrome on macOS"},
-		{"too fast", Signal{UserAgent: chromeMac, SinceSend: time.Second}, true, "Opened within 2 s of sending, likely a scanner"},
+		{"too fast", Signal{UserAgent: chromeMac, SinceSend: time.Second}, true, "Opened within 2 s of arriving, likely a scanner"},
+		// Windows count from delivery when it is known: a scanner opening on
+		// arrival an hour after the send is still a scanner.
+		{"too fast after a late delivery", Signal{UserAgent: chromeMac, SinceSend: time.Hour, SinceDelivery: time.Second, Delivered: true}, true,
+			"Opened within 2 s of arriving, likely a scanner"},
+		{"scanner network on a late arrival", Signal{UserAgent: chromeMac, IP: ip("40.107.22.10"), SinceSend: 3 * time.Hour, SinceDelivery: 20 * time.Second, Delivered: true},
+			true, "Security scanner (Microsoft Defender)"},
+		{"privacy network from the instance list", Signal{UserAgent: chromeMac, IP: ip("203.0.113.9"), SinceSend: time.Hour,
+			Net: &Network{Class: "privacy", Name: "Apple Mail Privacy Protection"}}, true, "Apple Mail Privacy Protection prefetch"},
 		{"empty agent", Signal{SinceSend: time.Hour}, true, "No user agent, likely a scanner"},
 		{"HEAD", Signal{UserAgent: chromeMac, Method: "HEAD", SinceSend: time.Hour}, true, "HEAD request from a link scanner"},
 		{"unknown timing", Signal{UserAgent: chromeMac, SinceSend: -1}, false, "Chrome on macOS"},

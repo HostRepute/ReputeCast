@@ -100,6 +100,10 @@ func (b Builder) Open(token string) string { return b.join("t", "o", token) }
 // Click is the click redirect URL.
 func (b Builder) Click(token string) string { return b.join("t", "c", token) }
 
+// Honeypot is the hidden link of a tracked email: a person never sees it,
+// so whatever follows it is a machine (review AN-2).
+func (b Builder) Honeypot(token string) string { return b.join("t", "h", token) }
+
 // Unsubscribe is the unsubscribe page; mail clients POST to the same URL for
 // one-click unsubscribe (List-Unsubscribe-Post: List-Unsubscribe=One-Click).
 func (b Builder) Unsubscribe(workspace, token string) string {

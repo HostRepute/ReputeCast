@@ -132,6 +132,10 @@ func PrepareCut(c Content, t Tracking, cut func(string) string) (*Template, erro
 	if t.Opens {
 		trackedHTML = addPixel(trackedHTML)
 	}
+	if t.Clicks {
+		// The hidden link only machines follow (honeypot.go).
+		trackedHTML = addHoneypot(trackedHTML)
+	}
 	if out.tracked, err = parse(trackedHTML); err != nil {
 		return nil, err
 	}

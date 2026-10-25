@@ -4414,6 +4414,25 @@ type TrackingLinkClick struct {
 	ClickedAt time.Time `json:"clickedAt"`
 }
 
+type TrackingNetwork struct {
+	Cidr      netip.Prefix `json:"cidr"`
+	Name      string       `json:"name"`
+	Class     string       `json:"class"`
+	Source    string       `json:"source"`
+	Note      string       `json:"note"`
+	CreatedBy *uuid.UUID   `json:"createdBy"`
+	CreatedAt time.Time    `json:"createdAt"`
+}
+
+type TrackingPendingClick struct {
+	EventID   uuid.UUID `json:"eventId"`
+	MessageID uuid.UUID `json:"messageId"`
+	Link      int32     `json:"link"`
+	Url       string    `json:"url"`
+	ClickedAt time.Time `json:"clickedAt"`
+	SettleAt  time.Time `json:"settleAt"`
+}
+
 type TrackingRetry struct {
 	ID        int64           `json:"id"`
 	MessageID uuid.UUID       `json:"messageId"`

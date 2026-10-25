@@ -31,6 +31,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/automations"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/linktoken"
@@ -80,11 +81,14 @@ type Service struct {
 	// referral.* links) to personalized links; nil adds none.
 	Recipients func() []liquid.RecipientData
 
+	// Audit records the instance admin's changes to the machine networks.
+	Audit *audit.Logger
+
 	once  sync.Once
 	in    chan *pending
 	mu    sync.Mutex
 	links map[uuid.UUID]linkSet
-	burst map[uuid.UUID][]clickMark
+	nets  netCache
 	// backlog holds opens and clicks that couldn't be recorded nor kept
 	// for a retry (the database was unreachable); the writer tries them
 	// again.
@@ -115,11 +119,6 @@ type ClickTarget struct {
 type linkSet struct {
 	urls  map[int]string
 	until time.Time
-}
-
-type clickMark struct {
-	link int
-	at   time.Time
 }
 
 type pending struct {
@@ -183,6 +182,8 @@ func (s *Service) Routes(r chi.Router) {
 	r.Head("/t/o/{token}", s.open)
 	r.Get("/t/c/{token}", s.click)
 	r.Head("/t/c/{token}", s.click)
+	r.Get("/t/h/{token}", s.honeypot)
+	r.Head("/t/h/{token}", s.honeypot)
 }
 
 func noStore(h http.Header) {
@@ -251,6 +252,22 @@ func (s *Service) click(w http.ResponseWriter, r *http.Request) {
 	// the signed token, the URL in that campaign's links, an http(s) URL):
 	// never a URL taken from the request.
 	http.Redirect(w, r, target, http.StatusFound) //nolint:gosec // G710: see target
+}
+
+// honeypot answers the hidden link of a tracked email. No person can see
+// it, so whatever follows it is a machine: the click is recorded as a
+// bot's, and the clicks around it settle as the same scanner's.
+func (s *Service) honeypot(w http.ResponseWriter, r *http.Request) {
+	noStore(w.Header())
+	if c, err := s.Links.Verify(chi.URLParam(r, "token"), linktoken.Honeypot); err == nil && c.MessageID != uuid.Nil {
+		ev := sending.Engagement{MessageID: c.MessageID, Click: true, Link: HoneypotLink, UserAgent: r.UserAgent(), IP: clientIP(r), Method: r.Method, At: s.now()}
+		ctx, cancel := context.WithTimeout(r.Context(), 150*time.Millisecond)
+		if err := s.enqueue(ctx, ev); err != nil && !errors.Is(err, context.DeadlineExceeded) {
+			s.log().WarnContext(r.Context(), "record hidden link", "err", err)
+		}
+		cancel()
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // gone answers a tracked link that no longer works, in the language the
@@ -552,32 +569,6 @@ func refOf(raw json.RawMessage) contentRef {
 	var r contentRef
 	_ = json.Unmarshal(raw, &r)
 	return r
-}
-
-// isBurst remembers clicks per message for a few seconds: a message that
-// clicked two other links in the last five seconds is a scanner following
-// every link.
-func (s *Service) isBurst(ev sending.Engagement) bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.burst == nil {
-		s.burst = map[uuid.UUID][]clickMark{}
-	}
-	if len(s.burst) > 10000 {
-		s.burst = map[uuid.UUID][]clickMark{}
-	}
-	marks := s.burst[ev.MessageID][:0:0]
-	others := map[int]bool{}
-	for _, m := range s.burst[ev.MessageID] {
-		if ev.At.Sub(m.at) <= 5*time.Second && ev.At.Sub(m.at) >= 0 {
-			marks = append(marks, m)
-			if m.link != ev.Link {
-				others[m.link] = true
-			}
-		}
-	}
-	s.burst[ev.MessageID] = append(marks, clickMark{link: ev.Link, at: ev.At})
-	return len(others) >= 2
 }
 
 func clip(s string, n int) string {

@@ -179,6 +179,7 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 		return out, err
 	}
 	out.ClickMap = clickMap(l, c.Html, links)
+	out.Headline.BotClicks = out.ClickMap.BotTotal
 	if s.Languages != nil {
 		if out.Languages, err = s.Languages.CampaignResults(ctx, ws, c.ID, c.Audience); err != nil {
 			return out, err
@@ -519,6 +520,7 @@ func clickMap(l i18n.Lang, html string, rows []store.ReportLinksRow) ReportClick
 	out := ReportClickMap{HTML: html, Available: strings.TrimSpace(html) != "", Links: []ReportLink{}, Threshold: LinkThreshold}
 	for _, r := range rows {
 		out.Total += r.Clicks
+		out.BotTotal += r.BotClicks
 	}
 	var other ReportLinkGroup
 	type labelled struct {
@@ -527,7 +529,8 @@ func clickMap(l i18n.Lang, html string, rows []store.ReportLinksRow) ReportClick
 	}
 	var grouped []labelled
 	for _, r := range rows {
-		l := ReportLink{ID: r.ID.String(), URL: r.Url, Label: linkLabel(r.Label, r.Url), Position: int(r.Position), Clicks: r.Clicks, UniqueClicks: r.UniqueClicks}
+		l := ReportLink{ID: r.ID.String(), URL: r.Url, Label: linkLabel(r.Label, r.Url), Position: int(r.Position), Clicks: r.Clicks, UniqueClicks: r.UniqueClicks,
+			BotClicks: r.BotClicks}
 		if out.Total > 0 {
 			l.Share = round(float64(r.Clicks)/float64(out.Total)*100, 1)
 		}
@@ -574,6 +577,7 @@ func groupPersonal(l i18n.Lang, rows []store.ReportLinksRow) []store.ReportLinks
 		}
 		out[at].Clicks += r.Clicks
 		out[at].UniqueClicks += r.UniqueClicks
+		out[at].BotClicks += r.BotClicks
 	}
 	return out
 }

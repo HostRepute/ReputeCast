@@ -122,6 +122,62 @@ func (q *Queries) TrackingContactVars(ctx context.Context, id uuid.UUID) (Tracki
 	return i, err
 }
 
+const trackingDueClicks = `-- name: TrackingDueClicks :many
+SELECT p.event_id, p.message_id, p.link, p.url, p.clicked_at,
+       coalesce(e.user_agent, '')::text AS user_agent, e.ip
+FROM tracking_pending_clicks p
+LEFT JOIN delivery_events e ON e.id = p.event_id
+WHERE p.settle_at <= $1
+ORDER BY p.message_id, p.clicked_at, p.event_id
+LIMIT $2
+FOR UPDATE OF p SKIP LOCKED
+`
+
+type TrackingDueClicksParams struct {
+	Now time.Time `json:"now"`
+	Lim int32     `json:"lim"`
+}
+
+type TrackingDueClicksRow struct {
+	EventID   uuid.UUID   `json:"eventId"`
+	MessageID uuid.UUID   `json:"messageId"`
+	Link      int32       `json:"link"`
+	Url       string      `json:"url"`
+	ClickedAt time.Time   `json:"clickedAt"`
+	UserAgent string      `json:"userAgent"`
+	Ip        *netip.Addr `json:"ip"`
+}
+
+// Pending clicks due to settle, each message's together and in message
+// order (the order writers lock messages in), with what the click sent.
+func (q *Queries) TrackingDueClicks(ctx context.Context, arg TrackingDueClicksParams) ([]TrackingDueClicksRow, error) {
+	rows, err := q.db.Query(ctx, trackingDueClicks, arg.Now, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TrackingDueClicksRow{}
+	for rows.Next() {
+		var i TrackingDueClicksRow
+		if err := rows.Scan(
+			&i.EventID,
+			&i.MessageID,
+			&i.Link,
+			&i.Url,
+			&i.ClickedAt,
+			&i.UserAgent,
+			&i.Ip,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const trackingFirstLinkClick = `-- name: TrackingFirstLinkClick :one
 INSERT INTO tracking_link_clicks (message_id, link, clicked_at) VALUES ($1, $2, $3)
 ON CONFLICT DO NOTHING
@@ -258,6 +314,182 @@ func (q *Queries) TrackingMessage(ctx context.Context, id uuid.UUID) (TrackingMe
 	return i, err
 }
 
+const trackingMessageClicks = `-- name: TrackingMessageClicks :many
+SELECT occurred_at, coalesce(link, -2)::integer AS link, class
+FROM delivery_events
+WHERE message_id = $1 AND type = 'click' AND occurred_at BETWEEN $2 AND $3
+ORDER BY occurred_at
+`
+
+type TrackingMessageClicksParams struct {
+	MessageID *uuid.UUID `json:"messageId"`
+	FromAt    time.Time  `json:"fromAt"`
+	UntilAt   time.Time  `json:"untilAt"`
+}
+
+type TrackingMessageClicksRow struct {
+	OccurredAt time.Time `json:"occurredAt"`
+	Link       int32     `json:"link"`
+	Class      string    `json:"class"`
+}
+
+// A message's clicks between two times (bursts, the hidden link); link -1
+// is the hidden link.
+func (q *Queries) TrackingMessageClicks(ctx context.Context, arg TrackingMessageClicksParams) ([]TrackingMessageClicksRow, error) {
+	rows, err := q.db.Query(ctx, trackingMessageClicks, arg.MessageID, arg.FromAt, arg.UntilAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TrackingMessageClicksRow{}
+	for rows.Next() {
+		var i TrackingMessageClicksRow
+		if err := rows.Scan(&i.OccurredAt, &i.Link, &i.Class); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const trackingNetworkAdd = `-- name: TrackingNetworkAdd :one
+INSERT INTO tracking_networks (cidr, name, class, source, note, created_by)
+VALUES ($1::cidr, $2, $3, 'admin', $4, $5)
+ON CONFLICT (cidr) DO NOTHING
+RETURNING cidr::text AS cidr
+`
+
+type TrackingNetworkAddParams struct {
+	Cidr      netip.Prefix `json:"cidr"`
+	Name      string       `json:"name"`
+	Class     string       `json:"class"`
+	Note      string       `json:"note"`
+	CreatedBy *uuid.UUID   `json:"createdBy"`
+}
+
+func (q *Queries) TrackingNetworkAdd(ctx context.Context, arg TrackingNetworkAddParams) (string, error) {
+	row := q.db.QueryRow(ctx, trackingNetworkAdd,
+		arg.Cidr,
+		arg.Name,
+		arg.Class,
+		arg.Note,
+		arg.CreatedBy,
+	)
+	var cidr string
+	err := row.Scan(&cidr)
+	return cidr, err
+}
+
+const trackingNetworkDelete = `-- name: TrackingNetworkDelete :one
+DELETE FROM tracking_networks WHERE cidr = $1::cidr AND source = 'admin'
+RETURNING cidr::text AS cidr, name, class, note
+`
+
+type TrackingNetworkDeleteRow struct {
+	Cidr  string `json:"cidr"`
+	Name  string `json:"name"`
+	Class string `json:"class"`
+	Note  string `json:"note"`
+}
+
+// Only networks an admin added can be removed; the built-in ones come with
+// releases.
+func (q *Queries) TrackingNetworkDelete(ctx context.Context, cidr netip.Prefix) (TrackingNetworkDeleteRow, error) {
+	row := q.db.QueryRow(ctx, trackingNetworkDelete, cidr)
+	var i TrackingNetworkDeleteRow
+	err := row.Scan(
+		&i.Cidr,
+		&i.Name,
+		&i.Class,
+		&i.Note,
+	)
+	return i, err
+}
+
+const trackingNetworkList = `-- name: TrackingNetworkList :many
+SELECT cidr::text AS cidr, name, class, source, note, created_at
+FROM tracking_networks
+ORDER BY class, name, cidr
+`
+
+type TrackingNetworkListRow struct {
+	Cidr      string    `json:"cidr"`
+	Name      string    `json:"name"`
+	Class     string    `json:"class"`
+	Source    string    `json:"source"`
+	Note      string    `json:"note"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+// Networks of privacy proxies and mail scanners.
+func (q *Queries) TrackingNetworkList(ctx context.Context) ([]TrackingNetworkListRow, error) {
+	rows, err := q.db.Query(ctx, trackingNetworkList)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TrackingNetworkListRow{}
+	for rows.Next() {
+		var i TrackingNetworkListRow
+		if err := rows.Scan(
+			&i.Cidr,
+			&i.Name,
+			&i.Class,
+			&i.Source,
+			&i.Note,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const trackingNextSettle = `-- name: TrackingNextSettle :one
+SELECT coalesce(min(settle_at), 'epoch'::timestamptz)::timestamptz FROM tracking_pending_clicks
+`
+
+func (q *Queries) TrackingNextSettle(ctx context.Context) (time.Time, error) {
+	row := q.db.QueryRow(ctx, trackingNextSettle)
+	var column_1 time.Time
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const trackingPendingClick = `-- name: TrackingPendingClick :exec
+INSERT INTO tracking_pending_clicks (event_id, message_id, link, url, clicked_at, settle_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+`
+
+type TrackingPendingClickParams struct {
+	EventID   uuid.UUID `json:"eventId"`
+	MessageID uuid.UUID `json:"messageId"`
+	Link      int32     `json:"link"`
+	Url       string    `json:"url"`
+	ClickedAt time.Time `json:"clickedAt"`
+	SettleAt  time.Time `json:"settleAt"`
+}
+
+// A click that looks like a person's waits to settle (review AN-2).
+func (q *Queries) TrackingPendingClick(ctx context.Context, arg TrackingPendingClickParams) error {
+	_, err := q.db.Exec(ctx, trackingPendingClick,
+		arg.EventID,
+		arg.MessageID,
+		arg.Link,
+		arg.Url,
+		arg.ClickedAt,
+		arg.SettleAt,
+	)
+	return err
+}
+
 const trackingRetryClaim = `-- name: TrackingRetryClaim :many
 UPDATE tracking_retry r
 SET attempts = r.attempts + 1, next_at = $1
@@ -380,6 +612,36 @@ func (q *Queries) TrackingRetryPurge(ctx context.Context, before time.Time) (int
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const trackingSettleEvent = `-- name: TrackingSettleEvent :exec
+UPDATE delivery_events SET class = $1, machine = $2, diagnostic = $3 WHERE id = $4
+`
+
+type TrackingSettleEventParams struct {
+	Class      string    `json:"class"`
+	Machine    bool      `json:"machine"`
+	Diagnostic string    `json:"diagnostic"`
+	ID         uuid.UUID `json:"id"`
+}
+
+func (q *Queries) TrackingSettleEvent(ctx context.Context, arg TrackingSettleEventParams) error {
+	_, err := q.db.Exec(ctx, trackingSettleEvent,
+		arg.Class,
+		arg.Machine,
+		arg.Diagnostic,
+		arg.ID,
+	)
+	return err
+}
+
+const trackingSettled = `-- name: TrackingSettled :exec
+DELETE FROM tracking_pending_clicks WHERE event_id = ANY($1::uuid[])
+`
+
+func (q *Queries) TrackingSettled(ctx context.Context, ids []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, trackingSettled, ids)
+	return err
 }
 
 const trackingSourceLabel = `-- name: TrackingSourceLabel :one

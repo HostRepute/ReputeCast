@@ -44,6 +44,9 @@ const (
 	ReferralHub     Kind = 150
 	Recommendations Kind = 151
 	RewardDownload  Kind = 152
+	// Review 2026-10 (R05: 200–209): the hidden link of tracked emails,
+	// which only machines follow (bot clicks, review AN-2).
+	Honeypot Kind = 200
 )
 
 const version = 1

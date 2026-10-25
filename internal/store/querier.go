@@ -7,6 +7,7 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"net/netip"
 	"time"
 
 	"github.com/google/uuid"
@@ -2895,6 +2896,8 @@ type Querier interface {
 	ReportLatestReadiness(ctx context.Context, campaignID uuid.UUID) (ReportLatestReadinessRow, error)
 	// The most recent campaign with results, for "See the last report instead".
 	ReportLatestSent(ctx context.Context, arg ReportLatestSentParams) (ReportLatestSentRow, error)
+	// Clicks per link: people's clicks, people's first click per link, and
+	// the clicks the bot filter left out.
 	ReportLinks(ctx context.Context, campaignID uuid.UUID) ([]ReportLinksRow, error)
 	// Each sending provider's share of the send: what was planned, the cost and
 	// the median time to delivery (stored at completion, else computed from the
@@ -3712,12 +3715,27 @@ type Querier interface {
 	TrackingBumpAutomationLink(ctx context.Context, arg TrackingBumpAutomationLinkParams) error
 	TrackingCampaignLinks(ctx context.Context, campaignID uuid.UUID) ([]TrackingCampaignLinksRow, error)
 	TrackingContactVars(ctx context.Context, id uuid.UUID) (TrackingContactVarsRow, error)
+	// Pending clicks due to settle, each message's together and in message
+	// order (the order writers lock messages in), with what the click sent.
+	TrackingDueClicks(ctx context.Context, arg TrackingDueClicksParams) ([]TrackingDueClicksRow, error)
 	TrackingFirstLinkClick(ctx context.Context, arg TrackingFirstLinkClickParams) (int32, error)
 	// class is how tracking classified the open or click (human, privacy,
 	// machine; human, bot); link the clicked link's position.
 	TrackingInsertEvent(ctx context.Context, arg TrackingInsertEventParams) error
 	// Open and click tracking (spec 5.5, 7.6).
 	TrackingMessage(ctx context.Context, id uuid.UUID) (TrackingMessageRow, error)
+	// A message's clicks between two times (bursts, the hidden link); link -1
+	// is the hidden link.
+	TrackingMessageClicks(ctx context.Context, arg TrackingMessageClicksParams) ([]TrackingMessageClicksRow, error)
+	TrackingNetworkAdd(ctx context.Context, arg TrackingNetworkAddParams) (string, error)
+	// Only networks an admin added can be removed; the built-in ones come with
+	// releases.
+	TrackingNetworkDelete(ctx context.Context, cidr netip.Prefix) (TrackingNetworkDeleteRow, error)
+	// Networks of privacy proxies and mail scanners.
+	TrackingNetworkList(ctx context.Context) ([]TrackingNetworkListRow, error)
+	TrackingNextSettle(ctx context.Context) (time.Time, error)
+	// A click that looks like a person's waits to settle (review AN-2).
+	TrackingPendingClick(ctx context.Context, arg TrackingPendingClickParams) error
 	// Takes due events for one retry: they are put off by the backoff first,
 	// so a worker that dies leaves them for a later run.
 	TrackingRetryClaim(ctx context.Context, arg TrackingRetryClaimParams) ([]TrackingRetryClaimRow, error)
@@ -3729,6 +3747,8 @@ type Querier interface {
 	// Events that kept failing for 30 days are dropped (the error stays in the
 	// log of each attempt).
 	TrackingRetryPurge(ctx context.Context, before time.Time) (int64, error)
+	TrackingSettleEvent(ctx context.Context, arg TrackingSettleEventParams) error
+	TrackingSettled(ctx context.Context, ids []uuid.UUID) error
 	TrackingSourceLabel(ctx context.Context, id uuid.UUID) (string, error)
 	// A batch's opens and clicks on contacts, one row per contact in id order
 	// (the last lock a tracking batch takes). opened is the latest open, human
