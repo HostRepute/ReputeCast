@@ -2806,6 +2806,7 @@ type ProviderCallWindow struct {
 	Calls      int32     `json:"calls"`
 	Errors     int32     `json:"errors"`
 	Messages   int32     `json:"messages"`
+	Rejected   int32     `json:"rejected"`
 }
 
 type ProviderDailyStat struct {
@@ -2849,6 +2850,14 @@ type ProviderSetup struct {
 	FinishedAt  *time.Time      `json:"finishedAt"`
 }
 
+type ProviderSuppressionEntry struct {
+	ProviderID uuid.UUID `json:"providerId"`
+	Email      string    `json:"email"`
+	Origin     string    `json:"origin"`
+	Seq        int64     `json:"seq"`
+	SyncedAt   time.Time `json:"syncedAt"`
+}
+
 type ProviderSuppressionSync struct {
 	ProviderID   uuid.UUID  `json:"providerId"`
 	Mode         string     `json:"mode"`
@@ -2859,6 +2868,9 @@ type ProviderSuppressionSync struct {
 	Pending      int64      `json:"pending"`
 	Status       string     `json:"status"`
 	StatusDetail string     `json:"statusDetail"`
+	Scope        string     `json:"scope"`
+	PushSeq      int64      `json:"pushSeq"`
+	Removed      int64      `json:"removed"`
 }
 
 type PublicPageSetting struct {
@@ -4334,6 +4346,7 @@ type Suppression struct {
 	Context          string          `json:"context"`
 	ImportID         *uuid.UUID      `json:"importId"`
 	Texts            json.RawMessage `json:"texts"`
+	Seq              int64           `json:"seq"`
 }
 
 type Survey struct {

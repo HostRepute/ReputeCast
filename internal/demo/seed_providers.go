@@ -54,7 +54,10 @@ func seedProvidersImpl(ctx context.Context, s *Seeder) error {
 		{
 			key: "ses", adapter: "ses", name: "Amazon SES", label: "us-east-1", status: state.Healthy, detail: "Production · no enforcement", ipMode: "shared",
 			config: map[string]any{"demo": true, "region": "us-east-1", "configuration_set": "rc-broadcasts", "access": "role",
-				"role_arn": "arn:aws:iam::123456789012:role/reputecast-ses", "topic_arns": []string{"arn:aws:sns:us-east-1:123456789012:reputecast-acme-newsletter"}},
+				"role_arn": "arn:aws:iam::123456789012:role/reputecast-ses", "topic_arns": []string{"arn:aws:sns:us-east-1:123456789012:reputecast-acme-newsletter"},
+				// The workspace's SES tenant: its own suppression list and
+				// reputation policy (PR-11, Providers and Events & sync boards).
+				"tenant": "acme-newsletter", "tenant_reputation_policy": "standard"},
 			caps:   sesCaps,
 			limits: state.Limits{Bounce: state.Limit{Limit: 5, Review: 5, Pause: 10, Label: "SES"}, Complaint: state.Limit{Limit: 0.1, Review: 0.1, Pause: 0.5, Label: "SES"}},
 			health: state.Health{Quota: &state.Quota{Kind: "rolling_24h", Max: 50000, Used: 2140}, Rate: &state.Rate{Max: 14, PeakToday: 14},
@@ -142,14 +145,17 @@ func seedProvidersImpl(ctx context.Context, s *Seeder) error {
 	}
 
 	// Suppression sync per provider (Postal and SMTP have no suppression API:
-	// ReputeCast enforces the shared list before sending).
+	// ReputeCast enforces the shared list before sending). Only hard bounces
+	// and complaints that apply to all mail are pushed (PR-1); SES gets them
+	// on the workspace's tenant list (Events & sync board).
 	pushed := s.Ago(time.Minute)
 	for _, row := range []struct {
 		id             uuid.UUID
+		scope          string
 		pulled, pushed int64
-	}{{ses, 612, 1262}, {postmark, 188, 1686}} {
-		if _, err := s.Tx.Exec(ctx, `INSERT INTO provider_suppression_sync (provider_id, mode, last_push_at, last_pull_at, pushed, pulled, pending, status)
-			VALUES ($1, 'two_way', $2, $2, $3, $4, 0, 'ok')`, row.id, pushed, row.pushed, row.pulled); err != nil {
+	}{{ses, "tenant", 612, 886}, {postmark, "stream", 188, 1310}} {
+		if _, err := s.Tx.Exec(ctx, `INSERT INTO provider_suppression_sync (provider_id, mode, last_push_at, last_pull_at, pushed, pulled, pending, status, scope)
+			VALUES ($1, 'two_way', $2, $2, $3, $4, 0, 'ok', $5)`, row.id, pushed, row.pushed, row.pulled, row.scope); err != nil {
 			return err
 		}
 	}
@@ -490,9 +496,14 @@ func seedSuppressionsIfEmpty(ctx context.Context, s *Seeder) error {
 				at = g.at
 			}
 			code := map[string]string{"hard_bounce": "550 5.1.1", "complaint": "abuse"}[g.reason]
-			rows = append(rows, []any{ID(), ws.ID, email, g.reason, g.source, g.provider, code, at})
+			// Unsubscribes stop marketing only, as the unsubscribe page writes them.
+			scope := "all"
+			if g.reason == "unsubscribe" {
+				scope = "marketing"
+			}
+			rows = append(rows, []any{ID(), ws.ID, email, g.reason, g.source, g.provider, code, at, scope})
 		}
-		if _, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"suppressions"}, []string{"id", "workspace_id", "email", "reason", "source", "source_provider_id", "original_code", "created_at"}, pgx.CopyFromRows(rows)); err != nil {
+		if _, err := s.Tx.CopyFrom(ctx, pgx.Identifier{"suppressions"}, []string{"id", "workspace_id", "email", "reason", "source", "source_provider_id", "original_code", "created_at", "scope"}, pgx.CopyFromRows(rows)); err != nil {
 			return err
 		}
 	}

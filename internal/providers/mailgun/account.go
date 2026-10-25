@@ -410,6 +410,24 @@ func (p *Provider) AddSuppressions(ctx context.Context, emails []string) error {
 	return nil
 }
 
+// RemoveSuppressions implements providers.SuppressionRemover on the sending
+// domain's unsubscribe list (where AddSuppressions puts them).
+func (p *Provider) RemoveSuppressions(ctx context.Context, emails []string) error {
+	for _, e := range emails {
+		err := p.api.Do(ctx, "DELETE /v3/{domain}/unsubscribes", http.MethodDelete, apiclient.Path("/v3/%s/unsubscribes/%s", p.s.Domain, e), nil, nil)
+		if err != nil && !apiclient.NotFound(err) {
+			return p.classify(err, p.s.Domain)
+		}
+	}
+	return nil
+}
+
+// SuppressionScope implements providers.SuppressionScoper: Mailgun keeps its
+// lists per sending domain.
+func (p *Provider) SuppressionScope() providers.SuppressionScope {
+	return providers.SuppressionScope{Scope: providers.SuppressionScopeDomain, Writable: true}
+}
+
 // Tracking implements providers.TrackingManager from the domain's tracking
 // settings. ReputeCast turns open and click tracking off on every message
 // (o:tracking=no), but unsubscribe tracking still inserts Mailgun's own
