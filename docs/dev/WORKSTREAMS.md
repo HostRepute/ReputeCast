@@ -97,3 +97,19 @@ Rules on top of the shared resources above:
 | X21 | SMS | M31 | wave 2 |
 | X22 | Web push and WhatsApp | M32 | X21 |
 | X23 | Agency accounts | M32 | wave 2 |
+
+## Review 2026-10 (M33–M39)
+
+The October 2026 review of the five core features (`docs/spec/reputecast-review-2026-10.md`,
+one ID per fix or addition) is built on the
+`review/integration` branch by workstreams R01–R06. Each owns its packages, boards and a migration
+range; the design for every screen is on the updated canvas.
+
+| # | Workstream | IDs | Boards (plus Phone/Tablet) | Packages | Migrations |
+|---|---|---|---|---|---|
+| R01 | **Foundations and integration** | F-1–F-6, X-1–X-3 | — | `internal/mailbox` (new), `emailaddr`, contact insert paths, `apptest` (production-shape harness), the table-writer check | 03000–03049 |
+| R02 | **Guarded sending** | GS-1–GS-14 | LiveMonitor*, LiveMonitorCanary, ProvidersTrafficRules | `sending/engine` (except A/B decisions), `providers/manage` outage holds, `live` web feature, traffic rules | 03050–03099 |
+| R03 | **Providers, routing and warm-up** | PR-1–PR-15 | Providers*, ProvidersRouting, ProvidersWarmup, Setup*, OverviewEmpty | `providers` (except outage holds), `routing`, `warmup`, `suppressions`, `connect`, `providers` and `connect` web features | 03100–03149 |
+| R04 | **Send Readiness** | SR-1–SR-13 | SendReadiness*, SendReadinessFixes, SettingsSendingRules | `readiness`, `contentcheck`, `dnscheck`, `approvals` (send path), `review` web feature | 03150–03199 |
+| R05 | **Honest analytics** | AN-1–AN-16 | Report*, ReportStates | `reports`, `tracking`, `ingest` counters, `sending/engine/ab*.go`, `ai` summaries, share links, web-post views, `reports` web feature | 03200–03249 |
+| R06 | **Composer** | CO-1–CO-14 | Composer*, ComposerWrite, BrandKit | `campaigns` (content, versions, comments), `liquid`, `mjml`, `templates`, `media`, `composer` web feature | 03250–03299 |

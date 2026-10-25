@@ -42,6 +42,13 @@ Status: ✅ done · 🚧 in progress · ⏳ planned
 | **M30 Shopify and WooCommerce** | Store connections, synced orders, products and customers, store triggers and blocks, revenue, the abandoned-cart starter | X20 | ✅ |
 | **M31 SMS** | SMS providers and senders, routing by country, phone numbers and SMS consent, keywords and quiet hours, the SMS composer, review and report | X21 | ✅ |
 | **M32 Web push, WhatsApp and agencies** | VAPID keys and the service worker, the prompt designer, push campaigns; WhatsApp through the Meta Cloud API; agency client workspaces, library and usage | X22, X23 | ✅ |
+| **M33 Review foundations** | Mailbox providers from MX records everywhere, complaint-reporting semantics (unknown is not zero), production writers for every queried table, production-shape end-to-end harness, UI claims backed by tests (`docs/spec/reputecast-review-2026-10.md` F-1–F-6) | R01 | 🚧 |
+| **M34 Guarded sending, hardened** | No double sends, honest resume, one outage path, vetted moves, canary phase, thresholds by bounce type and deferrals, mailbox-provider response rules, mid-send rates, the 72-hour complaint watch, the live monitor redesign (GS-1–GS-14) | R02 | ⏳ |
+| **M35 Providers, routing and warm-up, hardened** | Scoped suppression pushes, order-independent splits, verified SES onboarding with an SQS option, honest silence alarms, vetted failover, warm-up in the send loop, SES tenants, weighted conditions, Help me choose, provider screens redesign (PR-1–PR-15) | R03 | ⏳ |
+| **M36 Send Readiness, hardened** | Live link-domain blocklists, parent and return-path domains, send-time holds, safe fixes, engine-true estimates, every missing check, background runs, placement tests and workspace rules in Review, the Review & send redesign (SR-1–SR-13) | R04 | ⏳ |
+| **M37 Honest analytics, hardened** | A/B with significance end to end, bot-click defense, trustworthy counters, provider tracking and SMTP delivery, click map per variant, three open buckets, comparisons, growth and revenue per issue, web views, ask about a report, share options, the report redesign (AN-1–AN-16) | R05 | ⏳ |
+| **M38 Composer, hardened** | No lost edits, safe conflicts, validated HTML, Liquid in Readiness, A/B variants, Write mode, comments and reviewer links, brand kit and synced blocks, image optimisation, real renders, the composer redesign (CO-1–CO-14) | R06 | ⏳ |
+| **M39 Review integration** | Plain-language permissions, English and Vietnamese for every new string, visual and accessibility QA at 1440/834/390, docs (X-1–X-3) | R01 | ⏳ |
 
 ## Design expansion (M15–M32)
 
