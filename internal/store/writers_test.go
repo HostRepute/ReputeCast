@@ -14,7 +14,7 @@ import (
 // write today, each with the review item that gives it a production writer.
 // Remove an entry when its writer lands; never add one without an ID.
 var knownGaps = map[string]string{
-	"earn_offer_codes":     "EXT-1: referral coupon rewards still use the pre-offers stub (internal/app/wire_referrals.go), so no code is ever issued",
+	"earn_offer_codes": "EXT-1: referral coupon rewards still use the pre-offers stub (internal/app/wire_referrals.go), so no code is ever issued",
 }
 
 var (
