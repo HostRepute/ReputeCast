@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/authz"
 	"github.com/hostrepute/reputecast/internal/campaigns"
 	"github.com/hostrepute/reputecast/internal/db"
+	"github.com/hostrepute/reputecast/internal/dnscheck"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/publicurl"
@@ -72,6 +73,9 @@ type Service struct {
 	// audience is counted, so throttles and estimates use the mailbox
 	// provider the send will use (internal/mailbox); nil skips it.
 	Mailbox MailboxClassifier
+	// DNS looks up again what Deliverability couldn't (a DNS error is
+	// Unknown, never a wrong record); nil keeps the stored results.
+	DNS dnscheck.Resolver
 }
 
 func (s *Service) now() time.Time {

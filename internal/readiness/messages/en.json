@@ -769,5 +769,13 @@
   "footer.address": { "message": "Your company · Street and number · City, postcode", "note": "the footer block's address until the workspace has one; it goes into the email" },
   "footer.unsubscribe": { "message": "Unsubscribe", "note": "a link in the email's footer" },
   "footer.preferences": "Email preferences",
-  "footer.viewInBrowser": "View in browser"
+  "footer.viewInBrowser": "View in browser",
+
+  "auth.lookupFailed": { "message": "Couldn't look up the {record} record of {domain}", "note": "record: SPF, DKIM, DMARC, MAIL FROM or BIMI" },
+  "auth.lookupFailedFor": { "message": "Couldn't look up the {record} records of {providers}", "note": "providers: sending providers' names (SES and Postal)" },
+  "auth.lookupFailedDetail": "{trouble, select, timeout {DNS didn't answer in time} servfail {The DNS server failed (SERVFAIL)} refused {The DNS server refused the query} other {DNS gave no usable answer}}, also when this run looked it up again. That says nothing about the record, so it isn't treated as missing or invalid; it's looked up again at the send-time recheck.",
+  "note.dnsError": { "message": "DNS error", "note": "a short note on a check whose DNS lookup failed" },
+  "auth.bimiInvalid": "The BIMI record of {domain} is invalid",
+  "auth.bimiInvalidDetail": "Mailbox providers show no logo until it's fixed.",
+  "auth.bimiInvalidAck": "I understand the BIMI record is invalid and no logo shows."
 }

@@ -255,9 +255,17 @@ type AuthFacts struct {
 	DMARCPolicy  string
 	DMARCRecord  string
 	DMARCAligned *float64
-	// BIMIStatus is pass, missing or invalid.
+	// BIMIStatus is pass, missing, invalid or error.
 	BIMIStatus string
 	BIMILogo   string
+	// DMARCError and BIMIError say why a lookup failed (Trouble* kinds):
+	// the record's state is unknown, not wrong. BIMIProblem is what's wrong
+	// with an invalid BIMI record ("l= must be an https URL…").
+	DMARCError string
+	BIMIError  string
+	// SPFError says why the domain's own SPF record couldn't be read.
+	SPFError    string
+	BIMIProblem string
 }
 
 // What a provider's record detail says (ProviderAuthFacts.DetailKind).
@@ -285,6 +293,10 @@ type ProviderAuthFacts struct {
 	Name       string
 	KeyBits    int
 	Domain     string
+	// Unknown is true when DNS didn't answer for the record (even after the
+	// run looked it up again); Trouble says how (Trouble* kinds).
+	Unknown bool
+	Trouble string
 }
 
 // ContentFacts are the composer's content and link checks.

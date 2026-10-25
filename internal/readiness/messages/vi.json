@@ -769,5 +769,13 @@
   "footer.address": "Công ty của bạn · Số nhà và tên đường · Thành phố, mã bưu chính",
   "footer.unsubscribe": "Hủy đăng ký",
   "footer.preferences": "Tùy chọn email",
-  "footer.viewInBrowser": "Xem trên trình duyệt"
+  "footer.viewInBrowser": "Xem trên trình duyệt",
+
+  "auth.lookupFailed": "Không tra cứu được bản ghi {record} của {domain}",
+  "auth.lookupFailedFor": "Không tra cứu được bản ghi {record} của {providers}",
+  "auth.lookupFailedDetail": "{trouble, select, timeout {DNS không trả lời kịp} servfail {Máy chủ DNS bị lỗi (SERVFAIL)} refused {Máy chủ DNS từ chối truy vấn} other {DNS không trả về câu trả lời dùng được}}, kể cả khi lần kiểm tra này tra cứu lại. Điều đó không cho biết gì về bản ghi, nên bản ghi không bị coi là thiếu hay không hợp lệ; nó sẽ được tra cứu lại ở lần kiểm tra lại lúc gửi.",
+  "note.dnsError": "lỗi DNS",
+  "auth.bimiInvalid": "Bản ghi BIMI của {domain} không hợp lệ",
+  "auth.bimiInvalidDetail": "Các nhà cung cấp hộp thư sẽ không hiển thị logo cho đến khi bản ghi được sửa.",
+  "auth.bimiInvalidAck": "Tôi hiểu bản ghi BIMI không hợp lệ và logo sẽ không hiển thị."
 }

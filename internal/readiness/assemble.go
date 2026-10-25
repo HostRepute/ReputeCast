@@ -133,6 +133,12 @@ func Assemble(f Facts) ReadinessResult {
 			out.problem = unknownReason(f.Reputation)
 		default:
 			out.problem = tx("problem.someChecks", nil)
+			for _, c := range b.checks {
+				if c.Status == Unknown {
+					out.problem = asSentence(c.Title)
+					break
+				}
+			}
 		}
 		out.Problem = out.problem.en()
 	}
@@ -571,10 +577,14 @@ func (b *builder) authentication() {
 		return
 	}
 	senders := link(tx("fix.openSenders", nil), b.href("/settings/senders"))
-	if bad := failing(a.SPF); len(bad) == 0 && len(a.SPF) > 0 {
+	if unknown := lookupFailing(a.SPF); len(unknown) > 0 && len(failing(a.SPF)) == 0 {
+		b.add(b.lookupUnknown("auth.spf", "SPF", domain, unknown, unknown))
+	} else if bad := failing(a.SPF); len(bad) == 0 && len(a.SPF) > 0 {
 		names := shorts(a.SPF)
 		b.add(check{Key: "auth.spf", Group: GroupAuthentication, Status: Pass,
 			Title: tx("auth.spfPass", A{"count": len(names), "provider": first(names)}), Detail: RawText(a.SPFRecord), Mono: a.SPFRecord != "", Label: RawText("SPF"), Short: RawText("SPF")})
+	} else if len(a.SPF) == 0 && a.SPFRecord == "" && a.SPFError != "" {
+		b.add(b.lookupUnknown("auth.spf", "SPF", domain, nil, []ProviderAuthFacts{{Unknown: true, Trouble: a.SPFError}}))
 	} else if len(a.SPF) == 0 && a.SPFRecord == "" {
 		b.add(check{Key: "auth.spf", Group: GroupAuthentication, Status: Block, Title: tx("auth.spfMissing", A{"domain": domain}),
 			Detail: tx("auth.spfMissingDetail", nil), Label: RawText("SPF"), Fixes: []fix{senders}})
@@ -592,7 +602,9 @@ func (b *builder) authentication() {
 		b.add(check{Key: "auth.spf", Group: GroupAuthentication, Status: Block, Title: tx("auth.spfFails", A{"providers": ArgAnd(bad)}),
 			Detail: detail, Label: RawText("SPF"), Fixes: []fix{senders}})
 	}
-	if bad := failing(a.DKIM); len(bad) == 0 && len(a.DKIM) > 0 {
+	if unknown := lookupFailing(a.DKIM); len(unknown) > 0 && len(failing(a.DKIM)) == 0 {
+		b.add(b.lookupUnknown("auth.dkim", "DKIM", domain, unknown, unknown))
+	} else if bad := failing(a.DKIM); len(bad) == 0 && len(a.DKIM) > 0 {
 		bits := 0
 		parts := []Text{}
 		for _, d := range a.DKIM {
@@ -653,11 +665,17 @@ func (b *builder) authentication() {
 	case "missing", "":
 		b.add(check{Key: "auth.dmarc", Group: GroupAuthentication, Status: Block, Title: tx("auth.dmarcMissing", A{"domain": domain}),
 			Detail: tx("auth.dmarcMissingDetail", nil), Label: RawText("DMARC"), Fixes: []fix{senders}})
+	case "error":
+		// DNS didn't answer, even when the run asked again: the record's
+		// state is unknown, not invalid.
+		b.add(b.lookupUnknown("auth.dmarc", "DMARC", domain, nil, []ProviderAuthFacts{{Unknown: true, Trouble: a.DMARCError}}))
 	default:
 		b.add(check{Key: "auth.dmarc", Group: GroupAuthentication, Status: Block, Title: tx("auth.dmarcInvalid", A{"domain": domain}),
 			Detail: RawText(a.DMARCRecord), Mono: a.DMARCRecord != "", Label: RawText("DMARC"), Fixes: []fix{senders}})
 	}
-	if bad := failing(a.MailFrom); len(bad) == 0 && len(a.MailFrom) > 0 {
+	if unknown := lookupFailing(a.MailFrom); len(unknown) > 0 && len(failing(a.MailFrom)) == 0 {
+		b.add(b.lookupUnknown("auth.mail_from", "MAIL FROM", domain, unknown, unknown))
+	} else if bad := failing(a.MailFrom); len(bad) == 0 && len(a.MailFrom) > 0 {
 		parts := []string{}
 		for _, m := range a.MailFrom {
 			parts = append(parts, m.Domain+" ("+m.Short+")")
@@ -670,13 +688,25 @@ func (b *builder) authentication() {
 			Detail: tx("auth.mailFromDefaultDetail", nil), Label: RawText("MAIL FROM"),
 			Ack: tx("auth.mailFromDefaultAck", A{"providers": ArgAnd(bad)}), Fixes: []fix{senders}})
 	}
-	if a.BIMIStatus == "pass" {
+	switch a.BIMIStatus {
+	case "pass":
 		detail := RawText(a.BIMILogo)
 		if detail.Empty() {
 			detail = tx("auth.bimiShows", nil)
 		}
 		b.add(check{Key: "auth.bimi", Group: GroupAuthentication, Status: Pass, Title: tx("auth.bimiFound", nil), Detail: detail, Label: RawText("BIMI"), Short: RawText("BIMI")})
-	} else {
+	case "invalid":
+		// A broken record shows no logo and tells mailbox providers the
+		// domain tried: worth fixing, not worth stopping a send.
+		detail := tx("auth.bimiInvalidDetail", nil)
+		if strings.TrimSpace(a.BIMIProblem) != "" {
+			detail = sentences(RawText(sentence(a.BIMIProblem)), detail)
+		}
+		b.add(check{Key: "auth.bimi", Group: GroupAuthentication, Status: Warn, Title: tx("auth.bimiInvalid", A{"domain": domain}), Detail: detail,
+			Label: RawText("BIMI"), Ack: tx("auth.bimiInvalidAck", nil), Fixes: []fix{link(tx("fix.openDeliverability", nil), b.href("/deliverability"))}})
+	case "error":
+		b.add(b.lookupUnknown("auth.bimi", "BIMI", domain, nil, []ProviderAuthFacts{{Unknown: true, Trouble: a.BIMIError}}))
+	default:
 		b.add(check{Key: "auth.bimi", Group: GroupAuthentication, Status: Pass, Title: tx("auth.bimiNotRequired", nil),
 			Detail: tx("auth.bimiOptional", nil), Label: RawText("BIMI"),
 			Fixes: []fix{link(tx("fix.setUpBimi", nil), b.href("/deliverability"))}})
@@ -690,14 +720,48 @@ func first(names []string) string {
 	return names[0]
 }
 
+// failing names the providers whose record is definitely wrong: missing, another value, not
+// aligned. A record DNS didn't answer for is unknown (lookupFailing).
 func failing(list []ProviderAuthFacts) []string {
 	out := []string{}
 	for _, p := range list {
-		if !p.OK {
+		if !p.OK && !p.Unknown {
 			out = append(out, p.Short)
 		}
 	}
 	return out
+}
+
+// lookupFailing are the records DNS didn't answer for, even when the run
+// asked again.
+func lookupFailing(list []ProviderAuthFacts) []ProviderAuthFacts {
+	out := []ProviderAuthFacts{}
+	for _, p := range list {
+		if !p.OK && p.Unknown {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// lookupUnknown is the Unknown check of a record DNS didn't answer for:
+// "Couldn't look up the DMARC record of news.acme.io". Never a Block: a
+// timeout says nothing about the record. The send-time recheck looks again.
+func (b *builder) lookupUnknown(key, record, domain string, providers, unknown []ProviderAuthFacts) check {
+	trouble := TroubleOther
+	for _, p := range unknown {
+		if p.Trouble != "" {
+			trouble = p.Trouble
+			break
+		}
+	}
+	title := tx("auth.lookupFailed", A{"record": record, "domain": domain})
+	if names := shorts(providers); len(names) > 0 {
+		title = tx("auth.lookupFailedFor", A{"record": record, "providers": ArgAnd(names)})
+	}
+	return check{Key: key, Group: GroupAuthentication, Status: Unknown, Title: title, Label: RawText(record),
+		Detail: tx("auth.lookupFailedDetail", A{"trouble": trouble}), Note: tx("note.dnsError", nil),
+		Fixes: []fix{link(tx("fix.openDeliverability", nil), b.href("/deliverability"))}}
 }
 
 func shorts(list []ProviderAuthFacts) []string {

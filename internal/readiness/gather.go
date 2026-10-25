@@ -398,7 +398,10 @@ func downDetail(p store.Provider, h state.Health, now time.Time, loc *time.Locat
 	return b.downText(ShareFacts{Down: downFacts(p, h)}).en()
 }
 
-// auth reads the stored authentication check of the sending domain.
+// auth reads the stored authentication check of the sending domain. A
+// lookup that failed when Deliverability checked the domain (a DNS timeout,
+// SERVFAIL) proves nothing about the record: the run looks the domain up
+// again, and what still fails is Unknown, never a Block (SR-6).
 func (s *Service) auth(ctx context.Context, g *gathered, f Facts) (AuthFacts, error) {
 	domain := strings.ToLower(g.c.SenderDomain)
 	out := AuthFacts{Domain: domain, SPF: []ProviderAuthFacts{}, DKIM: []ProviderAuthFacts{}, MailFrom: []ProviderAuthFacts{}}
@@ -411,6 +414,7 @@ func (s *Service) auth(ctx context.Context, g *gathered, f Facts) (AuthFacts, er
 	}
 	var auth *dnscheck.DomainAuth
 	var orgDMARC *dnscheck.DMARC
+	var checkedAt *time.Time
 	for _, chk := range checks {
 		var r struct {
 			Auth  *dnscheck.DomainAuth `json:"auth"`
@@ -423,34 +427,98 @@ func (s *Service) auth(ctx context.Context, g *gathered, f Facts) (AuthFacts, er
 		case strings.EqualFold(chk.Asset, domain) && r.Auth != nil:
 			auth = r.Auth
 			t := chk.CheckedAt
-			out.CheckedAt = &t
+			checkedAt = &t
 		case strings.EqualFold(chk.Asset, dnscheck.OrgDomain(domain)) && r.DMARC != nil:
 			orgDMARC = r.DMARC
 		}
 	}
+	if auth != nil && s.DNS != nil && LookupFailed(*auth) {
+		fresh := Relookup(ctx, s.DNS, domain, *auth)
+		auth = &fresh
+		now := s.now()
+		checkedAt = &now
+	}
 	if auth == nil {
 		return out, nil
 	}
-	out.Checked = true
-	out.SPFRecord = auth.SPF.Record
-	dmarc := auth.DMARC
-	if dmarc.Status != dnscheck.StatusPass && orgDMARC != nil && orgDMARC.Status == dnscheck.StatusPass {
-		dmarc = *orgDMARC
-	}
-	out.DMARCStatus, out.DMARCPolicy, out.DMARCRecord = dmarc.Status, dmarc.Policy, dmarc.Record
-	out.BIMIStatus, out.BIMILogo = auth.BIMI.Status, auth.BIMI.Logo
+	var aligned *float64
 	if s.Deliverability != nil {
 		if ov, err := s.Deliverability.Overview(ctx, g.ws); err == nil {
 			for _, a := range ov.Assets {
 				if strings.EqualFold(a.Asset, domain) && a.DMARCAligned != nil {
 					v := *a.DMARCAligned
-					out.DMARCAligned = &v
+					aligned = &v
 				}
 			}
 		}
 	}
-	// Each provider carrying the send: its SPF, DKIM and MAIL FROM records.
-	for _, sh := range carrying(f.Route.Shares) {
+	out = AuthFactsOf(domain, *auth, orgDMARC, carrying(f.Route.Shares))
+	out.CheckedAt, out.DMARCAligned = checkedAt, aligned
+	return out, nil
+}
+
+// Relookup checks a sending domain again, with the records its providers
+// require (those of the stored check), within 20 seconds.
+func Relookup(ctx context.Context, r dnscheck.Resolver, domain string, stored dnscheck.DomainAuth) dnscheck.DomainAuth {
+	reqs := make([]dnscheck.Requirement, 0, len(stored.Records))
+	for _, rc := range stored.Records {
+		reqs = append(reqs, rc.Requirement)
+	}
+	lctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	return dnscheck.CheckDomain(lctx, r, domain, reqs)
+}
+
+// LookupFailed reports whether any lookup of a domain's authentication check
+// failed (DNS didn't answer), as opposed to finding a record missing or wrong.
+func LookupFailed(a dnscheck.DomainAuth) bool {
+	if a.SPF.Status == dnscheck.StatusError || a.DMARC.Status == dnscheck.StatusError || a.BIMI.Status == dnscheck.StatusError {
+		return true
+	}
+	for _, k := range a.DKIM {
+		if k.Status == dnscheck.StatusError {
+			return true
+		}
+	}
+	for _, m := range a.MailFrom {
+		if m.Status == dnscheck.StatusError || m.SPF == dnscheck.StatusError {
+			return true
+		}
+	}
+	for _, r := range a.Records {
+		if r.Status == dnscheck.RecordError {
+			return true
+		}
+	}
+	return false
+}
+
+// AuthFactsOf turns a domain's authentication check into the facts of the
+// providers carrying the send: their SPF, DKIM and MAIL FROM records. A
+// record whose lookup failed is unknown, unless another record of the same
+// kind is definitely wrong.
+func AuthFactsOf(domain string, auth dnscheck.DomainAuth, orgDMARC *dnscheck.DMARC, shares []ShareFacts) AuthFacts {
+	out := AuthFacts{Domain: domain, Checked: true, SPF: []ProviderAuthFacts{}, DKIM: []ProviderAuthFacts{}, MailFrom: []ProviderAuthFacts{}}
+	out.SPFRecord = auth.SPF.Record
+	if auth.SPF.Status == dnscheck.StatusError {
+		out.SPFError = dnsTrouble(auth.SPF.Error)
+	}
+	dmarc := auth.DMARC
+	if dmarc.Status != dnscheck.StatusPass && orgDMARC != nil && orgDMARC.Status == dnscheck.StatusPass {
+		dmarc = *orgDMARC
+	}
+	out.DMARCStatus, out.DMARCPolicy, out.DMARCRecord = dmarc.Status, dmarc.Policy, dmarc.Record
+	if dmarc.Status == dnscheck.StatusError {
+		out.DMARCError = dnsTrouble(dmarc.Error)
+	}
+	out.BIMIStatus, out.BIMILogo = auth.BIMI.Status, auth.BIMI.Logo
+	if auth.BIMI.Status == dnscheck.StatusError {
+		out.BIMIError = dnsTrouble(auth.BIMI.Error)
+	}
+	if auth.BIMI.Status == dnscheck.StatusInvalid {
+		out.BIMIProblem = auth.BIMI.Error
+	}
+	for _, sh := range shares {
 		var spfRecs, dkimRecs, rpRecs []dnscheck.RecordCheck
 		for _, rc := range auth.Records {
 			if rc.ProviderID != sh.ProviderID {
@@ -468,27 +536,43 @@ func (s *Service) auth(ctx context.Context, g *gathered, f Facts) (AuthFacts, er
 		// SPF: the provider's SPF records, or the SPF of its MAIL FROM domain,
 		// or the domain's own record when it has neither.
 		spf := ProviderAuthFacts{Short: sh.Short, OK: auth.SPF.Status == dnscheck.StatusPass}
-		if len(spfRecs) > 0 {
+		switch {
+		case len(spfRecs) > 0:
 			spf.OK = allVerified(spfRecs)
-			if !spf.OK {
+			if failed := lookupErrors(spfRecs); !spf.OK && failed != "" && !definitelyWrong(spfRecs) {
+				spf.Unknown, spf.Trouble = true, failed
+			} else if !spf.OK {
 				spf.DetailKind, spf.Value, spf.Name = AuthSPFAdd, spfRecs[0].Value, spfRecs[0].Name
 				spf.Detail = tx("auth.spfAdd", A{"value": spf.Value, "name": spf.Name}).en()
 			}
-		} else if len(rpRecs) > 0 {
+		case len(rpRecs) > 0:
 			for _, mf := range auth.MailFrom {
 				if strings.EqualFold(mf.Domain, rpRecs[0].Name) {
 					spf.OK = mf.SPF == dnscheck.StatusPass
+					if mf.SPF == dnscheck.StatusError {
+						spf.Unknown, spf.Trouble = true, dnsTrouble(mf.Error)
+					}
 				}
 			}
+		case auth.SPF.Status == dnscheck.StatusError:
+			spf.Unknown, spf.Trouble = true, dnsTrouble(auth.SPF.Error)
 		}
 		out.SPF = append(out.SPF, spf)
 		if len(dkimRecs) > 0 {
 			dk := ProviderAuthFacts{Short: sh.Short, OK: allVerified(dkimRecs)}
+			trouble, wrong := lookupErrors(dkimRecs), definitelyWrong(dkimRecs)
 			for _, k := range auth.DKIM {
 				for _, rc := range dkimRecs {
 					if sel, _, ok := strings.Cut(strings.ToLower(rc.Name), "._domainkey."); ok && strings.EqualFold(k.Selector, sel) {
-						if k.Status != dnscheck.StatusPass {
+						switch k.Status {
+						case dnscheck.StatusPass:
+						case dnscheck.StatusError:
 							dk.OK = false
+							if trouble == "" || trouble == TroubleOther {
+								trouble = dnsTrouble(k.Error)
+							}
+						default:
+							dk.OK, wrong = false, true
 						}
 						if k.KeyBits > 0 && (dk.KeyBits == 0 || k.KeyBits < dk.KeyBits) {
 							dk.KeyBits = k.KeyBits
@@ -497,6 +581,8 @@ func (s *Service) auth(ctx context.Context, g *gathered, f Facts) (AuthFacts, er
 				}
 			}
 			switch {
+			case !dk.OK && trouble != "" && !wrong:
+				dk.Unknown, dk.Trouble = true, trouble
 			case !dk.OK:
 				dk.DetailKind = AuthUnverified
 				dk.Detail = tx("auth.dkimUnverified", nil).en()
@@ -512,15 +598,28 @@ func (s *Service) auth(ctx context.Context, g *gathered, f Facts) (AuthFacts, er
 		}
 		if len(rpRecs) > 0 {
 			mf := ProviderAuthFacts{Short: sh.Short, Domain: strings.ToLower(rpRecs[0].Name), OK: allVerified(rpRecs)}
+			trouble, wrong := lookupErrors(rpRecs), definitelyWrong(rpRecs)
 			for _, m := range auth.MailFrom {
-				if strings.EqualFold(m.Domain, mf.Domain) && !m.Aligned {
-					mf.OK = false
+				if !strings.EqualFold(m.Domain, mf.Domain) {
+					continue
 				}
+				switch {
+				case m.Status == dnscheck.StatusError:
+					mf.OK = false
+					if trouble == "" || trouble == TroubleOther {
+						trouble = dnsTrouble(m.Error)
+					}
+				case !m.Aligned:
+					mf.OK, wrong = false, true
+				}
+			}
+			if !mf.OK && trouble != "" && !wrong {
+				mf.Unknown, mf.Trouble = true, trouble
 			}
 			out.MailFrom = append(out.MailFrom, mf)
 		}
 	}
-	return out, nil
+	return out
 }
 
 func allVerified(rs []dnscheck.RecordCheck) bool {
@@ -530,6 +629,51 @@ func allVerified(rs []dnscheck.RecordCheck) bool {
 		}
 	}
 	return true
+}
+
+// lookupErrors is why the first record whose lookup failed couldn't be
+// read ("" when every lookup answered).
+func lookupErrors(rs []dnscheck.RecordCheck) string {
+	for _, r := range rs {
+		if r.Status == dnscheck.RecordError {
+			return TroubleOther
+		}
+	}
+	return ""
+}
+
+// definitelyWrong reports whether DNS answered that a record is missing or
+// has another value.
+func definitelyWrong(rs []dnscheck.RecordCheck) bool {
+	for _, r := range rs {
+		if r.Status == dnscheck.RecordMissing || r.Status == dnscheck.RecordWrongValue {
+			return true
+		}
+	}
+	return false
+}
+
+// Kinds of DNS trouble (ProviderAuthFacts.Trouble), so the evidence says
+// what happened in each reader's language.
+const (
+	TroubleTimeout  = "timeout"  // no server answered in time
+	TroubleServFail = "servfail" // the server answered SERVFAIL
+	TroubleRefused  = "refused"  // the server refused the query
+	TroubleOther    = "other"    // no usable answer
+)
+
+// dnsTrouble names what went wrong with a lookup from its error.
+func dnsTrouble(err string) string {
+	e := strings.ToLower(err)
+	switch {
+	case strings.Contains(e, "timeout") || strings.Contains(e, "deadline") || strings.Contains(e, "timed out"):
+		return TroubleTimeout
+	case strings.Contains(e, "servfail"):
+		return TroubleServFail
+	case strings.Contains(e, "refused"):
+		return TroubleRefused
+	}
+	return TroubleOther
 }
 
 // reputation reads the blocklist verdict and the lists behind it.
