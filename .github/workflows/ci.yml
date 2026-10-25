@@ -36,7 +36,7 @@ jobs:
         working-directory: web
       - run: pnpm build
         working-directory: web
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: web-dist
           path: web/dist
@@ -157,7 +157,7 @@ jobs:
           grep -q 'The newsletter platform that protects your inbox placement.</h1>' dist/index.html
           grep -q '"@type": "SoftwareApplication"' dist/index.html
           test -f dist/sitemap.xml && test -f dist/robots.txt && test -f dist/og.png
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: site-dist
           path: site/dist
@@ -247,7 +247,7 @@ jobs:
         working-directory: integrations/wordpress
       - run: composer build
         working-directory: integrations/wordpress
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         if: matrix.php == '8.4'
         with:
           name: wordpress-plugin
