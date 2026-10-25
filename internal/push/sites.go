@@ -396,7 +396,8 @@ func FetchWorker(ctx context.Context, client *http.Client, u, mode string) Check
 	res.Scope = workerScope(req.URL.Path, resp.Header.Get("Service-Worker-Allowed"))
 	text := string(body)
 	if m := workerMarker.FindStringSubmatch(text); m != nil {
-		v, _ := strconv.Atoi(m[1])
+		n, _ := strconv.ParseInt(m[1], 10, 32)
+		v := int(n)
 		res.Version = &v
 		res.Status = WorkerFound
 		if v < WorkerVersion {

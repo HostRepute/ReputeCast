@@ -106,8 +106,8 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, ref string, 
 				return TransactionalPreview{}, problem(http.StatusUnprocessableEntity, CodeTemplateNotPublished, say(ctx, "preview.notPublished", i18n.Args{"key": t.Key}))
 			}
 			n = int(*t.LiveVersion)
-		} else if v, err := strconv.Atoi(strings.TrimPrefix(version, "v")); err == nil && v > 0 {
-			n = v
+		} else if v, err := strconv.ParseInt(strings.TrimPrefix(version, "v"), 10, 32); err == nil && v > 0 {
+			n = int(v)
 		} else {
 			return TransactionalPreview{}, api.Invalid("body.version", say(ctx, "preview.pickVersion", nil))
 		}

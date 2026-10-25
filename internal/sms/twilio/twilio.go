@@ -216,8 +216,8 @@ func (p *Provider) Send(ctx context.Context, m sms.Message) (sms.SendResult, err
 		}
 		return sms.SendResult{}, err
 	}
-	n, _ := strconv.Atoi(out.NumSegments)
-	return sms.SendResult{ProviderMessageID: out.SID, Segments: n}, nil
+	n, _ := strconv.ParseInt(out.NumSegments, 10, 32)
+	return sms.SendResult{ProviderMessageID: out.SID, Segments: int(n)}, nil
 }
 
 // signature computes Twilio's request signature: the full URL followed by
@@ -300,8 +300,8 @@ func (p *Provider) ParseWebhook(_ context.Context, _ string, body []byte) ([]sms
 			e.Code = code
 			e.Reason, _ = codeReason(code)
 		}
-		if n, err := strconv.Atoi(v.Get("NumSegments")); err == nil {
-			e.Segments = n
+		if n, err := strconv.ParseInt(v.Get("NumSegments"), 10, 32); err == nil {
+			e.Segments = int(n)
 		}
 		return []sms.Event{e}, nil
 	}

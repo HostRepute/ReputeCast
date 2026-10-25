@@ -181,7 +181,7 @@ func surveysIn(src string) []int64 {
 	out := []int64{}
 	seen := map[int64]bool{}
 	for _, m := range surveyVarRe.FindAllStringSubmatch(src, -1) {
-		n, err := strconv.ParseInt(m[1], 10, 64)
+		n, err := strconv.ParseInt(m[1], 10, 32)
 		if err == nil && !seen[n] {
 			seen[n] = true
 			out = append(out, n)

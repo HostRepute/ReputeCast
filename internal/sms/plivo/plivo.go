@@ -269,8 +269,8 @@ func (p *Provider) ParseWebhook(_ context.Context, _ string, body []byte) ([]sms
 			e.Code = c
 			e.Reason, _ = codeReason(c)
 		}
-		if u, err := strconv.Atoi(v.Get("Units")); err == nil {
-			e.Segments = u
+		if u, err := strconv.ParseInt(v.Get("Units"), 10, 32); err == nil {
+			e.Segments = int(u)
 		}
 		if a, err := strconv.ParseFloat(v.Get("TotalAmount"), 64); err == nil {
 			e.Price = &a

@@ -328,8 +328,8 @@ func (h *Handler) renderPoll(w http.ResponseWriter, r *http.Request, s *site, st
 }
 
 func pollAnswer(r *http.Request) (int, bool) {
-	n, err := strconv.Atoi(chi.URLParam(r, "answer"))
-	return n, err == nil && n >= 0 && n <= 10
+	n, err := strconv.ParseInt(chi.URLParam(r, "answer"), 10, 32)
+	return int(n), err == nil && n >= 0 && n <= 10
 }
 
 func (h *Handler) pollPage(w http.ResponseWriter, r *http.Request) {
@@ -375,12 +375,12 @@ func (h *Handler) pollPost(w http.ResponseWriter, r *http.Request) {
 	}
 	answer := picked
 	if v := strings.TrimSpace(r.PostForm.Get("answer")); v != "" {
-		n, err := strconv.Atoi(v)
+		n, err := strconv.ParseInt(v, 10, 32)
 		if err != nil {
 			h.badPollLink(w, r, s)
 			return
 		}
-		answer = n
+		answer = int(n)
 	}
 	p, err := h.Polls.Record(r.Context(), s.ws.ID, token, answer, h.visit(r))
 	if errors.Is(err, polls.ErrBadLink) {
