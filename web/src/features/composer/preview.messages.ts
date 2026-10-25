@@ -84,5 +84,18 @@ export const mp = defineMessages('composer.preview', {
   perRecipient: 'per-recipient link',
   emptyValue: '(empty)',
   noTokens: 'No personalization in this email.',
-  missingFirstName: '{count, plural, one {# recipient has} other {# recipients have}} no first_name and will see “{fallback}”.',
+  noMissing: 'No missing fields',
+  unknownFields: '{count, plural, one {# unknown field} other {# unknown fields}}',
+  /** {key} is a Liquid variable as typed ("frist_name"). */
+  unknownField: "<b>{key} isn't a contact field</b>",
+  didYouMean: '(did you mean {suggestion}?)',
+  unknownFallback: 'Everyone sees “{fallback}” there, whatever their contact fields say.',
+  unknownNothing: 'It prints nothing there, for everyone.',
+  replaceWith: 'Replace with {suggestion}',
+  replaced: '{from} replaced with {to}',
+  replacedDetail: '{count, plural, =0 {Nothing to replace in the subject, preheader or email.} one {In # place.} other {In # places.}}',
+  /** Audience contacts with no value for a field: "412 of 31,192 recipients have no first_name and will see “there”." */
+  missingOf: '{missing, plural, one {# of {counted} recipients has} other {# of {counted} recipients have}} no {key} and will see “{fallback}”.',
+  missingOfNothing: '{missing, plural, one {# of {counted} recipients has} other {# of {counted} recipients have}} no {key}; it prints nothing for them.',
+  countedListsOnly: "Counted on the campaign's lists; recipients from its segments aren't in these numbers.",
 })

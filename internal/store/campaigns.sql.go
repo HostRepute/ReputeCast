@@ -202,27 +202,6 @@ func (q *Queries) ComposerCountListAudience(ctx context.Context, arg ComposerCou
 	return column_1, err
 }
 
-const composerCountMissingField = `-- name: ComposerCountMissingField :one
-SELECT count(DISTINCT c.id)::bigint
-FROM contacts c
-JOIN list_memberships m ON m.contact_id = c.id
-WHERE c.workspace_id = $1 AND c.status = 'active' AND c.erased_at IS NULL
-  AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($2::uuid[]) AND ll.deleted_at IS NULL)) AND c.first_name = ''
-`
-
-type ComposerCountMissingFieldParams struct {
-	WorkspaceID uuid.UUID   `json:"workspaceId"`
-	Lists       []uuid.UUID `json:"lists"`
-}
-
-// Audience contacts whose first name is empty (they see the fallback).
-func (q *Queries) ComposerCountMissingField(ctx context.Context, arg ComposerCountMissingFieldParams) (int64, error) {
-	row := q.db.QueryRow(ctx, composerCountMissingField, arg.WorkspaceID, arg.Lists)
-	var column_1 int64
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
 const composerCustomFields = `-- name: ComposerCustomFields :many
 SELECT key, label, type FROM custom_fields WHERE workspace_id = $1 ORDER BY created_at, key
 `

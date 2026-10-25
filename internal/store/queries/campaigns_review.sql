@@ -26,3 +26,30 @@ RETURNING o.old_name::text AS old_name;
 UPDATE campaigns
 SET version = @version, updated_by = @updated_by, updated_at = @now
 WHERE workspace_id = @workspace_id AND id = @id;
+
+-- name: ComposerCountMissingFields :many
+-- For each field an email uses, how many of the audience have no value for
+-- it (they see the fallback, or nothing): the contacts of the lists minus
+-- the excluded lists and suppressions, as ComposerCountListAudience counts
+-- them. "first_name" and "last_name" are the contact's own columns; any
+-- other key is a custom field in attributes. Each row also carries the
+-- number counted. An empty audience returns no rows.
+WITH audience AS (
+    SELECT DISTINCT c.id, c.first_name, c.last_name, c.attributes
+    FROM contacts c
+    JOIN list_memberships m ON m.contact_id = c.id
+    WHERE c.workspace_id = @workspace_id AND c.status = 'active' AND c.erased_at IS NULL
+      AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY(@lists::uuid[]) AND ll.deleted_at IS NULL))
+      AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY(@exclude_lists::uuid[]))
+      AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)
+)
+SELECT k.key::text AS key,
+       count(*) FILTER (WHERE CASE k.key
+            WHEN 'first_name' THEN btrim(a.first_name) = ''
+            WHEN 'last_name' THEN btrim(a.last_name) = ''
+            ELSE coalesce(btrim(a.attributes ->> k.key), '') = ''
+        END)::bigint AS missing,
+       count(*)::bigint AS counted
+FROM unnest(@keys::text[]) AS k(key)
+CROSS JOIN audience a
+GROUP BY k.key;

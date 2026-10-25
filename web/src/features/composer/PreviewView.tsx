@@ -8,9 +8,9 @@ import { useComposer, type ABTest } from './context'
 import { inboxTime } from './format'
 import { SendTestButton } from './SendTest'
 import { mb } from './blocks.messages'
-import { mk } from './code.messages'
 import { m } from './messages'
 import { mp } from './preview.messages'
+import { fallbackOf, PersonalizationCard } from './Personalization'
 import { usePreviewAsLabel, versionLanguage } from '@/features/languages/composerParts'
 import { PreviewVersionLine, ShowWhyToggle, ThisVersionCard, VersionsCard, usePreviewVersion } from '@/features/conditional/Preview'
 import { useConditional } from '@/features/conditional/state'
@@ -409,11 +409,11 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
   }, [sample, c.slug, c.campaign.id, c.subject, c.preheader, c.variant, c.rev]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const meta = CLIENTS.find((x) => x.id === client)!
+  const firstNameToken = preview?.tokens.find((t) => t.key === 'first_name')
+  const firstNameFallback = firstNameToken?.token.includes('default:') ? fallbackOf(firstNameToken.token) : undefined
   const width = device === 'mobile' || client === 'apple' ? 375 : 600
   const checks = useDarkChecks(lightDoc, media.data?.items)
   const time = inboxTime(c.campaign.scheduledAt ?? new Date())
-  const firstName = preview?.tokens.find((t) => t.key === 'first_name')
-  const missing = preview ? preview.tokens.filter((t) => !t.value && !t.perRecipient && !t.fallbackUsed).length : 0
   // Without a pick, the server previews as the audience's first contact.
   const sampleValue = sample.sample === 'contact' ? `c:${sample.contactId ?? preview?.contact?.id ?? contacts.data?.items[0]?.id ?? ''}` : sample.sample
   // Conditional content: the version the previewed contact gets, and why.
@@ -459,7 +459,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
                       {preview.contact.name} · {preview.contact.email} · {preview.contact.label}
                     </option>
                   ) : null}
-                  <option value="no_first_name">{tr(mp.noFirstName, { fallback: firstName?.token.match(/default:\s*"([^"]*)"/)?.[1] ?? tr(mb.there) })}</option>
+                  <option value="no_first_name">{tr(mp.noFirstName, { fallback: firstNameFallback ?? tr(mb.there) })}</option>
                   <option value="random">{tr(mp.randomContact)}</option>
                 </select>
               </label>
@@ -553,33 +553,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
           </div>
           <span className="k">{tr(mp.lengths, { subject: count((preview?.subject ?? c.subject).length), preheader: count((preview?.preheader ?? c.preheader).length) })}</span>
         </div>
-        <div className="flex flex-col gap-2.5 border-b border-line-2" style={{ padding: '14px 16px' }}>
-          <div className="flex items-center justify-between">
-            <h2 className="m-0 text-[14px] font-semibold">{tr(mp.personalization)}</h2>
-            <Badge tone={missing ? 'warn' : 'ok'}>{tr(mp.missingFields, { count: missing })}</Badge>
-          </div>
-          <div className="flex flex-col gap-1.5" style={{ fontSize: 12.5 }}>
-            {(preview?.tokens ?? []).map((t) => (
-              <div key={t.token} className="flex justify-between gap-2">
-                <span className="mono min-w-0" style={{ fontSize: 12, overflowWrap: 'anywhere' }}>
-                  {t.token}
-                </span>
-                <span className="cmp-token-value flex-none">
-                  → <b>{t.perRecipient ? tr(mp.perRecipient) : t.value || tr(mp.emptyValue)}</b>
-                </span>
-              </div>
-            ))}
-            {preview && !preview.tokens.length ? <span className="k">{tr(mp.noTokens)}</span> : null}
-          </div>
-          {preview?.missingFirstName && firstName ? (
-            <span className="k">{tr(mp.missingFirstName, { count: preview.missingFirstName, fallback: firstName.token.match(/default:\s*"([^"]*)"/)?.[1] ?? '' })}</span>
-          ) : null}
-          {preview?.problems.length ? (
-            <span className="k" style={{ color: 'var(--bad-fg)' }}>
-              {tr(mk.lineError, { line: preview.problems[0]!.line, message: preview.problems[0]!.message })}
-            </span>
-          ) : null}
-        </div>
+        <PersonalizationCard preview={preview} />
         <ABPanel />
       </aside>
     </div>

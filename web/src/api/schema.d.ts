@@ -21800,6 +21800,9 @@ export interface components {
         };
         ComposerPreview: {
             contact?: components["schemas"]["ComposerPreviewContact"];
+            /** Format: int64 */
+            counted?: number;
+            countedListsOnly?: boolean;
             fromEmail: string;
             fromName: string;
             html: string;
@@ -21817,9 +21820,11 @@ export interface components {
         };
         ComposerPreviewContact: {
             email: string;
+            firstName: string;
             id?: string;
             label: string;
             language: string;
+            lastName: string;
             name: string;
         };
         ComposerPreviewContactList: {
@@ -21916,12 +21921,17 @@ export interface components {
             sent: string[];
         };
         ComposerTokenValue: {
+            /** Format: int64 */
+            audienceMissing?: number;
             fallbackUsed: boolean;
             key: string;
+            missing: boolean;
             /** @description A link filled in per recipient at send time */
             perRecipient: boolean;
+            suggestion?: string;
             /** @example {{ first_name | default: "there" }} */
             token: string;
+            unknown: boolean;
             value: string;
         };
         ComposerUpdateCampaign: {

@@ -39,6 +39,72 @@ func (q *Queries) ComposerBumpVersion(ctx context.Context, arg ComposerBumpVersi
 	return err
 }
 
+const composerCountMissingFields = `-- name: ComposerCountMissingFields :many
+WITH audience AS (
+    SELECT DISTINCT c.id, c.first_name, c.last_name, c.attributes
+    FROM contacts c
+    JOIN list_memberships m ON m.contact_id = c.id
+    WHERE c.workspace_id = $2 AND c.status = 'active' AND c.erased_at IS NULL
+      AND m.status = 'subscribed' AND m.list_id = ANY(ARRAY(SELECT ll.id FROM lists ll WHERE ll.id = ANY($3::uuid[]) AND ll.deleted_at IS NULL))
+      AND NOT EXISTS (SELECT 1 FROM list_memberships x WHERE x.contact_id = c.id AND x.status = 'subscribed' AND x.list_id = ANY($4::uuid[]))
+      AND NOT EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email)
+)
+SELECT k.key::text AS key,
+       count(*) FILTER (WHERE CASE k.key
+            WHEN 'first_name' THEN btrim(a.first_name) = ''
+            WHEN 'last_name' THEN btrim(a.last_name) = ''
+            ELSE coalesce(btrim(a.attributes ->> k.key), '') = ''
+        END)::bigint AS missing,
+       count(*)::bigint AS counted
+FROM unnest($1::text[]) AS k(key)
+CROSS JOIN audience a
+GROUP BY k.key
+`
+
+type ComposerCountMissingFieldsParams struct {
+	Keys         []string    `json:"keys"`
+	WorkspaceID  uuid.UUID   `json:"workspaceId"`
+	Lists        []uuid.UUID `json:"lists"`
+	ExcludeLists []uuid.UUID `json:"excludeLists"`
+}
+
+type ComposerCountMissingFieldsRow struct {
+	Key     string `json:"key"`
+	Missing int64  `json:"missing"`
+	Counted int64  `json:"counted"`
+}
+
+// For each field an email uses, how many of the audience have no value for
+// it (they see the fallback, or nothing): the contacts of the lists minus
+// the excluded lists and suppressions, as ComposerCountListAudience counts
+// them. "first_name" and "last_name" are the contact's own columns; any
+// other key is a custom field in attributes. Each row also carries the
+// number counted. An empty audience returns no rows.
+func (q *Queries) ComposerCountMissingFields(ctx context.Context, arg ComposerCountMissingFieldsParams) ([]ComposerCountMissingFieldsRow, error) {
+	rows, err := q.db.Query(ctx, composerCountMissingFields,
+		arg.Keys,
+		arg.WorkspaceID,
+		arg.Lists,
+		arg.ExcludeLists,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ComposerCountMissingFieldsRow{}
+	for rows.Next() {
+		var i ComposerCountMissingFieldsRow
+		if err := rows.Scan(&i.Key, &i.Missing, &i.Counted); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const composerNameVersion = `-- name: ComposerNameVersion :one
 UPDATE campaign_versions v SET name = $1
 FROM (SELECT x.name AS old_name FROM campaign_versions x WHERE x.campaign_id = $2 AND x.version = $3 FOR UPDATE) o

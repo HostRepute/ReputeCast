@@ -736,8 +736,13 @@ type Querier interface {
 	// Recipients of lists minus excluded lists and suppressions. A deleted list
 	// (restorable for 30 days) adds nobody; as an exclusion it still excludes.
 	ComposerCountListAudience(ctx context.Context, arg ComposerCountListAudienceParams) (int64, error)
-	// Audience contacts whose first name is empty (they see the fallback).
-	ComposerCountMissingField(ctx context.Context, arg ComposerCountMissingFieldParams) (int64, error)
+	// For each field an email uses, how many of the audience have no value for
+	// it (they see the fallback, or nothing): the contacts of the lists minus
+	// the excluded lists and suppressions, as ComposerCountListAudience counts
+	// them. "first_name" and "last_name" are the contact's own columns; any
+	// other key is a custom field in attributes. Each row also carries the
+	// number counted. An empty audience returns no rows.
+	ComposerCountMissingFields(ctx context.Context, arg ComposerCountMissingFieldsParams) ([]ComposerCountMissingFieldsRow, error)
 	ComposerCustomFields(ctx context.Context, workspaceID uuid.UUID) ([]ComposerCustomFieldsRow, error)
 	ComposerDefaultSender(ctx context.Context, id uuid.UUID) (ComposerDefaultSenderRow, error)
 	ComposerLastSentCampaign(ctx context.Context, workspaceID uuid.UUID) (ComposerLastSentCampaignRow, error)

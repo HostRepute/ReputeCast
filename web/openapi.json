@@ -17633,6 +17633,13 @@
           "contact": {
             "$ref": "#/components/schemas/ComposerPreviewContact"
           },
+          "counted": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "countedListsOnly": {
+            "type": "boolean"
+          },
           "fromEmail": {
             "type": "string"
           },
@@ -17699,6 +17706,9 @@
           "email": {
             "type": "string"
           },
+          "firstName": {
+            "type": "string"
+          },
           "id": {
             "type": "string"
           },
@@ -17708,6 +17718,9 @@
           "language": {
             "type": "string"
           },
+          "lastName": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           }
@@ -17715,6 +17728,8 @@
         "required": [
           "name",
           "email",
+          "firstName",
+          "lastName",
           "label",
           "language"
         ],
@@ -18049,21 +18064,34 @@
       "ComposerTokenValue": {
         "additionalProperties": false,
         "properties": {
+          "audienceMissing": {
+            "format": "int64",
+            "type": "integer"
+          },
           "fallbackUsed": {
             "type": "boolean"
           },
           "key": {
             "type": "string"
           },
+          "missing": {
+            "type": "boolean"
+          },
           "perRecipient": {
             "description": "A link filled in per recipient at send time",
             "type": "boolean"
+          },
+          "suggestion": {
+            "type": "string"
           },
           "token": {
             "examples": [
               "{{ first_name | default: \"there\" }}"
             ],
             "type": "string"
+          },
+          "unknown": {
+            "type": "boolean"
           },
           "value": {
             "type": "string"
@@ -18073,8 +18101,10 @@
           "token",
           "key",
           "value",
+          "missing",
           "fallbackUsed",
-          "perRecipient"
+          "perRecipient",
+          "unknown"
         ],
         "type": "object"
       },

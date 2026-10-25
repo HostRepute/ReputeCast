@@ -230,6 +230,10 @@ type ComposerPreviewContact struct {
 	ID    string `json:"id,omitempty"`
 	Name  string `json:"name"`
 	Email string `json:"email"`
+	// FirstName and LastName are the contact's own fields, as a send fills
+	// them in ({{ first_name }}, {{ last_name }}); Name only displays them.
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
 	// Label describes the choice ("first_name set", "fallback "there"").
 	Label string `json:"label"`
 	// Language is the contact's language code ("es-MX"), empty when unset.
@@ -238,11 +242,22 @@ type ComposerPreviewContact struct {
 
 // ComposerTokenValue is what one token printed.
 type ComposerTokenValue struct {
-	Token        string `json:"token" example:"{{ first_name | default: \"there\" }}"`
-	Key          string `json:"key"`
-	Value        string `json:"value"`
-	FallbackUsed bool   `json:"fallbackUsed"`
-	PerRecipient bool   `json:"perRecipient" doc:"A link filled in per recipient at send time"`
+	Token string `json:"token" example:"{{ first_name | default: \"there\" }}"`
+	Key   string `json:"key"`
+	Value string `json:"value"`
+	// Missing is true when the contact previewed has no value for the
+	// field: the fallback prints (FallbackUsed), or nothing when it has none.
+	Missing      bool `json:"missing"`
+	FallbackUsed bool `json:"fallbackUsed"`
+	PerRecipient bool `json:"perRecipient" doc:"A link filled in per recipient at send time"`
+	// Unknown is true when the variable isn't a contact field or anything
+	// ReputeCast fills in: it prints nothing for everyone, fallback or not.
+	// Suggestion is the field it most likely meant ("first_name").
+	Unknown    bool   `json:"unknown"`
+	Suggestion string `json:"suggestion,omitempty"`
+	// AudienceMissing counts the audience contacts with no value for this
+	// field (contact and custom fields; see ComposerPreview.Counted).
+	AudienceMissing *int64 `json:"audienceMissing,omitempty"`
 }
 
 // ComposerPreview is the rendered email for one recipient.
@@ -256,7 +271,14 @@ type ComposerPreview struct {
 	Contact   *ComposerPreviewContact `json:"contact,omitempty"`
 	Tokens    []ComposerTokenValue    `json:"tokens"`
 	// MissingFirstName counts audience contacts with no first name (they see the fallback).
-	MissingFirstName *int64                 `json:"missingFirstName,omitempty"`
+	MissingFirstName *int64 `json:"missingFirstName,omitempty"`
+	// Counted is how many audience contacts the tokens' AudienceMissing
+	// counts were made over: the campaign's lists minus excluded lists and
+	// suppressions. CountedListsOnly is true when the audience also has
+	// segments, which aren't counted. Without lists, or without
+	// subscribers:view, nothing is counted.
+	Counted          *int64                 `json:"counted,omitempty"`
+	CountedListsOnly bool                   `json:"countedListsOnly,omitempty"`
 	Problems         []liquid.LiquidProblem `json:"problems"`
 	RenderedAt       time.Time              `json:"renderedAt"`
 	// Language is the language version shown, and LanguageReason why when
@@ -330,13 +352,10 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	links := map[string]string{"unsubscribe_url": "#unsubscribe", "preferences_url": "#preferences", "view_in_browser_url": "#view-in-browser"}
 	previewPollLinks(html, links)
 	links[paidaccess.UpgradeURL], links[paidaccess.ManageURL] = "#upgrade", "#manage-subscription"
-	first, last := "", ""
+	// The contact's own first and last name fields, as a send fills them in.
+	first, last, email := "", "", ""
 	if contact != nil {
-		first, last = contactNames(contact.Name)
-	}
-	email := ""
-	if contact != nil {
-		email = contact.Email
+		first, last, email = contact.FirstName, contact.LastName, contact.Email
 	}
 	vars := liquid.Vars(email, first, last, attrs, links)
 	if s.Recipients != nil && contact != nil {
@@ -358,23 +377,47 @@ func (s *Service) Preview(ctx context.Context, ws *store.Workspace, p *authz.Pri
 	out.Preheader = render(preheader)
 	out.HTML = media.Absolutize(render(html), s.URLs.Base())
 	out.Text = contentcheck.PlainText(out.HTML)
-	for _, u := range liquid.Uses(subject + "\n" + preheader + "\n" + html) {
+	fields, err := s.fieldSet(ctx, ws.ID, c.DigestID != nil && c.DigestRole == "template")
+	if err != nil {
+		return ComposerPreview{}, err
+	}
+	counting := []string{}
+	for _, u := range usesOf(subject, preheader, html) {
 		tv := ComposerTokenValue{Key: u.Key, Token: tokenText(u), PerRecipient: systemLinks[u.Key] || pollVar(u.Key) || paidaccess.IsReaderLink(u.Key)}
-		if tv.PerRecipient {
+		switch {
+		case tv.PerRecipient:
 			tv.Value = mLabelPerRecipient.Text(i18n.LangFrom(ctx), nil)
-		} else {
+		case fields.unknown(u.Key):
+			tv.Unknown, tv.Missing, tv.Suggestion = true, true, fields.suggest(u.Key)
+			tv.Value, tv.FallbackUsed = u.Fallback, u.HasFallback
+		default:
 			v := fmt.Sprint(lookup(vars, u.Key))
 			if strings.TrimSpace(v) == "" || v == "<nil>" {
-				tv.Value, tv.FallbackUsed = u.Fallback, true
+				tv.Value, tv.Missing, tv.FallbackUsed = u.Fallback, true, u.HasFallback
 			} else {
 				tv.Value = v
+			}
+			if fields.countable[u.Key] {
+				counting = append(counting, u.Key)
 			}
 		}
 		out.Tokens = append(out.Tokens, tv)
 	}
-	if lists := audienceLists(c.Audience); len(lists) > 0 && p.Can(authz.SubscribersView) {
-		if n, err := s.Q.ComposerCountMissingField(ctx, store.ComposerCountMissingFieldParams{WorkspaceID: ws.ID, Lists: lists}); err == nil {
-			out.MissingFirstName = &n
+	if p.Can(authz.SubscribersView) {
+		missing, counted, segments, ok, err := s.missingCounts(ctx, ws.ID, audienceFromDB(c.Audience), counting)
+		if err != nil {
+			return ComposerPreview{}, err
+		}
+		if ok {
+			out.Counted, out.CountedListsOnly = &counted, segments
+			for i := range out.Tokens {
+				if n, found := missing[out.Tokens[i].Key]; found {
+					out.Tokens[i].AudienceMissing = &n
+				}
+			}
+			if n, found := missing["first_name"]; found {
+				out.MissingFirstName = &n
+			}
 		}
 	}
 	return out, nil
@@ -398,11 +441,6 @@ func lookup(vars map[string]any, key string) any {
 		cur = m[p]
 	}
 	return cur
-}
-
-func contactNames(full string) (string, string) {
-	first, last, _ := strings.Cut(full, " ")
-	return first, last
 }
 
 func audienceLists(raw json.RawMessage) []uuid.UUID {
@@ -435,7 +473,7 @@ func (s *Service) previewContact(ctx context.Context, ws *store.Workspace, p *au
 		if in.ContactID != "" || in.Sample == "random" {
 			return nil, nil, api.Forbidden(authz.SubscribersView, s.helpers(ctx, ws.ID, authz.SubscribersView))
 		}
-		return &ComposerPreviewContact{Name: "Sam Rivera", Email: "sam@example.com", Label: mLabelSample.Text(l, nil)}, map[string]any{}, nil
+		return &ComposerPreviewContact{Name: "Sam Rivera", FirstName: "Sam", LastName: "Rivera", Email: "sam@example.com", Label: mLabelSample.Text(l, nil)}, map[string]any{}, nil
 	}
 	var row store.ComposerPreviewContactByIDRow
 	var err error
@@ -464,7 +502,7 @@ func (s *Service) previewContact(ctx context.Context, ws *store.Workspace, p *au
 		if in.ContactID != "" {
 			return nil, nil, api.NotFound("Contact")
 		}
-		return &ComposerPreviewContact{Name: "Sam Rivera", Email: "sam@example.com", Label: mLabelSampleNoContact.Text(l, nil)}, map[string]any{}, nil
+		return &ComposerPreviewContact{Name: "Sam Rivera", FirstName: "Sam", LastName: "Rivera", Email: "sam@example.com", Label: mLabelSampleNoContact.Text(l, nil)}, map[string]any{}, nil
 	}
 	if err != nil {
 		return nil, nil, err
@@ -476,7 +514,7 @@ func (s *Service) previewContact(ctx context.Context, ws *store.Workspace, p *au
 	if row.FirstName == "" {
 		label = mLabelNoFirstFallback.Text(l, nil)
 	}
-	return &ComposerPreviewContact{ID: row.ID.String(), Name: name, Email: row.Email, Label: label, Language: row.Language}, attrs, nil
+	return &ComposerPreviewContact{ID: row.ID.String(), Name: name, FirstName: row.FirstName, LastName: row.LastName, Email: row.Email, Label: label, Language: row.Language}, attrs, nil
 }
 
 // ComposerPreviewContactList is who the preview can be personalized for.
@@ -501,7 +539,7 @@ func (s *Service) PreviewContacts(ctx context.Context, ws *store.Workspace, p *a
 		if r.FirstName == "" {
 			label = mLabelNoFirstName.Text(l, nil)
 		}
-		out.Items = append(out.Items, ComposerPreviewContact{ID: r.ID.String(), Name: strings.TrimSpace(r.FirstName + " " + r.LastName), Email: r.Email, Label: label, Language: r.Language})
+		out.Items = append(out.Items, ComposerPreviewContact{ID: r.ID.String(), Name: strings.TrimSpace(r.FirstName + " " + r.LastName), FirstName: r.FirstName, LastName: r.LastName, Email: r.Email, Label: label, Language: r.Language})
 	}
 	return out, nil
 }
@@ -657,20 +695,11 @@ func (s *Service) Checks(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 	if err != nil {
 		return ComposerChecks{}, api.MapError(err, "Campaign")
 	}
-	tokens, err := s.tokens(ctx, ws.ID)
+	known, err := s.fieldSet(ctx, ws.ID, c.DigestID != nil && c.DigestRole == "template")
 	if err != nil {
 		return ComposerChecks{}, err
 	}
-	fields := make([]string, 0, len(tokens)+2)
-	for _, t := range tokens {
-		fields = append(fields, t.Key)
-	}
-	if c.DigestID != nil && c.DigestRole == "template" {
-		// A recurring digest's template uses the feed tokens; each issue prints them.
-		fields = append(fields, "issue", "feed")
-	}
-	// Earn's personal links (the Upgrade block's button) are filled in per reader.
-	fields = append(fields, paidaccess.UpgradeURL, paidaccess.ManageURL)
+	fields := known.fields()
 	var domains []string
 	if c.SenderEmail != "" {
 		if _, d, ok := strings.Cut(c.SenderEmail, "@"); ok {
