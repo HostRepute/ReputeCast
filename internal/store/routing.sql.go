@@ -71,12 +71,18 @@ func (q *Queries) RoutingContact(ctx context.Context, arg RoutingContactParams) 
 	return i, err
 }
 
-const routingDeleteRules = `-- name: RoutingDeleteRules :exec
-DELETE FROM routing_rules WHERE workspace_id = $1
+const routingDeleteStreamRules = `-- name: RoutingDeleteStreamRules :exec
+DELETE FROM routing_rules WHERE workspace_id = $1 AND stream = ANY($2::text[])
 `
 
-func (q *Queries) RoutingDeleteRules(ctx context.Context, workspaceID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, routingDeleteRules, workspaceID)
+type RoutingDeleteStreamRulesParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Streams     []string  `json:"streams"`
+}
+
+// A save replaces only the streams it changes.
+func (q *Queries) RoutingDeleteStreamRules(ctx context.Context, arg RoutingDeleteStreamRulesParams) error {
+	_, err := q.db.Exec(ctx, routingDeleteStreamRules, arg.WorkspaceID, arg.Streams)
 	return err
 }
 
@@ -228,6 +234,16 @@ func (q *Queries) RoutingLists(ctx context.Context, workspaceID uuid.UUID) ([]Ro
 		return nil, err
 	}
 	return items, nil
+}
+
+const routingLock = `-- name: RoutingLock :exec
+SELECT pg_advisory_xact_lock(hashtextextended('routing:' || ($1::uuid)::text, 0))
+`
+
+// Serializes routing saves of a workspace (the version check and the write).
+func (q *Queries) RoutingLock(ctx context.Context, workspaceID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, routingLock, workspaceID)
+	return err
 }
 
 const routingSaved = `-- name: RoutingSaved :one

@@ -44,7 +44,10 @@ type RouteTestStep struct {
 	Field    string           `json:"field,omitempty"`
 	Value    string           `json:"value,omitempty"`
 	Provider string           `json:"provider,omitempty"`
-	Bucket   int              `json:"bucket"`
+	// Bucket (0–99) is where the address falls in a two-provider split: the
+	// first provider listed owns the buckets below its weight. Absent for
+	// other splits, which are just as sticky but have no single bucket.
+	Bucket   *int             `json:"bucket,omitempty"`
 	Splits   []RouteTestSplit `json:"splits,omitempty"`
 	// Conditions is how many conditions the stream has (stream step).
 	Conditions int `json:"conditions"`
@@ -203,7 +206,11 @@ func (s *Service) Test(ctx context.Context, ws *store.Workspace, in RouteTestInp
 		}
 		out.Steps = append(out.Steps, step)
 	case d.Split:
-		step := RouteTestStep{Kind: "split", Bucket: d.Bucket, Provider: p.Name}
+		step := RouteTestStep{Kind: "split", Provider: p.Name}
+		if d.Bucket >= 0 {
+			b := d.Bucket
+			step.Bucket = &b
+		}
 		for _, sp := range d.Rule.Splits {
 			if pp, ok := byID[sp.ProviderID]; ok {
 				step.Splits = append(step.Splits, RouteTestSplit{Short: state.Short(pp.Name, pp.Adapter), Weight: sp.Weight})

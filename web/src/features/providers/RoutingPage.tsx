@@ -5,13 +5,14 @@ import { $api, ApiError, errorMessage, http } from '@/api/client'
 import { Page } from '@/components/shell/Page'
 import { Badge } from '@/components/ui/Badge'
 import { Button, ButtonLink } from '@/components/ui/Button'
+import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { Dialog } from '@/components/ui/Dialog'
 import { ErrorPanel, Loading, Skeleton } from '@/components/ui/Feedback'
 import { Checkbox, Field, Input, Select } from '@/components/ui/Field'
 import { Grid } from '@/components/ui/Layout'
-import { Note } from '@/components/ui/Note'
+import { Banner, Note } from '@/components/ui/Note'
 import { toast } from '@/components/ui/Toast'
-import { T, useT, type MessageDescriptor } from '@/i18n'
+import { T, formatList, useT, type MessageDescriptor } from '@/i18n'
 import { common } from '@/i18n/common'
 import { ago, clock, count, trimPct } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
@@ -21,18 +22,23 @@ import { m } from './messages'
 import { RouteTester } from './RouteTester'
 import { mr } from './routing.messages'
 import {
+  afterSave,
   bulkIssues,
   changedStreams,
+  discardStreams,
   fieldText,
+  keepEditsOnLatest,
   mailboxName,
   providerOption,
+  rebase,
   sameDraft,
   setPrimary,
   setShare,
-  toDraft,
-  toInput,
+  startEditing,
+  toSaveInput,
   type Condition,
   type Draft,
+  type Editing,
   type RoutingConfig,
   type RoutingProvider,
   type StreamDraft,
@@ -60,7 +66,7 @@ export function RoutingPage() {
       </Page>
     )
   }
-  return <RoutingEditor key={q.data.savedAt ?? 'never'} cfg={q.data} />
+  return <RoutingEditor cfg={q.data} />
 }
 
 function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
@@ -68,25 +74,50 @@ function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
   const { slug } = useWorkspace()
   const qc = useQueryClient()
   const reason = usePermissionReason('providers:manage')
-  const [saved] = useState(() => toDraft(cfg))
-  const [draft, setDraft] = useState<Draft>(saved)
+  // The edits survive refetches: streams nobody edited follow the saved
+  // routing, edited ones keep their edits and the version they started from.
+  const [ed, setEd] = useState<Editing>(() => startEditing(cfg))
+  const [seen, setSeen] = useState(cfg)
+  if (seen !== cfg) {
+    setSeen(cfg)
+    setEd((e) => rebase(e, cfg))
+  }
+  const { draft } = ed
+  const saved = ed.base
+  const setDraft = (next: Draft | ((d: Draft) => Draft)) => setEd((e) => ({ ...e, draft: typeof next === 'function' ? next(e.draft) : next }))
+  // Streams a save was refused for: someone changed them meanwhile.
+  const [conflict, setConflict] = useState<Stream[]>([])
   const [conditionFor, setConditionFor] = useState<Stream | null>(null)
   const [saving, setSaving] = useState(false)
   const dirty = !sameDraft(draft, saved)
   const issues = bulkIssues(draft, cfg.providers)
   const warningView = dirty && issues.length > 0
-  const changes = changedStreams(draft, saved).length
+  const changedList = changedStreams(draft, saved)
+  const changes = changedList.length
   const update = (s: Stream, fn: (sd: StreamDraft) => StreamDraft) => setDraft((d) => ({ ...d, [s]: fn(d[s]) }))
 
-  const save = async (next: Draft, acknowledge = false) => {
+  const save = async (next: Draft, acknowledge = false): Promise<boolean> => {
     setSaving(true)
+    const body = toSaveInput(ed, next, acknowledge)
+    const which = body.streams.map((x) => x.stream as Stream)
     try {
-      await http.PUT('/api/v1/workspaces/{workspace}/routing', { params: { path: { workspace: slug } }, body: toInput(next, acknowledge) })
+      const res = await http.PUT('/api/v1/workspaces/{workspace}/routing', { params: { path: { workspace: slug } }, body })
+      const answer = res.data
+      if (answer) setEd((e) => afterSave({ ...e, draft: next }, answer, which))
+      setConflict([])
       toast({ kind: 'success', title: t(mr.saved), detail: t(mr.savedDetail) })
       await Promise.all([qc.invalidateQueries({ queryKey: routingKey }), qc.invalidateQueries({ queryKey: providersKey })])
+      return true
     } catch (e) {
+      if (e instanceof ApiError && e.code === 'routing_changed') {
+        const stale = ((e.problem.meta?.streams as string[] | undefined) ?? which) as Stream[]
+        setConflict(stale)
+        await qc.invalidateQueries({ queryKey: routingKey })
+        return false
+      }
       const detail = e instanceof ApiError && e.code === 'bulk_terms' ? e.message : errorMessage(e)
       toast({ kind: 'error', title: t(mr.saveFailed), detail })
+      return false
     } finally {
       setSaving(false)
     }
@@ -101,7 +132,7 @@ function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
       ) : cfg.savedAt ? (
         <span className="k">{cfg.savedBy ? t(mr.savedAgoBy, { ago: ago(cfg.savedAt), name: cfg.savedBy }) : t(mr.savedAgo, { ago: ago(cfg.savedAt) })}</span>
       ) : null}
-      {dirty ? <Button onClick={() => setDraft(saved)}>{t(mr.discard)}</Button> : null}
+      {dirty ? <Button onClick={() => setEd(startEditing(cfg))}>{t(mr.discard)}</Button> : null}
       <Button
         variant="primary"
         disabledReason={reason}
@@ -133,7 +164,9 @@ function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
           issues={issues}
           saving={saving}
           onDraft={setDraft}
-          onSave={(next, acknowledge) => save(next, acknowledge)}
+          onSave={async (next, acknowledge) => {
+            await save(next, acknowledge)
+          }}
           readOnlyReason={reason}
         />
       </Page>
@@ -142,6 +175,28 @@ function RoutingEditor({ cfg }: { cfg: RoutingConfig }) {
 
   return (
     <Page title={t(m.title)} filters={<ProvidersTabs />} actions={actions}>
+      <UnsavedChangesGuard
+        dirty={dirty}
+        title={t(mr.leaveTitle)}
+        description={t(mr.leaveBody, { streams: formatList(changedList.map((s) => streamName[s])), count: changes })}
+        saveLabel={t(mr.saveAndLeave)}
+        onSave={async () => {
+          if (!(await save(draft))) throw new Error(t(mr.saveFailed))
+        }}
+      />
+      {conflict.length ? (
+        <ConflictNote
+          streams={conflict}
+          onDiscard={() => {
+            setEd((e) => discardStreams(e, cfg, conflict))
+            setConflict([])
+          }}
+          onKeep={() => {
+            setEd((e) => keepEditsOnLatest(e, cfg, conflict))
+            setConflict([])
+          }}
+        />
+      ) : null}
       <div className="flex flex-wrap items-start gap-5">
         <div className="flex min-w-0 flex-[2_1_600px] flex-col gap-4">
           <StreamCard stream="broadcast" cfg={cfg} sd={draft.broadcast} onChange={(fn) => update('broadcast', fn)} onAddCondition={() => setConditionFor('broadcast')} readOnlyReason={reason} />
@@ -654,6 +709,35 @@ function ConditionDialog({ stream, cfg, onClose, onAdd }: { stream: Stream; cfg:
         ) : null}
       </div>
     </Dialog>
+  )
+}
+
+/**
+ * A save was refused because someone changed these streams meanwhile (or
+ * the warm-up planner raised a share). Nothing was saved and the edits are
+ * still here: show the latest routing for those streams, or keep the edits
+ * and replace it on the next save.
+ */
+function ConflictNote({ streams, onDiscard, onKeep }: { streams: Stream[]; onDiscard: () => void; onKeep: () => void }) {
+  const t = useT()
+  return (
+    <Banner
+      tone="warn"
+      className="mb-4"
+      title={t(mr.conflictTitle, { streams: formatList(streams.map((s) => streamName[s])), count: streams.length })}
+      actions={
+        <>
+          <Button size="sm" onClick={onDiscard}>
+            {t(mr.conflictShowLatest)}
+          </Button>
+          <Button size="sm" onClick={onKeep}>
+            {t(mr.conflictKeepMine)}
+          </Button>
+        </>
+      }
+    >
+      {t(mr.conflictBody)}
+    </Banner>
   )
 }
 

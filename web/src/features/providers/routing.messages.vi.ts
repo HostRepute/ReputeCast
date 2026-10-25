@@ -18,6 +18,13 @@ export default translate(mr, {
   upToDateDetail: 'Hãy đổi một tuyến, tỷ trọng chia hoặc chính sách chuyển dự phòng trước.',
   saveRouting: 'Lưu định tuyến',
   asideLabel: 'Công cụ thử tuyến và cài đặt dùng chung',
+  leaveTitle: 'Rời đi mà không lưu định tuyến?',
+  leaveBody: 'Bạn đã thay đổi {streams}. Nếu rời đi bây giờ, {count, plural, other {các thay đổi đó}} sẽ mất và thư vẫn đi theo định tuyến đã lưu.',
+  saveAndLeave: 'Lưu định tuyến rồi rời đi',
+  conflictTitle: '{streams} đã thay đổi trong lúc bạn chỉnh sửa',
+  conflictBody: 'Có người đã lưu định tuyến, hoặc trình lập kế hoạch khởi động đã tăng tỷ trọng. Chưa có gì được lưu, và các chỉnh sửa của bạn vẫn còn đây.',
+  conflictShowLatest: 'Xem định tuyến mới nhất',
+  conflictKeepMine: 'Giữ chỉnh sửa của tôi và thay thế',
 
   // ── A stream's card ──────────────────────────────────────────────────
   tagBroadcast: 'chiến dịch',

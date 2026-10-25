@@ -2412,6 +2412,11 @@ type Querier interface {
 	ProvDailyTotals(ctx context.Context, arg ProvDailyTotalsParams) ([]ProvDailyTotalsRow, error)
 	ProvDisconnect(ctx context.Context, id uuid.UUID) error
 	ProvEndFailovers(ctx context.Context, arg ProvEndFailoversParams) ([]StreamFailover, error)
+	// Review 2026-10 (M35, R03): sending providers.
+	// PR-6: messages a provider accepted since a time (its last event) that
+	// have no event yet, split at the 30-minute grace a message gets for its
+	// first event: overdue (sent before grace_before) and still in grace.
+	ProvEventsOverdue(ctx context.Context, arg ProvEventsOverdueParams) (ProvEventsOverdueRow, error)
 	ProvGet(ctx context.Context, arg ProvGetParams) (Provider, error)
 	ProvGetAny(ctx context.Context, id uuid.UUID) (Provider, error)
 	ProvGetByWebhookToken(ctx context.Context, arg ProvGetByWebhookTokenParams) (Provider, error)
@@ -2449,6 +2454,13 @@ type Querier interface {
 	ProvSentThroughSince(ctx context.Context, arg ProvSentThroughSinceParams) (int64, error)
 	ProvSetRouteStatus(ctx context.Context, arg ProvSetRouteStatusParams) (int64, error)
 	ProvStartFailover(ctx context.Context, arg ProvStartFailoverParams) error
+	// PR-7: messages of a stream a provider took in the last hour (what a
+	// failover would move per hour).
+	ProvStreamRecentVolume(ctx context.Context, arg ProvStreamRecentVolumeParams) (int64, error)
+	// PR-7: the verification per provider of the senders a stream uses (its
+	// default sender, and for Broadcasts the senders of the campaigns sending
+	// now), to vet a failover target's domain.
+	ProvStreamSenderVerification(ctx context.Context, arg ProvStreamSenderVerificationParams) ([]json.RawMessage, error)
 	// Messages per stream over a window (volume estimates on the routing screen).
 	ProvStreamVolume(ctx context.Context, arg ProvStreamVolumeParams) ([]ProvStreamVolumeRow, error)
 	ProvTouchLastEvent(ctx context.Context, arg ProvTouchLastEventParams) error
@@ -2988,13 +3000,16 @@ type Querier interface {
 	// recipients per send").
 	RoutingBroadcastSizes(ctx context.Context, arg RoutingBroadcastSizesParams) (RoutingBroadcastSizesRow, error)
 	RoutingContact(ctx context.Context, arg RoutingContactParams) (RoutingContactRow, error)
-	RoutingDeleteRules(ctx context.Context, workspaceID uuid.UUID) error
+	// A save replaces only the streams it changes.
+	RoutingDeleteStreamRules(ctx context.Context, arg RoutingDeleteStreamRulesParams) error
 	RoutingInsertRule(ctx context.Context, arg RoutingInsertRuleParams) error
 	RoutingIsSuppressed(ctx context.Context, arg RoutingIsSuppressedParams) (bool, error)
 	RoutingListPolicies(ctx context.Context, workspaceID uuid.UUID) ([]StreamPolicy, error)
 	// Routing rules, failover policies and the route tester.
 	RoutingListRules(ctx context.Context, workspaceID uuid.UUID) ([]RoutingRule, error)
 	RoutingLists(ctx context.Context, workspaceID uuid.UUID) ([]RoutingListsRow, error)
+	// Serializes routing saves of a workspace (the version check and the write).
+	RoutingLock(ctx context.Context, workspaceID uuid.UUID) error
 	// When the routing was last saved and by whom.
 	RoutingSaved(ctx context.Context, workspaceID uuid.UUID) (RoutingSavedRow, error)
 	RoutingSenderDomains(ctx context.Context, workspaceID uuid.UUID) ([]RoutingSenderDomainsRow, error)
@@ -3554,19 +3569,38 @@ type Querier interface {
 	// list (the "pulled in" count of providers without a suppression API).
 	SuppAddedByProvider(ctx context.Context, workspaceID uuid.UUID) ([]SuppAddedByProviderRow, error)
 	SuppCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
+	// Records addresses a provider's list now holds. A pulled address that was
+	// pushed before stays "pushed".
+	SuppEntriesAdd(ctx context.Context, arg SuppEntriesAddParams) error
+	SuppEntriesDelete(ctx context.Context, arg SuppEntriesDeleteParams) error
+	// Which of these addresses a provider's list already holds as far as
+	// ReputeCast knows (pushed there, or pulled before): a pull skips them, so
+	// an address a person removed from the shared list isn't pulled back in
+	// before its removal reaches the provider.
+	SuppEntriesKnown(ctx context.Context, arg SuppEntriesKnownParams) ([]string, error)
 	// Suppressions brought in by imports ("Brevo (import)"), per source.
 	SuppImportSources(ctx context.Context, workspaceID uuid.UUID) ([]SuppImportSourcesRow, error)
-	SuppLatestCreated(ctx context.Context, workspaceID uuid.UUID) (time.Time, error)
+	// What a sync still has to do for a provider: suppressions to push plus
+	// entries to remove.
 	SuppPendingCount(ctx context.Context, arg SuppPendingCountParams) (int64, error)
+	// The shared list by reason and scope, and whether providers get it (PR-1:
+	// hard bounces and complaints that apply to all mail).
+	SuppPushSummary(ctx context.Context, workspaceID uuid.UUID) ([]SuppPushSummaryRow, error)
 	SuppReasonCounts(ctx context.Context, workspaceID uuid.UUID) ([]SuppReasonCountsRow, error)
 	SuppSyncGet(ctx context.Context, providerID uuid.UUID) (ProviderSuppressionSync, error)
 	// Sync of the shared suppression list with each provider. The list
 	// itself (screens, manual adds, imports) belongs to the audience domain.
 	SuppSyncList(ctx context.Context, providerIds []uuid.UUID) ([]ProviderSuppressionSync, error)
 	SuppSyncUpsert(ctx context.Context, arg SuppSyncUpsertParams) error
-	// Addresses of the shared list created after a time that didn't come from
-	// the provider being pushed to (no point echoing its own list back).
+	// PR-1: suppressions a provider's list should hold and doesn't yet, in
+	// insert order: hard bounces and complaints that apply to all mail (never
+	// unsubscribes, role addresses or manual marketing-only entries, which
+	// would stop a password reset), not the provider's own (no echo).
 	SuppToPush(ctx context.Context, arg SuppToPushParams) ([]SuppToPushRow, error)
+	// Entries of a provider's list that left the shared list: a pushed one
+	// whose suppression is gone (or no longer applies to all mail), a pulled
+	// one someone removed from the shared list.
+	SuppToRemove(ctx context.Context, arg SuppToRemoveParams) ([]SuppToRemoveRow, error)
 	SuppressionCounts(ctx context.Context, workspaceID uuid.UUID) (SuppressionCountsRow, error)
 	// One row per connected provider with its suppression sync state (kept by
 	// the providers domain) and, for providers without a suppression API, the

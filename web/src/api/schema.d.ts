@@ -31613,6 +31613,7 @@ export interface components {
             alternatives: components["schemas"]["ProviderFailoverAlternative"][];
             campaign?: components["schemas"]["ProviderHeldCampaign"];
             fallback?: string;
+            fallbackChecks: components["schemas"]["VetCheck"][];
             fallbackShort?: string;
             /** @enum {string} */
             policy: "automatic" | "pause_and_ask" | "warm_only";
@@ -31804,6 +31805,10 @@ export interface components {
             hourly: number[];
             /** Format: date-time */
             hourlyFrom: string;
+            /** Format: int64 */
+            inGrace: number;
+            /** Format: int64 */
+            overdue: number;
             provider: string;
             providerId: string;
             short: string;
@@ -35311,7 +35316,7 @@ export interface components {
         };
         RouteTestStep: {
             /** Format: int64 */
-            bucket: number;
+            bucket?: number;
             /** Format: int64 */
             conditions: number;
             email?: string;
@@ -35419,6 +35424,7 @@ export interface components {
             weight: number;
         };
         RoutingStreamInput: {
+            baseVersion?: string;
             conditions: components["schemas"]["RoutingCondition"][];
             /** @enum {string} */
             failover: "automatic" | "pause_and_ask" | "warm_only";
@@ -35441,6 +35447,7 @@ export interface components {
             splits: components["schemas"]["RoutingSplit"][];
             /** @enum {string} */
             stream: "broadcast" | "automation" | "system" | "transactional";
+            version: string;
             volume?: components["schemas"]["RoutingVolume"];
         };
         RoutingTerms: {
@@ -39097,15 +39104,25 @@ export interface components {
             pulled: number;
             /** Format: int64 */
             pushed?: number;
+            readOnly: boolean;
             scope: string;
             /** @enum {string} */
             status: "in_sync" | "syncing" | "error" | "local" | "done" | "off";
+            tenant?: string;
         };
         SuppressionSyncRun: {
             /** Format: int64 */
             queued: number;
         };
         SuppressionSyncStatus: {
+            kept: components["schemas"]["SuppressionReasonCount"][];
+            /** Format: int64 */
+            keptAllMail: number;
+            /** Format: int64 */
+            marketingOnly: number;
+            pushed: components["schemas"]["SuppressionReasonCount"][];
+            /** Format: int64 */
+            pushedTotal: number;
             reasons: components["schemas"]["SuppressionReasonCount"][];
             rows: components["schemas"]["SuppressionSyncRow"][];
             /** Format: int64 */

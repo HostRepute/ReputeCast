@@ -51,9 +51,22 @@ func (s *Service) now() time.Time {
 
 // Load reads a workspace's routing set.
 func Load(ctx context.Context, q *store.Queries, wsID uuid.UUID) (Set, error) {
+	st, err := loadStored(ctx, q, wsID)
+	return st.set, err
+}
+
+// stored is the routing as stored: the set, each stream's version and the
+// policy rows.
+type stored struct {
+	set      Set
+	versions map[providers.Stream]string
+	policies []store.StreamPolicy
+}
+
+func loadStored(ctx context.Context, q *store.Queries, wsID uuid.UUID) (stored, error) {
 	rows, err := q.RoutingListRules(ctx, wsID)
 	if err != nil {
-		return Set{}, err
+		return stored{}, err
 	}
 	set := Set{Policies: map[providers.Stream]Policy{}}
 	for _, r := range rows {
@@ -64,12 +77,12 @@ func Load(ctx context.Context, q *store.Queries, wsID uuid.UUID) (Set, error) {
 	}
 	pols, err := q.RoutingListPolicies(ctx, wsID)
 	if err != nil {
-		return Set{}, err
+		return stored{}, err
 	}
 	for _, p := range pols {
 		set.Policies[providers.Stream(p.Stream)] = Policy(p.Failover)
 	}
-	return set, nil
+	return stored{set: set, versions: streamVersions(rows, pols), policies: pols}, nil
 }
 
 // Route decides the provider for one recipient with the saved rules. The
@@ -110,9 +123,14 @@ type RoutingStreamInput struct {
 	// Priority (Transactional only): transactional messages go first within
 	// the rate of a provider that also sends a campaign.
 	Priority *bool `json:"priority,omitempty"`
+	// BaseVersion is the stream's version the edit started from (the
+	// stream's version in the routing read). When the stream changed since,
+	// the save is refused with 409 code routing_changed and nothing is saved.
+	BaseVersion string `json:"baseVersion,omitempty" maxLength:"32"`
 }
 
-// RoutingSaveInput replaces the routing of the streams it lists.
+// RoutingSaveInput replaces the routing of the streams it lists; the
+// streams it leaves out stay exactly as they are.
 type RoutingSaveInput struct {
 	Streams []RoutingStreamInput `json:"streams" minItems:"1" maxItems:"4"`
 	// AcknowledgeBulkTerms keeps a Broadcast route that a provider's terms
@@ -138,7 +156,12 @@ type RoutingVolume struct {
 
 // RoutingStreamView is one stream's saved routing.
 type RoutingStreamView struct {
-	Stream     string                 `json:"stream" enum:"broadcast,automation,system,transactional"`
+	Stream string `json:"stream" enum:"broadcast,automation,system,transactional"`
+	// Version changes whenever the stream's routing changes; send it back as
+	// baseVersion when saving the stream.
+	Version string `json:"version"`
+	// Splits are in the order they were saved: the order only changes how
+	// the split reads, never who goes where.
 	Splits     []RoutingSplit         `json:"splits"`
 	Fallback   string                 `json:"fallback"`
 	Failover   string                 `json:"failover" enum:"automatic,pause_and_ask,warm_only"`
@@ -226,10 +249,11 @@ type RoutingConfig struct {
 
 // Get returns the routing screen for a workspace.
 func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, error) {
-	set, err := Load(ctx, s.Q, ws.ID)
+	st, err := loadStored(ctx, s.Q, ws.ID)
 	if err != nil {
 		return RoutingConfig{}, err
 	}
+	set := st.set
 	facts, provs, err := s.facts(ctx, ws)
 	if err != nil {
 		return RoutingConfig{}, err
@@ -272,13 +296,9 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 	if err != nil {
 		return RoutingConfig{}, err
 	}
-	pols, err := s.Q.RoutingListPolicies(ctx, ws.ID)
-	if err != nil {
-		return RoutingConfig{}, err
-	}
 	acks := map[string]*time.Time{}
 	priority := true
-	for _, p := range pols {
+	for _, p := range st.policies {
 		acks[p.Stream] = p.BulkTermsAckAt
 		if p.Stream == string(StreamTransactional) {
 			priority = p.Priority
@@ -286,7 +306,8 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 	}
 	volumes := s.volumes(ctx, ws)
 	for _, stream := range Streams {
-		v := RoutingStreamView{Stream: string(stream), Splits: []RoutingSplit{}, Failover: string(set.Policy(stream)), Conditions: []RoutingConditionView{}, BulkTermsAcknowledgedAt: acks[string(stream)], Volume: volumes[stream]}
+		v := RoutingStreamView{Stream: string(stream), Version: st.versions[stream], Splits: []RoutingSplit{}, Failover: string(set.Policy(stream)), Conditions: []RoutingConditionView{},
+			BulkTermsAcknowledgedAt: acks[string(stream)], Volume: volumes[stream]}
 		if stream == StreamTransactional {
 			pr := priority
 			v.Priority, v.SenderDomains = &pr, txDomains
@@ -307,7 +328,6 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace) (RoutingConfig, 
 			c := conditionView(l, r, listNames, categoryNames)
 			v.Conditions = append(v.Conditions, c)
 		}
-		slices.SortStableFunc(v.Splits, func(a, b RoutingSplit) int { return b.Weight - a.Weight })
 		out.Streams = append(out.Streams, v)
 	}
 	if saved, err := s.Q.RoutingSaved(ctx, ws.ID); err == nil {
@@ -589,17 +609,17 @@ func toSet(ctx context.Context, in RoutingSaveInput, base Set) (Set, error) {
 	return out, nil
 }
 
-// Save replaces the routing of the streams in the input.
+// CodeRoutingChanged is the problem code of a save whose base version is
+// stale: someone (or the warm-up planner) changed a stream since the edit
+// began. Its meta "streams" lists the streams that changed.
+const CodeRoutingChanged = "routing_changed"
+
+// Save replaces the routing of the streams in the input and leaves the
+// others exactly as stored. A stream sent with a baseVersion that is no
+// longer its version is refused with 409 (CodeRoutingChanged): nothing is
+// saved, so a tab left open never overwrites newer routing.
 func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveInput) (RoutingConfig, error) {
 	before, err := s.Get(ctx, ws)
-	if err != nil {
-		return RoutingConfig{}, err
-	}
-	base, err := Load(ctx, s.Q, ws.ID)
-	if err != nil {
-		return RoutingConfig{}, err
-	}
-	set, err := toSet(ctx, in, base)
 	if err != nil {
 		return RoutingConfig{}, err
 	}
@@ -607,7 +627,11 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveI
 	if err != nil {
 		return RoutingConfig{}, err
 	}
-	// Lists named in conditions must belong to the workspace.
+	saving := map[providers.Stream]bool{}
+	for _, st := range in.Streams {
+		saving[providers.Stream(st.Stream)] = true
+	}
+	// Lists and categories named in conditions must belong to the workspace.
 	lists, err := s.Q.RoutingLists(ctx, ws.ID)
 	if err != nil {
 		return RoutingConfig{}, err
@@ -616,44 +640,13 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveI
 	for _, l := range lists {
 		known[l.ID.String()] = true
 	}
-	for _, r := range set.Rules {
-		for _, l := range r.Conditions.Lists {
-			if !known[l] {
-				return RoutingConfig{}, api.Invalid("body.streams", say(ctx, "problem.unknownList", nil))
-			}
-		}
-	}
-	if cats, err := s.Q.TxnRouteCategories(ctx, ws.ID); err == nil {
-		knownCat := map[string]bool{}
-		for _, c := range cats {
-			knownCat[c.ID.String()] = true
-		}
-		for _, r := range set.Rules {
-			for _, c := range r.Conditions.Categories {
-				if !knownCat[c] {
-					return RoutingConfig{}, api.Invalid("body.streams", say(ctx, "problem.unknownCategory", nil))
-				}
-			}
-		}
-	} else {
+	cats, err := s.Q.TxnRouteCategories(ctx, ws.ID)
+	if err != nil {
 		return RoutingConfig{}, err
 	}
-	issues := Validate(i18n.LangFrom(ctx), set, facts)
-	if Blocking(issues) {
-		for _, i := range issues {
-			if i.Blocking {
-				return RoutingConfig{}, api.Err(http.StatusUnprocessableEntity, api.CodeValidation, i.Message).WithMeta("issues", issues)
-			}
-		}
-	}
-	bulk := []RoutingIssue{}
-	for _, i := range issues {
-		if i.Code == IssueBulkTerms {
-			bulk = append(bulk, i)
-		}
-	}
-	if len(bulk) > 0 && !in.AcknowledgeBulkTerms {
-		return RoutingConfig{}, api.Err(http.StatusConflict, "bulk_terms", say(ctx, "problem.bulkTerms", i18n.Args{"issue": bulk[0].Message})).WithMeta("issues", bulk)
+	knownCat := map[string]bool{}
+	for _, c := range cats {
+		knownCat[c.ID.String()] = true
 	}
 	p := api.PrincipalFrom(ctx)
 	var by *uuid.UUID
@@ -664,10 +657,76 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveI
 	now := s.now()
 	err = db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		if err := q.RoutingDeleteRules(ctx, ws.ID); err != nil {
+		if err := q.RoutingLock(ctx, ws.ID); err != nil {
+			return err
+		}
+		base, err := loadStored(ctx, q, ws.ID)
+		if err != nil {
+			return err
+		}
+		var stale []string
+		for _, st := range in.Streams {
+			if st.BaseVersion != "" && st.BaseVersion != base.versions[providers.Stream(st.Stream)] {
+				stale = append(stale, st.Stream)
+			}
+		}
+		if len(stale) > 0 {
+			return api.Err(http.StatusConflict, CodeRoutingChanged, say(ctx, "problem.changed", nil)).WithMeta("streams", stale)
+		}
+		set, err := toSet(ctx, in, base.set)
+		if err != nil {
 			return err
 		}
 		for _, r := range set.Rules {
+			if !saving[r.Stream] {
+				continue
+			}
+			for _, l := range r.Conditions.Lists {
+				if !known[l] {
+					return api.Invalid("body.streams", say(ctx, "problem.unknownList", nil))
+				}
+			}
+			for _, c := range r.Conditions.Categories {
+				if !knownCat[c] {
+					return api.Invalid("body.streams", say(ctx, "problem.unknownCategory", nil))
+				}
+			}
+		}
+		// Only the streams being saved can stop the save: a problem in a
+		// stream left as it is stays on screen as a warning of its own.
+		issues := []RoutingIssue{}
+		for _, i := range Validate(i18n.LangFrom(ctx), set, facts) {
+			if saving[providers.Stream(i.Stream)] {
+				issues = append(issues, i)
+			}
+		}
+		for _, i := range issues {
+			if i.Blocking {
+				return api.Err(http.StatusUnprocessableEntity, api.CodeValidation, i.Message).WithMeta("issues", issues)
+			}
+		}
+		bulk := []RoutingIssue{}
+		for _, i := range issues {
+			if i.Code == IssueBulkTerms {
+				bulk = append(bulk, i)
+			}
+		}
+		if len(bulk) > 0 && !in.AcknowledgeBulkTerms {
+			return api.Err(http.StatusConflict, "bulk_terms", say(ctx, "problem.bulkTerms", i18n.Args{"issue": bulk[0].Message})).WithMeta("issues", bulk)
+		}
+		names := make([]string, 0, len(saving))
+		for _, st := range Streams {
+			if saving[st] {
+				names = append(names, string(st))
+			}
+		}
+		if err := q.RoutingDeleteStreamRules(ctx, store.RoutingDeleteStreamRulesParams{WorkspaceID: ws.ID, Streams: names}); err != nil {
+			return err
+		}
+		for _, r := range set.Rules {
+			if !saving[r.Stream] {
+				continue
+			}
 			conds, _ := json.Marshal(r.Conditions)
 			splits, _ := json.Marshal(r.Splits)
 			if err := q.RoutingInsertRule(ctx, store.RoutingInsertRuleParams{
@@ -678,6 +737,9 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveI
 			}
 		}
 		for _, stream := range Streams {
+			if !saving[stream] {
+				continue
+			}
 			params := store.RoutingUpsertPolicyParams{WorkspaceID: ws.ID, Stream: string(stream), Failover: string(set.Policy(stream))}
 			if stream == providers.StreamBroadcast && len(bulk) > 0 {
 				params.BulkTermsAckAt, params.BulkTermsAckBy = &now, by
@@ -694,13 +756,19 @@ func (s *Service) Save(ctx context.Context, ws *store.Workspace, in RoutingSaveI
 			}
 		}
 		wsID := ws.ID
-		meta := map[string]any{}
+		meta := map[string]any{"streams": names}
 		if len(bulk) > 0 {
 			meta["acknowledged_bulk_terms"] = bulk
 		}
+		prev := []RoutingStreamView{}
+		for _, v := range before.Streams {
+			if saving[providers.Stream(v.Stream)] {
+				prev = append(prev, v)
+			}
+		}
 		return s.Audit.LogWith(ctx, q, audit.Event{
 			WorkspaceID: &wsID, Action: "routing.update", TargetType: "routing", TargetID: ws.ID.String(), TargetName: ws.Name,
-			Before: before.Streams, After: in.Streams, Metadata: meta,
+			Before: prev, After: in.Streams, Metadata: meta,
 		})
 	})
 	if err != nil {

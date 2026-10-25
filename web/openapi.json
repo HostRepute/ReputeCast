@@ -51898,6 +51898,12 @@
           "fallback": {
             "type": "string"
           },
+          "fallbackChecks": {
+            "items": {
+              "$ref": "#/components/schemas/VetCheck"
+            },
+            "type": "array"
+          },
           "fallbackShort": {
             "type": "string"
           },
@@ -51970,7 +51976,8 @@
           "rerouted",
           "reroutedBy",
           "alternatives",
-          "switchBackMinutes"
+          "switchBackMinutes",
+          "fallbackChecks"
         ],
         "type": "object"
       },
@@ -52578,6 +52585,14 @@
             "format": "date-time",
             "type": "string"
           },
+          "inGrace": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "overdue": {
+            "format": "int64",
+            "type": "integer"
+          },
           "provider": {
             "type": "string"
           },
@@ -52601,6 +52616,8 @@
           "short",
           "since",
           "accepted",
+          "overdue",
+          "inGrace",
           "campaigns",
           "broadcastShareHeld",
           "checks",
@@ -64899,7 +64916,6 @@
         },
         "required": [
           "kind",
-          "bucket",
           "conditions",
           "suppressed"
         ],
@@ -65269,6 +65285,10 @@
       "RoutingStreamInput": {
         "additionalProperties": false,
         "properties": {
+          "baseVersion": {
+            "maxLength": 32,
+            "type": "string"
+          },
           "conditions": {
             "items": {
               "$ref": "#/components/schemas/RoutingCondition"
@@ -65364,12 +65384,16 @@
             ],
             "type": "string"
           },
+          "version": {
+            "type": "string"
+          },
           "volume": {
             "$ref": "#/components/schemas/RoutingVolume"
           }
         },
         "required": [
           "stream",
+          "version",
           "splits",
           "fallback",
           "failover",
@@ -78369,6 +78393,9 @@
             "format": "int64",
             "type": "integer"
           },
+          "readOnly": {
+            "type": "boolean"
+          },
           "scope": {
             "type": "string"
           },
@@ -78382,6 +78409,9 @@
               "off"
             ],
             "type": "string"
+          },
+          "tenant": {
+            "type": "string"
           }
         },
         "required": [
@@ -78390,7 +78420,8 @@
           "direction",
           "pulled",
           "pending",
-          "status"
+          "status",
+          "readOnly"
         ],
         "type": "object"
       },
@@ -78410,6 +78441,30 @@
       "SuppressionSyncStatus": {
         "additionalProperties": false,
         "properties": {
+          "kept": {
+            "items": {
+              "$ref": "#/components/schemas/SuppressionReasonCount"
+            },
+            "type": "array"
+          },
+          "keptAllMail": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "marketingOnly": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pushed": {
+            "items": {
+              "$ref": "#/components/schemas/SuppressionReasonCount"
+            },
+            "type": "array"
+          },
+          "pushedTotal": {
+            "format": "int64",
+            "type": "integer"
+          },
           "reasons": {
             "items": {
               "$ref": "#/components/schemas/SuppressionReasonCount"
@@ -78430,6 +78485,11 @@
         "required": [
           "total",
           "reasons",
+          "pushed",
+          "kept",
+          "pushedTotal",
+          "marketingOnly",
+          "keptAllMail",
           "rows"
         ],
         "type": "object"

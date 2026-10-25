@@ -30,9 +30,9 @@ function provider(id: string, name: string, extra: Partial<Schemas['RoutingProvi
 
 const cfg: RoutingConfig = {
   streams: [
-    { stream: 'broadcast', splits: [{ providerId: ses, weight: 90 }, { providerId: postal, weight: 10 }], fallback: '', failover: 'pause_and_ask', conditions: [] },
-    { stream: 'automation', splits: [{ providerId: ses, weight: 100 }], fallback: postmark, failover: 'automatic', conditions: [] },
-    { stream: 'system', splits: [{ providerId: postmark, weight: 100 }], fallback: ses, failover: 'automatic', conditions: [] },
+    { stream: 'broadcast', version: 'b1', splits: [{ providerId: ses, weight: 90 }, { providerId: postal, weight: 10 }], fallback: '', failover: 'pause_and_ask', conditions: [] },
+    { stream: 'automation', version: 'a1', splits: [{ providerId: ses, weight: 100 }], fallback: postmark, failover: 'automatic', conditions: [] },
+    { stream: 'system', version: 's1', splits: [{ providerId: postmark, weight: 100 }], fallback: ses, failover: 'automatic', conditions: [] },
   ],
   providers: [
     provider(ses, 'Amazon SES', { label: 'us-east-1' }),

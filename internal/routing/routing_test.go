@@ -74,6 +74,97 @@ func TestWeightedSplitIsDeterministicAndExact(t *testing.T) {
 	}
 }
 
+// PR-2: the split is order-independent. Reordering a 40/60 split (what a
+// save that sorted splits by weight did) moves nobody; before rendezvous
+// hashing it moved about 80% of addresses.
+func TestReorderingASplitMovesNobody(t *testing.T) {
+	a := []Split{{ses, 40}, {postal, 60}}
+	b := []Split{{postal, 60}, {ses, 40}}
+	three := []Split{{ses, 50}, {postal, 30}, {postmark, 20}}
+	threeAgain := []Split{{postmark, 20}, {ses, 50}, {postal, 30}}
+	for i := 0; i < 20000; i++ {
+		email := fmt.Sprintf("reader%d@example.com", i)
+		x, _, _ := pick(a, email)
+		y, _, _ := pick(b, email)
+		if x != y {
+			t.Fatalf("%s moved from %s to %s when the split was reordered", email, x, y)
+		}
+		x, _, _ = pick(three, email)
+		y, _, _ = pick(threeAgain, email)
+		if x != y {
+			t.Fatalf("%s moved in a reordered three-way split", email)
+		}
+	}
+}
+
+// Raising a share moves about the difference, only towards the provider
+// that grows: 90/10 → 85/15 moves about 5% of addresses from SES to Postal
+// and nobody from Postal to SES.
+func TestRaisingAShareMovesOnlyTheDifference(t *testing.T) {
+	before := []Split{{ses, 90}, {postal, 10}}
+	after := []Split{{ses, 85}, {postal, 15}}
+	moved := 0
+	const n = 40000
+	for i := 0; i < n; i++ {
+		email := fmt.Sprintf("member%d@acme.io", i)
+		x, _, _ := pick(before, email)
+		y, _, _ := pick(after, email)
+		if x == y {
+			continue
+		}
+		if x != ses || y != postal {
+			t.Fatalf("%s moved from %s to %s", email, x, y)
+		}
+		moved++
+	}
+	if share := float64(moved) / n; share < 0.04 || share > 0.06 {
+		t.Fatalf("%.3f of addresses moved, want about 0.05", share)
+	}
+}
+
+// Every provider gets its weight's share, whatever the split and the ids.
+func TestRendezvousSharesFollowWeights(t *testing.T) {
+	ids := []uuid.UUID{ses, postal, postmark, uuid.MustParse("01990000-0000-7000-8000-0000000000aa"), uuid.MustParse("0199ffff-0000-7000-8000-000000000001")}
+	for _, weights := range [][]int{{50, 50}, {70, 30}, {97, 3}, {34, 33, 33}, {60, 30, 10}, {40, 20, 20, 10, 10}} {
+		split := make([]Split, len(weights))
+		for i, w := range weights {
+			split[i] = Split{ProviderID: ids[i], Weight: w}
+		}
+		counts := map[uuid.UUID]int{}
+		const n = 30000
+		for i := 0; i < n; i++ {
+			id, _, _ := pick(split, fmt.Sprintf("c%d@example.org", i))
+			counts[id]++
+		}
+		for _, sp := range split {
+			got := float64(counts[sp.ProviderID]) / n
+			if want := float64(sp.Weight) / 100; got < want-0.015 || got > want+0.015 {
+				t.Errorf("split %v: provider %d got %.3f, want %.2f", weights, sp.Weight, got, want)
+			}
+		}
+	}
+}
+
+// The bucket of a two-provider split is exact: the first provider owns the
+// buckets below its weight, in whichever order the split is shown.
+func TestPairBucketMatchesTheWinner(t *testing.T) {
+	for _, split := range [][]Split{{{ses, 85}, {postal, 15}}, {{postal, 15}, {ses, 85}}, {{ses, 50}, {postal, 50}}} {
+		for i := 0; i < 5000; i++ {
+			email := fmt.Sprintf("p%d@gmail.com", i)
+			id, bucket, ok := pick(split, email)
+			if !ok || bucket < 0 || bucket > 99 {
+				t.Fatalf("bucket %d", bucket)
+			}
+			if (bucket < split[0].Weight) != (id == split[0].ProviderID) {
+				t.Fatalf("%s: bucket %d of %v went to %s", email, bucket, split, id)
+			}
+		}
+	}
+	if _, bucket, _ := pick([]Split{{ses, 50}, {postal, 30}, {postmark, 20}}, "a@b.co"); bucket != -1 {
+		t.Fatalf("three-way split bucket %d, want -1", bucket)
+	}
+}
+
 func TestMailboxProvider(t *testing.T) {
 	for in, want := range map[string]string{
 		"a@gmail.com": Gmail, "a@googlemail.com": Gmail, "a@hotmail.co.uk": Outlook, "a@live.com": Outlook,

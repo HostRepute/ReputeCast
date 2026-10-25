@@ -39,29 +39,127 @@ export function toDraft(cfg: RoutingConfig): Draft {
   return out
 }
 
-/** The save body for a draft. */
-export function toInput(d: Draft, acknowledgeBulkTerms = false): Schemas['RoutingSaveInput'] {
+type StreamInput = Schemas['RoutingStreamInput']
+
+/** One stream of a draft as the API takes it. */
+function streamInput(d: Draft, s: Stream): StreamInput {
   return {
-    acknowledgeBulkTerms: acknowledgeBulkTerms || undefined,
-    streams: streams.map((s) => ({
-      stream: s,
-      splits: d[s].splits.filter((x) => x.weight > 0),
-      fallback: d[s].fallback || undefined,
-      failover: d[s].failover,
-      conditions: d[s].conditions.map((c) => ({ field: c.field, values: c.values, providerId: c.providerId, note: c.note || undefined })),
-      priority: s === 'transactional' ? d[s].priority : undefined,
-    })),
+    stream: s,
+    splits: d[s].splits.filter((x) => x.weight > 0),
+    fallback: d[s].fallback || undefined,
+    failover: d[s].failover,
+    conditions: d[s].conditions.map((c) => ({ field: c.field, values: c.values, providerId: c.providerId, note: c.note || undefined })),
+    priority: s === 'transactional' ? d[s].priority : undefined,
   }
+}
+
+/** The whole draft as a save body (the route tester's unsaved routing). */
+export function toInput(d: Draft, acknowledgeBulkTerms = false): Schemas['RoutingSaveInput'] {
+  return { acknowledgeBulkTerms: acknowledgeBulkTerms || undefined, streams: streams.map((s) => streamInput(d, s)) }
+}
+
+/** Whether a stream routes the same way in two drafts. */
+export function sameStream(a: Draft, b: Draft, s: Stream): boolean {
+  return JSON.stringify(streamInput(a, s)) === JSON.stringify(streamInput(b, s))
 }
 
 /** Whether two drafts route the same way. */
 export function sameDraft(a: Draft, b: Draft): boolean {
-  return JSON.stringify(toInput(a)) === JSON.stringify(toInput(b))
+  return streams.every((s) => sameStream(a, b, s))
 }
 
-/** Changes of the draft compared to what is saved, counted per stream. */
+/** The streams the draft changes compared to what is saved. */
 export function changedStreams(d: Draft, saved: Draft): Stream[] {
-  return streams.filter((s) => JSON.stringify(toInput({ ...saved, [s]: d[s] }).streams) !== JSON.stringify(toInput(saved).streams))
+  return streams.filter((s) => !sameStream(d, saved, s))
+}
+
+/**
+ * Routing being edited: the draft, the saved routing each stream's edits
+ * started from and that stream's version. A save sends only the changed
+ * streams with their versions, so a stream someone else changed meanwhile
+ * is refused instead of overwritten, and a change to another stream never
+ * trips it.
+ */
+export interface Editing {
+  draft: Draft
+  base: Draft
+  versions: Record<Stream, string>
+}
+
+function versionsOf(cfg: RoutingConfig): Record<Stream, string> {
+  const out = {} as Record<Stream, string>
+  for (const s of streams) out[s] = cfg.streams.find((x) => x.stream === s)?.version ?? ''
+  return out
+}
+
+export function startEditing(cfg: RoutingConfig): Editing {
+  const saved = toDraft(cfg)
+  return { draft: saved, base: saved, versions: versionsOf(cfg) }
+}
+
+/**
+ * The saved routing changed (a refetch after someone saved, or the warm-up
+ * planner raised a share): streams without edits follow it; edited streams
+ * keep the edits and the version they started from.
+ */
+export function rebase(e: Editing, cfg: RoutingConfig): Editing {
+  const next = toDraft(cfg)
+  const v = versionsOf(cfg)
+  const out: Editing = { draft: { ...e.draft }, base: { ...e.base }, versions: { ...e.versions } }
+  for (const s of streams) {
+    if (sameStream(e.draft, e.base, s)) {
+      out.draft[s] = next[s]
+      out.base[s] = next[s]
+      out.versions[s] = v[s]
+    }
+  }
+  return out
+}
+
+/** After a save: the saved streams are what the server answered, the others follow it unless edited. */
+export function afterSave(e: Editing, cfg: RoutingConfig, saved: Stream[]): Editing {
+  const next = toDraft(cfg)
+  const v = versionsOf(cfg)
+  const out = rebase(e, cfg)
+  for (const s of saved) {
+    out.draft[s] = next[s]
+    out.base[s] = next[s]
+    out.versions[s] = v[s]
+  }
+  return out
+}
+
+/** Drops the edits of some streams: they show the latest routing. */
+export function discardStreams(e: Editing, cfg: RoutingConfig, which: Stream[]): Editing {
+  const next = toDraft(cfg)
+  const v = versionsOf(cfg)
+  const out: Editing = { draft: { ...e.draft }, base: { ...e.base }, versions: { ...e.versions } }
+  for (const s of which) {
+    out.draft[s] = next[s]
+    out.base[s] = next[s]
+    out.versions[s] = v[s]
+  }
+  return out
+}
+
+/** Keeps the edits of some streams but bases them on the latest routing: the next save replaces it. */
+export function keepEditsOnLatest(e: Editing, cfg: RoutingConfig, which: Stream[]): Editing {
+  const next = toDraft(cfg)
+  const v = versionsOf(cfg)
+  const out: Editing = { draft: { ...e.draft }, base: { ...e.base }, versions: { ...e.versions } }
+  for (const s of which) {
+    out.base[s] = next[s]
+    out.versions[s] = v[s]
+  }
+  return out
+}
+
+/** The save body: only the streams the draft changes, each with the version its edits started from. */
+export function toSaveInput(e: Editing, draft: Draft = e.draft, acknowledgeBulkTerms = false): Schemas['RoutingSaveInput'] {
+  return {
+    acknowledgeBulkTerms: acknowledgeBulkTerms || undefined,
+    streams: changedStreams(draft, e.base).map((s) => ({ ...streamInput(draft, s), baseVersion: e.versions[s] || undefined })),
+  }
 }
 
 /**

@@ -5,9 +5,6 @@ SELECT * FROM routing_rules
 WHERE workspace_id = @workspace_id
 ORDER BY CASE stream WHEN 'broadcast' THEN 0 WHEN 'automation' THEN 1 ELSE 2 END, priority, id;
 
--- name: RoutingDeleteRules :exec
-DELETE FROM routing_rules WHERE workspace_id = @workspace_id;
-
 -- name: RoutingInsertRule :exec
 INSERT INTO routing_rules (id, workspace_id, stream, priority, name, conditions, splits, fallback_provider_id, enabled, updated_by, updated_at)
 VALUES (@id, @workspace_id, @stream, @priority, @name, @conditions, @splits, @fallback_provider_id, true, @updated_by, @updated_at);
@@ -52,3 +49,11 @@ GROUP BY c.id;
 SELECT coalesce(min(audience_count), 0)::bigint AS smallest, coalesce(max(audience_count), 0)::bigint AS largest
 FROM campaigns
 WHERE workspace_id = @workspace_id AND deleted_at IS NULL AND origin = '' AND started_at >= @since AND audience_count > 0;
+
+-- name: RoutingLock :exec
+-- Serializes routing saves of a workspace (the version check and the write).
+SELECT pg_advisory_xact_lock(hashtextextended('routing:' || (@workspace_id::uuid)::text, 0));
+
+-- name: RoutingDeleteStreamRules :exec
+-- A save replaces only the streams it changes.
+DELETE FROM routing_rules WHERE workspace_id = @workspace_id AND stream = ANY(@streams::text[]);

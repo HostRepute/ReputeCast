@@ -27,6 +27,7 @@
   "problem.email": "Hãy nhập một địa chỉ email, ví dụ name@example.com.",
   "problem.noRoute": "{stream, select, broadcast {Gửi hàng loạt} automation {Tự động hóa} transactional {Giao dịch} other {Hệ thống}} chưa có nhà cung cấp nào. Hãy chọn nhà cung cấp chính rồi lưu.",
   "problem.goneProvider": "Tuyến đang trỏ đến một nhà cung cấp không còn được kết nối. Hãy cập nhật định tuyến.",
+  "problem.changed": "Định tuyến này đã thay đổi kể từ khi bạn mở: có người đã lưu, hoặc trình lập kế hoạch khởi động đã tăng tỷ trọng. Chưa có gì được lưu. Hãy tải định tuyến mới nhất rồi thực hiện lại thay đổi.",
 
   "label.deletedList": "danh sách đã xóa",
   "label.deletedCategory": "danh mục đã xóa",

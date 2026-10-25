@@ -22,6 +22,15 @@ export const mr = defineMessages('providers.routing', {
   upToDateDetail: 'Change a route, a split or the failover policy first.',
   saveRouting: 'Save routing',
   asideLabel: 'Route tester and shared settings',
+  /** Leaving the routing screen with unsaved edits. {streams} is a list of stream names ("Broadcasts and System"). */
+  leaveTitle: 'Leave without saving the routing?',
+  leaveBody: 'You changed {streams}. If you leave now, {count, plural, one {that change is} other {those changes are}} lost and mail keeps the saved routing.',
+  saveAndLeave: 'Save routing and leave',
+  /** A save refused because the routing changed meanwhile. {streams} is a list of stream names. */
+  conflictTitle: '{streams} changed while you were editing',
+  conflictBody: 'Someone saved the routing, or the warm-up planner raised a share. Nothing was saved, and your edits are still here.',
+  conflictShowLatest: 'Show the latest routing',
+  conflictKeepMine: 'Keep my edits and replace it',
 
   // ── A stream's card ──────────────────────────────────────────────────
   tagBroadcast: 'campaigns',

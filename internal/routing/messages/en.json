@@ -27,6 +27,7 @@
   "problem.email": "Enter an email address, like name@example.com.",
   "problem.noRoute": "{stream, select, broadcast {Broadcasts} automation {Automations} transactional {Transactional} other {System}} has no provider yet. Pick a primary provider for it and save.",
   "problem.goneProvider": "The route points at a provider that is no longer connected. Update the routing.",
+  "problem.changed": "This routing changed since you opened it: someone saved it, or the warm-up planner raised a share. Nothing was saved. Load the latest routing, then make your change again.",
 
   "label.deletedList": { "message": "deleted list", "note": "a condition's list that no longer exists" },
   "label.deletedCategory": "deleted category",
