@@ -91,6 +91,11 @@ func Assemble(f Facts) ReadinessResult {
 	b.stores()
 	for i := range b.checks {
 		c := &b.checks[i]
+		if f.Campaign.HTMLOnly {
+			// A campaign written in HTML is fixed in the editor: one-click
+			// fixes that edit MJML would leave its HTML behind (SR-4).
+			c.Fixes = slices.DeleteFunc(c.Fixes, func(x fix) bool { return x.Kind == "apply" && mjmlFixes[x.Action] })
+		}
 		if c.FlatTitle.Empty() {
 			c.FlatTitle = tx("check.flat", A{"group": groupPrefix(c.Group), "title": c.Title})
 		}

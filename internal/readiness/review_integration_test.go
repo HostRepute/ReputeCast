@@ -2,6 +2,7 @@ package readiness_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -93,5 +94,69 @@ func TestParentDomainListingShows(t *testing.T) {
 	ch, _ := checkOf(run, "reputation.domain_blocklists")
 	if ch.Status != readiness.Block || !strings.Contains(ch.Title, "acme.io, the parent domain of news.acme.io") {
 		t.Fatalf("parent listing: %s %q", ch.Status, ch.Title)
+	}
+}
+
+type composerContent struct {
+	ID, Subject, MJML, HTML string
+	Version                 int
+}
+
+// SR-4: one-click fixes keep a campaign written in HTML intact: Minify and
+// Use suggestion keep its body, Replace link edits the HTML, a fix that only
+// edits MJML is refused; saving an empty body over a body is refused.
+func TestFixesKeepHTMLOnlyCampaigns(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	var cp composerContent
+	c.Do("POST", ws+"/campaigns", map[string]any{"name": "HTML only", "fromCampaignId": campaignID(t, c, "Weekly Digest #143")}).MustStatus(t, 201).JSON(t, &cp)
+	html := `<html><body><table><tr><td>  <p>Hello   there</p>   <a href="https://bit.ly/x">Read the post</a>
+		<p>Acme Inc · 500 Market St, San Francisco, CA 94105</p> <a href="{{ unsubscribe_url }}">Unsubscribe</a></td></tr></table></body></html>`
+	c.Do("PUT", ws+"/campaigns/"+cp.ID+"/content", map[string]any{"baseVersion": cp.Version, "subject": "FLASH SALE!!! 48 HOURS ONLY", "html": html, "source": "manual"}).
+		MustStatus(t, 200)
+	get := func() composerContent {
+		var out composerContent
+		c.Do("GET", ws+"/campaigns/"+cp.ID, nil).MustStatus(t, 200).JSON(t, &out)
+		return out
+	}
+	fix := func(want int, fixes ...map[string]any) *apptest.Response {
+		return c.Do("POST", ws+"/campaigns/"+cp.ID+"/readiness/fixes", map[string]any{"fixes": fixes}).MustStatus(t, want)
+	}
+	if before := get(); before.MJML != "" || !strings.Contains(before.HTML, "Hello") {
+		t.Fatalf("not HTML only: %+v", before)
+	}
+
+	fix(200, map[string]any{"action": "minify"}, map[string]any{"action": "use_subject", "params": map[string]string{"subject": "48-hour flash sale"}})
+	after := get()
+	if after.Subject != "48-hour flash sale" || after.MJML != "" || !strings.Contains(after.HTML, "Hello") || !strings.Contains(after.HTML, "Read the post") ||
+		!strings.Contains(after.HTML, "bit.ly/x") {
+		t.Fatalf("after Minify and Use suggestion: %+v", after)
+	}
+	if strings.Contains(after.HTML, "\n") || strings.Contains(after.HTML, "</a> <p>") {
+		t.Errorf("not minified: %s", after.HTML)
+	}
+
+	fix(200, map[string]any{"action": "replace_link", "params": map[string]string{"from": "https://bit.ly/x", "to": "https://acme.io/blog/post"}})
+	if after = get(); !strings.Contains(after.HTML, `href="https://acme.io/blog/post"`) || strings.Contains(after.HTML, "bit.ly") || after.MJML != "" {
+		t.Fatalf("after Replace link: %s", after.HTML)
+	}
+
+	// The footer block is MJML: the editor adds it to HTML.
+	if p := fix(422, map[string]any{"action": "insert_footer"}).Problem(t); !strings.Contains(fmt.Sprint(p), "written in HTML") {
+		t.Errorf("insert footer: %v", p)
+	}
+	if got := get(); got.Version != after.Version || got.HTML != after.HTML {
+		t.Errorf("a refused fix changed the campaign")
+	}
+
+	// Saving neither MJML nor HTML over a body is refused, and nothing changes.
+	p := c.Do("PUT", ws+"/campaigns/"+cp.ID+"/content", map[string]any{"baseVersion": after.Version, "subject": "x"}).MustStatus(t, 422).Problem(t)
+	if !strings.Contains(fmt.Sprint(p), "leave the email empty") {
+		t.Errorf("empty save: %v", p)
+	}
+	if got := get(); got.HTML != after.HTML || got.Version != after.Version {
+		t.Errorf("an empty save changed the campaign: v%d", got.Version)
 	}
 }

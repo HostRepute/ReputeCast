@@ -113,7 +113,8 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	sched := ParseSchedule(c.Schedule)
 	f := Facts{Now: now, Location: loc, Workspace: ws.Slug, MailboxRates: DefaultMailboxRates}
 	f.Campaign = CampaignFacts{ID: c.ID.String(), Name: c.Name, Subject: c.Subject, Preheader: c.Preheader, Version: int(c.Version),
-		SenderName: c.SenderName, SenderEmail: c.SenderEmail, SenderDomain: c.SenderDomain, StartAt: sched.StartAt(now), ScheduleMode: sched.Mode}
+		SenderName: c.SenderName, SenderEmail: c.SenderEmail, SenderDomain: c.SenderDomain, StartAt: sched.StartAt(now), ScheduleMode: sched.Mode,
+		HTMLOnly: HTMLOnly(c.Mjml, c.Html)}
 	compiled := c.UpdatedAt
 	if c.AutosavedAt != nil {
 		compiled = *c.AutosavedAt

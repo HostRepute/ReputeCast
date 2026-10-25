@@ -163,3 +163,25 @@ func TestUnknownLinkDomains(t *testing.T) {
 		t.Errorf("all answered: %s %q", c.Status, c.Title)
 	}
 }
+
+// SR-4: a campaign written in HTML isn't offered fixes that only edit MJML
+// (the footer block); fixes that edit HTML stay.
+func TestHTMLOnlyFixes(t *testing.T) {
+	f := digest()
+	f.Campaign.HTMLOnly = true
+	f.Content.Report.Issues = append(f.Content.Report.Issues, contentcheck.ContentCheckIssue{ID: "compliance.footer", Severity: contentcheck.Block, Title: "No unsubscribe link or postal address",
+		Fixes: []contentcheck.ContentCheckFix{}, Path: []int{}, Section: -1})
+	c := byKey(readiness.Assemble(f))["compliance.footer"]
+	for _, x := range c.Fixes {
+		if x.Action == readiness.FixInsertFooter {
+			t.Errorf("insert footer offered on an HTML campaign: %+v", c.Fixes)
+		}
+	}
+	if len(c.Fixes) == 0 || c.Fixes[0].Kind != "link" {
+		t.Errorf("the editor link stays: %+v", c.Fixes)
+	}
+	f.Campaign.HTMLOnly = false
+	if c := byKey(readiness.Assemble(f))["compliance.footer"]; len(c.Fixes) == 0 || c.Fixes[0].Action != readiness.FixInsertFooter {
+		t.Errorf("MJML campaign: %+v", c.Fixes)
+	}
+}

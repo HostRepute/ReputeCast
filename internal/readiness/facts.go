@@ -66,6 +66,9 @@ type CampaignFacts struct {
 	StartAt time.Time
 	// ScheduleMode is now, at or best_time.
 	ScheduleMode string
+	// HTMLOnly is true for a campaign written in HTML (no MJML): fixes
+	// that edit MJML aren't offered.
+	HTMLOnly bool
 }
 
 // Kinds of audience a base label names (AudienceFacts.BaseKind).

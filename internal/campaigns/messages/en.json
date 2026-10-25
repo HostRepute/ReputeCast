@@ -31,6 +31,7 @@
   "problem.versionConflictSomeone": { "message": "Someone saved version {version} at {at, time} while you were editing.", "note": "version: a number such as 12" },
   "problem.subjectOneLine": "The subject must be one line.",
   "problem.mjmlCompile": { "message": "The MJML doesn't compile: {error}", "note": "error: the MJML compiler's message, in English" },
+  "problem.emptyBody": "Saving this would leave the email empty, so nothing was saved. Reload the editor, or restore a version from Version history.",
   "problem.variantLetter": { "message": "Each variant needs its own letter.", "note": "A/B test variants are lettered A, B, C" },
   "problem.variantsAB": "An A/B test needs at least variants A and B.",
   "problem.variantSubject": { "message": "Write a subject for variant {variant}.", "note": "variant: A, B or C" },

@@ -31,6 +31,7 @@
   "problem.versionConflictSomeone": "Có người đã lưu phiên bản {version} lúc {at, time} trong khi bạn đang sửa.",
   "problem.subjectOneLine": "Tiêu đề chỉ được có một dòng.",
   "problem.mjmlCompile": "Không biên dịch được MJML: {error}",
+  "problem.emptyBody": "Lưu như vậy sẽ làm email trống, nên chưa có gì được lưu. Hãy tải lại trình soạn thảo, hoặc khôi phục một phiên bản từ Lịch sử phiên bản.",
   "problem.variantLetter": "Mỗi biến thể cần một chữ cái riêng.",
   "problem.variantsAB": "Thử nghiệm A/B cần ít nhất biến thể A và B.",
   "problem.variantSubject": "Hãy viết tiêu đề cho biến thể {variant}.",

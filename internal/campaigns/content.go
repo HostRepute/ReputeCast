@@ -160,6 +160,11 @@ func (s *Service) SaveIn(ctx context.Context, ws *store.Workspace, p *authz.Prin
 			}
 			html = res.HTML
 		}
+		// Saving never empties an email that has a body (a one-click fix
+		// or an API client sending neither MJML nor HTML would wipe it).
+		if emptyBody(src, html) && !emptyBody(cur.Mjml, cur.Html) {
+			return api.Invalid("body.html", mProblemEmptyBody.Text(l, nil))
+		}
 		if settings.Minify && html != "" {
 			html = contentcheck.Minify(html)
 		}
@@ -209,6 +214,11 @@ func (s *Service) SaveIn(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		s.changed(ctx, ws, id)
 	}
 	return out, err
+}
+
+// emptyBody reports content with neither MJML nor HTML.
+func emptyBody(mjmlSrc, html string) bool {
+	return strings.TrimSpace(mjmlSrc) == "" && strings.TrimSpace(html) == ""
 }
 
 func validateAB(l i18n.Lang, t *ComposerABTest) error {

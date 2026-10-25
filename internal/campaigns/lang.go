@@ -50,6 +50,7 @@ var (
 	mProblemVersionConflictBy = msgs.M("problem.versionConflictSomeone")
 	mProblemSubjectOneLine    = msgs.M("problem.subjectOneLine")
 	mProblemMJMLCompile       = msgs.M("problem.mjmlCompile")
+	mProblemEmptyBody         = msgs.M("problem.emptyBody")
 	mProblemVariantLetter     = msgs.M("problem.variantLetter")
 	mProblemVariantsAB        = msgs.M("problem.variantsAB")
 	mProblemVariantSubject    = msgs.M("problem.variantSubject")

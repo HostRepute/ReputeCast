@@ -105,6 +105,18 @@ func ReplaceLink(src, from, to string) (string, int) {
 	return src, n
 }
 
+// HTMLOnly reports whether a campaign is written in HTML only (the HTML
+// editor, an import): it has no MJML to edit or compile.
+func HTMLOnly(mjmlSrc, html string) bool {
+	return strings.TrimSpace(mjmlSrc) == "" && strings.TrimSpace(html) != ""
+}
+
+// mjmlFixes are the one-click fixes that edit MJML: a campaign written in
+// HTML is fixed in the editor instead.
+var mjmlFixes = map[string]bool{FixInsertFooter: true, FixAccessibilityDecorative: true, FixAccessibilityColor: true, FixAccessibilityOneClick: true,
+	FixVisibilityShowEveryone: true, FixVisibilityHideBlock: true, FixVisibilityRemoveCondition: true, FixPollCloseDays: true,
+	FixSponsorRemove: true, FixSponsorRefresh: true}
+
 func validLink(raw string) bool {
 	u, err := url.Parse(raw)
 	return err == nil && (u.Scheme == "https" || u.Scheme == "http") && u.Host != ""
@@ -122,8 +134,11 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 	if !editable(c.Status) {
 		return out, api.Conflict(say(ctx, "problem.alreadySending", nil))
 	}
-	// Content fixes are applied together as one new version.
-	src, subject, content := c.Mjml, c.Subject, false
+	// Content fixes are applied together as one new version. A campaign
+	// written in HTML (no MJML) keeps its HTML: a fix edits the HTML, and a
+	// fix that only knows MJML is refused (Assemble doesn't offer it).
+	htmlOnly := HTMLOnly(c.Mjml, c.Html)
+	src, htmlSrc, subject, content := c.Mjml, c.Html, c.Subject, false
 	labels := []string{}
 	var a11y []accessibility.FixChange
 	var a11yFixes []ReadinessFixRequest
@@ -152,7 +167,7 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 			}
 			out.Applied = append(out.Applied, label)
 		case FixInsertFooter:
-			if strings.TrimSpace(src) == "" {
+			if htmlOnly || strings.TrimSpace(src) == "" {
 				return out, api.Invalid(field, say(ctx, "problem.footerInHtml", nil))
 			}
 			next, ok := InsertFooterIn(i18n.LangFrom(ctx), src, templates.WorkspaceAddress(ws))
@@ -167,11 +182,20 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 			if from == "" || !validLink(to) {
 				return out, api.Invalid(field, say(ctx, "problem.replaceLink", nil))
 			}
-			next, n := ReplaceLink(src, from, to)
+			body := src
+			if htmlOnly {
+				body = htmlSrc
+			}
+			next, n := ReplaceLink(body, from, to)
 			if n == 0 {
 				return out, api.Invalid(field, say(ctx, "problem.linkGone", nil))
 			}
-			src, content = next, true
+			if htmlOnly {
+				htmlSrc = next
+			} else {
+				src = next
+			}
+			content = true
 			labels = append(labels, say(ctx, "version.link", nil))
 			out.Applied = append(out.Applied, say(ctx, "applied.replaced", A{"from": displayURL(from), "to": displayURL(to)}))
 		case FixUseSubject:
@@ -204,6 +228,9 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 		case FixAccessibilityDecorative, FixAccessibilityColor, FixAccessibilityOneClick:
 			if s.Accessibility == nil {
 				return out, api.Conflict(say(ctx, "problem.noAccessibility", nil))
+			}
+			if htmlOnly {
+				return out, api.Invalid(field, say(ctx, "problem.htmlEditor", nil))
 			}
 			next, change, err := s.Accessibility.FixMJML(ctx, ws, src, fx.Action, fx.Params)
 			if err != nil {
@@ -257,7 +284,13 @@ func (s *Service) ApplyFixes(ctx context.Context, ws *store.Workspace, p *authz.
 		if detail, err := s.Campaigns.Detail(ctx, ws, p, id); err == nil {
 			ab = detail.ABTest
 		}
-		saved, err := s.Campaigns.Save(ctx, ws, p, id, campaigns.ComposerSaveContent{BaseVersion: int(c.Version), Subject: subject, Preheader: c.Preheader, MJML: src,
+		// MJML is compiled again on save; HTML-only content is saved as it is
+		// (minified when the campaign asks for it), never left empty.
+		html := ""
+		if htmlOnly {
+			html = htmlSrc
+		}
+		saved, err := s.Campaigns.Save(ctx, ws, p, id, campaigns.ComposerSaveContent{BaseVersion: int(c.Version), Subject: subject, Preheader: c.Preheader, MJML: src, HTML: html,
 			ABTest: ab, Label: say(ctx, "version.fromReview", A{"changes": strings.Join(labels, ", ")}), Source: "manual"})
 		if err != nil {
 			return out, err
