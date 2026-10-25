@@ -15,6 +15,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -49,14 +50,65 @@ var testKey = func() string {
 	return base64.StdEncoding.EncodeToString(sum[:])
 }()
 
-// demoTemplate is the demo data, seeded once per `go test` run.
-var demoTemplate struct {
-	once sync.Once
-	name string
-	// files holds the demo's sample files (digital products, a lead
-	// magnet); each clone gets a copy in its own folder.
-	files string
+// sample is seeded data shared by a `go test` run's binaries
+// (testdb.Shared) and cloned for each test.
+type sample struct {
+	mu    sync.Mutex
+	day   string // sampleDay when it was seeded
+	name  string
+	files string // its files (digital products, a lead magnet); each clone gets a copy
 	err   error
+}
+
+var demoSample, northwindSample sample
+
+// The time zones of the samples' workspaces, where their numbers count
+// whole days (Growth's last 30 days, a form's stats).
+var (
+	acmeZones      = zones("America/New_York")
+	northwindZones = zones("America/Chicago", "America/Denver", "America/Los_Angeles", "America/New_York")
+)
+
+func zones(names ...string) []*time.Location {
+	out := make([]*time.Location, len(names))
+	for i, n := range names {
+		loc, err := time.LoadLocation(n)
+		if err != nil {
+			panic(err)
+		}
+		out[i] = loc
+	}
+	return out
+}
+
+// sampleDay names the last midnight to pass in any of zones (minutes since
+// the epoch): two moments share it unless a day began between them in one
+// of the zones.
+func sampleDay(now time.Time, zones []*time.Location) string {
+	var last time.Time
+	for _, z := range zones {
+		l := now.In(z)
+		if m := time.Date(l.Year(), l.Month(), l.Day(), 0, 0, 0, 0, z); m.After(last) {
+			last = m
+		}
+	}
+	return strconv.FormatInt(last.Unix()/60, 10)
+}
+
+// template returns the sample as seeded today in zones. A sample seeded
+// before a midnight there shows its days moved by one, so a new day seeds
+// it again, and so does a seed that ran past midnight.
+func (s *sample) template(ctx context.Context, key string, zones []*time.Location, fill func(pool *pgxpool.Pool, dir string) error) (name, files string, err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for {
+		day := sampleDay(time.Now(), zones)
+		if day == s.day {
+			return s.name, s.files, s.err
+		}
+		s.day = day
+		s.name, s.files, s.err = testdb.Shared(ctx, key+day, fill)
+	}
 }
 
 // New starts the API on a fresh database.
@@ -279,41 +331,30 @@ func (c *Client) SignIn(email, password string) {
 func (e *Env) SeedDemo() {
 	e.T.Helper()
 	ctx := context.Background()
-	demoTemplate.once.Do(func() {
-		// Seeded once per `go test` run and shared by its test binaries; the
-		// key tells the demo without transactional mail apart.
-		key := "demo"
-		if demo.SkipTransactional {
-			key = "demonotx"
-		}
-		demoTemplate.name, demoTemplate.files, demoTemplate.err = testdb.Shared(ctx, key, func(pool *pgxpool.Pool, dir string) error {
-			cfg := *e.App.Cfg
-			cfg.Files.Dir = dir
-			_, err := demo.Seed(ctx, pool, &cfg, e.App.Secrets, slog.New(slog.NewTextHandler(io.Discard, nil)))
-			return err
-		})
+	// The key tells the demo without transactional mail apart.
+	key := "demo"
+	if demo.SkipTransactional {
+		key = "demonotx"
+	}
+	name, files, err := demoSample.template(ctx, key, acmeZones, func(pool *pgxpool.Pool, dir string) error {
+		cfg := *e.App.Cfg
+		cfg.Files.Dir = dir
+		_, err := demo.Seed(ctx, pool, &cfg, e.App.Secrets, slog.New(slog.NewTextHandler(io.Discard, nil)))
+		return err
 	})
-	if demoTemplate.err != nil {
-		e.T.Fatalf("seed demo: %v", demoTemplate.err)
+	if err != nil {
+		e.T.Fatalf("seed demo: %v", err)
 	}
 	// Restart on a clone of the seeded database: milliseconds instead of a
 	// full seed per test.
 	e.stop()
-	e.start(testdb.NewFrom(e.T, demoTemplate.name))
+	e.start(testdb.NewFrom(e.T, name))
 	// Cleanups run last first: this app stops before its clone is dropped.
 	e.T.Cleanup(e.stop)
 	// The sample files, in this app's own folder.
-	if err := os.CopyFS(e.App.Cfg.FilesDir(), os.DirFS(demoTemplate.files)); err != nil {
+	if err := os.CopyFS(e.App.Cfg.FilesDir(), os.DirFS(files)); err != nil {
 		e.T.Fatalf("demo files: %v", err)
 	}
-}
-
-// northwindTemplate is the agency sample, seeded once per `go test` run.
-var northwindTemplate struct {
-	once  sync.Once
-	name  string
-	files string
-	err   error
 }
 
 // SeedNorthwind loads the agency sample (Northwind Studio and its seven
@@ -321,21 +362,19 @@ var northwindTemplate struct {
 func (e *Env) SeedNorthwind() {
 	e.T.Helper()
 	ctx := context.Background()
-	northwindTemplate.once.Do(func() {
-		northwindTemplate.name, northwindTemplate.files, northwindTemplate.err = testdb.Shared(ctx, "northwind", func(pool *pgxpool.Pool, dir string) error {
-			cfg := *e.App.Cfg
-			cfg.Files.Dir = dir
-			// A fortieth of the contacts: the same sample, cloned in moments.
-			_, err := demo.SeedNorthwindWith(ctx, pool, &cfg, e.App.Secrets, slog.New(slog.NewTextHandler(io.Discard, nil)), demo.NorthwindOptions{ContactsDivisor: 40})
-			return err
-		})
+	name, files, err := northwindSample.template(ctx, "northwind", northwindZones, func(pool *pgxpool.Pool, dir string) error {
+		cfg := *e.App.Cfg
+		cfg.Files.Dir = dir
+		// A fortieth of the contacts: the same sample, cloned in moments.
+		_, err := demo.SeedNorthwindWith(ctx, pool, &cfg, e.App.Secrets, slog.New(slog.NewTextHandler(io.Discard, nil)), demo.NorthwindOptions{ContactsDivisor: 40})
+		return err
 	})
-	if northwindTemplate.err != nil {
-		e.T.Fatalf("seed northwind: %v", northwindTemplate.err)
+	if err != nil {
+		e.T.Fatalf("seed northwind: %v", err)
 	}
 	e.stop()
-	e.start(testdb.NewFrom(e.T, northwindTemplate.name))
-	if err := os.CopyFS(e.App.Cfg.FilesDir(), os.DirFS(northwindTemplate.files)); err != nil {
+	e.start(testdb.NewFrom(e.T, name))
+	if err := os.CopyFS(e.App.Cfg.FilesDir(), os.DirFS(files)); err != nil {
 		e.T.Fatalf("northwind files: %v", err)
 	}
 }

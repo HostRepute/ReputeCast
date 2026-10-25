@@ -129,7 +129,8 @@ each other, keep the per-row numbers and let totals be computed.
   (sign in as `aisha@acme.io`, the Viewer, or `daniel@acme.io`, the Content
   Writer), audit entry written, no secret in responses.
 - `SeedDemo` seeds the demo once per `go test` run, shared by its test
-  binaries (and again once the seed is ten minutes old), and clones it for
+  binaries (and again once the seed is ten minutes old, or once a day has
+  begun in the demo's time zone, America/New_York), and clones it for
   each test, so a test can run several minutes after the seed. A package that
   changes what the demo seeds (`demo.SkipTransactional`) needs its own key in
   `apptest.SeedDemo`. When its numbers move with time
