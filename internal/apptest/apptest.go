@@ -126,10 +126,14 @@ type Client struct {
 	Header http.Header
 }
 
+// requestTimeout fails a request that hangs. A Send Readiness run takes a
+// few seconds here under -race, and more than 30 on a busy CI runner.
+const requestTimeout = 2 * time.Minute
+
 // Client returns a new client with an empty cookie jar.
 func (e *Env) Client() *Client {
 	jar, _ := cookiejar.New(nil)
-	return &Client{env: e, http: &http.Client{Jar: jar, Timeout: 30 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
+	return &Client{env: e, http: &http.Client{Jar: jar, Timeout: requestTimeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
 }
 
 // Response is a decoded API response.
