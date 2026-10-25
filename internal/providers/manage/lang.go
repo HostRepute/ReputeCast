@@ -66,6 +66,10 @@ var (
 	mIncidentRecovered     = msgs.M("incident.recovered")
 	mIncidentSilent        = msgs.M("incident.silent")
 	mIncidentResumed       = msgs.M("incident.resumed")
+	mIncidentVetted        = msgs.M("incident.failoverVetted")
+	mIncidentFallbackFail  = msgs.M("incident.fallbackFailed")
+	mIncidentRejecting     = msgs.M("incident.rejecting")
+	mIncidentAccepting     = msgs.M("incident.accepting")
 
 	mNotifyDownTitle   = msgs.M("notify.downTitle")
 	mNotifyAuthTitle   = msgs.M("notify.authTitle")
@@ -74,6 +78,9 @@ var (
 	mNotifyHeldBody    = msgs.M("notify.heldBody")
 	mNotifySilentTitle = msgs.M("notify.silentTitle")
 	mNotifySilentBody  = msgs.M("notify.silentBody")
+
+	mNotifyRejectingTitle = msgs.M("notify.rejectingTitle")
+	mNotifyRejectingBody  = msgs.M("notify.rejectingBody")
 
 	mErrorSettings = msgs.M("error.settings")
 

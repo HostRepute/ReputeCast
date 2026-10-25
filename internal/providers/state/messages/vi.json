@@ -1,4 +1,5 @@
 {
+  "detail.rejecting": "Đang từ chối thư",
   "detail.down": "Gián đoạn",
   "detail.downAuth": "Gián đoạn · xác thực thất bại",
   "detail.webhooksSilent": "Webhook im lặng",

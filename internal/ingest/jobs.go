@@ -186,6 +186,11 @@ func (n *Normalizer) Backfill(ctx context.Context, providerID uuid.UUID) (int, e
 	if !ok {
 		return 0, nil
 	}
+	var cfg struct {
+		Events string `json:"events"`
+	}
+	_ = json.Unmarshal(p.Config, &cfg)
+	polled := cfg.Events == "polling"
 	since := n.now().AddDate(0, 0, -7)
 	if h := state.HealthOf(p); h.Webhooks != nil && h.Webhooks.SilentSince != nil {
 		since = *h.Webhooks.SilentSince
@@ -210,6 +215,14 @@ func (n *Normalizer) Backfill(ctx context.Context, providerID uuid.UUID) (int, e
 		err = db.Tx(ctx, n.Pool, func(tx pgx.Tx) error {
 			q := store.New(tx)
 			now := n.now()
+			// A provider whose events come by polling ("Use polling for
+			// now") gets its freshness from the poll (PR-6); "Check now" on a
+			// silent webhook doesn't make its webhooks fresh.
+			if polled {
+				if err := q.ProvTouchLastEvent(ctx, store.ProvTouchLastEventParams{ID: p.ID, At: now}); err != nil {
+					return err
+				}
+			}
 			for _, ev := range events {
 				rawID := newID()
 				body := []byte(ev.Raw)

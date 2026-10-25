@@ -191,6 +191,22 @@ type Health struct {
 	// reports for the account, when its API offers one. Screens prefer it
 	// to ReputeCast's own count while it is fresh (see ReputationOf).
 	Reputation *Reputation `json:"reputation,omitempty"`
+	// LastRejection is the last message the provider refused for good, in
+	// its own code and words (manage.RecordSend).
+	LastRejection *CallRecord `json:"lastRejection,omitempty"`
+	// Rejecting is set while the provider refuses an unusual share of the
+	// messages handed to it (PR-7, the health job).
+	Rejecting *RejectState `json:"rejecting,omitempty"`
+}
+
+// RejectState is a run of refused messages: since when, how many of how
+// many in the health job's window, and the provider's last answer.
+type RejectState struct {
+	Since    time.Time `json:"since"`
+	Rejected int64     `json:"rejected"`
+	Total    int64     `json:"total"`
+	Code     string    `json:"code,omitempty"`
+	Message  string    `json:"message,omitempty"`
 }
 
 // Reputation is a provider-reported bounce and complaint rate.

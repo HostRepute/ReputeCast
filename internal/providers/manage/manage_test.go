@@ -130,6 +130,19 @@ func addFake(t *testing.T, env *apptest.Env, w store.Workspace, lastEvent *time.
 	return p
 }
 
+// sendFake records n messages handed to a provider ago ago, with no event yet.
+func sendFake(t *testing.T, env *apptest.Env, w store.Workspace, p store.Provider, n int, ago time.Duration) {
+	t.Helper()
+	for i := 0; i < n; i++ {
+		id := uuid.Must(uuid.NewV7())
+		if _, err := env.App.Pool.Exec(context.Background(), `INSERT INTO messages (id, workspace_id, stream, email, provider_id, provider_message_id, status, queued_at, sent_at)
+			VALUES ($1, $2, 'broadcast', $3, $4, $5, 'sent', now() - $6::interval, now() - $6::interval)`,
+			id, w.ID, "reader."+id.String()[24:]+"@example.com", p.ID, "fake-"+id.String(), ago.String()); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 func count(t *testing.T, env *apptest.Env, sql string, args ...any) int {
 	t.Helper()
 	var n int
@@ -397,14 +410,8 @@ func TestWebhooksSilentDegrades(t *testing.T) {
 	w := demoWorkspace(t, env)
 	last := time.Now().Add(-7 * time.Hour)
 	fp := addFake(t, env, w, &last)
-	// Mail went out after the last event.
-	for i := 0; i < 3; i++ {
-		if _, err := env.App.Pool.Exec(ctx, `INSERT INTO messages (id, workspace_id, stream, email, provider_id, provider_message_id, status, queued_at, sent_at)
-			VALUES ($1, $2, 'broadcast', $3, $4, $5, 'sent', now() - interval '1 hour', now() - interval '1 hour')`,
-			uuid.Must(uuid.NewV7()), w.ID, "reader"+string(rune('a'+i))+"@example.com", fp.ID, "fake-"+string(rune('a'+i))); err != nil {
-			t.Fatal(err)
-		}
-	}
+	// Mail went out after the last event, an hour ago: overdue.
+	sendFake(t, env, w, fp, manage.SilentMinOverdue, time.Hour)
 	svc := service(env, time.Now)
 	setFakeErr(nil)
 	fp, err := svc.Check(ctx, fp, true)
@@ -423,13 +430,113 @@ func TestWebhooksSilentDegrades(t *testing.T) {
 		Silent *struct {
 			ProviderID string
 			Accepted   int64
+			Overdue    int64
 			Checks     []struct{ Key string }
 			Awaiting   []struct{ Status string }
 		}
 	}
 	owner.Do("GET", ws+"/providers", nil).MustStatus(t, 200).JSON(t, &o)
-	if o.Silent == nil || o.Silent.ProviderID != fp.ID.String() || o.Silent.Accepted != 3 || len(o.Silent.Checks) == 0 || len(o.Silent.Awaiting) == 0 {
+	if o.Silent == nil || o.Silent.ProviderID != fp.ID.String() || o.Silent.Accepted != manage.SilentMinOverdue || o.Silent.Overdue != manage.SilentMinOverdue ||
+		len(o.Silent.Checks) == 0 || len(o.Silent.Awaiting) == 0 {
 		t.Fatalf("silent = %+v", o.Silent)
+	}
+}
+
+// PR-6: quiet webhooks are "silent" only with enough mail past its 30-minute
+// grace and no event for 6 hours. A quiet night followed by a welcome email
+// is no alarm, nor is a burst still inside its grace.
+func TestNoSilentAlarmAfterAQuietPeriod(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	w := demoWorkspace(t, env)
+	last := time.Now().Add(-7 * time.Hour)
+	fp := addFake(t, env, w, &last)
+	setFakeErr(nil)
+	check := func(at time.Time) store.Provider {
+		t.Helper()
+		p, err := service(env, func() time.Time { return at }).Check(ctx, fp, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	// One welcome email a minute ago, after seven quiet hours.
+	sendFake(t, env, w, fp, 1, time.Minute)
+	if p := check(time.Now()); p.Status != state.Healthy {
+		t.Fatalf("one email after a quiet period: %s %s", p.Status, p.StatusDetail)
+	}
+	// A burst still inside its grace.
+	sendFake(t, env, w, fp, 40, 5*time.Minute)
+	if p := check(time.Now()); p.Status != state.Healthy {
+		t.Fatalf("mail inside its 30-minute grace: %s", p.Status)
+	}
+	if n := count(t, env, `SELECT count(*) FROM incidents WHERE kind = 'webhooks_silent' AND provider_id = $1`, fp.ID); n != 0 {
+		t.Fatalf("%d silent alarms", n)
+	}
+	// Forty minutes on, the burst is overdue: now it's silent.
+	if p := check(time.Now().Add(40 * time.Minute)); p.Status != state.Degraded || p.StatusDetail != state.DetailWebhooksSilent {
+		t.Fatalf("overdue mail: %s %s", p.Status, p.StatusDetail)
+	}
+
+	// Below the minimum, a few overdue messages are no alarm.
+	few := addFake(t, env, w, &last)
+	sendFake(t, env, w, few, manage.SilentMinOverdue-1, 2*time.Hour)
+	p, err := service(env, time.Now).Check(ctx, few, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Status != state.Healthy {
+		t.Fatalf("%d overdue messages: %s", manage.SilentMinOverdue-1, p.Status)
+	}
+}
+
+// fakePoll is a provider whose events come by polling its events API.
+type fakePoll struct{ fake }
+
+func (fakePoll) Adapter() string { return "fakepoll" }
+func (fakePoll) Backfill(_ context.Context, ids []string) ([]providers.Event, error) {
+	out := make([]providers.Event, 0, len(ids))
+	for _, id := range ids {
+		out = append(out, providers.Event{Type: providers.EventDelivered, ProviderMessageID: id, OccurredAt: time.Now(), OriginalType: "Delivered", Raw: json.RawMessage(`{}`)})
+	}
+	return out, nil
+}
+
+func init() {
+	providers.Register(providers.Descriptor{Adapter: "fakepoll", Name: "Fake polling ESP", Kind: "api", Capabilities: fake{}.Capabilities(),
+		Fields: []providers.Field{{Key: "token", Label: "API token", Secret: true, Required: true}},
+		New:    func(providers.Config) (providers.Provider, error) { return fakePoll{}, nil }})
+}
+
+// PR-6: a provider whose events come by polling gets its freshness from the
+// poll, so it never reads as silent while polling works.
+func TestPollingUpdatesEventFreshness(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	w := demoWorkspace(t, env)
+	last := time.Now().Add(-7 * time.Hour)
+	fp := addFake(t, env, w, &last)
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE providers SET adapter = 'fakepoll', config = '{"events":"polling"}' WHERE id = $1`, fp.ID); err != nil {
+		t.Fatal(err)
+	}
+	sendFake(t, env, w, fp, 20, time.Hour)
+	n := &ingest.Normalizer{Pool: env.App.Pool, Q: env.App.Q, Factory: &manage.Factory{Box: env.App.Secrets}, Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	got, err := n.Backfill(ctx, fp.ID)
+	if err != nil || got != 20 {
+		t.Fatalf("backfill %d %v", got, err)
+	}
+	p, err := env.App.Q.ProvGetAny(ctx, fp.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.LastEventAt == nil || time.Since(*p.LastEventAt) > time.Minute {
+		t.Fatalf("polling didn't update freshness: %v", p.LastEventAt)
+	}
+	setFakeErr(nil)
+	if p, err = service(env, time.Now).Check(ctx, p, true); err != nil || p.Status != state.Healthy {
+		t.Fatalf("polled provider %s %v", p.Status, err)
 	}
 }
 
@@ -733,5 +840,140 @@ func TestWebhookValidationHandshake(t *testing.T) {
 	}
 	if code, _ := options("/hooks/postmark/"+pm.WebhookToken, "bad origin/path"); code != http.StatusNotFound {
 		t.Fatalf("invalid origin answered %d", code)
+	}
+}
+
+// PR-7: the health job vets a fallback before any mail moves to it. A
+// fallback in sandbox mode can't take Automations, so the stream waits on
+// the down provider and the outage card says which check failed.
+func TestFailoverVetsTheFallback(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	w := demoWorkspace(t, env)
+	fp := addFake(t, env, w, nil)
+	pm := providerByAdapter(t, env, "postmark")
+	owner := env.Client()
+	owner.SignInDemo("linh@acme.io")
+	var cfg struct {
+		Streams []struct {
+			Stream, Version string
+		}
+	}
+	owner.Do("GET", ws+"/routing", nil).MustStatus(t, 200).JSON(t, &cfg)
+	owner.Do("PUT", ws+"/routing", map[string]any{"streams": []map[string]any{{"stream": "automation", "failover": "automatic", "conditions": []any{},
+		"splits": []map[string]any{{"providerId": fp.ID.String(), "weight": 100}}, "fallback": pm.ID.String(), "baseVersion": cfg.Streams[1].Version}}}).MustStatus(t, 200)
+	// Postmark's account can only send to verified addresses for now.
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE providers SET health = jsonb_set(health, '{sandbox}', 'true') WHERE id = $1`, pm.ID); err != nil {
+		t.Fatal(err)
+	}
+	svc := service(env, time.Now)
+	setFakeErr(&providers.CallError{Op: "GET /quota", Status: 503, Code: "ServiceUnavailable", Temporary: true, Cause: providers.ErrUnavailable})
+	defer setFakeErr(nil)
+	for i := 0; i < 2; i++ {
+		var err error
+		if fp, err = svc.Check(ctx, fp, true); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var mode string
+	var fallback *uuid.UUID
+	var detail []byte
+	if err := env.App.Pool.QueryRow(ctx, `SELECT mode, fallback_provider_id, detail FROM stream_failovers WHERE provider_id = $1 AND stream = 'automation' AND ended_at IS NULL`,
+		fp.ID).Scan(&mode, &fallback, &detail); err != nil {
+		t.Fatal(err)
+	}
+	var d struct {
+		Checks []struct{ Key, Result string }
+	}
+	_ = json.Unmarshal(detail, &d)
+	sandboxFailed := false
+	for _, c := range d.Checks {
+		sandboxFailed = sandboxFailed || c.Key == "sandbox" && c.Result == "fail"
+	}
+	if mode != "held" || fallback != nil || !sandboxFailed {
+		t.Fatalf("failover %s → %v, detail %s", mode, fallback, detail)
+	}
+	if n := count(t, env, `SELECT count(*) FROM incidents WHERE provider_id = $1 AND kind = 'fallback_failed'`, fp.ID); n != 1 {
+		t.Fatalf("fallback_failed incidents = %d", n)
+	}
+	var o struct {
+		Outage *struct {
+			Streams []struct {
+				Stream, State  string
+				FallbackChecks []struct{ Key, Result, Text string }
+			}
+		}
+	}
+	owner.Do("GET", ws+"/providers", nil).MustStatus(t, 200).JSON(t, &o)
+	if o.Outage == nil {
+		t.Fatal("no outage on the overview")
+	}
+	for _, s := range o.Outage.Streams {
+		if s.Stream != "automation" {
+			continue
+		}
+		failed := false
+		for _, c := range s.FallbackChecks {
+			if c.Key == "sandbox" && c.Result == "fail" && strings.Contains(c.Text, "sandbox") {
+				failed = true
+			}
+		}
+		if s.State == "failover_active" || !failed {
+			t.Fatalf("automation on the outage card: %+v", s)
+		}
+	}
+}
+
+// PR-7: messages a provider refuses for good are watched: a run of them
+// marks it "Rejecting messages", opens an incident and tells the team;
+// once it accepts mail again the incident closes.
+func TestRejectionsAreWatched(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	w := demoWorkspace(t, env)
+	fp := addFake(t, env, w, nil)
+	setFakeErr(nil)
+	now := time.Now()
+	results := make([]providers.SendResult, 0, 20)
+	for i := 0; i < 15; i++ {
+		results = append(results, providers.SendResult{MessageID: uuid.Must(uuid.NewV7()), Err: &providers.SendError{Code: "MessageRejected", Message: "Email address is not verified."}})
+	}
+	for i := 0; i < 5; i++ {
+		results = append(results, providers.SendResult{MessageID: uuid.Must(uuid.NewV7()), ProviderMessageID: "ok"})
+	}
+	if err := manage.RecordSend(ctx, env.App.Pool, fp, results, nil, now); err != nil {
+		t.Fatal(err)
+	}
+	fp, err := service(env, time.Now).Check(ctx, fp, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fp.Status != state.Degraded || fp.StatusDetail != state.DetailRejecting {
+		t.Fatalf("status %s %q", fp.Status, fp.StatusDetail)
+	}
+	if h := state.HealthOf(fp); h.Rejecting == nil || h.Rejecting.Rejected != 15 || h.Rejecting.Total != 20 || h.Rejecting.Code != "MessageRejected" {
+		t.Fatalf("rejecting %+v", h.Rejecting)
+	}
+	if n := count(t, env, `SELECT count(*) FROM incidents WHERE provider_id = $1 AND kind = 'provider_rejecting' AND resolved_at IS NULL`, fp.ID); n != 1 {
+		t.Fatalf("rejecting incidents = %d", n)
+	}
+	if n := count(t, env, `SELECT count(*) FROM notifications WHERE kind = 'provider_degraded' AND workspace_id = $1 AND data->>'reason' = 'rejecting'`, w.ID); n == 0 {
+		t.Fatal("nobody was told")
+	}
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE action = 'provider.rejecting' AND target_id = $1`, fp.ID.String()); n != 1 {
+		t.Fatalf("provider.rejecting audit = %d", n)
+	}
+	// A quarter of an hour later the window is clean.
+	later := now.Add(15 * time.Minute)
+	if fp, err = service(env, func() time.Time { return later }).Check(ctx, fp, true); err != nil {
+		t.Fatal(err)
+	}
+	if fp.Status != state.Healthy || state.HealthOf(fp).Rejecting != nil {
+		t.Fatalf("after: %s", fp.Status)
+	}
+	if n := count(t, env, `SELECT count(*) FROM incidents WHERE provider_id = $1 AND kind = 'provider_rejecting' AND resolved_at IS NULL`, fp.ID); n != 0 {
+		t.Fatalf("open rejecting incidents = %d", n)
 	}
 }

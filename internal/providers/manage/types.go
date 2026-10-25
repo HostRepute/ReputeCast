@@ -256,6 +256,11 @@ type ProviderOutageStream struct {
 	Campaign          *ProviderHeldCampaign         `json:"campaign,omitempty"`
 	Alternatives      []ProviderFailoverAlternative `json:"alternatives"`
 	SwitchBackMinutes int                           `json:"switchBackMinutes"`
+	// FallbackChecks are the checks the fallback was vetted with before any
+	// mail moved to it (PR-7): all passed while a failover is active; a
+	// failed one says why the stream waits instead. Each carries its
+	// sentence in the reader's language.
+	FallbackChecks []state.VetCheck `json:"fallbackChecks"`
 }
 
 // ProviderQuotaForecast says when a provider taking failover runs out of quota.
@@ -329,11 +334,15 @@ type ProviderAwaitingMessage struct {
 
 // ProviderWebhooksSilent is the webhooks-silent banner and diagnosis.
 type ProviderWebhooksSilent struct {
-	ProviderID         string                 `json:"providerId"`
-	Provider           string                 `json:"provider"`
-	Short              string                 `json:"short"`
-	Since              time.Time              `json:"since"`
-	Accepted           int64                  `json:"accepted"`
+	ProviderID string    `json:"providerId"`
+	Provider   string    `json:"provider"`
+	Short      string    `json:"short"`
+	Since      time.Time `json:"since"`
+	Accepted   int64     `json:"accepted"`
+	// Overdue messages were sent more than 30 minutes ago and still have no
+	// event; InGrace are still inside those 30 minutes (PR-6).
+	Overdue            int64                  `json:"overdue"`
+	InGrace            int64                  `json:"inGrace"`
 	Campaigns          []ProviderNamedCount   `json:"campaigns"`
 	BroadcastShareHeld bool                   `json:"broadcastShareHeld"`
 	Checks             []ProviderWebhookCheck `json:"checks"`

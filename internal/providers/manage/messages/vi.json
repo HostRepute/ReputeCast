@@ -43,6 +43,12 @@
   "incident.silent": "{name}: không có sự kiện webhook nào từ {since, time} trong khi thư vẫn được gửi đi.",
   "incident.resumed": "{name}: sự kiện webhook đã về trở lại.",
 
+  "incident.failoverVetted": "{stream, select, broadcast {Gửi hàng loạt} automation {Tự động hóa} transactional {Giao dịch} other {Hệ thống}}: đã chuyển sang {fallback} sau {count} lần kiểm tra sức khỏe thất bại; {fallback} đã vượt qua các bước kiểm tra trước đó.",
+  "incident.fallbackFailed": "{stream, select, broadcast {Gửi hàng loạt} automation {Tự động hóa} transactional {Giao dịch} other {Hệ thống}}: {fallback} không vượt qua các bước kiểm tra, nên ReputeCast tiếp tục thử lại {name} thay vì chuyển đi.",
+  "incident.rejecting": "{name} đã từ chối {rejected, number} trên {total, number} thư trong {minutes} phút.{hasAnswer, select, yes { Phản hồi gần nhất: {answer}} other {}}",
+  "incident.accepting": "{name} đã nhận thư trở lại.",
+  "notify.rejectingTitle": "{name} đang từ chối thư",
+  "notify.rejectingBody": "Nhà cung cấp đã từ chối {rejected, number} trên {total, number} thư trong {minutes} phút qua.{hasAnswer, select, yes { Phản hồi gần nhất: {answer}.} other {}} Các thư bị từ chối chưa được gửi. Hãy kiểm tra tên miền người gửi và tài khoản tại {name}.",
   "notify.downTitle": "{name} đang gián đoạn",
   "notify.authTitle": "{name} đã từ chối thông tin xác thực",
   "notify.downBody": "{hasError, select, yes {{error}} other {Lỗi API}}{hasOp, select, yes { ở {op}} other {}} từ {since, time}.{autoCount, plural, =0 {} other { # luồng đã tự động chuyển dự phòng.}}{heldCount, plural, =0 {} other { # luồng đang chờ bạn quyết định.}}",
