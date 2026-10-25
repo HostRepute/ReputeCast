@@ -21871,6 +21871,7 @@ export interface components {
             contentHash: string;
             html: string;
             plainText: string;
+            recompiled?: string;
             /** Format: date-time */
             savedAt: string;
             /** Format: int64 */

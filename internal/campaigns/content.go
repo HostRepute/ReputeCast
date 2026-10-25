@@ -68,6 +68,10 @@ type ComposerSavedContent struct {
 	Unchanged bool `json:"unchanged,omitempty"`
 	// StashedVersion is the version that keeps the stashed content (Stash).
 	StashedVersion int `json:"stashedVersion,omitempty"`
+	// Recompiled says what the HTML sent got wrong when it didn't show or do
+	// what the MJML says (links, images, text, conditional markers): the
+	// server stored its own compile of the MJML instead.
+	Recompiled string `json:"recompiled,omitempty"`
 }
 
 // conflict is the 409 sent when someone else saved a newer version.
@@ -198,6 +202,9 @@ type preparedContent struct {
 	subject, preheader, mjml, html, plain, hash string
 	ab                                          json.RawMessage
 	abTest                                      *ComposerABTest
+	// recompiled names what the HTML sent got wrong ("links"; "B: text" for
+	// a variant) when the server stored its own compile instead.
+	recompiled string
 }
 
 // prepareContent turns a save into what is stored: the HTML compiled on
@@ -205,15 +212,16 @@ type preparedContent struct {
 // for it, with lang, dir and the layout tables' role (accessibility).
 func (s *Service) prepareContent(ctx context.Context, q *store.Queries, ws *store.Workspace, id uuid.UUID, in ComposerSaveContent, settings ComposerContentSettings) (preparedContent, error) {
 	l := i18n.LangFrom(ctx)
-	src, html := in.MJML, in.HTML
-	if html == "" && strings.TrimSpace(src) != "" {
+	src := in.MJML
+	if in.HTML == "" && strings.TrimSpace(src) != "" {
 		src = mjml.SetHeadMeta(src, in.Subject, in.Preheader)
-		res := mjml.Compile(src)
-		if len(res.Errors) > 0 {
-			// The compiler's own message stays as it wrote it.
-			return preparedContent{}, api.Invalid("body.mjml", mProblemMJMLCompile.Text(l, i18n.Args{"error": res.Errors[0].Message}))
-		}
-		html = res.HTML
+	}
+	// The HTML sent must show and do what the MJML says (CO-3); otherwise the
+	// server's own compile is stored instead.
+	html, recompiled, errs := mjml.Checked(src, in.HTML)
+	if errs != nil {
+		// The compiler's own message stays as it wrote it.
+		return preparedContent{}, api.Invalid("body.mjml", mProblemMJMLCompile.Text(l, i18n.Args{"error": errs[0].Message}))
 	}
 	if settings.Minify && html != "" {
 		html = contentcheck.Minify(html)
@@ -223,14 +231,24 @@ func (s *Service) prepareContent(ctx context.Context, q *store.Queries, ws *stor
 	if in.ABTest != nil {
 		t := *in.ABTest
 		t.Variants = append([]ComposerABVariant(nil), in.ABTest.Variants...)
-		for i := range t.Variants {
+		for i, v := range t.Variants {
+			if strings.TrimSpace(v.MJML) != "" {
+				vh, mismatch, errs := mjml.Checked(v.MJML, v.HTML)
+				if errs != nil {
+					return preparedContent{}, api.Invalid("body.abTest.variants", mProblemMJMLCompile.Text(l, i18n.Args{"error": errs[0].Message}))
+				}
+				if mismatch != "" && recompiled == "" {
+					recompiled = v.Key + ": " + mismatch
+				}
+				t.Variants[i].HTML = vh
+			}
 			t.Variants[i].HTML = accessibility.FinalizeStored(ctx, q, ws.ID, accessibility.OwnerCampaign, id, 0, t.Variants[i].HTML)
 		}
 		abTest = &t
 	}
 	ab := abTest.toDB()
 	return preparedContent{subject: in.Subject, preheader: in.Preheader, mjml: src, html: html, plain: contentcheck.PlainText(html),
-		hash: ContentHash(in.Subject, in.Preheader, src, html, ab), ab: ab, abTest: abTest}, nil
+		hash: ContentHash(in.Subject, in.Preheader, src, html, ab), ab: ab, abTest: abTest, recompiled: recompiled}, nil
 }
 
 // conflictFor is the 409 of a save based on an old version: who saved the
@@ -282,11 +300,15 @@ func (s *Service) storeVersion(ctx context.Context, q *store.Queries, ws *store.
 	if string(cur.AbTest) != string(c.ab) {
 		after["abTest"] = c.abTest != nil
 	}
+	meta := map[string]any{"label": label, "source": source, "contentHash": c.hash}
+	if c.recompiled != "" {
+		meta["recompiled"] = c.recompiled
+	}
 	if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.content.save", TargetType: "campaign", TargetID: id.String(),
-		Before: before, After: after, Metadata: map[string]any{"label": label, "source": source, "contentHash": c.hash}}); err != nil {
+		Before: before, After: after, Metadata: meta}); err != nil {
 		return ComposerSavedContent{}, err
 	}
-	return ComposerSavedContent{Version: int(version), SavedAt: now, ContentHash: c.hash, SizeBytes: len(c.html), PlainText: c.plain, HTML: c.html}, nil
+	return ComposerSavedContent{Version: int(version), SavedAt: now, ContentHash: c.hash, SizeBytes: len(c.html), PlainText: c.plain, HTML: c.html, Recompiled: c.recompiled}, nil
 }
 
 // stash keeps a save's content in the history as its own version and puts

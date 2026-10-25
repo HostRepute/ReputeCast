@@ -17886,6 +17886,9 @@
           "plainText": {
             "type": "string"
           },
+          "recompiled": {
+            "type": "string"
+          },
           "savedAt": {
             "format": "date-time",
             "type": "string"

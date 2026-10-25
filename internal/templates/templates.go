@@ -256,6 +256,15 @@ func (s *Service) validate(ctx context.Context, q *store.Queries, ws *store.Work
 		}
 		return api.Invalid("body.mjml", mMJML.Text(l, i18n.Args{"error": detail}))
 	}
+	// A template's HTML must show and do what its MJML says (CO-3): drafts
+	// started from it store it as theirs. Otherwise the server compiles it.
+	if in.Kind == "template" && in.HTML != "" {
+		html, _, errs := mjml.Checked(in.MJML, in.HTML)
+		if errs != nil {
+			return api.Invalid("body.mjml", mMJML.Text(l, i18n.Args{"error": errs[0].In(l)}))
+		}
+		in.HTML = html
+	}
 	taken, err := q.EmailTemplateNameTaken(ctx, store.EmailTemplateNameTakenParams{WorkspaceID: ws.ID, Kind: in.Kind, Name: in.Name, ID: id})
 	if err != nil {
 		return err

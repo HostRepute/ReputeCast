@@ -481,8 +481,14 @@ func (s *Service) Create(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		label = mVersionCopiedFrom.Text(i18n.Default, i18n.Args{"name": c.Name})
 		source = "duplicate"
 	}
-	if src != "" && html == "" {
-		html = mjml.Compile(src).HTML
+	if src != "" {
+		// A template's or another campaign's HTML is stored only when it shows
+		// and does what its MJML says (CO-3).
+		checked, _, errs := mjml.Checked(src, html)
+		if errs != nil {
+			checked = ""
+		}
+		html = checked
 	}
 	html = accessibility.FinalizeStored(ctx, s.Q, ws.ID, accessibility.OwnerCampaign, uuid.Nil, 0, html)
 	id := uuid.Must(uuid.NewV7())

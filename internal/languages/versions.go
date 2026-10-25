@@ -322,14 +322,15 @@ func (s *Service) saveVersion(ctx context.Context, q *store.Queries, o Owner, p 
 		return Saved{}, cur, api.Err(http.StatusConflict, codeVersionConflict, detail).
 			WithMeta("version", cur.Version, "draftRevision", cur.Version, "savedBy", by, "savedAt", at, "language", lang, "theirChanges", nonNil(theirs), "yourChanges", mine)
 	}
-	src, html := in.MJML, in.HTML
-	if html == "" && strings.TrimSpace(src) != "" {
+	src := in.MJML
+	if in.HTML == "" && strings.TrimSpace(src) != "" {
 		src = mjml.SetHeadMeta(src, in.Subject, in.Preheader)
-		res := mjml.Compile(src)
-		if len(res.Errors) > 0 {
-			return Saved{}, cur, api.Invalid("body.mjml", mMJML.Text(langOf(ctx), i18n.Args{"error": res.Errors[0].In(langOf(ctx))}))
-		}
-		html = res.HTML
+	}
+	// The HTML sent must show and do what the MJML says (composer review,
+	// CO-3); otherwise the server's own compile is stored.
+	html, _, errs := mjml.Checked(src, in.HTML)
+	if errs != nil {
+		return Saved{}, cur, api.Invalid("body.mjml", mMJML.Text(langOf(ctx), i18n.Args{"error": errs[0].In(langOf(ctx))}))
 	}
 	if in.Minify && html != "" {
 		html = contentcheck.Minify(html)
