@@ -124,3 +124,21 @@ UPDATE earn_cancel_visits SET reason = @reason, decision = @decision, decided_at
 -- name: CancelSetReason :exec
 -- The reason given on the cancel page, for the paid member's timeline.
 UPDATE paid_subscriptions SET cancel_reason = @reason, updated_at = @at WHERE id = @id;
+
+-- name: OfferCodeByCode :one
+-- A referral reward's single-use code, by the code a reader brings.
+SELECT * FROM earn_offer_codes WHERE workspace_id = @workspace_id AND upper(code) = upper(@code::text);
+
+-- name: OfferCodeRedeem :execrows
+-- A subscription took a single-use code.
+UPDATE earn_offer_codes SET redeemed_at = @at::timestamptz WHERE workspace_id = @workspace_id AND upper(code) = upper(@code::text) AND redeemed_at IS NULL;
+
+-- name: OfferReferralOffers :many
+-- Live "Referral reward" offers with the codes they issued and those
+-- redeemed, for a milestone's coupon reward.
+SELECT o.id, o.name, o.applies, o.discount_type, o.percent_off, o.amount_off, o.currency, o.duration, o.duration_months,
+       (SELECT count(*) FROM earn_offer_codes c WHERE c.offer_id = o.id)::bigint AS issued,
+       (SELECT count(*) FROM earn_offer_codes c WHERE c.offer_id = o.id AND c.redeemed_at IS NOT NULL)::bigint AS redeemed
+FROM earn_offers o
+WHERE o.workspace_id = @workspace_id AND o.kind = 'referral' AND o.status = 'live' AND o.deleted_at IS NULL
+ORDER BY o.started_at, o.name;

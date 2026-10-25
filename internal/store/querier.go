@@ -1929,7 +1929,11 @@ type Querier interface {
 	McpUpdateDraft(ctx context.Context, arg McpUpdateDraftParams) (McpUpdateDraftRow, error)
 	// A live signup offer by its code or link (case-insensitive).
 	OfferByCode(ctx context.Context, arg OfferByCodeParams) (EarnOffer, error)
+	// A referral reward's single-use code, by the code a reader brings.
+	OfferCodeByCode(ctx context.Context, arg OfferCodeByCodeParams) (EarnOfferCode, error)
 	OfferCodeInsert(ctx context.Context, arg OfferCodeInsertParams) error
+	// A subscription took a single-use code.
+	OfferCodeRedeem(ctx context.Context, arg OfferCodeRedeemParams) (int64, error)
 	OfferCodeTaken(ctx context.Context, arg OfferCodeTakenParams) (bool, error)
 	OfferCodes(ctx context.Context, offerID uuid.UUID) ([]OfferCodesRow, error)
 	OfferEnd(ctx context.Context, arg OfferEndParams) error
@@ -1942,6 +1946,9 @@ type Querier interface {
 	// carries; new ones started at or after the offer; and the MRR they bring
 	// after the discount.
 	OfferRedemptions(ctx context.Context, arg OfferRedemptionsParams) (OfferRedemptionsRow, error)
+	// Live "Referral reward" offers with the codes they issued and those
+	// redeemed, for a milestone's coupon reward.
+	OfferReferralOffers(ctx context.Context, workspaceID uuid.UUID) ([]OfferReferralOffersRow, error)
 	// Raising the limit or moving the date of an offer that ended by them
 	// brings it back.
 	OfferReopen(ctx context.Context, arg OfferReopenParams) error

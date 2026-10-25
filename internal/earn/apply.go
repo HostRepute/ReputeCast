@@ -572,6 +572,13 @@ func (s *Service) applySubscription(ctx context.Context, tx pgx.Tx, ws *store.Wo
 		StripeCustomerID: sub.CustomerID, SyncedAt: &at, At: s.now()}); err != nil {
 		return outcome{}, err
 	}
+	if d := sub.Discount; d != nil && d.PromoCode != "" {
+		if r, ok := s.Offers.(OfferCodeRedeemer); ok {
+			if err := r.CodeRedeemed(ctx, tx, ws, d.PromoCode, at); err != nil {
+				return outcome{}, err
+			}
+		}
+	}
 	if status != StatusPastDue && row.AccessPaused {
 		_ = q.EarnSubscriptionSetAccessPaused(ctx, store.EarnSubscriptionSetAccessPausedParams{ID: row.ID, AccessPaused: false, At: s.now()})
 	}

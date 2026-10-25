@@ -136,4 +136,4 @@ What M33 built for the others to use:
 
 | ID | What | Status |
 |---|---|---|
-| EXT-1 | Referral coupon rewards are never issued: `referralCoupons` in `internal/app/wire_referrals.go` is still the stub written before Earn's offers ("offers come with Earn's offers"), and nothing replaced it, so `earn_offer_codes` is only filled by the demo. Found by F-4's writer check. | ⏳ follow-up outside this review |
+| EXT-1 | Referral coupon rewards are never issued: `referralCoupons` in `internal/app/wire_referrals.go` is still the stub written before Earn's offers ("offers come with Earn's offers"), and nothing replaced it, so `earn_offer_codes` is only filled by the demo. Found by F-4's writer check. | ✅ Earn's "Referral reward" offers now issue single-use promotion codes (`offers.IssueReferralCode`), the upgrade link applies them once until they expire, and a subscription that uses one marks it redeemed (`TestReferralRewardCodes`). |
