@@ -9,6 +9,7 @@
   "issue.conditionOne": "Mỗi điều kiện chỉ gửi qua đúng một nhà cung cấp.",
   "issue.bulkTerms": "Điều khoản của {provider} không cho phép tiếp thị hàng loạt.",
   "issue.bulkStreams": "{provider} chỉ cho phép thư hàng loạt trên luồng Broadcast, mà tuyến này dùng luồng giao dịch của nhà cung cấp đó.",
+  "issue.unavailable": "{provider} hiện không nhận thư được: {status, select, down {nhà cung cấp đang gián đoạn} paused {nhà cung cấp đang tạm dừng} silent {webhook của nhà cung cấp đang im lặng} other {nhà cung cấp không khả dụng}}. {role, select, fallback {{stream, select, broadcast {Gửi hàng loạt} automation {Tự động hóa} transactional {Giao dịch} other {Hệ thống}} không có nhà cung cấp dự phòng hoạt động cho đến khi nhà cung cấp này trở lại.} other {Thư {stream, select, broadcast {Gửi hàng loạt} automation {Tự động hóa} transactional {Giao dịch} other {Hệ thống}} đi qua nhà cung cấp này sẽ chuyển dự phòng hoặc chờ, theo chính sách chuyển dự phòng.}}",
   "issue.warmingFallback": "{provider} đang khởi động{hasDay, select, yes {: bảo vệ khởi động chặn chuyển dự phòng sang nhà cung cấp này đến ngày {day}} other {}}.",
 
   "problem.bulkTerms": "{issue} Hãy chọn nhà cung cấp khác, hoặc giữ nhà cung cấp này và xác nhận các điều khoản.",

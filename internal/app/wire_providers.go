@@ -85,7 +85,7 @@ func init() {
 		river.AddWorker(a.JobReg.Workers, &manage.MoveWebhooksWorker{S: svc, PublicURL: a.currentPublicURL})
 		river.AddWorker(a.JobReg.Workers, &ingest.NormalizeWorker{N: n})
 		river.AddWorker(a.JobReg.Workers, &ingest.SweepWorker{N: n, Jobs: jobsFn})
-		river.AddWorker(a.JobReg.Workers, &ingest.MailboxWorker{N: n, Jobs: jobsFn})
+		river.AddWorker(a.JobReg.Workers, &ingest.MailboxWorker{N: n, Jobs: jobsFn, OnPoll: svc.RecordMailboxPoll})
 		river.AddWorker(a.JobReg.Workers, &ingest.BackfillWorker{N: n})
 		river.AddWorker(a.JobReg.Workers, &suppressions.SyncWorker{S: a.suppressionSync()})
 		river.AddWorker(a.JobReg.Workers, &warmup.DailyWorker{S: &warmup.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit}, Log: a.Log,

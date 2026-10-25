@@ -81,6 +81,9 @@ type MailboxWorker struct {
 	Jobs func() *jobs.Client
 	// Open overrides bouncebox.Open (tests).
 	Open func(ctx context.Context, c bouncebox.Config) (bouncebox.Box, error)
+	// OnPoll is told how each read of a bounce mailbox went, so a mailbox
+	// that can't be read reaches the provider's health (PR-10).
+	OnPoll func(ctx context.Context, p store.Provider, err error)
 }
 
 // Timeout bounds one poll.
@@ -106,7 +109,7 @@ func (w *MailboxWorker) Work(ctx context.Context, _ *river.Job[MailboxArgs]) err
 
 // Poll reads up to 200 new reports from a provider's bounce mailbox, stores
 // each as a raw event and queues its normalization.
-func (w *MailboxWorker) Poll(ctx context.Context, p store.Provider) (int, error) {
+func (w *MailboxWorker) Poll(ctx context.Context, p store.Provider) (n int, err error) {
 	prov, err := w.N.Factory.Open(ctx, p)
 	if err != nil {
 		return 0, err
@@ -114,6 +117,9 @@ func (w *MailboxWorker) Poll(ctx context.Context, p store.Provider) (int, error)
 	sp, ok := prov.(*smtp.Provider)
 	if !ok || sp.BounceMailbox() == nil {
 		return 0, nil
+	}
+	if w.OnPoll != nil {
+		defer func() { w.OnPoll(ctx, p, err) }()
 	}
 	open := w.Open
 	if open == nil {

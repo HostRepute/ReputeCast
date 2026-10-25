@@ -24,6 +24,9 @@ type Facts struct {
 	WarmingUp                bool
 	WarmupDay                int
 	WarmupDays               int
+	// Available is false while the provider can't take mail (down, paused,
+	// webhooks silent, disconnected): routing to it raises an issue (PR-10).
+	Available bool
 }
 
 // RoutingIssue codes.
@@ -130,6 +133,32 @@ func Validate(l i18n.Lang, set Set, facts map[uuid.UUID]Facts) []RoutingIssue {
 				check(*def.Fallback, "fallback")
 			}
 		}
+		// A provider the stream routes to that can't take mail right now
+		// (PR-10): a warning per provider, said once per stream.
+		unavailable := map[uuid.UUID]bool{}
+		flag := func(id uuid.UUID, role string) {
+			f, ok := facts[id]
+			if !ok || f.Available || unavailable[id] {
+				return
+			}
+			unavailable[id] = true
+			field := "splits"
+			if role == "fallback" {
+				field = "fallback"
+			}
+			issues = append(issues, RoutingIssue{Code: IssueUnavailable, Stream: st, Field: field, ProviderID: id.String(),
+				Message: text(l, "issue.unavailable", i18n.Args{"provider": f.Name, "status": unavailableStatus(f.Status), "role": role, "stream": streamArg(stream)})})
+		}
+		for _, r := range rules {
+			for _, sp := range r.Splits {
+				if sp.Weight > 0 {
+					flag(sp.ProviderID, "route")
+				}
+			}
+		}
+		if def.Fallback != nil {
+			flag(*def.Fallback, "fallback")
+		}
 		// A warming-up fallback can't take a broadcast until it's warm.
 		if def.Fallback != nil {
 			if f, ok := facts[*def.Fallback]; ok && f.WarmingUp && stream == providers.StreamBroadcast && set.Policy(stream) != PauseAndAsk {
@@ -152,4 +181,16 @@ func Blocking(issues []RoutingIssue) bool {
 		}
 	}
 	return false
+}
+
+// unavailableStatus is why a provider can't take mail, for the issue's
+// select: down, paused, silent (webhooks silent) or other.
+func unavailableStatus(status string) string {
+	switch status {
+	case "down", "paused":
+		return status
+	case "degraded":
+		return "silent"
+	}
+	return "other"
 }

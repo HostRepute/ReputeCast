@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -975,5 +976,60 @@ func TestRejectionsAreWatched(t *testing.T) {
 	}
 	if n := count(t, env, `SELECT count(*) FROM incidents WHERE provider_id = $1 AND kind = 'provider_rejecting' AND resolved_at IS NULL`, fp.ID); n != 0 {
 		t.Fatalf("open rejecting incidents = %d", n)
+	}
+}
+
+// PR-10: a bounce mailbox that can't be read reaches the provider's health:
+// after 15 minutes of failed reads the provider is Degraded, an incident
+// opens and the team is told; the first good read closes it.
+func TestBounceMailboxErrorsReachHealth(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	w := demoWorkspace(t, env)
+	fp := addFake(t, env, w, nil)
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE providers SET config = '{"bounce_mailbox":{"address":"bounces@news.acme.io","host":"imap.acme.io"}}' WHERE id = $1`, fp.ID); err != nil {
+		t.Fatal(err)
+	}
+	t0 := time.Now()
+	at := t0
+	svc := service(env, func() time.Time { return at })
+	authErr := errors.New("the bounce mailbox rejected the user name or password")
+	svc.RecordMailboxPoll(ctx, fp, authErr)
+	if n := count(t, env, `SELECT count(*) FROM incidents WHERE provider_id = $1 AND kind = 'bounce_mailbox_failing'`, fp.ID); n != 0 {
+		t.Fatal("one failed read is no alarm")
+	}
+	at = t0.Add(16 * time.Minute)
+	svc.RecordMailboxPoll(ctx, fp, authErr)
+	p, err := env.App.Q.ProvGetAny(ctx, fp.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Status != state.Degraded || p.StatusDetail != state.DetailMailboxFailing {
+		t.Fatalf("status %s %q", p.Status, p.StatusDetail)
+	}
+	if h := state.HealthOf(p); h.BounceMailbox == nil || h.BounceMailbox.Error != authErr.Error() {
+		t.Fatalf("mailbox state %+v", h.BounceMailbox)
+	}
+	setFakeErr(nil)
+	if p, err = svc.Check(ctx, p, true); err != nil || p.Status != state.Degraded {
+		t.Fatalf("the health check keeps it degraded: %s %v", p.Status, err)
+	}
+	if n := count(t, env, `SELECT count(*) FROM incidents WHERE provider_id = $1 AND kind = 'bounce_mailbox_failing' AND resolved_at IS NULL`, fp.ID); n != 1 {
+		t.Fatalf("mailbox incidents = %d", n)
+	}
+	if n := count(t, env, `SELECT count(*) FROM notifications WHERE workspace_id = $1 AND data->>'reason' = 'bounce_mailbox'`, w.ID); n == 0 {
+		t.Fatal("nobody was told")
+	}
+	at = t0.Add(20 * time.Minute)
+	svc.RecordMailboxPoll(ctx, p, nil)
+	if p, err = env.App.Q.ProvGetAny(ctx, fp.ID); err != nil || p.Status != state.Healthy {
+		t.Fatalf("after a good read: %s %v", p.Status, err)
+	}
+	if n := count(t, env, `SELECT count(*) FROM incidents WHERE provider_id = $1 AND kind = 'bounce_mailbox_failing' AND resolved_at IS NULL`, fp.ID); n != 0 {
+		t.Fatalf("open mailbox incidents = %d", n)
+	}
+	if n := count(t, env, `SELECT count(*) FROM audit_events WHERE target_id = $1 AND action IN ('provider.bounce_mailbox_failing', 'provider.bounce_mailbox_ok')`, fp.ID.String()); n != 2 {
+		t.Fatalf("mailbox audit = %d", n)
 	}
 }

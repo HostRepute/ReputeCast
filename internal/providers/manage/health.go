@@ -337,6 +337,8 @@ func (s *Service) Check(ctx context.Context, p store.Provider, probe bool) (stor
 		status, detail = state.Degraded, state.DetailWebhooksSilent
 	case h.Rejecting != nil:
 		status, detail = state.Degraded, state.DetailRejecting
+	case h.MailboxFailing(now):
+		status, detail = state.Degraded, state.DetailMailboxFailing
 	}
 	if probed && callErr == nil && adapter != nil {
 		snap := state.Snapshot{Capabilities: adapter.Capabilities(), BroadcastStream: caps.BroadcastStream}

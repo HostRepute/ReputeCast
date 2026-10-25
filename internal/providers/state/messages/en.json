@@ -1,4 +1,5 @@
 {
+  "detail.mailboxFailing": { "message": "Bounce mailbox unreachable", "note": "a provider's status detail: ReputeCast can't read the mailbox where an SMTP server's bounces arrive" },
   "detail.rejecting": { "message": "Rejecting messages", "note": "a provider's status detail: it refuses an unusual share of the messages handed to it" },
   "detail.down": { "message": "Down", "note": "a provider's status detail: it fails every call" },
   "detail.downAuth": { "message": "Down · auth failed", "note": "a provider's status detail: its API key was refused" },

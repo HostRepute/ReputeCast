@@ -389,7 +389,8 @@ func (s *Service) facts(ctx context.Context, ws *store.Workspace) (map[uuid.UUID
 	out := []RoutingProvider{}
 	for _, p := range provs {
 		caps := state.Caps(p)
-		f := Facts{ID: p.ID, Name: p.Name, Short: state.Short(p.Name, p.Adapter), Adapter: p.Adapter, Status: p.Status, Bulk: caps.Bulk, BulkAllowed: caps.BulkAllowed()}
+		f := Facts{ID: p.ID, Name: p.Name, Short: state.Short(p.Name, p.Adapter), Adapter: p.Adapter, Status: p.Status, Bulk: caps.Bulk, BulkAllowed: caps.BulkAllowed(),
+			Available: state.Available(p)}
 		rp := RoutingProvider{ID: p.ID.String(), Name: p.Name, Short: f.Short, Label: p.Label, Adapter: p.Adapter, Color: state.Color(p.Adapter), Status: p.Status,
 			Bulk: string(caps.Bulk), BulkAllowed: f.BulkAllowed, ShareSteps: []RoutingShareStep{}, Terms: []RoutingTerms{}}
 		if d, ok := providers.Lookup(p.Adapter); ok {

@@ -290,6 +290,14 @@ function StreamCard({
         </span>
       </div>
       <div className="flex flex-col gap-3.5 px-5 py-[18px]">
+        {/* Problems with the saved route the server found (an unavailable provider…); bulk terms have their own review. */}
+        {cfg.issues
+          .filter((i) => i.stream === stream && i.code !== 'bulk_terms')
+          .map((i) => (
+            <Note key={`${i.code}-${i.field ?? ''}-${i.providerId ?? ''}`} tone={i.blocking ? 'bad' : 'warn'}>
+              {i.message}
+            </Note>
+          ))}
         <Grid min={240} gap={14}>
           <Field label={t(mr.primary)}>
             <Select value={primary?.id ?? ''} disabled={ro} onChange={(e) => onChange((s) => setPrimary(s, e.target.value))}>

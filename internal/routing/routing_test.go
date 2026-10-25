@@ -2,10 +2,12 @@ package routing
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/providers"
 )
 
@@ -197,5 +199,36 @@ func TestFailover(t *testing.T) {
 	}
 	if _, hold := Failover(Automatic, nil, healthy); !hold {
 		t.Fatal("no fallback holds")
+	}
+}
+
+// PR-10: a provider a stream routes to that can't take mail raises an
+// issue (a warning, not a block), once per stream and role.
+func TestUnavailableProviderRaisesAnIssue(t *testing.T) {
+	facts := map[uuid.UUID]Facts{
+		ses:      {ID: ses, Name: "Amazon SES", Status: "down", BulkAllowed: true},
+		postal:   {ID: postal, Name: "Postal", Status: "healthy", BulkAllowed: true, Available: true},
+		postmark: {ID: postmark, Name: "Postmark", Status: "degraded", BulkAllowed: true},
+	}
+	issues := Validate(i18n.Default, sample(), facts)
+	var got []string
+	for _, is := range issues {
+		if is.Code != IssueUnavailable {
+			continue
+		}
+		if is.Blocking {
+			t.Fatalf("an unavailable provider blocks a save: %+v", is)
+		}
+		got = append(got, is.Stream+"/"+is.Field+"/"+is.ProviderID[len(is.ProviderID)-1:]+": "+is.Message)
+	}
+	want := []string{
+		"broadcast/splits/1: Amazon SES can't take mail right now: it's down. Broadcasts routed to it fail over or wait, as the failover policy says.",
+		"automation/splits/1: Amazon SES can't take mail right now: it's down. Automations routed to it fail over or wait, as the failover policy says.",
+		"automation/fallback/3: Postmark can't take mail right now: its webhooks are silent. Automations have no working fallback until it's back.",
+		"system/splits/3: Postmark can't take mail right now: its webhooks are silent. System mail routed to it fails over or waits, as the failover policy says.",
+		"system/fallback/1: Amazon SES can't take mail right now: it's down. System has no working fallback until it's back.",
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("issues:\n%s", strings.Join(got, "\n"))
 	}
 }

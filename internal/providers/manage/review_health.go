@@ -11,6 +11,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/audit"
 	"github.com/hostrepute/reputecast/internal/authz"
+	"github.com/hostrepute/reputecast/internal/db"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/notify"
 	"github.com/hostrepute/reputecast/internal/providers"
@@ -191,4 +192,119 @@ func (s *Service) onRejectingEnded(ctx context.Context, tx pgx.Tx, ws store.Work
 	}
 	wsID := ws.ID
 	return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Actor: systemActor, Action: "provider.accepting", TargetType: "provider", TargetID: p.ID.String(), TargetName: p.Name})
+}
+
+// RecordMailboxPoll records how reading an SMTP provider's bounce mailbox
+// went (PR-10). A mailbox that keeps failing for state.MailboxFailAfter
+// makes the provider Degraded ("Bounce mailbox unreachable"), opens an
+// incident and tells the providers' managers, because bounces from that
+// server no longer reach the suppression list; the first good read
+// closes it.
+func (s *Service) RecordMailboxPoll(ctx context.Context, p store.Provider, pollErr error) {
+	if err := s.recordMailboxPoll(ctx, p, pollErr); err != nil && s.Log != nil {
+		s.Log.WarnContext(ctx, "record bounce mailbox poll", "provider", p.ID, "err", err)
+	}
+}
+
+func (s *Service) recordMailboxPoll(ctx context.Context, p store.Provider, pollErr error) error {
+	now := s.now()
+	return db.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
+		q := store.New(tx)
+		var raw []byte
+		var status string
+		if err := tx.QueryRow(ctx, `SELECT health, status FROM providers WHERE id = $1 FOR UPDATE`, p.ID).Scan(&raw, &status); err != nil {
+			return err
+		}
+		var h state.Health
+		_ = json.Unmarshal(raw, &h)
+		m := h.BounceMailbox
+		if m == nil {
+			m = &state.MailboxState{}
+		}
+		m.LastPollAt = now
+		raise, recovered := false, false
+		if pollErr == nil {
+			t := now
+			m.LastOKAt = &t
+			recovered = m.Reported
+			m.Error, m.FailingSince, m.Reported = "", nil, false
+		} else {
+			m.Error = pollErr.Error()
+			if m.FailingSince == nil {
+				t := now
+				m.FailingSince = &t
+			}
+			if !m.Reported && now.Sub(*m.FailingSince) >= state.MailboxFailAfter {
+				m.Reported, raise = true, true
+			}
+		}
+		b, _ := json.Marshal(m)
+		if _, err := tx.Exec(ctx, `UPDATE providers SET health = jsonb_set(coalesce(health, '{}'::jsonb), '{bounceMailbox}', $2::jsonb) WHERE id = $1`, p.ID, b); err != nil {
+			return err
+		}
+		ws, err := q.GetWorkspace(ctx, p.WorkspaceID)
+		if err != nil {
+			return err
+		}
+		wsID := ws.ID
+		mailbox := mailboxAddress(p)
+		switch {
+		case raise:
+			if status != state.Down {
+				if _, err := tx.Exec(ctx, `UPDATE providers SET status = $2, status_detail = $3 WHERE id = $1`, p.ID, state.Degraded, state.DetailMailboxFailing); err != nil {
+					return err
+				}
+			}
+			since := m.FailingSince.In(state.Location(ws.Timezone))
+			args := i18n.Args{"name": p.Name, "mailbox": mailbox, "since": since, "error": m.Error}
+			if err := s.incident(ctx, q, ws.ID, *m.FailingSince, "bounce_mailbox_failing", "warn",
+				fmt.Sprintf("%s: the bounce mailbox %s can't be read since %s: %s. Bounces from this server aren't processed.", p.Name, mailbox, since.Format("15:04"), m.Error),
+				mIncidentMailboxFailing.Keep(args), &p.ID, nil); err != nil {
+				return err
+			}
+			title, titleText := keep(mNotifyMailboxTitle, i18n.Args{"name": p.Name})
+			body, bodyText := keep(mNotifyMailboxBody, args)
+			if err := notify.ToMembersWith(ctx, tx, ws.ID, authz.ProvidersManage, notify.Notification{
+				Kind: notify.KindProviderDegraded, Severity: "warn", Title: title, TitleText: titleText, Body: body, BodyText: bodyText, Link: "/w/" + ws.Slug + "/providers",
+				Data: map[string]any{"providerId": p.ID.String(), "reason": "bounce_mailbox"},
+			}); err != nil {
+				return err
+			}
+			return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Actor: systemActor, Action: "provider.bounce_mailbox_failing", TargetType: "provider",
+				TargetID: p.ID.String(), TargetName: p.Name, Metadata: map[string]any{"error": m.Error, "since": m.FailingSince}})
+		case recovered:
+			if _, err := tx.Exec(ctx, `UPDATE providers SET status = $2, status_detail = '' WHERE id = $1 AND status_detail = $3`, p.ID, state.Healthy, state.DetailMailboxFailing); err != nil {
+				return err
+			}
+			if err := q.ProvResolveIncidents(ctx, store.ProvResolveIncidentsParams{ProviderID: &p.ID, Kinds: []string{"bounce_mailbox_failing"}, ResolvedAt: &now}); err != nil {
+				return err
+			}
+			if err := s.incident(ctx, q, ws.ID, now, "bounce_mailbox_ok", "ok", p.Name+": the bounce mailbox can be read again.",
+				mIncidentMailboxOK.Keep(i18n.Args{"name": p.Name}), &p.ID, nil); err != nil {
+				return err
+			}
+			return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &wsID, Actor: systemActor, Action: "provider.bounce_mailbox_ok", TargetType: "provider",
+				TargetID: p.ID.String(), TargetName: p.Name})
+		}
+		return nil
+	})
+}
+
+// mailboxAddress is the bounce mailbox an SMTP provider reads ("bounces@news.acme.io").
+func mailboxAddress(p store.Provider) string {
+	var c struct {
+		Mailbox struct {
+			Address  string `json:"address"`
+			Username string `json:"username"`
+			Host     string `json:"host"`
+		} `json:"bounce_mailbox"`
+	}
+	_ = json.Unmarshal(p.Config, &c)
+	switch {
+	case c.Mailbox.Address != "":
+		return c.Mailbox.Address
+	case c.Mailbox.Username != "" && c.Mailbox.Host != "":
+		return c.Mailbox.Username + " on " + c.Mailbox.Host
+	}
+	return c.Mailbox.Host
 }

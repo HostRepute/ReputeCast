@@ -197,6 +197,33 @@ type Health struct {
 	// Rejecting is set while the provider refuses an unusual share of the
 	// messages handed to it (PR-7, the health job).
 	Rejecting *RejectState `json:"rejecting,omitempty"`
+	// BounceMailbox is the last read of an SMTP provider's bounce mailbox
+	// (PR-10): when reading fails, bounces from that server go unseen.
+	BounceMailbox *MailboxState `json:"bounceMailbox,omitempty"`
+}
+
+// MailboxState is how reading a bounce mailbox goes.
+type MailboxState struct {
+	LastPollAt time.Time  `json:"lastPollAt"`
+	LastOKAt   *time.Time `json:"lastOkAt,omitempty"`
+	// Error is the last failure, as the mail server or the network said
+	// it; FailingSince is when reading started to fail.
+	Error        string     `json:"error,omitempty"`
+	FailingSince *time.Time `json:"failingSince,omitempty"`
+	// Reported is set once the failure was raised (incident, notification).
+	Reported bool `json:"reported,omitempty"`
+}
+
+// MailboxFailAfter is how long a bounce mailbox may fail to be read before
+// the provider is Degraded and the team is told: a mail server restarting
+// is no alarm.
+const MailboxFailAfter = 15 * time.Minute
+
+// MailboxFailing reports whether a bounce mailbox has failed long enough
+// to be raised.
+func (h Health) MailboxFailing(now time.Time) bool {
+	m := h.BounceMailbox
+	return m != nil && m.FailingSince != nil && now.Sub(*m.FailingSince) >= MailboxFailAfter
 }
 
 // RejectState is a run of refused messages: since when, how many of how
