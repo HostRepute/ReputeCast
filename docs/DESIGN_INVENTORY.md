@@ -1,7 +1,7 @@
 # Design inventory
 
 The prototype (`design/boards`, exported from the ReputeCast canvas) has 29
-pages and 430 artboards: 288 desktop boards (1440 px; public pages 720 px)
+pages and 442 artboards: 294 desktop boards (1440 px; public pages 720 px)
 plus Tablet (834 px) and Phone (390 px) boards that render the same markup at
 narrower widths. This inventory maps every board to the spec section it
 implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
@@ -65,6 +65,7 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | `ProvidersOutage.dc.html` | Providers · outage | — |
 | `ProvidersRouting.dc.html` | Routing rules & route tester | phone, tablet |
 | `ProvidersStates.dc.html` | Providers · empty / loading / error | — |
+| `ProvidersTrafficRules.dc.html` | Traffic rules · thresholds by bounce type, deferrals, mailbox-provider response rules (review GS-11, GS-12) | phone |
 | `ProvidersWarmup.dc.html` | Warm-up planner | — |
 | `ProvidersWebhooksSilent.dc.html` | Providers · webhooks silent | — |
 
@@ -77,8 +78,9 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | `ComposerEmpty.dc.html` | Composer · empty canvas | — |
 | `ComposerMobile.dc.html` | Composer · mobile preview | — |
 | `ComposerPreview.dc.html` | Composer · client previews & A/B | — |
-| `ComposerStates.dc.html` | Composer · loading / error / saved | — |
+| `ComposerStates.dc.html` | Composer · loading / error / saved / recovered edits / conflict / approval cancel / save failed | — |
 | `ComposerWarnings.dc.html` | Composer · inline warnings | — |
+| `ComposerWrite.dc.html` | Composer · Write mode (slash menu, paste cleanup, comments, share for review; review CO-9, CO-10) | phone |
 
 ### 7.5 Review & send
 
@@ -87,17 +89,19 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | `SendReadiness.dc.html` | Review & send · ready with warnings | phone, tablet |
 | `SendReadinessBlocked.dc.html` | Review & send · blocked | phone |
 | `SendReadinessConfirm.dc.html` | Review & send · confirm | — |
-| `SendReadinessStates.dc.html` | Review & send · running / error / scheduled | — |
+| `SendReadinessFixes.dc.html` | Review & send · review fixes drawer (review SR-13) | phone |
+| `SendReadinessStates.dc.html` | Review & send · running / error / scheduled / re-running / checks skipped / held / unusual-send confirm | — |
 
 ### 7.6 Live sending monitor
 
 | Board | Screen / states | Responsive boards |
 |---|---|---|
 | `LiveMonitor.dc.html` | Live monitor · sending | tablet |
+| `LiveMonitorCanary.dc.html` | Live monitor · canary phase (review GS-10) | phone |
 | `LiveMonitorMobile.dc.html` | Live monitor · mobile | — |
 | `LiveMonitorOutage.dc.html` | Live monitor · provider outage | — |
 | `LiveMonitorPaused.dc.html` | Live monitor · auto-paused | phone |
-| `LiveMonitorStates.dc.html` | Live monitor · connecting / complete / error | — |
+| `LiveMonitorStates.dc.html` | Live monitor · connecting / stale / error / rates / complete | — |
 
 ### 7.7 Campaign report
 
@@ -167,6 +171,8 @@ implements and the workstream that builds it (`docs/dev/WORKSTREAMS.md`).
 | `SettingsMCP.dc.html` | Settings · MCP server | — |
 | `SettingsProviders.dc.html` | Settings · sending providers | — |
 | `SettingsSenders.dc.html` | Settings · senders & domains | phone, tablet |
+| `SettingsSendingRules.dc.html` | Settings · sending rules (review SR-10) | phone |
+| `BrandKit.dc.html` | Settings · brand kit (review CO-11) | phone |
 | `SettingsStates.dc.html` | Settings · empty / loading / error | — |
 
 ### 8. Landing page & README banner
@@ -516,6 +522,29 @@ The expansion pages also change existing boards. These changes are live on the c
 | Phase 1 (24 boards) | Transactional stream in routing, streams and suppressions; categories in preferences; keys, audit and API for transactional mail | 1 |
 
 Layout fixes made at the same time to boards already on the canvas: avatar initials centred; the tablet rail no longer shows the sidebar footer; tables that were cut off in their cards now fit (Contacts, ListHealth, SettingsSenders, SettingsMCP, AutomationsList, ProvidersEvents, ProvidersWarmup, ProvidersAdapters, InstanceUsers, LiveMonitor, ApprovalPolicy); the "API keys and MCP agents moved" card has its padding.
+
+## Review 2026-10 (M33–M39)
+
+The October 2026 review of the five core features (`docs/spec/reputecast-review-2026-10.md`)
+redesigned their boards and added twelve (six desktop boards, each with a phone board). The
+canvas and `design/boards` carry the changes.
+
+| Boards | Change | IDs |
+|---|---|---|
+| `SendReadiness*`, `SendReadinessFixes`, `SettingsSendingRules` | Issues first, passes grouped, technical details, a fixes drawer with consequences, real progress while checks re-run, the schedule in the main action, a sticky action bar on phones, typed confirmation only for unusual sends, emergency send in a menu, workspace sending rules | SR-1–SR-13 |
+| `LiveMonitor*`, `LiveMonitorCanary`, `ProvidersTrafficRules` | Collecting-evidence and stale-data states, n/a for complaints Gmail and iCloud don't report, people instead of permission keys, one polite live summary, Pause primary on phones, rates per mailbox provider, the canary phase, traffic rules | GS-1–GS-14 |
+| `Providers*`, `ProvidersRouting`, `ProvidersWarmup`, `Setup*`, `OverviewEmpty` | One channel button, a Traffic rules tab, an ordered split with keyboard moves, impact preview and unsaved-changes bar, campaign simulation in the route tester, failover triggers and target checks, warm-up by volume with per-mailbox caps, honest setup time, verified events, SES tenants, Help me choose | PR-1–PR-15 |
+| `Composer*`, `ComposerWrite`, `BrandKit` | Compact chrome with an Inbox strip, Liquid chips with a fallback editor, a writer-friendly style panel, dismissing warnings with a reason, recovered edits and conflicts, quick review on phones, Write mode, brand kit | CO-1–CO-14 |
+| `Report*`, `ReportStates`, `AISegmentReport` | Comparison on every tile, a y-axis, human and bot clicks on the click map, three open buckets with the measurable open rate, insights with actions, an honest A/B card, growth and revenue per issue, share options | AN-1–AN-16 |
+| Every Settings board | Tabs: General, Brand kit, Senders, Providers, Sending rules, Team, Roles, Approvals, Keys & MCP, Webhooks, Integrations, Audit log | SR-10, CO-11 |
+| Every app-shell board | The workspace switcher's and user menu's names start with their visible text; the tablet rail's links keep their names when labels are hidden; 44 px top-bar targets on phones | X-1 |
+| `StressReviewVi`, `StressReviewPseudo` | Rebuilt on the new Review & send layout | X-2 |
+
+The boards tell these stories, which the screens' demo data follows:
+
+- **Weekly Digest #142** goes to 31,192 recipients: 31,604 in its lists minus 412 unengaged contacts the sunset policy leaves out (SES 28,073 · Postal 3,119, $2.81). Its warnings are the Postal IP listing and the UTM rule. The #143 boards keep 31,604, with no unengaged contacts left out.
+- **Two #142 scenarios:** Review & send plans it with an A/B test (sample 09:00–09:07, winner at 11:00, done about 11:31). The live monitor boards show it without the test: a canary passed at 09:20, the auto-pause at 09:21 holds 2,436 Outlook recipients, and it finishes about 09:51. `ReportLanguages` shows a third, three-language send.
+- **Placement tests** use the demo's 10 seed inboxes; Review & send's card shows #142's test of Sun 12 Oct.
 
 ## Conflicts between the design and the spec
 
