@@ -3,7 +3,7 @@
 Source: the October 2026 product review of ReputeCast's five core features (Send Readiness,
 guarded sending, bring-your-own providers, the composer, honest analytics), its code audits and
 competitor research. Every recommendation in that review has an ID below, an owner milestone and
-what "done" means. Milestones M33–M40 in `docs/ROADMAP.md` implement them; the design for every
+what "done" means. Milestones M33–M39 in `docs/ROADMAP.md` implement them; the design for every
 screen is on the canvas (`design/boards`, updated for this review).
 
 Status: ⏳ planned · 🚧 in progress · ✅ done
@@ -16,8 +16,16 @@ Status: ⏳ planned · 🚧 in progress · ✅ done
 | F-2 | Complaint reporting semantics: Gmail and iCloud don't report complaints per message. Complaint rates use only delivered mail at mailbox providers that report complaints; per-mailbox complaint values for the others are "not reported". | Guard, live monitor, report and provider cards agree; APIs return `null` + a reason, never 0, for unreported values. |
 | F-3 | Unknown is not zero: rates without data (no delivery reports, SMTP without DSN, silent webhooks) are `null` with a reason in the API and "n/a" with the reason in the UI. | Covered by the API types and UI tests of M34–M37. |
 | F-4 | Every table production code reads has a production writer (demo seeds don't count). | A test fails when a queried table is only written by `internal/demo` or tests; the known violations are fixed. |
-| F-5 | Production-shape end-to-end tests: a campaign goes through the real API, audience build, sending engine, a non-demo simulator provider and webhook normalization, so features are tested on the data production writes. | A reusable harness in `internal/apptest` plus tests in M34–M37 that use it. |
+| F-5 | Production-shape end-to-end tests: a campaign goes through the real API, audience build, sending engine, the simulator transport (delivery events through webhook normalization, opens and clicks through the tracking recorder) on a virtual clock, so features are tested on the data production writes. | A reusable harness, `internal/sending/sendtest`, plus tests in M34–M37 that use it. |
 | F-6 | Every claim the UI makes is backed by behaviour (idempotency, events verified, setup time, previews, A/B significance, blocklist checks). | Copy corrected; a test pins each claim's behaviour. |
+
+What M33 built for the others to use:
+
+- **F-1** `internal/mailbox`: `Classifier` (domain cache, `mailbox.sweep` every 2 minutes, `mailbox.lookup` for one domain, a bounded `ClassifyPending` before a send's audience and a Readiness run), `FromHosting`, `MXChecker` (moved from imports). Contacts get `mailbox_checked_at`; the class's detail ("Google Workspace") stays in `mailbox_detail`. Routing, the engine, transactional sends, Readiness and imports use it; reports, warm-up and the guard read the classified contacts and messages. Sample contacts are never looked up. Test: `TestSending/MailboxFromMX`.
+- **F-2** `mailbox.ReportsComplaints(provider)` and `mailbox.NotReported`, for the guard (M34), live monitor (M34), report (M37) and provider cards (M35).
+- **F-4** `internal/store/writers_test.go`; the known gaps it lists are SR-1 and EXT-1.
+- **F-5** `internal/sending/sendtest`: `Suite`, `Fixture`, `ContactSpec` (with `Unclassified` for MX classification), `StartSend`, `Drive`, `Dump`.
+- **GS-5 / PR-7 groundwork** `state.Vet`: one target vetting (available, bulk terms, sandbox, sender domain, quota, warm-up) used by a person's move, the guard's automatic move and the failover while an audience is built, and returned with its sentences (EN, VI) on the provider outage card's alternatives (`checks`, `allowed`). M34 and M35 build their screens and the health job's checks on it.
 
 ## Send Readiness (M36)
 
@@ -123,3 +131,9 @@ Status: ⏳ planned · 🚧 in progress · ✅ done
 | X-1 | No permission keys in UI copy on these screens; people or roles instead. | Visual QA. |
 | X-2 | Every new or changed string in English and Vietnamese; `pnpm i18n:check` passes. | CI. |
 | X-3 | Docs: roadmap, design inventory, README claims. | Updated per milestone. |
+
+## Found while building the review (outside the five features)
+
+| ID | What | Status |
+|---|---|---|
+| EXT-1 | Referral coupon rewards are never issued: `referralCoupons` in `internal/app/wire_referrals.go` is still the stub written before Earn's offers ("offers come with Earn's offers"), and nothing replaced it, so `earn_offer_codes` is only filled by the demo. Found by F-4's writer check. | ⏳ follow-up outside this review |
