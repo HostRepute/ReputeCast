@@ -80,7 +80,7 @@ export interface ComposerState {
   currentMjml(): string
   compileCurrent(): { html: string; errors: { line: number; message: string; tagName: string }[] } | null
   /** Replaces the whole content (template, import, code view, restore); empty string resets to the gallery. */
-  loadContent(mjml: string, how: { source: 'template' | 'import' | 'code' | 'restore' | 'reload'; label?: string }): void
+  loadContent(mjml: string, how: { source: 'template' | 'import' | 'code' | 'restore' | 'reload' | 'recovered'; label?: string }): void
   /** Loads the latest saved version (after a restore, or to take someone else's save). */
   reloadFromServer(): Promise<void>
   /** Content settings changed on the server (minify): re-run the checks. */

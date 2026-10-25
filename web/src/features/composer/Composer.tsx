@@ -6,11 +6,12 @@ import { $api, ApiError, errorMessage, http } from '@/api/client'
 import { UnsavedChangesGuard } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
 import { andList, clock } from '@/lib/format'
+import { mn } from './banners.messages'
 import { useDocumentTitle } from '@/lib/hooks'
 import { useUnsavedWork } from '@/lib/sessionClock'
 import { runShortcutHandler, useShortcutHandler } from '@/lib/shortcuts'
-import { useCan, useWorkspace } from '@/lib/session'
-import { ComposerBanners } from './Banners'
+import { useCan, useMe, useWorkspace } from '@/lib/session'
+import { ComposerBanners, type Recovered } from './Banners'
 import { CanvasArea } from './CanvasArea'
 import { ComposerCtx, type ABTest, type Campaign, type Checks, type ComposerCtxData, type ComposerDialog, type ComposerState, type SaveStatus, type View } from './context'
 import { Dialogs } from './Dialogs'
@@ -23,6 +24,7 @@ import { Header, PermissionBanner } from './Header'
 import { LeftPanel } from './LeftPanel'
 import { PreviewView } from './PreviewView'
 import { RightPanel } from './RightPanel'
+import { forgetRecovered, journalWriter, useJournalKey, useRecoveredJournal, type JournalWriter } from './journal'
 import { serialQueue } from './saveQueue'
 import { SubjectBar } from './SubjectBar'
 import { AccessibilityProvider } from '@/features/accessibility/composer/state'
@@ -61,7 +63,7 @@ function offlineError(e: unknown) {
   return e instanceof TypeError || (e instanceof ApiError && (e.status === 502 || e.status === 503 || e.status === 504))
 }
 
-type PendingSource = { source: 'template' | 'import' | 'code' | 'restore'; label?: string }
+type PendingSource = { source: 'template' | 'import' | 'code' | 'restore' | 'recovered'; label?: string }
 
 type SaveOptions = Parameters<ComposerState['save']>[0] & {}
 
@@ -156,11 +158,31 @@ export function Composer({
   /** Content A/B tests: the canvas shows one variant; the others' bodies wait here. */
   const variantBodies = useRef<Record<string, string>>({})
   const shownVariant = useRef('A')
+  /** Resolves once the canvas is ready (a recovered draft waits for it before saving). */
+  const editorReady = useRef<{ promise: Promise<void>; resolve: () => void } | null>(null)
+  const whenEditorReady = useCallback(() => {
+    if (geRef.current) return Promise.resolve()
+    if (!editorReady.current) {
+      let resolve!: () => void
+      const promise = new Promise<void>((r) => (resolve = r))
+      editorReady.current = { promise, resolve }
+    }
+    return editorReady.current.promise
+  }, [])
+
+  // The browser journal (CO-1): every edit reaches this browser's storage within
+  // two seconds, keystrokes in a text included; a save that catches up clears it.
+  // Edits found there when the composer opens are offered back (Recovered edits).
+  const { data: meData } = useMe()
+  const jKey = useJournalKey(meData?.user.id ?? 'me', campaign.id, language)
+  const journal = useRef<JournalWriter | null>(null)
+  const [recoveredEntry, setRecoveredEntry] = useRecoveredJournal(jKey, campaign, canEdit)
 
   useDocumentTitle(t(m.documentTitle, { name: name || t(m.untitled) }))
 
   const markDirty = useCallback(() => {
     revision.current++
+    journal.current?.touch()
     setRev((r) => r + 1)
     setStatus((s) => (s.kind === 'saving' || s.kind === 'conflict' || s.kind === 'offline' ? s : { kind: 'dirty', at: s.kind === 'saved' ? s.at : undefined, version: version.current }))
   }, [])
@@ -188,8 +210,12 @@ export function Composer({
         if (import.meta.env.DEV) (window as unknown as { __rcComposer?: typeof ed }).__rcComposer = ed
         tracker.current = trackChanges(ed)
         ed.on('update', markDirty)
-        // Typing in a text only reports input; it's an edit all the same.
-        ed.on('component:input', markDirty)
+        // Typing in a text only reports input; it's an edit all the same, saved and
+        // journaled as it is typed (getLiveBody), without ending the editing.
+        ed.on('component:input', (comp: Component) => {
+          tracker.current?.typing(comp)
+          markDirty()
+        })
         ed.on('component:toggled', () => setSelected(ed.getSelected() ?? null))
         ed.on('component:remove', () => setSelected(ed.getSelected() ?? null))
         ed.on('undo redo', () => setRev((r) => r + 1))
@@ -198,6 +224,8 @@ export function Composer({
           ed.getWrapper()?.onAll((c: Component) => c.set({ draggable: false, droppable: false, editable: false, removable: false, copyable: false }))
         }
         setGe(inst)
+        editorReady.current?.resolve()
+        editorReady.current = null
         const link = deepLink.current
         if (link) {
           deepLink.current = undefined
@@ -275,7 +303,7 @@ export function Composer({
   }, [canvasBody, bodyA])
 
   const loadContent = useCallback(
-    (mjml: string, how: { source: 'template' | 'import' | 'code' | 'restore' | 'reload'; label?: string }) => {
+    (mjml: string, how: { source: 'template' | 'import' | 'code' | 'restore' | 'reload' | 'recovered'; label?: string }) => {
       const parts = splitMjml(mjml)
       setHead(parts.head)
       bodyRef.current = parts.body
@@ -446,6 +474,74 @@ export function Composer({
     },
     [markDirty],
   )
+  // The journal's writer: it reads the editor as it is (the words being typed
+  // included) and writes at once when the tab is hidden or closed.
+  const currentMjmlRef = useRef(currentMjml)
+  const abForSaveRef = useRef(abForSave)
+  useLayoutEffect(() => {
+    currentMjmlRef.current = currentMjml
+    abForSaveRef.current = abForSave
+  })
+  useEffect(() => {
+    if (!canEdit) return
+    const w = journalWriter({
+      key: jKey,
+      campaignId: campaign.id,
+      language,
+      snapshot: () => ({ baseVersion: version.current, subject: subjectRef.current, preheader: preheaderRef.current, mjml: currentMjmlRef.current(), abTest: abForSaveRef.current() ?? null }),
+    })
+    journal.current = w
+    afterSaved.current = (rev0) => {
+      // Everything typed is saved: the journal forgets it.
+      if (revision.current === rev0) w.clear()
+    }
+    const hidden = () => {
+      if (document.visibilityState === 'hidden') w.flush()
+    }
+    window.addEventListener('pagehide', w.flush)
+    document.addEventListener('visibilitychange', hidden)
+    return () => {
+      window.removeEventListener('pagehide', w.flush)
+      document.removeEventListener('visibilitychange', hidden)
+      w.flush()
+      w.dispose()
+      if (journal.current === w) journal.current = null
+      afterSaved.current = null
+    }
+  }, [canEdit, jKey, campaign.id, language])
+
+  const restoreRecovered = useCallback(async (): Promise<boolean> => {
+    const e = recoveredEntry
+    if (!e) return false
+    const label = tt(mn.recoveredLabel, { from: clock(e.startedAt), to: clock(e.updatedAt) })
+    subjectRef.current = e.subject
+    preheaderRef.current = e.preheader
+    setSubjectState(e.subject)
+    setPreheaderState(e.preheader)
+    abRef.current = e.abTest
+    setABTestState(e.abTest)
+    loadContent(e.mjml, { source: 'recovered', label })
+    await whenEditorReady()
+    // On top of whatever is current now: the person chose these edits.
+    const ok = await save({ force: true, manual: true, quiet: true, source: 'recovered', label })
+    if (ok) {
+      forgetRecovered(jKey)
+      setRecoveredEntry(null)
+      toast({ kind: 'success', title: tt(mn.recoveredDone), detail: tt(mn.recoveredDoneDetail, { version: version.current }) })
+    } else {
+      toast({ kind: 'error', title: tt(mn.recoveredFailed), detail: tt(mn.recoveredFailedDetail) })
+    }
+    return ok
+  }, [recoveredEntry, setRecoveredEntry, loadContent, whenEditorReady, save, jKey])
+  const discardRecovered = useCallback(() => {
+    forgetRecovered(jKey)
+    setRecoveredEntry(null)
+  }, [jKey, setRecoveredEntry])
+  const recovered = useMemo<Recovered | null>(
+    () => (recoveredEntry ? { entry: recoveredEntry, restore: restoreRecovered, discard: discardRecovered } : null),
+    [recoveredEntry, restoreRecovered, discardRecovered],
+  )
+
   const updateMeta = $api.useMutation('patch', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}')
   const commitName = useCallback(() => {
     const n = name.trim()
@@ -687,7 +783,7 @@ export function Composer({
         {/* Sponsor blocks fill themselves from the issue's booking (Earn, X17). */}
         <SponsorSync />
         {!campaign.access.canSend && canEditPerm ? <PermissionBanner /> : null}
-        {view === 'preview' ? null : <ComposerBanners />}
+        {view === 'preview' ? null : <ComposerBanners recovered={recovered} />}
         {view === 'preview' ? <PreviewView onReview={goReview} /> : null}
         {/* The canvas stays mounted off screen in the other views: GrapesJS keeps its state and compiles. */}
         <div className={`flex flex-1 flex-col${view === 'preview' ? ' cmp-offstage' : ''}`} inert={view === 'preview' || undefined} aria-hidden={view === 'preview' || undefined}>

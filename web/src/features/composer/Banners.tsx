@@ -1,9 +1,11 @@
 import { useId, useState } from 'react'
 import { toast } from '@/components/ui/Toast'
-import { andList } from '@/lib/format'
+import { andList, clock } from '@/lib/format'
+import { versionLanguage } from '@/features/languages/composerParts'
 import { useT } from '@/i18n'
 import { useComposer } from './context'
 import { sectionWord } from './editor/labels'
+import type { JournalEntry } from './journal'
 import { mn } from './banners.messages'
 
 /** A part of the email a save changed, as the server names it ("subject", "hero"), in the app language. */
@@ -111,7 +113,66 @@ export function ConflictBanner() {
   )
 }
 
+/** What the recovered-edits banner restores, and how. */
+export interface Recovered {
+  entry: JournalEntry
+  restore(): Promise<boolean>
+  discard(): void
+}
+
+/**
+ * Edits this browser kept that never reached the server (ComposerStates ·
+ * Recovered edits): restore them as a new version on top, or discard them.
+ */
+export function RecoveredBanner({ recovered }: { recovered: Recovered }) {
+  const c = useComposer()
+  const t = useT()
+  const [busy, setBusy] = useState(false)
+  const e = recovered.entry
+  const from = clock(e.startedAt)
+  const to = clock(e.updatedAt)
+  const minutes = Math.max(1, Math.round((Date.parse(e.updatedAt) - Date.parse(e.startedAt)) / 60_000))
+  const version = c.currentVersion?.() ?? c.campaign.version
+  const onVersion = Boolean(versionLanguage(c.campaign))
+  const body = onVersion
+    ? t(mn.recoveredBodyVersionless)
+    : e.baseVersion < version
+      ? t(mn.recoveredBodyOlder, { base: e.baseVersion, name: c.campaign.updatedBy || t(mn.someone), version, next: version + 1 })
+      : t(mn.recoveredBody, { version, next: version + 1 })
+  return (
+    <div className="bnr w" role="status">
+      <HistoryIcon />
+      <span className="bt">
+        <b>{t(mn.recoveredTitle, { minutes, from, to })}</b>
+        <span>{body}</span>
+      </span>
+      <span className="ba">
+        <button
+          type="button"
+          className="btn sm pri"
+          aria-busy={busy || undefined}
+          disabled={busy || !c.canEdit}
+          onClick={() => {
+            setBusy(true)
+            void recovered.restore().finally(() => setBusy(false))
+          }}
+        >
+          {t(mn.restoreThem)}
+        </button>
+        <button type="button" className="btn sm danger" disabled={busy} onClick={recovered.discard}>
+          {t(mn.discard)}
+        </button>
+      </span>
+    </div>
+  )
+}
+
 /** The banners under the top bar, in the order the boards stack them. */
-export function ComposerBanners() {
-  return <ConflictBanner />
+export function ComposerBanners({ recovered }: { recovered?: Recovered | null }) {
+  return (
+    <>
+      {recovered ? <RecoveredBanner recovered={recovered} /> : null}
+      <ConflictBanner />
+    </>
+  )
 }

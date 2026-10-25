@@ -18,6 +18,18 @@ export default translate(mn, {
   loadTheirsDone: 'Đang mở bản v{version} của {name}',
   loadTheirsDoneDetail: 'Nội dung bạn sửa nằm trong lịch sử phiên bản ở v{kept}.',
   loadTheirsFailed: 'Không mở được bản của họ',
+  recoveredTitle: '{minutes, plural, other {# phút}} nội dung sửa trong trình duyệt này chưa được lưu ({from}–{to}).',
+  recoveredBody: 'Chúng chỉ nằm trên thiết bị này. Khôi phục sẽ lưu chúng thành v{next} trên v{version}; bỏ đi thì không lấy lại được.',
+  recoveredBodyOlder:
+    'Chúng chỉ nằm trên thiết bị này, được sửa trên v{base}; sau đó {name} đã lưu v{version}. Khôi phục sẽ lưu chúng thành v{next} ở trên cùng, v{version} vẫn nằm trong lịch sử phiên bản. Bỏ đi thì không lấy lại được.',
+  recoveredBodyVersionless: 'Chúng chỉ nằm trên thiết bị này. Khôi phục sẽ lưu chúng thành một phiên bản mới; bỏ đi thì không lấy lại được.',
+  restoreThem: 'Khôi phục',
+  discard: 'Bỏ đi',
+  recoveredLabel: 'khôi phục từ trình duyệt này ({from}–{to})',
+  recoveredDone: 'Nội dung bạn sửa đã quay lại',
+  recoveredDoneDetail: 'Đã lưu thành v{version}.',
+  recoveredFailed: 'Chưa lưu được nội dung bạn sửa',
+  recoveredFailedDetail: 'Chúng vẫn nằm trong trình duyệt này. Hãy kiểm tra kết nối rồi bấm Khôi phục lần nữa.',
   partSubject: 'tiêu đề',
   partBody: 'nội dung email',
 })
