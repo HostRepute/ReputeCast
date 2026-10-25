@@ -165,17 +165,12 @@ func (s *Service) apply(ctx context.Context, tx pgx.Tx, q *store.Queries, b *bat
 	} else {
 		v = ClassifyOpen(sig)
 	}
-	typ, class := "open", "human"
+	typ, class := "open", v.Class
 	var linkPos *int32
 	if ev.Click {
 		typ = "click"
 		p := int32(ev.Link)
 		linkPos = &p
-		if v.Machine {
-			class = "bot"
-		}
-	} else if v.Machine {
-		class = "machine"
 	}
 	diag := v.Client
 	if v.Machine {

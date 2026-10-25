@@ -182,22 +182,23 @@ func testTracking(t *testing.T, f *sendtest.Fixture) {
 		defer func() { _ = resp.Body.Close() }()
 		return answer{StatusCode: resp.StatusCode, Header: resp.Header}
 	}
-	// Apple Mail Privacy Protection prefetch first: a machine open.
+	// Apple Mail Privacy Protection prefetch first: a privacy-protected
+	// open (whether a person read it can't be measured).
 	if r := get("/t/o/"+open, "Mozilla/5.0"); r.StatusCode != http.StatusOK || r.Header.Get("Content-Type") != "image/gif" || !strings.Contains(r.Header.Get("Cache-Control"), "no-store") {
 		t.Fatalf("pixel %d %s %s", r.StatusCode, r.Header.Get("Content-Type"), r.Header.Get("Cache-Control"))
 	}
 	waitFor(t, func() bool {
-		return f.Count(`SELECT coalesce(sum(opened_machine), 0) FROM campaign_counters WHERE campaign_id = $1`, f.Campaign) == 1
+		return f.Count(`SELECT coalesce(sum(opened_privacy), 0) FROM campaign_counters WHERE campaign_id = $1`, f.Campaign) == 1
 	})
-	// Then the person opens: the open moves from machine to human.
+	// Then the person opens: the open moves from privacy-protected to human.
 	get("/t/o/"+open, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36")
 	waitFor(t, func() bool {
 		return f.Count(`SELECT coalesce(sum(opened_human), 0) FROM campaign_counters WHERE campaign_id = $1`, f.Campaign) == 1 &&
-			f.Count(`SELECT coalesce(sum(opened_machine), 0) FROM campaign_counters WHERE campaign_id = $1`, f.Campaign) == 0
+			f.Count(`SELECT coalesce(sum(opened_privacy + opened_machine), 0) FROM campaign_counters WHERE campaign_id = $1`, f.Campaign) == 0
 	})
 	// The engagement chart moves it too: it adds up to the counters.
 	if h, m := f.Count(`SELECT coalesce(sum(opened_human), 0) FROM campaign_hourly WHERE campaign_id = $1`, f.Campaign),
-		f.Count(`SELECT coalesce(sum(opened_machine), 0) FROM campaign_hourly WHERE campaign_id = $1`, f.Campaign); h != 1 || m != 0 {
+		f.Count(`SELECT coalesce(sum(opened_privacy + opened_machine), 0) FROM campaign_hourly WHERE campaign_id = $1`, f.Campaign); h != 1 || m != 0 {
 		t.Fatalf("hourly opens: %d human, %d machine; want 1 and 0", h, m)
 	}
 	var want string

@@ -363,8 +363,11 @@ WHERE campaign_id = @campaign_id AND status IN ('queued', 'held')
 GROUP BY provider_id, mailbox_provider, status;
 
 -- name: SendingCounters :many
+-- opened_machine is every open no person made: privacy-protected opens
+-- (Apple Mail Privacy Protection) and scanners' (the report shows them
+-- apart, internal/counters).
 SELECT provider_id, mailbox_provider, variant, sent, delivered, deferred, hard_bounced, soft_bounced, complained, rejected,
-       opened_human, opened_machine, clicked, unsubscribed
+       opened_human, (opened_machine + opened_privacy)::bigint AS opened_machine, clicked, unsubscribed
 FROM campaign_counters WHERE campaign_id = @campaign_id;
 
 -- name: SendingSentSince :many

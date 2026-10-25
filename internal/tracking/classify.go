@@ -4,6 +4,8 @@ import (
 	"net/netip"
 	"strings"
 	"time"
+
+	"github.com/hostrepute/reputecast/internal/useragent"
 )
 
 // Signal is what a tracking request tells us about who made it.
@@ -17,11 +19,28 @@ type Signal struct {
 	SinceSend time.Duration
 }
 
+// Classes of opens and clicks.
+const (
+	// ClassHuman: a person opened or clicked.
+	ClassHuman = "human"
+	// ClassPrivacy: a privacy proxy (Apple Mail Privacy Protection) fetched
+	// the images on delivery. Whether a person read the email can't be
+	// measured: these opens are neither a person's nor a scanner's.
+	ClassPrivacy = "privacy"
+	// ClassMachine: a scanner or a proxy prefetching on arrival opened it.
+	ClassMachine = "machine"
+	// ClassBot: a click no person made (scanners following every link).
+	ClassBot = "bot"
+)
+
 // Verdict classifies an open or a click.
 type Verdict struct {
 	// Machine is true for opens and clicks no person made: privacy proxies
 	// prefetching images, security scanners following links.
 	Machine bool
+	// Class is ClassHuman, ClassPrivacy or ClassMachine for an open,
+	// ClassHuman or ClassBot for a click.
+	Class string
 	// Reason explains a machine verdict in the live feed's words
 	// ("Apple Mail Privacy Protection prefetch").
 	Reason string
@@ -51,20 +70,6 @@ var (
 		{netip.MustParsePrefix("67.231.144.0/20"), "Proofpoint"},
 		{netip.MustParsePrefix("64.235.144.0/20"), "Barracuda"},
 		{netip.MustParsePrefix("209.222.80.0/21"), "Barracuda"},
-	}
-	// User agents of scanners, link checkers and HTTP libraries.
-	scannerAgents = []struct{ needle, name string }{
-		{"barracuda", "Barracuda"}, {"mimecast", "Mimecast"}, {"proofpoint", "Proofpoint"},
-		{"safelinks", "Microsoft Defender"}, {"microsoft office protocol discovery", "Microsoft Defender"},
-		{"trendmicro", "Trend Micro"}, {"trend micro", "Trend Micro"}, {"sophos", "Sophos"},
-		{"fireeye", "FireEye"}, {"forcepoint", "Forcepoint"}, {"symantec", "Symantec"},
-		{"ironport", "Cisco Secure Email"}, {"zscaler", "Zscaler"}, {"checkpoint", "Check Point"},
-		{"headlesschrome", "a headless browser"}, {"phantomjs", "a headless browser"},
-		{"python-requests", "a script"}, {"python-urllib", "a script"}, {"curl/", "a script"},
-		{"wget/", "a script"}, {"go-http-client", "a script"}, {"okhttp", "a script"},
-		{"java/", "a script"}, {"libwww", "a script"}, {"httpclient", "a script"},
-		{"bot", "a bot"}, {"crawler", "a bot"}, {"spider", "a bot"}, {"slurp", "a bot"},
-		{"linkexpanding", "a link preview"}, {"preview", "a link preview"},
 	}
 )
 
@@ -98,34 +103,38 @@ const (
 func ClassifyOpen(s Signal) Verdict {
 	ua := strings.TrimSpace(s.UserAgent)
 	low := strings.ToLower(ua)
+	machine := func(reason string) Verdict { return Verdict{Machine: true, Class: ClassMachine, Reason: reason} }
+	person := func(client string) Verdict { return Verdict{Class: ClassHuman, Client: client} }
 	switch {
 	case strings.EqualFold(s.Method, "HEAD"):
-		return Verdict{Machine: true, Reason: reasonHead}
+		return machine(reasonHead)
 	case ua == "":
-		return Verdict{Machine: true, Reason: reasonNoAgent}
+		return machine(reasonNoAgent)
 	case s.IP.IsValid() && appleNet.Contains(s.IP.Unmap()), ua == "Mozilla/5.0":
-		return Verdict{Machine: true, Reason: reasonApple}
+		// Apple Mail Privacy Protection: whether anyone read it can't be
+		// told, so it's neither a person's open nor a scanner's.
+		return Verdict{Machine: true, Class: ClassPrivacy, Reason: reasonApple}
 	case strings.Contains(low, "googleimageproxy"):
 		if known(s) && s.SinceSend < openPrefetchWindow {
-			return Verdict{Machine: true, Reason: reasonGoogle}
+			return machine(reasonGoogle)
 		}
-		return Verdict{Client: "Gmail"}
+		return person("Gmail")
 	case strings.Contains(low, "yahoomailproxy"):
 		if known(s) && s.SinceSend < openPrefetchWindow {
-			return Verdict{Machine: true, Reason: reasonYahoo}
+			return machine(reasonYahoo)
 		}
-		return Verdict{Client: "Yahoo Mail"}
+		return person("Yahoo Mail")
 	}
-	if name := scannerAgent(low); name != "" {
-		return Verdict{Machine: true, Reason: "Security scanner (" + name + ")"}
+	if name := scannerAgent(ua); name != "" {
+		return machine("Security scanner (" + name + ")")
 	}
 	if name := scannerNet(s.IP); name != "" && known(s) && s.SinceSend < scannerWindow {
-		return Verdict{Machine: true, Reason: "Security scanner (" + name + ")"}
+		return machine("Security scanner (" + name + ")")
 	}
 	if known(s) && s.SinceSend < tooFastOpen {
-		return Verdict{Machine: true, Reason: reasonFastOpen}
+		return machine(reasonFastOpen)
 	}
-	return Verdict{Client: ClientName(ua)}
+	return person(ClientName(ua))
 }
 
 // ClassifyClick decides whether a click was a person. Bot clicks still get
@@ -138,38 +147,33 @@ func ClassifyOpen(s Signal) Verdict {
 // every link do).
 func ClassifyClick(s Signal, burst bool) Verdict {
 	ua := strings.TrimSpace(s.UserAgent)
-	low := strings.ToLower(ua)
+	bot := func(reason string) Verdict { return Verdict{Machine: true, Class: ClassBot, Reason: reason} }
 	switch {
 	case strings.EqualFold(s.Method, "HEAD"):
-		return Verdict{Machine: true, Reason: reasonHead}
+		return bot(reasonHead)
 	case ua == "":
-		return Verdict{Machine: true, Reason: reasonNoAgent}
+		return bot(reasonNoAgent)
 	}
-	if name := scannerAgent(low); name != "" {
-		return Verdict{Machine: true, Reason: "Link scanner (" + name + ")"}
+	if name := scannerAgent(ua); name != "" {
+		return bot("Link scanner (" + name + ")")
 	}
 	if name := scannerNet(s.IP); name != "" && known(s) && s.SinceSend < scannerWindow {
-		return Verdict{Machine: true, Reason: "Link scanner (" + name + ")"}
+		return bot("Link scanner (" + name + ")")
 	}
 	if known(s) && s.SinceSend < tooFastClick {
-		return Verdict{Machine: true, Reason: reasonFastClick}
+		return bot(reasonFastClick)
 	}
 	if burst {
-		return Verdict{Machine: true, Reason: reasonBurst}
+		return bot(reasonBurst)
 	}
-	return Verdict{Client: ClientName(ua)}
+	return Verdict{Class: ClassHuman, Client: ClientName(ua)}
 }
 
 func known(s Signal) bool { return s.SinceSend >= 0 }
 
-func scannerAgent(low string) string {
-	for _, a := range scannerAgents {
-		if strings.Contains(low, a.needle) {
-			return a.name
-		}
-	}
-	return ""
-}
+// scannerAgent names the machine a user agent belongs to (whole product
+// tokens, so "CUBOT" phones aren't bots), or "".
+func scannerAgent(ua string) string { return useragent.Bot(ua) }
 
 func scannerNet(ip netip.Addr) string {
 	if !ip.IsValid() {

@@ -1085,7 +1085,7 @@ func (q *Queries) SendingContactForAutomation(ctx context.Context, id uuid.UUID)
 
 const sendingCounters = `-- name: SendingCounters :many
 SELECT provider_id, mailbox_provider, variant, sent, delivered, deferred, hard_bounced, soft_bounced, complained, rejected,
-       opened_human, opened_machine, clicked, unsubscribed
+       opened_human, (opened_machine + opened_privacy)::bigint AS opened_machine, clicked, unsubscribed
 FROM campaign_counters WHERE campaign_id = $1
 `
 
@@ -1106,6 +1106,9 @@ type SendingCountersRow struct {
 	Unsubscribed    int64     `json:"unsubscribed"`
 }
 
+// opened_machine is every open no person made: privacy-protected opens
+// (Apple Mail Privacy Protection) and scanners' (the report shows them
+// apart, internal/counters).
 func (q *Queries) SendingCounters(ctx context.Context, campaignID uuid.UUID) ([]SendingCountersRow, error) {
 	rows, err := q.db.Query(ctx, sendingCounters, campaignID)
 	if err != nil {

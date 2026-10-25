@@ -3253,6 +3253,9 @@ type Querier interface {
 	// the evidence behind "likely causes".
 	SendingComplaintCohorts(ctx context.Context, arg SendingComplaintCohortsParams) ([]SendingComplaintCohortsRow, error)
 	SendingContactForAutomation(ctx context.Context, id uuid.UUID) (SendingContactForAutomationRow, error)
+	// opened_machine is every open no person made: privacy-protected opens
+	// (Apple Mail Privacy Protection) and scanners' (the report shows them
+	// apart, internal/counters).
 	SendingCounters(ctx context.Context, campaignID uuid.UUID) ([]SendingCountersRow, error)
 	SendingDeferralsSince(ctx context.Context, arg SendingDeferralsSinceParams) (int64, error)
 	SendingDeleteSimEvents(ctx context.Context, ids []int64) error
