@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"math"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -40,9 +41,16 @@ func TestScoringGrowthSample(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The services read the sample as of the seed, as the boards show it:
+	// scores decay after it, and Growth counts whole days in New York.
+	var at time.Time
+	if err := pool.QueryRow(ctx, `SELECT max(computed_at) FROM contact_scores`).Scan(&at); err != nil {
+		t.Fatal(err)
+	}
+	seeded := func() time.Time { return at }
 
 	// Scoring: the spread, bands by tier, and rule 3 at +25.
-	sc := &scoring.Service{Pool: pool, Q: q}
+	sc := &scoring.Service{Pool: pool, Q: q, Now: seeded}
 	page, err := sc.Page(ctx, &ws)
 	if err != nil {
 		t.Fatal(err)
@@ -104,7 +112,7 @@ func TestScoringGrowthSample(t *testing.T) {
 	}
 
 	// Growth: the last 30 days.
-	gs := &growth.Service{Pool: pool, Q: q}
+	gs := &growth.Service{Pool: pool, Q: q, Now: seeded}
 	g, err := gs.Page(ctx, &ws, growth.GrowthQuery{})
 	if err != nil {
 		t.Fatal(err)
