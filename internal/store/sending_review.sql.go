@@ -12,6 +12,34 @@ import (
 	"github.com/google/uuid"
 )
 
+const sendingCallWindow = `-- name: SendingCallWindow :one
+
+SELECT coalesce(sum(calls), 0)::bigint AS calls, coalesce(sum(errors), 0)::bigint AS errors
+FROM provider_call_windows
+WHERE provider_id = $1 AND minute >= $2 AND minute <= $3
+`
+
+type SendingCallWindowParams struct {
+	ProviderID uuid.UUID `json:"providerId"`
+	Since      time.Time `json:"since"`
+	Until      time.Time `json:"until"`
+}
+
+type SendingCallWindowRow struct {
+	Calls  int64 `json:"calls"`
+	Errors int64 `json:"errors"`
+}
+
+// GS-4: the provider errors threshold ---------------------------------------
+// A provider's API calls and failed calls within a time window (the API
+// error threshold reads the three minutes before now).
+func (q *Queries) SendingCallWindow(ctx context.Context, arg SendingCallWindowParams) (SendingCallWindowRow, error) {
+	row := q.db.QueryRow(ctx, sendingCallWindow, arg.ProviderID, arg.Since, arg.Until)
+	var i SendingCallWindowRow
+	err := row.Scan(&i.Calls, &i.Errors)
+	return i, err
+}
+
 const sendingInDoubtByProvider = `-- name: SendingInDoubtByProvider :many
 SELECT provider_id, count(*)::bigint AS n, min(coalesce(claimed_at, queued_at))::timestamptz AS since
 FROM messages

@@ -3170,6 +3170,10 @@ type Querier interface {
 	// their program's sender), else the workspace's default sender.
 	SendingAutomationSender(ctx context.Context, arg SendingAutomationSenderParams) (SendingAutomationSenderRow, error)
 	SendingBumpCounters(ctx context.Context, arg SendingBumpCountersParams) error
+	// GS-4: the provider errors threshold ---------------------------------------
+	// A provider's API calls and failed calls within a time window (the API
+	// error threshold reads the three minutes before now).
+	SendingCallWindow(ctx context.Context, arg SendingCallWindowParams) (SendingCallWindowRow, error)
 	SendingCampaign(ctx context.Context, id uuid.UUID) (Campaign, error)
 	// A campaign with its sender and workspace, for building messages.
 	SendingCampaignContext(ctx context.Context, id uuid.UUID) (SendingCampaignContextRow, error)

@@ -123,7 +123,7 @@
   "notify.autoPausedTitle": "“{name}” tự tạm dừng · {scope, select, campaign {toàn bộ chiến dịch} other {{who, select, Other {Khác} other {{who}}}}}",
   "notify.autoPausedBody": "{scope, select, campaign {{metric, select, bounce {Tỷ lệ trả thư} complaint {Tỷ lệ khiếu nại} deferral {Tỷ lệ hoãn nhận} other {Tỷ lệ lỗi API}}} other {{metric, select, bounce {Tỷ lệ trả thư} complaint {Tỷ lệ khiếu nại} deferral {Tỷ lệ hoãn nhận} other {Tỷ lệ lỗi API}} ở {who, select, Other {Khác} other {{who}}}}} đạt {value2, select, yes {{value, number, ::percent .00}} other {{value, number, ::percent .0}}} (giới hạn {limit2, select, yes {{limit, number, ::percent .00}} other {{limit, number, ::percent .0}}}). Đã tạm giữ {held, number} người nhận{scope, select, campaign {.} other {, phần còn lại vẫn đang gửi.}}",
   "notify.decisionTitle": "“{name}” đang chờ bạn quyết định",
-  "notify.decisionBody": "{reason, select, auth {{provider} đã từ chối thông tin xác thực} other {{provider} trả về {errorKind, select, connection {lỗi kết nối} throttling {lỗi giới hạn tốc độ} other {lỗi API}} trong {mins, plural, other {# phút}}}}. Phần của nhà cung cấp này ({remaining, number} người nhận) đang bị tạm giữ; phần còn lại vẫn tiếp tục gửi.",
+  "notify.decisionBody": "{reason, select, auth {{provider} đã từ chối thông tin xác thực} identity {{provider} từ chối người gửi: người gửi chưa được xác minh ở đó} quota {{provider} đã dùng hết hạn mức gửi} throttled {{provider} liên tục giới hạn tốc độ tài khoản trong {mins, plural, other {# phút}}} api_errors {{provider} lỗi quá nhiều lệnh gọi} other {{provider} trả về {errorKind, select, connection {lỗi kết nối} throttling {lỗi giới hạn tốc độ} other {lỗi API}} trong {mins, plural, other {# phút}}}}. Phần của nhà cung cấp này ({remaining, number} người nhận) đang bị tạm giữ; phần còn lại vẫn tiếp tục gửi.",
   "notify.finishedTitle": "“{name}” đã gửi xong",
   "notify.finishedBody": "Đã gửi {sent, number} trong {took, select, under {chưa đến một phút} minutes {{mins, plural, other {# phút}}} other {{hours} giờ {rest} phút}}: {delivered, number} gửi thành công ({rate, number, ::percent .0}), {bounced, number} bị trả lại, {complaints, plural, other {# khiếu nại}}.",
   "notify.heldTitle": "Lần gửi bị tạm giữ",
@@ -141,5 +141,13 @@
   "opt.resendAction": "Gửi lại {count, plural, other {# thư}}",
   "opt.leaveOutTitle": "Bỏ qua{safe, select, no { (khuyến nghị)} other {}}",
   "opt.leaveOutBody": "Thư được đánh dấu “chưa gửi” trong báo cáo. Nếu nhà cung cấp báo một sự kiện cho thư nào, thư đó vẫn được tính là đã gửi.",
-  "opt.leaveOutAction": "Bỏ qua {count, plural, other {# thư}}"
+  "opt.leaveOutAction": "Bỏ qua {count, plural, other {# thư}}",
+
+  "cause.identityLead": "{name} từ chối người gửi{domain, select, none {} other { thuộc {domain}}}.",
+  "cause.identity": "Địa chỉ gửi{sender, select, none {} other { {sender}}} chưa được xác minh với {name}, nên mọi thư đều sẽ bị từ chối. Hãy xác minh trong Nhà cung cấp gửi hoặc với {name}, rồi thử lại; không thư nào bị đánh dấu thất bại.",
+  "cause.quotaLead": "{name} đã dùng hết hạn mức gửi.",
+  "cause.quotaUsedUp": "{known, select, yes {Đã dùng {used} trên {max}.} other {Nhà cung cấp báo hạn mức của tài khoản đã hết.}} Phần còn lại của phần gửi này đang chờ; không thư nào bị đánh dấu thất bại.",
+  "cause.apiErrorsLead": "API của {name} lỗi quá nhiều.",
+  "cause.apiErrors": "{errorPct} số lệnh gọi bị lỗi trong 3 phút qua, vượt giới hạn {limitPct} của lần gửi này.",
+  "cause.throttledLong": "Nhà cung cấp liên tục báo tài khoản gửi quá nhanh trong 3 phút, kể cả khi đã giảm còn một nửa tốc độ; tốc độ hoặc hạn mức ngày của tài khoản có thể thấp hơn ReputeCast giả định."
 }

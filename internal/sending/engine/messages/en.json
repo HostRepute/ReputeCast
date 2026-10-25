@@ -123,7 +123,7 @@
   "notify.autoPausedTitle": "\"{name}\" auto-paused · {scope, select, campaign {whole campaign} other {{who}}}",
   "notify.autoPausedBody": "{scope, select, campaign {{metric, select, bounce {Bounce rate} complaint {Complaint rate} deferral {Deferral rate} other {API error rate}}} other {{who} {metric, select, bounce {bounce rate} complaint {complaint rate} deferral {deferral rate} other {API error rate}}}} reached {value2, select, yes {{value, number, ::percent .00}} other {{value, number, ::percent .0}}} (limit {limit2, select, yes {{limit, number, ::percent .00}} other {{limit, number, ::percent .0}}}). {held, number} held{scope, select, campaign {.} other {, everything else still sending.}}",
   "notify.decisionTitle": "\"{name}\" is waiting for a decision",
-  "notify.decisionBody": { "message": "{reason, select, auth {{provider} rejected the credentials} other {{provider} returned {errorKind, select, connection {connection errors} throttling {throttling errors} other {API errors}} for {mins, plural, one {# minute} other {# minutes}}}}. Its share ({remaining, number} recipients) is held; the rest keeps sending.", "note": "provider: the sending provider's name" },
+  "notify.decisionBody": {"message": "{reason, select, auth {{provider} rejected the credentials} identity {{provider} refused the sender: it isn't verified there} quota {{provider}'s sending quota is used up} throttled {{provider} kept throttling the account for {mins, plural, one {# minute} other {# minutes}}} api_errors {{provider} failed too many calls} other {{provider} returned {errorKind, select, connection {connection errors} throttling {throttling errors} other {API errors}} for {mins, plural, one {# minute} other {# minutes}}}}. Its share ({remaining, number} recipients) is held; the rest keeps sending.", "note": "provider: the sending provider's name"},
   "notify.finishedTitle": "\"{name}\" finished",
   "notify.finishedBody": "{sent, number} sent in {took, select, under {under a minute} minutes {{mins, plural, one {# minute} other {# minutes}}} other {{hours} h {rest} min}}: {delivered, number} delivered ({rate, number, ::percent .0}), {bounced, number} bounced, {complaints, plural, one {# complaint} other {# complaints}}.",
   "notify.heldTitle": { "message": "Send held", "note": "a scheduled send the send-time recheck held" },
@@ -141,5 +141,13 @@
   "opt.resendAction": "Send {count, plural, one {# message} other {# messages}} again",
   "opt.leaveOutTitle": "Leave {count, plural, one {it} other {them}} out{safe, select, no { (recommended)} other {}}",
   "opt.leaveOutBody": "{count, plural, one {It's} other {They're}} marked \"not sent\" in the report. If the provider reports an event for one, it counts as sent after all.",
-  "opt.leaveOutAction": "Leave {count, plural, one {# message} other {# messages}} out"
+  "opt.leaveOutAction": "Leave {count, plural, one {# message} other {# messages}} out",
+
+  "cause.identityLead": {"message": "{name} refused the sender{domain, select, none {} other { of {domain}}}.", "note": "name: the sending provider's name; domain: the sender's domain"},
+  "cause.identity": "The From address{sender, select, none {} other { {sender}}} isn't verified with {name}, so every message would be refused. Verify it in Sending providers or with {name}, then retry; nothing was marked failed.",
+  "cause.quotaLead": "{name}'s sending quota is used up.",
+  "cause.quotaUsedUp": {"message": "{known, select, yes {{used} of {max} used.} other {It answered that the account's quota is exhausted.}} The rest of this share waits; nothing was marked failed.", "note": "known: yes when the provider reported the quota's numbers"},
+  "cause.apiErrorsLead": "{name}'s API failed too often.",
+  "cause.apiErrors": {"message": "{errorPct} of its calls failed in the last 3 minutes, over this send's {limitPct} limit.", "note": "errorPct, limitPct: percentages"},
+  "cause.throttledLong": "It kept answering that the account sends too fast for 3 minutes, even at half the rate; its rate or daily quota may be lower than ReputeCast assumed."
 }

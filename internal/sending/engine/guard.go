@@ -435,11 +435,12 @@ func (e *Engine) checkOutage(ctx context.Context, rs *runState, r *runRoute, now
 	l := e.callLogFor(key)
 	e.mu.Lock()
 	first, failures, lastOK := l.firstFailure, l.failures, l.lastSuccess
+	throttledSince, throttles := l.firstThrottle, l.throttles
 	e.mu.Unlock()
-	if !first.IsZero() && !rs.started.IsZero() && first.Before(rs.started) {
+	if (!first.IsZero() && !rs.started.IsZero() && first.Before(rs.started)) || (!throttledSince.IsZero() && !rs.started.IsZero() && throttledSince.Before(rs.started)) {
 		// Failures of an earlier send of this campaign (started again).
 		e.resetCalls(key)
-		first, failures, lastOK = time.Time{}, 0, time.Time{}
+		first, failures, lastOK, throttledSince, throttles = time.Time{}, 0, time.Time{}, time.Time{}, 0
 	}
 	if r.status == "held" {
 		return e.probeHeld(ctx, rs, r, now)
@@ -456,6 +457,26 @@ func (e *Engine) checkOutage(ctx context.Context, rs *runState, r *runRoute, now
 			return e.outage(ctx, rs, r, "outage", now, true)
 		}
 		return nil
+	}
+	// The provider kept throttling the account for three minutes, or the
+	// share of its failed calls passed the send's limit (review GS-4).
+	if !throttledSince.IsZero() && now.Sub(throttledSince) >= outageAfter && throttles >= outageMinCalls && (lastOK.IsZero() || lastOK.Before(throttledSince)) {
+		return e.outage(ctx, rs, r, "throttled", now, false)
+	}
+	// The API error threshold judges a provider that fails part of its
+	// calls. One that fails every call in a row is an outage, judged below
+	// after three minutes; one that only throttles is judged above.
+	onlyThrottled := !throttledSince.IsZero() && first.IsZero()
+	streak := !first.IsZero() && failures >= outageMinCalls && (lastOK.IsZero() || lastOK.Before(first))
+	if !onlyThrottled && !streak && now.Sub(r.apiCheckedAt) >= settleEvery {
+		r.apiCheckedAt = now
+		trip, _, err := e.apiErrorTrip(ctx, rs, r, now)
+		if err != nil {
+			return err
+		}
+		if trip {
+			return e.outage(ctx, rs, r, "api_errors", now, false)
+		}
 	}
 	down := r.provider.Status == state.Down
 	failing := !first.IsZero() && now.Sub(first) >= outageAfter && failures >= outageMinCalls && (lastOK.IsZero() || lastOK.Before(first))

@@ -27,6 +27,73 @@ func TestGuardedSending(t *testing.T) {
 	t.Run("SendInDoubtAgain", func(t *testing.T) { testResendInDoubt(t, s.Fixture(t, "GS-1 resend")) })
 	t.Run("EventSettlesInDoubt", func(t *testing.T) { testEventSettlesInDoubt(t, s.Fixture(t, "GS-1 event")) })
 	t.Run("StuckJobsRescued", func(t *testing.T) { testRescueStuckJobs(t, s.Fixture(t, "GS-1 rescue")) })
+	// GS-4: the provider-errors threshold; throttling and quota are outages.
+	t.Run("APIErrorThresholdHoldsRoute", func(t *testing.T) {
+		testRouteHeldFor(t, s.Fixture(t, "GS-4 api errors"), sendtest.FaultFlaky, "api_errors")
+	})
+	t.Run("LastingThrottlingHoldsRoute", func(t *testing.T) {
+		testRouteHeldFor(t, s.Fixture(t, "GS-4 throttled"), sendtest.FaultThrottle, "throttled")
+	})
+	t.Run("UsedUpQuotaHoldsRoute", func(t *testing.T) { testRouteHeldFor(t, s.Fixture(t, "GS-4 quota"), sendtest.FaultQuota, "quota") })
+}
+
+// routeOf is the fixture's route on a provider: its status and detail.
+func routeOf(t *testing.T, f *sendtest.Fixture, pid uuid.UUID) (string, string) {
+	t.Helper()
+	var st, d string
+	if err := f.Env.App.Pool.QueryRow(f.Ctx, `SELECT status, status_detail FROM campaign_routes WHERE campaign_id = $1 AND provider_id = $2`, f.Campaign, pid).Scan(&st, &d); err != nil {
+		t.Fatal(err)
+	}
+	return st, d
+}
+
+// testRouteHeldFor: a provider whose answers are about the route (too many
+// failed calls, throttling that lasts, a used-up quota) gets its share held
+// through the outage path with ways to continue, and no message is marked
+// failed or uses up its attempts on answers that aren't about it.
+func testRouteHeldFor(t *testing.T, f *sendtest.Fixture, mode, reason string) {
+	gmailOnly(f, 400)
+	sendtest.Fault.Reset(mode)
+	pid := f.UseFaultProvider(false)
+	f.StartSend(engine.StartOptions{})
+	if _, _, err := f.E.Drive(f.Ctx, f.Campaign, f.Start, 5*time.Minute); err != nil {
+		t.Fatal(err)
+	}
+	st, _ := routeOf(t, f, pid)
+	if st != "held" {
+		f.Dump()
+		t.Fatalf("route %s, want held for %s", st, reason)
+	}
+	snap, err := f.E.Snapshot(f.Ctx, f.WS, f.Campaign)
+	if err != nil {
+		t.Fatal(err)
+	}
+	in := snap.Incident
+	if in == nil || in.Kind != "provider_outage" || in.Detail.Reason != reason || len(in.Detail.Options) == 0 || len(in.Detail.Causes) == 0 {
+		t.Fatalf("incident %+v", in)
+	}
+	keys := map[string]bool{}
+	for _, o := range in.Detail.Options {
+		keys[o.Key] = true
+	}
+	if !keys["retry"] || !keys["cancel_share"] {
+		t.Fatalf("options %v, want retry and cancel_share", keys)
+	}
+	if n := f.Count(`SELECT count(*) FROM messages WHERE campaign_id = $1 AND status IN ('failed', 'rejected')`, f.Campaign); n != 0 {
+		t.Fatalf("%d messages failed on answers about the route", n)
+	}
+	if reason != "api_errors" {
+		// Throttling and quota answers never use up a message's attempts.
+		if n := f.Count(`SELECT coalesce(max(attempts), 0) FROM messages WHERE campaign_id = $1`, f.Campaign); n != 0 {
+			t.Fatalf("messages used %d attempts on %s answers", n, reason)
+		}
+	}
+	if n := f.Count(`SELECT count(*) FROM notifications WHERE kind = 'send_paused' AND data->>'campaignId' = $1`, f.Campaign.String()); n == 0 {
+		t.Fatal("nobody was asked to decide")
+	}
+	if n := f.Count(`SELECT count(*) FROM audit_events WHERE target_id = $1 AND action = 'campaign.share_held'`, f.Campaign.String()); n != 1 {
+		t.Fatalf("%d share_held audit entries", n)
+	}
 }
 
 // gmailOnly makes a fixture without an A/B test sending to n engaged Gmail

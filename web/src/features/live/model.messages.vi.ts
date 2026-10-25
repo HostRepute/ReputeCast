@@ -101,6 +101,10 @@ export default translate(mm, {
   outageReturned: '{name} trả về {errorKind}',
   outageDown: '{name} gián đoạn',
   outageReturnedFor: '{name} trả về {errorKind} trong {mins, plural, other {# phút}}',
+  outageIdentity: '{name} từ chối người gửi: người gửi chưa được xác minh ở đó',
+  outageQuota: '{name} đã dùng hết hạn mức gửi',
+  outageThrottled: '{name} liên tục giới hạn tốc độ tài khoản trong {mins, plural, other {# phút}}',
+  outageApiErrors: '{name} lỗi {rate} số lệnh gọi trong 3 phút',
   outageErrorsFor: '{name} trả về lỗi trong {mins, plural, other {# phút}}',
 
   summaryTrippedWho: 'Vượt ngưỡng lúc {time}, sau khi đã gửi cho {sent} trên {total} người nhận ở {who}.',
@@ -120,6 +124,14 @@ export default translate(mm, {
   outageAuthAlways: '{provider} từ chối thông tin xác thực ở mọi lần gửi, nên phần của {short} trong chiến dịch này đang bị tạm giữ: đã gửi {sent}, còn {remaining}.',
   outageHealth:
     'Kiểm tra tình trạng của ReputeCast phát hiện {provider} gián đoạn lúc {time}, nên phần của {short} trong chiến dịch này đang bị tạm giữ: đã gửi {sent}, còn {remaining}.',
+  outageIdentityHold:
+    '{provider} từ chối người gửi của chiến dịch này, nên phần của {short} đang bị tạm giữ: đã gửi {sent}, còn {remaining}. Không thư nào bị đánh dấu thất bại.',
+  outageQuotaHold:
+    '{provider} báo tài khoản đã dùng hết hạn mức gửi, nên phần của {short} trong chiến dịch này đang bị tạm giữ: đã gửi {sent}, còn {remaining}. Không thư nào bị đánh dấu thất bại.',
+  outageThrottledHold:
+    '{provider} liên tục giới hạn tốc độ tài khoản trong {mins, plural, other {# phút}}, kể cả khi đã gửi chậm lại, nên phần của {short} trong chiến dịch này đang bị tạm giữ: đã gửi {sent}, còn {remaining}.',
+  outageApiErrorsHold:
+    '{rate} số lệnh gọi đến {provider} bị lỗi trong 3 phút, vượt giới hạn {limit}, nên phần của {short} trong chiến dịch này đang bị tạm giữ: đã gửi {sent}, còn {remaining}.',
   outageKeepSending: '{count, plural, other {{names} vẫn gửi với tốc độ {rate}, đã hoàn tất {progress} tổng thể.}}',
   outageNoOther: 'Không có nhà cung cấp nào khác đang gửi, đã hoàn tất {progress} tổng thể.',
   policyPauseAsk: 'Không có gì được chuyển tự động vì chuyển dự phòng của luồng Gửi hàng loạt đang đặt là tạm dừng và hỏi.',

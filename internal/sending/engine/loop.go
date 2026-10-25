@@ -78,6 +78,12 @@ type runRoute struct {
 	carry     float64
 	cooldown  time.Time
 	lastProbe time.Time
+	// slow is the share of its rate a throttled route sends at (0 = full),
+	// calmFrom since when it has been answered normally (routeerrors.go).
+	slow     float64
+	calmFrom time.Time
+	// apiCheckedAt is when the API error threshold was last checked.
+	apiCheckedAt time.Time
 }
 
 // active reports whether the route may send now.
@@ -439,7 +445,7 @@ func (e *Engine) refill(rs *runState, now time.Time) {
 
 // tick sends one second's allowance through one route.
 func (e *Engine) tick(ctx context.Context, rs *runState, r *runRoute, now time.Time) (int, error) {
-	rate := r.rate.PerSecond
+	rate := r.rate.PerSecond * r.slowFactor()
 	if r.rate.WarmingUp && r.rate.Cap > 0 {
 		left := r.rate.Cap - r.rate.SentToday
 		if left <= 0 {
@@ -710,6 +716,10 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 		batch = append(batch, pending{m, pm})
 	}
 	key := routeKey{rs.campaign.ID, r.provider.ID}
+	// hold is an answer about the route (rejected credentials, an unverified
+	// sender, a used-up quota), acted on once the batch is recorded; slowed
+	// means the provider paced the account (routeerrors.go).
+	hold, slowed := "", false
 	for len(batch) > 0 {
 		n := min(len(batch), max(r.batch, 1))
 		chunk := batch[:n]
@@ -729,16 +739,11 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 			e.log().WarnContext(ctx, "record provider call", "provider", r.provider.ID, "err", err)
 		}
 		if callErr != nil {
-			if errors.Is(callErr, providers.ErrUnauthorized) {
+			// The batch goes back to the queue without using an attempt when
+			// the answer is about the route or the provider paces the account.
+			if hold, slowed = routeHold(callErr), throttledErr(callErr); hold != "" || slowed {
 				for _, p := range chunk {
 					out.release = append(out.release, p.row.ID)
-				}
-				for _, p := range batch {
-					out.release = append(out.release, p.row.ID)
-				}
-				batch = nil
-				if err := e.holdRoute(ctx, rs, r, "auth", now); err != nil {
-					return err
 				}
 				break
 			}
@@ -756,16 +761,14 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 			}
 			// Back off the whole route briefly; the rest of this second's
 			// batch goes back to the queue.
-			for _, p := range batch {
-				out.release = append(out.release, p.row.ID)
-			}
-			batch = nil
 			r.cooldown = now.Add(backoffMin)
 			break
 		}
+		r.answered(now)
 		for i, res := range res {
 			p := chunk[i]
-			if res.Err == nil {
+			switch {
+			case res.Err == nil:
 				out.sentIDs = append(out.sentIDs, p.row.ID)
 				out.sentPMID = append(out.sentPMID, res.ProviderMessageID)
 				out.cell(p.row.MailboxProvider, p.row.Variant).sent++
@@ -773,19 +776,28 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 				if r.sim != nil && !e.QuietDemo {
 					out.sims = append(out.sims, simRows(rs.campaign.WorkspaceID, &rs.campaign.ID, p.row.ID, r.provider.ID, now, r.sim.Plan(p.msg))...)
 				}
-				continue
-			}
-			if sendErrUnknown(res.Err) && idempotency(r.transport) == 0 {
+			case sendErrIdentity(res.Err):
+				out.release, hold = append(out.release, p.row.ID), "identity"
+			case sendErrQuota(res.Err):
+				out.release, hold = append(out.release, p.row.ID), "quota"
+			case res.Err.Throttled:
+				out.release, slowed = append(out.release, p.row.ID), true
+			case sendErrUnknown(res.Err) && idempotency(r.transport) == 0:
 				out.doubt(p.row.ID)
-				continue
-			}
-			if res.Err.Temporary {
+			case res.Err.Temporary:
 				out.retry(p.row.ID, int(p.row.Attempts), now, res.Err.Error())
-				continue
+			default:
+				out.drop(p.row.ID, "rejected", res.Err.Error())
+				out.cell(p.row.MailboxProvider, p.row.Variant).rejected++
 			}
-			out.drop(p.row.ID, "rejected", res.Err.Error())
-			out.cell(p.row.MailboxProvider, p.row.Variant).rejected++
 		}
+		if hold != "" || slowed {
+			break
+		}
+	}
+	// What this second didn't hand over goes back to the queue.
+	for _, p := range batch {
+		out.release = append(out.release, p.row.ID)
 	}
 	// The provider has the batch now: the outcome is recorded even when the
 	// job is told to stop. Messages it couldn't record stay claimed and end
@@ -798,6 +810,16 @@ func (e *Engine) deliver(ctx context.Context, rs *runState, r *runRoute, claimed
 	}
 	if len(out.sims) > 0 {
 		e.insert(ctx, SimArgs{}, nil)
+	}
+	switch {
+	case hold == "quota":
+		// An outage of the route: held, or moved when the Broadcast policy
+		// allows it and a vetted target can take the rest.
+		return e.outage(ctx, rs, r, hold, now, false)
+	case hold != "":
+		return e.holdRoute(ctx, rs, r, hold, now)
+	case slowed:
+		r.throttled(now)
 	}
 	return nil
 }

@@ -64,3 +64,12 @@ SET status = @status, sent_at = coalesce(sent_at, @at::timestamptz), claimed_at 
     delivered_at = CASE WHEN @status::text = 'delivered' THEN coalesce(delivered_at, @at::timestamptz) ELSE delivered_at END
 WHERE id = @id AND status = 'in_doubt'
 RETURNING campaign_id, provider_id, mailbox_provider, variant;
+
+-- GS-4: the provider errors threshold ---------------------------------------
+
+-- name: SendingCallWindow :one
+-- A provider's API calls and failed calls within a time window (the API
+-- error threshold reads the three minutes before now).
+SELECT coalesce(sum(calls), 0)::bigint AS calls, coalesce(sum(errors), 0)::bigint AS errors
+FROM provider_call_windows
+WHERE provider_id = @provider_id AND minute >= @since AND minute <= @until;

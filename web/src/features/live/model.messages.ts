@@ -118,6 +118,12 @@ export const mm = defineMessages('live.model', {
   /** {errorKind} comes from the provider's adapter ("connection errors"). */
   outageReturnedFor: '{name} returned {errorKind} for {mins, plural, one {# minute} other {# minutes}}',
   outageErrorsFor: '{name} returned errors for {mins, plural, one {# minute} other {# minutes}}',
+  // Route-level answers that hold a share (review GS-4, PR-7).
+  outageIdentity: "{name} refused the sender: it isn't verified there",
+  outageQuota: "{name}'s sending quota is used up",
+  outageThrottled: '{name} kept throttling the account for {mins, plural, one {# minute} other {# minutes}}',
+  /** {rate} is a percentage ("12.5%"). */
+  outageApiErrors: '{name} failed {rate} of its calls over 3 minutes',
 
   summaryTrippedWho: 'Tripped at {time}, after {sent} of {total} {who} recipients were sent.',
   summaryTripped: 'Tripped at {time}, after {sent} of {total} recipients were sent.',
@@ -136,6 +142,15 @@ export const mm = defineMessages('live.model', {
     'Since {from}, {provider} refused the credentials on every send, so the {short} share of this campaign is on hold: {sent} sent, {remaining} remaining.',
   outageAuthAlways: '{provider} refused the credentials on every send, so the {short} share of this campaign is on hold: {sent} sent, {remaining} remaining.',
   outageHealth: "ReputeCast's health checks found {provider} down at {time}, so the {short} share of this campaign is on hold: {sent} sent, {remaining} remaining.",
+  outageIdentityHold:
+    '{provider} refused the sender of this campaign, so its {short} share is on hold: {sent} sent, {remaining} remaining. Nothing was marked failed.',
+  outageQuotaHold:
+    "{provider} answered that the account's sending quota is used up, so the {short} share of this campaign is on hold: {sent} sent, {remaining} remaining. Nothing was marked failed.",
+  outageThrottledHold:
+    '{provider} kept throttling the account for {mins, plural, one {# minute} other {# minutes}}, even at a lower rate, so the {short} share of this campaign is on hold: {sent} sent, {remaining} remaining.',
+  /** {rate} and {limit} are percentages. */
+  outageApiErrorsHold:
+    '{rate} of the calls to {provider} failed over 3 minutes, over the {limit} limit, so the {short} share of this campaign is on hold: {sent} sent, {remaining} remaining.',
   outageKeepSending:
     '{count, plural, one {{names} keeps sending at {rate}, {progress} complete overall.} other {{names} keep sending at {rate}, {progress} complete overall.}}',
   outageNoOther: 'No other provider is sending, {progress} complete overall.',

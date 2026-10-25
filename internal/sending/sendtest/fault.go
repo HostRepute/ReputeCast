@@ -32,6 +32,14 @@ const (
 	FaultHold = "hold"
 	// FaultRefuse refuses the call with a 503 the provider answered.
 	FaultRefuse = "refuse"
+	// FaultFlaky refuses every other call with a 503 and takes the rest.
+	FaultFlaky = "flaky"
+	// FaultThrottle answers 429: the account sends too fast.
+	FaultThrottle = "throttle"
+	// FaultQuota answers that the account's daily quota is used up.
+	FaultQuota = "quota"
+	// FaultIdentity refuses every message: the sender isn't verified.
+	FaultIdentity = "identity"
 )
 
 // Fault is the fault providers' shared state.
@@ -159,6 +167,24 @@ func (p *faultESP) Send(ctx context.Context, msgs []providers.Message) ([]provid
 		return p.take(msgs), nil
 	case FaultRefuse:
 		return nil, &providers.CallError{Op: "POST /send", Status: 503, Code: "ServiceUnavailable", Message: "Service Unavailable", Temporary: true}
+	case FaultFlaky:
+		Fault.mu.Lock()
+		odd := Fault.calls%2 == 1
+		Fault.mu.Unlock()
+		if odd {
+			return nil, &providers.CallError{Op: "POST /send", Status: 503, Code: "ServiceUnavailable", Message: "Service Unavailable", Temporary: true}
+		}
+	case FaultThrottle:
+		return nil, &providers.CallError{Op: "POST /send", Status: 429, Code: "Throttling", Message: "Maximum sending rate exceeded.", Temporary: true, Throttled: true}
+	case FaultQuota:
+		return nil, &providers.CallError{Op: "POST /send", Status: 429, Code: "Throttling", Message: "Daily message quota exceeded.", Temporary: true, Throttled: true}
+	case FaultIdentity:
+		out := make([]providers.SendResult, len(msgs))
+		for i, m := range msgs {
+			out[i] = providers.SendResult{MessageID: m.ID, Err: &providers.SendError{Code: "MessageRejected",
+				Message: "Email address is not verified. The following identities failed the check: " + m.From.Address}}
+		}
+		return out, nil
 	}
 	return p.take(msgs), nil
 }

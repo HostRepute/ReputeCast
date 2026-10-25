@@ -416,7 +416,11 @@ type callLog struct {
 	lastFailure  time.Time
 	lastSuccess  time.Time
 	failures     int
-	lines        []IncidentLogLine
+	// Throttling is tracked apart: the provider pacing the account is an
+	// outage only when it lasts (routeerrors.go).
+	firstThrottle time.Time
+	throttles     int
+	lines         []IncidentLogLine
 }
 
 type IncidentLogLine struct {
@@ -445,19 +449,23 @@ func (e *Engine) recordCall(k routeKey, at time.Time, err error) {
 	defer e.mu.Unlock()
 	if err == nil {
 		l.lastSuccess, l.firstFailure, l.lastFailure, l.failures = at, time.Time{}, time.Time{}, 0
+		l.firstThrottle, l.throttles = time.Time{}, 0
 		return
 	}
-	// Throttling is the provider pacing us, not an outage: the batch backs
-	// off and the call doesn't count toward holding the route.
-	var ce *providers.CallError
-	if asCallError(err, &ce) && ce.Throttled {
-		return
+	// Throttling is the provider pacing us: the batch backs off and the
+	// route slows down; it holds the route only when it lasts three minutes.
+	if throttledErr(err) {
+		if l.firstThrottle.IsZero() {
+			l.firstThrottle = at
+		}
+		l.throttles++
+	} else {
+		if l.firstFailure.IsZero() {
+			l.firstFailure = at
+		}
+		l.lastFailure = at
+		l.failures++
 	}
-	if l.firstFailure.IsZero() {
-		l.firstFailure = at
-	}
-	l.lastFailure = at
-	l.failures++
 	// The log summarises: a line when the answer changes, and once more a
 	// minute later when the provider keeps answering the same way.
 	text := callText(err)

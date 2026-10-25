@@ -476,6 +476,26 @@ func (e *Engine) analyzeOutage(ctx context.Context, rs *runState, r *runRoute, r
 	case reason == "auth":
 		d.ErrorKind = "rejected credentials"
 		d.addCause(keep("cause.authLead", p), keep("cause.auth", nil))
+	case reason == "identity":
+		// The provider refuses the sender or its domain: nothing sends
+		// until it is verified there (review PR-7).
+		d.ErrorKind = "unverified sender"
+		domain := domainOf(rs.content.FromEmail)
+		d.addCause(keep("cause.identityLead", i18n.Args{"name": name, "domain": firstNonEmpty(domain, "none")}),
+			keep("cause.identity", i18n.Args{"name": name, "sender": firstNonEmpty(rs.content.FromEmail, "none")}))
+	case reason == "quota":
+		d.ErrorKind = "quota"
+		args := i18n.Args{"name": name, "known": "no", "used": int64(0), "max": int64(0)}
+		if h := state.HealthOf(r.provider); h.Quota != nil && h.Quota.Max > 0 {
+			args["known"], args["used"], args["max"] = "yes", h.Quota.Used, h.Quota.Max
+		}
+		d.addCause(keep("cause.quotaLead", p), keep("cause.quotaUsedUp", args))
+	case reason == "api_errors":
+		d.ErrorKind = "API errors"
+		d.addCause(keep("cause.apiErrorsLead", p), keep("cause.apiErrors", i18n.Args{"name": name, "errorPct": d.ErrorRate, "limitPct": rs.thresholds.APIErrors}))
+	case reason == "throttled":
+		d.ErrorKind = "throttling errors"
+		d.addCause(keep("cause.throttlingLead", p), keep("cause.throttledLong", p))
 	case strings.Contains(joined, "econnrefused") || strings.Contains(joined, "connection refused") || strings.Contains(joined, "timeout") || strings.Contains(joined, "dial "):
 		d.ErrorKind = "connection errors"
 		if isSelfHosted(r.provider) {
@@ -504,7 +524,7 @@ func (e *Engine) analyzeOutage(ctx context.Context, rs *runState, r *runRoute, r
 		// Today's count already has what this send handed to the provider.
 		d.addCause(i18n.Text{}, keep("cause.warmupCap", i18n.Args{"sentToday": r.rate.SentToday, "cap": r.rate.Cap, "perSecondRate": r.rate.PerSecond}))
 		d.setWarmupNote(keep("note.warmupShift", i18n.Args{"who": short}))
-	} else if h := state.HealthOf(r.provider); h.Quota != nil && h.Quota.Max > 0 {
+	} else if h := state.HealthOf(r.provider); h.Quota != nil && h.Quota.Max > 0 && reason != "quota" {
 		d.addCause(i18n.Text{}, keep("cause.quota", i18n.Args{"used": h.Quota.Used, "max": h.Quota.Max}))
 	}
 	set, _ := routing.Load(ctx, e.Q, rs.campaign.WorkspaceID)
@@ -571,15 +591,23 @@ func outageArgs(d IncidentDetail, name string) i18n.Args {
 		kind = "api"
 	}
 	reason := "errors"
-	if d.Reason == "auth" {
-		reason = "auth"
+	switch d.Reason {
+	case "auth", "identity", "quota", "throttled", "api_errors":
+		reason = d.Reason
 	}
-	return i18n.Args{"provider": name, "reason": reason, "errorKind": kind, "mins": mins}
+	return i18n.Args{"provider": name, "reason": reason, "errorKind": kind, "mins": mins, "errorPct": d.ErrorRate}
 }
 
 func outageHeadline(d IncidentDetail, name string) string {
-	if d.Reason == "auth" {
+	switch d.Reason {
+	case "auth":
 		return name + " rejected the credentials"
+	case "identity":
+		return name + " refused the sender: it isn't verified there"
+	case "quota":
+		return name + "'s sending quota is used up"
+	case "api_errors":
+		return fmt.Sprintf("%s failed %s of its calls over 3 minutes", name, fmtRate(d.ErrorRate))
 	}
 	mins := 3
 	if d.From != nil && d.To != nil {

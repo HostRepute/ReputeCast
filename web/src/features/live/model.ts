@@ -404,11 +404,21 @@ export function incidentTitle(i: Incident): string {
   return who ? tt(mm.incidentTitle, v) : tt(mm.incidentTitleAll, v)
 }
 
+/** How long an outage's failures lasted, in whole minutes (at least 1, 3 without a window). */
+function outageMinutes(d: Incident['detail']): number {
+  if (!d.from || !d.to) return 3
+  return Math.max(1, Math.round((new Date(d.to).getTime() - new Date(d.from).getTime()) / 60000))
+}
+
 /** "Postal returned connection errors for 3 minutes". */
 export function outageTitle(i: Incident): string {
   const d = i.detail
   const name = i.provider || i.providerShort
   if (d.reason === 'auth') return tt(mm.outageAuth, { name })
+  if (d.reason === 'identity') return tt(mm.outageIdentity, { name })
+  if (d.reason === 'quota') return tt(mm.outageQuota, { name })
+  if (d.reason === 'api_errors') return tt(mm.outageApiErrors, { name, rate: rate(d.errorRate ?? i.value ?? 0) })
+  if (d.reason === 'throttled') return tt(mm.outageThrottled, { name, mins: outageMinutes(d) })
   if (!d.from || !d.to) return d.errorKind ? tt(mm.outageReturned, { name, errorKind: d.errorKind }) : tt(mm.outageDown, { name })
   const mins = Math.max(1, Math.round((new Date(d.to).getTime() - new Date(d.from).getTime()) / 60000))
   return d.errorKind ? tt(mm.outageReturnedFor, { name, errorKind: d.errorKind, mins }) : tt(mm.outageErrorsFor, { name, mins })
@@ -456,6 +466,14 @@ export function outageSummary(i: Incident, s: Snapshot): string {
   const parts: string[] = []
   if (d.reason === 'auth') {
     parts.push(d.from ? tt(mm.outageAuthSince, { ...hold, from: clockSeconds(d.from) }) : tt(mm.outageAuthAlways, hold))
+  } else if (d.reason === 'identity') {
+    parts.push(tt(mm.outageIdentityHold, hold))
+  } else if (d.reason === 'quota') {
+    parts.push(tt(mm.outageQuotaHold, hold))
+  } else if (d.reason === 'throttled') {
+    parts.push(tt(mm.outageThrottledHold, { ...hold, mins: outageMinutes(d) }))
+  } else if (d.reason === 'api_errors') {
+    parts.push(tt(mm.outageApiErrorsHold, { ...hold, rate: rate(d.errorRate ?? i.value ?? 0), limit: trimPct(i.limit ?? 5) }))
   } else if (d.from && d.to) {
     parts.push(
       tt(mm.outageWindow, {
