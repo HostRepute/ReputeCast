@@ -17,6 +17,8 @@ import { ComposerCtx, type ABTest, type Campaign, type Checks, type ComposerCtxD
 import { Dialogs } from './Dialogs'
 import { trackChanges, type ChangeTracker } from './editor/changes'
 import { createComposerEditor, type ComposerEditor, type DeviceId, type EmailDevice } from './editor/grapes'
+import { installCanvasKeys } from './editor/keys'
+import { trackMeta, type Meta, type MetaUndo } from './editor/metaUndo'
 import { atPath } from './editor/labels'
 import { canvasHead, isEmptyBody, joinMjml, splitMjml, withHeadMeta } from './editor/mjmlDoc'
 import { Footer, VersionLink } from './Footer'
@@ -120,6 +122,13 @@ export function Composer({
   const abRef = useRef(abTest)
   const [empty, setEmpty] = useState(() => isEmptyBody(campaign.mjml))
   const bodyRef = useRef(initial.body)
+  /** Undo and redo of the subject, preheader and A/B test, on the editor's undo stack (CO-8). */
+  const meta = useRef<MetaUndo | null>(null)
+  const currentMeta = useCallback((): Meta => ({ subject: subjectRef.current, preheader: preheaderRef.current, abTest: abRef.current }), [])
+  const canEditRef = useRef(canEdit)
+  useLayoutEffect(() => {
+    canEditRef.current = canEdit
+  }, [canEdit])
 
   const [ge, setGe] = useState<ComposerEditor | null>(null)
   const [selected, setSelected] = useState<Component | null>(null)
@@ -187,11 +196,39 @@ export function Composer({
     setStatus((s) => (s.kind === 'saving' || s.kind === 'conflict' || s.kind === 'offline' ? s : { kind: 'dirty', at: s.kind === 'saved' ? s.at : undefined, version: version.current }))
   }, [])
 
+  /** What an undo or a redo brings back to the subject, preheader and A/B test. */
+  const applyMeta = useCallback(
+    (next: Meta) => {
+      if (next.subject !== subjectRef.current) {
+        subjectRef.current = next.subject
+        setSubjectState(next.subject)
+        tracker.current?.note(tt(m.noteSubject))
+      }
+      if (next.preheader !== preheaderRef.current) {
+        preheaderRef.current = next.preheader
+        setPreheaderState(next.preheader)
+        tracker.current?.note(tt(m.notePreheader))
+      }
+      if (JSON.stringify(next.abTest) !== JSON.stringify(abRef.current)) {
+        abRef.current = next.abTest
+        setABTestState(next.abTest)
+        tracker.current?.note(next.abTest ? tt(m.noteAb, { kind: next.abTest.kind }) : tt(m.noteAbRemoved))
+      }
+      markDirty()
+    },
+    [markDirty],
+  )
+  const applyMetaRef = useRef(applyMeta)
+  useLayoutEffect(() => {
+    applyMetaRef.current = applyMeta
+  }, [applyMeta])
+
   const editorWanted = !empty
   useEffect(() => {
     if (!editorWanted || !containerRef.current) return
     let cancelled = false
     let created: ComposerEditor | null = null
+    let stopKeys: (() => void) | undefined
     // Each editor gets its own mount: a cancelled one (React re-running the
     // effect) is destroyed later and must not take the next one with it.
     const mount = document.createElement('div')
@@ -209,6 +246,8 @@ export function Composer({
         // Dev builds expose the live editor to the visual QA scripts.
         if (import.meta.env.DEV) (window as unknown as { __rcComposer?: typeof ed }).__rcComposer = ed
         tracker.current = trackChanges(ed)
+        meta.current = trackMeta(ed, currentMeta(), (next) => applyMetaRef.current(next))
+        stopKeys = installCanvasKeys(ed, () => canEditRef.current)
         ed.on('update', markDirty)
         // Typing in a text only reports input; it's an edit all the same, saved and
         // journaled as it is typed (getLiveBody), without ending the editing.
@@ -244,6 +283,9 @@ export function Composer({
       cancelled = true
       tracker.current?.dispose()
       tracker.current = null
+      meta.current?.dispose()
+      meta.current = null
+      stopKeys?.()
       if (geRef.current === created) geRef.current = null
       created?.editor.destroy()
       if (created) mount.remove()
@@ -435,6 +477,9 @@ export function Composer({
     setABTestState(data.abTest ?? null)
     abRef.current = data.abTest ?? null
     loadContent(data.mjml, { source: 'reload' })
+    // What the server has replaces the email: undo starts over from it.
+    meta.current?.reset(currentMeta())
+    geRef.current?.editor.UndoManager.clear()
     version.current = data.version
     tracker.current?.take()
     pendingSource.current = null
@@ -443,36 +488,40 @@ export function Composer({
     window.setTimeout(() => {
       // The canvas reload fires change events: they aren't edits.
       savedRevision.current = revision.current
+      geRef.current?.editor.UndoManager.clear()
       setStatus({ kind: 'saved', at: data.autosavedAt ?? data.updatedAt, version: data.version })
     }, 50)
-  }, [slug, campaign.id, qc, loadContent, language])
+  }, [slug, campaign.id, qc, loadContent, language, currentMeta])
 
   const setSubject = useCallback(
     (v: string) => {
       subjectRef.current = v
       setSubjectState(v)
       tracker.current?.note(variant === 'A' ? tt(m.noteSubject) : tt(m.noteSubjectVariant, { variant }))
+      meta.current?.change(currentMeta())
       markDirty()
     },
-    [markDirty, variant],
+    [markDirty, variant, currentMeta],
   )
   const setPreheader = useCallback(
     (v: string) => {
       preheaderRef.current = v
       setPreheaderState(v)
       tracker.current?.note(tt(m.notePreheader))
+      meta.current?.change(currentMeta())
       markDirty()
     },
-    [markDirty],
+    [markDirty, currentMeta],
   )
   const setABTest = useCallback(
     (t: ABTest | null) => {
       setABTestState(t)
       abRef.current = t
       tracker.current?.note(t ? tt(m.noteAb, { kind: t.kind }) : tt(m.noteAbRemoved))
+      meta.current?.change(currentMeta())
       markDirty()
     },
-    [markDirty],
+    [markDirty, currentMeta],
   )
   // The journal's writer: it reads the editor as it is (the words being typed
   // included) and writes at once when the tab is hidden or closed.
@@ -520,6 +569,8 @@ export function Composer({
     setPreheaderState(e.preheader)
     abRef.current = e.abTest
     setABTestState(e.abTest)
+    // Taken back in one undo with the canvas it brings (same moment, same step).
+    meta.current?.change(currentMeta(), { step: true })
     loadContent(e.mjml, { source: 'recovered', label })
     await whenEditorReady()
     // On top of whatever is current now: the person chose these edits.
@@ -532,7 +583,7 @@ export function Composer({
       toast({ kind: 'error', title: tt(mn.recoveredFailed), detail: tt(mn.recoveredFailedDetail) })
     }
     return ok
-  }, [recoveredEntry, setRecoveredEntry, loadContent, whenEditorReady, save, jKey])
+  }, [recoveredEntry, setRecoveredEntry, loadContent, whenEditorReady, save, jKey, currentMeta])
   const discardRecovered = useCallback(() => {
     forgetRecovered(jKey)
     setRecoveredEntry(null)

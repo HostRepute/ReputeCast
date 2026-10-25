@@ -8,7 +8,7 @@ import { DigestPreviewWith, useDigestMode } from '@/features/digests/composer/Di
 import { DigestCanvasCards } from '@/features/digests/composer/IssueMode'
 import { dc } from '@/features/digests/composer/messages'
 import { AltTextNote, WHOLE_ZOOM, WholeIssue } from '@/features/digests/composer/WholeIssue'
-import { t as tt, useT } from '@/i18n'
+import { t as tt, useT, type MessageDescriptor } from '@/i18n'
 import { common } from '@/i18n/common'
 import { RewriteActions } from '@/features/ai/composer/rewrite'
 import { mc } from './canvas.messages'
@@ -17,6 +17,7 @@ import { useComposer, type Issue } from './context'
 import { DEVICES, EMAIL_DEVICES, type DeviceId } from './editor/grapes'
 import { componentLabel, mjChildren, tagOf } from './editor/labels'
 import { headCss } from './editor/mjmlDoc'
+import { applyTextStyle, currentTextStyle, TEXT_STYLES, type TextEditing, type TextStyle } from './editor/textStyle'
 import { componentAt, insertFooter, reveal } from './fixes'
 import { EmptyGallery } from './Gallery'
 import { ToolIcon } from './icons'
@@ -407,7 +408,9 @@ function MissingFooter({ width }: { width: number }) {
   )
 }
 
-type Rte = { exec(cmd: string, value?: string): void; insertHTML(html: string): void; selection(): Selection | null; doc: Document; el: HTMLElement }
+type Rte = TextEditing & { insertHTML(html: string): void }
+
+const styleLabels: Record<TextStyle, MessageDescriptor> = { p: mc.styleParagraph, heading: mc.styleHeading, subheading: mc.styleSubheading, small: mc.styleSmall }
 
 /**
  * GrapesJS ends text editing on any mousedown in the page outside the text.
@@ -470,13 +473,14 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
       return false
     }
   }
-  // As in MouseShield: stop GrapesJS ending the edit, and keep the focus in the text.
+  // As in MouseShield: stop GrapesJS ending the edit, and keep the focus in the text
+  // (a select still opens: it gives the focus back once a style is picked).
   const keep = (e: MouseEvent) => {
-    e.preventDefault()
+    if (!(e.target instanceof HTMLSelectElement)) e.preventDefault()
     e.stopPropagation()
   }
   // The text lives in the canvas iframe: give it focus back before formatting.
-  const exec = (cmd: string) => {
+  const inText = (fn: () => void) => {
     const s = rte.rte.selection()
     const r = s && s.rangeCount ? s.getRangeAt(0).cloneRange() : null
     rte.rte.el.focus()
@@ -484,9 +488,10 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
       s.removeAllRanges()
       s.addRange(r)
     }
-    rte.rte.exec(cmd)
+    fn()
     setSel((n) => n + 1)
   }
+  const exec = (cmd: string) => inText(() => rte.rte.exec(cmd))
   const saveRange = () => {
     const s = rte.rte.selection()
     range.current = s && s.rangeCount ? s.getRangeAt(0).cloneRange() : null
@@ -524,6 +529,15 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
   const tokens = c.context.tokens
   return (
     <div className="rte" role="toolbar" aria-label={tr(mc.textFormatting)} style={{ top: Math.max(0, box.top - 40), left: box.left }} onMouseDown={keep}>
+      {/* Headings and small print, as Write mode's formatting bar offers them (CO-8). */}
+      <select aria-label={tr(mc.textStyle)} value={currentTextStyle(rte.rte)} onChange={(e) => inText(() => applyTextStyle(rte.rte, e.target.value as TextStyle))}>
+        {TEXT_STYLES.map((s) => (
+          <option key={s} value={s}>
+            {tr(styleLabels[s])}
+          </option>
+        ))}
+      </select>
+      <span className="rsep" aria-hidden="true" />
       <button type="button" aria-label={tr(mc.bold)} aria-pressed={state('bold')} onClick={() => exec('bold')}>
         <b>B</b>
       </button>
@@ -573,6 +587,20 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
           </form>
         </MouseShield>
       </Popover>
+      <span className="rsep" aria-hidden="true" />
+      <button type="button" aria-label={tr(mc.bulletedList)} title={tr(mc.bulletedList)} aria-pressed={state('insertUnorderedList')} onClick={() => exec('insertUnorderedList')}>
+        <svg viewBox="0 0 16 16" strokeWidth={1.7} strokeLinecap="round" aria-hidden="true">
+          <path d="M6 4h8M6 8h8M6 12h8" />
+          <circle cx="2.5" cy="4" r=".6" />
+          <circle cx="2.5" cy="8" r=".6" />
+          <circle cx="2.5" cy="12" r=".6" />
+        </svg>
+      </button>
+      <button type="button" aria-label={tr(mc.numberedList)} title={tr(mc.numberedList)} aria-pressed={state('insertOrderedList')} onClick={() => exec('insertOrderedList')}>
+        <svg viewBox="0 0 16 16" strokeWidth={1.6} strokeLinecap="round" aria-hidden="true">
+          <path d="M6.5 4h7.5M6.5 8h7.5M6.5 12h7.5M2 3l1-.5v3M2 7.5h2L2 10h2M2 12h1.6l-.9 1 .9 1H2" />
+        </svg>
+      </button>
       <span className="rsep" aria-hidden="true" />
       <Popover
         label={tr(mc.insertToken)}

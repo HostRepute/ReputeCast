@@ -572,10 +572,12 @@ const SHORTCUTS: [string | MessageDescriptor, MessageDescriptor][] = [
   ['⇧⌘Z', md.scRedo],
   ['⌘C · ⌘V', md.scCopy],
   ['Delete', md.scDelete],
+  ['Enter', md.scEnter],
+  ['Esc', md.scEscape],
   [md.keyMove, md.scMove],
+  [md.keyLayers, md.scLayers],
   [md.keyDoubleClick, md.scDoubleClick],
   ['⌘B · ⌘I', md.scBold],
-  ['Esc', md.scEscape],
   ['⌘/', md.scHelp],
 ]
 
