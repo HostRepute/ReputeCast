@@ -13,7 +13,7 @@
    "y": 0
   },
   "AccountSecurityPhone.dc.html": {
-   "h": 3466,
+   "h": 3472,
    "is_interactive": true,
    "page": "account",
    "title": "Account & security · phone",
@@ -51,7 +51,7 @@
    "y": 0
   },
   "ApprovalInboxPhone.dc.html": {
-   "h": 2124,
+   "h": 2140,
    "is_interactive": true,
    "page": "approvals",
    "title": "Send approvals · inbox · phone",
@@ -80,7 +80,7 @@
    "y": 0
   },
   "ApprovalReviewPhone.dc.html": {
-   "h": 3696,
+   "h": 3722,
    "is_interactive": true,
    "page": "approvals",
    "title": "Send approvals · review (Marcus Chen) · phone",
@@ -195,7 +195,7 @@
    "y": 0
   },
   "AutomationsListPhone.dc.html": {
-   "h": 1452,
+   "h": 1468,
    "is_interactive": true,
    "page": "automations",
    "title": "Automations · list · phone",
@@ -222,6 +222,25 @@
    "x": 4560,
    "y": 0
   },
+  "BrandKit.dc.html": {
+   "expand": "fill",
+   "h": 2466,
+   "is_interactive": true,
+   "page": "settings",
+   "title": "Settings · brand kit",
+   "w": 1440,
+   "x": 6240,
+   "y": 0
+  },
+  "BrandKitPhone.dc.html": {
+   "h": 4803,
+   "is_interactive": true,
+   "page": "settings",
+   "title": "Settings · brand kit · phone",
+   "w": 390,
+   "x": 1020,
+   "y": 5627
+  },
   "Campaigns.dc.html": {
    "expand": "fill",
    "h": 1278,
@@ -233,13 +252,13 @@
    "y": 0
   },
   "CampaignsPhone.dc.html": {
-   "h": 1742,
+   "h": 1766,
    "is_interactive": true,
    "page": "report",
    "title": "Campaigns list · phone",
    "w": 390,
    "x": 0,
-   "y": 6421
+   "y": 11098
   },
   "CampaignsTablet.dc.html": {
    "h": 1403,
@@ -248,11 +267,11 @@
    "title": "Campaigns list · tablet",
    "w": 834,
    "x": 0,
-   "y": 2442
+   "y": 4797
   },
   "Composer.dc.html": {
    "expand": "fill",
-   "h": 1325,
+   "h": 1120,
    "is_interactive": true,
    "page": "composer",
    "title": "Composer · editing 2 columns",
@@ -262,7 +281,7 @@
   },
   "ComposerCode.dc.html": {
    "expand": "fill",
-   "h": 972,
+   "h": 1010,
    "is_interactive": true,
    "page": "composer",
    "title": "Composer · MJML code view",
@@ -272,7 +291,7 @@
   },
   "ComposerEmpty.dc.html": {
    "expand": "fill",
-   "h": 1123,
+   "h": 1272,
    "is_interactive": true,
    "page": "composer",
    "title": "Composer · empty canvas",
@@ -282,7 +301,7 @@
   },
   "ComposerMobile.dc.html": {
    "expand": "fill",
-   "h": 1507,
+   "h": 1414,
    "is_interactive": true,
    "page": "composer",
    "title": "Composer · mobile preview",
@@ -291,27 +310,27 @@
    "y": 0
   },
   "ComposerPhone.dc.html": {
-   "h": 3642,
+   "h": 1515,
    "is_interactive": true,
    "page": "composer",
    "title": "Composer · editing 2 columns · phone",
    "w": 390,
    "x": 0,
-   "y": 5282
+   "y": 6824
   },
   "ComposerPreview.dc.html": {
    "expand": "fill",
-   "h": 1064,
+   "h": 1362,
    "is_interactive": true,
    "page": "composer",
    "title": "Composer · client previews & A/B",
    "w": 1440,
    "x": 0,
-   "y": 1120
+   "y": 1534
   },
   "ComposerRequestApproval.dc.html": {
    "expand": "fill",
-   "h": 1378,
+   "h": 1335,
    "is_interactive": true,
    "page": "approvals",
    "title": "Composer · Content Writer requests approval",
@@ -321,32 +340,51 @@
   },
   "ComposerStates.dc.html": {
    "expand": "fill",
-   "h": 1034,
+   "h": 2606,
    "is_interactive": true,
    "page": "composer",
    "title": "Composer · loading / error / saved",
    "w": 1440,
    "x": 1520,
-   "y": 1120
+   "y": 1534
   },
   "ComposerTablet.dc.html": {
-   "h": 2258,
+   "h": 2024,
    "is_interactive": true,
    "page": "composer",
    "title": "Composer · editing 2 columns · tablet",
    "w": 834,
    "x": 0,
-   "y": 2544
+   "y": 4470
   },
   "ComposerWarnings.dc.html": {
    "expand": "fill",
-   "h": 1312,
+   "h": 2004,
    "is_interactive": true,
    "page": "composer",
    "title": "Composer · inline warnings",
    "w": 1440,
    "x": 6080,
    "y": 0
+  },
+  "ComposerWrite.dc.html": {
+   "expand": "fill",
+   "h": 2022,
+   "is_interactive": true,
+   "page": "composer",
+   "title": "Composer · Write mode",
+   "w": 1440,
+   "x": 3040,
+   "y": 1534
+  },
+  "ComposerWritePhone.dc.html": {
+   "h": 3293,
+   "is_interactive": true,
+   "page": "composer",
+   "title": "Composer · Write mode · phone",
+   "w": 390,
+   "x": 510,
+   "y": 6824
   },
   "ConnectHostRepute.dc.html": {
    "expand": "fill",
@@ -369,7 +407,7 @@
    "y": 0
   },
   "ContactProfilePhone.dc.html": {
-   "h": 2680,
+   "h": 2714,
    "is_interactive": true,
    "page": "audience",
    "title": "Audience · contact profile · phone",
@@ -388,7 +426,7 @@
    "y": 0
   },
   "ContactsPhone.dc.html": {
-   "h": 1696,
+   "h": 1712,
    "is_interactive": true,
    "page": "audience",
    "title": "Audience · contacts · phone",
@@ -437,7 +475,7 @@
   },
   "DSCoverage.dc.html": {
    "expand": "fill",
-   "h": 3927,
+   "h": 3900,
    "is_interactive": true,
    "page": "design",
    "title": "UX coverage matrix · every screen × every state",
@@ -447,7 +485,7 @@
   },
   "DSFoundations.dc.html": {
    "expand": "fill",
-   "h": 6082,
+   "h": 6092,
    "is_interactive": true,
    "page": "design",
    "title": "Foundations · colour, type, spacing, motion",
@@ -467,7 +505,7 @@
   },
   "DSPatterns.dc.html": {
    "expand": "fill",
-   "h": 2508,
+   "h": 2528,
    "is_interactive": true,
    "page": "design",
    "title": "Patterns and status language",
@@ -496,7 +534,7 @@
    "y": 0
   },
   "DeliverabilityPhone.dc.html": {
-   "h": 4165,
+   "h": 4189,
    "is_interactive": true,
    "page": "deliverability",
    "title": "Deliverability · HostRepute connected · phone",
@@ -554,7 +592,7 @@
    "y": 0
   },
   "FormBuilderPhone.dc.html": {
-   "h": 2815,
+   "h": 2839,
    "is_interactive": true,
    "page": "forms",
    "title": "Signup form builder · phone",
@@ -642,7 +680,7 @@
    "y": 0
   },
   "InstanceUsersPhone.dc.html": {
-   "h": 1731,
+   "h": 1747,
    "is_interactive": true,
    "page": "instance",
    "title": "Instance admin · users · phone",
@@ -680,16 +718,16 @@
    "y": 0
   },
   "LandingPhone.dc.html": {
-   "h": 8000,
+   "h": 11985,
    "is_interactive": true,
    "page": "landing",
    "title": "reputecast.com landing page · phone",
    "w": 390,
    "x": 0,
-   "y": 16681
+   "y": 16746
   },
   "LandingTablet.dc.html": {
-   "h": 8000,
+   "h": 9497,
    "is_interactive": true,
    "page": "landing",
    "title": "reputecast.com landing page · tablet",
@@ -709,7 +747,7 @@
   },
   "LiveMonitor.dc.html": {
    "expand": "fill",
-   "h": 1361,
+   "h": 2083,
    "is_interactive": true,
    "page": "monitor",
    "title": "Live monitor · sending",
@@ -717,8 +755,27 @@
    "x": 0,
    "y": 0
   },
+  "LiveMonitorCanary.dc.html": {
+   "expand": "fill",
+   "h": 2044,
+   "is_interactive": true,
+   "page": "monitor",
+   "title": "Live monitor · canary",
+   "w": 1440,
+   "x": 6550,
+   "y": 0
+  },
+  "LiveMonitorCanaryPhone.dc.html": {
+   "h": 3884,
+   "is_interactive": true,
+   "page": "monitor",
+   "title": "Live monitor · canary · phone",
+   "w": 390,
+   "x": 510,
+   "y": 6042
+  },
   "LiveMonitorMobile.dc.html": {
-   "h": 1588,
+   "h": 2606,
    "is_interactive": true,
    "page": "monitor",
    "title": "Live monitor · mobile",
@@ -728,7 +785,7 @@
   },
   "LiveMonitorOutage.dc.html": {
    "expand": "fill",
-   "h": 1291,
+   "h": 1432,
    "is_interactive": true,
    "page": "monitor",
    "title": "Live monitor · provider outage",
@@ -738,7 +795,7 @@
   },
   "LiveMonitorPaused.dc.html": {
    "expand": "fill",
-   "h": 1421,
+   "h": 1646,
    "is_interactive": true,
    "page": "monitor",
    "title": "Live monitor · auto-paused",
@@ -747,32 +804,32 @@
    "y": 0
   },
   "LiveMonitorPausedPhone.dc.html": {
-   "h": 2990,
+   "h": 3407,
    "is_interactive": true,
    "page": "monitor",
    "title": "Live monitor · auto-paused · phone",
    "w": 390,
    "x": 0,
-   "y": 4490
+   "y": 6042
   },
   "LiveMonitorStates.dc.html": {
    "expand": "fill",
-   "h": 948,
+   "h": 2410,
    "is_interactive": true,
    "page": "monitor",
-   "title": "Live monitor · connecting / complete / error",
+   "title": "Live monitor · connecting / stale / error / rates / complete",
    "w": 1440,
    "x": 5030,
    "y": 0
   },
   "LiveMonitorTablet.dc.html": {
-   "h": 2267,
+   "h": 2776,
    "is_interactive": true,
    "page": "monitor",
    "title": "Live monitor · sending · tablet",
    "w": 834,
    "x": 0,
-   "y": 1948
+   "y": 2936
   },
   "Logo.dc.html": {
    "expand": "fill",
@@ -795,7 +852,7 @@
    "y": 0
   },
   "MainPhone.dc.html": {
-   "h": 3895,
+   "h": 3909,
    "is_interactive": true,
    "page": "overview",
    "title": "Overview · phone",
@@ -863,7 +920,7 @@
    "y": 0
   },
   "MigrationProgressPhone.dc.html": {
-   "h": 1408,
+   "h": 1396,
    "is_interactive": true,
    "page": "migration",
    "title": "Import 5 · Progress · phone",
@@ -939,7 +996,7 @@
   },
   "OverviewEmpty.dc.html": {
    "expand": "fill",
-   "h": 753,
+   "h": 834,
    "is_interactive": true,
    "page": "overview",
    "title": "Overview · first run",
@@ -948,7 +1005,7 @@
    "y": 0
   },
   "OverviewEmptyPhone.dc.html": {
-   "h": 1456,
+   "h": 1659,
    "is_interactive": true,
    "page": "overview",
    "title": "Overview · first run · phone",
@@ -968,7 +1025,7 @@
   },
   "Providers.dc.html": {
    "expand": "fill",
-   "h": 1284,
+   "h": 1331,
    "is_interactive": true,
    "page": "providers",
    "title": "Providers · healthy",
@@ -998,7 +1055,7 @@
   },
   "ProvidersEvents.dc.html": {
    "expand": "fill",
-   "h": 1385,
+   "h": 1555,
    "is_interactive": true,
    "page": "providers",
    "title": "Event log & suppression sync",
@@ -1008,7 +1065,7 @@
   },
   "ProvidersOutage.dc.html": {
    "expand": "fill",
-   "h": 1368,
+   "h": 1548,
    "is_interactive": true,
    "page": "providers",
    "title": "Providers · outage",
@@ -1017,17 +1074,17 @@
    "y": 0
   },
   "ProvidersPhone.dc.html": {
-   "h": 3368,
+   "h": 3509,
    "is_interactive": true,
    "page": "providers",
    "title": "Providers · healthy · phone",
    "w": 390,
    "x": 0,
-   "y": 7090
+   "y": 8254
   },
   "ProvidersRouting.dc.html": {
    "expand": "fill",
-   "h": 1679,
+   "h": 2211,
    "is_interactive": true,
    "page": "providers",
    "title": "Routing rules & route tester",
@@ -1036,26 +1093,26 @@
    "y": 1848
   },
   "ProvidersRoutingPhone.dc.html": {
-   "h": 3534,
+   "h": 5019,
    "is_interactive": true,
    "page": "providers",
    "title": "Routing rules & route tester · phone",
    "w": 390,
    "x": 510,
-   "y": 7090
+   "y": 8254
   },
   "ProvidersRoutingTablet.dc.html": {
-   "h": 2603,
+   "h": 3298,
    "is_interactive": true,
    "page": "providers",
    "title": "Routing rules & route tester · tablet",
    "w": 834,
    "x": 954,
-   "y": 4007
+   "y": 4626
   },
   "ProvidersStates.dc.html": {
    "expand": "fill",
-   "h": 1220,
+   "h": 1194,
    "is_interactive": true,
    "page": "providers",
    "title": "Providers · empty / loading / error",
@@ -1064,17 +1121,36 @@
    "y": 0
   },
   "ProvidersTablet.dc.html": {
-   "h": 1955,
+   "h": 2019,
    "is_interactive": true,
    "page": "providers",
    "title": "Providers · healthy · tablet",
    "w": 834,
    "x": 0,
-   "y": 4007
+   "y": 4626
+  },
+  "ProvidersTrafficRules.dc.html": {
+   "expand": "fill",
+   "h": 2448,
+   "is_interactive": true,
+   "page": "providers",
+   "title": "Traffic rules",
+   "w": 1440,
+   "x": 6080,
+   "y": 1848
+  },
+  "ProvidersTrafficRulesPhone.dc.html": {
+   "h": 5368,
+   "is_interactive": true,
+   "page": "providers",
+   "title": "Traffic rules · phone",
+   "w": 390,
+   "x": 1020,
+   "y": 8254
   },
   "ProvidersWarmup.dc.html": {
    "expand": "fill",
-   "h": 1439,
+   "h": 1904,
    "is_interactive": true,
    "page": "providers",
    "title": "Warm-up planner",
@@ -1084,7 +1160,7 @@
   },
   "ProvidersWebhooksSilent.dc.html": {
    "expand": "fill",
-   "h": 1251,
+   "h": 1286,
    "is_interactive": true,
    "page": "providers",
    "title": "Providers · webhooks silent",
@@ -1170,7 +1246,7 @@
   },
   "Report.dc.html": {
    "expand": "fill",
-   "h": 2084,
+   "h": 4467,
    "is_interactive": true,
    "page": "report",
    "title": "Campaign report",
@@ -1179,17 +1255,17 @@
    "y": 0
   },
   "ReportPhone.dc.html": {
-   "h": 4449,
+   "h": 8410,
    "is_interactive": true,
    "page": "report",
    "title": "Campaign report · phone",
    "w": 390,
    "x": 510,
-   "y": 6421
+   "y": 11098
   },
   "ReportStates.dc.html": {
    "expand": "fill",
-   "h": 1337,
+   "h": 2526,
    "is_interactive": true,
    "page": "report",
    "title": "Report · loading / empty / error",
@@ -1198,13 +1274,13 @@
    "y": 0
   },
   "ReportTablet.dc.html": {
-   "h": 3621,
+   "h": 5971,
    "is_interactive": true,
    "page": "report",
    "title": "Campaign report · tablet",
    "w": 834,
    "x": 954,
-   "y": 2442
+   "y": 4797
   },
   "RoleEditor.dc.html": {
    "expand": "fill",
@@ -1237,7 +1313,7 @@
    "y": 0
   },
   "RolesPhone.dc.html": {
-   "h": 6934,
+   "h": 6950,
    "is_interactive": true,
    "page": "team",
    "title": "Roles & permissions · list and comparison · phone",
@@ -1246,7 +1322,7 @@
    "y": 11281
   },
   "RolesTablet.dc.html": {
-   "h": 5522,
+   "h": 5541,
    "is_interactive": true,
    "page": "team",
    "title": "Roles & permissions · list and comparison · tablet",
@@ -1265,7 +1341,7 @@
    "y": 0
   },
   "SSOSetupPhone.dc.html": {
-   "h": 3690,
+   "h": 3706,
    "is_interactive": true,
    "page": "instance",
    "title": "SSO setup · Microsoft Entra ID · phone",
@@ -1313,7 +1389,7 @@
   },
   "SendReadiness.dc.html": {
    "expand": "fill",
-   "h": 2264,
+   "h": 2239,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · ready with warnings",
@@ -1323,7 +1399,7 @@
   },
   "SendReadinessApproval.dc.html": {
    "expand": "fill",
-   "h": 1137,
+   "h": 1730,
    "is_interactive": true,
    "page": "approvals",
    "title": "Review & send · approval states",
@@ -1333,7 +1409,7 @@
   },
   "SendReadinessBlocked.dc.html": {
    "expand": "fill",
-   "h": 1373,
+   "h": 1617,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · blocked",
@@ -1342,7 +1418,7 @@
    "y": 0
   },
   "SendReadinessBlockedPhone.dc.html": {
-   "h": 3649,
+   "h": 4302,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · blocked · phone",
@@ -1352,7 +1428,7 @@
   },
   "SendReadinessConfirm.dc.html": {
    "expand": "fill",
-   "h": 746,
+   "h": 807,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · confirm",
@@ -1360,8 +1436,27 @@
    "x": 3040,
    "y": 0
   },
+  "SendReadinessFixes.dc.html": {
+   "expand": "fill",
+   "h": 1308,
+   "is_interactive": true,
+   "page": "readiness",
+   "title": "Review & send · review 2 fixes",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
+  },
+  "SendReadinessFixesPhone.dc.html": {
+   "h": 1841,
+   "is_interactive": true,
+   "page": "readiness",
+   "title": "Review & send · review 2 fixes · phone",
+   "w": 390,
+   "x": 1020,
+   "y": 7179
+  },
   "SendReadinessPhone.dc.html": {
-   "h": 5500,
+   "h": 3927,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · ready with warnings · phone",
@@ -1371,7 +1466,7 @@
   },
   "SendReadinessStates.dc.html": {
    "expand": "fill",
-   "h": 1291,
+   "h": 3308,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · running / error / scheduled",
@@ -1380,13 +1475,13 @@
    "y": 0
   },
   "SendReadinessTablet.dc.html": {
-   "h": 4178,
+   "h": 2433,
    "is_interactive": true,
    "page": "readiness",
    "title": "Review & send · ready with warnings · tablet",
    "w": 834,
    "x": 0,
-   "y": 2643
+   "y": 3638
   },
   "SettingsAPI.dc.html": {
    "expand": "fill",
@@ -1399,7 +1494,7 @@
    "y": 0
   },
   "SettingsAPIPhone.dc.html": {
-   "h": 2538,
+   "h": 2562,
    "is_interactive": true,
    "page": "settings",
    "title": "Settings · API keys & webhooks · phone",
@@ -1429,7 +1524,7 @@
   },
   "SettingsKeys.dc.html": {
    "expand": "fill",
-   "h": 2072,
+   "h": 2100,
    "is_interactive": true,
    "page": "integrations",
    "title": "API keys & MCP agents",
@@ -1438,7 +1533,7 @@
    "y": 0
   },
   "SettingsKeysPhone.dc.html": {
-   "h": 3218,
+   "h": 3234,
    "is_interactive": true,
    "page": "integrations",
    "title": "API keys & MCP agents · phone",
@@ -1496,7 +1591,7 @@
    "y": 0
   },
   "SettingsSendersPhone.dc.html": {
-   "h": 1962,
+   "h": 1978,
    "is_interactive": true,
    "page": "settings",
    "title": "Settings · senders & domains · phone",
@@ -1512,6 +1607,25 @@
    "w": 834,
    "x": 0,
    "y": 3672
+  },
+  "SettingsSendingRules.dc.html": {
+   "expand": "fill",
+   "h": 1409,
+   "is_interactive": true,
+   "page": "settings",
+   "title": "Settings · sending rules",
+   "w": 1440,
+   "x": 7800,
+   "y": 0
+  },
+  "SettingsSendingRulesPhone.dc.html": {
+   "h": 3340,
+   "is_interactive": true,
+   "page": "settings",
+   "title": "Settings · sending rules · phone",
+   "w": 390,
+   "x": 1530,
+   "y": 5627
   },
   "SettingsStates.dc.html": {
    "expand": "fill",
@@ -1534,7 +1648,7 @@
    "y": 0
   },
   "SettingsTeamPhone.dc.html": {
-   "h": 1494,
+   "h": 1513,
    "is_interactive": true,
    "page": "team",
    "title": "Team · members and invitations · phone",
@@ -1553,7 +1667,7 @@
   },
   "SetupCatalog.dc.html": {
    "expand": "fill",
-   "h": 1595,
+   "h": 2124,
    "is_interactive": true,
    "page": "setup",
    "title": "Setup 1 · Provider catalog",
@@ -1562,22 +1676,22 @@
    "y": 0
   },
   "SetupCatalogPhone.dc.html": {
-   "h": 4693,
+   "h": 5549,
    "is_interactive": true,
    "page": "setup",
    "title": "Setup 1 · Provider catalog · phone",
    "w": 390,
    "x": 0,
-   "y": 5667
+   "y": 7194
   },
   "SetupCatalogTablet.dc.html": {
-   "h": 2426,
+   "h": 3312,
    "is_interactive": true,
    "page": "setup",
    "title": "Setup 1 · Provider catalog · tablet",
    "w": 834,
    "x": 0,
-   "y": 2881
+   "y": 3552
   },
   "SetupContacts.dc.html": {
    "expand": "fill",
@@ -1587,7 +1701,7 @@
    "title": "Setup 6 · Contacts",
    "w": 1440,
    "x": 3040,
-   "y": 1620
+   "y": 2244
   },
   "SetupDomain.dc.html": {
    "expand": "fill",
@@ -1606,21 +1720,21 @@
    "title": "Setup 3 · Domain verification · phone",
    "w": 390,
    "x": 1020,
-   "y": 5667
+   "y": 7194
   },
   "SetupDone.dc.html": {
    "expand": "fill",
-   "h": 901,
+   "h": 978,
    "is_interactive": true,
    "page": "setup",
    "title": "Setup · Summary",
    "w": 1440,
    "x": 4560,
-   "y": 1620
+   "y": 2244
   },
   "SetupError.dc.html": {
    "expand": "fill",
-   "h": 938,
+   "h": 1091,
    "is_interactive": true,
    "page": "setup",
    "title": "Setup 2 · Error",
@@ -1630,7 +1744,7 @@
   },
   "SetupSES.dc.html": {
    "expand": "fill",
-   "h": 1500,
+   "h": 2070,
    "is_interactive": true,
    "page": "setup",
    "title": "Setup 2 · Amazon SES",
@@ -1639,22 +1753,22 @@
    "y": 0
   },
   "SetupSESPhone.dc.html": {
-   "h": 2546,
+   "h": 3699,
    "is_interactive": true,
    "page": "setup",
    "title": "Setup 2 · Amazon SES · phone",
    "w": 390,
    "x": 510,
-   "y": 5667
+   "y": 7194
   },
   "SetupSESTablet.dc.html": {
-   "h": 1898,
+   "h": 2451,
    "is_interactive": true,
    "page": "setup",
    "title": "Setup 2 · Amazon SES · tablet",
    "w": 834,
    "x": 954,
-   "y": 2881
+   "y": 3552
   },
   "SetupSMTP.dc.html": {
    "expand": "fill",
@@ -1674,7 +1788,7 @@
    "title": "Setup 5 · Streams",
    "w": 1440,
    "x": 1520,
-   "y": 1620
+   "y": 2244
   },
   "SetupTestSend.dc.html": {
    "expand": "fill",
@@ -1684,7 +1798,7 @@
    "title": "Setup 4 · Test send",
    "w": 1440,
    "x": 0,
-   "y": 1620
+   "y": 2244
   },
   "ShellNotifications.dc.html": {
    "expand": "fill",
@@ -1748,7 +1862,7 @@
   },
   "TeamDialogs.dc.html": {
    "expand": "fill",
-   "h": 634,
+   "h": 695,
    "is_interactive": true,
    "page": "team",
    "title": "Team · last Owner guard, deactivate",
@@ -1758,7 +1872,7 @@
   },
   "TeamInvite.dc.html": {
    "expand": "fill",
-   "h": 714,
+   "h": 787,
    "is_interactive": true,
    "page": "team",
    "title": "Team · invite dialog",
@@ -1768,7 +1882,7 @@
   },
   "TeamInviteNoProvider.dc.html": {
    "expand": "fill",
-   "h": 827,
+   "h": 900,
    "is_interactive": true,
    "page": "team",
    "title": "Team · invite without a System provider",
@@ -1827,7 +1941,7 @@
    "y": 0
   },
   "WorkspaceSettingsPhone.dc.html": {
-   "h": 2163,
+   "h": 2179,
    "is_interactive": true,
    "page": "team",
    "title": "Workspace settings · general, approvals, danger zone · phone",
@@ -1959,7 +2073,7 @@
    "x": 1560,
    "y": 5598,
    "w": 1440,
-   "h": 1941,
+   "h": 1918,
    "title": "Transactional · message detail (delivered)",
    "page": "p1-transactional",
    "is_interactive": true,
@@ -2046,7 +2160,7 @@
    "x": 0,
    "y": 12392,
    "w": 390,
-   "h": 3190,
+   "h": 3214,
    "title": "Transactional · templates, last 7 days · phone",
    "page": "p1-transactional",
    "is_interactive": true
@@ -2055,7 +2169,7 @@
    "x": 510,
    "y": 12392,
    "w": 390,
-   "h": 1364,
+   "h": 1380,
    "title": "Transactional · message log (live) · phone",
    "page": "p1-transactional",
    "is_interactive": true
@@ -2064,7 +2178,7 @@
    "x": 1020,
    "y": 12392,
    "w": 390,
-   "h": 2730,
+   "h": 2692,
    "title": "Transactional · message detail (delivered) · phone",
    "page": "p1-transactional",
    "is_interactive": true
@@ -2073,7 +2187,7 @@
    "x": 12200,
    "y": 0,
    "w": 1440,
-   "h": 39613,
+   "h": 39591,
    "title": "Design system · expansion patterns (phases 1–8)",
    "page": "design",
    "is_interactive": true,
@@ -2163,7 +2277,7 @@
    "x": 4680,
    "y": 16249,
    "w": 1440,
-   "h": 8522,
+   "h": 8498,
    "title": "Languages · states of General, the composer, compare, and Add language",
    "page": "p2-connect",
    "is_interactive": true,
@@ -2203,7 +2317,7 @@
    "x": 4680,
    "y": 25251,
    "w": 1440,
-   "h": 2564,
+   "h": 2674,
    "title": "Stress test · Review & send · Vietnamese",
    "page": "p2-connect",
    "is_interactive": true,
@@ -2213,7 +2327,7 @@
    "x": 6240,
    "y": 25251,
    "w": 1440,
-   "h": 2660,
+   "h": 2793,
    "title": "Stress test · Review & send · pseudo-locale +40%",
    "page": "p2-connect",
    "is_interactive": true,
@@ -2253,7 +2367,7 @@
    "x": 1560,
    "y": 28735,
    "w": 1440,
-   "h": 1426,
+   "h": 1404,
    "title": "Composer · color picker with contrast",
    "page": "p2-connect",
    "is_interactive": true,
@@ -2273,7 +2387,7 @@
    "x": 4680,
    "y": 28735,
    "w": 1440,
-   "h": 6518,
+   "h": 6535,
    "title": "Accessibility · states of the panel, the color picker and Review & send, and the gallery’s results",
    "page": "p2-connect",
    "is_interactive": true,
@@ -2349,7 +2463,7 @@
    "x": 3816,
    "y": 37758,
    "w": 834,
-   "h": 3062,
+   "h": 3038,
    "title": "Composer · accessibility panel, issues found · tablet",
    "page": "p2-connect",
    "is_interactive": true
@@ -2358,7 +2472,7 @@
    "x": 0,
    "y": 42579,
    "w": 390,
-   "h": 6628,
+   "h": 6644,
    "title": "Integrations · catalog · phone",
    "page": "p2-connect",
    "is_interactive": true
@@ -2367,7 +2481,7 @@
    "x": 510,
    "y": 42579,
    "w": 390,
-   "h": 5374,
+   "h": 5380,
    "title": "Integrations · Zapier, connected with activity · phone",
    "page": "p2-connect",
    "is_interactive": true
@@ -2376,7 +2490,7 @@
    "x": 1020,
    "y": 42579,
    "w": 390,
-   "h": 2638,
+   "h": 2654,
    "title": "Settings · General · languages and accessibility · phone",
    "page": "p2-connect",
    "is_interactive": true
@@ -2385,7 +2499,7 @@
    "x": 1530,
    "y": 42579,
    "w": 390,
-   "h": 3501,
+   "h": 3448,
    "title": "Composer · languages, German outdated · phone",
    "page": "p2-connect",
    "is_interactive": true
@@ -2394,7 +2508,7 @@
    "x": 2040,
    "y": 42579,
    "w": 390,
-   "h": 5847,
+   "h": 5853,
    "title": "Account · language & region · phone",
    "page": "p2-connect",
    "is_interactive": true
@@ -2403,7 +2517,7 @@
    "x": 2550,
    "y": 42579,
    "w": 390,
-   "h": 2216,
+   "h": 2240,
    "title": "Stress test · Campaigns · pseudo-locale +40% · phone",
    "page": "p2-connect",
    "is_interactive": true
@@ -2412,7 +2526,7 @@
    "x": 3060,
    "y": 42579,
    "w": 390,
-   "h": 7004,
+   "h": 5083,
    "title": "Stress test · Review & send · pseudo-locale +40% · phone",
    "page": "p2-connect",
    "is_interactive": true
@@ -2421,7 +2535,7 @@
    "x": 3570,
    "y": 42579,
    "w": 390,
-   "h": 2105,
+   "h": 2121,
    "title": "Stress test · Team · pseudo-locale +40% · phone",
    "page": "p2-connect",
    "is_interactive": true
@@ -2430,7 +2544,7 @@
    "x": 4080,
    "y": 42579,
    "w": 390,
-   "h": 3850,
+   "h": 3794,
    "title": "Composer · accessibility panel, issues found · phone",
    "page": "p2-connect",
    "is_interactive": true
@@ -2439,7 +2553,7 @@
    "x": 4590,
    "y": 42579,
    "w": 390,
-   "h": 5991,
+   "h": 6025,
    "title": "Review & send · languages and accessibility (Weekly Digest #143) · phone",
    "page": "p2-connect",
    "is_interactive": true
@@ -2488,7 +2602,7 @@
    "x": 6240,
    "y": 0,
    "w": 1440,
-   "h": 5886,
+   "h": 5865,
    "title": "Composer · digest mode and Feed items block",
    "page": "p3-create",
    "is_interactive": true,
@@ -2498,7 +2612,7 @@
    "x": 0,
    "y": 6366,
    "w": 1440,
-   "h": 1955,
+   "h": 1902,
    "title": "Composer · Visibility, versions and preview as",
    "page": "p3-create",
    "is_interactive": true,
@@ -2508,7 +2622,7 @@
    "x": 1560,
    "y": 6366,
    "w": 1440,
-   "h": 6725,
+   "h": 6619,
    "title": "Visibility · broken condition, empty version, over size, Send Readiness group",
    "page": "p3-create",
    "is_interactive": true,
@@ -2568,7 +2682,7 @@
    "x": 1560,
    "y": 23021,
    "w": 1440,
-   "h": 5712,
+   "h": 5660,
    "title": "Composer · AI suggestions",
    "page": "p3-create",
    "is_interactive": true,
@@ -2578,7 +2692,7 @@
    "x": 3120,
    "y": 23021,
    "w": 1440,
-   "h": 4795,
+   "h": 4861,
    "title": "Segments and report · AI drafts and summaries",
    "page": "p3-create",
    "is_interactive": true,
@@ -2616,7 +2730,7 @@
    "x": 1908,
    "y": 31599,
    "w": 834,
-   "h": 8139,
+   "h": 8087,
    "title": "Composer · AI suggestions · tablet",
    "page": "p3-create",
    "is_interactive": true
@@ -2625,7 +2739,7 @@
    "x": 0,
    "y": 40218,
    "w": 390,
-   "h": 3539,
+   "h": 3573,
    "title": "Digest · overview and issues · phone",
    "page": "p3-create",
    "is_interactive": true
@@ -2643,7 +2757,7 @@
    "x": 1020,
    "y": 40218,
    "w": 390,
-   "h": 10915,
+   "h": 10790,
    "title": "Composer · AI suggestions · phone",
    "page": "p3-create",
    "is_interactive": true
@@ -2829,7 +2943,7 @@
    "x": 0,
    "y": 33603,
    "w": 390,
-   "h": 3934,
+   "h": 3968,
    "title": "Contact profile · score card and address check (changes Contact profile) · phone",
    "page": "p4-insights",
    "is_interactive": true
@@ -2838,7 +2952,7 @@
    "x": 510,
    "y": 33603,
    "w": 390,
-   "h": 5536,
+   "h": 5570,
    "title": "Placement · test result and copy detail · phone",
    "page": "p4-insights",
    "is_interactive": true
@@ -2847,7 +2961,7 @@
    "x": 1020,
    "y": 33603,
    "w": 390,
-   "h": 4987,
+   "h": 5003,
    "title": "Audience · growth sources · phone",
    "page": "p4-insights",
    "is_interactive": true
@@ -3043,7 +3157,7 @@
    "x": 0,
    "y": 44217,
    "w": 390,
-   "h": 3017,
+   "h": 3033,
    "title": "Grow · overview · phone",
    "page": "p5-grow",
    "is_interactive": true
@@ -3052,7 +3166,7 @@
    "x": 510,
    "y": 44217,
    "w": 390,
-   "h": 3754,
+   "h": 3778,
    "title": "Referrals · results · phone",
    "page": "p5-grow",
    "is_interactive": true
@@ -3061,7 +3175,7 @@
    "x": 1020,
    "y": 44217,
    "w": 390,
-   "h": 2847,
+   "h": 2863,
    "title": "Referrals · review queue · phone",
    "page": "p5-grow",
    "is_interactive": true
@@ -3070,7 +3184,7 @@
    "x": 1530,
    "y": 44217,
    "w": 390,
-   "h": 2792,
+   "h": 2816,
    "title": "Recommendations · you recommend and recommending you · phone",
    "page": "p5-grow",
    "is_interactive": true
@@ -3442,7 +3556,7 @@
    "x": 0,
    "y": 49518,
    "w": 390,
-   "h": 5782,
+   "h": 5816,
    "title": "Earn · overview · phone",
    "page": "p6-earn",
    "is_interactive": true
@@ -3451,7 +3565,7 @@
    "x": 510,
    "y": 49518,
    "w": 390,
-   "h": 2523,
+   "h": 2557,
    "title": "Earn · plans & offers · phone",
    "page": "p6-earn",
    "is_interactive": true
@@ -3460,7 +3574,7 @@
    "x": 1020,
    "y": 49518,
    "w": 390,
-   "h": 1753,
+   "h": 1787,
    "title": "Earn · paid members · phone",
    "page": "p6-earn",
    "is_interactive": true
@@ -3469,7 +3583,7 @@
    "x": 1530,
    "y": 49518,
    "w": 390,
-   "h": 1722,
+   "h": 1756,
    "title": "Earn · sponsors · phone",
    "page": "p6-earn",
    "is_interactive": true
@@ -3779,7 +3893,7 @@
    "x": 0,
    "y": 50137,
    "w": 390,
-   "h": 2075,
+   "h": 2099,
    "title": "Website · posts · phone",
    "page": "p7-publish",
    "is_interactive": true
@@ -3824,7 +3938,7 @@
    "x": 2550,
    "y": 50137,
    "w": 390,
-   "h": 2686,
+   "h": 2702,
    "title": "Pages · your pages and built-in pages · phone",
    "page": "p7-publish",
    "is_interactive": true
@@ -3842,7 +3956,7 @@
    "x": 3570,
    "y": 50137,
    "w": 390,
-   "h": 4036,
+   "h": 4070,
    "title": "Earn · products and orders, order 1311 open · phone",
    "page": "p7-publish",
    "is_interactive": true
@@ -3851,7 +3965,7 @@
    "x": 4080,
    "y": 50137,
    "w": 390,
-   "h": 5227,
+   "h": 5253,
    "title": "Integrations · Shopify (Acme Merch) · phone",
    "page": "p7-publish",
    "is_interactive": true
@@ -4097,7 +4211,7 @@
    "x": 0,
    "y": 41898,
    "w": 390,
-   "h": 3074,
+   "h": 3110,
    "title": "Sending providers · SMS providers and senders · phone",
    "page": "p8-channels",
    "is_interactive": true
@@ -4115,7 +4229,7 @@
    "x": 1020,
    "y": 41898,
    "w": 390,
-   "h": 4949,
+   "h": 4983,
    "title": "SMS report · Summit: 8 days to go · phone",
    "page": "p8-channels",
    "is_interactive": true
@@ -4142,7 +4256,7 @@
    "x": 2550,
    "y": 41898,
    "w": 390,
-   "h": 2837,
+   "h": 2843,
    "title": "Agency · overview · phone",
    "page": "p8-channels",
    "is_interactive": true
@@ -4151,7 +4265,7 @@
    "x": 3060,
    "y": 41898,
    "w": 390,
-   "h": 3032,
+   "h": 3030,
    "title": "Client approver · reviewing a send (Jane Morales) · phone",
    "page": "p8-channels",
    "is_interactive": true
@@ -4299,7 +4413,7 @@
    "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
    "w": 240,
    "x": 0,
-   "y": 5132
+   "y": 6674
   },
   "t-composer-tablet": {
    "kind": "title1",
@@ -4308,7 +4422,7 @@
    "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
    "w": 240,
    "x": 0,
-   "y": 2394
+   "y": 4320
   },
   "t-deliverability": {
    "kind": "title1",
@@ -4443,7 +4557,7 @@
    "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
    "w": 240,
    "x": 0,
-   "y": 16531
+   "y": 16596
   },
   "t-landing-tablet": {
    "kind": "title1",
@@ -4497,7 +4611,7 @@
    "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
    "w": 240,
    "x": 0,
-   "y": 4340
+   "y": 5892
   },
   "t-monitor-tablet": {
    "kind": "title1",
@@ -4506,7 +4620,7 @@
    "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
    "w": 240,
    "x": 0,
-   "y": 1798
+   "y": 2786
   },
   "t-overview": {
    "kind": "title1",
@@ -4551,7 +4665,7 @@
    "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
    "w": 240,
    "x": 0,
-   "y": 6940
+   "y": 8104
   },
   "t-providers-tablet": {
    "kind": "title1",
@@ -4560,11 +4674,11 @@
    "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
    "w": 240,
    "x": 0,
-   "y": 3857
+   "y": 4476
   },
   "t-readiness": {
    "kind": "title1",
-   "maxW": 6000,
+   "maxW": 7520,
    "page": "readiness",
    "text": "7.5 Review & send — Send Readiness",
    "w": 240,
@@ -4587,7 +4701,7 @@
    "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
    "w": 240,
    "x": 0,
-   "y": 2493
+   "y": 3488
   },
   "t-report": {
    "kind": "title1",
@@ -4605,7 +4719,7 @@
    "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
    "w": 240,
    "x": 0,
-   "y": 6271
+   "y": 10948
   },
   "t-report-tablet": {
    "kind": "title1",
@@ -4614,7 +4728,7 @@
    "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
    "w": 240,
    "x": 0,
-   "y": 2292
+   "y": 4647
   },
   "t-settings": {
    "kind": "title1",
@@ -4659,7 +4773,7 @@
    "text": "Phone · 390 px wide. The sidebar becomes a bottom tab bar (fixed to the viewport in the real app); long screens scroll.",
    "w": 240,
    "x": 0,
-   "y": 5517
+   "y": 7044
   },
   "t-setup-tablet": {
    "kind": "title1",
@@ -4668,7 +4782,7 @@
    "text": "Tablet · 834 px wide. Same markup as the desktop screens; the sidebar becomes a 72 px icon rail.",
    "w": 240,
    "x": 0,
-   "y": 2731
+   "y": 3402
   },
   "t-system": {
    "kind": "title1",
@@ -5234,10 +5348,12 @@
   "ProvidersWarmup.dc.html",
   "ProvidersEvents.dc.html",
   "ProvidersAdapters.dc.html",
+  "ProvidersTrafficRules.dc.html",
   "ProvidersTablet.dc.html",
   "ProvidersRoutingTablet.dc.html",
   "ProvidersPhone.dc.html",
   "ProvidersRoutingPhone.dc.html",
+  "ProvidersTrafficRulesPhone.dc.html",
   "ComposerEmpty.dc.html",
   "Composer.dc.html",
   "ComposerMobile.dc.html",
@@ -5245,22 +5361,28 @@
   "ComposerWarnings.dc.html",
   "ComposerPreview.dc.html",
   "ComposerStates.dc.html",
+  "ComposerWrite.dc.html",
   "ComposerTablet.dc.html",
   "ComposerPhone.dc.html",
+  "ComposerWritePhone.dc.html",
   "SendReadiness.dc.html",
   "SendReadinessBlocked.dc.html",
   "SendReadinessConfirm.dc.html",
   "SendReadinessStates.dc.html",
+  "SendReadinessFixes.dc.html",
   "SendReadinessTablet.dc.html",
   "SendReadinessPhone.dc.html",
   "SendReadinessBlockedPhone.dc.html",
+  "SendReadinessFixesPhone.dc.html",
   "LiveMonitor.dc.html",
   "LiveMonitorPaused.dc.html",
   "LiveMonitorOutage.dc.html",
   "LiveMonitorMobile.dc.html",
   "LiveMonitorStates.dc.html",
+  "LiveMonitorCanary.dc.html",
   "LiveMonitorTablet.dc.html",
   "LiveMonitorPausedPhone.dc.html",
+  "LiveMonitorCanaryPhone.dc.html",
   "Campaigns.dc.html",
   "Report.dc.html",
   "ReportStates.dc.html",
@@ -5312,8 +5434,10 @@
   "FormBuilderPhone.dc.html",
   "PublicSubscribePhone.dc.html",
   "PublicPreferencesPhone.dc.html",
+  "BrandKit.dc.html",
   "SettingsSenders.dc.html",
   "SettingsProviders.dc.html",
+  "SettingsSendingRules.dc.html",
   "SettingsTeam.dc.html",
   "SettingsAPI.dc.html",
   "SettingsMCP.dc.html",
@@ -5322,6 +5446,8 @@
   "SettingsSendersTablet.dc.html",
   "SettingsSendersPhone.dc.html",
   "SettingsAPIPhone.dc.html",
+  "BrandKitPhone.dc.html",
+  "SettingsSendingRulesPhone.dc.html",
   "Landing.dc.html",
   "ReadmeBanner.dc.html",
   "LandingTablet.dc.html",

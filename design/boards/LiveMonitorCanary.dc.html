@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live sending monitor, canary</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500}
+.nav a:hover{background:#EEF0F3;color:#0B1220}.nav a.on{background:#E3F1EE;color:#0F766E}
+.nav svg{width:16px;height:16px;flex:none}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-weight:600;color:#5B6472;padding:10px 12px;border-bottom:1px solid #E3E6EB;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.tbl td{padding:11px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.r,.tbl th.r{text-align:right}
+.tbl td:first-child{white-space:normal;min-width:150px}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.bar{height:6px;border-radius:3px;background:#EEF0F3;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px}
+.h2{margin:0;font-size:15px;font-weight:600}
+.tile{display:flex;flex-direction:column;gap:4px;padding:16px 18px}
+.ev{display:flex;gap:10px;align-items:center;padding:8px 14px;border-top:1px solid #EEF0F3;font-size:12.5px}
+
+
+/* shell additions: workspace switcher, notification bell, user menu */
+.ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
+.ws:hover{background:#F3F4F6}
+.ws .wsn{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.ws .wsn b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws .wsn span{font-size:11px;color:#5B6472;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ibtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;cursor:pointer;padding:0;flex:none}
+.ibtn:hover{background:#F3F4F6}
+.ibtn .cnt{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#B91C1C;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ubtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.ubtn:hover{background:#F3F4F6}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu a:hover,.menu button:hover{background:#F3F4F6;color:#0B1220}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+@media (max-width:767px){.tools{margin-left:0}.menu{min-width:0;max-width:calc(100vw - 24px)}}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .brand-t,.side .ws{display:none}.side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* nav: phones show four sections plus More */
+.side .nav a.more{display:none}
+@media (max-width:767px){.side .nav a.xm{display:none!important}.side .nav a.more{display:flex}.side .nav a.more.on{background:#E3F1EE;color:#0F766E}}
+/* shell: the icon rail keeps only the import button (the footer's inline display:flex beat the rail rule) */
+@media (max-width:1100px){.side .sidefoot > :not(.btn){display:none!important}}
+/* shell: avatar initials sit in the middle */
+.av{display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ubtn .av{border-radius:50%;font-weight:700}
+.ws .av{font-weight:700}
+/* switches: a disabled switch looks disabled */
+.tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+
+/* live monitor: freshness, live summary, threshold states, footnotes, rate steppers */
+.fresh{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5B6472;font-weight:500;white-space:nowrap}
+.fresh .dot{color:#15803D}
+.fresh.stale .dot{color:#B45309}
+.sumline{margin:0;display:flex;align-items:flex-start;gap:8px;font-size:13px;color:#0B1220;line-height:1.45}
+.sumline svg{flex:none;margin-top:2px}
+.thr{display:flex;flex-direction:column;gap:6px}
+.thr-h{display:flex;justify-content:space-between;align-items:center;gap:6px 12px;flex-wrap:wrap;font-size:13px}
+.thr-h > span:first-child{display:flex;flex-direction:column;gap:1px;min-width:0}
+.thr-h b{font-weight:600}
+.thr-v{display:flex;flex-wrap:wrap;gap:2px 8px;font-size:12.5px;color:#4B5563}
+.thr-v .n{color:#0B1220}
+.fn{margin:0;font-size:12px;color:#5B6472;font-weight:500;line-height:1.45}
+.fns{display:flex;flex-direction:column;gap:4px;padding:12px 18px;border-top:1px solid #EEF0F3}
+.ratep{border-top:1px solid #EEF0F3;background:#F9FAFB;padding:14px 18px 16px;display:flex;flex-direction:column;gap:10px}
+.rrow{display:grid;grid-template-columns:minmax(110px,150px) minmax(110px,150px) auto minmax(0,1fr);align-items:center;gap:8px 14px;font-size:13px;padding:4px 0}
+.rrow .nm{display:flex;gap:8px;align-items:center;font-weight:600}
+.stp{display:inline-flex;align-items:stretch;border:1px solid #8B94A3;border-radius:8px;background:#FFFFFF;overflow:hidden;flex:none}
+.stp button{width:36px;height:36px;border:0;background:#FFFFFF;color:#0B1220;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;font:inherit}
+.stp button:hover{background:#F3F4F6}
+.stp button:disabled{color:#9CA3AF;cursor:not-allowed;background:#FFFFFF}
+.stp output{min-width:86px;display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-variant-numeric:tabular-nums;font-size:13px;border-left:1px solid #E3E6EB;border-right:1px solid #E3E6EB}
+.chg{font-weight:600;color:#0B1220}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+@media (max-width:767px){
+  .rrow{grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:8px 0;border-bottom:1px solid #EEF0F3}
+  .rrow .was{grid-column:1 / -1;order:3}
+  .rrow .eff{grid-column:1 / -1;order:4}
+  .stp button{width:44px;height:44px}
+  .sc-host .fresh{white-space:normal}
+}
+/* phone: events wrap by field, never inside a timestamp */
+@media (max-width:767px){
+  .ev{flex-wrap:wrap;gap:4px 10px;padding:10px 12px}
+  .sc-host .ev .mono{overflow-wrap:normal;white-space:nowrap}
+  .ev > span:last-child{flex:1 1 100%}
+}
+/* phone: the header's Pause / Cancel move into a sticky bar above the tab bar */
+.pbar{display:none}
+@media (max-width:767px){
+  .top .hdr-act{display:none!important}
+  .pbar{display:flex;position:sticky;bottom:57px;z-index:20;gap:8px;align-items:stretch;padding:10px 12px;margin:0 -12px -12px;background:#FFFFFF;border-top:1px solid #E3E6EB}
+  .pbar .btn{min-height:44px}
+  .pbar .menu{bottom:52px;right:0;min-width:220px}
+}
+/* phone: small buttons and menu items still give a 44px target */
+@media (max-width:767px){
+  .btn.sm{min-height:44px!important}
+  .content .btn,.top .btn{min-height:44px}
+  .content .thr-links a{min-height:44px!important}
+  .pbar .menu a,.pbar .menu button{min-height:44px}
+}
+
+/* canary board */
+.cnr-top{display:flex;gap:16px;align-items:flex-start;padding:20px 22px;background:#F0FDFA;border-radius:10px 10px 0 0;border-bottom:1px solid #99F6E4;flex-wrap:wrap}
+.gate{display:grid;grid-template-columns:minmax(120px,160px) minmax(0,1fr) minmax(96px,130px) 148px;gap:4px 16px;align-items:center;padding:11px 0;border-top:1px solid #EEF0F3;font-size:13px}
+.gate .gn{font-weight:600}
+.gate .gv{font-variant-numeric:tabular-nums;min-width:0}
+.gate .gl{color:#4B5563;font-size:12.5px}
+.gate .gs{justify-self:end}
+.cnr-dec{border-left:1px solid #EEF0F3}
+.act{display:flex;flex-direction:column;gap:6px;padding:12px 0;border-top:1px solid #EEF0F3}
+.act:first-of-type{border-top:0;padding-top:0}
+.act .btn{width:100%;min-height:40px}
+.seedbar{display:flex;height:12px;gap:2px;border-radius:6px;overflow:hidden;background:#EEF0F3}
+.seedbar i{display:block;height:100%}
+.seedrow{display:flex;justify-content:space-between;gap:2px 12px;flex-wrap:wrap;padding:7px 0;border-top:1px solid #EEF0F3;font-size:12.5px}
+details.seeds{border-top:1px solid #EEF0F3;padding-top:10px}
+details.seeds summary{cursor:pointer;font-size:13px;font-weight:600;color:#0F766E;min-height:24px}
+@media (max-width:1100px){.cnr-dec{border-left:0;border-top:1px solid #EEF0F3}}
+@media (max-width:767px){
+  .gate{grid-template-columns:minmax(0,1fr) auto;padding:12px 0}
+  .gate .gv,.gate .gl{grid-column:1 / -1}
+  .gate .gs{grid-row:1;grid-column:2}
+  .act .btn{min-height:44px}
+  details.seeds summary{min-height:44px;display:flex;align-items:center}
+}
+
+/* phones: every top-bar target is at least 44px (tabs, links, fields, buttons, the bell and the account menu) */
+@media (max-width:767px){.top .tabs a{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box}.top a:not(.btn){min-height:44px}.top .btn,.top .in,.top select,.top input{min-height:44px;box-sizing:border-box}.top .ibtn{width:44px;height:44px;box-sizing:border-box}.top .ubtn{min-height:44px;box-sizing:border-box}.top nav[aria-label="Breadcrumb"] a{min-width:44px;justify-content:center}.top .chsw a{min-height:44px!important}}
+</style>
+</helmet>
+<h1 class="vh">Live sending monitor, canary phase</h1>
+<div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh">
+  <a href="#main" class="skip">Skip to content</a>
+  <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;padding:6px 8px;color:#0B1220" aria-label="ReputeCast home">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      <span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span>
+    </a>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Acme Newsletter, Owner, switch workspace"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px" aria-label="Main">
+      <a href="Main.dc.html" title="Overview"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html" class="on" aria-current="page" title="Campaigns"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html" class="xm" title="Automations"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Transactional.dc.html" class="xm" title="Transactional"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
+      <a href="Contacts.dc.html" title="Audience"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="GrowOverview.dc.html" class="xm" title="Grow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
+      <a href="EarnOverview.dc.html" class="xm" title="Earn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
+      <a href="FormBuilder.dc.html" class="xm" title="Forms &amp; pages"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html" title="Deliverability"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html" class="xm" title="Sending providers"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html" class="xm" title="Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="ShellMore.dc.html" class="more" aria-label="More: Automations, Transactional, Grow, Earn, Forms & pages, Sending providers, Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">More</span></a>
+    </nav>
+  </aside>
+
+  <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
+    <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+      <nav aria-label="Breadcrumb" style="display:flex;align-items:center;gap:8px;font-size:13px">
+        <a href="Campaigns.dc.html" style="color:#5B6472">Campaigns</a><span class="k">/</span>
+        <span style="font-weight:600">Weekly Digest #142</span>
+      </nav>
+      <span class="k">Started by Sofia Rossi · approved by Marcus Chen, Oct 10 16:20</span>
+      <span class="badge {{statusCls}}"><span class="dot"></span>{{statusBadge}}</span>
+      <span class="fresh"><span class="dot"></span>Live · updated 1 s ago</span>
+      <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="k">Anyone who can send can stop it · Linh Nguyen and Marcus Chen can continue early</span>
+      <div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Linh Nguyen, account menu"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
+    </header>
+
+    <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+      <section class="card" style="border-color:#99F6E4;display:flex;flex-direction:column" aria-labelledby="ca-title">
+        <div class="cnr-top">
+          <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#CCFBF1"></circle><path d="M10 20s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z" stroke="#0F766E" stroke-width="2.2" fill="none" stroke-linejoin="round"></path><circle cx="20" cy="20" r="2.6" fill="#0F766E"></circle></svg>
+          <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 320px;min-width:0">
+            <h2 id="ca-title" style="margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em;color:#0B1220">{{title}}</h2>
+            <span style="color:#4B5563">Sent 09:00:04 to 09:05:12. 29,632 recipients are queued until the canary passes.</span>
+            <!-- The only live region on this screen: changes on gate results, extensions and decisions, never per count. -->
+            <p class="sumline" aria-live="polite"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg><span>{{summary}}</span></p>
+          </div>
+        </div>
+
+        <div style="padding:14px 22px;border-bottom:1px solid #EEF0F3;display:flex;flex-direction:column;gap:6px">
+          <p style="margin:0;font-size:13px"><b>Why it runs:</b> 2,118 recipients were imported on 18 Sep and have never had mail from news.acme.io. <a href="ProvidersTrafficRules.dc.html">Canary rules</a></p>
+          <p class="fn">The canary goes to your most-engaged recipients, so it checks blocks, deferrals and inbox placement, not how the new imports will react. Their complaints are watched during the main send and for 72 h after it.</p>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:0">
+          <div style="flex:3 1 460px;min-width:0;padding:16px 22px 18px;display:flex;flex-direction:column">
+            <h3 class="h2" style="margin-bottom:6px">Gates</h3>
+            <div class="gate"><span class="gn">Bounces</span><span class="gv">0.3% · 5 of 1,560</span><span class="gl">limit 1.0%</span><span class="gs badge ok"><span class="dot"></span>Passing</span></div>
+            <div class="gate"><span class="gn">Block/policy bounces</span><span class="gv">0</span><span class="gl">limit 0.2%</span><span class="gs badge ok"><span class="dot"></span>Passing</span></div>
+            <div class="gate"><span class="gn">Deferrals</span><span class="gv">4.0% · 62 of 1,560, 46 since delivered</span><span class="gl">limit 15%</span><span class="gs badge ok"><span class="dot"></span>Passing</span></div>
+            <div class="gate"><span class="gn">Complaints</span><span class="gv">n/a for Gmail and iCloud · 0 from Outlook, Yahoo and Other<span class="k" style="display:block;margin-top:4px">312 of 500 delivered to Outlook before this can trip</span><span class="bar" aria-hidden="true" style="display:block;margin-top:5px;max-width:240px"><i style="width:62%;background:#8B94A3"></i></span></span><span class="gl">limit 0.10% per mailbox provider</span><span class="gs badge mut"><span class="dot"></span>Collecting evidence</span></div>
+            <div class="gate"><span class="gn">Seed placement</span><span class="gv">Inbox 8 · Promotions 2 · Spam 0</span><span class="gl">limit 2 in spam</span><span class="gs badge ok"><span class="dot"></span>Passing</span></div>
+            <details class="seeds" open="">
+              <summary>Seed placement by mailbox provider</summary>
+              <div style="display:flex;flex-direction:column;gap:8px;padding-top:8px">
+                <div class="seedbar" role="img" aria-label="10 seed inboxes: 8 inbox, 2 Promotions tab, 0 spam"><i style="flex:8 1 0%;background:#15803D"></i><i style="flex:2 1 0%;background:#93C5FD"></i></div>
+                <div style="display:flex;gap:6px 16px;flex-wrap:wrap;font-size:12px;color:#4B5563"><span style="display:flex;gap:6px;align-items:center"><span class="dot" style="color:#15803D"></span>Inbox 8</span><span style="display:flex;gap:6px;align-items:center"><span class="dot" style="color:#93C5FD"></span>Promotions tab 2</span><span style="display:flex;gap:6px;align-items:center"><span class="dot" style="color:#7F1D1D"></span>Spam 0</span></div>
+                <div>
+                  <div class="seedrow"><span><b>Gmail</b> <span class="k">incl. Google Workspace · 3 seeds</span></span><span>Inbox 1 · Promotions 2 · Spam 0</span></div>
+                  <div class="seedrow"><span><b>Outlook</b> <span class="k">incl. Microsoft 365 · 2 seeds</span></span><span>Inbox 2 · Spam 0</span></div>
+                  <div class="seedrow"><span><b>Yahoo</b> <span class="k">incl. AOL · 2 seeds</span></span><span>Inbox 2 · Spam 0</span></div>
+                  <div class="seedrow"><span><b>iCloud</b> <span class="k">1 seed</span></span><span>Inbox 1 · Spam 0</span></div>
+                  <div class="seedrow"><span><b>Other</b> <span class="k">GMX, Web.de · 2 seeds</span></span><span>Inbox 2 · Spam 0</span></div>
+                </div>
+                <p class="fn">Seeds are your own test inboxes in <a href="PlacementSeeds.dc.html">Seed inboxes</a>; they show where the mail lands, not how people react. Both subject variants went to 5 seeds each, with the same placement.</p>
+              </div>
+            </details>
+          </div>
+
+          <div class="cnr-dec" style="flex:2 1 300px;min-width:0;padding:16px 22px 18px;display:flex;flex-direction:column;gap:4px">
+            <h3 class="h2" style="margin-bottom:8px">Choose how to continue</h3>
+            <sc-if value="{{live}}" hint-placeholder-val="{{true}}">
+              <div class="act">
+                <a href="LiveMonitor.dc.html" class="btn pri">Continue to everyone now</a>
+                <span class="k">Starts the main send now instead of at {{until}}. Gates still collecting evidence become thresholds for the main send. Everyone has it by about {{etaNow}}.</span>
+              </div>
+              <div class="act">
+                <button class="btn" type="button" onClick="{{watchMore}}">Watch 10 more minutes</button>
+                <span class="k">Holds the 29,632 queued recipients until {{untilPlus}}. Everyone has it by about {{etaPlus}}.</span>
+              </div>
+              <div class="act">
+                <button class="btn" type="button" style="color:#991B1B;border-color:#FCA5A5" aria-expanded="{{confirmStop}}" aria-controls="ca-stop" onClick="{{askStop}}">Stop the send</button>
+                <span class="k">The 29,632 queued recipients won't get this email. The 1,560 canary recipients already have it.</span>
+              </div>
+              <sc-if value="{{confirmStop}}" hint-placeholder-val="{{false}}">
+                <div id="ca-stop" style="display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid #FCA5A5;border-radius:10px;background:#FFF5F5;margin-top:6px">
+                  <span style="font-weight:600;color:#7F1D1D">Stop Weekly Digest #142 for the 29,632 queued recipients?</span>
+                  <span style="font-size:13px;color:#7F1D1D">This can't be undone; you can send a new copy later.</span>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="btn" type="button" onClick="{{keepWatching}}">Keep watching</button>
+                    <button class="btn" type="button" style="background:#B91C1C;border-color:#B91C1C;color:#FFFFFF" onClick="{{doStop}}">Stop the send</button>
+                  </div>
+                </div>
+              </sc-if>
+              <p class="fn" style="margin-top:8px;padding:10px 12px;border-radius:8px;background:#F9FAFB;border:1px solid #E3E6EB">If nobody chooses: at {{until}}, when every gate with enough evidence passes, ReputeCast continues to everyone by itself. If a gate fails, the send stays held and you're asked.</p>
+            </sc-if>
+            <sc-if value="{{stopped}}" hint-placeholder-val="{{false}}">
+              <div style="display:flex;flex-direction:column;gap:6px;padding:12px;border:1px solid #E3E6EB;border-radius:10px;background:#F9FAFB">
+                <span style="font-weight:600">Stopped at 09:14 by Linh Nguyen</span>
+                <span class="k">The 29,632 queued recipients were removed from this send. The canary results stay in the report.</span>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" style="padding:20px 22px;display:flex;flex-direction:column;gap:12px" aria-label="Progress">
+        <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+          <span class="n" style="font-size:34px;letter-spacing:-.02em">29,632</span>
+          <span style="font-size:15px">recipients queued until the canary passes</span>
+          <span class="k" style="margin-left:auto">1,560 of 31,192 sent (5.0%) · if it continues at {{until}}, everyone has it by about {{etaAuto}}</span>
+        </div>
+        <div class="bar" style="height:12px;border-radius:6px;display:flex;gap:2px;background:#EEF0F3" role="img" aria-label="Canary sent: Amazon SES 1,404 and Postal 156. 29,632 queued.">
+          <i style="width:4.5%;background:#4a3aa7;border-radius:6px 0 0 6px"></i>
+          <i style="width:0.5%;min-width:3px;background:#e87ba4;border-radius:0"></i>
+        </div>
+        <div style="display:flex;gap:8px 18px;flex-wrap:wrap;font-size:13px">
+          <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#4a3aa7"></span>Canary via Amazon SES 1,404</span>
+          <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#e87ba4"></span>Canary via Postal 156</span>
+          <span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#C9CED6"></span>Queued 29,632 · SES 26,669 · Postal 2,963</span>
+          <span class="k" style="margin-left:auto">The A/B subject test runs on the main send.</span>
+        </div>
+      </section>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+        <div class="card tile"><span class="k">Delivered</span><span class="n" style="font-size:26px">1,539</span><span class="k">98.7% of the canary · 16 retrying</span></div>
+        <div class="card tile"><span class="k">Bounced</span><span class="n" style="font-size:26px">5</span><span class="k">0.3% · 3 unknown user, 0 block/policy, 2 soft</span></div>
+        <div class="card tile"><span class="k">Deferred</span><span class="n" style="font-size:26px">62</span><span class="k">4.0% · 46 since delivered, 16 retrying</span></div>
+        <div class="card tile"><span class="k">Complained</span><span class="n" style="font-size:26px">0</span><span class="k">from Outlook, Yahoo and Other · Gmail and iCloud n/a</span></div>
+        <div class="card tile"><span class="k">Opened</span><span class="n" style="font-size:26px">498</span><span class="k">32.4% · 301 human, 197 machine</span></div>
+      </div>
+
+      <section class="card" id="ca-mbx">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;flex-direction:column;gap:2px"><h2 class="h2">Per mailbox provider</h2><span class="k">canary results · rates apply to the main send</span></div>
+          <button class="btn sm" type="button" aria-expanded="{{ratesOpen}}" aria-controls="ca-rates" onClick="{{toggleRates}}">Adjust rates</button>
+        </div>
+        <sc-if value="{{ratesOpen}}" hint-placeholder-val="{{false}}">
+          <div class="ratep" id="ca-rates">
+            <div style="display:flex;flex-direction:column;gap:2px"><h3 class="h2" style="font-size:14px">Rates per mailbox provider for the main send</h3><span class="k">Times assume the main send starts at {{until}}.</span></div>
+            <div class="rrow"><span class="nm"><span class="dot" style="color:#2a78d6"></span>Gmail</span><span class="k was">{{r.gmail.was}}</span><div class="stp" role="group" aria-label="Gmail rate"><button type="button" aria-label="Lower Gmail rate" onClick="{{r.gmail.dec}}" disabled="{{r.gmail.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.gmail.label}}</output><button type="button" aria-label="Raise Gmail rate" onClick="{{r.gmail.inc}}" disabled="{{r.gmail.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.gmail.effect}}</span></div>
+            <div class="rrow"><span class="nm"><span class="dot" style="color:#eb6834"></span>Outlook</span><span class="k was">{{r.outlook.was}}</span><div class="stp" role="group" aria-label="Outlook rate"><button type="button" aria-label="Lower Outlook rate" onClick="{{r.outlook.dec}}" disabled="{{r.outlook.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.outlook.label}}</output><button type="button" aria-label="Raise Outlook rate" onClick="{{r.outlook.inc}}" disabled="{{r.outlook.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.outlook.effect}}</span></div>
+            <div class="rrow"><span class="nm"><span class="dot" style="color:#1baf7a"></span>Yahoo</span><span class="k was">{{r.yahoo.was}}</span><div class="stp" role="group" aria-label="Yahoo rate"><button type="button" aria-label="Lower Yahoo rate" onClick="{{r.yahoo.dec}}" disabled="{{r.yahoo.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.yahoo.label}}</output><button type="button" aria-label="Raise Yahoo rate" onClick="{{r.yahoo.inc}}" disabled="{{r.yahoo.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.yahoo.effect}}</span></div>
+            <div class="rrow"><span class="nm"><span class="dot" style="color:#eda100"></span>iCloud</span><span class="k was">{{r.icloud.was}}</span><div class="stp" role="group" aria-label="iCloud rate"><button type="button" aria-label="Lower iCloud rate" onClick="{{r.icloud.dec}}" disabled="{{r.icloud.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.icloud.label}}</output><button type="button" aria-label="Raise iCloud rate" onClick="{{r.icloud.inc}}" disabled="{{r.icloud.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.icloud.effect}}</span></div>
+            <div class="rrow"><span class="nm"><span class="dot" style="color:#8b94a3"></span>Other</span><span class="k was">{{r.other.was}}</span><div class="stp" role="group" aria-label="Other rate"><button type="button" aria-label="Lower Other rate" onClick="{{r.other.dec}}" disabled="{{r.other.atMin}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3.5 8h9"></path></svg></button><output aria-live="polite">{{r.other.label}}</output><button type="button" aria-label="Raise Other rate" onClick="{{r.other.inc}}" disabled="{{r.other.atMax}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"></path></svg></button></div><span class="k eff">{{r.other.effect}}</span></div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:4px">
+              <span style="font-size:13px"><span class="k">Main send: </span><span class="n">{{wholeEffect}}</span></span>
+              <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn" type="button" onClick="{{cancelRates}}">Cancel</button>
+                <button class="btn pri" type="button" onClick="{{applyRates}}" disabled="{{noChange}}">Apply</button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+        <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Per mailbox provider table, scrolls sideways on small screens">
+          <table class="tbl">
+            <thead><tr><th scope="col">Mailbox provider</th><th scope="col" class="r">Canary sent</th><th scope="col" class="r">Delivered</th><th scope="col" class="r">Deferred once or more</th><th scope="col" class="r">Bounce</th><th scope="col" class="r">Complaint</th><th scope="col" class="r">Main-send rate</th><th scope="col">Thresholds</th></tr></thead>
+            <tbody>
+              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#2a78d6"></span>Gmail</span></td><td class="r n">718</td><td class="r n">99.9%</td><td class="r n">1.0%</td><td class="r n">0.1%</td><td class="r k" aria-describedby="ca-fn-cmp">n/a</td><td class="r">{{rates.gmail}}</td><td><span class="badge ok"><span class="dot"></span>Watching</span></td></tr>
+              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#eb6834"></span>Outlook</span></td><td class="r n">328</td><td class="r n">95.1% · 14 retrying</td><td class="r n">6.4%</td><td class="r n">0.6%</td><td class="r">0 so far</td><td class="r">{{rates.outlook}}</td><td><span class="badge mut"><span class="dot"></span>Collecting evidence</span></td></tr>
+              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#1baf7a"></span>Yahoo</span></td><td class="r n">140</td><td class="r n">97.9%</td><td class="r n">7.9%</td><td class="r n">0.7%</td><td class="r">0 so far</td><td class="r">{{rates.yahoo}}</td><td><span class="badge mut"><span class="dot"></span>Collecting evidence</span></td></tr>
+              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#eda100"></span>iCloud</span></td><td class="r n">125</td><td class="r n">100.0%</td><td class="r n">2.4%</td><td class="r n">0.0%</td><td class="r k" aria-describedby="ca-fn-cmp">n/a</td><td class="r">{{rates.icloud}}</td><td><span class="badge mut"><span class="dot"></span>Collecting evidence</span></td></tr>
+              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#8b94a3"></span>Other</span></td><td class="r n">249</td><td class="r n">99.6%</td><td class="r n">8.0%</td><td class="r n">0.4%</td><td class="r">0 so far</td><td class="r">{{rates.other}}</td><td><span class="badge mut"><span class="dot"></span>Collecting evidence</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="fns">
+          <p class="fn" id="ca-fn-cmp">n/a: Gmail and iCloud don't report complaints per message. Gmail's spam rate from Postmaster Tools: 0.04% yesterday.</p>
+          <p class="fn">Gmail includes Google Workspace and Outlook includes Microsoft 365 recipients (found from MX records). A mailbox provider's thresholds can trip only after 500 delivered to it; in the canary only Gmail has that many.</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #EEF0F3;flex-wrap:wrap;gap:8px"><h2 class="h2">Per sending provider</h2><span class="k">who delivers the mail</span></div>
+        <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Per sending provider table, scrolls sideways on small screens">
+          <table class="tbl">
+            <thead><tr><th scope="col">Sending provider</th><th scope="col" class="r">Canary sent</th><th scope="col" class="r">Queued</th><th scope="col" class="r">Delivered</th><th scope="col" class="r">Bounce</th><th scope="col" class="r">API errors</th><th scope="col">Status</th></tr></thead>
+            <tbody>
+              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#4a3aa7"></span>Amazon SES</span><div class="k">quota 19,787 free after this send</div></td><td class="r n">1,404</td><td class="r n">26,669</td><td class="r n">98.6%</td><td class="r n">0.3%</td><td class="r n">0.0%</td><td><span class="badge ok">Healthy</span></td></tr>
+              <tr><td><span style="display:flex;gap:8px;align-items:center"><span class="dot" style="color:#e87ba4"></span>Postal</span><div class="k">warm-up day 9 · 156 of today's 6,000 cap</div></td><td class="r n">156</td><td class="r n">2,963</td><td class="r n">99.4%</td><td class="r n">0.6%</td><td class="r n">0.0%</td><td><span class="badge info">Warming up</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2044}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    // Canary view at 09:14. The watch ends at 09:25; each "Watch 10 more minutes" adds 10.
+    this.state = { extra: 0, confirmStop: false, stopped: false, ratesOpen: false, applied: null, draft: null, note: '' };
+  }
+  renderVals() {
+    var self = this;
+    var s = this.state;
+    var NOW = 9 * 3600 + 14 * 60;
+    var END = 9 * 3600 + (25 + s.extra) * 60;
+    // What the main send still has to deliver, per mailbox provider and per sending provider (sums: 29,632).
+    var MB = [
+      { key: 'gmail', name: 'Gmail', left: 13630, rate: 0 },
+      { key: 'outlook', name: 'Outlook', left: 6223, rate: 5 },
+      { key: 'yahoo', name: 'Yahoo', left: 2667, rate: 4 },
+      { key: 'icloud', name: 'iCloud', left: 2370, rate: 3 },
+      { key: 'other', name: 'Other', left: 4742, rate: 0 }
+    ];
+    var SES = { left: 26669, rate: 14.2 };
+    var POSTAL = { left: 2963, rate: 2.0 };
+    var LEVELS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 0];
+    var base = {};
+    MB.forEach(function (m) { base[m.key] = m.rate; });
+    var applied = s.applied || base;
+    var draft = s.draft || applied;
+    function lab(v) { return v === 0 ? 'full rate' : v + ' /s'; }
+    function clockAt(t) {
+      var m = Math.round(t / 60);
+      var h = Math.floor(m / 60), mm = m % 60;
+      return (h < 10 ? '0' : '') + h + ':' + (mm < 10 ? '0' : '') + mm;
+    }
+    function mbTime(m, rates) { var v = rates[m.key]; return v > 0 ? m.left / v : 0; }
+    function whole(rates) {
+      var t = Math.max(SES.left / SES.rate, POSTAL.left / POSTAL.rate);
+      MB.forEach(function (m) { t = Math.max(t, mbTime(m, rates)); });
+      return t;
+    }
+    var r = {};
+    var rates = {};
+    var changed = [];
+    MB.forEach(function (m) {
+      var v = draft[m.key];
+      var was = applied[m.key];
+      var i = LEVELS.indexOf(v);
+      var isChanged = v !== was;
+      if (isChanged) changed.push(m.name + ' ' + lab(v));
+      var effect = '';
+      if (isChanged) {
+        var t0 = mbTime(m, applied), t1 = mbTime(m, draft);
+        if (t1 && t0) effect = 'finishes about ' + clockAt(END + t1) + ' instead of ' + clockAt(END + t0);
+        else if (t1) effect = 'finishes about ' + clockAt(END + t1);
+        else effect = 'limited only by the sending provider';
+      }
+      rates[m.key] = lab(was);
+      r[m.key] = {
+        label: lab(v),
+        was: isChanged ? 'was ' + lab(was) : 'planned ' + lab(was),
+        effect: effect,
+        atMin: i === 0,
+        atMax: v === 0,
+        dec: function () { var d = Object.assign({}, draft); d[m.key] = LEVELS[Math.max(0, i - 1)]; self.setState({ draft: d }); },
+        inc: function () { var d = Object.assign({}, draft); d[m.key] = LEVELS[Math.min(LEVELS.length - 1, i + 1)]; self.setState({ draft: d }); }
+      };
+    });
+    var w0 = whole(applied), w1 = whole(draft);
+    var diff = Math.round((END + w1) / 60) - Math.round((END + w0) / 60);
+    var wholeEffect = changed.length === 0 ? 'everyone by about ' + clockAt(END + w0) + ' (no change yet)'
+      : 'everyone by about ' + clockAt(END + w0) + ' → about ' + clockAt(END + w1) + (diff > 0 ? ' (' + diff + ' min later)' : diff < 0 ? ' (' + (-diff) + ' min sooner)' : ' (same minute)');
+    var until = clockAt(END);
+    var left = Math.round((END - NOW) / 60);
+    var gates = '4 of 5 gates are passing and none has failed; complaints are still collecting evidence.';
+    var summary = s.stopped ? 'Stopped at 09:14. The 29,632 queued recipients won\'t get this email.'
+      : s.note ? s.note
+      : s.extra ? 'Watching until ' + until + '. ' + gates
+      : gates;
+    return {
+      title: s.stopped ? 'Canary · stopped at 09:14 · 1,560 most-engaged recipients (5%) plus 10 seed inboxes got it'
+        : 'Canary · 1,560 most-engaged recipients (5%) plus 10 seed inboxes · watching until ' + until + ' (' + left + ' min left)',
+      statusBadge: s.stopped ? 'Stopped' : 'Canary · watching',
+      statusCls: s.stopped ? 'mut' : 'info',
+      summary: summary,
+      live: !s.stopped,
+      stopped: !!s.stopped,
+      confirmStop: !!s.confirmStop,
+      until: until,
+      untilPlus: clockAt(END + 600),
+      etaNow: clockAt(NOW + w0),
+      etaAuto: clockAt(END + w0),
+      etaPlus: clockAt(END + 600 + w0),
+      watchMore: function () { self.setState({ extra: s.extra + 10, note: '' }); },
+      askStop: function () { self.setState({ confirmStop: !s.confirmStop }); },
+      keepWatching: function () { self.setState({ confirmStop: false }); },
+      doStop: function () { self.setState({ confirmStop: false, stopped: true }); },
+      r: r,
+      rates: rates,
+      wholeEffect: wholeEffect,
+      noChange: changed.length === 0,
+      ratesOpen: !!s.ratesOpen,
+      toggleRates: function () { self.setState({ ratesOpen: !s.ratesOpen, draft: s.ratesOpen ? null : Object.assign({}, applied) }); },
+      cancelRates: function () { self.setState({ ratesOpen: false, draft: null }); },
+      applyRates: function () {
+        if (!changed.length) return;
+        self.setState({
+          applied: Object.assign({}, draft),
+          draft: null,
+          ratesOpen: false,
+          note: 'Main-send rates changed: ' + changed.join(', ') + '. If it continues at ' + until + ', everyone has it by about ' + clockAt(END + w1) + '.'
+        });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

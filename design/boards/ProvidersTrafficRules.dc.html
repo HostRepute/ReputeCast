@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sending providers, traffic rules</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;color:#0B1220;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.45}
+a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border-radius:8px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.btn:hover{background:#F3F4F6;color:#0B1220}
+.btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
+.btn.sm{min-height:30px;padding:0 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#4B5563;font-weight:500}
+.nav a:hover{background:#EEF0F3;color:#0B1220}.nav a.on{background:#E3F1EE;color:#0F766E}
+.nav svg{width:16px;height:16px;flex:none}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tabs a{display:inline-flex;align-items:center;height:34px;padding:0 12px;border-radius:8px;color:#4B5563;font-weight:500;font-size:13px}
+.tabs a:hover{background:#EEF0F3;color:#0B1220}.tabs a.on{background:#0B1220;color:#fff}
+.k{font-size:12px;color:#5B6472;font-weight:500}
+.n{font-weight:600;font-variant-numeric:tabular-nums}
+.h2{margin:0;font-size:15px;font-weight:600}
+.in{height:36px;padding:0 10px;border:1px solid #D4D8DF;border-radius:8px;background:#fff;font:inherit;font-size:13px;color:#0B1220;box-sizing:border-box}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563}
+.cond{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;background:#F9FAFB;font-size:13px}
+.chip{display:inline-flex;align-items:center;height:26px;padding:0 9px;border-radius:6px;background:#fff;border:1px solid #D4D8DF;font-weight:600;font-size:12.5px}
+.step{display:flex;gap:10px;align-items:flex-start;font-size:13px}
+.step .num{width:22px;height:22px;border-radius:50%;background:#0B1220;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:none}
+label.tg{display:flex;gap:10px;align-items:flex-start;font-size:13px;cursor:pointer}
+label.tg input{margin-top:3px}
+
+
+/* shell additions: workspace switcher, notification bell, user menu */
+.ws{display:flex;align-items:center;gap:8px;margin:2px 0 4px;padding:7px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;color:#0B1220;font:inherit;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
+.ws:hover{background:#F3F4F6}
+.ws .wsn{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1}
+.ws .wsn b{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws .wsn span{font-size:11px;color:#5B6472;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;align-items:center;gap:8px;margin-left:8px}
+.ibtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;cursor:pointer;padding:0;flex:none}
+.ibtn:hover{background:#F3F4F6}
+.ibtn .cnt{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#B91C1C;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.ubtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 4px;border-radius:8px;border:1px solid #D4D8DF;background:#fff;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.ubtn:hover{background:#F3F4F6}
+.menu{position:absolute;z-index:40;background:#fff;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:6px;min-width:260px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;color:#0B1220;font:inherit;font-size:13px;font-weight:500;background:none;border:0;text-align:left;cursor:pointer;width:100%;box-sizing:border-box;text-decoration:none}
+.menu a:hover,.menu button:hover{background:#F3F4F6;color:#0B1220}
+.menu hr{border:0;border-top:1px solid #EEF0F3;margin:4px 0;width:100%}
+.menu .mh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;padding:8px 10px 4px}
+@media (max-width:767px){.tools{margin-left:0}.menu{min-width:0;max-width:calc(100vw - 24px)}}
+
+/* responsive shell */
+@media (max-width:1100px){
+  .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
+  .side .brand-t,.side .ws{display:none}.side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .side .nav a{justify-content:center;padding:0!important;height:44px}
+  .side .nav svg{width:20px;height:20px}
+  .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
+  .side .sidefoot{align-items:center}
+  .side .sidefoot > *{display:none}
+  .side .sidefoot > a.btn{display:inline-flex;width:44px;height:44px;padding:0!important;justify-content:center!important;font-size:0;gap:0}
+  .side .sidefoot > a.btn svg{width:18px;height:18px}
+  .top{padding:12px 16px!important}
+  .content{padding:16px!important}
+}
+@media (max-width:767px){
+  .app{flex-direction:column}
+  .side{flex:none!important;max-width:none!important;width:auto!important;position:fixed;left:0;right:0;bottom:0;z-index:50;flex-direction:row!important;align-items:center;padding:6px 6px!important;border-right:0!important;border-top:1px solid #E3E6EB;background:#fff!important;box-sizing:border-box;gap:0!important}
+  .side > a[aria-label="ReputeCast home"],.side .ws,.side .sidefoot{display:none!important}
+  .side .nav{flex-direction:row!important;flex:1;justify-content:space-around;margin-top:0!important;gap:0!important}
+  .side .nav a{height:44px;width:44px;flex:none;padding:0!important;justify-content:center;border-radius:10px}
+  .side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;display:block}
+  .side .nav a.on{background:#E3F1EE;color:#0F766E}
+  .mainc{padding-bottom:72px}
+  .top{padding:12px 12px!important;gap:8px!important}
+  .top h1{font-size:16px!important}
+  .top .in{width:100%!important}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto;max-width:100%;margin-left:0!important;padding-bottom:2px}
+  .tabs a{flex:none}
+  .content{padding:12px!important;gap:12px!important}
+  .cpanel{max-width:none!important;flex:1 1 100%!important}
+}
+@media (min-width:768px) and (max-width:1100px){
+  .cpanel{max-width:none!important}
+}
+
+/* responsive phone fixes */
+@media (max-width:767px){
+  .app{flex-wrap:nowrap!important}
+  .mainc{width:100%;max-width:100%}
+  .content > *{min-width:0;max-width:100%}
+  .content .in,.content select,.content input,.content textarea{max-width:100%;min-width:0}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+  .sc-host [style*="flex: 1 1"]{min-width:0}
+  .sc-host select.in,.sc-host input.in{width:0;min-width:100%}
+  .sc-host .mono{overflow-wrap:anywhere}
+  .sc-host .sk{max-width:100%}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px;max-width:100%}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host .tabs .badge{white-space:nowrap}
+  .sc-host .side .btn{white-space:nowrap}
+  .sc-host [style*="grid-template-columns: repeat("]{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))!important}
+  .sc-host [style*="minmax(260px"],.sc-host [style*="minmax(280px"],.sc-host [style*="minmax(300px"],.sc-host [style*="minmax(320px"],.sc-host [style*="minmax(340px"],.sc-host [style*="minmax(360px"],.sc-host [style*="minmax(380px"],.sc-host [style*="minmax(420px"]{grid-template-columns:1fr!important}
+  .sc-host [style*="radial-gradient"]{overflow:auto}
+  .sc-host [style*="display: grid"] > *{min-width:0}
+  .sc-host header > div{max-width:100%;min-width:0}
+  .sc-host pre,.sc-host .lines{max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]) > div[style*="flex: 1"]{min-width:120px}
+}
+
+/* accessibility */
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;color:#0B1220;padding:8px 12px;border-radius:8px;border:1px solid #0F766E;font-weight:600;text-decoration:none}
+.skip:focus{left:8px}
+p a:not(.btn),span a:not(.btn):not([style*="color"]),td a:not(.btn):not([style*="color"]),li a:not(.btn),label a,.k a,.lead a{text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+.content > * a:not(.btn):not(p a):not(span a):not(td a):not(li a):not(label a):not(.k a),.top a:not(.btn),nav a:not(.btn),footer a:not(.btn){min-height:24px;display:inline-flex;align-items:center}
+input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F766E}
+.in,select.in,textarea.in,input.in{border-color:#8B94A3}
+@media (max-width:767px){
+  .sc-host{overflow-wrap:anywhere}
+  .sc-host table,.sc-host td,.sc-host th{overflow-wrap:normal}
+  .sc-host .badge{white-space:normal;height:auto;min-height:22px;line-height:1.25;padding-top:2px;padding-bottom:2px}
+  .sc-host .btn{white-space:normal;max-width:100%}
+  .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
+  .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
+}
+
+/* switch (expansion) */
+input[type=checkbox].tgx{appearance:none;-webkit-appearance:none;width:40px;height:24px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tgx::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff}
+input[type=checkbox].tgx:checked{background:#0F766E}input[type=checkbox].tgx:checked::after{left:18px}
+
+/* p8a: channels */
+.chsw{display:inline-flex;align-items:stretch;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;background:#fff;flex:none;max-width:100%}
+.chsw a{display:inline-flex;align-items:center;gap:6px;height:32px;min-height:32px!important;padding:0 11px;color:#4B5563;font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none!important}
+.chsw a + a{border-left:1px solid #E3E6EB}
+.chsw a:hover{background:#F3F4F6;color:#0B1220}
+.chsw a.on{background:#E3F1EE;color:#0F766E}
+.chf{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:12px 18px;border-bottom:1px solid #EEF0F3}
+.chf button{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid #D4D8DF;background:#fff;font:inherit;font-size:12.5px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap}
+.chf button.on{background:#0B1220;border-color:#0B1220;color:#fff}
+.chseg{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.chseg button,.chseg a{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border:0;background:#fff;font:inherit;font-size:13px;font-weight:600;color:#4B5563;cursor:pointer;white-space:nowrap;text-decoration:none!important;min-height:34px!important}
+.chseg > * + *{border-left:1px solid #E3E6EB}
+.chseg .on{background:#0B1220;color:#fff}
+@media (max-width:767px){.sc-host .chsw{overflow-x:auto}}
+
+/* nav: phones show four sections plus More */
+.side .nav a.more{display:none}
+@media (max-width:767px){.side .nav a.xm{display:none!important}.side .nav a.more{display:flex}.side .nav a.more.on{background:#E3F1EE;color:#0F766E}}
+/* shell: the icon rail keeps only the import button (the footer's inline display:flex beat the rail rule) */
+@media (max-width:1100px){.side .sidefoot > :not(.btn){display:none!important}}
+/* shell: avatar initials sit in the middle */
+.av{display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ubtn .av{border-radius:50%;font-weight:700}
+.ws .av{font-weight:700}
+/* switches: a disabled switch looks disabled */
+.tg:disabled,.tgx:disabled{opacity:.45;cursor:not-allowed}
+
+/* traffic rules board */
+.chbtn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 10px;border:1px solid #D4D8DF;border-radius:8px;background:#FFFFFF;color:#0B1220;font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.chbtn:hover{background:#F3F4F6}
+.chbtn .chv{color:#5B6472}
+.menu a[aria-selected="true"]{font-weight:600}
+.sech{display:flex;align-items:flex-start;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid #EEF0F3}
+.sech > div{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 300px}
+.rule{display:flex;flex-direction:column;gap:8px;padding:14px 20px}
+.rule + .rule{border-top:1px solid #EEF0F3}
+.rule-h{display:flex;flex-direction:column;gap:2px;font-size:13px}
+.rule-l{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.arr{color:#5B6472}
+input.in.pct{width:64px;text-align:right;font-variant-numeric:tabular-nums}
+select.in.win{width:auto}
+.in[aria-invalid="true"]{border-color:#DC2626}
+.fn{margin:0;font-size:12px;color:#5B6472;font-weight:500;line-height:1.45}
+.fns{display:flex;flex-direction:column;gap:4px;border-top:1px solid #EEF0F3}
+.rrule{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 14px;align-items:start;padding:12px 20px}
+.rrule + .rrule{border-top:1px solid #EEF0F3}
+.swl{display:inline-flex;align-items:center;min-height:24px;padding-top:1px;cursor:pointer}
+.code{font-size:12.5px;padding:1px 6px;border-radius:6px;background:#F3F4F6;border:1px solid #E3E6EB}
+.addf{display:flex;flex-direction:column;gap:12px;padding:14px 20px 16px;border-top:1px solid #EEF0F3;background:#F9FAFB;border-radius:0 0 10px 10px}
+.fs{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;min-width:0}
+.fs legend{padding:0;margin-bottom:8px;font-size:13px;font-weight:600}
+.gatef{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border:1px solid #E3E6EB;border-radius:8px;background:#F9FAFB;font-size:13px}
+.gi{display:inline-flex;align-items:center;gap:6px;flex:none;color:#4B5563}
+.swrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid #E3E6EB;border-radius:8px;font-size:13px}
+.swrow .tgx{flex:none}
+.lg{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.ra{display:flex;flex-direction:column;gap:2px;padding:10px 20px;font-size:13px}
+.ra + .ra{border-top:1px solid #EEF0F3}
+@media (max-width:767px){
+  .sc-host .in{height:44px}
+  .sc-host input.in.pct{width:72px!important;min-width:0!important}
+  .chbtn{height:44px}
+  .tabs a{height:44px}
+  .swl{min-height:44px;min-width:44px;justify-content:center}
+  .content .btn,.top .btn{min-height:44px}
+  .ra-link{min-height:44px!important}
+  .rrule{grid-template-columns:auto minmax(0,1fr);padding:12px}
+  .rrule .btn{grid-column:2;justify-self:start;min-height:44px}
+  .rule,.sech,.addf{padding-left:14px;padding-right:14px}
+}
+.cgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px;align-items:end}
+.ggrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 16px}
+.gatef > span:first-child{min-width:0}
+@media (max-width:1100px){.ggrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:767px){
+  .cgrid,.ggrid{grid-template-columns:minmax(0,1fr)}
+  .sc-host select.in.win{width:auto!important;min-width:0!important}
+}
+
+/* phones: every top-bar target is at least 44px (tabs, links, fields, buttons, the bell and the account menu) */
+@media (max-width:767px){.top .tabs a{min-height:44px;min-width:44px;justify-content:center;box-sizing:border-box}.top a:not(.btn){min-height:44px}.top .btn,.top .in,.top select,.top input{min-height:44px;box-sizing:border-box}.top .ibtn{width:44px;height:44px;box-sizing:border-box}.top .ubtn{min-height:44px;box-sizing:border-box}.top nav[aria-label="Breadcrumb"] a{min-width:44px;justify-content:center}.top .chsw a{min-height:44px!important}}
+</style>
+</helmet>
+<div class="app" style="display:flex;flex-wrap:wrap;align-items:stretch;min-height:100vh">
+  <a href="#main" class="skip">Skip to content</a>
+  <aside class="side" style="flex:1 1 232px;background:#FBFBFC;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;padding:16px 12px;gap:6px;box-sizing:border-box">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:10px;padding:6px 8px;color:#0B1220" aria-label="ReputeCast home">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F766E"></rect><path d="M7 12h10.5M7 12v10.5A1.5 1.5 0 0 0 8.5 24h15a1.5 1.5 0 0 0 1.5-1.5V16.5" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7 12l9 7L27 8" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      <span class="brand-t" style="font-weight:700;font-size:15px;letter-spacing:-.01em">ReputeCast</span>
+    </a>
+    <button class="ws" type="button" aria-haspopup="menu" aria-label="Acme Newsletter, Owner, switch workspace"><span class="av" style="width:24px;height:24px;font-size:10px;background:#0F766E;color:#fff;border-radius:6px" aria-hidden="true">AN</span><span class="wsn"><b>Acme Newsletter</b><span>Owner</span></span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+    <nav class="nav" style="display:flex;flex-direction:column;gap:2px;margin-top:8px" aria-label="Main">
+      <a href="Main.dc.html" title="Overview"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"></path></svg><span class="nl">Overview</span></a>
+      <a href="Campaigns.dc.html" title="Campaigns"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7" stroke-linejoin="round"></path></svg><span class="nl">Campaigns</span></a>
+      <a href="AutomationsList.dc.html" class="xm" title="Automations"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="4" cy="3" r="2"></circle><circle cx="4" cy="13" r="2"></circle><circle cx="12" cy="8" r="2"></circle><path d="M4 5v6M6 8h4"></path></svg><span class="nl">Automations</span></a>
+      <a href="Transactional.dc.html" class="xm" title="Transactional"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span class="nl">Transactional</span></a>
+      <a href="Contacts.dc.html" title="Audience"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="5" r="2.5"></circle><path d="M1.5 14a4.5 4.5 0 0 1 9 0M11 3a2.5 2.5 0 0 1 0 5M14.5 14a4 4 0 0 0-3-3.8"></path></svg><span class="nl">Audience</span></a>
+      <a href="GrowOverview.dc.html" class="xm" title="Grow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12.5 6 8.5l3 3 5-5.5"></path><path d="M10.5 5.5H14V9"></path></svg><span class="nl">Grow</span></a>
+      <a href="EarnOverview.dc.html" class="xm" title="Earn"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M10 5.9H7.1a1.3 1.3 0 0 0 0 2.6h1.8a1.3 1.3 0 0 1 0 2.6H6M8 4.4v1.5M8 11.1v1.5"></path></svg><span class="nl">Earn</span></a>
+      <a href="FormBuilder.dc.html" class="xm" title="Forms &amp; pages"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"></rect><path d="M5 6h6M5 9h6M5 12h3"></path></svg><span class="nl">Forms &amp; pages</span></a>
+      <a href="Deliverability.dc.html" title="Deliverability"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg><span class="nl">Deliverability</span></a>
+      <a href="Providers.dc.html" class="on xm" aria-current="page" title="Sending providers"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2" width="12" height="5" rx="1.5"></rect><rect x="2" y="9" width="12" height="5" rx="1.5"></rect><path d="M5 4.5h.01M5 11.5h.01" stroke-width="2" stroke-linecap="round"></path></svg><span class="nl">Sending providers</span></a>
+      <a href="WorkspaceSettings.dc.html" class="xm" title="Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M13 4h1M2 8h2M8 8h6M2 12h7M13 12h1"></path><circle cx="11" cy="4" r="1.8"></circle><circle cx="6" cy="8" r="1.8"></circle><circle cx="11" cy="12" r="1.8"></circle></svg><span class="nl">Settings</span></a>
+      <a href="ShellMore.dc.html" class="more on" aria-label="More: Automations, Transactional, Grow, Earn, Forms & pages, Sending providers, Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"></circle><circle cx="8" cy="8" r="1.2"></circle><circle cx="12.5" cy="8" r="1.2"></circle></svg><span class="nl">More</span></a>
+    </nav>
+  </aside>
+
+  <div class="mainc" style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
+    <header class="top" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 28px;background:#fff;border-bottom:1px solid #E3E6EB">
+      <h1 style="margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em">Sending providers &amp; routing</h1>
+      <div style="position:relative;margin-left:4px">
+        <button class="chbtn" type="button" aria-haspopup="listbox" aria-expanded="{{chOpen}}" aria-label="Channel: Email. Change channel" onClick="{{toggleCh}}"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Email<svg class="chv" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+        <sc-if value="{{chOpen}}" hint-placeholder-val="{{false}}">
+          <div class="menu" role="listbox" aria-label="Channel" style="top:40px;left:0;min-width:210px">
+            <a role="option" aria-selected="true" href="Providers.dc.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg><span style="flex:1">Email</span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#0F766E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg></a>
+            <a role="option" aria-selected="false" href="SmsProviders.dc.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2.5h10A1.5 1.5 0 0 1 14.5 4v6a1.5 1.5 0 0 1-1.5 1.5H7.6L4.5 14v-2.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5z"></path></svg><span style="flex:1">SMS</span></a>
+            <a role="option" aria-selected="false" href="PushSetup.dc.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span style="flex:1">Push</span></a>
+            <a role="option" aria-selected="false" href="WhatsAppChannel.dc.html"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8a6.2 6.2 0 0 0-5.33 9.36L1.8 14.2l3.13-.84A6.2 6.2 0 1 0 8 1.8z"></path></svg><span style="flex:1">WhatsApp</span></a>
+          </div>
+        </sc-if>
+      </div>
+      <nav class="tabs" aria-label="Sections" style="margin-left:12px">
+        <a href="Providers.dc.html">Providers</a>
+        <a href="ProvidersRouting.dc.html">Routing &amp; failover</a>
+        <a href="ProvidersWarmup.dc.html">Warm-up</a>
+        <a href="ProvidersTrafficRules.dc.html" class="on" aria-current="page">Traffic rules</a>
+        <a href="ProvidersEvents.dc.html">Events &amp; sync</a>
+        <a href="ProvidersAdapters.dc.html">Adapters</a>
+      </nav>
+      <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="k" role="status">{{savedText}}</span>
+        <button class="btn pri" type="button" onClick="{{save}}">Save rules</button>
+      <div class="tools"><a href="Notifications.dc.html" class="ibtn" aria-label="Notifications, 3 unread"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1.5 1.5h-11zM6.5 14a1.5 1.5 0 0 0 3 0"></path></svg><span class="cnt" aria-hidden="true">3</span></a><button class="ubtn" type="button" aria-haspopup="menu" aria-label="Linh Nguyen, account menu"><span class="av" style="width:26px;height:26px;font-size:11px;background:#DBEAFE;color:#1E40AF" aria-hidden="true">LN</span><span class="unm">Linh</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button></div></div>
+    </header>
+
+    <main class="content" id="main" style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+        <div style="flex:2 1 600px;min-width:0;display:flex;flex-direction:column;gap:16px">
+
+          <section class="card" aria-labelledby="tr-s1">
+            <div class="sech">
+              <div><h2 class="h2" id="tr-s1">Thresholds by bounce type</h2><span class="k">Workspace defaults for every send. A campaign can change them in <a href="SendReadiness.dc.html">Review &amp; send</a>.</span></div>
+              <span class="badge mut">Workspace default</span>
+            </div>
+            <div class="rule">
+              <div class="rule-h"><b>Block/policy bounces</b><span class="k">Rejections for reputation, policy or content, such as Outlook S3150 or Gmail 550 5.7.1.</span></div>
+              <div class="rule-l">
+                <span>At</span><input class="in pct" type="text" inputmode="decimal" value="{{v.block}}" onChange="{{set.block}}" aria-label="Block/policy bounces: limit in percent"><span>% at one mailbox provider</span><span class="arr" aria-hidden="true">→</span>
+                <select class="in" value="{{v.blockAct}}" onChange="{{set.blockAct}}" aria-label="Block/policy bounces: action"><option>Pause that mailbox provider</option><option>Slow it to half rate</option><option>Pause the send</option><option>Warn</option></select>
+              </div>
+            </div>
+            <div class="rule">
+              <div class="rule-h"><b>Unknown user</b><span class="k">Addresses that don't exist (550 5.1.1). Many at once point to an old or bought list.</span></div>
+              <div class="rule-l">
+                <span>At</span><input class="in pct" type="text" inputmode="decimal" value="{{v.unk1}}" onChange="{{set.unk1}}" aria-label="Unknown user, first level: limit in percent"><span>% of the send</span><span class="arr" aria-hidden="true">→</span>
+                <select class="in" value="{{v.unk1Act}}" onChange="{{set.unk1Act}}" aria-label="Unknown user, first level: action"><option>Warn</option><option>Slow it to half rate</option><option>Pause the send</option></select>
+              </div>
+              <div class="rule-l">
+                <span>At</span><input class="in pct" type="text" inputmode="decimal" value="{{v.unk2}}" onChange="{{set.unk2}}" aria-label="Unknown user, second level: limit in percent"><span>% of the send</span><span class="arr" aria-hidden="true">→</span>
+                <select class="in" value="{{v.unk2Act}}" onChange="{{set.unk2Act}}" aria-label="Unknown user, second level: action"><option>Pause the send</option><option>Warn</option><option>Slow it to half rate</option></select>
+              </div>
+            </div>
+            <div class="rule">
+              <div class="rule-h"><b>Soft bounces and deferrals</b><span class="k">Temporary 4xx replies: the mailbox provider is asking you to slow down or try later.</span></div>
+              <div class="rule-l">
+                <span>At</span><input class="in pct" type="text" inputmode="decimal" value="{{v.soft1}}" onChange="{{set.soft1}}" aria-label="Soft bounces and deferrals, first level: limit in percent"><span>% over</span>
+                <select class="in win" value="{{v.soft1Win}}" onChange="{{set.soft1Win}}" aria-label="Soft bounces and deferrals, first level: time window"><option>10 min</option><option>5 min</option><option>15 min</option><option>30 min</option></select>
+                <span>at one mailbox provider</span><span class="arr" aria-hidden="true">→</span>
+                <select class="in" value="{{v.soft1Act}}" onChange="{{set.soft1Act}}" aria-label="Soft bounces and deferrals, first level: action"><option>Slow it to half rate</option><option>Pause that mailbox provider</option><option>Warn</option></select>
+              </div>
+              <div class="rule-l">
+                <span>At</span><input class="in pct" type="text" inputmode="decimal" value="{{v.soft2}}" onChange="{{set.soft2}}" aria-label="Soft bounces and deferrals, second level: limit in percent"><span>% over</span>
+                <select class="in win" value="{{v.soft2Win}}" onChange="{{set.soft2Win}}" aria-label="Soft bounces and deferrals, second level: time window"><option>10 min</option><option>5 min</option><option>15 min</option><option>30 min</option></select>
+                <span>at one mailbox provider</span><span class="arr" aria-hidden="true">→</span>
+                <select class="in" value="{{v.soft2Act}}" onChange="{{set.soft2Act}}" aria-label="Soft bounces and deferrals, second level: action"><option>Pause that mailbox provider</option><option>Slow it to half rate</option><option>Warn</option></select>
+              </div>
+            </div>
+            <div class="rule">
+              <div class="rule-h"><b>Complaints</b><span class="k">Counted only where mailbox providers report them: Outlook, Yahoo and some in Other. Gmail and iCloud don't report complaints per message.</span></div>
+              <div class="rule-l">
+                <span>At</span><input class="in pct" type="text" inputmode="decimal" value="{{v.cmp}}" onChange="{{set.cmp}}" aria-label="Complaints: limit in percent"><span>% at one mailbox provider</span><span class="arr" aria-hidden="true">→</span>
+                <select class="in" value="{{v.cmpAct}}" onChange="{{set.cmpAct}}" aria-label="Complaints: action"><option>Pause that mailbox provider</option><option>Pause the send</option><option>Warn</option></select>
+              </div>
+            </div>
+            <div class="fns" style="padding:12px 20px">
+              <p class="fn">Every threshold waits for at least 5 events and 500 delivered to that mailbox provider, then trips only when there's enough evidence that the rate is really above the limit. Until then the live monitor shows it as “Collecting evidence”.</p>
+            </div>
+          </section>
+
+          <section class="card" aria-labelledby="tr-s2">
+            <div class="sech">
+              <div><h2 class="h2" id="tr-s2">Mailbox provider responses</h2><span class="k">Rules that match the text of SMTP replies, on every route. A rule acts as soon as its count is reached, before any rate threshold.</span></div>
+              <span class="badge mut">{{rulesOnText}}</span>
+            </div>
+            <sc-for list="{{rules}}" as="ru" hint-placeholder-count="3">
+              <div class="rrule">
+                <label class="swl"><input type="checkbox" class="tgx" role="switch" checked="{{ru.on}}" onChange="{{ru.toggle}}" aria-label="{{ru.switchLabel}}"></label>
+                <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                  <span style="font-size:13px"><b>{{ru.mbp}}</b> · reply contains <span class="mono code">{{ru.code}}</span></span>
+                  <span style="font-size:13px">{{ru.whenText}} <span class="arr" aria-hidden="true">→</span> <b>{{ru.action}}</b> · {{ru.dur}}</span>
+                  <span class="k">{{ru.means}}</span>
+                  <span class="k">Last matched: {{ru.last}}</span>
+                </div>
+                <button class="btn sm" type="button" onClick="{{ru.remove}}" aria-label="{{ru.removeLabel}}">Remove</button>
+              </div>
+            </sc-for>
+            <div class="addf" aria-labelledby="tr-add">
+              <h3 class="h2" id="tr-add" style="font-size:14px">Add rule</h3>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px">
+                <label class="lbl">Mailbox provider<select class="in" value="{{nf.mbp}}" onChange="{{nset.mbp}}"><option>Gmail</option><option>Outlook</option><option>Yahoo</option><option>iCloud</option><option>Other</option></select></label>
+                <label class="lbl">Reply contains<input class="in mono" type="text" value="{{nf.code}}" onChange="{{nset.code}}" placeholder="e.g. 4.7.650" aria-invalid="{{codeInvalid}}" aria-describedby="tr-code-help"></label>
+                <label class="lbl">When<select class="in" value="{{nf.when}}" onChange="{{nset.when}}"><option>First reply</option><option>5 replies in 10 min</option><option>10 replies in 10 min</option><option>25 replies in 10 min</option></select></label>
+                <label class="lbl">Action<select class="in" value="{{nf.action}}" onChange="{{nset.action}}"><option>Slow it to 50%</option><option>Pause that mailbox provider</option><option>Pause it on that route and alert</option><option>Alert only</option></select></label>
+                <label class="lbl">Duration<select class="in" value="{{nf.dur}}" onChange="{{nset.dur}}"><option>30 min</option><option>1 h</option><option>2 h</option><option>6 h</option><option>Until someone resumes</option></select></label>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <sc-if value="{{codeInvalid}}" hint-placeholder-val="{{false}}"><span class="k" id="tr-code-help" role="alert" style="color:#991B1B">Enter the reply text to match, for example TSS04.</span></sc-if>
+                <sc-if value="{{codeOk}}" hint-placeholder-val="{{true}}"><span class="k" id="tr-code-help">Matched as plain text, not case-sensitive, anywhere in the SMTP reply.</span></sc-if>
+                <button class="btn" type="button" style="margin-left:auto" onClick="{{addRule}}">Add rule</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="card" aria-labelledby="tr-s3">
+            <div class="sech">
+              <div><h2 class="h2" id="tr-s3">Canary defaults</h2><span class="k">A canary sends to a small, engaged slice first and holds everyone else until it passes.</span></div>
+              <span class="badge ok"><span class="dot"></span>On</span>
+            </div>
+            <div style="padding:16px 20px;display:flex;flex-direction:column;gap:16px">
+              <fieldset class="fs">
+                <legend>Run a canary when</legend>
+                <label class="tg"><input type="checkbox" checked><span><span style="font-weight:600">The sending domain or IP is new</span><br><span class="k">first 30 days of sending from it</span></span></label>
+                <label class="tg"><input type="checkbox" checked><span><span style="font-weight:600">Some recipients never got mail from this domain</span><br><span class="k">for example contacts imported since the last send</span></span></label>
+                <label class="tg"><input type="checkbox" checked><span><span style="font-weight:600">The audience is over 2× the usual size</span><br><span class="k">usual for Weekly Digest: 31,400, the median of the last 8 sends</span></span></label>
+              </fieldset>
+              <div class="cgrid">
+                <div class="lbl"><span id="tr-size">Size</span><div style="display:flex;align-items:center;gap:8px"><input class="in pct" type="text" inputmode="decimal" value="{{v.size}}" onChange="{{set.size}}" aria-labelledby="tr-size tr-size-u"><span id="tr-size-u" style="font-weight:500;color:#0B1220">% most engaged</span></div></div>
+                <label class="tg" style="align-items:center;min-height:36px"><input type="checkbox" checked><span>Add the 10 seed inboxes</span></label>
+                <label class="lbl">Watch time<select class="in" value="{{v.watch}}" onChange="{{set.watch}}"><option>20 min</option><option>10 min</option><option>30 min</option><option>60 min</option></select></label>
+              </div>
+              <fieldset class="fs">
+                <legend>Gates</legend>
+                <div class="ggrid">
+                  <div class="gatef"><span>Bounces</span><span class="gi"><input class="in pct" type="text" inputmode="decimal" value="{{v.gBounce}}" onChange="{{set.gBounce}}" aria-label="Canary gate, bounces: limit in percent">%</span></div>
+                  <div class="gatef"><span>Block/policy bounces</span><span class="gi"><input class="in pct" type="text" inputmode="decimal" value="{{v.gBlock}}" onChange="{{set.gBlock}}" aria-label="Canary gate, block/policy bounces: limit in percent">%</span></div>
+                  <div class="gatef"><span>Deferrals</span><span class="gi"><input class="in pct" type="text" inputmode="decimal" value="{{v.gDefer}}" onChange="{{set.gDefer}}" aria-label="Canary gate, deferrals: limit in percent">%</span></div>
+                  <div class="gatef"><span>Complaints, per mailbox provider</span><span class="gi"><input class="in pct" type="text" inputmode="decimal" value="{{v.gCmp}}" onChange="{{set.gCmp}}" aria-label="Canary gate, complaints per mailbox provider: limit in percent">%</span></div>
+                  <div class="gatef"><span>Seeds in spam, at most</span><span class="gi"><input class="in pct" type="text" inputmode="numeric" value="{{v.gSeeds}}" onChange="{{set.gSeeds}}" aria-label="Canary gate, seed inboxes in spam: at most">of 10</span></div>
+                </div>
+              </fieldset>
+              <p class="fn">The canary starts at the scheduled time and everyone else waits for it, so a send with a canary finishes about 25 minutes later. When the watch ends and every gate with enough evidence passes, the send continues by itself; if a gate fails, it stays held and you're asked. Gates still collecting evidence don't hold the send; they become its thresholds.</p>
+            </div>
+          </section>
+
+          <section class="card" aria-labelledby="tr-s4">
+            <div class="sech">
+              <div><h2 class="h2" id="tr-s4">After the send</h2><span class="k">Complaints keep arriving for days after delivery.</span></div>
+            </div>
+            <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px">
+              <label class="lbl" style="max-width:260px">Watch complaints after the send ends<select class="in" value="{{v.after}}" onChange="{{set.after}}"><option>72 h</option><option>24 h</option><option>48 h</option><option>7 days</option></select></label>
+              <div class="swrow"><span style="display:flex;flex-direction:column;gap:1px"><span style="font-weight:600">Alert when a mailbox provider passes its complaint limit during the watch</span><span class="k">In the app and by email to Linh Nguyen and Marcus Chen, who can resume sends</span></span><label class="swl"><input type="checkbox" class="tgx" role="switch" checked aria-label="Alert when a mailbox provider passes its complaint limit during the watch"></label></div>
+              <div class="swrow"><span style="display:flex;flex-direction:column;gap:1px"><span style="font-weight:600">Read Gmail's daily spam rate from Postmaster Tools</span><span class="k">Gmail reports one rate per day for the whole domain, not single complaints. Alert above 0.10%.</span></span><label class="swl"><input type="checkbox" class="tgx" role="switch" checked aria-label="Read Gmail's daily spam rate from Postmaster Tools"></label></div>
+              <p class="fn">Late complaints add the contact to the suppression list and count in the campaign report.</p>
+            </div>
+          </section>
+        </div>
+
+        <aside class="cpanel" style="flex:1 1 360px;max-width:460px;display:flex;flex-direction:column;gap:16px" aria-label="How traffic rules work">
+          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+            <h2 class="h2">How these rules apply</h2>
+            <ol style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:13px">
+              <li>A campaign's limits from Review &amp; send replace these defaults for that campaign.</li>
+              <li>Reply rules act as soon as their count is reached, before any rate threshold.</li>
+              <li>An action applies to one mailbox provider unless it says “the send”.</li>
+              <li>Slowdowns end by themselves after their time. Pauses wait for someone who can resume: Linh Nguyen or Marcus Chen.</li>
+              <li>Every action shows in the live monitor and in <a href="ProvidersEvents.dc.html">Events &amp; sync</a>.</li>
+            </ol>
+          </section>
+
+          <section class="card" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+            <h2 class="h2">What the live monitor shows</h2>
+            <div class="lg"><span class="badge mut"><span class="dot"></span>Collecting evidence</span><span class="k">Fewer than 5 events or 500 delivered; it can't trip yet. Grey bar.</span></div>
+            <div class="lg"><span class="badge ok"><span class="dot"></span>Watching</span><span class="k">Enough evidence and inside the limit.</span></div>
+            <div class="lg"><span class="badge warn"><span class="dot"></span>Close to the limit</span><span class="k">At 90% of the limit or more.</span></div>
+            <div class="lg"><span class="badge bad"><span class="dot"></span>Tripped</span><span class="k">Enough evidence that the rate is above the limit; the action ran.</span></div>
+          </section>
+
+          <section class="card" style="display:flex;flex-direction:column">
+            <div style="padding:14px 20px;border-bottom:1px solid #EEF0F3;display:flex;flex-direction:column;gap:2px"><h2 class="h2">Recent actions</h2><span class="k">last 30 days</span></div>
+            <div class="ra"><span class="mono k">9 Oct 09:21</span><span>Outlook complaints reached 0.18% (limit 0.10%) · paused Outlook</span><span class="k">October Product Update</span></div>
+            <div class="ra"><span class="mono k">30 Sep 09:06</span><span>Gmail replied 421-4.7.28 five times · slowed Gmail to 50% for 30 min</span><span class="k">Weekly Digest #140</span></div>
+            <div class="ra"><span class="mono k">23 Sep 09:14</span><span>Yahoo replied TSS04 ten times · paused Yahoo for 2 h</span><span class="k">Weekly Digest #139</span></div>
+            <div style="padding:4px 20px;border-top:1px solid #EEF0F3"><a href="ProvidersEvents.dc.html" class="ra-link" style="font-size:13px;font-weight:500">All events in Events &amp; sync</a></div>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2448}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      chOpen: false,
+      saved: false,
+      dirty: false,
+      v: {
+        block: '0.5', blockAct: 'Pause that mailbox provider',
+        unk1: '3', unk1Act: 'Warn', unk2: '5', unk2Act: 'Pause the send',
+        soft1: '15', soft1Win: '10 min', soft1Act: 'Slow it to half rate',
+        soft2: '40', soft2Win: '10 min', soft2Act: 'Pause that mailbox provider',
+        cmp: '0.10', cmpAct: 'Pause that mailbox provider',
+        size: '5', watch: '20 min', gBounce: '1.0', gBlock: '0.2', gDefer: '15', gCmp: '0.10', gSeeds: '2',
+        after: '72 h'
+      },
+      rules: [
+        { id: 1, mbp: 'Yahoo', code: 'TSS04', when: '10 replies in 10 min', action: 'Pause Yahoo', dur: 'for 2 h', means: 'Yahoo is deferring mail because of unexpected volume or complaints.', last: '23 Sep · Weekly Digest #139', on: true },
+        { id: 2, mbp: 'Outlook', code: 'S3150', when: 'First reply', action: 'Pause Outlook on that route and alert', dur: 'until someone resumes', means: 'Microsoft has put the sending IP on its block list; every further message would bounce.', last: 'never', on: true },
+        { id: 3, mbp: 'Gmail', code: '421-4.7.28', when: '5 replies in 10 min', action: 'Slow Gmail to 50%', dur: 'for 30 min', means: 'Gmail is rate-limiting an unusual rate of mail from this IP or domain.', last: '30 Sep · Weekly Digest #140', on: true }
+      ],
+      nf: { mbp: 'Gmail', code: '', when: 'First reply', action: 'Slow it to 50%', dur: '30 min' },
+      codeErr: false,
+      nextId: 4
+    };
+  }
+  renderVals() {
+    var self = this;
+    var s = this.state;
+    var set = {};
+    Object.keys(s.v).forEach(function (k) {
+      set[k] = function (e) { var nv = Object.assign({}, s.v); nv[k] = e.target.value; self.setState({ v: nv, dirty: true }); };
+    });
+    var nset = {};
+    Object.keys(s.nf).forEach(function (k) {
+      nset[k] = function (e) { var nf = Object.assign({}, s.nf); nf[k] = e.target.value; self.setState({ nf: nf, codeErr: k === 'code' ? false : s.codeErr }); };
+    });
+    function whenText(w) { return w === 'First reply' ? 'On the first reply' : 'After ' + w; }
+    function actionText(a, m) {
+      if (a === 'Slow it to 50%') return 'Slow ' + m + ' to 50%';
+      if (a === 'Pause that mailbox provider') return 'Pause ' + m;
+      if (a === 'Pause it on that route and alert') return 'Pause ' + m + ' on that route and alert';
+      return 'Alert only';
+    }
+    var on = s.rules.filter(function (r) { return r.on; }).length;
+    var rules = s.rules.map(function (r) {
+      return {
+        mbp: r.mbp, code: r.code, action: r.action, dur: r.dur, means: r.means, last: r.last, on: r.on,
+        whenText: whenText(r.when),
+        switchLabel: r.mbp + ' replies containing ' + r.code,
+        removeLabel: 'Remove the ' + r.mbp + ' ' + r.code + ' rule',
+        toggle: function () {
+          self.setState({ dirty: true, rules: s.rules.map(function (x) { return x.id === r.id ? Object.assign({}, x, { on: !x.on }) : x; }) });
+        },
+        remove: function () {
+          self.setState({ dirty: true, rules: s.rules.filter(function (x) { return x.id !== r.id; }) });
+        }
+      };
+    });
+    return {
+      chOpen: !!s.chOpen,
+      toggleCh: function () { self.setState({ chOpen: !s.chOpen }); },
+      savedText: s.dirty ? 'Unsaved changes' : s.saved ? 'Saved just now by Linh Nguyen' : 'Saved 2 days ago by Linh Nguyen',
+      save: function () { self.setState({ saved: true, dirty: false }); },
+      v: s.v,
+      set: set,
+      nf: s.nf,
+      nset: nset,
+      rules: rules,
+      rulesOnText: on + ' of ' + s.rules.length + ' on',
+      codeInvalid: !!s.codeErr,
+      codeOk: !s.codeErr,
+      addRule: function () {
+        var code = (s.nf.code || '').trim();
+        if (!code) { self.setState({ codeErr: true }); return; }
+        var r = {
+          id: s.nextId, mbp: s.nf.mbp, code: code, when: s.nf.when,
+          action: actionText(s.nf.action, s.nf.mbp),
+          dur: s.nf.dur === 'Until someone resumes' ? 'until someone resumes' : 'for ' + s.nf.dur,
+          means: 'Added just now; not matched yet.', last: 'never', on: true
+        };
+        self.setState({ rules: s.rules.concat([r]), nextId: s.nextId + 1, nf: Object.assign({}, s.nf, { code: '' }), codeErr: false, dirty: true });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

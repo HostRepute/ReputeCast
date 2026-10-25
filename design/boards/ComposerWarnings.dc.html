@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Campaign composer, inline deliverability warnings</title>
+<title>Campaign composer, inline warnings</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -17,10 +17,9 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 12px;border-radius:7px;border:1px solid #D4D8DF;background:#FFFFFF;color:#0B1220;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;box-sizing:border-box}
 .btn:hover{background:#F3F4F6;color:#0B1220}
 .btn.pri{background:#0F766E;border-color:#0F766E;color:#FFFFFF}.btn.pri:hover{background:#115E59;color:#FFFFFF}
-.btn.sm{min-height:28px;padding:0 9px;font-size:12px}
 .btn.ic{width:32px;padding:0}
 .badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;flex:none}
-.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}
+.ok{background:#DCFCE7;color:#166534}.warn{background:#FEF3C7;color:#92400E}.bad{background:#FEE2E2;color:#991B1B}.info{background:#DBEAFE;color:#1E40AF}.mut{background:#EEF0F3;color:#4B5563}.pur{background:#EDE9FE;color:#5B21B6}
 .dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
 .k{font-size:12px;color:#5B6472;font-weight:500}
 .in{height:32px;padding:0 9px;border:1px solid #D4D8DF;border-radius:7px;background:#fff;font:inherit;font-size:12.5px;color:#0B1220;box-sizing:border-box;min-width:0}
@@ -28,24 +27,32 @@ a{color:#0F766E;text-decoration:none}a:hover{color:#115E59}
 .ptab button{flex:1;height:38px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#5B6472;cursor:pointer;border-bottom:2px solid transparent}
 .ptab button.on{color:#0B1220;border-bottom-color:#0F766E}
 .grp{padding:10px 12px 4px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5B6472}
-.blk{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;font-size:11.5px;font-weight:500;color:#374151;text-align:center}
+.blk{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border:1px solid #E3E6EB;border-radius:8px;background:#fff;font-size:11.5px;font-weight:500;color:#374151;cursor:grab;text-align:center}
 .blk svg{width:22px;height:22px;stroke:#374151;fill:none;stroke-width:1.5}
 .blk.rc{border-color:#99F6E4;background:#F0FDFA}
 .seg{display:inline-flex;border:1px solid #D4D8DF;border-radius:7px;overflow:hidden}
-.seg button{height:30px;padding:0 10px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#5B6472;cursor:pointer}
+.seg button{height:30px;padding:0 10px;border:0;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#5B6472;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .seg button.on{background:#0B1220;color:#fff}
 .email{width:600px;background:#fff;box-shadow:0 1px 3px rgba(11,18,32,.12);font-family:Georgia,'Times New Roman',serif;color:#1F2937;flex:none}
 .sec{position:relative;padding:16px 24px}
+.sec:hover{outline:1px dashed #93C5FD;outline-offset:-1px}
 .ph{display:flex;align-items:center;justify-content:center;background:#E9ECF0;color:#5B6472;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:500;border:1px dashed #C9CED6}
-.wtag{position:absolute;display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:6px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11.5px;font-weight:700;box-shadow:0 2px 6px rgba(11,18,32,.18);z-index:2;white-space:nowrap}
-.wtag.w{background:#FEF3C7;color:#92400E;border:1px solid #FCD34D}.wtag.b{background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5}
-.iss{display:flex;flex-direction:column;gap:8px;padding:12px;border-bottom:1px solid #EEF0F3}
-.iss .t{display:flex;gap:8px;align-items:flex-start;font-weight:600}
+.tb{position:absolute;top:-30px;right:-2px;display:flex;background:#1D4ED8;border-radius:6px 6px 0 0;padding:2px}
+.tb button{width:26px;height:26px;border:0;background:none;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.tb svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:1.8}
+.lab{position:absolute;top:-30px;left:-2px;background:#1D4ED8;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:600;padding:0 8px;height:26px;display:inline-flex;align-items:center;border-radius:6px 6px 0 0;margin-top:2px}
+.prop{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-bottom:1px solid #EEF0F3}
+.prop .t{font-size:12px;font-weight:600}
+.row4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.sw{width:22px;height:22px;border-radius:5px;border:1px solid #D4D8DF;flex:none}
+.bc{display:flex;align-items:center;gap:6px;font-size:12px;color:#5B6472}
+.bc b{color:#0B1220;font-weight:600}
 
 /* responsive shell */
 @media (max-width:1100px){
   .side{flex:0 0 72px!important;max-width:72px;padding:14px 8px!important;gap:4px!important}
-  .side .nl,.side .brand-t,.side .ws{display:none}
+  .side .brand-t,.side .ws{display:none}.side .nl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .side .nav a{justify-content:center;padding:0!important;height:44px}
   .side .nav svg{width:20px;height:20px}
   .side > a[aria-label="ReputeCast home"]{justify-content:center;padding:6px 0!important}
@@ -118,124 +125,639 @@ input[type=checkbox],input[type=radio]{width:16px;height:16px;accent-color:#0F76
   .sc-host [style*="width: 300px"],.sc-host [style*="width: 320px"],.sc-host [style*="width: 340px"],.sc-host [style*="width: 360px"],.sc-host [style*="width: 380px"],.sc-host [style*="width: 400px"],.sc-host [style*="width: 420px"]{width:auto!important;min-width:0!important;max-width:100%}
   .sc-host div[style*="display: flex"]:not([style*="column"]):not([style*="height"]):not([style*="nowrap"]):not(.bar):not([style*="gap: 2px"]){flex-wrap:wrap}
 }
+/* ===== compact composer chrome: one top bar + one Inbox strip (shared by the composer boards) ===== */
+.cbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 16px;background:#FFFFFF;border-bottom:1px solid #E3E6EB;box-sizing:border-box;position:relative;z-index:30}
+.cbar .btn{min-height:36px;padding:0 12px;font-size:13px;border-radius:8px;white-space:nowrap}
+.cbar .btn.ic{width:36px;padding:0}
+.cbar svg{flex:none}
+.cb-left{display:flex;align-items:center;gap:10px;min-width:0}
+.cb-id{display:flex;align-items:center;gap:8px;min-width:0}
+.cb-name{height:36px;width:164px;min-width:0;padding:0 8px;margin-left:-2px;border:1px solid transparent;border-radius:8px;background:transparent;font:inherit;font-size:15px;font-weight:700;color:#0B1220;box-sizing:border-box;text-overflow:ellipsis}
+.cb-name:hover{border-color:#D4D8DF}
+.cb-name:focus{border-color:#8B94A3;background:#FFFFFF}
+.cb-name::placeholder{color:#5B6472;font-weight:600}
+.stchip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;background:#EEF0F3;color:#4B5563;font-size:12px;font-weight:600;white-space:nowrap;flex:none;box-sizing:border-box}
+.stchip.ok{background:#DCFCE7;color:#166534}.stchip.warn{background:#FEF3C7;color:#92400E}.stchip.bad{background:#FEE2E2;color:#991B1B}
+.cb-pres{display:flex;align-items:center;gap:8px;flex:none;padding-left:10px;border-left:1px solid #E3E6EB;min-height:28px}
+.pav{position:relative;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:#EDE9FE;color:#5B21B6;flex:none}
+.pav i{position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:50%;background:#15803D;border:2px solid #FFFFFF;box-sizing:border-box}
+.cb-pres .pt{font-size:12px;font-weight:500;color:#5B6472;white-space:nowrap}
+.cb-mid{display:flex;align-items:center;gap:8px;margin-left:auto}
+.modes{display:inline-flex;align-items:center;gap:2px;padding:2px;border:1px solid #D4D8DF;border-radius:9px;background:#FFFFFF;flex:none;box-sizing:border-box}
+.modes a,.modes button{border:0;background:transparent;font:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 12px;border-radius:7px;color:#4B5563;font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none;box-sizing:border-box}
+.modes a:hover,.modes button:hover{background:#F3F4F6;color:#0B1220}
+.modes a[aria-selected="true"],.modes button[aria-selected="true"]{background:#0B1220;color:#FFFFFF}
+.devt{display:inline-flex;border:1px solid #D4D8DF;border-radius:8px;overflow:hidden;flex:none}
+.devt button{width:38px;height:34px;border:0;background:#FFFFFF;color:#4B5563;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.devt button + button{border-left:1px solid #E3E6EB}
+.devt button[aria-pressed="true"]{background:#0B1220;color:#FFFFFF}
+.devt button:disabled{color:#5B6472;opacity:.55;cursor:not-allowed}
+.cb-end{display:flex;align-items:center;gap:8px;margin-left:auto}
+.cb-end .btn .bi{display:none}
+.modes a svg{display:none}
+.langb .ln{color:#5B6472;font-weight:500}
+.cb-go{display:flex;align-items:center}
+.rsend .rs-b{font-weight:600}
+.btn.pri.rs-stop{background:#B91C1C;border-color:#B91C1C;color:#FFFFFF}.btn.pri.rs-stop:hover{background:#991B1B;color:#FFFFFF}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn.sm{min-height:28px;padding:0 10px;font-size:12px}
+.btn.danger{color:#991B1B;border-color:#FCA5A5}.btn.danger:hover{background:#FFF5F5;color:#991B1B}
+.btn.ghost{border-color:transparent;background:transparent}.btn.ghost:hover{background:#F3F4F6}
+.nt-phone{display:none}
+
+/* Inbox strip */
+.istrip{display:flex;align-items:center;gap:10px;min-height:40px;padding:4px 16px;background:#F9FAFB;border-bottom:1px solid #E3E6EB;box-sizing:border-box;font-size:12.5px;position:relative;z-index:20}
+.is-l{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472;flex:none}
+.is-sum{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 auto;margin:0;white-space:nowrap;overflow:hidden}
+.is-i{display:inline-flex;align-items:center;gap:5px;min-width:0;overflow:hidden}
+.is-i.sub{flex:0 1 auto;max-width:330px}.is-i.pre{flex:0 1 auto;max-width:280px}.is-i.to,.is-i.via{flex:none}
+.is-k{color:#5B6472;font-weight:500;flex:none}
+.is-v{color:#0B1220;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.is-v.none{color:#5B6472;font-weight:500;font-style:italic}
+.is-sep{color:#5B6472;flex:none}
+.is-flag{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:999px;background:#FEF3C7;color:#92400E;font-size:11.5px;font-weight:600;flex:none}
+.is-edit{flex:none;margin-left:auto}
+.ipanel{display:flex;flex-wrap:wrap;gap:16px 20px;padding:14px 16px 16px;background:#FFFFFF;border-bottom:1px solid #E3E6EB;box-sizing:border-box;position:relative;z-index:19}
+.ip-in{flex:3 1 520px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.ip-row{display:flex;flex-wrap:wrap;gap:10px 14px}
+.ip-row > label,.ip-row > div{flex:1 1 260px;min-width:0}
+.ip-send{flex:1 1 300px;max-width:440px;min-width:0;display:flex;flex-direction:column;gap:10px;padding:12px 14px;border:1px solid #E3E6EB;border-radius:10px;background:#F9FAFB;box-sizing:border-box}
+.ip-h{margin:0;font-size:13px;font-weight:700;color:#0B1220;display:flex;align-items:center;gap:8px}
+.lbl{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:#4B5563;min-width:0}
+.lbl .in{width:100%}
+.lbl .k{font-weight:500}
+.gmail{display:flex;align-items:center;gap:12px;min-height:40px;padding:0 12px;border:1px solid #E3E6EB;border-radius:8px;background:#FFFFFF;font-size:13px;white-space:nowrap;overflow:hidden;box-sizing:border-box}
+.gmail .gf{font-weight:700;flex:none;width:126px;overflow:hidden;text-overflow:ellipsis}
+.gmail .gs{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.gmail .gs b{font-weight:700}
+.gmail .gs span{color:#5B6472}
+.gmail .gt{margin-left:auto;font-size:12px;font-weight:600;color:#5B6472;flex:none}
+.route{display:flex;align-items:center;gap:8px;min-height:36px;padding:0 10px;border:1px solid #8B94A3;border-radius:8px;background:#FFFFFF;color:#0B1220;font-size:12.5px;font-weight:600;text-decoration:none;box-sizing:border-box}
+.route:hover{background:#F3F4F6;color:#0B1220}
+.route .rb{display:flex;gap:2px;width:72px;height:8px;flex:none}
+.route .rb i{display:block;height:100%;border-radius:999px}
+
+/* editor body */
+.cwrap{display:flex;flex:1 1 auto;align-items:stretch;min-height:0}
+.lp{flex:0 0 248px;width:248px;background:#FFFFFF;border-right:1px solid #E3E6EB;display:flex;flex-direction:column;min-width:0;box-sizing:border-box}
+.cv{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;background:#E9ECF0;position:relative}
+.rp{flex:0 0 320px;width:320px;background:#FFFFFF;border-left:1px solid #E3E6EB;display:flex;flex-direction:column;min-width:0;box-sizing:border-box}
+.ptab button{padding:0 6px;white-space:nowrap}
+.ptab button .n{font-weight:600;color:#5B6472}
+.ptab button.on .n{color:#0B1220}
+.cfoot{display:flex;align-items:center;gap:6px 16px;flex-wrap:wrap;padding:8px 16px;background:#FFFFFF;border-top:1px solid #E3E6EB;font-size:12px;box-sizing:border-box}
+.cfoot .hint{display:flex;flex-wrap:wrap;gap:4px 12px;color:#5B6472;font-weight:500}
+.kbd{display:inline-flex;align-items:center;height:20px;padding:0 6px;border:1px solid #D4D8DF;border-bottom-width:2px;border-radius:5px;background:#FFFFFF;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;font-weight:500;color:#374151;margin-right:4px}
+.card{background:#FFFFFF;border:1px solid #E3E6EB;border-radius:10px}
+.h2{margin:0;font-size:15px;font-weight:600}
+.note{display:flex;gap:8px 10px;align-items:flex-start;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.45;box-sizing:border-box}
+.note > :last-child{flex:1 1 auto;min-width:0}
+.note.i{background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A}
+.note.w{background:#FFFBEB;border:1px solid #FCD34D;color:#78350F}
+.note.b{background:#FFF5F5;border:1px solid #FCA5A5;color:#7F1D1D}
+.note.g{background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D}
+.note.n{background:#F3F4F6;border:1px solid #E3E6EB;color:#374151}
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+
+/* tablet: canvas first, panels stack below it */
+@media (max-width:1100px){
+  .cbar{padding:10px 16px}
+  .cb-left{order:1;flex:1 1 calc(100% - 300px)}
+  .cb-go{order:2}
+  .cb-mid{order:3;margin-left:0}
+  .cb-end{order:4;margin-left:auto}
+  .cb-pres .pt{display:none}
+  .is-i.pre{display:none}
+  .is-i.pre + .is-sep{display:none}
+  .ip-send{max-width:none;flex-basis:100%}
+  .cwrap{flex-wrap:wrap}
+  .cv{order:1;flex:1 1 100%}
+  .lp{order:2;flex:1 1 300px;width:auto;border-right:1px solid #E3E6EB;border-top:1px solid #E3E6EB}
+  .rp{order:3;flex:1 1 300px;width:auto;border-left:0;border-top:1px solid #E3E6EB}
+}
+/* phone */
+@media (max-width:767px){
+  .cbar{padding:8px 12px;gap:8px}
+  .cbar .btn{min-height:44px}
+  .cbar .btn.ic{width:44px}
+  .cb-left{flex:1 1 calc(100% - 160px);gap:8px}
+  .cb-id{flex-direction:column;align-items:flex-start;gap:2px}
+  .cb-name{width:100%;height:44px;font-size:15px;padding:0 4px;margin-left:-4px}
+  .stchip{height:auto;min-height:20px;font-size:11.5px;padding:2px 8px;white-space:normal;line-height:1.25;max-width:100%}
+  .cb-id{gap:0}
+  .cb-pres{display:none}
+  .cb-mid{flex:1 1 auto;min-width:0}
+  .modes{flex:1 1 auto;padding:0;gap:0;overflow:hidden}
+  .modes a,.modes button{flex:1 1 0%;height:44px;padding:0 8px;border-radius:0}
+  .modes a svg{display:none}
+  .devt{display:none}
+  .cb-end{margin-left:0;gap:6px;flex-wrap:nowrap}
+  .cb-end .btn{width:44px;padding:0}
+  .cb-end .btn .bi{display:inline}
+  .cb-end .btn .bt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .langb .ln,.langb .chev{display:none}
+  .rsend{flex-direction:column;align-items:flex-start;justify-content:center;gap:0;line-height:1.2;padding:4px 12px!important;white-space:nowrap!important}
+  .rsend .rs-dot{display:none}
+  .rsend .rs-b{font-size:11px;font-weight:600}
+  .nt-phone{display:inline}
+  .istrip{flex-wrap:wrap;padding:8px 12px;gap:6px 10px}
+  .is-sum{flex-wrap:wrap;white-space:normal;flex:1 1 100%;order:3;gap:4px 8px}
+  .is-sep{display:none}
+  .is-i{flex:1 1 100%!important;max-width:100%!important}
+  .is-i.pre{display:inline-flex}
+  .is-edit{min-height:44px!important}
+  .btn.sm{min-height:44px}
+  .ipanel{padding:12px}
+  .ipanel .in,.ipanel select.in{height:44px}
+  .route{min-height:44px}
+  .gmail{flex-wrap:wrap;white-space:normal;padding:8px 12px;gap:2px 10px}
+  .gmail .gf{width:auto}
+  .gmail .gs{flex:1 1 100%;order:3}
+  .cfoot{padding:8px 12px}
+  footer.cfoot a{min-height:44px;display:inline-flex;align-items:center}
+  .in,select.in{height:44px}
+  label.rad{min-height:44px}
+  .ptab button{height:44px}
+  .lp,.rp{flex:1 1 100%}
+}
+/* ===== Composer (Design mode) ===== */
+.cvs{flex:1 1 auto;overflow:auto;padding:28px 24px 40px;display:flex;justify-content:center;align-items:flex-start;position:relative}
+.ctools{position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:4px;padding:3px;background:#FFFFFF;border:1px solid #E3E6EB;border-radius:9px;z-index:5}
+.ctools .btn.ic{width:32px;min-height:32px;border-color:transparent}
+.ctools .btn.ic:hover{background:#F3F4F6}
+.ctools select.in{height:30px;border-color:transparent;padding:0 4px;font-weight:600;color:#374151;width:auto}
+.email{box-sizing:border-box;max-width:100%}
+.email.mob{width:375px}
+.email .cols{display:flex;gap:16px}
+.email .col{min-width:0;position:relative}
+.email.mob .cols{flex-direction:column}
+.email.mob .col{flex:none!important}
+.email .e-h1{margin:0 0 10px;font-size:26px;line-height:1.2;font-weight:700;color:#0B1220}
+.email.mob .e-h1{font-size:23px}
+.email .e-h2{margin:0 0 6px;font-size:17px;line-height:1.3;font-weight:700;color:#0B1220}
+.email .e-p{margin:0;font-size:15px;line-height:1.55}
+.email .e-btn{display:inline-block;padding:9px 14px;border-radius:6px;background:#0F766E;color:#FFFFFF;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600}
+.selsec{outline:2px solid #1D4ED8;outline-offset:-2px;margin-top:30px}
+.lab{font-weight:600}
+.lab .lm{font-weight:500;opacity:.85;margin-left:6px}
+.hero{position:relative}
+.lq{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 9px;margin:0 1px;border-radius:999px;border:1px solid transparent;background:#E3F1EE;color:#0F766E;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600;line-height:1;vertical-align:1px;cursor:pointer;white-space:nowrap}
+.lq .fb{font-weight:500;color:#115E59}
+.lq:hover,.lq[aria-expanded="true"]{border-color:#0F766E}
+.lqpop{position:absolute;left:24px;bottom:88px;width:320px;max-width:calc(100% - 48px);background:#FFFFFF;border:1px solid #D4D8DF;border-radius:10px;box-shadow:0 12px 32px rgba(11,18,32,.16);padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;color:#0B1220;z-index:8;box-sizing:border-box}
+.lqpop .ph-h{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lqpop .ph-h b{font-size:13px}
+.lqpop .lqprev{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:8px;background:#F9FAFB;border:1px solid #EEF0F3;font-size:12.5px}
+.lqpop .lqprev b{font-weight:600}
+.lqpop code{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;color:#4B5563;background:#F3F4F6;border-radius:6px;padding:4px 6px;overflow-wrap:anywhere}
+.lqpop .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.lqpop::after{content:"";position:absolute;left:28px;bottom:-7px;width:12px;height:12px;background:#FFFFFF;border-right:1px solid #D4D8DF;border-bottom:1px solid #D4D8DF;transform:rotate(45deg)}
+.pin{position:absolute;right:-44px;width:30px;height:30px;border-radius:50% 50% 50% 4px;border:2px solid #FFFFFF;box-shadow:0 1px 3px rgba(11,18,32,.18);display:inline-flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:700;cursor:pointer;padding:0}
+.pin::before{content:"";position:absolute;inset:-7px}
+.qnote{display:none}
+/* left panel */
+.lp .lpb{display:flex;flex-direction:column;min-height:0}
+.lp .lhelp{margin:0;padding:8px 12px 0;line-height:1.6}
+.blk .sy{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:#0F766E}
+.tree{list-style:none;margin:0;padding:6px 8px 12px;font-size:12.5px}
+.tree ul{list-style:none;margin:0;padding:0 0 0 16px}
+.tree .ti{display:flex;align-items:center;gap:6px;min-height:30px;padding:0 8px;border-radius:7px;color:#374151;cursor:pointer}
+.tree .ti:hover{background:#F3F4F6}
+.tree .ti.sel{background:#E3F1EE;color:#0F766E;font-weight:600}
+.tree .ti .tk{margin-left:auto;font-size:11px;color:#5B6472;font-weight:500}
+.tree .ti.sel .tk{color:#0F766E}
+/* right panel */
+.rp-sel{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-bottom:1px solid #EEF0F3}
+.rp-sel .rt{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rp-sel b{font-weight:600}
+.seg.full{display:flex}
+.seg.full button{flex:1 1 0;justify-content:center}
+.seg button + button{border-left:1px solid #E3E6EB}
+.seg button[aria-pressed="true"]{background:#0B1220;color:#FFFFFF}
+.swr{display:flex;flex-wrap:wrap;gap:6px}
+.swb{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 9px 0 5px;border:1px solid #D4D8DF;border-radius:8px;background:#FFFFFF;font:inherit;font-size:12px;font-weight:600;color:#374151;cursor:pointer}
+.swb .sw{width:20px;height:20px;border-radius:5px}
+.swb[aria-pressed="true"]{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E;color:#0B1220}
+.colopt{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.co{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 6px 6px;border:1px solid #D4D8DF;border-radius:8px;background:#FFFFFF;font:inherit;font-size:12px;font-weight:600;color:#374151;cursor:pointer}
+.co .cb{display:flex;gap:3px;width:100%;height:18px}
+.co .cb i{display:block;border-radius:3px;background:#C9CED6}
+.co[aria-pressed="true"]{border-color:#0F766E;box-shadow:0 0 0 1px #0F766E;color:#0B1220}
+.co[aria-pressed="true"] .cb i{background:#0F766E}
+.adv{border-bottom:1px solid #EEF0F3}
+.adv > summary{display:flex;flex-direction:column;gap:2px;padding:10px 12px 10px 30px;cursor:pointer;list-style:none;position:relative;font-size:12px;font-weight:600}
+.adv > summary::-webkit-details-marker{display:none}
+.adv > summary::before{content:"";position:absolute;left:13px;top:15px;width:6px;height:6px;border-right:1.6px solid #4B5563;border-bottom:1.6px solid #4B5563;transform:rotate(-45deg)}
+.adv[open] > summary::before{transform:rotate(45deg);top:13px}
+.adv > summary .k{font-weight:500}
+.adv .advb{display:flex;flex-direction:column;gap:10px;padding:0 12px 12px}
+.adv .advb .prop{padding:0;border:0}
+.rp-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;margin-top:auto;border-top:1px solid #EEF0F3}
+label.rad{display:flex;align-items:center;gap:8px;min-height:30px;font-size:13px;color:#0B1220;cursor:pointer}
+label.tgl{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:32px;font-size:13px;color:#0B1220;cursor:pointer}
+input[type=checkbox].tg{appearance:none;-webkit-appearance:none;width:36px;height:22px;border-radius:999px;background:#6B7280;position:relative;cursor:pointer;flex:none;margin:0;border:0}
+input[type=checkbox].tg::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#FFFFFF}
+input[type=checkbox].tg:checked{background:#0F766E}input[type=checkbox].tg:checked::after{left:16px}
+.ck-sum{display:flex;flex-direction:column;padding:4px 12px 8px;border-bottom:1px solid #EEF0F3}
+.ck-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:8px 0;border-top:1px solid #EEF0F3}
+.ck-row:first-child{border-top:0}
+.ck-row .ck-k{font-weight:600}
+.ck-row .k{grid-column:1 / -1}
+.iss{display:flex;flex-direction:column;gap:8px;padding:12px;border-bottom:1px solid #EEF0F3}
+.iss .t{display:flex;gap:8px;align-items:flex-start;font-weight:600}
+.iss .acts{display:flex;gap:6px;flex-wrap:wrap}
+.ckp{margin:0;padding:0 12px 10px 30px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:#374151}
+.ckp li::marker{color:#15803D}
+.cm{display:flex;flex-direction:column;gap:8px;padding:12px;border-bottom:1px solid #EEF0F3}
+.cm .ch{display:flex;align-items:center;gap:8px}
+.cm .ch b{font-weight:600}
+.cm .anc{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;padding:2px 8px;border-radius:6px;background:#F3F4F6;font-size:12px;color:#4B5563;font-weight:500}
+.cm .tx{margin:0;font-size:13px;line-height:1.5}
+.cm textarea.in{height:auto;min-height:64px;padding:8px 9px;resize:vertical;line-height:1.45;width:100%}
+.mn{position:relative}
+.mnl{list-style:none;margin:4px 0 0;padding:4px;border:1px solid #D4D8DF;border-radius:8px;background:#FFFFFF;box-shadow:0 12px 32px rgba(11,18,32,.16);display:flex;flex-direction:column;gap:2px}
+.mnl button{display:flex;align-items:center;gap:8px;width:100%;min-height:34px;padding:0 8px;border:0;border-radius:6px;background:none;font:inherit;font-size:12.5px;color:#0B1220;text-align:left;cursor:pointer}
+.mnl button:hover{background:#F3F4F6}
+.mnl .av{width:22px;height:22px;font-size:9.5px}
+/* phone: quick review, not the builder */
+.qbar{display:none}
+.qsheet-h{display:none}
+.qscrim{display:none}
+.ts{display:none}
+@media (max-width:1100px){
+  .ctools{position:static;align-self:flex-start;margin:0 0 12px}
+  .cvs{flex-direction:column;align-items:center}
+  .pin{right:-38px}
+}
+@media (max-width:767px){
+  .ds .istrip{display:none}
+  .ds .cb-end .hide-ds{display:none}
+  .ds .lp{display:none}
+  .ds .rp{display:none}
+  .ds .rp.as-sheet,.ds .ipanel.as-sheet,.ds .ts.on{display:flex;flex-direction:column;position:fixed;left:0;right:0;bottom:65px;max-height:72vh;overflow:auto;z-index:62;border:1px solid #E3E6EB;border-bottom:0;border-radius:10px 10px 0 0;box-shadow:0 -12px 32px rgba(11,18,32,.16);background:#FFFFFF}
+  .ds .ipanel{display:none}
+  .ds .ipanel.as-sheet{flex-wrap:nowrap;padding:0 12px 16px}
+  .ds .ipanel.as-sheet .ip-send{max-width:none}
+  .ds .rp.as-sheet .ptab,.ds .rp.as-sheet .rp-sel{display:none}
+  .ds .qsheet-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px 6px 12px;border-bottom:1px solid #EEF0F3;position:sticky;top:0;background:#FFFFFF;z-index:1}
+  .ds .ipanel.as-sheet .qsheet-h{margin:0 -12px}
+  .ds .qsheet-h h2{margin:0;font-size:15px;font-weight:600}
+  .ds .qsheet-h .btn.ic{width:44px;min-height:44px;border-color:transparent}
+  .ds .qscrim.on{display:block;position:fixed;inset:0;background:rgba(11,18,32,.32);z-index:61}
+  .ds .ts .tsb{display:flex;flex-direction:column;gap:12px;padding:12px}
+  .ds .cfoot{display:none}
+  .ds .lab,.ds .tb,.ds .ctools,.ds .lqpop{display:none}
+  .ds .selsec{outline:none;margin-top:0}
+  .ds .email,.ds .email.mob{width:100%}
+  .ds .email .cols{flex-direction:column}
+  .ds .email .col{flex:none!important}
+  .ds .email .sec{padding-left:16px!important;padding-right:16px!important}
+  .ds .email .e-h1{font-size:23px}
+  .ds .cvs{padding:12px 8px 96px}
+  .ds .pin{right:6px}
+  .ds .qnote{display:flex;margin:0 0 12px;width:100%;max-width:600px}
+  .ds .qbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:63;gap:2px;padding:6px;background:#FFFFFF;border-top:1px solid #E3E6EB;box-sizing:border-box}
+  .ds .qbar button{flex:1 1 0%;min-width:0;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;border-radius:10px;background:none;color:#4B5563;font:inherit;font-size:11px;font-weight:600;cursor:pointer;position:relative;padding:0 2px}
+  .ds .qbar button[aria-expanded="true"],.ds .qbar button[aria-pressed="true"]{background:#E3F1EE;color:#0F766E}
+  .ds .qbar .qn{position:absolute;top:4px;right:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#FEF3C7;color:#92400E;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+  .ds .qbar .qn.c{background:#EEF0F3;color:#4B5563}
+  .ds.edittext .e-p,.ds.edittext .e-h1,.ds.edittext .e-h2{outline:1px dashed #0F766E;outline-offset:3px;border-radius:2px}
+}
+
+/* ===== Composer, inline warnings ===== */
+.wtag{position:absolute;display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:6px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11.5px;font-weight:700;box-shadow:0 2px 6px rgba(11,18,32,.18);z-index:2;white-space:nowrap}
+.wtag.w{background:#FEF3C7;color:#92400E;border:1px solid #FCD34D}.wtag.b{background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5}
+.ckfail{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;padding:9px 12px;background:#FEF3C7;border-bottom:1px solid #FCD34D;color:#78350F;font-size:12.5px}
+.ckfail .t{flex:1 1 180px;min-width:0}
+.ckfail .t b{font-weight:600;color:#78350F}
+.ckfail.ok{background:#F0FDF4;border-bottom-color:#BBF7D0;color:#14532D}
+.ckfail.ok .t b{color:#14532D}
+.ckfail .spin{width:14px;height:14px;border-radius:50%;border:2px solid #C9CED6;border-top-color:#0F766E;flex:none;display:inline-block}
+.iss.isb{background:#FFF5F5}
+.iss.isw{background:#FFFBEB}
+.iss .lock{display:flex;align-items:flex-start;gap:6px;font-size:12px;color:#7F1D1D;font-weight:500}
+.iss .lock svg{margin-top:2px;flex:none}
+.iss .cat{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5B6472}
+.dis{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid #D4D8DF;border-radius:8px;background:#FFFFFF}
+.dis .t{font-weight:600;font-size:12.5px}
+.dis textarea.in{height:auto;min-height:56px;padding:8px 9px;resize:vertical;line-height:1.45;width:100%}
+.dsd{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;padding:8px 10px;border-radius:8px;background:#F3F4F6;border:1px solid #E3E6EB;font-size:12.5px;color:#374151}
+.dsd .tx{flex:1 1 160px;min-width:0}
+.subj-w{border-color:#B45309!important;background:#FFFBEB}
 </style>
 </helmet>
-<div style="min-height:100vh;display:flex;flex-direction:column">
-  <a href="#main" class="skip">Skip to content</a>
-  <header style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB">
-    <a href="Campaigns.dc.html" class="btn ic" aria-label="Back to campaigns"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a>
-    <div style="display:flex;flex-direction:column;min-width:0"><span class="k" style="font-size:11px">Campaign</span><span style="font-size:15px;font-weight:700">Flash sale: 48 hours only</span></div>
-    <span class="badge mut">Draft · autosaved 09:31 · v6</span>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-left:12px">
-      <button class="btn">All subscribers · 47,842</button>
-      <button class="btn">From: Acme &lt;hello@news.acme.io&gt;</button>
-      <a href="ProvidersRouting.dc.html" class="btn"><span class="dot" style="color:#4a3aa7"></span>SES 90% <span class="dot" style="color:#e87ba4"></span>Postal 10%</a>
+<div class="{{rootCls}}" style="min-height:100vh;display:flex;flex-direction:column">
+  <a href="#main" class="skip">Skip to the email canvas</a>
+  <h1 class="vh">Composer, Design mode: Flash sale, 2 blocking issues and 3 warnings</h1>
+
+  <header class="cbar">
+    <div class="cb-left">
+      <a href="Campaigns.dc.html" class="btn ic" aria-label="Back to campaigns"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 3-5 5 5 5"></path></svg></a>
+      <div class="cb-id">
+        <label class="vh" for="cname">Campaign name</label>
+        <input id="cname" class="cb-name" value="Flash sale: 48 hours only" style="width:206px">
+        <span class="stchip" role="status"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8.5 3.2 3L13 4.5"></path></svg>Saved 09:31 · v6</span>
+      </div>
     </div>
-    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
-      <a href="ComposerPreview.dc.html" class="btn">Preview</a>
-      <button class="btn">Send test</button>
-      <a href="SendReadinessBlocked.dc.html" class="btn pri" style="background:#B91C1C;border-color:#B91C1C">Review &amp; send · 2 blocks</a>
+    <div class="cb-mid">
+      <div class="modes" role="tablist" aria-label="Editing mode">
+        <a role="tab" href="ComposerWrite.dc.html" aria-selected="false" tabindex="-1">Write</a>
+        <a role="tab" href="ComposerWarnings.dc.html" aria-selected="true" aria-controls="main">Design</a>
+        <a role="tab" href="ComposerCode.dc.html" aria-selected="false" tabindex="-1">Code</a>
+      </div>
+      <div class="devt" role="group" aria-label="Canvas width">
+        <button type="button" aria-pressed="true" aria-label="Desktop, 600 px" title="Desktop · 600 px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1.2"></rect><path d="M5.5 14h5M8 11v3"></path></svg></button>
+        <button type="button" aria-pressed="false" aria-label="Mobile, 375 px" title="Mobile · 375 px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="4.5" y="1.5" width="7" height="13" rx="1.5"></rect><path d="M7.2 12.5h1.6"></path></svg></button>
+      </div>
+    </div>
+    <div class="cb-end">
+      <button type="button" class="btn langb" aria-haspopup="listbox" aria-expanded="false" aria-label="Language: English, the source. 1 of 4 workspace languages has a version. Change language"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6.2"></circle><path d="M1.8 8h12.4M8 1.8c1.8 1.7 2.7 3.8 2.7 6.2S9.8 12.5 8 14.2C6.2 12.5 5.3 10.4 5.3 8S6.2 3.5 8 1.8z"></path></svg><span class="bt">English</span><span class="ln">· 1 of 4</span><svg class="chev" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"></path></svg></button>
+      <a href="ComposerPreview.dc.html" class="btn"><svg class="bi" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"></path><circle cx="8" cy="8" r="2"></circle></svg><span class="bt">Preview</span></a>
+      <button type="button" class="btn hide-ds"><svg class="bi" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7"></path></svg><span class="bt">Send test</span></button>
+    </div>
+    <div class="cb-go">
+      <a href="SendReadinessBlocked.dc.html" class="btn pri rs-stop rsend" aria-label="Review and send. Readiness: blocked by 2 issues"><span class="rs-a">Review &amp; send</span><span class="rs-dot" aria-hidden="true">·</span><span class="rs-b">2 blocks</span></a>
     </div>
   </header>
 
-  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:10px 16px;background:#fff;border-bottom:1px solid #E3E6EB">
-    <label style="display:flex;flex-direction:column;gap:2px;flex:2 1 320px"><span class="k" style="font-size:11px;color:#92400E">Subject · 3 spam heuristics: all caps, repeated punctuation, urgency</span><input class="in" value="FLASH SALE!!! 48 HOURS ONLY" style="border-color:#F59E0B;background:#FFFBEB"></label>
-    <label style="display:flex;flex-direction:column;gap:2px;flex:2 1 320px"><span class="k" style="font-size:11px">Preheader</span><input class="in" value="Annual plans 30% off until Thursday midnight."></label>
-    <div style="flex:3 1 360px;display:flex;flex-direction:column;gap:2px;min-width:0"><span class="k" style="font-size:11px">Inbox preview · Gmail</span>
-      <div style="display:flex;gap:10px;align-items:center;height:32px;padding:0 10px;border:1px solid #E3E6EB;border-radius:7px;background:#F9FAFB;font-size:12.5px;white-space:nowrap;overflow:hidden"><span style="font-weight:700;width:60px">Acme</span><span style="overflow:hidden;text-overflow:ellipsis"><b style="font-weight:600">FLASH SALE!!! 48 HOURS ONLY</b><span style="color:#5B6472"> - Annual plans 30% off until Thursday midnight.</span></span><span class="k" style="margin-left:auto">9:31 AM</span></div>
-    </div>
+  <div class="istrip" role="region" aria-label="Inbox">
+    <span class="is-l"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Inbox</span>
+    <p class="is-sum">
+      <span class="is-i sub"><span class="is-k">Subject:</span><span class="is-v">FLASH SALE!!! 48 HOURS ONLY</span></span>
+      <span class="is-flag"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 3v6M8 12v.5"></path></svg>Warn · 3 spam heuristics</span>
+      <span class="is-sep" aria-hidden="true">·</span>
+      <span class="is-i pre"><span class="is-k">Preheader:</span><span class="is-v">Annual plans 30% off until Thursday midnight.</span></span>
+      <span class="is-sep" aria-hidden="true">·</span>
+      <span class="is-i to"><span class="is-k">To</span><span class="is-v">All subscribers · 47,842</span></span>
+      <span class="is-sep" aria-hidden="true">·</span>
+      <span class="is-i via"><span class="is-k">via</span><span class="is-v"><span class="dot" style="color:#4a3aa7;margin-right:4px"></span>SES 90% / <span class="dot" style="color:#e87ba4;margin:0 4px 0 2px"></span>Postal 10%</span></span>
+    </p>
+    <button type="button" class="btn sm is-edit" aria-expanded="{{inboxOpen}}" aria-controls="{{ipCtl}}" onClick="{{toggleInbox}}">{{inboxBtn}}</button>
   </div>
 
-  <div style="display:flex;flex-wrap:wrap;flex:1;align-items:stretch">
-    <aside class="cpanel" style="flex:1 1 272px;max-width:272px;background:#fff;border-right:1px solid #E3E6EB;display:flex;flex-direction:column">
-      <div class="ptab" role="tablist"><button class="on" role="tab">Blocks</button><button role="tab">Layers</button><button role="tab">Templates</button></div>
-      <div class="grp">ReputeCast blocks</div>
-      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px">
-        <div class="blk rc"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="7.5" cy="9.5" r="1.5"></circle><path d="M12 9h6"></path></svg>Header + logo</div>
-        <div class="blk rc"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M6 8h12M6 12h8M6 16h6"></path></svg>Article card</div>
-        <div class="blk rc"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><rect x="6" y="6" width="12" height="7" rx="1"></rect><path d="M6 17h6"></path></svg>Product card</div>
-        <div class="blk rc" style="outline:2px solid #B91C1C;outline-offset:1px"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="12" width="18" height="8" rx="2"></rect><path d="M6 16h8"></path></svg>Footer + unsubscribe</div>
-        <div class="blk rc"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"></path></svg>Saved sections · 4</div>
+  <sc-if value="{{inboxOpen}}" hint-placeholder-val="{{true}}">
+  <div id="ipanel" class="{{ipCls}}" role="region" aria-label="Subject, preheader and recipients">
+    <div class="qsheet-h"><h2>Inbox</h2><button type="button" class="btn ic" aria-label="Close" onClick="{{closeSheet}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"></path></svg></button></div>
+    <div class="ip-in">
+      <label class="lbl">Subject<input class="in subj-w" value="FLASH SALE!!! 48 HOURS ONLY" aria-describedby="subj-w"><span class="k" id="subj-w" style="color:#92400E;font-weight:600">Warn · 3 spam heuristics: all caps, repeated punctuation, urgency. Suggested: “48-hour sale on annual plans”</span></label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn sm">Use the suggestion</button><button type="button" class="btn sm" onClick="{{openSubjectDismiss}}">Dismiss…</button></div>
+      <label class="lbl">Preheader<input class="in" value="Annual plans 30% off until Thursday midnight."><span class="k">45 characters · shown after the subject in most inboxes</span></label>
+      <div class="lbl"><span>Inbox preview · Gmail, desktop</span>
+        <div class="gmail"><span class="gf">Acme</span><span class="gs"><b>FLASH SALE!!! 48 HOURS ONLY</b><span> - Annual plans 30% off until Thursday midnight.</span></span><span class="gt">9:31 AM</span></div>
       </div>
-      <div class="grp">Content · MJML</div>
-      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px">
-        <div class="blk"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>Text</div>
-        <div class="blk"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m3 16 5-5 4 4 3-3 6 6"></path></svg>Image</div>
-        <div class="blk"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="4"></rect></svg>Button</div>
-        <div class="blk"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12h18"></path></svg>Divider</div>
-        <div class="blk"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6v12M20 6v12M8 12h8"></path></svg>Spacer</div>
-        <div class="blk"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"></circle><circle cx="12" cy="12" r="2.5"></circle><circle cx="18" cy="12" r="2.5"></circle></svg>Social</div>
+    </div>
+    <div class="ip-send" role="group" aria-labelledby="sendto">
+      <h2 class="ip-h" id="sendto">Sending to</h2>
+      <label class="lbl">Audience<select class="in"><option>All subscribers · 47,842 recipients</option><option>Weekly Digest · 31,192</option><option>Product Updates</option></select><span class="k">After suppressions, role addresses and duplicates</span></label>
+      <label class="lbl">From<select class="in"><option>Acme &lt;hello@news.acme.io&gt;</option><option>Acme Newsletter &lt;digest@news.acme.io&gt;</option></select></label>
+      <div class="lbl"><span>Route</span>
+        <a href="ProvidersRouting.dc.html" class="route"><span class="rb" aria-hidden="true"><i style="flex:9;background:#4a3aa7"></i><i style="flex:1;background:#e87ba4"></i></span>Broadcasts · SES 90% / Postal 10%<svg style="margin-left:auto" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 4 4 4-4 4"></path></svg></a>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <div class="cwrap">
+    <aside class="lp" aria-label="Blocks, layers and templates">
+      <div class="ptab" role="tablist" aria-label="Left panel"><button type="button" role="tab" class="on" aria-selected="true">Blocks</button><button type="button" role="tab" aria-selected="false" tabindex="-1">Layers</button><button type="button" role="tab" aria-selected="false" tabindex="-1">Templates</button></div>
+      <div class="lpb" role="tabpanel">
+        <p class="k lhelp">Drag a block onto the email, or select it and press Enter to add it under the selected section.</p>
+        <div class="grp">Your blocks</div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 8px">
+          <div class="blk rc" draggable="true" tabindex="0" role="button" aria-label="Header with logo, synced block"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="7.5" cy="9.5" r="1.5"></circle><path d="M12 9h6"></path></svg>Header + logo<span class="sy" aria-hidden="true">Synced</span></div>
+          <div class="blk rc" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M6 8h12M6 12h8M6 16h6"></path></svg>Article card</div>
+          <div class="blk rc" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><rect x="6" y="6" width="12" height="7" rx="1"></rect><path d="M6 17h6"></path></svg>Product card</div>
+          <div class="blk rc" draggable="true" tabindex="0" role="button" aria-label="Footer with unsubscribe link, synced block. Missing from this email" style="outline:2px solid #B91C1C;outline-offset:1px"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="12" width="18" height="8" rx="2"></rect><path d="M6 16h8"></path></svg>Footer + unsubscribe<span class="sy" aria-hidden="true">Synced</span></div>
+          <div class="blk rc" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"></path></svg>Saved sections · 4</div>
+        </div>
+        <div class="grp">Content</div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0 12px 12px">
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>Text</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m3 16 5-5 4 4 3-3 6 6"></path></svg>Image</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="4"></rect></svg>Button</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12h18"></path></svg>Divider</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6v12M20 6v12M8 12h8"></path></svg>Spacer</div>
+          <div class="blk" draggable="true" tabindex="0" role="button"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"></circle><circle cx="12" cy="12" r="2.5"></circle><circle cx="18" cy="12" r="2.5"></circle></svg>Social</div>
+        </div>
       </div>
     </aside>
 
-    <section role="main" id="main" style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;background:#E9ECF0">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;background:#fff;border-bottom:1px solid #E3E6EB">
-        <div class="seg" role="group" aria-label="Device"><button class="on">Desktop · 600</button><button>Mobile · 375</button></div>
-        <div class="seg" role="group" aria-label="View"><button class="on">Visual</button><button>MJML</button><button>HTML</button></div>
-        <span class="badge bad"><span class="dot"></span>2 blocking</span><span class="badge warn"><span class="dot"></span>2 warnings</span>
-        <span class="k" style="margin-left:auto">Warnings update as you edit; Send Readiness runs the full set.</span>
-      </div>
-
-      <div style="flex:1;overflow:auto;padding:28px 24px 40px;display:flex;justify-content:center">
+    <main id="main" class="cv" tabindex="-1">
+      <div class="cvs">
+        <div class="ctools" role="group" aria-label="Undo, redo and zoom">
+          <button type="button" class="btn ic" aria-label="Undo"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 4 2 8l4 4M2 8h8a4 4 0 0 1 0 8"></path></svg></button>
+          <button type="button" class="btn ic" aria-label="Redo, nothing to redo" aria-disabled="true"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m10 4 4 4-4 4M14 8H6a4 4 0 0 0 0 8"></path></svg></button>
+          <select class="in" aria-label="Zoom"><option>100%</option><option>75%</option><option>Fit</option></select>
+        </div>
+        <div class="note i qnote"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" style="margin-top:2px;flex:none"><circle cx="8" cy="8" r="6.2"></circle><path d="M8 7.2v4M8 4.9v.2"></path></svg><div><b>Quick review on this screen.</b> Edit text, the subject and comments here. Drag-and-drop layout editing works on larger screens.</div></div>
         <div class="email">
           <div class="sec" style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid #EEF0F3">
             <div class="ph" style="width:96px;height:28px">Logo · 96×28</div>
             <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#5B6472">Pricing · Docs</div>
           </div>
           <div class="sec" style="padding:20px 24px 8px">
-            <span class="wtag w" style="top:8px;left:12px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3v6M8 12v.5"></path></svg>Image has no alt text</span>
-            <div class="ph" style="height:220px;margin-bottom:16px;border-color:#F59E0B;background:#FFFBEB">sale-hero.png · 552×220 · 212 KB</div>
-            <h1 style="margin:0 0 10px;font-size:28px;line-height:1.15;font-weight:700;color:#0B1220">48 hours. 30% off every annual plan.</h1>
-            <p style="margin:0;font-size:15px;line-height:1.55">Hi {{tok}}, until Thursday at midnight every annual plan is 30% off, including upgrades from monthly.</p>
+            <span class="wtag w" style="top:8px;left:12px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3v6M8 12v.5"></path></svg>Warn · image has no alt text</span>
+            <div class="ph" style="height:220px;margin-bottom:16px;border-color:#B45309;background:#FFFBEB">sale-hero.png · 552×220 · 212 KB</div>
+            <h2 class="e-h1" style="font-size:28px;line-height:1.15">48 hours. 30% off every annual plan.</h2>
+            <p class="e-p">Hi <span class="lq" role="img" aria-label="Personalization: first name, fallback there">First name <span class="fb">· fallback “there”</span></span>, until Thursday at midnight every annual plan is 30% off, including upgrades from monthly.</p>
           </div>
           <div class="sec" style="padding:8px 24px 20px;text-align:center">
-            <span class="wtag b" style="top:-6px;left:50%;transform:translateX(-50%)"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3v6M8 12v.5"></path></svg>Link domain on SURBL and Spamhaus DBL</span>
-            <a href="https://go.acme-promo.link/sale" style="display:inline-block;padding:14px 28px;border-radius:6px;background:#B91C1C;color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:15px;font-weight:700;outline:2px solid #DC2626;outline-offset:3px">Claim your discount</a>
-            <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;color:#991B1B;margin-top:10px" class="mono">go.acme-promo.link/sale</div>
+            <span class="wtag b" style="top:-6px;left:50%;transform:translateX(-50%)"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3v6M8 12v.5"></path></svg>Block · link domain on SURBL and Spamhaus DBL</span>
+            <a href="https://go.acme-promo.link/sale" style="display:inline-block;padding:14px 28px;border-radius:6px;background:#B91C1C;color:#FFFFFF;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:15px;font-weight:700;outline:2px solid #DC2626;outline-offset:3px">Claim your discount</a>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;color:#991B1B;margin-top:10px">go.acme-promo.link/sale</div>
           </div>
           <div class="sec" style="padding:8px 24px"><div style="border-top:1px solid #E3E6EB"></div></div>
           <div class="sec" style="padding:8px 24px 16px">
-            <div style="display:flex;gap:16px">
-              <div style="flex:1"><div class="ph" style="height:110px;margin-bottom:8px">Image · 268×110</div><h2 style="margin:0 0 4px;font-size:16px;color:#0B1220">Starter · $9/mo</h2><p style="margin:0;font-size:13px;line-height:1.5;color:#374151">Now $75.60 a year.</p></div>
-              <div style="flex:1"><div class="ph" style="height:110px;margin-bottom:8px">Image · 268×110</div><h2 style="margin:0 0 4px;font-size:16px;color:#0B1220">Team · $29/mo</h2><p style="margin:0;font-size:13px;line-height:1.5;color:#374151">Now $243.60 a year.</p></div>
+            <div class="cols">
+              <div class="col" style="flex:1"><div class="ph" style="height:110px;margin-bottom:8px">Image · 268×110</div><h3 class="e-h2" style="font-size:16px">Starter · $9/mo</h3><p style="margin:0;font-size:13px;line-height:1.5;color:#374151">Now $75.60 a year.</p></div>
+              <div class="col" style="flex:1"><div class="ph" style="height:110px;margin-bottom:8px">Image · 268×110</div><h3 class="e-h2" style="font-size:16px">Team · $29/mo</h3><p style="margin:0;font-size:13px;line-height:1.5;color:#374151">Now $243.60 a year.</p></div>
             </div>
           </div>
           <div class="sec" style="padding:0 24px 16px">
-            <div style="display:flex;gap:16px">
-              <div style="flex:1"><div class="ph" style="height:110px;margin-bottom:8px">Image · 268×110</div><h2 style="margin:0 0 4px;font-size:16px;color:#0B1220">Business · $79/mo</h2></div>
-              <div style="flex:1"><div class="ph" style="height:110px;margin-bottom:8px">Image · 268×110</div><h2 style="margin:0 0 4px;font-size:16px;color:#0B1220">Enterprise</h2></div>
+            <div class="cols">
+              <div class="col" style="flex:1"><div class="ph" style="height:110px;margin-bottom:8px">Image · 268×110</div><h3 class="e-h2" style="font-size:16px">Business · $79/mo</h3></div>
+              <div class="col" style="flex:1"><div class="ph" style="height:110px;margin-bottom:8px">Image · 268×110</div><h3 class="e-h2" style="font-size:16px">Enterprise</h3></div>
             </div>
           </div>
-          <div class="sec" style="padding:20px 24px;border-top:2px dashed #DC2626;background:#FFF5F5;text-align:center;font-family:'IBM Plex Sans',system-ui,sans-serif">
-            <span class="wtag b" style="top:-13px;left:50%;transform:translateX(-50%)"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3v6M8 12v.5"></path></svg>No unsubscribe link or postal address</span>
+          <div class="sec" style="padding:22px 24px 20px;border-top:2px dashed #DC2626;background:#FFF5F5;text-align:center;font-family:'IBM Plex Sans',system-ui,sans-serif">
+            <span class="wtag b" style="top:-13px;left:50%;transform:translateX(-50%)"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3v6M8 12v.5"></path></svg>Block · no unsubscribe link or postal address</span>
             <span style="font-size:12.5px;color:#991B1B">The footer block was deleted at 09:31. Gmail, Yahoo and CAN-SPAM require both.</span><br>
-            <button class="btn sm" style="margin-top:8px;border-color:#FCA5A5;color:#991B1B">Insert footer block</button>
+            <button type="button" class="btn sm" style="margin-top:8px;border-color:#FCA5A5;color:#991B1B">Insert footer block</button>
           </div>
         </div>
       </div>
-    </section>
+    </main>
 
-    <aside class="cpanel" style="flex:1 1 300px;max-width:300px;background:#fff;border-left:1px solid #E3E6EB;display:flex;flex-direction:column">
-      <div class="ptab" role="tablist"><button role="tab">Style</button><button role="tab">Settings</button><button class="on" role="tab">Deliverability · 4</button></div>
-      <div class="iss" style="background:#FFF5F5"><div class="t"><span class="badge bad">Block</span><span>Button links to go.acme-promo.link, listed on SURBL and Spamhaus DBL</span></div><span class="k">Mail linking to a blocklisted domain gets filtered regardless of your reputation. Use a domain you control.</span><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm pri">Replace with acme.io/sale</button><button class="btn sm">Edit link</button></div></div>
-      <div class="iss" style="background:#FFF5F5"><div class="t"><span class="badge bad">Block</span><span>No unsubscribe link or postal address in the body</span></div><span class="k">Headers are added automatically, but the visible link and address are required too.</span><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm pri">Insert footer block</button></div></div>
-      <div class="iss" style="background:#FFFBEB"><div class="t"><span class="badge warn">Warn</span><span>Hero image has no alt text</span></div><span class="k">Images are off by default in Outlook and many corporate clients; alt text is what shows, and spam filters score image-only mail higher.</span><div style="display:flex;gap:6px;flex-wrap:wrap"><input aria-label="Describe the image" class="in" placeholder="Describe the image" style="flex:1"><button class="btn sm">Save</button></div></div>
-      <div class="iss" style="background:#FFFBEB"><div class="t"><span class="badge warn">Warn</span><span>98 KB of Gmail's 102 KB clipping limit</span></div><span class="k">Gmail clips the message and hides the footer, including the unsubscribe link. Four product cards with inline CSS are the bulk of it.</span><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm">Minify inline CSS · saves about 9 KB</button><button class="btn sm">Remove the second row</button></div></div>
-      <div class="iss"><div class="t"><span class="badge warn">Warn</span><span>Subject trips 3 spam heuristics</span></div><span class="k">Suggested: "48-hour sale on annual plans"</span><div style="display:flex;gap:6px"><button class="btn sm">Use suggestion</button></div></div>
+    <aside class="{{rpCls}}" aria-label="Checks for this email">
+      <div class="qsheet-h"><h2>{{sheetTitle}}</h2><button type="button" class="btn ic" aria-label="Close" onClick="{{closeSheet}}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"></path></svg></button></div>
+      <div class="ptab" role="tablist" aria-label="Panel">
+        <button type="button" role="tab" aria-selected="false" tabindex="-1">Style</button>
+        <button type="button" role="tab" aria-selected="false" tabindex="-1">Settings</button>
+        <button type="button" role="tab" class="on" aria-selected="true" aria-controls="rp-checks" id="rt-checks" aria-label="Checks, 2 blocking and 3 warnings">Checks <span class="n">· 5</span></button>
+        <button type="button" role="tab" aria-selected="false" tabindex="-1">Comments</button>
+      </div>
+      <div id="rp-checks" role="tabpanel" aria-labelledby="rt-checks" style="display:flex;flex-direction:column;flex:1">
+        <div class="{{failCls}}" role="status">
+          <sc-if value="{{runFailed}}" hint-placeholder-val="{{true}}"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M8 2 1.5 13.5h13z"></path><path d="M8 6.5v3.2M8 11.8v.2"></path></svg><span class="t"><b>Checks couldn't run (network)</b> · showing results from 09:31</span><button type="button" class="btn sm" onClick="{{retry}}">Retry</button></sc-if>
+          <sc-if value="{{running}}" hint-placeholder-val="{{false}}"><span class="spin" aria-hidden="true"></span><span class="t"><b>Running checks…</b> · results from 09:31 stay until this finishes</span></sc-if>
+          <sc-if value="{{ranOk}}" hint-placeholder-val="{{false}}"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="m3 8.5 3.2 3L13 4.5"></path></svg><span class="t"><b>Checked just now</b> · same 2 blocks and 3 warnings</span></sc-if>
+        </div>
+        <div class="ck-sum">
+          <div class="ck-row"><span class="ck-k">Deliverability</span><span class="badge bad"><span class="dot"></span>2 blocking</span><span class="k">and {{delivWarn}}</span></div>
+          <div class="ck-row"><span class="ck-k">Accessibility</span><span class="badge warn"><span class="dot"></span>{{a11yBadge}}</span><span class="k">Images, contrast, headings and link text</span></div>
+        </div>
+
+        <div class="iss isb">
+          <span class="cat">Deliverability</span>
+          <div class="t"><span class="badge bad">Block</span><span>Button links to go.acme-promo.link, listed on SURBL and Spamhaus DBL</span></div>
+          <span class="k">Mail linking to a blocklisted domain gets filtered whatever your reputation. Use a domain you control.</span>
+          <div class="acts"><button type="button" class="btn sm pri">Replace with acme.io/sale</button><button type="button" class="btn sm">Edit link</button></div>
+          <span class="lock"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"></rect><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"></path></svg>Blocks can't be dismissed: this one would get the whole send filtered. Change the link to send.</span>
+        </div>
+        <div class="iss isb">
+          <span class="cat">Deliverability</span>
+          <div class="t"><span class="badge bad">Block</span><span>No unsubscribe link or postal address in the body</span></div>
+          <span class="k">The unsubscribe headers are added for you, but the visible link and the address are required too.</span>
+          <div class="acts"><button type="button" class="btn sm pri">Insert footer block</button></div>
+          <span class="lock"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"></rect><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"></path></svg>Blocks can't be dismissed: Gmail, Yahoo and CAN-SPAM require both.</span>
+        </div>
+
+        <div class="iss isw">
+          <span class="cat">Accessibility</span>
+          <div class="t"><span class="badge warn">Warn</span><span>Hero image has no alt text</span></div>
+          <span class="k">Outlook and many work inboxes block images by default, so alt text is what shows. Screen readers read it out.</span>
+          <sc-if value="{{altNot}}" hint-placeholder-val="{{true}}">
+          <div class="acts"><input aria-label="Describe the hero image" class="in" placeholder="Describe the image" style="flex:1 1 140px"><button type="button" class="btn sm">Save</button><button type="button" class="btn sm" aria-expanded="{{altOpen}}" onClick="{{openAlt}}">Dismiss…</button></div>
+          </sc-if>
+          <sc-if value="{{altOpen}}" hint-placeholder-val="{{false}}">
+          <div class="dis" role="group" aria-labelledby="dis-alt">
+            <span class="t" id="dis-alt">Why dismiss this warning?</span>
+            <label class="rad"><input type="radio" name="why-alt" checked>The image is decorative</label>
+            <label class="rad"><input type="radio" name="why-alt">The check is wrong here</label>
+            <label class="rad"><input type="radio" name="why-alt">Other</label>
+            <label class="lbl">Note for reviewers · optional<textarea class="in" placeholder="Add context"></textarea></label>
+            <span class="k">It stays listed in Review &amp; send with your name and reason.</span>
+            <div class="acts"><button type="button" class="btn sm pri" onClick="{{dismissAlt}}">Dismiss warning</button><button type="button" class="btn sm" onClick="{{closeDis}}">Cancel</button></div>
+          </div>
+          </sc-if>
+          <sc-if value="{{altDone}}" hint-placeholder-val="{{false}}">
+          <div class="dsd"><span class="tx">Dismissed by Linh Nguyen · the image is decorative</span><button type="button" class="btn sm" onClick="{{undoAlt}}">Undo</button></div>
+          </sc-if>
+        </div>
+        <div class="iss isw">
+          <span class="cat">Deliverability</span>
+          <div class="t"><span class="badge warn">Warn</span><span>98 KB of Gmail's 102 KB clipping limit</span></div>
+          <span class="k">Gmail clips bigger messages and hides the rest, including the footer. The four product cards with inline CSS are most of it.</span>
+          <sc-if value="{{sizeNot}}" hint-placeholder-val="{{true}}">
+          <div class="acts"><button type="button" class="btn sm">Minify inline CSS · saves about 9 KB</button><button type="button" class="btn sm">Remove the second row</button><button type="button" class="btn sm" aria-expanded="{{sizeOpen}}" onClick="{{openSize}}">Dismiss…</button></div>
+          </sc-if>
+          <sc-if value="{{sizeOpen}}" hint-placeholder-val="{{false}}">
+          <div class="dis" role="group" aria-labelledby="dis-size">
+            <span class="t" id="dis-size">Why dismiss this warning?</span>
+            <label class="rad"><input type="radio" name="why-size" checked>We'll stay under 102 KB</label>
+            <label class="rad"><input type="radio" name="why-size">The check is wrong here</label>
+            <label class="rad"><input type="radio" name="why-size">Other</label>
+            <label class="lbl">Note for reviewers · optional<textarea class="in" placeholder="Add context"></textarea></label>
+            <span class="k">It stays listed in Review &amp; send with your name and reason, and comes back if the email grows.</span>
+            <div class="acts"><button type="button" class="btn sm pri" onClick="{{dismissSize}}">Dismiss warning</button><button type="button" class="btn sm" onClick="{{closeDis}}">Cancel</button></div>
+          </div>
+          </sc-if>
+          <sc-if value="{{sizeDone}}" hint-placeholder-val="{{false}}">
+          <div class="dsd"><span class="tx">Dismissed by Linh Nguyen · we'll stay under 102 KB</span><button type="button" class="btn sm" onClick="{{undoSize}}">Undo</button></div>
+          </sc-if>
+        </div>
+        <div class="iss isw">
+          <span class="cat">Deliverability</span>
+          <div class="t"><span class="badge warn">Warn</span><span>Subject trips 3 spam heuristics</span></div>
+          <span class="k">All caps, repeated punctuation and urgency. Suggested: “48-hour sale on annual plans”</span>
+          <sc-if value="{{subjNot}}" hint-placeholder-val="{{false}}">
+          <div class="acts"><button type="button" class="btn sm">Use the suggestion</button><button type="button" class="btn sm" aria-expanded="{{subjOpen}}" onClick="{{openSubj}}">Dismiss…</button></div>
+          </sc-if>
+          <sc-if value="{{subjOpen}}" hint-placeholder-val="{{true}}">
+          <div class="acts"><button type="button" class="btn sm">Use the suggestion</button><button type="button" class="btn sm" aria-expanded="true" onClick="{{closeDis}}">Dismiss…</button></div>
+          <div class="dis" role="group" aria-labelledby="dis-subj">
+            <span class="t" id="dis-subj">Why dismiss this warning?</span>
+            <label class="rad"><input type="radio" name="why-subj" checked>We've sent this subject style to this list before</label>
+            <label class="rad"><input type="radio" name="why-subj">The check is wrong here</label>
+            <label class="rad"><input type="radio" name="why-subj">Other</label>
+            <label class="lbl">Note for reviewers · optional<textarea class="in" placeholder="Add context"></textarea></label>
+            <span class="k">It stays listed in Review &amp; send with your name and reason, and comes back if the subject changes.</span>
+            <div class="acts"><button type="button" class="btn sm pri" onClick="{{dismissSubj}}">Dismiss warning</button><button type="button" class="btn sm" onClick="{{closeDis}}">Cancel</button></div>
+          </div>
+          </sc-if>
+          <sc-if value="{{subjDone}}" hint-placeholder-val="{{false}}">
+          <div class="dsd"><span class="tx">Dismissed by Linh Nguyen · sent this subject style to this list before</span><button type="button" class="btn sm" onClick="{{undoSubj}}">Undo</button></div>
+          </sc-if>
+        </div>
+        <p class="k" style="margin:0;padding:10px 12px">Checks rerun as you edit. Review &amp; send runs the full set before anything sends.</p>
+      </div>
     </aside>
   </div>
 
-  <footer style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 16px;background:#fff;border-top:1px solid #E3E6EB">
-    <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#5B6472"><span>mjml</span><span>›</span><span>mj-body</span><span>›</span><b style="color:#0B1220">mj-section · hero</b></div>
-    <span class="k" style="margin-left:auto;color:#92400E;font-weight:600">98 KB of 102 KB · 1 of 9 images missing alt text · 12 links, 1 blocklisted</span>
-    <span class="badge bad"><span class="dot"></span>2 blocking · 2 warnings</span>
+  <footer class="cfoot">
+    <nav class="bc" aria-label="Selection path"><span>Email</span><span aria-hidden="true">›</span><span>Body</span><span aria-hidden="true">›</span><b>Hero</b></nav>
+    <span class="hint"><span><span class="kbd">Enter</span>edits text</span><span><span class="kbd">Esc</span>selects parent</span><span><span class="kbd">⌘Z</span>undo</span><span><span class="kbd">⌘/</span>shortcuts</span></span>
+    <span class="k" style="margin-left:auto;color:#92400E;font-weight:600">98 KB of 102 KB · 1 of 9 images without alt text · 12 links, 1 blocklisted</span>
+    <span class="badge bad"><span class="dot"></span>{{footWarn}}</span>
   </footer>
+
+  <div class="{{scrimCls}}" onClick="{{closeSheet}}"></div>
+  <div class="qbar" role="group" aria-label="Quick review">
+    <button type="button"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M11 2.5 13.5 5 6 12.5l-3.5 1 1-3.5z"></path></svg>Edit text</button>
+    <button type="button" aria-expanded="{{qInbox}}" onClick="{{openInbox}}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5"></rect><path d="m2 4.5 6 4.5 6-4.5"></path></svg>Inbox</button>
+    <button type="button" aria-expanded="{{qChecks}}" onClick="{{openChecks}}" aria-label="Checks, 2 blocking and 3 warnings"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.5 13.5 3.5v4.5c0 3-2.3 5.3-5.5 6.5C4.8 13.3 2.5 11 2.5 8V3.5z" stroke-linejoin="round"></path><path d="m5.5 8 1.8 1.8L10.8 6"></path></svg>Checks<span class="qn" style="background:#FEE2E2;color:#991B1B" aria-hidden="true">5</span></button>
+    <button type="button"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z"></path></svg>Comments</button>
+    <button type="button"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M14 2 2 7l5 2 2 5zM7 9l7-7"></path></svg>Send test</button>
+  </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1312}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2004}}'>
 class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    var phone = typeof window !== 'undefined' && window.innerWidth < 768;
+    this.state = { inbox: !phone, open: 'subj', done: {}, run: 'failed', sheet: phone ? 'checks' : null };
+  }
+  componentWillUnmount() { if (this._t) clearTimeout(this._t); }
   renderVals() {
-    return { tok: '{' + '{ first_name | "there" }' + '}' };
+    var s = this.state;
+    var self = this;
+    function openIt(k) { return function () { self.setState({ open: s.open === k ? '' : k }); }; }
+    function dismiss(k) { return function () { var d = Object.assign({}, s.done); d[k] = true; self.setState({ done: d, open: '' }); }; }
+    function undo(k) { return function () { var d = Object.assign({}, s.done); delete d[k]; self.setState({ done: d }); }; }
+    var dw = (s.done.size ? 0 : 1) + (s.done.subj ? 0 : 1);
+    var dd = (s.done.size ? 1 : 0) + (s.done.subj ? 1 : 0);
+    var warnLeft = dw + (s.done.alt ? 0 : 1);
+    var dismissed = dd + (s.done.alt ? 1 : 0);
+    return {
+      rootCls: 'ds',
+      inboxOpen: s.inbox,
+      ipCtl: s.inbox ? 'ipanel' : undefined,
+      inboxBtn: s.inbox ? 'Done' : 'Edit',
+      toggleInbox: function () { self.setState({ inbox: !s.inbox, sheet: null }); },
+      ipCls: 'ipanel' + (s.sheet === 'inbox' ? ' as-sheet' : ''),
+      rpCls: 'rp' + (s.sheet === 'checks' ? ' as-sheet' : ''),
+      sheetTitle: 'Checks',
+      scrimCls: 'qscrim' + (s.sheet ? ' on' : ''),
+      closeSheet: function () { self.setState({ sheet: null }); },
+      qInbox: s.sheet === 'inbox', qChecks: s.sheet === 'checks',
+      openInbox: function () { self.setState(s.sheet === 'inbox' ? { sheet: null, inbox: false } : { sheet: 'inbox', inbox: true }); },
+      openChecks: function () { self.setState({ sheet: s.sheet === 'checks' ? null : 'checks' }); },
+      failCls: 'ckfail' + (s.run === 'ok' ? ' ok' : ''),
+      runFailed: s.run === 'failed', running: s.run === 'running', ranOk: s.run === 'ok',
+      retry: function () { self.setState({ run: 'running' }); self._t = setTimeout(function () { self.setState({ run: 'ok' }); }, 1400); },
+      delivWarn: dw === 2 ? '2 warnings' : (dw + ' warning' + (dw === 1 ? '' : 's') + ' · ' + dd + ' dismissed'),
+      a11yBadge: s.done.alt ? '1 dismissed' : '1 warning',
+      footWarn: '2 blocking · ' + warnLeft + ' warning' + (warnLeft === 1 ? '' : 's') + (dismissed ? ' · ' + dismissed + ' dismissed' : ''),
+      altNot: !s.done.alt && s.open !== 'alt', altOpen: s.open === 'alt' && !s.done.alt, altDone: !!s.done.alt,
+      sizeNot: !s.done.size && s.open !== 'size', sizeOpen: s.open === 'size' && !s.done.size, sizeDone: !!s.done.size,
+      subjNot: !s.done.subj && s.open !== 'subj', subjOpen: s.open === 'subj' && !s.done.subj, subjDone: !!s.done.subj,
+      openAlt: openIt('alt'), openSize: openIt('size'), openSubj: openIt('subj'),
+      openSubjectDismiss: function () { self.setState({ open: 'subj' }); },
+      dismissAlt: dismiss('alt'), dismissSize: dismiss('size'), dismissSubj: dismiss('subj'),
+      undoAlt: undo('alt'), undoSize: undo('size'), undoSubj: undo('subj'),
+      closeDis: function () { self.setState({ open: '' }); }
+    };
   }
 }
 </script>
