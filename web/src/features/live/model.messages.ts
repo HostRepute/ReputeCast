@@ -69,23 +69,64 @@ export const mm = defineMessages('live.model', {
   deliveredSub: '{rate} of sent',
   bouncedSub: '{rate} · {hard} hard, {soft} soft',
   bouncedSuppressed: '{rate} · added to suppression',
-  complainedSub: '{rate} of delivered',
-  complainedOverall: '{rate} overall · {mailbox} {mailboxRate}',
+  /** Complaint rates count only where mailbox providers report them (review F-2). */
+  complainedSubReported: '{rate} of {base} delivered where complaints are reported',
+  complainedFinal: '{rate} of {base} delivered where reported{counting, select, yes { · still counting} other {}}',
+  complainedWhereReported: '{rate} where reported',
+  complainedWhereReportedNa: '{rate} where reported · {names} n/a',
+  complainedNa: '{names} n/a',
+  complainedNone: "n/a · {names} don't report complaints",
   openedSub: '{rate} · {human} human, {machine} machine',
   openedMachine: '+{n} machine',
   clickedSub: '{rate} · {ctor} click-to-open',
 
-  // Auto-pause thresholds.
-  thresholdBounce: 'Bounce rate',
-  thresholdComplaint: 'Complaint rate',
-  thresholdMailbox: '{mailbox} complaints (highest mailbox provider)',
-  thresholdErrors: 'Provider API errors, 3 min',
+  // Auto-pause thresholds (LiveMonitor's card, review GS-6).
+  thresholdBounce: 'Bounces',
+  thresholdBlock: 'Block/policy bounces',
+  thresholdDeferral: 'Deferrals',
+  thresholdComplaint: 'Complaints',
+  thresholdMailbox: '{mailbox} complaints',
+  thresholdReplies: 'Mailbox provider replies',
+  thresholdErrors: 'Sending provider API errors',
+  thresholdWholeSend: 'whole send',
+  thresholdPerMailbox: 'per mailbox provider',
+  thresholdPerMailboxWindow: 'per mailbox provider, over 10 min',
+  thresholdWhereReported: 'whole send, where reported',
+  thresholdHighest: 'highest mailbox provider',
+  thresholdRepliesSub: '{count, plural, one {# reply rule} other {# reply rules}}, over 10 min',
+  thresholdErrorsSub: 'over 3 min',
   thresholdBounceShort: 'Bounce',
+  thresholdBlockShort: 'Block/policy',
+  thresholdDeferralShort: 'Deferrals',
   thresholdComplaintShort: 'Complaint',
   thresholdMailboxShort: '{mailbox} complaint',
+  thresholdRepliesShort: 'Replies',
   thresholdErrorsShort: 'Provider errors',
   /** A rate against its limit: "0.60% of 2.0%". */
   ofLimit: '{value} of {limit}',
+  /** A mailbox provider's rate against its limit: "Yahoo 3.1% of 15%". */
+  ofLimitWho: '{who} {value} of {limit}',
+  /** A reply rule's count: "Yahoo TSS04: 1 of 10 replies". */
+  thresholdRepliesValue: '{who} {code}: {count} of {limit} replies',
+  notAvailable: 'n/a',
+  // The complaint watch after the send (LiveMonitorStates: complete; review GS-6).
+  watchTitle:
+    "Complaint watch · {hours} h · {complaints, plural, one {# complaint} other {# complaints}} so far{alert, select, yes { · you'll be alerted if {who} passes {limit}} other {}}",
+  aMailboxProvider: 'a mailbox provider',
+  /** Under the mailbox table: {names} is "Gmail and iCloud". */
+  naComplaints: "n/a: {names} don't report complaints per message.",
+  postmasterRate: "Gmail's spam rate from Postmaster Tools: {rate} on {day}.",
+  mxNote: 'Gmail includes Google Workspace and Outlook includes Microsoft 365 recipients (found from MX records).',
+  thresholdState: '{state, select, ok {Watching} near {Close to the limit} collecting {Collecting evidence} tripped {Tripped} other {n/a}}',
+  thresholdNa: "{reason, select, not_reported {Gmail and iCloud don't report complaints per message} other {Nothing to count yet}}",
+  thresholdNeeds:
+    '{events} in {base} {unit, select, delivered {delivered} other {sent}} · needs {minEvents} {key, select, complaint {complaints} mailbox_complaint {complaints} deferral {deferrals} other {bounces}} and {minBase} {unit, select, delivered {delivered} other {sent}} to pause',
+  thresholdComplaintsTo: '{events} in {base} delivered to {names}',
+  thresholdIn: '{unit, select, delivered {{events} in {base} delivered} other {{events} of {base} sent}}',
+  thresholdHighestAction: '{key, select, deferral {highest · pauses only that mailbox provider} other {highest · pauses only that mailbox provider}}',
+  thresholdReplyAction: 'at {limit}, the rule acts on {who}',
+  thresholdsFootnote:
+    'A threshold trips after at least 5 events and enough evidence that the rate is really above the limit. Until then it shows “Collecting evidence” with a grey bar.',
   scopeCampaign: 'Scope: pause the whole campaign.',
   scopeRoute: 'Scope: pause only the affected route or mailbox provider.',
 
@@ -167,6 +208,10 @@ export const mm = defineMessages('live.model', {
   factAll: '{metric, select, complaint {Complaints} bounce {Bounces} deferral {Deferrals} other {{Metric}}}',
   factValue: '{events} of {base} · {rate}',
   factLimit: '{scope, select, mailbox_provider {Limit, per mailbox provider} route {Limit, per sending provider} other {Limit, whole campaign}}',
+  factOthers: '{names} complaints',
+  factEvidence:
+    '{metric, select, complaint {{events} complaints} bounce {{events} bounces} deferral {{events} deferrals} other {{events} events}} in {base} {unit, select, delivered {delivered} other {sent}} · enough evidence (needs {minEvents} events and {minBase} {unit, select, delivered {delivered} other {sent}})',
+  factWatch: 'Complaints keep arriving for up to {hours} h; ReputeCast keeps watching after the send ends.',
   factCampaignWide: '{metric, select, complaint {Campaign-wide complaints} bounce {Campaign-wide bounces} deferral {Campaign-wide deferrals} other {Campaign-wide {metric}}}',
 
   // "If you move the share to SES".
@@ -207,8 +252,8 @@ export const mm = defineMessages('live.model', {
   startingBuiltYours: 'Queue built for {count} recipients. Handing the first batches to your providers; delivery events usually arrive within 10 seconds.',
   finishedAt: '{name} finished at {time}',
   finished: '{name} finished',
-  finishedIn: '{sent} sent in {took}: {delivered} delivered ({rate}), {bounced} bounced, {complaints, plural, one {# complaint} other {# complaints}}.',
-  finishedNoTime: '{sent} sent: {delivered} delivered ({rate}), {bounced} bounced, {complaints, plural, one {# complaint} other {# complaints}}.',
+  finishedIn: '{sent} sent in {took}: {delivered} delivered ({rate}), {bounced} bounced, {complaints, plural, one {# complaint} other {# complaints}}{watching, select, yes { so far} other {}}.',
+  finishedNoTime: '{sent} sent: {delivered} delivered ({rate}), {bounced} bounced, {complaints, plural, one {# complaint} other {# complaints}}{watching, select, yes { so far} other {}}.',
   finishedTrips: '{n, plural, =0 {No threshold tripped.} one {One threshold paused part of the send.} other {# thresholds paused parts of the send.}}',
   finishedOutages: '{n, plural, one {A provider outage held part of it.} other {# provider outages held part of it.}}',
   finishedReport: 'Opens and clicks keep updating in the report for 72 hours.',

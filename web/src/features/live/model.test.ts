@@ -36,6 +36,7 @@ import {
   type Mailbox,
   type Provider,
   type Snapshot,
+  type Threshold,
 } from './model'
 
 /*
@@ -44,6 +45,16 @@ import {
  */
 
 const T = (hms: string) => `2026-10-14T${hms}Z`
+
+/** A thresholds card row with its evidence, as the API sends it. */
+function thr(key: Threshold['key'], value: number | undefined, limit: number, extra: Partial<Threshold> = {}): Threshold {
+  return { key, value, limit, events: 0, base: 0, minEvents: 5, minBase: 500, state: 'ok', ...extra }
+}
+
+/** Totals, with what complaint rates are counted on (F-2). */
+function totals(t: Omit<Snapshot['totals'], 'complaintBase' | 'notReported'> & Partial<Snapshot['totals']>): Snapshot['totals'] {
+  return { complaintBase: 0, notReported: [], ...t }
+}
 
 function provider(p: Partial<Provider>): Provider {
   return {
@@ -98,11 +109,12 @@ function snapshot(s: Partial<Snapshot>): Snapshot {
     unsent: 0,
     percent: 0,
     rate: 0,
-    totals: { delivered: 0, bounced: 0, hardBounced: 0, softBounced: 0, complained: 0, deferred: 0, rejected: 0, opened: 0, openedHuman: 0, openedMachine: 0, clicked: 0, unsubscribed: 0 },
+    totals: totals({ delivered: 0, bounced: 0, hardBounced: 0, softBounced: 0, complained: 0, deferred: 0, rejected: 0, opened: 0, openedHuman: 0, openedMachine: 0, clicked: 0, unsubscribed: 0 }),
     mailboxes: [],
     providers: [],
     thresholds: [],
     thresholdScope: 'route',
+    limits: { bounce: 2, complaint: 0.1, mailboxComplaint: 0.1, deferral: 40, apiErrors: 5 },
     details: { from: 'digest@news.acme.io', audience: 'Weekly Digest', audienceCount: 31604, route: 'SES 90% · Postal 10%', cost: 1.76, costPlanned: 2.84, scheduledBy: 'Linh Nguyen' },
     deliveredMix: [],
     incidents: [],
@@ -161,12 +173,12 @@ const live = snapshot({
   etaSeconds: 780,
   finishesAt: T('09:34:44'),
   providers: [ses, postal],
-  totals: { delivered: 19402, bounced: 118, hardBounced: 94, softBounced: 24, complained: 6, deferred: 40, rejected: 0, opened: 2811, openedHuman: 1920, openedMachine: 891, clicked: 402, unsubscribed: 0 },
+  totals: totals({ delivered: 19402, bounced: 118, hardBounced: 94, softBounced: 24, complained: 4, deferred: 40, rejected: 0, opened: 2811, openedHuman: 1920, openedMachine: 891, clicked: 402, unsubscribed: 0, complaintBase: 8895, notReported: ['gmail', 'icloud'] }),
   thresholds: [
-    { key: 'bounce', value: 0.6, limit: 2 },
-    { key: 'complaint', value: 0.03, limit: 0.1 },
-    { key: 'mailbox_complaint', value: 0.05, limit: 0.1, mailbox: 'outlook' },
-    { key: 'api_errors', value: 0.2, limit: 5 },
+    thr('bounce', 0.6, 2),
+    thr('complaint', 0.03, 0.1),
+    thr('mailbox_complaint', 0.05, 0.1, { mailbox: 'outlook' }),
+    thr('api_errors', 0.2, 5),
   ],
   ab: { kind: 'subject', metric: 'human_opens', phase: 'testing', sample: 20, leader: 'B', winner: '', variants: [ { key: 'A', rate: 13.2, sent: 3120 }, { key: 'B', rate: 15.1, sent: 3110 } ] },
   deliveredMix: [
@@ -199,7 +211,7 @@ describe('LiveMonitor', () => {
     expect(tiles(live).map((t) => `${t.label} ${t.value} ${t.sub}`)).toEqual([
       'Delivered 19,402 99.0% of sent',
       'Bounced 118 0.60% · 94 hard, 24 soft',
-      'Complained 6 0.03% of delivered',
+      'Complained 4 0.04% of 8,895 delivered where complaints are reported',
       'Opened 2,811 14.5% · 1,920 human, 891 machine',
       'Clicked 402 2.1% · 14.3% click-to-open',
     ])
@@ -207,12 +219,12 @@ describe('LiveMonitor', () => {
 
   it('measures each threshold against its limit', () => {
     expect(thresholdRows(live).map((r) => [r.label, r.value, Math.round(r.width), r.color])).toEqual([
-      ['Bounce rate', '0.60% of 2.0%', 30, 'var(--ok-bar)'],
-      ['Complaint rate', '0.03% of 0.10%', 30, 'var(--ok-bar)'],
-      ['Outlook complaints (highest mailbox provider)', '0.05% of 0.10%', 50, 'var(--warn-bar)'],
-      ['Provider API errors, 3 min', '0.2% of 5%', 4, 'var(--ok-bar)'],
+      ['Bounces', '0.60% of 2.0%', 30, 'var(--ok-bar)'],
+      ['Complaints', '0.03% of 0.10%', 30, 'var(--ok-bar)'],
+      ['Outlook complaints', '0.05% of 0.10%', 50, 'var(--warn-bar)'],
+      ['Sending provider API errors', '0.2% of 5%', 4, 'var(--ok-bar)'],
     ])
-    const failing = thresholdRows({ ...live, thresholds: [{ key: 'api_errors', value: 100, limit: 5 }] })[0]!
+    const failing = thresholdRows({ ...live, thresholds: [thr('api_errors', 100, 5)] })[0]!
     expect([failing.value, failing.color]).toEqual(['100% of 5%', 'var(--bad-strong)'])
   })
 
@@ -242,7 +254,7 @@ describe('LiveMonitorMobile', () => {
     expect(mobileTiles(live).map((t) => `${t.label} ${t.value} ${t.sub}`)).toEqual([
       'Delivered 19,402 99.0%',
       'Bounced 118 0.60%',
-      'Complained 6 0.03%',
+      'Complained 4 0.04% where reported',
       'Opened · human 1,920 +891 machine',
       'Clicked 402 2.1% · 14.3% click-to-open',
     ])
@@ -292,13 +304,19 @@ const paused = snapshot({
   startedAt: T('09:00:04'),
   etaSeconds: 540,
   providers: [ses, postal].map((p) => ({ ...p, sent: p.id === 'ses' ? 20196 : 2244, rate: p.id === 'ses' ? 14.1 : 2 })),
-  mailboxes: [mailbox({ key: 'outlook', name: 'Outlook', sent: 4115, remaining: 2522, delivered: 3980, complained: 7, complaintRate: 0.18, bounceRate: 1.1, held: true, heldSince: T('09:21:14') })],
+  mailboxes: [
+    mailbox({ key: 'gmail', name: 'Gmail', sent: 9810, delivered: 9741, complaintReason: 'not_reported' }),
+    mailbox({ key: 'outlook', name: 'Outlook', sent: 4115, remaining: 2522, delivered: 3980, complained: 7, complaintRate: 0.18, bounceRate: 1.1, held: true, heldSince: T('09:21:14') }),
+    mailbox({ key: 'yahoo', name: 'Yahoo', sent: 1771, delivered: 1750, complained: 1 }),
+    mailbox({ key: 'icloud', name: 'iCloud', sent: 2312, delivered: 2304, complaintReason: 'not_reported' }),
+    mailbox({ key: 'other', name: 'Other', sent: 4432, delivered: 4296, complained: 1 }),
+  ],
   continuing: ['Gmail', 'Yahoo', 'iCloud', 'Other'],
-  totals: { delivered: 22071, bounced: 154, hardBounced: 121, softBounced: 33, complained: 9, deferred: 0, rejected: 0, opened: 3604, openedHuman: 2480, openedMachine: 1124, clicked: 521, unsubscribed: 0 },
+  totals: totals({ delivered: 22071, bounced: 154, hardBounced: 121, softBounced: 33, complained: 9, deferred: 0, rejected: 0, opened: 3604, openedHuman: 2480, openedMachine: 1124, clicked: 521, unsubscribed: 0, complaintBase: 10026, notReported: ['gmail', 'icloud'] }),
   thresholds: [
-    { key: 'bounce', value: 0.69, limit: 2 },
-    { key: 'complaint', value: 0.04, limit: 0.1 },
-    { key: 'mailbox_complaint', value: 0.18, limit: 0.1, mailbox: 'outlook' },
+    thr('bounce', 0.69, 2),
+    thr('complaint', 0.04, 0.1),
+    thr('mailbox_complaint', 0.18, 0.1, { mailbox: 'outlook' }),
   ],
   incident: outlook,
 })
@@ -315,7 +333,9 @@ describe('LiveMonitorPaused', () => {
     const f = trippedFacts(outlook, paused)
     expect(`${f.head.label} ${f.head.value}`).toBe('Outlook complaints 7 of 3,980 · 0.18%')
     expect(f.bar.width).toBe(100)
-    expect(f.rows.map((r) => `${r.label} ${r.value}`)).toEqual(['Limit, per mailbox provider 0.10%', 'Campaign-wide complaints 9 of 22,071 · 0.04%', 'Outlook bounces 1.1% of 2.0%'])
+    expect(f.evidence).toEqual({ state: 'Tripped', text: '7 complaints in 3,980 delivered · enough evidence (needs 5 events and 500 delivered)' })
+    expect(f.rows.map((r) => `${r.label} ${r.value}`)).toEqual(['Limit, per mailbox provider 0.10%', 'Yahoo and Other complaints 2 of 6,046 · 0.03%', 'Outlook bounces 1.1% of 2.0%'])
+    expect(f.watch).toBe('Complaints keep arriving for up to 72 h; ReputeCast keeps watching after the send ends.')
   })
 
   it('writes progress, counters and badges', () => {
@@ -323,7 +343,7 @@ describe('LiveMonitorPaused', () => {
     expect(timingLine(paused, outlook)).toBe('Started 09:00:04 · paused route since 09:21:14 · ETA for the rest 9 min')
     expect(progressLegend(paused, outlook).map((l) => l.text)).toEqual(['Amazon SES 20,196 · 14.1 /s', 'Postal 2,244 · 2.0 /s', 'Held, Outlook 2,522', 'Queued 6,642'])
     const complained = tiles(paused, 'threshold', outlook)[2]!
-    expect(`${complained.sub} ${complained.alert}`).toBe('0.04% overall · Outlook 0.18% true')
+    expect(`${complained.sub} ${complained.alert}`).toBe('Outlook 7 · Yahoo 1 · Other 1 · Gmail and iCloud n/a true')
     expect(tiles(paused, 'threshold', outlook)[4]!.sub).toBe('2.4%')
     expect(headerBadges(paused, outlook).map((b) => b.text)).toEqual(['Auto-paused · Outlook', 'Other mailbox providers still sending'])
     expect(eventsCaption(paused, new Date(T('09:21:45')), 'threshold')).toBe(
@@ -381,7 +401,7 @@ const down = snapshot({
     { ...ses, sent: 21104, remaining: 7340, rate: 14 },
     { ...postal, sent: 1956, remaining: 1204, rate: 0, routeStatus: 'held', downSince: T('09:14:02'), apiErrorRate: 100 },
   ],
-  totals: { delivered: 22834, bounced: 139, hardBounced: 110, softBounced: 29, complained: 7, deferred: 0, rejected: 0, opened: 3781, openedHuman: 2590, openedMachine: 1191, clicked: 548, unsubscribed: 0 },
+  totals: totals({ delivered: 22834, bounced: 139, hardBounced: 110, softBounced: 29, complained: 7, deferred: 0, rejected: 0, opened: 3781, openedHuman: 2590, openedMachine: 1191, clicked: 548, unsubscribed: 0, complaintBase: 10350, notReported: ['gmail', 'icloud'] }),
   failovers: [
     { stream: 'Automations', to: 'Postmark' },
     { stream: 'System', to: 'SES' },
@@ -408,7 +428,7 @@ describe('LiveMonitorOutage', () => {
     expect(sentLine(down, outage)).toBe('23,060 of 31,604 sent · 1,204 held on Postal')
     expect(timingLine(down, outage)).toBe('Started 09:00:04 · SES finishes about 09:27')
     expect(progressLegend(down, outage).map((l) => l.text)).toEqual(['Amazon SES 21,104 · 14.0 /s', 'Postal 1,956 · 0 /s', 'Held on Postal 1,204', 'Queued on SES 7,340'])
-    expect(tiles(down, 'outage', outage).map((t) => t.sub)).toEqual(['99.0% of sent', '0.60%', '0.03%', '16.6% · 2,590 human, 1,191 machine', '2.4%'])
+    expect(tiles(down, 'outage', outage).map((t) => t.sub)).toEqual(['99.0% of sent', '0.60%', '0.07% where reported · Gmail and iCloud n/a', '16.6% · 2,590 human, 1,191 machine', '2.4%'])
     expect(headerBadges(down, outage).map((b) => b.text)).toEqual(['Postal route held · waiting for your decision', 'SES still sending'])
     expect(providerNote(down.providers[1]!, true)).toBe('mta.acme.io · 203.0.113.25')
     expect(providerStatus(down.providers[1]!)).toEqual({ tone: 'bad', text: 'Down since 09:14' })
@@ -461,16 +481,17 @@ describe('LiveMonitorStates', () => {
         { ...postal, sent: 3160, deliveredRate: 98.7, cost: 0 },
       ],
       cost: { total: 2.84, planned: 2.84 },
-      totals: { delivered: 31320, bounced: 190, hardBounced: 150, softBounced: 40, complained: 12, deferred: 0, rejected: 0, opened: 0, openedHuman: 0, openedMachine: 0, clicked: 0, unsubscribed: 0 },
+      totals: totals({ delivered: 31320, bounced: 190, hardBounced: 150, softBounced: 40, complained: 12, deferred: 0, rejected: 0, opened: 0, openedHuman: 0, openedMachine: 0, clicked: 0, unsubscribed: 0, complaintBase: 14161, notReported: ['gmail', 'icloud'] }),
+      watch: { active: true, alert: false, hours: 72, limit: 0.1, rows: [], until: '2026-10-17T09:34:12Z' },
     })
     expect(finishedText(s)).toEqual({
       title: 'Weekly Digest #142 finished at 09:34:12',
-      body: '31,604 sent in 34 minutes: 31,320 delivered (99.1%), 190 bounced, 12 complaints. No threshold tripped. Opens and clicks keep updating in the report for 72 hours.',
+      body: '31,604 sent in 34 minutes: 31,320 delivered (99.1%), 190 bounced, 12 complaints so far. No threshold tripped. Opens and clicks keep updating in the report for 72 hours.',
     })
     expect(finalTiles(s).map((t) => `${t.label} ${t.value} ${t.sub}`)).toEqual([
       'Delivered 31,320 99.1%',
       'Bounced 190 0.60% · added to suppression',
-      'Complained 12 0.04%',
+      'Complained 12 0.08% of 14,161 delivered where reported · still counting',
       'Cost $2.84 SES $2.84 · Postal $0',
     ])
     expect(providerResultLines(s)).toEqual(['SES 28,444 · 99.2%', 'Postal 3,160 · 98.7%'])

@@ -20,6 +20,7 @@ export type Incident = Schemas['LiveIncident']
 export type LiveEvent = Schemas['LiveEvent']
 export type Threshold = Schemas['LiveThreshold']
 export type IncidentOption = Schemas['IncidentOption']
+export type MoveEstimate = Schemas['MoveEstimate']
 export type MailboxKey = Mailbox['key']
 export type Tone = 'ok' | 'warn' | 'bad' | 'info' | 'neutral'
 
@@ -96,6 +97,23 @@ export function pct1(v: number | null | undefined): string {
 /** Two decimals, for complaint rates: 0.02%. */
 export function pct2(v: number | null | undefined): string {
   return pct(v, 2)
+}
+
+/** A rate as the thresholds write it: complaints with two decimals, the rest with one (two below 1%). */
+export function pctOf(metric: string, v: number): string {
+  return metric === 'complaint' || v < 1 ? pct(v, 2) : pct(v, 1)
+}
+
+/**
+ * What the resume dialog offers (review GS-2): the recommended slower rate
+ * of a mailbox provider or route, and the limit raised to twice what it
+ * was, within what the API accepts.
+ */
+export function resumeChoices(i: Incident): { rate?: number; rateText: string; raised: number } {
+  const max = i.metric === 'complaint' ? 5 : i.metric === 'deferral' ? 100 : 20
+  const raised = Math.min(max, Math.round((i.limit ?? 0) * 2 * 100) / 100)
+  const rate = i.scope !== 'campaign' ? i.detail.changes?.rate : undefined
+  return { rate: rate || undefined, rateText: rate ? wholePerSec(rate) : '', raised }
 }
 
 /** n of d as a percentage, or undefined without a base. */
@@ -245,16 +263,8 @@ export function tiles(s: Snapshot, variant: TilesVariant = 'live', incident?: In
     t.bounced,
     variant === 'outage' ? bounceRate : tt(mm.bouncedSub, { rate: bounceRate, hard: count(t.hardBounced), soft: count(t.softBounced) }),
   )
-  const complaintRate = pct2(share(t.complained, t.delivered) ?? 0)
-  let complained = countTile('complained', mm.tileComplained, t.complained, variant === 'live' ? tt(mm.complainedSub, { rate: complaintRate }) : complaintRate)
-  if (variant === 'threshold' && incident?.metric === 'complaint' && incident.scope === 'mailbox_provider') {
-    const mb = s.mailboxes.find((m) => m.key === incident.mailbox)
-    complained = {
-      ...complained,
-      sub: tt(mm.complainedOverall, { rate: complaintRate, mailbox: scopeName(incident), mailboxRate: pct2(mb?.complaintRate ?? incident.value) }),
-      alert: true,
-    }
-  }
+  let complained = countTile('complained', mm.tileComplained, t.complained, complaintSub(s, variant))
+  if (variant === 'threshold' && incident?.metric === 'complaint' && incident.scope === 'mailbox_provider') complained = { ...complained, alert: true }
   const opened = countTile(
     'opened',
     mm.tileOpened,
@@ -271,6 +281,29 @@ export function tiles(s: Snapshot, variant: TilesVariant = 'live', incident?: In
   return [delivered, bounced, complained, opened, clicked]
 }
 
+/**
+ * The complaints tile's line (review F-2): the rate counts only mail
+ * delivered where mailbox providers report complaints; Gmail and iCloud
+ * read n/a. The decision view breaks the count down by mailbox provider.
+ */
+export function complaintSub(s: Snapshot, variant: TilesVariant | 'final'): string {
+  const t = s.totals
+  const names = andList(t.notReported.map((n) => mailboxName(n)))
+  if (t.complaintBase <= 0) return t.notReported.length ? tt(mm.complainedNone, { names }) : tt(mm.notAvailable)
+  const rate = pct2(share(t.complained, t.complaintBase))
+  switch (variant) {
+    case 'live':
+      return tt(mm.complainedSubReported, { rate, base: count(t.complaintBase) })
+    case 'final':
+      return tt(mm.complainedFinal, { rate, base: count(t.complaintBase), counting: s.watch?.active ? 'yes' : 'no' })
+    case 'threshold': {
+      const parts = s.mailboxes.filter((m) => !m.complaintReason && m.complained > 0).map((m) => `${mailboxName(m.key)} ${count(m.complained)}`)
+      return [...parts, t.notReported.length ? tt(mm.complainedNa, { names }) : ''].filter(Boolean).join(' · ')
+    }
+  }
+  return t.notReported.length ? tt(mm.complainedWhereReportedNa, { rate, names }) : tt(mm.complainedWhereReported, { rate })
+}
+
 /** The complete state's tiles (LiveMonitorStates: send complete). */
 export function finalTiles(s: Snapshot): Tile[] {
   const t = s.totals
@@ -279,7 +312,7 @@ export function finalTiles(s: Snapshot): Tile[] {
   return [
     countTile('delivered', mm.tileDelivered, t.delivered, pct1(share(t.delivered, s.sent))),
     countTile('bounced', mm.tileBounced, t.bounced, t.hardBounced > 0 ? tt(mm.bouncedSuppressed, { rate: bounceRate }) : bounceRate),
-    countTile('complained', mm.tileComplained, t.complained, pct2(share(t.complained, t.delivered) ?? 0)),
+    countTile('complained', mm.tileComplained, t.complained, complaintSub(s, 'final')),
     { key: 'cost', label: tt(mm.tileCost), value: cost(s.cost.total), sub: providers.map((p) => `${p.short} ${cost(p.cost)}`).join(' · ') },
   ]
 }
@@ -289,26 +322,100 @@ export function providerResultLines(s: Snapshot): string[] {
   return s.providers.filter((p) => p.sent > 0).map((p) => `${p.short} ${count(p.sent)} · ${pct1(p.deliveredRate)}`)
 }
 
-export type ThresholdRow = { key: string; label: string; short: string; value: string; width: number; color: string }
+export type ThresholdRow = {
+  key: string
+  /** "Bounces", "Outlook complaints". */
+  label: string
+  /** "whole send", "highest mailbox provider". */
+  sub: string
+  /** The phone layout's short label. */
+  short: string
+  /** "0.60% of 2.0%", "Yahoo 3.1% of 15%". */
+  value: string
+  /** "118 of 19,594 sent", "needs 5 complaints and 500 delivered to pause". */
+  evidence: string
+  state: { tone: Tone; text: string }
+  width: number
+  color: string
+}
 
+const stateTone: Record<Threshold['state'], Tone> = { ok: 'ok', near: 'warn', collecting: 'neutral', tripped: 'bad', na: 'neutral' }
+
+/**
+ * The thresholds card's rows (LiveMonitor, review GS-6): each rate against
+ * its limit with its state, and the evidence behind it. A rate without
+ * the evidence to trip shows "Collecting evidence" with a grey bar.
+ */
 export function thresholdRows(s: Snapshot): ThresholdRow[] {
   return s.thresholds.map((t) => {
     const mailbox = mailboxName(t.mailbox)
+    const v = t.value ?? undefined
+    const ofLimit = (value: string, limit: string) => (t.mailbox && t.key !== 'mailbox_complaint' ? tt(mm.ofLimitWho, { who: mailbox, value, limit }) : tt(mm.ofLimit, { value, limit }))
+    let label: string, sub: string, short: string, value: string
     switch (t.key) {
       case 'bounce':
-        return row(t, tt(mm.thresholdBounce), tt(mm.thresholdBounceShort), tt(mm.ofLimit, { value: pct(t.value, 2), limit: pct(t.limit, 1) }))
+        ;[label, sub, short] = [tt(mm.thresholdBounce), tt(mm.thresholdWholeSend), tt(mm.thresholdBounceShort)]
+        value = ofLimit(pct(v, 2), pct(t.limit, 1))
+        break
+      case 'block_bounce':
+        ;[label, sub, short] = [tt(mm.thresholdBlock), tt(mm.thresholdPerMailbox), tt(mm.thresholdBlockShort)]
+        value = ofLimit(pct(v, 2), pct(t.limit, 1))
+        break
+      case 'deferral':
+        ;[label, sub, short] = [tt(mm.thresholdDeferral), tt(mm.thresholdPerMailboxWindow), tt(mm.thresholdDeferralShort)]
+        value = ofLimit(pct(v, 1), trimPct(t.limit))
+        break
       case 'complaint':
-        return row(t, tt(mm.thresholdComplaint), tt(mm.thresholdComplaintShort), tt(mm.ofLimit, { value: pct(t.value, 2), limit: pct(t.limit, 2) }))
+        ;[label, sub, short] = [tt(mm.thresholdComplaint), tt(mm.thresholdWhereReported), tt(mm.thresholdComplaintShort)]
+        value = ofLimit(pct(v, 2), pct(t.limit, 2))
+        break
       case 'mailbox_complaint':
-        return row(t, tt(mm.thresholdMailbox, { mailbox }), tt(mm.thresholdMailboxShort, { mailbox }), tt(mm.ofLimit, { value: pct(t.value, 2), limit: pct(t.limit, 2) }))
+        ;[label, sub, short] = [tt(mm.thresholdMailbox, { mailbox }), tt(mm.thresholdHighest), tt(mm.thresholdMailboxShort, { mailbox })]
+        value = ofLimit(pct(v, 2), pct(t.limit, 2))
+        break
+      case 'reply_rules':
+        ;[label, sub, short] = [tt(mm.thresholdReplies), tt(mm.thresholdRepliesSub, { count: t.minBase }), tt(mm.thresholdRepliesShort)]
+        value = tt(mm.thresholdRepliesValue, { who: mailbox, code: t.parts?.[0]?.name ?? '', count: count(t.events), limit: count(t.minEvents) })
+        break
       default:
-        return row(t, tt(mm.thresholdErrors), tt(mm.thresholdErrorsShort), tt(mm.ofLimit, { value: errorRate(t.value), limit: trimPct(t.limit) }))
+        ;[label, sub, short] = [tt(mm.thresholdErrors), tt(mm.thresholdErrorsSub), tt(mm.thresholdErrorsShort)]
+        value = ofLimit(errorRate(v), trimPct(t.limit))
+    }
+    const collecting = t.state === 'collecting'
+    return {
+      key: t.key + (t.mailbox ?? ''),
+      label,
+      sub,
+      short,
+      value: t.state === 'na' ? tt(mm.notAvailable) : value,
+      evidence: thresholdEvidence(t),
+      state: { tone: stateTone[t.state], text: tt(mm.thresholdState, { state: t.state }) },
+      width: usageWidth(v ?? 0, t.limit),
+      color: collecting || t.state === 'na' ? 'var(--ink-4)' : usageColor(v ?? 0, t.limit),
     }
   })
 }
 
-function row(t: Threshold, label: string, short: string, value: string): ThresholdRow {
-  return { key: t.key + (t.mailbox ?? ''), label, short, value, width: usageWidth(t.value, t.limit), color: usageColor(t.value, t.limit) }
+/** The line under a threshold's bar: its counts, what it still needs, or why there's no rate. */
+export function thresholdEvidence(t: Threshold): string {
+  const unit = t.key === 'complaint' || t.key === 'mailbox_complaint' ? 'delivered' : 'sent'
+  if (t.state === 'na') return tt(mm.thresholdNa, { reason: t.reason ?? 'no_data' })
+  if (t.state === 'collecting' && (t.events < t.minEvents || t.base < t.minBase))
+    return tt(mm.thresholdNeeds, { key: t.key, events: count(t.events), base: count(t.base), unit, minEvents: count(t.minEvents), minBase: count(t.minBase) })
+  switch (t.key) {
+    case 'complaint': {
+      const names = (t.parts ?? []).map((p) => mailboxName(p.key ?? p.name))
+      return names.length ? tt(mm.thresholdComplaintsTo, { events: count(t.events), base: count(t.base), names: andList(names) }) : tt(mm.thresholdIn, { events: count(t.events), base: count(t.base), unit })
+    }
+    case 'api_errors':
+      return (t.parts ?? []).map((p) => `${p.name} ${errorRate(p.value ?? undefined)}`).join(', ')
+    case 'deferral':
+    case 'block_bounce':
+      return tt(mm.thresholdHighestAction, { key: t.key })
+    case 'reply_rules':
+      return t.parts?.[0]?.name ? tt(mm.thresholdReplyAction, { who: mailboxName(t.mailbox), limit: count(t.minEvents) }) : ''
+  }
+  return tt(mm.thresholdIn, { events: count(t.events), base: count(t.base), unit })
 }
 
 export function scopeLine(s: Snapshot): string {
@@ -513,7 +620,10 @@ function metricLabel(metric: string, who: string): string {
 }
 
 /** "What tripped": the scope's rate, the limit, the campaign-wide rate and the other metric. */
-export function trippedFacts(i: Incident, s: Snapshot): { head: Fact; bar: { width: number }; rows: Fact[] } {
+export function trippedFacts(
+  i: Incident,
+  s: Snapshot,
+): { head: Fact; bar: { width: number }; evidence?: { state: string; text: string }; rows: Fact[]; watch?: string } {
   const d = i.detail
   const who = scopeName(i)
   const t = s.totals
@@ -523,8 +633,18 @@ export function trippedFacts(i: Incident, s: Snapshot): { head: Fact; bar: { wid
     bad: true,
   }
   const rows: Fact[] = [{ label: tt(mm.factLimit, { scope: i.scope }), value: limitText(i.metric, i.limit) }]
-  if (i.scope !== 'campaign') {
-    const [n, base] = i.metric === 'complaint' ? [t.complained, t.delivered] : i.metric === 'bounce' ? [t.bounced, s.sent] : [t.deferred, s.sent]
+  if (i.scope === 'mailbox_provider' && i.metric === 'complaint') {
+    // The other mailbox providers that report complaints (review F-2): Gmail and iCloud aren't counted.
+    const others = s.mailboxes.filter((m) => m.key !== i.mailbox && !m.complaintReason && m.delivered > 0)
+    const n = others.reduce((a, m) => a + m.complained, 0)
+    const base = others.reduce((a, m) => a + m.delivered, 0)
+    if (others.length)
+      rows.push({
+        label: tt(mm.factOthers, { names: andList(others.map((m) => mailboxName(m.key))) }),
+        value: tt(mm.factValue, { events: count(n), base: count(base), rate: rateText(i.metric, share(n, base) ?? 0) }),
+      })
+  } else if (i.scope !== 'campaign') {
+    const [n, base] = i.metric === 'complaint' ? [t.complained, t.complaintBase] : i.metric === 'bounce' ? [t.bounced, s.sent] : [t.deferred, s.sent]
     rows.push({
       label: tt(mm.factCampaignWide, metricValues(i.metric)),
       value: tt(mm.factValue, { events: count(n), base: count(base), rate: rateText(i.metric, share(n, base) ?? 0) }),
@@ -542,7 +662,36 @@ export function trippedFacts(i: Incident, s: Snapshot): { head: Fact; bar: { wid
     const v = mb?.bounceRate ?? pv?.bounceRate ?? share(t.bounced, s.sent)
     rows.push({ label: metricLabel('bounce', who), value: tt(mm.ofLimit, { value: pct1(v ?? 0), limit: pct1(bounceLimit) }) })
   }
-  return { head, bar: { width: usageWidth(i.value ?? 0, i.limit ?? 0) || (i.value ? 100 : 0) }, rows }
+  const evidence = trippedEvidence(i, s)
+  return {
+    head,
+    bar: { width: usageWidth(i.value ?? 0, i.limit ?? 0) || (i.value ? 100 : 0) },
+    evidence: evidence ? { state: tt(mm.thresholdState, { state: 'tripped' }), text: evidence } : undefined,
+    rows,
+    // Complaints keep arriving after the send (review GS-6): the watch after it.
+    watch: i.metric === 'complaint' ? tt(mm.factWatch, { hours: s.watch?.hours ?? 72 }) : undefined,
+  }
+}
+
+/**
+ * Why a threshold could trip (review GS-6): "7 complaints in 3,980
+ * delivered · enough evidence (needs 5 events and 500 delivered)", from
+ * the guard's minimums for the scope.
+ */
+export function trippedEvidence(i: Incident, s: Snapshot): string | undefined {
+  const d = i.detail
+  if (i.kind !== 'threshold' || d.events === undefined || d.base === undefined) return undefined
+  const key = i.metric === 'complaint' ? (i.scope === 'mailbox_provider' ? 'mailbox_complaint' : 'complaint') : i.metric
+  const row = s.thresholds.find((x) => x.key === key && (!x.mailbox || x.mailbox === i.mailbox)) ?? s.thresholds.find((x) => x.key === key)
+  const unit = i.metric === 'complaint' ? 'delivered' : 'sent'
+  return tt(mm.factEvidence, {
+    metric: i.metric,
+    events: count(d.events),
+    base: count(d.base),
+    unit,
+    minEvents: count(row?.minEvents ?? 5),
+    minBase: count(row?.minBase ?? (i.scope === 'campaign' ? 1000 : 500)),
+  })
 }
 
 /** "09:14:02 ECONNREFUSED mta.acme.io:443" lines of an outage. */
@@ -694,7 +843,7 @@ export function finishedText(s: Snapshot): { title: string; body: string } {
   const t = s.totals
   const trips = s.incidents.filter((i) => i.kind === 'threshold').length
   const outages = s.incidents.filter((i) => i.kind === 'provider_outage').length
-  const v = { sent: count(s.sent), delivered: count(t.delivered), rate: pct1(share(t.delivered, s.sent)), bounced: count(t.bounced), complaints: t.complained }
+  const v = { sent: count(s.sent), delivered: count(t.delivered), rate: pct1(share(t.delivered, s.sent)), bounced: count(t.bounced), complaints: t.complained, watching: s.watch?.active ? 'yes' : 'no' }
   const parts = [
     s.durationSeconds !== undefined ? tt(mm.finishedIn, { ...v, took: tookText(s.durationSeconds) }) : tt(mm.finishedNoTime, v),
     tt(mm.finishedTrips, { n: trips }),
@@ -808,7 +957,7 @@ export function mobileTiles(s: Snapshot): Tile[] {
   return [
     countTile('delivered', mm.tileDelivered, t.delivered, pct1(share(t.delivered, s.sent) ?? 0)),
     countTile('bounced', mm.tileBounced, t.bounced, rate(share(t.bounced, s.sent) ?? 0)),
-    countTile('complained', mm.tileComplained, t.complained, pct2(share(t.complained, t.delivered) ?? 0)),
+    countTile('complained', mm.tileComplained, t.complained, t.complaintBase > 0 ? tt(mm.complainedWhereReported, { rate: pct2(share(t.complained, t.complaintBase)) }) : tt(mm.notAvailable)),
     countTile('opened', mm.tileOpenedHuman, t.openedHuman, tt(mm.openedMachine, { n: count(t.openedMachine) })),
     countTile('clicked', mm.tileClicked, t.clicked, tt(mm.clickedSub, { rate: pct1(share(t.clicked, t.delivered) ?? 0), ctor: pct1(share(t.clicked, t.opened) ?? 0) })),
   ]
@@ -905,3 +1054,39 @@ export function eventWord(word: string): string {
   const d = eventWords[word]
   return d ? tt(d) : word
 }
+
+/** A complaint watch row: a mailbox provider that reports complaints, against its limit (LiveMonitorStates: complete). */
+export type WatchRow = { key: string; name: string; counts: string; value: string; state: { tone: Tone; text: string }; width: number; color: string }
+
+/** The complaint watch's rows after the send (review GS-6). */
+export function watchRows(s: Snapshot): WatchRow[] {
+  return (s.watch?.rows ?? []).map((r) => {
+    const v = r.value ?? 0
+    const collecting = r.state === 'collecting'
+    return {
+      key: r.mailbox ?? r.key,
+      name: mailboxName(r.mailbox),
+      counts: tt(mm.thresholdIn, { events: count(r.events), base: count(r.base), unit: 'delivered' }),
+      value: tt(mm.ofLimit, { value: pct(r.value ?? undefined, 2), limit: pct(r.limit, 2) }),
+      state: { tone: stateTone[r.state], text: tt(mm.thresholdState, { state: r.state }) },
+      width: usageWidth(v, r.limit),
+      color: collecting ? 'var(--ink-4)' : usageColor(v, r.limit),
+    }
+  })
+}
+
+/** "Complaint watch · 72 h · 12 complaints so far · you'll be alerted if Outlook passes 0.10%". */
+export function watchTitle(s: Snapshot): string {
+  const w = s.watch
+  if (!w) return ''
+  const rows = [...(w.rows ?? [])].sort((a, b) => (b.value ?? 0) - (a.value ?? 0))
+  const who = rows[0]?.mailbox ? mailboxName(rows[0].mailbox) : tt(mm.aMailboxProvider)
+  return tt(mm.watchTitle, {
+    hours: w.hours,
+    complaints: s.totals.complained,
+    alert: w.alert && w.active ? 'yes' : 'no',
+    who,
+    limit: pct(w.limit, 2),
+  })
+}
+

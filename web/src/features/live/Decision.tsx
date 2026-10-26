@@ -7,6 +7,7 @@ import { cn } from '@/lib/cn'
 import { runAction, type LiveActions, type LivePermissions } from './actions'
 import { MailboxTable, ProgressCard, ProviderTable, Tiles } from './LiveParts'
 import { m } from './messages'
+import { ResumeDialog } from './ResumeDialog'
 import {
   defaultOption,
   incidentTitle,
@@ -19,6 +20,7 @@ import {
   trippedFacts,
   type Incident,
   type IncidentOption,
+  type MoveEstimate,
   type Snapshot,
 } from './model'
 
@@ -64,8 +66,15 @@ function IncidentPanel({ s, incident, actions, can, onCancelAll }: { s: Snapshot
   const picked = options.find((o) => o.key === choice) ?? options[0]
   const action = picked ? optionAction(incident, picked.key) : null
   const [busy, setBusy] = useState(false)
+  const [asking, setAsking] = useState(false)
   const go = async () => {
     if (!action || busy) return
+    if (!outage && picked?.key === 'resume') {
+      // Resuming as is asks first: re-arm at the recommended rate, or
+      // raise the limit for this campaign (Dialogs board, review GS-2).
+      setAsking(true)
+      return
+    }
     setBusy(true)
     try {
       await runAction(actions, action, incident.detail.move?.targetShort)
@@ -96,7 +105,14 @@ function IncidentPanel({ s, incident, actions, can, onCancelAll }: { s: Snapshot
           <h2 className="h2">{tr(m.chooseTitle)}</h2>
           <Grid min={280} gap={12} role="radiogroup" aria-label={tr(m.chooseLabel)}>
             {options.map((o) => (
-              <Choice key={o.key} name={`continue-${incident.id}`} option={o} checked={picked?.key === o.key} onChange={() => setChoice(o.key)} />
+              <Choice
+                key={o.key}
+                name={`continue-${incident.id}`}
+                option={o}
+                checked={picked?.key === o.key}
+                onChange={() => setChoice(o.key)}
+                checks={o.key === 'move' ? incident.detail.move : undefined}
+              />
             ))}
           </Grid>
           <div className="flex flex-wrap justify-end gap-2.5">
@@ -111,14 +127,33 @@ function IncidentPanel({ s, incident, actions, can, onCancelAll }: { s: Snapshot
           </div>
         </div>
       ) : null}
+      {outage ? null : <ResumeDialog open={asking} onOpenChange={setAsking} incident={incident} actions={actions} />}
     </section>
   )
 }
 
-/** A radio option card with the boards' inline layout (title, line break, caption). */
-function Choice({ name, option, checked, onChange }: { name: string; option: IncidentOption; checked: boolean; onChange: () => void }) {
+/**
+ * A radio option card with the boards' inline layout (title, line break,
+ * caption). A move lists the checks ReputeCast ran on its target (review
+ * GS-5): passed ones with a tick, what it couldn't tell with a dash.
+ */
+function Choice({
+  name,
+  option,
+  checked,
+  onChange,
+  checks,
+}: {
+  name: string
+  option: IncidentOption
+  checked: boolean
+  onChange: () => void
+  checks?: MoveEstimate
+}) {
+  const t = useT()
   const title = <span className="font-semibold">{option.title}</span>
   const body = <span className="k">{option.body}</span>
+  const list = checks?.checks ?? []
   return (
     <label className="opt">
       {/* On the boards the radio is a flex item that shrinks beside long text (to 13 px). */}
@@ -127,8 +162,37 @@ function Choice({ name, option, checked, onChange }: { name: string; option: Inc
         {title}
         <br />
         {body}
+        {list.length && checks ? (
+          <>
+            <span className="k mt-2 block font-semibold text-ink">{t(m.checksTitle, { provider: checks.targetShort })}</span>
+            <span className="lv-chks" role="list">
+              {list.map((c) => (
+                <span role="listitem" key={c.key}>
+                  {c.result === 'pass' ? <CheckTick /> : <CheckDash />}
+                  <span>{c.text}</span>
+                </span>
+              ))}
+            </span>
+          </>
+        ) : null}
       </span>
     </label>
+  )
+}
+
+function CheckTick() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#15803D" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m3 8.5 3.2 3L13 4.5" />
+    </svg>
+  )
+}
+
+function CheckDash() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#B45309" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+      <path d="M4 8h8" />
+    </svg>
   )
 }
 
@@ -151,9 +215,17 @@ function Tripped({ s, incident }: { s: Snapshot; incident: Incident }) {
         <span>{f.head.label}</span>
         <span className="n text-bad-fg">{f.head.value}</span>
       </Row>
-      <div className="bar" style={{ height: 8 }}>
+      <div className="bar" style={{ height: 8 }} aria-hidden="true">
         <i style={{ width: `${f.bar.width}%`, background: 'var(--bad-strong)' }} />
       </div>
+      {f.evidence ? (
+        <Row gap={8} align="flex-start" className="text-[12.5px] text-ink-3">
+          <Badge tone="bad" dot className="flex-none">
+            {f.evidence.state}
+          </Badge>
+          <span>{f.evidence.text}</span>
+        </Row>
+      ) : null}
       {f.rows.map((r) => (
         <Row key={r.label} justify="space-between" gap={12} align="normal" className="text-[13px]">
           <span>{r.label}</span>
@@ -161,6 +233,7 @@ function Tripped({ s, incident }: { s: Snapshot; incident: Incident }) {
         </Row>
       ))}
       {incident.detail.note ? <span className="k">{incident.detail.note}</span> : null}
+      {f.watch ? <p className="lv-fn rounded-lg border border-line bg-bg-2 px-2.5 py-2">{f.watch}</p> : null}
     </Column>
   )
 }

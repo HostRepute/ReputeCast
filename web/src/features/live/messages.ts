@@ -50,6 +50,8 @@ export const m = defineMessages('live', {
   eventsList: 'Newest events first',
   thresholds: 'Auto-pause thresholds',
   editThresholds: 'Edit',
+  /** Opens the thresholds dialog of a running or waiting send (LiveMonitor). */
+  editThresholdsLive: 'Edit for this send',
   sendDetails: 'Send details',
   detailFrom: 'From',
   detailAudience: 'Audience',
@@ -63,6 +65,8 @@ export const m = defineMessages('live', {
 
   // ── Decision view ────────────────────────────────────────────────────
   chooseTitle: 'Choose how to continue',
+  /** Above the list of checks run on a move's target (review GS-5). */
+  checksTitle: 'Checks ReputeCast ran on {provider}',
   chooseLabel: 'Choose how to continue',
   cancelWhole: 'Cancel whole campaign',
   pickFirst: 'Pick how to continue first.',
@@ -116,6 +120,53 @@ export const m = defineMessages('live', {
   nothingChanged: 'Nothing was changed.',
   pauseFailed: "Couldn't pause the send",
   resumeFailed: "Couldn't resume the send",
+  // Resume sending (Dialogs board; review GS-2). {metric} is complaint, bounce or deferral.
+  resumeBadge: 'Resume sending',
+  resumeTitleWho: 'Resume the {held} held {who} recipients?',
+  resumeTitleAll: 'Resume the {held} held recipients?',
+  resumeWasWho:
+    'The {who} {metric, select, complaint {complaint rate} bounce {bounce rate} deferral {deferral rate} other {rate}} was {value} when ReputeCast paused at {time}.',
+  resumeWasAll:
+    'The {metric, select, complaint {complaint rate} bounce {bounce rate} deferral {deferral rate} other {rate}} was {value} when ReputeCast paused at {time}.',
+  resumeSince: 'Since then: {value} on the {base} {metric, select, complaint {delivered} other {sent}}.',
+  resumeLimit: 'The threshold is {limit}.',
+  resumeRearmAt:
+    'Resume at {rate} and re-pause if {metric, select, complaint {complaints pass} bounce {bounces pass} deferral {deferrals pass} other {the rate passes}} {limit} again',
+  resumeRearm:
+    'Resume and re-pause if {metric, select, complaint {complaints pass} bounce {bounces pass} deferral {deferrals pass} other {the rate passes}} {limit} again',
+  resumeRaise: 'Resume with the threshold raised to {limit} for this campaign only',
+  resumeRaiseNote: 'Logged in the audit log with your name.',
+  keepPaused: 'Keep paused',
+  resumeWho: 'Resume {who}',
+  // Edit for this send: the send's thresholds while it sends or waits.
+  thresholdsEditTitle: 'Auto-pause thresholds for this send',
+  thresholdsEditBody: 'They apply to the rest of {name} only; the workspace defaults stay as they are. Logged in the audit log with your name.',
+  thresholdsBounce: 'Bounces, whole send (%)',
+  thresholdsComplaint: 'Complaints, whole send, where reported (%)',
+  thresholdsMailboxComplaint: 'Complaints per mailbox provider (%)',
+  thresholdsDeferral: 'Deferrals per mailbox provider (%)',
+  thresholdsApiErrors: 'Sending provider API errors, over 3 min (%)',
+  thresholdsScope: 'When one trips',
+  thresholdsScopeRoute: 'Pause only the affected route or mailbox provider',
+  thresholdsScopeCampaign: 'Pause the whole campaign',
+  thresholdRange: 'Between {min} and {max}.',
+  thresholdsFix: 'Fix the values first',
+  thresholdsSave: 'Save thresholds',
+  thresholdsSaved: 'Thresholds saved',
+  thresholdsSavedDetail: 'The guard uses them within seconds.',
+  thresholdsFailed: "Couldn't save the thresholds",
+  // The complaint watch after the send (LiveMonitorStates: complete; review GS-6).
+  watchWatching: 'Watching',
+  watchEnded: 'Watch ended',
+  watchUntil: 'until {until}',
+  watchNoPerMessage: 'no complaints per message',
+  watchNotReported: 'Not reported',
+  watchPostmaster: "Gmail's Postmaster Tools spam rate arrives once a day: {rate} on its latest day.",
+  watchFootnote: "Late complaints add the contact to the suppression list and count in this campaign's report. Most arrive in the first 24 hours.",
+  watchAlertWho: '{who} complaints reached {value} after the send (limit {limit})',
+  watchAlertAll: 'Complaints reached {value} after the send (limit {limit})',
+  acknowledge: 'Acknowledge',
+  acknowledgeFailed: "Couldn't acknowledge the alert",
   cancelFailed: "Couldn't cancel",
   moveFailed: "Couldn't move the share",
   retryFailed: "Couldn't retry",

@@ -1,12 +1,13 @@
 import { Link } from '@tanstack/react-router'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Badge, Dot } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Grid, Row } from '@/components/ui/Layout'
 import { Table, Td, Th } from '@/components/ui/Table'
 import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { clockSeconds, count, money, pct } from '@/lib/format'
+import { andList, clockSeconds, count, money, pct, shortDate } from '@/lib/format'
 import { useReducedMotion } from '@/lib/hooks'
 import { useWorkspace } from '@/lib/session'
 import { m } from './messages'
@@ -206,9 +207,16 @@ export function MailboxTable({ s, decision }: { s: Snapshot; decision: boolean }
                 <Td align="right" num>
                   {pct1(mb.bounceRate)}
                 </Td>
-                <Td align="right" num className={decision && mb.held ? 'text-bad-fg' : undefined}>
-                  {pct2(mb.complaintRate ?? 0)}
-                </Td>
+                {mb.complaintReason ? (
+                  // Gmail and iCloud don't report complaints per message (review F-2).
+                  <Td align="right" className="k" aria-describedby="lv-fn-cmp">
+                    {t(mm.notAvailable)}
+                  </Td>
+                ) : (
+                  <Td align="right" num className={decision && mb.held ? 'text-bad-fg' : undefined}>
+                    {mb.complaintRate === undefined ? t(mm.notAvailable) : pct2(mb.complaintRate)}
+                  </Td>
+                )}
                 {decision ? null : (
                   <Td align="right" num>
                     {pct1(mb.openRate)}
@@ -223,7 +231,30 @@ export function MailboxTable({ s, decision }: { s: Snapshot; decision: boolean }
           })}
         </tbody>
       </Table>
+      <MailboxNotes s={s} />
     </Card>
+  )
+}
+
+/**
+ * The mailbox table's notes: why Gmail's and iCloud's complaints read n/a
+ * (with Gmail's daily spam rate when Postmaster Tools is connected), and
+ * how company domains are counted.
+ */
+function MailboxNotes({ s }: { s: Snapshot }) {
+  const t = useT()
+  const unreported = s.mailboxes.filter((mb) => mb.complaintReason).map((mb) => mailboxName(mb.key))
+  return (
+    <div className="lv-fns">
+      {unreported.length ? (
+        <p className="lv-fn" id="lv-fn-cmp">
+          {[t(mm.naComplaints, { names: andList(unreported) }), s.postmaster ? t(mm.postmasterRate, { rate: pct2(s.postmaster.spamRate), day: shortDate(s.postmaster.day) }) : '']
+            .filter(Boolean)
+            .join(' ')}
+        </p>
+      ) : null}
+      <p className="lv-fn">{t(mm.mxNote)}</p>
+    </div>
   )
 }
 
@@ -342,30 +373,63 @@ function EventLine({ ev, first }: { ev: LiveEvent; first: boolean }) {
   )
 }
 
-/** Auto-pause thresholds: each rate against its limit. */
-export function ThresholdsCard({ s, campaignId }: { s: Snapshot; campaignId: string }) {
+/** "Edit for this send": opens the thresholds dialog, or says who can. */
+export type ThresholdsEdit = { onEdit: () => void; disabledReason?: string }
+
+/**
+ * Auto-pause thresholds (LiveMonitor, review GS-6): each rate against its
+ * limit with its state and evidence; "Edit for this send" changes them
+ * while the send runs or waits (GS-2).
+ */
+export function ThresholdsCard({ s, campaignId, edit }: { s: Snapshot; campaignId: string; edit?: ThresholdsEdit }) {
   const t = useT()
   const { slug } = useWorkspace()
   return (
-    <Card className="flex flex-col gap-3.5 px-5 py-[18px]">
-      <div className="flex items-center justify-between">
-        <h2 className="h2">{t(m.thresholds)}</h2>
-        <Link to="/w/$workspace/campaigns/$campaignId/review" params={{ workspace: slug, campaignId }} className="k">
-          {t(m.editThresholds)}
-        </Link>
-      </div>
-      {thresholdRows(s).map((r) => (
-        <div key={r.key} className="flex flex-col gap-1.5">
-          <Row justify="space-between" gap={12} align="normal" className="text-[13px]">
-            <span>{r.label}</span>
-            <span className="n">{r.value}</span>
-          </Row>
-          <div className="bar">
-            <i style={{ width: `${r.width}%`, background: r.color }} />
-          </div>
+    <Card className="flex flex-col p-0" aria-labelledby="lv-thr-h">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-[18px] py-3.5">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="h2" id="lv-thr-h">
+            {t(m.thresholds)}
+          </h2>
+          <span className="k">{scopeLine(s)}</span>
         </div>
-      ))}
-      <span className="k">{scopeLine(s)}</span>
+        <div className="lv-thr-links flex flex-wrap items-center gap-4 text-[13px]">
+          {edit ? (
+            <Button size="sm" onClick={edit.onEdit} disabledReason={edit.disabledReason}>
+              {t(m.editThresholdsLive)}
+            </Button>
+          ) : (
+            <Link to="/w/$workspace/campaigns/$campaignId/review" params={{ workspace: slug, campaignId }}>
+              {t(m.editThresholds)}
+            </Link>
+          )}
+        </div>
+      </div>
+      <div className="grid gap-x-7 gap-y-[18px] px-[18px] pt-4 pb-[18px]" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+        {thresholdRows(s).map((r) => (
+          <div key={r.key} className="lv-thr">
+            <div className="lv-thr-h">
+              <span>
+                <b>{r.label}</b>
+                <span className="k">{r.sub}</span>
+              </span>
+              <Badge tone={r.state.tone} dot>
+                {r.state.text}
+              </Badge>
+            </div>
+            <div className="bar" aria-hidden="true">
+              <i style={{ width: `${r.width}%`, background: r.color }} />
+            </div>
+            <div className="lv-thr-v">
+              <span className="n">{r.value}</span>
+              {r.evidence ? <span>{r.evidence}</span> : null}
+            </div>
+          </div>
+        ))}
+        <div className="flex items-center rounded-lg border border-line bg-[#F9FAFB] px-3 py-2.5">
+          <p className="lv-fn">{t(mm.thresholdsFootnote)}</p>
+        </div>
+      </div>
     </Card>
   )
 }
@@ -427,7 +491,23 @@ export function DeliveredMixCard({ s }: { s: Snapshot }) {
 }
 
 /** The live view's body (LiveMonitor): progress, counters, breakdowns, feed and the side cards. */
-export function LiveBody({ s, campaignId, streaming, stale, asOf, incident }: { s: Snapshot; campaignId: string; streaming: boolean; stale?: boolean; asOf?: string; incident?: Incident }) {
+export function LiveBody({
+  s,
+  campaignId,
+  streaming,
+  stale,
+  asOf,
+  incident,
+  edit,
+}: {
+  s: Snapshot
+  campaignId: string
+  streaming: boolean
+  stale?: boolean
+  asOf?: string
+  incident?: Incident
+  edit?: ThresholdsEdit
+}) {
   return (
     <>
       <ProgressCard s={s} incident={incident} stale={stale} asOf={asOf} />
@@ -439,7 +519,7 @@ export function LiveBody({ s, campaignId, streaming, stale, asOf, incident }: { 
             <EventsCard s={s} streaming={streaming} />
           </div>
           <div className="flex flex-col gap-4 max-md:min-w-0" style={{ flex: '1 1 320px', maxWidth: 400 }}>
-            <ThresholdsCard s={s} campaignId={campaignId} />
+            <ThresholdsCard s={s} campaignId={campaignId} edit={edit} />
             <DetailsCard s={s} />
             <DeliveredMixCard s={s} />
           </div>

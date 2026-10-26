@@ -27,7 +27,9 @@ export function useLiveActions(slug: string, campaignId: string, apply: (s: Snap
   const cancelM = $api.useMutation('post', `${base}/cancel`)
   const moveM = $api.useMutation('post', `${base}/move`)
   const retryM = $api.useMutation('post', `${base}/retry`)
-  const pending = pauseM.isPending || resumeM.isPending || cancelM.isPending || moveM.isPending || retryM.isPending
+  const thresholdsM = $api.useMutation('put', `${base}/thresholds`)
+  const acknowledgeM = $api.useMutation('post', `${base}/acknowledge`)
+  const pending = pauseM.isPending || resumeM.isPending || cancelM.isPending || moveM.isPending || retryM.isPending || thresholdsM.isPending || acknowledgeM.isPending
 
   const settle = (r: Result) => {
     apply(r.snapshot)
@@ -84,6 +86,22 @@ export function useLiveActions(slug: string, campaignId: string, apply: (s: Snap
         .mutateAsync({ params: { path }, body })
         .then(settle)
         .catch(fail(tt(m.retryFailed))),
+    /** Marks an alert as read: complaints after the send (review GS-6). */
+    acknowledge: (body: Schemas['LiveAcknowledgeRequest']) =>
+      acknowledgeM
+        .mutateAsync({ params: { path }, body })
+        .then(settle)
+        .catch(fail(tt(m.acknowledgeFailed))),
+    /** Changes the send's auto-pause thresholds while it sends or waits (review GS-2). */
+    setThresholds: (body: Schemas['LiveThresholdsRequest']) =>
+      thresholdsM
+        .mutateAsync({ params: { path }, body })
+        .then(settle)
+        .then((r) => {
+          toast({ kind: 'success', title: tt(m.thresholdsSaved), detail: tt(m.thresholdsSavedDetail) })
+          return r
+        })
+        .catch(fail(tt(m.thresholdsFailed))),
   }
 }
 

@@ -6,9 +6,9 @@ import { Grid } from '@/components/ui/Layout'
 import { Banner } from '@/components/ui/Note'
 import { useT } from '@/i18n'
 import { cn } from '@/lib/cn'
-import { andList, count } from '@/lib/format'
+import { andList, clock, count, pct, weekdayDate } from '@/lib/format'
 import { usePermissionReason, useWorkspace } from '@/lib/session'
-import type { LivePermissions } from './actions'
+import type { LiveActions, LivePermissions } from './actions'
 import { TileValue } from './LiveParts'
 import { m } from './messages'
 import {
@@ -24,6 +24,8 @@ import {
   scheduledLine,
   scopeName,
   startingText,
+  watchRows,
+  watchTitle,
   type Incident,
   type Snapshot,
 } from './model'
@@ -88,7 +90,7 @@ export function StreamLostBanner({ title, body, onReconnect, busy }: { title: st
 }
 
 /** LiveMonitorStates › complete: what the send did, and the way to the report. */
-export function FinishedView({ s, campaignId }: { s: Snapshot; campaignId: string }) {
+export function FinishedView({ s, campaignId, actions, can }: { s: Snapshot; campaignId: string; actions?: LiveActions; can?: LivePermissions }) {
   const tr = useT()
   const { slug } = useWorkspace()
   const t = finishedText(s)
@@ -118,8 +120,106 @@ export function FinishedView({ s, campaignId }: { s: Snapshot; campaignId: strin
           </ButtonLink>
         </div>
       </div>
+      {actions ? <ComplaintAlerts s={s} actions={actions} can={can} /> : null}
+      <ComplaintWatchCard s={s} />
       <FinalTiles s={s} />
     </>
+  )
+}
+
+/**
+ * A complaint alert raised after the send (review GS-6): the mailbox
+ * provider passed its complaint limit during the watch. Nothing is
+ * sending; the people who can resume sends acknowledge it.
+ */
+function ComplaintAlerts({ s, actions, can }: { s: Snapshot; actions: LiveActions; can?: LivePermissions }) {
+  const tr = useT()
+  const open = s.incidents.filter((i) => i.kind === 'complaint_watch' && !i.resolvedAt)
+  return (
+    <>
+      {open.map((i) => (
+        <Banner
+          key={i.id}
+          tone="warn"
+          title={
+            <span role="alert">
+              {i.scope === 'mailbox_provider'
+                ? tr(m.watchAlertWho, { who: scopeName(i), value: pct(i.value ?? undefined, 2), limit: pct(i.limit ?? undefined, 2) })
+                : tr(m.watchAlertAll, { value: pct(i.value ?? undefined, 2), limit: pct(i.limit ?? undefined, 2) })}
+            </span>
+          }
+          actions={
+            <Button onClick={() => void actions.acknowledge({ incidentId: i.id }).catch(() => undefined)} disabledReason={can?.resume} loading={actions.pending}>
+              {tr(m.acknowledge)}
+            </Button>
+          }
+        >
+          {i.detail.recommendations?.join(' ')}
+        </Banner>
+      ))}
+    </>
+  )
+}
+
+/** The complaint watch after the send (LiveMonitorStates: complete). */
+export function ComplaintWatchCard({ s }: { s: Snapshot }) {
+  const tr = useT()
+  const w = s.watch
+  if (!w) return null
+  const rows = watchRows(s)
+  const unreported = s.totals.notReported
+  return (
+    <section className="card flex flex-col gap-3 px-5 py-4" aria-labelledby="lv-cw-h">
+      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
+        <Badge tone={w.active ? 'ok' : 'neutral'} dot>
+          {tr(w.active ? m.watchWatching : m.watchEnded)}
+        </Badge>
+        <h2 className="h2" id="lv-cw-h">
+          {watchTitle(s)}
+        </h2>
+        <span className="k ml-auto">{tr(m.watchUntil, { until: `${weekdayDate(w.until)}, ${clock(w.until)}` })}</span>
+      </div>
+      <div className="lv-cw">
+        {rows.map((r) => (
+          <div key={r.key} className="lv-thr">
+            <div className="lv-thr-h">
+              <span>
+                <b>{r.name}</b>
+                <span className="k">{r.counts}</span>
+              </span>
+              <Badge tone={r.state.tone} dot>
+                {r.state.text}
+              </Badge>
+            </div>
+            <div className="bar" aria-hidden="true">
+              <i style={{ width: `${r.width}%`, background: r.color }} />
+            </div>
+            <div className="lv-thr-v">
+              <span className="n">{r.value}</span>
+            </div>
+          </div>
+        ))}
+        {unreported.length ? (
+          <div className="lv-thr">
+            <div className="lv-thr-h">
+              <span>
+                <b>{andList(unreported)}</b>
+                <span className="k">{tr(m.watchNoPerMessage)}</span>
+              </span>
+              <Badge tone="neutral" dot>
+                {tr(m.watchNotReported)}
+              </Badge>
+            </div>
+            {s.postmaster ? (
+              <div className="lv-thr-v">
+                <span>{tr(m.watchPostmaster, { rate: pct(s.postmaster.spamRate, 2) })}</span>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+      <p className="lv-fn">{tr(m.watchFootnote)}</p>
+    </section>
   )
 }
 

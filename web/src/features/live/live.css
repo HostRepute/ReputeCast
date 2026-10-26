@@ -22,6 +22,160 @@
     border-top: 0;
   }
 
+  /* The checks ReputeCast ran on a move's target, under the option
+     (.chks on LiveMonitorOutage). */
+  .lv-chks {
+    margin: 6px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .lv-chks > span {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    font-size: 12px;
+    color: #4b5563;
+    font-weight: 500;
+  }
+  .lv-chks > span svg {
+    flex: none;
+    margin-top: 2px;
+  }
+
+  /* Auto-pause thresholds (LiveMonitor): a grid of rows, each with its
+     state badge, bar and evidence line. */
+  .lv-thr {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .lv-thr-h {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px 12px;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+  .lv-thr-h > span:first-child {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+  .lv-thr-h b {
+    font-weight: 600;
+  }
+  .lv-thr-v {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 8px;
+    font-size: 12.5px;
+    color: #4b5563;
+  }
+  .lv-thr-v .n {
+    color: var(--ink);
+  }
+  .lv-fn {
+    margin: 0;
+    font-size: 12px;
+    color: #5b6472;
+    font-weight: 500;
+    line-height: 1.45;
+  }
+  .lv-fns {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--line-2);
+  }
+
+  /* The complaint watch's rows after the send (LiveMonitorStates). */
+  .lv-cw {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px 28px;
+  }
+  @media (max-width: 1100px) {
+    .lv-cw {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 767px) {
+    .lv-cw {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* Adjust rates (LiveMonitor): one row per mailbox provider with a
+     stepper. */
+  .lv-ratep {
+    border-top: 1px solid var(--line-2);
+    background: #f9fafb;
+    padding: 14px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .lv-rrow {
+    display: grid;
+    grid-template-columns: minmax(110px, 150px) minmax(110px, 150px) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px 14px;
+    font-size: 13px;
+    padding: 4px 0;
+  }
+  .lv-rrow .nm {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-weight: 600;
+  }
+  .lv-stp {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid #8b94a3;
+    border-radius: 8px;
+    background: #ffffff;
+    overflow: hidden;
+    flex: none;
+  }
+  .lv-stp button {
+    width: 36px;
+    height: 36px;
+    border: 0;
+    background: #ffffff;
+    color: var(--ink);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font: inherit;
+  }
+  .lv-stp button:hover {
+    background: #f3f4f6;
+  }
+  .lv-stp button:disabled {
+    color: #9ca3af;
+    cursor: not-allowed;
+    background: #ffffff;
+  }
+  .lv-stp output {
+    min-width: 86px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+  }
+
   /* The connecting state's spinner (28px, 3px ring). */
   .spin.lv-spin {
     width: 28px;
@@ -77,6 +231,28 @@
 }
 
 @media (max-width: 767px) {
+  .lv-rrow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .lv-rrow .was {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+  .lv-rrow .eff {
+    grid-column: 1 / -1;
+    order: 4;
+  }
+  .lv-stp button {
+    width: 44px;
+    height: 44px;
+  }
+  .lv-thr-links a,
+  .lv-thr-links button {
+    min-height: 44px;
+  }
   .content.lv-m {
     padding: 16px;
     gap: 14px;

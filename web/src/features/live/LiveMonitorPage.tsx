@@ -16,6 +16,7 @@ import { DecisionView } from './Decision'
 import { LiveBody } from './LiveParts'
 import { m } from './messages'
 import { MobileLive } from './Mobile'
+import { ThresholdsDialog } from './ResumeDialog'
 import { eventsCaption, headerBadges, isStarting, lostText, openIncident, startedLine, type CaptionKind, type Incident, type Snapshot } from './model'
 import {
   CancelledView,
@@ -104,6 +105,7 @@ function LiveScreen({
   const actions = useLiveActions(slug, campaignId, apply)
   const can = useLivePermissions(helpers)
   const [cancelling, setCancelling] = useState(false)
+  const [editing, setEditing] = useState(false)
   const incident = openIncident(s)
   const mode = modeOf(s, incident, search.view, now)
   const active = ['preparing', 'sending', 'partial', 'paused'].includes(s.state)
@@ -127,8 +129,13 @@ function LiveScreen({
   const incidentBanner = incident && mode !== 'decision' ? <IncidentBanner s={s} incident={incident} onDecide={() => setView(undefined)} /> : null
 
   const dialog = (
-    <CancelSendDialog open={cancelling} onOpenChange={setCancelling} s={s} incident={incident} actions={actions} canPause={!can.pause} />
+    <>
+      <CancelSendDialog open={cancelling} onOpenChange={setCancelling} s={s} incident={incident} actions={actions} canPause={!can.pause} />
+      <ThresholdsDialog open={editing} onOpenChange={setEditing} s={s} actions={actions} />
+    </>
   )
+  // "Edit for this send" (review GS-2): who can resume can change them.
+  const editThresholds = active ? { onEdit: () => setEditing(true), disabledReason: can.resume } : undefined
 
   if (phone && (mode === 'live' || mode === 'connecting')) {
     return (
@@ -173,7 +180,7 @@ function LiveScreen({
       )
       break
     case 'finished':
-      body = <FinishedView s={s} campaignId={campaignId} />
+      body = <FinishedView s={s} campaignId={campaignId} actions={actions} can={can} />
       break
     case 'cancelled':
       body = <CancelledView s={s} campaignId={campaignId} />
@@ -193,7 +200,7 @@ function LiveScreen({
           {lostBanner}
           {pausedBanner}
           {incidentBanner}
-          <LiveBody s={s} campaignId={campaignId} streaming={!lost} stale={lost} asOf={asOf} incident={incident} />
+          <LiveBody s={s} campaignId={campaignId} streaming={!lost} stale={lost} asOf={asOf} incident={incident} edit={editThresholds} />
         </>
       )
   }
