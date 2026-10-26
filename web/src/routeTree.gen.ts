@@ -67,6 +67,7 @@ import { Route as WWorkspaceAppProvidersWarmupRouteImport } from './routes/w/$wo
 import { Route as WWorkspaceAppSettingsIndexRouteImport } from './routes/w/$workspace/_app/settings/index'
 import { Route as WWorkspaceAppSettingsApprovalsRouteImport } from './routes/w/$workspace/_app/settings/approvals'
 import { Route as WWorkspaceAppSettingsAuditRouteImport } from './routes/w/$workspace/_app/settings/audit'
+import { Route as WWorkspaceAppSettingsBrandKitRouteImport } from './routes/w/$workspace/_app/settings/brand-kit'
 import { Route as WWorkspaceAppSettingsKeysRouteImport } from './routes/w/$workspace/_app/settings/keys'
 import { Route as WWorkspaceAppSettingsMcpRouteImport } from './routes/w/$workspace/_app/settings/mcp'
 import { Route as WWorkspaceAppSettingsProvidersRouteImport } from './routes/w/$workspace/_app/settings/providers'
@@ -483,6 +484,12 @@ const WWorkspaceAppSettingsAuditRoute =
   WWorkspaceAppSettingsAuditRouteImport.update({
     id: '/settings/audit',
     path: '/settings/audit',
+    getParentRoute: () => WWorkspaceAppRouteRoute,
+  } as any)
+const WWorkspaceAppSettingsBrandKitRoute =
+  WWorkspaceAppSettingsBrandKitRouteImport.update({
+    id: '/settings/brand-kit',
+    path: '/settings/brand-kit',
     getParentRoute: () => WWorkspaceAppRouteRoute,
   } as any)
 const WWorkspaceAppSettingsKeysRoute =
@@ -1110,6 +1117,7 @@ export interface FileRoutesByFullPath {
   '/w/$workspace/providers/warmup': typeof WWorkspaceAppProvidersWarmupRoute
   '/w/$workspace/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
   '/w/$workspace/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
+  '/w/$workspace/settings/brand-kit': typeof WWorkspaceAppSettingsBrandKitRoute
   '/w/$workspace/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
   '/w/$workspace/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
   '/w/$workspace/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
@@ -1263,6 +1271,7 @@ export interface FileRoutesByTo {
   '/w/$workspace/providers/warmup': typeof WWorkspaceAppProvidersWarmupRoute
   '/w/$workspace/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
   '/w/$workspace/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
+  '/w/$workspace/settings/brand-kit': typeof WWorkspaceAppSettingsBrandKitRoute
   '/w/$workspace/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
   '/w/$workspace/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
   '/w/$workspace/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
@@ -1420,6 +1429,7 @@ export interface FileRoutesById {
   '/w/$workspace/_app/providers/warmup': typeof WWorkspaceAppProvidersWarmupRoute
   '/w/$workspace/_app/settings/approvals': typeof WWorkspaceAppSettingsApprovalsRoute
   '/w/$workspace/_app/settings/audit': typeof WWorkspaceAppSettingsAuditRoute
+  '/w/$workspace/_app/settings/brand-kit': typeof WWorkspaceAppSettingsBrandKitRoute
   '/w/$workspace/_app/settings/keys': typeof WWorkspaceAppSettingsKeysRoute
   '/w/$workspace/_app/settings/mcp': typeof WWorkspaceAppSettingsMcpRoute
   '/w/$workspace/_app/settings/providers': typeof WWorkspaceAppSettingsProvidersRoute
@@ -1577,6 +1587,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/providers/warmup'
     | '/w/$workspace/settings/approvals'
     | '/w/$workspace/settings/audit'
+    | '/w/$workspace/settings/brand-kit'
     | '/w/$workspace/settings/keys'
     | '/w/$workspace/settings/mcp'
     | '/w/$workspace/settings/providers'
@@ -1730,6 +1741,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/providers/warmup'
     | '/w/$workspace/settings/approvals'
     | '/w/$workspace/settings/audit'
+    | '/w/$workspace/settings/brand-kit'
     | '/w/$workspace/settings/keys'
     | '/w/$workspace/settings/mcp'
     | '/w/$workspace/settings/providers'
@@ -1886,6 +1898,7 @@ export interface FileRouteTypes {
     | '/w/$workspace/_app/providers/warmup'
     | '/w/$workspace/_app/settings/approvals'
     | '/w/$workspace/_app/settings/audit'
+    | '/w/$workspace/_app/settings/brand-kit'
     | '/w/$workspace/_app/settings/keys'
     | '/w/$workspace/_app/settings/mcp'
     | '/w/$workspace/_app/settings/providers'
@@ -2411,6 +2424,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/audit'
       fullPath: '/w/$workspace/settings/audit'
       preLoaderRoute: typeof WWorkspaceAppSettingsAuditRouteImport
+      parentRoute: typeof WWorkspaceAppRouteRoute
+    }
+    '/w/$workspace/_app/settings/brand-kit': {
+      id: '/w/$workspace/_app/settings/brand-kit'
+      path: '/settings/brand-kit'
+      fullPath: '/w/$workspace/settings/brand-kit'
+      preLoaderRoute: typeof WWorkspaceAppSettingsBrandKitRouteImport
       parentRoute: typeof WWorkspaceAppRouteRoute
     }
     '/w/$workspace/_app/settings/keys': {
@@ -3129,6 +3149,7 @@ interface WWorkspaceAppRouteRouteChildren {
   WWorkspaceAppProvidersWarmupRoute: typeof WWorkspaceAppProvidersWarmupRoute
   WWorkspaceAppSettingsApprovalsRoute: typeof WWorkspaceAppSettingsApprovalsRoute
   WWorkspaceAppSettingsAuditRoute: typeof WWorkspaceAppSettingsAuditRoute
+  WWorkspaceAppSettingsBrandKitRoute: typeof WWorkspaceAppSettingsBrandKitRoute
   WWorkspaceAppSettingsKeysRoute: typeof WWorkspaceAppSettingsKeysRoute
   WWorkspaceAppSettingsMcpRoute: typeof WWorkspaceAppSettingsMcpRoute
   WWorkspaceAppSettingsProvidersRoute: typeof WWorkspaceAppSettingsProvidersRoute
@@ -3246,6 +3267,7 @@ const WWorkspaceAppRouteRouteChildren: WWorkspaceAppRouteRouteChildren = {
   WWorkspaceAppProvidersWarmupRoute: WWorkspaceAppProvidersWarmupRoute,
   WWorkspaceAppSettingsApprovalsRoute: WWorkspaceAppSettingsApprovalsRoute,
   WWorkspaceAppSettingsAuditRoute: WWorkspaceAppSettingsAuditRoute,
+  WWorkspaceAppSettingsBrandKitRoute: WWorkspaceAppSettingsBrandKitRoute,
   WWorkspaceAppSettingsKeysRoute: WWorkspaceAppSettingsKeysRoute,
   WWorkspaceAppSettingsMcpRoute: WWorkspaceAppSettingsMcpRoute,
   WWorkspaceAppSettingsProvidersRoute: WWorkspaceAppSettingsProvidersRoute,

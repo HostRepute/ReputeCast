@@ -24,7 +24,7 @@ func init() {
 func (a *App) campaigns() *campaigns.Service {
 	return &campaigns.Service{
 		Pool: a.Pool, Q: a.Q, Audit: a.Audit,
-		Templates: &templates.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit},
+		Templates: &templates.Service{Pool: a.Pool, Q: a.Q, Audit: a.Audit, Brand: a.brandKit()},
 		Mail:      func() mailer.Sender { return a.Mail },
 		URLs:      a.URLs,
 		Checker: &contentcheck.Checker{

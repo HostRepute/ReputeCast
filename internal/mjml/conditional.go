@@ -218,6 +218,28 @@ func SetAttr(src string, n *Node, name, value string) (string, bool) {
 	return src[:n.Start] + next + src[end:], true
 }
 
+// SetAttrRaw is SetAttr for values that hold single quotes on purpose
+// (font stacks): only &, <, > and double quotes are escaped.
+func SetAttrRaw(src string, n *Node, name, value string) (string, bool) {
+	esc := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", `"`, "&quot;").Replace(value)
+	end, ok := openingTag(src, n)
+	if !ok {
+		return src, false
+	}
+	tag := src[n.Start:end]
+	var next string
+	if loc := attrRe(name).FindStringIndex(tag); loc != nil {
+		next = tag[:loc[0]] + " " + name + `="` + esc + `"` + tag[loc[1]:]
+	} else {
+		at := len("<" + n.Tag)
+		if at > len(tag) || !strings.EqualFold(tag[:at], "<"+n.Tag) {
+			return src, false
+		}
+		next = tag[:at] + " " + name + `="` + esc + `"` + tag[at:]
+	}
+	return src[:n.Start] + next + src[end:], true
+}
+
 // RemoveAttr removes an attribute of an element in the source.
 func RemoveAttr(src string, n *Node, name string) (string, bool) {
 	end, ok := openingTag(src, n)

@@ -95,8 +95,17 @@ func escapeText(s string) string {
 	return strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;").Replace(s)
 }
 
+// Brand puts the workspace's brand kit on a starter: its colours, fonts,
+// button style and logo, and its synced Header and Footer
+// (internal/brandkit, CO-11).
+type Brand interface {
+	Starter(ctx context.Context, ws *store.Workspace, src string) string
+}
+
 // Service holds the templates domain dependencies.
 type Service struct {
+	// Brand, when set, starts starters from the brand kit.
+	Brand Brand
 	Pool  *pgxpool.Pool
 	Q     *store.Queries
 	Audit *audit.Logger
@@ -211,6 +220,9 @@ func (s *Service) Get(ctx context.Context, ws *store.Workspace, id, address stri
 		for _, st := range starters {
 			if st.key == key {
 				src, _ := StarterMJMLIn(l, key, address)
+				if s.Brand != nil {
+					src = s.Brand.Starter(ctx, ws, src)
+				}
 				name, desc := starterName(l, st)
 				return EmailTemplateDetail{EmailTemplateSummary: EmailTemplateSummary{ID: id, Kind: "template", Name: name, Description: desc, Thumb: st.thumb, Builtin: true, SizeBytes: len(src)}, MJML: src}, nil
 			}

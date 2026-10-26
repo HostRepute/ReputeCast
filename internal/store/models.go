@@ -597,6 +597,17 @@ type BlocklistResult struct {
 	DelistingRequestedAt *time.Time `json:"delistingRequestedAt"`
 }
 
+type BrandKit struct {
+	WorkspaceID uuid.UUID       `json:"workspaceId"`
+	LogoLightID *uuid.UUID      `json:"logoLightId"`
+	LogoDarkID  *uuid.UUID      `json:"logoDarkId"`
+	LogoAlt     string          `json:"logoAlt"`
+	Style       json.RawMessage `json:"style"`
+	Website     string          `json:"website"`
+	UpdatedBy   *uuid.UUID      `json:"updatedBy"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
+}
+
 type Campaign struct {
 	ID              uuid.UUID       `json:"id"`
 	WorkspaceID     uuid.UUID       `json:"workspaceId"`
@@ -4409,6 +4420,17 @@ type SurveyResponse struct {
 	CompletedAt *time.Time      `json:"completedAt"`
 	UpdatedAt   time.Time       `json:"updatedAt"`
 	Changes     int32           `json:"changes"`
+}
+
+type SyncedBlock struct {
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Kind        string     `json:"kind"`
+	Mjml        string     `json:"mjml"`
+	Version     int32      `json:"version"`
+	UpdatedBy   *uuid.UUID `json:"updatedBy"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+	CreatedAt   time.Time  `json:"createdAt"`
 }
 
 type Template struct {

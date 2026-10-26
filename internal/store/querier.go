@@ -448,6 +448,9 @@ type Querier interface {
 	AutomationUnsubscribeAll(ctx context.Context, contactID uuid.UUID) error
 	// Totals per automation since a day, for the KPI row.
 	AutomationWorkspaceStatsSince(ctx context.Context, arg AutomationWorkspaceStatsSinceParams) ([]AutomationWorkspaceStatsSinceRow, error)
+	// The brand kit and its synced blocks (CO-11).
+	BrandKitGet(ctx context.Context, workspaceID uuid.UUID) (BrandKitGetRow, error)
+	BrandKitUpsert(ctx context.Context, arg BrandKitUpsertParams) error
 	BroadcastDefaultSplit(ctx context.Context, workspaceID uuid.UUID) (json.RawMessage, error)
 	// Adds to one step's counters for a day. Path and provider counts are merged
 	// key by key.
@@ -462,6 +465,10 @@ type Querier interface {
 	CampaignRenderUpdate(ctx context.Context, arg CampaignRenderUpdateParams) error
 	CampaignRendersList(ctx context.Context, arg CampaignRendersListParams) ([]CampaignRendersListRow, error)
 	CampaignTotalsSince(ctx context.Context, arg CampaignTotalsSinceParams) (CampaignTotalsSinceRow, error)
+	// Campaigns whose content holds a synced block (an element with
+	// rc-synced="<kind>"), oldest first (CO-11). pattern is
+	// %rc-synced="<kind>"%.
+	CampaignsHoldingSynced(ctx context.Context, arg CampaignsHoldingSyncedParams) ([]CampaignsHoldingSyncedRow, error)
 	// The reason given on the cancel page, for the paid member's timeline.
 	CancelSetReason(ctx context.Context, arg CancelSetReasonParams) error
 	CancelVisitDecide(ctx context.Context, arg CancelVisitDecideParams) error
@@ -3625,6 +3632,11 @@ type Querier interface {
 	SurveySlugTaken(ctx context.Context, arg SurveySlugTakenParams) (bool, error)
 	SurveyUpdate(ctx context.Context, arg SurveyUpdateParams) error
 	SurveysList(ctx context.Context, workspaceID uuid.UUID) ([]SurveysListRow, error)
+	// Locks the block for a change (inside a transaction).
+	SyncedBlockGet(ctx context.Context, arg SyncedBlockGetParams) (SyncedBlockGetRow, error)
+	SyncedBlockInsert(ctx context.Context, arg SyncedBlockInsertParams) error
+	SyncedBlockUpdate(ctx context.Context, arg SyncedBlockUpdateParams) error
+	SyncedBlocksList(ctx context.Context, workspaceID uuid.UUID) ([]SyncedBlocksListRow, error)
 	// A message the system mailer or a setup's test sends (stream system, or
 	// the stream a test goes on).
 	SysmailInsertMessage(ctx context.Context, arg SysmailInsertMessageParams) error

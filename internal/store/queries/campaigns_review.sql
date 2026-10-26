@@ -72,3 +72,13 @@ FROM approval_decisions d
 LEFT JOIN users u ON u.id = d.approver_id
 WHERE d.request_id = @request_id AND d.decision = 'approve'
 ORDER BY d.created_at;
+
+-- name: CampaignsHoldingSynced :many
+-- Campaigns whose content holds a synced block (an element with
+-- rc-synced="<kind>"), oldest first (CO-11). pattern is
+-- %rc-synced="<kind>"%.
+SELECT c.id, c.status,
+       EXISTS (SELECT 1 FROM approval_requests r WHERE r.campaign_id = c.id AND r.status IN ('pending', 'approved'))::bool AS in_approval
+FROM campaigns c
+WHERE c.workspace_id = @workspace_id AND c.deleted_at IS NULL AND c.mjml LIKE @pattern::text
+ORDER BY c.created_at;

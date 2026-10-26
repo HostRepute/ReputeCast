@@ -3500,6 +3500,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspaces/{workspace}/brand-kit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The brand kit, its synced blocks and the emails holding them
+         * @description Without a saved kit, the values are ReputeCast's defaults (saved is false).
+         */
+        get: operations["get-brand-kit"];
+        /**
+         * Save the brand kit
+         * @description New emails, templates and blocks start from it; emails already written keep their own styles. The first save creates the synced Header and Footer; a new logo reaches the synced Header and the drafts and scheduled emails holding it.
+         */
+        put: operations["save-brand-kit"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/brand-kit/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Read the logo, colours and fonts from a website
+         * @description Nothing in the kit changes until it's saved. Logos found are added to the media library.
+         */
+        post: operations["import-brand-kit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/{workspace}/brand-kit/synced/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change a synced block (Header or Footer)
+         * @description Drafts and scheduled emails holding the block get the change as a new version; emails in an approval, sending, paused or sent keep theirs.
+         */
+        put: operations["save-synced-block"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workspaces/{workspace}/campaigns": {
         parameters: {
             query?: never;
@@ -20722,6 +20786,97 @@ export interface components {
             publisher: string;
             soft: string;
             text: string;
+        };
+        BrandButtonStyle: {
+            /** @enum {string} */
+            shape: "square" | "rounded" | "pill";
+            /**
+             * Format: int64
+             * @description Text size in px (bold, body font)
+             * @enum {integer}
+             */
+            size: 14 | 15;
+        };
+        BrandColors: {
+            /** @description Behind the 600 px email column */
+            background: string;
+            /** @description Button fill, with white text */
+            button: string;
+            /** @description Links inside text, underlined */
+            link: string;
+            /** @description Paragraphs and headings */
+            text: string;
+        };
+        BrandFont: {
+            /** @description One of the email-safe stacks: Georgia, 'Times New Roman', serif · 'Times New Roman', serif · Arial, Helvetica, sans-serif · Helvetica, Arial, sans-serif · Verdana, Geneva, sans-serif · 'Trebuchet MS', Arial, sans-serif · Tahoma, Geneva, sans-serif */
+            fallback: string;
+            /** @description The web font's family (Inter); empty uses the fallback alone */
+            name: string;
+            /** @description The web font's stylesheet (https) */
+            url?: string;
+        };
+        BrandImportColor: {
+            hex: string;
+            used: boolean;
+        };
+        BrandKit: {
+            body: components["schemas"]["BrandFont"];
+            button: components["schemas"]["BrandButtonStyle"];
+            colors: components["schemas"]["BrandColors"];
+            heading: components["schemas"]["BrandFont"];
+            logoAlt: string;
+            /** @description For dark mode (Apple Mail and Outlook for Mac switch to it) */
+            logoDark?: components["schemas"]["BrandLogo"];
+            /** @description For light backgrounds */
+            logoLight?: components["schemas"]["BrandLogo"];
+            saved: boolean;
+            synced: components["schemas"]["SyncedBlock"][];
+            /** Format: date-time */
+            updatedAt?: string;
+            updatedBy?: string;
+            website: string;
+        };
+        BrandKitImport: {
+            colors: components["schemas"]["BrandImportColor"][];
+            fonts: string[];
+            /** Format: date-time */
+            foundAt: string;
+            logoAlt: string;
+            logoDark?: components["schemas"]["BrandLogo"];
+            logoLight?: components["schemas"]["BrandLogo"];
+            notes: string[];
+            style: components["schemas"]["BrandStyle"];
+            website: string;
+        };
+        BrandKitImportInput: {
+            /** @description acme.io or https://acme.io */
+            website: string;
+        };
+        BrandKitInput: {
+            body: components["schemas"]["BrandFont"];
+            button: components["schemas"]["BrandButtonStyle"];
+            colors: components["schemas"]["BrandColors"];
+            heading: components["schemas"]["BrandFont"];
+            logoAlt: string;
+            logoDarkId?: string;
+            /** @description A media library image id; empty: no logo */
+            logoLightId?: string;
+            website?: string;
+        };
+        BrandLogo: {
+            fileName: string;
+            /** Format: int64 */
+            height: number;
+            mediaId: string;
+            url: string;
+            /** Format: int64 */
+            width: number;
+        };
+        BrandStyle: {
+            body: components["schemas"]["BrandFont"];
+            button: components["schemas"]["BrandButtonStyle"];
+            colors: components["schemas"]["BrandColors"];
+            heading: components["schemas"]["BrandFont"];
         };
         CallTarget: {
             email?: string;
@@ -39533,6 +39688,36 @@ export interface components {
             settings?: components["schemas"]["SurveySettings"];
             slug?: string;
         };
+        SyncedBlock: {
+            /** @enum {string} */
+            kind: "header" | "footer";
+            /** @description One section or wrapper, marked rc-synced */
+            mjml: string;
+            /** Format: date-time */
+            updatedAt: string;
+            updatedBy: string;
+            uses: components["schemas"]["SyncedUses"];
+            /** Format: int64 */
+            version: number;
+        };
+        SyncedInput: {
+            /** @description One mj-section or mj-wrapper */
+            mjml: string;
+        };
+        SyncedSaved: {
+            applied: components["schemas"]["SyncedUses"];
+            block: components["schemas"]["SyncedBlock"];
+        };
+        SyncedUses: {
+            /** Format: int64 */
+            drafts: number;
+            /** Format: int64 */
+            held: number;
+            /** Format: int64 */
+            scheduled: number;
+            /** Format: int64 */
+            sent: number;
+        };
         TOTPSetup: {
             account: string;
             /** @description Pass back with the first code to confirm */
@@ -51721,6 +51906,147 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WhatsAppStepStatsList"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "get-brand-kit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandKit"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-brand-kit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrandKitInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandKit"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "import-brand-kit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrandKitImportInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandKitImport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "save-synced-block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace slug */
+                workspace: string;
+                kind: "header" | "footer";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncedInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncedSaved"];
                 };
             };
             /** @description Error */

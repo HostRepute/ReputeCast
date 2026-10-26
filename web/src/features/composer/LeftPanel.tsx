@@ -6,6 +6,8 @@ import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
 import { toast } from '@/components/ui/Toast'
 import { useComposer } from './context'
 import { blockDefs, type BlockDef } from './editor/blocks'
+import { applyBrand } from './editor/brand'
+import { syncedBlockDefs, useBrandKit } from './BrandKit'
 import { focusCanvas } from './editor/keys'
 import { blockAdded, blockContent, componentLabel, mjChildren, sectionOf, tagOf } from './editor/labels'
 import { BlockIcon, ToolIcon } from './icons'
@@ -22,7 +24,12 @@ import { useStoreBlockDefs } from '@/features/commerce/composer'
 import { mc } from './canvas.messages'
 import { m } from './messages'
 
-type BlocksAPI = { startDrag(b: unknown, ev?: Event): void; endDrag(cancel?: boolean): void; get(id: string): unknown; add(id: string, p: Record<string, unknown>): unknown }
+type BlocksAPI = {
+  startDrag(b: unknown, ev?: Event): void
+  endDrag(cancel?: boolean): void
+  get(id: string): { get(key: string): unknown; set(key: string, value: unknown): unknown } | null | undefined
+  add(id: string, p: Record<string, unknown>): unknown
+}
 
 function blocksApi(editor: NonNullable<ReturnType<typeof useComposer>['editor']>): BlocksAPI {
   return editor.Blocks as unknown as BlocksAPI
@@ -98,13 +105,20 @@ function BlocksTab({ onShowSections, blocks, note, reputecastFirst }: { onShowSe
   const sections = $api.useQuery('get', '/api/v1/workspaces/{workspace}/templates', { params: { path: { workspace: c.slug } } }, { staleTime: 60_000 })
   // The Product grid joins the ReputeCast blocks once a store is connected (X20).
   const storeDefs = useStoreBlockDefs(!blocks && c.kind !== 'transactional')
-  const defs = useMemo(() => [...(blocks ?? blockDefs(c.context.postalAddress)), ...storeDefs], [blocks, c.context.postalAddress, storeDefs])
+  // The brand kit: its synced Header and Footer, and its style on new blocks (CO-11).
+  const kit = useBrandKit().data
+  const defs = useMemo(
+    () => [...syncedBlockDefs(blocks ? undefined : kit, t), ...(blocks ?? blockDefs(c.context.postalAddress)).map((d) => ({ ...d, content: applyBrand(d.content, kit) })), ...storeDefs],
+    [blocks, c.context.postalAddress, storeDefs, kit, t],
+  )
   useEffect(() => {
     if (!c.editor) return
     const api = blocksApi(c.editor)
     for (const d of defs) {
       // A drop selects in blockAdded (after the marker is back), not here.
-      if (!api.get(d.id)) api.add(d.id, { label: d.label, content: d.content, category: d.group, select: false, activate: false })
+      const have = api.get(d.id)
+      if (!have) api.add(d.id, { label: d.label, content: d.content, category: d.group, select: false, activate: false })
+      else if (have.get('content') !== d.content) have.set('content', d.content)
     }
   }, [c.editor, defs])
   useEffect(() => {

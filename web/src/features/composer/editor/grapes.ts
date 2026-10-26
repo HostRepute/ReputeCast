@@ -5,6 +5,7 @@ import { loadGrowBlocks } from '@/features/grow/composer/blocks'
 import { canvasCss } from './canvasCss'
 import { encodeTables, loadTable } from './components'
 import { chipify, loadLiquidChips } from './liquid'
+import { lockSynced } from './synced'
 import { withLiveText } from './live'
 import { installMjmlHooks, type MjmlCompile } from './mjmlHooks'
 
@@ -133,6 +134,8 @@ export async function createComposerEditor(container: HTMLElement, opts: CreateO
   await new Promise<void>((resolve) => editor.onReady(() => resolve()))
   if (!compile) throw new Error('grapesjs-mjml did not load')
   chipify(editor)
+  // Synced Header and Footer change in the brand kit only (CO-11).
+  lockSynced(editor)
   // Tokens typed in a text, or brought in by a block, become chips too.
   const pending = new Set<Component>()
   let timer: ReturnType<typeof setTimeout> | undefined
@@ -146,6 +149,7 @@ export async function createComposerEditor(container: HTMLElement, opts: CreateO
         pending.clear()
         // Removed meanwhile (no parent): nothing to do.
         for (const r of roots) if (r.parent()) chipify(editor, r)
+        lockSynced(editor)
       }, 0)
   }
   editor.on('rte:disable', (view: { model?: Component } | undefined) => later(view?.model))
@@ -160,6 +164,7 @@ export async function createComposerEditor(container: HTMLElement, opts: CreateO
     setBody: (body: string) => {
       editor.setComponents(encodeTables(body))
       chipify(editor)
+      lockSynced(editor)
     },
     isEditingText: () => !!editor.getEditing(),
     flushEditing: async () => {

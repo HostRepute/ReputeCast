@@ -13577,6 +13577,326 @@
         ],
         "type": "object"
       },
+      "BrandButtonStyle": {
+        "additionalProperties": false,
+        "properties": {
+          "shape": {
+            "enum": [
+              "square",
+              "rounded",
+              "pill"
+            ],
+            "type": "string"
+          },
+          "size": {
+            "description": "Text size in px (bold, body font)",
+            "enum": [
+              14,
+              15
+            ],
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "shape",
+          "size"
+        ],
+        "type": "object"
+      },
+      "BrandColors": {
+        "additionalProperties": false,
+        "properties": {
+          "background": {
+            "description": "Behind the 600 px email column",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "type": "string"
+          },
+          "button": {
+            "description": "Button fill, with white text",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "type": "string"
+          },
+          "link": {
+            "description": "Links inside text, underlined",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "type": "string"
+          },
+          "text": {
+            "description": "Paragraphs and headings",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "button",
+          "text",
+          "background",
+          "link"
+        ],
+        "type": "object"
+      },
+      "BrandFont": {
+        "additionalProperties": false,
+        "properties": {
+          "fallback": {
+            "description": "One of the email-safe stacks: Georgia, 'Times New Roman', serif · 'Times New Roman', serif · Arial, Helvetica, sans-serif · Helvetica, Arial, sans-serif · Verdana, Geneva, sans-serif · 'Trebuchet MS', Arial, sans-serif · Tahoma, Geneva, sans-serif",
+            "maxLength": 60,
+            "type": "string"
+          },
+          "name": {
+            "description": "The web font's family (Inter); empty uses the fallback alone",
+            "maxLength": 60,
+            "pattern": "^[A-Za-z0-9 ]*$",
+            "type": "string"
+          },
+          "url": {
+            "description": "The web font's stylesheet (https)",
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "fallback"
+        ],
+        "type": "object"
+      },
+      "BrandImportColor": {
+        "additionalProperties": false,
+        "properties": {
+          "hex": {
+            "type": "string"
+          },
+          "used": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "hex",
+          "used"
+        ],
+        "type": "object"
+      },
+      "BrandKit": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "$ref": "#/components/schemas/BrandFont"
+          },
+          "button": {
+            "$ref": "#/components/schemas/BrandButtonStyle"
+          },
+          "colors": {
+            "$ref": "#/components/schemas/BrandColors"
+          },
+          "heading": {
+            "$ref": "#/components/schemas/BrandFont"
+          },
+          "logoAlt": {
+            "type": "string"
+          },
+          "logoDark": {
+            "$ref": "#/components/schemas/BrandLogo",
+            "description": "For dark mode (Apple Mail and Outlook for Mac switch to it)"
+          },
+          "logoLight": {
+            "$ref": "#/components/schemas/BrandLogo",
+            "description": "For light backgrounds"
+          },
+          "saved": {
+            "type": "boolean"
+          },
+          "synced": {
+            "items": {
+              "$ref": "#/components/schemas/SyncedBlock"
+            },
+            "type": "array"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "website": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "saved",
+          "logoAlt",
+          "website",
+          "synced",
+          "colors",
+          "heading",
+          "body",
+          "button"
+        ],
+        "type": "object"
+      },
+      "BrandKitImport": {
+        "additionalProperties": false,
+        "properties": {
+          "colors": {
+            "items": {
+              "$ref": "#/components/schemas/BrandImportColor"
+            },
+            "type": "array"
+          },
+          "fonts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "foundAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "logoAlt": {
+            "type": "string"
+          },
+          "logoDark": {
+            "$ref": "#/components/schemas/BrandLogo"
+          },
+          "logoLight": {
+            "$ref": "#/components/schemas/BrandLogo"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BrandStyle"
+          },
+          "website": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "website",
+          "foundAt",
+          "logoAlt",
+          "style",
+          "colors",
+          "fonts",
+          "notes"
+        ],
+        "type": "object"
+      },
+      "BrandKitImportInput": {
+        "additionalProperties": false,
+        "properties": {
+          "website": {
+            "description": "acme.io or https://acme.io",
+            "maxLength": 200,
+            "minLength": 3,
+            "type": "string"
+          }
+        },
+        "required": [
+          "website"
+        ],
+        "type": "object"
+      },
+      "BrandKitInput": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "$ref": "#/components/schemas/BrandFont"
+          },
+          "button": {
+            "$ref": "#/components/schemas/BrandButtonStyle"
+          },
+          "colors": {
+            "$ref": "#/components/schemas/BrandColors"
+          },
+          "heading": {
+            "$ref": "#/components/schemas/BrandFont"
+          },
+          "logoAlt": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "logoDarkId": {
+            "type": "string"
+          },
+          "logoLightId": {
+            "description": "A media library image id; empty: no logo",
+            "type": "string"
+          },
+          "website": {
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "required": [
+          "logoAlt",
+          "colors",
+          "heading",
+          "body",
+          "button"
+        ],
+        "type": "object"
+      },
+      "BrandLogo": {
+        "additionalProperties": false,
+        "properties": {
+          "fileName": {
+            "type": "string"
+          },
+          "height": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "mediaId": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "width": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "mediaId",
+          "url",
+          "fileName",
+          "width",
+          "height"
+        ],
+        "type": "object"
+      },
+      "BrandStyle": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "$ref": "#/components/schemas/BrandFont"
+          },
+          "button": {
+            "$ref": "#/components/schemas/BrandButtonStyle"
+          },
+          "colors": {
+            "$ref": "#/components/schemas/BrandColors"
+          },
+          "heading": {
+            "$ref": "#/components/schemas/BrandFont"
+          }
+        },
+        "required": [
+          "colors",
+          "heading",
+          "body",
+          "button"
+        ],
+        "type": "object"
+      },
       "CallTarget": {
         "additionalProperties": false,
         "properties": {
@@ -79561,6 +79881,104 @@
         },
         "type": "object"
       },
+      "SyncedBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "header",
+              "footer"
+            ],
+            "type": "string"
+          },
+          "mjml": {
+            "description": "One section or wrapper, marked rc-synced",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "uses": {
+            "$ref": "#/components/schemas/SyncedUses"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "mjml",
+          "version",
+          "updatedBy",
+          "updatedAt",
+          "uses"
+        ],
+        "type": "object"
+      },
+      "SyncedInput": {
+        "additionalProperties": false,
+        "properties": {
+          "mjml": {
+            "description": "One mj-section or mj-wrapper",
+            "maxLength": 200000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "mjml"
+        ],
+        "type": "object"
+      },
+      "SyncedSaved": {
+        "additionalProperties": false,
+        "properties": {
+          "applied": {
+            "$ref": "#/components/schemas/SyncedUses"
+          },
+          "block": {
+            "$ref": "#/components/schemas/SyncedBlock"
+          }
+        },
+        "required": [
+          "block",
+          "applied"
+        ],
+        "type": "object"
+      },
+      "SyncedUses": {
+        "additionalProperties": false,
+        "properties": {
+          "drafts": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "held": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "scheduled": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sent": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "drafts",
+          "scheduled",
+          "held",
+          "sent"
+        ],
+        "type": "object"
+      },
       "TOTPSetup": {
         "additionalProperties": false,
         "properties": {
@@ -108833,6 +109251,278 @@
         ],
         "x-access": "workspace",
         "x-permission": "automations:view"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/brand-kit": {
+      "get": {
+        "description": "Without a saved kit, the values are ReputeCast's defaults (saved is false).",
+        "operationId": "get-brand-kit",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandKit"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The brand kit, its synced blocks and the emails holding them",
+        "tags": [
+          "Brand kit"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:view"
+      },
+      "put": {
+        "description": "New emails, templates and blocks start from it; emails already written keep their own styles. The first save creates the synced Header and Footer; a new logo reaches the synced Header and the drafts and scheduled emails holding it.",
+        "operationId": "save-brand-kit",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandKitInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandKit"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the brand kit",
+        "tags": [
+          "Brand kit"
+        ],
+        "x-access": "workspace",
+        "x-permission": "templates:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/brand-kit/import": {
+      "post": {
+        "description": "Nothing in the kit changes until it's saved. Logos found are added to the media library.",
+        "operationId": "import-brand-kit",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandKitImportInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandKitImport"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read the logo, colours and fonts from a website",
+        "tags": [
+          "Brand kit"
+        ],
+        "x-access": "workspace",
+        "x-permission": "templates:edit"
+      }
+    },
+    "/api/v1/workspaces/{workspace}/brand-kit/synced/{kind}": {
+      "put": {
+        "description": "Drafts and scheduled emails holding the block get the change as a new version; emails in an approval, sending, paused or sent keep theirs.",
+        "operationId": "save-synced-block",
+        "parameters": [
+          {
+            "description": "Workspace slug",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "description": "Workspace slug",
+              "examples": [
+                "acme-newsletter"
+              ],
+              "pattern": "^[a-z0-9][a-z0-9-]{1,62}$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "header",
+                "footer"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncedInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncedSaved"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change a synced block (Header or Footer)",
+        "tags": [
+          "Brand kit"
+        ],
+        "x-access": "workspace",
+        "x-permission": "campaigns:edit"
       }
     },
     "/api/v1/workspaces/{workspace}/campaigns": {

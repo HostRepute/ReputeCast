@@ -7,6 +7,8 @@ import { useComposer, type Issue } from './context'
 import { mjChildren, sectionOf, tagOf } from './editor/labels'
 import { applyFix, bodyOf, reveal } from './fixes'
 import { describe, SettingsFields, StyleFields } from './Inspector'
+import { SyncedNotice } from './BrandKit'
+import { syncedSectionOf } from './editor/synced'
 import { AccessibilityPanel } from '@/features/accessibility/composer/Panel'
 import { useAccessibility } from '@/features/accessibility/composer/state'
 import { accessibilityTab } from '@/features/accessibility/composer/Status'
@@ -359,7 +361,9 @@ export function RightPanel() {
           ) : sel ? (
             <>
               <InspectorHead c={sel} tab="style" />
-              <fieldset disabled={!c.canEdit} className="contents">
+              {/* A synced block changes in the brand kit only (CO-11). */}
+              <SyncedNotice component={sel} />
+              <fieldset disabled={!c.canEdit || !!syncedSectionOf(sel)} className="contents">
                 <StyleFields key={sel.cid} c={sel} />
               </fieldset>
             </>
@@ -380,7 +384,8 @@ export function RightPanel() {
           ) : sel ? (
             <>
               <InspectorHead c={sel} tab="settings" />
-              <fieldset disabled={!c.canEdit} className="contents">
+              <SyncedNotice component={sel} />
+              <fieldset disabled={!c.canEdit || !!syncedSectionOf(sel)} className="contents">
                 <SettingsFields key={sel.cid} c={sel} />
               </fieldset>
               <div className="px-3 pb-3">

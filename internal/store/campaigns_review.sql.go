@@ -12,6 +12,48 @@ import (
 	"github.com/google/uuid"
 )
 
+const campaignsHoldingSynced = `-- name: CampaignsHoldingSynced :many
+SELECT c.id, c.status,
+       EXISTS (SELECT 1 FROM approval_requests r WHERE r.campaign_id = c.id AND r.status IN ('pending', 'approved'))::bool AS in_approval
+FROM campaigns c
+WHERE c.workspace_id = $1 AND c.deleted_at IS NULL AND c.mjml LIKE $2::text
+ORDER BY c.created_at
+`
+
+type CampaignsHoldingSyncedParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Pattern     string    `json:"pattern"`
+}
+
+type CampaignsHoldingSyncedRow struct {
+	ID         uuid.UUID `json:"id"`
+	Status     string    `json:"status"`
+	InApproval bool      `json:"inApproval"`
+}
+
+// Campaigns whose content holds a synced block (an element with
+// rc-synced="<kind>"), oldest first (CO-11). pattern is
+// %rc-synced="<kind>"%.
+func (q *Queries) CampaignsHoldingSynced(ctx context.Context, arg CampaignsHoldingSyncedParams) ([]CampaignsHoldingSyncedRow, error) {
+	rows, err := q.db.Query(ctx, campaignsHoldingSynced, arg.WorkspaceID, arg.Pattern)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CampaignsHoldingSyncedRow{}
+	for rows.Next() {
+		var i CampaignsHoldingSyncedRow
+		if err := rows.Scan(&i.ID, &i.Status, &i.InApproval); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const composerApprovalApprovers = `-- name: ComposerApprovalApprovers :many
 SELECT coalesce(u.name, '')::text AS name
 FROM approval_decisions d
