@@ -114,29 +114,34 @@ func (f *FaultState) Calls() int {
 	return f.calls
 }
 
-type faultESP struct{ dedupe bool }
+// faultESP is a fault provider: dedupe recognizes a message it took
+// already; infers reports no deliveries, as plain SMTP doesn't (they're
+// inferred from its acceptance).
+type faultESP struct{ dedupe, infers bool }
 
 func init() {
 	for _, d := range []struct {
-		key    string
-		dedupe bool
-	}{{"faultesp", false}, {"faultesp-idem", true}} {
-		dedupe := d.dedupe
-		providers.Register(providers.Descriptor{Adapter: d.key, Name: "Fault ESP", Kind: "api",
-			Capabilities: providers.Capabilities{Bulk: providers.BulkAllowed, Webhooks: "Registered", BatchSize: 10},
-			New:          func(providers.Config) (providers.Provider, error) { return &faultESP{dedupe: dedupe}, nil }})
+		key            string
+		dedupe, infers bool
+	}{{"faultesp", false, false}, {"faultesp-idem", true, false}, {"faultsmtp", false, true}} {
+		p := faultESP{dedupe: d.dedupe, infers: d.infers}
+		providers.Register(providers.Descriptor{Adapter: d.key, Name: "Fault ESP", Kind: "api", Capabilities: p.Capabilities(),
+			New: func(providers.Config) (providers.Provider, error) { c := p; return &c, nil }})
 	}
 }
 
 func (p *faultESP) Adapter() string {
-	if p.dedupe {
+	switch {
+	case p.dedupe:
 		return "faultesp-idem"
+	case p.infers:
+		return "faultsmtp"
 	}
 	return "faultesp"
 }
 
 func (p *faultESP) Capabilities() providers.Capabilities {
-	return providers.Capabilities{Bulk: providers.BulkAllowed, Webhooks: "Registered", BatchSize: 10}
+	return providers.Capabilities{Bulk: providers.BulkAllowed, Webhooks: "Registered", BatchSize: 10, InfersDelivery: p.infers}
 }
 
 func (p *faultESP) ParseWebhook(context.Context, *http.Request, []byte) ([]providers.Event, error) {
@@ -214,6 +219,18 @@ func (f *Fixture) UseFaultProvider(dedupe bool) uuid.UUID {
 	if dedupe {
 		adapter = "faultesp-idem"
 	}
+	return f.useFault(adapter)
+}
+
+// UseFaultSMTP is UseFaultProvider with a provider that reports no
+// deliveries, as plain SMTP doesn't.
+func (f *Fixture) UseFaultSMTP() uuid.UUID {
+	f.T.Helper()
+	return f.useFault("faultsmtp")
+}
+
+func (f *Fixture) useFault(adapter string) uuid.UUID {
+	f.T.Helper()
 	id := uuid.Must(uuid.NewV7())
 	f.Exec(`INSERT INTO providers (id, workspace_id, adapter, name, label, config, credentials_enc, webhook_token, status, status_detail,
 		ip_mode, ips, capabilities, limits, health, pricing, tracking, connected_at)

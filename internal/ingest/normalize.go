@@ -243,7 +243,12 @@ func (n *Normalizer) Apply(ctx context.Context, tx pgx.Tx, p store.Provider, raw
 		c := store.IngestBumpCountersParams{CampaignID: *msg.CampaignID, ProviderID: p.ID, MailboxProvider: mailbox, Variant: msg.Variant}
 		switch ev.Type {
 		case providers.EventDelivered:
-			c.Delivered = 1
+			// A message counts as delivered once: SMTP's delivery is
+			// inferred when the server accepts it, and the success DSN that
+			// may follow confirms it (review GS-7).
+			if msg.DeliveredAt == nil {
+				c.Delivered = 1
+			}
 		case providers.EventDeferred:
 			c.Deferred = 1
 		case providers.EventHardBounce:
@@ -264,7 +269,9 @@ func (n *Normalizer) Apply(ctx context.Context, tx pgx.Tx, p store.Provider, raw
 	out := store.ProvRecordOutcomeParams{ProviderID: p.ID, Day: occurred.UTC()}
 	switch ev.Type {
 	case providers.EventDelivered:
-		out.Delivered = 1
+		if msg == nil || msg.DeliveredAt == nil {
+			out.Delivered = 1
+		}
 	case providers.EventHardBounce:
 		out.Bounced = 1
 	case providers.EventComplaint:

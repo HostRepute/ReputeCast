@@ -70,6 +70,7 @@ function provider(p: Partial<Provider>): Provider {
     rate: 0,
     status: 'healthy',
     routeStatus: 'sending',
+    infersDelivery: false,
     host: '',
     ip: '',
     cost: 0,

@@ -208,6 +208,10 @@ type LiveProvider struct {
 	ProbesNeeded int        `json:"probesNeeded"`
 	NextProbe    *time.Time `json:"nextProbe,omitempty"`
 	ProbeSeed    bool       `json:"probeSeed"`
+	// InfersDelivery: the provider reports no deliveries (plain SMTP), so
+	// its delivered count is inferred from the server's acceptance (review
+	// GS-7: "delivered (inferred)").
+	InfersDelivery bool `json:"infersDelivery"`
 	// Idempotent: the provider recognizes a message it already took, so a
 	// retry after a lost answer never delivers it twice (review GS-1).
 	Idempotent bool `json:"idempotent"`
@@ -220,6 +224,13 @@ type LiveLimits struct {
 	MailboxComplaint float64 `json:"mailboxComplaint"`
 	Deferral         float64 `json:"deferral"`
 	APIErrors        float64 `json:"apiErrors"`
+}
+
+// infersDelivery reports whether a provider's deliveries are inferred
+// from its acceptance (plain SMTP).
+func infersDelivery(p store.Provider) bool {
+	d, ok := providers.Lookup(p.Adapter)
+	return ok && d.Capabilities.InfersDelivery
 }
 
 // LiveThreshold is a rate against its auto-pause limit, with the evidence
@@ -563,7 +574,8 @@ func (e *Engine) Snapshot(ctx context.Context, wsID, campaignID uuid.UUID) (Live
 		lp := LiveProvider{ID: p.ID.String(), Name: p.Name, Short: short, Adapter: p.Adapter, Color: state.Color(p.Adapter), Sent: pt.sent, Planned: r.Planned,
 			Rate: math.Round(rateBy[p.ID]*10) / 10, DeliveredRate: ptrRate(pt.delivered, pt.sent), BounceRate: ptrRate(pt.bounced(), pt.sent),
 			ComplaintRate: ptrRate(pt.complained, pt.reported), APIErrorRate: apiErr[p.ID], Status: p.Status, RouteStatus: r.Status,
-			Host: hostOf(p), Cost: float64(r.CostMicros) / 1e6, Idempotent: dedupes(p)}
+			Host: hostOf(p), Cost: float64(r.CostMicros) / 1e6, Idempotent: dedupes(p),
+			InfersDelivery: infersDelivery(p)}
 		if len(p.Ips) > 0 {
 			lp.IP = p.Ips[0]
 		}

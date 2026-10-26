@@ -87,6 +87,9 @@ type runRoute struct {
 	// calmFrom since when it has been answered normally (routeerrors.go).
 	slow     float64
 	calmFrom time.Time
+	// infers: the provider reports no deliveries, so they are inferred
+	// from its acceptance (SMTP, review GS-7).
+	infers bool
 	// apiCheckedAt is when the API error threshold was last checked;
 	// judgedFrom is when the route last started sending again after a hold
 	// (calls before it don't count against it).
@@ -268,6 +271,7 @@ func (e *Engine) loadRoutes(ctx context.Context, rs *runState, now time.Time) er
 			if s, ok := r.transport.(*simulator.Provider); ok {
 				r.sim = s
 			}
+			r.infers = r.transport != nil && r.transport.Capabilities().InfersDelivery
 		}
 		if (r.status == "held" || r.status == "paused") && (row.Status == "pending" || row.Status == "sending") {
 			r.judgedFrom = now
@@ -832,6 +836,9 @@ func (e *Engine) send(ctx context.Context, rs *runState, r *runRoute, claimed []
 				if r.sim != nil && !e.QuietDemo {
 					out.sims = append(out.sims, simRows(rs.campaign.WorkspaceID, &rs.campaign.ID, p.row.ID, r.provider.ID, now, r.sim.Plan(p.msg))...)
 				}
+				if r.infers {
+					out.sims = append(out.sims, inferredRow(rs.campaign.WorkspaceID, &rs.campaign.ID, p.row.ID, r.provider.ID, now))
+				}
 			case sendErrIdentity(res.Err):
 				out.release, hold = append(out.release, p.row.ID), "identity"
 			case sendErrQuota(res.Err):
@@ -934,6 +941,14 @@ func (e *Engine) record(ctx context.Context, q *store.Queries, tx pgx.Tx, campai
 		}
 	}
 	return nil
+}
+
+// inferredRow is the delivery a provider that reports none (SMTP) is
+// credited with when it accepts a message, applied by the event pump with
+// the provider's real events (review GS-7).
+func inferredRow(ws uuid.UUID, campaign *uuid.UUID, msg, provider uuid.UUID, now time.Time) []any {
+	data, _ := json.Marshal(map[string]any{"type": "SMTP 250 · delivered (inferred)", "code": "250", "diagnostic": "Accepted by the server; delivery inferred"})
+	return []any{ws, campaign, msg, provider, now, "delivered", data}
 }
 
 // simRows turns the demo transport's plan into rows to apply when due.

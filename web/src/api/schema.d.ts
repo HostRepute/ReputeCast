@@ -28517,6 +28517,7 @@ export interface components {
             host: string;
             id: string;
             idempotent: boolean;
+            infersDelivery: boolean;
             ip: string;
             name: string;
             /** Format: date-time */

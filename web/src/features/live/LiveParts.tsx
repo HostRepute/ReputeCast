@@ -304,6 +304,7 @@ export function ProviderTable({ s, outage }: { s: Snapshot; outage?: Incident })
                 </Td>
                 <Td align="right" num>
                   {pct1(p.deliveredRate)}
+                  {p.infersDelivery ? <div className="k">{t(m.deliveredInferred)}</div> : null}
                 </Td>
                 <Td align="right" num>
                   {pct1(p.bounceRate)}
@@ -324,6 +325,7 @@ export function ProviderTable({ s, outage }: { s: Snapshot; outage?: Incident })
           })}
         </tbody>
       </Table>
+      {s.providers.some((p) => p.infersDelivery) ? <p className="lv-fn px-[18px] pb-3">{t(m.inferredNote)}</p> : null}
     </Card>
   )
 }

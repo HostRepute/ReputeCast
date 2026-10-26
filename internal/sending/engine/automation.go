@@ -234,6 +234,7 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 		if s, ok := r.transport.(*simulator.Provider); ok {
 			r.sim = s
 		}
+		r.infers = r.transport != nil && r.transport.Capabilities().InfersDelivery
 		r.rate = e.rateOf(ctx, e.Q, p, time.UTC, now)
 		if pr := state.PricingOf(p); pr.Model == "metered" {
 			r.micros = int64(math.Round(pr.Per1000 * 1000))
@@ -323,6 +324,9 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 				out.sentPMID = append(out.sentPMID, rr.ProviderMessageID)
 				if r.sim != nil {
 					out.sims = append(out.sims, simRows(p.row.WorkspaceID, nil, p.row.ID, pid, now, r.sim.Plan(p.msg))...)
+				}
+				if r.infers {
+					out.sims = append(out.sims, inferredRow(p.row.WorkspaceID, nil, p.row.ID, pid, now))
 				}
 			case sendErrUnknown(rr.Err) && idempotency(r.transport) == 0:
 				out.doubt(p.row.ID)

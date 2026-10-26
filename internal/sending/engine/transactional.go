@@ -583,6 +583,11 @@ func (o *TransactionalOutbox) tick(ctx context.Context, pid uuid.UUID, routes ma
 			p := chunk[i]
 			if rr.Err == nil {
 				results[p.row.ID] = &txResult{row: p.row, ok: true, pmid: rr.ProviderMessageID}
+				if r.transport != nil && r.transport.Capabilities().InfersDelivery {
+					// Plain SMTP reports no deliveries: the server's 250 is it
+					// (review GS-7).
+					sims = append(sims, inferredRow(p.row.WorkspaceID, nil, p.row.ID, pid, now))
+				}
 				if r.sim != nil {
 					for _, ev := range r.sim.Plan(p.msg) {
 						if (ev.Kind == "open" && !p.row.TrackOpens) || (ev.Kind == "click" && !p.row.TrackClicks) {

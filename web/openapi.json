@@ -41012,6 +41012,9 @@
           "idempotent": {
             "type": "boolean"
           },
+          "infersDelivery": {
+            "type": "boolean"
+          },
           "ip": {
             "type": "string"
           },
@@ -41127,6 +41130,7 @@
           "probes",
           "probesNeeded",
           "probeSeed",
+          "infersDelivery",
           "idempotent"
         ],
         "type": "object"
