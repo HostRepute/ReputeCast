@@ -28,8 +28,8 @@ export function cleanLiveHtml(html: string, doc: Document = document): string {
       if (kept.length) el.setAttribute('class', kept.join(' '))
       else el.removeAttribute('class')
     }
-    // A Liquid chip exports as its token (see liquidChips), not as its label.
-    if (el.hasAttribute('data-rc-liquid')) el.textContent = ''
+    // A Liquid chip exports as its token (editor/liquid.ts), not as its label.
+    if (el.hasAttribute('data-rc-liquid')) el.replaceWith(doc.createTextNode(el.getAttribute('data-rc-liquid') ?? ''))
   })
   return box.innerHTML
 }

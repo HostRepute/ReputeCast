@@ -1,9 +1,10 @@
-import type { Editor } from 'grapesjs'
+import type { Component, Editor } from 'grapesjs'
 import type { ComponentPluginOptions } from 'grapesjs-mjml'
 import { loadFeedItems } from '@/features/digests/composer/feedComponent'
 import { loadGrowBlocks } from '@/features/grow/composer/blocks'
 import { canvasCss } from './canvasCss'
 import { encodeTables, loadTable } from './components'
+import { chipify, loadLiquidChips } from './liquid'
 import { withLiveText } from './live'
 import { installMjmlHooks, type MjmlCompile } from './mjmlHooks'
 
@@ -115,6 +116,8 @@ export async function createComposerEditor(container: HTMLElement, opts: CreateO
           columnsPadding: '0px',
           customComponents: [
             (e: Editor, o: ComponentPluginOptions) => loadTable(e, o),
+            // Personalization tokens as chips (CO-4); they export as their Liquid.
+            (e: Editor) => loadLiquidChips(e),
             // A recurring digest's Feed items block (it only appears in digest templates).
             (e: Editor, o: ComponentPluginOptions) => loadFeedItems(e, o),
             // Grow's Referral, Recommendations and Reward blocks (design expansion, X15).
@@ -129,6 +132,26 @@ export async function createComposerEditor(container: HTMLElement, opts: CreateO
   })
   await new Promise<void>((resolve) => editor.onReady(() => resolve()))
   if (!compile) throw new Error('grapesjs-mjml did not load')
+  chipify(editor)
+  // Tokens typed in a text, or brought in by a block, become chips too.
+  const pending = new Set<Component>()
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const later = (c: Component | undefined) => {
+    if (!c) return
+    pending.add(c)
+    if (timer === undefined)
+      timer = setTimeout(() => {
+        timer = undefined
+        const roots = [...pending]
+        pending.clear()
+        // Removed meanwhile (no parent): nothing to do.
+        for (const r of roots) if (r.parent()) chipify(editor, r)
+      }, 0)
+  }
+  editor.on('rte:disable', (view: { model?: Component } | undefined) => later(view?.model))
+  editor.on('component:add', (c: Component) => {
+    if (c.get('type') !== 'rc-liquid' && c.get('type') !== 'textnode') later(c)
+  })
   return {
     editor,
     compile,
@@ -136,6 +159,7 @@ export async function createComposerEditor(container: HTMLElement, opts: CreateO
     getLiveBody: () => withLiveText(editor, () => editor.getHtml().trim()),
     setBody: (body: string) => {
       editor.setComponents(encodeTables(body))
+      chipify(editor)
     },
     isEditingText: () => !!editor.getEditing(),
     flushEditing: async () => {

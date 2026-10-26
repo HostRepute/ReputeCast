@@ -1,4 +1,5 @@
 import type { Editor } from 'grapesjs'
+import { loadLiquidChips } from './liquid'
 import { installMjmlHooks, type MjmlCompile } from './mjmlHooks'
 
 /**
@@ -24,6 +25,7 @@ export async function headlessMjmlEditor(body = ''): Promise<{ editor: Editor; c
           blocks: [],
           resetBlocks: true,
           customComponents: [
+            (e) => loadLiquidChips(e),
             (_e, o) => {
               compile = installMjmlHooks(ed, o, () => '')
             },

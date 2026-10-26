@@ -21,6 +21,8 @@ import { trackChanges, type ChangeTracker } from './editor/changes'
 import { createComposerEditor, type ComposerEditor, type DeviceId, type EmailDevice } from './editor/grapes'
 import { installCanvasKeys } from './editor/keys'
 import { lockCanvas, unlockCanvas, type Locked } from './editor/lock'
+import { isKnownField, knownFields } from './editor/fields'
+import { setChipLabels } from './editor/liquid'
 import { trackMeta, type Meta, type MetaUndo } from './editor/metaUndo'
 import { atPath } from './editor/labels'
 import { canvasHead, isEmptyBody, joinMjml, splitMjml, withHeadMeta } from './editor/mjmlDoc'
@@ -312,6 +314,15 @@ export function Composer({
   useEffect(() => {
     if (ge && ge.editor.getDevice() !== device) ge.editor.setDevice(device)
   }, [ge, device])
+
+  // Liquid chips read the workspace's fields: their names, and which keys aren't fields (CO-4).
+  const tokens = context.tokens
+  const digestTemplate = campaign.digestRole === 'template'
+  useEffect(() => {
+    if (!ge) return
+    const known = knownFields(tokens, digestTemplate)
+    setChipLabels(ge.editor, (p) => ({ label: tokens.find((x) => x.key === p.key)?.label ?? p.key, fallback: p.fallback, unknown: !isKnownField(p.key, known) }))
+  }, [ge, tokens, digestTemplate])
 
   // Editing agreed to: the canvas takes edits again.
   useEffect(() => {

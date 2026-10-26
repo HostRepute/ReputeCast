@@ -10,7 +10,7 @@ describe('the words of a text being typed', () => {
 
   it('leaves a Liquid chip as its token, not its label', () => {
     const html = 'Hi <span data-rc-liquid="{{ first_name | default: &quot;there&quot; }}" contenteditable="false">First name · fallback “there”</span>'
-    expect(cleanLiveHtml(html)).toBe('Hi <span data-rc-liquid="{{ first_name | default: &quot;there&quot; }}"></span>')
+    expect(cleanLiveHtml(html)).toBe('Hi {{ first_name | default: "there" }}')
   })
 
   it('swaps the inner part of an element, whatever its attributes hold', () => {

@@ -19,10 +19,12 @@ import { DEVICES, EMAIL_DEVICES, type DeviceId } from './editor/grapes'
 import { componentLabel, mjChildren, tagOf } from './editor/labels'
 import { headCss } from './editor/mjmlDoc'
 import { applyTextStyle, currentTextStyle, TEXT_STYLES, type TextEditing, type TextStyle } from './editor/textStyle'
+import { chipHtml } from './editor/liquid'
 import { componentAt, insertFooter, reveal } from './fixes'
 import { EmptyGallery } from './Gallery'
 import { ToolIcon } from './icons'
 import { canvasIssues, contentIssues } from './RightPanel'
+import { LiquidPopover } from './LiquidChips'
 import { StateCards } from './StateCards'
 import { AccessibilityOverlays } from '@/features/accessibility/composer/Overlays'
 import { ConditionalOverlays, ConditionalToggle } from '@/features/conditional/Canvas'
@@ -638,7 +640,8 @@ function RteToolbar({ host, tick }: { host: HTMLElement | null; tick: number }) 
                 onClick={() => {
                   restoreRange()
                   const token = t.fallback !== undefined && t.fallback !== '' ? `{{ ${t.key} | default: "${t.fallback}" }}` : `{{ ${t.key} }}`
-                  rte.rte.insertHTML(token.replace(/&/g, '&amp;').replace(/</g, '&lt;'))
+                  // A chip, as the canvas shows tokens (it exports as the token).
+                  rte.rte.insertHTML(`${chipHtml(token, { label: t.label, fallback: t.fallback || undefined, unknown: false })}&nbsp;`)
                 }}
               >
                 <span>{t.label}</span>
@@ -815,6 +818,7 @@ export function CanvasArea({
             <LanguageTags host={host} tick={tick} />
             <SelectionOverlay host={host} tick={tick} />
             <RteToolbar host={host} tick={tick} />
+            <LiquidPopover host={host} tick={tick} boxOf={boxOf} />
           </div>
           {ed ? (
             <div className="mx-auto" style={{ width: frameWidth }}>
