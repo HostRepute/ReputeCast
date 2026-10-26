@@ -45,7 +45,7 @@ func (s *Service) RecordEngagement(ctx context.Context, evs []sending.Engagement
 	})
 	return sending.Tx(ctx, s.Pool, func(tx pgx.Tx) error {
 		q := store.New(tx)
-		b := &batch{}
+		b := newBatch()
 		for _, ev := range sorted {
 			if err := s.apply(ctx, tx, q, b, ev); err != nil {
 				return err
@@ -58,11 +58,15 @@ func (s *Service) RecordEngagement(ctx context.Context, evs []sending.Engagement
 	})
 }
 
-// batch is what a batch of opens and clicks changes beyond its messages.
+// batch is what a batch of opens and clicks changes beyond its messages:
+// the counter moves (the batch's own ledger, or the webhook batch's when
+// a provider reported them) and the contacts' activity.
 type batch struct {
-	ledger  counters.Ledger
+	ledger  *counters.Ledger
 	touches touches
 }
+
+func newBatch() *batch { return &batch{ledger: &counters.Ledger{}} }
 
 // touches are a batch's opens and clicks per contact, applied last in
 // contact order.
@@ -170,48 +174,64 @@ func (s *Service) apply(ctx context.Context, tx pgx.Tx, q *store.Queries, b *bat
 	default:
 		v = ClassifyOpen(sig)
 	}
-	typ, class := "open", v.Class
-	var linkPos *int32
-	if ev.Click {
-		typ = "click"
-		p := int32(ev.Link)
-		linkPos = &p
-		if !v.Machine {
-			class = classPending // counted once it settles
-		}
-	}
-	diag := v.Client
-	if v.Machine {
-		diag = v.Reason
-	}
+	stored := classified(v, ev.Click, ev.Link)
 	label, _ := q.TrackingSourceLabel(ctx, m.ID)
 	mid := m.ID
 	eventID := uuid.Must(uuid.NewV7())
 	if err := q.TrackingInsertEvent(ctx, store.TrackingInsertEventParams{
 		ID: eventID, WorkspaceID: m.WorkspaceID, MessageID: &mid, CampaignID: m.CampaignID, ContactID: m.ContactID, ProviderID: m.ProviderID,
-		Type: typ, OccurredAt: ev.At, ReceivedAt: ev.At, MailboxProvider: m.MailboxProvider, OriginalType: "ReputeCast tracking", Diagnostic: clip(diag, 1000),
-		Machine: v.Machine, Url: clip(link, 2048), UserAgent: clip(ev.UserAgent, 500), Ip: ipPtr, Recipient: m.Email, Source: label, Class: class, Link: linkPos,
+		Type: stored.typ, OccurredAt: ev.At, ReceivedAt: ev.At, MailboxProvider: m.MailboxProvider, OriginalType: "ReputeCast tracking", Diagnostic: clip(stored.diag, 1000),
+		Machine: v.Machine, Url: clip(link, 2048), UserAgent: clip(ev.UserAgent, 500), Ip: ipPtr, Recipient: m.Email, Source: label, Class: stored.class, Link: stored.link,
 	}); err != nil {
 		return err
 	}
-	if ev.Click {
+	return s.count(ctx, tx, q, b, m, v, eventID, ev.Click, ev.Link, link, ev.At)
+}
+
+// stored is how an open or a click is stored once classified.
+type stored struct {
+	typ, class, diag string
+	link             *int32
+}
+
+func classified(v Verdict, click bool, link int) stored {
+	out := stored{typ: "open", class: v.Class, diag: v.Client}
+	if v.Machine {
+		out.diag = v.Reason
+	}
+	if click {
+		out.typ = "click"
+		p := int32(link)
+		out.link = &p
+		if !v.Machine {
+			out.class = classPending // counted once it settles
+		}
+	}
+	return out
+}
+
+// count counts a classified open or click: an open at once, a click that
+// looks like a person's once it settles, a bot's click on the bot clicks.
+func (s *Service) count(ctx context.Context, tx pgx.Tx, q *store.Queries, b *batch, m store.TrackingMessageRow, v Verdict, eventID uuid.UUID,
+	click bool, link int, url string, at time.Time) error {
+	if click {
 		switch {
-		case ev.Link == HoneypotLink:
+		case link == HoneypotLink:
 			// The hidden link isn't one of the email's: nothing to count on
 			// the map; the clicks around it settle as the scanner's.
 		case v.Machine:
 			// Bot clicks are logged and shown apart (the click map's Bot
 			// clicks), never counted as clicks.
 			if m.CampaignID != nil {
-				b.ledger.Click(*m.CampaignID, ev.Link, true, false)
+				b.ledger.Click(*m.CampaignID, link, true, false)
 			}
 		default:
-			return q.TrackingPendingClick(ctx, store.TrackingPendingClickParams{EventID: eventID, MessageID: m.ID, Link: int32(ev.Link), Url: clip(link, 2048),
-				ClickedAt: ev.At, SettleAt: ev.At.Add(settleAfter)})
+			return q.TrackingPendingClick(ctx, store.TrackingPendingClickParams{EventID: eventID, MessageID: m.ID, Link: int32(link), Url: clip(url, 2048),
+				ClickedAt: at, SettleAt: at.Add(settleAfter)})
 		}
 		return nil
 	}
-	mv, err := q.CountersMoveEngagement(ctx, store.CountersMoveEngagementParams{ID: m.ID, At: ev.At, Click: false, Class: class})
+	mv, err := q.CountersMoveEngagement(ctx, store.CountersMoveEngagementParams{ID: m.ID, At: at, Click: false, Class: v.Class})
 	if err != nil {
 		return err
 	}
@@ -219,15 +239,15 @@ func (s *Service) apply(ctx context.Context, tx pgx.Tx, q *store.Queries, b *bat
 	b.ledger.Add(moved)
 	firstOpen := moved.Before.OpenedAt == nil
 	if m.ContactID != nil {
-		b.touches.add(*m.ContactID, ev.At, true, v.Class == ClassHuman, false)
+		b.touches.add(*m.ContactID, at, true, v.Class == ClassHuman, false)
 	}
 	if m.Stream == "transactional" && s.Transactional != nil && firstOpen {
-		if err := s.Transactional.Engagement(ctx, tx, m.ID, false, ev.At); err != nil {
+		if err := s.Transactional.Engagement(ctx, tx, m.ID, false, at); err != nil {
 			return err
 		}
 	}
 	if m.Stream == "automation" && s.Automations != nil && firstOpen {
-		if err := s.Automations.RecordMessageEvent(ctx, q, automations.MessageEvent{MessageID: m.ID, Type: "opened", Machine: v.Machine, At: ev.At}); err != nil {
+		if err := s.Automations.RecordMessageEvent(ctx, q, automations.MessageEvent{MessageID: m.ID, Type: "opened", Machine: v.Machine, At: at}); err != nil {
 			return err
 		}
 	}

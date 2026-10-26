@@ -57,6 +57,10 @@ type Normalizer struct {
 	// Hooks are told about each event applied to a known message, inside
 	// the transaction that applied it (transactional mail's webhooks).
 	Hooks []MessageHook
+	// Engagement counts the opens and clicks a provider reports when the
+	// workspace keeps the provider's tracking (review AN-4); without it
+	// they are only logged.
+	Engagement Engagement
 }
 
 // MessageHook is told about an event applied to a message of a stream.
@@ -231,11 +235,20 @@ func (n *Normalizer) applyItems(ctx context.Context, tx pgx.Tx, p store.Provider
 // effects are what a batch of events changes beyond its messages. They
 // are applied once the batch's messages are locked, in key order: campaign
 // counters, the providers' daily outcomes, then the suppression list and
-// the contacts' status by address.
+// the contacts' status by address, then the contacts' opens and clicks.
 type effects struct {
-	ledger   counters.Ledger
-	outcomes map[outcomeKey]*store.ProvRecordOutcomeParams
-	supp     []suppression
+	ledger     counters.Ledger
+	outcomes   map[outcomeKey]*store.ProvRecordOutcomeParams
+	supp       []suppression
+	engagement EngagementBatch
+}
+
+// opens is the batch's provider opens and clicks, started on the first.
+func (e *effects) opens(rec Engagement) EngagementBatch {
+	if e.engagement == nil {
+		e.engagement = rec.Begin(&e.ledger)
+	}
+	return e.engagement
 }
 
 type outcomeKey struct {
@@ -309,7 +322,12 @@ func (e *effects) flush(ctx context.Context, q *store.Queries) (int, error) {
 			}
 		}
 	}
-	e.outcomes, e.supp = nil, nil
+	if e.engagement != nil {
+		if err := e.engagement.Flush(ctx, q); err != nil {
+			return 0, err
+		}
+	}
+	e.outcomes, e.supp, e.engagement = nil, nil, nil
 	return added, nil
 }
 
@@ -341,7 +359,8 @@ func (n *Normalizer) apply(ctx context.Context, tx pgx.Tx, e *effects, p store.P
 	// Provider-side opens and clicks only count when the workspace chose to
 	// keep the provider's tracking; otherwise ReputeCast's own tracking
 	// already counted them.
-	if (ev.Type == providers.EventOpen || ev.Type == providers.EventClick) && state.TrackingOf(p).Mode != "provider" {
+	engagement := ev.Type == providers.EventOpen || ev.Type == providers.EventClick
+	if engagement && state.TrackingOf(p).Mode != "provider" {
 		return nil
 	}
 	recipient := strings.ToLower(strings.TrimSpace(ev.Recipient))
@@ -388,7 +407,18 @@ func (n *Normalizer) apply(ctx context.Context, tx pgx.Tx, e *effects, p store.P
 	if err != nil {
 		return err
 	}
-	_ = id
+	if engagement {
+		// The tracking service classifies and counts it like one of its
+		// own; it tells transactional mail's webhooks itself, once.
+		if msg == nil || !trusted || msg.Kind == "placement" {
+			return nil
+		}
+		if n.Engagement == nil {
+			return n.hooks(ctx, tx, p, msg, ev)
+		}
+		return e.opens(n.Engagement).Record(ctx, tx, ProviderEngagement{EventID: id, MessageID: msg.ID, Click: ev.Type == providers.EventClick,
+			URL: ev.URL, UserAgent: ev.UserAgent, IP: ev.IP, At: occurred})
+	}
 	// The message moves on (delivered, deferred, bounced…); its campaign's
 	// counters and its provider's outcomes follow the move, so a redelivered
 	// event or a soft bounce followed by a delivery never counts twice.
@@ -418,10 +448,8 @@ func (n *Normalizer) apply(ctx context.Context, tx pgx.Tx, e *effects, p store.P
 		outcome = counters.Delta{Delivered: max(d.Delivered, 0), HardBounced: max(d.HardBounced, 0), Complained: max(d.Complained, 0)}
 	}
 	if msg != nil {
-		for _, h := range n.Hooks {
-			if err := h(ctx, tx, p, msg.ID, msg.Stream, ev); err != nil {
-				return err
-			}
+		if err := n.hooks(ctx, tx, p, msg, ev); err != nil {
+			return err
 		}
 	}
 	if trusted {
@@ -455,16 +483,31 @@ func (n *Normalizer) apply(ctx context.Context, tx pgx.Tx, e *effects, p store.P
 	return nil
 }
 
+// hooks tells the message hooks about an event.
+func (n *Normalizer) hooks(ctx context.Context, tx pgx.Tx, p store.Provider, msg *store.IngestMessageByIDRow, ev providers.Event) error {
+	for _, h := range n.Hooks {
+		if err := h(ctx, tx, p, msg.ID, msg.Stream, ev); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // moves are the event types that move a message's state.
 var moves = map[providers.EventType]bool{
 	providers.EventDelivered: true, providers.EventDeferred: true, providers.EventHardBounce: true, providers.EventSoftBounce: true,
 	providers.EventComplaint: true, providers.EventRejected: true, providers.EventUnsubscribe: true,
 }
 
-// dedupeKey identifies an event so provider redeliveries are dropped.
+// dedupeKey identifies an event so provider redeliveries are dropped; a
+// click's link is part of it (two links clicked in the same millisecond
+// are two clicks).
 func dedupeKey(provider uuid.UUID, ev providers.Event, recipient string, occurred time.Time) string {
 	h := sha256.New()
 	_, _ = fmt.Fprintf(h, "%s|%s|%s|%s|%d|%s|%s", provider, ev.Type, ev.ProviderMessageID, recipient, occurred.UnixMilli(), ev.OriginalCode, ev.OriginalType)
+	if ev.Type == providers.EventClick {
+		_, _ = fmt.Fprintf(h, "|%s", ev.URL)
+	}
 	return hex.EncodeToString(h.Sum(nil))[:40]
 }
 

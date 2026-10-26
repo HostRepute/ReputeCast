@@ -99,6 +99,35 @@ func (q *Queries) TrackingCampaignLinks(ctx context.Context, campaignID uuid.UUI
 	return items, nil
 }
 
+const trackingClassifyEvent = `-- name: TrackingClassifyEvent :exec
+UPDATE delivery_events
+SET class = $1, machine = $2, diagnostic = $3, link = $4, ip = $5
+WHERE id = $6
+`
+
+type TrackingClassifyEventParams struct {
+	Class      string      `json:"class"`
+	Machine    bool        `json:"machine"`
+	Diagnostic string      `json:"diagnostic"`
+	Link       *int32      `json:"link"`
+	Ip         *netip.Addr `json:"ip"`
+	ID         uuid.UUID   `json:"id"`
+}
+
+// An open or click the sending provider reported (stored by ingest),
+// classified in place (review AN-4).
+func (q *Queries) TrackingClassifyEvent(ctx context.Context, arg TrackingClassifyEventParams) error {
+	_, err := q.db.Exec(ctx, trackingClassifyEvent,
+		arg.Class,
+		arg.Machine,
+		arg.Diagnostic,
+		arg.Link,
+		arg.Ip,
+		arg.ID,
+	)
+	return err
+}
+
 const trackingContactVars = `-- name: TrackingContactVars :one
 SELECT email, first_name, last_name, attributes FROM contacts WHERE id = $1
 `
@@ -124,7 +153,8 @@ func (q *Queries) TrackingContactVars(ctx context.Context, id uuid.UUID) (Tracki
 
 const trackingDueClicks = `-- name: TrackingDueClicks :many
 SELECT p.event_id, p.message_id, p.link, p.url, p.clicked_at,
-       coalesce(e.user_agent, '')::text AS user_agent, e.ip
+       coalesce(e.user_agent, '')::text AS user_agent, e.ip,
+       (coalesce(e.original_type, 'ReputeCast tracking') <> 'ReputeCast tracking')::boolean AS reported
 FROM tracking_pending_clicks p
 LEFT JOIN delivery_events e ON e.id = p.event_id
 WHERE p.settle_at <= $1
@@ -146,10 +176,12 @@ type TrackingDueClicksRow struct {
 	ClickedAt time.Time   `json:"clickedAt"`
 	UserAgent string      `json:"userAgent"`
 	Ip        *netip.Addr `json:"ip"`
+	Reported  bool        `json:"reported"`
 }
 
 // Pending clicks due to settle, each message's together and in message
-// order (the order writers lock messages in), with what the click sent.
+// order (the order writers lock messages in), with what the click sent;
+// reported: the sending provider reported it (review AN-4).
 func (q *Queries) TrackingDueClicks(ctx context.Context, arg TrackingDueClicksParams) ([]TrackingDueClicksRow, error) {
 	rows, err := q.db.Query(ctx, trackingDueClicks, arg.Now, arg.Lim)
 	if err != nil {
@@ -167,6 +199,7 @@ func (q *Queries) TrackingDueClicks(ctx context.Context, arg TrackingDueClicksPa
 			&i.ClickedAt,
 			&i.UserAgent,
 			&i.Ip,
+			&i.Reported,
 		); err != nil {
 			return nil, err
 		}
@@ -315,7 +348,7 @@ func (q *Queries) TrackingMessage(ctx context.Context, id uuid.UUID) (TrackingMe
 }
 
 const trackingMessageClicks = `-- name: TrackingMessageClicks :many
-SELECT occurred_at, coalesce(link, -2)::integer AS link, class
+SELECT occurred_at, coalesce(link, -2)::integer AS link, class, url
 FROM delivery_events
 WHERE message_id = $1 AND type = 'click' AND occurred_at BETWEEN $2 AND $3
 ORDER BY occurred_at
@@ -331,10 +364,12 @@ type TrackingMessageClicksRow struct {
 	OccurredAt time.Time `json:"occurredAt"`
 	Link       int32     `json:"link"`
 	Class      string    `json:"class"`
+	Url        string    `json:"url"`
 }
 
 // A message's clicks between two times (bursts, the hidden link); link -1
-// is the hidden link.
+// is the hidden link, -2 a link that isn't one of the email's (a provider
+// reported it, review AN-4).
 func (q *Queries) TrackingMessageClicks(ctx context.Context, arg TrackingMessageClicksParams) ([]TrackingMessageClicksRow, error) {
 	rows, err := q.db.Query(ctx, trackingMessageClicks, arg.MessageID, arg.FromAt, arg.UntilAt)
 	if err != nil {
@@ -344,7 +379,12 @@ func (q *Queries) TrackingMessageClicks(ctx context.Context, arg TrackingMessage
 	items := []TrackingMessageClicksRow{}
 	for rows.Next() {
 		var i TrackingMessageClicksRow
-		if err := rows.Scan(&i.OccurredAt, &i.Link, &i.Class); err != nil {
+		if err := rows.Scan(
+			&i.OccurredAt,
+			&i.Link,
+			&i.Class,
+			&i.Url,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

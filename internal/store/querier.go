@@ -3729,9 +3729,13 @@ type Querier interface {
 	TrackingAutomationLinks(ctx context.Context, arg TrackingAutomationLinksParams) ([]TrackingAutomationLinksRow, error)
 	TrackingBumpAutomationLink(ctx context.Context, arg TrackingBumpAutomationLinkParams) error
 	TrackingCampaignLinks(ctx context.Context, campaignID uuid.UUID) ([]TrackingCampaignLinksRow, error)
+	// An open or click the sending provider reported (stored by ingest),
+	// classified in place (review AN-4).
+	TrackingClassifyEvent(ctx context.Context, arg TrackingClassifyEventParams) error
 	TrackingContactVars(ctx context.Context, id uuid.UUID) (TrackingContactVarsRow, error)
 	// Pending clicks due to settle, each message's together and in message
-	// order (the order writers lock messages in), with what the click sent.
+	// order (the order writers lock messages in), with what the click sent;
+	// reported: the sending provider reported it (review AN-4).
 	TrackingDueClicks(ctx context.Context, arg TrackingDueClicksParams) ([]TrackingDueClicksRow, error)
 	TrackingFirstLinkClick(ctx context.Context, arg TrackingFirstLinkClickParams) (int32, error)
 	// class is how tracking classified the open or click (human, privacy,
@@ -3740,7 +3744,8 @@ type Querier interface {
 	// Open and click tracking (spec 5.5, 7.6).
 	TrackingMessage(ctx context.Context, id uuid.UUID) (TrackingMessageRow, error)
 	// A message's clicks between two times (bursts, the hidden link); link -1
-	// is the hidden link.
+	// is the hidden link, -2 a link that isn't one of the email's (a provider
+	// reported it, review AN-4).
 	TrackingMessageClicks(ctx context.Context, arg TrackingMessageClicksParams) ([]TrackingMessageClicksRow, error)
 	TrackingNetworkAdd(ctx context.Context, arg TrackingNetworkAddParams) (string, error)
 	// Only networks an admin added can be removed; the built-in ones come with

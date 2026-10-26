@@ -6,10 +6,22 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/riverqueue/river"
 
+	"github.com/hostrepute/reputecast/internal/counters"
+	"github.com/hostrepute/reputecast/internal/ingest"
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/reports"
 	"github.com/hostrepute/reputecast/internal/tracking"
 )
+
+// trackerEngagement counts the opens and clicks a provider reports with
+// the App's tracking service (review AN-4), looked up when the first one
+// arrives: the tracker's own services build normalizers.
+type trackerEngagement struct{ a *App }
+
+// Begin implements ingest.Engagement.
+func (t trackerEngagement) Begin(l *counters.Ledger) ingest.EngagementBatch {
+	return sendingTracker(t.a).Begin(l)
+}
 
 // Honest counters and bot clicks (review AN-3, AN-2): campaigns' counters
 // are rebuilt from their messages and events once their results are

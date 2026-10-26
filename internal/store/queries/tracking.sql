@@ -94,9 +94,11 @@ VALUES (@event_id, @message_id, @link, @url, @clicked_at, @settle_at);
 
 -- name: TrackingDueClicks :many
 -- Pending clicks due to settle, each message's together and in message
--- order (the order writers lock messages in), with what the click sent.
+-- order (the order writers lock messages in), with what the click sent;
+-- reported: the sending provider reported it (review AN-4).
 SELECT p.event_id, p.message_id, p.link, p.url, p.clicked_at,
-       coalesce(e.user_agent, '')::text AS user_agent, e.ip
+       coalesce(e.user_agent, '')::text AS user_agent, e.ip,
+       (coalesce(e.original_type, 'ReputeCast tracking') <> 'ReputeCast tracking')::boolean AS reported
 FROM tracking_pending_clicks p
 LEFT JOIN delivery_events e ON e.id = p.event_id
 WHERE p.settle_at <= @now
@@ -109,14 +111,22 @@ SELECT coalesce(min(settle_at), 'epoch'::timestamptz)::timestamptz FROM tracking
 
 -- name: TrackingMessageClicks :many
 -- A message's clicks between two times (bursts, the hidden link); link -1
--- is the hidden link.
-SELECT occurred_at, coalesce(link, -2)::integer AS link, class
+-- is the hidden link, -2 a link that isn't one of the email's (a provider
+-- reported it, review AN-4).
+SELECT occurred_at, coalesce(link, -2)::integer AS link, class, url
 FROM delivery_events
 WHERE message_id = @message_id AND type = 'click' AND occurred_at BETWEEN @from_at AND @until_at
 ORDER BY occurred_at;
 
 -- name: TrackingSettleEvent :exec
 UPDATE delivery_events SET class = @class, machine = @machine, diagnostic = @diagnostic WHERE id = @id;
+
+-- name: TrackingClassifyEvent :exec
+-- An open or click the sending provider reported (stored by ingest),
+-- classified in place (review AN-4).
+UPDATE delivery_events
+SET class = @class, machine = @machine, diagnostic = @diagnostic, link = sqlc.narg(link), ip = sqlc.narg(ip)
+WHERE id = @id;
 
 -- name: TrackingSettled :exec
 DELETE FROM tracking_pending_clicks WHERE event_id = ANY(@ids::uuid[]);

@@ -26,6 +26,11 @@ type Signal struct {
 	// Net is the machine network the address belongs to, from the
 	// instance's list (tracking_networks); nil checks the built-in ranges.
 	Net *Network
+	// Reported: the sending provider reported the open or click (the
+	// workspace keeps the provider's tracking, review AN-4). A provider
+	// that doesn't pass the user agent on says nothing about the request,
+	// so a missing one isn't a machine's sign.
+	Reported bool
 }
 
 // Network is a network of machines that open and click email.
@@ -134,7 +139,7 @@ func ClassifyOpen(s Signal) Verdict {
 	switch {
 	case strings.EqualFold(s.Method, "HEAD"):
 		return machine(reasonHead)
-	case ua == "":
+	case ua == "" && !s.Reported:
 		return machine(reasonNoAgent)
 	case ua == "Mozilla/5.0":
 		// Apple Mail Privacy Protection: whether anyone read it can't be
@@ -186,7 +191,7 @@ func ClassifyClick(s Signal, burst bool) Verdict {
 	switch {
 	case strings.EqualFold(s.Method, "HEAD"):
 		return bot(reasonHead)
-	case ua == "":
+	case ua == "" && !s.Reported:
 		return bot(reasonNoAgent)
 	}
 	if name := scannerAgent(ua); name != "" {

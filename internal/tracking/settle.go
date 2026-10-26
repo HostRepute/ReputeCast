@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/netip"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -38,6 +39,9 @@ const (
 	honeypotWindow = time.Minute
 	// HoneypotLink is the position the hidden link's clicks are stored with.
 	HoneypotLink = -1
+	// NoLink is the position of a provider-reported click on a link that
+	// isn't one of the email's (review AN-4).
+	NoLink = -2
 )
 
 // settleBatch is how many pending clicks one transaction settles.
@@ -76,7 +80,7 @@ func (s *Service) settle(ctx context.Context, now time.Time) (int, error) {
 			return err
 		}
 		n = len(rows)
-		b := &batch{}
+		b := newBatch()
 		done := make([]uuid.UUID, 0, len(rows))
 		for _, r := range rows {
 			if err := s.settleOne(ctx, tx, q, b, r); err != nil {
@@ -132,16 +136,26 @@ func (s *Service) verdictAt(ctx context.Context, q *store.Queries, m store.Track
 	if err != nil {
 		s.log().WarnContext(ctx, "read a message's clicks", "message", m.ID, "err", err)
 	}
-	links := map[int32]bool{}
+	// The different links clicked around it: by position, or by address
+	// for a provider-reported link that isn't one of the email's.
+	links := map[string]bool{}
 	for _, c := range clicks {
 		if c.Link == HoneypotLink {
 			return ClassifyHoneypot()
 		}
-		if d := c.OccurredAt.Sub(at); d >= -burstWindow && d <= burstWindow && c.Link >= 0 {
-			links[c.Link] = true
+		d := c.OccurredAt.Sub(at)
+		if d < -burstWindow || d > burstWindow {
+			continue
+		}
+		switch {
+		case c.Link >= 0:
+			links[strconv.Itoa(int(c.Link))] = true
+		case c.Link == NoLink && c.Url != "":
+			links["url:"+c.Url] = true
 		}
 	}
 	sig := s.signal(ctx, m, r.UserAgent, r.Ip, "GET", at)
+	sig.Reported = r.Reported
 	return ClassifyClick(sig, len(links) >= burstLinks)
 }
 
