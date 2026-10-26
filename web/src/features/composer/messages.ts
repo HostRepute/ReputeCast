@@ -208,6 +208,15 @@ export const m = defineMessages('composer', {
   severityWarn: 'Warn',
   describeImage: 'Describe the image',
   noWarningsLong: 'No warnings. Send Readiness runs the full set, including link checks, before anything goes out.',
+  /** The checks couldn't run; the last results stay (ComposerWarnings). {time} is when they ran ("09:31"). */
+  checksFailed: "<b>Checks couldn't run ({reason, select, network {network} other {server error}})</b> · showing results from {time}",
+  checksFailedNone: "<b>Checks couldn't run ({reason, select, network {network} other {server error}})</b>",
+  checksRunning: '<b>Running checks…</b> · results from {time} stay until this finishes',
+  checksRanOk: '<b>Checked just now</b> · {blocks, plural, =0 {no blocks} one {# block} other {# blocks}} and {warnings, plural, =0 {no warnings} one {# warning} other {# warnings}}',
+  checksRetry: 'Retry',
+  /** Send test sends the saved email: it waits for the latest save. */
+  testNeedsSave: 'Send test needs the latest save',
+  testNeedsSaveDetail: "The last save didn't go through, and tests send what is saved. Try again once the email is saved.",
   /** An A/B variant's own findings in the Deliverability tab. */
   variantIssues: 'Variant {key}',
   variantIssuesNote: "Found in variant {key} only. It's fixed in that variant.",

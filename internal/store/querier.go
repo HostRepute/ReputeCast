@@ -727,6 +727,8 @@ type Querier interface {
 	// kinds it runs, and registry keys must not collide across kinds.
 	CommunityAdapterList(ctx context.Context) ([]CommunityAdapterListRow, error)
 	CompleteInstanceSetup(ctx context.Context, arg CompleteInstanceSetupParams) (InstanceSetting, error)
+	// Who approved a request, in order.
+	ComposerApprovalApprovers(ctx context.Context, requestID uuid.UUID) ([]string, error)
 	// Lists with their subscribed, active contacts (suppressed addresses excluded).
 	ComposerAudienceLists(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceListsRow, error)
 	ComposerAudienceSegments(ctx context.Context, workspaceID uuid.UUID) ([]ComposerAudienceSegmentsRow, error)
@@ -752,6 +754,9 @@ type Querier interface {
 	// Names (or unnames, with '') one version; returns the name it had.
 	ComposerNameVersion(ctx context.Context, arg ComposerNameVersionParams) (string, error)
 	ComposerNamedVersionCount(ctx context.Context, campaignID uuid.UUID) (int64, error)
+	// A campaign's pending or approved request: who asked, when it was
+	// decided and the version it covers (editing cancels it).
+	ComposerOpenApproval(ctx context.Context, campaignID *uuid.UUID) (ComposerOpenApprovalRow, error)
 	ComposerPreviewContactByID(ctx context.Context, arg ComposerPreviewContactByIDParams) (ComposerPreviewContactByIDRow, error)
 	// Contacts to preview as: the campaign's audience first, people with a first name first.
 	ComposerPreviewContacts(ctx context.Context, arg ComposerPreviewContactsParams) ([]ComposerPreviewContactsRow, error)

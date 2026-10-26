@@ -53,6 +53,7 @@ var (
 	mProblemVariantLetter     = msgs.M("problem.variantLetter")
 	mProblemVariantsAB        = msgs.M("problem.variantsAB")
 	mProblemVariantSubject    = msgs.M("problem.variantSubject")
+	mProblemApprovalCancel    = msgs.M("problem.approvalWouldCancel")
 
 	mLabelUntitled        = msgs.M("label.untitled")
 	mLabelCopyOf          = msgs.M("label.copyOf")

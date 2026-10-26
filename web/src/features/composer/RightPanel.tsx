@@ -1,5 +1,5 @@
 import type { Component } from 'grapesjs'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { PanelTabs, TabPanel } from '@/components/ui/Tabs'
 import { LanguageBlockPanel } from '@/features/languages/composerParts'
@@ -14,7 +14,8 @@ import { FeedItemsInspector, isFeedItems, useDigestMode } from '@/features/diges
 import { isGrowBlock } from '@/features/grow/composer/blocks'
 import { GrowBlockInspector, GrowStyleNote } from '@/features/grow/composer/Panel'
 import { dc } from '@/features/digests/composer/messages'
-import { t as tt, useT } from '@/i18n'
+import { T, t as tt, useT } from '@/i18n'
+import { clock } from '@/lib/format'
 import { useWebMode, WebTabPanel } from '@/features/website/composer/campaign'
 import { mc } from '@/features/website/composer/messages'
 import { mc as canvasMessages } from './canvas.messages'
@@ -226,6 +227,55 @@ function VariantIssues() {
   })
 }
 
+/**
+ * When the checks couldn't run, the last results stay with a note and a
+ * Retry (ComposerWarnings): "Checks couldn't run (network) · showing
+ * results from 09:31".
+ */
+export function ChecksRunBar() {
+  const c = useComposer()
+  const t = useT()
+  const at = c.checks?.checkedAt
+  const b = (chunks: ReactNode[]) => <b>{chunks}</b>
+  if (c.checksFailure) {
+    if (c.checksPending && at)
+      return (
+        <div className="ckfail" role="status">
+          <span className="spin" aria-hidden="true" />
+          <span className="t">
+            <T msg={m.checksRunning} values={{ time: clock(at), b }} />
+          </span>
+        </div>
+      )
+    return (
+      <div className="ckfail" role="status">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: 'none' }}>
+          <path d="M8 2 1.5 13.5h13z" />
+          <path d="M8 6.5v3.2M8 11.8v.2" />
+        </svg>
+        <span className="t">
+          <T msg={at ? m.checksFailed : m.checksFailedNone} values={{ reason: c.checksFailure.reason, time: at ? clock(at) : '', b }} />
+        </span>
+        <button type="button" className="btn sm" onClick={() => c.retryChecks?.()} aria-busy={c.checksPending || undefined}>
+          {t(m.checksRetry)}
+        </button>
+      </div>
+    )
+  }
+  if (c.checksRecovered && c.checks)
+    return (
+      <div className="ckfail ok" role="status">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: 'none' }}>
+          <path d="m3 8.5 3.2 3L13 4.5" />
+        </svg>
+        <span className="t">
+          <T msg={m.checksRanOk} values={{ blocks: c.checks.blocks, warnings: c.checks.warnings, b }} />
+        </span>
+      </div>
+    )
+  return null
+}
+
 function DeliverabilityTab() {
   const c = useComposer()
   const t = useT()
@@ -234,12 +284,16 @@ function DeliverabilityTab() {
   const sorted = [...all].sort((a, b) => rank(a) - rank(b))
   if (!sorted.length && !variantIssueCount(c.checks))
     return (
-      <div className="k" style={{ padding: '14px 12px' }}>
-        {t(m.noWarningsLong)}
-      </div>
+      <>
+        <ChecksRunBar />
+        <div className="k" style={{ padding: '14px 12px' }}>
+          {t(m.noWarningsLong)}
+        </div>
+      </>
     )
   return (
     <div className="flex flex-col">
+      <ChecksRunBar />
       {sorted.map((i) => (
         <IssueRow key={`${i.id}-${i.path.join('.')}-${i.title}`} issue={i} />
       ))}
@@ -257,8 +311,10 @@ export function RightPanel() {
   const web = useWebMode()
   const issues = contentIssues(c.checks?.issues)
   const variantCount = variantIssueCount(c.checks)
+  // Checks that couldn't run keep their tab, with the stale note and Retry.
+  const stale = Boolean(c.checksFailure)
   const tab =
-    (c.rightTab === 'deliverability' && !issues.length && !variantCount && !(c.checks?.issues ?? []).some((i) => i.severity === 'warn' || i.severity === 'block')) || (c.rightTab === 'web' && !web)
+    (c.rightTab === 'deliverability' && !stale && !issues.length && !variantCount && !(c.checks?.issues ?? []).some((i) => i.severity === 'warn' || i.severity === 'block')) || (c.rightTab === 'web' && !web)
       ? 'style'
       : c.rightTab
   if (c.isEmpty) {
@@ -286,7 +342,7 @@ export function RightPanel() {
   // The website's Web tab (features/website), while it's on.
   if (web) items.push({ value: 'web', label: tt(mc.tabWeb) })
   const allWarn = (c.checks?.issues ?? []).filter((i) => i.severity === 'block' || i.severity === 'warn')
-  if (allWarn.length || variantCount) items.push({ value: 'deliverability', label: t(m.tabDeliverability, { count: (issues.length || allWarn.length) + variantCount }) })
+  if (allWarn.length || variantCount || stale) items.push({ value: 'deliverability', label: t(m.tabDeliverability, { count: (issues.length || allWarn.length) + variantCount }) })
   const a11yTab = accessibilityTab(a11y)
   if (a11yTab) items.push({ value: 'accessibility', label: a11yTab })
   return (

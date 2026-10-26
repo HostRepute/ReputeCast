@@ -52,6 +52,14 @@ type ComposerSaveContent struct {
 	// current ("Load theirs" after a conflict): it is saved as a version,
 	// then the current content is saved on top of it, unchanged.
 	Stash bool `json:"stash,omitempty"`
+	// CancelApproval says the person knows saving cancels the campaign's
+	// pending or approved request; without it such a save through the API
+	// fails with 409 approval_would_cancel (CO-7).
+	CancelApproval bool `json:"cancelApproval,omitempty"`
+	// askApproval is set by the API handler: a save someone sends asks
+	// before it cancels an approval. Saves other domains make for a person
+	// who clicked them (Send Readiness's fixes) cancel it as before.
+	askApproval bool
 }
 
 // ComposerSavedContent is the result of a save.
@@ -144,6 +152,20 @@ func (s *Service) SaveIn(ctx context.Context, ws *store.Workspace, p *authz.Prin
 		if int(cur.Version) != in.BaseVersion && !in.Force && !in.Stash {
 			return s.conflictFor(ctx, q, l, id, cur, in)
 		}
+		// Editing an approved (or pending) campaign cancels its request: only
+		// once the person said so (CO-7). Load theirs keeps the content as it is.
+		if !in.Stash {
+			a, err := s.openApproval(ctx, q, id)
+			if err != nil {
+				return err
+			}
+			if a != nil && in.askApproval && !in.CancelApproval {
+				return approvalWouldCancel(l, a)
+			}
+			if a != nil {
+				c.cancels = a.ID
+			}
+		}
 		if in.Stash {
 			out, err = s.stash(ctx, q, ws, p, id, cur, c, in)
 			return err
@@ -170,6 +192,15 @@ func (s *Service) saveTranslation(ctx context.Context, ws *store.Workspace, p *a
 	var settings ComposerContentSettings
 	_ = json.Unmarshal(c.ContentSettings, &settings)
 	if !in.Stash {
+		if in.askApproval && !in.CancelApproval {
+			a, err := s.openApproval(ctx, s.Q, id)
+			if err != nil {
+				return ComposerSavedContent{}, err
+			}
+			if a != nil {
+				return ComposerSavedContent{}, approvalWouldCancel(i18n.LangFrom(ctx), a)
+			}
+		}
 		out, err := s.Translations.Save(ctx, ws, p, id, lang, in, settings.Minify)
 		if err == nil {
 			s.changed(ctx, ws, id)
@@ -205,6 +236,8 @@ type preparedContent struct {
 	// recompiled names what the HTML sent got wrong ("links"; "B: text" for
 	// a variant) when the server stored its own compile instead.
 	recompiled string
+	// cancels is the request this save cancels (the person agreed to).
+	cancels string
 }
 
 // prepareContent turns a save into what is stored: the HTML compiled on
@@ -303,6 +336,10 @@ func (s *Service) storeVersion(ctx context.Context, q *store.Queries, ws *store.
 	meta := map[string]any{"label": label, "source": source, "contentHash": c.hash}
 	if c.recompiled != "" {
 		meta["recompiled"] = c.recompiled
+	}
+	if c.cancels != "" {
+		// The approvals domain records the cancellation itself (AfterChange).
+		meta["cancelsApproval"] = c.cancels
 	}
 	if err := s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.content.save", TargetType: "campaign", TargetID: id.String(),
 		Before: before, After: after, Metadata: meta}); err != nil {

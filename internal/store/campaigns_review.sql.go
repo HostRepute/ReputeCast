@@ -12,6 +12,35 @@ import (
 	"github.com/google/uuid"
 )
 
+const composerApprovalApprovers = `-- name: ComposerApprovalApprovers :many
+SELECT coalesce(u.name, '')::text AS name
+FROM approval_decisions d
+LEFT JOIN users u ON u.id = d.approver_id
+WHERE d.request_id = $1 AND d.decision = 'approve'
+ORDER BY d.created_at
+`
+
+// Who approved a request, in order.
+func (q *Queries) ComposerApprovalApprovers(ctx context.Context, requestID uuid.UUID) ([]string, error) {
+	rows, err := q.db.Query(ctx, composerApprovalApprovers, requestID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		items = append(items, name)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const composerBumpVersion = `-- name: ComposerBumpVersion :exec
 UPDATE campaigns
 SET version = $1, updated_by = $2, updated_at = $3
@@ -135,6 +164,41 @@ func (q *Queries) ComposerNamedVersionCount(ctx context.Context, campaignID uuid
 	var column_1 int64
 	err := row.Scan(&column_1)
 	return column_1, err
+}
+
+const composerOpenApproval = `-- name: ComposerOpenApproval :one
+SELECT r.id, r.status, r.requested_at, r.decided_at, coalesce(r.campaign_version, 0)::int AS campaign_version,
+       coalesce(u.name, '')::text AS requested_by_name
+FROM approval_requests r
+LEFT JOIN users u ON u.id = r.requested_by
+WHERE r.campaign_id = $1 AND r.status IN ('pending', 'approved')
+ORDER BY r.requested_at DESC
+LIMIT 1
+`
+
+type ComposerOpenApprovalRow struct {
+	ID              uuid.UUID  `json:"id"`
+	Status          string     `json:"status"`
+	RequestedAt     time.Time  `json:"requestedAt"`
+	DecidedAt       *time.Time `json:"decidedAt"`
+	CampaignVersion int32      `json:"campaignVersion"`
+	RequestedByName string     `json:"requestedByName"`
+}
+
+// A campaign's pending or approved request: who asked, when it was
+// decided and the version it covers (editing cancels it).
+func (q *Queries) ComposerOpenApproval(ctx context.Context, campaignID *uuid.UUID) (ComposerOpenApprovalRow, error) {
+	row := q.db.QueryRow(ctx, composerOpenApproval, campaignID)
+	var i ComposerOpenApprovalRow
+	err := row.Scan(
+		&i.ID,
+		&i.Status,
+		&i.RequestedAt,
+		&i.DecidedAt,
+		&i.CampaignVersion,
+		&i.RequestedByName,
+	)
+	return i, err
 }
 
 const composerVersionsPage = `-- name: ComposerVersionsPage :many

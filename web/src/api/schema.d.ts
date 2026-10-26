@@ -3714,7 +3714,7 @@ export interface paths {
         get?: never;
         /**
          * Save the content as a new version (autosave)
-         * @description Fails with 409 version_conflict when someone saved a newer version since baseVersion; the problem's meta says who, when and which sections each side changed. Send force: true to keep yours on top, or stash: true to keep yours in the history under the current version (Load theirs). Saving content that is already the current version stores nothing (unchanged: true).
+         * @description Fails with 409 version_conflict when someone saved a newer version since baseVersion; the problem's meta says who, when and which sections each side changed. Send force: true to keep yours on top, or stash: true to keep yours in the history under the current version (Load theirs). Saving content that is already the current version stores nothing (unchanged: true). Fails with 409 approval_would_cancel while the campaign has a pending or approved request, since the save cancels it: send cancelApproval: true once the person agreed.
          */
         put: operations["save-campaign-content"];
         post?: never;
@@ -21636,6 +21636,19 @@ export interface components {
             /** @description Members who hold campaigns:send */
             sendHelpers: string[];
         };
+        ComposerApproval: {
+            approvedBy: string[];
+            /** Format: date-time */
+            decidedAt?: string;
+            id: string;
+            /** Format: date-time */
+            requestedAt: string;
+            requestedBy: string;
+            /** @enum {string} */
+            status: "pending" | "approved";
+            /** Format: int64 */
+            version: number;
+        };
         ComposerAudience: {
             excludeLists: string[];
             excludeSegments: string[];
@@ -21672,6 +21685,7 @@ export interface components {
         ComposerCampaign: {
             abTest?: components["schemas"]["ComposerABTest"];
             access: components["schemas"]["ComposerAccess"];
+            approval?: components["schemas"]["ComposerApproval"];
             audience: components["schemas"]["ComposerAudience"];
             /** Format: int64 */
             audienceCount?: number;
@@ -21861,6 +21875,7 @@ export interface components {
             abTest?: components["schemas"]["ComposerABTest"];
             /** Format: int64 */
             baseVersion: number;
+            cancelApproval?: boolean;
             force?: boolean;
             html?: string;
             label?: string;

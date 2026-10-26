@@ -241,7 +241,9 @@ func TestComposerPermissions(t *testing.T) {
 	if strings.Join(d.Access.SendHelpers, ",") != "Marcus Chen,Linh Nguyen" {
 		t.Fatalf("helpers: %v", d.Access.SendHelpers)
 	}
-	w.Do("PUT", ws+"/campaigns/"+digest+"/content", map[string]any{"baseVersion": 14, "subject": d.Subject, "preheader": d.Preheader, "mjml": d.MJML, "html": d.HTML, "label": "typo"}).MustStatus(t, 200)
+	// The digest is approved: the composer asked first, and he agreed (CO-7).
+	w.Do("PUT", ws+"/campaigns/"+digest+"/content", map[string]any{"baseVersion": 14, "subject": d.Subject, "preheader": d.Preheader, "mjml": d.MJML, "html": d.HTML, "label": "typo",
+		"cancelApproval": true}).MustStatus(t, 200)
 	// Test emails only to himself.
 	r = w.Do("POST", ws+"/campaigns/"+digest+"/test", map[string]any{"to": []string{"marcus@acme.io"}})
 	r.MustStatus(t, 403)

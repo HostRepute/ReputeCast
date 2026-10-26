@@ -12,6 +12,7 @@ import { useUnsavedWork } from '@/lib/sessionClock'
 import { runShortcutHandler, useShortcutHandler } from '@/lib/shortcuts'
 import { useCan, useMe, useWorkspace } from '@/lib/session'
 import { ComposerBanners, type Recovered } from './Banners'
+import { ApprovalBanner, ApprovalDialog, type Approval } from './Approval'
 import { CanvasArea } from './CanvasArea'
 import { ComposerCtx, type ABTest, type Campaign, type Checks, type ComposerCtxData, type ComposerDialog, type ComposerState, type SaveStatus, type View } from './context'
 import { Dialogs } from './Dialogs'
@@ -19,6 +20,7 @@ import { variantLines } from './ABPanel'
 import { trackChanges, type ChangeTracker } from './editor/changes'
 import { createComposerEditor, type ComposerEditor, type DeviceId, type EmailDevice } from './editor/grapes'
 import { installCanvasKeys } from './editor/keys'
+import { lockCanvas, unlockCanvas, type Locked } from './editor/lock'
 import { trackMeta, type Meta, type MetaUndo } from './editor/metaUndo'
 import { atPath } from './editor/labels'
 import { canvasHead, isEmptyBody, joinMjml, splitMjml, withHeadMeta } from './editor/mjmlDoc'
@@ -94,7 +96,14 @@ export function Composer({
   const qc = useQueryClient()
   const navigate = useNavigate()
   const canEditPerm = useCan('campaigns:edit')
-  const canEdit = canEditPerm && campaign.access.editable && !missingLanguage
+  // An approved or pending campaign opens without editing: editing cancels its
+  // approval, so the person says so first (CO-7, ComposerStates · Approval).
+  const [approvalGate, setApprovalGate] = useState(() => Boolean(campaign.approval) && canEditPerm && campaign.access.editable && !missingLanguage)
+  const [approvalInfo, setApprovalInfo] = useState<Approval | null>(campaign.approval ?? null)
+  const [askApproval, setAskApproval] = useState<'open' | 'save' | null>(null)
+  /** The person agreed that saving cancels the approval: saves say so. */
+  const cancelApproval = useRef(false)
+  const canEdit = canEditPerm && campaign.access.editable && !missingLanguage && !approvalGate
   const view: View = search.view === 'compare' ? 'visual' : (search.view ?? 'visual')
   // The assistant (features/ai): its panel in the right column, and translating with AI in place of the canvas.
   const assist = useComposerAssistState(campaign.id)
@@ -142,6 +151,8 @@ export function Composer({
     statusRef.current = status
   }, [status])
   const [checks, setChecks] = useState<Checks>()
+  /** The last check run failed (its results stay, marked stale), or succeeded again after a failure. */
+  const [checksRun, setChecksRun] = useState<{ state: 'ok' | 'failed' | 'recovered'; reason?: 'network' | 'server' }>({ state: 'ok' })
   const [checksPending, setChecksPending] = useState(false)
   const [checksNonce, setChecksNonce] = useState(0)
   const [rightTab, setRightTab] = useState<'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'>(search.panel ?? 'style')
@@ -164,6 +175,8 @@ export function Composer({
   const afterSaved = useRef<((rev: number) => void) | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const geRef = useRef<ComposerEditor | null>(null)
+  /** What the read-only canvas took away from each component, to give back when editing is agreed to. */
+  const locked = useRef<Locked | null>(null)
   const leaveCheck = useRef<(() => boolean) | null>(null)
   /** Content A/B tests: the canvas shows one variant; the others' bodies wait here. */
   const variantBodies = useRef<Record<string, string>>({})
@@ -259,10 +272,8 @@ export function Composer({
         ed.on('component:toggled', () => setSelected(ed.getSelected() ?? null))
         ed.on('component:remove', () => setSelected(ed.getSelected() ?? null))
         ed.on('undo redo', () => setRev((r) => r + 1))
-        if (!canEdit) {
-          // Read-only: no dragging, no text editing.
-          ed.getWrapper()?.onAll((c: Component) => c.set({ draggable: false, droppable: false, editable: false, removable: false, copyable: false }))
-        }
+        // Read-only: no dragging, no text editing (given back if editing is agreed to later).
+        if (!canEdit) locked.current = lockCanvas(ed)
         setGe(inst)
         editorReady.current?.resolve()
         editorReady.current = null
@@ -301,6 +312,14 @@ export function Composer({
   useEffect(() => {
     if (ge && ge.editor.getDevice() !== device) ge.editor.setDevice(device)
   }, [ge, device])
+
+  // Editing agreed to: the canvas takes edits again.
+  useEffect(() => {
+    if (canEdit && ge && locked.current) {
+      unlockCanvas(locked.current)
+      locked.current = null
+    }
+  }, [canEdit, ge])
 
   // Re-render the canvas when the head changes (mj-attributes, styles).
   useEffect(() => {
@@ -413,6 +432,7 @@ export function Composer({
               source,
               force: opts.force || undefined,
               stash: opts.stash || undefined,
+              cancelApproval: cancelApproval.current || undefined,
             },
           })
           version.current = data!.version
@@ -428,6 +448,18 @@ export function Composer({
           void qc.invalidateQueries({ queryKey: ['get', '/api/v1/workspaces/{workspace}/campaigns/{campaignId}/versions'] })
           return true
         } catch (e) {
+          if (e instanceof ApiError && e.status === 409 && e.code === 'approval_would_cancel') {
+            // Approved since the composer opened: ask before the save cancels it.
+            setStatus({ kind: 'error', version: version.current, message: e.message })
+            void http
+              .GET('/api/v1/workspaces/{workspace}/campaigns/{campaignId}', { params: { path: { workspace: slug, campaignId: campaign.id } } })
+              .then(({ data }) => {
+                if (data?.approval) setApprovalInfo(data.approval)
+                setAskApproval('save')
+              })
+              .catch(() => setAskApproval('save'))
+            return false
+          }
           if (e instanceof ApiError && e.status === 409 && e.code === 'version_conflict') {
             const meta = (e.problem.meta ?? {}) as Record<string, unknown>
             setStatus({
@@ -641,9 +673,15 @@ export function Composer({
             body: { subject, preheader, mjml, html, language, abTest: geRef.current ? abForSave() : undefined },
           })
           .then(({ data }) => {
-            if (n === seq.current && data) setChecks(data)
+            if (n === seq.current && data) {
+              setChecks(data)
+              setChecksRun((r) => (r.state === 'failed' ? { state: 'recovered' } : { state: 'ok' }))
+            }
           })
-          .catch(() => undefined)
+          .catch((e: unknown) => {
+            // The last results stay, shown as stale with a Retry (ComposerWarnings).
+            if (n === seq.current) setChecksRun({ state: 'failed', reason: offlineError(e) ? 'network' : 'server' })
+          })
           .finally(() => {
             if (n === seq.current) setChecksPending(false)
           })
@@ -780,6 +818,9 @@ export function Composer({
     // The images' alt text is listed in the Accessibility tab.
     checks: empty ? undefined : withoutAltText(checks),
     checksPending,
+    checksFailure: checksRun.state === 'failed' ? { reason: checksRun.reason ?? 'server' } : null,
+    checksRecovered: checksRun.state === 'recovered',
+    retryChecks: () => setChecksNonce((n) => n + 1),
     rightTab,
     setRightTab,
     leftTab,
@@ -795,6 +836,15 @@ export function Composer({
     setPreviewSlot,
     missingLanguage,
   }
+
+  /** "Edit anyway": saves from now on cancel the approval; a save that asked goes through. */
+  const editAnyway = useCallback(async () => {
+    cancelApproval.current = true
+    setApprovalGate(false)
+    const via = askApproval
+    setAskApproval(null)
+    if (via === 'save') await save({ manual: true, quiet: true })
+  }, [askApproval, save])
 
   const goReview = useCallback(async () => {
     if (revision.current !== savedRevision.current && !(await save())) return
@@ -848,6 +898,7 @@ export function Composer({
         {/* Sponsor blocks fill themselves from the issue's booking (Earn, X17). */}
         <SponsorSync />
         {!campaign.access.canSend && canEditPerm ? <PermissionBanner /> : null}
+        {approvalGate && approvalInfo && view !== 'preview' ? <ApprovalBanner approval={approvalInfo} onEdit={() => setAskApproval('open')} /> : null}
         {view === 'preview' ? null : <ComposerBanners recovered={recovered} />}
         {view === 'preview' ? <PreviewView onReview={goReview} /> : null}
         {/* The canvas stays mounted off screen in the other views: GrapesJS keeps its state and compiles. */}
@@ -884,6 +935,9 @@ export function Composer({
           )}
         </div>
         <Dialogs dialog={dialog} onClose={() => setDialog(null)} onSavedTemplate={(t) => setSavedCard({ version: version.current, at: new Date().toISOString(), template: t })} />
+        {approvalInfo ? (
+          <ApprovalDialog approval={approvalInfo} scheduledAt={campaign.scheduledAt} open={askApproval !== null} onOpenChange={(o) => !o && setAskApproval(null)} onEdit={editAnyway} />
+        ) : null}
         <UnsavedChangesGuard
           dirty={canEdit && (unsaved || codeDirty)}
           title={t(m.leaveTitle)}

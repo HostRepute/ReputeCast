@@ -151,13 +151,15 @@ func RegisterComposer(h huma.API, s *Service) {
 			return api.OK(out), err
 		})
 	api.Put(h, api.Op{ID: "save-campaign-content", Path: "/workspaces/{workspace}/campaigns/{campaignId}/content", Summary: "Save the content as a new version (autosave)",
-		Description: "Fails with 409 version_conflict when someone saved a newer version since baseVersion; the problem's meta says who, when and which sections each side changed. Send force: true to keep yours on top, or stash: true to keep yours in the history under the current version (Load theirs). Saving content that is already the current version stores nothing (unchanged: true).",
+		Description: "Fails with 409 version_conflict when someone saved a newer version since baseVersion; the problem's meta says who, when and which sections each side changed. Send force: true to keep yours on top, or stash: true to keep yours in the history under the current version (Load theirs). Saving content that is already the current version stores nothing (unchanged: true). Fails with 409 approval_would_cancel while the campaign has a pending or approved request, since the save cancels it: send cancelApproval: true once the person agreed.",
 		Tags:        tags, Access: edit, MaxBodyBytes: 16 << 20},
 		func(ctx context.Context, in *saveContentInput) (*api.Body[ComposerSavedContent], error) {
 			id, err := in.id()
 			if err != nil {
 				return nil, err
 			}
+			// A save sent through the API asks before it cancels an approval (CO-7).
+			in.Body.askApproval = true
 			out, err := s.SaveIn(ctx, api.WorkspaceFrom(ctx), api.PrincipalFrom(ctx), id, in.Language, in.Body)
 			return api.OK(out), err
 		})

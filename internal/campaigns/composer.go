@@ -248,6 +248,9 @@ type ComposerCampaign struct {
 	// composer opens in digest mode (internal/digests).
 	DigestID   string `json:"digestId,omitempty"`
 	DigestRole string `json:"digestRole,omitempty" enum:"template,next,issue,"`
+	// Approval is the campaign's pending or approved request: editing
+	// cancels it, so the composer asks first.
+	Approval *ComposerApproval `json:"approval,omitempty"`
 }
 
 var editableStatuses = map[string]bool{"draft": true, "approval": true, "approved": true, "scheduled": true}
@@ -300,6 +303,9 @@ func (s *Service) DetailIn(ctx context.Context, ws *store.Workspace, p *authz.Pr
 		d.Readiness = &ReadinessSummary{Verdict: run.Verdict, Issues: run.Issues}
 	}
 	d.Access = s.access(ctx, ws, p, r.Status, r.StartedAt)
+	if d.Approval, err = s.openApproval(ctx, s.Q, id); err != nil {
+		return ComposerCampaign{}, err
+	}
 	if src := s.sourceLanguage(ctx, ws, id); src != "" {
 		d.SourceLanguage, d.Language = src, src
 		if lang != "" && lang != src {

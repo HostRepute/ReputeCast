@@ -104,6 +104,11 @@ export interface ComposerState {
 
   checks: Checks | undefined
   checksPending: boolean
+  /** The last check run failed: `checks` are the previous results, stale (CO-7). */
+  checksFailure?: { reason: 'network' | 'server' } | null
+  /** A run succeeded again after a failure ("Checked just now"). */
+  checksRecovered?: boolean
+  retryChecks?(): void
   /** The inspector's tab; Web is the website's (features/website/composer), while it's on. */
   rightTab: 'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'
   setRightTab(t: 'style' | 'settings' | 'deliverability' | 'accessibility' | 'web'): void

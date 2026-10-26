@@ -34,6 +34,7 @@
   "problem.variantLetter": { "message": "Each variant needs its own letter.", "note": "A/B test variants are lettered A, B, C" },
   "problem.variantsAB": "An A/B test needs at least variants A and B.",
   "problem.variantSubject": { "message": "Write a subject for variant {variant}.", "note": "variant: A, B or C" },
+  "problem.approvalWouldCancel": { "message": "{status, select, pending {Saving withdraws the approval request for version {version}: the campaign needs approval again before it can send.} other {Saving cancels {name}'s approval of version {version}: the campaign needs approval again before it can send.}} Save with cancelApproval to go ahead.", "note": "status: pending or approved; name: who approved" },
 
   "label.untitled": { "message": "Untitled campaign", "note": "a new draft's name until its author gives one; it stays in the language it was created in" },
   "label.copyOf": { "message": "Copy of {name}", "note": "a duplicated campaign's name; name: the original campaign's name" },

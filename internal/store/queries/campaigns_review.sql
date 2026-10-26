@@ -53,3 +53,22 @@ SELECT k.key::text AS key,
 FROM unnest(@keys::text[]) AS k(key)
 CROSS JOIN audience a
 GROUP BY k.key;
+
+-- name: ComposerOpenApproval :one
+-- A campaign's pending or approved request: who asked, when it was
+-- decided and the version it covers (editing cancels it).
+SELECT r.id, r.status, r.requested_at, r.decided_at, coalesce(r.campaign_version, 0)::int AS campaign_version,
+       coalesce(u.name, '')::text AS requested_by_name
+FROM approval_requests r
+LEFT JOIN users u ON u.id = r.requested_by
+WHERE r.campaign_id = @campaign_id AND r.status IN ('pending', 'approved')
+ORDER BY r.requested_at DESC
+LIMIT 1;
+
+-- name: ComposerApprovalApprovers :many
+-- Who approved a request, in order.
+SELECT coalesce(u.name, '')::text AS name
+FROM approval_decisions d
+LEFT JOIN users u ON u.id = d.approver_id
+WHERE d.request_id = @request_id AND d.decision = 'approve'
+ORDER BY d.created_at;

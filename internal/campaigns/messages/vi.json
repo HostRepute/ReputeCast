@@ -34,6 +34,7 @@
   "problem.variantLetter": "Mỗi biến thể cần một chữ cái riêng.",
   "problem.variantsAB": "Thử nghiệm A/B cần ít nhất biến thể A và B.",
   "problem.variantSubject": "Hãy viết tiêu đề cho biến thể {variant}.",
+  "problem.approvalWouldCancel": "{status, select, pending {Lưu sẽ rút lại yêu cầu phê duyệt cho phiên bản {version}: chiến dịch cần được phê duyệt lại trước khi gửi.} other {Lưu sẽ hủy phê duyệt của {name} cho phiên bản {version}: chiến dịch cần được phê duyệt lại trước khi gửi.}} Hãy lưu với cancelApproval để tiếp tục.",
 
   "label.untitled": "Chiến dịch chưa đặt tên",
   "label.copyOf": "Bản sao của {name}",
