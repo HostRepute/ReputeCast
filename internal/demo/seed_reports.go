@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/hostrepute/reputecast/internal/abstats"
 	"github.com/hostrepute/reputecast/internal/authn"
 )
 
@@ -340,7 +341,7 @@ var (
 	// Variant results of the samples (percent of delivered).
 	octVariantRates = map[int]map[string]float64{
 		rmHuman:   {"A": 39.8, "B": 42.6},
-		rmClicked: {"A": 5.9, "B": 6.4},
+		rmClicked: {"A": 5.6, "B": 6.7},
 	}
 	octVariantComplaints = map[string]int64{"A": 3, "B": 2}
 )
@@ -1039,9 +1040,11 @@ func reportRouteTimes(ctx context.Context, s *Seeder, c *reportCampaignSeed, seq
 }
 
 // reportOctoberABTest records how the October Product Update's subject test
-// was decided: human opens two hours after the 10% + 10% samples went out,
-// machine opens excluded, then B to the remaining 80% at 12:00. The send
-// ends when the remaining recipients are through.
+// was decided, as the sending engine keeps a decision (review AN-1): human
+// clicks two hours after the 10% + 10% samples went out (B 3.4%, A 2.6%,
+// 98% confidence; opens couldn't decide it, Apple Mail opens messages by
+// itself), then B to the remaining 80% at 12:00. The send ends when the
+// remaining recipients are through.
 func reportOctoberABTest(ctx context.Context, s *Seeder, c *reportCampaignSeed) error {
 	var raw json.RawMessage
 	if err := s.Tx.QueryRow(ctx, `SELECT coalesce(ab_test, '{}'::jsonb) FROM campaigns WHERE id = $1`, c.id).Scan(&raw); err != nil {
@@ -1057,16 +1060,23 @@ func reportOctoberABTest(ctx context.Context, s *Seeder, c *reportCampaignSeed) 
 	}
 	decided := c.started.Add(2 * time.Hour)
 	ab["winner"] = "B"
-	ab["metric"] = "human_opens"
+	ab["metric"] = "clicks"
 	ab["duration_hours"] = 2
 	ab["test_percent"] = 20
 	ab["decided_at"] = decided.UTC().Format(time.RFC3339)
-	// Recipients whose opens could be measured by then (Apple Mail
-	// prefetches excluded) and how many of them opened.
-	ab["decision"] = map[string]any{"variants": []map[string]any{
-		{"key": "A", "eligible": 2690, "conversions": 710},
-		{"key": "B", "eligible": 2690, "conversions": 785},
-	}}
+	// Each sample's deliveries by then and the people among them who had
+	// clicked; the rule is the default one (95%, at least 500 each).
+	vs := []abstats.Variant{{Key: "A", Eligible: 4752, Conversions: 124}, {Key: "B", Eligible: 4757, Conversions: 162}}
+	rule := abstats.Rule{}.Normalized()
+	res := abstats.Decide(rule, vs)
+	variants := make([]map[string]any, 0, len(vs))
+	for _, v := range vs {
+		r, _ := abstats.Rate(v.Conversions, v.Eligible)
+		variants = append(variants, map[string]any{"key": v.Key, "sent": 4798, "eligible": v.Eligible, "conversions": v.Conversions, "rate": r})
+	}
+	ab["decision"] = map[string]any{"metric": "clicks", "variants": variants, "leader": res.Leader, "runner_up": res.RunnerUp,
+		"lift": res.Lift, "p_value": res.P, "confidence": res.Confidence, "min_sample": rule.MinSample, "threshold": rule.Confidence,
+		"outcome": res.Outcome, "winner": "B", "default": "A", "hours": 2, "decided_at": decided.UTC().Format(time.RFC3339)}
 	b, err := json.Marshal(ab)
 	if err != nil {
 		return err

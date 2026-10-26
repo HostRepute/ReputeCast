@@ -1,9 +1,12 @@
 -- Campaign reports (spec 7.7, 5.5) and read-only report links.
 
 -- name: ReportCampaign :one
+-- send_ab is the send's A/B state (when the test is decided, the decision).
 SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.audience, c.audience_count, c.ab_test, c.schedule,
-       c.html, c.scheduled_at, c.started_at, c.completed_at, c.origin, c.note
+       c.html, c.scheduled_at, c.started_at, c.completed_at, c.origin, c.note,
+       coalesce(s.ab, '{}'::jsonb)::jsonb AS send_ab
 FROM campaigns c
+LEFT JOIN campaign_sends s ON s.campaign_id = c.id
 WHERE c.workspace_id = @workspace_id AND c.id = @id AND c.deleted_at IS NULL;
 
 -- name: ReportCounterCells :many
@@ -12,7 +15,7 @@ WHERE c.workspace_id = @workspace_id AND c.id = @id AND c.deleted_at IS NULL;
 SELECT cc.provider_id, cc.mailbox_provider, cc.variant,
        coalesce(p.name, '')::text AS provider_name, coalesce(p.adapter, '')::text AS adapter,
        cc.sent, cc.delivered, cc.deferred, cc.hard_bounced, cc.soft_bounced, cc.complained, cc.rejected,
-       cc.opened_human, cc.opened_machine, cc.clicked, cc.unsubscribed
+       cc.opened_human, cc.opened_privacy, cc.opened_machine, cc.clicked, cc.unsubscribed
 FROM campaign_counters cc
 LEFT JOIN providers p ON p.id = cc.provider_id
 WHERE cc.campaign_id = @campaign_id
@@ -21,13 +24,14 @@ ORDER BY cc.provider_id, cc.mailbox_provider, cc.variant;
 -- name: ReportRoutes :many
 -- Each sending provider's share of the send: what was planned, the cost and
 -- the median time to delivery (stored at completion, else computed from the
--- route's messages).
+-- route's messages; 0 before anything was delivered).
 SELECT cr.provider_id, p.name AS provider_name, p.adapter, cr.planned, cr.status, cr.cost_micros,
        coalesce(cr.delivery_p50_ms,
                 (SELECT (percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - m.sent_at)) * 1000)::integer
                  FROM messages m
                  WHERE m.campaign_id = cr.campaign_id AND m.provider_id = cr.provider_id
-                   AND m.delivered_at IS NOT NULL AND m.sent_at IS NOT NULL AND m.delivered_at >= m.sent_at))::integer AS delivery_p50_ms
+                   AND m.delivered_at IS NOT NULL AND m.sent_at IS NOT NULL AND m.delivered_at >= m.sent_at),
+                0)::integer AS delivery_p50_ms
 FROM campaign_routes cr
 JOIN providers p ON p.id = cr.provider_id
 WHERE cr.campaign_id = @campaign_id

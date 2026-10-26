@@ -181,7 +181,9 @@ func TestCampaignReport(t *testing.T) {
 		t.Fatalf("unsubscribes: %+v", u)
 	}
 	ab := r.ABTest
-	if ab == nil || ab.State != "decided" || ab.Winner != "B" || !ab.Significant || ab.Lift != 2.8 || ab.Confidence < 97 || ab.Confidence >= 99 || ab.Remaining != 38384 ||
+	// The board's card: B won on clicks with 98% confidence (3.4% against
+	// 2.6% when it was decided).
+	if ab == nil || ab.State != "decided" || ab.Winner != "B" || !ab.Significant || ab.Lift != 0.8 || ab.Confidence < 97.5 || ab.Confidence >= 98.5 || ab.Remaining != 38384 ||
 		len(ab.Variants) != 2 || ab.Variants[0].Recipients != 4798 || !ab.Variants[1].Winner ||
 		ab.Variants[0].Label != "October Product Update: three launches" || ab.Variants[1].Label != "What shipped in October, and what we're retiring" {
 		t.Fatalf("A/B: %+v", ab)

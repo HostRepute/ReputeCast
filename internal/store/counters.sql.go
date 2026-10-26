@@ -269,47 +269,6 @@ func (q *Queries) CountersLockMessage(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
-const countersMessageKeys = `-- name: CountersMessageKeys :many
-SELECT m.id, m.campaign_id, m.provider_id, m.mailbox_provider, m.variant
-FROM messages m
-WHERE m.id = ANY($1::uuid[])
-`
-
-type CountersMessageKeysRow struct {
-	ID              uuid.UUID  `json:"id"`
-	CampaignID      *uuid.UUID `json:"campaignId"`
-	ProviderID      *uuid.UUID `json:"providerId"`
-	MailboxProvider string     `json:"mailboxProvider"`
-	Variant         string     `json:"variant"`
-}
-
-// The counter cell of each message (rebuilds and tests).
-func (q *Queries) CountersMessageKeys(ctx context.Context, ids []uuid.UUID) ([]CountersMessageKeysRow, error) {
-	rows, err := q.db.Query(ctx, countersMessageKeys, ids)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []CountersMessageKeysRow{}
-	for rows.Next() {
-		var i CountersMessageKeysRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.CampaignID,
-			&i.ProviderID,
-			&i.MailboxProvider,
-			&i.Variant,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const countersMoveDelivery = `-- name: CountersMoveDelivery :one
 
 WITH old AS (
@@ -335,7 +294,7 @@ SET status = CASE
 FROM old
 LEFT JOIN campaigns c ON c.id = old.campaign_id
 WHERE m.id = old.id
-RETURNING m.campaign_id, m.provider_id, m.mailbox_provider, m.variant, c.started_at AS campaign_started_at,
+RETURNING m.campaign_id, m.provider_id, m.mailbox_provider, (CASE WHEN m.ab_rollout THEN '' ELSE m.variant END)::text AS variant, c.started_at AS campaign_started_at,
           old.status AS old_status, old.sent_at AS old_sent_at, old.delivered_at AS old_delivered_at, old.deferred_at AS old_deferred_at,
           old.soft_bounced_at AS old_soft_bounced_at, old.opened_at AS old_opened_at, old.human_opened_at AS old_human_opened_at,
           old.privacy_opened_at AS old_privacy_opened_at, old.clicked_at AS old_clicked_at, old.unsubscribed_at AS old_unsubscribed_at,
@@ -446,7 +405,7 @@ SET opened_at = coalesce(m.opened_at, $1::timestamptz),
 FROM old
 LEFT JOIN campaigns c ON c.id = old.campaign_id
 WHERE m.id = old.id
-RETURNING m.campaign_id, m.provider_id, m.mailbox_provider, m.variant, c.started_at AS campaign_started_at,
+RETURNING m.campaign_id, m.provider_id, m.mailbox_provider, (CASE WHEN m.ab_rollout THEN '' ELSE m.variant END)::text AS variant, c.started_at AS campaign_started_at,
           old.status AS old_status, old.sent_at AS old_sent_at, old.delivered_at AS old_delivered_at, old.deferred_at AS old_deferred_at,
           old.soft_bounced_at AS old_soft_bounced_at, old.opened_at AS old_opened_at, old.human_opened_at AS old_human_opened_at,
           old.privacy_opened_at AS old_privacy_opened_at, old.clicked_at AS old_clicked_at, old.unsubscribed_at AS old_unsubscribed_at,
@@ -534,7 +493,9 @@ func (q *Queries) CountersMoveEngagement(ctx context.Context, arg CountersMoveEn
 
 const countersRebuildCells = `-- name: CountersRebuildCells :exec
 WITH s AS (
-    SELECT m.provider_id, m.mailbox_provider, m.variant,
+    -- The recipients who got an A/B winner after the test count apart from
+    -- the sample (variant '').
+    SELECT m.provider_id, m.mailbox_provider, (CASE WHEN m.ab_rollout THEN '' ELSE m.variant END)::text AS variant,
            (m.status = 'rejected') AS rejected,
            (m.sent_at IS NOT NULL AND m.status <> 'rejected') AS sent,
            (m.status = 'bounced') AS hard,

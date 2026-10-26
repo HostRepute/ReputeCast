@@ -14,6 +14,24 @@ import (
 )
 
 type Querier interface {
+	// The recipients waiting for a send-time test, with their time zone.
+	ABHeldZones(ctx context.Context, campaignID *uuid.UUID) ([]ABHeldZonesRow, error)
+	// When the last recipient of the test sample is due (a send-time test's
+	// latest variant time in its recipients' time zones).
+	ABLastSampleDue(ctx context.Context, campaignID *uuid.UUID) (time.Time, error)
+	// A send-time test's rest get the variant at its time of day in their own
+	// time zone.
+	ABReleaseAt(ctx context.Context, arg ABReleaseAtParams) (int64, error)
+	// Everyone who waited for the test gets the variant that goes out (the
+	// winner, or the default when no variant won), counted apart as the
+	// rollout; a best-time send keeps each recipient's time.
+	ABReleaseHeld(ctx context.Context, arg ABReleaseHeldParams) (int64, error)
+	// A/B tests' decisions (review AN-1, internal/sending/engine/ab.go).
+	// The test sample's results per variant; the rollout (variant '', the
+	// recipients who got the winner after the test) is left out.
+	ABSampleCounts(ctx context.Context, campaignID uuid.UUID) ([]ABSampleCountsRow, error)
+	// The decision is kept with the campaign's test, for its report.
+	ABSaveDecision(ctx context.Context, arg ABSaveDecisionParams) error
 	// What the assistant needs about a campaign: its name, content and language.
 	AICampaignBrief(ctx context.Context, arg AICampaignBriefParams) (AICampaignBriefRow, error)
 	// AI assistant (design expansion M22): the workspace's model, the AI
@@ -868,8 +886,6 @@ type Querier interface {
 	// delivery event's foreign key takes a shared lock on it; two writers
 	// holding that shared lock would both wait to move the message).
 	CountersLockMessage(ctx context.Context, id uuid.UUID) error
-	// The counter cell of each message (rebuilds and tests).
-	CountersMessageKeys(ctx context.Context, ids []uuid.UUID) ([]CountersMessageKeysRow, error)
 	// Campaign counters kept in step with message states (review AN-3,
 	// internal/counters). A writer moves a message (the statement returns its
 	// state before and after), collects the counter changes in a ledger and
@@ -2885,6 +2901,7 @@ type Querier interface {
 	// to suppression"). Never sent to the browser.
 	ReportBounceRecipients(ctx context.Context, arg ReportBounceRecipientsParams) ([]string, error)
 	// Campaign reports (spec 7.7, 5.5) and read-only report links.
+	// send_ab is the send's A/B state (when the test is decided, the decision).
 	ReportCampaign(ctx context.Context, arg ReportCampaignParams) (ReportCampaignRow, error)
 	// Final or live counters per sending provider × mailbox provider × A/B
 	// variant, with the provider's name for the per-provider comparison.
@@ -2901,7 +2918,7 @@ type Querier interface {
 	ReportLinks(ctx context.Context, campaignID uuid.UUID) ([]ReportLinksRow, error)
 	// Each sending provider's share of the send: what was planned, the cost and
 	// the median time to delivery (stored at completion, else computed from the
-	// route's messages).
+	// route's messages; 0 before anything was delivered).
 	ReportRoutes(ctx context.Context, campaignID uuid.UUID) ([]ReportRoutesRow, error)
 	// A link by its token hash with its campaign and workspace (the public page).
 	ReportShareByToken(ctx context.Context, tokenHash []byte) (ReportShareByTokenRow, error)
@@ -3317,8 +3334,6 @@ type Querier interface {
 	// when the next retry is due) and held for the A/B winner.
 	SendingQueueState(ctx context.Context, arg SendingQueueStateParams) ([]SendingQueueStateRow, error)
 	SendingRelease(ctx context.Context, ids []uuid.UUID) error
-	// The A/B winner goes to everyone who waited for it.
-	SendingReleaseHeld(ctx context.Context, arg SendingReleaseHeldParams) (int64, error)
 	SendingRemainingOn(ctx context.Context, arg SendingRemainingOnParams) (int64, error)
 	// Reserves up to want sends in a provider's one-second window of cap (open
 	// it first). No row comes back when the window is full.

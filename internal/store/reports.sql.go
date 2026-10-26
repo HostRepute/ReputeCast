@@ -182,8 +182,10 @@ func (q *Queries) ReportBounceRecipients(ctx context.Context, arg ReportBounceRe
 const reportCampaign = `-- name: ReportCampaign :one
 
 SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.audience, c.audience_count, c.ab_test, c.schedule,
-       c.html, c.scheduled_at, c.started_at, c.completed_at, c.origin, c.note
+       c.html, c.scheduled_at, c.started_at, c.completed_at, c.origin, c.note,
+       coalesce(s.ab, '{}'::jsonb)::jsonb AS send_ab
 FROM campaigns c
+LEFT JOIN campaign_sends s ON s.campaign_id = c.id
 WHERE c.workspace_id = $1 AND c.id = $2 AND c.deleted_at IS NULL
 `
 
@@ -208,9 +210,11 @@ type ReportCampaignRow struct {
 	CompletedAt   *time.Time      `json:"completedAt"`
 	Origin        string          `json:"origin"`
 	Note          string          `json:"note"`
+	SendAb        json.RawMessage `json:"sendAb"`
 }
 
 // Campaign reports (spec 7.7, 5.5) and read-only report links.
+// send_ab is the send's A/B state (when the test is decided, the decision).
 func (q *Queries) ReportCampaign(ctx context.Context, arg ReportCampaignParams) (ReportCampaignRow, error) {
 	row := q.db.QueryRow(ctx, reportCampaign, arg.WorkspaceID, arg.ID)
 	var i ReportCampaignRow
@@ -230,6 +234,7 @@ func (q *Queries) ReportCampaign(ctx context.Context, arg ReportCampaignParams) 
 		&i.CompletedAt,
 		&i.Origin,
 		&i.Note,
+		&i.SendAb,
 	)
 	return i, err
 }
@@ -238,7 +243,7 @@ const reportCounterCells = `-- name: ReportCounterCells :many
 SELECT cc.provider_id, cc.mailbox_provider, cc.variant,
        coalesce(p.name, '')::text AS provider_name, coalesce(p.adapter, '')::text AS adapter,
        cc.sent, cc.delivered, cc.deferred, cc.hard_bounced, cc.soft_bounced, cc.complained, cc.rejected,
-       cc.opened_human, cc.opened_machine, cc.clicked, cc.unsubscribed
+       cc.opened_human, cc.opened_privacy, cc.opened_machine, cc.clicked, cc.unsubscribed
 FROM campaign_counters cc
 LEFT JOIN providers p ON p.id = cc.provider_id
 WHERE cc.campaign_id = $1
@@ -259,6 +264,7 @@ type ReportCounterCellsRow struct {
 	Complained      int64     `json:"complained"`
 	Rejected        int64     `json:"rejected"`
 	OpenedHuman     int64     `json:"openedHuman"`
+	OpenedPrivacy   int64     `json:"openedPrivacy"`
 	OpenedMachine   int64     `json:"openedMachine"`
 	Clicked         int64     `json:"clicked"`
 	Unsubscribed    int64     `json:"unsubscribed"`
@@ -289,6 +295,7 @@ func (q *Queries) ReportCounterCells(ctx context.Context, campaignID uuid.UUID) 
 			&i.Complained,
 			&i.Rejected,
 			&i.OpenedHuman,
+			&i.OpenedPrivacy,
 			&i.OpenedMachine,
 			&i.Clicked,
 			&i.Unsubscribed,
@@ -494,7 +501,8 @@ SELECT cr.provider_id, p.name AS provider_name, p.adapter, cr.planned, cr.status
                 (SELECT (percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM m.delivered_at - m.sent_at)) * 1000)::integer
                  FROM messages m
                  WHERE m.campaign_id = cr.campaign_id AND m.provider_id = cr.provider_id
-                   AND m.delivered_at IS NOT NULL AND m.sent_at IS NOT NULL AND m.delivered_at >= m.sent_at))::integer AS delivery_p50_ms
+                   AND m.delivered_at IS NOT NULL AND m.sent_at IS NOT NULL AND m.delivered_at >= m.sent_at),
+                0)::integer AS delivery_p50_ms
 FROM campaign_routes cr
 JOIN providers p ON p.id = cr.provider_id
 WHERE cr.campaign_id = $1
@@ -513,7 +521,7 @@ type ReportRoutesRow struct {
 
 // Each sending provider's share of the send: what was planned, the cost and
 // the median time to delivery (stored at completion, else computed from the
-// route's messages).
+// route's messages; 0 before anything was delivered).
 func (q *Queries) ReportRoutes(ctx context.Context, campaignID uuid.UUID) ([]ReportRoutesRow, error) {
 	rows, err := q.db.Query(ctx, reportRoutes, campaignID)
 	if err != nil {

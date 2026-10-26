@@ -220,9 +220,9 @@ func (s *Service) buildIn(ctx context.Context, ws *store.Workspace, c store.Repo
 		out.Unsubscribes = unsubscribes(l, out.Headline.Unsubscribes, reasons)
 	}
 	if ab != nil && len(ab.Variants) >= 2 {
-		t := abResult(l, ab, cells, c, now)
+		t := abResult(l, ab, parseSendAB(c.SendAb), cells, c, now)
 		out.ABTest = &t
-		if t.State == "decided" && t.RolloutAt != nil && c.StartedAt != nil {
+		if t.State != "testing" && t.RolloutAt != nil && c.StartedAt != nil && t.Remaining > 0 {
 			out.Engagement.Rollout = &ReportRollout{Variant: t.Winner, At: *t.RolloutAt, Hour: round(t.RolloutAt.Sub(*c.StartedAt).Hours(), 2)}
 		}
 	}
@@ -289,7 +289,7 @@ func (s *Service) audienceLabel(ctx context.Context, wsID uuid.UUID, raw json.Ra
 
 // counts sums a slice of counter cells.
 type counts struct {
-	sent, delivered, hard, soft, complained, rejected, human, machine, clicked, unsub int64
+	sent, delivered, hard, soft, complained, rejected, human, privacy, machine, clicked, unsub int64
 }
 
 func (a *counts) add(c store.ReportCounterCellsRow) {
@@ -300,10 +300,15 @@ func (a *counts) add(c store.ReportCounterCellsRow) {
 	a.complained += c.Complained
 	a.rejected += c.Rejected
 	a.human += c.OpenedHuman
+	a.privacy += c.OpenedPrivacy
 	a.machine += c.OpenedMachine
 	a.clicked += c.Clicked
 	a.unsub += c.Unsubscribed
 }
+
+// measurable are the delivered recipients whose opens can be measured:
+// all but the privacy-protected (Apple Mail opened them on delivery).
+func (a counts) measurable() int64 { return max(a.delivered-a.privacy, 0) }
 
 func (a counts) rates() ReportRates {
 	return ReportRates{
@@ -644,163 +649,6 @@ func unsubscribes(l i18n.Lang, total int64, rows []store.ReportUnsubscribeReason
 		}
 		return a.Count > b.Count
 	})
-	return out
-}
-
-// abConfig is the A/B test stored on the campaign. Decision is the snapshot
-// the sending engine records when the test window closes: per variant, the
-// recipients whose result could be measured and how many converted on the
-// metric (machine opens excluded).
-type abConfig struct {
-	Kind     string `json:"kind"`
-	Variants []struct {
-		Key     string `json:"key"`
-		Subject string `json:"subject"`
-		Label   string `json:"label"`
-	} `json:"variants"`
-	TestPercent   float64    `json:"test_percent"`
-	Metric        string     `json:"metric"`
-	DurationHours float64    `json:"duration_hours"`
-	Winner        string     `json:"winner"`
-	DecidedAt     *time.Time `json:"decided_at"`
-	Decision      *struct {
-		Variants []struct {
-			Key         string `json:"key"`
-			Eligible    int64  `json:"eligible"`
-			Conversions int64  `json:"conversions"`
-		} `json:"variants"`
-	} `json:"decision"`
-}
-
-func parseAB(raw json.RawMessage) *abConfig {
-	if len(raw) == 0 || string(raw) == "null" {
-		return nil
-	}
-	var c abConfig
-	if json.Unmarshal(raw, &c) != nil || c.Kind == "" {
-		return nil
-	}
-	return &c
-}
-
-// abResult compares the variants: the decision snapshot when there is one,
-// else each test sample's results so far, with a two-proportion z-test on
-// the metric between the leader and the runner-up.
-func abResult(l i18n.Lang, cfg *abConfig, cells []store.ReportCounterCellsRow, c store.ReportCampaignRow, now time.Time) ReportABTest {
-	metric := cfg.Metric
-	if metric != "clicks" {
-		metric = "human_opens"
-	}
-	out := ReportABTest{Kind: cfg.Kind, Label: abLabel(l, cfg.Kind), Metric: metric, WindowHours: cfg.DurationHours, Winner: cfg.Winner, Variants: []ReportABVariant{}}
-	if out.Label == "" {
-		out.Label = strings.ReplaceAll(cfg.Kind, "_", " ")
-	}
-	if out.Kind != "content" && out.Kind != "send_time" {
-		out.Kind = "subject"
-	}
-	byVariant := map[string]*counts{}
-	var total, rollout int64
-	for _, cell := range cells {
-		total += cell.Sent
-		if cell.Variant == "" {
-			rollout += cell.Sent
-			continue
-		}
-		if byVariant[cell.Variant] == nil {
-			byVariant[cell.Variant] = &counts{}
-		}
-		byVariant[cell.Variant].add(cell)
-	}
-	type result struct{ x, n int64 }
-	results := map[string]result{}
-	for _, v := range cfg.Variants {
-		a := byVariant[v.Key]
-		if a == nil {
-			a = &counts{}
-		}
-		label := v.Subject
-		if label == "" {
-			label = v.Label
-		}
-		if label == "" && v.Key == "A" && out.Kind == "subject" {
-			// The composer keeps variant A's subject on the campaign.
-			label = c.Subject
-		}
-		rv := ReportABVariant{Key: v.Key, Label: label, Recipients: a.sent, HumanOpenRate: rate(a.human, a.delivered), ClickRate: rate(a.clicked, a.delivered),
-			ComplaintRate: rate(a.complained, a.delivered), Winner: v.Key == cfg.Winner}
-		if total > 0 {
-			rv.SamplePercent = round(float64(a.sent)/float64(total)*100, 1)
-		}
-		if rv.Winner {
-			rv.Remaining = rollout
-		}
-		x := a.human
-		if metric == "clicks" {
-			x = a.clicked
-		}
-		results[v.Key] = result{x, a.delivered}
-		out.Variants = append(out.Variants, rv)
-	}
-	if cfg.Decision != nil && len(cfg.Decision.Variants) >= 2 {
-		results = map[string]result{}
-		for _, d := range cfg.Decision.Variants {
-			results[d.Key] = result{d.Conversions, d.Eligible}
-		}
-	}
-	// Leader: the winner when there is one, else the best rate; runner-up:
-	// the best of the rest.
-	keys := make([]string, 0, len(out.Variants))
-	for _, v := range out.Variants {
-		keys = append(keys, v.Key)
-	}
-	rateOf := func(k string) float64 {
-		r := results[k]
-		if r.n <= 0 {
-			return -1
-		}
-		return float64(r.x) / float64(r.n)
-	}
-	sort.SliceStable(keys, func(i, j int) bool { return rateOf(keys[i]) > rateOf(keys[j]) })
-	leader := keys[0]
-	if cfg.Winner != "" {
-		leader = cfg.Winner
-	}
-	runner := ""
-	for _, k := range keys {
-		if k != leader {
-			runner = k
-			break
-		}
-	}
-	if runner != "" {
-		r1, r2 := results[runner], results[leader]
-		if lift, _, p, ok := ZTest(r1.x, r1.n, r2.x, r2.n); ok {
-			l := round(lift, 1)
-			pv := round(p, 4)
-			conf := round((1-p)*100, 1)
-			out.Lift, out.PValue, out.Confidence = &l, &pv, &conf
-			out.Significant = p < Significance && lift > 0
-		}
-	}
-	window := time.Duration(cfg.DurationHours * float64(time.Hour))
-	switch {
-	case cfg.Winner != "":
-		out.State = "decided"
-		out.Remaining = rollout
-		if cfg.DecidedAt != nil {
-			out.DecidedAt = cfg.DecidedAt
-		} else if c.StartedAt != nil && window > 0 {
-			t := c.StartedAt.Add(window)
-			out.DecidedAt = &t
-		}
-		out.RolloutAt = out.DecidedAt
-	case c.StartedAt != nil && window > 0 && now.Before(c.StartedAt.Add(window)):
-		out.State = "testing"
-		t := c.StartedAt.Add(window)
-		out.DecidedAt = &t
-	default:
-		out.State = "no_winner"
-	}
 	return out
 }
 

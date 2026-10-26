@@ -2087,6 +2087,7 @@ type Message struct {
 	SoftBouncedAt     *time.Time      `json:"softBouncedAt"`
 	UnsubscribedAt    *time.Time      `json:"unsubscribedAt"`
 	PrivacyOpenedAt   *time.Time      `json:"privacyOpenedAt"`
+	AbRollout         bool            `json:"abRollout"`
 }
 
 type MxCache struct {

@@ -36,7 +36,7 @@ SET status = CASE
 FROM old
 LEFT JOIN campaigns c ON c.id = old.campaign_id
 WHERE m.id = old.id
-RETURNING m.campaign_id, m.provider_id, m.mailbox_provider, m.variant, c.started_at AS campaign_started_at,
+RETURNING m.campaign_id, m.provider_id, m.mailbox_provider, (CASE WHEN m.ab_rollout THEN '' ELSE m.variant END)::text AS variant, c.started_at AS campaign_started_at,
           old.status AS old_status, old.sent_at AS old_sent_at, old.delivered_at AS old_delivered_at, old.deferred_at AS old_deferred_at,
           old.soft_bounced_at AS old_soft_bounced_at, old.opened_at AS old_opened_at, old.human_opened_at AS old_human_opened_at,
           old.privacy_opened_at AS old_privacy_opened_at, old.clicked_at AS old_clicked_at, old.unsubscribed_at AS old_unsubscribed_at,
@@ -70,7 +70,7 @@ SET opened_at = coalesce(m.opened_at, @at::timestamptz),
 FROM old
 LEFT JOIN campaigns c ON c.id = old.campaign_id
 WHERE m.id = old.id
-RETURNING m.campaign_id, m.provider_id, m.mailbox_provider, m.variant, c.started_at AS campaign_started_at,
+RETURNING m.campaign_id, m.provider_id, m.mailbox_provider, (CASE WHEN m.ab_rollout THEN '' ELSE m.variant END)::text AS variant, c.started_at AS campaign_started_at,
           old.status AS old_status, old.sent_at AS old_sent_at, old.delivered_at AS old_delivered_at, old.deferred_at AS old_deferred_at,
           old.soft_bounced_at AS old_soft_bounced_at, old.opened_at AS old_opened_at, old.human_opened_at AS old_human_opened_at,
           old.privacy_opened_at AS old_privacy_opened_at, old.clicked_at AS old_clicked_at, old.unsubscribed_at AS old_unsubscribed_at,
@@ -135,12 +135,6 @@ SET clicks = l.clicks + d.clicks, unique_clicks = l.unique_clicks + d.unique_cli
 FROM d
 WHERE l.campaign_id = d.campaign_id AND l.position = d.position AND l.id IN (SELECT id FROM locked);
 
--- name: CountersMessageKeys :many
--- The counter cell of each message (rebuilds and tests).
-SELECT m.id, m.campaign_id, m.provider_id, m.mailbox_provider, m.variant
-FROM messages m
-WHERE m.id = ANY(@ids::uuid[]);
-
 -- name: CountersCampaignHistory :one
 -- Whether a campaign's per-message history is stored, so its counters can
 -- be rebuilt from it: imported history and sample data have counters but
@@ -187,7 +181,9 @@ WHERE m.id = e.message_id AND m.campaign_id = @campaign_id
 -- Replaces a campaign's counters with what its messages' states add up to
 -- (the same rules as internal/counters State.Flags).
 WITH s AS (
-    SELECT m.provider_id, m.mailbox_provider, m.variant,
+    -- The recipients who got an A/B winner after the test count apart from
+    -- the sample (variant '').
+    SELECT m.provider_id, m.mailbox_provider, (CASE WHEN m.ab_rollout THEN '' ELSE m.variant END)::text AS variant,
            (m.status = 'rejected') AS rejected,
            (m.sent_at IS NOT NULL AND m.status <> 'rejected') AS sent,
            (m.status = 'bounced') AS hard,

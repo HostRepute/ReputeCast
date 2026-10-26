@@ -1,7 +1,6 @@
 package reports
 
 import (
-	"math"
 	"strings"
 	"testing"
 	"time"
@@ -11,29 +10,6 @@ import (
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/store"
 )
-
-func TestZTest(t *testing.T) {
-	// 710/2690 vs 785/2690: lift +2.8 points, p ≈ 0.022 (98% confidence).
-	lift, z, p, ok := ZTest(710, 2690, 785, 2690)
-	if !ok || math.Abs(lift-2.788) > 0.01 || math.Abs(z-2.28) > 0.01 || math.Abs(p-0.0225) > 0.001 {
-		t.Fatalf("lift %.3f z %.3f p %.4f", lift, z, p)
-	}
-	// Equal results are not significant.
-	if _, _, p, ok := ZTest(400, 1000, 400, 1000); !ok || p < 0.99 {
-		t.Fatalf("equal samples: p %.3f", p)
-	}
-	// Small samples: a big gap that isn't significant yet.
-	if _, _, p, _ := ZTest(4, 20, 8, 20); p < Significance {
-		t.Fatalf("20-recipient samples shouldn't be significant: p %.3f", p)
-	}
-	// Nothing to test.
-	if _, _, _, ok := ZTest(0, 0, 3, 10); ok {
-		t.Fatal("empty sample")
-	}
-	if _, _, _, ok := ZTest(0, 10, 0, 10); ok {
-		t.Fatal("no variance")
-	}
-}
 
 func TestBounceTable(t *testing.T) {
 	ses, postal := uuid.New(), uuid.New()
