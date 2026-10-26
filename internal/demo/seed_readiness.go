@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -151,6 +152,17 @@ func probed(entries ...[3]string) []contentcheck.ContentCheckLink {
 	return out
 }
 
+// cdnImages are images on a CDN with their sizes in KB, as Send
+// Readiness requested them.
+func cdnImages(base string, kb ...int) []contentcheck.ContentCheckImage {
+	out := []contentcheck.ContentCheckImage{}
+	for i, k := range kb {
+		out = append(out, contentcheck.ContentCheckImage{URL: base + "image-" + strconv.Itoa(i+1) + ".png", Host: strings.SplitN(strings.TrimPrefix(base, "https://"), "/", 2)[0],
+			Path: []int{}, Probed: true, Status: 200, Bytes: int64(k) * 1024})
+	}
+	return out
+}
+
 // storeRun saves a run assembled from facts as the campaign's latest.
 func (r *readinessSeed) storeRun(ctx context.Context, id uuid.UUID, f readiness.Facts, ranAt time.Time, by *uuid.UUID, trigger string) (readiness.ReadinessResult, uuid.UUID, error) {
 	f = r.langReadinessFacts(f) // the Languages group of the design expansion (seed_languages.go)
@@ -208,13 +220,20 @@ func (r *readinessSeed) weeklyDigest(ctx context.Context) error {
 			SubjectHeuristics: []string{}, Issues: []contentcheck.ContentCheckIssue{}, Sections: []contentcheck.ContentCheckSection{}, PlainText: strings.Repeat("x", 9*1024),
 			CheckedAt: checked, ImageShare: 0.38, Words: 1140,
 			LinkList: probed(
-				[3]string{"https://acme.io/blog", "Blog", "link"}, [3]string{"https://docs.acme.io", "Docs", "link"}, [3]string{"https://acme.io/changelog", "Changelog", "link"},
+				[3]string{"https://acme.io/changelog", "Changelog", "link"}, [3]string{"https://docs.acme.io", "Docs", "link"}, [3]string{"https://blog.acme.io", "Blog", "link"},
 				[3]string{"https://docs.acme.io/flags", "Read the docs", "button"}, [3]string{"https://docs.acme.io/changelog", "See the changelog", "button"},
 				[3]string{"https://docs.acme.io/migrate-v2", "migration guide", "link"}, [3]string{"https://acme.io/q4", "Q4 roadmap", "image"},
-				[3]string{"https://acme.io/audit-log", "Audit log exports", "link"}, [3]string{"https://github.com/acme/flags", "GitHub", "social"},
-				[3]string{"https://www.youtube.com/@acme", "YouTube", "social"}, [3]string{"https://acme.io/pricing", "Pricing", "link"},
-				[3]string{"https://docs.acme.io/api/v2", "v2 API", "link"}, [3]string{"https://acme.io/events", "Events", "link"},
-				[3]string{"https://acme.io/blog/flags-ga", "Feature flags are generally available", "link"})}}
+				[3]string{"https://acme.io/audit-log", "Audit log exports", "link"}, [3]string{"https://status.acme.io", "Status", "link"},
+				[3]string{"https://github.com/acme/flags", "GitHub", "social"}, [3]string{"https://www.youtube.com/@acme", "YouTube", "social"},
+				[3]string{"https://www.linkedin.com/company/acme", "LinkedIn", "social"}, [3]string{"https://docs.acme.io/api/v2", "v2 API", "link"},
+				[3]string{"https://acme.io/blog/flags-ga", "Feature flags are generally available", "link"}),
+			// The board's seven images on the CDN, the largest 182 KB.
+			ImageList: cdnImages("https://cdn.acme.io/digest-142/", 64, 182, 96, 41, 41, 23, 12)},
+		// 67 KB as sent, with the links rewritten for tracking on go.news.acme.io.
+		TrackedBytes: 67 * 1024, TrackOpens: true, TrackClicks: true, TrackingHost: "go.news.acme.io", TrackingHTTPS: true, TrackingDNS: "ok",
+		// The first-name tag's fallback, and the readers without a first name.
+		Fields: []readiness.FieldUse{{Field: "first_name", HasFallback: true, Fallback: "there"}}}
+	f.Audience.NoFirstName = 1817
 	if _, _, err := r.storeRun(ctx, id, f, checked, &linh.ID, readiness.TriggerManual); err != nil {
 		return err
 	}

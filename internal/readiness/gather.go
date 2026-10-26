@@ -115,6 +115,10 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	f.Campaign = CampaignFacts{ID: c.ID.String(), Name: c.Name, Subject: c.Subject, Preheader: c.Preheader, Version: int(c.Version),
 		SenderName: c.SenderName, SenderEmail: c.SenderEmail, SenderDomain: c.SenderDomain, StartAt: sched.StartAt(now), ScheduleMode: sched.Mode,
 		HTMLOnly: HTMLOnly(c.Mjml, c.Html)}
+	ab := parseABTest(c.AbTest)
+	if ab != nil {
+		f.Campaign.ABKind = ab.Kind
+	}
 	compiled := c.UpdatedAt
 	if c.AutosavedAt != nil {
 		compiled = *c.AutosavedAt
@@ -161,10 +165,20 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 			if len(chk.URILists) > 0 {
 				f.Content.URIBlocklists = chk.URILists
 			}
+			// A/B variants B and C are checked like the campaign (SR-7).
+			if ab != nil {
+				f.Content.Variants = s.variants(ctx, ws, c, ab, false)
+			}
 		} else if s.Log != nil {
 			s.Log.WarnContext(ctx, "readiness content check failed", "campaign", c.ID, "err", err)
 		}
 	}
+	// The size Gmail measures is the HTML as sent: links rewritten for
+	// tracking and the open pixel added (SR-7).
+	tracking := campaignTracking(c.Tracking)
+	f.Content.TrackOpens, f.Content.TrackClicks = tracking.Opens, tracking.Clicks
+	f.Content.TrackedBytes = trackedSize(c.Html, tracking, s.URLs, ws.Slug)
+	s.trackingFacts(ctx, &f.Content)
 	if s.Conditional != nil {
 		f.Polls = s.Conditional.PollFacts(ctx, ws, c.ID, c.Mjml)
 	}
@@ -193,10 +207,21 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 				if err != nil {
 					return f, fmt.Errorf("languages: %s content: %w", v.Language, err)
 				}
-				f.Content.Versions = append(f.Content.Versions, VersionReport{Language: v.Language, Report: chk.ContentCheckReport})
+				f.Content.Versions = append(f.Content.Versions, VersionReport{Language: v.Language, Report: chk.ContentCheckReport,
+					TrackedBytes: trackedSize(v.HTML, tracking, s.URLs, ws.Slug)})
 			}
 		}
 	}
+	// The personalization tags of every version and variant, and whether
+	// they have fallbacks.
+	texts := []string{c.Subject, c.Preheader, c.Mjml, c.Html}
+	for _, v := range f.Languages.Versions {
+		texts = append(texts, v.Subject, v.Preheader, v.MJML, v.HTML)
+	}
+	for _, v := range ab.others() {
+		texts = append(texts, v.Subject, v.Preheader, v.MJML, v.HTML)
+	}
+	f.Content.Fields = s.personalizationFields(ctx, ws.ID, texts...)
 	done(stageLang, f)
 
 	// Grow's blocks: who the Referral block shows to, what the
@@ -227,6 +252,7 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	}
 
 	f.Compliance = s.compliance(ws, f)
+	f.Compliance.Gmail = s.postmaster(ctx, ws.ID, firstNonEmpty(f.Auth.Domain, c.SenderDomain), now)
 	done(stageComply, f)
 
 	if f.Reputation, err = s.reputation(ctx, g, f); err != nil {
@@ -234,11 +260,27 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	}
 	done(stageReput, f)
 
-	// Links: the content check again, requesting every link.
+	// Links: the content check again, requesting every link (and image),
+	// of the campaign, of every language version and of every content
+	// variant (SR-7). The prober keeps answers for ten minutes, so a link
+	// they share is requested once.
 	if f.Content.Checked && s.Campaigns != nil {
 		chk, err := s.Campaigns.Checks(ctx, ws, c.ID, campaigns.ComposerChecksRequest{Subject: c.Subject, Preheader: c.Preheader, MJML: c.Mjml, HTML: c.Html, ProbeLinks: true})
 		if err == nil {
 			f.Content.Report, f.Content.FooterRemovedAt = chk.ContentCheckReport, chk.FooterRemovedAt
+			s.librarySizes(ctx, ws.ID, f.Content.Report.ImageList)
+		}
+		for i, v := range f.Languages.Versions {
+			if i >= len(f.Content.Versions) || f.Content.Versions[i].Language != v.Language {
+				break
+			}
+			if chk, err := s.Campaigns.Checks(ctx, ws, c.ID, campaigns.ComposerChecksRequest{Subject: v.Subject, Preheader: v.Preheader, MJML: v.MJML, HTML: v.HTML,
+				Language: v.Language, ProbeLinks: true}); err == nil {
+				f.Content.Versions[i].Report = chk.ContentCheckReport
+			}
+		}
+		if ab != nil {
+			f.Content.Variants = s.variants(ctx, ws, c, ab, true)
 		}
 	}
 	done(stageLinks, f)
@@ -308,7 +350,7 @@ func (s *Service) route(ctx context.Context, g *gathered, f Facts) (RouteFacts, 
 			Recipients: counts[p.ID], Status: p.Status, Available: state.Available(p), Pricing: state.PricingOf(p), Limits: state.LimitsOf(p),
 			Account: h.Account, Sandbox: h.Sandbox || p.Status == state.Sandbox, Quota: h.Quota, BulkAllowed: caps.BulkAllowed(), Terms: termsOf(p, caps), TermsKind: termsKind(p, caps),
 			Tracking: state.TrackingOf(p), IPs: p.Ips, ConnectedAt: p.ConnectedAt, Bounce: u.Bounce7d, Complaint: u.Complaint7d,
-			ProviderReported: state.ReputationOf(h, f.Now) != nil}
+			ProviderReported: state.ReputationOf(h, f.Now) != nil, OneClick: caps.OneClick}
 		if p.IpMode != "dedicated" {
 			sh.IPs = nil
 		}
@@ -340,6 +382,10 @@ func (s *Service) route(ctx context.Context, g *gathered, f Facts) (RouteFacts, 
 			return out, err
 		}
 		out.Shares = append(out.Shares, sh)
+	}
+	// The fallback must be able to take the send (C11).
+	if fb := routeFallback(set, override); fb != nil {
+		out.Fallback = s.vetFallback(ctx, g, *fb, f.Audience.Final, f.Now, loc)
 	}
 	return out, nil
 }
@@ -710,6 +756,11 @@ func (s *Service) reputation(ctx context.Context, g *gathered, f Facts) (Reputat
 		}
 	}
 	out.Domains = s.reputationDomains(ctx, g, f, checkedAssets(ov))
+	if err == nil {
+		out.ReverseDNS = s.reverseDNS(ctx, f, &ov)
+	} else {
+		out.ReverseDNS = s.reverseDNS(ctx, f, nil)
+	}
 	for _, l := range rep.Listings {
 		typ := "domain"
 		if net4(l.Asset) != "" || strings.Contains(l.Asset, ":") {

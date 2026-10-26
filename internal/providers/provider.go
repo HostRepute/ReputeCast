@@ -66,6 +66,12 @@ type Capabilities struct {
 	// RemovesWebhook is true when the adapter removes the webhook it
 	// registered once the provider is removed (WebhookUnregistrar).
 	RemovesWebhook bool `json:"removesWebhook"`
+	// OneClick is how the provider carries the List-Unsubscribe and
+	// List-Unsubscribe-Post headers ReputeCast adds: "" as given, signed
+	// with the domain's DKIM key; OneClickReplaced when it sets its own;
+	// OneClickUnsigned when its DKIM signature doesn't cover them, so
+	// Gmail and Yahoo may not offer one-click unsubscribe.
+	OneClick string `json:"oneClick,omitempty"`
 	// PricingText and DedicatedIPsText are the messages Pricing and
 	// DedicatedIPs come from (text.go). They are kept with the capability
 	// snapshot of a connected provider, so it reads in each reader's
@@ -73,6 +79,13 @@ type Capabilities struct {
 	PricingText      i18n.Text `json:"pricingText,omitzero"`
 	DedicatedIPsText i18n.Text `json:"dedicatedIpsText,omitzero"`
 }
+
+// How a provider carries the one-click unsubscribe headers
+// (Capabilities.OneClick).
+const (
+	OneClickReplaced = "replaced"
+	OneClickUnsigned = "unsigned"
+)
 
 // Message is one email to one recipient, already rendered and personalized.
 type Message struct {

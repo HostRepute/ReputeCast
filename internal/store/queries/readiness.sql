@@ -1,7 +1,7 @@
 -- name: ReadinessCampaign :one
 -- A campaign with its sender and sending domain.
 SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.audience, c.audience_count, c.mjml, c.html, c.version,
-       c.ab_test, c.schedule, c.thresholds, c.route_override, c.content_hash, c.content_settings, c.reply_to,
+       c.ab_test, c.schedule, c.thresholds, c.route_override, c.content_hash, c.content_settings, c.reply_to, c.tracking,
        c.created_by, c.updated_by, c.created_at, c.updated_at, c.autosaved_at, c.scheduled_at, c.started_at, c.sender_id,
        coalesce(s.name, '')::text AS sender_name,
        coalesce(s.email, '')::text AS sender_email,
@@ -20,6 +20,7 @@ WHERE c.workspace_id = @workspace_id AND c.id = @id AND c.deleted_at IS NULL;
 -- (restorable for 30 days) adds nobody; as an exclusion it still excludes.
 SELECT c.id, c.email, c.mailbox_provider, c.tier, c.role_address, c.language,
        (c.broadcasts_stopped_at IS NOT NULL)::boolean AS broadcasts_stopped,
+       (btrim(c.first_name) = '')::boolean AS no_first_name,
        coalesce((SELECT array_agg(m.list_id) FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'), '{}')::uuid[] AS list_ids,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email) AS suppressed,
        EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = c.id AND e.type IN ('soft_bounce', 'hard_bounce') AND e.occurred_at > @bounced_since::timestamptz) AS bounced
@@ -175,3 +176,15 @@ SELECT workspace_id FROM campaigns WHERE id = @id AND deleted_at IS NULL;
 -- The latest run's id, time and verdict: what the review screen's poll
 -- compares with what it shows.
 SELECT id, ran_at, verdict FROM readiness_runs WHERE campaign_id = @campaign_id ORDER BY ran_at DESC LIMIT 1;
+
+-- name: ReadinessPostmasterDays :many
+-- Gmail Postmaster Tools' last days for a sending domain (or its parent):
+-- the spam rate and the authentication and TLS pass rates Google reports.
+SELECT domain, day, spam_rate, spf_rate, dkim_rate, dmarc_rate, tls_rate
+FROM postmaster_daily
+WHERE workspace_id = @workspace_id AND domain = ANY(@domains::text[]) AND day >= @since::date
+ORDER BY day DESC, domain;
+
+-- name: ReadinessMediaSizes :many
+-- The sizes of the media library's images an email shows.
+SELECT id, size_bytes FROM media_assets WHERE workspace_id = @workspace_id AND id = ANY(@ids::uuid[]);

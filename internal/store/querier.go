@@ -2603,6 +2603,11 @@ type Querier interface {
 	// Lists of the workspace, to tell "All subscribers" from a few lists.
 	ReadinessListCount(ctx context.Context, workspaceID uuid.UUID) (int64, error)
 	ReadinessListNames(ctx context.Context, workspaceID uuid.UUID) ([]ReadinessListNamesRow, error)
+	// The sizes of the media library's images an email shows.
+	ReadinessMediaSizes(ctx context.Context, arg ReadinessMediaSizesParams) ([]ReadinessMediaSizesRow, error)
+	// Gmail Postmaster Tools' last days for a sending domain (or its parent):
+	// the spam rate and the authentication and TLS pass rates Google reports.
+	ReadinessPostmasterDays(ctx context.Context, arg ReadinessPostmasterDaysParams) ([]ReadinessPostmasterDaysRow, error)
 	// Keeps the 20 latest runs of a campaign and any run an approval refers to.
 	ReadinessPruneRuns(ctx context.Context, campaignID uuid.UUID) error
 	// The audience before suppressions and exclusions by address: active

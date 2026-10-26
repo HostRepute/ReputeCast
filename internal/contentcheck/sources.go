@@ -7,10 +7,13 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/hostrepute/reputecast/internal/netguard"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -75,7 +78,8 @@ type cachedProbe struct {
 // ErrBlockedAddress is returned when a link resolves to an internal address.
 var ErrBlockedAddress = errors.New("the link points at an internal address")
 
-// PublicOnly is a net.Dialer Control function that refuses non-public IPs.
+// PublicOnly is a net.Dialer Control function that refuses non-public IPs
+// (netguard's policy, private networks never allowed).
 func PublicOnly(_, address string, _ syscall.RawConn) error {
 	host, _, err := net.SplitHostPort(address)
 	if err != nil {
@@ -86,14 +90,15 @@ func PublicOnly(_, address string, _ syscall.RawConn) error {
 		return err
 	}
 	ip = ip.Unmap()
-	if !ip.IsGlobalUnicast() || ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsMulticast() || ip.IsUnspecified() ||
-		cgnat.Contains(ip) || ip.Is4() && ip.As4()[0] == 0 {
+	if err := (netguard.Policy{}).Check(ip); err != nil || !ip.IsGlobalUnicast() || ip.Is4() && ip.As4()[0] == 0 {
 		return ErrBlockedAddress
 	}
 	return nil
 }
 
-var cgnat = netip.MustParsePrefix("100.64.0.0/10")
+// MaxProbedLinks is how many links one run requests: a run is a background
+// job (Send Readiness), so a long digest's links are all requested.
+const MaxProbedLinks = 100
 
 // NewHTTPProber returns a prober with the SSRF guard on its dialer.
 func NewHTTPProber() *HTTPProber {
@@ -107,7 +112,7 @@ func NewHTTPProber() *HTTPProber {
 			}
 			return nil
 		}},
-		MaxLinks: 40, Concurrency: 4,
+		MaxLinks: MaxProbedLinks, Concurrency: 6,
 	}
 }
 
@@ -177,12 +182,32 @@ func (p *HTTPProber) one(ctx context.Context, u string) ProbeResult {
 		return ProbeResult{Broken: true, Error: fmt.Sprintf("no response: %v", err), Millis: millis}
 	}
 	_ = resp.Body.Close()
+	// LinkedIn answers 999 to automated requests, and a 429 is a site
+	// rate-limiting the checker: the link isn't known to be broken or not.
+	if resp.StatusCode == 999 || resp.StatusCode == http.StatusTooManyRequests {
+		return ProbeResult{Status: resp.StatusCode, BotBlocked: true, Millis: millis}
+	}
 	broken := resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusGone || resp.StatusCode >= 500
-	out := ProbeResult{Status: resp.StatusCode, Broken: broken, Millis: millis}
+	out := ProbeResult{Status: resp.StatusCode, Broken: broken, Millis: millis, Bytes: contentLength(resp)}
 	if resp.Request != nil && resp.Request.URL != nil && resp.Request.URL.String() != u {
 		out.Final = resp.Request.URL.String()
 	}
 	return out
+}
+
+// contentLength is the size of the resource a response describes: the
+// Content-Length of a HEAD, or the total of a ranged GET's Content-Range
+// ("bytes 0-0/186368"); 0 when the server didn't say.
+func contentLength(resp *http.Response) int64 {
+	if cr := resp.Header.Get("Content-Range"); cr != "" {
+		if i := strings.LastIndexByte(cr, '/'); i >= 0 {
+			if n, err := strconv.ParseInt(strings.TrimSpace(cr[i+1:]), 10, 64); err == nil && n > 0 {
+				return n
+			}
+		}
+		return 0
+	}
+	return max(resp.ContentLength, 0)
 }
 
 func (p *HTTPProber) cached(u string) (ProbeResult, bool) {

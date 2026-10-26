@@ -69,6 +69,10 @@ type CampaignFacts struct {
 	// HTMLOnly is true for a campaign written in HTML (no MJML): fixes
 	// that edit MJML aren't offered.
 	HTMLOnly bool
+	// ABKind is the kind of the campaign's A/B test (subject, content or
+	// send_time), empty without one; the variants' checks are
+	// ContentFacts.Variants.
+	ABKind string
 }
 
 // Kinds of audience a base label names (AudienceFacts.BaseKind).
@@ -116,6 +120,9 @@ type AudienceFacts struct {
 	// RecentlyBounced counts final recipients who bounced in the last 30
 	// days without being suppressed (soft bounces).
 	RecentlyBounced int64
+	// NoFirstName counts final recipients without a first name (what a
+	// first-name tag's fallback is for).
+	NoFirstName int64
 	// Mailboxes counts final recipients per mailbox provider.
 	Mailboxes map[string]int64
 	// Languages counts final recipients per contact language code
@@ -145,6 +152,8 @@ type RouteFacts struct {
 	// NoRoute is true when the stream has no provider.
 	NoRoute bool
 	Shares  []ShareFacts
+	// Fallback is the route's fallback provider, nil without one.
+	Fallback *FallbackFacts
 }
 
 // ShareFacts is one provider of the route with what the checks need.
@@ -197,6 +206,21 @@ type ShareFacts struct {
 	// IPs are the provider's dedicated IPs (empty for shared pools).
 	IPs         []string
 	ConnectedAt time.Time
+	// OneClick is how the provider carries the one-click unsubscribe
+	// headers (providers.Capabilities.OneClick): "" as given, "replaced"
+	// or "unsigned".
+	OneClick string
+}
+
+// FallbackFacts is the provider the route fails over to and what
+// state.Vet found about it taking the whole send (C11).
+type FallbackFacts struct {
+	ProviderID string
+	Name       string
+	// Failed is the first vetting check that failed, empty when the
+	// fallback can take the mail; Text says it in each reader's language.
+	Failed string
+	Text   Text
 }
 
 // DownFacts is why a provider can't take mail: since when, the host or
@@ -233,6 +257,20 @@ type ReputationFacts struct {
 	// domain, its parent (organizational) domain, the providers' return-path
 	// domains and the tracking domain (SR-2). Empty: the sending domain only.
 	Domains []DomainAssetFacts
+	// ReverseDNS is the reverse DNS of the dedicated IPs carrying the send.
+	ReverseDNS []ReverseDNSFacts
+}
+
+// ReverseDNSFacts is the forward-confirmed reverse DNS of a dedicated IP.
+type ReverseDNSFacts struct {
+	IP       string
+	Provider string
+	// PTR is the IP's reverse DNS name; Status is pass (it resolves back to
+	// the IP), fail (it doesn't), missing (no PTR) or error (DNS didn't
+	// answer: Trouble says how, a Trouble* kind).
+	PTR     string
+	Status  string
+	Trouble string
 }
 
 // Roles of the domains a send's reputation rides on (DomainAssetFacts.Role).
@@ -346,6 +384,46 @@ type ContentFacts struct {
 	// Versions are the content checks of the language versions that are
 	// sent, besides the source's (Report).
 	Versions []VersionReport
+	// Variants are the content checks of an A/B test's variants B and C
+	// (the campaign itself is variant A).
+	Variants []VariantReport
+	// TrackedBytes is the HTML's size as sent, with the links rewritten for
+	// tracking and the open pixel added (0 when nothing is tracked or the
+	// email couldn't be prepared).
+	TrackedBytes int
+	// TrackOpens and TrackClicks say what the campaign tracks;
+	// TrackingHost is the domain of the open pixel and the tracked links,
+	// TrackingHTTPS whether they use HTTPS, and TrackingDNS whether that
+	// domain resolves: ok, missing, or a Trouble* kind when DNS didn't
+	// answer ("" when it wasn't looked up).
+	TrackOpens, TrackClicks bool
+	TrackingHost            string
+	TrackingHTTPS           bool
+	TrackingDNS             string
+	// LibraryHost is where the media library's images load from (the
+	// public URL), LibraryHTTPS whether over HTTPS.
+	LibraryHost  string
+	LibraryHTTPS bool
+	// Fields are the personalization tags of the email (every version and
+	// variant), each field once.
+	Fields []FieldUse
+}
+
+// FieldUse is a personalization field the email uses, and its fallback.
+type FieldUse struct {
+	Field       string
+	HasFallback bool
+	Fallback    string
+}
+
+// VariantReport is the content check of one A/B variant.
+type VariantReport struct {
+	Key       string
+	Subject   string
+	Preheader string
+	// Content is true for a content test's variant: its own body.
+	Content bool
+	Report  contentcheck.ContentCheckReport
 }
 
 // ComplianceFacts are what the bulk-sender rules need.
@@ -355,4 +433,20 @@ type ComplianceFacts struct {
 	HTTPS          bool
 	// ComplaintRate is the route's 7-day complaint rate in percent.
 	ComplaintRate *float64
+	// Gmail is Gmail Postmaster Tools' latest day for the sending domain
+	// (or its parent), nil when Postmaster data isn't connected.
+	Gmail *PostmasterFacts
+}
+
+// PostmasterFacts is what Gmail Postmaster Tools reported for a domain.
+type PostmasterFacts struct {
+	Domain string
+	// Day is the latest day Google reported; SpamRate is that day's
+	// user-reported spam rate in percent (nil when Google had too little
+	// volume to report one).
+	Day      time.Time
+	SpamRate *float64
+	// SpamDay is the day of SpamRate when it isn't Day (the latest day
+	// with a rate).
+	SpamDay *time.Time
 }

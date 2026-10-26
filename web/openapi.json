@@ -17331,6 +17331,12 @@
             "format": "int64",
             "type": "integer"
           },
+          "bodyHeuristics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "checkedAt": {
             "format": "date-time",
             "type": "string"
@@ -17343,11 +17349,21 @@
             "format": "date-time",
             "type": "string"
           },
+          "imageList": {
+            "items": {
+              "$ref": "#/components/schemas/ContentCheckImage"
+            },
+            "type": "array"
+          },
           "imageShare": {
             "format": "double",
             "type": "number"
           },
           "images": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "imagesInsecure": {
             "format": "int64",
             "type": "integer"
           },
@@ -17397,6 +17413,12 @@
           },
           "plainText": {
             "type": "string"
+          },
+          "preheaderHeuristics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "sections": {
             "items": {
@@ -17450,12 +17472,16 @@
           "linksBlocklisted",
           "linksBroken",
           "subjectHeuristics",
+          "preheaderHeuristics",
+          "bodyHeuristics",
           "issues",
           "sections",
           "plainText",
           "checkedAt",
           "imageShare",
           "words",
+          "imagesInsecure",
+          "imageList",
           "linkList",
           "linkDomains",
           "uriLists",
@@ -22295,6 +22321,46 @@
         ],
         "type": "object"
       },
+      "ContentCheckImage": {
+        "additionalProperties": false,
+        "properties": {
+          "broken": {
+            "type": "boolean"
+          },
+          "bytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "host": {
+            "type": "string"
+          },
+          "insecure": {
+            "type": "boolean"
+          },
+          "path": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "probed": {
+            "type": "boolean"
+          },
+          "status": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "path"
+        ],
+        "type": "object"
+      },
       "ContentCheckIssue": {
         "additionalProperties": false,
         "properties": {
@@ -22367,6 +22433,9 @@
       "ContentCheckLink": {
         "additionalProperties": false,
         "properties": {
+          "botBlocked": {
+            "type": "boolean"
+          },
           "broken": {
             "type": "boolean"
           },

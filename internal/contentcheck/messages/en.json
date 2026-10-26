@@ -58,5 +58,8 @@
 
   "link.unknownTitle": { "message": "Couldn't check {count, plural, one {# link domain} other {# link domains}} on {lists}", "note": "lists: blocklist names, Spamhaus DBL and SURBL" },
   "link.unknownTag": "Not checked",
-  "link.unknownDetail": "{trouble, select, refused {The lists refused this server's DNS resolver; blocklist lookups need your own recursive resolver.} other {DNS didn't answer in time.}} Not knowing isn't the same as clean: Send Readiness looks them up again before the send."
+  "link.unknownDetail": "{trouble, select, refused {The lists refused this server's DNS resolver; blocklist lookups need your own recursive resolver.} other {DNS didn't answer in time.}} Not knowing isn't the same as clean: Send Readiness looks them up again before the send.",
+
+  "unknownField.titleFallback": { "message": "{token} isn't a contact field, so everyone gets “{fallback}”", "note": "token: a personalization tag, {{ frist_name }}; fallback: what it prints instead" },
+  "unknownField.fallbackDetail": "The fallback hides the typo in previews but not from your readers. Check the spelling against the fields in the token menu."
 }

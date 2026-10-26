@@ -76,6 +76,8 @@ func Descriptor() providers.Descriptor {
 			BatchSize:       1,
 			Sandbox:         "mode",
 			QuotaDiscovery:  true,
+			// Brevo sets its own List-Unsubscribe (see Headers above).
+			OneClick: providers.OneClickReplaced,
 			// Pricing, DedicatedIPs and every other text people read (the
 			// terms' note, the Adapters tab's words, the fields' labels and
 			// hints) are in messages/en.json: WithMessages fills them.

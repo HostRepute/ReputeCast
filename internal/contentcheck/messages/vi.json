@@ -58,5 +58,8 @@
 
   "link.unknownTitle": "Không kiểm tra được {count, plural, other {# tên miền liên kết}} trên {lists}",
   "link.unknownTag": "Chưa kiểm tra",
-  "link.unknownDetail": "{trouble, select, refused {Các danh sách từ chối trình phân giải DNS của máy chủ này; việc tra cứu danh sách chặn cần trình phân giải đệ quy của riêng bạn.} other {DNS không trả lời kịp.}} Chưa biết không có nghĩa là sạch: Send Readiness sẽ tra cứu lại trước khi gửi."
+  "link.unknownDetail": "{trouble, select, refused {Các danh sách từ chối trình phân giải DNS của máy chủ này; việc tra cứu danh sách chặn cần trình phân giải đệ quy của riêng bạn.} other {DNS không trả lời kịp.}} Chưa biết không có nghĩa là sạch: Send Readiness sẽ tra cứu lại trước khi gửi.",
+
+  "unknownField.titleFallback": "{token} không phải là trường liên hệ, nên mọi người đều nhận “{fallback}”",
+  "unknownField.fallbackDetail": "Giá trị dự phòng che lỗi chính tả trong bản xem trước nhưng không che được với người đọc. Hãy kiểm tra chính tả theo các trường trong menu token."
 }

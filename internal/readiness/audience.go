@@ -269,6 +269,9 @@ func (s *Service) computeAudience(ctx context.Context, q *store.Queries, wsID uu
 		if r.Bounced {
 			out.RecentlyBounced++
 		}
+		if r.NoFirstName {
+			out.NoFirstName++
+		}
 		mbp := r.MailboxProvider
 		if mbp == "" || mbp == routing.Other {
 			mbp = routing.MailboxProvider(r.Email)

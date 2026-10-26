@@ -231,3 +231,46 @@ func TestRunsAreBackgroundJobs(t *testing.T) {
 		t.Fatalf("a new run clears the failure: %+v", poll)
 	}
 }
+
+// SR-7: a run gathers what the new checks need: variant B of an A/B
+// subject test, the recipients without a first name, Gmail Postmaster's
+// spam rate and the reverse DNS of Postal's dedicated IP.
+func TestReviewGathersTheNewChecks(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	ctx := context.Background()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	id := campaignID(t, c, "Weekly Digest #143")
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE campaigns SET ab_test = '{"kind":"subject","variants":[{"key":"A"},{"key":"B","subject":"LAST CHANCE!!! 50% OFF"}],"test_percent":20,"metric":"human_opens","duration_hours":2}',
+		subject = 'Hi {{ first_name }}, what shipped this week' WHERE id = $1`, id); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := env.App.Pool.Exec(ctx, `UPDATE postmaster_daily SET spam_rate = 0.0035 WHERE domain = 'news.acme.io' AND day = (SELECT max(day) FROM postmaster_daily WHERE domain = 'news.acme.io')`); err != nil {
+		t.Fatal(err)
+	}
+	if tag, err := env.App.Pool.Exec(ctx, `UPDATE contacts SET first_name = '' WHERE workspace_id = (SELECT id FROM workspaces WHERE slug = 'acme-newsletter')
+		AND status = 'active' AND hashtext(email) % 4 = 0`); err != nil || tag.RowsAffected() == 0 {
+		t.Fatalf("contacts without a first name: %v", err)
+	}
+	run := runChecks(t, env, c, id)
+
+	if ch, ok := checkOf(run, "content.spam.variant.B"); !ok || ch.Status != readiness.Warn {
+		t.Errorf("variant B: %+v", ch)
+	}
+	if ch, ok := checkOf(run, "content.personalization"); !ok || ch.Status != readiness.Warn || !strings.Contains(ch.Title, "no first name") {
+		t.Errorf("first name without a fallback: %+v", ch)
+	}
+	if ch, _ := checkOf(run, "compliance.bulk_sender"); ch.Status != readiness.Block || !strings.Contains(ch.Title, "Gmail spam rate 0.35%") {
+		t.Errorf("Postmaster spam rate: %+v", ch)
+	}
+	if ch, ok := checkOf(run, "content.size"); !ok || !strings.Contains(ch.Title, "with tracking links") || !strings.Contains(ch.Detail, "Spanish") {
+		t.Errorf("size with tracking: %+v", ch)
+	}
+	if _, ok := checkOf(run, "reputation.rdns.203.0.113.25"); ok {
+		t.Errorf("Postal's IP has reverse DNS in the demo zone")
+	}
+	if ch, ok := checkOf(run, "reputation.ip_blocklists.203.0.113.25"); ok && ch.Status == readiness.Pass && !strings.Contains(ch.Detail, "mta.acme.io") {
+		t.Errorf("reverse DNS named: %+v", ch)
+	}
+}

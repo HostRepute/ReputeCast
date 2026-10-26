@@ -317,13 +317,15 @@ func TestComposerChecksAndPreview(t *testing.T) {
 			}
 		}
 	}
-	// Exactly the ComposerWarnings board's set: two blocks, alt text, size, subject.
-	for _, id := range []string{"links.blocklist", "compliance.footer", "content.alt_text", "content.size", "subject.spam"} {
+	// The ComposerWarnings board's set: two blocks, alt text, size, subject;
+	// and the image ratio, since the composer and Send Readiness share one
+	// threshold (60%, review SR-7) and the sale is 80% image.
+	for _, id := range []string{"links.blocklist", "compliance.footer", "content.alt_text", "content.size", "subject.spam", "content.image_ratio"} {
 		if !found[id] {
 			t.Fatalf("missing %s in %+v", id, checks.Issues)
 		}
 	}
-	if len(found) != 5 {
+	if len(found) != 6 {
 		t.Fatalf("unexpected issues: %+v", checks.Issues)
 	}
 

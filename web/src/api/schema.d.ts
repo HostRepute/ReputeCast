@@ -21698,16 +21698,20 @@ export interface components {
         ComposerChecks: {
             /** Format: int64 */
             blocks: number;
+            bodyHeuristics: string[];
             /** Format: date-time */
             checkedAt: string;
             /** Format: int64 */
             clipBytes: number;
             /** Format: date-time */
             footerRemovedAt?: string;
+            imageList: components["schemas"]["ContentCheckImage"][];
             /** Format: double */
             imageShare: number;
             /** Format: int64 */
             images: number;
+            /** Format: int64 */
+            imagesInsecure: number;
             /** Format: int64 */
             imagesMissingAlt: number;
             issues: components["schemas"]["ContentCheckIssue"][];
@@ -21723,6 +21727,7 @@ export interface components {
             linksBroken: number;
             lint: components["schemas"]["MJMLProblem"][];
             plainText: string;
+            preheaderHeuristics: string[];
             sections: components["schemas"]["ContentCheckSection"][];
             /** Format: int64 */
             sizeBytes: number;
@@ -23042,6 +23047,18 @@ export interface components {
             path?: number[];
             value?: string;
         };
+        ContentCheckImage: {
+            broken?: boolean;
+            /** Format: int64 */
+            bytes?: number;
+            host?: string;
+            insecure?: boolean;
+            path: number[];
+            probed?: boolean;
+            /** Format: int64 */
+            status?: number;
+            url: string;
+        };
         ContentCheckIssue: {
             detail?: string;
             fixes: components["schemas"]["ContentCheckFix"][];
@@ -23059,6 +23076,7 @@ export interface components {
             url?: string;
         };
         ContentCheckLink: {
+            botBlocked?: boolean;
             broken?: boolean;
             final?: string;
             host: string;

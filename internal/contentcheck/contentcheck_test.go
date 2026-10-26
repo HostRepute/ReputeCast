@@ -99,7 +99,7 @@ func TestCheckFindsEveryInlineWarning(t *testing.T) {
 
 func TestCleanEmailIsReady(t *testing.T) {
 	src := `<mjml><mj-body>
-<mj-section><mj-column><mj-image src="/media/1/hero.png" alt="Roadmap" width="552px" height="180px" padding="0px"></mj-image><mj-text>Hi {{ first_name | default: "there" }}, here's what shipped this week at Acme, what we're retiring in November, and where the next quarter is headed. Feature flags are generally available and audit logs export to S3.</mj-text></mj-column></mj-section>
+<mj-section><mj-column><mj-image src="/media/1/hero.png" alt="Roadmap" width="552px" height="180px" padding="0px"></mj-image><mj-text>Hi {{ first_name | default: "there" }}, here's what shipped this week at Acme, what we're retiring in November, and where the next quarter is headed. Feature flags are generally available and audit logs export to S3.</mj-text><mj-text>The changelog has every detail, and the roadmap call on Thursday covers what's next for the API, the dashboard and self-hosted installs, with time for your questions.</mj-text></mj-column></mj-section>
 <mj-section><mj-column><mj-text>Acme Inc · 500 Market St, Suite 1200 · San Francisco, CA 94105<br><a href="{{ unsubscribe_url }}">Unsubscribe</a></mj-text></mj-column></mj-section>
 </mj-body></mjml>`
 	r, err := (&Checker{}).Check(context.Background(), Input{Subject: "Three launches", MJML: src, Fields: []string{"first_name"}})

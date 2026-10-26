@@ -30,7 +30,7 @@ func (q *Queries) ReadinessAcceptUnknown(ctx context.Context, arg ReadinessAccep
 
 const readinessCampaign = `-- name: ReadinessCampaign :one
 SELECT c.id, c.workspace_id, c.name, c.status, c.subject, c.preheader, c.audience, c.audience_count, c.mjml, c.html, c.version,
-       c.ab_test, c.schedule, c.thresholds, c.route_override, c.content_hash, c.content_settings, c.reply_to,
+       c.ab_test, c.schedule, c.thresholds, c.route_override, c.content_hash, c.content_settings, c.reply_to, c.tracking,
        c.created_by, c.updated_by, c.created_at, c.updated_at, c.autosaved_at, c.scheduled_at, c.started_at, c.sender_id,
        coalesce(s.name, '')::text AS sender_name,
        coalesce(s.email, '')::text AS sender_email,
@@ -67,6 +67,7 @@ type ReadinessCampaignRow struct {
 	ContentHash     string          `json:"contentHash"`
 	ContentSettings json.RawMessage `json:"contentSettings"`
 	ReplyTo         string          `json:"replyTo"`
+	Tracking        json.RawMessage `json:"tracking"`
 	CreatedBy       *uuid.UUID      `json:"createdBy"`
 	UpdatedBy       *uuid.UUID      `json:"updatedBy"`
 	CreatedAt       time.Time       `json:"createdAt"`
@@ -104,6 +105,7 @@ func (q *Queries) ReadinessCampaign(ctx context.Context, arg ReadinessCampaignPa
 		&i.ContentHash,
 		&i.ContentSettings,
 		&i.ReplyTo,
+		&i.Tracking,
 		&i.CreatedBy,
 		&i.UpdatedBy,
 		&i.CreatedAt,
@@ -473,6 +475,94 @@ func (q *Queries) ReadinessListNames(ctx context.Context, workspaceID uuid.UUID)
 	return items, nil
 }
 
+const readinessMediaSizes = `-- name: ReadinessMediaSizes :many
+SELECT id, size_bytes FROM media_assets WHERE workspace_id = $1 AND id = ANY($2::uuid[])
+`
+
+type ReadinessMediaSizesParams struct {
+	WorkspaceID uuid.UUID   `json:"workspaceId"`
+	Ids         []uuid.UUID `json:"ids"`
+}
+
+type ReadinessMediaSizesRow struct {
+	ID        uuid.UUID `json:"id"`
+	SizeBytes int32     `json:"sizeBytes"`
+}
+
+// The sizes of the media library's images an email shows.
+func (q *Queries) ReadinessMediaSizes(ctx context.Context, arg ReadinessMediaSizesParams) ([]ReadinessMediaSizesRow, error) {
+	rows, err := q.db.Query(ctx, readinessMediaSizes, arg.WorkspaceID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReadinessMediaSizesRow{}
+	for rows.Next() {
+		var i ReadinessMediaSizesRow
+		if err := rows.Scan(&i.ID, &i.SizeBytes); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const readinessPostmasterDays = `-- name: ReadinessPostmasterDays :many
+SELECT domain, day, spam_rate, spf_rate, dkim_rate, dmarc_rate, tls_rate
+FROM postmaster_daily
+WHERE workspace_id = $1 AND domain = ANY($2::text[]) AND day >= $3::date
+ORDER BY day DESC, domain
+`
+
+type ReadinessPostmasterDaysParams struct {
+	WorkspaceID uuid.UUID `json:"workspaceId"`
+	Domains     []string  `json:"domains"`
+	Since       time.Time `json:"since"`
+}
+
+type ReadinessPostmasterDaysRow struct {
+	Domain    string    `json:"domain"`
+	Day       time.Time `json:"day"`
+	SpamRate  *float64  `json:"spamRate"`
+	SpfRate   *float64  `json:"spfRate"`
+	DkimRate  *float64  `json:"dkimRate"`
+	DmarcRate *float64  `json:"dmarcRate"`
+	TlsRate   *float64  `json:"tlsRate"`
+}
+
+// Gmail Postmaster Tools' last days for a sending domain (or its parent):
+// the spam rate and the authentication and TLS pass rates Google reports.
+func (q *Queries) ReadinessPostmasterDays(ctx context.Context, arg ReadinessPostmasterDaysParams) ([]ReadinessPostmasterDaysRow, error) {
+	rows, err := q.db.Query(ctx, readinessPostmasterDays, arg.WorkspaceID, arg.Domains, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReadinessPostmasterDaysRow{}
+	for rows.Next() {
+		var i ReadinessPostmasterDaysRow
+		if err := rows.Scan(
+			&i.Domain,
+			&i.Day,
+			&i.SpamRate,
+			&i.SpfRate,
+			&i.DkimRate,
+			&i.DmarcRate,
+			&i.TlsRate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const readinessPruneRuns = `-- name: ReadinessPruneRuns :exec
 DELETE FROM readiness_runs r
 WHERE r.campaign_id = $1
@@ -489,6 +579,7 @@ func (q *Queries) ReadinessPruneRuns(ctx context.Context, campaignID uuid.UUID) 
 const readinessRecipients = `-- name: ReadinessRecipients :many
 SELECT c.id, c.email, c.mailbox_provider, c.tier, c.role_address, c.language,
        (c.broadcasts_stopped_at IS NOT NULL)::boolean AS broadcasts_stopped,
+       (btrim(c.first_name) = '')::boolean AS no_first_name,
        coalesce((SELECT array_agg(m.list_id) FROM list_memberships m WHERE m.contact_id = c.id AND m.status = 'subscribed'), '{}')::uuid[] AS list_ids,
        EXISTS (SELECT 1 FROM suppressions s WHERE s.workspace_id = c.workspace_id AND s.email = c.email) AS suppressed,
        EXISTS (SELECT 1 FROM delivery_events e WHERE e.contact_id = c.id AND e.type IN ('soft_bounce', 'hard_bounce') AND e.occurred_at > $1::timestamptz) AS bounced
@@ -517,6 +608,7 @@ type ReadinessRecipientsRow struct {
 	RoleAddress       bool        `json:"roleAddress"`
 	Language          string      `json:"language"`
 	BroadcastsStopped bool        `json:"broadcastsStopped"`
+	NoFirstName       bool        `json:"noFirstName"`
 	ListIds           []uuid.UUID `json:"listIds"`
 	Suppressed        bool        `json:"suppressed"`
 	Bounced           bool        `json:"bounced"`
@@ -550,6 +642,7 @@ func (q *Queries) ReadinessRecipients(ctx context.Context, arg ReadinessRecipien
 			&i.RoleAddress,
 			&i.Language,
 			&i.BroadcastsStopped,
+			&i.NoFirstName,
 			&i.ListIds,
 			&i.Suppressed,
 			&i.Bounced,
