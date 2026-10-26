@@ -584,9 +584,11 @@ func TestScheduledSendLosesItsApproval(t *testing.T) {
 		}
 	}
 
-	// Approved, then scheduled by Daniel.
+	// Approved, then scheduled by Daniel on checks that ran just now (what
+	// he confirms is what the send-time recheck compares with, SR-3).
 	r := getReview(t, daniel, nov)
 	marcus.Do("POST", ws+"/approvals/"+r.Approval.Request.ID+"/decision", map[string]any{"decision": "approve"}).MustStatus(t, 200)
+	readinesstest.Post(t, env, daniel, ws+"/campaigns/"+nov+"/readiness").MustStatus(t, 200)
 	r = getReview(t, daniel, nov)
 	daniel.Do("POST", ws+"/approvals/"+r.Approval.Request.ID+"/schedule", map[string]any{"runId": r.Run.ID, "acknowledged": warnings(r),
 		"confirm": fmt.Sprint(r.Run.Estimates.Audience.Final)}).MustStatus(t, 200)

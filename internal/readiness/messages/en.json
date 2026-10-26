@@ -904,5 +904,14 @@
   "basis.bestTime": "best-time sending over 24 hours",
   "rates.tooFew": "{provider}: {count, plural, one {# message} other {# messages}} in 7 days, too few to judge its rates",
   "rates.tooFewDetail": "Bounce {bounce} and complaint {complaint} so far; rates count from {min, number} messages.",
-  "rates.tooFewShort": "{provider}: too few messages to judge"
+  "rates.tooFewShort": "{provider}: too few messages to judge",
+
+  "sendHold.blocked": "{title}{more, plural, =0 {} one { (and # more block)} other { (and # more blocks)}}",
+  "sendHold.newWarning": "A warning nobody confirmed: {title}{more, plural, =0 {} one { (and # more)} other { (and # more)}}",
+  "sendHold.unknown": "A check couldn't run, and nobody chose to send without it: {title}",
+  "sendHold.audience": "The audience {grew, select, yes {grew} other {shrank}} to {count, number} ({grew, select, yes {+} other {−}}{pct} since you reviewed)",
+  "sendHold.edited": "{what} {count, plural, one {changed} other {changed}} after it was scheduled",
+  "sendHold.part.content": "the content",
+  "sendHold.part.sender": "the sender",
+  "sendHold.part.route": "the route"
 }

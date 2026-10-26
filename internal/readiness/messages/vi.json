@@ -904,5 +904,14 @@
   "basis.bestTime": "gửi vào giờ phù hợp nhất trong 24 giờ",
   "rates.tooFew": "{provider}: {count, number} thư trong 7 ngày, quá ít để đánh giá tỷ lệ",
   "rates.tooFewDetail": "Hiện có tỷ lệ trả thư {bounce} và khiếu nại {complaint}; tỷ lệ chỉ được tính từ {min, number} thư.",
-  "rates.tooFewShort": "{provider}: quá ít thư để đánh giá"
+  "rates.tooFewShort": "{provider}: quá ít thư để đánh giá",
+
+  "sendHold.blocked": "{title}{more, plural, =0 {} other { (và # lỗi chặn khác)}}",
+  "sendHold.newWarning": "Một cảnh báo chưa ai xác nhận: {title}{more, plural, =0 {} other { (và # cảnh báo khác)}}",
+  "sendHold.unknown": "Một bước kiểm tra không chạy được và chưa ai chọn gửi khi thiếu nó: {title}",
+  "sendHold.audience": "Người nhận {grew, select, yes {tăng lên} other {giảm còn}} {count, number} ({grew, select, yes {+} other {−}}{pct} so với lúc bạn xem lại)",
+  "sendHold.edited": "{what} đã thay đổi sau khi lên lịch",
+  "sendHold.part.content": "nội dung",
+  "sendHold.part.sender": "người gửi",
+  "sendHold.part.route": "tuyến gửi"
 }

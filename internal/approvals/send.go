@@ -151,7 +151,13 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 	switch c.Status {
 	case "draft", "approval", "approved":
 	case "scheduled":
-		return ReviewSendResult{}, api.Conflict(say(ctx, mAlreadyScheduled, nil))
+		// A held send is confirmed again from Review & send, on the fresh
+		// checks and count (SR-3); a send waiting for its time isn't.
+		if _, err := s.Q.ApprovalOpenHold(ctx, c.ID); errors.Is(err, pgx.ErrNoRows) {
+			return ReviewSendResult{}, api.Conflict(say(ctx, mAlreadyScheduled, nil))
+		} else if err != nil {
+			return ReviewSendResult{}, err
+		}
 	default:
 		return ReviewSendResult{}, api.Conflict(say(ctx, mAlreadySending, nil))
 	}
@@ -307,6 +313,11 @@ func (s *Service) send(ctx context.Context, ws *store.Workspace, p *authz.Princi
 		if err := q.ApprovalResolveHold(ctx, store.ApprovalResolveHoldParams{ResolvedAt: &now, Resolution: "resumed", ResolvedBy: &p.UserID, CampaignID: c.ID}); err != nil {
 			return err
 		}
+		// What the person confirmed: the send-time recheck holds the send
+		// on anything they didn't (SR-3).
+		if err := s.Readiness.Confirm(ctx, q, ws, c, *run, p.UserID, in.Acknowledged, at, now); err != nil {
+			return err
+		}
 		// The confirmed run describes the campaign at its new time.
 		if fp := s.Readiness.CurrentFingerprint(ctx, ws, c); fp != run.Fingerprint {
 			if rid, err := uuid.Parse(run.ID); err == nil {
@@ -429,6 +440,9 @@ func (s *Service) Unschedule(ctx context.Context, ws *store.Workspace, p *authz.
 		if err := q.ApprovalResolveHold(ctx, store.ApprovalResolveHoldParams{ResolvedAt: &now, Resolution: "cancelled", ResolvedBy: &p.UserID, CampaignID: c.ID}); err != nil {
 			return err
 		}
+		if err := s.Readiness.Forget(ctx, q, c.ID); err != nil {
+			return err
+		}
 		return s.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &ws.ID, Action: "campaign.unscheduled", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
 			Before: map[string]any{"status": "scheduled", "scheduled_at": c.ScheduledAt}, After: map[string]any{"status": status}})
 	})
@@ -459,9 +473,16 @@ func (s *Service) CheckSendTime(ctx context.Context, wsID, campaignID uuid.UUID)
 	} else if err != nil {
 		return err
 	}
-	if run.Verdict == readiness.VerdictBlocked {
-		reason := firstBlock(run)
-		if err := s.hold(ctx, ws, c, &run, reason); err != nil {
+	check, err := s.sendTimeCheck(ctx, ws, campaignID, run)
+	if err != nil {
+		return err
+	}
+	if check.Held() {
+		reason := check.Holds[0].English()
+		if check.Holds[0].Kind == readiness.HoldBlocked {
+			reason = firstBlock(run)
+		}
+		if err := s.hold(ctx, ws, c, &run, reason, &check); err != nil {
 			return err
 		}
 		return fmt.Errorf("%w: %s", sending.ErrNotReady, reason)
@@ -471,7 +492,7 @@ func (s *Service) CheckSendTime(ctx context.Context, wsID, campaignID uuid.UUID)
 		return err
 	}
 	if reason != "" {
-		if err := s.hold(ctx, ws, c, &run, reason); err != nil {
+		if err := s.hold(ctx, ws, c, &run, reason, nil); err != nil {
 			return err
 		}
 		return fmt.Errorf("%w: %s", sending.ErrNotReady, reason)
@@ -598,6 +619,19 @@ func (s *Service) SendRecheck(ctx context.Context, campaignID uuid.UUID) (SendRe
 			out.Blocking = append(out.Blocking, firstNonEmptyStr(ch.FlatTitle, ch.Title))
 		}
 	}
+	// What nobody confirmed holds the send too (SR-3): new warnings and
+	// unknown checks, the audience changed by more than 10%, the content,
+	// sender or route edited after scheduling.
+	check, err := s.sendTimeCheck(ctx, ws, campaignID, run)
+	if err != nil {
+		return SendRecheck{}, err
+	}
+	for _, h := range check.Holds {
+		if h.Kind != readiness.HoldBlocked {
+			out.Verdict = readiness.VerdictBlocked
+			out.Blocking = append(out.Blocking, h.English())
+		}
+	}
 	reason, err := s.approvalGap(ctx, ws, campaignID)
 	if err != nil {
 		return SendRecheck{}, err
@@ -610,13 +644,45 @@ func (s *Service) SendRecheck(ctx context.Context, campaignID uuid.UUID) (SendRe
 }
 
 // HoldDetail is campaign_incidents.detail of a held send. Holds recorded
-// here carry the run and its blocking checks; the sending engine's carry
-// only the titles of what blocked (Blocking).
+// here carry the run, its blocking checks and why the send-time recheck held
+// it (Holds, with the confirmed and the fresh count); the sending engine's
+// carry only the titles of what blocked (Blocking).
 type HoldDetail struct {
-	RunID    string                     `json:"run_id"`
-	Reason   string                     `json:"reason"`
-	Blocks   []readiness.ReadinessCheck `json:"blocks"`
-	Blocking []string                   `json:"blocking,omitempty"`
+	RunID     string                     `json:"run_id"`
+	Reason    string                     `json:"reason"`
+	Blocks    []readiness.ReadinessCheck `json:"blocks"`
+	Blocking  []string                   `json:"blocking,omitempty"`
+	Holds     []readiness.SendHold       `json:"holds,omitempty"`
+	Audience  int64                      `json:"audience,omitempty"`
+	Confirmed int64                      `json:"confirmed,omitempty"`
+}
+
+// sendTimeCheck compares a fresh run and the campaign as it stands with
+// what the person confirmed when they scheduled it (SR-3, C3).
+func (s *Service) sendTimeCheck(ctx context.Context, ws *store.Workspace, campaignID uuid.UUID, run readiness.ReadinessRun) (readiness.SendTimeCheck, error) {
+	c, err := s.Readiness.Campaign(ctx, ws, campaignID)
+	if err != nil {
+		return readiness.SendTimeCheck{}, err
+	}
+	conf, err := s.Readiness.Confirmed(ctx, campaignID)
+	if err != nil {
+		return readiness.SendTimeCheck{}, err
+	}
+	now := s.Readiness.Digests(ctx, ws, c)
+	// Approvers who approved the campaign as it is after it was scheduled
+	// confirmed its content, sender and route: edits they approved don't
+	// hold the send.
+	if conf != nil && conf.Digests != now {
+		if last, err := s.Q.ApprovalLatestForCampaign(ctx, &campaignID); err == nil && last.Status == "approved" && last.DecidedAt != nil &&
+			last.DecidedAt.After(conf.ConfirmedAt) {
+			if changes, err := s.revalidate(ctx, ws, campaignID); err == nil && len(changes) == 0 {
+				approved := *conf
+				approved.Digests = now
+				conf = &approved
+			}
+		}
+	}
+	return readiness.CheckSendTime(run, conf, now), nil
 }
 
 // heldView is a held send as Review & send and the approval show it. When
@@ -625,7 +691,8 @@ type HoldDetail struct {
 func (s *Service) heldView(ctx context.Context, h store.CampaignIncident) *ReviewHeld {
 	var d HoldDetail
 	_ = json.Unmarshal(h.Detail, &d)
-	out := &ReviewHeld{Since: h.TrippedAt, Reason: gapIn(langOf(ctx), d.Reason), Held: h.Held, Blocks: d.Blocks}
+	out := &ReviewHeld{Since: h.TrippedAt, Reason: gapIn(langOf(ctx), d.Reason), Held: h.Held, Blocks: d.Blocks, Holds: []ReviewHoldReason{}}
+	s.holdReasons(ctx, h, d, out)
 	if len(out.Blocks) == 0 || out.Held == 0 {
 		if out.Blocks == nil {
 			out.Blocks = []readiness.ReadinessCheck{}
@@ -670,8 +737,52 @@ func (s *Service) heldView(ctx context.Context, h store.CampaignIncident) *Revie
 	return out
 }
 
-// hold records that a send didn't start and tells the author and approvers.
-func (s *Service) hold(ctx context.Context, ws *store.Workspace, c store.ReadinessCampaignRow, run *readiness.ReadinessRun, reason string) error {
+// holdReasons fills in why the send-time recheck held a send, the counts
+// to compare and when the hold expires. A hold the sending engine recorded
+// carries only titles: its reasons are worked out again from the latest run
+// (the send-time recheck) and what was confirmed.
+func (s *Service) holdReasons(ctx context.Context, h store.CampaignIncident, d HoldDetail, out *ReviewHeld) {
+	l := i18n.LangFrom(ctx)
+	wsID, err := s.Q.ReadinessCampaignWorkspace(ctx, h.CampaignID)
+	if err != nil {
+		return
+	}
+	w, err := s.Q.GetWorkspace(ctx, wsID)
+	if err != nil {
+		return
+	}
+	c, err := s.Readiness.Campaign(ctx, &w, h.CampaignID)
+	if err != nil {
+		return
+	}
+	if c.ScheduledAt != nil {
+		at := c.ScheduledAt.Add(readiness.HeldExpiry)
+		out.ExpiresAt = &at
+	}
+	conf, _ := s.Readiness.Confirmed(ctx, h.CampaignID)
+	holds, audience, confirmed := d.Holds, d.Audience, d.Confirmed
+	latest, _ := s.Readiness.Latest(ctx, h.CampaignID)
+	if len(holds) == 0 && latest != nil {
+		check := readiness.CheckSendTime(*latest, conf, s.Readiness.Digests(ctx, &w, c))
+		holds, audience, confirmed = check.Holds, check.Audience, check.Confirmed
+	}
+	for _, x := range holds {
+		out.Holds = append(out.Holds, ReviewHoldReason{Kind: x.Kind, Text: x.Text.In(l)})
+	}
+	if len(out.Holds) > 0 && out.Holds[0].Kind != readiness.HoldBlocked {
+		out.Reason = out.Holds[0].Text
+	}
+	if conf != nil && confirmed > 0 {
+		out.Reviewed = &ReviewCount{At: conf.ConfirmedAt, Recipients: confirmed}
+	}
+	if latest != nil && audience > 0 {
+		out.Rechecked = &ReviewCount{At: latest.RanAt, Recipients: audience}
+	}
+}
+
+// hold records that a send didn't start and tells the author and approvers;
+// check says why the send-time recheck held it (nil for other reasons).
+func (s *Service) hold(ctx context.Context, ws *store.Workspace, c store.ReadinessCampaignRow, run *readiness.ReadinessRun, reason string, check *readiness.SendTimeCheck) error {
 	if _, err := s.Q.ApprovalOpenHold(ctx, c.ID); err == nil {
 		return nil // already held and told
 	} else if !errors.Is(err, pgx.ErrNoRows) {
@@ -682,6 +793,9 @@ func (s *Service) hold(ctx context.Context, ws *store.Workspace, c store.Readine
 		return err
 	}
 	detail := HoldDetail{Reason: reason, Blocks: []readiness.ReadinessCheck{}}
+	if check != nil {
+		detail.Holds, detail.Audience, detail.Confirmed = check.Holds, check.Audience, check.Confirmed
+	}
 	var held int64
 	if run != nil {
 		detail.RunID = run.ID
@@ -729,7 +843,11 @@ func (s *Service) hold(ctx context.Context, ws *store.Workspace, c store.Readine
 			seen[id] = true
 			// The time and the reason are written in the language of the member it goes to.
 			rl := readerLang(ctx, q, id)
-			args := i18n.Args{"name": c.Name, "time": rl.Region.Time(now.In(state.Location(ws.Timezone)), ""), "reason": gapIn(rl, reason)}
+			why := gapIn(rl, reason)
+			if check != nil && len(check.Holds) > 0 {
+				why = check.Holds[0].Text.In(rl)
+			}
+			args := i18n.Args{"name": c.Name, "time": rl.Region.Time(now.In(state.Location(ws.Timezone)), ""), "reason": why}
 			n.SummaryText, n.BodyText = mNotifyHeldSummary.Keep(args), mNotifyHeldBody.Keep(args)
 			if err := notify.ToUser(ctx, tx, id, n); err != nil {
 				return err

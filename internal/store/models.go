@@ -736,6 +736,21 @@ type CampaignSend struct {
 	UpdatedAt     time.Time       `json:"updatedAt"`
 }
 
+type CampaignSendConfirmation struct {
+	CampaignID    uuid.UUID  `json:"campaignId"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	RunID         *uuid.UUID `json:"runId"`
+	ConfirmedBy   *uuid.UUID `json:"confirmedBy"`
+	ConfirmedAt   time.Time  `json:"confirmedAt"`
+	ScheduledAt   *time.Time `json:"scheduledAt"`
+	Recipients    int64      `json:"recipients"`
+	Acknowledged  []string   `json:"acknowledged"`
+	Unknown       []string   `json:"unknown"`
+	ContentDigest string     `json:"contentDigest"`
+	SenderID      *uuid.UUID `json:"senderId"`
+	RouteDigest   string     `json:"routeDigest"`
+}
+
 type CampaignVersion struct {
 	CampaignID uuid.UUID       `json:"campaignId"`
 	Version    int32           `json:"version"`

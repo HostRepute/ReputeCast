@@ -248,5 +248,9 @@
   "notify.heldBody": "“{name}” không bắt đầu lúc {time}: {reason}. Lần gửi được tạm giữ cho đến khi kiểm tra lại đạt.",
   "notify.publishFailedTitle": "Đã phê duyệt nhưng chưa xuất bản",
   "notify.publishFailedSummary": "Tự động hóa đã được phê duyệt nhưng không xuất bản được: {error}",
-  "notify.publishFailedBody": "Tự động hóa đã được phê duyệt nhưng không xuất bản được: {error} Hãy xuất bản lại để yêu cầu phê duyệt mới."
+  "notify.publishFailedBody": "Tự động hóa đã được phê duyệt nhưng không xuất bản được: {error} Hãy xuất bản lại để yêu cầu phê duyệt mới.",
+
+  "notify.expiredTitle": "Lần gửi bị tạm giữ đã hết hạn",
+  "notify.expiredSummary": "“{name}” bị tạm giữ quá giờ gửi {hours, number} giờ nên đã trở về bản nháp",
+  "notify.expiredBody": "“{name}” bị tạm giữ quá giờ gửi {hours, number} giờ nên đã trở về bản nháp thay vì gửi muộn. Lịch gửi và thử nghiệm A/B vẫn được giữ: hãy xem lại để gửi."
 }

@@ -70,6 +70,29 @@ type ReviewHeld struct {
 	Reason string                     `json:"reason"`
 	Held   int64                      `json:"held"`
 	Blocks []readiness.ReadinessCheck `json:"blocks"`
+	// Holds are why the send-time recheck held the send (SR-3): blocks,
+	// warnings or unknown checks nobody confirmed, the audience changed by
+	// more than 10%, the content, sender or route edited after scheduling.
+	Holds []ReviewHoldReason `json:"holds"`
+	// Reviewed is the count the person confirmed when they scheduled it;
+	// Rechecked the send-time recheck's (the count to confirm again).
+	Reviewed  *ReviewCount `json:"reviewed,omitempty"`
+	Rechecked *ReviewCount `json:"rechecked,omitempty"`
+	// ExpiresAt is when the held send goes back to Draft if nobody
+	// reviews it (readiness.HeldExpiry after its time).
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+}
+
+// ReviewHoldReason is one reason a send is held, in the reader's language.
+type ReviewHoldReason struct {
+	Kind string `json:"kind" enum:"blocked,new_warning,unknown,audience_change,edited"`
+	Text string `json:"text"`
+}
+
+// ReviewCount is a recipient count and when it was counted.
+type ReviewCount struct {
+	At         time.Time `json:"at"`
+	Recipients int64     `json:"recipients"`
 }
 
 // ReviewAccess is what the viewer may do.

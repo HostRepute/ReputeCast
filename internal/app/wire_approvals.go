@@ -181,6 +181,15 @@ func SendRecheck(a *App) func(ctx context.Context, campaignID uuid.UUID) (approv
 	return newApprovals(a).SendRecheck
 }
 
+// ApprovalsTickAt runs Review & send's minute job as if it were now: tests
+// move the clock to a scheduled send's recheck, or past a held send's
+// expiry.
+func ApprovalsTickAt(a *App, now time.Time) error {
+	s := newApprovals(a)
+	s.Now = func() time.Time { return now }
+	return s.Tick(context.Background())
+}
+
 // HeldSendCheck is the send-time check the minute job runs for scheduled
 // and held sends: it holds a send that turns Blocked or lost its approval
 // (and tells people), and returns an error wrapping sending.ErrNotReady.

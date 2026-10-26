@@ -248,5 +248,9 @@
   "notify.heldBody": "“{name}” didn't start at {time}: {reason}. It stays held until a recheck passes.",
   "notify.publishFailedTitle": "Approved, but not published",
   "notify.publishFailedSummary": "The automation was approved but couldn't be published: {error}",
-  "notify.publishFailedBody": "The automation was approved but couldn't be published: {error} Publish it again to request a new approval."
+  "notify.publishFailedBody": "The automation was approved but couldn't be published: {error} Publish it again to request a new approval.",
+
+  "notify.expiredTitle": "Held send expired",
+  "notify.expiredSummary": "“{name}” stayed held {hours, plural, one {# hour} other {# hours}} past its time and went back to Draft",
+  "notify.expiredBody": "“{name}” stayed held {hours, plural, one {# hour} other {# hours}} past its time, so it went back to Draft instead of going out late. Its schedule and A/B test are kept: review it again to send."
 }

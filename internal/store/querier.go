@@ -2589,9 +2589,13 @@ type Querier interface {
 	ReadinessCampaignWorkspace(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
 	// A worker takes up a queued run: it still owns the campaign's row.
 	ReadinessClaimProgress(ctx context.Context, arg ReadinessClaimProgressParams) (uuid.UUID, error)
+	// What a person confirmed as they scheduled or started a send (SR-3): the
+	// send-time recheck holds the send on anything they didn't.
+	ReadinessConfirmSend(ctx context.Context, arg ReadinessConfirmSendParams) error
 	ReadinessEndProgress(ctx context.Context, arg ReadinessEndProgressParams) error
 	// A run stopped on an error: the row says why until the next run.
 	ReadinessFailProgress(ctx context.Context, arg ReadinessFailProgressParams) error
+	ReadinessForgetConfirmation(ctx context.Context, campaignID uuid.UUID) error
 	ReadinessGetProgress(ctx context.Context, campaignID uuid.UUID) (ReadinessGetProgressRow, error)
 	ReadinessGetRun(ctx context.Context, arg ReadinessGetRunParams) (ReadinessGetRunRow, error)
 	ReadinessInsertRoute(ctx context.Context, arg ReadinessInsertRouteParams) error
@@ -2621,6 +2625,7 @@ type Querier interface {
 	// older than the window (checks run again 15 minutes before the send).
 	ReadinessScheduledDue(ctx context.Context, arg ReadinessScheduledDueParams) ([]ReadinessScheduledDueRow, error)
 	ReadinessSegmentNames(ctx context.Context, workspaceID uuid.UUID) ([]ReadinessSegmentNamesRow, error)
+	ReadinessSendConfirmation(ctx context.Context, campaignID uuid.UUID) (CampaignSendConfirmation, error)
 	ReadinessSetAudience(ctx context.Context, arg ReadinessSetAudienceParams) error
 	ReadinessSetAudienceCount(ctx context.Context, arg ReadinessSetAudienceCountParams) error
 	ReadinessSetContentSettings(ctx context.Context, arg ReadinessSetContentSettingsParams) error

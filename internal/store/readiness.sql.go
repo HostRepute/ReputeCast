@@ -154,6 +154,51 @@ func (q *Queries) ReadinessClaimProgress(ctx context.Context, arg ReadinessClaim
 	return run_id, err
 }
 
+const readinessConfirmSend = `-- name: ReadinessConfirmSend :exec
+INSERT INTO campaign_send_confirmations (campaign_id, workspace_id, run_id, confirmed_by, confirmed_at, scheduled_at, recipients, acknowledged, unknown,
+    content_digest, sender_id, route_digest)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8::text[],
+    $9::text[], $10, $11, $12)
+ON CONFLICT (campaign_id) DO UPDATE SET run_id = EXCLUDED.run_id, confirmed_by = EXCLUDED.confirmed_by, confirmed_at = EXCLUDED.confirmed_at,
+    scheduled_at = EXCLUDED.scheduled_at, recipients = EXCLUDED.recipients, acknowledged = EXCLUDED.acknowledged, unknown = EXCLUDED.unknown,
+    content_digest = EXCLUDED.content_digest, sender_id = EXCLUDED.sender_id, route_digest = EXCLUDED.route_digest
+`
+
+type ReadinessConfirmSendParams struct {
+	CampaignID    uuid.UUID  `json:"campaignId"`
+	WorkspaceID   uuid.UUID  `json:"workspaceId"`
+	RunID         *uuid.UUID `json:"runId"`
+	ConfirmedBy   *uuid.UUID `json:"confirmedBy"`
+	ConfirmedAt   time.Time  `json:"confirmedAt"`
+	ScheduledAt   *time.Time `json:"scheduledAt"`
+	Recipients    int64      `json:"recipients"`
+	Acknowledged  []string   `json:"acknowledged"`
+	Unknown       []string   `json:"unknown"`
+	ContentDigest string     `json:"contentDigest"`
+	SenderID      *uuid.UUID `json:"senderId"`
+	RouteDigest   string     `json:"routeDigest"`
+}
+
+// What a person confirmed as they scheduled or started a send (SR-3): the
+// send-time recheck holds the send on anything they didn't.
+func (q *Queries) ReadinessConfirmSend(ctx context.Context, arg ReadinessConfirmSendParams) error {
+	_, err := q.db.Exec(ctx, readinessConfirmSend,
+		arg.CampaignID,
+		arg.WorkspaceID,
+		arg.RunID,
+		arg.ConfirmedBy,
+		arg.ConfirmedAt,
+		arg.ScheduledAt,
+		arg.Recipients,
+		arg.Acknowledged,
+		arg.Unknown,
+		arg.ContentDigest,
+		arg.SenderID,
+		arg.RouteDigest,
+	)
+	return err
+}
+
 const readinessEndProgress = `-- name: ReadinessEndProgress :exec
 DELETE FROM readiness_progress WHERE campaign_id = $1 AND run_id = $2
 `
@@ -188,6 +233,15 @@ func (q *Queries) ReadinessFailProgress(ctx context.Context, arg ReadinessFailPr
 		arg.CampaignID,
 		arg.RunID,
 	)
+	return err
+}
+
+const readinessForgetConfirmation = `-- name: ReadinessForgetConfirmation :exec
+DELETE FROM campaign_send_confirmations WHERE campaign_id = $1
+`
+
+func (q *Queries) ReadinessForgetConfirmation(ctx context.Context, campaignID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, readinessForgetConfirmation, campaignID)
 	return err
 }
 
@@ -740,6 +794,30 @@ func (q *Queries) ReadinessSegmentNames(ctx context.Context, workspaceID uuid.UU
 		return nil, err
 	}
 	return items, nil
+}
+
+const readinessSendConfirmation = `-- name: ReadinessSendConfirmation :one
+SELECT campaign_id, workspace_id, run_id, confirmed_by, confirmed_at, scheduled_at, recipients, acknowledged, unknown, content_digest, sender_id, route_digest FROM campaign_send_confirmations WHERE campaign_id = $1
+`
+
+func (q *Queries) ReadinessSendConfirmation(ctx context.Context, campaignID uuid.UUID) (CampaignSendConfirmation, error) {
+	row := q.db.QueryRow(ctx, readinessSendConfirmation, campaignID)
+	var i CampaignSendConfirmation
+	err := row.Scan(
+		&i.CampaignID,
+		&i.WorkspaceID,
+		&i.RunID,
+		&i.ConfirmedBy,
+		&i.ConfirmedAt,
+		&i.ScheduledAt,
+		&i.Recipients,
+		&i.Acknowledged,
+		&i.Unknown,
+		&i.ContentDigest,
+		&i.SenderID,
+		&i.RouteDigest,
+	)
+	return i, err
 }
 
 const readinessSetAudience = `-- name: ReadinessSetAudience :exec

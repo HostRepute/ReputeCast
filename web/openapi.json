@@ -64292,6 +64292,24 @@
         ],
         "type": "object"
       },
+      "ReviewCount": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "recipients": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "at",
+          "recipients"
+        ],
+        "type": "object"
+      },
       "ReviewHeld": {
         "additionalProperties": false,
         "properties": {
@@ -64301,12 +64319,28 @@
             },
             "type": "array"
           },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
           "held": {
             "format": "int64",
             "type": "integer"
           },
+          "holds": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewHoldReason"
+            },
+            "type": "array"
+          },
           "reason": {
             "type": "string"
+          },
+          "rechecked": {
+            "$ref": "#/components/schemas/ReviewCount"
+          },
+          "reviewed": {
+            "$ref": "#/components/schemas/ReviewCount"
           },
           "since": {
             "format": "date-time",
@@ -64317,7 +64351,31 @@
           "since",
           "reason",
           "held",
-          "blocks"
+          "blocks",
+          "holds"
+        ],
+        "type": "object"
+      },
+      "ReviewHoldReason": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "blocked",
+              "new_warning",
+              "unknown",
+              "audience_change",
+              "edited"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "text"
         ],
         "type": "object"
       },

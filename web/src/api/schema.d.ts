@@ -35185,13 +35185,29 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        ReviewCount: {
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            recipients: number;
+        };
         ReviewHeld: {
             blocks: components["schemas"]["ReadinessCheck"][];
+            /** Format: date-time */
+            expiresAt?: string;
             /** Format: int64 */
             held: number;
+            holds: components["schemas"]["ReviewHoldReason"][];
             reason: string;
+            rechecked?: components["schemas"]["ReviewCount"];
+            reviewed?: components["schemas"]["ReviewCount"];
             /** Format: date-time */
             since: string;
+        };
+        ReviewHoldReason: {
+            /** @enum {string} */
+            kind: "blocked" | "new_warning" | "unknown" | "audience_change" | "edited";
+            text: string;
         };
         ReviewScheduled: {
             /** Format: date-time */
