@@ -890,5 +890,19 @@
   "languages.versionSpamAnyAck": "Tôi hiểu bản {language} vướng dấu hiệu spam.",
 
   "images.local": "{count, plural, =1 {Ảnh} other {Cả # ảnh}} đều lấy từ thư viện media",
-  "images.localShort": "{count, number} ảnh trong thư viện"
+  "images.localShort": "{count, number} ảnh trong thư viện",
+
+  "estimate.rateFrom": "{rate, number}/giây{from, select, warmup { theo lộ trình làm nóng} default { mặc định} other {}}",
+  "basis.sentence": "Ước tính đã tính đến {parts}.",
+  "basis.rate": "giới hạn tốc độ của từng nhà cung cấp",
+  "basis.defaultRate": "tốc độ mặc định {rate, number}/giây của {provider} vì nhà cung cấp này không công bố tốc độ",
+  "basis.warmup": "lộ trình làm nóng và giới hạn hôm nay của {provider}",
+  "basis.warmupDays": "giới hạn làm nóng của {provider}, khiến phần của nó kéo dài {days, number} ngày",
+  "basis.quota": "hạn mức 24 giờ của {provider} ({count, number} thư phải chờ hạn mức được giải phóng)",
+  "basis.throttles": "giới hạn theo từng nhà cung cấp hộp thư",
+  "basis.abWait": "{manual, select, yes {mẫu A/B, rồi thời gian chờ bạn chọn bản thắng} other {thời gian chờ A/B {hours, number} giờ}}",
+  "basis.bestTime": "gửi vào giờ phù hợp nhất trong 24 giờ",
+  "rates.tooFew": "{provider}: {count, number} thư trong 7 ngày, quá ít để đánh giá tỷ lệ",
+  "rates.tooFewDetail": "Hiện có tỷ lệ trả thư {bounce} và khiếu nại {complaint}; tỷ lệ chỉ được tính từ {min, number} thư.",
+  "rates.tooFewShort": "{provider}: quá ít thư để đánh giá"
 }

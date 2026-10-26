@@ -20,6 +20,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/mailer"
 	"github.com/hostrepute/reputecast/internal/readiness"
 	"github.com/hostrepute/reputecast/internal/sending"
+	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/templates"
 )
@@ -48,7 +49,9 @@ func readinessService(a *App) *readiness.Service {
 		// the return-path and tracking domains are looked up as link domains are.
 		DNS: dl.DNS, Links: links,
 		// Runs wait in the job queue; a worker runs them (SR-8).
-		Jobs: func() readiness.JobInserter { return lazyJobs{a} }}
+		Jobs: func() readiness.JobInserter { return lazyJobs{a} },
+		// Estimates come from the sending engine's own rules (SR-5, C4).
+		Estimator: engineEstimator{a}}
 	if acc := readinessAccessibility(a); acc != nil {
 		rs.Accessibility = acc
 	}
@@ -70,6 +73,15 @@ func readinessService(a *App) *readiness.Service {
 		rs.UpgradeOffers = uo
 	}
 	return rs
+}
+
+// engineEstimator asks the app's sending engine for a send's estimate
+// (built on first use: the engine's own wiring includes Send Readiness).
+type engineEstimator struct{ a *App }
+
+// Estimate implements readiness.Estimator.
+func (e engineEstimator) Estimate(ctx context.Context, campaignID uuid.UUID, o engine.EstimateOptions) (engine.Estimate, error) {
+	return e.a.SendingEngine().Estimate(ctx, campaignID, o)
 }
 
 // linkBlocklist looks link domains up live on Spamhaus DBL and SURBL and

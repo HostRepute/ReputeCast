@@ -6,9 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/readiness"
+	"github.com/hostrepute/reputecast/internal/sending/engine"
 )
 
 // The SR-7 checks, one test each, on the Weekly Digest of the boards.
@@ -370,5 +373,76 @@ func TestReviewChecksInVietnamese(t *testing.T) {
 	}
 	if c := check(t, vi, "links.respond"); c.Title != "3/3 liên kết phản hồi" {
 		t.Errorf("links in Vietnamese: %q", c.Title)
+	}
+}
+
+// estimateDigest is the board's digest with the sending engine's estimate
+// (SR-5): SES and Postal by id, the A/B test's sample and 2-hour wait.
+func estimateDigest() (readiness.Facts, uuid.UUID, uuid.UUID) {
+	f := digest()
+	ses, postal := uuid.New(), uuid.New()
+	f.Route.Shares[0].ProviderID, f.Route.Shares[1].ProviderID = ses.String(), postal.String()
+	start := f.Campaign.StartAt
+	decide := start.Add(2 * time.Hour)
+	capLeft := int64(6000)
+	f.Route.Estimate = &engine.Estimate{Start: start, End: start.Add(2*time.Hour + 1604*time.Second), Throttles: map[string]float64{"outlook": 5, "yahoo": 4, "icloud": 3},
+		Providers: []engine.EstimateProvider{
+			{ProviderID: ses, Recipients: 28444, Rate: 14, RateFrom: "published", Seconds: 2032, Done: start.Add(2*time.Hour + 1604*time.Second), Days: 1},
+			{ProviderID: postal, Recipients: 3160, Rate: 2, RateFrom: "warmup", Seconds: 1580, Done: start.Add(2*time.Hour + 1264*time.Second), Days: 1, CapLeft: &capLeft}},
+		AB: &engine.EstimateAB{Kind: "subject", Variants: 2, TestPercent: 20, Sample: 6321, SampleEnd: start.Add(406 * time.Second), DecideAt: &decide, Hours: 2}}
+	return f, ses, postal
+}
+
+// The estimates come from the sending engine (SR-5, C4): its rates, the
+// time from the start to the last message with the A/B wait, and a
+// sentence that says what's included.
+func TestEstimatesFromTheEngine(t *testing.T) {
+	f, _, _ := estimateDigest()
+	res := readiness.Assemble(f)
+	r := res.Estimates.Route
+	if r.Shares[0].Minutes != 34 || r.Shares[1].Minutes != 26 || r.Shares[1].RateLabel != "2 /s warm-up ramp" || r.Shares[0].RateLabel != "14 /s" {
+		t.Fatalf("shares: %+v", r.Shares)
+	}
+	if r.TotalMinutes != 147 || r.Timeline == nil || r.Timeline.AB == nil || r.Timeline.AB.PerVariant != 3160 {
+		t.Fatalf("timeline: %d %+v", r.TotalMinutes, r.Timeline)
+	}
+	want := "The estimate includes each provider's rate limit, Postal's warm-up ramp and today's cap, throttling per mailbox provider and the 2-hour A/B wait."
+	if r.Timeline.BasisLabel != want {
+		t.Fatalf("basis: %q", r.Timeline.BasisLabel)
+	}
+	vi := stored(t, res).In(i18n.For(i18n.Vietnamese))
+	if l := vi.Estimates.Route.Timeline.BasisLabel; !strings.HasPrefix(l, "Ước tính đã tính đến") {
+		t.Errorf("basis in Vietnamese: %q", l)
+	}
+
+	// A provider that publishes no rate sends at the adapter's default; a
+	// warm-up plan too small for the share spreads it over days.
+	f, _, _ = estimateDigest()
+	f.Route.Estimate.Providers[0].RateFrom = "default"
+	f.Route.Estimate.Providers[1].Days = 3
+	r = readiness.Assemble(f).Estimates.Route
+	if r.Shares[0].RateLabel != "14 /s default" || r.Shares[1].Days != 3 ||
+		!strings.Contains(r.Timeline.BasisLabel, "SES's default 14 /s, since it publishes no rate") || !strings.Contains(r.Timeline.BasisLabel, "over 3 days") {
+		t.Fatalf("default rate and warm-up days: %+v %q", r.Shares, r.Timeline.BasisLabel)
+	}
+}
+
+// One bounce among three messages isn't a 33% bounce rate: below the
+// minimum volume ReputeCast's own rates don't warn or block (SR-5).
+func TestRatesNeedVolume(t *testing.T) {
+	f := digest()
+	f.Route.Shares[1].Bounce, f.Route.Shares[1].Sent7d = f64(33.3), 3
+	c := mustCheck(t, readiness.Assemble(f), "reputation.provider.p-postal")
+	if c.Status != readiness.Pass || !strings.Contains(c.Title, "3 messages in 7 days, too few") {
+		t.Fatalf("too few: %+v", c)
+	}
+	f.Route.Shares[1].Sent7d = 600
+	if c := mustCheck(t, readiness.Assemble(f), "reputation.provider.p-postal"); c.Status != readiness.Warn {
+		t.Fatalf("enough volume: %+v", c)
+	}
+	// The provider's own measurement counts whatever ReputeCast sent.
+	f.Route.Shares[1].Sent7d, f.Route.Shares[1].ProviderReported = 3, true
+	if c := mustCheck(t, readiness.Assemble(f), "reputation.provider.p-postal"); c.Status == readiness.Pass {
+		t.Fatalf("provider-reported: %+v", c)
 	}
 }

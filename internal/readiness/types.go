@@ -189,6 +189,8 @@ type ReadinessRouteShare struct {
 	StatusLabel string `json:"statusLabel"`
 	WarmupDay   int    `json:"warmupDay,omitempty"`
 	WarmupDays  int    `json:"warmupDays,omitempty"`
+	// WarmupCap is the warm-up plan's cap on the send day (0 without one).
+	WarmupCap int64 `json:"warmupCap,omitempty"`
 	// Available is false when the provider can't take mail (down, paused,
 	// webhooks silent); its share is held.
 	Available bool `json:"available"`
@@ -198,9 +200,52 @@ type ReadinessRouteShare struct {
 	PriceLabel string  `json:"priceLabel"`
 	Pricing    string  `json:"pricing" enum:"metered,plan,self_hosted"`
 	// Rate is messages per second; RateLabel "14 /s" or "2 /s ramp".
+	// RateFrom says where the sending engine takes it from: published (the
+	// provider's own maximum), default (the adapter's, when the provider
+	// publishes none) or warmup (the plan's ramp).
 	Rate      float64 `json:"rate"`
 	RateLabel string  `json:"rateLabel"`
-	Minutes   int     `json:"minutes"`
+	RateFrom  string  `json:"rateFrom,omitempty" enum:"published,default,warmup"`
+	// Minutes is how long the share sends, waits left out; Days how many
+	// days a warm-up plan's caps spread it over; OverQuota how many
+	// messages wait for the provider's 24-hour quota to free up.
+	Minutes   int   `json:"minutes"`
+	Days      int   `json:"days,omitempty"`
+	OverQuota int64 `json:"overQuota,omitempty"`
+}
+
+// ReadinessTimeline is when the parts of the send go out, played out with
+// the sending engine's own rules (SR-5): rates, warm-up caps, quotas,
+// throttles, the A/B wait and best time.
+type ReadinessTimeline struct {
+	Start time.Time `json:"start"`
+	// End is when the last message goes out. Open is true when a person
+	// picks the A/B winner: the rest waits for them and End is the
+	// sample's end.
+	End      time.Time `json:"end"`
+	Open     bool      `json:"open,omitempty"`
+	BestTime bool      `json:"bestTime,omitempty"`
+	// AB is the A/B test's timeline; nil without a test.
+	AB *ReadinessABTimeline `json:"ab,omitempty"`
+	// Basis names what the estimate includes; BasisLabel says it ("The
+	// estimate includes each provider's rate limit, …").
+	Basis      []string `json:"basis"`
+	BasisLabel string   `json:"basisLabel"`
+}
+
+// ReadinessABTimeline is an A/B test's sample, wait and rest.
+type ReadinessABTimeline struct {
+	Kind        string `json:"kind" enum:"subject,content,send_time"`
+	TestPercent int    `json:"testPercent"`
+	Variants    int    `json:"variants"`
+	Sample      int64  `json:"sample"`
+	// PerVariant is the sample of each variant.
+	PerVariant int64 `json:"perVariant"`
+	// SampleEnd is when the sample's last message goes out; DecideAt when
+	// the winner is picked (nil when a person picks it); Hours the wait.
+	SampleEnd time.Time  `json:"sampleEnd"`
+	DecideAt  *time.Time `json:"decideAt,omitempty"`
+	Hours     int        `json:"hours"`
 }
 
 // ReadinessHeldMove is what moving a held share to an available provider costs.
@@ -222,11 +267,15 @@ type ReadinessRoute struct {
 	Override    bool                  `json:"override"`
 	Shares      []ReadinessRouteShare `json:"shares"`
 	TotalCost   float64               `json:"totalCost"`
-	// TotalMinutes is the longest route (routes run in parallel) or the
-	// slowest mailbox provider throttle, whichever is longer.
+	// TotalMinutes is how long the send takes from its start, waits
+	// included (Timeline); without an estimate, the longest route (routes
+	// run in parallel) or the slowest mailbox provider throttle.
 	TotalMinutes int                `json:"totalMinutes"`
 	Down         int                `json:"down"`
 	Move         *ReadinessHeldMove `json:"move,omitempty"`
+	// Timeline is when the send's parts go out; nil when the sending engine
+	// couldn't estimate it.
+	Timeline *ReadinessTimeline `json:"timeline,omitempty"`
 }
 
 // ReadinessThrottle is the rate for one mailbox provider.

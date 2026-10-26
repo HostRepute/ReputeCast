@@ -32857,6 +32857,24 @@ export interface components {
             until: string;
             zone: string;
         };
+        ReadinessABTimeline: {
+            /** Format: date-time */
+            decideAt?: string;
+            /** Format: int64 */
+            hours: number;
+            /** @enum {string} */
+            kind: "subject" | "content" | "send_time";
+            /** Format: int64 */
+            perVariant: number;
+            /** Format: int64 */
+            sample: number;
+            /** Format: date-time */
+            sampleEnd: string;
+            /** Format: int64 */
+            testPercent: number;
+            /** Format: int64 */
+            variants: number;
+        };
         ReadinessAudience: {
             /** Format: int64 */
             duplicates: number;
@@ -33027,6 +33045,7 @@ export interface components {
             /** @enum {string} */
             stream: "broadcast" | "automation" | "system";
             streamLabel: string;
+            timeline?: components["schemas"]["ReadinessTimeline"];
             /** Format: double */
             totalCost: number;
             /** Format: int64 */
@@ -33039,10 +33058,14 @@ export interface components {
             color: "ses" | "postal" | "postmark" | "other";
             /** Format: double */
             cost: number;
+            /** Format: int64 */
+            days?: number;
             label?: string;
             /** Format: int64 */
             minutes: number;
             name: string;
+            /** Format: int64 */
+            overQuota?: number;
             /** Format: double */
             percent: number;
             priceLabel: string;
@@ -33051,12 +33074,16 @@ export interface components {
             providerId: string;
             /** Format: double */
             rate: number;
+            /** @enum {string} */
+            rateFrom?: "published" | "default" | "warmup";
             rateLabel: string;
             /** Format: int64 */
             recipients: number;
             short: string;
             status: string;
             statusLabel: string;
+            /** Format: int64 */
+            warmupCap?: number;
             /** Format: int64 */
             warmupDay?: number;
             /** Format: int64 */
@@ -33138,6 +33165,17 @@ export interface components {
             rate: number;
             /** Format: int64 */
             recipients: number;
+        };
+        ReadinessTimeline: {
+            ab?: components["schemas"]["ReadinessABTimeline"];
+            basis: string[];
+            basisLabel: string;
+            bestTime?: boolean;
+            /** Format: date-time */
+            end: string;
+            open?: boolean;
+            /** Format: date-time */
+            start: string;
         };
         RecBlockUse: {
             automation: string;

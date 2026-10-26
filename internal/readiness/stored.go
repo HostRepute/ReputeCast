@@ -62,6 +62,8 @@ type estimateTexts struct {
 	Split     Text         `json:"split,omitempty"`
 	Shares    []shareTexts `json:"shares,omitempty"`
 	Throttles []Text       `json:"throttles,omitempty"`
+	// Basis says what the estimate includes (Route.Timeline.BasisLabel).
+	Basis Text `json:"basis,omitempty"`
 }
 
 type shareTexts struct {
@@ -298,6 +300,11 @@ func (e ReadinessEstimates) In(l i18n.Lang) ReadinessEstimates {
 		if i < len(t.Throttles) {
 			out.Throttling[i].Name = pick(e.Throttling[i].Name, t.Throttles[i], l)
 		}
+	}
+	if e.Route.Timeline != nil {
+		tl := *e.Route.Timeline
+		tl.BasisLabel = pick(tl.BasisLabel, t.Basis, l)
+		out.Route.Timeline = &tl
 	}
 	return out
 }

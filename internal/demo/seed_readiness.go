@@ -18,6 +18,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/mjml"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/readiness"
+	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -152,6 +153,23 @@ func probed(entries ...[3]string) []contentcheck.ContentCheckLink {
 	return out
 }
 
+// estimate asks the sending engine how it would send the sample route: SES
+// takes sesShare of each mailbox provider's recipients, Postal the rest.
+func (r *readinessSeed) estimate(ctx context.Context, id uuid.UUID, start time.Time, mailboxes map[string]int64, sesShare float64) *engine.Estimate {
+	ses, postal := r.s.Providers["ses"], r.s.Providers["postal"]
+	cells := map[uuid.UUID]map[string]int64{ses: {}, postal: {}}
+	for k, n := range mailboxes {
+		viaSES := int64(math.Round(float64(n) * sesShare))
+		cells[ses][k], cells[postal][k] = viaSES, n-viaSES
+	}
+	now := r.s.Now
+	est, err := (&engine.Engine{Q: r.s.Q, Now: func() time.Time { return now }}).Estimate(ctx, id, engine.EstimateOptions{Start: start, Recipients: cells})
+	if err != nil {
+		return nil
+	}
+	return &est
+}
+
 // cdnImages are images on a CDN with their sizes in KB, as Send
 // Readiness requested them.
 func cdnImages(base string, kb ...int) []contentcheck.ContentCheckImage {
@@ -234,6 +252,9 @@ func (r *readinessSeed) weeklyDigest(ctx context.Context) error {
 		// The first-name tag's fallback, and the readers without a first name.
 		Fields: []readiness.FieldUse{{Field: "first_name", HasFallback: true, Fallback: "there"}}}
 	f.Audience.NoFirstName = 1817
+	// The estimate is the sending engine's own (SR-5): the route's 90 / 10
+	// split of each mailbox provider, played out from the schedule.
+	f.Route.Estimate = r.estimate(ctx, id, sched, f.Audience.Mailboxes, 0.9)
 	if _, _, err := r.storeRun(ctx, id, f, checked, &linh.ID, readiness.TriggerManual); err != nil {
 		return err
 	}

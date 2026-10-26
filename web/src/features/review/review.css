@@ -162,6 +162,16 @@
   .rv-card.c-tight {
     gap: 10px;
   }
+  /* The estimate's timeline under the route table (the board's .inset). */
+  .rv-inset {
+    padding: 12px 14px;
+    background: var(--ground-3);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
   .rv-sum {
     display: flex;
     justify-content: space-between;

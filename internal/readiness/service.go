@@ -29,6 +29,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/jobs"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/publicurl"
+	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/store"
 )
 
@@ -87,6 +88,15 @@ type Service struct {
 	Links contentcheck.BlocklistChecker
 	// Jobs queues runs (Start); a worker runs them (RunWorker).
 	Jobs func() JobInserter
+	// Estimator plays the send out with the sending engine's rules for the
+	// estimates (SR-5, C4); nil keeps the plain arithmetic.
+	Estimator Estimator
+}
+
+// Estimator estimates a send with the sending engine's own rules
+// (engine.Engine).
+type Estimator interface {
+	Estimate(ctx context.Context, campaignID uuid.UUID, o engine.EstimateOptions) (engine.Estimate, error)
 }
 
 func (s *Service) now() time.Time {

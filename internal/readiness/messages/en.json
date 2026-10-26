@@ -890,5 +890,19 @@
   "languages.versionSpamAnyAck": "I understand the {language} version trips spam heuristics.",
 
   "images.local": "{count, plural, =1 {The image comes} =2 {Both images come} other {All # images come}} from the media library",
-  "images.localShort": "{count, number} library images"
+  "images.localShort": "{count, number} library images",
+
+  "estimate.rateFrom": { "message": "{rate, number} /s{from, select, warmup { warm-up ramp} default { default} other {}}", "note": "messages per second as the sending engine sends: warmup is a warm-up plan's ramp; default is the adapter's rate when the provider publishes none" },
+  "basis.sentence": "The estimate includes {parts}.",
+  "basis.rate": "each provider's rate limit",
+  "basis.defaultRate": "{provider}'s default {rate, number} /s, since it publishes no rate",
+  "basis.warmup": "{provider}'s warm-up ramp and today's cap",
+  "basis.warmupDays": "{provider}'s warm-up caps, which spread its share over {days, number} days",
+  "basis.quota": "{provider}'s 24-hour quota ({count, plural, one {# message waits} other {# messages wait}} for it to free up)",
+  "basis.throttles": "throttling per mailbox provider",
+  "basis.abWait": "{manual, select, yes {the A/B sample, then the wait for your pick of the winner} other {the {hours, plural, one {#-hour} other {#-hour}} A/B wait}}",
+  "basis.bestTime": "best-time sending over 24 hours",
+  "rates.tooFew": "{provider}: {count, plural, one {# message} other {# messages}} in 7 days, too few to judge its rates",
+  "rates.tooFewDetail": "Bounce {bounce} and complaint {complaint} so far; rates count from {min, number} messages.",
+  "rates.tooFewShort": "{provider}: too few messages to judge"
 }

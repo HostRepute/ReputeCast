@@ -90,6 +90,25 @@ export function RouteCard({ route, startAt }: { route: Run['estimates']['route']
             </div>
           )
         })}
+        {shares.map((s) => {
+          if (!s.available || !s.warmupCap) return null
+          return s.days && s.days > 1 ? (
+            <span key={`cap-${s.providerId}`} className="k">
+              {t(m.warmupOver, { name: s.short, count: count(s.recipients), cap: count(s.warmupCap), days: s.days })}
+            </span>
+          ) : s.recipients <= s.warmupCap ? (
+            <span key={`cap-${s.providerId}`} className="k">
+              {t(m.warmupWithin, { name: s.short, count: count(s.recipients), cap: count(s.warmupCap) })}
+            </span>
+          ) : null
+        })}
+        {shares.map((s) =>
+          s.available && s.overQuota ? (
+            <span key={`quota-${s.providerId}`} className="k">
+              {t(m.quotaOver, { name: s.short, count: count(s.overQuota) })}
+            </span>
+          ) : null,
+        )}
       </div>
       {held.length ? (
         <>
@@ -138,7 +157,7 @@ export function RouteCard({ route, startAt }: { route: Run['estimates']['route']
                       {s.short} · {s.priceLabel} · {s.rateLabel}
                     </td>
                     <td className="n r">{dollars(s.cost)}</td>
-                    <td className="n r">{minutes(s.minutes)}</td>
+                    <td className="n r">{s.days && s.days > 1 ? t(m.overDays, { duration: minutes(s.minutes), days: s.days }) : minutes(s.minutes)}</td>
                   </tr>
                 ))}
                 <tr className="t-total">
@@ -149,10 +168,38 @@ export function RouteCard({ route, startAt }: { route: Run['estimates']['route']
               </tbody>
             </table>
           </div>
-          <FinishLine total={route.totalMinutes} startAt={startAt} />
+          {route.timeline ? <TimelineInset timeline={route.timeline} /> : <FinishLine total={route.totalMinutes} startAt={startAt} />}
         </>
       )}
     </section>
+  )
+}
+
+/** When the send's parts go out, as the sending engine plays it out: the
+ * A/B sample, the winner and the rest, and what the estimate includes. */
+function TimelineInset({ timeline }: { timeline: NonNullable<Run['estimates']['route']['timeline']> }) {
+  const t = useT()
+  const ab = timeline.ab
+  return (
+    <div className="rv-inset">
+      {ab ? (
+        <>
+          <span className="text-[13px] font-semibold">
+            {t(m.abLine, { kind: ab.kind, percent: ab.testPercent, variants: ab.variants, perVariant: count(ab.perVariant) })}
+          </span>
+          <span className="n text-[13px]">
+            {ab.decideAt && !timeline.open
+              ? t(m.abTimes, { from: clock(timeline.start), to: clock(ab.sampleEnd), decide: clock(ab.decideAt), end: clock(timeline.end) })
+              : t(m.abTimesManual, { from: clock(timeline.start), to: clock(ab.sampleEnd) })}
+          </span>
+        </>
+      ) : timeline.bestTime ? (
+        <span className="n text-[13px]">{t(m.bestTimeLine, { end: clock(timeline.end) })}</span>
+      ) : (
+        <span className="n text-[13px]">{t(m.finishesAbout, { end: clock(timeline.end), start: clock(timeline.start) })}</span>
+      )}
+      <span className="k">{timeline.basisLabel}</span>
+    </div>
   )
 }
 

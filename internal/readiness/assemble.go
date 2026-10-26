@@ -11,6 +11,7 @@ import (
 
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/providers/state"
+	"github.com/hostrepute/reputecast/internal/sending/engine"
 )
 
 // groupTitle is the heading of a check group ("Audience quality").
@@ -628,6 +629,14 @@ func (b *builder) providerRates(s ShareFacts) check {
 	if s.Complaint != nil {
 		complaint = *s.Complaint
 	}
+	if !s.ProviderReported && s.Sent7d > 0 && s.Sent7d < MinRateVolume {
+		// One bounce among three messages isn't a 33% bounce rate: below
+		// the minimum volume the rates don't judge the provider (SR-5).
+		c.Title = tx("rates.tooFew", A{"provider": s.Name, "count": s.Sent7d})
+		c.Detail = tx("rates.tooFewDetail", A{"min": MinRateVolume, "bounce": ArgPercent(bounce), "complaint": ArgPercent(complaint)})
+		c.Short = tx("rates.tooFewShort", A{"provider": s.Short})
+		return c
+	}
 	limits := A{"limits": limitsText(s), "bounce": ArgPercent(l.Bounce.Limit), "complaint": ArgPercent(l.Complaint.Limit)}
 	phrase := tx("rates.inside", limits)
 	switch {
@@ -665,6 +674,11 @@ func (b *builder) providerRates(s ShareFacts) check {
 	}
 	return c
 }
+
+// MinRateVolume is how many messages ReputeCast's own 7-day rates need
+// before they can warn about or block a provider (the guard pauses a send
+// on a mailbox provider's rates after 500 messages, too).
+const MinRateVolume = 500
 
 // yes is a select argument: "yes" or "no".
 func yes(b bool) string {
@@ -2043,11 +2057,19 @@ func (b *builder) estimates() ReadinessEstimates {
 		Override: rt.Override, Shares: []ReadinessRouteShare{}}
 	pcts := []string{}
 	maxMinutes := 0
+	// The engine's estimate, when there is one: its rates, warm-up days,
+	// quota and timeline (SR-5).
+	planned := map[string]engine.EstimateProvider{}
+	if rt.Estimate != nil {
+		for _, p := range rt.Estimate.Providers {
+			planned[p.ProviderID.String()] = p
+		}
+	}
 	for _, s := range rt.Shares {
 		st := shareTexts{Status: b.shareStatusText(s)}
 		rs := ReadinessRouteShare{ProviderID: s.ProviderID, Name: s.Name, Short: s.Short, Adapter: s.Adapter, Label: s.Label, Color: state.Color(s.Adapter),
 			Percent: math.Round(s.Percent*10) / 10, Recipients: s.Recipients, Status: s.Status, Available: s.Available,
-			WarmupDay: s.WarmupDay, WarmupDays: s.WarmupDays, Rate: s.Rate}
+			WarmupDay: s.WarmupDay, WarmupDays: s.WarmupDays, WarmupCap: s.WarmupCap, Rate: s.Rate}
 		rs.Pricing = pricingModel(s.Pricing.Model)
 		switch rs.Pricing {
 		case "self_hosted":
@@ -2058,7 +2080,16 @@ func (b *builder) estimates() ReadinessEstimates {
 			st.Price = tx("estimate.per1000", A{"price": ArgMoney(s.Pricing.Per1000), "count": 1000})
 			rs.Cost = math.Round(float64(s.Recipients)*s.Pricing.Per1000/1000*100) / 100
 		}
-		if s.Rate > 0 {
+		if p, ok := planned[s.ProviderID]; ok {
+			rs.Rate, rs.RateFrom, rs.OverQuota = p.Rate, p.RateFrom, p.OverQuota
+			if p.Days > 1 {
+				rs.Days = p.Days
+			}
+			st.Rate = tx("estimate.rateFrom", A{"rate": math.Round(p.Rate*10) / 10, "from": p.RateFrom})
+			if p.Seconds > 0 {
+				rs.Minutes = Minutes(p.Seconds)
+			}
+		} else if s.Rate > 0 {
 			st.Rate = tx("estimate.rate", A{"rate": math.Round(s.Rate*10) / 10, "ramp": yes(s.RateRamp)})
 			rs.Minutes = Minutes(float64(s.Recipients) / s.Rate)
 		}
@@ -2090,6 +2121,12 @@ func (b *builder) estimates() ReadinessEstimates {
 		}
 	}
 	route.TotalMinutes = maxMinutes
+	if est := rt.Estimate; est != nil {
+		// From the start to the last message: waits (the A/B winner, the
+		// next warm-up day, the quota) included.
+		route.TotalMinutes = Minutes(est.End.Sub(est.Start).Seconds())
+		route.Timeline, t.Basis = b.timeline(est)
+	}
 	// Moving a held share to the largest available provider.
 	for _, s := range rt.Shares {
 		if s.Available || s.Recipients == 0 {
@@ -2110,6 +2147,64 @@ func (b *builder) estimates() ReadinessEstimates {
 	out.Route = route
 	out.texts = t
 	return out
+}
+
+// timeline is the estimate's timeline for the API, and the sentence that
+// says what it includes ("The estimate includes each provider's rate
+// limit, Postal's warm-up ramp and today's cap, throttling per mailbox
+// provider and the 2-hour A/B wait").
+func (b *builder) timeline(est *engine.Estimate) (*ReadinessTimeline, Text) {
+	out := &ReadinessTimeline{Start: est.Start, End: est.End, Open: est.Open, BestTime: est.BestTime, Basis: []string{"rate"}}
+	parts := []any{tx("basis.rate", nil)}
+	short := map[string]string{}
+	for _, s := range b.f.Route.Shares {
+		short[s.ProviderID] = s.Short
+	}
+	for _, p := range est.Providers {
+		if p.Recipients == 0 || p.Held {
+			continue
+		}
+		name := short[p.ProviderID.String()]
+		switch {
+		case p.RateFrom == "default":
+			out.Basis = append(out.Basis, "default_rate")
+			parts = append(parts, tx("basis.defaultRate", A{"provider": name, "rate": math.Round(p.Rate*10) / 10}))
+		case p.RateFrom == "warmup" && p.Days > 1:
+			out.Basis = append(out.Basis, "warmup_days")
+			parts = append(parts, tx("basis.warmupDays", A{"provider": name, "days": p.Days}))
+		case p.RateFrom == "warmup" || p.CapLeft != nil:
+			out.Basis = append(out.Basis, "warmup")
+			parts = append(parts, tx("basis.warmup", A{"provider": name}))
+		}
+		if p.OverQuota > 0 {
+			out.Basis = append(out.Basis, "quota")
+			parts = append(parts, tx("basis.quota", A{"provider": name, "count": p.OverQuota}))
+		}
+	}
+	for _, r := range est.Throttles {
+		if r > 0 {
+			out.Basis = append(out.Basis, "throttles")
+			parts = append(parts, tx("basis.throttles", nil))
+			break
+		}
+	}
+	if ab := est.AB; ab != nil {
+		per := ab.Sample
+		if ab.Variants > 0 {
+			per = ab.Sample / int64(ab.Variants)
+		}
+		out.AB = &ReadinessABTimeline{Kind: ab.Kind, TestPercent: ab.TestPercent, Variants: ab.Variants, Sample: ab.Sample, PerVariant: per,
+			SampleEnd: ab.SampleEnd, DecideAt: ab.DecideAt, Hours: ab.Hours}
+		out.Basis = append(out.Basis, "ab_wait")
+		parts = append(parts, tx("basis.abWait", A{"hours": ab.Hours, "manual": yes(ab.DecideAt == nil)}))
+	}
+	if est.BestTime {
+		out.Basis = append(out.Basis, "best_time")
+		parts = append(parts, tx("basis.bestTime", nil))
+	}
+	label := tx("basis.sentence", A{"parts": ArgAnd(parts)})
+	out.BasisLabel = label.en()
+	return out, label
 }
 
 // pricingModel is how a provider is paid for: metered, plan or self_hosted.

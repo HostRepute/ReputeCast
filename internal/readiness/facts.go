@@ -7,6 +7,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/contentcheck"
 	"github.com/hostrepute/reputecast/internal/languages"
 	"github.com/hostrepute/reputecast/internal/providers/state"
+	"github.com/hostrepute/reputecast/internal/sending/engine"
 )
 
 // Facts is everything a run looked at. Gather collects them from the other
@@ -154,6 +155,9 @@ type RouteFacts struct {
 	Shares  []ShareFacts
 	// Fallback is the route's fallback provider, nil without one.
 	Fallback *FallbackFacts
+	// Estimate is the send played out with the sending engine's rules
+	// (SR-5, C4); nil when there is no engine to ask.
+	Estimate *engine.Estimate
 }
 
 // ShareFacts is one provider of the route with what the checks need.
@@ -187,10 +191,14 @@ type ShareFacts struct {
 	RateRamp bool
 	Pricing  state.Pricing
 	// Bounce and Complaint are 7-day rates in percent (nil without volume);
-	// ProviderReported is true when the provider measured them.
+	// ProviderReported is true when the provider measured them. Sent7d and
+	// Delivered7d are the volume ReputeCast's rates count: below
+	// MinRateVolume they can't judge a provider (SR-5).
 	Bounce           *float64
 	Complaint        *float64
 	ProviderReported bool
+	Sent7d           int64
+	Delivered7d      int64
 	Limits           state.Limits
 	// Account is the account standing ("Production · no enforcement").
 	Account string

@@ -24,6 +24,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers/manage"
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
+	"github.com/hostrepute/reputecast/internal/sending/engine"
 	"github.com/hostrepute/reputecast/internal/store"
 	"github.com/hostrepute/reputecast/internal/templates"
 	"github.com/hostrepute/reputecast/internal/warmup"
@@ -147,6 +148,11 @@ func (s *Service) gather(ctx context.Context, ws *store.Workspace, c store.Readi
 	}
 	if f.Route, err = s.route(ctx, g, f); err != nil {
 		return f, fmt.Errorf("route: %w", err)
+	}
+	if est := f.Route.Estimate; est != nil && est.Throttles != nil {
+		// The throttles the send will use, as the engine reads them (the
+		// defaults and the workspace's), not a copy of them.
+		f.MailboxRates = est.Throttles
 	}
 	done(stagePrepare, f)
 
@@ -314,7 +320,7 @@ func (s *Service) route(ctx context.Context, g *gathered, f Facts) (RouteFacts, 
 	out.Policy = string(set.Policy(providers.StreamBroadcast))
 	override := ParseRouteOverride(g.c.RouteOverride)
 	out.Override = override != nil
-	counts, order, ok := planRoute(set, override, g.recipients, g.c.SenderDomain)
+	counts, cells, order, ok := planRoute(set, override, g.recipients, g.c.SenderDomain)
 	if !ok {
 		out.NoRoute = true
 		return out, nil
@@ -341,6 +347,23 @@ func (s *Service) route(ctx context.Context, g *gathered, f Facts) (RouteFacts, 
 	if err != nil {
 		return out, err
 	}
+	// The volume behind ReputeCast's own 7-day rates (a few messages
+	// can't judge a provider, SR-5).
+	week := map[uuid.UUID]store.ProvDailyTotalsRow{}
+	if len(provs) > 0 {
+		ids := make([]uuid.UUID, 0, len(provs))
+		for _, p := range provs {
+			ids = append(ids, p.ID)
+		}
+		today := time.Date(f.Now.In(f.Location).Year(), f.Now.In(f.Location).Month(), f.Now.In(f.Location).Day(), 0, 0, 0, 0, time.UTC)
+		rows, err := s.Q.ProvDailyTotals(ctx, store.ProvDailyTotalsParams{ProviderIds: ids, Since: today.AddDate(0, 0, -6), Until: today})
+		if err != nil {
+			return out, err
+		}
+		for _, r := range rows {
+			week[r.ProviderID] = r
+		}
+	}
 	loc := f.Location
 	for _, p := range provs {
 		caps := state.Caps(p)
@@ -350,7 +373,7 @@ func (s *Service) route(ctx context.Context, g *gathered, f Facts) (RouteFacts, 
 			Recipients: counts[p.ID], Status: p.Status, Available: state.Available(p), Pricing: state.PricingOf(p), Limits: state.LimitsOf(p),
 			Account: h.Account, Sandbox: h.Sandbox || p.Status == state.Sandbox, Quota: h.Quota, BulkAllowed: caps.BulkAllowed(), Terms: termsOf(p, caps), TermsKind: termsKind(p, caps),
 			Tracking: state.TrackingOf(p), IPs: p.Ips, ConnectedAt: p.ConnectedAt, Bounce: u.Bounce7d, Complaint: u.Complaint7d,
-			ProviderReported: state.ReputationOf(h, f.Now) != nil, OneClick: caps.OneClick}
+			ProviderReported: state.ReputationOf(h, f.Now) != nil, OneClick: caps.OneClick, Sent7d: week[p.ID].Sent, Delivered7d: week[p.ID].Delivered}
 		if p.IpMode != "dedicated" {
 			sh.IPs = nil
 		}
@@ -386,6 +409,16 @@ func (s *Service) route(ctx context.Context, g *gathered, f Facts) (RouteFacts, 
 	// The fallback must be able to take the send (C11).
 	if fb := routeFallback(set, override); fb != nil {
 		out.Fallback = s.vetFallback(ctx, g, *fb, f.Audience.Final, f.Now, loc)
+	}
+	// The estimate: the send played out with the engine's own rules (C4).
+	if s.Estimator != nil && len(cells) > 0 {
+		est, err := s.Estimator.Estimate(ctx, g.c.ID, engine.EstimateOptions{Start: f.Campaign.StartAt, Recipients: cells})
+		switch {
+		case err == nil:
+			out.Estimate = &est
+		case s.Log != nil:
+			s.Log.WarnContext(ctx, "readiness estimate", "campaign", g.c.ID, "err", err)
+		}
 	}
 	return out, nil
 }

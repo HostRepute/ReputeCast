@@ -274,3 +274,26 @@ func TestReviewGathersTheNewChecks(t *testing.T) {
 		t.Errorf("reverse DNS named: %+v", ch)
 	}
 }
+
+// SR-5: a run's estimates come from the sending engine: its rates (SES's
+// published maximum, Postal's warm-up ramp), the A/B test's sample and
+// wait, and how long the whole send takes from its start.
+func TestEstimatesComeFromTheEngine(t *testing.T) {
+	env := apptest.New(t)
+	env.SeedDemo()
+	c := env.Client()
+	c.SignInDemo("linh@acme.io")
+	run := runChecks(t, env, c, campaignID(t, c, "Weekly Digest #143"))
+	r := run.Estimates.Route
+	if r.Timeline == nil || len(r.Timeline.Basis) == 0 || r.Timeline.BasisLabel == "" || !r.Timeline.End.After(r.Timeline.Start) {
+		t.Fatalf("timeline: %+v", r.Timeline)
+	}
+	if want := int(r.Timeline.End.Sub(r.Timeline.Start).Minutes()); r.TotalMinutes < want || r.TotalMinutes > want+1 {
+		t.Errorf("total %d minutes, the timeline says %d", r.TotalMinutes, want)
+	}
+	for _, s := range r.Shares {
+		if s.Recipients > 0 && s.Available && (s.RateFrom == "" || s.Rate <= 0) {
+			t.Errorf("share without the engine's rate: %+v", s)
+		}
+	}
+}

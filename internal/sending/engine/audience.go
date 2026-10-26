@@ -985,6 +985,12 @@ func routeOverride(raw json.RawMessage) *uuid.UUID {
 	var o struct {
 		ProviderID string `json:"provider_id"`
 		Provider   string `json:"providerId"`
+		// Splits is how Send Readiness's "Send via SES only" stores it
+		// (readiness.RouteOverride): the split that carries the send.
+		Splits []struct {
+			ProviderID string `json:"provider_id"`
+			Weight     int    `json:"weight"`
+		} `json:"splits"`
 	}
 	if len(raw) == 0 || json.Unmarshal(raw, &o) != nil {
 		return nil
@@ -994,7 +1000,14 @@ func routeOverride(raw json.RawMessage) *uuid.UUID {
 			return &id
 		}
 	}
-	return nil
+	var best *uuid.UUID
+	weight := 0
+	for _, sp := range o.Splits {
+		if id, err := uuid.Parse(sp.ProviderID); err == nil && sp.Weight > weight {
+			best, weight = &id, sp.Weight
+		}
+	}
+	return best
 }
 
 func domainOf(email string) string {

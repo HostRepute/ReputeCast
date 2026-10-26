@@ -322,16 +322,19 @@ func ParseRouteOverride(raw json.RawMessage) *RouteOverride {
 }
 
 // planRoute decides the provider of every recipient with the stream's rules
-// (or the campaign's override) and counts them per provider. order lists the
-// providers in the order of the default split, then the others.
-func planRoute(set routing.Set, override *RouteOverride, recipients []Recipient, senderDomain string) (counts map[uuid.UUID]int64, order []uuid.UUID, ok bool) {
+// (or the campaign's override) and counts them per provider, and per
+// provider and mailbox provider in cells (what the estimate plays out).
+// order lists the providers in the order of the default split, then the
+// others.
+func planRoute(set routing.Set, override *RouteOverride, recipients []Recipient, senderDomain string) (counts map[uuid.UUID]int64, cells map[uuid.UUID]map[string]int64, order []uuid.UUID, ok bool) {
 	counts = map[uuid.UUID]int64{}
+	cells = map[uuid.UUID]map[string]int64{}
 	if override != nil {
 		set = routing.Set{Rules: []routing.Rule{{Stream: providers.StreamBroadcast, Splits: override.Splits, Enabled: true, Priority: 1}}, Policies: set.Policies}
 	}
 	def, hasDefault := set.Default(providers.StreamBroadcast)
 	if !hasDefault {
-		return counts, order, false
+		return counts, cells, order, false
 	}
 	for _, sp := range def.Splits {
 		if !slices.Contains(order, sp.ProviderID) {
@@ -344,9 +347,13 @@ func planRoute(set routing.Set, override *RouteOverride, recipients []Recipient,
 			continue
 		}
 		counts[d.ProviderID]++
+		if cells[d.ProviderID] == nil {
+			cells[d.ProviderID] = map[string]int64{}
+		}
+		cells[d.ProviderID][r.MailboxProvider]++
 		if !slices.Contains(order, d.ProviderID) {
 			order = append(order, d.ProviderID)
 		}
 	}
-	return counts, order, true
+	return counts, cells, order, true
 }

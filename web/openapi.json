@@ -56342,6 +56342,57 @@
         ],
         "type": "object"
       },
+      "ReadinessABTimeline": {
+        "additionalProperties": false,
+        "properties": {
+          "decideAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "hours": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "subject",
+              "content",
+              "send_time"
+            ],
+            "type": "string"
+          },
+          "perVariant": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sample": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sampleEnd": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "testPercent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "variants": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "testPercent",
+          "variants",
+          "sample",
+          "perVariant",
+          "sampleEnd",
+          "hours"
+        ],
+        "type": "object"
+      },
       "ReadinessAudience": {
         "additionalProperties": false,
         "properties": {
@@ -57003,6 +57054,9 @@
           "streamLabel": {
             "type": "string"
           },
+          "timeline": {
+            "$ref": "#/components/schemas/ReadinessTimeline"
+          },
           "totalCost": {
             "format": "double",
             "type": "number"
@@ -57047,6 +57101,10 @@
             "format": "double",
             "type": "number"
           },
+          "days": {
+            "format": "int64",
+            "type": "integer"
+          },
           "label": {
             "type": "string"
           },
@@ -57056,6 +57114,10 @@
           },
           "name": {
             "type": "string"
+          },
+          "overQuota": {
+            "format": "int64",
+            "type": "integer"
           },
           "percent": {
             "format": "double",
@@ -57079,6 +57141,14 @@
             "format": "double",
             "type": "number"
           },
+          "rateFrom": {
+            "enum": [
+              "published",
+              "default",
+              "warmup"
+            ],
+            "type": "string"
+          },
           "rateLabel": {
             "type": "string"
           },
@@ -57094,6 +57164,10 @@
           },
           "statusLabel": {
             "type": "string"
+          },
+          "warmupCap": {
+            "format": "int64",
+            "type": "integer"
           },
           "warmupDay": {
             "format": "int64",
@@ -57403,6 +57477,44 @@
           "name",
           "recipients",
           "rate"
+        ],
+        "type": "object"
+      },
+      "ReadinessTimeline": {
+        "additionalProperties": false,
+        "properties": {
+          "ab": {
+            "$ref": "#/components/schemas/ReadinessABTimeline"
+          },
+          "basis": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "basisLabel": {
+            "type": "string"
+          },
+          "bestTime": {
+            "type": "boolean"
+          },
+          "end": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "open": {
+            "type": "boolean"
+          },
+          "start": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "basis",
+          "basisLabel"
         ],
         "type": "object"
       },
