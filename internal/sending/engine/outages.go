@@ -401,3 +401,13 @@ func (d *IncidentDetail) retried(who string) {
 	k := d.kept()
 	k.Causes = append([]causeTexts{k.Causes[n]}, k.Causes[:n]...)
 }
+
+// canaryHolds reports whether recipients wait for the canary to pass.
+func (rs *runState) canaryHolds() bool {
+	for _, c := range rs.queue {
+		if c.canary > 0 {
+			return true
+		}
+	}
+	return false
+}

@@ -134,6 +134,22 @@ func (q *Queries) SendingOutboxMarkInDoubt(ctx context.Context, arg SendingOutbo
 	return result.RowsAffected(), nil
 }
 
+const sendingOutboxQueuedOn = `-- name: SendingOutboxQueuedOn :one
+
+SELECT count(*)::bigint FROM messages
+WHERE provider_id = $1 AND status = 'queued' AND campaign_id IS NULL AND stream = 'automation'
+`
+
+// GS-5: every move is vetted ----------------------------------------------
+// How many automation emails wait on a provider: what its failover would
+// move, vetted as every move is.
+func (q *Queries) SendingOutboxQueuedOn(ctx context.Context, providerID *uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, sendingOutboxQueuedOn, providerID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const sendingOutboxRequeueStale = `-- name: SendingOutboxRequeueStale :execrows
 UPDATE messages m SET claimed_at = NULL
 FROM (SELECT unnest($2::uuid[]) AS provider_id, unnest($3::timestamptz[]) AS since) AS w

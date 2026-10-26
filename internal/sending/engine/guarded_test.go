@@ -44,6 +44,8 @@ func TestGuardedSending(t *testing.T) {
 	t.Run("RetryAsksAgainWhileDown", func(t *testing.T) { testRetryAsksAgain(t, s.Fixture(t, "GS-3 ask again")) })
 	t.Run("RetryResumesAfterThreeTests", func(t *testing.T) { testRetryResumes(t, s.Fixture(t, "GS-3 resume seed"), true) })
 	t.Run("RetryTestsWithTheShareWithoutSeeds", func(t *testing.T) { testRetryResumes(t, s.Fixture(t, "GS-3 resume own"), false) })
+	// GS-5: moves are vetted, holdouts stay held, a person's pause stays.
+	t.Run("MoveKeepsHoldoutsAndPause", func(t *testing.T) { testMoveKeepsHoldouts(t, s.Fixture(t, "GS-5 move")) })
 }
 
 // routeOf is the fixture's route on a provider: its status and detail.

@@ -71,6 +71,14 @@ type Outages interface {
 	HoldShares(ctx context.Context, providerID uuid.UUID, reason string) error
 }
 
+// ShareMover moves what is left of a held share to another provider, vetted
+// as every move is, keeping A/B and canary holdouts held (review GS-5). The
+// engine implements it; the providers screen's decision on a held share
+// goes through it.
+type ShareMover interface {
+	MoveShare(ctx context.Context, campaignID, by, from, to uuid.UUID) (int64, error)
+}
+
 // ErrUnavailable is returned by Unavailable, before the sending domain is wired.
 var ErrUnavailable = errors.New("sending is not available in this process")
 

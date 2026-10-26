@@ -105,7 +105,7 @@
   "opt.cancelShareLater": "Bỏ qua {remaining} người nhận còn lại. Họ được đánh dấu \"chưa gửi\" trong báo cáo và có thể gửi lại sau.",
   "opt.retryTitle": "Thử lại {who}{recommended, select, yes { (khuyên dùng)} other {}}",
   "opt.retry": "Thử lại {who}",
-  "opt.retryBody": "Giữ {remaining} người nhận ở {who}. {seed, select, yes {ReputeCast gửi 1 thư kiểm tra tới một hộp thư seed mỗi 60 giây} other {ReputeCast gửi 1 thư trong số đó mỗi 60 giây để kiểm tra}}; phần này tự tiếp tục gửi sau 3 lần thành công liên tiếp. Nếu {who} vẫn gián đoạn sau 15 phút, bạn sẽ được hỏi lại.",
+  "opt.retryBody": "Giữ {remaining} người nhận ở {who}. {seed, select, yes {ReputeCast gửi 1 thư kiểm tra tới một hộp thư mẫu mỗi 60 giây} other {ReputeCast gửi 1 thư trong số đó mỗi 60 giây để kiểm tra}}; phần này tự tiếp tục gửi sau 3 lần thành công liên tiếp. Nếu {who} vẫn gián đoạn sau 15 phút, bạn sẽ được hỏi lại.",
   "opt.moveTitle": "Chuyển phần còn lại của {who} sang {target} (khuyên dùng)",
   "opt.moveBody": "{remaining} người nhận vào hàng đợi của {target} ngay bây giờ. {sent} thư đã gửi qua {who} vẫn được theo dõi như cũ.",
   "opt.move": "Chuyển {remaining} sang {target}",
@@ -155,6 +155,15 @@
   "cause.retried": "{who} vẫn chưa nhận thư kiểm tra ReputeCast gửi mỗi 60 giây, nên bạn được hỏi lại.",
   "notify.askAgainTitle": "“{name}” lại cần bạn quyết định",
   "notify.askAgainBody": "{provider} vẫn chưa nhận thư sau 15 phút thử lại. Phần của nhà cung cấp này ({remaining, number} người nhận) vẫn đang bị tạm giữ; phần còn lại vẫn tiếp tục gửi.",
-  "audit.shareRetried": "Đang thử lại {who}: 1 thư kiểm tra mỗi 60 giây{seed, select, yes { tới một hộp thư seed} other {}}, tự tiếp tục sau 3 lần liên tiếp, hỏi lại sau 15 phút",
-  "audit.shareProbed": "{who} đã nhận {count} thư kiểm tra liên tiếp; phần của nó tự tiếp tục gửi"
+  "audit.shareRetried": "Đang thử lại {who}: 1 thư kiểm tra mỗi 60 giây{seed, select, yes { tới một hộp thư mẫu} other {}}, tự tiếp tục sau 3 lần liên tiếp, hỏi lại sau 15 phút",
+  "audit.shareProbed": "{who} đã nhận {count} thư kiểm tra liên tiếp; phần của nó tự tiếp tục gửi",
+
+  "check.domain": "{domain} đã được xác minh trên {target}",
+  "check.domainUnknown": "ReputeCast không biết {domain} đã được xác minh trên {target} hay chưa",
+  "check.quota": "Còn trống {free}/{max} hạn mức {kind, select, monthly_plan {tháng} other {ngày}} sau khi chuyển",
+  "check.quotaUnknown": "Chưa đọc được hạn mức của {target}",
+  "check.warm": "{target} đã khởi động xong",
+  "check.warming": "{target} đang khởi động: giới hạn hôm nay có thể giữ lại một phần",
+  "check.abHoldouts": "Người nhận chờ kết quả A/B vẫn được tạm giữ đến khi có bản thắng",
+  "check.canaryHoldouts": "Người nhận chờ đợt gửi thử vẫn được tạm giữ đến khi đợt gửi thử đạt"
 }

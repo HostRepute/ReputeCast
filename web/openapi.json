@@ -42251,9 +42251,40 @@
         ],
         "type": "object"
       },
+      "MoveCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "pass",
+              "warn",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "result",
+          "text"
+        ],
+        "type": "object"
+      },
       "MoveEstimate": {
         "additionalProperties": false,
         "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/MoveCheck"
+            },
+            "type": "array"
+          },
           "extraCost": {
             "format": "double",
             "type": "number"

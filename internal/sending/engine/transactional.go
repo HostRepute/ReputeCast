@@ -284,7 +284,7 @@ func (o *TransactionalOutbox) next(ctx context.Context, q *store.Queries, curren
 	if rs.Fallback != nil {
 		cands = append(cands, *rs.Fallback)
 	}
-	for _, id := range cands {
+	for i, id := range cands {
 		if id == uuid.Nil || gaveUp[id.String()] {
 			continue
 		}
@@ -296,6 +296,11 @@ func (o *TransactionalOutbox) next(ctx context.Context, q *store.Queries, curren
 			return nil, err
 		}
 		if p.DisconnectedAt != nil || !state.Available(p) {
+			continue
+		}
+		// Moving to the fallback is vetted as every move is (review GS-5):
+		// a sandboxed account or a used-up quota can't take the message.
+		if i > 0 && !state.Vet(p, state.Load{Messages: 1}).Allowed() {
 			continue
 		}
 		return &p, nil

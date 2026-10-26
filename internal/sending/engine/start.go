@@ -391,13 +391,22 @@ func (e *Engine) Pause(ctx context.Context, campaignID, by uuid.UUID, reason str
 		}
 		switch c.Status {
 		case "paused":
-			return nil
+			// Already waiting (for a decision on a held share, say): the
+			// person's pause is recorded all the same, so deciding on the
+			// share doesn't send the campaign again (review GS-5).
+			snd, err := q.SendingGetSend(ctx, c.ID)
+			if errors.Is(err, pgx.ErrNoRows) {
+				return nil
+			}
+			if err != nil || snd.PausedAt != nil {
+				return err
+			}
 		case "sending":
+			if err := q.SendingSetCampaignStatus(ctx, store.SendingSetCampaignStatusParams{ID: c.ID, Status: "paused", At: now}); err != nil {
+				return err
+			}
 		default:
 			return stateErr("state.notSending", campaignArgs(c.Name, c.Status))
-		}
-		if err := q.SendingSetCampaignStatus(ctx, store.SendingSetCampaignStatusParams{ID: c.ID, Status: "paused", At: now}); err != nil {
-			return err
 		}
 		ref, name := e.actorRef(ctx, q, by)
 		if err := q.SendingSetPaused(ctx, store.SendingSetPausedParams{CampaignID: c.ID, PausedAt: &now, PausedByName: firstNonEmpty(name, "System"), PauseReason: clip(strings.TrimSpace(reason), 500)}); err != nil {
@@ -410,7 +419,7 @@ func (e *Engine) Pause(ctx context.Context, campaignID, by uuid.UUID, reason str
 			return nil
 		}
 		return e.Audit.LogWith(ctx, q, audit.Event{WorkspaceID: &c.WorkspaceID, Action: "campaign.paused", TargetType: "campaign", TargetID: c.ID.String(), TargetName: c.Name,
-			Reason: strings.TrimSpace(reason), Before: map[string]any{"status": "sending"}, After: map[string]any{"status": "paused"}, Actor: e.actorFor(ctx, ref, name)})
+			Reason: strings.TrimSpace(reason), Before: map[string]any{"status": c.Status}, After: map[string]any{"status": "paused"}, Actor: e.actorFor(ctx, ref, name)})
 	})
 }
 

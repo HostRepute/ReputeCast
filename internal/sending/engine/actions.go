@@ -130,15 +130,14 @@ func (e *Engine) ResumeScope(ctx context.Context, campaignID, by uuid.UUID, in R
 			}
 			e.resetCalls(routeKey{campaignID, *in.ProviderID})
 		}
-		if c.Status == "paused" {
-			if err := q.SendingSetCampaignStatus(ctx, store.SendingSetCampaignStatusParams{ID: c.ID, Status: "sending", At: now}); err != nil {
-				return err
-			}
-		}
 		if incident != nil {
 			if err := q.SendingResolveIncident(ctx, store.SendingResolveIncidentParams{ID: incident.ID, At: &now, Resolution: resolution, ResolvedBy: ref}); err != nil {
 				return err
 			}
+		}
+		// A decision on one share never undoes a person's pause (review GS-5).
+		if err := e.unpause(ctx, q, c, now); err != nil {
+			return err
 		}
 		scope := in.Mailbox
 		data := campaignData(c.ID, c.Name, "resumed_by", firstNonEmpty(name, "System"), "scope", "mailbox_provider", "mailbox_provider", in.Mailbox)
@@ -308,10 +307,9 @@ func (e *Engine) CancelShare(ctx context.Context, campaignID, by uuid.UUID, mail
 				}
 			}
 		}
-		if c.Status == "paused" {
-			if err := q.SendingSetCampaignStatus(ctx, store.SendingSetCampaignStatusParams{ID: c.ID, Status: "sending", At: now}); err != nil {
-				return err
-			}
+		// The rest of the campaign finishes, unless a person paused it.
+		if err := e.unpause(ctx, q, c, now); err != nil {
+			return err
 		}
 		if !records(ctx) {
 			return nil
@@ -326,7 +324,9 @@ func (e *Engine) CancelShare(ctx context.Context, campaignID, by uuid.UUID, mail
 }
 
 // MoveShare moves what is left of one provider's share to another (a
-// person's decision during an outage).
+// person's decision during an outage, from the live monitor or the
+// providers screen; it implements sending.ShareMover). The target is vetted
+// as every move is; A/B and canary holdouts stay held on the new provider.
 func (e *Engine) MoveShare(ctx context.Context, campaignID, by, from, to uuid.UUID) (int64, error) {
 	now := e.now()
 	var moved int64
@@ -376,10 +376,8 @@ func (e *Engine) MoveShare(ctx context.Context, campaignID, by, from, to uuid.UU
 			WHERE campaign_id = $1 AND provider_id = $2 AND resolved_at IS NULL`, campaignID, from, now, ref); err != nil {
 			return err
 		}
-		if c.Status == "paused" {
-			if err := q.SendingSetCampaignStatus(ctx, store.SendingSetCampaignStatusParams{ID: c.ID, Status: "sending", At: now}); err != nil {
-				return err
-			}
+		if err := e.unpause(ctx, q, c, now); err != nil {
+			return err
 		}
 		if err := emit(ctx, tx, c.WorkspaceID, "campaign.resumed", campaignData(c.ID, c.Name, "resumed_by", firstNonEmpty(name, "System"), "scope", "route",
 			"provider_id", from.String(), "provider", fromP.Name, "moved_to", target.Name, "moved", moved)); err != nil {

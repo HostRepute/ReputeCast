@@ -95,7 +95,6 @@ var (
 	mNothingHeld         = msgs.M("problem.nothingHeld")
 	mPickTarget          = msgs.M("problem.pickTarget")
 	mTargetMissing       = msgs.M("problem.targetMissing")
-	mTargetUnavailable   = msgs.M("problem.targetUnavailable")
 
 	mAdminOnly          = msgs.M("adapters.adminOnly")
 	mNoRemote           = msgs.M("adapters.noRemote")

@@ -122,6 +122,18 @@ type MoveEstimate struct {
 	QuotaMax  *int64  `json:"quotaMax,omitempty"`
 	Risk      string  `json:"risk"` // low, high
 	RiskText  string  `json:"riskText"`
+	// Checks are what ReputeCast checked on the target before offering
+	// it (review GS-5): the sender's domain, its quota, its warm-up, and
+	// what happens to the recipients held for the A/B test or the canary.
+	Checks []MoveCheck `json:"checks,omitempty"`
+}
+
+// MoveCheck is one check a move's target passed ("pass") or that couldn't
+// be told ("unknown"), as a sentence.
+type MoveCheck struct {
+	Key    string `json:"key"`
+	Result string `json:"result" enum:"pass,warn,unknown"`
+	Text   string `json:"text"`
 }
 
 // analyzeThreshold explains a threshold trip with the send's own data.
@@ -545,6 +557,8 @@ func (e *Engine) analyzeOutage(ctx context.Context, rs *runState, r *runRoute, r
 			risk = "high"
 		}
 		d.setRisk(risk, keep("risk."+risk, i18n.Args{"target": d.Move.TargetShort}))
+		sender := senderVerification(ctx, e.Q, rs.campaign.WorkspaceID, rs.campaign.SenderID)
+		d.setMoveChecks(moveChecks(rs, e.vetTarget(ctx, e.Q, sender, *target, remaining, rs.loc), d.Move, remaining))
 	}
 	d.setOptions(outageOptions(short, remaining, d.SentOnRoute, d.Move, e.seedInbox(ctx, rs.campaign.WorkspaceID) != ""))
 	return d
@@ -596,6 +610,45 @@ func (e *Engine) moveEstimate(ctx context.Context, rs *runState, target store.Pr
 		m.QuotaFree, m.QuotaMax = &free, &mx
 	}
 	return m, tr.WarmingUp
+}
+
+// moveChecks are the checks a move's target passed, as the outage card
+// lists them (the target passed every check that could fail: it was
+// chosen by moveTarget), and what happens to the recipients the A/B test
+// or the canary holds.
+func moveChecks(rs *runState, v state.Vetting, m *MoveEstimate, n int64) []moveCheck {
+	var out []moveCheck
+	domain := domainOf(rs.content.FromEmail)
+	for _, c := range v.Checks {
+		args := i18n.Args{"target": m.TargetShort, "domain": firstNonEmpty(domain, "none")}
+		switch {
+		case c.Key == state.VetDomain && c.Result == state.VetPass:
+			out = append(out, moveCheck{c.Key, "pass", keep("check.domain", args)})
+		case c.Key == state.VetDomain:
+			out = append(out, moveCheck{c.Key, "unknown", keep("check.domainUnknown", args)})
+		case c.Key == state.VetQuota && c.Result == state.VetPass && c.Left != nil && m.QuotaMax != nil:
+			args["free"], args["max"], args["kind"] = max(*c.Left-n, 0), *m.QuotaMax, c.Detail
+			out = append(out, moveCheck{c.Key, "pass", keep("check.quota", args)})
+		case c.Key == state.VetQuota && c.Result == state.VetUnknown:
+			out = append(out, moveCheck{c.Key, "unknown", keep("check.quotaUnknown", args)})
+		case c.Key == state.VetWarm && c.Result == state.VetPass:
+			out = append(out, moveCheck{c.Key, "pass", keep("check.warm", args)})
+		case c.Key == state.VetWarm:
+			out = append(out, moveCheck{c.Key, "warn", keep("check.warming", args)})
+		}
+	}
+	switch {
+	case rs.ab.Phase == "testing":
+		out = append(out, moveCheck{"holdouts", "pass", keep("check.abHoldouts", nil)})
+	case rs.canaryHolds():
+		out = append(out, moveCheck{"holdouts", "pass", keep("check.canaryHoldouts", nil)})
+	}
+	return out
+}
+
+type moveCheck struct {
+	key, result string
+	text        i18n.Text
 }
 
 // outageOptions are the ways to continue after an outage held a share;

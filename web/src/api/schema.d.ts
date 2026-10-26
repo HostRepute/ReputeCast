@@ -28844,7 +28844,14 @@ export interface components {
             /** @enum {string} */
             state: "on" | "off" | "idp" | "required";
         };
+        MoveCheck: {
+            key: string;
+            /** @enum {string} */
+            result: "pass" | "warn" | "unknown";
+            text: string;
+        };
         MoveEstimate: {
+            checks?: components["schemas"]["MoveCheck"][];
             /** Format: double */
             extraCost: number;
             /** Format: int64 */

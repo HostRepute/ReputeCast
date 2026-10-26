@@ -100,3 +100,11 @@ LIMIT 1;
 -- as the send loop last read it: a person's decision in the meantime wins.
 UPDATE campaign_routes SET status_detail = @new
 WHERE campaign_id = @campaign_id AND provider_id = @provider_id AND status = 'held' AND status_detail = @old;
+
+-- GS-5: every move is vetted ----------------------------------------------
+
+-- name: SendingOutboxQueuedOn :one
+-- How many automation emails wait on a provider: what its failover would
+-- move, vetted as every move is.
+SELECT count(*)::bigint FROM messages
+WHERE provider_id = @provider_id AND status = 'queued' AND campaign_id IS NULL AND stream = 'automation';

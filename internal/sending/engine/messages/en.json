@@ -156,5 +156,14 @@
   "notify.askAgainTitle": "\"{name}\" needs your decision again",
   "notify.askAgainBody": {"message": "{provider} still isn't taking mail after 15 minutes of retrying. Its share ({remaining, number} recipients) is still held; the rest keeps sending.", "note": "provider: the sending provider's name"},
   "audit.shareRetried": {"message": "Retrying {who}: 1 test message every 60 s{seed, select, yes { to a seed inbox} other {}}, resumes after 3 in a row, asks again after 15 minutes", "note": "an audit log summary"},
-  "audit.shareProbed": {"message": "{who} took {count} test messages in a row; its share resumed by itself", "note": "an audit log summary"}
+  "audit.shareProbed": {"message": "{who} took {count} test messages in a row; its share resumed by itself", "note": "an audit log summary"},
+
+  "check.domain": {"message": "{domain} verified on {target}", "note": "a check ReputeCast ran on a move's target; domain: the sender's domain, target: a sending provider's short name"},
+  "check.domainUnknown": "ReputeCast can't tell whether {domain} is verified on {target}",
+  "check.quota": {"message": "{free} of {max} {kind, select, monthly_plan {monthly} other {daily}} quota free after the move", "note": "free, max: counts of messages"},
+  "check.quotaUnknown": "{target}'s quota hasn't been read yet",
+  "check.warm": "{target} is warm",
+  "check.warming": "{target} is warming up: today's cap may hold part of the share",
+  "check.abHoldouts": "A/B holdouts stay held until the winner",
+  "check.canaryHoldouts": "Recipients waiting for the canary stay held until it passes"
 }

@@ -30,6 +30,7 @@ type detailTexts struct {
 	Options         []optionTexts `json:"options,omitempty"`
 	RiskText        i18n.Text     `json:"riskText,omitzero"`
 	WarmupNote      i18n.Text     `json:"warmupNote,omitzero"`
+	MoveChecks      []i18n.Text   `json:"moveChecks,omitempty"`
 }
 
 type causeTexts struct {
@@ -114,6 +115,19 @@ func (d *IncidentDetail) setOptions(opts []option) {
 func (d *IncidentDetail) setWarmupNote(t i18n.Text) {
 	d.WarmupNote = sentence(i18n.Default, t)
 	d.kept().WarmupNote = t
+}
+
+// setMoveChecks sets the checks a move's target passed.
+func (d *IncidentDetail) setMoveChecks(checks []moveCheck) {
+	if d.Move == nil {
+		return
+	}
+	k := d.kept()
+	d.Move.Checks, k.MoveChecks = nil, nil
+	for _, c := range checks {
+		d.Move.Checks = append(d.Move.Checks, MoveCheck{Key: c.key, Result: c.result, Text: sentence(i18n.Default, c.text)})
+		k.MoveChecks = append(k.MoveChecks, c.text)
+	}
 }
 
 // setRisk sets the move's reputation risk.
@@ -284,6 +298,14 @@ func (d IncidentDetail) In(l i18n.Lang) IncidentDetail {
 	if d.Move != nil {
 		m := *d.Move
 		m.RiskText = in(m.RiskText, t.RiskText)
+		if d.Move.Checks != nil {
+			m.Checks = slices.Clone(d.Move.Checks)
+			for i := range m.Checks {
+				if i < len(t.MoveChecks) {
+					m.Checks[i].Text = in(m.Checks[i].Text, t.MoveChecks[i])
+				}
+			}
+		}
 		out.Move = &m
 	}
 	out.WarmupNote = in(d.WarmupNote, t.WarmupNote)

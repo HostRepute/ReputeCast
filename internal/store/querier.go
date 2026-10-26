@@ -3267,6 +3267,10 @@ type Querier interface {
 	// The automation outbox's other stale claims become in doubt.
 	SendingOutboxMarkInDoubt(ctx context.Context, arg SendingOutboxMarkInDoubtParams) (int64, error)
 	SendingOutboxProviders(ctx context.Context) ([]uuid.UUID, error)
+	// GS-5: every move is vetted ----------------------------------------------
+	// How many automation emails wait on a provider: what its failover would
+	// move, vetted as every move is.
+	SendingOutboxQueuedOn(ctx context.Context, providerID *uuid.UUID) (int64, error)
 	// The automation outbox's stale claims of providers that dedupe (as
 	// SendingRequeueStale).
 	SendingOutboxRequeueStale(ctx context.Context, arg SendingOutboxRequeueStaleParams) (int64, error)

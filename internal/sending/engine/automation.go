@@ -23,6 +23,7 @@ import (
 	"github.com/hostrepute/reputecast/internal/providers/state"
 	"github.com/hostrepute/reputecast/internal/routing"
 	"github.com/hostrepute/reputecast/internal/store"
+	"github.com/hostrepute/reputecast/internal/warmup"
 )
 
 // AutomationMailer is the automations engine's "Send email" step: it routes
@@ -342,14 +343,17 @@ func (e *Engine) outboxTick(ctx context.Context, pid uuid.UUID, transports map[u
 }
 
 // failOverOutbox moves a down provider's queued automation emails to the
-// Automations fallback.
+// Automations fallback, as the stream's failover policy allows and when the
+// fallback can take them (vetted as every move is, review GS-5); otherwise
+// the mail waits for its provider.
 func (e *Engine) failOverOutbox(ctx context.Context, p store.Provider) error {
 	set, err := routing.Load(ctx, e.Q, p.WorkspaceID)
 	if err != nil {
 		return err
 	}
 	def, ok := set.Default(providers.StreamAutomation)
-	if !ok || def.Fallback == nil || *def.Fallback == p.ID {
+	policy := set.Policy(providers.StreamAutomation)
+	if !ok || def.Fallback == nil || *def.Fallback == p.ID || policy == routing.PauseAndAsk {
 		return nil
 	}
 	fb, err := e.Q.ProvGetAny(ctx, *def.Fallback)
@@ -359,7 +363,16 @@ func (e *Engine) failOverOutbox(ctx context.Context, p store.Provider) error {
 	if err != nil {
 		return err
 	}
-	if !state.Available(fb) {
+	n, err := e.Q.SendingOutboxQueuedOn(ctx, &p.ID)
+	if err != nil || n == 0 {
+		return err
+	}
+	loc := time.UTC
+	if ws, err := e.Q.GetWorkspace(ctx, p.WorkspaceID); err == nil {
+		loc = state.Location(ws.Timezone)
+	}
+	vet := state.Vet(fb, state.Load{Messages: n, Warmup: warmup.Today(ctx, e.Q, fb.ID, e.now(), loc)})
+	if !vet.Allowed() || (policy == routing.WarmOnly && vet.Warming()) {
 		return nil
 	}
 	_, err = e.Pool.Exec(ctx, `UPDATE messages SET provider_id = $2, claimed_at = NULL
