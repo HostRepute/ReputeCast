@@ -372,7 +372,7 @@ function AltStep({ component, picked, onDone }: { component: Component; picked: 
         <button type="button" className="btn" onClick={onDone}>
           {t(md.altSkip)}
         </button>
-        <button type="submit" className="btn primary" disabled={!done}>
+        <button type="submit" className="btn pri" disabled={!done}>
           {t(md.altSave)}
         </button>
       </div>
