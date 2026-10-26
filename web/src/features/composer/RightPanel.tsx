@@ -20,6 +20,15 @@ import { mc } from '@/features/website/composer/messages'
 import { mc as canvasMessages } from './canvas.messages'
 import { m } from './messages'
 
+/**
+ * The issues of the email on the canvas: variant A's, or, while the canvas
+ * shows another variant of a content test, that variant's own (CO-6).
+ */
+export function canvasIssues(c: Pick<ReturnType<typeof useComposer>, 'checks' | 'abTest' | 'variant'>): Issue[] {
+  if (c.abTest?.kind === 'content' && c.variant !== 'A') return c.checks?.variants?.find((v) => v.key === c.variant)?.issues ?? []
+  return c.checks?.issues ?? []
+}
+
 /** Issues the Deliverability tab counts: blocks and warnings about the content (the subject has its own line). */
 export function contentIssues(issues: Issue[] | undefined): Issue[] {
   return (issues ?? []).filter((i) => (i.severity === 'block' || i.severity === 'warn') && i.group !== 'Subject')
@@ -133,19 +142,19 @@ function NothingSelected() {
   )
 }
 
-function IssueRow({ issue }: { issue: Issue }) {
+function IssueRow({ issue, fixable = true }: { issue: Issue; fixable?: boolean }) {
   const c = useComposer()
   const t = useT()
   const [alt, setAlt] = useState('')
   const tone = issue.severity === 'block' ? 'is-block' : issue.group === 'Subject' ? '' : 'is-warn'
   const select = () => {
-    if (issue.path.length) reveal(c, issue.path)
+    if (issue.path.length && fixable) reveal(c, issue.path)
   }
   return (
     <div className={`iss ${tone}`}>
       <div className="t">
         <Badge tone={issue.severity === 'block' ? 'bad' : 'warn'}>{issue.severity === 'block' ? t(m.severityBlock) : t(m.severityWarn)}</Badge>
-        {issue.path.length ? (
+        {issue.path.length && fixable ? (
           <button type="button" className="text-left font-semibold" style={{ border: 0, background: 'none', padding: 0, font: 'inherit', fontWeight: 600, color: 'inherit', cursor: 'pointer' }} onClick={select}>
             {issue.title}
           </button>
@@ -154,7 +163,7 @@ function IssueRow({ issue }: { issue: Issue }) {
         )}
       </div>
       {issue.detail ? <span className="k">{issue.detail}</span> : null}
-      {issue.fixes.length && c.canEdit ? (
+      {issue.fixes.length && c.canEdit && fixable ? (
         <div className="flex flex-wrap gap-1.5">
           {issue.fixes.map((f, i) =>
             f.kind === 'set_alt' ? (
@@ -184,13 +193,46 @@ function IssueRow({ issue }: { issue: Issue }) {
   )
 }
 
+/** The A/B variants' own findings, each under its variant (CO-6). */
+export function variantIssueCount(checks: ReturnType<typeof useComposer>['checks']): number {
+  return (checks?.variants ?? []).reduce((n, v) => n + v.issues.length, 0)
+}
+
+function VariantIssues() {
+  const c = useComposer()
+  const t = useT()
+  const variants = (c.checks?.variants ?? []).filter((v) => v.issues.length)
+  return variants.map((v) => {
+    // A content variant's issues point at its own body: fix them while the canvas shows it.
+    const shown = c.abTest?.kind === 'content' && c.variant === v.key
+    return (
+      <section key={v.key} className="flex flex-col border-t border-line-2" aria-label={t(m.variantIssues, { key: v.key })}>
+        <div className="prow" style={{ padding: '10px 12px 2px' }}>
+          <h3 className="m-0 text-[13px] font-semibold">{t(m.variantIssues, { key: v.key })}</h3>
+          {c.variant !== v.key ? (
+            <button type="button" className="btn sm" onClick={() => c.setVariant(v.key)}>
+              {t(m.showVariant, { key: v.key })}
+            </button>
+          ) : null}
+        </div>
+        <span className="k" style={{ padding: '0 12px 6px' }}>
+          {t(m.variantIssuesNote, { key: v.key })}
+        </span>
+        {v.issues.map((i) => (
+          <IssueRow key={`${v.key}-${i.id}-${i.path.join('.')}-${i.title}`} issue={i} fixable={shown} />
+        ))}
+      </section>
+    )
+  })
+}
+
 function DeliverabilityTab() {
   const c = useComposer()
   const t = useT()
   const all = (c.checks?.issues ?? []).filter((i) => i.severity === 'block' || i.severity === 'warn')
   const rank = (i: Issue) => (i.group === 'Subject' ? 2 : i.severity === 'block' ? 0 : 1)
   const sorted = [...all].sort((a, b) => rank(a) - rank(b))
-  if (!sorted.length)
+  if (!sorted.length && !variantIssueCount(c.checks))
     return (
       <div className="k" style={{ padding: '14px 12px' }}>
         {t(m.noWarningsLong)}
@@ -201,6 +243,7 @@ function DeliverabilityTab() {
       {sorted.map((i) => (
         <IssueRow key={`${i.id}-${i.path.join('.')}-${i.title}`} issue={i} />
       ))}
+      <VariantIssues />
     </div>
   )
 }
@@ -213,8 +256,9 @@ export function RightPanel() {
   const digest = useDigestMode()
   const web = useWebMode()
   const issues = contentIssues(c.checks?.issues)
+  const variantCount = variantIssueCount(c.checks)
   const tab =
-    (c.rightTab === 'deliverability' && !issues.length && !(c.checks?.issues ?? []).some((i) => i.severity === 'warn' || i.severity === 'block')) || (c.rightTab === 'web' && !web)
+    (c.rightTab === 'deliverability' && !issues.length && !variantCount && !(c.checks?.issues ?? []).some((i) => i.severity === 'warn' || i.severity === 'block')) || (c.rightTab === 'web' && !web)
       ? 'style'
       : c.rightTab
   if (c.isEmpty) {
@@ -242,7 +286,7 @@ export function RightPanel() {
   // The website's Web tab (features/website), while it's on.
   if (web) items.push({ value: 'web', label: tt(mc.tabWeb) })
   const allWarn = (c.checks?.issues ?? []).filter((i) => i.severity === 'block' || i.severity === 'warn')
-  if (allWarn.length) items.push({ value: 'deliverability', label: t(m.tabDeliverability, { count: issues.length || allWarn.length }) })
+  if (allWarn.length || variantCount) items.push({ value: 'deliverability', label: t(m.tabDeliverability, { count: (issues.length || allWarn.length) + variantCount }) })
   const a11yTab = accessibilityTab(a11y)
   if (a11yTab) items.push({ value: 'accessibility', label: a11yTab })
   return (

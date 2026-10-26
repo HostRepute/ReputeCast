@@ -2,15 +2,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { $api, http, type Schemas } from '@/api/client'
 import { Badge } from '@/components/ui/Badge'
-import { clock, count, decimal, pct } from '@/lib/format'
+import { clock, count, decimal } from '@/lib/format'
 import { T, t as tt, useT, type MessageDescriptor } from '@/i18n'
-import { useComposer, type ABTest } from './context'
+import { useComposer } from './context'
 import { inboxTime } from './format'
 import { SendTestButton } from './SendTest'
 import { mb } from './blocks.messages'
 import { m } from './messages'
 import { mp } from './preview.messages'
 import { fallbackOf, PersonalizationCard } from './Personalization'
+import { ABPanel, PreviewingSwitch } from './ABPanel'
 import { usePreviewAsLabel, versionLanguage } from '@/features/languages/composerParts'
 import { PreviewVersionLine, ShowWhyToggle, ThisVersionCard, VersionsCard, usePreviewVersion } from '@/features/conditional/Preview'
 import { useConditional } from '@/features/conditional/state'
@@ -213,146 +214,6 @@ function useDarkChecks(doc: Document | null, assets: Schemas['MediaAsset'][] | u
   }, [doc, assets])
 }
 
-const PERCENTS = [10, 20, 30, 40, 50]
-
-function ABPanel() {
-  const c = useComposer()
-  const tr = useT()
-  const t = c.abTest
-  const audience = c.campaign.audienceCount ?? 0
-  const start = (kind: ABTest['kind']) => {
-    if (!c.canEdit) return
-    const base = { testPercent: t?.testPercent ?? 20, metric: t?.metric ?? 'human_opens', durationHours: t?.durationHours ?? 2 } as const
-    if (kind === 'subject') c.setABTest({ ...base, kind, variants: [{ key: 'A' }, { key: 'B', subject: '' }] })
-    if (kind === 'content') c.setABTest({ ...base, kind, variants: [{ key: 'A' }, { key: 'B', mjml: c.currentMjml() }] })
-    if (kind === 'send_time') c.setABTest({ ...base, kind, variants: [{ key: 'A', sendTime: '09:00' }, { key: 'B', sendTime: '14:00' }] })
-  }
-  const update = (next: Partial<ABTest>) => t && c.setABTest({ ...t, ...next })
-  const setVariant = (key: string, v: Partial<ABTest['variants'][number]>) => t && c.setABTest({ ...t, variants: t.variants.map((x) => (x.key === key ? { ...x, ...v } : x)) })
-  const addVariant = () => {
-    if (!t) return start('subject')
-    if (t.variants.length >= 3) return
-    const key = t.variants.some((v) => v.key === 'B') ? 'C' : 'B'
-    c.setABTest({ ...t, variants: [...t.variants, t.kind === 'content' ? { key, mjml: c.currentMjml() } : t.kind === 'send_time' ? { key, sendTime: '17:00' } : { key, subject: '' }] })
-  }
-  const share = pct(t ? Math.round(100 / t.variants.length) : 50, 0)
-  const sample = Math.round((audience * (t?.testPercent ?? 20)) / 100)
-  const kinds: { kind: ABTest['kind']; title: string; text: string }[] = [
-    { kind: 'subject', title: tr(mp.kindSubject), text: tr(mp.kindSubjectText) },
-    { kind: 'content', title: tr(mp.kindContent), text: tr(mp.kindContentText) },
-    { kind: 'send_time', title: tr(mp.kindSendTime), text: tr(mp.kindSendTimeText) },
-  ]
-  const winnerAt = c.campaign.scheduledAt && t ? clock(new Date(new Date(c.campaign.scheduledAt).getTime() + t.durationHours * 3600_000)) : null
-  return (
-    <div className="flex flex-col gap-2.5" style={{ padding: '14px 16px' }}>
-      <div className="flex items-center justify-between">
-        <h2 className="m-0 text-[14px] font-semibold">{tr(mp.abTitle)}</h2>
-        {c.canEdit ? (
-          <button type="button" className="btn sm" onClick={addVariant} disabled={!!t && t.variants.length >= 3}>
-            {tr(mp.addVariant)}
-          </button>
-        ) : null}
-      </div>
-      {kinds.map((k) =>
-        t && t.kind === k.kind ? (
-          <div key={k.kind} className="card flex flex-col gap-2" style={{ padding: '10px 12px' }}>
-            <div className="flex items-center justify-between">
-              <span className="font-semibold">{k.title}</span>
-              <Badge tone="info">{tr(mp.active)}</Badge>
-            </div>
-            {t.variants.map((v) =>
-              t.kind === 'subject' ? (
-                <label key={v.key} className="lbl">
-                  {tr(mp.ofSample, { key: v.key, share })}
-                  <input
-                    className="in"
-                    value={v.key === 'A' ? c.subject : (v.subject ?? '')}
-                    readOnly={!c.canEdit}
-                    onChange={(e) => (v.key === 'A' ? c.setSubject(e.target.value) : setVariant(v.key, { subject: e.target.value }))}
-                    placeholder={tr(mp.anotherSubject)}
-                  />
-                </label>
-              ) : t.kind === 'send_time' ? (
-                <label key={v.key} className="lbl">
-                  {tr(mp.ofSampleLocal, { key: v.key, share })}
-                  <input className="in" type="time" value={v.sendTime ?? ''} readOnly={!c.canEdit} onChange={(e) => setVariant(v.key, { sendTime: e.target.value })} />
-                </label>
-              ) : (
-                <div key={v.key} className="flex items-center justify-between gap-2">
-                  <span className="lbl" style={{ flexDirection: 'row' }}>
-                    {tr(mp.ofSample, { key: v.key, share })}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn sm"
-                    onClick={() => {
-                      c.setVariant(v.key)
-                      c.setView('visual')
-                    }}
-                  >
-                    {tr(mp.editOnCanvas)}
-                  </button>
-                </div>
-              ),
-            )}
-            {t.kind === 'send_time' ? (
-              <label className="chk items-center">
-                <input type="checkbox" checked={!!t.bestTime} disabled={!c.canEdit} onChange={(e) => update({ bestTime: e.target.checked })} />
-                {tr(mp.bestTime)}
-              </label>
-            ) : null}
-            <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(2,minmax(0,1fr))' }}>
-              <label className="lbl">
-                {tr(mp.sampleSize)}
-                <select className="in" value={t.testPercent} disabled={!c.canEdit} onChange={(e) => update({ testPercent: Number(e.target.value) })}>
-                  {PERCENTS.map((p) => (
-                    <option key={p} value={p}>
-                      {audience ? tr(mp.sampleOption, { share: pct(p, 0), count: count(Math.round((audience * p) / 100)) }) : pct(p, 0)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="lbl">
-                {tr(mp.winnerBy)}
-                <select className="in" value={t.metric} disabled={!c.canEdit} onChange={(e) => update({ metric: e.target.value as ABTest['metric'] })}>
-                  <option value="human_opens">{tr(mp.winnerOpens, { hours: t.durationHours })}</option>
-                  <option value="clicks">{tr(mp.winnerClicks, { hours: t.durationHours })}</option>
-                  <option value="manual">{tr(mp.winnerManual)}</option>
-                </select>
-              </label>
-            </div>
-            <span className="k">
-              {t.metric === 'manual'
-                ? tr(mp.manualNote, { count: count(Math.max(0, audience - sample)) })
-                : winnerAt
-                  ? tr(mp.winnerAt, { count: count(Math.max(0, audience - sample)), time: winnerAt })
-                  : tr(mp.winnerAfter, { count: count(Math.max(0, audience - sample)), hours: t.durationHours })}{' '}
-              {t.metric === 'human_opens' ? tr(mp.humanOpensNote) : null}
-            </span>
-            {c.canEdit ? (
-              <button type="button" className="k self-start" style={{ border: 0, background: 'none', padding: 0, minHeight: 24, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }} onClick={() => c.setABTest(null)}>
-                {tr(mp.stopTesting)}
-              </button>
-            ) : null}
-          </div>
-        ) : (
-          <div key={k.kind} className="card flex flex-col gap-1.5" style={{ padding: '10px 12px', borderStyle: 'dashed' }}>
-            <div className="flex items-center justify-between">
-              <span className="font-semibold">{k.title}</span>
-              {c.canEdit ? (
-                <button type="button" className="btn sm" onClick={() => start(k.kind)}>
-                  {tr(mp.setUp)}
-                </button>
-              ) : null}
-            </div>
-            <span className="k">{k.text}</span>
-          </div>
-        ),
-      )}
-    </div>
-  )
-}
-
 type Sample = { sample: 'contact' | 'no_first_name' | 'random'; contactId?: string }
 
 /**
@@ -383,15 +244,16 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
 
   useEffect(() => {
     let cancelled = false
-    const compiled = c.compileCurrent()
+    // The variant previewed, as the composer has it: its own subject, preheader and content.
+    const shown = c.variantContent?.(c.variant) ?? { subject: c.subject, preheader: c.preheader, html: c.compileCurrent()?.html }
     void http
       .POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/preview', {
         params: { path: { workspace: c.slug, campaignId: c.campaign.id } },
         body: {
           ...sample,
-          html: compiled?.html,
-          subject: c.subject,
-          preheader: c.preheader,
+          html: shown.html,
+          subject: shown.subject,
+          preheader: shown.preheader,
           variant: c.variant === 'A' ? undefined : (c.variant as 'B' | 'C'),
           editing: versionLanguage(c.campaign),
         },
@@ -406,9 +268,12 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
     return () => {
       cancelled = true
     }
-  }, [sample, c.slug, c.campaign.id, c.subject, c.preheader, c.variant, c.rev]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sample, c.slug, c.campaign.id, c.subject, c.preheader, c.abTest, c.variant, c.rev]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const meta = CLIENTS.find((x) => x.id === client)!
+  // An A/B test: which variant each preview shows.
+  const testing = !!c.abTest && c.abTest.kind !== 'send_time'
+  const variantTag = testing ? <span className="vtag">{tr(mp.variantKey, { key: c.variant })}</span> : null
   const firstNameToken = preview?.tokens.find((t) => t.key === 'first_name')
   const firstNameFallback = firstNameToken?.token.includes('default:') ? fallbackOf(firstNameToken.token) : undefined
   const width = device === 'mobile' || client === 'apple' ? 375 : 600
@@ -474,6 +339,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
         : null}
       <section className="cmp-main" style={{ flex: '999 1 620px' }} aria-label={tr(mp.clientPreviews)}>
         <div className="cmp-tools">
+          <PreviewingSwitch />
           <div className="seg" role="group" aria-label={tr(mp.emailClient)}>
             {CLIENTS.map((x) => (
               <button key={x.id} type="button" aria-pressed={client === x.id} onClick={() => setClient(x.id)}>
@@ -499,7 +365,10 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
           ) : null}
           <div className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-line" style={{ padding: '8px 12px' }}>
-              <span className="text-[12px] font-semibold">{tr(mp.light, { client: meta.short })}</span>
+              <span className="text-[12px] font-semibold">
+                {tr(mp.light, { client: meta.short })}
+                {variantTag}
+              </span>
               <span className="k">{preview ? tr(mp.rendered, { time: clock(preview.renderedAt) }) : tr(mp.rendering)}</span>
             </div>
             <div style={{ padding: 12, background: '#fff' }}>
@@ -509,7 +378,10 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
           </div>
           <div className="card overflow-hidden" style={{ borderColor: '#374151' }}>
             <div className="flex items-center justify-between gap-3" style={{ padding: '8px 12px', borderBottom: '1px solid #374151', background: '#111827', color: '#E5E7EB' }}>
-              <span className="text-[12px] font-semibold">{tr(mp.dark, { client: meta.short })}</span>
+              <span className="text-[12px] font-semibold">
+                {tr(mp.dark, { client: meta.short })}
+                {variantTag}
+              </span>
               <span style={{ fontSize: 12, color: '#9CA3AF' }}>{tr(meta.dark)}</span>
             </div>
             <div style={{ padding: 12, background: '#111827', color: '#E5E7EB' }}>
@@ -531,7 +403,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
             )}
           </div>
           <div className="card flex flex-col gap-2" style={{ padding: 12 }}>
-            <span className="text-[12px] font-semibold">{tr(mp.plainText)}</span>
+            <span className="text-[12px] font-semibold">{testing ? tr(mp.plainTextVariant, { key: c.variant }) : tr(mp.plainText)}</span>
             <pre className="mono m-0" style={{ fontSize: 11.5, lineHeight: 1.5, whiteSpace: 'pre-wrap', color: 'var(--ink-nav)', overflowWrap: 'anywhere' }}>
               {preview?.text ?? ''}
             </pre>
@@ -542,7 +414,7 @@ export function PreviewView({ onReview }: { onReview: () => void }) {
         <ThisVersionCard v={version} html={preview?.html} />
         <VersionsCard v={version} />
         <div className="flex flex-col gap-2 border-b border-line-2" style={{ padding: '14px 16px' }}>
-          <h2 className="m-0 text-[14px] font-semibold">{tr(mp.inboxPreview)}</h2>
+          <h2 className="m-0 text-[14px] font-semibold">{testing ? tr(mp.inboxPreviewVariant, { key: c.variant }) : tr(mp.inboxPreview)}</h2>
           <div className="flex flex-col gap-1 rounded-lg border border-line" style={{ padding: 10, background: 'var(--ground-3)', fontSize: 12 }}>
             <div className="flex justify-between">
               <b>{preview?.fromName || c.campaign.sender?.name || tr(mp.sender)}</b>

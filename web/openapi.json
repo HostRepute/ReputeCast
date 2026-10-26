@@ -17396,6 +17396,12 @@
             },
             "type": "array"
           },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/ComposerVariantChecks"
+            },
+            "type": "array"
+          },
           "verdict": {
             "enum": [
               "ready",
@@ -17415,6 +17421,7 @@
         },
         "required": [
           "lint",
+          "variants",
           "verdict",
           "blocks",
           "warnings",
@@ -17439,6 +17446,9 @@
       "ComposerChecksRequest": {
         "additionalProperties": false,
         "properties": {
+          "abTest": {
+            "$ref": "#/components/schemas/ComposerABTest"
+          },
           "html": {
             "maxLength": 2500000,
             "type": "string"
@@ -18131,6 +18141,39 @@
             "$ref": "#/components/schemas/ComposerContentSettings"
           }
         },
+        "type": "object"
+      },
+      "ComposerVariantChecks": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/ContentCheckIssue"
+            },
+            "type": "array"
+          },
+          "key": {
+            "enum": [
+              "B",
+              "C"
+            ],
+            "type": "string"
+          },
+          "warnings": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "blocks",
+          "warnings",
+          "issues"
+        ],
         "type": "object"
       },
       "ComposerVersion": {

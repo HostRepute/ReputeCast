@@ -261,6 +261,11 @@ func RegisterComposer(h huma.API, s *Service) {
 			for i := range out.Lint {
 				out.Lint[i].Message = out.Lint[i].In(l)
 			}
+			for i := range out.Variants {
+				for j := range out.Variants[i].Issues {
+					out.Variants[i].Issues[j] = out.Variants[i].Issues[j].In(l)
+				}
+			}
 			return api.OK(out), err
 		})
 	api.Get(h, api.Op{ID: "composer-context", Path: "/workspaces/{workspace}/composer", Summary: "Senders, lists, segments, personalization tokens, team and route for the composer",

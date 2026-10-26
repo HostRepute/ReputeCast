@@ -353,13 +353,8 @@ func validateAB(l i18n.Lang, t *ComposerABTest) error {
 	if !keys["A"] || !keys["B"] {
 		return api.Invalid("body.abTest.variants", mProblemVariantsAB.Text(l, nil))
 	}
-	if t.Kind == "subject" {
-		for _, v := range t.Variants {
-			if v.Key != "A" && strings.TrimSpace(v.Subject) == "" {
-				return api.Invalid("body.abTest.variants", mProblemVariantSubject.Text(l, i18n.Args{"variant": v.Key}))
-			}
-		}
-	}
+	// A subject variant without a subject still saves (an autosave mid-edit
+	// must not fail): the checks say "Write a subject for variant B".
 	return nil
 }
 

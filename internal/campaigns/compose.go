@@ -677,6 +677,9 @@ type ComposerChecksRequest struct {
 	// Language is the language version checked: subject heuristics look for
 	// English phrases only in English.
 	Language string `json:"language,omitempty" maxLength:"16"`
+	// ABTest is the A/B test as the composer has it, unsaved edits
+	// included: variants B and C are checked too (ComposerChecks.Variants).
+	ABTest *ComposerABTest `json:"abTest,omitempty"`
 }
 
 // ComposerChecks is a content report plus what the composer shows around it.
@@ -687,6 +690,19 @@ type ComposerChecks struct {
 	FooterRemovedAt *time.Time `json:"footerRemovedAt,omitempty"`
 	// Lint lists MJML layout warnings (image wider than its column…).
 	Lint []mjml.MJMLProblem `json:"lint"`
+	// Variants are what checking each A/B variant (its subject and
+	// preheader, or its content) finds beyond variant A's issues above.
+	Variants []ComposerVariantChecks `json:"variants"`
+}
+
+// ComposerVariantChecks is what one A/B variant's check finds that variant
+// A's doesn't (a subject that trips a spam heuristic, a broken link in its
+// content, no subject at all).
+type ComposerVariantChecks struct {
+	Key      string                           `json:"key" enum:"B,C"`
+	Blocks   int                              `json:"blocks"`
+	Warnings int                              `json:"warnings"`
+	Issues   []contentcheck.ContentCheckIssue `json:"issues"`
 }
 
 // Checks runs the content checks on the composer's current content.
@@ -716,15 +732,19 @@ func (s *Service) Checks(ctx context.Context, ws *store.Workspace, id uuid.UUID,
 	if settings.Minify && html != "" {
 		html = contentcheck.Minify(html)
 	}
-	r, err := checker.Check(ctx, contentcheck.Input{Subject: in.Subject, Preheader: in.Preheader, MJML: in.MJML, HTML: html, OwnDomains: domains,
-		Address: templates.WorkspaceAddress(ws), Fields: fields, ProbeLinks: in.ProbeLinks, Language: in.Language, WorkspaceID: ws.ID})
+	base := contentcheck.Input{Subject: in.Subject, Preheader: in.Preheader, MJML: in.MJML, HTML: html, OwnDomains: domains,
+		Address: templates.WorkspaceAddress(ws), Fields: fields, ProbeLinks: in.ProbeLinks, Language: in.Language, WorkspaceID: ws.ID}
+	r, err := checker.Check(ctx, base)
 	if err != nil {
 		return ComposerChecks{}, err
 	}
 	if s.More != nil && in.Language == "" && strings.TrimSpace(in.MJML) != "" {
 		r.AddIssues(s.More(ctx, ws, id, in.MJML)...)
 	}
-	out := ComposerChecks{ContentCheckReport: r, Lint: mjml.Lint(in.MJML)}
+	out := ComposerChecks{ContentCheckReport: r, Lint: mjml.Lint(in.MJML), Variants: []ComposerVariantChecks{}}
+	if out.Variants, err = s.checkVariants(ctx, checker, base, r, in.ABTest, settings.Minify); err != nil {
+		return ComposerChecks{}, err
+	}
 	for _, is := range r.Issues {
 		if is.ID == "compliance.footer" {
 			out.FooterRemovedAt = s.footerRemovedAt(ctx, id)

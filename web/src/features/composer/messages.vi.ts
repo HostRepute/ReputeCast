@@ -200,6 +200,9 @@ export default translate(m, {
   severityWarn: 'Cảnh báo',
   describeImage: 'Mô tả hình ảnh',
   noWarningsLong: 'Không có cảnh báo. Độ sẵn sàng gửi chạy đầy đủ các mục kiểm tra, gồm cả kiểm tra liên kết, trước khi gửi đi bất cứ thứ gì.',
+  variantIssues: 'Biến thể {key}',
+  variantIssuesNote: 'Chỉ có ở biến thể {key}, và được sửa trong biến thể đó.',
+  showVariant: 'Hiện biến thể {key}',
 
   linkReplaced: 'Đã thay liên kết bằng {url}',
   sectionRemoved: 'Đã xóa phần',

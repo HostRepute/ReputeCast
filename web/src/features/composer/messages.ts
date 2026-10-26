@@ -208,6 +208,10 @@ export const m = defineMessages('composer', {
   severityWarn: 'Warn',
   describeImage: 'Describe the image',
   noWarningsLong: 'No warnings. Send Readiness runs the full set, including link checks, before anything goes out.',
+  /** An A/B variant's own findings in the Deliverability tab. */
+  variantIssues: 'Variant {key}',
+  variantIssuesNote: "Found in variant {key} only. It's fixed in that variant.",
+  showVariant: 'Show variant {key}',
 
   // One-click fixes.
   linkReplaced: 'Link replaced with {url}',

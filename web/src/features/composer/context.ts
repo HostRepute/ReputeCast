@@ -74,6 +74,8 @@ export interface ComposerState {
   }): Promise<boolean>
   /** Edits not saved yet (typed, waiting, or a save that failed). */
   hasUnsaved?(): boolean
+  /** What A/B variant `key` sends, unsaved edits included (previews). */
+  variantContent?(key: string): { subject: string; preheader: string; html: string }
   /** The version the editor is on (the last one it saved or loaded). */
   currentVersion?(): number
   /** Full MJML of the current content (head with title and preview + canvas). */

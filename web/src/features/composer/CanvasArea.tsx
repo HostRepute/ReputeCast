@@ -11,6 +11,7 @@ import { AltTextNote, WHOLE_ZOOM, WholeIssue } from '@/features/digests/composer
 import { t as tt, useT, type MessageDescriptor } from '@/i18n'
 import { common } from '@/i18n/common'
 import { RewriteActions } from '@/features/ai/composer/rewrite'
+import { newTest, withVariant } from './ABPanel'
 import { mc } from './canvas.messages'
 import { m } from './messages'
 import { useComposer, type Issue } from './context'
@@ -21,7 +22,7 @@ import { applyTextStyle, currentTextStyle, TEXT_STYLES, type TextEditing, type T
 import { componentAt, insertFooter, reveal } from './fixes'
 import { EmptyGallery } from './Gallery'
 import { ToolIcon } from './icons'
-import { contentIssues } from './RightPanel'
+import { canvasIssues, contentIssues } from './RightPanel'
 import { StateCards } from './StateCards'
 import { AccessibilityOverlays } from '@/features/accessibility/composer/Overlays'
 import { ConditionalOverlays, ConditionalToggle } from '@/features/conditional/Canvas'
@@ -119,8 +120,9 @@ function VariantSeg() {
   const keys = t ? t.variants.map((v) => v.key) : ['A']
   const add = () => {
     if (!c.canEdit) return
+    // A new subject variant starts from A's subject (CO-6).
     if (!t) {
-      c.setABTest({ kind: 'subject', testPercent: 20, metric: 'human_opens', durationHours: 2, variants: [{ key: 'A' }, { key: 'B', subject: '' }] })
+      c.setABTest(newTest('subject', c.subject, c.currentMjml))
       c.setVariant('B')
       return
     }
@@ -128,9 +130,9 @@ function VariantSeg() {
       c.setView('preview')
       return
     }
-    const next = (['B', 'C'] as const).find((k) => !t.variants.some((v) => v.key === k))!
-    c.setABTest({ ...t, variants: [...t.variants, t.kind === 'content' ? { key: next, mjml: c.currentMjml() } : { key: next, subject: '' }] })
-    c.setVariant(next)
+    const next = withVariant(t, c.subject, c.currentMjml)
+    c.setABTest(next)
+    c.setVariant(next.variants[next.variants.length - 1]!.key)
   }
   return (
     <div className="seg" role="group" aria-label={tr(mc.variantGroup)}>
@@ -196,7 +198,7 @@ function Toolbar({ zoom }: { zoom: number }) {
   const c = useComposer()
   const t = useT()
   const digest = useDigestMode()
-  const issues = contentIssues(c.checks?.issues)
+  const issues = contentIssues(canvasIssues(c))
   const blocks = issues.filter((i) => i.severity === 'block').length
   const warns = issues.length - blocks
   const mobile = c.device === 'mobile'
@@ -345,7 +347,7 @@ const TAGGED = new Set(['content.alt_text', 'links.blocklist', 'links.shortener'
 function WarningOverlays({ host, tick }: { host: HTMLElement | null; tick: number }) {
   const c = useComposer()
   const ed = c.editor
-  const issues = (c.checks?.issues ?? []).filter((i) => (i.severity === 'block' || i.severity === 'warn') && i.tag && i.path.length && TAGGED.has(i.id))
+  const issues = canvasIssues(c).filter((i) => (i.severity === 'block' || i.severity === 'warn') && i.tag && i.path.length && TAGGED.has(i.id))
   const placed = useMemo(() => {
     if (!ed) return []
     const out: { issue: Issue; box: Box; target: Component }[] = []
@@ -358,7 +360,7 @@ function WarningOverlays({ host, tick }: { host: HTMLElement | null; tick: numbe
       if (target && box) out.push({ issue, box, target })
     }
     return out
-  }, [ed, host, tick, c.checks]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ed, host, tick, c.checks, c.variant]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <>
       {placed.map(({ issue, box, target }, i) => {
@@ -388,7 +390,7 @@ function WarningOverlays({ host, tick }: { host: HTMLElement | null; tick: numbe
 function MissingFooter({ width }: { width: number }) {
   const c = useComposer()
   const t = useT()
-  const issue = c.checks?.issues.find((i) => i.id === 'compliance.footer')
+  const issue = canvasIssues(c).find((i) => i.id === 'compliance.footer')
   if (!issue) return null
   const when = c.checks?.footerRemovedAt
   return (

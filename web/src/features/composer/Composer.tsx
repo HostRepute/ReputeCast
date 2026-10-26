@@ -15,6 +15,7 @@ import { ComposerBanners, type Recovered } from './Banners'
 import { CanvasArea } from './CanvasArea'
 import { ComposerCtx, type ABTest, type Campaign, type Checks, type ComposerCtxData, type ComposerDialog, type ComposerState, type SaveStatus, type View } from './context'
 import { Dialogs } from './Dialogs'
+import { variantLines } from './ABPanel'
 import { trackChanges, type ChangeTracker } from './editor/changes'
 import { createComposerEditor, type ComposerEditor, type DeviceId, type EmailDevice } from './editor/grapes'
 import { installCanvasKeys } from './editor/keys'
@@ -344,6 +345,17 @@ export function Composer({
     }
   }, [canvasBody, bodyA])
 
+  /** What variant `key` sends, unsaved edits included: its subject and preheader (or A's), and its compiled HTML. */
+  const variantContent = useCallback(
+    (key: string) => {
+      const t = abRef.current
+      const lines = variantLines(t, key, { subject: subjectRef.current, preheader: preheaderRef.current })
+      if (key !== 'A' && t?.kind === 'content') return { ...lines, html: abForSave()?.variants.find((x) => x.key === key)?.html ?? '' }
+      return { ...lines, html: compileCurrent()?.html ?? '' }
+    },
+    [abForSave, compileCurrent],
+  )
+
   const loadContent = useCallback(
     (mjml: string, how: { source: 'template' | 'import' | 'code' | 'restore' | 'reload' | 'recovered'; label?: string }) => {
       const parts = splitMjml(mjml)
@@ -625,7 +637,8 @@ export function Composer({
         void http
           .POST('/api/v1/workspaces/{workspace}/campaigns/{campaignId}/checks', {
             params: { path: { workspace: slug, campaignId: campaign.id } },
-            body: { subject, preheader, mjml, html, language },
+            // Each A/B variant is checked too (its subject, or its content).
+            body: { subject, preheader, mjml, html, language, abTest: geRef.current ? abForSave() : undefined },
           })
           .then(({ data }) => {
             if (n === seq.current && data) setChecks(data)
@@ -639,7 +652,7 @@ export function Composer({
     )
     return () => window.clearTimeout(h)
     // rev covers canvas edits; ge triggers the first run once the editor is ready.
-  }, [rev, ge, subject, preheader, empty, slug, campaign.id, campaign.html, campaign.mjml, compileCurrent, currentMjml, checksNonce, language])
+  }, [rev, ge, subject, preheader, abTest, empty, slug, campaign.id, campaign.html, campaign.mjml, compileCurrent, currentMjml, abForSave, checksNonce, language])
 
   const onSettingsChanged = useCallback(() => {
     setChecksNonce((n) => n + 1)
@@ -753,6 +766,7 @@ export function Composer({
     },
     status,
     save,
+    variantContent,
     hasUnsaved: () => revision.current !== savedRevision.current || pendingSource.current !== null || statusRef.current.kind === 'offline' || statusRef.current.kind === 'error' || statusRef.current.kind === 'conflict',
     currentVersion: () => version.current,
     currentMjml,

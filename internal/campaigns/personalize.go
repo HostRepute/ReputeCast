@@ -2,11 +2,14 @@ package campaigns
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/google/uuid"
 
+	"github.com/hostrepute/reputecast/internal/contentcheck"
+	"github.com/hostrepute/reputecast/internal/i18n"
 	"github.com/hostrepute/reputecast/internal/liquid"
 	"github.com/hostrepute/reputecast/internal/paidaccess"
 	"github.com/hostrepute/reputecast/internal/store"
@@ -157,4 +160,69 @@ func uuids(in []string) []uuid.UUID {
 // usesOf lists the distinct variables printed in the given sources.
 func usesOf(srcs ...string) []liquid.Use {
 	return liquid.Uses(strings.Join(srcs, "\n"))
+}
+
+// checkVariants checks each A/B variant other than A: a subject test's
+// subject (and preheader), a content test's content. A subject variant
+// keeps what A's report doesn't have (the content is A's); a content
+// variant keeps all its findings, since fixing A's body doesn't fix its
+// own. A subject variant without a subject says so (it saves, and sends
+// A's subject until one is written).
+func (s *Service) checkVariants(ctx context.Context, checker *contentcheck.Checker, base contentcheck.Input, a contentcheck.ContentCheckReport, t *ComposerABTest, minify bool) ([]ComposerVariantChecks, error) {
+	out := []ComposerVariantChecks{}
+	if t == nil || t.Kind == "send_time" {
+		return out, nil
+	}
+	key := func(is contentcheck.ContentCheckIssue) string {
+		return fmt.Sprint(is.ID, "|", is.Title, "|", is.URL, "|", is.Path)
+	}
+	inA := map[string]bool{}
+	for _, is := range a.Issues {
+		inA[key(is)] = true
+	}
+	for _, v := range t.Variants {
+		if v.Key == "A" {
+			continue
+		}
+		in := base
+		// A variant's check never requests links (Send Readiness does that for the content sent).
+		in.ProbeLinks = false
+		if t.Kind == "subject" {
+			in.Subject = v.Subject
+		}
+		if v.Preheader != "" {
+			in.Preheader = v.Preheader
+		}
+		if t.Kind == "content" && strings.TrimSpace(v.MJML) != "" {
+			in.MJML, in.HTML = v.MJML, v.HTML
+			if minify && in.HTML != "" {
+				in.HTML = contentcheck.Minify(in.HTML)
+			}
+		}
+		r, err := checker.Check(ctx, in)
+		if err != nil {
+			return nil, err
+		}
+		vc := ComposerVariantChecks{Key: v.Key, Issues: []contentcheck.ContentCheckIssue{}}
+		for _, is := range r.Issues {
+			if is.Severity != contentcheck.Block && is.Severity != contentcheck.Warn {
+				continue
+			}
+			if t.Kind != "content" && inA[key(is)] {
+				continue
+			}
+			if is.ID == "subject.missing" {
+				args := i18n.Args{"variant": v.Key}
+				is.Title, is.TitleText = mProblemVariantSubject.Text(i18n.Default, args), mProblemVariantSubject.Keep(args)
+			}
+			if is.Severity == contentcheck.Block {
+				vc.Blocks++
+			} else {
+				vc.Warnings++
+			}
+			vc.Issues = append(vc.Issues, is)
+		}
+		out = append(out, vc)
+	}
+	return out, nil
 }

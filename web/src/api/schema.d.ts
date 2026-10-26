@@ -21741,6 +21741,7 @@ export interface components {
             /** Format: int64 */
             sizeBytes: number;
             subjectHeuristics: string[];
+            variants: components["schemas"]["ComposerVariantChecks"][];
             /** @enum {string} */
             verdict: "ready" | "warnings" | "blocked";
             /** Format: int64 */
@@ -21749,6 +21750,7 @@ export interface components {
             words: number;
         };
         ComposerChecksRequest: {
+            abTest?: components["schemas"]["ComposerABTest"];
             html?: string;
             language?: string;
             mjml?: string;
@@ -21941,6 +21943,15 @@ export interface components {
             /** @description A sender id, or empty to clear */
             senderId?: string;
             settings?: components["schemas"]["ComposerContentSettings"];
+        };
+        ComposerVariantChecks: {
+            /** Format: int64 */
+            blocks: number;
+            issues: components["schemas"]["ContentCheckIssue"][];
+            /** @enum {string} */
+            key: "B" | "C";
+            /** Format: int64 */
+            warnings: number;
         };
         ComposerVersion: {
             current: boolean;
